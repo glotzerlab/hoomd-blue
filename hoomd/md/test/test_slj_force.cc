@@ -395,7 +395,7 @@ std::shared_ptr<PotentialPairSLJ> base_class_shiftedlj_creator(std::shared_ptr<S
     return std::shared_ptr<PotentialPairSLJ>(new PotentialPairSLJ(sysdef, nlist));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! PotentialPairSLJGPU creator for unit tests
 std::shared_ptr<PotentialPairSLJ> gpu_shiftedlj_creator(std::shared_ptr<SystemDefinition> sysdef,
                                                    std::shared_ptr<NeighborList> nlist)
@@ -421,7 +421,7 @@ UP_TEST( SLJForce_periodic )
     }
 
 
-# ifdef ENABLE_CUDA
+# ifdef ENABLE_HIP
 //! test case for particle test on CPU - threaded
 UP_TEST( SLJForceGPU_particle )
     {

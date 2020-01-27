@@ -49,7 +49,9 @@ endmacro()
 
 # format: test_script user_min user_max
 set(TEST_LIST_CPU
+disks_implicit.py 0 0
 spheres_implicit.py 0 1
+spheres_implicit_repulsive.py 0 0
 sphere_eos.py 0 0
 disk_eos.py 0 0
 )
@@ -62,6 +64,7 @@ set(TEST_LIST_CPU ${TEST_LIST_CPU}
 endif(BUILD_JIT)
 
 set(TEST_LIST_GPU
+disks_implicit.py 0 0
 spheres_implicit.py 0 1
 sphere_eos.py 0 0
 disk_eos.py 0 0
@@ -84,12 +87,12 @@ foreach (CUR_I RANGE 0 ${_max_i} 3)
     list(GET TEST_LIST_CPU ${CUR_I} CUR_TEST)
     list(GET TEST_LIST_CPU ${CUR_I_START} CUR_START)
     list(GET TEST_LIST_CPU ${CUR_I_STOP} CUR_STOP)
-    if (TEST_CPU_IN_GPU_BUILDS OR NOT ENABLE_CUDA)
+    if (TEST_CPU_IN_GPU_BUILDS OR NOT ENABLE_HIP)
         add_script_test_cpu(${CUR_TEST} ${CUR_START} ${CUR_STOP})
     endif()
 endforeach ()
 
-if (ENABLE_CUDA)
+if (ENABLE_HIP)
 list(LENGTH TEST_LIST_GPU _max_i)
 math(EXPR _max_i "${_max_i}-1")
 foreach (CUR_I RANGE 0 ${_max_i} 3)
@@ -100,4 +103,4 @@ foreach (CUR_I RANGE 0 ${_max_i} 3)
     list(GET TEST_LIST_GPU ${CUR_I_STOP} CUR_STOP)
     add_script_test_gpu(${CUR_TEST} ${CUR_START} ${CUR_STOP})
 endforeach ()
-endif (ENABLE_CUDA)
+endif (ENABLE_HIP)

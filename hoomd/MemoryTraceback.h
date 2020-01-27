@@ -13,7 +13,7 @@
 
 #include "Messenger.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 class PYBIND11_EXPORT MemoryTraceback
     {

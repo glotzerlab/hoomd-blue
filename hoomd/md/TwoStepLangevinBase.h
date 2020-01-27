@@ -14,11 +14,11 @@
     \brief Declares the TwoStepLangevinBase class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Base class for Langevin equation based integration method
 /*! HOOMD implements Langevin dynamics and Brownian dynamics. Both are based on the same equation of motion, but the

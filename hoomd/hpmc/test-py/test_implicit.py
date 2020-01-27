@@ -35,14 +35,13 @@ class implicit_test_cube(unittest.TestCase):
 
         self.system = init.create_lattice(lattice.sc(a=L_ini/float(n[0])),n=n)
 
-        self.mc = hpmc.integrate.convex_polyhedron(seed=123,implicit=True,depletant_mode='overlap_regions')
+        self.mc = hpmc.integrate.convex_polyhedron(seed=123)
         self.mc.set_params(d=0.1,a=0.15)
 
         etap=1.0
         self.nR = etap/self.V_cube
 
         self.system.particles.types.add('B')
-        self.mc.set_params(nR=0,depletant_type='B')
 
         cube_verts=[(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)]
         self.mc.shape_param.set('A', vertices=cube_verts)
@@ -68,23 +67,23 @@ class implicit_test_cube(unittest.TestCase):
 
                 update.box_resize(Lx=L, Ly=L, Lz=L, period=None);
                 overlaps = self.mc.count_overlaps();
-                context.msg.notice(1,"phi =%f: overlaps = %d " % (((N*self.V_cube) / (L*L*L)), overlaps));
+                context.current.device.cpp_msg.notice(1,"phi =%f: overlaps = %d " % (((N*self.V_cube) / (L*L*L)), overlaps));
 
                 # run until all overlaps are removed
                 while overlaps > 0:
                     mc_tune.update()
                     run(100, quiet=True);
                     overlaps = self.mc.count_overlaps();
-                    context.msg.notice(1,"%d\n" % overlaps)
+                    context.current.device.cpp_msg.notice(1,"%d\n" % overlaps)
 
-                context.msg.notice(1,"\n");
+                context.current.device.cpp_msg.notice(1,"\n");
 
             # set the target L (this expands to the final L if it is larger than the start)
             update.box_resize(Lx=L_target, Ly=L_target, Lz=L_target, period=None);
 
     def test_implicit(self):
         # use depletants
-        self.mc.set_params(nR=self.nR)
+        self.mc.set_fugacity('B',self.nR)
 
         # warm up
         run(self.steps)
@@ -100,12 +99,12 @@ class implicit_test_cube(unittest.TestCase):
             avg_eta_p += eta_p/self.num_samples
 
         # check equation of state with very rough tolerance
-        context.msg.notice(1,'eta_p = {0}\n'.format(avg_eta_p))
+        context.current.device.cpp_msg.notice(1,'eta_p = {0}\n'.format(avg_eta_p))
         if self.long:
             self.assertAlmostEqual(avg_eta_p,0.4,delta=0.1)
 
     def tearDown(self):
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             os.remove(self.tmp_file);
 
         del self.free_volume
@@ -122,7 +121,7 @@ class implicit_test_sphere_new (unittest.TestCase):
         self.num_samples = 0
         self.steps = 10
 
-        self.mc = hpmc.integrate.sphere(seed=123,implicit=True, depletant_mode='overlap_regions')
+        self.mc = hpmc.integrate.sphere(seed=123)
         self.mc.set_params(d=0.1)
 
         q=1.0
@@ -130,7 +129,7 @@ class implicit_test_sphere_new (unittest.TestCase):
         self.nR = etap/(math.pi/6.0*math.pow(q,3.0))
 
         self.system.particles.types.add('B')
-        self.mc.set_params(nR=self.nR,depletant_type='B')
+        self.mc.set_fugacity('B',self.nR)
 
         self.mc.shape_param.set('A', diameter=1.0)
         self.mc.shape_param.set('B', diameter=q)
@@ -158,10 +157,10 @@ class implicit_test_sphere_new (unittest.TestCase):
             eta_p = math.pi/6.0*free_vol/vol*self.nR
             avg_eta_p += eta_p/self.num_samples
 
-        context.msg.notice(1,'eta_p = {0}\n'.format(avg_eta_p))
+        context.current.device.cpp_msg.notice(1,'eta_p = {0}\n'.format(avg_eta_p))
 
     def tearDown(self):
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             os.remove(self.tmp_file);
 
         del self.free_volume

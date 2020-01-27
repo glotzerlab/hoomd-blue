@@ -11,7 +11,7 @@
     \brief Defines GPU driver functions for the composite particle integration on the GPU.
 */
 
-cudaError_t gpu_rigid_force(Scalar4* d_force,
+hipError_t gpu_rigid_force(Scalar4* d_force,
                  Scalar4* d_torque,
                  const unsigned int *d_molecule_len,
                  const unsigned int *d_molecule_list,
@@ -33,11 +33,11 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
                  unsigned int N,
                  unsigned int n_bodies_per_block,
                  unsigned int block_size,
-                 const cudaDeviceProp& dev_prop,
+                 const hipDeviceProp_t& dev_prop,
                  bool zero_force,
                  const GPUPartition &gpu_partition);
 
-cudaError_t gpu_rigid_virial(Scalar* d_virial,
+hipError_t gpu_rigid_virial(Scalar* d_virial,
                  const unsigned int *d_molecule_len,
                  const unsigned int *d_molecule_list,
                  const unsigned int *d_molecule_idx,
@@ -58,7 +58,7 @@ cudaError_t gpu_rigid_virial(Scalar* d_virial,
                  unsigned int net_virial_pitch,
                  unsigned int virial_pitch,
                  unsigned int block_size,
-                 const cudaDeviceProp& dev_prop,
+                 const hipDeviceProp_t& dev_prop,
                  const GPUPartition& gpu_partition);
 
 
@@ -82,7 +82,7 @@ void gpu_update_composite(unsigned int N,
     const GPUPartition &gpu_partition);
 
 
-cudaError_t gpu_find_rigid_centers(const unsigned int *d_body,
+hipError_t gpu_find_rigid_centers(const unsigned int *d_body,
                                 const unsigned int *d_tag,
                                 const unsigned int *d_rtag,
                                 const unsigned int N,

@@ -8,7 +8,7 @@
     \brief Declares an updater that changes the MPI domain decomposition to balance the load
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -16,11 +16,10 @@
 
 #ifndef __LOADBALANCER_H__
 #define __LOADBALANCER_H__
-
 #include "Updater.h"
 
 #include <memory>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 #include <string>
 #include <vector>
 #include <map>

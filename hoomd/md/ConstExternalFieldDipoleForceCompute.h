@@ -12,11 +12,11 @@
     \brief Declares a class for computing external forces on anisotropic particles
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __CONSTEXTERNALFIELDDIPOLEFORCECOMPUTE_H__
 #define __CONSTEXTERNALFIELDDIPOLEFORCECOMPUTE_H__

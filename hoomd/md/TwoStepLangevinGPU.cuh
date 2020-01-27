@@ -8,6 +8,7 @@
     \brief Declares GPU kernel code for Langevin dynamics on the GPU. Used by TwoStepLangevinGPU.
 */
 
+#include <hip/hip_runtime.h>
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/HOOMDMath.h"
 
@@ -34,7 +35,7 @@ struct langevin_step_two_args
     };
 
 //! Kernel driver for the second part of the Langevin update called by TwoStepLangevinGPU
-cudaError_t gpu_langevin_step_two(const Scalar4 *d_pos,
+hipError_t gpu_langevin_step_two(const Scalar4 *d_pos,
                                   Scalar4 *d_vel,
                                   Scalar3 *d_accel,
                                   const Scalar *d_diameter,
@@ -47,7 +48,7 @@ cudaError_t gpu_langevin_step_two(const Scalar4 *d_pos,
                                   unsigned int D);
 
 //! Kernel driver for the second part of the angular Langevin update (NO_SQUISH) by TwoStepLangevinGPU
-cudaError_t gpu_langevin_angular_step_two(const Scalar4 *d_pos,
+hipError_t gpu_langevin_angular_step_two(const Scalar4 *d_pos,
                              Scalar4 *d_orientation,
                              Scalar4 *d_angmom,
                              const Scalar3 *d_inertia,

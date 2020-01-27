@@ -25,11 +25,9 @@ See `J. Glaser et. al. 2015 <http://dx.doi.org/10.1016/j.cpc.2015.02.028>`_ for 
 Compilation
 -----------
 
-For detailed compilation instructions, see :ref:`compile-hoomd`.
-
 Compilation flags pertinent to MPI simulations are:
 
-- **ENABLE_MPI** (to enable multi-GPU simulations, must be set to \b ON)
+- **ENABLE_MPI** (to enable multi-GPU simulations, must be set to **ON**)
 - **ENABLE_MPI_CUDA** (optional, enables CUDA-aware MPI library support, see below)
 
 Usage
@@ -142,8 +140,9 @@ the total number of ranks **N** into **p = N/n** replicas, where **n** is the
 number of GPUs per replica, invoke HOOMD-blue with the **--nrank=n**
 command line option (see :ref:`command-line-options`).
 
-Inside the command script, the current partition can be queried using
-:py:func:`hoomd.comm.get_partition()`.
+Inside the command script, the current partition can be queried by accessing the
+:py:attr:`hoomd.comm.Communicator.partition` property from the communicator of the 
+device attached to the current simulation context.
 
 Dynamic load balancing
 ----------------------

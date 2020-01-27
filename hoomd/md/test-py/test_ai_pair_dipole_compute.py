@@ -15,7 +15,7 @@ class pair_dipole_tests_force (unittest.TestCase):
         context.initialize()
 
         snapshot = data.make_snapshot(N=2, box=data.boxdim(L=1000.0))
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             snapshot.particles.position[0] = [0.0, 0.0, 0.0]
             snapshot.particles.position[1] = [0.8, 0.45, 0.9]
             snapshot.particles.orientation[0] = [1, 0, 0, 0]

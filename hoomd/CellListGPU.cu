@@ -6,11 +6,8 @@
 
 #include "CellListGPU.cuh"
 
-#include "hoomd/extern/util/mgpucontext.h"
-#include "hoomd/extern/kernels/localitysort.cuh"
-
-#include <thrust/device_vector.h>
 #include <thrust/sort.h>
+#include <thrust/device_ptr.h>
 
 /*! \file CellListGPU.cu
     \brief Defines GPU kernel code for cell list generation on the GPU
@@ -174,7 +171,7 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
         }
     }
 
-cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
+void gpu_compute_cell_list(unsigned int *d_cell_size,
                                   Scalar4 *d_xyzf,
                                   Scalar4 *d_tdb,
                                   Scalar4 *d_cell_orientation,
@@ -200,8 +197,8 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)gpu_compute_cell_list_kernel);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, reinterpret_cast<const void *>(&gpu_compute_cell_list_kernel));
         max_block_size = attr.maxThreadsPerBlock;
         }
 
@@ -219,7 +216,8 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
         unsigned int run_block_size = min(block_size, max_block_size);
         int n_blocks = nwork/run_block_size + 1;
 
-        gpu_compute_cell_list_kernel<<<n_blocks, run_block_size>>>(d_cell_size+idev*ci.getNumElements(),
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_compute_cell_list_kernel), dim3(n_blocks), dim3(run_block_size), 0, 0,
+                                                                   d_cell_size+idev*ci.getNumElements(),
                                                                    d_xyzf ? d_xyzf+idev*cli.getNumElements() : 0,
                                                                    d_tdb ? d_tdb+idev*cli.getNumElements() : 0,
                                                                    d_cell_orientation ? d_cell_orientation+idev*cli.getNumElements() : 0,
@@ -242,9 +240,7 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                                                    nwork,
                                                                    range.first);
         }
-
-    return cudaSuccess;
-    }
+   }
 
 __global__ void gpu_fill_indices_kernel(
     unsigned int cl_size,
@@ -390,7 +386,7 @@ __global__ void gpu_combine_cell_lists_kernel(
    \param block_size GPU block size
    \param gpu_partition multi-GPU partition
  */
-cudaError_t gpu_combine_cell_lists(const unsigned int *d_cell_size_scratch,
+hipError_t gpu_combine_cell_lists(const unsigned int *d_cell_size_scratch,
                                 unsigned int *d_cell_size,
                                 const unsigned int *d_idx_scratch,
                                 unsigned int *d_idx,
@@ -415,8 +411,7 @@ cudaError_t gpu_combine_cell_lists(const unsigned int *d_cell_size_scratch,
         {
         gpu_partition.getRangeAndSetGPU(idev);
 
-        gpu_combine_cell_lists_kernel<<<grid, threads>>>
-            (
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_combine_cell_lists_kernel), grid, threads, 0, 0,
             d_cell_size_scratch,
             d_cell_size,
             d_idx_scratch,
@@ -434,7 +429,7 @@ cudaError_t gpu_combine_cell_lists(const unsigned int *d_cell_size_scratch,
             d_conditions);
         }
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 __global__ void gpu_apply_sorted_cell_list_order(
@@ -472,9 +467,8 @@ __global__ void gpu_apply_sorted_cell_list_order(
    \param d_sort_permutation Temporary array for storing the permuted cell list indices
    \param ci Cell indexer
    \param cli Cell list indexer
-   \param mgpu_context ModernGPU context
  */
-cudaError_t gpu_sort_cell_list(unsigned int *d_cell_size,
+hipError_t gpu_sort_cell_list(unsigned int *d_cell_size,
                         Scalar4 *d_xyzf,
                         Scalar4 *d_xyzf_new,
                         Scalar4 *d_tdb,
@@ -494,8 +488,7 @@ cudaError_t gpu_sort_cell_list(unsigned int *d_cell_size,
     dim3 threads(block_size);
     dim3 grid(cli.getNumElements()/block_size + 1);
 
-    gpu_fill_indices_kernel<<<grid, threads>>>
-        (
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_fill_indices_kernel), grid, threads, 0, 0,
         cli.getNumElements(),
         d_sort_idx,
         d_sort_permutation,
@@ -510,7 +503,7 @@ cudaError_t gpu_sort_cell_list(unsigned int *d_cell_size,
     thrust::sort_by_key(d_sort_idx_thrust, d_sort_idx_thrust + cli.getNumElements(), d_sort_permutation_thrust, comp_less_uint2());
 
     // apply sorted order
-    gpu_apply_sorted_cell_list_order<<<grid, threads>>>(
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_apply_sorted_cell_list_order), grid, threads, 0, 0,
         cli.getNumElements(),
         d_cell_idx,
         d_cell_idx_new,
@@ -525,18 +518,18 @@ cudaError_t gpu_sort_cell_list(unsigned int *d_cell_size,
 
     // copy back permuted arrays to original ones
     if (d_xyzf)
-        cudaMemcpy(d_xyzf, d_xyzf_new, sizeof(Scalar4)*cli.getNumElements(), cudaMemcpyDeviceToDevice);
+        hipMemcpy(d_xyzf, d_xyzf_new, sizeof(Scalar4)*cli.getNumElements(), hipMemcpyDeviceToDevice);
 
-    cudaMemcpy(d_cell_idx, d_cell_idx_new, sizeof(unsigned int)*cli.getNumElements(), cudaMemcpyDeviceToDevice);
+    hipMemcpy(d_cell_idx, d_cell_idx_new, sizeof(unsigned int)*cli.getNumElements(), hipMemcpyDeviceToDevice);
 
     if (d_tdb)
         {
-        cudaMemcpy(d_tdb, d_tdb_new, sizeof(Scalar4)*cli.getNumElements(), cudaMemcpyDeviceToDevice);
+        hipMemcpy(d_tdb, d_tdb_new, sizeof(Scalar4)*cli.getNumElements(), hipMemcpyDeviceToDevice);
         }
     if (d_cell_orientation)
         {
-        cudaMemcpy(d_cell_orientation, d_cell_orientation_new, sizeof(Scalar4)*cli.getNumElements(), cudaMemcpyDeviceToDevice);
+        hipMemcpy(d_cell_orientation, d_cell_orientation_new, sizeof(Scalar4)*cli.getNumElements(), hipMemcpyDeviceToDevice);
         }
 
-    return cudaSuccess;
+    return hipSuccess;
     }

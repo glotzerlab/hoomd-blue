@@ -130,15 +130,13 @@ class user(object):
     .. versionadded:: 2.3
     '''
     def __init__(self, mc, r_cut, array_size=1, code=None, llvm_ir_file=None, clang_exec=None):
-        hoomd.util.print_status_line();
 
         # check if initialization has occurred
-        if hoomd.context.exec_conf is None:
-            raise RuntimeError('Error creating patch energy, call context.initialize() first');
+        hoomd.context._verify_init()
 
         # raise an error if this run is on the GPU
-        if hoomd.context.exec_conf.isCUDAEnabled():
-            hoomd.context.msg.error("Patch energies are not supported on the GPU\n");
+        if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
+            hoomd.context.current.device.cpp_msg.error("Patch energies are not supported on the GPU\n");
             raise RuntimeError("Error initializing patch energy");
 
         # Find a clang executable if none is provided
@@ -155,7 +153,7 @@ class user(object):
                 llvm_ir = f.read()
 
         self.compute_name = "patch"
-        self.cpp_evaluator = _jit.PatchEnergyJIT(hoomd.context.exec_conf, llvm_ir, r_cut, array_size);
+        self.cpp_evaluator = _jit.PatchEnergyJIT(hoomd.context.current.device.cpp_exec_conf, llvm_ir, r_cut, array_size);
         mc.set_PatchEnergyEvaluator(self);
 
         self.mc = mc
@@ -221,9 +219,9 @@ float eval(const vec3<float>& r_ij,
         llvm_ir = output[0].decode()
 
         if p.returncode != 0:
-            hoomd.context.msg.error("Error compiling provided code\n");
-            hoomd.context.msg.error("Command "+' '.join(cmd)+"\n");
-            hoomd.context.msg.error(output[1].decode()+"\n");
+            hoomd.context.current.device.cpp_msg.error("Error compiling provided code\n");
+            hoomd.context.current.device.cpp_msg.error("Command "+' '.join(cmd)+"\n");
+            hoomd.context.current.device.cpp_msg.error(output[1].decode()+"\n");
             raise RuntimeError("Error initializing patch energy");
 
         return llvm_ir
@@ -235,7 +233,6 @@ float eval(const vec3<float>& r_ij,
 
     '''
     def disable(self,log=None):
-        hoomd.util.print_status_line();
 
         if log:
             # enable only for logging purposes
@@ -252,7 +249,6 @@ float eval(const vec3<float>& r_ij,
 
     '''
     def enable(self):
-        hoomd.util.print_status_line()
         self.mc.cpp_integrator.setPatchEnergy(self.cpp_evaluator);
 
 class user_union(user):
@@ -321,11 +317,8 @@ class user_union(user):
     def __init__(self, mc, r_cut, array_size=1, code=None, llvm_ir_file=None, r_cut_iso=None, code_iso=None,
         llvm_ir_file_iso=None, array_size_iso=1, clang_exec=None):
 
-        hoomd.util.print_status_line();
-
         # check if initialization has occurred
-        if hoomd.context.exec_conf is None:
-            raise RuntimeError('Error creating patch energy, call context.initialize() first');
+        hoomd.context._verify_init()
 
         if clang_exec is not None:
             clang = clang_exec;
@@ -354,7 +347,7 @@ class user_union(user):
             r_cut_iso = -1.0
 
         self.compute_name = "patch_union"
-        self.cpp_evaluator = _jit.PatchEnergyJITUnion(hoomd.context.current.system_definition, hoomd.context.exec_conf,
+        self.cpp_evaluator = _jit.PatchEnergyJITUnion(hoomd.context.current.system_definition, hoomd.context.current.device.cpp_exec_conf,
             llvm_ir_iso, r_cut_iso, array_size_iso, llvm_ir, r_cut,  array_size);
         mc.set_PatchEnergyEvaluator(self);
 
@@ -395,7 +388,7 @@ class user_union(user):
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         type_names = [ hoomd.context.current.system_definition.getParticleData().getNameByType(i) for i in range(0,ntypes) ];
         if not type in type_names:
-            hoomd.context.msg.error("{} is not a valid particle type.\n".format(type));
+            hoomd.context.current.device.cpp_msg.error("{} is not a valid particle type.\n".format(type));
             raise RuntimeError("Error initializing patch energy.");
         typeid = type_names.index(type)
 

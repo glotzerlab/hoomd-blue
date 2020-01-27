@@ -11,7 +11,7 @@
 #ifndef MPCD_CELL_LIST_H_
 #define MPCD_CELL_LIST_H_
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -23,7 +23,7 @@
 #include "hoomd/ParticleGroup.h"
 
 #include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
-#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
+#include <pybind11/pybind11.h>
 
 #include <array>
 

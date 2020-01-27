@@ -21,16 +21,10 @@ The following quantities are provided by the integrator for use in HOOMD-blue's 
 - ``hpmc_move_ratio`` - Probability of making a translation move (1- P(rotate move))
 - ``hpmc_overlap_count`` - Count of the number of particle-particle overlaps in the current system configuration
 
-With non-interacting depletant (**implicit=True**), the following log quantities are available:
+With non-interacting depletants, the following log quantities are available:
 
-- ``hpmc_fugacity`` - The current value of the depletant fugacity (in units of density, volume^-1)
-- ``hpmc_ntrial`` - The current number of configurational bias attempts per overlapping depletant
+- ``hpmc_fugacity_**type**`` - The current value of the depletant fugacity for a given type (in units of density, volume^-1)
 - ``hpmc_insert_count`` - Number of depletants inserted per colloid
-- ``hpmc_reinsert_count`` - Number of overlapping depletants reinserted per colloid by configurational bias MC
-- ``hpmc_free_volume_fraction`` - Fraction of free volume to total sphere volume after a trial move has been proposed
-  (sampled inside a sphere around the new particle position)
-- ``hpmc_overlap_fraction`` - Fraction of depletants in excluded volume after trial move to depletants in free volume before move
-- ``hpmc_configurational_bias_ratio`` - Ratio of configurational bias attempts to depletant insertions
 
 With patch energies defined, the following quantities are available:
 - ``hpmc_patch_energy`` - The potential energy of the system resulting from the patch interaction.
@@ -86,6 +80,37 @@ To approximate a fair comparison of dynamics between CPU and GPU timesteps, log 
 quantity to get the number sweeps completed so far at each logged timestep.
 
 See `J. A. Anderson et. al. 2016 <http://dx.doi.org/10.1016/j.cpc.2016.02.024>`_ for design and implementation details.
+
+.. rubric:: Depletants
+
+HPMC supports integration with implicit depletants. *Depletants* are shapes that do not interact between themselves, but have
+a finite excluded volume with respect to other particles (the *colloids*). Their ideal gas nature makes it possible to randomly insert
+depletants into the overlap regions between the colloids, according to a Poisson point process to sample from the grand-canonical
+ensemble. This insertion is efficiently performed in parallel on the CPU, using TBB when it is enabled (see
+:doc:`Installation Guide </installation>`), or on the GPU.
+
+Details on the depletant capability are documented in `J. Glaser et al. 2015 <https://doi.org/10.1063/1.4935175>`_, and
+Glaser, to be published (2019).
+
+Since release 3.0 HOOMD-blue supports *quermass integration*, which is a method
+to define the excluded volume of the colloids independently from that of the
+test particles. Every colloid is swept by a sphere of constant radius
+**r_sweep** (see :py:meth:`hoomd.hpmc.integrate.mode_hpmc.set_params`), similar
+to implicit depletants with a spherical depletant. However, the test particle
+(or mixture thereof) now intersects the region of intersection between the
+sphere-swept colloids, as illustrated below. The name 'Quermass integration' of
+the method emphasizes the fact that test particles of arbitrary shape and in
+particular, convex test particles of arbitrary geometric measures (volume,
+surface area, integrated mean and Gaussian curvature -- the four Minkowski measures in
+three dimensions) can be used to realize a free energy functional that depends
+on the corresponding measures of the system of particles in a general way. The
+coefficients can have any sign, e.g. negative coefficients are realized
+by negative test particle fugacities (see :py:meth:`hoomd.hpmc.integrate.mode_hpmc.set_fugacity`).
+
+.. image:: quermass.png
+    :width: 450 px
+    :align: center
+    :alt: Cell list schematic
 
 .. rubric:: Stability
 

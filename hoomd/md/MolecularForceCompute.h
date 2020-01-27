@@ -7,7 +7,7 @@
 #include "hoomd/ForceConstraint.h"
 #include "NeighborList.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/Autotuner.h"
 #endif
 
@@ -31,11 +31,11 @@
     members of a molecule even if only a single particle member falls into the ghost layer.
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __MolecularForceCompute_H__
 #define __MolecularForceCompute_H__
@@ -109,7 +109,7 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
             return m_molecule_idx;
             }
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         //! Set autotuner parameters
         /*! \param enable Enable/disable autotuning
             \param period period (approximate) in time steps when returning occurs
@@ -149,7 +149,7 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
         GlobalVector<unsigned int> m_molecule_order;   //!< Order in molecule by local ptl idx
         GlobalVector<unsigned int> m_molecule_idx;     //!< Reverse-lookup into molecule list
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         std::unique_ptr<Autotuner> m_tuner_fill;    //!< Autotuner for block size for filling the molecule table
         #endif
 
@@ -163,12 +163,12 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
         //! construct a list of local molecules
         virtual void initMolecules();
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         //! construct a list of local molecules on the GPU
         virtual void initMoleculesGPU();
         #endif
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         GPUPartition m_gpu_partition;               //!< Partition of the molecules on GPUs
         #endif
     };

@@ -1669,7 +1669,7 @@ Scalar PPPMForceCompute::getQ2Sum()
 
 void export_PPPMForceCompute(py::module& m)
     {
-    py::class_<PPPMForceCompute, std::shared_ptr<PPPMForceCompute> >(m, "PPPMForceCompute", py::base<ForceCompute>())
+    py::class_<PPPMForceCompute, ForceCompute, std::shared_ptr<PPPMForceCompute> >(m, "PPPMForceCompute")
         .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, std::shared_ptr<ParticleGroup> >())
         .def("setParams", &PPPMForceCompute::setParams)
         .def("getQSum", &PPPMForceCompute::getQSum)

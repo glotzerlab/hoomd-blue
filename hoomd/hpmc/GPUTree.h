@@ -7,7 +7,7 @@
 #define __GPU_TREE_H__
 
 // need to declare these class methods with appropriate qualifiers when building in nvcc
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -15,7 +15,7 @@
 #define HOSTDEVICE
 #endif
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <sstream>
 #endif
 
@@ -36,7 +36,7 @@ class GPUTree
             : m_num_nodes(0), m_num_leaves(0), m_leaf_capacity(0)
             { }
 
-        #ifndef NVCC
+        #ifndef __HIPCC__
         //! Constructor
         /*! \param tree OBBTree to construct from
          *  \param managed True if we use CUDA managed memory
@@ -114,7 +114,7 @@ class GPUTree
             return m_num_nodes;
             }
 
-        #ifndef NVCC
+        #ifndef __HIPCC__
         //! Initialize the ancestor count index
         void initializeAncestorCounts(unsigned int idx, const OBBTree& tree, unsigned int ancestors)
             {
@@ -138,12 +138,12 @@ class GPUTree
          * \param cur_node If 0, start a new tree traversal, otherwise use stored value from previous call
          * \returns true if the current node overlaps and is a leaf node
          */
-        DEVICE inline bool queryNode(const OBB& obb, unsigned int &cur_node) const
+        DEVICE inline bool queryNode(const OBB& obb, unsigned int &cur_node, bool ignore_mask=false) const
             {
             OBB node_obb(getOBB(cur_node));
 
             bool leaf = false;
-            if (overlap(node_obb, obb))
+            if (overlap(node_obb, obb, ignore_mask))
                 {
                 unsigned int left_child = getLeftChild(cur_node);
 
@@ -258,24 +258,23 @@ class GPUTree
             return obb;
             }
 
-        #ifdef ENABLE_CUDA
-        //! Attach managed memory to CUDA stream
-        void attach_to_stream(cudaStream_t stream) const
+        #ifdef ENABLE_HIP
+        //! Set CUDA memory hints
+        void set_memory_hint() const
             {
-            // attach managed memory arrays to stream
-            m_center.attach_to_stream(stream);
-            m_lengths.attach_to_stream(stream);
-            m_rotation.attach_to_stream(stream);
-            m_mask.attach_to_stream(stream);
-            m_is_sphere.attach_to_stream(stream);
+            m_center.set_memory_hint();
+            m_lengths.set_memory_hint();
+            m_rotation.set_memory_hint();
+            m_mask.set_memory_hint();
+            m_is_sphere.set_memory_hint();
 
-            m_left.attach_to_stream(stream);
-            m_escape.attach_to_stream(stream);
-            m_ancestors.attach_to_stream(stream);
+            m_left.set_memory_hint();
+            m_escape.set_memory_hint();
+            m_ancestors.set_memory_hint();
 
-            m_leaf_ptr.attach_to_stream(stream);
-            m_leaf_obb_ptr.attach_to_stream(stream);
-            m_particles.attach_to_stream(stream);
+            m_leaf_ptr.set_memory_hint();
+            m_leaf_obb_ptr.set_memory_hint();
+            m_particles.set_memory_hint();
             }
         #endif
 
@@ -283,7 +282,7 @@ class GPUTree
         /*! \param ptr Pointer to load data to (will be incremented)
             \param available_bytes Size of remaining shared memory allocation
          */
-        HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
+        DEVICE void load_shared(char *& ptr, unsigned int &available_bytes)
             {
             m_center.load_shared(ptr, available_bytes);
             m_lengths.load_shared(ptr, available_bytes);
@@ -298,6 +297,27 @@ class GPUTree
             m_leaf_ptr.load_shared(ptr, available_bytes);
             m_leaf_obb_ptr.load_shared(ptr, available_bytes);
             m_particles.load_shared(ptr, available_bytes);
+            }
+
+        //! Determine size of the shared memory allocation
+        /*! \param ptr Pointer to increment
+            \param available_bytes Size of remaining shared memory allocation
+         */
+        HOSTDEVICE void allocate_shared(char *& ptr, unsigned int &available_bytes) const
+            {
+            m_center.allocate_shared(ptr, available_bytes);
+            m_lengths.allocate_shared(ptr, available_bytes);
+            m_rotation.allocate_shared(ptr, available_bytes);
+            m_mask.allocate_shared(ptr, available_bytes);
+            m_is_sphere.allocate_shared(ptr, available_bytes);
+
+            m_left.allocate_shared(ptr, available_bytes);
+            m_escape.allocate_shared(ptr, available_bytes);
+            m_ancestors.allocate_shared(ptr, available_bytes);
+
+            m_leaf_ptr.allocate_shared(ptr, available_bytes);
+            m_leaf_obb_ptr.allocate_shared(ptr, available_bytes);
+            m_particles.allocate_shared(ptr, available_bytes);
             }
 
         //! Get the capacity of leaf nodes
@@ -401,7 +421,8 @@ DEVICE inline void findAscent(unsigned int a_count, unsigned int b_count, unsign
  *     }
  */
 DEVICE inline bool traverseBinaryStack(const GPUTree& a, const GPUTree &b, unsigned int& cur_node_a, unsigned int& cur_node_b,
-    unsigned long int &stack, OBB& obb_a, OBB& obb_b, const quat<OverlapReal>& q, const vec3<OverlapReal>& dr)
+    unsigned long int &stack, OBB& obb_a, OBB& obb_b, const quat<OverlapReal>& q, const vec3<OverlapReal>& dr,
+    bool ignore_mask = false)
     {
     bool leaf = false;
     bool ascend = true;
@@ -409,7 +430,7 @@ DEVICE inline bool traverseBinaryStack(const GPUTree& a, const GPUTree &b, unsig
     unsigned int old_a = cur_node_a;
     unsigned int old_b = cur_node_b;
 
-    if (overlap(obb_a, obb_b))
+    if (overlap(obb_a, obb_b, ignore_mask))
         {
         if (a.isLeaf(cur_node_a) && b.isLeaf(cur_node_b))
             {
@@ -471,6 +492,116 @@ DEVICE inline bool traverseBinaryStack(const GPUTree& a, const GPUTree &b, unsig
 
     return leaf;
     }
+
+//! Traverse a binary hierachy, subject to intersection with a third OBB
+/*! Returns true if an intersecting pair of leaf OBB's has been found, where both
+ * OBBs intersect with the third OBB
+ *
+ * \param a First tree
+ * \param b Second tree
+ * \param cur_node_a Current node in first tree
+ * \param cur_node_b Current node in second tree
+ * \param a binary stack realized as an integer
+ * \param obb_a OBB from first tree corresponding to cur_node_a, in the reference frame of b
+ * \param obb_b OBB from second tree corresponding to cur_node_b
+ * \param q Rotation that is applied to a's OBBs to bring them into b's reference frame
+ * \param dr translation that is applied to a's OBBs to bring them into b's reference frame
+ * \param obb_c OBB to test the first two OBB's against, in the reference frame of b
+ *
+ * This function prefetches OBBs from trees a and b (only when the nodes change)
+ * and is supposed to be called from a while-loop:
+ *
+ * unsigned long int stack = 0;
+ * // the third OBB
+ * obb_c = ..
+ *
+ * // load initial OBBs for the two nodes
+ * obb_a = ...
+ * // transform OBB a into B's frame
+ * ...
+ * obb_b = ...
+ *
+ *
+ * while (cur_node_a != a.tree.getNumNodes() && cur_node_b != b.tree.getNumNodes())
+ *     {
+ *     query_node_a = cur_node_a;
+ *     query_node_b = cur_node_b;
+ *     if (traverseBinaryStack(a, b, cur_node_a, cur_node_b, stack, obb_a, obb_b, obb..))
+ *            test_narrow_phase(a, b, query_node_a, query_node_b, ...)
+ *     }
+ */
+DEVICE inline bool traverseBinaryStackIntersection(const GPUTree& a, const GPUTree &b, unsigned int& cur_node_a, unsigned int& cur_node_b,
+    unsigned long int &stack, OBB& obb_a, OBB& obb_b, const quat<OverlapReal>& q, const vec3<OverlapReal>& dr, const OBB& obb_c)
+    {
+    bool leaf = false;
+    bool ascend = true;
+
+    unsigned int old_a = cur_node_a;
+    unsigned int old_b = cur_node_b;
+
+    if (overlap(obb_a, obb_b) && overlap(obb_a, obb_c) && overlap(obb_b, obb_c))
+        {
+        if (a.isLeaf(cur_node_a) && b.isLeaf(cur_node_b))
+            {
+            leaf = true;
+            }
+        else
+            {
+            // descend into subtree with larger volume first (unless there are no children)
+            bool descend_A = obb_a.getVolume() > obb_b.getVolume() ? !a.isLeaf(cur_node_a) : b.isLeaf(cur_node_b);
+
+            if (descend_A)
+                {
+                cur_node_a = a.getLeftChild(cur_node_a);
+                stack <<= 1; // push A
+                }
+            else
+                {
+                cur_node_b = b.getLeftChild(cur_node_b);
+                stack <<= 1; stack |= 1; // push B
+                }
+            ascend = false;
+            }
+        }
+
+    if (ascend)
+        {
+        // ascend in tree
+        unsigned int a_count = a.getNumAncestors(cur_node_a);
+        unsigned int b_count = b.getNumAncestors(cur_node_b);
+
+        unsigned int a_ascent, b_ascent;
+        findAscent(a_count, b_count, stack, a_ascent, b_ascent);
+
+        if ((stack & 1) == 0) // top of stack == A
+            {
+            cur_node_a = a.getEscapeIndex(cur_node_a);
+
+            // ascend in B, using post-order indexing
+            cur_node_b -= b_ascent;
+            }
+        else
+            {
+            // ascend in A, using post-order indexing
+            cur_node_a -= a_ascent;
+            cur_node_b = b.getEscapeIndex(cur_node_b);
+            }
+        }
+    if (cur_node_a < a.getNumNodes() && cur_node_b < b.getNumNodes())
+        {
+        // pre-fetch OBBs
+        if (old_a != cur_node_a)
+            {
+            obb_a = a.getOBB(cur_node_a);
+            obb_a.affineTransform(q, dr);
+            }
+        if (old_b != cur_node_b)
+            obb_b = b.getOBB(cur_node_b);
+        }
+
+    return leaf;
+    }
+
 
 }; // end namespace detail
 

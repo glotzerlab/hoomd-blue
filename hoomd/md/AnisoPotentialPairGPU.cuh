@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -10,9 +11,9 @@
 #include "hoomd/TextureTools.h"
 #include "hoomd/GPUPartition.cuh"
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #include "hoomd/WarpTools.cuh"
-#endif // NVCC
+#endif // __HIPCC__
 
 /*! \file AnisoPotentialPairGPU.cuh
     \brief Defines templated GPU kernel code for calculating the anisotropic ptl pair forces and torques
@@ -22,7 +23,12 @@
 #define __ANISO_POTENTIAL_PAIR_GPU_CUH__
 
 //! Maximum number of threads (width of a warp)
-const unsigned int gpu_aniso_pair_force_max_tpp = 32;
+// currently this is hardcoded, we should set it to the max of platforms
+#if defined(__HIP_PLATFORM_NVCC__)
+const int gpu_aniso_pair_force_max_tpp = 32;
+#elif defined(__HIP_PLATFORM_HCC__)
+const int gpu_aniso_pair_force_max_tpp = 64;
+#endif
 
 //! Wraps arguments to gpu_cgpf
 struct a_pair_args_t
@@ -50,7 +56,7 @@ struct a_pair_args_t
               const unsigned int _compute_virial,
               const unsigned int _threads_per_particle,
               const GPUPartition& _gpu_partition,
-              const cudaDeviceProp& _devprop,
+              const hipDeviceProp_t& _devprop,
               bool _update_shape_param
                   )
                 : d_force(_d_force),
@@ -102,11 +108,11 @@ struct a_pair_args_t
     const unsigned int compute_virial;  //!< Flag to indicate if virials should be computed
     const unsigned int threads_per_particle; //!< Number of threads to launch per particle
     const GPUPartition& gpu_partition;      //!< The load balancing partition of particles between GPUs
-    const cudaDeviceProp& devprop;    //!< CUDA device properties
+    const hipDeviceProp_t& devprop;    //!< CUDA device properties
     bool update_shape_param;          //!< If true, update size of shape param and synchronize GPU execution stream
     };
 
-#ifdef NVCC
+#ifdef __HIPCC__
 
 //! Kernel for calculating pair forces
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and
@@ -173,10 +179,10 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
     const unsigned int num_typ_parameters = typpair_idx.getNumElements();
 
     // shared arrays for per type pair parameters
-    extern __shared__ char s_data[];
+    HIP_DYNAMIC_SHARED( char, s_data)
     typename evaluator::param_type *s_params =
         (typename evaluator::param_type *)(&s_data[0]);
-    Scalar *s_rcutsq = (Scalar *)(&s_data[num_typ_parameters*sizeof(evaluator::param_type)]);
+    Scalar *s_rcutsq = (Scalar *)(&s_data[num_typ_parameters*sizeof(typename evaluator::param_type)]);
     typename evaluator::shape_param_type *s_shape_params = (typename evaluator::shape_param_type *)(&s_rcutsq[num_typ_parameters]);
 
     // load in the per type pair parameters
@@ -437,10 +443,11 @@ struct AnisoPairForceComputeKernel
                                         sizeof(typename evaluator::shape_param_type) * pair_args.ntypes;
 
             static unsigned int max_block_size = UINT_MAX;
-            cudaFuncAttributes attr;
+            hipFuncAttributes attr;
             if (max_block_size == UINT_MAX)
                 {
-                cudaFuncGetAttributes(&attr, gpu_compute_pair_aniso_forces_kernel<evaluator, shift_mode, compute_virial, tpp>);
+                hipFuncGetAttributes(&attr, reinterpret_cast<const void *>(
+                    &gpu_compute_pair_aniso_forces_kernel<evaluator, shift_mode, compute_virial, tpp>));
                 int max_threads = attr.maxThreadsPerBlock;
                 // number of threads has to be multiple of warp size
                 max_block_size = max_threads - max_threads % gpu_aniso_pair_force_max_tpp;
@@ -455,7 +462,7 @@ struct AnisoPairForceComputeKernel
             if (extra_bytes == UINT_MAX || pair_args.update_shape_param || shared_bytes_changed)
                 {
                 // required for memory coherency
-                cudaDeviceSynchronize();
+                hipDeviceSynchronize();
 
                 // determine dynamically requested shared memory
                 char *ptr = (char *)nullptr;
@@ -476,8 +483,7 @@ struct AnisoPairForceComputeKernel
             block_size = block_size < max_block_size ? block_size : max_block_size;
             dim3 grid(N / (block_size/tpp) + 1, 1, 1);
 
-            gpu_compute_pair_aniso_forces_kernel<evaluator, shift_mode, compute_virial, tpp>
-              <<<grid, block_size, shared_bytes>>>(pair_args.d_force,
+            hipLaunchKernelGGL((gpu_compute_pair_aniso_forces_kernel<evaluator, shift_mode, compute_virial, tpp>), dim3(grid), dim3(block_size), shared_bytes, 0, pair_args.d_force,
                                                    pair_args.d_torque,
                                                    pair_args.d_virial,
                                                    pair_args.virial_pitch,
@@ -523,7 +529,7 @@ struct AnisoPairForceComputeKernel<evaluator, shift_mode, compute_virial, 0>
     This is just a driver function for gpu_compute_pair_aniso_forces_kernel(), see it for details.
 */
 template< class evaluator >
-cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
+hipError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                                           const typename evaluator::param_type *d_params,
                                           const typename evaluator::shape_param_type *d_shape_params)
     {
@@ -552,7 +558,7 @@ cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                     break;
                     }
                 default:
-                    return cudaErrorUnknown;
+                    return hipErrorUnknown;
                 }
             }
         else
@@ -570,11 +576,11 @@ cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                     break;
                     }
                 default:
-                    return cudaErrorUnknown;
+                    return hipErrorUnknown;
                 }
             }
         }
-    return cudaSuccess;
+    return hipSuccess;
     }
 #endif
 

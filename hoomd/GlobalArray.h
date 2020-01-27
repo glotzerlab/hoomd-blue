@@ -11,7 +11,7 @@
 /*! GlobalArray internally uses managed memory to store data, to allow buffers being accessed from
     multiple devices.
 
-    cudaMemAdvise() can be called on GlobalArray's data, which is obtained using ::get().
+    hipMemAdvise() can be called on GlobalArray's data, which is obtained using ::get().
 
     GlobalArray<> supports all functionality that GPUArray<> does, and should eventually replace GPUArray.
     In fact, for performance considerations in single GPU situations, GlobalArray internally falls
@@ -29,8 +29,9 @@
 
 #pragma once
 
-#ifdef ENABLE_CUDA
-#include <cuda_runtime.h>
+
+#ifdef ENABLE_HIP
+#include <hip/hip_runtime.h>
 #endif
 
 #include <memory>
@@ -123,21 +124,21 @@ class managed_deleter
             if (!m_exec_conf)
                 return;
 
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             if (m_use_device)
                 {
-                cudaDeviceSynchronize();
+                hipDeviceSynchronize();
                 CHECK_CUDA_ERROR();
                 }
             #endif
 
+            #ifdef ENABLE_HIP
             // we used placement new in the allocation, so call destructors explicitly
             for (std::size_t i = 0; i < m_N; ++i)
                 {
                 ptr[i].~T();
                 }
 
-            #ifdef ENABLE_CUDA
             if (m_use_device)
                 {
                 std::ostringstream oss;
@@ -148,7 +149,12 @@ class managed_deleter
                 oss << std::endl;
                 this->m_exec_conf->msg->notice(10) << oss.str();
 
-                cudaFree(m_allocation_ptr);
+                #if __HIP_PLATFORM_NVCC__
+                hipFree(m_allocation_ptr);
+                #else
+                // HIP doesn't yet support hipFree on managed memory
+                hipHostFree(m_allocation_ptr);
+                #endif
                 CHECK_CUDA_ERROR();
                 }
             else
@@ -165,14 +171,14 @@ class managed_deleter
 
     private:
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
-        bool m_use_device;     //!< Whether to use cudaMallocManaged
+        bool m_use_device;     //!< Whether to use hipMallocManaged
         unsigned int m_N;      //!< Number of elements in array
         void *m_allocation_ptr;  //!< Start of unaligned allocation
         size_t m_allocation_bytes; //!< Size of actual allocation
         std::string m_tag;     //!< Name of the array
     };
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 class event_deleter
     {
     public:
@@ -190,9 +196,9 @@ class event_deleter
         //! Destroy the event and free the memory location
         /*! \param ptr Start of memory area
          */
-        void operator()(cudaEvent_t *ptr)
+        void operator()(hipEvent_t *ptr)
             {
-            cudaEventDestroy(*ptr);
+            hipEventDestroy(*ptr);
             CHECK_CUDA_ERROR();
 
             delete ptr;
@@ -245,7 +251,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
             #endif
 
             assert(this->m_exec_conf);
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             if (this->m_exec_conf->isCUDAEnabled())
                 {
                 // use OS page size as minimum alignment
@@ -277,15 +283,15 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
                 {
                 allocate();
 
-                #ifdef ENABLE_CUDA
+                #ifdef ENABLE_HIP
                 if (this->m_exec_conf && this->m_exec_conf->isCUDAEnabled())
                     {
                     // synchronize all active GPUs
                     auto gpu_map = this->m_exec_conf->getGPUIds();
                     for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
                         {
-                        cudaSetDevice(gpu_map[idev]);
-                        cudaDeviceSynchronize();
+                        hipSetDevice(gpu_map[idev]);
+                        hipDeviceSynchronize();
                         }
                     }
                 #endif
@@ -315,15 +321,15 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
                     {
                     allocate();
 
-                    #ifdef ENABLE_CUDA
+                    #ifdef ENABLE_HIP
                     if (this->m_exec_conf && this->m_exec_conf->isCUDAEnabled())
                         {
                         // synchronize all active GPUs
                         auto gpu_map = this->m_exec_conf->getGPUIds();
                         for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
                             {
-                            cudaSetDevice(gpu_map[idev]);
-                            cudaDeviceSynchronize();
+                            hipSetDevice(gpu_map[idev]);
+                            hipDeviceSynchronize();
                             }
                         }
                     #endif
@@ -353,7 +359,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
               m_tag(std::move(other.m_tag)),
               m_align_bytes(std::move(other.m_align_bytes)),
               m_is_managed(std::move(other.m_is_managed))
-              #ifdef ENABLE_CUDA
+              #ifdef ENABLE_HIP
               , m_event(std::move(other.m_event))
               #endif
             {
@@ -377,7 +383,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
                 m_tag = std::move(other.m_tag);
                 m_align_bytes = std::move(other.m_align_bytes);
                 m_is_managed = std::move(other.m_is_managed);
-                #ifdef ENABLE_CUDA
+                #ifdef ENABLE_HIP
                 m_event = std::move(other.m_event);
                 #endif
                 }
@@ -410,7 +416,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
 
             m_num_elements = m_pitch * m_height;
 
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             if (this->m_exec_conf->isCUDAEnabled())
                 {
                 // use OS page size as minimum alignment
@@ -437,7 +443,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
             std::swap(m_tag, from.m_tag);
             std::swap(m_align_bytes, from.m_align_bytes);
             std::swap(m_is_managed, from.m_is_managed);
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             std::swap(m_event, from.m_event);
             #endif
 
@@ -531,15 +537,15 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
 
             checkAcquired(*this);
 
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             if (this->m_exec_conf && this->m_exec_conf->isCUDAEnabled())
                 {
                 // synchronize all active GPUs
                 auto gpu_map = this->m_exec_conf->getGPUIds();
                 for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
                     {
-                    cudaSetDevice(gpu_map[idev]);
-                    cudaDeviceSynchronize();
+                    hipSetDevice(gpu_map[idev]);
+                    hipDeviceSynchronize();
                     }
                 }
             #endif
@@ -580,15 +586,15 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
             // make m_pitch the next multiple of 16 larger or equal to the given width
             unsigned int pitch = (width + (16 - (width & 15)));
 
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             if (this->m_exec_conf->isCUDAEnabled())
                 {
                 // synchronize all active GPUs
                 auto gpu_map = this->m_exec_conf->getGPUIds();
                 for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
                     {
-                    cudaSetDevice(gpu_map[idev]);
-                    cudaDeviceSynchronize();
+                    hipSetDevice(gpu_map[idev]);
+                    hipDeviceSynchronize();
                     }
                 }
             #endif
@@ -632,7 +638,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
 
     protected:
         inline ArrayHandleDispatch<T> acquire(const access_location::Enum location, const access_mode::Enum mode
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
                          , bool async = false
         #endif
                         ) const;
@@ -678,8 +684,8 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
         unsigned int m_align_bytes; //!< Size of alignment in bytes
         bool m_is_managed;  //!< Whether or not this array is stored using managed memory.
 
-        #ifdef ENABLE_CUDA
-        std::unique_ptr<cudaEvent_t, hoomd::detail::event_deleter> m_event;   //! CUDA event for synchronization
+        #ifdef ENABLE_HIP
+        std::unique_ptr<hipEvent_t, hoomd::detail::event_deleter> m_event;   //! CUDA event for synchronization
         #endif
 
         //! Allocate the managed array and construct the items
@@ -692,7 +698,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
             bool use_device = this->m_exec_conf && this->m_exec_conf->isCUDAEnabled();
             size_t allocation_bytes;
 
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             if (use_device)
                 {
                 allocation_bytes = m_num_elements*sizeof(T);
@@ -704,7 +710,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
                 this->m_exec_conf->msg->notice(10) << "Allocating " << allocation_bytes
                     << " bytes of managed memory." << std::endl;
 
-                cudaMallocManaged(&ptr, allocation_bytes, cudaMemAttachGlobal);
+                hipMallocManaged(&ptr, allocation_bytes, hipMemAttachGlobal);
                 CHECK_CUDA_ERROR();
 
                 allocation_ptr = ptr;
@@ -734,19 +740,19 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
                 allocation_ptr = ptr;
                 }
 
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             if (use_device)
                 {
-                cudaDeviceSynchronize();
+                hipDeviceSynchronize();
                 CHECK_CUDA_ERROR();
                 }
 
             if (use_device)
                 {
-                m_event = std::unique_ptr<cudaEvent_t, hoomd::detail::event_deleter>(
-                    new cudaEvent_t, hoomd::detail::event_deleter(this->m_exec_conf));
+                m_event = std::unique_ptr<hipEvent_t, hoomd::detail::event_deleter>(
+                    new hipEvent_t, hoomd::detail::event_deleter(this->m_exec_conf));
 
-                cudaEventCreate(m_event.get(), cudaEventDisableTiming);
+                hipEventCreateWithFlags(m_event.get(), hipEventDisableTiming);
                 CHECK_CUDA_ERROR();
                 }
             #endif
@@ -795,7 +801,7 @@ class GlobalArrayDispatch : public ArrayHandleDispatch<T>
 
 template<class T>
 inline ArrayHandleDispatch<T> GlobalArray<T>::acquire(const access_location::Enum location, const access_mode::Enum mode
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
                          , bool async
         #endif
                         ) const
@@ -804,7 +810,7 @@ inline ArrayHandleDispatch<T> GlobalArray<T>::acquire(const access_location::Enu
     #ifndef ALWAYS_USE_MANAGED_MEMORY
     if (!this->m_exec_conf || ! m_is_managed)
         return m_fallback.acquire(location, mode
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
                              , async
             #endif
             );
@@ -823,13 +829,13 @@ inline ArrayHandleDispatch<T> GlobalArray<T>::acquire(const access_location::Enu
         throw std::runtime_error("GlobalArray should not be acquired in a multi-GPU block.");
         }
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     bool use_device = this->m_exec_conf && this->m_exec_conf->isCUDAEnabled();
     if (!isNull() && use_device && location == access_location::host && !async)
         {
         // synchronize GPU 0
-        cudaEventRecord(*m_event);
-        cudaEventSynchronize(*m_event);
+        hipEventRecord(*m_event);
+        hipEventSynchronize(*m_event);
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }

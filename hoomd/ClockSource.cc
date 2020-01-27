@@ -8,7 +8,6 @@
     \brief Defines the ClockSource class
 */
 
-
 #include "ClockSource.h"
 
 #include <sstream>
@@ -41,7 +40,7 @@ std::string ClockSource::formatHMS(int64_t t)
     return str.str();
     }
 
-#ifndef NVCC
+#ifndef __HIP_DEVICE_COMPILE__
 void export_ClockSource(py::module& m)
     {
     py::class_<ClockSource>(m,"ClockSource")

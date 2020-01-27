@@ -17,7 +17,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -26,52 +26,12 @@
 #include <iostream>
 #endif
 
+#ifndef __HIPCC__
+#include <vector>
+#endif
+
 namespace hpmc
 {
-
-namespace detail
-{
-
-//! Support function for ShapeSpheropolyhedron
-/*! SupportFuncSpheropolyhedron is a functor that computes the support function for ShapeSpheropolyhedron. For a given
-    input vector in local coordinates, it finds the vertex most in that direction and then extends it out further
-    by the sweep radius.
-
-    There are some current features under consideration for special handling of 0 and 1-vertex inputs. See
-    ShapeSpheropolyhedron for documentation on these cases.
-
-    \ingroup minkowski
-*/
-class SupportFuncSpheropolyhedron
-    {
-    public:
-        //! Construct a support function for a convex spheropolyhedron
-        /*! \param _verts Polyhedron vertices and additional parameters
-        */
-        DEVICE SupportFuncSpheropolyhedron(const poly3d_verts& _verts)
-            : verts(_verts)
-            {
-            }
-
-        //! Compute the support function
-        /*! \param n Normal vector input (in the local frame)
-            \returns Local coords of the point furthest in the direction of n
-        */
-        DEVICE vec3<OverlapReal> operator() (const vec3<OverlapReal>& n) const
-            {
-            // get the support function of the underlying convex polyhedron
-            vec3<OverlapReal> max_poly3d = SupportFuncConvexPolyhedron(verts)(n);
-            // add to that the support mapping of the sphere
-            vec3<OverlapReal> max_sphere = (verts.sweep_radius * fast::rsqrt(dot(n,n))) * n;
-
-            return max_poly3d + max_sphere;
-            }
-
-    private:
-        const poly3d_verts& verts;        //!< Vertices of the polyhedron
-    };
-
-}; // end namespace detail
 
 //! Convex (Sphero)Polyhedron shape template
 /*! ShapeSpheropolyhedron represents a convex polygon swept out by a sphere with special cases. A shape with zero
@@ -131,7 +91,7 @@ struct ShapeSpheropolyhedron
         return OverlapReal(0.0);
         }
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     std::string getShapeSpec() const
         {
         std::ostringstream shapedef;
@@ -184,56 +144,58 @@ struct ShapeSpheropolyhedron
         return detail::AABB(pos, verts.diameter/Scalar(2));
         }
 
+    //! Return a tight fitting OBB
+    DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
+        {
+        detail::OBB obb = verts.obb;
+        obb.affineTransform(orientation, pos);
+        return obb;
+        }
+
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel() { return false; }
+
+    //! Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    HOSTDEVICE static bool supportsSweepRadius()
+        {
+        return true;
+        }
 
     quat<Scalar> orientation;    //!< Orientation of the polyhedron
 
     const detail::poly3d_verts& verts;     //!< Vertices
     };
 
-//! Check if circumspheres overlap
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shape
-    \param b second shape
-    \returns true if the circumspheres of both shapes overlap
-
-    \ingroup shape
-*/
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeSpheropolyhedron& a,
-    const ShapeSpheropolyhedron &b)
-    {
-    vec3<OverlapReal> dr(r_ab);
-
-    OverlapReal rsq = dot(dr,dr);
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    return (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-    }
-
 //! Convex polyhedron overlap test
 /*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
     \param a first shape
     \param b second shape
     \param err in/out variable incremented when error conditions occur in the overlap test
+    \param sweep_radius_a Radius of a sphere to sweep the first shape by
+    \param sweep_radius_b Radius of a sphere to sweep the second shape by
     \returns true when *a* and *b* overlap, and false when they are disjoint
 
     \ingroup shape
 */
+template<>
 DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                  const ShapeSpheropolyhedron& a,
                                  const ShapeSpheropolyhedron& b,
-                                 unsigned int& err)
+                                 unsigned int& err,
+                                 Scalar sweep_radius_a,
+                                 Scalar sweep_radius_b)
     {
     vec3<OverlapReal> dr = r_ab;
 
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
 
-    return xenocollide_3d(detail::SupportFuncSpheropolyhedron(a.verts),
-                          detail::SupportFuncSpheropolyhedron(b.verts),
+    return xenocollide_3d(detail::SupportFuncConvexPolyhedron(a.verts,a.verts.sweep_radius+sweep_radius_a),
+                          detail::SupportFuncConvexPolyhedron(b.verts,b.verts.sweep_radius+sweep_radius_b),
                           rotate(conj(quat<OverlapReal>(a.orientation)),dr),
                           conj(quat<OverlapReal>(a.orientation)) * quat<OverlapReal>(b.orientation),
                           DaDb/2.0,
                           err);
+
     /*
     return gjke_3d(detail::SupportFuncSpheropolyhedron(a.verts),
                    detail::SupportFuncSpheropolyhedron(b.verts),
@@ -243,6 +205,35 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                           DaDb/2.0,
                           err);
     */
+    }
+
+//! Test for overlap of a third particle with the intersection of two shapes
+/*! \param a First shape to test
+    \param b Second shape to test
+    \param c Third shape to test
+    \param ab_t Position of second shape relative to first
+    \param ac_t Position of third shape relative to first
+    \param err Output variable that is incremented upon non-convergence
+    \param sweep_radius_a Radius of a sphere to sweep the first shape by
+    \param sweep_radius_b Radius of a sphere to sweep the second shape by
+*/
+template<>
+DEVICE inline bool test_overlap_intersection(const ShapeSpheropolyhedron& a,
+    const ShapeSpheropolyhedron& b,
+    const ShapeSpheropolyhedron& c,
+    const vec3<Scalar>& ab_t, const vec3<Scalar>& ac_t, unsigned int &err,
+    Scalar sweep_radius_a, Scalar sweep_radius_b, Scalar sweep_radius_c)
+    {
+    return detail::map_three(a,b,c,
+        detail::SupportFuncConvexPolyhedron(a.verts,a.verts.sweep_radius+sweep_radius_a),
+        detail::SupportFuncConvexPolyhedron(b.verts,b.verts.sweep_radius+sweep_radius_b),
+        detail::SupportFuncConvexPolyhedron(c.verts,c.verts.sweep_radius+sweep_radius_c),
+        detail::ProjectionFuncConvexPolyhedron(a.verts,a.verts.sweep_radius+sweep_radius_a),
+        detail::ProjectionFuncConvexPolyhedron(b.verts,b.verts.sweep_radius+sweep_radius_b),
+        detail::ProjectionFuncConvexPolyhedron(c.verts,c.verts.sweep_radius+sweep_radius_c),
+        vec3<OverlapReal>(ab_t),
+        vec3<OverlapReal>(ac_t),
+        err);
     }
 
 }; // end namespace hpmc

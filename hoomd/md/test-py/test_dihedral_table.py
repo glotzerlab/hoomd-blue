@@ -21,7 +21,7 @@ class dihedral_table_tests (unittest.TestCase):
                                   dihedral_types = ['dihedralA'],
                                   improper_types = [])
 
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             snap.dihedrals.resize(10);
 
             for i in range(10):

@@ -1,76 +1,149 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.10.1 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.9 FATAL_ERROR)
+# >= 3.8 is required for CUDA language support
+# >= 3.9 is required for MPI::MPI_CXX target
 
-if (CMAKE_MAJOR_VERSION VERSION_GREATER 2)
-if(COMMAND cmake_policy)
-    cmake_policy(SET CMP0003 NEW)
-    cmake_policy(SET CMP0042 NEW)
-endif(COMMAND cmake_policy)
-endif()
+project (HOOMD LANGUAGES C CXX)
 
-project (HOOMD)
+include(GNUInstallDirs)
 
 # bring in custom modules
 add_subdirectory (CMake)
-# setup version tagging info
-include (CMake_version_options.cmake)
+
+################################
+## Version information
+set(HOOMD_VERSION_RAW "2.8.1")
+string(REGEX MATCH "(.*)\\.(.*)\\.(.*)$" _hoomd_version_match ${HOOMD_VERSION_RAW})
+set(HOOMD_VERSION_MAJOR ${CMAKE_MATCH_1})
+set(HOOMD_VERSION_MINOR ${CMAKE_MATCH_2})
+set(HOOMD_VERSION_PATCH ${CMAKE_MATCH_3})
+set(HOOMD_VERSION "${HOOMD_VERSION_MAJOR}.${HOOMD_VERSION_MINOR}.${HOOMD_VERSION_PATCH}")
+
+# users may not have git installed, or this may be a tarball build - set a dummy version if that is the case
+include(GetGitRevisionDescription)
+git_describe(HOOMD_GIT_VERSION)
+if (HOOMD_GIT_VERSION)
+    set(HOOMD_VERSION_LONG "${HOOMD_GIT_VERSION}")
+else (HOOMD_GIT_VERSION)
+    set(HOOMD_VERSION_LONG "${HOOMD_VERSION}")
+endif (HOOMD_GIT_VERSION)
+
+get_git_head_revision(GIT_REFSPEC GIT_SHA1)
+if (GIT_REFSPEC)
+    set(HOOMD_GIT_REFSPEC "${GIT_REFSPEC}")
+else (GIT_REFSPEC)
+    set(HOOMD_GIT_REFSPEC "${HOOMD_VERSION_RAW}")
+endif (GIT_REFSPEC)
+
+if (GIT_SHA1)
+    set(HOOMD_GIT_SHA1 "${GIT_SHA1}")
+else (GIT_SHA1)
+    set(HOOMD_GIT_SHA1 "unknown")
+endif (GIT_SHA1)
 
 message(STATUS "Configuring HOOMD ${HOOMD_VERSION_LONG}")
 
-# Handle user build options
-include (CMake_build_options.cmake)
-
-# setup the install directories
-include (CMake_install_options.cmake)
-
 #################################
-## update submodules
-set (UPDATE_SUBMODULES 1 CACHE BOOL "Update git submodules for dependency projects")
+## CFLAGS configuration
 
-if ((EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git) AND GIT_EXECUTABLE)
-    # only attempt to update submodules if this is a git repository and we have a git executable
-    if (UPDATE_SUBMODULES)
-      message(STATUS "Updating git submodules")
-      execute_process(COMMAND ${GIT_EXECUTABLE} submodule --quiet sync
-                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-      execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init
-                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-    endif()
-else()
-    if (UPDATE_SUBMODULES)
-    message(STATUS "UPDATE_SUBMODULES is set, but cmake cannot automatically update the submodules. "
-                   "The source directory is not a git clone or the git executable is not available.")
-    endif()
+# Set a default build type if none was specified
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  message(STATUS "Setting build type to 'Release' as none was specified.")
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
+    "MinSizeRel" "RelWithDebInfo")
+endif()
+
+# enable c++11
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CUDA_STANDARD 11)
+
+# Enable compiler warnings on gcc and clang (common compilers used by developers)
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unknown-pragmas")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
+endif()
+
+# Enable color output from compiler
+if (CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5.0)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fdiagnostics-color=always")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fdiagnostics-color=always")
+endif()
+
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcolor-diagnostics")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fcolor-diagnostics")
 endif()
 
 #################################
-## setup python library and executable
+## Build options
+option(SINGLE_PRECISION "Use single precision math" OFF)
+OPTION(ENABLE_GPU "True if we are compiling for a GPU target" FALSE)
+SET(ENABLE_HIP ${ENABLE_GPU})
+
+option(ENABLE_HPMC_MIXED_PRECISION "Enable mixed precision computations in HPMC" ON)
+
+# Optionally enable documentation build
+OPTION(ENABLE_DOXYGEN "Enables building of documentation with doxygen" OFF)
+if (ENABLE_DOXYGEN)
+    find_package(Doxygen)
+    if (DOXYGEN_FOUND)
+        # get the doxygen version
+        exec_program(${DOXYGEN_EXECUTABLE} ${HOOMD_SOURCE_DIR} ARGS --version OUTPUT_VARIABLE DOXYGEN_VERSION)
+
+        if (${DOXYGEN_VERSION} VERSION_GREATER 1.8.4)
+        else (${DOXYGEN_VERSION} VERSION_GREATER 1.8.4)
+            message(STATUS "Doxygen version less than 1.8.5, documentation may not build correctly")
+        endif (${DOXYGEN_VERSION} VERSION_GREATER 1.8.4)
+    endif ()
+endif ()
+
+# Components
+option(BUILD_MD "Build the md package" on)
+if (NOT SINGLE_PRECISION)
+option(BUILD_HPMC "Build the hpmc package" on)
+else ()
+option(BUILD_HPMC "Build the hpmc package" off)
+endif()
+option(BUILD_METAL "Build the metal package" on)
+option(BUILD_DEM "Build the dem package" on)
+option(BUILD_JIT "Build the jit package" off)
+
+# Optionally use TBB for threading
+option(ENABLE_TBB "Enable support for Threading Building Blocks (TBB)" off)
+
+# this needs to go before CUDA setup
+include (HOOMDHIPSetup)
+
+# Find CUDA and set it up
+include (HOOMDCUDASetup)
+include (hoomd-macros)
+
 # setup MPI support
 include (HOOMDMPISetup)
 # find the python libraries to link to
 include(HOOMDPythonSetup)
-# Find CUDA and set it up
-include (HOOMDCUDASetup)
-# Set default CFlags
-include (HOOMDCFlagsSetup)
-# include some os specific options
-include (HOOMDOSSpecificSetup)
-# setup common libraries used by all targets in this project
-include (HOOMDCommonLibsSetup)
-# macros
-include (HOOMDMacros)
-# Configure some source files, include directories, and create variables listing all source files
-include (CMake_src_setup.cmake)
-# preprocessor flags
-include (CMake_preprocessor_flags.cmake)
+
+if (NOT ENABLE_HIP OR HIP_PLATFORM STREQUAL "nvcc")
+    option(BUILD_MPCD "Build the mpcd package" on)
+else()
+    option(BUILD_MPCD "Build the mpcd package" off)
+endif()
+
+find_package(Eigen3 3.2 CONFIG REQUIRED)
+if (Eigen3_FOUND)
+    find_package_message(EIGEN3 "Found eigen: ${Eigen3_DIR} ${EIGEN3_INCLUDE_DIR} (version ${Eigen3_VERSION})" "[${Eigen3_DIR}][${EIGEN3_INCLUDE_DIR}]")
+endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/libgetar)
 
+#########################################
 # Check for submodules
-if (NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/cereal/include/cereal/cereal.hpp OR
+if (
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/cub/cub/cub.cuh OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/nano-signal-slot/nano_signal_slot.hpp OR
-    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/pybind/include/pybind11/pybind11.h OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/upp11/upp11.h OR
+    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/HIP/include/hip/hip_runtime.h OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/quickhull/ConvexHull.hpp OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/random123/include/Random123/philox.h OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/neighbor/neighbor/LBVH.h
@@ -100,59 +173,9 @@ else (libgetar_DIR)
                       "pull the libgetar source, i.e. via `git submodule update`.")
 endif (libgetar_DIR)
 
-################################
-# install cmake scripts into hoomd/CMake
-
-set(cmake_files CMake/hoomd/FindTBB.cmake
-                CMake/hoomd/HOOMDCFlagsSetup.cmake
-                CMake/hoomd/HOOMDCommonLibsSetup.cmake
-                CMake/hoomd/HOOMDCUDASetup.cmake
-                CMake/hoomd/test.cc
-                CMake/hoomd/HOOMDMacros.cmake
-                CMake/hoomd/HOOMDMPISetup.cmake
-                CMake/hoomd/HOOMDNumpySetup.cmake
-                CMake/hoomd/HOOMDOSSpecificSetup.cmake
-                CMake/hoomd/HOOMDPythonSetup.cmake
-                CMake/git/FindGit.cmake
-                CMake/git/GetGitRevisionDescription.cmake
-                CMake/libgetar/Findlibgetar.cmake
-                CMake/thrust/FindThrust.cmake
-                CMake_build_options.cmake
-                CMake_install_options.cmake
-                CMake_preprocessor_flags.cmake
-                CMake_src_setup.cmake
-                CMake_version_options.cmake
-   )
-
-# copy cmake scripts we currently use into build directory
-MACRO(copy_cmake file)
-    add_custom_command (
-        OUTPUT hoomd/${file}
-        POST_BUILD
-        COMMAND    ${CMAKE_COMMAND}
-        ARGS       -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${CMAKE_CURRENT_BINARY_DIR}/hoomd/${file}
-        COMMENT    "Copy hoomd/${file}"
-    )
-ENDMACRO(copy_cmake)
-
-# install headers in installation target
-install(FILES ${cmake_files}
-        DESTINATION ${PYTHON_MODULE_BASE_DIR}
-       )
-
-# copy headers into build directory
-foreach(file ${cmake_files})
-    copy_cmake(${file})
-endforeach()
-
-configure_file(hoomd_cache.cmake.in
-    ${HOOMD_BINARY_DIR}/hoomd/CMake/hoomd/hoomd_cache.cmake)
-
-install(FILES ${HOOMD_BINARY_DIR}/hoomd/CMake/hoomd/hoomd_cache.cmake
-        DESTINATION ${PYTHON_MODULE_BASE_DIR}/CMake/hoomd)
-
-add_custom_target(copy_cmake ALL
-    DEPENDS ${cmake_files} ${HOOMD_BINARY_DIR}/hoomd/CMake/hoomd/hoomd_cache.cmake)
+#######################
+## Get the compile date
+exec_program("date +%x" OUTPUT_VARIABLE COMPILE_DATE)
 
 ################################
 # set up unit tests
@@ -167,6 +190,14 @@ if (BUILD_TESTING OR BUILD_VALIDATION)
      add_custom_target(test_all ALL)
 endif (BUILD_TESTING OR BUILD_VALIDATION)
 
+# In jenkins tests on multiple build configurations, it is wasteful to run CPU tests on CPU and all GPU test paths
+# this option turns off CPU only tests in builds with ENABLE_HIP=ON
+option(TEST_CPU_IN_GPU_BUILDS "Test CPU code path in GPU enabled builds" on)
+mark_as_advanced(TEST_CPU_IN_GPU_BUILDS)
+if (NOT TEST_CPU_IN_GPU_BUILDS AND ENABLE_HIP)
+    message(STATUS "Warning: Skipping CPU tests")
+endif()
+
 ################################
 ## Process subdirectories
 add_subdirectory (hoomd)
@@ -176,3 +207,46 @@ add_subdirectory (hoomd)
 if (ENABLE_DOXYGEN)
     add_subdirectory (doc)
 endif (ENABLE_DOXYGEN)
+
+###############################
+## install cmake config files
+
+include(CMakePackageConfigHelpers)
+
+# version information
+write_basic_package_version_file(
+  ${CMAKE_CURRENT_BINARY_DIR}/hoomd-config-version.cmake
+  VERSION ${HOOMD_VERSION}
+  COMPATIBILITY SameMajorVersion)
+
+# exports
+export(EXPORT HOOMDTargets
+       NAMESPACE "HOOMD::"
+       FILE "${CMAKE_CURRENT_BINARY_DIR}/hoomd-targets.cmake")
+
+set(CONFIG_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/hoomd")
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/hoomd-config-version.cmake
+        DESTINATION ${CONFIG_INSTALL_DIR})
+
+install(EXPORT HOOMDTargets
+  NAMESPACE "HOOMD::"
+  FILE hoomd-targets.cmake
+  DESTINATION ${CONFIG_INSTALL_DIR})
+
+configure_package_config_file(hoomd-config.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/hoomd-config.cmake
+  INSTALL_DESTINATION ${CONFIG_INSTALL_DIR}
+  PATH_VARS CMAKE_INSTALL_PREFIX)
+
+install(FILES CMake/hoomd/FindTBB.cmake
+              CMake/hoomd/FindCUDALibs.cmake
+              CMake/HIP/FindHIP.cmake
+              CMake/hoomd/HOOMDHIPSetup.cmake
+              CMake/hoomd/hipcc.cmake
+              CMake/hoomd/hoomd-macros.cmake
+              ${HOOMD_BINARY_DIR}/hoomd-config.cmake
+        DESTINATION ${CONFIG_INSTALL_DIR})
+
+install(FILES CMake/HIP/FindHIP/run_hipcc.cmake
+              CMake/HIP/FindHIP/run_make2cmake.cmake
+        DESTINATION ${CONFIG_INSTALL_DIR}/FindHIP)

@@ -12,14 +12,14 @@ import tempfile
 class gsd_write_tests (unittest.TestCase):
     def setUp(self):
         context.initialize()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             tmp = tempfile.mkstemp(suffix='.test.gsd');
             self.tmp_file = tmp[1];
         else:
             self.tmp_file = "invalid";
 
         self.snapshot = data.make_snapshot(N=4, box=data.boxdim(Lx=10, Ly=20, Lz=30), dtype='float');
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             # particles
             self.snapshot.particles.position[0] = [0,1,2];
             self.snapshot.particles.position[1] = [1,2,3];
@@ -92,7 +92,7 @@ class gsd_write_tests (unittest.TestCase):
         run(5);
         # ensure 5 frames are written to the file
         data.gsd_snapshot(self.tmp_file, frame=4);
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             self.assertRaises(RuntimeError, data.gsd_snapshot, self.tmp_file, frame=5);
 
     # tests with phase
@@ -100,19 +100,19 @@ class gsd_write_tests (unittest.TestCase):
         dump.gsd(filename=self.tmp_file, group=group.all(), period=1, phase=0, overwrite=True);
         run(1);
         data.gsd_snapshot(self.tmp_file, frame=0);
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             self.assertRaises(RuntimeError, data.gsd_snapshot, self.tmp_file, frame=1);
 
     # tests overwrite
     def test_overwrite(self):
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             with open(self.tmp_file, 'wt') as f:
                 f.write('Hello');
 
         dump.gsd(filename=self.tmp_file, group=group.all(), period=1, overwrite=True);
         run(1);
         data.gsd_snapshot(self.tmp_file, frame=0);
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             self.assertRaises(RuntimeError, data.gsd_snapshot, self.tmp_file, frame=1);
 
     # tests truncate
@@ -120,7 +120,7 @@ class gsd_write_tests (unittest.TestCase):
         dump.gsd(filename=self.tmp_file, group=group.all(), period=1, truncate=True, overwrite=True);
         run(5);
         data.gsd_snapshot(self.tmp_file, frame=0);
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             self.assertRaises(RuntimeError, data.gsd_snapshot, self.tmp_file, frame=1);
 
     # tests write_restart
@@ -129,29 +129,21 @@ class gsd_write_tests (unittest.TestCase):
         run(5);
         g.write_restart();
         data.gsd_snapshot(self.tmp_file, frame=0);
-        if comm.get_rank() == 0:
-            self.assertRaises(RuntimeError, data.gsd_snapshot, self.tmp_file, frame=1);
-
-    # test all static quantities
-    def test_all_static(self):
-        dump.gsd(filename=self.tmp_file, group=group.all(), period=1, static=['attribute', 'property', 'momentum', 'topology'], overwrite=True);
-        run(1);
-        data.gsd_snapshot(self.tmp_file, frame=0);
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             self.assertRaises(RuntimeError, data.gsd_snapshot, self.tmp_file, frame=1);
 
     def test_dynamic(self):
         dump.gsd(filename=self.tmp_file, group=group.all(), period=1, dynamic=['momentum'], overwrite=True);
         run(1);
         data.gsd_snapshot(self.tmp_file, frame=0);
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             self.assertRaises(RuntimeError, data.gsd_snapshot, self.tmp_file, frame=1);
 
     # test write file
     def test_write_immediate(self):
         dump.gsd(filename=self.tmp_file, group=group.all(), period=None, time_step=1000, overwrite=True);
         data.gsd_snapshot(self.tmp_file, frame=0);
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             self.assertRaises(RuntimeError, data.gsd_snapshot, self.tmp_file, frame=1);
 
     # tests init.read_gsd
@@ -162,7 +154,7 @@ class gsd_write_tests (unittest.TestCase):
         context.initialize();
         init.read_gsd(filename=self.tmp_file, frame=4);
         self.assertEqual(get_step(), 4)
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             self.assertRaises(RuntimeError, init.read_gsd, self.tmp_file, frame=5);
 
     # tests init.read_gsd time_step
@@ -208,7 +200,7 @@ class gsd_write_tests (unittest.TestCase):
         run(1)
 
         # skip these tests in MPI, only the root rank raises the runtime error resulting in deadlock
-        if hoomd.comm.get_num_ranks() == 1:
+        if context.current.device.comm.num_ranks == 1:
             gsd.log['complex64'] = lambda step: numpy.array([1, 2, 3, 4], dtype=numpy.complex64)
             self.assertRaises(RuntimeError, run, 1);
 
@@ -226,23 +218,23 @@ class gsd_write_tests (unittest.TestCase):
 
 
     def tearDown(self):
-        if (hoomd.comm.get_rank()==0):
+        if (hoomd.context.current.device.comm.rank==0):
             os.remove(self.tmp_file);
 
-        comm.barrier_all();
+        context.current.device.comm.barrier_all();
 
 # unit tests for dump.gsd
 class gsd_read_tests (unittest.TestCase):
     def setUp(self):
         context.initialize()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             tmp = tempfile.mkstemp(suffix='.test.gsd');
             self.tmp_file = tmp[1];
         else:
             self.tmp_file = "invalid";
 
         self.snapshot = data.make_snapshot(N=4, box=data.boxdim(L=10), dtype='float');
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             # particles
             self.snapshot.particles.position[0] = [0,1,2];
             self.snapshot.particles.position[1] = [1,2,3];
@@ -322,7 +314,7 @@ class gsd_read_tests (unittest.TestCase):
         dump.gsd(filename=self.tmp_file, group=group.all(), period=None, overwrite=True);
 
         snap = data.gsd_snapshot(self.tmp_file, frame=0);
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             self.assertEqual(snap.box.dimensions, self.snapshot.box.dimensions);
             self.assertEqual(snap.box.Lx, self.snapshot.box.Lx);
             self.assertEqual(snap.box.Ly, self.snapshot.box.Ly);
@@ -384,7 +376,7 @@ class gsd_read_tests (unittest.TestCase):
         dump.gsd(filename=self.tmp_file, group=group.all(), period=None, overwrite=True);
 
         snap = data.gsd_snapshot(self.tmp_file, frame=0);
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             self.assertEqual(snap.box.dimensions, self.snapshot.box.dimensions);
             self.assertEqual(snap.box.Lx, self.snapshot.box.Lx);
             self.assertEqual(snap.box.Ly, self.snapshot.box.Ly);
@@ -446,22 +438,22 @@ class gsd_read_tests (unittest.TestCase):
         init.read_gsd(filename=self.tmp_file, frame=-1);
 
     def tearDown(self):
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             os.remove(self.tmp_file);
-        comm.barrier_all();
+        context.current.device.comm.barrier_all();
 
 # unit tests for dump.gsd with default type
 class gsd_default_type (unittest.TestCase):
     def setUp(self):
         context.initialize()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             tmp = tempfile.mkstemp(suffix='.test.gsd');
             self.tmp_file = tmp[1];
         else:
             self.tmp_file = "invalid";
 
         self.snapshot = data.make_snapshot(N=4, box=data.boxdim(L=10), dtype='float');
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             # particles
             self.snapshot.particles.position[0] = [0,1,2];
             self.snapshot.particles.position[1] = [1,2,3];
@@ -481,7 +473,7 @@ class gsd_default_type (unittest.TestCase):
         dump.gsd(filename=self.tmp_file, group=group.all(), period=None, overwrite=True);
 
         snap = data.gsd_snapshot(self.tmp_file, frame=-1);
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             self.assertEqual(snap.particles.N, self.snapshot.particles.N);
             self.assertEqual(snap.particles.types, self.snapshot.particles.types);
 
@@ -493,14 +485,14 @@ class gsd_default_type (unittest.TestCase):
         init.read_gsd(filename=self.tmp_file);
 
     def tearDown(self):
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             os.remove(self.tmp_file);
-        comm.barrier_all();
+        context.current.device.comm.barrier_all();
 
 class gsd_default_type (unittest.TestCase):
     def setUp(self):
         context.initialize();
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             tmp = tempfile.mkstemp(suffix='.test.gsd');
             self.tmp_file = tmp[1];
         else:
@@ -508,7 +500,7 @@ class gsd_default_type (unittest.TestCase):
 
     def validate_append(self, name, default_val, nondefault_val):
         self.snapshot = data.make_snapshot(N=4, box=data.boxdim(L=10), dtype='float');
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             # particles
             self.snapshot.particles.types = ['A', 'B', 'C'];
             print(dir(self.snapshot.particles))
@@ -521,7 +513,7 @@ class gsd_default_type (unittest.TestCase):
         dump.gsd(filename=self.tmp_file, group=group.all(), period=None, overwrite=True);
 
         # reset values to default and write out the second frame
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             getattr(self.snapshot.particles, name)[:] = default_val
 
         self.s.restore_snapshot(self.snapshot);
@@ -530,19 +522,19 @@ class gsd_default_type (unittest.TestCase):
 
         # validate the resulting gsd file
         snap = data.gsd_snapshot(self.tmp_file, frame=0);
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             self.assertEqual(snap.particles.N, self.snapshot.particles.N);
             numpy.testing.assert_array_equal(getattr(snap.particles, name), nondefault_val);
 
         snap = data.gsd_snapshot(self.tmp_file, frame=1);
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             self.assertEqual(snap.particles.N, self.snapshot.particles.N);
             numpy.testing.assert_array_equal(getattr(snap.particles, name), default_val);
 
 
     def validate_fullwrite(self, name, default_val, nondefault_val):
         self.snapshot = data.make_snapshot(N=4, box=data.boxdim(L=10), dtype='float');
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             # particles
             self.snapshot.particles.types = ['A', 'B', 'C'];
             print(dir(self.snapshot.particles))
@@ -556,7 +548,7 @@ class gsd_default_type (unittest.TestCase):
         run(1)
 
         # reset values to default and write out the second frame
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             getattr(self.snapshot.particles, name)[:] = default_val
 
         self.s.restore_snapshot(self.snapshot);
@@ -564,12 +556,12 @@ class gsd_default_type (unittest.TestCase):
 
         # validate the resulting gsd file
         snap = data.gsd_snapshot(self.tmp_file, frame=0);
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             self.assertEqual(snap.particles.N, self.snapshot.particles.N);
             numpy.testing.assert_array_equal(getattr(snap.particles, name), nondefault_val);
 
         snap = data.gsd_snapshot(self.tmp_file, frame=1);
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             self.assertEqual(snap.particles.N, self.snapshot.particles.N);
             numpy.testing.assert_array_equal(getattr(snap.particles, name), default_val);
 
@@ -675,9 +667,9 @@ class gsd_default_type (unittest.TestCase):
                                 nondefault_val = [[1, 1, 0, 0], [1, 1, 2, 0], [1, 1, 1, 1], [1, 2, 3, 4]])
 
     def tearDown(self):
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             os.remove(self.tmp_file);
-        comm.barrier_all();
+        context.current.device.comm.barrier_all();
 
 
 if __name__ == '__main__':

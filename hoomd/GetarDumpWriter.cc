@@ -901,7 +901,7 @@ namespace getardump{
 
     void export_GetarDumpWriter(py::module& m)
         {
-        py::class_<GetarDumpWriter, std::shared_ptr<GetarDumpWriter> >(m,"GetarDumpWriter", py::base<Analyzer>())
+        py::class_<GetarDumpWriter, Analyzer, std::shared_ptr<GetarDumpWriter> >(m,"GetarDumpWriter")
             .def(py::init< std::shared_ptr<SystemDefinition>, std::string, getardump::GetarDumpMode, unsigned int>())
             .def("close", &GetarDumpWriter::close)
             .def("getPeriod", &GetarDumpWriter::getPeriod)

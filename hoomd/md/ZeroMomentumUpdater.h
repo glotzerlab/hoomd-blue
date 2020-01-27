@@ -8,7 +8,7 @@
     \brief Declares an updater that zeros the momentum of the system
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -16,7 +16,7 @@
 
 #include <memory>
 #include <vector>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __ZEROMOMENTUMUPDATER_H__
 #define __ZEROMOMENTUMUPDATER_H__

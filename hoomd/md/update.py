@@ -90,7 +90,6 @@ class rescale_temp(_updater):
 
     """
     def __init__(self, kT, period=1, phase=0):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _updater.__init__(self);
@@ -121,7 +120,6 @@ class rescale_temp(_updater):
             rescaler.set_params(kT=2.0)
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         if kT is not None:
@@ -146,7 +144,6 @@ class zero_momentum(_updater):
 
     """
     def __init__(self, period=1, phase=0):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _updater.__init__(self);
@@ -172,14 +169,13 @@ class enforce2d(_updater):
 
     """
     def __init__(self):
-        hoomd.util.print_status_line();
         period = 1;
 
         # initialize base class
         _updater.__init__(self);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_updater = _md.Enforce2DUpdater(hoomd.context.current.system_definition);
         else:
             self.cpp_updater = _md.Enforce2DUpdaterGPU(hoomd.context.current.system_definition);
@@ -217,18 +213,17 @@ class constraint_ellipsoid(_updater):
 
     """
     def __init__(self, group, r=None, rx=None, ry=None, rz=None, P=(0,0,0)):
-        hoomd.util.print_status_line();
         period = 1;
 
         # Error out in MPI simulations
         if (_hoomd.is_MPI_available()):
-            if context.current.system_definition.getParticleData().getDomainDecomposition():
-                context.msg.error("constrain.ellipsoid is not supported in multi-processor simulations.\n\n")
+            if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
+                hoomd.context.current.device.cpp_msg.error("constrain.ellipsoid is not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error initializing updater.")
 
         # Error out if no radii are set
         if (r is None and rx is None and ry is None and rz is None):
-            context.msg.error("no radii were defined in update.constraint_ellipsoid.\n\n")
+            hoomd.context.current.device.cpp_msg.error("no radii were defined in update.constraint_ellipsoid.\n\n")
             raise RuntimeError("Error initializing updater.")
 
         # initialize the base class
@@ -239,7 +234,7 @@ class constraint_ellipsoid(_updater):
         if (r is not None): rx = ry = rz = r
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_updater = _md.ConstraintEllipsoid(hoomd.context.current.system_definition, group.cpp_group, P, rx, ry, rz);
         else:
             self.cpp_updater = _md.ConstraintEllipsoidGPU(hoomd.context.current.system_definition, group.cpp_group, P, rx, ry, rz);
@@ -299,7 +294,6 @@ class mueller_plathe_flow(_updater):
 
     """
     def __init__(self, group,flow_target,slab_direction,flow_direction,n_slabs,max_slab=-1,min_slab=-1):
-        hoomd.util.print_status_line();
         period=1 # This updater has to be applied every timestep
         assert (n_slabs > 0 ),"Invalid negative number of slabs."
         if min_slab < 0:
@@ -323,7 +317,7 @@ class mueller_plathe_flow(_updater):
 
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_updater = _md.MuellerPlatheFlow(hoomd.context.current.system_definition, group.cpp_group,flow_target.cpp_variant,slab_direction,flow_direction,n_slabs,min_slab,max_slab);
         else:
             self.cpp_updater = _md.MuellerPlatheFlowGPU(hoomd.context.current.system_definition, group.cpp_group,flow_target.cpp_variant,slab_direction,flow_direction,n_slabs,min_slab,max_slab);
@@ -353,7 +347,6 @@ class mueller_plathe_flow(_updater):
            epsilon (float): New tolerance for the deviation of actual and achieved flow.
 
         """
-        hoomd.util.print_status_line();
         return self.cpp_updater.setFlowEpsilon(float(epsilon))
 
     def get_summed_exchanged_momentum(self):

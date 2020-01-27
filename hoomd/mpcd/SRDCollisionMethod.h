@@ -11,7 +11,7 @@
 #ifndef MPCD_SRD_COLLISION_METHOD_H_
 #define MPCD_SRD_COLLISION_METHOD_H_
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 

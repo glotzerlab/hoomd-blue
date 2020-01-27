@@ -5,12 +5,12 @@
     \brief Declares the LogHDF5 class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
 #include "LogMatrix.h"
-#include <hoomd/extern/pybind/include/pybind11/numpy.h>
+#include <pybind11/numpy.h>
 #ifndef __LOGHDF5_H__
 #define __LOGHDF5_H__
 

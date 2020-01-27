@@ -13,6 +13,7 @@
 #include <cfloat>
 
 #include "GPUTree.h"
+#include <hoomd/extern/triangle_triangle.h>
 
 #ifndef __SHAPE_POLYHEDRON_H__
 #define __SHAPE_POLYHEDRON_H__
@@ -23,7 +24,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -38,7 +39,7 @@
   faster than checking all leaves against the tree on the CPU. On the GPU, leave against tree traversal may be faster due
   to the possibility of parallelizing over the leave nodes, but that also leads to longer autotuning times. Even though
   tree traversal is non-recursive, occasionally I see stack errors (= overflows) on Pascal GPUs when the shape is highly complicated.
-  Then the stack frame could be increased using cudaDeviceSetLimit().
+  Then the stack frame could be increased using hipDeviceSetLimit().
 
   Since GPU performance is mostly deplorable for concave polyhedra, I have not put much effort into optimizing for that code path.
   The parallel overlap check code path has been left in here for future experimentation, and can be enabled by
@@ -61,7 +62,7 @@ struct poly3d_data : param_base
     {
     poly3d_data() : n_faces(0), ignore(0) {};
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     //! Constructor
     poly3d_data(unsigned int nverts, unsigned int _n_faces, unsigned int _n_face_verts, unsigned int n_hull_verts, bool _managed)
         : n_verts(nverts), n_faces(_n_faces), hull_only(0)
@@ -92,7 +93,7 @@ struct poly3d_data : param_base
     /*! \param ptr Pointer to load data to (will be incremented)
         \param available_bytes Size of remaining shared memory allocation
      */
-    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
+    DEVICE void load_shared(char *& ptr, unsigned int &available_bytes)
         {
         tree.load_shared(ptr, available_bytes);
         convex_hull_verts.load_shared(ptr, available_bytes);
@@ -102,16 +103,30 @@ struct poly3d_data : param_base
         face_overlap.load_shared(ptr, available_bytes);
         }
 
-    #ifdef ENABLE_CUDA
-    //! Attach managed memory to CUDA stream
-    void attach_to_stream(cudaStream_t stream) const
+    //! Determine size of the shared memory allocation
+    /*! \param ptr Pointer to increment
+        \param available_bytes Size of remaining shared memory allocation
+     */
+    HOSTDEVICE void allocate_shared(char *& ptr, unsigned int &available_bytes) const
         {
-        tree.attach_to_stream(stream);
-        convex_hull_verts.attach_to_stream(stream);
-        verts.attach_to_stream(stream);
-        face_offs.attach_to_stream(stream);
-        face_verts.attach_to_stream(stream);
-        face_overlap.attach_to_stream(stream);
+        tree.allocate_shared(ptr, available_bytes);
+        convex_hull_verts.allocate_shared(ptr, available_bytes);
+        verts.allocate_shared(ptr, available_bytes);
+        face_offs.allocate_shared(ptr, available_bytes);
+        face_verts.allocate_shared(ptr, available_bytes);
+        face_overlap.allocate_shared(ptr, available_bytes);
+        }
+
+    #ifdef ENABLE_HIP
+    //! Set CUDA memory hints
+    void set_memory_hint() const
+        {
+        tree.set_memory_hint();
+        convex_hull_verts.set_memory_hint();
+        verts.set_memory_hint();
+        face_offs.set_memory_hint();
+        face_verts.set_memory_hint();
+        face_overlap.set_memory_hint();
         }
     #endif
     } __attribute__((aligned(32)));
@@ -163,7 +178,7 @@ struct ShapePolyhedron
         return data.sweep_radius != OverlapReal(0.0);
         }
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     std::string getShapeSpec() const
         {
         unsigned int n_verts = data.n_verts;
@@ -202,6 +217,13 @@ struct ShapePolyhedron
         return detail::AABB(pos, data.convex_hull_verts.diameter/Scalar(2));
         }
 
+    //! Return a tight fitting OBB
+    DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
+        {
+        // just use the AABB for now
+        return detail::OBB(getAABB(pos));
+        }
+
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel()
         {
@@ -210,6 +232,12 @@ struct ShapePolyhedron
         #else
         return false;
         #endif
+        }
+
+    //! Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    HOSTDEVICE static bool supportsSweepRadius()
+        {
+        return false;
         }
 
     quat<Scalar> orientation;    //!< Orientation of the polyhedron
@@ -222,61 +250,6 @@ DEVICE inline OverlapReal det_4x4(vec3<OverlapReal> a, vec3<OverlapReal> b, vec3
     {
     return dot(cross(c,d),b-a)+dot(cross(a,b),d-c);
     }
-
-// From Real Time Collision Detection (Christer Ericson)
-DEVICE inline vec3<OverlapReal> closestPointToTriangle(const vec3<OverlapReal>& p,
-     const vec3<OverlapReal>& a, const vec3<OverlapReal>& b, const vec3<OverlapReal>& c)
-    {
-    vec3<OverlapReal> ab = b - a;
-    vec3<OverlapReal> ac = c - a;
-    vec3<OverlapReal> ap = p - a;
-
-    OverlapReal d1 = dot(ab, ap);
-    OverlapReal d2 = dot(ac, ap);
-    if (d1 <= OverlapReal(0.0) && d2 <= OverlapReal(0.0)) return a; // barycentric coordinates (1,0,0)
-
-    // Check if P in vertex region outside B
-    vec3<OverlapReal> bp = p - b;
-    OverlapReal d3 = dot(ab, bp);
-    OverlapReal d4 = dot(ac, bp);
-    if (d3 >= OverlapReal(0.0) && d4 <= d3) return b; // barycentric coordinates (0,1,0)
-
-    // Check if P in edge region of AB, if so return projection of P onto AB
-    OverlapReal vc = d1*d4 - d3*d2;
-    if (vc <= OverlapReal(0.0) && d1 >= OverlapReal(0.0) && d3 <= OverlapReal(0.0))
-        {
-        OverlapReal v = d1 / (d1 - d3);
-        return a + v * ab; // barycentric coordinates (1-v,v,0)
-        }
-
-    // Check if P in vertex region outside C
-    vec3<OverlapReal> cp = p - c;
-    OverlapReal d5 = dot(ab, cp);
-    OverlapReal d6 = dot(ac, cp);
-    if (d6 >= OverlapReal(0.0) && d5 <= d6) return c; // barycentric coordinates (0,0,1)
-
-    // Check if P in edge region of AC, if so return projection of P onto AC
-    OverlapReal vb = d5*d2 - d1*d6;
-    if (vb <= OverlapReal(0.0) && d2 >= OverlapReal(0.0) && d6 <= OverlapReal(0.0))
-        {
-        OverlapReal w = d2 / (d2 - d6);
-        return a + w * ac; // barycentric coordinates (1-w,0,w)
-        }
-    // Check if P in edge region of BC, if so return projection of P onto BC
-    OverlapReal va = d3*d6 - d5*d4;
-    if (va <= OverlapReal(0.0) && (d4 - d3) >= OverlapReal(0.0) && (d5 - d6) >= OverlapReal(0.0))
-        {
-        OverlapReal w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
-        return b + w * (c - b); // barycentric coordinates (0,1-w,w)
-        }
-
-    // P inside face region. Compute Q through its barycentric coordinates (u,v,w)
-    OverlapReal denom = OverlapReal(1.0) / (va + vb + vc);
-    OverlapReal v = vb * denom;
-    OverlapReal w = vc * denom;
-    return a + ab*v+ac * w; // = u*a + v*b + w*c, u = va * denom = 1.0f - v - w
-    }
-
 
 // Clamp n to lie within the range [min, max]
 DEVICE inline OverlapReal clamp(OverlapReal n, OverlapReal min, OverlapReal max) {
@@ -437,27 +410,6 @@ DEVICE inline bool test_line_segment_overlap(const vec3<OverlapReal>& p,
     return false;
     }
 
-//! Check if circumspheres overlap
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shape
-    \param b second shape
-    \returns true if the circumspheres of both shapes overlap
-
-    \ingroup shape
-*/
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapePolyhedron& a,
-    const ShapePolyhedron &b)
-    {
-    vec3<OverlapReal> dr(r_ab);
-
-    OverlapReal rsq = dot(dr,dr);
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-
-    // first check overlap of circumspheres
-    return (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-    }
-
-
 // compute shortest distance between two triangles
 // Returns square of shortest distance
 DEVICE inline OverlapReal shortest_distance_triangles(
@@ -515,40 +467,38 @@ DEVICE inline OverlapReal shortest_distance_triangles(
     // six vertex-triangle distances
     vec3<OverlapReal> p;
 
-    p = closestPointToTriangle(a1, a2, b2, c2);
+    p = detail::closestPointOnTriangle(a1, a2, b2, c2);
     dsq = dot(p-a1,p-a1);
     if (dsq < dmin_sq)
         dmin_sq  = dsq;
 
-    p = closestPointToTriangle(b1, a2, b2, c2);
+    p = detail::closestPointOnTriangle(b1, a2, b2, c2);
     dsq = dot(p-b1,p-b1);
     if (dsq < dmin_sq)
         dmin_sq  = dsq;
 
-    p = closestPointToTriangle(c1, a2, b2, c2);
+    p = detail::closestPointOnTriangle(c1, a2, b2, c2);
     dsq = dot(p-c1,p-c1);
     if (dsq < dmin_sq)
         dmin_sq  = dsq;
 
-    p = closestPointToTriangle(a2, a1, b1, c1);
+    p = detail::closestPointOnTriangle(a2, a1, b1, c1);
     dsq = dot(p-a2,p-a2);
     if (dsq < dmin_sq)
         dmin_sq  = dsq;
 
-    p = closestPointToTriangle(b2, a1, b1, c1);
+    p = detail::closestPointOnTriangle(b2, a1, b1, c1);
     dsq = dot(p-b2,p-b2);
     if (dsq < dmin_sq)
         dmin_sq  = dsq;
 
-    p = closestPointToTriangle(c2, a1, b1, c1);
+    p = detail::closestPointOnTriangle(c2, a1, b1, c1);
     dsq = dot(p-c2,p-c2);
     if (dsq < dmin_sq)
         dmin_sq  = dsq;
 
     return dmin_sq;
     }
-
-#include <hoomd/extern/triangle_triangle.h>
 
 /*! Test overlap in narrow phase
 
@@ -591,7 +541,7 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> dr,
                 {
                 unsigned int idx_a = a.data.face_verts[offs_a+ivert];
                 vec3<float> v = a.data.verts[idx_a];
-                v = rotate(q,v) + dr;
+                v = rotate(quat<float>(q),v) + vec3<float>(dr);
                 U[ivert][0] = v.x; U[ivert][1] = v.y; U[ivert][2] = v.z;
                 }
             }
@@ -658,7 +608,7 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> dr,
                     {
                     // optimization, test vertex against triangle b
                     vec3<OverlapReal> p;
-                    p = closestPointToTriangle(a0, b0, b1, b2);
+                    p = detail::closestPointOnTriangle(a0, b0, b1, b2);
                     dsqmin = dot(p-a0,p-a0);
                     }
 
@@ -681,7 +631,7 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> dr,
                     {
                     // optimization, test vertex against triangle a
                     vec3<OverlapReal> p;
-                    p = closestPointToTriangle(b0, a0, a1, a2);
+                    p = detail::closestPointOnTriangle(b0, a0, a1, a2);
                     dsqmin = dot(p-b0,p-b0);
                     }
 
@@ -756,7 +706,7 @@ DEVICE inline bool IntersectRayTriangle(const vec3<OverlapReal>& p, const vec3<O
     return true;
     }
 
-#ifndef NVCC
+#ifndef __HIPCC__
 //! Traverse the bounding volume test tree recursively
 inline bool BVHCollision(const ShapePolyhedron& a, const ShapePolyhedron &b,
      unsigned int cur_node_a, unsigned int cur_node_b,
@@ -814,14 +764,18 @@ inline bool BVHCollision(const ShapePolyhedron& a, const ShapePolyhedron &b,
     \param a first shape
     \param b second shape
     \param err in/out variable incremented when error conditions occur in the overlap test
+    \param sweep_radius Additional sphere radius to sweep the shapes by
     \returns true when *a* and *b* overlap, and false when they are disjoint
 
     \ingroup shape
 */
+template<>
 DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                  const ShapePolyhedron& a,
                                  const ShapePolyhedron& b,
-                                 unsigned int& err)
+                                 unsigned int& err,
+                                 Scalar sweep_radius_a,
+                                 Scalar sweep_radius_b)
     {
     // test overlap of convex hulls
     if (a.isSpheroPolyhedron() || b.isSpheroPolyhedron())
@@ -848,13 +802,13 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
      * a) an edge of one polyhedron intersects the face of the other
      * b) the center of mass of one polyhedron is contained in the other
      */
-    #ifdef NVCC
+    #ifdef __HIPCC__
     const detail::GPUTree& tree_a = a.tree;
     const detail::GPUTree& tree_b = b.tree;
     #endif
 
     #ifdef LEAVES_AGAINST_TREE_TRAVERSAL
-    #ifdef NVCC
+    #ifdef __HIPCC__
     // Parallel tree traversal
     unsigned int offset = threadIdx.x;
     unsigned int stride = blockDim.x;
@@ -904,7 +858,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     vec3<OverlapReal> dr_rot(rotate(conj(b.orientation),-r_ab));
     quat<OverlapReal> q(conj(b.orientation)*a.orientation);
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     if (BVHCollision(a,b,0,0, q, dr_rot, err, abs_tol)) return true;
     #else
     // stackless traversal on GPU

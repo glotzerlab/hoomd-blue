@@ -30,9 +30,9 @@ PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf
 
 void export_PatchEnergyJIT(pybind11::module &m)
     {
-      pybind11::class_<hpmc::PatchEnergy, std::shared_ptr<hpmc::PatchEnergy> >(m, "PatchEnergy")
+    pybind11::class_<hpmc::PatchEnergy, std::shared_ptr<hpmc::PatchEnergy> >(m, "PatchEnergy")
               .def(pybind11::init< >());
-    pybind11::class_<PatchEnergyJIT, std::shared_ptr<PatchEnergyJIT> >(m, "PatchEnergyJIT", pybind11::base< hpmc::PatchEnergy >())
+    pybind11::class_<PatchEnergyJIT, hpmc::PatchEnergy, std::shared_ptr<PatchEnergyJIT> >(m, "PatchEnergyJIT")
             .def(pybind11::init< std::shared_ptr<ExecutionConfiguration>,
                                  const std::string&,
                                  Scalar,

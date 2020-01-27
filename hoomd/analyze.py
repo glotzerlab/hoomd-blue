@@ -32,8 +32,7 @@ class _analyzer(hoomd.meta._metadata):
     def __init__(self):
         # check if initialization has occurred
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("Cannot create analyzer before initialization\n");
-            raise RuntimeError('Error creating analyzer');
+            raise RuntimeError('Cannot create analyzer before initialization\n');
 
         self.cpp_analyzer = None;
 
@@ -71,7 +70,7 @@ class _analyzer(hoomd.meta._metadata):
             hoomd.context.current.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, 1000, -1);
             hoomd.context.current.system.setAnalyzerPeriodVariable(self.analyzer_name, period);
         else:
-            hoomd.context.msg.error("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function\n");
+            hoomd.context.current.device.cpp_msg.error("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function\n");
             raise RuntimeError('Error creating analyzer');
 
     ## \var enabled
@@ -95,7 +94,7 @@ class _analyzer(hoomd.meta._metadata):
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_analyzer is None:
-            hoomd.context.msg.error('Bug in hoomd: cpp_analyzer not set, please report\n');
+            hoomd.context.current.device.cpp_msg.error('Bug in hoomd: cpp_analyzer not set, please report\n');
             raise RuntimeError();
 
     def disable(self):
@@ -111,12 +110,11 @@ class _analyzer(hoomd.meta._metadata):
         analyzer during the simulation. A disabled analyzer can be re-enabled
         with :py:meth:`enable()`.
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # check if we are already disabled
         if not self.enabled:
-            hoomd.context.msg.warning("Ignoring command to disable an analyzer that is already disabled");
+            hoomd.context.current.device.cpp_msg.warning("Ignoring command to disable an analyzer that is already disabled");
             return;
 
         self.prev_period = hoomd.context.current.system.getAnalyzerPeriod(self.analyzer_name);
@@ -133,12 +131,11 @@ class _analyzer(hoomd.meta._metadata):
 
         See :py:meth:`disable()`.
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # check if we are already disabled
         if self.enabled:
-            hoomd.context.msg.warning("Ignoring command to enable an analyzer that is already enabled");
+            hoomd.context.current.device.cpp_msg.warning("Ignoring command to enable an analyzer that is already enabled");
             return;
 
         hoomd.context.current.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, self.prev_period, self.phase);
@@ -161,7 +158,6 @@ class _analyzer(hoomd.meta._metadata):
         is executed every *period* time steps. Changing the period does not change the phase set when the analyzer
         was first created.
         """
-        hoomd.util.print_status_line();
         self.period = period;
 
         if type(period) == type(1):
@@ -170,9 +166,9 @@ class _analyzer(hoomd.meta._metadata):
             else:
                 self.prev_period = period;
         elif type(period) == type(lambda n: n*2):
-            hoomd.context.msg.warning("A period cannot be changed to a variable one");
+            hoomd.context.current.device.cpp_msg.warning("A period cannot be changed to a variable one");
         else:
-            hoomd.context.msg.warning("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function");
+            hoomd.context.current.device.cpp_msg.warning("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function");
 
     ## \internal
     # \brief Get metadata
@@ -195,14 +191,13 @@ class _analyzer(hoomd.meta._metadata):
     def restore_state(self):
         """ Restore the state information from the file used to initialize the simulations
         """
-        hoomd.util.print_status_line();
         if isinstance(hoomd.context.current.state_reader, _hoomd.GSDReader) and hasattr(self.cpp_analyzer, "restoreStateGSD"):
             self.cpp_analyzer.restoreStateGSD(hoomd.context.current.state_reader, self._gsd_state_name());
         else:
             if hoomd.context.current.state_reader is None:
-                hoomd.context.msg.error("Can only restore after the state reader has been initialized.\n");
+                hoomd.context.current.device.cpp_msg.error("Can only restore after the state reader has been initialized.\n");
             else:
-                hoomd.context.msg.error("Restoring state from {reader_name} is not currently supported for {name}\n".format(reader_name=hoomd.context.current.state_reader.__name__, name=self.__class__.__name__));
+                hoomd.context.current.device.cpp_msg.error("Restoring state from {reader_name} is not currently supported for {name}\n".format(reader_name=hoomd.context.current.state_reader.__name__, name=self.__class__.__name__));
             raise RuntimeError("Can not restore state information!");
 
 # set default counter
@@ -241,7 +236,6 @@ class imd(_analyzer):
         imd = analyze.imd(port=12345, rate=1000)
     """
     def __init__(self, port, period=1, rate=1, pause=False, force=None, force_scale=0.1, phase=0):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _analyzer.__init__(self);
@@ -427,7 +421,6 @@ class log(_analyzer):
     """
 
     def __init__(self, filename, quantities, period, header_prefix='', overwrite=False, phase=0):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _analyzer.__init__(self);
@@ -468,7 +461,6 @@ class log(_analyzer):
             logger.set_params(quantities=['bond_harmonic_energy'], delimiter=',');
         """
 
-        hoomd.util.print_status_line();
 
         if quantities is not None:
             # set the logged quantities
@@ -548,11 +540,8 @@ class log(_analyzer):
         logger during the simulation. A disabled logger can be re-enabled
         with :py:meth:`enable()`.
         """
-        hoomd.util.print_status_line()
 
-        hoomd.util.quiet_status()
         _analyzer.disable(self)
-        hoomd.util.unquiet_status()
 
         hoomd.context.current.loggers.remove(self)
 
@@ -565,11 +554,8 @@ class log(_analyzer):
 
         See :py:meth:`disable()`.
         """
-        hoomd.util.print_status_line()
 
-        hoomd.util.quiet_status()
         _analyzer.enable(self)
-        hoomd.util.unquiet_status()
 
         hoomd.context.current.loggers.append(self)
 
@@ -591,7 +577,6 @@ class callback(_analyzer):
         analyze.callback(callback = my_callback, period = 100)
     """
     def __init__(self, callback, period, phase=0):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _analyzer.__init__(self);

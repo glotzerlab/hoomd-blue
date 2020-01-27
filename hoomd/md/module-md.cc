@@ -59,7 +59,7 @@
 #include "DynamicBond.h"
 
 // include GPU classes
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "ActiveForceComputeGPU.h"
 #include "AnisoPotentialPairGPU.h"
 #include "BondTablePotentialGPU.h"
@@ -97,7 +97,7 @@
 #include "MuellerPlatheFlowGPU.h"
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 namespace py = pybind11;
 
 /*! \file hoomd_module.cc
@@ -133,26 +133,6 @@ inline pair_fourier_params make_pair_fourier_params(py::list a, py::list b)
         retval.a[i] = py::cast<Scalar>(a[i]);
         retval.b[i] = py::cast<Scalar>(b[i]);
         }
-    return retval;
-    }
-
-//! Function to make the Gay-Berne parameter type
-inline pair_gb_params make_pair_gb_params(Scalar epsilon, Scalar lperp, Scalar lpar)
-    {
-    pair_gb_params retval;
-    retval.epsilon = epsilon;
-    retval.lperp = lperp;
-    retval.lpar = lpar;
-    return retval;
-    }
-
-//! Function to make the dipole parameter type
-inline pair_dipole_params make_pair_dipole_params(Scalar mu, Scalar A, Scalar kappa)
-    {
-    pair_dipole_params retval;
-    retval.mu = mu;
-    retval.A = A;
-    retval.kappa = kappa;
     return retval;
     }
 
@@ -305,7 +285,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalWall<EvaluatorPairGauss>(m, "WallsPotentialGauss");
     export_PotentialExternalWall<EvaluatorPairMorse>(m, "WallsPotentialMorse");
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     export_NeighborListGPU(m);
     export_NeighborListGPUBinned(m);
     export_NeighborListGPUStencil(m);
@@ -382,7 +362,7 @@ PYBIND11_MODULE(_md, m)
     export_MuellerPlatheFlow(m);
     export_DynamicBond(m);
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     export_TwoStepNVEGPU(m);
     export_TwoStepNVTMTKGPU(m);
     export_TwoStepLangevinGPU(m);

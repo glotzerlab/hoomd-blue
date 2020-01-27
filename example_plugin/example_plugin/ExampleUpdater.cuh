@@ -13,6 +13,6 @@
 
 // A C API call to run a CUDA kernel is needed for ExampleUpdaterGPU to call
 //! Zeros velocities on the GPU
-extern "C" cudaError_t gpu_zero_velocities(Scalar4 *d_vel, unsigned int N);
+extern "C" hipError_t gpu_zero_velocities(Scalar4 *d_vel, unsigned int N);
 
 #endif // _EXAMPLE_UPDATER_CUH_

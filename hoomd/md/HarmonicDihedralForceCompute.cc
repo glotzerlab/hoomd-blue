@@ -365,7 +365,7 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
 
 void export_HarmonicDihedralForceCompute(py::module& m)
     {
-    py::class_<HarmonicDihedralForceCompute, std::shared_ptr<HarmonicDihedralForceCompute> >(m, "HarmonicDihedralForceCompute", py::base<ForceCompute>())
+    py::class_<HarmonicDihedralForceCompute, ForceCompute, std::shared_ptr<HarmonicDihedralForceCompute> >(m, "HarmonicDihedralForceCompute")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     .def("setParams", &HarmonicDihedralForceCompute::setParams)
     ;

@@ -1007,7 +1007,7 @@ void TwoStepNPTMTK::randomizeVelocities(unsigned int timestep)
 
 void export_TwoStepNPTMTK(py::module& m)
     {
-    py::class_<TwoStepNPTMTK, std::shared_ptr<TwoStepNPTMTK> > twostepnptmtk(m, "TwoStepNPTMTK", py::base<IntegrationMethodTwoStep>());
+    py::class_<TwoStepNPTMTK, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNPTMTK> > twostepnptmtk(m, "TwoStepNPTMTK");
         twostepnptmtk.def(py::init< std::shared_ptr<SystemDefinition>,
                        std::shared_ptr<ParticleGroup>,
                        std::shared_ptr<ComputeThermo>,

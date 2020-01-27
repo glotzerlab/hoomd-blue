@@ -10,11 +10,13 @@
 
 #include "dfft_common.h"
 
-#ifdef __cplusplus
+#if defined(__cplusplus) && 0
 #define EXTERN_DFFT extern "C"
 #else
 #define EXTERN_DFFT
 #endif
+
+#pragma GCC visibility push(default)
 
 /* 
  *
@@ -40,4 +42,5 @@ EXTERN_DFFT int dfft_execute(cpx_t *h_in, cpx_t *h_out, int dir, dfft_plan p);
 #undef EXTERN_DFFT
 
 #endif // ENABLE_HOST
+#pragma GCC visibility pop
 #endif

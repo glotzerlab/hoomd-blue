@@ -32,8 +32,7 @@ class _force(hoomd.meta._metadata):
     def __init__(self, name=None):
         # check if initialization has occurred
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("Cannot create force before initialization\n");
-            raise RuntimeError('Error creating force');
+            raise RuntimeError('Cannot create force before initialization\n');
 
         # Allow force to store a name.  Used for discombobulation in the logger
         if name is None:
@@ -72,7 +71,7 @@ class _force(hoomd.meta._metadata):
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_force is None:
-            hoomd.context.msg.error('Bug in hoomd: cpp_force not set, please report\n');
+            hoomd.context.current.device.cpp_msg.error('Bug in hoomd: cpp_force not set, please report\n');
             raise RuntimeError();
 
     def disable(self, log=False):
@@ -98,12 +97,11 @@ class _force(hoomd.meta._metadata):
         available for logging.
 
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # check if we are already disabled
         if not self.enabled:
-            hoomd.context.msg.warning("Ignoring command to disable a force that is already disabled");
+            hoomd.context.current.device.cpp_msg.warning("Ignoring command to disable a force that is already disabled");
             return;
 
         self.enabled = False;
@@ -123,12 +121,11 @@ class _force(hoomd.meta._metadata):
 
         See :py:meth:`disable()`.
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # check if we are already disabled
         if self.enabled:
-            hoomd.context.msg.warning("Ignoring command to enable a force that is already enabled");
+            hoomd.context.current.device.cpp_msg.warning("Ignoring command to enable a force that is already enabled");
             return;
 
         # add the compute back to the system if it was removed
@@ -256,7 +253,6 @@ class constant(_force):
         const = force.constant(callback=update_forces)
     """
     def __init__(self, fx=None, fy=None, fz=None, fvec=None, tvec=None, group=None, callback=None):
-        hoomd.util.print_status_line();
 
         if (fx is not None) and (fy is not None) and (fz is not None):
             self.fvec = (fx,fy,fz)
@@ -271,7 +267,7 @@ class constant(_force):
             self.tvec = (0,0,0)
 
         if (self.fvec == (0,0,0)) and (self.tvec == (0,0,0) and callback is None):
-            hoomd.context.msg.warning("The constant force specified has no non-zero components\n");
+            hoomd.context.current.device.cpp_msg.warning("The constant force specified has no non-zero components\n");
 
         # initialize the base class
         _force.__init__(self);
@@ -342,7 +338,7 @@ class constant(_force):
             self.tvec = (0,0,0)
 
         if (fvec==(0,0,0)) and (tvec==(0,0,0)):
-            hoomd.contex.msg.warning("You are setting the constant force to have no non-zero components\n")
+            hoomd.context.current.device.cpp_msg.warning("You are setting the constant force to have no non-zero components\n")
 
         self.check_initialization();
         if (group is not None):
@@ -418,7 +414,6 @@ class active(_force):
         force.active( seed=7, f_list=[tuple(1,2,3) for i in range(N)], orientation_link=False, rotation_diff=100, constraint=ellipsoid)
     """
     def __init__(self, seed, group, f_lst=None, t_lst=None, orientation_link=True, orientation_reverse_link=False, rotation_diff=0, constraint=None):
-        hoomd.util.print_status_line();
 
         # initialize the base class
         _force.__init__(self);
@@ -461,7 +456,7 @@ class active(_force):
             rz = 0
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.ActiveForceCompute(hoomd.context.current.system_definition, group.cpp_group, seed, f_lst, t_lst,
                                                       orientation_link, orientation_reverse_link, rotation_diff, P, rx, ry, rz);
 
@@ -500,7 +495,6 @@ class dipole(_force):
         const_ext_f_dipole = force.external_field_dipole(field_x=0.0, field_y=1.0 ,field_z=0.5, p=1.0)
     """
     def __init__(self, field_x,field_y,field_z,p):
-        hoomd.util.print_status_line()
 
         # initialize the base class
         _force.__init__(self)

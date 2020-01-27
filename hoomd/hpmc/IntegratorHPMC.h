@@ -16,8 +16,8 @@
 #include "HPMCCounters.h"
 #include "ExternalField.h"
 
-#ifndef NVCC
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#ifndef __HIPCC__
+#include <pybind11/pybind11.h>
 #endif
 
 namespace hpmc
@@ -350,7 +350,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         GPUVector<Scalar> m_d;                      //!< Maximum move displacement by type
         GPUVector<Scalar> m_a;                      //!< Maximum angular displacement by type
 
-        GPUArray< hpmc_counters_t > m_count_total;  //!< Accept/reject total count
+        GlobalArray< hpmc_counters_t > m_count_total;  //!< Accept/reject total count
 
         Scalar m_nominal_width;                      //!< nominal cell width
         Scalar m_extra_ghost_width;                  //!< extra ghost width to add

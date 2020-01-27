@@ -19,12 +19,14 @@
 #include <string>
 #include <memory>
 
-#ifdef ENABLE_CUDA
-#include <cuda.h>
-#include <cuda_runtime.h>
-#include <cuda_profiler_api.h>
+#ifdef ENABLE_HIP
+#include <hip/hip_runtime.h>
+
+#ifdef __HIP_PLATFORM_HCC__
+#include <roctracer/roctracer_ext.h>
 #endif
 
+#endif
 #ifdef ENABLE_TBB
 #include <tbb/tbb.h>
 #endif
@@ -36,13 +38,13 @@
     \brief Declares ExecutionConfiguration and related classes
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
-#ifdef ENABLE_CUDA
+#if defined(ENABLE_HIP)
 //! Forward declaration
 class CachedAllocator;
 #endif
@@ -113,7 +115,7 @@ struct PYBIND11_EXPORT ExecutionConfiguration
 
     executionMode exec_mode;    //!< Execution mode specified in the constructor
     unsigned int n_cpu;         //!< Number of CPUS hoomd is executing on
-    bool m_cuda_error_checking;                //!< Set to true if GPU error checking is enabled
+    bool m_hip_error_checking;                //!< Set to true if GPU error checking is enabled
 
     std::shared_ptr<MPIConfiguration> m_mpi_config; //!< The MPI object holding the MPI communicator
     std::shared_ptr<Messenger> msg;          //!< Messenger for use in printing messages to the screen / log file
@@ -130,50 +132,59 @@ struct PYBIND11_EXPORT ExecutionConfiguration
         #ifndef NDEBUG
         return true;
         #else
-        return m_cuda_error_checking;
+        return m_hip_error_checking;
         #endif
         }
 
-    //! Sets the cuda error checking mode
-    void setCUDAErrorChecking(bool cuda_error_checking)
+    //! Sets the hip error checking mode
+    void setCUDAErrorChecking(bool hip_error_checking)
         {
-        m_cuda_error_checking = cuda_error_checking;
+        m_hip_error_checking = hip_error_checking;
         }
 
     //! Get the number of active GPUs
     unsigned int getNumActiveGPUs() const
         {
-        #ifdef ENABLE_CUDA
+        #if defined(ENABLE_HIP)
         return m_gpu_id.size();
         #else
         return 0;
         #endif
         }
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP)
     //! Get the IDs of the active GPUs
     const std::vector<unsigned int>& getGPUIds() const
         {
         return m_gpu_id;
         }
 
-    void cudaProfileStart() const
+    void hipProfileStart() const
         {
         for (int idev = m_gpu_id.size()-1; idev >= 0; idev--)
             {
-            cudaSetDevice(m_gpu_id[idev]);
-            cudaDeviceSynchronize();
-            cudaProfilerStart();
+            hipSetDevice(m_gpu_id[idev]);
+            hipDeviceSynchronize();
+
+            #ifdef __HIP_PLATFORM_NVCC__
+            hipProfilerStart();
+            #elif defined(__HIP_PLATFORM_HCC__)
+            roctracer_start();
+            #endif
             }
         }
 
-    void cudaProfileStop() const
+    void hipProfileStop() const
         {
         for (int idev = m_gpu_id.size()-1; idev >= 0; idev--)
             {
-            cudaSetDevice(m_gpu_id[idev]);
-            cudaDeviceSynchronize();
-            cudaProfilerStop();
+            hipSetDevice(m_gpu_id[idev]);
+            hipDeviceSynchronize();
+            #ifdef __HIP_PLATFORM_NVCC__
+            hipProfilerStop();
+            #elif defined(__HIP_PLATFORM_HCC__)
+            roctracer_stop();
+            #endif
             }
         }
     #endif
@@ -190,9 +201,9 @@ struct PYBIND11_EXPORT ExecutionConfiguration
     //! Get the name of the executing GPU (or the empty string)
     std::string getGPUName(unsigned int idev=0) const;
 
-#ifdef ENABLE_CUDA
+#if defined(ENABLE_HIP)
     //! Get the device properties of a logical GPU
-    cudaDeviceProp getDeviceProperties(unsigned int idev) const
+    hipDeviceProp_t getDeviceProperties(unsigned int idev) const
         {
         return m_dev_prop[idev];
         }
@@ -204,10 +215,10 @@ struct PYBIND11_EXPORT ExecutionConfiguration
         return m_concurrent;
         }
 
-#ifdef ENABLE_CUDA
-    cudaDeviceProp dev_prop;              //!< Cached device properties of the first GPU
+#ifdef ENABLE_HIP
+    hipDeviceProp_t dev_prop;              //!< Cached device properties of the first GPU
     std::vector<unsigned int> m_gpu_id;   //!< IDs of active GPUs
-    std::vector<cudaDeviceProp> m_dev_prop; //!< Device configuration of active GPUs
+    std::vector<hipDeviceProp_t> m_dev_prop; //!< Device configuration of active GPUs
 
     //! Get the compute capability of the GPU that we are running on
     std::string getComputeCapabilityAsString(unsigned int igpu = 0) const;
@@ -216,7 +227,9 @@ struct PYBIND11_EXPORT ExecutionConfiguration
     unsigned int getComputeCapability(unsigned int igpu = 0) const;
 
     //! Handle cuda error message
-    void handleCUDAError(cudaError_t err, const char *file, unsigned int line) const;
+    void handleCUDAError(hipError_t err, const char *file, unsigned int line) const;
+    //! Handle hip error message
+    void handleHIPError(hipError_t err, const char *file, unsigned int line) const;
 #endif
 
     /*
@@ -279,7 +292,7 @@ struct PYBIND11_EXPORT ExecutionConfiguration
         }
 
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP)
     //! Returns the cached allocator for temporary allocations
     CachedAllocator& getCachedAllocator() const
         {
@@ -322,7 +335,7 @@ private:
      */
     int guessLocalRank(bool &found);
 
-#ifdef ENABLE_CUDA
+#if defined(ENABLE_HIP)
     //! Initialize the GPU with the given id
     void initializeGPU(int gpu_id, bool min_cpu);
 
@@ -347,13 +360,13 @@ private:
     std::vector< bool > m_gpu_available;    //!< true if the GPU is available for computation, false if it is not
     bool m_system_compute_exclusive;        //!< true if every GPU in the system is marked compute-exclusive
     std::vector< int > m_gpu_list;          //!< A list of capable GPUs listed in priority order
-    std::vector< cudaEvent_t > m_events;      //!< A list of events to synchronize between GPUs
+    std::vector< hipEvent_t > m_events;      //!< A list of events to synchronize between GPUs
 #endif
     bool m_concurrent;                      //!< True if all GPUs have concurrentManagedAccess flag
 
     mutable bool m_in_multigpu_block;       //!< Tracks whether we are in a multi-GPU block
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP)
     std::unique_ptr<CachedAllocator> m_cached_alloc;       //!< Cached allocator for temporary allocations
     std::unique_ptr<CachedAllocator> m_cached_alloc_managed; //!< Cached allocator for temporary allocations in managed memory
     #endif
@@ -369,17 +382,17 @@ private:
     std::unique_ptr<MemoryTraceback> m_memory_traceback;    //!< Keeps track of allocations
     };
 
-// Macro for easy checking of CUDA errors - enabled all the time
-#ifdef ENABLE_CUDA
+
+#if defined(ENABLE_HIP)
 #define CHECK_CUDA_ERROR() { \
-    cudaError_t err_sync = cudaGetLastError(); \
-    this->m_exec_conf->handleCUDAError(err_sync, __FILE__, __LINE__); \
+    hipError_t err_sync = hipGetLastError(); \
+    this->m_exec_conf->handleHIPError(err_sync, __FILE__, __LINE__); \
     auto gpu_map = this->m_exec_conf->getGPUIds(); \
     for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev) \
         { \
-        cudaSetDevice(gpu_map[idev]); \
-        cudaError_t err_async = cudaDeviceSynchronize(); \
-        this->m_exec_conf->handleCUDAError(err_async, __FILE__, __LINE__); \
+        hipSetDevice(gpu_map[idev]); \
+        hipError_t err_async = hipDeviceSynchronize(); \
+        this->m_exec_conf->handleHIPError(err_async, __FILE__, __LINE__); \
         } \
     }
 #else
@@ -387,7 +400,7 @@ private:
 #endif
 
 //! Exports ExecutionConfiguration to python
-#ifndef NVCC
+#ifndef __HIPCC__
 void export_ExecutionConfiguration(pybind11::module& m);
 #endif
 

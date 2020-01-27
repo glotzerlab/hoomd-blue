@@ -7,7 +7,7 @@
 #include "hoomd/md/NeighborList.h"
 
 #include <iterator>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 #include <memory>
 
 #include "DEMEvaluator.h"
@@ -17,7 +17,7 @@
   \brief Declares the DEM2DForceCompute class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 

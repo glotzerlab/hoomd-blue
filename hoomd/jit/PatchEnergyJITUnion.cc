@@ -236,7 +236,7 @@ float PatchEnergyJITUnion::energy(const vec3<float>& r_ij,
 
 void export_PatchEnergyJITUnion(pybind11::module &m)
     {
-    pybind11::class_<PatchEnergyJITUnion, std::shared_ptr<PatchEnergyJITUnion> >(m, "PatchEnergyJITUnion", pybind11::base< PatchEnergyJIT >())
+    pybind11::class_<PatchEnergyJITUnion, PatchEnergyJIT, std::shared_ptr<PatchEnergyJITUnion> >(m, "PatchEnergyJITUnion")
             .def(pybind11::init< std::shared_ptr<SystemDefinition>,
                                  std::shared_ptr<ExecutionConfiguration>,
                                  const std::string&, Scalar, const unsigned int,

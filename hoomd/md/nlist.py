@@ -56,8 +56,7 @@ class nlist:
     def __init__(self):
         # check if initialization has occurred
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("Cannot create neighbor list before initialization\n");
-            raise RuntimeError('Error creating neighbor list');
+            raise RuntimeError('Cannot create neighbor list before initialization\n');
 
         # default exclusions
         self.is_exclusion_overridden = False;
@@ -111,20 +110,14 @@ class nlist:
     # \brief Sets the default bond exclusions, but only if the defaults have not been overridden
     def update_exclusions_defaults(self):
         if self.cpp_nlist.wantExclusions() and self.exclusions is not None:
-            hoomd.util.quiet_status();
             # update exclusions using stored values
             self.reset_exclusions(exclusions=self.exclusions)
-            hoomd.util.unquiet_status();
         elif not self.is_exclusion_overridden:
-            hoomd.util.quiet_status();
             self.reset_exclusions(exclusions=['body', 'bond','constraint']);
-            hoomd.util.unquiet_status();
 
         # Add any specific interparticle exclusions
         for i, j in self.exclusion_list:
-            hoomd.util.quiet_status();
             self.cpp_nlist.addExclusion(i, j)
-            hoomd.util.unquiet_status();
 
     def set_params(self, r_buff=None, check_period=None, d_max=None, dist_check=True):
         R""" Change neighbor list parameters.
@@ -178,10 +171,9 @@ class nlist:
             nl.set_params(r_buff = 0.7, check_period = 4)
             nl.set_params(d_max = 3.0)
         """
-        hoomd.util.print_status_line();
 
         if self.cpp_nlist is None:
-            hoomd.context.msg.error('Bug in hoomd: cpp_nlist not set, please report\n');
+            hoomd.context.current.device.cpp_msg.error('Bug in hoomd: cpp_nlist not set, please report\n');
             raise RuntimeError('Error setting neighbor list parameters');
 
         # update the parameters
@@ -239,11 +231,10 @@ class nlist:
             nl.reset_exclusions(exclusions = [])
 
         """
-        hoomd.util.print_status_line();
         self.is_exclusion_overridden = True;
 
         if self.cpp_nlist is None:
-            hoomd.context.msg.error('Bug in hoomd: cpp_nlist not set, please report\n');
+            hoomd.context.current.device.cpp_msg.error('Bug in hoomd: cpp_nlist not set, please report\n');
             raise RuntimeError('Error resetting exclusions');
 
         # clear all of the existing exclusions
@@ -298,7 +289,7 @@ class nlist:
 
         # if there are any items left in the exclusion list, we have an error.
         if len(exclusions) > 0:
-            hoomd.context.msg.error('Exclusion type(s): ' + str(exclusions) +  ' are not supported\n');
+            hoomd.context.current.device.cpp_msg.error('Exclusion type(s): ' + str(exclusions) +  ' are not supported\n');
             raise RuntimeError('Error resetting exclusions');
 
         # collect and print statistics about the number of exclusions.
@@ -315,10 +306,9 @@ class nlist:
 
             nl.add_exclusions(system.particles[0].tag, system.particles[1].tag)
         """
-        hoomd.util.print_status_line();
 
         if self.cpp_nlist is None:
-            hoomd.context.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
+            hoomd.context.current.device.cpp_msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
             raise RuntimeError('Error resetting exclusions');
 
         # store exclusions for later use
@@ -340,7 +330,7 @@ class nlist:
 
         """
         if self.cpp_nlist is None:
-            hoomd.context.msg.error('Bug in hoomd: cpp_nlist not set, please report\n');
+            hoomd.context.current.device.cpp_msg.error('Bug in hoomd: cpp_nlist not set, please report\n');
             raise RuntimeError('Error setting neighbor list parameters');
 
         return self.cpp_nlist.getSmallestRebuild()-1;
@@ -373,18 +363,14 @@ class nlist:
         Returns:
             (optimal_r_buff, maximum check_period)
         """
-        hoomd.util.print_status_line();
 
         # check if initialization has occurred
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("Cannot tune r_buff before initialization\n");
+            hoomd.context.current.device.cpp_msg.error("Cannot tune r_buff before initialization\n");
 
         if self.cpp_nlist is None:
-            hoomd.context.msg.error('Bug in hoomd: cpp_nlist not set, please report\n')
+            hoomd.context.current.device.cpp_msg.error('Bug in hoomd: cpp_nlist not set, please report\n')
             raise RuntimeError('Error tuning neighbor list')
-
-        # quiet the tuner starting here so that the user doesn't see all of the parameter set and run calls
-        hoomd.util.quiet_status();
 
         # start off at a check_period of 1
         self.set_params(check_period=1)
@@ -425,20 +411,15 @@ class nlist:
         self.set_params(r_buff=fastest_r_buff);
         hoomd.run(warmup, quiet=quiet);
 
-        # all done with the parameter sets and run calls (mostly)
-        hoomd.util.unquiet_status();
-
         # notify the user of the benchmark results
-        hoomd.context.msg.notice(2, "r_buff = " + str(r_buff_list) + '\n');
-        hoomd.context.msg.notice(2, "tps = " + str(tps_list) + '\n');
-        hoomd.context.msg.notice(2, "Optimal r_buff: " + str(fastest_r_buff) + '\n');
-        hoomd.context.msg.notice(2, "Maximum check_period: " + str(self.query_update_period()) + '\n');
+        hoomd.context.current.device.cpp_msg.notice(2, "r_buff = " + str(r_buff_list) + '\n');
+        hoomd.context.current.device.cpp_msg.notice(2, "tps = " + str(tps_list) + '\n');
+        hoomd.context.current.device.cpp_msg.notice(2, "Optimal r_buff: " + str(fastest_r_buff) + '\n');
+        hoomd.context.current.device.cpp_msg.notice(2, "Maximum check_period: " + str(self.query_update_period()) + '\n');
 
         # set the found max check period
         if set_max_check_period:
-            hoomd.util.quiet_status();
             self.set_params(check_period=self.query_update_period());
-            hoomd.util.unquiet_status();
 
         # return the results to the script
         return (fastest_r_buff, self.query_update_period());
@@ -474,7 +455,7 @@ class rcut:
         elif (b,a) in self.values:
             cur_pair = (b,a);
         else:
-            hoomd.context.msg.error("Bug ensuring pair exists in nlist.r_cut.ensure_pair. Please report.\n");
+            hoomd.context.current.device.cpp_msg.error("Bug ensuring pair exists in nlist.r_cut.ensure_pair. Please report.\n");
             raise RuntimeError("Error fetching rcut(i,j) pair");
 
         return cur_pair;
@@ -532,8 +513,7 @@ class rcut:
     def fill(self):
         # first, check that the system has been initialized
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("Cannot fill rcut(i,j) before initialization\n");
-            raise RuntimeError('Error filling nlist rcut(i,j)');
+            raise RuntimeError('Cannot fill rcut(i,j) before initialization\n');
 
         # get a list of types from the particle data
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
@@ -584,7 +564,6 @@ class cell(nlist):
         significantly degraded performance or incorrect results.
     """
     def __init__(self, r_buff=0.4, check_period=1, d_max=None, dist_check=True, name=None, deterministic=False):
-        hoomd.util.print_status_line()
 
         nlist.__init__(self)
 
@@ -595,7 +574,7 @@ class cell(nlist):
             self.name = name
 
         # create the C++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_cl = _hoomd.CellList(hoomd.context.current.system_definition)
             hoomd.context.current.system.addCompute(self.cpp_cl , self.name + "_cl")
             self.cpp_nlist = _md.NeighborListBinned(hoomd.context.current.system_definition, 0.0, r_buff, self.cpp_cl )
@@ -613,9 +592,7 @@ class cell(nlist):
         hoomd.context.current.neighbor_lists += [self]
 
         # save the user defined parameters
-        hoomd.util.quiet_status()
         self.set_params(r_buff, check_period, d_max, dist_check)
-        hoomd.util.unquiet_status()
 
 cell.cur_id = 0
 
@@ -666,8 +643,6 @@ class stencil(nlist):
         significantly degraded performance or incorrect results.
     """
     def __init__(self, r_buff=0.4, check_period=1, d_max=None, dist_check=True, cell_width=None, name=None, deterministic=False):
-        hoomd.util.print_status_line()
-
         # register the citation
         c = hoomd.cite.article(cite_key='howard2016',
                          author=['M P Howard', 'J A Anderson', 'A Nikoubashman', 'S C Glotzer', 'A Z Panagiotopoulos'],
@@ -690,7 +665,7 @@ class stencil(nlist):
             self.name = name
 
         # create the C++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_cl = _hoomd.CellList(hoomd.context.current.system_definition)
             hoomd.context.current.system.addCompute(self.cpp_cl , self.name + "_cl")
             cls = _hoomd.CellListStencil(hoomd.context.current.system_definition, self.cpp_cl)
@@ -712,10 +687,8 @@ class stencil(nlist):
         hoomd.context.current.neighbor_lists += [self]
 
         # save the user defined parameters
-        hoomd.util.quiet_status()
         self.set_params(r_buff, check_period, d_max, dist_check)
         self.set_cell_width(cell_width)
-        hoomd.util.unquiet_status()
 
     def set_cell_width(self, cell_width):
         R""" Set the cell width
@@ -723,7 +696,6 @@ class stencil(nlist):
         Args:
             cell_width (float): New cell width.
         """
-        hoomd.util.print_status_line()
         if cell_width is not None:
             self.cpp_nlist.setCellWidth(float(cell_width))
 
@@ -748,14 +720,13 @@ class stencil(nlist):
         Returns:
             The optimal cell width.
         """
-        hoomd.util.print_status_line()
 
         # check if initialization has occurred
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("Cannot tune r_buff before initialization\n");
+            hoomd.context.current.device.cpp_msg.error("Cannot tune r_buff before initialization\n");
 
         if self.cpp_nlist is None:
-            hoomd.context.msg.error('Bug in hoomd: cpp_nlist not set, please report\n')
+            hoomd.context.current.device.cpp_msg.error('Bug in hoomd: cpp_nlist not set, please report\n')
             raise RuntimeError('Error tuning neighbor list')
 
         min_cell_width = min_width
@@ -764,9 +735,6 @@ class stencil(nlist):
         max_cell_width = max_width
         if max_cell_width is None:
             max_cell_width = self.cpp_nlist.getMaxRList()
-
-        # quiet the tuner starting here so that the user doesn't see all of the parameter set and run calls
-        hoomd.util.quiet_status();
 
         # make the warmup run
         hoomd.run(warmup);
@@ -780,9 +748,7 @@ class stencil(nlist):
         for i in range(0,jumps):
             # set the current cell width
             cw = min_cell_width + i * dr;
-            hoomd.util.quiet_status();
             self.set_cell_width(cell_width=cw)
-            hoomd.util.unquiet_status();
 
             # run the benchmark 3 times
             tps = [];
@@ -805,13 +771,10 @@ class stencil(nlist):
         # set the fastest cell width
         self.set_cell_width(cell_width=fastest_width)
 
-        # all done with the parameter sets and run calls (mostly)
-        hoomd.util.unquiet_status();
-
         # notify the user of the benchmark results
-        hoomd.context.msg.notice(2, "cell width = " + str(width_list) + '\n');
-        hoomd.context.msg.notice(2, "tps = " + str(tps_list) + '\n');
-        hoomd.context.msg.notice(2, "Optimal cell width: " + str(fastest_width) + '\n');
+        hoomd.context.current.device.cpp_msg.notice(2, "cell width = " + str(width_list) + '\n');
+        hoomd.context.current.device.cpp_msg.notice(2, "tps = " + str(tps_list) + '\n');
+        hoomd.context.current.device.cpp_msg.notice(2, "Optimal cell width: " + str(fastest_width) + '\n');
 
         # return the results to the script
         return fastest_width
@@ -853,7 +816,6 @@ class tree(nlist):
 
     """
     def __init__(self, r_buff=0.4, check_period=1, d_max=None, dist_check=True, name=None):
-        hoomd.util.print_status_line()
 
         # register the citation
         c1 = hoomd.cite.article(cite_key='howard2016',
@@ -881,7 +843,7 @@ class tree(nlist):
         nlist.__init__(self)
 
         # create the C++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_nlist = _md.NeighborListTree(hoomd.context.current.system_definition, 0.0, r_buff)
         else:
             self.cpp_nlist = _md.NeighborListGPUTree(hoomd.context.current.system_definition, 0.0, r_buff)
@@ -900,7 +862,6 @@ class tree(nlist):
         hoomd.context.current.neighbor_lists += [self]
 
         # save the user defined parameters
-        hoomd.util.quiet_status()
         self.set_params(r_buff, check_period, d_max, dist_check)
-        hoomd.util.unquiet_status()
+
 tree.cur_id = 0

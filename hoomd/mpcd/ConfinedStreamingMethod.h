@@ -11,12 +11,12 @@
 #ifndef MPCD_CONFINED_STREAMING_METHOD_H_
 #define MPCD_CONFINED_STREAMING_METHOD_H_
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
 #include "StreamingMethod.h"
-#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
+#include <pybind11/pybind11.h>
 
 namespace mpcd
 {
@@ -212,8 +212,8 @@ void export_ConfinedStreamingMethod(pybind11::module& m)
     {
     namespace py = pybind11;
     const std::string name = "ConfinedStreamingMethod" + Geometry::getName();
-    py::class_<mpcd::ConfinedStreamingMethod<Geometry>, std::shared_ptr<mpcd::ConfinedStreamingMethod<Geometry>>>
-        (m, name.c_str(), py::base<mpcd::StreamingMethod>())
+    py::class_<mpcd::ConfinedStreamingMethod<Geometry>, mpcd::StreamingMethod, std::shared_ptr<mpcd::ConfinedStreamingMethod<Geometry>>>
+        (m, name.c_str())
         .def(py::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int, int, std::shared_ptr<const Geometry>>())
         .def_property("geometry", &mpcd::ConfinedStreamingMethod<Geometry>::getGeometry,&mpcd::ConfinedStreamingMethod<Geometry>::setGeometry);
     }

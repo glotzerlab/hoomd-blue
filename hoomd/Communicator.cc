@@ -9,13 +9,12 @@
 */
 
 #ifdef ENABLE_MPI
-
 #include "Communicator.h"
 #include "System.h"
 #include "HOOMDMPI.h"
 
 #include <algorithm>
-#include <hoomd/extern/pybind/include/pybind11/stl.h>
+#include <pybind11/stl.h>
 
 
 using namespace std;

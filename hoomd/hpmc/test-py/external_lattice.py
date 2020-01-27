@@ -50,7 +50,7 @@ class external_field_lattice(unittest.TestCase):
             eng=self.lattice.get_energy();
             avg = self.lattice.get_average_energy();
             sigma = self.lattice.get_sigma_energy();
-            if hoomd.comm.get_rank() == 0:
+            if hoomd.context.current.device.comm.rank == 0:
                 diff = (np.array(latticep) - snap.particles.position[:]);
                 box = self.system.box;
                 for i in range(diff.shape[0]):
@@ -87,11 +87,11 @@ class external_field_lattice(unittest.TestCase):
 
         self.snapshot2d = self.system.take_snapshot(particles=True); #data.make_snapshot(N=N, box=data.boxdim(L=L, dimensions=3), particle_types=['A'])
         lattice2d = [];
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             lattice2d = self.snapshot2d.particles.position[:];
 
         self.snapshot2d_s = data.make_snapshot(N=N, box=self.system.box, particle_types=['A']);
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             self.snapshot2d_s.particles.position[:] = self.snapshot2d.particles.position[:]+dx2d;
             self.snapshot2d_s.particles.orientation[:] = np.array([dq for _ in range(N)]);
         del self.system
@@ -102,10 +102,10 @@ class external_field_lattice(unittest.TestCase):
         self.system.replicate(nx=4, ny=4, nz=4);
         self.snapshot3d = self.system.take_snapshot(particles=True); #data.make_snapshot(N=N, box=data.boxdim(L=L, dimensions=3), particle_types=['A'])
         lattice3d = [];
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             lattice3d = self.snapshot3d.particles.position[:];
         self.snapshot3d_s = data.make_snapshot(N=N, box=self.system.box, particle_types=['A']);
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             self.snapshot3d_s.particles.position[:] = self.snapshot3d.particles.position[:]+dx3d;
             self.snapshot3d_s.particles.orientation[:] = np.array([dq for _ in range(N)]);
         del self.system
@@ -233,15 +233,14 @@ class external_field_lattice(unittest.TestCase):
         print("****************************************")
 
         self.system = init.read_snapshot(self.snapshot3d)
-        v =  0.33*np.array([(-1,-1,-1),(-1,-1,1),(-1,1,-1),(-1,1,1),(1,-1,-1),(1,-1,1),(1,1,-1),(1,1,1)]);
-        offs = [-1]*6;
-        norms =[(-1,0,0), (1,0,0), (0,1,0,), (0,-1,0), (0,0,1), (0,0,-1)];
+        offs = [-.5]*2;
+        norms =[(-1,0,0), (1,0,0)];
         diam = 1.0;
         orig = (0,0,0);
         self.mc = hpmc.integrate.faceted_sphere(seed=10, d=0.0, a=0.0);
         self.mc.shape_param.set('A', normals=norms,
                                     offsets=offs,
-                                    vertices=v,
+                                    vertices = [],
                                     diameter=diam,
                                     origin=orig);
         self.run_test(latticep=lattice3d, latticeq=latticeq, k=k, kalt=kalt, q=k*10.0, qalt=kalt*10.0, uein=None, snapshot_s=self.snapshot3d_s, eng_check=(eng_check3d+eng_checkq));

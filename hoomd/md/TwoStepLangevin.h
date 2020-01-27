@@ -13,11 +13,11 @@
     \brief Declares the TwoStepLangevin class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Integrates part of the system forward in two steps with Langevin dynamics
 /*! Implements Langevin dynamics.

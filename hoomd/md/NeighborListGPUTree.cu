@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -11,7 +12,7 @@
 #include <thrust/execution_policy.h>
 #include <thrust/fill.h>
 #include <thrust/remove.h>
-#include "hoomd/extern/cub/cub/cub.cuh"
+#include <hipcub/hipcub.hpp>
 
 //! Kernel to mark particles by type
 /*!
@@ -104,7 +105,7 @@ __global__ void gpu_nlist_mark_types_kernel(unsigned int *d_types,
  *
  * \sa gpu_nlist_mark_types_kernel
  */
-cudaError_t gpu_nlist_mark_types(unsigned int *d_types,
+hipError_t gpu_nlist_mark_types(unsigned int *d_types,
                                  unsigned int *d_indexes,
                                  unsigned int *d_lbvh_errors,
                                  Scalar4 *d_last_pos,
@@ -118,14 +119,14 @@ cudaError_t gpu_nlist_mark_types(unsigned int *d_types,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_mark_types_kernel);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(gpu_nlist_mark_types_kernel));
         max_block_size = attr.maxThreadsPerBlock;
         }
 
     const unsigned int run_block_size = min(block_size,max_block_size);
     const unsigned int num_blocks = ((N+nghosts) + run_block_size - 1)/run_block_size;
-    gpu_nlist_mark_types_kernel<<<num_blocks, run_block_size>>>(d_types,
+    hipLaunchKernelGGL(gpu_nlist_mark_types_kernel, dim3(num_blocks), dim3(run_block_size), 0, 0, d_types,
                                                                 d_indexes,
                                                                 d_lbvh_errors,
                                                                 d_last_pos,
@@ -134,7 +135,7 @@ cudaError_t gpu_nlist_mark_types(unsigned int *d_types,
                                                                 nghosts,
                                                                 box,
                                                                 ghost_width);
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 /*!
@@ -162,11 +163,11 @@ uchar2 gpu_nlist_sort_types(void *d_tmp,
                             const unsigned int N,
                             const unsigned int num_bits)
     {
-    cub::DoubleBuffer<unsigned int> d_keys(d_types, d_sorted_types);
-    cub::DoubleBuffer<unsigned int> d_vals(d_indexes, d_sorted_indexes);
+    hipcub::DoubleBuffer<unsigned int> d_keys(d_types, d_sorted_types);
+    hipcub::DoubleBuffer<unsigned int> d_vals(d_indexes, d_sorted_indexes);
 
     // we counted number of bits to sort, so the range of bit indexes is [0,num_bits)
-    cub::DeviceRadixSort::SortPairs(d_tmp, tmp_bytes, d_keys, d_vals, N, 0, num_bits);
+    hipcub::DeviceRadixSort::SortPairs(d_tmp, tmp_bytes, d_keys, d_vals, N, 0, num_bits);
 
     uchar2 swap = make_uchar2(0,0);
     if (d_tmp != NULL)
@@ -237,7 +238,7 @@ __global__ void gpu_nlist_count_types_kernel(unsigned int *d_first,
  *
  * \sa gpu_nlist_count_types_kernel
  */
-cudaError_t gpu_nlist_count_types(unsigned int *d_first,
+hipError_t gpu_nlist_count_types(unsigned int *d_first,
                                   unsigned int *d_last,
                                   const unsigned int *d_types,
                                   const unsigned int ntypes,
@@ -247,23 +248,23 @@ cudaError_t gpu_nlist_count_types(unsigned int *d_first,
     {
     // initially, fill all types as empty
     thrust::fill(thrust::device, d_first, d_first+ntypes, NeighborListTypeSentinel);
-    cudaMemset(d_last, 0, sizeof(unsigned int)*ntypes);
+    hipMemset(d_last, 0, sizeof(unsigned int)*ntypes);
 
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_count_types_kernel);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(gpu_nlist_count_types_kernel));
         max_block_size = attr.maxThreadsPerBlock;
         }
 
     int run_block_size = min(block_size,max_block_size);
-    gpu_nlist_count_types_kernel<<<N/run_block_size + 1, run_block_size>>>(d_first,
+    hipLaunchKernelGGL(gpu_nlist_count_types_kernel, dim3(N/run_block_size + 1), dim3(run_block_size), 0, 0, d_first,
                                                                            d_last,
                                                                            d_types,
                                                                            ntypes,
                                                                            N);
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 //! Kernel to copy the particle indexes into traversal order
@@ -299,7 +300,7 @@ __global__ void gpu_nlist_copy_primitives_kernel(unsigned int *d_traverse_order,
  *
  * \sa gpu_nlist_copy_primitives_kernel
  */
-cudaError_t gpu_nlist_copy_primitives(unsigned int *d_traverse_order,
+hipError_t gpu_nlist_copy_primitives(unsigned int *d_traverse_order,
                                       const unsigned int *d_indexes,
                                       const unsigned int *d_primitives,
                                       const unsigned int N,
@@ -308,30 +309,30 @@ cudaError_t gpu_nlist_copy_primitives(unsigned int *d_traverse_order,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_copy_primitives_kernel);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(gpu_nlist_copy_primitives_kernel));
         max_block_size = attr.maxThreadsPerBlock;
         }
 
     int run_block_size = min(block_size,max_block_size);
-    gpu_nlist_copy_primitives_kernel<<<N/run_block_size + 1, run_block_size>>>(d_traverse_order,
+    hipLaunchKernelGGL(gpu_nlist_copy_primitives_kernel, dim3(N/run_block_size + 1), dim3(run_block_size), 0, 0, d_traverse_order,
                                                                                d_indexes,
                                                                                d_primitives,
                                                                                N);
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 // explicit templates for neighbor::LBVH with PointMapInsertOp
 template void neighbor::gpu::lbvh_gen_codes(unsigned int *, unsigned int *, const PointMapInsertOp&,
-    const Scalar3, const Scalar3, const unsigned int, const unsigned int, cudaStream_t);
+    const Scalar3, const Scalar3, const unsigned int, const unsigned int, hipStream_t);
 template void neighbor::gpu::lbvh_bubble_aabbs(const neighbor::gpu::LBVHData, const PointMapInsertOp&,
-    unsigned int *, const unsigned int, const unsigned int, cudaStream_t);
-template void neighbor::gpu::lbvh_one_primitive(const neighbor::gpu::LBVHData, const PointMapInsertOp&, cudaStream_t);
+    unsigned int *, const unsigned int, const unsigned int, hipStream_t);
+template void neighbor::gpu::lbvh_one_primitive(const neighbor::gpu::LBVHData, const PointMapInsertOp&, hipStream_t);
 template void neighbor::gpu::lbvh_traverse_ropes(NeighborListOp&, const neighbor::gpu::LBVHCompressedData&,
-    const ParticleQueryOp<false,false>&, const Scalar3 *, unsigned int, unsigned int, cudaStream_t);
+    const ParticleQueryOp<false,false>&, const Scalar3 *, unsigned int, unsigned int, hipStream_t);
 template void neighbor::gpu::lbvh_traverse_ropes(NeighborListOp&, const neighbor::gpu::LBVHCompressedData&,
-    const ParticleQueryOp<false,true>&, const Scalar3 *, unsigned int, unsigned int, cudaStream_t);
+    const ParticleQueryOp<false,true>&, const Scalar3 *, unsigned int, unsigned int, hipStream_t);
 template void neighbor::gpu::lbvh_traverse_ropes(NeighborListOp&, const neighbor::gpu::LBVHCompressedData&,
-    const ParticleQueryOp<true,false>&, const Scalar3 *, unsigned int, unsigned int, cudaStream_t);
+    const ParticleQueryOp<true,false>&, const Scalar3 *, unsigned int, unsigned int, hipStream_t);
 template void neighbor::gpu::lbvh_traverse_ropes(NeighborListOp&, const neighbor::gpu::LBVHCompressedData&,
-    const ParticleQueryOp<true,true>&, const Scalar3 *, unsigned int, unsigned int, cudaStream_t);
+    const ParticleQueryOp<true,true>&, const Scalar3 *, unsigned int, unsigned int, hipStream_t);

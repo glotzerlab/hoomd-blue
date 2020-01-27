@@ -39,7 +39,7 @@ class metadata_tests(unittest.TestCase):
         metadata = meta.dump_metadata(filename = tmp.name, user = user)
         self.assertEqual(metadata['user']['my_extra_field'], 123)
 
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             with tmp:
                 metadata_check = json.loads(tmp.read().decode())
             self.assertEqual(len(metadata), len(metadata_check))
@@ -47,12 +47,6 @@ class metadata_tests(unittest.TestCase):
             self.assertEqual(metadata['user']['my_extra_field'], metadata_check['user']['my_extra_field'])
             for a, b in zip(metadata, metadata_check):
                 self.assertEqual(metadata[a], metadata_check[b])
-
-    def test_context(self):
-        import json, socket
-        import socket
-        metadata = meta.dump_metadata()
-        self.assertEqual(metadata['context']['hostname'], socket.gethostname())
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

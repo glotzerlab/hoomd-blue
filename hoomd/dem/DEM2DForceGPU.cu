@@ -78,7 +78,7 @@ __global__ void gpu_compute_dem2d_forces_kernel(const Scalar4 *d_pos,
     const unsigned int n_shapes,
     const unsigned int maxVerts)
     {
-    extern __shared__ int sh[];
+    HIP_DYNAMIC_SHARED( int, sh)
     // part{ForceTorques, Virials} are the forces and torques
     // (force.x, force.y, torque.z, potentialEnergy), and virials for
     // each particle that this block will calculate for (blockDim.y
@@ -326,10 +326,10 @@ __global__ void gpu_compute_dem2d_forces_kernel(const Scalar4 *d_pos,
     // particle we calculate for in the block
     if(partIdx < N)
         {
-        genAtomicAdd(&partForceTorques[threadIdx.y].x, localForceTorque.x);
-        genAtomicAdd(&partForceTorques[threadIdx.y].y, localForceTorque.y);
-        genAtomicAdd(&partForceTorques[threadIdx.y].z, localForceTorque.z);
-        genAtomicAdd(&partForceTorques[threadIdx.y].w, localForceTorque.w);
+        genAtomicAdd((Real *) &partForceTorques[threadIdx.y].x, (Real) localForceTorque.x);
+        genAtomicAdd((Real *) &partForceTorques[threadIdx.y].y, (Real) localForceTorque.y);
+        genAtomicAdd((Real *) &partForceTorques[threadIdx.y].z, (Real) localForceTorque.z);
+        genAtomicAdd((Real *) &partForceTorques[threadIdx.y].w, (Real) localForceTorque.w);
         genAtomicAdd(partVirials + 6*threadIdx.y + 0, localVirial[0]);
         genAtomicAdd(partVirials + 6*threadIdx.y + 1, localVirial[1]);
         genAtomicAdd(partVirials + 6*threadIdx.y + 3, localVirial[3]);
@@ -377,7 +377,7 @@ __global__ void gpu_compute_dem2d_forces_kernel(const Scalar4 *d_pos,
   This is just a driver for gpu_compute_dem2d_forces_kernel, see the documentation for it for more information.
 */
 template<typename Real, typename Real2, typename Real4, typename Evaluator>
-cudaError_t gpu_compute_dem2d_forces(Scalar4* d_force,
+hipError_t gpu_compute_dem2d_forces(Scalar4* d_force,
     Scalar4* d_torque,
     Scalar* d_virial,
     const unsigned int virial_pitch,
@@ -404,8 +404,8 @@ cudaError_t gpu_compute_dem2d_forces(Scalar4* d_force,
     // setup the grid to run the kernel
     dim3 grid((int)ceil((double)N / (double)particlesPerBlock), 1, 1);
 
-    cudaFuncAttributes attr;
-    cudaFuncGetAttributes(&attr, gpu_compute_dem2d_forces_kernel<Real, Real2, Real4, Evaluator>);
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(gpu_compute_dem2d_forces_kernel<Real, Real2, Real4, Evaluator>));
     const unsigned int numFeatures(min(maxVerts, attr.maxThreadsPerBlock/particlesPerBlock/2));
     assert(numFeatures);
 
@@ -416,12 +416,11 @@ cudaError_t gpu_compute_dem2d_forces(Scalar4* d_force,
         particlesPerBlock*(sizeof(Real4) + 6*sizeof(Real)));
 
     // run the kernel
-    gpu_compute_dem2d_forces_kernel<Real, Real2, Real4, Evaluator> <<< grid, threads, shmSize>>>
-        (d_pos, d_quat, d_force, d_torque, d_virial, virial_pitch, N, d_vertices,
+    hipLaunchKernelGGL((gpu_compute_dem2d_forces_kernel<Real, Real2, Real4, Evaluator>), grid, threads, shmSize, 0, d_pos, d_quat, d_force, d_torque, d_virial, virial_pitch, N, d_vertices,
         d_num_shape_verts, d_diam, d_velocity, vertexCount, box, d_n_neigh,
         d_nlist, d_head_list, potential, r_cutsq, n_shapes, maxVerts);
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 // vim:syntax=cpp

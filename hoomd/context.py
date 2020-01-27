@@ -13,17 +13,12 @@ import os
 import hoomd
 from hoomd import _hoomd
 from hoomd import cite
-import socket
-import getpass
-import platform
+
 
 # The following global variables keep track of the walltime and processing time since the import of hoomd
 import time
 TIME_START = time.time()
 CLOCK_START = time.perf_counter()
-
-## Global Messenger
-msg = None;
 
 ## Global bibliography
 bib = None;
@@ -31,19 +26,14 @@ bib = None;
 ## Global options
 options = None;
 
-## Global variable that holds the MPI configuration
-mpi_conf = None;
-
-## Global variable that holds the execution configuration for reference by the python API
-exec_conf = None;
-
 ## Current simulation context
 current = None;
 
-_prev_args = None;
-
 class SimulationContext(object):
     R""" Simulation context
+
+    Args:
+        device (:py:mod:`hoomd.device`): the device to use for the simulation
 
     Store all of the context related to a single simulation, including the system state, forces, updaters, integration
     methods, and all other commands specified on this simulation. All such commands in hoomd apply to the currently
@@ -102,7 +92,8 @@ class SimulationContext(object):
         c.sorter.disable();
 
     """
-    def __init__(self):
+    def __init__(self, device=None):
+
         ## Global variable that holds the SystemDefinition shared by all parts of hoomd
         self.system_definition = None;
 
@@ -151,21 +142,20 @@ class SimulationContext(object):
         ## Stored reference to the reader that was used to initialize the system
         self.state_reader = None;
 
+        ## Global variable tracking the device used for running the simulation
+        ## by default, this is automatically set, unless the user assigns something different
+        if device is None:
+            self.device = _create_device()
+        else:
+            self.device = device
+
+
     def set_current(self):
         R""" Force this to be the current context
         """
         global current
 
         current = self;
-
-    def on_gpu(self):
-        R""" Test whether this job is running on a GPU.
-
-        Returns:
-            True if this invocation of HOOMD-blue is executing on a GPU. False if it is on the CPU.
-        """
-        global exec_conf
-        return exec_conf.isCUDAEnabled()
 
     def __enter__(self):
         global current
@@ -179,14 +169,12 @@ class SimulationContext(object):
 
         current = self.prev;
 
-def initialize(args=None, memory_traceback=False, mpi_comm=None):
+def initialize(args=None, device=None):
     R""" Initialize the execution context
 
     Args:
         args (str): Arguments to parse. When *None*, parse the arguments passed on the command line.
-        memory_traceback (bool): If true, enable memory allocation tracking (*only for debugging/profiling purposes*)
-        mpi_comm: Accepts an mpi4py communicator. Use this argument to perform many independent hoomd simulations
-                  where you communicate between those simulations using your own mpi4py code.
+        device (:py:mod:`hoomd.device`): device to use for running the simulations
 
     :py:func:`hoomd.context.initialize()` parses the command line arguments given, sets the options and initializes MPI and GPU execution
     (if any). By default, :py:func:`hoomd.context.initialize()` reads arguments given on the command line. Provide a string to :py:func:`hoomd.context.initialize()`
@@ -206,286 +194,42 @@ def initialize(args=None, memory_traceback=False, mpi_comm=None):
 
         world = MPI.COMM_WORLD
         comm = world.Split(world.Get_rank(), 0)
-        hoomd.context.initialize(mpi_comm=comm)
+        c = comm.Communicator(mpi_comm=comm)
+        hoomd.context.initialize(device=device.GPU(communicator=c))
 
     """
-    global mpi_conf, exec_conf, msg, options, current, _prev_args
-
-    if mpi_conf is not None or exec_conf is not None:
-        if args != _prev_args:
-            msg.warning("Ignoring new options, cannot change execution mode after initialization.\n");
-        current = SimulationContext();
-        return current
-
-    _prev_args = args;
+    global options, current
 
     options = hoomd.option.options();
     hoomd.option._parse_command_line(args);
 
-    # Check to see if we are built without MPI support and the user used mpirun
-    if (not _hoomd.is_MPI_available() and not options.single_mpi
-        and (    'OMPI_COMM_WORLD_RANK' in os.environ
-              or 'MV2_COMM_WORLD_LOCAL_RANK' in os.environ
-              or 'PMI_RANK' in os.environ
-              or 'ALPS_APP_PE' in os.environ)
-       ):
-        print('HOOMD-blue is built without MPI support, but seems to have been launched with mpirun');
-        print('exiting now to prevent many sequential jobs from starting');
-        raise RuntimeError('Error launching hoomd')
-
-    # create the MPI configuration
-    mpi_conf = _create_mpi_conf(mpi_comm, options)
-
-    # set options on messenger object
-    msg = _create_messenger(mpi_conf, options)
-
-    # output the version info on initialization
-    msg.notice(1, _hoomd.output_version_info())
+    current = SimulationContext(device)
 
     # ensure creation of global bibliography to print HOOMD base citations
     cite._ensure_global_bib()
 
-    # create the parallel execution configuration
-    exec_conf = _create_exec_conf(mpi_conf, msg, options);
-
-    # set memory tracing option
-    exec_conf.setMemoryTracing(memory_traceback)
-
-    current = SimulationContext();
     return current
 
-## Initializes the MPI configuration
-#
-# \internal
-def _create_mpi_conf(mpi_comm, options):
-    global mpi_conf
+# band-aid
+def _create_device():
 
-    # use a cached MPI configuration if available
-    if mpi_conf is not None:
-        return mpi_conf
-
-    mpi_available = _hoomd.is_MPI_available();
-
-    # create the specified configuration
-    if mpi_comm is None:
-        mpi_conf = _hoomd.MPIConfiguration();
-    else:
-        if not mpi_available:
-            raise RuntimeError("mpi_comm is not supported in serial builds");
-
-        handled = False;
-
-        # pass in pointer to MPI_Comm object provided by mpi4py
-        try:
-            import mpi4py
-            if isinstance(mpi_comm, mpi4py.MPI.Comm):
-                addr = mpi4py.MPI._addressof(mpi_comm);
-                mpi_conf = _hoomd.MPIConfiguration._make_mpi_conf_mpi_comm(addr);
-                handled = True
-        except ImportError:
-            # silently ignore when mpi4py is missing
-            pass
-
-        # undocumented case: handle plain integers as pointers to MPI_Comm objects
-        if not handled and isinstance(mpi_comm, int):
-            mpi_conf = _hoomd.MPIConfiguration._make_mpi_conf_mpi_comm(mpi_comm);
-            handled = True
-
-        if not handled:
-            raise RuntimeError("Invalid mpi_comm object: {}".format(mpi_comm));
-
-    if options.nrank is not None:
-        # check validity
-        nrank = options.nrank
-        if (mpi_conf.getNRanksGlobal() % nrank):
-            raise RuntimeError('Total number of ranks is not a multiple of --nrank');
-
-        # split the communicator into partitions
-        mpi_conf.splitPartitions(nrank)
-
-    return mpi_conf
-
-## Initializes the Messenger
-# \internal
-def _create_messenger(mpi_config, options):
-    global msg
-
-    # use a cached messenger if available
-    if msg is not None:
-        return msg
-
-    msg = _hoomd.Messenger(mpi_config)
-
-    # try to detect if we're running inside an MPI job
-    inside_mpi_job = mpi_config.getNRanksGlobal() > 1
-    if ('OMPI_COMM_WORLD_RANK' in os.environ or
-        'MV2_COMM_WORLD_LOCAL_RANK' in os.environ or
-        'PMI_RANK' in os.environ or
-        'ALPS_APP_PE' in os.environ):
-        inside_mpi_job = True
-
-    # only open python stdout/stderr in non-MPI runs
-    if not inside_mpi_job:
-        msg.openPython();
-
-    if options.notice_level is not None:
-        msg.setNoticeLevel(options.notice_level);
-
-    if options.msg_file is not None:
-        msg.openFile(options.msg_file);
-
-    if options.shared_msg_file is not None:
-        if not _hoomd.is_MPI_available():
-            hoomd.context.msg.error("Shared log files are only available in MPI builds.\n");
-            raise RuntimeError('Error setting option');
-        msg.setSharedFile(options.shared_msg_file);
-
-    return msg
-
-## Initializes the execution configuration
-#
-# \internal
-def _create_exec_conf(mpi_config, msg, options):
-    global exec_conf
-
-    # use a cached execution configuration if available
-    if exec_conf is not None:
-        return exec_conf
-
-    if options.mode == 'auto':
-        exec_mode = _hoomd.ExecutionConfiguration.executionMode.AUTO;
+    if options.mode == "gpu":
+        dev = hoomd.device.GPU()
+        dev.gpu_error_checking = options.gpu_error_checking
     elif options.mode == "cpu":
-        exec_mode = _hoomd.ExecutionConfiguration.executionMode.CPU;
-    elif options.mode == "gpu":
-        exec_mode = _hoomd.ExecutionConfiguration.executionMode.GPU;
+        dev = hoomd.device.CPU()
     else:
-        raise RuntimeError("Invalid mode");
+        dev = hoomd.device.Auto()
 
-    # convert None options to defaults
-    if options.gpu is None:
-        gpu_id = [];
-    else:
-        gpu_id = options.gpu;
-
-    gpu_vec = _hoomd.std_vector_int()
-    for gpuid in gpu_id:
-        gpu_vec.append(gpuid)
-
-    # create the specified configuration
-    exec_conf = _hoomd.ExecutionConfiguration(exec_mode, gpu_vec, options.min_cpu, options.ignore_display, mpi_conf, msg);
-
-    # if gpu_error_checking is set, enable it on the GPU
-    if options.gpu_error_checking:
-       exec_conf.setCUDAErrorChecking(True);
-
-    if _hoomd.is_TBB_available():
-        # set the number of TBB threads as necessary
-        if options.nthreads != None:
-            exec_conf.setNumThreads(options.nthreads)
-
-    exec_conf = exec_conf;
-
-    return exec_conf;
+    return dev
 
 ## \internal
 # \brief Throw an error if the context is not initialized
 def _verify_init():
-    global exec_conf, msg, current
+    global current
 
-    if exec_conf is None:
+    if current is None:
         raise RuntimeError("Call context.initialize() before any method")
-
-## \internal
-# \brief Gather context from the environment
-class ExecutionContext(hoomd.meta._metadata):
-    ## \internal
-    # \brief Constructs the context object
-    def __init__(self):
-        hoomd.meta._metadata.__init__(self)
-        self.metadata_fields = [
-            'hostname', 'gpu', 'mode', 'num_ranks',
-            'username', 'wallclocktime', 'cputime',
-            'job_id', 'job_name'
-            ]
-        if _hoomd.is_TBB_available():
-            self.metadata_fields.append('num_threads')
-
-    ## \internal
-    # \brief Return the execution configuration if initialized or raise exception.
-    def _get_exec_conf(self):
-        global exec_conf
-        if exec_conf is None:
-            raise RuntimeError("Not initialized.")
-        else:
-            return exec_conf
-
-    # \brief Return the network hostname.
-    @property
-    def hostname(self):
-        return socket.gethostname()
-
-    # \brief Return the name of the GPU used in GPU mode.
-    @property
-    def gpu(self):
-        n_gpu = self._get_exec_conf().getNumActiveGPUs()
-        return [self._get_exec_conf().getGPUName(i) for i in range(n_gpu)]
-
-    # \brief Return the execution mode
-    @property
-    def mode(self):
-        if self._get_exec_conf().isCUDAEnabled():
-            return 'gpu';
-        else:
-            return 'cpu';
-
-    # \brief Return the number of ranks.
-    @property
-    def num_ranks(self):
-        return hoomd.comm.get_num_ranks()
-
-    # \brief Return the username.
-    @property
-    def username(self):
-        return getpass.getuser()
-
-    # \brief Return the wallclock time since the import of hoomd
-    @property
-    def wallclocktime(self):
-        return time.time() - TIME_START
-
-    # \brief Return the CPU clock time since the import of hoomd
-    @property
-    def cputime(self):
-        return time.perf_counter() - CLOCK_START
-
-    # \brief Return the job id
-    @property
-    def job_id(self):
-        if 'PBS_JOBID' in os.environ:
-            return os.environ['PBS_JOBID'];
-        elif 'SLURM_JOB_ID' in os.environ:
-            return os.environ['SLURM_JOB_ID'];
-        else:
-            return '';
-
-    # \brief Return the job name
-    @property
-    def job_name(self):
-        if 'PBS_JOBNAME' in os.environ:
-            return os.environ['PBS_JOBNAME'];
-        elif 'SLURM_JOB_NAME' in os.environ:
-            return os.environ['SLURM_JOB_NAME'];
-        else:
-            return '';
-
-    # \brief Return the number of CPU threads
-    @property
-    def num_threads(self):
-        if not _hoomd.is_TBB_available():
-            msg.warning("HOOMD was compiled without thread support, returning None\n");
-            return None
-        else:
-            return self._get_exec_conf().getNumThreads();
 
 ## \internal
 # \brief Gather context about HOOMD

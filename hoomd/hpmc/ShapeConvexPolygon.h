@@ -17,7 +17,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -57,9 +57,9 @@ struct poly2d_verts : param_base
             }
         }
 
-    #ifdef ENABLE_CUDA
-    //! Attach managed memory to CUDA stream
-    void attach_to_stream(cudaStream_t stream) const
+    #ifdef ENABLE_HIP
+    //! Set CUDA memory hint
+    void set_memory_hint() const
         {
         // default implementation does nothing
         }
@@ -103,7 +103,7 @@ class SupportFuncConvexPolygon
 
             if (verts.N > 0)
                 {
-                #if !defined(NVCC) && defined(__AVX__) && (defined(SINGLE_PRECISION) || defined(ENABLE_HPMC_MIXED_PRECISION))
+                #if !defined(__HIPCC__) && defined(__AVX__) && (defined(SINGLE_PRECISION) || defined(ENABLE_HPMC_MIXED_PRECISION))
                 // process dot products with AVX 8 at a time on the CPU when working with more than 4 verts
                 __m256 nx_v = _mm256_broadcast_ss(&n.x);
                 __m256 ny_v = _mm256_broadcast_ss(&n.y);
@@ -147,7 +147,7 @@ class SupportFuncConvexPolygon
                         }
                     }
 
-                #elif !defined(NVCC) && defined(__SSE__) && (defined(SINGLE_PRECISION) || defined(ENABLE_HPMC_MIXED_PRECISION))
+                #elif !defined(__HIPCC__) && defined(__SSE__) && (defined(SINGLE_PRECISION) || defined(ENABLE_HPMC_MIXED_PRECISION))
                 // process dot products with SSE 4 at a time on the CPU
                 __m128 nx_v = _mm_load_ps1(&n.x);
                 __m128 ny_v = _mm_load_ps1(&n.y);
@@ -300,7 +300,7 @@ struct ShapeConvexPolygon
         return OverlapReal(0.0);
         }
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     std::string getShapeSpec() const
         {
         std::ostringstream shapedef;
@@ -339,8 +339,21 @@ struct ShapeConvexPolygon
         return detail::AABB(pos, verts.diameter/Scalar(2));
         }
 
+    //! Return a tight fitting OBB
+    DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
+        {
+        // just use the AABB for now
+        return detail::OBB(getAABB(pos));
+        }
+
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel() { return false; }
+
+    //! Retrns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    HOSTDEVICE static bool supportsSweepRadius()
+        {
+        return false;
+        }
 
     quat<Scalar> orientation;    //!< Orientation of the polygon
 
@@ -483,30 +496,12 @@ DEVICE inline bool test_overlap_separating_planes(const poly2d_verts& a,
 
 }; // end namespace detail
 
-//! Check if circumspheres overlap
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shape
-    \param b second shape
-    \returns true if the circumspheres of both shapes overlap
-
-    \ingroup shape
-*/
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeConvexPolygon& a,
-    const ShapeConvexPolygon &b)
-    {
-    vec2<OverlapReal> dr(r_ab.x, r_ab.y);
-
-    OverlapReal rsq = dot(dr,dr);
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    return (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-    }
-
-
 //! Convex polygon overlap test
 /*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
     \param a first shape
     \param b second shape
     \param err in/out variable incremented when error conditions occur in the overlap test
+    \param sweep_radius Additional radius to sweep both shapes by
     \returns true when *a* and *b* overlap, and false when they are disjoint
 
     \ingroup shape
@@ -515,10 +510,12 @@ template <>
 DEVICE inline bool test_overlap<ShapeConvexPolygon,ShapeConvexPolygon>(const vec3<Scalar>& r_ab,
                                                                        const ShapeConvexPolygon& a,
                                                                        const ShapeConvexPolygon& b,
-                                                                       unsigned int& err)
+                                                                       unsigned int& err,
+                                                                       Scalar sweep_radius_a,
+                                                                       Scalar sweep_radius_b)
     {
     vec2<OverlapReal> dr(r_ab.x,r_ab.y);
-    #ifdef NVCC
+    #ifdef __HIPCC__
     return detail::xenocollide_2d(detail::SupportFuncConvexPolygon(a.verts),
                                   detail::SupportFuncConvexPolygon(b.verts),
                                   dr,

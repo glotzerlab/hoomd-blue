@@ -1,0 +1,66 @@
+########################################################
+# HOOMD CMake configuration for externally built plugins
+
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+# build options
+set(SINGLE_PRECISION "@SINGLE_PRECISION@")
+set(ENABLE_HPMC_MIXED_PRECISION "@ENABLE_HPMC_MIXED_PRECISION@")
+
+set(BUILD_MD "@BUILD_MD@")
+set(BUILD_HPMC "@BUILD_HPMC@")
+set(BUILD_METAL "@BUILD_METAL@")
+set(BUILD_DEM "@BUILD_DEM@")
+set(BUILD_MPCD "@BUILD_MPCD@")
+set(BUILD_JIT "@BUILD_JIT@")
+
+set(ENABLE_HIP "@ENABLE_HIP@")
+set(HIP_PLATFORM "@HIP_PLATFORM@")
+set(ENABLE_NVTOOLS "@ENABLE_NVTOOLS@")
+set(ENABLE_MPI "@ENABLE_MPI@")
+set(ENABLE_MPI_CUDA "@ENABLE_MPI_CUDA@")
+set(ENABLE_TBB "@ENABLE_TBB@")
+set(ALWAYS_USE_MANAGED_MEMORY "@ALWAYS_USE_MANAGED_MEMORY@")
+
+# C++ standard
+set(CMAKE_CXX_STANDARD "@CMAKE_CXX_STANDARD@")
+set(CMAKE_CUDA_STANDARD "@CMAKE_CUDA_STANDARD@")
+
+# installation locations
+set(HOOMD_INSTALL_PREFIX "@PACKAGE_CMAKE_INSTALL_PREFIX@")
+set(PYTHON_SITE_INSTALL_DIR "@PYTHON_SITE_INSTALL_DIR@")
+
+# configure python
+set(PYBIND11_PYTHON_VERSION 3)
+find_package(pybind11 2.2 CONFIG REQUIRED)
+find_package_message(pybind11 "Found pybind11: ${pybind11_DIR} ${pybind11_INCLUDE_DIR} (version ${pybind11_VERSION})" "[${pybind11_DIR}][${pybind11_INCLUDE_DIR}]")
+
+find_package(Eigen3 3.2 CONFIG REQUIRED)
+find_package_message(EIGEN3 "Found eigen: ${Eigen3_DIR} ${EIGEN3_INCLUDE_DIR} (version ${Eigen3_VERSION})" "[${Eigen3_DIR}][${EIGEN3_INCLUDE_DIR}]")
+
+# find optional dependencies
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
+
+if (ENABLE_HIP)
+    include(HOOMDHIPSetup)
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} @CMAKE_CUDA_FLAGS@")
+endif()
+
+if (ENABLE_MPI)
+    find_dependency(MPI REQUIRED)
+    find_dependency(cereal CONFIG REQUIRED)
+    if (cereal_FOUND)
+        find_package_message(cereal "Found cereal: ${cereal_DIR}" "[${cereal_DIR}]")
+    endif()
+endif()
+
+if (ENABLE_TBB)
+    find_dependency(TBB 4.3 REQUIRED)
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/hoomd-targets.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/hoomd-macros.cmake")
+
+check_required_components(HOOMD)

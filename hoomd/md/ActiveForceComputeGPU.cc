@@ -213,7 +213,7 @@ void ActiveForceComputeGPU::setConstraint()
 
 void export_ActiveForceComputeGPU(py::module& m)
     {
-    py::class_< ActiveForceComputeGPU, std::shared_ptr<ActiveForceComputeGPU> >(m, "ActiveForceComputeGPU", py::base<ActiveForceCompute>())
+    py::class_< ActiveForceComputeGPU, ActiveForceCompute, std::shared_ptr<ActiveForceComputeGPU> >(m, "ActiveForceComputeGPU")
         .def(py::init<  std::shared_ptr<SystemDefinition>,
                         std::shared_ptr<ParticleGroup>,
                         int,

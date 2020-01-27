@@ -5,12 +5,23 @@
 #ifndef __DFFT_CUFFT_SINGLE_INTERFACE_H__
 #define __DFFT_CUFFT_SINGLE_INTERFACE_H__
 
+#include <hip/hip_runtime.h>
+
+#if defined(ENABLE_HIP)
+#ifdef __HIP_PLATFORM_HCC__
+#include <hipfft.h>
+#else
 #include <cufft.h>
-#include <cuda_runtime.h>
+typedef cufftComplex hipfftComplex;
+typedef cufftHandle hipfftHandle;
+#endif
+#endif
+
+#pragma GCC visibility push(default)
 
 typedef float cuda_scalar_t;
-typedef cufftComplex cuda_cpx_t;
-typedef cufftHandle cuda_plan_t;
+typedef hipfftComplex cuda_cpx_t;
+typedef hipfftHandle cuda_plan_t;
 
 #define CUDA_RE(X) X.x
 #define CUDA_IM(X) X.y
@@ -71,4 +82,7 @@ int dfft_cuda_destroy_local_plan(cuda_plan_t *p);
 int dfft_cuda_local_fft( cuda_cpx_t *in, cuda_cpx_t *out, cuda_plan_t p, int dir);
 
 #endif /* NVCC */
+
+#pragma GCC visibility pop
+
 #endif

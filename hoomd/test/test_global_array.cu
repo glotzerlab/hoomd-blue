@@ -29,7 +29,7 @@ __global__ void gpu_add_one_kernel(int *d_data, unsigned int num)
 
     gpu_add_one is just a driver for gpu_add_one_kernel()
 */
-extern "C" cudaError_t gpu_add_one(int *d_data, unsigned int num)
+extern "C" hipError_t gpu_add_one(int *d_data, unsigned int num)
     {
     unsigned int block_size = 256;
 
@@ -37,10 +37,10 @@ extern "C" cudaError_t gpu_add_one(int *d_data, unsigned int num)
     dim3 grid( (int)ceil((double)num / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
 
-    gpu_add_one_kernel<<<grid, threads>>>(d_data, num);
+    hipLaunchKernelGGL((gpu_add_one_kernel), dim3(grid), dim3(threads), 0, 0, d_data, num);
 
-    cudaThreadSynchronize();
-    return cudaGetLastError();
+    hipDeviceSynchronize();
+    return hipGetLastError();
     }
 
 
@@ -62,7 +62,7 @@ __global__ void gpu_fill_test_pattern_kernel(int *d_data, unsigned int num)
 
     gpu_fill_test_pattern is just a driver for gpu_fill_test_pattern_kernel()
 */
-extern "C" cudaError_t gpu_fill_test_pattern(int *d_data, unsigned int num)
+extern "C" hipError_t gpu_fill_test_pattern(int *d_data, unsigned int num)
     {
     unsigned int block_size = 256;
 
@@ -70,8 +70,8 @@ extern "C" cudaError_t gpu_fill_test_pattern(int *d_data, unsigned int num)
     dim3 grid( (int)ceil((double)num / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
 
-    gpu_fill_test_pattern_kernel<<<grid, threads>>>(d_data, num);
+    hipLaunchKernelGGL((gpu_fill_test_pattern_kernel), dim3(grid), dim3(threads), 0, 0, d_data, num);
 
-    cudaThreadSynchronize();
-    return cudaGetLastError();
+    hipDeviceSynchronize();
+    return hipGetLastError();
     }

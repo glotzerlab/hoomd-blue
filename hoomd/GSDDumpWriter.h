@@ -17,11 +17,11 @@
     \brief Declares the GSDDumpWriter class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Analyzer for writing out GSD dump files
 /*! GSDDumpWriter writes out the current state of the system to a GSD file

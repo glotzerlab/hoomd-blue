@@ -171,7 +171,7 @@ std::shared_ptr<PotentialExternalPeriodic> base_class_periodic_creator(std::shar
     return std::shared_ptr<PotentialExternalPeriodic>(new PotentialExternalPeriodic(sysdef));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! LJForceComputeGPU creator for unit tests
 std::shared_ptr<PotentialExternalPeriodic> gpu_periodic_creator(std::shared_ptr<SystemDefinition> sysdef)
     {
@@ -189,7 +189,7 @@ UP_TEST( PotentialExternalPeriodic_particle )
     periodic_force_particle_test(periodic_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-# ifdef ENABLE_CUDA
+# ifdef ENABLE_HIP
 //! test case for particle test on GPU
 UP_TEST( PotentialExternalLamellaGPU_particle )
     {

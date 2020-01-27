@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -71,9 +72,9 @@ void gpu_compute_constraint_ellipsoid_constraint_kernel(const unsigned int *d_gr
     \param block_size Block size to execute on the GPU
 
     \returns Any error code resulting from the kernel launch
-    \note Always returns cudaSuccess in release builds to avoid the cudaThreadSynchronize()
+    \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
 */
-cudaError_t gpu_compute_constraint_ellipsoid_constraint(const unsigned int *d_group_members,
+hipError_t gpu_compute_constraint_ellipsoid_constraint(const unsigned int *d_group_members,
                                                  unsigned int group_size,
                                                  const unsigned int N,
                                                  Scalar4 *d_pos,
@@ -90,7 +91,7 @@ cudaError_t gpu_compute_constraint_ellipsoid_constraint(const unsigned int *d_gr
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    gpu_compute_constraint_ellipsoid_constraint_kernel<<< grid, threads>>>(d_group_members,
+    hipLaunchKernelGGL((gpu_compute_constraint_ellipsoid_constraint_kernel), dim3(grid), dim3(threads), 0, 0, d_group_members,
                                                                     group_size,
                                                                     N,
                                                                     d_pos,
@@ -99,5 +100,5 @@ cudaError_t gpu_compute_constraint_ellipsoid_constraint(const unsigned int *d_gr
                                                                     ry,
                                                                     rz);
 
-    return cudaSuccess;
+    return hipSuccess;
     }

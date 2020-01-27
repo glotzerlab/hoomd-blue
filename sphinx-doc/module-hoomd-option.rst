@@ -8,8 +8,6 @@ hoomd.option
 
     hoomd.option.get_user
     hoomd.option.set_autotuner_params
-    hoomd.option.set_msg_file
-    hoomd.option.set_notice_level
 
 .. rubric:: Details
 

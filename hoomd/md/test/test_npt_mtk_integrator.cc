@@ -8,28 +8,28 @@
 
 #include "hoomd/ComputeThermo.h"
 #include "hoomd/md/TwoStepNPTMTK.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/TwoStepNPTMTKGPU.h"
 #include "hoomd/ComputeThermoGPU.h"
 #endif
 #include "hoomd/md/IntegratorTwoStep.h"
 
+#include "hoomd/SnapshotSystemData.h"
 #include "hoomd/CellList.h"
 #include "hoomd/md/NeighborList.h"
 #include "hoomd/md/NeighborListBinned.h"
 #include "hoomd/Initializers.h"
-#include "hoomd/deprecated/RandomGenerator.h"
 #include "hoomd/md/AllPairPotentials.h"
 #include "hoomd/md/AllAnisoPairPotentials.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/NeighborListGPUBinned.h"
 #include "hoomd/CellListGPU.h"
 #endif
 
 #include "hoomd/RandomNumbers.h"
-#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
-#include "hoomd/extern/pybind/include/pybind11/embed.h"
+#include <pybind11/pybind11.h>
+#include <pybind11/embed.h>
 namespace py = pybind11;
 
 #include "hoomd/Variant.h"
@@ -118,7 +118,7 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
     std::shared_ptr<NeighborList> nlist;
     std::shared_ptr<PotentialPairLJ> fc;
     std::shared_ptr<CellList> cl;
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (exec_conf->isCUDAEnabled())
         {
         cl = std::shared_ptr<CellList>( new CellListGPU(sysdef) );
@@ -150,7 +150,7 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
 
     std::shared_ptr<ComputeThermo> thermo_group;
     std::shared_ptr<ComputeThermo> thermo_group_t;
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (exec_conf->isCUDAEnabled())
         {
         thermo_group = std::shared_ptr<ComputeThermo>(new ComputeThermoGPU(sysdef, group_all, "name"));
@@ -399,7 +399,7 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, std::shared_ptr<E
     std::shared_ptr<NeighborList> nlist;
     std::shared_ptr<PotentialPairLJ> fc;
     std::shared_ptr<CellList> cl;
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (exec_conf->isCUDAEnabled())
         {
         cl = std::shared_ptr<CellList>( new CellListGPU(sysdef) );
@@ -568,7 +568,7 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
     Scalar r_cut = 2.5;
     Scalar r_buff = 0.3;
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (exec_conf->isCUDAEnabled())
         {
         cl = std::shared_ptr<CellList>( new CellListGPU(sysdef) );
@@ -589,7 +589,7 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
     Scalar epsilon = Scalar(1.0);
     Scalar lperp = Scalar(0.3);
     Scalar lpar = Scalar(0.5);
-    fc->setParams(0,0,make_scalar3(epsilon,lperp,lpar));
+    fc->setParams(0,0,make_pair_gb_params(epsilon,lperp,lpar));
 
     // If we want accurate calculation of potential energy, we need to apply the
     // energy shift
@@ -597,7 +597,7 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
 
     std::shared_ptr<ComputeThermo> thermo_group;
     std::shared_ptr<ComputeThermo> thermo_group_t;
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (exec_conf->isCUDAEnabled())
         {
         thermo_group = std::shared_ptr<ComputeThermo>(new ComputeThermoGPU(sysdef, group_all, "name"));
@@ -842,7 +842,7 @@ std::shared_ptr<TwoStepNPTMTK> base_class_nph_creator(args_t args)
         args.flags,true));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! NPTMTKIntegratorGPU factory for the unit tests
 std::shared_ptr<TwoStepNPTMTK> gpu_npt_mtk_creator(args_t args)
     {
@@ -908,7 +908,7 @@ UP_TEST( TwoStepNPTMTK_cubic_NPH )
     nph_integration_test(npt_mtk_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! test case for GPU integration tests
 UP_TEST( TwoStepNPTMTKGPU_tests )
     {

@@ -399,7 +399,7 @@ void FIREEnergyMinimizer::update(unsigned int timestep)
 
 void export_FIREEnergyMinimizer(py::module& m)
     {
-    py::class_<FIREEnergyMinimizer, std::shared_ptr<FIREEnergyMinimizer> >(m, "FIREEnergyMinimizer", py::base<IntegratorTwoStep>())
+    py::class_<FIREEnergyMinimizer, IntegratorTwoStep, std::shared_ptr<FIREEnergyMinimizer> >(m, "FIREEnergyMinimizer")
         .def(py::init< std::shared_ptr<SystemDefinition>, Scalar>())
         .def("reset", &FIREEnergyMinimizer::reset)
         .def("setDeltaT", &FIREEnergyMinimizer::setDeltaT)

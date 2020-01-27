@@ -11,13 +11,13 @@
 #ifndef MPCD_SLIT_PORE_GEOMETRY_FILLER_GPU_H_
 #define MPCD_SLIT_PORE_GEOMETRY_FILLER_GPU_H_
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
 #include "SlitPoreGeometryFiller.h"
 #include "hoomd/Autotuner.h"
-#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
+#include <pybind11/pybind11.h>
 
 namespace mpcd
 {

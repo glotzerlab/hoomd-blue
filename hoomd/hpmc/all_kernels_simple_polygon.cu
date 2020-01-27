@@ -3,8 +3,6 @@
 
 #include "ComputeFreeVolumeGPU.cuh"
 #include "IntegratorHPMCMonoGPU.cuh"
-#include "IntegratorHPMCMonoImplicitGPU.cuh"
-#include "IntegratorHPMCMonoImplicitNewGPU.cuh"
 
 #include "ShapeSimplePolygon.h"
 
@@ -13,21 +11,21 @@ namespace hpmc
 
 namespace detail
 {
-
 //! HPMC kernels for ShapeSimplePolygon
-template cudaError_t gpu_hpmc_free_volume<ShapeSimplePolygon>(const hpmc_free_volume_args_t &args,
+template hipError_t gpu_hpmc_free_volume<ShapeSimplePolygon>(const hpmc_free_volume_args_t &args,
                                                        const typename ShapeSimplePolygon::param_type *d_params);
-template cudaError_t gpu_hpmc_update<ShapeSimplePolygon>(const hpmc_args_t& args,
-                                                  const typename ShapeSimplePolygon::param_type *d_params);
-template cudaError_t gpu_hpmc_implicit_count_overlaps<ShapeSimplePolygon>(const hpmc_implicit_args_t& args,
-                                                  const typename ShapeSimplePolygon::param_type *d_params);
-template cudaError_t gpu_hpmc_implicit_accept_reject<ShapeSimplePolygon>(const hpmc_implicit_args_t& args,
-                                                  const typename ShapeSimplePolygon::param_type *d_params);
-template cudaError_t gpu_hpmc_insert_depletants_queue<ShapeSimplePolygon>(const hpmc_implicit_args_new_t& args,
-                                                  const typename ShapeSimplePolygon::param_type *d_params);
-template cudaError_t gpu_hpmc_implicit_accept_reject_new<ShapeSimplePolygon>(const hpmc_implicit_args_new_t& args,
-                                                  const typename ShapeSimplePolygon::param_type *d_params);
+}
 
-}; // end namespace detail
+namespace gpu
+{
+//! Driver for kernel::hpmc_gen_moves()
+template void hpmc_gen_moves<ShapeSimplePolygon>(const hpmc_args_t& args, const ShapeSimplePolygon::param_type *params);
+//! Driver for kernel::hpmc_narrow_phase()
+template void hpmc_narrow_phase<ShapeSimplePolygon>(const hpmc_args_t& args, const ShapeSimplePolygon::param_type *params);
+//! Driver for kernel::hpmc_insert_depletants()
+template void hpmc_insert_depletants<ShapeSimplePolygon>(const hpmc_args_t& args, const hpmc_implicit_args_t& implicit_args, const ShapeSimplePolygon::param_type *params);
+//! Driver for kernel::hpmc_update_pdata()
+template void hpmc_update_pdata<ShapeSimplePolygon>(const hpmc_update_args_t& args, const ShapeSimplePolygon::param_type *params);
+}
 
 } // end namespace hpmc

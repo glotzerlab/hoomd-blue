@@ -11,7 +11,7 @@
 #ifndef MPCD_CONFINED_STREAMING_METHOD_GPU_H_
 #define MPCD_CONFINED_STREAMING_METHOD_GPU_H_
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -118,8 +118,8 @@ void export_ConfinedStreamingMethodGPU(pybind11::module& m)
     {
     namespace py = pybind11;
     const std::string name = "ConfinedStreamingMethodGPU" + Geometry::getName();
-    py::class_<mpcd::ConfinedStreamingMethodGPU<Geometry>, std::shared_ptr<mpcd::ConfinedStreamingMethodGPU<Geometry>>>
-        (m, name.c_str(), py::base<mpcd::ConfinedStreamingMethod<Geometry>>())
+    py::class_<mpcd::ConfinedStreamingMethodGPU<Geometry>, mpcd::ConfinedStreamingMethod<Geometry>, std::shared_ptr<mpcd::ConfinedStreamingMethodGPU<Geometry>>>
+        (m, name.c_str())
         .def(py::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int, int, std::shared_ptr<const Geometry>>());
     }
 } // end namespace detail

@@ -3,7 +3,7 @@
 
 /*!
    \file RandomNumbers.h
-   \brief Declaration of mpcd::RandomNumbers
+   \brief Declaration of hoomd::RandomNumbers
 
    This header includes templated generators for various types of random numbers required used throughout hoomd. These
    work with the RandomGenerator generator that wraps random123's Philox4x32 RNG with an API that handles streams of
@@ -15,11 +15,8 @@
 
 #include "HOOMDMath.h"
 
-#ifdef ENABLE_CUDA
-// ensure that curand is included before random123. This avoids multiple defiintion issues
-// unfortunately, at the cost of random123 using the coefficients provided by curand
-// for now, they are the same
-#include <curand_kernel.h>
+#ifdef ENABLE_HIP
+#include <hip/hip_runtime.h>
 #endif
 
 #include <math.h>
@@ -31,7 +28,7 @@ namespace r123 {
 using std::make_signed;
 using std::make_unsigned;
 
-#if defined(__CUDACC__) || defined(_LIBCPP_HAS_NO_CONSTEXPR)
+#if defined(__HIPCC__) || defined(_LIBCPP_HAS_NO_CONSTEXPR)
 // Amazing! cuda thinks numeric_limits::max() is a __host__ function, so
 // we can't use it in a device function.
 //
@@ -113,11 +110,11 @@ R123_CUDA_DEVICE R123_STATIC_INLINE Ftype uneg11(Itype in)
 // end code copied from random123 examples
 }
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
-#endif // NVCC
+#endif // __HIPCC__
 
 namespace hoomd
 {
@@ -362,7 +359,7 @@ class SpherePointGenerator
 
             // project onto the sphere surface
             const Real sqrtu = fast::sqrt(one_minus_u2);
-            fast::sincos(theta, point.y, point.x);
+            fast::sincos(theta, (Real &) point.y, (Real& ) point.x);
             point.x *= sqrtu;
             point.y *= sqrtu;
             point.z = u;
@@ -470,7 +467,7 @@ class UniformIntDistribution
             }
 
         //! Draw a value from the distribution
-        /*! \param rng Saru RNG to utilize in the move
+        /*! \param rng RNG to utilize in the move
             \returns a random number 0 <= i <= m with uniform probability.
 
             **Method**
@@ -562,7 +559,7 @@ class PoissonDistribution
             }
 
         template<typename RNG>
-        int poissrnd_small(RNG& rng)
+        DEVICE int poissrnd_small(RNG& rng)
             {
             Real L = fast::exp(-mean);
             Real p = 1;
@@ -577,7 +574,7 @@ class PoissonDistribution
             }
 
         template<typename RNG>
-        int poissrnd_large(RNG& rng)
+        DEVICE int poissrnd_large(RNG& rng)
             {
             Real r;
             Real x, m;
@@ -602,6 +599,6 @@ class PoissonDistribution
           }
     };
 
-} // end namespace mpcd
+} // end namespace hoomd
 
 #endif // #define HOOMD_RANDOM_NUMBERS_H_

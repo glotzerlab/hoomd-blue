@@ -67,7 +67,7 @@ TwoStepLangevinBase::TwoStepLangevinBase(std::shared_ptr<SystemDefinition> sysde
     m_gamma_r.swap(gamma_r);
     TAG_ALLOCATION(m_gamma_r);
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         cudaMemAdvise(m_gamma.get(), sizeof(Scalar)*m_gamma.getNumElements(), cudaMemAdviseSetReadMostly, 0);
@@ -157,7 +157,7 @@ void TwoStepLangevinBase::setGamma_r(unsigned int typ, Scalar3 gamma_r)
 
 void export_TwoStepLangevinBase(py::module& m)
     {
-    py::class_<TwoStepLangevinBase, std::shared_ptr<TwoStepLangevinBase> >(m, "TwoStepLangevinBase", py::base<IntegrationMethodTwoStep>())
+    py::class_<TwoStepLangevinBase, IntegrationMethodTwoStep, std::shared_ptr<TwoStepLangevinBase> >(m, "TwoStepLangevinBase")
         .def(py::init< std::shared_ptr<SystemDefinition>,
                                 std::shared_ptr<ParticleGroup>,
                                 std::shared_ptr<Variant>,

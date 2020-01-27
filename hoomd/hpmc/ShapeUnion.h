@@ -20,7 +20,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -53,30 +53,69 @@ struct union_params : param_base
     /*! \param ptr Pointer to load data to (will be incremented)
         \param available_bytes Size of remaining shared memory allocation
      */
-    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
+    DEVICE void load_shared(char *& ptr, unsigned int &available_bytes)
         {
         tree.load_shared(ptr, available_bytes);
         mpos.load_shared(ptr, available_bytes);
-        mparams.load_shared(ptr, available_bytes);
+        bool params_in_shared_mem = mparams.load_shared(ptr, available_bytes);
         moverlap.load_shared(ptr, available_bytes);
         morientation.load_shared(ptr, available_bytes);
+
+        // load all member parameters
+        #if defined (__HIP_DEVICE_COMPILE__)
+        __syncthreads();
+        #endif
+
+        for (unsigned int i = 0; i < mparams.size(); ++i)
+            {
+            if (params_in_shared_mem)
+                {
+                // load only if we are sure that we are not touching any unified memory
+                mparams[i].load_shared(ptr, available_bytes);
+                }
+            else
+                {
+                // increment pointer only
+                mparams[i].allocate_shared(ptr, available_bytes);
+                }
+            }
         }
 
-    #ifdef ENABLE_CUDA
-    //! Attach managed memory to CUDA stream
-    void attach_to_stream(cudaStream_t stream) const
+    //! Determine size of the shared memory allocaation
+    /*! \param ptr Pointer to increment
+        \param available_bytes Size of remaining shared memory allocation
+     */
+    HOSTDEVICE void allocate_shared(char *& ptr, unsigned int &available_bytes) const
         {
-        // attach managed memory arrays to stream
-        tree.attach_to_stream(stream);
+        tree.allocate_shared(ptr, available_bytes);
+        mpos.allocate_shared(ptr, available_bytes);
+        mparams.allocate_shared(ptr, available_bytes);
+        moverlap.allocate_shared(ptr, available_bytes);
+        morientation.allocate_shared(ptr, available_bytes);
 
-        mpos.attach_to_stream(stream);
-        morientation.attach_to_stream(stream);
-        mparams.attach_to_stream(stream);
-        moverlap.attach_to_stream(stream);
+        for (unsigned int i = 0; i < mparams.size(); ++i)
+            mparams[i].allocate_shared(ptr, available_bytes);
+        }
+
+
+    #ifdef ENABLE_HIP
+    //! Set CUDA memory hints
+    void set_memory_hint() const
+        {
+        tree.set_memory_hint();
+
+        mpos.set_memory_hint();
+        morientation.set_memory_hint();
+        mparams.set_memory_hint();
+        moverlap.set_memory_hint();
+
+        // attach member parameters
+        for (unsigned int i = 0; i < mparams.size(); ++i)
+            mparams[i].set_memory_hint();
         }
     #endif
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     //! Shape constructor
     union_params(unsigned int _N, bool _managed)
         : N(_N)
@@ -96,6 +135,8 @@ struct union_params : param_base
     OverlapReal diameter;                    //!< Precalculated overall circumsphere diameter
     unsigned int N;                           //!< Number of member shapes
     unsigned int ignore;                     //!<  Bitwise ignore flag for stats. 1 will ignore, 0 will not ignore
+    vec3<OverlapReal> lower;                 //!< Lower corner of local AABB
+    vec3<OverlapReal> upper;                 //!< Upper corner of local AABB
     } __attribute__((aligned(32)));
 
 } // end namespace detail
@@ -156,7 +197,7 @@ struct ShapeUnion
         return OverlapReal(0.0);
         }
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     std::string getShapeSpec() const
         {
         throw std::runtime_error("Shape definition not supported for this shape class.");
@@ -166,7 +207,147 @@ struct ShapeUnion
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
-        return detail::AABB(pos, members.diameter/OverlapReal(2.0));
+        //return detail::AABB(pos, members.diameter/OverlapReal(2.0));
+
+        // rotate local AABB into world coordinates
+        vec3<OverlapReal> lower_a = members.lower;
+        vec3<OverlapReal> upper_a = members.upper;
+        vec3<OverlapReal> lower_b = pos;
+        vec3<OverlapReal> upper_b = pos;
+
+        rotmat3<OverlapReal> M(orientation);
+
+        OverlapReal e, f;
+        e = M.row0.x*lower_a.x;
+        f = M.row0.x*upper_a.x;
+        if (e < f)
+            {
+            lower_b.x += e;
+            upper_b.x += f;
+            }
+        else
+            {
+            lower_b.x += f;
+            upper_b.x += e;
+            }
+
+        e = M.row0.y*lower_a.y;
+        f = M.row0.y*upper_a.y;
+        if (e < f)
+            {
+            lower_b.x += e;
+            upper_b.x += f;
+            }
+        else
+            {
+            lower_b.x += f;
+            upper_b.x += e;
+            }
+
+        e = M.row0.z*lower_a.z;
+        f = M.row0.z*upper_a.z;
+        if (e < f)
+            {
+            lower_b.x += e;
+            upper_b.x += f;
+            }
+        else
+            {
+            lower_b.x += f;
+            upper_b.x += e;
+            }
+
+        e = M.row1.x*lower_a.x;
+        f = M.row1.x*upper_a.x;
+        if (e < f)
+            {
+            lower_b.y += e;
+            upper_b.y += f;
+            }
+        else
+            {
+            lower_b.y += f;
+            upper_b.y += e;
+            }
+
+        e = M.row1.y*lower_a.y;
+        f = M.row1.y*upper_a.y;
+        if (e < f)
+            {
+            lower_b.y += e;
+            upper_b.y += f;
+            }
+        else
+            {
+            lower_b.y += f;
+            upper_b.y += e;
+            }
+
+        e = M.row1.z*lower_a.z;
+        f = M.row1.z*upper_a.z;
+        if (e < f)
+            {
+            lower_b.y += e;
+            upper_b.y += f;
+            }
+        else
+            {
+            lower_b.y += f;
+            upper_b.y += e;
+            }
+
+        e = M.row2.x*lower_a.x;
+        f = M.row2.x*upper_a.x;
+        if (e < f)
+            {
+            lower_b.z += e;
+            upper_b.z += f;
+            }
+        else
+            {
+            lower_b.z += f;
+            upper_b.z += e;
+            }
+
+        e = M.row2.y*lower_a.y;
+        f = M.row2.y*upper_a.y;
+        if (e < f)
+            {
+            lower_b.z += e;
+            upper_b.z += f;
+            }
+        else
+            {
+            lower_b.z += f;
+            upper_b.z += e;
+            }
+
+        e = M.row2.z*lower_a.z;
+        f = M.row2.z*upper_a.z;
+        if (e < f)
+            {
+            lower_b.z += e;
+            upper_b.z += f;
+            }
+        else
+            {
+            lower_b.z += f;
+            upper_b.z += e;
+            }
+
+        return detail::AABB(lower_b, upper_b);
+        }
+
+    //! Return a tight fitting OBB
+    DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
+        {
+        // get the root node OBB from the tree
+        detail::OBB obb = members.tree.getOBB(0);
+
+        // transform it into world-space
+        obb.affineTransform(orientation, pos);
+
+        return obb;
         }
 
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
@@ -178,36 +359,27 @@ struct ShapeUnion
         #endif
         }
 
+    //! Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    HOSTDEVICE static bool supportsSweepRadius()
+        {
+        return Shape::supportsSweepRadius();
+        }
+
     quat<Scalar> orientation;    //!< Orientation of the particle
 
     const param_type& members;     //!< member data
     };
-
-//! Check if circumspheres overlap
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shape
-    \param b second shape
-    \returns true if the circumspheres of both shapes overlap
-
-    \ingroup shape
-*/
-template <class Shape>
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeUnion<Shape>& a,
-    const ShapeUnion<Shape> &b)
-    {
-    vec3<OverlapReal> dr(r_ab);
-
-    OverlapReal rsq = dot(dr,dr);
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    return (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-    }
 
 template<class Shape>
 DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
                                              const ShapeUnion<Shape>& a,
                                              const ShapeUnion<Shape>& b,
                                              unsigned int cur_node_a,
-                                             unsigned int cur_node_b)
+                                             unsigned int cur_node_b,
+                                             unsigned int &err,
+                                             OverlapReal sweep_radius_a,
+                                             OverlapReal sweep_radius_b,
+                                             bool ignore_mask)
     {
     vec3<OverlapReal> r_ab = rotate(conj(quat<OverlapReal>(b.orientation)),vec3<OverlapReal>(dr));
 
@@ -242,11 +414,10 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
 
             unsigned int overlap_j = b.members.moverlap[jshape];
 
-            unsigned int err =0;
-            if (overlap_i & overlap_j)
+            if (ignore_mask || (overlap_i & overlap_j))
                 {
                 vec3<OverlapReal> r_ij = b.members.mpos[jshape] - pos_i;
-                if (test_overlap(r_ij, shape_i, shape_j, err))
+                if (test_overlap(r_ij, shape_i, shape_j, err, sweep_radius_a, sweep_radius_b))
                     {
                     return true;
                     }
@@ -260,13 +431,17 @@ template <class Shape >
 DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                 const ShapeUnion<Shape>& a,
                                 const ShapeUnion<Shape>& b,
-                                unsigned int& err)
+                                unsigned int& err,
+                                Scalar sweep_radius_a = Scalar(0.0),
+                                Scalar sweep_radius_b = Scalar(0.0))
     {
     const detail::GPUTree& tree_a = a.members.tree;
     const detail::GPUTree& tree_b = b.members.tree;
 
+    bool ignore_mask = sweep_radius_a != Scalar(0.0) || sweep_radius_b != Scalar(0.0);
+
     #ifdef SHAPE_UNION_LEAVES_AGAINST_TREE_TRAVERSAL
-    #ifdef NVCC
+    #ifdef __HIPCC__
     // Parallel tree traversal
     unsigned int offset = threadIdx.x;
     unsigned int stride = blockDim.x;
@@ -274,6 +449,8 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     unsigned int offset = 0;
     unsigned int stride = 1;
     #endif
+
+    OverlapReal sab = sweep_radius_a + sweep_radius_b;
 
     if (tree_a.getNumLeaves() <= tree_b.getNumLeaves())
         {
@@ -285,11 +462,18 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             obb_a.affineTransform(conj(b.orientation)*a.orientation,
                 rotate(conj(b.orientation),-r_ab));
 
+            // extend OBB
+            obb_a.lengths.x += sab;
+            obb_a.lengths.y += sab;
+            obb_a.lengths.z += sab;
+
             unsigned cur_node_b = 0;
             while (cur_node_b < tree_b.getNumNodes())
                 {
                 unsigned int query_node = cur_node_b;
-                if (tree_b.queryNode(obb_a, cur_node_b) && test_narrow_phase_overlap(r_ab, a, b, cur_node_a, query_node)) return true;
+                if (tree_b.queryNode(obb_a, cur_node_b, ignore_mask) &&
+                    test_narrow_phase_overlap(r_ab, a, b, cur_node_a, query_node, err, sweep_radius_a,sweep_radius_b, ignore_mask))
+                    return true;
                 }
             }
         }
@@ -304,11 +488,18 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             obb_b.affineTransform(conj(a.orientation)*b.orientation,
                 rotate(conj(a.orientation),r_ab));
 
+            // extend OBB
+            obb_b.lengths.x += sab;
+            obb_b.lengths.y += sab;
+            obb_b.lengths.z += sab;
+
             unsigned cur_node_a = 0;
             while (cur_node_a < tree_a.getNumNodes())
                 {
                 unsigned int query_node = cur_node_a;
-                if (tree_a.queryNode(obb_b, cur_node_a) && test_narrow_phase_overlap(-r_ab, b, a, cur_node_b, query_node)) return true;
+                if (tree_a.queryNode(obb_b, cur_node_a, ignore_mask) &&
+                    test_narrow_phase_overlap(-r_ab, b, a, cur_node_b, query_node, err, sweep_radius_a,sweep_radius_b, ignore_mask))
+                    return true;
                 }
             }
         }
@@ -326,19 +517,201 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
 
     detail::OBB obb_b = tree_b.getOBB(cur_node_b);
 
+    unsigned int query_node_a = UINT_MAX;
+    unsigned int query_node_b = UINT_MAX;
+
     while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
         {
-        unsigned int query_node_a = cur_node_a;
-        unsigned int query_node_b = cur_node_b;
+        // extend OBBs
+        if (query_node_a != cur_node_a)
+            {
+            obb_a.lengths.x += sweep_radius_a;
+            obb_a.lengths.y += sweep_radius_a;
+            obb_a.lengths.z += sweep_radius_a;
+            query_node_a = cur_node_a;
+            }
 
-        if (detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, q, dr_rot)
-            && test_narrow_phase_overlap(r_ab, a, b, query_node_a, query_node_b)) return true;
+        if (query_node_b != cur_node_b)
+            {
+            obb_b.lengths.x += sweep_radius_b;
+            obb_b.lengths.y += sweep_radius_b;
+            obb_b.lengths.z += sweep_radius_b;
+            query_node_b = cur_node_b;
+            }
+
+        if (detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, q, dr_rot, ignore_mask)
+            && test_narrow_phase_overlap(r_ab, a, b, query_node_a, query_node_b, err, sweep_radius_a, sweep_radius_b, ignore_mask))
+            return true;
         }
     #endif
 
     return false;
     }
 
+template<class Shape>
+DEVICE inline bool test_narrow_phase_overlap_intersection(const ShapeUnion<Shape>& a,
+                                             const ShapeUnion<Shape>& b,
+                                             const ShapeUnion<Shape>& c,
+                                             vec3<OverlapReal> ab_t,
+                                             vec3<OverlapReal> ac_t,
+                                             unsigned int cur_node_a,
+                                             unsigned int cur_node_b,
+                                             unsigned int cur_node_c,
+                                             unsigned int &err,
+                                             OverlapReal sweep_radius_a,
+                                             OverlapReal sweep_radius_b,
+                                             OverlapReal sweep_radius_c)
+    {
+    //! Param type of the member shapes
+    typedef typename Shape::param_type mparam_type;
+
+    unsigned int na = a.members.tree.getNumParticles(cur_node_a);
+    unsigned int nb = b.members.tree.getNumParticles(cur_node_b);
+    unsigned int nc = c.members.tree.getNumParticles(cur_node_c);
+
+    // loop through shapes of cur_node_a
+    for (unsigned int i= 0; i < na; i++)
+        {
+        unsigned int ishape = a.members.tree.getParticle(cur_node_a, i);
+
+        const mparam_type& params_i = a.members.mparams[ishape];
+        Shape shape_i(quat<Scalar>(), params_i);
+        if (shape_i.hasOrientation())
+            shape_i.orientation = quat<OverlapReal>(a.orientation)*a.members.morientation[ishape];
+
+        vec3<OverlapReal> pos_i(rotate(quat<OverlapReal>(a.orientation),a.members.mpos[ishape]));
+        unsigned int overlap_i = a.members.moverlap[ishape];
+
+        // loop through shapes of cur_node_b
+        for (unsigned int j= 0; j < nb; j++)
+            {
+            unsigned int jshape = b.members.tree.getParticle(cur_node_b, j);
+
+            const mparam_type& params_j = b.members.mparams[jshape];
+            Shape shape_j(quat<Scalar>(), params_j);
+            if (shape_j.hasOrientation())
+                shape_j.orientation = quat<OverlapReal>(b.orientation)*b.members.morientation[jshape];
+
+            vec3<OverlapReal> pos_ij(rotate(quat<OverlapReal>(b.orientation),b.members.mpos[jshape]) + ab_t - pos_i);
+            unsigned int overlap_j = b.members.moverlap[jshape];
+
+            // loop through shapes of cur_node_c
+            for (unsigned int k= 0; k < nc; k++)
+                {
+                unsigned int kshape = c.members.tree.getParticle(cur_node_c, k);
+
+                const mparam_type& params_k = c.members.mparams[kshape];
+                Shape shape_k(quat<Scalar>(), params_k);
+                if (shape_k.hasOrientation())
+                    shape_k.orientation = quat<OverlapReal>(c.orientation)*c.members.morientation[kshape];
+
+                vec3<OverlapReal> pos_ik(rotate(quat<OverlapReal>(c.orientation),c.members.mpos[kshape]) + ac_t - pos_i);
+                unsigned int overlap_k = c.members.moverlap[kshape];
+
+                if (((overlap_i & overlap_k) || (overlap_j & overlap_k)) &&
+                    test_overlap_intersection(shape_i, shape_j, shape_k, pos_ij, pos_ik, err, sweep_radius_a, sweep_radius_b, sweep_radius_c))
+                    {
+                    return true;
+                    }
+                }
+            }
+        }
+    return false;
+    }
+
+//! Test for overlap of a third particle with the intersection of two shapes
+/*! \param a First shape to test
+    \param b Second shape to test
+    \param c Third shape to test
+    \param ab_t Position of second shape relative to first
+    \param ac_t Position of third shape relative to first
+    \param err Output variable that is incremented upon non-convergence
+    \param sweep_radius_a Radius of a sphere to sweep the first shape by
+    \param sweep_radius_b Radius of a sphere to sweep the second shape by
+    \param sweep_radius_c Radius of a sphere to sweep the third shape by
+*/
+template <class Shape >
+DEVICE inline bool test_overlap_intersection(const ShapeUnion<Shape>& a,
+                                const ShapeUnion<Shape>& b,
+                                const ShapeUnion<Shape>& c,
+                                const vec3<Scalar>& ab_t,
+                                const vec3<Scalar>& ac_t,
+                                unsigned int& err,
+                                Scalar sweep_radius_a = Scalar(0.0),
+                                Scalar sweep_radius_b = Scalar(0.0),
+                                Scalar sweep_radius_c = Scalar(0.0))
+    {
+    const detail::GPUTree& tree_a = a.members.tree;
+    const detail::GPUTree& tree_b = b.members.tree;
+    const detail::GPUTree& tree_c = c.members.tree;
+
+    quat<OverlapReal> qbc(conj(b.orientation)*c.orientation);
+    vec3<OverlapReal> rbc_rot(rotate(conj(quat<OverlapReal>(b.orientation)),vec3<OverlapReal>(-ab_t+ac_t)));
+
+    vec3<OverlapReal> rab_rot(rotate(conj(quat<OverlapReal>(b.orientation)),vec3<OverlapReal>(-ab_t)));
+    quat<OverlapReal> qab(conj(b.orientation)*a.orientation);
+
+    for (unsigned int cur_leaf_c = 0; cur_leaf_c < tree_c.getNumLeaves(); cur_leaf_c++)
+        {
+        unsigned int cur_node_c = tree_c.getLeafNode(cur_leaf_c);
+        detail::OBB obb_c = tree_c.getOBB(cur_node_c);
+
+        obb_c.lengths.x += sweep_radius_c;
+        obb_c.lengths.y += sweep_radius_c;
+        obb_c.lengths.z += sweep_radius_c;
+
+        // transform into b's reference frame
+        obb_c.affineTransform(qbc, rbc_rot);
+
+        // perform a tandem tree traversal between trees a and b, subject to overlap with c
+        unsigned long int stack = 0;
+        unsigned int cur_node_a = 0;
+        unsigned int cur_node_b = 0;
+
+        detail::OBB obb_a = tree_a.getOBB(cur_node_a);
+        obb_a.affineTransform(qab, rab_rot);
+
+        detail::OBB obb_b = tree_b.getOBB(cur_node_b);
+
+        unsigned int query_node_a = UINT_MAX;
+        unsigned int query_node_b = UINT_MAX;
+
+        unsigned int mask_a = 0;
+        unsigned int mask_b = 0;
+        while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
+            {
+            if (query_node_a != cur_node_a)
+                {
+                // extend OBBs
+                obb_a.lengths.x += sweep_radius_a;
+                obb_a.lengths.y += sweep_radius_a;
+                obb_a.lengths.z += sweep_radius_a;
+                query_node_a = cur_node_a;
+                mask_a = obb_a.mask;
+                }
+
+            if (query_node_b != cur_node_b)
+                {
+                obb_b.lengths.x += sweep_radius_b;
+                obb_b.lengths.y += sweep_radius_b;
+                obb_b.lengths.z += sweep_radius_b;
+                query_node_b = cur_node_b;
+                mask_b = obb_b.mask;
+                }
+
+            // combine masks
+            unsigned int combined_mask = mask_a | mask_b;
+            obb_a.mask = obb_b.mask = combined_mask;
+
+            if (detail::traverseBinaryStackIntersection(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, qab, rab_rot, obb_c)
+                && test_narrow_phase_overlap_intersection(a, b, c, ab_t, ac_t,
+                    query_node_a, query_node_b, cur_node_c, err, sweep_radius_a, sweep_radius_b, sweep_radius_c))
+                        return true;
+            }
+        }
+
+    return false;
+    }
 } // end namespace hpmc
 
 #undef DEVICE
