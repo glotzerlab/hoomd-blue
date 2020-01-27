@@ -79,3 +79,6 @@ class ParticleFilterAll:
 
 class ParticleFilterTags:
     pass
+
+class GSDStateReader:
+    pass
