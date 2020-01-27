@@ -33,7 +33,7 @@ steps:
 - script: cat pytest.out.1
   displayName: Display rank 1 output
   workingDirectory: $(Build.BinariesDirectory)
-  condition: and(succeeded(), eq(variables['enable_mpi'], 'on'))
+  condition: and(or(succeeded(), failed()), eq(variables['enable_mpi'], 'on'))
 
 - script: PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH ctest -I $(ctest_start),,$(ctest_stride) --no-compress-output -T test --output-on-failure --test-output-size-failed 1048576 --test-output-size-passed 1048576
   displayName: Run ctest
