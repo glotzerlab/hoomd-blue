@@ -242,9 +242,9 @@ stages:
     steps:
     - checkout: self
       submodules: true
-    - script: sphinx-build -b html -d _build/doctrees -W -n . _build/html
+    - script: sphinx-build -b html -d _build/doctrees -W --keep-going -n . _build/html
       displayName: (HTML)
       workingDirectory: sphinx-doc
-    - script: sphinx-build -b latex -d _build/doctrees -W -n . _build/latex
+    - script: sphinx-build -b latex -d _build/doctrees -W --keep-going -n . _build/latex
       displayName: (LaTeX)
       workingDirectory: sphinx-doc
