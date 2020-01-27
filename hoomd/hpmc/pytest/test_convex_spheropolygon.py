@@ -114,14 +114,16 @@ def test_overlaps(device, lattice_simulation_factory):
     assert mc.overlaps > 0
 
     s = sim.state.snapshot
-    s.particles.position[0] = (0, 0, 0)
-    s.particles.position[1] = (0, 8, 0)
+    if s.exists:
+        s.particles.position[0] = (0, 0, 0)
+        s.particles.position[1] = (0, 8, 0)
     sim.state.snapshot = s
     assert mc.overlaps == 0
 
     s = sim.state.snapshot
-    s.particles.position[0] = (0, 0, 0)
-    s.particles.position[1] = (0, 0.5, 0)
+    if s.exists:
+        s.particles.position[0] = (0, 0, 0)
+        s.particles.position[1] = (0, 0.5, 0)
     sim.state.snapshot = s
     assert mc.overlaps > 0
 
