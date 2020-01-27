@@ -550,7 +550,6 @@ void IntegratorHPMCMono<Shape>::slotNumTypesChange()
             }
         }
 
->>>>>>> bf5b98c4b... retain old overlap check settings after adding types
     m_overlaps.swap(overlaps);
 
     updateCellWidth();
