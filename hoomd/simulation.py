@@ -46,6 +46,25 @@ class Simulation:
         else:
             raise RuntimeError("State must not be set to change timestep.")
 
+    def _init_communicator(self):
+        """ Initialize the Communicator
+        """
+        # initialize communicator
+        if _hoomd.is_MPI_available():
+            pdata = self.state._cpp_sys_def.getParticleData()
+            decomposition = pdata.getDomainDecomposition()
+            if decomposition is not None:
+                # create the c++ Communicator
+                if self.device.mode == 'cpu':
+                    cpp_communicator = _hoomd.Communicator(
+                        self.state._cpp_sys_def, decomposition)
+                else:
+                    cpp_communicator = _hoomd.CommunicatorGPU(
+                        self.state._cpp_sys_def, decomposition)
+
+                # set Communicator in C++ System
+                self._cpp_sys.setCommunicator(cpp_communicator)
+
     def create_state_from_gsd(self, filename, frame=-1):
         # initialize the system
         # Error checking
@@ -65,6 +84,7 @@ class Simulation:
         reader.clearSnapshot()
         # Store System and Reader for Operations
         self._cpp_sys = _hoomd.System(self.state._cpp_sys_def, step)
+        self._init_communicator()
         self._cpp_sys.enableQuietRun(not self.verbose_run)
         self.operations._store_reader(reader)
 
@@ -82,6 +102,7 @@ class Simulation:
 
         # Store System and Reader for Operations
         self._cpp_sys = _hoomd.System(self.state._cpp_sys_def, step)
+        self._init_communicator()
         self._cpp_sys.enableQuietRun(not self.verbose_run)
 
     @property
