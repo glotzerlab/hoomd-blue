@@ -9,9 +9,24 @@
 
 
 from hoomd.md import _md
-import hoomd
 from hoomd.integrate import _DynamicIntegrator
 from hoomd.parameterdicts import ParameterDict
+
+
+def validate_aniso(value):
+    if value is True:
+        return "true"
+    elif value is False:
+        return "false"
+    elif value.lower() == 'true':
+        return "true"
+    elif value.lower() == 'false':
+        return "false"
+    elif value.lower() == 'auto':
+        return "auto"
+    else:
+        raise ValueError("input could not be converted to a proper "
+                         "anisotropic mode.")
 
 
 class Integrator(_DynamicIntegrator):
@@ -66,21 +81,6 @@ class Integrator(_DynamicIntegrator):
 
         super().__init__(forces, constraint_forces, methods)
 
-        def validate_aniso(value):
-            if value is True:
-                return "true"
-            elif value is False:
-                return "false"
-            elif value.lower() == 'true':
-                return "true"
-            elif value.lower() == 'false':
-                return "false"
-            elif value.lower() == 'auto':
-                return "auto"
-            else:
-                raise ValueError("input could not be converted to a proper "
-                                 "anisotropic mode.")
-
         self.param_dict = ParameterDict(dt=float(dt), aniso=validate_aniso,
                                         explicit_defaults=dict(aniso="auto")
                                         )
@@ -91,5 +91,6 @@ class Integrator(_DynamicIntegrator):
         # initialize the reflected c++ class
         self._cpp_obj = _md.IntegratorTwoStep(simulation.state._cpp_sys_def,
                                               self.dt)
-        self._apply_param_dict()
+        # Call attach from DynamicIntegrator which attaches forces,
+        # constraint_forces, and methods, and calls super().attach() itself.
         super().attach(simulation)
