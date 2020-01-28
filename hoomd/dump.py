@@ -752,7 +752,7 @@ class GSDLogWriter:
                 elif kind in self._convert_kinds:
                     self._log_convert_value(
                         log, '/'.join((self._global_prepend,) + key),
-                        kind, value)
+                        kind, log_value)
                 else:
                     log['/'.join((self._global_prepend,) + key)] = \
                         log_value
