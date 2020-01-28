@@ -495,7 +495,7 @@ void export_IntegratorTwoStep(py::module& m)
 
     py::class_<IntegratorTwoStep, Integrator, std::shared_ptr<IntegratorTwoStep> >(m, "IntegratorTwoStep")
         .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
-        .def_property_readonly("forces", &IntegratorTwoStep::getIntegrationMethods)
+        .def_property_readonly("methods", &IntegratorTwoStep::getIntegrationMethods)
         .def_property("aniso",
                       &IntegratorTwoStep::getAnisotropicMode,
                       &IntegratorTwoStep::setAnisotropicMode)
