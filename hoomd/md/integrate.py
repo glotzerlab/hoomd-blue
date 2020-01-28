@@ -81,7 +81,7 @@ class Integrator(_DynamicIntegrator):
 
         super().__init__(forces, constraint_forces, methods)
 
-        self.param_dict = ParameterDict(dt=float(dt), aniso=validate_aniso,
+        self._param_dict = ParameterDict(dt=float(dt), aniso=validate_aniso,
                                         explicit_defaults=dict(aniso="auto")
                                         )
         if aniso is not None:
