@@ -37,12 +37,12 @@ from copy import deepcopy
 def convert_values_to_log_form(value):
     if value is RequiredArg:
         return (None, 'scalar')
-    elif not is_iterable(value):
-        return (value, 'scalar')
     elif isinstance(value, str):
         return (value, 'string')
     elif is_iterable(value) and all([isinstance(v, str) for v in value]):
         return (value, 'strings')
+    elif not is_iterable(value):
+        return (value, 'scalar')
     else:
         return (value, 'multi')
 
