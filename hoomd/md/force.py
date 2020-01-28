@@ -10,7 +10,7 @@ R""" Apply forces to particles.
 
 from hoomd import _hoomd
 from hoomd.md import _md
-import sys
+from hoomd.meta import _Operation
 import hoomd
 import numpy as np
 
@@ -22,7 +22,11 @@ import numpy as np
 # instance of the c++ analyzer itself is tracked and added to the System 2)
 # methods are provided for disabling the force from being added to the net force
 # on each particle
-class Force(hoomd.meta._metadata): ## \internal
+class _force(hoomd.meta._metadata):
+    pass
+
+
+class Force(_Operation): ## \internal
     # \brief Constructs the force
     #
     # \param name name of the force instance
@@ -31,18 +35,24 @@ class Force(hoomd.meta._metadata): ## \internal
     # instance Assigns a name to the force in force_name
     def __init__(self, name=None):
         # check if initialization has occurred
-        if not hoomd.init.is_initialized(): raise RuntimeError('Cannot create
-        force before initialization\n')
+        if not hoomd.init.is_initialized():
+            raise RuntimeError('Cannot create force before initialization\n')
 
         # Allow force to store a name.  Used for discombobulation in the logger
-        if name is None: self.name = ""; else: self.name="_" + name
+        if name is None:
+            self.name = ""
+        else:
+            self.name = "_" + name
 
         self.cppForce = None
 
         # increment the id counter
-        id = Force.cur_id; Force.cur_id += 1
+        id = Force.cur_id
+        Force.cur_id += 1
 
-        self.force_name = "force%d" % (id); self.enabled = True; self.log =True
+        self.force_name = "force%d" % (id)
+        self.enabled = True
+        self.log = True
         hoomd.context.current.forces.append(self)
 
         # base class constructor
@@ -62,10 +72,13 @@ class Force(hoomd.meta._metadata): ## \internal
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cppForce is None:
-            hoomd.context.current.device.cpp_msg.error('Bug in hoomd: cppForce
-            not set, please report\n'); raise RuntimeError()
+            hoomd.context.current.device.cpp_msg.error('Bug in hoomd: cppForce '
+                                                       'not set, please report'
+                                                       '\n')
+            raise RuntimeError()
 
-    def disable(self, log=False): R""" Disable the force.
+    def disable(self, log=False):
+        R""" Disable the force.
 
         Args: log (bool): Set to True if you plan to continue logging the
         potential energy associated with this force.
@@ -87,38 +100,52 @@ class Force(hoomd.meta._metadata): ## \internal
         is left False, the potential energy associated with this force will not
         be available for logging.
 
-        """ self.check_initialization()
+        """
+        self.check_initialization()
 
         # check if we are already disabled
         if not self.enabled:
-            hoomd.context.current.device.cpp_msg.warning("Ignoring command to
-            disable a force that is already disabled"); return
+            hoomd.context.current.device.cpp_msg.warning("Ignoring command to "
+                                                         "disable a force that "
+                                                         "is already disabled")
+            return
 
-        self.enabled = False; self.log = log
+        self.enabled = False
+        self.log = log
 
         # remove the compute from the system if it is not going to be logged
-        if not log: hoomd.context.current.system.removeCompute(self.force_name)
+        if not log:
+            hoomd.context.current.system.removeCompute(self.force_name)
         hoomd.context.current.forces.remove(self)
 
-    def enable(self): R""" Enable the force.
+    def enable(self):
+        R""" Enable the force.
 
         Examples::
 
             force.enable()
 
-        See :py:meth:`disable()`.  """ self.check_initialization()
+        See :py:meth:`disable()`.  """
+        self.check_initialization()
 
         # check if we are already disabled
-        if self.enabled: hoomd.context.current.device.cpp_msg.warning("Ignoring
-        command to enable a force that is already enabled"); return
+        if self.enabled:
+            hoomd.context.current.device.cpp_msg.warning("Ignoring command to "
+                                                         "enable a force that "
+                                                         "is already enabled")
+        return
 
         # add the compute back to the system if it was removed
-        if not self.log: hoomd.context.current.system.addCompute(self.cppForce,
-                self.force_name) hoomd.context.current.forces.append(self)
+        if not self.log:
+            hoomd.context.current.system.addCompute(self.cppForce,
+                                                    self.force_name)
+            hoomd.context.current.forces.append(self)
 
-        self.enabled = True; self.log = True
+        self.enabled = True
+        self.log = True
 
-    def get_energy(self,group): R""" Get the energy of a particle group.
+    def get_energy(self,group):
+        R""" Get the energy of a particle group.
 
         Args: group (:py:mod:`hoomd.group`): The particle group to query the
         energy for.
@@ -127,10 +154,11 @@ class Force(hoomd.meta._metadata): ## \internal
 
         Examples::
 
-            g = group.all() energy = force.get_energy(g) """ return
-            self.cppForce.calcEnergyGroup(group.cpp_group)
+            g = group.all() energy = force.get_energy(g) """
+        return self.cppForce.calcEnergyGroup(group.cpp_group)
 
-    def get_netForce(self,group): R""" Get the force of a particle group.
+    def get_netForce(self,group):
+        R""" Get the force of a particle group.
 
         Args: group (:py:mod:`hoomd.group`): The particle group to query the
         force for.
@@ -145,7 +173,8 @@ class Force(hoomd.meta._metadata): ## \internal
                 self.cppForce.calcForceGroup(group.cpp_group).y,
                 self.cppForce.calcForceGroup(group.cpp_group).z)
 
-    def get_net_virial(self,group): R""" Get the virial of a particle group.
+    def get_net_virial(self,group):
+        R""" Get the virial of a particle group.
 
         Args: group (:py:mod:`hoomd.group`): The particle group to query the
         virial for.
@@ -154,30 +183,35 @@ class Force(hoomd.meta._metadata): ## \internal
 
         Examples:
 
-            g = group.all() virial = force.get_net_virial(g) """ return
-            np.asarray(self.cppForce.calcVirialGroup(group.cpp_group))
+            g = group.all() virial = force.get_net_virial(g) """
+        return np.asarray(self.cppForce.calcVirialGroup(group.cpp_group))
 
 
 
 
     ## \internal
     # \brief updates force coefficients
-    def update_coeffs(self): pass raise RuntimeError("Force.update_coeffs should
-    not be called")
+    def update_coeffs(self):
+        pass
+        raise RuntimeError("Force.update_coeffs should not be called")
         # does nothing: this is for derived classes to implement
 
     ## \internal
     # \brief Returns the force data
     #
-    def _Forces(self): return hoomd.data.force_data(self)
+    def _Forces(self):
+        return hoomd.data.force_data(self)
 
     forces = property(_Forces)
 
     ## \internal
     # \brief Get metadata
-    def get_metadata(self): data = hoomd.meta._metadata.get_metadata(self)
-    data['enabled'] = self.enabled data['log'] = self.log if self.name is not
-    "": data['name'] = self.name
+    def get_metadata(self):
+        data = hoomd.meta._metadata.get_metadata(self)
+        data['enabled'] = self.enabled
+        data['log'] = self.log
+        if self.name != "":
+            data['name'] = self.name
 
         return data
 
