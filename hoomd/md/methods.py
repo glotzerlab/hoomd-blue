@@ -10,7 +10,6 @@ from hoomd import _hoomd
 from hoomd.md import _md
 import hoomd
 from hoomd.meta import _Operation
-from hoomd.integrate import _integration_method
 import copy
 
 
@@ -18,7 +17,7 @@ class _Method(_Operation):
     pass
 
 
-class nvt(_integration_method):
+class nvt(_Method):
     R""" NVT Integration via the Nosé-Hoover thermostat.
 
     Args:
@@ -59,7 +58,7 @@ class nvt(_integration_method):
     def __init__(self, group, kT, tau):
 
         # initialize base class
-        _integration_method.__init__(self)
+        _Method.__init__(self)
 
         # setup the variant inputs
         kT = hoomd.variant._setup_variant_input(kT)
@@ -146,7 +145,7 @@ class nvt(_integration_method):
         self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
 
 
-class npt(_integration_method):
+class npt(_Method):
     R""" NPT Integration via MTK barostat-thermostat.
 
     Args:
@@ -281,7 +280,7 @@ class npt(_integration_method):
                 raise RuntimeError("Error setting up NPT integration.")
 
         # initialize base class
-        _integration_method.__init__(self)
+        _Method.__init__(self)
 
         # setup the variant inputs
         kT = hoomd.variant._setup_variant_input(kT)
@@ -473,7 +472,7 @@ class npt(_integration_method):
     def get_metadata(self):
         # Metadata output involves transforming some variables into human-readable
         # form, so we override get_metadata()
-        data = _integration_method.get_metadata(self)
+        data = _Method.get_metadata(self)
         data['group'] = self.group.name
         if not self.nph:
             data['kT'] = self.kT
@@ -594,7 +593,7 @@ class nph(npt):
         self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
 
 
-class nve(_integration_method):
+class nve(_Method):
     R""" NVE Integration via Velocity-Verlet
 
     Args:
@@ -637,7 +636,7 @@ class nve(_integration_method):
     def __init__(self, group, limit=None, zero_force=False):
 
         # initialize base class
-        _integration_method.__init__(self)
+        _Method.__init__(self)
 
         # create the compute thermo
         hoomd.compute._get_unique_thermo(group=group)
@@ -711,7 +710,7 @@ class nve(_integration_method):
         self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
 
 
-class langevin(_integration_method):
+class langevin(_Method):
     R""" Langevin dynamics.
 
     Args:
@@ -789,7 +788,7 @@ class langevin(_integration_method):
     def __init__(self, group, kT, seed, dscale=False, tally=False, noiseless_t=False, noiseless_r=False):
 
         # initialize base class
-        _integration_method.__init__(self)
+        _Method.__init__(self)
 
         # setup the variant inputs
         kT = hoomd.variant._setup_variant_input(kT)
@@ -930,7 +929,7 @@ class langevin(_integration_method):
                 self.cpp_method.setGamma_r(i,_hoomd.make_scalar3(*gamma_r))
 
 
-class brownian(_integration_method):
+class brownian(_Method):
     R""" Brownian dynamics.
 
     Args:
@@ -1010,7 +1009,7 @@ class brownian(_integration_method):
     def __init__(self, group, kT, seed, dscale=False, noiseless_t=False, noiseless_r=False):
 
         # initialize base class
-        _integration_method.__init__(self)
+        _Method.__init__(self)
 
         # setup the variant inputs
         kT = hoomd.variant._setup_variant_input(kT)
@@ -1138,7 +1137,7 @@ class brownian(_integration_method):
                 self.cpp_method.setGamma_r(i,_hoomd.make_scalar3(*gamma_r))
 
 
-class berendsen(_integration_method):
+class berendsen(_Method):
     R""" Applies the Berendsen thermostat.
 
     Args:
@@ -1169,7 +1168,7 @@ class berendsen(_integration_method):
                 raise RuntimeError("Error setting up integration method.")
 
         # initialize base class
-        _integration_method.__init__(self)
+        _Method.__init__(self)
 
         # setup the variant inputs
         kT = hoomd.variant._setup_variant_input(kT)
