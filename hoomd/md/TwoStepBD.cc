@@ -43,7 +43,7 @@ TwoStepBD::TwoStepBD(std::shared_ptr<SystemDefinition> sysdef,
                            bool noiseless_t,
                            bool noiseless_r
                            )
-  : TwoStepLangevinBase(sysdef, group, T, seed, use_lambda, lambda),
+  : TwoStepLangevinBase(sysdef, group, T, seed),
     m_noiseless_t(noiseless_t), m_noiseless_r(noiseless_r)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepBD" << endl;

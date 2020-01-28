@@ -57,7 +57,7 @@ void berend_updater_lj_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
     std::shared_ptr<IntegratorTwoStep> berendsen_up(new IntegratorTwoStep(sysdef, deltaT));
     berendsen_up->addIntegrationMethod(two_step_berendsen);
 
-    std::shared_ptr<TwoStepLangevin> two_step_bdnvt(new TwoStepLangevin(sysdef, group_all, T_variant2, 268, 1, 1.0, false, false));
+    std::shared_ptr<TwoStepLangevin> two_step_bdnvt(new TwoStepLangevin(sysdef, group_all, T_variant2, 268));
     std::shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
     bdnvt_up->prepRun(0);
