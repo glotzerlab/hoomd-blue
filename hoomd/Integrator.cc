@@ -940,6 +940,6 @@ void export_Integrator(py::module& m)
     .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
     .def_property("dt", &Integrator::getDeltaT, &Integrator::setDeltaT)
 	.def_property_readonly("forces", &Integrator::getForces)
-	.def_property_readonly("constraint_forces", &Integrator::getConstraintForces)
+	.def_property_readonly("constraints", &Integrator::getConstraintForces)
     ;
     }
