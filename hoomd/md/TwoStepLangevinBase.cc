@@ -186,13 +186,12 @@ void export_TwoStepLangevinBase(py::module& m)
                                 std::shared_ptr<Variant>,
                                 unsigned int
                                 >())
-        .def("setT", &TwoStepLangevinBase::setT)
-        .def("getT", &TwoStepLangevinBase::getT)
+        .def_property("kT", &TwoStepLangevinBase::getT, &TwoStepLangevinBase::setT)
         .def("setGamma", &TwoStepLangevinBase::setGamma)
         .def("setGamma", &TwoStepLangevinBase::setGamma)
         .def("setGammaR", &TwoStepLangevinBase::setGammaR)
         .def("getGammaR", &TwoStepLangevinBase::setGammaR)
-        .def_property("lambda", &TwoStepLangevinBase::getLambda, &TwoStepLangevinBase::setLambda)
+        .def_property("alpha", &TwoStepLangevinBase::getLambda, &TwoStepLangevinBase::setLambda)
         .def_property_readonly("seed", &TwoStepLangevinBase::getSeed)
         ;
     }
