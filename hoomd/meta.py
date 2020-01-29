@@ -285,26 +285,32 @@ class _Operation(metaclass=Loggable):
         return obj
 
 
+def trigger_preprocessing(value):
+    if isinstance(value, Trigger):
+        return value
+    if type(new_trigger) == int:
+        return PeriodicTrigger(period=new_trigger, phase=0)
+    elif hasattr(value, '__len__') and len(value) == 2:
+        return PeriodicTrigger(period=value[0], phase=value[1])
+
+
 class _TriggeredOperation(_Operation):
     _cpp_list_name = None
 
     def __init__(self, trigger):
-        if isinstance(trigger, int):
-            trigger = PeriodicTrigger(period=trigger, phase=0)
-        self._trigger = trigger
+        trigger_dict = ParameterDict(trigger=trigger_preprocessing)
+        trigger_dict['trigger'] = trigger
+        self._param_dict.update(trigger_dict)
 
     @property
     def trigger(self):
-        return self._trigger
+        return self._param_dict['trigger']
 
     @trigger.setter
     def trigger(self, new_trigger):
-        if type(new_trigger) == int:
-            new_trigger = PeriodicTrigger(period=new_trigger, phase=0)
-        elif not isinstance(new_trigger, Trigger):
-            raise ValueError("Trigger of type {} must be a subclass of "
-                             "hoomd.triggers.Trigger".format(type(new_trigger))
-                             )
+        # Overwrite python trigger
+        self._param_dict['trigger'] = new_trigger
+        new_trigger = self.trigger
         if self.is_attached:
             sys = self._simulation._cpp_sys
             triggered_ops = getattr(sys, self._cpp_list_name)
@@ -315,8 +321,6 @@ class _TriggeredOperation(_Operation):
                 if op is self._cpp_obj and trigger is self._trigger:
                     new_tuple = (self._cpp_obj, new_trigger)
                     triggered_ops[index] = new_tuple
-        # Overwrite python trigger
-        self._trigger = new_trigger
 
     def attach(self, simulation):
         self._simulation = simulation
