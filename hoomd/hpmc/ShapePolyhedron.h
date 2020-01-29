@@ -179,29 +179,37 @@ struct ShapePolyhedron
         {
         unsigned int n_verts = data.n_verts;
         unsigned int n_faces = data.n_faces;
+
         std::ostringstream shapedef;
-        shapedef << "{\"type\": \"Mesh\", \"vertices\": [";
-        for (unsigned int i = 0; i < n_verts-1; i++)
+        if (n_verts == 1 && data.verts[0].x == 0.0f && data.verts[0].y == data.verts[0].x && data.verts[0].y == data.verts[0].z)
             {
-            shapedef << "[" << data.verts[i].x << ", " << data.verts[i].y << ", " << data.verts[i].z << "], ";
+            shapedef << "{\"type\": \"Sphere\", \"diameter\": " << data.sweep_radius*OverlapReal(2.0) << "}";
             }
-        shapedef << "[" << data.verts[n_verts-1].x << ", " << data.verts[n_verts-1].y << ", " << data.verts[n_verts-1].z << "]], \"indices\": [";
-        unsigned int nverts_face, offset;
-        for (unsigned int i = 0; i < n_faces; i++)
+        else
             {
-            // Number of vertices of ith face
-            nverts_face = data.face_offs[i + 1] - data.face_offs[i];
-            offset = data.face_offs[i];
-            shapedef << "[";
-            for (unsigned int j = 0; j < nverts_face-1; j++)
+            shapedef << "{\"type\": \"Mesh\", \"vertices\": [";
+            for (unsigned int i = 0; i < n_verts-1; i++)
                 {
-                shapedef << data.face_verts[offset+j] << ", ";
+                shapedef << "[" << data.verts[i].x << ", " << data.verts[i].y << ", " << data.verts[i].z << "], ";
                 }
-            shapedef << data.face_verts[offset+nverts_face-1];
-            if (i == n_faces-1)
-                shapedef << "]]}";
-            else
-                shapedef << "], ";
+            shapedef << "[" << data.verts[n_verts-1].x << ", " << data.verts[n_verts-1].y << ", " << data.verts[n_verts-1].z << "]], \"indices\": [";
+            unsigned int nverts_face, offset;
+            for (unsigned int i = 0; i < n_faces; i++)
+                {
+                // Number of vertices of ith face
+                nverts_face = data.face_offs[i + 1] - data.face_offs[i];
+                offset = data.face_offs[i];
+                shapedef << "[";
+                for (unsigned int j = 0; j < nverts_face-1; j++)
+                    {
+                    shapedef << data.face_verts[offset+j] << ", ";
+                    }
+                shapedef << data.face_verts[offset+nverts_face-1];
+                if (i == n_faces-1)
+                    shapedef << "]]}";
+                else
+                    shapedef << "], ";
+                }
             }
         return shapedef.str();
         }
