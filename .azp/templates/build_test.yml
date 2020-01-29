@@ -18,17 +18,15 @@ steps:
     # allow openmpi to oversubscribe cores
     OMPI_MCA_rmaps_base_oversubscribe: 1
     # prevent errors from mis-configured openib systems
-    OMPI_MCA_btl: "tcp,self"
+    OMPI_MCA_btl: "vader,self"
     # prevent deadlocked MPI tests from causing the job to cancel
     MPIEXEC_TIMEOUT: $(mpiexec_timeout)
-
-- script: cp $(Build.BinariesDirectory)/Testing/**/Test.xml $(Common.TestResultsDirectory)
-  displayName: Copy test results
-  condition: always()
+    # workaround issues on Mac
+    TMPDIR: /tmp
 
 - task: PublishTestResults@2
-  condition: always()
+  condition: or(succeeded(), failed())
   inputs:
     testResultsFormat: 'cTest'
-    testResultsFiles: '$(Common.TestResultsDirectory)/*.xml'
+    testResultsFiles: '$(Build.BinariesDirectory)/Testing/**/Test.xml'
     testRunTitle: $(suite_name)

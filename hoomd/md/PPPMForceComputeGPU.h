@@ -103,8 +103,10 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
         std::unique_ptr<Autotuner> m_tuner_force; //!< Autotuner for populating the force array
         std::unique_ptr<Autotuner> m_tuner_influence; //!< Autotuner for computing the influence function
 
-        cufftHandle m_cufft_plan;          //!< The FFT plan
+        std::vector<cufftHandle> m_cufft_plan;          //!< The FFT plans
         bool m_local_fft;                  //!< True if we are only doing local FFTs (not distributed)
+        bool m_cufft_initialized;          //!< True if CUFFT has been initialized
+        bool m_cuda_dfft_initialized;      //!< True if dfft has been initialized
 
         #ifdef ENABLE_MPI
         typedef CommunicatorGridGPU<cufftComplex> CommunicatorGridGPUComplex;
