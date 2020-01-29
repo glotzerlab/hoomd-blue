@@ -297,8 +297,8 @@ class _Operation(metaclass=Loggable):
 def trigger_preprocessing(value):
     if isinstance(value, Trigger):
         return value
-    if type(new_trigger) == int:
-        return PeriodicTrigger(period=new_trigger, phase=0)
+    if isinstance(value, int):
+        return PeriodicTrigger(period=value, phase=0)
     elif hasattr(value, '__len__') and len(value) == 2:
         return PeriodicTrigger(period=value[0], phase=value[1])
 
