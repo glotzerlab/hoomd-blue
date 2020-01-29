@@ -19,6 +19,8 @@ Example::
 import hoomd
 from hoomd.util import is_iterable, dict_map, str_to_tuple_keys
 from hoomd.triggers import PeriodicTrigger, Trigger
+from hoomd.variant import Variant, ConstantVariant
+from hoomd.filters import ParticleFilter
 from hoomd.logger import Loggable
 from hoomd.typeconverter import RequiredArg
 from hoomd.util import NamespaceDict
@@ -37,6 +39,13 @@ from copy import deepcopy
 def convert_values_to_log_form(value):
     if value is RequiredArg:
         return (None, 'scalar')
+    elif isinstance(value, Variant):
+        if isinstance(value, ConstantVariant):
+            return (value.value, 'scalar')
+        else:
+            return (value, 'object')
+    elif isinstance(value, Trigger) or isinstance(value, ParticleFilter):
+        return (value, 'object')
     elif isinstance(value, str):
         return (value, 'string')
     elif is_iterable(value) and all([isinstance(v, str) for v in value]):
