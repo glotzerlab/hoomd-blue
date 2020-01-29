@@ -47,19 +47,19 @@ class PYBIND11_EXPORT TwoStepLangevinBase : public IntegrationMethodTwoStep
             @param typ Particle type to set gamma for
             @param gamma The gamma value to set
         */
-        void setGamma(unsigned int typ, Scalar gamma);
+        void setGamma(const std::string& type_name, Scalar gamma);
 
         /// Gets gamma for a given particle type
-        Scalar getGamma(unsigned int typ);
+        Scalar getGamma(const std::string& type_name);
 
         /** Sets gamma_r for a given particle type
             @param typ Particle type to set gamma_r
             @param gamma The gamma_r value to set (a 3-tuple)
         */
-        void setGammaR(unsigned int typ, pybind11::tuple v);
+        void setGammaR(const std::string& type_name, pybind11::tuple v);
 
         /// Gets gamma_r for a given particle type
-        pybind11::tuple getGammaR(unsigned int typ);
+        pybind11::tuple getGammaR(const std::string& type_name);
 
         /// Sets lambda
         void setLambda(pybind11::object lambda);

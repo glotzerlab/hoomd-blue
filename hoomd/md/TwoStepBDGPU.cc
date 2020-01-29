@@ -1,9 +1,6 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
-// Maintainer: joaander
-
 #include "TwoStepBDGPU.h"
 #include "TwoStepBDGPU.cuh"
 
@@ -15,10 +12,6 @@ namespace py = pybind11;
 
 using namespace std;
 
-/*! \file TwoStepBDGPU.h
-    \brief Contains code for the TwoStepBDGPU class
-*/
-
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \param T Temperature set point as a function of time
@@ -29,12 +22,8 @@ using namespace std;
 TwoStepBDGPU::TwoStepBDGPU(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<ParticleGroup> group,
                            std::shared_ptr<Variant> T,
-                           unsigned int seed,
-                           bool use_lambda,
-                           Scalar lambda,
-                           bool noiseless_t,
-                           bool noiseless_r)
-    : TwoStepBD(sysdef, group, T, seed, use_lambda, lambda, noiseless_t, noiseless_r)
+                           unsigned int seed)
+    : TwoStepBD(sysdef, group, T, seed)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
@@ -82,7 +71,7 @@ void TwoStepBDGPU::integrateStepOne(unsigned int timestep)
     args.n_types = m_gamma.getNumElements();
     args.use_lambda = m_use_lambda;
     args.lambda = m_lambda;
-    args.T = m_T->getValue(timestep);
+    args.T = (*m_T)(timestep);
     args.timestep = timestep;
     args.seed = m_seed;
     args.d_sum_bdenergy = NULL;
@@ -157,10 +146,6 @@ void export_TwoStepBDGPU(py::module& m)
         .def(py::init< std::shared_ptr<SystemDefinition>,
                                std::shared_ptr<ParticleGroup>,
                                std::shared_ptr<Variant>,
-                               unsigned int,
-                               bool,
-                               Scalar,
-                               bool,
-                               bool>())
+                               unsigned int>())
         ;
     }

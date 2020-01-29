@@ -5,6 +5,7 @@
 import hoomd
 import hoomd.triggers
 
+
 def test_periodic_properties():
     """ Test construction and properties of PeriodicTrigger
     """
@@ -29,6 +30,7 @@ def test_periodic_properties():
     assert b.period == 456
     assert b.phase == 3
 
+
 def test_periodic_eval():
     a = hoomd.triggers.PeriodicTrigger(period=456, phase=18)
 
@@ -52,7 +54,7 @@ def test_custom():
             hoomd.triggers.Trigger.__init__(self)
 
         def __call__(self, timestep):
-            return (timestep**(1/2)).is_integer()
+            return (timestep**(1 / 2)).is_integer()
 
     c = CustomTrigger()
 

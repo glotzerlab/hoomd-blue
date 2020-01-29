@@ -92,25 +92,24 @@ void TwoStepLangevinBase::slotNumTypesChange()
         }
     }
 
-void TwoStepLangevinBase::setGamma(unsigned int typ, Scalar gamma)
+void TwoStepLangevinBase::setGamma(const std::string& type_name, Scalar gamma)
     {
+    unsigned int typ = this->m_pdata->getTypeByName(type_name);
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::readwrite);
     h_gamma.data[typ] = gamma;
     }
 
-Scalar TwoStepLangevinBase::getGamma(unsigned int typ)
+Scalar TwoStepLangevinBase::getGamma(const std::string& type_name)
     {
-    if (typ >= m_pdata->getNTypes())
-        {
-        throw invalid_argument("Type does not exist");
-        }
-
+    unsigned int typ = this->m_pdata->getTypeByName(type_name);
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
     return h_gamma.data[typ];
     }
 
-void TwoStepLangevinBase::setGammaR(unsigned int typ, pybind11::tuple v)
+void TwoStepLangevinBase::setGammaR(const std::string& type_name, pybind11::tuple v)
     {
+    unsigned int typ = this->m_pdata->getTypeByName(type_name);
+
     if (pybind11::len(v) != 3)
         {
         throw invalid_argument("gamma_r values must be 3-tuples");
@@ -135,13 +134,10 @@ void TwoStepLangevinBase::setGammaR(unsigned int typ, pybind11::tuple v)
     h_gamma_r.data[typ] = gamma_r;
     }
 
-pybind11::tuple TwoStepLangevinBase::getGammaR(unsigned int typ)
+pybind11::tuple TwoStepLangevinBase::getGammaR(const std::string& type_name)
     {
     pybind11::list v;
-    if (typ >= m_pdata->getNTypes())
-        {
-        throw invalid_argument("Type does not exist");
-        }
+    unsigned int typ = this->m_pdata->getTypeByName(type_name);
 
     ArrayHandle<Scalar3> h_gamma_r(m_gamma_r, access_location::host, access_mode::readwrite);
     Scalar3 gamma_r = h_gamma_r.data[typ];
