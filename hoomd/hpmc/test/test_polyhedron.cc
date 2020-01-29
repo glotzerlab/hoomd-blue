@@ -33,7 +33,7 @@ void set_radius(poly3d_data& data)
         }
 
     // set the diameter
-    data.convex_hull_verts.diameter = 2*(sqrt(radius_sq)+data.sweep_radius);
+    data.diameter = 2*(sqrt(radius_sq)+data.sweep_radius);
     }
 
 GPUTree build_tree(poly3d_data &data)
@@ -71,23 +71,12 @@ GPUTree build_tree(poly3d_data &data)
     return gpu_tree;
     }
 
-void initialize_convex_hull(poly3d_data &data)
-    {
-    // for simplicity, use all vertices instead of convex hull
-    for (unsigned int i = 0; i < data.n_verts; ++i)
-        {
-        data.convex_hull_verts.x[i] = data.verts[i].x;
-        data.convex_hull_verts.y[i] = data.verts[i].y;
-        data.convex_hull_verts.z[i] = data.verts[i].z;
-        }
-    }
-
 UP_TEST( construction )
     {
     quat<Scalar> o(1.0, vec3<Scalar>(-3.0, 9.0, 6.0));
 
-    poly3d_data data(4,1,4,4,false);
-    data.sweep_radius=data.convex_hull_verts.sweep_radius=0.0f;
+    poly3d_data data(4,1,4,false);
+    data.sweep_radius=0.0f;
     data.verts[0] = vec3<OverlapReal>(0,0,0);
     data.verts[1] = vec3<OverlapReal>(1,0,0);
     data.verts[2] = vec3<OverlapReal>(0,1.25,0);
@@ -100,7 +89,6 @@ UP_TEST( construction )
     data.face_offs[1] = 4;
     data.ignore = 0;
     set_radius(data);
-    initialize_convex_hull(data);
 
     ShapePolyhedron::param_type p = data;
     p.tree = build_tree(data);
@@ -142,8 +130,8 @@ UP_TEST( overlap_octahedron_no_rot )
     BoxDim box(100);
 
     // build an octahedron
-    poly3d_data data(6,8,24,6,false);
-    data.sweep_radius=data.convex_hull_verts.sweep_radius=0.0f;
+    poly3d_data data(6,8,24,false);
+    data.sweep_radius=0.0f;
 
     data.verts[0] = vec3<OverlapReal>(-0.5,-0.5,0);
     data.verts[1] = vec3<OverlapReal>(0.5,-0.5,0);
@@ -170,7 +158,6 @@ UP_TEST( overlap_octahedron_no_rot )
     data.face_offs[8] = 24;
     data.ignore = 0;
     set_radius(data);
-    initialize_convex_hull(data);
 
     ShapePolyhedron::param_type p = data;
     p.tree = build_tree(data);
@@ -255,8 +242,8 @@ UP_TEST( overlap_sphero_octahedron_no_rot )
     BoxDim box(100);
 
     // build an octahedron
-    poly3d_data data(6,8,24,6,false);
-    data.sweep_radius=data.convex_hull_verts.sweep_radius=0.1f;
+    poly3d_data data(6,8,24,false);
+    data.sweep_radius=0.1f;
 
     data.verts[0] = vec3<OverlapReal>(-0.5,-0.5,0);
     data.verts[1] = vec3<OverlapReal>(0.5,-0.5,0);
@@ -283,7 +270,6 @@ UP_TEST( overlap_sphero_octahedron_no_rot )
     data.face_offs[8] = 24;
     data.ignore = 0;
     set_radius(data);
-    initialize_convex_hull(data);
 
     ShapePolyhedron::param_type p = data;
     p.tree = build_tree(data);
@@ -373,13 +359,13 @@ UP_TEST( overlap_octahedron_sphere )
     BoxDim box(100);
 
     // build an octahedron
-    poly3d_data data_a(6,8,24,6,false);
+    poly3d_data data_a(6,8,24,false);
 
     memset((void *)&data_a.verts[0], 0, sizeof(vec3<OverlapReal>)*6);
     memset((void*)&data_a.face_offs[0], 0, sizeof(unsigned int)*9);
     memset((void*)&data_a.face_verts[0], 0, sizeof(unsigned int)*24);
 
-    data_a.sweep_radius=data_a.convex_hull_verts.sweep_radius=0.0f;
+    data_a.sweep_radius=0.0f;
 
     data_a.verts[0] = vec3<OverlapReal>(-0.5,-0.5,0);
     data_a.verts[1] = vec3<OverlapReal>(0.5,-0.5,0);
@@ -406,15 +392,14 @@ UP_TEST( overlap_octahedron_sphere )
     data_a.face_offs[8] = 24;
     data_a.ignore = 0;
     set_radius(data_a);
-    initialize_convex_hull(data_a);
 
-    poly3d_data data_b(1,1,1,1,false);
+    poly3d_data data_b(1,1,1,false);
 
     memset((void *)&data_a.verts[0], 0, sizeof(vec3<OverlapReal>)*1);
     memset((void*)&data_a.face_offs[0], 0, sizeof(unsigned int)*1);
     memset((void*)&data_a.face_verts[0], 0, sizeof(unsigned int)*1);
 
-    data_b.sweep_radius=data_b.convex_hull_verts.sweep_radius=0.5f;
+    data_b.sweep_radius=0.5f;
     data_b.verts[0] = vec3<OverlapReal>(0,0,0);
     data_b.face_offs[0] = 0;
     data_b.face_verts[0] = 0;

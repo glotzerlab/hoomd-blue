@@ -164,27 +164,9 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
     {
     ShapePolyhedron::param_type result;
 
-    // compute convex hull of vertices
-    typedef quickhull::Vector3<OverlapReal> vec;
-
-    std::vector<vec> qh_pts;
-    for (unsigned int i = 0; i < len(verts); i++)
-        {
-        pybind11::list v = pybind11::cast<pybind11::list>(verts[i]);
-        vec vert;
-        vert.x = pybind11::cast<OverlapReal>(v[0]);
-        vert.y = pybind11::cast<OverlapReal>(v[1]);
-        vert.z = pybind11::cast<OverlapReal>(v[2]);
-        qh_pts.push_back(vert);
-        }
-
-    quickhull::QuickHull<OverlapReal> qh;
-    auto hull = qh.getConvexHull(qh_pts, true, false);
-    auto vertexBuffer = hull.getVertexBuffer();
-
-    result = detail::poly3d_data(len(verts), len(face_offs)-1, len(face_verts), vertexBuffer.size(), exec_conf->isCUDAEnabled());
+    result = detail::poly3d_data(len(verts), len(face_offs)-1, len(face_verts), exec_conf->isCUDAEnabled());
     result.ignore = ignore_stats;
-    result.sweep_radius = result.convex_hull_verts.sweep_radius = R;
+    result.sweep_radius = R;
     result.n_verts = len(verts);
     result.n_faces = len(face_offs)-1;
     result.origin = vec3<OverlapReal>(pybind11::cast<OverlapReal>(origin[0]), pybind11::cast<OverlapReal>(origin[1]), pybind11::cast<OverlapReal>(origin[2]));
@@ -193,15 +175,6 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
     if (len(overlap) != result.n_faces)
         {
         throw std::runtime_error("Number of member overlap flags must be equal to number faces");
-        }
-
-    unsigned int k = 0;
-    for (auto it = vertexBuffer.begin(); it != vertexBuffer.end(); ++it)
-        {
-        result.convex_hull_verts.x[k] = it->x;
-        result.convex_hull_verts.y[k] = it->y;
-        result.convex_hull_verts.z[k] = it->z;
-        k++;
         }
 
     for (unsigned int i = 0; i < len(face_offs); i++)
@@ -268,7 +241,7 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
     delete [] obbs;
 
     // set the diameter
-    result.convex_hull_verts.diameter = 2*(sqrt(radius_sq)+result.sweep_radius);
+    result.diameter = 2*(sqrt(radius_sq)+result.sweep_radius);
 
     return result;
     }

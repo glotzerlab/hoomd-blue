@@ -64,10 +64,9 @@ struct poly3d_data : param_base
 
     #ifndef __HIPCC__
     //! Constructor
-    poly3d_data(unsigned int nverts, unsigned int _n_faces, unsigned int _n_face_verts, unsigned int n_hull_verts, bool _managed)
+    poly3d_data(unsigned int nverts, unsigned int _n_faces, unsigned int _n_face_verts, bool _managed)
         : n_verts(nverts), n_faces(_n_faces), hull_only(0)
         {
-        convex_hull_verts = poly3d_verts(n_hull_verts, _managed);
         verts = ManagedArray<vec3<OverlapReal> >(nverts, _managed);
         face_offs = ManagedArray<unsigned int>(n_faces+1,_managed);
         face_verts = ManagedArray<unsigned int>(_n_face_verts, _managed);
@@ -77,7 +76,6 @@ struct poly3d_data : param_base
     #endif
 
     GPUTree tree;                                   //!< Tree for fast locality lookups
-    poly3d_verts convex_hull_verts;                 //!< Holds parameters of convex hull
     ManagedArray<vec3<OverlapReal> > verts;         //!< Vertex coordinates
     ManagedArray<unsigned int> face_offs;           //!< Offset of every face in the list of vertices per face
     ManagedArray<unsigned int> face_verts;          //!< Ordered vertex IDs of every face
@@ -88,6 +86,7 @@ struct poly3d_data : param_base
     vec3<OverlapReal> origin;                       //!< A point *inside* the surface
     unsigned int hull_only;                         //!< If 1, only the hull of the shape is considered for overlaps
     OverlapReal sweep_radius;                       //!< Radius of a sweeping sphere
+    OverlapReal diameter;                           //!< precomputed circumsphere diameter
 
     //! Load dynamic data members into shared memory and increase pointer
     /*! \param ptr Pointer to load data to (will be incremented)
@@ -96,7 +95,6 @@ struct poly3d_data : param_base
     DEVICE void load_shared(char *& ptr, unsigned int &available_bytes)
         {
         tree.load_shared(ptr, available_bytes);
-        convex_hull_verts.load_shared(ptr, available_bytes);
         verts.load_shared(ptr, available_bytes);
         face_offs.load_shared(ptr, available_bytes);
         face_verts.load_shared(ptr, available_bytes);
@@ -110,7 +108,6 @@ struct poly3d_data : param_base
     HOSTDEVICE void allocate_shared(char *& ptr, unsigned int &available_bytes) const
         {
         tree.allocate_shared(ptr, available_bytes);
-        convex_hull_verts.allocate_shared(ptr, available_bytes);
         verts.allocate_shared(ptr, available_bytes);
         face_offs.allocate_shared(ptr, available_bytes);
         face_verts.allocate_shared(ptr, available_bytes);
@@ -122,7 +119,6 @@ struct poly3d_data : param_base
     void set_memory_hint() const
         {
         tree.set_memory_hint();
-        convex_hull_verts.set_memory_hint();
         verts.set_memory_hint();
         face_offs.set_memory_hint();
         face_verts.set_memory_hint();
@@ -162,7 +158,7 @@ struct ShapePolyhedron
     DEVICE OverlapReal getCircumsphereDiameter() const
         {
         // return the precomputed diameter
-        return data.convex_hull_verts.diameter;
+        return data.diameter;
         }
 
     //! Get the in-sphere radius
@@ -214,7 +210,7 @@ struct ShapePolyhedron
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
-        return detail::AABB(pos, data.convex_hull_verts.diameter/Scalar(2));
+        return detail::AABB(pos, data.diameter/Scalar(2));
         }
 
     //! Return a tight fitting OBB
@@ -777,18 +773,6 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                  Scalar sweep_radius_a,
                                  Scalar sweep_radius_b)
     {
-    // test overlap of convex hulls
-    if (a.isSpheroPolyhedron() || b.isSpheroPolyhedron())
-        {
-        if (!test_overlap(r_ab, ShapeSpheropolyhedron(a.orientation,a.data.convex_hull_verts),
-               ShapeSpheropolyhedron(b.orientation,b.data.convex_hull_verts),err)) return false;
-        }
-    else
-        {
-        if (!test_overlap(r_ab, ShapeConvexPolyhedron(a.orientation,a.data.convex_hull_verts),
-           ShapeConvexPolyhedron(b.orientation,b.data.convex_hull_verts),err)) return false;
-        }
-
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
     const OverlapReal abs_tol(DaDb*1e-12);
     vec3<OverlapReal> dr = r_ab;
