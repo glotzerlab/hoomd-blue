@@ -10,7 +10,32 @@ from hoomd import _hoomd
 from hoomd.md import _md
 import hoomd
 from hoomd.meta import _Operation
+from hoomd.parameterdicts import ParameterDict, TypeParameterDict
+from hoomd.filters import ParticleFilter
+from hoomd.typeparam import TypeParameter
 import copy
+
+
+def create_variant(value):
+    if isinstance(value, float) or isinstance(value, int):
+        return hoomd.variant.ConstantVariant(value)
+    elif isinstance(value, hoomd.variant.Variant):
+        return value
+    else:
+        raise ValueError("Expected a scalar value or a "
+                         "hoomd.variant.Variant.")
+
+
+def none_or(type_):
+    def None_or_type(value):
+        if None or isinstance(value, type_):
+            return value
+        else:
+            try:
+                return type_(value)
+            except Exception:
+                raise ValueError("Value {} of type {} could not be made type "
+                                 "{}.".format(value, type(value), type_))
 
 
 class _Method(_Operation):
@@ -21,19 +46,26 @@ class nvt(_Method):
     R""" NVT Integration via the Nosé-Hoover thermostat.
 
     Args:
-        group (:py:mod:`hoomd.group`): Group of particles on which to apply this method.
-        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set point for the Nosé-Hoover thermostat. (in energy units).
-        tau (float): Coupling constant for the Nosé-Hoover thermostat. (in time units).
+        group (:py:mod:`hoomd.group`): Group of particles on which to apply this
+            method.
+        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set point
+            for the Nosé-Hoover thermostat. (in energy units).
+        tau (float): Coupling constant for the Nosé-Hoover thermostat. (in time
+            units).
 
-    :py:class:`nvt` performs constant volume, constant temperature simulations using the Nosé-Hoover thermostat,
-    using the MTK equations described in Refs. `G. J. Martyna, D. J. Tobias, M. L. Klein  1994 <http://dx.doi.org/10.1063/1.467468>`_ and
-    `J. Cao, G. J. Martyna 1996 <http://dx.doi.org/10.1063/1.470959>`_.
+    :py:class:`nvt` performs constant volume, constant temperature simulations
+    using the Nosé-Hoover thermostat, using the MTK equations described in Refs.
+    `G. J. Martyna, D. J. Tobias, M. L. Klein  1994
+    <http://dx.doi.org/10.1063/1.467468>`_ and `J. Cao, G. J. Martyna 1996
+    <http://dx.doi.org/10.1063/1.470959>`_.
 
-    :py:class:`nvt` is an integration method. It must be used in connection with :py:class:`mode_standard`.
+    :py:class:`nvt` is an integration method. It must be used in connection with
+    :py:class:`mode_standard`.
 
-    :py:class:`nvt` uses the proper number of degrees of freedom to compute the temperature of the system in both
-    2 and 3 dimensional systems, as long as the number of dimensions is set before the integrate.nvt command
-    is specified.
+    :py:class:`nvt` uses the proper number of degrees of freedom to compute the
+    temperature of the system in both 2 and 3 dimensional systems, as long as
+    the number of dimensions is set before the integrate.nvt command is
+    specified.
 
     :math:`\tau` is related to the Nosé mass :math:`Q` by
 
@@ -41,11 +73,14 @@ class nvt(_Method):
 
         \tau = \sqrt{\frac{Q}{g k_B T_0}}
 
-    where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is the set point (*kT* above).
+    where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is
+    the set point (*kT* above).
 
-    *kT* can be a variant type, allowing for temperature ramps in simulation runs.
+    *kT* can be a variant type, allowing for temperature ramps in simulation
+    runs.
 
-    A :py:class:`hoomd.compute.thermo` is automatically specified and associated with *group*.
+    A :py:class:`hoomd.compute.thermo` is automatically specified and associated
+    with *group*.
 
     Examples::
 
@@ -64,8 +99,10 @@ class nvt(_Method):
         kT = hoomd.variant._setup_variant_input(kT)
 
         # create the compute thermo
-        # the NVT integrator uses the ComputeThermo in such a way that ComputeThermo stores half-time step
-        # values. By assigning a separate ComputeThermo to the integrator, we are still able to log full time step values
+        # the NVT integrator uses the ComputeThermo in such a way that
+        # ComputeThermo stores half-time step values. By assigning a separate
+        # ComputeThermo to the integrator, we are still able to log full time
+        # step values
         if group is hoomd.context.current.group_all:
             group_copy = copy.copy(group)
             group_copy.name = "__nvt_all"
@@ -710,71 +747,90 @@ class nve(_Method):
         self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
 
 
-class langevin(_Method):
+class Langevin(_Method):
     R""" Langevin dynamics.
 
     Args:
-        group (:py:mod:`hoomd.group`): Group of particles to apply this method to.
-        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of the simulation (in energy units).
-        seed (int): Random seed to use for generating :math:`\vec{F}_\mathrm{R}`.
-        dscale (bool): Control :math:`\lambda` options. If 0 or False, use :math:`\gamma` values set per type. If non-zero, :math:`\gamma = \lambda d_i`.
-        tally (bool): (optional) If true, the energy exchange between the thermal reservoir and the particles is
-                            tracked. Total energy conservation can then be monitored by adding
-                            ``langevin_reservoir_energy_groupname`` to the logged quantities.
-        noiseless_t (bool): If set true, there will be no translational noise (random force)
-        noiseless_r (bool): If set true, there will be no rotational noise (random torque)
+        filter (:py:mod:`hoomd.filter.ParticleFilter`): Group of particles to
+            apply this method to.
+        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of the
+            simulation (in energy units).
+        seed (int): Random seed to use for generating
+            :math:`\vec{F}_\mathrm{R}`.
+        lambda (float): (optional) When set, use :math:\lambda d:math: for the
+            drag coefficient.
+        tally_reservoir_energy (bool): (optional) If true, the energy exchange
+            between the thermal reservoir and the particles is tracked. Total
+            energy conservation can then be monitored by adding
+            ``langevin_reservoir_energy_groupname`` to the logged quantities.
 
     .. rubric:: Translational degrees of freedom
 
-    :py:class:`langevin` integrates particles forward in time according to the Langevin equations of motion:
+    :py:class:`langevin` integrates particles forward in time according to the
+    Langevin equations of motion:
 
     .. math::
 
-        m \frac{d\vec{v}}{dt} = \vec{F}_\mathrm{C} - \gamma \cdot \vec{v} + \vec{F}_\mathrm{R}
+        m \frac{d\vec{v}}{dt} = \vec{F}_\mathrm{C} - \gamma \cdot \vec{v} +
+        \vec{F}_\mathrm{R}
 
         \langle \vec{F}_\mathrm{R} \rangle = 0
 
         \langle |\vec{F}_\mathrm{R}|^2 \rangle = 2 d kT \gamma / \delta t
 
-    where :math:`\vec{F}_\mathrm{C}` is the force on the particle from all potentials and constraint forces,
-    :math:`\gamma` is the drag coefficient, :math:`\vec{v}` is the particle's velocity, :math:`\vec{F}_\mathrm{R}`
-    is a uniform random force, and :math:`d` is the dimensionality of the system (2 or 3).  The magnitude of
-    the random force is chosen via the fluctuation-dissipation theorem
-    to be consistent with the specified drag and temperature, :math:`T`.
-    When :math:`kT=0`, the random force :math:`\vec{F}_\mathrm{R}=0`.
+    where :math:`\vec{F}_\mathrm{C}` is the force on the particle from all
+    potentials and constraint forces, :math:`\gamma` is the drag coefficient,
+    :math:`\vec{v}` is the particle's velocity, :math:`\vec{F}_\mathrm{R}` is a
+    uniform random force, and :math:`d` is the dimensionality of the system (2
+    or 3).  The magnitude of the random force is chosen via the
+    fluctuation-dissipation theorem to be consistent with the specified drag and
+    temperature, :math:`T`.  When :math:`kT=0`, the random force
+    :math:`\vec{F}_\mathrm{R}=0`.
 
-    :py:class:`langevin` generates random numbers by hashing together the particle tag, user seed, and current
-    time step index. See `C. L. Phillips et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_ for more
+    :py:class:`langevin` generates random numbers by hashing together the
+    particle tag, user seed, and current time step index. See `C. L. Phillips
+    et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_ for more
     information.
 
     .. attention::
-        Change the seed if you reset the simulation time step to 0. If you keep the same seed, the simulation
-        will continue with the same sequence of random numbers used previously and may cause unphysical correlations.
 
-        For MPI runs: all ranks other than 0 ignore the seed input and use the value of rank 0.
+    Change the seed if you reset the simulation time step to 0.
+    If you keep the same seed, the simulation will continue with the same
+    sequence of random numbers used previously and may cause unphysical
+    correlations.
 
-    Langevin dynamics includes the acceleration term in the Langevin equation and is useful for gently thermalizing
-    systems using a small gamma. This assumption is valid when underdamped: :math:`\frac{m}{\gamma} \gg \delta t`.
+        For MPI runs: all ranks other than 0 ignore the seed input and use the
+        value of rank 0.
+
+    Langevin dynamics includes the acceleration term in the Langevin equation
+    and is useful for gently thermalizing systems using a small gamma. This
+    assumption is valid when underdamped: :math:`\frac{m}{\gamma} \gg \delta t`.
     Use :py:class:`brownian` if your system is not underdamped.
 
-    :py:class:`langevin` uses the same integrator as :py:class:`nve` with the additional force term
-    :math:`- \gamma \cdot \vec{v} + \vec{F}_\mathrm{R}`. The random force :math:`\vec{F}_\mathrm{R}` is drawn
-    from a uniform random number distribution.
+    :py:class:`langevin` uses the same integrator as :py:class:`nve` with the
+    additional force term :math:`- \gamma \cdot \vec{v} + \vec{F}_\mathrm{R}`.
+    The random force :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random
+    number distribution.
 
     You can specify :math:`\gamma` in two ways:
 
-    1. Use :py:class:`set_gamma()` to specify it directly, with independent values for each particle type in the system.
-    2. Specify :math:`\lambda` which scales the particle diameter to :math:`\gamma = \lambda d_i`. The units of
+    1. Use :py:class:`set_gamma()` to specify it directly, with independent
+    values for each particle type in the system.
+    2. Specify :math:`\lambda` which scales the particle diameter to
+    :math:`\gamma = \lambda d_i`. The units of
        :math:`\lambda` are mass / distance / time.
 
     :py:class:`langevin` must be used with :py:class:`mode_standard`.
 
-    *kT* can be a variant type, allowing for temperature ramps in simulation runs.
+    *kT* can be a variant type, allowing for temperature ramps in simulation
+    runs.
 
-    A :py:class:`hoomd.compute.thermo` is automatically created and associated with *group*.
+    A :py:class:`hoomd.compute.thermo` is automatically created and associated
+    with *group*.
 
     Warning:
-        When restarting a simulation, the energy of the reservoir will be reset to zero.
+        When restarting a simulation, the energy of the reservoir will be reset
+        to zero.
 
     Examples::
 
@@ -785,148 +841,45 @@ class langevin(_Method):
         integrator = integrate.langevin(group=typeA, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]), seed=10)
 
     """
-    def __init__(self, group, kT, seed, dscale=False, tally=False, noiseless_t=False, noiseless_r=False):
 
-        # initialize base class
-        _Method.__init__(self)
+    def __init__(self, filter, kT, seed, alpha=None,
+                 tally_reservoir_energy=False):
 
-        # setup the variant inputs
-        kT = hoomd.variant._setup_variant_input(kT)
+        # store metadata
+        self._param_dict = ParameterDict(
+            filter=ParticleFilter,
+            kT=create_variant,
+            seed=int(seed),
+            alpha=none_or(float),
+            tally_reservoir_energy=tally_reservoir_energy)
+        # set defaults
+        self._param_dict.update(dict(kT=kT, alpha=alpha, filter=filter))
 
-        # create the compute thermo
-        hoomd.compute._get_unique_thermo(group=group)
+        gamma = TypeParameter('gamma', type_kind='particle_types',
+                              param_dict=TypeParameterDict(1., len_keys=1)
+                              )
 
-        # setup suffix
-        suffix = '_' + group.name
+        gamma_r = TypeParameter('gamma_r', type_kind='particle_types',
+                                param_dict=TypeParameterDict((0., 0., 0.),
+                                                             len_keys=1)
+                                )
 
-        if dscale is False or dscale == 0:
-            use_lambda = False
-        else:
-            use_lambda = True
+        self._extend_typeparam([gamma, gamma_r])
+
+    def attach(self, simulation):
 
         # initialize the reflected c++ class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
+        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
             my_class = _md.TwoStepLangevin
         else:
             my_class = _md.TwoStepLangevinGPU
 
-        self.cpp_method = my_class(hoomd.context.current.system_definition,
-                                   group.cpp_group,
-                                   kT.cpp_variant,
-                                   seed,
-                                   use_lambda,
-                                   float(dscale),
-                                   noiseless_t,
-                                   noiseless_r,
-                                   suffix)
+        self._cpp_obj = my_class(simulation.state._cpp_sys_def,
+                                 simulation.state.add_group(self.filter),
+                                 self.kT, self.seed)
 
-        self.cpp_method.setTally(tally)
-
-        self.cpp_method.validateGroup()
-
-        # store metadata
-        self.group = group
-        self.kT = kT
-        self.seed = seed
-        self.dscale = dscale
-        self.noiseless_t = noiseless_t
-        self.noiseless_r = noiseless_r
-        self.metadata_fields = ['group', 'kT', 'seed', 'dscale','noiseless_t','noiseless_r']
-
-    def set_params(self, kT=None, tally=None):
-        R""" Change langevin integrator parameters.
-
-        Args:
-            kT (:py:mod:`hoomd.variant` or :py:obj:`float`): New temperature (if set) (in energy units).
-            tally (bool): (optional) If true, the energy exchange between the thermal reservoir and the particles is
-                                tracked. Total energy conservation can then be monitored by adding
-                                ``langevin_reservoir_energy_groupname`` to the logged quantities.
-
-        Examples::
-
-            integrator.set_params(kT=2.0)
-            integrator.set_params(tally=False)
-
-        """
-        self.check_initialization()
-
-        # change the parameters
-        if kT is not None:
-            # setup the variant inputs
-            kT = hoomd.variant._setup_variant_input(kT)
-            self.cpp_method.setT(kT.cpp_variant)
-            self.kT = kT
-
-        if tally is not None:
-            self.cpp_method.setTally(tally)
-
-    def set_gamma(self, a, gamma):
-        R""" Set gamma for a particle type.
-
-        Args:
-            a (str): Particle type name
-            gamma (float): :math:`\gamma` for particle type a (in units of force/velocity)
-
-        :py:meth:`set_gamma()` sets the coefficient :math:`\gamma` for a single particle type, identified
-        by name. The default is 1.0 if not specified for a type.
-
-        It is not an error to specify gammas for particle types that do not exist in the simulation.
-        This can be useful in defining a single simulation script for many different types of particles
-        even when some simulations only include a subset.
-
-        Examples::
-
-            bd.set_gamma('A', gamma=2.0)
-
-        """
-        self.check_initialization()
-        a = str(a)
-
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes()
-        type_list = []
-        for i in range(0,ntypes):
-            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i))
-
-        # change the parameters
-        for i in range(0,ntypes):
-            if a == type_list[i]:
-                self.cpp_method.setGamma(i,gamma)
-
-    def set_gamma_r(self, a, gamma_r):
-        R""" Set gamma_r for a particle type.
-
-        Args:
-            a (str):  Particle type name
-            gamma_r (float or tuple): :math:`\gamma_r` for particle type a (in units of force/velocity), optionally for all body frame directions
-
-        :py:meth:`set_gamma_r()` sets the coefficient :math:`\gamma_r` for a single particle type, identified
-        by name. The default is 1.0 if not specified for a type. It must be positive or zero, if set
-        zero, it will have no rotational damping or random torque, but still with updates from normal net torque.
-
-        Examples::
-
-            langevin.set_gamma_r('A', gamma_r=2.0)
-            langevin.set_gamma_r('A', gamma_r=(1.0,2.0,3.0))
-
-        """
-
-        self.check_initialization()
-
-        if not isinstance(gamma_r,tuple):
-            gamma_r = (gamma_r, gamma_r, gamma_r)
-
-        if (gamma_r[0] < 0 or gamma_r[1] < 0 or gamma_r[2] < 0):
-            raise ValueError("The gamma_r must be positive or zero (represent no rotational damping or random torque, but with updates)")
-
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes()
-        type_list = []
-        for i in range(0,ntypes):
-            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i))
-
-        # change the parameters
-        for i in range(0,ntypes):
-            if a == type_list[i]:
-                self.cpp_method.setGamma_r(i,_hoomd.make_scalar3(*gamma_r))
+        # Attach param_dict and typeparam_dict
+        super().attach(simulation)
 
 
 class brownian(_Method):
