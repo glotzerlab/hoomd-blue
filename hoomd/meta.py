@@ -72,6 +72,8 @@ class _Operation(metaclass=Loggable):
                                 '_typeparam_dict': dict,
                                 '_dependent_list': lambda: []}
 
+    _use_default_setattr = set()
+
     _skip_for_equality = set(['_cpp_obj', '_dependent_list'])
 
     def __getattr__(self, attr):
@@ -96,7 +98,8 @@ class _Operation(metaclass=Loggable):
         return self._typeparam_dict[attr]
 
     def __setattr__(self, attr, value):
-        if attr in self._reserved_attrs_with_dft.keys():
+        if attr in self._reserved_attrs_with_dft.keys() or \
+                attr in self._use_default_setattr:
             super().__setattr__(attr, value)
         elif attr in self._param_dict.keys():
             self._setattr_param(attr, value)
@@ -106,13 +109,14 @@ class _Operation(metaclass=Loggable):
             super().__setattr__(attr, value)
 
     def _setattr_param(self, attr, value):
+        self._param_dict[attr] = value
+        new_value = self._param_dict[attr]
         if self.is_attached:
             try:
-                setattr(self._cpp_obj, attr, value)
+                setattr(self._cpp_obj, attr, new_value)
             except (AttributeError):
                 raise AttributeError("{} cannot be set after cpp"
                                      " initialization".format(attr))
-        self._param_dict[attr] = value
 
     def _setattr_typeparam(self, attr, value):
         try:
@@ -306,6 +310,8 @@ def trigger_preprocessing(value):
 class _TriggeredOperation(_Operation):
     _cpp_list_name = None
 
+    _use_default_setattr = set(['trigger'])
+
     def __init__(self, trigger):
         trigger_dict = ParameterDict(trigger=trigger_preprocessing)
         trigger_dict['trigger'] = trigger
@@ -318,6 +324,7 @@ class _TriggeredOperation(_Operation):
     @trigger.setter
     def trigger(self, new_trigger):
         # Overwrite python trigger
+        old_trigger = self._param_dict['trigger']
         self._param_dict['trigger'] = new_trigger
         new_trigger = self.trigger
         if self.is_attached:
@@ -327,9 +334,8 @@ class _TriggeredOperation(_Operation):
                 op, trigger = triggered_ops[index]
                 # If tuple is the operation and trigger according to memory
                 # location (python's is), replace with new trigger
-                if op is self._cpp_obj and trigger is self._trigger:
-                    new_tuple = (self._cpp_obj, new_trigger)
-                    triggered_ops[index] = new_tuple
+                if op is self._cpp_obj and trigger is old_trigger:
+                    triggered_ops[index] = (self._cpp_obj, new_trigger)
 
     def attach(self, simulation):
         self._simulation = simulation
