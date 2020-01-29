@@ -302,6 +302,20 @@ class ParameterDict(dict):
         else:
             super().__setitem__(key, self._type_converter[key](value))
 
+    def __deepcopy__(self, memo):
+        new_dict = ParameterDict()
+        for key, value in self.items():
+            try:
+                new_dict[key] = deepcopy(value)
+            except TypeError:
+                new_dict[key] = value
+            try:
+                new_dict._type_converter[key] = deepcopy(
+                    self._type_converter[key])
+            except TypeError:
+                new_dict._type_converter[key] = self._type_converter[key]
+        return new_dict
+
     def update(self, dict_):
         if isinstance(dict_, ParameterDict):
             for key, value in dict_.items():
