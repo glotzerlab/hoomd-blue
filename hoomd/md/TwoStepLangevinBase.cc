@@ -184,10 +184,11 @@ void export_TwoStepLangevinBase(py::module& m)
                                 >())
         .def_property("kT", &TwoStepLangevinBase::getT, &TwoStepLangevinBase::setT)
         .def("setGamma", &TwoStepLangevinBase::setGamma)
-        .def("setGamma", &TwoStepLangevinBase::setGamma)
+        .def("getGamma", &TwoStepLangevinBase::getGamma)
         .def("setGammaR", &TwoStepLangevinBase::setGammaR)
-        .def("getGammaR", &TwoStepLangevinBase::setGammaR)
-        .def_property("alpha", &TwoStepLangevinBase::getLambda, &TwoStepLangevinBase::setLambda)
+        .def("getGammaR", &TwoStepLangevinBase::getGammaR)
+        .def_property("alpha", &TwoStepLangevinBase::getAlpha,
+                      &TwoStepLangevinBase::setAlpha)
         .def_property_readonly("seed", &TwoStepLangevinBase::getSeed)
         ;
     }
