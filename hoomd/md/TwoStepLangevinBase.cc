@@ -20,8 +20,8 @@ TwoStepLangevinBase::TwoStepLangevinBase(std::shared_ptr<SystemDefinition> sysde
                            std::shared_ptr<ParticleGroup> group,
                            std::shared_ptr<Variant> T,
                            unsigned int seed)
-    : IntegrationMethodTwoStep(sysdef, group), m_T(T), m_seed(seed), m_use_lambda(false),
-      m_lambda(0.0)
+    : IntegrationMethodTwoStep(sysdef, group), m_T(T), m_seed(seed), m_use_alpha(false),
+      m_alpha(0.0)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepLangevinBase" << endl;
 
@@ -147,25 +147,25 @@ pybind11::tuple TwoStepLangevinBase::getGammaR(const std::string& type_name)
     return pybind11::tuple(v);
     }
 
-void TwoStepLangevinBase::setLambda(pybind11::object lambda)
+void TwoStepLangevinBase::setAlpha(pybind11::object alpha)
     {
-    if (lambda.is_none())
+    if (alpha.is_none())
         {
-        m_use_lambda = false;
+        m_use_alpha = false;
         }
     else
         {
-        m_use_lambda = true;
-        m_lambda = pybind11::cast<Scalar>(lambda);
+        m_use_alpha = true;
+        m_alpha = pybind11::cast<Scalar>(alpha);
         }
     }
 
-pybind11::object TwoStepLangevinBase::getLambda()
+pybind11::object TwoStepLangevinBase::getAlpha()
     {
     pybind11::object result;
-    if (m_use_lambda)
+    if (m_use_alpha)
         {
-        result = pybind11::cast(m_lambda);
+        result = pybind11::cast(m_alpha);
         }
     else
         {

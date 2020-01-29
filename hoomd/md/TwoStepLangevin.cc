@@ -263,8 +263,8 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
         Scalar rz = uniform(rng);
 
         Scalar gamma;
-        if (m_use_lambda)
-            gamma = m_lambda*h_diameter.data[j];
+        if (m_use_alpha)
+            gamma = m_alpha*h_diameter.data[j];
         else
             {
             unsigned int type = __scalar_as_int(h_pos.data[j].w);

@@ -61,11 +61,11 @@ class PYBIND11_EXPORT TwoStepLangevinBase : public IntegrationMethodTwoStep
         /// Gets gamma_r for a given particle type
         pybind11::tuple getGammaR(const std::string& type_name);
 
-        /// Sets lambda
-        void setLambda(pybind11::object lambda);
+        /// Sets alpha
+        void setAlpha(pybind11::object alpha);
 
-        /// Gets lambda
-        pybind11::object getLambda();
+        /// Gets alpha
+        pybind11::object getAlpha();
 
         /// Get the seed
         unsigned int getSeed()
@@ -81,12 +81,12 @@ class PYBIND11_EXPORT TwoStepLangevinBase : public IntegrationMethodTwoStep
         unsigned int m_seed;
 
         /// flag to enable gamma to be a scaled version of the diameter
-        bool m_use_lambda;
+        bool m_use_alpha;
 
         /// Scale factor to apply to diameter to get gamma
-        Scalar m_lambda;
+        Scalar m_alpha;
 
-        /// List of per type gammas to use when m_use_lambda=false
+        /// List of per type gammas to use when m_use_alpha=false
         GlobalVector<Scalar> m_gamma;
 
         /// List of per type gamma_r (for 2D-only rotational noise) to use
