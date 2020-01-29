@@ -19,7 +19,7 @@ class VariantPy : public Variant
         // trampoline method
         Scalar operator()(uint64_t timestep) override
             {
-            PYBIND11_OVERLOAD_NAME(bool,         // Return type
+            PYBIND11_OVERLOAD_NAME(Scalar,       // Return type
                                    Variant,      // Parent class
                                    "__call__",   // name of function in python
                                    operator(),   // Name of function in C++
