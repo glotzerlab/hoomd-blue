@@ -33,25 +33,57 @@ def validate_aniso(value):
                          "anisotropic mode.")
 
 
+def set_synced_list(old_list, new_list):
+    old_list.clear()
+    old_list.extend(new_list)
+
+
 class _DynamicIntegrator(_BaseIntegrator):
-    def __init__(self, forces, constraint_forces, methods):
-        self.forces = SyncedList(lambda x: isinstance(Force),
-                                 to_synced_list=lambda x: x._cpp_obj,
-                                 iterable=forces)
-
-        self.constraints = SyncedList(lambda x: isinstance(ConstraintForce),
-                                      to_synced_list=lambda x: x._cpp_obj,
-                                      iterable=forces)
-
-        self.methods = SyncedList(lambda x: isinstance(_Method),
+    def __init__(self, forces, constraints, methods):
+        forces = [] if forces is None else forces
+        constraints = [] if constraints is None else constraints
+        methods = [] if methods is None else methods
+        self._forces = SyncedList(lambda x: isinstance(x, Force),
                                   to_synced_list=lambda x: x._cpp_obj,
-                                  iterable=methods)
+                                  iterable=forces)
+
+        self._constraints = SyncedList(lambda x: isinstance(x, ConstraintForce),
+                                       to_synced_list=lambda x: x._cpp_obj,
+                                       iterable=constraints)
+
+        self._methods = SyncedList(lambda x: isinstance(x, _Method),
+                                   to_synced_list=lambda x: x._cpp_obj,
+                                   iterable=methods)
 
     def attach(self, simulation):
         self.forces.attach(simulation, self._cpp_obj.forces)
         self.constraints.attach(simulation, self._cpp_obj.constraints)
         self.methods.attach(simulation, self._cpp_obj.methods)
         super().attach(simulation)
+
+    @property
+    def forces(self):
+        return self._forces
+
+    @forces.setter
+    def forces(self, value):
+        set_synced_list(self._forces, value)
+
+    @property
+    def constraints(self):
+        return self._constraints
+
+    @constraints.setter
+    def constraints(self, value):
+        set_synced_list(self._constraints, value)
+
+    @property
+    def methods(self):
+        return self._methods
+
+    @methods.setter
+    def methods(self, value):
+        set_synced_list(self._methods, value)
 
 
 class Integrator(_DynamicIntegrator):
@@ -101,14 +133,14 @@ class Integrator(_DynamicIntegrator):
     use to re-initialize the variables.
     """
 
-    def __init__(self, dt, aniso=None, forces=None, constraint_forces=None,
+    def __init__(self, dt, aniso=None, forces=None, constraints=None,
                  methods=None):
 
-        super().__init__(forces, constraint_forces, methods)
+        super().__init__(forces, constraints, methods)
 
         self._param_dict = ParameterDict(dt=float(dt), aniso=validate_aniso,
-                                        explicit_defaults=dict(aniso="auto")
-                                        )
+                                         explicit_defaults=dict(aniso="auto")
+                                         )
         if aniso is not None:
             self.aniso = aniso
 
