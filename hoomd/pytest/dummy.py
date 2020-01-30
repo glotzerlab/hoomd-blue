@@ -66,6 +66,10 @@ class DummyOperation(_Operation):
 class DummyTriggeredOp(_TriggeredOperation):
     _cpp_list_name = 'dummy_list'
 
+    def attach(self, simulation):
+        self._cpp_obj = DummyCppObj()
+        super().attach(simulation)
+
 
 class DummyTrigger(Trigger):
     def __call__(self, ts):
