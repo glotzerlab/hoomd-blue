@@ -305,6 +305,8 @@ def trigger_preprocessing(value):
         return PeriodicTrigger(period=value, phase=0)
     elif hasattr(value, '__len__') and len(value) == 2:
         return PeriodicTrigger(period=value[0], phase=value[1])
+    else:
+        raise ValueError("Value {} could not be converted to a Trigger.")
 
 
 class _TriggeredOperation(_Operation):
@@ -324,7 +326,7 @@ class _TriggeredOperation(_Operation):
     @trigger.setter
     def trigger(self, new_trigger):
         # Overwrite python trigger
-        old_trigger = self._param_dict['trigger']
+        old_trigger = self.trigger
         self._param_dict['trigger'] = new_trigger
         new_trigger = self.trigger
         if self.is_attached:
@@ -335,7 +337,7 @@ class _TriggeredOperation(_Operation):
                 # If tuple is the operation and trigger according to memory
                 # location (python's is), replace with new trigger
                 if op is self._cpp_obj and trigger is old_trigger:
-                    triggered_ops[index] = (self._cpp_obj, new_trigger)
+                    triggered_ops[index] = (op, new_trigger)
 
     def attach(self, simulation):
         self._simulation = simulation
