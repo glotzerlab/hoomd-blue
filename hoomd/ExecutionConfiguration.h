@@ -21,8 +21,12 @@
 
 #ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
+
+#ifdef __HIP_PLATFORM_HCC__
+#include <roctracer/roctracer_ext.h>
 #endif
 
+#endif
 #ifdef ENABLE_TBB
 #include <tbb/tbb.h>
 #endif
@@ -161,7 +165,12 @@ struct PYBIND11_EXPORT ExecutionConfiguration
             {
             hipSetDevice(m_gpu_id[idev]);
             hipDeviceSynchronize();
+
+            #ifdef __HIP_PLATFORM_NVCC__
             hipProfilerStart();
+            #elif defined(__HIP_PLATFORM_HCC__)
+            roctracer_start();
+            #endif
             }
         }
 
@@ -171,7 +180,11 @@ struct PYBIND11_EXPORT ExecutionConfiguration
             {
             hipSetDevice(m_gpu_id[idev]);
             hipDeviceSynchronize();
+            #ifdef __HIP_PLATFORM_NVCC__
             hipProfilerStop();
+            #elif defined(__HIP_PLATFORM_HCC__)
+            roctracer_stop();
+            #endif
             }
         }
     #endif

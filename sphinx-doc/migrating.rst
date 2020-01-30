@@ -14,7 +14,7 @@ Compiling
 ---------
 
 * CMake 3.8 or newer is required to build HOOMD.
-* To compile with GPU support, use the option ``ENABLE_HIP=ON``.
+* To compile with GPU support, use the option ``ENABLE_GPU=ON``.
 * ``UPDATE_SUBMODULES`` no longer exists. Users and developers should use ``git clone --recursive``,
   ``git submodule update`` and ``git submodule sync`` as appropriate.
 * ``COPY_HEADERS`` no longer exists. Users must ``make install`` HOOMD for use with external components.

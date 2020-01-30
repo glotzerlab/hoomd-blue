@@ -1211,8 +1211,13 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
     offsets[12] = offsetof(pdata_element, net_torque);
     offsets[13] = offsetof(pdata_element, net_virial);
 
-    MPI_Type_create_struct(nitems, blocklengths, offsets, types, &m_mpi_pdata_element);
+    MPI_Datatype tmp;
+    MPI_Type_create_struct(nitems, blocklengths, offsets, types, &tmp);
+    MPI_Type_commit(&tmp);
+
+    MPI_Type_create_resized(tmp, 0, sizeof(pdata_element), &m_mpi_pdata_element);
     MPI_Type_commit(&m_mpi_pdata_element);
+    MPI_Type_free(&tmp);
     }
 
 //! Destructor

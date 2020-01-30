@@ -41,7 +41,7 @@ https://glotzerlab.engin.umich.edu/Downloads/hoomd
 
 .. code-block:: bash
 
-   ▶ curl -O https://glotzerlab.engin.umich.edu/Downloads/hoomd/hoomd-v2.8.1.tar.gz
+   ▶ curl -O https://glotzerlab.engin.umich.edu/Downloads/hoomd/hoomd-v2.8.2.tar.gz
 
 Or clone using Git:
 
@@ -93,19 +93,34 @@ Install prerequisites
     - MPI (tested with OpenMPI, MVAPICH)
     - cereal >= 1.1 (required when ``ENABLE_MPI=on``)
 
-  - For GPU execution (required when ``ENABLE_HIP=on``):
+  - For GPU execution (required when ``ENABLE_GPU=on``):
 
     - NVIDIA CUDA Toolkit >= 9.0
 
     **OR**
 
-    - AMD ROCm >= 2.9
+    - `AMD ROCm >= 2.9 <https://rocm.github.io/ROCmInstall.html>`_
 
-      Required components:
-        - rocfft
-        - rocprim
-        - rocthrust
-        - hipCUB
+      Additional dependencies:
+        - HIP [with `hipcc` and `hcc` as backend]
+        - rocFFT
+        - rocPRIM
+        - rocThrust
+        - hipCUB, included for NVIDIA GPU targets, but required as an
+          external dependency when building for AMD GPUs
+        - roctracer-dev
+        - Linux kernel >= 3.5.0
+
+      For HOOMD-blue on AMD GPUs, the following limitations currently apply.
+
+      1. Certain HOOMD-blue kernels trigger a `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
+         A `temporary bugfix branch of HIP <https://github.com/glotzerlab/HIP/tree/hipfuncgetattributes_revertvectortypes>`_
+         addresses these problems. When using a custom HIP version, other libraries used by HOOMD-blue (`rocfft`) need
+         to be compiled against that same HIP version.
+
+      2. The `mpcd` component is disabled on AMD GPUs.
+
+      3. Multi-GPU execution via unified memory is not available.
 
   - For threaded parallelism on the CPU (required when ``ENABLE_TBB=on``):
 
@@ -170,7 +185,7 @@ to enable optimizations specific to your CPU::
 
     -DCMAKE_CXX_FLAGS=-march=native -DCMAKE_C_FLAGS=-march=native
 
-Set ``-DENABLE_HIP=ON`` to compile for the GPU and ``-DENABLE_MPI=ON`` to enable parallel simulations with MPI.
+Set ``-DENABLE_GPU=ON`` to compile for the GPU and ``-DENABLE_MPI=ON`` to enable parallel simulations with MPI.
 See the build options section below for a full list of options.
 
 Compile::
@@ -201,7 +216,7 @@ generate. The ``Makefile`` is now updated with the newly selected
 options. You can also set these parameters on the command line with
 ``cmake``::
 
-    ▶ cmake . -DENABLE_HIP=ON
+    ▶ cmake . -DENABLE_GPU=ON
 
 Options that specify library versions only take effect on a clean invocation of
 CMake. To set these options, first remove ``CMakeCache.txt`` and then run ``cmake``
@@ -237,7 +252,7 @@ Other option changes take effect at any time. These can be set from within
     asserts are removed. Recommended for production builds: required for any
     benchmarking.
 
-- ``ENABLE_HIP`` - Enable compiling of the GPU accelerated computations. Default: ``OFF``.
+- ``ENABLE_GPU`` - Enable compiling of the GPU accelerated computations. Default: ``OFF``.
 - ``ENABLE_DOXYGEN`` - Enables the generation of developer documentation
   Default: ``OFF``.
 - ``SINGLE_PRECISION`` - Controls precision. Default: ``OFF``.

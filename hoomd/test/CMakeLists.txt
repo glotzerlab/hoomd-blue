@@ -59,9 +59,6 @@ foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
     add_dependencies(test_all ${CUR_TEST})
     target_link_libraries(${CUR_TEST} _hoomd ${PYTHON_LIBRARIES})
 
-    # no device linking
-    set_property(TARGET ${CUR_TEST}  PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS OFF)
-
     fix_cudart_rpath(${CUR_TEST})
 
 endforeach (CUR_TEST)
@@ -89,7 +86,7 @@ foreach (CUR_TEST ${MPI_TEST_LIST})
 endforeach(CUR_TEST)
 
 # run tests under cuda-memcheck --tool synccheck
-if(ENABLE_HIP)
+if(ENABLE_HIP AND HIP_PLATFORM STREQUAL "nvcc")
 
 foreach (CUR_TEST ${SYNC_TEST_LIST})
     if (ENABLE_MPI)
@@ -100,4 +97,4 @@ foreach (CUR_TEST ${SYNC_TEST_LIST})
         add_test(NAME ${CUR_TEST}-synccheck COMMAND ${CUDA_MEMCHECK_EXECUTABLE} --error-exitcode 123 --tool synccheck $<TARGET_FILE:${CUR_TEST}>)
     endif()
 endforeach (CUR_TEST)
-endif(ENABLE_HIP)
+endif()

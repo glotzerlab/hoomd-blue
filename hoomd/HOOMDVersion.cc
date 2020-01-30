@@ -29,7 +29,7 @@ std::string hoomd_compile_flags()
     int hip_major = HIP_VERSION_MAJOR;
     int hip_minor = HIP_VERSION_MINOR;
 
-    o << "HIP [";
+    o << "GPU [";
     #if defined(__HIP_PLATFORM_NVCC__)
     o << "CUDA";
     #elif defined(__HIP_PLATFORM_HCC__)

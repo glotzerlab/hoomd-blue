@@ -385,8 +385,13 @@ class PYBIND11_EXPORT NeighborList : public Compute
             }
 
         //! Return the requested ghost layer width
-        virtual Scalar getGhostLayerWidth(unsigned int type) const
+        virtual Scalar getGhostLayerWidth(unsigned int type)
             {
+            if (m_rcut_changed)
+                {
+                updateRList();
+                }
+
             ArrayHandle<Scalar> h_rcut_max(m_rcut_max, access_location::host, access_mode::read);
             const Scalar rcut_max_i = h_rcut_max.data[type];
 

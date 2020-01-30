@@ -26,11 +26,14 @@ PPPMForceComputeGPU::PPPMForceComputeGPU(std::shared_ptr<SystemDefinition> sysde
     m_tuner_update.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "pppm_update_mesh", this->m_exec_conf));
     m_tuner_force.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "pppm_force", this->m_exec_conf));
     m_tuner_influence.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "pppm_influence", this->m_exec_conf));
+
+    m_cufft_initialized = false;
+    m_cuda_dfft_initialized = false;
     }
 
 PPPMForceComputeGPU::~PPPMForceComputeGPU()
     {
-    if (m_local_fft)
+    if (m_local_fft && m_cufft_initialized)
         {
         #ifdef __HIP_PLATFORM_HCC__
         CHECK_HIPFFT_ERROR(hipfftDestroy(m_hipfft_plan));
@@ -39,7 +42,7 @@ PPPMForceComputeGPU::~PPPMForceComputeGPU()
         #endif
         }
     #ifdef ENABLE_MPI
-    else
+    else if (m_cuda_dfft_initialized)
         {
         dfft_destroy_plan(m_dfft_plan_forward);
         dfft_destroy_plan(m_dfft_plan_inverse);
@@ -103,6 +106,8 @@ void PPPMForceComputeGPU::initializeFFT()
         dfft_create_plan(&m_dfft_plan_inverse, 3, gdim, NULL, embed, pdim, pidx,
             row_m, 0, 1, m_exec_conf->getMPICommunicator(), (int *) h_cart_ranks.data);
         #endif
+
+        m_cuda_dfft_initialized = true;
         }
     #endif // ENABLE_MPI
 
@@ -114,6 +119,7 @@ void PPPMForceComputeGPU::initializeFFT()
         #else
         CHECK_HIPFFT_ERROR(cufftPlan3d(&m_hipfft_plan, m_mesh_points.z, m_mesh_points.y, m_mesh_points.x, CUFFT_C2C));
         #endif
+        m_cufft_initialized = true;
         }
 
     // allocate mesh and transformed mesh

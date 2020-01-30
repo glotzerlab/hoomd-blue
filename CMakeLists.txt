@@ -11,7 +11,7 @@ add_subdirectory (CMake)
 
 ################################
 ## Version information
-set(HOOMD_VERSION_RAW "3.0.0")
+set(HOOMD_VERSION_RAW "2.8.1")
 string(REGEX MATCH "(.*)\\.(.*)\\.(.*)$" _hoomd_version_match ${HOOMD_VERSION_RAW})
 set(HOOMD_VERSION_MAJOR ${CMAKE_MATCH_1})
 set(HOOMD_VERSION_MINOR ${CMAKE_MATCH_2})
@@ -78,7 +78,8 @@ endif()
 #################################
 ## Build options
 option(SINGLE_PRECISION "Use single precision math" OFF)
-OPTION(ENABLE_HIP "True if we are compiling with HIP as a target" FALSE)
+OPTION(ENABLE_GPU "True if we are compiling for a GPU target" FALSE)
+SET(ENABLE_HIP ${ENABLE_GPU})
 
 option(ENABLE_HPMC_MIXED_PRECISION "Enable mixed precision computations in HPMC" ON)
 

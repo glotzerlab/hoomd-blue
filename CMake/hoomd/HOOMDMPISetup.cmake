@@ -63,16 +63,13 @@ if (ENABLE_MPI)
         endif(MPI_CUDA)
     endif (ENABLE_HIP AND NOT DEFINED ENABLE_MPI_CUDA)
 
-# backport CMake FindMPI fix
-# https://gitlab.kitware.com/cmake/cmake/merge_requests/2529/diffs
-# additionally, since nvcc doesn't require -pthread (and hipcc doesn't like -Xcompiler), eliminate argument
 if (ENABLE_HIP)
-    string(REPLACE "-pthread" "$<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:-pthread>"
+    string(REPLACE "-pthread" "$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<STREQUAL:${HIP_PLATFORM},nvcc>>:-Xcompiler>;-pthread"
       _MPI_C_COMPILE_OPTIONS "${MPI_C_COMPILE_OPTIONS}")
     set_property(TARGET MPI::MPI_C PROPERTY INTERFACE_COMPILE_OPTIONS "${_MPI_C_COMPILE_OPTIONS}")
     unset(_MPI_C_COMPILE_OPTIONS)
 
-    string(REPLACE "-pthread" "$<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:-pthread>"
+    string(REPLACE "-pthread" "$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<STREQUAL:${HIP_PLATFORM},nvcc>>:-Xcompiler>;-pthread"
       _MPI_CXX_COMPILE_OPTIONS "${MPI_CXX_COMPILE_OPTIONS}")
     set_property(TARGET MPI::MPI_CXX PROPERTY INTERFACE_COMPILE_OPTIONS "${_MPI_CXX_COMPILE_OPTIONS}")
     unset(_MPI_CXX_COMPILE_OPTIONS)

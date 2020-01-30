@@ -1,8 +1,8 @@
 variables:
-  image_root: glotzerlab/ci:2019.11
+  image_root: glotzerlab/ci:2019.12
 
   # default build parameters, will override as needed with job matrix values
-  enable_hip: off
+  enable_gpu: off
   enable_mpi: off
   enable_tbb: off
   build_validation: off
@@ -134,11 +134,11 @@ stages:
 
     - template: templates/build_test.yml
 
-- stage: build_test_gpu
-  displayName: Unit test (GPU)
+- stage: build_test_nvidia
+  displayName: Unit test (NVIDIA GPU)
   dependsOn: []
   variables:
-    enable_hip: on
+    enable_gpu: on
 
   jobs:
   - job: linux_gpu
@@ -148,16 +148,16 @@ stages:
     strategy:
       matrix:
         cuda10_py37_mng_mpi:
-          container_image: cuda10_py37
+          container_image: cuda10_gcc7_py37
           always_use_managed_memory: on
           enable_mpi: on
 
         cuda9_py37_mpi:
-          container_image: cuda9_py37
+          container_image: cuda9_gcc7_py37
           enable_mpi: on
 
         cuda9_py37:
-          container_image: cuda9_py37
+          container_image: cuda9_gcc7_py37
 
     pool:
       name: 'GPU'
@@ -165,12 +165,53 @@ stages:
 
     container:
        image: $(image_root)-$(container_image)
-       options: -u 0 --gpus=all --cpus=4 --memory=8g -e CUDA_VISIBLE_DEVICES
+       options: -u 0 --gpus=all --cpus=4 --memory=16g -e CUDA_VISIBLE_DEVICES
 
     workspace:
       clean: all
 
     steps:
+    - template: templates/build_test.yml
+
+- stage: build_test_amd
+  displayName: Unit test (AMD GPU)
+  dependsOn: []
+  variables:
+    enable_gpu: on
+
+  jobs:
+  - job: linux_gpu
+    displayName: Linux
+    timeoutInMinutes: 150
+
+    strategy:
+      matrix:
+        rocm210_custom_gcc9_py38_mpi:
+          container_image: rocm2.10_custom_gcc9_py38
+          enable_mpi: on
+
+        rocm210_custom_gcc9_py38:
+          container_image: rocm2.10_custom_gcc9_py38
+
+        rocm210_custom_clang9_py38:
+          container_image: rocm2.10_custom_clang9_py38
+
+    pool:
+      name: 'AMDGPU'
+      demands: short_jobs
+
+    container:
+       image: $(image_root)-$(container_image)
+       options: -u 0 --cpus=4 --device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined --group-add video --mount type=bind,source=/etc/group,target=/etc/group_host --memory=16g
+
+    workspace:
+      clean: all
+
+    steps:
+    - script: "sudo addgroup render --gid `grep render /etc/group_host | awk -F: '{printf $3}'`"
+      displayName: Add render group
+    - script: sudo usermod -G render `whoami`
+      displayName: Add user to render group
     - template: templates/build_test.yml
 
 - stage: doc
