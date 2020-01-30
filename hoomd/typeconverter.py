@@ -51,6 +51,14 @@ class TypeConverter:
     def __init__(self, converter):
         self.converter = converter
 
+    def keys(self):
+        if isinstance(self.converter, dict):
+            yield from self.converter.keys()
+        else:
+            raise RuntimeError("TypeConverter {} does not have keys. "
+                               "TypeConverter.keys() only works for objects "
+                               "that convert dictionaries.")
+
     def _raise_error(self, value, expected_type):
         err = "Value {} of type {} cannot be converted using {}."
         err = err.format(value, type(value), expected_type)

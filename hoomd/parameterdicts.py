@@ -296,7 +296,7 @@ class ParameterDict(dict):
             )
 
     def __setitem__(self, key, value):
-        if key not in self.keys():
+        if key not in self._type_converter.keys():
             super().__setitem__(key, value)
             self._type_converter[key] = TypeConverter.from_default(value)
         else:
