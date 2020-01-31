@@ -478,6 +478,8 @@ int gsd_end_frame(struct gsd_handle* handle);
     @note If the GSD file is version 1.0, the chunk name is truncated to 63 bytes. GSD version
     2.0 files support arbitrarily long names.
 
+    @note *N* == 0 is allowed. When *N* is 0, *data* may be NULL.
+
     @return
       - GSD_SUCCESS (0) on success. Negative value on failure:
       - GSD_ERROR_IO: IO error (check errno).

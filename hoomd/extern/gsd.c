@@ -1085,13 +1085,13 @@ inline static int gsd_flush_write_buffer(struct gsd_handle* handle)
         return GSD_ERROR_INVALID_ARGUMENT;
     }
 
-    if (handle->write_buffer.size == 0)
+    if (handle->write_buffer.size == 0 && handle->buffer_index.size == 0)
     {
         // nothing to do
         return GSD_SUCCESS;
     }
 
-    if (handle->buffer_index.size == 0)
+    if (handle->write_buffer.size > 0 && handle->buffer_index.size == 0)
     {
         // error: bytes in buffer, but no index for them
         return GSD_ERROR_INVALID_ARGUMENT;
@@ -1922,11 +1922,11 @@ int gsd_write_chunk(struct gsd_handle* handle,
                     const void* data)
 {
     // validate input
-    if (data == NULL)
+    if (N > 0 && data == NULL)
     {
         return GSD_ERROR_INVALID_ARGUMENT;
     }
-    if (N == 0 || M == 0 || gsd_sizeof_type(type) == 0)
+    if (M == 0)
     {
         return GSD_ERROR_INVALID_ARGUMENT;
     }
@@ -1988,7 +1988,14 @@ int gsd_write_chunk(struct gsd_handle* handle,
         *index_entry = entry;
 
         // add the data to the write buffer
-        gsd_byte_buffer_append(&handle->write_buffer, data, size);
+        if (size > 0)
+        {
+            retval = gsd_byte_buffer_append(&handle->write_buffer, data, size);
+            if (retval != GSD_SUCCESS)
+            {
+                return retval;
+           }
+        }
     }
     else
     {
