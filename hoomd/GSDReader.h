@@ -102,6 +102,9 @@ class PYBIND11_EXPORT GSDReader
         void readHeader();
         void readParticles();
         void readTopology();
+
+        /// Check and raise an exception if an error occurs
+        void checkError(int retval);
     };
 
 //! Exports GSDReader to python
