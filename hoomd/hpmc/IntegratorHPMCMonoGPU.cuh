@@ -1531,7 +1531,7 @@ void hpmc_narrow_phase(const hpmc_args_t& args, const typename Shape::param_type
         auto range = args.gpu_partition.getRangeAndSetGPU(idev);
 
         unsigned int nwork = range.second - range.first;
-        const unsigned int num_blocks = (nwork + n_groups - 1)/n_groups;
+        const unsigned int num_blocks = nwork/n_groups + 1;
 
         dim3 grid(num_blocks, 1, 1);
 
@@ -1826,7 +1826,7 @@ void hpmc_update_pdata(const hpmc_update_args_t& args, const typename Shape::par
         }
 
     unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);
-    unsigned int num_blocks = (args.N + block_size - 1)/block_size;
+    unsigned int num_blocks = args.N/block_size + 1;
     hipLaunchKernelGGL((kernel::hpmc_update_pdata<Shape>), dim3(num_blocks), dim3(block_size), 0, 0, 
         args.d_postype,
         args.d_orientation,
