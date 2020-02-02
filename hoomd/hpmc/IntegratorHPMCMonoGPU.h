@@ -164,6 +164,9 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
 
             m_tuner_accept->setPeriod(period);
             m_tuner_accept->setEnabled(enable);
+
+            m_tuner_num_depletants->setPeriod(period*this->m_nselect);
+            m_tuner_num_depletants->setEnabled(enable);
             }
 
         //! Enable deterministic simulations
@@ -194,6 +197,7 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
         std::unique_ptr<Autotuner> m_tuner_excell_block_size;  //!< Autotuner for excell block_size
         std::unique_ptr<Autotuner> m_tuner_accept;           //!< Autotuner for acceptance kernel
         std::unique_ptr<Autotuner> m_tuner_depletants;       //!< Autotuner for inserting depletants
+        std::unique_ptr<Autotuner> m_tuner_num_depletants;   //!< Autotuner for calculating number of depletants
 
         GlobalArray<Scalar4> m_trial_postype;                 //!< New positions (and type) of particles
         GlobalArray<Scalar4> m_trial_orientation;             //!< New orientations
@@ -201,6 +205,8 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
         GlobalArray<unsigned int> m_reject_out_of_cell;       //!< Flags to reject particle moves if they are out of the cell, per particle
         GlobalArray<unsigned int> m_reject;                   //!< Flags to reject particle moves, per particle
         GlobalArray<unsigned int> m_reject_out;               //!< Flags to reject particle moves, per particle (temporary)
+
+        GlobalArray<unsigned int> m_n_depletants;             //!< List of number of depletants, per particle
 
         GlobalArray<unsigned int> m_nlist;                       //!< List of overlapping particles
         GlobalArray<unsigned int> m_nneigh;                     //!< Number of neighbors
@@ -258,6 +264,7 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
     m_tuner_update_pdata.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "hpmc_update_pdata", this->m_exec_conf));
     m_tuner_excell_block_size.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "hpmc_excell_block_size", this->m_exec_conf));
     m_tuner_accept.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "hpmc_accept", this->m_exec_conf));
+    m_tuner_num_depletants.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "hpmc_num_depletants", this->m_exec_conf));
 
     // tuning parameters for narrow phase
     std::vector<unsigned int> valid_params;
@@ -311,6 +318,9 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
     GlobalArray<unsigned int> excell_idx(0, this->m_exec_conf);
     m_excell_idx.swap(excell_idx);
     TAG_ALLOCATION(m_excell_idx);
+
+    GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_n_depletants);
+    TAG_ALLOCATION(m_n_depletants);
 
     //! One counter per GPU, separated by an entire memory page
     unsigned int pitch = (getpagesize() + sizeof(hpmc_counters_t)-1)/sizeof(hpmc_counters_t);
@@ -426,6 +436,9 @@ void IntegratorHPMCMonoGPU< Shape >::updateGPUAdvice()
             cudaMemAdvise(m_reject.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             cudaMemPrefetchAsync(m_reject.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
 
+            cudaMemAdvise(m_n_depletants.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemPrefetchAsync(m_n_depletants.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
+
             cudaMemAdvise(m_trial_orientation.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             cudaMemPrefetchAsync(m_trial_orientation.get()+range.first, sizeof(Scalar4)*nelem, gpu_map[idev]);
 
@@ -507,6 +520,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
             m_trial_postype.resize(this->m_pdata->getMaxN());
             m_trial_orientation.resize(this->m_pdata->getMaxN());
             m_trial_move_type.resize(this->m_pdata->getMaxN());
+            m_n_depletants.resize(this->m_pdata->getMaxN());
 
             updateGPUAdvice();
             }
@@ -817,6 +831,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     /*
                      * Insert depletants
                      */
+                    ArrayHandle<unsigned int> d_n_depletants(m_n_depletants, access_location::device, access_mode::overwrite);
 
                     // allow concurrency between depletant types in multi GPU block
                     this->m_exec_conf->beginMultiGPU();
@@ -826,6 +841,40 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                             {
                             if (this->m_fugacity[this->m_depletant_idx(itype,jtype)] == 0)
                                 continue;
+
+                            // draw random number of depletant insertions per particle from Poisson distribution
+                            this->m_exec_conf->beginMultiGPU();
+                            m_tuner_num_depletants->begin();
+                            gpu::generate_num_depletants(
+                                this->m_seed,
+                                timestep,
+                                this->m_exec_conf->getRank()*this->m_nselect + i,
+                                this->m_pdata->getNTypes(),
+                                itype,
+                                jtype,
+                                this->m_depletant_idx,
+                                d_lambda.data,
+                                d_postype.data,
+                                d_n_depletants.data,
+                                m_tuner_num_depletants->getParam(),
+                                &m_depletant_streams[this->m_depletant_idx(itype,jtype)].front(),
+                                this->m_pdata->getGPUPartition());
+                            if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                                CHECK_CUDA_ERROR();
+                            m_tuner_num_depletants->end();
+                            this->m_exec_conf->endMultiGPU();
+
+                            // max reduce over result
+                            unsigned int max_n_depletants[this->m_exec_conf->getNumActiveGPUs()];
+                            gpu::get_max_num_depletants(
+                                this->m_pdata->getN(),
+                                d_n_depletants.data,
+                                &max_n_depletants[0],
+                                &m_depletant_streams[this->m_depletant_idx(itype,jtype)].front(),
+                                this->m_pdata->getGPUPartition(),
+                                this->m_exec_conf->getCachedAllocatorManaged());
+                            if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                                CHECK_CUDA_ERROR();
 
                             // insert depletants on-the-fly
                             m_tuner_depletants->begin();
@@ -841,6 +890,8 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                                 m_implicit_counters.getPitch(),
                                 d_lambda.data,
                                 this->m_fugacity[this->m_depletant_idx(itype,jtype)] < 0,
+                                d_n_depletants.data,
+                                &max_n_depletants[0],
                                 &m_depletant_streams[this->m_depletant_idx(itype,jtype)].front()
                                 );
                             gpu::hpmc_insert_depletants<Shape>(args, implicit_args, params.data());

@@ -158,6 +158,8 @@ struct hpmc_implicit_args_t
                          const unsigned int _implicit_counters_pitch,
                          const Scalar *_d_lambda,
                          const bool _repulsive,
+                         const unsigned int *_d_n_depletants,
+                         const unsigned int *_max_n_depletants,
                          const hipStream_t *_streams)
                 : depletant_type_a(_depletant_type_a),
                   depletant_type_b(_depletant_type_b),
@@ -166,6 +168,8 @@ struct hpmc_implicit_args_t
                   implicit_counters_pitch(_implicit_counters_pitch),
                   d_lambda(_d_lambda),
                   repulsive(_repulsive),
+                  d_n_depletants(_d_n_depletants),
+                  max_n_depletants(_max_n_depletants),
                   streams(_streams)
         { };
 
@@ -176,6 +180,8 @@ struct hpmc_implicit_args_t
     const unsigned int implicit_counters_pitch;    //!< Pitch of 2D array counters per device
     const Scalar *d_lambda;                        //!< Mean number of depletants to insert in excluded volume
     const bool repulsive;                          //!< True if the fugacity is negative
+    const unsigned int *d_n_depletants;            //!< Number of depletants per particle
+    const unsigned int *max_n_depletants;          //!< Maximum number of depletants inserted per particle, per device
     const hipStream_t *streams;                    //!< Stream for this depletant type
     };
 
@@ -268,6 +274,27 @@ void hpmc_accept(const unsigned int *d_ptl_by_update_order,
                  const unsigned int maxn,
                  unsigned int *d_condition,
                  const unsigned int block_size);
+
+void generate_num_depletants(const unsigned int seed,
+                             const unsigned int timestep,
+                             const unsigned int select,
+                             const unsigned int num_types,
+                             const unsigned int depletant_type_a,
+                             const unsigned int depletant_type_b,
+                             const Index2D depletant_idx,
+                             const Scalar *d_lambda,
+                             const Scalar4 *d_postype,
+                             unsigned int *d_n_depletants,
+                             const unsigned int block_size,
+                             const hipStream_t *streams,
+                             const GPUPartition& gpu_partition);
+
+void get_max_num_depletants(const unsigned int N,
+                            unsigned int *d_n_depletants,
+                            unsigned int *max_n_depletants,
+                            const hipStream_t *streams,
+                            const GPUPartition& gpu_partition,
+                            CachedAllocator& alloc);
 
 #ifdef __HIPCC__
 namespace kernel
@@ -794,7 +821,8 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                                      unsigned int *d_overflow,
                                      bool repulsive,
                                      unsigned int work_offset,
-                                     unsigned int max_depletant_queue_size)
+                                     unsigned int max_depletant_queue_size,
+                                     const unsigned int *d_n_depletants)
     {
     // variables to tell what type of thread we are
     unsigned int group = threadIdx.y;
@@ -891,14 +919,11 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
         s_orientation_i_old = d_orientation[i];
         }
 
+    // sync so that s_pos_i_old etc. are available
     __syncthreads();
 
     // generate random number of depletants from Poisson distribution
-    hoomd::RandomGenerator rng_poisson(hoomd::RNGIdentifier::HPMCDepletantNum, i, seed, timestep,
-        select*depletant_idx.getNumElements() + depletant_idx(depletant_type_a,depletant_type_b));
-    Index2D typpair_idx(num_types);
-    unsigned int n_depletants = hoomd::PoissonDistribution<Scalar>(d_lambda[s_type_i*depletant_idx.getNumElements()+
-        depletant_idx(depletant_type_a,depletant_type_b)])(rng_poisson);
+    unsigned int n_depletants = d_n_depletants[i];
 
     unsigned int overlap_checks = 0;
     unsigned int n_inserted = 0;
@@ -927,12 +952,17 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
             obb_i.lengths.z = OverlapReal(0.5);
         }
 
-    s_depletant_queue_size = 0;
-    s_adding_depletants = 1;
+    if (master && group == 0)
+        {
+        s_depletant_queue_size = 0;
+        s_adding_depletants = 1;
+        }
 
     __syncthreads();
 
-    unsigned int i_dep = group_size*group+offset;
+    unsigned int gidx = gridDim.y*blockIdx.z+blockIdx.y;
+    unsigned int blocks_per_particle = gridDim.y*gridDim.z;
+    unsigned int i_dep = group_size*group+offset + gidx*group_size*n_groups;
 
     while (s_adding_depletants)
         {
@@ -1015,7 +1045,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                 } // end if add_to_queue
 
             // advance depletant idx
-            i_dep += group_size*n_groups;
+            i_dep += group_size*n_groups*blocks_per_particle;
             } // end while (s_depletant_queue_size < max_depletant_queue_size && i_dep < n_depletants)
 
         __syncthreads();
@@ -1314,14 +1344,17 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
         atomicAdd(&d_counters->overlap_checks, s_overlap_checks);
         #endif
 
-        // increment number of inserted depletants
-        #if (__CUDA_ARCH__ >= 600)
-        atomicAdd_system(&d_implicit_counters[depletant_idx(depletant_type_a,
-            depletant_type_b)].insert_count, n_depletants);
-        #else
-        atomicAdd(&d_implicit_counters[depletant_idx(depletant_type_a,
-            depletant_type_b)].insert_count, n_depletants);
-        #endif
+        if (blockIdx.y == 0 && blockIdx.z == 0)
+            {
+            // increment number of inserted depletants
+            #if (__CUDA_ARCH__ >= 600)
+            atomicAdd_system(&d_implicit_counters[depletant_idx(depletant_type_a,
+                depletant_type_b)].insert_count, n_depletants);
+            #else
+            atomicAdd(&d_implicit_counters[depletant_idx(depletant_type_a,
+                depletant_type_b)].insert_count, n_depletants);
+            #endif
+            }
         }
     }
 
@@ -1710,8 +1743,14 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
         if (range.first == range.second)
             continue;
 
-        // 1 block per particle
-        dim3 grid( range.second-range.first, 1, 1);
+        unsigned int blocks_per_particle = implicit_args.max_n_depletants[idev]/n_groups + 1;
+        dim3 grid( range.second-range.first, blocks_per_particle, 1);
+
+        if (blocks_per_particle > args.devprop.maxGridSize[1])
+            {
+            grid.y = args.devprop.maxGridSize[1];
+            grid.z = blocks_per_particle/args.devprop.maxGridSize[1]+1;
+            }
 
         hipLaunchKernelGGL((kernel::hpmc_insert_depletants<Shape>), dim3(grid), dim3(threads), shared_bytes, implicit_args.streams[idev],
                                                                      args.d_trial_postype,
@@ -1751,7 +1790,8 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
                                                                      args.d_overflow,
                                                                      implicit_args.repulsive,
                                                                      range.first,
-                                                                     max_depletant_queue_size);
+                                                                     max_depletant_queue_size,
+                                                                     implicit_args.d_n_depletants);
         }
     }
 
