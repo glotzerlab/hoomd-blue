@@ -1525,7 +1525,7 @@ void hpmc_narrow_phase(const hpmc_args_t& args, const typename Shape::param_type
 
     shared_bytes += extra_bytes;
     dim3 thread(tpp, n_groups, 1);
-    
+
     for (int idev = args.gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
         {
         auto range = args.gpu_partition.getRangeAndSetGPU(idev);
@@ -1535,7 +1535,7 @@ void hpmc_narrow_phase(const hpmc_args_t& args, const typename Shape::param_type
 
         dim3 grid(num_blocks, 1, 1);
 
-        hipLaunchKernelGGL(kernel::hpmc_narrow_phase<Shape>, grid, thread, shared_bytes, 0, 
+        hipLaunchKernelGGL(kernel::hpmc_narrow_phase<Shape>, grid, thread, shared_bytes, 0,
             args.d_postype, args.d_orientation, args.d_trial_postype, args.d_trial_orientation,
             args.d_excell_idx, args.d_excell_size, args.excli,
             args.d_nlist, args.d_nneigh, args.maxn, args.d_counters+idev*args.counters_pitch, args.num_types,
@@ -1643,6 +1643,9 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
         for (int idev = args.gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
             {
             auto range = args.gpu_partition.getRangeAndSetGPU(idev);
+
+            if (range.first == range.second)
+                continue;
 
             // 1 block per particle
             dim3 grid( range.second-range.first, 1, 1);
