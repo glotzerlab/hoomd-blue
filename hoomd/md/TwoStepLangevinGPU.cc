@@ -158,8 +158,8 @@ void TwoStepLangevinGPU::integrateStepTwo(unsigned int timestep)
         langevin_step_two_args args;
         args.d_gamma = d_gamma.data;
         args.n_types = m_gamma.getNumElements();
-        args.use_lambda = m_use_lambda;
-        args.lambda = m_lambda;
+        args.use_lambda = m_use_alpha;
+        args.lambda = m_alpha;
         args.T = (*m_T)(timestep);
         args.timestep = timestep;
         args.seed = m_seed;
