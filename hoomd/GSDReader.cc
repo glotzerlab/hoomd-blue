@@ -47,36 +47,7 @@ GSDReader::GSDReader(std::shared_ptr<const ExecutionConfiguration> exec_conf,
     // open the GSD file in read mode
     m_exec_conf->msg->notice(3) << "data.gsd_snapshot: open gsd file " << name << endl;
     int retval = gsd_open(&m_handle, name.c_str(), GSD_OPEN_READONLY);
-    if (retval == -1)
-        {
-        m_exec_conf->msg->error() << "data.gsd_snapshot: " << strerror(errno) << " - " << name << endl;
-        throw runtime_error("Error opening GSD file");
-        }
-    else if (retval == -2)
-        {
-        m_exec_conf->msg->error() << "data.gsd_snapshot: " << name << " is not a valid GSD file" << endl;
-        throw runtime_error("Error opening GSD file");
-        }
-    else if (retval == -3)
-        {
-        m_exec_conf->msg->error() << "data.gsd_snapshot: " << "Invalid GSD file version in " << name << endl;
-        throw runtime_error("Error opening GSD file");
-        }
-    else if (retval == -4)
-        {
-        m_exec_conf->msg->error() << "data.gsd_snapshot: " << "Corrupt GSD file: " << name << endl;
-        throw runtime_error("Error opening GSD file");
-        }
-    else if (retval == -5)
-        {
-        m_exec_conf->msg->error() << "data.gsd_snapshot: " << "Out of memory opening: " << name << endl;
-        throw runtime_error("Error opening GSD file");
-        }
-    else if (retval != 0)
-        {
-        m_exec_conf->msg->error() << "data.gsd_snapshot: " << "Unknown error opening: " << name << endl;
-        throw runtime_error("Error opening GSD file");
-        }
+    checkError(retval);
 
     // validate schema
     if (string(m_handle.header.schema) != string("hoomd"))
@@ -155,27 +126,7 @@ bool GSDReader::readChunk(void *data, uint64_t frame, const char *name, size_t e
             throw runtime_error("Error reading GSD file");
             }
         int retval = gsd_read_chunk(&m_handle, data, entry);
-
-        if (retval == -1)
-            {
-            m_exec_conf->msg->error() << "data.gsd_snapshot: " << strerror(errno) << " - " << m_name << endl;
-            throw runtime_error("Error reading GSD file");
-            }
-        else if (retval == -2)
-            {
-            m_exec_conf->msg->error() << "data.gsd_snapshot: " << "Unknown error reading: " << m_name << endl;
-            throw runtime_error("Error reading GSD file");
-            }
-        else if (retval == -3)
-            {
-            m_exec_conf->msg->error() << "data.gsd_snapshot: " << "Invalid GSD file " << m_name << endl;
-            throw runtime_error("Error reading GSD file");
-            }
-        else if (retval != 0)
-            {
-            m_exec_conf->msg->error() << "data.gsd_snapshot: " << "Unknown error reading: " << m_name << endl;
-            throw runtime_error("Error reading GSD file");
-            }
+        checkError(retval);
 
         return true;
         }
@@ -210,27 +161,7 @@ std::vector<std::string> GSDReader::readTypes(uint64_t frame, const char *name)
         size_t actual_size = entry->N * entry->M * gsd_sizeof_type((enum gsd_type)entry->type);
         std::vector<char> data(actual_size);
         int retval = gsd_read_chunk(&m_handle, &data[0], entry);
-
-        if (retval == -1)
-            {
-            m_exec_conf->msg->error() << "data.gsd_snapshot: " << strerror(errno) << " - " << m_name << endl;
-            throw runtime_error("Error reading GSD file");
-            }
-        else if (retval == -2)
-            {
-            m_exec_conf->msg->error() << "data.gsd_snapshot: " << "Unknown error reading: " << m_name << endl;
-            throw runtime_error("Error reading GSD file");
-            }
-        else if (retval == -3)
-            {
-            m_exec_conf->msg->error() << "data.gsd_snapshot: " << "Invalid GSD file " << m_name << endl;
-            throw runtime_error("Error reading GSD file");
-            }
-        else if (retval != 0)
-            {
-            m_exec_conf->msg->error() << "data.gsd_snapshot: " << "Unknown error reading: " << m_name << endl;
-            throw runtime_error("Error reading GSD file");
-            }
+        checkError(retval);
 
         type_mapping.clear();
         for (unsigned int i = 0; i < entry->N; i++)
@@ -370,47 +301,67 @@ pybind11::list GSDReader::readTypeShapesPy(uint64_t frame)
     return type_shapes;
     }
 
+void GSDReader::checkError(int retval)
+    {
+    // checkError prints errors and then throws exceptions for common gsd error codes
+    if (retval == GSD_ERROR_IO)
+        {
+        m_exec_conf->msg->error() << "dump.gsd: " << strerror(errno) << " - " << m_name << endl;
+        throw runtime_error("Error reading GSD file");
+        }
+    else if (retval == GSD_ERROR_INVALID_ARGUMENT)
+        {
+        m_exec_conf->msg->error() << "dump.gsd: Invalid argument" " - " << m_name << endl;
+        throw runtime_error("Error reading GSD file");
+        }
+    else if (retval == GSD_ERROR_NOT_A_GSD_FILE)
+        {
+        m_exec_conf->msg->error() << "dump.gsd: Not a GSD file" " - " << m_name << endl;
+        throw runtime_error("Error reading GSD file");
+        }
+    else if (retval == GSD_ERROR_INVALID_GSD_FILE_VERSION)
+        {
+        m_exec_conf->msg->error() << "dump.gsd: Invalid GSD file version" " - " << m_name << endl;
+        throw runtime_error("Error reading GSD file");
+        }
+    else if (retval == GSD_ERROR_FILE_CORRUPT)
+        {
+        m_exec_conf->msg->error() << "dump.gsd: File corrupt" " - " << m_name << endl;
+        throw runtime_error("Error reading GSD file");
+        }
+    else if (retval == GSD_ERROR_MEMORY_ALLOCATION_FAILED)
+        {
+        m_exec_conf->msg->error() << "dump.gsd: Memory allocation failed" " - " << m_name << endl;
+        throw runtime_error("Error reading GSD file");
+        }
+    else if (retval == GSD_ERROR_NAMELIST_FULL)
+        {
+        m_exec_conf->msg->error() << "dump.gsd: Namelist full" " - " << m_name << endl;
+        throw runtime_error("Error reading GSD file");
+        }
+    else if (retval == GSD_ERROR_FILE_MUST_BE_WRITABLE)
+        {
+        m_exec_conf->msg->error() << "dump.gsd: File must be writeable" " - " << m_name << endl;
+        throw runtime_error("Error reading GSD file");
+        }
+    else if (retval == GSD_ERROR_FILE_MUST_BE_READABLE)
+        {
+        m_exec_conf->msg->error() << "dump.gsd: File must be readable" " - " << m_name << endl;
+        throw runtime_error("Error reading GSD file");
+        }
+    else if (retval != GSD_SUCCESS)
+        {
+        m_exec_conf->msg->error() << "dump.gsd: " << "Unknown error " << retval << " reading: "
+                                  << m_name << endl;
+        throw runtime_error("Error reading GSD file");
+        }
+    }
 
 GSDStateReader::GSDStateReader(const std::string &name, const int64_t frame)
     : m_name(name)
     {
     int retval = gsd_open(&m_handle, name.c_str(), GSD_OPEN_READONLY);
-    if (retval == -1)
-        {
-        ostringstream s;
-        s << "Error opening GSD file " << m_name << ": " << strerror(errno);
-        throw runtime_error(s.str());
-        }
-    else if (retval == -2)
-        {
-        ostringstream s;
-        s << "Error opening GSD file " << m_name << ": Not a valid GSD file.";
-        throw runtime_error(s.str());
-        }
-    else if (retval == -3)
-        {
-        ostringstream s;
-        s << "Error opening GSD file " << m_name << ": Invalid GSD file version. ";
-        throw runtime_error(s.str());
-        }
-    else if (retval == -4)
-        {
-        ostringstream s;
-        s << "Error opening GSD file " << m_name << ": Corrupt GSD file.";
-        throw runtime_error(s.str());
-        }
-    else if (retval == -5)
-        {
-        ostringstream s;
-        s << "Error opening GSD file " << m_name << ": Out of memory.";
-        throw runtime_error(s.str());
-        }
-    else if (retval != 0)
-        {
-        ostringstream s;
-        s << "Error opening GSD file " << m_name << ": Unknown error.";
-        throw runtime_error(s.str());
-        }
+    checkError(retval);
 
     // validate schema
     if (string(m_handle.header.schema) != string("hoomd"))
@@ -545,33 +496,74 @@ pybind11::array GSDStateReader::readChunk(const std::string& name)
         }
 
     int retval = gsd_read_chunk(&m_handle, result.mutable_data(), entry);
-
-    if (retval == -1)
-        {
-        ostringstream s;
-        s << "Error reading GSD file " << m_name << ": " << strerror(errno);
-        throw runtime_error(s.str());
-        }
-    else if (retval == -2)
-        {
-        ostringstream s;
-        s << "Error reading GSD file " << m_name << ": Unknown error.";
-        throw runtime_error(s.str());
-        }
-    else if (retval == -3)
-        {
-        ostringstream s;
-        s << "Error reading GSD file " << m_name << "Corrupt GSD file.";
-        throw runtime_error(s.str());
-        }
-    else if (retval != 0)
-        {
-        ostringstream s;
-        s << "Error reading GSD file " << m_name << "Unknown error.";
-        throw runtime_error(s.str());
-        }
+    checkError(retval);
 
     return result;
+    }
+
+void GSDStateReader::checkError(int retval)
+    {
+    // checkError prints errors and then throws exceptions for common gsd error codes
+    if (retval == GSD_ERROR_IO)
+        {
+        ostringstream s;
+        s << "Error reading GSD file:" << m_name <<  " - " << strerror(errno);
+        throw runtime_error(s.str());
+        }
+    else if (retval == GSD_ERROR_INVALID_ARGUMENT)
+        {
+        ostringstream s;
+        s << "Error reading GSD file:" << m_name <<  " - Invalid argument.";
+        throw runtime_error(s.str());
+        }
+    else if (retval == GSD_ERROR_NOT_A_GSD_FILE)
+        {
+        ostringstream s;
+        s << "Error reading GSD file:" << m_name <<  " - Not a GSD file.";
+        throw runtime_error(s.str());
+        }
+    else if (retval == GSD_ERROR_INVALID_GSD_FILE_VERSION)
+        {
+        ostringstream s;
+        s << "Error reading GSD file:" << m_name <<  " - Invalid GSD file version.";
+        throw runtime_error(s.str());
+        }
+    else if (retval == GSD_ERROR_FILE_CORRUPT)
+        {
+        ostringstream s;
+        s << "Error reading GSD file:" << m_name <<  " - File corrupt.";
+        throw runtime_error(s.str());
+        }
+    else if (retval == GSD_ERROR_MEMORY_ALLOCATION_FAILED)
+        {
+        ostringstream s;
+        s << "Error reading GSD file:" << m_name <<  " - Memory allocation failed.";
+        throw runtime_error(s.str());
+        }
+    else if (retval == GSD_ERROR_NAMELIST_FULL)
+        {
+        ostringstream s;
+        s << "Error reading GSD file:" << m_name <<  " - Namelist full.";
+        throw runtime_error(s.str());
+        }
+    else if (retval == GSD_ERROR_FILE_MUST_BE_WRITABLE)
+        {
+        ostringstream s;
+        s << "Error reading GSD file:" << m_name <<  " - File must be writeable.";
+        throw runtime_error(s.str());
+        }
+    else if (retval == GSD_ERROR_FILE_MUST_BE_READABLE)
+        {
+        ostringstream s;
+        s << "Error reading GSD file:" << m_name <<  " - File must be readable.";
+        throw runtime_error(s.str());
+        }
+    else if (retval != GSD_SUCCESS)
+        {
+        ostringstream s;
+        s << "Error reading GSD file:" << m_name <<  " - Unknown error.";
+        throw runtime_error(s.str());
+        }
     }
 
 void export_GSDReader(py::module& m)

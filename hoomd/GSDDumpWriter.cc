@@ -53,14 +53,55 @@ GSDDumpWriter::GSDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
 void GSDDumpWriter::checkError(int retval)
     {
     // checkError prints errors and then throws exceptions for common gsd error codes
-    if (retval == -1)
+    if (retval == GSD_ERROR_IO)
         {
         m_exec_conf->msg->error() << "dump.gsd: " << strerror(errno) << " - " << m_fname << endl;
         throw runtime_error("Error writing GSD file");
         }
-    else if (retval != 0)
+    else if (retval == GSD_ERROR_INVALID_ARGUMENT)
         {
-        m_exec_conf->msg->error() << "dump.gsd: " << "Unknown error " << retval << " writing: " << m_fname << endl;
+        m_exec_conf->msg->error() << "dump.gsd: Invalid argument" " - " << m_fname << endl;
+        throw runtime_error("Error writing GSD file");
+        }
+    else if (retval == GSD_ERROR_NOT_A_GSD_FILE)
+        {
+        m_exec_conf->msg->error() << "dump.gsd: Not a GSD file" " - " << m_fname << endl;
+        throw runtime_error("Error writing GSD file");
+        }
+    else if (retval == GSD_ERROR_INVALID_GSD_FILE_VERSION)
+        {
+        m_exec_conf->msg->error() << "dump.gsd: Invalid GSD file version" " - " << m_fname << endl;
+        throw runtime_error("Error writing GSD file");
+        }
+    else if (retval == GSD_ERROR_FILE_CORRUPT)
+        {
+        m_exec_conf->msg->error() << "dump.gsd: File corrupt" " - " << m_fname << endl;
+        throw runtime_error("Error writing GSD file");
+        }
+    else if (retval == GSD_ERROR_MEMORY_ALLOCATION_FAILED)
+        {
+        m_exec_conf->msg->error() << "dump.gsd: Memory allocation failed" " - " << m_fname << endl;
+        throw runtime_error("Error writing GSD file");
+        }
+    else if (retval == GSD_ERROR_NAMELIST_FULL)
+        {
+        m_exec_conf->msg->error() << "dump.gsd: Namelist full" " - " << m_fname << endl;
+        throw runtime_error("Error writing GSD file");
+        }
+    else if (retval == GSD_ERROR_FILE_MUST_BE_WRITABLE)
+        {
+        m_exec_conf->msg->error() << "dump.gsd: File must be writeable" " - " << m_fname << endl;
+        throw runtime_error("Error writing GSD file");
+        }
+    else if (retval == GSD_ERROR_FILE_MUST_BE_READABLE)
+        {
+        m_exec_conf->msg->error() << "dump.gsd: File must be readable" " - " << m_fname << endl;
+        throw runtime_error("Error writing GSD file");
+        }
+    else if (retval != GSD_SUCCESS)
+        {
+        m_exec_conf->msg->error() << "dump.gsd: " << "Unknown error " << retval << " writing: "
+                                  << m_fname << endl;
         throw runtime_error("Error writing GSD file");
         }
     }
@@ -80,12 +121,8 @@ void GSDDumpWriter::initFileIO()
         retval = gsd_create(m_fname.c_str(),
                             o.str().c_str(),
                             "hoomd",
-                            gsd_make_version(2,0));
-        if (retval != 0)
-            {
-            m_exec_conf->msg->error() << "dump.gsd: " << strerror(errno) << " - " << m_fname << endl;
-            throw runtime_error("Error creating GSD file");
-            }
+                            gsd_make_version(1,4));
+        checkError(retval);
         }
 
     // populate the non-default map
@@ -94,36 +131,7 @@ void GSDDumpWriter::initFileIO()
     // open the file in append mode
     m_exec_conf->msg->notice(3) << "dump.gsd: open gsd file " << m_fname << endl;
     retval = gsd_open(&m_handle, m_fname.c_str(), GSD_OPEN_APPEND);
-    if (retval == -1)
-        {
-        m_exec_conf->msg->error() << "dump.gsd: " << strerror(errno) << " - " << m_fname << endl;
-        throw runtime_error("Error opening GSD file");
-        }
-    else if (retval == -2)
-        {
-        m_exec_conf->msg->error() << "dump.gsd: " << m_fname << " is not a valid GSD file" << endl;
-        throw runtime_error("Error opening GSD file");
-        }
-    else if (retval == -3)
-        {
-        m_exec_conf->msg->error() << "dump.gsd: " << "Invalid GSD file version in " << m_fname << endl;
-        throw runtime_error("Error opening GSD file");
-        }
-    else if (retval == -4)
-        {
-        m_exec_conf->msg->error() << "dump.gsd: " << "Corrupt GSD file: " << m_fname << endl;
-        throw runtime_error("Error opening GSD file");
-        }
-    else if (retval == -5)
-        {
-        m_exec_conf->msg->error() << "dump.gsd: " << "Out of memory opening: " << m_fname << endl;
-        throw runtime_error("Error opening GSD file");
-        }
-    else if (retval != 0)
-        {
-        m_exec_conf->msg->error() << "dump.gsd: " << "Unknown error opening: " << m_fname << endl;
-        throw runtime_error("Error opening GSD file");
-        }
+    checkError(retval);
 
     // validate schema
     if (string(m_handle.header.schema) != string("hoomd"))
@@ -131,7 +139,7 @@ void GSDDumpWriter::initFileIO()
         m_exec_conf->msg->error() << "dump.gsd: " << "Invalid schema in " << m_fname << endl;
         throw runtime_error("Error opening GSD file");
         }
-    if (m_handle.header.schema_version >= gsd_make_version(2,1))
+    if (m_handle.header.schema_version >= gsd_make_version(2,0))
         {
         m_exec_conf->msg->error() << "dump.gsd: " << "Invalid schema version in " << m_fname << endl;
         throw runtime_error("Error opening GSD file");
@@ -188,36 +196,7 @@ void GSDDumpWriter::analyze(unsigned int timestep)
         {
         m_exec_conf->msg->notice(10) << "dump.gsd: truncating file" << endl;
         retval = gsd_truncate(&m_handle);
-        if (retval == -1)
-            {
-            m_exec_conf->msg->error() << "dump.gsd: " << strerror(errno) << " - " << m_fname << endl;
-            throw runtime_error("Error opening GSD file");
-            }
-        else if (retval == -2)
-            {
-            m_exec_conf->msg->error() << "dump.gsd: " << m_fname << " is not a valid GSD file" << endl;
-            throw runtime_error("Error opening GSD file");
-            }
-        else if (retval == -3)
-            {
-            m_exec_conf->msg->error() << "dump.gsd: " << "Invalid GSD file version in " << m_fname << endl;
-            throw runtime_error("Error opening GSD file");
-            }
-        else if (retval == -4)
-            {
-            m_exec_conf->msg->error() << "dump.gsd: " << "Corrupt GSD file: " << m_fname << endl;
-            throw runtime_error("Error opening GSD file");
-            }
-        else if (retval == -5)
-            {
-            m_exec_conf->msg->error() << "dump.gsd: " << "Out of memory opening: " << m_fname << endl;
-            throw runtime_error("Error opening GSD file");
-            }
-        else if (retval != 0)
-            {
-            m_exec_conf->msg->error() << "dump.gsd: " << "Unknown error opening: " << m_fname << endl;
-            throw runtime_error("Error opening GSD file");
-            }
+        checkError(retval);
         }
 
     uint64_t nframes = 0;
@@ -1004,7 +983,7 @@ void GSDDumpWriter::populateNonDefault()
         m_exec_conf->msg->error() << "dump.gsd: " << "Invalid schema in " << m_fname << endl;
         throw runtime_error("Error opening GSD file");
         }
-    if (m_handle.header.schema_version >= gsd_make_version(2,1))
+    if (m_handle.header.schema_version >= gsd_make_version(2,0))
         {
         m_exec_conf->msg->error() << "dump.gsd: " << "Invalid schema version in " << m_fname << endl;
         throw runtime_error("Error opening GSD file");

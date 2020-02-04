@@ -101,6 +101,9 @@ class PYBIND11_EXPORT GSDReader
         void readHeader();
         void readParticles();
         void readTopology();
+
+        /// Check and raise an exception if an error occurs
+        void checkError(int retval);
     };
 
 /** Read state information from a GSD file
@@ -136,6 +139,9 @@ class PYBIND11_EXPORT GSDStateReader
 
         /// Handle to the file
         gsd_handle m_handle;
+
+        /// Check and raise an exception if an error occurs
+        void checkError(int retval);
     };
 
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2019 The Regents of the University of Michigan
+// Copyright (c) 2016-2020 The Regents of the University of Michigan
 // This file is part of the General Simulation Data (GSD) project, released under the BSD 2-Clause
 // License.
 
@@ -104,7 +104,9 @@ enum gsd_error
 
 enum
 {
-    /// Size of a GSD name in memory
+    /** v1 file: Size of a GSD name in memory. v2 file: The name buffer size is a multiple of
+        GSD_NAME_SIZE.
+    */
     GSD_NAME_SIZE = 64
 };
 
@@ -135,7 +137,7 @@ struct gsd_header
     /// Location of the name list in the file.
     uint64_t namelist_location;
 
-    /// Number of bytes in the namelist divided by 64
+    /// Number of bytes in the namelist divided by GSD_NAME_SIZE.
     uint64_t namelist_allocated_entries;
 
     /// Schema version: from gsd_make_version().
@@ -475,6 +477,8 @@ int gsd_end_frame(struct gsd_handle* handle);
 
     @note If the GSD file is version 1.0, the chunk name is truncated to 63 bytes. GSD version
     2.0 files support arbitrarily long names.
+
+    @note *N* == 0 is allowed. When *N* is 0, *data* may be NULL.
 
     @return
       - GSD_SUCCESS (0) on success. Negative value on failure:

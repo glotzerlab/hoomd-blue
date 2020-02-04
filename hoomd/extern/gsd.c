@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2019 The Regents of the University of Michigan
+// Copyright (c) 2016-2020 The Regents of the University of Michigan
 // This file is part of the General Simulation Data (GSD) project, released under the BSD 2-Clause
 // License.
 
@@ -75,6 +75,12 @@ enum
     GSD_NAME_MAP_SIZE = 57557
 };
 
+/// Current GSD file specification
+enum
+{
+    GSD_CURRENT_FILE_VERSION = 2
+};
+
 // define windows wrapper functions
 #ifdef _WIN32
 #define lseek _lseeki64
@@ -88,7 +94,7 @@ int S_IWUSR = _S_IWRITE;
 int S_IRGRP = _S_IREAD;
 int S_IWGRP = _S_IWRITE;
 
-ssize_t pread(int fd, void* buf, size_t count, int64_t offset)
+inline ssize_t pread(int fd, void* buf, size_t count, int64_t offset)
 {
     // Note: _read only accepts unsigned int values
     if (count > UINT_MAX)
@@ -101,7 +107,7 @@ ssize_t pread(int fd, void* buf, size_t count, int64_t offset)
     return result;
 }
 
-ssize_t pwrite(int fd, const void* buf, size_t count, int64_t offset)
+inline ssize_t pwrite(int fd, const void* buf, size_t count, int64_t offset)
 {
     // Note: _write only accepts unsigned int values
     if (count > UINT_MAX)
@@ -121,7 +127,7 @@ ssize_t pwrite(int fd, const void* buf, size_t count, int64_t offset)
     @param d pointer to memory region
     @param size_to_zero size of the area to zero in bytes
 */
-static void gsd_util_zero_memory(void* d, size_t size_to_zero)
+inline static void gsd_util_zero_memory(void* d, size_t size_to_zero)
 {
     memset(d, 0, size_to_zero);
 }
@@ -139,7 +145,7 @@ static void gsd_util_zero_memory(void* d, size_t size_to_zero)
 
     @returns The total number of bytes written or a negative value on error.
 */
-static ssize_t gsd_io_pwrite_retry(int fd, const void* buf, size_t count, int64_t offset)
+inline static ssize_t gsd_io_pwrite_retry(int fd, const void* buf, size_t count, int64_t offset)
 {
     size_t total_bytes_written = 0;
     const char* ptr = (char*)buf;
@@ -181,7 +187,7 @@ static ssize_t gsd_io_pwrite_retry(int fd, const void* buf, size_t count, int64_
 
     @returns The total number of bytes read or a negative value on error.
 */
-static ssize_t gsd_io_pread_retry(int fd, void* buf, size_t count, int64_t offset)
+inline static ssize_t gsd_io_pread_retry(int fd, void* buf, size_t count, int64_t offset)
 {
     size_t total_bytes_read = 0;
     char* ptr = (char*)buf;
@@ -223,7 +229,7 @@ static ssize_t gsd_io_pread_retry(int fd, void* buf, size_t count, int64_t offse
 
     @returns GSD_SUCCESS on success, GSD_* error codes on error.
 */
-static int gsd_name_id_map_allocate(struct gsd_name_id_map* map, size_t size)
+inline static int gsd_name_id_map_allocate(struct gsd_name_id_map* map, size_t size)
 {
     if (map == NULL || map->v || size == 0 || map->size != 0)
     {
@@ -248,7 +254,7 @@ static int gsd_name_id_map_allocate(struct gsd_name_id_map* map, size_t size)
 
     @returns GSD_SUCCESS on success, GSD_* error codes on error.
 */
-static int gsd_name_id_map_free(struct gsd_name_id_map* map)
+inline static int gsd_name_id_map_free(struct gsd_name_id_map* map)
 {
     if (map == NULL || map->v == NULL || map->size == 0)
     {
@@ -454,7 +460,7 @@ inline static int gsd_is_entry_valid(struct gsd_handle* handle, size_t idx)
 
     @returns GSD_SUCCESS on success, GSD_* error codes on error.
 */
-static int gsd_byte_buffer_allocate(struct gsd_byte_buffer* buf, size_t reserve)
+inline static int gsd_byte_buffer_allocate(struct gsd_byte_buffer* buf, size_t reserve)
 {
     if (buf == NULL || buf->data || reserve == 0 || buf->reserved != 0 || buf->size != 0)
     {
@@ -482,17 +488,22 @@ static int gsd_byte_buffer_allocate(struct gsd_byte_buffer* buf, size_t reserve)
 
     @returns GSD_SUCCESS on success, GSD_* error codes on error.
 */
-static int gsd_byte_buffer_append(struct gsd_byte_buffer* buf, const char* data, size_t size)
+inline static int gsd_byte_buffer_append(struct gsd_byte_buffer* buf, const char* data, size_t size)
 {
     if (buf == NULL || buf->data == NULL || size == 0 || buf->reserved == 0)
     {
         return GSD_ERROR_INVALID_ARGUMENT;
     }
 
-    while (buf->size + size > buf->reserved)
+    if (buf->size + size > buf->reserved)
     {
         // reallocate by doubling
         size_t new_reserved = buf->reserved * 2;
+        while (buf->size + size >= new_reserved)
+        {
+            new_reserved = new_reserved * 2;
+        }
+
         char* old_data = buf->data;
         buf->data = realloc(buf->data, sizeof(char) * new_reserved);
         if (buf->data == NULL)
@@ -502,9 +513,9 @@ static int gsd_byte_buffer_append(struct gsd_byte_buffer* buf, const char* data,
             return GSD_ERROR_MEMORY_ALLOCATION_FAILED;
         }
 
-        // zero the new memory
-        gsd_util_zero_memory(buf->data + buf->reserved,
-                             sizeof(char) * (new_reserved - buf->reserved));
+        // zero the new memory, but only the portion after the end of the new section to be appended
+        gsd_util_zero_memory(buf->data + (buf->size + size),
+                             sizeof(char) * (new_reserved - (buf->size + size)));
         buf->reserved = new_reserved;
     }
 
@@ -521,7 +532,7 @@ static int gsd_byte_buffer_append(struct gsd_byte_buffer* buf, const char* data,
 
     @returns GSD_SUCCESS on success, GSD_* error codes on error.
 */
-static int gsd_byte_buffer_free(struct gsd_byte_buffer* buf)
+inline static int gsd_byte_buffer_free(struct gsd_byte_buffer* buf)
 {
     if (buf == NULL || buf->data == NULL)
     {
@@ -544,7 +555,7 @@ static int gsd_byte_buffer_free(struct gsd_byte_buffer* buf)
 
     @returns GSD_SUCCESS on success, GSD_* error codes on error.
 */
-static int gsd_index_buffer_allocate(struct gsd_index_buffer* buf, size_t reserve)
+inline static int gsd_index_buffer_allocate(struct gsd_index_buffer* buf, size_t reserve)
 {
     if (buf == NULL || buf->mapped_data || buf->data || reserve == 0 || buf->reserved != 0
         || buf->size != 0)
@@ -579,7 +590,7 @@ static int gsd_index_buffer_allocate(struct gsd_index_buffer* buf, size_t reserv
 
     @returns GSD_SUCCESS on success, GSD_* error codes on error.
 */
-static int gsd_index_buffer_map(struct gsd_index_buffer* buf, struct gsd_handle* handle)
+inline static int gsd_index_buffer_map(struct gsd_index_buffer* buf, struct gsd_handle* handle)
 {
     if (buf == NULL || buf->mapped_data || buf->data || buf->reserved != 0 || buf->size != 0)
     {
@@ -692,7 +703,7 @@ static int gsd_index_buffer_map(struct gsd_index_buffer* buf, struct gsd_handle*
 
     @returns GSD_SUCCESS on success, GSD_* error codes on error.
 */
-static int gsd_index_buffer_free(struct gsd_index_buffer* buf)
+inline static int gsd_index_buffer_free(struct gsd_index_buffer* buf)
 {
     if (buf == NULL || buf->data == NULL)
     {
@@ -760,10 +771,9 @@ inline static int gsd_index_buffer_add(struct gsd_index_buffer* buf, struct gsd_
     return GSD_SUCCESS;
 }
 
-inline static int gsd_cmp_index_entry(const void* p1, const void* p2)
+inline static int gsd_cmp_index_entry(const struct gsd_index_entry* a,
+                                      const struct gsd_index_entry* b)
 {
-    struct gsd_index_entry* a = (struct gsd_index_entry*)p1;
-    struct gsd_index_entry* b = (struct gsd_index_entry*)p2;
     int result = 0;
 
     if (a->frame < b->frame)
@@ -920,7 +930,7 @@ inline static int gsd_index_buffer_sort(struct gsd_index_buffer* buf)
 
     @returns GSD_SUCCESS on success, GSD_* error codes on error.
 */
-static int gsd_expand_file_index(struct gsd_handle* handle, size_t size_required)
+inline static int gsd_expand_file_index(struct gsd_handle* handle, size_t size_required)
 {
     if (handle->open_flags == GSD_OPEN_READONLY)
     {
@@ -1068,20 +1078,20 @@ static int gsd_expand_file_index(struct gsd_handle* handle, size_t size_required
     @param handle Handle to flush the write buffer.
     @returns GSD_SUCCESS on success or GSD_* error codes on error
 */
-static int gsd_flush_write_buffer(struct gsd_handle* handle)
+inline static int gsd_flush_write_buffer(struct gsd_handle* handle)
 {
     if (handle == NULL)
     {
         return GSD_ERROR_INVALID_ARGUMENT;
     }
 
-    if (handle->write_buffer.size == 0)
+    if (handle->write_buffer.size == 0 && handle->buffer_index.size == 0)
     {
         // nothing to do
         return GSD_SUCCESS;
     }
 
-    if (handle->buffer_index.size == 0)
+    if (handle->write_buffer.size > 0 && handle->buffer_index.size == 0)
     {
         // error: bytes in buffer, but no index for them
         return GSD_ERROR_INVALID_ARGUMENT;
@@ -1135,7 +1145,7 @@ static int gsd_flush_write_buffer(struct gsd_handle* handle)
     @param handle Handle to flush the write buffer.
     @returns GSD_SUCCESS on success or GSD_* error codes on error
 */
-static int gsd_flush_name_buffer(struct gsd_handle* handle)
+inline static int gsd_flush_name_buffer(struct gsd_handle* handle)
 {
     if (handle == NULL)
     {
@@ -1308,7 +1318,7 @@ inline static int gsd_append_name(uint16_t* id, struct gsd_handle* handle, const
     @param schema Schema name for data to be written in this GSD file (truncated to 63 chars)
     @param schema_version Version of the scheme data to be written (make with gsd_make_version())
 */
-static int
+inline static int
 gsd_initialize_file(int fd, const char* application, const char* schema, uint32_t schema_version)
 {
     // check if the file was created
@@ -1328,7 +1338,7 @@ gsd_initialize_file(int fd, const char* application, const char* schema, uint32_
     gsd_util_zero_memory(&header, sizeof(header));
 
     header.magic = GSD_MAGIC_ID;
-    header.gsd_version = gsd_make_version(2, 0);
+    header.gsd_version = gsd_make_version(GSD_CURRENT_FILE_VERSION, 0);
     strncpy(header.application, application, sizeof(header.application) - 1);
     header.application[sizeof(header.application) - 1] = 0;
     strncpy(header.schema, schema, sizeof(header.schema) - 1);
@@ -1388,7 +1398,7 @@ gsd_initialize_file(int fd, const char* application, const char* schema, uint32_
     @pre handle->fd is an open file.
     @pre handle->open_flags is set.
 */
-static int gsd_initialize_handle(struct gsd_handle* handle)
+inline static int gsd_initialize_handle(struct gsd_handle* handle)
 {
     // check if the file was created
     if (handle->fd == -1)
@@ -1912,11 +1922,11 @@ int gsd_write_chunk(struct gsd_handle* handle,
                     const void* data)
 {
     // validate input
-    if (data == NULL)
+    if (N > 0 && data == NULL)
     {
         return GSD_ERROR_INVALID_ARGUMENT;
     }
-    if (N == 0 || M == 0 || gsd_sizeof_type(type) == 0)
+    if (M == 0)
     {
         return GSD_ERROR_INVALID_ARGUMENT;
     }
@@ -1978,7 +1988,14 @@ int gsd_write_chunk(struct gsd_handle* handle,
         *index_entry = entry;
 
         // add the data to the write buffer
-        gsd_byte_buffer_append(&handle->write_buffer, data, size);
+        if (size > 0)
+        {
+            retval = gsd_byte_buffer_append(&handle->write_buffer, data, size);
+            if (retval != GSD_SUCCESS)
+            {
+                return retval;
+            }
+        }
     }
     else
     {
@@ -2405,7 +2422,7 @@ int gsd_upgrade(struct gsd_handle* handle)
         }
 
         // label the file as a v2.0 file
-        handle->header.gsd_version = gsd_make_version(2, 0);
+        handle->header.gsd_version = gsd_make_version(GSD_CURRENT_FILE_VERSION, 0);
 
         // write the new header out
         ssize_t bytes_written
