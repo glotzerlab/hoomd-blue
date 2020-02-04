@@ -332,13 +332,6 @@ struct ShapeUnion
         return OverlapReal(0.0);
         }
 
-    #ifndef __HIPCC__
-    std::string getShapeSpec() const
-        {
-        throw std::runtime_error("Shape definition not supported for this shape class.");
-        }
-    #endif
-
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
@@ -847,6 +840,32 @@ DEVICE inline bool test_overlap_intersection(const ShapeUnion<Shape>& a,
 
     return false;
     }
+
+#ifndef __HIPCC__
+template<>
+inline std::string getShapeSpec(const ShapeUnion<ShapeSphere>& sphere_union)
+    {
+    auto& members = sphere_union.members;
+
+    unsigned int n_centers = members.N;
+    std::ostringstream shapedef;
+    shapedef << "{\"type\": \"SphereUnion\", \"centers\": [";
+    for (unsigned int i = 0; i < n_centers-1; i++)
+        {
+        shapedef << "[" << members.mpos[i].x << ", " << members.mpos[i].y << ", " << members.mpos[i].z << "], ";
+        }
+    shapedef << "[" << members.mpos[n_centers-1].x << ", " << members.mpos[n_centers-1].y << ", " << members.mpos[n_centers-1].z << "]], \"radii\": [";
+    for (unsigned int i = 0; i < n_centers-1; i++)
+        {
+        shapedef << members.mparams[i].radius << ", ";
+        }
+    shapedef << members.mparams[n_centers-1].radius;
+    shapedef << "]}";
+
+    return shapedef.str();
+    }
+#endif
+
 } // end namespace hpmc
 
 #undef DEVICE
