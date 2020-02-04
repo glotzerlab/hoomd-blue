@@ -16,9 +16,6 @@ using namespace std;
     \param group The group of particles this integration method is to work on
     \param T Temperature set point as a function of time
     \param seed Random seed to use in generating random numbers
-    \param use_lambda If true, gamma=lambda*diameter, otherwise use a per-type gamma via setGamma()
-    \param lambda Scale factor to convert diameter to gamma
-    \param suffix Suffix to attach to the end of log quantity names
 */
 TwoStepLangevinGPU::TwoStepLangevinGPU(std::shared_ptr<SystemDefinition> sysdef,
                                        std::shared_ptr<ParticleGroup> group,
@@ -158,8 +155,8 @@ void TwoStepLangevinGPU::integrateStepTwo(unsigned int timestep)
         langevin_step_two_args args;
         args.d_gamma = d_gamma.data;
         args.n_types = m_gamma.getNumElements();
-        args.use_lambda = m_use_alpha;
-        args.lambda = m_alpha;
+        args.use_alpha = m_use_alpha;
+        args.alpha = m_alpha;
         args.T = (*m_T)(timestep);
         args.timestep = timestep;
         args.seed = m_seed;

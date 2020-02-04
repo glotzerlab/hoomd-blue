@@ -28,8 +28,8 @@ using namespace hoomd;
     \param d_net_force Net force on each particle
     \param d_gamma List of per-type gammas
     \param n_types Number of particle types in the simulation
-    \param use_lambda If true, gamma = lambda * diameter
-    \param lambda Scale factor to convert diameter to lambda (when use_lambda is true)
+    \param use_alpha If true, gamma = alpha * diameter
+    \param alpha Scale factor to convert diameter to alpha (when use_alpha is true)
     \param timestep Current timestep of the simulation
     \param seed User chosen random number seed
     \param T Temperature set point
@@ -54,8 +54,8 @@ __global__ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
                                  Scalar4 *d_net_force,
                                  Scalar *d_gamma,
                                  unsigned int n_types,
-                                 bool use_lambda,
-                                 Scalar lambda,
+                                 bool use_alpha,
+                                 Scalar alpha,
                                  unsigned int timestep,
                                  unsigned int seed,
                                  Scalar T,
@@ -68,7 +68,7 @@ __global__ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
     HIP_DYNAMIC_SHARED( char, s_data)
     Scalar *s_gammas = (Scalar *)s_data;
 
-    if (!use_lambda)
+    if (!use_alpha)
         {
         // read in the gammas (1 dimensional array)
         for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
@@ -97,11 +97,11 @@ __global__ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
 
         // calculate the magnitude of the random force
         Scalar gamma;
-        if (use_lambda)
+        if (use_alpha)
             {
             // read in the tag of our particle.
             // (MEM TRANSFER: 4 bytes)
-            gamma = lambda*d_diameter[idx];
+            gamma = alpha*d_diameter[idx];
             }
         else
             {
@@ -471,8 +471,8 @@ hipError_t gpu_langevin_step_two(const Scalar4 *d_pos,
                                  d_net_force,
                                  langevin_args.d_gamma,
                                  langevin_args.n_types,
-                                 langevin_args.use_lambda,
-                                 langevin_args.lambda,
+                                 langevin_args.use_alpha,
+                                 langevin_args.alpha,
                                  langevin_args.timestep,
                                  langevin_args.seed,
                                  langevin_args.T,
