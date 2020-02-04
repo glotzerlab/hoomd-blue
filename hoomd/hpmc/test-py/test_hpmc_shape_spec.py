@@ -135,6 +135,19 @@ class hpmc_gsd_shape_spec(unittest.TestCase):
         self.setup_system(cls=hpmc.integrate.simple_polygon, shape_params=shape_params, \
                           expected_shapespec=expected_shapespec, filename=self.tmp_file, dim=2);
 
+    def test_sphere_union(self):
+        cube_verts = [[-0.5, -0.5, -0.5], [-0.5, -0.5, 0.5], [-0.5, 0.5, -0.5], [-0.5, 0.5, 0.5],
+                      [0.5, -0.5, -0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5], [0.5, 0.5, 0.5]]
+        cube_diameters = np.array([1.0]*8)
+        tetra_verts = [[0.5, 0.5, 0.5], [0.5, -0.5, -0.5], [-0.5, 0.5, -0.5], [-0.5, -0.5, 0.5]]
+        tetra_diameters = np.array([0.25]*4)
+        shape_params = dict(A=dict(centers=cube_verts, diameters=cube_diameters),
+                            B=dict(centers=tetra_verts, diameters=tetra_diameters))
+        expected_shapespec = [dict(type='SphereUnion', centers=cube_verts, radii=0.5*cube_diameters),
+                              dict(type='SphereUnion', centers=tetra_verts, radii=0.5*tetra_diameters)]
+        self.setup_system(cls=hpmc.integrate.sphere_union, shape_params=shape_params, \
+                          expected_shapespec=expected_shapespec, filename=self.tmp_file, dim=3);
+
     def tearDown(self):
         if hoomd.context.current.device.comm.rank == 0:
             os.remove(self.tmp_file);
