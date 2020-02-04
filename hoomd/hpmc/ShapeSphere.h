@@ -211,19 +211,7 @@ struct ShapeSphere
         return detail::OBB(getAABB(pos));
         }
 
-    #ifndef __HIPCC__
-    /// Return the shape parameters in the `type_shape` format
-    std::string getShapeSpec() const
-        {
-        std::ostringstream shapedef;
-        shapedef << "{\"type\": \"Sphere\", \"diameter\": " << params.radius*OverlapReal(2.0) << "}";
-        return shapedef.str();
-        }
-    #endif
-
-    /** Returns true if this shape splits the overlap check over several threads of a warp using
-        threadIdx.x
-    */
+    //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel() { return false; }
 
     /// Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
@@ -522,6 +510,24 @@ DEVICE inline bool test_overlap_intersection(const ShapeSphere& a, const ShapeSp
 
     return detail::check_three_spheres_overlap(Ra,Rb,Rc,ab_t,ac_t);
     }
+
+#ifndef __HIPCC__
+template<class Shape>
+std::string getShapeSpec(const Shape& shape)
+    {
+    // default implementation
+    throw std::runtime_error("Shape definition not supported for this shape class.");
+    }
+
+template<>
+inline std::string getShapeSpec(const ShapeSphere& sphere)
+    {
+    std::ostringstream shapedef;
+    shapedef << "{\"type\": \"Sphere\", \"diameter\": " << sphere.params.radius*OverlapReal(2.0) << "}";
+    return shapedef.str();
+    }
+#endif
+
 
 }; // end namespace hpmc
 

@@ -513,15 +513,7 @@ struct ShapeFacetedEllipsoid
         return 0.0;
         }
 
-    #ifndef __HIPCC__
-    /// Return the shape parameters in the `type_shape` format
-    std::string getShapeSpec() const
-        {
-        throw std::runtime_error("Shape definition not supported for this shape class.");
-        }
-    #endif
-
-    /// Return the bounding box of the shape in world coordinates
+    //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         // use support function of the ellipsoid to determine the furthest extent in each direction

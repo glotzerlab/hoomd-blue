@@ -119,21 +119,8 @@ struct ShapeEllipsoid
         return OverlapReal(0.0);
         }
 
-    #ifndef __HIPCC__
-    /// Return the shape parameters in the `type_shape` format
-    std::string getShapeSpec() const
-        {
-        std::ostringstream shapedef;
-        shapedef << "{\"type\": \"Ellipsoid\", \"a\": " << axes.x <<
-                    ", \"b\": " << axes.y <<
-                    ", \"c\": " << axes.z <<
-                    "}";
-        return shapedef.str();
-        }
-    #endif
-
-    /** Support function of the shape (in local coordinates), used in getAABB
-        @param n Vector to query support function (must be normalized)
+    //! Support function of the shape (in local coordinates), used in getAABB
+    /*! \param n Vector to query support function (must be normalized)
     */
     DEVICE vec3<Scalar> sfunc(vec3<Scalar> n) const
         {
@@ -474,6 +461,19 @@ DEVICE inline bool test_overlap<ShapeEllipsoid,ShapeEllipsoid>(const vec3<Scalar
 
     return ret_val == ELLIPSOID_OVERLAP_TRUE;
     }
+
+#ifndef __HIPCC__
+template<>
+inline std::string getShapeSpec(const ShapeEllipsoid& ellipsoid)
+    {
+    std::ostringstream shapedef;
+    shapedef << "{\"type\": \"Ellipsoid\", \"a\": " << ellipsoid.axes.x <<
+                ", \"b\": " << ellipsoid.axes.y <<
+                ", \"c\": " << ellipsoid.axes.z <<
+                "}";
+    return shapedef.str();
+    }
+#endif
 
 }; // end namespace hpmc
 
