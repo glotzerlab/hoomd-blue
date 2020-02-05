@@ -143,7 +143,6 @@ void PopBD::update(unsigned int timestep)
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
 
     // Access bond data
-    // m_bond_data = m_sysdef->getBondData();
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
@@ -193,6 +192,8 @@ void PopBD::update(unsigned int timestep)
 
             if (rsq < r_cut_sq)
                 {
+                int i_tag = h_tag.data[i];
+                int j_tag = h_tag.data[j];
                 // count the number of bonds between i and j
                 int n_bonds = h_gpu_n_bonds.data[i];
                 int nbonds_ij = 0;
@@ -205,6 +206,11 @@ void PopBD::update(unsigned int timestep)
                         nbonds_ij += 1;
                         }
                     }
+                int map_nbonds_ij = m_nbonds[orderless_pair(i_tag, j_tag)];
+
+
+                cout << "map nbonds_ij = " << map_nbonds_ij << ", " << "counted nbonds_ij = " << nbonds_ij << "\n";
+
 
                 Scalar r = sqrt(rsq);
 
@@ -244,10 +250,6 @@ void PopBD::update(unsigned int timestep)
                 Scalar M = M0 + f * (M1 - M0);
                 Scalar L = L0 + f * (L1 - L0);
 
-
-
-                // int nbonds_ij = m_nbonds[orderless_pair(i,j)];
-
                 // (1) Compute P_ij, P_ji, and Q_ij
 
                 Scalar p0 = m_delta_t * L;
@@ -273,6 +275,7 @@ void PopBD::update(unsigned int timestep)
                 if (rnd1 < p_ij && m_nloops[i] >= 1)
                     {
                     m_bond_data->addBondedGroup(Bond(0, h_tag.data[i], h_tag.data[j]));
+                    m_nbonds[orderless_pair(i_tag, j_tag)] += 1;
                     m_nloops[i] -= 1;
                     }
 
@@ -280,6 +283,7 @@ void PopBD::update(unsigned int timestep)
                 if (rnd2 < p_ji && m_nloops[j] >= 1)
                     {
                     m_bond_data->addBondedGroup(Bond(0, h_tag.data[i], h_tag.data[j]));
+                    m_nbonds[orderless_pair(i_tag, j_tag)] += 1;
                     m_nloops[j] -= 1;
                     }
 
@@ -307,7 +311,7 @@ void PopBD::update(unsigned int timestep)
                             {
                             // remove bond with tag "bond_number" between particles i and j, then leave the loop
                             m_bond_data->removeBondedGroup(h_bond_tags.data[bond_number]);
-                            // m_nbonds[orderless_pair(i,j)] -= 1;
+                            m_nbonds[orderless_pair(i_tag, j_tag)] -= 1;
                             break;
                             }
                         }
