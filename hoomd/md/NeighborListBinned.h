@@ -49,6 +49,9 @@ class PYBIND11_EXPORT NeighborListBinned : public NeighborList
     protected:
         std::shared_ptr<CellList> m_cl;   //!< The cell list
 
+        /// Track when the cell size needs to be updated
+        bool m_update_cell_size = false;
+
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);
     };
