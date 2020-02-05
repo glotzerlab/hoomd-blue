@@ -291,43 +291,6 @@ void PopBD::update(unsigned int timestep)
                         m_nloops[j] += 1;
                         }
                     }
-
-                // // remove all bonds if bond goes beyond extension
-                // else if (chain_extension > 1.0)
-                //     {
-                //     // break all bridges between i and j for each of the bonds in the *system*
-                //     const unsigned int size = (unsigned int)m_bond_data->getN();
-                //     for (unsigned int bond_number = 0; bond_number < size; bond_number++) // turn into hashtable look-up
-                //         {
-                //         // look up the tag of each of the particles participating in the bond
-                //         const BondData::members_t bond = m_bond_data->getMembersByIndex(bond_number);
-                //         assert(bond.tag[0] < m_pdata->getN());
-                //         assert(bond.tag[1] < m_pdata->getN());
-
-                //         // transform a and b into indices into the particle data arrays
-                //         // (MEM TRANSFER: 4 integers)
-                //         unsigned int idx_a = h_rtag.data[bond.tag[0]];
-                //         unsigned int idx_b = h_rtag.data[bond.tag[1]];
-                //         assert(idx_a <= m_pdata->getMaximumTag());
-                //         assert(idx_b <= m_pdata->getMaximumTag());
-
-                //         // remove bond with index "bond_number" between particles i and j,
-                //         // then exit the loop
-                //         if ((idx_a == i && idx_b == j) || (idx_a == j & idx_b == i))
-                //             {
-                //             m_bond_data->removeBondedGroup(h_bond_tags.data[bond_number]);
-                //             Scalar rnd5 = saru.s<Scalar>(0, 1);
-                //             if (rnd5 <= 0.5)
-                //                 {
-                //                 m_nloops[i] += 1;
-                //                 }
-                //             else if (rnd5 > 0.5)
-                //                 {
-                //                 m_nloops[i] += 1;
-                //                 }
-                //             }
-                //         }
-                //     }
                 }
             }
         }
