@@ -307,6 +307,7 @@ set(files __init__.py
           force.py
           improper.py
           integrate.py
+	  methods.py
           nlist.py
           pair.py
           update.py

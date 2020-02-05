@@ -62,12 +62,12 @@ void BoxResizeUpdater::update(unsigned int timestep)
     if (m_prof) m_prof->push("BoxResize");
 
     // first, compute what the current box size and tilt factors should be
-    Scalar Lx = m_Lx->getValue(timestep);
-    Scalar Ly = m_Ly->getValue(timestep);
-    Scalar Lz = m_Lz->getValue(timestep);
-    Scalar xy = m_xy->getValue(timestep);
-    Scalar xz = m_xz->getValue(timestep);
-    Scalar yz = m_yz->getValue(timestep);
+    Scalar Lx = (*m_Lx)(timestep);
+    Scalar Ly = (*m_Ly)(timestep);
+    Scalar Lz = (*m_Lz)(timestep);
+    Scalar xy = (*m_xy)(timestep);
+    Scalar xz = (*m_xz)(timestep);
+    Scalar yz = (*m_yz)(timestep);
 
     // check if the current box size is the same
     BoxDim curBox = m_pdata->getGlobalBox();

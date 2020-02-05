@@ -316,9 +316,10 @@ void export_IntegrationMethodTwoStep(py::module& m)
     py::class_<IntegrationMethodTwoStep, std::shared_ptr<IntegrationMethodTwoStep> >(m, "IntegrationMethodTwoStep")
         .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup> >())
         .def("validateGroup", &IntegrationMethodTwoStep::validateGroup)
-#ifdef ENABLE_MPI
-        .def("setCommunicator", &IntegrationMethodTwoStep::setCommunicator)
-#endif
         .def("setRandomizeVelocitiesParams", &IntegrationMethodTwoStep::setRandomizeVelocitiesParams)
+        .def_property_readonly("filter", [](const std::shared_ptr<IntegrationMethodTwoStep> method)
+                                             {
+                                             return method->getGroup()->getFilter();
+                                             })
         ;
     }

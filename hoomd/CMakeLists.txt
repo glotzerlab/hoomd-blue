@@ -311,6 +311,7 @@ set(files analyze.py
           hdf5.py
           simulation.py
           state.py
+	  syncedlist.py
           operations.py
           parameterdicts.py
           triggers.py

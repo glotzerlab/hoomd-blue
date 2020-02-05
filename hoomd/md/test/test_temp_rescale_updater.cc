@@ -113,7 +113,7 @@ UP_TEST( TempRescaleUpdater_basic )
 
 
     // variant T for the rescaler
-    std::shared_ptr<VariantConst> T_variant(new VariantConst(1.2));
+    std::shared_ptr<VariantConstant> T_variant(new VariantConstant(1.2));
 
     // construct the updater and make sure everything is set properly
     std::shared_ptr<TempRescaleUpdater> rescaler(new TempRescaleUpdater(sysdef, tc, T_variant));
@@ -124,7 +124,7 @@ UP_TEST( TempRescaleUpdater_basic )
     MY_CHECK_CLOSE(tc->getTemperature(), 1.2, tol);
 
     // check that the setT method works
-    std::shared_ptr<VariantConst> T_variant2(new VariantConst(2.0));
+    std::shared_ptr<VariantConstant> T_variant2(new VariantConstant(2.0));
     rescaler->setT(T_variant2);
     rescaler->update(1);
     tc->compute(2);

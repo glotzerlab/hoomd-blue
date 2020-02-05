@@ -1,14 +1,6 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
-// Maintainer: joaander
-
-/*! \file IntegratorTwoStep.cc
-    \brief Defines the IntegratorTwoStep class
-*/
-
-
 #include "IntegratorTwoStep.h"
 
 namespace py = pybind11;
@@ -16,6 +8,8 @@ namespace py = pybind11;
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #endif
+
+#include <pybind11/stl_bind.h>
 
 using namespace std;
 
@@ -330,9 +324,44 @@ unsigned int IntegratorTwoStep::getRotationalNDOF(std::shared_ptr<ParticleGroup>
 /*!  \param mode Anisotropic integration mode to set
      Set the anisotropic integration mode
 */
-void IntegratorTwoStep::setAnisotropicMode(AnisotropicMode mode)
+void IntegratorTwoStep::setAnisotropicMode(const std::string& mode)
     {
-    m_aniso_mode = mode;
+    if (mode == "true")
+        {
+        m_aniso_mode = AnisotropicMode::Anisotropic;
+        }
+    else if (mode == "false")
+        {
+        m_aniso_mode = AnisotropicMode::Isotropic;
+        }
+    else if (mode == "auto")
+        {
+        m_aniso_mode = AnisotropicMode::Automatic;
+        }
+    else
+        {
+        throw std::invalid_argument("Invalid mode string");
+        }
+    }
+
+const std::string IntegratorTwoStep::getAnisotropicMode()
+    {
+    if (m_aniso_mode == AnisotropicMode::Anisotropic)
+        {
+        return "true";
+        }
+    else if (m_aniso_mode == AnisotropicMode::Isotropic)
+        {
+        return "false";
+        }
+    else if (m_aniso_mode == AnisotropicMode::Automatic)
+        {
+        return "auto";
+        }
+    else
+        {
+        throw std::runtime_error("Invalid anisotropic mode");
+        }
     }
 
 /*! Compute accelerations if needed for the first step.
@@ -461,21 +490,15 @@ void IntegratorTwoStep::setAutotunerParams(bool enable, unsigned int period)
 
 void export_IntegratorTwoStep(py::module& m)
     {
+	py::bind_vector<std::vector< std::shared_ptr<IntegrationMethodTwoStep> > >(
+        m, "IntegrationMethodList");
+
     py::class_<IntegratorTwoStep, Integrator, std::shared_ptr<IntegratorTwoStep> >(m, "IntegratorTwoStep")
         .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
-        .def("addIntegrationMethod", &IntegratorTwoStep::addIntegrationMethod)
-        .def("removeAllIntegrationMethods", &IntegratorTwoStep::removeAllIntegrationMethods)
-        .def("setAnisotropicMode", &IntegratorTwoStep::setAnisotropicMode)
-        .def("addForceComposite", &IntegratorTwoStep::addForceComposite)
-        .def("removeForceComputes", &IntegratorTwoStep::removeForceComputes)
-        .def("initializeIntegrationMethods", &IntegratorTwoStep::initializeIntegrationMethods)
-        ;
+        .def_property_readonly("methods", &IntegratorTwoStep::getIntegrationMethods)
+        .def_property("aniso",
+                      &IntegratorTwoStep::getAnisotropicMode,
+                      &IntegratorTwoStep::setAnisotropicMode)
 
-    py::enum_<IntegratorTwoStep::AnisotropicMode>(m,"IntegratorAnisotropicMode")
-        .value("Automatic", IntegratorTwoStep::AnisotropicMode::Automatic)
-        .value("Anisotropic", IntegratorTwoStep::AnisotropicMode::Anisotropic)
-        .value("Isotropic", IntegratorTwoStep::AnisotropicMode::Isotropic)
-        .export_values()
         ;
-
     }

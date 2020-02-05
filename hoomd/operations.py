@@ -1,15 +1,34 @@
 import hoomd.integrate
 import hoomd.meta
+from hoomd.syncedlist import SyncedList
+from hoomd.meta import _Analyzer, _Updater
+
+
+def list_validation(type_):
+    def validate(value):
+        if not isinstance(value, type_):
+            raise ValueError("Value {} is of type {}. Excepted instance of "
+                             "{}".format(value, type(value), type_))
+        else:
+            return True
+    return validate
+
+
+def triggered_op_conversion(value):
+    return (value._cpp_obj, value.trigger)
 
 
 class Operations:
     def __init__(self, simulation=None):
-        self.simulation = simulation
+        self._simulation = simulation
         self._compute = list()
         self._auto_schedule = False
         self._scheduled = False
-        self._updaters = list()
-        self._analyzers = list()
+        self._updaters = SyncedList(list_validation(_Updater),
+                                       triggered_op_conversion)
+        self._analyzers = SyncedList(list_validation(_Analyzer),
+                                        triggered_op_conversion)
+        self._integrator = None
 
     def add(self, op):
         if op in self:
@@ -24,8 +43,6 @@ class Operations:
         else:
             raise ValueError("Operation is not of the correct type to add to"
                              " Operations.")
-        if self._auto_schedule:
-            self._schedule([op])
 
     @property
     def _operations(self):
@@ -38,29 +55,22 @@ class Operations:
 
     @property
     def _sys_init(self):
-        if self.simulation is None or self.simulation.state is None:
+        if self._simulation is None or self._simulation.state is None:
             return False
         else:
             return True
 
     def schedule(self):
-        self._schedule()
-
-    def _schedule(self, ops=None):
         if not self._sys_init:
             raise RuntimeError("System not initialized yet")
-        sim = self.simulation
-        ops = self._operations if ops is None else ops
-        for op in ops:
-            if op.is_attached:
-                continue
-            new_objs = op.attach(sim)
-            if isinstance(op, hoomd.integrate._BaseIntegrator):
-                sim._cpp_sys.setIntegrator(op._cpp_obj)
-            if new_objs is not None:
-                self._compute.extend(new_objs)
+        sim = self._simulation
+        if self.integrator is not None and not self.integrator.is_attached:
+            self.integrator.attach(sim)
+        if not self.updaters.is_attached:
+            self.updaters.attach(sim, sim._cpp_sys.updaters)
+        if not self.analyzers.is_attached:
+            self.analyzers.attach(sim, sim._cpp_sys.analyzers)
         self._scheduled = True
-        self._auto_schedule = True
 
     def _store_reader(self, reader):
         # TODO
@@ -75,10 +85,7 @@ class Operations:
 
     @property
     def integrator(self):
-        try:
-            return self._integrator
-        except AttributeError:
-            return None
+        return self._integrator
 
     @integrator.setter
     def integrator(self, op):
@@ -88,9 +95,9 @@ class Operations:
         old_ref = self.integrator
         self._integrator = op
         if self._auto_schedule:
-            self._schedule([op])
+            new_objs = op.attach(self._simulation)
             if old_ref is not None:
-                new_objs = old_ref.notify_detach(self.simulation)
+                old_ref.notify_detach(self._simulation)
                 old_ref.detach()
             if new_objs is not None:
                 self._compute.extend(new_objs)

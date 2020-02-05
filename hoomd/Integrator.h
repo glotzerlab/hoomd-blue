@@ -1,19 +1,11 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
-// Maintainer: joaander
-
-/*! \file Integrator.h
-    \brief Declares the Integrator base class
-*/
-
 #ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifndef __INTEGRATOR_H__
-#define __INTEGRATOR_H__
+#pragma once
 
 #include "Updater.h"
 #include "ForceCompute.h"
@@ -28,8 +20,8 @@
 #include <hip/hip_runtime.h>
 #endif
 
-//! Base class that defines an integrator
-/*! An Integrator steps the entire simulation forward one time step in time.
+/// Base class that defines an integrator
+/** An Integrator steps the entire simulation forward one time step in time.
     Prior to calling update(timestep), the system is at time step \a timestep.
     After the call to update completes, the system is at \a timestep + 1.
 
@@ -66,38 +58,50 @@
 class PYBIND11_EXPORT Integrator : public Updater
     {
     public:
-        //! Constructor
+        /// Constructor
         Integrator(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
 
-        //! Destructor
+        /// Destructor
         virtual ~Integrator();
 
-        //! Take one timestep forward
+        /// Take one timestep forward
         virtual void update(unsigned int timestep);
 
-        //! Add a ForceCompute to the list
+        /// Add a ForceCompute to the list
         virtual void addForceCompute(std::shared_ptr<ForceCompute> fc);
 
-        //! Add a ForceConstraint to the list
+        /// Get the list of force computes
+        std::vector< std::shared_ptr<ForceCompute> >& getForces()
+            {
+            return m_forces;
+            }
+
+        /// Add a ForceConstraint to the list
         virtual void addForceConstraint(std::shared_ptr<ForceConstraint> fc);
 
-        //! Set HalfStepHook
+        /// Get the list of force computes
+        std::vector< std::shared_ptr<ForceConstraint> >& getConstraintForces()
+            {
+            return m_constraint_forces;
+            }
+
+        /// Set HalfStepHook
         virtual void setHalfStepHook(std::shared_ptr<HalfStepHook> hook);
 
-        //! Removes all ForceComputes from the list
+        /// Removes all ForceComputes from the list
         virtual void removeForceComputes();
 
-        //! Removes HalfStepHook
+        /// Removes HalfStepHook
         virtual void removeHalfStepHook();
 
-        //! Change the timestep
+        /// Change the timestep
         virtual void setDeltaT(Scalar deltaT);
 
-        //! Return the timestep
+        /// Return the timestep
         Scalar getDeltaT();
 
-        //! Get the number of degrees of freedom granted to a given group
-        /*! \param group Group over which to count degrees of freedom.
+        /// Get the number of degrees of freedom granted to a given group
+        /** @param group Group over which to count degrees of freedom.
             Base class Integrator returns 0. Derived classes should override.
         */
         virtual unsigned int getNDOF(std::shared_ptr<ParticleGroup> group)
@@ -105,8 +109,8 @@ class PYBIND11_EXPORT Integrator : public Updater
             return 0;
             }
 
-        //! Get the number of rotational degrees of freedom granted to a given group
-        /*! \param group Group over which to count degrees of freedom.
+        /// Get the number of rotational degrees of freedom granted to a given group
+        /** @param group Group over which to count degrees of freedom.
             Base class Integrator returns 0. Derived classes should override.
         */
         virtual unsigned int getRotationalNDOF(std::shared_ptr<ParticleGroup> group)
@@ -114,67 +118,72 @@ class PYBIND11_EXPORT Integrator : public Updater
             return 0;
             }
 
-        //! Count the total number of degrees of freedom removed by all constraint forces
+        /// Count the total number of degrees of freedom removed by all constraint forces
         unsigned int getNDOFRemoved();
 
-        //! Returns a list of log quantities this compute calculates
+        /// Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
 
-        //! Calculates the requested log value and returns it
+        /// Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
-        //! helper function to compute total momentum
+        /// helper function to compute total momentum
         virtual Scalar computeTotalMomentum(unsigned int timestep);
 
-        //! Prepare for the run
+        /// Prepare for the run
         virtual void prepRun(unsigned int timestep);
 
         #ifdef ENABLE_MPI
-        //! Set the communicator to use
-        /*! \param comm The Communicator
+        /// Set the communicator to use
+        /** @param comm The Communicator
          */
         virtual void setCommunicator(std::shared_ptr<Communicator> comm);
 
-        //! Callback for pre-computing the forces
+        /// Callback for pre-computing the forces
         void computeCallback(unsigned int timestep);
         #endif
 
     protected:
-        Scalar m_deltaT;                                            //!< The time step
-        std::vector< std::shared_ptr<ForceCompute> > m_forces;    //!< List of all the force computes
+        /// The step size
+        Scalar m_deltaT;
 
-        std::vector< std::shared_ptr<ForceConstraint> > m_constraint_forces;    //!< List of all the constraints
+        /// List of all the force computes
+        std::vector< std::shared_ptr<ForceCompute> > m_forces;
 
-        std::shared_ptr<HalfStepHook> m_half_step_hook;    //!< The HalfStepHook, if active
+        /// List of all the constraints
+        std::vector< std::shared_ptr<ForceConstraint> > m_constraint_forces;
 
+        /// The HalfStepHook, if active
+        std::shared_ptr<HalfStepHook> m_half_step_hook;
 
-        //! helper function to compute initial accelerations
+        /// helper function to compute initial accelerations
         void computeAccelerations(unsigned int timestep);
 
-        //! helper function to compute net force/virial
+        /// helper function to compute net force/virial
         void computeNetForce(unsigned int timestep);
 
 #ifdef ENABLE_HIP
-        //! helper function to compute net force/virial on the GPU
+        /// helper function to compute net force/virial on the GPU
         void computeNetForceGPU(unsigned int timestep);
 #endif
 
 #ifdef ENABLE_MPI
-        //! helper function to determine the ghost communication flags
+        /// helper function to determine the ghost communication flags
         CommFlags determineFlags(unsigned int timestep);
 #endif
 
-        //! Helper function to determine (an-)isotropic integration mode
+        /// Helper function to determine (an-)isotropic integration mode
         bool getAnisotropic();
 
     private:
         #ifdef ENABLE_MPI
-        bool m_request_flags_connected = false;     //!< Connection to Communicator to request communication flags
-        bool m_signals_connected = false;                           //!< Track if we have already connected signals
+        /// Connection to Communicator to request communication flags
+        bool m_request_flags_connected = false;
+
+        /// Track if we have already connected signals
+        bool m_signals_connected = false;
         #endif
     };
 
-//! Exports the NVEUpdater class to python
+/// Exports the NVEUpdater class to python
 void export_Integrator(pybind11::module& m);
-
-#endif

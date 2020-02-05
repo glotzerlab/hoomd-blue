@@ -731,6 +731,7 @@ class GSDLogWriter:
 
     _per_keys = ['particles', 'bonds', 'dihedrals', 'impropers', 'pairs']
     _convert_kinds = ['string', 'strings']
+    _skip_kinds = ['object']
     _special_keys = ['type_shapes']
     _global_prepend = 'log'
 
@@ -741,21 +742,24 @@ class GSDLogWriter:
         log = dict()
         for key, value in dict_flatten(self.logger.log()).items():
             log_value, kind = value
-            if log_value is None:
-                continue
-            if key[-1] in self._special_keys:
-                self._log_special(log, key[-1], log_value)
-            else:
-                if kind in self._per_keys:
-                    log['/'.join((self._global_prepend,
-                                  kind) + key)] = log_value
-                elif kind in self._convert_kinds:
-                    self._log_convert_value(
-                        log, '/'.join((self._global_prepend,) + key),
-                        kind, value)
+            if kind not in self._skip_kinds:
+                if log_value is None:
+                    continue
+                if key[-1] in self._special_keys:
+                    self._log_special(log, key[-1], log_value)
                 else:
-                    log['/'.join((self._global_prepend,) + key)] = \
-                        log_value
+                    if kind in self._per_keys:
+                        log['/'.join((self._global_prepend,
+                                    kind) + key)] = log_value
+                    elif kind in self._convert_kinds:
+                        self._log_convert_value(
+                            log, '/'.join((self._global_prepend,) + key),
+                            kind, log_value)
+                    else:
+                        log['/'.join((self._global_prepend,) + key)] = \
+                            log_value
+            else:
+                pass
         return log
 
     def _write_frame(self, _gsd):

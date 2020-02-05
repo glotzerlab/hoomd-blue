@@ -1,0 +1,49 @@
+variables:
+  image_root: glotzerlab/ci:2020.01
+  name: hoomd
+
+trigger:
+  branches:
+    include:
+    - '*'
+  tags:
+    include:
+    - 'v*'
+
+pr: none
+
+jobs:
+- job: release
+  displayName: Build release tarball
+
+  pool:
+    vmImage: 'ubuntu-16.04'
+
+  container:
+    image: $(image_root)-ubuntu19.10
+    options: -u 0
+
+  steps:
+  - checkout: self
+    submodules: true
+  - script: echo "##vso[task.setvariable variable=tag;]$(git describe --abbrev=0)"
+    displayName: Determine tag
+  - script: .azp/make-changelog-md.sh  $(tag) > $(Pipeline.Workspace)/changelog.md && cat $(Pipeline.Workspace)/changelog.md
+    displayName: Write version change log
+  - script: cp -R $(Build.SourcesDirectory) $(Pipeline.Workspace)/$(name)-$(tag)
+    displayName: Copy source
+  - script: rm -rf $(Pipeline.Workspace)/$(name)-$(tag)/.git
+    displayName: Remove .git
+  - script: tar -cvzf $(Build.ArtifactStagingDirectory)/$(name)-$(tag).tar.gz -C $(Pipeline.Workspace) $(name)-$(tag)
+    displayName: Tar source
+  - task: GitHubRelease@0
+    displayName: Create GitHub release
+    condition: startsWith(variables['Build.SourceBranch'], 'refs/tags/v')
+    inputs:
+      gitHubConnection: release
+      repositoryName: $(Build.Repository.Name)
+      action: 'create'
+      title: $(tag)
+      assets: $(Build.ArtifactStagingDirectory)/*.tar.gz
+      releaseNotesFile: $(Pipeline.Workspace)/changelog.md
+      addChangeLog: false

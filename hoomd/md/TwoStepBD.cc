@@ -1,9 +1,6 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
-// Maintainer: joaander
-
 #include "TwoStepBD.h"
 #include "hoomd/VectorMath.h"
 #include "QuaternionMath.h"
@@ -13,7 +10,6 @@
 #include "hoomd/RNGIdentifiers.h"
 using namespace hoomd;
 
-
 #ifdef ENABLE_MPI
 #include "hoomd/HOOMDMPI.h"
 #endif
@@ -21,30 +17,18 @@ using namespace hoomd;
 namespace py = pybind11;
 using namespace std;
 
-/*! \file TwoStepBD.h
-    \brief Contains code for the TwoStepBD class
-*/
-
-/*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
-    \param group The group of particles this integration method is to work on
-    \param T Temperature set point as a function of time
-    \param seed Random seed to use in generating random numbers
-    \param use_lambda If true, gamma=lambda*diameter, otherwise use a per-type gamma via setGamma()
-    \param lambda Scale factor to convert diameter to gamma
-    \param noiseless_t If set true, there will be no translational noise (random force)
-    \param noiseless_r If set true, there will be no rotational noise (random torque)
+/** @param sysdef SystemDefinition this method will act on. Must not be NULL.
+    @param group The group of particles this integration method is to work on
+    @param T Temperature set point as a function of time
+    @param seed Random seed to use in generating random numbers
 */
 TwoStepBD::TwoStepBD(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<ParticleGroup> group,
                            std::shared_ptr<Variant> T,
-                           unsigned int seed,
-                           bool use_lambda,
-                           Scalar lambda,
-                           bool noiseless_t,
-                           bool noiseless_r
+                           unsigned int seed
                            )
-  : TwoStepLangevinBase(sysdef, group, T, seed, use_lambda, lambda),
-    m_noiseless_t(noiseless_t), m_noiseless_r(noiseless_r)
+  : TwoStepLangevinBase(sysdef, group, T, seed),
+    m_noiseless_t(false), m_noiseless_r(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepBD" << endl;
     }
@@ -54,8 +38,8 @@ TwoStepBD::~TwoStepBD()
     m_exec_conf->msg->notice(5) << "Destroying TwoStepBD" << endl;
     }
 
-/*! \param timestep Current time step
-    \post Particle positions are moved forward to timestep+1
+/*! @param timestep Current time step
+    @post Particle positions are moved forward to timestep+1
 
     The integration method here is from the book "The Langevin and Generalised Langevin Approach to the Dynamics of
     Atomic, Polymeric and Colloidal Systems", chapter 6.
@@ -69,7 +53,7 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
         m_prof->push("BD step 1");
 
     // grab some initial variables
-    const Scalar currentTemp = m_T->getValue(timestep);
+    const Scalar currentTemp = (*m_T)(timestep);
     const unsigned int D = Scalar(m_sysdef->getNDimensions());
 
     const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
@@ -109,8 +93,8 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
         Scalar rz = uniform(rng);
 
         Scalar gamma;
-        if (m_use_lambda)
-            gamma = m_lambda*h_diameter.data[j];
+        if (m_use_alpha)
+            gamma = m_alpha*h_diameter.data[j];
         else
             {
             unsigned int type = __scalar_as_int(h_pos.data[j].w);
@@ -222,7 +206,7 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
     }
 
 
-/*! \param timestep Current time step
+/*! @param timestep Current time step
 */
 void TwoStepBD::integrateStepTwo(unsigned int timestep)
     {
@@ -235,10 +219,6 @@ void export_TwoStepBD(py::module& m)
     .def(py::init< std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
                             std::shared_ptr<Variant>,
-                            unsigned int,
-                            bool,
-                            Scalar,
-                            bool,
-                            bool>())
+                            unsigned int>())
         ;
     }

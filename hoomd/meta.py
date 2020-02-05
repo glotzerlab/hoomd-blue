@@ -19,7 +19,10 @@ Example::
 import hoomd
 from hoomd.util import is_iterable, dict_map, str_to_tuple_keys
 from hoomd.triggers import PeriodicTrigger, Trigger
+from hoomd.variant import Variant, ConstantVariant
+from hoomd.filters import ParticleFilter
 from hoomd.logger import Loggable
+from hoomd.typeconverter import RequiredArg
 from hoomd.util import NamespaceDict
 from hoomd._hoomd import GSDStateReader
 from hoomd.parameterdicts import ParameterDict
@@ -33,13 +36,22 @@ from collections import Mapping
 from copy import deepcopy
 
 
-def note_type(value):
-    if not is_iterable(value):
-        return (value, 'scalar')
+def convert_values_to_log_form(value):
+    if value is RequiredArg:
+        return (None, 'scalar')
+    elif isinstance(value, Variant):
+        if isinstance(value, ConstantVariant):
+            return (value.value, 'scalar')
+        else:
+            return (value, 'object')
+    elif isinstance(value, Trigger) or isinstance(value, ParticleFilter):
+        return (value, 'object')
     elif isinstance(value, str):
         return (value, 'string')
     elif is_iterable(value) and all([isinstance(v, str) for v in value]):
         return (value, 'strings')
+    elif not is_iterable(value):
+        return (value, 'scalar')
     else:
         return (value, 'multi')
 
@@ -59,6 +71,8 @@ class _Operation(metaclass=Loggable):
                                 '_param_dict': ParameterDict,
                                 '_typeparam_dict': dict,
                                 '_dependent_list': lambda: []}
+
+    _use_default_setattr = set()
 
     _skip_for_equality = set(['_cpp_obj', '_dependent_list'])
 
@@ -84,7 +98,8 @@ class _Operation(metaclass=Loggable):
         return self._typeparam_dict[attr]
 
     def __setattr__(self, attr, value):
-        if attr in self._reserved_attrs_with_dft.keys():
+        if attr in self._reserved_attrs_with_dft.keys() or \
+                attr in self._use_default_setattr:
             super().__setattr__(attr, value)
         elif attr in self._param_dict.keys():
             self._setattr_param(attr, value)
@@ -94,13 +109,14 @@ class _Operation(metaclass=Loggable):
             super().__setattr__(attr, value)
 
     def _setattr_param(self, attr, value):
+        self._param_dict[attr] = value
+        new_value = self._param_dict[attr]
         if self.is_attached:
             try:
-                setattr(self._cpp_obj, attr, value)
+                setattr(self._cpp_obj, attr, new_value)
             except (AttributeError):
                 raise AttributeError("{} cannot be set after cpp"
                                      " initialization".format(attr))
-        self._param_dict[attr] = value
 
     def _setattr_typeparam(self, attr, value):
         try:
@@ -121,11 +137,16 @@ class _Operation(metaclass=Loggable):
                     return False
         return True
 
+    def __del__(self):
+        if self.is_attached and hasattr(self, '_simulation'):
+            self.notify_detach(self._simulation)
+
     def detach(self):
         self._unapply_typeparam_dict()
         self._update_param_dict()
         self._cpp_obj = None
         if hasattr(self, '_simulation'):
+            self.notify_detach(self._simulation)
             del self._simulation
         return self
 
@@ -143,8 +164,9 @@ class _Operation(metaclass=Loggable):
         new_objs = self.attach(sim)
         return new_objs if new_objs is not None else []
 
-    def attach(self, sim):
-        raise NotImplementedError
+    def attach(self, simulation):
+        self._apply_param_dict()
+        self._apply_typeparam_dict(self._cpp_obj, simulation)
 
     @property
     def is_attached(self):
@@ -157,10 +179,10 @@ class _Operation(metaclass=Loggable):
             except AttributeError:
                 pass
 
-    def _apply_typeparam_dict(self, cpp_obj, sim):
+    def _apply_typeparam_dict(self, cpp_obj, simulation):
         for typeparam in self._typeparam_dict.values():
             try:
-                typeparam.attach(cpp_obj, sim)
+                typeparam.attach(cpp_obj, simulation)
             except ValueError as verr:
                 raise ValueError("TypeParameter {}:"
                                  " ".format(typeparam.name) + verr.args[0])
@@ -189,7 +211,7 @@ class _Operation(metaclass=Loggable):
         self._update_param_dict()
         state = self._typeparam_states()
         state['params'] = deepcopy(self._param_dict)
-        return dict_map(state, note_type)
+        return dict_map(state, convert_values_to_log_form)
 
     @classmethod
     def from_state(cls, state, final_namespace=None, **kwargs):
@@ -276,39 +298,49 @@ class _Operation(metaclass=Loggable):
         return obj
 
 
+def trigger_preprocessing(value):
+    if isinstance(value, Trigger):
+        return value
+    if isinstance(value, int):
+        return PeriodicTrigger(period=value, phase=0)
+    elif hasattr(value, '__len__') and len(value) == 2:
+        return PeriodicTrigger(period=value[0], phase=value[1])
+    else:
+        raise ValueError("Value {} could not be converted to a Trigger.")
+
+
 class _TriggeredOperation(_Operation):
     _cpp_list_name = None
 
+    _use_default_setattr = set(['trigger'])
+
     def __init__(self, trigger):
-        if isinstance(trigger, int):
-            trigger = PeriodicTrigger(period=trigger, phase=0)
-        self._trigger = trigger
+        trigger_dict = ParameterDict(trigger=trigger_preprocessing)
+        trigger_dict['trigger'] = trigger
+        self._param_dict.update(trigger_dict)
 
     @property
     def trigger(self):
-        return self._trigger
+        return self._param_dict['trigger']
 
     @trigger.setter
     def trigger(self, new_trigger):
-        if type(new_trigger) == int:
-            new_trigger = PeriodicTrigger(period=new_trigger, phase=0)
-        elif not isinstance(new_trigger, Trigger):
-            raise ValueError("Trigger of type {} must be a subclass of "
-                             "hoomd.triggers.Trigger".format(type(new_trigger))
-                             )
-        self._trigger = new_trigger
+        # Overwrite python trigger
+        old_trigger = self.trigger
+        self._param_dict['trigger'] = new_trigger
+        new_trigger = self.trigger
         if self.is_attached:
             sys = self._simulation._cpp_sys
             triggered_ops = getattr(sys, self._cpp_list_name)
             for index in range(len(triggered_ops)):
-                if triggered_ops[index][0] == self._cpp_obj:
-                    new_tuple = (self._cpp_obj, new_trigger)
-                    triggered_ops[index] = new_tuple
+                op, trigger = triggered_ops[index]
+                # If tuple is the operation and trigger according to memory
+                # location (python's is), replace with new trigger
+                if op is self._cpp_obj and trigger is old_trigger:
+                    triggered_ops[index] = (op, new_trigger)
 
     def attach(self, simulation):
         self._simulation = simulation
-        sys = simulation._cpp_sys
-        getattr(sys, self._cpp_list_name).append((self._cpp_obj, self.trigger))
 
 
 class _Updater(_TriggeredOperation):

@@ -340,7 +340,7 @@ void srd_collision_method_thermostat_test(std::shared_ptr<ExecutionConfiguration
 
     // set the temperature to 2.0 and check
         {
-        std::shared_ptr<::Variant> T = std::make_shared<::VariantConst>(2.0);
+        std::shared_ptr<::Variant> T = std::make_shared<::VariantConstant>(2.0);
         collide->setTemperature(T);
         double mean(0.0);
         for (unsigned int i=0; i < N; ++i)
@@ -354,7 +354,7 @@ void srd_collision_method_thermostat_test(std::shared_ptr<ExecutionConfiguration
 
     // change the temperature and check again
         {
-        std::shared_ptr<::Variant> T = std::make_shared<::VariantConst>(4.0);
+        std::shared_ptr<::Variant> T = std::make_shared<::VariantConstant>(4.0);
         collide->setTemperature(T);
         double mean(0.0);
         for (unsigned int i=0; i < N; ++i)

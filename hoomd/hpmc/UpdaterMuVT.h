@@ -305,7 +305,7 @@ UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
             bcast(m_seed, 0, this->m_exec_conf->getMPICommunicator());
     #endif
 
-    m_fugacity.resize(m_pdata->getNTypes(), std::shared_ptr<Variant>(new VariantConst(0.0)));
+    m_fugacity.resize(m_pdata->getNTypes(), std::shared_ptr<Variant>(new VariantConstant(0.0)));
     m_type_map.resize(m_pdata->getNTypes());
 
     m_pdata->getNumTypesChangeSignal().template connect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::slotNumTypesChange>(this);
@@ -454,7 +454,7 @@ template<class Shape>
 void UpdaterMuVT<Shape>::slotNumTypesChange()
     {
     // resize parameter list
-    m_fugacity.resize(m_pdata->getNTypes(), std::shared_ptr<Variant>(new VariantConst(0.0)));
+    m_fugacity.resize(m_pdata->getNTypes(), std::shared_ptr<Variant>(new VariantConstant(0.0)));
     m_type_map.resize(m_pdata->getNTypes());
     }
 
@@ -984,7 +984,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                 else
                     {
                     // get fugacity value
-                    Scalar fugacity = m_fugacity[type]->getValue(timestep);
+                    Scalar fugacity = (*m_fugacity[type])(timestep);
 
                     // sanity check
                     if (fugacity <= Scalar(0.0))
@@ -1106,7 +1106,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
             if (!m_gibbs)
                 {
                 // get fugacity value
-                Scalar fugacity = m_fugacity[type]->getValue(timestep);
+                Scalar fugacity = (*m_fugacity[type])(timestep);
 
                 // sanity check
                 if (fugacity <= Scalar(0.0))

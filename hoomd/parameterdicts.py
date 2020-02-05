@@ -296,12 +296,37 @@ class ParameterDict(dict):
             )
 
     def __setitem__(self, key, value):
-        if key not in self.keys():
+        if key not in self._type_converter.keys():
             super().__setitem__(key, value)
             self._type_converter[key] = TypeConverter.from_default(value)
         else:
             super().__setitem__(key, self._type_converter[key](value))
 
+    def __deepcopy__(self, memo):
+        new_dict = ParameterDict()
+        for key, value in self.items():
+            try:
+                new_dict[key] = deepcopy(value)
+            except TypeError:
+                new_dict[key] = value
+            try:
+                new_dict._type_converter[key] = deepcopy(
+                    self._type_converter[key])
+            except TypeError:
+                new_dict._type_converter[key] = self._type_converter[key]
+        return new_dict
+
     def update(self, dict_):
-        for key, value in dict_.items():
-            self[key] = value
+        if isinstance(dict_, ParameterDict):
+            for key, value in dict_.items():
+                self.setitem_with_validation_function(key,
+                                                      value,
+                                                      dict_._type_converter[key]
+                                                      )
+        else:
+            for key, value in dict_.items():
+                self[key] = value
+
+    def setitem_with_validation_function(self, key, value, converter):
+        self._type_converter[key] = converter
+        self[key] = value

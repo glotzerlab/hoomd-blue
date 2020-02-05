@@ -9,8 +9,6 @@ from hoomd.meta import _Operation
 
 
 class _BaseIntegrator(_Operation):
-    pass
-
-
-class _DynamicIntegrator(_BaseIntegrator):
-    pass
+    def attach(self, simulation):
+        simulation._cpp_sys.setIntegrator(self._cpp_obj)
+        super().attach(simulation)
