@@ -67,7 +67,7 @@ protected:
     Scalar m_delta_t;                       //!< time step from integrator
     std::vector<int> m_nloops;              //!< structure of size N to store number of loops for each colloid
     std::map<std::pair<int, int>, int> m_nbonds;
-    // std::map<std::pair<int, int>, int> m_delta_nbonds;
+    std::map<std::pair<int, int>, int> m_delta_nbonds;
     int n_polymer;                          //!< number of polymers per colloid
 };
 
