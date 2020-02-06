@@ -7,6 +7,7 @@ context.initialize()
 import unittest
 import os
 
+
 # tests for md.update.popbd
 class update_popbd(unittest.TestCase):
     def setUp(self):
@@ -23,7 +24,7 @@ class update_popbd(unittest.TestCase):
             snap.particles.position[1] = [1, 0, 0]
 
         self.s = init.read_snapshot(snap)
-        self.nl = md.nlist.tree()
+        self.nl = md.nlist.cell()
         self.integrator = md.integrate.mode_standard(dt=0.001)
         md.integrate.brownian(group=group.all(), kT=1, seed=0)
 
@@ -38,7 +39,7 @@ class update_popbd(unittest.TestCase):
             integrator=self.integrator,
             table_width=10,
         )
-        run(10)
+        run(5)
 
     # tests formation of a bond within a cutoff radius
     def test_set_params(self):
@@ -55,6 +56,7 @@ class update_popbd(unittest.TestCase):
             bond_type="harmonic",
             n_polymer=10,
         )
+        run(5)
 
     def test_set_from_file(self):
         dybond = md.update.popbd(
@@ -65,7 +67,13 @@ class update_popbd(unittest.TestCase):
             integrator=self.integrator,
             table_width=3,
         )
+        dybond.set_params(
+            r_cut=2.0,
+            bond_type="harmonic",
+            n_polymer=10,
+        )
         dybond.set_from_file(os.path.join(os.path.dirname(__file__), 'popbd.dat'))
+        run(5)
 
     def tearDown(self):
         del self.s
@@ -74,4 +82,3 @@ class update_popbd(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(argv=["test.py", "-v"])
-
