@@ -131,8 +131,8 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
 
     for (unsigned int i = 0; i < max_num_points; ++i)
         {
-        // We initialize W to avoid accidentally termianting if the new w is
-        // somehow equal to somthing saved in one of the uninitialized W[i].
+        // We initialize W to avoid accidentally terminating if the new w is
+        // somehow equal to something saved in one of the uninitialized W[i].
         W[i] = vec3<Scalar>();
         }
 
