@@ -719,10 +719,10 @@ inline std::string getShapeSpec(const ShapeUnion<ShapeSphere>& sphere_union)
         {
         shapedef << "[" << members.mpos[i].x << ", " << members.mpos[i].y << ", " << members.mpos[i].z << "], ";
         }
-    shapedef << "[" << members.mpos[n_centers-1].x << ", " << members.mpos[n_centers-1].y << ", " << members.mpos[n_centers-1].z << "]], \"radii\": [";
+    shapedef << "[" << members.mpos[n_centers-1].x << ", " << members.mpos[n_centers-1].y << ", " << members.mpos[n_centers-1].z << "]], \"diameters\": [";
     for (unsigned int i = 0; i < n_centers-1; i++)
         {
-        shapedef << members.mparams[i].radius << ", ";
+        shapedef << 2.0*members.mparams[i].radius << ", ";
         }
     shapedef << members.mparams[n_centers-1].radius;
     shapedef << "]}";
