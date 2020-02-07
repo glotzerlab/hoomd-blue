@@ -12,7 +12,7 @@
 
 #include "hoomd/VectorMath.h"
 #include "hoomd/ManagedArray.h"
-#include "GJK.h"
+#include "GJK_SV.h"
 
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
