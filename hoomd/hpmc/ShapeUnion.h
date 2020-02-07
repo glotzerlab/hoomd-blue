@@ -910,7 +910,7 @@ inline std::string getShapeSpec(const ShapeUnion<ShapeSphere>& sphere_union)
         {
         shapedef << 2.0*members.mparams[i].radius << ", ";
         }
-    shapedef << members.mparams[n_centers-1].radius;
+    shapedef << 2.0*members.mparams[n_centers-1].radius;
     shapedef << "]}";
 
     return shapedef.str();
