@@ -103,6 +103,10 @@ class PYBIND11_EXPORT NeighborListGPUStencil : public NeighborListGPU
             m_pid_map.resize(m_pdata->getMaxN());
             m_needs_resort = true;
             }
+
+        /// Track when the cell size needs to be updated
+        bool m_update_cell_size = false;
+
     };
 
 //! Exports NeighborListGPUStencil to python

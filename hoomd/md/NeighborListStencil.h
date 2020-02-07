@@ -67,6 +67,10 @@ class PYBIND11_EXPORT NeighborListStencil : public NeighborList
         bool m_override_cell_width;                 //!< Flag to override the cell width
 
         bool m_needs_restencil;                             //!< Flag for updating the stencil
+
+        /// Track when the cell size needs to be updated
+        bool m_update_cell_size = false;
+
         void slotRCutChange()
             {
             m_needs_restencil = true;
