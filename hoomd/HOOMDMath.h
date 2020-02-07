@@ -22,8 +22,33 @@
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #endif
 
+#ifdef WIN32
+#define _USE_MATH_DEFINES
+#endif
 #include <cmath>
 #include <math.h>
+
+
+#ifdef _WIN32
+template<class X, class S, class C>
+void sincosf(X x, S* s, C* c)
+{
+	if (s)
+		*s = sin(x);
+	if (c)
+		*c = cos(x);
+}
+
+template<class X, class S, class C>
+void sincos(X x, S* s, C* c)
+{
+	if (s)
+		*s = sin(x);
+	if (c)
+		*c = cos(x);
+}
+#endif
+
 #endif
 
 // for vector types

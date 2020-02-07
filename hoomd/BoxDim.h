@@ -24,7 +24,12 @@
 #ifdef NVCC
 #define HOSTDEVICE __host__ __device__ inline
 #else
+
+#ifdef _WIN32
+#define HOSTDEVICE inline __forceinline
+#else
 #define HOSTDEVICE inline __attribute__((always_inline))
+#endif
 #endif
 
 //! Stores box dimensions
@@ -60,7 +65,11 @@
 
     \note minImage() and wrap() only work for particles that have moved up to 1 box image out of the box.
 */
+#ifdef _WIN32
+struct BoxDim
+#else
 struct __attribute__((visibility("default"))) BoxDim
+#endif
     {
     public:
         //! Constructs a useless box

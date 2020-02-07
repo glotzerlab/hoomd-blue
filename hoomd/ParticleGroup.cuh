@@ -3,14 +3,15 @@
 
 
 // Maintainer: jglaser
+#ifndef __PARTICLE_GROUP_CUH__
+#define __PARTICLE_GROUP_CUH__
 
 #include "CachedAllocator.h"
 
 /*! \file ParticleGroup.cuh
     \brief Contains GPU kernel code used by ParticleGroup
 */
-#ifndef __PARTICLE_GROUP_CUH__
-#define __PARTICLE_GROUP_CUH__
+
 
 //! GPU method for rebuilding the index list of a ParticleGroup
 cudaError_t gpu_rebuild_index_list(unsigned int N,

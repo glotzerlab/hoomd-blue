@@ -8,6 +8,9 @@
 
 #include <assert.h>
 
+//! make a scalar4 value - remind NVCC to find the Device version of make_scalar4
+__host__ __device__ Scalar4 make_scalar4(Scalar x, Scalar y, Scalar z, Scalar w);
+
 /*! \file Integrator.cu
     \brief Defines methods and data structures used by the Integrator class on the GPU
 */

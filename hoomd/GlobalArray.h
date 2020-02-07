@@ -40,7 +40,19 @@
 
 #include <type_traits>
 #include <string>
+#ifdef __GNUC__
 #include <unistd.h>
+#endif
+#ifdef _WIN32
+#include <io.h>
+#include <windows.h>
+inline int getpagesize(void)
+{
+	SYSTEM_INFO system_info;
+	GetSystemInfo(&system_info);
+	return system_info.dwPageSize;
+}
+#endif
 #include <vector>
 #include <sstream>
 

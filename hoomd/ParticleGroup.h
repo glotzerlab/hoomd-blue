@@ -12,6 +12,9 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#ifndef __PARTICLE_GROUP_H__
+#define __PARTICLE_GROUP_H__
+
 #include "SystemDefinition.h"
 
 #include <string>
@@ -25,8 +28,7 @@
 #include "GPUPartition.cuh"
 #endif
 
-#ifndef __PARTICLE_GROUP_H__
-#define __PARTICLE_GROUP_H__
+
 
 //! Utility class to select particles based on given conditions
 /*! \b Overview

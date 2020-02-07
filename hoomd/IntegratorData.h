@@ -18,9 +18,11 @@
 #include "ParticleData.h"
 #include <string>
 
+#ifdef ENABLE_MPI
 #include "HOOMDMPI.h"
+#endif
 
-//! Stores integrator variables
+ //! Stores integrator variables
 /*! The integration state is necessary for exact restarts.  Extended systems
     integrators in the spirit of Nose-Hoover store the positions, velocities,
     etc. of the fictitious variables.  Other integrators store a random number

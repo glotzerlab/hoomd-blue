@@ -31,6 +31,10 @@
 #include <stdlib.h>
 #include <memory>
 
+#ifdef _WIN32
+#define posix_memalign(p, a, s) (((*(p)) = _aligned_malloc((s), (a))), *(p) ?0 :errno)
+#endif
+
 //! Specifies where to acquire the data
 struct access_location
     {
@@ -162,7 +166,8 @@ class host_deleter
             #endif
 
             // free the allocation
-            free(ptr);
+            //free(ptr);
+			ptr = nullptr;
             }
 
     private:

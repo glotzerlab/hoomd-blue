@@ -35,7 +35,11 @@
     }
 
 //! CachedAllocator: a simple allocator for caching allocation requests
-class __attribute__((visibility("default"))) CachedAllocator
+#ifdef _WIN32
+class CachedAllocator
+#else
+//class __attribute__((visibility("default"))) CachedAllocator
+#endif
     {
     public:
          // needed by thrust

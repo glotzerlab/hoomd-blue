@@ -183,7 +183,7 @@ std::ostream& Messenger::errorAllRanks()
     reopenPythonIfNeeded();
 
     // Delay so that multiple ranks calling this have a good chance of writing non-overlapping messages
-    Sleep(m_mpi_config->getRank()*10);
+    Sleepms(m_mpi_config->getRank()*10);
 
     if (m_err_prefix != string(""))
         *m_err_stream << m_err_prefix << ": ";

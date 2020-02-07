@@ -12,9 +12,13 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <execinfo.h>
 #include <cxxabi.h>
 #include <dlfcn.h>
+#endif
 
 //! Maximum number of symbols to trace back
 #define MAX_TRACEBACK 4
@@ -29,7 +33,11 @@ void MemoryTraceback::registerAllocation(const void *ptr, unsigned int nbytes, c
     m_tags[idx] = tag;
 
     // obtain a traceback
-    int num_symbols = backtrace(&m_traces[idx].front(), MAX_TRACEBACK);
+#ifdef _WIN32
+	int num_symbols = CaptureStackBackTrace(0, MAX_TRACEBACK, &m_traces[idx].front(), NULL);
+#else
+	int num_symbols = backtrace(&m_traces[idx].front(), MAX_TRACEBACK);
+#endif
 
     m_traces[idx].resize(num_symbols);
     }
@@ -90,6 +98,7 @@ void MemoryTraceback::outputTraces(std::shared_ptr<Messenger> msg) const
     msg->notice(2) << "Actual allocation sizes may be larger by up to the OS page size due to alignment." << std::endl;
     msg->notice(2) << "List of memory allocations and last " << MAX_TRACEBACK-1 << " functions called at time of (re-)allocation" << std::endl;
 
+#ifdef __GNUC__
     for (auto it_trace = m_traces.begin(); it_trace != m_traces.end(); ++it_trace)
         {
         std::ostringstream oss;
@@ -140,4 +149,5 @@ void MemoryTraceback::outputTraces(std::shared_ptr<Messenger> msg) const
             }
         free(symbols);
         }
+#endif
     }
