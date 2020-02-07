@@ -80,10 +80,10 @@ void popbd_create_destroy_test(popbd_creator pbd_creator, std::shared_ptr<Execut
     UP_ASSERT_EQUAL(h_gpu_n_bonds.data[1], 0);
 
     popbd->setParams(r_cut, "harmonic", 0);
-    // popbd->update(1);
+    popbd->update(1);
 
-    // UP_ASSERT_EQUAL(h_gpu_n_bonds.data[0], 0);
-    // UP_ASSERT_EQUAL(h_gpu_n_bonds.data[1], 0);
+    UP_ASSERT_EQUAL(h_gpu_n_bonds.data[0], 0);
+    UP_ASSERT_EQUAL(h_gpu_n_bonds.data[1], 0);
 }
 
 void popbd_rcut_test(popbd_creator pbd_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
