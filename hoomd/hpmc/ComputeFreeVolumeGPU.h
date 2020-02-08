@@ -78,6 +78,8 @@ class ComputeFreeVolumeGPU : public ComputeFreeVolume<Shape>
         std::unique_ptr<Autotuner> m_tuner_free_volume;     //!< Autotuner for the overlap/free volume counter
         std::unique_ptr<Autotuner> m_tuner_excell_block_size;  //!< Autotuner for excell block_size
 
+	hipStream_t m_stream; 		      //!< GPU execution stream
+
         void initializeExcellMem();
     };
 
@@ -131,6 +133,7 @@ ComputeFreeVolumeGPU< Shape >::ComputeFreeVolumeGPU(std::shared_ptr<SystemDefini
 template<class Shape>
 ComputeFreeVolumeGPU<Shape>::~ComputeFreeVolumeGPU()
     {
+    hipStreamDestroy(m_stream);
     }
 
 /*! \return the current free volume (by MC integration)
@@ -223,6 +226,23 @@ void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(unsigned int timestep)
     // access the parameters
     const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = this->m_mc->getParams();
 
+    // sync up so we can access the parameters
+    hipDeviceSynchronize();
+
+    #if defined(__HIP_PLATFORM_NVCC__) && (CUDART_VERSION >= 8000)
+    // attach the parameters to the kernel stream so that they are visible
+    // when other kernels are called
+    cudaStreamAttachMemAsync(m_stream, params.data(), 0, cudaMemAttachSingle);
+    CHECK_CUDA_ERROR();
+    #endif
+
+    for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
+        {
+        // attach nested memory regions
+        params[i].attach_to_stream(m_stream);
+        CHECK_CUDA_ERROR();
+        }
+
         {
         // access counter
         ArrayHandle<unsigned int> d_n_overlap_all(this->m_n_overlap_all, access_location::device, access_mode::overwrite);
@@ -267,7 +287,8 @@ void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(unsigned int timestep)
                                                    this->m_cl->getGhostWidth(),
                                                    d_overlaps.data,
                                                    overlap_idx,
-                                                   this->m_exec_conf->dev_prop);
+                                                   this->m_exec_conf->dev_prop,
+						   m_stream);
 
 
         // invoke kernel for counting total overlap volume

@@ -100,12 +100,12 @@ struct poly3d_verts : param_base
 
     #ifdef ENABLE_HIP
     //! Set CUDA memory hints
-    void set_memory_hint() const
+    void attach_to_stream(hipStream_t stream) const
         {
-        x.set_memory_hint();
-        y.set_memory_hint();
-        z.set_memory_hint();
-        hull_verts.set_memory_hint();
+        x.attach_to_stream(stream);
+        y.attach_to_stream(stream);
+        z.attach_to_stream(stream);
+        hull_verts.attach_to_stream(stream);
         }
     #endif
 

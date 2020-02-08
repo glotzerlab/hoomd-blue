@@ -63,7 +63,8 @@ struct hpmc_free_volume_args_t
                 const Scalar3 _ghost_width,
                 const unsigned int *_d_check_overlaps,
                 Index2D _overlap_idx,
-                const hipDeviceProp_t& _devprop
+                const hipDeviceProp_t& _devprop,
+		const hipStream_t _stream
                 )
                 : n_sample(_n_sample),
                   type(_type),
@@ -93,7 +94,8 @@ struct hpmc_free_volume_args_t
                   ghost_width(_ghost_width),
                   d_check_overlaps(_d_check_overlaps),
                   overlap_idx(_overlap_idx),
-                  devprop(_devprop)
+                  devprop(_devprop),
+		  stream(_stream)
         {
         };
 
@@ -126,6 +128,7 @@ struct hpmc_free_volume_args_t
     const unsigned int *d_check_overlaps;   //!< Interaction matrix
     Index2D overlap_idx;              //!< Interaction matrix indexer
     const hipDeviceProp_t& devprop;    //!< CUDA device properties
+    hipStream_t stream;	               //!< GPU execution stream
     };
 
 template< class Shape >
@@ -431,7 +434,7 @@ hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const typen
 
     shared_bytes += extra_bytes;
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_hpmc_free_volume_kernel<Shape>), dim3(grid), dim3(threads), shared_bytes, 0, 
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_hpmc_free_volume_kernel<Shape>), dim3(grid), dim3(threads), shared_bytes, args.stream, 
                                                      args.n_sample,
                                                      args.type,
                                                      args.d_postype,

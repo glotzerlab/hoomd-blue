@@ -59,7 +59,7 @@ struct poly2d_verts : param_base
 
     #ifdef ENABLE_HIP
     //! Set CUDA memory hint
-    void set_memory_hint() const
+    void attach_to_stream(hipStream_t stream) const
         {
         // default implementation does nothing
         }

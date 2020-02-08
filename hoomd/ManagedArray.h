@@ -132,11 +132,12 @@ class ManagedArray
 
         #ifdef ENABLE_HIP
         //! Attach managed memory to CUDA stream
-        void set_memory_hint() const
+        void attach_to_stream(hipStream_t stream) const
             {
             if (managed && ptr)
                 {
                 #if defined(__HIP_PLATFORM_NVCC__) && (CUDART_VERSION >= 8000)
+		cudaStreamAttachMemAsync(stream, ptr, 0, cudaMemAttachSingle);
                 cudaMemAdvise(ptr, sizeof(T)*N, cudaMemAdviseSetReadMostly, 0);
                 #endif
                 }

@@ -62,7 +62,8 @@ struct hpmc_args_t
                 unsigned int *_d_overflow,
                 const bool _update_shape_param,
                 const hipDeviceProp_t &_devprop,
-                const GPUPartition& _gpu_partition)
+                const GPUPartition& _gpu_partition,
+		const hipStream_t _stream)
                 : d_postype(_d_postype),
                   d_orientation(_d_orientation),
                   d_counters(_d_counters),
@@ -101,7 +102,8 @@ struct hpmc_args_t
                   d_overflow(_d_overflow),
                   update_shape_param(_update_shape_param),
                   devprop(_devprop),
-                  gpu_partition(_gpu_partition)
+                  gpu_partition(_gpu_partition),
+		  stream(_stream)
         {
         };
 
@@ -144,6 +146,7 @@ struct hpmc_args_t
     const bool update_shape_param;    //!< True if shape parameters have changed
     const hipDeviceProp_t& devprop;     //!< CUDA device properties
     const GPUPartition& gpu_partition; //!< Multi-GPU partition
+    const hipStream_t stream;		//!< kernel stream
     };
 
 //! Wraps arguments to kernel::hpmc_insert_depletants
@@ -190,7 +193,8 @@ struct hpmc_update_args_t
         const unsigned int *_d_trial_move_type,
         const unsigned int *_d_reject,
         const unsigned int _maxn,
-        const unsigned int _block_size)
+        const unsigned int _block_size,
+	const hipStream_t _stream)
         : d_postype(_d_postype),
           d_orientation(_d_orientation),
           d_counters(_d_counters),
@@ -200,7 +204,8 @@ struct hpmc_update_args_t
           d_trial_move_type(_d_trial_move_type),
           d_reject(_d_reject),
           maxn(_maxn),
-          block_size(_block_size)
+          block_size(_block_size),
+	  stream(_stream)
      {}
 
     //! See hpmc_args_t for documentation on the meaning of these parameters
@@ -214,6 +219,7 @@ struct hpmc_update_args_t
     const unsigned int *d_reject;
     const unsigned int maxn;
     const unsigned int block_size;
+    const hipStream_t stream;
     };
 
 //! Driver for kernel::hpmc_excell()
@@ -1373,7 +1379,7 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type *p
         dim3 threads( block_size, 1, 1);
         dim3 grid((args.N+block_size-1)/block_size,1,1);
 
-        hipLaunchKernelGGL((kernel::hpmc_gen_moves<Shape,2>), grid, threads, shared_bytes, 0,
+        hipLaunchKernelGGL((kernel::hpmc_gen_moves<Shape,2>), grid, threads, shared_bytes, args.stream,
                                                                      args.d_postype,
                                                                      args.d_orientation,
                                                                      args.N,
@@ -1422,7 +1428,7 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type *p
         dim3 threads( block_size, 1, 1);
         dim3 grid((args.N+block_size-1)/block_size,1,1);
 
-        hipLaunchKernelGGL((kernel::hpmc_gen_moves<Shape,3>), grid, threads, shared_bytes, 0,
+        hipLaunchKernelGGL((kernel::hpmc_gen_moves<Shape,3>), grid, threads, shared_bytes, args.stream,
                                                                      args.d_postype,
                                                                      args.d_orientation,
                                                                      args.N,
@@ -1535,7 +1541,7 @@ void hpmc_narrow_phase(const hpmc_args_t& args, const typename Shape::param_type
 
         dim3 grid(num_blocks, 1, 1);
 
-        hipLaunchKernelGGL(kernel::hpmc_narrow_phase<Shape>, grid, thread, shared_bytes, 0, 
+        hipLaunchKernelGGL(kernel::hpmc_narrow_phase<Shape>, grid, thread, shared_bytes, args.stream, 
             args.d_postype, args.d_orientation, args.d_trial_postype, args.d_trial_orientation,
             args.d_excell_idx, args.d_excell_size, args.excli,
             args.d_nlist, args.d_nneigh, args.maxn, args.d_counters+idev*args.counters_pitch, args.num_types,
@@ -1647,7 +1653,8 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
             // 1 block per particle
             dim3 grid( range.second-range.first, 1, 1);
 
-            hipLaunchKernelGGL((kernel::hpmc_insert_depletants<Shape, false>), dim3(grid), dim3(threads), shared_bytes, 0, args.d_trial_postype,
+            hipLaunchKernelGGL((kernel::hpmc_insert_depletants<Shape, false>), dim3(grid), dim3(threads), shared_bytes, args.stream,
+                                                                         args.d_trial_postype,
                                                                          args.d_trial_orientation,
                                                                          args.d_trial_move_type,
                                                                          args.d_postype,
@@ -1768,7 +1775,8 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
             // 1 block per particle
             dim3 grid( range.second-range.first, 1, 1);
 
-            hipLaunchKernelGGL((kernel::hpmc_insert_depletants<Shape, true>), dim3(grid), dim3(threads), shared_bytes, 0, args.d_trial_postype,
+            hipLaunchKernelGGL((kernel::hpmc_insert_depletants<Shape, true>), dim3(grid), dim3(threads), shared_bytes, args.stream,
+                                                                         args.d_trial_postype,
                                                                          args.d_trial_orientation,
                                                                          args.d_trial_move_type,
                                                                          args.d_postype,
@@ -1824,7 +1832,7 @@ void hpmc_update_pdata(const hpmc_update_args_t& args, const typename Shape::par
 
     unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);
     unsigned int num_blocks = (args.N + block_size - 1)/block_size;
-    hipLaunchKernelGGL((kernel::hpmc_update_pdata<Shape>), dim3(num_blocks), dim3(block_size), 0, 0, 
+    hipLaunchKernelGGL((kernel::hpmc_update_pdata<Shape>), dim3(num_blocks), dim3(block_size), 0, args.stream, 
         args.d_postype,
         args.d_orientation,
         args.d_counters,

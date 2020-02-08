@@ -260,21 +260,21 @@ class GPUTree
 
         #ifdef ENABLE_HIP
         //! Set CUDA memory hints
-        void set_memory_hint() const
+        void attach_to_stream(hipStream_t stream) const
             {
-            m_center.set_memory_hint();
-            m_lengths.set_memory_hint();
-            m_rotation.set_memory_hint();
-            m_mask.set_memory_hint();
-            m_is_sphere.set_memory_hint();
+            m_center.attach_to_stream(stream);
+            m_lengths.attach_to_stream(stream);
+            m_rotation.attach_to_stream(stream);
+            m_mask.attach_to_stream(stream);
+            m_is_sphere.attach_to_stream(stream);
 
-            m_left.set_memory_hint();
-            m_escape.set_memory_hint();
-            m_ancestors.set_memory_hint();
+            m_left.attach_to_stream(stream);
+            m_escape.attach_to_stream(stream);
+            m_ancestors.attach_to_stream(stream);
 
-            m_leaf_ptr.set_memory_hint();
-            m_leaf_obb_ptr.set_memory_hint();
-            m_particles.set_memory_hint();
+            m_leaf_ptr.attach_to_stream(stream);
+            m_leaf_obb_ptr.attach_to_stream(stream);
+            m_particles.attach_to_stream(stream);
             }
         #endif
 

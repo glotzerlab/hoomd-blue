@@ -100,12 +100,12 @@ struct faceted_ellipsoid_params : param_base
 
     #ifdef ENABLE_HIP
     //! Set CUDA memory hints
-    void set_memory_hint() const
+    void attach_to_stream(hipStream_t stream) const
         {
-        n.set_memory_hint();
-        offset.set_memory_hint();
-        verts.set_memory_hint();
-        additional_verts.set_memory_hint();
+        n.attach_to_stream(stream);
+        offset.attach_to_stream(stream);
+        verts.attach_to_stream(stream);
+        additional_verts.attach_to_stream(stream);
         }
     #endif
     } __attribute__((aligned(32)));

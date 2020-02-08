@@ -215,6 +215,11 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
         //!< Variables for implicit depletants
         GlobalArray<Scalar> m_lambda;                              //!< Poisson means, per type pair
 
+	// the stream is needed to restrict access to managed memory to those kernels running on a stream
+	// any other HOOMD kernel *cannot* access those memory regions and is therefore eligible for running
+	// concurrently with CPU access to them
+	hipStream_t m_stream;					//!< GPU kernel execution stream
+
         //! Set up excell_list
         virtual void initializeExcellMem();
 
@@ -368,11 +373,15 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
         CHECK_CUDA_ERROR();
         }
     #endif
+
+    hipStreamCreate(&m_stream);
     }
 
 template< class Shape >
 IntegratorHPMCMonoGPU< Shape >::~IntegratorHPMCMonoGPU()
     {
+    // destroy kernel stream
+    hipStreamDestroy(m_stream);
     }
 
 template< class Shape >
@@ -617,7 +626,8 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     d_overflow.data,
                     i == 0,
                     this->m_exec_conf->dev_prop,
-                    this->m_pdata->getGPUPartition());
+                    this->m_pdata->getGPUPartition(),
+		    m_stream);
 
                 // propose trial moves, \sa gpu::kernel::hpmc_moves
 
@@ -699,7 +709,8 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         d_overflow.data,
                         i == 0,
                         this->m_exec_conf->dev_prop,
-                        this->m_pdata->getGPUPartition());
+                        this->m_pdata->getGPUPartition(),
+			m_stream);
 
                     /*
                      *  check overlaps, new configuration simultaneously against the old and the new configuration
@@ -788,7 +799,8 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         d_overflow.data,
                         i == 0,
                         this->m_exec_conf->dev_prop,
-                        this->m_pdata->getGPUPartition());
+                        this->m_pdata->getGPUPartition(),
+			m_stream);
 
                     /*
                      * Insert depletants
@@ -898,7 +910,8 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     d_trial_move_type.data,
                     d_reject.data,
                     m_maxn,
-                    m_tuner_update_pdata->getParam()
+                    m_tuner_update_pdata->getParam(),
+		    m_stream
                     );
                 gpu::hpmc_update_pdata<Shape>(args, params.data());
                 if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -1098,19 +1111,22 @@ void IntegratorHPMCMonoGPU< Shape >::updateCellWidth()
     // update the cell list
     this->m_cl->setNominalWidth(this->m_nominal_width);
 
-    #ifdef ____HIP_PLATFORM_NVCC__
-    // set memory hints
+    // sync up so we can access the parameters
+    hipDeviceSynchronize();
+
+    #if defined(__HIP_PLATFORM_NVCC__) && (CUDART_VERSION >= 8000)
+    // attach the parameters to the kernel stream so that they are visible
+    // when other kernels are called
+    cudaStreamAttachMemAsync(m_stream, this->m_params.data(), 0, cudaMemAttachSingle);
+    CHECK_CUDA_ERROR();
     cudaMemAdvise(this->m_params.data(), this->m_params.size()*sizeof(typename Shape::param_type), cudaMemAdviseSetReadMostly, 0);
     CHECK_CUDA_ERROR();
     #endif
 
-    // sync up so we can access the parameters
-    hipDeviceSynchronize();
-
     for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
         {
         // attach nested memory regions
-        this->m_params[i].set_memory_hint();
+        this->m_params[i].attach_to_stream(m_stream);
         CHECK_CUDA_ERROR();
         }
 

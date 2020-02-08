@@ -100,18 +100,18 @@ struct union_params : param_base
 
     #ifdef ENABLE_HIP
     //! Set CUDA memory hints
-    void set_memory_hint() const
+    void attach_to_stream(hipStream_t stream) const
         {
-        tree.set_memory_hint();
+        tree.attach_to_stream(stream);
 
-        mpos.set_memory_hint();
-        morientation.set_memory_hint();
-        mparams.set_memory_hint();
-        moverlap.set_memory_hint();
+        mpos.attach_to_stream(stream);
+        morientation.attach_to_stream(stream);
+        mparams.attach_to_stream(stream);
+        moverlap.attach_to_stream(stream);
 
         // attach member parameters
         for (unsigned int i = 0; i < mparams.size(); ++i)
-            mparams[i].set_memory_hint();
+            mparams[i].attach_to_stream(stream);
         }
     #endif
 

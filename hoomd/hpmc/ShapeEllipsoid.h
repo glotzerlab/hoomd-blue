@@ -58,7 +58,7 @@ struct ell_params : param_base
 
     #ifdef ENABLE_HIP
     //! Set CUDA memory hints
-    void set_memory_hint() const
+    void attach_to_stream(hipStream_t stream) const
         {
         // default implementation does nothing
         }

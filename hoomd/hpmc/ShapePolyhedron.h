@@ -119,14 +119,14 @@ struct poly3d_data : param_base
 
     #ifdef ENABLE_HIP
     //! Set CUDA memory hints
-    void set_memory_hint() const
+    void attach_to_stream(hipStream_t stream) const
         {
-        tree.set_memory_hint();
-        convex_hull_verts.set_memory_hint();
-        verts.set_memory_hint();
-        face_offs.set_memory_hint();
-        face_verts.set_memory_hint();
-        face_overlap.set_memory_hint();
+        tree.attach_to_stream(stream);
+        convex_hull_verts.attach_to_stream(stream);
+        verts.attach_to_stream(stream);
+        face_offs.attach_to_stream(stream);
+        face_verts.attach_to_stream(stream);
+        face_overlap.attach_to_stream(stream);
         }
     #endif
     } __attribute__((aligned(32)));
