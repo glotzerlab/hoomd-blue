@@ -578,6 +578,8 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
         // resize some arrays
         bool resized = m_reject.getNumElements() < this->m_pdata->getMaxN();
 
+        bool update_gpu_advice = false;
+
         if (resized)
             {
             m_reject.resize(this->m_pdata->getMaxN());
@@ -588,7 +590,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
             m_trial_orientation.resize(this->m_pdata->getMaxN());
             m_trial_move_type.resize(this->m_pdata->getMaxN());
 
-            updateGPUAdvice();
+            update_gpu_advice = true;
             }
 
         if (m_nneigh_patch_old.getNumElements() < this->m_pdata->getMaxN()
@@ -597,8 +599,12 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
             m_nneigh_patch_old.resize(this->m_pdata->getMaxN());
             m_nneigh_patch_new.resize(this->m_pdata->getMaxN());
 
-            updateGPUAdvice();
+            update_gpu_advice = true;
             }
+
+
+        if (update_gpu_advice)
+            updateGPUAdvice();
 
         m_update_order.resize(this->m_pdata->getN());
 
