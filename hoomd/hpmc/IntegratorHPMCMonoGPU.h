@@ -212,6 +212,8 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
         GlobalArray<hpmc_counters_t> m_counters;                    //!< Per-device counters
         GlobalArray<hpmc_implicit_counters_t> m_implicit_counters;  //!< Per-device counters for depletants
 
+        std::vector<std::vector<hipStream_t> > m_depletant_streams;  //!< Stream for every particle type, and device
+
         //!< Variables for implicit depletants
         GlobalArray<Scalar> m_lambda;                              //!< Poisson means, per type pair
 
@@ -360,6 +362,17 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
     m_lambda.swap(lambda);
     TAG_ALLOCATION(m_lambda);
 
+    m_depletant_streams.resize(this->m_pdata->getNTypes());
+    for (unsigned int itype = 0; itype < this->m_pdata->getNTypes(); ++itype)
+        {
+        m_depletant_streams[itype].resize(this->m_exec_conf->getNumActiveGPUs());
+        for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
+            {
+            hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
+            hipStreamCreate(&m_depletant_streams[itype][idev]);
+            }
+        }
+
     #ifdef __HIP_PLATFORM_NVCC__
     // memory hint for overlap matrix
     if (this->m_exec_conf->allConcurrentManagedAccess())
@@ -373,6 +386,14 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
 template< class Shape >
 IntegratorHPMCMonoGPU< Shape >::~IntegratorHPMCMonoGPU()
     {
+    for (auto s: m_depletant_streams)
+        {
+        for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
+            {
+            hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
+            hipStreamDestroy(s[idev]);
+            }
+        }
     }
 
 template< class Shape >
@@ -794,13 +815,14 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                      * Insert depletants
                      */
 
+                    // allow concurrency between depletant types in multi GPU block
+                    this->m_exec_conf->beginMultiGPU();
                     for (unsigned int itype = 0; itype < this->m_pdata->getNTypes(); ++itype)
                         {
                         if (this->m_fugacity[itype] == 0)
                             continue;
 
                         // insert depletants on-the-fly
-                        this->m_exec_conf->beginMultiGPU();
                         m_tuner_depletants->begin();
                         unsigned int param = m_tuner_depletants->getParam();
                         args.block_size = param/10000;
@@ -812,14 +834,15 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                             d_lambda.data,
                             this->m_fugacity[itype] < 0,
                             this->m_quermass,
-                            this->m_sweep_radius
+                            this->m_sweep_radius,
+                            &m_depletant_streams[itype].front()
                             );
                         gpu::hpmc_insert_depletants<Shape>(args, implicit_args, params.data());
                         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                             CHECK_CUDA_ERROR();
                         m_tuner_depletants->end();
-                        this->m_exec_conf->endMultiGPU();
                         }
+                    this->m_exec_conf->endMultiGPU();
                     } // end ArrayHandle scope
 
                 reallocate = checkReallocate();
@@ -1083,6 +1106,17 @@ void IntegratorHPMCMonoGPU< Shape >::slotNumTypesChange()
             CHECK_CUDA_ERROR();
             }
         #endif
+
+        m_depletant_streams.resize(ntypes);
+        for (unsigned int itype = old_ntypes; itype < ntypes; ++itype)
+            {
+            m_depletant_streams[itype].resize(this->m_exec_conf->getNumActiveGPUs());
+            for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
+                {
+                hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
+                hipStreamCreate(&m_depletant_streams[itype][idev]);
+                }
+            }
         }
 
     // call base class method

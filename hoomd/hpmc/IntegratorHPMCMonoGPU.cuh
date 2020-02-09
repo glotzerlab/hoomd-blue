@@ -157,15 +157,16 @@ struct hpmc_implicit_args_t
                          const Scalar *_d_lambda,
                          const bool _repulsive,
                          const bool _quermass,
-                         const Scalar _sweep_radius)
+                         const Scalar _sweep_radius,
+                         const hipStream_t *_streams)
                 : depletant_type(_depletant_type),
                   d_implicit_count(_d_implicit_count),
                   implicit_counters_pitch(_implicit_counters_pitch),
                   d_lambda(_d_lambda),
                   repulsive(_repulsive),
                   quermass(_quermass),
-                  sweep_radius(_sweep_radius)
-
+                  sweep_radius(_sweep_radius),
+                  streams(_streams)
         { };
 
     const unsigned int depletant_type;             //!< Particle type of depletant
@@ -175,6 +176,7 @@ struct hpmc_implicit_args_t
     const bool repulsive;                          //!< True if the fugacity is negative
     const bool quermass;                           //!< Enable quermass mode?
     const Scalar sweep_radius;                     //!< Sweep radius in quermass mode
+    const hipStream_t *streams;                    //!< Stream for this depletant type
     };
 
 //! Wraps arguments for hpmc_update_pdata
@@ -819,8 +821,6 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
     __shared__ unsigned int s_adding_depletants;
     __shared__ unsigned int s_depletant_queue_size;
 
-    __shared__ unsigned int s_nneigh;
-
     // load the per type pair parameters into shared memory
     HIP_DYNAMIC_SHARED( char, s_data)
     typename Shape::param_type *s_params = (typename Shape::param_type *)(&s_data[0]);
@@ -917,13 +917,6 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
         obb_i.lengths.y += range;
         obb_i.lengths.z += range;
         }
-
-    // load number of neighbors
-    if (master && group == 0)
-        s_nneigh = d_nneigh[i];
-
-    // sync since we'll be overwriting d_nneigh[i] and so that s_nneigh is available to all threads
-    __syncthreads();
 
     s_depletant_queue_size = 0;
     s_adding_depletants = 1;
@@ -1187,7 +1180,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                 if (insert_in_nlist)
                     {
                     // write out to global memory
-                    unsigned int n = atomicAdd(&s_nneigh, 1);
+                    unsigned int n = atomicAdd(&d_nneigh[i], 1);
                     if (n < maxn)
                         {
                         d_nlist[n+maxn*i] = check_old ? check_j : (check_j + N_old);
@@ -1217,7 +1210,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
     if (master && group == 0)
         {
         // overflowed?
-        unsigned int nneigh = s_nneigh;
+        unsigned int nneigh = d_nneigh[i];
         if (nneigh > maxn)
             {
             #if (__CUDA_ARCH__ >= 600)
@@ -1226,9 +1219,6 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
             atomicMax(d_overflow, nneigh);
             #endif
             }
-
-        // write out number of neighbors to global mem
-        d_nneigh[i] = nneigh;
         }
 
     if (err_count > 0)
@@ -1650,7 +1640,8 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
             // 1 block per particle
             dim3 grid( range.second-range.first, 1, 1);
 
-            hipLaunchKernelGGL((kernel::hpmc_insert_depletants<Shape, false>), dim3(grid), dim3(threads), shared_bytes, 0, args.d_trial_postype,
+            hipLaunchKernelGGL((kernel::hpmc_insert_depletants<Shape, false>), dim3(grid), dim3(threads), shared_bytes, implicit_args.streams[idev],
+                                                                         args.d_trial_postype,
                                                                          args.d_trial_orientation,
                                                                          args.d_trial_move_type,
                                                                          args.d_postype,
@@ -1771,7 +1762,8 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
             // 1 block per particle
             dim3 grid( range.second-range.first, 1, 1);
 
-            hipLaunchKernelGGL((kernel::hpmc_insert_depletants<Shape, true>), dim3(grid), dim3(threads), shared_bytes, 0, args.d_trial_postype,
+            hipLaunchKernelGGL((kernel::hpmc_insert_depletants<Shape, true>), dim3(grid), dim3(threads), shared_bytes, implicit_args.streams[idev],
+                                                                         args.d_trial_postype,
                                                                          args.d_trial_orientation,
                                                                          args.d_trial_move_type,
                                                                          args.d_postype,
