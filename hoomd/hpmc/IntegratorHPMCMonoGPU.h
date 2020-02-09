@@ -370,7 +370,7 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
         m_condition.push_back(condition);
         }
 
-    #ifdef ____HIP_PLATFORM_NVCC__
+    #ifdef __HIP_PLATFORM_NVCC__
     if (this->m_exec_conf->allConcurrentManagedAccess())
         {
         // set memory hints
@@ -389,7 +389,7 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
         this->m_exec_conf->getNumActiveGPUs(), this->m_exec_conf).swap(m_implicit_counters);
     TAG_ALLOCATION(m_implicit_counters);
 
-    #ifdef ____HIP_PLATFORM_NVCC__
+    #ifdef __HIP_PLATFORM_NVCC__
     if (this->m_exec_conf->allConcurrentManagedAccess())
         {
         // set memory hints
@@ -420,7 +420,7 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
     m_lambda.swap(lambda);
     TAG_ALLOCATION(m_lambda);
 
-    #ifdef ____HIP_PLATFORM_NVCC__
+    #ifdef __HIP_PLATFORM_NVCC__
     // memory hint for overlap matrix
     if (this->m_exec_conf->allConcurrentManagedAccess())
         {
@@ -469,7 +469,7 @@ IntegratorHPMCMonoGPU< Shape >::~IntegratorHPMCMonoGPU()
 template< class Shape >
 void IntegratorHPMCMonoGPU< Shape >::updateGPUAdvice()
     {
-    #ifdef ____HIP_PLATFORM_NVCC__
+    #ifdef __HIP_PLATFORM_NVCC__
     // update memory hints
     if (this->m_exec_conf->allConcurrentManagedAccess())
         {
@@ -1286,7 +1286,7 @@ bool IntegratorHPMCMonoGPU< Shape >::checkReallocate()
         m_nlist.swap(nlist);
         TAG_ALLOCATION(m_nlist);
 
-        #ifdef ____HIP_PLATFORM_NVCC__
+        #ifdef __HIP_PLATFORM_NVCC__
         // update memory hints
         if (this->m_exec_conf->allConcurrentManagedAccess())
             {
@@ -1348,7 +1348,7 @@ bool IntegratorHPMCMonoGPU< Shape >::checkReallocatePatch()
         m_energy_new.swap(energy_new);
         TAG_ALLOCATION(m_energy_new);
 
-        #ifdef ____HIP_PLATFORM_NVCC__
+        #ifdef __HIP_PLATFORM_NVCC__
         // update memory hints
         if (this->m_exec_conf->allConcurrentManagedAccess())
             {
@@ -1402,7 +1402,7 @@ void IntegratorHPMCMonoGPU< Shape >::initializeExcellMem()
     m_excell_idx.resize(m_excell_list_indexer.getNumElements());
     m_excell_size.resize(num_cells);
 
-    #ifdef ____HIP_PLATFORM_NVCC__
+    #ifdef __HIP_PLATFORM_NVCC__
     if (this->m_exec_conf->allConcurrentManagedAccess())
         {
         // set memory hints
@@ -1444,7 +1444,7 @@ void IntegratorHPMCMonoGPU< Shape >::slotNumTypesChange()
             this->m_exec_conf->getNumActiveGPUs(), this->m_exec_conf).swap(m_implicit_counters);
         TAG_ALLOCATION(m_implicit_counters);
 
-        #ifdef ____HIP_PLATFORM_NVCC__
+        #ifdef __HIP_PLATFORM_NVCC__
         if (this->m_exec_conf->allConcurrentManagedAccess())
             {
             // memory hint for overlap matrix
@@ -1467,7 +1467,7 @@ void IntegratorHPMCMonoGPU< Shape >::updateCellWidth()
     // update the cell list
     this->m_cl->setNominalWidth(this->m_nominal_width);
 
-    #ifdef ____HIP_PLATFORM_NVCC__
+    #ifdef __HIP_PLATFORM_NVCC__
     // set memory hints
     cudaMemAdvise(this->m_params.data(), this->m_params.size()*sizeof(typename Shape::param_type), cudaMemAdviseSetReadMostly, 0);
     CHECK_CUDA_ERROR();
