@@ -1370,12 +1370,12 @@ bool IntegratorHPMCMonoGPU< Shape >::checkReallocatePatch()
                 cudaMemPrefetchAsync(m_nlist_patch_new.get()+range.first*m_maxn_patch, sizeof(unsigned int)*nelem*m_maxn_patch, gpu_map[idev]);
                 CHECK_CUDA_ERROR();
 
-                cudaMemAdvise(m_energy_old.get()+range.first*m_maxn_patch, sizeof(Scalar)*nelem*m_maxn_patch, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-                cudaMemPrefetchAsync(m_energy_old.get()+range.first*m_maxn_patch, sizeof(Scalar)*nelem*m_maxn_patch, gpu_map[idev]);
+                cudaMemAdvise(m_energy_old.get()+range.first*m_maxn_patch, sizeof(float)*nelem*m_maxn_patch, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+                cudaMemPrefetchAsync(m_energy_old.get()+range.first*m_maxn_patch, sizeof(float)*nelem*m_maxn_patch, gpu_map[idev]);
                 CHECK_CUDA_ERROR();
 
-                cudaMemAdvise(m_energy_new.get()+range.first*m_maxn_patch, sizeof(Scalar)*nelem*m_maxn_patch, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-                cudaMemPrefetchAsync(m_energy_new.get()+range.first*m_maxn_patch, sizeof(Scalar)*nelem*m_maxn_patch, gpu_map[idev]);
+                cudaMemAdvise(m_energy_new.get()+range.first*m_maxn_patch, sizeof(float)*nelem*m_maxn_patch, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+                cudaMemPrefetchAsync(m_energy_new.get()+range.first*m_maxn_patch, sizeof(float)*nelem*m_maxn_patch, gpu_map[idev]);
                 CHECK_CUDA_ERROR();
                 }
             }
