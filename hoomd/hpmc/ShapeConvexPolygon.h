@@ -77,7 +77,7 @@ struct PolygonVertices : ShapeParams
         }
 
     #ifdef ENABLE_HIP
-    //! Set CUDA memory hint
+    /// Set CUDA memory hint
     void set_memory_hint() const
         {
         }
@@ -370,7 +370,7 @@ struct ShapeConvexPolygon
         return OverlapReal(0.0);
         }
 
-    //! Return the bounding box of the shape in world coordinates
+    /// Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         // generate a tight AABB

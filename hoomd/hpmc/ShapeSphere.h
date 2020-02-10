@@ -211,7 +211,7 @@ struct ShapeSphere
         return detail::OBB(getAABB(pos));
         }
 
-    //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
+    /// Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel() { return false; }
 
     /// Returns true if the overlap check supports sweeping both shapes by a sphere of given radius

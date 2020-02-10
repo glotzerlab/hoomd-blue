@@ -119,8 +119,8 @@ struct ShapeEllipsoid
         return OverlapReal(0.0);
         }
 
-    //! Support function of the shape (in local coordinates), used in getAABB
-    /*! \param n Vector to query support function (must be normalized)
+    /** Support function of the shape (in local coordinates), used in getAABB
+        @param n Vector to query support function (must be normalized)
     */
     DEVICE vec3<Scalar> sfunc(vec3<Scalar> n) const
         {

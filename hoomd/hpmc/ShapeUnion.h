@@ -362,7 +362,7 @@ struct ShapeUnion
         return OverlapReal(0.0);
         }
 
-    //! Return the bounding box of the shape in world coordinates
+    /// Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         // rotate local AABB into world coordinates
