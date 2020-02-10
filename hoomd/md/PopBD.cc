@@ -141,16 +141,12 @@ void PopBD::update(unsigned int timestep)
     // Access the particle data
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
-
-    // Access bond data
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
     // access the table data
     ArrayHandle<Scalar2> h_tables(m_tables, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::read);
-
-    Scalar r_cut_sq = m_r_cut * m_r_cut;
 
     // Access the GPU bond table for reading
     ArrayHandle<BondData::members_t> h_gpu_bondlist(this->m_bond_data->getGPUTable(), access_location::host, access_mode::read);
@@ -162,6 +158,8 @@ void PopBD::update(unsigned int timestep)
 
     // clear bond change tracker
     m_delta_nbonds.clear();
+
+    Scalar r_cut_sq = m_r_cut * m_r_cut;
 
     // for each particle
     for (int i = 0; i < (int)m_pdata->getN(); i++)
@@ -199,8 +197,6 @@ void PopBD::update(unsigned int timestep)
 
                 int nbonds_ij = m_nbonds[orderless_pair(i_tag, j_tag)];
 
-                Scalar r = sqrt(rsq);
-
                 // compute index into the table and read in values
                 // access needed parameters
                 int type = 0;
@@ -210,6 +206,8 @@ void PopBD::update(unsigned int timestep)
                 Scalar rmin = params.x;
                 Scalar rmax = params.y;
                 Scalar delta_r = params.z;
+
+                Scalar r = sqrt(rsq);
 
                 // precomputed term
                 Scalar value_f = (r - rmin) / delta_r;
@@ -261,7 +259,6 @@ void PopBD::update(unsigned int timestep)
                 // (3) check to see if a loop on i should form a bridge btwn particles i and j
                 if (rnd1 < p_ij && m_nloops[i] >= 1)
                     {
-                    // m_bond_data->addBondedGroup(Bond(0, h_tag.data[i], h_tag.data[j]));
                     m_nbonds[orderless_pair(i_tag, j_tag)] += 1;
                     m_delta_nbonds[orderless_pair(i_tag, j_tag)] += 1;
                     m_nloops[i] -= 1;
@@ -270,7 +267,6 @@ void PopBD::update(unsigned int timestep)
                 // (4) check to see if a loop on j should form a bridge btwn particlesi and j
                 if (rnd2 < p_ji && m_nloops[j] >= 1)
                     {
-                    // m_bond_data->addBondedGroup(Bond(0, h_tag.data[i], h_tag.data[j]));
                     m_nbonds[orderless_pair(i_tag, j_tag)] += 1;
                     m_delta_nbonds[orderless_pair(i_tag, j_tag)] += 1;
                     m_nloops[j] -= 1;
@@ -279,7 +275,6 @@ void PopBD::update(unsigned int timestep)
                 // (5) check to see if a bond should be broken between particles i and j
                 if (rnd3 < q_ij && nbonds_ij >= 1)
                     {
-                    // remove one bond between i and j
                     m_nbonds[orderless_pair(i_tag, j_tag)] -= 1;
                     m_delta_nbonds[orderless_pair(i_tag, j_tag)] -= 1;
                     if (rnd4 <= 0.5)
@@ -294,6 +289,8 @@ void PopBD::update(unsigned int timestep)
                 }
             }
         }
+
+    // remove and add bonds as necessary
     for (auto it = m_delta_nbonds.begin(); it != m_delta_nbonds.end(); it++)
         {
         int delta_bonds = it->second;
@@ -325,7 +322,7 @@ void PopBD::update(unsigned int timestep)
                     assert(tag_a < m_pdata->getN());
                     assert(tag_b < m_pdata->getN());
 
-                    if ((tag_a == i_tag && tag_b == j_tag) || (tag_a == j_tag & tag_b == i_tag))
+                    if ((tag_a == i_tag && tag_b == j_tag) || (tag_a == j_tag && tag_b == i_tag))
                         {
                         // remove bond with tag "bond_number" between particles i and j, then leave the loop
                         m_bond_data->removeBondedGroup(h_bond_tags.data[bond_number]);
