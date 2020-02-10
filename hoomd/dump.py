@@ -625,15 +625,13 @@ class GSD(hoomd.meta._Analyzer):
             return value
 
         dynamic = ['property'] if dynamic is None else dynamic
-        self._param_dict = ParameterDict(filename=str,
-                                         filter=ParticleFilter,
-                                         overwrite=bool,
-                                         truncate=bool,
-                                         dynamic=dynamic_string_list)
-        self._param_dict.update(dict(filename=filename, filter=filter,
-                                overwrite=overwrite, truncate=truncate,
-                                dynamic=dynamic)
-                                )
+        self._param_dict.update(
+            ParameterDict(filename=str(filename), filter=ParticleFilter,
+                          overwrite=bool(overwrite), truncate=bool(truncate),
+                          dynamic=dynamic_string_list,
+                          explicit_defaults=dict(filter=filter, dynamic=dynamic)
+                          )
+            )
 
         self._log = None if log is None else GSDLogWriter(log)
 

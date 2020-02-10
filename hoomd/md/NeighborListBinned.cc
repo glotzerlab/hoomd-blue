@@ -47,38 +47,37 @@ NeighborListBinned::~NeighborListBinned()
 void NeighborListBinned::setRCut(Scalar r_cut, Scalar r_buff)
     {
     NeighborList::setRCut(r_cut, r_buff);
-    Scalar rmax = getMaxRCut() + m_r_buff;
-    if (m_diameter_shift)
-        rmax += m_d_max - Scalar(1.0);
-
-    m_cl->setNominalWidth(rmax);
+    // sizes have changed
+    m_update_cell_size = true;
     }
 
 void NeighborListBinned::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut)
     {
     NeighborList::setRCutPair(typ1,typ2,r_cut);
-
-    Scalar rmax = getMaxRCut() + m_r_buff;
-    if (m_diameter_shift)
-        rmax += m_d_max - Scalar(1.0);
-
-    m_cl->setNominalWidth(rmax);
+    // sizes have changed
+    m_update_cell_size = true;
     }
 
 void NeighborListBinned::setMaximumDiameter(Scalar d_max)
     {
     NeighborList::setMaximumDiameter(d_max);
-
-    // need to update the cell list settings appropriately
-    Scalar rmax = getMaxRCut() + m_r_buff;
-    if (m_diameter_shift)
-        rmax += m_d_max - Scalar(1.0);
-
-    m_cl->setNominalWidth(rmax);
+    // sizes have changed
+    m_update_cell_size = true;
     }
 
 void NeighborListBinned::buildNlist(unsigned int timestep)
     {
+    // update the cell list size if needed
+    if (m_update_cell_size)
+        {
+        Scalar rmax = getMaxRCut() + m_r_buff;
+        if (m_diameter_shift)
+            rmax += m_d_max - Scalar(1.0);
+
+        m_cl->setNominalWidth(rmax);
+        m_update_cell_size = false;
+        }
+
     m_cl->compute(timestep);
 
     uint3 dim = m_cl->getDim();
@@ -93,18 +92,6 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
-
-    // validate that the cutoff fits inside the box
-    Scalar rmax = getMaxRCut() + m_r_buff;
-    if (m_diameter_shift)
-        rmax += m_d_max - Scalar(1.0);
-
-    if (m_filter_body)
-        {
-        // add the maximum diameter of all composite particles
-        Scalar max_d_comp = m_pdata->getMaxCompositeParticleDiameter();
-        rmax += 0.5*max_d_comp;
-        }
 
     // access the rlist data
     ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::read);
