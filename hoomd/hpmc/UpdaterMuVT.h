@@ -573,9 +573,6 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(unsigned int timestep, const BoxDim o
         unsigned int overlap_count = 0;
 
         // loop over depletant types
-        if (m_mc->getQuermassMode())
-            throw std::runtime_error("update.muvt() doesn't support quermass mode\n");
-
         for (unsigned int type_d = 0; type_d < this->m_pdata->getNTypes(); ++type_d)
             {
             if (m_mc->getDepletantFugacity(type_d) == 0.0)
@@ -1549,9 +1546,6 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int t
 
     // Depletants
     auto& params = this->m_mc->getParams();
-
-    if (m_mc->getQuermassMode())
-        throw std::runtime_error("update.muvt() doesn't support quermass mode\n");
 
     for (unsigned int type_d = 0; type_d < this->m_pdata->getNTypes(); ++type_d)
         {

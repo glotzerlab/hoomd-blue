@@ -291,8 +291,7 @@ class mode_hpmc(_integrator):
                    a=None,
                    move_ratio=None,
                    nselect=None,
-                   quermass=None,
-                   sweep_radius=None,
+                   ntrial=None,
                    deterministic=None):
         R""" Changes parameters of an existing integration mode.
 
@@ -301,8 +300,7 @@ class mode_hpmc(_integrator):
             a (float): (if set) Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
             move_ratio (float): (if set) New value for the move ratio.
             nselect (int): (if set) New value for the number of particles to select for trial moves in one cell.
-            quermass (bool): (if set) **Implicit depletants only**: Enable/disable quermass integration mode
-            sweep_radius (float): (if set): **Implicit depletants only**: Additional radius of a sphere to sweep the shapes by in **quermass** mode
+            ntrial (int): (if set) Number of re-insertion attempts per overlapping depletant (default == 1)
             deterministic (bool): (if set) Make HPMC integration deterministic on the GPU by sorting the cell list.
 
         .. note:: Simulations are only deterministic with respect to the same execution configuration (CPU or GPU) and
@@ -337,13 +335,8 @@ class mode_hpmc(_integrator):
         if nselect is not None:
             self.cpp_integrator.setNSelect(nselect);
 
-        if quermass is not None:
-            self.implicit_params.append('quermass')
-            self.cpp_integrator.setQuermassMode(quermass)
-
-        if sweep_radius is not None:
-            self.implicit_params.append('sweep_radius')
-            self.cpp_integrator.setSweepRadius(sweep_radius)
+        if ntrial is not None:
+            self.cpp_integrator.setNTrial(ntrial)
 
         if deterministic is not None:
             self.cpp_integrator.setDeterministic(deterministic);
@@ -553,21 +546,13 @@ class mode_hpmc(_integrator):
         """
         return self.cpp_integrator.getDepletantFugacity(hoomd.context.current.system_definition.getParticleData().getTypeByName(type))
 
-    def get_quermass_mode(self):
-        R""" Get the value of the quermass integration setting
+    def get_ntrial(self):
+        R""" Get the number of reinsertion attempts per overlapping depletant
 
         Returns:
-            The current value of the 'quermass' parameter of the integrator
+            The current value of the 'ntrial' parameter of the integrator
         """
-        return self.cpp_integrator.getQuermassMode();
-
-    def get_sweep_radius(self):
-        R""" Get the value of the additional sweep radius for depletant simulations
-
-        Returns:
-            The current value of the 'sweep_radius' parameter of the integrator
-        """
-        return self.cpp_integrator.getSweepRadius();
+        return self.cpp_integrator.getNTrial();
 
 ## Helper methods to set rotation and translation moves by type
 def setD(cpp_integrator,d):

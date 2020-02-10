@@ -1019,9 +1019,6 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
      * Depletants
      */
 
-    if (m_mc->getQuermassMode())
-        throw std::runtime_error("update.clusters() doesn't support quermass mode\n");
-
     // clear the local bond and rejection lists
     this->m_interact_old_old.clear();
     this->m_interact_new_old.clear();

@@ -151,6 +151,17 @@ class IntegratorHPMCMono : public IntegratorHPMC
          * Depletant related options
          */
 
+        //! Set number of reinsertion attepmpts
+        void setNTrial(unsigned int ntrial)
+            {
+            m_ntrial = ntrial;
+            }
+
+        unsigned int getNTrial() const
+            {
+            return m_ntrial;
+            }
+
         //! Set the depletant density in the free volume
         void setDepletantFugacity(unsigned int type, Scalar fugacity)
             {
@@ -164,38 +175,6 @@ class IntegratorHPMCMono : public IntegratorHPMC
             {
             return m_fugacity[type];
             }
-
-        //! Set quermass integration mode
-        void setQuermassMode(bool enable_quermass)
-            {
-            if (enable_quermass && !Shape::supportsSweepRadius())
-                throw std::runtime_error("Quermass integration not supported for this shape");
-
-            m_quermass = enable_quermass;
-            }
-
-        //! Get the quermass integration state
-        bool getQuermassMode()
-            {
-            return m_quermass;
-            }
-
-        //! Set up the additional sweep radius around every shape
-        void setSweepRadius(Scalar sweep_radius)
-            {
-            // check if supported
-            if (sweep_radius != 0.0 && !Shape::supportsSweepRadius())
-                throw std::runtime_error("This shape doesn't support setting a sweep radius to extend the surface out.\n");
-
-            m_sweep_radius = sweep_radius;
-            }
-
-        //! Get the sweep radius
-        Scalar getSweepRadius()
-             {
-             return m_sweep_radius;
-             }
-
         //! Get the current counter values
         std::vector<hpmc_implicit_counters_t> getImplicitCounters(unsigned int mode=0);
 
@@ -439,7 +418,8 @@ class IntegratorHPMCMono : public IntegratorHPMC
 
         /* Depletants related data members */
 
-        std::vector<Scalar> m_fugacity;                          //!< Average depletant number density in free volume, per type
+        std::vector<Scalar> m_fugacity;             //!< Average depletant number density in free volume, per type
+        unsigned int m_ntrial = 1;                  //!< Number of reinsertion attempts per depletant in overlap volume
 
         GlobalArray<hpmc_implicit_counters_t> m_implicit_count;               //!< Counter of depletant insertions
         std::vector<hpmc_implicit_counters_t> m_implicit_count_run_start;     //!< Counter of depletant insertions at run start
@@ -2704,102 +2684,137 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                         #endif
                         }
 
-                    Scalar V_rand = hoomd::UniformDistribution<Scalar> (0.0, repulsive ? V_old : V_new)(my_rng);
-
-                    Scalar V_sum(0.0);
-                    detail::AABB aabb_intersect;
-                    unsigned int k;
-                    for (k = 0; k < n_intersect; ++k)
+                    unsigned int n_success = 0;
+                    for (unsigned int i_trial = 0; i_trial < m_ntrial; ++i_trial)
                         {
-                        // world AABB of shape j, in image of i
-                        detail::AABB aabb_j = repulsive ? aabbs_i_old[k] : aabbs_i_new[k];
+                        Scalar V_rand = hoomd::UniformDistribution<Scalar> (0.0, repulsive ? V_old : V_new)(my_rng);
 
-                        // extend AABB j by sweep radius
-                        vec3<Scalar> lower_j = aabb_j.getLower();
-                        vec3<Scalar> upper_j = aabb_j.getUpper();
-                        lower_j.x -= r_dep; lower_j.y -= r_dep; lower_j.z -= r_dep;
-                        upper_j.x += r_dep; upper_j.y += r_dep; upper_j.z += r_dep;
-
-                        // we already know the AABBs are overlapping, compute their intersection
-                        vec3<Scalar> intersect_lower, intersect_upper;
-                        vec3<Scalar> lower_i = repulsive ? lower_i_old : lower_i_new;
-                        vec3<Scalar> upper_i = repulsive ? upper_i_old : upper_i_new;
-                        intersect_lower.x = std::max(lower_i.x, lower_j.x);
-                        intersect_lower.y = std::max(lower_i.y, lower_j.y);
-                        intersect_lower.z = std::max(lower_i.z, lower_j.z);
-                        intersect_upper.x = std::min(upper_i.x, upper_j.x);
-                        intersect_upper.y = std::min(upper_i.y, upper_j.y);
-                        intersect_upper.z = std::min(upper_i.z, upper_j.z);
-
-                        aabb_intersect = detail::AABB(intersect_lower, intersect_upper);
-
-                        // intersection AABB volume
-                        Scalar V =  (intersect_upper.x-intersect_lower.x)*(intersect_upper.y-intersect_lower.y);
-                        if(ndim == 3)
-                            V *= intersect_upper.z-intersect_lower.z;
-
-                        V_sum += V;
-                        if (V_rand < V_sum)
-                            break;
-                        }
-
-                    #ifdef ENABLE_TBB
-                    thread_implicit_counters[type].local().insert_count++;
-                    #else
-                    implicit_counters[type].insert_count++;
-                    #endif
-
-                    vec3<Scalar> pos_test = generatePositionInAABB(my_rng, aabb_intersect, ndim);
-                    Shape shape_test(quat<Scalar>(), this->m_params[type]);
-                    if (shape_test.hasOrientation())
-                        {
-                        shape_test.orientation = generateRandomOrientation(my_rng, ndim);
-                        }
-
-                    // check if depletant falls in other intersection volumes (rejection sampling)
-                    bool active = true;
-
-                    // load the depletant's AABB and extend it
-                    detail::AABB aabb_test = shape_test.getAABB(pos_test);
-                    vec3<Scalar> lower_test = aabb_test.getLower();
-                    vec3<Scalar> upper_test = aabb_test.getUpper();
-                    aabb_test = detail::AABB(lower_test, upper_test);
-
-                    for (unsigned int m = 0; m < k; ++m)
-                        {
-                        if (detail::overlap(aabb_test, repulsive ? aabbs_i_old[m] : aabbs_i_new[m]))
+                        Scalar V_sum(0.0);
+                        detail::AABB aabb_intersect;
+                        unsigned int k;
+                        for (k = 0; k < n_intersect; ++k)
                             {
-                            active = false;
-                            break;
+                            // world AABB of shape j, in image of i
+                            detail::AABB aabb_j = repulsive ? aabbs_i_old[k] : aabbs_i_new[k];
+
+                            // extend AABB j by sweep radius
+                            vec3<Scalar> lower_j = aabb_j.getLower();
+                            vec3<Scalar> upper_j = aabb_j.getUpper();
+                            lower_j.x -= r_dep; lower_j.y -= r_dep; lower_j.z -= r_dep;
+                            upper_j.x += r_dep; upper_j.y += r_dep; upper_j.z += r_dep;
+
+                            // we already know the AABBs are overlapping, compute their intersection
+                            vec3<Scalar> intersect_lower, intersect_upper;
+                            vec3<Scalar> lower_i = repulsive ? lower_i_old : lower_i_new;
+                            vec3<Scalar> upper_i = repulsive ? upper_i_old : upper_i_new;
+                            intersect_lower.x = std::max(lower_i.x, lower_j.x);
+                            intersect_lower.y = std::max(lower_i.y, lower_j.y);
+                            intersect_lower.z = std::max(lower_i.z, lower_j.z);
+                            intersect_upper.x = std::min(upper_i.x, upper_j.x);
+                            intersect_upper.y = std::min(upper_i.y, upper_j.y);
+                            intersect_upper.z = std::min(upper_i.z, upper_j.z);
+
+                            aabb_intersect = detail::AABB(intersect_lower, intersect_upper);
+
+                            // intersection AABB volume
+                            Scalar V =  (intersect_upper.x-intersect_lower.x)*(intersect_upper.y-intersect_lower.y);
+                            if(ndim == 3)
+                                V *= intersect_upper.z-intersect_lower.z;
+
+                            V_sum += V;
+                            if (V_rand < V_sum)
+                                break;
                             }
-                        }
 
-                    if (!active)
-                        {
-                        // if we cannot insert, it's a rejection
-                        accept = false;
-
-                        #ifndef ENABLE_TBB
-                        // early exit
-                        break;
+                        #ifdef ENABLE_TBB
+                        thread_implicit_counters[type].local().insert_count++;
                         #else
-                        throw false;
+                        implicit_counters[type].insert_count++;
                         #endif
-                        }
 
-                    // Check if the new (old) configuration of particle i generates an overlap
-                    bool overlap_i = false;
-
-                        {
-                        vec3<Scalar> r_ij = (repulsive ? pos_i_old : pos_i) - pos_test;
-                        const Shape& shape = repulsive ? shape_old : shape_i;
-
-                        OverlapReal rsq = dot(r_ij,r_ij);
-                        OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape.getCircumsphereDiameter();
-                        bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-
-                        if (h_overlaps[this->m_overlap_idx(type, typ_i)])
+                        vec3<Scalar> pos_test = generatePositionInAABB(my_rng, aabb_intersect, ndim);
+                        Shape shape_test(quat<Scalar>(), this->m_params[type]);
+                        if (shape_test.hasOrientation())
                             {
+                            shape_test.orientation = generateRandomOrientation(my_rng, ndim);
+                            }
+
+                        // check if depletant falls in other intersection volumes (rejection sampling)
+                        bool active = true;
+
+                        // load the depletant's AABB and extend it
+                        detail::AABB aabb_test = shape_test.getAABB(pos_test);
+                        vec3<Scalar> lower_test = aabb_test.getLower();
+                        vec3<Scalar> upper_test = aabb_test.getUpper();
+                        aabb_test = detail::AABB(lower_test, upper_test);
+
+                        for (unsigned int m = 0; m < k; ++m)
+                            {
+                            if (detail::overlap(aabb_test, repulsive ? aabbs_i_old[m] : aabbs_i_new[m]))
+                                {
+                                active = false;
+                                break;
+                                }
+                            }
+
+                        if (!active)
+                            {
+                            // if we cannot insert, it's a rejection
+                            continue;
+                            }
+
+                        // Check if the new (old) configuration of particle i generates an overlap
+                        bool overlap_i = false;
+
+                            {
+                            vec3<Scalar> r_ij = (repulsive ? pos_i_old : pos_i) - pos_test;
+                            const Shape& shape = repulsive ? shape_old : shape_i;
+
+                            OverlapReal rsq = dot(r_ij,r_ij);
+                            OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape.getCircumsphereDiameter();
+                            bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+
+                            if (h_overlaps[this->m_overlap_idx(type, typ_i)])
+                                {
+                                #ifdef ENABLE_TBB
+                                thread_counters.local().overlap_checks++;
+                                #else
+                                counters.overlap_checks++;
+                                #endif
+
+                                unsigned int err = 0;
+                                if (circumsphere_overlap && test_overlap(r_ij, shape_test, shape, err))
+                                    {
+                                    overlap_i = true;
+                                    }
+                                if (err)
+                                #ifdef ENABLE_TBB
+                                    thread_counters.local().overlap_err_count++;
+                                #else
+                                    counters.overlap_err_count++;
+                                #endif
+                                }
+                            }
+
+                        if (!overlap_i)
+                            {
+                            // reject because we can't insert in overlap volume
+                            continue;
+                            }
+
+                        bool in_intersection_volume = false;
+
+                        for (unsigned int m = 0; m < n_intersect; ++m)
+                            {
+                            // read in its position and orientation
+                            unsigned int j = repulsive ? intersect_i_old[m] : intersect_i_new[m];
+
+                            vec3<Scalar> r_jk = ((i == j) ? (repulsive ? pos_i_old : pos_i) : vec3<Scalar>(h_postype[j])) - pos_test -
+                                this->m_image_list[repulsive ? image_i_old[m] : image_i_new[m]];
+
+                            unsigned int typ_j = (i == j) ? typ_i : __scalar_as_int(h_postype[j].w);
+                            Shape shape_j((i == j) ? (repulsive ? shape_old.orientation : shape_i.orientation)  : quat<Scalar>(h_orientation[j]), this->m_params[typ_j]);
+
                             #ifdef ENABLE_TBB
                             thread_counters.local().overlap_checks++;
                             #else
@@ -2807,9 +2822,18 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                             #endif
 
                             unsigned int err = 0;
-                            if (circumsphere_overlap && test_overlap(r_ij, shape_test, shape, err))
+
+                            // check circumsphere overlap
+                            OverlapReal rsq = dot(r_jk,r_jk);
+                            OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter();
+                            bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+
+                            if (h_overlaps[this->m_overlap_idx(type,typ_j)]
+                                && circumsphere_overlap
+                                && test_overlap(r_jk, shape_test, shape_j, err))
                                 {
-                                overlap_i = true;
+                                in_intersection_volume = true;
+                                break;
                                 }
                             if (err)
                             #ifdef ENABLE_TBB
@@ -2817,82 +2841,34 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                             #else
                                 counters.overlap_err_count++;
                             #endif
-                            }
-                        }
+                            } // end loop over neighbors
 
-                    if (!overlap_i)
+                        if (in_intersection_volume)
+                            n_success++;
+                        } // end loop over insertion attempts
+
+                    if (n_success)
                         {
-                        // reject if we can't insert in overlap volume
-                        accept = false;
-
-                        #ifndef ENABLE_TBB
-                        // early exit
-                        break;
-                        #else
-                        throw false;
-                        #endif
-                        }
-
-                    bool in_intersection_volume = false;
-
-                    for (unsigned int m = 0; m < n_intersect; ++m)
-                        {
-                        // read in its position and orientation
-                        unsigned int j = repulsive ? intersect_i_old[m] : intersect_i_new[m];
-
-                        vec3<Scalar> r_jk = ((i == j) ? (repulsive ? pos_i_old : pos_i) : vec3<Scalar>(h_postype[j])) - pos_test -
-                            this->m_image_list[repulsive ? image_i_old[m] : image_i_new[m]];
-
-                        unsigned int typ_j = (i == j) ? typ_i : __scalar_as_int(h_postype[j].w);
-                        Shape shape_j((i == j) ? (repulsive ? shape_old.orientation : shape_i.orientation)  : quat<Scalar>(h_orientation[j]), this->m_params[typ_j]);
+                        // weight insertion attempts by ratio of sampling volumes and MC integration probability
+                        Scalar frac = (Scalar)n_success/(Scalar)m_ntrial;
 
                         #ifdef ENABLE_TBB
-                        thread_counters.local().overlap_checks++;
+                        thread_deltaF.local() += log(repulsive ? (V_old/V_new) : (V_new/V_old));
+                        thread_deltaF.local() += log(frac);
                         #else
-                        counters.overlap_checks++;
-                        #endif
-
-                        unsigned int err = 0;
-
-                        // check circumsphere overlap
-                        OverlapReal rsq = dot(r_jk,r_jk);
-                        OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter();
-                        bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-
-                        if (h_overlaps[this->m_overlap_idx(type,typ_j)]
-                            && circumsphere_overlap
-                            && test_overlap(r_jk, shape_test, shape_j, err))
-                            {
-                            in_intersection_volume = true;
-                            break;
-                            }
-                        if (err)
-                        #ifdef ENABLE_TBB
-                            thread_counters.local().overlap_err_count++;
-                        #else
-                            counters.overlap_err_count++;
-                        #endif
-                        } // end loop over neighbors
-
-                    if (!in_intersection_volume)
-                        {
-                        // reject if we can't insert in overlap volume
-                        accept = false;
-
-                        #ifndef ENABLE_TBB
-                        // early exit
-                        break;
-                        #else
-                        throw false;
+                        deltaF += log(repulsive ? (V_old/V_new) : (V_new/V_old));
+                        deltaF += log(frac);
                         #endif
                         }
                     else
                         {
-                        // weight insertion by ratio of volumes
-                        #ifdef ENABLE_TBB
-                        thread_deltaF.local() += log(repulsive ? (V_old/V_new) : (V_new/V_old));
+                        accept = false;
+
+                        #ifndef ENABLE_TBB
+                        // early exit
+                        break;
                         #else
-                        deltaF += log(repulsive ? (V_old/V_new) : (V_new/V_old));
+                        throw false;
                         #endif
                         }
                     }
@@ -2983,10 +2959,8 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
           .def("setDepletantFugacity", &IntegratorHPMCMono<Shape>::setDepletantFugacity)
           .def("getImplicitCounters", &IntegratorHPMCMono<Shape>::getImplicitCounters)
           .def("getDepletantFugacity", &IntegratorHPMCMono<Shape>::getDepletantFugacity)
-          .def("setQuermassMode", &IntegratorHPMCMono<Shape>::setQuermassMode)
-          .def("setSweepRadius", &IntegratorHPMCMono<Shape>::setSweepRadius)
-          .def("getQuermassMode", &IntegratorHPMCMono<Shape>::getQuermassMode)
-          .def("getSweepRadius", &IntegratorHPMCMono<Shape>::getSweepRadius)
+          .def("getNTrial", &IntegratorHPMCMono<Shape>::getNTrial)
+          .def("setNTrial", &IntegratorHPMCMono<Shape>::setNTrial)
           .def("getTypeShapesPy", &IntegratorHPMCMono<Shape>::getTypeShapesPy)
           ;
     }
