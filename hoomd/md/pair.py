@@ -2857,7 +2857,7 @@ class alj(ai_pair):
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
 
-    :py:class:`alj2D` computes the LJ potential between anisotropic particles.
+    :py:class:`alj` computes the LJ potential between anisotropic particles.
     The anisotropy is implemented as a composite of two interactions, a
     center-center component and a component of interaction measured at the
     closest point of contact between the two particles. The potential supports
@@ -2874,7 +2874,7 @@ class alj(ai_pair):
     * :code:`2`:
       Center-center interactions are solely repulsive, contact-contact interactions include attraction.
 
-    * :code:`0`:
+    * :code:`3`:
       All interactions include attractive and repulsive components.
 
 
