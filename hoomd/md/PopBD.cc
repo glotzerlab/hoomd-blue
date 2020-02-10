@@ -148,142 +148,144 @@ void PopBD::update(unsigned int timestep)
     ArrayHandle<Scalar2> h_tables(m_tables, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::read);
 
-    // Access the GPU bond table for reading
-    ArrayHandle<BondData::members_t> h_gpu_bondlist(this->m_bond_data->getGPUTable(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_gpu_n_bonds(this->m_bond_data->getNGroupsArray(), access_location::host, access_mode::read);
+    // // Access the GPU bond table for reading
+    // ArrayHandle<BondData::members_t> h_gpu_bondlist(this->m_bond_data->getGPUTable(), access_location::host, access_mode::read);
+    // ArrayHandle<unsigned int> h_gpu_n_bonds(this->m_bond_data->getNGroupsArray(), access_location::host, access_mode::read);
 
     // Access the CPU bond table for reading
     ArrayHandle<typename BondData::members_t> h_bonds(m_bond_data->getMembersArray(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_bond_tags(m_bond_data->getTags(), access_location::host, access_mode::read);
-
-    // clear bond change tracker
-    m_delta_nbonds.clear();
-
-    Scalar r_cut_sq = m_r_cut * m_r_cut;
-
-    // for each particle
-    for (int i = 0; i < (int)m_pdata->getN(); i++)
         {
-        // initialize the RNG
-        detail::Saru saru(i, timestep, m_seed);
+        ArrayHandle<unsigned int> h_bond_tags(m_bond_data->getTags(), access_location::host, access_mode::read);
 
-        // access the particle's position and type (MEM TRANSFER: 4 scalars)
-        Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
+        // clear bond change tracker
+        m_delta_nbonds.clear();
 
-        // loop over all of the neighbors of this particle
-        // TODO: make sure all eligible bonding particles are within the search radius
-        const unsigned int myHead = h_head_list.data[i];
-        const unsigned int size = (unsigned int)h_n_neigh.data[i];
-        for (unsigned int k = 0; k < size; k++)
+        Scalar r_cut_sq = m_r_cut * m_r_cut;
+
+        // for each particle
+        for (int i = 0; i < (int)m_pdata->getN(); i++)
             {
-            // access the index (j) of neighbor particle (MEM TRANSFER: 1 scalar)
-            unsigned int j = h_nlist.data[myHead + k];
-            assert(j < m_pdata->getN() + m_pdata->getNGhosts());
+            // initialize the RNG
+            detail::Saru saru(i, timestep, m_seed);
 
-            // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
-            Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
-            Scalar3 dx = pi - pj;
+            // access the particle's position and type (MEM TRANSFER: 4 scalars)
+            Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
 
-            // apply periodic boundary conditions
-            dx = box.minImage(dx);
-
-            // calculate r_ij squared (FLOPS: 5) (center to center dist)
-            Scalar rsq = dot(dx, dx);
-
-            if (rsq < r_cut_sq)
+            // loop over all of the neighbors of this particle
+            // TODO: make sure all eligible bonding particles are within the search radius
+            const unsigned int myHead = h_head_list.data[i];
+            const unsigned int size = (unsigned int)h_n_neigh.data[i];
+            for (unsigned int k = 0; k < size; k++)
                 {
-                int i_tag = h_tag.data[i];
-                int j_tag = h_tag.data[j];
+                // access the index (j) of neighbor particle (MEM TRANSFER: 1 scalar)
+                unsigned int j = h_nlist.data[myHead + k];
+                assert(j < m_pdata->getN() + m_pdata->getNGhosts());
 
-                int nbonds_ij = m_nbonds[orderless_pair(i_tag, j_tag)];
+                // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
+                Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+                Scalar3 dx = pi - pj;
 
-                // compute index into the table and read in values
-                // access needed parameters
-                int type = 0;
+                // apply periodic boundary conditions
+                dx = box.minImage(dx);
 
-                // unsigned int type = m_bond_data->getTypeByIndex(i);
-                Scalar4 params = h_params.data[m_type];
-                Scalar rmin = params.x;
-                Scalar rmax = params.y;
-                Scalar delta_r = params.z;
+                // calculate r_ij squared (FLOPS: 5) (center to center dist)
+                Scalar rsq = dot(dx, dx);
 
-                Scalar r = sqrt(rsq);
-
-                // precomputed term
-                Scalar value_f = (r - rmin) / delta_r;
-
-                if (r < rmin)
+                if (rsq < r_cut_sq)
                     {
-                    throw runtime_error("gap is too small to compute a probability!");
-                    }
+                    int i_tag = h_tag.data[i];
+                    int j_tag = h_tag.data[j];
 
-                /// Here we use the table!!
-                unsigned int value_i = (unsigned int)floor(value_f);
-                Scalar2 ML0 = h_tables.data[m_table_value(value_i, m_type)];
-                Scalar2 ML1 = h_tables.data[m_table_value(value_i+1, m_type)];
+                    int nbonds_ij = m_nbonds[orderless_pair(i_tag, j_tag)];
 
-                // unpack the data
-                Scalar M0 = ML0.x;
-                Scalar M1 = ML1.x;
-                Scalar L0 = ML0.y;
-                Scalar L1 = ML1.y;
+                    // compute index into the table and read in values
+                    // access needed parameters
+                    int type = 0;
 
-                // compute the linear interpolation coefficient
-                Scalar f = value_f - Scalar(value_i);
+                    // unsigned int type = m_bond_data->getTypeByIndex(i);
+                    Scalar4 params = h_params.data[m_type];
+                    Scalar rmin = params.x;
+                    Scalar rmax = params.y;
+                    Scalar delta_r = params.z;
 
-                // interpolate to get M and L;
-                Scalar M = M0 + f * (M1 - M0);
-                Scalar L = L0 + f * (L1 - L0);
+                    Scalar r = sqrt(rsq);
 
-                // (1) Compute P_ij, P_ji, and Q_ij
+                    // precomputed term
+                    Scalar value_f = (r - rmin) / delta_r;
 
-                Scalar p0 = m_delta_t * L;
-                Scalar q0 = m_delta_t * M;
-
-                Scalar p_ij = m_nloops[i] * p0 * pow((1 - p0), m_nloops[i]-1.0);
-                Scalar p_ji = m_nloops[j] * p0 * pow((1 - p0), m_nloops[j]-1.0);
-                Scalar q_ij = nbonds_ij * q0 * pow((1 - q0), nbonds_ij - 1.0);
-
-                // check that P and Q are reasonable
-                if (p_ij < 0 ||p_ji < 0 || q_ij < 0 || p_ij > 1 ||p_ji > 1 || q_ij > 1)
-                    {
-                    throw runtime_error("p or q is incorrect!");
-                    }
-
-                // (2) generate random numbers
-                Scalar rnd1 = saru.s<Scalar>(0, 1);
-                Scalar rnd2 = saru.s<Scalar>(0, 1);
-                Scalar rnd3 = saru.s<Scalar>(0, 1);
-                Scalar rnd4 = saru.s<Scalar>(0, 1);
-
-                // (3) check to see if a loop on i should form a bridge btwn particles i and j
-                if (rnd1 < p_ij && m_nloops[i] >= 1)
-                    {
-                    m_nbonds[orderless_pair(i_tag, j_tag)] += 1;
-                    m_delta_nbonds[orderless_pair(i_tag, j_tag)] += 1;
-                    m_nloops[i] -= 1;
-                    }
-
-                // (4) check to see if a loop on j should form a bridge btwn particlesi and j
-                if (rnd2 < p_ji && m_nloops[j] >= 1)
-                    {
-                    m_nbonds[orderless_pair(i_tag, j_tag)] += 1;
-                    m_delta_nbonds[orderless_pair(i_tag, j_tag)] += 1;
-                    m_nloops[j] -= 1;
-                    }
-
-                // (5) check to see if a bond should be broken between particles i and j
-                if (rnd3 < q_ij && nbonds_ij >= 1)
-                    {
-                    m_nbonds[orderless_pair(i_tag, j_tag)] -= 1;
-                    m_delta_nbonds[orderless_pair(i_tag, j_tag)] -= 1;
-                    if (rnd4 <= 0.5)
+                    if (r < rmin)
                         {
-                        m_nloops[i] += 1;
+                        throw runtime_error("gap is too small to compute a probability!");
                         }
-                    else if (rnd4 > 0.5)
+
+                    /// Here we use the table!!
+                    unsigned int value_i = (unsigned int)floor(value_f);
+                    Scalar2 ML0 = h_tables.data[m_table_value(value_i, m_type)];
+                    Scalar2 ML1 = h_tables.data[m_table_value(value_i+1, m_type)];
+
+                    // unpack the data
+                    Scalar M0 = ML0.x;
+                    Scalar M1 = ML1.x;
+                    Scalar L0 = ML0.y;
+                    Scalar L1 = ML1.y;
+
+                    // compute the linear interpolation coefficient
+                    Scalar f = value_f - Scalar(value_i);
+
+                    // interpolate to get M and L;
+                    Scalar M = M0 + f * (M1 - M0);
+                    Scalar L = L0 + f * (L1 - L0);
+
+                    // (1) Compute P_ij, P_ji, and Q_ij
+
+                    Scalar p0 = m_delta_t * L;
+                    Scalar q0 = m_delta_t * M;
+
+                    Scalar p_ij = m_nloops[i] * p0 * pow((1 - p0), m_nloops[i]-1.0);
+                    Scalar p_ji = m_nloops[j] * p0 * pow((1 - p0), m_nloops[j]-1.0);
+                    Scalar q_ij = nbonds_ij * q0 * pow((1 - q0), nbonds_ij - 1.0);
+
+                    // check that P and Q are reasonable
+                    if (p_ij < 0 ||p_ji < 0 || q_ij < 0 || p_ij > 1 ||p_ji > 1 || q_ij > 1)
                         {
-                        m_nloops[j] += 1;
+                        throw runtime_error("p or q is incorrect!");
+                        }
+
+                    // (2) generate random numbers
+                    Scalar rnd1 = saru.s<Scalar>(0, 1);
+                    Scalar rnd2 = saru.s<Scalar>(0, 1);
+                    Scalar rnd3 = saru.s<Scalar>(0, 1);
+                    Scalar rnd4 = saru.s<Scalar>(0, 1);
+
+                    // (3) check to see if a loop on i should form a bridge btwn particles i and j
+                    if (rnd1 < p_ij && m_nloops[i] >= 1)
+                        {
+                        m_nbonds[orderless_pair(i_tag, j_tag)] += 1;
+                        m_delta_nbonds[orderless_pair(i_tag, j_tag)] += 1;
+                        m_nloops[i] -= 1;
+                        }
+
+                    // (4) check to see if a loop on j should form a bridge btwn particlesi and j
+                    if (rnd2 < p_ji && m_nloops[j] >= 1)
+                        {
+                        m_nbonds[orderless_pair(i_tag, j_tag)] += 1;
+                        m_delta_nbonds[orderless_pair(i_tag, j_tag)] += 1;
+                        m_nloops[j] -= 1;
+                        }
+
+                    // (5) check to see if a bond should be broken between particles i and j
+                    if (rnd3 < q_ij && nbonds_ij >= 1)
+                        {
+                        m_nbonds[orderless_pair(i_tag, j_tag)] -= 1;
+                        m_delta_nbonds[orderless_pair(i_tag, j_tag)] -= 1;
+                        if (rnd4 <= 0.5)
+                            {
+                            m_nloops[i] += 1;
+                            }
+                        else if (rnd4 > 0.5)
+                            {
+                            m_nloops[j] += 1;
+                            }
                         }
                     }
                 }
@@ -324,6 +326,7 @@ void PopBD::update(unsigned int timestep)
 
                     if ((tag_a == i_tag && tag_b == j_tag) || (tag_a == j_tag && tag_b == i_tag))
                         {
+                        ArrayHandle<unsigned int> h_bond_tags(m_bond_data->getTags(), access_location::host, access_mode::read);
                         // remove bond with tag "bond_number" between particles i and j, then leave the loop
                         m_bond_data->removeBondedGroup(h_bond_tags.data[bond_number]);
                         break;
