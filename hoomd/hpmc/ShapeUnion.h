@@ -96,7 +96,7 @@ struct ShapeUnionParams : ShapeParams
 
     #ifdef ENABLE_HIP
 
-    /// Set CUDA memory hints
+    // Set CUDA memory hints
     void set_memory_hint() const
         {
         tree.set_memory_hint();
@@ -233,7 +233,7 @@ struct ShapeUnionParams : ShapeParams
         upper = local_aabb.getUpper();
         }
 
-    /// Convert parameters to a python dictionary
+    // Convert parameters to a python dictionary
     pybind11::dict asDict()
         {
         pybind11::dict v;
@@ -272,34 +272,34 @@ struct ShapeUnionParams : ShapeParams
         }
     #endif
 
-    /// OBB tree for constituent shapes
+    // OBB tree for constituent shapes
     GPUTree tree;
 
-    /// Position vectors of member shapes
+    // Position vectors of member shapes
     ManagedArray<vec3<OverlapReal> > mpos;
 
-    /// Orientation of member shapes
+    // Orientation of member shapes
     ManagedArray<quat<OverlapReal> > morientation;
 
-    /// Parameters of member shapes
+    // Parameters of member shapes
     ManagedArray<typename Shape::param_type> mparams;
 
-    /// only check overlaps for which moverlap[i] & moverlap[j]
+    // only check overlaps for which moverlap[i] & moverlap[j]
     ManagedArray<unsigned int> moverlap;
 
-    /// Precalculated overall circumsphere diameter
+    // Precalculated overall circumsphere diameter
     OverlapReal diameter;
 
-    /// Number of member shapes
+    // Number of member shapes
     unsigned int N;
 
-    /// True when move statistics should not be counted
+    // True when move statistics should not be counted
     unsigned int ignore;
 
-    /// Lower corner of local AABB
+    // Lower corner of local AABB
     vec3<OverlapReal> lower;
 
-    /// Upper corner of local AABB
+    // Upper corner of local AABB
     vec3<OverlapReal> upper;
     } __attribute__((aligned(32)));
 
@@ -319,16 +319,16 @@ struct ShapeUnionParams : ShapeParams
 template<class Shape>
 struct ShapeUnion
     {
-    /// Define the parameter type
+    // Define the parameter type
     typedef typename detail::ShapeUnionParams<Shape> param_type;
 
-    /// Construct a shape at a given orientation
+    // Construct a shape at a given orientation
     DEVICE ShapeUnion(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), members(_params)
         {
         }
 
-    /// Check if the shape may be rotated
+    // Check if the shape may be rotated
     DEVICE bool hasOrientation() const
         {
         if (members.N == 1)
@@ -345,17 +345,17 @@ struct ShapeUnion
         return true;
         }
 
-    /// Check if this shape should be ignored in the move statistics
+    // Check if this shape should be ignored in the move statistics
     DEVICE bool ignoreStatistics() const { return members.ignore; }
 
-    /// Get the circumsphere diameter of the shape
+    // Get the circumsphere diameter of the shape
     DEVICE OverlapReal getCircumsphereDiameter() const
         {
         // return the precomputed diameter
         return members.diameter;
         }
 
-    /// Get the in-sphere radius of the shape
+    // Get the in-sphere radius of the shape
     DEVICE OverlapReal getInsphereRadius() const
         {
         // not implemented
@@ -363,14 +363,14 @@ struct ShapeUnion
         }
 
     #ifndef __HIPCC__
-    /// Return the shape parameters in the `type_shape` format
+    // Return the shape parameters in the `type_shape` format
     std::string getShapeSpec() const
         {
         throw std::runtime_error("Shape definition not supported for this shape class.");
         }
     #endif
 
-    /// Return the bounding box of the shape in world coordinates
+    // Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         // rotate local AABB into world coordinates
@@ -502,7 +502,7 @@ struct ShapeUnion
         return detail::AABB(lower_b, upper_b);
         }
 
-    /// Return a tight fitting OBB around the shape
+    // Return a tight fitting OBB around the shape
     DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
         {
         // get the root node OBB from the tree
@@ -525,16 +525,16 @@ struct ShapeUnion
         #endif
         }
 
-    /// Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    // Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
     HOSTDEVICE static bool supportsSweepRadius()
         {
         return Shape::supportsSweepRadius();
         }
 
-    /// Orientation of the sphere
+    // Orientation of the sphere
     quat<Scalar> orientation;
 
-    /// Member data
+    // Member data
     const param_type& members;
     };
 

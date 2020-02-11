@@ -38,30 +38,30 @@ namespace hpmc
 */
 struct EllipsoidParams : ShapeParams
     {
-    /// Principle semi-axis of the ellipsoid in the x-direction
+    // Principle semi-axis of the ellipsoid in the x-direction
     OverlapReal x;
 
-    /// Principle semi-axis of the ellipsoid in the y-direction
+    // Principle semi-axis of the ellipsoid in the y-direction
     OverlapReal y;
 
-    /// Principle semi-axis of the ellipsoid in the z-direction
+    // Principle semi-axis of the ellipsoid in the z-direction
     OverlapReal z;
 
-    /// True when move statistics should not be counted
+    // True when move statistics should not be counted
     unsigned int ignore;
 
     #ifdef ENABLE_HIP
-    /// Set CUDA memory hints
+    // Set CUDA memory hints
     void set_memory_hint() const
         {
         }
     #endif
 
     #ifndef __HIPCC__
-    /// Default constructor
+    // Default constructor
     EllipsoidParams() { }
 
-    /// Construct from a Python dictionary
+    // Construct from a Python dictionary
     EllipsoidParams(pybind11::dict v, bool managed=false)
         {
         ignore = v["ignore_statistics"].cast<unsigned int>();
@@ -70,7 +70,7 @@ struct EllipsoidParams : ShapeParams
         z = v["c"].cast<OverlapReal>();
         }
 
-    /// Convert parameters to a python dictionary
+    // Convert parameters to a python dictionary
     pybind11::dict asDict()
         {
         pybind11::dict v;
@@ -90,29 +90,29 @@ struct EllipsoidParams : ShapeParams
 */
 struct ShapeEllipsoid
     {
-    /// Define the parameter type
+    // Define the parameter type
     typedef EllipsoidParams param_type;
 
-    /// Construct a shape at a given orientation
+    // Construct a shape at a given orientation
     DEVICE ShapeEllipsoid(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), axes(_params)
         {
         }
 
-    /// Check if the shape may be rotated
+    // Check if the shape may be rotated
     DEVICE bool hasOrientation() const { return !(axes.x == axes.y && axes.x == axes.z); }
 
-    /// Check if this shape should be ignored in the move statistics
+    // Check if this shape should be ignored in the move statistics
     DEVICE bool ignoreStatistics() const { return axes.ignore; }
 
-    /// Get the circumsphere diameter of the shape
+    // Get the circumsphere diameter of the shape
     DEVICE OverlapReal getCircumsphereDiameter() const
         {
         // return the maximum of the 3 axes
         return OverlapReal(2)*detail::max(axes.x, detail::max(axes.y, axes.z));
         }
 
-    /// Get the in-sphere radius of the shape
+    // Get the in-sphere radius of the shape
     DEVICE OverlapReal getInsphereRadius() const
         {
         // not implemented
@@ -120,7 +120,7 @@ struct ShapeEllipsoid
         }
 
     #ifndef __HIPCC__
-    /// Return the shape parameters in the `type_shape` format
+    // Return the shape parameters in the `type_shape` format
     std::string getShapeSpec() const
         {
         std::ostringstream shapedef;
@@ -142,14 +142,14 @@ struct ShapeEllipsoid
         return numerator / fast::sqrt(dot(dvec, dvec));
         }
 
-    /// Return a tight fitting OBB around the shape
+    // Return a tight fitting OBB around the shape
     DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
         {
         // just use the AABB for now
         return detail::OBB(getAABB(pos));
         }
 
-    /// Return the bounding box of the shape in world coordinates
+    // Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         OverlapReal max_axis = detail::max(axes.x, detail::max(axes.y, axes.z));
@@ -180,16 +180,16 @@ struct ShapeEllipsoid
     */
     HOSTDEVICE static bool isParallel() { return false; }
 
-    /// Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    // Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
     HOSTDEVICE static bool supportsSweepRadius()
         {
         return false;
         }
 
-    /// Orientation of the shape
+    // Orientation of the shape
     quat<Scalar> orientation;
 
-    /// Shape parameters
+    // Shape parameters
     const EllipsoidParams& axes;
     };
 

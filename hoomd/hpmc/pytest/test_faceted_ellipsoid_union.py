@@ -314,7 +314,7 @@ faceted_ell_union_args22 = {'shapes': [faceted_ell_args_1,
                             'ignore_statistics': 1}
 
 
-def test_dict_conversions():
+def test_faceted_ellipsoid_union_params():
 
     test_facet_ell_union1 = _hpmc.mfellipsoid_params(faceted_ell_union_args1)
     test_facet_ell_dict1 = test_facet_ell_union1.asDict()
@@ -385,7 +385,7 @@ def test_dict_conversions():
     assert test_facet_ell_dict22 == faceted_ell_union_args22
 
 
-def test_shape_params():
+def test_faceted_ellipsoid_shape():
 
     mc = hoomd.hpmc.integrate.FacetedEllipsoidUnion(23456)
 

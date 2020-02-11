@@ -41,7 +41,7 @@ namespace hpmc
 */
 struct ShapeParams
     {
-    /// Custom new operator
+    // Custom new operator
     static void* operator new(std::size_t sz)
         {
         void *ret = 0;
@@ -54,7 +54,7 @@ struct ShapeParams
         return ret;
         }
 
-    /// Custom new operator for arrays
+    // Custom new operator for arrays
     static void* operator new[](std::size_t sz)
         {
         void *ret = 0;
@@ -67,13 +67,13 @@ struct ShapeParams
         return ret;
         }
 
-    /// Custom delete operator
+    // Custom delete operator
     static void operator delete(void *ptr)
         {
         free(ptr);
         }
 
-    /// Custom delete operator for arrays
+    // Custom delete operator for arrays
     static void operator delete[](void *ptr)
         {
         free(ptr);
@@ -110,17 +110,17 @@ struct ShapeParams
 */
 struct SphereParams : ShapeParams
     {
-    /// The radius of the sphere
+    // The radius of the sphere
     OverlapReal radius;
 
-    /// True when move statistics should not be counted
+    // True when move statistics should not be counted
     bool ignore;
 
-    /// True when the shape may be oriented
+    // True when the shape may be oriented
     bool isOriented;
 
     #ifdef ENABLE_HIP
-    /// Set CUDA memory hints
+    // Set CUDA memory hints
     void set_memory_hint() const
         {
         }
@@ -128,10 +128,10 @@ struct SphereParams : ShapeParams
 
     #ifndef __HIPCC__
 
-    /// Default constructor
+    // Default constructor
     SphereParams() { }
 
-    /// Construct from a Python dictionary
+    // Construct from a Python dictionary
     SphereParams(pybind11::dict v, bool managed=false)
         {
         ignore = v["ignore_statistics"].cast<bool>();
@@ -139,7 +139,7 @@ struct SphereParams : ShapeParams
         isOriented = v["orientable"].cast<bool>();
         }
 
-    /// Convert parameters to a python dictionary
+    // Convert parameters to a python dictionary
     pybind11::dict asDict()
         {
         pybind11::dict v;
@@ -170,41 +170,41 @@ struct SphereParams : ShapeParams
 */
 struct ShapeSphere
     {
-    /// Define the parameter type
+    // Define the parameter type
     typedef SphereParams param_type;
 
-    /// Construct a shape at a given orientation
+    // Construct a shape at a given orientation
     DEVICE ShapeSphere(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), params(_params) {}
 
-    /// Check if the shape may be rotated
+    // Check if the shape may be rotated
     DEVICE bool hasOrientation() const
         {
         return params.isOriented;
         }
 
-    /// Check if this shape should be ignored in the move statistics
+    // Check if this shape should be ignored in the move statistics
     DEVICE bool ignoreStatistics() const { return params.ignore; }
 
-    /// Get the circumsphere diameter of the shape
+    // Get the circumsphere diameter of the shape
     DEVICE OverlapReal getCircumsphereDiameter() const
         {
         return params.radius*OverlapReal(2.0);
         }
 
-    /// Get the in-sphere radius of the shape
+    // Get the in-sphere radius of the shape
     DEVICE OverlapReal getInsphereRadius() const
         {
         return params.radius;
         }
 
-    /// Return the bounding box of the shape in world coordinates
+    // Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         return detail::AABB(pos, params.radius);
         }
 
-    /// Return a tight fitting OBB around the shape
+    // Return a tight fitting OBB around the shape
     DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
         {
         // just use the AABB for now
@@ -212,7 +212,7 @@ struct ShapeSphere
         }
 
     #ifndef __HIPCC__
-    /// Return the shape parameters in the `type_shape` format
+    // Return the shape parameters in the `type_shape` format
     std::string getShapeSpec() const
         {
         std::ostringstream shapedef;
@@ -226,16 +226,16 @@ struct ShapeSphere
     */
     HOSTDEVICE static bool isParallel() { return false; }
 
-    /// Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    // Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
     HOSTDEVICE static bool supportsSweepRadius()
         {
         return true;
         }
 
-    /// Orientation of the sphere
+    // Orientation of the sphere
     quat<Scalar> orientation;
 
-    /// Sphere parameters
+    // Sphere parameters
     const SphereParams &params;
     };
 

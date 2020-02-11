@@ -4,7 +4,7 @@ import pytest
 import hoomd
 
 
-def test_convex_spheropolyhedron_python():
+def test_convex_spheropolyhedron_params():
 
     verts = [(-1, 1, 0), (1, -1, 0), (1, 1, 0), (-1, -1, 0)]
     poly = hpmc.integrate.ConvexSpheropolyhedron(23456)
@@ -13,7 +13,7 @@ def test_convex_spheropolyhedron_python():
     np.testing.assert_allclose(poly.shape['A']['vertices'], verts)
 
 
-def test_convex_spheropolyhedron_params():
+def test_convex_spheropolyhedron_shape():
 
     verts1 = [(-1, 1, 0), (1, -1, 0), (1, 1, 0), (-1, -1, 0)]
     verts2 = [(-1, 1, 0), (1, -1, 1), (1, 1, 1)]

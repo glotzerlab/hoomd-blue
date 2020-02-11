@@ -5,7 +5,7 @@ import hoomd.hpmc._hpmc as _hpmc
 from hoomd import hpmc
 
 
-def test_convex_polyhedron():
+def test_polyhedron_vertices():
 
     args_1 = {'vertices': [(0, 5, 0), (1, 1, 1), (1, 0, 1),
                            (0, 1, 1), (1, 1, 0), (0, 0, 1)],
@@ -49,7 +49,7 @@ def test_convex_polyhedron():
 
 
 # these tests are for the python side
-def test_convex_polyhedron_python():
+def test_convex_polyhedron_shape():
 
     verts = [(-1, 1, 0), (1, 0, -1), (1, 1, 1), (-1, -1, 1)]
     poly = hpmc.integrate.ConvexPolyhedron(23456)

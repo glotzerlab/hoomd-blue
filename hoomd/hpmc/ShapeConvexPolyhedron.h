@@ -43,7 +43,7 @@ namespace detail
 */
 struct PolyhedronVertices : ShapeParams
     {
-    /// Default constructor initializes zero values.
+    // Default constructor initializes zero values.
     DEVICE PolyhedronVertices()
         : n_hull_verts(0),
           N(0),
@@ -153,7 +153,7 @@ struct PolyhedronVertices : ShapeParams
             }
         }
 
-    /// Construct from a Python dictionary
+    // Construct from a Python dictionary
     PolyhedronVertices(pybind11::dict v, bool managed=false)
         : PolyhedronVertices((unsigned int)pybind11::len(v["vertices"]), managed)
         {
@@ -176,7 +176,7 @@ struct PolyhedronVertices : ShapeParams
         setVerts(vert_vector, v["sweep_radius"].cast<float>());
         }
 
-    /// Convert parameters to a python dictionary
+    // Convert parameters to a python dictionary
     pybind11::dict asDict()
         {
         pybind11::dict v;
@@ -229,13 +229,13 @@ struct PolyhedronVertices : ShapeParams
         }
     #endif
 
-    /// X coordinate of vertices
+    // X coordinate of vertices
     ManagedArray<OverlapReal> x;
 
-    /// Y coordinate of vertices
+    // Y coordinate of vertices
     ManagedArray<OverlapReal> y;
 
-    /// Z coordinate of vertices
+    // Z coordinate of vertices
     ManagedArray<OverlapReal> z;
 
     /** List of triangles hull_verts[3*i], hull_verts[3*i+1], hull_verts[3*i+2] making up the convex
@@ -243,22 +243,22 @@ struct PolyhedronVertices : ShapeParams
     */
     ManagedArray<unsigned int> hull_verts;
 
-    /// Number of vertices in the convex hull
+    // Number of vertices in the convex hull
     unsigned int n_hull_verts;
 
-    /// Number of vertices
+    // Number of vertices
     unsigned int N;
 
-    /// Circumsphere diameter
+    // Circumsphere diameter
     OverlapReal diameter;
 
-    /// Radius of the sphere sweep (used for spheropolyhedra)
+    // Radius of the sphere sweep (used for spheropolyhedra)
     OverlapReal sweep_radius;
 
-    /// True when move statistics should not be counted
+    // True when move statistics should not be counted
     unsigned int ignore;
 
-    /// Tight fitting bounding box
+    // Tight fitting bounding box
     detail::OBB obb;
     }__attribute__((aligned(32)));
 
@@ -530,7 +530,7 @@ DEVICE inline vec3<OverlapReal> closestPointOnTriangle(const vec3<OverlapReal>& 
     return a + ab*v+ac * w; // = u*a + v*b + w*c, u = va * denom = 1.0f - v - w
     }
 
-/// Test if point p lies outside plane through abc
+// Test if point p lies outside plane through abc
 DEVICE inline bool PointOutsideOfPlane(const vec3<OverlapReal>& p,
                                        const vec3<OverlapReal>& a,
                                        const vec3<OverlapReal>& b,
@@ -539,7 +539,7 @@ DEVICE inline bool PointOutsideOfPlane(const vec3<OverlapReal>& p,
     return dot(p-a,cross(b-a,c-a)) >= OverlapReal(0.0);
     }
 
-/// Find the point on a segment closest to point p
+// Find the point on a segment closest to point p
 DEVICE inline vec3<OverlapReal> ClosestPtPointSegment(const vec3<OverlapReal>& c,
                                                       const vec3<OverlapReal>& a,
                                                       const vec3<OverlapReal>& b,
@@ -697,29 +697,29 @@ class ProjectionFuncConvexPolyhedron
 */
 struct ShapeConvexPolyhedron
     {
-    /// Define the parameter type
+    // Define the parameter type
     typedef detail::PolyhedronVertices param_type;
 
-    /// Construct a shape at a given orientation
+    // Construct a shape at a given orientation
     DEVICE ShapeConvexPolyhedron(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), verts(_params)
         {
         }
 
-    /// Check if the shape may be rotated
+    // Check if the shape may be rotated
     DEVICE bool hasOrientation() const { return true; }
 
-    /// Check if this shape should be ignored in the move statistics
+    // Check if this shape should be ignored in the move statistics
     DEVICE bool ignoreStatistics() const { return verts.ignore; }
 
-    /// Get the circumsphere diameter of the shape
+    // Get the circumsphere diameter of the shape
     DEVICE OverlapReal getCircumsphereDiameter() const
         {
         // return the precomputed diameter
         return verts.diameter;
         }
 
-    /// Get the in-sphere radius of the shape
+    // Get the in-sphere radius of the shape
     DEVICE OverlapReal getInsphereRadius() const
         {
         // not implemented
@@ -727,7 +727,7 @@ struct ShapeConvexPolyhedron
         }
 
     #ifndef __HIPCC__
-    /// Return the shape parameters in the `type_shape` format
+    // Return the shape parameters in the `type_shape` format
     std::string getShapeSpec() const
         {
         std::ostringstream shapedef;
@@ -741,7 +741,7 @@ struct ShapeConvexPolyhedron
         }
     #endif
 
-    /// Return the bounding box of the shape in world coordinates
+    // Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         // generate a tight AABB around the polyhedron
@@ -769,7 +769,7 @@ struct ShapeConvexPolyhedron
         return detail::AABB(pos, getCircumsphereDiameter()/Scalar(2));
         }
 
-    /// Return a tight fitting OBB around the shape
+    // Return a tight fitting OBB around the shape
     DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
         {
         detail::OBB obb = verts.obb;
@@ -782,16 +782,16 @@ struct ShapeConvexPolyhedron
     */
     HOSTDEVICE static bool isParallel() { return false; }
 
-    /// Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    // Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
     HOSTDEVICE static bool supportsSweepRadius()
         {
         return true;
         }
 
-    /// Orientation of the shape
+    // Orientation of the shape
     quat<Scalar> orientation;
 
-    /// Shape parameters
+    // Shape parameters
     const detail::PolyhedronVertices& verts;
     };
 

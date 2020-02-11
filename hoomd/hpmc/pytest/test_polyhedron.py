@@ -98,7 +98,7 @@ args_5 = {'vertices': [(0, 3, 0),
 
 
 # these test passing back and forth between python and C++
-def test_polyhedron():
+def test_polyhedron_params():
 
     test_polyhedron1 = _hpmc.TriangleMesh(args_1)
     test_dict1 = test_polyhedron1.asDict()
@@ -124,7 +124,7 @@ def test_polyhedron():
 
 
 # these tests are for the python side
-def test_polyhedron_python():
+def test_polyhedron_shape():
 
     poly = hpmc.integrate.Polyhedron(2456)
     poly.shape['A'] = args_4

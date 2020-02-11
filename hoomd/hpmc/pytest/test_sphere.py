@@ -4,7 +4,7 @@ from hoomd.hpmc import _hpmc
 import pytest
 
 
-def test_sphere():
+def test_sphere_params():
 
     args_1 = {'diameter': 1, 'orientable': 0, 'ignore_statistics': 1}
     test_sphere1 = _hpmc.SphereParams(args_1)
@@ -22,7 +22,7 @@ def test_sphere():
     assert test_dict3 == args_3
 
 
-def test_shape_params():
+def test_sphere_shape():
 
     mc = hoomd.hpmc.integrate.Sphere(23456)
 

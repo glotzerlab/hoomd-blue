@@ -100,7 +100,7 @@ args_5 = {"normals": [(0, 0, 1),
           "ignore_statistics": 1}
 
 
-def test_faceted_ellipsoid():
+def test_faceted_ellipsoid_params():
 
     test_faceted_ellipsoid1 = hpmc.FacetedEllipsoidParams(args_1)
     test_dict1 = test_faceted_ellipsoid1.asDict()
@@ -123,7 +123,7 @@ def test_faceted_ellipsoid():
     assert test_dict5 == args_5
 
 
-def test_shape_params():
+def test_faceted_ellipsoid_shape():
 
     mc = hoomd.hpmc.integrate.FacetedEllipsoid(23456)
 

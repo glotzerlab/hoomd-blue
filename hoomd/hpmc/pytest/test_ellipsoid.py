@@ -5,7 +5,7 @@ import math
 import pytest
 
 
-def test_ellipsoid():
+def test_ellipsoid_params():
 
     args_1 = {'a': 1, 'b': 2, 'c': 3, 'ignore_statistics': 1}
     test_ellipsoid1 = hpmc.EllipsoidParams(args_1)
@@ -23,7 +23,7 @@ def test_ellipsoid():
     assert test_dict3 == args_3
 
 
-def test_shape_params():
+def test_ellispoid_shape():
 
     mc = hoomd.hpmc.integrate.Ellipsoid(23456)
 

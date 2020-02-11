@@ -5,7 +5,7 @@ from hoomd import hpmc
 
 
 # This tests passing back and forth from C++
-def test_convex_polygon():
+def test_polygon_vertices():
 
     args_1 = {'vertices': [(0, 0), (1, 1), (1, 0), (0, 1), (1, 1), (0, 0)],
               'ignore_statistics': 1,
@@ -39,7 +39,7 @@ def test_convex_polygon():
 
 
 # these tests are for the python side
-def test_convex_polygon_python():
+def test_convex_polygon_shape():
 
     verts = [(-1, 1), (1, -1), (1, 1), (-1, -1)]
     poly = hpmc.integrate.ConvexPolygon(23456)

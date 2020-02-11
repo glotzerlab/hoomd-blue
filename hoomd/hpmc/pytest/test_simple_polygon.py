@@ -3,7 +3,7 @@ import numpy as np
 from hoomd import hpmc
 
 
-def test_simple_polygon():
+def test_simple_polygon_shape():
 
     verts = [(-1, 1), (1, -1), (1, 1), (-1, -1)]
     poly = hpmc.integrate.SimplePolygon(23456)
