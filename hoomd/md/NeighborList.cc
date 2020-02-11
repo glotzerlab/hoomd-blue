@@ -1658,8 +1658,14 @@ void export_NeighborList(py::module& m)
     {
     py::class_<NeighborList, Compute, std::shared_ptr<NeighborList> > nlist(m, "NeighborList");
     nlist.def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
-        .def("setRBuff", &NeighborList::setRBuff)
-        .def("setEvery", &NeighborList::setEvery)
+        .def_property("buffer", &NeighborList::getRBuff,
+                      &NeighborList::setRBuff)
+        .def_property("rebuild_check_delay",
+                      &NeighborList::getRebuildCheckDelay,
+                      &NeighborList::setRebuildCheckDelay)
+        .def_property("check_dist",
+                      &NeighborList::getDistCheck,
+                      &NeighborList::setDistCheck)
         .def("setStorageMode", &NeighborList::setStorageMode)
         .def("addExclusion", &NeighborList::addExclusion)
         .def("clearExclusions", &NeighborList::clearExclusions)
