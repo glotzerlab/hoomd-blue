@@ -19,6 +19,7 @@
 #include "hoomd/ForceCompute.h"
 #include "NeighborList.h"
 #include "hoomd/GSDShapeSpecWriter.h"
+#include "hoomd/md/EvaluatorPairLJ.h"
 
 #ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
@@ -98,8 +99,11 @@ class PotentialPair : public ForceCompute
         //! Destructor
         virtual ~PotentialPair();
 
-        //! Set the pair parameters for a single type pair
+        //! Set and get the pair parameters for a single type pair
         virtual void setParams(unsigned int typ1, unsigned int typ2, const param_type& param);
+        virtual void setParamsLJ(unsigned int typ1, unsigned int typ2, const Scalar2& param);
+        virtual void setParamsPython(pybind11::tuple typ, pybind11::dict params);
+        virtual pybind11::dict getParams(pybind11::tuple typ);
         //! Set the rcut for a single type pair
         virtual void setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut);
         //! Set ron for a single type pair
@@ -290,6 +294,77 @@ void PotentialPair< evaluator >::setParams(unsigned int typ1, unsigned int typ2,
     h_params.data[m_typpair_idx(typ1, typ2)] = param;
     h_params.data[m_typpair_idx(typ2, typ1)] = param;
     }
+
+template< class evaluator >
+void PotentialPair< evaluator >::setParamsLJ(unsigned int typ1, unsigned int typ2, const Scalar2& param)
+    {
+    }
+
+template<>
+void PotentialPair<EvaluatorPairLJ>::setParamsLJ(unsigned int typ1, unsigned int typ2, const Scalar2& param)
+    {
+    if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
+        {
+        this->m_exec_conf->msg->error() << "pair." << EvaluatorPairLJ::getName() << ": Trying to set pair params for a non existent type! "
+                  << typ1 << "," << typ2 << std::endl;
+        throw std::runtime_error("Error setting parameters in PotentialPair");
+        }
+
+    ArrayHandle<EvaluatorPairLJ::param_type> h_params(m_params, access_location::host, access_mode::readwrite);
+    EvaluatorPairLJ::param_type lj_params;
+    lj_params.lj1 = param.x;
+    lj_params.lj2 = param.y;
+    h_params.data[m_typpair_idx(typ1, typ2)] = lj_params;
+    h_params.data[m_typpair_idx(typ2, typ1)] = lj_params;
+    }
+
+template< class evaluator >
+void PotentialPair< evaluator >::setParamsPython(pybind11::tuple typ, pybind11::dict params)
+    {}
+
+template<>
+void PotentialPair<EvaluatorPairLJ>::setParamsPython(pybind11::tuple typ, pybind11::dict params)
+    {
+    auto typ1 = m_pdata->getTypeByName(typ[0].cast<std::string>());
+    auto typ2 = m_pdata->getTypeByName(typ[1].cast<std::string>());
+    if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
+        {
+        this->m_exec_conf->msg->error() << "pair." << EvaluatorPairLJ::getName()
+            << ": Trying to set pair params for a non existent type! "
+            << typ1 << "," << typ2 << std::endl;
+        throw std::runtime_error("Error setting parameters in PotentialPair");
+        }
+
+    ArrayHandle<param_type> h_params(m_params, access_location::host,
+                                     access_mode::readwrite);
+    h_params.data[m_typpair_idx(typ1, typ2)] = param_type(params);
+    h_params.data[m_typpair_idx(typ2, typ1)] = param_type(params);
+    }
+
+template< class evaluator >
+pybind11::dict PotentialPair< evaluator >::getParams(pybind11::tuple typ)
+    {
+    pybind11::dict v;
+    return v;
+    }
+
+template<>
+pybind11::dict PotentialPair< EvaluatorPairLJ >::getParams(pybind11::tuple typ)
+    {
+    auto typ1 = m_pdata->getTypeByName(typ[0].cast<std::string>());
+    auto typ2 = m_pdata->getTypeByName(typ[1].cast<std::string>());
+    if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
+        {
+        this->m_exec_conf->msg->error() << "pair." << EvaluatorPairLJ::getName()
+            << ": Trying to set pair params for a non existent type! "
+            << typ1 << "," << typ2 << std::endl;
+        throw std::runtime_error("Error setting parameters in PotentialPair");
+        }
+
+    ArrayHandle<param_type> h_params(m_params, access_location::host,
+                                     access_mode::read);
+    return h_params.data[m_typpair_idx(typ1, typ2)].asDict();
+        }
 
 /*! \param typ1 First type index in the pair
     \param typ2 Second type index in the pair
@@ -818,7 +893,8 @@ template < class T > void export_PotentialPair(pybind11::module& m, const std::s
     {
     pybind11::class_<T, ForceCompute, std::shared_ptr<T> > potentialpair(m, name.c_str());
     potentialpair.def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
-        .def("setParams", &T::setParams)
+        .def("setParams", &T::setParamsPython)
+        .def("getParams", &T::getParams)
         .def("setRcut", &T::setRcut)
         .def("setRon", &T::setRon)
         .def("setShiftMode", &T::setShiftMode)
