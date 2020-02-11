@@ -206,11 +206,11 @@ class _Operation(metaclass=Loggable):
         state = {name: tp.state for name, tp in self._typeparam_dict.items()}
         return deepcopy(state)
 
-    @Loggable.log(flag='dict')
+    @Loggable.log(flag='state')
     def state(self):
         self._update_param_dict()
         state = self._typeparam_states()
-        state['params'] = deepcopy(self._param_dict)
+        state['params'] = dict(self._param_dict)
         return dict_map(state, convert_values_to_log_form)
 
     @classmethod
