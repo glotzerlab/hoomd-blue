@@ -13,8 +13,8 @@ from hoomd.parameterdicts import ParameterDict
 from hoomd.integrate import _BaseIntegrator
 from hoomd.syncedlist import SyncedList
 from hoomd.md.methods import _Method
-from hoomd.md.force import Force
-from hoomd.md.constrain import ConstraintForce
+from hoomd.md.force import _Force
+from hoomd.md.constrain import _ConstraintForce
 
 
 def validate_aniso(value):
@@ -43,11 +43,12 @@ class _DynamicIntegrator(_BaseIntegrator):
         forces = [] if forces is None else forces
         constraints = [] if constraints is None else constraints
         methods = [] if methods is None else methods
-        self._forces = SyncedList(lambda x: isinstance(x, Force),
+        self._forces = SyncedList(lambda x: isinstance(x, _Force),
                                   to_synced_list=lambda x: x._cpp_obj,
                                   iterable=forces)
 
-        self._constraints = SyncedList(lambda x: isinstance(x, ConstraintForce),
+        self._constraints = SyncedList(lambda x: isinstance(x,
+                                                            _ConstraintForce),
                                        to_synced_list=lambda x: x._cpp_obj,
                                        iterable=constraints)
 

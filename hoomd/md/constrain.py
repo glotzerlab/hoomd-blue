@@ -35,7 +35,7 @@ import hoomd
 # hoomd writers. 1) The instance of the c++ constraint force itself is tracked
 # and added to the System 2) methods are provided for disabling the force from
 # being added to the net force on each particle
-class ConstraintForce(hoomd.meta._metadata):
+class _ConstraintForce(hoomd.meta._metadata):
     ## \internal
     # \brief Constructs the constraint force
     #
@@ -52,8 +52,8 @@ class ConstraintForce(hoomd.meta._metadata):
         self.cpp_force = None
 
         # increment the id counter
-        id = ConstraintForce.cur_id
-        ConstraintForce.cur_id += 1
+        id = _ConstraintForce.cur_id
+        _ConstraintForce.cur_id += 1
 
         self.force_name = "constraint_force%d" % (id)
         self.enabled = True
@@ -156,9 +156,9 @@ class ConstraintForce(hoomd.meta._metadata):
         return data
 
 # set default counter
-ConstraintForce.cur_id = 0
+_ConstraintForce.cur_id = 0
 
-class sphere(ConstraintForce):
+class sphere(_ConstraintForce):
     R""" Constrain particles to the surface of a sphere.
 
     Args:
@@ -178,7 +178,7 @@ class sphere(ConstraintForce):
     def __init__(self, group, P, r):
 
         # initialize the base class
-        ConstraintForce.__init__(self)
+        _ConstraintForce.__init__(self)
 
         # create the c++ mirror class
         P = _hoomd.make_scalar3(P[0], P[1], P[2])
@@ -195,7 +195,7 @@ class sphere(ConstraintForce):
         self.r = r
         self.metadata_fields = ['group','P', 'r']
 
-class distance(ConstraintForce):
+class distance(_ConstraintForce):
     R""" Constrain pairwise particle distances.
 
     :py:class:`distance` specifies that forces will be applied to all particles pairs for
@@ -226,7 +226,7 @@ class distance(ConstraintForce):
     def __init__(self):
 
         # initialize the base class
-        ConstraintForce.__init__(self)
+        _ConstraintForce.__init__(self)
 
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -250,7 +250,7 @@ class distance(ConstraintForce):
         if rel_tol is not None:
             self.cpp_force.setRelativeTolerance(float(rel_tol))
 
-class rigid(ConstraintForce):
+class rigid(_ConstraintForce):
     R""" Constrain particles in rigid bodies.
 
     .. rubric:: Overview
@@ -353,7 +353,7 @@ class rigid(ConstraintForce):
     def __init__(self):
 
         # initialize the base class
-        ConstraintForce.__init__(self)
+        _ConstraintForce.__init__(self)
 
         self.composite = True
 
@@ -475,7 +475,7 @@ class rigid(ConstraintForce):
         # validate copies of rigid bodies
         self.create_bodies(False)
 
-class oneD(ConstraintForce):
+class oneD(_ConstraintForce):
     R""" Constrain particles to move along a specific direction only
 
     Args:
@@ -500,7 +500,7 @@ class oneD(ConstraintForce):
 
 
         # initialize the base class
-        ConstraintForce.__init__(self)
+        _ConstraintForce.__init__(self)
 
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -514,6 +514,3 @@ class oneD(ConstraintForce):
         self.group = group
         self.constraint_vector = constraint_vector
         self.metadata_fields = ['group','constraint_vector']
-
-
-

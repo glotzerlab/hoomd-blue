@@ -47,7 +47,12 @@ from hoomd import _hoomd
 from hoomd.md import _md
 import hoomd;
 
+
 class nlist:
+    pass
+
+
+class _NList:
     R""" Base class neighbor list.
 
     Methods provided by this base class are available to all subclasses.
