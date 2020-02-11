@@ -42,7 +42,6 @@ set(_hpmc_headers
     IntegratorHPMCMonoGPU.cuh
     IntegratorHPMCMonoGPU.h
     IntegratorHPMCMono.h
-    MAP3D.h
     MinkowskiMath.h
     modules.h
     Moves.h

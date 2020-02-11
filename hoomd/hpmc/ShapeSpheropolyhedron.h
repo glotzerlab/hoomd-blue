@@ -207,35 +207,6 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     */
     }
 
-//! Test for overlap of a third particle with the intersection of two shapes
-/*! \param a First shape to test
-    \param b Second shape to test
-    \param c Third shape to test
-    \param ab_t Position of second shape relative to first
-    \param ac_t Position of third shape relative to first
-    \param err Output variable that is incremented upon non-convergence
-    \param sweep_radius_a Radius of a sphere to sweep the first shape by
-    \param sweep_radius_b Radius of a sphere to sweep the second shape by
-*/
-template<>
-DEVICE inline bool test_overlap_intersection(const ShapeSpheropolyhedron& a,
-    const ShapeSpheropolyhedron& b,
-    const ShapeSpheropolyhedron& c,
-    const vec3<Scalar>& ab_t, const vec3<Scalar>& ac_t, unsigned int &err,
-    Scalar sweep_radius_a, Scalar sweep_radius_b, Scalar sweep_radius_c)
-    {
-    return detail::map_three(a,b,c,
-        detail::SupportFuncConvexPolyhedron(a.verts,a.verts.sweep_radius+sweep_radius_a),
-        detail::SupportFuncConvexPolyhedron(b.verts,b.verts.sweep_radius+sweep_radius_b),
-        detail::SupportFuncConvexPolyhedron(c.verts,c.verts.sweep_radius+sweep_radius_c),
-        detail::ProjectionFuncConvexPolyhedron(a.verts,a.verts.sweep_radius+sweep_radius_a),
-        detail::ProjectionFuncConvexPolyhedron(b.verts,b.verts.sweep_radius+sweep_radius_b),
-        detail::ProjectionFuncConvexPolyhedron(c.verts,c.verts.sweep_radius+sweep_radius_c),
-        vec3<OverlapReal>(ab_t),
-        vec3<OverlapReal>(ac_t),
-        err);
-    }
-
 }; // end namespace hpmc
 
 #undef DEVICE

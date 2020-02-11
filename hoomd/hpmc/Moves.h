@@ -184,7 +184,7 @@ DEVICE inline vec3<Scalar> generatePositionInSphere(RNG& rng, vec3<Scalar> pos_s
  * \param d Vector normal to the cap
  */
 template<class RNG>
-inline vec3<Scalar> generatePositionInSphericalCap(RNG& rng, const vec3<Scalar>& pos_sphere,
+DEVICE inline vec3<Scalar> generatePositionInSphericalCap(RNG& rng, const vec3<Scalar>& pos_sphere,
      Scalar R, Scalar h, const vec3<Scalar>& d)
     {
     // pick a z coordinate in the spherical cap s.t. V(z) ~ uniform
@@ -199,10 +199,11 @@ inline vec3<Scalar> generatePositionInSphericalCap(RNG& rng, const vec3<Scalar>&
     Scalar z = R*(fast::cos(arg)-sqrt3*fast::sin(arg));
 
     // pick a point in disk of radius sqrt(R^2-z^2)
-    Scalar r = fast::sqrt(rng.template s<Scalar>()*(R*R-z*z));
+    hoomd::UniformDistribution<Scalar> u;
+    Scalar r = fast::sqrt(u(rng)*(R*R-z*z));
 
     // unit vector in cap direction
-    vec3<Scalar> n = d/sqrt(dot(d,d));
+    vec3<Scalar> n = d/fast::sqrt(dot(d,d));
 
     // find two unit vectors normal to n
     vec3<Scalar> ez(0,0,1);
@@ -257,18 +258,35 @@ DEVICE inline vec3<Scalar> generatePositionInAABB(RNG& rng, const detail::AABB& 
 template<class RNG>
 DEVICE inline vec3<OverlapReal> generatePositionInOBB(RNG& rng, const detail::OBB& obb, unsigned int dim)
     {
-    vec3<OverlapReal> p;
-    vec3<OverlapReal> lower = -obb.lengths;
-    vec3<OverlapReal> upper = obb.lengths;
-
-    p.x = hoomd::UniformDistribution<OverlapReal>(lower.x, upper.x)(rng);
-    p.y = hoomd::UniformDistribution<OverlapReal>(lower.y, upper.y)(rng);
-    if (dim == 3)
-        p.z = hoomd::UniformDistribution<OverlapReal>(lower.z, upper.z)(rng);
+    if (obb.is_sphere)
+        {
+        if (dim == 3)
+            {
+            // sphere
+            return generatePositionInSphere(rng, obb.center, obb.lengths.x);
+            }
+        else
+            {
+            // disk
+            Scalar alpha = hoomd::UniformDistribution<Scalar>(-M_PI, M_PI)(rng);
+            return obb.center + vec3<OverlapReal>(obb.lengths.x*fast::cos(alpha), obb.lengths.x*fast::sin(alpha),0);
+            }
+        }
     else
-        p.z = OverlapReal(0.0);
+        {
+        vec3<OverlapReal> p;
+        vec3<OverlapReal> lower = -obb.lengths;
+        vec3<OverlapReal> upper = obb.lengths;
 
-    return rotate(obb.rotation,p)+obb.center;
+        p.x = hoomd::UniformDistribution<OverlapReal>(lower.x, upper.x)(rng);
+        p.y = hoomd::UniformDistribution<OverlapReal>(lower.y, upper.y)(rng);
+        if (dim == 3)
+            p.z = hoomd::UniformDistribution<OverlapReal>(lower.z, upper.z)(rng);
+        else
+            p.z = OverlapReal(0.0);
+
+        return rotate(obb.rotation,p)+obb.center;
+        }
     }
 
 /*! Reflect a point in R3 around a line (pi rotation), given by a point p through which it passes

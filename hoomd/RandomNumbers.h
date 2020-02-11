@@ -252,7 +252,7 @@ class UniformDistribution
         /*! \param _a Left end point of the interval
             \param _b Right end point of the interval
         */
-        DEVICE explicit UniformDistribution(Real _a=Real(0,0), Real _b=Real(1.0))
+        DEVICE explicit UniformDistribution(Real _a=Real(0.0), Real _b=Real(1.0))
             : a(_a), width(_b - _a)
             {
             }

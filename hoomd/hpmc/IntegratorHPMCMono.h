@@ -20,6 +20,7 @@
 #include "hoomd/AABBTree.h"
 #include "GSDHPMCSchema.h"
 #include "hoomd/Index1D.h"
+#include "hoomd/RandomNumbers.h"
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/managed_allocator.h"
 #include "hoomd/GSDShapeSpecWriter.h"
@@ -2228,13 +2229,13 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
         if (m_fugacity[type] == 0.0 || !h_overlaps[this->m_overlap_idx(type, typ_i)])
             continue;
 
-        std::vector<unsigned int> intersect_i_old;
-        std::vector<unsigned int> image_i_old;
-        std::vector<detail::AABB> aabbs_i_old;
+        std::vector<vec3<Scalar> > pos_j_old;
+        std::vector<quat<Scalar> > orientation_j_old;
+        std::vector<unsigned int> type_j_old;
 
-        std::vector<unsigned int> intersect_i_new;
-        std::vector<unsigned int> image_i_new;
-        std::vector<detail::AABB> aabbs_i_new;
+        std::vector<vec3<Scalar> > pos_j_new;
+        std::vector<quat<Scalar> > orientation_j_new;
+        std::vector<unsigned int> type_j_new;
 
         bool repulsive = m_fugacity[type] < 0.0;
 
@@ -2243,6 +2244,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
 
         Shape tmp(quat<Scalar>(), this->m_params[type]);
         Scalar d_dep = tmp.getCircumsphereDiameter();
+        Scalar r_dep = Scalar(0.5)*d_dep;
 
         // get old AABB and extend
         vec3<Scalar> lower = aabb_i_local_old.getLower();
@@ -2283,20 +2285,17 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                             if (shape_j.hasOrientation())
                                 shape_j.orientation = quat<Scalar>(h_orientation[j]);
 
-                            detail::AABB aabb_j = shape_j.getAABB(pos_j);
-
-                            // check AABB overlap
-                            bool overlap_excluded = detail::overlap(aabb, aabb_j) && h_overlaps[this->m_overlap_idx(type,typ_j)];
+                            // check excluded volume overlap
+                            bool overlap_excluded = h_overlaps[this->m_overlap_idx(type,typ_j)] &&
+                                excludedVolumeOverlap(shape_old, shape_j, pos_j-pos_i_old_image, r_dep, ndim);
 
                             if (overlap_excluded)
                                 {
-                                intersect_i_old.push_back(j);
-                                image_i_old.push_back(cur_image);
-
-                                // cache the translated AABB of particle j. If i's image is cur_image, then j's
+                                // cache the translated position of particle j. If i's image is cur_image, then j's
                                 // image is the negative of that (and we use i's untranslated position below)
-                                aabb_j.translate(-this->m_image_list[cur_image]);
-                                aabbs_i_old.push_back(aabb_j);
+                                pos_j_old.push_back(pos_j-this->m_image_list[cur_image]);
+                                orientation_j_old.push_back(shape_j.orientation);
+                                type_j_old.push_back(typ_j);
                                 }
                             }
                         }
@@ -2366,17 +2365,16 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                                 }
 
                             // check excluded volume overlap
-                            detail::AABB aabb_j = shape_j.getAABB(pos_j);
-                            bool overlap_excluded = detail::overlap(aabb,aabb_j) && h_overlaps[this->m_overlap_idx(type,typ_j)];
+                            bool overlap_excluded = h_overlaps[this->m_overlap_idx(type,typ_j)] &&
+                                excludedVolumeOverlap(shape_i, shape_j, pos_j-pos_i_image, r_dep, ndim);
 
                             if (overlap_excluded)
                                 {
-                                intersect_i_new.push_back(j);
-                                image_i_new.push_back(cur_image);
-
-                                // cache the translated AABB of particle j
-                                aabb_j.translate(-this->m_image_list[cur_image]);
-                                aabbs_i_new.push_back(aabb_j);
+                                // cache the translated position of particle j. If i's image is cur_image, then j's
+                                // image is the negative of that (and we use i's untranslated position below)
+                                pos_j_new.push_back(pos_j-this->m_image_list[cur_image]);
+                                orientation_j_new.push_back(shape_j.orientation);
+                                type_j_new.push_back(typ_j);
                                 }
                             }
                         }
@@ -2398,7 +2396,6 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
         aabb_i_old.translate(pos_i_old);
 
         // extend AABB i by sweep radius
-        Scalar r_dep = Scalar(0.5)*d_dep;
         vec3<Scalar> lower_i_old = aabb_i_old.getLower();
         vec3<Scalar> upper_i_old = aabb_i_old.getUpper();
         lower_i_old.x -= r_dep; lower_i_old.y -= r_dep; lower_i_old.z -= r_dep;
@@ -2415,72 +2412,32 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
         upper_i_new.x += r_dep; upper_i_new.y += r_dep; upper_i_new.z += r_dep;
 
         // compute insertion volumes
-        Scalar V_old(0.0);
-        for (unsigned int k = 0; k < intersect_i_old.size(); ++k)
+        std::vector<Scalar> V_old;
+        Scalar V_old_tot(0.0);
+        for (unsigned int k = 0; k < pos_j_old.size(); ++k)
             {
-            // world AABB of shape j, in image of i
-            detail::AABB aabb_j = aabbs_i_old[k];
-
-            // extend AABB j by sweep radius
-            vec3<Scalar> lower_j = aabb_j.getLower();
-            vec3<Scalar> upper_j = aabb_j.getUpper();
-            lower_j.x -= r_dep; lower_j.y -= r_dep; lower_j.z -= r_dep;
-            upper_j.x += r_dep; upper_j.y += r_dep; upper_j.z += r_dep;
-
-            // we already know the AABBs are overlapping, compute their intersection
-            vec3<Scalar> intersect_lower, intersect_upper;
-            intersect_lower.x = std::max(lower_i_old.x, lower_j.x);
-            intersect_lower.y = std::max(lower_i_old.y, lower_j.y);
-            intersect_lower.z = std::max(lower_i_old.z, lower_j.z);
-            intersect_upper.x = std::min(upper_i_old.x, upper_j.x);
-            intersect_upper.y = std::min(upper_i_old.y, upper_j.y);
-            intersect_upper.z = std::min(upper_i_old.z, upper_j.z);
-
-            detail::AABB aabb_intersect(intersect_lower, intersect_upper);
-
-            // intersection AABB volume
-            Scalar V =  (intersect_upper.x-intersect_lower.x)*(intersect_upper.y-intersect_lower.y);
-            if(ndim == 3)
-                V *= intersect_upper.z-intersect_lower.z;
-            V_old += V;
+            Shape shape_j(orientation_j_old[k], this->m_params[type_j_old[k]]);
+            Scalar V = getSamplingVolumeIntersection(shape_old, shape_j, pos_j_old[k] - pos_i_old, r_dep, ndim);
+            V_old.push_back(V);
+            V_old_tot += V;
             }
 
-        Scalar V_new(0.0);
-        for (unsigned int k = 0; k < intersect_i_new.size(); ++k)
+        std::vector<Scalar> V_new;
+        Scalar V_new_tot(0.0);
+        for (unsigned int k = 0; k < pos_j_new.size(); ++k)
             {
-            // world AABB of shape j, in image of i
-            detail::AABB aabb_j = aabbs_i_new[k];
-
-            // extend AABB j by sweep radius
-            vec3<Scalar> lower_j = aabb_j.getLower();
-            vec3<Scalar> upper_j = aabb_j.getUpper();
-            lower_j.x -= r_dep; lower_j.y -= r_dep; lower_j.z -= r_dep;
-            upper_j.x += r_dep; upper_j.y += r_dep; upper_j.z += r_dep;
-
-            // we already know the AABBs are overlapping, compute their intersection
-            vec3<Scalar> intersect_lower, intersect_upper;
-            intersect_lower.x = std::max(lower_i_new.x, lower_j.x);
-            intersect_lower.y = std::max(lower_i_new.y, lower_j.y);
-            intersect_lower.z = std::max(lower_i_new.z, lower_j.z);
-            intersect_upper.x = std::min(upper_i_new.x, upper_j.x);
-            intersect_upper.y = std::min(upper_i_new.y, upper_j.y);
-            intersect_upper.z = std::min(upper_i_new.z, upper_j.z);
-
-            detail::AABB aabb_intersect(intersect_lower, intersect_upper);
-
-            // intersection AABB volume
-            Scalar V =  (intersect_upper.x-intersect_lower.x)*(intersect_upper.y-intersect_lower.y);
-            if(ndim == 3)
-                V *= intersect_upper.z-intersect_lower.z;
-            V_new += V;
+            Shape shape_j(orientation_j_new[k], this->m_params[type_j_new[k]]);
+            Scalar V = getSamplingVolumeIntersection(shape_i, shape_j, pos_j_new[k] - pos_i, r_dep, ndim);
+            V_new.push_back(V);
+            V_new_tot += V;
             }
 
         // for every pairwise intersection in the old (new) configuration
-        unsigned int n_intersect = repulsive ? intersect_i_new.size() : intersect_i_old.size();
+        unsigned int n_intersect = repulsive ? pos_j_new.size() : pos_j_old.size();
         #ifdef ENABLE_TBB
         tbb::parallel_for(tbb::blocked_range<unsigned int>(0, n_intersect),
-            [=, &intersect_i_old, &image_i_old, &aabbs_i_old,
-                &intersect_i_new, &image_i_new, &aabbs_i_new,
+            [=, &pos_j_new, &orientation_j_new, &type_j_new,
+                &pos_j_old, &orientation_j_old, &type_j_old,
                 &thread_deltaF,
                 &accept, &rng_depletants_parallel,
                 &thread_counters, &thread_implicit_counters](const tbb::blocked_range<unsigned int>& s) {
@@ -2489,32 +2446,10 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
         for (unsigned int k = 0; k < n_intersect; ++k)
         #endif
             {
-            // world AABB of shape j, in image of i
-            detail::AABB aabb_j = repulsive ? aabbs_i_new[k] : aabbs_i_old[k];
-
-            // extend AABB j by sweep radius
-            vec3<Scalar> lower_j = aabb_j.getLower();
-            vec3<Scalar> upper_j = aabb_j.getUpper();
-            lower_j.x -= r_dep; lower_j.y -= r_dep; lower_j.z -= r_dep;
-            upper_j.x += r_dep; upper_j.y += r_dep; upper_j.z += r_dep;
-
-            // we already know the AABBs are overlapping, compute their intersection
-            vec3<Scalar> intersect_lower, intersect_upper;
-            vec3<Scalar> lower_i = repulsive ? lower_i_new : lower_i_old;
-            vec3<Scalar> upper_i = repulsive ? upper_i_new : upper_i_old;
-            intersect_lower.x = std::max(lower_i.x, lower_j.x);
-            intersect_lower.y = std::max(lower_i.y, lower_j.y);
-            intersect_lower.z = std::max(lower_i.z, lower_j.z);
-            intersect_upper.x = std::min(upper_i.x, upper_j.x);
-            intersect_upper.y = std::min(upper_i.y, upper_j.y);
-            intersect_upper.z = std::min(upper_i.z, upper_j.z);
-
-            detail::AABB aabb_intersect(intersect_lower, intersect_upper);
-
-            // intersection AABB volume
-            Scalar V =  (intersect_upper.x-intersect_lower.x)*(intersect_upper.y-intersect_lower.y);
-            if(ndim == 3)
-                V *= intersect_upper.z-intersect_lower.z;
+            // intersection volume
+            Shape shape_j(repulsive ? orientation_j_new[k] : orientation_j_old[k],
+                this->m_params[repulsive ? type_j_new[k] : type_j_old[k]]);
+            Scalar V = repulsive ? V_new[k] : V_old[k];
 
             // chooose the number of depletants in the intersection volume
             hoomd::PoissonDistribution<Scalar> poisson(fabs(m_fugacity[type])*V);
@@ -2529,8 +2464,8 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
             // for every depletant
             #ifdef ENABLE_TBB
             tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)n),
-                [=, &intersect_i_old, &image_i_old, &aabbs_i_old,
-                    &intersect_i_new, &image_i_new, &aabbs_i_new,
+                [=, &pos_j_new, &orientation_j_new, &type_j_new,
+                    &pos_j_old, &orientation_j_old, &type_j_old,
                     &thread_deltaF,
                     &accept, &rng_depletants_parallel,
                     &thread_counters, &thread_implicit_counters](const tbb::blocked_range<unsigned int>& t) {
@@ -2551,7 +2486,15 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                 implicit_counters[type].insert_count++;
                 #endif
 
-                vec3<Scalar> pos_test = generatePositionInAABB(my_rng, aabb_intersect, ndim);
+                // rejection sampling
+                Shape shape_j(repulsive ? orientation_j_new[k] : orientation_j_old[k],
+                    this->m_params[repulsive ? type_j_new[k] : type_j_old[k]]);
+
+                vec3<OverlapReal> dr_test;
+                if (!sampleInExcludedVolumeIntersection(my_rng, repulsive ? shape_i : shape_old, shape_j,
+                    (repulsive ? (pos_j_new[k] - pos_i) : (pos_j_old[k] - pos_i_old)), r_dep, dr_test, ndim))
+                    continue;
+
                 Shape shape_test(quat<Scalar>(), this->m_params[type]);
                 if (shape_test.hasOrientation())
                     {
@@ -2559,19 +2502,16 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                     }
 
                 // check if depletant falls in other intersection volumes
-
-                // load the depletant's AABB and extend it
-                detail::AABB aabb_test = shape_test.getAABB(pos_test);
-                vec3<Scalar> lower_test = aabb_test.getLower();
-                vec3<Scalar> upper_test = aabb_test.getUpper();
-                aabb_test = detail::AABB(lower_test, upper_test);
-
                 bool active = true;
-                auto& aabbs_i = repulsive ? aabbs_i_new : aabbs_i_old;
 
                 for (unsigned int m = 0; m < k; ++m)
                     {
-                    if (detail::overlap(aabb_test,aabbs_i[m]))
+                    Shape shape_m(repulsive ? orientation_j_new[m] : orientation_j_old[m],
+                        this->m_params[repulsive ? type_j_new[m] : type_j_old[m]]);
+
+                    if (isPointInExcludedVolumeIntersection(repulsive ? shape_i : shape_old, shape_m,
+                        (repulsive ? pos_j_new[m] - pos_i : pos_j_old[m] - pos_i_old),
+                        r_dep, dr_test, ndim))
                         {
                         active = false;
                         break;
@@ -2586,8 +2526,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                 // Check if the configuration of particle i generates an overlap
                 bool overlap_i = false;
                     {
-                    vec3<Scalar> r_ij = (repulsive ? pos_i : pos_i_old) - pos_test;
-                    OverlapReal rsq = dot(r_ij,r_ij);
+                    OverlapReal rsq = dot(dr_test,dr_test);
                     const Shape& shape = repulsive ? shape_i : shape_old;
                     OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape.getCircumsphereDiameter();
                     bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
@@ -2601,7 +2540,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                         #endif
 
                         unsigned int err = 0;
-                        if (circumsphere_overlap && test_overlap(r_ij, shape_test, shape, err))
+                        if (circumsphere_overlap && test_overlap(dr_test, shape, shape_test, err))
                             {
                             overlap_i = true;
                             }
@@ -2622,18 +2561,10 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                 bool in_intersection_volume = false;
                 for (unsigned int m = 0; m < n_intersect; ++m)
                     {
-                    // read in its position and orientation
-                    unsigned int j = repulsive ? intersect_i_new[m] : intersect_i_old[m];
-
-                    // load the old position and orientation of the j particle
-                    Scalar4 postype_j = h_postype[j];
-                    Scalar4 orientation_j = h_orientation[j];
-
-                    vec3<Scalar> r_jk = ((i == j) ? (repulsive ? pos_i : pos_i_old) : vec3<Scalar>(postype_j))
-                        - pos_test - this->m_image_list[repulsive ? image_i_new[m] : image_i_old[m]];
-
-                    unsigned int typ_j = __scalar_as_int(postype_j.w);
-                    Shape shape_j((i == j) ? (repulsive ? shape_i.orientation : shape_old.orientation) : quat<Scalar>(orientation_j), this->m_params[typ_j]);
+                    unsigned int type_m = repulsive ? type_j_new[m] : type_j_old[m];
+                    Shape shape_m(repulsive ? orientation_j_new[m] : orientation_j_old[m], this->m_params[type_m]);
+                    vec3<Scalar> r_mk = (repulsive ? pos_j_new[m] - pos_i : pos_j_old[m] - pos_i_old) -
+                        vec3<Scalar>(dr_test);
 
                     #ifdef ENABLE_TBB
                     thread_counters.local().overlap_checks++;
@@ -2644,13 +2575,13 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                     unsigned int err = 0;
 
                     // check circumsphere overlap
-                    OverlapReal rsq = dot(r_jk,r_jk);
-                    OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter();
+                    OverlapReal rsq = dot(r_mk,r_mk);
+                    OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_m.getCircumsphereDiameter();
                     bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
 
-                    if (h_overlaps[this->m_overlap_idx(type,typ_j)]
+                    if (h_overlaps[this->m_overlap_idx(type,type_m)]
                         && circumsphere_overlap
-                        && test_overlap(r_jk, shape_test, shape_j, err))
+                        && test_overlap(r_mk, shape_test, shape_m, err))
                         {
                         in_intersection_volume = true;
                         }
@@ -2669,7 +2600,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                 if (in_intersection_volume)
                     {
                     // try reinserting in new (old) overlap volume
-                    unsigned int n_intersect = repulsive ? intersect_i_old.size() : intersect_i_new.size();
+                    unsigned int n_intersect = repulsive ? pos_j_old.size() : pos_j_new.size();
 
                     if (!n_intersect)
                         {
@@ -2687,40 +2618,14 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                     unsigned int n_success = 0;
                     for (unsigned int i_trial = 0; i_trial < m_ntrial; ++i_trial)
                         {
-                        Scalar V_rand = hoomd::UniformDistribution<Scalar> (0.0, repulsive ? V_old : V_new)(my_rng);
+                        Scalar V_rand = hoomd::UniformDistribution<Scalar>(0.0, repulsive ? V_old_tot : V_new_tot)(my_rng);
 
                         Scalar V_sum(0.0);
                         detail::AABB aabb_intersect;
                         unsigned int k;
                         for (k = 0; k < n_intersect; ++k)
                             {
-                            // world AABB of shape j, in image of i
-                            detail::AABB aabb_j = repulsive ? aabbs_i_old[k] : aabbs_i_new[k];
-
-                            // extend AABB j by sweep radius
-                            vec3<Scalar> lower_j = aabb_j.getLower();
-                            vec3<Scalar> upper_j = aabb_j.getUpper();
-                            lower_j.x -= r_dep; lower_j.y -= r_dep; lower_j.z -= r_dep;
-                            upper_j.x += r_dep; upper_j.y += r_dep; upper_j.z += r_dep;
-
-                            // we already know the AABBs are overlapping, compute their intersection
-                            vec3<Scalar> intersect_lower, intersect_upper;
-                            vec3<Scalar> lower_i = repulsive ? lower_i_old : lower_i_new;
-                            vec3<Scalar> upper_i = repulsive ? upper_i_old : upper_i_new;
-                            intersect_lower.x = std::max(lower_i.x, lower_j.x);
-                            intersect_lower.y = std::max(lower_i.y, lower_j.y);
-                            intersect_lower.z = std::max(lower_i.z, lower_j.z);
-                            intersect_upper.x = std::min(upper_i.x, upper_j.x);
-                            intersect_upper.y = std::min(upper_i.y, upper_j.y);
-                            intersect_upper.z = std::min(upper_i.z, upper_j.z);
-
-                            aabb_intersect = detail::AABB(intersect_lower, intersect_upper);
-
-                            // intersection AABB volume
-                            Scalar V =  (intersect_upper.x-intersect_lower.x)*(intersect_upper.y-intersect_lower.y);
-                            if(ndim == 3)
-                                V *= intersect_upper.z-intersect_lower.z;
-
+                            Scalar V = repulsive ? V_old[k] : V_new[k];
                             V_sum += V;
                             if (V_rand < V_sum)
                                 break;
@@ -2732,25 +2637,32 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                         implicit_counters[type].insert_count++;
                         #endif
 
-                        vec3<Scalar> pos_test = generatePositionInAABB(my_rng, aabb_intersect, ndim);
+                        // rejection sampling
+                        Shape shape_j(repulsive ? orientation_j_old[k] : orientation_j_new[k],
+                            this->m_params[repulsive ? type_j_old[k] : type_j_new[k]]);
+
+                        vec3<OverlapReal> dr_test;
+                        if (!sampleInExcludedVolumeIntersection(my_rng, repulsive ? shape_old : shape_i, shape_j,
+                            (repulsive ? (pos_j_old[k] - pos_i_old) : (pos_j_new[k] - pos_i)), r_dep, dr_test, ndim))
+                            continue;
+
                         Shape shape_test(quat<Scalar>(), this->m_params[type]);
                         if (shape_test.hasOrientation())
                             {
                             shape_test.orientation = generateRandomOrientation(my_rng, ndim);
                             }
 
-                        // check if depletant falls in other intersection volumes (rejection sampling)
+                        // check if depletant falls in other intersection volumes
                         bool active = true;
-
-                        // load the depletant's AABB and extend it
-                        detail::AABB aabb_test = shape_test.getAABB(pos_test);
-                        vec3<Scalar> lower_test = aabb_test.getLower();
-                        vec3<Scalar> upper_test = aabb_test.getUpper();
-                        aabb_test = detail::AABB(lower_test, upper_test);
 
                         for (unsigned int m = 0; m < k; ++m)
                             {
-                            if (detail::overlap(aabb_test, repulsive ? aabbs_i_old[m] : aabbs_i_new[m]))
+                            Shape shape_m(repulsive ? orientation_j_old[m] : orientation_j_new[m],
+                                this->m_params[repulsive ? type_j_old[m] : type_j_new[m]]);
+
+                            if (isPointInExcludedVolumeIntersection(repulsive ? shape_old : shape_i,
+                                shape_m, repulsive ? (pos_j_old[m] - pos_i_old) : (pos_j_new[m] - pos_i),
+                                r_dep, dr_test, ndim))
                                 {
                                 active = false;
                                 break;
@@ -2767,10 +2679,9 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                         bool overlap_i = false;
 
                             {
-                            vec3<Scalar> r_ij = (repulsive ? pos_i_old : pos_i) - pos_test;
                             const Shape& shape = repulsive ? shape_old : shape_i;
 
-                            OverlapReal rsq = dot(r_ij,r_ij);
+                            OverlapReal rsq = dot(dr_test,dr_test);
                             OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape.getCircumsphereDiameter();
                             bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
 
@@ -2783,7 +2694,8 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                                 #endif
 
                                 unsigned int err = 0;
-                                if (circumsphere_overlap && test_overlap(r_ij, shape_test, shape, err))
+                                if (circumsphere_overlap &&
+                                    test_overlap(dr_test, shape, shape_test, err))
                                     {
                                     overlap_i = true;
                                     }
@@ -2806,14 +2718,10 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
 
                         for (unsigned int m = 0; m < n_intersect; ++m)
                             {
-                            // read in its position and orientation
-                            unsigned int j = repulsive ? intersect_i_old[m] : intersect_i_new[m];
-
-                            vec3<Scalar> r_jk = ((i == j) ? (repulsive ? pos_i_old : pos_i) : vec3<Scalar>(h_postype[j])) - pos_test -
-                                this->m_image_list[repulsive ? image_i_old[m] : image_i_new[m]];
-
-                            unsigned int typ_j = (i == j) ? typ_i : __scalar_as_int(h_postype[j].w);
-                            Shape shape_j((i == j) ? (repulsive ? shape_old.orientation : shape_i.orientation)  : quat<Scalar>(h_orientation[j]), this->m_params[typ_j]);
+                            unsigned int type_m = !repulsive ? type_j_new[m] : type_j_old[m];
+                            Shape shape_m(!repulsive ? orientation_j_new[m] : orientation_j_old[m], this->m_params[type_m]);
+                            vec3<Scalar> r_mk = (!repulsive ? pos_j_new[m] - pos_i : pos_j_old[m] - pos_i_old) -
+                                vec3<Scalar>(dr_test);
 
                             #ifdef ENABLE_TBB
                             thread_counters.local().overlap_checks++;
@@ -2824,24 +2732,28 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                             unsigned int err = 0;
 
                             // check circumsphere overlap
-                            OverlapReal rsq = dot(r_jk,r_jk);
-                            OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter();
+                            OverlapReal rsq = dot(r_mk,r_mk);
+                            OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_m.getCircumsphereDiameter();
                             bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
 
-                            if (h_overlaps[this->m_overlap_idx(type,typ_j)]
+                            if (h_overlaps[this->m_overlap_idx(type,type_m)]
                                 && circumsphere_overlap
-                                && test_overlap(r_jk, shape_test, shape_j, err))
+                                && test_overlap(r_mk, shape_test, shape_m, err))
                                 {
                                 in_intersection_volume = true;
                                 break;
                                 }
+
                             if (err)
                             #ifdef ENABLE_TBB
                                 thread_counters.local().overlap_err_count++;
                             #else
                                 counters.overlap_err_count++;
                             #endif
-                            } // end loop over neighbors
+
+                            if (in_intersection_volume)
+                                break;
+                            } // end loop over intersections
 
                         if (in_intersection_volume)
                             n_success++;
@@ -2853,10 +2765,10 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                         Scalar frac = (Scalar)n_success/(Scalar)m_ntrial;
 
                         #ifdef ENABLE_TBB
-                        thread_deltaF.local() += log(repulsive ? (V_old/V_new) : (V_new/V_old));
+                        thread_deltaF.local() += log(repulsive ? (V_old_tot/V_new_tot) : (V_new_tot/V_old_tot));
                         thread_deltaF.local() += log(frac);
                         #else
-                        deltaF += log(repulsive ? (V_old/V_new) : (V_new/V_old));
+                        deltaF += log(repulsive ? (V_old_tot/V_new_tot) : (V_new_tot/V_old_tot));
                         deltaF += log(frac);
                         #endif
                         }
@@ -2871,7 +2783,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                         throw false;
                         #endif
                         }
-                    }
+                    } // end if in_intersection_volume
                 } // end loop over depletants
             #ifdef ENABLE_TBB
                 });
@@ -2900,7 +2812,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
 
     if (accept)
         {
-        Scalar u = hoomd::UniformDistribution<Scalar>(0.0,1.0)(rng_depletants);
+        Scalar u = hoomd::UniformDistribution<Scalar>()(rng_depletants);
         accept = u <= exp(deltaF);
         }
 

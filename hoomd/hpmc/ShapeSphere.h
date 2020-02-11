@@ -9,6 +9,9 @@
 #include "hoomd/AABB.h"
 #include "hoomd/hpmc/OBB.h"
 #include "hoomd/hpmc/HPMCMiscFunctions.h"
+
+#include "Moves.h"
+
 #include <sstream>
 
 #include <stdexcept>
@@ -160,8 +163,7 @@ struct ShapeSphere
     //! Return a tight fitting OBB
     DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
         {
-        // just use the AABB for now
-        return detail::OBB(getAABB(pos));
+        return detail::OBB(pos, params.radius);
         }
 
     #ifndef __HIPCC__
@@ -187,97 +189,6 @@ struct ShapeSphere
     const sph_params &params;        //!< Sphere and ignore flags
     };
 
-namespace detail
-{
-
-//! Test for a common point in the intersection of three spheres
-/*! \param Ra radius of first sphere
-    \param Rb radius of second sphere
-    \param Rc radius of third sphere
-    \param ab_t Position of second sphere relative to first
-    \param ac_t Position of third sphere relative to first
-*/
-DEVICE inline bool check_three_spheres_overlap(OverlapReal Ra, OverlapReal Rb, OverlapReal Rc,
-    const vec3<Scalar>& ab_t, const vec3<Scalar>& ac_t)
-    {
-    vec3<OverlapReal> r_ab(ab_t);
-    vec3<OverlapReal> r_ac(ac_t);
-    vec3<OverlapReal> r_bc = r_ac-r_ab;
-    OverlapReal rab_sq = dot(r_ab,r_ab);
-    OverlapReal rab = fast::sqrt(rab_sq);
-    OverlapReal rac_sq = dot(r_ac,r_ac);
-    OverlapReal rac = fast::sqrt(rac_sq);
-    OverlapReal rbc_sq = dot(r_bc,r_bc);
-    OverlapReal rbc = fast::sqrt(rbc_sq);
-
-    // first check trivial cases where one sphere is contained in the other
-    if (rab + Rb <= Ra)
-        {
-        // b is in a
-        return rbc_sq <= (Rb + Rc)*(Rb + Rc);
-        }
-    else if (rab + Ra <= Rb)
-        {
-        // a is in b
-        return rac_sq <= (Ra + Rc)*(Ra + Rc);
-        }
-
-    if (rac + Rc <= Ra)
-        {
-        // c is in a
-        return rbc_sq <= (Rb + Rc)*(Rb + Rc);
-        }
-    else if (rac + Ra <= Rc)
-        {
-        // a is in c
-        return rab_sq <= (Ra + Rb)*(Ra + Rb);
-        }
-
-    if (rbc + Rc <= Rb)
-        {
-        // c is in b
-        return rac_sq <= (Ra + Rc)*(Ra + Rc);
-        }
-    else if (rbc + Rb <= Rc)
-        {
-        // b is in c
-        return rab_sq <= (Ra + Rb)*(Ra + Rb);
-        }
-
-    // no volume is entirely contained in the other, surfaces either intersect or don't
-
-    // https://gamedev.stackexchange.com/questions/75756/sphere-sphere-intersection-and-circle-sphere-intersection
-    // do a and b intersect in a circle?
-    if (rab_sq <= (Ra + Rb)*(Ra + Rb))
-        {
-        // center of intersection circle
-        vec3<OverlapReal> c_c = OverlapReal(0.5)*(rab_sq-Rb*Rb+Ra*Ra)/rab_sq*r_ab;
-
-        // check for circle-sphere intersection
-
-        vec3<OverlapReal> n = r_ab*fast::rsqrt(dot(r_ab,r_ab));
-        OverlapReal d = dot(n,c_c-r_ac);
-
-        if (d*d > Rc*Rc)
-            // c does not intersect plane of intersection circle
-            return false;
-
-        // center and radius of circle on c
-        vec3<OverlapReal> c_p = r_ac + d*n;
-        OverlapReal r_p = fast::sqrt(Rc*Rc - d*d);
-
-        // radius of intersection circle
-        OverlapReal r_c=OverlapReal(0.5)*fast::sqrt((OverlapReal(4.0)*rab_sq*Ra*Ra-(rab_sq-Rb*Rb+Ra*Ra)*(rab_sq-Rb*Rb+Ra*Ra))/rab_sq);
-
-        // test overlap of circles
-        return dot(c_p-c_c,c_p-c_c) <= (r_c+r_p)*(r_c+r_p);
-        }
-
-    // no intersection
-    return false;
-    }
-} // end namespace detail
-
 //! Check if circumspheres overlap
 /*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
     \param a first shape
@@ -297,87 +208,6 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
         + OverlapReal(2.0)*(sweep_radius_a + sweep_radius_b);
     return (rsq*OverlapReal(4.0) <= DaDb * DaDb);
     }
-
-//! Check if three circumspheres overlap in a common point
-/*! \param a first shape
-    \param b second shape
-    \param c third shape
-    \param ab_t Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param ac_t Vector defining the position of shape c relative to shape a (r_c - r_a)
-    \param sweep_radius_a Additional radius to sweep shape a by
-    \param sweep_radius_b Additional radius to sweep shape b by
-    \param sweep_radius_c Additional radius to sweep shape c by
-    \returns true if the circumspheres of both shapes overlap
-
-    \ingroup shape
-*/
-template<class ShapeA, class ShapeB, class ShapeC>
-DEVICE inline bool check_circumsphere_overlap_three(const ShapeA& a, const ShapeB& b, const ShapeC &c,
-    const vec3<OverlapReal>& ab_t, const vec3<OverlapReal>& ac_t,
-    OverlapReal sweep_radius_a=OverlapReal(0.0), OverlapReal sweep_radius_b=OverlapReal(0.0),
-    OverlapReal sweep_radius_c=OverlapReal(0.0))
-    {
-    // Default implementation
-    OverlapReal Ra = OverlapReal(0.5)*a.getCircumsphereDiameter() + sweep_radius_a;
-    OverlapReal Rb = OverlapReal(0.5)*b.getCircumsphereDiameter() + sweep_radius_b;
-    OverlapReal Rc = OverlapReal(0.5)*c.getCircumsphereDiameter() + sweep_radius_c;
-
-    return detail::check_three_spheres_overlap(Ra,Rb,Rc,ab_t,ac_t);
-    }
-
-//! Check if bounding volumes (OBBs) overlap (generic template)
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shape
-    \param b second shape
-    \returns true if the circumspheres of both shapes overlap
-
-    \ingroup shape
-*/
-template<class ShapeA, class ShapeB>
-DEVICE inline bool check_obb_overlap(const vec3<Scalar>& r_ab, const ShapeA& a, const ShapeB &b)
-    {
-    // check overlap between OBBs
-    return detail::overlap(a.getOBB(vec3<Scalar>(0,0,0)), b.getOBB(r_ab));
-    }
-
-//! Check if bounding volumes (OBBs) of two spheres overlap
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shape
-    \param b second shape
-    \returns true if the circumspheres of both shapes overlap
-
-    \ingroup shape
-*/
-DEVICE inline bool check_obb_overlap(const vec3<Scalar>& r_ab, const ShapeSphere& a,
-    const ShapeSphere &b)
-    {
-    // for now, always return true
-    return true;
-    }
-
-
-//! Check if three circumspheres overlap in a common point
-/*! \param a first shape
-    \param b second shape
-    \param c third shape
-    \param ab_t Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param ac_t Vector defining the position of shape c relative to shape a (r_c - r_a)
-    \param sweep_radius_a additional sweep radius
-    \param sweep_radius_b additional sweep radius
-    \param sweep_radius_c additional sweep radius
-    \returns true if the circumspheres of both shapes overlap
-
-    \ingroup shape
-*/
-template<>
-DEVICE inline bool check_circumsphere_overlap_three(const ShapeSphere& a, const ShapeSphere& b, const ShapeSphere &c,
-    const vec3<OverlapReal>& ab_t, const vec3<OverlapReal>& ac_t, OverlapReal sweep_radius_a, OverlapReal sweep_radius_b,
-    OverlapReal sweep_radius_c)
-    {
-    // for spheres, always return true
-    return true;
-    }
-
 
 //! Define the general overlap function
 /*! This is just a convenient spot to put this to make sure it is defined early
@@ -427,48 +257,288 @@ DEVICE inline bool test_overlap<ShapeSphere, ShapeSphere>(const vec3<Scalar>& r_
         }
     }
 
-//! Test for overlap of a third particle with the intersection of two shapes
-/*! \param a First shape to test
-    \param b Second shape to test
-    \param c Third shape to test
-    \param ab_t Position of second shape relative to first
-    \param ac_t Position of third shape relative to first
-    \param err Output variable that is incremented upon non-convergence
-    \param sweep_radius_a Radius of a sphere to sweep the first shape py
-    \param sweep_radius_b Radius of a sphere to sweep the second shape by
-    \param sweep_radius_c Radius of a sphere to sweep the third shape by
-*/
-template <class ShapeA, class ShapeB, class ShapeC>
-DEVICE inline bool test_overlap_intersection(const ShapeA& a, const ShapeB& b, const ShapeC& c,
-    const vec3<Scalar>& ab_t, const vec3<Scalar>& ac_t, unsigned int &err,
-    Scalar sweep_radius_a = Scalar(0.0), Scalar sweep_radius_b = Scalar(0.0),
-    Scalar sweep_radius_c = Scalar(0.0))
+//! Test for overlap of excluded volumes
+/*! \param shape_a the first shape
+    \param shape_b the second shape
+    \param r_ab the separation vector between the two shapes (in the same image)
+    \param r excluded volume radius
+    \param dim the spatial dimension
+
+    returns true if the covering of the intersection is non-empty
+ */
+template<class Shape>
+DEVICE inline bool excludedVolumeOverlap(
+    const Shape& shape_a, const Shape& shape_b, const vec3<Scalar>& r_ab,
+    OverlapReal r, unsigned int dim)
     {
-    // default returns true, so it is obvious if something calls this
-    return true;
+    if (dim == 3)
+        {
+        OverlapReal Ra = OverlapReal(0.5)*shape_a.getCircumsphereDiameter()+r;
+        OverlapReal Rb = OverlapReal(0.5)*shape_b.getCircumsphereDiameter()+r;
+
+        return (dot(r_ab,r_ab) <= (Ra+Rb)*(Ra+Rb));
+        }
+    else
+        {
+        detail::AABB aabb_a = shape_a.getAABB(vec3<Scalar>(0.0,0.0,0.0));
+        detail::AABB aabb_b = shape_b.getAABB(r_ab);
+
+        // extend AABBs by the excluded volume radius
+        vec3<Scalar> lower_a = aabb_a.getLower();
+        vec3<Scalar> upper_a = aabb_a.getUpper();
+        lower_a.x -= r; lower_a.y -= r; lower_a.z -= r;
+        upper_a.x += r; upper_a.y += r; upper_a.z += r;
+
+        vec3<Scalar> lower_b = aabb_b.getLower();
+        vec3<Scalar> upper_b = aabb_b.getUpper();
+        lower_b.x -= r; lower_b.y -= r; lower_b.z -= r;
+        upper_b.x += r; upper_b.y += r; upper_b.z += r;
+
+        return overlap(aabb_a,aabb_b);
+        }
     }
 
-//! Test for a common point in the intersection of three spheres
-/*! \param a First shape to test
-    \param b Second shape to test
-    \param c Third shape to test
-    \param ab_t Position of second shape relative to first
-    \param ac_t Position of third shape relative to first
-    \param err Output variable that is incremented upon non-convergence
-    \param sweep_radius_a Radius of a sphere to sweep the first sphere by
-    \param sweep_radius_b Radius of a sphere to sweep the second sphere by
-    \param sweep_radius_c Radius of a sphere to sweep the third sphere by
-*/
-template<>
-DEVICE inline bool test_overlap_intersection(const ShapeSphere& a, const ShapeSphere& b, const ShapeSphere& c,
-    const vec3<Scalar>& ab_t, const vec3<Scalar>& ac_t, unsigned int &err,
-    Scalar sweep_radius_a, Scalar sweep_radius_b, Scalar sweep_radius_c)
-    {
-    OverlapReal Ra = a.params.radius + sweep_radius_a;
-    OverlapReal Rb = b.params.radius + sweep_radius_b;
-    OverlapReal Rc = c.params.radius + sweep_radius_c;
+//! Uniform rejection sampling in a volume covering the intersection of two shapes, defined by their Minkowski sums with a sphere of radius r
+/*! \param rng random number generator
+    \param shape_a the first shape
+    \param shape_b the second shape
+    \param r_ab the separation vector between the two shapes (in the same image)
+    \param r excluded volume radius
+    \param p the returned point (relative to the origin == shape_a)
+    \param dim the spatial dimension
 
-    return detail::check_three_spheres_overlap(Ra,Rb,Rc,ab_t,ac_t);
+    It is assumed that the circumspheres of the shapes are overlapping, otherwise the result is invalid
+
+    returns true if the point was not rejected
+ */
+template<class RNG, class Shape>
+DEVICE inline bool sampleInExcludedVolumeIntersection(
+    RNG& rng, const Shape& shape_a, const Shape& shape_b, const vec3<Scalar>& r_ab,
+    OverlapReal r, vec3<OverlapReal>& p, unsigned int dim)
+    {
+    if (dim == 3)
+        {
+        OverlapReal Ra = OverlapReal(0.5)*shape_a.getCircumsphereDiameter()+r;
+        OverlapReal Rb = OverlapReal(0.5)*shape_b.getCircumsphereDiameter()+r;
+        OverlapReal Vcap_a;
+        OverlapReal Vcap_b;
+
+        vec3<OverlapReal> dr(r_ab);
+        OverlapReal d = fast::sqrt(dot(dr,dr));
+
+        // whether the intersection is the entire (smaller) sphere
+        bool sphere = (d + Ra - Rb < OverlapReal(0.0)) || (d + Rb - Ra < OverlapReal(0.0));
+
+        if (!sphere)
+            {
+            // heights spherical caps that constitute the intersection volume
+            OverlapReal ha = (Rb*Rb - (d-Ra)*(d-Ra))/(OverlapReal(2.0)*d);
+            OverlapReal hb = (Ra*Ra - (d-Rb)*(d-Rb))/(OverlapReal(2.0)*d);
+
+            // volumes of spherical caps
+            Vcap_a = OverlapReal(M_PI/3.0)*ha*ha*(OverlapReal(3.0)*Ra-ha);
+            Vcap_b = OverlapReal(M_PI/3.0)*hb*hb*(OverlapReal(3.0)*Rb-hb);
+
+            // choose one of the two caps randomly, with a weight proportional to their volume
+            hoomd::UniformDistribution<OverlapReal> u;
+            OverlapReal s = u(rng);
+            bool cap_a = s < Vcap_a/(Vcap_a+Vcap_b);
+
+            // generate a depletant position in the spherical cap
+            if (cap_a)
+                p = generatePositionInSphericalCap(rng, vec3<Scalar>(0.0,0.0,0.0), Ra, ha, dr);
+            else
+                p = generatePositionInSphericalCap(rng, dr, Rb, hb, -dr);
+            }
+        else
+            {
+            // generate a random position in the smaller sphere
+            if (Ra < Rb)
+                {
+                p = generatePositionInSphere(rng, vec3<Scalar>(0.0,0.0,0.0), Ra);
+                }
+            else
+                {
+                p = vec3<OverlapReal>(generatePositionInSphere(rng, dr, Rb));
+                }
+            }
+
+        // sphere (cap) sampling is rejection free
+        return true;
+        }
+    else
+        {
+        detail::AABB aabb_a = shape_a.getAABB(vec3<Scalar>(0.0,0.0,0.0));
+        detail::AABB aabb_b = shape_b.getAABB(r_ab);
+
+        // extend AABBs by the excluded volume radius
+        vec3<Scalar> lower_a = aabb_a.getLower();
+        vec3<Scalar> upper_a = aabb_a.getUpper();
+        lower_a.x -= r; lower_a.y -= r; lower_a.z -= r;
+        upper_a.x += r; upper_a.y += r; upper_a.z += r;
+
+        vec3<Scalar> lower_b = aabb_b.getLower();
+        vec3<Scalar> upper_b = aabb_b.getUpper();
+        lower_b.x -= r; lower_b.y -= r; lower_b.z -= r;
+        upper_b.x += r; upper_b.y += r; upper_b.z += r;
+
+        // we already know the AABBs are overlapping, compute their intersection
+        vec3<Scalar> intersect_lower, intersect_upper;
+        intersect_lower.x = detail::max(lower_a.x, lower_b.x);
+        intersect_lower.y = detail::max(lower_a.y, lower_b.y);
+        intersect_lower.z = detail::max(lower_a.z, lower_b.z);
+        intersect_upper.x = detail::min(upper_a.x, upper_b.x);
+        intersect_upper.y = detail::min(upper_a.y, upper_b.y);
+        intersect_upper.z = detail::min(upper_a.z, upper_b.z);
+
+        detail::AABB aabb_intersect(intersect_lower, intersect_upper);
+        p = vec3<OverlapReal>(generatePositionInAABB(rng, aabb_intersect, dim));
+
+        // AABB sampling always succeeds
+        return true;
+        }
+    }
+
+//! Get the sampling volume for an intersection of shapes
+/*! \param shape_a the first shape
+    \param shape_b the second shape
+    \param r_ab the separation vector between the two shapes (in the same image)
+    \param r excluded volume radius
+    \param p the returned point
+    \param dim the spatial dimension
+
+    It is assumed that the circumspheres of the shapes are overlapping, otherwise the result is invalid
+
+    returns the volume of the intersection
+ */
+template<class Shape>
+DEVICE inline OverlapReal getSamplingVolumeIntersection(
+    const Shape& shape_a, const Shape& shape_b, const vec3<Scalar>& r_ab,
+    OverlapReal r, unsigned int dim)
+    {
+    if (dim == 3)
+        {
+        OverlapReal Ra = OverlapReal(0.5)*shape_a.getCircumsphereDiameter()+r;
+        OverlapReal Rb = OverlapReal(0.5)*shape_b.getCircumsphereDiameter()+r;
+        OverlapReal Vcap_a;
+        OverlapReal Vcap_b;
+
+        vec3<OverlapReal> dr(r_ab);
+        OverlapReal d = fast::sqrt(dot(dr,dr));
+
+        if ((d + Ra - Rb < OverlapReal(0.0)) || (d + Rb - Ra < OverlapReal(0.0)))
+            {
+            // the intersection is the entire (smaller) sphere
+            return (Ra < Rb) ? OverlapReal(M_PI*4.0/3.0)*Ra*Ra*Ra : OverlapReal(M_PI*4.0/3.0)*Rb*Rb*Rb;
+            }
+        else
+            {
+            // heights spherical caps that constitute the intersection volume
+            OverlapReal ha = (Rb*Rb - (d-Ra)*(d-Ra))/(OverlapReal(2.0)*d);
+            OverlapReal hb = (Ra*Ra - (d-Rb)*(d-Rb))/(OverlapReal(2.0)*d);
+
+            // volumes of spherical caps
+            Vcap_a = OverlapReal(M_PI/3.0)*ha*ha*(OverlapReal(3.0)*Ra-ha);
+            Vcap_b = OverlapReal(M_PI/3.0)*hb*hb*(OverlapReal(3.0)*Rb-hb);
+
+            // volume of intersection
+            return Vcap_a + Vcap_b;
+            }
+        }
+    else
+        {
+        detail::AABB aabb_a = shape_a.getAABB(vec3<Scalar>(0.0,0.0,0.0));
+        detail::AABB aabb_b = shape_b.getAABB(r_ab);
+
+        // extend AABBs by the excluded volume radius
+        vec3<Scalar> lower_a = aabb_a.getLower();
+        vec3<Scalar> upper_a = aabb_a.getUpper();
+        lower_a.x -= r; lower_a.y -= r; lower_a.z -= r;
+        upper_a.x += r; upper_a.y += r; upper_a.z += r;
+
+        vec3<Scalar> lower_b = aabb_b.getLower();
+        vec3<Scalar> upper_b = aabb_b.getUpper();
+        lower_b.x -= r; lower_b.y -= r; lower_b.z -= r;
+        upper_b.x += r; upper_b.y += r; upper_b.z += r;
+
+        // we already know the AABBs are overlapping, compute their intersection
+        vec3<Scalar> intersect_lower, intersect_upper;
+        intersect_lower.x = detail::max(lower_a.x, lower_b.x);
+        intersect_lower.y = detail::max(lower_a.y, lower_b.y);
+        intersect_lower.z = detail::max(lower_a.z, lower_b.z);
+        intersect_upper.x = detail::min(upper_a.x, upper_b.x);
+        intersect_upper.y = detail::min(upper_a.y, upper_b.y);
+        intersect_upper.z = detail::min(upper_a.z, upper_b.z);
+
+        // intersection AABB volume
+        OverlapReal V =  (intersect_upper.x-intersect_lower.x)*(intersect_upper.y-intersect_lower.y);
+        if(dim == 3)
+            V *= intersect_upper.z-intersect_lower.z;
+        return V;
+        }
+    }
+
+//! Test if a point is in the intersection of two excluded volumes
+/*! \param rng random number generator
+    \param shape_a the first shape
+    \param shape_b the second shape
+    \param r_ab the separation vector between the two shapes (in the same image)
+    \param r excluded volume radius
+    \param p the point to test (relative to the origin == shape_a)
+    \param dim the spatial dimension
+
+    It is assumed that the circumspheres of the shapes are overlapping, otherwise the result is invalid
+
+    returns true if the point was not rejected
+ */
+template<class Shape>
+DEVICE inline bool isPointInExcludedVolumeIntersection(
+    const Shape& shape_a, const Shape& shape_b, const vec3<Scalar>& r_ab,
+    OverlapReal r, const vec3<OverlapReal>& p, unsigned int dim)
+    {
+    if (dim == 3)
+        {
+        OverlapReal Ra = OverlapReal(0.5)*shape_a.getCircumsphereDiameter()+r;
+        OverlapReal Rb = OverlapReal(0.5)*shape_b.getCircumsphereDiameter()+r;
+        vec3<OverlapReal> dr(r_ab);
+
+        bool is_pt_in_sphere_a = dot(p,p) <= Ra*Ra;
+        bool is_pt_in_sphere_b = dot(p-dr,p-dr) <= Rb*Rb;
+
+        // point has to be in the intersection of both spheres
+        return is_pt_in_sphere_a && is_pt_in_sphere_b;
+        }
+    else
+        {
+        detail::AABB aabb_a = shape_a.getAABB(vec3<Scalar>(0.0,0.0,0.0));
+        detail::AABB aabb_b = shape_b.getAABB(r_ab);
+
+        // extend AABBs by the excluded volume radius
+        vec3<Scalar> lower_a = aabb_a.getLower();
+        vec3<Scalar> upper_a = aabb_a.getUpper();
+        lower_a.x -= r; lower_a.y -= r; lower_a.z -= r;
+        upper_a.x += r; upper_a.y += r; upper_a.z += r;
+
+        vec3<Scalar> lower_b = aabb_b.getLower();
+        vec3<Scalar> upper_b = aabb_b.getUpper();
+        lower_b.x -= r; lower_b.y -= r; lower_b.z -= r;
+        upper_b.x += r; upper_b.y += r; upper_b.z += r;
+
+        // we already know the AABBs are overlapping, compute their intersection
+        vec3<Scalar> intersect_lower, intersect_upper;
+        intersect_lower.x = detail::max(lower_a.x, lower_b.x);
+        intersect_lower.y = detail::max(lower_a.y, lower_b.y);
+        intersect_lower.z = detail::max(lower_a.z, lower_b.z);
+        intersect_upper.x = detail::min(upper_a.x, upper_b.x);
+        intersect_upper.y = detail::min(upper_a.y, upper_b.y);
+        intersect_upper.z = detail::min(upper_a.z, upper_b.z);
+
+        detail::AABB aabb_intersect(intersect_lower, intersect_upper);
+
+        return intersect_lower.x <= p.x && p.x <= intersect_upper.x &&
+               intersect_lower.y <= p.y && p.y <= intersect_upper.y &&
+               ((dim == 2) || (intersect_lower.z <= p.z && p.z <= intersect_upper.z));
+        }
     }
 
 }; // end namespace hpmc

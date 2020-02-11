@@ -833,8 +833,6 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                             m_implicit_counters.getPitch(),
                             d_lambda.data,
                             this->m_fugacity[itype] < 0,
-                            this->m_quermass,
-                            this->m_sweep_radius,
                             &m_depletant_streams[itype].front()
                             );
                         gpu::hpmc_insert_depletants<Shape>(args, implicit_args, params.data());
@@ -1159,7 +1157,7 @@ void IntegratorHPMCMonoGPU< Shape >::updateCellWidth()
         {
         Shape shape_i(quat<Scalar>(), this->m_params[i_type]);
         Scalar d_i(shape_i.getCircumsphereDiameter());
-        Scalar range = this->m_quermass ? 2.0*this->m_sweep_radius : d_i;
+        Scalar range = d_i;
 
         if (this->m_fugacity[i_type] == 0.0)
             continue;
