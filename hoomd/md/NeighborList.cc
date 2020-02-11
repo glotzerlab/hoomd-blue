@@ -49,7 +49,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     m_last_updated_tstep = 0;
     m_last_checked_tstep = 0;
     m_last_check_result = false;
-    m_every = 0;
+    m_rebuild_check_delay = 0;
     m_exclusions_set = false;
 
     m_need_reallocate_exlist = false;
@@ -1218,7 +1218,7 @@ void NeighborList::setLastUpdatedPos()
 
 bool NeighborList::shouldCheckDistance(unsigned int timestep)
     {
-    return !m_force_update && !(timestep < (m_last_updated_tstep + m_every));
+    return !m_force_update && !(timestep < (m_last_updated_tstep + m_rebuild_check_delay));
     }
 
 /*! \returns true If the neighbor list needs to be updated
@@ -1253,10 +1253,10 @@ bool NeighborList::needsUpdating(unsigned int timestep)
     bool result = false;
 
     // check if this is a dangerous time
-    // we are dangerous if m_every is greater than 1 and this is the first check after the
+    // we are dangerous if m_rebuild_check_delay is greater than 1 and this is the first check after the
     // last build
     bool dangerous = false;
-    if (m_dist_check && (m_every > 1 && timestep == (m_last_updated_tstep + m_every)))
+    if (m_dist_check && (m_rebuild_check_delay > 1 && timestep == (m_last_updated_tstep + m_rebuild_check_delay)))
         dangerous = true;
 
     // if the update has been forced, the result defaults to true
@@ -1275,9 +1275,9 @@ bool NeighborList::needsUpdating(unsigned int timestep)
         {
         // not a forced update, perform the distance check to determine
         // if the list needs to be updated - no dist check needed if r_buff is tiny
-        // it also needs to be updated if m_every is 0, or the check period is hit when distance checks are disabled
+        // it also needs to be updated if m_rebuild_check_delay is 0, or the check period is hit when distance checks are disabled
         if (m_r_buff < 1e-6 ||
-            (!m_dist_check && (m_every == 0 || (m_every > 1 && timestep == (m_last_updated_tstep + m_every)))))
+            (!m_dist_check && (m_rebuild_check_delay == 0 || (m_rebuild_check_delay > 1 && timestep == (m_last_updated_tstep + m_rebuild_check_delay)))))
             {
             result = true;
             }
@@ -1677,8 +1677,14 @@ void export_NeighborList(py::module& m)
     nlist.def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
         .def("setRCut", &NeighborList::setRCut)
         .def("setRCutPair", &NeighborList::setRCutPair)
-        .def("setRBuff", &NeighborList::setRBuff)
-        .def("setEvery", &NeighborList::setEvery)
+        .def_property("buffer", &NeighborList::getRBuff,
+                      &NeighborList::setRBuff)
+        .def_property("rebuild_check_delay",
+                      &NeighborList::getRebuildCheckDelay,
+                      &NeighborList::setRebuildCheckDelay)
+        .def_property("check_dist",
+                      &NeighborList::getDistCheck,
+                      &NeighborList::setDistCheck)
         .def("setStorageMode", &NeighborList::setStorageMode)
         .def("addExclusion", &NeighborList::addExclusion)
         .def("clearExclusions", &NeighborList::clearExclusions)
@@ -1690,12 +1696,12 @@ void export_NeighborList(py::module& m)
         .def("addExclusionsFromPairs", &NeighborList::addExclusionsFromPairs)
         .def("addOneThreeExclusionsFromTopology", &NeighborList::addOneThreeExclusionsFromTopology)
         .def("addOneFourExclusionsFromTopology", &NeighborList::addOneFourExclusionsFromTopology)
-        .def("setFilterBody", &NeighborList::setFilterBody)
-        .def("getFilterBody", &NeighborList::getFilterBody)
-        .def("setDiameterShift", &NeighborList::setDiameterShift)
-        .def("getDiameterShift", &NeighborList::getDiameterShift)
-        .def("setMaximumDiameter", &NeighborList::setMaximumDiameter)
-        .def("getMaximumDiameter", &NeighborList::getMaximumDiameter)
+        .def_property("filter_body", &NeighborList::getFilterBody,
+                      &NeighborList::setFilterBody)
+        .def_property("diameter_shift", &NeighborList::getDiameterShift,
+                      &NeighborList::setDiameterShift)
+        .def_property("max_diameter", &NeighborList::getMaximumDiameter,
+                      &NeighborList::setMaximumDiameter)
         .def("getMaxRCut", &NeighborList::getMaxRCut)
         .def("getMinRCut", &NeighborList::getMinRCut)
         .def("getMaxRList", &NeighborList::getMaxRList)

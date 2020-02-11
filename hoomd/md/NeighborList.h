@@ -89,7 +89,7 @@
     The CUDA profiler expects the exact same sequence of kernels on every run. Due to the non-deterministic cell list,
     a different sequence of calls may be generated with nlist builds at different times. To work around this problem
     setEvery takes a dist_check parameter. When dist_check=True, the above described behavior is followed. When
-    dist_check is false, the nlist is built exactly m_every steps. This is intended for use in profiling only.
+    dist_check is false, the nlist is built exactly m_rebuild_check_delay steps. This is intended for use in profiling only.
 
     \b Exclusions:
 
@@ -145,12 +145,17 @@ class PYBIND11_EXPORT NeighborList : public Compute
                    to require a neighbor list update.
             \param dist_check Set to false to enforce nlist builds exactly \a every steps
         */
-        void setEvery(unsigned int every, bool dist_check=true)
+        void setRebuildCheckDelay(unsigned int every)
             {
-            m_every = every;
-            m_dist_check = dist_check;
+            m_rebuild_check_delay = every;
             forceUpdate();
             }
+
+        unsigned int getRebuildCheckDelay() {return m_rebuild_check_delay;}
+
+        void setDistCheck(bool dist_check) {m_dist_check = dist_check;}
+
+        bool getDistCheck(){return m_dist_check;}
 
         //! Set the storage mode
         /*! \param mode Storage mode to set
@@ -556,13 +561,13 @@ class PYBIND11_EXPORT NeighborList : public Compute
         int64_t m_forced_updates;       //!< Number of times the neighbor list has been forcibly updated
         int64_t m_dangerous_updates;    //!< Number of dangerous builds counted
         bool m_force_update;            //!< Flag to handle the forcing of neighborlist updates
-        bool m_dist_check;              //!< Set to false to disable distance checks (nlist always built m_every steps)
+        bool m_dist_check;              //!< Set to false to disable distance checks (nlist always built m_rebuild_check_delay steps)
         bool m_has_been_updated_once;   //!< True if the neighbor list has been updated at least once
 
         unsigned int m_last_updated_tstep; //!< Track the last time step we were updated
         unsigned int m_last_checked_tstep; //!< Track the last time step we have checked
         bool m_last_check_result;          //!< Last result of rebuild check
-        unsigned int m_every; //!< No update checks will be performed until m_every steps after the last one
+        unsigned int m_rebuild_check_delay; //!< No update checks will be performed until m_rebuild_check_delay steps after the last one
         std::vector<unsigned int> m_update_periods;    //!< Steps between updates
 
         //! Test if the list needs updating
