@@ -479,8 +479,7 @@ DEVICE inline OverlapReal getSamplingVolumeIntersection(
     }
 
 //! Test if a point is in the intersection of two excluded volumes
-/*! \param rng random number generator
-    \param shape_a the first shape
+/*! \param shape_a the first shape
     \param shape_b the second shape
     \param r_ab the separation vector between the two shapes (in the same image)
     \param r excluded volume radius
