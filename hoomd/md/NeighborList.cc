@@ -98,9 +98,6 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
         }
     #endif
 
-    // default initialization of the rcut for all pairs
-    setRCut(_r_cut, r_buff);
-
     // allocate the number of neighbors (per particle)
     GlobalArray<unsigned int> n_neigh(m_pdata->getMaxN(), m_exec_conf);
     m_n_neigh.swap(n_neigh);
@@ -287,7 +284,7 @@ void NeighborList::reallocateTypes()
 
     resetConditions();
 
-    m_rcut_signal.emit();
+    notifyRCutMatrixChange();
     forceUpdate();
     }
 
@@ -408,53 +405,6 @@ double NeighborList::benchmark(unsigned int num_iters)
     return double(total_time_ns) / 1e6 / double(num_iters);
     }
 
-/*!
- * \param r_cut The global cutoff for all pairs
- * \param r_buff The buffer distance for all pairs
- * \note Changing the cutoff radius does NOT immediately update the neighborlist.
- *       These changes will take effect before a compute is called.
- */
-void NeighborList::setRCut(Scalar r_cut, Scalar r_buff)
-    {
-
-    // loop on all pairs to set the same r_cut
-    for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
-        {
-        for (unsigned int j=i; j < m_pdata->getNTypes(); ++j)
-            {
-            setRCutPair(i,j,r_cut);
-            }
-        }
-
-    setRBuff(r_buff);
-    }
-
-/*!
- * \param typ1 Particle type 1
- * \param typ2 Particle type 2
- * \param r_cut Cutoff radius between particles of types 1 and 2
- * \note Changing the cutoff radius does NOT immediately update the neighborlist.
-         The new cutoff will take effect when compute is called for the next timestep.
-*/
-void NeighborList::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut)
-    {
-    if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
-        {
-        this->m_exec_conf->msg->error() << "nlist: Trying to set rcut for a non existent type! "
-                  << typ1 << "," << typ2 << std::endl;
-        throw std::runtime_error("Error changing NeighborList parameters");
-        }
-
-    // stash the potential rcuts, r_list will be computed on next forced update
-    ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::readwrite);
-    h_r_cut.data[m_typpair_idx(typ1, typ2)] = r_cut;
-    h_r_cut.data[m_typpair_idx(typ2, typ1)] = r_cut;
-
-    // signal the change in rcut
-    m_rcut_signal.emit();
-    forceUpdate();
-    }
-
 /*! \param r_buff New buffer radius to set
     \note Changing the buffer radius does NOT immediately update the neighborlist.
             The new buffer will take effect when compute is called for the next timestep.
@@ -467,20 +417,53 @@ void NeighborList::setRBuff(Scalar r_buff)
         m_exec_conf->msg->error() << "nlist: Requested buffer radius is less than zero" << endl;
         throw runtime_error("Error changing NeighborList parameters");
         }
-    m_rcut_signal.emit();
+    notifyRCutMatrixChange();
     forceUpdate();
     }
 
 void NeighborList::updateRList()
     {
-    // only need a read on the real cutoff
-    ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::read);
+    // overwrite the new r_cut matrix
+    ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::overwrite);
 
-    // now we need to read and write on the r_list
+    // first: loop over the consumer r_cut matrices and take their max in h_r_cut
+    for (unsigned int matrix = 0; matrix < m_consumer_r_cut.size(); matrix++)
+        {
+        ArrayHandle<Scalar> h_consumer_r_cut(*m_consumer_r_cut[matrix],
+                                             access_location::host,
+                                             access_mode::read);
+
+        if (m_consumer_r_cut[matrix]->getNumElements() != m_r_cut.getNumElements())
+            {
+            throw std::invalid_argument("given r_cut_matrix is not the right size");
+            }
+
+        if (matrix == 0)
+            {
+            // copy the first matrix as a starting point
+            memcpy(h_r_cut.data, h_consumer_r_cut.data, sizeof(Scalar)*m_r_cut.getNumElements());
+            }
+        else
+            {
+            // take the maximum
+            for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
+                {
+                for (unsigned int j=0; i < m_pdata->getNTypes(); ++i)
+                    {
+                    h_r_cut.data[m_typpair_idx(i,j)] = std::max(
+                        h_r_cut.data[m_typpair_idx(i,j)],
+                        h_consumer_r_cut.data[m_typpair_idx(i,j)]);
+                    }
+                }
+            }
+        }
+
+    // now, update the r_list which includes r_buff we need to read and write on the r_list
     ArrayHandle<Scalar> h_r_listsq(m_r_listsq, access_location::host, access_mode::overwrite);
 
     // update the maximum cutoff of all those set so far
     ArrayHandle<Scalar> h_rcut_max(m_rcut_max, access_location::host, access_mode::readwrite);
+
     Scalar r_cut_max = 0.0f;
     for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
         {
@@ -1675,16 +1658,8 @@ void export_NeighborList(py::module& m)
     {
     py::class_<NeighborList, Compute, std::shared_ptr<NeighborList> > nlist(m, "NeighborList");
     nlist.def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
-        .def("setRCut", &NeighborList::setRCut)
-        .def("setRCutPair", &NeighborList::setRCutPair)
-        .def_property("buffer", &NeighborList::getRBuff,
-                      &NeighborList::setRBuff)
-        .def_property("rebuild_check_delay",
-                      &NeighborList::getRebuildCheckDelay,
-                      &NeighborList::setRebuildCheckDelay)
-        .def_property("check_dist",
-                      &NeighborList::getDistCheck,
-                      &NeighborList::setDistCheck)
+        .def("setRBuff", &NeighborList::setRBuff)
+        .def("setEvery", &NeighborList::setEvery)
         .def("setStorageMode", &NeighborList::setStorageMode)
         .def("addExclusion", &NeighborList::addExclusion)
         .def("clearExclusions", &NeighborList::clearExclusions)

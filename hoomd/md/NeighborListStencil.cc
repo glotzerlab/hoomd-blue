@@ -48,37 +48,14 @@ NeighborListStencil::NeighborListStencil(std::shared_ptr<SystemDefinition> sysde
     m_cl->setFlagIndex();
     m_cl->setComputeAdjList(false);
 
-    // call this class's special setRCut
-    setRCut(r_cut, r_buff);
-
-    getRCutChangeSignal().connect<NeighborListStencil, &NeighborListStencil::slotRCutChange>(this);
+    // cell sizes need update by default
+    m_update_cell_size = true;
+    m_needs_restencil = true;
     }
 
 NeighborListStencil::~NeighborListStencil()
     {
     m_exec_conf->msg->notice(5) << "Destroying NeighborListStencil" << endl;
-    getRCutChangeSignal().disconnect<NeighborListStencil, &NeighborListStencil::slotRCutChange>(this);
-    }
-
-void NeighborListStencil::setRCut(Scalar r_cut, Scalar r_buff)
-    {
-    NeighborList::setRCut(r_cut, r_buff);
-    // cell size may have changed
-    m_update_cell_size = true;
-    }
-
-void NeighborListStencil::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut)
-    {
-    NeighborList::setRCutPair(typ1,typ2,r_cut);
-    // cell size may have changed
-    m_update_cell_size = true;
-    }
-
-void NeighborListStencil::setMaximumDiameter(Scalar d_max)
-    {
-    NeighborList::setMaximumDiameter(d_max);
-    // cell size may have changed
-    m_update_cell_size = true;
     }
 
 void NeighborListStencil::updateRStencil()

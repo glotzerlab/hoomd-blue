@@ -40,11 +40,12 @@ class PYBIND11_EXPORT NeighborListGPUBinned : public NeighborListGPU
         //! Destructor
         virtual ~NeighborListGPUBinned();
 
-        //! Change the cutoff radius for all pairs
-        virtual void setRCut(Scalar r_cut, Scalar r_buff);
-
-        //! Change the cutoff radius by pair type
-        virtual void setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut);
+        /// Notify NeighborList that a r_cut matrix value has changed
+        virtual void notifyRCutMatrixChange()
+            {
+            m_update_cell_size = true;
+            NeighborListGPU::notifyRCutMatrixChange();
+            }
 
         //! Set the autotuner period
         void setTuningParam(unsigned int param)
@@ -63,9 +64,6 @@ class PYBIND11_EXPORT NeighborListGPUBinned : public NeighborListGPU
             m_tuner->setEnabled(enable);
             }
 
-        //! Set the maximum diameter to use in computing neighbor lists
-        virtual void setMaximumDiameter(Scalar d_max);
-
     protected:
         std::shared_ptr<CellList> m_cl;   //!< The cell list
         unsigned int m_block_size;          //!< Block size to execute on the GPU
@@ -73,7 +71,7 @@ class PYBIND11_EXPORT NeighborListGPUBinned : public NeighborListGPU
         bool m_use_index;                 //!< True for indirect lookup of particle data via index
 
         /// Track when the cell size needs to be updated
-        bool m_update_cell_size = false;
+        bool m_update_cell_size = true;
 
         std::unique_ptr<Autotuner> m_tuner;   //!< Autotuner for block size and threads per particle
 
