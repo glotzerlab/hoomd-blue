@@ -11,7 +11,7 @@ set(files __init__.py
     )
 
 install(FILES ${files}
-        DESTINATION ${PYTHON_SITE_INSTALL_DIR}/pytest
+        DESTINATION ${PYTHON_SITE_INSTALL_DIR}/hpmc/pytest
        )
 
 copy_files_to_build("${files}" "hpmc_pytest" "*.py")
