@@ -113,7 +113,9 @@ class PotentialPair : public ForceCompute
 
         //! Method that is called whenever the GSD file is written if connected to a GSD file.
         int slotWriteGSDShapeSpec(gsd_handle&) const;
-
+        /// Validate that types are within Ntypes
+        virtual void validateTypes(unsigned int typ1, unsigned int typ2,
+                                   std::string action);
         //! Method that is called to connect to the gsd write state signal
         void connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer);
 
@@ -439,6 +441,20 @@ pybind11::dict PotentialPair< EvaluatorPairLJ >::getParams(pybind11::tuple typ)
     return h_params.data[m_typpair_idx(typ1, typ2)].asDict();
         }
 
+template<class evaluator>
+void PotentialPair< evaluator >::validateTypes(unsigned int typ1,
+                                               unsigned int typ2,
+                                               std::string action)
+{
+    auto n_types = this->m_pdata->getNTypes();
+    if (typ1 >= n_types || typ2 >= n_types)
+        {
+        this->m_exec_conf->msg->error() << "pair." << evaluator::getName()
+            << ": Trying to " << action << " for a non existent type! "
+            << typ1 << "," << typ2 << std::endl;
+        throw std::runtime_error("Error setting parameters in PotentialPair");
+        }
+}
 /*! \param typ1 First type index in the pair
     \param typ2 Second type index in the pair
     \param rcut Cutoff radius to set
@@ -448,13 +464,7 @@ pybind11::dict PotentialPair< EvaluatorPairLJ >::getParams(pybind11::tuple typ)
 template< class evaluator >
 void PotentialPair< evaluator >::setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut)
     {
-    if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
-        {
-        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": Trying to set rcut for a non existent type! "
-                  << typ1 << "," << typ2 << std::endl;
-        throw std::runtime_error("Error setting parameters in PotentialPair");
-        }
-
+    validateTypes(typ1, typ2, "set rcut");
         {
         // store r_cut**2 for use internally
         ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::readwrite);
@@ -489,14 +499,9 @@ void PotentialPair< evaluator >::setRCutPython(pybind11::tuple types,
 template< class evaluator >
 void PotentialPair< evaluator >::setRon(unsigned int typ1, unsigned int typ2, Scalar ron)
     {
-    if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
-        {
-        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": Trying to set ron for a non existent type! "
-                  << typ1 << "," << typ2 << std::endl;
-        throw std::runtime_error("Error setting parameters in PotentialPair");
-        }
-
-    ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::readwrite);
+    validateTypes(typ1, typ2, "set ron");
+    ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host,
+                                access_mode::readwrite);
     h_ronsq.data[m_typpair_idx(typ1, typ2)] = ron * ron;
     h_ronsq.data[m_typpair_idx(typ2, typ1)] = ron * ron;
     }
