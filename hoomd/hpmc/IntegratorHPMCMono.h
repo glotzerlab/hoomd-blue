@@ -420,7 +420,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         /* Depletants related data members */
 
         std::vector<Scalar> m_fugacity;             //!< Average depletant number density in free volume, per type
-        unsigned int m_ntrial = 1;                  //!< Number of reinsertion attempts per depletant in overlap volume
+        unsigned int m_ntrial = 0;                  //!< Number of reinsertion attempts per depletant in overlap volume
 
         GlobalArray<hpmc_implicit_counters_t> m_implicit_count;               //!< Counter of depletant insertions
         std::vector<hpmc_implicit_counters_t> m_implicit_count_run_start;     //!< Counter of depletant insertions at run start
@@ -2391,26 +2391,6 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
         // we sample from their union by checking if any generated position falls in the intersection
         // of their AABBs, only accepting it if it was generated from neighbor j_min
 
-        // world AABB of particle i
-        detail::AABB aabb_i_old = aabb_i_local_old;
-        aabb_i_old.translate(pos_i_old);
-
-        // extend AABB i by sweep radius
-        vec3<Scalar> lower_i_old = aabb_i_old.getLower();
-        vec3<Scalar> upper_i_old = aabb_i_old.getUpper();
-        lower_i_old.x -= r_dep; lower_i_old.y -= r_dep; lower_i_old.z -= r_dep;
-        upper_i_old.x += r_dep; upper_i_old.y += r_dep; upper_i_old.z += r_dep;
-
-        // world AABB of particle i
-        detail::AABB aabb_i_new = aabb_i_local;
-        aabb_i_new.translate(pos_i);
-
-        // extend AABB i by sweep radius
-        vec3<Scalar> lower_i_new = aabb_i_new.getLower();
-        vec3<Scalar> upper_i_new = aabb_i_new.getUpper();
-        lower_i_new.x -= r_dep; lower_i_new.y -= r_dep; lower_i_new.z -= r_dep;
-        upper_i_new.x += r_dep; upper_i_new.y += r_dep; upper_i_new.z += r_dep;
-
         // compute insertion volumes
         std::vector<Scalar> V_old;
         Scalar V_old_tot(0.0);
@@ -2557,6 +2537,45 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                 if (!overlap_i)
                     continue;
 
+                // Check if the old (new) configuration of particle i generates an overlap
+                bool overlap_i_other = false;
+
+                    {
+                    const Shape& shape = !repulsive ? shape_i : shape_old;
+
+                    vec3<OverlapReal> dr_test_other = dr_test - vec3<OverlapReal>(!repulsive ? (pos_i - pos_i_old) : (pos_i_old - pos_i));
+
+                    OverlapReal rsq = dot(dr_test_other,dr_test_other);
+                    OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape.getCircumsphereDiameter();
+                    bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+
+                    if (h_overlaps[this->m_overlap_idx(type, typ_i)])
+                        {
+                        #ifdef ENABLE_TBB
+                        thread_counters.local().overlap_checks++;
+                        #else
+                        counters.overlap_checks++;
+                        #endif
+
+                        unsigned int err = 0;
+                        if (circumsphere_overlap &&
+                            test_overlap(dr_test_other, shape, shape_test, err))
+                            {
+                            overlap_i_other = true;
+                            }
+                        if (err)
+                        #ifdef ENABLE_TBB
+                            thread_counters.local().overlap_err_count++;
+                        #else
+                            counters.overlap_err_count++;
+                        #endif
+                        }
+                    }
+
+                // if in the overlap volume in the new config, happy
+                if (overlap_i_other)
+                    continue;
+
                 // does the depletant fall into the overlap volume with other particles?
                 bool in_intersection_volume = false;
                 for (unsigned int m = 0; m < n_intersect; ++m)
@@ -2621,7 +2640,6 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                         Scalar V_rand = hoomd::UniformDistribution<Scalar>(0.0, repulsive ? V_old_tot : V_new_tot)(my_rng);
 
                         Scalar V_sum(0.0);
-                        detail::AABB aabb_intersect;
                         unsigned int k;
                         for (k = 0; k < n_intersect; ++k)
                             {
@@ -2711,6 +2729,47 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                         if (!overlap_i)
                             {
                             // reject because we can't insert in overlap volume
+                            continue;
+                            }
+
+                        // Check if the old (new) configuration of particle i generates an overlap
+                        bool overlap_i_other = false;
+
+                            {
+                            const Shape& shape = repulsive ? shape_i : shape_old;
+
+                            vec3<OverlapReal> dr_test_other = dr_test - vec3<OverlapReal>(repulsive ? (pos_i - pos_i_old) : (pos_i_old - pos_i));
+
+                            OverlapReal rsq = dot(dr_test_other,dr_test_other);
+                            OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape.getCircumsphereDiameter();
+                            bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+
+                            if (h_overlaps[this->m_overlap_idx(type, typ_i)])
+                                {
+                                #ifdef ENABLE_TBB
+                                thread_counters.local().overlap_checks++;
+                                #else
+                                counters.overlap_checks++;
+                                #endif
+
+                                unsigned int err = 0;
+                                if (circumsphere_overlap &&
+                                    test_overlap(dr_test_other, shape, shape_test, err))
+                                    {
+                                    overlap_i_other = true;
+                                    }
+                                if (err)
+                                #ifdef ENABLE_TBB
+                                    thread_counters.local().overlap_err_count++;
+                                #else
+                                    counters.overlap_err_count++;
+                                #endif
+                                }
+                            }
+
+                        if (overlap_i_other)
+                            {
+                            // we have already sampled that region
                             continue;
                             }
 
