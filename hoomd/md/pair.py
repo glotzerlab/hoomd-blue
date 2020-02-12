@@ -35,11 +35,13 @@ def validate_mode(value):
 class _Pair(force._Force):
     R""" Common pair potential documentation.
 
-    Users should not invoke :py:class:`pair` directly. It is a base command that provides common
-    features to all standard pair forces. Common documentation for all pair potentials is documented here.
+    Users should not invoke :py:class:`pair` directly. It is a base command that
+    provides common features to all standard pair forces. Common documentation
+    for all pair potentials is documented here.
 
-    All pair force commands specify that a given potential energy and force be computed on all non-excluded particle
-    pairs in the system within a short range cutoff distance :math:`r_{\mathrm{cut}}`.
+    All pair force commands specify that a given potential energy and force be
+    computed on all non-excluded particle pairs in the system within a short
+    range cutoff distance :math:`r_{\mathrm{cut}}`.
 
     The force :math:`\vec{F}` applied between each pair of particles is:
 
@@ -51,17 +53,22 @@ class _Pair(force._Force):
                   = & 0           & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
-    where :math:`\vec{r}` is the vector pointing from one particle to the other in the pair, and :math:`V(r)` is
-    chosen by a mode switch (see :py:meth:`set_params()`):
+    where :math:`\vec{r}` is the vector pointing from one particle to the other
+    in the pair, and :math:`V(r)` is chosen by a mode switch (see
+    :py:meth:`set_params()`):
 
     .. math::
         :nowrap:
 
         \begin{eqnarray*}
         V(r)  = & V_{\mathrm{pair}}(r) & \mathrm{mode\ is\ no\_shift} \\
-              = & V_{\mathrm{pair}}(r) - V_{\mathrm{pair}}(r_{\mathrm{cut}}) & \mathrm{mode\ is\ shift} \\
-              = & S(r) \cdot V_{\mathrm{pair}}(r) & \mathrm{mode\ is\ xplor\ and\ } r_{\mathrm{on}} < r_{\mathrm{cut}} \\
-              = & V_{\mathrm{pair}}(r) - V_{\mathrm{pair}}(r_{\mathrm{cut}}) & \mathrm{mode\ is\ xplor\ and\ } r_{\mathrm{on}} \ge r_{\mathrm{cut}}
+              = & V_{\mathrm{pair}}(r) - V_{\mathrm{pair}}(r_{\mathrm{cut}}) &
+              \mathrm{mode\ is\ shift} \\
+              = & S(r) \cdot V_{\mathrm{pair}}(r) & \mathrm{mode\ is\ xplor\
+              and\ } r_{\mathrm{on}} < r_{\mathrm{cut}} \\
+              = & V_{\mathrm{pair}}(r) - V_{\mathrm{pair}}(r_{\mathrm{cut}}) &
+              \mathrm{mode\ is\ xplor\ and\ } r_{\mathrm{on}} \ge
+              r_{\mathrm{cut}}
         \end{eqnarray*}
 
     :math:`S(r)` is the XPLOR smoothing function:
@@ -71,40 +78,49 @@ class _Pair(force._Force):
 
         \begin{eqnarray*}
         S(r) = & 1 & r < r_{\mathrm{on}} \\
-             = & \frac{(r_{\mathrm{cut}}^2 - r^2)^2 \cdot (r_{\mathrm{cut}}^2 + 2r^2 -
-                 3r_{\mathrm{on}}^2)}{(r_{\mathrm{cut}}^2 - r_{\mathrm{on}}^2)^3}
+             = & \frac{(r_{\mathrm{cut}}^2 - r^2)^2 \cdot (r_{\mathrm{cut}}^2 +
+             2r^2 - 3r_{\mathrm{on}}^2)}{(r_{\mathrm{cut}}^2 -
+             r_{\mathrm{on}}^2)^3}
                & r_{\mathrm{on}} \le r \le r_{\mathrm{cut}} \\
              = & 0 & r > r_{\mathrm{cut}} \\
          \end{eqnarray*}
 
-    and :math:`V_{\mathrm{pair}}(r)` is the specific pair potential chosen by the respective command.
+    and :math:`V_{\mathrm{pair}}(r)` is the specific pair potential chosen by
+    the respective command.
 
-    Enabling the XPLOR smoothing function :math:`S(r)` results in both the potential energy and the force going smoothly
-    to 0 at :math:`r = r_{\mathrm{cut}}`, reducing the rate of energy drift in long simulations.
-    :math:`r_{\mathrm{on}}` controls the point at which the smoothing starts, so it can be set to only slightly modify
-    the tail of the potential. It is suggested that you plot your potentials with various values of
-    :math:`r_{\mathrm{on}}` in order to find a good balance between a smooth potential function and minimal modification
-    of the original :math:`V_{\mathrm{pair}}(r)`. A good value for the LJ potential is
+    Enabling the XPLOR smoothing function :math:`S(r)` results in both the
+    potential energy and the force going smoothly to 0 at :math:`r =
+    r_{\mathrm{cut}}`, reducing the rate of energy drift in long simulations.
+    :math:`r_{\mathrm{on}}` controls the point at which the smoothing starts, so
+    it can be set to only slightly modify the tail of the potential. It is
+    suggested that you plot your potentials with various values of
+    :math:`r_{\mathrm{on}}` in order to find a good balance between a smooth
+    potential function and minimal modification of the original
+    :math:`V_{\mathrm{pair}}(r)`. A good value for the LJ potential is
     :math:`r_{\mathrm{on}} = 2 \cdot \sigma`.
 
-    The split smoothing / shifting of the potential when the mode is ``xplor`` is designed for use in mixed WCA / LJ
-    systems. The WCA potential and it's first derivative already go smoothly to 0 at the cutoff, so there is no need
-    to apply the smoothing function. In such mixed systems, set :math:`r_{\mathrm{on}}` to a value greater than
-    :math:`r_{\mathrm{cut}}` for those pairs that interact via WCA in order to enable shifting of the WCA potential
-    to 0 at the cutoff.
+    The split smoothing / shifting of the potential when the mode is ``xplor``
+    is designed for use in mixed WCA / LJ systems. The WCA potential and it's
+    first derivative already go smoothly to 0 at the cutoff, so there is no need
+    to apply the smoothing function. In such mixed systems, set
+    :math:`r_{\mathrm{on}}` to a value greater than :math:`r_{\mathrm{cut}}` for
+    those pairs that interact via WCA in order to enable shifting of the WCA
+    potential to 0 at the cutoff.
 
-    The following coefficients must be set per unique pair of particle types. See :py:mod:`hoomd.md.pair` for information
-    on how to set coefficients:
+    The following coefficients must be set per unique pair of particle types.
+    See :py:mod:`hoomd.md.pair` for information on how to set coefficients:
 
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
     - :math:`r_{\mathrm{on}}` - *r_on* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
 
-    When :math:`r_{\mathrm{cut}} \le 0` or is set to False, the particle type pair interaction is excluded from the neighbor
-    list. This mechanism can be used in conjunction with multiple neighbor lists to make efficient calculations in systems
-    with large size disparity. Functionally, this is equivalent to setting :math:`r_{\mathrm{cut}} = 0` in the pair force
-    because negative :math:`r_{\mathrm{cut}}` has no physical meaning.
+    When :math:`r_{\mathrm{cut}} \le 0` or is set to False, the particle type
+    pair interaction is excluded from the neighbor list. This mechanism can be
+    used in conjunction with multiple neighbor lists to make efficient
+    calculations in systems with large size disparity. Functionally, this is
+    equivalent to setting :math:`r_{\mathrm{cut}} = 0` in the pair force because
+    negative :math:`r_{\mathrm{cut}}` has no physical meaning.
     """
 
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
