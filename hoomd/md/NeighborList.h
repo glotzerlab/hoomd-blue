@@ -13,6 +13,7 @@
 #include <memory>
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <vector>
+#include <set>
 
 /*! \file NeighborList.h
     \brief Declares the NeighborList class
@@ -315,6 +316,12 @@ class PYBIND11_EXPORT NeighborList : public Compute
             {
             return m_ex_list_indexer;
             }
+
+        void setExclusions(pybind11::tuple exclusions);
+
+        void setSingleExclusion(std::string exclusion);
+
+        pybind11::tuple getExclusions();
 
         bool getExclusionsSet()
             {
@@ -620,6 +627,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
         bool m_last_check_result;          //!< Last result of rebuild check
         unsigned int m_rebuild_check_delay; //!< No update checks will be performed until m_rebuild_check_delay steps after the last one
         std::vector<unsigned int> m_update_periods;    //!< Steps between updates
+        std::set<std::string> m_exclusions;        //!< Exclusions that have been set
 
         //! Test if the list needs updating
         bool needsUpdating(unsigned int timestep);

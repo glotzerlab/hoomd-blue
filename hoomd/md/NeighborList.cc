@@ -670,6 +670,71 @@ unsigned int NeighborList::getNumExclusions(unsigned int size)
     return count;
     }
 
+void NeighborList::setExclusions(pybind11::tuple exclusions)
+    {
+    clearExclusions();
+    setFilterBody(false);
+    m_exclusions = set<std::string>();
+    for (auto exclusion : exclusions)
+        {
+        setSingleExclusion(exclusion.cast<std::string>());
+        }
+    }
+
+void NeighborList::setSingleExclusion(std::string exclusion)
+    {
+    if (exclusion == "bond")
+        {
+        addExclusionsFromBonds();
+        m_exclusions.insert("bond");
+        }
+    else if (exclusion == "special_pair")
+        {
+        addExclusionsFromPairs();
+        m_exclusions.insert("special_pair");
+        }
+    else if (exclusion == "constraint")
+        {
+        addExclusionsFromConstraints();
+        m_exclusions.insert("constraint");
+        }
+    else if (exclusion == "angle")
+        {
+        addExclusionsFromAngles();
+        m_exclusions.insert("angle");
+        }
+    else if (exclusion == "dihedral")
+        {
+        addExclusionsFromDihedrals();
+        m_exclusions.insert("dihedral");
+        }
+    else if (exclusion == "body")
+        {
+        setFilterBody(true);
+        m_exclusions.insert("body");
+        }
+    else if (exclusion == "1-3")
+        {
+        addOneThreeExclusionsFromTopology();
+        m_exclusions.insert("1-3");
+        }
+    else if (exclusion == "1-4")
+        {
+        addOneFourExclusionsFromTopology();
+        m_exclusions.insert("1-4");
+        }
+    }
+
+pybind11::tuple NeighborList::getExclusions()
+    {
+    auto exclusions = pybind11::list();
+    for (auto exclusion : m_exclusions)
+        {
+        exclusions.append(exclusion);
+        }
+    return (pybind11::tuple)exclusions;
+    }
+
 /*! \post Gather some statistics about exclusions usage.
 */
 void NeighborList::countExclusions()
@@ -731,7 +796,7 @@ void NeighborList::countExclusions()
         }
     }
 
-/*! After calling addExclusionFromBonds() all bonds specified in the attached ParticleData will be
+/*! After calling addExclusionsFromBonds() all bonds specified in the attached ParticleData will be
     added as exclusions. Any additional bonds added after this will not be automatically added as exclusions.
 */
 void NeighborList::addExclusionsFromBonds()
@@ -1667,18 +1732,8 @@ void export_NeighborList(py::module& m)
                       &NeighborList::getDistCheck,
                       &NeighborList::setDistCheck)
         .def("setStorageMode", &NeighborList::setStorageMode)
-        .def("addExclusion", &NeighborList::addExclusion)
-        .def("clearExclusions", &NeighborList::clearExclusions)
-        .def("countExclusions", &NeighborList::countExclusions)
-        .def("addExclusionsFromBonds", &NeighborList::addExclusionsFromBonds)
-        .def("addExclusionsFromAngles", &NeighborList::addExclusionsFromAngles)
-        .def("addExclusionsFromDihedrals", &NeighborList::addExclusionsFromDihedrals)
-        .def("addExclusionsFromConstraints", &NeighborList::addExclusionsFromConstraints)
-        .def("addExclusionsFromPairs", &NeighborList::addExclusionsFromPairs)
-        .def("addOneThreeExclusionsFromTopology", &NeighborList::addOneThreeExclusionsFromTopology)
-        .def("addOneFourExclusionsFromTopology", &NeighborList::addOneFourExclusionsFromTopology)
-        .def_property("filter_body", &NeighborList::getFilterBody,
-                      &NeighborList::setFilterBody)
+        .def_property("exclusions", &NeighborList::getExclusions,
+                      &NeighborList::setExclusions)
         .def_property("diameter_shift", &NeighborList::getDiameterShift,
                       &NeighborList::setDiameterShift)
         .def_property("max_diameter", &NeighborList::getMaximumDiameter,
