@@ -488,6 +488,8 @@ DEVICE inline OverlapReal getSamplingVolumeIntersection(
 
     It is assumed that the circumspheres of the shapes are overlapping, otherwise the result is invalid
 
+    The point p is in the world frame, with shape a at the origin
+
     returns true if the point was not rejected
  */
 template<class Shape>
