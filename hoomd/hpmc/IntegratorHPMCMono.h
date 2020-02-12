@@ -2420,8 +2420,8 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
         unsigned int n_intersect = repulsive ? pos_j_new.size() : pos_j_old.size();
         #ifdef ENABLE_TBB
         tbb::parallel_for(tbb::blocked_range<unsigned int>(0, n_intersect),
-            [=, &pos_j_new, &orientation_j_new, &type_j_new,
-                &pos_j_old, &orientation_j_old, &type_j_old,
+            [=, &pos_j_new, &orientation_j_new, &type_j_new, &V_new,
+                &pos_j_old, &orientation_j_old, &type_j_old, &V_old,
                 &thread_deltaF,
                 &accept, &rng_depletants_parallel,
                 &thread_counters, &thread_implicit_counters](const tbb::blocked_range<unsigned int>& s) {
@@ -2459,8 +2459,8 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
             // for every depletant
             #ifdef ENABLE_TBB
             tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)n),
-                [=, &pos_j_new, &orientation_j_new, &type_j_new,
-                    &pos_j_old, &orientation_j_old, &type_j_old,
+                [=, &pos_j_new, &orientation_j_new, &type_j_new, &V_new,
+                    &pos_j_old, &orientation_j_old, &type_j_old, &V_old,
                     &thread_deltaF,
                     &accept, &rng_depletants_parallel,
                     &thread_counters, &thread_implicit_counters](const tbb::blocked_range<unsigned int>& t) {
