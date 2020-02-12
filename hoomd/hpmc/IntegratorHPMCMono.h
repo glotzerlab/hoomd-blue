@@ -2287,7 +2287,8 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
 
                             // check excluded volume overlap
                             bool overlap_excluded = h_overlaps[this->m_overlap_idx(type,typ_j)] &&
-                                excludedVolumeOverlap(shape_old, shape_j, pos_j-pos_i_old_image, r_dep, ndim);
+                                excludedVolumeOverlap(shape_old, shape_j, pos_j-pos_i_old_image, r_dep, ndim,
+                                detail::SamplingMethod::accurate());
 
                             if (overlap_excluded)
                                 {
@@ -2366,7 +2367,8 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
 
                             // check excluded volume overlap
                             bool overlap_excluded = h_overlaps[this->m_overlap_idx(type,typ_j)] &&
-                                excludedVolumeOverlap(shape_i, shape_j, pos_j-pos_i_image, r_dep, ndim);
+                                excludedVolumeOverlap(shape_i, shape_j, pos_j-pos_i_image, r_dep, ndim,
+                                detail::SamplingMethod::accurate());
 
                             if (overlap_excluded)
                                 {
@@ -2397,7 +2399,8 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
         for (unsigned int k = 0; k < pos_j_old.size(); ++k)
             {
             Shape shape_j(orientation_j_old[k], this->m_params[type_j_old[k]]);
-            Scalar V = getSamplingVolumeIntersection(shape_old, shape_j, pos_j_old[k] - pos_i_old, r_dep, ndim);
+            Scalar V = getSamplingVolumeIntersection(shape_old, shape_j, pos_j_old[k] - pos_i_old, r_dep, ndim,
+                detail::SamplingMethod::accurate());
             V_old.push_back(V);
             V_old_tot += V;
             }
@@ -2407,7 +2410,8 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
         for (unsigned int k = 0; k < pos_j_new.size(); ++k)
             {
             Shape shape_j(orientation_j_new[k], this->m_params[type_j_new[k]]);
-            Scalar V = getSamplingVolumeIntersection(shape_i, shape_j, pos_j_new[k] - pos_i, r_dep, ndim);
+            Scalar V = getSamplingVolumeIntersection(shape_i, shape_j, pos_j_new[k] - pos_i, r_dep, ndim,
+                detail::SamplingMethod::accurate());
             V_new.push_back(V);
             V_new_tot += V;
             }
@@ -2429,7 +2433,18 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
             // intersection volume
             Shape shape_j(repulsive ? orientation_j_new[k] : orientation_j_old[k],
                 this->m_params[repulsive ? type_j_new[k] : type_j_old[k]]);
-            Scalar V = repulsive ? V_new[k] : V_old[k];
+            Scalar V;
+
+            if (repulsive)
+                {
+                V = getSamplingVolumeIntersection(shape_i, shape_j, pos_j_new[k] - pos_i, r_dep, ndim,
+                    detail::SamplingMethod::fast());
+                }
+            else
+                {
+                V = getSamplingVolumeIntersection(shape_i, shape_j, pos_j_old[k] - pos_i_old, r_dep, ndim,
+                    detail::SamplingMethod::fast());
+                }
 
             // chooose the number of depletants in the intersection volume
             hoomd::PoissonDistribution<Scalar> poisson(fabs(m_fugacity[type])*V);
@@ -2472,8 +2487,11 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
 
                 vec3<OverlapReal> dr_test;
                 if (!sampleInExcludedVolumeIntersection(my_rng, repulsive ? shape_i : shape_old, shape_j,
-                    (repulsive ? (pos_j_new[k] - pos_i) : (pos_j_old[k] - pos_i_old)), r_dep, dr_test, ndim))
+                    (repulsive ? (pos_j_new[k] - pos_i) : (pos_j_old[k] - pos_i_old)), r_dep, dr_test, ndim,
+                    detail::SamplingMethod::fast()))
+                    {
                     continue;
+                    }
 
                 Shape shape_test(quat<Scalar>(), this->m_params[type]);
                 if (shape_test.hasOrientation())
@@ -2491,7 +2509,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
 
                     if (isPointInExcludedVolumeIntersection(repulsive ? shape_i : shape_old, shape_m,
                         (repulsive ? pos_j_new[m] - pos_i : pos_j_old[m] - pos_i_old),
-                        r_dep, dr_test, ndim))
+                        r_dep, dr_test, ndim, detail::SamplingMethod::fast()))
                         {
                         active = false;
                         break;
@@ -2661,8 +2679,11 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
 
                         vec3<OverlapReal> dr_test;
                         if (!sampleInExcludedVolumeIntersection(my_rng, repulsive ? shape_old : shape_i, shape_j,
-                            (repulsive ? (pos_j_old[k] - pos_i_old) : (pos_j_new[k] - pos_i)), r_dep, dr_test, ndim))
+                            (repulsive ? (pos_j_old[k] - pos_i_old) : (pos_j_new[k] - pos_i)), r_dep, dr_test, ndim,
+                            detail::SamplingMethod::accurate()))
+                            {
                             continue;
+                            }
 
                         Shape shape_test(quat<Scalar>(), this->m_params[type]);
                         if (shape_test.hasOrientation())
@@ -2680,7 +2701,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
 
                             if (isPointInExcludedVolumeIntersection(repulsive ? shape_old : shape_i,
                                 shape_m, repulsive ? (pos_j_old[m] - pos_i_old) : (pos_j_new[m] - pos_i),
-                                r_dep, dr_test, ndim))
+                                r_dep, dr_test, ndim, detail::SamplingMethod::accurate()))
                                 {
                                 active = false;
                                 break;
@@ -2849,8 +2870,11 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
 
                         vec3<OverlapReal> dr_test;
                         if (!sampleInExcludedVolumeIntersection(my_rng, !repulsive ? shape_old : shape_i, shape_j,
-                            (!repulsive ? (pos_j_old[k] - pos_i_old) : (pos_j_new[k] - pos_i)), r_dep, dr_test, ndim))
+                            (!repulsive ? (pos_j_old[k] - pos_i_old) : (pos_j_new[k] - pos_i)), r_dep, dr_test, ndim,
+                            detail::SamplingMethod::accurate()))
+                            {
                             continue;
+                            }
 
                         Shape shape_test(quat<Scalar>(), this->m_params[type]);
                         if (shape_test.hasOrientation())
@@ -2868,7 +2892,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
 
                             if (isPointInExcludedVolumeIntersection(!repulsive ? shape_old : shape_i,
                                 shape_m, !repulsive ? (pos_j_old[m] - pos_i_old) : (pos_j_new[m] - pos_i),
-                                r_dep, dr_test, ndim))
+                                r_dep, dr_test, ndim, detail::SamplingMethod::accurate()))
                                 {
                                 active = false;
                                 break;

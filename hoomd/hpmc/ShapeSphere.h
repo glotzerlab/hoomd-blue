@@ -257,6 +257,15 @@ DEVICE inline bool test_overlap<ShapeSphere, ShapeSphere>(const vec3<Scalar>& r_
         }
     }
 
+namespace detail
+{
+//! Accuracy levels for delpetant sampline
+class SamplingMethod {
+    struct fast {};
+    struct accurate {};
+    };
+};
+
 //! Test for overlap of excluded volumes
 /*! \param shape_a the first shape
     \param shape_b the second shape
@@ -266,10 +275,10 @@ DEVICE inline bool test_overlap<ShapeSphere, ShapeSphere>(const vec3<Scalar>& r_
 
     returns true if the covering of the intersection is non-empty
  */
-template<class Shape>
+template<typename Method, class Shape>
 DEVICE inline bool excludedVolumeOverlap(
     const Shape& shape_a, const Shape& shape_b, const vec3<Scalar>& r_ab,
-    OverlapReal r, unsigned int dim)
+    OverlapReal r, unsigned int dim, const Method m)
     {
     if (dim == 3)
         {
@@ -311,10 +320,10 @@ DEVICE inline bool excludedVolumeOverlap(
 
     returns true if the point was not rejected
  */
-template<class RNG, class Shape>
+template<typename Method, class RNG, class Shape>
 DEVICE inline bool sampleInExcludedVolumeIntersection(
     RNG& rng, const Shape& shape_a, const Shape& shape_b, const vec3<Scalar>& r_ab,
-    OverlapReal r, vec3<OverlapReal>& p, unsigned int dim)
+    OverlapReal r, vec3<OverlapReal>& p, unsigned int dim, const Method m)
     {
     if (dim == 3)
         {
@@ -411,10 +420,10 @@ DEVICE inline bool sampleInExcludedVolumeIntersection(
 
     returns the volume of the intersection
  */
-template<class Shape>
+template<typename Method, class Shape>
 DEVICE inline OverlapReal getSamplingVolumeIntersection(
     const Shape& shape_a, const Shape& shape_b, const vec3<Scalar>& r_ab,
-    OverlapReal r, unsigned int dim)
+    OverlapReal r, unsigned int dim, const Method m)
     {
     if (dim == 3)
         {
@@ -492,10 +501,10 @@ DEVICE inline OverlapReal getSamplingVolumeIntersection(
 
     returns true if the point was not rejected
  */
-template<class Shape>
+template<typename Method, class Shape>
 DEVICE inline bool isPointInExcludedVolumeIntersection(
     const Shape& shape_a, const Shape& shape_b, const vec3<Scalar>& r_ab,
-    OverlapReal r, const vec3<OverlapReal>& p, unsigned int dim)
+    OverlapReal r, const vec3<OverlapReal>& p, unsigned int dim, const Method m)
     {
     if (dim == 3)
         {
