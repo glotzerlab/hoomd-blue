@@ -2818,10 +2818,197 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                             n_success++;
                         } // end loop over insertion attempts
 
+                    // reinsert in first volume
+                    // we have already reinserted in the first volume once
+                    unsigned int n_success_other = 1;
+                    n_intersect = !repulsive ? pos_j_old.size() : pos_j_new.size();
+
+                    for (unsigned int i_trial = 1; i_trial < m_ntrial; ++i_trial)
+                        {
+                        Scalar V_rand = hoomd::UniformDistribution<Scalar>(0.0, !repulsive ? V_old_tot : V_new_tot)(my_rng);
+
+                        Scalar V_sum(0.0);
+                        unsigned int k;
+                        for (k = 0; k < n_intersect; ++k)
+                            {
+                            Scalar V = !repulsive ? V_old[k] : V_new[k];
+                            V_sum += V;
+                            if (V_rand < V_sum)
+                                break;
+                            }
+
+                        #ifdef ENABLE_TBB
+                        thread_implicit_counters[type].local().insert_count++;
+                        #else
+                        implicit_counters[type].insert_count++;
+                        #endif
+
+                        // rejection sampling
+                        Shape shape_j(!repulsive ? orientation_j_old[k] : orientation_j_new[k],
+                            this->m_params[!repulsive ? type_j_old[k] : type_j_new[k]]);
+
+                        vec3<OverlapReal> dr_test;
+                        if (!sampleInExcludedVolumeIntersection(my_rng, !repulsive ? shape_old : shape_i, shape_j,
+                            (!repulsive ? (pos_j_old[k] - pos_i_old) : (pos_j_new[k] - pos_i)), r_dep, dr_test, ndim))
+                            continue;
+
+                        Shape shape_test(quat<Scalar>(), this->m_params[type]);
+                        if (shape_test.hasOrientation())
+                            {
+                            shape_test.orientation = generateRandomOrientation(my_rng, ndim);
+                            }
+
+                        // check if depletant falls in other intersection volumes
+                        bool active = true;
+
+                        for (unsigned int m = 0; m < k; ++m)
+                            {
+                            Shape shape_m(!repulsive ? orientation_j_old[m] : orientation_j_new[m],
+                                this->m_params[!repulsive ? type_j_old[m] : type_j_new[m]]);
+
+                            if (isPointInExcludedVolumeIntersection(!repulsive ? shape_old : shape_i,
+                                shape_m, !repulsive ? (pos_j_old[m] - pos_i_old) : (pos_j_new[m] - pos_i),
+                                r_dep, dr_test, ndim))
+                                {
+                                active = false;
+                                break;
+                                }
+                            }
+
+                        if (!active)
+                            {
+                            // if we cannot insert, it's a rejection
+                            continue;
+                            }
+
+                        // Check if the new (old) configuration of particle i generates an overlap
+                        bool overlap_i = false;
+
+                            {
+                            const Shape& shape = !repulsive ? shape_old : shape_i;
+
+                            OverlapReal rsq = dot(dr_test,dr_test);
+                            OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape.getCircumsphereDiameter();
+                            bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+
+                            if (h_overlaps[this->m_overlap_idx(type, typ_i)])
+                                {
+                                #ifdef ENABLE_TBB
+                                thread_counters.local().overlap_checks++;
+                                #else
+                                counters.overlap_checks++;
+                                #endif
+
+                                unsigned int err = 0;
+                                if (circumsphere_overlap &&
+                                    test_overlap(dr_test, shape, shape_test, err))
+                                    {
+                                    overlap_i = true;
+                                    }
+                                if (err)
+                                #ifdef ENABLE_TBB
+                                    thread_counters.local().overlap_err_count++;
+                                #else
+                                    counters.overlap_err_count++;
+                                #endif
+                                }
+                            }
+
+                        if (!overlap_i)
+                            {
+                            // reject because we can't insert in overlap volume
+                            continue;
+                            }
+
+                        // Check if the old (new) configuration of particle i generates an overlap
+                        bool overlap_i_other = false;
+
+                            {
+                            const Shape& shape = !repulsive ? shape_i : shape_old;
+
+                            vec3<OverlapReal> dr_test_other = dr_test - vec3<OverlapReal>(!repulsive ? (pos_i - pos_i_old) : (pos_i_old - pos_i));
+
+                            OverlapReal rsq = dot(dr_test_other,dr_test_other);
+                            OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape.getCircumsphereDiameter();
+                            bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+
+                            if (h_overlaps[this->m_overlap_idx(type, typ_i)])
+                                {
+                                #ifdef ENABLE_TBB
+                                thread_counters.local().overlap_checks++;
+                                #else
+                                counters.overlap_checks++;
+                                #endif
+
+                                unsigned int err = 0;
+                                if (circumsphere_overlap &&
+                                    test_overlap(dr_test_other, shape, shape_test, err))
+                                    {
+                                    overlap_i_other = true;
+                                    }
+                                if (err)
+                                #ifdef ENABLE_TBB
+                                    thread_counters.local().overlap_err_count++;
+                                #else
+                                    counters.overlap_err_count++;
+                                #endif
+                                }
+                            }
+
+                        if (overlap_i_other)
+                            {
+                            // we have already sampled that region
+                            continue;
+                            }
+
+                        bool in_intersection_volume = false;
+
+                        for (unsigned int m = 0; m < n_intersect; ++m)
+                            {
+                            unsigned int type_m = repulsive ? type_j_new[m] : type_j_old[m];
+                            Shape shape_m(repulsive ? orientation_j_new[m] : orientation_j_old[m], this->m_params[type_m]);
+                            vec3<Scalar> r_mk = (repulsive ? pos_j_new[m] - pos_i : pos_j_old[m] - pos_i_old) -
+                                vec3<Scalar>(dr_test);
+
+                            #ifdef ENABLE_TBB
+                            thread_counters.local().overlap_checks++;
+                            #else
+                            counters.overlap_checks++;
+                            #endif
+
+                            unsigned int err = 0;
+
+                            // check circumsphere overlap
+                            OverlapReal rsq = dot(r_mk,r_mk);
+                            OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_m.getCircumsphereDiameter();
+                            bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+
+                            if (h_overlaps[this->m_overlap_idx(type,type_m)]
+                                && circumsphere_overlap
+                                && test_overlap(r_mk, shape_test, shape_m, err))
+                                {
+                                in_intersection_volume = true;
+                                break;
+                                }
+
+                            if (err)
+                            #ifdef ENABLE_TBB
+                                thread_counters.local().overlap_err_count++;
+                            #else
+                                counters.overlap_err_count++;
+                            #endif
+
+                            if (in_intersection_volume)
+                                break;
+                            } // end loop over intersections
+
+                        if (in_intersection_volume)
+                            n_success_other++;
+                        }
                     if (n_success)
                         {
-                        // weight insertion attempts by ratio of sampling volumes and MC integration probability
-                        Scalar frac = (Scalar)n_success/(Scalar)m_ntrial;
+                        // weight insertion attempts by ratio of sampling volumes (estimated by MC integration)
+                        Scalar frac = (Scalar)n_success/(Scalar)n_success_other;
 
                         #ifdef ENABLE_TBB
                         thread_deltaF.local() += log(repulsive ? (V_old_tot/V_new_tot) : (V_new_tot/V_old_tot));
