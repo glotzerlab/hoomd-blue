@@ -64,6 +64,9 @@ class Simulation:
 
                 # set Communicator in C++ System
                 self._cpp_sys.setCommunicator(cpp_communicator)
+                self._system_communicator = cpp_communicator
+        else:
+            self._system_communicator = None
 
     def create_state_from_gsd(self, filename, frame=-1):
         # initialize the system

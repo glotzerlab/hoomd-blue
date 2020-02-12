@@ -17,6 +17,7 @@ Example::
 """
 
 import hoomd
+from hoomd import _hoomd
 from hoomd.util import is_iterable, dict_map, str_to_tuple_keys
 from hoomd.triggers import PeriodicTrigger, Trigger
 from hoomd.variant import Variant, ConstantVariant
@@ -167,6 +168,10 @@ class _Operation(metaclass=Loggable):
     def attach(self, simulation):
         self._apply_param_dict()
         self._apply_typeparam_dict(self._cpp_obj, simulation)
+
+        # pass the system communicator to the object
+        if _hoomd.is_MPI_available():
+            self._cpp_obj.setCommunicator(simulation._system_communicator)
 
     @property
     def is_attached(self):
@@ -341,7 +346,7 @@ class _TriggeredOperation(_Operation):
 
     def attach(self, simulation):
         self._simulation = simulation
-
+        super().attach(simulation)
 
 class _Updater(_TriggeredOperation):
     _cpp_list_name = 'updaters'
