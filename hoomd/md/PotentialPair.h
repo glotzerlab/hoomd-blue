@@ -106,11 +106,16 @@ class PotentialPair : public ForceCompute
         virtual pybind11::dict getParams(pybind11::tuple typ);
         //! Set the rcut for a single type pair
         virtual void setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut);
+        /// Get the r_cut for a single type pair
+        Scalar getRCut(pybind11::tuple types);
         /// Set the rcut for a single type pair using a tuple of strings
         virtual void setRCutPython(pybind11::tuple types, Scalar r_cut);
         //! Set ron for a single type pair
         virtual void setRon(unsigned int typ1, unsigned int typ2, Scalar ron);
-
+        /// Get the r_on for a single type pair
+        Scalar getROn(pybind11::tuple types);
+        /// Set the r_on for a single type using a tuple of string
+        virtual void setROnPython(pybind11::tuple types, Scalar r_on);
         //! Method that is called whenever the GSD file is written if connected to a GSD file.
         int slotWriteGSDShapeSpec(gsd_handle&) const;
         /// Validate that types are within Ntypes
@@ -136,6 +141,38 @@ class PotentialPair : public ForceCompute
         void setShiftMode(energyShiftMode mode)
             {
             m_shift_mode = mode;
+            }
+
+        void setShiftModePython(std::string mode)
+            {
+            if (mode == "none")
+                {
+                m_shift_mode = no_shift;
+                }
+            else if (mode == "shift")
+                {
+                m_shift_mode = shift;
+                }
+            else if (mode == "xplor")
+                {
+                m_shift_mode = xplor;
+                }
+            }
+
+        /// Get the mode used for the energy shifting
+        std::string getShiftMode()
+            {
+            switch (m_shift_mode)
+                {
+                case no_shift:
+                    return "none";
+                case shift:
+                    return "shift";
+                case xplor:
+                    return "xplor";
+                default:
+                    throw std::runtime_error("Error setting shift mode.");
+                }
             }
 
         virtual void notifyDetach()
@@ -490,6 +527,17 @@ void PotentialPair< evaluator >::setRCutPython(pybind11::tuple types,
     setRcut(typ1, typ2, r_cut);
     }
 
+template< class evaluator >
+Scalar PotentialPair< evaluator >::getRCut(pybind11::tuple types)
+    {
+    auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
+    auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
+    validateTypes(typ1, typ2, "get rcut.");
+    ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host,
+                                 access_mode::read);
+    return sqrt(h_rcutsq.data[m_typpair_idx(typ1, typ2)]);
+    }
+
 /*! \param typ1 First type index in the pair
     \param typ2 Second type index in the pair
     \param ron XPLOR r_on radius to set
@@ -504,6 +552,26 @@ void PotentialPair< evaluator >::setRon(unsigned int typ1, unsigned int typ2, Sc
                                 access_mode::readwrite);
     h_ronsq.data[m_typpair_idx(typ1, typ2)] = ron * ron;
     h_ronsq.data[m_typpair_idx(typ2, typ1)] = ron * ron;
+    }
+
+template< class evaluator >
+Scalar PotentialPair< evaluator >::getROn(pybind11::tuple types)
+    {
+    auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
+    auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
+    validateTypes(typ1, typ2, "get ron");
+    ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host,
+                                 access_mode::read);
+    return sqrt(h_ronsq.data[m_typpair_idx(typ1, typ2)]);
+    }
+
+template< class evaluator >
+void PotentialPair< evaluator >::setROnPython(pybind11::tuple types,
+                                              Scalar r_on)
+    {
+    auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
+    auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
+    setRon(typ1, typ2, r_on);
     }
 
 template <class evaluator>
@@ -994,8 +1062,10 @@ template < class T > void export_PotentialPair(pybind11::module& m, const std::s
         .def("setParams", &T::setParamsPython)
         .def("getParams", &T::getParams)
         .def("setRCut", &T::setRCutPython)
-        .def("setRon", &T::setRon)
-        .def("setShiftMode", &T::setShiftMode)
+        .def("getRCut", &T::getRCut)
+        .def("setROn", &T::setROnPython)
+        .def("getROn", &T::getROn)
+        .def_property("mode", &T::getShiftMode, &T::setShiftModePython)
         .def("computeEnergyBetweenSets", &T::computeEnergyBetweenSetsPythonList)
         .def("slotWriteGSDShapeSpec", &T::slotWriteGSDShapeSpec)
         .def("connectGSDShapeSpec", &T::connectGSDShapeSpec)

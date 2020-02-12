@@ -24,6 +24,14 @@ def validate_nlist(value):
         raise ValueError("{} is not an instance of type _NList".format(value))
 
 
+def validate_mode(value):
+    acceptable = ['none', 'shifted', 'xplor']
+    if value in acceptable:
+        return value
+    else:
+        raise ValueError("{} not found in {}".format(value, acceptable))
+
+
 class _Pair(force._Force):
     R""" Common pair potential documentation.
 
@@ -99,21 +107,19 @@ class _Pair(force._Force):
     because negative :math:`r_{\mathrm{cut}}` has no physical meaning.
     """
 
-    ## \internal
-    # \brief Initialize the pair force
-    # \details
-    # The derived class must set
-    #  - self.cpp_class (the pair class to instantiate)
-    #  - self.required_coeffs (a list of the coeff names the derived class needs)
-    #  - self.process_coeffs() (a method that takes in the coeffs and spits out a param struct to use in
-    #       self.cpp_force.set_params())
-    def __init__(self, nlist, r_cut=None):
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         self._nlist = validate_nlist(nlist)
         r_cut = float if r_cut is None else float(r_cut)
         r_cut = TypeParameter('r_cut', 'particle_types',
                               TypeParameterDict(r_cut, len_keys=2)
                               )
-        self._add_typeparam(r_cut)
+        r_on = TypeParameter('r_on', 'particle_types',
+                             TypeParameterDict(float(r_on), len_keys=2)
+                             )
+        self._extend_typeparam([r_cut, r_on])
+        self._param_dict.update(ParameterDict(mode=validate_mode,
+                                              explicit_defaults=dict(mode=mode))
+                                )
 
     def compute_energy(self, tags1, tags2):
         R""" Compute the energy between two sets of particles.
@@ -220,8 +226,8 @@ class LJ(_Pair):
       - *optional*: defaults to the global r_cut specified in the pair command
     """
     _cpp_class_name = "PotentialPairLJ"
-    def __init__(self, nlist, r_cut=None):
-        super().__init__(nlist, r_cut)
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
+        super().__init__(nlist, r_cut, r_on, mode)
         params = TypeParameter('params', 'particle_types',
                                TypeParameterDict(epsilon=float, sigma=float,
                                                  len_keys=2)
