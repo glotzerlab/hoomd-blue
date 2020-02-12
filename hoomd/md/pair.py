@@ -12,7 +12,19 @@ from hoomd.typeparam import TypeParameter
 import math
 import json
 
+
 class pair(force._force):
+    pass
+
+
+def validate_nlist(value):
+    if isinstance(value, _NList):
+        return value
+    else:
+        raise ValueError("{} is not an instance of type _NList".format(value))
+
+
+class _Pair(force._Force):
     R""" Common pair potential documentation.
 
     Users should not invoke :py:class:`pair` directly. It is a base command that provides common
@@ -96,14 +108,12 @@ class pair(force._force):
     #  - self.process_coeffs() (a method that takes in the coeffs and spits out a param struct to use in
     #       self.cpp_force.set_params())
     def __init__(self, nlist, r_cut=None):
-        param_dict = ParameterDict(nlist=lambda x: isinstance(x, _NList),
-                                   explicit_defaults=dict(nlist=nlist))
+        self._nlist = validate_nlist(nlist)
         r_cut = float if r_cut is None else float(r_cut)
         r_cut = TypeParameter('r_cut', 'particle_types',
                               TypeParameterDict(r_cut, len_keys=2)
                               )
         self._add_typeparam(r_cut)
-        self._param_dict.update(param_dict)
 
     def compute_energy(self, tags1, tags2):
         R""" Compute the energy between two sets of particles.
@@ -148,7 +158,7 @@ class pair(force._force):
 
     def attach(self, simulation):
         # create the c++ mirror class
-        if not self.nlist.is_attached():
+        if not self.nlist.is_attached:
             self.nlist.attach(simulation)
         if not simulation.device.cpp_exec_conf.isCUDAEnabled():
             cls = getattr(_md, self._cpp_class_name)
@@ -158,9 +168,24 @@ class pair(force._force):
             cls = getattr(_md, self._cpp_class_name + "GPU")
             self.nlist._cpp_obj.setStorageMode(
                 _md.NeighborList.storageMode.full)
-        self._cpp_obj = cls(simulation.state._cpp_sys_def, self.nlist._cpp_obj)
+        self._cpp_obj = cls(simulation.state._cpp_sys_def, self.nlist._cpp_obj,
+                            '')  # TODO remove name string arg
 
-class LJ(pair):
+        super().attach(simulation)
+
+    @property
+    def nlist(self):
+        return self._nlist
+
+    @nlist.setter
+    def nlist(self, value):
+        if self.is_attached:
+            raise RuntimeError("nlist cannot be set after attaching.")
+        else:
+            self._nlist = validate_nlist(value)
+
+
+class LJ(_Pair):
     R""" Lennard-Jones pair potential.
 
     Args:
@@ -194,11 +219,12 @@ class LJ(pair):
     - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
     """
-    _cpp_class_name = "EvaluatorPairLJ"
-    def __init__(self, nlist):
-        super().__init__(nlist)
+    _cpp_class_name = "PotentialPairLJ"
+    def __init__(self, nlist, r_cut=None):
+        super().__init__(nlist, r_cut)
         params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(epsilon=float, sigma=float)
+                               TypeParameterDict(epsilon=float, sigma=float,
+                                                 len_keys=2)
                                )
         self._add_typeparam(params)
 

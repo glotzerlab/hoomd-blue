@@ -106,6 +106,8 @@ class PotentialPair : public ForceCompute
         virtual pybind11::dict getParams(pybind11::tuple typ);
         //! Set the rcut for a single type pair
         virtual void setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut);
+        /// Set the rcut for a single type pair using a tuple of strings
+        virtual void setRCutPython(pybind11::tuple types, Scalar r_cut);
         //! Set ron for a single type pair
         virtual void setRon(unsigned int typ1, unsigned int typ2, Scalar ron);
 
@@ -467,6 +469,15 @@ void PotentialPair< evaluator >::setRcut(unsigned int typ1, unsigned int typ2, S
 
     // notify the neighbor list that we have changed r_cut values
     m_nlist->notifyRCutMatrixChange();
+    }
+
+template< class evaluator >
+void PotentialPair< evaluator >::setRCutPython(pybind11::tuple types,
+                                               Scalar r_cut)
+    {
+    auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
+    auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
+    setRcut(typ1, typ2, r_cut);
     }
 
 /*! \param typ1 First type index in the pair
@@ -977,7 +988,7 @@ template < class T > void export_PotentialPair(pybind11::module& m, const std::s
     potentialpair.def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
         .def("setParams", &T::setParamsPython)
         .def("getParams", &T::getParams)
-        .def("setRcut", &T::setRcut)
+        .def("setRCut", &T::setRCutPython)
         .def("setRon", &T::setRon)
         .def("setShiftMode", &T::setShiftMode)
         .def("computeEnergyBetweenSets", &T::computeEnergyBetweenSetsPythonList)
