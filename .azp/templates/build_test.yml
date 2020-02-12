@@ -4,7 +4,20 @@ steps:
 
 - task: CMake@1
   inputs:
-    cmakeArgs: $(Build.SourcesDirectory) -DCMAKE_BUILD_TYPE=RelWithDebInfo -DENABLE_GPU=$(enable_gpu) -DENABLE_MPI=$(enable_mpi) -DENABLE_TBB=$(enable_tbb) -DBUILD_VALIDATION=$(build_validation) -DBUILD_TESTING=$(build_testing) -DBUILD_JIT=$(build_jit) -DLLVM_DIR=/usr/lib/llvm-$(llvm_version)/cmake -DBUILD_DEPRECATED=off -DALWAYS_USE_MANAGED_MEMORY=$(always_use_managed_memory) -DTEST_CPU_IN_GPU_BUILDS=off
+    cmakeArgs: >-
+      $(Build.SourcesDirectory)
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo
+      -DENABLE_GPU=$(enable_gpu)
+      -DENABLE_MPI=$(enable_mpi)
+      -DENABLE_TBB=$(enable_tbb)
+      -DBUILD_VALIDATION=$(build_validation)
+      -DBUILD_TESTING=$(build_testing)
+      -DBUILD_JIT=$(build_jit)
+      -DLLVM_DIR=/usr/lib/llvm-$(llvm_version)/cmake
+      -DBUILD_DEPRECATED=off
+      -DALWAYS_USE_MANAGED_MEMORY=$(always_use_managed_memory)
+      -DTEST_CPU_IN_GPU_BUILDS=off
+      -DCMAKE_INSTALL_PREFIX=$(Pipeline.Workspace)/install
     workingDirectory: $(Build.BinariesDirectory)
 
 # hipcc is currently not supported with ninja
@@ -12,13 +25,23 @@ steps:
   displayName: Compile
   workingDirectory: $(Build.BinariesDirectory)
 
-- script: PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH python3 -m pytest -v -ra --junit-xml=$(Common.TestResultsDirectory)/pytest-serial.xml
-  displayName: Run pytest (serial)
+- script: make install -j 4
+  displayName: Install
   workingDirectory: $(Build.BinariesDirectory)
 
-- script: PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH mpirun -n 2 hoomd/pytest/pytest-openmpi.sh -v -x -ra --junit-xml=$(Common.TestResultsDirectory)/pytest-mpi.xml
+- script: >-
+    PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
+    python3 -m pytest -v -ra
+    --junit-xml=$(Common.TestResultsDirectory)/pytest-serial.xml
+  displayName: Run pytest (serial)
+  workingDirectory: $(Pipeline.Workspace)/install
+
+- script: >-
+    PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
+    mpirun -n 2 hoomd/pytest/pytest-openmpi.sh -v -x -ra
+    --junit-xml=$(Common.TestResultsDirectory)/pytest-mpi.xml
   displayName: Run pytest (mpi)
-  workingDirectory: $(Build.BinariesDirectory)
+  workingDirectory: $(Pipeline.Workspace)/install
   condition: and(succeeded(), eq(variables['enable_mpi'], 'on'))
   env:
     # allow openmpi to oversubscribe cores
@@ -35,7 +58,15 @@ steps:
   workingDirectory: $(Build.BinariesDirectory)
   condition: and(succeeded(), eq(variables['enable_mpi'], 'on'))
 
-- script: PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH ctest -I $(ctest_start),,$(ctest_stride) --no-compress-output -T test --output-on-failure --test-output-size-failed 1048576 --test-output-size-passed 1048576
+- script: >-
+    PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
+    ctest
+    -I $(ctest_start),,$(ctest_stride)
+    --no-compress-output
+    -T test
+    --output-on-failure
+    --test-output-size-failed 1048576
+    --test-output-size-passed 1048576
   displayName: Run ctest
   workingDirectory: $(Build.BinariesDirectory)
   env:
