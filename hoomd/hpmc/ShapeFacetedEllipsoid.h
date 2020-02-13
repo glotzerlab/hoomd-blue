@@ -39,7 +39,7 @@ namespace detail
  */
 struct FacetedEllipsoidParams : ShapeParams
     {
-    // Empty constructor
+    /// Empty constructor
     FacetedEllipsoidParams()
         : verts(),
           additional_verts(),
@@ -49,7 +49,7 @@ struct FacetedEllipsoidParams : ShapeParams
         { }
 
     #ifndef __HIPCC__
-    // Construct a faceted ellipsoid with n_facet facets
+    /// Construct a faceted ellipsoid with n_facet facets
     FacetedEllipsoidParams(unsigned int n_facet, bool managed )
         : a(1.0), b(1.0), c(1.0), N(n_facet), ignore(0)
         {
@@ -57,7 +57,7 @@ struct FacetedEllipsoidParams : ShapeParams
         offset = ManagedArray<OverlapReal> (n_facet, managed);
         }
 
-    // Construct from a Python dictionary
+    /// Construct from a Python dictionary
     FacetedEllipsoidParams(pybind11::dict v, bool managed=false)
         : FacetedEllipsoidParams(pybind11::len(v["normals"]), managed)
         {
@@ -111,7 +111,7 @@ struct FacetedEllipsoidParams : ShapeParams
         initializeVertices(managed);
         }
 
-    // Convert parameters to a python dictionary
+    /// Convert parameters to a python dictionary
     pybind11::dict asDict()
         {
         pybind11::dict v;
@@ -161,7 +161,7 @@ struct FacetedEllipsoidParams : ShapeParams
         return v;
         }
 
-    // Generate the intersections points of polyhedron edges with the sphere
+    /// Generate the intersections points of polyhedron edges with the sphere
     DEVICE void initializeVertices(bool managed=false)
         {
         additional_verts = detail::PolyhedronVertices(2*N*N, managed);
@@ -272,34 +272,34 @@ struct FacetedEllipsoidParams : ShapeParams
 
     #endif
 
-    // Vertices of the polyhedron
+    /// Vertices of the polyhedron
     PolyhedronVertices verts;
 
-    // Vertices of the polyhedron edge-sphere intersection
+    /// Vertices of the polyhedron edge-sphere intersection
     PolyhedronVertices additional_verts;
 
-    // Normal vectors of planes
+    /// Normal vectors of planes
     ManagedArray<vec3<OverlapReal> > n;
 
-    // Offset of every plane
+    /// Offset of every plane
     ManagedArray<OverlapReal> offset;
 
-    // First half-axis
+    /// First half-axis
     OverlapReal a;
 
-    // Second half-axis
+    /// Second half-axis
     OverlapReal b;
 
-    // Third half-axis
+    /// Third half-axis
     OverlapReal c;
 
-    // Origin shift
+    /// Origin shift
     vec3<OverlapReal> origin;
 
-    // Number of cut planes
+    /// Number of cut planes
     unsigned int N;
 
-    // True when move statistics should not be counted
+    /// True when move statistics should not be counted
     unsigned int ignore;
 
     DEVICE void load_shared(char *& ptr, unsigned int &available_bytes)
@@ -329,7 +329,7 @@ struct FacetedEllipsoidParams : ShapeParams
     #endif
     } __attribute__((aligned(32)));
 
-// Support function for ShapeFacetedEllipsoid
+/// Support function for ShapeFacetedEllipsoid
 class SupportFuncFacetedEllipsoid
     {
     public:
@@ -468,10 +468,10 @@ class SupportFuncFacetedEllipsoid
             }
 
     private:
-        // Definition of faceted ellipsoid
+        /// Definition of faceted ellipsoid
         const FacetedEllipsoidParams& params;
 
-        // The radius of a sphere sweeping the shape
+        /// The radius of a sphere sweeping the shape
         const OverlapReal sweep_radius;
     };
 
@@ -486,42 +486,42 @@ class SupportFuncFacetedEllipsoid
 */
 struct ShapeFacetedEllipsoid
     {
-    // Define the parameter type
+    /// Define the parameter type
     typedef detail::FacetedEllipsoidParams param_type;
 
-    // Construct a shape at a given orientation
+    /// Construct a shape at a given orientation
     DEVICE ShapeFacetedEllipsoid(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), params(_params)
         { }
 
-    // Check if the shape may be rotated
+    /// Check if the shape may be rotated
     DEVICE bool hasOrientation() { return (params.N > 0) ||
         (params.a != params.b) || (params.a != params.c) || (params.b != params.c); }
 
-    // Check if this shape should be ignored in the move statistics
+    /// Check if this shape should be ignored in the move statistics
     DEVICE bool ignoreStatistics() const { return params.ignore; }
 
-    // Get the circumsphere diameter of the shape
+    /// Get the circumsphere diameter of the shape
     DEVICE OverlapReal getCircumsphereDiameter() const
         {
         return OverlapReal(2)*detail::max(params.a, detail::max(params.b, params.c));
         }
 
-    // Get the in-sphere radius of the shape
+    /// Get the in-sphere radius of the shape
     DEVICE OverlapReal getInsphereRadius() const
         {
         return 0.0;
         }
 
     #ifndef __HIPCC__
-    // Return the shape parameters in the `type_shape` format
+    /// Return the shape parameters in the `type_shape` format
     std::string getShapeSpec() const
         {
         throw std::runtime_error("Shape definition not supported for this shape class.");
         }
     #endif
 
-    // Return the bounding box of the shape in world coordinates
+    /// Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         // use support function of the ellipsoid to determine the furthest extent in each direction
@@ -545,7 +545,7 @@ struct ShapeFacetedEllipsoid
         return detail::AABB(lower, upper);
         }
 
-    // Return a tight fitting OBB around the shape
+    /// Return a tight fitting OBB around the shape
     DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
         {
         detail::SupportFuncFacetedEllipsoid sfunc(params);
@@ -573,16 +573,16 @@ struct ShapeFacetedEllipsoid
     */
     HOSTDEVICE static bool isParallel() { return false; }
 
-    // Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    /// Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
     HOSTDEVICE static bool supportsSweepRadius()
         {
         return true;
         }
 
-    // Orientation of the shape
+    /// Orientation of the shape
     quat<Scalar> orientation;
 
-    // Faceted sphere parameters
+    /// Faceted sphere parameters
     const param_type& params;
     };
 

@@ -45,25 +45,25 @@ const unsigned int MAX_POLY2D_VERTS=64;
 */
 struct PolygonVertices : ShapeParams
     {
-    // X coordinates of the vertices
+    /// X coordinates of the vertices
     OverlapReal x[MAX_POLY2D_VERTS];
 
-    // Y coordinates of the vertice
+    /// Y coordinates of the vertice
     OverlapReal y[MAX_POLY2D_VERTS];
 
-    // Number of vertices
+    /// Number of vertices
     unsigned int N;
 
-    // Precomputed diameter
+    /// Precomputed diameter
     OverlapReal diameter;
 
-    // Rounding radius
+    /// Rounding radius
     OverlapReal sweep_radius;
 
-    // True when move statistics should not be counted
+    /// True when move statistics should not be counted
     unsigned int ignore;
 
-    // Default constructor initializes zero values.
+    /// Default constructor initializes zero values.
     DEVICE PolygonVertices()
         : N(0),
           diameter(OverlapReal(0)),
@@ -85,7 +85,7 @@ struct PolygonVertices : ShapeParams
 
     #ifndef __HIPCC__
 
-    // Construct from a Python dictionary
+    /// Construct from a Python dictionary
     PolygonVertices(pybind11::dict v, bool managed=false)
         {
         pybind11::list verts = v["vertices"];
@@ -122,7 +122,7 @@ struct PolygonVertices : ShapeParams
         diameter = 2*(sqrt(radius_sq)+sweep_radius);
         }
 
-    // Convert parameters to a python dictionary
+    /// Convert parameters to a python dictionary
     pybind11::dict asDict()
         {
         pybind11::dict v;
@@ -329,7 +329,7 @@ class SupportFuncConvexPolygon
             }
 
     private:
-        // Vertices of the polygon
+        /// Vertices of the polygon
         const PolygonVertices& verts;
     };
 
@@ -341,29 +341,29 @@ class SupportFuncConvexPolygon
 */
 struct ShapeConvexPolygon
     {
-    // Define the parameter type
+    /// Define the parameter type
     typedef detail::PolygonVertices param_type;
 
-    // Construct a shape at a given orientation
+    /// Construct a shape at a given orientation
     DEVICE ShapeConvexPolygon(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), verts(_params)
         {
         }
 
-    // Check if the shape may be rotated
+    /// Check if the shape may be rotated
     DEVICE bool hasOrientation() { return true; }
 
-    // Check if this shape should be ignored in the move statistics
+    /// Check if this shape should be ignored in the move statistics
     DEVICE bool ignoreStatistics() const{ return verts.ignore; }
 
-    // Get the circumsphere diameter of the shape
+    /// Get the circumsphere diameter of the shape
     DEVICE OverlapReal getCircumsphereDiameter() const
         {
         // return the precomputed diameter
         return verts.diameter;
         }
 
-    // Get the in-sphere radius of the shape
+    /// Get the in-sphere radius of the shape
     DEVICE OverlapReal getInsphereRadius() const
         {
         // not implemented
@@ -371,7 +371,7 @@ struct ShapeConvexPolygon
         }
 
     #ifndef __HIPCC__
-    // Return the shape parameters in the `type_shape` format
+    /// Return the shape parameters in the `type_shape` format
     std::string getShapeSpec() const
         {
         std::ostringstream shapedef;
@@ -385,7 +385,7 @@ struct ShapeConvexPolygon
         }
     #endif
 
-    // Return the bounding box of the shape in world coordinates
+    /// Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         // generate a tight AABB
@@ -410,7 +410,7 @@ struct ShapeConvexPolygon
         return detail::AABB(pos, verts.diameter/Scalar(2));
         }
 
-    // Return a tight fitting OBB around the shape
+    /// Return a tight fitting OBB around the shape
     DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
         {
         // just use the AABB for now
@@ -422,16 +422,16 @@ struct ShapeConvexPolygon
     */
     HOSTDEVICE static bool isParallel() { return false; }
 
-    // Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    /// Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
     HOSTDEVICE static bool supportsSweepRadius()
         {
         return false;
         }
 
-    // Orientation of the shape
+    /// Orientation of the shape
     quat<Scalar> orientation;
 
-    // Shape parameters
+    /// Shape parameters
     const detail::PolygonVertices& verts;
     };
 

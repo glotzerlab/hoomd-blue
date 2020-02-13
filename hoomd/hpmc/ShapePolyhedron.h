@@ -78,7 +78,7 @@ struct TriangleMesh : ShapeParams
         std::fill(face_overlap.get(), face_overlap.get()+n_faces, 1);
         }
 
-    // Construct from a Python dictionary
+    /// Construct from a Python dictionary
     TriangleMesh(pybind11::dict v, bool managed=false)
         {
         pybind11::list verts_list = v["vertices"];
@@ -225,7 +225,7 @@ struct TriangleMesh : ShapeParams
         convex_hull_verts.diameter = 2*(sqrt(radius_sq)+sweep_radius);
         }
 
-    // Convert parameters to a python dictionary
+    /// Convert parameters to a python dictionary
     pybind11::dict asDict()
         {
         pybind11::dict v;
@@ -274,40 +274,40 @@ struct TriangleMesh : ShapeParams
 
     #endif
 
-    // Tree for fast locality lookups
+    /// Tree for fast locality lookups
     GPUTree tree;
 
-    // Holds parameters of convex hull
+    /// Holds parameters of convex hull
     PolyhedronVertices convex_hull_verts;
 
-    // Vertex coordinates
+    /// Vertex coordinates
     ManagedArray<vec3<OverlapReal> > verts;
 
-    // Offset of every face in the list of vertices per face
+    /// Offset of every face in the list of vertices per face
     ManagedArray<unsigned int> face_offs;
 
-    // Ordered vertex IDs of every face
+    /// Ordered vertex IDs of every face
     ManagedArray<unsigned int> face_verts;
 
-    // Overlap mask per face
+    /// Overlap mask per face
     ManagedArray<unsigned int> face_overlap;
 
-    // Number of vertices
+    /// Number of vertices
     unsigned int n_verts;
 
-    // Number of faces
+    /// Number of faces
     unsigned int n_faces;
 
-    // True when move statistics should not be counted
+    /// True when move statistics should not be counted
     unsigned int ignore;
 
-    // Origin point inside the shape
+    /// Origin point inside the shape
     vec3<OverlapReal> origin;
 
-    // If 1, only the hull of the shape is considered for overlaps
+    /// If 1, only the hull of the shape is considered for overlaps
     unsigned int hull_only;
 
-    // Radius of a sweeping sphere
+    /// Radius of a sweeping sphere
     OverlapReal sweep_radius;
 
     DEVICE void load_shared(char *& ptr, unsigned int &available_bytes)
@@ -353,40 +353,40 @@ struct ShapePolyhedron
     //. Define the parameter type
     typedef detail::TriangleMesh param_type;
 
-    // Construct a shape at a given orientation
+    /// Construct a shape at a given orientation
     DEVICE ShapePolyhedron(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), data(_params), tree(_params.tree)
         {
         }
 
-    // Check if the shape may be rotated
+    /// Check if the shape may be rotated
     DEVICE bool hasOrientation() { return data.n_verts > 1; }
 
-    // Check if this shape should be ignored in the move statistics
+    /// Check if this shape should be ignored in the move statistics
     DEVICE bool ignoreStatistics() const { return data.ignore; }
 
-    // Get the circumsphere diameter of the shape
+    /// Get the circumsphere diameter of the shape
     DEVICE OverlapReal getCircumsphereDiameter() const
         {
         // return the precomputed diameter
         return data.convex_hull_verts.diameter;
         }
 
-    // Get the in-sphere radius of the shape
+    /// Get the in-sphere radius of the shape
     DEVICE OverlapReal getInsphereRadius() const
         {
         // not implemented
         return OverlapReal(0.0);
         }
 
-    // Return true if this is a sphero-shape
+    /// Return true if this is a sphero-shape
     DEVICE OverlapReal isSpheroPolyhedron() const
         {
         return data.sweep_radius != OverlapReal(0.0);
         }
 
     #ifndef __HIPCC__
-    // Return the shape parameters in the `type_shape` format
+    /// Return the shape parameters in the `type_shape` format
     std::string getShapeSpec() const
         {
         unsigned int n_verts = data.n_verts;
@@ -422,20 +422,20 @@ struct ShapePolyhedron
         }
     #endif
 
-    // Return the bounding box of the shape in world coordinates
+    /// Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         return detail::AABB(pos, data.convex_hull_verts.diameter/Scalar(2));
         }
 
-    // Return a tight fitting OBB
+    /// Return a tight fitting OBB
     DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
         {
         // just use the AABB for now
         return detail::OBB(getAABB(pos));
         }
 
-    // Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
+    /// Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel()
         {
         #ifdef LEAVES_AGAINST_TREE_TRAVERSAL
@@ -445,19 +445,19 @@ struct ShapePolyhedron
         #endif
         }
 
-    // Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    /// Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
     HOSTDEVICE static bool supportsSweepRadius()
         {
         return false;
         }
 
-    // Orientation of the shape
+    /// Orientation of the shape
     quat<Scalar> orientation;
 
-    // Vertices
+    /// Vertices
     const detail::TriangleMesh& data;
 
-    // Tree for particle features
+    /// Tree for particle features
     const detail::GPUTree &tree;
     };
 
