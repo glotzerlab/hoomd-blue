@@ -77,7 +77,7 @@ struct PolygonVertices : ShapeParams
         }
 
     #ifdef ENABLE_HIP
-    //! Set CUDA memory hint
+    /// Set CUDA memory hint
     void set_memory_hint() const
         {
         }
@@ -370,21 +370,6 @@ struct ShapeConvexPolygon
         return OverlapReal(0.0);
         }
 
-    #ifndef __HIPCC__
-    /// Return the shape parameters in the `type_shape` format
-    std::string getShapeSpec() const
-        {
-        std::ostringstream shapedef;
-        shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": " << verts.sweep_radius << ", \"vertices\": [";
-        for (unsigned int i = 0; i < verts.N-1; i++)
-            {
-            shapedef << "[" << verts.x[i] << ", " << verts.y[i] << "], ";
-            }
-        shapedef << "[" << verts.x[verts.N-1] << ", " << verts.y[verts.N-1] << "]]}";
-        return shapedef.str();
-        }
-    #endif
-
     /// Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
@@ -609,6 +594,21 @@ DEVICE inline bool test_overlap<ShapeConvexPolygon,ShapeConvexPolygon>(const vec
                                                   quat<OverlapReal>(b.orientation));
     #endif
     }
+
+#ifndef __HIPCC__
+template<>
+inline std::string getShapeSpec(const ShapeConvexPolygon& poly)
+    {
+    std::ostringstream shapedef;
+    shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": " << poly.verts.sweep_radius << ", \"vertices\": [";
+    for (unsigned int i = 0; i < poly.verts.N-1; i++)
+        {
+        shapedef << "[" << poly.verts.x[i] << ", " << poly.verts.y[i] << "], ";
+        }
+    shapedef << "[" << poly.verts.x[poly.verts.N-1] << ", " << poly.verts.y[poly.verts.N-1] << "]]}";
+    return shapedef.str();
+    }
+#endif
 
 }; // end namespace hpmc
 

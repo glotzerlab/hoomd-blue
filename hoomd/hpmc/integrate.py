@@ -1399,6 +1399,21 @@ class SphereUnion(_HPMCIntegrator):
                                         )
         self._add_typeparam(typeparam_shape)
 
+    @Loggable.log(flag='multi')
+    def type_shapes(self):
+        """Get all the types of shapes in the current simulation.
+
+        Examples:
+            The type will be 'SphereUnion' regardless of dimensionality.
+
+            >>> mc.type_shapes
+            [{'type': 'SphereUnion', 'centers': [[0, 0, 0], [0, 0, 1]], 'diameters': [1, 0.5]},
+             {'type': 'SphereUnion', 'centers': [[1, 2, 3], [4, 5, 6]], 'diameters': [0.5, 1]}]
+
+        Returns:
+            A list of dictionaries, one for each particle type in the system.
+        """
+        return super()._return_type_shapes()
 
 class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
     R""" HPMC integration for unions of convex polyhedra (3D).
