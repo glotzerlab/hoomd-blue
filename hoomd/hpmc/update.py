@@ -6,14 +6,10 @@
 
 from . import _hpmc
 from . import integrate
-from . import compute
 from hoomd import _hoomd
-
-import math
-
 from hoomd.logger import Loggable
 from hoomd.update import _updater
-from hoomd.meta import _Updater
+from hoomd.operation import _Updater
 from hoomd.parameterdicts import ParameterDict
 import hoomd
 

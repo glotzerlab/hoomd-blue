@@ -47,7 +47,7 @@ from hoomd import _hoomd
 from hoomd.md import _md
 import hoomd
 from hoomd.parameterdicts import ParameterDict
-from hoomd.meta import _Operation
+from hoomd.operation import _Operation
 from hoomd.logger import Loggable
 
 

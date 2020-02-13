@@ -5,7 +5,7 @@
 # Maintainer: joaander / All Developers are free to add commands for new
 # features
 
-from hoomd.meta import _Operation
+from hoomd.operation import _Operation
 
 
 # dummy class to enable documentation builds

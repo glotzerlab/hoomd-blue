@@ -1,6 +1,6 @@
 from pytest import fixture, raises
 from hoomd.pytest.dummy import DummyOperation, DummyTriggeredOp, DummySystem
-from hoomd.meta import _Operation
+from hoomd.operation import _Operation
 from hoomd.syncedlist import SyncedList
 
 

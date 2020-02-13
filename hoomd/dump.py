@@ -15,6 +15,7 @@ from hoomd.util import dict_flatten
 from hoomd.filters import ParticleFilter
 from hoomd.parameterdicts import ParameterDict
 from hoomd.logger import Logger
+from hoomd.operation import _Analyzer
 import numpy as np
 import hoomd
 import json
@@ -490,7 +491,7 @@ class getar(hoomd.analyze._analyzer):
         self.cpp_analyzer.close();
 
 
-class GSD(hoomd.meta._Analyzer):
+class GSD(_Analyzer):
     R""" Write simulation trajectories in the GSD format.
 
     Args:

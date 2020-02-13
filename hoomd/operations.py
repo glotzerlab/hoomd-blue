@@ -1,7 +1,7 @@
 import hoomd.integrate
 import hoomd.meta
 from hoomd.syncedlist import SyncedList
-from hoomd.meta import _Analyzer, _Updater
+from hoomd.operation import _Analyzer, _Updater
 
 
 def list_validation(type_):
