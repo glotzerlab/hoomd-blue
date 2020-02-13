@@ -2653,9 +2653,27 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                         }
 
                     unsigned int n_success = 0;
+                    #ifdef ENABLE_TBB
+                    n_success = tbb::parallel_reduce(tbb::blocked_range<unsigned int>(0, m_ntrial),
+                        0,
+                        [=, &pos_j_new, &orientation_j_new, &type_j_new, &V_new,
+                            &pos_j_old, &orientation_j_old, &type_j_old, &V_old,
+                            &rng_depletants_parallel,
+                            &thread_counters, &thread_implicit_counters]
+                            (const tbb::blocked_range<unsigned int>& v, unsigned int init)->unsigned int {
+                    for (unsigned int i_trial = v.begin(); i_trial != v.end(); ++i_trial)
+                    #else
                     for (unsigned int i_trial = 0; i_trial < m_ntrial; ++i_trial)
+                    #endif
                         {
-                        Scalar V_rand = hoomd::UniformDistribution<Scalar>(0.0, repulsive ? V_old_tot : V_new_tot)(my_rng);
+                        #ifdef ENABLE_TBB
+                        hoomd::RandomGenerator& my_rng = rng_depletants_parallel.local();
+                        #else
+                        hoomd::RandomGenerator& my_rng = rng_depletants;
+                        #endif
+
+                        Scalar V_rand = hoomd::UniformDistribution<Scalar>(0.0,
+                            repulsive ? V_old_tot : V_new_tot)(my_rng);
 
                         Scalar V_sum(0.0);
                         unsigned int k;
@@ -2835,18 +2853,45 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                                 break;
                             } // end loop over intersections
 
+                        #ifdef ENABLE_TBB
+                        if (in_intersection_volume)
+                            init++;
+                        #else
                         if (in_intersection_volume)
                             n_success++;
+                        #endif
                         } // end loop over insertion attempts
+                    #ifdef ENABLE_TBB
+                        return init;
+                        }, [](unsigned int x, unsigned int y)->unsigned int {return x+y;});
+                    #endif
 
                     // reinsert in first volume
                     // we have already reinserted in the first volume once
                     unsigned int n_success_other = 1;
                     n_intersect = !repulsive ? pos_j_old.size() : pos_j_new.size();
 
+                    #ifdef ENABLE_TBB
+                    n_success_other += tbb::parallel_reduce(tbb::blocked_range<unsigned int>(1, m_ntrial),
+                        0,
+                        [=, &pos_j_new, &orientation_j_new, &type_j_new, &V_new,
+                            &pos_j_old, &orientation_j_old, &type_j_old, &V_old,
+                            &rng_depletants_parallel,
+                            &thread_counters, &thread_implicit_counters]
+                            (const tbb::blocked_range<unsigned int>& v, unsigned int init)->unsigned int {
+                    for (unsigned int i_trial = v.begin(); i_trial != v.end(); ++i_trial)
+                    #else
                     for (unsigned int i_trial = 1; i_trial < m_ntrial; ++i_trial)
+                    #endif
                         {
-                        Scalar V_rand = hoomd::UniformDistribution<Scalar>(0.0, !repulsive ? V_old_tot : V_new_tot)(my_rng);
+                        #ifdef ENABLE_TBB
+                        hoomd::RandomGenerator& my_rng = rng_depletants_parallel.local();
+                        #else
+                        hoomd::RandomGenerator& my_rng = rng_depletants;
+                        #endif
+
+                        Scalar V_rand = hoomd::UniformDistribution<Scalar>(0.0,
+                            !repulsive ? V_old_tot : V_new_tot)(my_rng);
 
                         Scalar V_sum(0.0);
                         unsigned int k;
@@ -3026,9 +3071,19 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                                 break;
                             } // end loop over intersections
 
+                        #ifdef ENABLE_TBB
+                        if (in_intersection_volume)
+                            init++;
+                        #else
                         if (in_intersection_volume)
                             n_success_other++;
-                        }
+                        #endif
+                        } // end loop over insertion attempts
+                    #ifdef ENABLE_TBB
+                        return init;
+                        }, [](unsigned int x, unsigned int y)->unsigned int {return x+y;});
+                    #endif
+
                     if (n_success)
                         {
                         // weight insertion attempts by ratio of sampling volumes (estimated by MC integration)
