@@ -2556,7 +2556,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
 
                 // does the depletant fall into the overlap volume with other particles?
                 bool in_intersection_volume = false;
-                for (unsigned int m = 0; m < n_intersect; ++m)
+                for (unsigned int m = k; m < n_intersect; ++m)
                     {
                     unsigned int type_m = repulsive ? type_j_new[m] : type_j_old[m];
                     Shape shape_m(repulsive ? orientation_j_new[m] : orientation_j_old[m], this->m_params[type_m]);
@@ -2773,7 +2773,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
 
                         bool in_intersection_volume = false;
 
-                        for (unsigned int m = 0; m < n_intersect_reinsert; ++m)
+                        for (unsigned int m = k; m < n_intersect_reinsert; ++m)
                             {
                             unsigned int type_m = !repulsive ? type_j_new[m] : type_j_old[m];
                             Shape shape_m(!repulsive ? orientation_j_new[m] : orientation_j_old[m], this->m_params[type_m]);
@@ -2989,7 +2989,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
 
                         bool in_intersection_volume = false;
 
-                        for (unsigned int m = 0; m < n_intersect_reinsert; ++m)
+                        for (unsigned int m = k; m < n_intersect_reinsert; ++m)
                             {
                             unsigned int type_m = repulsive ? type_j_new[m] : type_j_old[m];
                             Shape shape_m(repulsive ? orientation_j_new[m] : orientation_j_old[m], this->m_params[type_m]);
