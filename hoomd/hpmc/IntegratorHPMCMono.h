@@ -430,18 +430,10 @@ class IntegratorHPMCMono : public IntegratorHPMC
         Scalar m_sweep_radius;                                   //!< Radius of sphere to sweep shapes by
 
         //! Test whether to reject the current particle move based on depletants
-        #ifndef ENABLE_TBB
         inline bool checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i,
             Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps,
             hpmc_counters_t& counters, hpmc_implicit_counters_t *implicit_counters,
-            hoomd::RandomGenerator& rng_depletants);
-        #else
-        inline bool checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i,
-            Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps,
-            hpmc_counters_t& counters, hpmc_implicit_counters_t *implicit_counters,
-            hoomd::RandomGenerator& rng_depletants,
-            tbb::enumerable_thread_specific< hoomd::RandomGenerator >& rng_depletants_parallel);
-        #endif
+            unsigned int timestep, hoomd::RandomGenerator& rng_depletants);
 
         //! Set the nominal width appropriate for looped moves
         virtual void updateCellWidth();
@@ -809,24 +801,10 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
         }
 
     // Combine the three seeds to generate RNG for poisson distribution
-    hoomd::RandomGenerator rng_depletants(this->m_seed,
-        timestep,
-        this->m_exec_conf->getRank(),
-        hoomd::RNGIdentifier::HPMCDepletants);
-
-    #ifdef ENABLE_TBB
-    // create one RNG per thread
-    tbb::enumerable_thread_specific< hoomd::RandomGenerator > rng_depletants_parallel([=]
-        {
-        std::vector<unsigned int> seed_seq(5);
-        std::hash<std::thread::id> hash;
-        return hoomd::RandomGenerator(this->m_seed,
-            timestep,
-            this->m_exec_conf->getRank(),
-            hash(std::this_thread::get_id()),
-            hoomd::RNGIdentifier::HPMCDepletants);
-        });
-    #endif
+    hoomd::RandomGenerator rng_depletants(
+        hoomd::RNGIdentifier::HPMCDepletants,
+        this->m_seed+this->m_exec_conf->getRank(),
+        timestep);
 
     if (this->m_prof) this->m_prof->push(this->m_exec_conf, "HPMC update");
 
@@ -1114,15 +1092,9 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             // The trial move is valid, so check if it is invalidated by depletants
             if (has_depletants && accept)
                 {
-                #ifndef ENABLE_TBB
                 accept = checkDepletantOverlap(i, pos_i, shape_i, typ_i, h_postype.data,
                     h_orientation.data, h_overlaps.data, counters, h_implicit_counters.data,
-                    rng_depletants);
-                #else
-                accept = checkDepletantOverlap(i, pos_i, shape_i, typ_i, h_postype.data,
-                    h_orientation.data, h_overlaps.data, counters, h_implicit_counters.data,
-                    rng_depletants, rng_depletants_parallel);
-                #endif
+                    timestep^i_nselect, rng_depletants);
                 }
 
             // If no overlaps and Metropolis criterion is met, accept
@@ -2186,19 +2158,11 @@ bool IntegratorHPMCMono<Shape>::py_test_overlap(unsigned int type_i, unsigned in
 
     NOTE: To avoid numerous acquires and releases of GPUArrays, data pointers are passed directly into this const function.
     */
-#ifndef ENABLE_TBB
 template<class Shape>
 inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i,
     Shape shape_i, unsigned int typ_i, Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps,
-    hpmc_counters_t& counters, hpmc_implicit_counters_t *implicit_counters, hoomd::RandomGenerator& rng_depletants)
-#else
-template<class Shape>
-inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i,
-    Shape shape_i, unsigned int typ_i, Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps,
-    hpmc_counters_t& counters, hpmc_implicit_counters_t *implicit_counters,
-    hoomd::RandomGenerator& rng_depletants,
-    tbb::enumerable_thread_specific< hoomd::RandomGenerator >& rng_depletants_parallel)
-#endif
+    hpmc_counters_t& counters, hpmc_implicit_counters_t *implicit_counters, unsigned int timestep,
+    hoomd::RandomGenerator& rng_depletants)
     {
     bool accept = true;
 
@@ -2422,8 +2386,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
         tbb::parallel_for(tbb::blocked_range<unsigned int>(0, n_intersect),
             [=, &pos_j_new, &orientation_j_new, &type_j_new, &V_new,
                 &pos_j_old, &orientation_j_old, &type_j_old, &V_old,
-                &thread_deltaF,
-                &accept, &rng_depletants_parallel,
+                &thread_deltaF, &accept,
                 &thread_counters, &thread_implicit_counters](const tbb::blocked_range<unsigned int>& s) {
         for (unsigned int k = s.begin(); k != s.end(); ++k)
         #else
@@ -2448,11 +2411,10 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
 
             // chooose the number of depletants in the intersection volume
             hoomd::PoissonDistribution<Scalar> poisson(fabs(m_fugacity[type])*V);
-            #ifdef ENABLE_TBB
-            hoomd::RandomGenerator& my_rng = rng_depletants_parallel.local();
-            #else
-            hoomd::RandomGenerator& my_rng = rng_depletants;
-            #endif
+            unsigned int ntypes = this->m_pdata->getNTypes();
+            hoomd::RandomGenerator my_rng(hoomd::RNGIdentifier::HPMCDepletantNum,
+                this->m_seed+this->m_exec_conf->getRank(),
+                k*ntypes+type, i, timestep);
 
             unsigned int n = poisson(my_rng);
 
@@ -2461,19 +2423,17 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
             tbb::parallel_for(tbb::blocked_range<unsigned int>(0, (unsigned int)n),
                 [=, &pos_j_new, &orientation_j_new, &type_j_new, &V_new,
                     &pos_j_old, &orientation_j_old, &type_j_old, &V_old,
-                    &thread_deltaF,
-                    &accept, &rng_depletants_parallel,
+                    &thread_deltaF, &accept,
                     &thread_counters, &thread_implicit_counters](const tbb::blocked_range<unsigned int>& t) {
             for (unsigned int l = t.begin(); l != t.end(); ++l)
             #else
             for (unsigned int l = 0; l < n; ++l)
             #endif
                 {
-                #ifdef ENABLE_TBB
-                hoomd::RandomGenerator& my_rng = rng_depletants_parallel.local();
-                #else
-                hoomd::RandomGenerator& my_rng = rng_depletants;
-                #endif
+                hoomd::RandomGenerator my_rng(
+                    hoomd::RNGIdentifier::HPMCDepletants+1,
+                    this->m_seed+this->m_exec_conf->getRank(),
+                    i, k*ntypes+type+n_intersect*ntypes*l, timestep);
 
                 #ifdef ENABLE_TBB
                 thread_implicit_counters[type].local().insert_count++;
@@ -2637,9 +2597,9 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                 if (in_intersection_volume)
                     {
                     // try reinserting in new (old) overlap volume
-                    unsigned int n_intersect = repulsive ? pos_j_old.size() : pos_j_new.size();
+                    unsigned int n_intersect_reinsert = repulsive ? pos_j_old.size() : pos_j_new.size();
 
-                    if (!n_intersect)
+                    if (!n_intersect_reinsert)
                         {
                         // if there are no overlap regions, we cannot insert
                         accept = false;
@@ -2653,12 +2613,12 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                         }
 
                     unsigned int n_success = 0;
+
                     #ifdef ENABLE_TBB
                     n_success = tbb::parallel_reduce(tbb::blocked_range<unsigned int>(0, m_ntrial),
                         0,
                         [=, &pos_j_new, &orientation_j_new, &type_j_new, &V_new,
                             &pos_j_old, &orientation_j_old, &type_j_old, &V_old,
-                            &rng_depletants_parallel,
                             &thread_counters, &thread_implicit_counters]
                             (const tbb::blocked_range<unsigned int>& v, unsigned int init)->unsigned int {
                     for (unsigned int i_trial = v.begin(); i_trial != v.end(); ++i_trial)
@@ -2666,18 +2626,17 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                     for (unsigned int i_trial = 0; i_trial < m_ntrial; ++i_trial)
                     #endif
                         {
-                        #ifdef ENABLE_TBB
-                        hoomd::RandomGenerator& my_rng = rng_depletants_parallel.local();
-                        #else
-                        hoomd::RandomGenerator& my_rng = rng_depletants;
-                        #endif
+                        hoomd::RandomGenerator my_rng(
+                            (hoomd::RNGIdentifier::HPMCDepletants+2)^
+                            (this->m_seed+this->m_exec_conf->getRank()),
+                            i, k*ntypes+type+n_intersect*ntypes*l, timestep, i_trial);
 
                         Scalar V_rand = hoomd::UniformDistribution<Scalar>(0.0,
                             repulsive ? V_old_tot : V_new_tot)(my_rng);
 
                         Scalar V_sum(0.0);
                         unsigned int k;
-                        for (k = 0; k < n_intersect; ++k)
+                        for (k = 0; k < n_intersect_reinsert; ++k)
                             {
                             Scalar V = repulsive ? V_old[k] : V_new[k];
                             V_sum += V;
@@ -2814,7 +2773,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
 
                         bool in_intersection_volume = false;
 
-                        for (unsigned int m = 0; m < n_intersect; ++m)
+                        for (unsigned int m = 0; m < n_intersect_reinsert; ++m)
                             {
                             unsigned int type_m = !repulsive ? type_j_new[m] : type_j_old[m];
                             Shape shape_m(!repulsive ? orientation_j_new[m] : orientation_j_old[m], this->m_params[type_m]);
@@ -2869,14 +2828,13 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                     // reinsert in first volume
                     // we have already reinserted in the first volume once
                     unsigned int n_success_other = 1;
-                    n_intersect = !repulsive ? pos_j_old.size() : pos_j_new.size();
+                    n_intersect_reinsert = !repulsive ? pos_j_old.size() : pos_j_new.size();
 
                     #ifdef ENABLE_TBB
                     n_success_other += tbb::parallel_reduce(tbb::blocked_range<unsigned int>(1, m_ntrial),
                         0,
                         [=, &pos_j_new, &orientation_j_new, &type_j_new, &V_new,
                             &pos_j_old, &orientation_j_old, &type_j_old, &V_old,
-                            &rng_depletants_parallel,
                             &thread_counters, &thread_implicit_counters]
                             (const tbb::blocked_range<unsigned int>& v, unsigned int init)->unsigned int {
                     for (unsigned int i_trial = v.begin(); i_trial != v.end(); ++i_trial)
@@ -2884,18 +2842,17 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                     for (unsigned int i_trial = 1; i_trial < m_ntrial; ++i_trial)
                     #endif
                         {
-                        #ifdef ENABLE_TBB
-                        hoomd::RandomGenerator& my_rng = rng_depletants_parallel.local();
-                        #else
-                        hoomd::RandomGenerator& my_rng = rng_depletants;
-                        #endif
+                        hoomd::RandomGenerator my_rng(
+                            (hoomd::RNGIdentifier::HPMCDepletants+3)^
+                            (this->m_seed+this->m_exec_conf->getRank()),
+                            i, k*ntypes+type+n_intersect*ntypes*l, timestep, i_trial);
 
                         Scalar V_rand = hoomd::UniformDistribution<Scalar>(0.0,
                             !repulsive ? V_old_tot : V_new_tot)(my_rng);
 
                         Scalar V_sum(0.0);
                         unsigned int k;
-                        for (k = 0; k < n_intersect; ++k)
+                        for (k = 0; k < n_intersect_reinsert; ++k)
                             {
                             Scalar V = !repulsive ? V_old[k] : V_new[k];
                             V_sum += V;
@@ -3032,7 +2989,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
 
                         bool in_intersection_volume = false;
 
-                        for (unsigned int m = 0; m < n_intersect; ++m)
+                        for (unsigned int m = 0; m < n_intersect_reinsert; ++m)
                             {
                             unsigned int type_m = repulsive ? type_j_new[m] : type_j_old[m];
                             Shape shape_m(repulsive ? orientation_j_new[m] : orientation_j_old[m], this->m_params[type_m]);
