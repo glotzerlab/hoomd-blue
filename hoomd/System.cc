@@ -199,28 +199,6 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     // but set the flags before prepRun, as prepRun may remove some flags that it cannot generate on the first step
     m_sysdef->getParticleData()->setFlags(determineFlags(m_cur_tstep));
 
-#ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        //! Set communicator in all Updaters
-		for (auto &updater_trigger_pair: m_updaters)
-			updater_trigger_pair.first->setCommunicator(m_comm);
-
-        // Set communicator in all Computes
-        map< string, std::shared_ptr<Compute> >::iterator compute;
-        for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
-            compute->second->setCommunicator(m_comm);
-
-        // Set communicator in all Analyzers
-        for (auto &analyzer_trigger_pair: m_analyzers)
-            analyzer_trigger_pair.first->setCommunicator(m_comm);
-
-        // Set communicator in Integrator
-        if (m_integrator)
-            m_integrator->setCommunicator(m_comm);
-        }
-#endif
-
     resetStats();
 
     #ifdef ENABLE_MPI

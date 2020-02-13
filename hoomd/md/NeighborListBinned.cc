@@ -35,34 +35,13 @@ NeighborListBinned::NeighborListBinned(std::shared_ptr<SystemDefinition> sysdef,
     m_cl->setComputeTDB(false);
     m_cl->setFlagIndex();
 
-    // call this class's special setRCut
-    setRCut(r_cut, r_buff);
+    // cell sizes need update by default
+    m_update_cell_size = true;
     }
 
 NeighborListBinned::~NeighborListBinned()
     {
     m_exec_conf->msg->notice(5) << "Destroying NeighborListBinned" << endl;
-    }
-
-void NeighborListBinned::setRCut(Scalar r_cut, Scalar r_buff)
-    {
-    NeighborList::setRCut(r_cut, r_buff);
-    // sizes have changed
-    m_update_cell_size = true;
-    }
-
-void NeighborListBinned::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut)
-    {
-    NeighborList::setRCutPair(typ1,typ2,r_cut);
-    // sizes have changed
-    m_update_cell_size = true;
-    }
-
-void NeighborListBinned::setMaximumDiameter(Scalar d_max)
-    {
-    NeighborList::setMaximumDiameter(d_max);
-    // sizes have changed
-    m_update_cell_size = true;
     }
 
 void NeighborListBinned::buildNlist(unsigned int timestep)

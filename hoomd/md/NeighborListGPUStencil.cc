@@ -78,10 +78,10 @@ NeighborListGPUStencil::NeighborListGPUStencil(std::shared_ptr<SystemDefinition>
     m_tuner->setSync(bool(m_pdata->getDomainDecomposition()));
     #endif
 
-    // call this class's special setRCut
-    setRCut(r_cut, r_buff);
+    // cell sizes need update by default
+    m_update_cell_size = true;
+    m_needs_restencil = true;
 
-    getRCutChangeSignal().connect<NeighborListGPUStencil, &NeighborListGPUStencil::slotRCutChange>(this);
     m_pdata->getMaxParticleNumberChangeSignal().connect<NeighborListGPUStencil, &NeighborListGPUStencil::slotMaxNumChanged>(this);
     m_pdata->getParticleSortSignal().connect<NeighborListGPUStencil, &NeighborListGPUStencil::slotParticleSort>(this);
 
@@ -93,30 +93,8 @@ NeighborListGPUStencil::NeighborListGPUStencil(std::shared_ptr<SystemDefinition>
 NeighborListGPUStencil::~NeighborListGPUStencil()
     {
     m_exec_conf->msg->notice(5) << "Destroying NeighborListGPUStencil" << std::endl;
-    getRCutChangeSignal().disconnect<NeighborListGPUStencil, &NeighborListGPUStencil::slotRCutChange>(this);
     m_pdata->getMaxParticleNumberChangeSignal().disconnect<NeighborListGPUStencil, &NeighborListGPUStencil::slotMaxNumChanged>(this);
     m_pdata->getParticleSortSignal().disconnect<NeighborListGPUStencil, &NeighborListGPUStencil::slotParticleSort>(this);
-    }
-
-void NeighborListGPUStencil::setRCut(Scalar r_cut, Scalar r_buff)
-    {
-    NeighborListGPU::setRCut(r_cut, r_buff);
-    // cell size may have changed
-    m_update_cell_size = true;
-    }
-
-void NeighborListGPUStencil::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut)
-    {
-    NeighborListGPU::setRCutPair(typ1,typ2,r_cut);
-    // cell size may have changed
-    m_update_cell_size = true;
-    }
-
-void NeighborListGPUStencil::setMaximumDiameter(Scalar d_max)
-    {
-    NeighborListGPU::setMaximumDiameter(d_max);
-    // cell size may have changed
-    m_update_cell_size = true;
     }
 
 void NeighborListGPUStencil::updateRStencil()

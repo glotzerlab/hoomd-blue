@@ -860,7 +860,7 @@ class Langevin(_Method):
                               )
 
         gamma_r = TypeParameter('gamma_r', type_kind='particle_types',
-                                param_dict=TypeParameterDict((0., 0., 0.),
+                                param_dict=TypeParameterDict((1., 1., 1.),
                                                              len_keys=1)
                                 )
 

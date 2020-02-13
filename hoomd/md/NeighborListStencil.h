@@ -40,11 +40,13 @@ class PYBIND11_EXPORT NeighborListStencil : public NeighborList
         //! Destructor
         virtual ~NeighborListStencil();
 
-        //! Change the cutoff radius for all pairs
-        virtual void setRCut(Scalar r_cut, Scalar r_buff);
-
-        //! Set the cutoff radius by pair type
-        virtual void setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut);
+        /// Notify NeighborList that a r_cut matrix value has changed
+        virtual void notifyRCutMatrixChange()
+            {
+            m_update_cell_size = true;
+            m_needs_restencil = true;
+            NeighborList::notifyRCutMatrixChange();
+            }
 
         //! Change the underlying cell width
         void setCellWidth(Scalar cell_width)
@@ -53,9 +55,6 @@ class PYBIND11_EXPORT NeighborListStencil : public NeighborList
             m_needs_restencil = true;
             m_cl->setNominalWidth(cell_width);
             }
-
-        //! Set the maximum diameter to use in computing neighbor lists
-        virtual void setMaximumDiameter(Scalar d_max);
 
     protected:
         //! Builds the neighbor list
@@ -69,12 +68,7 @@ class PYBIND11_EXPORT NeighborListStencil : public NeighborList
         bool m_needs_restencil;                             //!< Flag for updating the stencil
 
         /// Track when the cell size needs to be updated
-        bool m_update_cell_size = false;
-
-        void slotRCutChange()
-            {
-            m_needs_restencil = true;
-            }
+        bool m_update_cell_size = true;
 
         //! Update the stencil radius
         void updateRStencil();

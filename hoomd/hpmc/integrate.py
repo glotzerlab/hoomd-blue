@@ -113,17 +113,19 @@ class _HPMCIntegrator(_BaseIntegrator):
         '''initialize the reflected c++ class'''
         sys_def = simulation.state._cpp_sys_def
         if simulation.device.mode == 'GPU':
-            cl_c = _hoomd.CellListGPU(sys_def)
+            self._cpp_cell = _hoomd.CellListGPU(sys_def)
+            if _hoomd.is_MPI_available():
+                self._cpp_cell.setCommunicator(simulation._system_communicator)
             self._cpp_obj = getattr(_hpmc,
                                     self._cpp_cls + 'GPU')(sys_def,
-                                                           cl_c, self.seed)
+                                                           self._cpp_cell,
+                                                           self.seed)
         else:
             self._cpp_obj = getattr(_hpmc,
                                     self._cpp_cls)(sys_def, self.seed)
-            cl_c = None
+            self._cpp_cell = None
 
         super().attach(simulation)
-        return [cl_c] if cl_c is not None else None
 
     # Set the external field
     def set_external(self, ext):

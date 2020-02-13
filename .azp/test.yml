@@ -202,7 +202,15 @@ stages:
 
     container:
        image: $(image_root)-$(container_image)
-       options: -u 0 --cpus=4 --device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined --group-add video --mount type=bind,source=/etc/group,target=/etc/group_host --memory=16g
+       options: >-
+         -u 0
+         --cpus=4
+         --device=/dev/kfd
+         --device=/dev/dri
+         --security-opt seccomp=unconfined
+         --group-add video
+         --mount type=bind,source=/etc/group,target=/etc/group_host
+         --memory=16g
 
     workspace:
       clean: all

@@ -1,283 +1,47 @@
 # Copyright (c) 2009-2019 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-R""" Pair potentials.
-
-Generally, pair forces are short range and are summed over all non-bonded particles
-within a certain cutoff radius of each particle. Any number of pair forces
-can be defined in a single simulation. The net force on each particle due to
-all types of pair forces is summed.
-
-Pair forces require that parameters be set for each unique type pair. Coefficients
-are set through the aid of the :py:class:`coeff` class. To set these coefficients, specify
-a pair force and save it in a variable::
-
-    my_force = pair.some_pair_force(arguments...)
-
-Then the coefficients can be set using the saved variable::
-
-    my_force.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
-    my_force.pair_coeff.set('A', 'B', epsilon=1.0, sigma=2.0)
-    my_force.pair_coeff.set('B', 'B', epsilon=2.0, sigma=1.0)
-
-This example set the parameters *epsilon* and *sigma*
-(which are used in :py:class:`lj`). Different pair forces require that different
-coefficients are set. Check the documentation of each to see the definition
-of the coefficients.
-"""
-
 from hoomd import _hoomd
 from hoomd.md import _md
-from hoomd.md import force;
-from hoomd.md import nlist as nl # to avoid naming conflicts
-import hoomd;
+from hoomd.md import force
+from hoomd.md import nlist as nl
+from hoomd.md.nlist import _NList
+from hoomd.parameterdicts import ParameterDict, TypeParameterDict
+from hoomd.typeparam import TypeParameter
 
-import math;
-import sys;
-import json;
-from collections import OrderedDict
+import math
+import json
 
-class coeff:
-    R""" Define pair coefficients
-
-    All pair forces use :py:class:`coeff` to specify the coefficients between different
-    pairs of particles indexed by type. The set of pair coefficients is a symmetric
-    matrix defined over all possible pairs of particle types.
-
-    There are two ways to set the coefficients for a particular pair force.
-    The first way is to save the pair force in a variable and call :py:meth:`set()` directly.
-
-    The second method is to build the :py:class:`coeff` class first and then assign it to the
-    pair force. There are some advantages to this method in that you could specify a
-    complicated set of pair coefficients in a separate python file and import it into
-    your job script.
-
-    Example (**force_field.py**)::
-
-        from hoomd import md
-        my_coeffs = md.pair.coeff();
-        my_force.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
-        my_force.pair_coeff.set('A', 'B', epsilon=1.0, sigma=2.0)
-        my_force.pair_coeff.set('B', 'B', epsilon=2.0, sigma=1.0)
-
-    Example job script::
-
-        from hoomd import md
-        import force_field
-
-        .....
-        my_force = md.pair.some_pair_force(arguments...)
-        my_force.pair_coeff = force_field.my_coeffs
-
-    """
-
-    ## \internal
-    # \brief Initializes the class
-    # \details
-    # The main task to be performed during initialization is just to init some variables
-    # \param self Python required class instance variable
-    def __init__(self):
-        self.values = {};
-        self.default_coeff = {}
-
-    ## \internal
-    # \brief Return a compact representation of the pair coefficients
-    def get_metadata(self):
-        # return list for easy serialization
-        l = []
-        for (a,b) in self.values:
-            item = OrderedDict()
-            item['typei'] = a
-            item['typej'] = b
-            for coeff in self.values[(a,b)]:
-                item[coeff] = self.values[(a,b)][coeff]
-            l.append(item)
-        return l
-
-    ## \var values
-    # \internal
-    # \brief Contains the matrix of set values in a dictionary
-
-    ## \var default_coeff
-    # \internal
-    # \brief default_coeff['coeff'] lists the default value for \a coeff, if it is set
-
-    ## \internal
-    # \brief Sets a default value for a given coefficient
-    # \details
-    # \param name Name of the coefficient to for which to set the default
-    # \param value Default value to set
-    #
-    # Some coefficients have reasonable default values and the user should not be burdened with typing them in
-    # all the time. set_default_coeff() sets
-    def set_default_coeff(self, name, value):
-        self.default_coeff[name] = value;
-
-    def set(self, a, b, **coeffs):
-        R""" Sets parameters for one type pair.
-
-        Args:
-            a (str): First particle type in the pair (or a list of type names)
-            b (str): Second particle type in the pair (or a list of type names)
-            coeffs: Named coefficients (see below for examples)
-
-        Calling :py:meth:`set()` results in one or more parameters being set for a single type pair
-        or set of type pairs.
-        Particle types are identified by name, and parameters are also added by name.
-        Which parameters you need to specify depends on the pair force you are setting
-        these coefficients for, see the corresponding documentation.
-
-        All possible type pairs as defined in the simulation box must be specified before
-        executing :py:class:`hoomd.run()`. You will receive an error if you fail to do so. It is not an error,
-        however, to specify coefficients for particle types that do not exist in the simulation.
-        This can be useful in defining a force field for many different types of particles even
-        when some simulations only include a subset.
-
-        There is no need to specify coefficients for both pairs 'A', 'B' and 'B', 'A'. Specifying
-        only one is sufficient.
-
-        To set the same coefficients between many particle types, provide a list of type names instead of a single
-        one. All pairs between the two lists will be set to the same parameters.
-
-        Examples::
-
-            coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
-            coeff.set('B', 'B', epsilon=2.0, sigma=1.0)
-            coeff.set('A', 'B', epsilon=1.5, sigma=1.0)
-            coeff.set(['A', 'B', 'C', 'D'], 'F', epsilon=2.0)
-            coeff.set(['A', 'B', 'C', 'D'], ['A', 'B', 'C', 'D'], epsilon=1.0)
-
-            system = init.read_xml('init.xml')
-            coeff.set(system.particles.types, system.particles.types, epsilon=2.0)
-            coeff.set('A', system.particles.types, epsilon=1.2)
-
-        Note:
-            Single parameters can be updated. If both epsilon and sigma have already been
-            set for a type pair, then executing ``coeff.set('A', 'B', epsilon=1.1)`` will update
-            the value of epsilon and leave sigma as it was previously set.
-
-        Some pair potentials assign default values to certain parameters. If the default setting for a given coefficient
-        (as documented in the respective pair command) is not set explicitly, the default will be used.
-
-        """
-
-        # listify the inputs
-        a = hoomd.util.listify(a)
-        b = hoomd.util.listify(b)
-
-        for ai in a:
-            for bi in b:
-                self.set_single(ai, bi, coeffs);
-
-    ## \internal
-    # \brief Sets a single parameter
-    def set_single(self, a, b, coeffs):
-        a = str(a);
-        b = str(b);
-
-        # create the pair if it hasn't been created it
-        if (not (a,b) in self.values) and (not (b,a) in self.values):
-            self.values[(a,b)] = {};
-
-        # Find the pair to update
-        if (a,b) in self.values:
-            cur_pair = (a,b);
-        elif (b,a) in self.values:
-            cur_pair = (b,a);
-        else:
-            hoomd.context.current.device.cpp_msg.error("Bug detected in pair.coeff. Please report\n");
-            raise RuntimeError("Error setting pair coeff");
-
-        # update each of the values provided
-        if len(coeffs) == 0:
-            hoomd.context.current.device.cpp_msg.error("No coefficients specified\n");
-        for name, val in coeffs.items():
-            self.values[cur_pair][name] = val;
-
-        # set the default values
-        for name, val in self.default_coeff.items():
-            # don't override a coeff if it is already set
-            if not name in self.values[cur_pair]:
-                self.values[cur_pair][name] = val;
-
-    ## \internal
-    # \brief Verifies set parameters form a full matrix with all values set
-    # \details
-    # \param self Python required self variable
-    # \param required_coeffs list of required variables
-    #
-    # This can only be run after the system has been initialized
-    def verify(self, required_coeffs):
-        # first, check that the system has been initialized
-        if not hoomd.init.is_initialized():
-            raise RuntimeError('Cannot verify pair coefficients before initialization\n');
-
-        # get a list of types from the particle data
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
-
-        valid = True;
-        # loop over all possible pairs and verify that all required variables are set
-        for i in range(0,ntypes):
-            for j in range(i,ntypes):
-                a = type_list[i];
-                b = type_list[j];
-
-                # find which half of the pair is set
-                if (a,b) in self.values:
-                    cur_pair = (a,b);
-                elif (b,a) in self.values:
-                    cur_pair = (b,a);
-                else:
-                    hoomd.context.current.device.cpp_msg.error("Type pair " + str((a,b)) + " not found in pair coeff\n");
-                    valid = False;
-                    continue;
-
-                # verify that all required values are set by counting the matches
-                count = 0;
-                for coeff_name in self.values[cur_pair].keys():
-                    if not coeff_name in required_coeffs:
-                        hoomd.context.current.device.cpp_msg.notice(2, "Notice: Possible typo? Pair coeff " + str(coeff_name) + " is specified for pair " + str((a,b)) + \
-                              ", but is not used by the pair force\n");
-                    else:
-                        count += 1;
-
-                if count != len(required_coeffs):
-                    hoomd.context.current.device.cpp_msg.error("Type pair " + str((a,b)) + " is missing required coefficients\n");
-                    valid = False;
-
-
-        return valid;
-
-    ## \internal
-    # \brief Try to get whether a single pair coefficient
-    # \detail
-    # \param a First name in the type pair
-    # \param b Second name in the type pair
-    # \param coeff_name Coefficient to get
-    def get(self,a,b,coeff_name):
-        if (a,b) in self.values:
-            cur_pair = (a,b);
-        elif (b,a) in self.values:
-            cur_pair = (b,a);
-        else:
-            return None;
-
-        if coeff_name in self.values[cur_pair]:
-            return self.values[cur_pair][coeff_name];
-        else:
-            return None;
 
 class pair(force._force):
+    pass
+
+
+def validate_nlist(value):
+    if isinstance(value, _NList):
+        return value
+    else:
+        raise ValueError("{} is not an instance of type _NList".format(value))
+
+
+def validate_mode(value):
+    acceptable = ['none', 'shifted', 'xplor']
+    if value in acceptable:
+        return value
+    else:
+        raise ValueError("{} not found in {}".format(value, acceptable))
+
+
+class _Pair(force._Force):
     R""" Common pair potential documentation.
 
-    Users should not invoke :py:class:`pair` directly. It is a base command that provides common
-    features to all standard pair forces. Common documentation for all pair potentials is documented here.
+    Users should not invoke :py:class:`pair` directly. It is a base command that
+    provides common features to all standard pair forces. Common documentation
+    for all pair potentials is documented here.
 
-    All pair force commands specify that a given potential energy and force be computed on all non-excluded particle
-    pairs in the system within a short range cutoff distance :math:`r_{\mathrm{cut}}`.
+    All pair force commands specify that a given potential energy and force be
+    computed on all non-excluded particle pairs in the system within a short
+    range cutoff distance :math:`r_{\mathrm{cut}}`.
 
     The force :math:`\vec{F}` applied between each pair of particles is:
 
@@ -289,17 +53,22 @@ class pair(force._force):
                   = & 0           & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
-    where :math:`\vec{r}` is the vector pointing from one particle to the other in the pair, and :math:`V(r)` is
-    chosen by a mode switch (see :py:meth:`set_params()`):
+    where :math:`\vec{r}` is the vector pointing from one particle to the other
+    in the pair, and :math:`V(r)` is chosen by a mode switch (see
+    :py:meth:`set_params()`):
 
     .. math::
         :nowrap:
 
         \begin{eqnarray*}
         V(r)  = & V_{\mathrm{pair}}(r) & \mathrm{mode\ is\ no\_shift} \\
-              = & V_{\mathrm{pair}}(r) - V_{\mathrm{pair}}(r_{\mathrm{cut}}) & \mathrm{mode\ is\ shift} \\
-              = & S(r) \cdot V_{\mathrm{pair}}(r) & \mathrm{mode\ is\ xplor\ and\ } r_{\mathrm{on}} < r_{\mathrm{cut}} \\
-              = & V_{\mathrm{pair}}(r) - V_{\mathrm{pair}}(r_{\mathrm{cut}}) & \mathrm{mode\ is\ xplor\ and\ } r_{\mathrm{on}} \ge r_{\mathrm{cut}}
+              = & V_{\mathrm{pair}}(r) - V_{\mathrm{pair}}(r_{\mathrm{cut}}) &
+              \mathrm{mode\ is\ shift} \\
+              = & S(r) \cdot V_{\mathrm{pair}}(r) & \mathrm{mode\ is\ xplor\
+              and\ } r_{\mathrm{on}} < r_{\mathrm{cut}} \\
+              = & V_{\mathrm{pair}}(r) - V_{\mathrm{pair}}(r_{\mathrm{cut}}) &
+              \mathrm{mode\ is\ xplor\ and\ } r_{\mathrm{on}} \ge
+              r_{\mathrm{cut}}
         \end{eqnarray*}
 
     :math:`S(r)` is the XPLOR smoothing function:
@@ -309,208 +78,80 @@ class pair(force._force):
 
         \begin{eqnarray*}
         S(r) = & 1 & r < r_{\mathrm{on}} \\
-             = & \frac{(r_{\mathrm{cut}}^2 - r^2)^2 \cdot (r_{\mathrm{cut}}^2 + 2r^2 -
-                 3r_{\mathrm{on}}^2)}{(r_{\mathrm{cut}}^2 - r_{\mathrm{on}}^2)^3}
+             = & \frac{(r_{\mathrm{cut}}^2 - r^2)^2 \cdot (r_{\mathrm{cut}}^2 +
+             2r^2 - 3r_{\mathrm{on}}^2)}{(r_{\mathrm{cut}}^2 -
+             r_{\mathrm{on}}^2)^3}
                & r_{\mathrm{on}} \le r \le r_{\mathrm{cut}} \\
              = & 0 & r > r_{\mathrm{cut}} \\
          \end{eqnarray*}
 
-    and :math:`V_{\mathrm{pair}}(r)` is the specific pair potential chosen by the respective command.
+    and :math:`V_{\mathrm{pair}}(r)` is the specific pair potential chosen by
+    the respective command.
 
-    Enabling the XPLOR smoothing function :math:`S(r)` results in both the potential energy and the force going smoothly
-    to 0 at :math:`r = r_{\mathrm{cut}}`, reducing the rate of energy drift in long simulations.
-    :math:`r_{\mathrm{on}}` controls the point at which the smoothing starts, so it can be set to only slightly modify
-    the tail of the potential. It is suggested that you plot your potentials with various values of
-    :math:`r_{\mathrm{on}}` in order to find a good balance between a smooth potential function and minimal modification
-    of the original :math:`V_{\mathrm{pair}}(r)`. A good value for the LJ potential is
+    Enabling the XPLOR smoothing function :math:`S(r)` results in both the
+    potential energy and the force going smoothly to 0 at :math:`r =
+    r_{\mathrm{cut}}`, reducing the rate of energy drift in long simulations.
+    :math:`r_{\mathrm{on}}` controls the point at which the smoothing starts, so
+    it can be set to only slightly modify the tail of the potential. It is
+    suggested that you plot your potentials with various values of
+    :math:`r_{\mathrm{on}}` in order to find a good balance between a smooth
+    potential function and minimal modification of the original
+    :math:`V_{\mathrm{pair}}(r)`. A good value for the LJ potential is
     :math:`r_{\mathrm{on}} = 2 \cdot \sigma`.
 
-    The split smoothing / shifting of the potential when the mode is ``xplor`` is designed for use in mixed WCA / LJ
-    systems. The WCA potential and it's first derivative already go smoothly to 0 at the cutoff, so there is no need
-    to apply the smoothing function. In such mixed systems, set :math:`r_{\mathrm{on}}` to a value greater than
-    :math:`r_{\mathrm{cut}}` for those pairs that interact via WCA in order to enable shifting of the WCA potential
-    to 0 at the cutoff.
+    The split smoothing / shifting of the potential when the mode is ``xplor``
+    is designed for use in mixed WCA / LJ systems. The WCA potential and it's
+    first derivative already go smoothly to 0 at the cutoff, so there is no need
+    to apply the smoothing function. In such mixed systems, set
+    :math:`r_{\mathrm{on}}` to a value greater than :math:`r_{\mathrm{cut}}` for
+    those pairs that interact via WCA in order to enable shifting of the WCA
+    potential to 0 at the cutoff.
 
-    The following coefficients must be set per unique pair of particle types. See :py:mod:`hoomd.md.pair` for information
-    on how to set coefficients:
+    The following coefficients must be set per unique pair of particle types.
+    See :py:mod:`hoomd.md.pair` for information on how to set coefficients:
 
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
     - :math:`r_{\mathrm{on}}` - *r_on* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
 
-    When :math:`r_{\mathrm{cut}} \le 0` or is set to False, the particle type pair interaction is excluded from the neighbor
-    list. This mechanism can be used in conjunction with multiple neighbor lists to make efficient calculations in systems
-    with large size disparity. Functionally, this is equivalent to setting :math:`r_{\mathrm{cut}} = 0` in the pair force
-    because negative :math:`r_{\mathrm{cut}}` has no physical meaning.
+    When :math:`r_{\mathrm{cut}} \le 0` or is set to False, the particle type
+    pair interaction is excluded from the neighbor list. This mechanism can be
+    used in conjunction with multiple neighbor lists to make efficient
+    calculations in systems with large size disparity. Functionally, this is
+    equivalent to setting :math:`r_{\mathrm{cut}} = 0` in the pair force because
+    negative :math:`r_{\mathrm{cut}}` has no physical meaning.
     """
 
-    ## \internal
-    # \brief Initialize the pair force
-    # \details
-    # The derived class must set
-    #  - self.cpp_class (the pair class to instantiate)
-    #  - self.required_coeffs (a list of the coeff names the derived class needs)
-    #  - self.process_coeffs() (a method that takes in the coeffs and spits out a param struct to use in
-    #       self.cpp_force.set_params())
-    def __init__(self, r_cut, nlist, name=None):
-        # initialize the base class
-        force._force.__init__(self, name);
-
-        # convert r_cut False to a floating point type
-        if r_cut is False:
-            r_cut = -1.0
-        self.global_r_cut = r_cut;
-
-        # setup the coefficient matrix
-        self.pair_coeff = coeff();
-        self.pair_coeff.set_default_coeff('r_cut', self.global_r_cut);
-        self.pair_coeff.set_default_coeff('r_on', self.global_r_cut);
-
-        # setup the neighbor list
-        self.nlist = nlist
-        self.nlist.subscribe(lambda:self.get_rcut())
-        self.nlist.update_rcut()
-
-    def set_params(self, mode=None):
-        R""" Set parameters controlling the way forces are computed.
-
-        Args:
-            mode (str): (if set) Set the mode with which potentials are handled at the cutoff.
-
-        Valid values for *mode* are: "none" (the default), "shift", and "xplor":
-
-        - **none** - No shifting is performed and potentials are abruptly cut off
-        - **shift** - A constant shift is applied to the entire potential so that it is 0 at the cutoff
-        - **xplor** - A smoothing function is applied to gradually decrease both the force and potential to 0 at the
-          cutoff when ron < rcut, and shifts the potential to 0 at the cutoff when ron >= rcut.
-
-        See :py:class:`pair` for the equations.
-
-        Examples::
-
-            mypair.set_params(mode="shift")
-            mypair.set_params(mode="no_shift")
-            mypair.set_params(mode="xplor")
-
-        """
-
-        if mode is not None:
-            if mode == "no_shift":
-                self.cpp_force.setShiftMode(self.cpp_class.energyShiftMode.no_shift)
-            elif mode == "shift":
-                self.cpp_force.setShiftMode(self.cpp_class.energyShiftMode.shift)
-            elif mode == "xplor":
-                self.cpp_force.setShiftMode(self.cpp_class.energyShiftMode.xplor)
-            else:
-                hoomd.context.current.device.cpp_msg.error("Invalid mode\n");
-                raise RuntimeError("Error changing parameters in pair force");
-
-    def process_coeff(self, coeff):
-        hoomd.context.current.device.cpp_msg.error("Bug in hoomd, please report\n");
-        raise RuntimeError("Error processing coefficients");
-
-    def update_coeffs(self):
-        coeff_list = self.required_coeffs + ["r_cut", "r_on"];
-        # check that the pair coefficients are valid
-        if not self.pair_coeff.verify(coeff_list):
-            hoomd.context.current.device.cpp_msg.error("Not all pair coefficients are set\n");
-            raise RuntimeError("Error updating pair coefficients");
-
-        # set all the params
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
-
-        for i in range(0,ntypes):
-            for j in range(i,ntypes):
-                # build a dict of the coeffs to pass to process_coeff
-                coeff_dict = {};
-                for name in coeff_list:
-                    coeff_dict[name] = self.pair_coeff.get(type_list[i], type_list[j], name);
-
-                param = self.process_coeff(coeff_dict);
-                self.cpp_force.setParams(i, j, param);
-
-                # rcut can now have "invalid" C++ values, which we round up to zero
-                self.cpp_force.setRcut(i, j, max(coeff_dict['r_cut'], 0.0));
-                self.cpp_force.setRon(i, j, max(coeff_dict['r_on'], 0.0));
-
-    ## \internal
-    # \brief Get the maximum r_cut value set for any type pair
-    # \pre update_coeffs must be called before get_max_rcut to verify that the coeffs are set
-    def get_max_rcut(self):
-        # go through the list of only the active particle types in the sim
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
-
-        # find the maximum r_cut
-        max_rcut = 0.0;
-
-        for i in range(0,ntypes):
-            for j in range(i,ntypes):
-                # get the r_cut value
-                r_cut = self.pair_coeff.get(type_list[i], type_list[j], 'r_cut');
-                max_rcut = max(max_rcut, r_cut);
-
-        return max_rcut;
-
-    ## \internal
-    # \brief Get the r_cut pair dictionary
-    # \returns The rcut(i,j) dict if logging is on, and None if logging is off
-    def get_rcut(self):
-        if not self.log:
-            return None
-
-        # go through the list of only the active particle types in the sim
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
-
-        # update the rcut by pair type
-        r_cut_dict = nl.rcut();
-        for i in range(0,ntypes):
-            for j in range(i,ntypes):
-                # get the r_cut value
-                r_cut = self.pair_coeff.get(type_list[i], type_list[j], 'r_cut');
-
-                if r_cut is not None: # use the defined value
-                    if r_cut is False: # interaction is turned off
-                        r_cut_dict.set_pair(type_list[i],type_list[j], -1.0);
-                    else:
-                        r_cut_dict.set_pair(type_list[i],type_list[j], r_cut);
-                else: # use the global default
-                    r_cut_dict.set_pair(type_list[i],type_list[j],self.global_r_cut);
-
-        return r_cut_dict;
-
-    ## \internal
-    # \brief Return metadata for this pair potential
-    def get_metadata(self):
-        data = force._force.get_metadata(self)
-
-        # make sure all coefficients are set
-        self.update_coeffs()
-
-        data['pair_coeff'] = self.pair_coeff
-        return data
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
+        self._nlist = validate_nlist(nlist)
+        r_cut = float if r_cut is None else float(r_cut)
+        r_cut = TypeParameter('r_cut', 'particle_types',
+                              TypeParameterDict(r_cut, len_keys=2)
+                              )
+        r_on = TypeParameter('r_on', 'particle_types',
+                             TypeParameterDict(float(r_on), len_keys=2)
+                             )
+        self._extend_typeparam([r_cut, r_on])
+        self._param_dict.update(ParameterDict(mode=validate_mode,
+                                              explicit_defaults=dict(mode=mode))
+                                )
 
     def compute_energy(self, tags1, tags2):
         R""" Compute the energy between two sets of particles.
 
         Args:
-            tags1 (``ndarray<int32>``): a numpy array of particle tags in the first group
-            tags2 (``ndarray<int32>``): a numpy array of particle tags in the second group
+            tags1 (``ndarray<int32>``): a numpy array of particle tags in the
+            first group
+            tags2 (``ndarray<int32>``): a numpy array of particle tags in the
+            second group
 
         .. math::
 
             U = \sum_{i \in \mathrm{tags1}, j \in \mathrm{tags2}} V_{ij}(r)
 
-        where :math:`V_{ij}(r)` is the pairwise energy between two particles :math:`i` and :math:`j`.
+        where :math:`V_{ij}(r)` is the pairwise energy between two particles
+        :math:`i` and :math:`j`.
 
         Assumed properties of the sets *tags1* and *tags2* are:
 
@@ -524,37 +165,49 @@ class pair(force._force):
 
             tags=numpy.linspace(0,N-1,1, dtype=numpy.int32)
             # computes the energy between even and odd particles
-            U = mypair.compute_energy(tags1=numpy.array(tags[0:N:2]), tags2=numpy.array(tags[1:N:2]))
+            U = mypair.compute_energy(tags1=numpy.array(tags[0:N:2]),
+                                      tags2=numpy.array(tags[1:N:2]))
 
         """
-        # future versions could use np functions to test the assumptions above and raise an error if they occur.
-        return self.cpp_force.computeEnergyBetweenSets(tags1, tags2);
-
-    def _connect_gsd_shape_spec(self, gsd):
-        # This is an internal method, and should not be called directly. See gsd.dump_shape() instead
-        if isinstance(gsd, hoomd.dump.gsd) and hasattr(self.cpp_force, "connectGSDShapeSpec"):
-            self.cpp_force.connectGSDShapeSpec(gsd.cpp_analyzer);
-        else:
-            raise NotImplementedError("GSD Schema is not implemented for {}".format(self.__class__.__name__));
-
-    def get_type_shapes(self):
-        """Get all the types of shapes in the current simulation.
-
-        Since this behaves differently for different types of shapes, the
-        default behavior just raises an exception. Subclasses can override this
-        to properly return.
-        """
-        raise NotImplementedError(
-            "You are using a shape type that is not implemented! "
-            "If you want it, please modify the "
-            "hoomd.hpmc.integrate.HPMCIntegrator.get_type_shapes function.")
+        # TODO future versions could use np functions to test the assumptions
+        # above and raise an error if they occur.
+        return self.cpp_force.computeEnergyBetweenSets(tags1, tags2)
 
     def _return_type_shapes(self):
-        type_shapes = self.cpp_force.getTypeShapesPy();
-        ret = [ json.loads(json_string) for json_string in type_shapes ];
-        return ret;
+        type_shapes = self.cpp_force.getTypeShapesPy()
+        ret = [ json.loads(json_string) for json_string in type_shapes ]
+        return ret
 
-class lj(pair):
+    def attach(self, simulation):
+        # create the c++ mirror class
+        if not self.nlist.is_attached:
+            self.nlist.attach(simulation)
+        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+            cls = getattr(_md, self._cpp_class_name)
+            self.nlist._cpp_obj.setStorageMode(
+                _md.NeighborList.storageMode.half)
+        else:
+            cls = getattr(_md, self._cpp_class_name + "GPU")
+            self.nlist._cpp_obj.setStorageMode(
+                _md.NeighborList.storageMode.full)
+        self._cpp_obj = cls(simulation.state._cpp_sys_def, self.nlist._cpp_obj,
+                            '')  # TODO remove name string arg
+
+        super().attach(simulation)
+
+    @property
+    def nlist(self):
+        return self._nlist
+
+    @nlist.setter
+    def nlist(self, value):
+        if self.is_attached:
+            raise RuntimeError("nlist cannot be set after attaching.")
+        else:
+            self._nlist = validate_nlist(value)
+
+
+class LJ(_Pair):
     R""" Lennard-Jones pair potential.
 
     Args:
@@ -562,20 +215,21 @@ class lj(pair):
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
 
-    :py:class:`lj` specifies that a Lennard-Jones pair potential should be applied between every
-    non-excluded particle pair in the simulation.
+    :py:class:`lj` specifies that a Lennard-Jones pair potential should be
+    applied between every non-excluded particle pair in the simulation.
 
     .. math::
         :nowrap:
 
         \begin{eqnarray*}
-        V_{\mathrm{LJ}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
-                          \alpha \left( \frac{\sigma}{r} \right)^{6} \right] & r < r_{\mathrm{cut}} \\
-                            = & 0 & r \ge r_{\mathrm{cut}} \\
+        V_{\mathrm{LJ}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r}
+        \right)^{12} - \alpha \left( \frac{\sigma}{r} \right)^{6} \right] & r <
+        r_{\mathrm{cut}} \\ = & 0 & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
-    See :py:class:`pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+    See :py:class:`pair` for details on how forces are calculated and the
+    available energy shifting and smoothing modes.  Use :py:meth:`pair_coeff.set
+    <coeff.set>` to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
@@ -586,47 +240,15 @@ class lj(pair):
       - *optional*: defaults to the global r_cut specified in the pair command
     - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
-
-    Example::
-
-        nl = nlist.cell()
-        lj = pair.lj(r_cut=3.0, nlist=nl)
-        lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
-        lj.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, alpha=0.5, r_cut=3.0, r_on=2.0);
-        lj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, r_cut=2**(1.0/6.0), r_on=2.0);
-        lj.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=1.5, sigma=2.0)
-
     """
-    def __init__(self, r_cut, nlist, name=None):
-
-        # tell the base class how we operate
-
-        # initialize the base class
-        pair.__init__(self, r_cut, nlist, name);
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PotentialPairLJ(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairLJ;
-        else:
-            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-            self.cpp_force = _md.PotentialPairLJGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairLJGPU;
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-
-        # setup the coefficient options
-        self.required_coeffs = ['epsilon', 'sigma', 'alpha'];
-        self.pair_coeff.set_default_coeff('alpha', 1.0);
-
-    def process_coeff(self, coeff):
-        epsilon = coeff['epsilon'];
-        sigma = coeff['sigma'];
-        alpha = coeff['alpha'];
-
-        lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
-        lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return _hoomd.make_scalar2(lj1, lj2);
+    _cpp_class_name = "PotentialPairLJ"
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
+        super().__init__(nlist, r_cut, r_on, mode)
+        params = TypeParameter('params', 'particle_types',
+                               TypeParameterDict(epsilon=float, sigma=float,
+                                                 len_keys=2)
+                               )
+        self._add_typeparam(params)
 
 class gauss(pair):
     R""" Gaussian pair potential.

@@ -27,6 +27,46 @@
 #define DEVICE
 #endif
 
+struct lj_params
+    {
+    Scalar lj1;
+    Scalar lj2;
+
+    #ifdef ENABLE_HIP
+    //! Set CUDA memory hints
+    void set_memory_hint() const
+        {
+        // default implementation does nothing
+        }
+    #endif
+
+    #ifndef __HIPCC__
+    lj_params() {lj1 = 0; lj2 = 0;}
+
+    lj_params(pybind11::dict v)
+        {
+        auto sigma(v["sigma"].cast<Scalar>());
+        auto epsilon(v["epsilon"].cast<Scalar>());
+        lj1 = 4.0 * epsilon * pow(sigma, 12.0);
+        lj2 = 4.0 * epsilon * pow(sigma, 6.0);
+        }
+
+    pybind11::dict asDict()
+        {
+        pybind11::dict v;
+        auto sigma6 = lj1 / lj2;
+        v["sigma"] = pow(sigma6, 1. / 6.);
+        v["epsilon"] = lj2 / (sigma6 * 4);
+        return v;
+        }
+    #endif
+    }
+    #ifdef SINGLE_PRECISION
+    __attribute__((aligned(8)));
+    #else
+    __attribute__((aligned(16)));
+    #endif
+
 //! Class for evaluating the LJ pair potential
 /*! <b>General Overview</b>
 
@@ -97,7 +137,7 @@ class EvaluatorPairLJ
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar2 param_type;
+        typedef lj_params param_type;
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
@@ -105,7 +145,7 @@ class EvaluatorPairLJ
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairLJ(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.x), lj2(_params.y)
+            : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.lj1), lj2(_params.lj2)
             {
             }
 
@@ -128,11 +168,13 @@ class EvaluatorPairLJ
         //! Evaluate the force and energy
         /*! \param force_divr Output parameter to write the computed force divided by r.
             \param pair_eng Output parameter to write the computed pair energy
-            \param energy_shift If true, the potential must be shifted so that V(r) is continuous at the cutoff
-            \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed
-                  in PotentialPair.
+            \param energy_shift If true, the potential must be shifted so that
+            V(r) is continuous at the cutoff
+            \note There is no need to check if rsq < rcutsq in this method.
+            Cutoff tests are performed in PotentialPair.
 
-            \return True if they are evaluated or false if they are not because we are beyond the cutoff
+            \return True if they are evaluated or false if they are not because
+            we are beyond the cutoff
         */
         DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
             {

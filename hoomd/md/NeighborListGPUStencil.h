@@ -42,11 +42,13 @@ class PYBIND11_EXPORT NeighborListGPUStencil : public NeighborListGPU
         //! Destructor
         virtual ~NeighborListGPUStencil();
 
-        //! Change the cutoff radius for all pairs
-        virtual void setRCut(Scalar r_cut, Scalar r_buff);
-
-        //! Change the cutoff radius by pair type
-        virtual void setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut);
+        /// Notify NeighborList that a r_cut matrix value has changed
+        virtual void notifyRCutMatrixChange()
+            {
+            m_update_cell_size = true;
+            m_needs_restencil = true;
+            NeighborListGPU::notifyRCutMatrixChange();
+            }
 
         //! Change the underlying cell width
         void setCellWidth(Scalar cell_width)
@@ -67,9 +69,6 @@ class PYBIND11_EXPORT NeighborListGPUStencil : public NeighborListGPU
             m_tuner->setEnabled(enable);
             }
 
-        //! Set the maximum diameter to use in computing neighbor lists
-        virtual void setMaximumDiameter(Scalar d_max);
-
     protected:
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);
@@ -85,10 +84,6 @@ class PYBIND11_EXPORT NeighborListGPUStencil : public NeighborListGPU
         //! Update the stencil radius
         void updateRStencil();
         bool m_needs_restencil;                             //!< Flag for updating the stencil
-        void slotRCutChange()
-            {
-            m_needs_restencil = true;
-            }
 
         //! Sort the particles by type
         void sortTypes();

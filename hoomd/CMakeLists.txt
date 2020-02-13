@@ -277,17 +277,6 @@ install(TARGETS _hoomd quickhull EXPORT HOOMDTargets
 
 ################ Python only modules
 # copy python modules to the build directory to make it a working python package
-MACRO(copy_file file)
-    add_custom_command (
-        OUTPUT ${file}
-        DEPENDS ${file}
-        POST_BUILD
-        COMMAND    ${CMAKE_COMMAND}
-        ARGS       -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${CMAKE_CURRENT_BINARY_DIR}/${file}
-        COMMENT    "Copy hoomd/${file}"
-    )
-ENDMACRO(copy_file)
-
 set(files analyze.py
           benchmark.py
           cite.py
@@ -311,29 +300,23 @@ set(files analyze.py
           hdf5.py
           simulation.py
           state.py
-	  syncedlist.py
+          syncedlist.py
           operations.py
           parameterdicts.py
           triggers.py
           typeparam.py
-	  typeconverter.py
+          typeconverter.py
           filters.py
           groups.py
           snapshot.py
-	  logger.py
-	  minimize/__init__.py
-	  minimize/fire.py
+          logger.py
     )
 
 install(FILES ${files}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}
        )
 
-foreach(file ${files})
-    copy_file(${file})
-endforeach()
-
-add_custom_target(copy_hoomd ALL DEPENDS ${files})
+copy_files_to_build("${files}" "hoomd" "*.py")
 
 # install headers in installation target
 install(FILES ${_hoomd_headers}
@@ -393,10 +376,12 @@ if (BUILD_JIT)
     add_subdirectory(jit)
 endif()
 
+add_subdirectory(minimize)
+
 file(GLOB _directory_contents RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *)
 
 # explicitly remove packages which are already explicitly dealt with
-list(REMOVE_ITEM _directory_contents test test-py extern md hpmc metal dem mpcd jit pytest)
+list(REMOVE_ITEM _directory_contents test test-py extern md hpmc metal dem mpcd jit pytest minimize)
 
 foreach(entry ${_directory_contents})
     if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${entry} OR IS_SYMLINK ${CMAKE_CURRENT_SOURCE_DIR}/${entry})

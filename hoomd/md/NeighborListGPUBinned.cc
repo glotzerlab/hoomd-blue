@@ -61,33 +61,12 @@ NeighborListGPUBinned::NeighborListGPUBinned(std::shared_ptr<SystemDefinition> s
 
     m_tuner.reset(new Autotuner(valid_params, 5, 100000, "nlist_binned", this->m_exec_conf));
 
-    // call this class's special setRCut
-    setRCut(r_cut, r_buff);
+    // cell sizes need update by default
+    m_update_cell_size = true;
     }
 
 NeighborListGPUBinned::~NeighborListGPUBinned()
     {
-    }
-
-void NeighborListGPUBinned::setRCut(Scalar r_cut, Scalar r_buff)
-    {
-    NeighborListGPU::setRCut(r_cut, r_buff);
-    // sizes have changed
-    m_update_cell_size = true;
-    }
-
-void NeighborListGPUBinned::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut)
-    {
-    NeighborListGPU::setRCutPair(typ1,typ2,r_cut);
-    // sizes have changed
-    m_update_cell_size = true;
-    }
-
-void NeighborListGPUBinned::setMaximumDiameter(Scalar d_max)
-    {
-    NeighborListGPU::setMaximumDiameter(d_max);
-    // sizes have changed
-    m_update_cell_size = true;
     }
 
 void NeighborListGPUBinned::buildNlist(unsigned int timestep)

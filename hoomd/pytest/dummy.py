@@ -7,6 +7,7 @@ class DummySimulation:
         self.state = DummyState()
         self.operations = DummyOperations()
         self._cpp_sys = DummySystem()
+        self._system_communicator = None
 
 
 class DummySystem:
@@ -52,6 +53,9 @@ class DummyCppObj:
     @param2.setter
     def param2(self, value):
         self._param2 = value
+
+    def setCommunicator(self, communicator):
+        pass
 
 
 class DummyOperation(_Operation):
