@@ -43,17 +43,13 @@
 struct alj_shape_params
     {
     HOSTDEVICE alj_shape_params()
-        : k_maxsq(0.0)
         {}
 
     #ifndef NVCC
 
     //! Shape constructor
     alj_shape_params(pybind11::list shape, bool use_device)
-        : k_maxsq(0.0)
         {
-        Scalar kmax = 0;
-
         //! Construct table for particle i
         unsigned int N = len(shape);
         verts = ManagedArray<vec3<Scalar> >(N, use_device);
@@ -62,13 +58,7 @@ struct alj_shape_params
             pybind11::list shape_tmp = pybind11::cast<pybind11::list>(shape[i]);
             verts[i] = vec3<Scalar>(pybind11::cast<Scalar>(shape_tmp[0]), pybind11::cast<Scalar>(shape_tmp[1]), pybind11::cast<Scalar>(shape_tmp[2]));
 
-            Scalar ktest = dot(verts[i], verts[i]);
-            if (ktest > kmax)
-                {
-                kmax = ktest;
-                }
             }
-        k_maxsq = kmax;
         }
 
     #endif
@@ -92,7 +82,6 @@ struct alj_shape_params
 
     //! Shape parameters
     ManagedArray<vec3<Scalar> > verts;       //! Shape vertices.
-    Scalar k_maxsq;                          //! Largest kernel value.
     };
 
 //! Potential parameters for the ALJ potential.
@@ -231,10 +220,7 @@ class EvaluatorPairALJ
             Scalar r = sqrt(rsq);
             vec3<Scalar> unitr = dr/r;
 
-            // Interaction cutoff is scaled by the max kernel value scaled by
-            // the insphere radius, which is the max vertex distance
-            // k[ij]_maxsq.
-            if ( (rsq/shape_i->k_maxsq < rcutsq) || (rsq/shape_i->k_maxsq < rcutsq) )
+            if ( rsq < rcutsq )
                 {
                 // Call GJK. In order to ensure that Newton's third law is
                 // obeyed, we must avoid any imbalance caused by numerical
@@ -506,8 +492,7 @@ void export_shape_params(pybind11::module& m)
 void export_alj_shape_params(pybind11::module& m)
     {
     pybind11::class_<alj_shape_params>(m, "alj_shape_params")
-        .def(pybind11::init<>())
-        .def_readwrite("k_maxsq", &alj_shape_params::k_maxsq);
+        .def(pybind11::init<>());
 
     m.def("make_alj_shape_params", &make_alj_shape_params);
     }
