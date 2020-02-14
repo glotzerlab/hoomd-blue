@@ -19,18 +19,17 @@ class Variant(_hoomd.Variant):
 
             def __call__(self, timestep):
                 return (float(timestep)**(1 / 2))
+
+    .. py:method:: __call__(timestep)
+
+        Evaluate the function.
+
+        :param timestep: The time step.
+        :type timestep: int
+        :return: The value of the function at the given time step.
+        :rtype: float
     """
     pass
-
-
-Variant.__call__.__doc__ = """ Evaluate the function.
-
-Args:
-    timestep (int): The time step.
-
-Returns:
-    float: The value of the function at the given time step.
-"""
 
 
 class Constant(_hoomd.VariantConstant, Variant):
@@ -46,3 +45,28 @@ class Constant(_hoomd.VariantConstant, Variant):
     """
     def __init__(self, value):
         _hoomd.VariantConstant.__init__(self, value)
+
+
+class Ramp(_hoomd.VariantRamp, Variant):
+    """ A linear ramp.
+
+    Args:
+        A (float): The start value.
+        B (float): The end value.
+        t_start (int): The start time step.
+        t_ramp (int): The length of the ramp.
+
+    :py:class:`Ramp` holds the value *A* until time *t_start*. Then it
+    ramps linearly from *A* to *B* over *t_ramp* steps and holds the value
+    *B* after that.
+
+    .. image:: variant-ramp.svg
+
+    Attributes:
+        A (float): The start value.
+        B (float): The end value.
+        t_start (int): The start time step.
+        t_ramp (int): The length of the ramp.
+    """
+    def __init__(self, A, B, t_start, t_ramp):
+        _hoomd.VariantRamp.__init__(self, A, B, t_start, t_ramp)

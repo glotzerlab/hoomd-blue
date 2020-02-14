@@ -7,6 +7,7 @@ hoomd.variant
     :nosignatures:
 
     hoomd.variant.Constant
+    hoomd.variant.Ramp
     hoomd.variant.Variant
 
 .. rubric:: Details
