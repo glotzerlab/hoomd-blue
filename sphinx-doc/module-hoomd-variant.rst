@@ -6,10 +6,11 @@ hoomd.variant
 .. autosummary::
     :nosignatures:
 
-    hoomd.variant.linear_interp
+    hoomd.variant.Constant
+    hoomd.variant.Variant
 
 .. rubric:: Details
 
 .. automodule:: hoomd.variant
-    :synopsis: Specify values that vary over time.
+    :synopsis: Values that vary as a function of time step.
     :members:

@@ -84,7 +84,8 @@ class GSDStateReader:
     pass
 
 class Variant:
-    pass
+    def __call__(self, timestep):
+        pass
 
-class VariantConstant:
+class VariantConstant(Variant):
     pass
