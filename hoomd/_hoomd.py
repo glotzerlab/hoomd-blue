@@ -82,3 +82,9 @@ class ParticleFilterTags:
 
 class GSDStateReader:
     pass
+
+class Variant:
+    pass
+
+class VariantConstant:
+    pass

@@ -8,6 +8,16 @@
 from hoomd.meta import _Operation
 
 
+# dummy class to enable documentation builds
+class _integration_method:
+    pass
+
+
+# dummy class to enable documentation builds
+class _integrator:
+    pass
+
+
 class _BaseIntegrator(_Operation):
     def attach(self, simulation):
         simulation._cpp_sys.setIntegrator(self._cpp_obj)
