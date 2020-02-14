@@ -2,6 +2,8 @@ import hoomd
 import hoomd.hpmc
 from hoomd.hpmc import _hpmc
 import pytest
+import inspect
+import numpy as np
 
 
 def test_sphere_params():
@@ -110,6 +112,7 @@ def test_shape_moves(device, lattice_simulation_factory):
     mc.shape['A'] = dict(diameter=1)
     sim = lattice_simulation_factory()
     sim.operations.add(mc)
+    snap = sim.state.snapshot
     sim.operations.schedule()
     sim.run(100)
     accepted_rejected_trans = sum(sim.operations.integrator.translate_moves)
