@@ -9,6 +9,6 @@ class Variant(_hoomd.Variant):
     pass
 
 
-class ConstantVariant(_hoomd.VariantConstant, Variant):
+class Constant(_hoomd.VariantConstant, Variant):
     def __init__(self, value):
         _hoomd.VariantConstant.__init__(self, value)

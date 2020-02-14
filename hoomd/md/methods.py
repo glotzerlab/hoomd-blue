@@ -18,7 +18,7 @@ import copy
 
 def create_variant(value):
     if isinstance(value, float) or isinstance(value, int):
-        return hoomd.variant.ConstantVariant(value)
+        return hoomd.variant.Constant(value)
     elif isinstance(value, hoomd.variant.Variant):
         return value
     else:

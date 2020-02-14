@@ -10,7 +10,7 @@ def test_constant():
     """ Test construction and properties of variant.constant
     """
 
-    a = hoomd.variant.ConstantVariant(10.0)
+    a = hoomd.variant.Constant(10.0)
 
     assert a.value == 10.0
 
@@ -18,7 +18,7 @@ def test_constant():
 
 
 def test_constant_eval():
-    a = hoomd.variant.ConstantVariant(10.0)
+    a = hoomd.variant.Constant(10.0)
 
     for i in range(10000):
         assert a(i) == 10.0

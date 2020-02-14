@@ -20,7 +20,7 @@ import hoomd
 from hoomd import _hoomd
 from hoomd.util import is_iterable, dict_map, str_to_tuple_keys
 from hoomd.triggers import PeriodicTrigger, Trigger
-from hoomd.variant import Variant, ConstantVariant
+from hoomd.variant import Variant, Constant
 from hoomd.filters import ParticleFilter
 from hoomd.logger import Loggable
 from hoomd.typeconverter import RequiredArg
@@ -41,7 +41,7 @@ def convert_values_to_log_form(value):
     if value is RequiredArg:
         return (None, 'scalar')
     elif isinstance(value, Variant):
-        if isinstance(value, ConstantVariant):
+        if isinstance(value, Constant):
             return (value.value, 'scalar')
         else:
             return (value, 'object')
