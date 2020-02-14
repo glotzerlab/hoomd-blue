@@ -157,7 +157,6 @@ for filename in dir_names:
            arg = updated_line[len(removal_indent):len(updated_line) - 1]
            updated_line = launch_kernel_indent + 8*" " + arg + "\n"
            if ");" in line:
-               updated_line += ");"
                indenting_kernel_launcher_args = False
 
        if "<<<" in line or "hipLaunchKernelGGL" in line:
