@@ -260,9 +260,9 @@ DEVICE inline bool test_overlap<ShapeSphere, ShapeSphere>(const vec3<Scalar>& r_
 namespace detail
 {
 //! Accuracy levels for delpetant sampline
-class SamplingMethod {
-    struct fast {};
-    struct accurate {};
+struct SamplingMethod {
+    enum enumFast { fast = 0 };
+    enum enumAccurate { accurate = 0 };
     };
 };
 
@@ -315,22 +315,25 @@ DEVICE inline bool excludedVolumeOverlap(
     \param r excluded volume radius
     \param p the returned point (relative to the origin == shape_a)
     \param dim the spatial dimension
+    \param V_sample the insertion volume
 
-    It is assumed that the circumspheres of the shapes are overlapping, otherwise the result is invalid
+    V_sample has to to be precomputed for the overlapping shapes using getSamplingVolumeIntersection()
 
     returns true if the point was not rejected
  */
 template<typename Method, class RNG, class Shape>
 DEVICE inline bool sampleInExcludedVolumeIntersection(
     RNG& rng, const Shape& shape_a, const Shape& shape_b, const vec3<Scalar>& r_ab,
-    OverlapReal r, vec3<OverlapReal>& p, unsigned int dim, const Method m)
+    OverlapReal r, vec3<OverlapReal>& p, unsigned int dim, OverlapReal V_sample,
+    const Method m)
     {
     if (dim == 3)
         {
         OverlapReal Ra = OverlapReal(0.5)*shape_a.getCircumsphereDiameter()+r;
         OverlapReal Rb = OverlapReal(0.5)*shape_b.getCircumsphereDiameter()+r;
-        OverlapReal Vcap_a;
-        OverlapReal Vcap_b;
+
+        if (dot(r_ab,r_ab) > (Ra+Rb)*(Ra+Rb))
+            return false;
 
         vec3<OverlapReal> dr(r_ab);
         OverlapReal d = fast::sqrt(dot(dr,dr));
@@ -345,8 +348,8 @@ DEVICE inline bool sampleInExcludedVolumeIntersection(
             OverlapReal hb = (Ra*Ra - (d-Rb)*(d-Rb))/(OverlapReal(2.0)*d);
 
             // volumes of spherical caps
-            Vcap_a = OverlapReal(M_PI/3.0)*ha*ha*(OverlapReal(3.0)*Ra-ha);
-            Vcap_b = OverlapReal(M_PI/3.0)*hb*hb*(OverlapReal(3.0)*Rb-hb);
+            OverlapReal Vcap_a = OverlapReal(M_PI/3.0)*ha*ha*(OverlapReal(3.0)*Ra-ha);
+            OverlapReal Vcap_b = OverlapReal(M_PI/3.0)*hb*hb*(OverlapReal(3.0)*Rb-hb);
 
             // choose one of the two caps randomly, with a weight proportional to their volume
             hoomd::UniformDistribution<OverlapReal> u;
@@ -379,6 +382,9 @@ DEVICE inline bool sampleInExcludedVolumeIntersection(
         {
         detail::AABB aabb_a = shape_a.getAABB(vec3<Scalar>(0.0,0.0,0.0));
         detail::AABB aabb_b = shape_b.getAABB(r_ab);
+
+        if (!overlap(aabb_a, aabb_b))
+            return false;
 
         // extend AABBs by the excluded volume radius
         vec3<Scalar> lower_a = aabb_a.getLower();
@@ -416,7 +422,7 @@ DEVICE inline bool sampleInExcludedVolumeIntersection(
     \param p the returned point
     \param dim the spatial dimension
 
-    It is assumed that the circumspheres of the shapes are overlapping, otherwise the result is invalid
+    If the shapes are not overlapping, return zero.
 
     returns the volume of the intersection
  */
@@ -429,8 +435,9 @@ DEVICE inline OverlapReal getSamplingVolumeIntersection(
         {
         OverlapReal Ra = OverlapReal(0.5)*shape_a.getCircumsphereDiameter()+r;
         OverlapReal Rb = OverlapReal(0.5)*shape_b.getCircumsphereDiameter()+r;
-        OverlapReal Vcap_a;
-        OverlapReal Vcap_b;
+
+        if (dot(r_ab,r_ab) > (Ra+Rb)*(Ra+Rb))
+            return OverlapReal(0.0);
 
         vec3<OverlapReal> dr(r_ab);
         OverlapReal d = fast::sqrt(dot(dr,dr));
@@ -447,8 +454,8 @@ DEVICE inline OverlapReal getSamplingVolumeIntersection(
             OverlapReal hb = (Ra*Ra - (d-Rb)*(d-Rb))/(OverlapReal(2.0)*d);
 
             // volumes of spherical caps
-            Vcap_a = OverlapReal(M_PI/3.0)*ha*ha*(OverlapReal(3.0)*Ra-ha);
-            Vcap_b = OverlapReal(M_PI/3.0)*hb*hb*(OverlapReal(3.0)*Rb-hb);
+            OverlapReal Vcap_a = OverlapReal(M_PI/3.0)*ha*ha*(OverlapReal(3.0)*Ra-ha);
+            OverlapReal Vcap_b = OverlapReal(M_PI/3.0)*hb*hb*(OverlapReal(3.0)*Rb-hb);
 
             // volume of intersection
             return Vcap_a + Vcap_b;
@@ -458,6 +465,9 @@ DEVICE inline OverlapReal getSamplingVolumeIntersection(
         {
         detail::AABB aabb_a = shape_a.getAABB(vec3<Scalar>(0.0,0.0,0.0));
         detail::AABB aabb_b = shape_b.getAABB(r_ab);
+
+        if (!overlap(aabb_a, aabb_b))
+            return OverlapReal(0.0);
 
         // extend AABBs by the excluded volume radius
         vec3<Scalar> lower_a = aabb_a.getLower();

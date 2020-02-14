@@ -551,7 +551,7 @@ DEVICE inline bool test_narrow_phase_excluded_volume_overlap(vec3<OverlapReal> d
 
             vec3<OverlapReal> r_ij = b.members.mpos[jshape] - pos_i;
             if (excludedVolumeOverlap(shape_i, shape_j, r_ij, r, dim,
-                detail::SamplingMethod::accurate()))
+                detail::SamplingMethod::accurate))
                 {
                 return true;
                 }
@@ -572,7 +572,7 @@ DEVICE inline bool test_narrow_phase_excluded_volume_overlap(vec3<OverlapReal> d
 template<class Shape>
 DEVICE inline bool excludedVolumeOverlap(
     const ShapeUnion<Shape>& a, const ShapeUnion<Shape>& b, const vec3<Scalar>& r_ab,
-    OverlapReal r, unsigned int dim, const detail::SamplingMethod::accurate)
+    OverlapReal r, unsigned int dim, const detail::SamplingMethod::enumAccurate)
     {
     // perform a tandem tree traversal
     const detail::GPUTree& tree_a = a.members.tree;
@@ -663,10 +663,10 @@ DEVICE inline OverlapReal sampling_volume_narrow_phase(vec3<OverlapReal> dr,
 
             vec3<OverlapReal> r_ij = b.members.mpos[jshape] - pos_i;
             if (excludedVolumeOverlap(shape_i, shape_j, r_ij, r, dim,
-                detail::SamplingMethod::accurate()))
+                detail::SamplingMethod::accurate))
                 {
                 V += getSamplingVolumeIntersection(shape_i, shape_j, r_ij, r, dim,
-                    detail::SamplingMethod::accurate() );
+                    detail::SamplingMethod::accurate);
                 }
             }
         }
@@ -681,14 +681,14 @@ DEVICE inline OverlapReal sampling_volume_narrow_phase(vec3<OverlapReal> dr,
     \param p the returned point
     \param dim the spatial dimension
 
-    It is assumed that the circumspheres of the shapes are overlapping, otherwise the result is invalid
+    If the shapes are not overlapping, return zero
 
     returns the volume of the intersection
  */
 template<class Shape>
 DEVICE inline OverlapReal getSamplingVolumeIntersection(
     const ShapeUnion<Shape>& a, const ShapeUnion<Shape>& b, const vec3<Scalar>& r_ab,
-    OverlapReal r, unsigned int dim, const detail::SamplingMethod::accurate m)
+    OverlapReal r, unsigned int dim, const detail::SamplingMethod::enumAccurate)
     {
     // perform a tandem tree traversal
     const detail::GPUTree& tree_a = a.members.tree;
@@ -767,6 +767,7 @@ DEVICE inline bool sample_narrow_phase(RNG &rng,
 
     vec3<OverlapReal> r_ab = rotate(conj(quat<OverlapReal>(b.orientation)),vec3<OverlapReal>(dr));
 
+    OverlapReal V;
     for (i= 0; i < na; i++)
         {
         ishape = a.members.tree.getParticle(cur_node_a, i);
@@ -790,12 +791,13 @@ DEVICE inline bool sample_narrow_phase(RNG &rng,
 
             vec3<OverlapReal> r_ij = b.members.mpos[jshape] - pos_i;
             if (excludedVolumeOverlap(shape_i, shape_j, r_ij, r, dim,
-                detail::SamplingMethod::accurate()))
+                detail::SamplingMethod::accurate))
                 {
-                V_sum += getSamplingVolumeIntersection(shape_i, shape_j, r_ij, r, dim,
-                    detail::SamplingMethod::accurate());
+                V = getSamplingVolumeIntersection(shape_i, shape_j, r_ij, r, dim,
+                    detail::SamplingMethod::accurate);
+                V_sum += V;
 
-                if (u <= V_sum)
+                if (u < V_sum)
                     {
                     done = true;
                     break;
@@ -816,8 +818,8 @@ DEVICE inline bool sample_narrow_phase(RNG &rng,
     vec3<OverlapReal> pos_i = rotate(quat<OverlapReal>(a.orientation), a.members.mpos[ishape]);
     vec3<Scalar> r_ij = rotate(quat<OverlapReal>(b.orientation), b.members.mpos[jshape]) + dr - pos_i;
 
-    if (!sampleInExcludedVolumeIntersection(rng, shape_i, shape_j, r_ij, r, p, dim,
-        detail::SamplingMethod::accurate() ))
+    if (!sampleInExcludedVolumeIntersection(rng, shape_i, shape_j, r_ij, r, p, dim, V,
+        detail::SamplingMethod::accurate))
         return false;
 
     p += pos_i;
@@ -848,7 +850,7 @@ DEVICE inline bool sample_narrow_phase(RNG &rng,
                 shape_j.orientation = b.members.morientation[jshape];
 
             vec3<OverlapReal> r_ij = b.members.mpos[jshape] - pos_i;
-            if (excludedVolumeOverlap(shape_i, shape_j, r_ij, r, dim, detail::SamplingMethod::accurate()))
+            if (excludedVolumeOverlap(shape_i, shape_j, r_ij, r, dim, detail::SamplingMethod::accurate))
                 {
                 // shift origin to ihape's position, test in space frame
                 Shape shape_i_world(a.orientation*quat<Scalar>(a.members.morientation[ishape]), params_i);
@@ -859,7 +861,7 @@ DEVICE inline bool sample_narrow_phase(RNG &rng,
                 vec3<OverlapReal> q = p - pos_i;
 
                 if (isPointInExcludedVolumeIntersection(shape_i_world,
-                    shape_j_world, r_ij_world, r, q, dim, detail::SamplingMethod::accurate() ))
+                    shape_j_world, r_ij_world, r, q, dim, detail::SamplingMethod::accurate))
                     return false;
                 }
             }
@@ -911,7 +913,7 @@ DEVICE inline bool pt_in_intersection_narrow_phase(vec3<OverlapReal> dr,
                 shape_j.orientation = b.members.morientation[jshape];
 
             vec3<OverlapReal> r_ij = b.members.mpos[jshape] - pos_i;
-            if (excludedVolumeOverlap(shape_i, shape_j, r_ij, r, dim, detail::SamplingMethod::accurate()))
+            if (excludedVolumeOverlap(shape_i, shape_j, r_ij, r, dim, detail::SamplingMethod::accurate))
                 {
                 // shift origin to ihape's position, test in space frame
                 Shape shape_i_world(a.orientation*quat<Scalar>(a.members.morientation[ishape]), params_i);
@@ -923,7 +925,7 @@ DEVICE inline bool pt_in_intersection_narrow_phase(vec3<OverlapReal> dr,
 
                 if (isPointInExcludedVolumeIntersection(
                     shape_i_world, shape_j_world, r_ij_world, r, q, dim,
-                    detail::SamplingMethod::accurate() ))
+                    detail::SamplingMethod::accurate))
                     return true;
                 }
             }
@@ -940,16 +942,17 @@ DEVICE inline bool pt_in_intersection_narrow_phase(vec3<OverlapReal> dr,
     \param r excluded volume radius
     \param p the returned point (relative to the origin == shape_a)
     \param dim the spatial dimension
+    \param V_sample the insertion volume
 
-    It is assumed that the circumspheres of the shapes are overlapping, otherwise the result is invalid
+    V_sample has to to be precomputed for the overlapping shapes using getSamplingVolumeIntersection()
 
     returns true if the point was not rejected
  */
 template<class RNG, class Shape>
 DEVICE inline bool sampleInExcludedVolumeIntersection(
     RNG& rng, const ShapeUnion<Shape>& a, const ShapeUnion<Shape>& b, const vec3<Scalar>& r_ab,
-    OverlapReal r, vec3<OverlapReal>& p, unsigned int dim,
-    const detail::SamplingMethod::accurate)
+    OverlapReal r, vec3<OverlapReal>& p, unsigned int dim, OverlapReal V_sample,
+    const detail::SamplingMethod::enumAccurate)
     {
     // perform a tandem tree traversal
     const detail::GPUTree& tree_a = a.members.tree;
@@ -970,13 +973,13 @@ DEVICE inline bool sampleInExcludedVolumeIntersection(
     unsigned int query_node_a = UINT_MAX;
     unsigned int query_node_b = UINT_MAX;
 
-    OverlapReal V_sample = getSamplingVolumeIntersection(a, b, r_ab, r, dim, detail::SamplingMethod::accurate());
-
     OverlapReal V_sum(0.0);
     OverlapReal u = hoomd::UniformDistribution<OverlapReal>(0,V_sample)(rng);
     vec3<Scalar> intersect_lower, intersect_upper;
 
     bool found = false;
+
+    unsigned int counter = 0;
     while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
         {
         // extend OBBs
@@ -1000,12 +1003,14 @@ DEVICE inline bool sampleInExcludedVolumeIntersection(
             {
             V_sum += sampling_volume_narrow_phase(r_ab, a, b, query_node_a, query_node_b, r, dim);
 
-            if (V_sum >= u)
+            if (V_sum > u)
                 {
                 found = true;
                 break;
                 }
             }
+
+        counter++;
         }
 
     if (!found)
@@ -1014,9 +1019,6 @@ DEVICE inline bool sampleInExcludedVolumeIntersection(
     if (!sample_narrow_phase(rng, r_ab, a, b, query_node_a, query_node_b, r, p, dim))
         return false;
 
-    unsigned int min_query_node_a = query_node_a;
-    unsigned int min_query_node_b = query_node_b;
-
     // test if point is in other volumes lying 'below' the current one
     cur_node_a = cur_node_b = 0;
     stack = 0;
@@ -1024,8 +1026,14 @@ DEVICE inline bool sampleInExcludedVolumeIntersection(
     obb_a.affineTransform(q, dr_rot);
     obb_b = tree_b.getOBB(cur_node_b);
 
+    unsigned int max_counter = counter;
+    counter = 0;
+
     while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
         {
+        if (counter++ >= max_counter)
+            break;
+
         // extend OBBs
         if (query_node_a != cur_node_a)
             {
@@ -1044,7 +1052,6 @@ DEVICE inline bool sampleInExcludedVolumeIntersection(
             }
 
         if (detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, q, dr_rot) &&
-            (query_node_a < min_query_node_a || (query_node_a == min_query_node_a && query_node_b < min_query_node_b)) &&
             pt_in_intersection_narrow_phase(r_ab, a, b, query_node_a, query_node_b, r, p, dim))
             {
             return false;
@@ -1063,15 +1070,13 @@ DEVICE inline bool sampleInExcludedVolumeIntersection(
     \param p the point to test (relative to the origin == shape_a)
     \param dim the spatial dimension
 
-    It is assumed that the circumspheres of the shapes are overlapping, otherwise the result is invalid
-
     returns true if the point was not rejected
  */
 template<class Shape>
 DEVICE inline bool isPointInExcludedVolumeIntersection(
     const ShapeUnion<Shape>& a, const ShapeUnion<Shape>& b, const vec3<Scalar>& r_ab,
     OverlapReal r, const vec3<OverlapReal>& p, unsigned int dim,
-    const detail::SamplingMethod::accurate)
+    const detail::SamplingMethod::enumAccurate)
     {
     // perform a tandem tree traversal
     const detail::GPUTree& tree_a = a.members.tree;
