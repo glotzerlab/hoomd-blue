@@ -979,7 +979,6 @@ DEVICE inline bool sampleInExcludedVolumeIntersection(
 
     bool found = false;
 
-    unsigned int counter = 0;
     while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
         {
         // extend OBBs
@@ -1009,8 +1008,6 @@ DEVICE inline bool sampleInExcludedVolumeIntersection(
                 break;
                 }
             }
-
-        counter++;
         }
 
     if (!found)
@@ -1026,14 +1023,14 @@ DEVICE inline bool sampleInExcludedVolumeIntersection(
     obb_a.affineTransform(q, dr_rot);
     obb_b = tree_b.getOBB(cur_node_b);
 
-    unsigned int max_counter = counter;
-    counter = 0;
+    detail::OBB obb_query(p, r);
+    obb_query.affineTransform(conj(b.orientation), dr_rot);
+
+    unsigned int min_query_node_a = query_node_a;
+    unsigned int min_query_node_b = query_node_b;
 
     while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
         {
-        if (counter++ >= max_counter)
-            break;
-
         // extend OBBs
         if (query_node_a != cur_node_a)
             {
@@ -1051,7 +1048,9 @@ DEVICE inline bool sampleInExcludedVolumeIntersection(
             query_node_b = cur_node_b;
             }
 
-        if (detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, q, dr_rot) &&
+        if (detail::traverseBinaryStackIntersection(tree_a, tree_b, cur_node_a, cur_node_b, stack,
+                obb_a, obb_b, q, dr_rot, obb_query) &&
+            (query_node_a < min_query_node_a || (query_node_a == min_query_node_a && query_node_b < min_query_node_b)) &&
             pt_in_intersection_narrow_phase(r_ab, a, b, query_node_a, query_node_b, r, p, dim))
             {
             return false;
@@ -1097,6 +1096,9 @@ DEVICE inline bool isPointInExcludedVolumeIntersection(
     unsigned int query_node_a = UINT_MAX;
     unsigned int query_node_b = UINT_MAX;
 
+    detail::OBB obb_query(p, r);
+    obb_query.affineTransform(conj(b.orientation), dr_rot);
+
     while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
         {
         // extend OBBs
@@ -1116,7 +1118,8 @@ DEVICE inline bool isPointInExcludedVolumeIntersection(
             query_node_b = cur_node_b;
             }
 
-        if (detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, q, dr_rot) &&
+        if (detail::traverseBinaryStackIntersection(tree_a, tree_b, cur_node_a, cur_node_b, stack,
+                obb_a, obb_b, q, dr_rot, obb_query) &&
             pt_in_intersection_narrow_phase(r_ab, a, b, query_node_a, query_node_b, r, p, dim))
             {
             return true;
