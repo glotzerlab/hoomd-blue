@@ -1021,11 +1021,13 @@ DEVICE inline bool sampleInExcludedVolumeIntersection(
                 intersect_upper.z = detail::min(upper_a.z, upper_b.z);
                 detail::AABB aabb(intersect_lower, intersect_upper);
 
-                do {
-                    u = generatePositionInAABB(rng, aabb, dim);
+                vec3<Scalar> v = generatePositionInAABB(rng, aabb, dim);
+                if (SqDistPointOBBSmallerThan(u, obb_a, 0.0) &&
+                    SqDistPointOBBSmallerThan(u, obb_b, 0.0))
+                    {
+                    // accept
+                    u = v;
                     }
-                while (!SqDistPointOBBSmallerThan(u, obb_a, 0.0) ||
-                       !SqDistPointOBBSmallerThan(u, obb_b, 0.0));
                 }
             }
 
