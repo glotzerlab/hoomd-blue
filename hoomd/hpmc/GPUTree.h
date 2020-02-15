@@ -602,7 +602,6 @@ DEVICE inline bool traverseBinaryStackIntersection(const GPUTree& a, const GPUTr
     return leaf;
     }
 
-
 }; // end namespace detail
 
 }; // end namespace hpmc
