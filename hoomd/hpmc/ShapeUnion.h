@@ -1021,7 +1021,7 @@ DEVICE inline bool sample_narrow_phase(RNG &rng,
             vec3<OverlapReal> r_ij = b.members.mpos[jshape] - pos_i;
             if (excludedVolumeOverlap(shape_i, shape_j, r_ij, r, dim, detail::SamplingMethod::accurate))
                 {
-                // shift origin to ihape's position, test in space frame
+                // shift origin to ishape's position, test in space frame
                 Shape shape_i_world(a.orientation*quat<Scalar>(a.members.morientation[ishape]), params_i);
                 Shape shape_j_world(b.orientation*quat<Scalar>(b.members.morientation[jshape]), params_j);
 
@@ -1034,9 +1034,6 @@ DEVICE inline bool sample_narrow_phase(RNG &rng,
                     return false;
                 }
             }
-
-        if (done)
-            break;
         }
     return true;
     }
