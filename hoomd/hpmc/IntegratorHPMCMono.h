@@ -545,7 +545,12 @@ std::vector<hpmc_implicit_counters_t> IntegratorHPMCMono<Shape>::getImplicitCoun
         {
         // MPI Reduction to total result values on all ranks
         for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
+            {
             MPI_Allreduce(MPI_IN_PLACE, &result[i].insert_count, 1, MPI_LONG_LONG_INT, MPI_SUM, this->m_exec_conf->getMPICommunicator());
+            MPI_Allreduce(MPI_IN_PLACE, &result[i].reinsert_count, 1, MPI_LONG_LONG_INT, MPI_SUM, this->m_exec_conf->getMPICommunicator());
+            MPI_Allreduce(MPI_IN_PLACE, &result[i].reinsert_accept_count, 1, MPI_LONG_LONG_INT, MPI_SUM, this->m_exec_conf->getMPICommunicator());
+            MPI_Allreduce(MPI_IN_PLACE, &result[i].reinsert_accept_count_sq, 1, MPI_LONG_LONG_INT, MPI_SUM, this->m_exec_conf->getMPICommunicator());
+            }
         }
     #endif
 
@@ -644,8 +649,16 @@ void IntegratorHPMCMono<Shape>::printStats()
 
     // reduce over all types
     unsigned long long int total_insert_count = 0;
+    unsigned long long int total_reinsert_count = 0;
+    unsigned long long int total_reinsert_accept_count = 0;
+    unsigned long long int total_reinsert_accept_count_sq = 0;
     for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
+        {
         total_insert_count += result[i].insert_count;
+        total_reinsert_count += result[i].reinsert_count;
+        total_reinsert_accept_count += result[i].reinsert_accept_count;
+        total_reinsert_accept_count_sq += result[i].reinsert_accept_count_sq;
+        }
 
     bool has_depletants = false;
     for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
@@ -671,6 +684,27 @@ void IntegratorHPMCMono<Shape>::printStats()
             {
             this->m_exec_conf->msg->notice(3) << "Type '" << this->m_pdata->getNameByType(i) << "': "
                 << double(result[i].insert_count)/double(counters.getNMoves()) << std::endl;
+            }
+        }
+
+    if (m_ntrial > 0)
+        {
+        double var = double(total_reinsert_accept_count)-double(total_reinsert_accept_count_sq)/double(total_reinsert_count);
+        var /= double(total_reinsert_count);
+
+        this->m_exec_conf->msg->notice(2) << "Reinsertion standard dev per depletant:   "
+            << sqrt(var) << std::endl;
+
+        for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
+            {
+            if (m_fugacity[i] != 0.0)
+                {
+                double var = double(result[i].reinsert_accept_count)-double(result[i].reinsert_accept_count_sq)/double(result[i].reinsert_count);
+                var /= double(result[i].reinsert_count);
+
+                this->m_exec_conf->msg->notice(3) << "Type '" << this->m_pdata->getNameByType(i) << "': "
+                    << sqrt(var) << std::endl;
+                }
             }
         }
 
@@ -2690,9 +2724,9 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                             }
 
                         #ifdef ENABLE_TBB
-                        thread_implicit_counters[type].local().insert_count++;
+                        thread_implicit_counters[type].local().reinsert_count++;
                         #else
-                        implicit_counters[type].insert_count++;
+                        implicit_counters[type].reinsert_count++;
                         #endif
 
                         // rejection sampling
@@ -2875,6 +2909,12 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                     // reinsert in first volume
                     // we have already reinserted in the first volume once
                     unsigned int n_success_other = 1;
+                    #ifdef ENABLE_TBB
+                    thread_implicit_counters[type].local().reinsert_count++;
+                    #else
+                    implicit_counters[type].reinsert_count++;
+                    #endif
+
                     n_intersect_reinsert = !repulsive ? pos_j_old.size() : pos_j_new.size();
 
                     #ifdef ENABLE_TBB
@@ -2908,9 +2948,9 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                             }
 
                         #ifdef ENABLE_TBB
-                        thread_implicit_counters[type].local().insert_count++;
+                        thread_implicit_counters[type].local().reinsert_count++;
                         #else
-                        implicit_counters[type].insert_count++;
+                        implicit_counters[type].reinsert_count++;
                         #endif
 
                         // rejection sampling
@@ -3090,6 +3130,15 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                         }, [](unsigned int x, unsigned int y)->unsigned int {return x+y;});
                     #endif
 
+                    unsigned int n = n_success+n_success_other;
+                    #ifdef ENABLE_TBB
+                    thread_implicit_counters[type].local().reinsert_accept_count += n;
+                    thread_implicit_counters[type].local().reinsert_accept_count_sq += n*n;
+                    #else
+                    implicit_counters[type].reinsert_accept_count += n;
+                    implicit_counters[type].reinsert_accept_count_sq += n*n;
+                    #endif
+
                     if (n_success)
                         {
                         // weight insertion attempts by ratio of sampling volumes (estimated by MC integration)
@@ -3213,6 +3262,9 @@ inline void export_hpmc_implicit_counters(pybind11::module& m)
     {
     pybind11::class_< hpmc_implicit_counters_t >(m, "hpmc_implicit_counters_t")
     .def_readwrite("insert_count", &hpmc_implicit_counters_t::insert_count)
+    .def_readwrite("reinsert_count", &hpmc_implicit_counters_t::reinsert_count)
+    .def_readwrite("reinsert_accept_count", &hpmc_implicit_counters_t::reinsert_accept_count)
+    .def_readwrite("reinsert_accept_count_sq", &hpmc_implicit_counters_t::reinsert_accept_count_sq)
     ;
     }
 
