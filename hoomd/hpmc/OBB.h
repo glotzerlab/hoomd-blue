@@ -72,7 +72,7 @@ struct OBB
     unsigned int is_sphere;
 
     //! Default construct a 0 OBB
-    DEVICE OBB() : mask(1), is_sphere(0) {}
+    DEVICE OBB() : mask(0xffffffffu), is_sphere(0) {}
 
     //! Construct an OBB from a sphere
     /*! \param _position Position of the sphere
@@ -84,7 +84,7 @@ struct OBB
         {
         lengths = vec3<OverlapReal>(radius,radius,radius);
         center = _position;
-        mask = 1;
+        mask = 0xffffffffu;
         is_sphere = 1;
         }
 
@@ -92,7 +92,7 @@ struct OBB
         {
         lengths = OverlapReal(0.5)*(vec3<OverlapReal>(aabb.getUpper())-vec3<OverlapReal>(aabb.getLower()));
         center = aabb.getPosition();
-        mask = 1;
+        mask = 0xffffffffu;
         is_sphere = 0;
         }
 
@@ -274,47 +274,44 @@ struct OBB
 
 // from Christer Ericsen, Real-time collision detection
 // https://doi.org/10.1201/b14581
-DEVICE inline bool SqDistPointOBBSmallerThan(const vec3<OverlapReal>& p, const OBB& b,
+DEVICE inline bool SqDistPointOBBSmallerThan(const vec3<OverlapReal>& p, const OBB& obb,
    const OverlapReal max_sq)
     {
-    vec3<OverlapReal> v = p - b.center;
-
     OverlapReal sqDist(0.0);
-
-    rotmat3<OverlapReal> u(conj(b.rotation));
+    const vec3<OverlapReal> u = rotate(conj(obb.rotation), p-obb.center);
 
     // Project vector from box center to p on each axis, getting the distance
     // of p along that axis, and count any excess distance outside box extents
 
-    OverlapReal d = dot(v, u.row0);
+    OverlapReal d = dot(u, vec3<OverlapReal>(1.0,0,0));
     OverlapReal excess(0.0);
 
-    if (d < -b.lengths.x)
-        excess = d + b.lengths.x;
-    else if (d > b.lengths.x)
-        excess = d - b.lengths.x;
+    if (d < -obb.lengths.x)
+        excess = d + obb.lengths.x;
+    else if (d > obb.lengths.x)
+        excess = d - obb.lengths.x;
     sqDist += excess*excess;
 
     if (sqDist > max_sq)
         return false;
 
-    d = dot(v,u.row1);
+    d = dot(u, vec3<OverlapReal>(0,1.0,0));
     excess = OverlapReal(0.0);
-    if (d < -b.lengths.y)
-        excess = d + b.lengths.y;
-    else if (d > b.lengths.y)
-        excess = d - b.lengths.y;
+    if (d < -obb.lengths.y)
+        excess = d + obb.lengths.y;
+    else if (d > obb.lengths.y)
+        excess = d - obb.lengths.y;
     sqDist += excess*excess;
 
     if (sqDist > max_sq)
         return false;
 
-    d = dot(v,u.row2);
+    d = dot(u, vec3<OverlapReal>(0,0,1.0));
     excess = OverlapReal(0.0);
-    if (d < -b.lengths.z)
-        excess = d + b.lengths.z;
-    else if (d > b.lengths.z)
-        excess = d - b.lengths.z;
+    if (d < -obb.lengths.z)
+        excess = d + obb.lengths.z;
+    else if (d > obb.lengths.z)
+        excess = d - obb.lengths.z;
     sqDist += excess*excess;
 
     return sqDist <= max_sq;
@@ -333,12 +330,10 @@ DEVICE inline bool SqDistPointOBBSmallerThan(const vec3<OverlapReal>& p, const O
 
     \returns true when the two OBBs overlap, false otherwise
 */
-DEVICE inline bool overlap(const OBB& a, const OBB& b,
-    bool ignore_mask=false,
-    bool exact=true)
+DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact=true)
     {
     // exit early if the masks don't match
-    if (!ignore_mask && !(a.mask & b.mask)) return false;
+    if (!(a.mask & b.mask)) return false;
 
     // translation vector
     vec3<OverlapReal> t = b.center - a.center;

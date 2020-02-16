@@ -973,15 +973,14 @@ DEVICE inline bool sampleInExcludedVolumeIntersection(
     unsigned int query_node_a = UINT_MAX;
     unsigned int query_node_b = UINT_MAX;
 
-    bool found = false;
+    OverlapReal V_sum(0.0);
+    OverlapReal u = hoomd::UniformDistribution<OverlapReal>(0,V_sample)(rng);
+    vec3<Scalar> intersect_lower, intersect_upper;
 
-    vec3<Scalar> u;
+    bool found = false;
 
     while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
         {
-        // nodes descending from the current one have higher indices
-        bool descended = (query_node_a == UINT_MAX) || (cur_node_a > query_node_a) || (cur_node_b > query_node_b);
-
         // extend OBBs
         if (query_node_a != cur_node_a)
             {
@@ -999,46 +998,11 @@ DEVICE inline bool sampleInExcludedVolumeIntersection(
             query_node_b = cur_node_b;
             }
 
-        if (descended)
+        if (detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, q, dr_rot))
             {
-            if (overlap(obb_a,obb_b))
-                {
-                detail::AABB aabb_a = obb_a.getAABB();
-                detail::AABB aabb_b = obb_b.getAABB();
+            V_sum += sampling_volume_narrow_phase(r_ab, a, b, query_node_a, query_node_b, r, dim);
 
-                // sample a new point in the intersection
-                vec3<Scalar> lower_a = aabb_a.getLower();
-                vec3<Scalar> upper_a = aabb_a.getUpper();
-                vec3<Scalar> lower_b = aabb_b.getLower();
-                vec3<Scalar> upper_b = aabb_b.getUpper();
-
-                vec3<Scalar> intersect_lower, intersect_upper;
-                intersect_lower.x = detail::max(lower_a.x, lower_b.x);
-                intersect_lower.y = detail::max(lower_a.y, lower_b.y);
-                intersect_lower.z = detail::max(lower_a.z, lower_b.z);
-                intersect_upper.x = detail::min(upper_a.x, upper_b.x);
-                intersect_upper.y = detail::min(upper_a.y, upper_b.y);
-                intersect_upper.z = detail::min(upper_a.z, upper_b.z);
-                detail::AABB aabb(intersect_lower, intersect_upper);
-
-                vec3<Scalar> v = generatePositionInAABB(rng, aabb, dim);
-                if (SqDistPointOBBSmallerThan(u, obb_a, 0.0) &&
-                    SqDistPointOBBSmallerThan(u, obb_b, 0.0))
-                    {
-                    // accept
-                    u = v;
-                    }
-                }
-            }
-
-        detail::OBB obb_query(u,r);
-
-        if (detail::traverseBinaryStackIntersection(tree_a, tree_b, cur_node_a, cur_node_b, stack,
-               obb_a, obb_b, q, dr_rot, obb_query))
-            {
-            // transform u into world frame
-            vec3<Scalar> v = rotate(b.orientation, u) + r_ab;
-            if (pt_in_intersection_narrow_phase(r_ab, a, b, query_node_a, query_node_b, r, v, dim))
+            if (V_sum > u)
                 {
                 found = true;
                 break;
