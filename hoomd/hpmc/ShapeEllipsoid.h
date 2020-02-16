@@ -70,6 +70,9 @@ struct ShapeEllipsoid
     //! Define the parameter type
     typedef ell_params param_type;
 
+    //! Temporary storage for depletant insertion
+    typedef struct {} depletion_storage_type;
+
     //! Initialize a polygon
     DEVICE ShapeEllipsoid(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), axes(_params)

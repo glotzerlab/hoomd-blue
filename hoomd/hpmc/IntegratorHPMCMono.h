@@ -2401,12 +2401,12 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
             if (repulsive)
                 {
                 V = getSamplingVolumeIntersection(shape_i, shape_j, pos_j_new[k] - pos_i, r_dep, ndim,
-                    detail::SamplingMethod::fast);
+                    detail::SamplingMethod::no_storage);
                 }
             else
                 {
                 V = getSamplingVolumeIntersection(shape_i, shape_j, pos_j_old[k] - pos_i_old, r_dep, ndim,
-                    detail::SamplingMethod::fast);
+                    detail::SamplingMethod::no_storage);
                 }
 
             // chooose the number of depletants in the intersection volume
@@ -2446,13 +2446,10 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                     this->m_params[repulsive ? type_j_new[k] : type_j_old[k]]);
 
                 vec3<OverlapReal> dr_test;
-                OverlapReal V_sample = getSamplingVolumeIntersection(repulsive ? shape_i : shape_old, shape_j,
-                    (repulsive ? (pos_j_new[k] - pos_i) : (pos_j_old[k] - pos_i_old)), r_dep, ndim,
-                    detail::SamplingMethod::fast);
-
                 if (!sampleInExcludedVolumeIntersection(my_rng, repulsive ? shape_i : shape_old, shape_j,
                     (repulsive ? (pos_j_new[k] - pos_i) : (pos_j_old[k] - pos_i_old)), r_dep, dr_test, ndim,
-                    V_sample, detail::SamplingMethod::fast))
+                    0, (typename Shape::depletion_storage_type *)nullptr,
+                    detail::SamplingMethod::no_storage))
                     {
                     continue;
                     }
@@ -2473,7 +2470,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
 
                     if (isPointInExcludedVolumeIntersection(repulsive ? shape_i : shape_old, shape_m,
                         (repulsive ? pos_j_new[m] - pos_i : pos_j_old[m] - pos_i_old),
-                        r_dep, dr_test, ndim, detail::SamplingMethod::fast))
+                        r_dep, dr_test, ndim, detail::SamplingMethod::no_storage))
                         {
                         active = false;
                         break;
@@ -2600,6 +2597,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
 
                 if (in_intersection_volume)
                     {
+
                     // try reinserting in new (old) overlap volume
                     unsigned int n_intersect_reinsert = repulsive ? pos_j_old.size() : pos_j_new.size();
 
@@ -2616,13 +2614,56 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                         #endif
                         }
 
+                    std::vector<unsigned int> storage_sz_old;
+                    std::vector< std::vector<typename Shape::depletion_storage_type> > temp_storage_old;
+                    std::vector<unsigned int> storage_sz_new;
+                    std::vector< std::vector<typename Shape::depletion_storage_type> > temp_storage_new;
+
+                    if (m_ntrial > 0)
+                        {
+                        // temporary storage for depletant reinsertions
+                        for (unsigned int k = 0; k < pos_j_old.size(); ++k)
+                            {
+                            Shape shape_j(orientation_j_old[k], this->m_params[type_j_old[k]]);
+
+                            // allocate
+                            unsigned int nelem = allocateDepletionTemporaryStorage(shape_old, shape_j, pos_j_old[k] - pos_i_old, r_dep, ndim,
+                                detail::SamplingMethod::accurate);
+                            std::vector<typename Shape::depletion_storage_type> storage(nelem);
+
+                            // initialize
+                            unsigned int sz = initializeDepletionTemporaryStorage(shape_old, shape_j, pos_j_old[k] - pos_i_old, r_dep, ndim,
+                                &storage.front(), V_old[k], detail::SamplingMethod::accurate);
+
+                            temp_storage_old.push_back(storage);
+                            storage_sz_old.push_back(sz);
+                            }
+
+                        for (unsigned int k = 0; k < pos_j_new.size(); ++k)
+                            {
+                            Shape shape_j(orientation_j_new[k], this->m_params[type_j_new[k]]);
+
+                            // allocate
+                            unsigned int nelem = allocateDepletionTemporaryStorage(shape_i, shape_j, pos_j_new[k] - pos_i, r_dep, ndim,
+                                detail::SamplingMethod::accurate);
+                            std::vector<typename Shape::depletion_storage_type> storage(nelem);
+
+                            // initialize
+                            unsigned int sz = initializeDepletionTemporaryStorage(shape_i, shape_j, pos_j_new[k] - pos_i, r_dep, ndim,
+                                &storage.front(), V_new[k], detail::SamplingMethod::accurate);
+
+                            temp_storage_new.push_back(storage);
+                            storage_sz_new.push_back(sz);
+                            }
+                        }
+
                     unsigned int n_success = 0;
 
                     #ifdef ENABLE_TBB
                     n_success = tbb::parallel_reduce(tbb::blocked_range<unsigned int>(0, m_ntrial),
                         0,
-                        [=, &pos_j_new, &orientation_j_new, &type_j_new, &V_new,
-                            &pos_j_old, &orientation_j_old, &type_j_old, &V_old,
+                        [=, &pos_j_new, &orientation_j_new, &type_j_new, &V_new, &storage_sz_new, &temp_storage_new,
+                            &pos_j_old, &orientation_j_old, &type_j_old, &V_old, &storage_sz_old, &temp_storage_old,
                             &thread_counters, &thread_implicit_counters]
                             (const tbb::blocked_range<unsigned int>& v, unsigned int init)->unsigned int {
                     for (unsigned int i_trial = v.begin(); i_trial != v.end(); ++i_trial)
@@ -2661,7 +2702,9 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                         vec3<OverlapReal> dr_test;
                         if (!sampleInExcludedVolumeIntersection(my_rng, repulsive ? shape_old : shape_i, shape_j,
                             (repulsive ? (pos_j_old[k] - pos_i_old) : (pos_j_new[k] - pos_i)), r_dep, dr_test, ndim,
-                            repulsive ? V_old[k] : V_new[k], detail::SamplingMethod::accurate))
+                            repulsive ? storage_sz_old[k] : storage_sz_new[k],
+                            repulsive ? &temp_storage_old[k].front() : &temp_storage_new[k].front(),
+                            detail::SamplingMethod::accurate))
                             {
                             continue;
                             }
@@ -2837,8 +2880,8 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                     #ifdef ENABLE_TBB
                     n_success_other += tbb::parallel_reduce(tbb::blocked_range<unsigned int>(1, m_ntrial),
                         0,
-                        [=, &pos_j_new, &orientation_j_new, &type_j_new, &V_new,
-                            &pos_j_old, &orientation_j_old, &type_j_old, &V_old,
+                        [=, &pos_j_new, &orientation_j_new, &type_j_new, &V_new, &storage_sz_new, &temp_storage_new,
+                            &pos_j_old, &orientation_j_old, &type_j_old, &V_old, &storage_sz_old, &temp_storage_old,
                             &thread_counters, &thread_implicit_counters]
                             (const tbb::blocked_range<unsigned int>& v, unsigned int init)->unsigned int {
                     for (unsigned int i_trial = v.begin(); i_trial != v.end(); ++i_trial)
@@ -2877,7 +2920,9 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                         vec3<OverlapReal> dr_test;
                         if (!sampleInExcludedVolumeIntersection(my_rng, !repulsive ? shape_old : shape_i, shape_j,
                             (!repulsive ? (pos_j_old[k] - pos_i_old) : (pos_j_new[k] - pos_i)), r_dep, dr_test, ndim,
-                            !repulsive ? V_old[k] : V_new[k], detail::SamplingMethod::accurate))
+                            !repulsive ? storage_sz_old[k] : storage_sz_new[k],
+                            !repulsive ? &temp_storage_old[k].front() : &temp_storage_new[k].front(),
+                            detail::SamplingMethod::accurate))
                             {
                             continue;
                             }

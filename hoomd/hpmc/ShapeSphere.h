@@ -129,6 +129,9 @@ struct ShapeSphere
     //! Define the parameter type
     typedef sph_params param_type;
 
+    //! Temporary storage for depletant insertion
+    typedef struct {} depletion_storage_type;
+
     //! Initialize a shape at a given position
     DEVICE ShapeSphere(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), params(_params) {}
@@ -259,12 +262,63 @@ DEVICE inline bool test_overlap<ShapeSphere, ShapeSphere>(const vec3<Scalar>& r_
 
 namespace detail
 {
-//! Accuracy levels for delpetant sampline
+
+//! APIs for depletant sampling
 struct SamplingMethod {
-    enum enumFast { fast = 0 };
+    //! This API is used for fast sampling without the need for temporary storage
+    enum enumNoStorage { no_storage = 0 };
+
+    //! This API is used for accurate sampling, requiring temporary storage
+    /* Any hit returned by excludedVolumeOverlap through this API *must* also
+       also be a hit for the fast API
+     */
     enum enumAccurate { accurate = 0 };
     };
+
 };
+
+//! Allocate memory for temporary storage in depletant simulations
+/*! \param shape_a the first shape
+    \param shape_b the second shape
+    \param r_ab the separation vector between the two shapes (in the same image)
+    \param r excluded volume radius
+    \param dim the spatial dimension
+
+    \returns the number of Shape::depletion_storage_type elements requested for
+    temporary storage
+ */
+template<typename Method, class Shape>
+DEVICE inline unsigned int allocateDepletionTemporaryStorage(
+    const Shape& shape_a, const Shape& shape_b, const vec3<Scalar>& r_ab,
+    OverlapReal r, unsigned int dim, const Method)
+    {
+    // default implementation doesn't require temporary storage
+    return 0;
+    }
+
+//! Initialize temporary storage in depletant simulations
+/*! \param shape_a the first shape
+    \param shape_b the second shape
+    \param r_ab the separation vector between the two shapes (in the same image)
+    \param r excluded volume radius
+    \param dim the spatial dimension
+    \param storage a pointer to a pre-allocated memory region, the size of which has been
+        pre-determined by a call to allocateDepletionTemporaryStorage
+    \param V_sample the insertion volume
+        V_sample has to to be precomputed for the overlapping shapes using
+        getSamplingVolumeIntersection()
+
+    \returns the number of Shape::depletion_storage_type elements initialized for temporary storage
+ */
+template<typename Method, class Shape>
+DEVICE inline unsigned int initializeDepletionTemporaryStorage(
+    const Shape& shape_a, const Shape& shape_b, const vec3<Scalar>& r_ab,
+    OverlapReal r, unsigned int dim, typename Shape::depletion_storage_type *storage,
+    const OverlapReal V_sample, const Method)
+    {
+    // default implementation doesn't require temporary storage
+    return 0;
+    }
 
 //! Test for overlap of excluded volumes
 /*! \param shape_a the first shape
@@ -278,7 +332,7 @@ struct SamplingMethod {
 template<typename Method, class Shape>
 DEVICE inline bool excludedVolumeOverlap(
     const Shape& shape_a, const Shape& shape_b, const vec3<Scalar>& r_ab,
-    OverlapReal r, unsigned int dim, const Method m)
+    OverlapReal r, unsigned int dim, const Method)
     {
     if (dim == 3)
         {
@@ -315,17 +369,18 @@ DEVICE inline bool excludedVolumeOverlap(
     \param r excluded volume radius
     \param p the returned point (relative to the origin == shape_a)
     \param dim the spatial dimension
-    \param V_sample the insertion volume
+    \param storage_sz the number of temporary storage elements of type
+        Shape::depletion_storage_type passed
+    \param storage the array of temporary storage elements
 
-    V_sample has to to be precomputed for the overlapping shapes using getSamplingVolumeIntersection()
-
-    returns true if the point was not rejected
+    \returns true if the point was not rejected
  */
 template<typename Method, class RNG, class Shape>
 DEVICE inline bool sampleInExcludedVolumeIntersection(
     RNG& rng, const Shape& shape_a, const Shape& shape_b, const vec3<Scalar>& r_ab,
-    OverlapReal r, vec3<OverlapReal>& p, unsigned int dim, OverlapReal V_sample,
-    const Method m)
+    OverlapReal r, vec3<OverlapReal>& p, unsigned int dim,
+    unsigned int storage_sz, const typename Shape::depletion_storage_type *storage,
+    const Method)
     {
     if (dim == 3)
         {
@@ -429,7 +484,7 @@ DEVICE inline bool sampleInExcludedVolumeIntersection(
 template<typename Method, class Shape>
 DEVICE inline OverlapReal getSamplingVolumeIntersection(
     const Shape& shape_a, const Shape& shape_b, const vec3<Scalar>& r_ab,
-    OverlapReal r, unsigned int dim, const Method m)
+    OverlapReal r, unsigned int dim, const Method)
     {
     if (dim == 3)
         {
@@ -514,7 +569,7 @@ DEVICE inline OverlapReal getSamplingVolumeIntersection(
 template<typename Method, class Shape>
 DEVICE inline bool isPointInExcludedVolumeIntersection(
     const Shape& shape_a, const Shape& shape_b, const vec3<Scalar>& r_ab,
-    OverlapReal r, const vec3<OverlapReal>& p, unsigned int dim, const Method m)
+    OverlapReal r, const vec3<OverlapReal>& p, unsigned int dim, const Method)
     {
     if (dim == 3)
         {

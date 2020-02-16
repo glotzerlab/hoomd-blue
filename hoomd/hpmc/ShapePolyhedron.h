@@ -142,6 +142,9 @@ struct ShapePolyhedron
     //! Define the parameter type
     typedef detail::poly3d_data param_type;
 
+    //! Temporary storage for depletant insertion
+    typedef struct {} depletion_storage_type;
+
     //! Initialize a polyhedron
     DEVICE ShapePolyhedron(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), data(_params), tree(_params.tree)

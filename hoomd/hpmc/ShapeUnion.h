@@ -38,6 +38,23 @@ namespace hpmc
 namespace detail
 {
 
+//! Stores the overlapping node pairs from a prior traversal
+/* This data structure is used to accelerate the random choice of overlapping
+   node pairs when depletants are reinserted, eliminating the need to traverse
+   the same tree for all reinsertion attempts.
+ */
+struct union_depletion_storage
+    {
+    //! The inclusive prefix sum over previous weights of overlapping node pairs
+    OverlapReal accumulated_weight;
+
+    //! The node in tree a
+    unsigned int cur_node_a;
+
+    //! The node in tree b
+    unsigned int cur_node_b;
+    };
+
 //! Data structure for shape composed of a union of multiple shapes
 template<class Shape>
 struct union_params : param_base
@@ -157,6 +174,9 @@ struct ShapeUnion
     {
     //! Define the parameter type
     typedef typename detail::union_params<Shape> param_type;
+
+    //! Temporary storage for depletant insertion
+    typedef struct detail::union_depletion_storage depletion_storage_type;
 
     //! Initialize a sphere_union
     DEVICE ShapeUnion(const quat<Scalar>& _orientation, const param_type& _params)
@@ -620,6 +640,71 @@ DEVICE inline bool excludedVolumeOverlap(
     return false;
     }
 
+//! Allocate memory for temporary storage in depletant simulations
+/*! \param shape_a the first shape
+    \param shape_b the second shape
+    \param r_ab the separation vector between the two shapes (in the same image)
+    \param r excluded volume radius
+    \param dim the spatial dimension
+
+    \returns the number of Shape::depletion_storage_type elements requested for
+    temporary storage
+ */
+template<class Shape>
+DEVICE inline unsigned int allocateDepletionTemporaryStorage(
+    const ShapeUnion<Shape>& a, const ShapeUnion<Shape>& b, const vec3<Scalar>& r_ab,
+    OverlapReal r, unsigned int dim, const detail::SamplingMethod::enumAccurate)
+    {
+    const detail::GPUTree& tree_a = a.members.tree;
+    const detail::GPUTree& tree_b = b.members.tree;
+
+    unsigned long int stack = 0;
+    unsigned int cur_node_a = 0;
+    unsigned int cur_node_b = 0;
+
+    vec3<OverlapReal> dr_rot(rotate(conj(b.orientation),-r_ab));
+    quat<OverlapReal> q(conj(b.orientation)*a.orientation);
+
+    detail::OBB obb_a = tree_a.getOBB(cur_node_a);
+    obb_a.affineTransform(q, dr_rot);
+
+    detail::OBB obb_b = tree_b.getOBB(cur_node_b);
+
+    unsigned int query_node_a = UINT_MAX;
+    unsigned int query_node_b = UINT_MAX;
+
+    unsigned int nelem = 0;
+
+    while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
+        {
+        // extend OBBs
+        if (query_node_a != cur_node_a)
+            {
+            obb_a.lengths.x += r;
+            obb_a.lengths.y += r;
+            obb_a.lengths.z += r;
+            query_node_a = cur_node_a;
+            }
+
+        if (query_node_b != cur_node_b)
+            {
+            obb_b.lengths.x += r;
+            obb_b.lengths.y += r;
+            obb_b.lengths.z += r;
+            query_node_b = cur_node_b;
+            }
+
+        if (detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, q, dr_rot)
+            && test_narrow_phase_excluded_volume_overlap(r_ab, a, b, query_node_a, query_node_b, r, dim))
+            {
+            // count number of overlapping pairs
+            nelem++;
+            }
+        }
+
+    return nelem;
+    }
+
 template<class Shape>
 DEVICE inline OverlapReal sampling_volume_narrow_phase(vec3<OverlapReal> dr,
                                              const ShapeUnion<Shape>& a,
@@ -671,6 +756,82 @@ DEVICE inline OverlapReal sampling_volume_narrow_phase(vec3<OverlapReal> dr,
             }
         }
     return V;
+    }
+
+
+//! Initialize temporary storage in depletant simulations
+/*! \param shape_a the first shape
+    \param shape_b the second shape
+    \param r_ab the separation vector between the two shapes (in the same image)
+    \param r excluded volume radius
+    \param dim the spatial dimension
+    \param storage a pointer to a pre-allocated memory region, the size of which has been
+        determined by a call to allocateDepletionTemporaryStorage
+    \param V_sample the insertion volume
+        V_sample has to to be precomputed for the overlapping shapes using
+        getSamplingVolumeIntersection()
+
+    \returns the number of Shape::depletion_storage_type elements initialized
+ */
+template<class Shape>
+DEVICE inline unsigned int initializeDepletionTemporaryStorage(
+    const ShapeUnion<Shape>& a, const ShapeUnion<Shape>& b, const vec3<Scalar>& r_ab,
+    OverlapReal r, unsigned int dim, detail::union_depletion_storage *storage,
+    const OverlapReal V_sample, const detail::SamplingMethod::enumAccurate)
+    {
+    const detail::GPUTree& tree_a = a.members.tree;
+    const detail::GPUTree& tree_b = b.members.tree;
+
+    unsigned long int stack = 0;
+    unsigned int cur_node_a = 0;
+    unsigned int cur_node_b = 0;
+
+    vec3<OverlapReal> dr_rot(rotate(conj(b.orientation),-r_ab));
+    quat<OverlapReal> q(conj(b.orientation)*a.orientation);
+
+    detail::OBB obb_a = tree_a.getOBB(cur_node_a);
+    obb_a.affineTransform(q, dr_rot);
+
+    detail::OBB obb_b = tree_b.getOBB(cur_node_b);
+
+    unsigned int query_node_a = UINT_MAX;
+    unsigned int query_node_b = UINT_MAX;
+
+    unsigned int nelem = 0;
+    OverlapReal V_sum(0.0);
+
+    while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
+        {
+        // extend OBBs
+        if (query_node_a != cur_node_a)
+            {
+            obb_a.lengths.x += r;
+            obb_a.lengths.y += r;
+            obb_a.lengths.z += r;
+            query_node_a = cur_node_a;
+            }
+
+        if (query_node_b != cur_node_b)
+            {
+            obb_b.lengths.x += r;
+            obb_b.lengths.y += r;
+            obb_b.lengths.z += r;
+            query_node_b = cur_node_b;
+            }
+
+        if (detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, q, dr_rot)
+            && test_narrow_phase_excluded_volume_overlap(r_ab, a, b, query_node_a, query_node_b, r, dim))
+            {
+            V_sum += sampling_volume_narrow_phase(r_ab, a, b, query_node_a, query_node_b, r, dim);
+            detail::union_depletion_storage elem;
+            elem.accumulated_weight = V_sum/V_sample;
+            elem.cur_node_a = query_node_a;
+            elem.cur_node_b = query_node_b;
+            storage[nelem++] = elem;
+            }
+        }
+
+    return nelem;
     }
 
 //! Get the sampling volume for an intersection of shapes
@@ -818,8 +979,16 @@ DEVICE inline bool sample_narrow_phase(RNG &rng,
     vec3<OverlapReal> pos_i = rotate(quat<OverlapReal>(a.orientation), a.members.mpos[ishape]);
     vec3<Scalar> r_ij = rotate(quat<OverlapReal>(b.orientation), b.members.mpos[jshape]) + dr - pos_i;
 
-    if (!sampleInExcludedVolumeIntersection(rng, shape_i, shape_j, r_ij, r, p, dim, V,
-        detail::SamplingMethod::accurate))
+    // set up temp storage on stack / in local memory
+    unsigned int ntemp = allocateDepletionTemporaryStorage(shape_i, shape_j, r_ij, r, dim,
+        detail::SamplingMethod::accurate);
+    typename Shape::depletion_storage_type temp[ntemp];
+    unsigned int nelem = initializeDepletionTemporaryStorage(shape_i, shape_j, r_ij, r, dim,
+        temp, V, detail::SamplingMethod::accurate);
+
+    // sample
+    if (!sampleInExcludedVolumeIntersection(rng, shape_i, shape_j, r_ij, r, p, dim, nelem,
+        temp, detail::SamplingMethod::accurate))
         return false;
 
     p += pos_i;
@@ -942,71 +1111,50 @@ DEVICE inline bool pt_in_intersection_narrow_phase(vec3<OverlapReal> dr,
     \param r excluded volume radius
     \param p the returned point (relative to the origin == shape_a)
     \param dim the spatial dimension
-    \param V_sample the insertion volume
-
-    V_sample has to to be precomputed for the overlapping shapes using getSamplingVolumeIntersection()
+    \param storage_sz the number of temporary storage elements of type
+        Shape::depletion_storage_type passed
+    \param storage the array of temporary storage elements
 
     returns true if the point was not rejected
  */
 template<class RNG, class Shape>
 DEVICE inline bool sampleInExcludedVolumeIntersection(
     RNG& rng, const ShapeUnion<Shape>& a, const ShapeUnion<Shape>& b, const vec3<Scalar>& r_ab,
-    OverlapReal r, vec3<OverlapReal>& p, unsigned int dim, OverlapReal V_sample,
+    OverlapReal r, vec3<OverlapReal>& p, unsigned int dim,
+    unsigned int storage_sz, const detail::union_depletion_storage *storage,
     const detail::SamplingMethod::enumAccurate)
     {
     // perform a tandem tree traversal
     const detail::GPUTree& tree_a = a.members.tree;
     const detail::GPUTree& tree_b = b.members.tree;
 
-    unsigned long int stack = 0;
-    unsigned int cur_node_a = 0;
-    unsigned int cur_node_b = 0;
-
-    vec3<OverlapReal> dr_rot(rotate(conj(b.orientation),-r_ab));
-    quat<OverlapReal> q(conj(b.orientation)*a.orientation);
-
-    detail::OBB obb_a = tree_a.getOBB(cur_node_a);
-    obb_a.affineTransform(q, dr_rot);
-
-    detail::OBB obb_b = tree_b.getOBB(cur_node_b);
-
-    unsigned int query_node_a = UINT_MAX;
-    unsigned int query_node_b = UINT_MAX;
-
-    OverlapReal V_sum(0.0);
-    OverlapReal u = hoomd::UniformDistribution<OverlapReal>(0,V_sample)(rng);
-    vec3<Scalar> intersect_lower, intersect_upper;
-
+    OverlapReal u = hoomd::UniformDistribution<OverlapReal>()(rng);
     bool found = false;
+    unsigned int query_node_a;
+    unsigned int query_node_b;
 
-    while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
+    if (storage_sz > 0)
         {
-        // extend OBBs
-        if (query_node_a != cur_node_a)
+        // binary search for the the first element with accumulated weight > u
+        unsigned int l = 0;
+        unsigned int r = storage_sz-1;
+        while (l <= r)
             {
-            obb_a.lengths.x += r;
-            obb_a.lengths.y += r;
-            obb_a.lengths.z += r;
-            query_node_a = cur_node_a;
-            }
+            unsigned int m = l + (r-l)/2;
 
-        if (query_node_b != cur_node_b)
-            {
-            obb_b.lengths.x += r;
-            obb_b.lengths.y += r;
-            obb_b.lengths.z += r;
-            query_node_b = cur_node_b;
-            }
-
-        if (detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, q, dr_rot))
-            {
-            V_sum += sampling_volume_narrow_phase(r_ab, a, b, query_node_a, query_node_b, r, dim);
-
-            if (V_sum > u)
+            if (storage[m].accumulated_weight > u &&
+                (m == 0 || storage[m-1].accumulated_weight <= u))
                 {
+                query_node_a = storage[m].cur_node_a;
+                query_node_b = storage[m].cur_node_b;
                 found = true;
                 break;
                 }
+
+            if (storage[m].accumulated_weight <= u)
+                l = m + 1;
+            else
+                r = m - 1;
             }
         }
 
@@ -1017,11 +1165,15 @@ DEVICE inline bool sampleInExcludedVolumeIntersection(
         return false;
 
     // test if point is in other volumes lying 'below' the current one
-    cur_node_a = cur_node_b = 0;
-    stack = 0;
-    obb_a = tree_a.getOBB(cur_node_a);
+    vec3<OverlapReal> dr_rot(rotate(conj(b.orientation),-r_ab));
+    quat<OverlapReal> q(conj(b.orientation)*a.orientation);
+
+    unsigned int cur_node_a = 0;
+    unsigned int cur_node_b = 0;
+    unsigned long int stack = 0;
+    detail::OBB obb_a = tree_a.getOBB(cur_node_a);
     obb_a.affineTransform(q, dr_rot);
-    obb_b = tree_b.getOBB(cur_node_b);
+    detail::OBB obb_b = tree_b.getOBB(cur_node_b);
 
     detail::OBB obb_query(p, r);
     obb_query.affineTransform(conj(b.orientation), dr_rot);

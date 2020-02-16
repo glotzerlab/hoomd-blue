@@ -81,6 +81,9 @@ struct ShapeSphinx
     //! Define the parameter type
     typedef detail::sphinx3d_params param_type;
 
+    //! Temporary storage for depletant insertion
+    typedef struct {} depletion_storage_type;
+
     DEVICE inline ShapeSphinx(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), convex(true), spheres(_params)
         {

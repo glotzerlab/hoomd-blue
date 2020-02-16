@@ -270,6 +270,9 @@ struct ShapeFacetedEllipsoid
     //! Define the parameter type
     typedef detail::faceted_ellipsoid_params param_type;
 
+    //! Temporary storage for depletant insertion
+    typedef struct {} depletion_storage_type;
+
     //! Initialize a shape at a given position
     DEVICE ShapeFacetedEllipsoid(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), params(_params)

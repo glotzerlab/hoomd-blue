@@ -56,6 +56,9 @@ struct ShapeSpheropolyhedron
     //! Define the parameter type
     typedef detail::poly3d_verts param_type;
 
+    //! Temporary storage for depletant insertion
+    typedef struct {} depletion_storage_type;
+
     //! Initialize a polyhedron
     DEVICE ShapeSpheropolyhedron(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), verts(_params)
