@@ -2222,7 +2222,15 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
     #ifdef ENABLE_TBB
     try {
     #endif
+
+    #ifdef ENABLE_TBB
+    tbb::parallel_for(tbb::blocked_range<unsigned int>(0, this->m_pdata->getNTypes()),
+        [=, &thread_deltaF, &accept,
+            &thread_counters, &thread_implicit_counters](const tbb::blocked_range<unsigned int>& w) {
+    for (unsigned int type = w.begin(); type != w.end(); ++type)
+    #else
     for (unsigned int type = 0; type < this->m_pdata->getNTypes(); ++type)
+    #endif
         {
         if (m_fugacity[type] == 0.0 || !h_overlaps[this->m_overlap_idx(type, typ_i)])
             continue;
@@ -3178,6 +3186,10 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
         #endif
         } // end loop over types
     #ifdef ENABLE_TBB
+        });
+    #endif
+
+    #ifdef ENABLE_TBB
     } catch (bool b) { }
     #endif
 
@@ -3193,7 +3205,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
     if (accept)
         {
         Scalar u = hoomd::UniformDistribution<Scalar>()(rng_depletants);
-        accept = u <= exp(deltaF);
+        accept = u < exp(deltaF);
         }
 
     #ifdef ENABLE_TBB
