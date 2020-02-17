@@ -5,7 +5,6 @@
 from hoomd import _hoomd
 from hoomd.parameterdicts import TypeParameterDict
 from hoomd.parameterdicts import ParameterDict
-
 from hoomd.typeconverter import RequiredArg
 from hoomd.typeparam import TypeParameter
 from hoomd.hpmc import _hpmc
@@ -313,7 +312,6 @@ class Sphere(_HPMCIntegrator):
       orientation (added in version 2.3)
     * *ignore_statistics* (**default: False**) - set to True to disable ignore
       for statistics tracking
-    * *len_keys* (**default: 1**) -
 
     Examples::
 
@@ -425,9 +423,11 @@ class ConvexPolygon(_HPMCIntegrator):
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
                                             vertices=list,
-                                            ignore_statistics=False,
-                                            sweep_radius=0,
-                                            len_keys=1)
+                                            ignore_statistics=bool,
+                                            sweep_radius=float,
+                                            len_keys=1,
+                                            explicit_default={'ignore_statistics': False,
+                                                              'sweep_radius': 0})
                                         )
 
         self._add_typeparam(typeparam_shape)

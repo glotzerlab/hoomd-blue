@@ -1,0 +1,109 @@
+import hoomd
+import hoomd.hpmc
+from hoomd.hpmc import _hpmc
+import numpy as np
+
+
+def test_dict_conversion(shape_dict_conversion_args):
+    for shape_params, args_list in shape_dict_conversion_args():
+        for args in args_list:
+            test_shape = shape_params(args)
+            test_dict = test_shape.asDict()
+            for key, val in list(args.items()):
+                if isinstance(test_dict[key], list) and len(test_dict[key]) > 0 \
+                and key != 'shapes':
+                    np.testing.assert_allclose(test_dict[key], val)
+                elif key != 'shapes':
+                    assert test_dict[key] == val
+
+
+def test_default_args(integrator_args):
+    for shape_integrator, valid_args, invalid_args in integrator_args():
+        mc = shape_integrator(23456)
+        mc.shape['A'] = dict()
+        for key, val in list(mc.shape["A"].items()):
+            assert mc.shape["A"][key] == val
+
+
+def test_shape_params(integrator_args):
+    for shape_integrator, valid_args, invalid_args in integrator_args():
+        mc = shape_integrator(23456)
+        for args in valid_args:
+            mc.shape["A"] = args
+            for key, val in list(args.items()):
+                if key == "vertices":
+                    np.testing.assert_allclose(mc.shape["A"][key], val)
+                else:
+                    assert mc.shape["A"][key] == val
+        for args in invalid_args:
+            tf = False
+            try:
+                mc.shape["A"] = args
+            except:
+                tf = True
+            assert tf
+
+
+def test_shape_attached(dummy_simulation_factory, integrator_args):
+    for shape_integrator, valid_args, invalid_args in integrator_args():
+        mc = shape_integrator(23456)
+        for args in valid_args:
+            mc.shape["A"] = args
+            sim = dummy_simulation_factory()
+            sim.operations.add(mc)
+            sim.operations.schedule()
+            for key, val in list(args.items()):
+                if isinstance(mc.shape["A"][key], list) and len(mc.shape["A"][key]) > 0 \
+                and key != 'shapes':
+                    np.testing.assert_allclose(mc.shape["A"][key], val)
+                elif key != 'shapes':
+                    assert mc.shape["A"][key] == val
+
+
+def test_overlaps(device, lattice_simulation_factory, integrator_args):
+    for shape_integrator, valid_args, invalid_args in integrator_args():
+        if 'union' not in str(shape_integrator).lower():
+            args = valid_args[0]
+            mc = shape_integrator(23456)
+            mc.shape['A'] = args
+
+            sim = lattice_simulation_factory(dimensions=2, n=(2, 1), a=0.25)
+            sim.operations.add(mc)
+
+            sim.operations.schedule()
+            sim.run(1)
+            assert mc.overlaps > 0
+
+            s = sim.state.snapshot
+            if s.exists:
+                s.particles.position[0] = (0, 0, 0)
+                s.particles.position[1] = (0, 8, 0)
+            sim.state.snapshot = s
+            assert mc.overlaps == 0
+
+            s = sim.state.snapshot
+            if s.exists:
+                s.particles.position[0] = (0, 0, 0)
+                s.particles.position[1] = (0, 0.5, 0)
+            sim.state.snapshot = s
+            assert mc.overlaps == 1
+
+
+def test_moves(device, lattice_simulation_factory, integrator_args):
+    dims = 3
+    for shape_integrator, valid_args, invalid_args in integrator_args():
+        if 'union' not in str(shape_integrator).lower():
+            args = valid_args[0]
+            if 'polygon' in str(shape_integrator).lower():
+                dims = 2
+            mc = shape_integrator(23456)
+            mc.shape['A'] = args
+            sim = lattice_simulation_factory(dimensions=dims)
+            sim.operations.add(mc)
+            sim.operations.schedule()
+            sim.run(100)
+            accepted_rejected_trans = sum(sim.operations.integrator.translate_moves)
+            assert accepted_rejected_trans > 0
+            if 'sphere' not in str(shape_integrator).lower():
+                accepted_rejected_rot = sum(sim.operations.integrator.rotate_moves)
+                assert accepted_rejected_rot > 0

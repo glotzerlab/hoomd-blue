@@ -172,9 +172,9 @@ def test_shape_params_attached(device, dummy_simulation_factory):
 
 def test_overlaps(device, lattice_simulation_factory):
     mc = hoomd.hpmc.integrate.Sphinx(23456, d=0, a=0)
-    mc.shape['A'] = dict(centers=[(0, 0, 0), (0.5, 0, 0)], diameters=[1, -.001])
+    mc.shape['A'] = dict(centers=[(0, 0, 0), (0.5, 0, 0)], diameters=[1.6, -.001])
 
-    sim = lattice_simulation_factory(dimensions=2, n=(2, 1), a=0.26)
+    sim = lattice_simulation_factory(dimensions=2, n=(2, 1), a=0.25)
     sim.operations.add(mc)
     sim.operations.schedule()
     sim.run(1)
@@ -190,7 +190,7 @@ def test_overlaps(device, lattice_simulation_factory):
     s = sim.state.snapshot
     if s.exists:
         s.particles.position[0] = (0, 0, 0)
-        s.particles.position[1] = (0, 0.39, 0)
+        s.particles.position[1] = (0, 0.5, 0)
     sim.state.snapshot = s
     assert mc.overlaps > 0
 
