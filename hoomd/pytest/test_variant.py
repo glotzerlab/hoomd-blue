@@ -5,6 +5,7 @@
 import numpy
 import hoomd
 import hoomd.variant
+import pytest
 
 
 def test_constant():
@@ -88,3 +89,5 @@ def test_ramp_properties():
     assert a(1001000) == -25.0
     assert a(1000999) > -25.0
 
+    with pytest.raises(ValueError):
+        a.t_ramp = int(2**53+1)
