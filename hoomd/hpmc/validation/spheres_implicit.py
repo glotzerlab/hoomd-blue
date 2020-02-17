@@ -132,7 +132,7 @@ class implicit_test (unittest.TestCase):
         self.mc.set_fugacity('B',nR)
 
         # set ntrial > 0
-        self.mc.set_params(ntrial=5)
+        self.mc.set_params(ntrial=2)
 
         free_volume = hpmc.compute.free_volume(mc=self.mc, seed=seed, nsample=10000, test_type='B')
         log=analyze.log(filename=None, quantities=['hpmc_overlap_count','volume','hpmc_free_volume','hpmc_fugacity_B'], overwrite=True,period=100)
@@ -197,7 +197,7 @@ class implicit_test (unittest.TestCase):
         self.mc.set_fugacity('B',nR)
 
         # set ntrial > 0
-        self.mc.set_params(ntrial=5)
+        self.mc.set_params(ntrial=2)
 
         free_volume = hpmc.compute.free_volume(mc=self.mc, seed=seed, nsample=10000, test_type='B')
         log=analyze.log(filename=None, quantities=['hpmc_overlap_count','volume','hpmc_free_volume','hpmc_fugacity_B'], overwrite=True,period=100)

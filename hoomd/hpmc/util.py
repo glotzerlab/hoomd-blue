@@ -655,7 +655,7 @@ class tune(object):
                                                       }})
                 tunable_map.update({'ntrial':   {
                                         'get': lambda: getattr(obj, 'get_ntrial')(),
-                                        'acceptance': lambda: getattr(obj, 'get_reinsertion_std')(),
+                                        'acceptance': lambda: getattr(obj, 'get_insertion_std')(),
                                         'set': lambda x: getattr(obj, 'set_params')(ntrial=x),
                                         'maximum': 10000
                                         }})
@@ -675,7 +675,7 @@ class tune(object):
 
                 tunable_map.update({'ntrial':   {
                                         'get': lambda: getattr(obj, 'get_ntrial')(type),
-                                        'acceptance': lambda: getattr(obj, 'get_reinsertion_std')(type),
+                                        'acceptance': lambda: getattr(obj, 'get_insertion_std')(type),
                                         'set': lambda x: getattr(obj, 'set_params')(ntrial={type: x}),
                                         'maximum': 10000
                                         }})

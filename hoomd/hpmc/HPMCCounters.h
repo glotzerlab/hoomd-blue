@@ -199,18 +199,16 @@ DEVICE inline hpmc_boxmc_counters_t operator-(const hpmc_boxmc_counters_t& a, co
 /*! \ingroup hpmc_data_structs */
 struct hpmc_implicit_counters_t
     {
-    unsigned long long int insert_count;                //!< Count of depletants inserted
-    unsigned long long int reinsert_count;              //!< Count of depletants reinserted
-    unsigned long long int reinsert_accept_count;       //!< Count of depletants reinserted successfully
-    unsigned long long int reinsert_accept_count_sq;    //!< Squared count of successful reinsertion attempts per depletant
+    unsigned long long int insert_count;              //!< Count of depletants inserted
+    unsigned long long int insert_accept_count;       //!< Count of depletants inserted successfully
+    unsigned long long int insert_accept_count_sq;    //!< Squared count of successful insertion attempts per depletant
 
     //! Construct a zero set of counters
     DEVICE hpmc_implicit_counters_t()
         {
         insert_count = 0;
-        reinsert_count = 0;
-        reinsert_accept_count = 0;
-        reinsert_accept_count_sq = 0;
+        insert_accept_count = 0;
+        insert_accept_count_sq = 0;
         }
     };
 
@@ -390,9 +388,8 @@ DEVICE inline hpmc_implicit_counters_t operator-(const hpmc_implicit_counters_t&
     {
     hpmc_implicit_counters_t result;
     result.insert_count = a.insert_count - b.insert_count;
-    result.reinsert_count = a.reinsert_count - b.reinsert_count;
-    result.reinsert_accept_count = a.reinsert_accept_count - b.reinsert_accept_count;
-    result.reinsert_accept_count_sq = a.reinsert_accept_count_sq - b.reinsert_accept_count_sq;
+    result.insert_accept_count = a.insert_accept_count - b.insert_accept_count;
+    result.insert_accept_count_sq = a.insert_accept_count_sq - b.insert_accept_count_sq;
     return result;
     }
 
@@ -401,9 +398,8 @@ DEVICE inline hpmc_implicit_counters_t operator+(const hpmc_implicit_counters_t&
     {
     hpmc_implicit_counters_t result;
     result.insert_count = a.insert_count + b.insert_count;
-    result.reinsert_count = a.reinsert_count + b.reinsert_count;
-    result.reinsert_accept_count = a.reinsert_accept_count + b.reinsert_accept_count;
-    result.reinsert_accept_count_sq = a.reinsert_accept_count_sq + b.reinsert_accept_count_sq;
+    result.insert_accept_count = a.insert_accept_count + b.insert_accept_count;
+    result.insert_accept_count_sq = a.insert_accept_count_sq + b.insert_accept_count_sq;
     return result;
     }
 

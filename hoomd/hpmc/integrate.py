@@ -563,14 +563,14 @@ class mode_hpmc(_integrator):
         else:
             return self.cpp_integrator.getNTrial(hoomd.context.current.system_definition.getParticleData().getTypeByName(type));
 
-    def get_reinsertion_std(self, type=None):
-        R""" Get the standard deviation of reinsertion attempts
+    def get_insertion_std(self, type=None):
+        R""" Get the standard deviation of insertion attempts
 
         Args:
             type (str): Type for which standard deviation is returned
 
         Returns:
-            The current standard deviation for depletant reinsertions, or float('nan')
+            The current standard deviation for depletant insertions, or float('nan')
             if none have been inserted
         """
 
@@ -578,26 +578,26 @@ class mode_hpmc(_integrator):
         if type is not None:
             itype = hoomd.context.current.system_definition.getParticleData().getTypeByName(type)
 
-            reinsert = implicit_counters[itype].reinsert_count
-            reinsert_accept = implicit_counters[itype].reinsert_accept_count
-            reinsert_accept_sq = implicit_counters[itype].reinsert_accept_count_sq
+            insert = implicit_counters[itype].insert_count
+            insert_accept = implicit_counters[itype].insert_accept_count
+            insert_accept_sq = implicit_counters[itype].insert_accept_count_sq
 
-            if reinsert > 0:
-                var = (reinsert_accept-reinsert_accept_sq/reinsert)/reinsert
+            if insert > 0:
+                var = (insert_accept-insert_accept_sq/insert)/insert
                 return math.sqrt(var)
             else:
                 return float('nan')
         else:
-            total_reinsert = 0
-            total_reinsert_accept = 0
-            total_reinsert_accept_sq = 0
+            total_insert = 0
+            total_insert_accept = 0
+            total_insert_accept_sq = 0
             for itype in len(implicit_counters):
-                total_reinsert += implicit_counters[itype].reinsert_count
-                total_reinsert_accept += implicit_counters[itype].reinsert_accept_count
-                total_reinsert_accept_sq += implicit_counters[itype].reinsert_accept_count_sq
+                total_insert += implicit_counters[itype].insert_count
+                total_insert_accept += implicit_counters[itype].insert_accept_count
+                total_insert_accept_sq += implicit_counters[itype].insert_accept_count_sq
 
-            if total_reinsert > 0:
-                var = (total_reinsert_accept-total_reinsert_accept_sq/total_reinsert_count)/total_reinsert
+            if total_insert > 0:
+                var = (total_insert_accept-total_insert_accept_sq/total_insert_count)/total_insert
                 return math.sqrt(var)
             else:
                 return float('nan')

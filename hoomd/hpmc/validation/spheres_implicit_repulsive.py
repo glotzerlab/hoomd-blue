@@ -72,6 +72,8 @@ class depletion_test(unittest.TestCase):
         # warm up
         run(2000);
 
+        # set ntrial > 0
+        self.mc.set_params(ntrial=2)
 
         # set depletant fugacity
         nR = eta_p_r/(math.pi/6.0*math.pow(d_sphere*q,3.0))
