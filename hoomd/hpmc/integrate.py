@@ -8,6 +8,7 @@ from hoomd.integrate import _integrator
 import hoomd
 import sys
 import json
+import math
 
 class interaction_matrix:
     R""" Define pairwise interaction matrix
@@ -300,7 +301,7 @@ class mode_hpmc(_integrator):
             a (float): (if set) Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
             move_ratio (float): (if set) New value for the move ratio.
             nselect (int): (if set) New value for the number of particles to select for trial moves in one cell.
-            ntrial (int): (if set) Number of re-insertion attempts per overlapping depletant (default == 1)
+            ntrial (int): (if set) Number of re-insertion attempts per overlapping depletant (default == 0), or a dict containing {type:ntrial}
             deterministic (bool): (if set) Make HPMC integration deterministic on the GPU by sorting the cell list.
 
         .. note:: Simulations are only deterministic with respect to the same execution configuration (CPU or GPU) and
@@ -336,7 +337,12 @@ class mode_hpmc(_integrator):
             self.cpp_integrator.setNSelect(nselect);
 
         if ntrial is not None:
-            self.cpp_integrator.setNTrial(ntrial)
+            if isinstance(ntrial, dict):
+                for t,t_ntrial in ntrial.items():
+                    self.cpp_integrator.setNTrial(int(t_ntrial),hoomd.context.current.system_definition.getParticleData().getTypeByName(t))
+            else:
+                for i in range(hoomd.context.current.system_definition.getParticleData().getNTypes()):
+                    self.cpp_integrator.setNTrial(int(ntrial),i);
 
         if deterministic is not None:
             self.cpp_integrator.setDeterministic(deterministic);
@@ -546,13 +552,55 @@ class mode_hpmc(_integrator):
         """
         return self.cpp_integrator.getDepletantFugacity(hoomd.context.current.system_definition.getParticleData().getTypeByName(type))
 
-    def get_ntrial(self):
+    def get_ntrial(self, type=None):
         R""" Get the number of reinsertion attempts per overlapping depletant
 
         Returns:
             The current value of the 'ntrial' parameter of the integrator
         """
-        return self.cpp_integrator.getNTrial();
+        if type is None:
+            return self.cpp_integrator.getNTrial(0);
+        else:
+            return self.cpp_integrator.getNTrial(hoomd.context.current.system_definition.getParticleData().getTypeByName(type));
+
+    def get_reinsertion_std(self, type=None):
+        R""" Get the standard deviation of reinsertion attempts
+
+        Args:
+            type (str): Type for which standard deviation is returned
+
+        Returns:
+            The current standard deviation for depletant reinsertions, or float('nan')
+            if none have been inserted
+        """
+
+        implicit_counters = self.cpp_integrator.getImplicitCounters(1);
+        if type is not None:
+            itype = hoomd.context.current.system_definition.getParticleData().getTypeByName(type)
+
+            reinsert = implicit_counters[itype].reinsert_count
+            reinsert_accept = implicit_counters[itype].reinsert_accept_count
+            reinsert_accept_sq = implicit_counters[itype].reinsert_accept_count_sq
+
+            if reinsert > 0:
+                var = (reinsert_accept-reinsert_accept_sq/reinsert)/reinsert
+                return math.sqrt(var)
+            else:
+                return float('nan')
+        else:
+            total_reinsert = 0
+            total_reinsert_accept = 0
+            total_reinsert_accept_sq = 0
+            for itype in len(implicit_counters):
+                total_reinsert += implicit_counters[itype].reinsert_count
+                total_reinsert_accept += implicit_counters[itype].reinsert_accept_count
+                total_reinsert_accept_sq += implicit_counters[itype].reinsert_accept_count_sq
+
+            if total_reinsert > 0:
+                var = (total_reinsert_accept-total_reinsert_accept_sq/total_reinsert_count)/total_reinsert
+                return math.sqrt(var)
+            else:
+                return float('nan')
 
 ## Helper methods to set rotation and translation moves by type
 def setD(cpp_integrator,d):

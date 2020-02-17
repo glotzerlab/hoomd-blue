@@ -37,6 +37,7 @@
 
 #ifndef __HIPCC__
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 #endif
 
 
@@ -153,14 +154,14 @@ class IntegratorHPMCMono : public IntegratorHPMC
          */
 
         //! Set number of reinsertion attepmpts
-        void setNTrial(unsigned int ntrial)
+        void setNTrial(unsigned int ntrial, unsigned int type)
             {
-            m_ntrial = ntrial;
+            m_ntrial[type] = ntrial;
             }
 
-        unsigned int getNTrial() const
+        unsigned int getNTrial(unsigned int type) const
             {
-            return m_ntrial;
+            return m_ntrial[type];
             }
 
         //! Set the depletant density in the free volume
@@ -420,7 +421,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         /* Depletants related data members */
 
         std::vector<Scalar> m_fugacity;             //!< Average depletant number density in free volume, per type
-        unsigned int m_ntrial = 0;                  //!< Number of reinsertion attempts per depletant in overlap volume
+        std::vector<unsigned int> m_ntrial;         //!< Number of reinsertion attempts per depletant in overlap volume, per type
 
         GlobalArray<hpmc_implicit_counters_t> m_implicit_count;               //!< Counter of depletant insertions
         std::vector<hpmc_implicit_counters_t> m_implicit_count_run_start;     //!< Counter of depletant insertions at run start
@@ -512,6 +513,7 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
     m_implicit_count_step_start.resize(this->m_pdata->getNTypes());
 
     m_fugacity.resize(this->m_pdata->getNTypes(),0.0);
+    m_ntrial.resize(this->m_pdata->getNTypes(), 0);
     }
 
 /*! \param mode 0 -> Absolute count, 1 -> relative to the start of the run, 2 -> relative to the last executed step
@@ -576,7 +578,24 @@ std::vector< std::string > IntegratorHPMCMono<Shape>::getProvidedLogQuantities()
       result.push_back(tmp_str0.str());
       }
 
+    result.push_back("hpmc_ntrial");
+
+    for (unsigned int typ=0; typ<this->m_pdata->getNTypes();typ++)
+      {
+      std::ostringstream tmp_str0;
+      tmp_str0<<"hpmc_ntrial_"<< this->m_pdata->getNameByType(typ);
+      result.push_back(tmp_str0.str());
+      }
+
     result.push_back("hpmc_insert_count");
+
+    result.push_back("hpmc_reinsert_std");
+    for (unsigned int typ=0; typ<this->m_pdata->getNTypes();typ++)
+      {
+      std::ostringstream tmp_str0;
+      tmp_str0<<"hpmc_reinsert_std_"<< this->m_pdata->getNameByType(typ);
+      result.push_back(tmp_str0.str());
+      }
 
     return result;
     }
@@ -618,6 +637,22 @@ Scalar IntegratorHPMCMono<Shape>::getLogValue(const std::string& quantity, unsig
             return m_fugacity[typ];
         }
 
+    //loop over per particle ntrials
+    if (quantity == "hpmc_ntrial")
+        {
+        return m_ntrial[0];
+        }
+
+    for (unsigned int typ=0; typ<m_pdata->getNTypes();typ++)
+        {
+        std::ostringstream tmp_str0;
+        tmp_str0<<"hpmc_ntrial_"<<m_pdata->getNameByType(typ);
+        if (quantity==tmp_str0.str())
+            {
+            return m_ntrial[typ];
+            }
+        }
+
     hpmc_counters_t counters = IntegratorHPMC::getCounters(2);
     const std::vector<hpmc_implicit_counters_t>& implicit_counters = getImplicitCounters(2);
 
@@ -633,6 +668,40 @@ Scalar IntegratorHPMCMono<Shape>::getLogValue(const std::string& quantity, unsig
             return (Scalar)total_insert_count/(Scalar)counters.getNMoves();
         else
             return Scalar(0.0);
+        }
+
+    if (quantity == "hpmc_reinsert_std")
+        {
+        const std::vector<hpmc_implicit_counters_t>& result = getImplicitCounters(2);
+
+        // reduce over all types
+        unsigned long long int total_insert_count = 0;
+        unsigned long long int total_reinsert_count = 0;
+        unsigned long long int total_reinsert_accept_count = 0;
+        unsigned long long int total_reinsert_accept_count_sq = 0;
+        for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
+            {
+            total_insert_count += result[i].insert_count;
+            total_reinsert_count += result[i].reinsert_count;
+            total_reinsert_accept_count += result[i].reinsert_accept_count;
+            total_reinsert_accept_count_sq += result[i].reinsert_accept_count_sq;
+            }
+        double var = double(total_reinsert_accept_count)-double(total_reinsert_accept_count_sq)/double(total_reinsert_count);
+        var /= double(total_reinsert_count);
+        return sqrt(var);
+        }
+
+    for (unsigned int typ=0; typ<m_pdata->getNTypes();typ++)
+        {
+        const std::vector<hpmc_implicit_counters_t>& result = getImplicitCounters(2);
+        std::ostringstream tmp_str0;
+        tmp_str0<<"hpmc_reinsert_std_"<<m_pdata->getNameByType(typ);
+        if (quantity==tmp_str0.str())
+            {
+            double var = double(result[typ].reinsert_accept_count)-double(result[typ].reinsert_accept_count_sq)/double(result[typ].reinsert_count);
+            var /= double(result[typ].reinsert_count);
+            return sqrt(var);
+            }
         }
 
     //nothing found -> pass on to base class
@@ -687,7 +756,17 @@ void IntegratorHPMCMono<Shape>::printStats()
             }
         }
 
-    if (m_ntrial > 0)
+    bool has_ntrial = false;
+    for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
+        {
+        if (m_ntrial[i] > 0)
+            {
+            has_ntrial = true;
+            break;
+            }
+        }
+
+    if (has_ntrial)
         {
         double var = double(total_reinsert_accept_count)-double(total_reinsert_accept_count_sq)/double(total_reinsert_count);
         var /= double(total_reinsert_count);
@@ -786,6 +865,9 @@ void IntegratorHPMCMono<Shape>::slotNumTypesChange()
 
     // depletant fugacities
     m_fugacity.resize(this->m_pdata->getNTypes(),0.0);
+
+    // reinsertion attempts
+    m_ntrial.resize(this->m_pdata->getNTypes(), 0);
 
     // call parent class method
     IntegratorHPMC::slotNumTypesChange();
@@ -2661,7 +2743,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                     std::vector<unsigned int> storage_sz_new;
                     std::vector< std::vector<typename Shape::depletion_storage_type> > temp_storage_new;
 
-                    if (m_ntrial > 0)
+                    if (m_ntrial[type] > 0)
                         {
                         // temporary storage for depletant reinsertions
                         for (unsigned int k = 0; k < pos_j_old.size(); ++k)
@@ -2702,7 +2784,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                     unsigned int n_success = 0;
 
                     #ifdef ENABLE_TBB
-                    n_success = tbb::parallel_reduce(tbb::blocked_range<unsigned int>(0, m_ntrial),
+                    n_success = tbb::parallel_reduce(tbb::blocked_range<unsigned int>(0, m_ntrial[type]),
                         0,
                         [=, &pos_j_new, &orientation_j_new, &type_j_new, &V_new, &storage_sz_new, &temp_storage_new,
                             &pos_j_old, &orientation_j_old, &type_j_old, &V_old, &storage_sz_old, &temp_storage_old,
@@ -2710,7 +2792,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                             (const tbb::blocked_range<unsigned int>& v, unsigned int init)->unsigned int {
                     for (unsigned int i_trial = v.begin(); i_trial != v.end(); ++i_trial)
                     #else
-                    for (unsigned int i_trial = 0; i_trial < m_ntrial; ++i_trial)
+                    for (unsigned int i_trial = 0; i_trial < m_ntrial[type]; ++i_trial)
                     #endif
                         {
                         hoomd::RandomGenerator my_rng(
@@ -2926,7 +3008,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                     n_intersect_reinsert = !repulsive ? pos_j_old.size() : pos_j_new.size();
 
                     #ifdef ENABLE_TBB
-                    n_success_other += tbb::parallel_reduce(tbb::blocked_range<unsigned int>(1, m_ntrial),
+                    n_success_other += tbb::parallel_reduce(tbb::blocked_range<unsigned int>(1, m_ntrial[type]),
                         0,
                         [=, &pos_j_new, &orientation_j_new, &type_j_new, &V_new, &storage_sz_new, &temp_storage_new,
                             &pos_j_old, &orientation_j_old, &type_j_old, &V_old, &storage_sz_old, &temp_storage_old,
@@ -2934,7 +3016,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                             (const tbb::blocked_range<unsigned int>& v, unsigned int init)->unsigned int {
                     for (unsigned int i_trial = v.begin(); i_trial != v.end(); ++i_trial)
                     #else
-                    for (unsigned int i_trial = 1; i_trial < m_ntrial; ++i_trial)
+                    for (unsigned int i_trial = 1; i_trial < m_ntrial[type]; ++i_trial)
                     #endif
                         {
                         hoomd::RandomGenerator my_rng(
