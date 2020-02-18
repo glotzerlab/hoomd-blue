@@ -91,3 +91,6 @@ class VariantConstant(Variant):
 
 class VariantRamp(Variant):
     pass
+
+class VariantCycle(Variant):
+    pass
