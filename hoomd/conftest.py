@@ -3,7 +3,7 @@ import hoomd
 import atexit
 import numpy
 from hoomd.snapshot import Snapshot
-from hoomd.simulation import Simulation
+from hoomd import Simulation
 
 devices = [hoomd.device.CPU]
 if hoomd.device.GPU.is_available():

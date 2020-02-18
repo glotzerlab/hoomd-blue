@@ -11,10 +11,12 @@ each command writes.
 from collections import namedtuple
 from hoomd.filters import All
 from hoomd import _hoomd
-from hoomd.util import dict_flatten
+from hoomd.util import dict_flatten, array_to_strings
+from hoomd.typeconverter import MultipleOnlyFrom
 from hoomd.filters import ParticleFilter
 from hoomd.parameterdicts import ParameterDict
 from hoomd.logger import Logger
+from hoomd.operation import _Analyzer
 import numpy as np
 import hoomd
 import json
@@ -490,7 +492,7 @@ class getar(hoomd.analyze._analyzer):
         self.cpp_analyzer.close();
 
 
-class GSD(hoomd.meta._Analyzer):
+class GSD(_Analyzer):
     R""" Write simulation trajectories in the GSD format.
 
     Args:
@@ -607,28 +609,15 @@ class GSD(hoomd.meta._Analyzer):
 
         super().__init__(trigger)
 
-        def dynamic_string_list(value):
-            if isinstance(value, np.ndarray):
-                string_list = []
-                for string in value:
-                    string_list.append(
-                        string.view(dtype='|S{}'.format(value.shape[1])
-                                    ).decode('UTF-8')
-                        )
-                value = string_list
-
-            dynamic_options = ['attribute', 'property', 'momentum', 'topology']
-            if not isinstance(value, list) or \
-                    not all([v in dynamic_options for v in value]):
-                raise ValueError("Expected a list of strings with options "
-                                 "attribute, property, momentum, and topology.")
-            return value
+        dynamic_string_validation = MultipleOnlyFrom(
+            ['attribute', 'property', 'momentum', 'topology'],
+            preprocess=array_to_strings)
 
         dynamic = ['property'] if dynamic is None else dynamic
         self._param_dict.update(
             ParameterDict(filename=str(filename), filter=ParticleFilter,
                           overwrite=bool(overwrite), truncate=bool(truncate),
-                          dynamic=dynamic_string_list,
+                          dynamic=dynamic_string_validation,
                           explicit_defaults=dict(filter=filter, dynamic=dynamic)
                           )
             )

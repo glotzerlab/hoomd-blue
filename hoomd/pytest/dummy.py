@@ -1,5 +1,5 @@
 from hoomd.triggers import Trigger
-from hoomd.meta import _Operation, _TriggeredOperation
+from hoomd.operation import _Operation, _TriggeredOperation
 
 
 class DummySimulation:

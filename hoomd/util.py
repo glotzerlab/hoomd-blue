@@ -6,6 +6,7 @@
 R""" Utilities.
 """
 
+from numpy import ndarray
 import sys
 from copy import deepcopy
 import traceback
@@ -281,3 +282,16 @@ def is_constructor(obj):
         return True
     else:
         return False
+
+
+def array_to_strings(value):
+    if isinstance(value, ndarray):
+        string_list = []
+        for string in value:
+            string_list.append(
+                string.view(dtype='|S{}'.format(value.shape[1])
+                            ).decode('UTF-8')
+                )
+        return string_list
+    else:
+        return value

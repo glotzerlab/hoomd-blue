@@ -1,9 +1,8 @@
 from numpy import array, ndarray
 from hoomd.util import is_constructor
-from inspect import isfunction
 
 
-class TypeConversionError(Exception):
+class TypeConversionError(ValueError):
     pass
 
 
@@ -30,19 +29,60 @@ def is_string(value):
         return value
 
 
-def get_attempt_obj_conversion(type_):
+class _HelpValidate:
+    def __init__(self, preprocess=None, postprocess=None):
+        self._preprocess = lambda x: x if preprocess is None else preprocess
+        self._postprocess = lambda x: x if postprocess is None else postprocess
 
-    def attempt_obj_conversion(value):
-        if isinstance(value, type_):
+    def __call__(self, value):
+        return self._postprocess(self._validate(self._preprocess(value)))
+
+
+class OnlyType(_HelpValidate):
+    def __init__(self, type_, preprocess=None, postprocess=None):
+        super().__init__(preprocess, postprocess)
+        self.type = type_
+
+    def _validate(self, value):
+        if isinstance(value, self.type):
             return value
         else:
             try:
-                return type_(value)
+                return self.type(value)
             except Exception:
-                raise ValueError("{} not converted to type {}.".format(value,
-                                                                       type_))
+                raise ValueError("value {} not convertible into type {}."
+                                 "".format(value, self.type))
 
-    return attempt_obj_conversion
+
+class OnlyFrom(_HelpValidate):
+    def __init__(self, options, preprocess=None, postprocess=None):
+        super().__init__(preprocess, postprocess)
+        self.options = options
+
+    def _validate(self, value):
+        if value in self:
+            return value
+        else:
+            raise ValueError("Value {} not in options: {}".format(value,
+                                                                  self.options))
+
+    def __contain__(self, value):
+        return value in self.options
+
+    def __str__(self):
+        return "OnlyFrom[{}]".format(self.options)
+
+
+class MultipleOnlyFrom(OnlyFrom):
+    def _validate(self, value):
+        if all([v in self for v in value]):
+            return value
+        else:
+            raise ValueError("Value {} all not in options: {}".format(
+                value, self.options))
+
+    def __str__(self):
+        return "MultipleOnlyFrom[{}]".format(self.options)
 
 
 class TypeConverter:
@@ -59,14 +99,14 @@ class TypeConverter:
                                "TypeConverter.keys() only works for objects "
                                "that convert dictionaries.")
 
-    def _raise_error(self, value, expected_type):
-        err = "Value {} of type {} cannot be converted using {}."
-        err = err.format(value, type(value), expected_type)
+    def _raise_error(self, value, conversion_func, prev_err_msg):
+        err = "Value {} of type {} cannot be converted using {}. "
+        err += "The conversion function raised this error " + prev_err_msg
+        err = err.format(value, type(value), conversion_func)
         raise TypeConversionError(err)
 
     def _raise_from_previous_error(self, err, key):
         if len(err.args) > 1:
-
             raise TypeConversionError(err.args[0], [key] + err.args[1])
         else:
             raise TypeConversionError(err.args[0], [key])
@@ -77,13 +117,14 @@ class TypeConverter:
             try:
                 for key, v in value.items():
                     temp_value = self._convert_value(v, key)
-                    if temp_value == {}:
+                    if temp_value == dict():
                         continue
                     else:
                         new_value[key] = temp_value
                 return new_value
             except AttributeError:
-                self._raise_error(value, dict)
+                raise TypeConversionError("Expected a dictionary like value. "
+                                          "Received {}.".format(value))
         else:
             return self._convert_value(value)
 
@@ -91,8 +132,8 @@ class TypeConverter:
         if key is None:
             try:
                 return self.converter(value)
-            except (TypeError, ValueError):
-                self._raise_error(value, self.converter)
+            except (TypeError, ValueError) as err:
+                self._raise_error(value, self.converter, str(err))
         else:
             try:
                 return self.converter[key](value)
@@ -142,13 +183,13 @@ class TypeConverter:
             return cls(cls._conversion_func_dict[type(default)])
         # if object constructor
         elif is_constructor(default):
-            return cls(get_attempt_obj_conversion(default))
-        # if function
-        elif isfunction(default):
+            return cls(OnlyType(default))
+        # if callable
+        elif callable(default):
             return cls(default)
         # if other object
         else:
-            return cls(get_attempt_obj_conversion(type(default)))
+            return cls(OnlyType(type(default)))
 
 
 def from_type_converter_input_to_default(default, overwrite_default=None):
@@ -163,7 +204,7 @@ def from_type_converter_input_to_default(default, overwrite_default=None):
             for key, value in default.items():
                 new_default[key] = from_type_converter_input_to_default(value)
         return new_default
-    elif is_constructor(default) or isfunction(default):
+    elif is_constructor(default) or callable(default):
         return RequiredArg if overwrite_default is None else overwrite_default
     else:
         return default if overwrite_default is None else overwrite_default

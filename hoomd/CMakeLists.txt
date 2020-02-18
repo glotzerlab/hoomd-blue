@@ -292,6 +292,8 @@ set(files analyze.py
           init.py
           integrate.py
           meta.py
+	  operation.py
+          operations.py
           option.py
           update.py
           util.py
@@ -301,7 +303,6 @@ set(files analyze.py
           simulation.py
           state.py
           syncedlist.py
-          operations.py
           parameterdicts.py
           triggers.py
           typeparam.py
