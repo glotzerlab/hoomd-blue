@@ -17,7 +17,7 @@
 class PYBIND11_EXPORT Variant
     {
     public:
-        /// Construct a Variant,
+        /// Construct a Variant.
         Variant() { }
 
         virtual ~Variant() { }
@@ -184,7 +184,7 @@ class PYBIND11_EXPORT VariantRamp : public Variant
     };
 
 
-/** Ramp variant
+/** Cycle variant
 
     Variant that cycles linearly from A to B and back again over a given number of steps.
 */
