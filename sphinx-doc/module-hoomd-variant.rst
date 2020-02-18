@@ -7,6 +7,7 @@ hoomd.variant
     :nosignatures:
 
     hoomd.variant.Constant
+    hoomd.variant.Cycle
     hoomd.variant.Ramp
     hoomd.variant.Variant
 

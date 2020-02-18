@@ -42,13 +42,39 @@ void export_Variant(pybind11::module& m)
 
     pybind11::class_<VariantRamp, Variant, std::shared_ptr<VariantRamp> >(m, "VariantRamp")
         .def(pybind11::init< Scalar, Scalar, uint64_t, uint64_t >(), pybind11::arg("A"),
-                                                                     pybind11::arg("A"),
+                                                                     pybind11::arg("B"),
                                                                      pybind11::arg("t_start"),
                                                                      pybind11::arg("t_ramp"))
         .def_property("A", &VariantRamp::getA, &VariantRamp::setA)
         .def_property("B", &VariantRamp::getB, &VariantRamp::setB)
         .def_property("t_start", &VariantRamp::getTStart, &VariantRamp::setTStart)
         .def_property("t_ramp", &VariantRamp::getTRamp, &VariantRamp::setTRamp)
+        ;
+
+    pybind11::class_<VariantCycle, Variant, std::shared_ptr<VariantCycle> >(m, "VariantCycle")
+        .def(pybind11::init< Scalar,
+                             Scalar,
+                             uint64_t,
+                             uint64_t,
+                             uint64_t,
+                             uint64_t,
+                             uint64_t >(),
+            pybind11::arg("A"),
+            pybind11::arg("B"),
+            pybind11::arg("t_start"),
+            pybind11::arg("t_A"),
+            pybind11::arg("t_AB"),
+            pybind11::arg("t_B"),
+            pybind11::arg("t_BA"))
+
+
+        .def_property("A", &VariantCycle::getA, &VariantCycle::setA)
+        .def_property("B", &VariantCycle::getB, &VariantCycle::setB)
+        .def_property("t_start", &VariantCycle::getTStart, &VariantCycle::setTStart)
+        .def_property("t_A", &VariantCycle::getTA, &VariantCycle::setTA)
+        .def_property("t_AB", &VariantCycle::getTAB, &VariantCycle::setTAB)
+        .def_property("t_B", &VariantCycle::getTB, &VariantCycle::setTB)
+        .def_property("t_BA", &VariantCycle::getTBA, &VariantCycle::setTBA)
         ;
 
     m.def("_test_variant_call", &testVariantCall);

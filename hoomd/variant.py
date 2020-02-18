@@ -70,3 +70,35 @@ class Ramp(_hoomd.VariantRamp, Variant):
     """
     def __init__(self, A, B, t_start, t_ramp):
         _hoomd.VariantRamp.__init__(self, A, B, t_start, t_ramp)
+
+class Cycle(_hoomd.VariantCycle, Variant):
+    """ A cycle of linear ramps.
+
+    Args:
+        A (float): The first value.
+        B (float): The second value.
+        t_start (int): The start time step.
+        t_A (int): The hold time at the first value.
+        t_AB (int): The time spent ramping from A to B.
+        t_B (int): The hold time at the second value.
+        t_BA (int): The time spent ramping from B to A.
+
+    :py:class:`Cycle` holds the value *A* until time *t_start*. It continues
+    holding that value until *t_start + t_A*. Then it ramps linearly from *A* to
+    *B* over *t_AB* steps and holds the value *B* for *t_B* steps. After this,
+    it ramps back from *B* to *A* over *t_BA* steps and repeats the cycle
+    starting with *t_A*. :py:class:`Cycle` repeats this cycle indefinitely.
+
+    .. image:: variant-cycle.svg
+
+    Attributes:
+        A (float): The first value.
+        B (float): The second value.
+        t_start (int): The start time step.
+        t_A (int): The hold time at the first value.
+        t_AB (int): The time spent ramping from A to B.
+        t_B (int): The hold time at the second value.
+        t_BA (int): The time spent ramping from B to A.
+    """
+    def __init__(self, A, B, t_start, t_A, t_AB, t_B, t_BA):
+        _hoomd.VariantCycle.__init__(self, A, B, t_start, t_A, t_AB, t_B, t_BA)
