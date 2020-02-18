@@ -73,14 +73,12 @@ class _HPMCIntegrator(_BaseIntegrator):
         super().__init__()
 
         # Set base parameter dict for hpmc integrators
-        self._param_dict = ParameterDict(dict(seed=int, move_ratio=float,
-                                         nselect=int, deterministic=bool)
-                                         )
-        self._param_dict.update(dict(seed=int(seed),
-                                     move_ratio=float(move_ratio),
-                                     nselect=int(nselect),
-                                     deterministic=bool(deterministic))
-                                )
+        param_dict = ParameterDict(dict(seed=int(seed),
+                                        move_ratio=float(move_ratio),
+                                        nselect=int(nselect),
+                                        deterministic=bool(deterministic))
+                                   )
+        self._param_dict.update(param_dict)
 
         # Set standard typeparameters for hpmc integrators
         typeparam_d = TypeParameter('d', type_kind='particle_types',

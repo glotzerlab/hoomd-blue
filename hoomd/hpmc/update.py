@@ -796,14 +796,12 @@ class Clusters(_Updater):
             raise ValueError("swap_types must be an iterable of length "
                              "2 or 0.")
 
-        self._param_dict = ParameterDict(seed=int, swap_types=list,
-                                         move_ratio=float,
-                                         flip_probability=float,
-                                         swap_move_ratio=float)
-        self._param_dict.update(dict(seed=seed, swap_types=swap_types,
-                                     move_ratio=move_ratio,
-                                     flip_probability=flip_probability,
-                                     swap_move_ratio=swap_move_ratio))
+        param_dict = ParameterDict(seed=int(seed),
+                                   swap_types=list(swap_types),
+                                   move_ratio=float(move_ratio),
+                                   flip_probability=float(flip_probability),
+                                   swap_move_ratio=float(swap_move_ratio))
+        self._param_dict.update(param_dict)
 
     def attach(self, simulation):
         integrator = simulation.operations.integrator
