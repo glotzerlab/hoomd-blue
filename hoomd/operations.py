@@ -1,5 +1,4 @@
 import hoomd.integrate
-import hoomd.meta
 from hoomd.syncedlist import SyncedList
 from hoomd.operation import _Analyzer, _Updater
 
@@ -36,9 +35,9 @@ class Operations:
         if isinstance(op, hoomd.integrate._BaseIntegrator):
             self.integrator = op
             return None
-        elif isinstance(op, hoomd.meta._Updater):
+        elif isinstance(op, _Updater):
             self._updaters.append(op)
-        elif isinstance(op, hoomd.meta._Analyzer):
+        elif isinstance(op, _Analyzer):
             self._analyzers.append(op)
         else:
             raise ValueError("Operation is not of the correct type to add to"
