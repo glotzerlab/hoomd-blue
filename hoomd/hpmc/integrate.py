@@ -423,11 +423,9 @@ class ConvexPolygon(_HPMCIntegrator):
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
                                             vertices=list,
-                                            ignore_statistics=bool,
-                                            sweep_radius=float,
-                                            len_keys=1,
-                                            explicit_default={'ignore_statistics': False,
-                                                              'sweep_radius': 0})
+                                            ignore_statistics=0,
+                                            sweep_radius=0.0,
+                                            len_keys=1,)
                                         )
 
         self._add_typeparam(typeparam_shape)
@@ -514,7 +512,7 @@ class ConvexSpheropolygon(_HPMCIntegrator):
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
                                             vertices=list,
-                                            sweep_radius=float,
+                                            sweep_radius=0.0,
                                             ignore_statistics=False,
                                             len_keys=1)
                                         )
@@ -762,7 +760,7 @@ class Polyhedron(_HPMCIntegrator):
                                             hull_only=True,
                                             overlap=list,
                                             ignore_statistics=False,
-                                            explict_defaults={'overlap': None},
+                                            explicit_defaults={'overlap': None},
                                             len_keys=1)
                                         )
 
@@ -1393,8 +1391,8 @@ class SphereUnion(_HPMCIntegrator):
                                             capacity=4,
                                             overlap=list,
                                             ignore_statistics=False,
-                                            explict_defaults={'orientations': None,
-                                                              'overlap': None},
+                                            explicit_defaults={'orientations': None,
+                                                               'overlap': None},
                                             len_keys=1)
                                         )
         self._add_typeparam(typeparam_shape)
@@ -1491,8 +1489,8 @@ class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
                                             orientations=list,
                                             overlap=list,
                                             ignore_statistics=False,
-                                            explict_defaults={'orientations': None,
-                                                              'overlap': None},
+                                            explicit_defaults={'orientations': None,
+                                                               'overlap': None},
                                             capacity=4,
                                             len_keys=1)
                                         )
@@ -1577,8 +1575,8 @@ class FacetedEllipsoidUnion(_HPMCIntegrator):
                                             orientations=list,
                                             overlap=list,
                                             ignore_statistics=False,
-                                            explict_defaults={'orientations': None,
-                                                              'overlap': None},
+                                            explicit_defaults={'orientations': None,
+                                                               'overlap': None},
                                             capacity=4,
                                             len_keys=1)
                                         )

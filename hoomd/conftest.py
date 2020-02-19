@@ -8,7 +8,7 @@ from hoomd.simulation import Simulation
 import numpy as np
 
 
-# pytest_plugins = ["hoomd.hpmc.pytest.conftest"]
+# pytest_plugins = ["hoomd.hpmc.conftest"]
 
 devices = [hoomd.device.CPU]
 if hoomd.device.GPU.is_available():
@@ -192,9 +192,6 @@ def convex_polygon_invalid_args():
                                    (1, 1), (0, 0), (2, 1), (1, 3)],
                       'ignore_statistics': "invalid",
                       'sweep_radius': "invalid"}]
-                     # {'vertices': [1, 2, 3, 4, 5, 6, 7, 8],
-                     #  'ignore_statistics': 1,
-                     #  'sweep_radius': 3}]
         return args_list
     return get_args
 
@@ -255,9 +252,6 @@ def convex_polyhedron_invalid_args():
                                    (2, 1, 1)],
                       'ignore_statistics': "invalid",
                       'sweep_radius': "invalid"}]
-                     # {'vertices': [1, 2, 3, 4, 5, 6, 7, 8],
-                     #  'ignore_statistics': 1,
-                     #  'sweep_radius': 3}]
         return args_list
     return get_args
 
@@ -336,7 +330,6 @@ def ellipsoid_invalid_args():
                      {'a': 1, 'b': 3, 'c': 'invalid'},
                      {'a': [1, 2, 3], 'b': [3, 7, 7], 'c': [2, 5, 9]},
                      {'a': 'invalid', 'b': 'invalid', 'c': [1, 2, 3]}]
-                     # {'a': 1, 'b': 2, 'c': 3, "ignore_statistics": "invalid"}]
         return args_list
     return get_args
 
@@ -476,48 +469,9 @@ def faceted_ellipsoid_invalid_args():
                                    (0, 10, 1), (9, 5, 1), (0, 0, 1)],
                       "origin": (0, 0, 0),
                       "ignore_statistics": 1}]
-                     # {"normals": [(0, 0, 2), (0, 1, 1),
-                     #              (1, 3, 5), (0, 1, 6)],
-                     #  "offsets": [6, 2, 2, 5],
-                     #  "a": 1,
-                     #  "b": 6,
-                     #  "c": 6,
-                     #  "vertices": [(0, 0, 0), (1, 1, 1),
-                     #               (1, 0, 2), (2, 1, 1)],
-                     #  "origin": (0, 1, 0, 0),
-                     #  "ignore_statistics": 1},
-                     # {"normals": [(0, 0, 2), (0, 1, 1),
-                     #              (1, 3, 5), (0, 1, 6)],
-                     #  "offsets": [6, 2, 2, 5, 8],
-                     #  "a": 1,
-                     #  "b": 6,
-                     #  "c": 6,
-                     #  "vertices": [(0, 0, 0), (1, 1, 1),
-                     #               (1, 0, 2), (2, 1, 1)],
-                     #  "origin": (0, 1, 0),
-                     #  "ignore_statistics": 1},
-                     # {"normals": [(0, 0, 2), (0, 1, 1),
-                     #              (1, 3, 5), (0, 1, 6)],
-                     #  "offsets": [6, 2, 2, 5],
-                     #  "a": 1,
-                     #  "b": 6,
-                     #  "c": 6,
-                     #  "vertices": [(0, 0, 0), (1, 1, 1),
-                     #               (1, 0, 2), (2, 1, 1), (0, 2, 0)],
-                     #  "origin": (0, 1, 0),
-                     #  "ignore_statistics": 1},
-                     # {"normals": [(0, 0, 2), (0, 1, 1),
-                     #              (1, 3, 5), (0, 1, 6), (1, 1, 1)],
-                     #  "offsets": [6, 2, 2, 5],
-                     #  "a": 1,
-                     #  "b": 6,
-                     #  "c": 6,
-                     #  "vertices": [(0, 0, 0), (1, 1, 1),
-                     #               (1, 0, 2), (2, 1, 1)],
-                     #  "origin": (0, 1, 0),
-                     #  "ignore_statistics": 1}
         return args_list
     return get_args
+
 
 @pytest.fixture(scope="session")
 def faceted_ellipsoid_union_integrator():
@@ -625,35 +579,6 @@ def faceted_ellipsoid_union_invalid_args(faceted_ellipsoid_valid_args):
                       'overlap': "invalid",
                       'capacity': 5,
                       'ignore_statistics': "invalid"}]
-                     # {'shapes': [faceted_ell_args_list[0],
-                     #             faceted_ell_args_list[1],
-                     #             faceted_ell_args_list[2]],
-                     #  'positions': [(0, 0, 0), (0, 0, 1)],
-                     #  'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)],
-                     #  'overlap': [1, 1],
-                     #  'capacity': 4,
-                     #  'ignore_statistics': 1},
-                     # {'shapes': [faceted_ell_args_list[0],
-                     #             faceted_ell_args_list[1]],
-                     #  'positions': [(0, 0, 0), (0, 0, 1), (1, 1, 1)],
-                     #  'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)],
-                     #  'overlap': [1, 1],
-                     #  'capacity': 4,
-                     #  'ignore_statistics': 1},
-                     # {'shapes': [faceted_ell_args_list[0],
-                     #             faceted_ell_args_list[1]],
-                     #  'positions': [(0, 0, 0), (0, 0, 1)],
-                     #  'orientations': [(1, 0, 0, 0), (1, 1, 0, 0), (1, 1, 1, 1)],
-                     #  'overlap': [1, 1],
-                     #  'capacity': 4,
-                     #  'ignore_statistics': 1},
-                     # {'shapes': [faceted_ell_args_list[0],
-                     #             faceted_ell_args_list[1]],
-                     #  'positions': [(0, 0, 0), (0, 0, 1)],
-                     #  'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)],
-                     #  'overlap': [1, 1, 0],
-                     #  'capacity': 4,
-                     #  'ignore_statistics': 1}]
         return args_list
     return get_args
 
@@ -963,104 +888,6 @@ def polyhedron_invalid_args():
                       'capacity': "invalid",
                       'origin': (0, 0, 0),
                       'hull_only': "invalid"}]
-                     # {'vertices': [(0, 3, 0),
-                     #               (2, 1, 0),
-                     #               (1, 3, 1),
-                     #               (1, 1, 1),
-                     #               (1, 2, 5),
-                     #               (3, 0, 1),
-                     #               (0, 3, 3),
-                     #               (0, 0, 2),
-                     #               (1, 2, 2),
-                     #               (1, 2, 3)],
-                     #  'faces': [(0, 1, 2),
-                     #            (3, 2, 6),
-                     #            (1, 2, 4),
-                     #            (6, 1, 3),
-                     #            (3, 4, 6),
-                     #            (4, 5, 1),
-                     #            (6, 7, 5),
-                     #            (1, 7, 8),
-                     #            (6, 8, 2)],
-                     #  'overlap': [0, 1, 1, 0, 0, 0, 1, 1, 0],
-                     #  'sweep_radius': 0,
-                     #  'ignore_statistics': 1,
-                     #  'capacity': 4,
-                     #  'origin': (0, 1, 0),
-                     #  'hull_only': True},
-                     # {'vertices': [(0, 3, 0),
-                     #               (2, 1, 0),
-                     #               (1, 3, 1),
-                     #               (1, 1, 1),
-                     #               (1, 2, 5),
-                     #               (3, 0, 1),
-                     #               (0, 3, 3),
-                     #               (0, 0, 2),
-                     #               (1, 2, 2)],
-                     #  'faces': [(0, 1, 2),
-                     #            (3, 2, 6),
-                     #            (1, 2, 4),
-                     #            (6, 1, 3),
-                     #            (3, 4, 6),
-                     #            (4, 5, 1),
-                     #            (6, 7, 5),
-                     #            (1, 7, 8),
-                     #            (6, 8, 2),
-                     #            (3, 4, 5)],
-                     #  'overlap': [0, 1, 1, 0, 0, 0, 1, 1, 0],
-                     #  'sweep_radius': 0,
-                     #  'ignore_statistics': 1,
-                     #  'capacity': 4,
-                     #  'origin': (0, 1, 0),
-                     #  'hull_only': True},
-                     # {'vertices': [(0, 3, 0),
-                     #               (2, 1, 0),
-                     #               (1, 3, 1),
-                     #               (1, 1, 1),
-                     #               (1, 2, 5),
-                     #               (3, 0, 1),
-                     #               (0, 3, 3),
-                     #               (0, 0, 2),
-                     #               (1, 2, 2)],
-                     #  'faces': [(0, 1, 2),
-                     #            (3, 2, 6),
-                     #            (1, 2, 4),
-                     #            (6, 1, 3),
-                     #            (3, 4, 6),
-                     #            (4, 5, 1),
-                     #            (6, 7, 5),
-                     #            (1, 7, 8),
-                     #            (6, 8, 2)],
-                     #  'overlap': [0, 1, 1, 0, 0, 0, 1, 1, 0, 1],
-                     #  'sweep_radius': 0,
-                     #  'ignore_statistics': 1,
-                     #  'capacity': 4,
-                     #  'origin': (0, 1, 0),
-                     #  'hull_only': True},
-                     # {'vertices': [(0, 3, 0),
-                     #               (2, 1, 0),
-                     #               (1, 3, 1),
-                     #               (1, 1, 1),
-                     #               (1, 2, 5),
-                     #               (3, 0, 1),
-                     #               (0, 3, 3),
-                     #               (0, 0, 2),
-                     #               (1, 2, 2)],
-                     #  'faces': [(0, 1, 2),
-                     #            (3, 2, 6),
-                     #            (1, 2, 4),
-                     #            (6, 1, 3),
-                     #            (3, 4, 6),
-                     #            (4, 5, 1),
-                     #            (6, 7, 5),
-                     #            (1, 7, 8),
-                     #            (6, 8, 2)],
-                     #  'overlap': [0, 1, 1, 0, 0, 0, 1, 1, 0],
-                     #  'sweep_radius': 0,
-                     #  'ignore_statistics': 1,
-                     #  'capacity': 4,
-                     #  'origin': (0, 1, 0, 1),
-                     #  'hull_only': True}]
         return args_list
     return get_args
 
@@ -1131,12 +958,6 @@ def sphere_invalid_args():
     def get_args():
         args_list = [{"diameter": "invalid"},
                      {"diameter": [1, 2, 3, 4]}]
-                     # {'diameter': 1,
-                     #  'orientable': "invalid",
-                     #  'ignore_statistics': [1, 2, 3]},
-                     # {'diameter': 1,
-                     #  'orientable': 0,
-                     #  'ignore_statistics': "invalid"}]
         return args_list
     return get_args
 
@@ -1255,26 +1076,6 @@ def sphere_union_invalid_args(sphere_valid_args):
                       'overlap': [1, 1, 1],
                       'capacity': "invalid",
                       'ignore_statistics': "invalid"}]
-                     # {'shapes': [sphere_args_list[0],
-                     #             sphere_args_list[1],
-                     #             sphere_args_list[2]],
-                     #  'positions': [(0, 0, 0), (0, 0, 1)],
-                     #  'orientations': [(1, 0, 0, 0), (1, 1, 0, 0)],
-                     #  'overlap': [1, 1],
-                     #  'capacity': 4,
-                     #  'ignore_statistics': 1},
-                     # {'shapes': [sphere_args_list[0], sphere_args_list[1]],
-                     #  'positions': [(0, 0, 0), (0, 0, 1), (1, 1, 1)],
-                     #  'orientations': [(1, 0, 0, 0), (1, 1, 0, 0)],
-                     #  'overlap': [1, 1],
-                     #  'capacity': 4,
-                     #  'ignore_statistics': 1},
-                     # {'shapes': [sphere_args_list[0], sphere_args_list[1]],
-                     #  'positions': [(0, 0, 0), (0, 0, 1)],
-                     #  'orientations': [(1, 0, 0, 0), (1, 1, 0, 0)],
-                     #  'overlap': [1, 1, 0],
-                     #  'capacity': 4,
-                     #  'ignore_statistics': 1}]
         return args_list
     return get_args
 
@@ -1391,28 +1192,6 @@ def convex_spheropolyhedron_union_invalid_args(convex_polyhedron_valid_args):
                       'overlap': [0, 1],
                       'capacity': "invalid",
                       'ignore_statistics': "invalid"}]
-                     # {'shapes': [polyhedron_vertices_args_list[0],
-                     #             polyhedron_vertices_args_list[1],
-                     #             polyhedron_vertices_args_list[2]],
-                     #  'positions': [(0, 0, 0), (0, 0, 1)],
-                     #  'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)],
-                     #  'overlap': [1, 1],
-                     #  'capacity': 4,
-                     #  'ignore_statistics': 1},
-                     # {'shapes': [polyhedron_vertices_args_list[0],
-                     #             polyhedron_vertices_args_list[1]],
-                     #  'positions': [(0, 0, 0), (0, 0, 1), (1, 1, 1)],
-                     #  'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)],
-                     #  'overlap': [1, 1],
-                     #  'capacity': 4,
-                     #  'ignore_statistics': 1},
-                     # {'shapes': [polyhedron_vertices_args_list[0],
-                     #             polyhedron_vertices_args_list[1]],
-                     #  'positions': [(0, 0, 0), (0, 0, 1)],
-                     #  'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)],
-                     #  'overlap': [1, 1, 0],
-                     #  'capacity': 4,
-                     #  'ignore_statistics': 1}]
         return args_list
     return get_args
 
@@ -1494,37 +1273,6 @@ def sphinx_invalid_args():
                      {'diameters': [1, 4, 2, 8, 5],
                       'centers': 4,
                       'ignore_statistics': 0}]
-                     # {'diameters': [1, 4, 2, 8, 5],
-                     #  'centers': [(0, 0, 0),
-                     #              (1, 1, 1),
-                     #              (1, 0, 1),
-                     #              (0, 1, 1),
-                     #              (1, 1, 0),
-                     #              (0, 0, 1),
-                     #              (2, 2, 1),
-                     #              (3, 5, 3)],
-                     #  'ignore_statistics': "invalid"},
-                     # {'diameters': [1, 2, 2, 3, 4, 9, 3, 2, 1],
-                     #  'centers': [(0, 0, 0),
-                     #              (1, 1, 1),
-                     #              (1, 0, 1),
-                     #              (0, 1, 1),
-                     #              (1, 1, 0),
-                     #              (0, 0, 1),
-                     #              (2, 2, 1),
-                     #              (3, 5, 3)],
-                     #  'ignore_statistics': 1},
-                     # {'diameters': [1, 2, 2, 3, 4, 9, 3, 2],
-                     #  'centers': [(0, 0, 0),
-                     #              (1, 1, 1),
-                     #              (1, 0, 1),
-                     #              (0, 1, 1),
-                     #              (1, 1, 0),
-                     #              (0, 0, 1),
-                     #              (2, 2, 1),
-                     #              (3, 5, 3),
-                     #              (0, 1, 0)],
-                     #  'ignore_statistics': 1}]
         return args_list
     return get_args
 
