@@ -68,7 +68,7 @@ class _NList(_Operation):
         validate_exclusions = MultipleOnlyFrom(
             ['bond', 'angle', 'constraint', 'dihedral', 'special_pair',
              'body', '1-3', '1-4'],
-            postprocess=tuple, preprocess=lambda x: set(x))
+            postprocess=tuple, preprocess=set)
         # default exclusions
         params = ParameterDict(exclusions=validate_exclusions,
                                buffer=float(buffer),

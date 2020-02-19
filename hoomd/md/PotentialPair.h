@@ -484,6 +484,7 @@ void PotentialPair< evaluator >::validateTypes(unsigned int typ1,
                                                unsigned int typ2,
                                                std::string action)
 {
+    // TODO change logic to just throw an exception
     auto n_types = this->m_pdata->getNTypes();
     if (typ1 >= n_types || typ2 >= n_types)
         {

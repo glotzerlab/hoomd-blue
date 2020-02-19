@@ -25,6 +25,38 @@
 #define DEVICE
 #endif
 
+
+struct harmonic_params
+    {
+    Scalar k;
+    Scalar r_0;
+
+    #ifndef __HIPCC__
+    harmonic_params() {k = 0; r_0 = 0;}
+
+    harmonic_params(Scalar k, Scalar r_0) : k(k), r_0(r_0) {}
+
+    harmonic_params(pybind11::dict v)
+        {
+        k = v["k"].cast<Scalar>();
+        r_0 = v["r0"].cast<Scalar>();
+        }
+
+    pybind11::dict asDict()
+        {
+        pybind11::dict v;
+        v["k"] = k;
+        v["r0"] = r_0;
+        return v;
+        }
+    #endif
+    }
+    #ifdef SINGLE_PRECISION
+    __attribute__((aligned(8)));
+    #else
+    __attribute__((aligned(16)));
+    #endif
+
 //! Class for evaluating the harmonic bond potential
 /*! Evaluates the harmonic bond potential in an identical manner to EvaluatorPairLJ for pair potentials. See that
     class for a full motivation and design specifics.
@@ -35,14 +67,14 @@ class EvaluatorBondHarmonic
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar2 param_type;
+        typedef harmonic_params param_type;
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorBondHarmonic(Scalar _rsq, const param_type& _params)
-            : rsq(_rsq),K(_params.x), r_0(_params.y)
+            : rsq(_rsq), K(_params.k), r_0(_params.r_0)
             {
             }
 

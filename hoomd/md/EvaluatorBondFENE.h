@@ -25,6 +25,39 @@
 #define DEVICE
 #endif
 
+struct fene_params
+    {
+    Scalar k;
+    Scalar r_0;
+    Scalar lj1;
+    Scalar lj2;
+
+    #ifndef __HIPCC__
+    fene_params() {k = 0; r_0 = 0; lj1 = 0; lj2 = 0;}
+
+    fene_params(Scalar k, Scalar r_0, Scalar lj1, Scalar lj2) :
+        k(k), r_0(r_0), lj1(lj1), lj2(lj2) {}
+
+    fene_params(pybind11::dict v)
+        {
+        k = v["k"].cast<Scalar>();
+        r_0 = v["r0"].cast<Scalar>();
+        lj1 = v["lj1"].cast<Scalar>();
+        lj2 = v["lj2"].cast<Scalar>();
+        }
+
+    pybind11::dict asDict()
+        {
+        pybind11::dict v;
+        v["r0"] = r_0;
+        v["lj1"] = lj1;
+        v["lj2"] = lj2;
+        v["k"] = k;
+        return v;
+        }
+    #endif
+    }__attribute__((aligned(32)));
+
 //! Class for evaluating the FENE bond potential
 /*! The parameters are:
     - \a K (params.x) Stiffness parameter for the force computation
@@ -38,14 +71,15 @@ class EvaluatorBondFENE
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar4 param_type;
+        typedef fene_params param_type;
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorBondFENE(Scalar _rsq, const param_type& _params)
-            : rsq(_rsq), K(_params.x), r_0(_params.y), lj1(_params.z), lj2(_params.w)
+            : rsq(_rsq), K(_params.k), r_0(_params.r_0),
+              lj1(_params.lj1), lj2(_params.lj2)
             {
             }
 
