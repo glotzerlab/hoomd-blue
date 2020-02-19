@@ -31,8 +31,11 @@ def is_string(value):
 
 class _HelpValidate:
     def __init__(self, preprocess=None, postprocess=None):
-        self._preprocess = lambda x: x if preprocess is None else preprocess
-        self._postprocess = lambda x: x if postprocess is None else postprocess
+        def identity(value):
+            return value
+
+        self._preprocess = identity if preprocess is None else preprocess
+        self._postprocess = identity if postprocess is None else postprocess
 
     def __call__(self, value):
         return self._postprocess(self._validate(self._preprocess(value)))
@@ -66,7 +69,7 @@ class OnlyFrom(_HelpValidate):
             raise ValueError("Value {} not in options: {}".format(value,
                                                                   self.options))
 
-    def __contain__(self, value):
+    def __contains__(self, value):
         return value in self.options
 
     def __str__(self):
@@ -197,9 +200,10 @@ def from_type_converter_input_to_default(default, overwrite_default=None):
         new_default = dict()
         # if overwrite_default exists use those values over default
         if overwrite_default is not None:
-            for key, value in default.items():
-                value = overwrite_default.get(key, value)
-                new_default[key] = from_type_converter_input_to_default(value)
+            for key, dft in default.items():
+                value = overwrite_default.get(key)
+                new_default[key] = from_type_converter_input_to_default(dft,
+                                                                        value)
         else:
             for key, value in default.items():
                 new_default[key] = from_type_converter_input_to_default(value)
