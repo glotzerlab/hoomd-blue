@@ -42,13 +42,17 @@ class _HelpValidate:
 
 
 class OnlyType(_HelpValidate):
-    def __init__(self, type_, preprocess=None, postprocess=None):
+    def __init__(self, type_, strict=False, preprocess=None, postprocess=None):
         super().__init__(preprocess, postprocess)
         self.type = type_
+        self.strict = strict
 
     def _validate(self, value):
         if isinstance(value, self.type):
             return value
+        elif self.strict:
+            raise ValueError("value {} not instance of type {}."
+                             "".format(value, self.type))
         else:
             try:
                 return self.type(value)
@@ -78,14 +82,14 @@ class OnlyFrom(_HelpValidate):
 
 class MultipleOnlyFrom(OnlyFrom):
     def _validate(self, value):
-        if all([v in self for v in value]):
+        if all(v in self for v in value):
             return value
         else:
             raise ValueError("Value {} all not in options: {}".format(
                 value, self.options))
 
     def __str__(self):
-        return "MultipleOnlyFrom[{}]".format(self.options)
+        return "MultipleOnlyFrom{}".format(self.options)
 
 
 class TypeConverter:

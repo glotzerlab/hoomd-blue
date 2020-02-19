@@ -12,7 +12,7 @@ from collections import namedtuple
 from hoomd.filters import All
 from hoomd import _hoomd
 from hoomd.util import dict_flatten, array_to_strings
-from hoomd.typeconverter import MultipleOnlyFrom
+from hoomd.typeconverter import MultipleOnlyFrom, OnlyType
 from hoomd.filters import ParticleFilter
 from hoomd.parameterdicts import ParameterDict
 from hoomd.logger import Logger
@@ -615,7 +615,8 @@ class GSD(_Analyzer):
 
         dynamic = ['property'] if dynamic is None else dynamic
         self._param_dict.update(
-            ParameterDict(filename=str(filename), filter=ParticleFilter,
+            ParameterDict(filename=str(filename),
+                          filter=OnlyType(ParticleFilter, strict=True),
                           overwrite=bool(overwrite), truncate=bool(truncate),
                           dynamic=dynamic_string_validation,
                           explicit_defaults=dict(filter=filter, dynamic=dynamic)
