@@ -315,11 +315,11 @@ class Sphere(_HPMCIntegrator):
 
     Examples::
 
-        mc = hpmc.integrate.sphere(seed=415236, d=0.3)
-        mc.shape_param.set('A', diameter=1.0)
-        mc.shape_param.set('B', diameter=2.0)
-        mc.shape_param.set('C', diameter=1.0, orientable=True)
-        print('diameter = ', mc.shape_param['A'].diameter)
+        mc = hoomd.hpmc.integrate.Sphere(seed=415236, d=0.3, a=0.4)
+        mc.shape["A"] = dict(diameter=1.0)
+        mc.shape["B"] = dict(diameter=2.0)
+        mc.shape["C"] = dict(diameter=1.0, orientable=True)
+        print('diameter = ', mc.shape["A"]["diameter"])
 
     Depletants Example::
 
@@ -396,7 +396,6 @@ class ConvexPolygon(_HPMCIntegrator):
     * *sweep_radius* (**default: 0**) - the radius of the sphere swept around
       the edges of the polygon (distance units). Set a non-zero sweep_radius
       to create a spheropolygon
-    * *len_keys* (**default: 1**) -
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior
@@ -404,12 +403,12 @@ class ConvexPolygon(_HPMCIntegrator):
 
     Examples::
 
-        mc = hpmc.integrate.ConvexPolygon(seed=415236, d=0.3, a=0.4)
-        mc.shape_param.set('A', vertices=[(-0.5, -0.5),
-                                          (0.5, -0.5),
-                                          (0.5, 0.5),
-                                          (-0.5, 0.5)]);
-        print('vertices = ', mc.shape_param['A'].vertices)
+        mc = hoomd.hpmc.integrate.ConvexPolygon(seed=415236, d=0.3, a=0.4)
+        mc.shape["A"] = dict(vertices=[(-0.5, -0.5),
+                                       (0.5, -0.5),
+                                       (0.5, 0.5),
+                                       (-0.5, 0.5)]);
+        print('vertices = ', mc.shape["A"]["vertices"])
 
     """
     _cpp_cls = 'IntegratorHPMCMonoConvexPolygon'
@@ -469,10 +468,9 @@ class ConvexSpheropolygon(_HPMCIntegrator):
           next to an edge).
 
     * *sweep_radius* (**default: 0.0**) - the radius of the sphere swept around
-      the edges of the polygon (distance units) - **optional**
+      the edges of the polygon (distance units)
     * *ignore_statistics* (**default: False**) - set to True to disable ignore
       for statistics tracking
-    * *len_keys* (**default: 1**) -
 
     Useful cases:
 
@@ -485,19 +483,19 @@ class ConvexSpheropolygon(_HPMCIntegrator):
 
     Examples::
 
-        mc = hpmc.integrate.ConvexSpheropolygon(seed=415236, d=0.3, a=0.4)
-        mc.shape_param.set('A',
-                           vertices=[(-0.5, -0.5),
-                                     (0.5, -0.5),
-                                     (0.5, 0.5),
-                                     (-0.5, 0.5)],
-                           sweep_radius=0.1,
-                           ignore_statistics=False);
-        mc.shape_param.set('A',
-                           vertices=[(0,0)],
-                           sweep_radius=0.5,
-                           ignore_statistics=True);
-        print('vertices = ', mc.shape_param['A'].vertices)
+        mc = hoomd.hpmc.integrate.ConvexSpheropolygon(seed=415236, d=0.3, a=0.4)
+        mc.shape["A"] = dict(vertices=[(-0.5, -0.5),
+                                       (0.5, -0.5),
+                                       (0.5, 0.5),
+                                       (-0.5, 0.5)],
+                             sweep_radius=0.1,
+                             ignore_statistics=False);
+
+        mc.shape["A"] = dict(vertices=[(0,0)],
+                             sweep_radius=0.5,
+                             ignore_statistics=True);
+
+        print('vertices = ', mc.shape["A"]["vertices"])
 
     """
 
@@ -567,7 +565,6 @@ class SimplePolygon(_HPMCIntegrator):
     * *sweep_radius* (**default: 0**) - the radius of the sphere swept around
       the edges of the polygon (distance units). Set a non-zero sweep_radius
       to create a spheropolygon.
-    * *len_keys* (**default: 1**) -
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior
@@ -576,11 +573,11 @@ class SimplePolygon(_HPMCIntegrator):
     Examples::
 
         mc = hpmc.integrate.SimplePolygon(seed=415236, d=0.3, a=0.4)
-        mc.shape_param.set('A', vertices=[(0, 0.5),
-                                          (-0.5, -0.5),
-                                          (0, 0),
-                                          (0.5, -0.5)]);
-        print('vertices = ', mc.shape_param['A'].vertices)
+        mc.shape["A"] = dict(vertices=[(0, 0.5),
+                                       (-0.5, -0.5),
+                                       (0, 0),
+                                       (0.5, -0.5)]);
+        print('vertices = ', mc.shape["A"]["vertices"])
 
     """
 
@@ -676,37 +673,35 @@ class Polyhedron(_HPMCIntegrator):
 
         * .. versionadded:: 2.2
 
-    * *len_keys* (**default: 1**) -
-
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior
         will result if they are violated.
 
     Example::
 
-        mc = hpmc.integrate.polyhedron(seed=415236, d=0.3, a=0.4)
-        mc.shape_param.set('A', vertices=[(-0.5, -0.5, -0.5),
-                                          (-0.5, -0.5, 0.5),
-                                          (-0.5, 0.5, -0.5),
-                                          (-0.5, 0.5, 0.5),
-                                          (0.5, -0.5, -0.5),
-                                          (0.5, -0.5, 0.5),
-                                          (0.5, 0.5, -0.5),
-                                          (0.5, 0.5, 0.5)],
-        faces = [[0, 2, 6],
-                 [6, 4, 0],
-                 [5, 0, 4],
-                 [5, 1, 0],
-                 [5, 4, 6],
-                 [5, 6, 7],
-                 [3, 2, 0],
-                 [3, 0, 1],
-                 [3, 6, 2],
-                 [3, 7, 6],
-                 [3, 1, 5],
-                 [3, 5, 7]]
-        print('vertices = ', mc.shape_param['A'].vertices)
-        print('faces = ', mc.shape_param['A'].faces)
+        mc = hpmc.integrate.Polyhedron(seed=415236, d=0.3, a=0.4)
+        mc.shape["A"] = dict(vertices=[(-0.5, -0.5, -0.5),
+                                       (-0.5, -0.5, 0.5),
+                                       (-0.5, 0.5, -0.5),
+                                       (-0.5, 0.5, 0.5),
+                                       (0.5, -0.5, -0.5),
+                                       (0.5, -0.5, 0.5),
+                                       (0.5, 0.5, -0.5),
+                                       (0.5, 0.5, 0.5)],
+                            faces=[[0, 2, 6],
+                                   [6, 4, 0],
+                                   [5, 0, 4],
+                                   [5, 1, 0],
+                                   [5, 4, 6],
+                                   [5, 6, 7],
+                                   [3, 2, 0],
+                                   [3, 0, 1],
+                                   [3, 6, 2],
+                                   [3, 7, 6],
+                                   [3, 1, 5],
+                                   [3, 5, 7]])
+        print('vertices = ', mc.shape["A"]["vertices"])
+        print('faces = ', mc.shape["A"]["faces"])
 
     Depletants Example::
 
@@ -811,7 +806,6 @@ class ConvexPolyhedron(_HPMCIntegrator):
       to create a spheropolyhedron
     * *ignore_statistics* (**default: False**) - set to True to disable ignore
       for statistics tracking
-    * *len_keys* (**default: 1**) -
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior
@@ -820,11 +814,11 @@ class ConvexPolyhedron(_HPMCIntegrator):
     Example::
 
         mc = hpmc.integrate.ConvexPolyhedron(seed=415236, d=0.3, a=0.4)
-        mc.shape_param.set('A', vertices=[(0.5, 0.5, 0.5),
-                                          (0.5, -0.5, -0.5),
-                                          (-0.5, 0.5, -0.5),
-                                          (-0.5, -0.5, 0.5)]);
-        print('vertices = ', mc.shape_param['A'].vertices)
+        mc.shape["A"] = dict(vertices=[(0.5, 0.5, 0.5),
+                                       (0.5, -0.5, -0.5),
+                                       (-0.5, 0.5, -0.5),
+                                       (-0.5, -0.5, 0.5)]);
+        print('vertices = ', mc.shape["A"]["vertices"])
 
     Depletants Example::
 
@@ -912,7 +906,6 @@ class FacetedEllipsoid(_HPMCIntegrator):
     * *origin* (**required**) - origin vector
     * *ignore_statistics* (**default: False**) - set to True to disable ignore
       for statistics tracking
-    * *len_keys* (**default: 1**) -
 
     Warning:
         Planes must not be coplanar.
@@ -942,10 +935,14 @@ class FacetedEllipsoid(_HPMCIntegrator):
                       [1,.5,.5],
                       [1,.5,-.5]]
 
-        mc.shape_param.set('A', normals=slab_normals, offsets=slab_offsets,
-                           vertices=slab_verts, a=1.0, b=0.5, c=0.5);
+        mc.shape["A"] = dict(normals=slab_normals,
+                             offsets=slab_offsets,
+                             vertices=slab_verts,
+                             a=1.0,
+                             b=0.5,
+                             c=0.5);
         print('a = {}, b = {}, c = {}',
-              mc.shape_param['A'].a,mc.shape_param['A'].b,mc.shape_param['A'].c)
+              mc.shape["A"]["a"], mc.shape["A"]["b"], mc.shape["A"]["c"])
 
     Depletants Example::
 
@@ -1023,7 +1020,6 @@ class FacetedSphere(FacetedEllipsoid):
     * *origin* (**required**) - origin vector
     * *ignore_statistics* (**default: False**) - set to True to disable ignore
       for statistics tracking
-    * *len_keys* (**default: 1**) -
 
     Warning:
         Planes must not be coplanar.
@@ -1050,13 +1046,12 @@ class FacetedSphere(FacetedEllipsoid):
                       [.5,-.5,.5],
                       [.5,.5,.5],
                       [.5,.5,-.5]]
-        mc = hpmc.integrate.faceted_sphere(seed=415236, d=0.3, a=0.4)
-        mc.shape_param.set('A',
-                            normals=slab_normals,
-                            offsets=slab_offsets,
-                            vertices=slab_verts,
-                            diameter=1.0);
-        print('diameter = ', mc.shape_param['A'].diameter)
+        mc = hpmc.integrate.FacetedSphere(seed=415236, d=0.3, a=0.4)
+        mc.shape["A"] = dict(normals=slab_normals,
+                             offsets=slab_offsets,
+                             vertices=slab_verts,
+                             diameter=1.0);
+        print('diameter = ', mc.shape["A"]["diameter"])
 
     Depletants Example::
 
@@ -1106,13 +1101,12 @@ class Sphinx(_HPMCIntegrator):
     * *centers* - centers of spheres in local coordinate frame
     * *ignore_statistics* (**default: False**) - set to True to disable ignore
       for statistics tracking
-    * *len_keys* (**default: 1**) -
 
     Quick Example::
 
-        mc = hpmc.integrate.sphinx(seed=415236, d=0.3, a=0.4)
-        mc.shape_param.set('A', centers=[(0,0,0),(1,0,0)], diameters=[1,.25])
-        print('diameters = ', mc.shape_param['A'].diameters)
+        mc = hpmc.integrate.Sphinx(seed=415236, d=0.3, a=0.4)
+        mc.shape["A"] = dict(centers=[(0,0,0),(1,0,0)], diameters=[1,.25])
+        print('diameters = ', mc.shape["A"]["diameters"])
 
     Depletants Example::
 
@@ -1171,10 +1165,9 @@ class ConvexSpheropolyhedron(_HPMCIntegrator):
         - Two vertices and a non-zero radius R define a prolate spherocylinder.
 
     * *sweep_radius* (**default: 0.0**) - the radius of the sphere swept around
-      the edges of the polygon (distance units) - **optional**
+      the edges of the polygon (distance units)
     * *ignore_statistics* (**default: False**) - set to True to disable ignore
       for statistics tracking
-    * *len_keys* (**default: 1**) -
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior
@@ -1183,14 +1176,15 @@ class ConvexSpheropolyhedron(_HPMCIntegrator):
     Example::
 
         mc = hpmc.integrate.ConvexSpheropolyhedron(seed=415236, d=0.3, a=0.4)
-        mc.shape_param['tetrahedron'].set(vertices=[(0.5, 0.5, 0.5),
-                                                    (0.5, -0.5, -0.5),
-                                                    (-0.5, 0.5, -0.5),
-                                                    (-0.5, -0.5, 0.5)]);
-        print('vertices = ', mc.shape_param['A'].vertices)
-        mc.shape_param['SphericalDepletant'].set(vertices=[],
-                                                 sweep_radius=0.1,
-                                                 ignore_statistics=True);
+        mc.shape['tetrahedron'] = dict(vertices=[(0.5, 0.5, 0.5),
+                                                 (0.5, -0.5, -0.5),
+                                                 (-0.5, 0.5, -0.5),
+                                                 (-0.5, -0.5, 0.5)]);
+        print('vertices = ', mc.shape['tetrahedron']["vertices"])
+
+        mc.shape['SphericalDepletant'] = dict(vertices=[],
+                                              sweep_radius=0.1,
+                                              ignore_statistics=True);
 
     Depletants example::
 
@@ -1260,16 +1254,15 @@ class Ellipsoid(_HPMCIntegrator):
       direction) (distance units)
     * *ignore_statistics* (**default: False**) - set to True to disable ignore
       for statistics tracking
-    * *len_keys* (**default: 1**) -
 
     Example::
 
-        mc = hpmc.integrate.ellipsoid(seed=415236, d=0.3, a=0.4)
-        mc.shape_param.set('A', a=0.5, b=0.25, c=0.125);
+        mc = hpmc.integrate.Ellipsoid(seed=415236, d=0.3, a=0.4)
+        mc.shape["A"] = dict(a=0.5, b=0.25, c=0.125);
         print('ellipsoids parameters (a,b,c) = ',
-              mc.shape_param['A'].a,
-              mc.shape_param['A'].b,
-              mc.shape_param['A'].c)
+              mc.shape["A"]["a"],
+              mc.shape["A"]["b"],
+              mc.shape["A"]["c"])
 
     Depletants Example::
 
@@ -1346,7 +1339,6 @@ class SphereUnion(_HPMCIntegrator):
 
     * *ignore_statistics* (**default: False**) - set to True to disable ignore
       for statistics tracking.
-    * *len_keys* (**default: 1**) -
     * *capacity* (**default: 4**) - set to the maximum number of particles per
       leaf node for better performance
 
@@ -1355,13 +1347,17 @@ class SphereUnion(_HPMCIntegrator):
     Example::
 
         mc = hpmc.integrate.SphereUnion(seed=415236, d=0.3, a=0.4)
-        mc.shape_param.set('A',
-                           diameters=[1.0, 1.0],
-                           centers=[(-0.25, 0.0, 0.0),
-                           0.25, 0.0, 0.0)]);
+        sphere1 = dict(diameter=1)
+        sphere2 = dict(diameter=2)
+        mc.shape["A"] = dict(shapes=[sphere1, sphere2],
+                             positions=[(0, 0, 0), (0, 0, 1)],
+                             orientations=[(1, 0, 0, 0), (1, 1, 0, 0)],
+                             overlap=[1, 1],
+                             capacity=4,
+                             ignore_statistics=0)
         print('diameter of the first sphere = ',
-              mc.shape_param['A'].members[0].diameter)
-        print('center of the first sphere = ', mc.shape_param['A'].centers[0])
+              mc.shape["A"]["shapes"][0]["diameter"])
+        print('center of the first sphere = ', mc.shape["A"]["positions"][0])
 
     Depletants Example::
 
@@ -1413,6 +1409,7 @@ class SphereUnion(_HPMCIntegrator):
         """
         return super()._return_type_shapes()
 
+
 class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
     R""" HPMC integration for unions of convex polyhedra (3D).
 
@@ -1446,7 +1443,6 @@ class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
 
     * *ignore_statistics* (**default: False**) - set to True to disable ignore
       for statistics tracking.
-    * *len_keys* (**default: 1**) -
     * *capacity* (**default: 4**) - set to the maximum number of particles per
       leaf node for better performance
 
@@ -1454,7 +1450,9 @@ class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
 
     Example::
 
-        mc = hpmc.integrate.ConvexSpheropolyhedronUnion(seed=27, d=0.3, a=0.4)
+        mc = hoomd.hpmc.integrate.ConvexSpheropolyhedronUnion(seed=27,
+                                                              d=0.3,
+                                                              a=0.4)
         cube_verts = [[-1,-1,-1],
                       [-1,-1,1],
                       [-1,1,1],
@@ -1463,15 +1461,15 @@ class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
                       [1,-1,1],
                       [1,1,1],
                       [1,1,-1]]
-        mc.shape_param.set('A',
-                           vertices=[cube_verts, cube_verts],
-                           centers=[[-1,0,0],[1,0,0]],
-                           orientations=[[1,0,0,0],[1,0,0,0]]);
+        mc.shape["A"] = dict(shapes=[cube_verts, cube_verts],
+                             positions=[(0, 0, 0), (0, 0, 1)],
+                             orientations=[(1, 0, 0, 0), (1, 0, 0, 0)],
+                             overlap=[1, 1]);
         print('vertices of the first cube = ',
-              mc.shape_param['A'].members[0].vertices)
-        print('center of the first cube = ', mc.shape_param['A'].centers[0])
+              mc.shape["A"]["shapes"][0]["vertices"])
+        print('center of the first cube = ', mc.shape["A"]["positions"][0])
         print('orientation of the first cube = ',
-              mc.shape_param['A'].orientations[0])
+              mc.shape_param["A"]["orientations"][0])
     """
 
     _cpp_cls = 'IntegratorHPMCMonoConvexPolyhedronUnion'
@@ -1530,7 +1528,6 @@ class FacetedEllipsoidUnion(_HPMCIntegrator):
       '&' is the bitwise AND operator.
     * *ignore_statistics* (**default: False**) - set to True to disable ignore
       for statistics tracking.
-    * *len_keys* (**default: 1**) -
     * *capacity* (**default: 4**) - set to the maximum number of particles per
       leaf node for better performance
 
@@ -1544,20 +1541,43 @@ class FacetedEllipsoidUnion(_HPMCIntegrator):
         # cut away -x halfspace
         normals = [(-1,0,0)]
         offsets = [0]
+        slab_normals = [(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)]
+        slab_offsets = [-0.1,-1,-.5,-.5,-.5,-.5)
 
-        mc.shape_param.set('A', normals=[normals, normals],
-                                offsets=[offsets, offsets],
-                                vertices=[[], []],
-                                axes=[(.5,.5,2),(.5,.5,2)],
-                                centers=[[0,0,0],[0,0,0]],
-                                orientations=[[1,0,0,0],[0,0,0,-1]]);
+        # polyedron vertices
+        slab_verts = [[-.1,-.5,-.5],
+                      [-.1,-.5,.5],
+                      [-.1,.5,.5],
+                      [-.1,.5,-.5],
+                      [1,-.5,-.5],
+                      [1,-.5,.5],
+                      [1,.5,.5],
+                      [1,.5,-.5]]
+
+        faceted_ellipsoid1 = dict(normals=slab_normals,
+                                  offsets=slab_offsets,
+                                  vertices=slab_verts,
+                                  a=1.0,
+                                  b=0.5,
+                                  c=0.5);
+        faceted_ellipsoid2 = dict(normals=slab_normals,
+                                  offsets=slab_offsets,
+                                  vertices=slab_verts,
+                                  a=0.5,
+                                  b=1,
+                                  c=1);
+
+        mc.shape["A"] = dict(shapes=[faceted_ellipsoid1, faceted_ellipsoid2],
+                             positions=[(0, 0, 0), (0, 0, 1)],
+                             orientations=[(1, 0, 0, 0), (1, 0, 0, 0)],
+                             overlap=[1, 1]);
 
         print('offsets of the first faceted ellipsoid = ',
-              mc.shape_param['A'].members[0].normals)
+              mc.shape["A"]["shapes"][0]["offsets"])
         print('normals of the first faceted ellispoid = ',
-              mc.shape_param['A'].members[0].offsets)
+              mc.shape["A"]["shapes"][0]["normals"])
         print('vertices of the first faceted ellipsoid = ',
-              mc.shape_param['A'].members[0].vertices)
+              mc.shape["A"]["shapes"][0]["vertices"]
     """
 
     _cpp_cls = 'IntegratorHPMCMonoFacetedEllipsoidUnion'
