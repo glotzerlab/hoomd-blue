@@ -44,6 +44,8 @@ class _Bond(_Force):
         # TODO remove string argument
         self._cpp_obj = cpp_cls(simulation.state._cpp_sys_def, "")
 
+        super().attach(simulation)
+
 
 class Harmonic(_Bond):
     R""" Harmonic bond potential.
