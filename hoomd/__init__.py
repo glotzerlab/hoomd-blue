@@ -70,6 +70,23 @@ from hoomd import util
 from hoomd import variant
 from hoomd import lattice
 from hoomd import device
+try:
+    from hoomd import md
+except ImportError:
+    pass
+try:
+    from hoomd import hpmc
+except ImportError:
+    pass
+try:
+    from hoomd import dem
+except ImportError:
+    pass
+# TODO: enable this import after updating MPCD to the new API
+# try:
+#     from hoomd import mpcd
+# except ImportError:
+#     pass
 
 from hoomd.simulation import Simulation
 from hoomd.operations import Operations
