@@ -55,10 +55,13 @@ def dummy_simulation_factory(device):
 
 
 @pytest.fixture(autouse=True)
-def skip_mpi(request, device):
+def skip_mpi(request):
     if request.node.get_closest_marker('serial'):
-        if device.comm.num_ranks > 1:
-            pytest.skip('Test does not support MPI execution')
+        if 'device' in request.fixturenames:
+            if request.getfixturevalue('device').comm.num_ranks > 1:
+                pytest.skip('Test does not support MPI execution')
+        else:
+            raise ValueError('skip_mpi requires the *device* fixture')
 
 
 def pytest_configure(config):
