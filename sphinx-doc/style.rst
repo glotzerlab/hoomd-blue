@@ -25,9 +25,12 @@ Tools
 
 * Linter: `flake8 <http://flake8.pycqa.org/en/latest/>`_ with
   `pep8-naming <https://pypi.org/project/pep8-naming/>`_
-* Autoformatter: `autopep8 <https://pypi.org/project/autopep8/>`_
-* See ``setup.cfg`` for the **flake8** configuration (also used by
-  **autopep8**).
+* Run: ``flake8`` to see a list of linter violations.
+* Autoformatter: `yapf <https://github.com/google/yapf>`_
+* Run: ``yapf -d -r .`` to see needed style changes.
+* Run: ``yapf -i file.py`` to apply style changes to a whole file, or use
+  your IDE to apply **yapf** to a selection.
+
 
 Documentation
 ^^^^^^^^^^^^^
