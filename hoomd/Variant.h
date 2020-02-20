@@ -106,8 +106,7 @@ class PYBIND11_EXPORT VariantRamp : public Variant
             else if (timestep < m_t_start + m_t_ramp)
                 {
                 // interpolate between A and B
-                uint64_t v = timestep - m_t_start;
-                double s = double(v) / double(m_t_ramp);
+                double s = double(timestep - m_t_start) / double(m_t_ramp);
                 return m_B * s + m_A * (1.0 - s);
                 }
             else
@@ -197,9 +196,9 @@ class PYBIND11_EXPORT VariantCycle : public Variant
             @param A The first value.
             @param B The second value.
             @param t_start The starting time step.
-            @param t_A The hold time at the first value.
+            @param t_A The holding time at A.
             @param t_AB The time spent ramping from A to B.
-            @param t_B The hold time at the second value.
+            @param t_B The holding time at B.
             @param t_BA The time spent ramping from B to A.
         */
         VariantCycle(Scalar A,
@@ -257,25 +256,25 @@ class PYBIND11_EXPORT VariantCycle : public Variant
                 }
             }
 
-        /// Set the first value.
+        /// Set A.
         void setA(Scalar A)
             {
             m_A = A;
             }
 
-        /// Get the first value.
+        /// Get A.
         Scalar getA()
             {
             return m_A;
             }
 
-        /// Set the second value.
+        /// Set B.
         void setB(Scalar B)
             {
             m_B = B;
             }
 
-        /// Get the second value.
+        /// Get B.
         Scalar getB()
             {
             return m_B;
@@ -287,19 +286,19 @@ class PYBIND11_EXPORT VariantCycle : public Variant
             m_t_start = t_start;
             }
 
-        /// Get the starting time step
+        /// Get the starting time step.
         uint64_t getTStart()
             {
             return m_t_start;
             }
 
-        /// Set the length of time at A.
+        /// Set the holding time at A.
         void setTA(uint64_t t_A)
             {
             m_t_A = t_A;
             }
 
-        /// Get the length of time at A.
+        /// Get the holding time at A.
         uint64_t getTA()
             {
             return m_t_A;
@@ -322,13 +321,13 @@ class PYBIND11_EXPORT VariantCycle : public Variant
             return m_t_AB;
             }
 
-        /// Set the length of time at B.
+        /// Set the holding time at B.
         void setTB(uint64_t t_B)
             {
             m_t_B = t_B;
             }
 
-        /// Get the length of time at B.
+        /// Get the holding time at B.
         uint64_t getTB()
             {
             return m_t_B;
@@ -361,10 +360,10 @@ class PYBIND11_EXPORT VariantCycle : public Variant
         /// The starting time step.
         uint64_t m_t_start;
 
-        /// The hold time at the first value.
+        /// The holding time at A.
         uint64_t m_t_A;
 
-        /// The hold time at the second value.
+        /// The holding time at B.
         uint64_t m_t_B;
 
         /// The length of the AB ramp.

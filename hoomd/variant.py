@@ -95,9 +95,9 @@ class Cycle(_hoomd.VariantCycle, Variant):
         A (float): The first value.
         B (float): The second value.
         t_start (int): The start time step.
-        t_A (int): The hold time at the first value.
+        t_A (int): The holding time at A.
         t_AB (int): The time spent ramping from A to B.
-        t_B (int): The hold time at the second value.
+        t_B (int): The holding time at B.
         t_BA (int): The time spent ramping from B to A.
     """
     def __init__(self, A, B, t_start, t_A, t_AB, t_B, t_BA):
