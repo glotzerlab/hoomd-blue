@@ -157,7 +157,7 @@ class _Operation(metaclass=Loggable):
         self._apply_typeparam_dict(self._cpp_obj, simulation)
 
         # pass the system communicator to the object
-        if is_MPI_available():
+        if simulation._system_communicator is not None:
             self._cpp_obj.setCommunicator(simulation._system_communicator)
 
     @property
