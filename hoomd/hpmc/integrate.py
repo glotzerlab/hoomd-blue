@@ -301,7 +301,7 @@ class mode_hpmc(_integrator):
             a (float): (if set) Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
             move_ratio (float): (if set) New value for the move ratio.
             nselect (int): (if set) New value for the number of particles to select for trial moves in one cell.
-            ntrial (int): (if set) Number of re-insertion attempts per overlapping depletant (default == 0), or a dict containing {type:ntrial}
+            ntrial (int): (if set) Number of re-insertion attempts per overlapping depletant (default == 0), or a dict containing {(type_a,type_b): ntrial}
             deterministic (bool): (if set) Make HPMC integration deterministic on the GPU by sorting the cell list.
 
         .. note:: Simulations are only deterministic with respect to the same execution configuration (CPU or GPU) and
@@ -339,10 +339,13 @@ class mode_hpmc(_integrator):
         if ntrial is not None:
             if isinstance(ntrial, dict):
                 for t,t_ntrial in ntrial.items():
-                    self.cpp_integrator.setNTrial(int(t_ntrial),hoomd.context.current.system_definition.getParticleData().getTypeByName(t))
+                    type_a = hoomd.context.current.system_definition.getParticleData().getTypeByName(t[0])
+                    type_b = hoomd.context.current.system_definition.getParticleData().getTypeByName(t[1])
+                    self.cpp_integrator.setNTrial(type_a,type_b,int(t_ntrial))
             else:
                 for i in range(hoomd.context.current.system_definition.getParticleData().getNTypes()):
-                    self.cpp_integrator.setNTrial(int(ntrial),i);
+                    for j in range(hoomd.context.current.system_definition.getParticleData().getNTypes()):
+                        self.cpp_integrator.setNTrial(i,j,int(ntrial));
 
         if deterministic is not None:
             self.cpp_integrator.setDeterministic(deterministic);
@@ -530,38 +533,52 @@ class mode_hpmc(_integrator):
         """
         return self.cpp_integrator.getNSelect();
 
-    def set_fugacity(self,type,fugacity):
+    def set_fugacity(self,types,fugacity):
         R""" Set depletant fugacity of a given type
             * .. versionadded:: 3.0
 
         Args:
-            type (str): Type for which fugacity is returned
+            types (str, or tuple): Type or pair (type_a, type_b) for which fugacity is returned
             fugacity (float): Ideal gas density of the depletant, can take any scalar value
 
         """
         cite_depletants()
 
-        return self.cpp_integrator.setDepletantFugacity(hoomd.context.current.system_definition.getParticleData().getTypeByName(type),fugacity)
+        if isinstance(types, str):
+            itype_a = itype_b = hoomd.context.current.system_definition.getParticleData().getTypeByName(types)
+        else:
+            itype_a = hoomd.context.current.system_definition.getParticleData().getTypeByName(types[0])
+            itype_b = hoomd.context.current.system_definition.getParticleData().getTypeByName(types[1])
 
-    def get_fugacity(self,type):
+        self.cpp_integrator.setDepletantFugacity(itype_a, itype_b, fugacity)
+
+    def get_fugacity(self, type_a, type_b=None):
         R""" Get depletant fugacity of a given type
             * .. versionadded:: 3.0
 
         Args:
             type (str): Type for which fugacity is returned
         """
-        return self.cpp_integrator.getDepletantFugacity(hoomd.context.current.system_definition.getParticleData().getTypeByName(type))
+        if type_b is None:
+            type_b = type_a
+        itype_a = hoomd.context.current.system_definition.getParticleData().getTypeByName(type_a)
+        itype_b = hoomd.context.current.system_definition.getParticleData().getTypeByName(type_b)
+        return self.cpp_integrator.getDepletantFugacity(itype_a,itype_b);
 
-    def get_ntrial(self, type=None):
+    def get_ntrial(self, type_a=None, type_b=None):
         R""" Get the number of reinsertion attempts per overlapping depletant
 
         Returns:
             The current value of the 'ntrial' parameter of the integrator
         """
-        if type is None:
-            return self.cpp_integrator.getNTrial(0);
+        if type_a is None and type_b is None:
+            return self.cpp_integrator.getNTrial(0,0);
         else:
-            return self.cpp_integrator.getNTrial(hoomd.context.current.system_definition.getParticleData().getTypeByName(type));
+            if type_b is None:
+                type_b = type_a
+            itype_a = hoomd.context.current.system_definition.getParticleData().getTypeByName(type_a)
+            itype_b = hoomd.context.current.system_definition.getParticleData().getTypeByName(type_b)
+            return self.cpp_integrator.getNTrial(itype_a,itype_b);
 
     def get_insertion_std(self, type=None):
         R""" Get the standard deviation of insertion attempts

@@ -1026,7 +1026,13 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
     // for every depletant type
     for (unsigned int type_d = 0; type_d < this->m_pdata->getNTypes(); ++type_d)
         {
-        if (m_mc->getDepletantFugacity(type_d) != Scalar(0.0))
+        for (unsigned int type_j = 0; type_j < this->m_pdata->getNTypes(); ++type_j)
+            {
+            if (type_j != type_d && m_mc->getDepletantFugacity(type_d,type_j) != 0.0)
+                throw std::runtime_error("Non-additive depletants not supported in update.clusters()\n");
+            }
+
+        if (m_mc->getDepletantFugacity(type_d,type_d) != Scalar(0.0))
             {
             Shape tmp(quat<Scalar>(), params[type_d]);
             Scalar d_dep = tmp.getCircumsphereDiameter();
