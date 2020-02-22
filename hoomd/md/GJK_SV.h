@@ -703,15 +703,11 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
                 }
             }
         }
-    // A compiler bug causes the for loop below to never terminate when
-    // using max_num_points as the upper bound. Defining a new (equivalent)
-    // variable seems to fix it.
-    // THIS WAS NECESSARY IN THE OLD VERSION, MAY NOT BE NOW
-    constexpr unsigned int new_limit = max_num_points;
+
     a = vec3<Scalar>();
     b = vec3<Scalar>();
     unsigned int counter = 0;
-    for (unsigned int i = 0; i < new_limit; i++)
+    for (unsigned int i = 0; i < max_num_points; i++)
         {
         if (W_used & (1 << i))
             {
@@ -720,10 +716,6 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
             counter += 1;
             }
         }
-    // TODO: Can check if the faces are parallel by storing the points found in
-    // the loop above (without multiplying by lambda). These vertices define
-    // the simplex on each shape that supports the point (a or b). We then
-    // simply check if these faces are parallel using standard linear algebra.
 
     overlap = (counter == (max_num_points));
     }
