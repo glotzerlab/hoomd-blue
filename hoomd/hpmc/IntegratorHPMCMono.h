@@ -2565,6 +2565,11 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
             for (unsigned int new_config = 0; new_config < 2; ++new_config)
             #endif
                 {
+                // optimization
+                if (m_ntrial[m_depletant_idx(type_a,type_b)] <=1
+                    && ((repulsive && !new_config) || (!repulsive && new_config)))
+                    continue;
+
                 // chooose the number of depletants in the intersection volume
                 Scalar V = new_config ? V_new_tot : V_old_tot;
                 hoomd::PoissonDistribution<Scalar> poisson(
