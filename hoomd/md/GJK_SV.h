@@ -11,9 +11,17 @@
 #endif
 
 
-// Because I need to be able to index into vec3 numerically,
-// I have to redefine the struct here. However, my version will be
-// much simpler and have only a very limited collection of features.
+/////////////////////////////////////////////
+////////////// BEGIN GJK_VEC3 ///////////////
+/////////////////////////////////////////////
+// The 2-simplex subroutine of the Signed Volumes subalgorithm requires
+// projecting the face of interest onto one of the coordinate axes (choosing
+// the one that minimizes precision loss). In practice, this projection is done
+// by simply ignoring one of the components of the vectors. Since this is far
+// more easily and efficiently accomplished by indexing into the vector (rather
+// than creating lots of branch divergence using the .x, .y, and .z attributes
+// of normal vec3s), I've defined a new vec3 here. This version is limited to
+// only the operations that are actually used in the GJK algorithm.
 
 //! Array-based 3 element vector
 /*! \tparam Real Data type of the components
@@ -178,7 +186,9 @@ HOSTDEVICE inline bool operator ==(const gjk_vec3<Real>& a, const gjk_vec3<Real>
     return (a.arr[0] == b.arr[0]) && (a.arr[1] == b.arr[1]) && (a.arr[2] == b.arr[2]);
     }
 
-// End gjk_vec3
+/////////////////////////////////////////////
+/////////////// END GJK_VEC3 ///////////////
+/////////////////////////////////////////////
 
 // Renamed to support to avoid conflicts with GJK.h when compiling into a single object with Cython.
 HOSTDEVICE inline unsigned int support(const ManagedArray<vec3<Scalar> > &verts, const vec3<Scalar> &vector, const quat<Scalar> &q, const vec3<Scalar> shift)
@@ -199,6 +209,11 @@ HOSTDEVICE inline unsigned int support(const ManagedArray<vec3<Scalar> > &verts,
     }
 
 
+//! Returns 1 if a and b have the same sign, and zero otherwise.
+/*! The compareSigns function is used to implement the signed hyperplane checks
+ *  that are used by the Signed Volumes subalgorithm to discard various Voronoi
+ *  regions from consideration as containing the closest point to the origin.
+ */
 HOSTDEVICE inline unsigned int compareSigns(Scalar a, Scalar b)
 {
     // Maybe there's a faster way to deal with this set of operations?
@@ -206,6 +221,11 @@ HOSTDEVICE inline unsigned int compareSigns(Scalar a, Scalar b)
 }
 
 
+//! Find the point of minimum norm in a 1-simplex (an edge).
+/*! \param W The set of (at most ndim+1) vectors making up the current simplex. The size of W is constant, but not all vectors are active at any given time.
+ *  \param W_used A set of bit flags used to indicate which elements of W are actually participating in defining the current simplex (updated in place by the subalgorithm).
+ *  \param lambdas The multipliers (that will be overwritten in place) that indicate what linear combination of W represents the point of minimum norm.
+ */
 template <unsigned int ndim>
 HOSTDEVICE inline void s1d(gjk_vec3<Scalar>* W, unsigned int &W_used, Scalar* lambdas)
 {
@@ -277,6 +297,11 @@ HOSTDEVICE inline void s1d(gjk_vec3<Scalar>* W, unsigned int &W_used, Scalar* la
 }
 
 
+//! Find the point of minimum norm in a 2-simplex (a face).
+/*! \param W The set of (at most ndim+1) vectors making up the current simplex. The size of W is constant, but not all vectors are active at any given time.
+ *  \param W_used A set of bit flags used to indicate which elements of W are actually participating in defining the current simplex (updated in place by the subalgorithm).
+ *  \param lambdas The multipliers (that will be overwritten in place) that indicate what linear combination of W represents the point of minimum norm.
+ */
 template <unsigned int ndim>
 HOSTDEVICE inline void s2d(gjk_vec3<Scalar>* W, unsigned int &W_used, Scalar* lambdas)
 {
@@ -440,9 +465,11 @@ HOSTDEVICE inline void s2d(gjk_vec3<Scalar>* W, unsigned int &W_used, Scalar* la
 }
 
 
-// TODO: Rewrite the parent subalgorithm function separately for 2d and 3d.
-// That will avoid the extra if check for 2d (probably premature optimization,
-// but may help clean the code's usage of a template parameter for s3d.
+//! Find the point of minimum norm in a 3-simplex (a volume, i.e. a tetrahedron).
+/*! \param W The set of (at most ndim+1) vectors making up the current simplex. The size of W is constant, but not all vectors are active at any given time.
+ *  \param W_used A set of bit flags used to indicate which elements of W are actually participating in defining the current simplex (updated in place by the subalgorithm).
+ *  \param lambdas The multipliers (that will be overwritten in place) that indicate what linear combination of W represents the point of minimum norm.
+ */
 HOSTDEVICE inline void s3d(gjk_vec3<Scalar>* W, unsigned int &W_used, Scalar* lambdas)
 {
     // This function is always called with 4 points, so a constant is defined
@@ -542,6 +569,25 @@ HOSTDEVICE inline void s3d(gjk_vec3<Scalar>* W, unsigned int &W_used, Scalar* la
 }
 
 
+// TODO: Rewrite the subalgorithm function separately for 2d and 3d.
+// That will avoid the extra if check for 2d (probably premature optimization,
+// but may help clean the code's usage of a template parameter for s3d.
+//! The Signed Volumes subalgorithm for finding minimal spanning convex sets.
+/*! The Signed Volumes subalgorithm (described in Montanari, M., Petrinic, N.,
+ *  & Barbieri, E. (2017). Improving the GJK algorithm for faster and more
+ *  reliable distance queries between convex objects. ACM Transactions on
+ *  Graphics (TOG), 36(3), 1-17, DOI: 10.1145/3083724) is a robust procedure
+ *  for finding the point of minimum norm in a convex set as a linear
+ *  combination of the extremal points of that set. The algorithm takes a
+ *  convex simplex and solves a linear system of equations for the closest
+ *  point to the origin. Since the algorithm is specifically designed for 3
+ *  dimensional queries, this function dispatches to three separate subroutines
+ *  that handle the different dimensionalities explicitly.
+ *
+ *  \param W The set of (at most ndim+1) vectors making up the current simplex. The size of W is constant, but not all vectors are active at any given time.
+ *  \param W_used A set of bit flags used to indicate which elements of W are actually participating in defining the current simplex (updated in place by the subalgorithm).
+ *  \param lambdas The multipliers (that will be overwritten in place) that indicate what linear combination of W represents the point of minimum norm.
+ */
 template <unsigned int ndim>
 HOSTDEVICE inline void sv_subalgorithm(gjk_vec3<Scalar>* W, unsigned int &W_used, Scalar* lambdas)
 {
@@ -585,6 +631,114 @@ HOSTDEVICE inline void sv_subalgorithm(gjk_vec3<Scalar>* W, unsigned int &W_used
 }
 
 
+//! Apply the GJK algorithm to find the vector between the closest points on two sets of shapes.
+/*! This function implements the Gilbert-Johnson-Keerthi distance algorithm for
+ *  finding the minimum distance between two convex sets. The purpose of this
+ *  function is to be used in concert with the EvaluatorPairALJI class for
+ *  computing the force and energy between two anisotropic bodies. This paper
+ *  uses information from two papers:
+ *      1. Gino Van den Bergen (1999) A Fast and Robust GJK Implementation for
+ *         Collision Detection of Convex Objects, Journal of Graphics Tools,
+ *         4:2, 7-25, DOI: 10.1080/10867651.1999.10487502.
+ *      2. Montanari, M., Petrinic, N., & Barbieri, E. (2017). Improving the
+ *         GJK algorithm for faster and more reliable distance queries between
+ *         convex objects. ACM Transactions on Graphics (TOG), 36(3), 1-17,
+ *         DOI: 10.1145/3083724.
+ *
+ *  The standard GJK algorithm is a descent algorithm for finding the minimum
+ *  distance between two convex sets. The core insight of the algorithm is that
+ *  this query can be performed in the configuration space of the Minkowski
+ *  difference body of the two sets. The algorithm takes the Minkowski
+ *  difference (more precisely, the Minkowski sum A-B) of two convex sets and
+ *  performs a search to see if the origin is contained in the difference (this
+ *  difference is also known as the translational configuration space obstacle,
+ *  or TCSO, in this context).  If the origin is contained in the TCSO, the
+ *  same point is encompassed by both shapes, so they must be overlapping. If
+ *  not, the point on the TCSO closest to the origin corresponds to the vector
+ *  of minimum norm connecting the two sets.
+ *
+ *  In order to determine whether the origin is contained in the TCSO, the
+ *  algorithm iteratively constructs simplices that are composed of points on
+ *  the TCSO until one is found that contains the origin. In the case of
+ *  nonoverlapping shapes, the algorithm ultimately constructs a simplex of the
+ *  TCSO containing the closest point to the origin. The termination condition
+ *  in this case relies on maintaining a lower bound of this distance that is
+ *  based on the distance from the origin to the closest hyperplane. For
+ *  efficiency in overlap checks, it is notable that this lower bound provides
+ *  an immediate indication if two shapes are nonoverlapping if at any point a
+ *  separating axis is found (i.e. a hyperplane with positive distance). To
+ *  actually find the distance between two shapes, the algorithm proceeds until
+ *  the vector distance between the two shapes is within some tolerance of the
+ *  estimated lower bound.
+ *
+ *  The GJK algorithm relies on support mappings, which provide a way to find
+ *  the furthest point from the center of a given convex set in a specified
+ *  direction. Crucially, the support function for the Minkowski sum of two
+ *  convex shapes is the sum of the support functions of each shape, so knowing
+ *  the support functions for the underlying shapes immediately allows
+ *  evaluation of the support function of the difference body. Since the
+ *  support function of the difference body is all that is needed to construct
+ *  simplices at each GJK iteration, at each iteration the GJK algorithm
+ *  requires only minimal geometric information. The use of support mappings
+ *  eschews the need for any explicit mathematical descriptions of the two sets
+ *  and obviates the need for constructing the full difference body between the
+ *  two convex sets. As a result, GJK is more generally applicable than other
+ *  related algorithms, which are typically designed specially for polytopes or
+ *  other classes of shapes.
+ *
+ *  A critical component of the algorithm is the determination of a minimal
+ *  simplex.  The support function is used to define a new candidate point for
+ *  inclusion in the minimal simplex at each iteration, and then the resulting
+ *  simplex is reduced to a minimal set such that the closest point to the
+ *  origin is contained in the span of that set. Constructing this minimal
+ *  simplex essentially involves solving a (possibly overdetermined) system of
+ *  linear equations to find the point closest to the origin. The classic
+ *  solution to this, the Johnson subalgorithm, uses Cramer's rule to solve
+ *  this system.  Although normally inefficient, in this case Cramer's rule is
+ *  optimal because at each iteration only one new vertex is added to the
+ *  simplex, so most of the minors computed in Cramer's rule are already known.
+ *  However, in certain nearly degenerate cases the Johnson subalgorithm can
+ *  fail to return the correct result. In this case, the original solution has
+ *  always been to follow a backup procedure that amounts to a brute force
+ *  search through all possible simplices. 
+ *
+ *  The backup procedure is quite expensive, so in principle we would like to
+ *  use the Johnson algorithm alone. Bergen et al assert that in practice the
+ *  difference between the best result of the Johnson algorithm and the output
+ *  of the backup procedure are nearly equivalent with the appropriate
+ *  termination conditions imposed to avoid instabilities. In practice, we have
+ *  found this to be true. However, for our purposes we require more
+ *  information than the original GJK algorithm provides. Since our use-case is
+ *  to compute forces and torques in EvaluatorPairALJ, we also need information
+ *  on the points in the original convex sets that correspond to the minimum
+ *  distance vector in the TCSO. Although the GJK algorithm can easily be
+ *  augmented to provide this information, we find that for this usage the
+ *  Johnson algorithm falls short. While the distances it provides remain close
+ *  to optimal, the exact points it finds can deviate substantially from the
+ *  correct ones in nearly degenerate cases, such as when faces are nearly
+ *  parallel. The result of this is that while forces can still be calculated
+ *  nearly correctly, torques can be completely incorrect, and in fact may even
+ *  point in the wrong direction.
+ *
+ *  To ameliorate this problem, we instead use the Signed Volumes subalgorithm
+ *  described by Montenari et al. This algorithm resolves the issues with the
+ *  Johnson algorithm in all tested cases. Moreover, the Johnson algorithm is
+ *  quite memory intensive because it requires caching all support function
+ *  evaluations and cofactors required for Cramer's rule. As a result, we find
+ *  that the Signed Volumes subalgorithm performs better than the Johnson
+ *  algorithm (even without the backup procedure) when run on modern GPUs.
+ *
+ *  \param verts1 The vertices of the first body.
+ *  \param verts2 The vertices of the second body.
+ *  \param v Reference to vec3 that will be overwritten with the vector joining the closest intersecting points on the two bodies (CRITICAL NOTE: The direction of the vector is from verts2 to verts1).
+ *  \param a Reference to vec3 that will be overwritten with the vector from the origin (in the frame defined by verts1) to the point on the body represented by verts1 that is closest to verts2.
+ *  \param b Reference to vec3 that will be overwritten with the vector from the origin (in the frame defined by verts2) to the point on the body represented by verts2 that is closest to verts1.
+ *  \param success Reference to bool that will be overwritten with whether or not the algorithm terminated in the maximum number of allowed iterations (verts1.size + verts2.size + 1).
+ *  \param overlap Reference to bool that will be overwritten with whether or not an overlap was detected.
+ *  \param qi The orientation of the first shape (will be applied to verts1).
+ *  \param qj The orientation of the first shape (will be applied to verts2).
+ *  \param dr The vector pointing from the position of particle 2 to the position of particle 1 (note the sign; this is reversed throughout most of the calculations below).
+ */
 template <unsigned int ndim>
 HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const ManagedArray<vec3<Scalar> > &verts2, vec3<Scalar> &v, vec3<Scalar> &a, vec3<Scalar> &b, bool& success, bool& overlap, const quat<Scalar> &qi, const quat<Scalar> &qj, const vec3<Scalar> &dr)
     {
