@@ -428,9 +428,6 @@ typename ShapeUnion<Shape>::param_type make_union_params(pybind11::list _members
     // extract member parameters, positions, and orientations and compute the radius along the way
     OverlapReal diameter = OverlapReal(0.0);
 
-    // compute a tight fitting AABB in the body frame
-    detail::AABB local_aabb(vec3<OverlapReal>(0,0,0),OverlapReal(0.0));
-
     for (unsigned int i = 0; i < result.N; i++)
         {
         typename Shape::param_type param = pybind11::cast<typename Shape::param_type>(_members[i]);
@@ -463,9 +460,6 @@ typename ShapeUnion<Shape>::param_type make_union_params(pybind11::list _members
             }
 
         obbs[i].mask = result.moverlap[i];
-
-        detail::AABB my_aabb = dummy.getAABB(pos);
-        local_aabb = merge(local_aabb, my_aabb);
         }
 
     // set the diameter
@@ -477,10 +471,6 @@ typename ShapeUnion<Shape>::param_type make_union_params(pybind11::list _members
     tree.buildTree(obbs, result.N, leaf_capacity, false);
     delete [] obbs;
     result.tree = gpu_tree_type(tree,exec_conf->isCUDAEnabled());
-
-    // store local AABB
-    result.lower = local_aabb.getLower();
-    result.upper = local_aabb.getUpper();
 
     return result;
     }

@@ -435,9 +435,6 @@ class IntegratorHPMCMono : public IntegratorHPMC
         std::vector<hpmc_implicit_counters_t> m_implicit_count_run_start;     //!< Counter of depletant insertions at run start
         std::vector<hpmc_implicit_counters_t> m_implicit_count_step_start;    //!< Counter of depletant insertions at step start
 
-        bool m_quermass;                                         //!< True if quermass integration mode is enabled
-        Scalar m_sweep_radius;                                   //!< Radius of sphere to sweep shapes by
-
         //! Test whether to reject the current particle move based on depletants
         inline bool checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i,
             Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps,
@@ -478,9 +475,7 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
               m_image_list_is_initialized(false),
               m_image_list_valid(false),
               m_hasOrientation(true),
-              m_extra_image_width(0.0),
-              m_quermass(false),
-              m_sweep_radius(0.0)
+              m_extra_image_width(0.0)
     {
     // allocate the parameter storage
     m_params = std::vector<param_type, managed_allocator<param_type> >(m_pdata->getNTypes(), param_type(), managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
@@ -1895,7 +1890,7 @@ void IntegratorHPMCMono<Shape>::updateCellWidth()
 
     // extend the image list by the depletant diameter, since we're querying
     // AABBs that are larger than the shape diameters themselves
-    this->m_extra_image_width = m_quermass ? 2.0*m_sweep_radius : max_d;
+    this->m_extra_image_width = max_d;
 
     this->m_nominal_width += this->m_extra_image_width;
 
