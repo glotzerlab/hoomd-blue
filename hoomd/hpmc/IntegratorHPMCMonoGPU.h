@@ -1193,7 +1193,7 @@ void IntegratorHPMCMonoGPU< Shape >::updateCellWidth()
                 Shape shape_k(quat<Scalar>(), this->m_params[k_type]);
 
                 // get OBB and extend by depletant radius
-                detail::OBB obb = shape_j.getOBB(vec3<Scalar>(0,0,0));
+                detail::OBB obb = shape_k.getOBB(vec3<Scalar>(0,0,0));
                 obb.lengths.x += 0.5*range;
                 obb.lengths.y += 0.5*range;
                 if (this->m_sysdef->getNDimensions() == 3)

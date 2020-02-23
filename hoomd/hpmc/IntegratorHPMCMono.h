@@ -2856,7 +2856,6 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                                 }
                             }
 
-
                         if ((overlap_i_other_a || !overlap_i_a) && (overlap_i_other_b || !overlap_i_b))
                             {
                             // overlap still exists in other configuration
