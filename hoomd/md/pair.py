@@ -2902,21 +2902,21 @@ class alj(ai_pair):
         # initialize the base class
         ai_pair.__init__(self, r_cut, nlist, name);
 
-        if hoomd.context.current.system_definition.getNDimensions() == 2:
-            cls = _md.AnisoPotentialPairALJ2D
-            cls_gpu = _md.AnisoPotentialPairALJ2DGPU
-        else:
-            cls = _md.AnisoPotentialPairALJ3D
-            cls_gpu = _md.AnisoPotentialPairALJ3DGPU
-
-        # create the c++ mirror class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = cls(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = cls;
+            if hoomd.context.current.system_definition.getNDimensions() == 2:
+                cls = _md.AnisoPotentialPairALJ2D
+            else:
+                cls = _md.AnisoPotentialPairALJ3D
         else:
             self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-            self.cpp_force = cls_gpu(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = cls_gpu;
+            if hoomd.context.current.system_definition.getNDimensions() == 2:
+                cls = _md.AnisoPotentialPairALJ2DGPU
+            else:
+                cls = _md.AnisoPotentialPairALJ3DGPU
+
+        # create the c++ mirror class
+        self.cpp_force = cls(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+        self.cpp_class = cls;
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
@@ -2935,6 +2935,7 @@ class alj(ai_pair):
 
     def _set_cpp_shape(self, type_id, type_name):
         # Ensure that shape parameters are always 3D lists, even in 2D.
+        # TODO: Ensure that the centroid is contained in the shape.
         shape = self.shape[type_name]
         if hoomd.context.current.system_definition.getNDimensions() == 2:
             shape = [[v[0], v[1], 0] for v in shape]
