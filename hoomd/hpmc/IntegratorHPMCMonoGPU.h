@@ -822,7 +822,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     this->m_exec_conf->beginMultiGPU();
                     for (unsigned int itype = 0; itype < this->m_pdata->getNTypes(); ++itype)
                         {
-                        for (unsigned int jtype = 0; jtype <= itype; ++jtype)
+                        for (unsigned int jtype = itype; jtype < this->m_pdata->getNTypes(); ++jtype)
                             {
                             if (this->m_fugacity[this->m_depletant_idx(itype,jtype)] == 0)
                                 continue;

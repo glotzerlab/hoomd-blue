@@ -746,7 +746,7 @@ void IntegratorHPMCMono<Shape>::printStats()
     // supply additional statistics
     for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
         {
-        for (unsigned int j = 0; j <= i; ++j)
+        for (unsigned int j = i; j < this->m_pdata->getNTypes(); ++j)
             {
             if (m_fugacity[m_depletant_idx(i,j)] != 0.0)
                 {
@@ -760,12 +760,12 @@ void IntegratorHPMCMono<Shape>::printStats()
     double var = double(total_insert_accept_count)-double(total_insert_accept_count_sq)/double(total_insert_count);
     var /= double(total_insert_count);
 
-    this->m_exec_conf->msg->notice(2) << "Reinsertion standard dev per depletant:   "
+    this->m_exec_conf->msg->notice(2) << "Insertion standard dev per depletant:     "
         << sqrt(var) << std::endl;
 
     for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
         {
-        for (unsigned int j = 0; j <= i; ++j)
+        for (unsigned int j = i; j < this->m_pdata->getNTypes(); ++j)
             {
             if (m_fugacity[m_depletant_idx(i,j)] != 0.0)
                 {
@@ -2336,13 +2336,13 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
     #endif
         {
         #ifdef ENABLE_TBB
-        tbb::parallel_for(tbb::blocked_range<unsigned int>(0, type_a+1),
+        tbb::parallel_for(tbb::blocked_range<unsigned int>(type_a, this->m_pdata->getNTypes()),
             [=, &shape_old, &shape_i,
                 &thread_deltaF, &accept,
                 &thread_counters, &thread_implicit_counters](const tbb::blocked_range<unsigned int>& w) {
         for (unsigned int type_b = w.begin(); type_b != w.end(); ++type_b)
         #else
-        for (unsigned int type_b = 0; type_b <= type_a; ++type_b)
+        for (unsigned int type_b = type_a; type_b < this->m_pdata->getNTypes(); ++type_b)
         #endif
             {
             if (m_fugacity[m_depletant_idx(type_a,type_b)] == 0.0
