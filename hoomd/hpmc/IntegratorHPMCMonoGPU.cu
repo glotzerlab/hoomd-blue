@@ -282,7 +282,7 @@ __global__ void hpmc_accept(const unsigned int *d_update_order_by_ptl,
 
         // Metropolis-Hastings
         hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::HPMCMonoAccept, seed, i, select, timestep);
-        bool accept = !s_reject[group] && (!patch || (hoomd::detail::generate_canonical<double>(rng_i) <= slow::exp(-delta_U)));
+        bool accept = !s_reject[group] && (!patch || (hoomd::detail::generate_canonical<double>(rng_i) < slow::exp(-delta_U)));
 
         if ((accept && d_reject[i]) || (!accept && !d_reject[i]))
             {
