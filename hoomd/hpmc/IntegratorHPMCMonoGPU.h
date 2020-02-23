@@ -278,7 +278,21 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
             }
         }
     m_tuner_narrow.reset(new Autotuner(valid_params, 5, 100000, "hpmc_narrow", this->m_exec_conf));
-    m_tuner_depletants.reset(new Autotuner(valid_params, 5, 100000, "hpmc_depletants", this->m_exec_conf));
+
+    // tuning parameters for depletants
+    std::vector<unsigned int> valid_params_depletants;
+    for (unsigned int block_size = dev_prop.warpSize; block_size <= (unsigned int) dev_prop.maxThreadsPerBlock; block_size += dev_prop.warpSize)
+        {
+        for (unsigned int group_size=1; group_size <= narrow_phase_max_tpp; group_size*=2)
+            {
+            for (unsigned int depletants_per_group=1; depletants_per_group <= 32; depletants_per_group*=2)
+                {
+                if ((block_size % group_size) == 0)
+                    valid_params_depletants.push_back(block_size*1000000 + depletants_per_group*10000 + group_size);
+                }
+            }
+        }
+    m_tuner_depletants.reset(new Autotuner(valid_params_depletants, 5, 100000, "hpmc_depletants", this->m_exec_conf));
 
     // initialize memory
     GlobalArray<Scalar4>(1,this->m_exec_conf).swap(m_trial_postype);
@@ -879,7 +893,8 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                             // insert depletants on-the-fly
                             m_tuner_depletants->begin();
                             unsigned int param = m_tuner_depletants->getParam();
-                            args.block_size = param/10000;
+                            args.block_size = param/1000000;
+                            unsigned int depletants_per_group = (param % 1000000)/10000;
                             args.tpp = param%10000;
 
                             gpu::hpmc_implicit_args_t implicit_args(
@@ -892,6 +907,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                                 this->m_fugacity[this->m_depletant_idx(itype,jtype)] < 0,
                                 d_n_depletants.data,
                                 &max_n_depletants[0],
+                                depletants_per_group,
                                 &m_depletant_streams[this->m_depletant_idx(itype,jtype)].front()
                                 );
                             gpu::hpmc_insert_depletants<Shape>(args, implicit_args, params.data());

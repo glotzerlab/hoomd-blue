@@ -160,6 +160,7 @@ struct hpmc_implicit_args_t
                          const bool _repulsive,
                          const unsigned int *_d_n_depletants,
                          const unsigned int *_max_n_depletants,
+                         const unsigned int _depletants_per_group,
                          const hipStream_t *_streams)
                 : depletant_type_a(_depletant_type_a),
                   depletant_type_b(_depletant_type_b),
@@ -170,6 +171,7 @@ struct hpmc_implicit_args_t
                   repulsive(_repulsive),
                   d_n_depletants(_d_n_depletants),
                   max_n_depletants(_max_n_depletants),
+                  depletants_per_group(_depletants_per_group),
                   streams(_streams)
         { };
 
@@ -182,6 +184,7 @@ struct hpmc_implicit_args_t
     const bool repulsive;                          //!< True if the fugacity is negative
     const unsigned int *d_n_depletants;            //!< Number of depletants per particle
     const unsigned int *max_n_depletants;          //!< Maximum number of depletants inserted per particle, per device
+    const unsigned int depletants_per_group;       //!< Controls parallelism (number of depletant loop iterations per group)
     const hipStream_t *streams;                    //!< Stream for this depletant type
     };
 
@@ -1743,7 +1746,9 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
         if (range.first == range.second)
             continue;
 
-        unsigned int blocks_per_particle = implicit_args.max_n_depletants[idev]/n_groups + 1;
+        unsigned int blocks_per_particle = implicit_args.max_n_depletants[idev] /
+            (implicit_args.depletants_per_group*n_groups) + 1;
+
         dim3 grid( range.second-range.first, blocks_per_particle, 1);
 
         if (blocks_per_particle > args.devprop.maxGridSize[1])
