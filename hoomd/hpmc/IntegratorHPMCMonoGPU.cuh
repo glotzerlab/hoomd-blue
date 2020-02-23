@@ -1028,8 +1028,8 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                     && test_overlap(r_ij, shape_test_b, shape_i, err_count));
                 }
 
-            bool add_to_queue = (!repulsive && !((!overlap_old_a || overlap_new_a) && (!overlap_old_b || overlap_new_b))) ||
-                (repulsive && !((overlap_old_a || !overlap_new_a) && (overlap_old_b || !overlap_new_b)));
+            bool add_to_queue = (!repulsive && ((overlap_old_a && !overlap_new_a) || (overlap_old_b && !overlap_new_b))) ||
+                (repulsive && ((overlap_new_a && !overlap_old_a) || (overlap_new_b && !overlap_old_b)));
 
             if (add_to_queue)
                 {
