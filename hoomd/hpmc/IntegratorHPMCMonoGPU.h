@@ -358,18 +358,21 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
 
     // Depletants
     unsigned int ntypes = this->m_pdata->getNTypes();
-    GlobalArray<Scalar> lambda(ntypes*ntypes, this->m_exec_conf);
+    GlobalArray<Scalar> lambda(ntypes*this->m_depletant_idx.getNumElements(), this->m_exec_conf);
     m_lambda.swap(lambda);
     TAG_ALLOCATION(m_lambda);
 
-    m_depletant_streams.resize(this->m_pdata->getNTypes());
+    m_depletant_streams.resize(this->m_depletant_idx.getNumElements());
     for (unsigned int itype = 0; itype < this->m_pdata->getNTypes(); ++itype)
         {
-        m_depletant_streams[itype].resize(this->m_exec_conf->getNumActiveGPUs());
-        for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
+        for (unsigned int jtype = 0; jtype < this->m_pdata->getNTypes(); ++jtype)
             {
-            hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
-            hipStreamCreate(&m_depletant_streams[itype][idev]);
+            m_depletant_streams[this->m_depletant_idx(itype,jtype)].resize(this->m_exec_conf->getNumActiveGPUs());
+            for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
+                {
+                hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
+                hipStreamCreate(&m_depletant_streams[this->m_depletant_idx(itype,jtype)][idev]);
+                }
             }
         }
 
@@ -819,30 +822,35 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     this->m_exec_conf->beginMultiGPU();
                     for (unsigned int itype = 0; itype < this->m_pdata->getNTypes(); ++itype)
                         {
-                        if (this->m_fugacity[itype] == 0)
-                            continue;
+                        for (unsigned int jtype = 0; jtype <= itype; ++jtype)
+                            {
+                            if (this->m_fugacity[this->m_depletant_idx(itype,jtype)] == 0)
+                                continue;
 
-                        // insert depletants on-the-fly
-                        m_tuner_depletants->begin();
-                        unsigned int param = m_tuner_depletants->getParam();
-                        args.block_size = param/10000;
-                        args.tpp = param%10000;
+                            // insert depletants on-the-fly
+                            m_tuner_depletants->begin();
+                            unsigned int param = m_tuner_depletants->getParam();
+                            args.block_size = param/10000;
+                            args.tpp = param%10000;
 
-                        gpu::hpmc_implicit_args_t implicit_args(itype,
-                            ngpu > 1 ? d_implicit_counters_per_device.data : d_implicit_count.data,
-                            m_implicit_counters.getPitch(),
-                            d_lambda.data,
-                            this->m_fugacity[itype] < 0,
-                            &m_depletant_streams[itype].front()
-                            );
-                        gpu::hpmc_insert_depletants<Shape>(args, implicit_args, params.data());
-                        if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-                            CHECK_CUDA_ERROR();
-                        m_tuner_depletants->end();
+                            gpu::hpmc_implicit_args_t implicit_args(
+                                itype,
+                                jtype,
+                                this->m_depletant_idx,
+                                ngpu > 1 ? d_implicit_counters_per_device.data : d_implicit_count.data,
+                                m_implicit_counters.getPitch(),
+                                d_lambda.data,
+                                this->m_fugacity[this->m_depletant_idx(itype,jtype)] < 0,
+                                &m_depletant_streams[this->m_depletant_idx(itype,jtype)].front()
+                                );
+                            gpu::hpmc_insert_depletants<Shape>(args, implicit_args, params.data());
+                            if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                                CHECK_CUDA_ERROR();
+                            m_tuner_depletants->end();
+                            }
                         }
                     this->m_exec_conf->endMultiGPU();
                     } // end ArrayHandle scope
-
                 reallocate = checkReallocate();
                 } while (reallocate);
 
@@ -944,7 +952,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
 
             for (unsigned int idev = 0; idev < ngpu; ++idev)
                 {
-                for (unsigned int itype = 0; itype < this->m_pdata->getNTypes(); ++itype)
+                for (unsigned int itype = 0; itype < this->m_depletant_idx.getNumElements(); ++itype)
                     h_implicit_count_total.data[itype] = h_implicit_count_total.data[itype] + h_implicit_counters_per_device.data[itype+idev*m_implicit_counters.getPitch()];
                 }
             }
@@ -1078,6 +1086,9 @@ void IntegratorHPMCMonoGPU< Shape >::slotNumTypesChange()
     {
     unsigned int old_ntypes = this->m_params.size();
 
+    // call base class method
+    IntegratorHPMCMono<Shape>::slotNumTypesChange();
+
     // skip the reallocation if the number of types does not change
     // this keeps shape parameters when restoring a snapshot
     // it will result in invalid coefficients if the snapshot has a different type id -> name mapping
@@ -1086,11 +1097,11 @@ void IntegratorHPMCMonoGPU< Shape >::slotNumTypesChange()
         unsigned int ntypes = this->m_pdata->getNTypes();
 
         // resize array
-        GlobalArray<Scalar> lambda(ntypes*ntypes, this->m_exec_conf);
+        GlobalArray<Scalar> lambda(ntypes*this->m_depletant_idx.getNumElements(), this->m_exec_conf);
         m_lambda.swap(lambda);
         TAG_ALLOCATION(m_lambda);
 
-        // ntypes counters per GPU, separated by at least a memory page
+        // ntypes*ntypes counters per GPU, separated by at least a memory page
         unsigned int pitch = (getpagesize() + sizeof(hpmc_implicit_counters_t)-1)/sizeof(hpmc_implicit_counters_t);
         GlobalArray<hpmc_implicit_counters_t>(std::max(pitch, this->m_implicit_count.getNumElements()),
             this->m_exec_conf->getNumActiveGPUs(), this->m_exec_conf).swap(m_implicit_counters);
@@ -1105,20 +1116,31 @@ void IntegratorHPMCMonoGPU< Shape >::slotNumTypesChange()
             }
         #endif
 
-        m_depletant_streams.resize(ntypes);
-        for (unsigned int itype = old_ntypes; itype < ntypes; ++itype)
+        // destroy old streams
+        for (auto s: m_depletant_streams)
             {
-            m_depletant_streams[itype].resize(this->m_exec_conf->getNumActiveGPUs());
             for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
                 {
                 hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
-                hipStreamCreate(&m_depletant_streams[itype][idev]);
+                hipStreamDestroy(s[idev]);
+                }
+            }
+
+        // create new ones
+        m_depletant_streams.resize(this->m_depletant_idx.getNumElements());
+        for (unsigned int itype = 0; itype < this->m_pdata->getNTypes(); ++itype)
+            {
+            for (unsigned int jtype = 0; jtype < this->m_pdata->getNTypes(); ++jtype)
+                {
+                m_depletant_streams[this->m_depletant_idx(itype,jtype)].resize(this->m_exec_conf->getNumActiveGPUs());
+                for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
+                    {
+                    hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
+                    hipStreamCreate(&m_depletant_streams[this->m_depletant_idx(itype,jtype)][idev]);
+                    }
                 }
             }
         }
-
-    // call base class method
-    IntegratorHPMCMono<Shape>::slotNumTypesChange();
     }
 
 template< class Shape >
@@ -1148,36 +1170,41 @@ void IntegratorHPMCMonoGPU< Shape >::updateCellWidth()
 
     // reinitialize poisson means array
     ArrayHandle<Scalar> h_lambda(m_lambda, access_location::host, access_mode::overwrite);
-    Index2D typpair_idx(this->m_pdata->getNTypes());
 
     // reset to zero
-    std::fill(h_lambda.data, h_lambda.data + typpair_idx.getNumElements(), 0.0);
+    std::fill(h_lambda.data, h_lambda.data + this->m_pdata->getNTypes()*this->m_depletant_idx.getNumElements(), 0.0);
 
     for (unsigned int i_type = 0; i_type < this->m_pdata->getNTypes(); ++i_type)
         {
         Shape shape_i(quat<Scalar>(), this->m_params[i_type]);
         Scalar d_i(shape_i.getCircumsphereDiameter());
-        Scalar range = d_i;
-
-        if (this->m_fugacity[i_type] == 0.0)
-            continue;
 
         for (unsigned int j_type = 0; j_type < this->m_pdata->getNTypes(); ++j_type)
             {
-            // parameter for Poisson distribution
             Shape shape_j(quat<Scalar>(), this->m_params[j_type]);
+            Scalar d_j(shape_j.getCircumsphereDiameter());
 
-            // get OBB and extend by depletant radius
-            detail::OBB obb = shape_j.getOBB(vec3<Scalar>(0,0,0));
-            obb.lengths.x += 0.5*range;
-            obb.lengths.y += 0.5*range;
-            if (this->m_sysdef->getNDimensions() == 3)
-                obb.lengths.z += 0.5*range;
-            else
-                obb.lengths.z = 0.5; // unit length
+            // we use the larger of the two diameters for insertion
+            Scalar range = std::max(d_i,d_j);
 
-            Scalar lambda = std::abs(this->m_fugacity[i_type]*obb.getVolume());
-            h_lambda.data[typpair_idx(i_type,j_type)] = lambda;
+            for (unsigned int k_type = 0; k_type < this->m_pdata->getNTypes(); ++k_type)
+                {
+                // parameter for Poisson distribution
+                Shape shape_k(quat<Scalar>(), this->m_params[k_type]);
+
+                // get OBB and extend by depletant radius
+                detail::OBB obb = shape_j.getOBB(vec3<Scalar>(0,0,0));
+                obb.lengths.x += 0.5*range;
+                obb.lengths.y += 0.5*range;
+                if (this->m_sysdef->getNDimensions() == 3)
+                    obb.lengths.z += 0.5*range;
+                else
+                    obb.lengths.z = 0.5; // unit length
+
+                Scalar lambda = std::abs(this->m_fugacity[this->m_depletant_idx(i_type,j_type)]*obb.getVolume());
+                h_lambda.data[k_type*this->m_depletant_idx.getNumElements()+
+                    this->m_depletant_idx(i_type,j_type)] = lambda;
+                }
             }
         }
     }

@@ -151,13 +151,17 @@ struct hpmc_args_t
 struct hpmc_implicit_args_t
     {
     //! Construct a hpmc_implicit_args_t
-    hpmc_implicit_args_t(const unsigned int _depletant_type,
+    hpmc_implicit_args_t(const unsigned int _depletant_type_a,
+                         const unsigned int _depletant_type_b,
+                         const Index2D _depletant_idx,
                          hpmc_implicit_counters_t *_d_implicit_count,
                          const unsigned int _implicit_counters_pitch,
                          const Scalar *_d_lambda,
                          const bool _repulsive,
                          const hipStream_t *_streams)
-                : depletant_type(_depletant_type),
+                : depletant_type_a(_depletant_type_a),
+                  depletant_type_b(_depletant_type_b),
+                  depletant_idx(_depletant_idx),
                   d_implicit_count(_d_implicit_count),
                   implicit_counters_pitch(_implicit_counters_pitch),
                   d_lambda(_d_lambda),
@@ -165,7 +169,9 @@ struct hpmc_implicit_args_t
                   streams(_streams)
         { };
 
-    const unsigned int depletant_type;             //!< Particle type of depletant
+    const unsigned int depletant_type_a;           //!< Particle type of first depletant
+    const unsigned int depletant_type_b;           //!< Particle type of second depletant
+    const Index2D depletant_idx;                   //!< type pair indexer
     hpmc_implicit_counters_t *d_implicit_count;    //!< Active cell acceptance/rejection counts
     const unsigned int implicit_counters_pitch;    //!< Pitch of 2D array counters per device
     const Scalar *d_lambda;                        //!< Mean number of depletants to insert in excluded volume
@@ -777,7 +783,9 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                                      const typename Shape::param_type *d_params,
                                      unsigned int max_queue_size,
                                      unsigned int max_extra_bytes,
-                                     unsigned int depletant_type,
+                                     unsigned int depletant_type_a,
+                                     unsigned int depletant_type_b,
+                                     const Index2D depletant_idx,
                                      hpmc_implicit_counters_t *d_implicit_counters,
                                      const Scalar *d_lambda,
                                      unsigned int *d_nneigh,
@@ -886,9 +894,11 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
     __syncthreads();
 
     // generate random number of depletants from Poisson distribution
-    hoomd::RandomGenerator rng_poisson(hoomd::RNGIdentifier::HPMCDepletantNum, i, seed, timestep, select*num_types + depletant_type);
+    hoomd::RandomGenerator rng_poisson(hoomd::RNGIdentifier::HPMCDepletantNum, i, seed, timestep,
+        select*depletant_idx.getNumElements() + depletant_idx(depletant_type_a,depletant_type_b));
     Index2D typpair_idx(num_types);
-    unsigned int n_depletants = hoomd::PoissonDistribution<Scalar>(d_lambda[typpair_idx(depletant_type,s_type_i)])(rng_poisson);
+    unsigned int n_depletants = hoomd::PoissonDistribution<Scalar>(d_lambda[s_type_i*depletant_idx.getNumElements()+
+        depletant_idx(depletant_type_a,depletant_type_b)])(rng_poisson);
 
     unsigned int overlap_checks = 0;
     unsigned int n_inserted = 0;
@@ -903,12 +913,18 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
         obb_i = shape_i.getOBB(repulsive ? vec3<Scalar>(s_pos_i_new) : vec3<Scalar>(s_pos_i_old));
 
         // extend by depletant radius
-        Shape shape_test(quat<Scalar>(), s_params[depletant_type]);
-        Scalar r_dep(0.5*shape_test.getCircumsphereDiameter());
-        Scalar range = r_dep;
-        obb_i.lengths.x += range;
-        obb_i.lengths.y += range;
-        obb_i.lengths.z += range;
+        Shape shape_test_a(quat<Scalar>(), s_params[depletant_type_a]);
+        Shape shape_test_b(quat<Scalar>(), s_params[depletant_type_b]);
+
+        Scalar r = 0.5*detail::max(shape_test_a.getCircumsphereDiameter(),
+            shape_test_b.getCircumsphereDiameter());
+        obb_i.lengths.x += r;
+        obb_i.lengths.y += r;
+
+        if (dim == 3)
+            obb_i.lengths.z += r;
+        else
+            obb_i.lengths.z = OverlapReal(0.5);
         }
 
     s_depletant_queue_size = 0;
@@ -923,7 +939,9 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
         while (s_depletant_queue_size < max_depletant_queue_size && i_dep < n_depletants)
             {
             // one RNG per depletant
-            hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCDepletants, seed+i, i_dep, select*num_types + depletant_type, timestep);
+            hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCDepletants, seed+i, i_dep,
+                select*depletant_idx.getNumElements() + depletant_idx(depletant_type_a,depletant_type_b),
+                timestep);
 
             n_inserted++;
             overlap_checks += 2;
@@ -931,27 +949,52 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
             // test depletant position and orientation
             vec3<Scalar> pos_test = vec3<Scalar>(generatePositionInOBB(rng, obb_i, dim));
 
-            Shape shape_test(quat<Scalar>(), s_params[depletant_type]);
-            if (shape_test.hasOrientation())
+            Shape shape_test_a(quat<Scalar>(), s_params[depletant_type_a]);
+            Shape shape_test_b(quat<Scalar>(), s_params[depletant_type_b]);
+            quat<Scalar> o;
+            if (shape_test_a.hasOrientation() || shape_test_b.hasOrientation())
                 {
-                shape_test.orientation = generateRandomOrientation(rng,dim);
+                o = generateRandomOrientation(rng,dim);
                 }
+            if (shape_test_a.hasOrientation())
+                shape_test_a.orientation = o;
+            if (shape_test_b.hasOrientation())
+                shape_test_b.orientation = o;
 
             Shape shape_i(quat<Scalar>(), s_params[s_type_i]);
             if (shape_i.hasOrientation())
                 shape_i.orientation = quat<Scalar>(s_orientation_i_old);
             vec3<Scalar> r_ij = vec3<Scalar>(s_pos_i_old) - pos_test;
-            bool overlap_old = (s_check_overlaps[overlap_idx(s_type_i, depletant_type)]
-                && check_circumsphere_overlap(r_ij, shape_test, shape_i)
-                && test_overlap(r_ij, shape_test, shape_i, err_count));
+            bool overlap_old_a = (s_check_overlaps[overlap_idx(s_type_i, depletant_type_a)]
+                && check_circumsphere_overlap(r_ij, shape_test_a, shape_i)
+                && test_overlap(r_ij, shape_test_a, shape_i, err_count));
+
+            bool overlap_old_b = overlap_old_a;
+            if (depletant_type_a != depletant_type_b)
+                {
+                overlap_old_b = (s_check_overlaps[overlap_idx(s_type_i, depletant_type_b)]
+                    && check_circumsphere_overlap(r_ij, shape_test_b, shape_i)
+                    && test_overlap(r_ij, shape_test_b, shape_i, err_count));
+                }
 
             if (shape_i.hasOrientation())
                 shape_i.orientation = quat<Scalar>(s_orientation_i_new);
             r_ij = vec3<Scalar>(s_pos_i_new) - pos_test;
-            bool overlap_new = (s_check_overlaps[overlap_idx(s_type_i, depletant_type)]
-                && check_circumsphere_overlap(r_ij, shape_test, shape_i)
-                && test_overlap(r_ij, shape_test, shape_i, err_count));
-            bool add_to_queue = (!repulsive && overlap_old && !overlap_new) || (repulsive && !overlap_old && overlap_new);
+            bool overlap_new_a = (s_check_overlaps[overlap_idx(s_type_i, depletant_type_a)]
+                && check_circumsphere_overlap(r_ij, shape_test_a, shape_i)
+                && test_overlap(r_ij, shape_test_a, shape_i, err_count));
+
+            bool overlap_new_b = overlap_new_a;
+
+            if (depletant_type_a != depletant_type_b)
+                {
+                overlap_new_b = (s_check_overlaps[overlap_idx(s_type_i, depletant_type_b)]
+                    && check_circumsphere_overlap(r_ij, shape_test_b, shape_i)
+                    && test_overlap(r_ij, shape_test_b, shape_i, err_count));
+                }
+
+            bool add_to_queue = !(!repulsive && ((!overlap_old_a || overlap_new_a) && (!overlap_old_b || overlap_new_b)))
+                && !(repulsive && ((overlap_old_a || !overlap_new_a) && (overlap_old_b || !overlap_new_b)));
 
             if (add_to_queue)
                 {
@@ -996,21 +1039,25 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
             // regenerate depletant using seed from queue, this costs a few flops but is probably
             // better than storing one Scalar4 and a Scalar3 per thread in shared mem
             unsigned int i_dep_queue = s_queue_didx[group];
-            hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCDepletants, seed+i, i_dep_queue, select*num_types + depletant_type, timestep);
+            hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCDepletants, seed+i, i_dep_queue,
+                select*depletant_idx.getNumElements() + depletant_idx(depletant_type_a,depletant_type_b),
+                timestep);
 
             // depletant position and orientation
             vec3<Scalar> pos_test = vec3<Scalar>(generatePositionInOBB(rng, obb_i, dim));
-            Shape shape_test(quat<Scalar>(), s_params[depletant_type]);
-            if (shape_test.hasOrientation())
+            Shape shape_test_a(quat<Scalar>(), s_params[depletant_type_a]);
+            Shape shape_test_b(quat<Scalar>(), s_params[depletant_type_b]);
+            quat<Scalar> o;
+            if (shape_test_a.hasOrientation() || shape_test_b.hasOrientation())
                 {
-                shape_test.orientation = generateRandomOrientation(rng,dim);
+                o = generateRandomOrientation(rng,dim);
                 }
 
             // store them per group
             if (master)
                 {
                 s_pos_group[group] = vec_to_scalar3(pos_test);
-                s_orientation_group[group] = quat_to_scalar4(shape_test.orientation);
+                s_orientation_group[group] = quat_to_scalar4(o);
                 }
             }
 
@@ -1070,15 +1117,23 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
 
                     // load test particle configuration from shared mem
                     vec3<Scalar> pos_test(s_pos_group[group]);
-                    Shape shape_test(quat<Scalar>(s_orientation_group[group]), s_params[depletant_type]);
+                    Shape shape_test_a(quat<Scalar>(s_orientation_group[group]), s_params[depletant_type_a]);
+                    Shape shape_test_b(quat<Scalar>(s_orientation_group[group]), s_params[depletant_type_b]);
 
                     // put particle j into the coordinate system of particle i
                     r_jk = vec3<Scalar>(postype_j) - vec3<Scalar>(pos_test);
                     r_jk = vec3<Scalar>(box.minImage(vec_to_scalar3(r_jk)));
 
-                    bool insert_in_queue = s_check_overlaps[overlap_idx(depletant_type, type_j)]
-                            && i != j && (old || j < N_new)
-                            && check_circumsphere_overlap(r_jk, shape_test, shape_j);
+                    bool insert_in_queue = i != j && (old || j < N_new);
+
+                    bool circumsphere_overlap = s_check_overlaps[overlap_idx(depletant_type_a, type_j)] &&
+                        check_circumsphere_overlap(r_jk, shape_test_a, shape_j);
+
+                    circumsphere_overlap |= (depletant_type_a != depletant_type_b) &&
+                        s_check_overlaps[overlap_idx(depletant_type_b, type_j)] &&
+                        check_circumsphere_overlap(r_jk, shape_test_b, shape_j);
+
+                    insert_in_queue &= circumsphere_overlap;
 
                     if (insert_in_queue)
                         {
@@ -1126,7 +1181,8 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
 
                 // build depletant shape from shared memory
                 Scalar3 pos_test = s_pos_group[check_group];
-                Shape shape_test(quat<Scalar>(s_orientation_group[check_group]), s_params[depletant_type]);
+                Shape shape_test_a(quat<Scalar>(s_orientation_group[check_group]), s_params[depletant_type_a]);
+                Shape shape_test_b(quat<Scalar>(s_orientation_group[check_group]), s_params[depletant_type_b]);
 
                 // build shape j from global memory
                 postype_j = check_old ? d_postype[check_j] : d_trial_postype[check_j];
@@ -1140,8 +1196,60 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                 r_jk = vec3<Scalar>(postype_j) - vec3<Scalar>(pos_test);
                 r_jk = vec3<Scalar>(box.minImage(vec_to_scalar3(r_jk)));
 
-                bool insert_in_nlist = test_overlap(r_jk, shape_test, shape_j, err_count);
-                if (insert_in_nlist)
+                bool overlap_j_a = test_overlap(r_jk, shape_test_a, shape_j, err_count);
+                bool overlap_j_b = overlap_j_a;
+                bool overlap_i_a = true;
+                bool overlap_i_b = true;
+                bool overlap_i_other_a = false;
+                bool overlap_i_other_b = false;
+
+                if (depletant_type_a != depletant_type_b)
+                    {
+                    overlap_j_b = test_overlap(r_jk, shape_test_b, shape_j, err_count);
+
+                    if (overlap_j_b)
+                        {
+                        // check depletant a against i
+                        Shape shape_i(quat<Scalar>(), s_params[s_type_i]);
+                        if (shape_i.hasOrientation())
+                            shape_i.orientation = quat<Scalar>(repulsive ? s_orientation_i_new : s_orientation_i_old);
+                        vec3<Scalar> r_ik = vec3<Scalar>(pos_test) - vec3<Scalar>(repulsive ? s_pos_i_new : s_pos_i_old);
+                        overlap_i_a = (s_check_overlaps[overlap_idx(s_type_i, depletant_type_a)]
+                            && check_circumsphere_overlap(r_ik, shape_i, shape_test_a)
+                            && test_overlap(r_ik, shape_i, shape_test_a, err_count));
+
+                        Shape shape_i_other(quat<Scalar>(), s_params[s_type_i]);
+                        if (shape_i_other.hasOrientation())
+                            shape_i_other.orientation = quat<Scalar>(!repulsive ? s_orientation_i_new : s_orientation_i_old);
+                        r_ik = vec3<Scalar>(pos_test) - vec3<Scalar>(!repulsive ? s_pos_i_new : s_pos_i_old);
+                        overlap_i_other_a = (s_check_overlaps[overlap_idx(s_type_i, depletant_type_a)]
+                            && check_circumsphere_overlap(r_ik, shape_i_other, shape_test_a)
+                            && test_overlap(r_ik, shape_i_other, shape_test_a, err_count));
+                        }
+
+                    if (overlap_j_a)
+                        {
+                        // check depletant b against i
+                        Shape shape_i(quat<Scalar>(), s_params[s_type_i]);
+                        if (shape_i.hasOrientation())
+                            shape_i.orientation = quat<Scalar>(repulsive ? s_orientation_i_new : s_orientation_i_old);
+                        vec3<Scalar> r_ik = vec3<Scalar>(pos_test) - vec3<Scalar>(repulsive ? s_pos_i_new : s_pos_i_old);
+                        overlap_i_b = (s_check_overlaps[overlap_idx(s_type_i, depletant_type_b)]
+                            && check_circumsphere_overlap(r_ik, shape_i, shape_test_b)
+                            && test_overlap(r_ik, shape_i, shape_test_b, err_count));
+
+                        Shape shape_i_other(quat<Scalar>(), s_params[s_type_i]);
+                        if (shape_i_other.hasOrientation())
+                            shape_i_other.orientation = quat<Scalar>(!repulsive ? s_orientation_i_new : s_orientation_i_old);
+                        r_ik = vec3<Scalar>(pos_test) - vec3<Scalar>(!repulsive ? s_pos_i_new : s_pos_i_old);
+                        overlap_i_other_b = (s_check_overlaps[overlap_idx(s_type_i, depletant_type_b)]
+                            && check_circumsphere_overlap(r_ik, shape_i_other, shape_test_b)
+                            && test_overlap(r_ik, shape_i_other, shape_test_b, err_count));
+                        }
+                    }
+
+                if ((overlap_i_a && !overlap_i_other_a && overlap_j_b && !(overlap_i_other_b && overlap_j_a)) ||
+                    (overlap_i_b && !overlap_i_other_b && overlap_j_a && !(overlap_i_other_a && overlap_j_b)))
                     {
                     // write out to global memory
                     unsigned int n = atomicAdd(&d_nneigh[i], 1);
@@ -1206,9 +1314,11 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
 
         // increment number of inserted depletants
         #if (__CUDA_ARCH__ >= 600)
-        atomicAdd_system(&d_implicit_counters[depletant_type].insert_count, n_depletants);
+        atomicAdd_system(&d_implicit_counters[depletant_idx(depletant_type_a,
+            depletant_type_b)].insert_count, n_depletants);
         #else
-        atomicAdd(&d_implicit_counters[depletant_type].insert_count, n_depletants);
+        atomicAdd(&d_implicit_counters[depletant_idx(depletant_type_a,
+            depletant_type_b)].insert_count, n_depletants);
         #endif
         }
     }
@@ -1628,7 +1738,9 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
                                                                      params,
                                                                      max_queue_size,
                                                                      max_extra_bytes,
-                                                                     implicit_args.depletant_type,
+                                                                     implicit_args.depletant_type_a,
+                                                                     implicit_args.depletant_type_b,
+                                                                     implicit_args.depletant_idx,
                                                                      implicit_args.d_implicit_count + idev*implicit_args.implicit_counters_pitch,
                                                                      implicit_args.d_lambda,
                                                                      args.d_nneigh,

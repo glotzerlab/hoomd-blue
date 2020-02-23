@@ -2680,11 +2680,16 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                             }
 
                         Shape shape_test_a(quat<Scalar>(), this->m_params[type_a]);
-                        if (shape_test_a.hasOrientation())
+                        Shape shape_test_b(quat<Scalar>(), this->m_params[type_b]);
+                        quat<Scalar> o;
+                        if (shape_test_a.hasOrientation() || shape_test_b.hasOrientation())
                             {
-                            shape_test_a.orientation = generateRandomOrientation(my_rng, ndim);
+                            o = generateRandomOrientation(my_rng, ndim);
                             }
-                        Shape shape_test_b(shape_test_a.orientation, this->m_params[type_b]);
+                        if (shape_test_a.hasOrientation())
+                            shape_test_a.orientation = o;
+                        if (shape_test_b.hasOrientation())
+                            shape_test_b.orientation = o;
 
                         // check if depletant falls in other intersection volumes
                         bool active = true;
@@ -2857,9 +2862,9 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                             }
 
 
-                        if ((overlap_i_other_a && overlap_i_a) || (overlap_i_other_b && overlap_i_b))
+                        if ((overlap_i_other_a || !overlap_i_a) && (overlap_i_other_b || !overlap_i_b))
                             {
-                            // we have already sampled that region
+                            // overlap still exists in other configuration
                             continue;
                             }
 
@@ -2905,7 +2910,8 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                                 }
 
                             // additive depletants
-                            if ((overlap_i_a && overlap_j_b) || (overlap_i_b && overlap_j_a))
+                            if ((overlap_i_a && !overlap_i_other_a && overlap_j_b && !(overlap_i_other_b && overlap_j_a)) ||
+                                (overlap_i_b && !overlap_i_other_b && overlap_j_a && !(overlap_i_other_a && overlap_j_b)))
                                 {
                                 in_intersection_volume = true;
                                 }
