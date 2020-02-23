@@ -135,9 +135,18 @@ struct OBB
         rotation = q * rotation;
         }
 
-    DEVICE OverlapReal getVolume() const
+    DEVICE OverlapReal getVolume(unsigned int dim=3) const
         {
-        return OverlapReal(8.0)*lengths.x*lengths.y*lengths.z;
+        if (dim == 3)
+            {
+            return is_sphere ? OverlapReal(4./3.*M_PI)*lengths.x*lengths.x*lengths.x :
+                OverlapReal(8.0)*lengths.x*lengths.y*lengths.z;
+            }
+        else
+            {
+            return is_sphere ? OverlapReal(M_PI)*lengths.x*lengths.x :
+                OverlapReal(8.0)*lengths.x*lengths.y;
+            }
         }
 
      //! tightly fit an AABB to the OBB

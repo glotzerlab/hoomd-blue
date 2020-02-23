@@ -1268,7 +1268,8 @@ void IntegratorHPMCMonoGPU< Shape >::updateCellWidth()
                 else
                     obb.lengths.z = 0.5; // unit length
 
-                Scalar lambda = std::abs(this->m_fugacity[this->m_depletant_idx(i_type,j_type)]*obb.getVolume());
+                Scalar lambda = std::abs(this->m_fugacity[this->m_depletant_idx(i_type,j_type)]*
+                    obb.getVolume(this->m_sysdef->getNDimensions()));
                 h_lambda.data[k_type*this->m_depletant_idx.getNumElements()+
                     this->m_depletant_idx(i_type,j_type)] = lambda;
                 }
