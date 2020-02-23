@@ -38,7 +38,7 @@ namespace detail
         return ::min(a,b);
         #else
         #ifndef __HIPCC__
-        return std::max(a,b);
+        return std::min(a,b);
         #else
         return (a < b) ? a : b;
         #endif
