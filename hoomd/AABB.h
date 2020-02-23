@@ -274,11 +274,7 @@ AABB
 
         #endif
         }
-    }
-#ifndef __HIPCC__
-__attribute__((aligned(32)))
-#endif
-;
+    } __attribute__((aligned(32)));
 
 //! Check if two AABBs overlap
 /*! \param a First AABB
