@@ -244,7 +244,7 @@ struct ShapeUnion
             }
         else
             {
-            return detail::OBB(pos, members.diameter);
+            return detail::OBB(pos, OverlapReal(0.5)*members.diameter);
             }
         }
 

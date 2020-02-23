@@ -1238,9 +1238,6 @@ void IntegratorHPMCMonoGPU< Shape >::updateCellWidth()
     // reinitialize poisson means array
     ArrayHandle<Scalar> h_lambda(m_lambda, access_location::host, access_mode::overwrite);
 
-    // reset to zero
-    std::fill(h_lambda.data, h_lambda.data + this->m_pdata->getNTypes()*this->m_depletant_idx.getNumElements(), 0.0);
-
     for (unsigned int i_type = 0; i_type < this->m_pdata->getNTypes(); ++i_type)
         {
         Shape shape_i(quat<Scalar>(), this->m_params[i_type]);
