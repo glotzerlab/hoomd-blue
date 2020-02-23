@@ -972,6 +972,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
             bool overlap_old_b = overlap_old_a;
             if (depletant_type_a != depletant_type_b)
                 {
+                overlap_checks++;
                 overlap_old_b = (s_check_overlaps[overlap_idx(s_type_i, depletant_type_b)]
                     && check_circumsphere_overlap(r_ij, shape_test_b, shape_i)
                     && test_overlap(r_ij, shape_test_b, shape_i, err_count));
@@ -988,13 +989,14 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
 
             if (depletant_type_a != depletant_type_b)
                 {
+                overlap_checks++;
                 overlap_new_b = (s_check_overlaps[overlap_idx(s_type_i, depletant_type_b)]
                     && check_circumsphere_overlap(r_ij, shape_test_b, shape_i)
                     && test_overlap(r_ij, shape_test_b, shape_i, err_count));
                 }
 
-            bool add_to_queue = !(!repulsive && ((!overlap_old_a || overlap_new_a) && (!overlap_old_b || overlap_new_b)))
-                && !(repulsive && ((overlap_old_a || !overlap_new_a) && (overlap_old_b || !overlap_new_b)));
+            bool add_to_queue = (!repulsive && !((!overlap_old_a || overlap_new_a) && (!overlap_old_b || overlap_new_b))) ||
+                (repulsive && !((overlap_old_a || !overlap_new_a) && (overlap_old_b || !overlap_new_b)));
 
             if (add_to_queue)
                 {
