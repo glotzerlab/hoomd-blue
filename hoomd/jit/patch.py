@@ -250,10 +250,7 @@ float eval(const vec3<float>& r_ij,
 
         Args:
             code (str): C++ code to compile
-            clang_exec (str): The Clang executable to use
-            fn (str): If provided, the code will be written to a file.
-            array_size_iso (int): Size of array with adjustable elements for the isotropic part. (added in version 2.8)
-            array_size_union (int): Size of array with adjustable elements for unions of shapes. (added in version 2.8)
+            union (bool): If true, compile code for use with `patch.user_union()`
 
         .. versionadded:: 3.0
         '''
