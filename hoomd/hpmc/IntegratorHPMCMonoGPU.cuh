@@ -1283,8 +1283,8 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                         }
                     }
 
-                if ((overlap_i_a && !overlap_i_other_a && overlap_j_b && !(overlap_i_other_b && overlap_j_a)) ||
-                    (overlap_i_b && !overlap_i_other_b && overlap_j_a && !(overlap_i_other_a && overlap_j_b)))
+                if (((overlap_i_a && overlap_j_b) || (overlap_i_b && overlap_j_a)) &&
+                    !(overlap_i_other_b && overlap_j_a) && !(overlap_i_other_a && overlap_j_b))
                     {
                     // write out to global memory
                     unsigned int n = atomicAdd(&d_nneigh[i], 1);
