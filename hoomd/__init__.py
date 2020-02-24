@@ -90,6 +90,7 @@ except ImportError:
 
 from hoomd.simulation import Simulation
 from hoomd.operations import Operations
+from hoomd.snapshot import Snapshot
 from hoomd.logger import Logger
 
 from hoomd._hoomd import WalltimeLimitReached;
