@@ -22,8 +22,10 @@
 #ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
 
+#ifdef ENABLE_ROCTRACER
 #ifdef __HIP_PLATFORM_HCC__
 #include <roctracer/roctracer_ext.h>
+#endif
 #endif
 
 #endif
@@ -169,7 +171,11 @@ struct PYBIND11_EXPORT ExecutionConfiguration
             #ifdef __HIP_PLATFORM_NVCC__
             hipProfilerStart();
             #elif defined(__HIP_PLATFORM_HCC__)
+            #ifdef ENABLE_ROCTRACER
             roctracer_start();
+            #else
+            msg->warning() << "ROCtracer not enabled, profile start/stop not available" << std::endl;
+            #endif
             #endif
             }
         }
@@ -183,7 +189,11 @@ struct PYBIND11_EXPORT ExecutionConfiguration
             #ifdef __HIP_PLATFORM_NVCC__
             hipProfilerStop();
             #elif defined(__HIP_PLATFORM_HCC__)
+            #ifdef ENABLE_ROCTRACER
             roctracer_stop();
+            #else
+            msg->warning() << "ROCtracer not enabled, profile start/stop not available" << std::endl;
+            #endif
             #endif
             }
         }

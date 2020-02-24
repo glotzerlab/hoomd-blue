@@ -213,7 +213,6 @@ if (HIP_PLATFORM STREQUAL "hip-clang" OR HIP_PLATFORM STREQUAL "hcc")
         INTERFACE_INCLUDE_DIRECTORIES "${HIP_roctracer_INCLUDE_DIR};${HIP_roctracer_INCLUDE_DIR}"
         )
     endif()
-    list(APPEND REQUIRED_CUDA_LIB_VARS HIP_roctracer_LIBRARY)
 endif()
 
 

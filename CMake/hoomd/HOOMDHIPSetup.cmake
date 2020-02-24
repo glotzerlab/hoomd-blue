@@ -78,6 +78,8 @@ int main(int argc, char **argv)
             /opt/rocm/include
             NO_DEFAULT_PATH)
 
+	option(ENABLE_ROCTRACER "Enable roctracer profiler integration" off)
+
         list(APPEND HIP_INCLUDE_DIR ${ROCm_hsa_INCLUDE_DIR})
     else()
         # here we go if hipcc is not available, fall back on internal HIP->CUDA headers
