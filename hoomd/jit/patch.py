@@ -450,7 +450,7 @@ class user_union(user):
         Args:
             type (str): The type to set the interactions for
             positions (list): The positions of the constituent particles (list of vectors)
-            orientations (lsit): The orientations of the constituent particles (list of four-vectors)
+            orientations (list): The orientations of the constituent particles (list of four-vectors)
             diameters (list): The diameters of the constituent particles (list of floats)
             charges (list): The charges of the constituent particles (list of floats)
             leaf_capacity (int): The number of particles in a leaf of the internal tree data structure
