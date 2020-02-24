@@ -132,7 +132,6 @@ __global__ void hpmc_accept(const unsigned int *d_update_order_by_ptl,
                  const float *d_energy_new,
                  const unsigned int maxn_patch,
                  unsigned int *d_condition,
-                 unsigned int check_value,
                  const unsigned int seed,
                  const unsigned int select,
                  const unsigned int timestep)
@@ -287,7 +286,7 @@ __global__ void hpmc_accept(const unsigned int *d_update_order_by_ptl,
         if ((accept && d_reject[i]) || (!accept && !d_reject[i]))
             {
             // flag that we're not done yet
-            atomicMax(d_condition, check_value);
+            atomicAdd(d_condition,1);
             }
 
         // write out to device memory
@@ -388,7 +387,6 @@ void hpmc_accept(const unsigned int *d_update_order_by_ptl,
                  const float *d_energy_new,
                  const unsigned int maxn_patch,
                  unsigned int **d_condition,
-                 unsigned int check_value,
                  const unsigned int seed,
                  const unsigned int select,
                  const unsigned int timestep,
@@ -446,7 +444,6 @@ void hpmc_accept(const unsigned int *d_update_order_by_ptl,
             d_energy_new,
             maxn_patch,
             d_condition[idev],
-            check_value,
             seed,
             select,
             timestep);

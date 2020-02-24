@@ -221,7 +221,6 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
         unsigned int m_maxn;                                     //!< Max number of neighbors
         GlobalArray<unsigned int> m_overflow;                    //!< Overflow condition for neighbor list
         std::vector<GPUFlags<unsigned int> > m_condition;        //!< Condition of acceptance kernel, for every GPU
-        unsigned int m_check_value;                           //< Value of the condition variable
 
         //! For energy evaluation
         unsigned int m_maxn_patch;                            //!< Maximum number of patch neighbors
@@ -263,7 +262,6 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
     : IntegratorHPMCMono<Shape>(sysdef, seed), m_cl(cl),
       m_update_order(this->m_exec_conf, seed+this->m_exec_conf->getRank()),
       m_maxn(0),
-      m_check_value(0),
       m_maxn_patch(0)
     {
     this->m_cl->setRadius(1);
@@ -366,7 +364,6 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
         {
         hipSetDevice(gpu_map[idev]);
         GPUFlags<unsigned int> condition(this->m_exec_conf);
-        condition.resetFlags(0);
         m_condition.push_back(condition);
         }
 
@@ -1090,12 +1087,17 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     ArrayHandle<float> d_energy_old(m_energy_old, access_location::device, access_mode::read);
                     ArrayHandle<float> d_energy_new(m_energy_new, access_location::device, access_mode::read);
 
-                    // get condition flag
+                    // reset condition flag
                     unsigned int *flags[this->m_exec_conf->getNumActiveGPUs()];
+                    this->m_exec_conf->beginMultiGPU();
+                    auto& gpu_map = this->m_exec_conf->getGPUIds();
                     for (int idev = this->m_exec_conf->getNumActiveGPUs()-1; idev >= 0; --idev)
                         {
+                        hipSetDevice(gpu_map[idev]);
+                        m_condition[idev].resetFlags(0);
                         flags[idev] = m_condition[idev].getDeviceFlags();
                         }
+                    this->m_exec_conf->endMultiGPU();
 
                     this->m_exec_conf->beginMultiGPU();
                     m_tuner_accept->begin();
@@ -1122,7 +1124,6 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         d_energy_new.data,
                         m_maxn_patch,
                         flags,
-                        ++m_check_value,
                         this->m_seed,
                         this->m_exec_conf->getRank()*this->m_nselect + i,
                         timestep,
@@ -1140,28 +1141,16 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
 
                 this->m_exec_conf->beginMultiGPU();
                 auto& gpu_map = this->m_exec_conf->getGPUIds();
-
-                // handle overflows
-                bool reset = m_check_value == UINT_MAX;
                 done = true;
-                this->m_exec_conf->beginMultiGPU();
                 for (int idev = this->m_exec_conf->getNumActiveGPUs()-1; idev >= 0; --idev)
                     {
                     hipSetDevice(gpu_map[idev]);
-                    if (m_condition[idev].readFlags() == m_check_value)
+                    if (m_condition[idev].readFlags())
                         {
                         done = false;
                         }
-                    if (reset)
-                        {
-                        m_condition[idev].resetFlags(0);
-                        }
                     }
                 this->m_exec_conf->endMultiGPU();
-                if (reset)
-                    {
-                    m_check_value = 0;
-                    }
                 } //end while (!done)
 
                 {
