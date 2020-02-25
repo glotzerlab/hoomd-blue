@@ -509,6 +509,9 @@ void IntegratorHPMCMonoGPU< Shape >::updateGPUAdvice()
             cudaMemAdvise(m_reject_out.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             cudaMemPrefetchAsync(m_reject_out.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
 
+            cudaMemAdvise(m_reject_out_of_cell.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemPrefetchAsync(m_reject_out_of_cell.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
+
             if (this->m_patch && !this->m_patch_log)
                 {
                 cudaMemAdvise(m_nneigh_patch_old.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
@@ -1395,7 +1398,7 @@ void IntegratorHPMCMonoGPU< Shape >::initializeExcellMem()
     m_excell_idx.resize(m_excell_list_indexer.getNumElements());
     m_excell_size.resize(num_cells);
 
-    #ifdef __HIP_PLATFORM_NVCC__
+    #if defined(__HIP_PLATFORM_NVCC__) & 0 // excell is currently not multi-GPU optimized, let the CUDA driver figure this out
     if (this->m_exec_conf->allConcurrentManagedAccess())
         {
         // set memory hints
