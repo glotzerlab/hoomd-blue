@@ -667,6 +667,20 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
         this->m_tuner_excell_block_size->end();
 
+        #ifdef __HIP_PLATFORM_NVCC__
+        if (this->m_exec_conf->allConcurrentManagedAccess())
+            {
+            // set memory hints
+            auto gpu_map = this->m_exec_conf->getGPUIds();
+            for (unsigned int idev = 0; idev < this->m_exec_conf->getNumActiveGPUs(); ++idev)
+                {
+                cudaMemPrefetchAsync(m_excell_idx.get(), sizeof(unsigned int)*m_excell_idx.getNumElements(), gpu_map[idev]);
+                cudaMemPrefetchAsync(m_excell_size.get(), sizeof(unsigned int)*m_excell_size.getNumElements(), gpu_map[idev]);
+                CHECK_CUDA_ERROR();
+                }
+            }
+        #endif
+     
         bool reallocate = false;
         // depletants
         ArrayHandle<Scalar> d_lambda(m_lambda, access_location::device, access_mode::read);
@@ -1404,8 +1418,8 @@ void IntegratorHPMCMonoGPU< Shape >::initializeExcellMem()
         auto gpu_map = this->m_exec_conf->getGPUIds();
         for (unsigned int idev = 0; idev < this->m_exec_conf->getNumActiveGPUs(); ++idev)
             {
-            cudaMemAdvise(m_excell_idx.get(), sizeof(unsigned int)*m_excell_idx.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
-            cudaMemAdvise(m_excell_size.get(), sizeof(unsigned int)*m_excell_size.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+            cudaMemAdvise(m_excell_idx.get(), sizeof(unsigned int)*m_excell_idx.getNumElements(), cudaMemAdviseSetReadMostly, gpu_map[idev]);
+            cudaMemAdvise(m_excell_size.get(), sizeof(unsigned int)*m_excell_size.getNumElements(), cudaMemAdviseSetReadMostly, gpu_map[idev]);
             CHECK_CUDA_ERROR();
             }
         }
