@@ -3,6 +3,25 @@ import hoomd.hpmc
 from hoomd.hpmc import _hpmc
 import numpy as np
 import pytest
+from conftest import *
+
+
+def check_dict(shape_dict, args):
+    for key, val in args.items():
+        if isinstance(shape_dict[key], list) and len(shape_dict[key]) > 0 \
+           and key != 'shapes':
+            np.testing.assert_allclose(shape_dict[key], val)
+        elif key == 'shapes':
+            for shape_args in shape_dict[key]:
+                for shape_key, shape_val in shape_args.items():
+                    if isinstance(shape_args[shape_key], list) \
+                       and len(shape_args[shape_key]) > 0:
+                        np.testing.assert_allclose(shape_args[shape_key],
+                                                   shape_val)
+                    else:
+                        assert shape_args[shape_key] == shape_val
+        else:
+            assert shape_dict[key] == val
 
 
 def test_dict_conversion(shape_dict_conversion_args):
@@ -10,21 +29,7 @@ def test_dict_conversion(shape_dict_conversion_args):
         for args in args_list:
             test_shape = shape_params(args)
             test_dict = test_shape.asDict()
-            for key, val in args.items():
-                if isinstance(test_dict[key], list) and \
-                   len(test_dict[key]) > 0 and key != 'shapes':
-                    np.testing.assert_allclose(test_dict[key], val)
-                elif key == 'shapes':
-                    for shape_args in test_dict[key]:
-                        for shape_key, shape_val in shape_args.items():
-                            if isinstance(shape_args[shape_key], list) \
-                               and len(shape_args[shape_key]) > 0:
-                                np.testing.assert_allclose(shape_args[shape_key],
-                                                           shape_val)
-                            else:
-                                assert shape_args[shape_key] == shape_val
-                else:
-                    assert test_dict[key] == val
+            check_dict(test_dict, args)
 
 
 def test_shape_params(integrator_args):
@@ -32,11 +37,7 @@ def test_shape_params(integrator_args):
         mc = shape_integrator(23456)
         for args in valid_args:
             mc.shape["A"] = args
-            for key, val in args.items():
-                if key == "vertices":
-                    np.testing.assert_allclose(mc.shape["A"][key], val)
-                else:
-                    assert mc.shape["A"][key] == val
+            check_dict(mc.shape["A"], args)
         for args in invalid_args:
             with pytest.raises(Exception):
                 mc.shape["A"] = args
@@ -50,21 +51,7 @@ def test_shape_attached(dummy_simulation_factory, integrator_args):
             sim = dummy_simulation_factory()
             sim.operations.add(mc)
             sim.operations.schedule()
-            for key, val in args.items():
-                if isinstance(mc.shape["A"][key], list) and \
-                   len(mc.shape["A"][key]) > 0 and key != 'shapes':
-                    np.testing.assert_allclose(mc.shape["A"][key], val)
-                elif key == 'shapes':
-                    for shape_args in mc.shape["A"][key]:
-                        for shape_key, shape_val in shape_args.items():
-                            if isinstance(shape_args[shape_key], list) \
-                               and len(shape_args[shape_key]) > 0:
-                                np.testing.assert_allclose(shape_args[shape_key],
-                                                           shape_val)
-                            else:
-                                assert shape_args[shape_key] == shape_val
-                else:
-                    assert mc.shape["A"][key] == val
+            check_dict(mc.shape["A"], args)
 
 
 def test_overlaps(device, lattice_simulation_factory, integrator_args):

@@ -323,11 +323,10 @@ class Sphere(_HPMCIntegrator):
 
     Depletants Example::
 
-        mc = hpmc.integrate.sphere(seed=415236, d=0.3, a=0.4)
-        mc.set_param(nselect=8)
-        mc.shape_param.set('A', diameter=1.0)
-        mc.shape_param.set('B', diameter=.1)
-        mc.set_fugacity('B',fugacity=3.0)
+        mc = hoomd.hpmc.integrate.Sphere(seed=415236, d=0.3, a=0.4, nselect=8)
+        mc.shape["A"] = dict(diameter=1.0)
+        mc.shape["B"] = dict(diameter=1.0)
+        mc.depletant_fugacity["B"] = 3.0
     """
     _cpp_cls = 'IntegratorHPMCMonoSphere'
 
@@ -705,8 +704,7 @@ class Polyhedron(_HPMCIntegrator):
 
     Depletants Example::
 
-        mc = hpmc.integrate.polyhedron(seed=415236, d=0.3, a=0.4)
-        mc.set_param(nselect=1)
+        mc = hpmc.integrate.Polyhedron(seed=415236, d=0.3, a=0.4, nselect=1)
         cube_verts = [(-0.5, -0.5, -0.5),
                       (-0.5, -0.5, 0.5),
                       (-0.5, 0.5, -0.5),
@@ -732,9 +730,12 @@ class Polyhedron(_HPMCIntegrator):
                        (-0.5, 0.5, -0.5),
                        (-0.5, -0.5, 0.5)];
         tetra_faces = [[0, 1, 2], [3, 0, 2], [3, 2, 1], [3,1,0]];
-        mc.shape_param.set('A', vertices = cube_verts, faces = cube_faces);
-        mc.shape_param.set('B', vertices = tetra_verts, faces = tetra_faces,
-          origin = (0,0,0));
+
+        mc.shape["A"] = dict(vertices=cube_verts, faces=cube_faces);
+        mc.shape["B"] = dict(vertices=tetra_verts,
+                             faces=tetra_faces,
+                             origin = (0,0,0));
+        mc.depletant_fugacity["B"] = 3.0
     """
 
     _cpp_cls = 'IntegratorHPMCMonoPolyhedron'
@@ -822,17 +823,19 @@ class ConvexPolyhedron(_HPMCIntegrator):
 
     Depletants Example::
 
-        mc = hpmc.integrate.ConvexPolyhedron(seed=415236, d=0.3, a=0.4)
-        mc.set_param(nselect=1)
-        mc.shape_param.set('A', vertices=[(0.5, 0.5, 0.5),
-                                          (0.5, -0.5, -0.5),
-                                          (-0.5, 0.5, -0.5),
-                                          (-0.5, -0.5, 0.5)]);
-        mc.shape_param.set('B', vertices=[(0.05, 0.05, 0.05),
-                                          (0.05, -0.05, -0.05),
-                                          (-0.05, 0.05, -0.05),
-                                          (-0.05, -0.05, 0.05)]);
-        mc.set_fugacity('B',fugacity=3.0)
+        mc = hpmc.integrate.ConvexPolyhedron(seed=415236,
+                                             d=0.3,
+                                             a=0.4,
+                                             nselect=1)
+        mc.shape["A"] = dict(vertices=[(0.5, 0.5, 0.5),
+                                       (0.5, -0.5, -0.5),
+                                       (-0.5, 0.5, -0.5),
+                                       (-0.5, -0.5, 0.5)]);
+        mc.shape["B"] = dict(vertices=[(0.05, 0.05, 0.05),
+                                       (0.05, -0.05, -0.05),
+                                       (-0.05, 0.05, -0.05),
+                                       (-0.05, -0.05, 0.05)]);
+        mc.depletant_fugacity["B"] = 3.0
     """
 
     _cpp_cls = 'IntegratorHPMCMonoConvexPolyhedron'
@@ -947,19 +950,18 @@ class FacetedEllipsoid(_HPMCIntegrator):
     Depletants Example::
 
         mc = hpmc.integrate.FacetedEllipsoid(seed=415236, d=0.3, a=0.4)
-        mc.shape_param.set('A',
-                           normals=[(-1,0,0),
-                                    (1,0,0),
-                                    (0,-1,0),
-                                    (0,1,0),
-                                    (0,0,-1),
-                                    (0,0,1)],
-                            a=1.0,
-                            b=0.5,
-                            c=0.25);
+        mc.shape["A"] = dict(normals=[(-1,0,0),
+                                      (1,0,0),
+                                      (0,-1,0),
+                                      (0,1,0),
+                                      (0,0,-1),
+                                      (0,0,1)],
+                             a=1.0,
+                             b=0.5,
+                             c=0.25);
         # depletant sphere
-        mc.shape_param.set('B', normals=[],a=0.1,b=0.1,c=0.1);
-        mc.set_fugacity('B',fugacity=3.0)
+        mc.shape["B"] = dict(normals=[], a=0.1, b=0.1, c=0.1);
+        mc.depletant_fugacity["B"] = 3.0
     """
 
     _cpp_cls = 'IntegratorHPMCMonoFacetedEllipsoid'
@@ -1055,17 +1057,16 @@ class FacetedSphere(FacetedEllipsoid):
 
     Depletants Example::
 
-        mc = hpmc.integrate.faceted_sphere(seed=415236, d=0.3, a=0.4)
-        mc.shape_param.set('A',
-                           normals=[(-1,0,0),
-                                    (1,0,0),
-                                    (0,-1,0),
-                                    (0,1,0),
-                                    (0,0,-1),
-                                    (0,0,1)],
-                           diameter=1.0);
-        mc.shape_param.set('B', normals=[],diameter=0.1);
-        mc.set_fugacity('B',fugacity=3.0)
+        mc = hpmc.integrate.FacetedSphere(seed=415236, d=0.3, a=0.4)
+        mc.shape["A"] = dict(normals=[(-1,0,0),
+                                      (1,0,0),
+                                      (0,-1,0),
+                                      (0,1,0),
+                                      (0,0,-1),
+                                      (0,0,1)],
+                             diameter=1.0);
+        mc.shape["B"] = dict(normals=[], diameter=0.1);
+        mc.depletant_fugacity["B"] = 3.0
     """
 
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
@@ -1110,11 +1111,10 @@ class Sphinx(_HPMCIntegrator):
 
     Depletants Example::
 
-        mc = hpmc.integrate.sphinx(seed=415236, d=0.3, a=0.4)
-        mc.set_param(nselect=1)
-        mc.shape_param.set('A', centers=[(0,0,0),(1,0,0)], diameters=[1,-.25])
-        mc.shape_param.set('B', centers=[(0,0,0)], diameters=[.15])
-        mc.set_fugacity('B',fugacity=3.0)
+        mc = hpmc.integrate.Sphinx(seed=415236, d=0.3, a=0.4, nselect=1)
+        mc.shape["A"] = dict(centers=[(0,0,0), (1,0,0)], diameters=[1, -.25])
+        mc.shape["B"] = dict(centers=[(0,0,0)], diameters=[.15])
+        mc.depletant_fugacity["B"] = 3.0
     """
 
     _cpp_cls = 'IntegratorHPMCMonoSphinx'
@@ -1189,12 +1189,12 @@ class ConvexSpheropolyhedron(_HPMCIntegrator):
     Depletants example::
 
         mc = hpmc.integrate.ConvexSpheropolyhedron(seed=415236, d=0.3, a=0.4)
-        mc.shape_param['tetrahedron'].set(vertices=[(0.5, 0.5, 0.5),
-                                                    (0.5, -0.5, -0.5),
-                                                    (-0.5, 0.5, -0.5),
-                                                    (-0.5, -0.5, 0.5)]);
-        mc.shape_param['SphericalDepletant'].set(vertices=[], sweep_radius=0.1);
-        mc.set_fugacity('B',fugacity=3.0)
+        mc.shape["tetrahedron"] = dict(vertices=[(0.5, 0.5, 0.5),
+                                                 (0.5, -0.5, -0.5),
+                                                 (-0.5, 0.5, -0.5),
+                                                 (-0.5, -0.5, 0.5)]);
+        mc.shape["SphericalDepletant"] = dict(vertices=[], sweep_radius=0.1);
+        mc.depletant_fugacity["B"] = 3.0
 
     """
 
@@ -1268,9 +1268,9 @@ class Ellipsoid(_HPMCIntegrator):
 
         mc = hpmc.integrate.ellipsoid(seed=415236, d=0.3, a=0.4)
         mc.set_param(nselect=1)
-        mc.shape_param.set('A', a=0.5, b=0.25, c=0.125);
-        mc.shape_param.set('B', a=0.05, b=0.05, c=0.05);
-        mc.set_fugacity('B',fugacity=3.0)
+        mc.shape["A"] = dict(a=0.5, b=0.25, c=0.125);
+        mc.shape["B"] = dict(a=0.05, b=0.05, c=0.05);
+        mc.depletant_fugacity["B"] = 3.0
     """
 
     _cpp_cls = 'IntegratorHPMCMonoEllipsoid'
@@ -1361,14 +1361,12 @@ class SphereUnion(_HPMCIntegrator):
 
     Depletants Example::
 
-        mc = hpmc.integrate.SphereUnion(seed=415236, d=0.3, a=0.4)
-        mc.set_param(nselect=1)
-        mc.shape_param.set('A',
-                           diameters=[1.0, 1.0],
-                           centers=[(-0.25, 0.0, 0.0),
-                           (0.25, 0.0, 0.0)]);
-        mc.shape_param.set('B', diameters=[0.05], centers=[(0.0, 0.0, 0.0)]);
-        mc.set_fugacity('B',fugacity=3.0)
+        mc = hpmc.integrate.SphereUnion(seed=415236, d=0.3, a=0.4, nselect=1)
+        mc.shape["A"] = dict(diameters=[1.0, 1.0],
+                             centers=[(-0.25, 0.0, 0.0),
+                                      (0.25, 0.0, 0.0)]);
+        mc.shape["B"] = dict(diameters=[0.05], centers=[(0.0, 0.0, 0.0)]);
+        mc.depletant_fugacity["B"] = 3.0
     """
 
     _cpp_cls = 'IntegratorHPMCMonoSphereUnion'
