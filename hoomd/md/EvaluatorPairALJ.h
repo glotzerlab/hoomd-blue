@@ -215,7 +215,7 @@ class EvaluatorPairALJ
             Scalar rsq = dot(dr, dr);
             Scalar r = sqrt(rsq);
 
-            if ( rsq < rcutsq )
+            if (rsq < rcutsq)
                 {
                 // Call GJK. In order to ensure that Newton's third law is
                 // obeyed, we must avoid any imbalance caused by numerical
@@ -319,7 +319,7 @@ class EvaluatorPairALJ
                     invr_6 = invr_rsq*invr_rsq*invr_rsq;
                     invr_12 = invr_6*invr_6;
                     pair_eng += four_epsilon * (invr_12 - invr_6);
-                    f_scalar_contact = four_epsilon * ( Scalar(12.0)*invr_12 - Scalar(6.0)*invr_6 ) * invnorm_v;
+                    f_scalar_contact = four_epsilon * (Scalar(12.0)*invr_12 - Scalar(6.0)*invr_6) * invnorm_v;
 
                     // For the WCA case
                     if (_params.alpha / 2 == 0)
@@ -329,8 +329,7 @@ class EvaluatorPairALJ
                     }
 
                 // Net force
-                vec3<Scalar> unit_v = v*invnorm_v;
-                vec3<Scalar> f = f_scalar * (dr / r) - f_scalar_contact * unit_v;
+                vec3<Scalar> f = f_scalar * (dr / r) - f_scalar_contact * v*invnorm_v;
                 if (ndim == 2)
                     {
                     f.z = 0;
@@ -338,9 +337,8 @@ class EvaluatorPairALJ
                 force = vec_to_scalar3(f);
 
                 // Torque
-                vec3<Scalar> lever = Scalar(0.5)*contact_sphere_radius*unit_v;
-                torque_i = vec_to_scalar3(cross(a - lever + v, f));
-                torque_j = vec_to_scalar3(cross(dr + a + lever, Scalar(-1.0)*f));
+                torque_i = vec_to_scalar3(cross(a, f));
+                torque_j = vec_to_scalar3(cross(dr + b, Scalar(-1.0)*f));
 
                 return true;
                 }
