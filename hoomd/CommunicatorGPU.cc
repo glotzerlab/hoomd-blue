@@ -1598,7 +1598,7 @@ void CommunicatorGPU::migrateParticles()
 
             if (m_prof) m_prof->push(m_exec_conf,"MPI send/recv");
 
-            #if defined(ENABLE_MPI_CUDA) && 0
+            #if defined(ENABLE_MPI_CUDA)
             ArrayHandle<pdata_element> gpu_sendbuf_handle(m_gpu_sendbuf, access_location::device, access_mode::read);
             ArrayHandle<pdata_element> gpu_recvbuf_handle(m_gpu_recvbuf, access_location::device, access_mode::overwrite);
             #else
