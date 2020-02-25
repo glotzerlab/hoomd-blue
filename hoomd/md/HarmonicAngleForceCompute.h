@@ -23,6 +23,32 @@
 #ifndef __HARMONICANGLEFORCECOMPUTE_H__
 #define __HARMONICANGLEFORCECOMPUTE_H__
 
+struct angle_harmonic_params
+    {
+    Scalar k;
+    Scalar t_0;
+
+    #ifndef __HIPCC__
+    angle_harmonic_params(): k(0), t_0(0) {}
+
+    angle_harmonic_params(pybind11::dict params)
+        :k(params["k"].cast<Scalar>()), t_0(params["t0"].cast<Scalar>()){}
+
+    pybind11::dict asDict()
+        {
+            pybind11::dict v;
+            v["k"] = k;
+            v["t0"] = t_0;
+            return v;
+        }
+    #endif
+    }
+    #ifdef SINGLE_PRECISION
+    __attribute__((aligned(8)));
+    #else
+    __attribute__((aligned(16)));
+    #endif
+
 //! Computes harmonic angle forces on each particle
 /*! Harmonic angle forces are computed on every particle in the simulation.
 
@@ -40,6 +66,11 @@ class PYBIND11_EXPORT HarmonicAngleForceCompute : public ForceCompute
 
         //! Set the parameters
         virtual void setParams(unsigned int type, Scalar K, Scalar t_0);
+
+        virtual void setParamsPython(std::string type, pybind11::dict params);
+
+        /// Get the parameters for a type
+        pybind11::dict getParams(std::string type);
 
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
