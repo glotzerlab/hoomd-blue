@@ -100,8 +100,10 @@ int main(int argc, char **argv)
 
     ENABLE_LANGUAGE(CUDA)
 
-    # reduce link time (no device linking)
-    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -fno-gpu-rdc")
+    if (HIP_FOUND)
+        # reduce link time (no device linking)
+        set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -fno-gpu-rdc")
+    endif()
 
     if(NOT TARGET HIP::hip)
         add_library(HIP::hip INTERFACE IMPORTED)
