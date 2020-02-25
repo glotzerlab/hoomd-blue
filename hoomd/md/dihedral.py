@@ -51,7 +51,7 @@ class _Dihedral(_Force):
         super().attach(simulation)
 
 
-class Harmonic(_Force):
+class Harmonic(_Dihedral):
     R""" Harmonic dihedral potential.
 
     :py:class:`harmonic` specifies a harmonic dihedral potential energy between
