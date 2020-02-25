@@ -2,6 +2,7 @@
 #define __GJK_SV_H__
 
 #include "hoomd/VectorMath.h"
+#include "hoomd/ManagedArray.h"
 
 #ifdef NVCC
 #define HOSTDEVICE __host__ __device__

@@ -15,13 +15,9 @@
 #include "GJK_SV.h"
 
 #ifndef NVCC
+#include "hoomd/ExecutionConfiguration.h"
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #endif
-
-// Uncomment the following line to force two separate calls to GJK. This flag
-// primarily exists in case there are cases where the precision difference is
-// noticeable.
-// #define DOUBLE_GJK
 
 /*! \file EvaluatorPairALJ.h
     \brief Defines a an evaluator class for the anisotropic LJ table potential.
@@ -218,18 +214,15 @@ class EvaluatorPairALJ
             // Define relevant distance parameters (rsqr, r, directional vector)
             Scalar rsq = dot(dr, dr);
             Scalar r = sqrt(rsq);
-            vec3<Scalar> unitr = dr / r;
 
             if ( rsq < rcutsq )
                 {
                 // Call GJK. In order to ensure that Newton's third law is
                 // obeyed, we must avoid any imbalance caused by numerical
                 // errors leading to GJK(i, j) returning different results from
-                // GJK(j, i). To prevent any such problems, we simply always
-                // call GJK twice, once in each direction, and choose the
-                // result corresponding to the smaller distance.
+                // GJK(j, i). To prevent any such problems, we choose i and j
+                // such that tag_i < tag_j.
                 vec3<Scalar> v = vec3<Scalar>(), a = vec3<Scalar>(), b = vec3<Scalar>();
-#ifndef DOUBLE_GJK
                     {
                     // Create local scope to avoid polluting the local scope
                     // with many unnecessary variables after GJK is done.
@@ -240,40 +233,26 @@ class EvaluatorPairALJ
                     vec3<Scalar> dr_use(flip ? -dr : dr);
 
                     bool success, overlap;
+                    // Note the signs of each of the vectors:
+                    //    - v points from the contact point on verts2 to the contact points on verts1.
+                    //    - a points from the centroid of verts1 to the contact points on verts1.
+                    //    - b points from the centroid of verts2 to the contact points on verts2.
                     gjk<ndim>(verts1, verts2, v, a, b, success, overlap, q1, q2, dr_use);
+                    assert(success && !overlap);
 
                     if (flip)
                         {
-                        v = Scalar(-1.0)*v;
                         vec3<Scalar> a_tmp = a;
                         a = b - dr;
                         b = a_tmp - dr;
                         }
+                    else
+                        {
+                        // We want v to be from verts1->verts2, but the value
+                        // returned from GJK is from verts2->verts1.
+                        v *= Scalar(-1.0);
+                        }
                     }
-#else
-					{
-					vec3<Scalar> v1 = vec3<Scalar>(), a1 = vec3<Scalar>(), b1 = vec3<Scalar>();
-					vec3<Scalar> v2 = vec3<Scalar>(), a2 = vec3<Scalar>(), b2 = vec3<Scalar>();
-					bool success1, overlap1;
-					bool success2, overlap2;
-
-					gjk<ndim>(shape_i->verts, shape_j->verts, v1, a1, b1, success1, overlap1, qi, qj, dr);
-					gjk<ndim>(shape_j->verts, shape_i->verts, v2, a2, b2, success2, overlap2, qj, qi, -dr);
-
-					if (dot(v1, v1) < dot(v2, v2))
-						{
-						v = v1;
-						a = a1;
-						b = b1;
-						}
-					else
-						{
-						v = -v2;
-						a = b2 - dr;
-						b = a2 - dr;
-						}
-					}
-#endif
                 if (ndim == 2)
                     {
                     v.z = 0;
@@ -281,13 +260,11 @@ class EvaluatorPairALJ
                     b.z = 0;
                     }
 
-                // Get kernel
                 Scalar sigma12 = (_params.sigma_i + _params.sigma_j)*Scalar(0.5);
 
                 Scalar contact_sphere_radius_multiplier = 0.15;
-                Scalar contact_sphere_radius = contact_sphere_radius_multiplier  * sigma12;
+                Scalar contact_sphere_radius = contact_sphere_radius_multiplier * sigma12;
                 const Scalar two_p_16 = 1.12246204831;  // 2^(1/6)
-
 
                 // The energy for the central potential must be rescaled by the
                 // orientations (encoded in the a and b vectors).
@@ -307,9 +284,7 @@ class EvaluatorPairALJ
                 Scalar four_scaled_epsilon = four_epsilon * (numer/denom);
 
                 // Define relevant vectors
-                vec3<Scalar> rvect = Scalar(-1.0)*v;
-                Scalar rcheck_isq = fast::rsqrt(dot(v, v));
-                rvect = rvect*rcheck_isq;
+                Scalar invnorm_v = fast::rsqrt(dot(v, v));
                 Scalar f_scalar = 0;
                 Scalar f_scalar_contact = 0;
 
@@ -344,14 +319,17 @@ class EvaluatorPairALJ
                 // No overlap
                 if (_params.alpha / 2 == 0)
                     {
-                    if (1 < two_p_16*contact_sphere_radius*rcheck_isq)
+                    // Check that the norm(v) (the contact vector length) is
+                    // less than 2**(1/6) * contact sigma.
+                    if (1 < two_p_16*contact_sphere_radius*invnorm_v)
                         {
                         // Contact force and energy
-                        rho = contact_sphere_radius * rcheck_isq;
+                        rho = contact_sphere_radius * invnorm_v;
                         invr_rsq = rho*rho;
                         invr_6 = invr_rsq*invr_rsq*invr_rsq;
-                        pair_eng += four_epsilon * (invr_6*invr_6 - invr_6);
-                        f_scalar_contact = four_epsilon * ( Scalar(12.0)*invr_6*invr_6 - Scalar(6.0)*invr_6 ) * rcheck_isq;
+                        invr_12 = invr_6*invr_6;
+                        pair_eng += four_epsilon * (invr_12 - invr_6);
+                        f_scalar_contact = four_epsilon * ( Scalar(12.0)*invr_12 - Scalar(6.0)*invr_6 ) * invnorm_v;
 
                         // Shift energy
                         rho = 1.0 / two_p_16;
@@ -363,15 +341,17 @@ class EvaluatorPairALJ
                 else
                     {
                     // Contact force and energy
-                    rho = contact_sphere_radius * rcheck_isq;
+                    rho = contact_sphere_radius * invnorm_v;
                     invr_rsq = rho*rho;
                     invr_6 = invr_rsq*invr_rsq*invr_rsq;
-                    pair_eng += four_epsilon * (invr_6*invr_6 - invr_6);
-                    f_scalar_contact = four_epsilon * ( Scalar(12.0)*invr_6*invr_6 - Scalar(6.0)*invr_6 ) * rcheck_isq;
+                    invr_12 = invr_6*invr_6;
+                    pair_eng += four_epsilon * (invr_12 - invr_6);
+                    f_scalar_contact = four_epsilon * ( Scalar(12.0)*invr_12 - Scalar(6.0)*invr_6 ) * invnorm_v;
                     }
 
                 // Net force
-                vec3<Scalar> f = f_scalar * unitr - f_scalar_contact * rvect;
+                vec3<Scalar> unit_v = v*invnorm_v;
+                vec3<Scalar> f = f_scalar * (dr / r) - f_scalar_contact * unit_v;
                 if (ndim == 2)
                     {
                     f.z = 0;
@@ -379,8 +359,8 @@ class EvaluatorPairALJ
                 force = vec_to_scalar3(f);
 
                 // Torque
-                vec3<Scalar> lever = Scalar(0.5)*contact_sphere_radius*rvect;
-                torque_i = vec_to_scalar3(cross(a - lever + rvect/rcheck_isq, f));
+                vec3<Scalar> lever = Scalar(0.5)*contact_sphere_radius*unit_v;
+                torque_i = vec_to_scalar3(cross(a - lever + v, f));
                 torque_j = vec_to_scalar3(cross(dr + a + lever, Scalar(-1.0)*f));
 
                 return true;
