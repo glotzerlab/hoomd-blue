@@ -5,9 +5,10 @@ from hoomd.operations import Operations
 
 
 class Simulation:
-    R"""
+    R""" Simulation.
+
     Parameters:
-        device
+        device (:py:mod:`hoomd.device`): Device to execute the simulation.
 
     Attributes:
         device
@@ -65,6 +66,8 @@ class Simulation:
                 # set Communicator in C++ System
                 self._cpp_sys.setCommunicator(cpp_communicator)
                 self._system_communicator = cpp_communicator
+            else:
+                self._system_communicator = None
         else:
             self._system_communicator = None
 

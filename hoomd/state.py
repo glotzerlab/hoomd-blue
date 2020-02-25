@@ -31,7 +31,8 @@ def _create_domain_decomposition(device, box):
 
 
 class State:
-    R"""
+    R""" Simulation state.
+
     Parameters:
         simulation
         snapshot

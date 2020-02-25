@@ -11,7 +11,7 @@ _TriggeredOperation is _Operation for objects that are triggered.
 
 from hoomd.util import is_iterable, dict_map, str_to_tuple_keys
 from hoomd.triggers import PeriodicTrigger, Trigger
-from hoomd.variant import Variant, ConstantVariant
+from hoomd.variant import Variant, Constant
 from hoomd.filters import ParticleFilter
 from hoomd.logger import Loggable
 from hoomd.typeconverter import RequiredArg
@@ -26,7 +26,7 @@ def convert_values_to_log_form(value):
     if value is RequiredArg:
         return (None, 'scalar')
     elif isinstance(value, Variant):
-        if isinstance(value, ConstantVariant):
+        if isinstance(value, Constant):
             return (value.value, 'scalar')
         else:
             return (value, 'object')
@@ -157,7 +157,7 @@ class _Operation(metaclass=Loggable):
         self._apply_typeparam_dict(self._cpp_obj, simulation)
 
         # pass the system communicator to the object
-        if is_MPI_available():
+        if simulation._system_communicator is not None:
             self._cpp_obj.setCommunicator(simulation._system_communicator)
 
     @property

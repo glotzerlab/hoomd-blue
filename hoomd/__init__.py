@@ -1,40 +1,20 @@
 # Copyright (c) 2009-2019 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
 
 """ HOOMD-blue python API
 
-:py:mod:`hoomd` provides a high level user interface for executing
-simulations using HOOMD::
+:py:mod:`hoomd` provides a high level user interface for defining and executing
+simulations using HOOMD.
 
-    import hoomd
-    from hoomd import md
-    hoomd.context.initialize()
+.. rubric:: API stability
 
-    # create a 10x10x10 square lattice of particles with name A
-    hoomd.init.create_lattice(unitcell=hoomd.lattice.sc(a=2.0, type_name='A'), n=10)
-    # specify Lennard-Jones interactions between particle pairs
-    nl = md.nlist.cell()
-    lj = md.pair.lj(r_cut=3.0, nlist=nl)
-    lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
-    # integrate at constant temperature
-    all = hoomd.group.all();
-    md.integrate.mode_standard(dt=0.005)
-    hoomd.md.integrate.langevin(group=all, kT=1.2, seed=4)
-    # run 10,000 time steps
-    hoomd.run(10e3)
+:py:mod:`hoomd` is **stable**. When upgrading from version 3.x to 3.y (y > x),
+existing job scripts that follow *documented* interfaces for functions and
+classes will not require any modifications.
 
-.. rubric:: Stability
+**Maintainer:** Joshua A. Anderson
 
-:py:mod:`hoomd` is **stable**. When upgrading from version 2.x to 2.y (y > x),
-existing job scripts that follow *documented* interfaces for functions and classes
-will not require any modifications. **Maintainer:** Joshua A. Anderson
-
-.. attention::
-
-    This stability guarantee only applies to modules in the :py:mod:`hoomd` package.
-    Subpackages (:py:mod:`hoomd.hpmc`, :py:mod:`hoomd.md`, etc...) may or may not
-    have a stable API. The documentation for each subpackage specifies the level of
-    API stability it provides.
 """
 
 # Maintainer: joaander
@@ -70,9 +50,28 @@ from hoomd import util
 from hoomd import variant
 from hoomd import lattice
 from hoomd import device
+try:
+    from hoomd import md
+except ImportError:
+    pass
+try:
+    from hoomd import hpmc
+except ImportError:
+    pass
+try:
+    from hoomd import dem
+except ImportError:
+    pass
+# TODO: enable this import after updating MPCD to the new API
+# try:
+#     from hoomd import mpcd
+# except ImportError:
+#     pass
 
 from hoomd.simulation import Simulation
+from hoomd.state import State
 from hoomd.operations import Operations
+from hoomd.snapshot import Snapshot
 from hoomd.logger import Logger
 
 from hoomd._hoomd import WalltimeLimitReached;

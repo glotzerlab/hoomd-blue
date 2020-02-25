@@ -86,5 +86,11 @@ class GSDStateReader:
 class Variant:
     pass
 
-class VariantConstant:
+class VariantConstant(Variant):
+    pass
+
+class VariantRamp(Variant):
+    pass
+
+class VariantCycle(Variant):
     pass

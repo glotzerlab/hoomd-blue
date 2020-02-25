@@ -110,7 +110,7 @@ class _HPMCIntegrator(_BaseIntegrator):
         sys_def = simulation.state._cpp_sys_def
         if simulation.device.mode == 'GPU':
             self._cpp_cell = _hoomd.CellListGPU(sys_def)
-            if _hoomd.is_MPI_available():
+            if simulation._system_communicator is not None:
                 self._cpp_cell.setCommunicator(simulation._system_communicator)
             self._cpp_obj = getattr(_hpmc,
                                     self._cpp_cls + 'GPU')(sys_def,

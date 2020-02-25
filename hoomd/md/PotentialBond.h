@@ -134,7 +134,7 @@ template<class evaluator >
 void PotentialBond< evaluator >::setParamsPython(std::string type,
                                                  pybind11::dict param)
     {
-    auto itype = m_pdata->getTypeByName(type);
+    auto itype = m_bond_data->getTypeByName(type);
     auto struct_param = param_type(param);
     setParams(itype, struct_param);
     }
@@ -147,7 +147,7 @@ void PotentialBond< evaluator >::setParamsPython(std::string type,
 template<class evaluator >
 pybind11::dict PotentialBond< evaluator >::getParams(std::string type)
     {
-    auto itype = m_pdata->getTypeByName(type);
+    auto itype = m_bond_data->getTypeByName(type);
     validateType(itype, "getting params");
     ArrayHandle<param_type> h_params(m_params, access_location::host,
                                      access_mode::read);
@@ -235,6 +235,7 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
 
     // for each of the bonds
     const unsigned int size = (unsigned int)m_bond_data->getN();
+
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the bond
@@ -286,13 +287,10 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
         // calculate r_ab squared
         Scalar rsq = dot(dx,dx);
 
-        // get parameters for this bond type
-        param_type param = h_params.data[h_typeval.data[i].type];
-
         // compute the force and potential energy
         Scalar force_divr = Scalar(0.0);
         Scalar bond_eng = Scalar(0.0);
-        evaluator eval(rsq, param);
+        evaluator eval(rsq, h_params.data[h_typeval.data[i].type]);
         if (evaluator::needsDiameter())
             eval.setDiameter(diameter_a,diameter_b);
         if (evaluator::needsCharge())
