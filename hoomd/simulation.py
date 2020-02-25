@@ -5,9 +5,10 @@ from hoomd.operations import Operations
 
 
 class Simulation:
-    R"""
+    R""" Simulation.
+
     Parameters:
-        device
+        device (:py:mod:`hoomd.device`): Device to execute the simulation.
 
     Attributes:
         device
