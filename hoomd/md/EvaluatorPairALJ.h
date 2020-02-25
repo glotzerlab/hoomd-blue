@@ -265,6 +265,7 @@ class EvaluatorPairALJ
                 Scalar contact_sphere_radius_multiplier = 0.15;
                 Scalar contact_sphere_radius = contact_sphere_radius_multiplier * sigma12;
                 const Scalar two_p_16 = 1.12246204831;  // 2^(1/6)
+                const Scalar shift_rho_diff = -0.25; // (1/(2^(1/6)))**12 - (1/(2^(1/6)))**6
 
                 // The energy for the central potential must be rescaled by the
                 // orientations (encoded in the a and b vectors).
@@ -288,57 +289,29 @@ class EvaluatorPairALJ
                 Scalar f_scalar = 0;
                 Scalar f_scalar_contact = 0;
 
-                // Check repulsion vs attraction for center particle
-                if (_params.alpha % 2 == 0)
-                    {
-                    if (r < two_p_16*sigma12)
-                        {
-                        // Center force and energy
-                        pair_eng = four_scaled_epsilon * (invr_12 - invr_6);
-                        f_scalar = four_scaled_epsilon * ( Scalar(12.0)*invr_12 - Scalar(6.0)*invr_6 ) / (r);
+                pair_eng = 0;
 
-                        // Shift energy
-                        rho = 1.0 / two_p_16;
-                        invr_rsq = rho*rho;
-                        invr_6 = invr_rsq*invr_rsq*invr_rsq;
-                        pair_eng -= four_scaled_epsilon * (invr_6*invr_6 - invr_6);
-                        }
-                    else
+                // We must compute the central LJ force if we are including the
+                // attractive component. For pure repulsive (WCA), we only need
+                // to compute it if we are within the limited cutoff.
+                if ((_params.alpha % 2 != 0) || (r < two_p_16*sigma12))
+                    {
+                    // Compute force and energy from LJ formula.
+                    pair_eng += four_scaled_epsilon * (invr_12 - invr_6);
+                    f_scalar = four_scaled_epsilon * ( Scalar(12.0)*invr_12 - Scalar(6.0)*invr_6 ) / (r);
+
+                    // For the WCA case
+                    if (_params.alpha % 2 == 0)
                         {
-                        pair_eng = 0.0;
+                        pair_eng -= four_scaled_epsilon * shift_rho_diff;
                         }
                     }
-                else
-                    {
-                    // Center force and energy
-                    pair_eng = four_scaled_epsilon * (invr_12 - invr_6);
-                    f_scalar = four_scaled_epsilon * ( Scalar(12.0)*invr_12 - Scalar(6.0)*invr_6 ) / r;
-                    }
 
-                // Check repulsion attraction for contact point
-                // No overlap
-                if (_params.alpha / 2 == 0)
-                    {
-                    // Check that the norm(v) (the contact vector length) is
-                    // less than 2**(1/6) * contact sigma.
-                    if (1 < two_p_16*contact_sphere_radius*invnorm_v)
-                        {
-                        // Contact force and energy
-                        rho = contact_sphere_radius * invnorm_v;
-                        invr_rsq = rho*rho;
-                        invr_6 = invr_rsq*invr_rsq*invr_rsq;
-                        invr_12 = invr_6*invr_6;
-                        pair_eng += four_epsilon * (invr_12 - invr_6);
-                        f_scalar_contact = four_epsilon * ( Scalar(12.0)*invr_12 - Scalar(6.0)*invr_6 ) * invnorm_v;
-
-                        // Shift energy
-                        rho = 1.0 / two_p_16;
-                        invr_rsq = rho*rho;
-                        invr_6 = invr_rsq*invr_rsq*invr_rsq;
-                        pair_eng -= four_epsilon * (invr_6*invr_6 - invr_6);
-                        }
-                    }
-                else
+                // Similarly, we must compute the contact LJ force if we are
+                // including the attractive component. For pure repulsive
+                // (WCA), we only need to compute it if we are within the
+                // limited cutoff associated with the contact point.
+                if ((_params.alpha / 2 != 0) || (1 < two_p_16*contact_sphere_radius*invnorm_v))
                     {
                     // Contact force and energy
                     rho = contact_sphere_radius * invnorm_v;
@@ -347,6 +320,12 @@ class EvaluatorPairALJ
                     invr_12 = invr_6*invr_6;
                     pair_eng += four_epsilon * (invr_12 - invr_6);
                     f_scalar_contact = four_epsilon * ( Scalar(12.0)*invr_12 - Scalar(6.0)*invr_6 ) * invnorm_v;
+
+                    // For the WCA case
+                    if (_params.alpha / 2 == 0)
+                        {
+                        pair_eng -= four_epsilon * shift_rho_diff;
+                        }
                     }
 
                 // Net force
