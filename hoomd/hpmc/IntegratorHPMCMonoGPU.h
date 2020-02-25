@@ -347,6 +347,23 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
     GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_condition);
     TAG_ALLOCATION(m_condition);
 
+    #ifdef __HIP_PLATFORM_NVCC__
+    if (this->m_exec_conf->allConcurrentManagedAccess())
+        {
+        // set memory hints
+        auto gpu_map = this->m_exec_conf->getGPUIds();
+        cudaMemAdvise(m_condition.get(), sizeof(unsigned int), cudaMemAdviseSetPreferredLocation, gpu_map[0]);
+        cudaMemPrefetchAsync(m_condition.get(), sizeof(unsigned int), gpu_map[0]);
+
+        for (unsigned int idev = 0; idev < this->m_exec_conf->getNumActiveGPUs(); ++idev)
+            {
+            cudaMemAdvise(m_condition.get(), sizeof(unsigned int), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+            }
+        cudaMemAdvise(m_condition.get(), sizeof(unsigned int), cudaMemAdviseSetAccessedBy, cudaCpuDeviceId);
+        CHECK_CUDA_ERROR();
+        }
+    #endif
+
     GlobalArray<unsigned int> excell_size(0, this->m_exec_conf);
     m_excell_size.swap(excell_size);
     TAG_ALLOCATION(m_excell_size);
@@ -370,6 +387,7 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
             cudaMemAdvise(m_counters.get()+idev*m_counters.getPitch(), sizeof(hpmc_counters_t)*m_counters.getPitch(), cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             cudaMemPrefetchAsync(m_counters.get()+idev*m_counters.getPitch(), sizeof(hpmc_counters_t)*m_counters.getPitch(), gpu_map[idev]);
             }
+        CHECK_CUDA_ERROR();
         }
     #endif
 
