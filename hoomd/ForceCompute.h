@@ -90,6 +90,12 @@ class PYBIND11_EXPORT ForceCompute : public Compute
         //! Sum all virial terms for a group
         std::vector<Scalar> calcVirialGroup(std::shared_ptr<ParticleGroup> group);
 
+        /** Get per particle energies
+
+            @returns a Numpy array with per particle energies in increasing tag order.
+        */
+        pybind11::object getEnergiesPython();
+
         //! Easy access to the torque on a single particle
         Scalar4 getTorque(unsigned int tag);
 

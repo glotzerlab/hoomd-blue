@@ -17,6 +17,8 @@
 #include <iostream>
 using namespace std;
 
+#include <pybind11/numpy.h>
+
 namespace py = pybind11;
 
 #include <memory>
@@ -263,6 +265,44 @@ std::vector<Scalar> ForceCompute::calcVirialGroup(std::shared_ptr<ParticleGroup>
 
     }
 
+pybind11::object ForceCompute::getEnergiesPython()
+    {
+    bool root = true;
+#ifdef ENABLE_MPI
+    // if we are not the root processor, return None
+    root = m_exec_conf->isRoot();
+#endif
+
+    std::vector<size_t> dims(1);
+    if (root)
+        {
+        dims[0] = m_pdata->getNGlobal();
+        }
+    else
+        {
+        dims[0] = 0;
+        }
+    std::vector<double> energy(dims[0]);
+
+    // This is slow: TODO implement a propert gather operation
+    for (size_t i = 0; i < dims[0]; i++)
+        {
+        double e = getEnergy(i);
+        if (root)
+            {
+            energy[i] = e;
+            }
+        }
+
+    if (root)
+        {
+        return pybind11::array(dims, energy.data());
+        }
+    else
+        {
+        return pybind11::none();
+        }
+    }
 
 /*! Performs the force computation.
     \param timestep Current Timestep
@@ -417,8 +457,7 @@ void export_ForceCompute(py::module& m)
     .def("getTorque", &ForceCompute::getTorque)
     .def("getVirial", &ForceCompute::getVirial)
     .def("getEnergy", &ForceCompute::getEnergy)
-    .def("calcEnergyGroup", &ForceCompute::calcEnergyGroup)
-    .def("calcForceGroup", &ForceCompute::calcForceGroup)
-    .def("calcVirialGroup", &ForceCompute::calcVirialGroup)
+    .def("calcEnergySum", &ForceCompute::calcEnergySum)
+    .def("getEnergies", &ForceCompute::getEnergiesPython)
     ;
     }

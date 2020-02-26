@@ -25,17 +25,23 @@ class _Force(_Operation):
     Initializes some loggable quantities.
     '''
 
+    def attach(self, simulation):
+        self._simulation = simulation
+        super().attach(simulation)
+
     @Loggable.log
     def energy(self):
-        if self.is_attached():
-            pass
+        if self.is_attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.calcEnergySum()
         else:
             return None
 
     @Loggable.log(flag='particle')
     def energies(self):
-        if self.is_attached():
-            pass
+        if self.is_attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.getEnergies()
         else:
             return None
 
@@ -44,7 +50,7 @@ class _Force(_Operation):
         """
         Returns: The last computed force for all particles.
         """
-        if self.is_attached():
+        if self.is_attached:
             pass
         else:
             return None
