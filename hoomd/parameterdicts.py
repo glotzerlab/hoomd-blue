@@ -65,8 +65,10 @@ class _ValidatedDefaultDict:
         if type(self._default) == dict:
             dft_copy = self.default
             dft_keys = set(dft_copy.keys())
-            if len(dft_keys.intersection(val.keys())) != len(val.keys()):
-                raise ValueError("Keys must be a subset of available keys ")
+            bad_keys = set(val.keys()) - dft_keys
+            if len(bad_keys) != 0:
+                raise ValueError("Keys must be a subset of available keys. "
+                                 "Bad keys are {}".format(bad_keys))
             dft_copy.update(val)
             val = dft_copy
         return val
