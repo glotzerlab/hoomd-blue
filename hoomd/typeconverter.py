@@ -64,7 +64,7 @@ class OnlyType(_HelpValidate):
 class OnlyFrom(_HelpValidate):
     def __init__(self, options, preprocess=None, postprocess=None):
         super().__init__(preprocess, postprocess)
-        self.options = options
+        self.options = set(options)
 
     def _validate(self, value):
         if value in self:
