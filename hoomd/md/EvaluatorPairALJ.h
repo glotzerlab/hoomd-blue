@@ -329,7 +329,8 @@ class EvaluatorPairALJ
                     }
 
                 // Net force
-                vec3<Scalar> f = f_scalar * (dr / r) - f_scalar_contact * v*invnorm_v;
+                vec3<Scalar> f_contact = -f_scalar_contact * v*invnorm_v;
+                vec3<Scalar> f = f_scalar * (dr / r) + f_contact;
                 if (ndim == 2)
                     {
                     f.z = 0;
@@ -337,8 +338,8 @@ class EvaluatorPairALJ
                 force = vec_to_scalar3(f);
 
                 // Torque
-                torque_i = vec_to_scalar3(cross(a, f));
-                torque_j = vec_to_scalar3(cross(dr + b, Scalar(-1.0)*f));
+                torque_i = vec_to_scalar3(cross(a, f_contact));
+                torque_j = vec_to_scalar3(cross(dr + b, Scalar(-1.0)*f_contact));
 
                 return true;
                 }
