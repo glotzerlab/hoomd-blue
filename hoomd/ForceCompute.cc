@@ -304,6 +304,144 @@ pybind11::object ForceCompute::getEnergiesPython()
         }
     }
 
+pybind11::object ForceCompute::getForcesPython()
+    {
+    bool root = true;
+#ifdef ENABLE_MPI
+    // if we are not the root processor, return None
+    root = m_exec_conf->isRoot();
+#endif
+
+    std::vector<size_t> dims(2);
+    if (root)
+        {
+        dims[0] = m_pdata->getNGlobal();
+        dims[1] = 3;
+        }
+    else
+        {
+        dims[0] = 0;
+        dims[1] = 0;
+        }
+    std::vector<vec3<double>> force(dims[0]);
+
+    // This is slow: TODO implement a propert gather operation
+    for (size_t i = 0; i < dims[0]; i++)
+        {
+        Scalar3 f = getForce(i);
+        if (root)
+            {
+            force[i].x = f.x;
+            force[i].y = f.y;
+            force[i].z = f.z;
+            }
+        }
+
+    if (root)
+        {
+        return pybind11::array(dims, (double*)force.data());
+        }
+    else
+        {
+        return pybind11::none();
+        }
+    }
+
+pybind11::object ForceCompute::getTorquesPython()
+    {
+    bool root = true;
+#ifdef ENABLE_MPI
+    // if we are not the root processor, return None
+    root = m_exec_conf->isRoot();
+#endif
+
+    std::vector<size_t> dims(2);
+    if (root)
+        {
+        dims[0] = m_pdata->getNGlobal();
+        dims[1] = 3;
+        }
+    else
+        {
+        dims[0] = 0;
+        dims[1] = 0;
+        }
+    std::vector<vec3<double>> torque(dims[0]);
+
+    // This is slow: TODO implement a propert gather operation
+    for (size_t i = 0; i < dims[0]; i++)
+        {
+        Scalar4 f = getTorque(i);
+        if (root)
+            {
+            torque[i].x = f.x;
+            torque[i].y = f.y;
+            torque[i].z = f.z;
+            }
+        }
+
+    if (root)
+        {
+        return pybind11::array(dims, (double*)torque.data());
+        }
+    else
+        {
+        return pybind11::none();
+        }
+    }
+
+pybind11::object ForceCompute::getVirialsPython()
+    {
+    bool root = true;
+#ifdef ENABLE_MPI
+    // if we are not the root processor, return None
+    root = m_exec_conf->isRoot();
+#endif
+
+    std::vector<size_t> dims(2);
+    if (root)
+        {
+        dims[0] = m_pdata->getNGlobal();
+        dims[1] = 6;
+        }
+    else
+        {
+        dims[0] = 0;
+        dims[1] = 0;
+        }
+    std::vector<double> virial(dims[0]*6);
+
+    // This is slow: TODO implement a propert gather operation
+    for (size_t i = 0; i < dims[0]; i++)
+        {
+        double v0 = getVirial(i, 0);
+        double v1 = getVirial(i, 1);
+        double v2 = getVirial(i, 2);
+        double v3 = getVirial(i, 3);
+        double v4 = getVirial(i, 4);
+        double v5 = getVirial(i, 5);
+
+        if (root)
+            {
+            virial[i * 6 + 0] = v0;
+            virial[i * 6 + 1] = v1;
+            virial[i * 6 + 2] = v2;
+            virial[i * 6 + 3] = v3;
+            virial[i * 6 + 4] = v4;
+            virial[i * 6 + 5] = v5;
+            }
+        }
+
+    if (root)
+        {
+        return pybind11::array(dims, (double*)virial.data());
+        }
+    else
+        {
+        return pybind11::none();
+        }
+    }
+
 /*! Performs the force computation.
     \param timestep Current Timestep
     \note If compute() has previously been called with a value of timestep equal to
@@ -459,5 +597,8 @@ void export_ForceCompute(py::module& m)
     .def("getEnergy", &ForceCompute::getEnergy)
     .def("calcEnergySum", &ForceCompute::calcEnergySum)
     .def("getEnergies", &ForceCompute::getEnergiesPython)
+    .def("getForces", &ForceCompute::getForcesPython)
+    .def("getTorques", &ForceCompute::getTorquesPython)
+    .def("getVirials", &ForceCompute::getVirialsPython)
     ;
     }

@@ -96,6 +96,24 @@ class PYBIND11_EXPORT ForceCompute : public Compute
         */
         pybind11::object getEnergiesPython();
 
+        /** Get per particle forces
+
+            @returns a Numpy array with per particle forces in increasing tag order.
+        */
+        pybind11::object getForcesPython();
+
+        /** Get per particle torques
+
+            @returns a Numpy array with per particle torques in increasing tag order.
+        */
+        pybind11::object getTorquesPython();
+
+        /** Get per particle virials
+
+            @returns a Numpy array with per particle virials in increasing tag order.
+        */
+        pybind11::object getVirialsPython();
+
         //! Easy access to the torque on a single particle
         Scalar4 getTorque(unsigned int tag);
 

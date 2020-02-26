@@ -48,20 +48,35 @@ class _Force(_Operation):
     @Loggable.log(flag='particle')
     def forces(self):
         """
-        Returns: The last computed force for all particles.
+        Returns: The force for all particles.
         """
         if self.is_attached:
-            pass
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.getForces()
+        else:
+            return None
+
+    @Loggable.log(flag='particle')
+    def torques(self):
+        """
+        Returns: The torque for all particles.
+        """
+        if self.is_attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.getTorques()
         else:
             return None
 
     @Loggable.log(flag='particle')
     def virials(self):
-        R""" Get the virial of a particle group.
-
-        Returns: The last computed virial for the members in the group.
+        R"""
+        Returns: The virial for the members in the group.
         """
-        return self._cpp_obj.getVirials()
+        if self.is_attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.getVirials()
+        else:
+            return None
 
 
 class constant(_Force):
