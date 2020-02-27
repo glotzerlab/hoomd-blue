@@ -9,16 +9,17 @@
 from hoomd import _hoomd
 from hoomd.md import _md
 import hoomd
-from hoomd.meta import _Operation
+from hoomd.operation import _Operation
 from hoomd.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.filters import ParticleFilter
 from hoomd.typeparam import TypeParameter
+from hoomd.typeconverter import OnlyType 
 import copy
 
 
 def create_variant(value):
     if isinstance(value, float) or isinstance(value, int):
-        return hoomd.variant.ConstantVariant(value)
+        return hoomd.variant.Constant(value)
     elif isinstance(value, hoomd.variant.Variant):
         return value
     else:
@@ -846,14 +847,16 @@ class Langevin(_Method):
                  tally_reservoir_energy=False):
 
         # store metadata
-        self._param_dict = ParameterDict(
-            filter=ParticleFilter,
+        param_dict = ParameterDict(
+            filter=OnlyType(ParticleFilter),
             kT=create_variant,
             seed=int(seed),
             alpha=none_or(float),
-            tally_reservoir_energy=tally_reservoir_energy)
+            tally_reservoir_energy=bool(tally_reservoir_energy),
+            explicit_defaults=dict(kT=kT, alpha=alpha, filter=filter)
+            )
         # set defaults
-        self._param_dict.update(dict(kT=kT, alpha=alpha, filter=filter))
+        self._param_dict.update(param_dict)
 
         gamma = TypeParameter('gamma', type_kind='particle_types',
                               param_dict=TypeParameterDict(1., len_keys=1)

@@ -8,6 +8,7 @@ from hoomd.md import nlist as nl
 from hoomd.md.nlist import _NList
 from hoomd.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.typeparam import TypeParameter
+from hoomd.typeconverter import OnlyFrom, OnlyType
 
 import math
 import json
@@ -17,11 +18,7 @@ class pair(force._force):
     pass
 
 
-def validate_nlist(value):
-    if isinstance(value, _NList):
-        return value
-    else:
-        raise ValueError("{} is not an instance of type _NList".format(value))
+validate_nlist = OnlyType(_NList)
 
 
 def validate_mode(value):
@@ -133,9 +130,10 @@ class _Pair(force._Force):
                              TypeParameterDict(float(r_on), len_keys=2)
                              )
         self._extend_typeparam([r_cut, r_on])
-        self._param_dict.update(ParameterDict(mode=validate_mode,
-                                              explicit_defaults=dict(mode=mode))
-                                )
+        self._param_dict.update(
+            ParameterDict(mode=OnlyFrom(['none', 'shifted', 'xplor']),
+                          explicit_defaults=dict(mode=mode))
+            )
 
     def compute_energy(self, tags1, tags2):
         R""" Compute the energy between two sets of particles.
@@ -204,7 +202,7 @@ class _Pair(force._Force):
         if self.is_attached:
             raise RuntimeError("nlist cannot be set after attaching.")
         else:
-            self._nlist = validate_nlist(value)
+            self._nlist = validate_nlist(_NList)(value)
 
 
 class LJ(_Pair):

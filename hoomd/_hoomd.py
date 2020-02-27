@@ -82,3 +82,15 @@ class ParticleFilterTags:
 
 class GSDStateReader:
     pass
+
+class Variant:
+    pass
+
+class VariantConstant(Variant):
+    pass
+
+class VariantRamp(Variant):
+    pass
+
+class VariantCycle(Variant):
+    pass

@@ -74,14 +74,12 @@ class _HPMCIntegrator(_BaseIntegrator):
         super().__init__()
 
         # Set base parameter dict for hpmc integrators
-        self._param_dict = ParameterDict(dict(seed=int, move_ratio=float,
-                                         nselect=int, deterministic=bool)
-                                         )
-        self._param_dict.update(dict(seed=int(seed),
-                                     move_ratio=float(move_ratio),
-                                     nselect=int(nselect),
-                                     deterministic=bool(deterministic))
-                                )
+        param_dict = ParameterDict(dict(seed=int(seed),
+                                        move_ratio=float(move_ratio),
+                                        nselect=int(nselect),
+                                        deterministic=bool(deterministic))
+                                   )
+        self._param_dict.update(param_dict)
 
         # Set standard typeparameters for hpmc integrators
         typeparam_d = TypeParameter('d', type_kind='particle_types',
@@ -113,7 +111,7 @@ class _HPMCIntegrator(_BaseIntegrator):
         sys_def = simulation.state._cpp_sys_def
         if simulation.device.mode == 'GPU':
             self._cpp_cell = _hoomd.CellListGPU(sys_def)
-            if _hoomd.is_MPI_available():
+            if simulation._system_communicator is not None:
                 self._cpp_cell.setCommunicator(simulation._system_communicator)
             self._cpp_obj = getattr(_hpmc,
                                     self._cpp_cls + 'GPU')(sys_def,

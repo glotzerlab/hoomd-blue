@@ -103,6 +103,7 @@ class PotentialPair : public ForceCompute
         virtual void setParams(unsigned int typ1, unsigned int typ2, const param_type& param);
         virtual void setParamsLJ(unsigned int typ1, unsigned int typ2, const Scalar2& param);
         virtual void setParamsPython(pybind11::tuple typ, pybind11::dict params);
+        /// Get params for a single type pair using a tuple of strings
         virtual pybind11::dict getParams(pybind11::tuple typ);
         //! Set the rcut for a single type pair
         virtual void setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut);
@@ -483,6 +484,7 @@ void PotentialPair< evaluator >::validateTypes(unsigned int typ1,
                                                unsigned int typ2,
                                                std::string action)
 {
+    // TODO change logic to just throw an exception
     auto n_types = this->m_pdata->getNTypes();
     if (typ1 >= n_types || typ2 >= n_types)
         {

@@ -10,7 +10,7 @@ R""" Apply forces to particles.
 
 from hoomd import _hoomd
 from hoomd.md import _md
-from hoomd.meta import _Operation
+from hoomd.operation import _Operation
 from hoomd.logger import Loggable
 import hoomd
 
@@ -28,24 +28,26 @@ class _Force(_Operation):
     @Loggable.log
     def energy(self):
         if self.is_attached():
-            return self._cpp_obj.getTotalEnergy()
+            pass
         else:
-            None
+            return None
 
     @Loggable.log(flag='particle')
     def energies(self):
         if self.is_attached():
-            return self._cpp_obj.getParticleEnergies()
+            pass
         else:
-            None
+            return None
 
     @Loggable.log(flag='particle')
     def forces(self):
         """
         Returns: The last computed force for all particles.
         """
-
-        return self._cpp_obj.getForces()
+        if self.is_attached():
+            pass
+        else:
+            return None
 
     @Loggable.log(flag='particle')
     def virials(self):

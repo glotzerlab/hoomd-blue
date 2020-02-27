@@ -46,25 +46,14 @@ Examples::
 from hoomd import _hoomd
 from hoomd.md import _md
 import hoomd
+from hoomd.typeconverter import MultipleOnlyFrom
 from hoomd.parameterdicts import ParameterDict
-from hoomd.meta import _Operation
+from hoomd.operation import _Operation
 from hoomd.logger import Loggable
 
 
 class nlist:
     pass
-
-
-def valid_exclusion(value):
-    if len(set(value)) != len(value):
-        raise ValueError("Duplicate values in exclusions not allowed.")
-    for v in value:
-        if v not in ['bond', 'angle', 'constraint', 'dihedral', 'special_pair',
-                     'body', '1-3', '1-4']:
-            raise ValueError("Value {} is not a valid exclusion "
-                             "type.".format(value))
-    else:
-        return tuple(value)
 
 
 class _NList(_Operation):
@@ -76,8 +65,12 @@ class _NList(_Operation):
     def __init__(self, buffer, exclusions, rebuild_check_delay,
                  diameter_shift, check_dist, max_diameter):
 
+        validate_exclusions = MultipleOnlyFrom(
+            ['bond', 'angle', 'constraint', 'dihedral', 'special_pair',
+             'body', '1-3', '1-4'],
+            postprocess=tuple, preprocess=set)
         # default exclusions
-        params = ParameterDict(exclusions=valid_exclusion,
+        params = ParameterDict(exclusions=validate_exclusions,
                                buffer=float(buffer),
                                rebuild_check_delay=int(rebuild_check_delay),
                                check_dist=bool(check_dist),
@@ -170,7 +163,8 @@ class Cell(_NList):
         super().__init__(buffer, exclusions, rebuild_check_delay,
                          diameter_shift, check_dist, max_diameter)
 
-        self._param_dict.update(ParameterDict(deterministic=deterministic))
+        self._param_dict.update(
+            ParameterDict(deterministic=bool(deterministic)))
 
     def attach(self, simulation):
         if not simulation.device.cpp_exec_conf.isCUDAEnabled():

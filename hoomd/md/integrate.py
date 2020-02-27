@@ -130,7 +130,6 @@ class Integrator(_DynamicIntegrator):
     particles, however, a new :py:func:`hoomd.run()` will continue from the old
     state and the integrator variables will re-equilibrate.  To ensure
     equilibration from a unique reference state (such as all integrator
-            variables set to zero), the method :py:method:reset_methods() can be
     use to re-initialize the variables.
     """
 
