@@ -35,7 +35,7 @@ import hoomd;
 import math;
 import sys;
 import json;
-from collections import OrderedDict
+from collections import OrderedDict, Mapping
 
 class coeff:
     R""" Define pair coefficients
@@ -2117,16 +2117,6 @@ class mie(pair):
         return _hoomd.make_scalar4(mie1, mie2, mie3, mie4);
 
 
-class _shape_dict(dict):
-    """Simple dictionary subclass to improve handling of anisotropic potential
-    shape information."""
-    def __getitem__(self, key):
-        try:
-            return super(_shape_dict, self).__getitem__(key)
-        except KeyError as e:
-            raise KeyError("No shape parameters specified for particle type {}!".format(key)) from e
-
-
 class ai_pair(pair):
     R"""Generic anisotropic pair potential.
 
@@ -2163,7 +2153,7 @@ class ai_pair(pair):
         self.nlist.subscribe(lambda:self.get_rcut())
         self.nlist.update_rcut()
 
-        self._shape = _shape_dict()
+        self._shape = {}
 
     def set_params(self, mode=None):
         R"""Set parameters controlling the way forces are computed.
@@ -2849,6 +2839,7 @@ class lj1208(pair):
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 8.0);
         return _hoomd.make_scalar2(lj1, lj2);
 
+
 class alj(ai_pair):
     R"""Anistropic LJ potential.
 
@@ -2869,10 +2860,12 @@ class alj(ai_pair):
       All interactions are WCA (no attraction).
 
     * :code:`1`:
-      Center-center interactions include attraction, contact-contact interactions are solely repulsive.
+      Center-center interactions include attraction,
+      contact-contact interactions are solely repulsive.
 
     * :code:`2`:
-      Center-center interactions are solely repulsive, contact-contact interactions include attraction.
+      Center-center interactions are solely repulsive,
+      contact-contact interactions include attraction.
 
     * :code:`3`:
       All interactions include attractive and repulsive components.
@@ -2883,9 +2876,10 @@ class alj(ai_pair):
     The following coefficients must be set per unique pair of particle types:
 
     - *epsilon* - :math:`\varepsilon` (in energy units)
-    - *sigma_i* (in distance units) - the insphere radius of the first particle type.
-    - *sigma_j* (in distance units) - the insphere radius of the second particle type.
-    - *alpha* - Integer from 0-3 indicating whether or not to include the attractive component of the interaction (see above for details).
+    - *sigma_i* - the insphere radius of the first particle type.
+    - *sigma_j* - the insphere radius of the second particle type.
+    - *alpha* - Integer 0-3 indicating whether or not to include the attractive
+                component of the interaction (see above for details).
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
 
@@ -2893,14 +2887,15 @@ class alj(ai_pair):
 
         nl = nlist.cell()
         alj = pair.alj(r_cut=2.5, nlist=nl)
-        alj.pair_coeff.set('A', 'A', epsilon=1.0, sigma_i=2.0, sigma_j=2.0, alpha=0, shape_i=vertices_i, shape_j=vertices_j);
-
+        alj.pair_coeff.set(
+            'A', 'A', epsilon=1.0, sigma_i=2.0, sigma_j=2.0, alpha=0)
     """
+
     def __init__(self, r_cut, nlist, name=None):
-        hoomd.util.print_status_line();
+        hoomd.util.print_status_line()
 
         # initialize the base class
-        ai_pair.__init__(self, r_cut, nlist, name);
+        ai_pair.__init__(self, r_cut, nlist, name)
 
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if hoomd.context.current.system_definition.getNDimensions() == 2:
@@ -2908,39 +2903,71 @@ class alj(ai_pair):
             else:
                 cls = _md.AnisoPotentialPairALJ3D
         else:
-            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
+            self.nlist.cpp_nlist.setStorageMode(
+                _md.NeighborList.storageMode.full)
             if hoomd.context.current.system_definition.getNDimensions() == 2:
                 cls = _md.AnisoPotentialPairALJ2DGPU
             else:
                 cls = _md.AnisoPotentialPairALJ3DGPU
 
         # create the c++ mirror class
-        self.cpp_force = cls(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-        self.cpp_class = cls;
+        self.cpp_force = cls(hoomd.context.current.system_definition,
+                             self.nlist.cpp_nlist, self.name)
+        self.cpp_class = cls
 
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(
+            self.cpp_force, self.force_name)
 
         # setup the coefficent options
-        self.required_coeffs = ['epsilon','sigma_i','sigma_j','alpha'];
+        self.required_coeffs = ['epsilon', 'sigma_i', 'sigma_j', 'alpha']
 
     def process_coeff(self, coeff):
-        epsilon = coeff['epsilon'];
-        sigma_i = coeff['sigma_i'];
-        sigma_j = coeff['sigma_j'];
-        alpha = coeff['alpha'];
+        epsilon = coeff['epsilon']
+        sigma_i = coeff['sigma_i']
+        sigma_j = coeff['sigma_j']
+        alpha = coeff['alpha']
         if alpha not in range(4):
-            raise ValueError("The alpha parameter must be an integer from 0 to 3.")
+            raise ValueError(
+                "The alpha parameter must be an integer from 0 to 3.")
 
-        return _md.make_pair_alj_params(epsilon, sigma_i, sigma_j, int(alpha), hoomd.context.exec_conf);
+        return _md.make_pair_alj_params(
+            epsilon, sigma_i, sigma_j, int(alpha), hoomd.context.exec_conf)
 
     def _set_cpp_shape(self, type_id, type_name):
         # Ensure that shape parameters are always 3D lists, even in 2D.
         # TODO: Ensure that the centroid is contained in the shape.
-        shape = self.shape[type_name]
+        vertices = list(self.shape[type_name]['vertices'])
         if hoomd.context.current.system_definition.getNDimensions() == 2:
-            shape = [[v[0], v[1], 0] for v in shape]
+            vertices = [[v[0], v[1], 0] for v in vertices]
 
-        param = _md.make_alj_shape_params(shape, hoomd.context.exec_conf)
+        rrs = self.shape[type_name].get('rounding_radii', 0)
+        try:
+            rounding_radii = list(rrs)
+            if len(rounding_radii) > 3:
+                raise ValueError(
+                    "The rounding radius must be a single value or a "
+                    "sequence of 1-3 values.")
+
+            ndim = hoomd.context.current.system_definition.getNDimensions()
+            if len(rounding_radii) == 1:
+                rounding_radii *= ndim
+            elif ndim == 2:
+                if len(rounding_radii) == 2:
+                    rounding_radii += [0]
+                elif rounding_radii[2] != 0:
+                    raise ValueError(
+                        "The z dimension rounding radius must be 0 in 2D.")
+            elif len(rounding_radii) != 3:
+                raise ValueError("Invalid rounding radius in 3D.")
+        except TypeError:
+            # We were passed a scalar value
+            if hoomd.context.current.system_definition.getNDimensions() == 2:
+                rounding_radii = [rrs, rrs]
+            else:
+                rounding_radii = [rrs, rrs, rrs]
+
+        param = _md.make_alj_shape_params(
+            vertices, rounding_radii, hoomd.context.exec_conf)
         self.cpp_force.setShape(type_id, param)
 
     def get_type_shapes(self):
@@ -2949,7 +2976,7 @@ class alj(ai_pair):
         Returns:
             A list of dictionaries, one for each particle type in the system.
         """
-        return super(ai_pair, self)._return_type_shapes();
+        return super(ai_pair, self)._return_type_shapes()
 
 
 class fourier(pair):

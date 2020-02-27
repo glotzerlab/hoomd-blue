@@ -44,17 +44,20 @@ struct alj_shape_params
     #ifndef NVCC
 
     //! Shape constructor
-    alj_shape_params(pybind11::list shape, bool use_device)
+    alj_shape_params(pybind11::list vertices, pybind11::list rounding_radii, bool use_device)
         {
         //! Construct table for particle i
-        unsigned int N = len(shape);
+        unsigned int N = len(vertices);
         verts = ManagedArray<vec3<Scalar> >(N, use_device);
         for (unsigned int i = 0; i < N; ++i)
             {
-            pybind11::list shape_tmp = pybind11::cast<pybind11::list>(shape[i]);
-            verts[i] = vec3<Scalar>(pybind11::cast<Scalar>(shape_tmp[0]), pybind11::cast<Scalar>(shape_tmp[1]), pybind11::cast<Scalar>(shape_tmp[2]));
+            pybind11::list vertices_tmp = pybind11::cast<pybind11::list>(vertices[i]);
+            verts[i] = vec3<Scalar>(pybind11::cast<Scalar>(vertices_tmp[0]), pybind11::cast<Scalar>(vertices_tmp[1]), pybind11::cast<Scalar>(vertices_tmp[2]));
 
             }
+        m_rounding_radii.x = pybind11::cast<Scalar>(rounding_radii[0]);
+        m_rounding_radii.y = pybind11::cast<Scalar>(rounding_radii[1]);
+        m_rounding_radii.z = pybind11::cast<Scalar>(rounding_radii[2]);
         }
 
     #endif
@@ -78,6 +81,7 @@ struct alj_shape_params
 
     //! Shape parameters
     ManagedArray<vec3<Scalar> > verts;       //! Shape vertices.
+    vec3<Scalar> m_rounding_radii;  //! The rounding ellipse.
     };
 
 //! Potential parameters for the ALJ potential.
@@ -422,9 +426,9 @@ std::string EvaluatorPairALJ<3>::getShapeSpec() const
 
 
 #ifndef NVCC
-alj_shape_params make_alj_shape_params(pybind11::list shape, std::shared_ptr<const ExecutionConfiguration> exec_conf)
+alj_shape_params make_alj_shape_params(pybind11::list shape, pybind11::list rounding_radii, std::shared_ptr<const ExecutionConfiguration> exec_conf)
     {
-    alj_shape_params result(shape, exec_conf->isCUDAEnabled());
+    alj_shape_params result(shape, rounding_radii, exec_conf->isCUDAEnabled());
     return result;
     }
 
