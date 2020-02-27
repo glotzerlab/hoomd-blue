@@ -14,6 +14,7 @@ set(files __init__.py
     test_spheropolyhedron_union.py
     test_faceted_ellipsoid_union.py
     test_shape.py
+    conftest.py
     )
 
 install(FILES ${files}

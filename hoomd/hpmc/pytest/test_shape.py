@@ -3,7 +3,7 @@ import hoomd.hpmc
 from hoomd.hpmc import _hpmc
 import numpy as np
 import pytest
-from conftest import *
+from hoomd.hpmc.pytest.conftest import *
 
 
 def check_dict(shape_dict, args):
