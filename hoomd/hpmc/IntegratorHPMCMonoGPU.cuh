@@ -1231,7 +1231,9 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                 r_jk = vec3<Scalar>(postype_j) - vec3<Scalar>(pos_test);
                 r_jk = vec3<Scalar>(box.minImage(vec_to_scalar3(r_jk)));
 
-                bool overlap_j_a = test_overlap(r_jk, shape_test_a, shape_j, err_count);
+                bool overlap_j_a = s_check_overlaps[overlap_idx(depletant_type_a, type_j)] &&
+                    test_overlap(r_jk, shape_test_a, shape_j, err_count);
+
                 bool overlap_j_b = overlap_j_a;
                 bool overlap_i_a = true;
                 bool overlap_i_b = true;
@@ -1240,7 +1242,8 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
 
                 if (depletant_type_a != depletant_type_b)
                     {
-                    overlap_j_b = test_overlap(r_jk, shape_test_b, shape_j, err_count);
+                    overlap_j_b = s_check_overlaps[overlap_idx(depletant_type_b, type_j)] &&
+                        test_overlap(r_jk, shape_test_b, shape_j, err_count);
 
                     if (overlap_j_b)
                         {
