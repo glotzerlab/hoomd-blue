@@ -44,7 +44,7 @@ struct alj_shape_params
     #ifndef NVCC
 
     //! Shape constructor
-    alj_shape_params(pybind11::list vertices, pybind11::list rounding_radii, bool use_device)
+    alj_shape_params(pybind11::list vertices, pybind11::list rr, bool use_device) : has_rounding(false)
         {
         //! Construct table for particle i
         unsigned int N = len(vertices);
@@ -55,9 +55,14 @@ struct alj_shape_params
             verts[i] = vec3<Scalar>(pybind11::cast<Scalar>(vertices_tmp[0]), pybind11::cast<Scalar>(vertices_tmp[1]), pybind11::cast<Scalar>(vertices_tmp[2]));
 
             }
-        m_rounding_radii.x = pybind11::cast<Scalar>(rounding_radii[0]);
-        m_rounding_radii.y = pybind11::cast<Scalar>(rounding_radii[1]);
-        m_rounding_radii.z = pybind11::cast<Scalar>(rounding_radii[2]);
+
+        rounding_radii.x = pybind11::cast<Scalar>(rr[0]);
+        rounding_radii.y = pybind11::cast<Scalar>(rr[1]);
+        rounding_radii.z = pybind11::cast<Scalar>(rr[2]);
+        if (rounding_radii.x > 0 || rounding_radii.y > 0 || rounding_radii.z > 0)
+            {
+            has_rounding = true;
+            }
         }
 
     #endif
@@ -81,7 +86,8 @@ struct alj_shape_params
 
     //! Shape parameters
     ManagedArray<vec3<Scalar> > verts;       //! Shape vertices.
-    vec3<Scalar> m_rounding_radii;  //! The rounding ellipse.
+    vec3<Scalar> rounding_radii;  //! The rounding ellipse.
+    bool has_rounding;    //! Whether or not the shape has rounding radii.
     };
 
 //! Potential parameters for the ALJ potential.
@@ -241,7 +247,7 @@ class EvaluatorPairALJ
                     //    - v points from the contact point on verts2 to the contact points on verts1.
                     //    - a points from the centroid of verts1 to the contact points on verts1.
                     //    - b points from the centroid of verts2 to the contact points on verts2.
-                    gjk<ndim>(verts1, verts2, v, a, b, success, overlap, q1, q2, dr_use);
+                    gjk<ndim>(verts1, verts2, v, a, b, success, overlap, q1, q2, dr_use, shape_i->rounding_radii, shape_j->rounding_radii, shape_i->has_rounding, shape_j->has_rounding);
                     assert(success && !overlap);
 
                     if (flip)

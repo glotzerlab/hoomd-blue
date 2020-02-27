@@ -191,23 +191,42 @@ HOSTDEVICE inline bool operator ==(const gjk_vec3<Real>& a, const gjk_vec3<Real>
 /////////////// END GJK_VEC3 ///////////////
 /////////////////////////////////////////////
 
-// Renamed to support to avoid conflicts with GJK.h when compiling into a single object with Cython.
-HOSTDEVICE inline unsigned int support(const ManagedArray<vec3<Scalar> > &verts, const vec3<Scalar> &vector, const quat<Scalar> &q, const vec3<Scalar> shift)
+HOSTDEVICE inline void support_polyhedron(const ManagedArray<vec3<Scalar> > &verts, const vec3<Scalar> &vector, const quat<Scalar> &q, const vec3<Scalar> shift, unsigned int &idx)
     {
+    // Compute the support function of the polyhedron.
     unsigned int index = 0;
 
-    Scalar max_dist = dot((rotate(q, verts[index]) + shift), vector);
+    Scalar max_dist_sq = dot((rotate(q, verts[index]) + shift), vector);
     for (unsigned int i = 1; i < verts.size(); ++i)
         {
-        Scalar dist = dot((rotate(q, verts[i]) + shift), vector);
-        if (dist > max_dist)
+        Scalar dist_sq = dot((rotate(q, verts[i]) + shift), vector);
+
+        if (dist_sq > max_dist_sq)
             {
-            max_dist = dist;
+            max_dist_sq = dist_sq;
             index = i;
             }
         }
-    return index;
+    idx = index;
     }
+
+HOSTDEVICE inline void support_ellipsoid(const vec3<Scalar> &rounding_radii, const vec3<Scalar> &vector, const quat<Scalar> &q, const vec3<Scalar> shift, vec3<Scalar> &ellipsoid_support_vector)
+    {
+    // Compute the support function of the rounding ellipsoid. Since we only
+    // have the principal axes, we have to otate the vector into the principal
+    // frame, compute the support, and then rotate back out.
+    vec3<Scalar> rotated_vector = rotate(conj(q), vector);
+    vec3<Scalar> numerator(
+            rounding_radii.x*rounding_radii.x*rotated_vector.x,
+            rounding_radii.y*rounding_radii.y*rotated_vector.y,
+            rounding_radii.z*rounding_radii.z*rotated_vector.z);
+    vec3<Scalar> dvec(
+            rounding_radii.x*rotated_vector.x,
+            rounding_radii.y*rotated_vector.y,
+            rounding_radii.z*rotated_vector.z);
+    ellipsoid_support_vector = rotate(q, numerator / fast::sqrt(dot(dvec, dvec)));
+    }
+
 
 
 //! Returns 1 if a and b have the same sign, and zero otherwise.
@@ -741,7 +760,7 @@ HOSTDEVICE inline void sv_subalgorithm(gjk_vec3<Scalar>* W, unsigned int &W_used
  *  \param dr The vector pointing from the position of particle 2 to the position of particle 1 (note the sign; this is reversed throughout most of the calculations below).
  */
 template <unsigned int ndim>
-HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const ManagedArray<vec3<Scalar> > &verts2, vec3<Scalar> &v, vec3<Scalar> &a, vec3<Scalar> &b, bool& success, bool& overlap, const quat<Scalar> &qi, const quat<Scalar> &qj, const vec3<Scalar> &dr)
+HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const ManagedArray<vec3<Scalar> > &verts2, vec3<Scalar> &v, vec3<Scalar> &a, vec3<Scalar> &b, bool& success, bool& overlap, const quat<Scalar> &qi, const quat<Scalar> &qj, const vec3<Scalar> &dr, const vec3<Scalar> &rounding_radii1, const vec3<Scalar> &rounding_radii2, bool has_rounding1, bool has_rounding2)
     {
     // At any point only a subset of W is in use (identified by W_used), but
     // the total possible is capped at ndim+1 because that is the largest
@@ -772,12 +791,16 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
     unsigned int W_used = 0;
     unsigned int indices1[max_num_points] = {0};
     unsigned int indices2[max_num_points] = {0};
+    vec3<Scalar> ellipsoid_supports1[max_num_points];
+    vec3<Scalar> ellipsoid_supports2[max_num_points];
 
     for (unsigned int i = 0; i < max_num_points; ++i)
         {
         // We initialize W to avoid accidentally termianting if the new w is
         // somehow equal to somthing saved in one of the uninitialized W[i].
         W[i] = gjk_vec3<Scalar>();
+        ellipsoid_supports1[i] = vec3<Scalar>();
+        ellipsoid_supports2[i] = vec3<Scalar>();
         }
 
     // The tolerances are compile-time constants.
@@ -796,9 +819,20 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
             break;
             }
         // support_{A-B}(-v) = support(A, -v) - support(B, v)
-        unsigned int i1 = support(verts1, -v, qi, vec3<Scalar>(0, 0, 0));
-        unsigned int i2 = support(verts2, v, qj, Scalar(-1.0)*dr);
-        gjk_vec3<Scalar> w(rotate(qi, verts1[i1]) - (rotate(qj, verts2[i2]) + Scalar(-1.0)*dr));
+        vec3<Scalar> ellipsoid_support1, ellipsoid_support2;
+        unsigned int i1, i2;
+        support_polyhedron(verts1, -v, qi, vec3<Scalar>(0, 0, 0), i1);
+        support_polyhedron(verts2, v, qj, Scalar(-1.0)*dr, i2);
+        if (has_rounding1)
+            {
+            support_ellipsoid(rounding_radii1, -v, qi, vec3<Scalar>(0, 0, 0), ellipsoid_support1);
+            }
+        if (has_rounding2)
+            {
+            support_ellipsoid(rounding_radii2, v, qj, Scalar(-1.0)*dr, ellipsoid_support2);
+            }
+
+        gjk_vec3<Scalar> w(rotate(qi, verts1[i1]) + ellipsoid_support1 - (rotate(qj, verts2[i2]) + Scalar(-1.0)*dr + ellipsoid_support2));
 
         // Check termination conditions for degenerate cases:
         // 1) If we are repeatedly finding the same point but can't get closer
@@ -843,6 +877,8 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
                     W_used |= (1 << new_index);
                     indices1[new_index] = i1;
                     indices2[new_index] = i2;
+                    ellipsoid_supports1[new_index] = ellipsoid_support1;
+                    ellipsoid_supports2[new_index] = ellipsoid_support2;
                     break;
                     }
                 }
@@ -866,8 +902,8 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
         {
         if (W_used & (1 << i))
             {
-            a += lambdas[i]*rotate(qi, verts1[indices1[i]]);
-            b += lambdas[i]*(rotate(qj, verts2[indices2[i]]) + Scalar(-1.0)*dr);
+            a += lambdas[i]*(rotate(qi, verts1[indices1[i]]) + ellipsoid_supports1[i]);
+            b += lambdas[i]*(rotate(qj, verts2[indices2[i]]) + Scalar(-1.0)*dr + ellipsoid_supports2[i]);
             counter += 1;
             }
         }

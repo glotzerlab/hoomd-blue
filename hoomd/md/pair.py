@@ -2936,7 +2936,9 @@ class alj(ai_pair):
     def _set_cpp_shape(self, type_id, type_name):
         # Ensure that shape parameters are always 3D lists, even in 2D.
         # TODO: Ensure that the centroid is contained in the shape.
-        vertices = list(self.shape[type_name]['vertices'])
+        # There is always at least one vertex. For ellipsoids, this is just the
+        # origin and has no effect.
+        vertices = list(self.shape[type_name].get('vertices', [0, 0, 0]))
         if hoomd.context.current.system_definition.getNDimensions() == 2:
             vertices = [[v[0], v[1], 0] for v in vertices]
 
