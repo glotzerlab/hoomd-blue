@@ -74,10 +74,10 @@ class _HPMCIntegrator(_BaseIntegrator):
         super().__init__()
 
         # Set base parameter dict for hpmc integrators
-        param_dict = ParameterDict(dict(seed=int(seed),
-                                        move_ratio=float(move_ratio),
-                                        nselect=int(nselect),
-                                        deterministic=bool(deterministic))
+        param_dict = ParameterDict(seed=int(seed),
+                                   move_ratio=float(move_ratio),
+                                   nselect=int(nselect),
+                                   deterministic=bool(deterministic)
                                    )
         self._param_dict.update(param_dict)
 
