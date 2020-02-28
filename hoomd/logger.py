@@ -157,7 +157,7 @@ class Logger(SafeNamespaceDict):
         value = getattr(obj, prop)
         if hasattr(value, '__call__'):
             value = value()
-        if flag == 'dict' or 'state':
+        if flag == 'dict' or flag == 'state':
             return value
         else:
             return (value, flag)
