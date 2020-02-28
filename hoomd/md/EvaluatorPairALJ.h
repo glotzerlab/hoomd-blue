@@ -87,7 +87,6 @@ struct alj_shape_params
     //! Shape parameters
     ManagedArray<vec3<Scalar> > verts;       //! Shape vertices.
     vec3<Scalar> rounding_radii;  //! The rounding ellipse.
-    // TODO: Get rid of this and just depend on checking whether rounding_radii.x > 0
     bool has_rounding;    //! Whether or not the shape has rounding radii.
     };
 

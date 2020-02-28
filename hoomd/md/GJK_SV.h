@@ -746,7 +746,9 @@ HOSTDEVICE inline void sv_subalgorithm(gjk_vec3<Scalar>* W, unsigned int &W_used
  *  quite memory intensive because it requires caching all support function
  *  evaluations and cofactors required for Cramer's rule. As a result, we find
  *  that the Signed Volumes subalgorithm performs better than the Johnson
- *  algorithm (even without the backup procedure) when run on modern GPUs.
+ *  algorithm (even without the backup procedure) when run on modern GPUs. A
+ *  reference implementation of GJK using the Johnson algorithm can be found
+ *  in GJK.h.
  *
  *  \param verts1 The vertices of the first body.
  *  \param verts2 The vertices of the second body.
@@ -808,10 +810,8 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
 
     Scalar u(0); 
     bool close_enough(false);
-    // TODO: Figure out how to balance these two max_iterations out depending on rounding or not.
-    // Simple solution: if either is rounded, just hardcode a value.
-    // unsigned int max_iterations = verts1.size() + verts2.size() + 1;
-    unsigned int max_iterations = 50;
+    // Value of 50 chosen based on empirical observations.
+    const unsigned int max_iterations = ((has_rounding1 || has_rounding2) ? 50 : verts1.size() + verts2.size() + 1);
     unsigned int iteration = 0;
     while (!close_enough)
         {
@@ -822,8 +822,8 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
             break;
             }
         // support_{A-B}(-v) = support(A, -v) - support(B, v)
-        vec3<Scalar> ellipsoid_support1 = vec3<Scalar>(), ellipsoid_support2 = vec3<Scalar>();
-        unsigned int i1 = 0, i2 = 0;
+        vec3<Scalar> ellipsoid_support1, ellipsoid_support2;
+        unsigned int i1, i2;
         support_polyhedron(verts1, -v, qi, vec3<Scalar>(0, 0, 0), i1);
         support_polyhedron(verts2, v, qj, Scalar(-1.0)*dr, i2);
         if (has_rounding1)
@@ -835,6 +835,11 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
             support_ellipsoid(rounding_radii2, v, qj, ellipsoid_support2);
             }
 
+        // In this line we always add the ellipsoid supports, which are
+        // initialized to 0 anyway. Everywhere else, since we need to access
+        // the supports through the ellipsoid_supports[1|2] arrays, we branch
+        // based on has_rounding[1|2] to avoid memory accesses if they're
+        // unnecessary.
         gjk_vec3<Scalar> w(rotate(qi, verts1[i1]) + ellipsoid_support1 - (rotate(qj, verts2[i2]) + Scalar(-1.0)*dr + ellipsoid_support2));
 
         // Check termination conditions for degenerate cases:
@@ -843,7 +848,11 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
         // 2) If we are cycling between two points.
         // In either case, because of the tracking with W_used, we can
         // guarantee that the new w will be found in one of the W (but possibly
-        // in one of the unused slots.
+        // in one of the unused slots. We skip this check on the GPU because
+        // it introduces branch divergence (at least one thread almost always
+        // needs the algorithm to run to completion, so the early termination
+        // due to degeneracy just adds extra work to check degeneracy without
+        // any corresponding performance gains).
 #ifndef NVCC
         bool degenerate(false);
         for (unsigned int i = 0; i < max_num_points; i++)
@@ -880,8 +889,17 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
                     W_used |= (1 << new_index);
                     indices1[new_index] = i1;
                     indices2[new_index] = i2;
-                    ellipsoid_supports1[new_index] = ellipsoid_support1;
-                    ellipsoid_supports2[new_index] = ellipsoid_support2;
+                    // Microoptimization: Don't access ellipsoid_supports array unless
+                    // needed. The branching should be free since the shape is defined
+                    // identically on all threads.
+                    if (has_rounding1)
+                        {
+                        ellipsoid_supports1[new_index] = ellipsoid_support1;
+                        }
+                    if (has_rounding2)
+                        {
+                        ellipsoid_supports2[new_index] = ellipsoid_support2;
+                        }
                     break;
                     }
                 }
@@ -905,8 +923,26 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
         {
         if (W_used & (1 << i))
             {
-            a += lambdas[i]*(rotate(qi, verts1[indices1[i]]) + ellipsoid_supports1[i]);
-            b += lambdas[i]*(rotate(qj, verts2[indices2[i]]) + Scalar(-1.0)*dr + ellipsoid_supports2[i]);
+            // Microoptimization: Don't access ellipsoid_supports array unless
+            // needed. The branching should be free since the shape is defined
+            // identically on all threads.
+            if (has_rounding1)
+                {
+                a += lambdas[i]*(rotate(qi, verts1[indices1[i]]) + ellipsoid_supports1[i]);
+                }
+            else
+                {
+                a += lambdas[i]*(rotate(qi, verts1[indices1[i]]));
+                }
+
+            if (has_rounding2)
+                {
+                b += lambdas[i]*(rotate(qj, verts2[indices2[i]]) + Scalar(-1.0)*dr + ellipsoid_supports2[i]);
+                }
+            else
+                {
+                b += lambdas[i]*(rotate(qj, verts2[indices2[i]]) + Scalar(-1.0)*dr);
+                }
             counter += 1;
             }
         }
