@@ -87,6 +87,7 @@ struct alj_shape_params
     //! Shape parameters
     ManagedArray<vec3<Scalar> > verts;       //! Shape vertices.
     vec3<Scalar> rounding_radii;  //! The rounding ellipse.
+    // TODO: Get rid of this and just depend on checking whether rounding_radii.x > 0
     bool has_rounding;    //! Whether or not the shape has rounding radii.
     };
 
@@ -417,14 +418,30 @@ template <>
 std::string EvaluatorPairALJ<3>::getShapeSpec() const
     {
     std::ostringstream shapedef;
-    const ManagedArray<vec3<Scalar> > &verts(shape_i->verts);       //! Shape vertices.
+    const ManagedArray<vec3<Scalar> > &verts(shape_i->verts);
     const unsigned int N = verts.size();
-    shapedef << "{\"type\": \"ConvexPolyhedron\", \"rounding_radius\": 0, \"vertices\": [";
-    for (unsigned int i = 0; i < N-1; i++)
+    if (N == 1)
         {
-        shapedef << "[" << verts[i].x << ", " << verts[i].y << ", " << verts[i].z << "], ";
+        shapedef << "{\"type\": \"Ellipsoid\", \"a\": " << shape_i->rounding_radii.x <<
+                    ", \"b\": " << shape_i->rounding_radii.y <<
+                    ", \"c\": " << shape_i->rounding_radii.z <<
+                    "}";
         }
-    shapedef << "[" << verts[N-1].x << ", " << verts[N-1].y << ", " << verts[N-1].z << "]]}";
+    else
+        {
+        if (shape_i->rounding_radii.x != shape_i->rounding_radii.y ||
+                shape_i->rounding_radii.x != shape_i->rounding_radii.z)
+            {
+                throw std::runtime_error("Shape definition not supported for spheropolyhedra with distinct rounding radii.");
+            }
+        shapedef << "{\"type\": \"ConvexPolyhedron\", \"rounding_radius\": " << shape_i->rounding_radii.x << ", \"vertices\": [";
+        for (unsigned int i = 0; i < N-1; i++)
+            {
+            shapedef << "[" << verts[i].x << ", " << verts[i].y << ", " << verts[i].z << "], ";
+            }
+        shapedef << "[" << verts[N-1].x << ", " << verts[N-1].y << ", " << verts[N-1].z << "]]}";
+        }
+
     return shapedef.str();
     }
 #endif

@@ -210,7 +210,7 @@ HOSTDEVICE inline void support_polyhedron(const ManagedArray<vec3<Scalar> > &ver
     idx = index;
     }
 
-HOSTDEVICE inline void support_ellipsoid(const vec3<Scalar> &rounding_radii, const vec3<Scalar> &vector, const quat<Scalar> &q, const vec3<Scalar> shift, vec3<Scalar> &ellipsoid_support_vector)
+HOSTDEVICE inline void support_ellipsoid(const vec3<Scalar> &rounding_radii, const vec3<Scalar> &vector, const quat<Scalar> &q, vec3<Scalar> &ellipsoid_support_vector)
     {
     // Compute the support function of the rounding ellipsoid. Since we only
     // have the principal axes, we have to otate the vector into the principal
@@ -808,7 +808,10 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
 
     Scalar u(0); 
     bool close_enough(false);
-    unsigned int max_iterations = verts1.size() + verts2.size() + 1;
+    // TODO: Figure out how to balance these two max_iterations out depending on rounding or not.
+    // Simple solution: if either is rounded, just hardcode a value.
+    // unsigned int max_iterations = verts1.size() + verts2.size() + 1;
+    unsigned int max_iterations = 50;
     unsigned int iteration = 0;
     while (!close_enough)
         {
@@ -819,17 +822,17 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
             break;
             }
         // support_{A-B}(-v) = support(A, -v) - support(B, v)
-        vec3<Scalar> ellipsoid_support1, ellipsoid_support2;
-        unsigned int i1, i2;
+        vec3<Scalar> ellipsoid_support1 = vec3<Scalar>(), ellipsoid_support2 = vec3<Scalar>();
+        unsigned int i1 = 0, i2 = 0;
         support_polyhedron(verts1, -v, qi, vec3<Scalar>(0, 0, 0), i1);
         support_polyhedron(verts2, v, qj, Scalar(-1.0)*dr, i2);
         if (has_rounding1)
             {
-            support_ellipsoid(rounding_radii1, -v, qi, vec3<Scalar>(0, 0, 0), ellipsoid_support1);
+            support_ellipsoid(rounding_radii1, -v, qi, ellipsoid_support1);
             }
         if (has_rounding2)
             {
-            support_ellipsoid(rounding_radii2, v, qj, Scalar(-1.0)*dr, ellipsoid_support2);
+            support_ellipsoid(rounding_radii2, v, qj, ellipsoid_support2);
             }
 
         gjk_vec3<Scalar> w(rotate(qi, verts1[i1]) + ellipsoid_support1 - (rotate(qj, verts2[i2]) + Scalar(-1.0)*dr + ellipsoid_support2));
