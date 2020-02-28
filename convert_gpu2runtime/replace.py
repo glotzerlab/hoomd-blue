@@ -20,7 +20,7 @@ replacements = {'cudaError_t':'gpu::error_t',
                 '__HIP_DEVICE_COMPILE__':'__GPU_DEVICE_COMPILE__',
                 'hipGetDeviceCount':'gpu::getDeviceCount',
                 'hipDeviceProp_t':'gpu::deviceProp_t',
-                '<hip/hip_runtime.h>':'<Runtime.h>',
+                '<hip/hip_runtime.h>':'<gpu_runtime.h>',
                 'cudaMallocManaged':'gpu::mallocManaged',
                 'cudaMemAdvise':'gpu::memAdvise',
                 'hipGetErrorString':'gpu::getErrorString',
@@ -42,12 +42,19 @@ replacements = {'cudaError_t':'gpu::error_t',
                 'cudaDeviceProp':'gpu::deviceProp_t',
                 'cudaSuccess':'gpu::success',
                 'cudaMemcpy':'gpu::memcpy',
+                'cudaMemset':'gpu::memset',
+                'cudaMemsetAsync':'gpu::memsetAsync',
+                'cudaPeekAtLastError':'gpu::peekAtLastError',
                 'cudaEvent_t':'gpu::event_t',
                 'cudaEventCreate':'gpu::eventCreate',
                 'cudaEventDestroy':'gpu::eventDestroy',
                 'cudaEventRecord':'gpu::eventRecord',
                 'cudaEventElapsedTime':'gpu::eventElapsedTime',
                 'cudaStream_t':'gpu::stream_t',
+                'cudaStreamCreate':'gpu::streamCreate',
+                'cudaStreamDestroy':'gpu::streamDestroy',
+                'cudaStreamSynchronize':'gpu::streamSynchronize',
+                'cudaStreamWaitEvent':'gpu::streamWaitEvent',
                 'cudaFree':'gpu::free',
                 'cudaEventSynchronize':'gpu::eventSynchronize',
                 'cudaGetDeviceProperties':'gpu::getDeviceProperties',
@@ -63,6 +70,10 @@ replacements = {'cudaError_t':'gpu::error_t',
                 'cudaMemAdviseSetAccessedBy':'gpu::memAdviseSetAccessedBy',
                 'cudaSetValidDevices':'gpu::setValidDevices',
                 'cudaCpuDeviceId':'gpu::cpuDeviceId',
+                'cudaFuncGetAttributes':'gpu::funcGetAttributes',
+                'cudaFuncAttributes':'gpu::funcAttributes',
+                'cudaMemAttachGlobal':'gpu::memAttachGlobal',
+                'cudaMemAttachHost':'gpu::memAttachHost',
                 'hipSuccess':'gpu::success',
                 'hipGetErrorString':'gpu::getErrorString',
                 'hipMallocManaged':'gpu::mallocManaged',
@@ -70,12 +81,12 @@ replacements = {'cudaError_t':'gpu::error_t',
                 'hipHostGetDevicePointer':'gpu::hostGetDevicePointer',
                 'hipMalloc':'gpu::malloc',
                 'hipMemset':'gpu::memset',
+                'hipMemsetAsync':'gpu::memsetAsync'
                 'hipMemcpyDeviceToHost':'gpu::memcpyDeviceToHost',
                 'hipMemcpyAsync':'gpu::memcpyAsync',
                 'hipMemcpyHostToDevice':'gpu::memcpyHostToDevice',
                 'hipMemcpy':'gpu::memcpy',
                 'hipHostRegister':'gpu::hostRegister',
-                'hipHostGetDevicePointer':'gpu::hostGetDevicePointer',
                 'hipProfileStart':'gpu::profileStart',
                 'hipProfilerStop':'gpu::profileStop',
                 'hipEventCreate':'gpu::eventCreate',
@@ -94,9 +105,14 @@ replacements = {'cudaError_t':'gpu::error_t',
                 'HIP_VERSION_MINOR':'GPU_VERSION_MINOR',
                 'hipStreamDestroy':'gpu::streamDestroy',
                 'hipStreamCreate':'gpu::streamCreate',
+                'hipStreamSynchronize':'gpu::streamSynchronize',
                 'hipMemcpyDefault':'gpu::memcpyDefault',
                 'hipHostMallocDefault':'gpu::hostMallocDefault',
-                '"hip/hip_runtime.h"':'<Runtime.h>'}
+                '"hip/hip_runtime.h"':'<gpu_runtime.h>',
+                'hipFuncGetAttributes':'gpu::funcGetAttributes',
+                'hipFuncAttributes':'gpu::funcAttributes',
+                'hipMemAttachGlobal':'gpu::memAttachGlobal',
+                'hipMemAttachHost':'gpu::memAttachHost'}
 
 #variables for formatting kernal launchers and their args
 launch_kernel_indent = ""
@@ -145,33 +161,34 @@ def getKernelParams(line):
 #for loop goes through all files and replace cuda/hip functions, typenames, and MACROS with their gpu namespace defintions... also replaces cuda/hip kernal launchers
 for filename in dir_names:
    all_lines = []
-   file_read = open(filename, "r")
-   for line in file_read:
-       updated_line = line
-       for definition in replacements:
-           if definition in line:
-               updated_line = updated_line.replace(definition, replacements[definition])
+   if not "Runtime.h" in filename:
+       file_read = open(filename, "r")
+       for line in file_read:
+           updated_line = line
+           for definition in replacements:
+               if definition in line:
+                   updated_line = updated_line.replace(definition, replacements[definition])
 
-       if indenting_kernel_launcher_args == True:
-           removal_indent = getIndent(updated_line)
-           arg = updated_line[len(removal_indent):len(updated_line) - 1]
-           updated_line = launch_kernel_indent + 8*" " + arg + "\n"
-           if ");" in line:
-               indenting_kernel_launcher_args = False
+           if indenting_kernel_launcher_args == True:
+               removal_indent = getIndent(updated_line)
+               arg = updated_line[len(removal_indent):len(updated_line) - 1]
+               updated_line = launch_kernel_indent + 8*" " + arg + "\n"
+               if ");" in line:
+                   indenting_kernel_launcher_args = False
 
-       if "<<<" in line or "hipLaunchKernelGGL" in line:
-           launch_kernel_indent = getIndent(updated_line)
-           kernel_name_and_arg = getKernelName(updated_line, launch_kernel_indent)
-           kernel_params = getKernelParams(updated_line)
-           launch_kernel_line = launch_kernel_indent + "KernelLauncher launcher(" + kernel_params + ");"
-           updated_line = launch_kernel_indent + "launcher(" + kernel_name_and_arg
-           all_lines.append(launch_kernel_line + "\n")
-           if not ");" in line:
-               indenting_kernel_launcher_args = True
+           if "<<<" in line or "hipLaunchKernelGGL" in line:
+               launch_kernel_indent = getIndent(updated_line)
+               kernel_name_and_arg = getKernelName(updated_line, launch_kernel_indent)
+               kernel_params = getKernelParams(updated_line)
+               launch_kernel_line = launch_kernel_indent + "KernelLauncher launcher(" + kernel_params + ");"
+               updated_line = launch_kernel_indent + "launcher(" + kernel_name_and_arg
+               all_lines.append(launch_kernel_line + "\n")
+               if not ");" in line:
+                   indenting_kernel_launcher_args = True
 
-       all_lines.append(updated_line)
-   file_read.close()
-   file_write = open(filename, "w+")
-   file_write.writelines(all_lines)
-   file_write.close()
+           all_lines.append(updated_line)
+       file_read.close()
+       file_write = open(filename, "w+")
+       file_write.writelines(all_lines)
+       file_write.close()
 

@@ -14,7 +14,7 @@ for filename in dir_names:
     #print(file_)
     some_file = open(filename, "r")
     for line in some_file:
-        if "HIP" in line:
+        if "cuda" in line:
             func_name_list.append(line)
             """#print("Hello")
             idxStart = line.find("cuda", 0)
