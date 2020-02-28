@@ -38,7 +38,7 @@ steps:
 
 - script: >-
     PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
-    mpirun -n 2 hoomd/pytest/pytest-openmpi.sh -v -x -ra
+    mpirun -n 2 $(Build.BinariesDirectory)/hoomd/pytest/pytest-openmpi.sh -v -x -ra
     --junit-xml=$(Common.TestResultsDirectory)/pytest-mpi.xml
   displayName: Run pytest (mpi)
   workingDirectory: $(Pipeline.Workspace)/install
