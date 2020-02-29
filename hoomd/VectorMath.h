@@ -76,6 +76,30 @@ struct vec3
         {
         }
 
+    DEVICE Real& operator[](unsigned int i)
+    {
+        switch(i) {
+            case 0:
+                return x;
+            case 1:
+                return y;
+            case 2:
+                return z;
+        }
+    }
+
+    DEVICE const Real operator[](unsigned int i) const
+    {
+        switch(i) {
+            case 0:
+                return x;
+            case 1:
+                return y;
+            case 2:
+                return z;
+        }
+    }
+
     //! Default construct a 0 vector
     DEVICE vec3() : x(0), y(0), z(0)
         {

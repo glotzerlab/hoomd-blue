@@ -13,7 +13,7 @@
 
 // Define matrix vector multiplication since it's faster than quat vector.
 template <typename Scalar>
-HOSTDEVICE vec3<Scalar> rotate(const Scalar mat[3][3], const vec3<Scalar>& v)
+HOSTDEVICE inline vec3<Scalar> rotate(const Scalar mat[3][3], const vec3<Scalar>& v)
     {
     return vec3<Scalar>(
             mat[0][0]*v.x + mat[0][1]*v.y + mat[0][2]*v.z,
@@ -22,186 +22,6 @@ HOSTDEVICE vec3<Scalar> rotate(const Scalar mat[3][3], const vec3<Scalar>& v)
             );
     }
 
-
-
-/////////////////////////////////////////////
-////////////// BEGIN GJK_VEC3 ///////////////
-/////////////////////////////////////////////
-// The 2-simplex subroutine of the Signed Volumes subalgorithm requires
-// projecting the face of interest onto one of the coordinate axes (choosing
-// the one that minimizes precision loss). In practice, this projection is done
-// by simply ignoring one of the components of the vectors. Since this is far
-// more easily and efficiently accomplished by indexing into the vector (rather
-// than creating lots of branch divergence using the .x, .y, and .z attributes
-// of normal vec3s), I've defined a new vec3 here. This version is limited to
-// only the operations that are actually used in the GJK algorithm.
-
-//! Array-based 3 element vector
-/*! \tparam Real Data type of the components
-
-    gjk_vec3 defines a simple 3 element vector. The components are available through the public arr attributed, which can be directly indexed into. The only operations defined on gjk_vec3 objects are the dot product and the cross product. 
-*/
-template < class Real >
-struct gjk_vec3
-    {
-    //! Construct a gjk_vec3
-    /*! \param vec HOOMD vec3
-    */
-    HOSTDEVICE gjk_vec3(const vec3<Real>& vec)
-        {
-            arr[0] = vec.x;
-            arr[1] = vec.y;
-            arr[2] = vec.z;
-        }
-
-    //! Construct a gjk_vec3
-    /*! \param _x x-component
-        \param _y y-component
-        \param _z z-component
-    */
-    HOSTDEVICE gjk_vec3(const Real& _x, const Real& _y, const Real& _z)
-        {
-            arr[0] = _x;
-            arr[1] = _y;
-            arr[2] = _z;
-        }
-
-    //! Default construct a 0 vector
-    HOSTDEVICE gjk_vec3()
-        {
-            arr[0] = 0;
-            arr[1] = 0;
-            arr[2] = 0;
-        }
-
-    Real arr[3]; //!< Vector components
-    };
-
-
-//! dot product of two gjk_vec3s
-/*! \param a First vector
-    \param b Second vector
-
-    \returns the dot product a.x*b.x + a.y*b.y + a.z*b.z.
-*/
-template < class Real >
-HOSTDEVICE inline Real dot(const gjk_vec3<Real>& a, const gjk_vec3<Real>& b)
-    {
-    return (a.arr[0]*b.arr[0] + a.arr[1]*b.arr[1] + a.arr[2]*b.arr[2]);
-    }
-
-
-//! dot product of a gjk_vec3 with a vec3
-/*! \param a First vector
-    \param b Second vector
-
-    \returns the dot product a.x*b.x + a.y*b.y + a.z*b.z.
-*/
-template < class Real >
-HOSTDEVICE inline Real dot(const gjk_vec3<Real>& a, const vec3<Real>& b)
-    {
-    return (a.arr[0]*b.x + a.arr[1]*b.y + a.arr[2]*b.z);
-    }
-
-template < class Real >
-HOSTDEVICE inline Real dot(const vec3<Real>& a, const gjk_vec3<Real>& b)
-    {
-    return (a.x*b.arr[0] + a.y*b.arr[1] + a.z*b.arr[2]);
-    }
-
-
-//! cross product of two gjk_vec3s
-/*! \param a First vector
-    \param b Second vector
-
-    \returns the cross product (a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x).
-*/
-template < class Real >
-HOSTDEVICE inline vec3<Real> cross(const gjk_vec3<Real>& a, const gjk_vec3<Real>& b)
-    {
-    return vec3<Real>(a.arr[1] * b.arr[2] - a.arr[2] * b.arr[1],
-                      a.arr[2] * b.arr[0] - a.arr[0] * b.arr[2],
-                      a.arr[0] * b.arr[1] - a.arr[1] * b.arr[0]);
-    }
-
-
-//! Subtraction of two gjk_vec3s
-/*! \param a First vector
-    \param b Second vector
-
-    Subtraction is component wise.
-    \returns The vector (a.x-b.x, a.y-b.y, a.z-b.z).
-*/
-template < class Real >
-HOSTDEVICE inline vec3<Real> operator-(const gjk_vec3<Real>& a, const gjk_vec3<Real>& b)
-    {
-    return vec3<Real>(a.arr[0] - b.arr[0],
-                      a.arr[1] - b.arr[1],
-                      a.arr[2] - b.arr[2]);
-    }
-
-
-//! Multiplication of a gjk_vec3 by a scalar
-/*! \param a vector
-    \param b scalar
-
-    Multiplication is component wise.
-    \returns The vector (a.x*b, a.y*b, a.z*b).
-*/
-template < class Real >
-HOSTDEVICE inline gjk_vec3<Real> operator*(const Real& b, const gjk_vec3<Real>& a)
-    {
-    return gjk_vec3<Real>(a.arr[0] * b,
-                          a.arr[1] * b,
-                          a.arr[2] * b);
-    }
-
-//! Assignment-addition of two gjk_vec3s
-/*! \param a First vector
-    \param b Second vector
-
-    Addition is component wise.
-    \returns The vector (a.x += b.x, a.y += b.y, a.z += b.z).
-*/
-template < class Real >
-HOSTDEVICE inline gjk_vec3<Real>& operator +=(gjk_vec3<Real>& a, const gjk_vec3<Real>& b)
-    {
-    a.arr[0] += b.arr[0];
-    a.arr[1] += b.arr[1];
-    a.arr[2] += b.arr[2];
-    return a;
-    }
-
-//! Assignment-addition of a gjk_vec3 to a vec3
-/*! \param a First vector
-    \param b Second vector
-
-    Addition is component wise.
-    \returns The vector (a.x += b.x, a.y += b.y, a.z += b.z).
-*/
-template < class Real >
-HOSTDEVICE inline vec3<Real>& operator +=(vec3<Real>& a, const gjk_vec3<Real>& b)
-    {
-    a.x += b.arr[0];
-    a.y += b.arr[1];
-    a.z += b.arr[2];
-    return a;
-    }
-
-//! Equality test of two gjk_vec3s
-/*! \param a First vector
-    \param b Second vector
-    \returns true if the two vectors are identically equal, false if they are not
-*/
-template < class Real >
-HOSTDEVICE inline bool operator ==(const gjk_vec3<Real>& a, const gjk_vec3<Real>& b)
-    {
-    return (a.arr[0] == b.arr[0]) && (a.arr[1] == b.arr[1]) && (a.arr[2] == b.arr[2]);
-    }
-
-/////////////////////////////////////////////
-/////////////// END GJK_VEC3 ///////////////
-/////////////////////////////////////////////
 
 HOSTDEVICE inline void support_polyhedron(const ManagedArray<vec3<Scalar> > &verts, const vec3<Scalar> &vector, const Scalar mat[3][3], const vec3<Scalar> shift, unsigned int &idx)
     {
@@ -222,6 +42,7 @@ HOSTDEVICE inline void support_polyhedron(const ManagedArray<vec3<Scalar> > &ver
     idx = index;
     }
 
+
 HOSTDEVICE inline void support_ellipsoid(const vec3<Scalar> &rounding_radii, const vec3<Scalar> &vector, const quat<Scalar> &q, vec3<Scalar> &ellipsoid_support_vector)
     {
     // Compute the support function of the rounding ellipsoid. Since we only
@@ -238,7 +59,6 @@ HOSTDEVICE inline void support_ellipsoid(const vec3<Scalar> &rounding_radii, con
             rounding_radii.z*rotated_vector.z);
     ellipsoid_support_vector = rotate(q, numerator / fast::sqrt(dot(dvec, dvec)));
     }
-
 
 
 //! Returns 1 if a and b have the same sign, and zero otherwise.
@@ -259,7 +79,7 @@ HOSTDEVICE inline unsigned int compareSigns(Scalar a, Scalar b)
  *  \param lambdas The multipliers (that will be overwritten in place) that indicate what linear combination of W represents the point of minimum norm.
  */
 template <unsigned int ndim>
-HOSTDEVICE inline void s1d(gjk_vec3<Scalar>* W, unsigned int &W_used, Scalar* lambdas)
+HOSTDEVICE inline void s1d(vec3<Scalar>* W, unsigned int &W_used, Scalar* lambdas)
 {
     // Identify the appropriate indices
     constexpr unsigned int max_num_points = ndim + 1;
@@ -283,26 +103,26 @@ HOSTDEVICE inline void s1d(gjk_vec3<Scalar>* W, unsigned int &W_used, Scalar* la
     }
 
     // Calculate the signed volume of the simplex.
-    gjk_vec3<Scalar> t = W[i2] - W[i1];
+    vec3<Scalar> t = W[i2] - W[i1];
     unsigned int I = 0;
-    Scalar neg_tI = -t.arr[0];
+    Scalar neg_tI = -t[0];
     
-    if (abs(t.arr[1]) > abs(neg_tI))
+    if (abs(t[1]) > abs(neg_tI))
     {
         I = 1;
-        neg_tI = -t.arr[1];
+        neg_tI = -t[1];
     }
 
-    if (abs(t.arr[2]) > abs(neg_tI))
+    if (abs(t[2]) > abs(neg_tI))
     {
         I = 2;
-        neg_tI = -t.arr[2];
+        neg_tI = -t[2];
     }
 
-    Scalar pI = (dot(W[i2], t)/dot(t, t)) * neg_tI + W[i2].arr[I];
+    Scalar pI = (dot(W[i2], t)/dot(t, t)) * neg_tI + W[i2][I];
     
     // Identify the signed volume resulting from replacing each point by the origin.
-    Scalar C[2] = {-W[i2].arr[I] + pI, W[i1].arr[I] - pI};
+    Scalar C[2] = {-W[i2][I] + pI, W[i1][I] - pI};
     unsigned int sign_comparisons[2] = {compareSigns(neg_tI, C[0]), compareSigns(neg_tI, C[1])};
     
     // If all signed volumes are identical, the origin lies inside the simplex.
@@ -335,7 +155,7 @@ HOSTDEVICE inline void s1d(gjk_vec3<Scalar>* W, unsigned int &W_used, Scalar* la
  *  \param lambdas The multipliers (that will be overwritten in place) that indicate what linear combination of W represents the point of minimum norm.
  */
 template <unsigned int ndim>
-HOSTDEVICE inline void s2d(gjk_vec3<Scalar>* W, unsigned int &W_used, Scalar* lambdas)
+HOSTDEVICE inline void s2d(vec3<Scalar>* W, unsigned int &W_used, Scalar* lambdas)
 {
     // This function is always called with two points. This constant is defined
     // to avoid magical 3s everywhere in loops.
@@ -362,8 +182,8 @@ HOSTDEVICE inline void s2d(gjk_vec3<Scalar>* W, unsigned int &W_used, Scalar* la
         }
     }
 
-    gjk_vec3<Scalar> n = cross(W[point1_idx] - W[point0_idx], W[point2_idx] - W[point0_idx]);
-    gjk_vec3<Scalar> p0 = (dot(W[point0_idx], n)/dot(n, n))*(n);
+    vec3<Scalar> n = cross(W[point1_idx] - W[point0_idx], W[point2_idx] - W[point0_idx]);
+    vec3<Scalar> p0 = (dot(W[point0_idx], n)/dot(n, n))*(n);
     
     // Choose maximum area plane to project onto.
     // Make sure to store the *signed* area of the plane.
@@ -372,21 +192,21 @@ HOSTDEVICE inline void s2d(gjk_vec3<Scalar>* W, unsigned int &W_used, Scalar* la
     unsigned int idx_x = 1;
     unsigned int idx_y = 2;
     Scalar mu_max = (
-            W[point1_idx].arr[1] * W[point2_idx].arr[2] +
-            W[point0_idx].arr[1] * W[point1_idx].arr[2] +
-            W[point2_idx].arr[1] * W[point0_idx].arr[2] - 
-            W[point1_idx].arr[1] * W[point0_idx].arr[2] -
-            W[point2_idx].arr[1] * W[point1_idx].arr[2] -
-            W[point0_idx].arr[1] * W[point2_idx].arr[2]);
+            W[point1_idx][1] * W[point2_idx][2] +
+            W[point0_idx][1] * W[point1_idx][2] +
+            W[point2_idx][1] * W[point0_idx][2] -
+            W[point1_idx][1] * W[point0_idx][2] -
+            W[point2_idx][1] * W[point1_idx][2] -
+            W[point0_idx][1] * W[point2_idx][2]);
     
     // This term is multiplied by -1.
     Scalar mu = (
-            W[point1_idx].arr[2] * W[point0_idx].arr[0] +
-            W[point2_idx].arr[2] * W[point1_idx].arr[0] +
-            W[point0_idx].arr[2] * W[point2_idx].arr[0] -
-            W[point1_idx].arr[2] * W[point2_idx].arr[0] -
-            W[point0_idx].arr[2] * W[point1_idx].arr[0] -
-            W[point2_idx].arr[2] * W[point0_idx].arr[0]);
+            W[point1_idx][2] * W[point0_idx][0] +
+            W[point2_idx][2] * W[point1_idx][0] +
+            W[point0_idx][2] * W[point2_idx][0] -
+            W[point1_idx][2] * W[point2_idx][0] -
+            W[point0_idx][2] * W[point1_idx][0] -
+            W[point2_idx][2] * W[point0_idx][0]);
     if (abs(mu) > abs(mu_max))
     {
         mu_max = mu;
@@ -394,12 +214,12 @@ HOSTDEVICE inline void s2d(gjk_vec3<Scalar>* W, unsigned int &W_used, Scalar* la
     }
 
     mu = (
-            W[point1_idx].arr[0] * W[point2_idx].arr[1] +
-            W[point0_idx].arr[0] * W[point1_idx].arr[1] +
-            W[point2_idx].arr[0] * W[point0_idx].arr[1] -
-            W[point1_idx].arr[0] * W[point0_idx].arr[1] -
-            W[point2_idx].arr[0] * W[point1_idx].arr[1] -
-            W[point0_idx].arr[0] * W[point2_idx].arr[1]);
+            W[point1_idx][0] * W[point2_idx][1] +
+            W[point0_idx][0] * W[point1_idx][1] +
+            W[point2_idx][0] * W[point0_idx][1] -
+            W[point1_idx][0] * W[point0_idx][1] -
+            W[point2_idx][0] * W[point1_idx][1] -
+            W[point0_idx][0] * W[point2_idx][1]);
     if (abs(mu) > abs(mu_max))
     {
         mu_max = mu;
@@ -412,28 +232,28 @@ HOSTDEVICE inline void s2d(gjk_vec3<Scalar>* W, unsigned int &W_used, Scalar* la
     Scalar C[num_points] = {0};
     bool sign_comparisons[num_points] = {false};
     
-    C[0] = (p0.arr[idx_x] * W[point1_idx].arr[idx_y] +
-            p0.arr[idx_y] * W[point2_idx].arr[idx_x] +
-            W[point1_idx].arr[idx_x] * W[point2_idx].arr[idx_y] -
-            p0.arr[idx_x] * W[point2_idx].arr[idx_y] -
-            p0.arr[idx_y] * W[point1_idx].arr[idx_x] -
-            W[point2_idx].arr[idx_x] * W[point1_idx].arr[idx_y]);
+    C[0] = (p0[idx_x] * W[point1_idx][idx_y] +
+            p0[idx_y] * W[point2_idx][idx_x] +
+            W[point1_idx][idx_x] * W[point2_idx][idx_y] -
+            p0[idx_x] * W[point2_idx][idx_y] -
+            p0[idx_y] * W[point1_idx][idx_x] -
+            W[point2_idx][idx_x] * W[point1_idx][idx_y]);
     sign_comparisons[0] = compareSigns(mu_max, C[0]);
     
-    C[1] = (p0.arr[idx_x] * W[point2_idx].arr[idx_y] +
-            p0.arr[idx_y] * W[point0_idx].arr[idx_x] +
-            W[point2_idx].arr[idx_x] * W[point0_idx].arr[idx_y] -
-            p0.arr[idx_x] * W[point0_idx].arr[idx_y] -
-            p0.arr[idx_y] * W[point2_idx].arr[idx_x] -
-            W[point0_idx].arr[idx_x] * W[point2_idx].arr[idx_y]);
+    C[1] = (p0[idx_x] * W[point2_idx][idx_y] +
+            p0[idx_y] * W[point0_idx][idx_x] +
+            W[point2_idx][idx_x] * W[point0_idx][idx_y] -
+            p0[idx_x] * W[point0_idx][idx_y] -
+            p0[idx_y] * W[point2_idx][idx_x] -
+            W[point0_idx][idx_x] * W[point2_idx][idx_y]);
     sign_comparisons[1] = compareSigns(mu_max, C[1]);
     
-    C[2] = (p0.arr[idx_x] * W[point0_idx].arr[idx_y] +
-            p0.arr[idx_y] * W[point1_idx].arr[idx_x] +
-            W[point0_idx].arr[idx_x] * W[point1_idx].arr[idx_y] -
-            p0.arr[idx_x] * W[point1_idx].arr[idx_y] -
-            p0.arr[idx_y] * W[point0_idx].arr[idx_x] -
-            W[point1_idx].arr[idx_x] * W[point0_idx].arr[idx_y]);
+    C[2] = (p0[idx_x] * W[point0_idx][idx_y] +
+            p0[idx_y] * W[point1_idx][idx_x] +
+            W[point0_idx][idx_x] * W[point1_idx][idx_y] -
+            p0[idx_x] * W[point1_idx][idx_y] -
+            p0[idx_y] * W[point0_idx][idx_x] -
+            W[point1_idx][idx_x] * W[point0_idx][idx_y]);
     sign_comparisons[2] = compareSigns(mu_max, C[2]);
 
     if (sign_comparisons[0] + sign_comparisons[1] + sign_comparisons[2] == 3)
@@ -445,7 +265,7 @@ HOSTDEVICE inline void s2d(gjk_vec3<Scalar>* W, unsigned int &W_used, Scalar* la
     else
     {
         Scalar d = 1e9;
-        gjk_vec3<Scalar> new_point;
+        vec3<Scalar> new_point;
         unsigned int new_W_used = 0;
         for (unsigned int j = 0; j < num_points; ++j)
         {
@@ -470,9 +290,9 @@ HOSTDEVICE inline void s2d(gjk_vec3<Scalar>* W, unsigned int &W_used, Scalar* la
                 
                 s1d<ndim>(W, new_used, new_lambdas);
                 // Consider resetting in place if possible.
-                new_point.arr[0] = 0;
-                new_point.arr[1] = 0;
-                new_point.arr[2] = 0;
+                new_point[0] = 0;
+                new_point[1] = 0;
+                new_point[2] = 0;
                 for (unsigned int i = 0; i < max_num_points; ++i)
                 {
                     if (new_used & (1 << i))
@@ -502,7 +322,7 @@ HOSTDEVICE inline void s2d(gjk_vec3<Scalar>* W, unsigned int &W_used, Scalar* la
  *  \param W_used A set of bit flags used to indicate which elements of W are actually participating in defining the current simplex (updated in place by the subalgorithm).
  *  \param lambdas The multipliers (that will be overwritten in place) that indicate what linear combination of W represents the point of minimum norm.
  */
-HOSTDEVICE inline void s3d(gjk_vec3<Scalar>* W, unsigned int &W_used, Scalar* lambdas)
+HOSTDEVICE inline void s3d(vec3<Scalar>* W, unsigned int &W_used, Scalar* lambdas)
 {
     // This function is always called with 4 points, so a constant is defined
     // for clarity.
@@ -519,30 +339,30 @@ HOSTDEVICE inline void s3d(gjk_vec3<Scalar>* W, unsigned int &W_used, Scalar* la
     // computations are done directly rather than with a loop.
     // C[0] and C[2] are negated due to the (-1)^(i+j+1) prefactor,
     // where i is always 4 because we're expanding about the 4th row.
-    C[0] = (W[3].arr[0] * W[2].arr[1] * W[1].arr[2] +
-            W[2].arr[0] * W[1].arr[1] * W[3].arr[2] +
-            W[1].arr[0] * W[3].arr[1] * W[2].arr[2] -
-            W[1].arr[0] * W[2].arr[1] * W[3].arr[2] -
-            W[2].arr[0] * W[3].arr[1] * W[1].arr[2] -
-            W[3].arr[0] * W[1].arr[1] * W[2].arr[2]);
-    C[1] = (W[0].arr[0] * W[2].arr[1] * W[3].arr[2] +
-            W[2].arr[0] * W[3].arr[1] * W[0].arr[2] +
-            W[3].arr[0] * W[0].arr[1] * W[2].arr[2] -
-            W[3].arr[0] * W[2].arr[1] * W[0].arr[2] -
-            W[2].arr[0] * W[0].arr[1] * W[3].arr[2] -
-            W[0].arr[0] * W[3].arr[1] * W[2].arr[2]);
-    C[2] = (W[3].arr[0] * W[1].arr[1] * W[0].arr[2] +
-            W[1].arr[0] * W[0].arr[1] * W[3].arr[2] +
-            W[0].arr[0] * W[3].arr[1] * W[1].arr[2] -
-            W[0].arr[0] * W[1].arr[1] * W[3].arr[2] -
-            W[1].arr[0] * W[3].arr[1] * W[0].arr[2] -
-            W[3].arr[0] * W[0].arr[1] * W[1].arr[2]);
-    C[3] = (W[0].arr[0] * W[1].arr[1] * W[2].arr[2] +
-            W[1].arr[0] * W[2].arr[1] * W[0].arr[2] +
-            W[2].arr[0] * W[0].arr[1] * W[1].arr[2] -
-            W[2].arr[0] * W[1].arr[1] * W[0].arr[2] -
-            W[1].arr[0] * W[0].arr[1] * W[2].arr[2] -
-            W[0].arr[0] * W[2].arr[1] * W[1].arr[2]);
+    C[0] = (W[3][0] * W[2][1] * W[1][2] +
+            W[2][0] * W[1][1] * W[3][2] +
+            W[1][0] * W[3][1] * W[2][2] -
+            W[1][0] * W[2][1] * W[3][2] -
+            W[2][0] * W[3][1] * W[1][2] -
+            W[3][0] * W[1][1] * W[2][2]);
+    C[1] = (W[0][0] * W[2][1] * W[3][2] +
+            W[2][0] * W[3][1] * W[0][2] +
+            W[3][0] * W[0][1] * W[2][2] -
+            W[3][0] * W[2][1] * W[0][2] -
+            W[2][0] * W[0][1] * W[3][2] -
+            W[0][0] * W[3][1] * W[2][2]);
+    C[2] = (W[3][0] * W[1][1] * W[0][2] +
+            W[1][0] * W[0][1] * W[3][2] +
+            W[0][0] * W[3][1] * W[1][2] -
+            W[0][0] * W[1][1] * W[3][2] -
+            W[1][0] * W[3][1] * W[0][2] -
+            W[3][0] * W[0][1] * W[1][2]);
+    C[3] = (W[0][0] * W[1][1] * W[2][2] +
+            W[1][0] * W[2][1] * W[0][2] +
+            W[2][0] * W[0][1] * W[1][2] -
+            W[2][0] * W[1][1] * W[0][2] -
+            W[1][0] * W[0][1] * W[2][2] -
+            W[0][0] * W[2][1] * W[1][2]);
 
     Scalar dM = C[0] + C[1] + C[2] + C[3];
 
@@ -563,7 +383,7 @@ HOSTDEVICE inline void s3d(gjk_vec3<Scalar>* W, unsigned int &W_used, Scalar* la
     else
     {
         Scalar d = 1e9, d_star = 0;
-        gjk_vec3<Scalar> new_point;
+        vec3<Scalar> new_point;
         unsigned int new_W_used = 0;
         for (unsigned int j = 0; j < num_points; ++j)
         {
@@ -576,7 +396,7 @@ HOSTDEVICE inline void s3d(gjk_vec3<Scalar>* W, unsigned int &W_used, Scalar* la
 
                 s2d<3>(W, new_used, new_lambdas);
 
-                new_point = gjk_vec3<Scalar>();
+                new_point = vec3<Scalar>();
                 for (unsigned int i = 0; i < max_num_points; ++i)
                 {
                     if (new_used & (1 << i))
@@ -621,7 +441,7 @@ HOSTDEVICE inline void s3d(gjk_vec3<Scalar>* W, unsigned int &W_used, Scalar* la
  *  \param lambdas The multipliers (that will be overwritten in place) that indicate what linear combination of W represents the point of minimum norm.
  */
 template <unsigned int ndim>
-HOSTDEVICE inline void sv_subalgorithm(gjk_vec3<Scalar>* W, unsigned int &W_used, Scalar* lambdas)
+HOSTDEVICE inline void sv_subalgorithm(vec3<Scalar>* W, unsigned int &W_used, Scalar* lambdas)
 {
     // The W array is never modified by this function.  The W_used may be
     // modified if necessary, and the lambdas will be updated.  All the other
@@ -823,7 +643,7 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
 
     // We don't bother to initialize most of these arrays since the W_used
     // array controls which data is valid. 
-    gjk_vec3<Scalar> W[max_num_points];
+    vec3<Scalar> W[max_num_points];
     Scalar lambdas[max_num_points];
     unsigned int W_used = 0;
     unsigned int indices1[max_num_points] = {0};
@@ -835,7 +655,7 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
         {
         // We initialize W to avoid accidentally termianting if the new w is
         // somehow equal to somthing saved in one of the uninitialized W[i].
-        W[i] = gjk_vec3<Scalar>();
+        W[i] = vec3<Scalar>();
         ellipsoid_supports1[i] = vec3<Scalar>();
         ellipsoid_supports2[i] = vec3<Scalar>();
         }
@@ -875,7 +695,7 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
         // the supports through the ellipsoid_supports[1|2] arrays, we branch
         // based on has_rounding[1|2] to avoid memory accesses if they're
         // unnecessary.
-        gjk_vec3<Scalar> w(rotate(mati, verts1[i1]) + ellipsoid_support1 - (rotate(matj, verts2[i2]) + Scalar(-1.0)*dr + ellipsoid_support2));
+        vec3<Scalar> w(rotate(mati, verts1[i1]) + ellipsoid_support1 - (rotate(matj, verts2[i2]) + Scalar(-1.0)*dr + ellipsoid_support2));
 
         // Check termination conditions for degenerate cases:
         // 1) If we are repeatedly finding the same point but can't get closer
@@ -907,9 +727,9 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
         // we actually have an affinely dependent set of points, though.
         u = u > d ? u : d;
 #ifdef NVCC
-        close_enough = ( ((vnorm - u) <= eps*vnorm) || (vnorm < omega) );
+        close_enough = (((vnorm - u) <= eps*vnorm) || (vnorm < omega));
 #else
-        close_enough = ( degenerate || ((vnorm - u) <= eps*vnorm) || (vnorm < omega) );
+        close_enough = (degenerate || ((vnorm - u) <= eps*vnorm) || (vnorm < omega));
 #endif
         if (!close_enough)
             {
