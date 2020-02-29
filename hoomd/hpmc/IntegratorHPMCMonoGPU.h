@@ -347,19 +347,18 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
     GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_condition);
     TAG_ALLOCATION(m_condition);
 
-    #ifdef __HIP_PLATFORM_NVCC__
+    #if defined(__HIP_PLATFORM_NVCC__)
     if (this->m_exec_conf->allConcurrentManagedAccess())
         {
         // set memory hints
         auto gpu_map = this->m_exec_conf->getGPUIds();
-        cudaMemAdvise(m_condition.get(), sizeof(unsigned int), cudaMemAdviseSetPreferredLocation, gpu_map[0]);
-        cudaMemPrefetchAsync(m_condition.get(), sizeof(unsigned int), gpu_map[0]);
+        cudaMemAdvise(m_condition.get(), sizeof(unsigned int), cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId);
+        cudaMemPrefetchAsync(m_condition.get(), sizeof(unsigned int), cudaCpuDeviceId);
 
         for (unsigned int idev = 0; idev < this->m_exec_conf->getNumActiveGPUs(); ++idev)
             {
             cudaMemAdvise(m_condition.get(), sizeof(unsigned int), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
             }
-        cudaMemAdvise(m_condition.get(), sizeof(unsigned int), cudaMemAdviseSetAccessedBy, cudaCpuDeviceId);
         CHECK_CUDA_ERROR();
         }
     #endif
@@ -1398,7 +1397,7 @@ void IntegratorHPMCMonoGPU< Shape >::initializeExcellMem()
     m_excell_idx.resize(m_excell_list_indexer.getNumElements());
     m_excell_size.resize(num_cells);
 
-    #if defined(__HIP_PLATFORM_NVCC__) & 0 // excell is currently not multi-GPU optimized, let the CUDA driver figure this out
+    #if defined(__HIP_PLATFORM_NVCC__) && 0 // excell is currently not multi-GPU optimized, let the CUDA driver figure this out
     if (this->m_exec_conf->allConcurrentManagedAccess())
         {
         // set memory hints

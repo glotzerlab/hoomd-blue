@@ -285,12 +285,8 @@ __global__ void hpmc_accept(const unsigned int *d_update_order_by_ptl,
 
         if ((accept && d_reject[i]) || (!accept && !d_reject[i]))
             {
-            // flag that we're not done yet
-            #if (__CUDA_ARCH__ >= 600)
-            atomicAdd_system(d_condition,1);
-            #else
-            atomicAdd(d_condition,1);
-            #endif
+            // flag that we're not done yet (a trivial race condition upon write)
+            *d_condition = 1;
             }
 
         // write out to device memory
