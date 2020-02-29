@@ -11,6 +11,18 @@
 #include <stdexcept>
 #endif
 
+// Define matrix vector multiplication since it's faster than quat vector.
+template <typename Scalar>
+HOSTDEVICE vec3<Scalar> rotate(const Scalar mat[3][3], const vec3<Scalar>& v)
+    {
+    return vec3<Scalar>(
+            mat[0][0]*v.x + mat[0][1]*v.y + mat[0][2]*v.z,
+            mat[1][0]*v.x + mat[1][1]*v.y + mat[1][2]*v.z,
+            mat[2][0]*v.x + mat[2][1]*v.y + mat[2][2]*v.z
+            );
+    }
+
+
 
 /////////////////////////////////////////////
 ////////////// BEGIN GJK_VEC3 ///////////////
@@ -191,15 +203,15 @@ HOSTDEVICE inline bool operator ==(const gjk_vec3<Real>& a, const gjk_vec3<Real>
 /////////////// END GJK_VEC3 ///////////////
 /////////////////////////////////////////////
 
-HOSTDEVICE inline void support_polyhedron(const ManagedArray<vec3<Scalar> > &verts, const vec3<Scalar> &vector, const quat<Scalar> &q, const vec3<Scalar> shift, unsigned int &idx)
+HOSTDEVICE inline void support_polyhedron(const ManagedArray<vec3<Scalar> > &verts, const vec3<Scalar> &vector, const Scalar mat[3][3], const vec3<Scalar> shift, unsigned int &idx)
     {
     // Compute the support function of the polyhedron.
     unsigned int index = 0;
 
-    Scalar max_dist_sq = dot((rotate(q, verts[index]) + shift), vector);
+    Scalar max_dist_sq = dot((rotate(mat, verts[index]) + shift), vector);
     for (unsigned int i = 1; i < verts.size(); ++i)
         {
-        Scalar dist_sq = dot((rotate(q, verts[i]) + shift), vector);
+        Scalar dist_sq = dot((rotate(mat, verts[i]) + shift), vector);
 
         if (dist_sq > max_dist_sq)
             {
@@ -786,6 +798,29 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
     //v = mean1 - mean2;
     v = dr;
 
+    Scalar mati[3][3], matj[3][3];
+
+    mati[0][0] = Scalar(1.0) - Scalar(2.0) * (qi.v.y*qi.v.y + qi.v.z*qi.v.z);
+    mati[0][1] = Scalar(2.0) * (qi.v.x * qi.v.y - qi.v.z * qi.s);
+    mati[0][2] = Scalar(2.0) * (qi.v.x * qi.v.z + qi.v.y * qi.s);
+    mati[1][0] = Scalar(2.0) * (qi.v.x * qi.v.y + qi.v.z * qi.s);
+    mati[1][1] = Scalar(1.0) - Scalar(2.0) * (qi.v.x*qi.v.x + qi.v.z*qi.v.z);
+    mati[1][2] = Scalar(2.0) * (qi.v.y * qi.v.z - qi.v.x * qi.s);
+    mati[2][0] = Scalar(2.0) * (qi.v.x * qi.v.z - qi.v.y * qi.s);
+    mati[2][1] = Scalar(2.0) * (qi.v.y * qi.v.z + qi.v.x * qi.s);
+    mati[2][2] = Scalar(1.0) - Scalar(2.0) * (qi.v.x*qi.v.x + qi.v.y*qi.v.y);
+
+    matj[0][0] = Scalar(1.0) - Scalar(2.0) * (qj.v.y*qj.v.y + qj.v.z*qj.v.z);
+    matj[0][1] = Scalar(2.0) * (qj.v.x * qj.v.y - qj.v.z * qj.s);
+    matj[0][2] = Scalar(2.0) * (qj.v.x * qj.v.z + qj.v.y * qj.s);
+    matj[1][0] = Scalar(2.0) * (qj.v.x * qj.v.y + qj.v.z * qj.s);
+    matj[1][1] = Scalar(1.0) - Scalar(2.0) * (qj.v.x*qj.v.x + qj.v.z*qj.v.z);
+    matj[1][2] = Scalar(2.0) * (qj.v.y * qj.v.z - qj.v.x * qj.s);
+    matj[2][0] = Scalar(2.0) * (qj.v.x * qj.v.z - qj.v.y * qj.s);
+    matj[2][1] = Scalar(2.0) * (qj.v.y * qj.v.z + qj.v.x * qj.s);
+    matj[2][2] = Scalar(1.0) - Scalar(2.0) * (qj.v.x*qj.v.x + qj.v.y*qj.v.y);
+
+
     // We don't bother to initialize most of these arrays since the W_used
     // array controls which data is valid. 
     gjk_vec3<Scalar> W[max_num_points];
@@ -824,8 +859,8 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
         // support_{A-B}(-v) = support(A, -v) - support(B, v)
         vec3<Scalar> ellipsoid_support1, ellipsoid_support2;
         unsigned int i1, i2;
-        support_polyhedron(verts1, -v, qi, vec3<Scalar>(0, 0, 0), i1);
-        support_polyhedron(verts2, v, qj, Scalar(-1.0)*dr, i2);
+        support_polyhedron(verts1, -v, mati, vec3<Scalar>(0, 0, 0), i1);
+        support_polyhedron(verts2, v, matj, Scalar(-1.0)*dr, i2);
         if (has_rounding1)
             {
             support_ellipsoid(rounding_radii1, -v, qi, ellipsoid_support1);
@@ -840,7 +875,7 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
         // the supports through the ellipsoid_supports[1|2] arrays, we branch
         // based on has_rounding[1|2] to avoid memory accesses if they're
         // unnecessary.
-        gjk_vec3<Scalar> w(rotate(qi, verts1[i1]) + ellipsoid_support1 - (rotate(qj, verts2[i2]) + Scalar(-1.0)*dr + ellipsoid_support2));
+        gjk_vec3<Scalar> w(rotate(mati, verts1[i1]) + ellipsoid_support1 - (rotate(matj, verts2[i2]) + Scalar(-1.0)*dr + ellipsoid_support2));
 
         // Check termination conditions for degenerate cases:
         // 1) If we are repeatedly finding the same point but can't get closer
@@ -928,20 +963,20 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
             // identically on all threads.
             if (has_rounding1)
                 {
-                a += lambdas[i]*(rotate(qi, verts1[indices1[i]]) + ellipsoid_supports1[i]);
+                a += lambdas[i]*(rotate(mati, verts1[indices1[i]]) + ellipsoid_supports1[i]);
                 }
             else
                 {
-                a += lambdas[i]*(rotate(qi, verts1[indices1[i]]));
+                a += lambdas[i]*(rotate(mati, verts1[indices1[i]]));
                 }
 
             if (has_rounding2)
                 {
-                b += lambdas[i]*(rotate(qj, verts2[indices2[i]]) + Scalar(-1.0)*dr + ellipsoid_supports2[i]);
+                b += lambdas[i]*(rotate(matj, verts2[indices2[i]]) + Scalar(-1.0)*dr + ellipsoid_supports2[i]);
                 }
             else
                 {
-                b += lambdas[i]*(rotate(qj, verts2[indices2[i]]) + Scalar(-1.0)*dr);
+                b += lambdas[i]*(rotate(matj, verts2[indices2[i]]) + Scalar(-1.0)*dr);
                 }
             counter += 1;
             }
