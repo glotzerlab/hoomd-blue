@@ -22,6 +22,7 @@ set(_hpmc_sources   module.cc
                     module_convex_spheropolyhedron.cc
                     UpdaterBoxMC.cc
                     IntegratorHPMC.cc
+                    IntegratorHPMCMonoGPU.cc
                     )
 
 set(_hpmc_headers
@@ -34,12 +35,14 @@ set(_hpmc_headers
     ExternalFieldLattice.h
     ExternalFieldWall.h
     GSDHPMCSchema.h
+    GPUHelpers.cuh
     GPUTree.h
     HPMCCounters.h
     HPMCMiscFunctions.h
     HPMCPrecisionSetup.h
     IntegratorHPMC.h
     IntegratorHPMCMonoGPU.cuh
+    IntegratorHPMCMonoGPUJIT.inc
     IntegratorHPMCMonoGPU.h
     IntegratorHPMCMono.h
     MinkowskiMath.h

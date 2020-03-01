@@ -30,7 +30,7 @@ n = 8;
 
 class nvt_lj_sphere_energy(unittest.TestCase):
 
-    def run_statepoint(self, Tstar, rho_star, mean_Uref, sigma_Uref, use_clusters):
+    def run_statepoint(self, Tstar, rho_star, mean_Uref, sigma_Uref, use_clusters, union):
         """
         Tstar: Temperature (kT/eps)
         rho_star: Reduced density: rhostar = (N / V) * sigma**3
@@ -76,7 +76,11 @@ class nvt_lj_sphere_energy(unittest.TestCase):
 
         from hoomd import jit
 
-        jit.patch.user(mc,r_cut=rcut, code=lennard_jones);
+        if not union:
+            jit.patch.user(mc, r_cut=rcut, code=lennard_jones);
+        else:
+            u = jit.patch.user_union(mc,r_cut=rcut, code=lennard_jones)
+            u.set_params('A', positions=[(0,0,0)],typeids=[0])
 
         log = analyze.log(filename=None, quantities=['hpmc_overlap_count','hpmc_patch_energy'],period=100,overwrite=True);
 
@@ -126,19 +130,29 @@ class nvt_lj_sphere_energy(unittest.TestCase):
 
     def test_low_density_normal(self):
         self.run_statepoint(Tstar=8.50E-01, rho_star=5.00E-03, mean_Uref=-5.1901E-02, sigma_Uref=7.53E-05,
-                            use_clusters=False);
+                            use_clusters=False, union=False);
         self.run_statepoint(Tstar=8.50E-01, rho_star=7.00E-03, mean_Uref=-7.2834E-02, sigma_Uref=1.34E-04,
-                            use_clusters=False);
+                            use_clusters=False, union=False);
         self.run_statepoint(Tstar=8.50E-01, rho_star=9.00E-03, mean_Uref=-9.3973E-02, sigma_Uref=1.29E-04,
-                            use_clusters=False);
+                            use_clusters=False, union=False);
+
+    def test_low_density_union(self):
+        # test that the trivial union shape (a single point particle) also works
+        self.run_statepoint(Tstar=8.50E-01, rho_star=5.00E-03, mean_Uref=-5.1901E-02, sigma_Uref=7.53E-05,
+                            use_clusters=False, union=True);
+        self.run_statepoint(Tstar=8.50E-01, rho_star=7.00E-03, mean_Uref=-7.2834E-02, sigma_Uref=1.34E-04,
+                            use_clusters=False, union=True);
+        self.run_statepoint(Tstar=8.50E-01, rho_star=9.00E-03, mean_Uref=-9.3973E-02, sigma_Uref=1.29E-04,
+                            use_clusters=False, union=True);
+
 
     def test_low_density_clusters(self):
         self.run_statepoint(Tstar=8.50E-01, rho_star=9.00E-03, mean_Uref=-9.3973E-02, sigma_Uref=1.29E-04,
-                            use_clusters=True);
+                            use_clusters=True, union=False);
 
     def test_moderate_density_normal(self):
         self.run_statepoint(Tstar=9.00E-01, rho_star=7.76E-01, mean_Uref=-5.4689E+00, sigma_Uref=4.20E-04,
-                            use_clusters=False);
+                            use_clusters=False, union=False);
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

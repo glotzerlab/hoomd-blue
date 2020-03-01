@@ -8,13 +8,12 @@
 
 #include <algorithm>
 #include <utility>
+#include <memory>
 #endif
 
 #ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
 #endif
-
-#include <memory>
 
 #ifdef __HIPCC__
 #define DEVICE __device__
@@ -76,12 +75,64 @@ class ManagedArray
             #endif
             }
 
+        //! Move constructor (copies data, no side effects)
+        /*! \warn the move constructor reads from the other array and assumes that array is available on the
+                  host. If the GPU isn't synced up, this can lead to errors, so proper multi-GPU synchronization
+                  needs to be ensured
+         */
+        DEVICE ManagedArray(const ManagedArray<T>&& other)
+            : data(nullptr), ptr(nullptr), N(other.N), managed(other.managed), align(other.align),
+              allocation_ptr(nullptr), allocation_bytes(0)
+            {
+            #ifndef __HIPCC__
+            if (N > 0)
+                {
+                allocate();
+
+                std::copy(other.ptr, other.ptr+N, ptr);
+                }
+            #else
+            ptr = other.ptr;
+            data = other.data;
+            #endif
+            }
+
         //! Assignment operator
         /*! \warn the copy assignment constructor reads from the other array and assumes that array is available on the
-                  host. If the GPU isn't synced up, this can lead to erros, so proper multi-GPU synchronization
+                  host. If the GPU isn't synced up, this can lead to errors, so proper multi-GPU synchronization
                   needs to be ensured
          */
         DEVICE ManagedArray& operator=(const ManagedArray<T>& other)
+            {
+            #ifndef __HIPCC__
+            deallocate();
+            #endif
+
+            N = other.N;
+            managed = other.managed;
+            align = other.align;
+
+            #ifndef __HIPCC__
+            if (N > 0)
+                {
+                allocate();
+
+                std::copy(other.ptr, other.ptr+N, ptr);
+                }
+            #else
+            ptr = other.ptr;
+            data = other.data;
+            #endif
+
+            return *this;
+            }
+
+        //! Move assignment operator, copies data (no side effects)
+        /*! \warn the move assignment constructor reads from the other array and assumes that array is available on the
+                  host. If the GPU isn't synced up, this can lead to errors, so proper multi-GPU synchronization
+                  needs to be ensured
+         */
+        DEVICE ManagedArray& operator=(const ManagedArray<T>&& other)
             {
             #ifndef __HIPCC__
             deallocate();
@@ -245,3 +296,6 @@ class ManagedArray
         void *allocation_ptr;    //!< Pointer to un-aligned start of allocation
         size_t allocation_bytes; //!< Total size of allocation, including aligned part
     };
+
+#undef DEVICE
+#undef HOSTDEVICE

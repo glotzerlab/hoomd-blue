@@ -281,7 +281,7 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
 
     for (unsigned int i= 0; i < na; i++)
         {
-        unsigned int ishape = a.members.tree.getParticle(cur_node_a, i);
+        unsigned int ishape = a.members.tree.getParticleByNode(cur_node_a, i);
 
         const mparam_type& params_i = a.members.mparams[ishape];
         Shape shape_i(quat<Scalar>(), params_i);
@@ -294,7 +294,7 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
         // loop through shapes of cur_node_b
         for (unsigned int j= 0; j < nb; j++)
             {
-            unsigned int jshape = b.members.tree.getParticle(cur_node_b, j);
+            unsigned int jshape = b.members.tree.getParticleByNode(cur_node_b, j);
 
             const mparam_type& params_j = b.members.mparams[jshape];
             Shape shape_j(quat<Scalar>(), params_j);
@@ -427,7 +427,7 @@ DEVICE inline bool test_narrow_phase_excluded_volume_overlap(vec3<OverlapReal> d
 
     for (unsigned int i= 0; i < na; i++)
         {
-        unsigned int ishape = a.members.tree.getParticle(cur_node_a, i);
+        unsigned int ishape = a.members.tree.getParticleByNode(cur_node_a, i);
 
         const mparam_type& params_i = a.members.mparams[ishape];
         Shape shape_i(quat<Scalar>(), params_i);
@@ -439,7 +439,7 @@ DEVICE inline bool test_narrow_phase_excluded_volume_overlap(vec3<OverlapReal> d
         // loop through shapes of cur_node_b
         for (unsigned int j= 0; j < nb; j++)
             {
-            unsigned int jshape = b.members.tree.getParticle(cur_node_b, j);
+            unsigned int jshape = b.members.tree.getParticleByNode(cur_node_b, j);
 
             const mparam_type& params_j = b.members.mparams[jshape];
             Shape shape_j(quat<Scalar>(), params_j);
@@ -604,7 +604,7 @@ DEVICE inline OverlapReal sampling_volume_narrow_phase(vec3<OverlapReal> dr,
 
     for (unsigned int i= 0; i < na; i++)
         {
-        unsigned int ishape = a.members.tree.getParticle(cur_node_a, i);
+        unsigned int ishape = a.members.tree.getParticleByNode(cur_node_a, i);
 
         const mparam_type& params_i = a.members.mparams[ishape];
         Shape shape_i(quat<Scalar>(), params_i);
@@ -616,7 +616,7 @@ DEVICE inline OverlapReal sampling_volume_narrow_phase(vec3<OverlapReal> dr,
         // loop through shapes of cur_node_b
         for (unsigned int j= 0; j < nb; j++)
             {
-            unsigned int jshape = b.members.tree.getParticle(cur_node_b, j);
+            unsigned int jshape = b.members.tree.getParticleByNode(cur_node_b, j);
 
             const mparam_type& params_j = b.members.mparams[jshape];
             Shape shape_j(quat<Scalar>(), params_j);
@@ -808,7 +808,7 @@ DEVICE inline bool sample_narrow_phase(RNG &rng,
     OverlapReal V;
     for (i= 0; i < na; i++)
         {
-        ishape = a.members.tree.getParticle(cur_node_a, i);
+        ishape = a.members.tree.getParticleByNode(cur_node_a, i);
 
         const mparam_type& params_i = a.members.mparams[ishape];
         Shape shape_i(quat<Scalar>(), params_i);
@@ -820,7 +820,7 @@ DEVICE inline bool sample_narrow_phase(RNG &rng,
         // loop through shapes of cur_node_b
         for (j= 0; j < nb; j++)
             {
-            jshape = b.members.tree.getParticle(cur_node_b, j);
+            jshape = b.members.tree.getParticleByNode(cur_node_b, j);
 
             const mparam_type& params_j = b.members.mparams[jshape];
             Shape shape_j(quat<Scalar>(), params_j);
@@ -876,7 +876,7 @@ DEVICE inline bool sample_narrow_phase(RNG &rng,
     // test if it is overlapping with other shapes with lower indices
     for (i = 0; i <= min_i; i++)
         {
-        unsigned int ishape = a.members.tree.getParticle(cur_node_a, i);
+        unsigned int ishape = a.members.tree.getParticleByNode(cur_node_a, i);
 
         const mparam_type& params_i = a.members.mparams[ishape];
         Shape shape_i(quat<Scalar>(), params_i);
@@ -888,7 +888,7 @@ DEVICE inline bool sample_narrow_phase(RNG &rng,
         // loop through shapes of cur_node_b
         for (j= 0; j < ((i == min_i) ? min_j : nb); j++)
             {
-            unsigned int jshape = b.members.tree.getParticle(cur_node_b, j);
+            unsigned int jshape = b.members.tree.getParticleByNode(cur_node_b, j);
 
             const mparam_type& params_j = b.members.mparams[jshape];
             Shape shape_j(quat<Scalar>(), params_j);
@@ -936,7 +936,7 @@ DEVICE inline bool pt_in_intersection_narrow_phase(vec3<OverlapReal> dr,
 
     for (unsigned int i= 0; i < na; i++)
         {
-        unsigned int ishape = a.members.tree.getParticle(cur_node_a, i);
+        unsigned int ishape = a.members.tree.getParticleByNode(cur_node_a, i);
 
         const mparam_type& params_i = a.members.mparams[ishape];
         Shape shape_i(quat<Scalar>(), params_i);
@@ -948,7 +948,7 @@ DEVICE inline bool pt_in_intersection_narrow_phase(vec3<OverlapReal> dr,
         // loop through shapes of cur_node_b
         for (unsigned int j= 0; j < nb; j++)
             {
-            unsigned int jshape = b.members.tree.getParticle(cur_node_b, j);
+            unsigned int jshape = b.members.tree.getParticleByNode(cur_node_b, j);
 
             const mparam_type& params_j = b.members.mparams[jshape];
             Shape shape_j(quat<Scalar>(), params_j);

@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+
 #pragma once
 
 #include <hip/hip_runtime.h>
@@ -12,6 +15,9 @@
 #include "hoomd/CachedAllocator.h"
 
 #include "hoomd/hpmc/HPMCCounters.h"
+#include "hoomd/jit/Evaluator.cuh"
+
+#include "GPUHelpers.cuh"
 
 #include <cassert>
 
@@ -195,7 +201,7 @@ struct hpmc_update_args_t
     hpmc_update_args_t(Scalar4 *_d_postype,
         Scalar4 *_d_orientation,
         hpmc_counters_t *_d_counters,
-        const unsigned int _N,
+        const GPUPartition& _gpu_partition,
         const Scalar4 *_d_trial_postype,
         const Scalar4 *_d_trial_orientation,
         const unsigned int *_d_trial_move_type,
@@ -205,7 +211,7 @@ struct hpmc_update_args_t
         : d_postype(_d_postype),
           d_orientation(_d_orientation),
           d_counters(_d_counters),
-          N(_N),
+          gpu_partition(_gpu_partition),
           d_trial_postype(_d_trial_postype),
           d_trial_orientation(_d_trial_orientation),
           d_trial_move_type(_d_trial_move_type),
@@ -218,7 +224,7 @@ struct hpmc_update_args_t
     Scalar4 *d_postype;
     Scalar4 *d_orientation;
     hpmc_counters_t *d_counters;
-    const unsigned int N;
+    const GPUPartition& gpu_partition;
     const Scalar4 *d_trial_postype;
     const Scalar4 *d_trial_orientation;
     const unsigned int *d_trial_move_type;
@@ -239,6 +245,58 @@ void hpmc_excell(unsigned int *d_excell_idx,
                  const Index2D& cadji,
                  const unsigned int ngpu,
                  const unsigned int block_size);
+
+//! Wraps arguments to hpmc_* template functions
+/*! \ingroup hpmc_data_structs */
+struct hpmc_patch_args_t
+    {
+    //! Construct a hpmc_patch_args_t
+    hpmc_patch_args_t(const Scalar _r_cut_patch,
+                const Scalar *_d_additive_cutoff,
+                unsigned int *_d_nlist_old,
+                unsigned int *_d_nneigh_old,
+                float *_d_energy_old,
+                unsigned int *_d_nlist_new,
+                unsigned int *_d_nneigh_new,
+                float *_d_energy_new,
+                const unsigned int _maxn,
+                unsigned int *_d_overflow,
+                const Scalar *_d_charge,
+                const Scalar *_d_diameter,
+                const unsigned int _eval_threads,
+                const unsigned int _launch_bounds)
+                : r_cut_patch(_r_cut_patch),
+                  d_additive_cutoff(_d_additive_cutoff),
+                  d_nlist_old(_d_nlist_old),
+                  d_nneigh_old(_d_nneigh_old),
+                  d_energy_old(_d_energy_old),
+                  d_nlist_new(_d_nlist_new),
+                  d_nneigh_new(_d_nneigh_new),
+                  d_energy_new(_d_energy_new),
+                  maxn(_maxn),
+                  d_overflow(_d_overflow),
+                  d_charge(_d_charge),
+                  d_diameter(_d_diameter),
+                  eval_threads(_eval_threads),
+                  launch_bounds(_launch_bounds)
+        {
+        };
+
+    const Scalar r_cut_patch;        //!< Global cutoff radius
+    const Scalar *d_additive_cutoff; //!< Additive contribution to cutoff per type
+    unsigned int *d_nlist_old;       //!< List of neighbor particle indices, in old configuration of particle i
+    unsigned int *d_nneigh_old;      //!< Number of neighbors
+    float* d_energy_old;             //!< Evaluated energy terms for every neighbor
+    unsigned int *d_nlist_new;       //!< List of neighbor particle indices, in new configuration of particle i
+    unsigned int *d_nneigh_new;      //!< Number of neighbors
+    float* d_energy_new;             //!< Evaluated energy terms for every neighbor
+    const unsigned int maxn;         //!< Max number of neighbors
+    unsigned int *d_overflow;        //!< Overflow condition
+    const Scalar *d_charge;          //!< Particle charges
+    const Scalar *d_diameter;        //!< Particle diameters
+    const unsigned int eval_threads; //!< Number of threads for energy evaluation
+    const unsigned int launch_bounds; //!< Launch bounds, template parameter
+    };
 
 //! Driver for kernel::hpmc_gen_moves()
 template< class Shape >
@@ -264,8 +322,7 @@ void hpmc_shift(Scalar4 *d_postype,
                 const Scalar3 shift,
                 const unsigned int block_size);
 
-void hpmc_accept(const unsigned int *d_ptl_by_update_order,
-                 const unsigned int *d_update_order_by_ptl,
+void hpmc_accept(const unsigned int *d_update_order_by_ptl,
                  const unsigned int *d_trial_move_type,
                  const unsigned int *d_reject_out_of_cell,
                  unsigned int *d_reject,
@@ -274,9 +331,22 @@ void hpmc_accept(const unsigned int *d_ptl_by_update_order,
                  const unsigned int *d_nlist,
                  const unsigned int N_old,
                  const unsigned int N,
+                 const GPUPartition& gpu_partition,
                  const unsigned int maxn,
+                 bool patch,
+                 const unsigned int *d_nlist_patch_old,
+                 const unsigned int *d_nlist_patch_new,
+                 const unsigned int *d_nneigh_patch_old,
+                 const unsigned int *d_nneigh_patch_new,
+                 const float *d_energy_old,
+                 const float *d_energy_new,
+                 const unsigned int maxn_patch,
                  unsigned int *d_condition,
-                 const unsigned int block_size);
+                 const unsigned int seed,
+                 const unsigned int select,
+                 const unsigned int timestep,
+                 const unsigned int block_size,
+                 const unsigned int tpp);
 
 void generate_num_depletants(const unsigned int seed,
                              const unsigned int timestep,
@@ -302,36 +372,6 @@ void get_max_num_depletants(const unsigned int N,
 #ifdef __HIPCC__
 namespace kernel
 {
-
-//! Device function to compute the cell that a particle sits in
-__device__ inline unsigned int computeParticleCell(const Scalar3& p,
-                                                   const BoxDim& box,
-                                                   const Scalar3& ghost_width,
-                                                   const uint3& cell_dim,
-                                                   const Index3D& ci)
-    {
-    // find the bin each particle belongs in
-    Scalar3 f = box.makeFraction(p,ghost_width);
-    uchar3 periodic = box.getPeriodic();
-    int ib = (unsigned int)(f.x * cell_dim.x);
-    int jb = (unsigned int)(f.y * cell_dim.y);
-    int kb = (unsigned int)(f.z * cell_dim.z);
-
-    // need to handle the case where the particle is exactly at the box hi
-    if (ib == (int)cell_dim.x && periodic.x)
-        ib = 0;
-    if (jb == (int)cell_dim.y && periodic.y)
-        jb = 0;
-    if (kb == (int)cell_dim.z && periodic.z)
-        kb = 0;
-
-    // identify the bin
-    if (f.x >= Scalar(0.0) && f.x < Scalar(1.0) && f.y >= Scalar(0.0) && f.y < Scalar(1.0) && f.z >= Scalar(0.0) && f.z < Scalar(1.0))
-        return ci(ib,jb,kb);
-    else
-        return 0xffffffff;
-    }
-
 
 //! Propose trial moves
 template< class Shape, unsigned int dim >
@@ -784,6 +824,7 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
         #endif
         }
     }
+
 
 //! Kernel to insert depletants on-the-fly
 template< class Shape >
@@ -1369,7 +1410,8 @@ template<class Shape>
 __global__ void hpmc_update_pdata(Scalar4 *d_postype,
                                   Scalar4 *d_orientation,
                                   hpmc_counters_t *d_counters,
-                                  const unsigned int N,
+                                  const unsigned int nwork,
+                                  const unsigned int offset,
                                   const Scalar4 *d_trial_postype,
                                   const Scalar4 *d_trial_orientation,
                                   const unsigned int *d_trial_move_type,
@@ -1397,8 +1439,10 @@ __global__ void hpmc_update_pdata(Scalar4 *d_postype,
 
     __syncthreads();
 
-    if (idx < N)
+    if (idx < nwork)
         {
+        idx += offset;
+
         unsigned int move_type = d_trial_move_type[idx];
         bool move_active = move_type > 0;
         bool move_type_translate = move_type == 1;
@@ -1435,10 +1479,17 @@ __global__ void hpmc_update_pdata(Scalar4 *d_postype,
     // final tally into global mem
     if (threadIdx.x == 0)
         {
+        #if (__CUDA_ARCH__ >= 600)
+        atomicAdd_system(&d_counters->translate_accept_count, s_translate_accept_count);
+        atomicAdd_system(&d_counters->translate_reject_count, s_translate_reject_count);
+        atomicAdd_system(&d_counters->rotate_accept_count, s_rotate_accept_count);
+        atomicAdd_system(&d_counters->rotate_reject_count, s_rotate_reject_count);
+        #else
         atomicAdd(&d_counters->translate_accept_count, s_translate_accept_count);
         atomicAdd(&d_counters->translate_reject_count, s_translate_reject_count);
         atomicAdd(&d_counters->rotate_accept_count, s_rotate_accept_count);
         atomicAdd(&d_counters->rotate_reject_count, s_rotate_reject_count);
+        #endif
         }
     }
 
@@ -1817,18 +1868,26 @@ void hpmc_update_pdata(const hpmc_update_args_t& args, const typename Shape::par
         }
 
     unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);
-    unsigned int num_blocks = args.N/block_size + 1;
-    hipLaunchKernelGGL((kernel::hpmc_update_pdata<Shape>), dim3(num_blocks), dim3(block_size), 0, 0, 
-        args.d_postype,
-        args.d_orientation,
-        args.d_counters,
-        args.N,
-        args.d_trial_postype,
-        args.d_trial_orientation,
-        args.d_trial_move_type,
-        args.d_reject,
-        args.maxn,
-        params);
+    for (int idev = args.gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+        {
+        auto range = args.gpu_partition.getRangeAndSetGPU(idev);
+
+        unsigned int nwork = range.second - range.first;
+        const unsigned int num_blocks = nwork/block_size + 1;
+
+        hipLaunchKernelGGL((kernel::hpmc_update_pdata<Shape>), dim3(num_blocks), dim3(block_size), 0, 0,
+            args.d_postype,
+            args.d_orientation,
+            args.d_counters,
+            nwork,
+            range.first,
+            args.d_trial_postype,
+            args.d_trial_orientation,
+            args.d_trial_move_type,
+            args.d_reject,
+            args.maxn,
+            params);
+        }
     }
 #endif
 
