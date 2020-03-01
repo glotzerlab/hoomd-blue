@@ -831,7 +831,8 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
 
             do
                 {
-                    { // ArrayHandle scope
+                    {
+                    // ArrayHandle scope
                     ArrayHandle<unsigned int> d_update_order_by_ptl(m_update_order.get(), access_location::device, access_mode::read);
                     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
                     ArrayHandle<unsigned int> d_nneigh(m_nneigh, access_location::device, access_mode::overwrite);
@@ -854,6 +855,8 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     // depletant counters
                     ArrayHandle<hpmc_implicit_counters_t> d_implicit_count(this->m_implicit_count, access_location::device, access_mode::readwrite);
                     ArrayHandle<hpmc_implicit_counters_t> d_implicit_counters_per_device(this->m_implicit_counters, access_location::device, access_mode::readwrite);
+
+                    ArrayHandle<unsigned int> d_n_depletants(m_n_depletants, access_location::device, access_mode::overwrite);
 
                     // reset number of neighbors
                     for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
@@ -923,83 +926,12 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                         CHECK_CUDA_ERROR();
                     m_tuner_narrow->end();
-                    this->m_exec_conf->endMultiGPU();
-                    } // end ArrayHandle scope
-
-                    { // ArrayHandle scope
-                    ArrayHandle<unsigned int> d_update_order_by_ptl(m_update_order.get(), access_location::device, access_mode::read);
-                    ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::readwrite);
-                    ArrayHandle<unsigned int> d_nneigh(m_nneigh, access_location::device, access_mode::readwrite);
-                    ArrayHandle<unsigned int> d_overflow(m_overflow, access_location::device, access_mode::readwrite);
-                    ArrayHandle<unsigned int> d_reject_out_of_cell(m_reject_out_of_cell, access_location::device, access_mode::read);
-
-                    // access data for proposed moves
-                    ArrayHandle<Scalar4> d_trial_postype(m_trial_postype, access_location::device, access_mode::read);
-                    ArrayHandle<Scalar4> d_trial_orientation(m_trial_orientation, access_location::device, access_mode::read);
-                    ArrayHandle<unsigned int> d_trial_move_type(m_trial_move_type, access_location::device, access_mode::read);
-
-                    // access the particle data
-                    ArrayHandle<Scalar4> d_postype(this->m_pdata->getPositions(), access_location::device, access_mode::readwrite);
-                    ArrayHandle<Scalar4> d_orientation(this->m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
-
-                    // MC counters
-                    ArrayHandle<hpmc_counters_t> d_counters(this->m_count_total, access_location::device, access_mode::readwrite);
-                    ArrayHandle<hpmc_counters_t> d_counters_per_device(this->m_counters, access_location::device, access_mode::readwrite);
-
-                    // depletant counters
-                    ArrayHandle<hpmc_implicit_counters_t> d_implicit_count(this->m_implicit_count, access_location::device, access_mode::readwrite);
-                    ArrayHandle<hpmc_implicit_counters_t> d_implicit_counters_per_device(this->m_implicit_counters, access_location::device, access_mode::readwrite);
-
-                    // fill the parameter structure for the GPU kernels
-                    gpu::hpmc_args_t args(
-                        d_postype.data,
-                        d_orientation.data,
-                        ngpu > 1 ? d_counters_per_device.data : d_counters.data,
-                        this->m_counters.getPitch(),
-                        this->m_cl->getCellIndexer(),
-                        this->m_cl->getDim(),
-                        ghost_width,
-                        this->m_pdata->getN(),
-                        this->m_pdata->getNGhosts(),
-                        this->m_pdata->getNTypes(),
-                        this->m_seed,
-                        d_d.data,
-                        d_a.data,
-                        d_overlaps.data,
-                        this->m_overlap_idx,
-                        this->m_move_ratio,
-                        timestep,
-                        this->m_sysdef->getNDimensions(),
-                        box,
-                        this->m_exec_conf->getRank()*this->m_nselect + i,
-                        ghost_fraction,
-                        domain_decomposition,
-                        0, // block size
-                        0, // tpp
-                        d_reject_out_of_cell.data,
-                        d_trial_postype.data,
-                        d_trial_orientation.data,
-                        d_trial_move_type.data,
-                        d_update_order_by_ptl.data,
-                        d_excell_idx.data,
-                        d_excell_size.data,
-                        m_excell_list_indexer,
-                        d_nlist.data,
-                        d_nneigh.data,
-                        m_maxn,
-                        d_overflow.data,
-                        i == 0,
-                        this->m_exec_conf->dev_prop,
-                        this->m_pdata->getGPUPartition(),
-                        0);
 
                     /*
                      * Insert depletants
                      */
-                    ArrayHandle<unsigned int> d_n_depletants(m_n_depletants, access_location::device, access_mode::overwrite);
 
                     // allow concurrency between depletant types in multi GPU block
-                    this->m_exec_conf->beginMultiGPU();
                     for (unsigned int itype = 0; itype < this->m_pdata->getNTypes(); ++itype)
                         {
                         for (unsigned int jtype = itype; jtype < this->m_pdata->getNTypes(); ++jtype)
@@ -1008,7 +940,6 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                                 continue;
 
                             // draw random number of depletant insertions per particle from Poisson distribution
-                            this->m_exec_conf->beginMultiGPU();
                             m_tuner_num_depletants->begin();
                             gpu::generate_num_depletants(
                                 this->m_seed,
@@ -1027,7 +958,6 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                             if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                                 CHECK_CUDA_ERROR();
                             m_tuner_num_depletants->end();
-                            this->m_exec_conf->endMultiGPU();
 
                             // max reduce over result
                             unsigned int max_n_depletants[this->m_exec_conf->getNumActiveGPUs()];
