@@ -516,7 +516,8 @@ __global__ void hpmc_gen_moves(Scalar4 *d_postype,
     }
 
 //! Check narrow-phase overlaps
-template< class Shape >
+template< class Shape, unsigned int max_threads >
+__launch_bounds__(max_threads)
 __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
                            Scalar4 *d_orientation,
                            Scalar4 *d_trial_postype,
@@ -836,6 +837,110 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
         }
     }
 
+//! Launcher for narrow phase kernel with templated launch bounds
+template< class Shape, unsigned int cur_launch_bounds >
+void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_type *params,
+    unsigned int max_threads, int2type<cur_launch_bounds>)
+    {
+    if (max_threads == cur_launch_bounds)
+        {
+        // determine the maximum block size and clamp the input block size down
+        static int max_block_size = -1;
+        static hipFuncAttributes attr;
+        if (max_block_size == -1)
+            {
+            hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_narrow_phase<Shape, cur_launch_bounds>));
+            max_block_size = attr.maxThreadsPerBlock;
+            if (max_block_size % args.devprop.warpSize)
+                // handle non-sensical return values from hipFuncGetAttributes
+                max_block_size = (max_block_size/args.devprop.warpSize-1)*args.devprop.warpSize;
+            }
+
+        // choose a block size based on the max block size by regs (max_block_size) and include dynamic shared memory usage
+        unsigned int run_block_size = min(args.block_size, (unsigned int)max_block_size);
+
+        unsigned int tpp = min(args.tpp,run_block_size);
+        unsigned int n_groups = run_block_size/tpp;
+        unsigned int max_queue_size = n_groups*tpp;
+
+        const unsigned int min_shared_bytes = args.num_types * sizeof(typename Shape::param_type)
+            + args.overlap_idx.getNumElements() * sizeof(unsigned int);
+
+        unsigned int shared_bytes = n_groups * (3*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3))
+            + max_queue_size * 2 * sizeof(unsigned int)
+            + min_shared_bytes;
+
+        if (min_shared_bytes >= args.devprop.sharedMemPerBlock)
+            throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of particle types or size of shape parameters");
+
+        while (shared_bytes + attr.sharedSizeBytes >= args.devprop.sharedMemPerBlock)
+            {
+            run_block_size -= args.devprop.warpSize;
+            if (run_block_size == 0)
+                throw std::runtime_error("Insufficient shared memory for HPMC kernel");
+
+            tpp = min(tpp, run_block_size);
+            n_groups = run_block_size / tpp;
+            max_queue_size = n_groups*tpp;
+
+            shared_bytes = n_groups * (3*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3))
+                + max_queue_size * 2 * sizeof(unsigned int)
+                + min_shared_bytes;
+            }
+
+        // determine dynamically allocated shared memory size
+        static unsigned int base_shared_bytes = UINT_MAX;
+        bool shared_bytes_changed = base_shared_bytes != shared_bytes + attr.sharedSizeBytes;
+        base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
+
+        unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - base_shared_bytes;
+        static unsigned int extra_bytes = UINT_MAX;
+        if (extra_bytes == UINT_MAX || args.update_shape_param || shared_bytes_changed)
+            {
+            // required for memory coherency
+            hipDeviceSynchronize();
+
+            // determine dynamically requested shared memory
+            char *ptr = (char *)nullptr;
+            unsigned int available_bytes = max_extra_bytes;
+            for (unsigned int i = 0; i < args.num_types; ++i)
+                {
+                params[i].allocate_shared(ptr, available_bytes);
+                }
+            extra_bytes = max_extra_bytes - available_bytes;
+            }
+
+        shared_bytes += extra_bytes;
+        dim3 thread(tpp, n_groups, 1);
+
+        for (int idev = args.gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+            {
+            auto range = args.gpu_partition.getRangeAndSetGPU(idev);
+
+            unsigned int nwork = range.second - range.first;
+            const unsigned int num_blocks = nwork/n_groups + 1;
+
+            dim3 grid(num_blocks, 1, 1);
+
+            hipLaunchKernelGGL((hpmc_narrow_phase<Shape, cur_launch_bounds>), grid, thread, shared_bytes, 0,
+                args.d_postype, args.d_orientation, args.d_trial_postype, args.d_trial_orientation,
+                args.d_excell_idx, args.d_excell_size, args.excli,
+                args.d_nlist, args.d_nneigh, args.maxn, args.d_counters+idev*args.counters_pitch, args.num_types,
+                args.box, args.ghost_width, args.cell_dim, args.ci, args.N + args.N_ghost, args.N, args.d_check_overlaps,
+                args.overlap_idx, params,
+                args.d_overflow, max_extra_bytes, max_queue_size, range.first, nwork);
+            }
+        }
+    else
+        {
+        narrow_phase_launcher<Shape>(args, params, max_threads, int2type<cur_launch_bounds/2>());
+        }
+    }
+
+//! Terminate template recursion
+template< class Shape>
+void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_type *params, unsigned int max_threads, int2type<WARP_SIZE/2>)
+    { }
 
 //! Kernel to insert depletants on-the-fly
 template< class Shape, unsigned int max_threads >
@@ -1777,92 +1882,12 @@ void hpmc_narrow_phase(const hpmc_args_t& args, const typename Shape::param_type
     assert(args.d_orientation);
     assert(args.d_counters);
 
-    // determine the maximum block size and clamp the input block size down
-    static int max_block_size = -1;
-    static hipFuncAttributes attr;
-    if (max_block_size == -1)
-        {
-        hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_narrow_phase<Shape>));
-        max_block_size = attr.maxThreadsPerBlock;
-        if (max_block_size % args.devprop.warpSize)
-            // handle non-sensical return values from hipFuncGetAttributes
-            max_block_size = (max_block_size/args.devprop.warpSize-1)*args.devprop.warpSize;
-        }
+    // select the kernel template according to the next power of two of the block size
+    unsigned int launch_bounds = WARP_SIZE;
+    while (launch_bounds < args.block_size)
+        launch_bounds *= 2;
 
-    // choose a block size based on the max block size by regs (max_block_size) and include dynamic shared memory usage
-    unsigned int run_block_size = min(args.block_size, (unsigned int)max_block_size);
-
-    unsigned int tpp = min(args.tpp,run_block_size);
-    unsigned int n_groups = run_block_size/tpp;
-    unsigned int max_queue_size = n_groups*tpp;
-
-    const unsigned int min_shared_bytes = args.num_types * sizeof(typename Shape::param_type)
-        + args.overlap_idx.getNumElements() * sizeof(unsigned int);
-
-    unsigned int shared_bytes = n_groups * (3*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3))
-        + max_queue_size * 2 * sizeof(unsigned int)
-        + min_shared_bytes;
-
-    if (min_shared_bytes >= args.devprop.sharedMemPerBlock)
-        throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of particle types or size of shape parameters");
-
-    while (shared_bytes + attr.sharedSizeBytes >= args.devprop.sharedMemPerBlock)
-        {
-        run_block_size -= args.devprop.warpSize;
-        if (run_block_size == 0)
-            throw std::runtime_error("Insufficient shared memory for HPMC kernel");
-
-        tpp = min(tpp, run_block_size);
-        n_groups = run_block_size / tpp;
-        max_queue_size = n_groups*tpp;
-
-        shared_bytes = n_groups * (3*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3))
-            + max_queue_size * 2 * sizeof(unsigned int)
-            + min_shared_bytes;
-        }
-
-    // determine dynamically allocated shared memory size
-    static unsigned int base_shared_bytes = UINT_MAX;
-    bool shared_bytes_changed = base_shared_bytes != shared_bytes + attr.sharedSizeBytes;
-    base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
-
-    unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - base_shared_bytes;
-    static unsigned int extra_bytes = UINT_MAX;
-    if (extra_bytes == UINT_MAX || args.update_shape_param || shared_bytes_changed)
-        {
-        // required for memory coherency
-        hipDeviceSynchronize();
-
-        // determine dynamically requested shared memory
-        char *ptr = (char *)nullptr;
-        unsigned int available_bytes = max_extra_bytes;
-        for (unsigned int i = 0; i < args.num_types; ++i)
-            {
-            params[i].allocate_shared(ptr, available_bytes);
-            }
-        extra_bytes = max_extra_bytes - available_bytes;
-        }
-
-    shared_bytes += extra_bytes;
-    dim3 thread(tpp, n_groups, 1);
-
-    for (int idev = args.gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
-        {
-        auto range = args.gpu_partition.getRangeAndSetGPU(idev);
-
-        unsigned int nwork = range.second - range.first;
-        const unsigned int num_blocks = nwork/n_groups + 1;
-
-        dim3 grid(num_blocks, 1, 1);
-
-        hipLaunchKernelGGL(kernel::hpmc_narrow_phase<Shape>, grid, thread, shared_bytes, 0,
-            args.d_postype, args.d_orientation, args.d_trial_postype, args.d_trial_orientation,
-            args.d_excell_idx, args.d_excell_size, args.excli,
-            args.d_nlist, args.d_nneigh, args.maxn, args.d_counters+idev*args.counters_pitch, args.num_types,
-            args.box, args.ghost_width, args.cell_dim, args.ci, args.N + args.N_ghost, args.N, args.d_check_overlaps,
-            args.overlap_idx, params,
-            args.d_overflow, max_extra_bytes, max_queue_size, range.first, nwork);
-        }
+    kernel::narrow_phase_launcher<Shape>(args, params, launch_bounds, int2type<MAX_BLOCK_SIZE>());
     }
 
 //! Kernel driver for kernel::insert_depletants()
