@@ -241,6 +241,7 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
         GlobalArray<hpmc_counters_t> m_counters;                    //!< Per-device counters
         GlobalArray<hpmc_implicit_counters_t> m_implicit_counters;  //!< Per-device counters for depletants
 
+        std::vector<hipStream_t> m_narrow_phase_streams;             //!< Stream for narrow phase kernel, per device
         std::vector<std::vector<hipStream_t> > m_depletant_streams;  //!< Stream for every particle type, and device
 
         //!< Variables for implicit depletants
@@ -447,6 +448,13 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
         *h_overflow_patch.data = 0;
         }
 
+    m_narrow_phase_streams.resize(this->m_exec_conf->getNumActiveGPUs());
+    for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
+        {
+        hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
+        hipStreamCreate(&m_narrow_phase_streams[idev]);
+        }
+
     // Depletants
     unsigned int ntypes = this->m_pdata->getNTypes();
     GlobalArray<Scalar> lambda(ntypes*this->m_depletant_idx.getNumElements(), this->m_exec_conf);
@@ -518,6 +526,12 @@ IntegratorHPMCMonoGPU< Shape >::~IntegratorHPMCMonoGPU()
             hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
             hipStreamDestroy(s[idev]);
             }
+        }
+
+    for (int idev = this->m_exec_conf->getNumActiveGPUs() -1; idev >= 0; --idev)
+        {
+        hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
+        hipStreamDestroy(m_narrow_phase_streams[idev]);
         }
     }
 
@@ -798,7 +812,8 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     d_overflow.data,
                     i == 0,
                     this->m_exec_conf->dev_prop,
-                    this->m_pdata->getGPUPartition());
+                    this->m_pdata->getGPUPartition(),
+                    0);
 
                 // propose trial moves, \sa gpu::kernel::hpmc_moves
 
@@ -840,6 +855,18 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     ArrayHandle<hpmc_implicit_counters_t> d_implicit_count(this->m_implicit_count, access_location::device, access_mode::readwrite);
                     ArrayHandle<hpmc_implicit_counters_t> d_implicit_counters_per_device(this->m_implicit_counters, access_location::device, access_mode::readwrite);
 
+                    // reset number of neighbors
+                    for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
+                        {
+                        hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
+
+                        auto range = this->m_pdata->getGPUPartition().getRange(idev);
+                        if (range.second - range.first != 0)
+                            hipMemsetAsync(d_nneigh.data + range.first, 0,  sizeof(unsigned int)*(range.second-range.first));
+                        if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                            CHECK_CUDA_ERROR();
+                        }
+
                     // fill the parameter structure for the GPU kernels
                     gpu::hpmc_args_t args(
                         d_postype.data,
@@ -880,7 +907,8 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         d_overflow.data,
                         i == 0,
                         this->m_exec_conf->dev_prop,
-                        this->m_pdata->getGPUPartition());
+                        this->m_pdata->getGPUPartition(),
+                        &m_narrow_phase_streams.front());
 
                     /*
                      *  check overlaps, new configuration simultaneously against the old and the new configuration
@@ -897,13 +925,6 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     m_tuner_narrow->end();
                     this->m_exec_conf->endMultiGPU();
                     } // end ArrayHandle scope
-
-                reallocate = checkReallocate();
-
-                if (reallocate)
-                    {
-                    continue;
-                    }
 
                     { // ArrayHandle scope
                     ArrayHandle<unsigned int> d_update_order_by_ptl(m_update_order.get(), access_location::device, access_mode::read);
@@ -969,7 +990,8 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         d_overflow.data,
                         i == 0,
                         this->m_exec_conf->dev_prop,
-                        this->m_pdata->getGPUPartition());
+                        this->m_pdata->getGPUPartition(),
+                        0);
 
                     /*
                      * Insert depletants
@@ -1117,8 +1139,9 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         0, // overflow
                         i == 0,
                         this->m_exec_conf->dev_prop,
-                        this->m_pdata->getGPUPartition());
-
+                        this->m_pdata->getGPUPartition(),
+                        0 // streams
+                        );
                     ArrayHandle<Scalar> d_charge(this->m_pdata->getCharges(), access_location::device, access_mode::read);
                     ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
                     ArrayHandle<Scalar> d_additive_cutoff(m_additive_cutoff, access_location::device, access_mode::read);

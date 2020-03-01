@@ -79,7 +79,8 @@ struct hpmc_args_t
                 unsigned int *_d_overflow,
                 const bool _update_shape_param,
                 const hipDeviceProp_t &_devprop,
-                const GPUPartition& _gpu_partition)
+                const GPUPartition& _gpu_partition,
+                const hipStream_t *_streams)
                 : d_postype(_d_postype),
                   d_orientation(_d_orientation),
                   d_counters(_d_counters),
@@ -118,7 +119,8 @@ struct hpmc_args_t
                   d_overflow(_d_overflow),
                   update_shape_param(_update_shape_param),
                   devprop(_devprop),
-                  gpu_partition(_gpu_partition)
+                  gpu_partition(_gpu_partition),
+                  streams(_streams)
         {
         };
 
@@ -161,6 +163,7 @@ struct hpmc_args_t
     const bool update_shape_param;    //!< True if shape parameters have changed
     const hipDeviceProp_t& devprop;     //!< CUDA device properties
     const GPUPartition& gpu_partition; //!< Multi-GPU partition
+    const hipStream_t *streams;        //!< kernel streams
     };
 
 //! Wraps arguments to kernel::hpmc_insert_depletants
@@ -567,7 +570,6 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
     unsigned int *s_queue_gid = (unsigned int*)(s_queue_j + max_queue_size);
     unsigned int *s_type_group = (unsigned int*)(s_queue_gid + max_queue_size);
     unsigned int *s_idx_group = (unsigned int*)(s_type_group + n_groups);
-    unsigned int *s_nneigh_group = (unsigned int *)(s_idx_group + n_groups);
 
         {
         // copy over parameters one int per thread for fast loads
@@ -597,7 +599,7 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
     __syncthreads();
 
     // initialize extra shared mem
-    char *s_extra = (char *)(s_nneigh_group + n_groups);
+    char *s_extra = (char *)(s_idx_group + n_groups);
 
     unsigned int available_bytes = max_extra_bytes;
     for (unsigned int cur_type = 0; cur_type < num_types; ++cur_type)
@@ -611,12 +613,6 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
         s_overlap_err_count = 0;
         s_queue_size = 0;
         s_still_searching = 1;
-        }
-
-    if (master)
-        {
-        // reset number of neighbors
-        s_nneigh_group[group] = 0;
         }
 
     bool active = true;
@@ -780,10 +776,11 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
                 && test_overlap(r_ij, shape_i, shape_j, overlap_err_count))
                 {
                 // write out to global memory
-                unsigned int n = atomicAdd(&s_nneigh_group[check_group], 1);
+                unsigned int i = s_idx_group[check_group];
+                unsigned int n = atomicAdd(&d_nneigh[i], 1);
                 if (n < maxn)
                     {
-                    d_nlist[n+maxn*s_idx_group[check_group]] = check_old ? check_j : (check_j + N_old);
+                    d_nlist[n+maxn*i] = check_old ? check_j : (check_j + N_old);
                     }
                 }
             }
@@ -802,7 +799,7 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
     if (active && master)
         {
         // overflowed?
-        unsigned int nneigh = s_nneigh_group[group];
+        unsigned int nneigh = d_nneigh[idx];
         if (nneigh > maxn)
             {
             #if (__CUDA_ARCH__ >= 600)
@@ -811,9 +808,6 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
             atomicMax(d_overflow, nneigh);
             #endif
             }
-
-        // write out number of neighbors to global mem
-        d_nneigh[idx] = nneigh;
         }
 
     if (master)
@@ -866,7 +860,7 @@ void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_
         const unsigned int min_shared_bytes = args.num_types * sizeof(typename Shape::param_type)
             + args.overlap_idx.getNumElements() * sizeof(unsigned int);
 
-        unsigned int shared_bytes = n_groups * (3*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3))
+        unsigned int shared_bytes = n_groups * (2*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3))
             + max_queue_size * 2 * sizeof(unsigned int)
             + min_shared_bytes;
 
@@ -883,7 +877,7 @@ void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_
             n_groups = run_block_size / tpp;
             max_queue_size = n_groups*tpp;
 
-            shared_bytes = n_groups * (3*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3))
+            shared_bytes = n_groups * (2*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3))
                 + max_queue_size * 2 * sizeof(unsigned int)
                 + min_shared_bytes;
             }
@@ -922,7 +916,7 @@ void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_
 
             dim3 grid(num_blocks, 1, 1);
 
-            hipLaunchKernelGGL((hpmc_narrow_phase<Shape, cur_launch_bounds>), grid, thread, shared_bytes, 0,
+            hipLaunchKernelGGL((hpmc_narrow_phase<Shape, cur_launch_bounds>), grid, thread, shared_bytes, args.streams[idev],
                 args.d_postype, args.d_orientation, args.d_trial_postype, args.d_trial_orientation,
                 args.d_excell_idx, args.d_excell_size, args.excli,
                 args.d_nlist, args.d_nneigh, args.maxn, args.d_counters+idev*args.counters_pitch, args.num_types,
