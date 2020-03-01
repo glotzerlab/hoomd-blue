@@ -25,6 +25,17 @@ namespace hpmc {
 
 namespace gpu {
 
+// currently this is hardcoded, we should set it to the max of platforms
+#if defined(__HIP_PLATFORM_NVCC__)
+#define MAX_BLOCK_SIZE 1024
+#define WARP_SIZE 32
+#elif defined(__HIP_PLATFORM_HCC__)
+#define MAX_BLOCK_SIZE 1024
+#define WARP_SIZE 64
+#endif
+
+template<unsigned int> struct int2type{};
+
 //! Wraps arguments to hpmc_* template functions
 /*! \ingroup hpmc_data_structs */
 struct hpmc_args_t
@@ -827,7 +838,8 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
 
 
 //! Kernel to insert depletants on-the-fly
-template< class Shape >
+template< class Shape, unsigned int max_threads >
+__launch_bounds__(max_threads)
 __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                                      const Scalar4 *d_trial_orientation,
                                      const unsigned int *d_trial_move_type,
@@ -1405,6 +1417,159 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
         }
     }
 
+//! Launcher for hpmc_insert_depletants kernel with templated launch bounds
+template< class Shape, unsigned int cur_launch_bounds>
+void depletants_launcher(const hpmc_args_t& args, const hpmc_implicit_args_t& implicit_args,
+    const typename Shape::param_type *params, unsigned int max_threads, int2type<cur_launch_bounds>)
+    {
+    if (max_threads == cur_launch_bounds)
+        {
+        // determine the maximum block size and clamp the input block size down
+        static int max_block_size = -1;
+        static hipFuncAttributes attr;
+        if (max_block_size == -1)
+            {
+            hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(&kernel::hpmc_insert_depletants<Shape, cur_launch_bounds>));
+            max_block_size = attr.maxThreadsPerBlock;
+            if (max_block_size % args.devprop.warpSize)
+                // handle non-sensical return values from hipFuncGetAttributes
+                max_block_size = (max_block_size/args.devprop.warpSize-1)*args.devprop.warpSize;
+            }
+
+        // choose a block size based on the max block size by regs (max_block_size) and include dynamic shared memory usage
+        unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);
+
+        unsigned int tpp = min(args.tpp,block_size);
+        unsigned int n_groups = block_size / tpp;
+        unsigned int max_queue_size = n_groups*tpp;
+        unsigned int max_depletant_queue_size = n_groups;
+
+        const unsigned int min_shared_bytes = args.num_types * sizeof(typename Shape::param_type) +
+                   args.overlap_idx.getNumElements() * sizeof(unsigned int);
+
+        unsigned int shared_bytes = n_groups *(sizeof(Scalar4) + sizeof(Scalar3)) +
+                                    max_queue_size*2*sizeof(unsigned int) +
+                                    max_depletant_queue_size*sizeof(unsigned int) +
+                                    min_shared_bytes;
+
+        if (min_shared_bytes >= args.devprop.sharedMemPerBlock)
+            throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of particle types or size of shape parameters");
+
+        while (shared_bytes + attr.sharedSizeBytes >= args.devprop.sharedMemPerBlock)
+            {
+            block_size -= args.devprop.warpSize;
+            if (block_size == 0)
+                throw std::runtime_error("Insufficient shared memory for HPMC kernel");
+            tpp = min(tpp, block_size);
+            n_groups = block_size / tpp;
+            max_queue_size = n_groups*tpp;
+            max_depletant_queue_size = n_groups;
+
+            shared_bytes = n_groups * (sizeof(Scalar4) + sizeof(Scalar3)) +
+                           max_queue_size*2*sizeof(unsigned int) +
+                           max_depletant_queue_size*sizeof(unsigned int) +
+                           min_shared_bytes;
+            }
+
+        static unsigned int base_shared_bytes = UINT_MAX;
+        bool shared_bytes_changed = base_shared_bytes != shared_bytes + attr.sharedSizeBytes;
+        base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
+
+        unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - base_shared_bytes;
+        static unsigned int extra_bytes = UINT_MAX;
+        if (extra_bytes == UINT_MAX || args.update_shape_param || shared_bytes_changed)
+            {
+            // required for memory coherency
+            hipDeviceSynchronize();
+
+            // determine dynamically requested shared memory
+            char *ptr = (char *) nullptr;
+            unsigned int available_bytes = max_extra_bytes;
+            for (unsigned int i = 0; i < args.num_types; ++i)
+                {
+                params[i].allocate_shared(ptr, available_bytes);
+                }
+            extra_bytes = max_extra_bytes - available_bytes;
+            }
+
+        shared_bytes += extra_bytes;
+
+        // setup the grid to run the kernel
+        dim3 threads(tpp, n_groups,1);
+
+        for (int idev = args.gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+            {
+            auto range = args.gpu_partition.getRangeAndSetGPU(idev);
+
+            if (range.first == range.second)
+                continue;
+
+            unsigned int blocks_per_particle = implicit_args.max_n_depletants[idev] /
+                (implicit_args.depletants_per_group*n_groups) + 1;
+
+            dim3 grid( range.second-range.first, blocks_per_particle, 1);
+
+            if (blocks_per_particle > args.devprop.maxGridSize[1])
+                {
+                grid.y = args.devprop.maxGridSize[1];
+                grid.z = blocks_per_particle/args.devprop.maxGridSize[1]+1;
+                }
+
+            hipLaunchKernelGGL((kernel::hpmc_insert_depletants<Shape, cur_launch_bounds>),
+                dim3(grid), dim3(threads), shared_bytes, implicit_args.streams[idev],
+                                 args.d_trial_postype,
+                                 args.d_trial_orientation,
+                                 args.d_trial_move_type,
+                                 args.d_postype,
+                                 args.d_orientation,
+                                 args.d_counters,
+                                 args.d_excell_idx,
+                                 args.d_excell_size,
+                                 args.excli,
+                                 args.cell_dim,
+                                 args.ghost_width,
+                                 args.ci,
+                                 args.N + args.N_ghost,
+                                 args.N,
+                                 args.num_types,
+                                 args.seed,
+                                 args.d_check_overlaps,
+                                 args.overlap_idx,
+                                 args.timestep,
+                                 args.dim,
+                                 args.box,
+                                 args.select,
+                                 args.d_reject_out_of_cell,
+                                 params,
+                                 max_queue_size,
+                                 max_extra_bytes,
+                                 implicit_args.depletant_type_a,
+                                 implicit_args.depletant_type_b,
+                                 implicit_args.depletant_idx,
+                                 implicit_args.d_implicit_count + idev*implicit_args.implicit_counters_pitch,
+                                 implicit_args.d_lambda,
+                                 args.d_nneigh,
+                                 args.d_nlist,
+                                 args.maxn,
+                                 args.d_overflow,
+                                 implicit_args.repulsive,
+                                 range.first,
+                                 max_depletant_queue_size,
+                                 implicit_args.d_n_depletants);
+            }
+        }
+    else
+        {
+        depletants_launcher<Shape>(args, implicit_args, params, max_threads, int2type<cur_launch_bounds/2>());
+        }
+    }
+
+//! Template recursion termination
+template< class Shape>
+void depletants_launcher(const hpmc_args_t& args, const hpmc_implicit_args_t& implicit_args,
+    const typename Shape::param_type *params, unsigned int max_threads, int2type<WARP_SIZE/2>)
+    { }
+
 //! Kernel to update particle data and statistics after acceptance
 template<class Shape>
 __global__ void hpmc_update_pdata(Scalar4 *d_postype,
@@ -1720,138 +1885,12 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
     assert(args.d_excell_size);
     assert(args.d_check_overlaps);
 
-    // determine the maximum block size and clamp the input block size down
-    static int max_block_size = -1;
-    static hipFuncAttributes attr;
-    if (max_block_size == -1)
-        {
-        hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(&kernel::hpmc_insert_depletants<Shape>));
-        max_block_size = attr.maxThreadsPerBlock;
-        if (max_block_size % args.devprop.warpSize)
-            // handle non-sensical return values from hipFuncGetAttributes
-            max_block_size = (max_block_size/args.devprop.warpSize-1)*args.devprop.warpSize;
-        }
+    // select the kernel template according to the next power of two of the block size
+    unsigned int launch_bounds = WARP_SIZE;
+    while (launch_bounds < args.block_size)
+        launch_bounds *= 2;
 
-    // choose a block size based on the max block size by regs (max_block_size) and include dynamic shared memory usage
-    unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);
-
-    unsigned int tpp = min(args.tpp,block_size);
-    unsigned int n_groups = block_size / tpp;
-    unsigned int max_queue_size = n_groups*tpp;
-    unsigned int max_depletant_queue_size = n_groups;
-
-    const unsigned int min_shared_bytes = args.num_types * sizeof(typename Shape::param_type) +
-               args.overlap_idx.getNumElements() * sizeof(unsigned int);
-
-    unsigned int shared_bytes = n_groups *(sizeof(Scalar4) + sizeof(Scalar3)) +
-                                max_queue_size*2*sizeof(unsigned int) +
-                                max_depletant_queue_size*sizeof(unsigned int) +
-                                min_shared_bytes;
-
-    if (min_shared_bytes >= args.devprop.sharedMemPerBlock)
-        throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of particle types or size of shape parameters");
-
-    while (shared_bytes + attr.sharedSizeBytes >= args.devprop.sharedMemPerBlock)
-        {
-        block_size -= args.devprop.warpSize;
-        if (block_size == 0)
-            throw std::runtime_error("Insufficient shared memory for HPMC kernel");
-        tpp = min(tpp, block_size);
-        n_groups = block_size / tpp;
-        max_queue_size = n_groups*tpp;
-        max_depletant_queue_size = n_groups;
-
-        shared_bytes = n_groups * (sizeof(Scalar4) + sizeof(Scalar3)) +
-                       max_queue_size*2*sizeof(unsigned int) +
-                       max_depletant_queue_size*sizeof(unsigned int) +
-                       min_shared_bytes;
-        }
-
-    static unsigned int base_shared_bytes = UINT_MAX;
-    bool shared_bytes_changed = base_shared_bytes != shared_bytes + attr.sharedSizeBytes;
-    base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
-
-    unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - base_shared_bytes;
-    static unsigned int extra_bytes = UINT_MAX;
-    if (extra_bytes == UINT_MAX || args.update_shape_param || shared_bytes_changed)
-        {
-        // required for memory coherency
-        hipDeviceSynchronize();
-
-        // determine dynamically requested shared memory
-        char *ptr = (char *) nullptr;
-        unsigned int available_bytes = max_extra_bytes;
-        for (unsigned int i = 0; i < args.num_types; ++i)
-            {
-            params[i].allocate_shared(ptr, available_bytes);
-            }
-        extra_bytes = max_extra_bytes - available_bytes;
-        }
-
-    shared_bytes += extra_bytes;
-
-    // setup the grid to run the kernel
-    dim3 threads(tpp, n_groups,1);
-
-    for (int idev = args.gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
-        {
-        auto range = args.gpu_partition.getRangeAndSetGPU(idev);
-
-        if (range.first == range.second)
-            continue;
-
-        unsigned int blocks_per_particle = implicit_args.max_n_depletants[idev] /
-            (implicit_args.depletants_per_group*n_groups) + 1;
-
-        dim3 grid( range.second-range.first, blocks_per_particle, 1);
-
-        if (blocks_per_particle > args.devprop.maxGridSize[1])
-            {
-            grid.y = args.devprop.maxGridSize[1];
-            grid.z = blocks_per_particle/args.devprop.maxGridSize[1]+1;
-            }
-
-        hipLaunchKernelGGL((kernel::hpmc_insert_depletants<Shape>), dim3(grid), dim3(threads), shared_bytes, implicit_args.streams[idev],
-                                                                     args.d_trial_postype,
-                                                                     args.d_trial_orientation,
-                                                                     args.d_trial_move_type,
-                                                                     args.d_postype,
-                                                                     args.d_orientation,
-                                                                     args.d_counters,
-                                                                     args.d_excell_idx,
-                                                                     args.d_excell_size,
-                                                                     args.excli,
-                                                                     args.cell_dim,
-                                                                     args.ghost_width,
-                                                                     args.ci,
-                                                                     args.N + args.N_ghost,
-                                                                     args.N,
-                                                                     args.num_types,
-                                                                     args.seed,
-                                                                     args.d_check_overlaps,
-                                                                     args.overlap_idx,
-                                                                     args.timestep,
-                                                                     args.dim,
-                                                                     args.box,
-                                                                     args.select,
-                                                                     args.d_reject_out_of_cell,
-                                                                     params,
-                                                                     max_queue_size,
-                                                                     max_extra_bytes,
-                                                                     implicit_args.depletant_type_a,
-                                                                     implicit_args.depletant_type_b,
-                                                                     implicit_args.depletant_idx,
-                                                                     implicit_args.d_implicit_count + idev*implicit_args.implicit_counters_pitch,
-                                                                     implicit_args.d_lambda,
-                                                                     args.d_nneigh,
-                                                                     args.d_nlist,
-                                                                     args.maxn,
-                                                                     args.d_overflow,
-                                                                     implicit_args.repulsive,
-                                                                     range.first,
-                                                                     max_depletant_queue_size,
-                                                                     implicit_args.d_n_depletants);
-        }
+    kernel::depletants_launcher<Shape>(args, implicit_args, params, launch_bounds, int2type<MAX_BLOCK_SIZE>());
     }
 
 //! Driver for kernel::hpmc_update_pdata()
@@ -1890,6 +1929,9 @@ void hpmc_update_pdata(const hpmc_update_args_t& args, const typename Shape::par
         }
     }
 #endif
+
+#undef MAX_BLOCK_SIZE
+#undef WARP_SIZE
 
 } // end namespace gpu
 
