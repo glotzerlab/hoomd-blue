@@ -333,6 +333,24 @@ __global__ void generate_num_depletants(const unsigned int seed,
         d_lambda[type_i*depletant_idx.getNumElements()+depletant_idx(depletant_type_a,depletant_type_b)])(rng_poisson);
     }
 
+__global__ void hpmc_reduce_counters(const unsigned int ngpu,
+                     const unsigned int pitch,
+                     const hpmc_counters_t *d_per_device_counters,
+                     hpmc_counters_t *d_counters,
+                     const unsigned int implicit_pitch,
+                     const Index2D depletant_idx,
+                     const hpmc_implicit_counters_t *d_per_device_implicit_counters,
+                     hpmc_implicit_counters_t *d_implicit_counters)
+    {
+    for (unsigned int igpu = 0; igpu < ngpu; ++igpu)
+        {
+        *d_counters = *d_counters + d_per_device_counters[igpu*pitch];
+
+        for (unsigned int itype = 0; itype < depletant_idx.getNumElements(); ++itype)
+            d_implicit_counters[itype] = d_implicit_counters[itype] + d_per_device_implicit_counters[itype+igpu*implicit_pitch];
+        }
+    }
+
 } // end namespace kernel
 
 //! Driver for kernel::hpmc_excell()
@@ -557,6 +575,26 @@ void get_max_num_depletants(const unsigned int N,
             0,
             thrust::maximum<unsigned int>());
         }
+    }
+
+void reduce_counters(const unsigned int ngpu,
+                     const unsigned int pitch,
+                     const hpmc_counters_t *d_per_device_counters,
+                     hpmc_counters_t *d_counters,
+                     const unsigned int implicit_pitch,
+                     const Index2D depletant_idx,
+                     const hpmc_implicit_counters_t *d_per_device_implicit_counters,
+                     hpmc_implicit_counters_t *d_implicit_counters)
+    {
+    hipLaunchKernelGGL(kernel::hpmc_reduce_counters, 1, 1, 0, 0,
+                     ngpu,
+                     pitch,
+                     d_per_device_counters,
+                     d_counters,
+                     implicit_pitch,
+                     depletant_idx,
+                     d_per_device_implicit_counters,
+                     d_implicit_counters);
     }
 
 } // end namespace gpu

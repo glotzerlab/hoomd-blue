@@ -383,6 +383,15 @@ void get_max_num_depletants(const unsigned int N,
                             const GPUPartition& gpu_partition,
                             CachedAllocator& alloc);
 
+void reduce_counters(const unsigned int ngpu,
+    const unsigned int pitch,
+    const hpmc_counters_t *d_per_device_counters,
+    hpmc_counters_t *d_counters,
+    const unsigned int implicit_pitch,
+    const Index2D depletant_idx,
+    const hpmc_implicit_counters_t *d_per_device_implicit_counters,
+    hpmc_implicit_counters_t *d_implicit_counters);
+
 #ifdef __HIPCC__
 namespace kernel
 {

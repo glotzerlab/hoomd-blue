@@ -1245,22 +1245,19 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
         if (ngpu > 1)
             {
             // reduce per-device counters
-            ArrayHandle<hpmc_counters_t> h_count_total(this->m_count_total, access_location::host, access_mode::readwrite);
-            ArrayHandle<hpmc_counters_t> h_counters_per_device(m_counters, access_location::host, access_mode::read);
+            ArrayHandle<hpmc_counters_t> d_count_total(this->m_count_total, access_location::device, access_mode::readwrite);
+            ArrayHandle<hpmc_counters_t> d_counters_per_device(m_counters, access_location::device, access_mode::read);
+            ArrayHandle<hpmc_implicit_counters_t> d_implicit_count_total(this->m_implicit_count, access_location::device, access_mode::readwrite);
+            ArrayHandle<hpmc_implicit_counters_t> d_implicit_counters_per_device(m_implicit_counters, access_location::device, access_mode::read);
 
-            for (unsigned int idev = 0; idev < ngpu; ++idev)
-                {
-                *h_count_total.data = *h_count_total.data + h_counters_per_device.data[idev*m_counters.getPitch()];
-                }
-
-            ArrayHandle<hpmc_implicit_counters_t> h_implicit_count_total(this->m_implicit_count, access_location::host, access_mode::readwrite);
-            ArrayHandle<hpmc_implicit_counters_t> h_implicit_counters_per_device(m_implicit_counters, access_location::host, access_mode::read);
-
-            for (unsigned int idev = 0; idev < ngpu; ++idev)
-                {
-                for (unsigned int itype = 0; itype < this->m_depletant_idx.getNumElements(); ++itype)
-                    h_implicit_count_total.data[itype] = h_implicit_count_total.data[itype] + h_implicit_counters_per_device.data[itype+idev*m_implicit_counters.getPitch()];
-                }
+            gpu::reduce_counters(this->m_exec_conf->getNumActiveGPUs(),
+                m_counters.getPitch(),
+                d_counters_per_device.data,
+                d_count_total.data,
+                m_implicit_counters.getPitch(),
+                this->m_depletant_idx,
+                d_implicit_counters_per_device.data,
+                d_implicit_count_total.data);
             }
         }
 
