@@ -9,7 +9,10 @@
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/CachedAllocator.h"
 
-#include <hipcub/hipcub.hpp>
+#include <thrust/device_ptr.h>
+#include <thrust/reduce.h>
+#include <thrust/execution_policy.h>
+
 
 namespace hpmc
 {
@@ -557,44 +560,20 @@ void get_max_num_depletants(const unsigned int N,
                             const GPUPartition& gpu_partition,
                             CachedAllocator& alloc)
     {
-    unsigned int ngpu = gpu_partition.getNumActiveGPUs();
-    void *d_temp_storage[ngpu];
-    size_t temp_storage_bytes[ngpu];
-    unsigned int *d_result[ngpu];
-
-    for (int idev = ngpu-1; idev >= 0; --idev)
+    thrust::device_ptr<unsigned int> n_depletants(d_n_depletants);
+    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
         {
         auto range = gpu_partition.getRangeAndSetGPU(idev);
 
-        d_temp_storage[idev] = nullptr;
-        temp_storage_bytes[idev] = 0;
-    
-        d_result[idev] = alloc.getTemporaryBuffer<unsigned int>(1);
-
-        hipcub::DeviceReduce::Max(d_temp_storage[idev],
-            temp_storage_bytes[idev],
-            d_n_depletants + range.first,
-            d_result[idev],
-            range.second-range.first,
-            streams[idev]);
-
-        d_temp_storage[idev] = alloc.getTemporaryBuffer<char>(temp_storage_bytes[idev]);
-
-        hipcub::DeviceReduce::Max(d_temp_storage[idev],
-            temp_storage_bytes[idev],
-            d_n_depletants + range.first,
-            d_result[idev],
-            range.second-range.first,
-            streams[idev]);
-
-        hipStreamSynchronize(streams[idev]);
-        max_n_depletants[idev] = *d_result[idev];
-        }
-
-    for (int idev = ngpu-1; idev >= 0; --idev)
-        {
-        alloc.deallocate((char *)d_result[idev]);
-        alloc.deallocate((char *)d_temp_storage[idev]);
+        #ifdef __HIP_PLATFORM_HCC__
+        max_n_depletants[idev] = thrust::reduce(thrust::hip::par(alloc).on(streams[idev]),
+        #else
+        max_n_depletants[idev] = thrust::reduce(thrust::cuda::par(alloc).on(streams[idev]),
+        #endif
+            n_depletants + range.first,
+            n_depletants + range.second,
+            0,
+            thrust::maximum<unsigned int>());
         }
     }
 
