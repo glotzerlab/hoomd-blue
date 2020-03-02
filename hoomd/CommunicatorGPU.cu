@@ -184,9 +184,6 @@ void gpu_sort_migrating_particles(const unsigned int nsend,
     assert(d_end);
     assert(d_neighbors);
 
-    if (!nsend)
-        return;
-
     // Wrap input & output
     thrust::device_ptr<pdata_element> in_ptr(d_in);
     thrust::device_ptr<const unsigned int> comm_flags_ptr(d_comm_flags);
