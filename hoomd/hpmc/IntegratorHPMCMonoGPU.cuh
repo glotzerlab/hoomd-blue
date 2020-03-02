@@ -900,9 +900,6 @@ void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_
         static unsigned int extra_bytes = UINT_MAX;
         if (extra_bytes == UINT_MAX || args.update_shape_param || shared_bytes_changed)
             {
-            // required for memory coherency
-            hipDeviceSynchronize();
-
             // determine dynamically requested shared memory
             char *ptr = (char *)nullptr;
             unsigned int available_bytes = max_extra_bytes;
@@ -1587,9 +1584,6 @@ void depletants_launcher(const hpmc_args_t& args, const hpmc_implicit_args_t& im
         static unsigned int extra_bytes = UINT_MAX;
         if (extra_bytes == UINT_MAX || args.update_shape_param || shared_bytes_changed)
             {
-            // required for memory coherency
-            hipDeviceSynchronize();
-
             // determine dynamically requested shared memory
             char *ptr = (char *) nullptr;
             unsigned int available_bytes = max_extra_bytes;

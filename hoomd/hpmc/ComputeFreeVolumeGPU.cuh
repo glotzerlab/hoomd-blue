@@ -415,9 +415,6 @@ hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const typen
     unsigned int shared_bytes = args.num_types * sizeof(typename Shape::param_type) + n_groups*sizeof(unsigned int)
         + args.overlap_idx.getNumElements()*sizeof(unsigned int);
 
-    // required for memory coherency
-    hipDeviceSynchronize();
-
     unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - attr.sharedSizeBytes - shared_bytes;
 
     // determine dynamically requested shared memory
@@ -457,9 +454,6 @@ hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const typen
                                                      args.overlap_idx,
                                                      d_params,
                                                      max_extra_bytes);
-
-    // return control of managed memory
-    hipDeviceSynchronize();
 
     return hipSuccess;
     }
