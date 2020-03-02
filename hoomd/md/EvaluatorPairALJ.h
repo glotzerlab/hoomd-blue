@@ -53,7 +53,6 @@ struct alj_shape_params
             {
             pybind11::list vertices_tmp = pybind11::cast<pybind11::list>(vertices[i]);
             verts[i] = vec3<Scalar>(pybind11::cast<Scalar>(vertices_tmp[0]), pybind11::cast<Scalar>(vertices_tmp[1]), pybind11::cast<Scalar>(vertices_tmp[2]));
-
             }
 
         rounding_radii.x = pybind11::cast<Scalar>(rr[0]);
@@ -270,7 +269,7 @@ class EvaluatorPairALJ
                     b.z = 0;
                     }
 
-                Scalar sigma12 = (_params.sigma_i + _params.sigma_j)*Scalar(0.5);
+                Scalar sigma12 = Scalar(0.5) * (_params.sigma_i + _params.sigma_j);
 
                 Scalar contact_sphere_radius_multiplier = 0.15;
                 Scalar contact_sphere_radius = contact_sphere_radius_multiplier * sigma12;
@@ -308,7 +307,7 @@ class EvaluatorPairALJ
                     {
                     // Compute force and energy from LJ formula.
                     pair_eng += four_scaled_epsilon * (invr_12 - invr_6);
-                    f_scalar = four_scaled_epsilon * ( Scalar(12.0)*invr_12 - Scalar(6.0)*invr_6 ) / (r);
+                    f_scalar = four_scaled_epsilon * (Scalar(12.0)*invr_12 - Scalar(6.0)*invr_6) / (r);
 
                     // For the WCA case
                     if (_params.alpha % 2 == 0)
@@ -339,7 +338,7 @@ class EvaluatorPairALJ
                     }
 
                 // Net force
-                vec3<Scalar> f_contact = -f_scalar_contact * v*invnorm_v;
+                vec3<Scalar> f_contact = -f_scalar_contact * v * invnorm_v;
                 vec3<Scalar> f = f_scalar * (dr / r) + f_contact;
                 if (ndim == 2)
                     {
@@ -349,7 +348,7 @@ class EvaluatorPairALJ
 
                 // Torque
                 torque_i = vec_to_scalar3(cross(a, f_contact));
-                torque_j = vec_to_scalar3(cross(dr + b, Scalar(-1.0)*f_contact));
+                torque_j = vec_to_scalar3(cross(dr + b, Scalar(-1.0) * f_contact));
 
                 return true;
                 }
