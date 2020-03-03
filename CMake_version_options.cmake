@@ -2,7 +2,7 @@
 
 ################################
 ## Version information
-set(HOOMD_VERSION_RAW "2.8.2")
+set(HOOMD_VERSION_RAW "2.9.0")
 string(REGEX MATCH "(.*)\\.(.*)\\.(.*)$" _hoomd_version_match ${HOOMD_VERSION_RAW})
 set(HOOMD_VERSION_MAJOR ${CMAKE_MATCH_1})
 set(HOOMD_VERSION_MINOR ${CMAKE_MATCH_2})

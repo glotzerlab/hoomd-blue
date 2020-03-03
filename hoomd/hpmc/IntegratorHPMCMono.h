@@ -526,9 +526,30 @@ void IntegratorHPMCMono<Shape>::slotNumTypesChange()
         return;
 
     // re-allocate overlap interaction matrix
+    Index2D old_overlap_idx = m_overlap_idx;
     m_overlap_idx = Index2D(m_pdata->getNTypes());
 
     GPUArray<unsigned int> overlaps(m_overlap_idx.getNumElements(), m_exec_conf);
+
+        {
+        ArrayHandle<unsigned int> h_old_overlaps(m_overlaps, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_overlaps(overlaps, access_location::host, access_mode::overwrite);
+
+        for(unsigned int i = 0; i < m_overlap_idx.getNumElements(); i++)
+            {
+            h_overlaps.data[i] = 1; // Assume we want to check overlaps.
+            }
+
+        // copy over old overlap check flags (this assumes the number of types is greater or equal to the old number of types)
+        for (unsigned int i = 0; i < old_overlap_idx.getW(); ++i)
+            {
+            for (unsigned int j = 0; j < old_overlap_idx.getH(); ++j)
+                {
+                h_overlaps.data[m_overlap_idx(i,j)] = h_old_overlaps.data[old_overlap_idx(i,j)];
+                }
+            }
+        }
+
     m_overlaps.swap(overlaps);
 
     updateCellWidth();
