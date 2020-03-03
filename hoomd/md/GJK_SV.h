@@ -618,28 +618,71 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
     //v = mean1 - mean2;
     v = dr;
 
+    // Since we will be performing a rotation many times, it's worthwhile to
+    // convert the quaternions to rotation matrices and use those for repeated
+    // rotations. The conversions below use the fewest operations I could come
+    // up with (12 multiplications and 12 additions). Optimizing this
+    // conversion is only really important for low vertex shapes where the
+    // additional cost of the conversion could offset the added speed of the
+    // rotations. We create local scope for all the intermediate products to
+    // avoid namespace pollution with unnecessary variables..
     Scalar mati[3][3], matj[3][3];
 
-    mati[0][0] = Scalar(1.0) - Scalar(2.0) * (qi.v.y*qi.v.y + qi.v.z*qi.v.z);
-    mati[0][1] = Scalar(2.0) * (qi.v.x * qi.v.y - qi.v.z * qi.s);
-    mati[0][2] = Scalar(2.0) * (qi.v.x * qi.v.z + qi.v.y * qi.s);
-    mati[1][0] = Scalar(2.0) * (qi.v.x * qi.v.y + qi.v.z * qi.s);
-    mati[1][1] = Scalar(1.0) - Scalar(2.0) * (qi.v.x*qi.v.x + qi.v.z*qi.v.z);
-    mati[1][2] = Scalar(2.0) * (qi.v.y * qi.v.z - qi.v.x * qi.s);
-    mati[2][0] = Scalar(2.0) * (qi.v.x * qi.v.z - qi.v.y * qi.s);
-    mati[2][1] = Scalar(2.0) * (qi.v.y * qi.v.z + qi.v.x * qi.s);
-    mati[2][2] = Scalar(1.0) - Scalar(2.0) * (qi.v.x*qi.v.x + qi.v.y*qi.v.y);
+        {
+        Scalar two_x = Scalar(2.0) * qi.v.x;
+        Scalar two_y = Scalar(2.0) * qi.v.y;
+        Scalar two_z = Scalar(2.0) * qi.v.z;
+        Scalar two_x_sq = qi.v.x * two_x;
+        Scalar two_y_sq = qi.v.y * two_y;
+        Scalar two_z_sq = qi.v.z * two_z;
 
-    matj[0][0] = Scalar(1.0) - Scalar(2.0) * (qj.v.y*qj.v.y + qj.v.z*qj.v.z);
-    matj[0][1] = Scalar(2.0) * (qj.v.x * qj.v.y - qj.v.z * qj.s);
-    matj[0][2] = Scalar(2.0) * (qj.v.x * qj.v.z + qj.v.y * qj.s);
-    matj[1][0] = Scalar(2.0) * (qj.v.x * qj.v.y + qj.v.z * qj.s);
-    matj[1][1] = Scalar(1.0) - Scalar(2.0) * (qj.v.x*qj.v.x + qj.v.z*qj.v.z);
-    matj[1][2] = Scalar(2.0) * (qj.v.y * qj.v.z - qj.v.x * qj.s);
-    matj[2][0] = Scalar(2.0) * (qj.v.x * qj.v.z - qj.v.y * qj.s);
-    matj[2][1] = Scalar(2.0) * (qj.v.y * qj.v.z + qj.v.x * qj.s);
-    matj[2][2] = Scalar(1.0) - Scalar(2.0) * (qj.v.x*qj.v.x + qj.v.y*qj.v.y);
+        mati[0][0] = Scalar(1.0) - two_y_sq - two_z_sq;
+        mati[1][1] = Scalar(1.0) - two_x_sq - two_z_sq;
+        mati[2][2] = Scalar(1.0) - two_x_sq - two_y_sq;
 
+        Scalar y_two_z = qi.v.y * two_z;
+        Scalar s_two_x = qi.s * two_x;
+        mati[1][2] = y_two_z - s_two_x;
+        mati[2][1] = y_two_z + s_two_x;
+
+        Scalar x_two_y = qi.v.x * two_y;
+        Scalar s_two_z = qi.s * two_z;
+        mati[0][1] = x_two_y - s_two_z;
+        mati[1][0] = x_two_y + s_two_z;
+
+        Scalar x_two_z = qi.v.x * two_z;
+        Scalar s_two_y = qi.s * two_y;
+        mati[0][2] = x_two_z + s_two_y;
+        mati[2][0] = x_two_z - s_two_y;
+        }
+
+        {
+        Scalar two_x = Scalar(2.0) * qj.v.x;
+        Scalar two_y = Scalar(2.0) * qj.v.y;
+        Scalar two_z = Scalar(2.0) * qj.v.z;
+        Scalar two_x_sq = qj.v.x * two_x;
+        Scalar two_y_sq = qj.v.y * two_y;
+        Scalar two_z_sq = qj.v.z * two_z;
+
+        matj[0][0] = Scalar(1.0) - two_y_sq - two_z_sq;
+        matj[1][1] = Scalar(1.0) - two_x_sq - two_z_sq;
+        matj[2][2] = Scalar(1.0) - two_x_sq - two_y_sq;
+
+        Scalar y_two_z = qj.v.y * two_z;
+        Scalar s_two_x = qj.s * two_x;
+        matj[1][2] = y_two_z - s_two_x;
+        matj[2][1] = y_two_z + s_two_x;
+
+        Scalar x_two_y = qj.v.x * two_y;
+        Scalar s_two_z = qj.s * two_z;
+        matj[0][1] = x_two_y - s_two_z;
+        matj[1][0] = x_two_y + s_two_z;
+
+        Scalar x_two_z = qj.v.x * two_z;
+        Scalar s_two_y = qj.s * two_y;
+        matj[0][2] = x_two_z + s_two_y;
+        matj[2][0] = x_two_z - s_two_y;
+        }
 
     // We don't bother to initialize most of these arrays since the W_used
     // array controls which data is valid. 
