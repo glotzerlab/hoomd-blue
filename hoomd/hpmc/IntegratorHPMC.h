@@ -359,6 +359,34 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             {
             return m_seed;
             }
+
+        #ifdef ENABLE_MPI
+        //! Set the MPI communicator
+        /*! \param comm the communicator
+            This method is overridden so that we can register with the signal to set the ghost layer width.
+        */
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
+            {
+            if (! m_communicator_ghost_width_connected)
+                {
+                // only add the migrate request on the first call
+                assert(comm);
+                comm->getGhostLayerWidthRequestSignal().connect<IntegratorHPMC, &IntegratorHPMC::getGhostLayerWidth>(this);
+                m_communicator_ghost_width_connected = true;
+                }
+            if (! m_communicator_flags_connected)
+                {
+                // only add the migrate request on the first call
+                assert(comm);
+                comm->getCommFlagsRequestSignal().connect<IntegratorHPMC, &IntegratorHPMC::getCommFlags>(this);
+                m_communicator_flags_connected = true;
+                }
+
+            // set the member variable
+            Integrator::setCommunicator(comm);
+            }
+        #endif
+
     protected:
         unsigned int m_seed;                        //!< Random number seed
         unsigned int m_move_ratio;                  //!< Ratio of translation to rotation move attempts (*65535)
@@ -403,30 +431,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             return CommFlags(0);
             }
 
-        //! Set the MPI communicator
-        /*! \param comm the communicator
-            This method is overridden so that we can register with the signal to set the ghost layer width.
-        */
-        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-            {
-            if (! m_communicator_ghost_width_connected)
-                {
-                // only add the migrate request on the first call
-                assert(comm);
-                comm->getGhostLayerWidthRequestSignal().connect<IntegratorHPMC, &IntegratorHPMC::getGhostLayerWidth>(this);
-                m_communicator_ghost_width_connected = true;
-                }
-            if (! m_communicator_flags_connected)
-                {
-                // only add the migrate request on the first call
-                assert(comm);
-                comm->getCommFlagsRequestSignal().connect<IntegratorHPMC, &IntegratorHPMC::getCommFlags>(this);
-                m_communicator_flags_connected = true;
-                }
-
-            // set the member variable
-            Integrator::setCommunicator(comm);
-            }
         #endif
 
     private:
