@@ -5,8 +5,6 @@ from hoomd import _hoomd
 from hoomd.jit import _jit
 import hoomd
 
-import tempfile
-import shutil
 import subprocess
 import os
 

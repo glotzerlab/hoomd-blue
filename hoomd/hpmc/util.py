@@ -14,7 +14,6 @@ except ImportError:
 
 import hoomd
 import sys
-import colorsys as cs
 import re
 
 #replace range with xrange for python3 compatibility
