@@ -1490,8 +1490,6 @@ void CommunicatorGPU::migrateParticles()
         // determine local particles that are to be sent to neighboring processors and fill send buffer
         uint3 mypos = m_decomposition->getGridPos();
 
-        /* We need some better heuristics to decide whether to take the GPU or CPU code path */
-        #if 0
             {
             // resize keys
             m_send_keys.resize(m_gpu_sendbuf.size());
@@ -1530,39 +1528,6 @@ void CommunicatorGPU::migrateParticles()
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }
-        #else
-            {
-            ArrayHandle<pdata_element> h_gpu_sendbuf(m_gpu_sendbuf, access_location::host, access_mode::readwrite);
-            ArrayHandle<unsigned int> h_begin(m_begin, access_location::host, access_mode::overwrite);
-            ArrayHandle<unsigned int> h_end(m_end, access_location::host, access_mode::overwrite);
-            ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_comm_flags(m_comm_flags, access_location::host, access_mode::read);
-
-            ArrayHandle<unsigned int> h_cart_ranks(m_pdata->getDomainDecomposition()->getCartRanks(), access_location::host,
-                access_mode::read);
-            typedef std::multimap<unsigned int,pdata_element> key_t;
-            key_t keys;
-
-            // generate keys
-            get_migrate_key t(mypos, di, m_comm_mask[stage],h_cart_ranks.data);
-            for (unsigned int i = 0; i < m_comm_flags.size(); ++i)
-                keys.insert(std::pair<unsigned int, pdata_element>(t(h_comm_flags.data[i]),h_gpu_sendbuf.data[i]));
-
-            // Find start and end indices
-            for (unsigned int i = 0; i < m_n_unique_neigh; ++i)
-                {
-                key_t::iterator lower = keys.lower_bound(h_unique_neighbors.data[i]);
-                key_t::iterator upper = keys.upper_bound(h_unique_neighbors.data[i]);
-                h_begin.data[i] = std::distance(keys.begin(),lower);
-                h_end.data[i] = std::distance(keys.begin(),upper);
-                }
-
-            // sort send buffer
-            unsigned int i = 0;
-            for (key_t::iterator it = keys.begin(); it != keys.end(); ++it)
-                h_gpu_sendbuf.data[i++] = it->second;
-            }
-        #endif
 
         unsigned int n_send_ptls[m_n_unique_neigh];
         unsigned int n_recv_ptls[m_n_unique_neigh];
@@ -1633,7 +1598,7 @@ void CommunicatorGPU::migrateParticles()
 
             if (m_prof) m_prof->push(m_exec_conf,"MPI send/recv");
 
-            #if defined(ENABLE_MPI_CUDA) && 0
+            #if defined(ENABLE_MPI_CUDA)
             ArrayHandle<pdata_element> gpu_sendbuf_handle(m_gpu_sendbuf, access_location::device, access_mode::read);
             ArrayHandle<pdata_element> gpu_recvbuf_handle(m_gpu_recvbuf, access_location::device, access_mode::overwrite);
             #else
@@ -1657,8 +1622,13 @@ void CommunicatorGPU::migrateParticles()
                 if (n_send_ptls[ineigh])
                     {
                     MPI_Isend(gpu_sendbuf_handle.data+h_begin.data[ineigh],
+                    #ifndef ENABLE_MPI_CUDA
                         n_send_ptls[ineigh],
                         m_mpi_pdata_element,
+                    #else
+                        n_send_ptls[ineigh]*sizeof(pdata_element),
+                        MPI_BYTE,
+                    #endif
                         neighbor,
                         1,
                         m_mpi_comm,
@@ -1670,8 +1640,13 @@ void CommunicatorGPU::migrateParticles()
                 if (n_recv_ptls[ineigh])
                     {
                     MPI_Irecv(gpu_recvbuf_handle.data+offs[ineigh],
+                    #ifndef ENABLE_MPI_CUDA
                         n_recv_ptls[ineigh],
                         m_mpi_pdata_element,
+                    #else
+                        n_recv_ptls[ineigh]*sizeof(pdata_element),
+                        MPI_BYTE,
+                    #endif
                         neighbor,
                         1,
                         m_mpi_comm,
