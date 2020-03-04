@@ -120,10 +120,11 @@ class implicit_test (unittest.TestCase):
         self.mc.shape_param.set('A', diameter=d_sphere)
         self.mc.shape_param.set('B', diameter=d_sphere*q)
 
-        self.mc_tune = hpmc.util.tune(self.mc, tunables=['d'],max_val=[d_sphere],gamma=1,target=0.2)
-        for i in range(10):
-            run(100, quiet=True)
-            self.mc_tune.update()
+        if not use_clusters:
+            self.mc_tune = hpmc.util.tune(self.mc, tunables=['d'],max_val=[d_sphere],gamma=1,target=0.2)
+            for i in range(10):
+                run(100, quiet=True)
+                self.mc_tune.update()
         # warm up
         run(2000);
 
@@ -147,6 +148,8 @@ class implicit_test (unittest.TestCase):
                print('eta_p =', v);
 
         if use_clusters:
+            # use clusters exclusively to equilibrate
+            self.mc.set_params(d=0)
             hpmc.update.clusters(self.mc,period=1,seed=seed+1)
 
         run(4e5,callback=log_callback,callback_period=100)
@@ -185,10 +188,11 @@ class implicit_test (unittest.TestCase):
         self.mc.shape_param.set('A', centers=[(0,0,0)]*2,diameters=[d_sphere,0.5*d_sphere],capacity=1)
         self.mc.shape_param.set('B', centers=[(0,0,0)],diameters=[d_sphere*q],capacity=1)
 
-        self.mc_tune = hpmc.util.tune(self.mc, tunables=['d'],max_val=[d_sphere],gamma=1,target=0.2)
-        for i in range(10):
-            run(100, quiet=True)
-            self.mc_tune.update()
+        if not use_clusters:
+            self.mc_tune = hpmc.util.tune(self.mc, tunables=['d'],max_val=[d_sphere],gamma=1,target=0.2)
+            for i in range(10):
+                run(100, quiet=True)
+                self.mc_tune.update()
         # warm up
         run(2000);
 
@@ -212,6 +216,8 @@ class implicit_test (unittest.TestCase):
                print('eta_p =', v);
 
         if use_clusters:
+            # use clusters exclusively to equilibrate
+            self.mc.set_params(d=0,a=0)
             hpmc.update.clusters(self.mc,period=1,seed=seed+1)
 
         run(4e5,callback=log_callback,callback_period=100)
