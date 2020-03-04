@@ -131,7 +131,7 @@ inline error_t eventDestroy(event_t event)
 inline errot_t eventSynchronize(event_t event)
     {
     #if defined(__GPU_PLATFORM_NVIDIA__)
-    return cudaEventSychronize(event);
+    return cudaEventSynchronize(event);
     #elif defined(__GPU_PLATFORM_HIP__)
     return cudaEventSynchronize(event);
     #endif
@@ -157,6 +157,7 @@ inline eventElaspedTime(float* ms, event_t start, event_t end)
     #endif
     }
 
+//!Cause compute stream to wait for an event
 inline streamWaitEvent(stream_t stream, event_t event, unsigned int flags)
     {
     #if defined(__GPU_PLATFORM_NVIDIA__)
@@ -169,8 +170,16 @@ inline streamWaitEvent(stream_t stream, event_t event, unsigned int flags)
 /*Device*/
 #if defined(__GPU_PLATFORM_NVIDIA__)
 typedef cudaDeviceProp deviceProp_t;
+#define cpuDeviceId cudaCpuDeviceId
 #elif defined(__GPU_PLATFORM_HIP__)
 typedef hipDeviceProp_t deviceProp_t;
+#endif
+
+//!Flags for setDeviceFlags
+#if defined(__GPU_PLATFORM_NVIDIA__)
+#define deviceMapHost cudaDeviceMapHost
+#elif defined(__GPU_PLATFORM_HIP__)
+#define deviceMapHost hipDeviceMapHost
 #endif
 
 //!Synchronize Device
@@ -213,6 +222,15 @@ inline error_t setDevice(int device)
     #endif
     }
 
+//Set device flags
+inline error_t setDeviceFlags(unsigned int flags)
+    {
+    #if defined(__GPU_PLATFORM_NVIDIA__)
+    return cudaSetDeviceFlags(flags);
+    #elif defined(__GPU_PLATFORM_HIP__)
+    return hipSetDeviceFlags(flags);
+    #endif
+    }
 //!Get properties of device
 inline error_t getDeviceProperties(deviceProp_t* prop, int device)
     {
@@ -431,6 +449,44 @@ inline error_t getLastError(void)
     return hipGetLastError();
     #endif
     }
+
+/*Profiling*/
+//!Start Profiling
+inline error_t profileStart(void)
+    {
+    #if defined(__GPU_PLATFORM_NVIDIA__)
+    return cudaProfileStart();
+    #elif defined(__GPU_PLATFORM_HIP__)
+    return roctracer_start();
+    #endif
+    }
+
+//!Stop Profiling
+inline error_t profileStop(void)
+    {
+    #if defined(__GPU_PLATFORM_NVIDIA__)
+    return cudaProfileStop();
+    #elif defined(__GPU_PLATFORM_HIP__)
+    return roctracer_stop();
+    #endif
+    }
+
+/*Execution Control*/
+#ifdef __GPU_PLATFORM_NVIDIA__
+//!funcSetSharedMemConfig enum
+typedef enum sharedMemConfig
+    {
+    sharedMemBankSizeDefault = cudaSharedMemBankSizeDefault,
+    sharedMemBankSizeFourByte = cudaSharedMemBankSizeFourByte,
+    sharedMemBankSizeEightByte = cudaSharedMemBankSizeEightByte
+    };
+
+//!set configuration for shared memory
+inline error_t funcSetSharedMemConfig(const void* func, sharedMemConfig config)
+    {
+    return cudaFuncSetSharedMemConfig(func, config);
+    }
+#endif
 
 /* kernels */
 #if defined(__GPU_PLATFORM_NVIDIA__)
