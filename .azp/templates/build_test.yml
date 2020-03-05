@@ -55,7 +55,7 @@ steps:
 
 - script: cat pytest.out.1
   displayName: Display rank 1 output
-  workingDirectory: $(Build.BinariesDirectory)
+  workingDirectory: $(Pipeline.Workspace)/install
   condition: and(or(succeeded(), failed()), eq(variables['enable_mpi'], 'on'))
 
 - script: >-
