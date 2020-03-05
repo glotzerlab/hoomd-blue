@@ -330,7 +330,9 @@ void export_IntegratorHPMC(py::module& m)
         .def("communicate", &IntegratorHPMC::communicate)
         .def("slotNumTypesChange", &IntegratorHPMC::slotNumTypesChange)
         .def("disablePatchEnergyLogOnly", &IntegratorHPMC::disablePatchEnergyLogOnly)
+        #ifdef ENABLE_MPI
         .def("setCommunicator", &IntegratorHPMC::setCommunicator)
+        #endif
         .def_property_readonly("seed", &IntegratorHPMC::getSeed)
         .def_property("nselect", &IntegratorHPMC::getNSelect, &IntegratorHPMC::setNSelect)
         .def_property("move_ratio", &IntegratorHPMC::getMoveRatio, &IntegratorHPMC::setMoveRatio)
