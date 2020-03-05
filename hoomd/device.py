@@ -28,9 +28,6 @@ Attributes:
 
 import os
 import time
-import socket
-import atexit
-import getpass
 import hoomd
 from hoomd import _hoomd
 

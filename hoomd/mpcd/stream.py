@@ -217,7 +217,6 @@ class _streaming_method(hoomd.meta._metadata):
         else:
             hoomd.context.current.device.cpp_msg.error("mpcd.stream: boundary condition " + bc + " not recognized.\n")
             raise ValueError("Unrecognized streaming boundary condition")
-            return None
 
 class bulk(_streaming_method):
     """ Bulk fluid streaming geometry.
