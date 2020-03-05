@@ -357,7 +357,6 @@ class log(_analyzer):
     - Integrators
 
       - **langevin_reservoir_energy_groupname** (:py:class:`hoomd.md.integrate.langevin`) - Energy reservoir for the Langevin integrator (in energy units)
-      - **nvt_reservoir_energy_groupname** (:py:class:`hoomd.md.integrate.nvt`) - Energy reservoir for the NVT thermostat (in energy units)
       - **nvt_mtk_reservoir_energy_groupname** (:py:class:`hoomd.md.integrate.nvt`) - Energy reservoir for the NVT MTK thermostat (in energy units)
       - **npt_thermostat_energy** (:py:class:`hoomd.md.integrate.npt`) - Energy of the NPT thermostat
       - **npt_barostat_energy** (:py:class:`hoomd.md.integrate.npt` & :py:class:`hoomd.md.integrate.nph`) - Energy of the NPT (or NPH) barostat
