@@ -78,6 +78,8 @@ int main(int argc, char **argv)
             /opt/rocm/include
             NO_DEFAULT_PATH)
 
+        option(ENABLE_ROCTRACER "Enable roctracer profiler integration" off)
+
         list(APPEND HIP_INCLUDE_DIR ${ROCm_hsa_INCLUDE_DIR})
     else()
         # here we go if hipcc is not available, fall back on internal HIP->CUDA headers
@@ -97,6 +99,11 @@ int main(int argc, char **argv)
     endif()
 
     ENABLE_LANGUAGE(CUDA)
+
+    if (HIP_FOUND)
+        # reduce link time (no device linking)
+        set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -fno-gpu-rdc")
+    endif()
 
     if(NOT TARGET HIP::hip)
         add_library(HIP::hip INTERFACE IMPORTED)
