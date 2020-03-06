@@ -284,7 +284,7 @@ class active(_Force):
 
         # assign constraints
         if (constraint is not None):
-            if (constraint.__class__.__name__ is "constraint_ellipsoid"):
+            if (constraint.__class__.__name__ == "constraint_ellipsoid"):
                 P = constraint.P
                 rx = constraint.rx
                 ry = constraint.ry

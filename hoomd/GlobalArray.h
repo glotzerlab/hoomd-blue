@@ -132,13 +132,13 @@ class managed_deleter
                 }
             #endif
 
-            #ifdef ENABLE_HIP
             // we used placement new in the allocation, so call destructors explicitly
             for (std::size_t i = 0; i < m_N; ++i)
                 {
                 ptr[i].~T();
                 }
 
+            #ifdef ENABLE_HIP
             if (m_use_device)
                 {
                 std::ostringstream oss;

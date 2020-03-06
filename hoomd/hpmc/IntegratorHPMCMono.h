@@ -271,6 +271,12 @@ class IntegratorHPMCMono : public IntegratorHPMC
         //! Return a vector that is an unwrapped overlap map
         virtual std::vector<std::pair<unsigned int, unsigned int> > mapOverlaps();
 
+        //! Return a vector that is an unwrapped energy map
+        virtual std::vector<float> mapEnergies();
+
+        //! Return a python list that is an unwrapped energy map
+        virtual pybind11::list PyMapEnergies();
+
         //! Test overlap for a given pair of particle coordinates
         /*! \param type_i Type of first particle
             \param type_j Type of second particle
@@ -308,7 +314,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
             // many things depend internally on the orientation field (for ghosts) being initialized, therefore always request it
             flags[comm_flag::orientation] = 1;
 
-            if (m_patch)
+            if (m_patch && (!m_patch_log || m_pdata->getFlags()[pdata_flag::potential_energy]))
                 {
                 flags[comm_flag::diameter] = 1;
                 flags[comm_flag::charge] = 1;
@@ -2064,6 +2070,146 @@ std::vector<std::pair<unsigned int, unsigned int> > IntegratorHPMCMono<Shape>::m
     return overlap_vector;
     }
 
+/*! Calculate energy between all pairs of particles
+ */
+template <class Shape>
+std::vector<float> IntegratorHPMCMono<Shape>::mapEnergies()
+    {
+    if (! m_patch)
+        {
+        throw std::runtime_error("No patch energy defined.\n");
+        }
+
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        throw std::runtime_error("map_energies does not support MPI parallel jobs");
+        }
+    #endif
+
+    unsigned int N = m_pdata->getN();
+
+    std::vector<float> energy_map(N*N, 0.0);
+
+    m_exec_conf->msg->notice(10) << "HPMC energy mapping" << std::endl;
+
+    // build an up to date AABB tree
+    buildAABBTree();
+    // update the image list
+    updateImageList();
+
+    // access particle data and system box
+    ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+
+    // Loop over all particles
+    #ifdef ENABLE_TBB
+    tbb::parallel_for(tbb::blocked_range<unsigned int>(0, N),
+        [&](const tbb::blocked_range<unsigned int>& r) {
+    for (unsigned int i = r.begin(); i != r.end(); ++i)
+    #else
+    for (unsigned int i = 0; i < N; i++)
+    #endif
+        {
+        // read in the current position and orientation
+        Scalar4 postype_i = h_postype.data[i];
+        Scalar4 orientation_i = h_orientation.data[i];
+        Shape shape_i(quat<Scalar>(orientation_i), m_params[__scalar_as_int(postype_i.w)]);
+        vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
+        unsigned int typ_i = __scalar_as_int(postype_i.w);
+
+        Scalar diameter_i = h_diameter.data[i];
+        Scalar charge_i = h_charge.data[i];
+
+        // Check particle against AABB tree for neighbors
+        Scalar r_cut_patch = m_patch->getRCut() + 0.5*m_patch->getAdditiveCutoff(typ_i);
+        OverlapReal R_query = r_cut_patch-getMinCoreDiameter()/(OverlapReal)2.0;
+        detail::AABB aabb_i_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
+
+        const unsigned int n_images = m_image_list.size();
+        for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
+            {
+            vec3<Scalar> pos_i_image = pos_i + m_image_list[cur_image];
+            detail::AABB aabb = aabb_i_local;
+            aabb.translate(pos_i_image);
+
+            // stackless search
+            for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree.getNumNodes(); cur_node_idx++)
+                {
+                if (detail::overlap(m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                    {
+                    if (m_aabb_tree.isNodeLeaf(cur_node_idx))
+                        {
+                        for (unsigned int cur_p = 0; cur_p < m_aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
+                            {
+                            // read in its position and orientation
+                            unsigned int j = m_aabb_tree.getNodeParticle(cur_node_idx, cur_p);
+
+                            // skip i==j in the 0 image
+                            if (cur_image == 0 && i == j)
+                                {
+                                continue;
+                                }
+
+                            Scalar4 postype_j = h_postype.data[j];
+                            Scalar4 orientation_j = h_orientation.data[j];
+
+                            // put particles in coordinate system of particle i
+                            vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
+                            unsigned int typ_j = __scalar_as_int(postype_j.w);
+
+                            Scalar rcut = r_cut_patch + 0.5 * m_patch->getAdditiveCutoff(typ_j);
+
+                            if (dot(r_ij,r_ij) <= rcut*rcut)
+                                {
+                                energy_map[h_tag.data[j]+N*h_tag.data[i]] +=
+                                    m_patch->energy(r_ij,
+                                       typ_i,
+                                       quat<float>(shape_i.orientation),
+                                       diameter_i,
+                                       charge_i,
+                                       typ_j,
+                                       quat<float>(orientation_j),
+                                       h_diameter.data[j],
+                                       h_charge.data[j]
+                                       );
+                                }
+                            }
+                        }
+                    }
+                else
+                    {
+                    // skip ahead
+                    cur_node_idx += m_aabb_tree.getNodeSkip(cur_node_idx);
+                    }
+                } // end loop over AABB nodes
+            } // end loop over images
+        } // end loop over particles
+    #ifdef ENABLE_TBB
+        });
+    #endif
+    return energy_map;
+    }
+
+/*! Function for returning a python list of all overlaps in a system by particle
+  tag. returns an unraveled form of an NxN matrix with true/false indicating
+  the overlap status of the ith and jth particle
+ */
+template <class Shape>
+pybind11::list IntegratorHPMCMono<Shape>::PyMapEnergies()
+    {
+    std::vector<float> v = IntegratorHPMCMono<Shape>::mapEnergies();
+    pybind11::list energy_map;
+    // for( unsigned int i = 0; i < sizeof(v)/sizeof(v[0]); i++ )
+    for (auto i: v)
+        {
+        energy_map.append(pybind11::cast<float>(i));
+        }
+    return energy_map;
+    }
 
 template <class Shape>
 void IntegratorHPMCMono<Shape>::connectGSDStateSignal(
@@ -3125,6 +3271,7 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
           .def("setExternalField", &IntegratorHPMCMono<Shape>::setExternalField)
           .def("setPatchEnergy", &IntegratorHPMCMono<Shape>::setPatchEnergy)
           .def("mapOverlaps", &IntegratorHPMCMono<Shape>::mapOverlaps)
+          .def("mapEnergies", &IntegratorHPMCMono<Shape>::PyMapEnergies)
           .def("connectGSDStateSignal", &IntegratorHPMCMono<Shape>::connectGSDStateSignal)
           .def("connectGSDShapeSpec", &IntegratorHPMCMono<Shape>::connectGSDShapeSpec)
           .def("restoreStateGSD", &IntegratorHPMCMono<Shape>::restoreStateGSD)

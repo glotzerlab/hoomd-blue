@@ -7,14 +7,7 @@ R""" Utilities.
 """
 
 from numpy import ndarray
-import sys
 from copy import deepcopy
-import traceback
-import os.path
-import linecache
-import re
-import hoomd
-from hoomd import _hoomd
 
 ## \internal
 # \brief Compatibility definition of a basestring for python 2/3

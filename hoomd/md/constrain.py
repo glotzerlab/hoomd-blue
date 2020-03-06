@@ -151,7 +151,7 @@ class _ConstraintForce(hoomd.meta._metadata):
     def get_metadata(self):
         data = hoomd.meta._metadata.get_metadata(self)
         data['enabled'] = self.enabled
-        if self.name is not "":
+        if self.name != "":
             data['name'] = self.name
         return data
 
