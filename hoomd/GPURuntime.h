@@ -64,6 +64,22 @@ inline error_t streamCreate(stream_t* stream)
     #endif
     }
 
+//!Stream Flags
+#if defined(__GPU_PLATFORM_NVIDIA__)
+#define streamCreateDefault cudaStreamCreateDefault
+#elif defined(__GPU_PLATFORM_HIP__)
+#define streamCreateDefault cudaStreamCreateDefault
+#endif
+
+//!Create Stream with Flags
+inline error_t streamCreateWithFlags(stream_t* stream, unsigned int flags)
+    {
+    #if defined(__GPU_PLATFORM_NVIDIA__)
+    return cudaStreamCreateWithFlags(stream, flags);
+    #elif defined(__GPU_PLATFORM_HIP__)
+    return hipStreanCreateWithFlags(stream, flags);
+    #endif
+    }
 //! Synchronize a GPU stream
 inline error_t streamSynchronize(stream_t stream)
     {
@@ -84,9 +100,19 @@ inline error_t streamDestroy(stream_t stream)
     #endif
     }
 
+//!Perform a query on a stream for completion status
+inline error_t streamQuery(stream_t stream)
+    {
+    #if defined(__GPU_PLATFORM_NVIDIA__)
+    return cudaStreamQuery(stream);
+    #elif defined(__GPU_PLATFORM_HIP__)
+    return hipStreamQuery(stream);
+    #endif
+    }
+
 /*events*/
 #if defined(__GPU_PLATFORM_NVIDIA__)
-typedef cudaEvent_t event_t;
+typedef cudaEvent event_t;
 #elif defined(__GPU_DEFINED_HIP__)
 typedef hipEvent_t event_t;
 #endif
@@ -167,6 +193,14 @@ inline streamWaitEvent(stream_t stream, event_t event, unsigned int flags)
     #endif
     }
 
+inline eventQuery(event_t event)
+    {
+    #if defined(__GPU_PLATFORM_NVIDIA__)
+    return cudaEvent(event);
+    #elif defined(__GPU_PLATFORM_HIP__)
+    return hipEventQuery(event);
+    #endif
+    }
 /*Device*/
 #if defined(__GPU_PLATFORM_NVIDIA__)
 typedef cudaDeviceProp deviceProp_t;
@@ -240,6 +274,27 @@ inline error_t getDeviceProperties(deviceProp_t* prop, int device)
     return hipGetDeviceProperties(prop, device);
     #endif
     }
+
+//Limit enum
+#if defined(__GPU_PLATFORM_NVIDIA__)
+typedef enum limit
+    {
+    limitStackSize = cudaLimitStackSize,
+    limitPrintfFifoSize = cudaLimitPrintfFifoSize,
+    limitMallocHeapSize = cudaLimitMallocHeapSize,
+    limitDevRuntimeSyncDepth = cudaLimitDevRuntimeSyncDepth,
+    limitDevRuntimePendingLaunchCount = cudaLimitDevRuntimePendingLaunchCount,
+    limitMaxL2FetchGranularity = cudaLimitMaxL2FetchGranularity
+    };
+#endif
+
+//!Set limit on resources
+#if defined(__GPU_PLATFORM_NVIDIA__)
+inline error_t deviceSetLimit(limit lim, size_t value)
+    {
+    return cudaDeviceSetLimit(lim, value);
+    }
+#endif
 
 //!Set list vaild devices(CUDA only)
 #if defined(__GPU_PLATFORM_NVIDIA__)
@@ -452,34 +507,40 @@ inline error_t getLastError(void)
 
 /*Profiling*/
 //!Start Profiling
-inline error_t profileStart(void)
+inline error_t profilerStart(void)
     {
     #if defined(__GPU_PLATFORM_NVIDIA__)
-    return cudaProfileStart();
+    return cudaProfilerStart();
     #elif defined(__GPU_PLATFORM_HIP__)
     return roctracer_start();
     #endif
     }
 
 //!Stop Profiling
-inline error_t profileStop(void)
+inline error_t profilerStop(void)
     {
     #if defined(__GPU_PLATFORM_NVIDIA__)
-    return cudaProfileStop();
+    return cudaProfilerStop();
     #elif defined(__GPU_PLATFORM_HIP__)
     return roctracer_stop();
     #endif
     }
 
-/*Execution Control*/
+/*Execution Control/Shared Memory*/
 #ifdef __GPU_PLATFORM_NVIDIA__
-//!funcSetSharedMemConfig enum
+//!sharedMemConfig enum
 typedef enum sharedMemConfig
     {
     sharedMemBankSizeDefault = cudaSharedMemBankSizeDefault,
     sharedMemBankSizeFourByte = cudaSharedMemBankSizeFourByte,
     sharedMemBankSizeEightByte = cudaSharedMemBankSizeEightByte
     };
+
+//!set configuration for shared memory on device
+inline error_t deviceSetSharedMemConfig(const void* func, sharedMemConfig config)
+    {
+    return cudaDeviceSetSharedMemConfig(func, config);
+    }
 
 //!set configuration for shared memory
 inline error_t funcSetSharedMemConfig(const void* func, sharedMemConfig config)

@@ -43,13 +43,13 @@ dir_names = glob.glob(sys.argv[1], recursive = True)
 func_name_list = []
 
 for filename in dir_names:
-    #print(file_)
-    some_file = open(filename, "r")
-    for line in some_file:
-        searchAndAppend("cuda", line, func_name_list)
-        searchAndAppend("hip", line, func_name_list)
-        searchAndAppend("CUDA", line, func_name_list)
-        searchAndAppend("HIP", line, func_name_list)
+    if not "GPURuntime.h" in filename and not "replace.py" in filename and not "search.py" in filename:
+        some_file = open(filename, "r")
+        for line in some_file:
+            searchAndAppend("cuda", line, func_name_list)
+            searchAndAppend("hip", line, func_name_list)
+            searchAndAppend("CUDA", line, func_name_list)
+            searchAndAppend("HIP", line, func_name_list)
 
 for word in func_name_list:
   print(word)
