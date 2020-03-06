@@ -33,10 +33,10 @@ class Simulation:
 
     @property
     def timestep(self):
-        if not hasattr(self, '_cpp_system'):
+        if not hasattr(self, '_cpp_sys'):
             return None
         else:
-            return self._timestep
+            return self._cpp_sys.getCurrentTimeStep()
 
     @timestep.setter
     def timestep(self, step):
