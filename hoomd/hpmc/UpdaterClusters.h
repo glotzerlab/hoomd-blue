@@ -443,14 +443,10 @@ class UpdaterClusters : public Updater
 
         #ifndef ENABLE_TBB
         std::set<std::pair<unsigned int, unsigned int> > m_overlap;   //!< A local vector of particle pairs due to overlap
-        std::set<std::pair<unsigned int, unsigned int> > m_depletants_old;   //!< A local vector of particle pairs due to depletants
-        std::set<std::pair<unsigned int, unsigned int> > m_depletants_new;   //!< A local vector of particle pairs due to depletants
         std::map<std::pair<unsigned int, unsigned int>,float > m_energy_old_old;    //!< Energy of interaction old-old
         std::map<std::pair<unsigned int, unsigned int>,float > m_energy_new_old;    //!< Energy of interaction old-old
         #else
         tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > m_overlap;
-        tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > m_depletants_old;
-        tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > m_depletants_new;
         tbb::concurrent_unordered_map<std::pair<unsigned int, unsigned int>,float > m_energy_old_old;
         tbb::concurrent_unordered_map<std::pair<unsigned int, unsigned int>,float > m_energy_new_old;
         #endif
@@ -590,6 +586,9 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
             std::vector<unsigned int> tag_j;
 
             bool repulsive = this->m_mc->getDepletantFugacity(type_a,type_b) < 0.0;
+
+            if (repulsive)
+                throw std::runtime_error("Negative fugacities not supported in UpdaterClusters.\n");
 
             // find neighbors whose circumspheres overlap particle i's circumsphere in the old configuration
             // Here, circumsphere refers to the sphere around the depletant-excluded volume
@@ -1107,10 +1106,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                         if ((overlap_i_a && !overlap_transf_a && overlap_j_b) || (overlap_i_b && !overlap_transf_b & overlap_j_a))
                             {
                             // add bond
-                            if ((new_config && repulsive) || (!new_config && !repulsive))
-                                this->m_depletants_old.insert(std::make_pair(tag_i,tag_j[m]));
-                            else
-                                this->m_depletants_new.insert(std::make_pair(tag_i,tag_j[m]));
+                            this->m_overlap.insert(std::make_pair(tag_i,tag_j[m]));
                             }
                         }
                     } // end loop over intersections
@@ -1480,9 +1476,6 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, const std::
     if (!has_depletants)
         return;
 
-    m_depletants_old.clear();
-    m_depletants_new.clear();
-
     // test old configuration against itself
     #ifdef ENABLE_TBB
     tbb::parallel_for((unsigned int)0,this->m_n_particles_old, [&](unsigned int i) {
@@ -1702,9 +1695,10 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     if (shape_i.hasOrientation())
                         snap.orientation[i] = q*snap.orientation[i];
                     }
-                // wrap particle back into box
-                snap.image[i] = box.getImage(snap.pos[i]);
-                snap.pos[i] = box.shift(snap.pos[i],-snap.image[i]);
+                // wrap particle back into box, incrementing image flags
+                int3 img = box.getImage(snap.pos[i]);
+                snap.pos[i] = box.shift(snap.pos[i],-img);
+                snap.image[i] += img;
                 }
             }
         }
@@ -1751,8 +1745,6 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     if (m_comm)
         {
         // combine lists from different ranks
-        gather_v(m_depletants_old, all_depletants_old, 0, m_exec_conf->getMPICommunicator());
-        gather_v(m_depletants_new, all_depletants_new, 0, m_exec_conf->getMPICommunicator());
         gather_v(m_overlap, all_overlap, 0, m_exec_conf->getMPICommunicator());
         }
     #endif
@@ -1816,93 +1808,6 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     {
                     unsigned int i = it->first;
                     unsigned int j = it->second;
-                    m_G.addEdge(i,j);
-                    }
-                }
-            #ifdef ENABLE_TBB
-                );
-            #endif
-            }
-
-
-        #if 0
-        #ifdef ENABLE_MPI
-        if (m_comm)
-            {
-            for (auto it_i = all_depletants_new.begin(); it_i != all_depletants_new.end(); ++it_i)
-                {
-                for (auto it_j = it_i->begin(); it_j != it_i->end(); ++it_j)
-                    {
-                    unsigned int i = it_j->first;
-                    unsigned int j = it_j->second;
-
-                    bool found = false;
-                    for (auto it_k = all_depletants_old.begin(); it_k != all_depletants_old.end(); ++it_k)
-                        {
-                        if (it_k->find(*it_j) != it_k->end())
-                            {
-                            found = true;
-                            break;
-                            }
-                        }
-
-                    if (!found)
-                        m_G.addEdge(i,j);
-                    }
-                }
-            }
-        else
-        #endif
-            {
-            #ifdef ENABLE_TBB
-            tbb::parallel_for(m_depletants_new.range(), [&] (decltype(m_depletants_new.range()) r)
-            #else
-            auto &r = m_depletants;
-            #endif
-                {
-                for (auto it = r.begin(); it != r.end(); ++it)
-                    {
-                    unsigned int i = it->first;
-                    unsigned int j = it->second;
-
-                    if (m_depletants_old.find(*it) == m_depletants_old.end())
-                        m_G.addEdge(i,j);
-                    }
-                }
-            #ifdef ENABLE_TBB
-                );
-            #endif
-            }
-        #endif
-
-        #ifdef ENABLE_MPI
-        if (m_comm)
-            {
-            for (auto it_i = all_depletants_old.begin(); it_i != all_depletants_old.end(); ++it_i)
-                {
-                for (auto it_j = it_i->begin(); it_j != it_i->end(); ++it_j)
-                    {
-                    unsigned int i = it_j->first;
-                    unsigned int j = it_j->second;
-
-                    m_G.addEdge(i,j);
-                    }
-                }
-            }
-        else
-        #endif
-            {
-            #ifdef ENABLE_TBB
-            tbb::parallel_for(m_depletants_old.range(), [&] (decltype(m_depletants_old.range()) r)
-            #else
-            auto &r = m_depletants;
-            #endif
-                {
-                for (auto it = r.begin(); it != r.end(); ++it)
-                    {
-                    unsigned int i = it->first;
-                    unsigned int j = it->second;
-
                     m_G.addEdge(i,j);
                     }
                 }
