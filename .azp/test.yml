@@ -107,10 +107,10 @@ stages:
 
     strategy:
       matrix:
-        10_13:
-          mac_image: macOS-10.13
-        10_14_mpi_tbb:
+        10_14:
           mac_image: macOS-10.14
+        10_15_mpi_tbb:
+          mac_image: macOS-10.15
           enable_mpi: on
           enable_tbb: on
 
