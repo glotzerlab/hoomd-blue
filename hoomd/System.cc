@@ -590,8 +590,6 @@ PDataFlags System::determineFlags(unsigned int tstep)
     if (m_integrator)
         flags = m_integrator->getRequestedPDataFlags();
 
-    flags.set(); // hack to test flags always set
-
     for (auto &analyzer_trigger_pair: m_analyzers)
         {
         if ((*analyzer_trigger_pair.second)(tstep))
