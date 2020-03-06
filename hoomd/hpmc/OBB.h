@@ -7,15 +7,19 @@
 #include "hoomd/VectorMath.h"
 #include "hoomd/AABB.h"
 
+#include "HPMCPrecisionSetup.h"
 #include "HPMCMiscFunctions.h"
-
-#include <algorithm>
-#include <cfloat>
 
 #ifndef __OBB_H__
 #define __OBB_H__
 
+#ifndef __CUDACC_RTC__
+#include <cfloat>
+#endif
+
 #ifndef __HIPCC__
+#include <algorithm>
+
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
 
@@ -246,6 +250,7 @@ DEVICE inline bool overlap(const OBB& a, const OBB& b,
     OverlapReal ra, rb;
     ra = a.lengths.x;
     rb = b.lengths.x * rabs[0][0] + b.lengths.y * rabs[0][1] + b.lengths.z*rabs[0][2];
+
     if (fabs(t.x) > ra + rb) return false;
 
     rabs[1][0] = fabs(r.row1.x) + eps;

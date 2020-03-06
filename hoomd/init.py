@@ -14,10 +14,8 @@ import hoomd;
 
 import math;
 import sys;
-import gc;
 import os;
 import re;
-import platform;
 
 ## Tests if the system has been initialized
 #

@@ -716,7 +716,7 @@
 
      for (unsigned int i= 0; i< na; i++)
          {
-         unsigned int iface = a.tree.getParticle(cur_node_a, i);
+         unsigned int iface = a.tree.getParticleByNode(cur_node_a, i);
 
          // Load number of face vertices
          unsigned int nverts_a = a.data.face_offs[iface + 1] - a.data.face_offs[iface];
@@ -743,7 +743,7 @@
              {
              unsigned int nverts_b, offs_b;
 
-             unsigned int jface = b.tree.getParticle(cur_node_b, j);
+             unsigned int jface = b.tree.getParticleByNode(cur_node_b, j);
 
              // fetch next face of particle b
              nverts_b = b.data.face_offs[jface + 1] - b.data.face_offs[jface];
@@ -1130,7 +1130,7 @@
                  for (unsigned int j = 0; j < n_faces; j ++)
                      {
                      // fetch next face
-                     unsigned int jface = s1.tree.getParticle(query_node, j);
+                     unsigned int jface = s1.tree.getParticleByNode(query_node, j);
                      unsigned int offs_b = s1.data.face_offs[jface];
 
                      if (s1.data.face_offs[jface + 1] - offs_b < 3) continue;

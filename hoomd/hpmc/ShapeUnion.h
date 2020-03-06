@@ -527,7 +527,7 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
 
     for (unsigned int i= 0; i < na; i++)
         {
-        unsigned int ishape = a.members.tree.getParticle(cur_node_a, i);
+        unsigned int ishape = a.members.tree.getParticleByNode(cur_node_a, i);
 
         const mparam_type& params_i = a.members.mparams[ishape];
         Shape shape_i(quat<Scalar>(), params_i);
@@ -540,7 +540,7 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
         // loop through shapes of cur_node_b
         for (unsigned int j= 0; j < nb; j++)
             {
-            unsigned int jshape = b.members.tree.getParticle(cur_node_b, j);
+            unsigned int jshape = b.members.tree.getParticleByNode(cur_node_b, j);
 
             const mparam_type& params_j = b.members.mparams[jshape];
             Shape shape_j(quat<Scalar>(), params_j);
@@ -707,7 +707,7 @@ DEVICE inline bool test_narrow_phase_overlap_intersection(const ShapeUnion<Shape
     // loop through shapes of cur_node_a
     for (unsigned int i= 0; i < na; i++)
         {
-        unsigned int ishape = a.members.tree.getParticle(cur_node_a, i);
+        unsigned int ishape = a.members.tree.getParticleByNode(cur_node_a, i);
 
         const mparam_type& params_i = a.members.mparams[ishape];
         Shape shape_i(quat<Scalar>(), params_i);
@@ -720,7 +720,7 @@ DEVICE inline bool test_narrow_phase_overlap_intersection(const ShapeUnion<Shape
         // loop through shapes of cur_node_b
         for (unsigned int j= 0; j < nb; j++)
             {
-            unsigned int jshape = b.members.tree.getParticle(cur_node_b, j);
+            unsigned int jshape = b.members.tree.getParticleByNode(cur_node_b, j);
 
             const mparam_type& params_j = b.members.mparams[jshape];
             Shape shape_j(quat<Scalar>(), params_j);
@@ -733,7 +733,7 @@ DEVICE inline bool test_narrow_phase_overlap_intersection(const ShapeUnion<Shape
             // loop through shapes of cur_node_c
             for (unsigned int k= 0; k < nc; k++)
                 {
-                unsigned int kshape = c.members.tree.getParticle(cur_node_c, k);
+                unsigned int kshape = c.members.tree.getParticleByNode(cur_node_c, k);
 
                 const mparam_type& params_k = c.members.mparams[kshape];
                 Shape shape_k(quat<Scalar>(), params_k);

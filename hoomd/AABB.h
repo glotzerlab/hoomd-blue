@@ -7,7 +7,10 @@
 
 #include "HOOMDMath.h"
 #include "VectorMath.h"
+
+#ifndef __HIPCC__
 #include <algorithm>
+#endif
 
 #ifndef __AABB_H__
 #define __AABB_H__
@@ -91,7 +94,11 @@ namespace detail
     - overlap()
     - contains()
 */
-struct __attribute__((visibility("default"))) AABB
+struct
+#ifndef __HIPCC__
+__attribute__((visibility("default")))
+#endif
+AABB
     {
     #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(__HIPCC__) && 0
     __m256d lower_v;    //!< Lower left corner (AVX data type)
@@ -324,6 +331,7 @@ DEVICE inline bool contains(const AABB& a, const AABB& b)
     }
 
 
+#ifndef __HIPCC__
 //! Merge two AABBs
 /*! \param a First AABB
     \param b Second AABB
@@ -352,6 +360,7 @@ DEVICE inline AABB merge(const AABB& a, const AABB& b)
 
     return new_aabb;
     }
+#endif
 
 // end group overlap
 /*! @}*/

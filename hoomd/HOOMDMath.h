@@ -11,21 +11,6 @@
     \brief Common setup include for all hoomd math operations
 */
 
-// bring in math.h
-#ifndef __HIPCC__
-
-// define HOOMD_LLVMJIT_BUILD to prevent the need for python and pybind includes
-// this simplifies LLVM code generation
-#ifndef HOOMD_LLVMJIT_BUILD
-// include python.h first to silence _XOPEN_SOURCE redefinition warnings
-#include <Python.h>
-#include <pybind11/pybind11.h>
-#endif
-
-#include <cmath>
-#include <math.h>
-#endif
-
 // for vector types
 #ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
@@ -40,6 +25,21 @@
 typedef float2 hipfftComplex;
 //! Double complex type
 typedef double2 hipfftDoubleComplex;
+#endif
+
+// bring in math.h
+#ifndef __HIPCC__
+
+// define HOOMD_LLVMJIT_BUILD to prevent the need for python and pybind includes
+// this simplifies LLVM code generation
+#ifndef HOOMD_LLVMJIT_BUILD
+// include python.h first to silence _XOPEN_SOURCE redefinition warnings
+#include <Python.h>
+#include <pybind11/pybind11.h>
+#endif
+
+#include <cmath>
+#include <math.h>
 #endif
 
 // need to declare these classes with __host__ __device__ qualifiers when building in nvcc

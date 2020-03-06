@@ -24,7 +24,11 @@ namespace detail
         #ifdef __HIP_DEVICE_COMPILE__
         return ::signbit(a);
         #else
+        #ifndef __HIPCC__
         return std::signbit(a);
+        #else
+        return (a >= 0);
+        #endif
         #endif
         }
 
@@ -33,7 +37,11 @@ namespace detail
         #ifdef __HIP_DEVICE_COMPILE__
         return ::min(a,b);
         #else
+        #ifndef __HIPCC__
         return std::min(a,b);
+        #else
+        return (a < b) ? a : b;
+        #endif
         #endif
         }
 
@@ -42,7 +50,12 @@ namespace detail
         #ifdef __HIP_DEVICE_COMPILE__
         return ::max(a,b);
         #else
+
+        #ifndef __HIPCC__
         return std::max(a,b);
+        #else
+        return (a > b) ? a : b;
+        #endif
         #endif
         }
 
