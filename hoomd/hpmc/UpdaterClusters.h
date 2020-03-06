@@ -473,6 +473,13 @@ class UpdaterClusters : public Updater
         virtual void findInteractions(unsigned int timestep, const std::map<unsigned int, unsigned int>& map,
             const quat<Scalar> q, const vec3<Scalar> pivot, bool line);
 
+        //! Determine connected components of the interaction graph
+        #ifdef ENABLE_TBB
+        virtual void connectedComponents(unsigned int N, std::vector<tbb::concurrent_vector<unsigned int> >& clusters);
+        #else
+        virtual void connectedComponents(unsigned int N, std::vector<std::vector<unsigned int> >& clusters);
+        #endif
+
         //! Helper function to get interaction range
         virtual Scalar getNominalWidth()
             {
@@ -1523,6 +1530,21 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, const std::
         this->m_prof->pop(this->m_exec_conf);
     }
 
+template<class Shape>
+#ifdef ENABLE_TBB
+void UpdaterClusters<Shape>::connectedComponents(unsigned int N, std::vector<tbb::concurrent_vector<unsigned int> >& clusters)
+#else
+void UpdaterClusters<Shape>::connectedComponents(unsigned int N, std::vector<std::vector<unsigned int> >& clusters)
+#endif
+    {
+    if (this->m_prof) this->m_prof->push("connected components");
+
+    // compute connected components
+    clusters.clear();
+    m_G.connectedComponents(clusters);
+    if (this->m_prof) this->m_prof->pop();
+    }
+
 /*! Perform a cluster move
     \param timestep Current time step of the simulation
 */
@@ -1727,15 +1749,11 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     // collect interactions on rank 0
     #ifndef ENABLE_TBB
     std::vector< std::set<std::pair<unsigned int, unsigned int> > > all_overlap;
-    std::vector< std::set<std::pair<unsigned int, unsigned int> > > all_depletants_old;
-    std::vector< std::set<std::pair<unsigned int, unsigned int> > > all_depletants_new;
 
     std::vector< std::map<std::pair<unsigned int, unsigned int>, float> > all_energy_old_old;
     std::vector< std::map<std::pair<unsigned int, unsigned int>, float> > all_energy_new_old;
     #else
     std::vector< tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > > all_overlap;
-    std::vector< tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > > all_depletants_old;
-    std::vector< tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > > all_depletants_new;
 
     std::vector< tbb::concurrent_unordered_map<std::pair<unsigned int, unsigned int>, float> > all_energy_old_old;
     std::vector< tbb::concurrent_unordered_map<std::pair<unsigned int, unsigned int>, float> > all_energy_new_old;
@@ -1946,11 +1964,8 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
             #endif
             } // end if (patch)
 
-        if (this->m_prof) this->m_prof->push("connected components");
         // compute connected components
-        m_clusters.clear();
-        m_G.connectedComponents(m_clusters);
-        if (this->m_prof) this->m_prof->pop();
+        connectedComponents(snap.size, m_clusters);
 
         if (this->m_prof) this->m_prof->push("flip");
 
@@ -1961,7 +1976,11 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
             {
             m_count_total.n_particles_in_clusters += m_clusters[icluster].size();
 
-            bool flip = hoomd::detail::generate_canonical<float>(rng) <= m_flip_probability;
+            // seed by id of first particle in cluster to make independent of cluster labeling
+            hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::UpdaterClusters+1, this->m_seed, timestep,
+                m_clusters[icluster][0]);
+
+            bool flip = hoomd::detail::generate_canonical<float>(rng_i) <= m_flip_probability;
 
             // count number of A and B particles in old and new config
             bool reject = false;
@@ -1985,7 +2004,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
                 Scalar NdelMu = 0.5*(Scalar)(n_B_new-n_A_new-n_B_old+n_A_old)*m_delta_mu;
 
-                if (hoomd::detail::generate_canonical<float>(rng) > exp(NdelMu))
+                if (hoomd::detail::generate_canonical<float>(rng_i) > exp(NdelMu))
                     reject = true;
                 }
 

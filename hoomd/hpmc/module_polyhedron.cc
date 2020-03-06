@@ -24,6 +24,7 @@
 #ifdef ENABLE_HIP
 #include "IntegratorHPMCMonoGPU.h"
 #include "ComputeFreeVolumeGPU.h"
+#include "UpdaterClustersGPU.h"
 #endif
 
 namespace py = pybind11;
@@ -54,6 +55,7 @@ void export_polyhedron(py::module& m)
     #ifdef ENABLE_HIP
     export_IntegratorHPMCMonoGPU< ShapePolyhedron >(m, "IntegratorHPMCMonoGPUPolyhedron");
     export_ComputeFreeVolumeGPU< ShapePolyhedron >(m, "ComputeFreeVolumeGPUPolyhedron");
+    export_UpdaterClustersGPU< ShapePolyhedron >(m, "UpdaterClustersGPUPolyhedron");
     #endif
     }
 

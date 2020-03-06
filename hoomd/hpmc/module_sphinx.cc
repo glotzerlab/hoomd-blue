@@ -24,6 +24,7 @@
 #ifdef ENABLE_HIP
 #include "IntegratorHPMCMonoGPU.h"
 #include "ComputeFreeVolumeGPU.h"
+#include "UpdaterClustersGPU.h"
 #endif
 
 namespace py = pybind11;
@@ -56,6 +57,7 @@ void export_sphinx(py::module& m)
 
     export_IntegratorHPMCMonoGPU< ShapeSphinx >(m, "IntegratorHPMCMonoGPUSphinx");
     export_ComputeFreeVolumeGPU< ShapeSphinx >(m, "ComputeFreeVolumeGPUSphinx");
+    export_UpdaterClustersGPU< ShapeSphinx >(m, "UpdaterClustersGPUSphinx");
 
     #endif
     #endif

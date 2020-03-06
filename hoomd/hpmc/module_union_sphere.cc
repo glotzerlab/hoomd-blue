@@ -23,6 +23,7 @@
 #ifdef ENABLE_HIP
 #include "IntegratorHPMCMonoGPU.h"
 #include "ComputeFreeVolumeGPU.h"
+#include "UpdaterClustersGPU.h"
 #endif
 
 namespace py = pybind11;
@@ -55,6 +56,7 @@ void export_union_sphere(py::module& m)
 
     export_IntegratorHPMCMonoGPU< ShapeUnion<ShapeSphere> >(m, "IntegratorHPMCMonoGPUSphereUnion");
     export_ComputeFreeVolumeGPU< ShapeUnion<ShapeSphere> >(m, "ComputeFreeVolumeGPUSphereUnion");
+    export_UpdaterClustersGPU< ShapeUnion<ShapeSphere> >(m, "UpdaterClustersGPUSphereUnion");
 
     #endif
     }

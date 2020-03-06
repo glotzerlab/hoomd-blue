@@ -24,6 +24,7 @@
 #ifdef ENABLE_HIP
 #include "IntegratorHPMCMonoGPU.h"
 #include "ComputeFreeVolumeGPU.h"
+#include "UpdaterClustersGPU.h"
 #endif
 
 namespace py = pybind11;
@@ -54,6 +55,7 @@ void export_spheropolygon(py::module& m)
     #ifdef ENABLE_HIP
     export_IntegratorHPMCMonoGPU< ShapeSpheropolygon >(m, "IntegratorHPMCMonoGPUSpheropolygon");
     export_ComputeFreeVolumeGPU< ShapeSpheropolygon >(m, "ComputeFreeVolumeGPUSpheropolygon");
+    export_UpdaterClustersGPU< ShapeSpheropolygon >(m, "UpdaterClustersGPUSpheropolygon");
     #endif
     }
 

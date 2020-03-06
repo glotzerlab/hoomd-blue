@@ -23,6 +23,7 @@
 #ifdef ENABLE_HIP
 #include "IntegratorHPMCMonoGPU.h"
 #include "ComputeFreeVolumeGPU.h"
+#include "UpdaterClustersGPU.h"
 #endif
 
 namespace py = pybind11;
@@ -54,6 +55,7 @@ void export_union_convex_polyhedron(py::module& m)
 
     export_IntegratorHPMCMonoGPU< ShapeUnion<ShapeSpheropolyhedron> >(m, "IntegratorHPMCMonoGPUConvexPolyhedronUnion");
     export_ComputeFreeVolumeGPU< ShapeUnion<ShapeSpheropolyhedron> >(m, "ComputeFreeVolumeGPUConvexPolyhedronUnion");
+    export_UpdaterClustersGPU< ShapeUnion<ShapeSpheropolyhedron> >(m, "UpdaterClustersGPUConvexPolyhedronUnion");
 
     #endif
     }

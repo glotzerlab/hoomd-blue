@@ -64,6 +64,7 @@ set(_hpmc_headers
     ShapeUnion.h
     SphinxOverlap.h
     UpdaterClusters.h
+    UpdaterClustersGPU.cuh
     UpdaterExternalFieldWall.h
     UpdaterMuVT.h
     UpdaterRemoveDrift.h
@@ -72,6 +73,7 @@ set(_hpmc_headers
     )
 
 set(_hpmc_cu_sources IntegratorHPMCMonoGPU.cu
+                     UpdaterClustersGPU.cu
                      all_kernels_sphere.cu
                      all_kernels_convex_polygon.cu
                      all_kernels_simple_polygon.cu
@@ -103,6 +105,10 @@ endif()
 
 # link the library to its dependencies
 target_link_libraries(_hpmc PUBLIC _hoomd)
+
+if (ENABLE_HIP)
+target_link_libraries(_hpmc PUBLIC CUDA::cusparse )
+endif()
 
 fix_cudart_rpath(_hpmc)
 
