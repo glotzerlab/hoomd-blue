@@ -23,7 +23,7 @@
 namespace hpmc
 {
 
-namespace detail
+namespace gpu
 {
 
 #define check_cusparse(a) \
@@ -72,7 +72,7 @@ struct pair_less : public thrust::binary_function<uint2, uint2, bool>
         }
     };
 
-void gpu_connected_components(
+void connected_components(
     const uint2 *d_adj,
     unsigned int N,
     unsigned int n_elements,
@@ -186,5 +186,5 @@ void gpu_connected_components(
     cusparseDestroy(handle);
     }
 
-} // end namespace detail
+} // end namespace gpu
 } // end namespace hpmc

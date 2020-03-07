@@ -3,6 +3,7 @@
 
 #include "ComputeFreeVolumeGPU.cuh"
 #include "IntegratorHPMCMonoGPU.cuh"
+#include "UpdaterClustersGPU.cuh"
 
 #include "ShapeSphinx.h"
 
@@ -29,6 +30,9 @@ template void hpmc_narrow_phase<ShapeSphinx>(const hpmc_args_t& args, const Shap
 template void hpmc_insert_depletants<ShapeSphinx>(const hpmc_args_t& args, const hpmc_implicit_args_t& implicit_args, const ShapeSphinx::param_type *params);
 //! Driver for kernel::hpmc_update_pdata()
 template void hpmc_update_pdata<ShapeSphinx>(const hpmc_update_args_t& args, const ShapeSphinx::param_type *params);
+
+//! Kernel driver for kernel::cluster_overlaps
+template void hpmc_cluster_overlaps<ShapeSphinx>(const cluster_args_t& args, const ShapeSphinx::param_type *params);
 }
 #endif
 } // end namespace hpmc

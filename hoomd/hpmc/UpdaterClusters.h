@@ -435,11 +435,12 @@ class UpdaterClusters : public Updater
 
         unsigned int m_n_particles_old;                //!< Number of local particles in the old configuration
         detail::AABBTree m_aabb_tree_old;              //!< Locality lookup for old configuration
-        std::vector<Scalar4> m_postype_backup;         //!< Old local positions
-        std::vector<Scalar4> m_orientation_backup;     //!< Old local orientations
-        std::vector<Scalar> m_diameter_backup;         //!< Old local diameters
-        std::vector<Scalar> m_charge_backup;           //!< Old local charges
-        std::vector<unsigned int> m_tag_backup;             //!< Old local tags
+
+        GlobalVector<Scalar4> m_postype_backup;         //!< Old local positions
+        GlobalVector<Scalar4> m_orientation_backup;     //!< Old local orientations
+        GlobalVector<Scalar> m_diameter_backup;         //!< Old local diameters
+        GlobalVector<Scalar> m_charge_backup;           //!< Old local charges
+        GlobalVector<unsigned int> m_tag_backup;        //!< Old local tags
 
         #ifndef ENABLE_TBB
         std::set<std::pair<unsigned int, unsigned int> > m_overlap;   //!< A local vector of particle pairs due to overlap
@@ -461,17 +462,17 @@ class UpdaterClusters : public Updater
         //! Check overlaps of a particle with depletants
         inline void checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i,
             Shape shape_i, unsigned int typ_i, unsigned int tag_i,
-            Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps,
-            const std::map<unsigned int, unsigned int>& map, unsigned int timestep,
-            const quat<Scalar> q, const vec3<Scalar> pivot, bool line,
-            bool new_config);
+            const Scalar4 *h_postype_backup, const Scalar4 *h_orientation_backup, const unsigned int *h_tag_backup,
+            unsigned int *h_overlaps, unsigned int timestep, const quat<Scalar> q, const vec3<Scalar> pivot, bool line);
+
+        //! Save current state of particle data
+        virtual void backupState(const std::map<unsigned int, unsigned int>& map);
 
         //! Find interactions between particles due to overlap and depletion interaction
         /*! \param timestep Current time step
             \param map Map to lookup new tag from old tag
         */
-        virtual void findInteractions(unsigned int timestep, const std::map<unsigned int, unsigned int>& map,
-            const quat<Scalar> q, const vec3<Scalar> pivot, bool line);
+        virtual void findInteractions(unsigned int timestep, const quat<Scalar> q, const vec3<Scalar> pivot, bool line);
 
         //! Determine connected components of the interaction graph
         #ifdef ENABLE_TBB
@@ -510,6 +511,18 @@ UpdaterClusters<Shape>::UpdaterClusters(std::shared_ptr<SystemDefinition> sysdef
 
     // initialize logger and stats
     resetStats();
+
+    // initialize memory
+    GlobalVector<Scalar4>(1,this->m_exec_conf).swap(m_postype_backup);
+    TAG_ALLOCATION(m_postype_backup);
+    GlobalVector<Scalar4>(1,this->m_exec_conf).swap(m_orientation_backup);
+    TAG_ALLOCATION(m_orientation_backup);
+    GlobalVector<Scalar>(1,this->m_exec_conf).swap(m_charge_backup);
+    TAG_ALLOCATION(m_charge_backup);
+    GlobalVector<Scalar>(1,this->m_exec_conf).swap(m_diameter_backup);
+    TAG_ALLOCATION(m_diameter_backup);
+    GlobalVector<unsigned int>(1,this->m_exec_conf).swap(m_tag_backup);
+    TAG_ALLOCATION(m_tag_backup);
     }
 
 template< class Shape >
@@ -536,10 +549,8 @@ UpdaterClusters<Shape>::~UpdaterClusters()
 template<class Shape>
 inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i,
     Shape shape_i, unsigned int typ_i, unsigned int tag_i,
-    Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps,
-    const std::map<unsigned int, unsigned int>& map, unsigned int timestep,
-    const quat<Scalar> q, const vec3<Scalar> pivot, bool line,
-    bool new_config)
+    const Scalar4 *h_postype_backup, const Scalar4 *h_orientation_backup, const unsigned int *h_tag_backup,
+    unsigned int *h_overlaps, unsigned int timestep, const quat<Scalar> q, const vec3<Scalar> pivot, bool line)
     {
     unsigned int ndim = this->m_sysdef->getNDimensions();
 
@@ -638,12 +649,12 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                                 // read in its position and orientation
                                 unsigned int j = this->m_aabb_tree_old.getNodeParticle(cur_node_idx, cur_p);
 
-                                if (tag_i == this->m_tag_backup[j] && cur_image == 0) continue;
+                                if (tag_i == h_tag_backup[j] && cur_image == 0) continue;
 
                                 // load the position and orientation of the j particle
-                                vec3<Scalar> pj = vec3<Scalar>(this->m_postype_backup[j]);
-                                unsigned int typ_j = __scalar_as_int(this->m_postype_backup[j].w);
-                                Shape shape_j(quat<Scalar>(this->m_orientation_backup[j]), params[typ_j]);
+                                vec3<Scalar> pj = vec3<Scalar>(h_postype_backup[j]);
+                                unsigned int typ_j = __scalar_as_int(h_postype_backup[j].w);
+                                Shape shape_j(quat<Scalar>(h_orientation_backup[j]), params[typ_j]);
 
                                 // check excluded volume overlap
                                 bool overlap_excluded = h_overlaps[overlap_idx(type_a,typ_j)] &&
@@ -658,10 +669,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                                     pos_j.push_back(pj-image_list[cur_image]);
                                     orientation_j.push_back(shape_j.orientation);
                                     type_j.push_back(typ_j);
-
-                                    auto it = map.find(this->m_tag_backup[j]);
-                                    assert(it!=map.end());
-                                    tag_j.push_back(it->second);
+                                    tag_j.push_back(h_tag_backup[j]);
                                     }
                                 }
                             }
@@ -989,9 +997,9 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                                         unsigned int j = this->m_aabb_tree_old.getNodeParticle(cur_node_idx, cur_p);
 
                                         // load the position and orientation of the j particle
-                                        vec3<Scalar> pj = vec3<Scalar>(this->m_postype_backup[j]);
-                                        unsigned int typ_j = __scalar_as_int(this->m_postype_backup[j].w);
-                                        Shape shape_j(quat<Scalar>(this->m_orientation_backup[j]), params[typ_j]);
+                                        vec3<Scalar> pj = vec3<Scalar>(h_postype_backup[j]);
+                                        unsigned int typ_j = __scalar_as_int(h_postype_backup[j].w);
+                                        Shape shape_j(quat<Scalar>(h_orientation_backup[j]), params[typ_j]);
 
                                         // check excluded volume overlap
                                         vec3<Scalar> r_jk(pos_test_image - pj);
@@ -1042,9 +1050,9 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                                             unsigned int j = this->m_aabb_tree_old.getNodeParticle(cur_node_idx, cur_p);
 
                                             // load the position and orientation of the j particle
-                                            vec3<Scalar> pj = vec3<Scalar>(this->m_postype_backup[j]);
-                                            unsigned int typ_j = __scalar_as_int(this->m_postype_backup[j].w);
-                                            Shape shape_j(quat<Scalar>(this->m_orientation_backup[j]), params[typ_j]);
+                                            vec3<Scalar> pj = vec3<Scalar>(h_postype_backup[j]);
+                                            unsigned int typ_j = __scalar_as_int(h_postype_backup[j].w);
+                                            Shape shape_j(quat<Scalar>(h_orientation_backup[j]), params[typ_j]);
 
                                             // check excluded volume overlap
                                             vec3<Scalar> r_jk(pos_test_image - pj);
@@ -1132,8 +1140,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
     }
 
 template< class Shape >
-void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, const std::map<unsigned int, unsigned int>& map,
-            const quat<Scalar> q, const vec3<Scalar> pivot, bool line)
+void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, const quat<Scalar> q, const vec3<Scalar> pivot, bool line)
     {
     if (m_prof)
         m_prof->push(m_exec_conf,"Interactions");
@@ -1173,7 +1180,12 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, const std::
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
+
+    ArrayHandle<Scalar4> h_postype_backup(m_postype_backup, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_orientation_backup(m_orientation_backup, access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_tag_backup(m_tag_backup, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_diameter_backup(m_diameter_backup, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_charge_backup(m_charge_backup, access_location::host, access_mode::read);
 
     if (patch)
         {
@@ -1184,13 +1196,13 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, const std::
         for (unsigned int i = 0; i < m_n_particles_old; ++i)
         #endif
             {
-            unsigned int typ_i = __scalar_as_int(m_postype_backup[i].w);
+            unsigned int typ_i = __scalar_as_int(h_postype_backup.data[i].w);
 
-            vec3<Scalar> pos_i(m_postype_backup[i]);
-            quat<Scalar> orientation_i(m_orientation_backup[i]);
+            vec3<Scalar> pos_i(h_postype_backup.data[i]);
+            quat<Scalar> orientation_i(h_orientation_backup.data[i]);
 
-            Scalar d_i(m_diameter_backup[i]);
-            Scalar charge_i(m_charge_backup[i]);
+            Scalar d_i(h_diameter_backup.data[i]);
+            Scalar charge_i(h_charge_backup.data[i]);
 
             // subtract minimum AABB extent from search radius
             Scalar extent_i = 0.5*patch->getAdditiveCutoff(typ_i);
@@ -1218,11 +1230,11 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, const std::
                                 // read in its position and orientation
                                 unsigned int j = m_aabb_tree_old.getNodeParticle(cur_node_idx, cur_p);
 
-                                if (m_tag_backup[i] == m_tag_backup[j] && cur_image == 0) continue;
+                                if (h_tag_backup.data[i] == h_tag_backup.data[j] && cur_image == 0) continue;
 
                                 // load the position and orientation of the j particle
-                                vec3<Scalar> pos_j = vec3<Scalar>(m_postype_backup[j]);
-                                unsigned int typ_j = __scalar_as_int(m_postype_backup[j].w);
+                                vec3<Scalar> pos_j = vec3<Scalar>(h_postype_backup.data[j]);
+                                unsigned int typ_j = __scalar_as_int(h_postype_backup.data[j].w);
 
                                 // put particles in coordinate system of particle i
                                 vec3<Scalar> r_ij = pos_j - pos_i_image;
@@ -1233,20 +1245,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, const std::
                                 if (rsq_ij <= rcut_ij*rcut_ij)
                                     {
                                     // the particle pair
-                                    unsigned int new_tag_i;
-                                        {
-                                        auto it = map.find(m_tag_backup[i]);
-                                        assert(it != map.end());
-                                        new_tag_i = it->second;
-                                        }
-
-                                    unsigned int new_tag_j;
-                                        {
-                                        auto it = map.find(m_tag_backup[j]);
-                                        assert(it!=map.end());
-                                        new_tag_j = it->second;
-                                        }
-                                    auto p = std::make_pair(new_tag_i,new_tag_j);
+                                    auto p = std::make_pair(h_tag_backup.data[i],h_tag_backup.data[j]);
 
                                     // if particle interacts in different image already, add to that energy
                                     float U = 0.0;
@@ -1261,9 +1260,9 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, const std::
                                                         d_i,
                                                         charge_i,
                                                         typ_j,
-                                                        quat<float>(m_orientation_backup[j]),
-                                                        m_diameter_backup[j],
-                                                        m_charge_backup[j]);
+                                                        quat<float>(h_orientation_backup.data[j]),
+                                                        h_diameter_backup.data[j],
+                                                        h_charge_backup.data[j]);
 
                                     // update map
                                     m_energy_old_old[p] = U;
@@ -1329,19 +1328,12 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, const std::
                             // read in its position and orientation
                             unsigned int j = m_aabb_tree_old.getNodeParticle(cur_node_idx, cur_p);
 
-                            unsigned int new_tag_j;
-                                {
-                                auto it = map.find(m_tag_backup[j]);
-                                assert(it != map.end());
-                                new_tag_j = it->second;
-                                }
-
-                            if (h_tag.data[i] == new_tag_j && cur_image == 0) continue;
+                            if (h_tag.data[i] == h_tag_backup.data[j] && cur_image == 0) continue;
 
                             // load the position and orientation of the j particle
-                            vec3<Scalar> pos_j = vec3<Scalar>(m_postype_backup[j]);
-                            unsigned int typ_j = __scalar_as_int(m_postype_backup[j].w);
-                            Shape shape_j(quat<Scalar>(m_orientation_backup[j]), params[typ_j]);
+                            vec3<Scalar> pos_j = vec3<Scalar>(h_postype_backup.data[j]);
+                            unsigned int typ_j = __scalar_as_int(h_postype_backup.data[j].w);
+                            Shape shape_j(quat<Scalar>(h_orientation_backup.data[j]), params[typ_j]);
 
                             // put particles in coordinate system of particle i
                             vec3<Scalar> r_ij = pos_j - pos_i_image;
@@ -1358,7 +1350,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, const std::
                                     && test_overlap(r_ij, shape_i, shape_j, err))
                                     {
                                     // add connection
-                                    m_overlap.insert(std::make_pair(h_tag.data[i],new_tag_j));
+                                    m_overlap.insert(std::make_pair(h_tag.data[i],h_tag_backup.data[j]));
                                     } // end if overlap
                                 }
 
@@ -1401,17 +1393,10 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, const std::
                                 // read in its position and orientation
                                 unsigned int j = m_aabb_tree_old.getNodeParticle(cur_node_idx, cur_p);
 
-                                unsigned int new_tag_j;
-                                    {
-                                    auto it = map.find(m_tag_backup[j]);
-                                    assert(it != map.end());
-                                    new_tag_j = it->second;
-                                    }
+                                if (h_tag.data[i] == h_tag_backup.data[j] && cur_image == 0) continue;
 
-                                if (h_tag.data[i] == new_tag_j && cur_image == 0) continue;
-
-                                vec3<Scalar> pos_j(m_postype_backup[j]);
-                                unsigned int typ_j = __scalar_as_int(m_postype_backup[j].w);
+                                vec3<Scalar> pos_j(h_postype_backup.data[j]);
+                                unsigned int typ_j = __scalar_as_int(h_postype_backup.data[j].w);
 
                                 // put particles in coordinate system of particle i
                                 vec3<Scalar> r_ij = pos_j - pos_i_image;
@@ -1423,7 +1408,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, const std::
 
                                 if (rsq_ij <= rcut_ij*rcut_ij)
                                     {
-                                    auto p = std::make_pair(h_tag.data[i], new_tag_j);
+                                    auto p = std::make_pair(h_tag.data[i], h_tag_backup.data[j]);
 
                                     // if particle interacts in different image already, add to that energy
                                     float U = 0.0;
@@ -1438,9 +1423,9 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, const std::
                                                             h_diameter.data[i],
                                                             h_charge.data[i],
                                                             typ_j,
-                                                            quat<float>(m_orientation_backup[j]),
-                                                            m_diameter_backup[j],
-                                                            m_charge_backup[j]);
+                                                            quat<float>(h_orientation_backup.data[j]),
+                                                            h_diameter_backup.data[j],
+                                                            h_charge_backup.data[j]);
 
                                     // update map
                                     m_energy_new_old[p] = U;
@@ -1490,44 +1475,63 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, const std::
     for (unsigned int i = 0; i < this->m_n_particles_old; ++i)
     #endif
         {
-        unsigned int typ_i = __scalar_as_int(this->m_postype_backup[i].w);
+        unsigned int typ_i = __scalar_as_int(h_postype_backup.data[i].w);
 
-        vec3<Scalar> pos_i(this->m_postype_backup[i]);
-        quat<Scalar> orientation_i(this->m_orientation_backup[i]);
+        vec3<Scalar> pos_i(h_postype_backup.data[i]);
+        quat<Scalar> orientation_i(h_orientation_backup.data[i]);
         Shape shape_i(orientation_i, params[typ_i]);
-        unsigned int tag_i = this->m_tag_backup[i];
+        unsigned int tag_i = h_tag_backup.data[i];
 
-        checkDepletantOverlap(i, pos_i, shape_i, typ_i, tag_i, h_postype.data, h_orientation.data,
-            h_overlaps.data, map, timestep, q, pivot, line, false);
+        checkDepletantOverlap(i, pos_i, shape_i, typ_i, tag_i,
+            h_postype_backup.data, h_orientation_backup.data, h_tag_backup.data,
+            h_overlaps.data, timestep, q, pivot, line);
         }
     #ifdef ENABLE_TBB
         });
     #endif
 
-    #if 0
-    // loop over new configuration
-    #ifdef ENABLE_TBB
-    tbb::parallel_for((unsigned int)0,nptl, [&](unsigned int i) {
-    #else
-    for (unsigned int i = 0; i < nptl; ++i)
-    #endif
-        {
-        unsigned int typ_i = __scalar_as_int(h_postype.data[i].w);
-
-        vec3<Scalar> pos_i(h_postype.data[i]);
-        quat<Scalar> orientation_i(h_orientation.data[i]);
-        Shape shape_i(orientation_i, params[typ_i]);
-        unsigned int tag_i = h_tag.data[i];
-
-        checkDepletantOverlap(i, pos_i, shape_i, typ_i, tag_i, h_postype.data, h_orientation.data,
-            h_overlaps.data, map, timestep, true);
-        } // end loop over local particles
-    #ifdef ENABLE_TBB
-        });
-    #endif
-    #endif
     if (this->m_prof)
         this->m_prof->pop(this->m_exec_conf);
+    }
+
+template<class Shape>
+void UpdaterClusters<Shape>::backupState(const std::map<unsigned int, unsigned int>& map)
+
+    {
+    unsigned int nptl = m_pdata->getN()+m_pdata->getNGhosts();
+
+    // resize as necessary
+    m_postype_backup.resize(nptl);
+    m_orientation_backup.resize(nptl);
+    m_diameter_backup.resize(nptl);
+    m_charge_backup.resize(nptl);
+    m_tag_backup.resize(nptl);
+
+        {
+        ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+
+        ArrayHandle<Scalar4> h_postype_backup(m_postype_backup, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar4> h_orientation_backup(m_orientation_backup, access_location::host, access_mode::overwrite);
+        ArrayHandle<unsigned int> h_tag_backup(m_tag_backup, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar> h_diameter_backup(m_diameter_backup, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar> h_charge_backup(m_charge_backup, access_location::host, access_mode::overwrite);
+
+        // copy over data
+        for (unsigned int i = 0; i < nptl; ++i)
+            {
+            h_postype_backup.data[i] = h_postype.data[i];
+            h_orientation_backup.data[i] = h_orientation.data[i];
+            h_diameter_backup.data[i] = h_diameter.data[i];
+            h_charge_backup.data[i] = h_charge.data[i];
+            auto it = map.find(h_tag.data[i]);
+            assert(it != map.end());
+            h_tag_backup.data[i] = it->second;
+            }
+        }
     }
 
 template<class Shape>
@@ -1562,31 +1566,6 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
     // save a copy of the old configuration
     m_n_particles_old = m_pdata->getN();
-
-    unsigned int nptl = m_pdata->getN()+m_pdata->getNGhosts();
-    m_postype_backup.resize(nptl);
-    m_orientation_backup.resize(nptl);
-    m_diameter_backup.resize(nptl);
-    m_charge_backup.resize(nptl);
-    m_tag_backup.resize(nptl);
-
-        {
-        ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-        ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
-
-        for (unsigned int i = 0; i < nptl; ++i)
-            {
-            m_postype_backup[i] = h_postype.data[i];
-            m_orientation_backup[i] = h_orientation.data[i];
-            m_diameter_backup[i] = h_diameter.data[i];
-            m_charge_backup[i] = h_charge.data[i];
-            m_tag_backup[i] = h_tag.data[i];
-            }
-        }
 
     if (m_prof) m_prof->push(m_exec_conf,"Transform");
 
@@ -1673,6 +1652,9 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     m_pdata->resetOrigin();
     auto map = m_pdata->takeSnapshot(snap);
 
+    // store backup of particle data
+    backupState(map);
+
     #ifdef ENABLE_MPI
     if (m_comm)
         {
@@ -1742,7 +1724,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     if (m_prof) m_prof->push(m_exec_conf,"HPMC Clusters");
 
     // determine which particles interact
-    findInteractions(timestep, map, q, pivot, line);
+    findInteractions(timestep, q, pivot, line);
 
     if (m_prof) m_prof->push(m_exec_conf,"Move");
 

@@ -18,6 +18,7 @@
 #include "hoomd/jit/Evaluator.cuh"
 
 #include "GPUHelpers.cuh"
+#include "HPMCMiscFunctions.h"
 
 #include <cassert>
 
@@ -28,13 +29,10 @@ namespace gpu {
 // currently this is hardcoded, we should set it to the max of platforms
 #if defined(__HIP_PLATFORM_NVCC__)
 #define MAX_BLOCK_SIZE 1024
-#define WARP_SIZE 32
 #elif defined(__HIP_PLATFORM_HCC__)
 #define MAX_BLOCK_SIZE 1024
-#define WARP_SIZE 64
 #endif
-
-template<unsigned int> struct int2type{};
+#define MIN_BLOCK_SIZE 256 // a reasonable minimum to limit the number of template instantiations
 
 //! Wraps arguments to hpmc_* template functions
 /*! \ingroup hpmc_data_structs */
@@ -843,16 +841,16 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
 //! Launcher for narrow phase kernel with templated launch bounds
 template< class Shape, unsigned int cur_launch_bounds >
 void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_type *params,
-    unsigned int max_threads, int2type<cur_launch_bounds>)
+    unsigned int max_threads, detail::int2type<cur_launch_bounds>)
     {
-    if (max_threads == cur_launch_bounds)
+    if (max_threads == cur_launch_bounds*MIN_BLOCK_SIZE)
         {
         // determine the maximum block size and clamp the input block size down
         static int max_block_size = -1;
         static hipFuncAttributes attr;
         if (max_block_size == -1)
             {
-            hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_narrow_phase<Shape, cur_launch_bounds>));
+            hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_narrow_phase<Shape, cur_launch_bounds*MIN_BLOCK_SIZE>));
             max_block_size = attr.maxThreadsPerBlock;
             if (max_block_size % args.devprop.warpSize)
                 // handle non-sensical return values from hipFuncGetAttributes
@@ -922,7 +920,7 @@ void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_
 
             dim3 grid(num_blocks, 1, 1);
 
-            hipLaunchKernelGGL((hpmc_narrow_phase<Shape, cur_launch_bounds>), grid, thread, shared_bytes, args.streams[idev],
+            hipLaunchKernelGGL((hpmc_narrow_phase<Shape, cur_launch_bounds*MIN_BLOCK_SIZE>), grid, thread, shared_bytes, args.streams[idev],
                 args.d_postype, args.d_orientation, args.d_trial_postype, args.d_trial_orientation,
                 args.d_excell_idx, args.d_excell_size, args.excli,
                 args.d_nlist, args.d_nneigh, args.maxn, args.d_counters+idev*args.counters_pitch, args.num_types,
@@ -933,13 +931,13 @@ void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_
         }
     else
         {
-        narrow_phase_launcher<Shape>(args, params, max_threads, int2type<cur_launch_bounds/2>());
+        narrow_phase_launcher<Shape>(args, params, max_threads, detail::int2type<cur_launch_bounds/2>());
         }
     }
 
 //! Terminate template recursion
 template< class Shape>
-void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_type *params, unsigned int max_threads, int2type<WARP_SIZE/2>)
+void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_type *params, unsigned int max_threads, detail::int2type<0>)
     { }
 
 //! Kernel to insert depletants on-the-fly
@@ -1525,16 +1523,16 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
 //! Launcher for hpmc_insert_depletants kernel with templated launch bounds
 template< class Shape, unsigned int cur_launch_bounds>
 void depletants_launcher(const hpmc_args_t& args, const hpmc_implicit_args_t& implicit_args,
-    const typename Shape::param_type *params, unsigned int max_threads, int2type<cur_launch_bounds>)
+    const typename Shape::param_type *params, unsigned int max_threads, detail::int2type<cur_launch_bounds>)
     {
-    if (max_threads == cur_launch_bounds)
+    if (max_threads == cur_launch_bounds*MIN_BLOCK_SIZE)
         {
         // determine the maximum block size and clamp the input block size down
         static int max_block_size = -1;
         static hipFuncAttributes attr;
         if (max_block_size == -1)
             {
-            hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(&kernel::hpmc_insert_depletants<Shape, cur_launch_bounds>));
+            hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(&kernel::hpmc_insert_depletants<Shape, cur_launch_bounds*MIN_BLOCK_SIZE>));
             max_block_size = attr.maxThreadsPerBlock;
             if (max_block_size % args.devprop.warpSize)
                 // handle non-sensical return values from hipFuncGetAttributes
@@ -1617,7 +1615,7 @@ void depletants_launcher(const hpmc_args_t& args, const hpmc_implicit_args_t& im
                 grid.z = blocks_per_particle/args.devprop.maxGridSize[1]+1;
                 }
 
-            hipLaunchKernelGGL((kernel::hpmc_insert_depletants<Shape, cur_launch_bounds>),
+            hipLaunchKernelGGL((kernel::hpmc_insert_depletants<Shape, cur_launch_bounds*MIN_BLOCK_SIZE>),
                 dim3(grid), dim3(threads), shared_bytes, implicit_args.streams[idev],
                                  args.d_trial_postype,
                                  args.d_trial_orientation,
@@ -1662,14 +1660,14 @@ void depletants_launcher(const hpmc_args_t& args, const hpmc_implicit_args_t& im
         }
     else
         {
-        depletants_launcher<Shape>(args, implicit_args, params, max_threads, int2type<cur_launch_bounds/2>());
+        depletants_launcher<Shape>(args, implicit_args, params, max_threads, detail::int2type<cur_launch_bounds/2>());
         }
     }
 
 //! Template recursion termination
 template< class Shape>
 void depletants_launcher(const hpmc_args_t& args, const hpmc_implicit_args_t& implicit_args,
-    const typename Shape::param_type *params, unsigned int max_threads, int2type<WARP_SIZE/2>)
+    const typename Shape::param_type *params, unsigned int max_threads, detail::int2type<0>)
     { }
 
 //! Kernel to update particle data and statistics after acceptance
@@ -1880,11 +1878,11 @@ void hpmc_narrow_phase(const hpmc_args_t& args, const typename Shape::param_type
     assert(args.d_counters);
 
     // select the kernel template according to the next power of two of the block size
-    unsigned int launch_bounds = WARP_SIZE;
+    unsigned int launch_bounds = MIN_BLOCK_SIZE;
     while (launch_bounds < args.block_size)
         launch_bounds *= 2;
 
-    kernel::narrow_phase_launcher<Shape>(args, params, launch_bounds, int2type<MAX_BLOCK_SIZE>());
+    kernel::narrow_phase_launcher<Shape>(args, params, launch_bounds, detail::int2type<MAX_BLOCK_SIZE/MIN_BLOCK_SIZE>());
     }
 
 //! Kernel driver for kernel::insert_depletants()
@@ -1908,11 +1906,11 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
     assert(args.d_check_overlaps);
 
     // select the kernel template according to the next power of two of the block size
-    unsigned int launch_bounds = WARP_SIZE;
+    unsigned int launch_bounds = MIN_BLOCK_SIZE;
     while (launch_bounds < args.block_size)
         launch_bounds *= 2;
 
-    kernel::depletants_launcher<Shape>(args, implicit_args, params, launch_bounds, int2type<MAX_BLOCK_SIZE>());
+    kernel::depletants_launcher<Shape>(args, implicit_args, params, launch_bounds, detail::int2type<MAX_BLOCK_SIZE/MIN_BLOCK_SIZE>());
     }
 
 //! Driver for kernel::hpmc_update_pdata()
@@ -1953,7 +1951,7 @@ void hpmc_update_pdata(const hpmc_update_args_t& args, const typename Shape::par
 #endif
 
 #undef MAX_BLOCK_SIZE
-#undef WARP_SIZE
+#undef MIN_BLOCK_SIZE
 
 } // end namespace gpu
 

@@ -3,6 +3,7 @@
 
 #include "ComputeFreeVolumeGPU.cuh"
 #include "IntegratorHPMCMonoGPU.cuh"
+#include "UpdaterClustersGPU.cuh"
 
 #include "ShapeSpheropolyhedron.h"
 #include "ShapeUnion.h"
@@ -27,6 +28,9 @@ template void hpmc_narrow_phase<ShapeUnion<ShapeSpheropolyhedron> >(const hpmc_a
 template void hpmc_insert_depletants<ShapeUnion<ShapeSpheropolyhedron> >(const hpmc_args_t& args, const hpmc_implicit_args_t& implicit_args, const ShapeUnion<ShapeSpheropolyhedron>::param_type *params);
 //! Driver for kernel::hpmc_update_pdata()
 template void hpmc_update_pdata<ShapeUnion<ShapeSpheropolyhedron> >(const hpmc_update_args_t& args, const ShapeUnion<ShapeSpheropolyhedron> ::param_type *params);
+
+//! Kernel driver for kernel::cluster_overlaps
+template void hpmc_cluster_overlaps<ShapeUnion<ShapeSpheropolyhedron> >(const cluster_args_t& args, const ShapeUnion<ShapeSpheropolyhedron>::param_type *params);
 }
 
 } // end namespace hpmc

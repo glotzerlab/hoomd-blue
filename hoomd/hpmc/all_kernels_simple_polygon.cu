@@ -3,6 +3,7 @@
 
 #include "ComputeFreeVolumeGPU.cuh"
 #include "IntegratorHPMCMonoGPU.cuh"
+#include "UpdaterClustersGPU.cuh"
 
 #include "ShapeSimplePolygon.h"
 
@@ -26,6 +27,9 @@ template void hpmc_narrow_phase<ShapeSimplePolygon>(const hpmc_args_t& args, con
 template void hpmc_insert_depletants<ShapeSimplePolygon>(const hpmc_args_t& args, const hpmc_implicit_args_t& implicit_args, const ShapeSimplePolygon::param_type *params);
 //! Driver for kernel::hpmc_update_pdata()
 template void hpmc_update_pdata<ShapeSimplePolygon>(const hpmc_update_args_t& args, const ShapeSimplePolygon::param_type *params);
+
+//! Kernel driver for kernel::cluster_overlaps
+template void hpmc_cluster_overlaps<ShapeSimplePolygon>(const cluster_args_t& args, const ShapeSimplePolygon::param_type *params);
 }
 
 } // end namespace hpmc
