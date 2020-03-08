@@ -174,7 +174,6 @@ struct hpmc_implicit_args_t
                          const Index2D _depletant_idx,
                          hpmc_implicit_counters_t *_d_implicit_count,
                          const unsigned int _implicit_counters_pitch,
-                         const Scalar *_d_lambda,
                          const bool _repulsive,
                          const unsigned int *_d_n_depletants,
                          const unsigned int *_max_n_depletants,
@@ -185,7 +184,6 @@ struct hpmc_implicit_args_t
                   depletant_idx(_depletant_idx),
                   d_implicit_count(_d_implicit_count),
                   implicit_counters_pitch(_implicit_counters_pitch),
-                  d_lambda(_d_lambda),
                   repulsive(_repulsive),
                   d_n_depletants(_d_n_depletants),
                   max_n_depletants(_max_n_depletants),
@@ -198,7 +196,6 @@ struct hpmc_implicit_args_t
     const Index2D depletant_idx;                   //!< type pair indexer
     hpmc_implicit_counters_t *d_implicit_count;    //!< Active cell acceptance/rejection counts
     const unsigned int implicit_counters_pitch;    //!< Pitch of 2D array counters per device
-    const Scalar *d_lambda;                        //!< Mean number of depletants to insert in excluded volume
     const bool repulsive;                          //!< True if the fugacity is negative
     const unsigned int *d_n_depletants;            //!< Number of depletants per particle
     const unsigned int *max_n_depletants;          //!< Maximum number of depletants inserted per particle, per device
@@ -374,8 +371,7 @@ void generate_num_depletants(const unsigned int seed,
                              const hipStream_t *streams,
                              const GPUPartition& gpu_partition);
 
-void get_max_num_depletants(const unsigned int N,
-                            unsigned int *d_n_depletants,
+void get_max_num_depletants(unsigned int *d_n_depletants,
                             unsigned int *max_n_depletants,
                             const hipStream_t *streams,
                             const GPUPartition& gpu_partition,
@@ -973,7 +969,6 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                                      unsigned int depletant_type_b,
                                      const Index2D depletant_idx,
                                      hpmc_implicit_counters_t *d_implicit_counters,
-                                     const Scalar *d_lambda,
                                      unsigned int *d_nneigh,
                                      unsigned int *d_nlist,
                                      const unsigned int maxn,
@@ -1647,7 +1642,6 @@ void depletants_launcher(const hpmc_args_t& args, const hpmc_implicit_args_t& im
                                  implicit_args.depletant_type_b,
                                  implicit_args.depletant_idx,
                                  implicit_args.d_implicit_count + idev*implicit_args.implicit_counters_pitch,
-                                 implicit_args.d_lambda,
                                  args.d_nneigh,
                                  args.d_nlist,
                                  args.maxn,

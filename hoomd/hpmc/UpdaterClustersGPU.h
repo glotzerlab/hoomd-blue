@@ -49,6 +49,12 @@ class UpdaterClustersGPU : public UpdaterClusters<Shape>
 
             m_tuner_overlaps->setPeriod(period);
             m_tuner_overlaps->setEnabled(enable);
+
+            m_tuner_depletants->setPeriod(period);
+            m_tuner_depletants->setEnabled(enable);
+
+            m_tuner_num_depletants->setPeriod(period);
+            m_tuner_num_depletants->setEnabled(enable);
             }
 
         //! Take one timestep forward
@@ -66,16 +72,23 @@ class UpdaterClustersGPU : public UpdaterClusters<Shape>
 
         std::unique_ptr<Autotuner> m_tuner_excell_block_size;  //!< Autotuner for excell block_size
         std::unique_ptr<Autotuner> m_tuner_overlaps;  //!< Autotuner for overlap checks
+        std::unique_ptr<Autotuner> m_tuner_depletants;       //!< Autotuner for inserting depletants
+        std::unique_ptr<Autotuner> m_tuner_num_depletants;   //!< Autotuner for calculating number of depletants
 
         GlobalArray<unsigned int> m_excell_idx;              //!< Particle indices in expanded cells
         GlobalArray<unsigned int> m_excell_size;             //!< Number of particles in each expanded cell
         Index2D m_excell_list_indexer;                       //!< Indexer to access elements of the excell_idx list
 
         GlobalArray<unsigned int> m_nneigh;                     //!< Number of neighbors
-        unsigned int m_maxn;                                     //!< Max number of neighbors
-        GlobalArray<unsigned int> m_overflow;                    //!< Overflow condition for neighbor list
+
+        GPUPartition m_old_gpu_partition;                     //!< The partition in the old configuration
+        GlobalVector<unsigned int> m_n_depletants;             //!< List of number of depletants, per particle
 
         std::vector<hipStream_t> m_overlaps_streams;            //!< Stream for overlaps kernel, per device
+        std::vector<std::vector<hipStream_t> > m_depletant_streams;  //!< Stream for every particle type, and device
+
+        //!< Variables for implicit depletants
+        GlobalArray<Scalar> m_lambda;                              //!< Poisson means, per type pair
 
         //! Determine connected components of the interaction graph
         #ifdef ENABLE_TBB
@@ -97,6 +110,9 @@ class UpdaterClustersGPU : public UpdaterClusters<Shape>
 
         //! Check if memory reallocation for the adjacency list is necessary
         virtual bool checkReallocate();
+
+        //! Slot to be called when the number of types changes
+        virtual void slotNumTypesChange();
     };
 
 template< class Shape >
@@ -104,7 +120,7 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
                              std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
                              std::shared_ptr<CellList> cl,
                              unsigned int seed)
-    : UpdaterClusters<Shape>(sysdef, mc, seed), m_cl(cl), m_maxn(0)
+    : UpdaterClusters<Shape>(sysdef, mc, seed), m_cl(cl)
     {
     this->m_exec_conf->msg->notice(5) << "Constructing UpdaterClustersGPU" << std::endl;
 
@@ -122,6 +138,7 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
 
     hipDeviceProp_t dev_prop = this->m_exec_conf->dev_prop;
     m_tuner_excell_block_size.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "clusters_excell_block_size", this->m_exec_conf));
+    m_tuner_num_depletants.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "clusters_num_depletants", this->m_exec_conf));
 
     // tuning parameters for overlap checks
     std::vector<unsigned int> valid_params;
@@ -135,6 +152,21 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
             }
         }
     m_tuner_overlaps.reset(new Autotuner(valid_params, 5, 100000, "clusters_overlaps", this->m_exec_conf));
+
+    // tuning parameters for depletants
+    std::vector<unsigned int> valid_params_depletants;
+    for (unsigned int block_size = dev_prop.warpSize; block_size <= (unsigned int) dev_prop.maxThreadsPerBlock; block_size += dev_prop.warpSize)
+        {
+        for (unsigned int group_size=1; group_size <= overlaps_max_tpp; group_size*=2)
+            {
+            for (unsigned int depletants_per_group=1; depletants_per_group <= 32; depletants_per_group*=2)
+                {
+                if ((block_size % group_size) == 0)
+                    valid_params_depletants.push_back(block_size*1000000 + depletants_per_group*10000 + group_size);
+                }
+            }
+        }
+    m_tuner_depletants.reset(new Autotuner(valid_params_depletants, 5, 100000, "clusters_depletants", this->m_exec_conf));
 
     GlobalArray<unsigned int> excell_size(0, this->m_exec_conf);
     m_excell_size.swap(excell_size);
@@ -150,14 +182,6 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
     GlobalVector<int>(this->m_exec_conf).swap(m_components);
     TAG_ALLOCATION(m_components);
 
-    GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_overflow);
-    TAG_ALLOCATION(m_overflow);
-
-        {
-        ArrayHandle<unsigned int> h_overflow(m_overflow, access_location::host, access_mode::overwrite);
-        *h_overflow.data = 0;
-        }
-
     m_overlaps_streams.resize(this->m_exec_conf->getNumActiveGPUs());
     for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
         {
@@ -167,12 +191,51 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
 
     GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_nneigh);
     TAG_ALLOCATION(m_nneigh);
+
+    // Depletants
+    const Index2D& depletant_idx = this->m_mc->getDepletantIndexer();
+    unsigned int ntypes = this->m_pdata->getNTypes();
+    GlobalArray<Scalar> lambda(ntypes*depletant_idx.getNumElements(), this->m_exec_conf);
+    m_lambda.swap(lambda);
+    TAG_ALLOCATION(m_lambda);
+
+    GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_n_depletants);
+    TAG_ALLOCATION(m_n_depletants);
+
+    m_depletant_streams.resize(depletant_idx.getNumElements());
+    for (unsigned int itype = 0; itype < this->m_pdata->getNTypes(); ++itype)
+        {
+        for (unsigned int jtype = 0; jtype < this->m_pdata->getNTypes(); ++jtype)
+            {
+            m_depletant_streams[depletant_idx(itype,jtype)].resize(this->m_exec_conf->getNumActiveGPUs());
+            for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
+                {
+                hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
+                hipStreamCreate(&m_depletant_streams[depletant_idx(itype,jtype)][idev]);
+                }
+            }
+        }
+
+    // Connect to number of types change signal
+    this->m_pdata->getNumTypesChangeSignal().template connect<UpdaterClustersGPU<Shape>, &UpdaterClustersGPU<Shape>::slotNumTypesChange>(this);
     }
 
 template< class Shape >
 UpdaterClustersGPU<Shape>::~UpdaterClustersGPU()
     {
     this->m_exec_conf->msg->notice(5) << "Destroying UpdaterClustersGPU" << std::endl;
+
+    // disconnect signal
+    this->m_pdata->getNumTypesChangeSignal().template disconnect<UpdaterClustersGPU<Shape>, &UpdaterClustersGPU<Shape>::slotNumTypesChange>(this);
+
+    for (auto s: m_depletant_streams)
+        {
+        for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
+            {
+            hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
+            hipStreamDestroy(s[idev]);
+            }
+        }
 
     for (int idev = this->m_exec_conf->getNumActiveGPUs() -1; idev >= 0; --idev)
         {
@@ -188,13 +251,75 @@ template< class Shape >
 void UpdaterClustersGPU<Shape>::update(unsigned int timestep)
     {
     // compute nominal cell width
+    auto& params = this->m_mc->getParams();
     Scalar nominal_width = this->m_mc->getMaxCoreDiameter();
+    Scalar max_d(0.0);
+    for (unsigned int type_i = 0; type_i < this->m_pdata->getNTypes(); ++type_i)
+        {
+        for (unsigned int type_j = 0; type_j < this->m_pdata->getNTypes(); ++type_j)
+            {
+            quat<Scalar> o;
+            Shape tmp_i(o, params[type_i]);
+            if (this->m_mc->getDepletantFugacity(type_i,type_j) != Scalar(0.0))
+                {
+                // add range of depletion interaction
+                Shape tmp_j(o, params[type_j]);
+                max_d = std::max(max_d, (Scalar) 0.5*(tmp_i.getCircumsphereDiameter() +
+                    tmp_j.getCircumsphereDiameter()));
+                }
+            }
+        }
+    nominal_width += max_d;
     if (this->m_cl->getNominalWidth() != nominal_width)
         this->m_cl->setNominalWidth(nominal_width);
 
     // update the cell list before re-initializing
     this->m_cl->compute(timestep);
 
+    m_old_gpu_partition = this->m_pdata->getGPUPartition();
+
+    // reinitialize poisson means array
+
+    // this is slightly inelegant because it involves a sync / page migration, maybe this data
+    // could be cached or computed inside a kernel?
+    ArrayHandle<Scalar> h_lambda(m_lambda, access_location::host, access_mode::overwrite);
+
+    for (unsigned int i_type = 0; i_type < this->m_pdata->getNTypes(); ++i_type)
+        {
+        Shape shape_i(quat<Scalar>(), params[i_type]);
+        Scalar d_i(shape_i.getCircumsphereDiameter());
+
+        for (unsigned int j_type = 0; j_type < this->m_pdata->getNTypes(); ++j_type)
+            {
+            Shape shape_j(quat<Scalar>(), params[j_type]);
+            Scalar d_j(shape_j.getCircumsphereDiameter());
+
+            // we use the larger of the two diameters for insertion
+            Scalar range = std::max(d_i,d_j);
+
+            for (unsigned int k_type = 0; k_type < this->m_pdata->getNTypes(); ++k_type)
+                {
+                // parameter for Poisson distribution
+                Shape shape_k(quat<Scalar>(), params[k_type]);
+
+                // get OBB and extend by depletant radius
+                detail::OBB obb = shape_k.getOBB(vec3<Scalar>(0,0,0));
+                obb.lengths.x += 0.5*range;
+                obb.lengths.y += 0.5*range;
+                if (this->m_sysdef->getNDimensions() == 3)
+                    obb.lengths.z += 0.5*range;
+                else
+                    obb.lengths.z = 0.5; // unit length
+
+                Scalar lambda = std::abs(this->m_mc->getDepletantFugacity(i_type,j_type)*
+                    obb.getVolume(this->m_sysdef->getNDimensions()));
+                h_lambda.data[k_type*this->m_mc->getDepletantIndexer().getNumElements()+
+                    this->m_mc->getDepletantIndexer()(i_type,j_type)] = lambda;
+                }
+            }
+        }
+
+    // perform the update
     UpdaterClusters<Shape>::update(timestep);
     }
 
@@ -340,7 +465,6 @@ void UpdaterClustersGPU< Shape >::initializeExcellMem()
 template<class Shape>
 void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const quat<Scalar> q, const vec3<Scalar> pivot, bool line)
     {
-    // set nominal width
     const auto& params = this->m_mc->getParams();
 
     // start the profile
@@ -421,7 +545,6 @@ void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const qu
                 { // ArrayHandle scope
                 ArrayHandle<uint2> d_adjacency(m_adjacency, access_location::device, access_mode::overwrite);
                 ArrayHandle<unsigned int> d_nneigh(m_nneigh, access_location::device, access_mode::overwrite);
-                ArrayHandle<unsigned int> d_overflow(m_overflow, access_location::device, access_mode::readwrite);
 
                 // access backup particle data
                 ArrayHandle<Scalar4> d_postype_backup(this->m_postype_backup, access_location::device, access_mode::read);
@@ -432,6 +555,12 @@ void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const qu
                 ArrayHandle<Scalar4> d_postype(this->m_pdata->getPositions(), access_location::device, access_mode::read);
                 ArrayHandle<Scalar4> d_orientation(this->m_pdata->getOrientationArray(), access_location::device, access_mode::read);
                 ArrayHandle<unsigned int> d_tag(this->m_pdata->getTags(), access_location::device, access_mode::read);
+
+                // depletants
+                m_n_depletants.resize(this->m_n_particles_old);
+
+                ArrayHandle<Scalar> d_lambda(m_lambda, access_location::device, access_mode::read);
+                ArrayHandle<unsigned int> d_n_depletants(m_n_depletants, access_location::device, access_mode::overwrite);
 
                 // fill the parameter structure for the GPU kernel
                 gpu::cluster_args_t args(
@@ -458,11 +587,14 @@ void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const qu
                     m_excell_list_indexer,
                     d_adjacency.data,
                     d_nneigh.data,
-                    m_maxn,
-                    d_overflow.data,
+                    m_adjacency.getNumElements(),
+                    this->m_sysdef->getNDimensions(),
+                    line,
+                    pivot,
+                    q,
                     true,
                     this->m_exec_conf->dev_prop,
-                    this->m_pdata->getGPUPartition(),
+                    m_old_gpu_partition,
                     &m_overlaps_streams.front());
 
                 // reset number of neighbors
@@ -483,6 +615,82 @@ void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const qu
                 if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                     CHECK_CUDA_ERROR();
                 m_tuner_overlaps->end();
+
+                /*
+                 * Insert depletants
+                 */
+
+                // allow concurrency between depletant types in multi GPU block
+                auto& depletant_idx = this->m_mc->getDepletantIndexer();
+                for (unsigned int itype = 0; itype < this->m_pdata->getNTypes(); ++itype)
+                    {
+                    for (unsigned int jtype = itype; jtype < this->m_pdata->getNTypes(); ++jtype)
+                        {
+                        if (this->m_mc->getDepletantFugacity(itype,jtype) == 0)
+                            continue;
+
+                        if (itype != jtype)
+                            throw std::runtime_error("Non-additive depletants are not supported by UpdaterClustersGPU.");
+
+                        if (this->m_mc->getDepletantFugacity(itype,jtype) < 0.0)
+                            throw std::runtime_error("Negative depletants are not supported by UpdaterClustersGPU.");
+
+                        // draw random number of depletant insertions per particle from Poisson distribution
+                        m_tuner_num_depletants->begin();
+                        gpu::generate_num_depletants(
+                            this->m_seed,
+                            timestep,
+                            this->m_exec_conf->getRank(),
+                            this->m_pdata->getNTypes(),
+                            itype,
+                            jtype,
+                            depletant_idx,
+                            d_lambda.data,
+                            d_postype.data,
+                            d_n_depletants.data,
+                            m_tuner_num_depletants->getParam(),
+                            &m_depletant_streams[depletant_idx(itype,jtype)].front(),
+                            m_old_gpu_partition);
+                        if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                            CHECK_CUDA_ERROR();
+                        m_tuner_num_depletants->end();
+
+                        // max reduce over result
+                        unsigned int max_n_depletants[this->m_exec_conf->getNumActiveGPUs()];
+                        gpu::get_max_num_depletants(
+                            d_n_depletants.data,
+                            &max_n_depletants[0],
+                            &m_depletant_streams[depletant_idx(itype,jtype)].front(),
+                            m_old_gpu_partition,
+                            this->m_exec_conf->getCachedAllocatorManaged());
+                        if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                            CHECK_CUDA_ERROR();
+
+                        // insert depletants on-the-fly
+                        m_tuner_depletants->begin();
+                        unsigned int param = m_tuner_depletants->getParam();
+                        args.block_size = param/1000000;
+                        unsigned int depletants_per_group = (param % 1000000)/10000;
+                        args.tpp = param%10000;
+
+                        gpu::hpmc_implicit_args_t implicit_args(
+                            itype,
+                            jtype,
+                            depletant_idx,
+                            0, // implicit_counters
+                            0, // implicit_counters pitch
+                            false, // repulsive
+                            d_n_depletants.data,
+                            &max_n_depletants[0],
+                            depletants_per_group,
+                            &m_depletant_streams[depletant_idx(itype,jtype)].front()
+                            );
+                        gpu::hpmc_clusters_depletants<Shape>(args, implicit_args, params.data());
+                        if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                            CHECK_CUDA_ERROR();
+                        m_tuner_depletants->end();
+                        }
+                    }
                 this->m_exec_conf->endMultiGPU();
                 } // end ArrayHandle scope
 
@@ -497,23 +705,14 @@ void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const qu
 template< class Shape >
 bool UpdaterClustersGPU< Shape >::checkReallocate()
     {
-    // read back overflow condition and resize as necessary
-    ArrayHandle<unsigned int> h_overflow(m_overflow, access_location::host, access_mode::read);
-    unsigned int req_maxn = *h_overflow.data;
+    // read back number of neighbors and resize as necessary
+    ArrayHandle<unsigned int> h_nneigh(m_nneigh, access_location::host, access_mode::read);
+    unsigned int req_maxn = *h_nneigh.data;
 
-    if (req_maxn > m_maxn)
-        {
-        m_maxn = req_maxn;
-        }
-
-    unsigned int req_size_nlist = m_maxn;
+    bool reallocate = req_maxn > m_adjacency.getNumElements();
 
     // resize
-    bool reallocate = req_size_nlist > m_adjacency.getNumElements();
-    if (reallocate)
-        {
-        m_adjacency.resize(req_size_nlist);
-        }
+    m_adjacency.resize(req_maxn);
 
     return reallocate;
     }
@@ -529,7 +728,7 @@ void UpdaterClustersGPU< Shape >::updateGPUAdvice()
         auto gpu_map = this->m_exec_conf->getGPUIds();
         for (unsigned int idev = 0; idev < this->m_exec_conf->getNumActiveGPUs(); ++idev)
             {
-            auto range = this->m_pdata->getGPUPartition().getRange(idev);
+            auto range = m_old_gpu_partition.getRange(idev);
 
             unsigned int nelem = range.second-range.first;
             if (nelem == 0)
@@ -552,6 +751,51 @@ void UpdaterClustersGPU< Shape >::updateGPUAdvice()
             }
         }
     #endif
+    }
+
+template< class Shape >
+void UpdaterClustersGPU< Shape >::slotNumTypesChange()
+    {
+    unsigned int old_ntypes = this->m_mc->getParams().size();
+
+    // skip the reallocation if the number of types does not change
+    // this keeps shape parameters when restoring a snapshot
+    // it will result in invalid coefficients if the snapshot has a different type id -> name mapping
+    if (this->m_pdata->getNTypes() != old_ntypes)
+        {
+        unsigned int ntypes = this->m_pdata->getNTypes();
+
+        // resize array
+        GlobalArray<Scalar> lambda(ntypes*this->m_mc->getDepletantIndexer().getNumElements(), this->m_exec_conf);
+        m_lambda.swap(lambda);
+        TAG_ALLOCATION(m_lambda);
+
+        // destroy old streams
+        for (auto s: m_depletant_streams)
+            {
+            for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
+                {
+                hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
+                hipStreamDestroy(s[idev]);
+                }
+            }
+
+        // create new ones
+        m_depletant_streams.resize(this->m_mc->getDepletantIndexer().getNumElements());
+        for (unsigned int itype = 0; itype < this->m_pdata->getNTypes(); ++itype)
+            {
+            for (unsigned int jtype = 0; jtype < this->m_pdata->getNTypes(); ++jtype)
+                {
+                m_depletant_streams[this->m_mc->getDepletantIndexer()(itype,jtype)].resize(
+                    this->m_exec_conf->getNumActiveGPUs());
+                for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
+                    {
+                    hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
+                    hipStreamCreate(&m_depletant_streams[this->m_mc->getDepletantIndexer()(itype,jtype)][idev]);
+                    }
+                }
+            }
+        }
     }
 
 template <class Shape>

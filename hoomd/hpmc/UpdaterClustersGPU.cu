@@ -10,6 +10,7 @@
 #include <thrust/iterator/discard_iterator.h>
 #include <thrust/device_ptr.h>
 #include <thrust/copy.h>
+#include <thrust/unique.h>
 #include <thrust/binary_search.h>
 
 #include <cusparse.h>
@@ -97,31 +98,35 @@ void connected_components(
         adj_copy + 2*n_elements,
         pair_less());
 
+    // remove duplicates
+    auto new_last = thrust::unique(thrust::cuda::par(alloc),
+        adj_copy,
+        adj_copy + 2*n_elements);
+    unsigned int nnz = new_last - adj_copy;
+
     auto source = thrust::make_transform_iterator(adj_copy, get_source());
     auto destination = thrust::make_transform_iterator(adj_copy, get_destination());
 
     // input matrix in COO format
     unsigned int nverts = N;
-    unsigned int nedges = 2*n_elements;
 
-    int *d_rowidx = alloc.getTemporaryBuffer<int>(nedges);
-    int *d_colidx = alloc.getTemporaryBuffer<int>(nedges);
+    int *d_rowidx = alloc.getTemporaryBuffer<int>(nnz);
+    int *d_colidx = alloc.getTemporaryBuffer<int>(nnz);
 
     thrust::device_ptr<int> rowidx(d_rowidx);
     thrust::device_ptr<int> colidx(d_colidx);
 
-    thrust::copy(source, source+nedges, rowidx);
-    thrust::copy(destination, destination+nedges, colidx);
+    thrust::copy(source, source+nnz, rowidx);
+    thrust::copy(destination, destination+nnz, colidx);
 
     cusparseHandle_t handle;
     cusparseCreate(&handle);
 
     // allocate CSR matrix topology
     int *d_csr_rowptr = alloc.getTemporaryBuffer<int>(nverts+1);
-
     check_cusparse(cusparseXcoo2csr(handle,
         d_rowidx,
-        nedges,
+        nnz,
         nverts,
         d_csr_rowptr,
         CUSPARSE_INDEX_BASE_ZERO));
@@ -131,7 +136,7 @@ void connected_components(
     // compute the connected components
     ecl_connected_components(
         nverts,
-        nedges,
+        nnz,
         d_csr_rowptr,
         d_colidx,
         d_components,

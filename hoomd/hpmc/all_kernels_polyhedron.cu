@@ -30,6 +30,8 @@ template void hpmc_update_pdata<ShapePolyhedron>(const hpmc_update_args_t& args,
 
 //! Kernel driver for kernel::cluster_overlaps
 template void hpmc_cluster_overlaps<ShapePolyhedron>(const cluster_args_t& args, const ShapePolyhedron::param_type *params);
+//! Kernel driver for kernel::clusters_depletants
+template void hpmc_clusters_depletants<ShapePolyhedron>(const cluster_args_t& args, const hpmc_implicit_args_t& implicit_args, const ShapePolyhedron::param_type *params);
 }
 
 } // end namespace hpmc

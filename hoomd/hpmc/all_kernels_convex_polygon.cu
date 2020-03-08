@@ -30,6 +30,8 @@ template void hpmc_update_pdata<ShapeConvexPolygon>(const hpmc_update_args_t& ar
 
 //! Kernel driver for kernel::cluster_overlaps
 template void hpmc_cluster_overlaps<ShapeConvexPolygon>(const cluster_args_t& args, const ShapeConvexPolygon::param_type *params);
+//! Kernel driver for kernel::clusters_depletants
+template void hpmc_clusters_depletants<ShapeConvexPolygon>(const cluster_args_t& args, const hpmc_implicit_args_t& implicit_args, const ShapeConvexPolygon::param_type *params);
 }
 
 } // end namespace hpmc

@@ -962,7 +962,6 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                             // max reduce over result
                             unsigned int max_n_depletants[this->m_exec_conf->getNumActiveGPUs()];
                             gpu::get_max_num_depletants(
-                                this->m_pdata->getN(),
                                 d_n_depletants.data,
                                 &max_n_depletants[0],
                                 &m_depletant_streams[this->m_depletant_idx(itype,jtype)].front(),
@@ -984,7 +983,6 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                                 this->m_depletant_idx,
                                 ngpu > 1 ? d_implicit_counters_per_device.data : d_implicit_count.data,
                                 m_implicit_counters.getPitch(),
-                                d_lambda.data,
                                 this->m_fugacity[this->m_depletant_idx(itype,jtype)] < 0,
                                 d_n_depletants.data,
                                 &max_n_depletants[0],

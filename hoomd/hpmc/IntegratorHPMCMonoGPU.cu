@@ -553,8 +553,7 @@ void generate_num_depletants(const unsigned int seed,
         }
     }
 
-void get_max_num_depletants(const unsigned int N,
-                            unsigned int *d_n_depletants,
+void get_max_num_depletants(unsigned int *d_n_depletants,
                             unsigned int *max_n_depletants,
                             const hipStream_t *streams,
                             const GPUPartition& gpu_partition,

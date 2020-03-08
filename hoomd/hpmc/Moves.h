@@ -292,7 +292,7 @@ DEVICE inline vec3<OverlapReal> generatePositionInOBB(RNG& rng, const detail::OB
 /*! Reflect a point in R3 around a line (pi rotation), given by a point p through which it passes
     and a rotation quaternion
  */
-inline vec3<Scalar> lineReflection(vec3<Scalar> pos, vec3<Scalar> p, quat<Scalar> q)
+DEVICE inline vec3<Scalar> lineReflection(vec3<Scalar> pos, vec3<Scalar> p, quat<Scalar> q)
     {
     // find closest point on line
     vec3<Scalar> n = q.v;
