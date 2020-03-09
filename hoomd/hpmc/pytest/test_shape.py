@@ -7,6 +7,18 @@ from hoomd.hpmc.pytest.conftest import *
 
 
 def check_dict(shape_dict, args):
+    """
+    check_dict: Function to check that two dictionaries are equivalent
+
+    Arguments: shape_dict and args - dictionaries to test
+
+    Ex: mc = hoomd.hpmc.integrate.Sphere(23456)
+        mc.shape["A"] = {"diameter": 1}
+        check_dict(mc.shape["A"], {"diameter": 1})
+
+    Useful for more complex nested dictionaries (like the shape key in unions)
+    Used to test that the dictionary passed in is what gets passed out
+    """
     for key, val in args.items():
         if isinstance(shape_dict[key], list) and len(shape_dict[key]) > 0 \
            and key != 'shapes':
@@ -54,6 +66,26 @@ def test_shape_attached(dummy_simulation_factory, integrator_args):
             check_dict(mc.shape["A"], args)
 
 
+def test_moves(device, lattice_simulation_factory, integrator_args):
+    dims = 3
+    for shape_integrator, valid_args, invalid_args in integrator_args():
+        if 'union' not in str(shape_integrator).lower():
+            args = valid_args[0]
+            if 'polygon' in str(shape_integrator).lower():
+                dims = 2
+            mc = shape_integrator(23456)
+            mc.shape['A'] = args
+            sim = lattice_simulation_factory(dimensions=dims)
+            sim.operations.add(mc)
+            sim.operations.schedule()
+            sim.run(100)
+            accepted_rejected_trans = sum(sim.operations.integrator.translate_moves)
+            assert accepted_rejected_trans > 0
+            if 'sphere' not in str(shape_integrator).lower():
+                accepted_rejected_rot = sum(sim.operations.integrator.rotate_moves)
+                assert accepted_rejected_rot > 0
+
+
 def test_overlaps(device, lattice_simulation_factory, integrator_args):
     for shape_integrator, valid_args, invalid_args in integrator_args():
         if 'union' not in str(shape_integrator).lower():
@@ -83,21 +115,35 @@ def test_overlaps(device, lattice_simulation_factory, integrator_args):
             assert mc.overlaps == 1
 
 
-def test_moves(device, lattice_simulation_factory, integrator_args):
-    dims = 3
-    for shape_integrator, valid_args, invalid_args in integrator_args():
-        if 'union' not in str(shape_integrator).lower():
-            args = valid_args[0]
-            if 'polygon' in str(shape_integrator).lower():
-                dims = 2
-            mc = shape_integrator(23456)
-            mc.shape['A'] = args
-            sim = lattice_simulation_factory(dimensions=dims)
-            sim.operations.add(mc)
-            sim.operations.schedule()
-            sim.run(100)
-            accepted_rejected_trans = sum(sim.operations.integrator.translate_moves)
-            assert accepted_rejected_trans > 0
-            if 'sphere' not in str(shape_integrator).lower():
-                accepted_rejected_rot = sum(sim.operations.integrator.rotate_moves)
-                assert accepted_rejected_rot > 0
+def test_overlaps_sphere(device, lattice_simulation_factory, sphere_valid_args):
+    for args in sphere_valid_args():
+        mc = hoomd.hpmc.integrate.Sphere(23456)
+        mc.shape["A"] = args
+        diameter = mc.shape["A"]["diameter"]
+
+        # Should overlap when spheres are less than one diameter apart
+        sim = lattice_simulation_factory(dimensions=2,
+                                         n=(2, 1),
+                                         a=diameter * 0.9)
+        sim.operations.add(mc)
+        sim.operations.schedule()
+        sim.run(1)
+        assert mc.overlaps > 0
+
+        # Should not overlap when spheres are larger than one diameter apart
+        s = sim.state.snapshot
+        if s.exists:
+            s.particles.position[0] = (0, 0, 0)
+            s.particles.position[1] = (0, diameter * 1.1, 0)
+        sim.state.snapshot = s
+        assert mc.overlaps == 0
+
+        # Should barely overlap when spheres are exactly than one diameter apart
+        s = sim.state.snapshot
+        if s.exists:
+            s.particles.position[0] = (0, 0, 0)
+            s.particles.position[1] = (0, diameter * 0.9999, 0)
+        sim.state.snapshot = s
+        print(args)
+        print(s.particles.position)
+        assert mc.overlaps == 1
