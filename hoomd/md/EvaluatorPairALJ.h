@@ -279,19 +279,20 @@ class EvaluatorPairALJ
                 // The energy for the central potential must be rescaled by the
                 // orientations (encoded in the a and b vectors).
                 Scalar k1 = sqrt(dot(a, a));
-                Scalar k2 = sqrt(dot(b, b));
-                Scalar rho = sigma12 / (r - Scalar(0.5)*(k1/_params.sigma_i - 1.0) - Scalar(0.5)*(k2/_params.sigma_j - 1.0));
+                Scalar k2 = sqrt(dot(dr+b, dr+b));
+                Scalar rho = sigma12 / (r - (k1 - Scalar(0.5)*_params.sigma_i) - (k2 - Scalar(0.5)*_params.sigma_j));
                 Scalar invr_rsq = rho*rho;
                 Scalar invr_6 = invr_rsq*invr_rsq*invr_rsq;
-                Scalar numer = (invr_6*invr_6 - invr_6);
+                Scalar numer = (invr_6*invr_6 - invr_6) - shift_rho_diff;
 
                 invr_rsq = sigma12*sigma12/rsq;
                 invr_6 = invr_rsq*invr_rsq*invr_rsq;
                 Scalar invr_12 = invr_6*invr_6;
-                Scalar denom = invr_12 - invr_6;
+                Scalar denom = invr_12 - invr_6 - shift_rho_diff;
+		Scalar scale_factor = denom != 0 ? (numer/denom) : 1;
 
                 Scalar four_epsilon = Scalar(4.0) * _params.epsilon;
-                Scalar four_scaled_epsilon = four_epsilon * (numer/denom);
+                Scalar four_scaled_epsilon = four_epsilon * scale_factor;
 
                 // Define relevant vectors
                 Scalar invnorm_v = fast::rsqrt(dot(v, v));
