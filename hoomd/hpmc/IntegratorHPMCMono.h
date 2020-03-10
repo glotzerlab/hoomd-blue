@@ -2499,8 +2499,8 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
         #endif
             {
             if (m_fugacity[m_depletant_idx(type_a,type_b)] == 0.0
-                || !h_overlaps[this->m_overlap_idx(type_a, typ_i)]
-                || !h_overlaps[this->m_overlap_idx(type_b, typ_i)])
+                || (!h_overlaps[this->m_overlap_idx(type_a, typ_i)]
+                && !h_overlaps[this->m_overlap_idx(type_b, typ_i)]))
                 continue;
 
             std::vector<vec3<Scalar> > pos_j_old;
@@ -2568,8 +2568,8 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                                     shape_j.orientation = quat<Scalar>(h_orientation[j]);
 
                                 // check excluded volume overlap
-                                bool overlap_excluded = h_overlaps[this->m_overlap_idx(type_a,typ_j)] &&
-                                    h_overlaps[this->m_overlap_idx(type_b,typ_j)] &&
+                                bool overlap_excluded = (h_overlaps[this->m_overlap_idx(type_a,typ_j)] ||
+                                    h_overlaps[this->m_overlap_idx(type_b,typ_j)]) &&
                                     excludedVolumeOverlap(shape_old, shape_j, pos_j-pos_i_old_image, r_dep_sample,
                                     ndim, detail::SamplingMethod::accurate);
 
@@ -2649,8 +2649,8 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                                     }
 
                                 // check excluded volume overlap
-                                bool overlap_excluded = h_overlaps[this->m_overlap_idx(type_a,typ_j)] &&
-                                    h_overlaps[this->m_overlap_idx(type_b,typ_j)] &&
+                                bool overlap_excluded = (h_overlaps[this->m_overlap_idx(type_a,typ_j)] ||
+                                    h_overlaps[this->m_overlap_idx(type_b,typ_j)]) &&
                                     excludedVolumeOverlap(shape_i, shape_j, pos_j-pos_i_image, r_dep_sample,
                                     ndim, detail::SamplingMethod::accurate);
 
