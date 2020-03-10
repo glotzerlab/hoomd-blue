@@ -110,6 +110,21 @@ inline error_t streamQuery(stream_t stream)
     #endif
     }
 
+//!Flags for streamAttachMemAsync
+#if defined(__GPU_PLATFORM_NVIDIA__)
+#define memAttachSingle cudaMemAttachSingle
+#define memAttachHost cudaMemAttachHost
+#define memAttachGlobal cudaMemAttachGlobal
+#endif
+
+//!Attach memory to a stream asynchronously
+#if defined(__GPU_PLATFORM_NVIDIA__)
+inline error_t streamAttachMemAsync(stream_t stream, T* devPtr, size_t length = 0, unsigned int flags = memAttachSingle)
+    {
+    return cudaStreamAttachMemAsync(stream, devPtr, length, flags);
+    }
+#endif
+
 /*events*/
 #if defined(__GPU_PLATFORM_NVIDIA__)
 typedef cudaEvent event_t;
@@ -275,7 +290,35 @@ inline error_t getDeviceProperties(deviceProp_t* prop, int device)
     #endif
     }
 
-//Limit enum
+//!Cache Config Enum
+#if defined(__GPU_PLATFORM_NVIDIA__)
+typedef enum funcCache
+    {
+    funcCachePreferNone = cudaFuncCachePreferNone,
+    funcCachePreferShared = cudaFuncCachePreferShared,
+    funcCachePreferL1 = cudaFuncCachePreferL1,
+    funcCachePreferEqual = cudaFuncCachePreferEqual,
+    };
+#if defined(__GPU_PLATFORM_HIP__)
+typedef enum funcCache
+    {
+    funcCachePreferNone = hipFuncCachePreferNone,
+    funcCachePreferShared = hipFuncCachePreferShared,
+    funcCachePreferL1 = hipFuncCachePreferL1,
+    funcCachePreferEqual = hipFuncCachePreferEqual,
+    };
+#endif
+
+//!Get preferred cache configuration for each device
+inline error_t deviceGetCacheConfig(funcCache** cacheConfigPtr)
+    {
+    #if defined(__GPU_PLATFORM_NVIDIA__)
+    return cudaDeviceGetCacheConfig(cacheConfigPtr);
+    #if defined(__GPU_PLATFORM_HIP__)
+    return hipDeviceGetCacheConfig(cacheConfigPtr);
+    #endif
+    }
+//!Limit enum
 #if defined(__GPU_PLATFORM_NVIDIA__)
 typedef enum limit
     {
@@ -343,8 +386,12 @@ inline error_t mallocManaged(void** ptr, size_t size, unsigned int flags = memAt
     }
 
 //! hostMallocFlag
-#if defined(__GPU_PLATFORM_HIP__)
+#if defined(__GPU_PLATFORM_NVIDIA__)
+#define hostMallocDefault cudaHostAllocDefault
+#define hostMallocMapped cudaHostMallocMapped
+#elif defined(__GPU_PLATFORM_HIP__)
 #define hostMallocDefault hipHostMallocDefault
+#define hostMallocMapped hipHostMallocMapped
 #endif
 //! Allocate Host Memory (hip only)
 #if defined(__GPU_PLATFORM_HIP__)
@@ -394,7 +441,20 @@ inline error_t memsetAsync(void* ptr, int value, size_t count, stream_t stream=0
     #endif
     }
 
-//!Resgister Host data for GPU use
+//!Flags for hostRegister
+#if defined(__GPU_PLATFORM_NVIDIA__)
+#define hostRegisterDefault cudaHostRegisterDefault
+#define hostRegisterMapped cudaHostRegisterMapped
+#define hostRegisterPointer cudaHostRegisterPortable
+#define hostRegisterloMemory cudaHostRegisterloMemory
+#elif defined(__GPU_PLATFORM_HIP__)
+#define hostRegisterDefault hipHostRegisterDefault
+#define hostRegisterMapped hipHostRegisterMapped
+#define hostRegisterPointer hipHostRegisterPortable
+#define hostRegisterloMemory hipHostRegisterloMemory
+#endif
+
+//!Register Host data for GPU use
 inline error_t hostRegister(void* ptr, size_t size, unsigned int flags)
     {
     #if defined(__GPU_PLATFORM_NVIDIA__)
