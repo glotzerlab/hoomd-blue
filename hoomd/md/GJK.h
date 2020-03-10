@@ -91,7 +91,7 @@ HOSTDEVICE inline unsigned int support(const ManagedArray<vec3<Scalar> > &verts,
  *  \param verts2 The vertices of the second body.
  *  \param v Reference to vec3 that will be overwritten with the vector joining the closest intersecting points on the two bodies (CRITICAL NOTE: The direction of the vector is from verts2 to verts1).
  *  \param a Reference to vec3 that will be overwritten with the vector from the origin (in the frame defined by verts1) to the point on the body represented by verts1 that is closest to verts2.
- *  \param b Reference to vec3 that will be overwritten with the vector from the origin (in the frame defined by verts2) to the point on the body represented by verts2 that is closest to verts1.
+ *  \param b Reference to vec3 that will be overwritten with the vector from the origin (in the frame defined by verts1) to the point on the body represented by verts2 that is closest to verts1.
  *  \param success Reference to bool that will be overwritten with whether or not the algorithm terminated in the maximum number of allowed iterations (verts1.size + verts2.size + 1).
  *  \param overlap Reference to bool that will be overwritten with whether or not an overlap was detected.
  *  \param qi The orientation of the first shape (will be applied to verts1).

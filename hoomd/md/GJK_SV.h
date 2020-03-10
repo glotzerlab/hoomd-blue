@@ -582,11 +582,16 @@ HOSTDEVICE inline void sv_subalgorithm(vec3<Scalar>* W, unsigned int &W_used, Sc
  *  reference implementation of GJK using the Johnson algorithm can be found
  *  in GJK.h.
  *
+ *  Important notes on the outputs:
+ *      - The output vector v points from verts2 to verts1.
+ *      - The shape defined by verts1 is assumed to sit at the origin, and the vertices in verts2 are defined relative to -dr.
+ *      - The output vectors a and b are all relative to this origin, so the vector pointing from the origin in the body frame of verts2 out to the contact point is dr+b.
+ *
  *  \param verts1 The vertices of the first body.
  *  \param verts2 The vertices of the second body.
  *  \param v Reference to vec3 that will be overwritten with the vector joining the closest intersecting points on the two bodies (CRITICAL NOTE: The direction of the vector is from verts2 to verts1).
  *  \param a Reference to vec3 that will be overwritten with the vector from the origin (in the frame defined by verts1) to the point on the body represented by verts1 that is closest to verts2.
- *  \param b Reference to vec3 that will be overwritten with the vector from the origin (in the frame defined by verts2) to the point on the body represented by verts2 that is closest to verts1.
+ *  \param b Reference to vec3 that will be overwritten with the vector from the origin (in the frame defined by verts1) to the point on the body represented by verts2 that is closest to verts1.
  *  \param success Reference to bool that will be overwritten with whether or not the algorithm terminated in the maximum number of allowed iterations (verts1.size + verts2.size + 1).
  *  \param overlap Reference to bool that will be overwritten with whether or not an overlap was detected.
  *  \param qi The orientation of the first shape (will be applied to verts1).
