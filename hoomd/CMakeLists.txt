@@ -307,7 +307,7 @@ set(files analyze.py
 	  sorter.py
           syncedlist.py
           parameterdicts.py
-          triggers.py
+          trigger.py
           typeparam.py
           typeconverter.py
           filters.py
