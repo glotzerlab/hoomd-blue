@@ -1,6 +1,6 @@
 import hoomd.integrate
 from hoomd.syncedlist import SyncedList
-from hoomd.operation import _Analyzer, _Updater
+from hoomd.operation import _Analyzer, _Updater, _Tuner
 
 
 def list_validation(type_):
@@ -27,6 +27,8 @@ class Operations:
                                        triggered_op_conversion)
         self._analyzers = SyncedList(list_validation(_Analyzer),
                                         triggered_op_conversion)
+        self._tuners = SyncedList(list_validation(_Tuner),
+                                  lambda x: x._cpp_obj)
         self._integrator = None
 
     def add(self, op):
@@ -35,6 +37,8 @@ class Operations:
         if isinstance(op, hoomd.integrate._BaseIntegrator):
             self.integrator = op
             return None
+        elif isinstance(op, _Tuner):
+            self._tuners.append(op)
         elif isinstance(op, _Updater):
             self._updaters.append(op)
         elif isinstance(op, _Analyzer):
@@ -69,6 +73,8 @@ class Operations:
             self.updaters.attach(sim, sim._cpp_sys.updaters)
         if not self.analyzers.is_attached:
             self.analyzers.attach(sim, sim._cpp_sys.analyzers)
+        if not self.tuners.is_attached:
+            self.tuners.attach(sim, sim._cpp_sys.tuners)
         self._scheduled = True
 
     def _store_reader(self, reader):
@@ -108,3 +114,7 @@ class Operations:
     @property
     def analyzers(self):
         return self._analyzers
+
+    @property
+    def tuners(self):
+        return self._tuners

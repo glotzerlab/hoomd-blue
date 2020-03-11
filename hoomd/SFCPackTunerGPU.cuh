@@ -11,8 +11,8 @@
 #include "BoxDim.h"
 #include "CachedAllocator.h"
 
-/*! \file SFCPackUpdaterGPU.cuh
-    \brief Defines GPU functions for generating the space-filling curve sorted order on the GPU. Used by SFCPackUpdaterGPU.
+/*! \file SFCPackTunerGPU.cuh
+    \brief Defines GPU functions for generating the space-filling curve sorted order on the GPU. Used by SFCPackTunerGPU.
 */
 
 //! Generate sorted order on GPU

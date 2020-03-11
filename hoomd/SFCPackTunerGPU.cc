@@ -4,14 +4,14 @@
 
 // Maintainer: jglaser
 
-/*! \file SFCPackUpdaterGPU.cc
-    \brief Defines the SFCPackUpdaterGPU class
+/*! \file SFCPackTunerGPU.cc
+    \brief Defines the SFCPackTunerGPU class
 */
 
 #ifdef ENABLE_HIP
 
-#include "SFCPackUpdaterGPU.h"
-#include "SFCPackUpdaterGPU.cuh"
+#include "SFCPackTunerGPU.h"
+#include "SFCPackTunerGPU.cuh"
 
 #include <math.h>
 #include <stdexcept>
@@ -25,10 +25,11 @@ namespace py = pybind11;
 //! Constructor
 /*! \param sysdef System to perform sorts on
  */
-SFCPackUpdaterGPU::SFCPackUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef)
-        : SFCPackUpdater(sysdef)
+SFCPackTunerGPU::SFCPackTunerGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                 std::shared_ptr<Trigger> trigger)
+        : SFCPackTuner(sysdef, trigger)
     {
-    m_exec_conf->msg->notice(5) << "Constructing SFCPackUpdaterGPU" << endl;
+    m_exec_conf->msg->notice(5) << "Constructing SFCPackTunerGPU" << endl;
 
     // perform lots of sanity checks
     assert(m_pdata);
@@ -44,7 +45,7 @@ SFCPackUpdaterGPU::SFCPackUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef)
 
 /*! reallocate the internal arrays
  */
-void SFCPackUpdaterGPU::reallocate()
+void SFCPackTunerGPU::reallocate()
     {
     m_gpu_sort_order.resize(m_pdata->getMaxN());
     m_gpu_particle_bins.resize(m_pdata->getMaxN());
@@ -52,18 +53,18 @@ void SFCPackUpdaterGPU::reallocate()
 
 /*! Destructor
  */
-SFCPackUpdaterGPU::~SFCPackUpdaterGPU()
+SFCPackTunerGPU::~SFCPackTunerGPU()
     {
-    m_exec_conf->msg->notice(5) << "Destroying SFCPackUpdaterGPU" << endl;
+    m_exec_conf->msg->notice(5) << "Destroying SFCPackTunerGPU" << endl;
     }
 
-void SFCPackUpdaterGPU::getSortedOrder2D()
+void SFCPackTunerGPU::getSortedOrder2D()
     {
     // on the GPU, getSortedOrder3D handles both cases
     getSortedOrder3D();
     }
 
-void SFCPackUpdaterGPU::getSortedOrder3D()
+void SFCPackTunerGPU::getSortedOrder3D()
     {
     // start by checking the saneness of some member variables
     assert(m_pdata);
@@ -133,7 +134,7 @@ void SFCPackUpdaterGPU::getSortedOrder3D()
     if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
     }
 
-void SFCPackUpdaterGPU::applySortOrder()
+void SFCPackTunerGPU::applySortOrder()
     {
     assert(m_pdata);
     assert(m_gpu_sort_order.getNumElements() >= m_pdata->getN());
@@ -234,10 +235,11 @@ void SFCPackUpdaterGPU::applySortOrder()
     m_pdata->swapNetTorque();
     }
 
-void export_SFCPackUpdaterGPU(py::module& m)
+void export_SFCPackTunerGPU(py::module& m)
     {
-    py::class_<SFCPackUpdaterGPU, SFCPackUpdater, std::shared_ptr<SFCPackUpdaterGPU> >(m,"SFCPackUpdaterGPU")
-    .def(py::init< std::shared_ptr<SystemDefinition> >())
+    py::class_<SFCPackTunerGPU, SFCPackTuner, std::shared_ptr<SFCPackTunerGPU> >(m,"SFCPackTunerGPU")
+    .def(py::init< std::shared_ptr<SystemDefinition>,
+                   std::shared_ptr<Trigger> >())
     ;
     }
 

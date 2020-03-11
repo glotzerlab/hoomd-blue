@@ -61,6 +61,14 @@ class OnlyType(_HelpValidate):
                                  "".format(value, self.type))
 
 
+class OnlyTypeValidNone(OnlyType):
+    def _validate(self, value):
+        if value is None:
+            return None
+        else:
+            super()._validate(value)
+
+
 class OnlyFrom(_HelpValidate):
     def __init__(self, options, preprocess=None, postprocess=None):
         super().__init__(preprocess, postprocess)

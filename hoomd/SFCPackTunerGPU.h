@@ -4,8 +4,8 @@
 
 // Maintainer: jglaser
 
-/*! \file SFCPackUpdaterGPU.h
-    \brief Declares the SFCPackUpdaterGPU class
+/*! \file SFCPackTunerGPU.h
+    \brief Declares the SFCPackTunerGPU class
 */
 
 #ifdef __HIPCC__
@@ -13,10 +13,10 @@
 #endif
 
 #ifdef ENABLE_HIP
-#include "Updater.h"
+#include "Tuner.h"
 
-#include "SFCPackUpdater.h"
-#include "SFCPackUpdaterGPU.cuh"
+#include "SFCPackTuner.h"
+#include "SFCPackTunerGPU.cuh"
 #include "GPUArray.h"
 
 #include <memory>
@@ -29,18 +29,19 @@
 #define __SFCPACK_UPDATER_GPU_H__
 
 //! Sort the particles
-/*! GPU implementation of SFCPackUpdater
+/*! GPU implementation of SFCPackTuner
 
     \ingroup updaters
 */
-class PYBIND11_EXPORT SFCPackUpdaterGPU : public SFCPackUpdater
+class PYBIND11_EXPORT SFCPackTunerGPU : public SFCPackTuner
     {
     public:
         //! Constructor
-        SFCPackUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef);
+        SFCPackTunerGPU(std::shared_ptr<SystemDefinition> sysdef,
+                        std::shared_ptr<Trigger> trigger);
 
         //! Destructor
-        virtual ~SFCPackUpdaterGPU();
+        virtual ~SFCPackTunerGPU();
 
     protected:
         // reallocate internal data structure
@@ -60,8 +61,8 @@ class PYBIND11_EXPORT SFCPackUpdaterGPU : public SFCPackUpdater
         virtual void applySortOrder();
     };
 
-//! Export the SFCPackUpdaterGPU class to python
-void export_SFCPackUpdaterGPU(pybind11::module& m);
+//! Export the SFCPackTunerGPU class to python
+void export_SFCPackTunerGPU(pybind11::module& m);
 
 #endif // __SFC_PACK_UPDATER_GPU_H_
 

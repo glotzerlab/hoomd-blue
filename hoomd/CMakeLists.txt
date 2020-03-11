@@ -49,12 +49,13 @@ set(_hoomd_sources Analyzer.cc
                    ParticleData.cc
                    ParticleGroup.cc
                    Profiler.cc
-                   SFCPackUpdater.cc
+                   SFCPackTuner.cc
                    SignalHandler.cc
                    SnapshotSystemData.cc
                    System.cc
                    SystemDefinition.cc
                    Trigger.cc
+		   Tuner.cc
                    Updater.cc
                    Variant.cc
                    extern/BVLSSolver.cc
@@ -137,15 +138,16 @@ set(_hoomd_headers
     Profiler.h
     RandomNumbers.h
     RNGIdentifiers.h
-    SFCPackUpdaterGPU.cuh
-    SFCPackUpdaterGPU.h
-    SFCPackUpdater.h
+    SFCPackTunerGPU.cuh
+    SFCPackTunerGPU.h
+    SFCPackTuner.h
     SharedSignal.h
     SignalHandler.h
     SnapshotSystemData.h
     SystemDefinition.h
     System.h
     Trigger.h
+    Tuner.h
     TextureTools.h
     Updater.h
     Variant.h
@@ -158,7 +160,7 @@ list(APPEND _hoomd_sources CellListGPU.cc
                            CommunicatorGPU.cc
                            ComputeThermoGPU.cc
                            LoadBalancerGPU.cc
-                           SFCPackUpdaterGPU.cc
+                           SFCPackTunerGPU.cc
                            )
 endif()
 
@@ -170,7 +172,7 @@ set(_hoomd_cu_sources BondedGroupData.cu
                       LoadBalancerGPU.cu
                       ParticleData.cu
                       ParticleGroup.cu
-                      SFCPackUpdaterGPU.cu)
+                      SFCPackTunerGPU.cu)
 
 # include libgetar sources directly into _hoomd.so
 get_property(GETAR_SRCS_REL TARGET getar PROPERTY SOURCES)
@@ -302,6 +304,7 @@ set(files analyze.py
           hdf5.py
           simulation.py
           state.py
+	  sorter.py
           syncedlist.py
           parameterdicts.py
           triggers.py

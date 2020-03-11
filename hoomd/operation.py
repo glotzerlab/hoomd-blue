@@ -342,3 +342,7 @@ class _Updater(_TriggeredOperation):
 
 class _Analyzer(_TriggeredOperation):
     _cpp_list_name = 'analyzers'
+
+
+class _Tuner(_Operation):
+    pass

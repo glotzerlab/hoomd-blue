@@ -10,6 +10,7 @@
 #include "Integrator.h"
 #include "Logger.h"
 #include "Trigger.h"
+#include "Tuner.h"
 
 #include <string>
 #include <vector>
@@ -147,14 +148,19 @@ class PYBIND11_EXPORT System
         void setAutotunerParams(bool enable, unsigned int period);
 
         std::vector<std::pair<std::shared_ptr<Analyzer>, std::shared_ptr<Trigger> > >& getAnalyzers()
-			{
-			return m_analyzers;
-			}
+            {
+            return m_analyzers;
+            }
 
         std::vector<std::pair<std::shared_ptr<Updater>, std::shared_ptr<Trigger> > >& getUpdaters()
-			{
-			return m_updaters;
-			}
+            {
+            return m_updaters;
+            }
+
+        std::vector<std::shared_ptr<Tuner> >& getTuners()
+            {
+            return m_tuners;
+            }
 
     private:
         std::vector<std::pair<std::shared_ptr<Analyzer>,
@@ -162,6 +168,8 @@ class PYBIND11_EXPORT System
 
         std::vector<std::pair<std::shared_ptr<Updater>,
                     std::shared_ptr<Trigger> > > m_updaters; //!< List of updaters belonging to this System
+
+        std::vector<std::shared_ptr<Tuner>> m_tuners; //!< List of tuners belonging to the System
 
         std::map< std::string, std::shared_ptr<Compute> > m_computes; //!< Named list of Computes belonging to this System
 
