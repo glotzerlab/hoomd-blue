@@ -14,7 +14,6 @@
 #include "hoomd/RandomNumbers.h"
 #include "hoomd/RNGIdentifiers.h"
 
-#include "hoomd/GPUFlags.h"
 #include "hoomd/GPUPartition.cuh"
 
 #include <hip/hip_runtime.h>
@@ -220,7 +219,7 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
         detail::UpdateOrderGPU m_update_order;                   //!< Particle update order
         unsigned int m_maxn;                                     //!< Max number of neighbors
         GlobalArray<unsigned int> m_overflow;                    //!< Overflow condition for neighbor list
-        std::vector<GPUFlags<unsigned int> > m_condition;        //!< Condition of acceptance kernel, for every GPU
+        GlobalArray<unsigned int> m_condition;                  //!< Condition of acceptance kernel
 
         //! For energy evaluation
         unsigned int m_maxn_patch;                            //!< Maximum number of patch neighbors
@@ -261,8 +260,7 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
                                                                    unsigned int seed)
     : IntegratorHPMCMono<Shape>(sysdef, seed), m_cl(cl),
       m_update_order(this->m_exec_conf, seed+this->m_exec_conf->getRank()),
-      m_maxn(0),
-      m_maxn_patch(0)
+      m_maxn(0), m_maxn_patch(0)
     {
     this->m_cl->setRadius(1);
     this->m_cl->setComputeTDB(false);
@@ -346,6 +344,25 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
     GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_overflow_patch);
     TAG_ALLOCATION(m_overflow_patch);
 
+    GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_condition);
+    TAG_ALLOCATION(m_condition);
+
+    #if defined(__HIP_PLATFORM_NVCC__)
+    if (this->m_exec_conf->allConcurrentManagedAccess())
+        {
+        // set memory hints
+        auto gpu_map = this->m_exec_conf->getGPUIds();
+        cudaMemAdvise(m_condition.get(), sizeof(unsigned int), cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId);
+        cudaMemPrefetchAsync(m_condition.get(), sizeof(unsigned int), cudaCpuDeviceId);
+
+        for (unsigned int idev = 0; idev < this->m_exec_conf->getNumActiveGPUs(); ++idev)
+            {
+            cudaMemAdvise(m_condition.get(), sizeof(unsigned int), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+            }
+        CHECK_CUDA_ERROR();
+        }
+    #endif
+
     GlobalArray<unsigned int> excell_size(0, this->m_exec_conf);
     m_excell_size.swap(excell_size);
     TAG_ALLOCATION(m_excell_size);
@@ -359,14 +376,6 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
     GlobalArray<hpmc_counters_t>(pitch, this->m_exec_conf->getNumActiveGPUs(), this->m_exec_conf).swap(m_counters);
     TAG_ALLOCATION(m_counters);
 
-    auto gpu_map = this->m_exec_conf->getGPUIds();
-    for (int idev = this->m_exec_conf->getNumActiveGPUs()-1; idev >= 0; idev--)
-        {
-        hipSetDevice(gpu_map[idev]);
-        GPUFlags<unsigned int> condition(this->m_exec_conf);
-        m_condition.push_back(condition);
-        }
-
     #ifdef __HIP_PLATFORM_NVCC__
     if (this->m_exec_conf->allConcurrentManagedAccess())
         {
@@ -377,6 +386,7 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
             cudaMemAdvise(m_counters.get()+idev*m_counters.getPitch(), sizeof(hpmc_counters_t)*m_counters.getPitch(), cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             cudaMemPrefetchAsync(m_counters.get()+idev*m_counters.getPitch(), sizeof(hpmc_counters_t)*m_counters.getPitch(), gpu_map[idev]);
             }
+        CHECK_CUDA_ERROR();
         }
     #endif
 
@@ -497,6 +507,9 @@ void IntegratorHPMCMonoGPU< Shape >::updateGPUAdvice()
 
             cudaMemAdvise(m_reject_out.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             cudaMemPrefetchAsync(m_reject_out.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
+
+            cudaMemAdvise(m_reject_out_of_cell.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemPrefetchAsync(m_reject_out_of_cell.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
 
             if (this->m_patch && !this->m_patch_log)
                 {
@@ -1076,6 +1089,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     ArrayHandle<unsigned int> d_reject_out(m_reject_out, access_location::device, access_mode::overwrite);
                     ArrayHandle<unsigned int> d_nneigh(m_nneigh, access_location::device, access_mode::read);
                     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::read);
+                    ArrayHandle<unsigned int> d_condition(m_condition, access_location::device, access_mode::overwrite);
 
                     // patch energy
                     ArrayHandle<unsigned int> d_nlist_patch_old(m_nlist_patch_old, access_location::device, access_mode::read);
@@ -1088,16 +1102,9 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     ArrayHandle<float> d_energy_new(m_energy_new, access_location::device, access_mode::read);
 
                     // reset condition flag
-                    unsigned int *flags[this->m_exec_conf->getNumActiveGPUs()];
-                    this->m_exec_conf->beginMultiGPU();
-                    auto& gpu_map = this->m_exec_conf->getGPUIds();
-                    for (int idev = this->m_exec_conf->getNumActiveGPUs()-1; idev >= 0; --idev)
-                        {
-                        hipSetDevice(gpu_map[idev]);
-                        m_condition[idev].resetFlags(0);
-                        flags[idev] = m_condition[idev].getDeviceFlags();
-                        }
-                    this->m_exec_conf->endMultiGPU();
+                    hipMemsetAsync(d_condition.data, 0, sizeof(unsigned int));
+                    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                        CHECK_CUDA_ERROR();
 
                     this->m_exec_conf->beginMultiGPU();
                     m_tuner_accept->begin();
@@ -1123,7 +1130,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         d_energy_old.data,
                         d_energy_new.data,
                         m_maxn_patch,
-                        flags,
+                        d_condition.data,
                         this->m_seed,
                         this->m_exec_conf->getRank()*this->m_nselect + i,
                         timestep,
@@ -1134,23 +1141,16 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         CHECK_CUDA_ERROR();
                     m_tuner_accept->end();
                     this->m_exec_conf->endMultiGPU();
-                    }
 
+                    }
                 // update reject flags
                 std::swap(m_reject,  m_reject_out);
 
-                this->m_exec_conf->beginMultiGPU();
-                auto& gpu_map = this->m_exec_conf->getGPUIds();
-                done = true;
-                for (int idev = this->m_exec_conf->getNumActiveGPUs()-1; idev >= 0; --idev)
                     {
-                    hipSetDevice(gpu_map[idev]);
-                    if (m_condition[idev].readFlags())
-                        {
-                        done = false;
-                        }
+                    ArrayHandle<unsigned int> h_condition(m_condition, access_location::host, access_mode::read);
+                    if (*h_condition.data == 0)
+                        done = true;
                     }
-                this->m_exec_conf->endMultiGPU();
                 } //end while (!done)
 
                 {
@@ -1397,7 +1397,7 @@ void IntegratorHPMCMonoGPU< Shape >::initializeExcellMem()
     m_excell_idx.resize(m_excell_list_indexer.getNumElements());
     m_excell_size.resize(num_cells);
 
-    #ifdef __HIP_PLATFORM_NVCC__
+    #if defined(__HIP_PLATFORM_NVCC__) && 0 // excell is currently not multi-GPU optimized, let the CUDA driver figure this out
     if (this->m_exec_conf->allConcurrentManagedAccess())
         {
         // set memory hints
