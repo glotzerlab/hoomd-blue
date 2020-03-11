@@ -30,46 +30,6 @@ def listify(s):
 # \brief Internal flag tracking if status lines should be quieted
 _status_quiet_count = 0
 
-def cuda_profile_start():
-    """ Start CUDA profiling.
-
-    When using nvvp to profile CUDA kernels in hoomd jobs, you usually don't care about all the initialization and
-    startup. cuda_profile_start() allows you to not even record that. To use, uncheck the box "start profiling on
-    application start" in your nvvp session configuration. Then, call cuda_profile_start() in your hoomd script when
-    you want nvvp to start collecting information.
-
-    Example::
-
-        from hoomd import *
-        init.read_xml("init.xml")
-        # setup....
-        run(30000);  # warm up and auto-tune kernel block sizes
-        option.set_autotuner_params(enable=False);  # prevent block sizes from further autotuning
-        cuda_profile_start()
-        run(100)
-
-    """
-    # check if initialization has occurred
-    if not hoomd.init.is_initialized():
-        raise RuntimeError("Cannot start profiling before initialization\n")
-
-    if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-        hoomd.context.current.device.cpp_exec_conf.cudaProfileStart()
-
-def cuda_profile_stop():
-    """ Stop CUDA profiling.
-
-        See Also:
-            :py:func:`cuda_profile_start()`.
-    """
-    # check if initialization has occurred
-    if not hoomd.init.is_initialized():
-        hoomd.context.current.device.cpp_msg.error("Cannot stop profiling before initialization\n")
-        raise RuntimeError('Error stopping profile')
-
-    if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-        hoomd.context.current.device.cpp_exec_conf.cudaProfileStop()
-
 
 def to_camel_case(string):
     return string.replace('_', ' ').title().replace(' ', '')

@@ -271,6 +271,28 @@ class GPU(_device):
         """
         return _hoomd.isCUDAAvailable();
 
+    def profile_start(self):
+        """ Start GPU profiling.
+
+        When using GPU profiling tools on HOOMD, select the option to disable
+        profiling on start. Initialize and run a simulation long enough that
+        all autotuners have completed, then call :py:meth:`profile_start` and
+        continue the simulation for a time. Call :py:meth:`profile_stop` before
+        exiting so that the profiler can save results.
+        """
+
+        self.cpp_exec_conf.hipProfileStart()
+
+    def profile_stop(self):
+        """ Stop GPU profiling.
+
+            See Also:
+                :py:func:`cuda_profile_start()`.
+        """
+
+        self.cpp_exec_conf.hipProfileStop()
+
+
 class CPU(_device):
     """
     Run simulations on a CPU
@@ -296,6 +318,7 @@ class CPU(_device):
                                                            False,
                                                            self.comm.cpp_mpi_conf,
                                                            self.cpp_msg)
+
 
 class Auto(_device):
     """
