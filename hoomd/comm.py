@@ -9,9 +9,10 @@ Use methods in this module to query the number of MPI ranks, the current rank, e
 """
 
 from hoomd import _hoomd
-import hoomd;
+import hoomd
 
-import sys;
+import contextlib
+import sys
 
 
 class decomposition(object):
@@ -379,3 +380,29 @@ class Communicator(object):
         if _hoomd.is_MPI_available():
             self.cpp_mpi_conf.barrier()
 
+    @contextlib.contextmanager
+    def localize_abort(self):
+        """ Localize MPI_Abort to this partition.
+
+        HOOMD calls MPI_Abort to tear down all running MPI processes whenever
+        there is an uncaught exception. By default, this will abort the entire
+        MPI execution. When using partitions (``nrank not None``), an uncaught
+        exception on one partition will therefore abort all of them.
+
+        Use the return value of :py:meth:`localize_abort()` as a context manager
+        to tell HOOMD that all operations within the context will use only
+        that MPI communicator so that an uncaught exception in one partition
+        will only abort that partition and leave the others running.
+        """
+
+        global _current_communicator
+        prev = _current_communicator
+
+        _current_communicator = self
+        yield None
+        _current_communicator = prev
+
+# store the "current" communicator to be used for MPI_Abort calls. This defaults
+# to the world communicator, but users can opt in to a more specific
+# communicator using the partition_localized_errors context manager
+_current_communicator = Communicator()
