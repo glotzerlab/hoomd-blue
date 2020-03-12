@@ -304,7 +304,6 @@ set(files analyze.py
           hdf5.py
           simulation.py
           state.py
-	  sorter.py
           syncedlist.py
           parameterdicts.py
           trigger.py
