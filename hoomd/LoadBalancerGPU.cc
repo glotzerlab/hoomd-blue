@@ -25,8 +25,9 @@ namespace py = pybind11;
  * \param decomposition Domain decomposition
  */
 LoadBalancerGPU::LoadBalancerGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                 std::shared_ptr<DomainDecomposition> decomposition)
-    : LoadBalancer(sysdef, decomposition)
+                                 std::shared_ptr<DomainDecomposition> decomposition,
+                                 std::shared_ptr<Trigger> trigger)
+    : LoadBalancer(sysdef, decomposition, trigger)
     {
     // allocate data connected to the maximum number of particles
     m_pdata->getMaxParticleNumberChangeSignal().connect<LoadBalancerGPU, &LoadBalancerGPU::slotMaxNumChanged>(this);
