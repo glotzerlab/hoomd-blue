@@ -13,9 +13,7 @@
 #ifndef __OBB_H__
 #define __OBB_H__
 
-#ifndef __CUDACC_RTC__
 #include <cfloat>
-#endif
 
 #ifndef __HIPCC__
 #include <algorithm>
