@@ -73,6 +73,7 @@ from hoomd.state import State
 from hoomd.operations import Operations
 from hoomd.snapshot import Snapshot
 from hoomd.logger import Logger
+from hoomd import tuner
 
 from hoomd._hoomd import WalltimeLimitReached;
 
