@@ -33,7 +33,7 @@ def check_dict(shape_dict, args):
                     else:
                         assert shape_args[shape_key] == shape_val
         else:
-            assert shape_dict[key] == val
+            np.testing.assert_almost_equal(shape_dict[key], val)
 
 
 def test_dict_conversion(shape_dict_conversion_args):
@@ -147,3 +147,64 @@ def test_overlaps_sphere(device, lattice_simulation_factory, sphere_valid_args):
         print(args)
         print(s.particles.position)
         assert mc.overlaps == 1
+
+
+def test_overlaps_convex_polygon(device,
+                                 lattice_simulation_factory,
+                                 convex_polygon_valid_args):
+    for args in convex_polygon_valid_args():
+        ell = construct_ellipsoid(args)
+        # print(ell)
+        abc_list = [(ell[0], 0), (0, ell[1])]
+        for i in range(len(abc_list)):
+            abc = abc_list[i]
+            mc = hoomd.hpmc.integrate.ConvexPolygon(23456)
+            mc.shape["A"] = args
+            # Should overlap when polygons are less than one "diameter" apart
+            sim = lattice_simulation_factory(dimensions=2,
+                                             n=(2, 1),
+                                             a=0.25)
+            sim.operations.add(mc)
+            gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/test_dump_polygon.gsd', trigger=1, overwrite=True)
+            gsd_logger = hoomd.logger.Logger()
+            gsd_logger += mc
+            gsd_dumper.log = gsd_logger
+            sim.operations.add(gsd_dumper)
+            sim.operations.schedule()
+            init_pos = sim.state.snapshot.particles.position
+            sim.run(1)
+            s = sim.state.snapshot
+            if s.exists:
+                s.particles.position[:] = init_pos
+            sim.state.snapshot = s
+            assert mc.overlaps > 0
+
+            # Should not overlap when polygons are larger than one "diameter"
+            # apart
+            s = sim.state.snapshot
+            if s.exists:
+                s.particles.position[0] = (0, 0, 0)
+                s.particles.position[1] = (abc[0] * 1.1,
+                                           abc[1] * 1.1, 0)
+            sim.state.snapshot = s
+            assert mc.overlaps == 0
+
+            # Should barely overlap when polygons are exactly than one
+            # "diameter" apart
+            s = sim.state.snapshot
+            if s.exists:
+                s.particles.position[0] = (0, 0, 0)
+                s.particles.position[1] = (abc[0] * 0.9999,
+                                           abc[1] * 0.9999, 0)
+            sim.state.snapshot = s
+            assert mc.overlaps == 1
+
+
+def construct_ellipsoid(args):
+    """ Function to find how far the shape extends in the x, y, and z directions
+    """
+    vertices = np.array(args["vertices"])
+    # print(vertices)
+    diffs = np.diff(vertices, axis=0)
+    axis_diffs = np.max(abs(diffs), axis=0)
+    return axis_diffs + (2 * args["sweep_radius"])

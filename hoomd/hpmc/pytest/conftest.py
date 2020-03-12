@@ -26,12 +26,12 @@ def convex_polygon_valid_args():
                       'sweep_radius': 0},
                      {'vertices': [(0, 0), (0, 1), (1, 1), (1, 0)],
                       'ignore_statistics': 1,
-                      'sweep_radius': 0.1},
+                      'sweep_radius': 0.0},
                      {'vertices': [(0, 0), (0, 1), (1, 3), (5, 1)],
                       'ignore_statistics': 0,
                       'sweep_radius': 0.3},
-                     {'vertices': [(0, 0), (1, 1), (1, 0), (0, 1),
-                                   (1, 1), (0, 0), (2, 1), (1, 3)],
+                     {'vertices': [(0, 0), (1, 0), (2, 1), (1, 3),
+                                   (0, 1)],
                       'ignore_statistics': 1,
                       'sweep_radius': 0}]
         return args_list
