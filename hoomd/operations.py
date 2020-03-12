@@ -1,6 +1,7 @@
 import hoomd.integrate
 from hoomd.syncedlist import SyncedList
 from hoomd.operation import _Analyzer, _Updater, _Tuner
+from hoomd.tuner import ParticleSorter
 
 
 def list_validation(type_):
@@ -24,12 +25,14 @@ class Operations:
         self._auto_schedule = False
         self._scheduled = False
         self._updaters = SyncedList(list_validation(_Updater),
-                                       triggered_op_conversion)
+                                    triggered_op_conversion)
         self._analyzers = SyncedList(list_validation(_Analyzer),
-                                        triggered_op_conversion)
+                                     triggered_op_conversion)
         self._tuners = SyncedList(list_validation(_Tuner),
                                   lambda x: x._cpp_obj)
         self._integrator = None
+
+        self._tuners.append(ParticleSorter())
 
     def add(self, op):
         if op in self:
