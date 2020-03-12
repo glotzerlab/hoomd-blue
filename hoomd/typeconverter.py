@@ -41,6 +41,14 @@ class _HelpValidate:
         return self._postprocess(self._validate(self._preprocess(value)))
 
 
+class _HelpValidateWithNone(_HelpValidate):
+    def __call__(self, value):
+        if value is None:
+            return value
+        else:
+            return super().__call__(value)
+
+
 class OnlyType(_HelpValidate):
     def __init__(self, type_, strict=False, preprocess=None, postprocess=None):
         super().__init__(preprocess, postprocess)
@@ -61,12 +69,24 @@ class OnlyType(_HelpValidate):
                                  "".format(value, self.type))
 
 
-class OnlyTypeValidNone(OnlyType):
+class OnlyTypeValidNone(_HelpValidateWithNone):
+    def __init__(self, type_, strict=False, preprocess=None, postprocess=None):
+        self.type = type_
+        self.strict = strict
+        super().__init__(preprocess, postprocess)
+
     def _validate(self, value):
-        if value is None:
-            return None
+        if isinstance(value, self.type):
+            return value
+        elif self.strict:
+            raise ValueError("value {} not instance of type {}."
+                             "".format(value, self.type))
         else:
-            super()._validate(value)
+            try:
+                return self.type(value)
+            except Exception:
+                raise ValueError("value {} not convertible into type {}."
+                                 "".format(value, self.type))
 
 
 class OnlyFrom(_HelpValidate):
