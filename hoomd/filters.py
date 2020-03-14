@@ -3,23 +3,15 @@ import numpy as np
 
 
 class ParticleFilter:
-
     def __init__(self, *args, **kwargs):
-        args_str = ''.join([repr(arg) if not isinstance(arg, np.ndarray)
-                            else arg.tostring() for arg in args])
-        kwargs_str = ''.join([repr(value) if not isinstance(value, np.ndarray)
-                             else value.tostring()
-                             for value in kwargs.values()])
-        self.args_str = args_str
-        self.kwargs_str = kwargs_str
-        _id = hash(self.__class__.__name__ + args_str + kwargs_str)
-        self._id = _id
+        self._id = self._get_id(*args, **kwargs)
 
     def __hash__(self):
         return self._id
 
     def __eq__(self, other):
-        return self._id == other._id
+        raise NotImplementedError(
+            "Equality between {} is not defined.".format(self.__class__))
 
     def __str__(self):
         return "ParticleFilter.{}".format(self.__class__.__name__)
@@ -28,11 +20,26 @@ class ParticleFilter:
         '''Needs to interact with state to get particles across MPI rank.'''
         raise NotImplementedError
 
+    def _compute_id(self, *args, **kwargs):
+        raise NotImplementedError(
+            "_compute_id for {} is not defined.".format(self.__class__))
+
+    @property
+    def id(self):
+        return self._id
+
 
 class All(ParticleFilter, _hoomd.ParticleFilterAll):
     def __init__(self):
         ParticleFilter.__init__(self)
         _hoomd.ParticleFilterAll.__init__(self)
+
+    def _compute_id(self):
+        return 0
+
+    @property
+    def id(self):
+        return self._id
 
 
 class Tags(ParticleFilter, _hoomd.ParticleFilterTags):
@@ -41,3 +48,6 @@ class Tags(ParticleFilter, _hoomd.ParticleFilterTags):
             tags = tags.astype(np.uint32)
         ParticleFilter.__init__(self, tags)
         _hoomd.ParticleFilterTags.__init__(self, tags)
+
+    def _compute_id(self, tags):
+        return hash(tags.tobytes())
