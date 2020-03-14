@@ -1,5 +1,6 @@
+from collections import defaultdict
+
 from . import _hoomd
-from hoomd.groups import Groups
 from .data import boxdim
 from hoomd.snapshot import Snapshot
 
@@ -54,7 +55,7 @@ class State:
         else:
             self._cpp_sys_def = _hoomd.SystemDefinition(
                 snapshot._cpp_obj, simulation.device.cpp_exec_conf)
-        self._groups = Groups()
+        self._groups = defaultdict(dict)
 
     @property
     def snapshot(self):
@@ -179,6 +180,10 @@ class State:
         raise NotImplementedError
 
     def add_group(self, filter_):
-        group = self._groups[filter_] = _hoomd.ParticleGroup(
-            self._cpp_sys_def, filter_)
-        return group
+        cls = filter_.__class__
+        if filter_ in self._groups[cls]:
+            return self._groups[cls][filter_]
+        else:
+            group = _hoomd.ParticleGroup(self._cpp_sys_def, filter_)
+            self._groups[cls][filter_] = group
+            return group
