@@ -310,7 +310,6 @@ set(files analyze.py
           typeparam.py
           typeconverter.py
           filters.py
-          groups.py
           snapshot.py
           logger.py
     )
