@@ -37,9 +37,8 @@ class All(ParticleFilter, _hoomd.ParticleFilterAll):
     def _compute_id(self):
         return 0
 
-    @property
-    def id(self):
-        return self._id
+    def __eq__(self, other):
+        return type(self) == type(other)
 
 
 class Tags(ParticleFilter, _hoomd.ParticleFilterTags):
@@ -51,3 +50,6 @@ class Tags(ParticleFilter, _hoomd.ParticleFilterTags):
 
     def _compute_id(self, tags):
         return hash(tags.tobytes())
+
+    def __eq__(self, other):
+        return self.tags == other.tags and type(self) == type(other)
