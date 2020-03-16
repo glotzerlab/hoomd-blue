@@ -88,9 +88,9 @@ std::vector<unsigned int> ParticleFilterTags::getSelectedTags(std::shared_ptr<Sy
 /*! \param typ_min Minimum type id to select (inclusive)
     \param typ_max Maximum type id to select (inclusive)
 */
-ParticleFilterType::ParticleFilterType(unsigned int typ_min,
-                                           unsigned int typ_max)
-    : ParticleFilter(), m_typ_min(typ_min), m_typ_max(typ_max)
+ParticleFilterType::ParticleFilterType(
+        std::unordered_set<std::string> included_types)
+    : ParticleFilter(), m_types(included_types)
     {
     }
 
@@ -105,11 +105,17 @@ std::vector<unsigned int> ParticleFilterType::getSelectedTags(std::shared_ptr<Sy
     // loop through local particles and select those that match selection criterion
     ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_postype(pdata->getPositions(), access_location::host, access_mode::read);
+    std::unordered_set<unsigned int> types(m_types.size());
+    for (auto type_str: m_types)
+        {
+        types.insert(pdata->getTypeByName(type_str));
+        }
+
     for (unsigned int idx = 0; idx < pdata->getN(); ++idx)
         {
         unsigned int tag = h_tag.data[idx];
         unsigned int typ = __scalar_as_int(h_postype.data[idx].w);
-        if (m_typ_min <= typ && typ <= m_typ_max)
+        if (types.count(typ))
             member_tags.push_back(tag);
         }
     return member_tags;
@@ -900,7 +906,7 @@ void export_ParticleGroup(py::module& m)
         ;
 
     py::class_<ParticleFilterType, ParticleFilter, std::shared_ptr<ParticleFilterType> >(m,"ParticleFilterType")
-            .def(py::init< unsigned int, unsigned int >())
+            .def(py::init<std::unordered_set<std::string>>())
         ;
 
     py::class_<ParticleFilterRigid, ParticleFilter, std::shared_ptr<ParticleFilterRigid> >(m,"ParticleFilterRigid")

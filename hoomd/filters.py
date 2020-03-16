@@ -50,3 +50,20 @@ class Tags(ParticleFilter, _hoomd.ParticleFilterTags):
     @property
     def tags(self):
         return self._tags
+
+
+class Types(ParticleFilter, _hoomd.ParticleFilterType):
+    def __init__(self, types):
+        types = set(types)
+        self._types = frozenset(types)
+        _hoomd.ParticleFilterType.__init__(self, types)
+
+    def __hash__(self):
+        return hash(self._types)
+
+    def __eq__(self, other):
+        return self._types == other._types and type(self) == type(other)
+
+    @property
+    def types(self):
+        return self._types
