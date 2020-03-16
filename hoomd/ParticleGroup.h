@@ -15,9 +15,11 @@
 #include "SystemDefinition.h"
 
 #include <string>
+#include <unordered_set>
 #include <memory>
 #include <vector>
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 #include <pybind11/numpy.h>
 
 #include "GlobalArray.h"
@@ -90,14 +92,13 @@ class PYBIND11_EXPORT ParticleFilterType : public ParticleFilter
     {
     public:
         //! Constructs the selector
-        ParticleFilterType(unsigned int typ_min, unsigned int typ_max);
+        ParticleFilterType(std::unordered_set<std::string> included_types);
         virtual ~ParticleFilterType() {}
 
         //! Test if a particle meets the selection criteria
         virtual std::vector<unsigned int> getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
     protected:
-        unsigned int m_typ_min;     //!< Minimum type to select
-        unsigned int m_typ_max;     //!< Maximum type to select (inclusive)
+        std::unordered_set<std::string> m_types;   //!< Set of types to select
     };
 
 //! Select particles in the space defined by a cuboid
