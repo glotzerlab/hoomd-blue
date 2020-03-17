@@ -121,6 +121,76 @@ std::vector<unsigned int> ParticleFilterType::getSelectedTags(std::shared_ptr<Sy
     return member_tags;
     }
 
+// Set operations filter classes. Each takes two filters and performs the
+// correct set operation on the individual filters. This supports arbitrary
+// nesting.
+
+ParticleFilterSetDifference::ParticleFilterSetDifference(
+        std::shared_ptr<ParticleFilter> f, std::shared_ptr<ParticleFilter> g):
+    m_f(f), m_g(g){}
+
+std::vector<unsigned int> ParticleFilterSetDifference::getSelectedTags(
+    std::shared_ptr<SystemDefinition> sysdef) const
+    {
+    // Get tags for f() and g()
+    auto X = m_f->getSelectedTags(sysdef);
+    std::sort(X.begin(), X.end());
+
+    auto Y = m_g->getSelectedTags(sysdef);
+    std::sort(Y.begin(), Y.end());
+
+    // Create vector and get set difference
+    auto tags = std::vector<unsigned int>(X.size());
+    auto it = set_difference(X.begin(), X.end(), Y.begin(), Y.end(),
+                             tags.begin());
+    tags.resize(it - tags.begin());
+    return tags;
+    }
+
+ParticleFilterIntersection::ParticleFilterIntersection(
+        std::shared_ptr<ParticleFilter> f, std::shared_ptr<ParticleFilter> g):
+    m_f(f), m_g(g){}
+
+std::vector<unsigned int> ParticleFilterIntersection::getSelectedTags(
+    std::shared_ptr<SystemDefinition> sysdef) const
+    {
+    // Get tags for f() and g() as sets
+    auto X = m_f->getSelectedTags(sysdef);
+    std::sort(X.begin(), X.end());
+
+    auto Y = m_g->getSelectedTags(sysdef);
+    std::sort(Y.begin(), Y.end());
+
+    // Create vector and get intersection
+    auto tags = std::vector<unsigned int>(std::min(X.size(), Y.size()));
+    auto it = set_intersection(X.begin(), X.end(), Y.begin(), Y.end(),
+                             tags.begin());
+    tags.resize(it - tags.begin());
+    return tags;
+    }
+
+ParticleFilterUnion::ParticleFilterUnion(
+        std::shared_ptr<ParticleFilter> f, std::shared_ptr<ParticleFilter> g):
+    m_f(f), m_g(g){}
+
+std::vector<unsigned int> ParticleFilterUnion::getSelectedTags(
+    std::shared_ptr<SystemDefinition> sysdef) const
+    {
+    // Get tags for f() and g() as sets
+    auto X = m_f->getSelectedTags(sysdef);
+    std::sort(X.begin(), X.end());
+
+    auto Y = m_g->getSelectedTags(sysdef);
+    std::sort(Y.begin(), Y.end());
+
+    // Create vector and get union
+    auto tags = std::vector<unsigned int>(X.size() + Y.size());
+    auto it = set_union(X.begin(), X.end(), Y.begin(), Y.end(),
+                             tags.begin());
+    tags.resize(it - tags.begin());
+    return tags;
+    }
+
 /*! \param sysdef System the particles are to be selected from
     \param rigid true selects particles that are in bodies, false selects particles that are not part of a body
 */
@@ -905,8 +975,29 @@ void export_ParticleGroup(py::module& m)
 			.def(py::init<pybind11::array_t<unsigned int, pybind11::array::c_style> >())
         ;
 
-    py::class_<ParticleFilterType, ParticleFilter, std::shared_ptr<ParticleFilterType> >(m,"ParticleFilterType")
+    py::class_<ParticleFilterType, ParticleFilter,
+               std::shared_ptr<ParticleFilterType> >(m,"ParticleFilterType")
             .def(py::init<std::unordered_set<std::string>>())
+        ;
+
+    py::class_<ParticleFilterSetDifference, ParticleFilter,
+               std::shared_ptr<ParticleFilterSetDifference>
+                   >(m, "ParticleFilterSetDifference")
+            .def(py::init<std::shared_ptr<ParticleFilter>,
+                          std::shared_ptr<ParticleFilter> >())
+        ;
+
+    py::class_<ParticleFilterIntersection, ParticleFilter,
+               std::shared_ptr<ParticleFilterIntersection>
+                   >(m, "ParticleFilterIntersection")
+            .def(py::init<std::shared_ptr<ParticleFilter>,
+                          std::shared_ptr<ParticleFilter> >())
+        ;
+
+    py::class_<ParticleFilterUnion, ParticleFilter,
+               std::shared_ptr<ParticleFilterUnion> >(m, "ParticleFilterUnion")
+            .def(py::init<std::shared_ptr<ParticleFilter>,
+                          std::shared_ptr<ParticleFilter> >())
         ;
 
     py::class_<ParticleFilterRigid, ParticleFilter, std::shared_ptr<ParticleFilterRigid> >(m,"ParticleFilterRigid")

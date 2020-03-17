@@ -169,6 +169,56 @@ class PYBIND11_EXPORT ParticleFilterRigidCenter : public ParticleFilter
         virtual std::vector<unsigned int> getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
     };
 
+class PYBIND11_EXPORT ParticleFilterSetDifference : public ParticleFilter
+    {
+    public:
+        //! Constructs the selector
+        ParticleFilterSetDifference(std::shared_ptr<ParticleFilter> f,
+                                   std::shared_ptr<ParticleFilter> g);
+        virtual ~ParticleFilterSetDifference() {}
+
+        //! Test if a particle meets the selection criteria
+        virtual std::vector<unsigned int> getSelectedTags(
+            std::shared_ptr<SystemDefinition> sysdef) const;
+
+    protected:
+        std::shared_ptr<ParticleFilter> m_f;
+        std::shared_ptr<ParticleFilter> m_g;
+    };
+
+class PYBIND11_EXPORT ParticleFilterIntersection : public ParticleFilter
+    {
+    public:
+        //! Constructs the selector
+        ParticleFilterIntersection(std::shared_ptr<ParticleFilter> f,
+                                   std::shared_ptr<ParticleFilter> g);
+        virtual ~ParticleFilterIntersection() {}
+
+        //! Test if a particle meets the selection criteria
+        virtual std::vector<unsigned int> getSelectedTags(
+            std::shared_ptr<SystemDefinition> sysdef) const;
+
+    protected:
+        std::shared_ptr<ParticleFilter> m_f;
+        std::shared_ptr<ParticleFilter> m_g;
+    };
+
+class PYBIND11_EXPORT ParticleFilterUnion : public ParticleFilter
+    {
+    public:
+        //! Constructs the selector
+        ParticleFilterUnion(std::shared_ptr<ParticleFilter> f,
+                                   std::shared_ptr<ParticleFilter> g);
+        virtual ~ParticleFilterUnion() {}
+
+        //! Test if a particle meets the selection criteria
+        virtual std::vector<unsigned int> getSelectedTags(
+            std::shared_ptr<SystemDefinition> sysdef) const;
+
+    protected:
+        std::shared_ptr<ParticleFilter> m_f;
+        std::shared_ptr<ParticleFilter> m_g;
+    };
 
 //! Describes a group of particles
 /*! \b Overview
