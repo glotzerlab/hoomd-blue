@@ -64,6 +64,7 @@ set(_hoomd_sources Analyzer.cc
                    extern/kiss_fft.cc
                    extern/kiss_fftnd.cc
                    extern/vmdsock.cc
+		   filter/export_filters.cc
                    )
 
 set(_hoomd_headers
@@ -153,6 +154,14 @@ set(_hoomd_headers
     Variant.h
     VectorMath.h
     WarpTools.cuh
+    filter/ParticleFilter.h
+    filter/ParticleFilterAll.h
+    filter/ParticleFilterIntersection.h
+    filter/ParticleFilterSetDifference.h
+    filter/ParticleFilterTags.h
+    filter/ParticleFilterType.h
+    filter/ParticleFilterUnion.h
+    filter/export_filters.h
     )
 
 if (ENABLE_HIP)
