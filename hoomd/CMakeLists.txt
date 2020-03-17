@@ -309,7 +309,6 @@ set(files analyze.py
           trigger.py
           typeparam.py
           typeconverter.py
-          filters.py
           snapshot.py
           logger.py
     )
