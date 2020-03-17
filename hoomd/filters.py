@@ -45,7 +45,7 @@ class Tags(ParticleFilter, _hoomd.ParticleFilterTags):
         return self._id
 
     def __eq__(self, other):
-        return all(self.tags == other.tags) and type(self) == type(other)
+        return type(self) == type(other) and all(self.tags == other.tags)
 
     @property
     def tags(self):
@@ -62,7 +62,7 @@ class Types(ParticleFilter, _hoomd.ParticleFilterType):
         return hash(self._types)
 
     def __eq__(self, other):
-        return self._types == other._types and type(self) == type(other)
+        return type(self) == type(other) and self._types == other._types
 
     @property
     def types(self):
