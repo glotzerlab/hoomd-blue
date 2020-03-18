@@ -86,6 +86,10 @@ struct vec3
             case 2:
                 return z;
         }
+        // This branch is unreachable, but must include something to avoid
+        // compiler warnings and it must be something that can be returned by
+        // reference, so x is as good a choice as any.
+        return x;
     }
 
     DEVICE const Real operator[](unsigned int i) const
@@ -98,6 +102,10 @@ struct vec3
             case 2:
                 return z;
         }
+        // This branch is unreachable, but must include something to avoid
+        // compiler warnings. The return value is chosen to match the non-const
+        // version of the operator.
+        return x;
     }
 
     //! Default construct a 0 vector
