@@ -232,6 +232,8 @@ class EvaluatorPairALJ
                 // GJK(j, i). To prevent any such problems, we choose i and j
                 // such that tag_i < tag_j.
                 vec3<Scalar> v = vec3<Scalar>(), a = vec3<Scalar>(), b = vec3<Scalar>();
+                vec3<Scalar> support_vectors1[ndim+1], support_vectors2[ndim+1];
+                bool closest_is_vertex1, closest_is_vertex2;
                     {
                     // Create local scope to avoid polluting the local scope
                     // with many unnecessary variables after GJK is done.
@@ -246,7 +248,7 @@ class EvaluatorPairALJ
                     //    - v points from the contact point on verts2 to the contact points on verts1.
                     //    - a points from the centroid of verts1 to the contact points on verts1.
                     //    - b points from the centroid of verts2 to the contact points on verts2.
-                    gjk<ndim>(verts1, verts2, v, a, b, success, overlap, q1, q2, dr_use, shape_i->rounding_radii, shape_j->rounding_radii, shape_i->has_rounding, shape_j->has_rounding);
+                    gjk<ndim>(verts1, verts2, v, a, b, success, overlap, q1, q2, dr_use, shape_i->rounding_radii, shape_j->rounding_radii, shape_i->has_rounding, shape_j->has_rounding, closest_is_vertex1, closest_is_vertex2, support_vectors1, support_vectors2);
                     assert(success && !overlap);
 
                     if (flip)
@@ -254,6 +256,21 @@ class EvaluatorPairALJ
                         vec3<Scalar> a_tmp = a;
                         a = b - dr;
                         b = a_tmp - dr;
+
+                        // Also swap all the other positions. It's fine to go
+                        // all the way to ndim+1, because we won't use the
+                        // extra one if we don't need it (based on
+                        // closest_is_vertex[12]).
+                        for (unsigned int i = 0; i < (ndim+1); ++i)
+                            {
+                            vec3<Scalar> tmp = support_vectors1[i];
+                            support_vectors1[i] = support_vectors2[i] - dr;
+                            support_vectors2[i] = tmp - dr;
+                            }
+
+                        bool tmp_closest = closest_is_vertex1;
+                        closest_is_vertex1 = closest_is_vertex2;
+                        closest_is_vertex2 = tmp_closest;
                         }
                     else
                         {
@@ -261,18 +278,24 @@ class EvaluatorPairALJ
                         // returned from GJK is from verts2->verts1.
                         v *= Scalar(-1.0);
                         }
+
                     }
                 if (ndim == 2)
                     {
                     v.z = 0;
                     a.z = 0;
                     b.z = 0;
+                    for (unsigned int i = 0; i < (ndim+1); ++i)
+                        {
+                        support_vectors1[i].z = 0;
+                        support_vectors2[i].z = 0;
+                        }
                     }
 
                 Scalar sigma12 = Scalar(0.5) * (_params.sigma_i + _params.sigma_j);
 
                 Scalar contact_sphere_radius_multiplier = 0.15;
-                Scalar contact_sphere_radius = contact_sphere_radius_multiplier * sigma12;
+                Scalar contact_sphere_diameter = contact_sphere_radius_multiplier * sigma12;
                 const Scalar two_p_16 = 1.12246204831;  // 2^(1/6)
                 const Scalar shift_rho_diff = -0.25; // (1/(2^(1/6)))**12 - (1/(2^(1/6)))**6
 
@@ -289,13 +312,12 @@ class EvaluatorPairALJ
                 invr_6 = invr_rsq*invr_rsq*invr_rsq;
                 Scalar invr_12 = invr_6*invr_6;
                 Scalar denom = invr_12 - invr_6 - shift_rho_diff;
-		Scalar scale_factor = denom != 0 ? (numer/denom) : 1;
+                Scalar scale_factor = denom != 0 ? (numer/denom) : 1;
 
                 Scalar four_epsilon = Scalar(4.0) * _params.epsilon;
                 Scalar four_scaled_epsilon = four_epsilon * scale_factor;
 
                 // Define relevant vectors
-                Scalar invnorm_v = fast::rsqrt(dot(v, v));
                 Scalar f_scalar = 0;
                 Scalar f_scalar_contact = 0;
 
@@ -321,25 +343,56 @@ class EvaluatorPairALJ
                 // including the attractive component. For pure repulsive
                 // (WCA), we only need to compute it if we are within the
                 // limited cutoff associated with the contact point.
-                if ((_params.alpha / 2 != 0) || (1 < two_p_16*contact_sphere_radius*invnorm_v))
+                vec3<Scalar> f_contact, torquei, torquej;
+                // TODO: This logic is currently wrong because you should also
+                // go inside the if any time the distance is close enough.
+                // However, we don't want to unnecessarily precalculate the
+                // distance either. I'll optimize later, for now I'll just do
+                // all the calcs.
+                // printf("The dr is (%f, %f, %f).\n", dr.x, dr.y, dr.z);
+                // printf("The a is (%f, %f, %f).\n", a.x, a.y, a.z);
+                // printf("The b is (%f, %f, %f).\n", b.x, b.y, b.z);
+                // printf("The v is (%f, %f, %f).\n", v.x, v.y, v.z);
+                unsigned int max_i = closest_is_vertex1 ? ndim : (ndim + 1);
+                unsigned int max_j = closest_is_vertex2 ? ndim : (ndim + 1);
+                // printf("max_i: %d, max_j: %d.\n", max_i, max_j);
+                for (unsigned int i = 0; i < max_i; ++i)
                     {
-                    // Contact force and energy
-                    rho = contact_sphere_radius * invnorm_v;
-                    invr_rsq = rho*rho;
-                    invr_6 = invr_rsq*invr_rsq*invr_rsq;
-                    invr_12 = invr_6*invr_6;
-                    pair_eng += four_epsilon * (invr_12 - invr_6);
-                    f_scalar_contact = four_epsilon * (Scalar(12.0)*invr_12 - Scalar(6.0)*invr_6) * invnorm_v;
-
-                    // For the WCA case
-                    if (_params.alpha / 2 == 0)
+                    for (unsigned int j = 0; j < max_j; ++j)
                         {
-                        pair_eng -= four_epsilon * shift_rho_diff;
+                        vec3<Scalar> vec = support_vectors2[j] - support_vectors1[i];
+                        Scalar dist = sqrt(dot(vec, vec));
+                        // printf("Testing (%f, %f, %f) and (%f, %f, %f).\n", support_vectors1[i].x, support_vectors1[i].y, support_vectors1[i].z, support_vectors2[j].x, support_vectors2[j].y, support_vectors2[j].z);
+                        // printf("The vec is (%f, %f, %f), the dist is %f, and the cutoff is %f.\n", vec.x, vec.y, vec.z, dist, two_p_16*contact_sphere_diameter);
+                        if ((_params.alpha / 2 != 0) || (dist < two_p_16*contact_sphere_diameter))
+                            {
+                            // printf("Actually computing.\n");
+                            // Contact force and energy
+                            rho = contact_sphere_diameter / dist;
+                            invr_rsq = rho*rho;
+                            invr_6 = invr_rsq*invr_rsq*invr_rsq;
+                            invr_12 = invr_6*invr_6;
+                            pair_eng += four_epsilon * (invr_12 - invr_6);
+                            f_scalar_contact = four_epsilon * (Scalar(12.0)*invr_12 - Scalar(6.0)*invr_6) / dist;
+                            vec3<Scalar> f_contact_tmp = -f_scalar_contact * vec / dist;
+                            f_contact += f_contact_tmp;
+                            vec3<Scalar> torquei_tmp = cross(support_vectors1[i], f_contact_tmp);
+                            vec3<Scalar> torquej_tmp = cross(dr + support_vectors2[j], Scalar(-1.0) * f_contact_tmp);
+                            torquei += torquei_tmp;
+                            torquej += torquej_tmp;
+
+                            // For the WCA case
+                            if (_params.alpha / 2 == 0)
+                                {
+                                pair_eng -= four_epsilon * shift_rho_diff;
+                                }
+                            // printf("Energy: %f. Force: (%f, %f, %f). Torquei: (%f, %f, %f). Torquej: (%f, %f, %f).\n", pair_eng, f_contact_tmp.x, f_contact_tmp.y, f_contact_tmp.z, torquei_tmp.x, torquei_tmp.y, torquei_tmp.z, torquej_tmp.x, torquej_tmp.y, torquej_tmp.z);
+                            }
                         }
                     }
 
                 // Net force
-                vec3<Scalar> f_contact = -f_scalar_contact * v * invnorm_v;
+                // vec3<Scalar> f_contact = -f_scalar_contact * v * invnorm_v;
                 vec3<Scalar> f = f_scalar * (dr / r) + f_contact;
                 if (ndim == 2)
                     {
@@ -348,8 +401,8 @@ class EvaluatorPairALJ
                 force = vec_to_scalar3(f);
 
                 // Torque
-                torque_i = vec_to_scalar3(cross(a, f_contact));
-                torque_j = vec_to_scalar3(cross(dr + b, Scalar(-1.0) * f_contact));
+                torque_i = vec_to_scalar3(torquei);
+                torque_j = vec_to_scalar3(torquej);
 
                 return true;
                 }

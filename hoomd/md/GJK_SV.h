@@ -43,6 +43,43 @@ HOSTDEVICE inline void support_polyhedron(const ManagedArray<vec3<Scalar> > &ver
     }
 
 
+// Version of the support function that returns the maximal simplex, not just the maximal point.
+template <unsigned int ndim>
+HOSTDEVICE inline void support_polyhedron(const ManagedArray<vec3<Scalar> > &verts, const vec3<Scalar> &vector, const Scalar mat[3][3], const vec3<Scalar> shift, vec3<Scalar> (&support_vectors)[ndim+1])
+    {
+    // Choose arbitrarily large negative value for starting point because numeric limits are not available on the GPU.
+    Scalar distances[ndim];
+    for (unsigned int i = 0; i < ndim; ++i)
+        distances[i] = Scalar(-1e8);
+
+    vec3<Scalar> rot_shift_vec = rotate(mat, verts[0]) + shift;
+    support_vectors[0] = rot_shift_vec;
+    distances[0] = dot(rot_shift_vec, vector);
+
+    for (unsigned int i = 1; i < verts.size(); ++i)
+        {
+        rot_shift_vec = rotate(mat, verts[i]) + shift;
+        Scalar dist = dot(rot_shift_vec, vector);
+        unsigned int insertion_index = (dist > distances[0] ? 0 : (dist > distances[1] ? 1 : 2 ));
+        if (ndim == 3 && dist <= distances[2])
+            {
+            insertion_index = 3;
+            }
+
+        if (insertion_index < ndim)
+            {
+            for (unsigned int j = (ndim-1); j > insertion_index; --j)
+                {
+                support_vectors[j] = support_vectors[j-1];
+                distances[j] = distances[j-1];
+                }
+            support_vectors[insertion_index] = rot_shift_vec;
+            distances[insertion_index] = dist;
+            }
+        }
+    }
+
+
 HOSTDEVICE inline void support_ellipsoid(const vec3<Scalar> &rounding_radii, const vec3<Scalar> &vector, const quat<Scalar> &q, vec3<Scalar> &ellipsoid_support_vector)
     {
     // Compute the support function of the rounding ellipsoid. Since we only
@@ -599,7 +636,7 @@ HOSTDEVICE inline void sv_subalgorithm(vec3<Scalar>* W, unsigned int &W_used, Sc
  *  \param dr The vector pointing from the position of particle 2 to the position of particle 1 (note the sign; this is reversed throughout most of the calculations below).
  */
 template <unsigned int ndim>
-HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const ManagedArray<vec3<Scalar> > &verts2, vec3<Scalar> &v, vec3<Scalar> &a, vec3<Scalar> &b, bool& success, bool& overlap, const quat<Scalar> &qi, const quat<Scalar> &qj, const vec3<Scalar> &dr, const vec3<Scalar> &rounding_radii1, const vec3<Scalar> &rounding_radii2, bool has_rounding1, bool has_rounding2)
+HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const ManagedArray<vec3<Scalar> > &verts2, vec3<Scalar> &v, vec3<Scalar> &a, vec3<Scalar> &b, bool& success, bool& overlap, const quat<Scalar> &qi, const quat<Scalar> &qj, const vec3<Scalar> &dr, const vec3<Scalar> &rounding_radii1, const vec3<Scalar> &rounding_radii2, bool has_rounding1, bool has_rounding2, bool &closest_is_vertex1, bool &closest_is_vertex2, vec3<Scalar> (&support_vectors1)[ndim+1], vec3<Scalar> (&support_vectors2)[ndim+1])
     {
     // At any point only a subset of W is in use (identified by W_used), but
     // the total possible is capped at ndim+1 because that is the largest
@@ -851,6 +888,48 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
         }
 
     overlap = (counter == max_num_points);
+
+    // TODO: Generalize to 3D if this works.
+    // TODO: Make sure this doesn't break ellipsoids.
+    // Find the points to use for calculating the maximal simplex (the simplex
+    // containing the contact point that also contains the other points closest
+    // to the other shape).
+    // Unsure if this needs to be with dr or v. I think dr is technically more
+    // correct, but the cases where they'll give different answers (near to
+    // corner-corner contacts) probably never result in the extra contacts
+    // being meaningful anyway. May need to test this though.
+    support_polyhedron<ndim>(verts1, -dr, mati, vec3<Scalar>(0, 0, 0), support_vectors1);
+    support_polyhedron<ndim>(verts2, dr, matj, Scalar(-1.0)*dr, support_vectors2);
+    // At least one of the contact points is guaranteed to be a vertex. In the
+    // perfectly parallel case (which should be essentially impossible, I'm
+    // assuming it's effectively a set of measure 0), both a and be will be
+    // vertices. We need to avoid double counting that for force computations,
+    // so we only add the contact point to one of these lists if it's not
+    // already there in the form of one of the endpoints.
+    closest_is_vertex1 = false, closest_is_vertex2 = false;
+    for (unsigned int i = 0; i < ndim; ++i)
+        {
+        // TODO: May have to introduce a tolerance here in case the lambdas
+        // don't strictly sum to one (within precision).
+        if (dot(a, support_vectors1[i]) < 1e-6)
+            closest_is_vertex1 = true;
+        if (dot(b, support_vectors2[i]) < 1e-6)
+            closest_is_vertex2 = true;
+        }
+
+    if (!closest_is_vertex1)
+        support_vectors1[ndim] = a;
+    if (!closest_is_vertex2)
+        support_vectors2[ndim] = b;
+
+    printf("Printing the support vectors in GJK:\n");
+    for (unsigned int i = 0; i < ndim+1; ++i)
+    {
+        printf("\tsupport_vectors1[%d] = (%f, %f, %f)\n", i, support_vectors1[i].x, support_vectors1[i].y, support_vectors1[i].z);
+        printf("\tsupport_vectors2[%d] = (%f, %f, %f)\n", i, support_vectors2[i].x, support_vectors2[i].y, support_vectors2[i].z);
+    }
+    printf("The bools: %d, %d.\n", closest_is_vertex1, closest_is_vertex2);
+
     }
 
 #endif // __GJK_SV_H__
