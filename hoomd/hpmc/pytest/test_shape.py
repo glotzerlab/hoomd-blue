@@ -154,7 +154,7 @@ def test_overlaps_convex_polygon(device,
                                  convex_polygon_valid_args):
     for args in convex_polygon_valid_args():
         ell = construct_ellipsoid(args)
-        # print(ell)
+        args["ignore_statistics"] = 0
         abc_list = [(ell[0], 0), (0, ell[1])]
         for i in range(len(abc_list)):
             abc = abc_list[i]
@@ -165,20 +165,8 @@ def test_overlaps_convex_polygon(device,
                                              n=(2, 1),
                                              a=0.25)
             sim.operations.add(mc)
-            gsd_dumper = hoomd.dump.GSD(filename='/Users/danevans/hoomd/test_dump_polygon.gsd', trigger=1, overwrite=True)
-            gsd_logger = hoomd.logger.Logger()
-            gsd_logger += mc
-            gsd_dumper.log = gsd_logger
-            sim.operations.add(gsd_dumper)
             sim.operations.schedule()
-            init_pos = sim.state.snapshot.particles.position
-            sim.run(1)
-            s = sim.state.snapshot
-            if s.exists:
-                s.particles.position[:] = init_pos
-            sim.state.snapshot = s
             assert mc.overlaps > 0
-
             # Should not overlap when polygons are larger than one "diameter"
             # apart
             s = sim.state.snapshot
