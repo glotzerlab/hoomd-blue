@@ -26,6 +26,7 @@ Attributes:
     msg_file (str): The name of the file to write messages. Set this property to None to write to stdout/stderr.
 """
 
+import contextlib
 import os
 import time
 import hoomd
@@ -271,26 +272,27 @@ class GPU(_device):
         """
         return _hoomd.isCUDAAvailable();
 
-    def profile_start(self):
-        """ Start GPU profiling.
+    @contextlib.contextmanager
+    def enable_profiling(self):
+        """ Enable GPU profiling.
 
         When using GPU profiling tools on HOOMD, select the option to disable
         profiling on start. Initialize and run a simulation long enough that
-        all autotuners have completed, then call :py:meth:`profile_start` and
-        continue the simulation for a time. Call :py:meth:`profile_stop` before
-        exiting so that the profiler can save results.
+        all autotuners have completed, then open :py:func:`enable_profiling()`
+        as a context manager and continue the simulation for a time. Profiling
+        stops when the context manager closes.
+
+        Example::
+
+            with device.enable_profiling():
+                sim.run(1000)
         """
 
-        self.cpp_exec_conf.hipProfileStart()
-
-    def profile_stop(self):
-        """ Stop GPU profiling.
-
-            See Also:
-                :py:func:`cuda_profile_start()`.
-        """
-
-        self.cpp_exec_conf.hipProfileStop()
+        try:
+            self.cpp_exec_conf.hipProfileStart()
+            yield None
+        finally:
+            self.cpp_exec_conf.hipProfileStop()
 
 
 class CPU(_device):
