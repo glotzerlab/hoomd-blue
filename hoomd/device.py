@@ -333,6 +333,8 @@ class Auto(_device):
         msg_file (str): Name of file to write messages to
         shared_msg_file (str): (MPI only) Name of shared file to write message to (append partition #)
         notice_level (int): Minimum level of notice messages to print
+
+    TODO: convert this to a function that produces a GPU or CPU device.
     """
 
     def __init__(self, nthreads=None, communicator=None, msg_file=None, shared_msg_file=None, notice_level=2):
