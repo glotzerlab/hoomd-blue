@@ -278,7 +278,7 @@ class GPU(_device):
 
         When using GPU profiling tools on HOOMD, select the option to disable
         profiling on start. Initialize and run a simulation long enough that
-        all autotuners have completed, then open :py:func:`enable_profiling()`
+        all autotuners have completed, then open :py:func:`enable_profiling`
         as a context manager and continue the simulation for a time. Profiling
         stops when the context manager closes.
 
