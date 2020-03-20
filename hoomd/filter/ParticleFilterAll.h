@@ -20,20 +20,17 @@ class PYBIND11_EXPORT ParticleFilterAll : public ParticleFilter
         virtual std::vector<unsigned int> getSelectedTags(
                 std::shared_ptr<SystemDefinition> sysdef) const
         {
-        std::vector<unsigned int> member_tags;
-        auto pdata = sysdef->getParticleData();
+        const auto pdata = sysdef->getParticleData();
 
         // loop through local particles and select those that match selection
         // criterion
-        ArrayHandle<unsigned int> h_tag(pdata->getTags(),
-                                        access_location::host,
-                                        access_mode::read);
+        const ArrayHandle<unsigned int> h_tag(pdata->getTags(),
+                                              access_location::host,
+                                              access_mode::read);
 
-        for (unsigned int idx = 0; idx < pdata->getN(); ++idx)
-            {
-            unsigned int tag = h_tag.data[idx];
-            member_tags.push_back(tag);
-            }
+        const auto N = pdata->getN();
+        std::vector<unsigned int> member_tags(N);
+        std::copy_n(h_tag.data, N, member_tags.begin());
         return member_tags;
         }
 
