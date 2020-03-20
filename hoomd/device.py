@@ -274,7 +274,7 @@ class GPU(_device):
 
     @contextlib.contextmanager
     def enable_profiling(self):
-        """ Enable GPU profiling.
+        """Enable GPU profiling.
 
         When using GPU profiling tools on HOOMD, select the option to disable
         profiling on start. Initialize and run a simulation long enough that
