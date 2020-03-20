@@ -80,8 +80,7 @@ from hoomd._hoomd import WalltimeLimitReached
 _default_excepthook = sys.excepthook
 
 def _hoomd_sys_excepthook(type, value, traceback):
-    """ Override pythons except hook to abort MPI runs
-    """
+    """Override Python's excepthook to abort MPI runs."""
     _default_excepthook(type, value, traceback)
     sys.stderr.flush()
     _hoomd.abort_mpi(comm._current_communicator.cpp_mpi_conf, 1)
