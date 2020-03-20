@@ -1286,7 +1286,7 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
 
     interpolateForces();
 
-    if (flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial])
+    if (flags[pdata_flag::pressure_tensor])
         {
         computeVirial();
         }

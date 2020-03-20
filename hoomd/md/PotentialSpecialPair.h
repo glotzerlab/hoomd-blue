@@ -261,7 +261,7 @@ void PotentialSpecialPair< evaluator >::computeForces(unsigned int timestep)
     const BoxDim& box = m_pdata->getGlobalBox();
 
     PDataFlags flags = this->m_pdata->getFlags();
-    bool compute_virial = flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial];
+    bool compute_virial = flags[pdata_flag::pressure_tensor];
 
     Scalar bond_virial[6];
     for (unsigned int i = 0; i< 6; i++)

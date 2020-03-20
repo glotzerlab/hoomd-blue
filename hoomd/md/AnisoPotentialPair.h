@@ -505,7 +505,7 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
     memset(&h_virial.data[0] , 0, sizeof(Scalar)*m_virial.getNumElements());
 
     PDataFlags flags = this->m_pdata->getFlags();
-    bool compute_virial = flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial];
+    bool compute_virial = flags[pdata_flag::pressure_tensor];
 
     // for each particle
     for (int i = 0; i < (int)m_pdata->getN(); i++)

@@ -665,7 +665,7 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
 
     PDataFlags flags = this->m_pdata->getFlags();
-    bool compute_virial = flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial];
+    bool compute_virial = flags[pdata_flag::pressure_tensor];
 
     // need to start from a zero force, energy and virial
     memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());

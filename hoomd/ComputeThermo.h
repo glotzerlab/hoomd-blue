@@ -143,7 +143,7 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
             {
             // return NaN if the flags are not valid
             PDataFlags flags = m_pdata->getFlags();
-            if (flags[pdata_flag::isotropic_virial])
+            if (flags[pdata_flag::pressure_tensor])
                 {
                 // return the pressure
                 #ifdef ENABLE_MPI
