@@ -80,7 +80,6 @@ struct pdata_flag
     enum Enum
         {
         isotropic_virial=0,        //!< Bit id in PDataFlags for the isotropic virial
-        potential_energy,          //!< Bit id in PDataFlags for the potential energy
         pressure_tensor,           //!< Bit id in PDataFlags for the full virial
         rotational_kinetic_energy,  //!< Bit id in PDataFlags for the rotational kinetic energy
         external_field_virial       //!< Bit id in PDataFlags for the external virial contribution of volume change
@@ -311,8 +310,6 @@ struct pdata_element
 
     These fields are:
      - pdata_flag::isotropic_virial - specify that the net_virial should be/is computed (getNetVirial)
-     - pdata_flag::potential_energy - specify that the potential energy .w component stored in the net force array
-       (getNetForce) is valid
      - pdata_flag::pressure_tensor - specify that the full virial tensor is valid
      - pdata_flag::external_field_virial - specify that an external virial contribution is valid
 

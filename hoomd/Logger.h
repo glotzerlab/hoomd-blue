@@ -85,7 +85,6 @@ class __attribute__((visibility("default"))) Logger : public Analyzer
             {
             PDataFlags flags;
             flags[pdata_flag::isotropic_virial] = 1;
-            flags[pdata_flag::potential_energy] = 1;
             flags[pdata_flag::pressure_tensor] = 1;
             flags[pdata_flag::rotational_kinetic_energy] = 1;
             return flags;

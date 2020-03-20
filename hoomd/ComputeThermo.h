@@ -227,16 +227,8 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
             #endif
 
             // return NaN if the flags are not valid
-            PDataFlags flags = m_pdata->getFlags();
-            if (flags[pdata_flag::potential_energy])
-                {
-                ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
-                return h_properties.data[thermo_index::potential_energy];
-                }
-            else
-                {
-                return std::numeric_limits<Scalar>::quiet_NaN();
-                }
+            ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
+            return h_properties.data[thermo_index::potential_energy];
             }
 
         //! Returns the upper triangular virial tensor last computed by compute()

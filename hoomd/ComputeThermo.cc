@@ -313,21 +313,18 @@ void ComputeThermo::computeProperties()
 
     // total potential energy
     double pe_total = 0.0;
-    if (flags[pdata_flag::potential_energy])
+    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
-        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+        unsigned int j = m_group->getMemberIndex(group_idx);
+
+        // ignore rigid body constituent particles in the sum
+        if (h_body.data[j] >= MIN_FLOPPY || h_body.data[j] == h_tag.data[j])
             {
-            unsigned int j = m_group->getMemberIndex(group_idx);
-
-            // ignore rigid body constituent particles in the sum
-            if (h_body.data[j] >= MIN_FLOPPY || h_body.data[j] == h_tag.data[j])
-                {
-                pe_total += (double)h_net_force.data[j].w;
-                }
+            pe_total += (double)h_net_force.data[j].w;
             }
-
-        pe_total += m_pdata->getExternalEnergy();
         }
+
+    pe_total += m_pdata->getExternalEnergy();
 
     double W = 0.0;
     double virial_xx = m_pdata->getExternalVirial(0);
