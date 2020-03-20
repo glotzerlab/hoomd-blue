@@ -9,6 +9,7 @@ R""" Utilities.
 from numpy import ndarray
 from copy import deepcopy
 from hoomd.trigger import PeriodicTrigger
+from hoomd.variant import Constant
 
 ## \internal
 # \brief Compatibility definition of a basestring for python 2/3
@@ -290,8 +291,16 @@ def array_to_strings(value):
     else:
         return value
 
+
 def trigger_preprocessing(trigger):
     if isinstance(trigger, int):
         return PeriodicTrigger(period=int(trigger), phase=0)
     else:
         return trigger
+
+
+def variant_preprocessing(variant):
+    if isinstance(variant, float) or isinstance(variant, int):
+        return Constant(variant)
+    else:
+        return variant
