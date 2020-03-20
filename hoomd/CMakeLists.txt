@@ -220,7 +220,7 @@ endif(SINGLE_PRECISION)
 # Libraries and compile definitions for CUDA enabled builds
 if (ENABLE_HIP)
     if (HIP_PLATFORM STREQUAL "hcc")
-        target_link_libraries(_hoomd PUBLIC HIP::hipfft HIP::hiprt HIP::roctracer)
+        target_link_libraries(_hoomd PUBLIC HIP::hipfft HIP::hiprt)
     elseif(HIP_PLATFORM STREQUAL "nvcc")
         target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
     endif()
@@ -240,6 +240,11 @@ if (ENABLE_HIP)
     endif()
 
     target_link_libraries(_hoomd PUBLIC HIP::hip)
+
+    if (ENABLE_ROCTRACER)
+        target_link_libraries(_hoomd PUBLIC HIP::roctracer)
+        target_compile_definitions(_hoomd PUBLIC ENABLE_ROCTRACER)
+    endif()
 endif()
 
 
