@@ -4,11 +4,11 @@
 
 // Maintainer: joaander
 
-/*! \file SFCPackUpdater.cc
-    \brief Defines the SFCPackUpdater class
+/*! \file SFCPackTuner.cc
+    \brief Defines the SFCPackTuner class
 */
 
-#include "SFCPackUpdater.h"
+#include "SFCPackTuner.h"
 #include "Communicator.h"
 
 #include <math.h>
@@ -22,10 +22,11 @@ namespace py = pybind11;
 
 /*! \param sysdef System to perform sorts on
  */
-SFCPackUpdater::SFCPackUpdater(std::shared_ptr<SystemDefinition> sysdef)
-        : Updater(sysdef), m_last_grid(0), m_last_dim(0)
+SFCPackTuner::SFCPackTuner(std::shared_ptr<SystemDefinition> sysdef,
+                           std::shared_ptr<Trigger> trigger)
+        : Tuner(sysdef, trigger), m_last_grid(0), m_last_dim(0)
     {
-    m_exec_conf->msg->notice(5) << "Constructing SFCPackUpdater" << endl;
+    m_exec_conf->msg->notice(5) << "Constructing SFCPackTuner" << endl;
 
     // perform lots of sanity checks
     assert(m_pdata);
@@ -42,12 +43,12 @@ SFCPackUpdater::SFCPackUpdater(std::shared_ptr<SystemDefinition> sysdef)
         m_grid = 256;
 
     // register reallocate method with particle data maximum particle number change signal
-    m_pdata->getMaxParticleNumberChangeSignal().connect<SFCPackUpdater, &SFCPackUpdater::reallocate>(this);
+    m_pdata->getMaxParticleNumberChangeSignal().connect<SFCPackTuner, &SFCPackTuner::reallocate>(this);
     }
 
 /*! reallocate the internal arrays
  */
-void SFCPackUpdater::reallocate()
+void SFCPackTuner::reallocate()
     {
     m_sort_order.resize(m_pdata->getMaxN());
     m_particle_bins.resize(m_pdata->getMaxN());
@@ -55,10 +56,10 @@ void SFCPackUpdater::reallocate()
 
 /*! Destructor
  */
-SFCPackUpdater::~SFCPackUpdater()
+SFCPackTuner::~SFCPackTuner()
     {
-    m_exec_conf->msg->notice(5) << "Destroying SFCPackUpdater" << endl;
-    m_pdata->getMaxParticleNumberChangeSignal().disconnect<SFCPackUpdater, &SFCPackUpdater::reallocate>(this);
+    m_exec_conf->msg->notice(5) << "Destroying SFCPackTuner" << endl;
+    m_pdata->getMaxParticleNumberChangeSignal().disconnect<SFCPackTuner, &SFCPackTuner::reallocate>(this);
     }
 
 /*! Performs the sort.
@@ -67,9 +68,9 @@ SFCPackUpdater::~SFCPackUpdater()
 
     \param timestep Current timestep of the simulation
  */
-void SFCPackUpdater::update(unsigned int timestep)
+void SFCPackTuner::update(unsigned int timestep)
     {
-    m_exec_conf->msg->notice(6) << "SFCPackUpdater: particle sort" << std::endl;
+    m_exec_conf->msg->notice(6) << "SFCPackTuner: particle sort" << std::endl;
 
     #ifdef ENABLE_MPI
     if (m_comm)
@@ -108,7 +109,7 @@ void SFCPackUpdater::update(unsigned int timestep)
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void SFCPackUpdater::applySortOrder()
+void SFCPackTuner::applySortOrder()
     {
     assert(m_pdata);
     assert(m_sort_order.size() >= m_pdata->getN());
@@ -413,7 +414,7 @@ void permute(unsigned int result[8], const unsigned int in[8], int p)
     \post traversal order contains the grid index (i*Mx*Mx + j*Mx + k) of each grid point
         listed in the order of the hilbert curve
 */
-void SFCPackUpdater::generateTraversalOrder(int i, int j, int k, int w, int Mx, unsigned int cell_order[8], vector< unsigned int > &traversal_order)
+void SFCPackTuner::generateTraversalOrder(int i, int j, int k, int w, int Mx, unsigned int cell_order[8], vector< unsigned int > &traversal_order)
     {
     if (w == 1)
         {
@@ -440,7 +441,7 @@ void SFCPackUpdater::generateTraversalOrder(int i, int j, int k, int w, int Mx, 
         }
     }
 
-void SFCPackUpdater::getSortedOrder2D()
+void SFCPackTuner::getSortedOrder2D()
     {
     // start by checking the saneness of some member variables
     assert(m_pdata);
@@ -486,7 +487,7 @@ void SFCPackUpdater::getSortedOrder2D()
         }
     }
 
-void SFCPackUpdater::getSortedOrder3D()
+void SFCPackTuner::getSortedOrder3D()
     {
     // start by checking the saneness of some member variables
     assert(m_pdata);
@@ -581,7 +582,7 @@ void SFCPackUpdater::getSortedOrder3D()
         }
     }
 
-void SFCPackUpdater::writeTraversalOrder(const std::string& fname, const vector< unsigned int >& reverse_order)
+void SFCPackTuner::writeTraversalOrder(const std::string& fname, const vector< unsigned int >& reverse_order)
     {
     m_exec_conf->msg->notice(2) << "sorter: Writing space filling curve traversal order to " << fname << endl;
     ofstream f(fname.c_str());
@@ -611,10 +612,12 @@ void SFCPackUpdater::writeTraversalOrder(const std::string& fname, const vector<
         }
     }
 
-void export_SFCPackUpdater(py::module& m)
+void export_SFCPackTuner(py::module& m)
     {
-    py::class_<SFCPackUpdater, Updater, std::shared_ptr<SFCPackUpdater> >(m,"SFCPackUpdater")
-    .def(py::init< std::shared_ptr<SystemDefinition> >())
-    .def("setGrid", &SFCPackUpdater::setGrid)
+    py::class_<SFCPackTuner, Tuner, std::shared_ptr<SFCPackTuner> >(m,"SFCPackTuner")
+    .def(py::init< std::shared_ptr<SystemDefinition>,
+                   std::shared_ptr<Trigger> >())
+    .def_property("grid", &SFCPackTuner::getGrid,
+                          &SFCPackTuner::setGridPython)
     ;
     }

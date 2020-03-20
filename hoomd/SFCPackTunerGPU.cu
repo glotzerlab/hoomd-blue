@@ -4,8 +4,8 @@
 
 // Maintainer: jglaser
 
-/*! \file SFCPackUpdaterGPU.cu
-    \brief Defines GPU kernel code for generating the space-filling curve sorted order on the GPU. Used by SFCPackUpdaterGPU.
+/*! \file SFCPackTunerGPU.cu
+    \brief Defines GPU kernel code for generating the space-filling curve sorted order on the GPU. Used by SFCPackTunerGPU.
 */
 
 
@@ -15,7 +15,7 @@
 #include <thrust/execution_policy.h>
 #include <thrust/device_ptr.h>
 
-#include "SFCPackUpdaterGPU.cuh"
+#include "SFCPackTunerGPU.cuh"
 
 //! Kernel to bin particles
 template<bool twod>
@@ -87,7 +87,7 @@ void gpu_generate_sorted_order(unsigned int N,
         bool twod,
         CachedAllocator& alloc)
     {
-    // maybe need to autotune, but SFCPackUpdater is called infrequently
+    // maybe need to autotune, but SFCPackTuner is called infrequently
     unsigned int block_size = 256;
     unsigned int n_blocks = N/block_size + 1;
 

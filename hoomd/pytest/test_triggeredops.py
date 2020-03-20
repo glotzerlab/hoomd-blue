@@ -1,7 +1,7 @@
 from hoomd.pytest.dummy import DummyCppObj, DummySimulation, DummyTrigger
 from hoomd.pytest.dummy import DummyOperation, DummyTriggeredOp
 from hoomd.syncedlist import SyncedList
-from hoomd.triggers import PeriodicTrigger
+from hoomd.trigger import PeriodicTrigger
 
 
 def test_initialization():

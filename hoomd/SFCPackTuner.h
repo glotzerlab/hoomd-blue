@@ -4,15 +4,15 @@
 
 // Maintainer: joaander
 
-/*! \file SFCPackUpdater.h
-    \brief Declares the SFCPackUpdater class
+/*! \file SFCPackTuner.h
+    \brief Declares the SFCPackTuner class
 */
 
 #ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include "Updater.h"
+#include "Tuner.h"
 #include "GPUVector.h"
 
 #include <memory>
@@ -35,7 +35,7 @@
     that value to 2,000 or more.
 
     Usage:<br>
-    Constructe the SFCPackUpdater, attaching it to the ParticleData. The grid size is automatically set to reasonable
+    Constructe the SFCPackTuner, attaching it to the ParticleData. The grid size is automatically set to reasonable
     defaults, which is as high as it can possibly go without consuming a significant amount of memory. The grid
     dimension can be changed by calling setGrid().
 
@@ -46,14 +46,15 @@
 
     \ingroup updaters
 */
-class PYBIND11_EXPORT SFCPackUpdater : public Updater
+class PYBIND11_EXPORT SFCPackTuner : public Tuner
     {
     public:
         //! Constructor
-        SFCPackUpdater(std::shared_ptr<SystemDefinition> sysdef);
+        SFCPackTuner(std::shared_ptr<SystemDefinition> sysdef,
+                       std::shared_ptr<Trigger> trigger);
 
         //! Destructor
-        virtual ~SFCPackUpdater();
+        virtual ~SFCPackTuner();
 
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
@@ -65,6 +66,19 @@ class PYBIND11_EXPORT SFCPackUpdater : public Updater
         void setGrid(unsigned int grid)
             {
             m_grid = (unsigned int)pow(2.0, ceil(log(double(grid)) / log(2.0)));;
+            }
+
+        void setGridPython(pybind11::object grid)
+            {
+            if (!grid.is(pybind11::none()))
+                {
+                setGrid(grid.cast<unsigned int>());
+                }
+            }
+
+        unsigned int getGrid()
+            {
+            return m_grid;
             }
 
     protected:
@@ -93,10 +107,11 @@ class PYBIND11_EXPORT SFCPackUpdater : public Updater
     private:
         std::vector<unsigned int> m_sort_order;             //!< Generated sort order of the particles
         std::vector< std::pair<unsigned int, unsigned int> > m_particle_bins;    //!< Binned particles
+        std::shared_ptr<Trigger> m_trigger;
 
    };
 
-//! Export the SFCPackUpdater class to python
-void export_SFCPackUpdater(pybind11::module& m);
+//! Export the SFCPackTuner class to python
+void export_SFCPackTuner(pybind11::module& m);
 
 #endif
