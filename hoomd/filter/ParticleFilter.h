@@ -10,7 +10,7 @@
 /*! \b Overview
 
     In order to flexibly specify the particles that belong to a given
-    ParticleGroup, it will simple take a ParticleFilter as a parameter in its
+    ParticleGroup, it will take a ParticleFilter as a parameter in its
     constructor. The selector will provide a true/false membership test that
     will be applied to each particle tag, selecting those that belong in the
     group. As it is specified via a virtual class, the group definition can be
