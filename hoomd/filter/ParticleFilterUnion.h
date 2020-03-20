@@ -35,10 +35,10 @@ class PYBIND11_EXPORT ParticleFilterUnion : public ParticleFilter
             auto Y = m_g->getSelectedTags(sysdef);
             std::sort(Y.begin(), Y.end());
 
-            // Create vector and get intersection
-            auto tags = std::vector<unsigned int>(std::min(X.size(), Y.size()));
-            auto it = set_union(X.begin(), X.end(), Y.begin(), Y.end(),
-                                tags.begin());
+            // Create vector and get union
+            auto tags = std::vector<unsigned int>(std::max(X.size(), Y.size()));
+            auto it = std::set_union(X.begin(), X.end(), Y.begin(), Y.end(),
+                                     tags.begin());
             tags.resize(it - tags.begin());
             return tags;
             }
