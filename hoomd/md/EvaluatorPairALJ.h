@@ -402,18 +402,21 @@ class EvaluatorPairALJ
                 Scalar t = fmax(0.0, fmin(dot(support_vectors1[i] - support_vectors2[0], support_vectors2[1] - support_vectors2[0])/edge_length_sq, 1.0));
                 vec3<Scalar> projection = support_vectors2[0] - t * edge;
                 vec3<Scalar> vec = support_vectors1[i] - projection;
-                Scalar idist = fast::rsqrt(dot(vec, vec));
+                // We MUST use sqrt, not rsqrt here. The difference in
+                // precision is enough to cause noticeable violations in energy
+                // conservation.
+                Scalar dist = sqrt(dot(vec, vec));
                 // point_segment_distance(support_vectors1[i], support_vectors2[0], support_vectors2[1], vec, projection, dist);
-                if ((_params.alpha / 2 != 0) || (1 < TWO_P_16*contact_sphere_diameter*idist))
+                if ((_params.alpha / 2 != 0) || (dist < TWO_P_16*contact_sphere_diameter))
                     {
                     // Contact force and energy
-                    Scalar rho = contact_sphere_diameter * idist;
+                    Scalar rho = contact_sphere_diameter / dist;
                     Scalar invr_rsq = rho*rho;
                     Scalar invr_6 = invr_rsq*invr_rsq*invr_rsq;
                     Scalar invr_12 = invr_6*invr_6;
                     pair_eng += four_epsilon * (invr_12 - invr_6);
-                    Scalar f_scalar_contact = four_epsilon * (Scalar(12.0)*invr_12 - Scalar(6.0)*invr_6) * idist;
-                    vec3<Scalar> f_contact_tmp = -f_scalar_contact * (-vec) * idist;
+                    Scalar f_scalar_contact = four_epsilon * (Scalar(12.0)*invr_12 - Scalar(6.0)*invr_6) / dist;
+                    vec3<Scalar> f_contact_tmp = -f_scalar_contact * (-vec) / dist;
                     force += f_contact_tmp;
                     torquei += cross(support_vectors1[i], f_contact_tmp);
                     torquej += cross(dr + support_vectors1[i] - vec, Scalar(-1.0) * f_contact_tmp);
@@ -434,19 +437,22 @@ class EvaluatorPairALJ
                 Scalar t = fmax(0.0, fmin(dot(support_vectors2[i] - support_vectors1[0], support_vectors1[1] - support_vectors1[0])/edge_length_sq, 1.0));
                 vec3<Scalar> projection = support_vectors1[0] - t * edge;
                 vec3<Scalar> vec = support_vectors2[i] - projection;
-                Scalar idist = fast::rsqrt(dot(vec, vec));
+                // We MUST use sqrt, not rsqrt here. The difference in
+                // precision is enough to cause noticeable violations in energy
+                // conservation.
+                Scalar dist = sqrt(dot(vec, vec));
 
                 // point_segment_distance(support_vectors2[i], support_vectors1[0], support_vectors1[1], vec, projection, dist);
-                if ((_params.alpha / 2 != 0) || (1 < TWO_P_16*contact_sphere_diameter*idist))
+                if ((_params.alpha / 2 != 0) || (dist < TWO_P_16*contact_sphere_diameter))
                     {
                     // Contact force and energy
-                    Scalar rho = contact_sphere_diameter * idist;
+                    Scalar rho = contact_sphere_diameter / dist;
                     Scalar invr_rsq = rho*rho;
                     Scalar invr_6 = invr_rsq*invr_rsq*invr_rsq;
                     Scalar invr_12 = invr_6*invr_6;
                     pair_eng += four_epsilon * (invr_12 - invr_6);
-                    Scalar f_scalar_contact = four_epsilon * (Scalar(12.0)*invr_12 - Scalar(6.0)*invr_6) * idist;
-                    vec3<Scalar> f_contact_tmp = -f_scalar_contact * vec * idist;
+                    Scalar f_scalar_contact = four_epsilon * (Scalar(12.0)*invr_12 - Scalar(6.0)*invr_6) / dist;
+                    vec3<Scalar> f_contact_tmp = -f_scalar_contact * vec / dist;
                     force += f_contact_tmp;
                     torquei += cross(projection, f_contact_tmp);
                     torquej += cross(dr + support_vectors2[i], Scalar(-1.0) * f_contact_tmp);
