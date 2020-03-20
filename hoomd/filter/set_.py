@@ -1,8 +1,8 @@
-from hoomd.filter.filter_ import ParticleFilter
+from hoomd.filter.filter_ import _ParticleFilter
 from hoomd import _hoomd
 
 
-class ParticleFilterSetOperations(ParticleFilter):
+class _ParticleFilterSetOperations(_ParticleFilter):
     def __init__(self, f, g):
         if f == g:
             raise ValueError("Cannot use same filter for {}"

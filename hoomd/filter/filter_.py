@@ -1,4 +1,4 @@
-class ParticleFilter:
+class _ParticleFilter:
     def __hash__(self):
         return NotImplementedError("Must implement hash for ParticleFilters.")
 

@@ -11,7 +11,7 @@ from hoomd.md import _md
 import hoomd
 from hoomd.operation import _Operation
 from hoomd.parameterdicts import ParameterDict, TypeParameterDict
-from hoomd.filters import ParticleFilter
+from hoomd.filter import _ParticleFilter
 from hoomd.typeparam import TypeParameter
 from hoomd.typeconverter import OnlyType 
 import copy
@@ -752,7 +752,7 @@ class Langevin(_Method):
     R""" Langevin dynamics.
 
     Args:
-        filter (:py:mod:`hoomd.filter.ParticleFilter`): Group of particles to
+        filter (:py:mod:`hoomd.filter._ParticleFilter`): Group of particles to
             apply this method to.
         kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of the
             simulation (in energy units).
@@ -848,7 +848,7 @@ class Langevin(_Method):
 
         # store metadata
         param_dict = ParameterDict(
-            filter=OnlyType(ParticleFilter),
+            filter=OnlyType(_ParticleFilter),
             kT=create_variant,
             seed=int(seed),
             alpha=none_or(float),

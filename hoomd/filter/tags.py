@@ -1,9 +1,9 @@
-from hoomd.filter.filter_ import ParticleFilter
+from hoomd.filter.filter_ import _ParticleFilter
 from hoomd._hoomd import ParticleFilterTags
 import numpy as np
 
 
-class Tags(ParticleFilter, ParticleFilterTags):
+class Tags(_ParticleFilter, ParticleFilterTags):
     def __init__(self, tags):
         self._tags = np.ascontiguousarray(np.unique(tags), dtype=np.uint32)
         ParticleFilterTags.__init__(self, tags)
