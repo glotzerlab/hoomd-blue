@@ -2938,9 +2938,17 @@ class alj(ai_pair):
         # TODO: Ensure that the centroid is contained in the shape.
         # There is always at least one vertex. For ellipsoids, this is just the
         # origin and has no effect.
+        import numpy as np
+
         vertices = list(self.shape[type_name].get('vertices', [[0, 0, 0]]))
         if hoomd.context.current.system_definition.getNDimensions() == 2:
             vertices = [[v[0], v[1], 0] for v in vertices]
+
+        if not np.linalg.norm(np.mean(vertices, axis=0)) > 1e-6:
+            raise ValueError(
+                "The vertices must be centered at the centroid of your shape. "
+                "Please subtract the centroid (e.g. via "
+                "`np.mean(vertices, axis=0)`) from the vertices.")
 
         rrs = self.shape[type_name].get('rounding_radii', 0)
         try:

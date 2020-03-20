@@ -646,18 +646,6 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
 
     // Start with guess as vector pointing from the centroid of verts1 to the
     // centroid of verts2.
-    //vec3<Scalar> mean1, mean2;
-    //for(unsigned int i = 0; i < verts1.size(); i++)
-        //{
-        //mean1 += rotate(qi, verts1[i]);
-        //}
-    //for(unsigned int i = 0; i < verts2.size(); i++)
-        //{
-        //mean2 += (rotate(qj, verts2[i]) + Scalar(-1.0)*dr);
-        //}
-    //mean1 /= Scalar(verts1.size());
-    //mean2 /= Scalar(verts2.size());
-    //v = mean1 - mean2;
     v = dr;
 
     // Since we will be performing a rotation many times, it's worthwhile to
