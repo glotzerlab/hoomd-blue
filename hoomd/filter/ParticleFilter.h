@@ -16,17 +16,16 @@
     group. As it is specified via a virtual class, the group definition can be
     expanded to include any conceivable selection criteria.
 
-    <b>Implementation details</b> So that an infinite range of selection
-    criteria can be applied (i.e. particles with mass > 2.0, or all particles
-    bonded to particle j, ...) the selector will get a reference to the
+    <b>Implementation details</b> So that any range of selection
+    criteria can be applied (e.g. particles with mass > 2.0, or all particles
+    bonded to particle j, ...) the selector will get a shared pointer to the
     SystemDefinition on construction, along with any parameters to specify the
-    selection criteria. Then, a simple getSelectedTags() call will return a list
+    selection criteria. Then, calling getSelectedTags() will return a list
     of particle tags meeting the criteria.
 
-    In parallel simulations, getSelectedTags() should return only local tags.
+    In MPI simulations, getSelectedTags() should return only tags on the local rank.
 
-    The base class getSelectedTags() method will simply return an empty list.
-    selection semantics.
+    The base class getSelectedTags() method returns an empty vector.
 */
 class PYBIND11_EXPORT ParticleFilter
     {

@@ -15,7 +15,7 @@ class PYBIND11_EXPORT ParticleFilterTags : public ParticleFilter
             : ParticleFilter(), m_tags(tags) {}
 
         /** Args:
-                tags: numpybind11array of tags to select
+                tags: pybind11::array of tags to select
         */
         ParticleFilterTags(
             pybind11::array_t<unsigned int,pybind11::array::c_style> tags)
