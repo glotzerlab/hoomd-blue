@@ -1,6 +1,8 @@
+from copy import copy
+
 from . import _hoomd
 from hoomd.groups import Groups
-from .data import boxdim
+from hoomd.box import Box
 from hoomd.snapshot import Snapshot
 
 
@@ -21,7 +23,7 @@ def _create_domain_decomposition(device, box):
 
     # create a default domain decomposition
     result = _hoomd.DomainDecomposition(device.cpp_exec_conf,
-                                        box.getL(),
+                                        box.L,
                                         0,
                                         0,
                                         0,
@@ -157,20 +159,18 @@ class State:
     @property
     def box(self):
         b = self._cpp_sys_def.getParticleData().getGlobalBox()
-        L = b.getL()
-        return boxdim(Lx=L.x, Ly=L.y, Lz=L.z,
-                      xy=b.getTiltFactorXY(),
-                      xz=b.getTiltFactorXZ(),
-                      yz=b.getTiltFactorYZ(),
-                      dimensions=self._cpp_sys_def.getNDimensions())
+        return Box.from_cpp(b)
 
-    # Set the system box
-    # \param value The new boundaries (a data.boxdim object)
     @box.setter
     def box(self, value):
-        if not isinstance(value, boxdim):
-            raise TypeError('box must be a data.boxdim object')
-        self._cpp_sys_def.getParticleData().setGlobalBox(value._getBoxDim())
+        """Set the system box.
+
+        Args:
+            value (hoomd.box.Box): The new box.
+        """
+        if not isinstance(value, Box):
+            raise TypeError('box must be a hoomd.box.Box object')
+        self._cpp_sys_def.getParticleData().setGlobalBox(copy(value)._cpp_obj)
 
     def replicate(self):
         raise NotImplementedError

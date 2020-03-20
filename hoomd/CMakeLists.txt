@@ -55,7 +55,7 @@ set(_hoomd_sources Analyzer.cc
                    System.cc
                    SystemDefinition.cc
                    Trigger.cc
-		   Tuner.cc
+                   Tuner.cc
                    Updater.cc
                    Variant.cc
                    extern/BVLSSolver.cc
@@ -281,6 +281,7 @@ install(TARGETS _hoomd quickhull EXPORT HOOMDTargets
 # copy python modules to the build directory to make it a working python package
 set(files analyze.py
           benchmark.py
+          box.py
           cite.py
           comm.py
           compute.py
@@ -294,7 +295,7 @@ set(files analyze.py
           init.py
           integrate.py
           meta.py
-	  operation.py
+          operation.py
           operations.py
           option.py
           update.py
