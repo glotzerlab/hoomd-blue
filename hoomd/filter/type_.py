@@ -1,8 +1,8 @@
-from hoomd.filter.filter_ import ParticleFilter
+from hoomd.filter.filter_ import _ParticleFilter
 from hoomd._hoomd import ParticleFilterType
 
 
-class Type(ParticleFilter, ParticleFilterType):
+class Type(_ParticleFilter, ParticleFilterType):
     def __init__(self, types):
         types = set(types)
         self._types = frozenset(types)

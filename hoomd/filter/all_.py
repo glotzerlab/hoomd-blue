@@ -1,8 +1,8 @@
-from hoomd.filter.filter_ import ParticleFilter
+from hoomd.filter.filter_ import _ParticleFilter
 from hoomd._hoomd import ParticleFilterAll
 
 
-class All(ParticleFilter, ParticleFilterAll):
+class All(_ParticleFilter, ParticleFilterAll):
     def __init__(self):
         ParticleFilterAll.__init__(self)
 
