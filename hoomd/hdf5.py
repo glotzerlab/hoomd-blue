@@ -166,7 +166,7 @@ class log(hoomd.analyze._analyzer):
         if not matrix:
             return self.cpp_analyzer.getQuantity(quantity, timestep, use_cache)
         else:
-            return self.cpp_analyzer.getMatrixQuantity(quantity, timestep, use_cache)
+            return self.cpp_analyzer.getMatrixQuantity(quantity, timestep)
 
     def register_callback(self, name, callback, matrix=False):
         R""" Register a callback to produce a logged quantity.

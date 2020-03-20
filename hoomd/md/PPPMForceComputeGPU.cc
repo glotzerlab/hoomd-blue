@@ -25,14 +25,23 @@ PPPMForceComputeGPU::PPPMForceComputeGPU(std::shared_ptr<SystemDefinition> sysde
     m_tuner_update.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_update_mesh", this->m_exec_conf));
     m_tuner_force.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_force", this->m_exec_conf));
     m_tuner_influence.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_influence", this->m_exec_conf));
+
+    m_cufft_initialized = false;
+    m_cuda_dfft_initialized = false;
     }
 
 PPPMForceComputeGPU::~PPPMForceComputeGPU()
     {
-    if (m_local_fft)
-        cufftDestroy(m_cufft_plan);
+    if (m_local_fft && m_cufft_initialized)
+        {
+        for (int idev = m_exec_conf->getNumActiveGPUs()-1; idev >= 0; --idev)
+            {
+            cudaSetDevice(m_exec_conf->getGPUIds()[idev]);
+            CHECK_CUFFT_ERROR(cufftDestroy(m_cufft_plan[idev]));
+            }
+        }
     #ifdef ENABLE_MPI
-    else
+    else if (m_cuda_dfft_initialized)
         {
         dfft_destroy_plan(m_dfft_plan_forward);
         dfft_destroy_plan(m_dfft_plan_inverse);
@@ -96,12 +105,21 @@ void PPPMForceComputeGPU::initializeFFT()
         dfft_create_plan(&m_dfft_plan_inverse, 3, gdim, NULL, embed, pdim, pidx,
             row_m, 0, 1, m_exec_conf->getMPICommunicator(), (int *) h_cart_ranks.data);
         #endif
+
+        m_cuda_dfft_initialized = true;
         }
     #endif // ENABLE_MPI
 
     if (m_local_fft)
         {
-        cufftPlan3d(&m_cufft_plan, m_mesh_points.z, m_mesh_points.y, m_mesh_points.x, CUFFT_C2C);
+        // create plan on every device
+        m_cufft_plan.resize(m_exec_conf->getNumActiveGPUs());
+        for (int idev = m_exec_conf->getNumActiveGPUs()-1; idev >= 0; --idev)
+            {
+            cudaSetDevice(m_exec_conf->getGPUIds()[idev]);
+            CHECK_CUFFT_ERROR(cufftPlan3d(&m_cufft_plan[idev], m_mesh_points.z, m_mesh_points.y, m_mesh_points.x, CUFFT_C2C));
+            }
+        m_cufft_initialized = true;
         }
 
     // allocate mesh and transformed mesh
@@ -278,7 +296,7 @@ void PPPMForceComputeGPU::updateMeshes()
         ArrayHandle<cufftComplex> d_mesh(m_mesh, access_location::device, access_mode::read);
         ArrayHandle<cufftComplex> d_fourier_mesh(m_fourier_mesh, access_location::device, access_mode::overwrite);
 
-        CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan, d_mesh.data, d_fourier_mesh.data, CUFFT_FORWARD));
+        CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan[0], d_mesh.data, d_fourier_mesh.data, CUFFT_FORWARD));
         if (m_prof) m_prof->pop(m_exec_conf);
         }
     #ifdef ENABLE_MPI
@@ -363,15 +381,15 @@ void PPPMForceComputeGPU::updateMeshes()
         for (int idev = m_exec_conf->getNumActiveGPUs()-1; idev>=0; idev--)
             {
             cudaSetDevice(m_exec_conf->getGPUIds()[idev]);
-            CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan,
+            CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan[idev],
                          d_fourier_mesh_G_x.data,
                          d_inv_fourier_mesh_x.data+idev*inv_mesh_elements,
                          CUFFT_INVERSE));
-            CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan,
+            CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan[idev],
                          d_fourier_mesh_G_y.data,
                          d_inv_fourier_mesh_y.data+idev*inv_mesh_elements,
                          CUFFT_INVERSE));
-            CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan,
+            CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan[idev],
                          d_fourier_mesh_G_z.data,
                          d_inv_fourier_mesh_z.data+idev*inv_mesh_elements,
                          CUFFT_INVERSE));

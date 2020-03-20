@@ -35,9 +35,22 @@ class EvalFactory
             return m_error_msg;
             }
 
+        //! Retrieve alpha array
+        float * getAlphaArray()
+            {
+            return m_alpha;
+            }
+
+        //! Retrieve alpha array
+        float * getAlphaUnionArray()
+            {
+            return m_alpha_union;
+            }
+
     private:
         std::unique_ptr<llvm::orc::KaleidoscopeJIT> m_jit; //!< The persistent JIT engine
         EvalFnPtr m_eval;         //!< Function pointer to evaluator
-
+        float * m_alpha;         // Pointer to alpha array
+        float * m_alpha_union;   // Pointer to alpha array for union
         std::string m_error_msg; //!< The error message if initialization fails
     };

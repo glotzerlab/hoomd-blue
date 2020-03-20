@@ -26,7 +26,7 @@ namespace hpmc
 
 //! Translation move
 /*! \param v Vector to translate (in/out)
-    \param rng Saru RNG to utilize in the move
+    \param rng random123 RNG to utilize in the move
     \param d Maximum move distance
     \param dim Dimension
 
@@ -53,7 +53,7 @@ DEVICE inline void move_translate(vec3<Scalar>& v, RNG& rng, Scalar d, unsigned 
 
 //! Rotation move
 /*! \param orientation Quaternion to rotate (in/out)
-    \param rng Saru RNG to utilize in the move
+    \param rng random123 RNG to utilize in the move
     \param a Rotation magnitude
     \param dim Dimension
 
@@ -140,8 +140,16 @@ DEVICE inline quat<Scalar> generateRandomOrientation(RNG& rng)
 
     }
 
+//! Generate a random rotation about the z-axis
+template<class RNG>
+DEVICE inline quat<Scalar> generateRandomOrientation2D(RNG& rng)
+    {
+    Scalar theta = hoomd::UniformDistribution<Scalar>(-M_PI, M_PI)(rng);
+    return quat<Scalar>(fast::cos(theta/2.0), vec3<Scalar>(0, 0, fast::sin(theta/2.0)));
+    }
+
 /* Generate a uniformly distributed random position in a sphere
- * \param rng Saru RNG
+ * \param rng random123 RNG to use to generate the position
  * \param pos_sphere Center of insertion sphere
  * \param R radius of insertion sphere
  */

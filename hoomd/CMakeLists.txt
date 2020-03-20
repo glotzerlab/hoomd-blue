@@ -110,6 +110,7 @@ set(_hoomd_headers
     GPUVector.h
     GSDDumpWriter.h
     GSDReader.h
+    GSDShapeSpecWriter.h
     HalfStepHook.h
     HOOMDMath.h
     HOOMDMPI.h
@@ -318,9 +319,13 @@ if (BUILD_MD)
         add_subdirectory(${HOOMD_SOURCE_DIR}/hoomd/extern/dfftlib)
     endif()
 
+    if (ENABLE_CUDA)
+        # add the neighbor library
+        add_subdirectory(${HOOMD_SOURCE_DIR}/hoomd/extern/neighbor)
+    endif (ENABLE_CUDA)
+
     add_subdirectory(md)
 endif()
-
 
 if (NOT SINGLE_PRECISION AND BUILD_HPMC)
     add_subdirectory(hpmc)

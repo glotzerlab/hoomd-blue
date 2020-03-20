@@ -21,12 +21,46 @@
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
-//! DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
+//! HOSTDEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
 #ifdef NVCC
-#define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
-#define DEVICE
+#define HOSTDEVICE
 #endif
+
+struct pair_gb_params
+    {
+    Scalar epsilon;   //! The energy scale.
+    Scalar lperp;     //! The semiaxis length perpendicular to the particle orientation.
+    Scalar lpar;      //! The semiaxis length parallel to the particle orientation.
+
+    //! Load dynamic data members into shared memory and increase pointer
+    /*! \param ptr Pointer to load data to (will be incremented)
+        \param available_bytes Size of remaining shared memory allocation
+     */
+    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
+        {
+        // No-op for this struct since it contains no arrays.
+        }
+    };
+
+
+// Nullary structure required by AnisoPotentialPair.
+struct gb_shape_params
+    {
+    HOSTDEVICE gb_shape_params() {}
+
+    //! Load dynamic data members into shared memory and increase pointer
+    /*! \param ptr Pointer to load data to (will be incremented)
+        \param available_bytes Size of remaining shared memory allocation
+     */
+    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const {}
+
+    #ifdef ENABLE_CUDA
+    //! Attach managed memory to CUDA stream
+    void attach_to_stream(cudaStream_t stream) const {}
+    #endif
+    };
 
 /*!
  * Gay-Berne potential as formulated by Allen and Germano,
@@ -36,7 +70,8 @@
 class EvaluatorPairGB
     {
     public:
-        typedef Scalar3 param_type;
+        typedef pair_gb_params param_type;
+        typedef gb_shape_params shape_param_type;
 
         //! Constructs the pair potential evaluator
         /*! \param _dr Displacement vector between particle centers of mass
@@ -45,18 +80,36 @@ class EvaluatorPairGB
             \param _q_j Quaternion of j^th particle
             \param _params Per type pair parameters of this potential
         */
-        DEVICE EvaluatorPairGB(const Scalar3& _dr,
+        HOSTDEVICE EvaluatorPairGB(const Scalar3& _dr,
                                const Scalar4& _qi,
                                const Scalar4& _qj,
                                const Scalar _rcutsq,
                                const param_type& _params)
             : dr(_dr),rcutsq(_rcutsq),qi(_qi),qj(_qj),
-              epsilon(_params.x), lperp(_params.y), lpar(_params.z)
+              params(_params)
             {
             }
 
         //! uses diameter
-        DEVICE static bool needsDiameter()
+        HOSTDEVICE static bool needsDiameter()
+            {
+            return false;
+            }
+
+        //! Whether the pair potential uses shape.
+        HOSTDEVICE static bool needsShape()
+            {
+            return false;
+            }
+
+        //! Whether the pair potential needs particle tags.
+        HOSTDEVICE static bool needsTags()
+            {
+            return false;
+            }
+
+        //! whether pair potential requires charges
+        HOSTDEVICE static bool needsCharge( )
             {
             return false;
             }
@@ -65,20 +118,25 @@ class EvaluatorPairGB
         /*! \param di Diameter of particle i
             \param dj Diameter of particle j
         */
-        DEVICE void setDiameter(Scalar di, Scalar dj){}
+        HOSTDEVICE void setDiameter(Scalar di, Scalar dj){}
 
-        //! whether pair potential requires charges
-        DEVICE static bool needsCharge( )
-            {
-            return false;
-            }
+        //! Accept the optional shape values
+        /*! \param shape_i Shape of particle i
+            \param shape_j Shape of particle j
+        */
+        HOSTDEVICE void setShape(const shape_param_type *shapei, const shape_param_type *shapej) {}
 
-        //! Accept the optional diameter values
-        //! This function is pure virtual
+        //! Accept the optional tags
+        /*! \param tag_i Tag of particle i
+            \param tag_j Tag of particle j
+        */
+        HOSTDEVICE void setTags(unsigned int tagi, unsigned int tagj) {}
+
+        //! Accept the optional charge values
         /*! \param qi Charge of particle i
             \param qj Charge of particle j
         */
-        DEVICE void setCharge(Scalar qi, Scalar qj){}
+        HOSTDEVICE void setCharge(Scalar qi, Scalar qj){}
 
         //! Evaluate the force and energy
         /*! \param force Output parameter to write the computed force.
@@ -88,7 +146,7 @@ class EvaluatorPairGB
             \param torque_j The torque exerted on the j^th particle.
             \return True if they are evaluated or false if they are not because we are beyond the cutoff.
         */
-        DEVICE  bool
+        HOSTDEVICE  bool
         evaluate(Scalar3& force, Scalar& pair_eng, bool energy_shift, Scalar3& torque_i, Scalar3& torque_j)
             {
             Scalar rsq = dot(dr,dr);
@@ -106,8 +164,8 @@ class EvaluatorPairGB
             Scalar ca = dot(a3,unitr);
             Scalar cb = dot(b3,unitr);
             Scalar cab = dot(a3,b3);
-            Scalar lperpsq = lperp*lperp;
-            Scalar lparsq = lpar*lpar;
+            Scalar lperpsq = params.lperp*params.lperp;
+            Scalar lparsq = params.lpar*params.lpar;
             Scalar chi=(lparsq - lperpsq)/(lparsq+lperpsq);
             Scalar chic = chi*cab;
 
@@ -118,7 +176,7 @@ class EvaluatorPairGB
             Scalar phi = Scalar(1.0/2.0)*dot(dr, kappa)/rsq;
             Scalar sigma = fast::rsqrt(phi);
 
-            Scalar sigma_min = Scalar(2.0)*HOOMD_GB_MIN(lperp,lpar);
+            Scalar sigma_min = Scalar(2.0)*HOOMD_GB_MIN(params.lperp,params.lpar);
 
             Scalar zeta = (r-sigma+sigma_min)/sigma_min;
             Scalar zetasq = zeta*zeta;
@@ -127,26 +185,26 @@ class EvaluatorPairGB
             Scalar dUdphi,dUdr;
 
             // define r_cut to be along the long axis
-            Scalar sigma_max = Scalar(2.0)*HOOMD_GB_MAX(lperp,lpar);
-            Scalar zetacut = (rcut-sigma_max+sigma_min)/sigma_min;
+            Scalar sigma_max = Scalar(2.0)*HOOMD_GB_MAX(params.lperp,params.lpar);
+            Scalar zetacut = (rcut*sigma/sigma_max-sigma+sigma_min)/sigma_min;
             Scalar zetacutsq = zetacut*zetacut;
 
             // compute the force divided by r in force_divr
-            if (zetasq < zetacutsq && epsilon != Scalar(0.0))
+            if (zetasq < zetacutsq && params.epsilon != Scalar(0.0))
                 {
                 Scalar zeta2inv = Scalar(1.0)/zetasq;
                 Scalar zeta6inv = zeta2inv * zeta2inv *zeta2inv;
 
-                dUdr  = -Scalar(24.0)*epsilon*(zeta6inv/zeta*(Scalar(2.0)*zeta6inv-Scalar(1.0)))/sigma_min;
+                dUdr  = -Scalar(24.0)*params.epsilon*(zeta6inv/zeta*(Scalar(2.0)*zeta6inv-Scalar(1.0)))/sigma_min;
                 dUdphi = dUdr*Scalar(1.0/2.0)*sigma*sigma*sigma;
 
-                pair_eng = Scalar(4.0)*epsilon*zeta6inv * (zeta6inv - Scalar(1.0));
+                pair_eng = Scalar(4.0)*params.epsilon*zeta6inv * (zeta6inv - Scalar(1.0));
 
                 if (energy_shift)
                     {
                     Scalar zetacut2inv = Scalar(1.0)/zetacutsq;
                     Scalar zetacut6inv = zetacut2inv * zetacut2inv * zetacut2inv;
-                    pair_eng -= Scalar(4.0)*epsilon*zetacut6inv * (zetacut6inv - Scalar(1.0));
+                    pair_eng -= Scalar(4.0)*params.epsilon*zetacut6inv * (zetacut6inv - Scalar(1.0));
                     }
                 }
             else
@@ -175,6 +233,16 @@ class EvaluatorPairGB
             {
             return "gb";
             }
+
+        std::string getShapeSpec() const
+            {
+            std::ostringstream shapedef;
+            shapedef << "{\"type\": \"Ellipsoid\", \"a\": " << params.lperp <<
+                        ", \"b\": " << params.lperp <<
+                        ", \"c\": " << params.lpar <<
+                        "}";
+            return shapedef.str();
+            }
         #endif
 
     protected:
@@ -182,9 +250,7 @@ class EvaluatorPairGB
         Scalar rcutsq;     //!< Stored rcutsq from the constructor
         quat<Scalar> qi;   //!< Orientation quaternion for particle i
         quat<Scalar> qj;   //!< Orientation quaternion for particle j
-        Scalar epsilon;    //!< Energy parameter
-        Scalar lperp;      //!< Short axis length
-        Scalar lpar;       //!< Longt axis length
+        const param_type &params;  //!< The pair potential parameters
     };
 
 
