@@ -28,15 +28,15 @@ class PYBIND11_EXPORT ParticleFilterType : public ParticleFilter
         virtual std::vector<unsigned int> getSelectedTags(
                 std::shared_ptr<SystemDefinition> sysdef) const
             {
-            auto pdata = sysdef->getParticleData();
+            const auto pdata = sysdef->getParticleData();
             // loop through local particles and select those that match
             // selection criterion
-            ArrayHandle<unsigned int> h_tag(pdata->getTags(),
-                                            access_location::host,
-                                            access_mode::read);
-            ArrayHandle<Scalar4> h_postype(pdata->getPositions(),
-                                           access_location::host,
-                                           access_mode::read);
+            const ArrayHandle<unsigned int> h_tag(pdata->getTags(),
+                                                  access_location::host,
+                                                  access_mode::read);
+            const ArrayHandle<Scalar4> h_postype(pdata->getPositions(),
+                                                 access_location::host,
+                                                 access_mode::read);
 
             // Get types as unsigned ints
             std::unordered_set<unsigned int> types(m_types.size());
@@ -46,14 +46,20 @@ class PYBIND11_EXPORT ParticleFilterType : public ParticleFilter
                 }
 
             // Add correctly typed particles to vector
-            std::vector<unsigned int> member_tags;
-            for (unsigned int idx = 0; idx < pdata->getN(); ++idx)
+            const auto N = pdata->getN();
+            std::vector<unsigned int> member_tags(N);
+            auto tag_it = member_tags.begin();
+            for (unsigned int idx = 0; idx < N; ++idx)
                 {
                 unsigned int tag = h_tag.data[idx];
                 unsigned int typ = __scalar_as_int(h_postype.data[idx].w);
                 if (types.count(typ))
-                    member_tags.push_back(tag);
+                    {
+                    *tag_it = tag;
+                    tag_it++;
+                    }
                 }
+            member_tags.resize(tag_it - member_tags.begin());
             return member_tags;
             }
 
