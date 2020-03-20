@@ -386,7 +386,7 @@ class Communicator(object):
 
         HOOMD calls MPI_Abort to tear down all running MPI processes whenever
         there is an uncaught exception. By default, this will abort the entire
-        MPI execution. When using partitions (``nrank not None``), an uncaught
+        MPI execution. When using partitions (``nrank is not None``), an uncaught
         exception on one partition will therefore abort all of them.
 
         Use the return value of :py:meth:`localize_abort()` as a context manager
