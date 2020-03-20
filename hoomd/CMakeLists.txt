@@ -55,7 +55,7 @@ set(_hoomd_sources Analyzer.cc
                    System.cc
                    SystemDefinition.cc
                    Trigger.cc
-		   Tuner.cc
+                   Tuner.cc
                    Updater.cc
                    Variant.cc
                    extern/BVLSSolver.cc
@@ -64,7 +64,7 @@ set(_hoomd_sources Analyzer.cc
                    extern/kiss_fft.cc
                    extern/kiss_fftnd.cc
                    extern/vmdsock.cc
-		   filter/export_filters.cc
+                   filter/export_filters.cc
                    )
 
 set(_hoomd_headers
@@ -308,7 +308,7 @@ set(files analyze.py
           init.py
           integrate.py
           meta.py
-	  operation.py
+          operation.py
           operations.py
           option.py
           update.py
