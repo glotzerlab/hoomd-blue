@@ -7,12 +7,15 @@
 class PYBIND11_EXPORT ParticleFilterAll : public ParticleFilter
     {
     public:
-        //! Constructs the selector
+        /// Constructs the selector
         ParticleFilterAll() : ParticleFilter() {};
         virtual ~ParticleFilterAll() {}
 
-        /*! \param sysdef the System Definition
-            \returns all particles in the local rank
+        /** Args:
+         *  sysdef: the System Definition
+         *
+         *  Returns:
+         *  all particles in the local rank
         */
         virtual std::vector<unsigned int> getSelectedTags(
                 std::shared_ptr<SystemDefinition> sysdef) const

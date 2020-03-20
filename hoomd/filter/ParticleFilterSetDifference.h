@@ -8,19 +8,25 @@
 class PYBIND11_EXPORT ParticleFilterSetDifference : public ParticleFilter
     {
     public:
-        /// Constructs the selector
-        /// \param f first filter
-        /// \param g second filter
+        /** Constructs the selector
+         *  Args:
+         *  f: first filter
+         *  g: second filter
+        */
         ParticleFilterSetDifference(std::shared_ptr<ParticleFilter> f,
                                    std::shared_ptr<ParticleFilter> g)
             : ParticleFilter(), m_f(f), m_g(g) {}
 
         virtual ~ParticleFilterSetDifference() {}
 
-        /// Test if a particle meets the selection criteria
-        /// \param sysdef the System Definition
-        /// \returns all rank local particles that are in filter m_f but not in
-        /// filter m_g
+        /** Test if a particle meets the selection criteria
+         *  Args:
+         *  sysdef: the System Definition
+         *
+         *  Returns:
+         *  all rank local particles that are in filter m_f but not in
+         *  filter m_g
+        */
         virtual std::vector<unsigned int> getSelectedTags(
             std::shared_ptr<SystemDefinition> sysdef) const
             {
@@ -33,8 +39,8 @@ class PYBIND11_EXPORT ParticleFilterSetDifference : public ParticleFilter
 
             // Create vector and get set difference
             auto tags = std::vector<unsigned int>(X.size());
-            auto it = std::set_difference(X.begin(), X.end(), Y.begin(), Y.end(),
-                                     tags.begin());
+            auto it = std::set_difference(X.begin(), X.end(), Y.begin(),
+                                          Y.end(), tags.begin());
             tags.resize(it - tags.begin());
             return tags;
             }

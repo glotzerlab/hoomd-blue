@@ -6,8 +6,8 @@
 #include <pybind11/pybind11.h>
 #include <memory>
 
-//! Utility class to select particles based on given conditions
-/*! \b Overview
+/// Utility class to select particles based on given conditions
+/** \b Overview
 
     In order to flexibly specify the particles that belong to a given
     ParticleGroup, it will take a ParticleFilter as a parameter in its
@@ -23,7 +23,8 @@
     selection criteria. Then, calling getSelectedTags() will return a list
     of particle tags meeting the criteria.
 
-    In MPI simulations, getSelectedTags() should return only tags on the local rank.
+    In MPI simulations, getSelectedTags() should return only tags on the local
+    rank.
 
     The base class getSelectedTags() method returns an empty vector.
 */
@@ -34,8 +35,9 @@ class PYBIND11_EXPORT ParticleFilter
         ParticleFilter() {};
         virtual ~ParticleFilter() {}
 
-        /// Test if a particle meets the selection criteria
-        /// base case does nothing
+        /** Test if a particle meets the selection criteria.
+         *  The base case returns an empty vector.
+        */
         virtual std::vector<unsigned int> getSelectedTags(
                 std::shared_ptr<SystemDefinition> sysdef) const
             {

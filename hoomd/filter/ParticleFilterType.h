@@ -10,16 +10,21 @@
 class PYBIND11_EXPORT ParticleFilterType : public ParticleFilter
     {
     public:
-        /// Constructs the selector
-        /// \param included_types set of type string values to include
+        /** Constructs the selector
+         *  Args:
+         *  included_types: set of type string values to include
+        */
         ParticleFilterType(std::unordered_set<std::string> included_types)
             : ParticleFilter(), m_types(included_types) {}
 
         virtual ~ParticleFilterType() {}
 
-        /// Test if a particle meets the selection criteria
-        /// \param sysdef system definition to find tags for
-        /// \returns tags of all rank local particles of types in m_types
+        /** Test if a particle meets the selection criteria
+         *  sysdef: system definition to find tags for
+         *
+         *  Returns:
+         *  tags of all rank local particles of types in m_types
+        */
         virtual std::vector<unsigned int> getSelectedTags(
                 std::shared_ptr<SystemDefinition> sysdef) const
             {

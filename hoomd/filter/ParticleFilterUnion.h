@@ -7,19 +7,24 @@
 class PYBIND11_EXPORT ParticleFilterUnion : public ParticleFilter
     {
     public:
-        /// Constructs the selector
-        /// \param f first filter
-        /// \param g second filter
+        /** Constructs the selector
+         *  Args:
+         *  f: first filter
+         *  g: second filter
+        */
         ParticleFilterUnion(std::shared_ptr<ParticleFilter> f,
                                    std::shared_ptr<ParticleFilter> g)
             : ParticleFilter(), m_f(f), m_g(g) {}
 
         virtual ~ParticleFilterUnion() {}
 
-        /// Test if a particle meets the selection criteria
-        /// \param sysdef the System Definition
-        /// \returns all rank local particles that are in either filter m_f or
-        /// filter m_g
+        /** Test if a particle meets the selection criteria
+         *  sysdef: the System Definition
+         *
+         *  Returns:
+         *  all rank local particles that are in either filter m_f or filter
+         *  m_g
+        */
         virtual std::vector<unsigned int> getSelectedTags(
             std::shared_ptr<SystemDefinition> sysdef) const
             {
