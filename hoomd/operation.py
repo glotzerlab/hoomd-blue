@@ -10,7 +10,7 @@ _TriggeredOperation is _Operation for objects that are triggered.
 """
 
 from hoomd.util import is_iterable, dict_map, str_to_tuple_keys
-from hoomd.triggers import PeriodicTrigger, Trigger
+from hoomd.trigger import PeriodicTrigger, Trigger
 from hoomd.variant import Variant, Constant
 from hoomd.filters import ParticleFilter
 from hoomd.logger import Loggable
