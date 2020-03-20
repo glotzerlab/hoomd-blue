@@ -5,12 +5,7 @@ import numpy as np
 
 class Tags(ParticleFilter, ParticleFilterTags):
     def __init__(self, tags):
-        if isinstance(tags, np.ndarray):
-            tags = tags.astype(np.uint32)
-        else:
-            tags = np.array(tags, dtype=np.uint32)
-        tags = np.unique(tags)
-        self._tags = tags
+        self._tags = np.ascontiguousarray(np.unique(tags), dtype=np.uint32)
         ParticleFilterTags.__init__(self, tags)
 
     def __hash__(self):

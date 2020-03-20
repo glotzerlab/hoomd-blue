@@ -24,7 +24,7 @@ class PYBIND11_EXPORT ParticleFilterIntersection : public ParticleFilter
         virtual std::vector<unsigned int> getSelectedTags(
             std::shared_ptr<SystemDefinition> sysdef) const
             {
-            // Get tags for f() and g() as sets
+            // Get vectors of tags from f and g
             auto X = m_f->getSelectedTags(sysdef);
             std::sort(X.begin(), X.end());
 
@@ -33,7 +33,7 @@ class PYBIND11_EXPORT ParticleFilterIntersection : public ParticleFilter
 
             // Create vector and get intersection
             auto tags = std::vector<unsigned int>(std::min(X.size(), Y.size()));
-            auto it = set_intersection(X.begin(), X.end(), Y.begin(), Y.end(),
+            auto it = std::set_intersection(X.begin(), X.end(), Y.begin(), Y.end(),
                                        tags.begin());
             tags.resize(it - tags.begin());
             return tags;
