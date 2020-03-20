@@ -3,14 +3,14 @@
 # License.
 
 import hoomd
-import hoomd.triggers
+import hoomd.trigger
 
 
 def test_periodic_properties():
     """ Test construction and properties of PeriodicTrigger
     """
 
-    a = hoomd.triggers.PeriodicTrigger(123)
+    a = hoomd.trigger.PeriodicTrigger(123)
 
     assert a.period == 123
     assert a.phase == 0
@@ -25,14 +25,14 @@ def test_periodic_properties():
     assert a.period == 10000000000
     assert a.phase == 6000000000
 
-    b = hoomd.triggers.PeriodicTrigger(phase=3, period=456)
+    b = hoomd.trigger.PeriodicTrigger(phase=3, period=456)
 
     assert b.period == 456
     assert b.phase == 3
 
 
 def test_periodic_eval():
-    a = hoomd.triggers.PeriodicTrigger(period=456, phase=18)
+    a = hoomd.trigger.PeriodicTrigger(period=456, phase=18)
 
     for i in range(10000):
         assert a(i) == ((i - 18) % 456 == 0)
@@ -40,7 +40,7 @@ def test_periodic_eval():
     for i in range(10000000000, 10000010000):
         assert a(i) == ((i - 18) % 456 == 0)
 
-    b = hoomd.triggers.PeriodicTrigger(period=10000000000, phase=6000000000)
+    b = hoomd.trigger.PeriodicTrigger(period=10000000000, phase=6000000000)
 
     assert b(6000000000)
     assert not b(6000000001)
@@ -49,9 +49,9 @@ def test_periodic_eval():
 
 
 def test_custom():
-    class CustomTrigger(hoomd.triggers.Trigger):
+    class CustomTrigger(hoomd.trigger.Trigger):
         def __init__(self):
-            hoomd.triggers.Trigger.__init__(self)
+            hoomd.trigger.Trigger.__init__(self)
 
         def __call__(self, timestep):
             return (timestep**(1 / 2)).is_integer()

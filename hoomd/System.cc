@@ -334,6 +334,12 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
                 updater_trigger_pair.first->update(m_cur_tstep);
             }
 
+        for (auto &tuner: m_tuners)
+            {
+            if ((*tuner->getTrigger())(m_cur_tstep))
+                tuner->update(m_cur_tstep);
+            }
+
         // look ahead to the next time step and see which analyzers and updaters will be executed
         // or together all of their requested PDataFlags to determine the flags to set for this time step
         m_sysdef->getParticleData()->setFlags(determineFlags(m_cur_tstep+1));
@@ -602,6 +608,12 @@ PDataFlags System::determineFlags(unsigned int tstep)
             flags |= updater_trigger_pair.first->getRequestedPDataFlags();
         }
 
+    for (auto &tuner: m_tuners)
+        {
+        if ((*tuner->getTrigger())(tstep))
+            flags |= tuner->getRequestedPDataFlags();
+        }
+
     return flags;
     }
 
@@ -626,10 +638,11 @@ void export_System(py::module& m)
     {
     walltimeLimitExceptionTypeObj = createExceptionClass(m,"WalltimeLimitReached");
 
-	py::bind_vector<std::vector<std::pair<std::shared_ptr<Analyzer>,
-		std::shared_ptr<Trigger> > > >(m, "AnalyzerTriggerList");
-	py::bind_vector<std::vector<std::pair<std::shared_ptr<Updater>,
-		std::shared_ptr<Trigger> > > >(m, "UpdaterTriggerList");
+    py::bind_vector<std::vector<std::pair<std::shared_ptr<Analyzer>,
+            std::shared_ptr<Trigger> > > >(m, "AnalyzerTriggerList");
+    py::bind_vector<std::vector<std::pair<std::shared_ptr<Updater>,
+            std::shared_ptr<Trigger> > > >(m, "UpdaterTriggerList");
+    py::bind_vector<std::vector<std::shared_ptr<Tuner> > > (m, "TunerList");
     py::class_< System, std::shared_ptr<System> > (m,"System")
     .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int >())
     .def("addCompute", &System::addCompute)
@@ -649,8 +662,9 @@ void export_System(py::module& m)
 
     .def("getLastTPS", &System::getLastTPS)
     .def("getCurrentTimeStep", &System::getCurrentTimeStep)
-	.def_property_readonly("analyzers", &System::getAnalyzers)
-	.def_property_readonly("updaters", &System::getUpdaters)
+    .def_property_readonly("analyzers", &System::getAnalyzers)
+    .def_property_readonly("updaters", &System::getUpdaters)
+    .def_property_readonly("tuners", &System::getTuners)
 #ifdef ENABLE_MPI
     .def("setCommunicator", &System::setCommunicator)
     .def("getCommunicator", &System::getCommunicator)

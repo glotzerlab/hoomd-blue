@@ -25,37 +25,58 @@ class _Force(_Operation):
     Initializes some loggable quantities.
     '''
 
+    def attach(self, simulation):
+        self._simulation = simulation
+        super().attach(simulation)
+
     @Loggable.log
     def energy(self):
-        if self.is_attached():
-            pass
+        if self.is_attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.calcEnergySum()
         else:
             return None
 
-    @Loggable.log(flag='particle')
+    @Loggable.log(flag='particles')
     def energies(self):
-        if self.is_attached():
-            pass
+        if self.is_attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.getEnergies()
         else:
             return None
 
-    @Loggable.log(flag='particle')
+    @Loggable.log(flag='particles')
     def forces(self):
         """
-        Returns: The last computed force for all particles.
+        Returns: The force for all particles.
         """
-        if self.is_attached():
-            pass
+        if self.is_attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.getForces()
         else:
             return None
 
-    @Loggable.log(flag='particle')
-    def virials(self):
-        R""" Get the virial of a particle group.
-
-        Returns: The last computed virial for the members in the group.
+    @Loggable.log(flag='particles')
+    def torques(self):
         """
-        return self._cpp_obj.getVirials()
+        Returns: The torque for all particles.
+        """
+        if self.is_attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.getTorques()
+        else:
+            return None
+
+    @Loggable.log(flag='particles')
+    def virials(self):
+        R"""
+        Returns: The virial for the members in the group.
+        """
+        if self.is_attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.getVirials()
+        else:
+            return None
 
 
 class constant(_Force):

@@ -1,4 +1,4 @@
-from hoomd.triggers import Trigger
+from hoomd.trigger import Trigger
 from hoomd.operation import _Operation, _TriggeredOperation
 
 

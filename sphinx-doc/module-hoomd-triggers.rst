@@ -1,4 +1,4 @@
-hoomd.triggers
+hoomd.trigger
 --------------
 
 .. rubric:: Overview
@@ -6,12 +6,12 @@ hoomd.triggers
 .. autosummary::
     :nosignatures:
 
-    hoomd.triggers.PeriodicTrigger
-    hoomd.triggers.Trigger
+    hoomd.trigger.PeriodicTrigger
+    hoomd.trigger.Trigger
 
 .. rubric:: Details
 
-.. automodule:: hoomd.triggers
+.. automodule:: hoomd.trigger
     :synopsis: Trigger events at specific time steps.
     :members:
     :undoc-members:

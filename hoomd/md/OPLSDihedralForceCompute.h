@@ -23,6 +23,32 @@
 #ifndef __OPLSDIHEDRALFORCECOMPUTE_H__
 #define __OPLSDIHEDRALFORCECOMPUTE_H__
 
+struct dihedral_opls_params
+    {
+    Scalar k1;
+    Scalar k2;
+    Scalar k3;
+    Scalar k4;
+
+    #ifndef __HIPCC__
+    dihedral_opls_params(): k1(0.), k2(0.), k3(0.), k4(0.){}
+
+    dihedral_opls_params(pybind11::dict v)
+        : k1(v["k1"].cast<Scalar>()), k2(v["k2"].cast<Scalar>()),
+          k3(v["k3"].cast<Scalar>()), k4(v["k4"].cast<Scalar>()){}
+
+    pybind11::dict asDict()
+        {
+        pybind11::dict v;
+        v["k1"] = k1;
+        v["k2"] = k2;
+        v["k3"] = k3;
+        v["k4"] = k4;
+        return v;
+        }
+    #endif
+    }
+    __attribute__((aligned(32)));
 //! Computes OPLS dihedral forces on each particle
 /*! OPLS dihedral forces are computed on every particle in the simulation.
 
@@ -40,6 +66,11 @@ class PYBIND11_EXPORT OPLSDihedralForceCompute : public ForceCompute
 
         //! Set the parameters
         virtual void setParams(unsigned int type, Scalar k1, Scalar k2, Scalar k3, Scalar k4);
+
+        virtual void setParamsPython(std::string type, pybind11::dict params);
+
+        /// Get the parameters for a specified type
+        pybind11::dict getParams(std::string type);
 
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();

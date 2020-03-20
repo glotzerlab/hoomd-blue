@@ -94,6 +94,27 @@ void HarmonicDihedralForceCompute::setParams(unsigned int type, Scalar K, int si
         m_exec_conf->msg->warning() << "dihedral.harmonic: specified phi_0 outside [0, 2pi)" << endl;
     }
 
+
+void HarmonicDihedralForceCompute::setParamsPython(std::string type,
+                                                   pybind11::dict params)
+    {
+    // make sure the type is valid
+    auto typ = m_dihedral_data->getTypeByName(type);
+    dihedral_harmonic_params _params(params);
+    setParams(typ, _params.k, _params.d, _params.n, _params.phi_0);
+    }
+
+pybind11::dict HarmonicDihedralForceCompute::getParams(std::string type)
+    {
+    auto typ = m_dihedral_data->getTypeByName(type);
+    pybind11::dict params;
+    params["k"] = m_K[typ];
+    params["d"] = m_sign[typ];
+    params["n"] = m_multi[typ];
+    params["phi0"] = m_phi_0[typ];
+    return params;
+    }
+
 /*! DihedralForceCompute provides
     - \c dihedral_harmonic_energy
 */
@@ -367,6 +388,7 @@ void export_HarmonicDihedralForceCompute(py::module& m)
     {
     py::class_<HarmonicDihedralForceCompute, ForceCompute, std::shared_ptr<HarmonicDihedralForceCompute> >(m, "HarmonicDihedralForceCompute")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
-    .def("setParams", &HarmonicDihedralForceCompute::setParams)
+    .def("setParams", &HarmonicDihedralForceCompute::setParamsPython)
+    .def("getParams", &HarmonicDihedralForceCompute::getParams)
     ;
     }

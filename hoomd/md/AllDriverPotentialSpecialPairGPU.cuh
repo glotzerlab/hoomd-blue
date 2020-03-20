@@ -17,12 +17,12 @@
 //! Compute LJ bond forces on the GPU with BondEvaluatorLJ
 hipError_t __attribute__((visibility("default")))
 gpu_compute_lj_forces(const bond_args_t& bond_args,
-                      const Scalar3 *d_params,
+                      const special_lj_params *d_params,
                       unsigned int *d_flags);
 
 //! Compute Coulomb bond forces on the GPU with BondEvaluatorCoulomb
 hipError_t __attribute__((visibility("default")))
 gpu_compute_coulomb_forces(const bond_args_t& bond_args,
-                      const Scalar2 *d_params,
+                      const special_coulomb_params *d_params,
                       unsigned int *d_flags);
 #endif
