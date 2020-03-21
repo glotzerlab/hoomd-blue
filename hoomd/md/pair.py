@@ -2944,7 +2944,7 @@ class alj(ai_pair):
         if hoomd.context.current.system_definition.getNDimensions() == 2:
             vertices = [[v[0], v[1], 0] for v in vertices]
 
-        if not np.linalg.norm(np.mean(vertices, axis=0)) > 1e-6:
+        if np.linalg.norm(np.mean(vertices, axis=0)) > 1e-6:
             raise ValueError(
                 "The vertices must be centered at the centroid of your shape. "
                 "Please subtract the centroid (e.g. via "

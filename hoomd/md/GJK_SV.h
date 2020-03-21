@@ -80,6 +80,49 @@ HOSTDEVICE inline void support_polyhedron(const ManagedArray<vec3<Scalar> > &ver
     }
 
 
+// Find the simplex closest to a point outside a shape by calculating angles
+// between the centroid-point vector and each of the centroid-vertex vectors of
+// the shape and choosing the three smallest ones.
+template <unsigned int ndim>
+HOSTDEVICE inline void find_simplex(const ManagedArray<vec3<Scalar> > &verts, const vec3<Scalar> &vector, const Scalar mat[3][3], vec3<Scalar> (&unique_vectors)[ndim])
+    {
+    Scalar angles[ndim];
+    for (unsigned int i = 0; i < ndim; ++i)
+        angles[i] = Scalar(M_PI);
+
+    vec3<Scalar> norm_vector = vector / sqrt(dot(vector, vector));
+
+    vec3<Scalar> rot_shift_vec = rotate(mat, verts[0]);
+    vec3<Scalar> norm_rot_shift_vector = rot_shift_vec / sqrt(dot(rot_shift_vec, rot_shift_vec));
+    unique_vectors[0] = rot_shift_vec;
+    angles[0] = acos(dot(norm_rot_shift_vector, norm_vector));
+
+    for (unsigned int i = 1; i < verts.size(); ++i)
+        {
+        rot_shift_vec = rotate(mat, verts[i]);
+        norm_rot_shift_vector = rot_shift_vec / sqrt(dot(rot_shift_vec, rot_shift_vec));
+        Scalar angle = acos(dot(norm_rot_shift_vector, norm_vector));
+
+        unsigned int insertion_index = (angle < angles[0] ? 0 : (angle < angles[1] ? 1 : 2 ));
+        if (ndim == 3 && angle >= angles[2])
+            {
+            insertion_index = 3;
+            }
+
+        if (insertion_index < ndim)
+            {
+            for (unsigned int j = (ndim-1); j > insertion_index; --j)
+                {
+                unique_vectors[j] = unique_vectors[j-1];
+                angles[j] = angles[j-1];
+                }
+            unique_vectors[insertion_index] = rot_shift_vec;
+            angles[insertion_index] = angle;
+            }
+        }
+    }
+
+
 HOSTDEVICE inline void support_ellipsoid(const vec3<Scalar> &rounding_radii, const vec3<Scalar> &vector, const quat<Scalar> &q, vec3<Scalar> &ellipsoid_support_vector)
     {
     // Compute the support function of the rounding ellipsoid. Since we only
@@ -636,7 +679,7 @@ HOSTDEVICE inline void sv_subalgorithm(vec3<Scalar>* W, unsigned int &W_used, Sc
  *  \param dr The vector pointing from the position of particle 2 to the position of particle 1 (note the sign; this is reversed throughout most of the calculations below).
  */
 template <unsigned int ndim>
-HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const ManagedArray<vec3<Scalar> > &verts2, vec3<Scalar> &v, vec3<Scalar> &a, vec3<Scalar> &b, bool& success, bool& overlap, const quat<Scalar> &qi, const quat<Scalar> &qj, const vec3<Scalar> &dr, const vec3<Scalar> &rounding_radii1, const vec3<Scalar> &rounding_radii2, bool has_rounding1, bool has_rounding2, vec3<Scalar> (&support_vectors1)[ndim], vec3<Scalar> (&support_vectors2)[ndim])
+HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const ManagedArray<vec3<Scalar> > &verts2, vec3<Scalar> &v, vec3<Scalar> &a, vec3<Scalar> &b, bool& success, bool& overlap, const quat<Scalar> &qi, const quat<Scalar> &qj, const vec3<Scalar> &dr, const vec3<Scalar> &rounding_radii1, const vec3<Scalar> &rounding_radii2, bool has_rounding1, bool has_rounding2, vec3<Scalar> (&unique_vectors_i)[ndim], vec3<Scalar> (&unique_vectors_j)[ndim])
     {
     // At any point only a subset of W is in use (identified by W_used), but
     // the total possible is capped at ndim+1 because that is the largest
@@ -844,56 +887,117 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
             }
         }
 
+    // At each iteration, if the current index in W is in use (it supports the
+    // vector v), for each shape we determine the vertex on that shape that
+    // corresponds to the vertex of the Minkowski difference. The variable
+    // index_i is initially used as an index into verts1 to indicate for the
+    // current Minkowski difference vertex. unique_indices_i is the set of all
+    // such unique indices that have been seen so far. If the current value of
+    // index_i is not found in unique_indices, then we have not seen this
+    // vertex of shape 1 before, and we add the rotated and translated version
+    // of this vertex into unique_vectors_i. Conversely, if the current value
+    // of index_i is found in unique_indices, then another (distinct) vertex of
+    // the Minkowski difference is based on this same vertex of shape 1 (but a
+    // different vertex of shape 2). At the end of this process, index_i takes
+    // on the value of the appropriate index in unique_indices_i, which
+    // corresponds to the indices of unique_vectors_i. This index is then used
+    // to determine what vector should be added to find a and b.
     a = vec3<Scalar>();
     b = vec3<Scalar>();
     unsigned int counter = 0;
+    unsigned int num_unique_i = 0, num_unique_j = 0;
+    unsigned int unique_indices_i[ndim] = {0}, unique_indices_j[ndim] = {0};
     for (unsigned int i = 0; i < max_num_points; i++)
         {
         if (W_used & (1 << i))
             {
+            unsigned int index_i = indices1[i];
+            bool is_unique_i = true;
+
+            for (unsigned int j = 0; j < num_unique_i; ++j)
+                {
+                if (index_i == unique_indices_i[j])
+                    {
+                    is_unique_i = false;
+                    index_i = j;
+                    break;
+                    }
+                }
+
+            unsigned int index_j = indices2[i];
+            bool is_unique_j = true;
+            for (unsigned int j = 0; j < num_unique_j; ++j)
+                {
+                if (index_j == unique_indices_j[j])
+                    {
+                    is_unique_j = false;
+                    index_j = j;
+                    break;
+                    }
+                }
+
+            if (is_unique_i)
+                {
+                unique_vectors_i[num_unique_i] = rotate(mati, verts1[index_i]);
+                unique_indices_i[num_unique_i] = indices1[i];
+                index_i = num_unique_i;
+                ++num_unique_i;
+                }
+            if (is_unique_j)
+                {
+                unique_vectors_j[num_unique_j] = rotate(matj, verts2[index_j]) + Scalar(-1.0)*dr;
+                unique_indices_j[num_unique_j] = indices2[i];
+                index_j = num_unique_j;
+                ++num_unique_j;
+                }
+
+            a += lambdas[i]*unique_vectors_i[index_i];
+            b += lambdas[i]*unique_vectors_j[index_j];
+
             // Microoptimization: Don't access ellipsoid_supports array unless
             // needed. The branching should be free since the shape is defined
             // identically on all threads.
             if (has_rounding1)
                 {
-                a += lambdas[i]*(rotate(mati, verts1[indices1[i]]) + ellipsoid_supports1[i]);
-                }
-            else
-                {
-                a += lambdas[i]*(rotate(mati, verts1[indices1[i]]));
+                a += lambdas[i]*ellipsoid_supports1[i];
                 }
 
             if (has_rounding2)
                 {
-                b += lambdas[i]*(rotate(matj, verts2[indices2[i]]) + Scalar(-1.0)*dr + ellipsoid_supports2[i]);
+                b += lambdas[i]*ellipsoid_supports2[i];
                 }
-            else
-                {
-                b += lambdas[i]*(rotate(matj, verts2[indices2[i]]) + Scalar(-1.0)*dr);
-                }
+
             counter += 1;
             }
         }
 
-    overlap = (counter == max_num_points);
+    // For each shape, if the number of unique points supporting the contact
+    // point is less than the number of dimensions (e.g. only one supporting
+    // point in 2d), then we have a lower dimensional simplex than the maximal
+    // simplex size in this dimension. In this case, we need to identify the
+    // full simplex to compute interactions for. To do this, we can compute
+    // something like the support function from the centroid of the shape to
+    // the contact point on the other shape. More precisely, we identify the
+    // vector connecting the centroid to the contact point on the other shape,
+    // and then we compute the angles between this vector and the vectors
+    // connecting the centroid to each vertex of the current shape. The ndim
+    // smallest angles correspond to the minimal simplex.
+    if (num_unique_i < ndim)
+        {
+        find_simplex(verts1, b, mati, unique_vectors_i);
+        }
+    if (num_unique_j < ndim)
+        {
+        // Since simplex finding is based on angles, we need to compute dot
+        // products in the local frame of the second particle and then shift
+        // the final result back into the global frame (the body frame of
+        // particle 1).
+        find_simplex(verts2, dr+a, matj, unique_vectors_j);
+        for (unsigned int i = 0; i < ndim; ++i)
+            unique_vectors_j[i] += Scalar(-1.0)*dr;
+        }
 
-    // TODO: Generalize to 3D if this works.
-    // TODO: Make sure this doesn't break ellipsoids.
-    // Find the points to use for calculating the maximal simplex (the simplex
-    // containing the contact point that also contains the other points closest
-    // to the other shape).
-    // Unsure if this needs to be with dr or v. I think dr is technically more
-    // correct, but the cases where they'll give different answers (near to
-    // corner-corner contacts) probably never result in the extra contacts
-    // being meaningful anyway. May need to test this though.
-    support_polyhedron<ndim>(verts1, -dr, mati, vec3<Scalar>(0, 0, 0), support_vectors1);
-    support_polyhedron<ndim>(verts2, dr, matj, Scalar(-1.0)*dr, support_vectors2);
-    // At least one of the contact points is guaranteed to be a vertex. In the
-    // perfectly parallel case (which should be essentially impossible, I'm
-    // assuming it's effectively a set of measure 0), both a and be will be
-    // vertices. We need to avoid double counting that for force computations,
-    // so we only add the contact point to one of these lists if it's not
-    // already there in the form of one of the endpoints.
+    overlap = (counter == max_num_points);
     }
 
 #endif // __GJK_SV_H__
