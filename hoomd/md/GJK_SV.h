@@ -11,6 +11,37 @@
 #include <stdexcept>
 #endif
 
+// Quaternion to rotation matrix conversion.
+HOSTDEVICE inline void quat2mat(const quat<Scalar> &q, Scalar (&mat)[3][3])
+    {
+    Scalar two_x = Scalar(2.0) * q.v.x;
+    Scalar two_y = Scalar(2.0) * q.v.y;
+    Scalar two_z = Scalar(2.0) * q.v.z;
+    Scalar two_x_sq = q.v.x * two_x;
+    Scalar two_y_sq = q.v.y * two_y;
+    Scalar two_z_sq = q.v.z * two_z;
+
+    mat[0][0] = Scalar(1.0) - two_y_sq - two_z_sq;
+    mat[1][1] = Scalar(1.0) - two_x_sq - two_z_sq;
+    mat[2][2] = Scalar(1.0) - two_x_sq - two_y_sq;
+
+    Scalar y_two_z = q.v.y * two_z;
+    Scalar s_two_x = q.s * two_x;
+    mat[1][2] = y_two_z - s_two_x;
+    mat[2][1] = y_two_z + s_two_x;
+
+    Scalar x_two_y = q.v.x * two_y;
+    Scalar s_two_z = q.s * two_z;
+    mat[0][1] = x_two_y - s_two_z;
+    mat[1][0] = x_two_y + s_two_z;
+
+    Scalar x_two_z = q.v.x * two_z;
+    Scalar s_two_y = q.s * two_y;
+    mat[0][2] = x_two_z + s_two_y;
+    mat[2][0] = x_two_z - s_two_y;
+    }
+
+
 // Define matrix vector multiplication since it's faster than quat vector.
 template <typename Scalar>
 HOSTDEVICE inline vec3<Scalar> rotate(const Scalar mat[3][3], const vec3<Scalar>& v)
@@ -700,62 +731,9 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
     // rotations. We create local scope for all the intermediate products to
     // avoid namespace pollution with unnecessary variables..
     Scalar mati[3][3], matj[3][3];
+    quat2mat(qi, mati);
+    quat2mat(qj, matj);
 
-        {
-        Scalar two_x = Scalar(2.0) * qi.v.x;
-        Scalar two_y = Scalar(2.0) * qi.v.y;
-        Scalar two_z = Scalar(2.0) * qi.v.z;
-        Scalar two_x_sq = qi.v.x * two_x;
-        Scalar two_y_sq = qi.v.y * two_y;
-        Scalar two_z_sq = qi.v.z * two_z;
-
-        mati[0][0] = Scalar(1.0) - two_y_sq - two_z_sq;
-        mati[1][1] = Scalar(1.0) - two_x_sq - two_z_sq;
-        mati[2][2] = Scalar(1.0) - two_x_sq - two_y_sq;
-
-        Scalar y_two_z = qi.v.y * two_z;
-        Scalar s_two_x = qi.s * two_x;
-        mati[1][2] = y_two_z - s_two_x;
-        mati[2][1] = y_two_z + s_two_x;
-
-        Scalar x_two_y = qi.v.x * two_y;
-        Scalar s_two_z = qi.s * two_z;
-        mati[0][1] = x_two_y - s_two_z;
-        mati[1][0] = x_two_y + s_two_z;
-
-        Scalar x_two_z = qi.v.x * two_z;
-        Scalar s_two_y = qi.s * two_y;
-        mati[0][2] = x_two_z + s_two_y;
-        mati[2][0] = x_two_z - s_two_y;
-        }
-
-        {
-        Scalar two_x = Scalar(2.0) * qj.v.x;
-        Scalar two_y = Scalar(2.0) * qj.v.y;
-        Scalar two_z = Scalar(2.0) * qj.v.z;
-        Scalar two_x_sq = qj.v.x * two_x;
-        Scalar two_y_sq = qj.v.y * two_y;
-        Scalar two_z_sq = qj.v.z * two_z;
-
-        matj[0][0] = Scalar(1.0) - two_y_sq - two_z_sq;
-        matj[1][1] = Scalar(1.0) - two_x_sq - two_z_sq;
-        matj[2][2] = Scalar(1.0) - two_x_sq - two_y_sq;
-
-        Scalar y_two_z = qj.v.y * two_z;
-        Scalar s_two_x = qj.s * two_x;
-        matj[1][2] = y_two_z - s_two_x;
-        matj[2][1] = y_two_z + s_two_x;
-
-        Scalar x_two_y = qj.v.x * two_y;
-        Scalar s_two_z = qj.s * two_z;
-        matj[0][1] = x_two_y - s_two_z;
-        matj[1][0] = x_two_y + s_two_z;
-
-        Scalar x_two_z = qj.v.x * two_z;
-        Scalar s_two_y = qj.s * two_y;
-        matj[0][2] = x_two_z + s_two_y;
-        matj[2][0] = x_two_z - s_two_y;
-        }
 
     // We don't bother to initialize most of these arrays since the W_used
     // array controls which data is valid. 
@@ -887,6 +865,64 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
             }
         }
 
+    // If both shapes are polytopes (not ellipsoids), we need to populate the
+    // unique_vectors arrays using the appropriate logic.
+    // TODO: Handle verts.size() == 2 (or verts.size() == 3 in 3D).
+    if (verts1.size() > ndim && verts2.size() > ndim)
+        {
+        find_a_b_polytope(verts1, verts2, W_used, has_rounding1, has_rounding2, indices1, indices2, lambdas, ellipsoid_supports1, ellipsoid_supports2, dr, mati, matj, unique_vectors_i, unique_vectors_j, a, b, overlap);
+        }
+    else
+        {
+        find_a_b_rounded(verts1, verts2, W_used, has_rounding1, has_rounding2, indices1, indices2, lambdas, ellipsoid_supports1, ellipsoid_supports2, dr, mati, matj, unique_vectors_i, unique_vectors_j, a, b, overlap);
+        }
+    }
+
+
+// Find the a and b vectors to use if at least one of the two shapes does not
+// have enough vertices to form a complete simplex, in which case a single
+// contact point is sufficient (because there's no possibility of parallelism).
+template <unsigned int ndim>
+HOSTDEVICE inline void find_a_b_rounded(const ManagedArray<vec3<Scalar> > &verts1, const ManagedArray<vec3<Scalar> > &verts2, unsigned int W_used, bool has_rounding1, bool has_rounding2, const unsigned int (&indices1)[ndim+1], const unsigned int (&indices2)[ndim+1], const Scalar (&lambdas)[ndim+1], vec3<Scalar> (&ellipsoid_supports1)[ndim+1], vec3<Scalar> (&ellipsoid_supports2)[ndim+1], const vec3<Scalar> &dr, const Scalar (&mati)[3][3], const Scalar (&matj)[3][3], vec3<Scalar> (&unique_vectors_i)[ndim], vec3<Scalar> (&unique_vectors_j)[ndim], vec3<Scalar> &a, vec3<Scalar> &b, bool &overlap)
+{
+    a = vec3<Scalar>();
+    b = vec3<Scalar>();
+    unsigned int counter = 0;
+    for (unsigned int i = 0; i < ndim + 1; i++)
+        {
+        if (W_used & (1 << i))
+            {
+            // Microoptimization: Don't access ellipsoid_supports array unless
+            // needed. The branching should be free since the shape is defined
+            // identically on all threads.
+            if (has_rounding1)
+                {
+                a += lambdas[i]*(rotate(mati, verts1[indices1[i]]) + ellipsoid_supports1[i]);
+                }
+            else
+                {
+                a += lambdas[i]*(rotate(mati, verts1[indices1[i]]));
+                }
+
+            if (has_rounding2)
+                {
+                b += lambdas[i]*(rotate(matj, verts2[indices2[i]]) + Scalar(-1.0)*dr + ellipsoid_supports2[i]);
+                }
+            else
+                {
+                b += lambdas[i]*(rotate(matj, verts2[indices2[i]]) + Scalar(-1.0)*dr);
+                }
+            counter += 1;
+            }
+        }
+    overlap = (counter == ndim + 1);
+}
+
+
+// Find the a and b vectors to use if at least one of the two shapes has rounding.
+template <unsigned int ndim>
+HOSTDEVICE inline void find_a_b_polytope(const ManagedArray<vec3<Scalar> > &verts1, const ManagedArray<vec3<Scalar> > &verts2, unsigned int W_used, bool has_rounding1, bool has_rounding2, const unsigned int (&indices1)[ndim+1], const unsigned int (&indices2)[ndim+1], const Scalar (&lambdas)[ndim+1], vec3<Scalar> (&ellipsoid_supports1)[ndim+1], vec3<Scalar> (&ellipsoid_supports2)[ndim+1], const vec3<Scalar> &dr, const Scalar mati[3][3], const Scalar matj[3][3], vec3<Scalar> (&unique_vectors_i)[ndim], vec3<Scalar> (&unique_vectors_j)[ndim], vec3<Scalar> &a, vec3<Scalar> &b, bool &overlap)
+{
     // At each iteration, if the current index in W is in use (it supports the
     // vector v), for each shape we determine the vertex on that shape that
     // corresponds to the vertex of the Minkowski difference. The variable
@@ -907,7 +943,7 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
     unsigned int counter = 0;
     unsigned int num_unique_i = 0, num_unique_j = 0;
     unsigned int unique_indices_i[ndim] = {0}, unique_indices_j[ndim] = {0};
-    for (unsigned int i = 0; i < max_num_points; i++)
+    for (unsigned int i = 0; i < ndim + 1; i++)
         {
         if (W_used & (1 << i))
             {
@@ -996,8 +1032,8 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
         for (unsigned int i = 0; i < ndim; ++i)
             unique_vectors_j[i] += Scalar(-1.0)*dr;
         }
+    overlap = (counter == ndim + 1);
+}
 
-    overlap = (counter == max_num_points);
-    }
 
 #endif // __GJK_SV_H__
