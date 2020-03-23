@@ -1,7 +1,7 @@
 # copy python modules to the build directory to make it a working python package
 set(files __init__.py
-    test_shape.py
-    conftest.py
+          test_shape.py
+          conftest.py
     )
 
 install(FILES ${files}
