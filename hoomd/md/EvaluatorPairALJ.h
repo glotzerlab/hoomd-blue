@@ -8,6 +8,7 @@
 
 #ifndef NVCC
 #include <string>
+#include <sstream>
 #endif
 
 #include "hoomd/VectorMath.h"
@@ -130,6 +131,11 @@ point_segment_distance(vec3<Scalar> point, vec3<Scalar> e1, vec3<Scalar> e2, vec
     Scalar t = fmax(0.0, fmin(dot(point - e1, e2 - e1)/edge_length_sq, 1.0));
     projection = e1 - t * edge;
     delta = point - projection;
+
+    // We MUST use sqrt, not rsqrt here. The difference in
+    // precision is enough to cause noticeable violations in energy
+    // conservation on the GPU (see the double-precision tables here:
+    // https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#standard-functions).
     dist = sqrt(dot(delta, delta));
     }
 
@@ -258,7 +264,7 @@ class EvaluatorPairALJ
                     // Note the signs of each of the vectors:
                     //    - v points from the contact point on verts2 to the contact points on verts1.
                     //    - a points from the centroid of verts1 to the contact points on verts1.
-                    //    - b points from the centroid of verts2 to the contact points on verts2.
+                    //    - b points from the centroid of verts1 to the contact points on verts2.
                     gjk<ndim>(verts1, verts2, v, a, b, success, overlap, q1, q2, dr_use, shape_i->rounding_radii, shape_j->rounding_radii, shape_i->has_rounding, shape_j->has_rounding, support_vectors1, support_vectors2);
                     assert(success && !overlap);
 
@@ -268,15 +274,15 @@ class EvaluatorPairALJ
                         a = b - dr;
                         b = a_tmp - dr;
 
-                        // Also swap all the other positions. It's fine to go
-                        // all the way to ndim, because we won't use the
-                        // extra one if we don't need it (based on
-                        // closest_is_vertex[12]).
-                        for (unsigned int i = 0; i < ndim; ++i)
+                        // If parallel faces are a possibility, use the full facet vectors.
+                        if (shape_i->verts.size() > ndim && shape_j->verts.size() > ndim)
                             {
-                            vec3<Scalar> tmp = support_vectors1[i];
-                            support_vectors1[i] = support_vectors2[i] - dr;
-                            support_vectors2[i] = tmp - dr;
+                            for (unsigned int i = 0; i < ndim; ++i)
+                                {
+                                vec3<Scalar> tmp = support_vectors1[i];
+                                support_vectors1[i] = support_vectors2[i] - dr;
+                                support_vectors2[i] = tmp - dr;
+                                }
                             }
                         }
                     else
@@ -292,10 +298,13 @@ class EvaluatorPairALJ
                     v.z = 0;
                     a.z = 0;
                     b.z = 0;
-                    for (unsigned int i = 0; i < ndim; ++i)
+                    if (shape_i->verts.size() > ndim && shape_j->verts.size() > ndim)
                         {
-                        support_vectors1[i].z = 0;
-                        support_vectors2[i].z = 0;
+                        for (unsigned int i = 0; i < ndim; ++i)
+                            {
+                            support_vectors1[i].z = 0;
+                            support_vectors2[i].z = 0;
+                            }
                         }
                     }
 
@@ -322,14 +331,11 @@ class EvaluatorPairALJ
                 Scalar four_epsilon = Scalar(4.0) * _params.epsilon;
                 Scalar four_scaled_epsilon = four_epsilon * scale_factor;
 
-                // Define relevant vectors
-                Scalar f_scalar = 0;
-
-                pair_eng = 0;
-
                 // We must compute the central LJ force if we are including the
                 // attractive component. For pure repulsive (WCA), we only need
                 // to compute it if we are within the limited cutoff.
+                Scalar f_scalar = 0;
+                pair_eng = 0;
                 if ((_params.alpha % 2 != 0) || (r < TWO_P_16*sigma12))
                     {
                     // Compute force and energy from LJ formula.
@@ -344,14 +350,34 @@ class EvaluatorPairALJ
                     }
 
                 vec3<Scalar> f = f_scalar * (dr / r);
-                computeContactEnergy(
-                        support_vectors1, support_vectors2, contact_sphere_diameter, four_epsilon, f, pair_eng, torque_i, torque_j);
-                // Net force
-                if (ndim == 2)
+                // TODO: If we anticipate running heavily mixed systems of
+                // ellipsoids and (sphero)poly[gons|hedra], we could get
+                // significant performance benefits from templating here and
+                // having multiple evaluators. However, that requires
+                // significant reworkings of HOOMD internals, so it's probably
+                // not worthwhile. We should consider if we ever want to enable
+                // this during the HOOMD3.0 rewrite, though.
+                if (shape_i->verts.size() > ndim && shape_j->verts.size() > ndim)
                     {
-                    f.z = 0;
+                    computeContactEnergy(
+                            support_vectors1, support_vectors2, contact_sphere_diameter, four_epsilon, f, pair_eng, torque_i, torque_j);
+                    }
+                else
+                    {
+                    computeContactEnergy(
+                            v, a, b, dr, contact_sphere_diameter, four_epsilon, f, pair_eng, torque_i, torque_j);
                     }
                 force = vec_to_scalar3(f);
+
+                if (ndim == 2)
+                    {
+                    force.z = 0;
+                    torque_i.x = 0;
+                    torque_i.y = 0;
+                    torque_j.x = 0;
+                    torque_j.y = 0;
+                    }
+
 
                 return true;
                 }
@@ -380,6 +406,22 @@ class EvaluatorPairALJ
     protected:
 
         HOSTDEVICE void computeContactEnergy(
+                const vec3<Scalar> &v, const vec3<Scalar> &a, const vec3<Scalar> &b, const vec3<Scalar> &dr,
+                const Scalar contact_sphere_diameter, const Scalar &four_epsilon,
+                vec3<Scalar> &force, Scalar &pair_eng, Scalar3 &torque_i, Scalar3 &torque_j)
+            {
+            // Similarly, we must compute the contact LJ force if we are
+            // including the attractive component. For pure repulsive
+            // (WCA), we only need to compute it if we are within the
+            // limited cutoff associated with the contact point.
+            Scalar norm_v = sqrt(dot(v, v));
+            vec3<Scalar> torquei, torquej;
+            computeContactForceAndTorque(contact_sphere_diameter, v, norm_v, four_epsilon, a, dr+b, force, pair_eng, torquei, torquej);
+            torque_i = vec_to_scalar3(torquei);
+            torque_j = vec_to_scalar3(torquej);
+            }
+
+        HOSTDEVICE void computeContactEnergy(
                 const vec3<Scalar> support_vectors1[ndim], const vec3<Scalar> support_vectors2[ndim],
                 const Scalar contact_sphere_diameter, const Scalar &four_epsilon,
                 vec3<Scalar> &force, Scalar &pair_eng, Scalar3 &torque_i, Scalar3 &torque_j)
@@ -389,83 +431,58 @@ class EvaluatorPairALJ
             // (WCA), we only need to compute it if we are within the
             // limited cutoff associated with the contact point.
             vec3<Scalar> torquei, torquej;
-            // TODO: This logic is currently wrong because you should also
-            // go inside the if any time the distance is close enough.
-            // However, we don't want to unnecessarily precalculate the
-            // distance either. I'll optimize later, for now I'll just do
-            // all the calcs.
             // First compute the interaction of the verts on 1 to the edge on 2.
-            vec3<Scalar> edge = support_vectors2[0] - support_vectors2[1];
-            Scalar edge_length_sq = dot(edge, edge);
             for (unsigned int i = 0; i < ndim; ++i)
                 {
-                Scalar t = fmax(0.0, fmin(dot(support_vectors1[i] - support_vectors2[0], support_vectors2[1] - support_vectors2[0])/edge_length_sq, 1.0));
-                vec3<Scalar> projection = support_vectors2[0] - t * edge;
-                vec3<Scalar> vec = support_vectors1[i] - projection;
-                // We MUST use sqrt, not rsqrt here. The difference in
-                // precision is enough to cause noticeable violations in energy
-                // conservation.
-                Scalar dist = sqrt(dot(vec, vec));
-                // point_segment_distance(support_vectors1[i], support_vectors2[0], support_vectors2[1], vec, projection, dist);
-                if ((_params.alpha / 2 != 0) || (dist < TWO_P_16*contact_sphere_diameter))
-                    {
-                    // Contact force and energy
-                    Scalar rho = contact_sphere_diameter / dist;
-                    Scalar invr_rsq = rho*rho;
-                    Scalar invr_6 = invr_rsq*invr_rsq*invr_rsq;
-                    Scalar invr_12 = invr_6*invr_6;
-                    pair_eng += four_epsilon * (invr_12 - invr_6);
-                    Scalar f_scalar_contact = four_epsilon * (Scalar(12.0)*invr_12 - Scalar(6.0)*invr_6) / dist;
-                    vec3<Scalar> f_contact_tmp = -f_scalar_contact * (-vec) / dist;
-                    force += f_contact_tmp;
-                    torquei += cross(support_vectors1[i], f_contact_tmp);
-                    torquej += cross(dr + support_vectors1[i] - vec, Scalar(-1.0) * f_contact_tmp);
-
-                    // For the WCA case
-                    if (_params.alpha / 2 == 0)
-                        {
-                        pair_eng -= four_epsilon * SHIFT_RHO_DIFF;
-                        }
-                    }
+                vec3<Scalar> projection, vec;
+                Scalar dist;
+                point_segment_distance(support_vectors1[i], support_vectors2[0], support_vectors2[1], vec, projection, dist);
+                computeContactForceAndTorque(contact_sphere_diameter, -vec, dist, four_epsilon, support_vectors1[i], dr + support_vectors1[i] - vec, force, pair_eng, torquei, torquej);
                 }
 
             // Now compute the interaction of the verts on 2 to the edge on 1.
-            edge = support_vectors1[0] - support_vectors1[1];
-            edge_length_sq = dot(edge, edge);
             for (unsigned int i = 0; i < ndim; ++i)
                 {
-                Scalar t = fmax(0.0, fmin(dot(support_vectors2[i] - support_vectors1[0], support_vectors1[1] - support_vectors1[0])/edge_length_sq, 1.0));
-                vec3<Scalar> projection = support_vectors1[0] - t * edge;
-                vec3<Scalar> vec = support_vectors2[i] - projection;
-                // We MUST use sqrt, not rsqrt here. The difference in
-                // precision is enough to cause noticeable violations in energy
-                // conservation.
-                Scalar dist = sqrt(dot(vec, vec));
+                vec3<Scalar> projection, vec;
+                Scalar dist;
+                point_segment_distance(support_vectors2[i], support_vectors1[0], support_vectors1[1], vec, projection, dist);
 
-                // point_segment_distance(support_vectors2[i], support_vectors1[0], support_vectors1[1], vec, projection, dist);
-                if ((_params.alpha / 2 != 0) || (dist < TWO_P_16*contact_sphere_diameter))
-                    {
-                    // Contact force and energy
-                    Scalar rho = contact_sphere_diameter / dist;
-                    Scalar invr_rsq = rho*rho;
-                    Scalar invr_6 = invr_rsq*invr_rsq*invr_rsq;
-                    Scalar invr_12 = invr_6*invr_6;
-                    pair_eng += four_epsilon * (invr_12 - invr_6);
-                    Scalar f_scalar_contact = four_epsilon * (Scalar(12.0)*invr_12 - Scalar(6.0)*invr_6) / dist;
-                    vec3<Scalar> f_contact_tmp = -f_scalar_contact * vec / dist;
-                    force += f_contact_tmp;
-                    torquei += cross(projection, f_contact_tmp);
-                    torquej += cross(dr + support_vectors2[i], Scalar(-1.0) * f_contact_tmp);
-
-                    // For the WCA case
-                    if (_params.alpha / 2 == 0)
-                        {
-                        pair_eng -= four_epsilon * SHIFT_RHO_DIFF;
-                        }
-                    }
+                computeContactForceAndTorque(contact_sphere_diameter, vec, dist, four_epsilon, projection, dr + support_vectors2[i], force, pair_eng, torquei, torquej);
                 }
             torque_i = vec_to_scalar3(torquei);
             torque_j = vec_to_scalar3(torquej);
+            }
+
+        HOSTDEVICE inline void ljForceEnergy(const Scalar sigma, const Scalar four_epsilon, const Scalar r, Scalar &energy, Scalar &scalar_force)
+            {
+            Scalar rho = sigma / r;
+            Scalar invr_rsq = rho*rho;
+            Scalar invr_6 = invr_rsq*invr_rsq*invr_rsq;
+            Scalar invr_12 = invr_6*invr_6;
+            energy = four_epsilon * (invr_12 - invr_6);
+            scalar_force = four_epsilon * (Scalar(12.0)*invr_12 - Scalar(6.0)*invr_6) / r;
+
+            // For the WCA case
+            if (_params.alpha / 2 == 0)
+                {
+                energy -= four_epsilon * SHIFT_RHO_DIFF;
+                }
+            }
+
+        HOSTDEVICE inline void computeContactForceAndTorque(const Scalar contact_sphere_diameter, const vec3<Scalar> &contact_vector, const Scalar contact_distance, const Scalar four_epsilon, const vec3<Scalar> &contact_point_i, const vec3<Scalar> &contact_point_j,
+                vec3<Scalar> &force, Scalar &pair_eng, vec3<Scalar> &torque_i, vec3<Scalar> &torque_j)
+            {
+            if ((_params.alpha / 2 != 0) || (1 < TWO_P_16*contact_sphere_diameter / contact_distance))
+                {
+                Scalar energy_contact, scalar_force_contact;
+                ljForceEnergy(contact_sphere_diameter, four_epsilon, contact_distance, energy_contact, scalar_force_contact);
+                pair_eng += energy_contact;
+                vec3<Scalar> force_contact = -scalar_force_contact * contact_vector / contact_distance;
+                force += force_contact;
+
+                torque_i += cross(contact_point_i, force_contact);
+                torque_j += cross(contact_point_j, Scalar(-1.0) * force_contact);
+                }
             }
 
         vec3<Scalar> dr;   //!< Stored dr from the constructor
