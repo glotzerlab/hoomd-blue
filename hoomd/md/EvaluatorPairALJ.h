@@ -139,6 +139,7 @@ pointSegmentDistance(const vec3<Scalar> &point, const vec3<Scalar> &e1, const ve
     dist = sqrt(dot(delta, delta));
     }
 
+
 // Note: delta is from the edge to the point.
 HOSTDEVICE inline void
 pointFaceDistancev1(const vec3<Scalar> &point, const vec3<Scalar> &f1, const vec3<Scalar> &f2, const vec3<Scalar> &f3, vec3<Scalar> &delta, vec3<Scalar> &projection, Scalar &dist)
@@ -848,11 +849,8 @@ class EvaluatorPairALJ
     };
 
 
-#ifndef NVCC
-
-
 template <>
-HOSTDEVICE void EvaluatorPairALJ<2>::computeContactEnergy(
+HOSTDEVICE inline void EvaluatorPairALJ<2>::computeContactEnergy(
         const vec3<Scalar> support_vectors1[2], const vec3<Scalar> support_vectors2[2],
         const Scalar contact_sphere_diameter, const Scalar &four_epsilon,
         vec3<Scalar> &force, Scalar &pair_eng, Scalar3 &torque_i, Scalar3 &torque_j)
@@ -878,9 +876,8 @@ HOSTDEVICE void EvaluatorPairALJ<2>::computeContactEnergy(
     torque_j = vec_to_scalar3(torquej);
     }
 
-
 template <>
-HOSTDEVICE void EvaluatorPairALJ<3>::computeContactEnergy(
+HOSTDEVICE inline void EvaluatorPairALJ<3>::computeContactEnergy(
         const vec3<Scalar> support_vectors1[3], const vec3<Scalar> support_vectors2[3],
         const Scalar contact_sphere_diameter, const Scalar &four_epsilon,
         vec3<Scalar> &force, Scalar &pair_eng, Scalar3 &torque_i, Scalar3 &torque_j)
@@ -920,6 +917,8 @@ HOSTDEVICE void EvaluatorPairALJ<3>::computeContactEnergy(
     }
 
 
+
+#ifndef NVCC
 
 // Note: This method assumes that shape_i == shape_j. This should be valid for
 // all cases, and this logic will be moved up to the AnisoPotentialPair in
