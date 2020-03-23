@@ -330,7 +330,10 @@ install(FILES ${_hoomd_headers}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include/hoomd
        )
 
+# subdirectories that are not components
+add_subdirectory(filter)
 add_subdirectory(pytest)
+add_subdirectory(minimize)
 
 if (BUILD_TESTING)
     # add_subdirectory(test-py)
@@ -383,12 +386,21 @@ if (BUILD_JIT)
     add_subdirectory(jit)
 endif()
 
-add_subdirectory(minimize)
-
 file(GLOB _directory_contents RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *)
 
-# explicitly remove packages which are already explicitly dealt with
-list(REMOVE_ITEM _directory_contents test test-py extern md hpmc metal dem mpcd jit pytest minimize)
+# explicitly remove directories which are already explicitly dealt with
+list(REMOVE_ITEM _directory_contents test
+                                     test-py
+                                     extern
+                                     md
+                                     hpmc
+                                     metal
+                                     dem
+                                     mpcd
+                                     jit
+                                     pytest
+                                     minimize
+                                     filter)
 
 foreach(entry ${_directory_contents})
     if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${entry} OR IS_SYMLINK ${CMAKE_CURRENT_SOURCE_DIR}/${entry})
