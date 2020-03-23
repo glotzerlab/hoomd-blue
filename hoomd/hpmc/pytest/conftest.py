@@ -1,5 +1,6 @@
 import pytest
 import hoomd
+import numpy as np
 
 
 @pytest.fixture(scope="function")
