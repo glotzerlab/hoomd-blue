@@ -144,8 +144,6 @@ def test_overlaps_sphere(device, lattice_simulation_factory, sphere_valid_args):
             s.particles.position[0] = (0, 0, 0)
             s.particles.position[1] = (0, diameter * 0.9999, 0)
         sim.state.snapshot = s
-        print(args)
-        print(s.particles.position)
         assert mc.overlaps == 1
 
 
@@ -192,7 +190,6 @@ def construct_ellipsoid(args):
     """ Function to find how far the shape extends in the x, y, and z directions
     """
     vertices = np.array(args["vertices"])
-    # print(vertices)
     diffs = np.diff(vertices, axis=0)
     axis_diffs = np.max(abs(diffs), axis=0)
     return axis_diffs + (2 * args["sweep_radius"])
