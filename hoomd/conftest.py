@@ -2,10 +2,8 @@ import pytest
 import hoomd
 import atexit
 import numpy
-import hoomd.hpmc
 from hoomd.snapshot import Snapshot
 from hoomd import Simulation
-
 
 devices = [hoomd.device.CPU]
 if hoomd.device.GPU.is_available():
