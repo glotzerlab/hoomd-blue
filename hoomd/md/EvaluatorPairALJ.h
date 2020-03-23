@@ -124,7 +124,7 @@ struct pair_alj_params
 
 // Note: delta is from the edge to the point.
 HOSTDEVICE inline void
-point_segment_distance(vec3<Scalar> point, vec3<Scalar> e1, vec3<Scalar> e2, vec3<Scalar> &delta, vec3<Scalar> &projection, Scalar &dist)
+pointSegmentDistance(const vec3<Scalar> &point, const vec3<Scalar> &e1, const vec3<Scalar> &e2, vec3<Scalar> &delta, vec3<Scalar> &projection, Scalar &dist)
     {
     vec3<Scalar> edge = e1 - e2;
     Scalar edge_length_sq = dot(edge, edge);
@@ -137,6 +137,377 @@ point_segment_distance(vec3<Scalar> point, vec3<Scalar> e1, vec3<Scalar> e2, vec
     // conservation on the GPU (see the double-precision tables here:
     // https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#standard-functions).
     dist = sqrt(dot(delta, delta));
+    }
+
+// Note: delta is from the edge to the point.
+HOSTDEVICE inline void
+pointFaceDistancev1(const vec3<Scalar> &point, const vec3<Scalar> &f1, const vec3<Scalar> &f2, const vec3<Scalar> &f3, vec3<Scalar> &delta, vec3<Scalar> &projection, Scalar &dist)
+    {
+    // Use the method of Eberly
+    // https://www.geometrictools.com/Documentation/DistancePoint3Triangle3.pdf
+    const vec3<Scalar> &B = f1;
+    const vec3<Scalar> E0 = f2 - B;
+    const vec3<Scalar> E1 = f3 - B;
+    const vec3<Scalar> &P = point;
+
+    vec3<Scalar> D = f1 - P;
+    Scalar a = dot(E0, E0);
+    Scalar b = dot(E0, E1);
+    Scalar c = dot(E1, E1);
+    Scalar d = dot(E0, D);
+    Scalar e = dot(E1, D);
+
+    Scalar s = b*e - c*d;
+    Scalar t = b*d - a*e;
+
+    Scalar det = a*c - b*b;
+
+    if (s+t <= det)
+        {
+        if (s < 0)
+            {
+            if (t < 0)
+                {
+                if (d < 0)
+                    {
+                    t = 0;
+                    if (-d >= a)
+                        {
+                        s = 1;
+                        }
+                    else
+                        {
+                        s = -d/a;
+                        }
+                    }
+                else
+                    {
+                    s = 0;
+                    if (e >= 0)
+                        {
+                        t = 0;
+                        }
+                    else if (-e >= c)
+                        {
+                        t = 1;
+                        }
+                    else
+                        {
+                        t = -e/c;
+                        }
+                    }
+                }
+            else
+                {
+                s = 0;
+                if (e >= 0)
+                    {
+                    t = 0;
+                    }
+                else if (-e >= c)
+                    {
+                    t = 1;
+                    }
+                else
+                    {
+                    t = -e/c;
+                    }
+                }
+            }
+        else if (t < 0)
+            {
+            t = 0;
+            if (d >= 0)
+                {
+                s = 0;
+                }
+            else if (-d >= a)
+                {
+                s = 1;
+                }
+            else
+                {
+                s = -d/a;
+                }
+            }
+        else
+            {
+            s /= det;
+            t /= det;
+            }
+        }
+    else
+        {
+        if (s < 0)
+            {
+            Scalar tmp0 = b + d;
+            Scalar tmp1 = c + e;
+            if (tmp1 > tmp0)
+                {
+                Scalar numer = tmp1 - tmp0;
+                Scalar denom = a - 2*b + c;
+                if (numer >= denom)
+                    {
+                    s = 1;
+                    }
+                else
+                    {
+                    s = numer/denom;
+                    }
+                t = 1-s;
+                }
+            else
+                {
+                s = 0;
+                if (tmp1 <= 0)
+                    {
+                    t = 1;
+                    }
+                else if (e >= 0)
+                    {
+                    t = 0;
+                    }
+                else
+                    {
+                    t = -e/c;
+                    }
+                }
+            }
+        else if (t < 0)
+            {
+            Scalar tmp0 = b + e;
+            Scalar tmp1 = a + d;
+            if (tmp1 > tmp0)
+                {
+                Scalar numer = tmp1 - tmp0;
+                Scalar denom = a - 2*b + c;
+                if (numer >= denom)
+                    {
+                    t = 1;
+                    }
+                else
+                    {
+                    t = numer / denom;
+                    }
+                s = 1-t;
+                }
+            else
+                {
+                t = 0;
+                if (tmp1 <= 0)
+                    {
+                    s = 1;
+                    }
+                else if (d >= 0)
+                    {
+                    s = 0;
+                    }
+                else
+                    {
+                    s = -d/a;
+                    }
+                }
+            }
+        else
+            {
+            Scalar numer = (c+e) - (b+d);
+            if (numer <= 0)
+                {
+                s = 0;
+                }
+            else
+                {
+                Scalar denom = a - 2*b + c;
+                if (numer > denom)
+                    {
+                    s = 1;
+                    }
+                else
+                    {
+                    s = numer/denom;
+                    }
+                }
+            t = 1 - s;
+            }
+        }
+
+    projection = B + s*E0 + t*E1;
+    delta = point - projection;
+    dist = sqrt(dot(delta, delta));
+    }
+
+HOSTDEVICE inline Scalar det3(const vec3<Scalar> &v1, const vec3<Scalar> &v2, const vec3<Scalar> &v3)
+{
+    // Compute the determinant of a matrix with columns v1, v2, and v3.
+    return (v1.x*(v2.y*v3.z - v3.y*v2.z) +
+            v2.x*(v3.y*v1.z - v1.y*v3.z) +
+            v3.x*(v1.y*v2.z - v2.y*v1.z));
+}
+
+HOSTDEVICE inline Scalar clamp(const Scalar &x)
+{
+    return (x >= 0)*(x + (x > 1)*(1-x));
+}
+
+// Note: delta is from the edge to the point.
+HOSTDEVICE inline void
+pointFaceDistancev2(const vec3<Scalar> &point, const vec3<Scalar> &f1, const vec3<Scalar> &f2, const vec3<Scalar> &f3, vec3<Scalar> &delta, vec3<Scalar> &projection, Scalar &dist)
+    {
+    // This method performs a more brute force calculation than the Eberly
+    // method that requires more computation but with far less branching. It
+    // computes the point-triangle distance analytically by solving a system of
+    // linear equations; however, that system will give incorrect results when
+    // the projection of the point onto the plane of the triangle lies outside
+    // the triangle. To resolve this problem, this method also computes all
+    // point-edge distances. Since the answer we want is the minimizer of all
+    // distances, if any of these is less than the point-face calculation we
+    // know that it is the right answer.
+    vec3<Scalar> v1 = f2 - f1;
+    vec3<Scalar> v2 = f3 - f1;
+    vec3<Scalar> normal = cross(v1, v2);
+
+    vec3<Scalar> solution_vector = point - f1;
+
+    Scalar denom = det3(v1, v2, normal);
+    Scalar sub1 = det3(solution_vector, v2, normal);
+    Scalar sub2 = det3(v1, solution_vector, normal);
+
+    Scalar alpha = clamp(sub1/denom);
+    Scalar beta = clamp(sub2/denom);
+
+    Scalar total = alpha + beta;
+
+    if (total > 1)
+    {
+        alpha /= total;
+        beta /= total;
+    }
+
+    projection = f1 + alpha*v1 + beta*v2;
+    delta = point - projection;
+    dist = sqrt(dot(delta, delta));
+
+    vec3<Scalar> guess_delta, guess_projection;
+    Scalar guess_dist;
+
+    // Now test all three edges.
+    pointSegmentDistance(point, f1, f2, guess_delta, guess_projection, guess_dist);
+    if (guess_dist < dist)
+        {
+        projection = guess_projection;
+        delta = guess_delta;
+        dist = guess_dist;
+        }
+    pointSegmentDistance(point, f1, f3, guess_delta, guess_projection, guess_dist);
+    if (guess_dist < dist)
+        {
+        projection = guess_projection;
+        delta = guess_delta;
+        dist = guess_dist;
+        }
+    pointSegmentDistance(point, f2, f3, guess_delta, guess_projection, guess_dist);
+    if (guess_dist < dist)
+        {
+        projection = guess_projection;
+        delta = guess_delta;
+        dist = guess_dist;
+        }
+    }
+
+
+// This function is copied from DEM.
+HOSTDEVICE inline Scalar detp(const vec3<Scalar> &m, const vec3<Scalar> &n, const vec3<Scalar> o, const vec3<Scalar> p)
+    {
+    return dot(m - n, o - p);
+    }
+
+
+// This function is copied from DEM.
+HOSTDEVICE inline void
+edgeEdgeDistance(const vec3<Scalar> &e00, const vec3<Scalar> &e01, const vec3<Scalar> &e10, const vec3<Scalar> &e11, vec3<Scalar> &closestI, vec3<Scalar> &closestJ, Scalar &closestDistsq)
+    {
+    // in the style of http://paulbourke.net/geometry/pointlineplane/
+    Scalar denominator(detp(e01, e00, e01, e00)*detp(e11, e10, e11, e10) -
+        detp(e11, e10, e01, e00)*detp(e11, e10, e01, e00));
+    Scalar lambda0((detp(e00, e10, e11, e10)*detp(e11, e10, e01, e00) -
+            detp(e00, e10, e01, e00)*detp(e11, e10, e11, e10))/denominator);
+    Scalar lambda1((detp(e00, e10, e11, e10) +
+            lambda0*detp(e11, e10, e01, e00))/detp(e11, e10, e11, e10));
+
+    lambda0 = clamp(lambda0);
+    lambda1 = clamp(lambda1);
+
+    const vec3<Scalar> r0(e01 - e00);
+    const Scalar r0sq(dot(r0, r0));
+    const vec3<Scalar> r1(e11 - e10);
+    const Scalar r1sq(dot(r1, r1));
+
+    closestI = e00 + lambda0*r0;
+    closestJ = e10 + lambda1*r1;
+    vec3<Scalar> rContact(closestJ - closestI);
+    closestDistsq = dot(rContact, rContact);
+
+    Scalar lambda(clamp(dot(e10 - e00, r0)/r0sq));
+    vec3<Scalar> candidateI(e00 + lambda*r0);
+    vec3<Scalar> candidateJ(e10);
+    rContact = candidateJ - candidateI;
+    Scalar distsq(dot(rContact, rContact));
+    if(distsq < closestDistsq)
+        {
+        closestI = candidateI;
+        closestJ = candidateJ;
+        closestDistsq = distsq;
+        }
+
+    lambda = clamp(dot(e11 - e00, r0)/r0sq);
+    candidateI = e00 + lambda*r0;
+    candidateJ = e11;
+    rContact = candidateJ - candidateI;
+    distsq = dot(rContact, rContact);
+    if(distsq < closestDistsq)
+        {
+        closestI = candidateI;
+        closestJ = candidateJ;
+        closestDistsq = distsq;
+        }
+
+    lambda = clamp(dot(e00 - e10, r1)/r1sq);
+    candidateI = e00;
+    candidateJ = e10 + lambda*r1;
+    rContact = candidateJ - candidateI;
+    distsq = dot(rContact, rContact);
+    if(distsq < closestDistsq)
+        {
+        closestI = candidateI;
+        closestJ = candidateJ;
+        closestDistsq = distsq;
+        }
+
+    lambda = clamp(dot(e01 - e10, r1)/r1sq);
+    candidateI = e01;
+    candidateJ = e10 + lambda*r1;
+    rContact = candidateJ - candidateI;
+    distsq = dot(rContact, rContact);
+    if(distsq < closestDistsq)
+        {
+        closestI = candidateI;
+        closestJ = candidateJ;
+        closestDistsq = distsq;
+        }
+
+    if(fabs(1 - dot(r0, r1)*dot(r0, r1)/r0sq/r1sq) < 1e-6)
+        {
+        const Scalar lambda00(clamp(dot(e10 - e00, r0)/r0sq));
+        const Scalar lambda01(clamp(dot(e11 - e00, r0)/r0sq));
+        const Scalar lambda10(clamp(dot(e00 - e10, r1)/r1sq));
+        const Scalar lambda11(clamp(dot(e01 - e10, r1)/r1sq));
+
+        lambda0 = Scalar(.5)*(lambda00 + lambda01);
+        lambda1 = Scalar(.5)*(lambda10 + lambda11);
+
+        closestI = e00 + lambda0*r0;
+        closestJ = e10 + lambda1*r1;
+        }
     }
 
 
@@ -405,15 +776,13 @@ class EvaluatorPairALJ
 
     protected:
 
+        // Version of contact energy using a single contact point (when at
+        // least one of the two shapes has no flat faces).
         HOSTDEVICE void computeContactEnergy(
                 const vec3<Scalar> &v, const vec3<Scalar> &a, const vec3<Scalar> &b, const vec3<Scalar> &dr,
                 const Scalar contact_sphere_diameter, const Scalar &four_epsilon,
                 vec3<Scalar> &force, Scalar &pair_eng, Scalar3 &torque_i, Scalar3 &torque_j)
             {
-            // Similarly, we must compute the contact LJ force if we are
-            // including the attractive component. For pure repulsive
-            // (WCA), we only need to compute it if we are within the
-            // limited cutoff associated with the contact point.
             Scalar norm_v = sqrt(dot(v, v));
             vec3<Scalar> torquei, torquej;
             computeContactForceAndTorque(contact_sphere_diameter, v, norm_v, four_epsilon, a, dr+b, force, pair_eng, torquei, torquej);
@@ -421,61 +790,38 @@ class EvaluatorPairALJ
             torque_j = vec_to_scalar3(torquej);
             }
 
+        // Version of contact energy using multiple contact points (when both
+        // faces have some flat faces that could be arbitrarily close to parallel).
+        // Must be implemented for a specific dimensionality, the default function
+        // exists (but does nothing) to avoid undefined symbols.
         HOSTDEVICE void computeContactEnergy(
                 const vec3<Scalar> support_vectors1[ndim], const vec3<Scalar> support_vectors2[ndim],
                 const Scalar contact_sphere_diameter, const Scalar &four_epsilon,
-                vec3<Scalar> &force, Scalar &pair_eng, Scalar3 &torque_i, Scalar3 &torque_j)
-            {
-            // Similarly, we must compute the contact LJ force if we are
-            // including the attractive component. For pure repulsive
-            // (WCA), we only need to compute it if we are within the
-            // limited cutoff associated with the contact point.
-            vec3<Scalar> torquei, torquej;
-            // First compute the interaction of the verts on 1 to the edge on 2.
-            for (unsigned int i = 0; i < ndim; ++i)
-                {
-                vec3<Scalar> projection, vec;
-                Scalar dist;
-                point_segment_distance(support_vectors1[i], support_vectors2[0], support_vectors2[1], vec, projection, dist);
-                computeContactForceAndTorque(contact_sphere_diameter, -vec, dist, four_epsilon, support_vectors1[i], dr + support_vectors1[i] - vec, force, pair_eng, torquei, torquej);
-                }
+                vec3<Scalar> &force, Scalar &pair_eng, Scalar3 &torque_i, Scalar3 &torque_j) {}
 
-            // Now compute the interaction of the verts on 2 to the edge on 1.
-            for (unsigned int i = 0; i < ndim; ++i)
-                {
-                vec3<Scalar> projection, vec;
-                Scalar dist;
-                point_segment_distance(support_vectors2[i], support_vectors1[0], support_vectors1[1], vec, projection, dist);
-
-                computeContactForceAndTorque(contact_sphere_diameter, vec, dist, four_epsilon, projection, dr + support_vectors2[i], force, pair_eng, torquei, torquej);
-                }
-            torque_i = vec_to_scalar3(torquei);
-            torque_j = vec_to_scalar3(torquej);
-            }
-
-        HOSTDEVICE inline void ljForceEnergy(const Scalar sigma, const Scalar four_epsilon, const Scalar r, Scalar &energy, Scalar &scalar_force)
-            {
-            Scalar rho = sigma / r;
-            Scalar invr_rsq = rho*rho;
-            Scalar invr_6 = invr_rsq*invr_rsq*invr_rsq;
-            Scalar invr_12 = invr_6*invr_6;
-            energy = four_epsilon * (invr_12 - invr_6);
-            scalar_force = four_epsilon * (Scalar(12.0)*invr_12 - Scalar(6.0)*invr_6) / r;
-
-            // For the WCA case
-            if (_params.alpha / 2 == 0)
-                {
-                energy -= four_epsilon * SHIFT_RHO_DIFF;
-                }
-            }
-
+        // Core routine for calculating interaction between two points.
+        // The contact points must be with respect to each particle's center of
+        // mass (contact_point_i is relative to the origin, which is the center
+        // of verts1, whereas contact_point_j is relative to the center of
+        // verts2, which is -dr). The contact_vector must point from verts1 to verts2
         HOSTDEVICE inline void computeContactForceAndTorque(const Scalar contact_sphere_diameter, const vec3<Scalar> &contact_vector, const Scalar contact_distance, const Scalar four_epsilon, const vec3<Scalar> &contact_point_i, const vec3<Scalar> &contact_point_j,
                 vec3<Scalar> &force, Scalar &pair_eng, vec3<Scalar> &torque_i, vec3<Scalar> &torque_j)
             {
             if ((_params.alpha / 2 != 0) || (1 < TWO_P_16*contact_sphere_diameter / contact_distance))
                 {
-                Scalar energy_contact, scalar_force_contact;
-                ljForceEnergy(contact_sphere_diameter, four_epsilon, contact_distance, energy_contact, scalar_force_contact);
+                Scalar rho = contact_sphere_diameter / contact_distance;
+                Scalar invr_rsq = rho*rho;
+                Scalar invr_6 = invr_rsq*invr_rsq*invr_rsq;
+                Scalar invr_12 = invr_6*invr_6;
+                Scalar energy_contact = four_epsilon * (invr_12 - invr_6);
+                Scalar scalar_force_contact = four_epsilon * (Scalar(12.0)*invr_12 - Scalar(6.0)*invr_6) / contact_distance;
+
+                // For the WCA case
+                if (_params.alpha / 2 == 0)
+                    {
+                    energy_contact -= four_epsilon * SHIFT_RHO_DIFF;
+                    }
+
                 pair_eng += energy_contact;
                 vec3<Scalar> force_contact = -scalar_force_contact * contact_vector / contact_distance;
                 force += force_contact;
@@ -503,6 +849,77 @@ class EvaluatorPairALJ
 
 
 #ifndef NVCC
+
+
+template <>
+HOSTDEVICE void EvaluatorPairALJ<2>::computeContactEnergy(
+        const vec3<Scalar> support_vectors1[2], const vec3<Scalar> support_vectors2[2],
+        const Scalar contact_sphere_diameter, const Scalar &four_epsilon,
+        vec3<Scalar> &force, Scalar &pair_eng, Scalar3 &torque_i, Scalar3 &torque_j)
+    {
+    vec3<Scalar> torquei, torquej;
+    vec3<Scalar> projection, vec;
+    Scalar dist;
+    // First compute the interaction of the verts on 1 to the edge on 2.
+    for (unsigned int i = 0; i < 2; ++i)
+        {
+        pointSegmentDistance(support_vectors1[i], support_vectors2[0], support_vectors2[1], vec, projection, dist);
+        computeContactForceAndTorque(contact_sphere_diameter, -vec, dist, four_epsilon, support_vectors1[i], dr + support_vectors1[i] - vec, force, pair_eng, torquei, torquej);
+        }
+
+    // Now compute the interaction of the verts on 2 to the edge on 1.
+    for (unsigned int i = 0; i < 2; ++i)
+        {
+        pointSegmentDistance(support_vectors2[i], support_vectors1[0], support_vectors1[1], vec, projection, dist);
+
+        computeContactForceAndTorque(contact_sphere_diameter, vec, dist, four_epsilon, projection, dr + support_vectors2[i], force, pair_eng, torquei, torquej);
+        }
+    torque_i = vec_to_scalar3(torquei);
+    torque_j = vec_to_scalar3(torquej);
+    }
+
+
+template <>
+HOSTDEVICE void EvaluatorPairALJ<3>::computeContactEnergy(
+        const vec3<Scalar> support_vectors1[3], const vec3<Scalar> support_vectors2[3],
+        const Scalar contact_sphere_diameter, const Scalar &four_epsilon,
+        vec3<Scalar> &force, Scalar &pair_eng, Scalar3 &torque_i, Scalar3 &torque_j)
+    {
+    vec3<Scalar> torquei, torquej;
+    vec3<Scalar> projection, vec;
+    Scalar dist;
+    // Compute the interaction of the verts on 1 to the face on 2.
+    for (unsigned int i = 0; i < 3; ++i)
+        {
+        pointFaceDistancev1(support_vectors1[i], support_vectors2[0], support_vectors2[1], support_vectors2[2], vec, projection, dist);
+        computeContactForceAndTorque(contact_sphere_diameter, -vec, dist, four_epsilon, support_vectors1[i], dr + support_vectors1[i] - vec, force, pair_eng, torquei, torquej);
+        }
+
+    // Compute the interaction of the verts on 2 to the edge on 1.
+    for (unsigned int i = 0; i < 3; ++i)
+        {
+        pointFaceDistancev1(support_vectors2[i], support_vectors1[0], support_vectors1[1], support_vectors1[2], vec, projection, dist);
+
+        computeContactForceAndTorque(contact_sphere_diameter, vec, dist, four_epsilon, projection, dr + support_vectors2[i], force, pair_eng, torquei, torquej);
+        }
+
+    // Compute interaction between pairs of edges.
+    for (unsigned int i = 0; i < 3; ++i)
+    {
+        for (unsigned int j = 0; j < 3; ++j)
+        {
+            vec3<Scalar> closestI, closestJ;
+            Scalar distsq;
+            edgeEdgeDistance(support_vectors1[i], support_vectors1[(i+1)%3], support_vectors2[j], support_vectors2[(j+1)%3], closestI, closestJ, distsq);
+            vec3<Scalar> vec = closestJ-closestI;
+        computeContactForceAndTorque(contact_sphere_diameter, vec, sqrt(distsq), four_epsilon, closestI, closestJ, force, pair_eng, torquei, torquej);
+        }
+    }
+    torque_i = vec_to_scalar3(torquei);
+    torque_j = vec_to_scalar3(torquej);
+    }
+
+
 
 // Note: This method assumes that shape_i == shape_j. This should be valid for
 // all cases, and this logic will be moved up to the AnisoPotentialPair in
