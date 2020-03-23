@@ -2,10 +2,8 @@ import pytest
 import hoomd
 import atexit
 import numpy
-import hoomd.hpmc
 from hoomd.snapshot import Snapshot
 from hoomd import Simulation
-
 
 devices = [hoomd.device.CPU]
 if hoomd.device.GPU.is_available():
@@ -51,6 +49,12 @@ def dummy_simulation_factory(device):
             s.particles.types = particle_types
 
         sim = Simulation(device)
+
+        # reduce sorter grid to avoid Hilbert curve overhead in unit tests
+        for tuner in sim.operations.tuners:
+            if isinstance(tuner, hoomd.tuner.ParticleSorter):
+                tuner.grid = 8
+
         sim.create_state_from_snapshot(s)
         return sim
     return make_simulation
@@ -97,6 +101,12 @@ def lattice_simulation_factory(device):
                 s.particles.types = particle_types
 
         sim = Simulation(device)
+
+        # reduce sorter grid to avoid Hilbert curve overhead in unit tests
+        for tuner in sim.operations.tuners:
+            if isinstance(tuner, hoomd.tuner.ParticleSorter):
+                tuner.grid = 8
+
         sim.create_state_from_snapshot(s)
         return sim
     return make_simulation

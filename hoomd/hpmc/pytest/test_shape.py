@@ -128,10 +128,6 @@ def test_overlaps_ellipsoid(device, lattice_simulation_factory):
                                      a=10)
     sim.operations.add(mc)
     gsd_dumper = hoomd.dump.GSD(filename='/Users/dan/danevans/Michigan/Glotzer_Lab/hoomd-dev/test_dump_ellipsoid.gsd', trigger=1, overwrite=True)
-    gsd_logger = hoomd.logger.Logger()
-    gsd_logger += mc
-    gsd_dumper.log = gsd_logger
-    sim.operations.add(gsd_dumper)
     sim.operations.schedule()
     assert mc.overlaps == 0
     
@@ -165,9 +161,7 @@ def test_overlaps_ellipsoid(device, lattice_simulation_factory):
         s.particles.position[1] = (a*1.1*2, 0, 0)
         s.particles.orientation[1] = tuple(np.array([1, 0, 0.45, 0])/(1.2025**0.5))
     sim.state.snapshot = s 
-    sim.run(1)
     assert mc.overlaps > 0
-    assert False
 
 
 def test_overlaps_convex_polygon(device, lattice_simulation_factory):
@@ -248,3 +242,4 @@ def test_overlaps_convex_polyhedron(device, lattice_simulation_factory):
         s.particles.orientation[1] = tuple(np.array([1, 1, 1, 0])/(3**0.5))
     sim.state.snapshot = s
     assert mc.overlaps > 0       
+
