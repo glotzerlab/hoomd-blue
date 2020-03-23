@@ -955,6 +955,12 @@ class PYBIND11_EXPORT ParticleData
         */
         void setFlags(const PDataFlags& flags) { m_flags = flags; }
 
+        /// Enable pressure computations
+        void setPressureFlag()
+            {
+            m_flags[pdata_flag::pressure_tensor] = 1;
+            }
+
         //! Set the external contribution to the virial
         void setExternalVirial(unsigned int i, Scalar v)
             {

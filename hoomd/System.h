@@ -162,6 +162,18 @@ class PYBIND11_EXPORT System
             return m_tuners;
             }
 
+        /// Set pressure computation particle data flag
+        void setPressureFlag(bool flag)
+            {
+            m_default_flags[pdata_flag::pressure_tensor] = flag;
+            }
+
+        /// Get the pressure computation particle data flag
+        bool getPressureFlag()
+            {
+            return m_default_flags[pdata_flag::pressure_tensor];
+            }
+
     private:
         std::vector<std::pair<std::shared_ptr<Analyzer>,
                     std::shared_ptr<Trigger> > > m_analyzers; //!< List of analyzers belonging to this System
@@ -194,6 +206,9 @@ class PYBIND11_EXPORT System
         bool m_quiet_run;       //!< True to suppress the status line and TPS from being printed to stdout for each run
         bool m_profile;         //!< True if runs should be profiled
         unsigned int m_stats_period; //!< Number of seconds between statistics output lines
+
+        /// Particle data flags to always set
+        PDataFlags m_default_flags;
 
         // --------- Steps in the simulation run implemented in helper functions
         //! Sets up m_profiler and attaches/detaches to/from all computes, updaters, and analyzers

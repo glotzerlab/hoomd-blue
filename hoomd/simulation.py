@@ -141,6 +141,43 @@ class Simulation:
         self._verbose = bool(value)
         self._cpp_sys.enableQuietRun(not self.verbose_run)
 
+    @property
+    def always_compute_pressure(self):
+        """Set this flag to always compute the virial and pressure.
+
+        By default, HOOMD only computes the virial and pressure on timesteps
+        where it is needed. Specifically, when :py:class:`hoomd.dump.GSD` writes
+        log data to a file or when using an NPT integrator. Set
+        ``always_compute_pressure`` to True to make the per particle virial,
+        net virial, and system pressure available to query any time by property
+        or through the :py:class:`hoomd.Logger` interface.
+
+        Enabling this flag will result in a moderate performance penalty.
+        """
+        if not hasattr(self, '_cpp_sys'):
+            return False
+        else:
+            return self._cpp_sys.getPressureFlag()
+
+    @always_compute_pressure.setter
+    def always_compute_pressure(self, value):
+        if not hasattr(self, '_cpp_sys'):
+            raise RuntimeError('Cannot set flag without state')
+        else:
+            self._cpp_sys.setPressureFlag(value)
+
+            # if the flag is true, also set it in the particle data
+            if value:
+                self._state._cpp_sys_def.getParticleData.setPressureFlag()
+
+            # TODO: update ForceCompute to cache flags used and recompute if
+            # needed
+
+            # TODO: update ComputeThermo to cache flags used and report
+            # NaNs as appropriate
+
+            # TODO: test
+
     def run(self, tsteps):
         """Run the simulation forward tsteps."""
         # check if initialization has occurred
