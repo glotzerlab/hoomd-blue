@@ -1320,15 +1320,9 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(bool early_exit)
 
                             // put particles in coordinate system of particle i
                             vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
-                            std::cout << "position: " << r_ij.x << " " << r_ij.y << " " << r_ij.z << std::endl;
 
                             unsigned int typ_j = __scalar_as_int(postype_j.w);
                             Shape shape_j(quat<Scalar>(orientation_j), m_params[typ_j]);
-
-                            std::cout << h_overlaps.data[m_overlap_idx(typ_i,typ_j)] << std::endl;
-                            std::cout << check_circumsphere_overlap(r_ij, shape_i, shape_j) << std::endl;
-                            std::cout << test_overlap(r_ij, shape_i, shape_j, err_count) << std::endl;
-                            std::cout << test_overlap(-r_ij, shape_j, shape_i, err_count) << std::endl;
 
                             if (h_tag.data[i] <= h_tag.data[j]
                                 && h_overlaps.data[m_overlap_idx(typ_i,typ_j)]
