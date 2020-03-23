@@ -9,6 +9,8 @@
 #endif // ENABLE_HIP
 
 #include "hoomd/SnapshotSystemData.h"
+#include "hoomd/filter/ParticleFilterAll.h"
+#include "hoomd/filter/ParticleFilterType.h"
 #include "hoomd/test/upp11_config.h"
 
 HOOMD_UP_MAIN()
@@ -419,7 +421,7 @@ void celllist_embed_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
     // now we include the half embedded group
     std::shared_ptr<ParticleData> embed_pdata = sysdef->getParticleData();
-    std::shared_ptr<ParticleFilter> selector_B(new ParticleFilterType(1,1));
+    std::shared_ptr<ParticleFilter> selector_B(new ParticleFilterType({"B"}));
     std::shared_ptr<ParticleGroup> group_B(new ParticleGroup(sysdef, selector_B));
 
     cl->setEmbeddedGroup(group_B);

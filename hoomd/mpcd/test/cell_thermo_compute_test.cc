@@ -11,6 +11,7 @@
 #endif // ENABLE_HIP
 
 #include "hoomd/SnapshotSystemData.h"
+#include "hoomd/filter/ParticleFilterAll.h"
 #include "hoomd/test/upp11_config.h"
 
 HOOMD_UP_MAIN()
