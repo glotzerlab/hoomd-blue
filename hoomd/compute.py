@@ -297,7 +297,7 @@ class thermoHMA(_compute):
         compute.thermoHMA(group=g, temperature=1.0)
     """
 
-    def __init__(self, group, temperature):
+    def __init__(self, group, temperature, harmonicPressure=0):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -309,9 +309,9 @@ class thermoHMA(_compute):
 
         # create the c++ mirror class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            self.cpp_compute = _hoomd.ComputeThermoHMA(hoomd.context.current.system_definition, group.cpp_group, temperature, suffix);
+            self.cpp_compute = _hoomd.ComputeThermoHMA(hoomd.context.current.system_definition, group.cpp_group, temperature, harmonicPressure, suffix);
         else:
-            hoomd.context.msg.error("Cannot create HMA on GPU\n");
+            self.cpp_compute = _hoomd.ComputeThermoHMAGPU(hoomd.context.current.system_definition, group.cpp_group, temperature, harmonicPressure, suffix);
 
         hoomd.context.current.system.addCompute(self.cpp_compute, self.compute_name);
 

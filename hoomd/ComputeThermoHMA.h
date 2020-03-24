@@ -60,16 +60,13 @@ class PYBIND11_EXPORT ComputeThermoHMA : public Compute
         //! Constructs the compute
         ComputeThermoHMA(std::shared_ptr<SystemDefinition> sysdef,
                       std::shared_ptr<ParticleGroup> group, const double temperature,
-                      const std::string& suffix = std::string(""));
+                      const double harmonicPressure, const std::string& suffix = std::string(""));
 
         //! Destructor
         virtual ~ComputeThermoHMA();
 
         //! Compute the temperature
         virtual void compute(unsigned int timestep);
-
-        //! Set the harmonic pressure parameter
-        void setHarmonicPressure(double harmonicPressure);
 
         //! Returns the potential energy last computed by compute()
         /*! \returns Instantaneous potential energy of the system, or NaN if the energy is not valid
@@ -163,10 +160,8 @@ class PYBIND11_EXPORT ComputeThermoHMA : public Compute
         virtual void reduceProperties();
         #endif
 
-        double T, pHarmonic;
-        std::vector<Scalar> m_lattice_x;
-        std::vector<Scalar> m_lattice_y;
-        std::vector<Scalar> m_lattice_z;
+        Scalar m_temperature, m_harmonicPressure;
+        GlobalArray<Scalar3> m_lattice_site;
     };
 
 //! Exports the ComputeThermoHMA class to python

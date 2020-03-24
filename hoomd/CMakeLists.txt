@@ -87,6 +87,8 @@ set(_hoomd_headers
     Compute.h
     ComputeThermoGPU.cuh
     ComputeThermoGPU.h
+    ComputeThermoHMAGPU.cuh
+    ComputeThermoHMAGPU.h
     ComputeThermo.h
     ComputeThermoHMA.h
     ComputeThermoTypes.h
@@ -159,6 +161,7 @@ if (ENABLE_CUDA)
 list(APPEND _hoomd_sources CellListGPU.cc
                            CommunicatorGPU.cc
                            ComputeThermoGPU.cc
+                           ComputeThermoHMAGPU.cc
                            LoadBalancerGPU.cc
                            SFCPackUpdaterGPU.cc
                            )
@@ -168,6 +171,7 @@ set(_hoomd_cu_sources BondedGroupData.cu
                       CellListGPU.cu
                       CommunicatorGPU.cu
                       ComputeThermoGPU.cu
+                      ComputeThermoHMAGPU.cu
                       Integrator.cu
                       LoadBalancerGPU.cu
                       ParticleData.cu

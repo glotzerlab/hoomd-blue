@@ -46,6 +46,7 @@
 #include <cuda.h>
 #include "CellListGPU.h"
 #include "ComputeThermoGPU.h"
+#include "ComputeThermoHMAGPU.h"
 #include "SFCPackUpdaterGPU.h"
 
 #include <cuda_profiler_api.h>
@@ -359,6 +360,7 @@ PYBIND11_MODULE(_hoomd, m)
 #ifdef ENABLE_CUDA
     export_CellListGPU(m);
     export_ComputeThermoGPU(m);
+    export_ComputeThermoHMAGPU(m);
 #endif
 
     // analyzers

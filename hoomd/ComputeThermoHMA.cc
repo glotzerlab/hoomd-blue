@@ -29,8 +29,8 @@ using namespace std;
 */
 ComputeThermoHMA::ComputeThermoHMA(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<ParticleGroup> group, const double temperature,
-                             const std::string& suffix)
-    : Compute(sysdef), m_group(group), m_logging_enabled(true)
+                             const double harmonicPressure, const std::string& suffix)
+    : Compute(sysdef), m_group(group), m_logging_enabled(true), m_harmonicPressure(harmonicPressure)
     {
     m_exec_conf->msg->notice(5) << "Constructing ComputeThermoHMA" << endl;
 
@@ -45,17 +45,17 @@ ComputeThermoHMA::ComputeThermoHMA(std::shared_ptr<SystemDefinition> sysdef,
     m_properties_reduced = true;
     #endif
 
-    T = temperature;
-
-    m_lattice_x.resize(m_pdata->getNGlobal());
-    m_lattice_y.resize(m_pdata->getNGlobal());
-    m_lattice_z.resize(m_pdata->getNGlobal());
+    m_temperature = temperature;
 
     BoxDim box = m_pdata->getGlobalBox();
 
     SnapshotParticleData<Scalar> snapshot;
 
     m_pdata->takeSnapshot(snapshot);
+    GlobalArray< Scalar3 > lat(snapshot.size, m_exec_conf);
+    m_lattice_site.swap(lat);
+    TAG_ALLOCATION(m_lattice_site);
+    ArrayHandle<Scalar3> h_lattice_site(m_lattice_site, access_location::host, access_mode::overwrite);
 
     // for each particle in the data
     for (unsigned int tag = 0; tag < snapshot.size; tag++)
@@ -63,9 +63,7 @@ ComputeThermoHMA::ComputeThermoHMA(std::shared_ptr<SystemDefinition> sysdef,
         // save its initial position
         vec3<Scalar> pos = snapshot.pos[tag];
         vec3<Scalar> unwrapped = box.shift(pos, snapshot.image[tag]);
-        m_lattice_x[tag] = unwrapped.x;
-        m_lattice_y[tag] = unwrapped.y;
-        m_lattice_z[tag] = unwrapped.z;
+        h_lattice_site.data[tag] = make_scalar3(unwrapped.x, unwrapped.y, unwrapped.z);
         }
     }
 
@@ -74,13 +72,6 @@ ComputeThermoHMA::~ComputeThermoHMA()
     m_exec_conf->msg->notice(5) << "Destroying ComputeThermoHMA" << endl;
 
     //m_pdata->getParticleSortSignal().disconnect<ComputeThermoHMA, &ComputeThermoHMA::slotParticleSort>(this);
-    }
-
-/*! \param ndof Number of degrees of freedom to set
-*/
-void ComputeThermoHMA::setHarmonicPressure(double harmonicPressure)
-    {
-    pHarmonic = harmonicPressure;
     }
 
 /*! Calls computeProperties if the properties need updating
@@ -144,6 +135,8 @@ void ComputeThermoHMA::computeProperties()
     ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar3> h_lattice_site(m_lattice_site, access_location::host, access_mode::read);
+    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
 
     // total potential energy
     const BoxDim& box = m_pdata->getGlobalBox();
@@ -160,7 +153,7 @@ void ComputeThermoHMA::computeProperties()
         volume = L.x * L.y * L.z;
         }
     double pe_total = 0.0, p_HMA = 0.0;
-    double fV = (pHarmonic/T - group_size/box.getVolume())/(D*(group_size-1));
+    double fV = (m_harmonicPressure/m_temperature - group_size/box.getVolume())/(D*(group_size-1));
     Scalar3 dr0;
     double W = 0;
     unsigned int virial_pitch = net_virial.getPitch();
@@ -169,9 +162,9 @@ void ComputeThermoHMA::computeProperties()
         //unsigned int tag = m_group->getMemberTag(group_idx);
         unsigned int tag = h_tag.data[group_idx];
         if (tag!=0) continue;
-        Scalar dx = h_pos.data[group_idx].x - m_lattice_x[tag];
-        Scalar dy = h_pos.data[group_idx].y - m_lattice_y[tag];
-        Scalar dz = h_pos.data[group_idx].z - m_lattice_z[tag];
+        Scalar dx = h_pos.data[group_idx].x - h_lattice_site.data[tag].x;
+        Scalar dy = h_pos.data[group_idx].y - h_lattice_site.data[tag].y;
+        Scalar dz = h_pos.data[group_idx].z - h_lattice_site.data[tag].z;
         dr0 = make_scalar3(dx, dy, dz);
         break;
         }
@@ -185,11 +178,9 @@ void ComputeThermoHMA::computeProperties()
                             (double)h_net_virial.data[j+3*virial_pitch] +
                             (double)h_net_virial.data[j+5*virial_pitch] );
 
-        Scalar dx = h_pos.data[group_idx].x - m_lattice_x[tag] - dr0.x;
-        Scalar dy = h_pos.data[group_idx].y - m_lattice_y[tag] - dr0.y;
-        Scalar dz = h_pos.data[group_idx].z - m_lattice_z[tag] - dr0.z;
-        Scalar3 dr = make_scalar3(dx, dy, dz);
-        dr = box.minImage(dr);
+        Scalar4 pos4 = h_pos.data[group_idx];
+        Scalar3 pos3 = make_scalar3(pos4.x, pos4.y, pos4.z);
+        Scalar3 dr = box.shift(pos3, h_image.data[group_idx]) - h_lattice_site.data[tag];
         double fdr = 0;
         fdr += (double)h_net_force.data[group_idx].x * dr.x;
         fdr += (double)h_net_force.data[group_idx].y * dr.y;
@@ -197,10 +188,10 @@ void ComputeThermoHMA::computeProperties()
         pe_total += 0.5*fdr;
         p_HMA += fV*fdr;
         }
-    pe_total += 1.5*(group_size-1)*T;
+    pe_total += 1.5*(group_size-1)*m_temperature;
     pe_total += m_pdata->getExternalEnergy();
 
-    Scalar p_total = pHarmonic + W / volume + p_HMA;
+    Scalar p_total = m_harmonicPressure + W / volume + p_HMA;
     ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::overwrite);
     h_properties.data[thermoHMA_index::potential_energyHMA] = Scalar(pe_total);
     h_properties.data[thermoHMA_index::pressureHMA] = p_total;
@@ -230,10 +221,9 @@ void ComputeThermoHMA::reduceProperties()
 void export_ComputeThermoHMA(py::module& m)
     {
     py::class_<ComputeThermoHMA, std::shared_ptr<ComputeThermoHMA> >(m,"ComputeThermoHMA",py::base<Compute>())
-    .def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>,const double,const std::string& >())
+    .def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>,const double,const double,const std::string& >())
     .def("getPotentialEnergyHMA", &ComputeThermoHMA::getPotentialEnergyHMA)
     .def("getPressureHMA", &ComputeThermoHMA::getPressureHMA)
-    .def("setHarmonicPressure", &ComputeThermoHMA::setHarmonicPressure)
     .def("setLoggingEnabled", &ComputeThermoHMA::setLoggingEnabled)
     ;
     }
