@@ -127,7 +127,6 @@ def test_overlaps_ellipsoid(device, lattice_simulation_factory):
                                      n=(2, 1),
                                      a=10)
     sim.operations.add(mc)
-    gsd_dumper = hoomd.dump.GSD(filename='/Users/dan/danevans/Michigan/Glotzer_Lab/hoomd-dev/test_dump_ellipsoid.gsd', trigger=1, overwrite=True)
     sim.operations.schedule()
     assert mc.overlaps == 0
     
