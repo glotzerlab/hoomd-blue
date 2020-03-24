@@ -19,6 +19,7 @@ HOOMD_UP_MAIN()
 #include "hoomd/ConstForceCompute.h"
 #include "hoomd/md/TwoStepNVE.h"
 #include "hoomd/md/IntegratorTwoStep.h"
+#include "hoomd/filter/ParticleFilterAll.h"
 
 #ifdef ENABLE_HIP
 #include "hoomd/CommunicatorGPU.h"
