@@ -404,5 +404,5 @@ class Communicator(object):
 
 # store the "current" communicator to be used for MPI_Abort calls. This defaults
 # to the world communicator, but users can opt in to a more specific
-# communicator using the GPU.localize_abort context manager
+# communicator using the Device.localize_abort context manager
 _current_communicator = Communicator()
