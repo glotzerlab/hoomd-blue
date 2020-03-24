@@ -37,3 +37,4 @@ class ParticleSorter(_Tuner):
         else:
             cpp_cls = getattr(_hoomd, 'SFCPackTuner')
         self._cpp_obj = cpp_cls(simulation.state._cpp_sys_def, self.trigger)
+        super().attach(simulation)
