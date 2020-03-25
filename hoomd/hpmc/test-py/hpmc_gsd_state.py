@@ -371,18 +371,6 @@ class hpmc_gsd_check_restore_state(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             self.mc = hpmc.integrate.convex_polyhedron(seed=2234, d=0.3, a=0.4, restore_state=True);
 
-    def test_sphere_union(self):
-        cube_verts = [[-0.5, -0.5, -0.5], [-0.5, -0.5, 0.5], [-0.5, 0.5, -0.5], [-0.5, 0.5, 0.5],
-                      [0.5, -0.5, -0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5], [0.5, 0.5, 0.5]]
-        cube_diameters = np.array([1.0]*8)
-        tetra_verts = [[0.5, 0.5, 0.5], [0.5, -0.5, -0.5], [-0.5, 0.5, -0.5], [-0.5, -0.5, 0.5]]
-        tetra_diameters = np.array([0.5]*4)
-        shape_params = dict(A=dict(centers=cube_verts, diameters=cube_diameters),
-                            B=dict(centers=tetra_verts, diameters=tetra_diameters))
-        expected_shapespec = [dict(type='SphereUnion', centers=cube_verts, diameters=cube_diameters),
-                              dict(type='SphereUnion', centers=tetra_verts, diameters=tetra_diameters)]
-        self.setup_system(cls=hpmc.integrate.sphere_union, shape_params=shape_params, \
-                          expected_shapespec=expected_shapespec, filename=self.tmp_file, dim=3);
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
