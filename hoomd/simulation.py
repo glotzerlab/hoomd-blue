@@ -176,8 +176,6 @@ class Simulation:
             # TODO: update ComputeThermo to cache flags used and report
             # NaNs as appropriate
 
-            # TODO: test
-
     def run(self, tsteps):
         """Run the simulation forward tsteps."""
         # check if initialization has occurred
