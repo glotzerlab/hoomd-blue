@@ -172,6 +172,13 @@ BoxDim
             m_hi = L/Scalar(2.0);
             m_lo = -m_hi;
             m_Linv = Scalar(1.0)/L;
+
+            // avoid NaN when Lz == 0
+            if (L.z == Scalar(0.0))
+                {
+                m_Linv.z = 0;
+                }
+
             m_L = L;
             }
 
@@ -199,7 +206,13 @@ BoxDim
             {
             m_hi = hi;
             m_lo = lo;
+
+            // avoid NaN when Lz == 0
             m_Linv = Scalar(1.0)/(m_hi - m_lo);
+            if (m_hi.z == Scalar(0.0) && m_lo.z == Scalar(0.0))
+                {
+                m_Linv.z = 0;
+                }
             m_L = m_hi - m_lo;
             }
 
@@ -516,6 +529,12 @@ BoxDim
             dist.y = m_L.y*fast::rsqrt(Scalar(1.0) + m_yz*m_yz);
             dist.z = m_L.z;
 
+            // avoid NaN when Lz == 0
+            if (m_L.z == Scalar(0.0))
+                {
+                dist.z = Scalar(1.0);
+                }
+
             return dist;
             }
 
@@ -580,7 +599,7 @@ BoxDim
             }
         #endif
 
-    private:
+    // private:
         Scalar3 m_lo;      //!< Minimum coords in the box
         Scalar3 m_hi;      //!< Maximum coords in the box
         Scalar3 m_L;       //!< L precomputed (used to avoid subtractions in boundary conditions)
