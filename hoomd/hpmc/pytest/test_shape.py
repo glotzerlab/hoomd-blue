@@ -163,82 +163,120 @@ def test_overlaps_ellipsoid(device, lattice_simulation_factory):
     assert mc.overlaps > 0
 
 
-def test_overlaps_convex_polygon(device, lattice_simulation_factory):
+def test_overlaps_polygons(device, lattice_simulation_factory):
+    # ConvexPolygon args
     triangle = {'vertices': [(0, (0.75**0.5) / 2),
                              (-0.5, -(0.75**0.5) / 2),
                              (0.5, -(0.75**0.5) / 2)]}
-    mc = hoomd.hpmc.integrate.ConvexPolygon(23456)
-    mc.shape['A'] = triangle
-
-    sim = lattice_simulation_factory(dimensions=2, n=(2, 1), a=10)
-    sim.operations.add(mc)
-    sim.operations.schedule()
-    assert mc.overlaps == 0
     
-    # Place center of shape 2 on each of shape 1's vertices
-    for vert in mc.shape["A"]["vertices"]:
+    # SimplePolygon args
+    square = {"vertices": np.array([(-1, -1), (1, -1), (1, 1), (-1, 1)])/2}
+    
+    shapes = [(triangle, hoomd.hpmc.integrate.ConvexPolygon),
+              (square, hoomd.hpmc.integrate.SimplePolygon)]
+    
+    for args, integrator in shapes:
+        mc = integrator(23456)
+        mc.shape['A'] = args
+
+        sim = lattice_simulation_factory(dimensions=2, n=(2, 1), a=10)
+        sim.operations.add(mc)
+        sim.operations.schedule()
+        assert mc.overlaps == 0
+        
+        # Place center of shape 2 on each of shape 1's vertices
+        for vert in mc.shape["A"]["vertices"]:
+            s = sim.state.snapshot
+            if s.exists:
+                s.particles.position[0] = (0, 0, 0)
+                s.particles.position[1] = (vert[0], vert[1], 0)
+            sim.state.snapshot = s
+            assert mc.overlaps > 0
+        
         s = sim.state.snapshot
         if s.exists:
             s.particles.position[0] = (0, 0, 0)
-            s.particles.position[1] = (vert[0], vert[1], 0)
+            s.particles.position[1] = (0, 1.05, 0)
+        sim.state.snapshot = s
+        assert mc.overlaps == 0
+        
+        # Rotate one of the shapes so they will overlap
+        s = sim.state.snapshot
+        if s.exists:
+            s.particles.orientation[1] = tuple(np.array([1, 0, 0, 0.45])/(1.2025**0.5))
         sim.state.snapshot = s
         assert mc.overlaps > 0
-    
-    s = sim.state.snapshot
-    if s.exists:
-        s.particles.position[0] = (0, 0, 0)
-        s.particles.position[1] = (0, 1.05, 0)
-    sim.state.snapshot = s
-    assert mc.overlaps == 0
-    
-    # Rotate one of the triangles so they will overlap
-    s = sim.state.snapshot
-    if s.exists:
-        s.particles.orientation[1] = tuple(np.array([1, 0, 0, 0.45])/(1.2025**0.5))
-    sim.state.snapshot = s
-    assert mc.overlaps > 0
 
 
-def test_overlaps_convex_polyhedron(device, lattice_simulation_factory):
+def test_overlaps_polyhedra(device, lattice_simulation_factory):
+    # ConvexPolyhedron args
     tetrahedron = {"vertices": np.array([(1, 1, 1),
                                          (-1, -1, 1),
                                          (1, -1, -1),
                                          (-1, 1, -1)])/2}
-    mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
-    mc.shape['A'] = tetrahedron
-
-    sim = lattice_simulation_factory(dimensions=2, n=(2, 1), a=10)
-    sim.operations.add(mc)
-    sim.operations.schedule()
-    assert mc.overlaps == 0
     
-    # Place center of shape 2 on each of shape 1's vertices
-    for vert in mc.shape["A"]["vertices"]:
+    # Polyhedron args
+    cube = {'vertices': [(-0.5, -0.5, -0.5),
+                     (-0.5, -0.5, 0.5),
+                     (-0.5, 0.5, -0.5),
+                     (-0.5, 0.5, 0.5),
+                     (0.5, -0.5, -0.5),
+                     (0.5, -0.5, 0.5),
+                     (0.5, 0.5, -0.5),
+                     (0.5, 0.5, 0.5)],
+        'faces': [[0, 2, 6],
+                  [6, 4, 0],
+                  [5, 0, 4],
+                  [5, 1, 0],
+                  [5, 4, 6],
+                  [5, 6, 7],
+                  [3, 2, 0],
+                  [3, 0, 1],
+                  [3, 6, 2],
+                  [3, 7, 6],
+                  [3, 1, 5],
+                  [3, 5, 7]],
+        'overlap': [True, True, True, True, True, True,
+                    True, True, True, True, True, True]}
+                    
+    shapes = [(tetrahedron, hoomd.hpmc.integrate.ConvexPolyhedron),
+              (cube, hoomd.hpmc.integrate.Polyhedron)]
+    
+    for args, integrator in shapes:
+        mc = integrator(23456)
+        mc.shape['A'] = args
+
+        sim = lattice_simulation_factory(dimensions=2, n=(2, 1), a=10)
+        sim.operations.add(mc)
+        sim.operations.schedule()
+        assert mc.overlaps == 0
+        
+        # Place center of shape 2 on each of shape 1's vertices
+        for vert in mc.shape["A"]["vertices"]:
+            s = sim.state.snapshot
+            if s.exists:
+                s.particles.position[0] = (0, 0, 0)
+                s.particles.position[1] = vert
+            sim.state.snapshot = s
+            assert mc.overlaps > 0
+        
         s = sim.state.snapshot
         if s.exists:
             s.particles.position[0] = (0, 0, 0)
-            s.particles.position[1] = vert
+            s.particles.position[1] = (0, 0.9, 0)
         sim.state.snapshot = s
         assert mc.overlaps > 0
-    
-    s = sim.state.snapshot
-    if s.exists:
-        s.particles.position[0] = (0, 0, 0)
-        s.particles.position[1] = (0, 0.9, 0)
-    sim.state.snapshot = s
-    assert mc.overlaps > 0
-    
-    s = sim.state.snapshot
-    if s.exists:
-        s.particles.position[0] = (0, 0, 0)
-        s.particles.position[1] = (0, 1.1, 0)
-    sim.state.snapshot = s
-    assert mc.overlaps == 0
-    
-    # Rotate one of the tetrahedra so they will overlap
-    s = sim.state.snapshot
-    if s.exists:
-        s.particles.orientation[1] = tuple(np.array([1, 1, 1, 0])/(3**0.5))
-    sim.state.snapshot = s
-    assert mc.overlaps > 0       
-
+        
+        s = sim.state.snapshot
+        if s.exists:
+            s.particles.position[0] = (0, 0, 0)
+            s.particles.position[1] = (0, 1.1, 0)
+        sim.state.snapshot = s
+        assert mc.overlaps == 0
+        
+        # Rotate one of the polyhedra so they will overlap
+        s = sim.state.snapshot
+        if s.exists:
+            s.particles.orientation[1] = tuple(np.array([1, 1, 1, 0])/(3**0.5))
+        sim.state.snapshot = s
+        assert mc.overlaps > 0          
