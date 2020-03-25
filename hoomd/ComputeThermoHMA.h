@@ -28,8 +28,8 @@
 //! Computes thermodynamic properties of a group of particles
 /*! ComputeThermoHMA calculates instantaneous thermodynamic properties and provides them for the logger.
     All computed values are stored in a GPUArray so that they can be accessed on the GPU without intermediate copies.
-    Use the enum values in thermoHMA_index to index the array and extract the properties of interest. Convenience functions
-    are provided for accessing the values on the CPU.
+    Use the enum values in thermoHMA_index to index the array and extract the properties of interest. Convenience
+    functions are provided for accessing the values on the CPU.
 
     Computed quantities available in the GPUArray:
      - pressure (valid for the all group)

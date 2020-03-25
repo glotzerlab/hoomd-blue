@@ -37,7 +37,8 @@ ComputeThermoHMAGPU::ComputeThermoHMAGPU(std::shared_ptr<SystemDefinition> sysde
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
-        m_exec_conf->msg->error() << "Creating a ComputeThermoHMAGPU with no GPU in the execution configuration" << endl;
+        m_exec_conf->msg->error() << "Creating a ComputeThermoHMAGPU with no GPU in the execution configuration"
+                                  << endl;
         throw std::runtime_error("Error initializing ComputeThermoHMAGPU");
         }
 
@@ -52,7 +53,8 @@ ComputeThermoHMAGPU::ComputeThermoHMAGPU(std::shared_ptr<SystemDefinition> sysde
             {
             // only optimize access for those fields used in force computation
             // (i.e. no net_force/virial/torque, also angmom and inertia are only used by the integrator)
-            cudaMemAdvise(m_lattice_site.get(), sizeof(Scalar3)*m_lattice_site.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+            cudaMemAdvise(m_lattice_site.get(), sizeof(Scalar3)*m_lattice_site.getNumElements(),
+                          cudaMemAdviseSetAccessedBy, gpu_map[idev]);
             }
         CHECK_CUDA_ERROR();
         }
@@ -97,7 +99,8 @@ void ComputeThermoHMAGPU::computeProperties()
             // map scratch array into memory of all GPUs
             for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
                 {
-                cudaMemAdvise(m_scratch.get(), sizeof(Scalar4)*m_scratch.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+                cudaMemAdvise(m_scratch.get(), sizeof(Scalar4)*m_scratch.getNumElements(), cudaMemAdviseSetAccessedBy,
+                              gpu_map[idev]);
                 }
             CHECK_CUDA_ERROR();
             }

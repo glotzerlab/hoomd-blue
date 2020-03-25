@@ -169,7 +169,8 @@ __global__ void gpu_compute_thermo_hma_final_sums(Scalar *d_properties,
             compute_thermo_hma_final_sdata[threadIdx.x] = make_scalar4(scratch.x, scratch.y, scratch.z, Scalar(0.0));
             }
         else
-            compute_thermo_hma_final_sdata[threadIdx.x] = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
+            compute_thermo_hma_final_sdata[threadIdx.x] = make_scalar4(Scalar(0.0), Scalar(0.0),
+                                                                       Scalar(0.0), Scalar(0.0));
         __syncthreads();
 
         // reduce the sum in parallel
