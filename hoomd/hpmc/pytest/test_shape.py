@@ -27,7 +27,7 @@ def check_dict(shape_dict, args):
             for i in range(len(shape_dict[key])):
                 shape_args = shape_dict[key][i]
                 val_args = val[i]
-                for shape_key, shape_val in shape_args.items():
+                for shape_key in shape_args:
                     if isinstance(shape_args[shape_key], list) \
                        and len(shape_args[shape_key]) > 0:
                         np.testing.assert_allclose(val_args[shape_key],

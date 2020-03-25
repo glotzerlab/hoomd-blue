@@ -118,9 +118,6 @@ PYBIND11_MODULE(_hpmc, m)
         .def("asDict", &ShapeUnion<ShapeFacetedEllipsoid>::param_type::asDict)
         ;
 
-    m.def("make_overlapreal3", &make_overlapreal3);
-    m.def("make_overlapreal4", &make_overlapreal4);
-
     // export counters
     export_hpmc_implicit_counters(m);
 

@@ -777,8 +777,8 @@ class Polyhedron(_HPMCIntegrator):
                                             hull_only=True,
                                             overlap=list,
                                             ignore_statistics=False,
-                                            explicit_defaults={'overlap': None},
-                                            len_keys=1)
+                                            len_keys=1,
+                                            explicit_defaults={'overlap': None})
                                         )
 
         self._add_typeparam(typeparam_shape)
@@ -947,7 +947,7 @@ class FacetedEllipsoid(_HPMCIntegrator):
 
         # half-space intersection
         slab_normals = [(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)]
-        slab_offsets = [-0.1,-1,-.5,-.5,-.5,-.5)
+        slab_offsets = [-0.1,-1,-.5,-.5,-.5,-.5]
 
         # polyedron vertices
         slab_verts = [[-.1,-.5,-.5],
@@ -1406,9 +1406,9 @@ class SphereUnion(_HPMCIntegrator):
                                             capacity=4,
                                             overlap=list,
                                             ignore_statistics=False,
+                                            len_keys=1,
                                             explicit_defaults={'orientations': None,
-                                                               'overlap': None},
-                                            len_keys=1)
+                                                               'overlap': None})
                                         )
         self._add_typeparam(typeparam_shape)
 
@@ -1506,10 +1506,10 @@ class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
                                             orientations=list,
                                             overlap=list,
                                             ignore_statistics=False,
-                                            explicit_defaults={'orientations': None,
-                                                               'overlap': None},
                                             capacity=4,
-                                            len_keys=1)
+                                            len_keys=1,
+                                            explicit_defaults={'orientations': None,
+                                                               'overlap': None})
                                         )
         self._add_typeparam(typeparam_shape)
         # meta data
@@ -1614,9 +1614,9 @@ class FacetedEllipsoidUnion(_HPMCIntegrator):
                                             orientations=list,
                                             overlap=list,
                                             ignore_statistics=False,
-                                            explicit_defaults={'orientations': None,
-                                                               'overlap': None},
                                             capacity=4,
-                                            len_keys=1)
+                                            len_keys=1,
+                                            explicit_defaults={'orientations': None,
+                                                               'overlap': None})
                                         )
         self._add_typeparam(typeparam_shape)
