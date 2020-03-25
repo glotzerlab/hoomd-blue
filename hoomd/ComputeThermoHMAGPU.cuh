@@ -2,7 +2,7 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
-// Maintainer: joaander
+// Maintainer: ajs42
 
 #ifndef _COMPUTE_THERMO_GPU_CUH_
 #define _COMPUTE_THERMO_GPU_CUH_
@@ -52,7 +52,6 @@ cudaError_t gpu_compute_thermo_hma_partial(Scalar *d_properties,
 
 //! Computes the final sums of thermodynamic properties for ComputeThermo
 cudaError_t gpu_compute_thermo_hma_final(Scalar *d_properties,
-                               Scalar4 *d_pos,
                                unsigned int *d_body,
                                unsigned int *d_tag,
                                unsigned int *d_group_members,

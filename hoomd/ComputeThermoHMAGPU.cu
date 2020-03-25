@@ -2,7 +2,7 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
-// Maintainer: joaander
+// Maintainer: ajs42
 
 #include "ComputeThermoHMAGPU.cuh"
 #include "VectorMath.h"
@@ -13,10 +13,6 @@
 extern __shared__ Scalar3 compute_thermo_hma_sdata[];
 //! Shared memory used in final reduction
 extern __shared__ Scalar4 compute_thermo_hma_final_sdata[];
-//! Shared memory used in reducing the sums of the pressure tensor
-extern __shared__ Scalar compute_pressure_tensor_hma_sdata[];
-//! Shared memory used in reducing the sum of the rotational kinetic energy
-extern __shared__ Scalar compute_ke_rot_hma_sdata[];
 
 /*! \file ComputeThermoGPU.cu
     \brief Defines GPU kernel code for computing thermodynamic properties on the GPU. Used by ComputeThermoGPU.
@@ -24,10 +20,13 @@ extern __shared__ Scalar compute_ke_rot_hma_sdata[];
 
 //! Perform partial sums of the thermo properties on the GPU
 /*! \param d_scratch Scratch space to hold partial sums. One element is written per block
+    \param box Box the particles are in
     \param d_net_force Net force / pe array from ParticleData
     \param d_net_virial Net virial array from ParticleData
     \param virial_pitch pitch of 2D virial array
-    \param d_position Particle velocity and mass array from ParticleData
+    \param d_position Particle position array from ParticleData
+    \param d_lattice_site Particle lattice site array
+    \param d_image Image array from ParticleData
     \param d_body Particle body id
     \param d_tag Particle tag
     \param d_group_members List of group members for which to sum properties
@@ -36,7 +35,7 @@ extern __shared__ Scalar compute_ke_rot_hma_sdata[];
     \param block_offset Offset of this GPU in the array of partial sums
 
     All partial sums are packaged up in a Scalar4 to keep pointer management down.
-     - 2*Kinetic energy is summed in .x
+     - force * dr is summed in .x
      - Potential energy is summed in .y
      - W is summed in .z
 
@@ -134,6 +133,8 @@ __global__ void gpu_compute_thermo_hma_partial_sums(Scalar4 *d_scratch,
     \param D Dimensionality of the system
     \param group_size Number of particles in the group
     \param num_partial_sums Number of partial sums in \a d_scratch
+    \param temperature The temperature that governs sampling of the integrator
+    \param harmonicPressure The contribution to the pressure from harmonic fluctuations
     \param external_virial External contribution to virial (1/3 trace)
     \param external_energy External contribution to potential energy
 
@@ -230,15 +231,15 @@ __global__ void gpu_compute_thermo_hma_final_sums(Scalar *d_properties,
 
 //! Compute partial sums of thermodynamic properties of a group on the GPU,
 /*! \param d_properties Array to write computed properties
-    \param d_pos particle velocities and masses on the GPU
+    \param d_pos Particle position array from ParticleData
+    \param d_lattice_site Particle lattice site array
+    \param d_image Image array from ParticleData
     \param d_body Particle body id
     \param d_tag Particle tag
     \param d_group_members List of group members
     \param group_size Number of group members
     \param box Box the particles are in
     \param args Additional arguments
-    \param compute_pressure_tensor whether to compute the full pressure tensor
-    \param compute_rotational_energy whether to compute the rotational kinetic energy
     \param gpu_partition Load balancing info for multi-GPU reduction
 
     This function drives gpu_compute_thermo_partial_sums and gpu_compute_thermo_final_sums, see them for details.
@@ -304,22 +305,18 @@ cudaError_t gpu_compute_thermo_hma_partial(Scalar *d_properties,
 
 //! Compute thermodynamic properties of a group on the GPU
 /*! \param d_properties Array to write computed properties
-    \param d_pos particle velocities and masses on the GPU
     \param d_body Particle body id
     \param d_tag Particle tag
     \param d_group_members List of group members
     \param group_size Number of group members
     \param box Box the particles are in
     \param args Additional arguments
-    \param compute_pressure_tensor whether to compute the full pressure tensor
-    \param compute_rotational_energy whether to compute the rotational kinetic energy
     \param num_blocks Number of partial sums to reduce
 
     This function drives gpu_compute_thermo_partial_sums and gpu_compute_thermo_final_sums, see them for details.
 */
 
 cudaError_t gpu_compute_thermo_hma_final(Scalar *d_properties,
-                               Scalar4 *d_pos,
                                unsigned int *d_body,
                                unsigned int *d_tag,
                                unsigned int *d_group_members,
@@ -329,7 +326,6 @@ cudaError_t gpu_compute_thermo_hma_final(Scalar *d_properties,
                                )
     {
     assert(d_properties);
-    assert(d_pos);
     assert(d_group_members);
     assert(args.d_net_force);
     assert(args.d_net_virial);

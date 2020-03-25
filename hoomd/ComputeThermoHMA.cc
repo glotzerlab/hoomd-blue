@@ -25,6 +25,7 @@ using namespace std;
 /*! \param sysdef System for which to compute thermodynamic properties
     \param group Subset of the system over which properties are calculated
     \param temperature The temperature that governs sampling of the integrator
+    \param harmonicPressure The contribution to the pressure from harmonic fluctuations
     \param suffix Suffix to append to all logged quantity names
 */
 ComputeThermoHMA::ComputeThermoHMA(std::shared_ptr<SystemDefinition> sysdef,

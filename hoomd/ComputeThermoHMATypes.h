@@ -2,7 +2,7 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
-// Maintainer: joaander
+// Maintainer: ajs42
 
 #ifndef _COMPUTE_THERMO_HMA_TYPES_H_
 #define _COMPUTE_THERMO_HMA_TYPES_H_

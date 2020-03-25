@@ -2,7 +2,7 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
-// Maintainer: joaander
+// Maintainer: ajs42
 
 /*! \file ComputeThermoHMAGPU.cc
     \brief Contains code for the ComputeThermoHMAGPU class
@@ -25,6 +25,8 @@ using namespace std;
 
 /*! \param sysdef System for which to compute thermodynamic properties
     \param group Subset of the system over which properties are calculated
+    \param temperature The temperature that governs sampling of the integrator
+    \param harmonicPressure The contribution to the pressure from harmonic fluctuations
     \param suffix Suffix to append to all logged quantity names
 */
 
@@ -165,7 +167,6 @@ void ComputeThermoHMAGPU::computeProperties()
 
     // perform the computation on GPU 0
     gpu_compute_thermo_hma_final( d_properties.data,
-                        d_pos.data,
                         d_body.data,
                         d_tag.data,
                         d_index_array.data,

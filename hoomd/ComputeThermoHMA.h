@@ -2,7 +2,7 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
-// Maintainer: joaander
+// Maintainer: ajs42
 
 #include "Compute.h"
 #include "GPUArray.h"
@@ -29,28 +29,19 @@
 /*! ComputeThermoHMA calculates instantaneous thermodynamic properties and provides them for the logger.
     All computed values are stored in a GPUArray so that they can be accessed on the GPU without intermediate copies.
     Use the enum values in thermoHMA_index to index the array and extract the properties of interest. Convenience functions
-    are provided for accessing the values on the CPU. Certain properties, loke ndof and num_particles are always known
-    and there is no need for them to be accessible via the GPUArray.
+    are provided for accessing the values on the CPU.
 
     Computed quantities available in the GPUArray:
-     - temperature of the group from translational degrees of freedom
-     - temperature of the group from rotational degrees of freedom
      - pressure (valid for the all group)
-     - translational kinetic energy
-     - rotational kinetic energy
      - potential energy
 
     Values available all the time
      - number of degrees of freedom (ndof)
      - number of particles in the group
 
-    ndof is utilized in calculating the temperature from the kinetic energy. setNDOF() changes it to any value
-    the user desires (the default is one!). In standard usage, the python interface queries the number of degrees
-    of freedom from the integrators and sets that value for each ComputeThermoHMA so that it is always correct.
-
-    All quantities are made available for the logger. ComputerThermo can be given a suffix which it will append
+    All quantities are made available for the logger. ComputeThermo can be given a suffix which it will append
     to each quantity provided to the logger. Typical usage is to provide _groupname as the suffix so that properties
-    of different groups can be logged seperately (e.g. temperature_group1 and temperature_group2).
+    of different groups can be logged seperately (e.g. pressureHMA_group1 and pressureHMA_group2).
 
     \ingroup computes
 */
