@@ -99,16 +99,16 @@ void ComputeThermoHMAGPU::computeProperties()
             // map scratch array into memory of all GPUs
             for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
                 {
-                cudaMemAdvise(m_scratch.get(), sizeof(Scalar4)*m_scratch.getNumElements(), cudaMemAdviseSetAccessedBy,
+                cudaMemAdvise(m_scratch.get(), sizeof(Scalar3)*m_scratch.getNumElements(), cudaMemAdviseSetAccessedBy,
                               gpu_map[idev]);
                 }
             CHECK_CUDA_ERROR();
             }
 
         // reset to zero, to be on the safe side
-        ArrayHandle<Scalar4> d_scratch(m_scratch, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar3> d_scratch(m_scratch, access_location::device, access_mode::overwrite);
 
-        cudaMemset(d_scratch.data, 0, sizeof(Scalar4)*m_scratch.size());
+        cudaMemset(d_scratch.data, 0, sizeof(Scalar3)*m_scratch.size());
         }
 
     // access the particle data
@@ -125,7 +125,7 @@ void ComputeThermoHMAGPU::computeProperties()
     const GlobalArray< Scalar >& net_virial = m_pdata->getNetVirial();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_scratch(m_scratch, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar3> d_scratch(m_scratch, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_properties(m_properties, access_location::device, access_mode::overwrite);
 
     // access the group
@@ -150,8 +150,7 @@ void ComputeThermoHMAGPU::computeProperties()
     args.harmonicPressure = m_harmonicPressure;
 
     // perform the computation on the GPU(s)
-    gpu_compute_thermo_hma_partial( d_properties.data,
-                        d_pos.data,
+    gpu_compute_thermo_hma_partial(d_pos.data,
                         d_lattice_site.data,
                         d_image.data,
                         d_body.data,

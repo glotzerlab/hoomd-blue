@@ -12,7 +12,7 @@
 //! Shared memory used in reducing the sums
 extern __shared__ Scalar3 compute_thermo_hma_sdata[];
 //! Shared memory used in final reduction
-extern __shared__ Scalar4 compute_thermo_hma_final_sdata[];
+extern __shared__ Scalar3 compute_thermo_hma_final_sdata[];
 
 /*! \file ComputeThermoGPU.cu
     \brief Defines GPU kernel code for computing thermodynamic properties on the GPU. Used by ComputeThermoGPU.
@@ -34,7 +34,7 @@ extern __shared__ Scalar4 compute_thermo_hma_final_sdata[];
     \param offset Offset of this GPU in list of group members
     \param block_offset Offset of this GPU in the array of partial sums
 
-    All partial sums are packaged up in a Scalar4 to keep pointer management down.
+    All partial sums are packaged up in a Scalar3 to keep pointer management down.
      - force * dr is summed in .x
      - Potential energy is summed in .y
      - W is summed in .z
@@ -45,7 +45,7 @@ extern __shared__ Scalar4 compute_thermo_hma_final_sdata[];
     for this kernel to run.
 */
 
-__global__ void gpu_compute_thermo_hma_partial_sums(Scalar4 *d_scratch,
+__global__ void gpu_compute_thermo_hma_partial_sums(Scalar3 *d_scratch,
                                                 BoxDim box,
                                                 Scalar4 *d_net_force,
                                                 Scalar *d_net_virial,
@@ -121,7 +121,7 @@ __global__ void gpu_compute_thermo_hma_partial_sums(Scalar4 *d_scratch,
     if (threadIdx.x == 0)
         {
         Scalar3 res = compute_thermo_hma_sdata[0];
-        d_scratch[block_offset + blockIdx.x] = make_scalar4(res.x, res.y, res.z, 0);
+        d_scratch[block_offset + blockIdx.x] = make_scalar3(res.x, res.y, res.z);
         }
     }
 
@@ -142,10 +142,10 @@ __global__ void gpu_compute_thermo_hma_partial_sums(Scalar4 *d_scratch,
     Only one block is executed. In that block, the partial sums are read in and reduced to final values. From the final
     sums, the thermodynamic properties are computed and written to d_properties.
 
-    sizeof(Scalar4)*block_size bytes of shared memory are needed for this kernel to run.
+    sizeof(Scalar3)*block_size bytes of shared memory are needed for this kernel to run.
 */
 __global__ void gpu_compute_thermo_hma_final_sums(Scalar *d_properties,
-                                              Scalar4 *d_scratch,
+                                              Scalar3 *d_scratch,
                                               BoxDim box,
                                               unsigned int D,
                                               unsigned int group_size,
@@ -156,7 +156,7 @@ __global__ void gpu_compute_thermo_hma_final_sums(Scalar *d_properties,
                                               Scalar external_energy
                                               )
     {
-    Scalar4 final_sum = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0),Scalar(0.0));
+    Scalar3 final_sum = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
 
     // sum up the values in the partial sum via a sliding window
     for (int start = 0; start < num_partial_sums; start += blockDim.x)
@@ -164,13 +164,12 @@ __global__ void gpu_compute_thermo_hma_final_sums(Scalar *d_properties,
         __syncthreads();
         if (start + threadIdx.x < num_partial_sums)
             {
-            Scalar4 scratch = d_scratch[start + threadIdx.x];
+            Scalar3 scratch = d_scratch[start + threadIdx.x];
 
-            compute_thermo_hma_final_sdata[threadIdx.x] = make_scalar4(scratch.x, scratch.y, scratch.z, Scalar(0.0));
+            compute_thermo_hma_final_sdata[threadIdx.x] = make_scalar3(scratch.x, scratch.y, scratch.z);
             }
         else
-            compute_thermo_hma_final_sdata[threadIdx.x] = make_scalar4(Scalar(0.0), Scalar(0.0),
-                                                                       Scalar(0.0), Scalar(0.0));
+            compute_thermo_hma_final_sdata[threadIdx.x] = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
         __syncthreads();
 
         // reduce the sum in parallel
@@ -231,8 +230,7 @@ __global__ void gpu_compute_thermo_hma_final_sums(Scalar *d_properties,
     }
 
 //! Compute partial sums of thermodynamic properties of a group on the GPU,
-/*! \param d_properties Array to write computed properties
-    \param d_pos Particle position array from ParticleData
+/*! \param d_pos Particle position array from ParticleData
     \param d_lattice_site Particle lattice site array
     \param d_image Image array from ParticleData
     \param d_body Particle body id
@@ -246,8 +244,7 @@ __global__ void gpu_compute_thermo_hma_final_sums(Scalar *d_properties,
     This function drives gpu_compute_thermo_partial_sums and gpu_compute_thermo_final_sums, see them for details.
 */
 
-cudaError_t gpu_compute_thermo_hma_partial(Scalar *d_properties,
-                               Scalar4 *d_pos,
+cudaError_t gpu_compute_thermo_hma_partial( Scalar4 *d_pos,
                                Scalar3 *d_lattice_site,
                                int3 *d_image,
                                unsigned int *d_body,
@@ -259,7 +256,6 @@ cudaError_t gpu_compute_thermo_hma_partial(Scalar *d_properties,
                                const GPUPartition& gpu_partition
                                )
     {
-    assert(d_properties);
     assert(d_pos);
     assert(d_group_members);
     assert(args.d_net_force);
@@ -338,7 +334,7 @@ cudaError_t gpu_compute_thermo_hma_final(Scalar *d_properties,
     dim3 grid = dim3(1, 1, 1);
     dim3 threads = dim3(final_block_size, 1, 1);
 
-    unsigned int shared_bytes = sizeof(Scalar4)*final_block_size;
+    unsigned int shared_bytes = sizeof(Scalar3)*final_block_size;
 
     Scalar external_virial = Scalar(1.0/3.0)*(args.external_virial_xx
                              + args.external_virial_yy

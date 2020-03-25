@@ -25,7 +25,7 @@ struct compute_thermo_hma_args
     Scalar *d_net_virial;    //!< Net virial array to sum
     unsigned int virial_pitch; //!< Pitch of 2D net_virial array
     unsigned int D;         //!< Dimensionality of the system
-    Scalar4 *d_scratch;      //!< n_blocks elements of scratch space for partial sums
+    Scalar3 *d_scratch;      //!< n_blocks elements of scratch space for partial sums
     unsigned int block_size;    //!< Block size to execute on the GPU
     unsigned int n_blocks;      //!< Number of blocks to execute / n_blocks * block_size >= group_size
     Scalar external_virial_xx;  //!< xx component of the external virial
@@ -37,8 +37,7 @@ struct compute_thermo_hma_args
     };
 
 //! Computes the partial sums of thermodynamic properties for ComputeThermo
-cudaError_t gpu_compute_thermo_hma_partial(Scalar *d_properties,
-                               Scalar4 *d_pos,
+cudaError_t gpu_compute_thermo_hma_partial(Scalar4 *d_pos,
                                Scalar3 *d_lattice_site,
                                int3 *d_image,
                                unsigned int *d_body,
