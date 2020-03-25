@@ -24,14 +24,16 @@ def check_dict(shape_dict, args):
            and key != 'shapes':
             np.testing.assert_allclose(shape_dict[key], val)
         elif key == 'shapes':
-            for shape_args in shape_dict[key]:
+            for i in range(len(shape_dict[key])):
+                shape_args = shape_dict[key][i]
+                val_args = val[i]
                 for shape_key, shape_val in shape_args.items():
                     if isinstance(shape_args[shape_key], list) \
                        and len(shape_args[shape_key]) > 0:
-                        np.testing.assert_allclose(shape_args[shape_key],
-                                                   shape_val)
+                        np.testing.assert_allclose(val_args[shape_key],
+                                                   shape_args[shape_key])
                     else:
-                        assert shape_args[shape_key] == shape_val
+                        assert shape_args[shape_key] == val_args[shape_key]
         else:
             np.testing.assert_almost_equal(shape_dict[key], val)
 
