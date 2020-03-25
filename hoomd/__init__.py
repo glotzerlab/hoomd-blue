@@ -75,17 +75,15 @@ from hoomd.snapshot import Snapshot
 from hoomd.logger import Logger
 from hoomd import tuner
 
-from hoomd._hoomd import WalltimeLimitReached;
+from hoomd._hoomd import WalltimeLimitReached
 
-_default_excepthook = sys.excepthook;
+_default_excepthook = sys.excepthook
 
-## \internal
-# \brief Override pythons except hook to abort MPI runs
 def _hoomd_sys_excepthook(type, value, traceback):
-    _default_excepthook(type, value, traceback);
-    sys.stderr.flush();
-    if context.current.device is not None:
-        _hoomd.abort_mpi(context.current.device.cpp_exec_conf);
+    """Override Python's excepthook to abort MPI runs."""
+    _default_excepthook(type, value, traceback)
+    sys.stderr.flush()
+    _hoomd.abort_mpi(comm._current_communicator.cpp_mpi_conf, 1)
 
 sys.excepthook = _hoomd_sys_excepthook
 
