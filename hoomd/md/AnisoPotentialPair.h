@@ -391,6 +391,7 @@ Scalar AnisoPotentialPair< aniso_evaluator >::getLogValue(const std::string& qua
 template< class aniso_evaluator >
 void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
     {
+    printf("Running for timestep %d.\n", timestep);
     // start by updating the neighborlist
     m_nlist->compute(timestep);
 

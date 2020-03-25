@@ -115,7 +115,7 @@ HOSTDEVICE inline void support_polyhedron(const ManagedArray<vec3<Scalar> > &ver
 // between the centroid-point vector and each of the centroid-vertex vectors of
 // the shape and choosing the three smallest ones.
 template <unsigned int ndim>
-HOSTDEVICE inline void find_simplex(const ManagedArray<vec3<Scalar> > &verts, const vec3<Scalar> &vector, const Scalar mat[3][3], vec3<Scalar> (&unique_vectors)[ndim])
+HOSTDEVICE inline void find_simplex(const ManagedArray<vec3<Scalar> > &verts, const vec3<Scalar> &vector, const Scalar mat[3][3], vec3<Scalar> (&unique_vectors)[ndim], bool print)
     {
     Scalar angles[ndim];
     for (unsigned int i = 0; i < ndim; ++i)
@@ -127,18 +127,27 @@ HOSTDEVICE inline void find_simplex(const ManagedArray<vec3<Scalar> > &verts, co
     vec3<Scalar> norm_rot_shift_vector = rot_shift_vec / sqrt(dot(rot_shift_vec, rot_shift_vec));
     unique_vectors[0] = rot_shift_vec;
     angles[0] = acos(dot(norm_rot_shift_vector, norm_vector));
+    if (print)
+    {
+        printf("Starting angle computation.\n");
+        printf("angle: %f\n", angles[0]);
+    }
 
     for (unsigned int i = 1; i < verts.size(); ++i)
         {
         rot_shift_vec = rotate(mat, verts[i]);
         norm_rot_shift_vector = rot_shift_vec / sqrt(dot(rot_shift_vec, rot_shift_vec));
         Scalar angle = acos(dot(norm_rot_shift_vector, norm_vector));
+        if (print)
+            printf("angle: %f\n", angle);
 
         unsigned int insertion_index = (angle < angles[0] ? 0 : (angle < angles[1] ? 1 : 2 ));
         if (ndim == 3 && angle >= angles[2])
             {
             insertion_index = 3;
             }
+        if (print)
+            printf("insertion index: %d\n", insertion_index);
 
         if (insertion_index < ndim)
             {
@@ -151,6 +160,14 @@ HOSTDEVICE inline void find_simplex(const ManagedArray<vec3<Scalar> > &verts, co
             angles[insertion_index] = angle;
             }
         }
+    if (print)
+    {
+        printf("the result at the end of find_simplex\n");
+        for (unsigned int i = 0; i < ndim; ++i)
+            {
+            printf("unique_vectors[%d]=(%f, %f, %f).\n", i, unique_vectors[i].x, unique_vectors[i].y, unique_vectors[i].z);
+            }
+    }
     }
 
 
@@ -710,7 +727,7 @@ HOSTDEVICE inline void sv_subalgorithm(vec3<Scalar>* W, unsigned int &W_used, Sc
  *  \param dr The vector pointing from the position of particle 2 to the position of particle 1 (note the sign; this is reversed throughout most of the calculations below).
  */
 template <unsigned int ndim>
-HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const ManagedArray<vec3<Scalar> > &verts2, vec3<Scalar> &v, vec3<Scalar> &a, vec3<Scalar> &b, bool& success, bool& overlap, const quat<Scalar> &qi, const quat<Scalar> &qj, const vec3<Scalar> &dr, const vec3<Scalar> &rounding_radii1, const vec3<Scalar> &rounding_radii2, bool has_rounding1, bool has_rounding2, vec3<Scalar> (&unique_vectors_i)[ndim], vec3<Scalar> (&unique_vectors_j)[ndim])
+HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const ManagedArray<vec3<Scalar> > &verts2, vec3<Scalar> &v, vec3<Scalar> &a, vec3<Scalar> &b, bool& success, bool& overlap, const quat<Scalar> &qi, const quat<Scalar> &qj, const vec3<Scalar> &dr, const vec3<Scalar> &rounding_radii1, const vec3<Scalar> &rounding_radii2, bool has_rounding1, bool has_rounding2, vec3<Scalar> (&unique_vectors_i)[ndim], vec3<Scalar> (&unique_vectors_j)[ndim], bool print)
     {
     // At any point only a subset of W is in use (identified by W_used), but
     // the total possible is capped at ndim+1 because that is the largest
@@ -870,7 +887,7 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
     // TODO: Handle verts.size() == 2 (or verts.size() == 3 in 3D).
     if (verts1.size() > ndim && verts2.size() > ndim)
         {
-        find_a_b_polytope(verts1, verts2, W_used, has_rounding1, has_rounding2, indices1, indices2, lambdas, ellipsoid_supports1, ellipsoid_supports2, dr, mati, matj, unique_vectors_i, unique_vectors_j, a, b, overlap);
+        find_a_b_polytope(verts1, verts2, W_used, has_rounding1, has_rounding2, indices1, indices2, lambdas, ellipsoid_supports1, ellipsoid_supports2, dr, mati, matj, unique_vectors_i, unique_vectors_j, a, b, overlap, print);
         }
     else
         {
@@ -920,8 +937,13 @@ HOSTDEVICE inline void find_a_b_rounded(const ManagedArray<vec3<Scalar> > &verts
 
 
 // Find the a and b vectors to use if at least one of the two shapes has rounding.
+// NOTE: This function will generate an out-of-bounds write to the
+// unique_vectors arrays if particles are overlapping because in that case
+// there are ndim+1 unique vectors to consider. We do not currently attempt to
+// verify this behavior since particles should never be allowed to overlap in
+// the usage of this method.
 template <unsigned int ndim>
-HOSTDEVICE inline void find_a_b_polytope(const ManagedArray<vec3<Scalar> > &verts1, const ManagedArray<vec3<Scalar> > &verts2, unsigned int W_used, bool has_rounding1, bool has_rounding2, const unsigned int (&indices1)[ndim+1], const unsigned int (&indices2)[ndim+1], const Scalar (&lambdas)[ndim+1], vec3<Scalar> (&ellipsoid_supports1)[ndim+1], vec3<Scalar> (&ellipsoid_supports2)[ndim+1], const vec3<Scalar> &dr, const Scalar mati[3][3], const Scalar matj[3][3], vec3<Scalar> (&unique_vectors_i)[ndim], vec3<Scalar> (&unique_vectors_j)[ndim], vec3<Scalar> &a, vec3<Scalar> &b, bool &overlap)
+HOSTDEVICE inline void find_a_b_polytope(const ManagedArray<vec3<Scalar> > &verts1, const ManagedArray<vec3<Scalar> > &verts2, unsigned int W_used, bool has_rounding1, bool has_rounding2, const unsigned int (&indices1)[ndim+1], const unsigned int (&indices2)[ndim+1], const Scalar (&lambdas)[ndim+1], vec3<Scalar> (&ellipsoid_supports1)[ndim+1], vec3<Scalar> (&ellipsoid_supports2)[ndim+1], const vec3<Scalar> &dr, const Scalar mati[3][3], const Scalar matj[3][3], vec3<Scalar> (&unique_vectors_i)[ndim], vec3<Scalar> (&unique_vectors_j)[ndim], vec3<Scalar> &a, vec3<Scalar> &b, bool &overlap, bool print)
 {
     // At each iteration, if the current index in W is in use (it supports the
     // vector v), for each shape we determine the vertex on that shape that
@@ -947,6 +969,8 @@ HOSTDEVICE inline void find_a_b_polytope(const ManagedArray<vec3<Scalar> > &vert
         {
         if (W_used & (1 << i))
             {
+            if (print)
+                printf("Index %d was used\n", i);
             unsigned int index_i = indices1[i];
             bool is_unique_i = true;
 
@@ -1018,17 +1042,21 @@ HOSTDEVICE inline void find_a_b_polytope(const ManagedArray<vec3<Scalar> > &vert
     // and then we compute the angles between this vector and the vectors
     // connecting the centroid to each vertex of the current shape. The ndim
     // smallest angles correspond to the minimal simplex.
-    if (num_unique_i < ndim)
+    if (true)
         {
-        find_simplex(verts1, b, mati, unique_vectors_i);
+        if (print)
+            printf("Calling for particle i\n");
+        find_simplex(verts1, b, mati, unique_vectors_i, print);
         }
-    if (num_unique_j < ndim)
+    if (true)
         {
         // Since simplex finding is based on angles, we need to compute dot
         // products in the local frame of the second particle and then shift
         // the final result back into the global frame (the body frame of
         // particle 1).
-        find_simplex(verts2, dr+a, matj, unique_vectors_j);
+        if (print)
+            printf("Calling for particle j\n");
+        find_simplex(verts2, dr+a, matj, unique_vectors_j, print);
         for (unsigned int i = 0; i < ndim; ++i)
             unique_vectors_j[i] += Scalar(-1.0)*dr;
         }

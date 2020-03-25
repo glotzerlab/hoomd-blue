@@ -151,7 +151,7 @@ pointFaceDistancev1(const vec3<Scalar> &point, const vec3<Scalar> &f1, const vec
     const vec3<Scalar> E1 = f3 - B;
     const vec3<Scalar> &P = point;
 
-    vec3<Scalar> D = f1 - P;
+    vec3<Scalar> D = B - P;
     Scalar a = dot(E0, E0);
     Scalar b = dot(E0, E1);
     Scalar c = dot(E1, E1);
@@ -611,11 +611,21 @@ class EvaluatorPairALJ
         evaluate(Scalar3& force, Scalar& pair_eng, bool energy_shift, Scalar3& torque_i, Scalar3& torque_j)
             {
             // Define relevant distance parameters (rsqr, r, directional vector)
+            bool print = false;
+            if ((tag_i == 158 && tag_j == 307) || (tag_i == 307 && tag_j == 158))
+                print = true;
             Scalar rsq = dot(dr, dr);
             Scalar r = sqrt(rsq);
+            if (print)
+            {
+                printf("dr=(%f, %f, %f)\n", dr.x, dr.y, dr.z);
+                printf("tagi=%d, tagj=%d\n", tag_i, tag_j);
+            }
 
             if (rsq < rcutsq)
                 {
+                if (print)
+                    printf("Inside the loop, distance = %f\n", r);
                 // Call GJK. In order to ensure that Newton's third law is
                 // obeyed, we must avoid any imbalance caused by numerical
                 // errors leading to GJK(i, j) returning different results from
@@ -637,11 +647,13 @@ class EvaluatorPairALJ
                     //    - v points from the contact point on verts2 to the contact points on verts1.
                     //    - a points from the centroid of verts1 to the contact points on verts1.
                     //    - b points from the centroid of verts1 to the contact points on verts2.
-                    gjk<ndim>(verts1, verts2, v, a, b, success, overlap, q1, q2, dr_use, shape_i->rounding_radii, shape_j->rounding_radii, shape_i->has_rounding, shape_j->has_rounding, support_vectors1, support_vectors2);
+                    gjk<ndim>(verts1, verts2, v, a, b, success, overlap, q1, q2, dr_use, shape_i->rounding_radii, shape_j->rounding_radii, shape_i->has_rounding, shape_j->has_rounding, support_vectors1, support_vectors2, print);
                     assert(success && !overlap);
 
                     if (flip)
                         {
+                        if (print)
+                            printf("Flipping after GJK.\n");
                         vec3<Scalar> a_tmp = a;
                         a = b - dr;
                         b = a_tmp - dr;
@@ -731,6 +743,14 @@ class EvaluatorPairALJ
                 // this during the HOOMD3.0 rewrite, though.
                 if (shape_i->verts.size() > ndim && shape_j->verts.size() > ndim)
                     {
+                    // computeContactEnergy(
+                            // v, a, b, dr, contact_sphere_diameter, four_epsilon, f, pair_eng, torque_i, torque_j);
+                    if ((tag_i == 158 && tag_j == 307) || (tag_i == 307 && tag_j == 158))
+                        for (unsigned int i = 0; i < ndim; ++i)
+                            {
+                            printf("support_vectors1[%d]=(%f, %f, %f).\n", i, support_vectors1[i].x, support_vectors1[i].y, support_vectors1[i].z);
+                            printf("support_vectors2[%d]=(%f, %f, %f).\n", i, support_vectors2[i].x, support_vectors2[i].y, support_vectors2[i].z);
+                            }
                     computeContactEnergy(
                             support_vectors1, support_vectors2, contact_sphere_diameter, four_epsilon, f, pair_eng, torque_i, torque_j);
                     }
@@ -740,6 +760,12 @@ class EvaluatorPairALJ
                             v, a, b, dr, contact_sphere_diameter, four_epsilon, f, pair_eng, torque_i, torque_j);
                     }
                 force = vec_to_scalar3(f);
+                if (print)
+                {
+                    printf("Final force: (%f, %f, %f)\n", force.x, force.y, force.z);
+                    printf("Final torquei: (%f, %f, %f)\n", torque_i.x, torque_i.y, torque_i.z);
+                    printf("Final torquej: (%f, %f, %f)\n", torque_j.x, torque_j.y, torque_j.z);
+                }
 
                 if (ndim == 2)
                     {
@@ -786,6 +812,8 @@ class EvaluatorPairALJ
             {
             Scalar norm_v = sqrt(dot(v, v));
             vec3<Scalar> torquei, torquej;
+            // printf("Computing the original contact force for a = np.array([%f, %f, %f]), b = np.array([%f, %f, %f]).\n", 
+                    // a.x, a.y, a.z, b.x, b.y, b.z);
             computeContactForceAndTorque(contact_sphere_diameter, v, norm_v, four_epsilon, a, dr+b, force, pair_eng, torquei, torquej);
             torque_i = vec_to_scalar3(torquei);
             torque_j = vec_to_scalar3(torquej);
@@ -810,6 +838,10 @@ class EvaluatorPairALJ
             {
             if ((_params.alpha / 2 != 0) || (1 < TWO_P_16*contact_sphere_diameter / contact_distance))
                 {
+                if ((tag_i == 158 && tag_j == 307) || (tag_i == 307 && tag_j == 158))
+                    printf("Actually computing this interaction.\n");
+                else
+                    return;
                 Scalar rho = contact_sphere_diameter / contact_distance;
                 Scalar invr_rsq = rho*rho;
                 Scalar invr_6 = invr_rsq*invr_rsq*invr_rsq;
@@ -889,6 +921,10 @@ HOSTDEVICE inline void EvaluatorPairALJ<3>::computeContactEnergy(
     for (unsigned int i = 0; i < 3; ++i)
         {
         pointFaceDistancev1(support_vectors1[i], support_vectors2[0], support_vectors2[1], support_vectors2[2], vec, projection, dist);
+        if ((tag_i == 158 && tag_j == 307) || (tag_i == 307 && tag_j == 158))
+            printf("Computing the point-face force for point1_%d = np.array([%f, %f, %f]), projection2 = np.array([%f, %f, %f]).\n", 
+                    i, support_vectors1[i].x, support_vectors1[i].y, support_vectors1[i].z,
+                    projection.x, projection.y, projection.z);
         computeContactForceAndTorque(contact_sphere_diameter, -vec, dist, four_epsilon, support_vectors1[i], dr + support_vectors1[i] - vec, force, pair_eng, torquei, torquej);
         }
 
@@ -896,6 +932,10 @@ HOSTDEVICE inline void EvaluatorPairALJ<3>::computeContactEnergy(
     for (unsigned int i = 0; i < 3; ++i)
         {
         pointFaceDistancev1(support_vectors2[i], support_vectors1[0], support_vectors1[1], support_vectors1[2], vec, projection, dist);
+        if ((tag_i == 158 && tag_j == 307) || (tag_i == 307 && tag_j == 158))
+            printf("Computing the point-face force for point2_%d = np.array([%f, %f, %f]), projection1 = np.array([%f, %f, %f]).\n", 
+                    i, support_vectors2[i].x, support_vectors2[i].y, support_vectors2[i].z,
+                    projection.x, projection.y, projection.z);
 
         computeContactForceAndTorque(contact_sphere_diameter, vec, dist, four_epsilon, projection, dr + support_vectors2[i], force, pair_eng, torquei, torquej);
         }
@@ -909,7 +949,11 @@ HOSTDEVICE inline void EvaluatorPairALJ<3>::computeContactEnergy(
             Scalar distsq;
             edgeEdgeDistance(support_vectors1[i], support_vectors1[(i+1)%3], support_vectors2[j], support_vectors2[(j+1)%3], closestI, closestJ, distsq);
             vec3<Scalar> vec = closestJ-closestI;
-        computeContactForceAndTorque(contact_sphere_diameter, vec, sqrt(distsq), four_epsilon, closestI, closestJ, force, pair_eng, torquei, torquej);
+            if ((tag_i == 158 && tag_j == 307) || (tag_i == 307 && tag_j == 158))
+                printf("Computing the edge-edge force for closestI_%d = np.array([%f, %f, %f]), closestJ_%d = np.array([%f, %f, %f]).\n", 
+                        i, closestI.x, closestI.y, closestI.z,
+                        j, closestJ.x, closestJ.y, closestJ.z);
+        computeContactForceAndTorque(contact_sphere_diameter, vec, sqrt(distsq), four_epsilon, closestI, dr + closestJ, force, pair_eng, torquei, torquej);
         }
     }
     torque_i = vec_to_scalar3(torquei);
