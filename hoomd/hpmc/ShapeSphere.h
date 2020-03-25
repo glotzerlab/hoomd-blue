@@ -36,7 +36,7 @@ namespace hpmc
     empty load_shared and allocated_shared implementations which enabled caching deep copied managed
     data arrays in shared memory.
 
-    \todo Move base methods out into their own file. ShapeSphere.h will then no longer need to be
+    TODO Move base methods out into their own file. ShapeSphere.h will then no longer need to be
           included by everything.
 */
 struct ShapeParams
@@ -163,10 +163,10 @@ struct SphereParams : ShapeParams
 
     Some portions of the API (e.g. test_overlap) are implemented as specialized function templates.
 
-    \todo Should we remove orientation as a member variable from the shape API. It should be passed
+    TODO Should we remove orientation as a member variable from the shape API. It should be passed
           when needed.
-    \todo Don't use specialized templates for things that should be methods (i.e. a.overlapsWith(b))
-    \todo add hpmc::shape namespace
+    TODO Don't use specialized templates for things that should be methods (i.e. a.overlapsWith(b))
+    TODO add hpmc::shape namespace
 */
 struct ShapeSphere
     {

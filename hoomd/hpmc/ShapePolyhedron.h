@@ -827,7 +827,7 @@ DEVICE inline bool IntersectRayTriangle(const vec3<OverlapReal>& p, const vec3<O
     vec3<OverlapReal> ap = p - a;
     t = dot(ap, n);
     if (t < OverlapReal(0.0)) return false;
-//    if (t > d) return false; // For segment; exclude this code line for a ray test
+    // For segment; exclude this code line for a ray test
     // Compute barycentric coordinate components and test if within bounds
     vec3<OverlapReal> e = cross(qp, ap);
     v = dot(ac, e);

@@ -11,7 +11,7 @@ def convex_polygon_integrator():
 
 
 @pytest.fixture(scope="function")
-def convex_polygon_parameters():
+def convex_polygon_cpp():
     def get_parameters():
         return hoomd.hpmc._hpmc.PolygonVertices
     return get_parameters
@@ -74,7 +74,7 @@ def convex_polyhedron_integrator():
 
 
 @pytest.fixture(scope="function")
-def convex_polyhedron_parameters():
+def convex_polyhedron_cpp():
     def get_parameters():
         return hoomd.hpmc._hpmc.PolyhedronVertices
     return get_parameters
@@ -176,7 +176,7 @@ def ellipsoid_integrator():
 
 
 @pytest.fixture(scope="function")
-def ellipsoid_parameters():
+def ellipsoid_cpp():
     def get_parameters():
         return hoomd.hpmc._hpmc.EllipsoidParams
     return get_parameters
@@ -212,7 +212,7 @@ def faceted_ellipsoid_integrator():
 
 
 @pytest.fixture(scope="function")
-def faceted_ellipsoid_parameters():
+def faceted_ellipsoid_cpp():
     def get_parameters():
         return hoomd.hpmc._hpmc.FacetedEllipsoidParams
     return get_parameters
@@ -351,7 +351,7 @@ def faceted_ellipsoid_union_integrator():
 
 
 @pytest.fixture(scope="function")
-def faceted_ellipsoid_union_parameters():
+def faceted_ellipsoid_union_cpp():
     def get_parameters():
         return hoomd.hpmc._hpmc.mfellipsoid_params
     return get_parameters
@@ -806,7 +806,7 @@ def sphere_integrator():
 
 
 @pytest.fixture(scope="function")
-def sphere_parameters():
+def sphere_cpp():
     def get_parameters():
         return hoomd.hpmc._hpmc.SphereParams
     return get_parameters
@@ -840,7 +840,7 @@ def sphere_union_integrator():
 
 
 @pytest.fixture(scope="function")
-def sphere_union_parameters():
+def sphere_union_cpp():
     def get_parameters():
         return hoomd.hpmc._hpmc.SphereUnionParams
     return get_parameters
@@ -958,7 +958,7 @@ def convex_spheropolyhedron_union_integrator():
 
 
 @pytest.fixture(scope="function")
-def convex_spheropolyhedron_union_parameters():
+def convex_spheropolyhedron_union_cpp():
     def get_parameters():
         return hoomd.hpmc._hpmc.mpoly3d_params
     return get_parameters
@@ -1074,7 +1074,7 @@ def sphinx_integrator():
 
 
 @pytest.fixture(scope="function")
-def sphinx_parameters():
+def sphinx_cpp():
     def get_parameters():
         return hoomd.hpmc._hpmc.SphinxParams
     return get_parameters
@@ -1148,42 +1148,42 @@ def sphinx_invalid_args():
 
 
 @pytest.fixture(scope="function")
-def shape_dict_conversion_args(convex_polygon_parameters,
+def shape_dict_conversion_args(convex_polygon_cpp,
                                convex_polygon_valid_args,
-                               convex_polyhedron_parameters,
+                               convex_polyhedron_cpp,
                                convex_polyhedron_valid_args,
-                               ellipsoid_parameters,
+                               ellipsoid_cpp,
                                ellipsoid_valid_args,
-                               faceted_ellipsoid_parameters,
+                               faceted_ellipsoid_cpp,
                                faceted_ellipsoid_valid_args,
-                               faceted_ellipsoid_union_parameters,
+                               faceted_ellipsoid_union_cpp,
                                faceted_ellipsoid_union_valid_args,
-                               sphere_parameters,
+                               sphere_cpp,
                                sphere_valid_args,
-                               sphere_union_parameters,
+                               sphere_union_cpp,
                                sphere_union_valid_args,
-                               convex_spheropolyhedron_union_parameters,
+                               convex_spheropolyhedron_union_cpp,
                                convex_spheropolyhedron_union_valid_args,
-                               sphinx_parameters,
+                               sphinx_cpp,
                                sphinx_valid_args):
     def get_valid_args():
-        return [(convex_polygon_parameters(),
+        return [(convex_polygon_cpp(),
                  convex_polygon_valid_args()),
-                (convex_polyhedron_parameters(),
+                (convex_polyhedron_cpp(),
                  convex_polyhedron_valid_args()),
-                (ellipsoid_parameters(),
+                (ellipsoid_cpp(),
                  ellipsoid_valid_args()),
-                (faceted_ellipsoid_parameters(),
+                (faceted_ellipsoid_cpp(),
                  faceted_ellipsoid_valid_args()),
-                (faceted_ellipsoid_union_parameters(),
+                (faceted_ellipsoid_union_cpp(),
                  faceted_ellipsoid_union_valid_args()),
-                (sphere_parameters(),
+                (sphere_cpp(),
                  sphere_valid_args()),
-                (sphere_union_parameters(),
+                (sphere_union_cpp(),
                  sphere_union_valid_args()),
-                (convex_spheropolyhedron_union_parameters(),
+                (convex_spheropolyhedron_union_cpp(),
                  convex_spheropolyhedron_union_valid_args()),
-                (sphinx_parameters(),
+                (sphinx_cpp(),
                  sphinx_valid_args())]
     return get_valid_args
 

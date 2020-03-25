@@ -119,7 +119,7 @@ struct ShapeUnionParams : ShapeParams
 
         @note Use of this constructor with N != 0 is intended only for unit tests
     */
-    DEVICE ShapeUnionParams(unsigned int _N)
+    DEVICE ShapeUnionParams(unsigned int _N) // TODO rename mpos to m_pos etc
         : mpos(_N, false), morientation(_N, false), mparams(_N, false),
           moverlap(_N, false), diameter(0.0), N(_N), ignore(0)
         {

@@ -201,7 +201,7 @@ struct FacetedEllipsoidParams : ShapeParams
                     continue;
 
                 // the line intersects with the sphere at two points, one of
-                // maximizes the support function
+                // which maximizes the support function
                 vec3<OverlapReal> c01 = cross(n_p,np2);
                 OverlapReal s = fast::sqrt((OverlapReal(1.0)-dot(r,r))*dot(c01,c01));
 

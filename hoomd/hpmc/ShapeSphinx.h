@@ -37,7 +37,7 @@ const unsigned int MAX_SPHINX_SPHERE_CENTERS = 8;
     sphere is considered. This shape is defined using a struct called SphinxParams whose detail
     is named spheres. ShapeSphinx requires an incoming orientation vector, followed by parameters
     for the struct SphinxParams. The parameter defining a sphinx is a structure containing the
-    circumsphere diameter of all spheres defined in the shape. This is followed the number of
+    circumsphere diameter of all spheres defined in the shape. This is followed by the number of
     spheres in the shape, their diameters and then a list of the centers of the spheres. It is
     recommended that the list of spheres begin with a positive sphere placed at the origin, and the
     other sphere centers are relative to it. Positive spheres are defined by a positive value in
