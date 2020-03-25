@@ -154,20 +154,8 @@ void ComputeThermoHMA::computeProperties()
         }
     double pe_total = 0.0, p_HMA = 0.0;
     double fV = (m_harmonicPressure/m_temperature - group_size/box.getVolume())/(D*(group_size-1));
-    Scalar3 dr0;
     double W = 0;
     unsigned int virial_pitch = net_virial.getPitch();
-    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
-        {
-        //unsigned int tag = m_group->getMemberTag(group_idx);
-        unsigned int tag = h_tag.data[group_idx];
-        if (tag!=0) continue;
-        Scalar dx = h_pos.data[group_idx].x - h_lattice_site.data[tag].x;
-        Scalar dy = h_pos.data[group_idx].y - h_lattice_site.data[tag].y;
-        Scalar dz = h_pos.data[group_idx].z - h_lattice_site.data[tag].z;
-        dr0 = make_scalar3(dx, dy, dz);
-        break;
-        }
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         //unsigned int tag = m_group->getMemberTag(group_idx);
