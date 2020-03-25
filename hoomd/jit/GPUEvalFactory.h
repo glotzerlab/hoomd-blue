@@ -152,7 +152,7 @@ class GPUEvalFactory
 
                 for (auto e: m_eval_threads)
                     {
-                    for (auto l:  m_launch_bounds)
+                    for (auto l: m_launch_bounds)
                         {
                         CUdeviceptr ptr = m_program->kernel(m_kernel_name)
                             .instantiate(e,l)
