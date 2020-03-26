@@ -320,6 +320,8 @@ if (BUILD_TESTING)
     add_subdirectory(test)
 endif()
 
+add_subdirectory(pytest)
+
 if (BUILD_VALIDATION)
     # add_subdirectory(validation)
 endif()
