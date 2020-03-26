@@ -1401,8 +1401,8 @@ class SphereUnion(_HPMCIntegrator):
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
                                             shapes=list,
-                                            orientations=list,
                                             positions=list,
+                                            orientations=list,
                                             capacity=4,
                                             overlap=list,
                                             ignore_statistics=False,

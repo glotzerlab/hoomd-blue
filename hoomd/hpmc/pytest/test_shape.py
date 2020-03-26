@@ -40,10 +40,14 @@ def check_dict(shape_dict, args):
 
 def test_dict_conversion(shape_dict_conversion_args):
     for shape_params, args_list in shape_dict_conversion_args():
-        for args in args_list:
-            test_shape = shape_params(args)
-            test_dict = test_shape.asDict()
-            check_dict(test_dict, args)
+        if 'poly' not in str(shape_params).lower():
+            for args in args_list:
+                print("")
+                print(args)
+                print(shape_params)
+                test_shape = shape_params(args)
+                test_dict = test_shape.asDict()
+                check_dict(test_dict, args)
 
 
 def test_shape_params(integrator_args):
@@ -53,6 +57,9 @@ def test_shape_params(integrator_args):
             mc.shape["A"] = args
             check_dict(mc.shape["A"], args)
         for args in invalid_args:
+            print("")
+            print(shape_integrator)
+            print(args)
             with pytest.raises(Exception):
                 mc.shape["A"] = args
 
@@ -63,6 +70,9 @@ def test_shape_attached(dummy_simulation_factory, integrator_args):
         for args in valid_args:
             mc.shape["A"] = args
             sim = dummy_simulation_factory()
+            print("")
+            print(shape_integrator)
+            print(args)
             sim.operations.add(mc)
             sim.operations.schedule()
             check_dict(mc.shape["A"], args)
