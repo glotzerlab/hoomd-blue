@@ -170,11 +170,6 @@ class Simulation:
             if value:
                 self._state._cpp_sys_def.getParticleData.setPressureFlag()
 
-            # TODO: update ForceCompute to cache flags used and recompute if
-            # needed
-
-            # TODO: update ComputeThermo to cache flags used and report
-            # NaNs as appropriate
 
     def run(self, tsteps):
         """Run the simulation forward tsteps."""

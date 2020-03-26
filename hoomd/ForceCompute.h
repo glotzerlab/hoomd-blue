@@ -214,6 +214,9 @@ class PYBIND11_EXPORT ForceCompute : public Compute
         Scalar m_external_virial[6]; //!< Stores external contribution to virial
         Scalar m_external_energy;    //!< Stores external contribution to potential energy
 
+        /// Store the particle data flags used during the last computation
+        PDataFlags m_computed_flags;
+
         //! Actually perform the computation of the forces
         /*! This is pure virtual here. Sub-classes must implement this function. It will be called by
             the base class compute() when the forces need to be computed.

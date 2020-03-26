@@ -65,6 +65,8 @@ ComputeThermo::ComputeThermo(std::shared_ptr<SystemDefinition> sysdef,
     m_logname_list.push_back(string("pressure_yz") + suffix);
     m_logname_list.push_back(string("pressure_zz") + suffix);
 
+    m_computed_flags.reset();
+
     #ifdef ENABLE_MPI
     m_properties_reduced = true;
     #endif
@@ -94,10 +96,11 @@ void ComputeThermo::setNDOF(unsigned int ndof)
 */
 void ComputeThermo::compute(unsigned int timestep)
     {
-    if (!shouldCompute(timestep))
-        return;
-
-    computeProperties();
+    if (shouldCompute(timestep))
+        {
+        computeProperties();
+        m_computed_flags = m_pdata->getFlags();
+        }
     }
 
 std::vector< std::string > ComputeThermo::getProvidedLogQuantities()
