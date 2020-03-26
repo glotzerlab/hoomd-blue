@@ -168,7 +168,7 @@ class Simulation:
 
             # if the flag is true, also set it in the particle data
             if value:
-                self._state._cpp_sys_def.getParticleData.setPressureFlag()
+                self._state._cpp_sys_def.getParticleData().setPressureFlag()
 
 
     def run(self, tsteps):
