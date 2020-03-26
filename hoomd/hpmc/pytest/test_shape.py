@@ -61,9 +61,6 @@ def test_shape_attached(dummy_simulation_factory, integrator_args):
     for shape_integrator, valid_args, invalid_args in integrator_args():
         mc = shape_integrator(23456)
         for args in valid_args:
-            print("")
-            print(args)
-            print(shape_integrator)
             mc.shape["A"] = args
             sim = dummy_simulation_factory()
             assert sim.operations.integrator is None
@@ -395,11 +392,6 @@ def test_overlaps_spheropolyhedron(device, lattice_simulation_factory):
 
         sim = lattice_simulation_factory(dimensions=2, n=(2, 1), a=10)
         sim.operations.add(mc)
-        gsd_dumper = hoomd.dump.GSD(filename='/Users/dan/danevans/Michigan/Glotzer_Lab/hoomd-dev/test_dump_spheropolyhedron.gsd', trigger=1, overwrite=True)
-        gsd_logger = hoomd.logger.Logger()
-        gsd_logger += mc
-        gsd_dumper.log = gsd_logger
-        sim.operations.add(gsd_dumper)
         sim.operations.schedule()
         assert mc.overlaps == 0
         
@@ -431,4 +423,76 @@ def test_overlaps_spheropolyhedron(device, lattice_simulation_factory):
         if s.exists:
             s.particles.orientation[1] = tuple(np.array([1, 1, 1, 0]) / (3**0.5))
         sim.state.snapshot = s
-        assert mc.overlaps > 0          
+        assert mc.overlaps > 0
+
+
+def test_overlaps_union(device, lattice_simulation_factory):
+    sphere_mc = hoomd.hpmc.integrate.Sphere(23456)
+    sphere_mc.shape['A'] = {'diameter': 1}
+
+    spheropolyhedron_mc = hoomd.hpmc.integrate.ConvexSpheropolyhedron(23456)
+    spheropolyhedron_mc.shape['A'] = {"vertices": np.array([(1, 1, 1),
+                                                            (-1, -1, 1),
+                                                            (1, -1, -1),
+                                                            (-1, 1, -1)]) / 2}
+
+    faceted_ell_mc = hoomd.hpmc.integrate.FacetedEllipsoid(23456)
+    faceted_ell_mc.shape['A'] = {"normals": [(0, 0, 1)],
+                                 "a": 0.5,
+                                 "b": 0.5,
+                                 "c": 1,
+                                 "vertices": [],
+                                 "origin": (0, 0, 0),
+                                 "offsets": [0]}
+
+    shapes = [(sphere_mc, 
+               hoomd.hpmc.integrate.SphereUnion),
+              (spheropolyhedron_mc, 
+               hoomd.hpmc.integrate.ConvexSpheropolyhedronUnion),
+              (faceted_ell_mc,
+               hoomd.hpmc.integrate.FacetedEllipsoidUnion)]
+    
+    for inner_mc, integrator in shapes:
+        args = {'shapes': [inner_mc.shape['A'], inner_mc.shape['A']],
+                'positions': [(0, 0, 0), (0, 0, 1)],
+                'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)],
+                'overlap': [1, 1]}
+        mc = integrator(23456)
+        mc.shape['A'] = args
+        
+        sim = lattice_simulation_factory(dimensions=2, n=(2, 1), a=10)
+        sim.operations.add(mc)
+        sim.operations.schedule()
+        
+        assert mc.overlaps == 0
+        test_positions = [(1.1, 0, 0), (0, 1.1, 0)]
+        test_orientations = np.array([[1, 0, -0.06, 0], [1, 0.06, 0, 0]])
+        test_orientations = test_orientations.T/np.linalg.norm(test_orientations, 
+                                                               axis=1)
+        test_orientations = test_orientations.T
+        # Shapes are stacked in z direction
+        ang = 0
+        for i in range(len(test_positions)):
+            s = sim.state.snapshot
+            if s.exists:
+                s.particles.position[0] = (0, 0, 0)
+                s.particles.position[1] = test_positions[i]
+                s.particles.orientation[1] = (1, 0, 0, 0)
+            sim.state.snapshot = s
+            assert mc.overlaps == 0
+            
+            # Slightly rotate union about x or y axis so they overlap
+            if s.exists:
+                s.particles.orientation[1] = test_orientations[i]
+            sim.state.snapshot = s
+                
+            assert mc.overlaps > 0
+
+        
+        for pos in [(0.9, 0, 0), (0, 0.9, 0), (0, 0, 1.1)]:
+            s = sim.state.snapshot
+            if s.exists:
+                s.particles.position[0] = (0, 0, 0)
+                s.particles.position[1] = pos
+            sim.state.snapshot = s
+            assert mc.overlaps > 0
