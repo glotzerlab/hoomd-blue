@@ -11,37 +11,6 @@
 #include <stdexcept>
 #endif
 
-// Quaternion to rotation matrix conversion.
-HOSTDEVICE inline void quat2mat(const quat<Scalar> &q, Scalar (&mat)[3][3])
-    {
-    Scalar two_x = Scalar(2.0) * q.v.x;
-    Scalar two_y = Scalar(2.0) * q.v.y;
-    Scalar two_z = Scalar(2.0) * q.v.z;
-    Scalar two_x_sq = q.v.x * two_x;
-    Scalar two_y_sq = q.v.y * two_y;
-    Scalar two_z_sq = q.v.z * two_z;
-
-    mat[0][0] = Scalar(1.0) - two_y_sq - two_z_sq;
-    mat[1][1] = Scalar(1.0) - two_x_sq - two_z_sq;
-    mat[2][2] = Scalar(1.0) - two_x_sq - two_y_sq;
-
-    Scalar y_two_z = q.v.y * two_z;
-    Scalar s_two_x = q.s * two_x;
-    mat[1][2] = y_two_z - s_two_x;
-    mat[2][1] = y_two_z + s_two_x;
-
-    Scalar x_two_y = q.v.x * two_y;
-    Scalar s_two_z = q.s * two_z;
-    mat[0][1] = x_two_y - s_two_z;
-    mat[1][0] = x_two_y + s_two_z;
-
-    Scalar x_two_z = q.v.x * two_z;
-    Scalar s_two_y = q.s * two_y;
-    mat[0][2] = x_two_z + s_two_y;
-    mat[2][0] = x_two_z - s_two_y;
-    }
-
-
 // Define matrix vector multiplication since it's faster than quat vector.
 template <typename Scalar>
 HOSTDEVICE inline vec3<Scalar> rotate(const Scalar mat[3][3], const vec3<Scalar>& v)
@@ -71,49 +40,6 @@ HOSTDEVICE inline void support_polyhedron(const ManagedArray<vec3<Scalar> > &ver
             }
         }
     idx = index;
-    }
-
-
-// Find the simplex closest to a point outside a shape by calculating angles
-// between the centroid-point vector and each of the centroid-vertex vectors of
-// the shape and choosing the three smallest ones.
-template <unsigned int ndim>
-HOSTDEVICE inline void find_simplex(const ManagedArray<vec3<Scalar> > &verts, const vec3<Scalar> &vector, const Scalar mat[3][3], vec3<Scalar> (&unique_vectors)[ndim])
-    {
-    Scalar angles[ndim];
-    for (unsigned int i = 0; i < ndim; ++i)
-        angles[i] = Scalar(M_PI);
-
-    vec3<Scalar> norm_vector = vector / sqrt(dot(vector, vector));
-
-    vec3<Scalar> rot_shift_vec = rotate(mat, verts[0]);
-    vec3<Scalar> norm_rot_shift_vector = rot_shift_vec / sqrt(dot(rot_shift_vec, rot_shift_vec));
-    unique_vectors[0] = rot_shift_vec;
-    angles[0] = acos(dot(norm_rot_shift_vector, norm_vector));
-
-    for (unsigned int i = 1; i < verts.size(); ++i)
-        {
-        rot_shift_vec = rotate(mat, verts[i]);
-        norm_rot_shift_vector = rot_shift_vec / sqrt(dot(rot_shift_vec, rot_shift_vec));
-        Scalar angle = acos(dot(norm_rot_shift_vector, norm_vector));
-
-        unsigned int insertion_index = (angle < angles[0] ? 0 : (angle < angles[1] ? 1 : 2 ));
-        if (ndim == 3 && angle >= angles[2])
-            {
-            insertion_index = 3;
-            }
-
-        if (insertion_index < ndim)
-            {
-            for (unsigned int j = (ndim-1); j > insertion_index; --j)
-                {
-                unique_vectors[j] = unique_vectors[j-1];
-                angles[j] = angles[j-1];
-                }
-            unique_vectors[insertion_index] = rot_shift_vec;
-            angles[insertion_index] = angle;
-            }
-        }
     }
 
 
@@ -673,7 +599,7 @@ HOSTDEVICE inline void sv_subalgorithm(vec3<Scalar>* W, unsigned int &W_used, Sc
  *  \param dr The vector pointing from the position of particle 2 to the position of particle 1 (note the sign; this is reversed throughout most of the calculations below).
  */
 template <unsigned int ndim>
-HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const ManagedArray<vec3<Scalar> > &verts2, vec3<Scalar> &v, vec3<Scalar> &a, vec3<Scalar> &b, bool& success, bool& overlap, const quat<Scalar> &qi, const quat<Scalar> &qj, const vec3<Scalar> &dr, const vec3<Scalar> &rounding_radii1, const vec3<Scalar> &rounding_radii2, bool has_rounding1, bool has_rounding2, vec3<Scalar> (&unique_vectors_i)[ndim], vec3<Scalar> (&unique_vectors_j)[ndim])
+HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const ManagedArray<vec3<Scalar> > &verts2, vec3<Scalar> &v, vec3<Scalar> &a, vec3<Scalar> &b, bool& success, bool& overlap, const Scalar (&mati)[3][3], const Scalar (&matj)[3][3], const quat<Scalar> &qi, const quat<Scalar> &qj, const vec3<Scalar> &dr, const vec3<Scalar> &rounding_radii1, const vec3<Scalar> &rounding_radii2, bool has_rounding1, bool has_rounding2)
     {
     // At any point only a subset of W is in use (identified by W_used), but
     // the total possible is capped at ndim+1 because that is the largest
@@ -684,19 +610,6 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
     // Start with guess as vector pointing from the centroid of verts1 to the
     // centroid of verts2.
     v = dr;
-
-    // Since we will be performing a rotation many times, it's worthwhile to
-    // convert the quaternions to rotation matrices and use those for repeated
-    // rotations. The conversions below use the fewest operations I could come
-    // up with (12 multiplications and 12 additions). Optimizing this
-    // conversion is only really important for low vertex shapes where the
-    // additional cost of the conversion could offset the added speed of the
-    // rotations. We create local scope for all the intermediate products to
-    // avoid namespace pollution with unnecessary variables..
-    Scalar mati[3][3], matj[3][3];
-    quat2mat(qi, mati);
-    quat2mat(qj, matj);
-
 
     // We don't bother to initialize most of these arrays since the W_used
     // array controls which data is valid. 
@@ -831,7 +744,7 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
     a = vec3<Scalar>();
     b = vec3<Scalar>();
     unsigned int counter = 0;
-    for (unsigned int i = 0; i < ndim + 1; i++)
+    for (unsigned int i = 0; i < max_num_points; i++)
         {
         if (W_used & (1 << i))
             {
@@ -858,40 +771,7 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
             counter += 1;
             }
         }
-    overlap = (counter == ndim + 1);
-
-    // Find the a and b vectors to use if at least one of the two shapes has rounding.
-    // NOTE: This function will generate an out-of-bounds write to the
-    // unique_vectors arrays if particles are overlapping because in that case
-    // there are ndim+1 unique vectors to consider. We do not currently attempt to
-    // verify this behavior since particles should never be allowed to overlap in
-    // the usage of this method.
-    // TODO: Handle verts.size() == 2 (or verts.size() == 3 in 3D).
-    if (verts1.size() > ndim && verts2.size() > ndim)
-        {
-        // For each shape, if the number of unique points supporting the contact
-        // point is less than the number of dimensions (e.g. only one supporting
-        // point in 2d), then we have a lower dimensional simplex than the maximal
-        // simplex size in this dimension. In this case, we need to identify the
-        // full simplex to compute interactions for. To do this, we can compute
-        // something like the support function from the centroid of the shape to
-        // the contact point on the other shape. More precisely, we identify the
-        // vector connecting the centroid to the contact point on the other shape,
-        // and then we compute the angles between this vector and the vectors
-        // connecting the centroid to each vertex of the current shape. The ndim
-        // smallest angles correspond to the minimal simplex.
-        find_simplex(verts1, b, mati, unique_vectors_i);
-
-        // Since simplex finding is based on angles, we need to compute dot
-        // products in the local frame of the second particle and then shift
-        // the final result back into the global frame (the body frame of
-        // particle 1).
-        find_simplex(verts2, dr+a, matj, unique_vectors_j);
-        for (unsigned int i = 0; i < ndim; ++i)
-            {
-            unique_vectors_j[i] += Scalar(-1.0)*dr;
-            }
-        }
+    overlap = (counter == max_num_points);
     }
 
 
