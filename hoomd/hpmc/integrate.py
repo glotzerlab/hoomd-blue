@@ -320,7 +320,7 @@ class Sphere(_HPMCIntegrator):
         a (float): Maximum rotation move to set for all types, or a dict
           containing {type:size} to set by type.
         move_ratio (float, only used with **orientable=True**): Ratio of
-          translation moves to rotation moves. (added in version 2.3)
+          translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
         deterministic (bool): Make HPMC integration deterministic on the GPU
 
@@ -330,7 +330,7 @@ class Sphere(_HPMCIntegrator):
 
     * *diameter* (**required**) - diameter of the sphere (distance units)
     * *orientable* (**default: False**) - set to True for spheres with
-      orientation (added in version 2.3)
+      orientation
     * *ignore_statistics* (**default: False**) - set to True to disable ignore
       for statistics tracking
 
