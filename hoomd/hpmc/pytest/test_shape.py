@@ -118,13 +118,7 @@ def test_overlaps_sphere(device, lattice_simulation_factory):
                                          n=(2, 1),
                                          a=diameter * 0.9)
         sim.operations.add(mc)
-        gsd_dumper = hoomd.dump.GSD(filename='/Users/dan/danevans/Michigan/Glotzer_Lab/hoomd-dev/test_dump_other_sphere.gsd', trigger=1, overwrite=True)
-        gsd_logger = hoomd.logger.Logger()
-        gsd_logger += mc
-        gsd_dumper.log = gsd_logger
-        sim.operations.add(gsd_dumper)
         sim.operations.schedule()
-        sim.run(1)
         assert mc.overlaps > 0
         
         # Should not overlap when spheres are larger than one diameter apart
