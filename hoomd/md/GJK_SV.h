@@ -85,7 +85,7 @@ HOSTDEVICE inline void s1d(vec3<Scalar>* W, unsigned int &W_used, Scalar* lambda
     constexpr unsigned int max_num_points = ndim + 1;
     bool s1_set = false;
     unsigned int i1 = 0xffffffff, i2 = 0xffffffff;
-    for (unsigned int i = 0; i < max_num_points; i++)
+    for (unsigned int i = 0; i < max_num_points; ++i)
     {
         if (W_used & (1 << i))
         {
@@ -680,7 +680,7 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
         // any corresponding performance gains).
 #ifndef NVCC
         bool degenerate(false);
-        for (unsigned int i = 0; i < max_num_points; i++)
+        for (unsigned int i = 0; i < max_num_points; ++i)
             {
             if (w == W[i])
                 {
@@ -731,7 +731,7 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
             sv_subalgorithm<ndim>(W, W_used, lambdas);
 
             v = vec3<Scalar>();
-            for (unsigned int i = 0; i < max_num_points; i++)
+            for (unsigned int i = 0; i < max_num_points; ++i)
                 {
                 if (W_used & (1 << i))
                     {
@@ -744,7 +744,7 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
     a = vec3<Scalar>();
     b = vec3<Scalar>();
     unsigned int counter = 0;
-    for (unsigned int i = 0; i < max_num_points; i++)
+    for (unsigned int i = 0; i < max_num_points; ++i)
         {
         if (W_used & (1 << i))
             {

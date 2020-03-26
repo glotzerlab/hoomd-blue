@@ -124,25 +124,19 @@ struct pair_alj_params
 
 // Note: delta is from the edge to the point.
 HOSTDEVICE inline void
-pointSegmentDistance(const vec3<Scalar> &point, const vec3<Scalar> &e1, const vec3<Scalar> &e2, vec3<Scalar> &delta, vec3<Scalar> &projection, Scalar &dist)
+pointSegmentDistance(const vec3<Scalar> &point, const vec3<Scalar> &e1, const vec3<Scalar> &e2, vec3<Scalar> &delta, vec3<Scalar> &projection)
     {
     vec3<Scalar> edge = e1 - e2;
     Scalar edge_length_sq = dot(edge, edge);
     Scalar t = fmax(0.0, fmin(dot(point - e1, e2 - e1)/edge_length_sq, 1.0));
     projection = e1 - t * edge;
     delta = point - projection;
-
-    // We MUST use sqrt, not rsqrt here. The difference in
-    // precision is enough to cause noticeable violations in energy
-    // conservation on the GPU (see the double-precision tables here:
-    // https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#standard-functions).
-    dist = sqrt(dot(delta, delta));
     }
 
 
 // Note: delta is from the edge to the point.
 HOSTDEVICE inline void
-pointFaceDistance(const vec3<Scalar> &point, const vec3<Scalar> &f1, const vec3<Scalar> &f2, const vec3<Scalar> &f3, vec3<Scalar> &delta, vec3<Scalar> &projection, Scalar &dist)
+pointFaceDistance(const vec3<Scalar> &point, const vec3<Scalar> &f1, const vec3<Scalar> &f2, const vec3<Scalar> &f3, vec3<Scalar> &delta, vec3<Scalar> &projection)
     {
     // Use the method of Eberly
     // https://www.geometrictools.com/Documentation/DistancePoint3Triangle3.pdf
@@ -334,7 +328,6 @@ pointFaceDistance(const vec3<Scalar> &point, const vec3<Scalar> &f1, const vec3<
 
     projection = B + s*E0 + t*E1;
     delta = point - projection;
-    dist = sqrt(dot(delta, delta));
     }
 
 
@@ -353,7 +346,7 @@ HOSTDEVICE inline Scalar detp(const vec3<Scalar> &m, const vec3<Scalar> &n, cons
 
 // This function is copied from DEM.
 HOSTDEVICE inline void
-edgeEdgeDistance(const vec3<Scalar> &e00, const vec3<Scalar> &e01, const vec3<Scalar> &e10, const vec3<Scalar> &e11, vec3<Scalar> &closestI, vec3<Scalar> &closestJ, Scalar &closestDistsq)
+edgeEdgeDistance(const vec3<Scalar> &e00, const vec3<Scalar> &e01, const vec3<Scalar> &e10, const vec3<Scalar> &e11, vec3<Scalar> &closestI, vec3<Scalar> &closestJ)
     {
     // in the style of http://paulbourke.net/geometry/pointlineplane/
     Scalar denominator(detp(e01, e00, e01, e00)*detp(e11, e10, e11, e10) -
@@ -374,7 +367,7 @@ edgeEdgeDistance(const vec3<Scalar> &e00, const vec3<Scalar> &e01, const vec3<Sc
     closestI = e00 + lambda0*r0;
     closestJ = e10 + lambda1*r1;
     vec3<Scalar> rContact(closestJ - closestI);
-    closestDistsq = dot(rContact, rContact);
+    Scalar closestDistsq = dot(rContact, rContact);
 
     Scalar lambda(clamp(dot(e10 - e00, r0)/r0sq));
     vec3<Scalar> candidateI(e00 + lambda*r0);
@@ -677,9 +670,10 @@ class EvaluatorPairALJ
                     }
 
                 Scalar sigma12 = Scalar(0.5) * (_params.sigma_i + _params.sigma_j);
+                Scalar sigma12_sq = sigma12*sigma12;
 
                 Scalar contact_sphere_radius_multiplier = 0.15;
-                Scalar contact_sphere_diameter = contact_sphere_radius_multiplier * sigma12;
+                Scalar contact_sphere_diameter_sq = contact_sphere_radius_multiplier*contact_sphere_radius_multiplier*sigma12_sq;
 
                 // The energy for the central potential must be rescaled by the
                 // orientations (encoded in the a and b vectors).
@@ -690,7 +684,7 @@ class EvaluatorPairALJ
                 Scalar invr_6 = invr_rsq*invr_rsq*invr_rsq;
                 Scalar numer = (invr_6*invr_6 - invr_6) - SHIFT_RHO_DIFF;
 
-                invr_rsq = sigma12*sigma12/rsq;
+                invr_rsq = sigma12_sq/rsq;
                 invr_6 = invr_rsq*invr_rsq*invr_rsq;
                 Scalar invr_12 = invr_6*invr_6;
                 Scalar denom = invr_12 - invr_6 - SHIFT_RHO_DIFF;
@@ -704,11 +698,11 @@ class EvaluatorPairALJ
                 // to compute it if we are within the limited cutoff.
                 Scalar f_scalar = 0;
                 pair_eng = 0;
-                if ((_params.alpha % 2 != 0) || (r < TWO_P_16*sigma12))
+                if ((_params.alpha % 2 != 0) || (rsq < TWO_P_13*sigma12_sq))
                     {
                     // Compute force and energy from LJ formula.
                     pair_eng += four_scaled_epsilon * (invr_12 - invr_6);
-                    f_scalar = four_scaled_epsilon * (Scalar(12.0)*invr_12 - Scalar(6.0)*invr_6) / (r);
+                    f_scalar = four_scaled_epsilon * (Scalar(12.0)*invr_12 - Scalar(6.0)*invr_6) / r;
 
                     // For the WCA case
                     if (_params.alpha % 2 == 0)
@@ -725,27 +719,20 @@ class EvaluatorPairALJ
                 // significant reworkings of HOOMD internals, so it's probably
                 // not worthwhile. We should consider if we ever want to enable
                 // this during the HOOMD3.0 rewrite, though.
+                // TODO: Handle verts.size() == 2 (or verts.size() == 3 in 3D).
                 if (shape_i->verts.size() > ndim && shape_j->verts.size() > ndim)
                     {
-                    // Find the a and b vectors to use if at least one of the two shapes has rounding.
-                    // NOTE: This function will generate an out-of-bounds write to the
-                    // unique_vectors arrays if particles are overlapping because in that case
-                    // there are ndim+1 unique vectors to consider. We do not currently attempt to
-                    // verify this behavior since particles should never be allowed to overlap in
-                    // the usage of this method.
-                    // TODO: Handle verts.size() == 2 (or verts.size() == 3 in 3D).
-
-                    // For each shape, if the number of unique points supporting the contact
-                    // point is less than the number of dimensions (e.g. only one supporting
-                    // point in 2d), then we have a lower dimensional simplex than the maximal
-                    // simplex size in this dimension. In this case, we need to identify the
-                    // full simplex to compute interactions for. To do this, we can compute
-                    // something like the support function from the centroid of the shape to
-                    // the contact point on the other shape. More precisely, we identify the
-                    // vector connecting the centroid to the contact point on the other shape,
-                    // and then we compute the angles between this vector and the vectors
-                    // connecting the centroid to each vertex of the current shape. The ndim
-                    // smallest angles correspond to the minimal simplex.
+                    // If we have polytopes, we need to identify the entire
+                    // simplex for which to compute interactions. We do this by
+                    // identifying the vector connecting the centroid to the
+                    // contact point on the other shape, and then we compute
+                    // the angles between this vector and the vectors
+                    // connecting the centroid to each vertex of the current
+                    // shape. The ndim smallest angles correspond to the
+                    // minimal simplex.
+                    // TODO: For 3D shapes other than tetrahedra this will need
+                    // to be generalized to get the entire face, not just a
+                    // triangular simplex.
                     vec3<Scalar> support_vectors1[ndim], support_vectors2[ndim];
                     find_simplex(shape_i->verts, b, mati, support_vectors1);
 
@@ -759,13 +746,12 @@ class EvaluatorPairALJ
                         support_vectors2[i] += Scalar(-1.0)*dr;
                         }
                     computeSimplexInteractions(
-                            support_vectors1, support_vectors2, contact_sphere_diameter, four_epsilon, f, pair_eng, torque_i, torque_j);
+                            support_vectors1, support_vectors2, contact_sphere_diameter_sq, four_epsilon, f, pair_eng, torque_i, torque_j);
                     }
                 else
                     {
-                    Scalar norm_v = sqrt(dot(v, v));
                     vec3<Scalar> torquei, torquej;
-                    computeContactLJ(contact_sphere_diameter, v, norm_v, four_epsilon, a, dr+b, f, pair_eng, torquei, torquej);
+                    computeContactLJ(contact_sphere_diameter_sq, v, four_epsilon, a, dr+b, f, pair_eng, torquei, torquej);
                     torque_i = vec_to_scalar3(torquei);
                     torque_j = vec_to_scalar3(torquej);
                     }
@@ -824,7 +810,7 @@ class EvaluatorPairALJ
          *
          *  \param support_vectors1 Set of vectors composing the simplex on particle i.
          *  \param support_vectors2 Set of vectors composing the simplex on particle j.
-         *  \param contact_sphere_diameter The length scale of the LJ interaction (i.e. sigma).
+         *  \param contact_sphere_diameter_sq The length scale of the LJ interaction (i.e. sigma^2).
          *  \param four_epsilon 4*epsilon, the energy scale for the LJ interaction.
          *  \param contact_point_i The contact point on particle i in the frame of particle i.
          *  \param contact_point_j The contact point on particle j in the frame of particle j (IMPORTANT NOTE, this is different from many places in this code where vectors relating to particle j are in the coordinate system centered on particle i).
@@ -833,9 +819,9 @@ class EvaluatorPairALJ
          *  \param torque_i The current torque on particle i to which the torque computed in this method is added.
          *  \param torque_j The current torque on particle j to which the torque computed in this method is added.
          */
-        HOSTDEVICE void computeSimplexInteractions(
+        HOSTDEVICE inline void computeSimplexInteractions(
                 const vec3<Scalar> support_vectors1[ndim], const vec3<Scalar> support_vectors2[ndim],
-                const Scalar contact_sphere_diameter, const Scalar &four_epsilon,
+                const Scalar contact_sphere_diameter_sq, const Scalar &four_epsilon,
                 vec3<Scalar> &force, Scalar &pair_eng, Scalar3 &torque_i, Scalar3 &torque_j) {}
 
         //! Core routine for calculating contact interaction between two points.
@@ -849,7 +835,7 @@ class EvaluatorPairALJ
          * of verts1, whereas contact_point_j is relative to the center of
          * verts2, which is -dr). The contact_vector must point from verts1 to verts2
          *
-         *  \param contact_sphere_diameter The length scale of the LJ interaction (i.e. sigma).
+         *  \param contact_sphere_diameter_sq The length scale of the LJ interaction (i.e. sigma^2).
          *  \param contact_vector The vector pointing from the contact point on particle i to the contact point on particle j.
          *  \param contact_distance The length of the contact_vector provided separately since it's typically computed as part of determining the contact_vector.
          *  \param four_epsilon 4*epsilon, the energy scale for the LJ interaction.
@@ -860,13 +846,14 @@ class EvaluatorPairALJ
          *  \param torque_i The current torque on particle i to which the torque computed in this method is added.
          *  \param torque_j The current torque on particle j to which the torque computed in this method is added.
          */
-        HOSTDEVICE inline void computeContactLJ(const Scalar &contact_sphere_diameter, const vec3<Scalar> &contact_vector, const Scalar &contact_distance, const Scalar &four_epsilon, const vec3<Scalar> &contact_point_i, const vec3<Scalar> &contact_point_j,
+        HOSTDEVICE inline void computeContactLJ(const Scalar &contact_sphere_diameter_sq, const vec3<Scalar> &contact_vector, const Scalar &four_epsilon, const vec3<Scalar> &contact_point_i, const vec3<Scalar> &contact_point_j,
                 vec3<Scalar> &force, Scalar &pair_eng, vec3<Scalar> &torque_i, vec3<Scalar> &torque_j)
             {
-            if ((_params.alpha / 2 != 0) || (1 < TWO_P_16*contact_sphere_diameter / contact_distance))
+            Scalar contact_distance_sq = dot(contact_vector, contact_vector);
+            if ((_params.alpha / 2 != 0) || (contact_distance_sq < TWO_P_13*contact_sphere_diameter_sq))
                 {
-                Scalar rho = contact_sphere_diameter / contact_distance;
-                Scalar invr_rsq = rho*rho;
+                Scalar contact_distance = sqrt(contact_distance_sq);
+                Scalar invr_rsq = contact_sphere_diameter_sq / contact_distance_sq;
                 Scalar invr_6 = invr_rsq*invr_rsq*invr_rsq;
                 Scalar invr_12 = invr_6*invr_6;
                 Scalar energy_contact = four_epsilon * (invr_12 - invr_6);
@@ -899,7 +886,7 @@ class EvaluatorPairALJ
         const shape_param_type *shape_j;      //!< Shape parameters of particle j.
         const param_type& _params;      //!< Potential parameters for the pair of interest.
 
-        constexpr static Scalar TWO_P_16 = 1.12246204831;  // 2^(1/6)
+        constexpr static Scalar TWO_P_13 = 1.2599210498948732;  // 2^(1/3)
         constexpr static Scalar SHIFT_RHO_DIFF = -0.25; // (1/(2^(1/6)))**12 - (1/(2^(1/6)))**6
     };
 
@@ -907,25 +894,24 @@ class EvaluatorPairALJ
 template <>
 HOSTDEVICE inline void EvaluatorPairALJ<2>::computeSimplexInteractions(
         const vec3<Scalar> support_vectors1[2], const vec3<Scalar> support_vectors2[2],
-        const Scalar contact_sphere_diameter, const Scalar &four_epsilon,
+        const Scalar contact_sphere_diameter_sq, const Scalar &four_epsilon,
         vec3<Scalar> &force, Scalar &pair_eng, Scalar3 &torque_i, Scalar3 &torque_j)
     {
     vec3<Scalar> torquei, torquej;
     vec3<Scalar> projection, vec;
-    Scalar dist;
     // First compute the interaction of the verts on 1 to the edge on 2.
     for (unsigned int i = 0; i < 2; ++i)
         {
-        pointSegmentDistance(support_vectors1[i], support_vectors2[0], support_vectors2[1], vec, projection, dist);
-        computeContactLJ(contact_sphere_diameter, -vec, dist, four_epsilon, support_vectors1[i], dr + support_vectors1[i] - vec, force, pair_eng, torquei, torquej);
+        pointSegmentDistance(support_vectors1[i], support_vectors2[0], support_vectors2[1], vec, projection);
+        computeContactLJ(contact_sphere_diameter_sq, -vec, four_epsilon, support_vectors1[i], dr + support_vectors1[i] - vec, force, pair_eng, torquei, torquej);
         }
 
     // Now compute the interaction of the verts on 2 to the edge on 1.
     for (unsigned int i = 0; i < 2; ++i)
         {
-        pointSegmentDistance(support_vectors2[i], support_vectors1[0], support_vectors1[1], vec, projection, dist);
+        pointSegmentDistance(support_vectors2[i], support_vectors1[0], support_vectors1[1], vec, projection);
 
-        computeContactLJ(contact_sphere_diameter, vec, dist, four_epsilon, projection, dr + support_vectors2[i], force, pair_eng, torquei, torquej);
+        computeContactLJ(contact_sphere_diameter_sq, vec, four_epsilon, projection, dr + support_vectors2[i], force, pair_eng, torquei, torquej);
         }
     torque_i = vec_to_scalar3(torquei);
     torque_j = vec_to_scalar3(torquej);
@@ -934,24 +920,23 @@ HOSTDEVICE inline void EvaluatorPairALJ<2>::computeSimplexInteractions(
 template <>
 HOSTDEVICE inline void EvaluatorPairALJ<3>::computeSimplexInteractions(
         const vec3<Scalar> support_vectors1[3], const vec3<Scalar> support_vectors2[3],
-        const Scalar contact_sphere_diameter, const Scalar &four_epsilon,
+        const Scalar contact_sphere_diameter_sq, const Scalar &four_epsilon,
         vec3<Scalar> &force, Scalar &pair_eng, Scalar3 &torque_i, Scalar3 &torque_j)
     {
     vec3<Scalar> torquei, torquej;
     vec3<Scalar> projection, vec;
-    Scalar dist;
     // Compute the interaction of the verts on 1 to the face on 2.
     for (unsigned int i = 0; i < 3; ++i)
         {
-        pointFaceDistance(support_vectors1[i], support_vectors2[0], support_vectors2[1], support_vectors2[2], vec, projection, dist);
-        computeContactLJ(contact_sphere_diameter, -vec, dist, four_epsilon, support_vectors1[i], dr + support_vectors1[i] - vec, force, pair_eng, torquei, torquej);
+        pointFaceDistance(support_vectors1[i], support_vectors2[0], support_vectors2[1], support_vectors2[2], vec, projection);
+        computeContactLJ(contact_sphere_diameter_sq, -vec, four_epsilon, support_vectors1[i], dr + support_vectors1[i] - vec, force, pair_eng, torquei, torquej);
         }
 
     // Compute the interaction of the verts on 2 to the edge on 1.
     for (unsigned int i = 0; i < 3; ++i)
         {
-        pointFaceDistance(support_vectors2[i], support_vectors1[0], support_vectors1[1], support_vectors1[2], vec, projection, dist);
-        computeContactLJ(contact_sphere_diameter, vec, dist, four_epsilon, projection, dr + support_vectors2[i], force, pair_eng, torquei, torquej);
+        pointFaceDistance(support_vectors2[i], support_vectors1[0], support_vectors1[1], support_vectors1[2], vec, projection);
+        computeContactLJ(contact_sphere_diameter_sq, vec, four_epsilon, projection, dr + support_vectors2[i], force, pair_eng, torquei, torquej);
         }
 
     // Compute interaction between pairs of edges.
@@ -960,10 +945,9 @@ HOSTDEVICE inline void EvaluatorPairALJ<3>::computeSimplexInteractions(
         for (unsigned int j = 0; j < 3; ++j)
         {
             vec3<Scalar> closestI, closestJ;
-            Scalar distsq;
-            edgeEdgeDistance(support_vectors1[i], support_vectors1[(i+1)%3], support_vectors2[j], support_vectors2[(j+1)%3], closestI, closestJ, distsq);
+            edgeEdgeDistance(support_vectors1[i], support_vectors1[(i+1)%3], support_vectors2[j], support_vectors2[(j+1)%3], closestI, closestJ);
             vec3<Scalar> vec = closestJ-closestI;
-        computeContactLJ(contact_sphere_diameter, vec, sqrt(distsq), four_epsilon, closestI, dr + closestJ, force, pair_eng, torquei, torquej);
+        computeContactLJ(contact_sphere_diameter_sq, vec, four_epsilon, closestI, dr + closestJ, force, pair_eng, torquei, torquej);
         }
     }
     torque_i = vec_to_scalar3(torquei);
@@ -984,7 +968,7 @@ std::string EvaluatorPairALJ<2>::getShapeSpec() const
     const ManagedArray<vec3<Scalar> > &verts(shape_i->verts);       //! Shape vertices.
     const unsigned int N = verts.size();
     shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": 0, \"vertices\": [";
-    for (unsigned int i = 0; i < N-1; i++)
+    for (unsigned int i = 0; i < N-1; ++i)
         {
         shapedef << "[" << verts[i].x << ", " << verts[i].y << "], ";
         }
@@ -1016,7 +1000,7 @@ std::string EvaluatorPairALJ<3>::getShapeSpec() const
                 throw std::runtime_error("Shape definition not supported for spheropolyhedra with distinct rounding radii.");
             }
         shapedef << "{\"type\": \"ConvexPolyhedron\", \"rounding_radius\": " << shape_i->rounding_radii.x << ", \"vertices\": [";
-        for (unsigned int i = 0; i < N-1; i++)
+        for (unsigned int i = 0; i < N-1; ++i)
             {
             shapedef << "[" << verts[i].x << ", " << verts[i].y << ", " << verts[i].z << "], ";
             }
