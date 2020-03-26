@@ -330,27 +330,34 @@ def faceted_ellipsoid_union_cpp():
 
 
 @pytest.fixture(scope="function")
-def faceted_ellipsoid_union_valid_args(faceted_ellipsoid_valid_args):
+def faceted_ellipsoid_union_valid_args(faceted_ellipsoid_valid_args,
+                                       faceted_ellipsoid_integrator):
     def get_args():
         faceted_ell_args_list = faceted_ellipsoid_valid_args()
-        args_list = [{'shapes': [faceted_ell_args_list[0],
-                                 faceted_ell_args_list[1]],
+        integrator = faceted_ellipsoid_integrator()(2345)
+        integrator.shape['A'] = faceted_ell_args_list[0]
+        integrator.shape['B'] = faceted_ell_args_list[1]
+        integrator.shape['C'] = faceted_ell_args_list[2]
+        args_list = [{'shapes': [integrator.shape['A'],
+                                 integrator.shape['B']],
                       'positions': [(0, 0, 0), (0, 0, 1)],
                       'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)],
                       'overlap': [0, 1]},
-                     {'shapes': [faceted_ell_args_list[2],
-                                 faceted_ell_args_list[1]],
+                     {'shapes': [integrator.shape['C'],
+                                 integrator.shape['B']],
                       'positions': [(1, 0, 0), (0, 0, 1)],
                       'orientations': [(1, 1, 0, 0), (1, 0, 0, 0)],
                       'overlap': [1, 0],
                       'capacity': 3},
-                     {'shapes': [faceted_ell_args_list[0],
-                                 faceted_ell_args_list[2]],
+                     {'shapes': [integrator.shape['A'],
+                                 integrator.shape['C']],
                       'positions': [(1, 0, 1), (0, 0, 0)],
+                      'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)],
+                      'overlap': [0, 1],
                       'ignore_statistics': 1},
-                     {'shapes': [faceted_ell_args_list[0],
-                                 faceted_ell_args_list[1],
-                                 faceted_ell_args_list[2]],
+                     {'shapes': [integrator.shape['A'],
+                                 integrator.shape['B'],
+                                 integrator.shape['C']],
                       'positions': [(0, 0, 0), (0, 0, 1), (1, 1, 1)],
                       'orientations': [(1, 1, 1, 1),
                                        (1, 0, 0, 0),
@@ -363,37 +370,39 @@ def faceted_ellipsoid_union_valid_args(faceted_ellipsoid_valid_args):
 
 
 @pytest.fixture(scope="function")
-def faceted_ellipsoid_union_invalid_args(faceted_ellipsoid_valid_args):
+def faceted_ellipsoid_union_invalid_args(faceted_ellipsoid_valid_args,
+                                         faceted_ellipsoid_integrator):
     def get_args():
         faceted_ell_args_list = faceted_ellipsoid_valid_args()
-        args_list = [{'shapes': "str",
-                      'positions': [(1, 0, 1), (0, 0, 0)]},
-                     {'shapes': [faceted_ell_args_list[0],
-                                 faceted_ell_args_list[1]],
-                      'positions': "str"},
-                     {'shapes': [faceted_ell_args_list[2],
-                                 faceted_ell_args_list[1]],
-                      'positions': [(1, 0, 0), (0, 0, 1)],
-                      'orientations': "str"},
-                     {'shapes': [faceted_ell_args_list[1],
-                                 faceted_ell_args_list[2]],
-                      'positions': [(1, 1, 0), (0, 0, 1)],
-                      'orientations': [(1, 0, 1, 0), (1, 0, 0, 0)],
-                      'overlap': "str"},
-                     {'shapes': [faceted_ell_args_list[1],
-                                 faceted_ell_args_list[0]],
+        integrator = faceted_ellipsoid_integrator()(2345)
+        integrator.shape['A'] = faceted_ell_args_list[0]
+        integrator.shape['B'] = faceted_ell_args_list[1]
+        integrator.shape['C'] = faceted_ell_args_list[2]
+        args_list = [{'shapes': 'str',
+                      'positions': [(0, 0, 0), (0, 0, 1)]},
+                     {'shapes': [integrator.shape['A'], integrator.shape['B']],
+                      'positions': 'str'},
+                     {'shapes': [integrator.shape['A'], integrator.shape['B']],
+                      'positions': [(0, 0, 0), (0, 0, 1)],
+                      'orientations': 'str'},
+                     {'shapes': [integrator.shape['A'], integrator.shape['B']],
+                      'positions': [(0, 0, 0), (0, 0, 1)],
+                      'overlap': 'str'},
+                     {'shapes': [integrator.shape['A'], integrator.shape['B']],
+                      'positions': [(0, 0, 0), (0, 0, 1)],
+                      'capacity': 'str'},
+                     {'shapes': [integrator.shape['A'], integrator.shape['B']]},
+                     {'positions': [(0, 0, 0), (0, 0, 1)]},
+                     {'shapes': 1,
+                      'positions': [(0, 0, 0), (0, 0, 1)]},
+                     {'shapes': [integrator.shape['A'], integrator.shape['B']],
                       'positions': 1},
-                     {'shapes': [faceted_ell_args_list[0],
-                                 faceted_ell_args_list[2]],
-                      'positions': [(1, 0, 1), (0, 0, 0)],
+                     {'shapes': [integrator.shape['A'], integrator.shape['B']],
+                      'positions': [(0, 0, 0), (0, 0, 1)],
                       'orientations': 2},
-                     {'shapes': [faceted_ell_args_list[0],
-                                 faceted_ell_args_list[2]],
-                      'positions': [(1, 0, 1), (0, 0, 0)],
-                      'capacity': "str"},
-                     {'shapes': [faceted_ell_args_list[0],
-                                 faceted_ell_args_list[2]]},
-                     {'positions': [(1, 0, 1), (0, 0, 0)]}]
+                     {'shapes': [integrator.shape['A'], integrator.shape['B']],
+                      'positions': [(0, 0, 0), (0, 0, 1)],
+                      'overlap': 1}]
         return args_list
     return get_args
 
@@ -466,6 +475,7 @@ def polyhedron_valid_args():
                                 (3, 4, 6),
                                 (4, 5, 1),
                                 (6, 2, 5)],
+                      'overlap': [1, 1, 1, 1, 1, 1, 1],
                       'ignore_statistics': 1,
                       'capacity': 4,
                       'origin': (0, 0, 0),
@@ -494,7 +504,8 @@ def polyhedron_valid_args():
                                 (4, 5, 1),
                                 (6, 7, 5),
                                 (1, 7, 8),
-                                (6, 8, 2)]}]
+                                (6, 8, 2)],
+                      'overlap': [1, 1, 1, 1, 1, 1, 1, 1, 1]}]
         return args_list
     return get_args
 
@@ -683,53 +694,68 @@ def sphere_union_cpp():
 
 
 @pytest.fixture(scope="function")
-def sphere_union_valid_args(sphere_valid_args):
+def sphere_union_valid_args(sphere_valid_args, sphere_integrator):
     def get_args():
         sphere_args_list = sphere_valid_args()
-        args_list = [{'shapes': [sphere_args_list[0], sphere_args_list[1]],
-                      'positions': [(0, 0, 0), (0, 0, 1)]},
-                     {'shapes': [sphere_args_list[0], sphere_args_list[2]],
+        integrator = sphere_integrator()(2345)
+        integrator.shape['A'] = sphere_args_list[0]
+        integrator.shape['B'] = sphere_args_list[1]
+        integrator.shape['C'] = sphere_args_list[2]
+        args_list = [{'shapes': [integrator.shape['A'], integrator.shape['B']],
+                      'positions': [(0, 0, 0), (0, 0, 1)],
+                      'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)],
+                      'overlap': [1, 1]},
+                     {'shapes': [integrator.shape['A'], integrator.shape['B']],
                       'positions': [(1, 0, 0), (0, 0, 1)],
-                      'orientations': [(2**0.5, 2**0.5, 0, 0), (1, 0, 0, 0)]},
-                     {'shapes': [sphere_args_list[2], sphere_args_list[1]],
+                      'orientations': [(2**0.5, 2**0.5, 0, 0), (1, 0, 0, 0)],
+                      'overlap': [1, 1]},
+                     {'shapes': [integrator.shape['A'], integrator.shape['B']],
                       'positions': [(1, 1, 0), (1, 0, 1)],
+                      'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)],
                       'overlap': [1, 0]},
-                     {'shapes': [sphere_args_list[0], sphere_args_list[1],
-                                 sphere_args_list[2]],
+                     {'shapes': [integrator.shape['A'], integrator.shape['B'],
+                                 integrator.shape['C']],
                       'positions': [(0, 0, 0), (0, 1, 1), (1, 1, 1)],
-                      'capacity': 4,
+                      'orientations': [(1, 0, 0, 0), (1, 0, 0, 0),
+                                       (1, 0, 0, 0)],
+                      'overlap': [1, 1, 1],
+                      'capacity': 5,
                       'ignore_statistics': 1}]
         return args_list
     return get_args
 
 
 @pytest.fixture(scope="function")
-def sphere_union_invalid_args(sphere_valid_args):
+def sphere_union_invalid_args(sphere_valid_args, sphere_integrator):
     def get_args():
         sphere_args_list = sphere_valid_args()
+        integrator = sphere_integrator()(2345)
+        integrator.shape['A'] = sphere_args_list[0]
+        integrator.shape['B'] = sphere_args_list[1]
+        integrator.shape['C'] = sphere_args_list[2]
         args_list = [{'shapes': 'str',
                       'positions': [(0, 0, 0), (0, 0, 1)]},
-                     {'shapes': [sphere_args_list[0], sphere_args_list[1]],
+                     {'shapes': [integrator.shape['A'], integrator.shape['B']],
                       'positions': 'str'},
-                     {'shapes': [sphere_args_list[0], sphere_args_list[1]],
+                     {'shapes': [integrator.shape['A'], integrator.shape['B']],
                       'positions': [(0, 0, 0), (0, 0, 1)],
                       'orientations': 'str'},
-                     {'shapes': [sphere_args_list[0], sphere_args_list[1]],
+                     {'shapes': [integrator.shape['A'], integrator.shape['B']],
                       'positions': [(0, 0, 0), (0, 0, 1)],
                       'overlap': 'str'},
-                     {'shapes': [sphere_args_list[0], sphere_args_list[1]],
+                     {'shapes': [integrator.shape['A'], integrator.shape['B']],
                       'positions': [(0, 0, 0), (0, 0, 1)],
                       'capacity': 'str'},
-                     {'shapes': [sphere_args_list[0], sphere_args_list[1]]},
+                     {'shapes': [integrator.shape['A'], integrator.shape['B']]},
                      {'positions': [(0, 0, 0), (0, 0, 1)]},
                      {'shapes': 1,
                       'positions': [(0, 0, 0), (0, 0, 1)]},
-                     {'shapes': [sphere_args_list[0], sphere_args_list[1]],
+                     {'shapes': [integrator.shape['A'], integrator.shape['B']],
                       'positions': 1},
-                     {'shapes': [sphere_args_list[0], sphere_args_list[1]],
+                     {'shapes': [integrator.shape['A'], integrator.shape['B']],
                       'positions': [(0, 0, 0), (0, 0, 1)],
                       'orientations': 2},
-                     {'shapes': [sphere_args_list[0], sphere_args_list[1]],
+                     {'shapes': [integrator.shape['A'], integrator.shape['B']],
                       'positions': [(0, 0, 0), (0, 0, 1)],
                       'overlap': 1}]
         return args_list
@@ -751,67 +777,72 @@ def convex_spheropolyhedron_union_cpp():
 
 
 @pytest.fixture(scope="function")
-def convex_spheropolyhedron_union_valid_args(convex_polyhedron_valid_args):
+def convex_spheropolyhedron_union_valid_args(convex_polyhedron_valid_args,
+                                             convex_polyhedron_integrator):
     def get_args():
-        polyhedron_vertices_args_list = convex_polyhedron_valid_args()
-        args_list = [{'shapes': [polyhedron_vertices_args_list[0],
-                                 polyhedron_vertices_args_list[1]],
-                      'positions': [(0, 0, 0), (0, 0, 1)]},
-                     {'shapes': [polyhedron_vertices_args_list[2],
-                                 polyhedron_vertices_args_list[1]],
+        polyhedron_vertices_list = convex_polyhedron_valid_args()
+        integrator = convex_polyhedron_integrator()(2345)
+        integrator.shape['A'] = polyhedron_vertices_list[0]
+        integrator.shape['B'] = polyhedron_vertices_list[1]
+        integrator.shape['C'] = polyhedron_vertices_list[2]
+        args_list = [{'shapes': [integrator.shape['A'], integrator.shape['B']],
+                      'positions': [(0, 0, 0), (0, 0, 1)],
+                      'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)],
+                      'overlap': [1, 1]},
+                     {'shapes': [integrator.shape['A'], integrator.shape['B']],
                       'positions': [(1, 0, 0), (0, 0, 1)],
-                      'orientations': [(2**0.5, 2**0.5, 0, 0), (1, 0, 0, 0)]},
-                     {'shapes': [polyhedron_vertices_args_list[0],
-                                 polyhedron_vertices_args_list[2]],
-                      'positions': [(1, 0, 1), (0, 0, 0)],
-                      'overlap': [0, 1],
-                      'ignore_statistics': 1},
-                     {'shapes': [polyhedron_vertices_args_list[0],
-                                 polyhedron_vertices_args_list[1],
-                                 polyhedron_vertices_args_list[2]],
-                      'positions': [(0, 0, 0), (0, 0, 1), (1, 1, 1)],
-                      'capacity': 4}]
+                      'orientations': [(2**0.5, 2**0.5, 0, 0), (1, 0, 0, 0)],
+                      'overlap': [1, 1]},
+                     {'shapes': [integrator.shape['A'], integrator.shape['B']],
+                      'positions': [(1, 1, 0), (1, 0, 1)],
+                      'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)],
+                      'overlap': [1, 0]},
+                     {'shapes': [integrator.shape['A'], integrator.shape['B'],
+                                 integrator.shape['C']],
+                      'positions': [(0, 0, 0), (0, 1, 1), (1, 1, 1)],
+                      'orientations': [(1, 0, 0, 0), (1, 0, 0, 0),
+                                       (1, 0, 0, 0)],
+                      'overlap': [1, 1, 1],
+                      'capacity': 5,
+                      'ignore_statistics': 1}]
         return args_list
     return get_args
 
 
 @pytest.fixture(scope="function")
-def convex_spheropolyhedron_union_invalid_args(convex_polyhedron_valid_args):
+def convex_spheropolyhedron_union_invalid_args(convex_polyhedron_valid_args,
+                                               convex_polyhedron_integrator):
     def get_args():
-        polyhedron_vertices_args_list = convex_polyhedron_valid_args()
+        polyhedron_vertices_list = convex_polyhedron_valid_args()
+        integrator = convex_polyhedron_integrator()(2345)
+        integrator.shape['A'] = polyhedron_vertices_list[0]
+        integrator.shape['B'] = polyhedron_vertices_list[1]
+        integrator.shape['C'] = polyhedron_vertices_list[2]
         args_list = [{'shapes': 'str',
                       'positions': [(0, 0, 0), (0, 0, 1)]},
-                     {'shapes': [polyhedron_vertices_args_list[0],
-                                 polyhedron_vertices_args_list[1]],
+                     {'shapes': [integrator.shape['A'], integrator.shape['B']],
                       'positions': 'str'},
-                     {'shapes': [polyhedron_vertices_args_list[0],
-                                 polyhedron_vertices_args_list[1]],
+                     {'shapes': [integrator.shape['A'], integrator.shape['B']],
                       'positions': [(0, 0, 0), (0, 0, 1)],
                       'orientations': 'str'},
-                     {'shapes': [polyhedron_vertices_args_list[0],
-                                 polyhedron_vertices_args_list[1]],
+                     {'shapes': [integrator.shape['A'], integrator.shape['B']],
                       'positions': [(0, 0, 0), (0, 0, 1)],
                       'overlap': 'str'},
-                     {'shapes': [polyhedron_vertices_args_list[0],
-                                 polyhedron_vertices_args_list[1]],
+                     {'shapes': [integrator.shape['A'], integrator.shape['B']],
                       'positions': [(0, 0, 0), (0, 0, 1)],
                       'capacity': 'str'},
+                     {'shapes': [integrator.shape['A'], integrator.shape['B']]},
                      {'positions': [(0, 0, 0), (0, 0, 1)]},
-                     {'shapes': [polyhedron_vertices_args_list[0],
-                                 polyhedron_vertices_args_list[1]]},
                      {'shapes': 1,
                       'positions': [(0, 0, 0), (0, 0, 1)]},
-                     {'shapes': [polyhedron_vertices_args_list[0],
-                                 polyhedron_vertices_args_list[1]],
+                     {'shapes': [integrator.shape['A'], integrator.shape['B']],
                       'positions': 1},
-                     {'shapes': [polyhedron_vertices_args_list[0],
-                                 polyhedron_vertices_args_list[1]],
+                     {'shapes': [integrator.shape['A'], integrator.shape['B']],
                       'positions': [(0, 0, 0), (0, 0, 1)],
                       'orientations': 2},
-                     {'shapes': [polyhedron_vertices_args_list[0],
-                                 polyhedron_vertices_args_list[1]],
+                     {'shapes': [integrator.shape['A'], integrator.shape['B']],
                       'positions': [(0, 0, 0), (0, 0, 1)],
-                      'overlap': 2}]
+                      'overlap': 1}]
         return args_list
     return get_args
 

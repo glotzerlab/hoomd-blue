@@ -61,6 +61,9 @@ def test_shape_attached(dummy_simulation_factory, integrator_args):
     for shape_integrator, valid_args, invalid_args in integrator_args():
         mc = shape_integrator(23456)
         for args in valid_args:
+            print("")
+            print(args)
+            print(shape_integrator)
             mc.shape["A"] = args
             sim = dummy_simulation_factory()
             assert sim.operations.integrator is None
@@ -72,30 +75,29 @@ def test_shape_attached(dummy_simulation_factory, integrator_args):
 def test_moves(device, lattice_simulation_factory, integrator_args):
     dims = 3
     for shape_integrator, valid_args, invalid_args in integrator_args():
-        if 'union' not in str(shape_integrator).lower():
-            args = valid_args[0]
-            if 'polygon' in str(shape_integrator).lower():
-                dims = 2
-            mc = shape_integrator(23456)
-            mc.shape['A'] = args
-            
-            sim = lattice_simulation_factory(dimensions=dims)
-            sim.operations.add(mc)
-            with pytest.raises(AttributeError):
-                sim.operations.integrator.translate_moves
-            with pytest.raises(AttributeError):
-                sim.operations.integrator.rotate_moves
-            sim.operations.schedule()
-            
-            assert sum(sim.operations.integrator.translate_moves) == 0
-            assert sum(sim.operations.integrator.rotate_moves) == 0
-            
-            sim.run(100)
-            accepted_rejected_trans = sum(sim.operations.integrator.translate_moves)
-            assert accepted_rejected_trans > 0
-            if 'sphere' not in str(shape_integrator).lower():
-                accepted_rejected_rot = sum(sim.operations.integrator.rotate_moves)
-                assert accepted_rejected_rot > 0
+        args = valid_args[0]
+        if 'polygon' in str(shape_integrator).lower():
+            dims = 2
+        mc = shape_integrator(23456)
+        mc.shape['A'] = args
+        
+        sim = lattice_simulation_factory(dimensions=dims)
+        sim.operations.add(mc)
+        with pytest.raises(AttributeError):
+            sim.operations.integrator.translate_moves
+        with pytest.raises(AttributeError):
+            sim.operations.integrator.rotate_moves
+        sim.operations.schedule()
+        
+        assert sum(sim.operations.integrator.translate_moves) == 0
+        assert sum(sim.operations.integrator.rotate_moves) == 0
+        
+        sim.run(100)
+        accepted_rejected_trans = sum(sim.operations.integrator.translate_moves)
+        assert accepted_rejected_trans > 0
+        if 'sphere' not in str(shape_integrator).lower():
+            accepted_rejected_rot = sum(sim.operations.integrator.rotate_moves)
+            assert accepted_rejected_rot > 0
 
 
 def test_overlaps_sphere(device, lattice_simulation_factory):
@@ -148,9 +150,9 @@ def test_overlaps_ellipsoid(device, lattice_simulation_factory):
         s = sim.state.snapshot
         if s.exists:
             s.particles.position[0] = (0, 0, 0)
-            s.particles.position[1] = (abc_list[i][0]*0.9*2,
-                                       abc_list[i][1]*0.9*2,
-                                       abc_list[i][2]*0.9*2)
+            s.particles.position[1] = (abc_list[i][0] * 0.9 * 2,
+                                       abc_list[i][1] * 0.9 * 2,
+                                       abc_list[i][2] * 0.9 * 2)
         sim.state.snapshot = s
         assert mc.overlaps == 1
         
@@ -158,9 +160,9 @@ def test_overlaps_ellipsoid(device, lattice_simulation_factory):
         s = sim.state.snapshot
         if s.exists:
             s.particles.position[0] = (0, 0, 0)
-            s.particles.position[1] = (abc_list[i][0]*1.15*2,
-                                       abc_list[i][1]*1.15*2,
-                                       abc_list[i][2]*1.15*2)
+            s.particles.position[1] = (abc_list[i][0] * 1.15 * 2,
+                                       abc_list[i][1] * 1.15 * 2,
+                                       abc_list[i][2] * 1.15 * 2)
         sim.state.snapshot = s
         assert mc.overlaps == 0
     
@@ -169,8 +171,8 @@ def test_overlaps_ellipsoid(device, lattice_simulation_factory):
     s = sim.state.snapshot
     if s.exists:
         s.particles.position[0] = (0, 0, 0)
-        s.particles.position[1] = (a*1.1*2, 0, 0)
-        s.particles.orientation[1] = tuple(np.array([1, 0, 0.45, 0])/(1.2025**0.5))
+        s.particles.position[1] = (a * 1.1 * 2, 0, 0)
+        s.particles.orientation[1] = tuple(np.array([1, 0, 0.45, 0]) / (1.2025**0.5))
     sim.state.snapshot = s 
     assert mc.overlaps > 0
 
@@ -218,7 +220,7 @@ def test_overlaps_polygons(device, lattice_simulation_factory):
         # Rotate one of the shapes so they will overlap
         s = sim.state.snapshot
         if s.exists:
-            s.particles.orientation[1] = tuple(np.array([1, 0, 0, 0.45])/(1.2025**0.5))
+            s.particles.orientation[1] = tuple(np.array([1, 0, 0, 0.45]) / (1.2025**0.5))
         sim.state.snapshot = s
         assert mc.overlaps > 0
 
@@ -307,7 +309,7 @@ def test_overlaps_polyhedra(device, lattice_simulation_factory):
         # Rotate one of the polyhedra so they will overlap
         s = sim.state.snapshot
         if s.exists:
-            s.particles.orientation[1] = tuple(np.array([1, 1, 1, 0])/(3**0.5))
+            s.particles.orientation[1] = tuple(np.array([1, 1, 1, 0]) / (3**0.5))
         sim.state.snapshot = s
         assert mc.overlaps > 0          
 
@@ -319,7 +321,7 @@ def test_overlaps_spheropolygon(device, lattice_simulation_factory):
                              (0.5, -(0.75**0.5) / 2)],
                 'sweep_radius': 0.2}
     
-    square = {"vertices": np.array([(-1, -1), (1, -1), (1, 1), (-1, 1)])/2,
+    square = {"vertices": np.array([(-1, -1), (1, -1), (1, 1), (-1, 1)]) / 2,
               "sweep_radius": 0.1}
     
     shapes = [(triangle, hoomd.hpmc.integrate.ConvexSpheropolygon),
@@ -361,7 +363,7 @@ def test_overlaps_spheropolygon(device, lattice_simulation_factory):
         # Rotate one of the shapes so they will overlap
         s = sim.state.snapshot
         if s.exists:
-            s.particles.orientation[1] = tuple(np.array([1, 0, 0, 0.45])/(1.2025**0.5))
+            s.particles.orientation[1] = tuple(np.array([1, 0, 0, 0.45]) / (1.2025**0.5))
         sim.state.snapshot = s
         assert mc.overlaps > 0
 
@@ -371,7 +373,7 @@ def test_overlaps_spheropolyhedron(device, lattice_simulation_factory):
     tetrahedron = {"vertices": np.array([(1, 1, 1),
                                          (-1, -1, 1),
                                          (1, -1, -1),
-                                         (-1, 1, -1)])/2,
+                                         (-1, 1, -1)]) / 2,
                    "sweep_radius": 0.2}
     
     cube = {"vertices": [(-0.5, -0.5, -0.5),
@@ -427,6 +429,6 @@ def test_overlaps_spheropolyhedron(device, lattice_simulation_factory):
         # Rotate one of the polyhedra so they will overlap
         s = sim.state.snapshot
         if s.exists:
-            s.particles.orientation[1] = tuple(np.array([1, 1, 1, 0])/(3**0.5))
+            s.particles.orientation[1] = tuple(np.array([1, 1, 1, 0]) / (3**0.5))
         sim.state.snapshot = s
         assert mc.overlaps > 0          
