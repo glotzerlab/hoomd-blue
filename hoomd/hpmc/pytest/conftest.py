@@ -43,6 +43,19 @@ def convex_polygon_valid_args():
 
 
 @pytest.fixture(scope="function")
+def convex_polygon_cpp_args(convex_polygon_valid_args, 
+                            convex_polygon_integrator):
+    def get_args():
+        args_list = []
+        for args in convex_polygon_valid_args():
+            mc = convex_polygon_integrator()(2345)
+            mc.shape['A'] = args
+            args_list.append(mc.shape['A'])
+        return args_list
+    return get_args
+
+
+@pytest.fixture(scope="function")
 def convex_polygon_invalid_args():
     def get_args():
         args_list = [{'vertices': "str"},
@@ -89,6 +102,19 @@ def convex_polyhedron_valid_args():
                      {'vertices': [(0, 0, 0), (1, 1, 1), (1, 0, 2),
                                    (2, 1, 1)],
                       'ignore_statistics': 1}]
+        return args_list
+    return get_args
+
+
+@pytest.fixture(scope="function")
+def convex_polyhedron_cpp_args(convex_polyhedron_valid_args, 
+                               convex_polyhedron_integrator):
+    def get_args():
+        args_list = []
+        for args in convex_polyhedron_valid_args():
+            mc = convex_polyhedron_integrator()(2345)
+            mc.shape['A'] = args
+            args_list.append(mc.shape['A'])
         return args_list
     return get_args
 
@@ -177,6 +203,19 @@ def ellipsoid_valid_args():
 
 
 @pytest.fixture(scope="function")
+def ellipsoid_cpp_args(ellipsoid_valid_args, 
+                       ellipsoid_integrator):
+    def get_args():
+        args_list = []
+        for args in ellipsoid_valid_args():
+            mc = ellipsoid_integrator()(2345)
+            mc.shape['A'] = args
+            args_list.append(mc.shape['A'])
+        return args_list
+    return get_args
+
+
+@pytest.fixture(scope="function")
 def ellipsoid_invalid_args():
     def get_args():
         args_list = [{'a': 'str', 'b': 'str', 'c': 'str'},
@@ -241,6 +280,19 @@ def faceted_ellipsoid_valid_args():
                       "vertices": [(0, 0, 0), (1, 1, 1),
                                    (1, 0, 2), (2, 1, 1)],
                       "origin": (0, 1, 0)}]
+        return args_list
+    return get_args
+
+
+@pytest.fixture(scope="function")
+def faceted_ellipsoid_cpp_args(faceted_ellipsoid_valid_args, 
+                               faceted_ellipsoid_integrator):
+    def get_args():
+        args_list = []
+        for args in faceted_ellipsoid_valid_args():
+            mc = faceted_ellipsoid_integrator()(2345)
+            mc.shape['A'] = args
+            args_list.append(mc.shape['A'])
         return args_list
     return get_args
 
@@ -365,6 +417,19 @@ def faceted_ellipsoid_union_valid_args(faceted_ellipsoid_valid_args,
                       'overlap': [1, 1, 1],
                       'capacity': 4,
                       'ignore_statistics': 1}]
+        return args_list
+    return get_args
+
+
+@pytest.fixture(scope="function")
+def faceted_ellipsoid_union_cpp_args(faceted_ellipsoid_union_valid_args, 
+                                     faceted_ellipsoid_union_integrator):
+    def get_args():
+        args_list = []
+        for args in faceted_ellipsoid_union_valid_args():
+            mc = faceted_ellipsoid_union_integrator()(2345)
+            mc.shape['A'] = args
+            args_list.append(mc.shape['A'])
         return args_list
     return get_args
 
@@ -670,6 +735,19 @@ def sphere_valid_args():
 
 
 @pytest.fixture(scope="function")
+def sphere_cpp_args(sphere_valid_args, 
+                    sphere_integrator):
+    def get_args():
+        args_list = []
+        for args in sphere_valid_args():
+            mc = sphere_integrator()(2345)
+            mc.shape['A'] = args
+            args_list.append(mc.shape['A'])
+        return args_list
+    return get_args
+
+
+@pytest.fixture(scope="function")
 def sphere_invalid_args():
     def get_args():
         args_list = [{"diameter": "str"},
@@ -721,6 +799,19 @@ def sphere_union_valid_args(sphere_valid_args, sphere_integrator):
                       'overlap': [1, 1, 1],
                       'capacity': 5,
                       'ignore_statistics': 1}]
+        return args_list
+    return get_args
+
+
+@pytest.fixture(scope="function")
+def sphere_union_cpp_args(sphere_union_valid_args, 
+                          sphere_union_integrator):
+    def get_args():
+        args_list = []
+        for args in sphere_union_valid_args():
+            mc = sphere_union_integrator()(2345)
+            mc.shape['A'] = args
+            args_list.append(mc.shape['A'])
         return args_list
     return get_args
 
@@ -805,6 +896,19 @@ def convex_spheropolyhedron_union_valid_args(convex_polyhedron_valid_args,
                       'overlap': [1, 1, 1],
                       'capacity': 5,
                       'ignore_statistics': 1}]
+        return args_list
+    return get_args
+
+
+@pytest.fixture(scope="function")
+def convex_spheropolyhedron_union_cpp_args(convex_spheropolyhedron_union_valid_args, 
+                                           convex_spheropolyhedron_union_integrator):
+    def get_args():
+        args_list = []
+        for args in convex_spheropolyhedron_union_valid_args():
+            mc = convex_spheropolyhedron_union_integrator()(2345)
+            mc.shape['A'] = args
+            args_list.append(mc.shape['A'])
         return args_list
     return get_args
 
@@ -896,6 +1000,19 @@ def sphinx_valid_args():
 
 
 @pytest.fixture(scope="function")
+def sphinx_cpp_args(sphinx_valid_args, 
+                                           sphinx_integrator):
+    def get_args():
+        args_list = []
+        for args in sphinx_valid_args():
+            mc = sphinx_integrator()(2345)
+            mc.shape['A'] = args
+            args_list.append(mc.shape['A'])
+        return args_list
+    return get_args
+
+
+@pytest.fixture(scope="function")
 def sphinx_invalid_args():
     def get_args():
         args_list = [{'diameters': 'str',
@@ -914,42 +1031,42 @@ def sphinx_invalid_args():
 
 @pytest.fixture(scope="function")
 def shape_dict_conversion_args(convex_polygon_cpp,
-                               convex_polygon_valid_args,
+                               convex_polygon_cpp_args,
                                convex_polyhedron_cpp,
-                               convex_polyhedron_valid_args,
+                               convex_polyhedron_cpp_args,
                                ellipsoid_cpp,
-                               ellipsoid_valid_args,
+                               ellipsoid_cpp_args,
                                faceted_ellipsoid_cpp,
-                               faceted_ellipsoid_valid_args,
+                               faceted_ellipsoid_cpp_args,
                                faceted_ellipsoid_union_cpp,
-                               faceted_ellipsoid_union_valid_args,
+                               faceted_ellipsoid_union_cpp_args,
                                sphere_cpp,
-                               sphere_valid_args,
+                               sphere_cpp_args,
                                sphere_union_cpp,
-                               sphere_union_valid_args,
+                               sphere_union_cpp_args,
                                convex_spheropolyhedron_union_cpp,
-                               convex_spheropolyhedron_union_valid_args,
+                               convex_spheropolyhedron_union_cpp_args,
                                sphinx_cpp,
-                               sphinx_valid_args):
+                               sphinx_cpp_args):
     def get_valid_args():
         return [(convex_polygon_cpp(),
-                 convex_polygon_valid_args()),
+                 convex_polygon_cpp_args()),
                 (convex_polyhedron_cpp(),
-                 convex_polyhedron_valid_args()),
+                 convex_polyhedron_cpp_args()),
                 (ellipsoid_cpp(),
-                 ellipsoid_valid_args()),
+                 ellipsoid_cpp_args()),
                 (faceted_ellipsoid_cpp(),
-                 faceted_ellipsoid_valid_args()),
+                 faceted_ellipsoid_cpp_args()),
                 (faceted_ellipsoid_union_cpp(),
-                 faceted_ellipsoid_union_valid_args()),
+                 faceted_ellipsoid_union_cpp_args()),
                 (sphere_cpp(),
-                 sphere_valid_args()),
+                 sphere_cpp_args()),
                 (sphere_union_cpp(),
-                 sphere_union_valid_args()),
+                 sphere_union_cpp_args()),
                 (convex_spheropolyhedron_union_cpp(),
-                 convex_spheropolyhedron_union_valid_args()),
+                 convex_spheropolyhedron_union_cpp_args()),
                 (sphinx_cpp(),
-                 sphinx_valid_args())]
+                 sphinx_cpp_args())]
     return get_valid_args
 
 
