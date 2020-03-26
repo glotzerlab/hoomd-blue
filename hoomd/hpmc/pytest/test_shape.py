@@ -53,7 +53,7 @@ def test_shape_params(integrator_args):
             mc.shape["A"] = args
             check_dict(mc.shape["A"], args)
         for args in invalid_args:
-            with pytest.raises(Exception):
+            with pytest.raises(hoomd.typeconverter.TypeConversionError):
                 mc.shape["A"] = args
 
 
@@ -98,7 +98,6 @@ def test_moves(device, lattice_simulation_factory, integrator_args):
 
 
 def test_overlaps_sphere(device, lattice_simulation_factory):
-    
     # A spheropolyhedron with a single vertex should be a sphere
     # A sphinx where the indenting sphere is negligible should also be a sphere
     shapes = [({'diameter': 1},
