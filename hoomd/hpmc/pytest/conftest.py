@@ -59,14 +59,13 @@ def convex_polygon_cpp_args(convex_polygon_valid_args,
 def convex_polygon_invalid_args():
     def get_args():
         args_list = [{'vertices': "str"},
-                     {'ignore_statistics': 1},
                      {'vertices': 1},
                      {'vertices': [(0, 0), (1, 1), (1, 0), (0, 1),
                                    (1, 1), (0, 0), (2, 1), (1, 3)],
-                      'sweep_radius': "str"},
-                     {'vertices': [(0, 0), (1, 1), (1, 0), (0, 1),
-                                   (1, 1), (0, 0), (2, 1), (1, 3)],
-                      'ignore_statistics': "str"}]
+                      'sweep_radius': "str"}]
+                     # {'vertices': [(0, 0), (1, 1), (1, 0), (0, 1),
+                     #               (1, 1), (0, 0), (2, 1), (1, 3)],
+                     #  'ignore_statistics': "str"}]
         return args_list
     return get_args
 
@@ -123,14 +122,13 @@ def convex_polyhedron_cpp_args(convex_polyhedron_valid_args,
 def convex_polyhedron_invalid_args():
     def get_args():
         args_list = [{'vertices': "str"},
-                     {'ignore_statistics': 1},
                      {'vertices': 1},
                      {'vertices': [(0, 0, 0), (1, 1, 1), (1, 0, 2),
                                    (2, 1, 1)],
-                      'sweep_radius': "str"},
-                     {'vertices': [(0, 0, 0), (1, 1, 1), (1, 0, 2),
-                                   (2, 1, 1)],
-                      'ignore_statistics': "str"}]
+                      'sweep_radius': "str"}]
+                     # {'vertices': [(0, 0, 0), (1, 1, 1), (1, 0, 2),
+                     #               (2, 1, 1)],
+                     #  'ignore_statistics': "str"}]
         return args_list
     return get_args
 
@@ -221,9 +219,8 @@ def ellipsoid_invalid_args():
         args_list = [{'a': 'str', 'b': 'str', 'c': 'str'},
                      {'a': 1, 'b': 3, 'c': 'str'},
                      {'a': [1, 2, 3], 'b': [3, 7, 7], 'c': [2, 5, 9]},
-                     {'a': 'str', 'b': 'str', 'c': [1, 2, 3]},
-                     {'ignore_statistics': 1},
-                     {'a': 1, 'b': 0.5, 'c': 0.25, 'ignore_statistics': 'str'}]
+                     {'a': 'str', 'b': 'str', 'c': [1, 2, 3]}]
+                     # {'a': 1, 'b': 0.5, 'c': 0.25, 'ignore_statistics': 'str'}]
         return args_list
     return get_args
 
@@ -326,22 +323,19 @@ def faceted_ellipsoid_invalid_args():
                       "b": 1,
                       "c": 0.5,
                       "vertices": [],
-                      "origin": "str",
-                      "offsets": [0]},
-                     {"normals": [(0, 0, 1)],
-                      "a": 1,
-                      "b": 1,
-                      "c": 0.5,
-                      "vertices": [],
                       "origin": (0, 0, 0),
                       "offsets": "str"},
-                     {"a": 1,
+                     {"normals": 1,
+                      "a": 1,
                       "b": 1,
                       "c": 0.5,
                       "vertices": [],
                       "origin": (0, 0, 0),
                       "offsets": [0]},
                      {"normals": [(0, 0, 1)],
+                      "a": [1, 2, 3],
+                      "b": 1,
+                      "c": 0.5,
                       "vertices": [],
                       "origin": (0, 0, 0),
                       "offsets": [0]},
@@ -349,20 +343,9 @@ def faceted_ellipsoid_invalid_args():
                       "a": 1,
                       "b": 1,
                       "c": 0.5,
+                      "vertices": 4,
                       "origin": (0, 0, 0),
-                      "offsets": [0]},
-                     {"normals": [(0, 0, 1)],
-                      "a": 1,
-                      "b": 1,
-                      "c": 0.5,
-                      "vertices": [],
-                      "offsets": [0]},
-                     {"normals": [(0, 0, 1)],
-                      "a": 1,
-                      "b": 1,
-                      "c": 0.5,
-                      "vertices": [],
-                      "origin": (0, 0, 0)}]
+                      "offsets": [0]}]
         return args_list
     return get_args
 
@@ -456,8 +439,6 @@ def faceted_ellipsoid_union_invalid_args(faceted_ellipsoid_valid_args,
                      {'shapes': [integrator.shape['A'], integrator.shape['B']],
                       'positions': [(0, 0, 0), (0, 0, 1)],
                       'capacity': 'str'},
-                     {'shapes': [integrator.shape['A'], integrator.shape['B']]},
-                     {'positions': [(0, 0, 0), (0, 0, 1)]},
                      {'shapes': 1,
                       'positions': [(0, 0, 0), (0, 0, 1)]},
                      {'shapes': [integrator.shape['A'], integrator.shape['B']],
@@ -613,35 +594,12 @@ def polyhedron_invalid_args():
                                    (0, 3, 3)],
                       'faces': [(0, 1, 2), (3, 2, 1), (1, 2, 0), (3, 2, 1)],
                       'sweep_radius': "str"},
-                     {'vertices': [(0, 3, 0),
-                                   (2, 1, 0),
-                                   (1, 3, 1),
-                                   (1, 1, 1),
-                                   (1, 2, 5),
-                                   (3, 0, 1),
-                                   (0, 3, 3),
-                                   (0, 0, 2),
-                                   (1, 2, 2)],
-                      'faces': [(0, 1, 2), (3, 2, 1), (1, 2, 0), (3, 2, 1)],
-                      'ignore_statistics': "str"},
                      {'vertices': [(0, 3, 0), 
                                    (2, 1, 0),
                                    (3, 0, 1),
                                    (0, 3, 3)],
                       'faces': [(0, 1, 2), (3, 2, 1), (1, 2, 0), (3, 2, 1)],
                       'capacity': "str"},
-                     {'vertices': [(0, 3, 0), 
-                                   (2, 1, 0),
-                                   (3, 0, 1),
-                                   (0, 3, 3)],
-                      'faces': [(0, 1, 2), (3, 2, 1), (1, 2, 0), (3, 2, 1)],
-                      'origin': "str"},
-                     {'vertices': [(0, 3, 0), 
-                                   (2, 1, 0),
-                                   (3, 0, 1),
-                                   (0, 3, 3)],
-                      'faces': [(0, 1, 2), (3, 2, 1), (1, 2, 0), (3, 2, 1)],
-                      'hull_only': "str"},
                      {'vertices': 1,
                       'faces': [(0, 1, 2),
                                 (3, 2, 6),
@@ -662,12 +620,7 @@ def polyhedron_invalid_args():
                                    (3, 0, 1),
                                    (0, 3, 3)],
                       'faces': [(0, 1, 2), (3, 2, 1), (1, 2, 0), (3, 2, 1)],
-                      'overlap': 1},
-                     {'faces': [(0, 1, 2), (3, 2, 1), (1, 2, 0), (3, 2, 1)]},
-                     {'vertices': [(0, 3, 0), 
-                                   (2, 1, 0),
-                                   (3, 0, 1),
-                                   (0, 3, 3)]}]
+                      'overlap': 1}]
         return args_list
     return get_args
 
@@ -700,9 +653,6 @@ def simple_polygon_invalid_args():
     def get_args():
         args_list = [{"vertices": "str"},
                      {"vertices": 1},
-                     {"ignore_statistics": 1},
-                     # {"vertices": [(-1, 1), (1, -1), (1, 1)],
-                     #  "ignore_statistics": "str"},
                      {"vertices": [(-1, 1), (1, -1), (1, 1)],
                       "sweep_radius": "str"}]
         return args_list
@@ -735,8 +685,7 @@ def sphere_valid_args():
 
 
 @pytest.fixture(scope="function")
-def sphere_cpp_args(sphere_valid_args, 
-                    sphere_integrator):
+def sphere_cpp_args(sphere_valid_args, sphere_integrator):
     def get_args():
         args_list = []
         for args in sphere_valid_args():
@@ -751,8 +700,7 @@ def sphere_cpp_args(sphere_valid_args,
 def sphere_invalid_args():
     def get_args():
         args_list = [{"diameter": "str"},
-                     {"diameter": [1, 2, 3, 4]},
-                     {"ignore_statistics": 1}]
+                     {"diameter": [1, 2, 3, 4]}]
         return args_list
     return get_args
 
@@ -837,8 +785,6 @@ def sphere_union_invalid_args(sphere_valid_args, sphere_integrator):
                      {'shapes': [integrator.shape['A'], integrator.shape['B']],
                       'positions': [(0, 0, 0), (0, 0, 1)],
                       'capacity': 'str'},
-                     {'shapes': [integrator.shape['A'], integrator.shape['B']]},
-                     {'positions': [(0, 0, 0), (0, 0, 1)]},
                      {'shapes': 1,
                       'positions': [(0, 0, 0), (0, 0, 1)]},
                      {'shapes': [integrator.shape['A'], integrator.shape['B']],
@@ -935,8 +881,6 @@ def convex_spheropolyhedron_union_invalid_args(convex_polyhedron_valid_args,
                      {'shapes': [integrator.shape['A'], integrator.shape['B']],
                       'positions': [(0, 0, 0), (0, 0, 1)],
                       'capacity': 'str'},
-                     {'shapes': [integrator.shape['A'], integrator.shape['B']]},
-                     {'positions': [(0, 0, 0), (0, 0, 1)]},
                      {'shapes': 1,
                       'positions': [(0, 0, 0), (0, 0, 1)]},
                      {'shapes': [integrator.shape['A'], integrator.shape['B']],
@@ -1000,8 +944,7 @@ def sphinx_valid_args():
 
 
 @pytest.fixture(scope="function")
-def sphinx_cpp_args(sphinx_valid_args, 
-                                           sphinx_integrator):
+def sphinx_cpp_args(sphinx_valid_args, sphinx_integrator):
     def get_args():
         args_list = []
         for args in sphinx_valid_args():
@@ -1019,8 +962,6 @@ def sphinx_invalid_args():
                       'centers': [(0, 0, 0), (1, 1, 1)]},
                      {'diameters': [1, -0.1],
                       'centers': 'str'},
-                     {'diameters': [1, -0.1]},
-                     {'centers': [(0, 0, 0), (1, 1, 1)]},
                      {'diameters': 2,
                       'centers': [(0, 0, 0), (1, 1, 1)]},
                      {'diameters': [1, -0.1],
