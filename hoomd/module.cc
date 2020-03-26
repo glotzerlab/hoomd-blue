@@ -41,6 +41,9 @@
 #include "Messenger.h"
 #include "SnapshotSystemData.h"
 
+// ParticleFilter objects
+#include "filter/export_filters.h"
+
 // include GPU classes
 #ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
@@ -374,7 +377,6 @@ PYBIND11_MODULE(_hoomd, m)
     export_LogMatrix(m);
     export_LogHDF5(m);
     export_CallbackAnalyzer(m);
-    export_ParticleGroup(m);
 
     // updaters
     export_Updater(m);
@@ -400,6 +402,10 @@ PYBIND11_MODULE(_hoomd, m)
 
     // system
     export_System(m);
+
+    // filters and groups
+    export_ParticleFilters(m);
+    export_ParticleGroup(m);
 
     // trigger
     export_Trigger(m);

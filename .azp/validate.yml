@@ -18,6 +18,22 @@ variables:
   ctest_stride: 4
   mpiexec_timeout: 21600
 
+# a temporary empty job so that CI will pass while the actual tests are disabled
+stages:
+- stage: empty
+  displayName: empty
+
+  jobs:
+  - job: noop
+    displayName: no-op
+    timeoutInMinutes: 350
+
+    pool:
+      vmImage: 'ubuntu-16.04'
+
+    steps:
+    - script: echo "Empty job"
+
 # stages:
 # - stage: build_validate_cpu
 #   displayName: Validate (CPU)

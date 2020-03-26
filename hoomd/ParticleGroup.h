@@ -13,11 +13,14 @@
 #endif
 
 #include "SystemDefinition.h"
+#include "filter/ParticleFilter.h"
 
 #include <string>
+#include <unordered_set>
 #include <memory>
 #include <vector>
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 #include <pybind11/numpy.h>
 
 #include "GlobalArray.h"
@@ -28,77 +31,6 @@
 
 #ifndef __PARTICLE_GROUP_H__
 #define __PARTICLE_GROUP_H__
-
-//! Utility class to select particles based on given conditions
-/*! \b Overview
-
-    In order to flexibly specify the particles that belong to a given ParticleGroup, it will simple take a
-    ParticleFilter as a parameter in its constructor. The selector will provide a true/false membership test that will
-    be applied to each particle tag, selecting those that belong in the group. As it is specified via a virtual class,
-    the group definition can be expanded to include any conceivable selection criteria.
-
-    <b>Implementation details</b>
-    So that an infinite range of selection criteria can be applied (i.e. particles with mass > 2.0, or all particles
-    bonded to particle j, ...) the selector will get a reference to the SystemDefinition on construction, along with
-    any parameters to specify the selection criteria. Then, a simple getSelectedTags() call will return
-    a list of particle tags meeting the criteria.
-
-    In parallel simulations, getSelectedTags() should return only local tags.
-
-    The base class getSelectedTags() method will simply return an empty list.
-    selection semantics.
-*/
-class PYBIND11_EXPORT ParticleFilter
-    {
-    public:
-        //! constructs a ParticleFilter
-        ParticleFilter();
-        virtual ~ParticleFilter() {}
-
-        //! Test if a particle meets the selection criteria
-        virtual std::vector<unsigned int> getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
-    };
-
-//! Select all particles
-class PYBIND11_EXPORT ParticleFilterAll : public ParticleFilter
-    {
-    public:
-        //! Constructs the selector
-        ParticleFilterAll();
-        virtual ~ParticleFilterAll() {}
-
-        //! Test if a particle meets the selection criteria
-        virtual std::vector<unsigned int> getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
-    };
-
-
-//! Select particles based on their tag
-class PYBIND11_EXPORT ParticleFilterTags : public ParticleFilter
-    {
-    public:
-        ParticleFilterTags(std::vector<unsigned int> tags);
-        ParticleFilterTags(pybind11::array_t<unsigned int, pybind11::array::c_style> tags);
-        virtual ~ParticleFilterTags() {}
-
-        virtual std::vector<unsigned int> getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
-    protected:
-        std::vector<unsigned int> m_tags;      //!< Tags to select
-    };
-
-//! Select particles based on their type
-class PYBIND11_EXPORT ParticleFilterType : public ParticleFilter
-    {
-    public:
-        //! Constructs the selector
-        ParticleFilterType(unsigned int typ_min, unsigned int typ_max);
-        virtual ~ParticleFilterType() {}
-
-        //! Test if a particle meets the selection criteria
-        virtual std::vector<unsigned int> getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
-    protected:
-        unsigned int m_typ_min;     //!< Minimum type to select
-        unsigned int m_typ_max;     //!< Maximum type to select (inclusive)
-    };
 
 //! Select particles in the space defined by a cuboid
 class PYBIND11_EXPORT ParticleFilterCuboid : public ParticleFilter
@@ -167,7 +99,6 @@ class PYBIND11_EXPORT ParticleFilterRigidCenter : public ParticleFilter
         //! Test if a particle meets the selection criteria
         virtual std::vector<unsigned int> getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
     };
-
 
 //! Describes a group of particles
 /*! \b Overview

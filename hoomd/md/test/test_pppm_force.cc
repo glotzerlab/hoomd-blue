@@ -18,6 +18,7 @@
 
 #include "hoomd/md/NeighborListTree.h"
 #include "hoomd/Initializers.h"
+#include "hoomd/filter/ParticleFilterTags.h"
 
 #include <math.h>
 

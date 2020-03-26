@@ -55,7 +55,7 @@ set(_hoomd_sources Analyzer.cc
                    System.cc
                    SystemDefinition.cc
                    Trigger.cc
-		   Tuner.cc
+                   Tuner.cc
                    Updater.cc
                    Variant.cc
                    extern/BVLSSolver.cc
@@ -64,6 +64,7 @@ set(_hoomd_sources Analyzer.cc
                    extern/kiss_fft.cc
                    extern/kiss_fftnd.cc
                    extern/vmdsock.cc
+                   filter/export_filters.cc
                    )
 
 set(_hoomd_headers
@@ -299,7 +300,7 @@ set(files analyze.py
           init.py
           integrate.py
           meta.py
-	  operation.py
+          operation.py
           operations.py
           option.py
           update.py
@@ -314,8 +315,6 @@ set(files analyze.py
           trigger.py
           typeparam.py
           typeconverter.py
-          filters.py
-          groups.py
           snapshot.py
           logger.py
     )
@@ -331,7 +330,10 @@ install(FILES ${_hoomd_headers}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include/hoomd
        )
 
+# subdirectories that are not components
+add_subdirectory(filter)
 add_subdirectory(pytest)
+add_subdirectory(minimize)
 
 if (BUILD_TESTING)
     # add_subdirectory(test-py)
@@ -384,12 +386,21 @@ if (BUILD_JIT)
     add_subdirectory(jit)
 endif()
 
-add_subdirectory(minimize)
-
 file(GLOB _directory_contents RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *)
 
-# explicitly remove packages which are already explicitly dealt with
-list(REMOVE_ITEM _directory_contents test test-py extern md hpmc metal dem mpcd jit pytest minimize)
+# explicitly remove directories which are already explicitly dealt with
+list(REMOVE_ITEM _directory_contents test
+                                     test-py
+                                     extern
+                                     md
+                                     hpmc
+                                     metal
+                                     dem
+                                     mpcd
+                                     jit
+                                     pytest
+                                     minimize
+                                     filter)
 
 foreach(entry ${_directory_contents})
     if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${entry} OR IS_SYMLINK ${CMAKE_CURRENT_SOURCE_DIR}/${entry})
