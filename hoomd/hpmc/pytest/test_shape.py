@@ -176,16 +176,19 @@ def test_overlaps_ellipsoid(device, lattice_simulation_factory):
 
 
 def test_overlaps_polygons(device, lattice_simulation_factory):
-    # ConvexPolygon args
     triangle = {'vertices': [(0, (0.75**0.5) / 2),
                              (-0.5, -(0.75**0.5) / 2),
                              (0.5, -(0.75**0.5) / 2)]}
     
-    # SimplePolygon args
     square = {"vertices": np.array([(-1, -1), (1, -1), (1, 1), (-1, 1)])/2}
     
+    # Args should work for ConvexPolygon, SimplePolygon, and ConvexSpheropolygon
     shapes = [(triangle, hoomd.hpmc.integrate.ConvexPolygon),
-              (square, hoomd.hpmc.integrate.SimplePolygon)]
+              (triangle, hoomd.hpmc.integrate.SimplePolygon),
+              (triangle, hoomd.hpmc.integrate.ConvexSpheropolygon),
+              (square, hoomd.hpmc.integrate.ConvexPolygon),
+              (square, hoomd.hpmc.integrate.SimplePolygon),
+              (square, hoomd.hpmc.integrate.ConvexSpheropolygon)]
     
     for args, integrator in shapes:
         mc = integrator(23456)
@@ -221,22 +224,23 @@ def test_overlaps_polygons(device, lattice_simulation_factory):
 
 
 def test_overlaps_polyhedra(device, lattice_simulation_factory):
-    # ConvexPolyhedron args
-    tetrahedron = {"vertices": np.array([(1, 1, 1),
-                                         (-1, -1, 1),
-                                         (1, -1, -1),
-                                         (-1, 1, -1)])/2}
+    tetrahedron_verts = np.array([(1, 1, 1),
+                                  (-1, -1, 1),
+                                  (1, -1, -1),
+                                  (-1, 1, -1)])/2
     
-    # Polyhedron args
-    cube = {'vertices': [(-0.5, -0.5, -0.5),
-                     (-0.5, -0.5, 0.5),
-                     (-0.5, 0.5, -0.5),
-                     (-0.5, 0.5, 0.5),
-                     (0.5, -0.5, -0.5),
-                     (0.5, -0.5, 0.5),
-                     (0.5, 0.5, -0.5),
-                     (0.5, 0.5, 0.5)],
-        'faces': [[0, 2, 6],
+    tetrahedron_faces = [[1, 3, 2], [3, 0, 2], [1, 0, 3], [1, 2, 0]]
+    
+    cube_verts = [(-0.5, -0.5, -0.5),
+                  (-0.5, -0.5, 0.5),
+                  (-0.5, 0.5, -0.5),
+                  (-0.5, 0.5, 0.5),
+                  (0.5, -0.5, -0.5),
+                  (0.5, -0.5, 0.5),
+                  (0.5, 0.5, -0.5),
+                  (0.5, 0.5, 0.5)]
+
+    cube_faces = [[0, 2, 6],
                   [6, 4, 0],
                   [5, 0, 4],
                   [5, 1, 0],
@@ -247,12 +251,26 @@ def test_overlaps_polyhedra(device, lattice_simulation_factory):
                   [3, 6, 2],
                   [3, 7, 6],
                   [3, 1, 5],
-                  [3, 5, 7]],
-        'overlap': [True, True, True, True, True, True,
-                    True, True, True, True, True, True]}
-                    
-    shapes = [(tetrahedron, hoomd.hpmc.integrate.ConvexPolyhedron),
-              (cube, hoomd.hpmc.integrate.Polyhedron)]
+                  [3, 5, 7]]
+    
+    # Test args with ConvexPolyhedron, ConvexSpheropolyhedron, and Polyhedron      
+    shapes = [({"vertices": tetrahedron_verts},
+               hoomd.hpmc.integrate.ConvexPolyhedron),
+              ({"vertices": tetrahedron_verts},
+               hoomd.hpmc.integrate.ConvexSpheropolyhedron),
+              ({"vertices": tetrahedron_verts,
+                "faces": tetrahedron_faces,
+                "overlap": [True, True, True, True]},
+               hoomd.hpmc.integrate.Polyhedron),
+              ({"vertices": cube_verts},
+               hoomd.hpmc.integrate.ConvexPolyhedron),
+              ({"vertices": cube_verts},
+               hoomd.hpmc.integrate.ConvexSpheropolyhedron),
+              ({"vertices": cube_verts,
+                "faces": cube_faces,
+                "overlap": [True, True, True, True, True, True,
+                            True, True, True, True, True, True]},
+               hoomd.hpmc.integrate.Polyhedron)]
     
     for args, integrator in shapes:
         mc = integrator(23456)
@@ -375,6 +393,11 @@ def test_overlaps_spheropolyhedron(device, lattice_simulation_factory):
 
         sim = lattice_simulation_factory(dimensions=2, n=(2, 1), a=10)
         sim.operations.add(mc)
+        gsd_dumper = hoomd.dump.GSD(filename='/Users/dan/danevans/Michigan/Glotzer_Lab/hoomd-dev/test_dump_spheropolyhedron.gsd', trigger=1, overwrite=True)
+        gsd_logger = hoomd.logger.Logger()
+        gsd_logger += mc
+        gsd_dumper.log = gsd_logger
+        sim.operations.add(gsd_dumper)
         sim.operations.schedule()
         assert mc.overlaps == 0
         
