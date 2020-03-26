@@ -98,33 +98,50 @@ def test_moves(device, lattice_simulation_factory, integrator_args):
 
 
 def test_overlaps_sphere(device, lattice_simulation_factory):
-    mc = hoomd.hpmc.integrate.Sphere(23456)
-    mc.shape["A"] = {'diameter': 1}
-    diameter = mc.shape["A"]["diameter"]
     
-    # Should overlap when spheres are less than one diameter apart
-    sim = lattice_simulation_factory(dimensions=2,
-                                     n=(2, 1),
-                                     a=diameter * 0.9)
-    sim.operations.add(mc)
-    sim.operations.schedule()
-    assert mc.overlaps > 0
-    
-    # Should not overlap when spheres are larger than one diameter apart
-    s = sim.state.snapshot
-    if s.exists:
-        s.particles.position[0] = (0, 0, 0)
-        s.particles.position[1] = (0, diameter * 1.1, 0)
-    sim.state.snapshot = s
-    assert mc.overlaps == 0
-    
-    # Should barely overlap when spheres are exactly than one diameter apart
-    s = sim.state.snapshot
-    if s.exists:
-        s.particles.position[0] = (0, 0, 0)
-        s.particles.position[1] = (0, diameter * 0.9999, 0)
-    sim.state.snapshot = s
-    assert mc.overlaps == 1
+    # A spheropolyhedron with a single vertex should be a sphere
+    # A sphinx where the indenting sphere is negligible should also be a sphere
+    shapes = [({'diameter': 1},
+               hoomd.hpmc.integrate.Sphere),
+              ({'vertices': [(0, 0, 0)], 'sweep_radius': 0.5},
+               hoomd.hpmc.integrate.ConvexSpheropolyhedron),
+              ({'diameters': [1, -0.0001], 'centers': [(0, 0, 0), (0, 0, 0.5)]},
+               hoomd.hpmc.integrate.Sphinx)]
+
+    for args, integrator in shapes:
+        mc = integrator(23456)
+        mc.shape["A"] = args
+        diameter = 1
+        
+        # Should overlap when spheres are less than one diameter apart
+        sim = lattice_simulation_factory(dimensions=2,
+                                         n=(2, 1),
+                                         a=diameter * 0.9)
+        sim.operations.add(mc)
+        gsd_dumper = hoomd.dump.GSD(filename='/Users/dan/danevans/Michigan/Glotzer_Lab/hoomd-dev/test_dump_other_sphere.gsd', trigger=1, overwrite=True)
+        gsd_logger = hoomd.logger.Logger()
+        gsd_logger += mc
+        gsd_dumper.log = gsd_logger
+        sim.operations.add(gsd_dumper)
+        sim.operations.schedule()
+        sim.run(1)
+        assert mc.overlaps > 0
+        
+        # Should not overlap when spheres are larger than one diameter apart
+        s = sim.state.snapshot
+        if s.exists:
+            s.particles.position[0] = (0, 0, 0)
+            s.particles.position[1] = (0, diameter * 1.1, 0)
+        sim.state.snapshot = s
+        assert mc.overlaps == 0
+        
+        # Should barely overlap when spheres are exactly than one diameter apart
+        s = sim.state.snapshot
+        if s.exists:
+            s.particles.position[0] = (0, 0, 0)
+            s.particles.position[1] = (0, diameter * 0.9999, 0)
+        sim.state.snapshot = s
+        assert mc.overlaps == 1
 
 
 def test_overlaps_ellipsoid(device, lattice_simulation_factory):
@@ -321,11 +338,8 @@ def test_overlaps_spheropolygon(device, lattice_simulation_factory):
     square = {"vertices": np.array([(-1, -1), (1, -1), (1, 1), (-1, 1)]) / 2,
               "sweep_radius": 0.1}
     
-    shapes = [(triangle, hoomd.hpmc.integrate.ConvexSpheropolygon),
-              (square, hoomd.hpmc.integrate.ConvexSpheropolygon)]
-    
-    for args, integrator in shapes:
-        mc = integrator(23456)
+    for args in [triangle, square]:
+        mc = hoomd.hpmc.integrate.ConvexSpheropolygon(23456)
         mc.shape['A'] = args
 
         sim = lattice_simulation_factory(dimensions=2, n=(2, 1), a=10)
@@ -382,12 +396,9 @@ def test_overlaps_spheropolyhedron(device, lattice_simulation_factory):
                          (0.5, 0.5, -0.5),
                          (0.5, 0.5, 0.5)],
             "sweep_radius": 0.2}
-                    
-    shapes = [(tetrahedron, hoomd.hpmc.integrate.ConvexSpheropolyhedron),
-              (cube, hoomd.hpmc.integrate.ConvexSpheropolyhedron)]
     
-    for args, integrator in shapes:
-        mc = integrator(23456)
+    for args in [tetrahedron, cube]:
+        mc = hoomd.hpmc.integrate.ConvexSpheropolyhedron(23456)
         mc.shape['A'] = args
 
         sim = lattice_simulation_factory(dimensions=2, n=(2, 1), a=10)
