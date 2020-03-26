@@ -63,6 +63,7 @@ def test_shape_attached(dummy_simulation_factory, integrator_args):
         for args in valid_args:
             mc.shape["A"] = args
             sim = dummy_simulation_factory()
+            assert sim.operations.integrator is None
             sim.operations.add(mc)
             sim.operations.schedule()
             check_dict(mc.shape["A"], args)
@@ -77,9 +78,18 @@ def test_moves(device, lattice_simulation_factory, integrator_args):
                 dims = 2
             mc = shape_integrator(23456)
             mc.shape['A'] = args
+            
             sim = lattice_simulation_factory(dimensions=dims)
             sim.operations.add(mc)
+            with pytest.raises(AttributeError):
+                sim.operations.integrator.translate_moves
+            with pytest.raises(AttributeError):
+                sim.operations.integrator.rotate_moves
             sim.operations.schedule()
+            
+            assert sum(sim.operations.integrator.translate_moves) == 0
+            assert sum(sim.operations.integrator.rotate_moves) == 0
+            
             sim.run(100)
             accepted_rejected_trans = sum(sim.operations.integrator.translate_moves)
             assert accepted_rejected_trans > 0
@@ -387,7 +397,7 @@ def test_overlaps_spheropolyhedron(device, lattice_simulation_factory):
         s = sim.state.snapshot
         if s.exists:
             s.particles.position[0] = (0, 0, 0)
-            s.particles.position[1] = (0, 1.4, 0)
+            s.particles.position[1] = (0, 1.5, 0)
         sim.state.snapshot = s
         assert mc.overlaps == 0
         
