@@ -143,16 +143,17 @@ class Simulation:
 
     @property
     def always_compute_pressure(self):
-        """Set this flag to always compute the virial and pressure.
+        """Always compute the virial and pressure.
 
         By default, HOOMD only computes the virial and pressure on timesteps
-        where it is needed. Specifically, when :py:class:`hoomd.dump.GSD` writes
-        log data to a file or when using an NPT integrator. Set
+        where it is needed (when :py:class:`hoomd.dump.GSD` writes
+        log data to a file or when using an NPT integrator). Set
         ``always_compute_pressure`` to True to make the per particle virial,
         net virial, and system pressure available to query any time by property
         or through the :py:class:`hoomd.Logger` interface.
 
-        Enabling this flag will result in a moderate performance penalty.
+        Enabling this flag will result in a moderate performance penalty
+        when using MD pair potentials.
         """
         if not hasattr(self, '_cpp_sys'):
             return False
