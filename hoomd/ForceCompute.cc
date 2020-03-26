@@ -288,7 +288,7 @@ pybind11::object ForceCompute::getEnergiesPython()
     std::vector<double> energy(dims[0]);
 
     // This is slow: TODO implement a propert gather operation
-    for (size_t i = 0; i < dims[0]; i++)
+    for (size_t i = 0; i < m_pdata->getNGlobal(); i++)
         {
         double e = getEnergy(i);
         if (root)
@@ -329,7 +329,7 @@ pybind11::object ForceCompute::getForcesPython()
     std::vector<vec3<double>> force(dims[0]);
 
     // This is slow: TODO implement a propert gather operation
-    for (size_t i = 0; i < dims[0]; i++)
+    for (size_t i = 0; i < m_pdata->getNGlobal(); i++)
         {
         Scalar3 f = getForce(i);
         if (root)
@@ -372,7 +372,7 @@ pybind11::object ForceCompute::getTorquesPython()
     std::vector<vec3<double>> torque(dims[0]);
 
     // This is slow: TODO implement a propert gather operation
-    for (size_t i = 0; i < dims[0]; i++)
+    for (size_t i = 0; i < m_pdata->getNGlobal(); i++)
         {
         Scalar4 f = getTorque(i);
         if (root)
@@ -417,10 +417,10 @@ pybind11::object ForceCompute::getVirialsPython()
         dims[0] = 0;
         dims[1] = 0;
         }
-    std::vector<double> virial(dims[0]*6);
+    std::vector<double> virial(dims[0]*dims[1]);
 
     // This is slow: TODO implement a propert gather operation
-    for (size_t i = 0; i < dims[0]; i++)
+    for (size_t i = 0; i < m_pdata->getNGlobal(); i++)
         {
         double v0 = getVirial(i, 0);
         double v1 = getVirial(i, 1);
