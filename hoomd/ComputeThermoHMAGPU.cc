@@ -196,7 +196,7 @@ void ComputeThermoHMAGPU::reduceProperties()
     ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::readwrite);
 
     // reduce properties
-    MPI_Allreduce(MPI_IN_PLACE, h_properties.data, thermo_index::num_quantities, MPI_HOOMD_SCALAR,
+    MPI_Allreduce(MPI_IN_PLACE, h_properties.data, thermoHMA_index::num_quantities, MPI_HOOMD_SCALAR,
             MPI_SUM, m_exec_conf->getMPICommunicator());
 
     m_properties_reduced = true;
