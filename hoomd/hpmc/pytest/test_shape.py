@@ -155,14 +155,14 @@ def test_overlaps_ellipsoid(device, lattice_simulation_factory):
     assert mc.overlaps == 0
     
     abc_list = [(0, 0, c), (0, b, 0), (a, 0, 0)]
-    for i in range(len(abc_list)):
+    for abc in abc_list:
         # Should barely overlap when ellipsoids are exactly than one diameter apart
         s = sim.state.snapshot
         if s.exists:
             s.particles.position[0] = (0, 0, 0)
-            s.particles.position[1] = (abc_list[i][0] * 0.9 * 2,
-                                       abc_list[i][1] * 0.9 * 2,
-                                       abc_list[i][2] * 0.9 * 2)
+            s.particles.position[1] = (abc[0] * 0.9 * 2,
+                                       abc[1] * 0.9 * 2,
+                                       abc[2] * 0.9 * 2)
         sim.state.snapshot = s
         assert mc.overlaps == 1
         
@@ -170,9 +170,9 @@ def test_overlaps_ellipsoid(device, lattice_simulation_factory):
         s = sim.state.snapshot
         if s.exists:
             s.particles.position[0] = (0, 0, 0)
-            s.particles.position[1] = (abc_list[i][0] * 1.15 * 2,
-                                       abc_list[i][1] * 1.15 * 2,
-                                       abc_list[i][2] * 1.15 * 2)
+            s.particles.position[1] = (abc[0] * 1.15 * 2,
+                                       abc[1] * 1.15 * 2,
+                                       abc[2] * 1.15 * 2)
         sim.state.snapshot = s
         assert mc.overlaps == 0
     
@@ -503,3 +503,56 @@ def test_overlaps_union(device, lattice_simulation_factory):
                 s.particles.position[1] = pos
             sim.state.snapshot = s
             assert mc.overlaps > 0
+
+
+def test_overlaps_faceted_ellipsoid(device, lattice_simulation_factory):
+    a = 1/2
+    b = 1/2
+    c = 1
+    mc = hoomd.hpmc.integrate.FacetedEllipsoid(23456)
+    mc.shape['A'] = {"normals": [(0, 0, 1)],
+                     "a": 0.5,
+                     "b": 0.5,
+                     "c": 1,
+                     "vertices": [],
+                     "origin": (0, 0, 0),
+                     "offsets": [0]}
+    
+    sim = lattice_simulation_factory(dimensions=2,
+                                     n=(2, 1),
+                                     a=10)
+    sim.operations.add(mc)
+    sim.operations.schedule()
+    assert mc.overlaps == 0
+    
+    abc_list = [(0, 0, c/2), (0, b, 0), (a, 0, 0)]
+    for abc in abc_list:
+        # Should barely overlap when ellipsoids are exactly than one diameter apart
+        s = sim.state.snapshot
+        if s.exists:
+            s.particles.position[0] = (0, 0, 0)
+            s.particles.position[1] = (abc[0] * 0.9 * 2,
+                                       abc[1] * 0.9 * 2,
+                                       abc[2] * 0.9 * 2)
+        sim.state.snapshot = s
+        assert mc.overlaps == 1
+        
+        # Should not overlap when ellipsoids are larger than one diameter apart
+        s = sim.state.snapshot
+        if s.exists:
+            s.particles.position[0] = (0, 0, 0)
+            s.particles.position[1] = (abc[0] * 1.15 * 2,
+                                       abc[1] * 1.15 * 2,
+                                       abc[2] * 1.15 * 2)
+        sim.state.snapshot = s
+        assert mc.overlaps == 0
+    
+    # Line up ellipsoids where they aren't overlapped, and then rotate one so 
+    # they overlap
+    s = sim.state.snapshot
+    if s.exists:
+        s.particles.position[0] = (0, 0, 0)
+        s.particles.position[1] = (a * 1.1 * 2, 0, 0)
+        s.particles.orientation[1] = tuple(np.array([1, 0, 0.45, 0]) / (1.2025**0.5))
+    sim.state.snapshot = s 
+    assert mc.overlaps > 0
