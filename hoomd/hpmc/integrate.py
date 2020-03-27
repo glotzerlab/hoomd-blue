@@ -311,28 +311,37 @@ class _HPMCIntegrator(_BaseIntegrator):
 
 
 class Sphere(_HPMCIntegrator):
-    R""" HPMC integration for spheres (2D/3D).
+    R""" Hard particle Monte Carlo integration method for spheres.
 
-    Args:
-        seed (int): Random number seed
-        d (float): Maximum move displacement, Scalar to set for all types, or a
-          dict containing {type:size} to set by type.
-        a (float): Maximum rotation move to set for all types, or a dict
-          containing {type:size} to set by type.
-        move_ratio (float, only used with **orientable=True**): Ratio of
-          translation moves to rotation moves.
-        nselect (int): The number of trial moves to perform in each cell.
-        deterministic (bool): Make HPMC integration deterministic on the GPU
+    Sphere parameters
 
-    Hard particle Monte Carlo integration method for spheres.
+    shape (particle type, dict): defines the shape of the object.
 
-    Sphere parameters:
+        Keys:
+            * *diameter* (float, **required**) - diameter of the sphere
+              (distance units)
+            * *ignore_statistics* (**default: False**) - set to True to ignore
+              tracked statistics
+            * *orientable* (**default: False**) - set to True for spheres with
+              orientation
 
-    * *diameter* (**required**) - diameter of the sphere (distance units)
-    * *orientable* (**default: False**) - set to True for spheres with
-      orientation
-    * *ignore_statistics* (**default: False**) - set to True to disable ignore
-      for statistics tracking
+    d (particle type, float): the size of displacement trial moves
+
+    a (particle type, float): the size of rotation trial moves
+
+    fugacity (particle type, float): depletant fugacity (in units of density, 
+    volume^-1)
+
+    interaction_matrix ((particle type, particle type), bool): whether to 
+    include overlaps between type 1 and type 2
+
+    seed (int): random number seed
+
+    move_ratio (float): ratio of translation moves to rotation moves
+
+    nselect (int): number of trial moves to perform in each cell
+
+    deterministic (bool): make HPMC integration deterministic on the GPU
 
     Examples::
 
@@ -375,7 +384,7 @@ class Sphere(_HPMCIntegrator):
 
             >>> mc.type_shapes
             [{'type': 'Sphere', 'diameter': 1},
-              {'type': 'Sphere', 'diameter': 2}]
+             {'type': 'Sphere', 'diameter': 2}]
 
         Returns:
             A list of dictionaries, one for each particle type in the system.
@@ -384,38 +393,47 @@ class Sphere(_HPMCIntegrator):
 
 
 class ConvexPolygon(_HPMCIntegrator):
-    R""" HPMC integration for convex polygons (2D).
+    R""" Hard particle Monte Carlo integration method for convex polygons (2D).
 
-    Args:
-        seed (int): Random number seed
-        d (float): Maximum move displacement, Scalar to set for all types, or a
-          dict containing {type:size} to set by type.
-        a (float): Maximum rotation move, Scalar to set for all types, or a dict
-          containing {type:size} to set by type.
-        move_ratio (float): Ratio of translation moves to rotation moves.
-        nselect (int): The number of trial moves to perform in each cell.
-        deterministic (bool): Make HPMC integration deterministic on the GPU
+    ConvexPolygon parameters
+
+    shape (particle type, dict): defines the shape of the object.
+
+        Keys:
+            * *vertices* (list, **required**) - vertices of the polygon as a 
+              list of (x, y) tuples
+                * Vertices **MUST** be specified in a *counter-clockwise* order.
+                * The origin **MUST** be contained within the vertices.
+                * Points inside the polygon **MUST NOT** be included.
+                * The origin centered circle that encloses all vertices should
+                  be of minimal size for optimal performance (e.g. don't put the
+                  origin right next to an edge).
+            * *ignore_statistics* (**default: False**) - set to True to ignore
+              tracked statistics
+            * *sweep_radius* (**default: 0.0**) - radius of the sphere swept
+              around the edges of the polygon (distance units). Set a non-zero
+              sweep_radius to create a spheropolygon
+
+    d (particle type, float): the size of displacement trial moves
+        
+    a (particle type, float): the size of rotation trial moves
+        
+    fugacity (particle type, float): depletant fugacity (in units of density, 
+    volume^-1)
+
+    interaction_matrix ((particle type, particle type), bool): whether to 
+    include overlaps between type 1 and type 2
+    
+    seed (int): random number seed
+    
+    move_ratio (float): ratio of translation moves to rotation moves
+    
+    nselect (int): number of trial moves to perform in each cell
+    
+    deterministic (bool): make HPMC integration deterministic on the GPU
 
     Note:
         For concave polygons, use :py:class:`SimplePolygon`.
-
-    Convex polygon parameters:
-
-    * *vertices* (**required**) - vertices of the polygon as is a list of (x,y)
-      tuples of numbers (distance units)
-
-        * Vertices **MUST** be specified in a *counter-clockwise* order.
-        * The origin **MUST** be contained within the vertices.
-        * Points inside the polygon **MUST NOT** be included.
-        * The origin centered circle that encloses all vertices should be of
-          minimal size for optimal performance (e.g. don't put the origin right
-          next to an edge).
-
-    * *ignore_statistics* (**default: False**) - set to True to disable ignore
-      for statistics tracking
-    * *sweep_radius* (**default: 0**) - the radius of the sphere swept around
-      the edges of the polygon (distance units). Set a non-zero sweep_radius
-      to create a spheropolygon
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior
