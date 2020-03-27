@@ -98,10 +98,13 @@ def test_moves(device, lattice_simulation_factory, integrator_args):
 
 
 def test_overlaps_sphere(device, lattice_simulation_factory):
+    # An ellipsoid with a = b = c should be a sphere
     # A spheropolyhedron with a single vertex should be a sphere
     # A sphinx where the indenting sphere is negligible should also be a sphere
     shapes = [({'diameter': 1},
                hoomd.hpmc.integrate.Sphere),
+              ({'a': 0.5, 'b': 0.5, 'c': 0.5},
+               hoomd.hpmc.integrate.Ellipsoid),
               ({'vertices': [(0, 0, 0)], 'sweep_radius': 0.5},
                hoomd.hpmc.integrate.ConvexSpheropolyhedron),
               ({'diameters': [1, -0.0001], 'centers': [(0, 0, 0), (0, 0, 0.5)]},
