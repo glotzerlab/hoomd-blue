@@ -272,11 +272,13 @@ class thermoHMA(_compute):
     Args:
         group (:py:mod:`hoomd.group`): Group to compute thermodynamic properties for.
         temperature (float): Temperature
-        harmonicPressure (float): Harmonic contribution to the pressure (optional)
+        harmonicPressure (float): Harmonic contribution to the pressure.  If ommitted, the HMA pressure can still be
+            computed, but will be similar in precision to the conventional pressure.
 
     :py:class:`hoomd.compute.thermoHMA` acts on a given group of particles and calculates HMA (harmonically mapped
     averaging) properties of those particles when requested.  HMA computes properties more precisely (with less
-    variance) for atomic crystals in NVT simulations.
+    variance) for atomic crystals in NVT simulations.  The presence of diffusion (vanacy hopping, etc.) will prevent
+    HMA from providing improvement.
 
     The specified properties are available for logging via the :py:class:`hoomd.analyze.log` command. Each one provides
     a set of quantities for logging, suffixed with *_groupname*, so that values for different groups are differentiated
