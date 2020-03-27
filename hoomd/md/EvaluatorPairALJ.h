@@ -94,13 +94,13 @@ struct alj_shape_params
 struct pair_alj_params
     {
     DEVICE pair_alj_params()
-        : epsilon(0.0), sigma_i(0.0), sigma_j(0.0), alpha(0)
+        : epsilon(0.0), sigma_i(0.0), sigma_j(0.0), alpha(0), average_simplices(false)
         {}
 
     #ifndef NVCC
     //! Shape constructor
-    pair_alj_params(Scalar _epsilon, Scalar _sigma_i, Scalar _sigma_j, unsigned int _alpha, bool use_device)
-        : epsilon(_epsilon), sigma_i(_sigma_i), sigma_j(_sigma_j), alpha(_alpha) {}
+    pair_alj_params(Scalar _epsilon, Scalar _sigma_i, Scalar _sigma_j, unsigned int _alpha, bool _average_simplices, bool use_device)
+        : epsilon(_epsilon), sigma_i(_sigma_i), sigma_j(_sigma_j), alpha(_alpha), average_simplices(_average_simplices) {}
 
     #endif
 
@@ -120,6 +120,7 @@ struct pair_alj_params
     Scalar sigma_i;                      //! size of i^th particle.
     Scalar sigma_j;                      //! size of j^th particle.
     unsigned int alpha;                  //! toggle switch of attractive branch of potential.
+    bool average_simplices;              //! whether or not to average interactions over simplices.
     };
 
 // Note: delta is from the edge to the point.
@@ -719,8 +720,8 @@ class EvaluatorPairALJ
                 // significant reworkings of HOOMD internals, so it's probably
                 // not worthwhile. We should consider if we ever want to enable
                 // this during the HOOMD3.0 rewrite, though.
-                // TODO: Handle verts.size() == 2 (or verts.size() == 3 in 3D).
-                if (shape_i->verts.size() > ndim && shape_j->verts.size() > ndim)
+
+                if (_params.average_simplices && shape_i->verts.size() > ndim && shape_j->verts.size() > ndim)
                     {
                     // If we have polytopes, we need to identify the entire
                     // simplex for which to compute interactions. We do this by
@@ -1020,9 +1021,9 @@ alj_shape_params make_alj_shape_params(pybind11::list shape, pybind11::list roun
     return result;
     }
 
-pair_alj_params make_pair_alj_params(Scalar epsilon, Scalar sigma_i, Scalar sigma_j, unsigned int alpha, std::shared_ptr<const ExecutionConfiguration> exec_conf)
+pair_alj_params make_pair_alj_params(Scalar epsilon, Scalar sigma_i, Scalar sigma_j, unsigned int alpha, bool average_simplices, std::shared_ptr<const ExecutionConfiguration> exec_conf)
     {
-    pair_alj_params result(epsilon, sigma_i, sigma_j, alpha, exec_conf->isCUDAEnabled());
+    pair_alj_params result(epsilon, sigma_i, sigma_j, alpha, average_simplices, exec_conf->isCUDAEnabled());
     return result;
     }
 

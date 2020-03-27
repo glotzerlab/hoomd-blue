@@ -2847,6 +2847,7 @@ class alj(ai_pair):
         r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
+        average_simplices (bool): Whether or not to perform simplex averaging (see below for more details).
 
     :py:class:`alj` computes the LJ potential between anisotropic particles.
     The anisotropy is implemented as a composite of two interactions, a
@@ -2870,6 +2871,13 @@ class alj(ai_pair):
     * :code:`3`:
       All interactions include attractive and repulsive components.
 
+    For polytopes, computing interactions using a single contact point leads to
+    significant instabilities in the torques because the contact point can jump
+    from one end of a face to another in an arbitrarily small time interval. To
+    ameliorate this, the alj potential performs a local averaging over all the
+    features associated with the closest simplices on two polytopes. This
+    averaging can be turned off by setting the ``average_simplices`` argument
+    to ``False``.
 
     Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
 
@@ -2891,7 +2899,7 @@ class alj(ai_pair):
             'A', 'A', epsilon=1.0, sigma_i=2.0, sigma_j=2.0, alpha=0)
     """
 
-    def __init__(self, r_cut, nlist, name=None):
+    def __init__(self, r_cut, nlist, name=None, average_simplices=True):
         hoomd.util.print_status_line()
 
         # initialize the base class
@@ -2918,6 +2926,11 @@ class alj(ai_pair):
         hoomd.context.current.system.addCompute(
             self.cpp_force, self.force_name)
 
+        # Note that while this is set for the entire pair potential, in
+        # practice it is passed through on a per-pair basis as part of the pair
+        # params.
+        self.average_simplices = average_simplices
+
         # setup the coefficent options
         self.required_coeffs = ['epsilon', 'sigma_i', 'sigma_j', 'alpha']
 
@@ -2931,7 +2944,8 @@ class alj(ai_pair):
                 "The alpha parameter must be an integer from 0 to 3.")
 
         return _md.make_pair_alj_params(
-            epsilon, sigma_i, sigma_j, int(alpha), hoomd.context.exec_conf)
+            epsilon, sigma_i, sigma_j, int(alpha), self.average_simplices,
+            hoomd.context.exec_conf)
 
     def _set_cpp_shape(self, type_id, type_name):
         # Ensure that shape parameters are always 3D lists, even in 2D.
@@ -2940,9 +2954,17 @@ class alj(ai_pair):
         # origin and has no effect.
         import numpy as np
 
+        ndim = hoomd.context.current.system_definition.getNDimensions()
+
+        # Process vertices
         vertices = list(self.shape[type_name].get('vertices', [[0, 0, 0]]))
-        if hoomd.context.current.system_definition.getNDimensions() == 2:
+        if ndim == 2:
             vertices = [[v[0], v[1], 0] for v in vertices]
+
+        if len(vertices) <= ndim:
+            raise ValueError("Your shape must have at least {} vertices in "
+                             "{} dimensions".format(
+                                 ndim+1, ndim));
 
         if np.linalg.norm(np.mean(vertices, axis=0)) > 1e-6:
             raise ValueError(
@@ -2950,6 +2972,7 @@ class alj(ai_pair):
                 "Please subtract the centroid (e.g. via "
                 "`np.mean(vertices, axis=0)`) from the vertices.")
 
+        # Process rounding radius
         rrs = self.shape[type_name].get('rounding_radii', 0)
         try:
             rounding_radii = list(rrs)
