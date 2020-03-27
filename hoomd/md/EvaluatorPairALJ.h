@@ -94,13 +94,13 @@ struct alj_shape_params
 struct pair_alj_params
     {
     DEVICE pair_alj_params()
-        : epsilon(0.0), sigma_i(0.0), sigma_j(0.0), alpha(0), average_simplices(false)
+        : epsilon(0.0), sigma_i(0.0), sigma_j(0.0), contact_sigma_i(0.0), contact_sigma_j(0.0), alpha(0), average_simplices(false)
         {}
 
     #ifndef NVCC
     //! Shape constructor
-    pair_alj_params(Scalar _epsilon, Scalar _sigma_i, Scalar _sigma_j, unsigned int _alpha, bool _average_simplices, bool use_device)
-        : epsilon(_epsilon), sigma_i(_sigma_i), sigma_j(_sigma_j), alpha(_alpha), average_simplices(_average_simplices) {}
+    pair_alj_params(Scalar _epsilon, Scalar _sigma_i, Scalar _sigma_j, Scalar _contact_sigma_i, Scalar _contact_sigma_j, unsigned int _alpha, bool _average_simplices, bool use_device)
+        : epsilon(_epsilon), sigma_i(_sigma_i), sigma_j(_sigma_j), contact_sigma_i(_contact_sigma_i), contact_sigma_j(_contact_sigma_j), alpha(_alpha), average_simplices(_average_simplices) {}
 
     #endif
 
@@ -119,6 +119,8 @@ struct pair_alj_params
     Scalar epsilon;                      //! interaction parameter.
     Scalar sigma_i;                      //! size of i^th particle.
     Scalar sigma_j;                      //! size of j^th particle.
+    Scalar contact_sigma_i;              //! size of contact sphere on i^th particle.
+    Scalar contact_sigma_j;              //! size of contact sphere on j^th particle.
     unsigned int alpha;                  //! toggle switch of attractive branch of potential.
     bool average_simplices;              //! whether or not to average interactions over simplices.
     };
@@ -609,10 +611,11 @@ class EvaluatorPairALJ
             {
             // Define relevant distance parameters (rsqr, r, directional vector)
             Scalar rsq = dot(dr, dr);
-            Scalar r = sqrt(rsq);
 
             if (rsq < rcutsq)
                 {
+                Scalar r = sqrt(rsq);
+
                 // Since we will be performing a rotation many times, it's worthwhile to
                 // convert the quaternions to rotation matrices and use those for repeated
                 // rotations. The conversions below use the fewest operations I could come
@@ -673,8 +676,8 @@ class EvaluatorPairALJ
                 Scalar sigma12 = Scalar(0.5) * (_params.sigma_i + _params.sigma_j);
                 Scalar sigma12_sq = sigma12*sigma12;
 
-                Scalar contact_sphere_radius_multiplier = 0.15;
-                Scalar contact_sphere_diameter_sq = contact_sphere_radius_multiplier*contact_sphere_radius_multiplier*sigma12_sq;
+                Scalar contact_sphere_diameter = Scalar(0.5)*(_params.contact_sigma_i + _params.contact_sigma_j);
+                Scalar contact_sphere_diameter_sq = contact_sphere_diameter*contact_sphere_diameter;
 
                 // The energy for the central potential must be rescaled by the
                 // orientations (encoded in the a and b vectors).
@@ -766,7 +769,6 @@ class EvaluatorPairALJ
                     torque_j.x = 0;
                     torque_j.y = 0;
                     }
-
 
                 return true;
                 }
@@ -1021,9 +1023,9 @@ alj_shape_params make_alj_shape_params(pybind11::list shape, pybind11::list roun
     return result;
     }
 
-pair_alj_params make_pair_alj_params(Scalar epsilon, Scalar sigma_i, Scalar sigma_j, unsigned int alpha, bool average_simplices, std::shared_ptr<const ExecutionConfiguration> exec_conf)
+pair_alj_params make_pair_alj_params(Scalar epsilon, Scalar sigma_i, Scalar sigma_j, Scalar contact_sigma_i, Scalar contact_sigma_j, unsigned int alpha, bool average_simplices, std::shared_ptr<const ExecutionConfiguration> exec_conf)
     {
-    pair_alj_params result(epsilon, sigma_i, sigma_j, alpha, average_simplices, exec_conf->isCUDAEnabled());
+    pair_alj_params result(epsilon, sigma_i, sigma_j, contact_sigma_i, contact_sigma_j, alpha, average_simplices, exec_conf->isCUDAEnabled());
     return result;
     }
 

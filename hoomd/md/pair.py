@@ -2931,21 +2931,30 @@ class alj(ai_pair):
         # params.
         self.average_simplices = average_simplices
 
-        # setup the coefficent options
+        # Setup the coefficent options. Note that the contact sigmas are
+        # optional, but if not provided they are computed based on the sigmas
+        # so we can't directly use set_default_coeffs.
         self.required_coeffs = ['epsilon', 'sigma_i', 'sigma_j', 'alpha']
 
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon']
         sigma_i = coeff['sigma_i']
         sigma_j = coeff['sigma_j']
-        alpha = coeff['alpha']
+        alpha = int(coeff['alpha'])
+
+        default_contact_multiplier = 0.15
+        contact_sigma_i = coeff.get(
+            'contact_sigma_i', sigma_i*default_contact_multiplier)
+        contact_sigma_j = coeff.get(
+            'contact_sigma_j', sigma_j*default_contact_multiplier)
+
         if alpha not in range(4):
             raise ValueError(
                 "The alpha parameter must be an integer from 0 to 3.")
 
         return _md.make_pair_alj_params(
-            epsilon, sigma_i, sigma_j, int(alpha), self.average_simplices,
-            hoomd.context.exec_conf)
+            epsilon, sigma_i, sigma_j, contact_sigma_i, contact_sigma_j, alpha,
+            self.average_simplices, hoomd.context.exec_conf)
 
     def _set_cpp_shape(self, type_id, type_name):
         # Ensure that shape parameters are always 3D lists, even in 2D.
