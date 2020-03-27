@@ -16,8 +16,7 @@ hpmc.integrate
     hpmc.integrate.Ellipsoid
     hpmc.integrate.FacetedEllipsoid
     hpmc.integrate.FacetedEllipsoidUnion
-    hpmc.integrate.FacetedSphere
-    hpmc.integrate.HPMCIntegrator
+    hpmc.integrate._HPMCIntegrator
     hpmc.integrate.Polyhedron
     hpmc.integrate.SimplePolygon
     hpmc.integrate.Sphere
