@@ -3,6 +3,7 @@ from copy import copy, deepcopy
 from hoomd.util import to_camel_case, is_iterable
 from hoomd.typeconverter import toTypeConverter, TypeConversionError
 from hoomd.typeconverter import to_defaults, RequiredArg
+from hoomd.smart_default import toDefault, SmartDefault
 
 
 def has_str_elems(obj):
@@ -47,7 +48,7 @@ class _ValidatedDefaultDict:
         else:
             default_arg = args[0]
         self._type_converter = toTypeConverter(default_arg)
-        self._default = to_defaults(default_arg, explicit_defaults)
+        self._default = toDefault(default_arg, explicit_defaults)
 
     def _validate_values(self, val):
         val = self._type_converter(val)
@@ -57,8 +58,8 @@ class _ValidatedDefaultDict:
             if len(bad_keys) != 0:
                 raise ValueError("Keys must be a subset of available keys. "
                                  "Bad keys are {}".format(bad_keys))
-            dft_copy.update(val)
-            val = dft_copy
+        if isinstance(self._default, SmartDefault):
+            val = self._default(val)
         return val
 
     # Add function to validate dictionary keys' value types as well
@@ -139,19 +140,22 @@ class _ValidatedDefaultDict:
 
     @property
     def default(self):
-        return deepcopy(self._default)
+        if isinstance(self._default, SmartDefault):
+            return self._default.to_base()
+        else:
+            return copy(self._default)
 
     @default.setter
     def default(self, new_default):
         new_default = self._type_converter(new_default)
+        if isinstance(self._default, SmartDefault):
+            new_default = self._default(new_default)
         if isinstance(new_default, dict):
             keys = set(self._default.keys())
             provided_keys = set(new_default.keys())
             if keys.intersection(provided_keys) != provided_keys:
                 raise ValueError("New default must a subset of current keys.")
-            self._default.update(new_default)
-        else:
-            self._default = new_default
+        self._default = toDefault(new_default)
 
 
 class TypeParameterDict(_ValidatedDefaultDict):

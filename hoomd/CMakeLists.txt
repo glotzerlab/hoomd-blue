@@ -309,6 +309,7 @@ set(files analyze.py
           lattice.py
           hdf5.py
           simulation.py
+          smart_default.py
           state.py
           syncedlist.py
           parameterdicts.py
