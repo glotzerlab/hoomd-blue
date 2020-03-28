@@ -154,44 +154,41 @@ class IntegratorHPMCMono : public IntegratorHPMC
          */
 
         //! Set number of reinsertion attepmpts
-        void setNTrialPy(std::string type_name_a, std::string type_name_b, unsigned int ntrial)
+        void setNtrialPy(std::pair<std::string,std::string> types, unsigned int ntrial)
             {
-            unsigned int type_a = this->m_pdata->getTypeByName(type_name_a);
-            unsigned int type_b = this->m_pdata->getTypeByName(type_name_b);
+            unsigned int type_a = this->m_pdata->getTypeByName(types.first);
+            unsigned int type_b = this->m_pdata->getTypeByName(types.second);
 
             m_ntrial[m_depletant_idx(type_a,type_b)] = ntrial;
             m_ntrial[m_depletant_idx(type_b,type_a)] = ntrial;
             }
 
         //! Set the depletant density in the free volume
-        void setDepletantFugacityPy(std::string type_name, Scalar fugacity)
+        void setDepletantFugacityPy(std::pair<std::string, std::string> types, Scalar fugacity)
             {
-            unsigned int id = this->m_pdata->getTypeByName(type_name);
-            m_fugacity[id] = fugacity;
+            unsigned int type_a = this->m_pdata->getTypeByName(types.first);
+            unsigned int type_b = this->m_pdata->getTypeByName(types.second);
+            m_fugacity[m_depletant_idx(type_a,type_b)] = fugacity;
+            m_fugacity[m_depletant_idx(type_b,type_a)] = fugacity;
             }
 
         //! Returns the depletant fugacity
-        Scalar getDepletantFugacityPy(std::string type_name)
+        Scalar getDepletantFugacityPy(std::pair<std::string, std::string> types) const
             {
-            unsigned int id = this->m_pdata->getTypeByName(type_name);
-            return m_fugacity[id];
+            unsigned int type_a = this->m_pdata->getTypeByName(types.first);
+            unsigned int type_b = this->m_pdata->getTypeByName(types.second);
+            return m_fugacity[m_depletant_idx(type_a,type_b)];
             }
 
-        //! Returns the depletant fugacity
-        Scalar getDepletantFugacity(unsigned int id)
+        unsigned int getNtrialPy(std::pair<std::string, std::string> types) const
             {
-            return m_fugacity[id];
-            }
-
-        unsigned int getNTrialPy(std::string type_name_a, std::string type_name_b) const
-            {
-            unsigned int type_a = this->m_pdata->getTypeByName(type_name_a);
-            unsigned int type_b = this->m_pdata->getTypeByName(type_name_b);
+            unsigned int type_a = this->m_pdata->getTypeByName(types.first);
+            unsigned int type_b = this->m_pdata->getTypeByName(types.second);
 
             return m_ntrial[m_depletant_idx(type_a,type_b)];
             }
 
-        unsigned int getNTrial(unsigned int type_a, unsigned int type_b) const
+        unsigned int getNtrial(unsigned int type_a, unsigned int type_b) const
             {
             return m_ntrial[m_depletant_idx(type_a,type_b)];
             }
@@ -3275,8 +3272,8 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
           .def("restoreStateGSD", &IntegratorHPMCMono<Shape>::restoreStateGSD)
           .def("py_test_overlap", &IntegratorHPMCMono<Shape>::py_test_overlap)
           .def("getImplicitCounters", &IntegratorHPMCMono<Shape>::getImplicitCounters)
-          .def("getNTrial", &IntegratorHPMCMono<Shape>::getNTrialPy)
-          .def("setNTrial", &IntegratorHPMCMono<Shape>::setNTrialPy)
+          .def("getDepletantNtrial", &IntegratorHPMCMono<Shape>::getNtrialPy)
+          .def("setDepletantNtrial", &IntegratorHPMCMono<Shape>::setNtrialPy)
           .def("setDepletantFugacity", &IntegratorHPMCMono<Shape>::setDepletantFugacityPy)
           .def("getDepletantFugacity", &IntegratorHPMCMono<Shape>::getDepletantFugacityPy)
           .def("getTypeShapesPy", &IntegratorHPMCMono<Shape>::getTypeShapesPy)

@@ -95,7 +95,13 @@ class _HPMCIntegrator(_BaseIntegrator):
         typeparam_fugacity = TypeParameter('depletant_fugacity',
                                            type_kind='particle_types',
                                            param_dict=TypeParameterDict(
-                                               0., len_keys=1)
+                                               0., len_keys=2)
+                                           )
+
+        typeparam_ntrial = TypeParameter('depletant_ntrial',
+                                           type_kind='particle_types',
+                                           param_dict=TypeParameterDict(
+                                               1, len_keys=2)
                                            )
 
         typeparam_inter_matrix = TypeParameter('interaction_matrix',
@@ -105,7 +111,8 @@ class _HPMCIntegrator(_BaseIntegrator):
                                                )
 
         self._extend_typeparam([typeparam_d, typeparam_a,
-                                typeparam_fugacity, typeparam_inter_matrix])
+                                typeparam_fugacity, typeparam_ntrial,
+                                typeparam_inter_matrix])
 
     def attach(self, simulation):
         '''initialize the reflected c++ class'''
@@ -317,41 +324,6 @@ class Sphere(_HPMCIntegrator):
     Sphere parameters
 
     shape (particle type, dict): defines the shape of the object.
-
-    def get_fugacity(self, type_a, type_b=None):
-        R""" Get depletant fugacity of a given type
-            * .. versionadded:: 3.0
-
-        Args:
-            type (str): Type for which fugacity is returned
-        """
-        if type_b is None:
-            type_b = type_a
-        itype_a = hoomd.context.current.system_definition.getParticleData().getTypeByName(type_a)
-        itype_b = hoomd.context.current.system_definition.getParticleData().getTypeByName(type_b)
-        return self.cpp_integrator.getDepletantFugacity(itype_a,itype_b);
-
-    def get_ntrial(self, type_a=None, type_b=None):
-        R""" Get the number of reinsertion attempts per overlapping depletant
-
-        Returns:
-            The current value of the 'ntrial' parameter of the integrator
-        """
-        if type_a is None and type_b is None:
-            return self.cpp_integrator.getNTrial(0,0);
-        else:
-            if type_b is None:
-                type_b = type_a
-            itype_a = hoomd.context.current.system_definition.getParticleData().getTypeByName(type_a)
-            itype_b = hoomd.context.current.system_definition.getParticleData().getTypeByName(type_b)
-            return self.cpp_integrator.getNTrial(itype_a,itype_b);
-
-    def get_insertion_std(self, type=None):
-        R""" Get the standard deviation of insertion attempts
-
-        Args:
-            type (str): Type for which standard deviation is returned
-
 
     Examples::
 
