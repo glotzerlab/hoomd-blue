@@ -547,7 +547,7 @@ class ConvexSpheropolygon(_HPMCIntegrator):
 
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
-                                            vertices=[(float, float, float)],
+                                            vertices=[(float, float)],
                                             sweep_radius=0.0,
                                             ignore_statistics=False,
                                             len_keys=1)
@@ -788,7 +788,7 @@ class Polyhedron(_HPMCIntegrator):
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
                                             vertices=[(float, float, float)],
-                                            faces=[(float, float, float)],
+                                            faces=[[int, int, int]],
                                             sweep_radius=0.0,
                                             capacity=4,
                                             origin=(0., 0., 0.),
