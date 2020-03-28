@@ -51,11 +51,10 @@ class PYBIND11_EXPORT ParticleFilterType : public ParticleFilter
             auto tag_it = member_tags.begin();
             for (unsigned int idx = 0; idx < N; ++idx)
                 {
-                unsigned int tag = h_tag.data[idx];
                 unsigned int typ = __scalar_as_int(h_postype.data[idx].w);
                 if (types.count(typ))
                     {
-                    *tag_it = tag;
+                    *tag_it = h_tag.data[idx];
                     tag_it++;
                     }
                 }

@@ -878,7 +878,7 @@ class Langevin(_Method):
             my_class = _md.TwoStepLangevinGPU
 
         self._cpp_obj = my_class(simulation.state._cpp_sys_def,
-                                 simulation.state.add_group(self.filter),
+                                 simulation.state.get_group(self.filter),
                                  self.kT, self.seed)
 
         # Attach param_dict and typeparam_dict

@@ -179,7 +179,7 @@ class State:
     def scale_system(self):
         raise NotImplementedError
 
-    def add_group(self, filter_):
+    def get_group(self, filter_):
         cls = filter_.__class__
         if filter_ in self._groups[cls]:
             return self._groups[cls][filter_]
