@@ -1,9 +1,6 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
-// Maintainer: joaander
-
 #include "TwoStepLangevin.h"
 #include "hoomd/RandomNumbers.h"
 #include "hoomd/RNGIdentifiers.h"
@@ -17,36 +14,16 @@ namespace py = pybind11;
 using namespace std;
 using namespace hoomd;
 
-/*! \file TwoStepLangevin.h
-    \brief Contains code for the TwoStepLangevin class
-*/
-
-/*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
-    \param group The group of particles this integration method is to work on
-    \param T Temperature set point as a function of time
-    \param seed Random seed to use in generating random numbers
-    \param use_lambda If true, gamma=lambda*diameter, otherwise use a per-type gamma via setGamma()
-    \param lambda Scale factor to convert diameter to gamma
-    \param noiseless_t If set true, there will be no translational noise (random force)
-    \param noiseless_r If set true, there will be no rotational noise (random torque)
-    \param suffix Suffix to attach to the end of log quantity names
-
-*/
 TwoStepLangevin::TwoStepLangevin(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<ParticleGroup> group,
                            std::shared_ptr<Variant> T,
-                           unsigned int seed,
-                           bool use_lambda,
-                           Scalar lambda,
-                           bool noiseless_t,
-                           bool noiseless_r,
-                           const std::string& suffix)
-    : TwoStepLangevinBase(sysdef, group, T, seed, use_lambda, lambda), m_reservoir_energy(0),  m_extra_energy_overdeltaT(0),
-      m_tally(false), m_noiseless_t(noiseless_t), m_noiseless_r(noiseless_r)
+                           unsigned int seed)
+    : TwoStepLangevinBase(sysdef, group, T, seed), m_reservoir_energy(0),
+      m_extra_energy_overdeltaT(0), m_tally(false), m_noiseless_t(false), m_noiseless_r(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepLangevin" << endl;
 
-    m_log_name = string("langevin_reservoir_energy") + suffix;
+    m_log_name = string("langevin_reservoir_energy");
     }
 
 TwoStepLangevin::~TwoStepLangevin()
@@ -262,7 +239,7 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
 
     // grab some initial variables
-    const Scalar currentTemp = m_T->getValue(timestep);
+    const Scalar currentTemp = (*m_T)(timestep);
     const unsigned int D = Scalar(m_sysdef->getNDimensions());
 
     // energy transferred over this time step
@@ -286,8 +263,8 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
         Scalar rz = uniform(rng);
 
         Scalar gamma;
-        if (m_use_lambda)
-            gamma = m_lambda*h_diameter.data[j];
+        if (m_use_alpha)
+            gamma = m_alpha*h_diameter.data[j];
         else
             {
             unsigned int type = __scalar_as_int(h_pos.data[j].w);
@@ -431,12 +408,9 @@ void export_TwoStepLangevin(py::module& m)
         .def(py::init< std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
                             std::shared_ptr<Variant>,
-                            unsigned int,
-                            bool,
-                            Scalar,
-                            bool,
-                            bool,
-                            const std::string&>())
-        .def("setTally", &TwoStepLangevin::setTally)
+                            unsigned int>())
+        .def_property("tally_reservoir_energy", &TwoStepLangevin::getTallyReservoirEnergy,
+                                                &TwoStepLangevin::setTallyReservoirEnergy)
+        .def_property_readonly("reservoir_energy", &TwoStepLangevin::getReservoirEnergy)
         ;
     }

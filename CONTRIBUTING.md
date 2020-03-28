@@ -37,7 +37,7 @@ their pull request can be merged.
 
 ## Use a consistent style
 
-[SourceConventions.md](SourceConventions.md) defines the style guidelines for **HOOMD-blue** code.
+The **Code style** section of the documentation sets the style guidelines for **HOOMD-blue** code.
 
 ## Document code with comments
 

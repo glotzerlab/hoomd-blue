@@ -67,3 +67,30 @@ __version__ = "bogus"
 
 def is_MPI_available():
     pass
+
+class Trigger:
+    pass
+
+class PeriodicTrigger:
+    pass
+
+class ParticleFilterAll:
+    pass
+
+class ParticleFilterTags:
+    pass
+
+class GSDStateReader:
+    pass
+
+class Variant:
+    pass
+
+class VariantConstant(Variant):
+    pass
+
+class VariantRamp(Variant):
+    pass
+
+class VariantCycle(Variant):
+    pass

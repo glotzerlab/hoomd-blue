@@ -1,6 +1,8 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
+#pragma once
+
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/BoxDim.h"
 #include "hoomd/VectorMath.h"
@@ -11,15 +13,6 @@
 
 #include <cfloat>
 
-#ifndef __SHAPE_CONVEX_POLYHEDRON_H__
-#define __SHAPE_CONVEX_POLYHEDRON_H__
-
-/*! \file ShapeConvexPolyhedron.h
-    \brief Defines the convex polyhedron shape
-*/
-
-// need to declare these class methods with __device__ qualifiers when building in nvcc
-// DEVICE is __device__ when included in nvcc and blank when included into the host compiler
 #ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
@@ -38,17 +31,19 @@ namespace hpmc
 namespace detail
 {
 
-//! maximum number of vertices that can be stored (must be multiple of 8)
-/*! \ingroup hpmc_data_structs */
+/** Convex polyhedron vertices
 
-//! Data structure for polyhedron vertices
-//! Note that vectorized methods using this struct will assume unused coordinates are set to zero.
-/*! \ingroup hpmc_data_structs */
-struct poly3d_verts : param_base
-
+    Define the parameters of a convex polyhedron for HPMC shape overlap checks. Convex polyhedra are
+    defined by the convex hull of N vertices. The polyhedrons's diameter is precomputed from the
+    vertex farthest from the origin. Convex polyhedra may have sweep radius greater than 0 which
+    makes them rounded convex polyhedra. Coordinates are stored with x, y, and z in separate arrays
+    to support vector intrinsics on the CPU. These arrays are stored in ManagedArray to support
+    arbitrary numbers of verticles.
+*/
+struct PolyhedronVertices : ShapeParams
     {
-    //! Default constructor initializes zero values.
-    DEVICE poly3d_verts()
+    /// Default constructor initializes zero values.
+    DEVICE PolyhedronVertices()
         : n_hull_verts(0),
           N(0),
           diameter(OverlapReal(0)),
@@ -57,26 +52,151 @@ struct poly3d_verts : param_base
         { }
 
     #ifndef __HIPCC__
-    //! Shape constructor
-    poly3d_verts(unsigned int _N, bool _managed)
-        : n_hull_verts(0), N(_N), diameter(0.0), sweep_radius(0.0), ignore(0)
+    /** Initialize with a given number of vertices
+    */
+    PolyhedronVertices(unsigned int _N, bool managed=false)
+        : ignore(0)
         {
+        std::vector<vec3<OverlapReal>> v(_N, vec3<OverlapReal>(0,0,0));
+        setVerts(v, 0);
+        }
+
+    PolyhedronVertices(const std::vector<vec3<OverlapReal>>& verts,
+                       OverlapReal sweep_radius_,
+                       unsigned int ignore_,
+                       bool managed=false)
+        : x(verts.size(), managed),
+          y(verts.size(), managed),
+          z(verts.size(), managed),
+          n_hull_verts(0),
+          N(verts.size()),
+          diameter(0.0),
+          sweep_radius(sweep_radius_),
+          ignore(ignore_)
+        {
+        setVerts(verts, sweep_radius_);
+        }
+
+    /** Set the shape vertices
+
+        Sets new vertices for the shape. Maintains the same managed memory state.
+
+        @param verts Vertices to set
+        @param sweep_radius_ Sweep radius
+    */
+    void setVerts(const std::vector<vec3<OverlapReal>>& verts,
+                  OverlapReal sweep_radius_)
+        {
+        N = verts.size();
+        diameter = 0;
+        sweep_radius = sweep_radius_;
+        bool managed = x.isManaged();
+
         unsigned int align_size = 8; //for AVX
         unsigned int N_align =((N + align_size - 1)/align_size)*align_size;
-        x = ManagedArray<OverlapReal>(N_align,_managed, 32); // 32byte alignment for AVX
-        y = ManagedArray<OverlapReal>(N_align,_managed, 32);
-        z = ManagedArray<OverlapReal>(N_align,_managed, 32);
+        x = ManagedArray<OverlapReal>(N_align, managed, 32); // 32byte alignment for AVX
+        y = ManagedArray<OverlapReal>(N_align, managed, 32);
+        z = ManagedArray<OverlapReal>(N_align, managed, 32);
         for (unsigned int i = 0; i <  N_align; ++i)
             {
             x[i] = y[i] = z[i] = OverlapReal(0.0);
             }
+
+        // copy the verts over from the std vector and compute the radius on the way
+        OverlapReal radius_sq = OverlapReal(0.0);
+        for (unsigned int i = 0; i < verts.size(); i++)
+            {
+            const auto& vert = verts[i];
+            x[i] = vert.x;
+            y[i] = vert.y;
+            z[i] = vert.z;
+            radius_sq = max(radius_sq, dot(vert, vert));
+            }
+        // set the diameter
+        diameter = 2*(sqrt(radius_sq) + sweep_radius);
+
+        if (N >= 3)
+            {
+            // compute convex hull of vertices
+            std::vector<quickhull::Vector3<OverlapReal>> qh_pts;
+            for (unsigned int i = 0; i < N; i++)
+                {
+                quickhull::Vector3<OverlapReal> vert;
+                vert.x = x[i];
+                vert.y = y[i];
+                vert.z = z[i];
+                qh_pts.push_back(vert);
+                }
+
+            quickhull::QuickHull<OverlapReal> qh;
+            // argument 2: CCW orientation of triangles viewed from outside
+            // argument 3: use existing vertex list
+            auto hull = qh.getConvexHull(qh_pts, false, true);
+            auto indexBuffer = hull.getIndexBuffer();
+
+            hull_verts = ManagedArray<unsigned int>(indexBuffer.size(), managed);
+            n_hull_verts = indexBuffer.size();
+
+            for (unsigned int i = 0; i < indexBuffer.size(); i++)
+                 hull_verts[i] = indexBuffer[i];
+            }
+
+        if (N >= 1)
+            {
+            std::vector<OverlapReal> vertex_radii(N, sweep_radius);
+            std::vector<vec3<OverlapReal> > pts(N);
+            for (unsigned int i = 0; i < N; ++i)
+                pts[i] = vec3<OverlapReal>(x[i], y[i],z[i]);
+
+            obb = detail::compute_obb(pts, vertex_radii, managed);
+            }
         }
+
+    /// Construct from a Python dictionary
+    PolyhedronVertices(pybind11::dict v, bool managed=false)
+        : PolyhedronVertices((unsigned int)pybind11::len(v["vertices"]), managed)
+        {
+        pybind11::list verts = v["vertices"];
+        ignore = v["ignore_statistics"].cast<unsigned int>();
+
+        // extract the verts from the python list
+        std::vector<vec3<OverlapReal>> vert_vector;
+        for (unsigned int i = 0; i < pybind11::len(verts); i++)
+            {
+            pybind11::list verts_i = pybind11::cast<pybind11::list>(verts[i]);
+            if (len(verts_i) != 3)
+                throw std::runtime_error("Each vertex must have 3 elements");
+            vec3<OverlapReal> vert = vec3<OverlapReal>(pybind11::cast<OverlapReal>(verts_i[0]),
+                                                       pybind11::cast<OverlapReal>(verts_i[1]),
+                                                       pybind11::cast<OverlapReal>(verts_i[2]));
+            vert_vector.push_back(vert);
+            }
+
+        setVerts(vert_vector, v["sweep_radius"].cast<float>());
+        }
+
+    /// Convert parameters to a python dictionary
+    pybind11::dict asDict()
+        {
+        pybind11::dict v;
+        pybind11::list verts;
+        for(unsigned int i = 0; i < N; i++)
+            {
+            pybind11::list vert;
+            vert.append(x[i]);
+            vert.append(y[i]);
+            vert.append(z[i]);
+            pybind11::tuple vert_tuple = pybind11::tuple(vert);
+            verts.append(vert_tuple);
+            }
+        v["vertices"] = verts;
+        v["ignore_statistics"] = ignore;
+        v["sweep_radius"] = sweep_radius;
+        return v;
+        }
+
     #endif
 
-    //! Load dynamic data members into shared memory and increase pointer
-    /*! \param ptr Pointer to load data to (will be incremented)
-        \param available_bytes Size of remaining shared memory allocation
-     */
     DEVICE void load_shared(char *& ptr, unsigned int &available_bytes)
         {
         x.load_shared(ptr,available_bytes);
@@ -85,9 +205,10 @@ struct poly3d_verts : param_base
         hull_verts.load_shared(ptr,available_bytes);
         }
 
-    //! Determine size of a shared memory allocation
-    /*! \param ptr Pointer to increment
-        \param available_bytes Size of remaining shared memory allocation
+    /** Determine size of the shared memory allocation
+
+        @param ptr Pointer to increment
+        @param available_bytes Size of remaining shared memory allocation
      */
     HOSTDEVICE void allocate_shared(char *& ptr, unsigned int &available_bytes) const
         {
@@ -98,7 +219,6 @@ struct poly3d_verts : param_base
         }
 
     #ifdef ENABLE_HIP
-    //! Set CUDA memory hints
     void set_memory_hint() const
         {
         x.set_memory_hint();
@@ -108,45 +228,64 @@ struct poly3d_verts : param_base
         }
     #endif
 
-    ManagedArray<OverlapReal> x;        //!< X coordinate of vertices
-    ManagedArray<OverlapReal> y;        //!< Y coordinate of vertices
-    ManagedArray<OverlapReal> z;        //!< Z coordinate of vertices
+    /// X coordinate of vertices
+    ManagedArray<OverlapReal> x;
 
-    ManagedArray<unsigned int> hull_verts;  //!< List of triangles hull_verts[3*i], hull_verts[3*i+1], hull_verts[3*i+2] making up the convex hull
-    unsigned int n_hull_verts;              //!< Number of vertices in the convex hull
+    /// Y coordinate of vertices
+    ManagedArray<OverlapReal> y;
 
-    unsigned int N;                         //!< Number of vertices
-    OverlapReal diameter;                   //!< Circumsphere diameter
-    OverlapReal sweep_radius;               //!< Radius of the sphere sweep (used for spheropolyhedra)
-    unsigned int ignore;                    //!< Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
-                                            //   First bit is ignore overlaps, Second bit is ignore statistics
+    /// Z coordinate of vertices
+    ManagedArray<OverlapReal> z;
 
-    detail::OBB obb;                        //!< Tight fitting bounding box
-    } __attribute__((aligned(32)));
+    /** List of triangles hull_verts[3*i], hull_verts[3*i+1], hull_verts[3*i+2] making up the convex
+        hull
+    */
+    ManagedArray<unsigned int> hull_verts;
 
-//! Support function for ShapePolyhedron
-/*! SupportFuncPolyhedron is a functor that computes the support function for ShapePolyhedron. For a given
-    input vector in local coordinates, it finds the vertex most in that direction.
+    /// Number of vertices in the convex hull
+    unsigned int n_hull_verts;
 
-    \ingroup minkowski
+    /// Number of vertices
+    unsigned int N;
+
+    /// Circumsphere diameter
+    OverlapReal diameter;
+
+    /// Radius of the sphere sweep (used for spheropolyhedra)
+    OverlapReal sweep_radius;
+
+    /// True when move statistics should not be counted
+    unsigned int ignore;
+
+    /// Tight fitting bounding box
+    detail::OBB obb;
+    }__attribute__((aligned(32)));
+
+/** Support function for ShapePolyhedron
+
+    SupportFuncPolyhedron is a functor that computes the support function for ShapePolyhedron. For a
+    given input vector in local coordinates, it finds the vertex most in that direction.
 */
-
 class SupportFuncConvexPolyhedron
     {
     public:
-        //! Construct a support function for a convex polyhedron
-        /*! \param _verts Polyhedron vertices
-            Note that for performance it is assumed that unused vertices (beyond N) have already been set to zero.
+        /** Construct a support function for a convex polyhedron
+
+            @param _verts Polyhedron vertices
+
+            Note that for performance it is assumed that unused vertices (beyond N) have already
+            been set to zero.
         */
-        DEVICE SupportFuncConvexPolyhedron(const poly3d_verts& _verts,
+        DEVICE SupportFuncConvexPolyhedron(const PolyhedronVertices& _verts,
             OverlapReal extra_sweep_radius=OverlapReal(0.0))
             : verts(_verts), sweep_radius(extra_sweep_radius)
             {
             }
 
-        //! Compute the support function
-        /*! \param n Normal vector input (in the local frame)
-            \returns Local coords of the point furthest in the direction of n
+        /** Compute the support function
+
+            @param n Normal vector input (in the local frame)
+            @returns Local coords of the point furthest in the direction of n
         */
         DEVICE vec3<OverlapReal> operator() (const vec3<OverlapReal>& n) const
             {
@@ -156,7 +295,8 @@ class SupportFuncConvexPolyhedron
             if (verts.N > 0)
                 {
                 #if !defined(__HIPCC__) && defined(__AVX__) && (defined(SINGLE_PRECISION) || defined(ENABLE_HPMC_MIXED_PRECISION))
-                // process dot products with AVX 8 at a time on the CPU when working with more than 4 verts
+                // process dot products with AVX 8 at a time on the CPU when working with more than
+                // 4 verts
                 __m256 nx_v = _mm256_broadcast_ss(&n.x);
                 __m256 ny_v = _mm256_broadcast_ss(&n.y);
                 __m256 nz_v = _mm256_broadcast_ss(&n.z);
@@ -327,16 +467,15 @@ class SupportFuncConvexPolyhedron
             }
 
     private:
-        const poly3d_verts& verts;      //!< Vertices of the polyhedron
+        const PolyhedronVertices& verts;      //!< Vertices of the polyhedron
         const OverlapReal sweep_radius; //!< Extra sweep radius
     };
 
-/*!
- *  Geometric primitives for closest point calculation
- */
+/** Geometric primitives for closest point calculation
 
-// From Real Time Collision Detection (Christer Ericson)
-// https://doi.org/10.1201/b14581
+    From Real Time Collision Detection (Christer Ericson)
+    https://doi.org/10.1201/b14581
+*/
 DEVICE inline vec3<OverlapReal> closestPointOnTriangle(const vec3<OverlapReal>& p,
      const vec3<OverlapReal>& a, const vec3<OverlapReal>& b, const vec3<OverlapReal>& c)
     {
@@ -390,16 +529,20 @@ DEVICE inline vec3<OverlapReal> closestPointOnTriangle(const vec3<OverlapReal>& 
     return a + ab*v+ac * w; // = u*a + v*b + w*c, u = va * denom = 1.0f - v - w
     }
 
-// Test if point p lies outside plane through abc
+/// Test if point p lies outside plane through abc
 DEVICE inline bool PointOutsideOfPlane(const vec3<OverlapReal>& p,
-     const vec3<OverlapReal>& a, const vec3<OverlapReal>& b, const vec3<OverlapReal>& c)
+                                       const vec3<OverlapReal>& a,
+                                       const vec3<OverlapReal>& b,
+                                       const vec3<OverlapReal>& c)
     {
     return dot(p-a,cross(b-a,c-a)) >= OverlapReal(0.0);
     }
 
-//! Find the point on a segment closest to point p
-DEVICE inline vec3<OverlapReal> ClosestPtPointSegment(const vec3<OverlapReal>& c, const vec3<OverlapReal>& a,
-    const vec3<OverlapReal>& b, OverlapReal& t)
+/// Find the point on a segment closest to point p
+DEVICE inline vec3<OverlapReal> ClosestPtPointSegment(const vec3<OverlapReal>& c,
+                                                      const vec3<OverlapReal>& a,
+                                                      const vec3<OverlapReal>& b,
+                                                      OverlapReal& t)
     {
     vec3<OverlapReal> ab = b - a;
 
@@ -434,32 +577,33 @@ DEVICE inline vec3<OverlapReal> ClosestPtPointSegment(const vec3<OverlapReal>& c
     return d;
     }
 
-//! Projection function for ShapeConvexPolyhedron
-/*! ProjectionFuncConvexPolyhedron is a functor that computes the projection function for ShapePolyhedron. For a given
-    input point in local coordinates, it finds the vertex closest to that point.
+/** Projection function for ShapeConvexPolyhedron
 
-    \ingroup minkowski
+    ProjectionFuncConvexPolyhedron is a functor that computes the projection function for
+    ShapePolyhedron. For a given input point in local coordinates, it finds the vertex closest to
+    that point.
 */
-
 class ProjectionFuncConvexPolyhedron
     {
     public:
-        //! Construct a projection function for a convex polyhedron
-        /*! \param _verts Polyhedron vertices
+        /** Construct a projection function for a convex polyhedron
+
+            @param _verts Polyhedron vertices
         */
-        DEVICE ProjectionFuncConvexPolyhedron(const poly3d_verts& _verts,
+        DEVICE ProjectionFuncConvexPolyhedron(const PolyhedronVertices& _verts,
             OverlapReal extra_sweep_radius=OverlapReal(0.0))
             : verts(_verts), sweep_radius(extra_sweep_radius)
             {
             }
 
-        //! Compute the projection
-        /*! \param p Point to compute the projection for
-            \returns Local coords of the point in the shape closest to p
+        /** Compute the projection
+
+            @param p Point to compute the projection for
+            @returns Local coords of the point in the shape closest to p
         */
         DEVICE vec3<OverlapReal> operator() (const vec3<OverlapReal>& p) const
             {
-            //! Find the point on the convex hull closest to p
+            // Find the point on the convex hull closest to p
             vec3<OverlapReal> closest_p = p;
             OverlapReal closest_dsq(FLT_MAX);
 
@@ -539,70 +683,52 @@ class ProjectionFuncConvexPolyhedron
             }
 
     private:
-        const poly3d_verts& verts;      //!< Vertices of the polyhedron
+        const PolyhedronVertices& verts;      //!< Vertices of the polyhedron
         const OverlapReal sweep_radius; //!< extra sphere sweep radius
     };
 
 
 }; // end namespace detail
 
-//! Convex Polyhedron shape template
-/*! ShapeConvexPolyhedron implements IntegratorHPMC's shape protocol.
+/** Convex Polyhedron shape
 
-    The parameter defining a polyhedron is a structure containing a list of N vertices, centered on 0,0. In fact, it is
-    **required** that the origin is inside the shape, and it is best if the origin is the center of mass.
-
-    \ingroup shape
+    Implement the HPMC shape interface for convex polyhedra.
 */
 struct ShapeConvexPolyhedron
     {
-    //! Define the parameter type
-    typedef detail::poly3d_verts param_type;
+    /// Define the parameter type
+    typedef detail::PolyhedronVertices param_type;
 
     //! Temporary storage for depletant insertion
     typedef struct {} depletion_storage_type;
 
-    //! Initialize a polyhedron
+    /// Construct a shape at a given orientation
     DEVICE ShapeConvexPolyhedron(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), verts(_params)
         {
         }
 
-    //! Does this shape have an orientation
+    /// Check if the shape may be rotated
     DEVICE bool hasOrientation() const { return true; }
 
-    //!Ignore flag for acceptance statistics
+    /// Check if this shape should be ignored in the move statistics
     DEVICE bool ignoreStatistics() const { return verts.ignore; }
 
-    //! Get the circumsphere diameter
+    /// Get the circumsphere diameter of the shape
     DEVICE OverlapReal getCircumsphereDiameter() const
         {
         // return the precomputed diameter
         return verts.diameter;
         }
 
-    //! Get the in-sphere radius
+    /// Get the in-sphere radius of the shape
     DEVICE OverlapReal getInsphereRadius() const
         {
         // not implemented
         return OverlapReal(0.0);
         }
 
-    #ifndef __HIPCC__
-    std::string getShapeSpec() const
-        {
-        std::ostringstream shapedef;
-        shapedef << "{\"type\": \"ConvexPolyhedron\", \"rounding_radius\": " << verts.sweep_radius << ", \"vertices\": [";
-        for (unsigned int i = 0; i < verts.N-1; i++)
-            {
-            shapedef << "[" << verts.x[i] << ", " << verts.y[i] << ", " << verts.z[i] << "], ";
-            }
-        shapedef << "[" << verts.x[verts.N-1] << ", " << verts.y[verts.N-1] << ", " << verts.z[verts.N-1] << "]]}";
-        return shapedef.str();
-        }
-    #endif
-
-    //! Return the bounding box of the shape in world coordinates
+    /// Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         // generate a tight AABB around the polyhedron
@@ -630,7 +756,7 @@ struct ShapeConvexPolyhedron
         return detail::AABB(pos, getCircumsphereDiameter()/Scalar(2));
         }
 
-    //! Return a tight fitting OBB
+    /// Return a tight fitting OBB around the shape
     DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
         {
         detail::OBB obb = verts.obb;
@@ -638,30 +764,33 @@ struct ShapeConvexPolyhedron
         return obb;
         }
 
-    //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
+    /** Returns true if this shape splits the overlap check over several threads of a warp using
+        threadIdx.x
+    */
     HOSTDEVICE static bool isParallel() { return false; }
 
-    //! Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    /// Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
     HOSTDEVICE static bool supportsSweepRadius()
         {
         return true;
         }
 
-    quat<Scalar> orientation;    //!< Orientation of the polyhedron
+    /// Orientation of the shape
+    quat<Scalar> orientation;
 
-    const detail::poly3d_verts& verts;     //!< Vertices
+    /// Shape parameters
+    const detail::PolyhedronVertices& verts;
     };
 
-//! Convex polyhedron overlap test
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shape
-    \param b second shape
-    \param err in/out variable incremented when error conditions occur in the overlap test
-    \param sweep_radius_a Radius of a sphere to sweep shape a by
-    \param sweep_radius_b Radius of a sphere to sweep shape b by
-    \returns true when *a* and *b* overlap, and false when they are disjoint
+/** Convex polyhedron overlap test
 
-    \ingroup shape
+    @param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
+    @param a first shape
+    @param b second shape
+    @param err in/out variable incremented when error conditions occur in the overlap test
+    @param sweep_radius_a Radius of a sphere to sweep shape a by
+    @param sweep_radius_b Radius of a sphere to sweep shape b by
+    @returns true when *a* and *b* overlap, and false when they are disjoint
 */
 template<>
 DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
@@ -693,8 +822,23 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     */
     }
 
+#ifndef __HIPCC__
+template<>
+inline std::string getShapeSpec(const ShapeConvexPolyhedron& poly)
+    {
+    std::ostringstream shapedef;
+    auto& verts = poly.verts;
+    shapedef << "{\"type\": \"ConvexPolyhedron\", \"rounding_radius\": " << verts.sweep_radius << ", \"vertices\": [";
+    for (unsigned int i = 0; i < verts.N-1; i++)
+        {
+        shapedef << "[" << verts.x[i] << ", " << verts.y[i] << ", " << verts.z[i] << "], ";
+        }
+    shapedef << "[" << verts.x[verts.N-1] << ", " << verts.y[verts.N-1] << ", " << verts.z[verts.N-1] << "]]}";
+    return shapedef.str();
+    }
+#endif
+
 }; // end namespace hpmc
 
 #undef DEVICE
 #undef HOSTDEVICE
-#endif //__SHAPE_CONVEX_POLYHEDRON_H__

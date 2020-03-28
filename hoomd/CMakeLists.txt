@@ -49,11 +49,13 @@ set(_hoomd_sources Analyzer.cc
                    ParticleData.cc
                    ParticleGroup.cc
                    Profiler.cc
-                   SFCPackUpdater.cc
+                   SFCPackTuner.cc
                    SignalHandler.cc
                    SnapshotSystemData.cc
                    System.cc
                    SystemDefinition.cc
+                   Trigger.cc
+		   Tuner.cc
                    Updater.cc
                    Variant.cc
                    extern/BVLSSolver.cc
@@ -136,14 +138,16 @@ set(_hoomd_headers
     Profiler.h
     RandomNumbers.h
     RNGIdentifiers.h
-    SFCPackUpdaterGPU.cuh
-    SFCPackUpdaterGPU.h
-    SFCPackUpdater.h
+    SFCPackTunerGPU.cuh
+    SFCPackTunerGPU.h
+    SFCPackTuner.h
     SharedSignal.h
     SignalHandler.h
     SnapshotSystemData.h
     SystemDefinition.h
     System.h
+    Trigger.h
+    Tuner.h
     TextureTools.h
     Updater.h
     Variant.h
@@ -156,7 +160,7 @@ list(APPEND _hoomd_sources CellListGPU.cc
                            CommunicatorGPU.cc
                            ComputeThermoGPU.cc
                            LoadBalancerGPU.cc
-                           SFCPackUpdaterGPU.cc
+                           SFCPackTunerGPU.cc
                            )
 endif()
 
@@ -168,7 +172,7 @@ set(_hoomd_cu_sources BondedGroupData.cu
                       LoadBalancerGPU.cu
                       ParticleData.cu
                       ParticleGroup.cu
-                      SFCPackUpdaterGPU.cu)
+                      SFCPackTunerGPU.cu)
 
 # include libgetar sources directly into _hoomd.so
 get_property(GETAR_SRCS_REL TARGET getar PROPERTY SOURCES)
@@ -216,7 +220,7 @@ endif(SINGLE_PRECISION)
 # Libraries and compile definitions for CUDA enabled builds
 if (ENABLE_HIP)
     if (HIP_PLATFORM STREQUAL "hcc")
-        target_link_libraries(_hoomd PUBLIC HIP::hipfft HIP::hiprt HIP::roctracer)
+        target_link_libraries(_hoomd PUBLIC HIP::hipfft HIP::hiprt)
     elseif(HIP_PLATFORM STREQUAL "nvcc")
         target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
     endif()
@@ -236,6 +240,11 @@ if (ENABLE_HIP)
     endif()
 
     target_link_libraries(_hoomd PUBLIC HIP::hip)
+
+    if (ENABLE_ROCTRACER)
+        target_link_libraries(_hoomd PUBLIC HIP::roctracer)
+        target_compile_definitions(_hoomd PUBLIC ENABLE_ROCTRACER)
+    endif()
 endif()
 
 
@@ -275,22 +284,12 @@ install(TARGETS _hoomd quickhull EXPORT HOOMDTargets
 
 ################ Python only modules
 # copy python modules to the build directory to make it a working python package
-MACRO(copy_file file)
-    add_custom_command (
-        OUTPUT ${file}
-        DEPENDS ${file}
-        POST_BUILD
-        COMMAND    ${CMAKE_COMMAND}
-        ARGS       -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${CMAKE_CURRENT_BINARY_DIR}/${file}
-        COMMENT    "Copy hoomd/${file}"
-    )
-ENDMACRO(copy_file)
-
 set(files analyze.py
           benchmark.py
           cite.py
           comm.py
           compute.py
+          conftest.py
           context.py
           data.py
           device.py
@@ -300,31 +299,42 @@ set(files analyze.py
           init.py
           integrate.py
           meta.py
+	  operation.py
+          operations.py
           option.py
           update.py
           util.py
           variant.py
           lattice.py
           hdf5.py
+          simulation.py
+          state.py
+          syncedlist.py
+          parameterdicts.py
+          trigger.py
+          typeparam.py
+          typeconverter.py
+          filters.py
+          groups.py
+          snapshot.py
+          logger.py
     )
 
 install(FILES ${files}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}
        )
 
-foreach(file ${files})
-    copy_file(${file})
-endforeach()
-
-add_custom_target(copy_hoomd ALL DEPENDS ${files})
+copy_files_to_build("${files}" "hoomd" "*.py")
 
 # install headers in installation target
 install(FILES ${_hoomd_headers}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include/hoomd
        )
 
+add_subdirectory(pytest)
+
 if (BUILD_TESTING)
-    add_subdirectory(test-py)
+    # add_subdirectory(test-py)
     add_subdirectory(test)
 endif()
 
@@ -374,10 +384,12 @@ if (BUILD_JIT)
     add_subdirectory(jit)
 endif()
 
+add_subdirectory(minimize)
+
 file(GLOB _directory_contents RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *)
 
 # explicitly remove packages which are already explicitly dealt with
-list(REMOVE_ITEM _directory_contents test test-py extern md hpmc metal dem mpcd jit)
+list(REMOVE_ITEM _directory_contents test test-py extern md hpmc metal dem mpcd jit pytest minimize)
 
 foreach(entry ${_directory_contents})
     if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${entry} OR IS_SYMLINK ${CMAKE_CURRENT_SOURCE_DIR}/${entry})

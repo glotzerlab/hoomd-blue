@@ -177,7 +177,7 @@ void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned in
                              this->m_seed,
                              timestep,
                              this->m_deltaT,
-                             this->m_T->getValue(timestep),
+                             (*this->m_T)(timestep),
                              this->m_shift_mode,
                              flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
                              threads_per_particle),

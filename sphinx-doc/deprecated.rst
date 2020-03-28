@@ -15,7 +15,7 @@ Commands and features deprecated in v2.x will be removed in v3.0.
      - Replace with
    * - Python 2.7
      - Python >= 3.6
-   * - ``static`` parameter in :py:class:`dump.gsd <hoomd.dump.gsd>`
+   * - ``static`` parameter in ``hoomd.dump.gsd``
      - ``dynamic`` parameter
    * - ``set_params`` and other ``set_*`` methods
      - Properties (*under development*)
@@ -34,9 +34,9 @@ Commands and features deprecated in v2.x will be removed in v3.0.
    * - ``deprecated.analyze.msd``
      - Offline analysis: e.g. `Freud's msd module <https://freud.readthedocs.io>`_.
    * - ``deprecated.dump.xml``
-     - :py:class:`dump.gsd <hoomd.dump.gsd>`
+     - ``hoomd.dump.gsd``
    * - ``deprecated.dump.pos``
-     - :py:class:`dump.gsd <hoomd.dump.gsd>` with on-demand conversion to ``.pos``.
+     - ``hoomd.dump.gsd`` with on-demand conversion to ``.pos``.
    * - ``deprecated.init.read_xml``
      - :py:class:`init.read_gsd <hoomd.init.read_gsd>`
    * - ``deprecated.init.create_random``
@@ -51,12 +51,10 @@ Commands and features deprecated in v2.x will be removed in v3.0.
 
    * - Feature
      - Replace with
-   * - ``ignore_overlaps`` parameter
-     - :py:class:`interaction_matrix <hoomd.hpmc.integrate.interaction_matrix>`
    * - ``sphere_union::max_members`` parameter
      - no longer needed
    * - ``convex_polyhedron_union``
-     - :py:class:`convex_spheropolyhedron_union <hoomd.hpmc.integrate.convex_spheropolyhedron_union>`, ``sweep_radius=0``
+     - :py:class:`ConvexSpheropolyhedronUnion <hoomd.hpmc.integrate.ConvexSpheropolyhedronUnion>`, ``sweep_radius=0``
    * - ``setup_pos_writer`` member
      - n/a
    * - ``depletant_mode='circumsphere'``

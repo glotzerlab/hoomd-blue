@@ -393,7 +393,7 @@ void fire_smallsystem_test(fire_creator fire_creator1, nve_creator nve_creator1,
             pdata->setType(i,1);
         }
 
-    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterAll());
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     std::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(2.5), Scalar(0.3)));
@@ -418,11 +418,11 @@ void fire_smallsystem_test(fire_creator fire_creator1, nve_creator nve_creator1,
     Scalar lj112 = alpha * Scalar(4.0) * epsilon11 * pow(sigma11,Scalar(6.0));
 
     // specify the force parameters
-    fc->setParams(0,0,make_scalar2(lj001,lj002));
+    fc->setParamsLJ(0,0,make_scalar2(lj001,lj002));
     fc->setRcut(0,0,2.5);
-    fc->setParams(0,1,make_scalar2(lj011,lj012));
+    fc->setParamsLJ(0,1,make_scalar2(lj011,lj012));
     fc->setRcut(0,1,2.5);
-    fc->setParams(1,1,make_scalar2(lj111,lj112));
+    fc->setParamsLJ(1,1,make_scalar2(lj111,lj112));
     fc->setRcut(1,1,2.5);
     fc->setShiftMode(PotentialPairLJ::shift);
 
@@ -480,7 +480,7 @@ void fire_twoparticle_test(fire_creator fire_creator1, nve_creator nve_creator1,
     pdata->setPosition(1,make_scalar3(2.0,0.0,0.0));
     pdata->setType(1,0);
 
-    std::shared_ptr<ParticleSelector> selector_one(new ParticleSelectorTag(sysdef, 1, 1));
+    std::shared_ptr<ParticleFilter> selector_one(new ParticleFilterTags(std::vector<unsigned int>({1})));
     std::shared_ptr<ParticleGroup> group_one(new ParticleGroup(sysdef, selector_one));
 
     std::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(3.0), Scalar(0.3)));
@@ -496,7 +496,7 @@ void fire_twoparticle_test(fire_creator fire_creator1, nve_creator nve_creator1,
     Scalar lj002 = alpha * Scalar(4.0) * epsilon00 * pow(sigma00,Scalar(6.0));
 
     // specify the force parameters
-    fc->setParams(0,0,make_scalar2(lj001,lj002));
+    fc->setParamsLJ(0,0,make_scalar2(lj001,lj002));
     fc->setRcut(0,0,3.0);
     fc->setShiftMode(PotentialPairLJ::shift);
 

@@ -1,6 +1,8 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
+#pragma once
+
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/BoxDim.h"
 #include "HPMCPrecisionSetup.h"
@@ -8,15 +10,6 @@
 #include "ShapeSphere.h"    //< For the base template of test_overlap
 #include "XenoCollide2D.h"
 
-#ifndef __SHAPE_CONVEX_POLYGON_H__
-#define __SHAPE_CONVEX_POLYGON_H__
-
-/*! \file ShapeConvexPolygon.h
-    \brief Defines the convex polygon shape
-*/
-
-// need to declare these class methods with __device__ qualifiers when building in nvcc
-// DEVICE is __device__ when included in nvcc and blank when included into the host compiler
 #ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
@@ -35,17 +28,43 @@ namespace hpmc
 namespace detail
 {
 
-//! maximum number of vertices that can be stored (must be a multiple of 8)
-//! Note that vectorized methods using this struct will assume unused coordinates are set to zero.
-/*! \ingroup hpmc_data_structs */
+/** maximum number of vertices that can be stored (must be a multiple of 8)
+    Note that vectorized methods using this struct assume unused coordinates are set to zero.
+*/
 const unsigned int MAX_POLY2D_VERTS=64;
 
-//! Data structure for polygon vertices
-/*! \ingroup hpmc_data_structs */
-struct poly2d_verts : param_base
+/** Polygon parameters
+
+    Define the parameters of a polygon for HPMC shape overlap checks. Polygons are defined by N
+    vertices in a counter-clockwise winding order. The polygon's diameter is precomputed from the
+    vertex farthest from the origin. Polygons may have sweep radius greater than 0 which makes them
+    rounded polygons (see ShapeSpheroPolygon). Coordinates are stored with x and y in separate
+    arrays to support vector intrinsics on the CPU.
+
+    These parameters are used in ShapeConvexPolygon, ShapeSimplePolygon, and ShapeSpheroPolygon.
+*/
+struct PolygonVertices : ShapeParams
     {
-    //! Default constructor initializes zero values.
-    DEVICE poly2d_verts()
+    /// X coordinates of the vertices
+    OverlapReal x[MAX_POLY2D_VERTS];
+
+    /// Y coordinates of the vertice
+    OverlapReal y[MAX_POLY2D_VERTS];
+
+    /// Number of vertices
+    unsigned int N;
+
+    /// Precomputed diameter
+    OverlapReal diameter;
+
+    /// Rounding radius
+    OverlapReal sweep_radius;
+
+    /// True when move statistics should not be counted
+    unsigned int ignore;
+
+    /// Default constructor initializes zero values.
+    DEVICE PolygonVertices()
         : N(0),
           diameter(OverlapReal(0)),
           sweep_radius(OverlapReal(0)),
@@ -58,43 +77,99 @@ struct poly2d_verts : param_base
         }
 
     #ifdef ENABLE_HIP
-    //! Set CUDA memory hint
+    /// Set CUDA memory hint
     void set_memory_hint() const
         {
-        // default implementation does nothing
         }
     #endif
 
-    OverlapReal x[MAX_POLY2D_VERTS];    //!< X coordinate of vertices
-    OverlapReal y[MAX_POLY2D_VERTS];    //!< Y coordinate of vertices
-    unsigned int N;                     //!< Number of vertices
-    OverlapReal diameter;               //!< Precomputed diameter
-    OverlapReal sweep_radius;           //!< Radius of the sphere sweep (used for spheropolygons)
-    unsigned int ignore;                //!< Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
-                                        //   First bit is ignore overlaps, Second bit is ignore statistics
+    #ifndef __HIPCC__
+
+    /// Construct from a Python dictionary
+    PolygonVertices(pybind11::dict v, bool managed=false)
+        {
+        pybind11::list verts = v["vertices"];
+        if (len(verts) > MAX_POLY2D_VERTS)
+            throw std::runtime_error("Too many polygon vertices");
+
+        N = len(verts);
+        ignore = v["ignore_statistics"].cast<unsigned int>();
+        sweep_radius = v["sweep_radius"].cast<OverlapReal>();
+
+        // extract the verts from the python list and compute the radius on the way
+        OverlapReal radius_sq = OverlapReal(0.0);
+        for (unsigned int i = 0; i < len(verts); i++)
+            {
+            pybind11::list verts_i = pybind11::cast<pybind11::list>(verts[i]);
+            if (len(verts_i) != 2)
+                throw std::runtime_error("Each vertex must have 2 elements");
+
+            vec2<OverlapReal> vert = vec2<OverlapReal>(pybind11::cast<OverlapReal>(verts_i[0]),
+                                                       pybind11::cast<OverlapReal>(verts_i[1]));
+            x[i] = vert.x;
+            y[i] = vert.y;
+            radius_sq = max(radius_sq, dot(vert, vert));
+            }
+
+        // zero memory for unused vertices
+        for (unsigned int i = len(verts); i < MAX_POLY2D_VERTS; i++)
+            {
+            x[i] = 0;
+            y[i] = 0;
+            }
+
+        // set the diameter
+        diameter = 2*(sqrt(radius_sq)+sweep_radius);
+        }
+
+    /// Convert parameters to a python dictionary
+    pybind11::dict asDict()
+        {
+        pybind11::dict v;
+        pybind11::list verts;
+        for(unsigned int i = 0; i < N; i++)
+            {
+            pybind11::list vert;
+            vert.append(x[i]);
+            vert.append(y[i]);
+            verts.append(pybind11::tuple(vert));
+            }
+
+        v["vertices"] = verts;
+        v["ignore_statistics"] = ignore;
+        v["sweep_radius"] = sweep_radius;
+        return v;
+        }
+
+    #endif
     } __attribute__((aligned(32)));
 
-//! Support function for ShapeConvexPolygon
-/*! SupportFuncConvexPolygon is a functor that computes the support function for ShapeConvexPolygon. For a given
-    input vector in local coordinates, it finds the vertex most in that direction.
+/** Support function for ShapeConvexPolygon
 
-    \ingroup minkowski
+    SupportFuncConvexPolygon is a functor that computes the support function for ShapeConvexPolygon.
+    For a given input vector in local coordinates, it finds the vertex most in that direction.
+
+    @todo Make a minkowski namespace
 */
 class SupportFuncConvexPolygon
     {
     public:
-        //! Construct a support function for a convex polygon
-        /*! Note that for performance it is assumed that unused vertices (beyond N) have already been set to zero.
-            \param _verts Polygon vertices
+        /** Construct a support function for a convex polygon
+
+            @param _verts Polygon vertices
+
+            Note that for performance it is assumed that unused vertices (beyond N) have already
+            been set to zero.
         */
-        DEVICE SupportFuncConvexPolygon(const poly2d_verts& _verts)
+        DEVICE SupportFuncConvexPolygon(const PolygonVertices& _verts)
             : verts(_verts)
             {
             }
 
-        //! Compute the support function
-        /*! \param n Normal vector input (in the local frame)
-            \returns Local coords of the point furthest in the direction of n
+        /** Compute the support function
+
+            @param n Normal vector input (in the local frame)
+            @returns Local coords of the point furthest in the direction of n
         */
         DEVICE vec2<OverlapReal> operator() (const vec2<OverlapReal>& n) const
             {
@@ -190,7 +265,7 @@ class SupportFuncConvexPolygon
                     }
                 #else
 
-
+                // implementation without vector intrinsics
                 OverlapReal max_dot0 = dot(n, vec2<OverlapReal>(verts.x[0], verts.y[0]));
                 unsigned int max_idx0 = 0;
                 OverlapReal max_dot1 = dot(n, vec2<OverlapReal>(verts.x[1], verts.y[1]));
@@ -254,70 +329,51 @@ class SupportFuncConvexPolygon
             }
 
     private:
-        const poly2d_verts& verts;      //!< Vertices of the polygon
+        /// Vertices of the polygon
+        const PolygonVertices& verts;
     };
 
 }; // end namespace detail
 
-//! Convex Polygon shape template
-/*! ShapeConvexPolygon implements IntegratorHPMC's shape protocol. It serves at the simplest example of an orientable
-    shape for HPMC.
+/** Convex Polygon shape
 
-    The parameter defining a polygon is a structure containing a list of N vertices. They are assumed to be listed
-    in counter-clockwise order and centered on 0,0. In fact, it is **required** that the origin is inside the shape,
-    and it is best if the origin is the center of mass.
-
-    \ingroup shape
+    Implement the HPMC shape interface for convex polygons.
 */
 struct ShapeConvexPolygon
     {
-    //! Define the parameter type
-    typedef detail::poly2d_verts param_type;
+    /// Define the parameter type
+    typedef detail::PolygonVertices param_type;
 
     //! Temporary storage for depletant insertion
     typedef struct {} depletion_storage_type;
 
-    //! Initialize a polygon
+    /// Construct a shape at a given orientation
     DEVICE ShapeConvexPolygon(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), verts(_params)
         {
         }
 
-    //! Does this shape have an orientation
+    /// Check if the shape may be rotated
     DEVICE bool hasOrientation() { return true; }
 
-    //!Ignore flag for acceptance statistics
+    /// Check if this shape should be ignored in the move statistics
     DEVICE bool ignoreStatistics() const{ return verts.ignore; }
 
-    //! Get the circumsphere diameter
+    /// Get the circumsphere diameter of the shape
     DEVICE OverlapReal getCircumsphereDiameter() const
         {
         // return the precomputed diameter
         return verts.diameter;
         }
 
-    //! Get the in-circle radius
+    /// Get the in-sphere radius of the shape
     DEVICE OverlapReal getInsphereRadius() const
         {
         // not implemented
         return OverlapReal(0.0);
         }
 
-    #ifndef __HIPCC__
-    std::string getShapeSpec() const
-        {
-        std::ostringstream shapedef;
-        shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": " << verts.sweep_radius << ", \"vertices\": [";
-        for (unsigned int i = 0; i < verts.N-1; i++)
-            {
-            shapedef << "[" << verts.x[i] << ", " << verts.y[i] << "], ";
-            }
-        shapedef << "[" << verts.x[verts.N-1] << ", " << verts.y[verts.N-1] << "]]}";
-        return shapedef.str();
-        }
-    #endif
-
-    //! Return the bounding box of the shape in world coordinates
+    /// Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         // generate a tight AABB
@@ -342,41 +398,46 @@ struct ShapeConvexPolygon
         return detail::AABB(pos, verts.diameter/Scalar(2));
         }
 
-    //! Return a tight fitting OBB
+    /// Return a tight fitting OBB around the shape
     DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
         {
         // just use the AABB for now
         return detail::OBB(getAABB(pos));
         }
 
-    //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
+    /** Returns true if this shape splits the overlap check over several threads of a warp using
+        threadIdx.x
+    */
     HOSTDEVICE static bool isParallel() { return false; }
 
-    //! Retrns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    /// Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
     HOSTDEVICE static bool supportsSweepRadius()
         {
         return false;
         }
 
-    quat<Scalar> orientation;    //!< Orientation of the polygon
+    /// Orientation of the shape
+    quat<Scalar> orientation;
 
-    const detail::poly2d_verts& verts;     //!< Vertices
+    /// Shape parameters
+    const detail::PolygonVertices& verts;
     };
 
 namespace detail
 {
 
-//! Test if all vertices in a polygon are outside of a given line
-/*! \param verts Vertices of the polygon
-    \param p Point on the line
-    \param n Outward pointing normal
-    \returns true when all vertices in the polygon are on the outside of the given line
+/** Test if all vertices in a polygon are outside of a given line
 
-    \note \a p and \a n are specified *in the polygon's reference frame!*
+    @param verts Vertices of the polygon.
+    @param p Point on the line.
+    @param n Outward pointing normal.
+    @returns true when all vertices in the polygon are on the outside of the given line.
 
-    \ingroup overlap
+    `p` and `n` are specified *in the polygon's reference frame!*
+
+    \todo make overlap check namespace
 */
-DEVICE inline bool is_outside(const poly2d_verts& verts, const vec2<OverlapReal>& p, const vec2<OverlapReal>& n)
+DEVICE inline bool is_outside(const PolygonVertices& verts, const vec2<OverlapReal>& p, const vec2<OverlapReal>& n)
     {
     bool outside = true;
 
@@ -397,36 +458,39 @@ DEVICE inline bool is_outside(const poly2d_verts& verts, const vec2<OverlapReal>
     return outside;
     }
 
-//! Tests if any edge in a separates polygons a and b
-/*! \param a First polygon
-    \param b Second polygon
-    \param ab_t Vector pointing from a's center to b's center, rotated by conj(qb) (see description for why)
-    \param ab_r quaternion that rotates from *a*'s orientation into *b*'s.
-    \returns true if any edge in *a* separates shapes *a* and *b*
+/** Tests if any edge in a separates polygons a and b
 
-    Shape *a* is at the origin. (in other words, we are solving this in the frame of *a*). Normal vectors can be rotated
-    from the frame of a to b simply by rotating by ab_r, which is equal to conj(b.orientation) * a.orientation.
-    This comes from the following
+    @param a First polygon
+    @param b Second polygon
+    @param ab_t Vector pointing from a's center to b's center, rotated by conj(qb)
+                (see description for why)
+    @param ab_r quaternion that rotates from *a*'s orientation into *b*'s.
+    @returns true if any edge in *a* separates shapes *a* and *b*
 
-        - first, go from the frame of *a* into the space frame (qa))
-        - then, go into back into the *b* frame (conj(qb))
+    Shape *a* is at the origin. (in other words, we are solving this in the frame of *a*). Normal
+    vectors can be rotated from the frame of *a* to *b* simply by rotating by *ab_r*, which is equal
+    to `conj(b.orientation) * a.orientation`. This comes from the following
 
-    Transforming points from one frame into another takes a bit more care. The easiest way to think about it is this:
+    - first, go from the frame of *a* into the space frame (`qa`))
+    - then, go into back into the *b* frame (`conj(qb)`)
 
-        - Rotate from the *a* frame into the space frame (rotate by *qa*).
-        - Then translate into a frame with *b*'s origin at the center (subtract ab_t).
-        - Then rotate into the *b* frame (rotate by conj(*qb*))
+    Transforming points from one frame into another takes a bit more care. The easiest way to think
+    about it is this:
 
-    Putting that all together, we get: \f$ q_b^* \cdot (q_a \vec{v} q_a^* - \vec{a}) a_b \f$. That's a lot of quats to
-    store and a lot of rotations to do. Distributing gives \f$ q_b^* q_a \vec{v} q_a^* q_b - q_b^* \vec{a} q_b \f$.
-    The first rotation is by the already computed ab_r! The 2nd only needs to be computed once
+    - Rotate from the *a* frame into the space frame (rotate by `qa`).
+    - Then translate into a frame with *b*'s origin at the center (subtract `ab_t`).
+    - Then rotate into the *b* frame (rotate by `conj(qb)`)
 
-    \note Only edges in a are checked. This function must be called twice for a full separating planes overlap test
+    Putting that all together, we get: \f$ q_b^* \cdot (q_a \vec{v} q_a^* - \vec{a}) a_b \f$. That's
+    a lot of quats to store and a lot of rotations to do. Distributing gives \f$ q_b^* q_a \vec{v}
+    q_a^* q_b - q_b^* \vec{a} q_b \f$. The first rotation is by the already computed `ab_r`! The 2nd
+    only needs to be computed once
 
-    \ingroup overlap
+    @note Only edges in *a* are checked. This function must be called twice for a full separating
+    planes overlap test
 */
-DEVICE inline bool find_separating_plane(const poly2d_verts& a,
-                                         const poly2d_verts& b,
+DEVICE inline bool find_separating_plane(const PolygonVertices& a,
+                                         const PolygonVertices& b,
                                          const vec2<OverlapReal>& ab_t,
                                          const quat<OverlapReal>& ab_r)
     {
@@ -442,7 +506,8 @@ DEVICE inline bool find_separating_plane(const poly2d_verts& a,
         vec2<OverlapReal> p = vec2<OverlapReal>(a.x[cur], a.y[cur]);
         vec2<OverlapReal> line = p - vec2<OverlapReal>(a.x[prev], a.y[prev]);
 
-        // construct an outward pointing vector perpendicular to that line (assumes counter-clockwise ordering!)
+        // construct an outward pointing vector perpendicular to that line (assumes
+        // counter-clockwise ordering!)
         vec2<OverlapReal> n(line.y, -line.x);
 
         // transform into b's coordinate system
@@ -465,21 +530,20 @@ DEVICE inline bool find_separating_plane(const poly2d_verts& a,
     return separating;
     }
 
-//! Test the overlap of two polygons via separating planes
-/*! \param a First polygon
-    \param b Second polygon
-    \param ab_t Vector pointing from a's center to b's center, in the space frame
-    \param qa Orientation of first polygon
-    \param qb Orientation of second polygon
-    \returns true when the two polygons overlap
+/** Test the overlap of two polygons via separating planes
 
-    \pre Polygon vertices are in **counter-clockwise** order
-    \pre The shape is convex and contains no internal vertices
+    @param a First polygon
+    @param b Second polygon
+    @param ab_t Vector pointing from *a*'s center to *b*'s center, in the space frame
+    @param qa Orientation of first polygon
+    @param qb Orientation of second polygon
+    @returns true when the two polygons overlap
 
-    \ingroup overlap
-*/
-DEVICE inline bool test_overlap_separating_planes(const poly2d_verts& a,
-                                                  const poly2d_verts& b,
+    @pre Polygon vertices are in **counter-clockwise** order
+    @pre The shape is convex and contains no internal vertices
+f*/
+DEVICE inline bool test_overlap_separating_planes(const PolygonVertices& a,
+                                                  const PolygonVertices& b,
                                                   const vec2<OverlapReal>& ab_t,
                                                   const quat<OverlapReal>& qa,
                                                   const quat<OverlapReal>& qb)
@@ -487,7 +551,8 @@ DEVICE inline bool test_overlap_separating_planes(const poly2d_verts& a,
     // construct a quaternion that rotates from a's coordinate system into b's
     quat<OverlapReal> ab_r = conj(qb) * qa;
 
-    // see if we can find a separating plane from a's edges, or from b's edges, or else the shapes overlap
+    // see if we can find a separating plane from a's edges, or from b's edges, or else the shapes
+    // overlap
     if (find_separating_plane(a, b, rotate(conj(qb), ab_t), ab_r))
         return false;
 
@@ -499,15 +564,14 @@ DEVICE inline bool test_overlap_separating_planes(const poly2d_verts& a,
 
 }; // end namespace detail
 
-//! Convex polygon overlap test
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shape
-    \param b second shape
-    \param err in/out variable incremented when error conditions occur in the overlap test
-    \param sweep_radius Additional radius to sweep both shapes by
-    \returns true when *a* and *b* overlap, and false when they are disjoint
+/** Convex polygon overlap test
 
-    \ingroup shape
+    @param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
+    @param a first shape
+    @param b second shape
+    @param err in/out variable incremented when error conditions occur in the overlap test
+    @param sweep_radius Additional radius to sweep both shapes by
+    @returns *true* when *a* and *b* overlap, and false when they are disjoint
 */
 template <>
 DEVICE inline bool test_overlap<ShapeConvexPolygon,ShapeConvexPolygon>(const vec3<Scalar>& r_ab,
@@ -534,8 +598,22 @@ DEVICE inline bool test_overlap<ShapeConvexPolygon,ShapeConvexPolygon>(const vec
     #endif
     }
 
+#ifndef __HIPCC__
+template<>
+inline std::string getShapeSpec(const ShapeConvexPolygon& poly)
+    {
+    std::ostringstream shapedef;
+    shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": " << poly.verts.sweep_radius << ", \"vertices\": [";
+    for (unsigned int i = 0; i < poly.verts.N-1; i++)
+        {
+        shapedef << "[" << poly.verts.x[i] << ", " << poly.verts.y[i] << "], ";
+        }
+    shapedef << "[" << poly.verts.x[poly.verts.N-1] << ", " << poly.verts.y[poly.verts.N-1] << "]]}";
+    return shapedef.str();
+    }
+#endif
+
 }; // end namespace hpmc
 
 #undef DEVICE
 #undef HOSTDEVICE
-#endif //__SHAPE_CONVEX_POLYGON_H__

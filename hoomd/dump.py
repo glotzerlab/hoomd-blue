@@ -8,13 +8,21 @@ Commands in the dump package write the system state out to a file every
 each command writes.
 """
 
-from collections import namedtuple;
+from collections import namedtuple
+from hoomd.filters import All
 from hoomd import _hoomd
-import hoomd;
-import json;
-import os;
-import sys;
-import types;
+from hoomd.util import dict_flatten, array_to_strings
+from hoomd.typeconverter import MultipleOnlyFrom, OnlyType
+from hoomd.filters import ParticleFilter
+from hoomd.parameterdicts import ParameterDict
+from hoomd.logger import Logger
+from hoomd.operation import _Analyzer
+import numpy as np
+import hoomd
+import json
+import os
+import types
+
 
 class dcd(hoomd.analyze._analyzer):
     R""" Writes simulation snapshots in the DCD format
@@ -94,6 +102,7 @@ class dcd(hoomd.analyze._analyzer):
         hoomd.context.current.device.cpp_msg.error("you cannot change the period of a dcd dump writer\n");
         raise RuntimeError('Error changing updater period');
 
+
 class getar(hoomd.analyze._analyzer):
     """Analyzer for dumping system properties to a getar file at intervals.
 
@@ -167,7 +176,7 @@ class getar(hoomd.analyze._analyzer):
         dem_wca.setParams('A', vertices=vertices, faces=faces)
         dump.writeJSON('type_shapes.json', dem_wca.get_type_shapes())
 
-        mc = hpmc.integrate.convex_polygon(seed=415236)
+        mc = hpmc.integrate.ConvexPolygon(seed=415236)
         mc.shape_param.set('A', vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)])
         dump.writeJSON('type_shapes.json', mc.get_type_shapes(), dynamic=True)
 
@@ -482,37 +491,61 @@ class getar(hoomd.analyze._analyzer):
         """Closes the trajectory if it is open. Finalizes any IO beforehand."""
         self.cpp_analyzer.close();
 
-class gsd(hoomd.analyze._analyzer):
-    R""" Writes simulation snapshots in the GSD format
+
+class GSD(_Analyzer):
+    R""" Write simulation trajectories in the GSD format.
 
     Args:
-        filename (str): File name to write
-        period (int): Number of time steps between file dumps, or None to write a single file immediately.
-        group (:py:mod:`hoomd.group`): Particle group to output to the gsd file.
-        overwrite (bool): When False (the default), any existing GSD file will be appended to. When True, an existing GSD
-                          file *filename* will be overwritten.
-        truncate (bool): When False (the default), frames are appended to the GSD file. When True, truncate the file and
-                         write a new frame 0 every time.
-        phase (int): When -1, start on the current time step. When >= 0, execute on steps where *(step + phase) % period == 0*.
-        time_step (int): Time step to write to the file (only used when period is None)
-        dynamic (list): A list of quantity categories to save every frame. (added in version 2.2)
+        filename (str): File name to write.
+        trigger (``hoomd.ParticleTrigger``): Select the timesteps to write.
+        filter_ (``hoomd.ParticleFilter``): Select the particles to write.
+        overwrite (bool): When ``True``, overwite the file. When ``False``
+                          append frames to `filename` if it exists and create
+                          the file if it does not.
+        truncate (bool): When True, truncate the file and write a new frame 0
+                         each time this operation triggers.
+        dynamic (list[str]): Quantity categories to save in every frame.
+        log (``hoomd.logger.Logger``): A ``Logger`` object for GSD logging.
 
-    Write a simulation snapshot to the specified GSD file at regular intervals. GSD is capable of storing all particle
-    and bond data fields in hoomd, in every frame of the trajectory. This allows GSD to store simulations where the
-    number of particles, number of particle types, particle types, diameter, mass, charge, and other quantities change
-    over time. GSD can also store integrator state information necessary for restarting simulations and user-defined log
-    quantities.
+    .. note::
 
-    To save on space, GSD does not write values that are all set at defaults. So if all masses, orientations, angular
-    momenta, etc... are left default, these fields  will not take up any space in the file. Additionally, only
-    **dynamic** quantities are written to all frames, non-dynamic quantities are only written to frame 0. The GSD schema
-    defines that data not present in frame *i* is to be read from frame 0. This makes every single frame of a GSD file
-    fully specified and simulations initialized with :py:func:`hoomd.init.read_gsd()` can select any frame of the file.
+        All parameters are also available as instance attributes. Only
+        *trigger* and *log* may be modified after construction.
 
-    You can control what quantities are dynamic by category. ``property`` is always dynamic. The categories listed in
-    the **dynamic** will also be written out to every frame, but only if they have changed from the defaults.
+    :py:class:`GSD` Write a simulation snapshot to the specified file each time
+    it triggers. :py:class:`GSD` can store all particle, bond, angle, dihedral,
+    improper, pair, and constraint data fields in every frame of the
+    trajectory. :py:class:`GSD` can write trajectories where the number of
+    particles, number of particle types, particle types, diameter, mass,
+    charge, or other quantities change over time. :py:class:`GSD` can also
+    store operation-specific state information necessary for restarting
+    simulations and user-defined log quantities.
 
-    * ``attribute``
+    To reduce file size, :py:class:`GSD` does not write properties that are set
+    to defaults. When masses, orientations, angular momenta, etc... are left
+    default for all particles, these fields will not take up any space in the
+    file. Additionally, :py:class:`GSD` only writes *dynamic* quantities to
+    all frames. It writes non-dynamic quantities only the first frame. When
+    reading a GSD file, the data in frame 0 is read when a quantity is missing
+    in frame *i*, supplying data that is static over the entire trajectory.
+    Set the *dynamic* parameter to specify dynamic attributes by category.
+    **property** is always dynamic:
+
+    * **property**
+
+        * particles/position
+        * particles/orientation (*only written when values are not the
+          default: [1,0,0,0]*)
+
+    * **momentum**
+
+        * particles/velocity
+        * particles/angmom (*only written when values are not the
+          default: [0,0,0,0]*)
+        * particles/image (*only written when values are not the
+          default: [0,0,0]*)
+
+    * **attribute**
 
         * particles/N
         * particles/types
@@ -523,18 +556,7 @@ class gsd(hoomd.analyze._analyzer):
         * particles/body
         * particles/moment_inertia
 
-    * ``property``
-
-        * particles/position
-        * particles/orientation (*only written when changed from default*)
-
-    * ``momentum``
-
-        * particles/velocity
-        * particles/angmom (*only written when changed from default*)
-        * particles/image
-
-    * ``topology``
+    * **topology**
 
         * bonds/
         * angles/
@@ -543,95 +565,91 @@ class gsd(hoomd.analyze._analyzer):
         * constraints/
         * pairs/
 
-    See https://github.com/glotzerlab/gsd and http://gsd.readthedocs.io/ for more information on GSD files.
 
-    If you only need to store a subset of the system, you can save file size and time spent analyzing data by
-    specifying a group to write out. :py:class:`gsd` will write out all of the particles in the group in ascending
-    tag order. When the group is not :py:func:`hoomd.group.all()`, :py:class:`gsd` will not write the topology fields.
+    .. seealso::
 
-    To write restart files with gsd, set `truncate=True`. This will cause :py:class:`gsd` to write a new frame 0
-    to the file every period steps.
+        See the `GSD documentation <http://gsd.readthedocs.io/>`_ and `GitHub
+        project <https://github.com/glotzerlab/gsd>`_ for more information on
+        GSD files.
 
-    .. rubric:: State data
+    .. note::
 
-    :py:class:`gsd` can save internal state data for the following hoomd objects:
+        When you use *filter_* to select a subset of the whole system,
+        :py:class:`GSD` will write out all of the selected particles in
+        ascending tag order and will **not** write out **topology**.
 
-        * :py:class:`HPMC integrators <hoomd.hpmc.integrate.mode_hpmc>`
+    .. note::
 
-    Call :py:meth:`dump_state` with the object as an argument to enable saving its state. State saved in this way
-    can be restored after initializing the system with :py:meth:`hoomd.init.read_gsd`.
+        All logged data chunks must be present in the first frame in the gsd
+        file to provide the default value. Some (or all) chunks may be omitted
+        on later frames.
 
-    .. rubric:: User-defined log quantities
+    .. note::
 
-    Associate a name with a callable python object that returns a numpy array in :py:attr:`log`, and :py:class:`gsd`
-    will save the data you provide on every frame. Prefix per-particle quantities with ``particles/`` and per-bond
-    quantities with ``bonds/`` so that visualization tools such as `OVITO <https://www.ovito.org/>`_ will make them
-    available in their pipelines. OVITO also understand scalar values (length 1 numpy arrays) and strings encoded
-    as uint8 numpy arrays.
+        In MPI parallel simulations, the callback will be called on all ranks.
+        :py:class:`GSD` will write the data returned by the root rank. Return
+        values from all other ranks are ignored (and may be None).
 
-    Examples::
+    .. rubric:: Examples:
 
-        dump.gsd(filename="trajectory.gsd", period=1000, group=group.all(), phase=0)
-        dump.gsd(filename="restart.gsd", truncate=True, period=10000, group=group.all(), phase=0)
-        dump.gsd(filename="configuration.gsd", overwrite=True, period=None, group=group.all(), time_step=0)
-        dump.gsd(filename="momentum_too.gsd", period=1000, group=group.all(), phase=0, dynamic=['momentum'])
-        dump.gsd(filename="saveall.gsd", overwrite=True, period=1000, group=group.all(), dynamic=['attribute', 'momentum', 'topology'])
+    TODO: link to example notebooks
+
+    TODO: should ``filter_`` default to All?
 
     """
+
     def __init__(self,
                  filename,
-                 period,
-                 group,
+                 trigger,
+                 filter=All(),
                  overwrite=False,
                  truncate=False,
-                 phase=0,
-                 time_step=None,
-                 dynamic=None):
+                 dynamic=None,
+                 log=None):
 
-        categories = ['attribute', 'property', 'momentum', 'topology'];
+        super().__init__(trigger)
+
+        dynamic_string_validation = MultipleOnlyFrom(
+            ['attribute', 'property', 'momentum', 'topology'],
+            preprocess=array_to_strings)
+
+        dynamic = ['property'] if dynamic is None else dynamic
+        self._param_dict.update(
+            ParameterDict(filename=str(filename),
+                          filter=OnlyType(ParticleFilter, strict=True),
+                          overwrite=bool(overwrite), truncate=bool(truncate),
+                          dynamic=dynamic_string_validation,
+                          explicit_defaults=dict(filter=filter, dynamic=dynamic)
+                          )
+            )
+
+        self._log = None if log is None else GSDLogWriter(log)
+
+    def attach(self, simulation):
+        # validate dynamic property
+        categories = ['attribute', 'property', 'momentum', 'topology']
         dynamic_quantities = ['property']
 
-        if dynamic is not None:
-            for v in dynamic:
+        if self.dynamic is not None:
+            for v in self.dynamic:
                 if v not in categories:
-                    hoomd.context.current.device.cpp_msg.warning("dump.gsd: dynamic quantity " + v + " is not recognized\n");
+                    raise RuntimeError("GSD: dynamic quantity " + v +
+                                       " is not valid")
 
-            dynamic_quantities = ['property'] + dynamic;
+            dynamic_quantities = ['property'] + self.dynamic
 
-        # initialize base class
-        hoomd.analyze._analyzer.__init__(self);
+        self._cpp_obj = _hoomd.GSDDumpWriter(simulation.state._cpp_sys_def,
+                                             self.filename,
+                                             simulation.state.add_group(self.filter),
+                                             self.overwrite,
+                                             self.truncate)
 
-        self.cpp_analyzer = _hoomd.GSDDumpWriter(hoomd.context.current.system_definition, filename, group.cpp_group, overwrite, truncate);
-
-        self.cpp_analyzer.setWriteAttribute('attribute' in dynamic_quantities);
-        self.cpp_analyzer.setWriteProperty('property' in dynamic_quantities);
-        self.cpp_analyzer.setWriteMomentum('momentum' in dynamic_quantities);
-        self.cpp_analyzer.setWriteTopology('topology' in dynamic_quantities);
-
-        if period is not None:
-            self.setupAnalyzer(period, phase);
-        else:
-            if time_step is None:
-                time_step = hoomd.context.current.system.getCurrentTimeStep()
-            self.cpp_analyzer.analyze(time_step);
-
-        # store metadata
-        self.filename = filename
-        self.period = period
-        self.group = group
-        self.phase = phase
-        self.metadata_fields = ['filename','period','group', 'phase']
-
-    def write_restart(self):
-        """ Write a restart file at the current time step.
-
-        Call :py:meth:`write_restart` at the end of a simulation where are writing a gsd restart file with
-        ``truncate=True`` to ensure that you have the final frame of the simulation written before exiting.
-        See :ref:`restartable-jobs` for examples.
-        """
-
-        time_step = hoomd.context.current.system.getCurrentTimeStep()
-        self.cpp_analyzer.analyze(time_step);
+        self._cpp_obj.setWriteAttribute('attribute' in dynamic_quantities)
+        self._cpp_obj.setWriteProperty('property' in dynamic_quantities)
+        self._cpp_obj.setWriteMomentum('momentum' in dynamic_quantities)
+        self._cpp_obj.setWriteTopology('topology' in dynamic_quantities)
+        self._cpp_obj.log_writer = self.log
+        super().attach(simulation)
 
     def dump_state(self, obj):
         """Write state information for a hoomd object.
@@ -641,10 +659,13 @@ class gsd(hoomd.analyze._analyzer):
 
         .. versionadded:: 2.2
         """
+        if self._cpp_obj is None:
+            raise RuntimeError("GSD must be scheduled first");
+
         if hasattr(obj, '_connect_gsd') and type(getattr(obj, '_connect_gsd')) == types.MethodType:
-            obj._connect_gsd(self);
+            obj._connect_gsd(self)
         else:
-            hoomd.context.current.device.cpp_msg.warning("GSD is not currently support for {name}".format(obj.__class__.__name__));
+            raise RuntimeError("GSD.dump_shape does not support {}".format(obj.__class__.__name__))
 
     def dump_shape(self, obj):
         """Writes particle shape information stored by a hoomd object.
@@ -654,14 +675,14 @@ class gsd(hoomd.analyze._analyzer):
         other libraries for visualization. The following classes support
         writing shape information to GSD files:
 
-        * :py:class:`hoomd.hpmc.integrate.sphere`
-        * :py:class:`hoomd.hpmc.integrate.convex_polyhedron`
-        * :py:class:`hoomd.hpmc.integrate.convex_spheropolyhedron`
-        * :py:class:`hoomd.hpmc.integrate.polyhedron`
-        * :py:class:`hoomd.hpmc.integrate.convex_polygon`
-        * :py:class:`hoomd.hpmc.integrate.convex_spheropolygon`
-        * :py:class:`hoomd.hpmc.integrate.simple_polygon`
-        * :py:class:`hoomd.hpmc.integrate.ellipsoid`
+        * :py:class:`hoomd.hpmc.integrate.Sphere`
+        * :py:class:`hoomd.hpmc.integrate.ConvexPolyhedron`
+        * :py:class:`hoomd.hpmc.integrate.ConvexSpheropolyhedron`
+        * :py:class:`hoomd.hpmc.integrate.Polyhedron`
+        * :py:class:`hoomd.hpmc.integrate.ConvexPolygon`
+        * :py:class:`hoomd.hpmc.integrate.ConvexSpheropolygon`
+        * :py:class:`hoomd.hpmc.integrate.SimplePolygon`
+        * :py:class:`hoomd.hpmc.integrate.Ellipsoid`
         * :py:class:`hoomd.dem.pair.WCA`
         * :py:class:`hoomd.dem.pair.SWCA`
         * :py:class:`hoomd.md.pair.gb`
@@ -671,32 +692,86 @@ class gsd(hoomd.analyze._analyzer):
 
         .. versionadded:: 2.7
         """
+        if self._cpp_obj is None:
+            raise RuntimeError("GSD must be scheduled first")
+
         if hasattr(obj, '_connect_gsd_shape_spec') and type(getattr(obj, '_connect_gsd_shape_spec')) == types.MethodType:
-            obj._connect_gsd_shape_spec(self);
+            obj._connect_gsd_shape_spec(self)
         else:
-            hoomd.context.current.device.cpp_msg.warning("GSD is not currently support for {}".format(obj.__class__.__name__));
+            raise RuntimeError("GSD.dump_shape does not support {}".format(obj.__class__.__name__))
 
     @property
     def log(self):
-        """Dictionary mapping user-defined names to callbacks.
+        return self._log
 
-        Add an item to :py:attr:`log` to save user-defined data in the gsd file. The key provides the name of the data
-        chunk in the gsd file (e.g. ``particles/lj_potential_energy``). The value is a callable python object that takes
-        the current time step as an argument and returns a numpy array that has 1 or 2 dimensions and has a data type
-        supported by `gsd <https://gsd.readthedocs.io>`_.
+    @log.setter
+    def log(self, log):
+        if isinstance(log, Logger):
+            log = GSDLogWriter(log)
+        else:
+            raise ValueError("GSD.log can only be set with a Logger.")
+        if self.is_attached:
+            self._cpp_obj.log_writer = log
+        self._log = log
 
-        Delete a key from :py:attr:`log` to stop logging that quantity.
 
-        .. note::
+class GSDLogWriter:
 
-            All logged data chunks must be present in the first frame in the gsd file to provide the default value. Some
-            (or all) chunks may be omitted on later frames:
+    _per_keys = ['particles', 'bonds', 'dihedrals', 'impropers', 'pairs']
+    _convert_kinds = ['string', 'strings']
+    _skip_kinds = ['object']
+    _special_keys = ['type_shapes']
+    _global_prepend = 'log'
 
-        .. note::
+    def __init__(self, logger):
+        self.logger = logger
 
-            In MPI parallel simulations, the callback will be called on all ranks. :py:class:`gsd` will write the data
-            returned by the root rank. Return values from all other ranks are ignored (and may be None).
+    def log(self):
+        log = dict()
+        for key, value in dict_flatten(self.logger.log()).items():
+            log_value, kind = value
+            if kind not in self._skip_kinds:
+                if log_value is None:
+                    continue
+                if key[-1] in self._special_keys:
+                    self._log_special(log, key[-1], log_value)
+                else:
+                    if kind in self._per_keys:
+                        log['/'.join((self._global_prepend,
+                                    kind) + key)] = log_value
+                    elif kind in self._convert_kinds:
+                        self._log_convert_value(
+                            log, '/'.join((self._global_prepend,) + key),
+                            kind, log_value)
+                    else:
+                        log['/'.join((self._global_prepend,) + key)] = \
+                            log_value
+            else:
+                pass
+        return log
 
-        .. versionadded:: 2.7
-        """
-        return self.cpp_analyzer.user_log;
+    def _write_frame(self, _gsd):
+        _gsd.writeLogQuantities(self.log())
+
+    def _log_special(self, dict_, key, value):
+        if key == 'type_shapes':
+            shape_list = [bytes(json.dumps(type_shape) + '\0', 'UTF-8')
+                          for type_shape in value]
+            max_len = np.max([len(shape) for shape in shape_list])
+            num_shapes = len(shape_list)
+            str_array = np.array(shape_list)
+            dict_['particles/type_shapes'] = \
+                str_array.view(dtype=np.int8).reshape(num_shapes, max_len)
+
+    def _log_convert_value(self, dict_, key, kind, value):
+        if kind == 'string':
+            value = bytes(value, 'UTF-8')
+            value = np.array([value], dtype=np.dtype((bytes, len(value) + 1)))
+            value = value.view(dtype=np.int8)
+        if kind == 'strings':
+            value = [bytes(v + '\0', 'UTF-8') for v in value]
+            max_len = np.max([len(string) for string in value])
+            num_strings = len(value)
+            value = np.array(value)
+            value = value.view(dtype=np.int8).reshape(num_strings, max_len)
+        dict_[key] = value

@@ -145,14 +145,7 @@ class PYBIND11_EXPORT SystemDefinition
 
         //! Return a snapshot of the current system data
         template <class Real>
-        std::shared_ptr< SnapshotSystemData<Real> > takeSnapshot(bool particles= true,
-                                                           bool bonds = false,
-                                                           bool angles = false,
-                                                           bool dihedrals = false,
-                                                           bool impropers = false,
-                                                           bool constraints = false,
-                                                           bool integrators = false,
-                                                           bool pairs = false);
+        std::shared_ptr< SnapshotSystemData<Real> > takeSnapshot();
 
         //! Re-initialize the system from a snapshot
         template <class Real>

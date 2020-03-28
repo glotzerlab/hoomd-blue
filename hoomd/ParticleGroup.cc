@@ -17,52 +17,37 @@
 using namespace std;
 namespace py = pybind11;
 
-/*! \file ParticleGroup.cc
-    \brief Defines the ParticleGroup and related classes
-*/
-
-//////////////////////////////////////////////////////////////////////////////
-// ParticleSelector
-
 /*! \param sysdef System the particles are to be selected from
 */
-ParticleSelector::ParticleSelector(std::shared_ptr<SystemDefinition> sysdef)
-    : m_sysdef(sysdef), m_pdata(sysdef->getParticleData())
+ParticleFilter::ParticleFilter()
     {
-    assert(m_sysdef);
-    assert(m_pdata);
-    m_exec_conf = m_pdata->getExecConf();
     }
 
 /*! \param tag Tag of the particle to check
     \returns true if the particle is selected
     \returns false if it is not
 */
-std::vector<unsigned int> ParticleSelector::getSelectedTags() const
+std::vector<unsigned int> ParticleFilter::getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const
     {
     // base class doesn't do anything useful
     return std::vector<unsigned int>();
     }
 
-//////////////////////////////////////////////////////////////////////////////
-// ParticleSelectorAll
-
-/*! \param sysdef System the particles are to be selected from
-*/
-ParticleSelectorAll::ParticleSelectorAll(std::shared_ptr<SystemDefinition> sysdef)
-    : ParticleSelector(sysdef)
+ParticleFilterAll::ParticleFilterAll()
+    : ParticleFilter()
     { }
 
 /*! \param tag All of the particle to check
     \returns true if particle is local
 */
-std::vector<unsigned int> ParticleSelectorAll::getSelectedTags() const
+std::vector<unsigned int> ParticleFilterAll::getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const
     {
     std::vector<unsigned int> member_tags;
+    auto pdata = sysdef->getParticleData();
 
     // loop through local particles and select those that match selection criterion
-    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-    for (unsigned int idx = 0; idx < m_pdata->getN(); ++idx)
+    ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::read);
+    for (unsigned int idx = 0; idx < pdata->getN(); ++idx)
         {
         unsigned int tag = h_tag.data[idx];
         member_tags.push_back(tag);
@@ -72,79 +57,55 @@ std::vector<unsigned int> ParticleSelectorAll::getSelectedTags() const
     }
 
 //////////////////////////////////////////////////////////////////////////////
-// ParticleSelectorTag
+// ParticleFilterTags
 
-/*! \param sysdef System the particles are to be selected from
-    \param tag_min Minimum tag to select (inclusive)
-    \param tag_max Maximum tag to select (inclusive)
+/** Args:
+        tags: numpy array of tags to select
 */
-ParticleSelectorTag::ParticleSelectorTag(std::shared_ptr<SystemDefinition> sysdef,
-                                         unsigned int tag_min,
-                                         unsigned int tag_max)
-    : ParticleSelector(sysdef), m_tag_min(tag_min), m_tag_max(tag_max)
+ParticleFilterTags::ParticleFilterTags(std::vector<unsigned int> tags)
+    : ParticleFilter(), m_tags(tags)
     {
-    // make a quick check on the sanity of the input data
-    if (m_tag_max < m_tag_min)
-        m_exec_conf->msg->warning() << "group: max < min specified when selecting particle tags" << endl;
+    }
 
-    if (!m_pdata->getNGlobal() || m_tag_max > m_pdata->getMaximumTag())
-        {
-        m_exec_conf->msg->error() << "Cannot select particles with tags larger than the number of particles "
-             << endl;
-        throw runtime_error("Error selecting particles");
-        }
+/** Args:
+        tags: numpy array of tags to select
+*/
+ParticleFilterTags::ParticleFilterTags(pybind11::array_t<unsigned int, pybind11::array::c_style> tags)
+    : ParticleFilter()
+    {
+	unsigned int* tags_ptr = (unsigned int*)m_tags.data();
+    m_tags.assign(tags_ptr, tags_ptr+m_tags.size());
     }
 
 /*! \param tag Tag of the particle to check
     \returns true if \a m_tag_min <= \a tag <= \a m_tag_max
 */
-std::vector<unsigned int> ParticleSelectorTag::getSelectedTags() const
+std::vector<unsigned int> ParticleFilterTags::getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const
     {
-    std::vector<unsigned int> member_tags;
-
-    // loop through local particles and select those that match selection criterion
-    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-    for (unsigned int idx = 0; idx < m_pdata->getN(); ++idx)
-        {
-        unsigned int tag = h_tag.data[idx];
-        if (tag >= m_tag_min && tag <= m_tag_max)
-            member_tags.push_back(tag);
-        }
-
-    return member_tags;
+	return m_tags;
     }
 
-//////////////////////////////////////////////////////////////////////////////
-// ParticleSelectorType
-
-/*! \param sysdef System the particles are to be selected from
-    \param typ_min Minimum type id to select (inclusive)
+/*! \param typ_min Minimum type id to select (inclusive)
     \param typ_max Maximum type id to select (inclusive)
 */
-ParticleSelectorType::ParticleSelectorType(std::shared_ptr<SystemDefinition> sysdef,
-                                           unsigned int typ_min,
+ParticleFilterType::ParticleFilterType(unsigned int typ_min,
                                            unsigned int typ_max)
-    : ParticleSelector(sysdef), m_typ_min(typ_min), m_typ_max(typ_max)
+    : ParticleFilter(), m_typ_min(typ_min), m_typ_max(typ_max)
     {
-    // make a quick check on the sanity of the input data
-    if (m_typ_max < m_typ_min)
-        m_exec_conf->msg->warning() << "group: max < min specified when selecting particle types" << endl;
-
-    if (m_typ_max >= m_pdata->getNTypes())
-        m_exec_conf->msg->warning() << "group: Requesting the selection of a non-existent particle type" << endl;
     }
 
 /*! \param tag Tag of the particle to check
     \returns true if the type of particle \a tag is in the inclusive range [ \a m_typ_min, \a m_typ_max ]
 */
-std::vector<unsigned int> ParticleSelectorType::getSelectedTags() const
+std::vector<unsigned int> ParticleFilterType::getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const
     {
     std::vector<unsigned int> member_tags;
+    auto pdata = sysdef->getParticleData();
 
     // loop through local particles and select those that match selection criterion
-    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
-    for (unsigned int idx = 0; idx < m_pdata->getN(); ++idx)
+    ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_postype(pdata->getPositions(), access_location::host, access_mode::read);
+    for (unsigned int idx = 0; idx < pdata->getN(); ++idx)
         {
         unsigned int tag = h_tag.data[idx];
         unsigned int typ = __scalar_as_int(h_postype.data[idx].w);
@@ -154,30 +115,26 @@ std::vector<unsigned int> ParticleSelectorType::getSelectedTags() const
     return member_tags;
     }
 
-
-//////////////////////////////////////////////////////////////////////////////
-// ParticleSelectorBody
-
 /*! \param sysdef System the particles are to be selected from
     \param rigid true selects particles that are in bodies, false selects particles that are not part of a body
 */
-ParticleSelectorBody::ParticleSelectorBody(std::shared_ptr<SystemDefinition> sysdef,
-                                             bool body)
-    : ParticleSelector(sysdef), m_body(body)
+ParticleFilterBody::ParticleFilterBody(bool body)
+    : ParticleFilter(), m_body(body)
     {
     }
 
 /*! \param tag Tag of the particle to check
     \returns true if the type of particle \a tag meets the body criteria selected
 */
-std::vector<unsigned int> ParticleSelectorBody::getSelectedTags() const
+std::vector<unsigned int> ParticleFilterBody::getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const
     {
     std::vector<unsigned int> member_tags;
+    auto pdata = sysdef->getParticleData();
 
     // loop through local particles and select those that match selection criterion
-    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
-    for (unsigned int idx = 0; idx < m_pdata->getN(); ++idx)
+    ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(pdata->getBodies(), access_location::host, access_mode::read);
+    for (unsigned int idx = 0; idx < pdata->getN(); ++idx)
         {
         unsigned int tag = h_tag.data[idx];
 
@@ -199,28 +156,27 @@ std::vector<unsigned int> ParticleSelectorBody::getSelectedTags() const
 
 
 //////////////////////////////////////////////////////////////////////////////
-// ParticleSelectorRigid
+// ParticleFilterRigid
 
-/*! \param sysdef System the particles are to be selected from
-    \param rigid true selects particles that are in rigid bodies, false selects particles that are not part of a rigid body
+/*! \param rigid true selects particles that are in rigid bodies, false selects particles that are not part of a rigid body
 */
-ParticleSelectorRigid::ParticleSelectorRigid(std::shared_ptr<SystemDefinition> sysdef,
-                                             bool rigid)
-    : ParticleSelector(sysdef), m_rigid(rigid)
+ParticleFilterRigid::ParticleFilterRigid(bool rigid)
+    : ParticleFilter(), m_rigid(rigid)
     {
     }
 
 /*! \param tag Tag of the particle to check
     \returns true if the type of particle \a tag meets the rigid criteria selected
 */
-std::vector<unsigned int> ParticleSelectorRigid::getSelectedTags() const
+std::vector<unsigned int> ParticleFilterRigid::getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const
     {
     std::vector<unsigned int> member_tags;
+    auto pdata = sysdef->getParticleData();
 
     // loop through local particles and select those that match selection criterion
-    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
-    for (unsigned int idx = 0; idx < m_pdata->getN(); ++idx)
+    ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(pdata->getBodies(), access_location::host, access_mode::read);
+    for (unsigned int idx = 0; idx < pdata->getN(); ++idx)
         {
         unsigned int tag = h_tag.data[idx];
 
@@ -242,28 +198,27 @@ std::vector<unsigned int> ParticleSelectorRigid::getSelectedTags() const
 
 
 //////////////////////////////////////////////////////////////////////////////
-// ParticleSelectorFloppy
+// ParticleFilterFloppy
 
-/*! \param sysdef System the particles are to be selected from
-    \param floppy true selects particles that are in floppy bodies, false selects particles that are not part of a floppy (non-rigid body)
+/*! \param floppy true selects particles that are in floppy bodies, false selects particles that are not part of a floppy (non-rigid body)
 */
-ParticleSelectorFloppy::ParticleSelectorFloppy(std::shared_ptr<SystemDefinition> sysdef,
-                                             bool floppy)
-    : ParticleSelector(sysdef), m_floppy(floppy)
+ParticleFilterFloppy::ParticleFilterFloppy(bool floppy)
+    : ParticleFilter(), m_floppy(floppy)
     {
     }
 
 /*! \param tag Tag of the particle to check
     \returns true if the type of particle \a tag meets the rigid criteria selected
 */
-std::vector<unsigned int> ParticleSelectorFloppy::getSelectedTags() const
+std::vector<unsigned int> ParticleFilterFloppy::getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const
     {
     std::vector<unsigned int> member_tags;
+    auto pdata = sysdef->getParticleData();
 
     // loop through local particles and select those that match selection criterion
-    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
-    for (unsigned int idx = 0; idx < m_pdata->getN(); ++idx)
+    ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(pdata->getBodies(), access_location::host, access_mode::read);
+    for (unsigned int idx = 0; idx < pdata->getN(); ++idx)
         {
         unsigned int tag = h_tag.data[idx];
 
@@ -283,26 +238,22 @@ std::vector<unsigned int> ParticleSelectorFloppy::getSelectedTags() const
     return member_tags;
     }
 
-
-//////////////////////////////////////////////////////////////////////////////
-// ParticleSelectorRigidCenter
-
-ParticleSelectorRigidCenter::ParticleSelectorRigidCenter(std::shared_ptr<SystemDefinition> sysdef)
-    :ParticleSelector(sysdef)
+ParticleFilterRigidCenter::ParticleFilterRigidCenter()
+    :ParticleFilter()
     {
     }
 
-/*! \param tag Tag of the particle to check
-    \returns true if the type of particle \a tag is a center particle of a rigid body
+/*! \returns true if the type of particle \a tag is a center particle of a rigid body
 */
-std::vector<unsigned int> ParticleSelectorRigidCenter::getSelectedTags() const
+std::vector<unsigned int> ParticleFilterRigidCenter::getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const
     {
     std::vector<unsigned int> member_tags;
+    auto pdata = sysdef->getParticleData();
 
     // loop through local particles and select those that match selection criterion
-    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
-    for (unsigned int idx = 0; idx < m_pdata->getN(); ++idx)
+    ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(pdata->getBodies(), access_location::host, access_mode::read);
+    for (unsigned int idx = 0; idx < pdata->getN(); ++idx)
         {
         unsigned int tag = h_tag.data[idx];
 
@@ -315,16 +266,9 @@ std::vector<unsigned int> ParticleSelectorRigidCenter::getSelectedTags() const
     return member_tags;
     }
 
-
-//////////////////////////////////////////////////////////////////////////////
-// ParticleSelectorCuboid
-
-ParticleSelectorCuboid::ParticleSelectorCuboid(std::shared_ptr<SystemDefinition> sysdef, Scalar3 min, Scalar3 max)
-    :ParticleSelector(sysdef), m_min(min), m_max(max)
+ParticleFilterCuboid::ParticleFilterCuboid(Scalar3 min, Scalar3 max)
+    : ParticleFilter(), m_min(min), m_max(max)
     {
-    // make a quick check on the sanity of the input data
-    if (m_min.x >= m_max.x || m_min.y >= m_max.y || m_min.z >= m_max.z)
-        m_exec_conf->msg->warning() << "group: max < min specified when selecting particle in a cuboid" << endl;
     }
 
 /*! \param tag Tag of the particle to check
@@ -333,14 +277,15 @@ ParticleSelectorCuboid::ParticleSelectorCuboid(std::shared_ptr<SystemDefinition>
     Evaluation is performed by \a m_min.x <= x < \a m_max.x so that multiple cuboids stacked next to each other
     do not have overlapping sets of particles.
 */
-std::vector<unsigned int> ParticleSelectorCuboid::getSelectedTags() const
+std::vector<unsigned int> ParticleFilterCuboid::getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const
     {
     std::vector<unsigned int> member_tags;
+    auto pdata = sysdef->getParticleData();
 
     // loop through local particles and select those that match selection criterion
-    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
-    for (unsigned int idx = 0; idx < m_pdata->getN(); ++idx)
+    ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_postype(pdata->getPositions(), access_location::host, access_mode::read);
+    for (unsigned int idx = 0; idx < pdata->getN(); ++idx)
         {
         unsigned int tag = h_tag.data[idx];
         // get position of particle
@@ -361,13 +306,13 @@ std::vector<unsigned int> ParticleSelectorCuboid::getSelectedTags() const
 // ParticleGroup
 
 /*! \param sysdef System definition to build the group from
-    \param selector ParticleSelector used to choose the group members
+    \param selector ParticleFilter used to choose the group members
     \param update_tags If true, update tags whenever global particle number changes
 
     Particles where criteria falls within the range [min,max] (inclusive) are added to the group.
 */
 ParticleGroup::ParticleGroup(std::shared_ptr<SystemDefinition> sysdef,
-    std::shared_ptr<ParticleSelector> selector,
+    std::shared_ptr<ParticleFilter> selector,
     bool update_tags)
     : m_sysdef(sysdef),
       m_pdata(sysdef->getParticleData()),
@@ -524,7 +469,7 @@ void ParticleGroup::updateMemberTags(bool force_update) const
 
         // assign all of the particles that belong to the group
         // for each particle in the (global) data
-        vector<unsigned int> member_tags = m_selector->getSelectedTags();
+        vector<unsigned int> member_tags = m_selector->getSelectedTags(m_sysdef);
 
         #ifdef ENABLE_MPI
         if (m_pdata->getDomainDecomposition())
@@ -927,8 +872,8 @@ void ParticleGroup::rebuildIndexListGPU() const
 void export_ParticleGroup(py::module& m)
     {
     py::class_<ParticleGroup, std::shared_ptr<ParticleGroup> >(m,"ParticleGroup")
-            .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleSelector>, bool >())
-            .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleSelector> >())
+            .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleFilter>, bool >())
+            .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleFilter> >())
             .def(py::init<std::shared_ptr<SystemDefinition>, const std::vector<unsigned int>& >())
             .def(py::init<>())
             .def("getNumMembersGlobal", &ParticleGroup::getNumMembersGlobal)
@@ -941,41 +886,41 @@ void export_ParticleGroup(py::module& m)
             .def("updateMemberTags", &ParticleGroup::updateMemberTags)
             ;
 
-    py::class_<ParticleSelector, std::shared_ptr<ParticleSelector> >(m,"ParticleSelector")
-            .def(py::init< std::shared_ptr<SystemDefinition> >())
-            .def("getSelectedTags", &ParticleSelector::getSelectedTags)
+    py::class_<ParticleFilter, std::shared_ptr<ParticleFilter> >(m,"ParticleFilter")
+            .def(py::init< >())
+            .def("_get_selected_tags", &ParticleFilter::getSelectedTags)
             ;
 
-    py::class_<ParticleSelectorAll, ParticleSelector, std::shared_ptr<ParticleSelectorAll> >(m,"ParticleSelectorAll")
-            .def(py::init< std::shared_ptr<SystemDefinition> >())
+    py::class_<ParticleFilterAll, ParticleFilter, std::shared_ptr<ParticleFilterAll> >(m,"ParticleFilterAll")
+            .def(py::init< >())
         ;
 
-    py::class_<ParticleSelectorTag, ParticleSelector, std::shared_ptr<ParticleSelectorTag> >(m,"ParticleSelectorTag")
-            .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int, unsigned int >())
+    py::class_<ParticleFilterTags, ParticleFilter, std::shared_ptr<ParticleFilterTags> >(m,"ParticleFilterTags")
+			.def(py::init<pybind11::array_t<unsigned int, pybind11::array::c_style> >())
         ;
 
-    py::class_<ParticleSelectorType, ParticleSelector, std::shared_ptr<ParticleSelectorType> >(m,"ParticleSelectorType")
-            .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int, unsigned int >())
+    py::class_<ParticleFilterType, ParticleFilter, std::shared_ptr<ParticleFilterType> >(m,"ParticleFilterType")
+            .def(py::init< unsigned int, unsigned int >())
         ;
 
-    py::class_<ParticleSelectorRigid, ParticleSelector, std::shared_ptr<ParticleSelectorRigid> >(m,"ParticleSelectorRigid")
-            .def(py::init< std::shared_ptr<SystemDefinition>, bool >())
+    py::class_<ParticleFilterRigid, ParticleFilter, std::shared_ptr<ParticleFilterRigid> >(m,"ParticleFilterRigid")
+            .def(py::init< bool >())
         ;
 
-    py::class_<ParticleSelectorBody, ParticleSelector, std::shared_ptr<ParticleSelectorBody> >(m,"ParticleSelectorBody")
+    py::class_<ParticleFilterBody, ParticleFilter, std::shared_ptr<ParticleFilterBody> >(m,"ParticleFilterBody")
 
-            .def(py::init< std::shared_ptr<SystemDefinition>, bool >())
+            .def(py::init< bool >())
         ;
 
-    py::class_<ParticleSelectorFloppy, ParticleSelector, std::shared_ptr<ParticleSelectorFloppy> >(m,"ParticleSelectorFloppy")
-            .def(py::init< std::shared_ptr<SystemDefinition>, bool >())
+    py::class_<ParticleFilterFloppy, ParticleFilter, std::shared_ptr<ParticleFilterFloppy> >(m,"ParticleFilterFloppy")
+            .def(py::init< bool >())
         ;
 
-    py::class_<ParticleSelectorCuboid, ParticleSelector, std::shared_ptr<ParticleSelectorCuboid> >(m,"ParticleSelectorCuboid")
-            .def(py::init< std::shared_ptr<SystemDefinition>, Scalar3, Scalar3 >())
+    py::class_<ParticleFilterCuboid, ParticleFilter, std::shared_ptr<ParticleFilterCuboid> >(m,"ParticleFilterCuboid")
+            .def(py::init< Scalar3, Scalar3 >())
         ;
 
-    py::class_<ParticleSelectorRigidCenter, ParticleSelector, std::shared_ptr<ParticleSelectorRigidCenter> >(m,"ParticleSelectorRigidCenter")
-            .def(py::init< std::shared_ptr<SystemDefinition> >())
+    py::class_<ParticleFilterRigidCenter, ParticleFilter, std::shared_ptr<ParticleFilterRigidCenter> >(m,"ParticleFilterRigidCenter")
+            .def(py::init< >())
         ;
     }

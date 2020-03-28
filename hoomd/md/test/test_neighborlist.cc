@@ -49,7 +49,13 @@ void neighborlist_basic_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
     // test construction of the neighborlist
     std::shared_ptr<NeighborList> nlist_2(new NL(sysdef_2, 3.0, 0.25));
-    nlist_2->setRCutPair(0,0,3.0);
+    auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist_2->getTypePairIndexer().getNumElements(),
+                                               exec_conf);
+        {
+        ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+        h_r_cut.data[0] = 3.0;
+        }
+    nlist_2->addRCutMatrix(r_cut);
     nlist_2->compute(1);
 
     // with the given radius, there should be no neighbors: check that
@@ -61,7 +67,11 @@ void neighborlist_basic_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
         }
 
     // adjust the radius to include the particles and see if we get some now
-    nlist_2->setRCutPair(0,0,5.5);
+        {
+        ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+        h_r_cut.data[0] = 5.5;
+        nlist_2->notifyRCutMatrixChange();
+        }
     nlist_2->compute(2);
     // some neighbor lists default to full because they don't support half: ignore them
     if (nlist_2->getStorageMode() == NeighborList::half)
@@ -77,7 +87,11 @@ void neighborlist_basic_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
     // change to full mode to check that
     nlist_2->setStorageMode(NeighborList::full);
-    nlist_2->setRCutPair(0,0,5.5);
+        {
+        ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+        h_r_cut.data[0] = 5.5;
+        nlist_2->notifyRCutMatrixChange();
+        }
     nlist_2->setRBuff(0.5);
     nlist_2->compute(3);
         {
@@ -116,7 +130,12 @@ void neighborlist_basic_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
     }
 
     std::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.25));
-    nlist_6->setRCutPair(0,0,3.0);
+    nlist_6->addRCutMatrix(r_cut);
+        {
+        ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+        h_r_cut.data[0] = 3.0;
+        nlist_6->notifyRCutMatrixChange();
+        }
     nlist_6->setStorageMode(NeighborList::full);
     nlist_6->compute(0);
     // verify the neighbor list
@@ -242,9 +261,17 @@ void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> e
 
     std::shared_ptr<NeighborList> nlist_3(new NL(sysdef_3, 3.0, 0.25));
     nlist_3->setStorageMode(NeighborList::full);
-    nlist_3->setRCutPair(0,0,1.0);
-    nlist_3->setRCutPair(1,1,3.0);
-    nlist_3->setRCutPair(0,1,2.0);
+    Index2D type_pair_idx = nlist_3->getTypePairIndexer();
+    auto r_cut = std::make_shared<GlobalArray<Scalar>>(type_pair_idx.getNumElements(),
+                                               exec_conf);
+        {
+        ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+        h_r_cut.data[type_pair_idx(0,0)] = 1.0;
+        h_r_cut.data[type_pair_idx(1,1)] = 3.0;
+        h_r_cut.data[type_pair_idx(0,1)] = 2.0;
+        h_r_cut.data[type_pair_idx(1,0)] = 2.0;
+        }
+    nlist_3->addRCutMatrix(r_cut);
     nlist_3->compute(0);
     // 1 is neighbor of 0 but not of 2
         {
@@ -262,7 +289,12 @@ void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> e
         }
 
     // now change the cutoff so that 2 is neighbors with 0 but not 1
-    nlist_3->setRCutPair(1,1,3.5);
+        {
+        ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+        h_r_cut.data[type_pair_idx(1,1)] = 3.5;
+        nlist_3->notifyRCutMatrixChange();
+        }
+
     nlist_3->compute(1);
         {
         ArrayHandle<unsigned int> h_n_neigh(nlist_3->getNNeighArray(), access_location::host, access_mode::read);
@@ -289,7 +321,13 @@ void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> e
         }
 
     // now change the cutoff so that all are neighbors
-    nlist_3->setRCutPair(0,1,2.5);
+        {
+        ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+        h_r_cut.data[type_pair_idx(0,1)] = 2.5;
+        h_r_cut.data[type_pair_idx(1,0)] = 2.5;
+        nlist_3->notifyRCutMatrixChange();
+        }
+
     nlist_3->compute(20);
         {
         ArrayHandle<unsigned int> h_n_neigh(nlist_3->getNNeighArray(), access_location::host, access_mode::read);
@@ -333,9 +371,18 @@ void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> e
         }
 
     std::shared_ptr<NeighborList> nlist_18(new NL(sysdef_18, 3.0, 0.05));
-    nlist_18->setRCutPair(0,0,1.0);
-    nlist_18->setRCutPair(1,1,1.0);
-    nlist_18->setRCutPair(0,1,1.0);
+    type_pair_idx = nlist_18->getTypePairIndexer();
+    r_cut = std::make_shared<GlobalArray<Scalar>>(type_pair_idx.getNumElements(),
+                                          exec_conf);
+
+        {
+        ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+        h_r_cut.data[type_pair_idx(0,0)] = 1.0;
+        h_r_cut.data[type_pair_idx(1,1)] = 1.0;
+        h_r_cut.data[type_pair_idx(0,1)] = 1.0;
+        h_r_cut.data[type_pair_idx(1,0)] = 1.0;
+        }
+    nlist_18->addRCutMatrix(r_cut);
     nlist_18->setStorageMode(NeighborList::full);
     nlist_18->compute(0);
     // 0-2 have 15 neighbors, 3 and 16 have no neighbors, and all others have 4 neighbors
@@ -438,6 +485,21 @@ void neighborlist_type_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
         }
 
     std::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.1));
+    Index2D type_pair_idx = nlist_6->getTypePairIndexer();
+    auto r_cut = std::make_shared<GlobalArray<Scalar>>(type_pair_idx.getNumElements(),
+                                               exec_conf);
+        {
+        ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+        for (unsigned int i = 0; i < 4; i++)
+            {
+            for (unsigned int j = 0; j < 4; j++)
+                {
+                h_r_cut.data[type_pair_idx(i,j)] = 3.0;
+                }
+            }
+        }
+    nlist_6->addRCutMatrix(r_cut);
+
     nlist_6->setStorageMode(NeighborList::full);
     nlist_6->compute(0);
 
@@ -484,7 +546,21 @@ void neighborlist_type_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
     // add a new type
     pdata_6->addType("E");
-    nlist_6->setRCut(3.0, 0.1); // update the rcut for the new type
+    // update the rcut for the new type
+    type_pair_idx = nlist_6->getTypePairIndexer();
+    r_cut->resize(type_pair_idx.getNumElements());
+        {
+        ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+        for (unsigned int i = 0; i < 5; i++)
+            {
+            for (unsigned int j = 0; j < 5; j++)
+                {
+                h_r_cut.data[type_pair_idx(i,j)] = 3.0;
+                }
+            }
+        }
+    nlist_6->notifyRCutMatrixChange();
+
     nlist_6->compute(10);
     // result is unchanged
         {
@@ -530,7 +606,21 @@ void neighborlist_type_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
     // add two more empty types
     pdata_6->addType("F");
     pdata_6->addType("G");
-    nlist_6->setRCut(3.0, 0.1); // update the rcut for the new type
+    // update the rcut for the new type
+    type_pair_idx = nlist_6->getTypePairIndexer();
+    r_cut->resize(type_pair_idx.getNumElements());
+        {
+        ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+        for (unsigned int i = 0; i < 7; i++)
+            {
+            for (unsigned int j = 0; j < 7; j++)
+                {
+                h_r_cut.data[type_pair_idx(i,j)] = 3.0;
+                }
+            }
+        }
+    nlist_6->notifyRCutMatrixChange();
+
     nlist_6->compute(20);
     // result is unchanged
         {
@@ -574,12 +664,30 @@ void neighborlist_type_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
         }
 
     pdata_6->addType("H");
-    nlist_6->setRCut(3.0,0.1);
-    // disable the interaction between type 6 and all other particles
-    for (unsigned int cur_type = 0; cur_type < pdata_6->getNTypes(); ++cur_type)
+    type_pair_idx = nlist_6->getTypePairIndexer();
+    r_cut->resize(type_pair_idx.getNumElements());
         {
-        nlist_6->setRCutPair(6, cur_type, -1.0);
+        ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+
+        // set r_cut to 3.0 for all type pairs
+        for (unsigned int i = 0; i < 8; i++)
+            {
+            for (unsigned int j = 0; j < 8; j++)
+                {
+                h_r_cut.data[type_pair_idx(i,j)] = 3.0;
+                }
+            }
+
+        // then disable the interaction between type 6 and all other particles
+        for (unsigned int cur_type = 0; cur_type < pdata_6->getNTypes(); ++cur_type)
+            {
+            h_r_cut.data[type_pair_idx(6,cur_type)] = -1.0;
+            h_r_cut.data[type_pair_idx(cur_type,6)] = -1.0;
+            }
+
         }
+    nlist_6->notifyRCutMatrixChange();
+
     // shuffle all of the particle types and retest
         {
         ArrayHandle<Scalar4> h_pos(pdata_6->getPositions(), access_location::host, access_mode::readwrite);
@@ -658,7 +766,14 @@ void neighborlist_exclusion_tests(std::shared_ptr<ExecutionConfiguration> exec_c
     }
 
     std::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.25));
-    nlist_6->setRCutPair(0,0,3.0);
+    auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist_6->getTypePairIndexer().getNumElements(),
+                                               exec_conf);
+        {
+        ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+        h_r_cut.data[0] = 3.0;
+        }
+    nlist_6->addRCutMatrix(r_cut);
+
     nlist_6->setStorageMode(NeighborList::full);
     nlist_6->addExclusion(0,1);
     nlist_6->addExclusion(0,2);
@@ -732,7 +847,14 @@ void neighborlist_body_filter_tests(std::shared_ptr<ExecutionConfiguration> exec
     }
 
     std::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.25));
-    nlist_6->setRCutPair(0,0,3.0);
+    auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist_6->getTypePairIndexer().getNumElements(),
+                                               exec_conf);
+        {
+        ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+        h_r_cut.data[0] = 3.0;
+        }
+    nlist_6->addRCutMatrix(r_cut);
+
     nlist_6->setFilterBody(true);
     nlist_6->setStorageMode(NeighborList::full);
 
@@ -806,7 +928,14 @@ void neighborlist_diameter_shift_tests(std::shared_ptr<ExecutionConfiguration> e
 
     // test construction of the neighborlist
     std::shared_ptr<NeighborList> nlist_2(new NL(sysdef_3, 1.5, 0.5));
-    nlist_2->setRCutPair(0,0,1.5);
+    auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist_2->getTypePairIndexer().getNumElements(),
+                                               exec_conf);
+        {
+        ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+        h_r_cut.data[0] = 1.5;
+        }
+    nlist_2->addRCutMatrix(r_cut);
+
     nlist_2->compute(1);
     nlist_2->setStorageMode(NeighborList::full);
 
@@ -874,7 +1003,14 @@ void neighborlist_diameter_shift_periodic_tests(std::shared_ptr<ExecutionConfigu
 
     // test construction of the neighborlist
     std::shared_ptr<NeighborList> nlist_2(new NL(sysdef_3, 1.5, 0.5));
-    nlist_2->setRCutPair(0,0,1.5);
+    auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist_2->getTypePairIndexer().getNumElements(),
+                                               exec_conf);
+        {
+        ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+        h_r_cut.data[0] = 1.5;
+        }
+    nlist_2->addRCutMatrix(r_cut);
+
     nlist_2->compute(1);
     nlist_2->setStorageMode(NeighborList::full);
 
@@ -931,11 +1067,17 @@ void neighborlist_comparison_test(std::shared_ptr<ExecutionConfiguration> exec_c
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     std::shared_ptr<NeighborList> nlist1(new NLA(sysdef, Scalar(3.0), Scalar(0.4)));
-    nlist1->setRCutPair(0,0,3.0);
+    auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist1->getTypePairIndexer().getNumElements(),
+                                               exec_conf);
+        {
+        ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+        h_r_cut.data[0] = 3.0;
+        }
+    nlist1->addRCutMatrix(r_cut);
     nlist1->setStorageMode(NeighborList::full);
 
     std::shared_ptr<NeighborList> nlist2(new NLB(sysdef, Scalar(3.0), Scalar(0.4)));
-    nlist2->setRCutPair(0,0,3.0);
+    nlist2->addRCutMatrix(r_cut);
     nlist2->setStorageMode(NeighborList::full);
 
     // setup some exclusions: try to fill out all four exclusions for each particle
@@ -1000,7 +1142,14 @@ void neighborlist_large_ex_tests(std::shared_ptr<ExecutionConfiguration> exec_co
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     std::shared_ptr<NeighborList> nlist(new NL(sysdef, Scalar(8.0), Scalar(0.4)));
-    nlist->setRCutPair(0,0,8.0);
+    auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist->getTypePairIndexer().getNumElements(),
+                                               exec_conf);
+        {
+        ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+        h_r_cut.data[0] = 8.0;
+        }
+    nlist->addRCutMatrix(r_cut);
+
     nlist->setStorageMode(NeighborList::full);
 
     // add every single neighbor as an exclusion
@@ -1052,14 +1201,25 @@ void neighborlist_cutoff_exclude_tests(std::shared_ptr<ExecutionConfiguration> e
         }
 
     std::shared_ptr<NeighborList> nlist(new NL(sysdef_3, Scalar(-1.0), Scalar(0.4)));
-    // explicitly set the cutoff radius of each pair type to ignore
-    for (unsigned int i = 0; i < pdata_3->getNTypes(); ++i)
+    Index2D type_pair_idx = nlist->getTypePairIndexer();
+    auto r_cut = std::make_shared<GlobalArray<Scalar>>(type_pair_idx.getNumElements(),
+                                               exec_conf);
         {
-        for (unsigned int j = i; j < pdata_3->getNTypes(); ++j)
+        ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+        // Ignore all interactions
+        for (unsigned int i = 0; i < pdata_3->getNTypes(); ++i)
             {
-            nlist->setRCutPair(i,j,-1.0);
+            for (unsigned int j = i; j < pdata_3->getNTypes(); ++j)
+                {
+                h_r_cut.data[type_pair_idx(i,j)] = -1.0;
+                h_r_cut.data[type_pair_idx(j,i)] = -1.0;
+                }
             }
+
+        h_r_cut.data[0] = 3.0;
         }
+    nlist->addRCutMatrix(r_cut);
+
     nlist->setStorageMode(NeighborList::full);
 
     // compute the neighbor list, each particle should have no neighbors
@@ -1071,11 +1231,17 @@ void neighborlist_cutoff_exclude_tests(std::shared_ptr<ExecutionConfiguration> e
         CHECK_EQUAL_UINT(h_n_neigh.data[2], 0);
         }
 
-    // turn on cross interaction with B particle
-    for (unsigned int i=0; i < pdata_3->getNTypes(); ++i)
         {
-        nlist->setRCutPair(1, i, 1.0);
+        ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+        // turn on cross interaction with B particle
+        for (unsigned int i=0; i < pdata_3->getNTypes(); ++i)
+            {
+            h_r_cut.data[type_pair_idx(1,i)] = 1.0;
+            h_r_cut.data[type_pair_idx(i,1)] = 1.0;
+            }
         }
+    nlist->notifyRCutMatrixChange();
+
     nlist->compute(1);
         {
         ArrayHandle<unsigned int> h_n_neigh(nlist->getNNeighArray(), access_location::host, access_mode::read);
@@ -1101,8 +1267,16 @@ void neighborlist_cutoff_exclude_tests(std::shared_ptr<ExecutionConfiguration> e
         }
 
     // turn A-C on and B-C off with things very close to the < 0.0 criterion as a pathological case
-    nlist->setRCutPair(0, 2, 0.00001);
-    nlist->setRCutPair(1, 2, -0.00001);
+        {
+        ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+        h_r_cut.data[type_pair_idx(0,2)] = 0.00001;
+        h_r_cut.data[type_pair_idx(2,0)] = 0.00001;
+
+        h_r_cut.data[type_pair_idx(1,2)] = -0.00001;
+        h_r_cut.data[type_pair_idx(2,1)] = -0.00001;
+        }
+    nlist->notifyRCutMatrixChange();
+
     nlist->compute(3);
         {
         ArrayHandle<unsigned int> h_n_neigh(nlist->getNNeighArray(), access_location::host, access_mode::read);
@@ -1138,7 +1312,14 @@ void neighborlist_2d_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
     auto pdata = sysdef->getParticleData();
 
     auto nlist = std::make_shared<NL>(sysdef, 3.0, 0.25);
-    nlist->setRCutPair(0,0,3.0);
+    auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist->getTypePairIndexer().getNumElements(),
+                                               exec_conf);
+        {
+        ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+        h_r_cut.data[0] = 3.0;
+        }
+    nlist->addRCutMatrix(r_cut);
+
     nlist->setStorageMode(NeighborList::full);
 
     // non-interacting inside the box

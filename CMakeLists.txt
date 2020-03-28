@@ -4,6 +4,9 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.9 FATAL_ERROR)
 
 project (HOOMD LANGUAGES C CXX)
 
+# enlble compile_commands.json output
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 include(GNUInstallDirs)
 
 # bring in custom modules

@@ -6,13 +6,13 @@
 
 from . import _hpmc
 from . import integrate
-from . import compute
 from hoomd import _hoomd
-
-import math
-
+from hoomd.logger import Loggable
 from hoomd.update import _updater
+from hoomd.operation import _Updater
+from hoomd.parameterdicts import ParameterDict
 import hoomd
+
 
 class boxmc(_updater):
     R""" Apply box updates to sample isobaric and related ensembles.
@@ -50,6 +50,7 @@ class boxmc(_updater):
         run(30) # perform approximately 10 volume moves and 20 length moves
 
     """
+
     def __init__(self, mc, betaP, seed):
         # initialize base class
         _updater.__init__(self);
@@ -58,7 +59,7 @@ class boxmc(_updater):
         # according to frequency parameter.
         period = 1
 
-        if not isinstance(mc, integrate.mode_hpmc):
+        if not isinstance(mc, integrate._HPMCIntegrator):
             hoomd.context.current.device.cpp_msg.warning("update.boxmc: Must have a handle to an HPMC integrator.\n");
             return;
 
@@ -395,6 +396,7 @@ class boxmc(_updater):
         self.cpp_updater.computeAspectRatios();
         _updater.enable(self);
 
+
 class wall(_updater):
     R""" Apply wall updates with a user-provided python callback.
 
@@ -504,6 +506,7 @@ class wall(_updater):
         """
         return self.cpp_updater.getTotalCount(mode);
 
+
 class muvt(_updater):
     R""" Insert and remove particles in the muVT ensemble.
 
@@ -532,7 +535,7 @@ class muvt(_updater):
     """
     def __init__(self, mc, seed, period=1, transfer_types=None,ngibbs=1):
 
-        if not isinstance(mc, integrate.mode_hpmc):
+        if not isinstance(mc, integrate._HPMCIntegrator):
             hoomd.context.current.device.cpp_msg.warning("update.muvt: Must have a handle to an HPMC integrator.\n");
             return;
 
@@ -677,6 +680,7 @@ class muvt(_updater):
         if n_trial is not None:
             self.cpp_updater.setNTrial(int(n_trial))
 
+
 class remove_drift(_updater):
     R""" Remove the center of mass drift from a system restrained on a lattice.
 
@@ -737,178 +741,171 @@ class remove_drift(_updater):
         self.cpp_updater = cls(hoomd.context.current.system_definition, external_lattice.cpp_compute, mc.cpp_integrator);
         self.setupUpdater(period);
 
-class clusters(_updater):
+
+class Clusters(_Updater):
     R""" Equilibrate the system according to the geometric cluster algorithm (GCA).
 
-    The GCA as described in Liu and Lujten (2004), http://doi.org/10.1103/PhysRevLett.92.035504 is used for hard shape,
-    patch interactions and depletants.
+    The GCA as described in Liu and Lujten (2004),
+    http://doi.org/10.1103/PhysRevLett.92.035504 is used for hard shape, patch
+    interactions and depletants.
 
-    With depletants, Clusters are defined by a simple distance cut-off criterion. Two particles belong to the same cluster if
-    the circumspheres of the depletant-excluded volumes overlap.
+    With depletants, Clusters are defined by a simple distance cut-off
+    criterion. Two particles belong to the same cluster if the circumspheres of
+    the depletant-excluded volumes overlap.
 
-    Supported moves include pivot moves (point reflection), line reflections (pi rotation around an axis), and type swaps.
-    Only the pivot move is rejection free. With anisotropic particles, the pivot move cannot be used because it would create a
-    chiral mirror image of the particle, and only line reflections are employed. Line reflections are not rejection free because
-    of periodic boundary conditions, as discussed in Sinkovits et al. (2012), http://doi.org/10.1063/1.3694271 .
+    Supported moves include pivot moves (point reflection), line reflections
+    (pi rotation around an axis), and type swaps.  Only the pivot move is
+    rejection free. With anisotropic particles, the pivot move cannot be used
+    because it would create a chiral mirror image of the particle, and only
+    line reflections are employed. Line reflections are not rejection free
+    because of periodic boundary conditions, as discussed in Sinkovits et al.
+    (2012), http://doi.org/10.1063/1.3694271 .
 
-    The type swap move works between two types of spherical particles and exchanges their identities.
+    The type swap move works between two types of spherical particles and
+    exchanges their identities.
 
-    The :py:class:`clusters` updater support TBB execution on multiple CPU cores. See :doc:`installation` for more information on how
-    to compile HOOMD with TBB support.
+    The :py:class:`Clusters` updater support TBB execution on multiple CPU
+    cores. See :doc:`installation` for more information on how to compile HOOMD
+    with TBB support.
 
     Args:
-        mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
-        seed (int): The seed of the pseudo-random number generator (Needs to be the same across partitions of the same Gibbs ensemble)
-        period (int): Number of timesteps between histogram evaluations.
+        seed (int): Random number seed.
+        swap_types(list): A pair of two types whose identities may be swapped.
+        move_ratio(float): Set the ratio between pivot and reflection moves.
+        flip_probability(float): Set the probability for transforming an
+                                 individual cluster.
+        swap_move_ratio(float): Set the ratio between type swap moves and
+                                geometric moves.
+        delta_mu(float): The chemical potential difference between types to
+                         be swapped.
+        trigger (int): Number of timesteps between histogram evaluations.
 
-    Example::
+    Examples::
 
-        mc = hpmc.integrate.sphere(seed=415236)
-        hpmc.update.clusters(mc=mc, seed=123)
+        TODO: link to example notebooks
 
     """
-    def __init__(self, mc, seed, period=1):
 
-        if not isinstance(mc, integrate.mode_hpmc):
-            hoomd.context.current.device.cpp_msg.warning("update.clusters: Must have a handle to an HPMC integrator.\n");
-            return
+    def __init__(self, seed, swap_types, move_ratio=0.5,
+                 flip_probability=0.5, swap_move_ratio=0.5, trigger=1):
+        super().__init__(trigger)
+        try:
+            if len(swap_types) != 2 and len(swap_types) != 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            raise ValueError("swap_types must be an iterable of length "
+                             "2 or 0.")
 
-        # initialize base class
-        _updater.__init__(self);
+        param_dict = ParameterDict(seed=int(seed),
+                                   swap_types=list(swap_types),
+                                   move_ratio=float(move_ratio),
+                                   flip_probability=float(flip_probability),
+                                   swap_move_ratio=float(swap_move_ratio))
+        self._param_dict.update(param_dict)
 
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            if isinstance(mc, integrate.sphere):
-               cls = _hpmc.UpdaterClustersSphere;
-            elif isinstance(mc, integrate.convex_polygon):
-                cls = _hpmc.UpdaterClustersConvexPolygon;
-            elif isinstance(mc, integrate.simple_polygon):
-                cls = _hpmc.UpdaterClustersSimplePolygon;
-            elif isinstance(mc, integrate.convex_polyhedron):
-                cls = _hpmc.UpdaterClustersConvexPolyhedron;
-            elif isinstance(mc, integrate.convex_spheropolyhedron):
-                cls = _hpmc.UpdaterClustersSpheropolyhedron;
-            elif isinstance(mc, integrate.ellipsoid):
-                cls = _hpmc.UpdaterClustersEllipsoid;
-            elif isinstance(mc, integrate.convex_spheropolygon):
-                cls =_hpmc.UpdaterClustersSpheropolygon;
-            elif isinstance(mc, integrate.faceted_sphere):
-                cls =_hpmc.UpdaterClustersFacetedEllipsoid;
-            elif isinstance(mc, integrate.sphere_union):
-                cls =_hpmc.UpdaterClustersSphereUnion;
-            elif isinstance(mc, integrate.convex_spheropolyhedron_union):
-                cls =_hpmc.UpdaterClustersConvexPolyhedronUnion;
-            elif isinstance(mc, integrate.faceted_ellipsoid_union):
-                cls =_hpmc.UpdaterClustersFacetedEllipsoidUnion;
-            elif isinstance(mc, integrate.polyhedron):
-                cls =_hpmc.UpdaterClustersPolyhedron;
-            elif isinstance(mc, integrate.sphinx):
-                cls =_hpmc.UpdaterClustersSphinx;
-            else:
-                raise RuntimeError("Unsupported integrator.\n");
+    def attach(self, simulation):
+        integrator = simulation.operations.integrator
+        if not isinstance(integrator, integrate._HPMCIntegrator):
+            raise RuntimeError("The integrator must be a HPMC integrator.")
 
-            self.cpp_updater = cls(hoomd.context.current.system_definition, mc.cpp_integrator, int(seed))
+        integrator_pairs = [
+                (integrate.Sphere,
+                    _hpmc.UpdaterClustersSphere),
+                (integrate.convex_polygon,
+                    _hpmc.UpdaterClustersConvexPolygon),
+                (integrate.simple_polygon,
+                    _hpmc.UpdaterClustersConvexPolygon),
+                (integrate.convex_polyhedron,
+                    _hpmc.UpdaterClustersConvexPolyhedron),
+                (integrate.convex_spheropolyhedron,
+                    _hpmc.UpdaterClustersSpheropolyhedron),
+                (integrate.ellipsoid,
+                    _hpmc.UpdaterClustersEllipsoid),
+                (integrate.convex_spheropolygon,
+                    _hpmc.UpdaterClustersSpheropolygon),
+                (integrate.faceted_sphere,
+                    _hpmc.UpdaterClustersFacetedEllipsoid),
+                (integrate.sphere_union,
+                    _hpmc.UpdaterClustersSphereUnion),
+                (integrate.convex_spheropolyhedron_union,
+                    _hpmc.UpdaterClustersConvexPolyhedronUnion),
+                (integrate.faceted_ellipsoid_union,
+                    _hpmc.UpdaterClustersFacetedEllipsoidUnion),
+                (integrate.polyhedron,
+                    _hpmc.UpdaterClustersPolyhedron),
+                (integrate.sphinx,
+                    _hpmc.UpdaterClustersSphinx)
+                ]
+
+        cpp_cls = None
+        for python_integrator, cpp_updater in integrator_pairs:
+            if isinstance(integrator, python_integrator):
+                cpp_cls = cpp_updater
+        if cpp_cls is None:
+            raise RuntimeError("Unsupported integrator.\n")
+
+        if not integrator.is_attached:
+            raise RuntimeError("Integrator is not attached yet.")
+        self._cpp_obj = cpp_cls(simulation.state._cpp_sys_def,
+                                integrator._cpp_obj,
+                                int(self.seed))
+        super().attach(simulation)
+
+    @property
+    def counter(self):
+        R""" Get the number of accepted and rejected cluster moves.
+
+        Returns:
+            A counter object with pivot, reflection, and swap properties. Each
+            property is a list of accepted moves and rejected moves since the
+            last run.
+
+        Note::
+            if the updater is not attached None will be returned.
+        """
+        if not self.is_attached:
+            return None
         else:
-            if isinstance(mc, integrate.sphere):
-               cls = _hpmc.UpdaterClustersGPUSphere;
-            elif isinstance(mc, integrate.convex_polygon):
-                cls = _hpmc.UpdaterClustersGPUConvexPolygon;
-            elif isinstance(mc, integrate.simple_polygon):
-                cls = _hpmc.UpdaterClustersGPUSimplePolygon;
-            elif isinstance(mc, integrate.convex_polyhedron):
-                cls = _hpmc.UpdaterClustersGPUConvexPolyhedron;
-            elif isinstance(mc, integrate.convex_spheropolyhedron):
-                cls = _hpmc.UpdaterClustersGPUSpheropolyhedron;
-            elif isinstance(mc, integrate.ellipsoid):
-                cls = _hpmc.UpdaterClustersGPUEllipsoid;
-            elif isinstance(mc, integrate.convex_spheropolygon):
-                cls =_hpmc.UpdaterClustersGPUSpheropolygon;
-            elif isinstance(mc, integrate.faceted_sphere):
-                cls =_hpmc.UpdaterClustersGPUFacetedEllipsoid;
-            elif isinstance(mc, integrate.sphere_union):
-                cls =_hpmc.UpdaterClustersGPUSphereUnion;
-            elif isinstance(mc, integrate.convex_spheropolyhedron_union):
-                cls =_hpmc.UpdaterClustersGPUConvexPolyhedronUnion;
-            elif isinstance(mc, integrate.faceted_ellipsoid_union):
-                cls =_hpmc.UpdaterClustersGPUFacetedEllipsoidUnion;
-            elif isinstance(mc, integrate.polyhedron):
-                cls =_hpmc.UpdaterClustersGPUPolyhedron;
-            elif isinstance(mc, integrate.sphinx):
-                cls =_hpmc.UpdaterClustersGPUSphinx;
-            else:
-                raise RuntimeError("Unsupported integrator.\n");
+            return self._cpp_obj.getCounters(1)
 
-            cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl3")
-            self.cpp_updater = cls(hoomd.context.current.system_definition, mc.cpp_integrator, cl_c, int(seed))
-
-        # register the clusters updater
-        self.setupUpdater(period)
-
-    def set_params(self, move_ratio=None, flip_probability=None, swap_move_ratio=None, delta_mu=None, swap_types=None):
-        R""" Set options for the clusters moves.
-
-        Args:
-            move_ratio (float): Set the ratio between pivot and reflection moves (default 0.5)
-            flip_probability (float): Set the probability for transforming an individual cluster (default 0.5)
-            swap_move_ratio (float): Set the ratio between type swap moves and geometric moves (default 0.5)
-            delta_mu (float): The chemical potential difference between types to be swapped
-            swap_types (list): A pair of two types whose identities are swapped
-
-        Note:
-            When an argument is None, the value is left unchanged from its current state.
-
-        Example::
-
-            clusters = hpmc.update.clusters(mc, seed=123)
-            clusters.set_params(move_ratio = 1.0)
-            clusters.set_params(swap_types=['A','B'], delta_mu = -0.001)
-        """
-
-
-        if move_ratio is not None:
-            self.cpp_updater.setMoveRatio(float(move_ratio))
-
-        if flip_probability is not None:
-            self.cpp_updater.setFlipProbability(float(flip_probability))
-
-        if swap_move_ratio is not None:
-            self.cpp_updater.setSwapMoveRatio(float(swap_move_ratio))
-
-        if delta_mu is not None:
-            self.cpp_updater.setDeltaMu(float(delta_mu))
-
-        if swap_types is not None:
-            my_swap_types = tuple(swap_types)
-            if len(my_swap_types) != 2:
-                hoomd.context.current.device.cpp_msg.error("update.clusters: Need exactly two types for type swap.\n");
-                raise RuntimeError("Error setting parameters in update.clusters");
-            type_A = hoomd.context.current.system_definition.getParticleData().getTypeByName(my_swap_types[0]);
-            type_B = hoomd.context.current.system_definition.getParticleData().getTypeByName(my_swap_types[1]);
-            self.cpp_updater.setSwapTypePair(type_A, type_B)
-
-    def get_pivot_acceptance(self):
-        R""" Get the average acceptance ratio for pivot moves
+    @Loggable.log(flag='multi')
+    def pivot_moves(self):
+        R""" Get a tuple with the accepted and rejected pivot moves.
 
         Returns:
-            The average acceptance rate for pivot moves during the last run
+            A tuple of (accepted moves, rejected moves) since the last run.
+            Returns (0, 0) if not attached.
         """
-        counters = self.cpp_updater.getCounters(1);
-        return counters.getPivotAcceptance();
+        counter = self.counter
+        if counter is None:
+            return (0, 0)
+        else:
+            return counter.pivot
 
-    def get_reflection_acceptance(self):
-        R""" Get the average acceptance ratio for reflection moves
+    @Loggable.log(flag='multi')
+    def reflection_moves(self):
+        R""" Get a tuple with the accepted and rejected reflection moves.
 
         Returns:
-            The average acceptance rate for reflection moves during the last run
+            A tuple of (accepted moves, rejected moves) since the last run.
+            Returns (0, 0) if not attached.
         """
-        counters = self.cpp_updater.getCounters(1);
-        return counters.getReflectionAcceptance();
+        counter = self.counter
+        if counter is None:
+            return (0, 0)
+        else:
+            return counter.reflection
 
-    def get_swap_acceptance(self):
-        R""" Get the average acceptance ratio for swap moves
+    @Loggable.log(flag='multi')
+    def swap_moves(self):
+        R""" Get a tuple with the accepted and rejected swap moves.
 
         Returns:
-            The average acceptance rate for type swap moves during the last run
+            A tuple of (accepted moves, rejected moves) since the last run.
+            Returns (0, 0) if not attached.
         """
-        counters = self.cpp_updater.getCounters(1);
-        return counters.getSwapAcceptance();
+        counter = self.counter
+        if counter is None:
+            return (0, 0)
+        else:
+            return counter.swap

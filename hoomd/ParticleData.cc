@@ -2557,6 +2557,7 @@ void export_ParticleData(py::module& m)
     .def("getDomainDecomposition", &ParticleData::getDomainDecomposition)
 #endif
     .def("addType", &ParticleData::addType)
+    .def("getTypes", &ParticleData::getTypesPy)
     ;
     }
 
@@ -3418,7 +3419,7 @@ py::object SnapshotParticleData<Real>::getBodyNP(pybind11::object self)
     // mark as dirty when accessing internal data
     self_cpp->is_accel_set = false;
 
-    return pybind11::array(self_cpp->body.size(), &self_cpp->body[0], self);
+    return pybind11::array(self_cpp->body.size(), (int*)&self_cpp->body[0], self);
     }
 
 /*! \returns a numpy array that wraps the orientation data element.
@@ -3541,9 +3542,7 @@ void export_SnapshotParticleData(py::module& m)
     .def_property_readonly("moment_inertia", &SnapshotParticleData<float>::getMomentInertiaNP)
     .def_property_readonly("angmom", &SnapshotParticleData<float>::getAngmomNP)
     .def_property("types", &SnapshotParticleData<float>::getTypes, &SnapshotParticleData<float>::setTypes)
-    .def_readonly("N", &SnapshotParticleData<float>::size)
-    .def("resize", &SnapshotParticleData<float>::resize)
-    .def("insert", &SnapshotParticleData<float>::insert)
+    .def_property("N", &SnapshotParticleData<float>::getSize, &SnapshotParticleData<float>::resize)
     .def_readonly("is_accel_set", &SnapshotParticleData<float>::is_accel_set)
     ;
 
@@ -3562,9 +3561,7 @@ void export_SnapshotParticleData(py::module& m)
     .def_property_readonly("moment_inertia", &SnapshotParticleData<double>::getMomentInertiaNP)
     .def_property_readonly("angmom", &SnapshotParticleData<double>::getAngmomNP)
     .def_property("types", &SnapshotParticleData<double>::getTypes, &SnapshotParticleData<double>::setTypes)
-    .def_readonly("N", &SnapshotParticleData<double>::size)
-    .def("resize", &SnapshotParticleData<double>::resize)
-    .def("insert", &SnapshotParticleData<double>::insert)
+    .def_property("N", &SnapshotParticleData<double>::getSize, &SnapshotParticleData<double>::resize)
     .def_readonly("is_accel_set", &SnapshotParticleData<double>::is_accel_set)
     ;
    }

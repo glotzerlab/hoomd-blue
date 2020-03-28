@@ -70,7 +70,7 @@ void mpcd::SRDCollisionMethod::drawRotationVectors(unsigned int timestep)
         {
         h_factors.reset(new ArrayHandle<double>(m_factors, access_location::host, access_mode::overwrite));
         h_cell_energy.reset(new ArrayHandle<double3>(m_thermo->getCellEnergies(), access_location::host, access_mode::read));
-        T_set = m_T->getValue(timestep);
+        T_set = (*m_T)(timestep);
         }
 
     for (unsigned int k=0; k < ci.getD(); ++k)

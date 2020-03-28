@@ -1,223 +1,85 @@
 # Copyright (c) 2009-2019 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
 
-# Maintainer: joaander / All Developers are free to add commands for new features
+# Maintainer: joaander / All Developers are free to add commands for new
+# features
 
 R""" Apply forces to particles.
 """
 
 from hoomd import _hoomd
-from hoomd.md import _md;
-import sys;
-import hoomd;
-import numpy as np
+from hoomd.md import _md
+from hoomd.operation import _Operation
+from hoomd.logger import Loggable
+import hoomd
 
-## \internal
-# \brief Base class for forces
-#
-# A force in hoomd reflects a ForceCompute in c++. It is responsible
-# for all high-level management that happens behind the scenes for hoomd
-# writers. 1) The instance of the c++ analyzer itself is tracked and added to the
-# System 2) methods are provided for disabling the force from being added to the
-# net force on each particle
+
 class _force(hoomd.meta._metadata):
-    ## \internal
-    # \brief Constructs the force
-    #
-    # \param name name of the force instance
-    #
-    # Initializes the cpp_analyzer to None.
-    # If specified, assigns a name to the instance
-    # Assigns a name to the force in force_name;
-    def __init__(self, name=None):
-        # check if initialization has occurred
-        if not hoomd.init.is_initialized():
-            raise RuntimeError('Cannot create force before initialization\n');
+    pass
 
-        # Allow force to store a name.  Used for discombobulation in the logger
-        if name is None:
-            self.name = "";
+
+class _Force(_Operation):
+    '''Constructs the force.
+
+    Initializes some loggable quantities.
+    '''
+
+    def attach(self, simulation):
+        self._simulation = simulation
+        super().attach(simulation)
+
+    @Loggable.log
+    def energy(self):
+        if self.is_attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.calcEnergySum()
         else:
-            self.name="_" + name;
+            return None
 
-        self.cpp_force = None;
+    @Loggable.log(flag='particles')
+    def energies(self):
+        if self.is_attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.getEnergies()
+        else:
+            return None
 
-        # increment the id counter
-        id = _force.cur_id;
-        _force.cur_id += 1;
-
-        self.force_name = "force%d" % (id);
-        self.enabled = True;
-        self.log =True;
-        hoomd.context.current.forces.append(self);
-
-        # base class constructor
-        hoomd.meta._metadata.__init__(self)
-
-    ## \var enabled
-    # \internal
-    # \brief True if the force is enabled
-
-    ## \var cpp_force
-    # \internal
-    # \brief Stores the C++ side ForceCompute managed by this class
-
-    ## \var force_name
-    # \internal
-    # \brief The Force's name as it is assigned to the System
-
-    ## \internal
-    # \brief Checks that proper initialization has completed
-    def check_initialization(self):
-        # check that we have been initialized properly
-        if self.cpp_force is None:
-            hoomd.context.current.device.cpp_msg.error('Bug in hoomd: cpp_force not set, please report\n');
-            raise RuntimeError();
-
-    def disable(self, log=False):
-        R""" Disable the force.
-
-        Args:
-            log (bool): Set to True if you plan to continue logging the potential energy associated with this force.
-
-        Examples::
-
-            force.disable()
-            force.disable(log=True)
-
-        Executing the disable command will remove the force from the simulation.
-        Any :py:func:`hoomd.run()` command executed after disabling a force will not calculate or
-        use the force during the simulation. A disabled force can be re-enabled
-        with :py:meth:`enable()`.
-
-        By setting *log* to True, the values of the force can be logged even though the forces are not applied
-        in the simulation.  For forces that use cutoff radii, setting *log=True* will cause the correct *r_cut* values
-        to be used throughout the simulation, and therefore possibly drive the neighbor list size larger than it
-        otherwise would be. If *log* is left False, the potential energy associated with this force will not be
-        available for logging.
-
+    @Loggable.log(flag='particles')
+    def forces(self):
         """
-        self.check_initialization();
-
-        # check if we are already disabled
-        if not self.enabled:
-            hoomd.context.current.device.cpp_msg.warning("Ignoring command to disable a force that is already disabled");
-            return;
-
-        self.enabled = False;
-        self.log = log;
-
-        # remove the compute from the system if it is not going to be logged
-        if not log:
-            hoomd.context.current.system.removeCompute(self.force_name);
-            hoomd.context.current.forces.remove(self)
-
-    def enable(self):
-        R""" Enable the force.
-
-        Examples::
-
-            force.enable()
-
-        See :py:meth:`disable()`.
+        Returns: The force for all particles.
         """
-        self.check_initialization();
+        if self.is_attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.getForces()
+        else:
+            return None
 
-        # check if we are already disabled
-        if self.enabled:
-            hoomd.context.current.device.cpp_msg.warning("Ignoring command to enable a force that is already enabled");
-            return;
-
-        # add the compute back to the system if it was removed
-        if not self.log:
-            hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-            hoomd.context.current.forces.append(self)
-
-        self.enabled = True;
-        self.log = True;
-
-    def get_energy(self,group):
-        R""" Get the energy of a particle group.
-
-        Args:
-            group (:py:mod:`hoomd.group`): The particle group to query the energy for.
-
-        Returns:
-            The last computed energy for the members in the group.
-
-        Examples::
-
-            g = group.all()
-            energy = force.get_energy(g)
+    @Loggable.log(flag='particles')
+    def torques(self):
         """
-        return self.cpp_force.calcEnergyGroup(group.cpp_group)
-
-    def get_net_force(self,group):
-        R""" Get the force of a particle group.
-
-        Args:
-            group (:py:mod:`hoomd.group`): The particle group to query the force for.
-
-        Returns:
-            The last computed force for the members in the group.
-
-        Examples:
-
-            g = group.all()
-            force = force.get_net_force(g)
+        Returns: The torque for all particles.
         """
+        if self.is_attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.getTorques()
+        else:
+            return None
 
-        return (self.cpp_force.calcForceGroup(group.cpp_group).x, self.cpp_force.calcForceGroup(group.cpp_group).y, self.cpp_force.calcForceGroup(group.cpp_group).z)
-
-    def get_net_virial(self,group):
-        R""" Get the virial of a particle group.
-
-        Args:
-            group (:py:mod:`hoomd.group`): The particle group to query the virial for.
-
-        Returns:
-            The last computed virial for the members in the group.
-
-        Examples:
-
-            g = group.all()
-            virial = force.get_net_virial(g)
+    @Loggable.log(flag='particles')
+    def virials(self):
+        R"""
+        Returns: The virial for the members in the group.
         """
-        return np.asarray(self.cpp_force.calcVirialGroup(group.cpp_group))
+        if self.is_attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.getVirials()
+        else:
+            return None
 
 
-
-
-    ## \internal
-    # \brief updates force coefficients
-    def update_coeffs(self):
-        pass
-        raise RuntimeError("_force.update_coeffs should not be called");
-        # does nothing: this is for derived classes to implement
-
-    ## \internal
-    # \brief Returns the force data
-    #
-    def __forces(self):
-        return hoomd.data.force_data(self);
-
-    forces = property(__forces);
-
-    ## \internal
-    # \brief Get metadata
-    def get_metadata(self):
-        data = hoomd.meta._metadata.get_metadata(self)
-        data['enabled'] = self.enabled
-        data['log'] = self.log
-        if self.name is not "":
-            data['name'] = self.name
-
-        return data
-
-# set default counter
-_force.cur_id = 0;
-
-class constant(_force):
+class constant(_Force):
     R""" Constant force.
 
     Args:
@@ -247,10 +109,10 @@ class constant(_force):
         const = force.constant(fvec=(0.4,1.0,0.5),group=fluid)
         const = force.constant(fvec=(0.4,1.0,0.5), tvec=(0,0,1) ,group=fluid)
 
-        def update_forces(timestep):
+        def updateForces(timestep):
             global const
-            const.set_force(tag=1, fvec=(1.0*timestep,2.0*timestep,3.0*timestep))
-        const = force.constant(callback=update_forces)
+            const.setForce(tag=1, fvec=(1.0*timestep,2.0*timestep,3.0*timestep))
+        const = force.constant(callback=updateForces)
     """
     def __init__(self, fx=None, fy=None, fz=None, fvec=None, tvec=None, group=None, callback=None):
 
@@ -267,32 +129,32 @@ class constant(_force):
             self.tvec = (0,0,0)
 
         if (self.fvec == (0,0,0)) and (self.tvec == (0,0,0) and callback is None):
-            hoomd.context.current.device.cpp_msg.warning("The constant force specified has no non-zero components\n");
+            hoomd.context.current.device.cpp_msg.warning("The constant force specified has no non-zero components\n")
 
         # initialize the base class
-        _force.__init__(self);
+        Force.__init__(self)
 
         # create the c++ mirror class
         if (group is not None):
-            self.cpp_force = _hoomd.ConstForceCompute(hoomd.context.current.system_definition,
+            self.cppForce = _hoomd.ConstForceCompute(hoomd.context.current.system_definition,
                 group.cpp_group,
                 self.fvec[0],
                 self.fvec[1],
                 self.fvec[2],
                 self.tvec[0],
                 self.tvec[1],
-                self.tvec[2]);
+                self.tvec[2])
         else:
-            self.cpp_force = _hoomd.ConstForceCompute(hoomd.context.current.system_definition,
+            self.cppForce = _hoomd.ConstForceCompute(hoomd.context.current.system_definition,
                 self.fvec[0],
                 self.fvec[1],
                 self.fvec[2],
                 self.tvec[0],
                 self.tvec[1],
-                self.tvec[2]);
+                self.tvec[2])
 
         if callback is not None:
-            self.cpp_force.setCallback(callback)
+            self.cppForce.setCallback(callback)
 
         # store metadata
         self.metadata_fields = ['fvec', 'tvec']
@@ -300,7 +162,7 @@ class constant(_force):
             self.metadata_fields.append('group')
             self.group = group
 
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cppForce, self.force_name)
 
     R""" Change the value of the constant force.
 
@@ -314,16 +176,16 @@ class constant(_force):
         tag (int) Particle tag for which the force will be set
             .. versionadded:: 2.3
 
-     Using set_force() requires that you saved the created constant force in a variable. i.e.
+     Using setForce() requires that you saved the created constant force in a variable. i.e.
 
      Examples:
         const = force.constant(fx=0.4, fy=1.0, fz=0.5)
 
-        const.set_force(fx=0.2, fy=0.1, fz=-0.5)
-        const.set_force(fx=0.2, fy=0.1, fz=-0.5, group=fluid)
-        const.set_force(fvec=(0.2,0.1,-0.5), tvec=(0,0,1), group=fluid)
+        const.setForce(fx=0.2, fy=0.1, fz=-0.5)
+        const.setForce(fx=0.2, fy=0.1, fz=-0.5, group=fluid)
+        const.setForce(fvec=(0.2,0.1,-0.5), tvec=(0,0,1), group=fluid)
     """
-    def set_force(self, fx=None, fy=None, fz=None, fvec=None, tvec=None, group=None, tag=None):
+    def setForce(self, fx=None, fy=None, fz=None, fvec=None, tvec=None, group=None, tag=None):
 
         if (fx is not None) and (fy is not None) and (fx is not None):
             self.fvec = (fx,fy,fz)
@@ -340,15 +202,15 @@ class constant(_force):
         if (fvec==(0,0,0)) and (tvec==(0,0,0)):
             hoomd.context.current.device.cpp_msg.warning("You are setting the constant force to have no non-zero components\n")
 
-        self.check_initialization();
+        self.check_initialization()
         if (group is not None):
-            self.cpp_force.setGroupForce(group.cpp_group, self.fvec[0], self.fvec[1], self.fvec[2],
+            self.cppForce.setGroupForce(group.cpp_group, self.fvec[0], self.fvec[1], self.fvec[2],
                                                           self.tvec[0], self.tvec[1], self.tvec[2])
         elif (tag is not None):
-            self.cpp_force.setParticleForce(tag, self.fvec[0], self.fvec[1], self.fvec[2],
-                                                 self.tvec[0], self.tvec[1], self.tvec[2]);
+            self.cppForce.setParticleForce(tag, self.fvec[0], self.fvec[1], self.fvec[2],
+                                                 self.tvec[0], self.tvec[1], self.tvec[2])
         else:
-            self.cpp_force.setForce(self.fvec[0], self.fvec[1], self.fvec[2], self.tvec[0], self.tvec[1], self.tvec[2]);
+            self.cppForce.setForce(self.fvec[0], self.fvec[1], self.fvec[2], self.tvec[0], self.tvec[1], self.tvec[2])
 
     R""" Set a python callback to be called before the force is evaluated
 
@@ -358,24 +220,25 @@ class constant(_force):
      Examples:
         const = force.constant(fx=0.4, fy=1.0, fz=0.5)
 
-        def update_forces(timestep):
+        def updateForces(timestep):
             global const
-            const.set_force(tag=1, fvec=(1.0*timestep,2.0*timestep,3.0*timestep))
+            const.setForce(tag=1, fvec=(1.0*timestep,2.0*timestep,3.0*timestep))
 
-        const.set_callback(update_forces)
+        const.set_callback(updateForces)
         run(100)
 
         # Reset the callback
         const.set_callback(None)
     """
     def set_callback(self, callback=None):
-        self.cpp_force.setCallback(callback)
+        self.cppForce.setCallback(callback)
 
     # there are no coeffs to update in the constant force compute
     def update_coeffs(self):
         pass
 
-class active(_force):
+
+class active(_Force):
     R""" Active force.
 
     Args:
@@ -394,7 +257,7 @@ class active(_force):
 
     :py:class:`active` specifies that an active force should be added to all particles.
     Obeys :math:`\delta {\bf r}_i = \delta t v_0 \hat{p}_i`, where :math:`v_0` is the active velocity. In 2D
-    :math:`\hat{p}_i = (\cos \theta_i, \sin \theta_i)` is the active force vector for particle :math:`i`; and the
+    :math:`\hat{p}_i = (\cos \theta_i, \sin \theta_i)` is the active force vector for particle :math:`i` and the
     diffusion of the active force vector follows :math:`\delta \theta / \delta t = \sqrt{2 D_r / \delta t} \Gamma`,
     where :math:`D_r` is the rotational diffusion constant, and the gamma function is a unit-variance random variable,
     whose components are uncorrelated in time, space, and between particles.
@@ -416,7 +279,7 @@ class active(_force):
     def __init__(self, seed, group, f_lst=None, t_lst=None, orientation_link=True, orientation_reverse_link=False, rotation_diff=0, constraint=None):
 
         # initialize the base class
-        _force.__init__(self);
+        Force.__init__(self)
 
         if (f_lst is None) and (t_lst is None):
             raise RuntimeError('No forces or torques are being set')
@@ -442,7 +305,7 @@ class active(_force):
 
         # assign constraints
         if (constraint is not None):
-            if (constraint.__class__.__name__ is "constraint_ellipsoid"):
+            if (constraint.__class__.__name__ == "constraint_ellipsoid"):
                 P = constraint.P
                 rx = constraint.rx
                 ry = constraint.ry
@@ -457,12 +320,12 @@ class active(_force):
 
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.ActiveForceCompute(hoomd.context.current.system_definition, group.cpp_group, seed, f_lst, t_lst,
-                                                      orientation_link, orientation_reverse_link, rotation_diff, P, rx, ry, rz);
+            self.cppForce = _md.ActiveForceCompute(hoomd.context.current.system_definition, group.cpp_group, seed, f_lst, t_lst,
+                                                      orientation_link, orientation_reverse_link, rotation_diff, P, rx, ry, rz)
 
         else:
-            self.cpp_force = _md.ActiveForceComputeGPU(hoomd.context.current.system_definition, group.cpp_group, seed, f_lst, t_lst,
-                                                         orientation_link, orientation_reverse_link, rotation_diff, P, rx, ry, rz);
+            self.cppForce = _md.ActiveForceComputeGPU(hoomd.context.current.system_definition, group.cpp_group, seed, f_lst, t_lst,
+                                                         orientation_link, orientation_reverse_link, rotation_diff, P, rx, ry, rz)
 
 
         # store metadata
@@ -474,13 +337,14 @@ class active(_force):
         self.rotation_diff = rotation_diff
         self.constraint = constraint
 
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cppForce, self.force_name)
 
     # there are no coeffs to update in the active force compute
     def update_coeffs(self):
         pass
 
-class dipole(_force):
+
+class dipole(_Force):
     R""" Treat particles as dipoles in an electric field.
 
     Args:
@@ -497,12 +361,12 @@ class dipole(_force):
     def __init__(self, field_x,field_y,field_z,p):
 
         # initialize the base class
-        _force.__init__(self)
+        Force.__init__(self)
 
         # create the c++ mirror class
-        self.cpp_force = _md.ConstExternalFieldDipoleForceCompute(hoomd.context.current.system_definition, field_x, field_y, field_z, p)
+        self.cppForce = _md.ConstExternalFieldDipoleForceCompute(hoomd.context.current.system_definition, field_x, field_y, field_z, p)
 
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
+        hoomd.context.current.system.addCompute(self.cppForce, self.force_name)
 
         # store metadata
         self.metadata_fields = ['field_x', 'field_y', 'field_z']
@@ -527,7 +391,7 @@ class dipole(_force):
         """
         self.check_initialization()
 
-        self.cpp_force.setParams(field_x,field_y,field_z,p)
+        self.cppForce.setParams(field_x,field_y,field_z,p)
 
     # there are no coeffs to update in the constant ExternalFieldDipoleForceCompute
     def update_coeffs(self):

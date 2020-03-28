@@ -119,7 +119,7 @@ class __attribute__ ((visibility ("hidden"))) ExternalCallback : public External
         // Take a snapshot of the particle data (only)
         std::shared_ptr<SnapshotSystemData<Scalar> > takeSnapshot()
             {
-            return this->m_sysdef->template takeSnapshot<Scalar>(true);
+            return this->m_sysdef->template takeSnapshot<Scalar>();
             }
 
         double getEnergy(std::shared_ptr<SnapshotSystemData<Scalar> > snap)

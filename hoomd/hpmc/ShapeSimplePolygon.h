@@ -39,7 +39,7 @@ namespace hpmc
 struct ShapeSimplePolygon
     {
     //! Define the parameter type
-    typedef detail::poly2d_verts param_type;
+    typedef detail::PolygonVertices param_type;
 
     //! Temporary storage for depletant insertion
     typedef struct {} depletion_storage_type;
@@ -108,7 +108,7 @@ struct ShapeSimplePolygon
 
     quat<Scalar> orientation;    //!< Orientation of the polygon
 
-    const detail::poly2d_verts& verts;     //!< Vertices
+    const detail::PolygonVertices& verts;     //!< Vertices
     };
 
 namespace detail
@@ -123,7 +123,7 @@ namespace detail
 
     \ingroup overlap
 */
-DEVICE inline bool is_inside(const vec2<OverlapReal>& p, const poly2d_verts& verts)
+DEVICE inline bool is_inside(const vec2<OverlapReal>& p, const PolygonVertices& verts)
     {
     // code for concave test from: http://alienryderflex.com/polygon/
     unsigned int nvert = verts.N;
@@ -235,8 +235,8 @@ DEVICE inline bool segment_intersect(const vec2<OverlapReal>& a, const vec2<Over
 
     \ingroup overlap
 */
-DEVICE inline bool test_simple_polygon_overlap(const poly2d_verts& a,
-                                               const poly2d_verts& b,
+DEVICE inline bool test_simple_polygon_overlap(const PolygonVertices& a,
+                                               const PolygonVertices& b,
                                                const vec2<OverlapReal>& dr,
                                                const quat<OverlapReal>& qa,
                                                const quat<OverlapReal>& qb)
@@ -322,6 +322,22 @@ DEVICE inline bool test_overlap<ShapeSimplePolygon,ShapeSimplePolygon>(const vec
                                                quat<OverlapReal>(a.orientation),
                                                quat<OverlapReal>(b.orientation));
     }
+
+#ifndef __HIPCC__
+template<>
+inline std::string getShapeSpec(const ShapeSimplePolygon& poly)
+    {
+    std::ostringstream shapedef;
+    auto& verts = poly.verts;
+    shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": " << poly.verts.sweep_radius << ", \"vertices\": [";
+    for (unsigned int i = 0; i < verts.N-1; i++)
+        {
+        shapedef << "[" << verts.x[i] << ", " << verts.y[i] << "], ";
+        }
+    shapedef << "[" << verts.x[verts.N-1] << ", " << verts.y[verts.N-1] << "]]}";
+    return shapedef.str();
+    }
+#endif
 
 }; // end namespace hpmc
 

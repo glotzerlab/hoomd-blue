@@ -32,9 +32,11 @@
 #include "CallbackAnalyzer.h"
 #include "Updater.h"
 #include "Integrator.h"
-#include "SFCPackUpdater.h"
+#include "SFCPackTuner.h"
 #include "BoxResizeUpdater.h"
 #include "System.h"
+#include "Trigger.h"
+#include "Tuner.h"
 #include "Variant.h"
 #include "Messenger.h"
 #include "SnapshotSystemData.h"
@@ -44,7 +46,7 @@
 #include <hip/hip_runtime.h>
 #include "CellListGPU.h"
 #include "ComputeThermoGPU.h"
-#include "SFCPackUpdaterGPU.h"
+#include "SFCPackTunerGPU.h"
 #endif
 
 // include MPI classes
@@ -150,6 +152,17 @@ bool is_MPI_available()
 #endif
     }
 
+//! Determine availability of CUDA support
+bool isCUDAAvailable()
+   {
+   return
+#ifdef ENABLE_HIP
+       true;
+#else
+       false;
+#endif
+    }
+
 void mpi_barrier_world()
     {
     #ifdef ENABLE_MPI
@@ -235,14 +248,14 @@ void finalize_mpi()
 #endif
 
 //! Abort MPI runs
-void abort_mpi(std::shared_ptr<ExecutionConfiguration> exec_conf)
+void abort_mpi(std::shared_ptr<MPIConfiguration> mpi_conf, int errorcode)
     {
     #ifdef ENABLE_MPI
-    if(exec_conf->getMPIConfig()->getNRanksGlobal() > 1)
+    if(mpi_conf->getNRanksGlobal() > 1)
         {
         // delay for a moment to give time for error messages to print
         Sleep(1000);
-        MPI_Abort(exec_conf->getMPICommunicator(), MPI_ERR_OTHER);
+        MPI_Abort(mpi_conf->getCommunicator(), errorcode);
         }
     #endif
     }
@@ -299,10 +312,13 @@ PYBIND11_MODULE(_hoomd, m)
 
     m.def("is_MPI_available", &is_MPI_available);
     m.def("is_TBB_available", &is_TBB_available);
+    m.def("isCUDAAvailable", &isCUDAAvailable);
 
     pybind11::bind_vector< std::vector<Scalar> >(m,"std_vector_scalar");
     pybind11::bind_vector< std::vector<string> >(m,"std_vector_string");
     pybind11::bind_vector< std::vector<unsigned int> >(m,"std_vector_uint");
+    pybind11::bind_vector< std::vector<
+        std::pair<unsigned int, unsigned int> > >(m,"std_vector_uint_pair");
     pybind11::bind_vector< std::vector<int> >(m,"std_vector_int");
     pybind11::bind_vector< std::vector<Scalar3> >(m,"std_vector_scalar3");
     pybind11::bind_vector< std::vector<Scalar4> >(m,"std_vector_scalar4");
@@ -364,9 +380,12 @@ PYBIND11_MODULE(_hoomd, m)
     export_Updater(m);
     export_Integrator(m);
     export_BoxResizeUpdater(m);
-    export_SFCPackUpdater(m);
+
+    // tuners
+    export_Tuner(m);
+    export_SFCPackTuner(m);
 #ifdef ENABLE_HIP
-    export_SFCPackUpdaterGPU(m);
+    export_SFCPackTunerGPU(m);
 #endif
 
 #ifdef ENABLE_MPI
@@ -381,6 +400,9 @@ PYBIND11_MODULE(_hoomd, m)
 
     // system
     export_System(m);
+
+    // trigger
+    export_Trigger(m);
 
     // variant
     export_Variant(m);

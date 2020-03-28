@@ -30,12 +30,12 @@ using namespace hpmc::detail;
 unsigned int err_count;
 
 // helper function to compute poly radius
-poly2d_verts setup_verts(const vector< vec2<OverlapReal> > vlist)
+PolygonVertices setup_verts(const vector< vec2<OverlapReal> > vlist)
     {
     if (vlist.size() > MAX_POLY2D_VERTS)
         throw runtime_error("Too many polygon vertices");
 
-    poly2d_verts result;
+    PolygonVertices result;
     result.N = vlist.size();
     result.ignore = 0;
 
@@ -70,7 +70,7 @@ poly2d_verts setup_verts(const vector< vec2<OverlapReal> > vlist)
 // void write_poly_gle(ostream& o, const ShapeSimplePolygon& poly, vec3<OverlapReal> pos)
 //     {
 //     // first transform all verts into screen space (rotation only, translation handled by an rmove)
-//     poly2d_verts ss_verts = poly.verts;
+//     PolygonVertices ss_verts = poly.verts;
 
 //     for (unsigned int i = 0; i < ss_verts.N; i++)
 //         ss_verts.v[i] = rotate(quat<OverlapReal>(poly.orientation), ss_verts.v[i]);
@@ -101,7 +101,7 @@ UP_TEST( construction )
     vlist.push_back(vec2<OverlapReal>(0,0));
     vlist.push_back(vec2<OverlapReal>(1,0));
     vlist.push_back(vec2<OverlapReal>(0,1.25));
-    poly2d_verts verts = setup_verts(vlist);
+    PolygonVertices verts = setup_verts(vlist);
 
     ShapeSimplePolygon a(o, verts);
 
@@ -135,7 +135,7 @@ UP_TEST( overlap_square_no_rot )
     vlist.push_back(vec2<OverlapReal>(0.5,-0.5));
     vlist.push_back(vec2<OverlapReal>(0.5,0.5));
     vlist.push_back(vec2<OverlapReal>(-0.5,0.5));
-    poly2d_verts verts = setup_verts(vlist);
+    PolygonVertices verts = setup_verts(vlist);
 
     ShapeSimplePolygon a(o, verts);
 
@@ -214,7 +214,7 @@ UP_TEST( overlap_square_rot1 )
     vlist.push_back(vec2<OverlapReal>(0.5,-0.5));
     vlist.push_back(vec2<OverlapReal>(0.5,0.5));
     vlist.push_back(vec2<OverlapReal>(-0.5,0.5));
-    poly2d_verts verts = setup_verts(vlist);
+    PolygonVertices verts = setup_verts(vlist);
 
     ShapeSimplePolygon a(o_a, verts);
 
@@ -292,7 +292,7 @@ UP_TEST( overlap_square_rot2 )
     vlist.push_back(vec2<OverlapReal>(0.5,-0.5));
     vlist.push_back(vec2<OverlapReal>(0.5,0.5));
     vlist.push_back(vec2<OverlapReal>(-0.5,0.5));
-    poly2d_verts verts = setup_verts(vlist);
+    PolygonVertices verts = setup_verts(vlist);
 
     ShapeSimplePolygon a(o_b, verts);
 
@@ -371,13 +371,13 @@ UP_TEST( overlap_square_tri )
     vlist_a.push_back(vec2<OverlapReal>(0.5,-0.5));
     vlist_a.push_back(vec2<OverlapReal>(0.5,0.5));
     vlist_a.push_back(vec2<OverlapReal>(-0.5,0.5));
-    poly2d_verts verts_a = setup_verts(vlist_a);
+    PolygonVertices verts_a = setup_verts(vlist_a);
 
     std::vector< vec2<OverlapReal> > vlist_b;
     vlist_b.push_back(vec2<OverlapReal>(-0.5,-0.5));
     vlist_b.push_back(vec2<OverlapReal>(0.5,-0.5));
     vlist_b.push_back(vec2<OverlapReal>(0.5,0.5));
-    poly2d_verts verts_b = setup_verts(vlist_b);
+    PolygonVertices verts_b = setup_verts(vlist_b);
 
     ShapeSimplePolygon a(o_a, verts_a);
 
@@ -440,7 +440,7 @@ UP_TEST( overlap_concave_norot )
     vlist_a.push_back(vec2<OverlapReal>(0.5,-0.5));
     vlist_a.push_back(vec2<OverlapReal>(0,0));
     vlist_a.push_back(vec2<OverlapReal>(0.5,0.5));
-    poly2d_verts verts_a = setup_verts(vlist_a);
+    PolygonVertices verts_a = setup_verts(vlist_a);
 
     ShapeSimplePolygon a(o_a, verts_a);
 
@@ -502,7 +502,7 @@ UP_TEST( no_overlap_bug )
     vlist[2].y = std::strtof("0x1.313d7d92ca92fp-2",NULL);
     vlist[3].y = std::strtof("0x1.313d7d92ca92fp-2",NULL);
 
-    poly2d_verts verts = setup_verts(vlist);
+    PolygonVertices verts = setup_verts(vlist);
     ShapeSimplePolygon i(o_i, verts);
     ShapeSimplePolygon j(o_j, verts);
 
@@ -556,7 +556,7 @@ UP_TEST( no_overlap_bug2 )
     vlist[2].y = 0.323377937;
     vlist[3].y = 0.323377937;
 
-    poly2d_verts verts = setup_verts(vlist);
+    PolygonVertices verts = setup_verts(vlist);
     ShapeSimplePolygon i(o_i, verts);
     ShapeSimplePolygon j(o_j, verts);
 
@@ -611,7 +611,7 @@ UP_TEST( no_overlap_bug3 )
     vlist[2].y = 0.716278672;
     vlist[3].y = 0.716278672;
 
-    poly2d_verts verts = setup_verts(vlist);
+    PolygonVertices verts = setup_verts(vlist);
     ShapeSimplePolygon i(o_i, verts);
     ShapeSimplePolygon j(o_j, verts);
 
@@ -641,7 +641,7 @@ UP_TEST( no_overlap_bug3 )
     BoxDim box(100);
 
     // build a dart
-    poly2d_verts verts_a;
+    PolygonVertices verts_a;
     verts_a.N = 4;
     verts_a.v[0] = vec2<Scalar>(-0.5,0);
     verts_a.v[1] = vec2<Scalar>(0.5,-0.5);
@@ -652,7 +652,7 @@ UP_TEST( no_overlap_bug3 )
     ShapeSimplePolygon a(quat<Scalar>(), verts_a);
 
     // build an indented square
-    poly2d_verts verts_b;
+    PolygonVertices verts_b;
     verts_b.N = 5;
     verts_b.v[0] = vec2<Scalar>(-0.5,-0.5);
     verts_b.v[1] = vec2<Scalar>(0.5,-0.5);

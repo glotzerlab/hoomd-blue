@@ -49,7 +49,7 @@ void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionCo
 
     sysdef->setNDimensions(2);
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterAll());
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     RandomGenerator rng(11, 21, 33);
@@ -72,7 +72,7 @@ void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionCo
             pdata->setVelocity(k, vel);
             }
 
-    std::shared_ptr<Variant> T(new VariantConst(1.0));
+    std::shared_ptr<Variant> T(new VariantConstant(1.0));
     std::shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
     thermo->setNDOF(2*group_all->getNumMembers()-2);
     std::shared_ptr<TwoStepNVTMTK> two_step_nvt(new TwoStepNVTMTK(sysdef, group_all, thermo, 0.5, T));
@@ -89,12 +89,11 @@ void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionCo
     // setup some values for alpha and sigma
     Scalar epsilon = Scalar(1.0);
     Scalar sigma = Scalar(1.0);
-    Scalar alpha = Scalar(1.0);
     Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
-    Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
+    Scalar lj2 =  Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
 
     // specify the force parameters
-    fc->setParams(0,0,make_scalar2(lj1,lj2));
+    fc->setParamsLJ(0,0,make_scalar2(lj1,lj2));
     fc->setRcut(0,0,Scalar(2.5));
     fc->setShiftMode(PotentialPairLJ::shift);
 

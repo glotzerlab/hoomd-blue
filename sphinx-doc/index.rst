@@ -124,6 +124,13 @@ containers).
    package-metal
 
 .. toctree::
+    :maxdepth: 3
+    :caption: Developer guide
+
+    style
+    testing
+
+.. toctree::
    :maxdepth: 3
    :caption: Reference
 

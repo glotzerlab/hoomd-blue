@@ -26,7 +26,7 @@ Relevant methods:
   constant.
 * :py:meth:`hoomd.data.system_data.restore_snapshot()` replaces the current system state with the state stored in
   a snapshot.
-* :py:meth:`hoomd.data.make_snapshot()` creates an empty snapshot that you can populate with custom data.
+* ``hoomd.data.make_snapshot()`` creates an empty snapshot that you can populate with custom data.
 * :py:func:`hoomd.init.read_snapshot()` initializes a simulation from a snapshot.
 
 Examples::
@@ -519,17 +519,17 @@ class boxdim(hoomd.meta._metadata):
         volume (float): Scale the given box dimensions up to the this volume (area if dimensions=2)
 
     Simulation boxes in hoomd are specified by six parameters, *Lx*, *Ly*, *Lz*, *xy*, *xz* and *yz*. For full details,
-    see TODO: ref page. A boxdim provides a way to specify all six parameters for a given box and perform some common
+    see :ref:`boxdim`. A boxdim provides a way to specify all six parameters for a given box and perform some common
     operations with them. Modifying a boxdim does not modify the underlying simulation box in hoomd. A boxdim can be passed
-    to an initialization method or to assigned to a saved sysdef variable (`system.box = new_box`) to set the simulation
+    to an initialization method or to assigned to a saved sysdef variable (``system.box = new_box``) to set the simulation
     box.
 
     Access attributes directly::
 
-        b = data.boxdim(L=20);
-        b.xy = 1.0;
-        b.yz = 0.5;
-        b.Lz = 40;
+        b = data.boxdim(L=20)
+        b.xy = 1.0
+        b.yz = 0.5
+        b.Lz = 40
 
 
     .. rubric:: Two dimensional systems
@@ -543,18 +543,17 @@ class boxdim(hoomd.meta._metadata):
 
     .. rubric:: Shorthand notation
 
-    data.boxdim accepts the keyword argument *L=x* as shorthand notation for `Lx=x, Ly=x, Lz=x` in 3D
-    and `Lx=x, Ly=z, Lz=1` in 2D. If you specify both `L=` and `Lx,Ly, or Lz`, then the value for `L` will override
+    data.boxdim accepts the keyword argument ``L=x`` as shorthand notation for ``Lx=x, Ly=x, Lz=x`` in 3D
+    and ``Lx=x, Ly=x, Lz=1`` in 2D. If you specify both ``L`` and ``Lx``, ``Ly``, or ``Lz``, then the value for ``L`` will override
     the others.
 
     Examples:
 
-    * Cubic box with given volume: `data.boxdim(volume=V)`
-    * Triclinic box in 2D with given area: `data.boxdim(xy=1.0, dimensions=2, volume=A)`
-    * Rectangular box in 2D with given area and aspect ratio: `data.boxdim(Lx=1, Ly=aspect, dimensions=2, volume=A)`
-    * Cubic box with given length: `data.boxdim(L=10)`
-    * Fully define all box parameters: `data.boxdim(Lx=10, Ly=20, Lz=30, xy=1.0, xz=0.5, yz=0.1)`
-
+    * Cubic box with given volume: ``data.boxdim(volume=V)``
+    * Triclinic box in 2D with given area: ``data.boxdim(xy=1.0, dimensions=2, volume=A)``
+    * Rectangular box in 2D with given area and aspect ratio: ``data.boxdim(Lx=1, Ly=aspect, dimensions=2, volume=A)``
+    * Cubic box with given length: ``data.boxdim(L=10)``
+    * Fully define all box parameters: ``data.boxdim(Lx=10, Ly=20, Lz=30, xy=1.0, xz=0.5, yz=0.1)``
     """
     def __init__(self, Lx=1.0, Ly=1.0, Lz=1.0, xy=0.0, xz=0.0, yz=0.0, dimensions=3, L=None, volume=None):
         if L is not None:
@@ -2201,103 +2200,6 @@ class dihedral_data_proxy(object):
         typeid = dihedral.type;
         return self.ddata.getNameByType(typeid);
 
-## \internal
-# \brief Get data.boxdim from a SnapshotSystemData
-def get_snapshot_box(snapshot):
-    b = snapshot._global_box;
-    L = b.getL();
-    return boxdim(Lx=L.x, Ly=L.y, Lz=L.z, xy=b.getTiltFactorXY(), xz=b.getTiltFactorXZ(), yz=b.getTiltFactorYZ(), dimensions=snapshot._dimensions);
-
-## \internal
-# \brief Set data.boxdim to a SnapshotSystemData
-def set_snapshot_box(snapshot, box):
-    snapshot._global_box = box._getBoxDim();
-    snapshot._dimensions = box.dimensions;
-
-## \internal
-# \brief Broadcast snapshot to all ranks
-def broadcast_snapshot(cpp_snapshot):
-    hoomd.context._verify_init();
-    # broadcast from rank 0
-    cpp_snapshot._broadcast(0, hoomd.context.current.device.cpp_exec_conf);
-
-## \internal
-# \brief Broadcast snapshot to all ranks
-def broadcast_snapshot_all(cpp_snapshot):
-    hoomd.context._verify_init();
-    # broadcast from rank 0
-    cpp_snapshot._broadcast_all(0, hoomd.context.current.device.cpp_exec_conf);
-
-# Inject a box property into SnapshotSystemData that provides and accepts boxdim objects
-_hoomd.SnapshotSystemData_float.box = property(get_snapshot_box, set_snapshot_box);
-_hoomd.SnapshotSystemData_double.box = property(get_snapshot_box, set_snapshot_box);
-
-# Inject broadcast methods into SnapshotSystemData
-_hoomd.SnapshotSystemData_float.broadcast = broadcast_snapshot
-_hoomd.SnapshotSystemData_double.broadcast = broadcast_snapshot
-_hoomd.SnapshotSystemData_float.broadcast_all = broadcast_snapshot_all
-_hoomd.SnapshotSystemData_double.broadcast_all = broadcast_snapshot_all
-
-def make_snapshot(N, box, particle_types=['A'], bond_types=[], angle_types=[], dihedral_types=[], improper_types=[], pair_types=[], dtype='float'):
-    R""" Make an empty snapshot.
-
-    Args:
-        N (int): Number of particles to create.
-        box (:py:class:`hoomd.data.boxdim`): Simulation box parameters.
-        particle_types (list): Particle type names (must not be zero length).
-        bond_types (list): Bond type names (may be zero length).
-        angle_types (list): Angle type names (may be zero length).
-        dihedral_types (list): Dihedral type names (may be zero length).
-        improper_types (list): Improper type names (may be zero length).
-        pair_types(list): Special pair type names (may be zero length).
-            .. versionadded:: 2.1
-        dtype (str): Data type for the real valued numpy arrays in the snapshot. Must be either 'float' or 'double'.
-
-    Examples::
-
-        snapshot = data.make_snapshot(N=1000, box=data.boxdim(L=10))
-        snapshot = data.make_snapshot(N=64000, box=data.boxdim(L=1, dimensions=2, volume=1000), particle_types=['A', 'B'])
-        snapshot = data.make_snapshot(N=64000, box=data.boxdim(L=20), bond_types=['polymer'], dihedral_types=['dihedralA', 'dihedralB'], improper_types=['improperA', 'improperB', 'improperC'])
-        ... set properties in snapshot ...
-        init.read_snapshot(snapshot);
-
-    :py:func:`hoomd.data.make_snapshot()` creates all particles with **default properties**. You must set reasonable
-    values for particle properties before initializing the system with :py:func:`hoomd.init.read_snapshot()`.
-
-    The default properties are:
-
-    * position 0,0,0
-    * velocity 0,0,0
-    * image 0,0,0
-    * orientation 1,0,0,0
-    * typeid 0
-    * charge 0
-    * mass 1.0
-    * diameter 1.0
-
-    See Also:
-        :py:func:`hoomd.init.read_snapshot()`
-    """
-    if dtype == 'float':
-        snapshot = _hoomd.SnapshotSystemData_float();
-    elif dtype == 'double':
-        snapshot = _hoomd.SnapshotSystemData_double();
-    else:
-        raise ValueError("dtype must be either float or double");
-
-    snapshot.box = box;
-    if hoomd.context.current.device.comm.rank == 0:
-        snapshot.particles.resize(N);
-
-    snapshot.particles.types = particle_types;
-    snapshot.bonds.types = bond_types;
-    snapshot.angles.types = angle_types;
-    snapshot.dihedrals.types = dihedral_types;
-    snapshot.impropers.types = improper_types;
-    snapshot.pairs.types = pair_types;
-
-    return snapshot;
-
 def gsd_snapshot(filename, frame=0):
     R""" Read a snapshot from a GSD file.
 
@@ -2318,7 +2220,7 @@ def gsd_snapshot(filename, frame=0):
 class SnapshotParticleData:
     R""" Snapshot of particle data properties.
 
-    Users should not create SnapshotParticleData directly. Use :py:func:`hoomd.data.make_snapshot()`
+    Users should not create SnapshotParticleData directly. Use ``hoomd.data.make_snapshot()``
     or :py:meth:`hoomd.data.system_data.take_snapshot()` to make snapshots.
 
     Attributes:

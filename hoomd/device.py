@@ -28,9 +28,6 @@ Attributes:
 
 import os
 import time
-import socket
-import atexit
-import getpass
 import hoomd
 from hoomd import _hoomd
 
@@ -266,6 +263,13 @@ class GPU(_device):
                                                            False,
                                                            self.comm.cpp_mpi_conf,
                                                            self.cpp_msg)
+    @staticmethod
+    def is_available():
+        """ Test if the GPU device is available
+
+        Returns: True if this build of HOOMD supports GPUs, False if not.
+        """
+        return _hoomd.isCUDAAvailable();
 
 class CPU(_device):
     """

@@ -226,10 +226,7 @@ def _create_device():
 ## \internal
 # \brief Throw an error if the context is not initialized
 def _verify_init():
-    global current
-
-    if current is None:
-        raise RuntimeError("Call context.initialize() before any method")
+    pass
 
 ## \internal
 # \brief Gather context about HOOMD

@@ -165,6 +165,11 @@ struct PYBIND11_EXPORT SnapshotParticleData {
      */
     void resize(unsigned int N);
 
+    unsigned int getSize()
+        {
+        return size;
+        }
+
     //! Insert n elements at position i
     void insert(unsigned int i, unsigned int n);
 
@@ -785,6 +790,17 @@ class PYBIND11_EXPORT ParticleData
 
         //! Gets the name of a given particle type index
         std::string getNameByType(unsigned int type) const;
+
+        //! Get the types for python
+        pybind11::list getTypesPy()
+            {
+            pybind11::list types;
+
+            for (unsigned int i = 0; i < getNTypes(); i++)
+                types.append(pybind11::str(m_type_mapping[i]));
+
+            return types;
+            }
 
         //! Rename a type
         void setTypeName(unsigned int type, const std::string& name);

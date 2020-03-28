@@ -98,17 +98,6 @@ install(TARGETS _${PACKAGE_NAME} _${PACKAGE_NAME}_llvm
 
 ################ Python only modules
 # copy python modules to the build directory to make it a working python package
-MACRO(copy_file file)
-    add_custom_command (
-        OUTPUT ${file}
-        DEPENDS ${file}
-        POST_BUILD
-        COMMAND    ${CMAKE_COMMAND}
-        ARGS       -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${CMAKE_CURRENT_BINARY_DIR}/${file}
-        COMMENT    "Copy hoomd/${PACKAGE_NAME}/${file}"
-    )
-ENDMACRO(copy_file)
-
 set(files __init__.py
           patch.py
           external.py
@@ -118,11 +107,7 @@ install(FILES ${files}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/${PACKAGE_NAME}
        )
 
-foreach(file ${files})
-    copy_file(${file})
-endforeach()
-
-add_custom_target(copy_${PACKAGE_NAME} ALL DEPENDS ${files})
+copy_files_to_build("${files}" "${PACKAGE_NAME}" "*.py")
 
 # install headers in installation target
 install(FILES ${_${PACKAGE_NAME}_headers}

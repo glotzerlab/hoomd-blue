@@ -61,46 +61,12 @@ NeighborListGPUBinned::NeighborListGPUBinned(std::shared_ptr<SystemDefinition> s
 
     m_tuner.reset(new Autotuner(valid_params, 5, 100000, "nlist_binned", this->m_exec_conf));
 
-    // call this class's special setRCut
-    setRCut(r_cut, r_buff);
+    // cell sizes need update by default
+    m_update_cell_size = true;
     }
 
 NeighborListGPUBinned::~NeighborListGPUBinned()
     {
-    }
-
-void NeighborListGPUBinned::setRCut(Scalar r_cut, Scalar r_buff)
-    {
-    NeighborListGPU::setRCut(r_cut, r_buff);
-
-    Scalar rmax = getMaxRCut() + m_r_buff;
-    if (m_diameter_shift)
-        rmax += m_d_max - Scalar(1.0);
-
-    m_cl->setNominalWidth(rmax);
-    }
-
-void NeighborListGPUBinned::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut)
-    {
-    NeighborListGPU::setRCutPair(typ1,typ2,r_cut);
-
-    Scalar rmax = getMaxRCut() + m_r_buff;
-    if (m_diameter_shift)
-        rmax += m_d_max - Scalar(1.0);
-
-    m_cl->setNominalWidth(rmax);
-    }
-
-void NeighborListGPUBinned::setMaximumDiameter(Scalar d_max)
-    {
-    NeighborListGPU::setMaximumDiameter(d_max);
-
-    // need to update the cell list settings appropriately
-    Scalar rmax = getMaxRCut() + m_r_buff;
-    if (m_diameter_shift)
-        rmax += m_d_max - Scalar(1.0);
-
-    m_cl->setNominalWidth(rmax);
     }
 
 void NeighborListGPUBinned::buildNlist(unsigned int timestep)
@@ -109,6 +75,17 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         {
         m_exec_conf->msg->error() << "Only full mode nlists can be generated on the GPU" << std::endl;
         throw std::runtime_error("Error computing neighbor list");
+        }
+
+    // update the cell list size if needed
+    if (m_update_cell_size)
+        {
+        Scalar rmax = getMaxRCut() + m_r_buff;
+        if (m_diameter_shift)
+            rmax += m_d_max - Scalar(1.0);
+
+        m_cl->setNominalWidth(rmax);
+        m_update_cell_size = false;
         }
 
     m_cl->compute(timestep);
@@ -143,18 +120,6 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::overwrite);
-
-    // the maximum cutoff that any particle can participate in
-    Scalar rmax = getMaxRCut() + m_r_buff;
-    if (m_diameter_shift)
-        rmax += m_d_max - Scalar(1.0);
-
-    if (m_filter_body)
-        {
-        // add the maximum diameter of all composite particles
-        Scalar max_d_comp = m_pdata->getMaxCompositeParticleDiameter();
-        rmax += 0.5*max_d_comp;
-        }
 
     ArrayHandle<Scalar> d_r_cut(m_r_cut, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_r_listsq(m_r_listsq, access_location::device, access_mode::read);

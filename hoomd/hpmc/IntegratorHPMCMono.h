@@ -154,10 +154,41 @@ class IntegratorHPMCMono : public IntegratorHPMC
          */
 
         //! Set number of reinsertion attepmpts
-        void setNTrial(unsigned int type_a, unsigned int type_b, unsigned int ntrial)
+        void setNTrialPy(std::string type_name_a, std::string type_name_b, unsigned int ntrial)
             {
+            unsigned int type_a = this->m_pdata->getTypeByName(type_name_a);
+            unsigned int type_b = this->m_pdata->getTypeByName(type_name_b);
+
             m_ntrial[m_depletant_idx(type_a,type_b)] = ntrial;
             m_ntrial[m_depletant_idx(type_b,type_a)] = ntrial;
+            }
+
+        //! Set the depletant density in the free volume
+        void setDepletantFugacityPy(std::string type_name, Scalar fugacity)
+            {
+            unsigned int id = this->m_pdata->getTypeByName(type_name);
+            m_fugacity[id] = fugacity;
+            }
+
+        //! Returns the depletant fugacity
+        Scalar getDepletantFugacityPy(std::string type_name)
+            {
+            unsigned int id = this->m_pdata->getTypeByName(type_name);
+            return m_fugacity[id];
+            }
+
+        //! Returns the depletant fugacity
+        Scalar getDepletantFugacity(unsigned int id)
+            {
+            return m_fugacity[id];
+            }
+
+        unsigned int getNTrialPy(std::string type_name_a, std::string type_name_b) const
+            {
+            unsigned int type_a = this->m_pdata->getTypeByName(type_name_a);
+            unsigned int type_b = this->m_pdata->getTypeByName(type_name_b);
+
+            return m_ntrial[m_depletant_idx(type_a,type_b)];
             }
 
         unsigned int getNTrial(unsigned int type_a, unsigned int type_b) const
@@ -203,8 +234,18 @@ class IntegratorHPMCMono : public IntegratorHPMC
         //! Set the pair parameters for a single type
         virtual void setParam(unsigned int typ, const param_type& param);
 
+        //! Set shape parameters from python
+        void setShape(std::string typ, pybind11::dict v);
+
+        //! Get shape parameter from python
+        pybind11::dict getShape(std::string typ);
+
         //! Set elements of the interaction matrix
-        virtual void setOverlapChecks(unsigned int typi, unsigned int typj, bool check_overlaps);
+        virtual void setInteractionMatrix(std::pair<std::string, std::string> types,
+                                          bool check_overlaps);
+
+        //! Get elements of the interaction matrix
+        virtual bool getInteractionMatrixPy(std::pair<std::string, std::string> types);
 
         //! Set the external field for the integrator
         void setExternalField(std::shared_ptr< ExternalFieldMono<Shape> > external)
@@ -244,13 +285,10 @@ class IntegratorHPMCMono : public IntegratorHPMC
             }
 
         //! Count overlaps with the option to exit early at the first detected overlap
-        virtual unsigned int countOverlaps(unsigned int timestep, bool early_exit);
+        virtual unsigned int countOverlaps(bool early_exit);
 
         //! Return a vector that is an unwrapped overlap map
-        virtual std::vector<bool> mapOverlaps();
-
-        //! Return a python list that is an unwrapped overlap map
-        virtual pybind11::list PyMapOverlaps();
+        virtual std::vector<std::pair<unsigned int, unsigned int> > mapOverlaps();
 
         //! Return a vector that is an unwrapped energy map
         virtual std::vector<float> mapEnergies();
@@ -400,7 +438,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
             for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
                 {
                 Shape shape(q, params[i]);
-                type_shape_mapping[i] = shape.getShapeSpec();
+                type_shape_mapping[i] = getShapeSpec(shape);
                 }
             return type_shape_mapping;
             }
@@ -489,8 +527,10 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
               m_hasOrientation(true),
               m_extra_image_width(0.0)
     {
-    // allocate the parameter storage
-    m_params = std::vector<param_type, managed_allocator<param_type> >(m_pdata->getNTypes(), param_type(), managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
+    // allocate the parameter storage, setting the managed flag
+    m_params = std::vector<param_type, managed_allocator<param_type> >(m_pdata->getNTypes(),
+                                                                       param_type(),
+                                                                       managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
 
     m_overlap_idx = Index2D(m_pdata->getNTypes());
     GlobalArray<unsigned int> overlaps(m_overlap_idx.getNumElements(), m_exec_conf);
@@ -820,8 +860,8 @@ void IntegratorHPMCMono<Shape>::resetStats()
 template <class Shape>
 void IntegratorHPMCMono<Shape>::slotNumTypesChange()
     {
-    // re-allocate the parameter storage
-    m_params.resize(m_pdata->getNTypes());
+    // re-allocate the parameter storage, setting the managed flag on new members
+    m_params.resize(m_pdata->getNTypes(), param_type());
 
     // skip the reallocation if the number of types does not change
     // this keeps old potential coefficients when restoring a snapshot
@@ -1326,6 +1366,11 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
 
     // all particle have been moved, the aabb tree is now invalid
     m_aabb_tree_invalid = true;
+
+    // set current MPS value
+    hpmc_counters_t run_counters = getCounters(1);
+    double cur_time = double(m_clock.getTime()) / Scalar(1e9);
+    m_mps = double(run_counters.getNMoves()) / cur_time;
     }
 
 /*! \param timestep current step
@@ -1333,18 +1378,10 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
     \returns number of overlaps if early_exit=false, 1 if early_exit=true
 */
 template <class Shape>
-unsigned int IntegratorHPMCMono<Shape>::countOverlaps(unsigned int timestep, bool early_exit)
+unsigned int IntegratorHPMCMono<Shape>::countOverlaps(bool early_exit)
     {
     unsigned int overlap_count = 0;
     unsigned int err_count = 0;
-
-    m_exec_conf->msg->notice(10) << "HPMCMono count overlaps: " << timestep << std::endl;
-
-    if (!m_past_first_run)
-        {
-        m_exec_conf->msg->error() << "count_overlaps only works after a run() command" << std::endl;
-        throw std::runtime_error("Error communicating in count_overlaps");
-        }
 
     // build an up to date AABB tree
     buildAABBTree();
@@ -1651,13 +1688,32 @@ OverlapReal IntegratorHPMCMono<Shape>::getMinCoreDiameter()
     return minD;
     }
 
+/*! \param typ type name to set
+    \param v python dictionary to convert to shape
+*/
+template <class Shape> inline
+void IntegratorHPMCMono<Shape>::setShape(std::string typ, pybind11::dict v)
+    {
+    unsigned int id = this->m_pdata->getTypeByName(typ);
+    setParam(id, typename Shape::param_type(v, m_exec_conf->isCUDAEnabled()));
+    }
+
+/*! \param typ type name to get
+*/
+template <class Shape> inline
+pybind11::dict IntegratorHPMCMono<Shape>::getShape(std::string typ)
+    {
+    unsigned int id = this->m_pdata->getTypeByName(typ);
+    return m_params[id].asDict();
+    }
+
 template <class Shape>
 void IntegratorHPMCMono<Shape>::setParam(unsigned int typ,  const param_type& param)
     {
     // validate input
     if (typ >= this->m_pdata->getNTypes())
         {
-        this->m_exec_conf->msg->error() << "integrate.mode_hpmc_?." << /*evaluator::getName() <<*/ ": Trying to set pair params for a non existent type! "
+        this->m_exec_conf->msg->error() << "integrate.HPMCIntegrator_?." << /*evaluator::getName() <<*/ ": Trying to set pair params for a non existent type! "
                   << typ << std::endl;
         throw std::runtime_error("Error setting parameters in IntegratorHPMCMono");
         }
@@ -1673,30 +1729,29 @@ void IntegratorHPMCMono<Shape>::setParam(unsigned int typ,  const param_type& pa
     }
 
 template <class Shape>
-void IntegratorHPMCMono<Shape>::setOverlapChecks(unsigned int typi, unsigned int typj, bool check_overlaps)
+void IntegratorHPMCMono<Shape>::setInteractionMatrix(std::pair<std::string, std::string> types,
+                                                     bool check_overlaps)
     {
-    // validate input
-    if (typi >= this->m_pdata->getNTypes())
-        {
-        this->m_exec_conf->msg->error() << "integrate.mode_hpmc_?." << /*evaluator::getName() <<*/ ": Trying to set interaction matrix for a non existent type! "
-                  << typi << std::endl;
-        throw std::runtime_error("Error setting interaction matrix in IntegratorHPMCMono");
-        }
-
-    if (typj >= this->m_pdata->getNTypes())
-        {
-        this->m_exec_conf->msg->error() << "integrate.mode_hpmc_?." << /*evaluator::getName() <<*/ ": Trying to set interaction matrix for a non existent type! "
-                  << typj << std::endl;
-        throw std::runtime_error("Error setting interaction matrix in IntegratorHPMCMono");
-        }
+    auto typi = m_pdata->getTypeByName(types.first);
+    auto typj = m_pdata->getTypeByName(types.second);
 
     // update the parameter for this type
-    m_exec_conf->msg->notice(7) << "setOverlapChecks : " << typi << " " << typj << " " << check_overlaps << std::endl;
     ArrayHandle<unsigned int> h_overlaps(m_overlaps, access_location::host, access_mode::readwrite);
     h_overlaps.data[m_overlap_idx(typi,typj)] = check_overlaps;
     h_overlaps.data[m_overlap_idx(typj,typi)] = check_overlaps;
 
     m_image_list_valid = false;
+    }
+
+template <class Shape>
+bool IntegratorHPMCMono<Shape>::getInteractionMatrixPy(std::pair<std::string, std::string> types)
+    {
+    auto typi = m_pdata->getTypeByName(types.first);
+    auto typj = m_pdata->getTypeByName(types.second);
+
+    // update the parameter for this type
+    ArrayHandle<unsigned int> h_overlaps(m_overlaps, access_location::host, access_mode::read);
+    return h_overlaps.data[m_overlap_idx(typi,typj)];
     }
 
 //! Calculate a list of box images within interaction range of the simulation box, innermost first
@@ -2038,7 +2093,7 @@ void IntegratorHPMCMono<Shape>::limitMoveDistances()
  * with true/false indicating the overlap status of the ith and jth particle
  */
 template <class Shape>
-std::vector<bool> IntegratorHPMCMono<Shape>::mapOverlaps()
+std::vector<std::pair<unsigned int, unsigned int> > IntegratorHPMCMono<Shape>::mapOverlaps()
     {
     #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
@@ -2050,7 +2105,7 @@ std::vector<bool> IntegratorHPMCMono<Shape>::mapOverlaps()
 
     unsigned int N = m_pdata->getN();
 
-    std::vector<bool> overlap_map(N*N, false);
+    std::vector<std::pair<unsigned int, unsigned int> > overlap_vector;
 
     m_exec_conf->msg->notice(10) << "HPMC overlap mapping" << std::endl;
 
@@ -2116,7 +2171,8 @@ std::vector<bool> IntegratorHPMCMono<Shape>::mapOverlaps()
                                 && test_overlap(r_ij, shape_i, shape_j, err_count)
                                 && test_overlap(-r_ij, shape_j, shape_i, err_count))
                                 {
-                                overlap_map[h_tag.data[j]+N*h_tag.data[i]] = true;
+                                overlap_vector.push_back(std::make_pair(h_tag.data[i],
+                                                                        h_tag.data[j]));
                                 }
                             }
                         }
@@ -2129,7 +2185,7 @@ std::vector<bool> IntegratorHPMCMono<Shape>::mapOverlaps()
                 } // end loop over AABB nodes
             } // end loop over images
         } // end loop over particles
-    return overlap_map;
+    return overlap_vector;
     }
 
 /*! Calculate energy between all pairs of particles
@@ -2254,23 +2310,6 @@ std::vector<float> IntegratorHPMCMono<Shape>::mapEnergies()
         });
     #endif
     return energy_map;
-    }
-
-/*! Function for returning a python list of all overlaps in a system by particle
-  tag. returns an unraveled form of an NxN matrix with true/false indicating
-  the overlap status of the ith and jth particle
- */
-template <class Shape>
-pybind11::list IntegratorHPMCMono<Shape>::PyMapOverlaps()
-    {
-    std::vector<bool> v = IntegratorHPMCMono<Shape>::mapOverlaps();
-    pybind11::list overlap_map;
-    // for( unsigned int i = 0; i < sizeof(v)/sizeof(v[0]); i++ )
-    for (auto i: v)
-        {
-        overlap_map.append(pybind11::cast<bool>(i));
-        }
-    return overlap_map;
     }
 
 /*! Function for returning a python list of all overlaps in a system by particle
@@ -3225,21 +3264,24 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
     pybind11::class_< IntegratorHPMCMono<Shape>, IntegratorHPMC, std::shared_ptr< IntegratorHPMCMono<Shape> > >(m, name.c_str())
           .def(pybind11::init< std::shared_ptr<SystemDefinition>, unsigned int >())
           .def("setParam", &IntegratorHPMCMono<Shape>::setParam)
-          .def("setOverlapChecks", &IntegratorHPMCMono<Shape>::setOverlapChecks)
+          .def("setInteractionMatrix", &IntegratorHPMCMono<Shape>::setInteractionMatrix)
+          .def("getInteractionMatrix", &IntegratorHPMCMono<Shape>::getInteractionMatrixPy)
           .def("setExternalField", &IntegratorHPMCMono<Shape>::setExternalField)
           .def("setPatchEnergy", &IntegratorHPMCMono<Shape>::setPatchEnergy)
-          .def("mapOverlaps", &IntegratorHPMCMono<Shape>::PyMapOverlaps)
+          .def("mapOverlaps", &IntegratorHPMCMono<Shape>::mapOverlaps)
           .def("mapEnergies", &IntegratorHPMCMono<Shape>::PyMapEnergies)
           .def("connectGSDStateSignal", &IntegratorHPMCMono<Shape>::connectGSDStateSignal)
           .def("connectGSDShapeSpec", &IntegratorHPMCMono<Shape>::connectGSDShapeSpec)
           .def("restoreStateGSD", &IntegratorHPMCMono<Shape>::restoreStateGSD)
           .def("py_test_overlap", &IntegratorHPMCMono<Shape>::py_test_overlap)
-          .def("setDepletantFugacity", &IntegratorHPMCMono<Shape>::setDepletantFugacity)
           .def("getImplicitCounters", &IntegratorHPMCMono<Shape>::getImplicitCounters)
-          .def("getDepletantFugacity", &IntegratorHPMCMono<Shape>::getDepletantFugacity)
-          .def("getNTrial", &IntegratorHPMCMono<Shape>::getNTrial)
-          .def("setNTrial", &IntegratorHPMCMono<Shape>::setNTrial)
+          .def("getNTrial", &IntegratorHPMCMono<Shape>::getNTrialPy)
+          .def("setNTrial", &IntegratorHPMCMono<Shape>::setNTrialPy)
+          .def("setDepletantFugacity", &IntegratorHPMCMono<Shape>::setDepletantFugacityPy)
+          .def("getDepletantFugacity", &IntegratorHPMCMono<Shape>::getDepletantFugacityPy)
           .def("getTypeShapesPy", &IntegratorHPMCMono<Shape>::getTypeShapesPy)
+          .def("getShape", &IntegratorHPMCMono<Shape>::getShape)
+          .def("setShape", &IntegratorHPMCMono<Shape>::setShape)
           ;
     }
 

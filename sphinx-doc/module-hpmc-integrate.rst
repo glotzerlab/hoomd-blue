@@ -8,20 +8,20 @@ hpmc.integrate
 .. autosummary::
     :nosignatures:
 
-    hpmc.integrate.convex_polygon
-    hpmc.integrate.convex_polyhedron
-    hpmc.integrate.convex_spheropolygon
-    hpmc.integrate.convex_spheropolyhedron
-    hpmc.integrate.convex_spheropolyhedron_union
-    hpmc.integrate.ellipsoid
-    hpmc.integrate.faceted_sphere
-    hpmc.integrate.interaction_matrix
-    hpmc.integrate.mode_hpmc
-    hpmc.integrate.polyhedron
-    hpmc.integrate.simple_polygon
-    hpmc.integrate.sphere
-    hpmc.integrate.sphere_union
-    hpmc.integrate.sphinx
+    hpmc.integrate.ConvexPolygon
+    hpmc.integrate.ConvexPolyhedron
+    hpmc.integrate.ConvexSpheropolygon
+    hpmc.integrate.ConvexSpheropolyhedron
+    hpmc.integrate.ConvexSpheropolyhedronUnion
+    hpmc.integrate.Ellipsoid
+    hpmc.integrate.FacetedEllipsoid
+    hpmc.integrate.FacetedEllipsoidUnion
+    hpmc.integrate._HPMCIntegrator
+    hpmc.integrate.Polyhedron
+    hpmc.integrate.SimplePolygon
+    hpmc.integrate.Sphere
+    hpmc.integrate.SphereUnion
+    hpmc.integrate.Sphinx
 
 .. rubric:: Details
 

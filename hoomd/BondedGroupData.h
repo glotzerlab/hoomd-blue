@@ -162,6 +162,11 @@ class BondedGroupData
                 resize(n_groups);
                 }
 
+            unsigned int getSize()
+                {
+                return size;
+                }
+
             //! Resize the snapshot
             /*! \param n_groups Number of groups in the snapshot
              */
@@ -308,6 +313,17 @@ class BondedGroupData
 
         //! Get the type name by id
         const std::string getNameByType(unsigned int type) const;
+
+        //! Get the types for python
+        pybind11::list getTypesPy()
+            {
+            pybind11::list types;
+
+            for (unsigned int i = 0; i < getNTypes(); i++)
+                types.append(pybind11::str(m_type_mapping[i]));
+
+            return types;
+            }
 
         //! Rename a type
         void setTypeName(unsigned int type, const std::string& new_name);

@@ -1,7 +1,3 @@
-# developers must opt in to the long validation test runs
-# on a branch: manually trigger the build at: https://dev.azure.com/glotzerlab/hoomd-blue/_build?definitionId=3&_a=summary
-# on a PR: add a comment to the PR on GitHub '/azp run validate'
-
 trigger: none
 
 variables:

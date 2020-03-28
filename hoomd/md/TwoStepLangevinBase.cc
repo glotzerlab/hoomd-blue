@@ -1,11 +1,6 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
-// Maintainer: joaander
-
-
-
 #include "TwoStepLangevinBase.h"
 
 #ifdef ENABLE_MPI
@@ -15,32 +10,20 @@
 namespace py = pybind11;
 using namespace std;
 
-/*! \file TwoStepLangevinBase.h
-    \brief Contains code for the TwoStepLangevinBase class
-*/
-
-/*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
-    \param group The group of particles this integration method is to work on
-    \param T Temperature set point as a function of time
-    \param seed Random seed to use in generating random numbers
-    \param use_lambda If true, gamma=lambda*diameter, otherwise use a per-type gamma via setGamma()
-    \param lambda Scale factor to convert diameter to gamma
-    \note All ranks other than 0 ignore the seed input and use the value of rank 0.
+/** @param sysdef SystemDefinition this method will act on. Must not be NULL.
+    @param group The group of particles this integration method is to work on
+    @param T Temperature set point as a function of time
+    @param seed Random seed to use in generating random numbers
+    @note All ranks other than 0 ignore the seed input and use the value of rank 0.
 */
 TwoStepLangevinBase::TwoStepLangevinBase(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<ParticleGroup> group,
                            std::shared_ptr<Variant> T,
-                           unsigned int seed,
-                           bool use_lambda,
-                           Scalar lambda)
-    : IntegrationMethodTwoStep(sysdef, group), m_T(T), m_seed(seed), m_use_lambda(use_lambda), m_lambda(lambda)
+                           unsigned int seed)
+    : IntegrationMethodTwoStep(sysdef, group), m_T(T), m_seed(seed), m_use_alpha(false),
+      m_alpha(0.0)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepLangevinBase" << endl;
-
-    if (use_lambda)
-        m_exec_conf->msg->notice(2) << "integrate.langevin/bd is determining gamma from particle diameters" << endl;
-    else
-        m_exec_conf->msg->notice(2) << "integrate.langevin/bd is using specified gamma values" << endl;
 
     // In case of MPI run, every rank should be initialized with the same seed.
     // For simplicity we broadcast the seed of rank 0 to all ranks.
@@ -49,9 +32,6 @@ TwoStepLangevinBase::TwoStepLangevinBase(std::shared_ptr<SystemDefinition> sysde
     if( this->m_pdata->getDomainDecomposition() )
         bcast(m_seed,0,this->m_exec_conf->getMPICommunicator());
     #endif
-
-    // Hash the User's Seed to make it less likely to be a low positive integer
-    m_seed = m_seed*0x12345677 + 0x12345 ; m_seed^=(m_seed>>16); m_seed*= 0x45679;
 
     // allocate memory for the per-type gamma storage and initialize them to 1.0
     GlobalVector<Scalar> gamma(m_pdata->getNTypes(), m_exec_conf);
@@ -62,7 +42,7 @@ TwoStepLangevinBase::TwoStepLangevinBase(std::shared_ptr<SystemDefinition> sysde
     for (unsigned int i = 0; i < m_gamma.size(); i++)
         h_gamma.data[i] = Scalar(1.0);
 
-    // allocate memory for the per-type gamma_r storage and initialize them to 0.0 (no rotational noise by default)
+    // allocate memory for the per-type gamma_r storage
     GlobalVector<Scalar3> gamma_r(m_pdata->getNTypes(), m_exec_conf);
     m_gamma_r.swap(gamma_r);
     TAG_ALLOCATION(m_gamma_r);
@@ -112,47 +92,86 @@ void TwoStepLangevinBase::slotNumTypesChange()
         }
     }
 
-/*! \param typ Particle type to set gamma for
-    \param gamma The gamma value to set
-*/
-void TwoStepLangevinBase::setGamma(unsigned int typ, Scalar gamma)
+void TwoStepLangevinBase::setGamma(const std::string& type_name, Scalar gamma)
     {
-    // check for user errors
-    if (m_use_lambda)
-        {
-        m_exec_conf->msg->error() << "Trying to set gamma when it is set to be the diameter! " << typ << endl;
-        throw runtime_error("Error setting params in TwoStepLangevinBase");
-        }
-    if (typ >= m_pdata->getNTypes())
-        {
-        m_exec_conf->msg->error() << "Trying to set gamma for a non existent type! " << typ << endl;
-        throw runtime_error("Error setting params in TwoStepLangevinBase");
-        }
-
+    unsigned int typ = this->m_pdata->getTypeByName(type_name);
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::readwrite);
     h_gamma.data[typ] = gamma;
     }
 
-
-/*! \param typ Particle type to set gamma_r (2D rotational noise) for
-    \param gamma The gamma_r value to set
-*/
-void TwoStepLangevinBase::setGamma_r(unsigned int typ, Scalar3 gamma_r)
+Scalar TwoStepLangevinBase::getGamma(const std::string& type_name)
     {
+    unsigned int typ = this->m_pdata->getTypeByName(type_name);
+    ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
+    return h_gamma.data[typ];
+    }
+
+void TwoStepLangevinBase::setGammaR(const std::string& type_name, pybind11::tuple v)
+    {
+    unsigned int typ = this->m_pdata->getTypeByName(type_name);
+
+    if (pybind11::len(v) != 3)
+        {
+        throw invalid_argument("gamma_r values must be 3-tuples");
+        }
+
+    Scalar3 gamma_r;
+    gamma_r.x = pybind11::cast<Scalar>(v[0]);
+    gamma_r.y = pybind11::cast<Scalar>(v[1]);
+    gamma_r.z = pybind11::cast<Scalar>(v[2]);
+
     // check for user errors
     if (gamma_r.x < 0 || gamma_r.y < 0 || gamma_r. z < 0)
         {
-        m_exec_conf->msg->error() << "gamma_r.(x,y,z) should be positive or 0! " << typ << endl;
-        throw runtime_error("Error setting params in TwoStepLangevinBase");
+        throw invalid_argument("gamma_r elements must be >= 0");
         }
     if (typ >= m_pdata->getNTypes())
         {
-        m_exec_conf->msg->error() << "Trying to set gamma_r for a non existent type! " << typ << endl;
-        throw runtime_error("Error setting params in TwoStepLangevinBase");
+        throw invalid_argument("Type does not exist");
         }
 
     ArrayHandle<Scalar3> h_gamma_r(m_gamma_r, access_location::host, access_mode::readwrite);
     h_gamma_r.data[typ] = gamma_r;
+    }
+
+pybind11::tuple TwoStepLangevinBase::getGammaR(const std::string& type_name)
+    {
+    pybind11::list v;
+    unsigned int typ = this->m_pdata->getTypeByName(type_name);
+
+    ArrayHandle<Scalar3> h_gamma_r(m_gamma_r, access_location::host, access_mode::readwrite);
+    Scalar3 gamma_r = h_gamma_r.data[typ];
+    v.append(gamma_r.x);
+    v.append(gamma_r.y);
+    v.append(gamma_r.z);
+    return pybind11::tuple(v);
+    }
+
+void TwoStepLangevinBase::setAlpha(pybind11::object alpha)
+    {
+    if (alpha.is_none())
+        {
+        m_use_alpha = false;
+        }
+    else
+        {
+        m_use_alpha = true;
+        m_alpha = pybind11::cast<Scalar>(alpha);
+        }
+    }
+
+pybind11::object TwoStepLangevinBase::getAlpha()
+    {
+    pybind11::object result;
+    if (m_use_alpha)
+        {
+        result = pybind11::cast(m_alpha);
+        }
+    else
+        {
+        result = pybind11::none();
+        }
+    return result;
     }
 
 void export_TwoStepLangevinBase(py::module& m)
@@ -161,12 +180,15 @@ void export_TwoStepLangevinBase(py::module& m)
         .def(py::init< std::shared_ptr<SystemDefinition>,
                                 std::shared_ptr<ParticleGroup>,
                                 std::shared_ptr<Variant>,
-                                unsigned int,
-                                bool,
-                                Scalar
+                                unsigned int
                                 >())
-        .def("setT", &TwoStepLangevinBase::setT)
+        .def_property("kT", &TwoStepLangevinBase::getT, &TwoStepLangevinBase::setT)
         .def("setGamma", &TwoStepLangevinBase::setGamma)
-        .def("setGamma_r", &TwoStepLangevinBase::setGamma_r)
+        .def("getGamma", &TwoStepLangevinBase::getGamma)
+        .def("setGammaR", &TwoStepLangevinBase::setGammaR)
+        .def("getGammaR", &TwoStepLangevinBase::getGammaR)
+        .def_property("alpha", &TwoStepLangevinBase::getAlpha,
+                      &TwoStepLangevinBase::setAlpha)
+        .def_property_readonly("seed", &TwoStepLangevinBase::getSeed)
         ;
     }

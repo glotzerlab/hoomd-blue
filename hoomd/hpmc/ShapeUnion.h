@@ -1,6 +1,8 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
+# pragma once
+
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/BoxDim.h"
 #include "hoomd/VectorMath.h"
@@ -11,16 +13,6 @@
 
 #include "hoomd/AABB.h"
 #include "hoomd/ManagedArray.h"
-
-#ifndef __SHAPE_UNION_H__
-#define __SHAPE_UNION_H__
-
-/*! \file ShapeUnion.h
-    \brief Defines the ShapeUnion templated aggregate shape
-*/
-
-// need to declare these class methods with __device__ qualifiers when building in nvcc
-// DEVICE is __device__ when included in nvcc and blank when included into the host compiler
 #ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
@@ -30,15 +22,13 @@
 #include <iostream>
 #endif
 
-//#define SHAPE_UNION_LEAVES_AGAINST_TREE_TRAVERSAL
-
 namespace hpmc
 {
 
 namespace detail
 {
 
-//! Stores the overlapping node pairs from a prior traversal
+/// Stores the overlapping node pairs from a prior traversal
 /* This data structure is used to accelerate the random choice of overlapping
    node pairs when depletants are reinserted, eliminating the need to traverse
    the same tree for all reinsertion attempts.
@@ -55,21 +45,26 @@ struct union_depletion_storage
     unsigned int cur_node_b;
     };
 
-//! Data structure for shape composed of a union of multiple shapes
+/** Data structure for shape composed of a union of multiple shapes.
+
+    Store N member shapes of the same type at given positions and orientations relative to the
+    position and orientation of the parent shape. Use ManagedArray to support shape data types that
+    have nested ManagedArray members.
+*/
 template<class Shape>
-struct union_params : param_base
+struct ShapeUnionParams : ShapeParams
     {
-    typedef GPUTree gpu_tree_type; //!< Handy typedef for GPUTree template
-    typedef typename Shape::param_type mparam_type;
-
-    //! Default constructor
-    DEVICE union_params()
+    /** Default constructor
+    */
+    DEVICE ShapeUnionParams()
         : diameter(0.0), N(0), ignore(0)
-        { }
+        {
+        }
 
-    //! Load dynamic data members into shared memory and increase pointer
-    /*! \param ptr Pointer to load data to (will be incremented)
-        \param available_bytes Size of remaining shared memory allocation
+    /** Load dynamic data members into shared memory and increase pointer
+
+        @param ptr Pointer to load data to (will be incremented)
+        @param available_bytes Size of remaining shared memory allocation
      */
     DEVICE void load_shared(char *& ptr, unsigned int &available_bytes)
         {
@@ -99,9 +94,10 @@ struct union_params : param_base
             }
         }
 
-    //! Determine size of the shared memory allocaation
-    /*! \param ptr Pointer to increment
-        \param available_bytes Size of remaining shared memory allocation
+    /** Determine size of the shared memory allocation
+
+        @param ptr Pointer to increment
+        @param available_bytes Size of remaining shared memory allocation
      */
     HOSTDEVICE void allocate_shared(char *& ptr, unsigned int &available_bytes) const
         {
@@ -117,7 +113,8 @@ struct union_params : param_base
 
 
     #ifdef ENABLE_HIP
-    //! Set CUDA memory hints
+
+    /// Set CUDA memory hints
     void set_memory_hint() const
         {
         tree.set_memory_hint();
@@ -131,58 +128,228 @@ struct union_params : param_base
         for (unsigned int i = 0; i < mparams.size(); ++i)
             mparams[i].set_memory_hint();
         }
+
     #endif
 
     #ifndef __HIPCC__
-    //! Shape constructor
-    union_params(unsigned int _N, bool _managed)
-        : N(_N)
+
+    /** Construct with a given number of members
+
+        @note Use of this constructor with N != 0 is intended only for unit tests
+    */
+    DEVICE ShapeUnionParams(unsigned int _N) // TODO rename mpos to m_pos etc
+        : mpos(_N, false), morientation(_N, false), mparams(_N, false),
+          moverlap(_N, false), diameter(0.0), N(_N), ignore(0)
         {
-        mpos = ManagedArray<vec3<OverlapReal> >(N,_managed);
-        morientation = ManagedArray<quat<OverlapReal> >(N,_managed);
-        mparams = ManagedArray<mparam_type>(N,_managed);
-        moverlap = ManagedArray<unsigned int>(N,_managed);
+        }
+
+    ShapeUnionParams(pybind11::dict v, bool managed=false)
+        {
+        // list of dicts to set parameters for member shapes
+        pybind11::list shapes = v["shapes"];
+        // list of 3-tuples that set the position of each member
+        pybind11::list positions = v["positions"];
+        // list of 4-tuples that set the orientation of each member
+        pybind11::list orientations = v["orientations"];
+        pybind11::list overlap = v["overlap"];
+        ignore = v["ignore_statistics"].cast<unsigned int>();
+        unsigned int leaf_capacity = v["capacity"].cast<unsigned int>();
+
+        N = pybind11::len(shapes);
+        mpos = ManagedArray<vec3<OverlapReal> >(N,managed);
+        morientation = ManagedArray<quat<OverlapReal> >(N,managed);
+        mparams = ManagedArray<typename Shape::param_type>(N,managed);
+        moverlap = ManagedArray<unsigned int>(N,managed);
+
+        if (pybind11::len(positions) != N)
+            {
+            throw std::runtime_error(std::string("len(positions) != len(shapes): ")
+                                     + "positions=" + pybind11::str(positions).cast<std::string>() +
+                                     + " shapes=" + pybind11::str(shapes).cast<std::string>() );
+            }
+        if (pybind11::len(orientations) != N)
+            {
+            throw std::runtime_error(std::string("len(orientations) != len(shapes): ")
+                                     + "orientations="
+                                     + pybind11::str(orientations).cast<std::string>() +
+                                     + " shapes=" + pybind11::str(shapes).cast<std::string>() );
+            }
+        if (pybind11::len(overlap) != N)
+            {
+            throw std::runtime_error(std::string("len(overlap) != len(shapes): ")
+                                     + "overlaps=" + pybind11::str(overlap).cast<std::string>() +
+                                     + " shapes=" + pybind11::str(shapes).cast<std::string>() );
+            }
+
+        hpmc::detail::OBB *obbs = new hpmc::detail::OBB[N];
+
+        std::vector<std::vector<vec3<OverlapReal> > > internal_coordinates;
+
+        // extract member parameters, positions, and orientations and compute the radius along the
+        // way
+        diameter = OverlapReal(0.0);
+
+        // compute a tight fitting AABB in the body frame
+        detail::AABB local_aabb(vec3<OverlapReal>(0,0,0),OverlapReal(0.0));
+
+        for (unsigned int i = 0; i < N; i++)
+            {
+            typename Shape::param_type param(shapes[i]);
+
+            pybind11::list position = pybind11::cast<pybind11::list>(positions[i]);
+            if (len(position) != 3)
+                throw std::runtime_error("Each position must have 3 elements: found "
+                                        + pybind11::str(position).cast<std::string>()
+                                        + " in " + pybind11::str(positions).cast<std::string>());
+
+            vec3<OverlapReal> pos = vec3<OverlapReal>(pybind11::cast<OverlapReal>(position[0]),
+                                                      pybind11::cast<OverlapReal>(position[1]),
+                                                      pybind11::cast<OverlapReal>(position[2]));
+            pybind11::list orientation_l = pybind11::cast<pybind11::list>(orientations[i]);
+            OverlapReal s = pybind11::cast<OverlapReal>(orientation_l[0]);
+            OverlapReal x = pybind11::cast<OverlapReal>(orientation_l[1]);
+            OverlapReal y = pybind11::cast<OverlapReal>(orientation_l[2]);
+            OverlapReal z = pybind11::cast<OverlapReal>(orientation_l[3]);
+            quat<OverlapReal> orientation(s, vec3<OverlapReal>(x,y,z));
+
+            mparams[i] = param;
+            mpos[i] = pos;
+            morientation[i] = orientation;
+            moverlap[i] = pybind11::cast<unsigned int>(overlap[i]);
+
+            Shape dummy(orientation, param);
+            Scalar d = sqrt(dot(pos,pos));
+            diameter = max(diameter, OverlapReal(2*d + dummy.getCircumsphereDiameter()));
+
+            if (dummy.hasOrientation())
+                {
+                // construct OBB
+                obbs[i] = dummy.getOBB(pos);
+                }
+            else
+                {
+                // construct bounding sphere
+                obbs[i] = detail::OBB(pos, OverlapReal(0.5)*dummy.getCircumsphereDiameter());
+                }
+
+            obbs[i].mask = moverlap[i];
+
+            detail::AABB my_aabb = dummy.getAABB(pos);
+            local_aabb = merge(local_aabb, my_aabb);
+            }
+
+        // set the diameter
+
+        // build tree and store GPU accessible version in parameter structure
+        OBBTree tree_obb;
+        tree_obb.buildTree(obbs, N, leaf_capacity, false);
+        delete [] obbs;
+        tree = GPUTree(tree_obb, false);
+
+        // store local AABB
+        lower = local_aabb.getLower();
+        upper = local_aabb.getUpper();
+        }
+
+    /// Convert parameters to a python dictionary
+    pybind11::dict asDict()
+        {
+        pybind11::dict v;
+
+        pybind11::list positions;
+        pybind11::list orientations;
+        pybind11::list overlaps;
+        pybind11::list shapes;
+
+        for (unsigned int i = 0; i < N; i++)
+            {
+            pybind11::list pos_l;
+            pos_l.append(mpos[i].x);
+            pos_l.append(mpos[i].y);
+            pos_l.append(mpos[i].z);
+            positions.append(pybind11::tuple(pos_l));
+
+            pybind11::list orientation_l;
+            orientation_l.append(morientation[i].s);
+            orientation_l.append(morientation[i].v.x);
+            orientation_l.append(morientation[i].v.y);
+            orientation_l.append(morientation[i].v.z);
+            orientations.append(pybind11::tuple(orientation_l));
+
+            overlaps.append(moverlap[i]);
+            shapes.append(mparams[i].asDict());
+            }
+        v["shapes"] = shapes;
+        v["orientations"] = orientations;
+        v["positions"] = positions;
+        v["overlap"] = overlaps;
+        v["ignore_statistics"] = ignore;
+        v["capacity"] = tree.getLeafNodeCapacity();
+
+        return v;
         }
     #endif
 
-    gpu_tree_type tree;                      //!< OBB tree for constituent shapes
-    ManagedArray<vec3<OverlapReal> > mpos;         //!< Position vectors of member shapes
-    ManagedArray<quat<OverlapReal> > morientation; //!< Orientation of member shapes
-    ManagedArray<mparam_type> mparams;        //!< Parameters of member shapes
-    ManagedArray<unsigned int> moverlap;      //!< only check overlaps for which moverlap[i] & moverlap[j]
-    OverlapReal diameter;                    //!< Precalculated overall circumsphere diameter
-    unsigned int N;                           //!< Number of member shapes
-    unsigned int ignore;                     //!<  Bitwise ignore flag for stats. 1 will ignore, 0 will not ignore
+    /// OBB tree for constituent shapes
+    GPUTree tree;
+
+    /// Position vectors of member shapes
+    ManagedArray<vec3<OverlapReal> > mpos;
+
+    /// Orientation of member shapes
+    ManagedArray<quat<OverlapReal> > morientation;
+
+    /// Parameters of member shapes
+    ManagedArray<typename Shape::param_type> mparams;
+
+    /// only check overlaps for which moverlap[i] & moverlap[j]
+    ManagedArray<unsigned int> moverlap;
+
+    /// Precalculated overall circumsphere diameter
+    OverlapReal diameter;
+
+    /// Number of member shapes
+    unsigned int N;
+
+    /// True when move statistics should not be counted
+    unsigned int ignore;
+
+    /// Lower corner of local AABB
+    vec3<OverlapReal> lower;
+
+    /// Upper corner of local AABB
+    vec3<OverlapReal> upper;
     } __attribute__((aligned(32)));
 
 } // end namespace detail
 
-//! Shape consisting of union of shapes of a single type but individual parameters
-/*!
-    The parameter defining a ShapeUnion is a structure implementing the HPMC shape interface and containing
-    parameter objects for its member particles in its own parameters structure
+/** Shape consisting of union of shapes of a single type but individual parameters.
 
-    The purpose of ShapeUnion is to allow an overlap check to iterate through pairs of member shapes between
-    two composite particles. The two particles overlap if any of their member shapes overlap.
+    The parameter defining a ShapeUnion is a structure implementing the HPMC shape interface and
+    containing parameter objects for its member particles in its own parameters structure
+
+    The purpose of ShapeUnion is to allow an overlap check to iterate through pairs of member shapes
+    between two composite particles. The two particles overlap if any of their member shapes
+    overlap.
 
     ShapeUnion stores an internal OBB tree for fast overlap checks.
 */
 template<class Shape>
 struct ShapeUnion
     {
-    //! Define the parameter type
-    typedef typename detail::union_params<Shape> param_type;
+    /// Define the parameter type
+    typedef typename detail::ShapeUnionParams<Shape> param_type;
 
-    //! Temporary storage for depletant insertion
+    /// Temporary storage for depletant insertion
     typedef struct detail::union_depletion_storage depletion_storage_type;
 
-    //! Initialize a sphere_union
+    /// Construct a shape at a given orientation
     DEVICE ShapeUnion(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), members(_params)
         {
         }
 
-    //! Does this shape have an orientation
+    /// Check if the shape may be rotated
     DEVICE bool hasOrientation() const
         {
         if (members.N == 1)
@@ -199,37 +366,30 @@ struct ShapeUnion
         return true;
         }
 
-    //!Ignore flag for acceptance statistics
+    /// Check if this shape should be ignored in the move statistics
     DEVICE bool ignoreStatistics() const { return members.ignore; }
 
-    //! Get the circumsphere diameter
+    /// Get the circumsphere diameter of the shape
     DEVICE OverlapReal getCircumsphereDiameter() const
         {
         // return the precomputed diameter
         return members.diameter;
         }
 
-    //! Get the in-sphere radius
+    /// Get the in-sphere radius of the shape
     DEVICE OverlapReal getInsphereRadius() const
         {
         // not implemented
         return OverlapReal(0.0);
         }
 
-    #ifndef __HIPCC__
-    std::string getShapeSpec() const
-        {
-        throw std::runtime_error("Shape definition not supported for this shape class.");
-        }
-    #endif
-
-    //! Return the bounding box of the shape in world coordinates
+    /// Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         return getOBB(pos).getAABB();
         }
 
-    //! Return a tight fitting OBB
+    /// Return a tight fitting OBB
     DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
         {
         if (members.N > 0)
@@ -246,9 +406,12 @@ struct ShapeUnion
             {
             return detail::OBB(pos, OverlapReal(0.5)*members.diameter);
             }
+
         }
 
-    //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
+    /** Returns true if this shape splits the overlap check over several threads of a warp using
+        threadIdx.x
+    */
     HOSTDEVICE static bool isParallel() {
         #ifdef SHAPE_UNION_LEAVES_AGAINST_TREE_TRAVERSAL
         return true;
@@ -257,9 +420,12 @@ struct ShapeUnion
         #endif
         }
 
-    quat<Scalar> orientation;    //!< Orientation of the particle
 
-    const param_type& members;     //!< member data
+    /// Orientation of the sphere
+    quat<Scalar> orientation;
+
+    /// Member data
+    const param_type& members;
     };
 
 template<class Shape>
@@ -272,9 +438,6 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
     {
     vec3<OverlapReal> r_ab = rotate(conj(quat<OverlapReal>(b.orientation)),vec3<OverlapReal>(dr));
 
-    //! Param type of the member shapes
-    typedef typename Shape::param_type mparam_type;
-
     // loop through shape of cur_node_a
     unsigned int na = a.members.tree.getNumParticles(cur_node_a);
     unsigned int nb = b.members.tree.getNumParticles(cur_node_b);
@@ -283,12 +446,17 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
         {
         unsigned int ishape = a.members.tree.getParticleByNode(cur_node_a, i);
 
-        const mparam_type& params_i = a.members.mparams[ishape];
+        const auto& params_i = a.members.mparams[ishape];
         Shape shape_i(quat<Scalar>(), params_i);
         if (shape_i.hasOrientation())
-            shape_i.orientation = conj(quat<OverlapReal>(b.orientation))*quat<OverlapReal>(a.orientation) * a.members.morientation[ishape];
+            shape_i.orientation = conj(quat<OverlapReal>(b.orientation))
+                                  * quat<OverlapReal>(a.orientation)
+                                  * a.members.morientation[ishape];
 
-        vec3<OverlapReal> pos_i(rotate(conj(quat<OverlapReal>(b.orientation))*quat<OverlapReal>(a.orientation),a.members.mpos[ishape])-r_ab);
+        vec3<OverlapReal> pos_i(rotate(conj(quat<OverlapReal>(b.orientation))
+                                       * quat<OverlapReal>(a.orientation),
+                                       a.members.mpos[ishape])
+                                - r_ab);
         unsigned int overlap_i = a.members.moverlap[ishape];
 
         // loop through shapes of cur_node_b
@@ -296,7 +464,7 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
             {
             unsigned int jshape = b.members.tree.getParticleByNode(cur_node_b, j);
 
-            const mparam_type& params_j = b.members.mparams[jshape];
+            const auto& params_j = b.members.mparams[jshape];
             Shape shape_j(quat<Scalar>(), params_j);
             if (shape_j.hasOrientation())
                 shape_j.orientation = b.members.morientation[jshape];
@@ -337,7 +505,9 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
 
     if (tree_a.getNumLeaves() <= tree_b.getNumLeaves())
         {
-        for (unsigned int cur_leaf_a = offset; cur_leaf_a < tree_a.getNumLeaves(); cur_leaf_a += stride)
+        for (unsigned int cur_leaf_a = offset;
+             cur_leaf_a < tree_a.getNumLeaves();
+             cur_leaf_a += stride)
             {
             unsigned int cur_node_a = tree_a.getLeafNode(cur_leaf_a);
             hpmc::detail::OBB obb_a = tree_a.getOBB(cur_node_a);
@@ -357,7 +527,9 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
         }
     else
         {
-        for (unsigned int cur_leaf_b = offset; cur_leaf_b < tree_b.getNumLeaves(); cur_leaf_b += stride)
+        for (unsigned int cur_leaf_b = offset;
+             cur_leaf_b < tree_b.getNumLeaves();
+             cur_leaf_b += stride)
             {
             unsigned int cur_node_b = tree_b.getLeafNode(cur_leaf_b);
             hpmc::detail::OBB obb_b = tree_b.getOBB(cur_node_b);
@@ -593,9 +765,6 @@ DEVICE inline OverlapReal sampling_volume_narrow_phase(vec3<OverlapReal> dr,
     {
     vec3<OverlapReal> r_ab = rotate(conj(quat<OverlapReal>(b.orientation)),vec3<OverlapReal>(dr));
 
-    //! Param type of the member shapes
-    typedef typename Shape::param_type mparam_type;
-
     // loop through shape of cur_node_a
     unsigned int na = a.members.tree.getNumParticles(cur_node_a);
     unsigned int nb = b.members.tree.getNumParticles(cur_node_b);
@@ -606,7 +775,7 @@ DEVICE inline OverlapReal sampling_volume_narrow_phase(vec3<OverlapReal> dr,
         {
         unsigned int ishape = a.members.tree.getParticleByNode(cur_node_a, i);
 
-        const mparam_type& params_i = a.members.mparams[ishape];
+        const auto& params_i = a.members.mparams[ishape];
         Shape shape_i(quat<Scalar>(), params_i);
         if (shape_i.hasOrientation())
             shape_i.orientation = conj(quat<OverlapReal>(b.orientation))*quat<OverlapReal>(a.orientation) * a.members.morientation[ishape];
@@ -618,7 +787,7 @@ DEVICE inline OverlapReal sampling_volume_narrow_phase(vec3<OverlapReal> dr,
             {
             unsigned int jshape = b.members.tree.getParticleByNode(cur_node_b, j);
 
-            const mparam_type& params_j = b.members.mparams[jshape];
+            const auto& params_j = b.members.mparams[jshape];
             Shape shape_j(quat<Scalar>(), params_j);
             if (shape_j.hasOrientation())
                 shape_j.orientation = b.members.morientation[jshape];
@@ -1155,8 +1324,32 @@ DEVICE inline bool isPointInExcludedVolumeIntersection(
     return false;
     }
 
-}; // end namespace hpmc
+#ifndef __HIPCC__
+template<>
+inline std::string getShapeSpec(const ShapeUnion<ShapeSphere>& sphere_union)
+    {
+    auto& members = sphere_union.members;
+
+    unsigned int n_centers = members.N;
+    std::ostringstream shapedef;
+    shapedef << "{\"type\": \"SphereUnion\", \"centers\": [";
+    for (unsigned int i = 0; i < n_centers-1; i++)
+        {
+        shapedef << "[" << members.mpos[i].x << ", " << members.mpos[i].y << ", " << members.mpos[i].z << "], ";
+        }
+    shapedef << "[" << members.mpos[n_centers-1].x << ", " << members.mpos[n_centers-1].y << ", " << members.mpos[n_centers-1].z << "]], \"diameters\": [";
+    for (unsigned int i = 0; i < n_centers-1; i++)
+        {
+        shapedef << 2.0*members.mparams[i].radius << ", ";
+        }
+    shapedef << 2.0*members.mparams[n_centers-1].radius;
+    shapedef << "]}";
+
+    return shapedef.str();
+    }
+#endif
+
+} // end namespace hpmc
 
 #undef DEVICE
 #undef HOSTDEVICE
-#endif // end __SHAPE_UNION_H__
