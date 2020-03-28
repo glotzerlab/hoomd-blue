@@ -639,7 +639,7 @@ class GSD(_Analyzer):
 
         self._cpp_obj = _hoomd.GSDDumpWriter(simulation.state._cpp_sys_def,
                                              self.filename,
-                                             simulation.state.add_group(self.filter),
+                                             simulation.state.get_group(self.filter),
                                              self.overwrite,
                                              self.truncate)
 

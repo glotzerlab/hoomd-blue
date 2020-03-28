@@ -36,7 +36,7 @@ class PYBIND11_EXPORT ParticleFilterUnion : public ParticleFilter
             std::sort(Y.begin(), Y.end());
 
             // Create vector and get union
-            auto tags = std::vector<unsigned int>(std::max(X.size(), Y.size()));
+            auto tags = std::vector<unsigned int>(X.size() + Y.size());
             auto it = std::set_union(X.begin(), X.end(), Y.begin(), Y.end(),
                                      tags.begin());
             tags.resize(it - tags.begin());

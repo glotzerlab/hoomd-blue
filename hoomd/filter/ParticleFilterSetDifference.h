@@ -39,8 +39,8 @@ class PYBIND11_EXPORT ParticleFilterSetDifference : public ParticleFilter
 
             // Create vector and get set difference
             auto tags = std::vector<unsigned int>(X.size());
-            auto it = std::set_difference(X.begin(), X.end(), Y.begin(),
-                                          Y.end(), tags.begin());
+            auto it = std::set_difference(
+                X.begin(), X.end(), Y.begin(), Y.end(), tags.begin());
             tags.resize(it - tags.begin());
             return tags;
             }

@@ -43,7 +43,7 @@ void export_ParticleFilters(pybind11::module& m)
             .def(pybind11::init<std::shared_ptr<ParticleFilter>,
                                 std::shared_ptr<ParticleFilter> >());
 
-    pybind11::class_<ParticleFilterTags,
+    pybind11::class_<ParticleFilterTags, ParticleFilter,
                     std::shared_ptr<ParticleFilterTags>
                     >(m,"ParticleFilterTags")
         .def(pybind11::init<pybind11::array_t<unsigned int,
