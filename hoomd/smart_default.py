@@ -28,14 +28,28 @@ class SmartDefaultSequence(SmartDefault):
 
     def __call__(self, sequence):
         if sequence is None:
-            return []
+            return self.to_base()
         else:
             new_sequence = []
-            for v, d in zip(sequence, self):
-                if isinstance(d, SmartDefault):
-                    new_sequence.append(d(v))
-                else:
-                    new_sequence.append(v)
+            if len(self.default) == 1:
+                for v, d in zip(sequence, self):
+                    if isinstance(d, SmartDefault):
+                        new_sequence.append(d(v))
+                    else:
+                        new_sequence.append(v)
+            else:
+                given_length = len(sequence)
+                for i, d in enumerate(self):
+                    if i < given_length:
+                        if isinstance(d, SmartDefault):
+                            new_sequence.append(d(sequence[i]))
+                        else:
+                            new_sequence.append(sequence[i])
+                    else:
+                        if isinstance(d, SmartDefault):
+                            new_sequence.append(d.to_base())
+                        else:
+                            new_sequence.append(d)
             return new_sequence
 
     def __iter__(self):
@@ -59,7 +73,7 @@ class SmartDefaultMapping(SmartDefault):
 
     def __call__(self, mapping):
         if mapping is None:
-            mapping = dict()
+            return self.to_base()
         else:
             new_mapping = dict()
             for key, sdft in self.default.items():
