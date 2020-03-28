@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from itertools import repeat
+from itertools import repeat, cycle
 from inspect import isclass
 from hoomd.util import is_iterable, is_mapping
 from hoomd.typeconverter import RequiredArg
@@ -22,9 +22,11 @@ class SmartDefault(ABC):
 class SmartDefaultSequence(SmartDefault):
     def __init__(self, sequence, default):
         if is_iterable(default):
-            raise RuntimeError("Currently only a single explicit default for a "
-                               "list is supported.")
-        self.default = [toDefault(item, default) for item in sequence]
+            dft_iter = cycle(default)
+        else:
+            dft_iter = repeat(default)
+        self.default = [toDefault(item, dft)
+                        for item, dft in zip(sequence, dft_iter)]
 
     def __call__(self, sequence):
         if sequence is None:
@@ -60,6 +62,41 @@ class SmartDefaultSequence(SmartDefault):
 
     def to_base(self):
         return [fromDefault(item) for item in self.default]
+
+
+class SmartDefaultFixedLengthSequence(SmartDefault):
+    def __init__(self, sequence, default):
+        if is_iterable(default):
+            dft_iter = cycle(default)
+        else:
+            dft_iter = repeat(default)
+        self.default = tuple([toDefault(item, dft)
+                              for item, dft in zip(sequence, dft_iter)])
+
+    def __call__(self, sequence):
+        if sequence is None:
+            return self.to_base()
+        else:
+            new_sequence = []
+            given_length = len(sequence)
+            for i, d in enumerate(self):
+                if i < given_length:
+                    if isinstance(d, SmartDefault):
+                        new_sequence.append(d(sequence[i]))
+                    else:
+                        new_sequence.append(sequence[i])
+                else:
+                    if isinstance(d, SmartDefault):
+                        new_sequence.append(d.to_base())
+                    else:
+                        new_sequence.append(d)
+            return new_sequence
+
+    def __iter__(self):
+        yield from self.default
+
+    def to_base(self):
+        return tuple([fromDefault(v) for v in self])
 
 
 class SmartDefaultMapping(SmartDefault):
@@ -106,7 +143,9 @@ class SmartDefaultMapping(SmartDefault):
 
 
 def toDefault(value, explicit_defaults=None):
-    if is_iterable(value) and not isinstance(value, tuple):
+    if isinstance(value, tuple):
+        return SmartDefaultFixedLengthSequence(value, explicit_defaults)
+    if is_iterable(value):
         return SmartDefaultSequence(value, explicit_defaults)
     elif is_mapping(value):
         return SmartDefaultMapping(value, explicit_defaults)
