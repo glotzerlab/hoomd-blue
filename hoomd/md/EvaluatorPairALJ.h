@@ -346,26 +346,32 @@ HOSTDEVICE inline Scalar detp(const vec3<Scalar> &m, const vec3<Scalar> &n, cons
     return dot(m - n, o - p);
     }
 
-
-// This function is copied from DEM.
+// This function is adapted from DEM.
 HOSTDEVICE inline void
 edgeEdgeDistance(const vec3<Scalar> &e00, const vec3<Scalar> &e01, const vec3<Scalar> &e10, const vec3<Scalar> &e11, vec3<Scalar> &closestI, vec3<Scalar> &closestJ)
     {
+    // This math is identical to DEM's but is simplified to reduce the number
+    // of dot products and clarify the purpose of the calculations that are
+    // present.
     // in the style of http://paulbourke.net/geometry/pointlineplane/
-    Scalar denominator(detp(e01, e00, e01, e00)*detp(e11, e10, e11, e10) -
-        detp(e11, e10, e01, e00)*detp(e11, e10, e01, e00));
-    Scalar lambda0((detp(e00, e10, e11, e10)*detp(e11, e10, e01, e00) -
-            detp(e00, e10, e01, e00)*detp(e11, e10, e11, e10))/denominator);
-    Scalar lambda1((detp(e00, e10, e11, e10) +
-            lambda0*detp(e11, e10, e01, e00))/detp(e11, e10, e11, e10));
+    const vec3<Scalar> r0(e01 - e00);
+    const vec3<Scalar> r1(e11 - e10);
+    const Scalar r0sq(dot(r0, r0));
+    const Scalar r1sq(dot(r1, r1));
+    const Scalar r1r0(dot(r1, r0));
+
+    const vec3<Scalar> diff0010(e00 - e10);
+    const Scalar detp5(dot(diff0010, r1));
+    const Scalar detp7(dot(diff0010, r0));
+
+    Scalar r0sqr1sq = r0sq * r1sq;
+    Scalar r1r0r1r0 = r1r0 * r1r0;
+    const Scalar denominator(r0sqr1sq - r1r0r1r0);
+    Scalar lambda0((detp5*r1r0 - detp7*r1sq)/denominator);
+    Scalar lambda1((detp5 + lambda0*r1r0)/r1sq);
 
     lambda0 = clamp(lambda0);
     lambda1 = clamp(lambda1);
-
-    const vec3<Scalar> r0(e01 - e00);
-    const Scalar r0sq(dot(r0, r0));
-    const vec3<Scalar> r1(e11 - e10);
-    const Scalar r1sq(dot(r1, r1));
 
     closestI = e00 + lambda0*r0;
     closestJ = e10 + lambda1*r1;
@@ -374,58 +380,54 @@ edgeEdgeDistance(const vec3<Scalar> &e00, const vec3<Scalar> &e01, const vec3<Sc
 
     Scalar lambda(clamp(dot(e10 - e00, r0)/r0sq));
     vec3<Scalar> candidateI(e00 + lambda*r0);
-    vec3<Scalar> candidateJ(e10);
-    rContact = candidateJ - candidateI;
+    rContact = e10 - candidateI;
     Scalar distsq(dot(rContact, rContact));
     if(distsq < closestDistsq)
         {
         closestI = candidateI;
-        closestJ = candidateJ;
+        closestJ = e10;
         closestDistsq = distsq;
         }
 
     lambda = clamp(dot(e11 - e00, r0)/r0sq);
     candidateI = e00 + lambda*r0;
-    candidateJ = e11;
-    rContact = candidateJ - candidateI;
+    rContact = e11 - candidateI;
     distsq = dot(rContact, rContact);
     if(distsq < closestDistsq)
         {
         closestI = candidateI;
-        closestJ = candidateJ;
+        closestJ = e11;
         closestDistsq = distsq;
         }
 
-    lambda = clamp(dot(e00 - e10, r1)/r1sq);
-    candidateI = e00;
-    candidateJ = e10 + lambda*r1;
-    rContact = candidateJ - candidateI;
+    lambda = clamp(dot(diff0010, r1)/r1sq);
+    vec3<Scalar> candidateJ = e10 + lambda*r1;
+    rContact = candidateJ - e00;
     distsq = dot(rContact, rContact);
     if(distsq < closestDistsq)
         {
-        closestI = candidateI;
+        closestI = e00;
         closestJ = candidateJ;
         closestDistsq = distsq;
         }
 
     lambda = clamp(dot(e01 - e10, r1)/r1sq);
-    candidateI = e01;
     candidateJ = e10 + lambda*r1;
-    rContact = candidateJ - candidateI;
+    rContact = candidateJ - e01;
     distsq = dot(rContact, rContact);
     if(distsq < closestDistsq)
         {
-        closestI = candidateI;
+        closestI = e01;
         closestJ = candidateJ;
         closestDistsq = distsq;
         }
 
-    if(fabs(1 - dot(r0, r1)*dot(r0, r1)/r0sq/r1sq) < 1e-6)
+    if(fabs(1 - r1r0r1r0/r0sqr1sq) < 1e-6)
         {
-        const Scalar lambda00(clamp(dot(e10 - e00, r0)/r0sq));
-        const Scalar lambda01(clamp(dot(e11 - e00, r0)/r0sq));
-        const Scalar lambda10(clamp(dot(e00 - e10, r1)/r1sq));
-        const Scalar lambda11(clamp(dot(e01 - e10, r1)/r1sq));
+        const Scalar lambda00(clamp(dot(e10-e00, r0)/r0sq));
+        const Scalar lambda01(clamp(dot(e11-e00, r0)/r0sq));
+        const Scalar lambda10(clamp(dot(e00-e10, r1)/r1sq));
+        const Scalar lambda11(clamp(dot(e01-e10, r1)/r1sq));
 
         lambda0 = Scalar(.5)*(lambda00 + lambda01);
         lambda1 = Scalar(.5)*(lambda10 + lambda11);
@@ -450,20 +452,26 @@ HOSTDEVICE inline void quat2mat(const quat<Scalar> &q, Scalar (&mat)[3][3])
     mat[1][1] = Scalar(1.0) - two_x_sq - two_z_sq;
     mat[2][2] = Scalar(1.0) - two_x_sq - two_y_sq;
 
-    Scalar y_two_z = q.v.y * two_z;
-    Scalar s_two_x = q.s * two_x;
-    mat[1][2] = y_two_z - s_two_x;
-    mat[2][1] = y_two_z + s_two_x;
+        {
+        Scalar y_two_z = q.v.y * two_z;
+        Scalar s_two_x = q.s * two_x;
+        mat[1][2] = y_two_z - s_two_x;
+        mat[2][1] = y_two_z + s_two_x;
+        }
 
-    Scalar x_two_y = q.v.x * two_y;
-    Scalar s_two_z = q.s * two_z;
-    mat[0][1] = x_two_y - s_two_z;
-    mat[1][0] = x_two_y + s_two_z;
+        {
+        Scalar x_two_y = q.v.x * two_y;
+        Scalar s_two_z = q.s * two_z;
+        mat[0][1] = x_two_y - s_two_z;
+        mat[1][0] = x_two_y + s_two_z;
+        }
 
-    Scalar x_two_z = q.v.x * two_z;
-    Scalar s_two_y = q.s * two_y;
-    mat[0][2] = x_two_z + s_two_y;
-    mat[2][0] = x_two_z - s_two_y;
+        {
+        Scalar x_two_z = q.v.x * two_z;
+        Scalar s_two_y = q.s * two_y;
+        mat[0][2] = x_two_z + s_two_y;
+        mat[2][0] = x_two_z - s_two_y;
+        }
     }
 
 
