@@ -7,6 +7,7 @@ R""" Utilities.
 """
 
 from numpy import ndarray
+from inspect import isclass
 from copy import deepcopy
 from hoomd.trigger import PeriodicTrigger
 
@@ -38,7 +39,13 @@ def to_camel_case(string):
 
 def is_iterable(obj):
     '''Returns True if object is iterable and not a str or dict.'''
-    return hasattr(obj, '__iter__') and not bad_iterable_type(obj)
+    return not isclass(obj) and hasattr(obj, '__iter__') \
+        and not bad_iterable_type(obj)
+
+
+def is_mapping(obj):
+    return not isclass(obj) \
+        and all([hasattr(obj, attr) for attr in ('keys', 'values', 'items')])
 
 
 def bad_iterable_type(obj):
@@ -230,14 +237,6 @@ def str_to_tuple_keys(dict_):
             for key, value in dict_.items()}
 
 
-def is_constructor(obj):
-    type_ = type(obj)
-    if type_ == type or type in type_.__mro__:
-        return True
-    else:
-        return False
-
-
 def array_to_strings(value):
     if isinstance(value, ndarray):
         string_list = []
@@ -249,6 +248,7 @@ def array_to_strings(value):
         return string_list
     else:
         return value
+
 
 def trigger_preprocessing(trigger):
     if isinstance(trigger, int):
