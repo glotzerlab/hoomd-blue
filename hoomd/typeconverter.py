@@ -189,6 +189,34 @@ class TypeConverterSequence(TypeConverter):
             yield from self.converter
 
 
+class TypeConverterFixedLengthSequence(TypeConverter):
+    def __init__(self, sequence):
+        self.converter = tuple([toTypeConverter(item) for item in sequence])
+
+    def __call__(self, sequence):
+        if not is_iterable(sequence):
+            raise TypeConversionError(
+                "Expected a tuple like object. Received {} of type {}."
+                "".format(sequence, type(sequence)))
+        elif len(sequence) != len(self.converter):
+            raise TypeConversionError(
+                "Expected exactly {} items. Received {}.".format(
+                    len(sequence), len(self.converter)))
+        else:
+            new_sequence = []
+            try:
+                for i, (v, c) in enumerate(zip(sequence, self)):
+                    new_sequence.append(c(v))
+            except (TypeConversionError) as err:
+                raise TypeConversionError(
+                    "In tuple item number {}: {}"
+                    "".format(i, str(err)))
+            return tuple(new_sequence)
+
+    def __iter__(self):
+        yield from self.converter
+
+
 class TypeConverterMapping(TypeConverter):
     def __init__(self, mapping):
         self.converter = {key: toTypeConverter(value)
@@ -226,7 +254,9 @@ class TypeConverterMapping(TypeConverter):
 
 
 def toTypeConverter(value):
-    if is_iterable(value) and not isinstance(value, tuple):
+    if isinstance(value, tuple):
+        return TypeConverterFixedLengthSequence(value)
+    if is_iterable(value):
         return TypeConverterSequence(value)
     elif is_mapping(value):
         return TypeConverterMapping(value)
