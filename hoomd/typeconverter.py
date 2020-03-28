@@ -201,7 +201,7 @@ class TypeConverterFixedLengthSequence(TypeConverter):
         elif len(sequence) != len(self.converter):
             raise TypeConversionError(
                 "Expected exactly {} items. Received {}.".format(
-                    len(sequence), len(self.converter)))
+                    len(self.converter), len(sequence)))
         else:
             new_sequence = []
             try:
