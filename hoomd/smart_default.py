@@ -90,7 +90,7 @@ class SmartDefaultFixedLengthSequence(SmartDefault):
                         new_sequence.append(d.to_base())
                     else:
                         new_sequence.append(d)
-            return new_sequence
+            return tuple(new_sequence)
 
     def __iter__(self):
         yield from self.default
