@@ -1,5 +1,9 @@
 from numpy import array, ndarray
-from hoomd.util import is_constructor
+from copy import deepcopy
+from itertools import repeat
+from abc import ABC, abstractmethod
+from inspect import isclass
+from hoomd.util import is_iterable, is_mapping
 
 
 class TypeConversionError(ValueError):
@@ -120,127 +124,136 @@ class MultipleOnlyFrom(OnlyFrom):
         return "MultipleOnlyFrom{}".format(self.options)
 
 
-class TypeConverter:
+class TypeConverter(ABC):
+    @abstractmethod
+    def __init__(self, *args, **kwargs):
+        pass
+
+    @abstractmethod
+    def __call__(self, value):
+        pass
+
+
+class TypeConverterValue(TypeConverter):
     _conversion_func_dict = {list: to_list, ndarray: to_array, str: is_string}
 
-    def __init__(self, converter):
-        self.converter = converter
-
-    def keys(self):
-        if isinstance(self.converter, dict):
-            yield from self.converter.keys()
-        else:
-            raise RuntimeError("TypeConverter {} does not have keys. "
-                               "TypeConverter.keys() only works for objects "
-                               "that convert dictionaries.")
-
-    def _raise_error(self, value, conversion_func, prev_err_msg):
-        err = "Value {} of type {} cannot be converted using {}. "
-        err += "The conversion function raised this error " + prev_err_msg
-        err = err.format(value, type(value), conversion_func)
-        raise TypeConversionError(err)
-
-    def _raise_from_previous_error(self, err, key):
-        if len(err.args) > 1:
-            raise TypeConversionError(err.args[0], [key] + err.args[1])
-        else:
-            raise TypeConversionError(err.args[0], [key])
-
-    def convert(self, value):
-        if isinstance(self.converter, dict):
-            new_value = dict()
-            try:
-                for key, v in value.items():
-                    temp_value = self._convert_value(v, key)
-                    if temp_value == dict():
-                        continue
-                    else:
-                        new_value[key] = temp_value
-                return new_value
-            except AttributeError:
-                raise TypeConversionError("Expected a dictionary like value. "
-                                          "Received {}.".format(value))
-        else:
-            return self._convert_value(value)
-
-    def _convert_value(self, value, key=None):
-        if key is None:
-            try:
-                return self.converter(value)
-            except (TypeError, ValueError) as err:
-                self._raise_error(value, self.converter, str(err))
-        else:
-            try:
-                return self.converter[key](value)
-            except TypeConversionError as err:
-                self._raise_from_previous_error(err, key)
-            except KeyError:
-                return value
-
-    def __getitem__(self, key):
-        if isinstance(self.converter, dict):
-            return self.converter[key]
-        else:
-            raise RuntimeError("Cannot call getitem on TypeConverter that is "
-                               "not a dictionary.")
-
-    def __setitem__(self, key, value):
-        if isinstance(self.converter, dict):
-            self.converter[key] = value
-        else:
-            raise RuntimeError("Cannot call setitem on TypeConverter that is "
-                               "not a dictionary.")
-
-    def __call__(self, value):
-        return self.convert(value)
-
-    def __str__(self):
-        if isinstance(self.converter, dict):
-            return '{' + ', '.join(["{}: {}".format(key, value)
-                                    for key, value in self.converter.items()]
-                                   ) + '}'
-        else:
-            return str(self.converter)
-
-    @classmethod
-    def from_default(cls, default):
-        # if default is a dictionary recursively call from_default on values
-        if isinstance(default, dict):
-            converter = dict()
-            for key, value in default.items():
-                converter[key] = cls.from_default(value)
-            return cls(converter)
+    def __init__(self, value):
         # if constructor with special default setting logic
-        elif default in cls._conversion_func_dict.keys():
-            return cls(cls._conversion_func_dict[default])
-        # if type with special default setting logic
-        elif type(default) in cls._conversion_func_dict.keys():
-            return cls(cls._conversion_func_dict[type(default)])
+        if value in self._conversion_func_dict.keys():
+            self.converter = self._conversion_func_dict[value]
+        # if type with special value setting logic
+        elif type(value) in self._conversion_func_dict.keys():
+            self.converter = self._conversion_func_dict[type(value)]
         # if object constructor
-        elif is_constructor(default):
-            return cls(OnlyType(default))
+        elif isclass(value):
+            self.converter = OnlyType(value)
         # if callable
-        elif callable(default):
-            return cls(default)
+        elif callable(value):
+            self.converter = value
         # if other object
         else:
-            return cls(OnlyType(type(default)))
+            self.converter = OnlyType(type(value))
+
+    def __call__(self, value):
+        try:
+            return self.converter(value)
+        except (TypeError, ValueError) as err:
+            raise TypeConversionError(
+                "Value {} of type {} cannot be converted using {}. The "
+                "conversion raised this error: {}".format(
+                    value, type(value), self.converter, str(err)))
 
 
-def from_type_converter_input_to_default(default, overwrite_default=None):
-    if isinstance(default, dict):
-        new_default = dict()
-        # if overwrite_default exists use those values over default
-        if overwrite_default is not None:
-            for key, dft in default.items():
-                value = overwrite_default.get(key)
-                new_default[key] = from_type_converter_input_to_default(dft,
-                                                                        value)
+class TypeConverterSequence(TypeConverter):
+    def __init__(self, sequence):
+        self.converter = [toTypeConverter(item) for item in sequence]
+
+    def __call__(self, sequence):
+        if not is_iterable(sequence):
+            raise TypeConversionError(
+                "Expected a list like object. Received {} of type {}."
+                "".format(sequence, type(sequence)))
         else:
-            for key, value in default.items():
-                new_default[key] = from_type_converter_input_to_default(value)
-        return new_default
-    elif is_constructor(default) or callable(default):
-        return RequiredArg if overwrite_default is None else overwrite_default
+            new_sequence = []
+            try:
+                for i, (v, c) in enumerate(zip(sequence, self)):
+                    new_sequence.append(c(v))
+            except (TypeConversionError) as err:
+                raise TypeConversionError(
+                    "In list item number {}: {}"
+                    "".format(i, str(err)))
+            return new_sequence
+
+    def __iter__(self):
+        if len(self.converter) == 1:
+            yield from repeat(self.converter[0])
+        else:
+            yield from self.converter
+
+
+class TypeConverterMapping(TypeConverter):
+    def __init__(self, mapping):
+        self.converter = {key: toTypeConverter(value)
+                          for key, value in mapping.items()}
+
+    def __call__(self, mapping):
+        if not is_mapping(mapping):
+            raise TypeConversionError(
+                "Expected a dict like value. Recieved {} of type {}."
+                "".format(mapping, type(mapping)))
+
+        new_mapping = dict()
+        try:
+            for key, value in mapping.items():
+                if key in self:
+                    new_mapping[key] = self.converter[key](value)
+                else:
+                    new_mapping[key] = value
+        except (TypeConversionError) as err:
+            raise TypeConversionError("In key {}: {}"
+                                      "".format(str(key), str(err)))
+        return new_mapping
+
+    def keys(self):
+        yield from self.converter.keys()
+
+    def __getitem__(self, key):
+        return self.converter[key]
+
+    def __setitem__(self, key, value):
+        self.converter[key] = value
+
+    def __contains__(self, value):
+        return value in self.converter
+
+
+def toTypeConverter(value):
+    if is_iterable(value) and not isinstance(value, tuple):
+        return TypeConverterSequence(value)
+    elif is_mapping(value):
+        return TypeConverterMapping(value)
     else:
-        return default if overwrite_default is None else overwrite_default
+        return TypeConverterValue(value)
+
+
+def to_defaults(value, explicit_defaults=None):
+    if isinstance(value, dict):
+        new_default = dict()
+        # if explicit_defaults exists use those values over value
+        if explicit_defaults is not None:
+            for key, dft in value.items():
+                sub_explicit_default = explicit_defaults.get(key)
+                new_default[key] = to_defaults(dft, sub_explicit_default)
+        else:
+            for key, value in value.items():
+                new_default[key] = to_defaults(value)
+        return new_default
+    elif isclass(value) or callable(value) or \
+            (is_iterable(value) and not isinstance(value, tuple)):
+        return RequiredArg if explicit_defaults is None else explicit_defaults
+    else:
+        return value if explicit_defaults is None else explicit_defaults
+
+
+def from_spec(spec, explicit_defaults):
+    return (toTypeConverter(spec), to_defaults(spec, explicit_defaults))
