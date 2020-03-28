@@ -39,7 +39,7 @@ class SmartDefaultSequence(SmartDefault):
             return new_sequence
 
     def __iter__(self):
-        if len(self.converter) == 1:
+        if len(self.default) == 1:
             yield from repeat(self.default[0])
         else:
             yield from self.default
