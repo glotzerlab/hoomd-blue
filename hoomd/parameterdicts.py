@@ -214,10 +214,7 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
         self._type_converter = type_param_dict._type_converter
         # add all types to c++
         for key in self.keys():
-            try:
-                self[key] = type_param_dict[key]
-            except ValueError as verr:
-                raise ValueError("Type {} ".format(key) + str(verr))
+            self[key] = type_param_dict[key]
 
     def to_dettached(self):
         if isinstance(self.default, dict):
