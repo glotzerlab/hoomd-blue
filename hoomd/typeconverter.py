@@ -3,14 +3,10 @@ from copy import deepcopy
 from itertools import repeat
 from abc import ABC, abstractmethod
 from inspect import isclass
-from hoomd.util import is_iterable, is_mapping
+from hoomd.util import is_iterable, is_mapping, RequiredArg
 
 
 class TypeConversionError(ValueError):
-    pass
-
-
-class RequiredArg:
     pass
 
 
@@ -158,6 +154,8 @@ class TypeConverterValue(TypeConverter):
         try:
             return self.converter(value)
         except (TypeError, ValueError) as err:
+            if value is RequiredArg:
+                raise TypeConversionError("Value is a required argument")
             raise TypeConversionError(
                 "Value {} of type {} cannot be converted using {}. The "
                 "conversion raised this error: {}".format(

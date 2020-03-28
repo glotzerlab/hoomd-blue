@@ -176,7 +176,7 @@ class _Operation(metaclass=Loggable):
             try:
                 typeparam.attach(cpp_obj, simulation)
             except ValueError as verr:
-                raise ValueError("TypeParameter {}:"
+                raise ValueError("In TypeParameter {}:"
                                  " ".format(typeparam.name) + verr.args[0])
 
     def _update_param_dict(self):

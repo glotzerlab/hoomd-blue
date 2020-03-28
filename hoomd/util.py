@@ -255,3 +255,40 @@ def trigger_preprocessing(trigger):
         return PeriodicTrigger(period=int(trigger), phase=0)
     else:
         return trigger
+
+
+class RequiredArg:
+    pass
+
+
+def check_for_required(value, previous=None):
+    if is_mapping(value):
+        for k, v in value.items():
+            if previous is None:
+                check_for_required(v, [k])
+            else:
+                check_for_required(v, previous + [k])
+    elif is_iterable(value):
+        for i, v in enumerate(value):
+            if previous is None:
+                check_for_required(v, [i])
+            else:
+                check_for_required(v, previous + [i])
+    else:
+        if value is RequiredArg:
+            raise_from_previous(previous)
+        else:
+            pass
+
+
+def raise_from_previous(previous):
+    prv_str = ""
+    if previous is None:
+        pass
+    else:
+        for s in previous:
+            if isinstance(s, int):
+                prv_str += "in list item {} ".format(s)
+            else:
+                prv_str += "in key {} ".format(s)
+    raise ValueError("Expected a value, {}. Found RequiredArg.".format(prv_str))
