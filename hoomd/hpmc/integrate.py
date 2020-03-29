@@ -473,7 +473,7 @@ class ConvexPolygon(_HPMCIntegrator):
 
         Example:
             >>> mc.type_shapes()
-            [{'type': 'Polygon', 'rounding_radius': 0,
+            [{'type': 'Polygon', 'sweep_radius': 0,
               'vertices': [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]}]
 
         Returns:
@@ -538,8 +538,7 @@ class ConvexSpheropolygon(_HPMCIntegrator):
                                        (0.5, -0.5),
                                        (0.5, 0.5),
                                        (-0.5, 0.5)],
-                             sweep_radius=0.1,
-                             ignore_statistics=False);
+                             sweep_radius=0.1);
 
         mc.shape["A"] = dict(vertices=[(0,0)],
                              sweep_radius=0.5,
@@ -573,7 +572,7 @@ class ConvexSpheropolygon(_HPMCIntegrator):
 
         Example:
             >>> mc.type_shapes()
-            [{'type': 'Polygon', 'rounding_radius': 0.1,
+            [{'type': 'Polygon', 'sweep_radius': 0.1,
               'vertices': [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]}]
 
         Returns:
@@ -664,7 +663,7 @@ class SimplePolygon(_HPMCIntegrator):
 
         Example:
             >>> mc.type_shapes()
-            [{'type': 'Polygon', 'rounding_radius': 0,
+            [{'type': 'Polygon', 'sweep_radius': 0,
               'vertices': [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]}]
 
         Returns:
@@ -832,7 +831,7 @@ class Polyhedron(_HPMCIntegrator):
             >>> mc.type_shapes()
             [{'type': 'Mesh', 'vertices': [[0.5, 0.5, 0.5], [0.5, -0.5, -0.5],
               [-0.5, 0.5, -0.5], [-0.5, -0.5, 0.5]],
-              'indices': [[0, 1, 2], [0, 3, 1], [0, 2, 3], [1, 3, 2]]}]
+              'faces': [[0, 1, 2], [0, 3, 1], [0, 2, 3], [1, 3, 2]]}]
 
         Returns:
             A list of dictionaries, one for each particle type in the system.
@@ -931,7 +930,7 @@ class ConvexPolyhedron(_HPMCIntegrator):
 
         Example:
             >>> mc.type_shapes()
-            [{'type': 'ConvexPolyhedron', 'rounding_radius': 0,
+            [{'type': 'ConvexPolyhedron', 'sweep_radius': 0,
               'vertices': [[0.5, 0.5, 0.5], [0.5, -0.5, -0.5],
                            [-0.5, 0.5, -0.5], [-0.5, -0.5, 0.5]]}]
 
@@ -1212,7 +1211,7 @@ class ConvexSpheropolyhedron(_HPMCIntegrator):
                                                  (-0.5, 0.5, -0.5),
                                                  (-0.5, -0.5, 0.5)]);
         mc.shape["SphericalDepletant"] = dict(vertices=[], sweep_radius=0.1);
-        mc.depletant_fugacity["B"] = 3.0
+        mc.depletant_fugacity["SphericalDepletant"] = 3.0
 
     """
 
@@ -1239,7 +1238,7 @@ class ConvexSpheropolyhedron(_HPMCIntegrator):
 
         Example:
             >>> mc.type_shapes()
-            [{'type': 'ConvexPolyhedron', 'rounding_radius': 0.1,
+            [{'type': 'ConvexPolyhedron', 'sweep_radius': 0.1,
               'vertices': [[0.5, 0.5, 0.5], [0.5, -0.5, -0.5],
                            [-0.5, 0.5, -0.5], [-0.5, -0.5, 0.5]]}]
 
@@ -1295,8 +1294,7 @@ class Ellipsoid(_HPMCIntegrator):
 
     Depletants Example::
 
-        mc = hpmc.integrate.ellipsoid(seed=415236, d=0.3, a=0.4)
-        mc.set_param(nselect=1)
+        mc = hpmc.integrate.Ellipsoid(seed=415236, d=0.3, a=0.4, nselect=1)
         mc.shape["A"] = dict(a=0.5, b=0.25, c=0.125);
         mc.shape["B"] = dict(a=0.05, b=0.05, c=0.05);
         mc.depletant_fugacity["B"] = 3.0
@@ -1386,10 +1384,8 @@ class SphereUnion(_HPMCIntegrator):
         sphere2 = dict(diameter=2)
         mc.shape["A"] = dict(shapes=[sphere1, sphere2],
                              positions=[(0, 0, 0), (0, 0, 1)],
-                             orientations=[(1, 0, 0, 0), (1, 1, 0, 0)],
-                             overlap=[1, 1],
-                             capacity=4,
-                             ignore_statistics=0)
+                             orientations=[(1, 0, 0, 0), (1, 0, 0, 0)],
+                             overlap=[1, 1])
         print('diameter of the first sphere = ',
               mc.shape["A"]["shapes"][0]["diameter"])
         print('center of the first sphere = ', mc.shape["A"]["positions"][0])
