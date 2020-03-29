@@ -1,7 +1,7 @@
-from hoomd.parameterdicts import TypeParameterDict, RequiredArg
+from hoomd.parameterdicts import TypeParameterDict
 from hoomd.parameterdicts import AttachedTypeParameterDict
 from hoomd.pytest.dummy import DummyCppObj, DummySimulation
-from hoomd.typeconverter import TypeConversionError
+from hoomd.typeconverter import TypeConversionError, RequiredArg
 from pytest import fixture, raises
 
 
@@ -214,7 +214,7 @@ def attached_param_dict(typedict_singleton_keys):
 
 def test_attached_default(attached_param_dict, typedict_singleton_keys):
     tp = typedict_singleton_keys
-    assert tp._default == attached_param_dict._default
+    assert tp.default == attached_param_dict.default
     assert tp._type_converter == attached_param_dict._type_converter
 
 
@@ -250,7 +250,7 @@ def test_attached_value_setting(attached_param_dict):
 
 def test_attach_dettach(attached_param_dict):
     tp = attached_param_dict.to_dettached()
-    assert tp._default == attached_param_dict._default
+    assert tp.default == attached_param_dict.default
     assert tp._type_converter == attached_param_dict._type_converter
     assert tp['A'] == attached_param_dict['A']
     assert tp['B'] == attached_param_dict['B']

@@ -1,8 +1,9 @@
 from itertools import product, combinations_with_replacement
-from copy import deepcopy
+from copy import copy, deepcopy
 from hoomd.util import to_camel_case, is_iterable
-from hoomd.typeconverter import TypeConverter, TypeConversionError, RequiredArg
-from hoomd.typeconverter import from_type_converter_input_to_default
+from hoomd.typeconverter import toTypeConverter, TypeConversionError
+from hoomd.typeconverter import to_defaults, RequiredArg
+from hoomd.smart_default import toDefault, SmartDefault
 
 
 def has_str_elems(obj):
@@ -46,31 +47,19 @@ class _ValidatedDefaultDict:
             default_arg = kwargs
         else:
             default_arg = args[0]
-        self._default = from_type_converter_input_to_default(default_arg,
-                                                             explicit_defaults)
-        self._type_converter = TypeConverter.from_default(default_arg)
+        self._type_converter = toTypeConverter(default_arg)
+        self._default = toDefault(default_arg, explicit_defaults)
 
     def _validate_values(self, val):
-        try:
-            val = self._type_converter(val)
-        except TypeConversionError as err:
-            if len(err.args) > 1:
-                raise TypeConversionError("TypeParameter {} key {} has "
-                                          "conversion error {}".format(
-                                              self, err.args[1], err.args[0]))
-            else:
-                raise TypeConversionError("TypeParameter {} has "
-                                          "conversion error {}".format(
-                                              self, err.args[0]))
-        if type(self._default) == dict:
-            dft_copy = self.default
-            dft_keys = set(dft_copy.keys())
+        val = self._type_converter(val)
+        if isinstance(val, dict):
+            dft_keys = set(self.default.keys())
             bad_keys = set(val.keys()) - dft_keys
             if len(bad_keys) != 0:
                 raise ValueError("Keys must be a subset of available keys. "
                                  "Bad keys are {}".format(bad_keys))
-            dft_copy.update(val)
-            val = dft_copy
+        if isinstance(self._default, SmartDefault):
+            val = self._default(val)
         return val
 
     # Add function to validate dictionary keys' value types as well
@@ -151,19 +140,22 @@ class _ValidatedDefaultDict:
 
     @property
     def default(self):
-        return deepcopy(self._default)
+        if isinstance(self._default, SmartDefault):
+            return self._default.to_base()
+        else:
+            return copy(self._default)
 
     @default.setter
     def default(self, new_default):
         new_default = self._type_converter(new_default)
+        if isinstance(self._default, SmartDefault):
+            new_default = self._default(new_default)
         if isinstance(new_default, dict):
             keys = set(self._default.keys())
             provided_keys = set(new_default.keys())
             if keys.intersection(provided_keys) != provided_keys:
                 raise ValueError("New default must a subset of current keys.")
-            self._default.update(new_default)
-        else:
-            self._default = new_default
+        self._default = toDefault(new_default)
 
 
 class TypeParameterDict(_ValidatedDefaultDict):
@@ -187,8 +179,13 @@ class TypeParameterDict(_ValidatedDefaultDict):
         return proper_type_return(vals)
 
     def __setitem__(self, key, val):
-        val = self._validate_values(val)
-        for key in self._yield_keys(key):
+        keys = self._yield_keys(key)
+        try:
+            val = self._validate_values(val)
+        except TypeConversionError as err:
+            raise TypeConversionError(
+                "For types {}, error {}.".format(list(keys), str(err)))
+        for key in keys:
             self._dict[key] = val
 
     def keys(self):
@@ -213,14 +210,11 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
         self._type_kind = type_kind
         self._len_keys = type_param_dict._len_keys
         # Get default data
-        self._default = type_param_dict.default
+        self._default = type_param_dict._default
         self._type_converter = type_param_dict._type_converter
         # add all types to c++
         for key in self.keys():
-            try:
-                self[key] = type_param_dict[key]
-            except ValueError as verr:
-                raise ValueError("Type {} ".format(key) + verr.args[0])
+            self[key] = type_param_dict[key]
 
     def to_dettached(self):
         if isinstance(self.default, dict):
@@ -241,8 +235,14 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
         return proper_type_return(vals)
 
     def __setitem__(self, key, val):
-        val = self._validate_values(val)
-        for key in self._yield_keys(key):
+        keys = self._yield_keys(key)
+        try:
+            val = self._validate_values(val)
+        except TypeConversionError as err:
+            raise TypeConversionError(
+                "For types {}, error {}.".format(list(keys), str(err)))
+
+        for key in keys:
             getattr(self._cpp_obj, self._setter)(key, val)
 
     def _yield_keys(self, key):
@@ -292,15 +292,13 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
 
 class ParameterDict(dict):
     def __init__(self, explicit_defaults=None, **kwargs):
-        self._type_converter = TypeConverter.from_default(kwargs)
-        super().__init__(**from_type_converter_input_to_default(
-            kwargs, explicit_defaults)
-            )
+        self._type_converter = toTypeConverter(kwargs)
+        super().__init__(**to_defaults(kwargs, explicit_defaults))
 
     def __setitem__(self, key, value):
         if key not in self._type_converter.keys():
             super().__setitem__(key, value)
-            self._type_converter[key] = TypeConverter.from_default(value)
+            self._type_converter[key] = toTypeConverter(value)
         else:
             super().__setitem__(key, self._type_converter[key](value))
 

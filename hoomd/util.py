@@ -7,6 +7,7 @@ R""" Utilities.
 """
 
 from numpy import ndarray
+from inspect import isclass
 from copy import deepcopy
 from hoomd.trigger import PeriodicTrigger
 
@@ -31,46 +32,6 @@ def listify(s):
 # \brief Internal flag tracking if status lines should be quieted
 _status_quiet_count = 0
 
-def cuda_profile_start():
-    """ Start CUDA profiling.
-
-    When using nvvp to profile CUDA kernels in hoomd jobs, you usually don't care about all the initialization and
-    startup. cuda_profile_start() allows you to not even record that. To use, uncheck the box "start profiling on
-    application start" in your nvvp session configuration. Then, call cuda_profile_start() in your hoomd script when
-    you want nvvp to start collecting information.
-
-    Example::
-
-        from hoomd import *
-        init.read_xml("init.xml")
-        # setup....
-        run(30000);  # warm up and auto-tune kernel block sizes
-        option.set_autotuner_params(enable=False);  # prevent block sizes from further autotuning
-        cuda_profile_start()
-        run(100)
-
-    """
-    # check if initialization has occurred
-    if not hoomd.init.is_initialized():
-        raise RuntimeError("Cannot start profiling before initialization\n")
-
-    if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-        hoomd.context.current.device.cpp_exec_conf.cudaProfileStart()
-
-def cuda_profile_stop():
-    """ Stop CUDA profiling.
-
-        See Also:
-            :py:func:`cuda_profile_start()`.
-    """
-    # check if initialization has occurred
-    if not hoomd.init.is_initialized():
-        hoomd.context.current.device.cpp_msg.error("Cannot stop profiling before initialization\n")
-        raise RuntimeError('Error stopping profile')
-
-    if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-        hoomd.context.current.device.cpp_exec_conf.cudaProfileStop()
-
 
 def to_camel_case(string):
     return string.replace('_', ' ').title().replace(' ', '')
@@ -78,7 +39,13 @@ def to_camel_case(string):
 
 def is_iterable(obj):
     '''Returns True if object is iterable and not a str or dict.'''
-    return hasattr(obj, '__iter__') and not bad_iterable_type(obj)
+    return not isclass(obj) and hasattr(obj, '__iter__') \
+        and not bad_iterable_type(obj)
+
+
+def is_mapping(obj):
+    return not isclass(obj) \
+        and all([hasattr(obj, attr) for attr in ('keys', 'values', 'items')])
 
 
 def bad_iterable_type(obj):
@@ -270,14 +237,6 @@ def str_to_tuple_keys(dict_):
             for key, value in dict_.items()}
 
 
-def is_constructor(obj):
-    type_ = type(obj)
-    if type_ == type or type in type_.__mro__:
-        return True
-    else:
-        return False
-
-
 def array_to_strings(value):
     if isinstance(value, ndarray):
         string_list = []
@@ -290,8 +249,46 @@ def array_to_strings(value):
     else:
         return value
 
+
 def trigger_preprocessing(trigger):
     if isinstance(trigger, int):
         return PeriodicTrigger(period=int(trigger), phase=0)
     else:
         return trigger
+
+
+class RequiredArg:
+    pass
+
+
+def check_for_required(value, previous=None):
+    if is_mapping(value):
+        for k, v in value.items():
+            if previous is None:
+                check_for_required(v, [k])
+            else:
+                check_for_required(v, previous + [k])
+    elif is_iterable(value):
+        for i, v in enumerate(value):
+            if previous is None:
+                check_for_required(v, [i])
+            else:
+                check_for_required(v, previous + [i])
+    else:
+        if value is RequiredArg:
+            raise_from_previous(previous)
+        else:
+            pass
+
+
+def raise_from_previous(previous):
+    prv_str = ""
+    if previous is None:
+        pass
+    else:
+        for s in previous:
+            if isinstance(s, int):
+                prv_str += "in list item {} ".format(s)
+            else:
+                prv_str += "in key {} ".format(s)
+    raise ValueError("Expected a value, {}. Found RequiredArg.".format(prv_str))
