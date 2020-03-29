@@ -1334,44 +1334,50 @@ class Ellipsoid(_HPMCIntegrator):
 
 
 class SphereUnion(_HPMCIntegrator):
-    R""" HPMC integration for unions of spheres (3D).
+    R""" Hard particle Monte Carlo integration method for unions of spheres
+    (3D).
 
     This shape uses an internal OBB tree for fast collision queries.
     Depending on the number of constituent spheres in the tree, different values
     of the number of spheres per leaf node may yield different optimal
     performance. The capacity of leaf nodes is configurable.
 
-    Args:
-        seed (int): Random number seed.
-        d (float): Maximum move displacement, Scalar to set for all types, or a
-          dict containing {type:size} to set by type.
-        a (float): Maximum rotation move, Scalar to set for all types, or a dict
-          containing {type:size} to set by type.
-        move_ratio (float): Ratio of translation moves to rotation moves.
-        nselect (int): The number of trial moves to perform in each cell.
-        capacity (int): Set to the number of constituent spheres per leaf node.
-          (added in version 2.2)
-        deterministic (bool): Make HPMC integration deterministic on the GPU
+    SphereUnion parameters:
 
-    Sphere union parameters:
+    shape (particle type, dict): defines the shape of the object.
 
-    * *shapes* (**required**) - list of sphere objects to be included in union
-    * *positions* (**required**) - list of centers of constituent spheres in
-      particle coordinates.
-    * *orientations* (**required**) - list of orientations of constituent
-      spheres.
-    * *overlap* (**default: 1 for all spheres**) - only check overlap between
-      constituent particles for which *overlap [i] & overlap[j]* is !=0, where
-      '&' is the bitwise AND operator.
+        Keys:
+            * *shapes* (**required**) - list of sphere objects to be included in
+              union
+            * *positions* (**required**) - list of centers of constituent
+              spheres in particle coordinates.
+            * *orientations* (**required**) - list of orientations of
+              constituent spheres.
+            * *overlap* (**default: 1**) - only check overlap
+              between constituent particles for which *overlap [i] & overlap[j]*
+              is !=0, where '&' is the bitwise AND operator.
+            * *capacity* (**default: 4**) - set to the maximum number of
+              particles per leaf node for better performance
+            * *ignore_statistics* (**default: False**) - set to True to ignore
+              tracked statistics
 
-        * .. versionadded:: 2.1
+    d (particle type, float): the size of displacement trial moves
+        
+    a (particle type, float): the size of rotation trial moves
+        
+    fugacity (particle type, float): depletant fugacity (in units of density, 
+    volume^-1)
 
-    * *ignore_statistics* (**default: False**) - set to True to disable ignore
-      for statistics tracking.
-    * *capacity* (**default: 4**) - set to the maximum number of particles per
-      leaf node for better performance
-
-        * .. versionadded:: 2.2
+    interaction_matrix ((particle type, particle type), bool): whether to 
+    include overlaps between type 1 and type 2
+    
+    seed (int): random number seed
+    
+    move_ratio (float): ratio of translation moves to rotation moves
+    
+    nselect (int): number of trial moves to perform in each cell
+    
+    deterministic (bool): make HPMC integration deterministic on the GPU
 
     Example::
 
@@ -1440,42 +1446,47 @@ class SphereUnion(_HPMCIntegrator):
 
 
 class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
-    R""" HPMC integration for unions of convex polyhedra (3D).
+    R""" Hard particle Monte Carlo integration method for unions of convex
+    polyhedra (3D).
 
-    Args:
-        seed (int): Random number seed.
-        d (float): Maximum move displacement, Scalar to set for all types, or a
-          dict containing {type:size} to set by type.
-        a (float): Maximum rotation move, Scalar to set for all types, or a dict
-          containing {type:size} to set by type.
-        move_ratio (float): Ratio of translation moves to rotation moves.
-        nselect (int): The number of trial moves to perform in each cell.
-        deterministic (bool): Make HPMC integration deterministic on the GPU
+    ConvexSpheropolyhedronUnion parameters:
 
-    .. versionadded:: 2.2
+    shape (particle type, dict): defines the shape of the object.
 
-    Convex polyhedron union parameters:
+        Keys:
+            * *shapes* (**required**) - list of polyhedron objects to be
+              included in union
+            * *positions* (**required**) - list of centers of constituent
+              polyhedra in particle coordinates.
+            * *orientations* (**required**) - list of orientations of
+              constituent polyhedra.
+            * *overlap* (**default: 1**) - only check overlap
+              between constituent particles for which *overlap [i] & overlap[j]*
+              is !=0, where '&' is the bitwise AND operator.
+            * *sweep_radii* (**default: 0 for all particle**) - radii of spheres
+              sweeping out each constituent polyhedron
+            * *capacity* (**default: 4**) - set to the maximum number of
+              particles per leaf node for better performance
+            * *ignore_statistics* (**default: False**) - set to True to ignore
+              tracked statistics
 
-    * *shapes* (**required**) - list of polyhedron objects to be included in
-      union
-    * *positions* (**required**) - list of centers of constituent polyhedra in
-      particle coordinates.
-    * *orientations* (**required**) - list of orientations of constituent
-      polyhedra.
-    * *overlap* (**default: 1 for all particles**) - only check overlap between
-      constituent particles for which *overlap [i] & overlap[j]* is !=0, where
-      '&' is the bitwise AND operator.
-    * *sweep_radii* (**default: 0 for all particle**) - radii of spheres
-      sweeping out each constituent polyhedron
+    d (particle type, float): the size of displacement trial moves
+        
+    a (particle type, float): the size of rotation trial moves
+        
+    fugacity (particle type, float): depletant fugacity (in units of density, 
+    volume^-1)
 
-        * .. versionadded:: 2.4
-
-    * *ignore_statistics* (**default: False**) - set to True to disable ignore
-      for statistics tracking.
-    * *capacity* (**default: 4**) - set to the maximum number of particles per
-      leaf node for better performance
-
-        * .. versionadded:: 2.2
+    interaction_matrix ((particle type, particle type), bool): whether to 
+    include overlaps between type 1 and type 2
+    
+    seed (int): random number seed
+    
+    move_ratio (float): ratio of translation moves to rotation moves
+    
+    nselect (int): number of trial moves to perform in each cell
+    
+    deterministic (bool): make HPMC integration deterministic on the GPU
 
     Example::
 
@@ -1531,40 +1542,48 @@ class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
 
 
 class FacetedEllipsoidUnion(_HPMCIntegrator):
-    R""" HPMC integration for unions of faceted ellipsoids (3D).
-
-    Args:
-        seed (int): Random number seed.
-        d (float): Maximum move displacement, Scalar to set for all types, or a
-          dict containing {type:size} to set by type.
-        a (float): Maximum rotation move, Scalar to set for all types, or a dict
-          containing {type:size} to set by type.
-        move_ratio (float): Ratio of translation moves to rotation moves.
-        nselect (int): The number of trial moves to perform in each cell.
-        deterministic (bool): Make HPMC integration deterministic on the GPU
-
-    .. versionadded:: 2.5
+    R""" Hard particle Monte Carlo integration method for unions of faceted
+    ellipsoids (3D).
 
     See :py:class:`FacetedEllipsoid` for a detailed explanation of the
     constituent particle parameters.
 
-    Faceted ellipsiod union parameters:
+    FacetedEllipsoidUnion parameters:
 
-    * *shapes* (**required**) - list of ellipsoid objects to be included in
-      union
-    * *positions* (**required**) - list of centers of constituent ellipsoids in
-      particle coordinates.
-    * *orientations* (**required**) - list of orientations of constituent
-      ellipsoids.
-    * *overlap* (**default: 1 for all particles**) - only check overlap between
-      constituent particles for which *overlap [i] & overlap[j]* is !=0, where
-      '&' is the bitwise AND operator.
-    * *ignore_statistics* (**default: False**) - set to True to disable ignore
-      for statistics tracking.
-    * *capacity* (**default: 4**) - set to the maximum number of particles per
-      leaf node for better performance
+    shape (particle type, dict): defines the shape of the object.
 
-        * .. versionadded:: 2.2
+        Keys:
+            * *shapes* (**required**) - list of ellipsoid objects to be included
+              in union
+            * *positions* (**required**) - list of centers of constituent
+              ellipsoids in particle coordinates.
+            * *orientations* (**required**) - list of orientations of
+              constituent ellipsoids.
+            * *overlap* (**default: 1**) - only check overlap
+              between constituent particles for which *overlap [i] & overlap[j]*
+              is !=0, where '&' is the bitwise AND operator.
+            * *capacity* (**default: 4**) - set to the maximum number of
+              particles per leaf node for better performance
+            * *ignore_statistics* (**default: False**) - set to True to ignore
+              tracked statistics
+
+    d (particle type, float): the size of displacement trial moves
+        
+    a (particle type, float): the size of rotation trial moves
+        
+    fugacity (particle type, float): depletant fugacity (in units of density, 
+    volume^-1)
+
+    interaction_matrix ((particle type, particle type), bool): whether to 
+    include overlaps between type 1 and type 2
+    
+    seed (int): random number seed
+    
+    move_ratio (float): ratio of translation moves to rotation moves
+    
+    nselect (int): number of trial moves to perform in each cell
+    
+    deterministic (bool): make HPMC integration deterministic on the GPU
 
     Example::
 
