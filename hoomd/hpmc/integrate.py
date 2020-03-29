@@ -313,7 +313,7 @@ class _HPMCIntegrator(_BaseIntegrator):
 class Sphere(_HPMCIntegrator):
     R""" Hard particle Monte Carlo integration method for spheres.
 
-    Sphere parameters
+    Sphere parameters:
 
     shape (particle type, dict): defines the shape of the object.
 
@@ -395,7 +395,7 @@ class Sphere(_HPMCIntegrator):
 class ConvexPolygon(_HPMCIntegrator):
     R""" Hard particle Monte Carlo integration method for convex polygons (2D).
 
-    ConvexPolygon parameters
+    ConvexPolygon parameters:
 
     shape (particle type, dict): defines the shape of the object.
 
@@ -483,32 +483,44 @@ class ConvexPolygon(_HPMCIntegrator):
 
 
 class ConvexSpheropolygon(_HPMCIntegrator):
-    R""" HPMC integration for convex spheropolygons (2D).
+    R""" Hard particle Monte Carlo integration method for convex spheropolygons 
+    (2D).
 
-    Args:
-        seed (int): Random number seed.
-        d (float): Maximum move displacement, Scalar to set for all types, or a
-          dict containing {type:size} to set by type.
-        a (float): Maximum rotation move, Scalar to set for all types, or a dict
-          containing {type:size} to set by type.
-        move_ratio (float): Ratio of translation moves to rotation moves.
-        nselect (int): The number of trial moves to perform in each cell.
-        deterministic (bool): Make HPMC integration deterministic on the GPU
+    ConvexSpheropolygon parameters:
 
-    Spheropolygon parameters:
+    shape (particle type, dict): defines the shape of the object.
 
-    * *vertices* (**required**) - vertices of the polygon as is a list of (x,y)
-      tuples of numbers (distance units)
+        Keys:
+            * *vertices* (list, **required**) - vertices of the polygon as a 
+              list of (x, y) tuples
+                * Vertices **MUST** be specified in a *counter-clockwise* order.
+                * The origin **MUST** be contained within the vertices.
+                * Points inside the polygon **MUST NOT** be included.
+                * The origin centered circle that encloses all vertices should
+                  be of minimal size for optimal performance (e.g. don't put the
+                  origin right next to an edge).
+            * *ignore_statistics* (**default: False**) - set to True to ignore
+              tracked statistics
+            * *sweep_radius* (**default: 0.0**) - radius of the sphere swept
+              around the edges of the polygon (distance units).
 
-        * The origin **MUST** be contained within the shape.
-        * The origin centered circle that encloses all vertices should be of
-          minimal size for optimal performance (e.g. don't put the origin right
-          next to an edge).
+    d (particle type, float): the size of displacement trial moves
+        
+    a (particle type, float): the size of rotation trial moves
+        
+    fugacity (particle type, float): depletant fugacity (in units of density, 
+    volume^-1)
 
-    * *sweep_radius* (**default: 0.0**) - the radius of the sphere swept around
-      the edges of the polygon (distance units)
-    * *ignore_statistics* (**default: False**) - set to True to disable ignore
-      for statistics tracking
+    interaction_matrix ((particle type, particle type), bool): whether to 
+    include overlaps between type 1 and type 2
+    
+    seed (int): random number seed
+    
+    move_ratio (float): ratio of translation moves to rotation moves
+    
+    nselect (int): number of trial moves to perform in each cell
+    
+    deterministic (bool): make HPMC integration deterministic on the GPU
 
     Useful cases:
 
@@ -571,38 +583,47 @@ class ConvexSpheropolygon(_HPMCIntegrator):
 
 
 class SimplePolygon(_HPMCIntegrator):
-    R""" HPMC integration for simple polygons (2D).
-
-    Args:
-        seed (int): Random number seed.
-        d (float): Maximum move displacement, Scalar to set for all types, or a
-          dict containing {type:size} to set by type.
-        a (float): Maximum rotation move, Scalar to set for all types, or a dict
-          containing {type:size} to set by type.
-        move_ratio (float): Ratio of translation moves to rotation moves.
-        nselect (int): The number of trial moves to perform in each cell.
-        deterministic (bool): Make HPMC integration deterministic on the GPU
+    R""" Hard particle Monte Carlo integration method for simple polygons (2D).
 
     Note:
         For simple polygons that are not concave, use :py:class:`ConvexPolygon`,
         it will execute much faster than :py:class:`SimplePolygon`.
 
-    Simple polygon parameters:
+    SimplePolygon parameters:
 
-    * *vertices* (**required**) - vertices of the polygon as is a list of (x,y)
-      tuples of numbers (distance units)
+    shape (particle type, dict): defines the shape of the object.
 
-        * Vertices **MUST** be specified in a *counter-clockwise* order.
-        * The polygon may be concave, but edges must not cross.
-        * The origin doesn't necessarily need to be inside the shape.
-        * The origin centered circle that encloses all vertices should be of
-          minimal size for optimal performance.
+        Keys:
+            * *vertices* (list, **required**) - vertices of the polygon as a 
+              list of (x, y) tuples
+                * Vertices **MUST** be specified in a *counter-clockwise* order.
+                * The polygon may be concave, but edges must not cross.
+                * The origin doesn't necessarily need to be inside the shape.
+                * The origin centered circle that encloses all vertices should 
+                  be of minimal size for optimal performance.
+            * *ignore_statistics* (**default: False**) - set to True to ignore
+              tracked statistics
+            * *sweep_radius* (**default: 0.0**) - radius of the sphere swept
+              around the edges of the polygon (distance units). Set a non-zero
+              sweep_radius to create a spheropolygon
 
-    * *ignore_statistics* (**default: False**) - set to True to disable ignore
-      for statistics tracking.
-    * *sweep_radius* (**default: 0**) - the radius of the sphere swept around
-      the edges of the polygon (distance units). Set a non-zero sweep_radius
-      to create a spheropolygon.
+    d (particle type, float): the size of displacement trial moves
+        
+    a (particle type, float): the size of rotation trial moves
+        
+    fugacity (particle type, float): depletant fugacity (in units of density, 
+    volume^-1)
+
+    interaction_matrix ((particle type, particle type), bool): whether to 
+    include overlaps between type 1 and type 2
+    
+    seed (int): random number seed
+    
+    move_ratio (float): ratio of translation moves to rotation moves
+    
+    nselect (int): number of trial moves to perform in each cell
+    
+    deterministic (bool): make HPMC integration deterministic on the GPU
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior
@@ -653,7 +674,8 @@ class SimplePolygon(_HPMCIntegrator):
 
 
 class Polyhedron(_HPMCIntegrator):
-    R""" HPMC integration for general polyhedra (3D).
+    R""" Hard particle Monte Carlo integration method for general polyhedra 
+    (3D).
 
     This shape uses an internal OBB tree for fast collision queries.
     Depending on the number of constituent spheres in the tree, different
@@ -663,53 +685,54 @@ class Polyhedron(_HPMCIntegrator):
     Only triangle meshes and spheres are supported. The mesh must be free of
     self-intersections.
 
-    Args:
-        seed (int): Random number seed.
-        d (float): Maximum move displacement, Scalar to set for all types, or a
-          dict containing {type:size} to set by type.
-        a (float): Maximum rotation move, Scalar to set for all types, or a dict
-          containing {type:size} to set by type.
-        move_ratio (float): Ratio of translation moves to rotation moves.
-        nselect (int): The number of trial moves to perform in each cell.
-        deterministic (bool): Make HPMC integration deterministic on the GPU
-
     Polyhedron parameters:
 
-    * *vertices* (**required**) - vertices of the polyhedron as is a list of
-      (x,y,z) tuples of numbers (distance units)
+    shape (particle type, dict): defines the shape of the object.
 
-        * The origin **MUST** strictly be contained in the generally nonconvex
-          volume defined by the vertices and faces
-        * The (0,0,0) centered sphere that encloses all vertices should be of
-          minimal size for optimal performance (e.g. don't translate the shape
-          such that (0,0,0) right next to a face).
+        Keys:
+            * *vertices* (list, **required**) - vertices of the polyhedron as a
+              list of (x, y, z) tuples (distance units)
+                * The origin **MUST** strictly be contained in the generally
+                  nonconvex volume defined by the vertices and faces
+                * The (0,0,0) centered sphere that encloses all vertices should
+                  be of minimal size for optimal performance (e.g. don't
+                  translate the shape such that (0,0,0) right next to a face).
+            * *faces* (list, **required**) - list of vertex indices for every
+              face
+                * For visualization purposes, the faces **MUST** be defined with
+                  a counterclockwise winding order to produce an outward normal.
+            * *ignore_statistics* (**default: False**) - set to True to ignore
+              tracked statistics
+            * *sweep_radius* (**default: 0.0**) - radius of the sphere swept
+              around the edges of the polyhedron (distance units). Set a
+              non-zero sweep_radius to create a spheropolyhedron
+            * *overlap* (**default: None**) - only check overlap between
+              constituent particles for which *overlap [i] & overlap[j]* is !=0,
+              where '&' is the bitwise AND operator.
+            * *capacity* (**default: 4**) - set to the maximum number of
+              particles per leaf node for better performance
+            * *origin* (**default: (0,0,0)**) - a point strictly inside the
+              shape, needed for correctness of overlap checks
+            * *hull_only* (**default: True**) - if True, only consider
+              intersections between hull polygons
 
-    * *faces* (**required**) - a list of vertex indices for every face
+    d (particle type, float): the size of displacement trial moves
+        
+    a (particle type, float): the size of rotation trial moves
+        
+    fugacity (particle type, float): depletant fugacity (in units of density, 
+    volume^-1)
 
-        * For visualization purposes, the faces **MUST** be defined with a
-          counterclockwise winding order to produce an outward normal.
-
-    * *sweep_radius* (**default: 0.0**) - rounding radius applied to polyhedron
-    * *ignore_statistics* (**default: False**) - set to True to disable ignore
-      for statistics tracking
-    * *overlap* (**default: None for all particles**) - only check overlap
-      between constituent particles for which *overlap [i] & overlap[j]* is !=0,
-      where '&' is the bitwise AND operator.
-
-    * *capacity* (**default: 4**) - set to the maximum number of particles per
-      leaf node for better performance
-
-        * .. versionadded:: 2.2
-
-    * *origin* (**default: (0,0,0)**) - a point strictly inside the shape,
-      needed for correctness of overlap checks
-
-        * .. versionadded:: 2.2
-
-    * *hull_only* (**default: True**) - if True, only consider intersections
-      between hull polygons
-
-        * .. versionadded:: 2.2
+    interaction_matrix ((particle type, particle type), bool): whether to 
+    include overlaps between type 1 and type 2
+    
+    seed (int): random number seed
+    
+    move_ratio (float): ratio of translation moves to rotation moves
+    
+    nselect (int): number of trial moves to perform in each cell
+    
+    deterministic (bool): make HPMC integration deterministic on the GPU
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior
@@ -818,34 +841,42 @@ class Polyhedron(_HPMCIntegrator):
 
 
 class ConvexPolyhedron(_HPMCIntegrator):
-    R""" HPMC integration for convex polyhedra (3D).
+    R""" Hard particle Monte Carlo integration method for convex polyhedra (3D).
 
-    Args:
-        seed (int): Random number seed.
-        d (float): Maximum move displacement, Scalar to set for all types, or a
-          dict containing {type:size} to set by type.
-        a (float): Maximum rotation move, Scalar to set for all types, or a dict
-          containing {type:size} to set by type.
-        move_ratio (float): Ratio of translation moves to rotation moves.
-        nselect (int): (Override the automatic choice for the number of trial
-          moves to perform in each cell.
-        deterministic (bool): Make HPMC integration deterministic on the GPU
+    ConvexPolyhedron parameters:
 
-    Convex polyhedron parameters:
+    shape (particle type, dict): defines the shape of the object.
 
-    * *vertices* (**required**) - vertices of the polyhedron as is a list of
-      (x,y,z) tuples of numbers (distance units)
+        Keys:
+            * *vertices* (list, **required**) - vertices of the polygon as a 
+              list of (x, y) tuples
+                * The origin **MUST** be contained within the vertices.
+                * The origin centered circle that encloses all vertices should
+                  be of minimal size for optimal performance (e.g. don't put the
+                  origin right next to a face).
+            * *ignore_statistics* (**default: False**) - set to True to ignore
+              tracked statistics
+            * *sweep_radius* (**default: 0.0**) - radius of the sphere swept
+              around the edges of the polyhedron (distance units). Set a
+              non-zero sweep_radius to create a spheropolyhedron
 
-        * The origin **MUST** be contained within the vertices.
-        * The origin centered circle that encloses all vertices should be of
-          minimal size for optimal performance (e.g.
-          don't put the origin right next to a face).
+    d (particle type, float): the size of displacement trial moves
+        
+    a (particle type, float): the size of rotation trial moves
+        
+    fugacity (particle type, float): depletant fugacity (in units of density, 
+    volume^-1)
 
-    * *sweep_radius* (**default: 0**) - the radius of the sphere swept around
-      the edges of the polyhedron (distance units). Set a non-zero sweep_radius
-      to create a spheropolyhedron
-    * *ignore_statistics* (**default: False**) - set to True to disable ignore
-      for statistics tracking
+    interaction_matrix ((particle type, particle type), bool): whether to 
+    include overlaps between type 1 and type 2
+    
+    seed (int): random number seed
+    
+    move_ratio (float): ratio of translation moves to rotation moves
+    
+    nselect (int): number of trial moves to perform in each cell
+    
+    deterministic (bool): make HPMC integration deterministic on the GPU
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior
@@ -911,17 +942,8 @@ class ConvexPolyhedron(_HPMCIntegrator):
 
 
 class FacetedEllipsoid(_HPMCIntegrator):
-    R""" HPMC integration for faceted ellipsoids (3D).
-
-    Args:
-        seed (int): Random number seed.
-        d (float): Maximum move displacement, Scalar to set for all types, or a
-          dict containing {type:size} to set by type.
-        a (float): Maximum rotation move, Scalar to set for all types, or a dict
-          containing {type:size} to set by type.
-        move_ratio (float): Ratio of translation moves to rotation moves.
-        nselect (int): The number of trial moves to perform in each cell.
-        deterministic (bool): Make HPMC integration deterministic on the GPU
+    R""" Hard particle Monte Carlo integration method for faceted ellipsoids
+    (3D).
 
     A faceted ellipsoid is an ellipsoid intersected with a convex polyhedron
     defined through halfspaces. The equation defining each halfspace is given
@@ -936,18 +958,42 @@ class FacetedEllipsoid(_HPMCIntegrator):
         The origin must be chosen so as to lie **inside the shape**, or the
         overlap check will not work. This condition is not checked.
 
-    Faceted ellipsoid parameters:
+    FacetedEllipsoid parameters:
 
-    * *normals* (**required**) - list of (x,y,z) tuples defining the facet
-      normals (distance units)
-    * *offsets* (**required**) - list of offsets (distance unit^2)
-    * *a* (**required**) - first half axis of ellipsoid
-    * *b* (**required**) - second half axis of ellipsoid
-    * *c* (**required**) - third half axis of ellipsoid
-    * *vertices* (**required**) - list of vertices for intersection polyhedron
-    * *origin* (**required**) - origin vector
-    * *ignore_statistics* (**default: False**) - set to True to disable ignore
-      for statistics tracking
+    shape (particle type, dict): defines the shape of the object.
+
+        Keys:
+            * *normals* (**required**) - list of (x,y,z) tuples defining the
+              facet normals (distance units)
+            * *offsets* (**required**) - list of offsets (distance unit^2)
+            * *a* (**required**) - first half axis of ellipsoid (distance units)
+            * *b* (**required**) - second half axis of ellipsoid
+              (distance units)
+            * *c* (**required**) - third half axis of ellipsoid (distance units)
+            * *vertices* (**required**) - list of vertices for intersection
+              polyhedron
+            * *origin* (**required**) - (x, y, z) tuple representing origin
+              vector
+            * *ignore_statistics* (**default: False**) - set to True to ignore
+              tracked statistics
+
+    d (particle type, float): the size of displacement trial moves
+        
+    a (particle type, float): the size of rotation trial moves
+        
+    fugacity (particle type, float): depletant fugacity (in units of density, 
+    volume^-1)
+
+    interaction_matrix ((particle type, particle type), bool): whether to 
+    include overlaps between type 1 and type 2
+    
+    seed (int): random number seed
+    
+    move_ratio (float): ratio of translation moves to rotation moves
+    
+    nselect (int): number of trial moves to perform in each cell
+    
+    deterministic (bool): make HPMC integration deterministic on the GPU
 
     Warning:
         Planes must not be coplanar.
@@ -1027,29 +1073,44 @@ class FacetedEllipsoid(_HPMCIntegrator):
 
 
 class Sphinx(_HPMCIntegrator):
-    R""" HPMC integration for sphinx particles (3D).
-
-    Args:
-        seed (int): Random number seed.
-        d (float): Maximum move displacement, Scalar to set for all types, or a
-          dict containing {type:size} to set by type.
-        a (float): Maximum rotation move, Scalar to set for all types, or a dict
-          containing {type:size} to set by type.
-        move_ratio (float): Ratio of translation moves to rotation moves.
-        nselect (int): The number of trial moves to perform in each cell.
-        deterministic (bool): Make HPMC integration deterministic on the GPU
+    R""" Hard particle Monte Carlo integration method for sphinx particles (3D).
 
     Sphinx particles are dimpled spheres (spheres with 'positive' and 'negative'
     volumes).
 
     Sphinx parameters:
 
-    * *diameters* - diameters of spheres (positive OR negative real numbers)
-    * *centers* - centers of spheres in local coordinate frame
-    * *ignore_statistics* (**default: False**) - set to True to disable ignore
-      for statistics tracking
+    shape (particle type, dict): defines the shape of the object.
 
-    Quick Example::
+        Keys:
+            * *diameters* - diameters of spheres (positive OR negative real
+              numbers)
+            * *centers* - centers of spheres in local coordinate frame
+            * *ignore_statistics* (**default: False**) - set to True to ignore
+              tracked statistics
+
+    d (particle type, float): the size of displacement trial moves
+        
+    a (particle type, float): the size of rotation trial moves
+        
+    fugacity (particle type, float): depletant fugacity (in units of density, 
+    volume^-1)
+
+    interaction_matrix ((particle type, particle type), bool): whether to 
+    include overlaps between type 1 and type 2
+    
+    seed (int): random number seed
+    
+    move_ratio (float): ratio of translation moves to rotation moves
+    
+    nselect (int): number of trial moves to perform in each cell
+    
+    deterministic (bool): make HPMC integration deterministic on the GPU
+
+    Sphinx particles are dimpled spheres (spheres with 'positive' and 'negative'
+    volumes).
+
+    Example::
 
         mc = hpmc.integrate.Sphinx(seed=415236, d=0.3, a=0.4)
         mc.shape["A"] = dict(centers=[(0,0,0),(1,0,0)], diameters=[1,.25])
@@ -1082,38 +1143,49 @@ class Sphinx(_HPMCIntegrator):
 
 
 class ConvexSpheropolyhedron(_HPMCIntegrator):
-    R""" HPMC integration for spheropolyhedra (3D).
-
-    Args:
-        seed (int): Random number seed.
-        d (float): Maximum move displacement, Scalar to set for all types, or a
-          dict containing {type:size} to set by type.
-        a (float): Maximum rotation move, Scalar to set for all types, or a dict
-          containing {type:size} to set by type.
-        move_ratio (float): Ratio of translation moves to rotation moves.
-        nselect (int): The number of trial moves to perform in each cell.
-        deterministic (bool): Make HPMC integration deterministic on the GPU
+    R""" Hard particle Monte Carlo integration method for convex spheropolyhedra
+    (3D).
 
     A spheropolyhedron can also represent spheres (0 or 1 vertices), and
     spherocylinders (2 vertices).
 
-    Spheropolyhedron parameters:
+    ConvexSpheropolyhedron parameters:
 
-    * *vertices* (**required**) - vertices of the polyhedron as is a list of
-      (x,y,z) tuples of numbers (distance units)
+    shape (particle type, dict): defines the shape of the object.
 
-        - The origin **MUST** be contained within the vertices.
-        - The origin centered sphere that encloses all vertices should be of
-          minimal size for optimal performance (e.g. don't put the origin right
-          next to a face).
-        - A sphere can be represented by specifying zero vertices
-          (i.e. vertices=[]) and a non-zero radius R
-        - Two vertices and a non-zero radius R define a prolate spherocylinder.
+        Keys:
+            * *vertices* (list, **required**) - vertices of the polygon as a 
+              list of (x, y) tuples
+                * The origin **MUST** be contained within the vertices.
+                * The origin centered circle that encloses all vertices should
+                  be of minimal size for optimal performance (e.g. don't put the
+                  origin right next to a face).
+                * A sphere can be represented by specifying zero vertices
+                  (i.e. vertices=[]) and a non-zero radius R
+                * Two vertices and a non-zero radius R define a prolate
+                  spherocylinder.
+            * *ignore_statistics* (**default: False**) - set to True to ignore
+              tracked statistics
+            * *sweep_radius* (**default: 0.0**) - radius of the sphere swept
+              around the edges of the polyhedron (distance units).
 
-    * *sweep_radius* (**default: 0.0**) - the radius of the sphere swept around
-      the edges of the polygon (distance units)
-    * *ignore_statistics* (**default: False**) - set to True to disable ignore
-      for statistics tracking
+    d (particle type, float): the size of displacement trial moves
+        
+    a (particle type, float): the size of rotation trial moves
+        
+    fugacity (particle type, float): depletant fugacity (in units of density, 
+    volume^-1)
+
+    interaction_matrix ((particle type, particle type), bool): whether to 
+    include overlaps between type 1 and type 2
+    
+    seed (int): random number seed
+    
+    move_ratio (float): ratio of translation moves to rotation moves
+    
+    nselect (int): number of trial moves to perform in each cell
+    
+    deterministic (bool): make HPMC integration deterministic on the GPU
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior
@@ -1178,28 +1250,39 @@ class ConvexSpheropolyhedron(_HPMCIntegrator):
 
 
 class Ellipsoid(_HPMCIntegrator):
-    R""" HPMC integration for ellipsoids (2D/3D).
-
-    Args:
-        seed (int): Random number seed.
-        d (float): Maximum move displacement, Scalar to set for all types, or a
-          dict containing {type:size} to set by type.
-        a (float): Maximum rotation move, Scalar to set for all types, or a dict
-          containing {type:size} to set by type.
-        move_ratio (float): Ratio of translation moves to rotation moves.
-        nselect (int): The number of trial moves to perform in each cell.
-        deterministic (bool): Make HPMC integration deterministic on the GPU
+    R""" Hard particle Monte Carlo integration method for ellipsoids (2D/3D).
 
     Ellipsoid parameters:
 
-    * *a* (**required**) - principle axis a of the ellipsoid (radius in the x
-      direction) (distance units)
-    * *b* (**required**) - principle axis b of the ellipsoid (radius in the y
-      direction) (distance units)
-    * *c* (**required**) - principle axis c of the ellipsoid (radius in the z
-      direction) (distance units)
-    * *ignore_statistics* (**default: False**) - set to True to disable ignore
-      for statistics tracking
+    shape (particle type, dict): defines the shape of the object.
+
+        Keys:
+            * *a* (**required**) - principle axis a of the ellipsoid (radius in
+              the x direction) (distance units)
+            * *b* (**required**) - principle axis b of the ellipsoid (radius in
+              the y direction) (distance units)
+            * *c* (**required**) - principle axis c of the ellipsoid (radius in
+              the z direction) (distance units)
+            * *ignore_statistics* (**default: False**) - set to True to ignore
+              tracked statistics
+
+    d (particle type, float): the size of displacement trial moves
+        
+    a (particle type, float): the size of rotation trial moves
+        
+    fugacity (particle type, float): depletant fugacity (in units of density, 
+    volume^-1)
+
+    interaction_matrix ((particle type, particle type), bool): whether to 
+    include overlaps between type 1 and type 2
+    
+    seed (int): random number seed
+    
+    move_ratio (float): ratio of translation moves to rotation moves
+    
+    nselect (int): number of trial moves to perform in each cell
+    
+    deterministic (bool): make HPMC integration deterministic on the GPU
 
     Example::
 
