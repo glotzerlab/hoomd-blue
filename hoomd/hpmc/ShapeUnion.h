@@ -156,7 +156,7 @@ struct ShapeUnionParams : ShapeParams
                                      + pybind11::str(orientations).cast<std::string>() +
                                      + " shapes=" + pybind11::str(shapes).cast<std::string>() );
             }
-        if (pybind11::len(overlap) != N)
+        if (!(overlap.is(pybind11::none())) && pybind11::len(overlap) != N)
             {
             throw std::runtime_error(std::string("len(overlap) != len(shapes): ")
                                      + "overlaps=" + pybind11::str(overlap).cast<std::string>() +
@@ -197,7 +197,14 @@ struct ShapeUnionParams : ShapeParams
             mparams[i] = param;
             mpos[i] = pos;
             morientation[i] = orientation;
-            moverlap[i] = pybind11::cast<unsigned int>(overlap[i]);
+            if (overlap.is(pybind11::none()))
+                {
+                moverlap[i] = 1;
+                }
+            else
+                {
+                moverlap[i] = pybind11::cast<unsigned int>(overlap[i]);
+                }
 
             Shape dummy(orientation, param);
             Scalar d = sqrt(dot(pos,pos));
