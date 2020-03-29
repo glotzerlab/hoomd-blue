@@ -31,6 +31,9 @@ make_scalar3 = partial(make_three_vec, func=_hoomd.make_scalar3,
 make_int3 = partial(make_three_vec, func=_hoomd.make_int3,
                     scalar_conversion=int)
 
+make_uint3 = partial(make_three_vec, func=_hoomd.make_uint3,
+                     scalar_conversion=int)
+
 make_char3 = partial(make_three_vec, func=_hoomd.make_char3,
                      scalar_conversion=int)
 
@@ -209,6 +212,17 @@ class Box:
         self.tilts = [self.xy, self.xz, yz]
 
     # Misc. properties
+    @property
+    def periodicity(self):
+        return to_three_array(self._cpp_obj.getPeriodic())
+
+    @periodicity.setter
+    def periodicity(self, value):
+        '''Set the periodic versus closed boundary conditions'''
+        # TODO: check that this works
+        period = make_uint3(value, self.is2D, name='periodicity')
+        self._cpp_obj.setTiltFactors(period)
+
     @property
     def lattice_vectors(self):
         """Box lattice vectors"""
