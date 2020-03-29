@@ -10,6 +10,7 @@ namespace py = pybind11;
 #endif
 
 #include <pybind11/stl_bind.h>
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<IntegrationMethodTwoStep> >);
 
 using namespace std;
 

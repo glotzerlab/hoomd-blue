@@ -14,6 +14,8 @@ namespace py = pybind11;
 #endif
 
 #include <pybind11/stl_bind.h>
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<ForceConstraint> >);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<ForceCompute> >);
 
 using namespace std;
 

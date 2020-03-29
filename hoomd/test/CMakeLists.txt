@@ -8,7 +8,6 @@ set(TEST_LIST
     test_gridshift_correct
     test_index1d
     test_messenger
-    test_particle_group
     test_pdata
     test_quat
     test_rotmat2
