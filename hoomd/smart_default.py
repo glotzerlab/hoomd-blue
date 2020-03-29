@@ -5,6 +5,10 @@ from hoomd.util import is_iterable, is_mapping
 from hoomd.typeconverter import RequiredArg
 
 
+class NoDefault:
+    pass
+
+
 class SmartDefault(ABC):
     @abstractmethod
     def __init__(self, *args, **kwargs):
@@ -101,11 +105,11 @@ class SmartDefaultFixedLengthSequence(SmartDefault):
 
 class SmartDefaultMapping(SmartDefault):
     def __init__(self, mapping, defaults):
-        if is_mapping(defaults):
-            self.default = {key: toDefault(value, defaults.get(key))
+        if defaults is NoDefault:
+            self.default = {key: toDefault(value, NoDefault)
                             for key, value in mapping.items()}
         else:
-            self.default = {key: toDefault(value, defaults)
+            self.default = {key: toDefault(value, defaults.get(key, NoDefault))
                             for key, value in mapping.items()}
 
     def __call__(self, mapping):
@@ -142,17 +146,26 @@ class SmartDefaultMapping(SmartDefault):
         return {key: fromDefault(value) for key, value in self.default.items()}
 
 
-def toDefault(value, explicit_defaults=None):
+def toDefault(value, defaults=NoDefault):
     if isinstance(value, tuple):
-        return SmartDefaultFixedLengthSequence(value, explicit_defaults)
+        if defaults is NoDefault or is_iterable(defaults):
+            return SmartDefaultFixedLengthSequence(value, defaults)
+        else:
+            return defaults
     if is_iterable(value):
-        return SmartDefaultSequence(value, explicit_defaults)
+        if defaults is NoDefault or is_iterable(defaults):
+            return SmartDefaultSequence(value, defaults)
+        else:
+            return defaults
     elif is_mapping(value):
-        return SmartDefaultMapping(value, explicit_defaults)
+        if defaults is NoDefault or is_mapping(defaults):
+            return SmartDefaultMapping(value, defaults)
+        else:
+            return defaults
     elif isclass(value) or callable(value):
-        return RequiredArg if explicit_defaults is None else explicit_defaults
+        return RequiredArg if defaults is NoDefault else defaults
     else:
-        return value if explicit_defaults is None else explicit_defaults
+        return value if defaults is NoDefault else defaults
 
 
 def fromDefault(value):

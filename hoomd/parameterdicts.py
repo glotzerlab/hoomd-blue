@@ -3,7 +3,7 @@ from copy import copy, deepcopy
 from hoomd.util import to_camel_case, is_iterable
 from hoomd.typeconverter import toTypeConverter, TypeConversionError
 from hoomd.typeconverter import to_defaults, RequiredArg
-from hoomd.smart_default import toDefault, SmartDefault
+from hoomd.smart_default import toDefault, SmartDefault, NoDefault
 
 
 def has_str_elems(obj):
@@ -29,15 +29,11 @@ def proper_type_return(val):
 class _ValidatedDefaultDict:
 
     def __init__(self, *args, **kwargs):
-        if 'explicit_defaults' in kwargs.keys():
-            explicit_defaults = kwargs['explicit_defaults']
-            del kwargs['explicit_defaults']
-        else:
-            explicit_defaults = None
-
+        explicit_defaults = kwargs.pop('explicit_defaults', NoDefault)
         if len(kwargs) != 0 and len(args) != 0:
             raise ValueError("An unnamed argument and keyword arguments "
                              "cannot both be specified.")
+
         if len(kwargs) == 0 and len(args) == 0:
             raise ValueError("Either an unnamed argument or keyword "
                              "arguments must be specified.")
@@ -214,7 +210,10 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
         self._type_converter = type_param_dict._type_converter
         # add all types to c++
         for key in self.keys():
-            self[key] = type_param_dict[key]
+            try:
+                self._trusted_setitem(key, type_param_dict[key])
+            except Exception as err:
+                raise err.__class__("For key {}: {}".format(key, str(err)))
 
     def to_dettached(self):
         if isinstance(self.default, dict):
@@ -243,6 +242,10 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
                 "For types {}, error {}.".format(list(keys), str(err)))
 
         for key in keys:
+            getattr(self._cpp_obj, self._setter)(key, val)
+
+    def _trusted_setitem(self, key, val):
+        for key in self._yield_keys(key):
             getattr(self._cpp_obj, self._setter)(key, val)
 
     def _yield_keys(self, key):
