@@ -1,6 +1,5 @@
 import hoomd
 import hoomd.hpmc
-from hoomd.hpmc import _hpmc
 import numpy as np
 import pytest
 from hoomd.hpmc.pytest.conftest import *
@@ -141,8 +140,8 @@ def test_overlaps_sphere(device, lattice_simulation_factory):
 
 
 def test_overlaps_ellipsoid(device, lattice_simulation_factory):
-    a = 1/4
-    b = 1/2
+    a = 1 / 4
+    b = 1 / 2
     c = 1
     mc = hoomd.hpmc.integrate.Ellipsoid(23456)
     mc.shape["A"] = {'a': a, 'b': b, 'c': c}
@@ -156,7 +155,8 @@ def test_overlaps_ellipsoid(device, lattice_simulation_factory):
 
     abc_list = [(0, 0, c), (0, b, 0), (a, 0, 0)]
     for abc in abc_list:
-        # Should barely overlap when ellipsoids are exactly than one diameter apart
+        # Should barely overlap when ellipsoids are exactly than one diameter
+        # apart
         s = sim.state.snapshot
         if s.exists:
             s.particles.position[0] = (0, 0, 0)
@@ -192,7 +192,7 @@ def test_overlaps_polygons(device, lattice_simulation_factory):
                              (-0.5, -(0.75**0.5) / 2),
                              (0.5, -(0.75**0.5) / 2)]}
 
-    square = {"vertices": np.array([(-1, -1), (1, -1), (1, 1), (-1, 1)])/2}
+    square = {"vertices": np.array([(-1, -1), (1, -1), (1, 1), (-1, 1)]) / 2}
 
     # Args should work for ConvexPolygon, SimplePolygon, and ConvexSpheropolygon
     shapes = [(triangle, hoomd.hpmc.integrate.ConvexPolygon),
@@ -300,27 +300,27 @@ def test_overlaps_polyhedra(device, lattice_simulation_factory):
                 s.particles.position[1] = vert
             sim.state.snapshot = s
             assert mc.overlaps > 0
-        
+
         s = sim.state.snapshot
         if s.exists:
             s.particles.position[0] = (0, 0, 0)
             s.particles.position[1] = (0, 0.9, 0)
         sim.state.snapshot = s
         assert mc.overlaps > 0
-        
+
         s = sim.state.snapshot
         if s.exists:
             s.particles.position[0] = (0, 0, 0)
             s.particles.position[1] = (0, 1.1, 0)
         sim.state.snapshot = s
         assert mc.overlaps == 0
-        
+
         # Rotate one of the polyhedra so they will overlap
         s = sim.state.snapshot
         if s.exists:
             s.particles.orientation[1] = tuple(np.array([1, 1, 1, 0]) / (3**0.5))
         sim.state.snapshot = s
-        assert mc.overlaps > 0          
+        assert mc.overlaps > 0
 
 
 def test_overlaps_spheropolygon(device, lattice_simulation_factory):
@@ -473,11 +473,10 @@ def test_overlaps_union(device, lattice_simulation_factory):
         assert mc.overlaps == 0
         test_positions = [(1.1, 0, 0), (0, 1.1, 0)]
         test_orientations = np.array([[1, 0, -0.06, 0], [1, 0.06, 0, 0]])
-        test_orientations = test_orientations.T/np.linalg.norm(test_orientations,
-                                                               axis=1)
+        test_orientations = test_orientations.T / np.linalg.norm(test_orientations,
+                                                                 axis=1)
         test_orientations = test_orientations.T
         # Shapes are stacked in z direction
-        ang = 0
         for i in range(len(test_positions)):
             s = sim.state.snapshot
             if s.exists:
@@ -494,7 +493,6 @@ def test_overlaps_union(device, lattice_simulation_factory):
 
             assert mc.overlaps > 0
 
-
         for pos in [(0.9, 0, 0), (0, 0.9, 0), (0, 0, 1.1)]:
             s = sim.state.snapshot
             if s.exists:
@@ -505,8 +503,8 @@ def test_overlaps_union(device, lattice_simulation_factory):
 
 
 def test_overlaps_faceted_ellipsoid(device, lattice_simulation_factory):
-    a = 1/2
-    b = 1/2
+    a = 1 / 2
+    b = 1 / 2
     c = 1
     mc = hoomd.hpmc.integrate.FacetedEllipsoid(23456)
     mc.shape['A'] = {"normals": [(0, 0, 1)],
@@ -524,9 +522,10 @@ def test_overlaps_faceted_ellipsoid(device, lattice_simulation_factory):
     sim.operations.schedule()
     assert mc.overlaps == 0
 
-    abc_list = [(0, 0, c/2), (0, b, 0), (a, 0, 0)]
+    abc_list = [(0, 0, c / 2), (0, b, 0), (a, 0, 0)]
     for abc in abc_list:
-        # Should barely overlap when ellipsoids are exactly than one diameter apart
+        # Should barely overlap when ellipsoids are exactly than one diameter
+        # apart
         s = sim.state.snapshot
         if s.exists:
             s.particles.position[0] = (0, 0, 0)

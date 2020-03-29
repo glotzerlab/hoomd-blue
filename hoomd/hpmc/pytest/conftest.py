@@ -1,6 +1,5 @@
 import pytest
 import hoomd
-import numpy as np
 
 
 @pytest.fixture(scope="function")
@@ -43,7 +42,7 @@ def convex_polygon_valid_args():
 
 
 @pytest.fixture(scope="function")
-def convex_polygon_cpp_args(convex_polygon_valid_args, 
+def convex_polygon_cpp_args(convex_polygon_valid_args,
                             convex_polygon_integrator):
     def get_args():
         args_list = []
@@ -63,9 +62,6 @@ def convex_polygon_invalid_args():
                      {'vertices': [(0, 0), (1, 1), (1, 0), (0, 1),
                                    (1, 1), (0, 0), (2, 1), (1, 3)],
                       'sweep_radius': "str"}]
-                     # {'vertices': [(0, 0), (1, 1), (1, 0), (0, 1),
-                     #               (1, 1), (0, 0), (2, 1), (1, 3)],
-                     #  'ignore_statistics': "str"}]
         return args_list
     return get_args
 
@@ -106,7 +102,7 @@ def convex_polyhedron_valid_args():
 
 
 @pytest.fixture(scope="function")
-def convex_polyhedron_cpp_args(convex_polyhedron_valid_args, 
+def convex_polyhedron_cpp_args(convex_polyhedron_valid_args,
                                convex_polyhedron_integrator):
     def get_args():
         args_list = []
@@ -126,9 +122,6 @@ def convex_polyhedron_invalid_args():
                      {'vertices': [(0, 0, 0), (1, 1, 1), (1, 0, 2),
                                    (2, 1, 1)],
                       'sweep_radius': "str"}]
-                     # {'vertices': [(0, 0, 0), (1, 1, 1), (1, 0, 2),
-                     #               (2, 1, 1)],
-                     #  'ignore_statistics': "str"}]
         return args_list
     return get_args
 
@@ -201,7 +194,7 @@ def ellipsoid_valid_args():
 
 
 @pytest.fixture(scope="function")
-def ellipsoid_cpp_args(ellipsoid_valid_args, 
+def ellipsoid_cpp_args(ellipsoid_valid_args,
                        ellipsoid_integrator):
     def get_args():
         args_list = []
@@ -220,7 +213,6 @@ def ellipsoid_invalid_args():
                      {'a': 1, 'b': 3, 'c': 'str'},
                      {'a': [1, 2, 3], 'b': [3, 7, 7], 'c': [2, 5, 9]},
                      {'a': 'str', 'b': 'str', 'c': [1, 2, 3]}]
-                     # {'a': 1, 'b': 0.5, 'c': 0.25, 'ignore_statistics': 'str'}]
         return args_list
     return get_args
 
@@ -282,7 +274,7 @@ def faceted_ellipsoid_valid_args():
 
 
 @pytest.fixture(scope="function")
-def faceted_ellipsoid_cpp_args(faceted_ellipsoid_valid_args, 
+def faceted_ellipsoid_cpp_args(faceted_ellipsoid_valid_args,
                                faceted_ellipsoid_integrator):
     def get_args():
         args_list = []
@@ -405,7 +397,7 @@ def faceted_ellipsoid_union_valid_args(faceted_ellipsoid_valid_args,
 
 
 @pytest.fixture(scope="function")
-def faceted_ellipsoid_union_cpp_args(faceted_ellipsoid_union_valid_args, 
+def faceted_ellipsoid_union_cpp_args(faceted_ellipsoid_union_valid_args,
                                      faceted_ellipsoid_union_integrator):
     def get_args():
         args_list = []
@@ -464,9 +456,9 @@ def polyhedron_integrator():
 def polyhedron_valid_args():
     def get_args():
         args_list = [{"vertices": [(0.5, 0.5, 0.5),
-                                  (-0.5, -0.5, 0.5),
-                                  (0.5, -0.5, -0.5),
-                                  (-0.5, 0.5, -0.5)],
+                                   (-0.5, -0.5, 0.5),
+                                   (0.5, -0.5, -0.5),
+                                   (-0.5, 0.5, -0.5)],
                       "faces": [[1, 3, 2], [3, 0, 2], [1, 0, 3], [1, 2, 0]],
                       "overlap": [1, 1, 1, 1]},
                      {'vertices': [(-0.5, -0.5, -0.5),
@@ -528,7 +520,7 @@ def polyhedron_valid_args():
                       'capacity': 4,
                       'origin': (0, 0, 0),
                       'hull_only': True},
-                     {'vertices': [(0, 3, 0), 
+                     {'vertices': [(0, 3, 0),
                                    (2, 1, 0),
                                    (3, 0, 1),
                                    (0, 3, 3)],
@@ -590,13 +582,13 @@ def polyhedron_invalid_args():
                                 (4, 5, 1),
                                 (6, 2, 5)],
                       'overlap': "str"},
-                     {'vertices': [(0, 3, 0), 
+                     {'vertices': [(0, 3, 0),
                                    (2, 1, 0),
                                    (3, 0, 1),
                                    (0, 3, 3)],
                       'faces': [(0, 1, 2), (3, 2, 1), (1, 2, 0), (3, 2, 1)],
                       'sweep_radius': "str"},
-                     {'vertices': [(0, 3, 0), 
+                     {'vertices': [(0, 3, 0),
                                    (2, 1, 0),
                                    (3, 0, 1),
                                    (0, 3, 3)],
@@ -612,12 +604,12 @@ def polyhedron_invalid_args():
                                 (6, 7, 5),
                                 (1, 7, 8),
                                 (6, 8, 2)]},
-                     {'vertices': [(0, 3, 0), 
+                     {'vertices': [(0, 3, 0),
                                    (2, 1, 0),
                                    (3, 0, 1),
                                    (0, 3, 3)],
                       'faces': 1},
-                     {'vertices': [(0, 3, 0), 
+                     {'vertices': [(0, 3, 0),
                                    (2, 1, 0),
                                    (3, 0, 1),
                                    (0, 3, 3)],
@@ -678,7 +670,7 @@ def sphere_cpp():
 @pytest.fixture(scope="function")
 def sphere_valid_args():
     def get_args():
-        args_list = [{"diameter": 1,},
+        args_list = [{"diameter": 1},
                      {'diameter': 1, 'ignore_statistics': 1},
                      {'diameter': 9, 'orientable': 1},
                      {'diameter': 4, 'orientable': 1, 'ignore_statistics': 1}]
@@ -754,7 +746,7 @@ def sphere_union_valid_args(sphere_valid_args, sphere_integrator):
 
 
 @pytest.fixture(scope="function")
-def sphere_union_cpp_args(sphere_union_valid_args, 
+def sphere_union_cpp_args(sphere_union_valid_args,
                           sphere_union_integrator):
     def get_args():
         args_list = []
@@ -849,7 +841,7 @@ def convex_spheropolyhedron_union_valid_args(convex_polyhedron_valid_args,
 
 
 @pytest.fixture(scope="function")
-def convex_spheropolyhedron_union_cpp_args(convex_spheropolyhedron_union_valid_args, 
+def convex_spheropolyhedron_union_cpp_args(convex_spheropolyhedron_union_valid_args,
                                            convex_spheropolyhedron_union_integrator):
     def get_args():
         args_list = []

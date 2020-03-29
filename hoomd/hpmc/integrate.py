@@ -5,7 +5,6 @@
 from hoomd import _hoomd
 from hoomd.parameterdicts import TypeParameterDict
 from hoomd.parameterdicts import ParameterDict
-from hoomd.typeconverter import RequiredArg
 from hoomd.typeparam import TypeParameter
 from hoomd.hpmc import _hpmc
 from hoomd.integrate import _BaseIntegrator
@@ -483,7 +482,7 @@ class ConvexPolygon(_HPMCIntegrator):
 
 
 class ConvexSpheropolygon(_HPMCIntegrator):
-    R""" Hard particle Monte Carlo integration method for convex spheropolygons 
+    R""" Hard particle Monte Carlo integration method for convex spheropolygons
     (2D).
 
     ConvexSpheropolygon parameters:
@@ -491,7 +490,7 @@ class ConvexSpheropolygon(_HPMCIntegrator):
     shape (particle type, dict): defines the shape of the object.
 
         Keys:
-            * *vertices* (list, **required**) - vertices of the polygon as a 
+            * *vertices* (list, **required**) - vertices of the polygon as a
               list of (x, y) tuples
                 * Vertices **MUST** be specified in a *counter-clockwise* order.
                 * The origin **MUST** be contained within the vertices.
@@ -505,21 +504,21 @@ class ConvexSpheropolygon(_HPMCIntegrator):
               around the edges of the polygon (distance units).
 
     d (particle type, float): the size of displacement trial moves
-        
+
     a (particle type, float): the size of rotation trial moves
-        
-    fugacity (particle type, float): depletant fugacity (in units of density, 
+
+    fugacity (particle type, float): depletant fugacity (in units of density,
     volume^-1)
 
-    interaction_matrix ((particle type, particle type), bool): whether to 
+    interaction_matrix ((particle type, particle type), bool): whether to
     include overlaps between type 1 and type 2
-    
+
     seed (int): random number seed
-    
+
     move_ratio (float): ratio of translation moves to rotation moves
-    
+
     nselect (int): number of trial moves to perform in each cell
-    
+
     deterministic (bool): make HPMC integration deterministic on the GPU
 
     Useful cases:
@@ -593,12 +592,12 @@ class SimplePolygon(_HPMCIntegrator):
     shape (particle type, dict): defines the shape of the object.
 
         Keys:
-            * *vertices* (list, **required**) - vertices of the polygon as a 
+            * *vertices* (list, **required**) - vertices of the polygon as a
               list of (x, y) tuples
                 * Vertices **MUST** be specified in a *counter-clockwise* order.
                 * The polygon may be concave, but edges must not cross.
                 * The origin doesn't necessarily need to be inside the shape.
-                * The origin centered circle that encloses all vertices should 
+                * The origin centered circle that encloses all vertices should
                   be of minimal size for optimal performance.
             * *ignore_statistics* (**default: False**) - set to True to ignore
               tracked statistics
@@ -607,21 +606,21 @@ class SimplePolygon(_HPMCIntegrator):
               sweep_radius to create a spheropolygon
 
     d (particle type, float): the size of displacement trial moves
-        
+
     a (particle type, float): the size of rotation trial moves
-        
-    fugacity (particle type, float): depletant fugacity (in units of density, 
+
+    fugacity (particle type, float): depletant fugacity (in units of density,
     volume^-1)
 
-    interaction_matrix ((particle type, particle type), bool): whether to 
+    interaction_matrix ((particle type, particle type), bool): whether to
     include overlaps between type 1 and type 2
-    
+
     seed (int): random number seed
-    
+
     move_ratio (float): ratio of translation moves to rotation moves
-    
+
     nselect (int): number of trial moves to perform in each cell
-    
+
     deterministic (bool): make HPMC integration deterministic on the GPU
 
     Warning:
@@ -673,7 +672,7 @@ class SimplePolygon(_HPMCIntegrator):
 
 
 class Polyhedron(_HPMCIntegrator):
-    R""" Hard particle Monte Carlo integration method for general polyhedra 
+    R""" Hard particle Monte Carlo integration method for general polyhedra
     (3D).
 
     This shape uses an internal OBB tree for fast collision queries.
@@ -716,21 +715,21 @@ class Polyhedron(_HPMCIntegrator):
               intersections between hull polygons
 
     d (particle type, float): the size of displacement trial moves
-        
+
     a (particle type, float): the size of rotation trial moves
-        
-    fugacity (particle type, float): depletant fugacity (in units of density, 
+
+    fugacity (particle type, float): depletant fugacity (in units of density,
     volume^-1)
 
-    interaction_matrix ((particle type, particle type), bool): whether to 
+    interaction_matrix ((particle type, particle type), bool): whether to
     include overlaps between type 1 and type 2
-    
+
     seed (int): random number seed
-    
+
     move_ratio (float): ratio of translation moves to rotation moves
-    
+
     nselect (int): number of trial moves to perform in each cell
-    
+
     deterministic (bool): make HPMC integration deterministic on the GPU
 
     Warning:
@@ -847,7 +846,7 @@ class ConvexPolyhedron(_HPMCIntegrator):
     shape (particle type, dict): defines the shape of the object.
 
         Keys:
-            * *vertices* (list, **required**) - vertices of the polygon as a 
+            * *vertices* (list, **required**) - vertices of the polygon as a
               list of (x, y) tuples
                 * The origin **MUST** be contained within the vertices.
                 * The origin centered circle that encloses all vertices should
@@ -860,21 +859,21 @@ class ConvexPolyhedron(_HPMCIntegrator):
               non-zero sweep_radius to create a spheropolyhedron
 
     d (particle type, float): the size of displacement trial moves
-        
+
     a (particle type, float): the size of rotation trial moves
-        
-    fugacity (particle type, float): depletant fugacity (in units of density, 
+
+    fugacity (particle type, float): depletant fugacity (in units of density,
     volume^-1)
 
-    interaction_matrix ((particle type, particle type), bool): whether to 
+    interaction_matrix ((particle type, particle type), bool): whether to
     include overlaps between type 1 and type 2
-    
+
     seed (int): random number seed
-    
+
     move_ratio (float): ratio of translation moves to rotation moves
-    
+
     nselect (int): number of trial moves to perform in each cell
-    
+
     deterministic (bool): make HPMC integration deterministic on the GPU
 
     Warning:
@@ -977,21 +976,21 @@ class FacetedEllipsoid(_HPMCIntegrator):
               tracked statistics
 
     d (particle type, float): the size of displacement trial moves
-        
+
     a (particle type, float): the size of rotation trial moves
-        
-    fugacity (particle type, float): depletant fugacity (in units of density, 
+
+    fugacity (particle type, float): depletant fugacity (in units of density,
     volume^-1)
 
-    interaction_matrix ((particle type, particle type), bool): whether to 
+    interaction_matrix ((particle type, particle type), bool): whether to
     include overlaps between type 1 and type 2
-    
+
     seed (int): random number seed
-    
+
     move_ratio (float): ratio of translation moves to rotation moves
-    
+
     nselect (int): number of trial moves to perform in each cell
-    
+
     deterministic (bool): make HPMC integration deterministic on the GPU
 
     Warning:
@@ -1089,21 +1088,21 @@ class Sphinx(_HPMCIntegrator):
               tracked statistics
 
     d (particle type, float): the size of displacement trial moves
-        
+
     a (particle type, float): the size of rotation trial moves
-        
-    fugacity (particle type, float): depletant fugacity (in units of density, 
+
+    fugacity (particle type, float): depletant fugacity (in units of density,
     volume^-1)
 
-    interaction_matrix ((particle type, particle type), bool): whether to 
+    interaction_matrix ((particle type, particle type), bool): whether to
     include overlaps between type 1 and type 2
-    
+
     seed (int): random number seed
-    
+
     move_ratio (float): ratio of translation moves to rotation moves
-    
+
     nselect (int): number of trial moves to perform in each cell
-    
+
     deterministic (bool): make HPMC integration deterministic on the GPU
 
     Sphinx particles are dimpled spheres (spheres with 'positive' and 'negative'
@@ -1153,7 +1152,7 @@ class ConvexSpheropolyhedron(_HPMCIntegrator):
     shape (particle type, dict): defines the shape of the object.
 
         Keys:
-            * *vertices* (list, **required**) - vertices of the polygon as a 
+            * *vertices* (list, **required**) - vertices of the polygon as a
               list of (x, y) tuples
                 * The origin **MUST** be contained within the vertices.
                 * The origin centered circle that encloses all vertices should
@@ -1169,21 +1168,21 @@ class ConvexSpheropolyhedron(_HPMCIntegrator):
               around the edges of the polyhedron (distance units).
 
     d (particle type, float): the size of displacement trial moves
-        
+
     a (particle type, float): the size of rotation trial moves
-        
-    fugacity (particle type, float): depletant fugacity (in units of density, 
+
+    fugacity (particle type, float): depletant fugacity (in units of density,
     volume^-1)
 
-    interaction_matrix ((particle type, particle type), bool): whether to 
+    interaction_matrix ((particle type, particle type), bool): whether to
     include overlaps between type 1 and type 2
-    
+
     seed (int): random number seed
-    
+
     move_ratio (float): ratio of translation moves to rotation moves
-    
+
     nselect (int): number of trial moves to perform in each cell
-    
+
     deterministic (bool): make HPMC integration deterministic on the GPU
 
     Warning:
@@ -1218,7 +1217,7 @@ class ConvexSpheropolyhedron(_HPMCIntegrator):
     _cpp_cls = 'IntegratorHPMCMonoSpheropolyhedron'
 
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
-               nselect=4, deterministic=False):
+                 nselect=4, deterministic=False):
 
         # initialize base class
         super().__init__(seed, d, a, move_ratio, nselect, deterministic)
@@ -1266,21 +1265,21 @@ class Ellipsoid(_HPMCIntegrator):
               tracked statistics
 
     d (particle type, float): the size of displacement trial moves
-        
+
     a (particle type, float): the size of rotation trial moves
-        
-    fugacity (particle type, float): depletant fugacity (in units of density, 
+
+    fugacity (particle type, float): depletant fugacity (in units of density,
     volume^-1)
 
-    interaction_matrix ((particle type, particle type), bool): whether to 
+    interaction_matrix ((particle type, particle type), bool): whether to
     include overlaps between type 1 and type 2
-    
+
     seed (int): random number seed
-    
+
     move_ratio (float): ratio of translation moves to rotation moves
-    
+
     nselect (int): number of trial moves to perform in each cell
-    
+
     deterministic (bool): make HPMC integration deterministic on the GPU
 
     Example::
@@ -1360,21 +1359,21 @@ class SphereUnion(_HPMCIntegrator):
               tracked statistics
 
     d (particle type, float): the size of displacement trial moves
-        
+
     a (particle type, float): the size of rotation trial moves
-        
-    fugacity (particle type, float): depletant fugacity (in units of density, 
+
+    fugacity (particle type, float): depletant fugacity (in units of density,
     volume^-1)
 
-    interaction_matrix ((particle type, particle type), bool): whether to 
+    interaction_matrix ((particle type, particle type), bool): whether to
     include overlaps between type 1 and type 2
-    
+
     seed (int): random number seed
-    
+
     move_ratio (float): ratio of translation moves to rotation moves
-    
+
     nselect (int): number of trial moves to perform in each cell
-    
+
     deterministic (bool): make HPMC integration deterministic on the GPU
 
     Example::
@@ -1421,7 +1420,7 @@ class SphereUnion(_HPMCIntegrator):
                 len_keys=1,
                 explicit_defaults={'orientations': None,
                                    'overlap': None})
-            )
+        )
         self._add_typeparam(typeparam_shape)
 
     @Loggable.log(flag='multi')
@@ -1467,21 +1466,21 @@ class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
               tracked statistics
 
     d (particle type, float): the size of displacement trial moves
-        
+
     a (particle type, float): the size of rotation trial moves
-        
-    fugacity (particle type, float): depletant fugacity (in units of density, 
+
+    fugacity (particle type, float): depletant fugacity (in units of density,
     volume^-1)
 
-    interaction_matrix ((particle type, particle type), bool): whether to 
+    interaction_matrix ((particle type, particle type), bool): whether to
     include overlaps between type 1 and type 2
-    
+
     seed (int): random number seed
-    
+
     move_ratio (float): ratio of translation moves to rotation moves
-    
+
     nselect (int): number of trial moves to perform in each cell
-    
+
     deterministic (bool): make HPMC integration deterministic on the GPU
 
     Example::
@@ -1530,7 +1529,7 @@ class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
                 len_keys=1,
                 explicit_defaults={'orientations': None,
                                    'overlap': None})
-            )
+        )
 
         self._add_typeparam(typeparam_shape)
         # meta data
@@ -1564,21 +1563,21 @@ class FacetedEllipsoidUnion(_HPMCIntegrator):
               tracked statistics
 
     d (particle type, float): the size of displacement trial moves
-        
+
     a (particle type, float): the size of rotation trial moves
-        
-    fugacity (particle type, float): depletant fugacity (in units of density, 
+
+    fugacity (particle type, float): depletant fugacity (in units of density,
     volume^-1)
 
-    interaction_matrix ((particle type, particle type), bool): whether to 
+    interaction_matrix ((particle type, particle type), bool): whether to
     include overlaps between type 1 and type 2
-    
+
     seed (int): random number seed
-    
+
     move_ratio (float): ratio of translation moves to rotation moves
-    
+
     nselect (int): number of trial moves to perform in each cell
-    
+
     deterministic (bool): make HPMC integration deterministic on the GPU
 
     Example::
@@ -1652,5 +1651,5 @@ class FacetedEllipsoidUnion(_HPMCIntegrator):
                 len_keys=1,
                 explicit_defaults={'orientations': None,
                                    'overlap': None})
-            )
+        )
         self._add_typeparam(typeparam_shape)
