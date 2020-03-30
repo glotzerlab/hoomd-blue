@@ -115,9 +115,18 @@ void POSDumpWriter::analyze(unsigned int timestep)
     numtype = snap.type_mapping.size();
 
     m_file.precision(13);
-    m_file << "boxMatrix "  << a1.x << " " << a2.x << " " << a3.x << " "
+
+    if (m_pdata->getCoordinateType() == ParticleData::cartesian)
+        {
+    	m_file << "boxMatrix "  << a1.x << " " << a2.x << " " << a3.x << " "
                             << a1.y << " " << a2.y << " " << a3.y << " "
                             << a1.z << " " << a2.z << " " << a3.z << "\n";
+        }
+    else if (m_pdata->getCoordinateType() == ParticleData::hyperspherical)
+        {
+        Hypersphere hypersphere(m_pdata->getHypersphere());
+        m_file << "hypersphere true " << hypersphere.getR() << std::endl;
+        }
 
     for (unsigned int j = 0; j < numtype; j++)
         {
@@ -132,47 +141,65 @@ void POSDumpWriter::analyze(unsigned int timestep)
         m_file << info;
         }
 
-    for (unsigned int j = 0; j < snap.size; j++)
-        {
-        // get the coordinates
-        vec3<Scalar> pos = snap.pos[j];
-        quat<Scalar> orientation = snap.orientation[j];
+    if (m_pdata->getCoordinateType() == ParticleData::cartesian){
+	    for (unsigned int j = 0; j < snap.size; j++)
+		{
+		// get the coordinates
+		vec3<Scalar> pos = snap.pos[j];
+		quat<Scalar> orientation = snap.orientation[j];
 
-        vec3<Scalar> tmp_pos = pos;
+		vec3<Scalar> tmp_pos = pos;
 
-        if (m_unwrap_rigid && snap.body[j] < MIN_FLOPPY)
-            {
-            unsigned int central_ptl_tag = snap.body[j];
-            assert(central_ptl_tag < snap.size);
-            int body_ix = snap.image[central_ptl_tag].x;
-            int body_iy = snap.image[central_ptl_tag].y;
-            int body_iz = snap.image[central_ptl_tag].z;
-            int3 particle_img = snap.image[j];
-            int3 img_diff = make_int3(particle_img.x - body_ix,
-                                      particle_img.y - body_iy,
-                                      particle_img.z - body_iz);
+		if (m_unwrap_rigid && snap.body[j] < MIN_FLOPPY)
+		    {
+		    unsigned int central_ptl_tag = snap.body[j];
+		    assert(central_ptl_tag < snap.size);
+		    int body_ix = snap.image[central_ptl_tag].x;
+		    int body_iy = snap.image[central_ptl_tag].y;
+		    int body_iz = snap.image[central_ptl_tag].z;
+		    int3 particle_img = snap.image[j];
+		    int3 img_diff = make_int3(particle_img.x - body_ix,
+					      particle_img.y - body_iy,
+					      particle_img.z - body_iz);
 
-            tmp_pos = box.shift(tmp_pos, img_diff);
-            }
+		    tmp_pos = box.shift(tmp_pos, img_diff);
+		    }
 
-        // get the type by name
-        unsigned int type_id = snap.type[j];
-        string type_name = snap.type_mapping[type_id];
+		// get the type by name
+		unsigned int type_id = snap.type[j];
+		string type_name = snap.type_mapping[type_id];
 
-        m_file << type_name << " " << tmp_pos.x << " " << tmp_pos.y << " " << tmp_pos.z;
-        // output quaternion only if not sphere
-        if (m_defs[type_id].compare(0,7,"sphere "))
-            {
-            m_file << " " << orientation.s << " " << orientation.v.x << " " << orientation.v.y << " " << orientation.v.z;
-            }
-        m_file << "\n";
+		m_file << type_name << " " << tmp_pos.x << " " << tmp_pos.y << " " << tmp_pos.z;
+		// output quaternion only if not sphere
+		if (m_defs[type_id].compare(0,7,"sphere "))
+		    {
+		    m_file << " " << orientation.s << " " << orientation.v.x << " " << orientation.v.y << " " << orientation.v.z;
+		    }
+		m_file << "\n";
 
-        if (!m_file.good())
-            {
-            m_exec_conf->msg->error() << "Unexpected error writing pos dump file" << endl << endl;
-            throw runtime_error("Error writing pos dump file");
-            }
+		if (!m_file.good())
+		    {
+		    m_exec_conf->msg->error() << "Unexpected error writing pos dump file" << endl << endl;
+		    throw runtime_error("Error writing pos dump file");
+		    }
+		}
         }
+    else if (m_pdata->getCoordinateType() == ParticleData::hyperspherical)
+        {
+        for (unsigned int j = 0; j < snap.size; j++){
+            // get the coordinates
+            quat<Scalar> ql = snap.quat_l[j];
+            quat<Scalar> qr = snap.quat_r[j];
+            // get the type by name
+            unsigned int type_id = snap.type[j];
+            string type_name = snap.type_mapping[type_id];
+
+            m_file << type_name << " " << ql.s << " " << ql.v.x << " " << ql.v.y << " " << ql.v.z << " "
+                << qr.s << " " << qr.v.x << " " << qr.v.y << " " << qr.v.z << std::endl;
+         }
+     }
+	    
+
 
     if (!m_file.good())
         {

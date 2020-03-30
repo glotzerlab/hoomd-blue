@@ -42,6 +42,10 @@ class PYBIND11_EXPORT POSDumpWriter : public Analyzer
         //! Set whether rigid body coordinates should be written out wrapped or unwrapped.
         void setUnwrapRigid(bool enable)
             {
+            if (enable && m_pdata->getCoordinateType() != ParticleData::cartesian)
+                {
+                throw std::runtime_error("unwrap_rigid only supported with cartesian coordinates.\n");
+                }
             m_unwrap_rigid = enable;
             }
 
