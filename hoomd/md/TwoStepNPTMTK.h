@@ -137,8 +137,7 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
         virtual void integrateStepTwo(unsigned int timestep);
 
         //! Get needed pdata flags
-        /*! TwoStepNPTMTK needs the pressure, so the pressure_tensor flag is set,
-            depending on the integration mode
+        /*! TwoStepNPTMTK needs the pressure, so the pressure_tensor flag is set
         */
         virtual PDataFlags getRequestedPDataFlags()
             {
