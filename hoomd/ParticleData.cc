@@ -62,7 +62,8 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
           m_nglobal(0),
           m_accel_set(false),
           m_resize_factor(9./8.),
-          m_arrays_allocated(false)
+          m_arrays_allocated(false),
+          m_coordinate(cartesian)
     {
     m_exec_conf->msg->notice(5) << "Constructing ParticleData" << endl;
 
@@ -151,7 +152,8 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
       m_nglobal(0),
       m_accel_set(false),
       m_resize_factor(9./8.),
-      m_arrays_allocated(false)
+      m_arrays_allocated(false),
+      m_coordinate(cartesian)
     {
     m_exec_conf->msg->notice(5) << "Constructing ParticleData" << endl;
 
@@ -207,6 +209,65 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
     #endif
     }
 
+/*! Loads particle data from the snapshot into the internal arrays, version for hyperspherical coordinates
+ * \param snapshot The particle data snapshot
+ * \param hypersphere The hypersphere of the system, which determines the curvature of the space
+ * \param exec_conf The execution configuration
+ */
+template <class Real>
+ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
+                           const Hypersphere& hypersphere,
+                           std::shared_ptr<ExecutionConfiguration> exec_conf
+                          )
+    : m_exec_conf(exec_conf),
+      m_nparticles(0),
+      m_nghosts(0),
+      m_max_nparticles(0),
+      m_nglobal(0),
+      m_accel_set(false),
+      m_resize_factor(9./8.),
+      m_origin(make_scalar3(0.,0.,0)),
+      m_o_image(make_int3(0,0,0)),
+      m_arrays_allocated(false),
+      m_coordinate(hyperspherical)
+    {
+    m_exec_conf->msg->notice(5) << "Constructing ParticleData" << endl;
+
+    // initialize box dimensions on all procesors
+    setHypersphere(hypersphere);
+
+    #if 0
+    // it is an error for particles to be initialized outside of their box
+    if (!inBox(snapshot))
+        {
+        m_exec_conf->msg->warning() << "Not all particles were found inside the given box" << endl;
+        throw runtime_error("Error initializing ParticleData");
+        }
+    #endif
+
+    // initialize rtag array
+    GlobalVector<unsigned int>(exec_conf).swap(m_rtag);
+
+    // initialize particle data with snapshot contents
+    initializeFromSnapshot(snapshot);
+
+    // reset external virial
+    for (unsigned int i = 0; i < 6; i++)
+        m_external_virial[i] = Scalar(0.0);
+
+    m_external_energy = Scalar(0.0);
+
+    // default constructed shared ptr is null as desired
+    m_prof = std::shared_ptr<Profiler>();
+
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        // create a ModernGPU context
+        m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
+        }
+    #endif
+    }
 
 ParticleData::~ParticleData()
     {
@@ -419,6 +480,11 @@ void ParticleData::allocate(unsigned int N)
     m_inertia.swap(inertia);
     TAG_ALLOCATION(m_inertia);
 
+    GPUArray< Scalar4 > quat_l(N, m_exec_conf);
+    m_quat_l.swap(quat_l);
+    GPUArray< Scalar4 > quat_r(N, m_exec_conf);
+    m_quat_r.swap(quat_r);
+
     GlobalArray< unsigned int > comm_flags(N, m_exec_conf);
     m_comm_flags.swap(comm_flags);
     TAG_ALLOCATION(m_comm_flags);
@@ -516,6 +582,14 @@ void ParticleData::allocateAlternateArrays(unsigned int N)
     GlobalArray< Scalar3 > inertia_alt(N, m_exec_conf);
     m_inertia_alt.swap(inertia_alt);
     TAG_ALLOCATION(m_inertia_alt);
+
+    // left quaternions
+    GPUArray< Scalar4> quat_l_alt(N, m_exec_conf);
+    m_quat_l_alt.swap(quat_l_alt);
+
+    // right quaternions
+    GPUArray< Scalar4> quat_r_alt(N, m_exec_conf);
+    m_quat_r_alt.swap(quat_r_alt);
 
     // Net force
     GlobalArray< Scalar4 > net_force_alt(N, m_exec_conf);
@@ -677,6 +751,8 @@ void ParticleData::reallocate(unsigned int max_n)
     m_orientation.resize(max_n);
     m_angmom.resize(max_n);
     m_inertia.resize(max_n);
+    m_quat_l.resize(max_n);
+    m_quat_r.resize(max_n);
 
     m_comm_flags.resize(max_n);
 
@@ -716,6 +792,8 @@ void ParticleData::reallocate(unsigned int max_n)
         m_orientation_alt.resize(max_n);
         m_angmom_alt.resize(max_n);
         m_inertia_alt.resize(max_n);
+	m_quat_l.resize(max_n);
+        m_quat_r.resize(max_n);
 
         m_net_force_alt.resize(max_n);
         m_net_torque_alt.resize(max_n);
@@ -869,8 +947,10 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
         std::vector< std::vector<unsigned int > > body_proc;       // Body ids of every processor
         std::vector< std::vector<Scalar4> > orientation_proc;      // Orientations of every processor
         std::vector< std::vector<Scalar4> > angmom_proc;           // Angular momenta of every processor
-        std::vector< std::vector<Scalar3> > inertia_proc;           // Angular momenta of every processor
-        std::vector< std::vector<unsigned int > > tag_proc;         // Global tags of every processor
+        std::vector< std::vector<Scalar3> > inertia_proc;          // Angular momenta of every processor
+        std::vector< std::vector<Scalar4> > quat_l_proc;           // Left quaternions on every processor
+        std::vector< std::vector<Scalar4> > quat_r_proc;           // Right quaternions on every processor
+        std::vector< std::vector<unsigned int > > tag_proc;        // Global tags of every processor
         std::vector< unsigned int > N_proc;                        // Number of particles on every processor
 
 
@@ -891,6 +971,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
         orientation_proc.resize(size);
         angmom_proc.resize(size);
         inertia_proc.resize(size);
+        quat_l_proc.resize(size);
+        quat_r_proc.resize(size);
         tag_proc.resize(size);
         N_proc.resize(size,0);
 
@@ -988,6 +1070,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
                 orientation_proc[rank].push_back(quat_to_scalar4(snapshot.orientation[snap_idx]));
                 angmom_proc[rank].push_back(quat_to_scalar4(snapshot.angmom[snap_idx]));
                 inertia_proc[rank].push_back(vec_to_scalar3(snapshot.inertia[snap_idx]));
+                quat_l_proc[rank].push_back(quat_to_scalar4(snapshot.quat_l[snap_idx]));
+                quat_r_proc[rank].push_back(quat_to_scalar4(snapshot.quat_r[snap_idx]));
                 tag_proc[rank].push_back(nglobal++);
                 N_proc[rank]++;
                 }
@@ -1024,6 +1108,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
         std::vector<Scalar4> orientation;
         std::vector<Scalar4> angmom;
         std::vector<Scalar3> inertia;
+        std::vector<Scalar4> quat_l;
+        std::vector<Scalar4> quat_r;
         std::vector<unsigned int> tag;
 
         // distribute particle data
@@ -1039,6 +1125,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
         scatter_v(orientation_proc, orientation, root, mpi_comm);
         scatter_v(angmom_proc, angmom, root, mpi_comm);
         scatter_v(inertia_proc, inertia, root, mpi_comm);
+        scatter_v(quat_l_proc, quat_l, root, mpi_comm);
+        scatter_v(quat_r_proc, quat_r, root, mpi_comm);
         scatter_v(tag_proc, tag, root, mpi_comm);
 
         // distribute number of particles
@@ -1078,6 +1166,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
         ArrayHandle< Scalar4 > h_orientation(m_orientation, access_location::host, access_mode::overwrite);
         ArrayHandle< Scalar4 > h_angmom(m_angmom, access_location::host, access_mode::overwrite);
         ArrayHandle< Scalar3 > h_inertia(m_inertia, access_location::host, access_mode::overwrite);
+        ArrayHandle< Scalar4> h_quat_l(m_quat_l, access_location::host, access_mode::readwrite);
+        ArrayHandle< Scalar4> h_quat_r(m_quat_r, access_location::host, access_mode::readwrite);
         ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_comm_flag(m_comm_flags, access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_rtag(m_rtag, access_location::host, access_mode::readwrite);
@@ -1096,6 +1186,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
             h_orientation.data[idx] = orientation[idx];
             h_angmom.data[idx] = angmom[idx];
             h_inertia.data[idx] = inertia[idx];
+            h_quat_l.data[idx] = quat_l[idx];
+            h_quat_r.data[idx] = quat_r[idx];
 
             h_comm_flag.data[idx] = 0; // initialize with zero
             }
@@ -1129,6 +1221,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
         ArrayHandle< Scalar4 > h_orientation(m_orientation, access_location::host, access_mode::overwrite);
         ArrayHandle< Scalar4 > h_angmom(m_angmom, access_location::host, access_mode::overwrite);
         ArrayHandle< Scalar3 > h_inertia(m_inertia, access_location::host, access_mode::overwrite);
+        ArrayHandle< Scalar4> h_quat_l(m_quat_l, access_location::host, access_mode::readwrite);
+        ArrayHandle< Scalar4> h_quat_r(m_quat_r, access_location::host, access_mode::readwrite);
         ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_rtag(m_rtag, access_location::host, access_mode::readwrite);
 
@@ -1158,6 +1252,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
             h_orientation.data[nglobal] = quat_to_scalar4(snapshot.orientation[snap_idx]);
             h_angmom.data[nglobal] = quat_to_scalar4(snapshot.angmom[snap_idx]);
             h_inertia.data[nglobal] = vec_to_scalar3(snapshot.inertia[snap_idx]);
+            h_quat_l.data[nglobal] = quat_to_scalar4(snapshot.quat_l[snap_idx]);
+            h_quat_r.data[nglobal] = quat_to_scalar4(snapshot.quat_r[snap_idx]);
             nglobal++;
             }
 
@@ -1217,6 +1313,8 @@ std::map<unsigned int, unsigned int> ParticleData::takeSnapshot(SnapshotParticle
     ArrayHandle< Scalar4 >  h_orientation(m_orientation, access_location::host, access_mode::read);
     ArrayHandle< Scalar4 >  h_angmom(m_angmom, access_location::host, access_mode::read);
     ArrayHandle< Scalar3 >  h_inertia(m_inertia, access_location::host, access_mode::read);
+    ArrayHandle< Scalar4> h_quat_l(m_quat_l, access_location::host, access_mode::read);
+    ArrayHandle< Scalar4> h_quat_r(m_quat_r, access_location::host, access_mode::read);
     ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::read);
     ArrayHandle< unsigned int > h_rtag(m_rtag, access_location::host, access_mode::read);
 
@@ -1236,6 +1334,8 @@ std::map<unsigned int, unsigned int> ParticleData::takeSnapshot(SnapshotParticle
         std::vector<Scalar4> orientation(m_nparticles);
         std::vector<Scalar4> angmom(m_nparticles);
         std::vector<Scalar3> inertia(m_nparticles);
+        std::vector<Scalar4> quat_l(m_nparticles);
+        std::vector<Scalar4> quat_r(m_nparticles);
         std::vector<unsigned int> tag(m_nparticles);
         std::map<unsigned int, unsigned int> rtag_map;
         for (unsigned int idx = 0; idx < m_nparticles; idx++)
@@ -1255,6 +1355,8 @@ std::map<unsigned int, unsigned int> ParticleData::takeSnapshot(SnapshotParticle
             orientation[idx] = h_orientation.data[idx];
             angmom[idx] = h_angmom.data[idx];
             inertia[idx] = h_inertia.data[idx];
+            quat_l[idx] = h_quat_l.data[idx];
+            quat_r[idx] = h_quat_r.data[idx];
 
             // insert reverse lookup global tag -> idx
             rtag_map.insert(std::pair<unsigned int, unsigned int>(h_tag.data[idx], idx));
@@ -1272,6 +1374,8 @@ std::map<unsigned int, unsigned int> ParticleData::takeSnapshot(SnapshotParticle
         std::vector< std::vector<Scalar4 > > orientation_proc;     // Orientations of every processor
         std::vector< std::vector<Scalar4 > > angmom_proc;          // Angular momenta of every processor
         std::vector< std::vector<Scalar3 > > inertia_proc;         // Moments of inertia of every processor
+        std::vector< std::vector<Scalar4 > > quat_l_proc;          // Angular momenta of every processor
+        std::vector< std::vector<Scalar4 > > quat_r_proc;          // Angular momenta of every processor
 
         std::vector< std::map<unsigned int, unsigned int> > rtag_map_proc; // List of reverse-lookup maps
 
@@ -1292,6 +1396,8 @@ std::map<unsigned int, unsigned int> ParticleData::takeSnapshot(SnapshotParticle
         orientation_proc.resize(size);
         angmom_proc.resize(size);
         inertia_proc.resize(size);
+        quat_l_proc.resize(size);
+        quat_r_proc.resize(size);
         rtag_map_proc.resize(size);
 
         unsigned int root = 0;
@@ -1309,6 +1415,8 @@ std::map<unsigned int, unsigned int> ParticleData::takeSnapshot(SnapshotParticle
         gather_v(orientation, orientation_proc, root, mpi_comm);
         gather_v(angmom, angmom_proc, root, mpi_comm);
         gather_v(inertia, inertia_proc, root, mpi_comm);
+        gather_v(quat_l, quat_l_proc, root, mpi_comm);
+        gather_v(quat_r, quat_r_proc, root, mpi_comm);
 
         // gather the reverse-lookup maps
         gather_v(rtag_map, rtag_map_proc, root, mpi_comm);
@@ -1368,6 +1476,8 @@ std::map<unsigned int, unsigned int> ParticleData::takeSnapshot(SnapshotParticle
                 snapshot.orientation[snap_id] = quat<Real>(orientation_proc[rank][idx]);
                 snapshot.angmom[snap_id] = quat<Real>(angmom_proc[rank][idx]);
                 snapshot.inertia[snap_id] = vec3<Real>(inertia_proc[rank][idx]);
+                snapshot.quat_l[snap_id] = quat<Real>(quat_l_proc[rank][idx]);
+                snapshot.quat_r[snap_id] = quat<Real>(quat_r_proc[rank][idx]);
 
                 // make sure the position stored in the snapshot is within the boundaries
                 Scalar3 tmp = vec_to_scalar3(snapshot.pos[snap_id]);
@@ -1386,6 +1496,8 @@ std::map<unsigned int, unsigned int> ParticleData::takeSnapshot(SnapshotParticle
 
         assert(m_tag_set.size() == m_nparticles);
         std::set<unsigned int>::const_iterator it = m_tag_set.begin();
+
+        bool cartesianType = getCoordinateType() == cartesian;
 
         // iterate through active tags
         for (unsigned int snap_id = 0; snap_id < m_nparticles; snap_id++)
@@ -1414,10 +1526,16 @@ std::map<unsigned int, unsigned int> ParticleData::takeSnapshot(SnapshotParticle
             snapshot.angmom[snap_id] = quat<Real>(h_angmom.data[idx]);
             snapshot.inertia[snap_id] = vec3<Real>(h_inertia.data[idx]);
 
-            // make sure the position stored in the snapshot is within the boundaries
-            Scalar3 tmp = vec_to_scalar3(snapshot.pos[snap_id]);
-            m_global_box.wrap(tmp, snapshot.image[snap_id]);
-            snapshot.pos[snap_id] = vec3<Real>(tmp);
+            snapshot.quat_l[snap_id] = quat<Real>(h_quat_l.data[idx]);
+            snapshot.quat_r[snap_id] = quat<Real>(h_quat_r.data[idx]);
+
+            if (cartesianType)
+                {
+                // make sure the position stored in the snapshot is within the boundaries
+                Scalar3 tmp = vec_to_scalar3(snapshot.pos[snap_id]);
+                m_global_box.wrap(tmp, snapshot.image[snap_id]);
+                snapshot.pos[snap_id] = vec3<Real>(tmp);
+                }
 
             std::advance(it, 1);
             }
@@ -1427,6 +1545,9 @@ std::map<unsigned int, unsigned int> ParticleData::takeSnapshot(SnapshotParticle
 
     // copy over acceleration set flag (this is a copy in case users take a snapshot before running)
     snapshot.is_accel_set = m_accel_set;
+
+    // set type of boundary conditions
+    snapshot.use_hyperspherical_coord = getCoordinateType() == hyperspherical;
 
     return index;
     }
@@ -1799,6 +1920,53 @@ Scalar3 ParticleData::getMomentsOfInertia(unsigned int tag) const
     assert(found);
     return result;
     }
+
+//! Get the left quaternion of a particle with a given tag
+Scalar4 ParticleData::getLeftQuaternion(unsigned int tag) const
+    {
+    unsigned int idx = getRTag(tag);
+    bool found = (idx < getN());
+    Scalar4 result = make_scalar4(0.0,0.0,0.0,0.0);
+    if (found)
+        {
+        ArrayHandle< Scalar4 > h_quat_l(m_quat_l, access_location::host, access_mode::read);
+        result = h_quat_l.data[idx];
+        }
+#ifdef ENABLE_MPI
+    if (m_decomposition)
+        {
+        unsigned int owner_rank = getOwnerRank(tag);
+        bcast(result, owner_rank, m_exec_conf->getMPICommunicator());
+        found = true;
+        }
+#endif
+    assert(found);
+    return result;
+    }
+
+//! Get the right quaternion of a particle with a given tag
+Scalar4 ParticleData::getRightQuaternion(unsigned int tag) const
+    {
+    unsigned int idx = getRTag(tag);
+    bool found = (idx < getN());
+    Scalar4 result = make_scalar4(0.0,0.0,0.0,0.0);
+    if (found)
+        {
+        ArrayHandle< Scalar4 > h_quat_r(m_quat_r, access_location::host, access_mode::read);
+        result = h_quat_r.data[idx];
+        }
+#ifdef ENABLE_MPI
+    if (m_decomposition)
+        {
+        unsigned int owner_rank = getOwnerRank(tag);
+        bcast(result, owner_rank, m_exec_conf->getMPICommunicator());
+        found = true;
+        }
+#endif
+    assert(found);
+    return result;
+    }
+
 
 //! Get the net force / energy on a given particle
 Scalar4 ParticleData::getPNetForce(unsigned int tag) const
@@ -2189,6 +2357,42 @@ void ParticleData::setMomentsOfInertia(unsigned int tag, const Scalar3& inertia)
         }
     }
 
+//! Set the left quaternion of a particle with a given tag
+void ParticleData::setLeftQuaternion(unsigned int tag, const Scalar4& q)
+    {
+    unsigned int idx = getRTag(tag);
+    bool found = (idx < getN());
+
+#ifdef ENABLE_MPI
+    // make sure the particle is somewhere
+    if (m_decomposition)
+        getOwnerRank(tag);
+#endif
+    if (found)
+        {
+        ArrayHandle< Scalar4 > h_quat_l(m_quat_l, access_location::host, access_mode::readwrite);
+        h_quat_l.data[idx] = q;
+        }
+    }
+
+//! Set the right quaternion of a particle with a given tag
+void ParticleData::setRightQuaternion(unsigned int tag, const Scalar4& q)
+    {
+    unsigned int idx = getRTag(tag);
+    bool found = (idx < getN());
+
+#ifdef ENABLE_MPI
+    // make sure the particle is somewhere
+    if (m_decomposition)
+        getOwnerRank(tag);
+#endif
+    if (found)
+        {
+        ArrayHandle< Scalar4 > h_quat_r(m_quat_r, access_location::host, access_mode::readwrite);
+        h_quat_r.data[idx] = q;
+        }
+    }
+
 /*!
  * Initialize the particle data with a new particle of given type.
  *
@@ -2272,6 +2476,8 @@ unsigned int ParticleData::addParticle(unsigned int type)
         ArrayHandle<Scalar3> h_inertia(getMomentsOfInertiaArray(), access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_body(getBodies(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_quat_l(getLeftQuaternionArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_quat_r(getRightQuaternionArray(), access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_comm_flag(m_comm_flags, access_location::host, access_mode::readwrite);
 
@@ -2288,6 +2494,8 @@ unsigned int ParticleData::addParticle(unsigned int type)
         h_inertia.data[idx] = make_scalar3(0,0,0);
         h_body.data[idx] = NO_BODY;
         h_orientation.data[idx] = make_scalar4(1.0,0.0,0.0,0.0);
+        h_quat_l.data[idx] = make_scalar4(1,0,0,0);
+        h_quat_r.data[idx] = make_scalar4(1,0,0,0);
         h_tag.data[idx] = tag;
         h_comm_flag.data[idx] = 0;
         }
@@ -2374,6 +2582,8 @@ void ParticleData::removeParticle(unsigned int tag)
             ArrayHandle<int3> h_image(getImages(), access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_body(getBodies(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_quat_l(m_quat_l, access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_quat_r(m_quat_r, access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_comm_flag(m_comm_flags, access_location::host, access_mode::readwrite);
@@ -2386,6 +2596,8 @@ void ParticleData::removeParticle(unsigned int tag)
             h_image.data[idx] = h_image.data[size-1];
             h_body.data[idx] = h_body.data[size-1];
             h_orientation.data[idx] = h_orientation.data[size-1];
+            h_quat_l.data[idx] = h_quat_l.data[size-1];
+            h_quat_r.data[idx] = h_quat_r.data[size-1];
             h_tag.data[idx] = h_tag.data[size-1];
             h_comm_flag.data[idx] = h_comm_flag.data[size-1];
 
@@ -2462,6 +2674,15 @@ void export_BoxDim(py::module& m)
     ;
     }
 
+void export_Hypersphere(py::module& m)
+    {
+    py::class_<Hypersphere>(m,"Hypersphere")
+    .def(py::init<Scalar>())
+    .def("getR", &Hypersphere::getR)
+    .def("setR", &Hypersphere::setR)
+    ;
+    }
+
 //! Helper for python __str__ for ParticleData
 /*! Gives a synopsis of a ParticleData in a string
     \param pdata Particle data to format parameters from
@@ -2480,6 +2701,12 @@ template ParticleData::ParticleData(const SnapshotParticleData<double>& snapshot
                                            std::shared_ptr<ExecutionConfiguration> exec_conf,
                                            std::shared_ptr<DomainDecomposition> decomposition
                                           );
+
+template ParticleData::ParticleData(const SnapshotParticleData<double>& snapshot,
+                                           const Hypersphere& hypersphere,
+                                           std::shared_ptr<ExecutionConfiguration> exec_conf
+                                          );
+
 template void ParticleData::initializeFromSnapshot<double>(const SnapshotParticleData<double> & snapshot, bool ignore_bodies);
 template std::map<unsigned int, unsigned int> ParticleData::takeSnapshot<double>(SnapshotParticleData<double> &snapshot);
 
@@ -2488,19 +2715,27 @@ template ParticleData::ParticleData(const SnapshotParticleData<float>& snapshot,
                                            const BoxDim& global_box,
                                            std::shared_ptr<ExecutionConfiguration> exec_conf,
                                            std::shared_ptr<DomainDecomposition> decomposition
+                                         );
+
+template ParticleData::ParticleData(const SnapshotParticleData<float>& snapshot,
+                                           const Hypersphere& hypersphere,
+                                           std::shared_ptr<ExecutionConfiguration> exec_conf
                                           );
+
 template void ParticleData::initializeFromSnapshot<float>(const SnapshotParticleData<float> & snapshot, bool ignore_bodies);
 template std::map<unsigned int, unsigned int> ParticleData::takeSnapshot<float>(SnapshotParticleData<float> &snapshot);
 
 
 void export_ParticleData(py::module& m)
     {
-    py::class_<ParticleData, std::shared_ptr<ParticleData> >(m,"ParticleData")
-    .def(py::init<unsigned int, const BoxDim&, unsigned int, std::shared_ptr<ExecutionConfiguration> >())
+    py::class_<ParticleData, std::shared_ptr<ParticleData> > pdata(m,"ParticleData");
+    pdata.def(py::init<unsigned int, const BoxDim&, unsigned int, std::shared_ptr<ExecutionConfiguration> >())
     .def("getGlobalBox", &ParticleData::getGlobalBox, py::return_value_policy::reference_internal)
     .def("getBox", &ParticleData::getBox, py::return_value_policy::reference_internal)
     .def("setGlobalBoxL", &ParticleData::setGlobalBoxL)
     .def("setGlobalBox", &ParticleData::setGlobalBox)
+    .def("getHypersphere", &ParticleData::getHypersphere, py::return_value_policy::reference_internal)
+    .def("setHypersphere", &ParticleData::setHypersphere)
     .def("getN", &ParticleData::getN)
     .def("getNGhosts", &ParticleData::getNGhosts)
     .def("getNGlobal", &ParticleData::getNGlobal)
@@ -2527,6 +2762,8 @@ void export_ParticleData(py::module& m)
     .def("getNetTorque", &ParticleData::getNetTorque)
     .def("getPNetVirial", &ParticleData::getPNetVirial)
     .def("getMomentsOfInertia", &ParticleData::getMomentsOfInertia)
+    .def("getLeftQuaternion", &ParticleData::getLeftQuaternion)
+    .def("getRightQuaternion", &ParticleData::getRightQuaternion)
     .def("setPosition", &ParticleData::setPosition)
     .def("setVelocity", &ParticleData::setVelocity)
     .def("setImage", &ParticleData::setImage)
@@ -2538,6 +2775,8 @@ void export_ParticleData(py::module& m)
     .def("setOrientation", &ParticleData::setOrientation)
     .def("setAngularMomentum", &ParticleData::setAngularMomentum)
     .def("setMomentsOfInertia", &ParticleData::setMomentsOfInertia)
+    .def("setLeftQuaternion", &ParticleData::setLeftQuaternion)
+    .def("setRightQuaternion", &ParticleData::setRightQuaternion)
     .def("getMaximumTag", &ParticleData::getMaximumTag)
     .def("addParticle", &ParticleData::addParticle)
     .def("removeParticle", &ParticleData::removeParticle)
@@ -2547,13 +2786,20 @@ void export_ParticleData(py::module& m)
     .def("getDomainDecomposition", &ParticleData::getDomainDecomposition)
 #endif
     .def("addType", &ParticleData::addType)
+    .def("getCoordinateType", &ParticleData::getCoordinateType)
+    ;
+
+    py::enum_<ParticleData::coordinate_Enum>(pdata,"coordinate")
+    .value("cartesian", ParticleData::coordinate_Enum::cartesian)
+    .value("hyperspherical", ParticleData::coordinate_Enum::hyperspherical)
+    .export_values()
     ;
     }
 
 //! Constructor for SnapshotParticleData
 template <class Real>
 SnapshotParticleData<Real>::SnapshotParticleData(unsigned int N)
-       : size(N), is_accel_set(false)
+       : size(N), is_accel_set(false), use_hyperspherical_coord(false)
     {
     resize(N);
     }
@@ -2573,6 +2819,8 @@ void SnapshotParticleData<Real>::resize(unsigned int N)
     orientation.resize(N,quat<Real>(1.0,vec3<Real>(0.0,0.0,0.0)));
     angmom.resize(N,quat<Real>(0.0,vec3<Real>(0.0,0.0,0.0)));
     inertia.resize(N,vec3<Real>(0.0,0.0,0.0));
+    quat_l.resize(N,quat<Real>());
+    quat_r.resize(N,quat<Real>());
     size = N;
     is_accel_set = false;
     }
@@ -2593,6 +2841,8 @@ void SnapshotParticleData<Real>::insert(unsigned int i, unsigned int n)
     orientation.insert(orientation.begin()+i,n,quat<Real>(1.0,vec3<Real>(0.0,0.0,0.0)));
     angmom.insert(angmom.begin()+i,n,quat<Real>(0.0,vec3<Real>(0.0,0.0,0.0)));
     inertia.insert(inertia.begin()+i,n,vec3<Real>(0.0,0.0,0.0));
+    quat_l.insert(quat_l.begin()+i,n,quat<Real>(1.0,vec3<Real>(0,0,0)));
+    quat_r.insert(quat_r.begin()+i,n,quat<Real>(1.0,vec3<Real>(0,0,0)));
     size += n;
     is_accel_set = false;
     }
@@ -2607,7 +2857,7 @@ bool SnapshotParticleData<Real>::validate() const
     if (pos.size() != size || vel.size() != size || accel.size() != size || type.size() != size ||
         mass.size() != size || charge.size() != size || diameter.size() != size ||
         image.size() != size || body.size() != size || orientation.size() != size || angmom.size() != size ||
-        inertia.size() != size)
+        inertia.size() != size || quat_l.size() != size || quat_r.size() != size)
         return false;
 
     return true;
@@ -3220,6 +3470,9 @@ template <class Real>
 void SnapshotParticleData<Real>::replicate(unsigned int nx, unsigned int ny, unsigned int nz,
         const BoxDim& old_box, const BoxDim& new_box)
     {
+    if (use_hyperspherical_coord)
+        throw std::runtime_error("Can only replicate snapshots with cartesian coordinates.\n");
+
     unsigned int old_size = size;
 
     // resize snapshot
@@ -3459,6 +3712,39 @@ py::object SnapshotParticleData<Real>::getAngmomNP(pybind11::object self)
     return pybind11::array(dims, (Real*)&self_cpp->angmom[0], self);
     }
 
+/*! \returns a numpy array that wraps the left quaternion element.
+    The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
+*/
+template <class Real>
+py::object SnapshotParticleData<Real>::getQuatLNP(pybind11::object self)
+    {
+    auto self_cpp = self.cast<SnapshotParticleData<Real> *>();
+    // mark as dirty when accessing internal data
+    self_cpp->is_accel_set = false;
+
+    std::vector<size_t> dims(2);
+    dims[0] = self_cpp->quat_l.size();
+    dims[1] = 4;
+    return pybind11::array(dims,(Real*)&self_cpp->quat_l[0], self);
+    }
+
+/*! \returns a numpy array that wraps the left quaternion element.
+    The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
+*/
+template <class Real>
+py::object SnapshotParticleData<Real>::getQuatRNP(pybind11::object self)
+    {
+    auto self_cpp = self.cast<SnapshotParticleData<Real> *>();
+    // mark as dirty when accessing internal data
+    self_cpp->is_accel_set = false;
+
+    std::vector<size_t> dims(2);
+    dims[0] = self_cpp->quat_r.size();
+    dims[1] = 4;
+    return pybind11::array(dims,(Real*)&self_cpp->quat_r[0], self);
+    }
+
+
 /*! \returns A python list of type names
 */
 template <class Real>
@@ -3503,10 +3789,13 @@ void SnapshotParticleData<Real>::bcast(unsigned int root, MPI_Comm mpi_comm)
     ::bcast(orientation, root, mpi_comm);
     ::bcast(angmom, root, mpi_comm);
     ::bcast(inertia, root, mpi_comm);
+    ::bcast(quat_l, root, mpi_comm);
+    ::bcast(quat_r, root, mpi_comm);
 
     ::bcast(size, root, mpi_comm);
     ::bcast(type_mapping, root, mpi_comm);
     ::bcast(is_accel_set, root, mpi_comm);
+    ::bcast(use_hyperspherical_coord, root, mpi_comm);
     }
 #endif
 
@@ -3530,11 +3819,14 @@ void export_SnapshotParticleData(py::module& m)
     .def_property_readonly("orientation", &SnapshotParticleData<float>::getOrientationNP)
     .def_property_readonly("moment_inertia", &SnapshotParticleData<float>::getMomentInertiaNP)
     .def_property_readonly("angmom", &SnapshotParticleData<float>::getAngmomNP)
+    .def_property_readonly("quat_l", &SnapshotParticleData<float>::getQuatLNP)
+    .def_property_readonly("quat_r", &SnapshotParticleData<float>::getQuatRNP)
     .def_property("types", &SnapshotParticleData<float>::getTypes, &SnapshotParticleData<float>::setTypes)
     .def_readonly("N", &SnapshotParticleData<float>::size)
     .def("resize", &SnapshotParticleData<float>::resize)
     .def("insert", &SnapshotParticleData<float>::insert)
     .def_readonly("is_accel_set", &SnapshotParticleData<float>::is_accel_set)
+    .def_readwrite("use_hyperspherical_coord", &SnapshotParticleData<float>::use_hyperspherical_coord)
     ;
 
     py::class_<SnapshotParticleData<double>, std::shared_ptr<SnapshotParticleData<double> > >(m,"SnapshotParticleData_double")
@@ -3551,10 +3843,13 @@ void export_SnapshotParticleData(py::module& m)
     .def_property_readonly("orientation", &SnapshotParticleData<double>::getOrientationNP)
     .def_property_readonly("moment_inertia", &SnapshotParticleData<double>::getMomentInertiaNP)
     .def_property_readonly("angmom", &SnapshotParticleData<double>::getAngmomNP)
+    .def_property_readonly("quat_l", &SnapshotParticleData<double>::getQuatLNP)
+    .def_property_readonly("quat_r", &SnapshotParticleData<double>::getQuatRNP)
     .def_property("types", &SnapshotParticleData<double>::getTypes, &SnapshotParticleData<double>::setTypes)
     .def_readonly("N", &SnapshotParticleData<double>::size)
     .def("resize", &SnapshotParticleData<double>::resize)
     .def("insert", &SnapshotParticleData<double>::insert)
     .def_readonly("is_accel_set", &SnapshotParticleData<double>::is_accel_set)
+    .def_readwrite("use_hyperspherical_coord", &SnapshotParticleData<double>::use_hyperspherical_coord)
     ;
    }

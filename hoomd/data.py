@@ -231,7 +231,7 @@ Warning:
     The performance of the proxy access is very slow. Use snapshots to access the whole system configuration
     efficiently.
 
-.. rubric:: Simulation box
+.. rubric:: Simulation box or hypersphere
 
 You can access the simulation box::
 
@@ -246,6 +246,17 @@ and can change it::
 
 **All** particles must **always** remain inside the box. If a box is set in this way such that a particle ends up outside of the box, expect
 errors to be thrown or for hoomd to just crash. The dimensionality of the system cannot change after initialization.
+
+Similarly, for simulations with hyperspherical coordinates, you can access the system properties like this::
+
+    >>> print(system.hypersphere)
+    Hypersphere: R=10 dimensions=3
+
+and can change it::
+
+    >> system.hypersphere = data.datahypersphere(R=15.0)
+    >>> print(system.hypersphere)
+    Hypersphere: R=15 dimensions=3
 
 .. rubric:: Particle properties
 
@@ -722,6 +733,75 @@ class boxdim(hoomd.meta._metadata):
         data['V'] = self.get_volume()
         return data
 
+class hypersphere(hoomd.meta._metadata):
+    R""" Define hypersphere.
+
+    Args:
+        R (float): Radius of hypersphere
+        volume (float): Scale the given hypersphere up to the this volume (area if dimensions=2)
+
+    You can run simulations on the 3-sphere, which is embedded into four spatial dimensions,
+    respectively.
+
+    TODO
+    """
+    def __init__(self, R=1.0, volume=None):
+        self.R = R
+
+        if volume is not None:
+            self.set_volume(volume)
+
+        # base class constructor
+        hoomd.meta._metadata.__init__(self)
+
+    def scale(self,s):
+        R""" Scale hypersphere.
+
+        Args:
+            s (float): scale factor for radius
+
+        Returns:
+            A reference to the modified hypersphere.
+        """
+        self.R *= s
+
+        return self
+
+    def set_volume(self, volume):
+        R""" Set the hypersphere volume.
+
+        Args:
+            volume (float): new hypersphere volume (area if dimensions=2)
+
+        Scale the hypersphere to the given volume.
+
+        Returns:
+            A reference to the modified hypersphere.
+        """
+        import math
+
+        self.R = math.pow(volume/(2*math.pi*math.pi),1./3.)
+        return self
+
+    ## \internal
+    # \brief Get a C++ hypersphere
+    def _getHypersphere(self):
+        s = _hoomd.Hypersphere(self.R);
+        return s
+
+    def __str__(self):
+        return 'Sphere: R=' + str(self.R) + ' dimensions=3'
+
+    ## \internal
+    # \brief Get a dictionary representation of the box dimensions
+    def get_metadata(self):
+        data = hoomd.meta._metadata.get_metadata(self)
+        data['R'] = self.R
+        return data
+
+
+
+
 class system_data(hoomd.meta._metadata):
     R""" Access system data
 
@@ -730,6 +810,7 @@ class system_data(hoomd.meta._metadata):
 
     Attributes:
         box (:py:class:`hoomd.data.boxdim`)
+        hypersphere (:py:class:`hoomd.data.hypersphere`)
         particles (:py:class:`hoomd.data.particle_data_proxy`)
         bonds (:py:class:`hoomd.data.bond_data_proxy`)
         angles (:py:class:`hoomd.data.angle_data_proxy`)
@@ -931,6 +1012,8 @@ class system_data(hoomd.meta._metadata):
     ## Get the system box
     @property
     def box(self):
+        if not self.sysdef.getParticleData().getCoordinateType() == _hoomd.ParticleData.cartesian:
+            raise ValueError('box is only available with cartesian coordinates.')
         b = self.sysdef.getParticleData().getGlobalBox();
         L = b.getL();
         return boxdim(Lx=L.x, Ly=L.y, Lz=L.z, xy=b.getTiltFactorXY(), xz=b.getTiltFactorXZ(), yz=b.getTiltFactorYZ(), dimensions=self.sysdef.getNDimensions());
@@ -939,10 +1022,31 @@ class system_data(hoomd.meta._metadata):
     # \param value The new boundaries (a data.boxdim object)
     @box.setter
     def box(self, value):
+        if not self.sysdef.getParticleData().getCoordinateType() == _hoomd.ParticleData.cartesian:
+            raise ValueError('box can only be set with cartesian coordinates.')
         if not isinstance(value, boxdim):
             raise TypeError('box must be a data.boxdim object');
         self.sysdef.getParticleData().setGlobalBox(value._getBoxDim());
 
+    ## Get hypersphere
+    @property
+    def hypersphere(self):
+        if not self.sysdef.getParticleData().getCoordinateType() == _hoomd.ParticleData.hypersphere:
+            raise ValueError('hypersphere is only available with hyperspherical coordinates.')
+
+        s = self.sysdef.getParticleData().getHypersphere();
+        R = s.getR();
+        return hypersphere(R);
+
+    ## Set the hypersphere
+    # \param value The new coordinate system (a data.hypersphere object)
+    @hypersphere.setter
+    def hypersphere(self, value):
+        if not isinstance(value, hypersphere):
+            raise TypeError('hypersphere must be a data.hypersphere object');
+        if not self.sysdef.getParticleData().getCoordinateType() == _hoomd.ParticleData.hypersphere:
+            raise ValueError('hypersphere can only be set with hyperspherical coordinates.')
+        self.sysdef.getParticleData().setHypersphere(value._getHypersphere());
 
 ## \internal
 # \brief Access the list of types
@@ -1174,6 +1278,8 @@ class particle_data_proxy(object):
         type (str): Particle type name.
         body (int): Body id. -1 for free particles, 0 or larger for rigid bodies, and -2 or lesser for floppy bodies.
         orientation (tuple) : (w,x,y,z) (float, quaternion).
+        quat_l (tuple) : (w,x,y,z) (float, quaternion)
+        quat_r (tuple) : (w,x,y,z) (float, quaternion)
         net_force (tuple): Net force on particle (x, y, z) (float, in force units).
         net_energy (float): Net contribution of particle to the potential energy (in energy units).
         net_torque (tuple): Net torque on the particle (x, y, z) (float, in torque units).
@@ -1188,14 +1294,21 @@ class particle_data_proxy(object):
     def __init__(self, pdata, tag):
         self.pdata = pdata;
         self.tag = tag
+	self.cty = pdata.getCoordinateType()
 
     ## \internal
     # \brief Get an informal string representing the object
     def __str__(self):
         result = "";
-        result += "tag         : " + str(self.tag) + "\n"
-        result += "position    : " + str(self.position) + "\n";
-        result += "image       : " + str(self.image) + "\n";
+        if self.cty == pdata.coordinate.cartesian:
+             result += "tag         : " + str(self.tag) + "\n"
+             result += "position    : " + str(self.position) + "\n";
+             result += "image       : " + str(self.image) + "\n";
+        elif self.cty == pdata.coordinate.hyperspherical:
+             result += "quat_l      : " + str(self.quat_l) + "\n";
+             result += "quat_r      : " + str(self.quat_r) + "\n";
+        else:
+             raise ValueError("Unknown coordinate system type.\n")
         result += "velocity    : " + str(self.velocity) + "\n";
         result += "acceleration: " + str(self.acceleration) + "\n";
         result += "charge      : " + str(self.charge) + "\n";
@@ -1355,6 +1468,38 @@ class particle_data_proxy(object):
         m.y = float(value[1]);
         m.z = float(value[2]);
         self.pdata.setMomentsOfInertia(self.tag, m);
+
+    @property
+    def quat_l(self):
+        q = self.pdata.getLeftQuaternion(self.tag)
+        return (q.x, q.y, q.z, q.w)
+
+    @quat_l.setter
+    def quat_l(self, value):
+        if len(value) != 4:
+            raise ValueError("The input value/quaternion should be exactly length 4.")
+        q = _hoomd.Scalar4();
+        q.x = float(value[0]);
+        q.y = float(value[1]);
+        q.z = float(value[2]);
+        q.w = float(value[3]);
+        self.pdata.setRightQuaternion(self.tag, q)
+
+    @property
+    def quat_r(self):
+        q = self.pdata.getRightQuaternion(self.tag)
+        return (q.x, q.y, q.z, q.w)
+
+    @quat_r.setter
+    def quat_r(self, value):
+        if len(value) != 4:
+            raise ValueError("The input value/quaternion should be exactly length 4.")
+        q = _hoomd.Scalar4();
+        q.x = float(value[0]);
+        q.y = float(value[1]);
+        q.z = float(value[2]);
+        q.w = float(value[3]);
+        self.pdata.setLeftQuaternion(self.tag, q)
 
     @property
     def net_force(self):
@@ -2220,6 +2365,19 @@ def set_snapshot_box(snapshot, box):
     snapshot._global_box = box._getBoxDim();
     snapshot._dimensions = box.dimensions;
 
+ ## \internal
+# Get a data.hypersphere from a SnapshotSystemData
+def get_snapshot_hypersphere(snapshot):
+    s = snapshot._hypersphere
+    R = s.getR();
+    return hypersphere(R=R)
+
+## \internal
+# Set data.hypersphere to a SnapshotSystemData
+def set_snapshot_hypersphere(snapshot, hypersphere):
+    snapshot._hypersphere = hypersphere._getHypersphere()
+
+
 ## \internal
 # \brief Broadcast snapshot to all ranks
 def broadcast_snapshot(cpp_snapshot):
@@ -2240,18 +2398,25 @@ def broadcast_snapshot_all(cpp_snapshot):
 _hoomd.SnapshotSystemData_float.box = property(get_snapshot_box, set_snapshot_box);
 _hoomd.SnapshotSystemData_double.box = property(get_snapshot_box, set_snapshot_box);
 
+# Inject a hypersphere property into SnapshotSystemData that provides and accepts hypersphere objects
+_hoomd.SnapshotSystemData_float.hypersphere = property(get_snapshot_hypersphere, set_snapshot_hypersphere);
+_hoomd.SnapshotSystemData_double.hypersphere = property(get_snapshot_hypersphere, set_snapshot_hypersphere);
+
 # Inject broadcast methods into SnapshotSystemData
 _hoomd.SnapshotSystemData_float.broadcast = broadcast_snapshot
 _hoomd.SnapshotSystemData_double.broadcast = broadcast_snapshot
 _hoomd.SnapshotSystemData_float.broadcast_all = broadcast_snapshot_all
 _hoomd.SnapshotSystemData_double.broadcast_all = broadcast_snapshot_all
 
-def make_snapshot(N, box, particle_types=['A'], bond_types=[], angle_types=[], dihedral_types=[], improper_types=[], pair_types=[], dtype='float'):
+def make_snapshot(N, box=None, hypersphere=None,
+   particle_types=['A'], bond_types=[], angle_types=[], dihedral_types=[], improper_types=[],
+    pair_types=[], dtype='float', coordinate = 'cartesian'):
     R""" Make an empty snapshot.
 
     Args:
         N (int): Number of particles to create.
-        box (:py:class:`hoomd.data.boxdim`): Simulation box parameters.
+        box (:py:class:`hoomd.data.boxdim`): Simulation box parameters (for cartesian coordinates)
+        hypersphere (:py:class:`hoomd.data.hypersphere`): Simulation hypersphere parameters (for hyperspherical coordinates)
         particle_types (list): Particle type names (must not be zero length).
         bond_types (list): Bond type names (may be zero length).
         angle_types (list): Angle type names (may be zero length).
@@ -2267,6 +2432,7 @@ def make_snapshot(N, box, particle_types=['A'], bond_types=[], angle_types=[], d
         snapshot = data.make_snapshot(N=64000, box=data.boxdim(L=1, dimensions=2, volume=1000), particle_types=['A', 'B'])
         snapshot = data.make_snapshot(N=64000, box=data.boxdim(L=20), bond_types=['polymer'], dihedral_types=['dihedralA', 'dihedralB'], improper_types=['improperA', 'improperB', 'improperC'])
         ... set properties in snapshot ...
+        snapshot = data.make_snapshot(N=1000, hypersphere=data.hypersphere(R=10))
         init.read_snapshot(snapshot);
 
     :py:func:`hoomd.data.make_snapshot()` creates all particles with **default properties**. You must set reasonable
@@ -2282,6 +2448,8 @@ def make_snapshot(N, box, particle_types=['A'], bond_types=[], angle_types=[], d
     * charge 0
     * mass 1.0
     * diameter 1.0
+    * quat_l 1,0,0,0
+    * quat_r 1,0,0,0
 
     See Also:
         :py:func:`hoomd.init.read_snapshot()`
@@ -2293,7 +2461,18 @@ def make_snapshot(N, box, particle_types=['A'], bond_types=[], angle_types=[], d
     else:
         raise ValueError("dtype must be either float or double");
 
-    snapshot.box = box;
+    if box is not None:
+        if hypersphere is not None:
+            raise ValueError("Cannot simultaneously use cartesian and hypersperical coordinate system.\n");
+        snapshot.box = box;
+    if hypersphere is not None:
+        if box is not None:
+            raise ValueError("Cannot simultaneously use cartesian and hypersperical coordinate system.\n");
+        snapshot.hypersphere = hypersphere
+        snapshot.particles.use_hyperspherical_coord = True
+    if box is None and hypersphere is None:
+        raise ValueError("Must provide either box or hypersphere for cartesian or hypersperical coordinate system.");
+
     if hoomd.comm.get_rank() == 0:
         snapshot.particles.resize(N);
 
@@ -2332,8 +2511,12 @@ class SnapshotParticleData:
     Attributes:
         N (int): Number of particles in the snapshot
         types (list): List of string type names (assignable)
-        position (numpy.ndarray): (Nx3) numpy array containing the position of each particle (float or double)
-        orientation (numpy.ndarray): (Nx4) numpy array containing the orientation quaternion of each particle (float or double)
+        ** For use with cartesian coordinates: **
+            position (numpy.ndarray): (Nx3) numpy array containing the position of each particle (float or double)
+            orientation (numpy.ndarray): (Nx4) numpy array containing the orientation quaternion of each particle (float or double)
+        ** For use with hyperspherical coordinates: **
+            quat_l (numpy.ndarray): (Nx4) - numpy array containing the left quaternion of each particle (float or double)
+            quat_r (numpy.ndarray): (Nx4) - numpy array containing the right quaternion of each particle (float or double)
         velocity (numpy.ndarray): (Nx3) numpy array containing the velocity of each particle (float or double)
         acceleration (numpy.ndarray): (Nx3) numpy array containing the acceleration of each particle (float or double)
         typeid (numpy.ndarray): Length N numpy array containing the type id of each particle (32-bit unsigned int)

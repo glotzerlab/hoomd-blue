@@ -1,4 +1,4 @@
-i// Copyright (c) 2009-2020 The Regents of the University of Michigan
+// Copyright (c) 2009-2020 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: pschoenh
@@ -44,12 +44,11 @@ struct __attribute__((visibility("default"))) Hypersphere
     public:
         //! Default constructor
         HOSTDEVICE Hypersphere()
-            : R(1.0), two_sphere(false)
+            : R(1.0)
             { }
 
         /*! Define spherical boundary conditions
             \param R Radius of the (hyper-) sphere
-            \param two_sphere True if 2-sphere, false if 3-sphere
          */
         HOSTDEVICE Hypersphere(Scalar _R)
             : R(_R) {}
@@ -67,7 +66,6 @@ struct __attribute__((visibility("default"))) Hypersphere
             }
 
         //! Return the simulation volume
-         */
         Scalar getVolume() const
             {
                return Scalar(2.0*M_PI*M_PI*R*R*R);

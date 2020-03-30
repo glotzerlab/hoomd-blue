@@ -27,6 +27,7 @@
 
 #include "ExecutionConfiguration.h"
 #include "BoxDim.h"
+#include "Hypersphere.h"
 
 #include "HOOMDMPI.h"
 
@@ -151,7 +152,7 @@ template <class Real>
 struct PYBIND11_EXPORT SnapshotParticleData {
     //! Empty snapshot
     SnapshotParticleData()
-        : size(0), is_accel_set(false)
+        : size(0), is_accel_set(false), use_hyperspherical_coord(false)
         {
         }
 
@@ -215,6 +216,10 @@ struct PYBIND11_EXPORT SnapshotParticleData {
     static pybind11::object getMomentInertiaNP(pybind11::object self);
     //! Get angular momentum as a numpy array
     static pybind11::object getAngmomNP(pybind11::object self);
+    //! Get left quaternion as a numpy array
+    static pybind11::object getQuatLNP(pybind11::object self);
+    //! Get right quaternion as a numpy array
+    static pybind11::object getQuatRNP(pybind11::object self);
 
     //! Get the type names for python
     pybind11::list getTypes();
@@ -233,11 +238,14 @@ struct PYBIND11_EXPORT SnapshotParticleData {
     std::vector< quat<Real> > orientation;     //!< orientations
     std::vector< quat<Real> > angmom;          //!< angular momentum quaternion
     std::vector< vec3<Real> > inertia;         //!< principal moments of inertia
+    std::vector< quat<Real> > quat_l;          //!< left quaternion to encode hyperspherical coordinate
+    std::vector< quat<Real> > quat_r;          //!< right quaternion to encode hyperspherical coordinate
 
     unsigned int size;                         //!< number of particles in this snapshot
     std::vector<std::string> type_mapping;     //!< Mapping between particle type ids and names
 
     bool is_accel_set;                         //!< Flag indicating if accel is set
+    bool use_hyperspherical_coord;             //!< Flag indicating if hyperspherical coordinates are used
     };
 
 //! Structure to store packed particle data
@@ -400,6 +408,15 @@ struct pdata_element
     is valid. When it is not valid, the integrator will compute accelerations and make it valid in prepRun(). When it
     is valid, the integrator will do nothing. On initialization from a snapshot, ParticleData will inherit its
     valid flag.
+
+    ## Hyperspherical coordinates
+
+    HOOMD supports cartesian coordinates (periodic boundary conditions) and hyperspherical coordinates (can be used as hyperspherical boundary conditions).
+    The type of coordinates is accessible using getCoordinateType(). For hyperspherical coordinates,
+    the rotations on the hypersphere are stored in two unit quaternions, ql and qr. The position and orientation is not
+    used, except for the particle type.
+
+    Domain decomposition is currently only supported with periodic boundary conditions.
 */
 class PYBIND11_EXPORT ParticleData
     {
@@ -413,7 +430,7 @@ class PYBIND11_EXPORT ParticleData
                         = std::shared_ptr<DomainDecomposition>()
                      );
 
-        //! Construct using a ParticleDataSnapshot
+        //! Construct using a ParticleDataSnapshot and cartesian coordinates
         template<class Real>
         ParticleData(const SnapshotParticleData<Real>& snapshot,
                      const BoxDim& global_box,
@@ -421,12 +438,47 @@ class PYBIND11_EXPORT ParticleData
                      std::shared_ptr<DomainDecomposition> decomposition
                         = std::shared_ptr<DomainDecomposition>()
                      );
+	
+	//! Construct using a ParticleDataSnapshot and hyperspherical coordinates
+	template<class Real>
+	ParticleData(const SnapshotParticleData<Real>& snapshot,
+		const Hypersphere& hypersphere,
+		std::shared_ptr<ExecutionConfiguration> exec_conf);
 
         //! Destructor
         virtual ~ParticleData();
 
+	enum coordinate_Enum
+            {
+            cartesian = 0,
+            hyperspherical
+            };
+
+ 	//! Get the type of coordinates
+        coordinate_Enum getCoordinateType() const
+            {
+            return m_coordinate;
+            }
+
         //! Get the simulation box
         const BoxDim& getBox() const;
+	
+	//! Get the simulation hypersphere
+        /*! Only for hyperspherical coordinates
+         */
+        const Hypersphere& getHypersphere() const
+            {
+            return m_hypersphere;
+            }
+
+        //! Set the hyperspherical coordinate system
+        void setHypersphere(const Hypersphere& hypersphere)
+            {
+            m_hypersphere = hypersphere;
+
+            // using this signal for boxes and hyperspheres
+            m_boxchange_signal.emit();
+            }
 
         //! Set the global simulation box
         void setGlobalBox(const BoxDim &box);
@@ -807,6 +859,12 @@ class PYBIND11_EXPORT ParticleData
         //! Get the angular momentum array
         const GlobalArray< Scalar3 >& getMomentsOfInertiaArray() const { return m_inertia; }
 
+	//! Get the left quaternion array
+        const GPUArray< Scalar4 >& getLeftQuaternionArray() const { return m_quat_l; }
+
+        //! Get the right quaternion array
+        const GPUArray< Scalar4 >& getRightQuaternionArray() const { return m_quat_r; }
+
         //! Get the communication flags array
         const GlobalArray< unsigned int >& getCommFlags() const { return m_comm_flags; }
 
@@ -890,6 +948,12 @@ class PYBIND11_EXPORT ParticleData
         //! Get the moment of inertia of a particle with a given tag
         Scalar3 getMomentsOfInertia(unsigned int tag) const;
 
+	//! Get the left quaternion of a particle with a given tag
+        Scalar4 getLeftQuaternion(unsigned int tag) const;
+
+        //! Get the right quaternion of a particle with a given tag
+        Scalar4 getRightQuaternion(unsigned int tag) const;
+
         //! Get the net force / energy on a given particle
         Scalar4 getPNetForce(unsigned int tag) const;
 
@@ -933,6 +997,12 @@ class PYBIND11_EXPORT ParticleData
 
         //! Set the orientation of a particle with a given tag
         void setMomentsOfInertia(unsigned int tag, const Scalar3& mom_inertia);
+
+        //! Set the left quaternion of a particle with a given tag
+        void setLeftQuaternion(unsigned int tag, const Scalar4& q);
+
+        //! Set the right quaternion of a particle with a given tag
+        void setRightQuaternion(unsigned int tag, const Scalar4& q);
 
         //! Get the particle data flags
         PDataFlags getFlags() { return m_flags; }
@@ -1145,6 +1215,8 @@ class PYBIND11_EXPORT ParticleData
         GlobalArray< Scalar4 > m_orientation;          //!< Orientation quaternion for each particle (ignored if not anisotropic)
         GlobalArray< Scalar4 > m_angmom;               //!< Angular momementum quaternion for each particle
         GlobalArray< Scalar3 > m_inertia;              //!< Principal moments of inertia for each particle
+        GPUArray< Scalar4 > m_quat_l;                  //!< Left quaternion for hyperspherical coordinates
+        GPUArray< Scalar4 > m_quat_r;                  //!< Right quaternion for hyperspherical coordinates
         GlobalArray<unsigned int> m_comm_flags;        //!< Array of communication flags
 
         std::stack<unsigned int> m_recycled_tags;    //!< Global tags of removed particles
@@ -1171,10 +1243,12 @@ class PYBIND11_EXPORT ParticleData
         GlobalArray<unsigned int> m_body_alt;          //!< rigid body ids (swap-in)
         GlobalArray<Scalar4> m_orientation_alt;        //!< orientations (swap-in)
         GlobalArray<Scalar4> m_angmom_alt;             //!< angular momenta (swap-in)
-        GlobalArray<Scalar3> m_inertia_alt;             //!< Principal moments of inertia for each particle (swap-in)
+        GlobalArray<Scalar3> m_inertia_alt;            //!< Principal moments of inertia for each particle (swap-in)
         GlobalArray<Scalar4> m_net_force_alt;          //!< Net force (swap-in)
-        GlobalArray<Scalar> m_net_virial_alt;             //!< Net virial (swap-in)
+        GlobalArray<Scalar> m_net_virial_alt;          //!< Net virial (swap-in)
         GlobalArray<Scalar4> m_net_torque_alt;         //!< Net torque (swap-in)
+        GPUArray<Scalar4> m_quat_l_alt;                //!< Left quaternion (swap-in)
+        GPUArray<Scalar4> m_quat_r_alt;                //!< Right quaternion (swap-in)
 
         std::shared_ptr<Profiler> m_prof;         //!< Pointer to the profiler. NULL if there is no profiler.
 
@@ -1198,6 +1272,9 @@ class PYBIND11_EXPORT ParticleData
         GPUPartition m_gpu_partition;                //!< The partition of the local number of particles across GPUs
         unsigned int m_memory_advice_last_Nmax;      //!< Nmax at which memory hints were last set
         #endif
+
+        coordinate_Enum m_coordinate;                     //!< Type of coordinate system
+        Hypersphere m_hypersphere;                          //!< Dimension of simulation hypersphere
 
         //! Helper function to allocate particle data
         void allocate(unsigned int N);
@@ -1228,6 +1305,8 @@ class PYBIND11_EXPORT ParticleData
 #ifndef NVCC
 //! Exports the BoxDim class to python
 void export_BoxDim(pybind11::module& m);
+//! Exports the Hypersphere to python
+void export_Hypersphere(pybind11::module& m);
 //! Exports ParticleData to python
 void export_ParticleData(pybind11::module& m);
 //! Export SnapshotParticleData to python
