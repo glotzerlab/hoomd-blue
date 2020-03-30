@@ -346,6 +346,14 @@ class init_take_snapshot_float (unittest.TestCase):
             self.snapshot.particles.image[2] = [62, 63, 64];
             self.snapshot.particles.image[3] = [63, 64, 65];
             self.snapshot.particles.types = ['p1', 'p2'];
+            self.snapshot.particles.quat_l[0] = [1,0,0,0]
+            self.snapshot.particles.quat_l[1] = [0,1,0,0]
+            self.snapshot.particles.quat_l[2] = [0,0,1,0]
+            self.snapshot.particles.quat_l[3] = [0,0,0,1]
+            self.snapshot.particles.quat_r[0] = [-1,0,0,0]
+            self.snapshot.particles.quat_r[1] = [0,-1,0,0]
+            self.snapshot.particles.quat_r[2] = [0,0,-1,0]
+            self.snapshot.particles.quat_r[3] = [0,0,0,-1]
 
             # bonds
             self.snapshot.bonds.types = ['b1', 'b2'];
@@ -393,6 +401,8 @@ class init_take_snapshot_float (unittest.TestCase):
         self.assertEqual(s.particles[0].charge, 44);
         self.assertEqual(s.particles[0].diameter, 55);
         self.assertEqual(s.particles[0].image, (60,61,62));
+        self.assertEqual(s.particles[0].quat_l, (1,0,0,0));
+        self.assertEqual(s.particles[0].quat_r, (-1,0,0,0));
 
         self.assertEqual(s.particles[1].position, (1,2,3));
         self.assertEqual(s.particles[1].velocity, (11,12,13));
@@ -402,6 +412,8 @@ class init_take_snapshot_float (unittest.TestCase):
         self.assertEqual(s.particles[1].charge, 45);
         self.assertEqual(s.particles[1].diameter, 56);
         self.assertEqual(s.particles[1].image, (61,62,63));
+        self.assertEqual(s.particles[1].quat_l, (0,1,0,0));
+        self.assertEqual(s.particles[1].quat_r, (0,-1,0,0));
 
         self.assertEqual(s.particles[2].position, (0,-1,-2));
         self.assertEqual(s.particles[2].velocity, (12,13,14));
@@ -411,6 +423,8 @@ class init_take_snapshot_float (unittest.TestCase):
         self.assertEqual(s.particles[2].charge, 46);
         self.assertEqual(s.particles[2].diameter, 57);
         self.assertEqual(s.particles[2].image, (62,63,64));
+        self.assertEqual(s.particles[2].quat_l, (0,0,1,0));
+        self.assertEqual(s.particles[2].quat_r, (0,0,-1,0));
 
         self.assertEqual(s.particles[3].position, (-1,-2,-3));
         self.assertEqual(s.particles[3].velocity, (13,14,15));
@@ -420,6 +434,8 @@ class init_take_snapshot_float (unittest.TestCase):
         self.assertEqual(s.particles[3].charge, 47);
         self.assertEqual(s.particles[3].diameter, 58);
         self.assertEqual(s.particles[3].image, (63,64,65));
+        self.assertEqual(s.particles[3].quat_l, (0,0,0,1));
+        self.assertEqual(s.particles[3].quat_r, (0,0,0,-1));
 
         # bonds
         self.assertEqual(len(s.bonds), 2);
@@ -479,6 +495,8 @@ class init_take_snapshot_float (unittest.TestCase):
         self.assertEqual(self.snapshot.particles.charge[0], 44);
         self.assertEqual(self.snapshot.particles.diameter[0], 55);
         self.assertEqual(tuple(self.snapshot.particles.image[0]), (60,61,62));
+        self.assertEqual(tuple(self.snapshot.particles.quat_l[0]), (1,0,0,0));
+        self.assertEqual(tuple(self.snapshot.particles.quat_r[0]), (-1,0,0,0));
 
         self.assertEqual(tuple(self.snapshot.particles.position[1]), (1,2,3));
         self.assertEqual(tuple(self.snapshot.particles.velocity[1]), (11,12,13));
@@ -488,6 +506,8 @@ class init_take_snapshot_float (unittest.TestCase):
         self.assertEqual(self.snapshot.particles.charge[1], 45);
         self.assertEqual(self.snapshot.particles.diameter[1], 56);
         self.assertEqual(tuple(self.snapshot.particles.image[1]), (61,62,63));
+        self.assertEqual(tuple(self.snapshot.particles.quat_l[1]), (0,1,0,0));
+        self.assertEqual(tuple(self.snapshot.particles.quat_r[1]), (0,-1,0,0));
 
         self.assertEqual(tuple(self.snapshot.particles.position[2]), (0,-1,-2));
         self.assertEqual(tuple(self.snapshot.particles.velocity[2]), (12,13,14));
@@ -497,6 +517,8 @@ class init_take_snapshot_float (unittest.TestCase):
         self.assertEqual(self.snapshot.particles.charge[2], 46);
         self.assertEqual(self.snapshot.particles.diameter[2], 57);
         self.assertEqual(tuple(self.snapshot.particles.image[2]), (62,63,64));
+        self.assertEqual(tuple(self.snapshot.particles.quat_l[2]), (0,0,1,0));
+        self.assertEqual(tuple(self.snapshot.particles.quat_r[2]), (0,0,-1,0));
 
         self.assertEqual(tuple(self.snapshot.particles.position[3]), (-1,-2,-3));
         self.assertEqual(tuple(self.snapshot.particles.velocity[3]), (13,14,15));
@@ -506,6 +528,8 @@ class init_take_snapshot_float (unittest.TestCase):
         self.assertEqual(self.snapshot.particles.charge[3], 47);
         self.assertEqual(self.snapshot.particles.diameter[3], 58);
         self.assertEqual(tuple(self.snapshot.particles.image[3]), (63,64,65));
+        self.assertEqual(tuple(self.snapshot.particles.quat_l[3]), (0,0,0,1));
+        self.assertEqual(tuple(self.snapshot.particles.quat_r[3]), (0,0,0,-1));
 
         # bonds
         self.assertEqual(self.snapshot.bonds.N, 2);
@@ -582,6 +606,14 @@ class init_take_snapshot_double (unittest.TestCase):
             self.snapshot.particles.image[2] = [62, 63, 64];
             self.snapshot.particles.image[3] = [63, 64, 65];
             self.snapshot.particles.types = ['p1', 'p2'];
+            self.snapshot.particles.quat_l[0] = [1,0,0,0];
+            self.snapshot.particles.quat_l[1] = [0,1,0,0];
+            self.snapshot.particles.quat_l[2] = [0,0,1,0];
+            self.snapshot.particles.quat_l[3] = [0,0,0,1];
+            self.snapshot.particles.quat_r[0] = [-1,0,0,0];
+            self.snapshot.particles.quat_r[1] = [0,-1,0,0];
+            self.snapshot.particles.quat_r[2] = [0,0,-1,0];
+            self.snapshot.particles.quat_r[3] = [0,0,0,-1];
 
             # bonds
             self.snapshot.bonds.types = ['b1', 'b2'];
@@ -629,6 +661,8 @@ class init_take_snapshot_double (unittest.TestCase):
         self.assertEqual(s.particles[0].charge, 44);
         self.assertEqual(s.particles[0].diameter, 55);
         self.assertEqual(s.particles[0].image, (60,61,62));
+        self.assertEqual(s.particles[0].quat_l, (1,0,0,0));
+        self.assertEqual(s.particles[0].quat_r, (-1,0,0,0));
 
         self.assertEqual(s.particles[1].position, (1,2,3));
         self.assertEqual(s.particles[1].velocity, (11,12,13));
@@ -638,6 +672,8 @@ class init_take_snapshot_double (unittest.TestCase):
         self.assertEqual(s.particles[1].charge, 45);
         self.assertEqual(s.particles[1].diameter, 56);
         self.assertEqual(s.particles[1].image, (61,62,63));
+        self.assertEqual(s.particles[1].quat_l, (0,1,0,0));
+        self.assertEqual(s.particles[1].quat_r, (0,-1,0,0));
 
         self.assertEqual(s.particles[2].position, (0,-1,-2));
         self.assertEqual(s.particles[2].velocity, (12,13,14));
@@ -647,6 +683,8 @@ class init_take_snapshot_double (unittest.TestCase):
         self.assertEqual(s.particles[2].charge, 46);
         self.assertEqual(s.particles[2].diameter, 57);
         self.assertEqual(s.particles[2].image, (62,63,64));
+        self.assertEqual(s.particles[2].quat_l, (0,0,1,0));
+        self.assertEqual(s.particles[2].quat_r, (0,0,-1,0));
 
         self.assertEqual(s.particles[3].position, (-1,-2,-3));
         self.assertEqual(s.particles[3].velocity, (13,14,15));
@@ -656,6 +694,8 @@ class init_take_snapshot_double (unittest.TestCase):
         self.assertEqual(s.particles[3].charge, 47);
         self.assertEqual(s.particles[3].diameter, 58);
         self.assertEqual(s.particles[3].image, (63,64,65));
+        self.assertEqual(s.particles[3].quat_l, (0,0,0,1));
+        self.assertEqual(s.particles[3].quat_r, (0,0,0,-1));
 
         # bonds
         self.assertEqual(len(s.bonds), 2);
@@ -715,6 +755,8 @@ class init_take_snapshot_double (unittest.TestCase):
         self.assertEqual(self.snapshot.particles.charge[0], 44);
         self.assertEqual(self.snapshot.particles.diameter[0], 55);
         self.assertEqual(tuple(self.snapshot.particles.image[0]), (60,61,62));
+        self.assertEqual(tuple(self.snapshot.particles.quat_l[0]), (1,0,0,0));
+        self.assertEqual(tuple(self.snapshot.particles.quat_r[0]), (-1,0,0,0));
 
         self.assertEqual(tuple(self.snapshot.particles.position[1]), (1,2,3));
         self.assertEqual(tuple(self.snapshot.particles.velocity[1]), (11,12,13));
@@ -724,6 +766,8 @@ class init_take_snapshot_double (unittest.TestCase):
         self.assertEqual(self.snapshot.particles.charge[1], 45);
         self.assertEqual(self.snapshot.particles.diameter[1], 56);
         self.assertEqual(tuple(self.snapshot.particles.image[1]), (61,62,63));
+        self.assertEqual(tuple(self.snapshot.particles.quat_l[1]), (0,1,0,0));
+        self.assertEqual(tuple(self.snapshot.particles.quat_r[1]), (0,-1,0,0));
 
         self.assertEqual(tuple(self.snapshot.particles.position[2]), (0,-1,-2));
         self.assertEqual(tuple(self.snapshot.particles.velocity[2]), (12,13,14));
@@ -733,6 +777,8 @@ class init_take_snapshot_double (unittest.TestCase):
         self.assertEqual(self.snapshot.particles.charge[2], 46);
         self.assertEqual(self.snapshot.particles.diameter[2], 57);
         self.assertEqual(tuple(self.snapshot.particles.image[2]), (62,63,64));
+        self.assertEqual(tuple(self.snapshot.particles.quat_l[2]), (0,0,1,0));
+        self.assertEqual(tuple(self.snapshot.particles.quat_r[2]), (0,0,-1,0));
 
         self.assertEqual(tuple(self.snapshot.particles.position[3]), (-1,-2,-3));
         self.assertEqual(tuple(self.snapshot.particles.velocity[3]), (13,14,15));
@@ -742,6 +788,8 @@ class init_take_snapshot_double (unittest.TestCase):
         self.assertEqual(self.snapshot.particles.charge[3], 47);
         self.assertEqual(self.snapshot.particles.diameter[3], 58);
         self.assertEqual(tuple(self.snapshot.particles.image[3]), (63,64,65));
+        self.assertEqual(tuple(self.snapshot.particles.quat_l[3]), (0,0,0,1));
+        self.assertEqual(tuple(self.snapshot.particles.quat_r[3]), (0,0,0,-1));
 
         # bonds
         self.assertEqual(self.snapshot.bonds.N, 2);

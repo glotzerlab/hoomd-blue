@@ -459,6 +459,8 @@ UP_TEST( ParticleData_test )
     ArrayHandle<unsigned int> h_tag(a.getTags(), access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_rtag(a.getRTags(), access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_body(a.getBodies(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_quat_l(a.getLeftQuaternionArray(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_quat_r(a.getRightQuaternionArray(), access_location::host, access_mode::readwrite);
 
     // begin by verifying that the defaults the class advertises are set
     UP_ASSERT(a.getPositions().getNumElements() == 1);
@@ -470,6 +472,8 @@ UP_TEST( ParticleData_test )
     UP_ASSERT(a.getTags().getNumElements() == 1);
     UP_ASSERT(a.getRTags().size() == 1);
     UP_ASSERT(a.getBodies().getNumElements() == 1);
+    UP_ASSERT(a.getLeftQuaternionArray().getNumElements() == 1);
+    UP_ASSERT(a.getRightQuaternionArray().getNumElements() == 1);
 
 
     MY_CHECK_CLOSE(h_pos.data[0].x, 0.0, tol);
@@ -484,6 +488,14 @@ UP_TEST( ParticleData_test )
     MY_CHECK_CLOSE(h_charge.data[0], 0.0, tol);
     MY_CHECK_CLOSE(h_vel.data[0].w, 1.0, tol); // mass
     MY_CHECK_CLOSE(h_diameter.data[0], 1.0, tol);
+    MY_CHECK_CLOSE(h_quat_l.data[0].x, 1.0, tol);
+    MY_CHECK_CLOSE(h_quat_l.data[0].y, 0.0, tol);
+    MY_CHECK_CLOSE(h_quat_l.data[0].z, 0.0, tol);
+    MY_CHECK_CLOSE(h_quat_l.data[0].w, 0.0, tol);
+    MY_CHECK_CLOSE(h_quat_r.data[0].x, 1.0, tol);
+    MY_CHECK_CLOSE(h_quat_r.data[0].y, 0.0, tol);
+    MY_CHECK_CLOSE(h_quat_r.data[0].z, 0.0, tol);
+    MY_CHECK_CLOSE(h_quat_r.data[0].w, 0.0, tol);
     UP_ASSERT_EQUAL(h_image.data[0].x, 0);
     UP_ASSERT_EQUAL(h_image.data[0].y, 0);
     UP_ASSERT_EQUAL(h_image.data[0].z, 0);
@@ -510,6 +522,8 @@ UP_TEST( ParticleData_test )
     h_image.data[0].z = 29;
     h_pos.data[0].w = __int_as_scalar(1); //type
     h_body.data[0] = 0;
+    h_quat_l.data[0] = make_scalar4(4,3,2,1);
+    h_quat_r.data[0] = make_scalar4(5,6,7,8);
 
     }
 
@@ -524,6 +538,8 @@ UP_TEST( ParticleData_test )
     ArrayHandle<unsigned int> h_tag(a.getTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(a.getRTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_body(a.getBodies(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_quat_l(a.getLeftQuaternionArray(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_quat_r(a.getRightQuaternionArray(), access_location::host, access_mode::read);
 
     UP_ASSERT(a.getPositions().getNumElements() == 1);
     UP_ASSERT(a.getVelocities().getNumElements() == 1);
@@ -534,6 +550,8 @@ UP_TEST( ParticleData_test )
     UP_ASSERT(a.getTags().getNumElements() == 1);
     UP_ASSERT(a.getRTags().getNumElements() == 1);
     UP_ASSERT(a.getBodies().getNumElements() == 1);
+    UP_ASSERT(a.getLeftQuaternionArray().getNumElements() == 1);
+    UP_ASSERT(a.getRightQuaternionArray().getNumElements() == 1);
 
     MY_CHECK_CLOSE(h_pos.data[0].x, 1.0, tol);
     MY_CHECK_CLOSE(h_pos.data[0].y, 2.0, tol);
@@ -547,6 +565,14 @@ UP_TEST( ParticleData_test )
     MY_CHECK_CLOSE(h_charge.data[0],24.0, tol);
     MY_CHECK_CLOSE(h_vel.data[0].w,25.0, tol); // mass
     MY_CHECK_CLOSE(h_diameter.data[0],26.0, tol);
+    MY_CHECK_CLOSE(h_quat_l.data[0].x, 4, tol);
+    MY_CHECK_CLOSE(h_quat_l.data[0].y, 3, tol);
+    MY_CHECK_CLOSE(h_quat_l.data[0].z, 2, tol);
+    MY_CHECK_CLOSE(h_quat_l.data[0].w, 1, tol);
+    MY_CHECK_CLOSE(h_quat_r.data[0].x, 5, tol);
+    MY_CHECK_CLOSE(h_quat_r.data[0].y, 6, tol);
+    MY_CHECK_CLOSE(h_quat_r.data[0].z, 7, tol);
+    MY_CHECK_CLOSE(h_quat_r.data[0].w, 8, tol);
     UP_ASSERT_EQUAL(h_image.data[0].x,27);
     UP_ASSERT_EQUAL(h_image.data[0].y,28);
     UP_ASSERT_EQUAL(h_image.data[0].z,29);
@@ -569,6 +595,8 @@ UP_TEST( ParticleData_test )
     ArrayHandle<unsigned int> h_tag(b.getTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(b.getRTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_body(b.getBodies(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_quat_l(b.getLeftQuaternionArray(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_quat_r(b.getRightQuaternionArray(), access_location::host, access_mode::read);
 
     // begin by verifying that the defaults the class advertises are set
     UP_ASSERT(b.getPositions().getNumElements() == N);
@@ -580,7 +608,8 @@ UP_TEST( ParticleData_test )
     UP_ASSERT(b.getTags().getNumElements() == N);
     UP_ASSERT(b.getRTags().size() == N);
     UP_ASSERT(b.getBodies().getNumElements() == N);
-
+    UP_ASSERT(b.getLeftQuaternionArray().getNumElements() == N);
+    UP_ASSERT(b.getRightQuaternionArray().getNumElements() == N);
 
     for (unsigned int i = 0; i < N; i++)
         {
@@ -596,6 +625,14 @@ UP_TEST( ParticleData_test )
         MY_CHECK_CLOSE(h_charge.data[i], 0.0, tol);
         MY_CHECK_CLOSE(h_vel.data[i].w, 1.0, tol); // mass
         MY_CHECK_CLOSE(h_diameter.data[i], 1.0, tol);
+        MY_CHECK_CLOSE(h_quat_l.data[i].x, 1.0, tol);
+        MY_CHECK_CLOSE(h_quat_l.data[i].y, 0.0, tol);
+        MY_CHECK_CLOSE(h_quat_l.data[i].z, 0.0, tol);
+        MY_CHECK_CLOSE(h_quat_l.data[i].w, 0.0, tol);
+        MY_CHECK_CLOSE(h_quat_r.data[i].x, 1.0, tol);
+        MY_CHECK_CLOSE(h_quat_r.data[i].y, 0.0, tol);
+        MY_CHECK_CLOSE(h_quat_r.data[i].z, 0.0, tol);
+        MY_CHECK_CLOSE(h_quat_r.data[i].w, 0.0, tol);
         UP_ASSERT_EQUAL(h_image.data[i].x, 0);
         UP_ASSERT_EQUAL(h_image.data[i].y, 0);
         UP_ASSERT_EQUAL(h_image.data[i].z, 0);

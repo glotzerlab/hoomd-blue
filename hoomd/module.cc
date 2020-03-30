@@ -328,6 +328,7 @@ PYBIND11_MODULE(_hoomd, m)
 
     // data structures
     export_BoxDim(m);
+    export_Hypersphere(m);
     export_ParticleData(m);
     export_SnapshotParticleData(m);
     export_MPIConfiguration(m);

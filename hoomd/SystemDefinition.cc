@@ -74,7 +74,17 @@ SystemDefinition::SystemDefinition(std::shared_ptr< SnapshotSystemData<Real> > s
     {
     setNDimensions(snapshot->dimensions);
 
-    m_particle_data = std::shared_ptr<ParticleData>(new ParticleData(snapshot->particle_data,
+    if (snapshot->particle_data.use_hyperspherical_coord)
+        {
+        if (decomposition)
+            throw std::runtime_error("MPI is not supported with hyperspherical coordinates.\n");
+
+        m_particle_data = std::shared_ptr<ParticleData>(new ParticleData(snapshot->particle_data,
+                     snapshot->hypersphere,
+                     exec_conf));
+        }
+    else
+        m_particle_data = std::shared_ptr<ParticleData>(new ParticleData(snapshot->particle_data,
                  snapshot->global_box,
                  exec_conf,
                  decomposition));
@@ -138,6 +148,7 @@ std::shared_ptr< SnapshotSystemData<Real> > SystemDefinition::takeSnapshot(bool 
     // always save dimensions and global box
     snap->dimensions = m_n_dimensions;
     snap->global_box = m_particle_data->getGlobalBox();
+    snap->hypersphere = m_particle_data->getHypersphere();
 
     if (particles)
         {
@@ -222,7 +233,11 @@ void SystemDefinition::initializeFromSnapshot(std::shared_ptr< SnapshotSystemDat
 
     if (snapshot->has_particle_data)
         {
-        m_particle_data->setGlobalBox(snapshot->global_box);
+        if (snapshot->particle_data.use_hyperspherical_coord)
+            m_particle_data->setHypersphere(snapshot->hypersphere);
+        else
+            m_particle_data->setGlobalBox(snapshot->global_box);
+
         m_particle_data->initializeFromSnapshot(snapshot->particle_data);
         }
 
