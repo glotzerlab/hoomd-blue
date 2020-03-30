@@ -34,7 +34,8 @@ TablePotentialGPU::TablePotentialGPU(std::shared_ptr<SystemDefinition> sysdef,
         throw std::runtime_error("Error initializing TableForceComputeGPU");
         }
 
-    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "pair_table", this->m_exec_conf));
+    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    m_tuner.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "pair_table", this->m_exec_conf));
     }
 
 /*! \post The table based forces are computed for the given timestep. The neighborlist's

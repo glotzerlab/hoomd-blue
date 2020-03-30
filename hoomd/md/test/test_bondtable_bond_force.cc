@@ -11,7 +11,7 @@
 
 #include "hoomd/md/BondTablePotential.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/BondTablePotentialGPU.h"
 #endif
 
@@ -230,7 +230,7 @@ std::shared_ptr<BondTablePotential> base_class_bf_creator(std::shared_ptr<System
     return std::shared_ptr<BondTablePotential>(new BondTablePotential(sysdef, width));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! BondTablePotential creator for bond_force_basic_tests()
 std::shared_ptr<BondTablePotential> gpu_bf_creator(std::shared_ptr<SystemDefinition> sysdef, unsigned int width)
     {
@@ -253,7 +253,7 @@ UP_TEST( BondTablePotential_type )
     }
 
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! test case for bond forces on the GPU
 UP_TEST( BondTablePotentialGPU_basic )
     {

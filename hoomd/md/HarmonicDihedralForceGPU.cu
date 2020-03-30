@@ -306,12 +306,12 @@ void gpu_compute_harmonic_dihedral_forces_kernel(Scalar4* d_force,
     \param compute_capability Compute capability of the device (200, 300, 350, ...)
 
     \returns Any error code resulting from the kernel launch
-    \note Always returns cudaSuccess in release builds to avoid the cudaDeviceSynchronize()
+    \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
 
     \a d_params should include one Scalar4 element per dihedral type. The x component contains K the spring constant
     and the y component contains sign, and the z component the multiplicity.
 */
-cudaError_t gpu_compute_harmonic_dihedral_forces(Scalar4* d_force,
+hipError_t gpu_compute_harmonic_dihedral_forces(Scalar4* d_force,
                                                  Scalar* d_virial,
                                                  const unsigned int virial_pitch,
                                                  const unsigned int N,
@@ -323,16 +323,20 @@ cudaError_t gpu_compute_harmonic_dihedral_forces(Scalar4* d_force,
                                                  const unsigned int *n_dihedrals_list,
                                                  Scalar4 *d_params,
                                                  unsigned int n_dihedral_types,
-                                                 int block_size)
+                                                 int block_size,
+                                                 int warp_size)
     {
     assert(d_params);
 
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void *)gpu_compute_harmonic_dihedral_forces_kernel);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void *)gpu_compute_harmonic_dihedral_forces_kernel);
         max_block_size = attr.maxThreadsPerBlock;
+        if (max_block_size % warp_size)
+            // handle non-sensical return values from hipFuncGetAttributes
+            max_block_size = (max_block_size/warp_size-1)*warp_size;
         }
 
     unsigned int run_block_size = min(block_size, max_block_size);
@@ -342,7 +346,8 @@ cudaError_t gpu_compute_harmonic_dihedral_forces(Scalar4* d_force,
     dim3 threads(run_block_size, 1, 1);
 
     // run the kernel
-    gpu_compute_harmonic_dihedral_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, d_params, box, tlist, dihedral_ABCD, pitch, n_dihedrals_list);
+    hipLaunchKernelGGL((gpu_compute_harmonic_dihedral_forces_kernel), grid, threads, 0, 0,
+        d_force, d_virial, virial_pitch, N, d_pos, d_params, box, tlist, dihedral_ABCD, pitch, n_dihedrals_list);
 
-    return cudaSuccess;
+    return hipSuccess;
     }

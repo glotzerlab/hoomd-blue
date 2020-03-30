@@ -4,7 +4,6 @@
 
 // Maintainer: joaander
 
-
 #include "ForceConstraint.h"
 
 namespace py = pybind11;

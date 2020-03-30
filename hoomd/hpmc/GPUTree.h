@@ -1,13 +1,20 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
+#include "OBB.h"
+
+#ifndef __HIPCC__
 #include "OBBTree.h"
+#endif
+
+#include "hoomd/ManagedArray.h"
+#include "HPMCPrecisionSetup.h"
 
 #ifndef __GPU_TREE_H__
 #define __GPU_TREE_H__
 
 // need to declare these class methods with appropriate qualifiers when building in nvcc
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -15,7 +22,7 @@
 #define HOSTDEVICE
 #endif
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <sstream>
 #endif
 
@@ -36,7 +43,7 @@ class GPUTree
             : m_num_nodes(0), m_num_leaves(0), m_leaf_capacity(0)
             { }
 
-        #ifndef NVCC
+        #ifndef __HIPCC__
         //! Constructor
         /*! \param tree OBBTree to construct from
          *  \param managed True if we use CUDA managed memory
@@ -59,7 +66,7 @@ class GPUTree
             unsigned int n = 0;
             m_num_leaves = 0;
 
-            // load data from AABTree
+            // load data from OBBTree
             for (unsigned int i = 0; i < tree.getNumNodes(); ++i)
                 {
                 m_left[i] = tree.getNodeLeft(i);
@@ -114,7 +121,7 @@ class GPUTree
             return m_num_nodes;
             }
 
-        #ifndef NVCC
+        #ifndef __HIPCC__
         //! Initialize the ancestor count index
         void initializeAncestorCounts(unsigned int idx, const OBBTree& tree, unsigned int ancestors)
             {
@@ -148,7 +155,7 @@ class GPUTree
                 unsigned int left_child = getLeftChild(cur_node);
 
                 // is this node a leaf node?
-                if (left_child == OBB_INVALID_NODE)
+                if (left_child == 0xffffffff)
                     {
                     leaf = true;
                     }
@@ -186,7 +193,7 @@ class GPUTree
                 {
                 // is this node a leaf node?
                 unsigned int left_child = getLeftChild(cur_node);
-                if (left_child == OBB_INVALID_NODE)
+                if (left_child == 0xffffffff)
                     {
                     leaf = true;
                     }
@@ -206,7 +213,7 @@ class GPUTree
         //! Test if a given index is a leaf node
         DEVICE inline bool isLeaf(unsigned int idx) const
             {
-            return (m_left[idx] == OBB_INVALID_NODE);
+            return (m_left[idx] == 0xffffffff);
             }
 
         //! Return the ith leaf node
@@ -221,10 +228,21 @@ class GPUTree
             return m_num_leaves;
             }
 
-        DEVICE inline unsigned int getParticle(unsigned int node, unsigned int i) const
+        DEVICE inline unsigned int getParticleByNode(unsigned int node, unsigned int i) const
             {
             return m_particles[m_leaf_ptr[node]+i];
             }
+
+        DEVICE inline unsigned int getLeafNodePtrByNode(unsigned int node) const
+            {
+            return m_leaf_ptr[node];
+            }
+
+        DEVICE inline unsigned int getParticleByIndex(unsigned int idx) const
+            {
+            return m_particles[idx];
+            }
+
 
         DEVICE inline int getNumParticles(unsigned int node) const
             {
@@ -258,7 +276,7 @@ class GPUTree
             return obb;
             }
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         //! Set CUDA memory hints
         void set_memory_hint() const
             {

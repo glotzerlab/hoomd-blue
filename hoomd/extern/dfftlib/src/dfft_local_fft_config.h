@@ -22,8 +22,8 @@
 #endif /* ENABLE_HOST */
 #endif /* NVCC */
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 /* CUFFT is the default library */
 #include "cufft_single_interface.h"
-#endif /* ENABLE_CUDA */
+#endif /* ENABLE_HIP */
 

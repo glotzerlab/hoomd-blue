@@ -7,7 +7,7 @@
 #ifndef __POTENTIAL_PAIR_GPU_H__
 #define __POTENTIAL_PAIR_GPU_H__
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #include <memory>
 
@@ -21,7 +21,7 @@
     \note This header cannot be compiled by nvcc
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -44,7 +44,7 @@
 
     \sa export_PotentialPairGPU()
 */
-template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
+template< class evaluator, hipError_t gpu_cgpf(const pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params)>
 class PotentialPairGPU : public PotentialPair<evaluator>
     {
@@ -58,7 +58,7 @@ class PotentialPairGPU : public PotentialPair<evaluator>
 
         //! Set the number of threads per particle to execute on the GPU
         /*! \param threads_per_particl Number of threads per particle
-            \a threads_per_particle must be a power of two and smaller than 32.
+            \a threads_per_particle must be a power of two and smaller than the warp size.
          */
         void setTuningParam(unsigned int param)
             {
@@ -87,7 +87,7 @@ class PotentialPairGPU : public PotentialPair<evaluator>
 
     };
 
-template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
+template< class evaluator, hipError_t gpu_cgpf(const pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params)>
 PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                           std::shared_ptr<NeighborList> nlist, const std::string& log_suffix)
@@ -105,9 +105,10 @@ PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(std::shared_ptr<System
     // the full block size and threads_per_particle matrix is searched,
     // encoded as block_size*10000 + threads_per_particle
     std::vector<unsigned int> valid_params;
-    for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
+    const unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
+    for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
         {
-        for (auto s : Autotuner::getTppListPow2(this->m_exec_conf->dev_prop.warpSize))
+        for (auto s : Autotuner::getTppListPow2(warp_size))
             {
             valid_params.push_back(block_size*10000 + s);
             }
@@ -120,7 +121,7 @@ PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(std::shared_ptr<System
     #endif
     }
 
-template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
+template< class evaluator, hipError_t gpu_cgpf(const pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params)>
 void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timestep)
     {
@@ -213,5 +214,5 @@ template < class T, class Base > void export_PotentialPairGPU(pybind11::module& 
     ;
     }
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // __POTENTIAL_PAIR_GPU_H__

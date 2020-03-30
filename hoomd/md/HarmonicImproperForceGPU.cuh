@@ -16,7 +16,7 @@
 #define __HARMONICIMPROPERFORCEGPU_CUH__
 
 //! Kernel driver that computes harmonic IMPROPER forces for HarmonicImproperForceComputeGPU
-cudaError_t gpu_compute_harmonic_improper_forces(Scalar4* d_force,
+hipError_t gpu_compute_harmonic_improper_forces(Scalar4* d_force,
                                                  Scalar* d_virial,
                                                  const unsigned int virial_pitch,
                                                  const unsigned int N,
@@ -28,6 +28,7 @@ cudaError_t gpu_compute_harmonic_improper_forces(Scalar4* d_force,
                                                  const unsigned int *n_dihedrals_list,
                                                  Scalar2 *d_params,
                                                  unsigned int n_improper_types,
-                                                 int block_size);
+                                                 int block_size,
+                                                 int warp_size);
 
 #endif

@@ -61,7 +61,6 @@ set(_hoomd_sources Analyzer.cc
                    extern/imd.cc
                    extern/kiss_fft.cc
                    extern/kiss_fftnd.cc
-                   extern/mgpuutil.cc
                    extern/vmdsock.cc
                    )
 
@@ -152,7 +151,7 @@ set(_hoomd_headers
     WarpTools.cuh
     )
 
-if (ENABLE_CUDA)
+if (ENABLE_HIP)
 list(APPEND _hoomd_sources CellListGPU.cc
                            CommunicatorGPU.cc
                            ComputeThermoGPU.cc
@@ -169,8 +168,7 @@ set(_hoomd_cu_sources BondedGroupData.cu
                       LoadBalancerGPU.cu
                       ParticleData.cu
                       ParticleGroup.cu
-                      SFCPackUpdaterGPU.cu
-                      extern/mgpucontext.cu)
+                      SFCPackUpdaterGPU.cu)
 
 # include libgetar sources directly into _hoomd.so
 get_property(GETAR_SRCS_REL TARGET getar PROPERTY SOURCES)
@@ -183,9 +181,9 @@ if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
     set_source_files_properties("extern/libgetar/vogl_miniz/vogl_miniz.cpp" PROPERTIES COMPILE_FLAGS "-Wno-strict-aliasing")
 endif()
 
-if (ENABLE_CUDA)
+if (ENABLE_HIP)
 set(_cuda_sources ${_hoomd_cu_sources})
-endif (ENABLE_CUDA)
+endif (ENABLE_HIP)
 
 #########################
 ## Build the module
@@ -216,10 +214,13 @@ if (SINGLE_PRECISION)
 endif(SINGLE_PRECISION)
 
 # Libraries and compile definitions for CUDA enabled builds
-if (ENABLE_CUDA)
-    target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
-    target_compile_definitions(_hoomd PUBLIC ENABLE_CUDA CUDA_ARCH=${_cuda_min_arch})
-    target_compile_definitions(_hoomd PUBLIC "$<$<COMPILE_LANGUAGE:CUDA>:NVCC>")
+if (ENABLE_HIP)
+    if (HIP_PLATFORM STREQUAL "hcc")
+        target_link_libraries(_hoomd PUBLIC HIP::hipfft HIP::hiprt)
+    elseif(HIP_PLATFORM STREQUAL "nvcc")
+        target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
+    endif()
+    target_compile_definitions(_hoomd PUBLIC ENABLE_HIP CUDA_ARCH=${_cuda_min_arch})
 
     if(ALWAYS_USE_MANAGED_MEMORY)
         target_compile_definitions(_hoomd PUBLIC ALWAYS_USE_MANAGED_MEMORY)
@@ -233,7 +234,15 @@ if (ENABLE_CUDA)
     if (CUSOLVER_AVAILABLE)
         target_compile_definitions(_hoomd PUBLIC CUSOLVER_AVAILABLE)
     endif()
+
+    target_link_libraries(_hoomd PUBLIC HIP::hip)
+
+    if (ENABLE_ROCTRACER)
+        target_link_libraries(_hoomd PUBLIC HIP::roctracer)
+        target_compile_definitions(_hoomd PUBLIC ENABLE_ROCTRACER)
+    endif()
 endif()
+
 
 # Libraries and compile definitions for TBB enabled builds
 if (ENABLE_TBB)
@@ -333,11 +342,12 @@ if (BUILD_MD)
         add_subdirectory(${HOOMD_SOURCE_DIR}/hoomd/extern/dfftlib)
     endif()
 
-    if (ENABLE_CUDA)
+    if (ENABLE_HIP)
         # add the neighbor library
         set(CUB_ROOT ${HOOMD_SOURCE_DIR}/hoomd/extern/cub)
+        option(NEIGHBOR_HIP ON)
         add_subdirectory(${HOOMD_SOURCE_DIR}/hoomd/extern/neighbor)
-    endif (ENABLE_CUDA)
+    endif (ENABLE_HIP)
 
     add_subdirectory(md)
 endif()
@@ -354,8 +364,10 @@ if (BUILD_DEM AND BUILD_MD)
     add_subdirectory(dem)
 endif()
 
-if (BUILD_MPCD)
-    add_subdirectory(mpcd)
+if (NOT ENABLE_HIP OR HIP_PLATFORM STREQUAL "nvcc")
+    if (BUILD_MPCD)
+        add_subdirectory(mpcd)
+    endif()
 endif()
 
 if (BUILD_JIT)

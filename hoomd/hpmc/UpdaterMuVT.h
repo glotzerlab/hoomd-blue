@@ -11,7 +11,7 @@
 #include "IntegratorHPMCMono.h"
 #include "hoomd/RandomNumbers.h"
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <pybind11/pybind11.h>
 #endif
 

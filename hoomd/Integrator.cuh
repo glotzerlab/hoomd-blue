@@ -13,6 +13,7 @@
 
 #include "ParticleData.cuh"
 #include "GPUPartition.cuh"
+#include "HOOMDMath.h"
 
 //! struct to pack up several force and virial arrays for addition
 /*! To keep the argument count down to gpu_integrator_sum_accel, up to 6 force/virial array pairs are packed up in this
@@ -60,7 +61,7 @@ struct gpu_force_list
  };
 
 //! Driver for gpu_integrator_sum_net_force_kernel()
-cudaError_t gpu_integrator_sum_net_force(Scalar4 *d_net_force,
+hipError_t gpu_integrator_sum_net_force(Scalar4 *d_net_force,
                                          Scalar *d_net_virial,
                                          const unsigned int virial_pitch,
                                          Scalar4 *d_net_torque,

@@ -6,7 +6,7 @@
 
 using namespace std;
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 
 #include "hoomd/Compute.h"
@@ -24,7 +24,7 @@ using namespace std;
     \note This header cannot be compiled by nvcc
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -94,9 +94,10 @@ ComputeFreeVolumeGPU< Shape >::ComputeFreeVolumeGPU(std::shared_ptr<SystemDefini
     // the full block size, stride and group size matrix is searched,
     // encoded as block_size*1000000 + stride*100 + group_size.
     std::vector<unsigned int> valid_params;
-    for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
+    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
+    for (unsigned int block_size = warp_size; block_size <= (unsigned int) this->m_exec_conf->dev_prop.maxThreadsPerBlock; block_size += warp_size)
         {
-        for (auto s : Autotuner::getTppListPow2(this->m_exec_conf->dev_prop.warpSize))
+        for (auto s : Autotuner::getTppListPow2(warp_size))
             {
             unsigned int stride = 1;
             while (stride <= this->m_exec_conf->dev_prop.warpSize/s)
@@ -124,7 +125,7 @@ ComputeFreeVolumeGPU< Shape >::ComputeFreeVolumeGPU(std::shared_ptr<SystemDefini
     m_last_dim = make_uint3(0xffffffff, 0xffffffff, 0xffffffff);
     m_last_nmax = 0xffffffff;
 
-    m_tuner_excell_block_size.reset(new Autotuner(32,1024,32, 5, 1000000, "hpmc_free_volume_excell_block_size", this->m_exec_conf));
+    m_tuner_excell_block_size.reset(new Autotuner(warp_size,this->m_exec_conf->dev_prop.maxThreadsPerBlock,warp_size, 5, 1000000, "hpmc_free_volume_excell_block_size", this->m_exec_conf));
     }
 
 template<class Shape>
@@ -324,6 +325,6 @@ template < class Shape > void export_ComputeFreeVolumeGPU(pybind11::module& m, c
 
 } // end namespace hpmc
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 
 #endif // __COMPUTE_FREE_VOLUME_GPU_H__

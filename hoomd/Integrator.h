@@ -8,7 +8,7 @@
     \brief Declares the Integrator base class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -24,8 +24,8 @@
 #include <vector>
 #include <pybind11/pybind11.h>
 
-#ifdef ENABLE_CUDA
-#include <cuda_runtime.h>
+#ifdef ENABLE_HIP
+#include <hip/hip_runtime.h>
 #endif
 
 //! Base class that defines an integrator
@@ -154,7 +154,7 @@ class PYBIND11_EXPORT Integrator : public Updater
         //! helper function to compute net force/virial
         void computeNetForce(unsigned int timestep);
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
         //! helper function to compute net force/virial on the GPU
         void computeNetForceGPU(unsigned int timestep);
 #endif

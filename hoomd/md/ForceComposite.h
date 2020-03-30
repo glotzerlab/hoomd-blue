@@ -19,11 +19,11 @@
     The molecule/body id can therefore be used to look up the central particle easily.
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/GPUPartition.cuh"
 #endif
 

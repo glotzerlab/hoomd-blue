@@ -31,15 +31,15 @@ foreach(src ${_dem_cpu_sources})
   list(APPEND _dem_sources templateInstances/${src})
 endforeach()
 
-if (ENABLE_CUDA)
+if (ENABLE_HIP)
     foreach(src ${_dem_cu_sources_raw})
       list(APPEND _dem_cu_sources templateInstances/${src})
     endforeach()
-endif(ENABLE_CUDA)
+endif(ENABLE_HIP)
 
-if (ENABLE_CUDA)
+if (ENABLE_HIP)
 set(_cuda_sources ${_dem_cu_sources})
-endif (ENABLE_CUDA)
+endif (ENABLE_HIP)
 
 pybind11_add_module(_dem SHARED ${_dem_sources} ${_cuda_sources} ${_dem_headers} NO_EXTRAS)
 # alias into the HOOMD namespace so that plugins and symlinked components both work

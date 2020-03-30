@@ -34,9 +34,12 @@ NeighborListGPUTree::NeighborListGPUTree(std::shared_ptr<SystemDefinition> sysde
     m_pdata->getBoxChangeSignal().connect<NeighborListGPUTree, &NeighborListGPUTree::slotBoxChanged>(this);
     m_pdata->getMaxParticleNumberChangeSignal().connect<NeighborListGPUTree, &NeighborListGPUTree::slotMaxNumChanged>(this);
 
-    m_mark_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_tree_mark", m_exec_conf));
-    m_count_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_tree_count", m_exec_conf));
-    m_copy_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_tree_copy", m_exec_conf));
+    hipDeviceProp_t dev_prop = m_exec_conf->dev_prop;
+    unsigned int warp_size = dev_prop.warpSize;
+    unsigned int max_threads = dev_prop.maxThreadsPerBlock;
+    m_mark_tuner.reset(new Autotuner(warp_size, max_threads, warp_size, 5, 100000, "nlist_tree_mark", m_exec_conf));
+    m_count_tuner.reset(new Autotuner(warp_size, max_threads, warp_size, 5, 100000, "nlist_tree_count", m_exec_conf));
+    m_copy_tuner.reset(new Autotuner(warp_size, max_threads, warp_size, 5, 100000, "nlist_tree_copy", m_exec_conf));
     }
 
 /*!
@@ -52,7 +55,7 @@ NeighborListGPUTree::~NeighborListGPUTree()
     // destroy all of the created streams
     for (auto stream=m_streams.begin(); stream != m_streams.end(); ++stream)
         {
-        cudaStreamDestroy(*stream);
+        hipStreamDestroy(*stream);
         }
     }
 
@@ -108,7 +111,7 @@ void NeighborListGPUTree::buildNlist(unsigned int timestep)
                 {
                 m_lbvhs[i].reset(new LBVHWrapper());
                 m_traversers[i].reset(new LBVHTraverserWrapper());
-                cudaStreamCreate(&m_streams[i]);
+                hipStreamCreate(&m_streams[i]);
                 }
 
             m_max_types = m_pdata->getNTypes();
@@ -327,9 +330,10 @@ void NeighborListGPUTree::buildTree()
             }
 
         // then, launch all of the builds in their own streams
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
         m_build_tuner->begin();
         const unsigned int block_size = m_build_tuner->getParam();
+
         for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
             {
             const unsigned int first = h_type_first.data[i];
@@ -353,7 +357,7 @@ void NeighborListGPUTree::buildTree()
             }
         m_build_tuner->end();
         // wait for all builds to finish
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
         }
 
     // put particles in primitive order for traversal and compress the lbvhs so that the data is ready for traversal
@@ -381,13 +385,13 @@ void NeighborListGPUTree::buildTree()
             }
 
         // loops are not fused to avoid streams or syncing in kernel loop above, but could be done if necessary
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
         for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
             {
             if (m_lbvhs[i]->getN() == 0) continue;
             m_traversers[i]->setup(d_sorted_indexes.data + h_type_first.data[i], *(*m_lbvhs[i]).get(), m_streams[i]);
             }
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
         }
     }
 
@@ -423,12 +427,12 @@ void NeighborListGPUTree::traverseTree()
     ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::read);
 
     // clear the neighbor counts
-    cudaMemset(d_n_neigh.data, 0, sizeof(unsigned int)*m_pdata->getN());
+    hipMemset(d_n_neigh.data, 0, sizeof(unsigned int)*m_pdata->getN());
 
     const BoxDim& box = m_pdata->getBox();
 
     // traverse all pairs in (now-transposed) streams
-    cudaDeviceSynchronize();
+    hipDeviceSynchronize();
     m_traverse_tuner->begin();
     const unsigned int block_size = m_traverse_tuner->getParam();
     for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
@@ -491,7 +495,7 @@ void NeighborListGPUTree::traverseTree()
         }
     m_traverse_tuner->end();
     // wait for all traversals to finish
-    cudaDeviceSynchronize();
+    hipDeviceSynchronize();
     }
 
 /*!

@@ -15,11 +15,11 @@
 #include <vector>
 #include <string>
 
-#ifdef ENABLE_CUDA
-#include <cuda_runtime.h>
+#ifdef ENABLE_HIP
+#include <hip/hip_runtime.h>
 #endif
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <pybind11/pybind11.h>
 #endif
 
@@ -44,8 +44,8 @@
 
     Each Autotuner instance has a string name to help identify it's output on the notice stream.
 
-    Autotuner is not useful in non-GPU builds. Timing is performed with CUDA events and requires ENABLE_CUDA=on.
-    Behavior of Autotuner is undefined when ENABLE_CUDA=off.
+    Autotuner is not useful in non-GPU builds. Timing is performed with CUDA events and requires ENABLE_HIP=on.
+    Behavior of Autotuner is undefined when ENABLE_HIP=off.
 
     ** Implementation ** <br>
     Internally, m_nsamples is the number of samples to take (odd for median computation). m_current_sample is the
@@ -226,9 +226,9 @@ class PYBIND11_EXPORT Autotuner
 
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
 
-        #ifdef ENABLE_CUDA
-        cudaEvent_t m_start;      //!< CUDA event for recording start times
-        cudaEvent_t m_stop;       //!< CUDA event for recording end times
+        #ifdef ENABLE_HIP
+        hipEvent_t m_start;      //!< CUDA event for recording start times
+        hipEvent_t m_stop;       //!< CUDA event for recording end times
         #endif
 
         bool m_sync;              //!< If true, synchronize results via MPI

@@ -7,7 +7,7 @@
 #ifndef __ANISO_POTENTIAL_PAIR_GPU_H__
 #define __ANISO_POTENTIAL_PAIR_GPU_H__
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #include "hoomd/Autotuner.h"
 #include "AnisoPotentialPair.h"
@@ -18,7 +18,7 @@
     \note This header cannot be compiled by nvcc
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -35,7 +35,7 @@
 
     \sa export_AnisoPotentialPairGPU()
 */
-template< class evaluator, cudaError_t gpu_cgpf(const a_pair_args_t& pair_args,
+template< class evaluator, hipError_t gpu_cgpf(const a_pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params,
                                                 const typename evaluator::shape_param_type *d_shape_params) >
 class AnisoPotentialPairGPU : public AnisoPotentialPair<evaluator>
@@ -77,7 +77,7 @@ class AnisoPotentialPairGPU : public AnisoPotentialPair<evaluator>
         virtual void computeForces(unsigned int timestep);
     };
 
-template< class evaluator, cudaError_t gpu_cgpf(const a_pair_args_t& pair_args,
+template< class evaluator, hipError_t gpu_cgpf(const a_pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params,
                                                 const typename evaluator::shape_param_type *d_shape_params) >
 AnisoPotentialPairGPU< evaluator, gpu_cgpf >::AnisoPotentialPairGPU(std::shared_ptr<SystemDefinition> sysdef,
@@ -97,9 +97,10 @@ AnisoPotentialPairGPU< evaluator, gpu_cgpf >::AnisoPotentialPairGPU(std::shared_
     // the full block size and threads_per_particle matrix is searched,
     // encoded as block_size*10000 + threads_per_particle
     std::vector<unsigned int> valid_params;
-    for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
+    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
+    for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
         {
-        for (auto s : Autotuner::getTppListPow2(this->m_exec_conf->dev_prop.warpSize))
+        for (auto s : Autotuner::getTppListPow2(warp_size))
             {
             valid_params.push_back(block_size*10000 + s);
             }
@@ -112,7 +113,7 @@ AnisoPotentialPairGPU< evaluator, gpu_cgpf >::AnisoPotentialPairGPU(std::shared_
     #endif
     }
 
-template< class evaluator, cudaError_t gpu_cgpf(const a_pair_args_t& pair_args,
+template< class evaluator, hipError_t gpu_cgpf(const a_pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params,
                                                 const typename evaluator::shape_param_type *d_shape_params) >
 void AnisoPotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timestep)
@@ -219,5 +220,5 @@ template < class T, class Base > void export_AnisoPotentialPairGPU(pybind11::mod
               ;
     }
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // __ANISO_POTENTIAL_PAIR_GPU_H__

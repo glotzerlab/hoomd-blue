@@ -93,6 +93,7 @@ void TwoStepBDGPU::integrateStepOne(unsigned int timestep)
 
     bool aniso = m_aniso;
 
+    #ifdef __HIP_PLATFORM_NVCC__
     if (m_exec_conf->allConcurrentManagedAccess())
         {
         // prefetch gammas
@@ -105,6 +106,7 @@ void TwoStepBDGPU::integrateStepOne(unsigned int timestep)
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
+    #endif
 
     m_exec_conf->beginMultiGPU();
 

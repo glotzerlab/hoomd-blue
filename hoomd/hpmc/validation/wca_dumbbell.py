@@ -63,9 +63,9 @@ class npt_wca_dimer_eos(unittest.TestCase):
         N = len(system.particles)
 
         seed = 1234
-        mc = hpmc.integrate.sphere_union(d=0.1,a=0.1,seed=seed)
-
-        mc.shape_param.set('A',diameters=[sigma]*2,centers=[(0,0,-len_cyl/2),(0,0,len_cyl/2)],overlap=[0]*2,colors=['ff5984ff']*2)
+        mc = hpmc.integrate.sphere(d=0.1,a=0.1,seed=seed)
+        mc.shape_param.set('A',diameter=0, orientable = True)
+        mc.overlap_checks.set('A','A', enable=False)
 
         rcut_wca = sigma*2**(1./6.)
         rcut = len_cyl + rcut_wca
@@ -150,6 +150,93 @@ class npt_wca_dimer_eos(unittest.TestCase):
 
         # compare if error is within confidence interval
         self.assertLessEqual(math.fabs(rho_avg*d_eff**3.0-rho_star_ref),ci*(rho_star_ref*rho_star_rel_err+rho_err*d_eff**3.0))
+    def tearDown(self):
+        context.initialize();
+
+
+class npt_wca_dimer_eos_union(unittest.TestCase):
+    def test_statepoint(self):
+        uc = lattice.unitcell(N = 1,
+                            a1 = [a,0,0],
+                            a2 = [0,a,0],
+                            a3 = [0,0,a],
+                            dimensions = 3,
+                            position = [[0,0,0]],
+                            type_name = ['A'])
+
+        system = init.create_lattice(unitcell=uc,n=n)
+
+        N = len(system.particles)
+
+        seed = 1234
+        mc = hpmc.integrate.sphere(d=0.1,a=0.1,seed=seed)
+        mc.shape_param.set('A',diameter=0, orientable = True)
+        mc.overlap_checks.set('A','A', enable=False)
+
+        rcut_wca = sigma*2**(1./6.)
+        eps = 1.0
+        wca = """float rsq = dot(r_ij, r_ij);
+                 float rcut_wca = {:.15f};
+                 float sigma = {};
+                 float eps = {};
+                 float pair_eng = 0;
+                 if (rsq <= rcut_wca*rcut_wca)
+                    {{
+                    float r2inv = sigma*sigma/rsq;
+                    float r6inv = r2inv * r2inv * r2inv;
+                    pair_eng += r6inv * 4*eps * (r6inv - 1) + eps;
+                    }}
+                return pair_eng;
+                 """.format(rcut_wca,sigma,eps);
+
+        from hoomd import jit
+        union = jit.patch.user_union(mc,r_cut=rcut_wca, code=wca)
+
+        union.set_params('A',positions=[(0,0,-len_cyl/2),(0,0,len_cyl/2)],typeids=[0,0])
+
+        boxmc = hpmc.update.boxmc(mc,betaP=P_star/d_eff**3.0, seed=seed+1)
+        boxmc.ln_volume(delta=0.001,weight=1)
+
+        mc_tune = hpmc.util.tune(mc, tunables=['d','a'],max_val=[4,0.5],gamma=1,target=0.3)
+        npt_tune = hpmc.util.tune_npt(boxmc, tunables = ['dlnV'], target=0.3,gamma=1)
+
+        log = analyze.log(filename=None, quantities=['hpmc_overlap_count','volume'],period=100,overwrite=True)
+
+        rho_val = []
+        def accumulate_rho(timestep):
+            rho = N/log.query('volume')
+            rho_val.append(rho)
+            if (timestep % 1000 == 0): context.current.device.cpp_msg.notice(1,'rho_star = {:.5f}\n'.format(rho*d_eff**3.0))
+
+        for i in range(10):
+            run(1000)
+            mc_tune.update()
+            npt_tune.update()
+
+        if use_clusters:
+            hpmc.update.clusters(mc,period=1,seed=seed+2)
+
+        run(1e4,callback=accumulate_rho, callback_period=100)
+
+        block = BlockAverage.BlockAverage(rho_val)
+        rho_avg = np.mean(rho_val)
+        i, rho_err = block.get_error_estimate()
+
+        context.current.device.cpp_msg.notice(1,'P_star = {:.3f} rho_star = {:.5f}+-{:.5f} (tgt: {:.5f})\n'.format(P_star,rho_avg*d_eff**3.0,rho_err*d_eff**3.0,rho_star_ref))
+
+        # max error 0.5 %
+        self.assertLessEqual(rho_err/rho_avg,0.005)
+
+        # confidence interval, 0.95 quantile of the normal distribution
+        ci = 1.96
+
+        # compare if error is within confidence interval
+        self.assertLessEqual(math.fabs(rho_avg*d_eff**3.0-rho_star_ref),ci*(rho_star_ref*rho_star_rel_err+rho_err*d_eff**3.0))
+
+    def tearDown(self):
+        context.initialize();
+
+
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

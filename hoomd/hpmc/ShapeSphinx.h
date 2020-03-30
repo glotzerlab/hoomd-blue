@@ -16,7 +16,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -46,7 +46,7 @@ struct sphinx3d_params : param_base
     vec3<OverlapReal> center[MAX_SPHERE_CENTERS];  //!< Sphere Centers (in local frame)
     unsigned int ignore;    //!< 0: Process overlaps - if (a.ignore == True) and (b.ignore == True) then test_overlap(a,b) = False
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     //! Set CUDA memory hints
     void set_memory_hint() const
         {
@@ -130,7 +130,7 @@ struct ShapeSphinx
         return Scalar(0.0);
         }
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     std::string getShapeSpec() const
         {
         throw std::runtime_error("Shape definition not supported for this shape class.");

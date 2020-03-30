@@ -8,14 +8,13 @@
     \brief Defines implementation of BondedGroupData
  */
 
-
 #include "BondedGroupData.h"
 #include "ParticleData.h"
 #include "Index1D.h"
 
 #include <pybind11/numpy.h>
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "BondedGroupData.cuh"
 #include "CachedAllocator.h"
 #endif
@@ -76,14 +75,6 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
 
     // initialize data structures
     initialize();
-
-    #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        // create a ModernGPU context
-        m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
-        }
-    #endif
     }
 
 /*! \param exec_conf Execution configuration
@@ -101,14 +92,6 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
     // connect to particle sort signal
     m_pdata->getParticleSortSignal().template connect<BondedGroupData<group_size, Group, name, has_type_mapping>,
         &BondedGroupData<group_size, Group, name, has_type_mapping>::setDirty>(this);
-
-    #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        // create a ModernGPU context
-        m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
-        }
-    #endif
 
     // initialize from snapshot
     initializeFromSnapshot(snapshot);
@@ -203,7 +186,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::initialize()
         }
     #endif
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     // allocate condition variable
     GPUArray<unsigned int> condition(1, m_exec_conf);
     m_condition.swap(condition);
@@ -723,7 +706,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::maybe_rebuild_t
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
 void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable()
     {
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         rebuildGPUTableGPU();
     else
@@ -841,7 +824,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
         }
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
 void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTableGPU()
     {
@@ -876,7 +859,6 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
             ScopedAllocation<unsigned int> d_scratch_g(alloc, tmp_size);
             ScopedAllocation<unsigned int> d_scratch_idx(alloc, tmp_size);
             ScopedAllocation<unsigned int> d_offsets(alloc, tmp_size);
-            ScopedAllocation<unsigned int> d_seg_offsets(alloc, nptl);
 
             // fill group table on GPU
             gpu_update_group_table<group_size, members_t>(
@@ -896,9 +878,8 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
                 d_scratch_g.data,
                 d_scratch_idx.data,
                 d_offsets.data,
-                d_seg_offsets.data,
                 has_type_mapping,
-                m_mgpu_context);
+                m_exec_conf->getCachedAllocator());
             }
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
 

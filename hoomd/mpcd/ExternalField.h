@@ -13,7 +13,7 @@
 
 #include "hoomd/HOOMDMath.h"
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #define HOSTDEVICE __host__ __device__
 #else
 #define HOSTDEVICE
@@ -37,7 +37,7 @@ namespace mpcd
  * as an example.
  *
  * \warning
- * Because of the way NVCC handles compilation (see ExternalField.cu), new ExternalFields
+ * Because of the way __HIPCC__ handles compilation (see ExternalField.cu), new ExternalFields
  * can only be implemented within HOOMD and \b NOT through the plugin interface.
  */
 class ExternalField
@@ -174,12 +174,12 @@ class SineForce : public ExternalField
         Scalar m_k; //!< Wavenumber for force in z
     };
 
-#ifndef NVCC
+#ifndef __HIPCC__
 namespace detail
 {
 void export_ExternalFieldPolymorph(pybind11::module& m);
 } // end namespace detail
-#endif // NVCC
+#endif // __HIPCC__
 
 } // end namespace mpcd
 

@@ -14,7 +14,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -53,7 +53,7 @@ class CompositeSupportFunc3D
                                     const SupportFuncB& _sb,
                                     const vec3<OverlapReal>& _ab_t,
                                     const quat<OverlapReal>& _q)
-#ifdef NVCC
+#ifdef __HIPCC__
             : sa(_sa), sb(_sb), ab_t(_ab_t), q(_q)
 #else
             : sa(_sa), sb(_sb), ab_t(_ab_t), R(rotmat3<OverlapReal>(_q))
@@ -67,7 +67,7 @@ class CompositeSupportFunc3D
         DEVICE vec3<OverlapReal> operator() (const vec3<OverlapReal>& n) const
             {
             // translation/rotation formula comes from pg 168 of "Games Programming Gems 7"
-#ifdef NVCC
+#ifdef __HIPCC__
             vec3<OverlapReal> SB_n = rotate(q, sb(rotate(conj(q),n))) + ab_t;
             vec3<OverlapReal> SA_n = sa(-n);
 #else
@@ -81,7 +81,7 @@ class CompositeSupportFunc3D
         const SupportFuncA& sa;    //!< Support function for shape A
         const SupportFuncB& sb;    //!< Support function for shape B
         const vec3<OverlapReal>& ab_t;  //!< Vector pointing from a's center to b's center, in the space frame
-#ifdef NVCC
+#ifdef __HIPCC__
         const quat<OverlapReal>& q; //!< Orientation of shape B in frame A
 
 #else

@@ -16,7 +16,7 @@ namespace hpmc
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -34,7 +34,7 @@ struct hpmc_counters_t
     unsigned int overlap_err_count;                     //!< Count of the number of times overlap checks encounter errors
 
     //! Construct a zero set of counters
-    hpmc_counters_t()
+    DEVICE hpmc_counters_t()
         {
         translate_accept_count = 0;
         translate_reject_count = 0;
@@ -114,7 +114,7 @@ struct hpmc_boxmc_counters_t
     unsigned long long int aspect_accept_count;      //!< Count of accepted aspect moves
     unsigned long long int aspect_reject_count;      //!< Count of rejected aspect moves
     //! Construct a zero set of counters
-    hpmc_boxmc_counters_t()
+    DEVICE hpmc_boxmc_counters_t()
         {
         volume_accept_count = 0;
         volume_reject_count = 0;
@@ -126,7 +126,7 @@ struct hpmc_boxmc_counters_t
         aspect_reject_count = 0;
         }
 
-    //! Get the volume acceptance
+    //! Get the ln_shear acceptance
     /*! \returns The ratio of volume moves that are accepted, or 0 if there are no volume moves
     */
     DEVICE double getVolumeAcceptance()
@@ -202,7 +202,7 @@ struct hpmc_implicit_counters_t
     unsigned long long int insert_count;                //!< Count of depletants inserted
 
     //! Construct a zero set of counters
-    hpmc_implicit_counters_t()
+    DEVICE hpmc_implicit_counters_t()
         {
         insert_count = 0;
         }
@@ -222,7 +222,7 @@ struct hpmc_muvt_counters_t
     unsigned long long int volume_reject_count;      //!< Count of rejected volume moves
 
     //! Construct a zero set of counters
-    hpmc_muvt_counters_t()
+    DEVICE hpmc_muvt_counters_t()
         {
         insert_accept_count = 0;
         insert_reject_count = 0;
@@ -312,7 +312,7 @@ struct hpmc_clusters_counters_t
     unsigned long long int n_particles_in_clusters;   //!< Number of particles in clusters
 
     //! Construct a zero set of counters
-    hpmc_clusters_counters_t()
+    DEVICE hpmc_clusters_counters_t()
         {
         pivot_accept_count = 0;
         pivot_reject_count = 0;

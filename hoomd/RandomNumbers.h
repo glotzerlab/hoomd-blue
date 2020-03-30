@@ -15,23 +15,25 @@
 
 #include "HOOMDMath.h"
 
-#ifdef ENABLE_CUDA
-// ensure that curand is included before random123. This avoids multiple defiintion issues
-// unfortunately, at the cost of random123 using the coefficients provided by curand
-// for now, they are the same
-#include <curand_kernel.h>
+#ifdef ENABLE_HIP
+#include <hip/hip_runtime.h>
 #endif
 
-#include <math.h>
 #include <hoomd/extern/random123/include/Random123/philox.h>
+
+// in JIT compilation, we pre-include some fake headers
+#ifndef __CUDACC_RTC__
+#include <math.h>
 #include <type_traits>
+#endif
 
 namespace r123 {
 // from random123/examples/uniform.hpp
 using std::make_signed;
 using std::make_unsigned;
 
-#if defined(__CUDACC__) || defined(_LIBCPP_HAS_NO_CONSTEXPR)
+#if defined(__HIPCC__) || defined(_LIBCPP_HAS_NO_CONSTEXPR)
+
 // Amazing! cuda thinks numeric_limits::max() is a __host__ function, so
 // we can't use it in a device function.
 //
@@ -113,11 +115,11 @@ R123_CUDA_DEVICE R123_STATIC_INLINE Ftype uneg11(Itype in)
 // end code copied from random123 examples
 }
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
-#endif // NVCC
+#endif // __HIPCC__
 
 namespace hoomd
 {
@@ -194,7 +196,7 @@ DEVICE inline r123::Philox4x32::ctr_type RandomGenerator::operator()()
     {
     r123::Philox4x32 rng;
     r123::Philox4x32::ctr_type u = rng(m_ctr, m_key);
-    m_ctr[0] += 1;
+    m_ctr.v[0] += 1;
     return u;
     }
 
@@ -206,7 +208,7 @@ template <class RNG>
 DEVICE inline uint32_t generate_u32(RNG& rng)
     {
     auto u = rng();
-    return u[0];
+    return u.v[0];
     }
 
 //! Generate a uniform random uint64_t
@@ -214,7 +216,7 @@ template <class RNG>
 DEVICE inline uint64_t generate_u64(RNG& rng)
     {
     auto u = rng();
-    return uint64_t(u[0]) << 32 | u[1];
+    return uint64_t(u.v[0]) << 32 | u.v[1];
     }
 
 //! Generate two uniform random uint64_t
@@ -225,8 +227,8 @@ template <class RNG>
 DEVICE inline void generate_2u64(uint64_t& out1, uint64_t& out2, RNG& rng)
     {
     auto u = rng();
-    out1 = uint64_t(u[0]) << 32 | u[1];
-    out2 = uint64_t(u[2]) << 32 | u[3];
+    out1 = uint64_t(u.v[0]) << 32 | u.v[1];
+    out2 = uint64_t(u.v[2]) << 32 | u.v[3];
     }
 
 //! Generate a random value in [2**(-65), 1]
@@ -362,7 +364,7 @@ class SpherePointGenerator
 
             // project onto the sphere surface
             const Real sqrtu = fast::sqrt(one_minus_u2);
-            fast::sincos(theta, point.y, point.x);
+            fast::sincos(theta, (Real &) point.y, (Real& ) point.x);
             point.x *= sqrtu;
             point.y *= sqrtu;
             point.z = u;
@@ -603,5 +605,5 @@ class PoissonDistribution
     };
 
 } // end namespace hoomd
-
+#undef DEVICE
 #endif // #define HOOMD_RANDOM_NUMBERS_H_

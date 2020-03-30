@@ -209,7 +209,7 @@ class _force(hoomd.meta._metadata):
         data = hoomd.meta._metadata.get_metadata(self)
         data['enabled'] = self.enabled
         data['log'] = self.log
-        if self.name is not "":
+        if self.name != "":
             data['name'] = self.name
 
         return data
@@ -442,7 +442,7 @@ class active(_force):
 
         # assign constraints
         if (constraint is not None):
-            if (constraint.__class__.__name__ is "constraint_ellipsoid"):
+            if (constraint.__class__.__name__ == "constraint_ellipsoid"):
                 P = constraint.P
                 rx = constraint.rx
                 ry = constraint.ry

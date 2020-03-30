@@ -2,7 +2,7 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "ExampleUpdater.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "ExampleUpdater.cuh"
 #endif
 
@@ -55,7 +55,7 @@ void export_ExampleUpdater(pybind11::module& m)
 // ********************************
 // here follows the code for ExampleUpdater on the GPU
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 /*! \param sysdef System to zero the velocities of
 */
@@ -94,4 +94,4 @@ void export_ExampleUpdaterGPU(pybind11::module& m)
     ;
     }
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP

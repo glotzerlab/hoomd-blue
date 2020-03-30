@@ -13,7 +13,7 @@
     \brief Declares the NeighborListGPUTree class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -106,7 +106,7 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
         GPUFlags<unsigned int> m_lbvh_errors;       //!< Error flags during particle marking (e.g., off rank)
         std::vector< std::unique_ptr<LBVHWrapper> > m_lbvhs;                 //!< Array of LBVHs per-type
         std::vector< std::unique_ptr<LBVHTraverserWrapper> > m_traversers;   //!< Array of LBVH traverers per-type
-        std::vector<cudaStream_t> m_streams;                                    //!< Array of CUDA streams per-type
+        std::vector<hipStream_t> m_streams;                                    //!< Array of CUDA streams per-type
 
         GlobalVector<Scalar3> m_image_list; //!< List of translation vectors for traversal
         unsigned int m_n_images;            //!< Number of translation vectors for traversal

@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 #include "HOOMDMath.h"
 
 #ifndef __VECTOR_MATH_H__
@@ -14,7 +13,7 @@
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
 #undef DEVICE
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __host__ __device__
 #else
 #define DEVICE
@@ -742,7 +741,7 @@ struct quat
         \note For some unfathomable reason, hoomd stores a quaternion as (x, (y,z,w)). Be aware of this when using the
               data elsewhere.
     */
-    DEVICE explicit quat(const Scalar4& a) : s(a.x), v(vec3<Real>(a.y, a.z, a.w))
+    DEVICE explicit quat(const Scalar4& a) : s(a.x), v(vec3<Real>((Real) a.y, (Real) a.z, (Real) a.w))
         {
         }
 
