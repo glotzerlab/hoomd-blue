@@ -56,19 +56,24 @@ def test_shape_params(integrator_args):
                 mc.shape["A"] = args
 
 
-def test_shape_attached(dummy_simulation_factory, integrator_args):
+def test_shape_attached(simulation_factory,
+                        two_particle_snapshot_factory,
+                        integrator_args):
     for shape_integrator, valid_args, invalid_args in integrator_args():
         mc = shape_integrator(23456)
         for args in valid_args:
             mc.shape["A"] = args
-            sim = dummy_simulation_factory()
+            sim = simulation_factory(two_particle_snapshot_factory())
             assert sim.operations.integrator is None
             sim.operations.add(mc)
             sim.operations.schedule()
             check_dict(mc.shape["A"], args)
 
 
-def test_moves(device, lattice_simulation_factory, integrator_args):
+def test_moves(device,
+               simulation_factory,
+               lattice_snapshot_factory,
+               integrator_args):
     for shape_integrator, valid_args, invalid_args in integrator_args():
         args = valid_args[0]
         if 'polygon' in str(shape_integrator).lower():
@@ -78,7 +83,7 @@ def test_moves(device, lattice_simulation_factory, integrator_args):
         mc = shape_integrator(23456)
         mc.shape['A'] = args
 
-        sim = lattice_simulation_factory(dimensions=dims)
+        sim = simulation_factory(lattice_snapshot_factory(dimensions=dims))
         sim.operations.add(mc)
         with pytest.raises(AttributeError):
             sim.operations.integrator.translate_moves
@@ -97,7 +102,9 @@ def test_moves(device, lattice_simulation_factory, integrator_args):
             assert accepted_rejected_rot > 0
 
 
-def test_overlaps_sphere(device, lattice_simulation_factory):
+def test_overlaps_sphere(device,
+                         simulation_factory,
+                         two_particle_snapshot_factory):
     # An ellipsoid with a = b = c should be a sphere
     # A spheropolyhedron with a single vertex should be a sphere
     # A sphinx where the indenting sphere is negligible should also be a sphere
@@ -116,9 +123,8 @@ def test_overlaps_sphere(device, lattice_simulation_factory):
         diameter = 1
 
         # Should overlap when spheres are less than one diameter apart
-        sim = lattice_simulation_factory(dimensions=2,
-                                         n=(2, 1),
-                                         a=diameter * 0.9)
+        sim = simulation_factory(
+            two_particle_snapshot_factory(dimensions=3, d=diameter * 0.9))
         sim.operations.add(mc)
         sim.operations.schedule()
         assert mc.overlaps > 0
@@ -140,16 +146,16 @@ def test_overlaps_sphere(device, lattice_simulation_factory):
         assert mc.overlaps == 1
 
 
-def test_overlaps_ellipsoid(device, lattice_simulation_factory):
+def test_overlaps_ellipsoid(device,
+                            simulation_factory,
+                            two_particle_snapshot_factory):
     a = 1 / 4
     b = 1 / 2
     c = 1
     mc = hoomd.hpmc.integrate.Ellipsoid(23456)
     mc.shape["A"] = {'a': a, 'b': b, 'c': c}
 
-    sim = lattice_simulation_factory(dimensions=2,
-                                     n=(2, 1),
-                                     a=10)
+    sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=10))
     sim.operations.add(mc)
     sim.operations.schedule()
     assert mc.overlaps == 0
@@ -188,7 +194,9 @@ def test_overlaps_ellipsoid(device, lattice_simulation_factory):
     assert mc.overlaps > 0
 
 
-def test_overlaps_polygons(device, lattice_simulation_factory):
+def test_overlaps_polygons(device,
+                           simulation_factory,
+                           two_particle_snapshot_factory):
     triangle = {'vertices': [(0, (0.75**0.5) / 2),
                              (-0.5, -(0.75**0.5) / 2),
                              (0.5, -(0.75**0.5) / 2)]}
@@ -207,7 +215,8 @@ def test_overlaps_polygons(device, lattice_simulation_factory):
         mc = integrator(23456)
         mc.shape['A'] = args
 
-        sim = lattice_simulation_factory(dimensions=2, n=(2, 1), a=10)
+        sim = simulation_factory(two_particle_snapshot_factory(dimensions=3,
+                                                               d=10))
         sim.operations.add(mc)
         sim.operations.schedule()
         assert mc.overlaps == 0
@@ -236,7 +245,9 @@ def test_overlaps_polygons(device, lattice_simulation_factory):
         assert mc.overlaps > 0
 
 
-def test_overlaps_polyhedra(device, lattice_simulation_factory):
+def test_overlaps_polyhedra(device,
+                            simulation_factory,
+                            two_particle_snapshot_factory):
     tetrahedron_verts = np.array([(1, 1, 1),
                                   (-1, -1, 1),
                                   (1, -1, -1),
@@ -288,7 +299,8 @@ def test_overlaps_polyhedra(device, lattice_simulation_factory):
     for args, integrator in shapes:
         mc = integrator(23456)
         mc.shape['A'] = args
-        sim = lattice_simulation_factory(dimensions=2, n=(2, 1), a=10)
+        sim = simulation_factory(two_particle_snapshot_factory(dimensions=3,
+                                                               d=10))
         sim.operations.add(mc)
         sim.operations.schedule()
         assert mc.overlaps == 0
@@ -324,7 +336,9 @@ def test_overlaps_polyhedra(device, lattice_simulation_factory):
         assert mc.overlaps > 0
 
 
-def test_overlaps_spheropolygon(device, lattice_simulation_factory):
+def test_overlaps_spheropolygon(device,
+                                simulation_factory,
+                                two_particle_snapshot_factory):
 
     triangle = {'vertices': [(0, (0.75**0.5) / 2),
                              (-0.5, -(0.75**0.5) / 2),
@@ -338,7 +352,8 @@ def test_overlaps_spheropolygon(device, lattice_simulation_factory):
         mc = hoomd.hpmc.integrate.ConvexSpheropolygon(23456)
         mc.shape['A'] = args
 
-        sim = lattice_simulation_factory(dimensions=2, n=(2, 1), a=10)
+        sim = simulation_factory(two_particle_snapshot_factory(dimensions=2,
+                                                               d=10))
         sim.operations.add(mc)
         sim.operations.schedule()
         assert mc.overlaps == 0
@@ -375,7 +390,9 @@ def test_overlaps_spheropolygon(device, lattice_simulation_factory):
         assert mc.overlaps > 0
 
 
-def test_overlaps_spheropolyhedron(device, lattice_simulation_factory):
+def test_overlaps_spheropolyhedron(device,
+                                   simulation_factory,
+                                   two_particle_snapshot_factory):
 
     tetrahedron = {"vertices": np.array([(1, 1, 1),
                                          (-1, -1, 1),
@@ -397,7 +414,8 @@ def test_overlaps_spheropolyhedron(device, lattice_simulation_factory):
         mc = hoomd.hpmc.integrate.ConvexSpheropolyhedron(23456)
         mc.shape['A'] = args
 
-        sim = lattice_simulation_factory(dimensions=2, n=(2, 1), a=10)
+        sim = simulation_factory(two_particle_snapshot_factory(dimensions=3,
+                                                               d=10))
         sim.operations.add(mc)
         sim.operations.schedule()
         assert mc.overlaps == 0
@@ -433,7 +451,9 @@ def test_overlaps_spheropolyhedron(device, lattice_simulation_factory):
         assert mc.overlaps > 0
 
 
-def test_overlaps_union(device, lattice_simulation_factory):
+def test_overlaps_union(device,
+                        simulation_factory,
+                        two_particle_snapshot_factory):
     sphere_mc = hoomd.hpmc.integrate.Sphere(23456)
     sphere_mc.shape['A'] = {'diameter': 1}
 
@@ -467,7 +487,8 @@ def test_overlaps_union(device, lattice_simulation_factory):
         mc = integrator(23456)
         mc.shape['A'] = args
 
-        sim = lattice_simulation_factory(dimensions=2, n=(2, 1), a=10)
+        sim = simulation_factory(two_particle_snapshot_factory(dimensions=3,
+                                                               d=10))
         sim.operations.add(mc)
         sim.operations.schedule()
 
@@ -503,7 +524,9 @@ def test_overlaps_union(device, lattice_simulation_factory):
             assert mc.overlaps > 0
 
 
-def test_overlaps_faceted_ellipsoid(device, lattice_simulation_factory):
+def test_overlaps_faceted_ellipsoid(device,
+                                    simulation_factory,
+                                    two_particle_snapshot_factory):
     a = 1 / 2
     b = 1 / 2
     c = 1
@@ -516,9 +539,7 @@ def test_overlaps_faceted_ellipsoid(device, lattice_simulation_factory):
                      "origin": (0, 0, 0),
                      "offsets": [0]}
 
-    sim = lattice_simulation_factory(dimensions=2,
-                                     n=(2, 1),
-                                     a=10)
+    sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=10))
     sim.operations.add(mc)
     sim.operations.schedule()
     assert mc.overlaps == 0
