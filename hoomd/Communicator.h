@@ -604,8 +604,7 @@ class PYBIND11_EXPORT Communicator
                 (r_ghost_max >= L.y/Scalar(2.0) && di.getH() > 1) ||
                 (r_ghost_max >= L.z/Scalar(2.0) && di.getD() > 1))
                 {
-                m_exec_conf->msg->error() << "Simulation box too small for domain decomposition." << std::endl;
-                throw std::runtime_error("Error during communication");
+                throw std::runtime_error("Communication error: Simulation box too small for domain decomposition.");
                 }
             }
 
