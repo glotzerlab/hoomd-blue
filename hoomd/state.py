@@ -159,7 +159,7 @@ class State:
     @property
     def box(self):
         b = self._cpp_sys_def.getParticleData().getGlobalBox()
-        return Box.from_cpp(b)
+        return Box._from_cpp(b)
 
     @box.setter
     def box(self, value):
