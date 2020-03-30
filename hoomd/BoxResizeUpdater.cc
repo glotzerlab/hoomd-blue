@@ -27,8 +27,8 @@ BoxResizeUpdater::BoxResizeUpdater(std::shared_ptr<SystemDefinition> sysdef,
                                    BoxDim box1,
                                    BoxDim box2,
                                    std::shared_ptr<Variant> variant)
-    : Updater(sysdef), m_box1(box1), m_box2(box2),
-      m_variant(variant), m_scale_particles(true)
+    : Updater(sysdef), m_box1(box1), m_py_box1(pybind11::none()), m_box2(box2),
+      m_py_box2(pybind11::none()), m_variant(variant), m_scale_particles(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing BoxResizeUpdater" << endl;
     }
@@ -51,8 +51,11 @@ BoxResizeUpdater::~BoxResizeUpdater()
 
 void BoxResizeUpdater::setBox1(BoxDim box)
     {
-    m_py_box1 = m_py_box1.attr("__class__")
-                         .attr("_from_cpp")(box);
+    if (!m_py_box1.is_none())
+        {
+        m_py_box1 = m_py_box1.attr("__class__")
+                            .attr("_from_cpp")(box);
+        }
     m_box1 = box;
     }
 
@@ -64,8 +67,11 @@ void BoxResizeUpdater::setBox1Py(pybind11::object box)
 
 void BoxResizeUpdater::setBox2(BoxDim box)
     {
-    m_py_box2 = m_py_box2.attr("__class__")
-                         .attr("_from_cpp")(box);
+    if (!m_py_box1.is_none())
+        {
+        m_py_box1 = m_py_box1.attr("__class__")
+                            .attr("_from_cpp")(box);
+        }
     m_box2 = box;
     }
 
