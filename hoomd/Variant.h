@@ -4,6 +4,7 @@
 #pragma once
 
 #include <cstdint>
+#include <utility>
 #include <pybind11/pybind11.h>
 
 #include "HOOMDMath.h"
@@ -30,6 +31,18 @@ class PYBIND11_EXPORT Variant
         virtual Scalar operator()(uint64_t timestep)
             {
             return 0;
+            }
+
+        /// Returns the minimum of the variant
+        virtual Scalar min() = 0;
+
+        /// Returns the maximum of the variant
+        virtual Scalar max() = 0;
+
+        /// Returns the range [min, max] of the variant
+        virtual std::pair<Scalar, Scalar> range()
+            {
+            return std::pair<Scalar, Scalar>(min(), max());
             }
     };
 
@@ -67,6 +80,12 @@ class PYBIND11_EXPORT VariantConstant : public Variant
             {
             return m_value;
             }
+
+        /// Returns the given constant, c
+        virtual Scalar min() {return m_value;}
+
+        /// Returns the given constant, c
+        virtual Scalar max() {return m_value;}
 
     protected:
         /// The value.
@@ -167,6 +186,12 @@ class PYBIND11_EXPORT VariantRamp : public Variant
             {
             return m_t_ramp;
             }
+
+        /// Return m_A;
+        Scalar min() {return m_A;}
+
+        /// Return m_B;
+        Scalar max() {return m_B;}
 
     protected:
         /// The starting value.
@@ -349,6 +374,12 @@ class PYBIND11_EXPORT VariantCycle : public Variant
             {
             return m_t_BA;
             }
+
+        /// Return m_A
+        Scalar min() {return m_A;}
+
+        /// Return m_B
+        Scalar max() {return m_B;}
 
     protected:
         /// The starting value.

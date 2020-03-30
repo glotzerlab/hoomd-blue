@@ -25,7 +25,23 @@ class VariantPy : public Variant
                                    operator(),   // Name of function in C++
                                    timestep      // Argument(s)
                               );
-        }
+            }
+
+        Scalar min() override
+            {
+            PYBIND11_OVERLOAD_PURE(Scalar,       // Return type
+                                   Variant,      // Parent class
+                                   min           // name of function
+                    );
+            }
+
+        Scalar max() override
+            {
+            PYBIND11_OVERLOAD_PURE(Scalar,       // Return type
+                                   Variant,      // Parent class
+                                   min           // name of function
+                    );
+            }
     };
 
 void export_Variant(pybind11::module& m)
@@ -33,6 +49,9 @@ void export_Variant(pybind11::module& m)
     pybind11::class_<Variant, VariantPy, std::shared_ptr<Variant> >(m,"Variant")
         .def(pybind11::init<>())
         .def("__call__", &Variant::operator())
+        .def("min", &Variant::min)
+        .def("max", &Variant::max)
+        .def_property_readonly("range", &Variant::range)
         ;
 
     pybind11::class_<VariantConstant, Variant, std::shared_ptr<VariantConstant> >(m, "VariantConstant")
