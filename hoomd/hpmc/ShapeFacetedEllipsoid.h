@@ -61,13 +61,13 @@ struct FacetedEllipsoidParams : ShapeParams
     FacetedEllipsoidParams(pybind11::dict v, bool managed=false)
         : FacetedEllipsoidParams(pybind11::len(v["normals"]), managed)
         {
-        pybind11::list normals = v["normals"].cast<pybind11::list>();
-        pybind11::list offsets = v["offsets"].cast<pybind11::list>();
-        pybind11::list vertices = v["vertices"].cast<pybind11::list>();
+        pybind11::list normals = v["normals"];
+        pybind11::list offsets = v["offsets"];
+        pybind11::list vertices = v["vertices"];
         a = v["a"].cast<OverlapReal>();
         b = v["b"].cast<OverlapReal>();
         c = v["c"].cast<OverlapReal>();
-        pybind11::tuple origin_tuple = v["origin"].cast<pybind11::tuple>();
+        pybind11::tuple origin_tuple = v["origin"];
         ignore = v["ignore_statistics"].cast<unsigned int>();
 
         if (pybind11::len(offsets) != pybind11::len(normals))
@@ -76,7 +76,7 @@ struct FacetedEllipsoidParams : ShapeParams
         // extract the normals from the python list
         for (unsigned int i = 0; i < len(normals); i++)
             {
-            pybind11::list normals_i = pybind11::cast<pybind11::list>(normals[i]);
+            pybind11::list normals_i = normals[i];
             if (len(normals_i) != 3)
                 throw std::runtime_error("Each normal must have 3 elements: found "
                                         + pybind11::str(normals_i).cast<std::string>()

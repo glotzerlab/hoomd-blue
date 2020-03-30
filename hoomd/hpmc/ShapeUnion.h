@@ -178,7 +178,7 @@ struct ShapeUnionParams : ShapeParams
             {
             typename Shape::param_type param(shapes[i]);
 
-            pybind11::list position = pybind11::cast<pybind11::list>(positions[i]);
+            pybind11::list position = positions[i];
             if (len(position) != 3)
                 throw std::runtime_error("Each position must have 3 elements: found "
                                         + pybind11::str(position).cast<std::string>()
@@ -187,7 +187,7 @@ struct ShapeUnionParams : ShapeParams
             vec3<OverlapReal> pos = vec3<OverlapReal>(pybind11::cast<OverlapReal>(position[0]),
                                                       pybind11::cast<OverlapReal>(position[1]),
                                                       pybind11::cast<OverlapReal>(position[2]));
-            pybind11::list orientation_l = pybind11::cast<pybind11::list>(orientations[i]);
+            pybind11::list orientation_l = orientations[i];
             OverlapReal s = pybind11::cast<OverlapReal>(orientation_l[0]);
             OverlapReal x = pybind11::cast<OverlapReal>(orientation_l[1]);
             OverlapReal y = pybind11::cast<OverlapReal>(orientation_l[2]);

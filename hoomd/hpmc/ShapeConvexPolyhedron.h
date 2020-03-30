@@ -164,7 +164,7 @@ struct PolyhedronVertices : ShapeParams
         std::vector<vec3<OverlapReal>> vert_vector;
         for (unsigned int i = 0; i < pybind11::len(verts); i++)
             {
-            pybind11::list verts_i = pybind11::cast<pybind11::list>(verts[i]);
+            pybind11::list verts_i = verts[i];
             if (len(verts_i) != 3)
                 throw std::runtime_error("Each vertex must have 3 elements");
             vec3<OverlapReal> vert = vec3<OverlapReal>(pybind11::cast<OverlapReal>(verts_i[0]),

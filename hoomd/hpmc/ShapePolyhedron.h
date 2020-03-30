@@ -105,7 +105,7 @@ struct TriangleMesh : ShapeParams
         std::vector<vec> qh_pts;
         for (unsigned int i = 0; i < n_verts; i++)
             {
-            pybind11::list vert_list = pybind11::cast<pybind11::list>(verts_list[i]);
+            pybind11::list vert_list = verts_list[i];
             if (len(vert_list) != 3)
                 throw std::runtime_error("Each vertex must have 3 elements");
             vec vert;
@@ -150,8 +150,7 @@ struct TriangleMesh : ShapeParams
             }
        else
             {
-            pybind11::list overlap_list = pybind11::cast<pybind11::list>(
-                    overlap);
+            pybind11::list overlap_list = overlap;
             if (pybind11::len(overlap_list) != n_faces)
                 {
                 throw std::runtime_error("Number of member overlap flags must be equal to number faces");
@@ -165,7 +164,7 @@ struct TriangleMesh : ShapeParams
         OverlapReal radius_sq = OverlapReal(0.0);
         for (unsigned int i = 0; i < n_verts; i++)
             {
-            pybind11::list vert_list = pybind11::cast<pybind11::list>(verts_list[i]);
+            pybind11::list vert_list = verts_list[i];
             if (len(vert_list) != 3)
                 throw std::runtime_error("Each vertex must have 3 elements");
             vec3<OverlapReal> vert;
