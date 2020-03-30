@@ -304,7 +304,6 @@ set(files analyze.py
           operation.py
           operations.py
           option.py
-          update.py
           util.py
           variant.py
           lattice.py
