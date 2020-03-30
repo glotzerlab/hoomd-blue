@@ -1058,7 +1058,7 @@ class FacetedEllipsoid(_HPMCIntegrator):
         typeparam_shape = TypeParameter('shape', type_kind='particle_types',
                                         param_dict=TypeParameterDict(
                                             normals=[(float, float, float)],
-                                            offsets=[int],
+                                            offsets=[float],
                                             a=float,
                                             b=float,
                                             c=float,
@@ -1640,7 +1640,7 @@ class FacetedEllipsoidUnion(_HPMCIntegrator):
             param_dict=TypeParameterDict(
                 shapes=[
                     dict(a=float, b=float, c=float,
-                         normals=[(float, float, float)], offsets=[int],
+                         normals=[(float, float, float)], offsets=[float],
                          vertices=[(float, float, float)], origin=tuple,
                          ignore_statistics=False)],
                 positions=[(float, float, float)],
