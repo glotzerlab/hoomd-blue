@@ -222,7 +222,6 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
             if (!m_properties_reduced) reduceProperties();
             #endif
 
-            // return NaN if the flags are not valid
             ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
             return h_properties.data[thermo_index::potential_energy];
             }
