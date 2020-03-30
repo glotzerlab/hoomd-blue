@@ -69,11 +69,12 @@ def test_shape_attached(dummy_simulation_factory, integrator_args):
 
 
 def test_moves(device, lattice_simulation_factory, integrator_args):
-    dims = 3
     for shape_integrator, valid_args, invalid_args in integrator_args():
         args = valid_args[0]
         if 'polygon' in str(shape_integrator).lower():
             dims = 2
+        else:
+            dims = 3
         mc = shape_integrator(23456)
         mc.shape['A'] = args
 
