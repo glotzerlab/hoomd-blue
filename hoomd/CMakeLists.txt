@@ -344,9 +344,16 @@ if (BUILD_MD)
 
     if (ENABLE_HIP)
         # add the neighbor library
-        set(CUB_ROOT ${HOOMD_SOURCE_DIR}/hoomd/extern/cub)
-        option(NEIGHBOR_HIP ON)
+        #
+        # The location of CUB / hipCUB should be handled by CUB_INCLUDE_DIR and
+        # HIPCUB_INCLUDE_DIR being set earlier in the project, but these can also
+        # be hinted by setting CUB_ROOT or HIPCUB_ROOT if this doesn't work or changes.
+        if (HIP_FOUND)
+            option(NEIGHBOR_HIP ON)
+        endif()
         add_subdirectory(${HOOMD_SOURCE_DIR}/hoomd/extern/neighbor)
+        # hide these variables in the cache
+        mark_as_advanced(NEIGHBOR_BENCHMARK NEIGHBOR_HIP NEIGHBOR_INSTALL NEIGHBOR_TEST)
     endif (ENABLE_HIP)
 
     add_subdirectory(md)
