@@ -17,15 +17,14 @@ class TriggerPy : public Trigger
         using Trigger::Trigger;
 
         // trampoline method
-        bool operator()(uint64_t timestep) override
+        bool compute(uint64_t timestep) override
             {
-            PYBIND11_OVERLOAD_NAME(bool,         // Return type
+            PYBIND11_OVERLOAD_PURE(bool,         // Return type
                                    Trigger,      // Parent class
-                                   "__call__",   // name of function in python
-                                   operator(),   // Name of function in C++
+                                   compute,
                                    timestep      // Argument(s)
                               );
-        }
+            }
     };
 
 void export_Trigger(pybind11::module& m)
@@ -33,6 +32,7 @@ void export_Trigger(pybind11::module& m)
     pybind11::class_<Trigger, TriggerPy, std::shared_ptr<Trigger> >(m,"Trigger")
         .def(pybind11::init<>())
         .def("__call__", &Trigger::operator())
+        .def("compute", &Trigger::compute)
         ;
 
     pybind11::class_<PeriodicTrigger, Trigger, std::shared_ptr<PeriodicTrigger> >(m, "PeriodicTrigger")

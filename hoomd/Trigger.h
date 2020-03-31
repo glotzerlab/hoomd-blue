@@ -18,7 +18,7 @@ class PYBIND11_EXPORT Trigger
     {
     public:
         /// Construct a Trigger
-        Trigger() { }
+        Trigger(): m_last_timestep(-1), m_last_trigger(false) { }
 
         virtual ~Trigger() { }
 
@@ -27,10 +27,26 @@ class PYBIND11_EXPORT Trigger
          *  @param timestep Time step to query
          *  @returns `true` if the operation should occur, `false` if not
         */
-        virtual bool operator()(uint64_t timestep)
+        bool operator()(uint64_t timestep)
             {
-            return false;
+            if (m_last_timestep == timestep)
+                {
+                return m_last_trigger;
+                }
+            else
+                {
+                auto triggered = compute(timestep);
+                m_last_timestep = timestep;
+                m_last_trigger = triggered;
+                return triggered;
+                }
             }
+
+        virtual bool compute(uint64_t timestep) = 0;
+
+    private:
+            uint64_t m_last_timestep;
+            bool m_last_trigger;
     };
 
 /** Periodic trigger
@@ -47,11 +63,11 @@ class PYBIND11_EXPORT PeriodicTrigger : public Trigger
          *  @param phase The phase
         */
         PeriodicTrigger(uint64_t period, uint64_t phase=0)
-            : m_period(period), m_phase(phase)
+            : Trigger(), m_period(period), m_phase(phase)
             {
             }
 
-        bool operator()(uint64_t timestep)
+        bool compute(uint64_t timestep)
             {
             return (timestep - m_phase) % m_period == 0;
             }
