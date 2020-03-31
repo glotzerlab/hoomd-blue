@@ -319,6 +319,13 @@ struct ShapeConvexPolyhedron
         {
         }
 
+    //! Initialize a shape with a given left and right quaternion (hyperspherical coordinates)
+    DEVICE ShapeConvexPolyhedron(const quat<Scalar>& _quat_l, const quat<Scalar>& _quat_r, const param_type& _params)
+        : verts(_params)
+        {
+        // not implemented
+        }
+
     //! Does this shape have an orientation
     DEVICE bool hasOrientation() const { return true; }
 
@@ -381,10 +388,19 @@ struct ShapeConvexPolyhedron
         return detail::AABB(pos, getCircumsphereDiameter()/Scalar(2));
         }
 
+    //! Return the bounding box of the shape, defined on the hyperhypersphere, in world coordinates
+    DEVICE detail::AABB getAABBHypersphere(const Hypersphere& hypersphere)
+        {
+        return detail::AABB(hypersphere.hypersphericalToCartesian(quat_l, quat_r),
+            detail::get_bounding_sphere_radius_4d(getCircumsphereDiameter()/Scalar(2), hypersphere.getR()));
+        }
+
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel() { return false; }
 
     quat<Scalar> orientation;    //!< Orientation of the polyhedron
+    quat<Scalar> quat_l;         //!< Left quaternion of spherical coordinate
+    quat<Scalar> quat_r;         //!< Right quaternion of spherical coordinate
 
     const detail::poly3d_verts& verts;     //!< Vertices
     };

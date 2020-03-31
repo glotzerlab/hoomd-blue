@@ -256,6 +256,14 @@ struct ShapeFacetedEllipsoid
         : orientation(_orientation), params(_params)
         { }
 
+    //! Initialize a shape with a given left and right quaternion (hyperspherical coordinates)
+    DEVICE ShapeFacetedEllipsoid(const quat<Scalar>& _quat_l, const quat<Scalar>& _quat_r, const param_type& _params)
+        : params(_params)
+        {
+        // not implemented
+        }
+
+
     //! Does this shape have an orientation
     DEVICE bool hasOrientation() { return (params.N > 0) ||
         (params.a != params.b) || (params.a != params.c) || (params.b != params.c); }
@@ -327,6 +335,13 @@ struct ShapeFacetedEllipsoid
         obb.lengths.y = detail::max(s_y_plus.y,-s_y_minus.y);
         obb.lengths.z = detail::max(s_z_plus.z,-s_z_minus.z);
         return obb;
+        }
+
+    //! Return the bounding box of the shape, defined on the hypersphere, in world coordinates
+    DEVICE detail::AABB getAABBHypersphere(const Hypersphere& hypersphere)
+        {
+        return detail::AABB(hypersphere.hypersphericalToCartesian(quat_l, quat_r),
+            detail::get_bounding_sphere_radius_4d(getCircumsphereDiameter()/Scalar(2.0), hypersphere.getR()));
         }
 
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
@@ -446,6 +461,8 @@ struct ShapeFacetedEllipsoid
         }
 
     quat<Scalar> orientation;    //!< Orientation of the sphere (unused)
+    quat<Scalar> quat_l;         //!< Left quaternion of spherical coordinate
+    quat<Scalar> quat_r;         //!< Right quaternion of spherical coordinate
 
     const param_type& params;           //!< Faceted sphere parameters
     };

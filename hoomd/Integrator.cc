@@ -177,8 +177,18 @@ Scalar Integrator::getLogValue(const std::string& quantity, unsigned int timeste
     {
     if (quantity == "volume")
         {
-        BoxDim box = m_pdata->getGlobalBox();
-        return box.getVolume(m_sysdef->getNDimensions()==2);
+        if (m_pdata->getCoordinateType() == ParticleData::cartesian)
+            {
+             BoxDim box = m_pdata->getGlobalBox();
+             return box.getVolume(m_sysdef->getNDimensions()==2);
+            }
+        else if (m_pdata->getCoordinateType() == ParticleData::hyperspherical)
+            {
+            Hypersphere hypersphere = m_pdata->getHypersphere();
+            return hypersphere.getVolume();
+            }
+        else
+            throw std::runtime_error("Unsupporter boundary conditions in Integrator.\n");
         }
     else if (quantity == "lx")
         {

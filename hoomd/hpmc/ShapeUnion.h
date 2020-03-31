@@ -122,6 +122,13 @@ struct ShapeUnion
         {
         }
 
+    //! Initialize a shape with a given left and right quaternion (hyperspherical coordinates)
+    DEVICE ShapeUnion(const quat<Scalar>& _quat_l, const quat<Scalar>& _quat_r, const param_type& _params)
+        : members(_params)
+        {
+        // not implemented
+        }
+
     //! Does this shape have an orientation
     DEVICE bool hasOrientation() const
         {
@@ -169,6 +176,13 @@ struct ShapeUnion
         return detail::AABB(pos, members.diameter/OverlapReal(2.0));
         }
 
+    //! Return the bounding box of the shape, defined on the hypersphere, in world coordinates
+    DEVICE detail::AABB getAABBHypersphere(const Hypersphere& hypersphere)
+        {
+        return detail::AABB(hypersphere.hypersphericalToCartesian(quat_l, quat_r),
+            detail::get_bounding_sphere_radius_4d(members.diameter/Scalar(2.0), hypersphere.getR()));
+        }
+
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel() {
         #ifdef SHAPE_UNION_LEAVES_AGAINST_TREE_TRAVERSAL
@@ -179,6 +193,8 @@ struct ShapeUnion
         }
 
     quat<Scalar> orientation;    //!< Orientation of the particle
+    quat<Scalar> quat_l;         //!< Left quaternion of spherical coordinate
+    quat<Scalar> quat_r;         //!< Right quaternion of spherical coordinate
 
     const param_type& members;     //!< member data
     };

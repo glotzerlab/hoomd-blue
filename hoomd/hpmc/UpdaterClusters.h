@@ -665,10 +665,16 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                                         quat<float>(orientation_i),
                                                         d_i,
                                                         charge_i,
+                                                        quat<float>(), // quat_l_i
+                                                        quat<float>(), // quat_r_i
                                                         typ_j,
                                                         quat<float>(m_orientation_backup[j]),
                                                         m_diameter_backup[j],
-                                                        m_charge_backup[j]);
+                                                        m_charge_backup[j],
+                                                        quat<float>(), // quat_l_j,
+                                                        quat<float>(), // quat_r_j,
+                                                        0.0 //R
+                                                        );
 
                                     // update map
                                     m_energy_old_old[p] = U;
@@ -871,11 +877,16 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                                             quat<float>(shape_i.orientation),
                                                             h_diameter.data[i],
                                                             h_charge.data[i],
+                                                            quat<float>(), // quat_l_i
+                                                            quat<float>(), // quat_r_i
                                                             typ_j,
                                                             quat<float>(m_orientation_backup[j]),
                                                             m_diameter_backup[j],
-                                                            m_charge_backup[j]);
-
+                                                            m_charge_backup[j],
+                                                            quat<float>(), // quat_l_j,
+                                                            quat<float>(), // quat_r_j,
+                                                            0.0 //R
+                                                            );
                                     // update map
                                     m_energy_new_old[p] = U;
 

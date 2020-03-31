@@ -78,7 +78,7 @@ struct __attribute__((visibility("default"))) Hypersphere
             \returns the projection as a 3-vector
          */
         template<class Real>
-        HOSTDEVICE quat<Real> sphericalToCartesian(const quat<Real>& q_l, const quat<Real>& q_r) const
+        HOSTDEVICE quat<Real> hypersphericalToCartesian(const quat<Real>& q_l, const quat<Real>& q_r) const
             {
             return q_l*quat<Real>(R,vec3<Real>(0,0,0))*q_r;
             }

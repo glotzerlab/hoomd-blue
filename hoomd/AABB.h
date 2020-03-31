@@ -46,7 +46,25 @@ inline vec3<float> sse_unload_vec3_float(const __m128& v)
     _mm_storeu_ps(out, v);
     return vec3<float>(out[0], out[1], out[2]);
     }
+
+inline __m128 sse_load_quat_float(const quat<float>& value)
+    {
+    float in[4];
+    in[0] = value.v.x;
+    in[1] = value.v.y;
+    in[2] = value.v.z;
+    in[3] = value.s;
+    return _mm_loadu_ps(in);
+    }
+
+inline quat<float> sse_unload_quat_float(const __m128& v)
+    {
+    float out[4];
+    _mm_storeu_ps(out, v);
+    return quat<float>(out[3], vec3<float>(out[0], out[1], out[2]));
+    }
 #endif
+
 
 #if defined(__AVX__) && !defined(NVCC)
 inline __m256d sse_load_vec3_double(const vec3<double>& value)
@@ -64,6 +82,23 @@ inline vec3<double> sse_unload_vec3_double(const __m256d& v)
     double out[4];
     _mm256_storeu_pd(out, v);
     return vec3<double>(out[0], out[1], out[2]);
+    }
+
+inline __m256d sse_load_quat_double(const quat<double>& value)
+    {
+    double in[4];
+    in[0] = value.v.x;
+    in[1] = value.v.y;
+    in[2] = value.v.z;
+    in[3] = value.s;
+    return _mm256_loadu_pd(in);
+    }
+
+inline quat<double> sse_unload_quat_double(const __m256d& v)
+    {
+    double out[4];
+    _mm256_storeu_pd(out, v);
+    return quat<double>(out[3], vec3<double>(out[0], out[1],out[2]));
     }
 #endif
 
@@ -89,6 +124,9 @@ namespace detail
     - merge()
     - overlap()
     - contains()
+
+    To support hyperspherical coordinates, positions are stored as quats. For cartesian coordinates, the
+    scalar component of the quaternion is set to zero.
 */
 struct __attribute__((visibility("default"))) AABB
     {
@@ -101,8 +139,8 @@ struct __attribute__((visibility("default"))) AABB
     __m128 upper_v;     //!< Upper left corner (SSE data type)
 
     #else
-    vec3<Scalar> lower;  //!< Lower left corner
-    vec3<Scalar> upper;  //!< Upper right corner
+    quat<Scalar> lower;  //!< Lower left corner
+    quat<Scalar> upper;  //!< Upper right corner
 
     #endif
 
@@ -122,7 +160,8 @@ struct __attribute__((visibility("default"))) AABB
         upper_v = _mm_load_ps1(&in);
 
         #endif
-        // vec3 constructors zero themselves
+        // quat constructors set themselves to (1,0,0,0)
+        lower.s = upper.s = 0.0;
         }
 
     //! Construct an AABB from the given lower and upper corners
@@ -140,8 +179,8 @@ struct __attribute__((visibility("default"))) AABB
         upper_v = sse_load_vec3_float(_upper);
 
         #else
-        lower = _lower;
-        upper = _upper;
+        lower = quat<Scalar>(0,_lower);
+        upper = quat<Scalar>(0,_upper);
 
         #endif
         }
@@ -169,11 +208,45 @@ struct __attribute__((visibility("default"))) AABB
         upper_v = sse_load_vec3_float(new_upper);
 
         #else
-        lower = new_lower;
-        upper = new_upper;
+        lower.v = new_lower;
+        upper.v = new_upper;
+        lower.s = upper.s = 0.0;
 
         #endif
         }
+
+    //! Construct a four-dimensional AABB from a hypersphere
+    /*! \param _position Position of the hypersphere
+        \param radius Radius of the sphere
+    */
+    DEVICE AABB(const quat<Scalar>& _position, Scalar radius) : tag(0)
+        {
+        quat<Scalar> new_lower, new_upper;
+        new_lower.v.x = _position.v.x - radius;
+        new_lower.v.y = _position.v.y - radius;
+        new_lower.v.z = _position.v.z - radius;
+        new_lower.s = _position.s - radius;
+        new_upper.v.x = _position.v.x + radius;
+        new_upper.v.y = _position.v.y + radius;
+        new_upper.v.z = _position.v.z + radius;
+        new_upper.s = _position.s + radius;
+
+        #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC) && 0
+        lower_v = sse_load_quat_double(new_lower);
+        upper_v = sse_load_quat_double(new_upper);
+
+        #elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(NVCC)
+        lower_v = sse_load_quat_float(new_lower);
+        upper_v = sse_load_quat_float(new_upper);
+
+        #else
+         lower = new_lower;
+         upper = new_upper;
+         
+        #endif
+        }
+
+
 
     //! Construct an AABB from a point with a particle tag
     /*! \param _position Position of the point
@@ -190,8 +263,9 @@ struct __attribute__((visibility("default"))) AABB
         upper_v = sse_load_vec3_float(_position);
 
         #else
-        lower = _position;
-        upper = _position;
+        lower.v = _position;
+        upper.v = _position;
+	lower.s = upper.s = 0.0;
 
         #endif
         }
@@ -212,10 +286,31 @@ struct __attribute__((visibility("default"))) AABB
         return sse_unload_vec3_float(pos_v);
 
         #else
-        return (lower + upper) / Scalar(2);
+        return (lower.v + upper.v) / Scalar(2);
 
         #endif
         }
+
+    //! Get the AABB's position (4d)
+    DEVICE quat<Scalar> getPosition4d() const
+        {
+        #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC) && 0
+        double half = 0.5;
+        __m256d half_v = _mm256_broadcast_sd(&half);
+        __m256d pos_v = _mm256_mul_pd(half_v, _mm256_add_pd(lower_v, upper_v));
+        return sse_unload_quat_double(pos_v);
+
+        #elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(NVCC)
+        float half = 0.5f;
+        __m128 half_v = _mm_load_ps1(&half);
+        __m128 pos_v = _mm_mul_ps(half_v, _mm_add_ps(lower_v, upper_v));
+        return sse_unload_quat_float(pos_v);
+
+        #else
+        return quat<Scalar>((lower.s+upper.s)/Scalar(2.0),(lower.v + upper.v) / Scalar(2));
+ 
+         #endif
+         }
 
     //! Get the AABB's lower point
     DEVICE vec3<Scalar> getLower() const
@@ -227,7 +322,7 @@ struct __attribute__((visibility("default"))) AABB
         return sse_unload_vec3_float(lower_v);
 
         #else
-        return lower;
+        return lower.v;
 
         #endif
         }
@@ -242,10 +337,40 @@ struct __attribute__((visibility("default"))) AABB
         return sse_unload_vec3_float(upper_v);
 
         #else
-        return upper;
+        return upper.v;
 
         #endif
         }
+
+    //! Get the AABB's lower point (4d)
+    DEVICE quat<Scalar> getLower4d() const
+        {
+        #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC) && 0
+        return sse_unload_quat_double(lower_v);
+
+        #elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(NVCC)
+        return sse_unload_quat_float(lower_v);
+
+        #else
+        return lower;
+
+        #endif
+        }
+
+    //! Get the AABB's upper point (4d)
+    DEVICE quat<Scalar> getUpper4d() const
+        {
+        #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC) && 0
+        return sse_unload_quat_double(upper_v);
+
+        #elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(NVCC)
+        return sse_unload_quat_float(upper_v);
+
+        #else
+         return upper;
+ 
+         #endif
+	}
 
     //! Translate the AABB by the given vector
     DEVICE void translate(const vec3<Scalar>& v)
@@ -261,8 +386,8 @@ struct __attribute__((visibility("default"))) AABB
         upper_v = _mm_add_ps(upper_v, v_v);
 
         #else
-        upper += v;
-        lower += v;
+        upper.v += v;
+        lower.v += v;
 
         #endif
         }
@@ -286,12 +411,14 @@ DEVICE inline bool overlap(const AABB& a, const AABB& b)
     return !(r0 || r1);
 
     #else
-    return !(   b.upper.x < a.lower.x
-             || b.lower.x > a.upper.x
-             || b.upper.y < a.lower.y
-             || b.lower.y > a.upper.y
-             || b.upper.z < a.lower.z
-             || b.lower.z > a.upper.z
+    return !(   b.upper.v.x < a.lower.v.x
+             || b.lower.v.x > a.upper.v.x
+             || b.upper.v.y < a.lower.v.y
+             || b.lower.v.y > a.upper.v.y
+             || b.upper.v.z < a.lower.v.z
+             || b.lower.v.z > a.upper.v.z
+             || b.upper.s < a.lower.s
+             || b.lower.s > a.upper.s
             );
 
     #endif
@@ -315,9 +442,10 @@ DEVICE inline bool contains(const AABB& a, const AABB& b)
     return ((r0 & r1) == 0xF);
 
     #else
-    return (   b.lower.x >= a.lower.x && b.upper.x <= a.upper.x
-            && b.lower.y >= a.lower.y && b.upper.y <= a.upper.y
-            && b.lower.z >= a.lower.z && b.upper.z <= a.upper.z);
+    return (   b.lower.v.x >= a.lower.v.x && b.upper.v.x <= a.upper.v.x
+            && b.lower.v.y >= a.lower.v.y && b.upper.v.y <= a.upper.v.y
+            && b.lower.v.z >= a.lower.v.z && b.upper.v.z <= a.upper.v.z
+	    && b.lower.s >= a.lower.s && b.upper.s <= a.upper.s);
 
     #endif
     }
@@ -340,12 +468,14 @@ DEVICE inline AABB merge(const AABB& a, const AABB& b)
     new_aabb.upper_v = _mm_max_ps(a.upper_v, b.upper_v);
 
     #else
-    new_aabb.lower.x = std::min(a.lower.x, b.lower.x);
-    new_aabb.lower.y = std::min(a.lower.y, b.lower.y);
-    new_aabb.lower.z = std::min(a.lower.z, b.lower.z);
-    new_aabb.upper.x = std::max(a.upper.x, b.upper.x);
-    new_aabb.upper.y = std::max(a.upper.y, b.upper.y);
-    new_aabb.upper.z = std::max(a.upper.z, b.upper.z);
+    new_aabb.lower.v.x = std::min(a.lower.v.x, b.lower.v.x);
+    new_aabb.lower.v.y = std::min(a.lower.v.y, b.lower.v.y);
+    new_aabb.lower.v.z = std::min(a.lower.v.z, b.lower.v.z);
+    new_aabb.lower.s = std::min(a.lower.s, b.lower.s);
+    new_aabb.upper.v.x = std::max(a.upper.v.x, b.upper.v.x);
+    new_aabb.upper.v.y = std::max(a.upper.v.y, b.upper.v.y);
+    new_aabb.upper.v.z = std::max(a.upper.v.z, b.upper.v.z);
+    new_aabb.upper.s = std::max(a.upper.s, b.upper.s);
 
     #endif
 

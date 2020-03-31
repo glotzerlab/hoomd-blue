@@ -114,6 +114,13 @@ struct ShapeSphinx
         volume = detail::initVolume(disjoint,r,n,d);
         }
 
+    //! Initialize a shape with a given left and right quaternion (hyperspherical coordinates)
+    DEVICE ShapeSphinx(const quat<Scalar>& _quat_l, const quat<Scalar>& _quat_r, const param_type& _params)
+        : spheres(_params)
+        {
+        // not implemented
+        }
+
     //! Does this shape have an orientation
     DEVICE static bool hasOrientation() { return true; }
 
@@ -143,6 +150,13 @@ struct ShapeSphinx
         return detail::AABB(pos, getCircumsphereDiameter()/Scalar(2.0));
         }
 
+    //! Return the bounding box of the shape, defined on the hypersphere, in world coordinates
+    DEVICE detail::AABB getAABBHypersphere(const Hypersphere& hypersphere)
+        {
+        return detail::AABB(hypersphere.hypersphericalToCartesian(quat_l, quat_r),
+            detail::get_bounding_sphere_radius_4d(getCircumsphereDiameter()/Scalar(2.0), hypersphere.getR()));
+        }
+
     //!Ignore flag for acceptance statistics
     DEVICE bool ignoreStatistics() const { return spheres.ignore; }
 
@@ -150,6 +164,8 @@ struct ShapeSphinx
     HOSTDEVICE static bool isParallel() {return false; }
 
     quat<Scalar> orientation;                   //!< Orientation of the sphinx
+    quat<Scalar> quat_l;         //!< Left quaternion of spherical coordinate
+    quat<Scalar> quat_r;         //!< Right quaternion of spherical coordinate
 
     unsigned int n;              //!< Number of spheres
     bool convex;

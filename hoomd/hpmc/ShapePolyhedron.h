@@ -137,6 +137,13 @@ struct ShapePolyhedron
         {
         }
 
+    //! Initialize a shape with a given left and right quaternion (hyperspherical coordinates)
+    DEVICE ShapePolyhedron(const quat<Scalar>& _quat_l, const quat<Scalar>& _quat_r, const param_type& _params)
+        : data(_params), tree(_params.tree)
+        {
+        // not implemented
+        }
+
     //! Does this shape have an orientation
     DEVICE bool hasOrientation() { return data.n_verts > 1; }
 
@@ -197,9 +204,17 @@ struct ShapePolyhedron
     #endif
 
     //! Return the bounding box of the shape in world coordinates
+
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         return detail::AABB(pos, data.convex_hull_verts.diameter/Scalar(2));
+        }
+
+    //! Return the bounding box of the shape, defined on the hyperhypersphere, in world coordinates
+    DEVICE detail::AABB getAABBHypersphere(const Hypersphere& hypersphere)
+        {
+        return detail::AABB(hypersphere.hypersphericalToCartesian(quat_l, quat_r),
+            detail::get_bounding_sphere_radius_4d(data.convex_hull_verts.diameter/Scalar(2.0), hypersphere.getR()));
         }
 
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
@@ -213,6 +228,8 @@ struct ShapePolyhedron
         }
 
     quat<Scalar> orientation;    //!< Orientation of the polyhedron
+    quat<Scalar> quat_l;         //!< Left quaternion of spherical coordinate
+    quat<Scalar> quat_r;         //!< Right quaternion of spherical coordinate
 
     const detail::poly3d_data& data;     //!< Vertices
     const detail::GPUTree &tree;           //!< Tree for particle features

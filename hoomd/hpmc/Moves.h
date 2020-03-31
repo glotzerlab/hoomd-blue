@@ -4,6 +4,7 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 #include "hoomd/RandomNumbers.h"
+#include "hoomd/Hypersphere.h"
 
 /*! \file Moves.h
     \brief Trial move generators
@@ -49,6 +50,46 @@ DEVICE inline void move_translate(vec3<Scalar>& v, RNG& rng, Scalar d, unsigned 
 
     // apply the move vector
     v += dr;
+    }
+
+//! Pure translation move on the hypersphere along a geodesic
+/*! \param quat_l Left quaternion of sphere coordinate to translate (in/out)
+    \param quat_r Right quaternion of sphere coordinate to translate (in/out)
+    \param rng Saru RNG to utilize in the move
+    \param d Maximum arc-length (in distance units)
+    \param hypersphere The hypersphere boundary
+
+    See Sinkovits et al JCP 2011 for a definition.
+*/
+template <class RNG>
+DEVICE inline void move_translate_hypersphere(quat<Scalar>& quat_l, quat<Scalar>& quat_r, RNG& rng, Scalar d, const Hypersphere& hypersphere)
+    {
+    // Generate a random arc of maximum length d
+    Scalar phi = rng.template s<Scalar>(-d,d)/hypersphere.getR();
+
+    vec3<Scalar> b;
+
+    //! Generate a direction (3d unit vector) for the translation
+    Scalar theta = rng.template s<Scalar>(Scalar(0.0),Scalar(2.0*M_PI));
+    Scalar z = rng.template s<Scalar>(Scalar(-1.0),Scalar(1.0));
+    b = vec3<Scalar>(fast::sqrt(Scalar(1.0)-z*z)*fast::cos(theta),fast::sqrt(Scalar(1.0)-z*z)*fast::sin(theta),z);
+
+    // the transformation quaternion
+    quat<Scalar> p(fast::cos(0.5*phi),fast::sin(0.5*phi)*b);
+
+    // apply the translation in the standard position
+    quat_l = quat_l*p;
+
+    // renormalize
+    Scalar norm_l_inv = fast::rsqrt(dot(quat_l, quat_l));
+    quat_l.s *= norm_l_inv;
+    quat_l.v *= norm_l_inv;
+
+    quat_r = p*quat_r;
+
+    Scalar norm_r_inv = fast::rsqrt(dot(quat_r, quat_r));
+    quat_r.s *= norm_r_inv;
+    quat_r.v *= norm_r_inv;
     }
 
 //! Rotation move
@@ -104,6 +145,83 @@ DEVICE void move_rotate(quat<Scalar>& orientation, RNG& rng, Scalar a, unsigned 
         orientation = orientation * (fast::rsqrt(norm2(orientation)));
         }
     }
+
+//! Pure rotation move on the hypersphere around a randomly chosen axis
+/*! \param quat_l Left quaternion of sphere coordinate to translate (in/out)
+    \param quat_r Right quaternion of sphere coordinate to translate (in/out)
+    \param rng Saru RNG to utilize in the move
+    \param a Maximum rotation angle, in radians
+
+    See Sinkovits et al JCP 2011 for a definition.
+
+*/
+template <class RNG>
+DEVICE inline void move_rotate_hypersphere(quat<Scalar>& quat_l, quat<Scalar>& quat_r, RNG& rng, Scalar a)
+    {
+    // Generate a random angle between -a/2 and a/2
+    Scalar phi = rng.template s<Scalar>(-a,a);
+
+    vec3<Scalar> b;
+
+    //! Generate a direction (3d unit vector) for the translation
+    Scalar theta = rng.template s<Scalar>(Scalar(0.0),Scalar(2.0*M_PI));
+    Scalar z = rng.template s<Scalar>(Scalar(-1.0),Scalar(1.0));
+    b = vec3<Scalar>(fast::sqrt(Scalar(1.0)-z*z)*fast::cos(theta),fast::sqrt(Scalar(1.0)-z*z)*fast::sin(theta),z);
+
+    // the transformation quaternion
+    quat<Scalar> p(fast::cos(0.5*phi),fast::sin(0.5*phi)*b);
+
+    // apply the rotation in the standard position
+    quat_l = quat_l*p;
+
+    quat_r = conj(p)*quat_r;
+
+    // renormalize
+    Scalar norm_l_inv = fast::rsqrt(dot(quat_l, quat_l));
+    quat_l.s *= norm_l_inv;
+    quat_l.v *= norm_l_inv;
+
+    Scalar norm_r_inv = fast::rsqrt(dot(quat_r, quat_r));
+    quat_r.s *= norm_r_inv;
+    quat_r.v *= norm_r_inv;
+    }
+
+//! Select a random index
+/*! \param rng Saru RNG to utilize in the move
+    \param max Maximum index to select
+    \returns a random number 0 <= i <= max with uniform probability.
+
+    **Method**
+
+    First, round max+1 up to the next nearest power of two -> max2. Then draw random numbers in the range [0 ... max2)
+    using 32-but random values and a bitwise and with max2-1. Return the first random number found in the range.
+*/
+template <class RNG>
+DEVICE inline unsigned int rand_select(RNG& rng, unsigned int max)
+    {
+    // handle degenerate case where max==0
+    if (max == 0)
+        return 0;
+
+    // algorithm to round up to the nearest power of two from https://en.wikipedia.org/wiki/Power_of_two
+    unsigned int n = max+1;
+    n = n - 1;
+    n = n | (n >> 1);
+    n = n | (n >> 2);
+    n = n | (n >> 4);
+    n = n | (n >> 8);
+    n = n | (n >> 16);
+    // Note: leaving off the n = n + 1 because we are going to & with next highest power of 2 -1
+
+    unsigned int result;
+    do
+        {
+        result = rng.u32() & n;
+        } while(result > max);
+
+    return result;
+    }
+
 
 //! Helper function to test if a particle is in an active region
 /*! \param pos Position of the particle
