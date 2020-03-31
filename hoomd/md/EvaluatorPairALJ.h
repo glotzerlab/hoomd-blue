@@ -549,7 +549,7 @@ class EvaluatorPairALJ
         //! uses diameter
         HOSTDEVICE static bool needsDiameter()
             {
-            return true;
+            return false;
             }
 
         //! Whether the pair potential uses shape.
@@ -574,11 +574,7 @@ class EvaluatorPairALJ
         /*! \param di Diameter of particle i
             \param dj Diameter of particle j
         */
-        HOSTDEVICE void setDiameter(Scalar di, Scalar dj)
-            {
-            dia_i = di;
-            dia_j = dj;
-            }
+        HOSTDEVICE void setDiameter(Scalar di, Scalar dj) {}
 
         //! Accept the optional shape values
         /*! \param shape_i Shape of particle i
