@@ -7,10 +7,10 @@ import hoomd.trigger
 
 
 def test_periodic_properties():
-    """ Test construction and properties of PeriodicTrigger
+    """ Test construction and properties of Periodic
     """
 
-    a = hoomd.trigger.PeriodicTrigger(123)
+    a = hoomd.trigger.Periodic(123)
 
     assert a.period == 123
     assert a.phase == 0
@@ -25,14 +25,14 @@ def test_periodic_properties():
     assert a.period == 10000000000
     assert a.phase == 6000000000
 
-    b = hoomd.trigger.PeriodicTrigger(phase=3, period=456)
+    b = hoomd.trigger.Periodic(phase=3, period=456)
 
     assert b.period == 456
     assert b.phase == 3
 
 
 def test_periodic_eval():
-    a = hoomd.trigger.PeriodicTrigger(period=456, phase=18)
+    a = hoomd.trigger.Periodic(period=456, phase=18)
 
     for i in range(10000):
         assert a(i) == ((i - 18) % 456 == 0)
@@ -40,7 +40,7 @@ def test_periodic_eval():
     for i in range(10000000000, 10000010000):
         assert a(i) == ((i - 18) % 456 == 0)
 
-    b = hoomd.trigger.PeriodicTrigger(period=10000000000, phase=6000000000)
+    b = hoomd.trigger.Periodic(period=10000000000, phase=6000000000)
 
     assert b(6000000000)
     assert not b(6000000001)

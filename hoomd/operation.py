@@ -10,7 +10,7 @@ _TriggeredOperation is _Operation for objects that are triggered.
 """
 
 from hoomd.util import is_iterable, dict_map, str_to_tuple_keys
-from hoomd.trigger import PeriodicTrigger, Trigger
+from hoomd.trigger import Periodic, Trigger
 from hoomd.variant import Variant, Constant
 from hoomd.filter import _ParticleFilter
 from hoomd.logger import Loggable
@@ -294,9 +294,9 @@ def trigger_preprocessing(value):
     if isinstance(value, Trigger):
         return value
     if isinstance(value, int):
-        return PeriodicTrigger(period=value, phase=0)
+        return Periodic(period=value, phase=0)
     elif hasattr(value, '__len__') and len(value) == 2:
-        return PeriodicTrigger(period=value[0], phase=value[1])
+        return Periodic(period=value[0], phase=value[1])
     else:
         raise ValueError("Value {} could not be converted to a Trigger.")
 
