@@ -103,5 +103,176 @@ class PYBIND11_EXPORT PeriodicTrigger : public Trigger
         uint64_t m_phase;
     };
 
+/** Until trigger
+ *
+ *  Trigger every time step until `timestep >= m_until`.
+*/
+class PYBIND11_EXPORT UntilTrigger : public Trigger
+    {
+    public:
+
+    UntilTrigger(uint64_t until) : Trigger(), m_until(until) {}
+
+    bool compute(uint64_t timestep)
+        {
+        if (timestep < m_until)
+            {
+            return true;
+            }
+        else
+            {
+            return false;
+            }
+        }
+
+    /// Get the point where triggering will stop
+    uint64_t getUntil() {return m_until;}
+
+    /// Set the point where triggering will stop
+    void setUntil(uint64_t until) {m_until = until;}
+
+    protected:
+        /// Always trigger until this timestep
+        uint64_t m_until;
+    };
+
+/** After trigger
+ *
+ *  Trigger every time step after and including `timestep > m_after`.
+*/
+class PYBIND11_EXPORT AfterTrigger : public Trigger
+    {
+    public:
+
+    AfterTrigger(uint64_t after) : Trigger(), m_after(after) {}
+
+    bool compute(uint64_t timestep)
+        {
+        if (timestep > m_after)
+            {
+            return true;
+            }
+        else
+            {
+            return false;
+            }
+        }
+
+    /// Get the point where triggering will stop
+    uint64_t getAfter() {return m_after;}
+
+    /// Set the point where triggering will stop
+    void setAfter(uint64_t after) {m_after = after;}
+
+    protected:
+        /// Always trigger after this timestep
+        uint64_t m_after;
+    };
+
+/** Not trigger
+ *
+ *  Negates any given trigger.
+*/
+class PYBIND11_EXPORT NotTrigger : public Trigger
+    {
+    public:
+        NotTrigger(std::shared_ptr<Trigger> trigger) :
+            Trigger(), m_trigger(trigger) {}
+
+        bool compute(uint64_t timestep)
+            {
+            return !(m_trigger->compute(timestep));
+            }
+
+        /// Get the trigger thats negated
+        std::shared_ptr<Trigger> getTrigger() {return m_trigger;}
+
+        /// Set the trigger to negate
+        void setTrigger(std::shared_ptr<Trigger> trigger) {m_trigger = trigger;}
+
+    protected:
+        std::shared_ptr<Trigger> m_trigger;
+    };
+
+/** And trigger
+ *
+ *  The logical AND between two triggers.
+*/
+class PYBIND11_EXPORT AndTrigger : public Trigger
+    {
+    public:
+        AndTrigger(std::shared_ptr<Trigger> trigger1,
+                   std::shared_ptr<Trigger> trigger2) :
+            Trigger(), m_trigger1(trigger1), m_trigger2(trigger2) {}
+
+        bool compute(uint64_t timestep)
+            {
+            return m_trigger1->compute(timestep) &&
+                   m_trigger2->compute(timestep);
+            }
+
+        /// Get the first trigger
+        std::shared_ptr<Trigger> getTrigger1() {return m_trigger1;}
+
+        /// Set the second trigger
+        void setTrigger1(std::shared_ptr<Trigger> trigger)
+            {
+            m_trigger1 = trigger;
+            }
+
+        /// Get the second trigger
+        std::shared_ptr<Trigger> getTrigger2() {return m_trigger2;}
+
+        /// Set the second trigger
+        void setTrigger2(std::shared_ptr<Trigger> trigger)
+            {
+            m_trigger2 = trigger;
+            }
+
+    protected:
+        std::shared_ptr<Trigger> m_trigger1;
+        std::shared_ptr<Trigger> m_trigger2;
+    };
+
+/** Or trigger
+ *
+ *  The logical OR between two triggers.
+*/
+class PYBIND11_EXPORT OrTrigger : public Trigger
+    {
+    public:
+        OrTrigger(std::shared_ptr<Trigger> trigger1,
+                   std::shared_ptr<Trigger> trigger2) :
+            Trigger(), m_trigger1(trigger1), m_trigger2(trigger2) {}
+
+        bool compute(uint64_t timestep)
+            {
+            return m_trigger1->compute(timestep) ||
+                   m_trigger2->compute(timestep);
+            }
+
+        /// Get the first trigger
+        std::shared_ptr<Trigger> getTrigger1() {return m_trigger1;}
+
+        /// Set the second trigger
+        void setTrigger1(std::shared_ptr<Trigger> trigger)
+            {
+            m_trigger1 = trigger;
+            }
+
+        /// Get the second trigger
+        std::shared_ptr<Trigger> getTrigger2() {return m_trigger2;}
+
+        /// Set the second trigger
+        void setTrigger2(std::shared_ptr<Trigger> trigger)
+            {
+            m_trigger2 = trigger;
+            }
+
+    protected:
+        std::shared_ptr<Trigger> m_trigger1;
+        std::shared_ptr<Trigger> m_trigger2;
+    };
+
 /// Export Trigger classes to Python
 void export_Trigger(pybind11::module& m);

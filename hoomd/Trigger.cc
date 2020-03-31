@@ -42,5 +42,54 @@ void export_Trigger(pybind11::module& m)
         .def_property("period", &PeriodicTrigger::getPeriod, &PeriodicTrigger::setPeriod)
         ;
 
+    pybind11::class_<UntilTrigger, Trigger, std::shared_ptr<UntilTrigger>
+                    >(m, "UntilTrigger")
+        .def(pybind11::init<uint64_t>(), pybind11::arg("until"))
+        .def_property("until", &UntilTrigger::getUntil, &UntilTrigger::setUntil)
+        ;
+
+    pybind11::class_<AfterTrigger, Trigger, std::shared_ptr<AfterTrigger>
+                    >(m, "AfterTrigger")
+        .def(pybind11::init<uint64_t>(), pybind11::arg("after"))
+        .def_property("after", &AfterTrigger::getAfter, &AfterTrigger::setAfter)
+        ;
+
+    pybind11::class_<NotTrigger, Trigger, std::shared_ptr<NotTrigger>
+                    >(m, "NotTrigger")
+        .def(pybind11::init<std::shared_ptr<Trigger> >(),
+             pybind11::arg("trigger"))
+        .def_property("trigger",
+                      &NotTrigger::getTrigger,
+                      &NotTrigger::setTrigger)
+        ;
+
+    pybind11::class_<AndTrigger, Trigger, std::shared_ptr<AndTrigger>
+                    >(m, "AndTrigger")
+        .def(pybind11::init<std::shared_ptr<Trigger>,
+                            std::shared_ptr<Trigger> >(),
+             pybind11::arg("trigger1"),
+             pybind11::arg("trigger2"))
+        .def_property("trigger1",
+                      &AndTrigger::getTrigger1,
+                      &AndTrigger::setTrigger1)
+        .def_property("trigger2",
+                      &AndTrigger::getTrigger2,
+                      &AndTrigger::setTrigger2)
+        ;
+
+    pybind11::class_<OrTrigger, Trigger, std::shared_ptr<OrTrigger>
+                    >(m, "OrTrigger")
+        .def(pybind11::init<std::shared_ptr<Trigger>,
+                            std::shared_ptr<Trigger> >(),
+             pybind11::arg("trigger1"),
+             pybind11::arg("trigger2"))
+        .def_property("trigger1",
+                      &OrTrigger::getTrigger1,
+                      &OrTrigger::setTrigger1)
+        .def_property("trigger2",
+                      &OrTrigger::getTrigger2,
+                      &OrTrigger::setTrigger2)
+        ;
+
     m.def("_test_trigger_call", &testTriggerCall);
     }
