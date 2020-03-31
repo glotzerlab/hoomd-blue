@@ -2965,22 +2965,6 @@ class alj(ai_pair):
 
         ndim = hoomd.context.current.system_definition.getNDimensions()
 
-        # Process vertices
-        vertices = list(self.shape[type_name].get('vertices', [[0, 0, 0]]))
-        if ndim == 2:
-            vertices = [[v[0], v[1], 0] for v in vertices]
-
-        if len(vertices) <= ndim:
-            raise ValueError("Your shape must have at least {} vertices in "
-                             "{} dimensions".format(
-                                 ndim+1, ndim));
-
-        if np.linalg.norm(np.mean(vertices, axis=0)) > 1e-6:
-            raise ValueError(
-                "The vertices must be centered at the centroid of your shape. "
-                "Please subtract the centroid (e.g. via "
-                "`np.mean(vertices, axis=0)`) from the vertices.")
-
         # Process rounding radius
         rrs = self.shape[type_name].get('rounding_radii', 0)
         try:
@@ -3007,6 +2991,22 @@ class alj(ai_pair):
                 rounding_radii = [rrs, rrs, 0]
             else:
                 rounding_radii = [rrs, rrs, rrs]
+
+        # Process vertices
+        vertices = list(self.shape[type_name].get('vertices', [[0, 0, 0]]))
+        if ndim == 2:
+            vertices = [[v[0], v[1], 0] for v in vertices]
+
+        if len(vertices) <= ndim and rrs == 0:
+            raise ValueError("Your shape must have at least {} vertices in "
+                             "{} dimensions".format(
+                                 ndim+1, ndim));
+
+        if np.linalg.norm(np.mean(vertices, axis=0)) > 1e-6:
+            raise ValueError(
+                "The vertices must be centered at the centroid of your shape. "
+                "Please subtract the centroid (e.g. via "
+                "`np.mean(vertices, axis=0)`) from the vertices.")
 
         param = _md.make_alj_shape_params(
             vertices, rounding_radii, hoomd.context.exec_conf)
