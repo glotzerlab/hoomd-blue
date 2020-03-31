@@ -76,6 +76,7 @@ from hoomd.logger import Logger
 from hoomd import tuner
 from hoomd.custom_action import CustomAction
 from hoomd.custom_operation import _CustomOperation
+from hoomd import output
 
 from hoomd._hoomd import WalltimeLimitReached
 
