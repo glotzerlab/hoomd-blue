@@ -604,7 +604,24 @@ class PYBIND11_EXPORT Communicator
                 (r_ghost_max >= L.y/Scalar(2.0) && di.getH() > 1) ||
                 (r_ghost_max >= L.z/Scalar(2.0) && di.getD() > 1))
                 {
-                throw std::runtime_error("Communication error: Simulation box too small for domain decomposition.");
+                std::ostringstream msg;
+                msg << "Communication error - " << std::endl;
+                msg << "Simulation box too small for domain decomposition." << std::endl;
+                msg << "r_ghost_max: " << r_ghost_max << std::endl;
+                if (di.getW() > 1)
+                    {
+                    msg << "d.x/2: " << L.x/Scalar(2.0) << std::endl;
+                    }
+                if (di.getH() > 1)
+                    {
+                    msg << "d.y/2: " << L.y/Scalar(2.0) << std::endl;
+                    }
+                if (di.getD() > 1)
+                    {
+                    msg << "d.z/2: " << L.z/Scalar(2.0) << std::endl;
+                    }
+
+                throw std::runtime_error(msg.str());
                 }
             }
 
