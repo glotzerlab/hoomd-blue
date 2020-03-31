@@ -87,10 +87,11 @@ def convex_polyhedron_valid_args():
                                    (-0.5, -(0.75**0.5) / 2, -0.5),
                                    (0.5, -(0.75**0.5) / 2, -0.5),
                                    (0, 0, 0.5)]},
-                     {'vertices': [(0, 5, 0), (1, 1, 1), (1, 0, 1),
-                                   (0, 1, 1), (1, 1, 0), (0, 0, 1)],
+                     {'vertices': [(0, 0.25, 0), (0.375, 0.375, 0.375),
+                                   (0.375, 0, 0.375), (0, 0.375, 0.375),
+                                   (0.375, 0.375, 0), (0, 0, 0.375)],
                       'ignore_statistics': 1,
-                      'sweep_radius': 2.0},
+                      'sweep_radius': 0.125},
                      {'vertices': [(1, 0, 0), (1, 1, 0), (1, 2, 1),
                                    (0, 1, 1), (1, 1, 2), (0, 0, 1)],
                       'sweep_radius': 1.0},
@@ -185,7 +186,7 @@ def ellipsoid_cpp():
 @pytest.fixture(scope="function")
 def ellipsoid_valid_args():
     def get_args():
-        args_list = [{'a': 0.75, 'b': 1, 'c': 0.5},
+        args_list = [{'a': 0.125, 'b': 0.375, 'c': 0.5},
                      {'a': 1, 'b': 2, 'c': 3},
                      {'a': 4, 'b': 1, 'c': 30, 'ignore_statistics': 1},
                      {'a': 10, 'b': 5, 'c': 6, 'ignore_statistics': 0}]
@@ -235,23 +236,25 @@ def faceted_ellipsoid_cpp():
 def faceted_ellipsoid_valid_args():
     def get_args():
         args_list = [{"normals": [(0, 0, 1)],
-                      "a": 1,
-                      "b": 1,
-                      "c": 0.5,
+                      "a": 0.5,
+                      "b": 0.5,
+                      "c": 0.25,
                       "vertices": [],
                       "origin": (0, 0, 0),
-                      "offsets": [0.125]},
+                      "offsets": [0.125],
+                      "ignore_statistics": False},
                      {"normals": [(0, 0, 1), (0, 1, 0), (1, 0, 0)],
-                      "offsets": [0.75, 0.75, 0.5],
+                      "offsets": [0.1, 0.25, 0.25],
                       "a": 0.5,
-                      "b": 0.75,
-                      "c": 1,
+                      "b": 0.25,
+                      "c": 0.125,
                       "vertices": [],
-                      "origin": (0, 0, 0)},
+                      "origin": (0, 0, 0),
+                      "ignore_statistics": False},
                      {"normals": [(1, 0, 0)],
-                      "offsets": [0.75],
-                      "a": 1,
-                      "b": 0.75,
+                      "offsets": [0.25],
+                      "a": 0.5,
+                      "b": 0.25,
                       "c": 0.5,
                       "vertices": [],
                       "origin": (0, 0, 0.125),
@@ -355,34 +358,31 @@ def faceted_ellipsoid_union_cpp():
 
 
 @pytest.fixture(scope="function")
-def faceted_ellipsoid_union_valid_args(faceted_ellipsoid_valid_args,
-                                       faceted_ellipsoid_integrator):
+def faceted_ellipsoid_union_valid_args(faceted_ellipsoid_valid_args):
     def get_args():
         faceted_ell_args_list = faceted_ellipsoid_valid_args()
-        integrator = faceted_ellipsoid_integrator()(2345)
-        integrator.shape['A'] = faceted_ell_args_list[0]
-        integrator.shape['B'] = faceted_ell_args_list[1]
-        integrator.shape['C'] = faceted_ell_args_list[2]
-        args_list = [{'shapes': [integrator.shape['A'],
-                                 integrator.shape['B']],
-                      'positions': [(0, 0, 0), (0, 0, 1)],
+        args_list = [{'shapes': [faceted_ell_args_list[0],
+                                 faceted_ell_args_list[1]],
+                      'positions': [(0, 0, 0), (0, 0, 0.1)],
                       'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)],
-                      'overlap': [0, 1]},
-                     {'shapes': [integrator.shape['C'],
-                                 integrator.shape['B']],
+                      'overlap': [1, 1],
+                      'ignore_statistics': False},
+                     {'shapes': [faceted_ell_args_list[0],
+                                 faceted_ell_args_list[1]],
                       'positions': [(1, 0, 0), (0, 0, 1)],
                       'orientations': [(1, 1, 0, 0), (1, 0, 0, 0)],
                       'overlap': [1, 0],
-                      'capacity': 3},
-                     {'shapes': [integrator.shape['A'],
-                                 integrator.shape['C']],
+                      'capacity': 3,
+                      'ignore_statistics': False},
+                     {'shapes': [faceted_ell_args_list[0],
+                                 faceted_ell_args_list[2]],
                       'positions': [(1, 0, 1), (0, 0, 0)],
                       'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)],
                       'overlap': [0, 1],
                       'ignore_statistics': 1},
-                     {'shapes': [integrator.shape['A'],
-                                 integrator.shape['B'],
-                                 integrator.shape['C']],
+                     {'shapes': [faceted_ell_args_list[0],
+                                 faceted_ell_args_list[1],
+                                 faceted_ell_args_list[2]],
                       'positions': [(0, 0, 0), (0, 0, 1), (1, 1, 1)],
                       'orientations': [(1, 1, 1, 1),
                                        (1, 0, 0, 0),
@@ -720,7 +720,7 @@ def sphere_union_valid_args(sphere_valid_args, sphere_integrator):
         integrator.shape['B'] = sphere_args_list[1]
         integrator.shape['C'] = sphere_args_list[2]
         args_list = [{'shapes': [integrator.shape['A'], integrator.shape['B']],
-                      'positions': [(0, 0, 0), (0, 0, 1)],
+                      'positions': [(0, 0, 0), (0, 0, 0.1)],
                       'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)],
                       'overlap': [1, 1]},
                      {'shapes': [integrator.shape['A'], integrator.shape['B']],
@@ -815,7 +815,7 @@ def convex_spheropolyhedron_union_valid_args(convex_polyhedron_valid_args,
         integrator.shape['B'] = polyhedron_vertices_list[1]
         integrator.shape['C'] = polyhedron_vertices_list[2]
         args_list = [{'shapes': [integrator.shape['A'], integrator.shape['B']],
-                      'positions': [(0, 0, 0), (0, 0, 1)],
+                      'positions': [(0, 0, 0), (0, 0, 0.1)],
                       'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)],
                       'overlap': [1, 1]},
                      {'shapes': [integrator.shape['A'], integrator.shape['B']],
