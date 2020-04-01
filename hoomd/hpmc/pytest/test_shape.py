@@ -3,6 +3,7 @@ import hoomd.hpmc
 import numpy as np
 import pytest
 from hoomd.hpmc.pytest.conftest import *
+from copy import deepcopy
 
 
 def check_dict(shape_dict, args):
@@ -101,49 +102,58 @@ def test_moves(device,
             accepted_rejected_rot = sum(sim.operations.integrator.rotate_moves)
             assert accepted_rejected_rot > 0
 
+# An ellipsoid with a = b = c should be a sphere
+# A spheropolyhedron with a single vertex should be a sphere
+# A sphinx where the indenting sphere is negligible should also be a sphere
+_sphere_shapes = [({'diameter': 1},
+                   hoomd.hpmc.integrate.Sphere),
+                  ({'a': 0.5, 'b': 0.5, 'c': 0.5},
+                   hoomd.hpmc.integrate.Ellipsoid),
+                  ({'vertices': [(0, 0, 0)], 'sweep_radius': 0.5},
+                   hoomd.hpmc.integrate.ConvexSpheropolyhedron),
+                  ({'diameters': [1, -0.0001],
+                    'centers': [(0, 0, 0), (0, 0, 0.5)]},
+                   hoomd.hpmc.integrate.Sphinx)]
+
+
+@pytest.fixture(scope="function", params=_sphere_shapes)
+def sphere_overlap_args(request):
+    return deepcopy(request.param)
+
 
 def test_overlaps_sphere(device,
+                         sphere_overlap_args,
                          simulation_factory,
                          two_particle_snapshot_factory):
-    # An ellipsoid with a = b = c should be a sphere
-    # A spheropolyhedron with a single vertex should be a sphere
-    # A sphinx where the indenting sphere is negligible should also be a sphere
-    shapes = [({'diameter': 1},
-               hoomd.hpmc.integrate.Sphere),
-              ({'a': 0.5, 'b': 0.5, 'c': 0.5},
-               hoomd.hpmc.integrate.Ellipsoid),
-              ({'vertices': [(0, 0, 0)], 'sweep_radius': 0.5},
-               hoomd.hpmc.integrate.ConvexSpheropolyhedron),
-              ({'diameters': [1, -0.0001], 'centers': [(0, 0, 0), (0, 0, 0.5)]},
-               hoomd.hpmc.integrate.Sphinx)]
+    integrator_args = sphere_overlap_args[0]
+    integrator = sphere_overlap_args[1]
 
-    for args, integrator in shapes:
-        mc = integrator(23456)
-        mc.shape["A"] = args
-        diameter = 1
+    mc = integrator(23456)
+    mc.shape["A"] = integrator_args
+    diameter = 1
 
-        # Should overlap when spheres are less than one diameter apart
-        sim = simulation_factory(
-            two_particle_snapshot_factory(dimensions=3, d=diameter * 0.9))
-        sim.operations.add(mc)
-        sim.operations.schedule()
-        assert mc.overlaps > 0
+    # Should overlap when spheres are less than one diameter apart
+    sim = simulation_factory(
+        two_particle_snapshot_factory(dimensions=3, d=diameter * 0.9))
+    sim.operations.add(mc)
+    sim.operations.schedule()
+    assert mc.overlaps > 0
 
-        # Should not overlap when spheres are larger than one diameter apart
-        s = sim.state.snapshot
-        if s.exists:
-            s.particles.position[0] = (0, 0, 0)
-            s.particles.position[1] = (0, diameter * 1.1, 0)
-        sim.state.snapshot = s
-        assert mc.overlaps == 0
+    # Should not overlap when spheres are larger than one diameter apart
+    s = sim.state.snapshot
+    if s.exists:
+        s.particles.position[0] = (0, 0, 0)
+        s.particles.position[1] = (0, diameter * 1.1, 0)
+    sim.state.snapshot = s
+    assert mc.overlaps == 0
 
-        # Should barely overlap when spheres are exactly than one diameter apart
-        s = sim.state.snapshot
-        if s.exists:
-            s.particles.position[0] = (0, 0, 0)
-            s.particles.position[1] = (0, diameter * 0.9999, 0)
-        sim.state.snapshot = s
-        assert mc.overlaps == 1
+    # Should barely overlap when spheres are exactly than one diameter apart
+    s = sim.state.snapshot
+    if s.exists:
+        s.particles.position[0] = (0, 0, 0)
+        s.particles.position[1] = (0, diameter * 0.9999, 0)
+    sim.state.snapshot = s
+    assert mc.overlaps == 1
 
 
 def test_overlaps_ellipsoid(device,
@@ -193,335 +203,335 @@ def test_overlaps_ellipsoid(device,
     sim.state.snapshot = s
     assert mc.overlaps > 0
 
+_triangle = {'vertices': [(0, (0.75**0.5) / 2),
+                          (-0.5, -(0.75**0.5) / 2),
+                          (0.5, -(0.75**0.5) / 2)]}
+_square = {"vertices": np.array([(-1, -1), (1, -1), (1, 1), (-1, 1)]) / 2}
+# Args should work for ConvexPolygon, SimplePolygon, and ConvexSpheropolygon
+_polygon_shapes = [(_triangle, hoomd.hpmc.integrate.ConvexPolygon),
+                   (_triangle, hoomd.hpmc.integrate.SimplePolygon),
+                   (_triangle, hoomd.hpmc.integrate.ConvexSpheropolygon),
+                   (_square, hoomd.hpmc.integrate.ConvexPolygon),
+                   (_square, hoomd.hpmc.integrate.SimplePolygon),
+                   (_square, hoomd.hpmc.integrate.ConvexSpheropolygon)]
+
+
+@pytest.fixture(scope="function", params=_polygon_shapes)
+def polygon_overlap_args(request):
+    return deepcopy(request.param)
+
 
 def test_overlaps_polygons(device,
+                           polygon_overlap_args,
                            simulation_factory,
                            two_particle_snapshot_factory):
-    triangle = {'vertices': [(0, (0.75**0.5) / 2),
-                             (-0.5, -(0.75**0.5) / 2),
-                             (0.5, -(0.75**0.5) / 2)]}
+    integrator_args = polygon_overlap_args[0]
+    integrator = polygon_overlap_args[1]
+    mc = integrator(23456)
+    mc.shape['A'] = integrator_args
 
-    square = {"vertices": np.array([(-1, -1), (1, -1), (1, 1), (-1, 1)]) / 2}
+    sim = simulation_factory(two_particle_snapshot_factory(dimensions=3,
+                                                           d=2))
+    sim.operations.add(mc)
+    sim.operations.schedule()
+    assert mc.overlaps == 0
 
-    # Args should work for ConvexPolygon, SimplePolygon, and ConvexSpheropolygon
-    shapes = [(triangle, hoomd.hpmc.integrate.ConvexPolygon),
-              (triangle, hoomd.hpmc.integrate.SimplePolygon),
-              (triangle, hoomd.hpmc.integrate.ConvexSpheropolygon),
-              (square, hoomd.hpmc.integrate.ConvexPolygon),
-              (square, hoomd.hpmc.integrate.SimplePolygon),
-              (square, hoomd.hpmc.integrate.ConvexSpheropolygon)]
-
-    for args, integrator in shapes:
-        mc = integrator(23456)
-        mc.shape['A'] = args
-
-        sim = simulation_factory(two_particle_snapshot_factory(dimensions=3,
-                                                               d=2))
-        sim.operations.add(mc)
-        sim.operations.schedule()
-        assert mc.overlaps == 0
-
-        # Place center of shape 2 on each of shape 1's vertices
-        for vert in mc.shape["A"]["vertices"]:
-            s = sim.state.snapshot
-            if s.exists:
-                s.particles.position[0] = (0, 0, 0)
-                s.particles.position[1] = (vert[0], vert[1], 0)
-            sim.state.snapshot = s
-            assert mc.overlaps > 0
-
+    # Place center of shape 2 on each of shape 1's vertices
+    for vert in mc.shape["A"]["vertices"]:
         s = sim.state.snapshot
         if s.exists:
             s.particles.position[0] = (0, 0, 0)
-            s.particles.position[1] = (0, 1.05, 0)
-        sim.state.snapshot = s
-        assert mc.overlaps == 0
-
-        # Rotate one of the shapes so they will overlap
-        s = sim.state.snapshot
-        if s.exists:
-            s.particles.orientation[1] = tuple(np.array([1, 0, 0, 0.45]) / (1.2025**0.5))
+            s.particles.position[1] = (vert[0], vert[1], 0)
         sim.state.snapshot = s
         assert mc.overlaps > 0
+
+    s = sim.state.snapshot
+    if s.exists:
+        s.particles.position[0] = (0, 0, 0)
+        s.particles.position[1] = (0, 1.05, 0)
+    sim.state.snapshot = s
+    assert mc.overlaps == 0
+
+    # Rotate one of the shapes so they will overlap
+    s = sim.state.snapshot
+    if s.exists:
+        s.particles.orientation[1] = tuple(np.array([1, 0, 0, 0.45]) / (1.2025**0.5))
+    sim.state.snapshot = s
+    assert mc.overlaps > 0
+
+_tetrahedron_verts = np.array([(1, 1, 1),
+                               (-1, -1, 1),
+                               (1, -1, -1),
+                               (-1, 1, -1)]) / 2
+
+_tetrahedron_faces = [[1, 3, 2], [3, 0, 2], [1, 0, 3], [1, 2, 0]]
+
+_cube_verts = [(-0.5, -0.5, -0.5),
+               (-0.5, -0.5, 0.5),
+               (-0.5, 0.5, -0.5),
+               (-0.5, 0.5, 0.5),
+               (0.5, -0.5, -0.5),
+               (0.5, -0.5, 0.5),
+               (0.5, 0.5, -0.5),
+               (0.5, 0.5, 0.5)]
+
+_cube_faces = [[0, 2, 6],
+               [6, 4, 0],
+               [5, 0, 4],
+               [5, 1, 0],
+               [5, 4, 6],
+               [5, 6, 7],
+               [3, 2, 0],
+               [3, 0, 1],
+               [3, 6, 2],
+               [3, 7, 6],
+               [3, 1, 5],
+               [3, 5, 7]]
+
+# Test args with ConvexPolyhedron, ConvexSpheropolyhedron, and Polyhedron
+_polyhedron_shapes = [({"vertices": _tetrahedron_verts},
+                       hoomd.hpmc.integrate.ConvexPolyhedron),
+                      ({"vertices": _tetrahedron_verts},
+                       hoomd.hpmc.integrate.ConvexSpheropolyhedron),
+                      ({"vertices": _tetrahedron_verts,
+                        "faces": _tetrahedron_faces},
+                       hoomd.hpmc.integrate.Polyhedron),
+                      ({"vertices": _cube_verts},
+                       hoomd.hpmc.integrate.ConvexPolyhedron),
+                      ({"vertices": _cube_verts},
+                       hoomd.hpmc.integrate.ConvexSpheropolyhedron),
+                      ({"vertices": _cube_verts,
+                        "faces": _cube_faces},
+                       hoomd.hpmc.integrate.Polyhedron)]
+
+
+@pytest.fixture(scope="function", params=_polyhedron_shapes)
+def polyhedron_overlap_args(request):
+    return deepcopy(request.param)
 
 
 def test_overlaps_polyhedra(device,
+                            polyhedron_overlap_args,
                             simulation_factory,
                             two_particle_snapshot_factory):
-    tetrahedron_verts = np.array([(1, 1, 1),
-                                  (-1, -1, 1),
-                                  (1, -1, -1),
-                                  (-1, 1, -1)]) / 2
+    integrator_args = polyhedron_overlap_args[0]
+    integrator = polyhedron_overlap_args[1]
 
-    tetrahedron_faces = [[1, 3, 2], [3, 0, 2], [1, 0, 3], [1, 2, 0]]
+    mc = integrator(23456)
+    mc.shape['A'] = integrator_args
+    sim = simulation_factory(two_particle_snapshot_factory(dimensions=3,
+                                                           d=2))
+    sim.operations.add(mc)
+    sim.operations.schedule()
+    assert mc.overlaps == 0
 
-    cube_verts = [(-0.5, -0.5, -0.5),
-                  (-0.5, -0.5, 0.5),
-                  (-0.5, 0.5, -0.5),
-                  (-0.5, 0.5, 0.5),
-                  (0.5, -0.5, -0.5),
-                  (0.5, -0.5, 0.5),
-                  (0.5, 0.5, -0.5),
-                  (0.5, 0.5, 0.5)]
-
-    cube_faces = [[0, 2, 6],
-                  [6, 4, 0],
-                  [5, 0, 4],
-                  [5, 1, 0],
-                  [5, 4, 6],
-                  [5, 6, 7],
-                  [3, 2, 0],
-                  [3, 0, 1],
-                  [3, 6, 2],
-                  [3, 7, 6],
-                  [3, 1, 5],
-                  [3, 5, 7]]
-
-    # Test args with ConvexPolyhedron, ConvexSpheropolyhedron, and Polyhedron
-    shapes = [({"vertices": tetrahedron_verts},
-               hoomd.hpmc.integrate.ConvexPolyhedron),
-              ({"vertices": tetrahedron_verts},
-               hoomd.hpmc.integrate.ConvexSpheropolyhedron),
-              ({"vertices": tetrahedron_verts,
-                "faces": tetrahedron_faces,
-                "overlap": [True, True, True, True]},
-               hoomd.hpmc.integrate.Polyhedron),
-              ({"vertices": cube_verts},
-               hoomd.hpmc.integrate.ConvexPolyhedron),
-              ({"vertices": cube_verts},
-               hoomd.hpmc.integrate.ConvexSpheropolyhedron),
-              ({"vertices": cube_verts,
-                "faces": cube_faces,
-                "overlap": [True, True, True, True, True, True,
-                            True, True, True, True, True, True]},
-               hoomd.hpmc.integrate.Polyhedron)]
-
-    for args, integrator in shapes:
-        mc = integrator(23456)
-        mc.shape['A'] = args
-        sim = simulation_factory(two_particle_snapshot_factory(dimensions=3,
-                                                               d=2))
-        sim.operations.add(mc)
-        sim.operations.schedule()
-        assert mc.overlaps == 0
-
-        # Place center of shape 2 on each of shape 1's vertices
-        for vert in mc.shape["A"]["vertices"]:
-            s = sim.state.snapshot
-            if s.exists:
-                s.particles.position[0] = (0, 0, 0)
-                s.particles.position[1] = vert
-            sim.state.snapshot = s
-            assert mc.overlaps > 0
-
+    # Place center of shape 2 on each of shape 1's vertices
+    for vert in mc.shape["A"]["vertices"]:
         s = sim.state.snapshot
         if s.exists:
             s.particles.position[0] = (0, 0, 0)
-            s.particles.position[1] = (0, 0.9, 0)
+            s.particles.position[1] = vert
         sim.state.snapshot = s
         assert mc.overlaps > 0
 
-        s = sim.state.snapshot
-        if s.exists:
-            s.particles.position[0] = (0, 0, 0)
-            s.particles.position[1] = (0, 1.1, 0)
-        sim.state.snapshot = s
-        assert mc.overlaps == 0
+    s = sim.state.snapshot
+    if s.exists:
+        s.particles.position[0] = (0, 0, 0)
+        s.particles.position[1] = (0, 0.9, 0)
+    sim.state.snapshot = s
+    assert mc.overlaps > 0
 
-        # Rotate one of the polyhedra so they will overlap
-        s = sim.state.snapshot
-        if s.exists:
-            s.particles.orientation[1] = tuple(np.array([1, 1, 1, 0]) / (3**0.5))
-        sim.state.snapshot = s
-        assert mc.overlaps > 0
+    s = sim.state.snapshot
+    if s.exists:
+        s.particles.position[0] = (0, 0, 0)
+        s.particles.position[1] = (0, 1.1, 0)
+    sim.state.snapshot = s
+    assert mc.overlaps == 0
+
+    # Rotate one of the polyhedra so they will overlap
+    s = sim.state.snapshot
+    if s.exists:
+        s.particles.orientation[1] = tuple(np.array([1, 1, 1, 0]) / (3**0.5))
+    sim.state.snapshot = s
+    assert mc.overlaps > 0
+
+_spheropolygon_shapes = [{'vertices': _triangle['vertices'],
+                          'sweep_radius': 0.2},
+                         {'vertices': _square['vertices'],
+                          'sweep_radius': 0.1}]
+
+
+@pytest.fixture(scope="function", params=_spheropolygon_shapes)
+def spheropolygon_overlap_args(request):
+    return deepcopy(request.param)
 
 
 def test_overlaps_spheropolygon(device,
+                                spheropolygon_overlap_args,
                                 simulation_factory,
                                 two_particle_snapshot_factory):
+    mc = hoomd.hpmc.integrate.ConvexSpheropolygon(23456)
+    mc.shape['A'] = spheropolygon_overlap_args
 
-    triangle = {'vertices': [(0, (0.75**0.5) / 2),
-                             (-0.5, -(0.75**0.5) / 2),
-                             (0.5, -(0.75**0.5) / 2)],
-                'sweep_radius': 0.2}
+    sim = simulation_factory(two_particle_snapshot_factory(dimensions=2,
+                                                           d=2))
+    sim.operations.add(mc)
+    sim.operations.schedule()
+    assert mc.overlaps == 0
 
-    square = {"vertices": np.array([(-1, -1), (1, -1), (1, 1), (-1, 1)]) / 2,
-              "sweep_radius": 0.1}
-
-    for args in [triangle, square]:
-        mc = hoomd.hpmc.integrate.ConvexSpheropolygon(23456)
-        mc.shape['A'] = args
-
-        sim = simulation_factory(two_particle_snapshot_factory(dimensions=2,
-                                                               d=2))
-        sim.operations.add(mc)
-        sim.operations.schedule()
-        assert mc.overlaps == 0
-
-        # Place center of shape 2 on each of shape 1's vertices
-        for vert in mc.shape["A"]["vertices"]:
-            s = sim.state.snapshot
-            if s.exists:
-                s.particles.position[0] = (0, 0, 0)
-                s.particles.position[1] = (vert[0], vert[1], 0)
-            sim.state.snapshot = s
-            assert mc.overlaps > 0
-
-        # Place shapes where they wouldn't overlap w/o sweep radius
+    # Place center of shape 2 on each of shape 1's vertices
+    for vert in mc.shape["A"]["vertices"]:
         s = sim.state.snapshot
         if s.exists:
             s.particles.position[0] = (0, 0, 0)
-            s.particles.position[1] = (0, 1.2, 0)
+            s.particles.position[1] = (vert[0], vert[1], 0)
         sim.state.snapshot = s
         assert mc.overlaps > 0
 
-        s = sim.state.snapshot
-        if s.exists:
-            s.particles.position[0] = (0, 0, 0)
-            s.particles.position[1] = (0, 1.3, 0)
-        sim.state.snapshot = s
-        assert mc.overlaps == 0
+    # Place shapes where they wouldn't overlap w/o sweep radius
+    s = sim.state.snapshot
+    if s.exists:
+        s.particles.position[0] = (0, 0, 0)
+        s.particles.position[1] = (0, 1.2, 0)
+    sim.state.snapshot = s
+    assert mc.overlaps > 0
 
-        # Rotate one of the shapes so they will overlap
-        s = sim.state.snapshot
-        if s.exists:
-            s.particles.orientation[1] = tuple(np.array([1, 0, 0, 0.45]) / (1.2025**0.5))
-        sim.state.snapshot = s
-        assert mc.overlaps > 0
+    s = sim.state.snapshot
+    if s.exists:
+        s.particles.position[0] = (0, 0, 0)
+        s.particles.position[1] = (0, 1.3, 0)
+    sim.state.snapshot = s
+    assert mc.overlaps == 0
+
+    # Rotate one of the shapes so they will overlap
+    s = sim.state.snapshot
+    if s.exists:
+        s.particles.orientation[1] = tuple(np.array([1, 0, 0, 0.45]) / (1.2025**0.5))
+    sim.state.snapshot = s
+    assert mc.overlaps > 0
+
+_spheropolyhedron_shapes = [{'vertices': _tetrahedron_verts,
+                             'sweep_radius': 0.2},
+                            {'vertices': _cube_verts,
+                             'sweep_radius': 0.2}]
+
+
+@pytest.fixture(scope="function", params=_spheropolyhedron_shapes)
+def spheropolyhedron_overlap_args(request):
+    return deepcopy(request.param)
 
 
 def test_overlaps_spheropolyhedron(device,
+                                   spheropolyhedron_overlap_args,
                                    simulation_factory,
                                    two_particle_snapshot_factory):
+    mc = hoomd.hpmc.integrate.ConvexSpheropolyhedron(23456)
+    mc.shape['A'] = spheropolyhedron_overlap_args
 
-    tetrahedron = {"vertices": np.array([(1, 1, 1),
-                                         (-1, -1, 1),
-                                         (1, -1, -1),
-                                         (-1, 1, -1)]) / 2,
-                   "sweep_radius": 0.2}
+    sim = simulation_factory(two_particle_snapshot_factory(dimensions=3,
+                                                           d=2))
+    sim.operations.add(mc)
+    sim.operations.schedule()
+    assert mc.overlaps == 0
 
-    cube = {"vertices": [(-0.5, -0.5, -0.5),
-                         (-0.5, -0.5, 0.5),
-                         (-0.5, 0.5, -0.5),
-                         (-0.5, 0.5, 0.5),
-                         (0.5, -0.5, -0.5),
-                         (0.5, -0.5, 0.5),
-                         (0.5, 0.5, -0.5),
-                         (0.5, 0.5, 0.5)],
-            "sweep_radius": 0.2}
-
-    for args in [tetrahedron, cube]:
-        mc = hoomd.hpmc.integrate.ConvexSpheropolyhedron(23456)
-        mc.shape['A'] = args
-
-        sim = simulation_factory(two_particle_snapshot_factory(dimensions=3,
-                                                               d=2))
-        sim.operations.add(mc)
-        sim.operations.schedule()
-        assert mc.overlaps == 0
-
-        # Place center of shape 2 on each of shape 1's vertices
-        for vert in mc.shape["A"]["vertices"]:
-            s = sim.state.snapshot
-            if s.exists:
-                s.particles.position[0] = (0, 0, 0)
-                s.particles.position[1] = vert
-            sim.state.snapshot = s
-            assert mc.overlaps > 0
-
+    # Place center of shape 2 on each of shape 1's vertices
+    for vert in mc.shape["A"]["vertices"]:
         s = sim.state.snapshot
         if s.exists:
             s.particles.position[0] = (0, 0, 0)
-            s.particles.position[1] = (0, 1.2, 0)
+            s.particles.position[1] = vert
         sim.state.snapshot = s
         assert mc.overlaps > 0
 
-        s = sim.state.snapshot
-        if s.exists:
-            s.particles.position[0] = (0, 0, 0)
-            s.particles.position[1] = (0, 1.5, 0)
-        sim.state.snapshot = s
-        assert mc.overlaps == 0
+    s = sim.state.snapshot
+    if s.exists:
+        s.particles.position[0] = (0, 0, 0)
+        s.particles.position[1] = (0, 1.2, 0)
+    sim.state.snapshot = s
+    assert mc.overlaps > 0
 
-        # Rotate one of the polyhedra so they will overlap
-        s = sim.state.snapshot
-        if s.exists:
-            s.particles.orientation[1] = tuple(np.array([1, 1, 1, 0]) / (3**0.5))
-        sim.state.snapshot = s
-        assert mc.overlaps > 0
+    s = sim.state.snapshot
+    if s.exists:
+        s.particles.position[0] = (0, 0, 0)
+        s.particles.position[1] = (0, 1.5, 0)
+    sim.state.snapshot = s
+    assert mc.overlaps == 0
+
+    # Rotate one of the polyhedra so they will overlap
+    s = sim.state.snapshot
+    if s.exists:
+        s.particles.orientation[1] = tuple(np.array([1, 1, 1, 0]) / (3**0.5))
+    sim.state.snapshot = s
+    assert mc.overlaps > 0
+
+_union_shapes = [({'diameter': 1},
+                  hoomd.hpmc.integrate.SphereUnion),
+                 ({"vertices": _tetrahedron_verts},
+                  hoomd.hpmc.integrate.ConvexSpheropolyhedronUnion),
+                 ({"normals": [(0, 0, 1)],
+                   "a": 0.5,
+                   "b": 0.5,
+                   "c": 1,
+                   "vertices": [],
+                   "origin": (0, 0, 0),
+                   "offsets": [0]},
+                  hoomd.hpmc.integrate.FacetedEllipsoidUnion)]
+
+
+@pytest.fixture(scope="function", params=_union_shapes)
+def union_overlap_args(request):
+    return deepcopy(request.param)
 
 
 def test_overlaps_union(device,
+                        union_overlap_args,
                         simulation_factory,
                         two_particle_snapshot_factory):
-    sphere_mc = hoomd.hpmc.integrate.Sphere(23456)
-    sphere_mc.shape['A'] = {'diameter': 1}
+    inner_args = union_overlap_args[0]
+    integrator = union_overlap_args[1]
 
-    spheropolyhedron_mc = hoomd.hpmc.integrate.ConvexSpheropolyhedron(23456)
-    spheropolyhedron_mc.shape['A'] = {"vertices": np.array([(1, 1, 1),
-                                                            (-1, -1, 1),
-                                                            (1, -1, -1),
-                                                            (-1, 1, -1)]) / 2}
+    union_args = {'shapes': [inner_args, inner_args],
+                  'positions': [(0, 0, 0), (0, 0, 1)],
+                  'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)],
+                  'overlap': [1, 1]}
+    mc = integrator(23456)
+    mc.shape['A'] = union_args
 
-    faceted_ell_mc = hoomd.hpmc.integrate.FacetedEllipsoid(23456)
-    faceted_ell_mc.shape['A'] = {"normals": [(0, 0, 1)],
-                                 "a": 0.5,
-                                 "b": 0.5,
-                                 "c": 1,
-                                 "vertices": [],
-                                 "origin": (0, 0, 0),
-                                 "offsets": [0]}
+    sim = simulation_factory(two_particle_snapshot_factory(dimensions=3,
+                                                           d=2))
+    sim.operations.add(mc)
+    sim.operations.schedule()
 
-    shapes = [(sphere_mc,
-               hoomd.hpmc.integrate.SphereUnion),
-              (spheropolyhedron_mc,
-               hoomd.hpmc.integrate.ConvexSpheropolyhedronUnion),
-              (faceted_ell_mc,
-               hoomd.hpmc.integrate.FacetedEllipsoidUnion)]
-
-    for inner_mc, integrator in shapes:
-        args = {'shapes': [inner_mc.shape['A'], inner_mc.shape['A']],
-                'positions': [(0, 0, 0), (0, 0, 1)],
-                'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)],
-                'overlap': [1, 1]}
-        mc = integrator(23456)
-        mc.shape['A'] = args
-
-        sim = simulation_factory(two_particle_snapshot_factory(dimensions=3,
-                                                               d=2))
-        sim.operations.add(mc)
-        sim.operations.schedule()
-
+    assert mc.overlaps == 0
+    test_positions = [(1.1, 0, 0), (0, 1.1, 0)]
+    test_orientations = np.array([[1, 0, -0.06, 0], [1, 0.06, 0, 0]])
+    test_orientations = test_orientations.T / np.linalg.norm(test_orientations,
+                                                             axis=1)
+    test_orientations = test_orientations.T
+    # Shapes are stacked in z direction
+    for i in range(len(test_positions)):
+        s = sim.state.snapshot
+        if s.exists:
+            s.particles.position[0] = (0, 0, 0)
+            s.particles.position[1] = test_positions[i]
+            s.particles.orientation[1] = (1, 0, 0, 0)
+        sim.state.snapshot = s
         assert mc.overlaps == 0
-        test_positions = [(1.1, 0, 0), (0, 1.1, 0)]
-        test_orientations = np.array([[1, 0, -0.06, 0], [1, 0.06, 0, 0]])
-        test_orientations = test_orientations.T / np.linalg.norm(test_orientations,
-                                                                 axis=1)
-        test_orientations = test_orientations.T
-        # Shapes are stacked in z direction
-        for i in range(len(test_positions)):
-            s = sim.state.snapshot
-            if s.exists:
-                s.particles.position[0] = (0, 0, 0)
-                s.particles.position[1] = test_positions[i]
-                s.particles.orientation[1] = (1, 0, 0, 0)
-            sim.state.snapshot = s
-            assert mc.overlaps == 0
 
-            # Slightly rotate union about x or y axis so they overlap
-            if s.exists:
-                s.particles.orientation[1] = test_orientations[i]
-            sim.state.snapshot = s
+        # Slightly rotate union about x or y axis so they overlap
+        if s.exists:
+            s.particles.orientation[1] = test_orientations[i]
+        sim.state.snapshot = s
 
-            assert mc.overlaps > 0
+        assert mc.overlaps > 0
 
-        for pos in [(0.9, 0, 0), (0, 0.9, 0), (0, 0, 1.1)]:
-            s = sim.state.snapshot
-            if s.exists:
-                s.particles.position[0] = (0, 0, 0)
-                s.particles.position[1] = pos
-            sim.state.snapshot = s
-            assert mc.overlaps > 0
+    for pos in [(0.9, 0, 0), (0, 0.9, 0), (0, 0, 1.1)]:
+        s = sim.state.snapshot
+        if s.exists:
+            s.particles.position[0] = (0, 0, 0)
+            s.particles.position[1] = pos
+        sim.state.snapshot = s
+        assert mc.overlaps > 0
 
 
 def test_overlaps_faceted_ellipsoid(device,
