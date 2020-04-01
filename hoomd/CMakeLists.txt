@@ -348,9 +348,7 @@ if (BUILD_MD)
         # The location of CUB / hipCUB should be handled by CUB_INCLUDE_DIR and
         # HIPCUB_INCLUDE_DIR being set earlier in the project, but these can also
         # be hinted by setting CUB_ROOT or HIPCUB_ROOT if this doesn't work or changes.
-        if (HIP_FOUND)
-            option(NEIGHBOR_HIP ON)
-        endif()
+        set(NEIGHBOR_HIP ${HIP_FOUND} CACHE BOOL "Use HIP layer?" FORCE)
         add_subdirectory(${HOOMD_SOURCE_DIR}/hoomd/extern/neighbor)
         # hide these variables in the cache
         mark_as_advanced(NEIGHBOR_BENCHMARK NEIGHBOR_HIP NEIGHBOR_INSTALL NEIGHBOR_TEST)
