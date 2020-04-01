@@ -266,6 +266,75 @@ DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact=true)
     return true;
     }
 
+//! Check if two OBBs overlap, hyperspherical version
+/*! \param a First OBB
+    \param quat_l_a Sphere position and orientation of first OBB, left quaternion
+    \param quat_r_a Sphere position and orientation of first OBB, right quaternion
+    \param b Second OBB
+    \param quat_r_b Sphere position and orientation of second OBB, left quaternion
+    \param quat_r_b Sphere position and orientation of second OBB, right quaternion
+    \param R Bounding hypersphere radius
+
+    \note only works for bounding *spheres* (a.is_sphere == b.is_sphere == true)
+
+    The OBB radii are interpreted as hypershpere radii. Their 3D positions are
+    transformed according to a projection that maintains radial distance and direction of the sphere centers
+    with respect to the origin. The origin is transformed from the standard position (0,0,0,R)
+    using the supplied by quat_l/r_a/b of the particles.
+
+    \returns true when the two OBBs overlap, false otherwise
+*/
+DEVICE inline bool overlap_sphere(const OBB& a,
+    const quat<OverlapReal>& quat_l_a,
+    const quat<OverlapReal>& quat_r_a,
+    const OBB& b,
+    const quat<OverlapReal>& quat_l_b,
+    const quat<OverlapReal>& quat_r_b,
+    const OverlapReal R)
+    {
+    // exit early if the masks don't match
+    if (! (a.mask & b.mask)) return false;
+
+    // if both OBBs are spheres, simplify overlap check
+    if (a.isSphere() && b.isSphere())
+        {
+        // four vectors of sphere positions in our projection, in standard position
+        vec3<OverlapReal> ca = a.center;
+        vec3<OverlapReal> cb = b.center;
+        OverlapReal r_a = fast::sqrt(dot(ca,ca));
+        OverlapReal r_b = fast::sqrt(dot(cb,cb));
+
+        quat<OverlapReal> pos4_a;
+        if (r_a != 0.0)
+            pos4_a = quat<OverlapReal>(R*fast::cos(r_a/R), R*fast::sin(r_a/R)/r_a*ca);
+        else
+            // handle singularity
+            pos4_a = quat<OverlapReal>(R,vec3<OverlapReal>(0,0,0));
+
+        quat<OverlapReal> pos4_b;
+        if (r_b != 0.0)
+            pos4_b = quat<OverlapReal>(R*fast::cos(r_b/R), R*fast::sin(r_b/R)/r_b*cb);
+        else
+            // handle singularity
+            pos4_b = quat<OverlapReal>(R,vec3<OverlapReal>(0,0,0));
+
+        // Transform both spheres on the hypersphere
+        pos4_a = quat_l_a*pos4_a*quat_r_a;
+        pos4_b = quat_l_b*pos4_b*quat_r_b;
+
+        // Get the arclength between their centers
+        OverlapReal norm_inv_a = fast::rsqrt(norm2(pos4_a));
+        OverlapReal norm_inv_b = fast::rsqrt(norm2(pos4_b));
+
+        OverlapReal dr = R*fast::acos(dot(pos4_a,pos4_b)*norm_inv_a*norm_inv_b);
+
+        return (dr <= (a.lengths.x + b.lengths.x));
+        }
+
+    // OBB's not supported, always return true to produce correct (but slow) broad-phase results
+    return true;
+    }
+
 // Intersect ray R(t) = p + t*d against OBB a. When intersecting,
 // return intersection distance tmin and point q of intersection
 // Ericson, Christer, Real-Time Collision Detection (Page 180)

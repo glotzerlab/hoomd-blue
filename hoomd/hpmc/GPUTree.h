@@ -165,6 +165,54 @@ class GPUTree
             return leaf;
             }
 
+        //! Fetch the next node in the tree and test against overlap (hyperspherical version)
+        /*! The method maintains it internal state in a user-supplied variable cur_node
+         *
+         * \param obb Query bounding box
+         * \param cur_node If 0, start a new tree traversal, otherwise use stored value from previous call
+         * \param quat_l_a Left quaternion of particle a
+         * \param quat_r_a Right quaternion of particle a
+         * \param quat_l_b Left quaternion of particle b
+         * \param quat_r_b Right quaternion of particle b
+         * \param R hypersphere radius
+         *
+         * \returns true if the current node overlaps and is a leaf node
+         */
+        DEVICE inline bool queryNodeSphere(const OBB& obb, unsigned int &cur_node,
+            const quat<OverlapReal>& quat_l_a,
+            const quat<OverlapReal>& quat_r_a,
+            const quat<OverlapReal>& quat_l_b,
+            const quat<OverlapReal>& quat_r_b,
+            OverlapReal R) const
+            {
+            OBB node_obb(getOBB(cur_node));
+
+            bool leaf = false;
+
+            if (overlap_hypersphere(node_obb, quat_l_a, quat_r_a,
+                obb, quat_l_b, quat_r_b, R))
+                {
+                unsigned int left_child = getLeftChild(cur_node);
+
+                // is this node a leaf node?
+                if (left_child == OBB_INVALID_NODE)
+                    {
+                    leaf = true;
+                    }
+                else
+                    {
+                    cur_node = left_child;
+                    return false;
+                    }
+                }
+
+            // escape
+            cur_node = m_escape[cur_node];
+
+            return leaf;
+            }
+
+
         //! Fetch the next node in the tree and test against overlap with a ray
         /*! The method maintains it internal state in a user-supplied variable cur_node
          * The ray equation is R(t) = p + t*d (t>=0)

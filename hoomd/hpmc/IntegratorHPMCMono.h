@@ -1478,7 +1478,6 @@ float IntegratorHPMCMono<Shape>::computePatchEnergy(unsigned int timestep)
 
     // access particle data and system box
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
@@ -1488,6 +1487,8 @@ float IntegratorHPMCMono<Shape>::computePatchEnergy(unsigned int timestep)
 
     if (m_pdata->getCoordinateType() == ParticleData::cartesian)
     {
+         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+
          // Loop over all particles
          #ifdef ENABLE_TBB
          energy = tbb::parallel_reduce(tbb::blocked_range<unsigned int>(0, m_pdata->getN()),
