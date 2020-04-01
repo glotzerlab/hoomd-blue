@@ -1031,7 +1031,7 @@ class system_data(hoomd.meta._metadata):
     ## Get hypersphere
     @property
     def hypersphere(self):
-        if not self.sysdef.getParticleData().getCoordinateType() == _hoomd.ParticleData.hypersphere:
+        if not self.sysdef.getParticleData().getCoordinateType() == _hoomd.ParticleData.hyperspherical:
             raise ValueError('hypersphere is only available with hyperspherical coordinates.')
 
         s = self.sysdef.getParticleData().getHypersphere();
@@ -1294,7 +1294,7 @@ class particle_data_proxy(object):
     def __init__(self, pdata, tag):
         self.pdata = pdata;
         self.tag = tag
-	self.cty = pdata.getCoordinateType()
+        self.cty = pdata.getCoordinateType()
 
     ## \internal
     # \brief Get an informal string representing the object

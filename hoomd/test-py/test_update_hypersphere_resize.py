@@ -10,7 +10,7 @@ import os
 # tests for update.hypersphere_resize
 class update_hypersphere_resize_tests (unittest.TestCase):
     def setUp(self):
-        snap = data.make_snapshot(N=100, hypersphere=data.hyperspheredim(R=20),particle_types=['A'])
+        snap = data.make_snapshot(N=100, hypersphere=data.hypersphere(R=20),particle_types=['A'])
         self.s = init.read_snapshot(snap)
 
     # tests basic creation of the updater

@@ -19,10 +19,10 @@
 using namespace std;
 namespace py = pybind11;
 
-/*! \param sysdef System definition containing the particle data to set the sphere size on
-    \param R radius of the sphere over time
+/*! \param sysdef System definition containing the particle data to set the hypersphere size on
+    \param R radius of the hypersphere over time
 
-    The default setting is to scale particle positions along with the sphere.
+    The default setting is to scale particle positions along with the hypersphere.
 */
 HypersphereResizeUpdater::HypersphereResizeUpdater(std::shared_ptr<SystemDefinition> sysdef,
                                    std::shared_ptr<Variant> R)
@@ -39,7 +39,7 @@ HypersphereResizeUpdater::~HypersphereResizeUpdater()
     m_exec_conf->msg->notice(5) << "Destroying HypersphereResizeUpdater" << endl;
     }
 
-/*! Rescales the simulation sphere
+/*! Rescales the simulation hypersphere
     \param timestep Current time step of the simulation
 */
 void HypersphereResizeUpdater::update(unsigned int timestep)
@@ -53,8 +53,8 @@ void HypersphereResizeUpdater::update(unsigned int timestep)
     Hypersphere hypersphere = m_pdata->getHypersphere();
     hypersphere.setR(R);
 
-    // set the new sphere
-    m_pdata->setHypersphere(sphere);
+    // set the new hypersphere
+    m_pdata->setHypersphere(hypersphere);
 
     if (m_prof) m_prof->pop();
     }
