@@ -189,7 +189,7 @@ class GPUTree
 
             bool leaf = false;
 
-            if (overlap_hypersphere(node_obb, quat_l_a, quat_r_a,
+            if (overlap_sphere(node_obb, quat_l_a, quat_r_a,
                 obb, quat_l_b, quat_r_b, R))
                 {
                 unsigned int left_child = getLeftChild(cur_node);
