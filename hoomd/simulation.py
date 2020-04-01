@@ -152,8 +152,9 @@ class Simulation:
         net virial, and system pressure available to query any time by property
         or through the :py:class:`hoomd.Logger` interface.
 
-        Enabling this flag will result in a moderate performance penalty
-        when using MD pair potentials.
+        Note:
+            Enabling this flag will result in a moderate performance penalty
+            when using MD pair potentials.
         """
         if not hasattr(self, '_cpp_sys'):
             return False
@@ -163,7 +164,8 @@ class Simulation:
     @always_compute_pressure.setter
     def always_compute_pressure(self, value):
         if not hasattr(self, '_cpp_sys'):
-           # TODO make this work when not attached by automatically setting flag when state object is instantiated.
+            # TODO make this work when not attached by automatically setting
+            # flag when state object is instantiated.
             raise RuntimeError('Cannot set flag without state')
         else:
             self._cpp_sys.setPressureFlag(value)
