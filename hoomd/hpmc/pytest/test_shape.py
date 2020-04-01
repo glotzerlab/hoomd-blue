@@ -155,7 +155,7 @@ def test_overlaps_ellipsoid(device,
     mc = hoomd.hpmc.integrate.Ellipsoid(23456)
     mc.shape["A"] = {'a': a, 'b': b, 'c': c}
 
-    sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=10))
+    sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=2))
     sim.operations.add(mc)
     sim.operations.schedule()
     assert mc.overlaps == 0
@@ -216,7 +216,7 @@ def test_overlaps_polygons(device,
         mc.shape['A'] = args
 
         sim = simulation_factory(two_particle_snapshot_factory(dimensions=3,
-                                                               d=10))
+                                                               d=2))
         sim.operations.add(mc)
         sim.operations.schedule()
         assert mc.overlaps == 0
@@ -300,7 +300,7 @@ def test_overlaps_polyhedra(device,
         mc = integrator(23456)
         mc.shape['A'] = args
         sim = simulation_factory(two_particle_snapshot_factory(dimensions=3,
-                                                               d=10))
+                                                               d=2))
         sim.operations.add(mc)
         sim.operations.schedule()
         assert mc.overlaps == 0
@@ -353,7 +353,7 @@ def test_overlaps_spheropolygon(device,
         mc.shape['A'] = args
 
         sim = simulation_factory(two_particle_snapshot_factory(dimensions=2,
-                                                               d=10))
+                                                               d=2))
         sim.operations.add(mc)
         sim.operations.schedule()
         assert mc.overlaps == 0
@@ -415,7 +415,7 @@ def test_overlaps_spheropolyhedron(device,
         mc.shape['A'] = args
 
         sim = simulation_factory(two_particle_snapshot_factory(dimensions=3,
-                                                               d=10))
+                                                               d=2))
         sim.operations.add(mc)
         sim.operations.schedule()
         assert mc.overlaps == 0
@@ -488,7 +488,7 @@ def test_overlaps_union(device,
         mc.shape['A'] = args
 
         sim = simulation_factory(two_particle_snapshot_factory(dimensions=3,
-                                                               d=10))
+                                                               d=2))
         sim.operations.add(mc)
         sim.operations.schedule()
 
@@ -539,7 +539,7 @@ def test_overlaps_faceted_ellipsoid(device,
                      "origin": (0, 0, 0),
                      "offsets": [0]}
 
-    sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=10))
+    sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=2))
     sim.operations.add(mc)
     sim.operations.schedule()
     assert mc.overlaps == 0
@@ -576,3 +576,32 @@ def test_overlaps_faceted_ellipsoid(device,
         s.particles.orientation[1] = tuple(np.array([1, 0, 0.45, 0]) / (1.2025**0.5))
     sim.state.snapshot = s
     assert mc.overlaps > 0
+
+
+def test_overlaps_sphinx(device,
+                         simulation_factory,
+                         two_particle_snapshot_factory):
+
+    mc = hoomd.hpmc.integrate.Sphinx(23456)
+    mc.shape["A"] = {'diameters': [1, -1],
+                     'centers': [(0, 0, 0), (0.75, 0, 0)]}
+
+    sim = simulation_factory(
+        two_particle_snapshot_factory(dimensions=3, d=2))
+    sim.operations.add(mc)
+    sim.operations.schedule()
+    assert mc.overlaps == 0
+
+    s = sim.state.snapshot
+    if s.exists:
+        s.particles.position[0] = (0, 0, 0)
+        s.particles.position[1] = (0.74, 0, 0)
+    sim.state.snapshot = s
+    assert mc.overlaps > 0
+
+    s = sim.state.snapshot
+    if s.exists:
+        s.particles.position[0] = (0, 0, 0)
+        s.particles.position[1] = (0.76, 0, 0)
+    sim.state.snapshot = s
+    assert mc.overlaps == 0
