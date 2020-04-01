@@ -18,15 +18,16 @@
 // #include <pybind11/pybind11.h>
 #include <stdexcept>
 #include <time.h>
+#include <pybind11/cast.h>
 #include <pybind11/stl_bind.h>
 
-PYBIND11_MAKE_OPAQUE(std::vector<std::pair<std::shared_ptr<Analyzer>,
-                                 std::shared_ptr<Trigger> > >);
+// the typedef works around an issue with older versions of the preprocessor
+typedef std::pair<std::shared_ptr<Analyzer>, std::shared_ptr<Trigger>> _analyzer_pair;
+PYBIND11_MAKE_OPAQUE(std::vector<_analyzer_pair>)
+typedef std::pair<std::shared_ptr<Updater>, std::shared_ptr<Trigger>> _updater_pair;
+PYBIND11_MAKE_OPAQUE(std::vector<_updater_pair>)
 
-PYBIND11_MAKE_OPAQUE(std::vector<std::pair<std::shared_ptr<Updater>,
-                                 std::shared_ptr<Trigger> > >);
-
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<Tuner> >);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<Tuner> >)
 
 using namespace std;
 namespace py = pybind11;
