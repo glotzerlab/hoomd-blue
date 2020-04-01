@@ -2,6 +2,10 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "Trigger.h"
+#include <pybind11/stl.h>
+#include <pybind11/stl_bind.h>
+
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<Trigger> >);
 
 //* Method to enable unit testing of C++ trigger calls from pytest
 bool testTriggerCall(std::shared_ptr<Trigger> t, uint64_t step)
@@ -35,23 +39,42 @@ void export_Trigger(pybind11::module& m)
         .def("compute", &Trigger::compute)
         ;
 
-    pybind11::class_<PeriodicTrigger, Trigger, std::shared_ptr<PeriodicTrigger> >(m, "PeriodicTrigger")
-        .def(pybind11::init< uint64_t, uint64_t >(), pybind11::arg("period"), pybind11::arg("phase"))
+    pybind11::class_<PeriodicTrigger, Trigger,
+                     std::shared_ptr<PeriodicTrigger> >(m, "PeriodicTrigger")
+        .def(pybind11::init< uint64_t, uint64_t >(),
+             pybind11::arg("period"),
+             pybind11::arg("phase"))
         .def(pybind11::init< uint64_t >(), pybind11::arg("period"))
-        .def_property("phase", &PeriodicTrigger::getPhase, &PeriodicTrigger::setPhase)
-        .def_property("period", &PeriodicTrigger::getPeriod, &PeriodicTrigger::setPeriod)
+        .def_property("phase",
+                      &PeriodicTrigger::getPhase,
+                      &PeriodicTrigger::setPhase)
+        .def_property("period",
+                      &PeriodicTrigger::getPeriod,
+                      &PeriodicTrigger::setPeriod)
         ;
 
-    pybind11::class_<UntilTrigger, Trigger, std::shared_ptr<UntilTrigger>
-                    >(m, "UntilTrigger")
-        .def(pybind11::init<uint64_t>(), pybind11::arg("until"))
-        .def_property("until", &UntilTrigger::getUntil, &UntilTrigger::setUntil)
+    pybind11::class_<BeforeTrigger, Trigger, std::shared_ptr<BeforeTrigger>
+                    >(m, "BeforeTrigger")
+        .def(pybind11::init<uint64_t>(), pybind11::arg("timestep"))
+        .def_property("timestep",
+                      &BeforeTrigger::getTimestep,
+                      &BeforeTrigger::setTimestep)
+        ;
+
+    pybind11::class_<OnTrigger, Trigger, std::shared_ptr<OnTrigger>
+                    >(m, "OnTrigger")
+        .def(pybind11::init<uint64_t>(), pybind11::arg("timestep"))
+        .def_property("timestep",
+                      &OnTrigger::getTimestep,
+                      &OnTrigger::setTimestep)
         ;
 
     pybind11::class_<AfterTrigger, Trigger, std::shared_ptr<AfterTrigger>
                     >(m, "AfterTrigger")
-        .def(pybind11::init<uint64_t>(), pybind11::arg("after"))
-        .def_property("after", &AfterTrigger::getAfter, &AfterTrigger::setAfter)
+        .def(pybind11::init<uint64_t>(), pybind11::arg("timestep"))
+        .def_property("timestep",
+                      &AfterTrigger::getTimestep,
+                      &AfterTrigger::setTimestep)
         ;
 
     pybind11::class_<NotTrigger, Trigger, std::shared_ptr<NotTrigger>
@@ -63,32 +86,21 @@ void export_Trigger(pybind11::module& m)
                       &NotTrigger::setTrigger)
         ;
 
+    pybind11::bind_vector<std::vector<std::shared_ptr<Trigger> >
+                         >(m, "trigger_list");
+
     pybind11::class_<AndTrigger, Trigger, std::shared_ptr<AndTrigger>
                     >(m, "AndTrigger")
-        .def(pybind11::init<std::shared_ptr<Trigger>,
-                            std::shared_ptr<Trigger> >(),
-             pybind11::arg("trigger1"),
-             pybind11::arg("trigger2"))
-        .def_property("trigger1",
-                      &AndTrigger::getTrigger1,
-                      &AndTrigger::setTrigger1)
-        .def_property("trigger2",
-                      &AndTrigger::getTrigger2,
-                      &AndTrigger::setTrigger2)
+        .def(pybind11::init<pybind11::object>(),
+             pybind11::arg("triggers"))
+        .def_property_readonly("triggers", &AndTrigger::getTriggers)
         ;
 
     pybind11::class_<OrTrigger, Trigger, std::shared_ptr<OrTrigger>
                     >(m, "OrTrigger")
-        .def(pybind11::init<std::shared_ptr<Trigger>,
-                            std::shared_ptr<Trigger> >(),
-             pybind11::arg("trigger1"),
-             pybind11::arg("trigger2"))
-        .def_property("trigger1",
-                      &OrTrigger::getTrigger1,
-                      &OrTrigger::setTrigger1)
-        .def_property("trigger2",
-                      &OrTrigger::getTrigger2,
-                      &OrTrigger::setTrigger2)
+        .def(pybind11::init<pybind11::object>(),
+             pybind11::arg("triggers"))
+        .def_property_readonly("triggers", &OrTrigger::getTriggers)
         ;
 
     m.def("_test_trigger_call", &testTriggerCall);

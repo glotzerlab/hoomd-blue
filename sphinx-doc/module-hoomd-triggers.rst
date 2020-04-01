@@ -7,12 +7,13 @@ hoomd.trigger
     :nosignatures:
 
     hoomd.trigger.After
+    hoomd.trigger.Before
     hoomd.trigger.And
     hoomd.trigger.Not
+    hoomd.trigger.On
     hoomd.trigger.Or
     hoomd.trigger.Periodic
     hoomd.trigger.Trigger
-    hoomd.trigger.Until
 
 .. rubric:: Details
 

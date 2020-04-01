@@ -5,6 +5,10 @@
 
 #include <cstdint>
 #include <pybind11/pybind11.h>
+#include <algorithm>
+#include <memory>
+#include <vector>
+#include <pybind11/iostream.h>
 
 /** Defines on what time steps operations should be performed
  *
@@ -35,17 +39,18 @@ class PYBIND11_EXPORT Trigger
                 }
             else
                 {
-                auto triggered = compute(timestep);
                 m_last_timestep = timestep;
-                m_last_trigger = triggered;
-                return triggered;
+                m_last_trigger = compute(timestep);
+                return m_last_trigger;
                 }
             }
 
         virtual bool compute(uint64_t timestep) = 0;
 
     private:
+            /// Caches the last time step at which the trigger was computed
             uint64_t m_last_timestep;
+            /// Caches whether the trigger was activated on m_last_timestep
             bool m_last_trigger;
     };
 
@@ -103,70 +108,82 @@ class PYBIND11_EXPORT PeriodicTrigger : public Trigger
         uint64_t m_phase;
     };
 
-/** Until trigger
+/** Before trigger
  *
- *  Trigger every time step until `timestep >= m_until`.
+ *  Trigger every time step before `m_timestep`.
 */
-class PYBIND11_EXPORT UntilTrigger : public Trigger
+class PYBIND11_EXPORT BeforeTrigger : public Trigger
     {
     public:
 
-    UntilTrigger(uint64_t until) : Trigger(), m_until(until) {}
+    BeforeTrigger(uint64_t timestep) : Trigger(), m_timestep(timestep) {}
 
     bool compute(uint64_t timestep)
         {
-        if (timestep < m_until)
-            {
-            return true;
-            }
-        else
-            {
-            return false;
-            }
+        return timestep < m_timestep;
         }
 
     /// Get the point where triggering will stop
-    uint64_t getUntil() {return m_until;}
+    uint64_t getTimestep() {return m_timestep;}
 
     /// Set the point where triggering will stop
-    void setUntil(uint64_t until) {m_until = until;}
+    void setTimestep(uint64_t timestep) {m_timestep = timestep;}
 
     protected:
-        /// Always trigger until this timestep
-        uint64_t m_until;
+        /// Always trigger timestep this timestep
+        uint64_t m_timestep;
+    };
+
+/** On trigger
+ *
+ *  Trigger on timestep `m_timestep`.
+*/
+class PYBIND11_EXPORT OnTrigger : public Trigger
+    {
+    public:
+
+    OnTrigger(uint64_t timestep) : Trigger(), m_timestep(timestep) {}
+
+    bool compute(uint64_t timestep)
+        {
+        return timestep == m_timestep;
+        }
+
+    /// Get the point where triggering will stop
+    uint64_t getTimestep() {return m_timestep;}
+
+    /// Set the point where triggering will stop
+    void setTimestep(uint64_t timestep) {m_timestep = timestep;}
+
+    protected:
+        /// Always trigger timestep this timestep
+        uint64_t m_timestep;
     };
 
 /** After trigger
  *
- *  Trigger every time step after and including `timestep > m_after`.
+ *  Trigger every time step after `m_timestep`.
 */
 class PYBIND11_EXPORT AfterTrigger : public Trigger
     {
     public:
 
-    AfterTrigger(uint64_t after) : Trigger(), m_after(after) {}
+    AfterTrigger(uint64_t timestep) : Trigger(), m_timestep(timestep) {}
 
     bool compute(uint64_t timestep)
         {
-        if (timestep > m_after)
-            {
-            return true;
-            }
-        else
-            {
-            return false;
-            }
+        return timestep > m_timestep;
         }
 
     /// Get the point where triggering will stop
-    uint64_t getAfter() {return m_after;}
+    uint64_t getTimestep() {return m_timestep;}
 
     /// Set the point where triggering will stop
-    void setAfter(uint64_t after) {m_after = after;}
+    void setTimestep(uint64_t timestep) {m_timestep = timestep;}
 
     protected:
-        /// Always trigger after this timestep
-        uint64_t m_after;
+        /// Always trigger timestep this timestep
+        uint64_t m_timestep;
     };
 
 /** Not trigger
@@ -181,10 +198,10 @@ class PYBIND11_EXPORT NotTrigger : public Trigger
 
         bool compute(uint64_t timestep)
             {
-            return !(m_trigger->compute(timestep));
+            return !(m_trigger->operator()(timestep));
             }
 
-        /// Get the trigger thats negated
+        /// Get the trigger that is negated
         std::shared_ptr<Trigger> getTrigger() {return m_trigger;}
 
         /// Set the trigger to negate
@@ -196,82 +213,79 @@ class PYBIND11_EXPORT NotTrigger : public Trigger
 
 /** And trigger
  *
- *  The logical AND between two triggers.
+ *  The logical AND between n triggers.
 */
 class PYBIND11_EXPORT AndTrigger : public Trigger
     {
     public:
-        AndTrigger(std::shared_ptr<Trigger> trigger1,
-                   std::shared_ptr<Trigger> trigger2) :
-            Trigger(), m_trigger1(trigger1), m_trigger2(trigger2) {}
+        AndTrigger(std::vector<std::shared_ptr<Trigger> > triggers)
+            : Trigger(), m_triggers(triggers) {}
+
+        AndTrigger(pybind11::object triggers)
+            : Trigger()
+            {
+            m_triggers = std::vector<std::shared_ptr<Trigger> >();
+            for (auto t: triggers)
+                {
+                m_triggers.push_back(t.cast<std::shared_ptr<Trigger> >());
+                }
+            }
 
         bool compute(uint64_t timestep)
             {
-            return m_trigger1->compute(timestep) &&
-                   m_trigger2->compute(timestep);
+            return std::all_of(m_triggers.begin(), m_triggers.end(),
+                [timestep](std::shared_ptr<Trigger> t)
+                    {
+                    return t->operator()(timestep);
+                    });
             }
 
-        /// Get the first trigger
-        std::shared_ptr<Trigger> getTrigger1() {return m_trigger1;}
-
-        /// Set the second trigger
-        void setTrigger1(std::shared_ptr<Trigger> trigger)
+        std::vector<std::shared_ptr<Trigger> >& getTriggers()
             {
-            m_trigger1 = trigger;
-            }
-
-        /// Get the second trigger
-        std::shared_ptr<Trigger> getTrigger2() {return m_trigger2;}
-
-        /// Set the second trigger
-        void setTrigger2(std::shared_ptr<Trigger> trigger)
-            {
-            m_trigger2 = trigger;
+            return m_triggers;
             }
 
     protected:
-        std::shared_ptr<Trigger> m_trigger1;
-        std::shared_ptr<Trigger> m_trigger2;
+        std::vector<std::shared_ptr<Trigger> > m_triggers;
     };
 
 /** Or trigger
  *
- *  The logical OR between two triggers.
+ *  The logical OR between n triggers.
 */
 class PYBIND11_EXPORT OrTrigger : public Trigger
     {
     public:
-        OrTrigger(std::shared_ptr<Trigger> trigger1,
-                   std::shared_ptr<Trigger> trigger2) :
-            Trigger(), m_trigger1(trigger1), m_trigger2(trigger2) {}
+        OrTrigger(std::vector<std::shared_ptr<Trigger> > triggers)
+            : Trigger(), m_triggers(triggers) {}
+
+        OrTrigger(pybind11::object triggers)
+            : Trigger()
+            {
+            m_triggers = std::vector<std::shared_ptr<Trigger> >();
+            for (auto t: triggers)
+                {
+                m_triggers.push_back(t.cast<std::shared_ptr<Trigger> >());
+                }
+            }
 
         bool compute(uint64_t timestep)
             {
-            return m_trigger1->compute(timestep) ||
-                   m_trigger2->compute(timestep);
+            return std::any_of(
+                m_triggers.begin(), m_triggers.end(),
+                [timestep](std::shared_ptr<Trigger> t)
+                    {
+                    return t->operator()(timestep);
+                    });
             }
 
-        /// Get the first trigger
-        std::shared_ptr<Trigger> getTrigger1() {return m_trigger1;}
-
-        /// Set the second trigger
-        void setTrigger1(std::shared_ptr<Trigger> trigger)
+        std::vector<std::shared_ptr<Trigger> >& getTriggers()
             {
-            m_trigger1 = trigger;
-            }
-
-        /// Get the second trigger
-        std::shared_ptr<Trigger> getTrigger2() {return m_trigger2;}
-
-        /// Set the second trigger
-        void setTrigger2(std::shared_ptr<Trigger> trigger)
-            {
-            m_trigger2 = trigger;
+            return m_triggers;
             }
 
     protected:
-        std::shared_ptr<Trigger> m_trigger1;
-        std::shared_ptr<Trigger> m_trigger2;
+        std::vector<std::shared_ptr<Trigger> > m_triggers;
     };
 
 /// Export Trigger classes to Python
