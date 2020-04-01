@@ -15,10 +15,15 @@ class EvalFactory
             const quat<float>& q_i,
             float d_i,
             float charge_i,
+            const quat<float>& quat_l_i,
+            const quat<float>& quat_r_i,
             unsigned int type_j,
             const quat<float>& q_j,
             float d_j,
-            float charge_j);
+            float charge_j,
+            const quat<float>& quat_l_j,
+            const quat<float>& quat_r_j,
+            float R);
 
         //! Constructor
         EvalFactory(const std::string& llvm_ir);

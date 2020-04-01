@@ -82,9 +82,9 @@ void PatchEnergyJITUnion::setParam(unsigned int type,
     // set the diameter
     m_extent_type[type] = extent_i;
 
-    // build tree and store proxy structure
+    // build hypersphere tree and store proxy structure
     hpmc::detail::OBBTree tree;
-    tree.buildTree(obbs, N, leaf_capacity, false);
+    tree.buildTree(obbs, N, leaf_capacity, true);
     delete [] obbs;
     m_tree[type] = hpmc::detail::GPUTree(tree,false);
     }
@@ -95,7 +95,12 @@ float PatchEnergyJITUnion::compute_leaf_leaf_energy(vec3<float> dr,
                              const quat<float>& orientation_a,
                              const quat<float>& orientation_b,
                              unsigned int cur_node_a,
-                             unsigned int cur_node_b)
+                             unsigned int cur_node_b,
+                             const quat<float>& quat_l_a,
+                             const quat<float>& quat_r_a,
+                             const quat<float>& quat_l_b,
+                             const quat<float>& quat_r_b,
+                             float R)
     {
     float energy = 0.0;
     vec3<float> r_ab = rotate(conj(quat<float>(orientation_b)),vec3<float>(dr));
@@ -109,8 +114,30 @@ float PatchEnergyJITUnion::compute_leaf_leaf_energy(vec3<float> dr,
         unsigned int ileaf = m_tree[type_a].getParticle(cur_node_a, i);
 
         unsigned int type_i = m_type[type_a][ileaf];
-        quat<float> orientation_i = conj(quat<float>(orientation_b))*quat<float>(orientation_a) * m_orientation[type_a][ileaf];
-        vec3<float> pos_i(rotate(conj(quat<float>(orientation_b))*quat<float>(orientation_a),m_position[type_a][ileaf])-r_ab);
+
+        quat<float> orientation_i;
+        vec3<float> pos_i;
+
+        if (!m_on_hypersphere)
+            {
+            orientation_i = conj(quat<float>(orientation_b))*quat<float>(orientation_a) * m_orientation[type_a][ileaf];
+            pos_i  = rotate(conj(quat<float>(orientation_b))*quat<float>(orientation_a),m_position[type_a][ileaf])-r_ab;
+            }
+        else
+            {
+            // 3d position
+            pos_i = m_position[type_a][ileaf];
+            float r = fast::sqrt(dot(pos_i,pos_i));
+
+            // project in 4d and transform
+            if (r != 0.0)
+                orientation_i = quat<float>(R*fast::cos(r/R), R*fast::sin(r/R)/r*pos_i);
+            else
+                // handle singularity
+                orientation_i = quat<float>(R,vec3<float>(0,0,0));
+
+            orientation_i = quat_l_a*orientation_i*quat_r_a;
+            }
 
         // loop through leaf particles of cur_node_b
         for (unsigned int j= 0; j < nb; j++)
@@ -118,11 +145,32 @@ float PatchEnergyJITUnion::compute_leaf_leaf_energy(vec3<float> dr,
             unsigned int jleaf = m_tree[type_b].getParticle(cur_node_b, j);
 
             unsigned int type_j = m_type[type_b][jleaf];
-            quat<float> orientation_j = m_orientation[type_b][jleaf];
-            vec3<float> r_ij = m_position[type_b][jleaf] - pos_i;
+            quat<float> orientation_j;
+            vec3<float> r_ij;
 
-            float rsq = dot(r_ij,r_ij);
-            if (rsq <= m_rcut_union*m_rcut_union)
+            if (! m_on_hypersphere)
+                {
+                orientation_j = m_orientation[type_b][jleaf];
+                r_ij = m_position[type_b][jleaf] - pos_i;
+                }
+            else
+                {
+                // 3d position
+                vec3<float> pos_j = m_position[type_b][jleaf];
+                float r = fast::sqrt(dot(pos_j,pos_j));
+
+                // project in 4d and transform
+                if (r != 0.0)
+                    orientation_j = quat<float>(R*fast::cos(r/R), R*fast::sin(r/R)/r*pos_j);
+                else
+                    // handle singularity
+                    orientation_j = quat<float>(R,vec3<float>(0,0,0));
+
+                orientation_j = quat_l_b*orientation_j*quat_r_b;
+                }
+
+            // on the hypersphere, the slightly more expensive arc-length check is performed only in the user function
+            if ( m_on_hypersphere || (dot(r_ij,r_ij) <= m_rcut_union*m_rcut_union))
                 {
                 // evaluate energy via JIT function
                 energy += m_eval_union(r_ij,
@@ -130,10 +178,16 @@ float PatchEnergyJITUnion::compute_leaf_leaf_energy(vec3<float> dr,
                     orientation_i,
                     m_diameter[type_a][ileaf],
                     m_charge[type_a][ileaf],
+                    quat_l_a,
+                    quat_r_a,
                     type_j,
                     orientation_j,
                     m_diameter[type_b][jleaf],
-                    m_charge[type_b][jleaf]);
+                    m_charge[type_b][jleaf]
+                    quat_l_b,
+                    quat_r_b,
+                    R
+                    );
                 }
             }
         }
@@ -146,10 +200,15 @@ float PatchEnergyJITUnion::energy(const vec3<float>& r_ij,
     const quat<float>& q_i,
     float d_i,
     float charge_i,
+    const quat<float>& quat_l_i,
+    const quat<float>& quat_r_i,
     unsigned int type_j,
     const quat<float>& q_j,
     float d_j,
-    float charge_j)
+    float charge_j,
+    const quat<float>& quat_l_j,
+    const quat<float>& quat_r_j,
+    R)
     {
     const hpmc::detail::GPUTree& tree_a = m_tree[type_i];
     const hpmc::detail::GPUTree& tree_b = m_tree[type_j];
@@ -158,79 +217,152 @@ float PatchEnergyJITUnion::energy(const vec3<float>& r_ij,
 
     // evaluate isotropic part if necessary
     if (m_r_cut >= 0.0)
-        energy += m_eval(r_ij, type_i, q_i, d_i, charge_i, type_j, q_j, d_j, charge_j);
+        energy += m_eval(r_ij, type_i, q_i, d_i, charge_i, quat_l_i, quat_r_i, type_j, q_j, d_j, charge_j, quat_l_j, quat_r_j, R);
 
-    if (tree_a.getNumLeaves() <= tree_b.getNumLeaves())
-        {
-        #ifdef ENABLE_TBB
-        energy += tbb::parallel_reduce(tbb::blocked_range<unsigned int>(0, tree_a.getNumLeaves()),
-            0.0f,
-            [&](const tbb::blocked_range<unsigned int>& r, float energy)->float {
-            for (unsigned int cur_leaf_a = r.begin(); cur_leaf_a != r.end(); ++cur_leaf_a)
-        #else
-        for (unsigned int cur_leaf_a = 0; cur_leaf_a < tree_a.getNumLeaves(); cur_leaf_a ++)
-        #endif
+
+    if(m_on_hypersphere)
+    {
+        if (tree_a.getNumLeaves() <= tree_b.getNumLeaves())
             {
-            unsigned int cur_node_a = tree_a.getLeafNode(cur_leaf_a);
-            hpmc::detail::OBB obb_a = tree_a.getOBB(cur_node_a);
-
-            // add range of interaction
-            obb_a.lengths.x += m_rcut_union;
-            obb_a.lengths.y += m_rcut_union;
-            obb_a.lengths.z += m_rcut_union;
-
-            // rotate and translate a's obb into b's body frame
-            obb_a.affineTransform(conj(q_j)*q_i, rotate(conj(q_j),-r_ij));
-
-            unsigned cur_node_b = 0;
-            while (cur_node_b < tree_b.getNumNodes())
+            #ifdef ENABLE_TBB
+            energy += tbb::parallel_reduce(tbb::blocked_range<unsigned int>(0, tree_a.getNumLeaves()),
+                0.0f,
+                [&](const tbb::blocked_range<unsigned int>& r, float energy)->float {
+                for (unsigned int cur_leaf_a = r.begin(); cur_leaf_a != r.end(); ++cur_leaf_a)
+            #else
+            for (unsigned int cur_leaf_a = 0; cur_leaf_a < tree_a.getNumLeaves(); cur_leaf_a ++)
+            #endif
                 {
-                unsigned int query_node = cur_node_b;
-                if (tree_b.queryNode(obb_a, cur_node_b))
-                    energy += compute_leaf_leaf_energy(r_ij, type_i, type_j, q_i, q_j, cur_node_a, query_node);
+                unsigned int cur_node_a = tree_a.getLeafNode(cur_leaf_a);
+                hpmc::detail::OBB obb_a = tree_a.getOBB(cur_node_a);
+
+                // add range of interaction
+                obb_a.lengths.x += m_rcut_union;
+                obb_a.lengths.y += m_rcut_union;
+                obb_a.lengths.z += m_rcut_union;
+
+                unsigned cur_node_b = 0;
+                while (cur_node_b < tree_b.getNumNodes())
+                    {
+                    unsigned int query_node = cur_node_b;
+                    if (tree_b.queryNodeHypersphere(obb_a, cur_node_b, quat_l_i, quat_r_i, quat_l_j, quat_r_j, R))
+                        energy += compute_leaf_leaf_energy(r_ij, type_i, type_j, q_i, q_j, cur_node_a, query_node,
+                            quat_l_i, quat_r_i, quat_l_j, quat_r_j, R);
+                    }
                 }
+            #ifdef ENABLE_TBB
+            return energy;
+            }, [](float x, float y)->float { return x+y; } );
+            #endif
             }
-        #ifdef ENABLE_TBB
-        return energy;
-        }, [](float x, float y)->float { return x+y; } );
-        #endif
-        }
-    else
-        {
-        #ifdef ENABLE_TBB
-        energy += tbb::parallel_reduce(tbb::blocked_range<unsigned int>(0, tree_b.getNumLeaves()),
-            0.0f,
-            [&](const tbb::blocked_range<unsigned int>& r, float energy)->float {
-            for (unsigned int cur_leaf_b = r.begin(); cur_leaf_b != r.end(); ++cur_leaf_b)
-        #else
-        for (unsigned int cur_leaf_b = 0; cur_leaf_b < tree_b.getNumLeaves(); cur_leaf_b ++)
-        #endif
+        else
             {
-            unsigned int cur_node_b = tree_b.getLeafNode(cur_leaf_b);
-            hpmc::detail::OBB obb_b = tree_b.getOBB(cur_node_b);
-
-            // add range of interaction
-            obb_b.lengths.x += m_rcut_union;
-            obb_b.lengths.y += m_rcut_union;
-            obb_b.lengths.z += m_rcut_union;
-
-            // rotate and translate b's obb into a's body frame
-            obb_b.affineTransform(conj(q_i)*q_j, rotate(conj(q_i),r_ij));
-
-            unsigned cur_node_a = 0;
-            while (cur_node_a < tree_a.getNumNodes())
+            #ifdef ENABLE_TBB
+            energy += tbb::parallel_reduce(tbb::blocked_range<unsigned int>(0, tree_b.getNumLeaves()),
+                0.0f,
+                [&](const tbb::blocked_range<unsigned int>& r, float energy)->float {
+                for (unsigned int cur_leaf_b = r.begin(); cur_leaf_b != r.end(); ++cur_leaf_b)
+            #else
+            for (unsigned int cur_leaf_b = 0; cur_leaf_b < tree_b.getNumLeaves(); cur_leaf_b ++)
+            #endif
                 {
-                unsigned int query_node = cur_node_a;
-                if (tree_a.queryNode(obb_b, cur_node_a))
-                    energy += compute_leaf_leaf_energy(-r_ij, type_j, type_i, q_j, q_i, cur_node_b, query_node);
-                }
-            }
-        #ifdef ENABLE_TBB
-        return energy;
-        }, [](float x, float y)->float { return x+y; } );
-        #endif
-        }
+                unsigned int cur_node_b = tree_b.getLeafNode(cur_leaf_b);
+                hpmc::detail::OBB obb_b = tree_b.getOBB(cur_node_b);
 
+                // add range of interaction
+                obb_b.lengths.x += m_rcut_union;
+                obb_b.lengths.y += m_rcut_union;
+                obb_b.lengths.z += m_rcut_union;
+
+                unsigned cur_node_a = 0;
+                while (cur_node_a < tree_a.getNumNodes())
+                    {
+                    unsigned int query_node = cur_node_a;
+                    if (tree_a.queryNodeHypersphere(obb_b, cur_node_a, quat_l_j, quat_r_j, quat_l_i, quat_r_i, R))
+                        energy += compute_leaf_leaf_energy(-r_ij, type_j, type_i, q_j, q_i, cur_node_b, query_node,
+                            quat_l_j, quat_r_j, quat_l_i, quat_r_i, R);
+                    }
+                }
+            #ifdef ENABLE_TBB
+            return energy;
+            }, [](float x, float y)->float { return x+y; } );
+            #endif
+            }
+    }
+    else //not on hypersphere
+        {
+
+        if (tree_a.getNumLeaves() <= tree_b.getNumLeaves())
+            {
+            #ifdef ENABLE_TBB
+            energy += tbb::parallel_reduce(tbb::blocked_range<unsigned int>(0, tree_a.getNumLeaves()),
+                0.0f,
+                [&](const tbb::blocked_range<unsigned int>& r, float energy)->float {
+                for (unsigned int cur_leaf_a = r.begin(); cur_leaf_a != r.end(); ++cur_leaf_a)
+            #else
+            for (unsigned int cur_leaf_a = 0; cur_leaf_a < tree_a.getNumLeaves(); cur_leaf_a ++)
+            #endif
+                {
+                unsigned int cur_node_a = tree_a.getLeafNode(cur_leaf_a);
+                hpmc::detail::OBB obb_a = tree_a.getOBB(cur_node_a);
+
+                // add range of interaction
+                obb_a.lengths.x += m_rcut_union;
+                obb_a.lengths.y += m_rcut_union;
+                obb_a.lengths.z += m_rcut_union;
+
+                // rotate and translate a's obb into b's body frame
+                obb_a.affineTransform(conj(q_j)*q_i, rotate(conj(q_j),-r_ij));
+
+                unsigned cur_node_b = 0;
+                while (cur_node_b < tree_b.getNumNodes())
+                    {
+                    unsigned int query_node = cur_node_b;
+                    if (tree_b.queryNode(obb_a, cur_node_b))
+                        energy += compute_leaf_leaf_energy(r_ij, type_i, type_j, q_i, q_j, cur_node_a, query_node);
+                    }
+                }
+            #ifdef ENABLE_TBB
+            return energy;
+            }, [](float x, float y)->float { return x+y; } );
+            #endif
+            }
+        else
+            {
+            #ifdef ENABLE_TBB
+            energy += tbb::parallel_reduce(tbb::blocked_range<unsigned int>(0, tree_b.getNumLeaves()),
+                0.0f,
+                [&](const tbb::blocked_range<unsigned int>& r, float energy)->float {
+                for (unsigned int cur_leaf_b = r.begin(); cur_leaf_b != r.end(); ++cur_leaf_b)
+            #else
+            for (unsigned int cur_leaf_b = 0; cur_leaf_b < tree_b.getNumLeaves(); cur_leaf_b ++)
+            #endif
+                {
+                unsigned int cur_node_b = tree_b.getLeafNode(cur_leaf_b);
+                hpmc::detail::OBB obb_b = tree_b.getOBB(cur_node_b);
+
+                // add range of interaction
+                obb_b.lengths.x += m_rcut_union;
+                obb_b.lengths.y += m_rcut_union;
+                obb_b.lengths.z += m_rcut_union;
+
+                // rotate and translate b's obb into a's body frame
+                obb_b.affineTransform(conj(q_i)*q_j, rotate(conj(q_i),r_ij));
+
+                unsigned cur_node_a = 0;
+                while (cur_node_a < tree_a.getNumNodes())
+                    {
+                    unsigned int query_node = cur_node_a;
+                    if (tree_a.queryNode(obb_b, cur_node_a))
+                        energy += compute_leaf_leaf_energy(-r_ij, type_j, type_i, q_j, q_i, cur_node_b, query_node);
+                    }
+                }
+            #ifdef ENABLE_TBB
+            return energy;
+            }, [](float x, float y)->float { return x+y; } );
+            #endif
+            }
+        }
     return energy;
     }
 

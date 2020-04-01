@@ -56,11 +56,16 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
             \param type_i Integer type index of particle i
             \param d_i Diameter of particle i
             \param charge_i Charge of particle i
+            \param quat_l_i Left quaternion of particle i
+            \param quat_r_i Right quaternion of particle i
             \param q_i Orientation quaternion of particle i
             \param type_j Integer type index of particle j
             \param q_j Orientation quaternion of particle j
             \param d_j Diameter of particle j
             \param charge_j Charge of particle j
+            \param quat_l_j Left quaternion of particle j
+            \param quat_r_j Right quaternion of particle j
+            \param R radius of hypersphere
             \returns Energy of the patch interaction.
         */
         virtual float energy(const vec3<float>& r_ij,
@@ -68,12 +73,17 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
             const quat<float>& q_i,
             float d_i,
             float charge_i,
+            const quat<float>& quat_l_i,
+            const quat<float>& quat_r_i,
             unsigned int type_j,
             const quat<float>& q_j,
             float d_j,
-            float charge_j)
+            float charge_j,
+            const quat<float>& quat_l_j,
+            const quat<float>& quat_r_j,
+            float R)
             {
-            return m_eval(r_ij, type_i, q_i, d_i, charge_i, type_j, q_j, d_j, charge_j);
+            return m_eval(r_ij, type_i, q_i, d_i, charge_i, quat_l_i, quat_r_i, type_j, q_j, d_j, charge_j, quat_l_j, quat_r_j, R);
             }
 
         static pybind11::object getAlphaNP(pybind11::object self)
@@ -84,7 +94,8 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
 
     protected:
         //! function pointer signature
-        typedef float (*EvalFnPtr)(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, float, float, unsigned int type_j, const quat<float>& q_j, float, float);
+        typedef float (*EvalFnPtr)(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, float, float, const quat<float>& quat_l_i, const quat<float>& quat_r_i,
+            unsigned int type_j, const quat<float>& q_j, float, float, const quat<float>& quat_l_j, const quat<float>& quat_r_j, float);
         Scalar m_r_cut;                             //!< Cutoff radius
         std::shared_ptr<EvalFactory> m_factory;       //!< The factory for the evaluator function
         EvalFactory::EvalFnPtr m_eval;                //!< Pointer to evaluator function inside the JIT module

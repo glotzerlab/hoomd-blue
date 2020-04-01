@@ -18,7 +18,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             const std::string& llvm_ir_union, Scalar r_cut_union,
             const unsigned int array_size_union)
             : PatchEnergyJIT(exec_conf, llvm_ir_iso, r_cut_iso, array_size_iso), m_sysdef(sysdef),
-            m_rcut_union(r_cut_union), m_alpha_size_union(array_size_union)
+            m_rcut_union(r_cut_union), m_alpha_size_union(array_size_union), m_on_hypersphere(sysdef->getParticleData()->getCoordinateType() == ParticleData::hyperspherical)
             {
             // build the JIT.
             m_factory_union = std::shared_ptr<EvalFactory>(new EvalFactory(llvm_ir_union));
@@ -93,11 +93,16 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             \param type_i Integer type index of particle i
             \param d_i Diameter of particle i
             \param charge_i Charge of particle i
+            \param quat_l_i Left quaternion of particle i
+            \param quat_r_i Right quaternion of particle i
             \param q_i Orientation quaternion of particle i
             \param type_j Integer type index of particle j
             \param q_j Orientation quaternion of particle j
             \param d_j Diameter of particle j
             \param charge_j Charge of particle j
+            \param quat_l_j Left quaternion of particle j
+            \param quat_r_j Right quaternion of particle j
+            \param R radius of hypersphere
 
             \returns Energy of the patch interaction.
         */
@@ -106,10 +111,15 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             const quat<float>& q_i,
             float diameter_i,
             float charge_i,
+            float quat_l_i,
+            float quat_r_i,
             unsigned int type_j,
             const quat<float>& q_j,
             float d_j,
-            float charge_j);
+            float charge_j,
+            float quat_l_j,
+            float quat_r_j,
+            R);
 
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange()
@@ -139,6 +149,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         std::vector< std::vector<float> > m_diameter;             // The diameters of the constituent particles
         std::vector< std::vector<float> > m_charge;               // The charges of the constituent particles
         std::vector< std::vector<unsigned int> > m_type;          // The type identifiers of the constituent particles
+        bool m_on_hypersphere;                                   //!< If we use hyperspherical coordinates
 
         //! Compute the energy of two overlapping leaf nodes
         float compute_leaf_leaf_energy(vec3<float> dr,
@@ -147,7 +158,12 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
                                      const quat<float>& orientation_a,
                                      const quat<float>& orientation_b,
                                      unsigned int cur_node_a,
-                                     unsigned int cur_node_b);
+                                     unsigned int cur_node_b,
+                                     const quat<float>& quat_l_a,
+                                     const quat<float>& quat_r_a,
+                                     const quat<float>& quat_l_b,
+                                     const quat<float>& quat_r_b,
+                                     float R);
 
         std::shared_ptr<EvalFactory> m_factory_union;            //!< The factory for the evaluator function, for constituent ptls
         EvalFactory::EvalFnPtr m_eval_union;                     //!< Pointer to evaluator function inside the JIT module

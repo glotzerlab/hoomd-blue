@@ -53,28 +53,44 @@ class user(object):
                    const quat<float>& q_i,
                    float d_i,
                    float charge_i,
+                   const quat<float>& quat_l_i,
+                   const quat<float>& quat_r_i,
                    unsigned int type_j,
                    const quat<float>& q_j,
                    float d_j,
-                   float charge_j)
+                   float charge_j,
+                   const quat<float>& quat_l_j,
+                   const quat<float>& quat_r_j,
+                   float R)
 
     * ``vec3`` and ``quat`` are defined in HOOMDMath.h.
-    * *r_ij* is a vector pointing from the center of particle *i* to the center of particle *j*.
+    * *r_ij* is a vector pointing from the center of particle *i* to the center of particle *j* (cartesian).
     * *type_i* is the integer type of particle *i*
-    * *q_i* is the quaternion orientation of particle *i*
+    * *q_i* is the quaternion orientation of particle *i* (cartesian -- (1,0,0,0) for hyperspherical)
     * *d_i* is the diameter of particle *i*
     * *charge_i* is the charge of particle *i*
+    * *quat_l_i* is the left quaternion of particle *i*  (for hyperspherical, (1,0,0,0) cartesian)
+    * *quat_r_i* is the right quaternion of particle *i*  (for hyperspherical, (1,0,0,0) cartesian)
     * *type_j* is the integer type of particle *j*
     * *q_j* is the quaternion orientation of particle *j*
     * *d_j* is the diameter of particle *j*
     * *charge_j* is the charge of particle *j*
+    * *quat_l_j* is the left quaternion of particle *j*  (for hyperspherical, (1,0,0,0) cartesian)
+    * *quat_r_j* is the right quaternion of particle *j*  (for hyperspherical, (1,0,0,0) cartesian)
+    * *R* is the radius of the hypersphere describing the curved space (for hyperspherical, 0 cartesian)
     * Your code *must* return a value.
     * When \|r_ij\| is greater than *r_cut*, the energy *must* be 0. This *r_cut* is applied between
-      the centers of the two particles: compute it accordingly based on the maximum range of the anisotropic
+      the centers of the two particles (euclidean distance with cartesian coordinates and arc-length 
+      with hyperspherical coordinates): compute it accordingly based on the maximum range of the anisotropic
       interaction that you implement.
 
-    Examples:
+    Note:
+        To determine the center of the particle on the hypersphere, it is assumed the standard position
+        (R,0,0,0) (purely imaginary)
 
+    Examples:
+    
+    # cartesian coordinates
     Static potential parameters
 
     .. code-block:: python
@@ -105,6 +121,23 @@ class user(object):
         patch.alpha_iso[1] = 2.0
         hoomd.run(1000)
 
+    # hyperbolic coordinates
+
+        square_well_hyphersphere = """
+        quat<float> vi(1,vec3<float>(0,0,0)); // director of particle i
+        vi = quat_l_i*vi*quat_r_i;            // apply the transformation to particle i
+        quat<float> vj(1,vec3<float>(0,0,0)); // director of particle j
+        vj = quat_l_j*vj*quat_r_j;            // apply the transformation to particle j
+
+        // compute the arc-length on the hypersphere
+        float arc_length = R*fast::acos(dot(vi,vj));
+
+        if (arc_length < 1.23f)
+            return -1.0f;
+        else
+            return 0.0f;
+    """
+
     .. rubric:: LLVM IR code
 
     You can compile outside of HOOMD and provide a direct link
@@ -117,10 +150,14 @@ class user(object):
                    const quat<float>& q_i,
                    float d_i,
                    float charge_i,
+                   const quat<float>& quat_l_i,
+                   const quat<float>& quat_r_i,
                    unsigned int type_j,
                    const quat<float>& q_j,
                    float d_j,
-                   float charge_j)
+                   const quat<float>& quat_l_j,
+                   const quat<float>& quat_r_j,
+                   float R);
 
     ``vec3`` and ``quat`` are defined in HOOMDMath.h.
 
@@ -177,6 +214,7 @@ class user(object):
         .. versionadded:: 2.3
         '''
         cpp_function = """
+#include <studio.h>
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 
@@ -190,10 +228,15 @@ float eval(const vec3<float>& r_ij,
     const quat<float>& q_i,
     float d_i,
     float charge_i,
+    const quat<float> quat_l_i,
+    const quat<float> quat_r_i,
     unsigned int type_j,
     const quat<float>& q_j,
     float d_j,
-    float charge_j)
+    float charge_j,
+    const quat<float> quat_l_j,
+    const quat<float> quat_r_j,
+    R)
     {{
 """.format(array_size_iso, array_size_union);
         cpp_function += code
@@ -268,6 +311,13 @@ class user_union(user):
         array_size (int): Size of array with adjustable elements. (added in version 2.8)
         array_size_iso (int): Size of array with adjustable elements for the isotropic part. (added in version 2.8)
 
+    Note:
+        With hyperspherical coordinates, HOOMD internally defines a projection of the 3d molecular coordinate
+        into 4d space, where radial distances and directions from the center of the
+        particle are preserved. This makes the constituent particle orientation meaningless.
+        Instead, the 4d world coordinates of the two interacting particles are directly passed to the evaluator
+        function as quaternions in the q_i and q_j fields.
+
     Attributes:
         alpha_union (numpy.ndarray, float): Length array_size numpy array containing dynamically adjustable elements
                                             defined by the user for unions of shapes (added in version 2.8)
@@ -278,12 +328,27 @@ class user_union(user):
 
     .. code-block:: python
 
+    # cartesian coordinates
+
         square_well = """float rsq = dot(r_ij, r_ij);
                             if (rsq < 1.21f)
                                 return -1.0f;
                             else
                                 return 0.0f;
                       """
+
+    # hyperspherical coordinates
+
+    square_well_hypersphere = """
+              // compute the arc-length on the hypersphere
+              float arc_length = R*fast::acos(dot(q_i,q_j)/(R*R));
+
+              if (arc_length < 1.23f)
+                  return -1.0f;
+              else
+                  return 0.0f;
+              """
+                      
         patch = hoomd.jit.patch.user_union(r_cut=1.1, code=square_well)
         patch.set_params('A',positions=[(0,0,-5.),(0,0,.5)], typeids=[0,0])
 
