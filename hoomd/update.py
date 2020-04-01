@@ -389,6 +389,46 @@ class box_resize(_updater):
         else:
             self.setupUpdater(period, phase);
 
+
+class hypersphere_resize(_updater):
+    R""" Rescale the system hypersphere radius.
+
+    Args:
+        R (:py:mod:`hoomd.variant`): hypersphere radius as a function of time (in distance units)
+        period (int): The hypersphere size will be updated every *period* time steps.
+        phase (int): When -1, start on the current time step. When >= 0, execute on steps where *(step + phase) % period == 0*.
+
+    Every *period* time steps, the system hypersphere radius is updated to values given by
+    the user (in a variant).
+
+    Note:
+        If *period* is set to None, then the given box lengths are applied immediately and
+        periodic updates are not performed.
+
+    R can either be set to a constant number or a :py:mod:`hoomd.variant`.
+
+    Examples::
+
+        update.hypersphere_resize(R = hoomd.variant.linear_interp([(100, 20), (1e6, 50)]))
+        curv_space = update.hypersphere_resize(R = hoomd.variant.linear_interp([(0, 20), (1e6, 50)]), period = 10)
+    """
+
+    def __init__(self, R, period = 1, phase=0, scale_particles=True):
+        hoomd.util.print_status_line();
+
+        # initialize base class
+        _updater.__init__(self);
+
+        self.metadata_fields = ['period','R']
+
+        # create the c++ mirror class
+        self.cpp_updater = _hoomd.HypersphereResizeUpdater(hoomd.context.current.system_definition, R.cpp_variant);
+
+        if period is None:
+            self.cpp_updater.update(hoomd.context.current.system.getCurrentTimeStep());
+        else:
+            self.setupUpdater(period, phase);
+
 class balance(_updater):
     R""" Adjusts the boundaries of a domain decomposition on a regular 3D grid.
 

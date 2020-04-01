@@ -33,6 +33,7 @@ set(_hoomd_sources Analyzer.cc
                    GSDReader.cc
                    HOOMDMath.cc
                    HOOMDVersion.cc
+                   HypersphereResizeUpdater.cc
                    IMDInterface.cc
                    Initializers.cc
                    Integrator.cc
@@ -111,6 +112,7 @@ set(_hoomd_headers
     HalfStepHook.h
     HOOMDMath.h
     HOOMDMPI.h
+    HypersphereResizeUpdater.h
     IMDInterface.h
     Index1D.h
     Initializers.h
