@@ -42,6 +42,14 @@ class gsd_write_tests (unittest.TestCase):
             self.snapshot.particles.image[2] = [62, 63, 64];
             self.snapshot.particles.image[3] = [63, 64, 65];
             self.snapshot.particles.types = ['p1', 'p2'];
+            self.snapshot.particles.quat_l[0] = [1,0,0,0];
+            self.snapshot.particles.quat_l[1] = [0,1,0,0];
+            self.snapshot.particles.quat_l[2] = [0,0,1,0];
+            self.snapshot.particles.quat_l[3] = [0,0,0,1];
+            self.snapshot.particles.quat_r[0] = [-1,0,0,0];
+            self.snapshot.particles.quat_r[1] = [0,-1,0,0];
+            self.snapshot.particles.quat_r[2] = [0,0,-1,0];
+            self.snapshot.particles.quat_r[3] = [0,0,0,-1];
 
             # bonds
             self.snapshot.bonds.types = ['b1', 'b2'];
@@ -345,6 +353,8 @@ class gsd_read_tests (unittest.TestCase):
             numpy.testing.assert_array_equal(snap.particles.velocity, self.snapshot.particles.velocity);
             numpy.testing.assert_array_equal(snap.particles.angmom, self.snapshot.particles.angmom);
             numpy.testing.assert_array_equal(snap.particles.image, self.snapshot.particles.image);
+            numpy.testing.assert_array_equal(snap.particles.quat_l, self.snapshot.particles.quat_l);
+            numpy.testing.assert_array_equal(snap.particles.quat_r, self.snapshot.particles.quat_r);
 
             self.assertEqual(snap.bonds.N, self.snapshot.bonds.N);
             self.assertEqual(snap.bonds.types, self.snapshot.bonds.types);
@@ -407,6 +417,8 @@ class gsd_read_tests (unittest.TestCase):
             numpy.testing.assert_array_equal(snap.particles.velocity, self.snapshot.particles.velocity);
             numpy.testing.assert_array_equal(snap.particles.angmom, self.snapshot.particles.angmom);
             numpy.testing.assert_array_equal(snap.particles.image, self.snapshot.particles.image);
+            numpy.testing.assert_array_equal(snap.particles.quat_l, self.snapshot.particles.quat_l);
+            numpy.testing.assert_array_equal(snap.particles.quat_r, self.snapshot.particles.quat_r);
 
             self.assertEqual(snap.bonds.N, self.snapshot.bonds.N);
             self.assertEqual(snap.bonds.types, self.snapshot.bonds.types);
@@ -673,6 +685,16 @@ class gsd_default_type (unittest.TestCase):
         self.validate_fullwrite(name='angmom',
                                 default_val = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
                                 nondefault_val = [[1, 1, 0, 0], [1, 1, 2, 0], [1, 1, 1, 1], [1, 2, 3, 4]])
+
+    def test_nondefault_quat_l(self):
+        self.validate_append(name='quat_l',
+                             default_val = [[1, 0, 0, 0], [1, 0, 0, 0], [1, 0, 0, 0], [1, 0, 0, 0]],
+                             nondefault_val = [[1, 1, 0, 0], [1, 1, 2, 0], [1, 1, 1, 1], [1, 2, 3, 4]])
+
+    def test_nondefault_quat_r(self):
+        self.validate_append(name='quat_r',
+                             default_val = [[1, 0, 0, 0], [1, 0, 0, 0], [1, 0, 0, 0], [1, 0, 0, 0]],
+                             nondefault_val = [[1, 1, 0, 0], [1, 1, 2, 0], [1, 1, 1, 1], [1, 2, 3, 4]])
 
     def tearDown(self):
         if comm.get_rank() == 0:

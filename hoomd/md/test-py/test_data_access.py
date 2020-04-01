@@ -182,8 +182,8 @@ class particle_data_access_tests (unittest.TestCase):
         self.assertEqual(t[1], 'C')
 
     def tearDown(self):
-        del self.s
-        context.initialize();
+       del self.s
+       context.initialize();
 
 def create_empty(**kwargs):
     snap = data.make_snapshot(**kwargs);

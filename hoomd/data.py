@@ -1300,11 +1300,11 @@ class particle_data_proxy(object):
     # \brief Get an informal string representing the object
     def __str__(self):
         result = "";
-        if self.cty == pdata.coordinate.cartesian:
+        if self.cty == self.pdata.coordinate.cartesian:
              result += "tag         : " + str(self.tag) + "\n"
              result += "position    : " + str(self.position) + "\n";
              result += "image       : " + str(self.image) + "\n";
-        elif self.cty == pdata.coordinate.hyperspherical:
+        elif self.cty == self.pdata.coordinate.hyperspherical:
              result += "quat_l      : " + str(self.quat_l) + "\n";
              result += "quat_r      : " + str(self.quat_r) + "\n";
         else:

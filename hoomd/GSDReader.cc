@@ -183,10 +183,24 @@ void GSDReader::readHeader()
     readChunk(&dim, m_frame, "configuration/dimensions", 1);
     m_snapshot->dimensions = dim;
 
+    if (m_handle.header.schema_version >= gsd_make_version(1,3))
+        {
+        uint8_t hyperspherical = 0;
+        readChunk(&hyperspherical, m_frame, "configuration/hyperspherical", 1);
+        m_snapshot->particle_data.use_hyperspherical_coord = hyperspherical;
+        }
+
     float box[6] = {1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f};
     readChunk(&box, m_frame, "configuration/box", 6*4);
     m_snapshot->global_box = BoxDim(box[0], box[1], box[2]);
     m_snapshot->global_box.setTiltFactors(box[3], box[4], box[5]);
+
+    if (m_handle.header.schema_version >= gsd_make_version(1,3))
+        {
+        float R = 1.0;
+        readChunk(&R, m_frame, "configuration/R", 4);
+        m_snapshot->hypersphere = Hypersphere(R);
+        }
 
     unsigned int N = 0;
     readChunk(&N, m_frame, "particles/N", 4);
@@ -218,6 +232,11 @@ void GSDReader::readParticles()
     readChunk(&m_snapshot->particle_data.vel[0], m_frame, "particles/velocity", N*12, N);
     readChunk(&m_snapshot->particle_data.angmom[0], m_frame, "particles/angmom", N*16, N);
     readChunk(&m_snapshot->particle_data.image[0], m_frame, "particles/image", N*12, N);
+    if (m_handle.header.schema_version >= gsd_make_version(1,3))
+        {
+        readChunk(&m_snapshot->particle_data.quat_l[0], m_frame, "particles/quat_l", N*16, N);
+        readChunk(&m_snapshot->particle_data.quat_r[0], m_frame, "particles/quat_r", N*16, N);
+        }
     }
 
 /*! Read the same data chunks for topology
