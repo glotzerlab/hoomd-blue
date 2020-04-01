@@ -111,6 +111,7 @@ SET(EXCLUDE_FROM_MPI
     test_dump_mol2
     test_dump_pdb
     test_communication
+    test_update_hypersphere_resize
     )
 
 if (ENABLE_MPI)
