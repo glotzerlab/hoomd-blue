@@ -69,9 +69,9 @@ class LoggerQuantity:
 class Logger(SafeNamespaceDict):
     '''Logs Hoomd Operation data and custom quantities.'''
 
-    def __init__(self, accepted_flags=None):
-        accepted_flags = [] if accepted_flags is None else accepted_flags
-        self._flags = accepted_flags
+    def __init__(self, flags=None):
+        flags = [] if flags is None else flags
+        self._flags = flags
         super().__init__()
 
     def _grab_log_quantities_from_names(self, obj, quantities):
@@ -166,6 +166,10 @@ class Logger(SafeNamespaceDict):
 
     def log(self):
         return dict_map(self._dict, self._log_conversion)
+
+    @property
+    def flags(self):
+        return self._flags
 
     def _log_conversion(self, obj_prop_tuple):
         obj, prop, flag = obj_prop_tuple
