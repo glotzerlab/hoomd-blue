@@ -1167,7 +1167,7 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
                                     if( newDist < -3.5 ) // resultOverlapping = -3.0;
                                         {
                                         
-                                        if( dot(newCollisionPlaneVector,direction) < 0 )
+                                        if( dot(r_ij,direction) > 0 )
                                             {
                                             collisionPlaneVector = newCollisionPlaneVector;
                                             next = j;
