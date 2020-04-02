@@ -53,7 +53,7 @@ def test_custom():
         def __init__(self):
             hoomd.trigger.Trigger.__init__(self)
 
-        def __call__(self, timestep):
+        def compute(self, timestep):
             return (timestep**(1 / 2)).is_integer()
 
     c = CustomTrigger()
