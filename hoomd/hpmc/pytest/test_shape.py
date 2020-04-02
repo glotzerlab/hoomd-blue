@@ -38,69 +38,93 @@ def check_dict(shape_dict, args):
             np.testing.assert_almost_equal(shape_dict[key], val)
 
 
-def test_dict_conversion(shape_dict_conversion_args):
-    for shape_params, args_list in shape_dict_conversion_args():
-        for args in args_list:
-            test_shape = shape_params(args)
-            test_dict = test_shape.asDict()
-            check_dict(test_dict, args)
+def test_dict_conversion(cpp_args):
+    shape_params = cpp_args[0]
+    args = cpp_args[1]
+    test_shape = shape_params(args)
+    test_dict = test_shape.asDict()
+    check_dict(test_dict, args)
 
 
-def test_shape_params(integrator_args):
-    for shape_integrator, valid_args, invalid_args in integrator_args():
-        mc = shape_integrator(23456)
-        for args in valid_args:
-            mc.shape["A"] = args
-            check_dict(mc.shape["A"], args)
-        for args in invalid_args:
-            with pytest.raises(hoomd.typeconverter.TypeConversionError):
-                mc.shape["A"] = args
+def test_valid_shape_params(valid_args):
+    integrator = valid_args[0]
+    args = valid_args[1]
+    # Need to unpack union integrators
+    if isinstance(integrator, tuple):
+        inner_integrator = integrator[0]
+        integrator = integrator[1]
+        inner_mc = inner_integrator(23456)
+        for i in range(len(args["shapes"])):
+            # This will fill in default values for the inner shape objects
+            inner_mc.shape["A"] = args["shapes"][i]
+            args["shapes"][i] = inner_mc.shape["A"]
+    mc = integrator(23456)
+    mc.shape["A"] = args
+    check_dict(mc.shape["A"], args)
+
+
+def test_invalid_shape_params(invalid_args):
+    integrator = invalid_args[0]
+    if isinstance(integrator, tuple):
+        integrator = integrator[1]
+    args = invalid_args[1]
+    mc = integrator(23456)
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
+        mc.shape["A"] = args
 
 
 def test_shape_attached(simulation_factory,
                         two_particle_snapshot_factory,
-                        integrator_args):
-    for shape_integrator, valid_args, invalid_args in integrator_args():
-        mc = shape_integrator(23456)
-        for args in valid_args:
-            mc.shape["A"] = args
-            sim = simulation_factory(two_particle_snapshot_factory())
-            assert sim.operations.integrator is None
-            sim.operations.add(mc)
-            sim.operations.schedule()
-            check_dict(mc.shape["A"], args)
+                        valid_args):
+    integrator = valid_args[0]
+    args = valid_args[1]
+    if isinstance(integrator, tuple):
+        inner_integrator = integrator[0]
+        integrator = integrator[1]
+        inner_mc = inner_integrator(23456)
+        for i in range(len(args["shapes"])):
+            # This will fill in default values for the inner shape objects
+            inner_mc.shape["A"] = args["shapes"][i]
+            args["shapes"][i] = inner_mc.shape["A"]
+    mc = integrator(23456)
+    mc.shape["A"] = args
+    sim = simulation_factory(two_particle_snapshot_factory())
+    assert sim.operations.integrator is None
+    sim.operations.add(mc)
+    sim.operations.schedule()
+    check_dict(mc.shape["A"], args)
 
 
 def test_moves(device,
                simulation_factory,
                lattice_snapshot_factory,
-               integrator_args):
-    for shape_integrator, valid_args, invalid_args in integrator_args():
-        args = valid_args[0]
-        if 'polygon' in str(shape_integrator).lower():
-            dims = 2
-        else:
-            dims = 3
-        mc = shape_integrator(23456)
-        mc.shape['A'] = args
+               test_moves_args):
+    integrator = test_moves_args[0]
+    args = test_moves_args[1]
+    if 'polygon' in str(integrator).lower():
+        dims = 2
+    else:
+        dims = 3
+    mc = integrator(23456)
+    mc.shape['A'] = args
 
-        sim = simulation_factory(lattice_snapshot_factory(dimensions=dims))
-        sim.operations.add(mc)
-        with pytest.raises(AttributeError):
-            sim.operations.integrator.translate_moves
-        with pytest.raises(AttributeError):
-            sim.operations.integrator.rotate_moves
-        sim.operations.schedule()
+    sim = simulation_factory(lattice_snapshot_factory(dimensions=dims))
+    sim.operations.add(mc)
+    with pytest.raises(AttributeError):
+        sim.operations.integrator.translate_moves
+    with pytest.raises(AttributeError):
+        sim.operations.integrator.rotate_moves
+    sim.operations.schedule()
 
-        assert sum(sim.operations.integrator.translate_moves) == 0
-        assert sum(sim.operations.integrator.rotate_moves) == 0
+    assert sum(sim.operations.integrator.translate_moves) == 0
+    assert sum(sim.operations.integrator.rotate_moves) == 0
 
-        sim.run(100)
-        accepted_rejected_trans = sum(sim.operations.integrator.translate_moves)
-        assert accepted_rejected_trans > 0
-        if 'sphere' not in str(shape_integrator).lower():
-            accepted_rejected_rot = sum(sim.operations.integrator.rotate_moves)
-            assert accepted_rejected_rot > 0
+    sim.run(100)
+    accepted_rejected_trans = sum(sim.operations.integrator.translate_moves)
+    assert accepted_rejected_trans > 0
+    if 'sphere' not in str(integrator).lower():
+        accepted_rejected_rot = sum(sim.operations.integrator.rotate_moves)
+        assert accepted_rejected_rot > 0
 
 # An ellipsoid with a = b = c should be a sphere
 # A spheropolyhedron with a single vertex should be a sphere
