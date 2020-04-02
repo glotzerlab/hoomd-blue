@@ -2,6 +2,7 @@ import pytest
 import hoomd
 from hoomd.hpmc.integrate import *
 from copy import deepcopy
+from collections import Counter
 
 _valid_args = [(ConvexPolygon, {'vertices': [(0, (0.75**0.5) / 2),
                                              (-0.5, -(0.75**0.5) / 2),
@@ -651,12 +652,37 @@ _invalid_args = [(ConvexPolygon, {'vertices': "str"}),
                            'centers': 1})]
 
 
-@pytest.fixture(scope="function", params=_valid_args)
+class CounterWrapper:
+    def __init__(self, func):
+        self.func = func
+        self._counter = []
+
+    def __call__(self, *args, **kwargs):
+        self._counter.append(str(args[0][0]).split('.')[-1][:-2])
+        return self.func(*args, **kwargs)
+
+    def count(self, integrator):
+        return Counter(self._counter)[str(integrator).split('.')[-1][:-2]]
+
+
+@CounterWrapper
+def valid_args_id(args):
+    integrator = args[0]
+    return str(integrator) + str(valid_args_id.count(str(integrator)))
+
+
+@pytest.fixture(scope="function", params=_valid_args, ids=valid_args_id)
 def valid_args(request):
     return deepcopy(request.param)
 
 
-@pytest.fixture(scope="function", params=_invalid_args)
+@CounterWrapper
+def invalid_args_id(args):
+    integrator = args[0]
+    return str(integrator) + str(valid_args_id.count(str(integrator)))
+
+
+@pytest.fixture(scope="function", params=_invalid_args, ids=invalid_args_id)
 def invalid_args(request):
     return deepcopy(request.param)
 
@@ -716,6 +742,14 @@ def _cpp_args(_valid_args):
     return args_list
 
 
-@pytest.fixture(scope="function", params=_cpp_args(_valid_args))
+@CounterWrapper
+def cpp_args_id(args):
+    integrator = args[0]
+    return str(integrator) + str(valid_args_id.count(str(integrator)))
+
+
+@pytest.fixture(scope="function",
+                params=_cpp_args(_valid_args),
+                ids=cpp_args_id)
 def cpp_args(request):
     return deepcopy(request.param)
