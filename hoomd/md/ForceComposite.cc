@@ -738,7 +738,7 @@ CommFlags ForceComposite::getRequestedCommFlags(unsigned int timestep)
 
     // only communicate net virial if needed
     PDataFlags pdata_flags = this->m_pdata->getFlags();
-    if (pdata_flags[pdata_flag::isotropic_virial] || pdata_flags[pdata_flag::pressure_tensor])
+    if (pdata_flags[pdata_flag::pressure_tensor])
         {
         flags[comm_flag::net_virial] = 1;
         }
@@ -797,7 +797,7 @@ void ForceComposite::computeForces(unsigned int timestep)
 
     PDataFlags flags = m_pdata->getFlags();
     bool compute_virial = false;
-    if (flags[pdata_flag::isotropic_virial] || flags[pdata_flag::pressure_tensor])
+    if (flags[pdata_flag::pressure_tensor])
         {
         compute_virial = true;
         }

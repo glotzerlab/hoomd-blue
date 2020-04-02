@@ -601,9 +601,9 @@ void System::generateStatusLine()
 */
 PDataFlags System::determineFlags(unsigned int tstep)
     {
-    PDataFlags flags(0);
+    PDataFlags flags = m_default_flags;
     if (m_integrator)
-        flags = m_integrator->getRequestedPDataFlags();
+        flags |= m_integrator->getRequestedPDataFlags();
 
     for (auto &analyzer_trigger_pair: m_analyzers)
         {
@@ -672,6 +672,8 @@ void export_System(py::module& m)
 
     .def("getLastTPS", &System::getLastTPS)
     .def("getCurrentTimeStep", &System::getCurrentTimeStep)
+    .def("setPressureFlag", &System::setPressureFlag)
+    .def("getPressureFlag", &System::getPressureFlag)
     .def_property_readonly("analyzers", &System::getAnalyzers)
     .def_property_readonly("updaters", &System::getUpdaters)
     .def_property_readonly("tuners", &System::getTuners)

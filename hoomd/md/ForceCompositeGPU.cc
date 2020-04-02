@@ -106,7 +106,7 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
 
     PDataFlags flags = m_pdata->getFlags();
     bool compute_virial = false;
-    if (flags[pdata_flag::isotropic_virial] || flags[pdata_flag::pressure_tensor])
+    if (flags[pdata_flag::pressure_tensor])
         {
         compute_virial = true;
         }
