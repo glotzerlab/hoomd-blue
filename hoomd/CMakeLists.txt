@@ -349,7 +349,13 @@ if (BUILD_MD)
         # HIPCUB_INCLUDE_DIR being set earlier in the project, but these can also
         # be hinted by setting CUB_ROOT or HIPCUB_ROOT if this doesn't work or changes.
         set(NEIGHBOR_HIP ${HIP_FOUND} CACHE BOOL "Use HIP layer?" FORCE)
+        if (HIP_FOUND)
+            set(HIPCUB_ROOT ${HIP_INCLUDE_DIR})
+        endif()
         add_subdirectory(${HOOMD_SOURCE_DIR}/hoomd/extern/neighbor)
+        if (HIP_FOUND)
+            unset(HIPCUB_ROOT)
+        endif()
         # hide these variables in the cache
         mark_as_advanced(NEIGHBOR_BENCHMARK NEIGHBOR_HIP NEIGHBOR_INSTALL NEIGHBOR_TEST)
     endif (ENABLE_HIP)
