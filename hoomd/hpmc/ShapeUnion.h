@@ -251,7 +251,7 @@ struct ShapeUnionParams : ShapeParams
         OBBTree tree_obb;
         tree_obb.buildTree(obbs, N, leaf_capacity, false);
         delete [] obbs;
-        tree = GPUTree(tree_obb, false);
+        tree = GPUTree(tree_obb, managed);
 
         // store local AABB
         lower = local_aabb.getLower();
