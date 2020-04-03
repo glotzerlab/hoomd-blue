@@ -309,7 +309,7 @@ class CPU(_device):
         _init_nthreads(nthreads)
 
         self.cpp_exec_conf = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.CPU,
-                                                           _hoomd.std_vector_int(),
+                                                           [],
                                                            False,
                                                            False,
                                                            self.comm.cpp_mpi_conf,
