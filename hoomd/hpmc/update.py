@@ -800,13 +800,13 @@ class Clusters(_Updater):
             raise RuntimeError("The integrator must be a HPMC integrator.")
 
         cpp_cls_name = "UpdaterClusters"
-        if simulation.device.mode == 'GPU':
+        if simulation.device.mode == 'gpu':
             cpp_cls_name += "GPU"
         cpp_cls_name += integrator.__class__.__name__
         cpp_cls = getattr(_hpmc, cpp_cls_name)
 
-        if simulation.device.mode == 'GPU':
-            self._cpp_cell = _hoomd.CellListGPU(sys_def)
+        if simulation.device.mode == 'gpu':
+            self._cpp_cell = _hoomd.CellListGPU(simulation.state._cpp_sys_def)
             if simulation._system_communicator is not None:
                 self._cpp_cell.setCommunicator(simulation._system_communicator)
             self._cpp_obj = cpp_cls(simulation.state._cpp_sys_def,
