@@ -248,18 +248,12 @@ class GPU(_device):
 
         _device.__init__(self, communicator, notice_level, msg_file, shared_msg_file)
 
-        # convert None options to defaults
         if gpu_ids is None:
-            gpu_id = []
-        else:
-            gpu_id = gpu_ids
+            gpu_ids = []
 
-        gpu_vec = _hoomd.std_vector_int()
-        for gpuid in gpu_id:
-            gpu_vec.append(gpuid)
-
+        # convert None options to defaults
         self.cpp_exec_conf = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.GPU,
-                                                           gpu_vec,
+                                                           gpu_ids,
                                                            False,
                                                            False,
                                                            self.comm.cpp_mpi_conf,
