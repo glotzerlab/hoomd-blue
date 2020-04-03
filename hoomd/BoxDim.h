@@ -599,7 +599,7 @@ BoxDim
             }
         #endif
 
-    // private:
+    private:
         Scalar3 m_lo;      //!< Minimum coords in the box
         Scalar3 m_hi;      //!< Maximum coords in the box
         Scalar3 m_L;       //!< L precomputed (used to avoid subtractions in boundary conditions)
