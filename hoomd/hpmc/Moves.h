@@ -65,13 +65,16 @@ template <class RNG>
 DEVICE inline void move_translate_hypersphere(quat<Scalar>& quat_l, quat<Scalar>& quat_r, RNG& rng, Scalar d, const Hypersphere& hypersphere)
     {
     // Generate a random arc of maximum length d
-    Scalar phi = rng.template s<Scalar>(-d,d)/hypersphere.getR();
+
+    hoomd::UniformDistribution<Scalar> uniform(Scalar(-1.0),Scalar(1.0));
+
+    Scalar phi = d*uniform(rng)/hypersphere.getR();
 
     vec3<Scalar> b;
 
     //! Generate a direction (3d unit vector) for the translation
-    Scalar theta = rng.template s<Scalar>(Scalar(0.0),Scalar(2.0*M_PI));
-    Scalar z = rng.template s<Scalar>(Scalar(-1.0),Scalar(1.0));
+    Scalar theta = hoomd::UniformDistribution<Scalar>(Scalar(0.0),Scalar(2.0*M_PI))(rng);
+    Scalar z = uniform(rng);
     b = vec3<Scalar>(fast::sqrt(Scalar(1.0)-z*z)*fast::cos(theta),fast::sqrt(Scalar(1.0)-z*z)*fast::sin(theta),z);
 
     // the transformation quaternion
@@ -159,13 +162,16 @@ template <class RNG>
 DEVICE inline void move_rotate_hypersphere(quat<Scalar>& quat_l, quat<Scalar>& quat_r, RNG& rng, Scalar a)
     {
     // Generate a random angle between -a/2 and a/2
-    Scalar phi = rng.template s<Scalar>(-a,a);
+
+    hoomd::UniformDistribution<Scalar> uniform(Scalar(-1.0),Scalar(1.0));
+
+    Scalar phi = a*uniform(rng);
 
     vec3<Scalar> b;
 
     //! Generate a direction (3d unit vector) for the translation
-    Scalar theta = rng.template s<Scalar>(Scalar(0.0),Scalar(2.0*M_PI));
-    Scalar z = rng.template s<Scalar>(Scalar(-1.0),Scalar(1.0));
+    Scalar theta = hoomd::UniformDistribution<Scalar>(Scalar(0.0),Scalar(2.0*M_PI))(rng);
+    Scalar z = uniform(rng);
     b = vec3<Scalar>(fast::sqrt(Scalar(1.0)-z*z)*fast::cos(theta),fast::sqrt(Scalar(1.0)-z*z)*fast::sin(theta),z);
 
     // the transformation quaternion

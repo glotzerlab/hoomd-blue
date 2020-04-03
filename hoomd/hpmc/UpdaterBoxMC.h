@@ -323,6 +323,14 @@ class UpdaterBoxMC : public Updater
                                      hoomd::RandomGenerator& rng
                                      );
                                      //!< attempt specified box change and undo if overlaps generated
+
+        //! Attempt a hypersphere resize
+        inline bool hypersphere_resize_trial(Scalar R,
+                                          unsigned int timestep,
+                                          Scalar deltaE,
+                                          hoomd::RandomGenerator& rng
+                                          );
+
         inline bool safe_box(const Scalar newL[3], const unsigned int& Ndim);
                                                     //!< Perform appropriate checks for box validity
     };

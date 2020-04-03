@@ -141,7 +141,8 @@ void POSDumpWriter::analyze(unsigned int timestep)
         m_file << info;
         }
 
-    if (m_pdata->getCoordinateType() == ParticleData::cartesian){
+    if (m_pdata->getCoordinateType() == ParticleData::cartesian)
+    {
 	    for (unsigned int j = 0; j < snap.size; j++)
 		{
 		// get the coordinates
@@ -183,7 +184,7 @@ void POSDumpWriter::analyze(unsigned int timestep)
 		    throw runtime_error("Error writing pos dump file");
 		    }
 		}
-        }
+    }
     else if (m_pdata->getCoordinateType() == ParticleData::hyperspherical)
         {
         for (unsigned int j = 0; j < snap.size; j++){

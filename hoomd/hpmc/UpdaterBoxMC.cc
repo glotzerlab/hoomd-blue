@@ -384,6 +384,71 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
         }
     }
 
+
+//! Try resizing the hypersphere
+/*! If new hypersphere generates overlaps, restore original hypersphere
+    \param R new hypersphere radius
+    \param timestep current simulation step
+
+    \returns bool True if hypersphere resize was accepted
+*/
+inline bool UpdaterBoxMC::hypersphere_resize_trial(Scalar R,
+                                          unsigned int timestep,
+                                          Scalar deltaE,
+                                          hoomd::RandomGenerator& rng
+                                          )
+    {
+    Hypersphere curHypersphere = m_pdata->getHypersphere();
+
+    if (m_mc->getPatchInteraction())
+        {
+        // energy of old configuration
+        deltaE -= m_mc->computePatchEnergy(timestep);
+        }
+
+    // Attempt sphere resize and check for overlaps
+    Hypersphere newHypersphere = m_pdata->getHypersphere();
+
+    newHypersphere.setR(R);
+
+    m_pdata->setHypersphere(newHypersphere);
+
+    bool allowed = !m_mc->countOverlaps(timestep, true);
+
+    if (allowed && m_mc->getPatchInteraction())
+        {
+        deltaE += m_mc->computePatchEnergy(timestep);
+        }
+
+    #if 0
+    if (allowed && m_mc->getExternalField())
+        {
+        ArrayHandle<Scalar4> h_pos_backup(m_pos_backup, access_location::host, access_mode::readwrite);
+        Scalar ext_energy = m_mc->getExternalField()->calculateDeltaE(h_pos_backup.data, NULL, &curBox);
+        // The exponential is a very fast function and we may do better to add pseudo-Hamiltonians and exponentiate only once...
+        deltaE += ext_energy;
+        }
+    #endif
+
+    double p = hoomd::detail::generate_canonical<double>(rng);
+
+    if (allowed && p < fast::exp(-deltaE))
+        {
+        return true;
+        }
+    else
+        {
+        m_pdata->setHypersphere(curHypersphere);
+
+        #if 0
+        // we have moved particles, communicate those changes
+        m_mc->communicate(false);
+        #endif
+
+        return false;
+        }
+    }
+
 inline bool UpdaterBoxMC::safe_box(const Scalar newL[3], const unsigned int& Ndim)
     {
     //Scalar min_allowed_size = m_mc->getMaxTransMoveSize(); // This is dealt with elsewhere
@@ -576,26 +641,43 @@ void UpdaterBoxMC::update_lnV(unsigned int timestep, hoomd::RandomGenerator& rng
     assert(m_pdata);
     unsigned int Ndim = m_sysdef->getNDimensions();
     unsigned int Nglobal = m_pdata->getNGlobal();
-    BoxDim curBox = m_pdata->getGlobalBox();
-    Scalar curL[3];
-    Scalar newL[3]; // Lx, Ly, Lz
-    newL[0] = curL[0] = curBox.getLatticeVector(0).x;
-    newL[1] = curL[1] = curBox.getLatticeVector(1).y;
-    newL[2] = curL[2] = curBox.getLatticeVector(2).z;
-    Scalar newShear[3]; // xy, xz, yz
-    newShear[0] = curBox.getTiltFactorXY();
-    newShear[1] = curBox.getTiltFactorXZ();
-    newShear[2] = curBox.getTiltFactorYZ();
 
-    // original volume
-    double V = curL[0] * curL[1];
-    if (Ndim == 3)
-        {
-        V *= curL[2];
-        }
-    // Aspect ratios
-    Scalar A1 = m_Volume_A1;
-    Scalar A2 = m_Volume_A2;
+    Scalar curL[3] = {0,0,0};
+    Scalar newL[3] = {0,0,0}; // Lx, Ly, Lz
+    Scalar newR = 0;
+    Scalar newShear[3] = {0,0,0}; // xy, xz, yz
+    Scalar A1 = 0;
+    Scalar A2 = 0;
+    double V = 0;
+
+    if(m_pdata->getCoordinateType() == ParticleData::cartesian)
+    {
+         BoxDim curBox = m_pdata->getGlobalBox();
+         newL[0] = curL[0] = curBox.getLatticeVector(0).x;
+         newL[1] = curL[1] = curBox.getLatticeVector(1).y;
+         newL[2] = curL[2] = curBox.getLatticeVector(2).z;
+         newShear[0] = curBox.getTiltFactorXY();
+         newShear[1] = curBox.getTiltFactorXZ();
+         newShear[2] = curBox.getTiltFactorYZ();
+
+         // original volume
+         V = curL[0] * curL[1];
+         if (Ndim == 3)
+             {
+             V *= curL[2];
+             }
+         // Aspect ratios
+         A1 = m_Volume_A1;
+         A2 = m_Volume_A2;
+    }
+    else if (m_pdata->getCoordinateType() == ParticleData::hyperspherical)
+    {
+        V = m_pdata->getHypersphere().getVolume();
+    }
+    else
+    {
+    throw std::runtime_error("Unknown coordinate system in UpdaterBoxMC.");
+    }
 
     // Volume change
     Scalar dlnV_max(m_lnVolume_delta);
@@ -604,21 +686,25 @@ void UpdaterBoxMC::update_lnV(unsigned int timestep, hoomd::RandomGenerator& rng
     Scalar dlnV = hoomd::UniformDistribution<Scalar>(-dlnV_max, dlnV_max)(rng);
     Scalar new_V = V*exp(dlnV);
 
-    // perform isotropic volume change
-    if (Ndim == 3)
-        {
-        newL[0] = pow(A1 * A2 * new_V,(1./3.));
-        newL[1] = newL[0]/A1;
-        newL[2] = newL[0]/A2;
-        }
-    else // Ndim ==2
-        {
-        newL[0] = pow(A1*new_V,(1./2.));
-        newL[1] = newL[0]/A1;
-        // newL[2] is already assigned to curL[2]
-        }
+    if(m_pdata->getCoordinateType() == ParticleData::cartesian)
+    {
+        // perform isotropic volume change
+        if (Ndim == 3)
+            {
+            newL[0] = pow(A1 * A2 * new_V,(1./3.));
+            newL[1] = newL[0]/A1;
+            newL[2] = newL[0]/A2;
+            }
+        else // Ndim ==2
+            {
+            newL[0] = pow(A1*new_V,(1./2.));
+            newL[1] = newL[0]/A1;
+            // newL[2] is already assigned to curL[2]
+            }
+    }else
+        newR = pow(new_V/Scalar(2.0*M_PI*M_PI),1./3.);
 
-    if (!safe_box(newL, Ndim))
+    if(m_pdata->getCoordinateType() == ParticleData::cartesian && !safe_box(newL, Ndim)) 
         {
         m_count_total.ln_volume_reject_count++;
         }
@@ -627,25 +713,27 @@ void UpdaterBoxMC::update_lnV(unsigned int timestep, hoomd::RandomGenerator& rng
         // Calculate Boltzmann factor
         double dBetaH = P * (new_V-V) - (Nglobal+1) * log(new_V/V);
 
-        // attempt box change
-        bool accept = box_resize_trial(newL[0],
-                                      newL[1],
-                                      newL[2],
-                                      newShear[0],
-                                      newShear[1],
-                                      newShear[2],
-                                      timestep,
-                                      dBetaH,
-                                      rng);
-
-        if (accept)
+        bool accept = false;
+        if(m_pdata->getCoordinateType() == ParticleData::cartesian)
             {
-            m_count_total.ln_volume_accept_count++;
+            // attempt box change
+            accept = box_resize_trial(newL[0],
+                                          newL[1],
+                                          newL[2],
+                                          newShear[0],
+                                          newShear[1],
+                                          newShear[2],
+                                          timestep,
+                                          dBetaH,
+                                          rng);
             }
         else
-            {
+            accept = hypersphere_resize_trial(newR, timestep, dBetaH, rng);
+
+        if (accept)
+            m_count_total.ln_volume_accept_count++;
+        else
             m_count_total.ln_volume_reject_count++;
-            }
         }
     if (m_prof) m_prof->pop();
     }

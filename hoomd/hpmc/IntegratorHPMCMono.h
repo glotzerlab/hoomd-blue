@@ -23,7 +23,7 @@
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/managed_allocator.h"
 #include "hoomd/GSDShapeSpecWriter.h"
-#include "hoomd/Saru.h"
+//#include "hoomd/Saru.h"
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
@@ -939,11 +939,13 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                     quat<Scalar> quat_r_i(h_quat_r.data[i]);
 
                     // make a trial move for i
-                    hoomd::detail::Saru rng_i(i, m_seed + m_exec_conf->getRank()*m_nselect + i_nselect, timestep);
+
+                    hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::HPMCMonoTrialMove, m_seed, i, m_exec_conf->getRank()*m_nselect + i_nselect, timestep);
                     int typ_i = __scalar_as_int(postype_i.w);
                     Shape shape_i(quat_l_i, quat_r_i, m_params[typ_i]);
-                    unsigned int move_type_select = rng_i.u32() & 0xffff;
+                    unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng_i);
                     bool move_type_translate = !shape_i.hasOrientation() || (move_type_select < m_move_ratio);
+
 
                     quat<Scalar> quat_l_i_old = quat_l_i;
                     quat<Scalar> quat_r_i_old = quat_r_i;
@@ -1142,7 +1144,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
 
                     // If no overlaps and Metropolis criterion is met, accept
                     // trial move and update positions  and/or orientations.
-                    if (!overlap && rng_i.d() < slow::exp(patch_field_energy_diff))
+                    if (!overlap && hoomd::detail::generate_canonical<double>(rng_i) < slow::exp(patch_field_energy_diff))
                         {
                         // increment accept counter and assign new position
                         if (!shape_i.ignoreStatistics())
