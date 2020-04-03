@@ -786,21 +786,12 @@ class Clusters(_Updater):
 
     """
 
-    def __init__(self, seed, swap_types, move_ratio=0.5,
-                 flip_probability=0.5, swap_move_ratio=0.5, trigger=1):
+    def __init__(self, seed, move_ratio=0.5, flip_probability=0.5, trigger=1):
         super().__init__(trigger)
-        try:
-            if len(swap_types) != 2 and len(swap_types) != 0:
-                raise ValueError
-        except (TypeError, ValueError):
-            raise ValueError("swap_types must be an iterable of length "
-                             "2 or 0.")
 
         param_dict = ParameterDict(seed=int(seed),
-                                   swap_types=list(swap_types),
                                    move_ratio=float(move_ratio),
-                                   flip_probability=float(flip_probability),
-                                   swap_move_ratio=float(swap_move_ratio))
+                                   flip_probability=float(flip_probability))
         self._param_dict.update(param_dict)
 
     def attach(self, simulation):
@@ -808,47 +799,26 @@ class Clusters(_Updater):
         if not isinstance(integrator, integrate._HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
 
-        integrator_pairs = [
-                (integrate.Sphere,
-                    _hpmc.UpdaterClustersSphere),
-                (integrate.convex_polygon,
-                    _hpmc.UpdaterClustersConvexPolygon),
-                (integrate.simple_polygon,
-                    _hpmc.UpdaterClustersConvexPolygon),
-                (integrate.convex_polyhedron,
-                    _hpmc.UpdaterClustersConvexPolyhedron),
-                (integrate.convex_spheropolyhedron,
-                    _hpmc.UpdaterClustersSpheropolyhedron),
-                (integrate.ellipsoid,
-                    _hpmc.UpdaterClustersEllipsoid),
-                (integrate.convex_spheropolygon,
-                    _hpmc.UpdaterClustersSpheropolygon),
-                (integrate.faceted_sphere,
-                    _hpmc.UpdaterClustersFacetedEllipsoid),
-                (integrate.sphere_union,
-                    _hpmc.UpdaterClustersSphereUnion),
-                (integrate.convex_spheropolyhedron_union,
-                    _hpmc.UpdaterClustersConvexPolyhedronUnion),
-                (integrate.faceted_ellipsoid_union,
-                    _hpmc.UpdaterClustersFacetedEllipsoidUnion),
-                (integrate.polyhedron,
-                    _hpmc.UpdaterClustersPolyhedron),
-                (integrate.sphinx,
-                    _hpmc.UpdaterClustersSphinx)
-                ]
+        cpp_cls_name = "UpdaterClusters"
+        if simulation.device.mode == 'GPU':
+            cpp_cls_name += "GPU"
+        cpp_cls_name += integrator.__class__.__name__
+        cpp_cls = getattr(_hpmc, cpp_cls_name)
 
-        cpp_cls = None
-        for python_integrator, cpp_updater in integrator_pairs:
-            if isinstance(integrator, python_integrator):
-                cpp_cls = cpp_updater
-        if cpp_cls is None:
-            raise RuntimeError("Unsupported integrator.\n")
+        if simulation.device.mode == 'GPU':
+            self._cpp_cell = _hoomd.CellListGPU(sys_def)
+            if simulation._system_communicator is not None:
+                self._cpp_cell.setCommunicator(simulation._system_communicator)
+            self._cpp_obj = cpp_cls(simulation.state._cpp_sys_def,
+                                    integrator._cpp_obj,
+                                    self._cpp_cell,
+                                    int(self.seed))
+        else:
+            self._cpp_obj = cpp_cls(simulation.state._cpp_sys_def,
+                                    integrator._cpp_obj,
+                                    int(self.seed))
+            self._cpp_cell = None
 
-        if not integrator.is_attached:
-            raise RuntimeError("Integrator is not attached yet.")
-        self._cpp_obj = cpp_cls(simulation.state._cpp_sys_def,
-                                integrator._cpp_obj,
-                                int(self.seed))
         super().attach(simulation)
 
     @property
@@ -895,17 +865,3 @@ class Clusters(_Updater):
             return (0, 0)
         else:
             return counter.reflection
-
-    @Loggable.log(flag='multi')
-    def swap_moves(self):
-        R""" Get a tuple with the accepted and rejected swap moves.
-
-        Returns:
-            A tuple of (accepted moves, rejected moves) since the last run.
-            Returns (0, 0) if not attached.
-        """
-        counter = self.counter
-        if counter is None:
-            return (0, 0)
-        else:
-            return counter.swap
