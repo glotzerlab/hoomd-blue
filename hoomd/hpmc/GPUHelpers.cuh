@@ -33,10 +33,7 @@ __device__ inline unsigned int computeParticleCell(const Scalar3& p,
         kb = 0;
 
     // identify the bin
-    if (f.x >= Scalar(0.0) && f.x < Scalar(1.0) && f.y >= Scalar(0.0) && f.y < Scalar(1.0) && f.z >= Scalar(0.0) && f.z < Scalar(1.0))
-        return ci(ib,jb,kb);
-    else
-        return 0xffffffff;
+    return ci(ib,jb,kb);
     }
 
 } // end namespace hpmc
