@@ -11,6 +11,7 @@
 
 #include "hoomd/ComputeThermo.h"
 #include "hoomd/md/TempRescaleUpdater.h"
+#include "hoomd/filter/ParticleFilterAll.h"
 
 #ifdef ENABLE_HIP
 #include "hoomd/ComputeThermoGPU.h"

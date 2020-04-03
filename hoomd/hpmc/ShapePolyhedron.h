@@ -81,10 +81,10 @@ struct TriangleMesh : ShapeParams
         {
         pybind11::list verts_list = v["vertices"];
         pybind11::list face_list = v["faces"];
-        pybind11::list overlap_list = v["overlap"];
-        pybind11::list origin_list = v["origin"];
+        pybind11::object overlap = v["overlap"];
+        pybind11::tuple origin_tuple = v["origin"];
 
-        if (len(origin_list) != 3)
+        if (len(origin_tuple) != 3)
             throw std::runtime_error("origin must have 3 elements");
 
         OverlapReal R = v["sweep_radius"].cast<OverlapReal>();
@@ -92,9 +92,9 @@ struct TriangleMesh : ShapeParams
         hull_only = v["hull_only"].cast<unsigned int>();
         n_verts = pybind11::len(verts_list);
         n_faces = pybind11::len(face_list);
-        origin = vec3<OverlapReal>(pybind11::cast<OverlapReal>(origin_list[0]),
-                                   pybind11::cast<OverlapReal>(origin_list[1]),
-                                   pybind11::cast<OverlapReal>(origin_list[2]));
+        origin = vec3<OverlapReal>(pybind11::cast<OverlapReal>(origin_tuple[0]),
+                                   pybind11::cast<OverlapReal>(origin_tuple[1]),
+                                   pybind11::cast<OverlapReal>(origin_tuple[2]));
 
         unsigned int leaf_capacity = v["capacity"].cast<unsigned int>();
 
@@ -111,7 +111,7 @@ struct TriangleMesh : ShapeParams
             face_offs[i] = face_offs[i-1] + 3;
             }
 
-        if (overlap_list.is(pybind11::none()))
+        if (overlap.is(pybind11::none()))
             {
             for (unsigned int i = 0; i < n_faces; i++)
                 {
@@ -120,6 +120,7 @@ struct TriangleMesh : ShapeParams
             }
        else
             {
+            pybind11::list overlap_list = overlap;
             if (pybind11::len(overlap_list) != n_faces)
                 {
                 throw std::runtime_error("Number of member overlap flags must be equal to number faces");
@@ -133,7 +134,7 @@ struct TriangleMesh : ShapeParams
         OverlapReal radius_sq = OverlapReal(0.0);
         for (unsigned int i = 0; i < n_verts; i++)
             {
-            pybind11::list vert_list = pybind11::cast<pybind11::list>(verts_list[i]);
+            pybind11::list vert_list = verts_list[i];
             if (len(vert_list) != 3)
                 throw std::runtime_error("Each vertex must have 3 elements");
             vec3<OverlapReal> vert;

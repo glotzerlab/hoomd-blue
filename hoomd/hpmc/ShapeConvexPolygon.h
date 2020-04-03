@@ -100,7 +100,7 @@ struct PolygonVertices : ShapeParams
         OverlapReal radius_sq = OverlapReal(0.0);
         for (unsigned int i = 0; i < len(verts); i++)
             {
-            pybind11::list verts_i = pybind11::cast<pybind11::list>(verts[i]);
+            pybind11::list verts_i = verts[i];
             if (len(verts_i) != 2)
                 throw std::runtime_error("Each vertex must have 2 elements");
 

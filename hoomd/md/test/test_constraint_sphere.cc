@@ -16,6 +16,7 @@
 #ifdef ENABLE_HIP
 #include "hoomd/md/ConstraintSphereGPU.h"
 #endif
+#include "hoomd/filter/ParticleFilterAll.h"
 
 #include <math.h>
 

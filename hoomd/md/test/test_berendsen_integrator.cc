@@ -17,6 +17,7 @@
 
 
 #include "hoomd/Initializers.h"
+#include "hoomd/filter/ParticleFilterAll.h"
 
 #include <math.h>
 #include "hoomd/test/upp11_config.h"

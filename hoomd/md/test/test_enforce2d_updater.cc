@@ -15,6 +15,7 @@
 #include "hoomd/md/NeighborListBinned.h"
 #include "hoomd/md/TwoStepNVTMTK.h"
 #include "hoomd/ComputeThermo.h"
+#include "hoomd/filter/ParticleFilterAll.h"
 
 #ifdef ENABLE_HIP
 #include "hoomd/md/Enforce2DUpdaterGPU.h"

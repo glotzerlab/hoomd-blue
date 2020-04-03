@@ -18,7 +18,16 @@
 // #include <pybind11/pybind11.h>
 #include <stdexcept>
 #include <time.h>
+#include <pybind11/cast.h>
 #include <pybind11/stl_bind.h>
+
+// the typedef works around an issue with older versions of the preprocessor
+typedef std::pair<std::shared_ptr<Analyzer>, std::shared_ptr<Trigger>> _analyzer_pair;
+PYBIND11_MAKE_OPAQUE(std::vector<_analyzer_pair>)
+typedef std::pair<std::shared_ptr<Updater>, std::shared_ptr<Trigger>> _updater_pair;
+PYBIND11_MAKE_OPAQUE(std::vector<_updater_pair>)
+
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<Tuner> >)
 
 using namespace std;
 namespace py = pybind11;
@@ -639,10 +648,11 @@ void export_System(py::module& m)
     walltimeLimitExceptionTypeObj = createExceptionClass(m,"WalltimeLimitReached");
 
     py::bind_vector<std::vector<std::pair<std::shared_ptr<Analyzer>,
-            std::shared_ptr<Trigger> > > >(m, "AnalyzerTriggerList");
+                    std::shared_ptr<Trigger> > > >(m, "AnalyzerTriggerList");
     py::bind_vector<std::vector<std::pair<std::shared_ptr<Updater>,
-            std::shared_ptr<Trigger> > > >(m, "UpdaterTriggerList");
+                    std::shared_ptr<Trigger> > > >(m, "UpdaterTriggerList");
     py::bind_vector<std::vector<std::shared_ptr<Tuner> > > (m, "TunerList");
+
     py::class_< System, std::shared_ptr<System> > (m,"System")
     .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int >())
     .def("addCompute", &System::addCompute)

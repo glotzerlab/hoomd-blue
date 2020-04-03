@@ -2,6 +2,7 @@ import pytest
 import hoomd
 import atexit
 import numpy
+import itertools
 from hoomd.snapshot import Snapshot
 from hoomd import Simulation
 
@@ -13,17 +14,36 @@ if hoomd.device.GPU.is_available():
 @pytest.fixture(scope='session',
                 params=devices)
 def device(request):
+    """Parameterized Device fixture.
+
+    Tests that use `device` will run once on the CPU and once on the GPU. The
+    device object is session scoped to avoid device creation overhead when
+    running tests.
+    """
     return request.param()
 
 
 @pytest.fixture(scope='session',
                 params=devices)
 def device_class(request):
+    """Parameterized Device class fixture.
+
+    Use the `device_class` fixture in tests that need to pass parameters to the
+    device creation.
+    """
     return request.param
 
 
 @pytest.fixture(scope='session')
 def device_cpu():
+    """CPU only device fixture.
+
+    Use this fixture when a test only executes on the CPU.
+
+    TODO: This might be better implemented as a skip on the GPU fixture, like
+    skip_mpi... Then the device fixture would work well with the factories
+    below even for CPU only tests. Same goes for device_gpu.
+    """
     return hoomd.device.CPU()
 
 
@@ -36,18 +56,13 @@ def device_gpu():
 
 
 @pytest.fixture(scope='session')
-def dummy_simulation_factory(device):
-    def make_simulation(particle_types=['A']):
-        s = Snapshot(device.comm)
-        N = 10
+def simulation_factory(device):
+    """Make a Simulation object from a snapshot.
 
-        if s.exists:
-            s.configuration.box = [20, 20, 20, 0, 0, 0]
+    TODO: duck type this to allow it to create state from GSD files as well
+    """
 
-            s.particles.N = N
-            s.particles.position[:] = numpy.random.uniform(-10, 10, size=(N, 3))
-            s.particles.types = particle_types
-
+    def make_simulation(snapshot):
         sim = Simulation(device)
 
         # reduce sorter grid to avoid Hilbert curve overhead in unit tests
@@ -55,61 +70,95 @@ def dummy_simulation_factory(device):
             if isinstance(tuner, hoomd.tuner.ParticleSorter):
                 tuner.grid = 8
 
-        sim.create_state_from_snapshot(s)
+        sim.create_state_from_snapshot(snapshot)
         return sim
     return make_simulation
 
 
 @pytest.fixture(scope='session')
-def lattice_simulation_factory(device):
-    def make_simulation(particle_types=['A'], dimensions=3, l=20, n=7, a=3):
-        n_list = []
-        if isinstance(n, list):
-            n = tuple(n)
-        elif not isinstance(n, tuple):
-            for i in range(dimensions):
-                n_list.append(n)
-            n = tuple(n_list)
+def two_particle_snapshot_factory(device):
+    """Make a snapshot with two particles.
 
-        box_list = [l, l, l, 0, 0, 0]
-        bounds = []
-        for n_val in n:
-            bound = (n_val - 1) * a * 0.5
-            bound_up = bound + (a / 1000)
-            if bound == 0:
-                bound_up = a
-            bounds.append((bound, bound_up))
+    Args:
+        particle_types: List of particle type names
+        dimensions: Number of dimensions (2 or 3)
+        d: Distance apart to place particles
+        L: Box length
+
+    The two particles are placed at (-d/2, 0, 0) and (d/2,0,0). When,
+    dimensions==3, the box is L by L by L. When dimensions==2, the box is L by L
+    by 1.
+    """
+    def make_snapshot(particle_types=['A'], dimensions=3, d=1, L=20):
         s = Snapshot(device.comm)
+        N = 2
+
         if s.exists:
-            s.configuration.box = box_list
+            box = [L, L, L, 0, 0, 0]
+            if dimensions == 2:
+                box[2] = 1
+            s.configuration.box = box
+            s.configuration.dimensions = dimensions
 
-            s.particles.N = 1
-            for num_particles in n:
-                s.particles.N *= num_particles
+            s.particles.N = N
+            s.particles.position[:] = [[-d / 2, 0, 0], [d / 2, 0, 0]]
+            s.particles.types = particle_types
 
-            i = 0
-            for x in numpy.arange(-bounds[0][0], bounds[0][1], a):
-                for y in numpy.arange(-bounds[1][0], bounds[1][1], a):
-                    if dimensions == 3:
-                        for z in numpy.arange(-bounds[2][0], bounds[2][1], a):
-                            s.particles.position[i] = [x, y, z]
-                            i += 1
-                    elif dimensions == 2:
-                        s.particles.position[i] = [x, y, 0]
-                        i += 1
+        return s
 
-                s.particles.types = particle_types
+    return make_snapshot
 
-        sim = Simulation(device)
 
-        # reduce sorter grid to avoid Hilbert curve overhead in unit tests
-        for tuner in sim.operations.tuners:
-            if isinstance(tuner, hoomd.tuner.ParticleSorter):
-                tuner.grid = 8
+@pytest.fixture(scope='session')
+def lattice_snapshot_factory(device):
+    """Make a snapshot with particles on a cubic/square lattice.
 
-        sim.create_state_from_snapshot(s)
-        return sim
-    return make_simulation
+    Args:
+        particle_types: List of particle type names
+        dimensions: Number of dimensions (2 or 3)
+        a: Lattice constant
+        n: Number of particles along each box edge
+        r: Fraction of `a` to randomly perturb particles
+
+    Place particles on a simple cubic (dimensions==3) or square (dimensions==2)
+    lattice. The box is cubic (or square) with a side length of `n * a`.
+
+    Set `r` to randomly perturb particles a small amount off their lattice
+    positions. This is useful in MD simulation testing so that forces do not
+    cancel out by symmetry.
+    """
+
+    def make_snapshot(particle_types=['A'], dimensions=3, a=1, n=7, r=0):
+        s = Snapshot(device.comm)
+
+        if s.exists:
+            box = [n * a, n * a, n * a, 0, 0, 0]
+            if dimensions == 2:
+                box[2] = 1
+            s.configuration.box = box
+            s.configuration.dimensions = dimensions
+
+
+            s.particles.N = n**dimensions
+            s.particles.types = particle_types
+
+            # create the lattice
+            range_ = numpy.arange(-n / 2, n / 2)
+            if dimensions == 2:
+                pos = list(itertools.product(range_,range_,[0]))
+            else:
+                pos = list(itertools.product(range_, repeat=3))
+            pos = numpy.array(pos) * a
+
+            # perturb the positions
+            if r > 0:
+                shift = numpy.random.uniform(-r, r, size=(N, 3))
+                if dimensions == 2:
+                    shift[:,2] = 0
+                pos += shift
+
+        return s
+    return make_snapshot
 
 
 @pytest.fixture(autouse=True)
@@ -120,6 +169,16 @@ def skip_mpi(request):
                 pytest.skip('Test does not support MPI execution')
         else:
             raise ValueError('skip_mpi requires the *device* fixture')
+
+
+@pytest.fixture(scope='function', autouse=True)
+def numpy_random_seed():
+    """Seed the numpy random number generator.
+
+    Automatically reset the numpy random seed at the start of each function
+    for reproducible tests.
+    """
+    numpy.random.seed(42)
 
 
 def pytest_configure(config):
