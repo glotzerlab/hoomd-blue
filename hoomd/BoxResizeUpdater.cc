@@ -67,9 +67,9 @@ void BoxResizeUpdater::setBox1Py(pybind11::object box)
 
 void BoxResizeUpdater::setBox2(BoxDim box)
     {
-    if (!m_py_box1.is_none())
+    if (!m_py_box2.is_none())
         {
-        m_py_box1 = m_py_box1.attr("__class__")
+        m_py_box2 = m_py_box2.attr("__class__")
                             .attr("_from_cpp")(box);
         }
     m_box2 = box;
