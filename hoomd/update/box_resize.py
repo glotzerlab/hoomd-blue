@@ -8,15 +8,16 @@ from hoomd._hoomd import BoxResizeUpdater
 
 
 class BoxResize(_Updater):
-    def __init__(self, box1, box2, variant, trigger):
+    def __init__(self, box1, box2, variant, trigger=1, scale_particles=True):
         params = ParameterDict(
             box1=OnlyType(Box), box2=OnlyType(Box),
             variant=OnlyType(Variant, variant_preprocessing),
-            scale_particles=True)
+            scale_particles=bool)
         params['box1'] = box1
         params['box2'] = box2
         params['variant'] = variant
         params['trigger'] = trigger
+        params['scale_particles'] = scale_particles
         self._param_dict.update(params)
         super().__init__(trigger)
 
