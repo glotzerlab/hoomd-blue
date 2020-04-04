@@ -175,9 +175,9 @@ class Box:
 
     @tilts.setter
     def tilts(self, new_tilts):
-        if len(new_tilts) == 2:
+        if isinstance(new_tilts, (float, int)) or len(new_tilts) == 1:
             if self.is2D:
-                self._cpp_obj.setTiltFactors(new_tilts[0], new_tilts[1], 0)
+                self._cpp_obj.setTiltFactors(new_tilts[0], 0, 0)
             else:
                 raise ValueError("Must specify 3 tilt factors for 3D box.")
         elif len(new_tilts) == 3:
@@ -215,13 +215,6 @@ class Box:
     @property
     def periodicity(self):
         return to_three_array(self._cpp_obj.getPeriodic())
-
-    @periodicity.setter
-    def periodicity(self, value):
-        '''Set the periodic versus closed boundary conditions'''
-        # TODO: check that this works
-        period = make_uint3(value, self.is2D, name='periodicity')
-        self._cpp_obj.setTiltFactors(period)
 
     @property
     def lattice_vectors(self):
