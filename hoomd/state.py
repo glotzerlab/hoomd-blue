@@ -1,5 +1,6 @@
 from copy import copy
 from collections import defaultdict
+from warnings import warn, UserWarning
 
 from . import _hoomd
 from hoomd.box import Box
@@ -170,6 +171,11 @@ class State:
         """
         if not isinstance(value, Box):
             raise TypeError('box must be a hoomd.box.Box object')
+        if value.dimensions != self._cpp_sys_def.getNDimensions():
+            warn("Box changing dimensions from {} to {}."
+                 "".format(self._cpp_sys_def.getNDimensions(),
+                           value.dimensions), UserWarning)
+            self._cpp_sys_def.setNDimensions(value.dimensions)
         self._cpp_sys_def.getParticleData().setGlobalBox(copy(value)._cpp_obj)
 
     def replicate(self):
