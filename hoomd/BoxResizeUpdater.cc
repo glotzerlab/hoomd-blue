@@ -127,9 +127,7 @@ bool BoxResizeUpdater::boxesAreEquivalent(BoxDim& box1, BoxDim& box2)
     Scalar yz1 = box1.getTiltFactorYZ();
     Scalar yz2 = box2.getTiltFactorYZ();
 
-    return fabs((L1.x - L2.x) / L1.x) < 1e-7 &&
-           fabs((L1.y - L2.y) / L1.x) < 1e-7 &&
-           fabs((L1.z - L2.z) / L1.x) < 1e-7 &&
+    return L1.x == L2.x && L1.y == L2.y && L1.z == L2.z &&
            fabs((xy1 - xy2) / xy1) < 1e-7 &&
            fabs((xz1 - xz2) / xz1) < 1e-7 &&
            fabs((yz1 - yz2) / yz1) < 1e-7;
