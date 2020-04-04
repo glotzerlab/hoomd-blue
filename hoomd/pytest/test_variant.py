@@ -37,6 +37,12 @@ def test_custom():
         def __call__(self, timestep):
             return (float(timestep)**(1 / 2))
 
+        def min(self):
+            return 0.0
+
+        def max(self):
+            return 1.0
+
     c = CustomVariant()
 
     # test that the custom variant can be called from c++
@@ -46,6 +52,9 @@ def test_custom():
 
     for i in range(10000000000, 10000010000):
         assert hoomd._hoomd._test_variant_call(c, i) == float(i)**(1 / 2)
+
+    assert hoomd._hoomd._test_variant_min(c) == 0.0
+    assert hoomd._hoomd._test_variant_max(c) == 1.0
 
 
 def test_ramp():

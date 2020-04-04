@@ -71,6 +71,7 @@ class Ramp(_hoomd.VariantRamp, Variant):
     def __init__(self, A, B, t_start, t_ramp):
         _hoomd.VariantRamp.__init__(self, A, B, t_start, t_ramp)
 
+
 class Cycle(_hoomd.VariantCycle, Variant):
     """ A cycle of linear ramps.
 

@@ -3,10 +3,22 @@
 
 #include "Variant.h"
 
-//* Method to enable unit testing of C++ trigger calls from pytest
+/// Method to enable unit testing of C++ variant calls from pytest
 Scalar testVariantCall(std::shared_ptr<Variant> t, uint64_t step)
     {
     return (*t)(step);
+    }
+
+/// Method to enable unit testing of C++ variant min class from pytest
+Scalar testVariantMin(std::shared_ptr<Variant> t)
+    {
+    return t->min();
+    }
+
+/// Method to enable unit testing of C++ variant max class from pytest
+Scalar testVariantMax(std::shared_ptr<Variant> t)
+    {
+    return t->max();
     }
 
 //* Trampoline for classes inherited in python
@@ -97,4 +109,6 @@ void export_Variant(pybind11::module& m)
         ;
 
     m.def("_test_variant_call", &testVariantCall);
+    m.def("_test_variant_min", &testVariantMin);
+    m.def("_test_variant_max", &testVariantMax);
     }
