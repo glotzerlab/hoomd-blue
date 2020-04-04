@@ -1,6 +1,6 @@
 from copy import copy
 from collections import defaultdict
-from warnings import warn, UserWarning
+from warnings import warn
 
 from . import _hoomd
 from hoomd.box import Box
