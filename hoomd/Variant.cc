@@ -39,7 +39,7 @@ class VariantPy : public Variant
             {
             PYBIND11_OVERLOAD_PURE(Scalar,       // Return type
                                    Variant,      // Parent class
-                                   min           // name of function
+                                   max           // name of function
                     );
             }
     };
