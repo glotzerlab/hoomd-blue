@@ -79,7 +79,7 @@ class LBVHWrapper
         void setup(const Scalar4* points,
                    const unsigned int* map,
                    unsigned int N,
-                   cudaStream_t stream);
+                   hipStream_t stream);
 
         //! Build the LBVH
         void build(const Scalar4* points,
@@ -87,7 +87,7 @@ class LBVHWrapper
                    unsigned int N,
                    const Scalar3& lo,
                    const Scalar3& hi,
-                   cudaStream_t stream,
+                   hipStream_t stream,
                    unsigned int block_size);
 
         //! Get the underlying LBVH
@@ -149,14 +149,14 @@ class LBVHTraverserWrapper
         //! Setup the LBVH traverser
         void setup(const unsigned int* map,
                    neighbor::LBVH& lbvh,
-                   cudaStream_t stream);
+                   hipStream_t stream);
 
         //! Traverse the LBVH
         void traverse(TraverserArgs& args,
                       neighbor::LBVH& lbvh,
                       const Scalar3* images,
                       const unsigned int Nimages,
-                      cudaStream_t stream,
+                      hipStream_t stream,
                       unsigned int block_size);
 
         //! Get the list of tunable parameters
