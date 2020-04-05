@@ -176,48 +176,6 @@ struct ShapePolyhedron
         {
         return data.sweep_radius != OverlapReal(0.0);
         }
-
-    #ifndef __HIPCC__
-    std::string getShapeSpec() const
-        {
-        unsigned int n_verts = data.n_verts;
-        unsigned int n_faces = data.n_faces;
-
-        std::ostringstream shapedef;
-        if (n_verts == 1 && data.verts[0].x == 0.0f && data.verts[0].y == data.verts[0].x && data.verts[0].y == data.verts[0].z)
-            {
-            shapedef << "{\"type\": \"Sphere\", \"diameter\": " << data.sweep_radius*OverlapReal(2.0) << "}";
-            }
-        else
-            {
-            shapedef << "{\"type\": \"Mesh\", \"vertices\": [";
-            for (unsigned int i = 0; i < n_verts-1; i++)
-                {
-                shapedef << "[" << data.verts[i].x << ", " << data.verts[i].y << ", " << data.verts[i].z << "], ";
-                }
-            shapedef << "[" << data.verts[n_verts-1].x << ", " << data.verts[n_verts-1].y << ", " << data.verts[n_verts-1].z << "]], \"indices\": [";
-            unsigned int nverts_face, offset;
-            for (unsigned int i = 0; i < n_faces; i++)
-                {
-                // Number of vertices of ith face
-                nverts_face = data.face_offs[i + 1] - data.face_offs[i];
-                offset = data.face_offs[i];
-                shapedef << "[";
-                for (unsigned int j = 0; j < nverts_face-1; j++)
-                    {
-                    shapedef << data.face_verts[offset+j] << ", ";
-                    }
-                shapedef << data.face_verts[offset+nverts_face-1];
-                if (i == n_faces-1)
-                    shapedef << "]]}";
-                else
-                    shapedef << "], ";
-                }
-            }
-        return shapedef.str();
-        }
-    #endif
-
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
@@ -972,6 +930,46 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
 
     return false;
     }
+
+#ifndef __HIPCC__
+/// Return the shape parameters in the `type_shape` format
+template<>
+inline std::string getShapeSpec(const ShapePolyhedron& s)
+    {
+    auto& data = s.data;
+    unsigned int n_verts = data.n_verts;
+    unsigned int n_faces = data.n_faces;
+    std::ostringstream shapedef;
+    shapedef << "{\"type\": \"Mesh\", \"vertices\": [";
+    for (unsigned int i = 0; i < n_verts-1; i++)
+        {
+        shapedef << "[" << data.verts[i].x << ", " << data.verts[i].y << ", "
+                 << data.verts[i].z << "], ";
+        }
+    shapedef << "[" << data.verts[n_verts-1].x << ", " << data.verts[n_verts-1].y
+             << ", " << data.verts[n_verts-1].z << "]], \"indices\": [";
+
+    unsigned int nverts_face, offset;
+    for (unsigned int i = 0; i < n_faces; i++)
+        {
+        // Number of vertices of ith face
+        nverts_face = data.face_offs[i + 1] - data.face_offs[i];
+        offset = data.face_offs[i];
+        shapedef << "[";
+        for (unsigned int j = 0; j < nverts_face-1; j++)
+            {
+            shapedef << data.face_verts[offset+j] << ", ";
+            }
+        shapedef << data.face_verts[offset+nverts_face-1];
+        if (i == n_faces-1)
+            shapedef << "]]}";
+        else
+            shapedef << "], ";
+        }
+    return shapedef.str();
+    }
+#endif
+
 
 }; // end namespace hpmc
 

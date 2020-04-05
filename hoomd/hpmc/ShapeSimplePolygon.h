@@ -323,6 +323,22 @@ DEVICE inline bool test_overlap<ShapeSimplePolygon,ShapeSimplePolygon>(const vec
                                                quat<OverlapReal>(b.orientation));
     }
 
+#ifndef __HIPCC__
+template<>
+inline std::string getShapeSpec(const ShapeSimplePolygon& poly)
+    {
+    std::ostringstream shapedef;
+    auto& verts = poly.verts;
+    shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": " << poly.verts.sweep_radius << ", \"vertices\": [";
+    for (unsigned int i = 0; i < verts.N-1; i++)
+        {
+        shapedef << "[" << verts.x[i] << ", " << verts.y[i] << "], ";
+        }
+    shapedef << "[" << verts.x[verts.N-1] << ", " << verts.y[verts.N-1] << "]]}";
+    return shapedef.str();
+    }
+#endif
+
 }; // end namespace hpmc
 
 #undef DEVICE

@@ -9,7 +9,6 @@ R""" Utilities.
 import sys;
 import traceback;
 import os.path;
-import linecache;
 import re;
 import hoomd;
 from hoomd import _hoomd;

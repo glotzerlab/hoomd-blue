@@ -94,32 +94,6 @@ struct ShapeSpheropolyhedron
         return OverlapReal(0.0);
         }
 
-    #ifndef __HIPCC__
-    std::string getShapeSpec() const
-        {
-        std::ostringstream shapedef;
-        unsigned int nverts = verts.N;
-        if (nverts == 1)
-            {
-            shapedef << "{\"type\": \"Sphere\", " << "\"diameter\": " << verts.diameter << "}";
-            }
-        else if (nverts == 2)
-            {
-            throw std::runtime_error("Shape definition not supported for 2-vertex spheropolyhedra");
-            }
-        else
-            {
-            shapedef << "{\"type\": \"ConvexPolyhedron\", \"rounding_radius\": " << verts.sweep_radius << ", \"vertices\": [";
-            for (unsigned int i = 0; i < nverts-1; i++)
-                {
-                shapedef << "[" << verts.x[i] << ", " << verts.y[i] << ", " << verts.z[i] << "], ";
-                }
-            shapedef << "[" << verts.x[nverts-1] << ", " << verts.y[nverts-1] << ", " << verts.z[nverts-1] << "]]}";
-            }
-        return shapedef.str();
-        }
-    #endif
-
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {

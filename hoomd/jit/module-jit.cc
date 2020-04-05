@@ -56,6 +56,7 @@ PYBIND11_MODULE(_jit, m)
 
     #ifdef ENABLE_HIP
     m.attr("__cuda_devrt_library_path__") = std::string(CUDA_DEVRT_LIBRARY_PATH);
+    m.attr("__cuda_include_path__") = std::string(CUDA_INCLUDE_PATH);
     m.attr("__cuda_compute_archs__") = std::string(CUDA_COMPUTE_ARCHS);
 
     export_PatchEnergyJITGPU(m);
