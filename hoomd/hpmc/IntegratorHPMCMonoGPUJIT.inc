@@ -157,7 +157,7 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
 
         // find the cell this particle should be in
         vec3<Scalar> pos_i_old(postype_i_old);
-        my_cell = computeParticleCell(vec_to_scalar3(pos_i_old), box, ghost_width, cell_dim, ci);
+        my_cell = computeParticleCell(vec_to_scalar3(pos_i_old), box, ghost_width, cell_dim, ci, false);
 
         if (master)
             {
