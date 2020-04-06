@@ -52,8 +52,8 @@ void export_ellipsoid(py::module& m)
     export_ExternalCallback<ShapeEllipsoid>(m, "ExternalCallbackEllipsoid");
 
     #ifdef ENABLE_HIP
-    export_IntegratorHPMCMonoGPU< ShapeEllipsoid >(m, "IntegratorHPMCMonoGPUEllipsoid");
-    export_ComputeFreeVolumeGPU< ShapeEllipsoid >(m, "ComputeFreeVolumeGPUEllipsoid");
+    export_IntegratorHPMCMonoGPU< ShapeEllipsoid >(m, "IntegratorHPMCMonoEllipsoidGPU");
+    export_ComputeFreeVolumeGPU< ShapeEllipsoid >(m, "ComputeFreeVolumeEllipsoidGPU");
     #endif
     }
 

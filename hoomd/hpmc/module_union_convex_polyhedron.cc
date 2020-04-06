@@ -52,8 +52,8 @@ void export_union_convex_polyhedron(py::module& m)
 
     #ifdef ENABLE_HIP
 
-    export_IntegratorHPMCMonoGPU< ShapeUnion<ShapeSpheropolyhedron> >(m, "IntegratorHPMCMonoGPUConvexPolyhedronUnion");
-    export_ComputeFreeVolumeGPU< ShapeUnion<ShapeSpheropolyhedron> >(m, "ComputeFreeVolumeGPUConvexPolyhedronUnion");
+    export_IntegratorHPMCMonoGPU< ShapeUnion<ShapeSpheropolyhedron> >(m, "IntegratorHPMCMonoConvexPolyhedronUnionGPU");
+    export_ComputeFreeVolumeGPU< ShapeUnion<ShapeSpheropolyhedron> >(m, "ComputeFreeVolumeConvexPolyhedronUnionGPU");
 
     #endif
     }

@@ -54,8 +54,8 @@ void export_sphinx(py::module& m)
     #ifdef ENABLE_HIP
     #ifdef ENABLE_SPHINX_GPU
 
-    export_IntegratorHPMCMonoGPU< ShapeSphinx >(m, "IntegratorHPMCMonoGPUSphinx");
-    export_ComputeFreeVolumeGPU< ShapeSphinx >(m, "ComputeFreeVolumeGPUSphinx");
+    export_IntegratorHPMCMonoGPU< ShapeSphinx >(m, "IntegratorHPMCMonoSphinxGPU");
+    export_ComputeFreeVolumeGPU< ShapeSphinx >(m, "ComputeFreeVolumeSphinxGPU");
 
     #endif
     #endif

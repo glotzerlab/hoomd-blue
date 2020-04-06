@@ -55,8 +55,8 @@ void export_convex_polygon(py::module& m)
     export_ExternalCallback<ShapeConvexPolygon>(m, "ExternalCallbackConvexPolygon");
 
     #ifdef ENABLE_HIP
-    export_IntegratorHPMCMonoGPU< ShapeConvexPolygon >(m, "IntegratorHPMCMonoGPUConvexPolygon");
-    export_ComputeFreeVolumeGPU< ShapeConvexPolygon >(m, "ComputeFreeVolumeGPUConvexPolygon");
+    export_IntegratorHPMCMonoGPU< ShapeConvexPolygon >(m, "IntegratorHPMCMonoConvexPolygonGPU");
+    export_ComputeFreeVolumeGPU< ShapeConvexPolygon >(m, "ComputeFreeVolumeConvexPolygonGPU");
     #endif
     }
 
