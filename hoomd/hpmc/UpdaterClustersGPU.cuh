@@ -272,7 +272,8 @@ __global__ void hpmc_cluster_overlaps(const Scalar4 *d_postype,
         unsigned int tag_i = d_trial_tag[idx];
 
         // find the cell this particle should be in
-        my_cell = computeParticleCell(vec_to_scalar3(pos_i), box, ghost_width, cell_dim, ci);
+        my_cell = computeParticleCell(vec_to_scalar3(pos_i), box, ghost_width,
+            cell_dim, ci, false);
 
         if (master)
             {
@@ -665,7 +666,8 @@ __global__ void clusters_insert_depletants(const Scalar4 *d_postype,
     unsigned int n_inserted = 0;
 
     // find the cell this particle should be in
-    unsigned int my_cell = computeParticleCell(s_pos_i, box, ghost_width, cell_dim, ci);
+    unsigned int my_cell = computeParticleCell(s_pos_i, box, ghost_width,
+        cell_dim, ci, false);
 
     detail::OBB obb_i;
         {
@@ -960,7 +962,8 @@ __global__ void clusters_insert_depletants(const Scalar4 *d_postype,
             int3 img = make_int3(0,0,0);
             box.wrap(pos_test_transf,img);
 
-            other_cell = computeParticleCell(vec_to_scalar3(pos_test_transf), box, ghost_width, cell_dim, ci);
+            other_cell = computeParticleCell(vec_to_scalar3(pos_test_transf), box,
+                ghost_width, cell_dim, ci, false);
             excell_size = d_excell_size[other_cell];
             }
 

@@ -467,7 +467,8 @@ __global__ void hpmc_gen_moves(Scalar4 *d_postype,
     shape_i.orientation = quat<Scalar>(orientation_i);
 
     vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
-    unsigned int old_cell = computeParticleCell(vec_to_scalar3(pos_i), box, ghost_width, cell_dim, ci);
+    unsigned int old_cell = computeParticleCell(vec_to_scalar3(pos_i), box, ghost_width,
+        cell_dim, ci, false);
 
     // for domain decomposition simulations, we need to leave all particles in the inactive region alone
     // in order to avoid even more divergence, this is done by setting the move_active flag
@@ -504,7 +505,8 @@ __global__ void hpmc_gen_moves(Scalar4 *d_postype,
         {
         // check if the particle remains in its cell
         Scalar3 xnew_i = make_scalar3(pos_i.x, pos_i.y, pos_i.z);
-        unsigned int new_cell = computeParticleCell(xnew_i, box, ghost_width, cell_dim, ci);
+        unsigned int new_cell = computeParticleCell(xnew_i, box, ghost_width,
+            cell_dim, ci, true);
 
         if (new_cell != old_cell)
             reject = 1;
@@ -638,7 +640,8 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
 
         // find the cell this particle should be in
         vec3<Scalar> pos_i_old(d_postype[idx]);
-        my_cell = computeParticleCell(vec_to_scalar3(pos_i_old), box, ghost_width, cell_dim, ci);
+        my_cell = computeParticleCell(vec_to_scalar3(pos_i_old), box, ghost_width,
+            cell_dim, ci, false);
 
         if (master)
             {
@@ -1083,7 +1086,8 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
     unsigned int n_inserted = 0;
 
     // find the cell this particle should be in
-    unsigned int my_cell = computeParticleCell(s_pos_i_old, box, ghost_width, cell_dim, ci);
+    unsigned int my_cell = computeParticleCell(s_pos_i_old, box, ghost_width,
+        cell_dim, ci, false);
 
     detail::OBB obb_i;
         {
