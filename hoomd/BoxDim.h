@@ -573,6 +573,26 @@ BoxDim
             return make_scalar3(0.0,0.0,0.0);
             }
 
+        HOSTDEVICE bool operator==(const BoxDim& other) const
+            {
+            Scalar3 L1 = getL();
+            Scalar3 L2 = other.getL();
+
+            Scalar xy1 = getTiltFactorXY();
+            Scalar xy2 = other.getTiltFactorXY();
+            Scalar xz1 = getTiltFactorXZ();
+            Scalar xz2 = other.getTiltFactorXZ();
+            Scalar yz1 = getTiltFactorYZ();
+            Scalar yz2 = other.getTiltFactorYZ();
+
+            return L1.x == L2.x && L1.y == L2.y && L1.z == L2.z &&
+                   xy1 == xy2 && xz1 == xz2 && yz1 == yz2;
+            }
+
+        HOSTDEVICE bool operator!=(const BoxDim& other) const
+            {
+            return !((*this) == other);
+            }
         #ifdef ENABLE_MPI
         //! Serialization method
         template<class Archive>

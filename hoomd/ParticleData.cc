@@ -21,6 +21,7 @@
 #endif
 
 #include <pybind11/numpy.h>
+#include <pybind11/operators.h>
 
 #include <iostream>
 #include <cassert>
@@ -2453,6 +2454,8 @@ void export_BoxDim(py::module& m)
     .def(py::init<Scalar3>())
     .def(py::init<Scalar3, Scalar3, uchar3>())
     .def(py::init<Scalar, Scalar, Scalar, Scalar>())
+    .def(py::self == py::self)
+    .def(py::self != py::self)
     .def("getPeriodic", &BoxDim::getPeriodic)
     .def("setPeriodic", &BoxDim::setPeriodic)
     .def("getL", &BoxDim::getL)

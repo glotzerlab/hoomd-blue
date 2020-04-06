@@ -114,25 +114,6 @@ BoxDim BoxResizeUpdater::getCurrentBox(unsigned int timestep)
     return new_box;
     }
 
-/// Return whether two boxes are equivalent upto 1e-7
-bool BoxResizeUpdater::boxesAreEquivalent(BoxDim& box1, BoxDim& box2)
-    {
-    Scalar3 L1 = box1.getL();
-    Scalar3 L2 = box2.getL();
-
-    Scalar xy1 = box1.getTiltFactorXY();
-    Scalar xy2 = box2.getTiltFactorXY();
-    Scalar xz1 = box1.getTiltFactorXZ();
-    Scalar xz2 = box2.getTiltFactorXZ();
-    Scalar yz1 = box1.getTiltFactorYZ();
-    Scalar yz2 = box2.getTiltFactorYZ();
-
-    return L1.x == L2.x && L1.y == L2.y && L1.z == L2.z &&
-           fabs((xy1 - xy2) / xy1) < 1e-7 &&
-           fabs((xz1 - xz2) / xz1) < 1e-7 &&
-           fabs((yz1 - yz2) / yz1) < 1e-7;
-    }
-
 /** Perform the needed calculations to scale the box size
     \param timestep Current time step of the simulation
 */
@@ -148,7 +129,7 @@ void BoxResizeUpdater::update(unsigned int timestep)
     BoxDim cur_box = m_pdata->getGlobalBox();
 
     // only change the box if there is a change in the box dimensions
-    if (!boxesAreEquivalent(new_box, cur_box))
+    if (new_box != cur_box)
         {
         // set the new box
         m_pdata->setGlobalBox(new_box);

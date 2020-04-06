@@ -371,16 +371,8 @@ class Box:
     def __copy__(self):
         return type(self)(*self.L, *self.tilts)
 
-    # \internal
-    # \brief Get a dictionary representation of the box dimensions
-    def get_metadata(self):
-        data = hoomd.meta._metadata.get_metadata(self)
-        data['d'] = self.dimensions
-        data['Lx'] = self.Lx
-        data['Ly'] = self.Ly
-        data['Lz'] = self.Lz
-        data['xy'] = self.xy
-        data['xz'] = self.xz
-        data['yz'] = self.yz
-        data['V'] = self.get_volume()
-        return data
+    def __eq__(self, other):
+        return self._cpp_obj == other._cpp_obj
+
+    def __neq__(self, other):
+        return self._cpp_obj != other._cpp_obj
