@@ -142,15 +142,24 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
 
     // tuning parameters for overlap checks
     std::vector<unsigned int> valid_params;
+    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
     const unsigned int overlaps_max_tpp = dev_prop.maxThreadsPerBlock;
-    for (unsigned int block_size = dev_prop.warpSize; block_size <= (unsigned int) dev_prop.maxThreadsPerBlock; block_size += dev_prop.warpSize)
+    for (unsigned int block_size = warp_size; block_size <= (unsigned int) dev_prop.maxThreadsPerBlock; block_size += warp_size)
         {
-        for (unsigned int group_size=1; group_size <= overlaps_max_tpp; group_size*=2)
+        for (auto s : Autotuner::getTppListPow2(overlaps_max_tpp))
             {
-            if ((block_size % group_size) == 0)
-                valid_params.push_back(block_size*10000 + group_size);
+            for (auto t: Autotuner::getTppListPow2(warp_size))
+                {
+                // only widen the parallelism if the shape supports it
+                if (t == 1 || Shape::isParallel())
+                    {
+                    if ((s*t <= block_size) && ((block_size % (s*t)) == 0))
+                        valid_params.push_back(block_size*1000000 + s*100 + t);
+                    }
+                }
             }
         }
+
     m_tuner_overlaps.reset(new Autotuner(valid_params, 5, 100000, "clusters_overlaps", this->m_exec_conf));
 
     // tuning parameters for depletants
@@ -579,6 +588,7 @@ void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const qu
                     box,
                     0, // block size
                     0, // tpp
+                    0, // overlap_threads
                     d_postype.data,
                     d_orientation.data,
                     d_tag.data,
@@ -609,8 +619,9 @@ void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const qu
                 this->m_exec_conf->beginMultiGPU();
                 m_tuner_overlaps->begin();
                 unsigned int param = m_tuner_overlaps->getParam();
-                args.block_size = param/10000;
-                args.tpp = param%10000;
+                args.block_size = param/1000000;
+                args.tpp = (param%1000000)/100;
+                args.overlap_threads = param%100;
                 gpu::hpmc_cluster_overlaps<Shape>(args, params.data());
                 if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                     CHECK_CUDA_ERROR();

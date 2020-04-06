@@ -33,7 +33,7 @@ void hpmc_narrow_phase_patch(const hpmc_args_t& args, const hpmc_patch_args_t& p
     unsigned int n_groups = run_block_size/(tpp*eval_threads);
 
     // truncate blockDim.z
-    n_groups = std::min((unsigned int) 64, n_groups);
+    n_groups = std::min((unsigned int) args.devprop.maxThreadsDim[2], n_groups);
     unsigned int max_queue_size = n_groups*tpp;
 
     const unsigned int min_shared_bytes = args.num_types * sizeof(Scalar);
@@ -61,7 +61,7 @@ void hpmc_narrow_phase_patch(const hpmc_args_t& args, const hpmc_patch_args_t& p
         n_groups = run_block_size / (tpp*eval_threads);
 
         // truncate blockDim.z
-        n_groups = std::min((unsigned int)64, n_groups);
+        n_groups = std::min((unsigned int)args.devprop.maxThreadsDim[2], n_groups);
 
         max_queue_size = n_groups*tpp;
 

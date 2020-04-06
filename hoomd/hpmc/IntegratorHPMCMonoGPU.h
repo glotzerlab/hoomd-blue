@@ -291,18 +291,37 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
 
     // tuning parameters for narrow phase
     std::vector<unsigned int> valid_params;
+    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
     const unsigned int narrow_phase_max_tpp = dev_prop.maxThreadsPerBlock;
+    for (unsigned int block_size = warp_size; block_size <= (unsigned int) dev_prop.maxThreadsPerBlock; block_size += warp_size)
+        {
+        for (auto s : Autotuner::getTppListPow2(narrow_phase_max_tpp))
+            {
+            for (auto t: Autotuner::getTppListPow2(warp_size))
+                {
+                // only widen the parallelism if the shape supports it
+                if (t == 1 || Shape::isParallel())
+                    {
+                    if ((s*t <= block_size) && ((block_size % (s*t)) == 0))
+                        valid_params.push_back(block_size*1000000 + s*100 + t);
+                    }
+                }
+            }
+        }
+
+    m_tuner_narrow.reset(new Autotuner(valid_params, 5, 100000, "hpmc_narrow", this->m_exec_conf));
+
+    // tuning parameters for acceptance kernel
+    std::vector<unsigned int> valid_params_accept;
     for (unsigned int block_size = dev_prop.warpSize; block_size <= (unsigned int) dev_prop.maxThreadsPerBlock; block_size += dev_prop.warpSize)
         {
         for (unsigned int group_size=1; group_size <= narrow_phase_max_tpp; group_size*=2)
             {
             if ((block_size % group_size) == 0)
-                valid_params.push_back(block_size*10000 + group_size);
+                valid_params_accept.push_back(block_size*10000 + group_size);
             }
         }
-
-    m_tuner_accept.reset(new Autotuner(valid_params, 5, 100000, "hpmc_accept", this->m_exec_conf));
-    m_tuner_narrow.reset(new Autotuner(valid_params, 5, 100000, "hpmc_narrow", this->m_exec_conf));
+    m_tuner_accept.reset(new Autotuner(valid_params_accept, 5, 100000, "hpmc_accept", this->m_exec_conf));
 
     // tuning parameters for depletants
     std::vector<unsigned int> valid_params_depletants;
@@ -798,6 +817,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     domain_decomposition,
                     0, // block size
                     0, // tpp
+                    0, // overlap_threads
                     d_reject_out_of_cell.data,
                     d_trial_postype.data,
                     d_trial_orientation.data,
@@ -896,6 +916,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         domain_decomposition,
                         0, // block size
                         0, // tpp
+                        0, // overlap threads
                         d_reject_out_of_cell.data,
                         d_trial_postype.data,
                         d_trial_orientation.data,
@@ -920,8 +941,9 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     this->m_exec_conf->beginMultiGPU();
                     m_tuner_narrow->begin();
                     unsigned int param = m_tuner_narrow->getParam();
-                    args.block_size = param/10000;
-                    args.tpp = param%10000;
+                    args.block_size = param/1000000;
+                    args.tpp = (param%1000000)/100;
+                    args.overlap_threads = param%100;
                     gpu::hpmc_narrow_phase<Shape>(args, params.data());
                     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                         CHECK_CUDA_ERROR();
@@ -1053,6 +1075,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         domain_decomposition,
                         0, // block size
                         0, // tpp
+                        0, // overlap_threads
                         d_reject_out_of_cell.data,
                         d_trial_postype.data,
                         d_trial_orientation.data,

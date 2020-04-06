@@ -32,7 +32,7 @@ namespace gpu {
 #elif defined(__HIP_PLATFORM_HCC__)
 #define MAX_BLOCK_SIZE 1024
 #endif
-#define MIN_BLOCK_SIZE 256 // a reasonable minimum to limit the number of template instantiations
+#define MIN_BLOCK_SIZE 128 // a reasonable minimum to limit the number of template instantiations
 
 //! Wraps arguments to hpmc_* template functions
 /*! \ingroup hpmc_data_structs */
@@ -63,6 +63,7 @@ struct hpmc_args_t
                 const bool _domain_decomposition,
                 const unsigned int _block_size,
                 const unsigned int _tpp,
+                const unsigned int _overlap_threads,
                 unsigned int *_d_reject_out_of_cell,
                 Scalar4 *_d_trial_postype,
                 Scalar4 *_d_trial_orientation,
@@ -103,6 +104,7 @@ struct hpmc_args_t
                   domain_decomposition(_domain_decomposition),
                   block_size(_block_size),
                   tpp(_tpp),
+                  overlap_threads(_overlap_threads),
                   d_reject_out_of_cell(_d_reject_out_of_cell),
                   d_trial_postype(_d_trial_postype),
                   d_trial_orientation(_d_trial_orientation),
@@ -146,6 +148,7 @@ struct hpmc_args_t
     const bool domain_decomposition;  //!< Is domain decomposition mode enabled?
     unsigned int block_size;          //!< Block size to execute
     unsigned int tpp;                 //!< Threads per particle
+    unsigned int overlap_threads;     //!< Number of parallel threads per overlap check
     unsigned int *d_reject_out_of_cell;//!< Set to one to reject particle move
     Scalar4 *d_trial_postype;         //!< New positions (and type) of particles
     Scalar4 *d_trial_orientation;     //!< New orientations of particles
@@ -558,11 +561,11 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
     __shared__ unsigned int s_queue_size;
     __shared__ unsigned int s_still_searching;
 
-    unsigned int group = threadIdx.y;
-    unsigned int offset = threadIdx.x;
-    unsigned int group_size = blockDim.x;
-    bool master = (offset == 0);
-    unsigned int n_groups = blockDim.y;
+    unsigned int group = threadIdx.z;
+    unsigned int offset = threadIdx.y;
+    unsigned int group_size = blockDim.y;
+    bool master = (offset == 0) && threadIdx.x == 0;
+    unsigned int n_groups = blockDim.z;
 
     // load the per type pair parameters into shared memory
     HIP_DYNAMIC_SHARED( char, s_data)
@@ -674,7 +677,7 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
         // loop through particles in the excell list and add them to the queue if they pass the circumsphere check
 
         // active threads add to the queue
-        if (active)
+        if (active && threadIdx.x == 0)
             {
             // prefetch j
             unsigned int j, next_j = 0;
@@ -796,7 +799,7 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
         if (master && group == 0)
             s_queue_size = 0;
 
-        if (active && (k >> 1) < excell_size)
+        if (active && (threadIdx.x == 0) && (k >> 1) < excell_size)
             atomicAdd(&s_still_searching, 1);
 
         __syncthreads();
@@ -859,8 +862,16 @@ void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_
         // choose a block size based on the max block size by regs (max_block_size) and include dynamic shared memory usage
         unsigned int run_block_size = min(args.block_size, (unsigned int)max_block_size);
 
+        unsigned int overlap_threads = args.overlap_threads;
         unsigned int tpp = min(args.tpp,run_block_size);
-        unsigned int n_groups = run_block_size/tpp;
+
+        while (overlap_threads*tpp > run_block_size || run_block_size % (overlap_threads*tpp) != 0)
+            {
+            tpp--;
+            }
+
+        unsigned int n_groups = run_block_size/(tpp*overlap_threads);
+        n_groups = std::min((unsigned int) args.devprop.maxThreadsDim[2], n_groups);
         unsigned int max_queue_size = n_groups*tpp;
 
         const unsigned int min_shared_bytes = args.num_types * sizeof(typename Shape::param_type)
@@ -880,7 +891,14 @@ void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_
                 throw std::runtime_error("Insufficient shared memory for HPMC kernel");
 
             tpp = min(tpp, run_block_size);
-            n_groups = run_block_size / tpp;
+            while (overlap_threads*tpp > run_block_size || run_block_size % (overlap_threads*tpp) != 0)
+                {
+                tpp--;
+                }
+
+            n_groups = run_block_size/(tpp*overlap_threads);
+            n_groups = std::min((unsigned int) args.devprop.maxThreadsDim[2], n_groups);
+
             max_queue_size = n_groups*tpp;
 
             shared_bytes = n_groups * (2*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3))
@@ -908,7 +926,8 @@ void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_
             }
 
         shared_bytes += extra_bytes;
-        dim3 thread(tpp, n_groups, 1);
+
+        dim3 thread(overlap_threads, tpp, n_groups);
 
         for (int idev = args.gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
             {
@@ -933,11 +952,6 @@ void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_
         narrow_phase_launcher<Shape>(args, params, max_threads, detail::int2type<cur_launch_bounds/2>());
         }
     }
-
-//! Terminate template recursion
-template< class Shape>
-void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_type *params, unsigned int max_threads, detail::int2type<0>)
-    { }
 
 //! Kernel to insert depletants on-the-fly
 template< class Shape, unsigned int max_threads >
@@ -982,11 +996,11 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                                      const unsigned int *d_n_depletants)
     {
     // variables to tell what type of thread we are
-    unsigned int group = threadIdx.y;
-    unsigned int offset = threadIdx.x;
-    unsigned int group_size = blockDim.x;
+    unsigned int group = threadIdx.z;
+    unsigned int offset = threadIdx.y;
+    unsigned int group_size = blockDim.y;
     bool master = (offset == 0);
-    unsigned int n_groups = blockDim.y;
+    unsigned int n_groups = blockDim.z;
 
     unsigned int err_count = 0;
 
@@ -1543,6 +1557,10 @@ void depletants_launcher(const hpmc_args_t& args, const hpmc_implicit_args_t& im
 
         unsigned int tpp = min(args.tpp,block_size);
         unsigned int n_groups = block_size / tpp;
+
+        // clamp blockDim.z
+        n_groups = std::min((unsigned int) args.devprop.maxThreadsDim[2], n_groups);
+
         unsigned int max_queue_size = n_groups*tpp;
         unsigned int max_depletant_queue_size = n_groups;
 
@@ -1564,6 +1582,10 @@ void depletants_launcher(const hpmc_args_t& args, const hpmc_implicit_args_t& im
                 throw std::runtime_error("Insufficient shared memory for HPMC kernel");
             tpp = min(tpp, block_size);
             n_groups = block_size / tpp;
+
+            // clamp blockDim.z
+            n_groups = std::min((unsigned int) args.devprop.maxThreadsDim[2], n_groups);
+
             max_queue_size = n_groups*tpp;
             max_depletant_queue_size = n_groups;
 
@@ -1594,7 +1616,7 @@ void depletants_launcher(const hpmc_args_t& args, const hpmc_implicit_args_t& im
         shared_bytes += extra_bytes;
 
         // setup the grid to run the kernel
-        dim3 threads(tpp, n_groups,1);
+        dim3 threads(1, tpp, n_groups);
 
         for (int idev = args.gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
             {

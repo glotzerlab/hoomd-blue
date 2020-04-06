@@ -30,8 +30,6 @@
 #include <iostream>
 #endif
 
-//#define SHAPE_UNION_LEAVES_AGAINST_TREE_TRAVERSAL
-
 namespace hpmc
 {
 
@@ -243,11 +241,7 @@ struct ShapeUnion
 
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel() {
-        #ifdef SHAPE_UNION_LEAVES_AGAINST_TREE_TRAVERSAL
         return true;
-        #else
-        return false;
-        #endif
         }
 
     quat<Scalar> orientation;    //!< Orientation of the particle
@@ -263,18 +257,33 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
                                              unsigned int cur_node_b,
                                              unsigned int &err)
     {
-    vec3<OverlapReal> r_ab = rotate(conj(quat<OverlapReal>(b.orientation)),vec3<OverlapReal>(dr));
-
     //! Param type of the member shapes
     typedef typename Shape::param_type mparam_type;
 
-    // loop through shape of cur_node_a
-    unsigned int na = a.members.tree.getNumParticles(cur_node_a);
-    unsigned int nb = b.members.tree.getNumParticles(cur_node_b);
+    vec3<OverlapReal> r_ab = rotate(conj(quat<OverlapReal>(b.orientation)),vec3<OverlapReal>(dr));
 
-    for (unsigned int i= 0; i < na; i++)
+    // loop through leaf particles of cur_node_a
+    // parallel loop over N^2 interacting particle pairs
+    unsigned int ptl_i = a.members.tree.getLeafNodePtrByNode(cur_node_a);
+    unsigned int ptl_j = b.members.tree.getLeafNodePtrByNode(cur_node_b);
+
+    unsigned int ptls_i_end = a.members.tree.getLeafNodePtrByNode(cur_node_a+1);
+    unsigned int ptls_j_end = b.members.tree.getLeafNodePtrByNode(cur_node_b+1);
+
+    // get starting offset for this thread
+    unsigned int nb = ptls_j_end - ptl_j;
+    if (nb == 0)
+        return 0.0;
+
+    #if defined (__HIP_DEVICE_COMPILE__)
+    ptl_i += threadIdx.x / nb;
+    ptl_j += threadIdx.x % nb;
+    #endif
+
+    while ((ptl_i < ptls_i_end) && (ptl_j < ptls_j_end))
         {
-        unsigned int ishape = a.members.tree.getParticleByNode(cur_node_a, i);
+        unsigned int ishape = a.members.tree.getParticleByIndex(ptl_i);
+        unsigned int jshape = b.members.tree.getParticleByIndex(ptl_j);
 
         const mparam_type& params_i = a.members.mparams[ishape];
         Shape shape_i(quat<Scalar>(), params_i);
@@ -284,28 +293,39 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
         vec3<OverlapReal> pos_i(rotate(conj(quat<OverlapReal>(b.orientation))*quat<OverlapReal>(a.orientation),a.members.mpos[ishape])-r_ab);
         unsigned int overlap_i = a.members.moverlap[ishape];
 
-        // loop through shapes of cur_node_b
-        for (unsigned int j= 0; j < nb; j++)
+        const mparam_type& params_j = b.members.mparams[jshape];
+        Shape shape_j(quat<Scalar>(), params_j);
+        if (shape_j.hasOrientation())
+            shape_j.orientation = b.members.morientation[jshape];
+
+        unsigned int overlap_j = b.members.moverlap[jshape];
+
+        if (overlap_i & overlap_j)
             {
-            unsigned int jshape = b.members.tree.getParticleByNode(cur_node_b, j);
-
-            const mparam_type& params_j = b.members.mparams[jshape];
-            Shape shape_j(quat<Scalar>(), params_j);
-            if (shape_j.hasOrientation())
-                shape_j.orientation = b.members.morientation[jshape];
-
-            unsigned int overlap_j = b.members.moverlap[jshape];
-
-            if (overlap_i & overlap_j)
+            vec3<OverlapReal> r_ij = b.members.mpos[jshape] - pos_i;
+            if (test_overlap(r_ij, shape_i, shape_j, err))
                 {
-                vec3<OverlapReal> r_ij = b.members.mpos[jshape] - pos_i;
-                if (test_overlap(r_ij, shape_i, shape_j, err))
-                    {
-                    return true;
-                    }
+                return true;
                 }
             }
+
+        // increment counters
+        #ifdef __HIP_DEVICE_COMPILE__
+        ptl_j += blockDim.x;
+        #else
+        ptl_j++;
+        #endif
+
+        while (ptl_j >= ptls_j_end)
+            {
+            ptl_j -= nb;
+            ptl_i++;
+
+            if (ptl_i == ptls_i_end)
+                break;
+            }
         }
+
     return false;
     }
 
@@ -318,58 +338,6 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     const detail::GPUTree& tree_a = a.members.tree;
     const detail::GPUTree& tree_b = b.members.tree;
 
-    #ifdef SHAPE_UNION_LEAVES_AGAINST_TREE_TRAVERSAL
-    #ifdef __HIPCC__
-    // Parallel tree traversal
-    unsigned int offset = threadIdx.x;
-    unsigned int stride = blockDim.x;
-    #else
-    unsigned int offset = 0;
-    unsigned int stride = 1;
-    #endif
-
-    if (tree_a.getNumLeaves() <= tree_b.getNumLeaves())
-        {
-        for (unsigned int cur_leaf_a = offset; cur_leaf_a < tree_a.getNumLeaves(); cur_leaf_a += stride)
-            {
-            unsigned int cur_node_a = tree_a.getLeafNode(cur_leaf_a);
-            hpmc::detail::OBB obb_a = tree_a.getOBB(cur_node_a);
-            // rotate and translate a's obb into b's body frame
-            obb_a.affineTransform(conj(b.orientation)*a.orientation,
-                rotate(conj(b.orientation),-r_ab));
-
-            unsigned cur_node_b = 0;
-            while (cur_node_b < tree_b.getNumNodes())
-                {
-                unsigned int query_node = cur_node_b;
-                if (tree_b.queryNode(obb_a, cur_node_b) &&
-                    test_narrow_phase_overlap(r_ab, a, b, cur_node_a, query_node, err))
-                    return true;
-                }
-            }
-        }
-    else
-        {
-        for (unsigned int cur_leaf_b = offset; cur_leaf_b < tree_b.getNumLeaves(); cur_leaf_b += stride)
-            {
-            unsigned int cur_node_b = tree_b.getLeafNode(cur_leaf_b);
-            hpmc::detail::OBB obb_b = tree_b.getOBB(cur_node_b);
-
-            // rotate and translate b's obb into a's body frame
-            obb_b.affineTransform(conj(a.orientation)*b.orientation,
-                rotate(conj(a.orientation),r_ab));
-
-            unsigned cur_node_a = 0;
-            while (cur_node_a < tree_a.getNumNodes())
-                {
-                unsigned int query_node = cur_node_a;
-                if (tree_a.queryNode(obb_b, cur_node_a) &&
-                    test_narrow_phase_overlap(-r_ab, b, a, cur_node_b, query_node, err))
-                    return true;
-                }
-            }
-        }
-    #else
     // perform a tandem tree traversal
     unsigned long int stack = 0;
     unsigned int cur_node_a = 0;
@@ -395,7 +363,6 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             && test_narrow_phase_overlap(r_ab, a, b, query_node_a, query_node_b, err))
             return true;
         }
-    #endif
 
     return false;
     }
