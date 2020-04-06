@@ -118,10 +118,6 @@ void test_nvt_mtk_integrator(std::shared_ptr<ExecutionConfiguration> exec_conf, 
 
     nvt_1->prepRun(0);
 
-    PDataFlags flags;
-    flags[pdata_flag::potential_energy] = 1;
-    pdata_1->setFlags(flags);
-
     // equilibrate
     std::cout << "Equilibrating for 10,000 time steps..." << std::endl;
     int i =0;
@@ -225,7 +221,6 @@ void test_nvt_mtk_integrator_aniso(std::shared_ptr<ExecutionConfiguration> exec_
     nvt_1->prepRun(0);
 
     PDataFlags flags;
-    flags[pdata_flag::potential_energy] = 1;
     flags[pdata_flag::rotational_kinetic_energy] = 1;
     pdata_1->setFlags(flags);
 
