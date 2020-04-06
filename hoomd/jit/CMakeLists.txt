@@ -33,7 +33,7 @@ set(_${PACKAGE_NAME}_headers PatchEnergyJIT.h
                              ExternalFieldEvalFactory.h
                              GPUEvalFactory.h
                              KaleidoscopeJIT.h
-                             jitify_safe_headers.hpp
+                             jitify.hpp
    )
 
 pybind11_add_module(_${PACKAGE_NAME} SHARED ${_${PACKAGE_NAME}_sources} ${_${PACKAGE_NAME}_cu_sources} NO_EXTRAS)
@@ -45,6 +45,7 @@ add_library (_${PACKAGE_NAME}_llvm SHARED ${_${PACKAGE_NAME}_llvm_sources})
 if (ENABLE_HIP)
     # no device linking
     target_compile_definitions(_${PACKAGE_NAME} PUBLIC CUDA_DEVRT_LIBRARY_PATH=\"${CUDA_cudadevrt_LIBRARY}\")
+    target_compile_definitions(_${PACKAGE_NAME} PUBLIC CUDA_INCLUDE_PATH=\"${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}\")
     string(REPLACE ";" "_" CUDA_COMPUTE_ARCHS "${CUDA_ARCH_LIST}")
     target_compile_definitions(_${PACKAGE_NAME} PUBLIC CUDA_COMPUTE_ARCHS=\"${CUDA_COMPUTE_ARCHS}\")
     target_link_libraries(_${PACKAGE_NAME} PUBLIC CUDA::cuda CUDA::nvrtc)

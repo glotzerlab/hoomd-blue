@@ -18,13 +18,10 @@
 #include <cuda.h>
 #include <nvrtc.h>
 
-#include "jitify_safe_headers.hpp"
-
 void GPUEvalFactory::compileGPU(
     const std::string& code,
     const std::string& kernel_name,
-    const std::string& include_path,
-    const std::string& include_path_source,
+    const std::vector<std::string>& include_paths,
     const std::string& cuda_devrt_library_path,
     const unsigned int compute_arch)
     {
@@ -32,10 +29,7 @@ void GPUEvalFactory::compileGPU(
 
     std::vector<std::string> compile_options = {
         "--gpu-architecture=compute_"+std::to_string(compute_arch),
-        "--include-path="+include_path,
-        "--include-path="+include_path_source,
         "--relocatable-device-code=true",
-        "--device-as-default-execution-space",
         "--std=c++11",
 #ifdef ENABLE_HPMC_MIXED_PRECISION
         "-DENABLE_HPMC_MIXED_PRECISION",
@@ -44,8 +38,10 @@ void GPUEvalFactory::compileGPU(
         "-D__HIPCC__",
         "-D__HIP_DEVICE_COMPILE__",
         "-D__HIP_PLATFORM_NVCC__",
-        "-lineinfo"
         };
+
+    for (auto p: include_paths)
+        compile_options.push_back("-I"+p);
 
     char *compileParams[compile_options.size()];
     for (unsigned int i = 0; i < compile_options.size(); ++i)
@@ -56,235 +52,15 @@ void GPUEvalFactory::compileGPU(
                  compile_options[i].c_str());
         }
 
-    // compile
+    m_exec_conf->msg->notice(5) << code << std::endl;
 
-    // add fake math and other headers containing commonly used definitions
-
-    // these hacky includes exist primarily to enable use of certain HOOMD
-    // header files inside RTC
-    std::string code_with_headers = std::string(jitify::detail::jitsafe_header_math) +
-        std::string(jitify::detail::jitsafe_header_type_traits) +
-        std::string(jitify::detail::jitsafe_header_stdint_h) +
-        std::string(jitify::detail::jitsafe_header_limits_h) +
-        std::string(jitify::detail::jitsafe_header_float_h) +
-        std::string(jitify::detail::jitsafe_header_limits) +
-        std::string(jitify::detail::jitsafe_header_stdio_h) + code;
-
-    m_exec_conf->msg->notice(5) << code_with_headers << std::endl;
-
-    nvrtcResult status = nvrtcCreateProgram(&m_program, code_with_headers.c_str(), "evaluator.cu", 0, NULL, NULL);
-    if (status != NVRTC_SUCCESS)
-        throw std::runtime_error("nvrtcCreateProgram error: "+std::string(nvrtcGetErrorString(status)));
+    // compile, substituting common headers with fake headers
+    m_program.reset(new jitify::Program(m_cache.program(code, 0, compile_options)));
 
     m_exec_conf->msg->notice(3) << "nvrtc options (notice level 5 shows code):" << std::endl;
     for (unsigned int i = 0; i < compile_options.size(); ++i)
         {
         m_exec_conf->msg->notice(3) << " " << compileParams[i] << std::endl;
-        }
-
-    for (auto eval_threads: m_eval_threads)
-        {
-        for (auto launch_bounds: m_launch_bounds)
-            {
-            // instantiate template
-            std::string template_name = kernel_name+"<"+std::to_string(eval_threads)+std::string(",")+std::to_string(launch_bounds)+std::string(">");
-            status = nvrtcAddNameExpression(m_program, template_name.c_str());
-            if (status != NVRTC_SUCCESS)
-                throw std::runtime_error("nvrtcAddNameExpression error: "+std::string(nvrtcGetErrorString(status)));
-            }
-        }
-
-    std::string alpha_iso_name = "&alpha_iso";
-    status = nvrtcAddNameExpression(m_program, alpha_iso_name.c_str());
-    if (status != NVRTC_SUCCESS)
-        throw std::runtime_error("nvrtcAddNameExpression error: "+std::string(nvrtcGetErrorString(status)));
-
-    std::string alpha_union_name = "&alpha_union";
-    status = nvrtcAddNameExpression(m_program, alpha_union_name.c_str());
-    if (status != NVRTC_SUCCESS)
-        throw std::runtime_error("nvrtcAddNameExpression error: "+std::string(nvrtcGetErrorString(status)));
-
-    std::string rcut_name = "&jit::d_rcut_union";
-    status = nvrtcAddNameExpression(m_program, rcut_name.c_str());
-    if (status != NVRTC_SUCCESS)
-        throw std::runtime_error("nvrtcAddNameExpression error: "+std::string(nvrtcGetErrorString(status)));
-
-    std::string union_params_name = "&jit::d_union_params";
-    status = nvrtcAddNameExpression(m_program, union_params_name.c_str());
-    if (status != NVRTC_SUCCESS)
-        throw std::runtime_error("nvrtcAddNameExpression error: "+std::string(nvrtcGetErrorString(status)));
-
-    nvrtcResult compile_result = nvrtcCompileProgram(m_program, compile_options.size(), compileParams);
-    for (unsigned int i = 0; i < compile_options.size(); ++i)
-        {
-        free(compileParams[i]);
-        }
-
-    // Obtain compilation log from the program.
-    size_t logSize;
-    status = nvrtcGetProgramLogSize(m_program, &logSize);
-    if (status != NVRTC_SUCCESS)
-        throw std::runtime_error("nvrtcGetProgramLogSize error: "+std::string(nvrtcGetErrorString(status)));
-
-    char *log = new char[logSize];
-    status = nvrtcGetProgramLog(m_program, log);
-    if (status != NVRTC_SUCCESS)
-        throw std::runtime_error("nvrtcGetProgramLog error: "+std::string(nvrtcGetErrorString(status)));
-    m_exec_conf->msg->notice(3) << "nvrtc output" << std::endl << log << '\n';
-    delete[] log;
-
-    if (compile_result != NVRTC_SUCCESS)
-        throw std::runtime_error("nvrtcCompileProgram error (set device.notice_level=3 to see full log): "+std::string(nvrtcGetErrorString(compile_result)));
-
-    // fetch PTX
-    size_t ptx_size;
-    status = nvrtcGetPTXSize(m_program, &ptx_size);
-    if (status != NVRTC_SUCCESS)
-        throw std::runtime_error("nvrtcGetPTXSize error: "+std::string(nvrtcGetErrorString(status)));
-
-    char ptx[ptx_size];
-    status = nvrtcGetPTX(m_program, ptx);
-    if (status != NVRTC_SUCCESS)
-        throw std::runtime_error("nvrtcGetPTX error: "+std::string(nvrtcGetErrorString(status)));
-
-    // look up mangled names
-    std::map<std::pair<unsigned int, unsigned int>, char *> kernel_name_mangled;
-    for (auto eval_threads: m_eval_threads)
-        {
-        for (auto launch_bounds: m_launch_bounds)
-            {
-            // instantiate template
-            std::string template_name = kernel_name+"<"+std::to_string(eval_threads)+std::string(",")+std::to_string(launch_bounds)+std::string(">");
-            char *mangled_name;
-            status = nvrtcGetLoweredName(m_program, template_name.c_str(), const_cast<const char **>(&mangled_name));
-            if (status != NVRTC_SUCCESS)
-                throw std::runtime_error("nvrtcGetLoweredName: "+std::string(nvrtcGetErrorString(status)));
-            kernel_name_mangled[std::make_pair(eval_threads,launch_bounds)] = mangled_name;
-            }
-        }
-
-    char *alpha_iso_name_mangled;
-    status = nvrtcGetLoweredName(m_program, alpha_iso_name.c_str(), const_cast<const char **>(&alpha_iso_name_mangled));
-    if (status != NVRTC_SUCCESS)
-        throw std::runtime_error("nvrtcGetLoweredName: "+std::string(nvrtcGetErrorString(status)));
-
-    char *alpha_union_name_mangled;
-    status = nvrtcGetLoweredName(m_program, alpha_union_name.c_str(), const_cast<const char **>(&alpha_union_name_mangled));
-    if (status != NVRTC_SUCCESS)
-        throw std::runtime_error("nvrtcGetLoweredName: "+std::string(nvrtcGetErrorString(status)));
-
-    char *rcut_name_mangled;
-    status = nvrtcGetLoweredName(m_program, rcut_name.c_str(), const_cast<const char **>(&rcut_name_mangled));
-    if (status != NVRTC_SUCCESS)
-        throw std::runtime_error("nvrtcGetLoweredName: "+std::string(nvrtcGetErrorString(status)));
-
-    char *union_params_name_mangled;
-    status = nvrtcGetLoweredName(m_program, union_params_name.c_str(), const_cast<const char **>(&union_params_name_mangled));
-    if (status != NVRTC_SUCCESS)
-        throw std::runtime_error("nvrtcGetLoweredName: "+std::string(nvrtcGetErrorString(status)));
-
-    // link PTX into cubin
-    CUresult custatus;
-    char *error;
-    custatus = cuLinkCreate(0, 0, 0, &m_link_state);
-    if (custatus != CUDA_SUCCESS)
-        {
-        cuGetErrorString(custatus, const_cast<const char **>(&error));
-        throw std::runtime_error("cuLinkCreate: "+std::string(error));
-        }
-
-    custatus = cuLinkAddFile(m_link_state, CU_JIT_INPUT_LIBRARY, cuda_devrt_library_path.c_str(), 0, 0, 0);
-    if (custatus != CUDA_SUCCESS)
-        {
-        cuGetErrorString(custatus, const_cast<const char **>(&error));
-        throw std::runtime_error("cuLinkAddFile: "+std::string(error));
-        }
-
-    custatus = cuLinkAddData(m_link_state, CU_JIT_INPUT_PTX, (void *) ptx, ptx_size, "evaluator.ptx", 0, 0, 0);
-    if (custatus != CUDA_SUCCESS)
-        {
-        cuGetErrorString(custatus, const_cast<const char **>(&error));
-        throw std::runtime_error("cuLinkAddData: "+std::string(error));
-        }
-
-    size_t cubinSize;
-    void *cubin;
-
-    custatus = cuLinkComplete(m_link_state, &cubin, &cubinSize);
-    if (custatus != CUDA_SUCCESS)
-        {
-        cuGetErrorString(custatus, const_cast<const char **>(&error));
-        throw std::runtime_error("cuLinkComplete: "+std::string(error));
-        }
-
-    // load cubin into active contexts, and return function pointers
-    auto gpu_map = m_exec_conf->getGPUIds();
-    m_module.resize(m_exec_conf->getNumActiveGPUs());
-    for (int idev = m_exec_conf->getNumActiveGPUs()-1; idev >= 0; --idev)
-        {
-        cudaSetDevice(gpu_map[idev]);
-
-        // get module
-        custatus = cuModuleLoadData(&m_module[idev], cubin);
-        if (custatus != CUDA_SUCCESS)
-            {
-            cuGetErrorString(custatus, const_cast<const char **>(&error));
-            throw std::runtime_error("cuModuleLoadData: "+std::string(error));
-            }
-
-        // get variable pointers
-        for (auto eval_threads: m_eval_threads)
-            {
-            for (auto launch_bounds: m_launch_bounds)
-                {
-                CUfunction kernel_ptr;
-                custatus = cuModuleGetFunction(&kernel_ptr, m_module[idev], kernel_name_mangled[std::make_pair(eval_threads, launch_bounds)]);
-                if (custatus != CUDA_SUCCESS)
-                    {
-                    cuGetErrorString(custatus, const_cast<const char **>(&error));
-                    throw std::runtime_error("cuModuleGetFunction: "+std::string(error));
-                    }
-                m_kernel_ptr[std::make_pair(eval_threads, launch_bounds)][idev] = kernel_ptr;
-                }
-            }
-
-        // get variable pointers
-        CUdeviceptr alpha_iso_ptr;
-        custatus = cuModuleGetGlobal(&alpha_iso_ptr, 0, m_module[idev], alpha_iso_name_mangled);
-        if (custatus != CUDA_SUCCESS)
-            {
-            cuGetErrorString(custatus, const_cast<const char **>(&error));
-            throw std::runtime_error("cuModuleGetGlobal: "+std::string(error));
-            }
-
-        m_alpha_iso_device_ptr[idev] = alpha_iso_ptr;
-
-        CUdeviceptr alpha_union_ptr;
-        custatus = cuModuleGetGlobal(&alpha_union_ptr, 0, m_module[idev], alpha_union_name_mangled);
-        if (custatus != CUDA_SUCCESS)
-            {
-            cuGetErrorString(custatus, const_cast<const char **>(&error));
-            throw std::runtime_error("cuModuleGetGlobal: "+std::string(error));
-            }
-        m_alpha_union_device_ptr[idev] = alpha_union_ptr;
-
-        CUdeviceptr rcut_ptr;
-        custatus = cuModuleGetGlobal(&rcut_ptr, 0, m_module[idev], rcut_name_mangled);
-        if (custatus != CUDA_SUCCESS)
-            {
-            cuGetErrorString(custatus, const_cast<const char **>(&error));
-            throw std::runtime_error("cuModuleGetGlobal: "+std::string(error));
-            }
-        m_rcut_union_device_ptr[idev] = rcut_ptr;
-
-        CUdeviceptr union_params_ptr;
-        custatus = cuModuleGetGlobal(&union_params_ptr, 0, m_module[idev], union_params_name_mangled);
-        if (custatus != CUDA_SUCCESS)
-            {
-            cuGetErrorString(custatus, const_cast<const char **>(&error));
-            throw std::runtime_error("cuModuleGetGlobal: "+std::string(error));
-            }
-        m_union_params_device_ptr[idev] = union_params_ptr;
         }
     }
 #endif
