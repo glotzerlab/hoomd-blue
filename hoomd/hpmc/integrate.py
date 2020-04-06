@@ -68,6 +68,8 @@ class _HPMCIntegrator(_BaseIntegrator):
     data chunk names and how the data are stored.
     """
 
+    _cpp_cls = None
+
     def __init__(self, seed, d, a, move_ratio, nselect, deterministic):
         super().__init__()
 
@@ -107,18 +109,17 @@ class _HPMCIntegrator(_BaseIntegrator):
     def attach(self, simulation):
         '''initialize the reflected c++ class'''
         sys_def = simulation.state._cpp_sys_def
-        if simulation.device.mode == 'gpu':
+        if simulation.device.mode == 'GPU':
             self._cpp_cell = _hoomd.CellListGPU(sys_def)
             if simulation._system_communicator is not None:
                 self._cpp_cell.setCommunicator(simulation._system_communicator)
             self._cpp_obj = getattr(_hpmc,
-                                    "IntegratorHPMCMonoGPU"+self.__class__.__name__)(sys_def,
+                                    self._cpp_cls + 'GPU')(sys_def,
                                                            self._cpp_cell,
                                                            self.seed)
         else:
             self._cpp_obj = getattr(_hpmc,
-                                    "IntegratorHPMCMono"+self.__class__.__name__) (sys_def,
-                                                           self.seed)
+                                    self._cpp_cls)(sys_def, self.seed)
             self._cpp_cell = None
 
         super().attach(simulation)
@@ -356,6 +357,7 @@ class Sphere(_HPMCIntegrator):
         mc.shape["B"] = dict(diameter=1.0)
         mc.depletant_fugacity["B"] = 3.0
     """
+    _cpp_cls = 'IntegratorHPMCMonoSphere'
 
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
                  nselect=4, deterministic=False):
@@ -446,6 +448,8 @@ class ConvexPolygon(_HPMCIntegrator):
         print('vertices = ', mc.shape["A"]["vertices"])
 
     """
+    _cpp_cls = 'IntegratorHPMCMonoConvexPolygon'
+
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
                  nselect=4, deterministic=False):
 
@@ -543,6 +547,8 @@ class ConvexSpheropolygon(_HPMCIntegrator):
 
     """
 
+    _cpp_cls = 'IntegratorHPMCMonoSpheropolygon'
+
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
                  nselect=4, deterministic=False):
 
@@ -631,6 +637,8 @@ class SimplePolygon(_HPMCIntegrator):
         print('vertices = ', mc.shape["A"]["vertices"])
 
     """
+
+    _cpp_cls = 'IntegratorHPMCMonoSimplePolygon'
 
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
                  nselect=4, deterministic=False):
@@ -790,6 +798,8 @@ class Polyhedron(_HPMCIntegrator):
         mc.depletant_fugacity["B"] = 3.0
     """
 
+    _cpp_cls = 'IntegratorHPMCMonoPolyhedron'
+
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
                  nselect=4, deterministic=False):
 
@@ -895,6 +905,8 @@ class ConvexPolyhedron(_HPMCIntegrator):
                                        (-0.05, -0.05, 0.05)]);
         mc.depletant_fugacity["B"] = 3.0
     """
+
+    _cpp_cls = 'IntegratorHPMCMonoConvexPolyhedron'
 
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
                  nselect=4, deterministic=False):
@@ -1035,6 +1047,8 @@ class FacetedEllipsoid(_HPMCIntegrator):
         mc.depletant_fugacity["B"] = 3.0
     """
 
+    _cpp_cls = 'IntegratorHPMCMonoFacetedEllipsoid'
+
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
                  nselect=4, deterministic=False):
 
@@ -1107,6 +1121,8 @@ class Sphinx(_HPMCIntegrator):
         mc.shape["B"] = dict(centers=[(0,0,0)], diameters=[.15])
         mc.depletant_fugacity["B"] = 3.0
     """
+
+    _cpp_cls = 'IntegratorHPMCMonoSphinx'
 
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
                  nselect=4, deterministic=False):
@@ -1198,6 +1214,8 @@ class ConvexSpheropolyhedron(_HPMCIntegrator):
 
     """
 
+    _cpp_cls = 'IntegratorHPMCMonoSpheropolyhedron'
+
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
                  nselect=4, deterministic=False):
 
@@ -1280,6 +1298,8 @@ class Ellipsoid(_HPMCIntegrator):
         mc.shape["B"] = dict(a=0.05, b=0.05, c=0.05);
         mc.depletant_fugacity["B"] = 3.0
     """
+
+    _cpp_cls = 'IntegratorHPMCMonoEllipsoid'
 
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
                  nselect=4, deterministic=False):
@@ -1378,6 +1398,8 @@ class SphereUnion(_HPMCIntegrator):
         mc.shape["B"] = dict(diameters=[0.05], centers=[(0.0, 0.0, 0.0)]);
         mc.depletant_fugacity["B"] = 3.0
     """
+
+    _cpp_cls = 'IntegratorHPMCMonoSphereUnion'
 
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
                  nselect=4, deterministic=False):
@@ -1484,6 +1506,8 @@ class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
         print('orientation of the first cube = ',
               mc.shape_param["A"]["orientations"][0])
     """
+
+    _cpp_cls = 'IntegratorHPMCMonoConvexPolyhedronUnion'
 
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
                  nselect=4, deterministic=False):
@@ -1602,6 +1626,8 @@ class FacetedEllipsoidUnion(_HPMCIntegrator):
         print('vertices of the first faceted ellipsoid = ',
               mc.shape["A"]["shapes"][0]["vertices"]
     """
+
+    _cpp_cls = 'IntegratorHPMCMonoFacetedEllipsoidUnion'
 
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
                  nselect=4, deterministic=False):
