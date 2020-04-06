@@ -109,7 +109,7 @@ class _HPMCIntegrator(_BaseIntegrator):
     def attach(self, simulation):
         '''initialize the reflected c++ class'''
         sys_def = simulation.state._cpp_sys_def
-        if simulation.device.mode == 'GPU':
+        if simulation.device.mode == 'gpu':
             self._cpp_cell = _hoomd.CellListGPU(sys_def)
             if simulation._system_communicator is not None:
                 self._cpp_cell.setCommunicator(simulation._system_communicator)
