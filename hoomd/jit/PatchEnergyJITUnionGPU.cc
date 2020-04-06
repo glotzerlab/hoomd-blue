@@ -2,6 +2,7 @@
 #include "PatchEnergyJITUnionGPU.h"
 
 #include "hoomd/jit/EvaluatorUnionGPU.cuh"
+#include <pybind11/stl.h>
 
 //! Set the per-type constituent particles
 void PatchEnergyJITUnionGPU::setParam(unsigned int type,
@@ -73,7 +74,7 @@ void export_PatchEnergyJITUnionGPU(pybind11::module &m)
                                  const std::string&, Scalar, const unsigned int,
                                  const std::string&, Scalar, const unsigned int,
                                  const std::string&, const std::string&,
-                                 const std::string&, const std::string&,
+                                 const std::vector<std::string>&,
                                  const std::string&,
                                  unsigned int>())
             .def("setParam",&PatchEnergyJITUnionGPU::setParam)

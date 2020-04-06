@@ -152,8 +152,8 @@ poly2d_verts make_poly2d_verts(pybind11::list verts, OverlapReal sweep_radius, b
     return result;
     }
 
-//! Helper function to build poly3d_data from python
-inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind11::list face_verts,
+//! Helper function to build TriangleMesh from python
+inline ShapePolyhedron::param_type make_TriangleMesh(pybind11::list verts,pybind11::list face_verts,
                              pybind11::list face_offs,
                              pybind11::list overlap,
                              OverlapReal R, bool ignore_stats,
@@ -182,7 +182,7 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
     auto hull = qh.getConvexHull(qh_pts, true, false);
     auto vertexBuffer = hull.getVertexBuffer();
 
-    result = detail::poly3d_data(len(verts), len(face_offs)-1, len(face_verts), vertexBuffer.size(), exec_conf->isCUDAEnabled());
+    result = detail::TriangleMesh(len(verts), len(face_offs)-1, len(face_verts), vertexBuffer.size(), exec_conf->isCUDAEnabled());
     result.ignore = ignore_stats;
     result.sweep_radius = result.convex_hull_verts.sweep_radius = R;
     result.n_verts = len(verts);
@@ -516,7 +516,7 @@ template< typename Shape >
 struct get_param_data_type { typedef typename Shape::param_type type; };
 
 template< >
-struct get_param_data_type< ShapePolyhedron > { typedef poly3d_data type; }; // hard to dig into the structure but this could be made more general by modifying the ShapePolyhedron::param_type
+struct get_param_data_type< ShapePolyhedron > { typedef TriangleMesh type; }; // hard to dig into the structure but this could be made more general by modifying the ShapePolyhedron::param_type
 
 template< typename Shape >
 struct access
@@ -679,7 +679,7 @@ class polyhedron_param_proxy : public shape_param_proxy<Shape, AccessType>
 protected:
     typedef shape_param_proxy<ShapePolyhedron>::param_type param_type;
 public:
-    typedef poly3d_data access_type;
+    typedef TriangleMesh access_type;
     polyhedron_param_proxy(std::shared_ptr< IntegratorHPMCMono<Shape> > mc, unsigned int typendx, const AccessType& acc = AccessType()) : shape_param_proxy<Shape, AccessType>(mc,typendx,acc){}
 
     pybind11::list getVerts()
