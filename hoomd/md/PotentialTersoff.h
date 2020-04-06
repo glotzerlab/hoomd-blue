@@ -299,7 +299,7 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
 
     PDataFlags flags = this->m_pdata->getFlags();
-    bool compute_virial = flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial];
+    bool compute_virial = flags[pdata_flag::pressure_tensor];
 
     const BoxDim& box = m_pdata->getBox();
     ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);

@@ -187,7 +187,7 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
                          this->m_pdata->getNTypes(),
                          block_size,
                          this->m_shift_mode,
-                         flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
+                         flags[pdata_flag::pressure_tensor],
                          threads_per_particle,
                          this->m_pdata->getGPUPartition()),
              d_params.data);

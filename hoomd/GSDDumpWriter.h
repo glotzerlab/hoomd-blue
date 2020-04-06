@@ -123,6 +123,20 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
             return m_log_writer;
             }
 
+        /// Get needed pdata flags
+        virtual PDataFlags getRequestedPDataFlags()
+            {
+            PDataFlags flags;
+
+            if (!m_log_writer.is_none())
+                {
+                flags.set();
+                }
+
+            return flags;
+            }
+
+
     private:
         std::string m_fname;                //!< The file name we are writing to
         bool m_overwrite;                   //!< True if file should be overwritten

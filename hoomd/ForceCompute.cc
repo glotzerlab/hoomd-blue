@@ -87,6 +87,9 @@ ForceCompute::ForceCompute(std::shared_ptr<SystemDefinition> sysdef)
 
     // initialize GPU memory hints
     updateGPUAdvice();
+
+    // start with no flags computed
+    m_computed_flags.reset();
     }
 
 /*! \post m_force, m_virial and m_torque are resized to the current maximum particle number
@@ -285,7 +288,7 @@ pybind11::object ForceCompute::getEnergiesPython()
     std::vector<double> energy(dims[0]);
 
     // This is slow: TODO implement a propert gather operation
-    for (size_t i = 0; i < dims[0]; i++)
+    for (size_t i = 0; i < m_pdata->getNGlobal(); i++)
         {
         double e = getEnergy(i);
         if (root)
@@ -326,7 +329,7 @@ pybind11::object ForceCompute::getForcesPython()
     std::vector<vec3<double>> force(dims[0]);
 
     // This is slow: TODO implement a propert gather operation
-    for (size_t i = 0; i < dims[0]; i++)
+    for (size_t i = 0; i < m_pdata->getNGlobal(); i++)
         {
         Scalar3 f = getForce(i);
         if (root)
@@ -369,7 +372,7 @@ pybind11::object ForceCompute::getTorquesPython()
     std::vector<vec3<double>> torque(dims[0]);
 
     // This is slow: TODO implement a propert gather operation
-    for (size_t i = 0; i < dims[0]; i++)
+    for (size_t i = 0; i < m_pdata->getNGlobal(); i++)
         {
         Scalar4 f = getTorque(i);
         if (root)
@@ -392,6 +395,11 @@ pybind11::object ForceCompute::getTorquesPython()
 
 pybind11::object ForceCompute::getVirialsPython()
     {
+    if (!m_computed_flags[pdata_flag::pressure_tensor])
+        {
+        return pybind11::none();
+        }
+
     bool root = true;
 #ifdef ENABLE_MPI
     // if we are not the root processor, return None
@@ -409,10 +417,10 @@ pybind11::object ForceCompute::getVirialsPython()
         dims[0] = 0;
         dims[1] = 0;
         }
-    std::vector<double> virial(dims[0]*6);
+    std::vector<double> virial(dims[0]*dims[1]);
 
     // This is slow: TODO implement a propert gather operation
-    for (size_t i = 0; i < dims[0]; i++)
+    for (size_t i = 0; i < m_pdata->getNGlobal(); i++)
         {
         double v0 = getVirial(i, 0);
         double v1 = getVirial(i, 1);
@@ -451,12 +459,17 @@ pybind11::object ForceCompute::getVirialsPython()
 
 void ForceCompute::compute(unsigned int timestep)
     {
-    // skip if we shouldn't compute this step
-    if (!m_particles_sorted && !shouldCompute(timestep))
-        return;
+    // recompute forces if the particles were sorted, this is a new timestep, or the particle data
+    // flags do not match
+    if (m_particles_sorted ||
+        shouldCompute(timestep) ||
+        m_pdata->getFlags() != m_computed_flags)
+        {
+        computeForces(timestep);
+        }
 
-    computeForces(timestep);
     m_particles_sorted = false;
+    m_computed_flags = m_pdata->getFlags();
     }
 
 /*! \param num_iters Number of iterations to average for the benchmark

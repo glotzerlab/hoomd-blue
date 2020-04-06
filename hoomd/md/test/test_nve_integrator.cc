@@ -392,7 +392,6 @@ void nve_updater_aniso_test(std::shared_ptr<ExecutionConfiguration> exec_conf, t
     nve_1->prepRun(0);
 
     PDataFlags flags;
-    flags[pdata_flag::potential_energy] = 1;
     flags[pdata_flag::rotational_kinetic_energy] = 1;
     pdata_1->setFlags(flags);
 
