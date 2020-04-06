@@ -344,10 +344,6 @@ if (BUILD_MD)
 
     if (ENABLE_HIP)
         # add the neighbor library
-        #
-        # The location of CUB / hipCUB should be handled by CUB_INCLUDE_DIR and
-        # HIPCUB_INCLUDE_DIR being set earlier in the project, but these can also
-        # be hinted by setting CUB_ROOT or HIPCUB_ROOT if this doesn't work or changes.
         set(NEIGHBOR_HIP ${HIP_FOUND} CACHE BOOL "Use HIP layer?" FORCE)
         if (HIP_FOUND)
             set(HIPCUB_ROOT ${HIP_INCLUDE_DIR})
