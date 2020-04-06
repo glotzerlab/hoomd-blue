@@ -273,7 +273,7 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
     // get starting offset for this thread
     unsigned int nb = ptls_j_end - ptl_j;
     if (nb == 0)
-        return 0.0;
+        return false;
 
     #if defined (__HIP_DEVICE_COMPILE__)
     ptl_i += threadIdx.x / nb;
