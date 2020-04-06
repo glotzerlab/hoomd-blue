@@ -170,7 +170,7 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
             m_tuner_excell_block_size->setPeriod(period);
             m_tuner_excell_block_size->setEnabled(enable);
 
-            m_tuner_accept->setPeriod(period);
+            m_tuner_accept->setPeriod(period*this->m_nselect);
             m_tuner_accept->setEnabled(enable);
 
             m_tuner_num_depletants->setPeriod(period*this->m_nselect);
