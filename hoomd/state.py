@@ -174,7 +174,7 @@ class State:
         if value.dimensions != self._cpp_sys_def.getNDimensions():
             self._simulation.device.cpp_msg.warning(
                 "Box changing dimensions from {} to {}."
-                "".format(self._cpp_sys_def.getNDimensions()
+                "".format(self._cpp_sys_def.getNDimensions(),
                           value.dimensions))
             self._cpp_sys_def.setNDimensions(value.dimensions)
         self._cpp_sys_def.getParticleData().setGlobalBox(copy(value)._cpp_obj)
