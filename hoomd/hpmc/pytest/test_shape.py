@@ -515,9 +515,7 @@ def test_overlaps_union(device,
     integrator = union_overlap_args[1]
 
     union_args = {'shapes': [inner_args, inner_args],
-                  'positions': [(0, 0, 0), (0, 0, 1)],
-                  'orientations': [(1, 0, 0, 0), (1, 0, 0, 0)],
-                  'overlap': [1, 1]}
+                  'positions': [(0, 0, 0), (0, 0, 1)]}
     mc = integrator(23456)
     mc.shape['A'] = union_args
 

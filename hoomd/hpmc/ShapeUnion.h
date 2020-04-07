@@ -132,8 +132,8 @@ struct ShapeUnionParams : ShapeParams
         // list of 3-tuples that set the position of each member
         pybind11::list positions = v["positions"];
         // list of 4-tuples that set the orientation of each member
-        pybind11::list orientations = v["orientations"];
-        pybind11::list overlap = v["overlap"];
+        pybind11::object orientations =v["orientations"];
+        pybind11::object overlap = v["overlap"];
         ignore = v["ignore_statistics"].cast<unsigned int>();
         unsigned int leaf_capacity = v["capacity"].cast<unsigned int>();
 
@@ -149,18 +149,32 @@ struct ShapeUnionParams : ShapeParams
                                      + "positions=" + pybind11::str(positions).cast<std::string>() +
                                      + " shapes=" + pybind11::str(shapes).cast<std::string>() );
             }
-        if (pybind11::len(orientations) != N)
+
+        pybind11::list orientation_list;
+        if (!orientations.is_none())
             {
-            throw std::runtime_error(std::string("len(orientations) != len(shapes): ")
-                                     + "orientations="
-                                     + pybind11::str(orientations).cast<std::string>() +
-                                     + " shapes=" + pybind11::str(shapes).cast<std::string>() );
+            if (pybind11::len(orientations) != N)
+                {
+                throw std::runtime_error(std::string("len(orientations) != len(shapes): ")
+                                        + "orientations="
+                                        + pybind11::str(orientations).cast<std::string>() +
+                                        + " shapes=" + pybind11::str(shapes).cast<std::string>() );
+                }
+
+            orientation_list = pybind11::list(orientations);
             }
-        if (!(overlap.is(pybind11::none())) && pybind11::len(overlap) != N)
+
+        pybind11::list overlap_list;
+        if (!overlap.is_none())
             {
-            throw std::runtime_error(std::string("len(overlap) != len(shapes): ")
-                                     + "overlaps=" + pybind11::str(overlap).cast<std::string>() +
-                                     + " shapes=" + pybind11::str(shapes).cast<std::string>() );
+            if (pybind11::len(overlap) != N)
+                {
+                throw std::runtime_error(std::string("len(overlap) != len(shapes): ")
+                                        + "overlaps=" + pybind11::str(overlap).cast<std::string>() +
+                                        + " shapes=" + pybind11::str(shapes).cast<std::string>() );
+                }
+
+            overlap_list = pybind11::list(overlap);
             }
 
         hpmc::detail::OBB *obbs = new hpmc::detail::OBB[N];
@@ -187,26 +201,36 @@ struct ShapeUnionParams : ShapeParams
             vec3<OverlapReal> pos = vec3<OverlapReal>(pybind11::cast<OverlapReal>(position[0]),
                                                       pybind11::cast<OverlapReal>(position[1]),
                                                       pybind11::cast<OverlapReal>(position[2]));
-            pybind11::list orientation_l = orientations[i];
-            OverlapReal s = pybind11::cast<OverlapReal>(orientation_l[0]);
-            OverlapReal x = pybind11::cast<OverlapReal>(orientation_l[1]);
-            OverlapReal y = pybind11::cast<OverlapReal>(orientation_l[2]);
-            OverlapReal z = pybind11::cast<OverlapReal>(orientation_l[3]);
-            quat<OverlapReal> orientation(s, vec3<OverlapReal>(x,y,z));
 
             mparams[i] = param;
             mpos[i] = pos;
-            morientation[i] = orientation;
-            if (overlap.is(pybind11::none()))
+
+            // set default orientation of (1,0,0,0) when orienations is None
+            if (orientations.is_none())
+                {
+                morientation[i] = quat<OverlapReal>(1, vec3<OverlapReal>(0, 0, 0));
+                }
+            else
+                {
+                pybind11::list orientation_l = orientation_list[i];
+                OverlapReal s = pybind11::cast<OverlapReal>(orientation_l[0]);
+                OverlapReal x = pybind11::cast<OverlapReal>(orientation_l[1]);
+                OverlapReal y = pybind11::cast<OverlapReal>(orientation_l[2]);
+                OverlapReal z = pybind11::cast<OverlapReal>(orientation_l[3]);
+                morientation[i] = quat<OverlapReal>(s, vec3<OverlapReal>(x,y,z));
+                }
+
+            // set default overlap of 1 when overlaps is None
+            if (overlap.is_none())
                 {
                 moverlap[i] = 1;
                 }
             else
                 {
-                moverlap[i] = pybind11::cast<unsigned int>(overlap[i]);
+                moverlap[i] = pybind11::cast<unsigned int>(overlap_list[i]);
                 }
 
-            Shape dummy(orientation, param);
+            Shape dummy(morientation[i], param);
             Scalar d = sqrt(dot(pos,pos));
             diameter = max(diameter, OverlapReal(2*d + dummy.getCircumsphereDiameter()));
 
