@@ -668,7 +668,13 @@ class CounterWrapper:
 @CounterWrapper
 def valid_args_id(args):
     integrator = args[0]
-    return str(integrator) + str(valid_args_id.count(str(integrator)))
+    if isinstance(integrator, tuple):
+      name = integrator[1].__name__
+    else:
+      name = integrator.__name__
+
+    print(integrator)
+    return name + '-' + str(valid_args_id.count(str(integrator)))
 
 
 @pytest.fixture(scope="function", params=_valid_args, ids=valid_args_id)
@@ -679,13 +685,20 @@ def valid_args(request):
 @CounterWrapper
 def invalid_args_id(args):
     integrator = args[0]
-    return str(integrator) + str(valid_args_id.count(str(integrator)))
+    if isinstance(integrator, tuple):
+      name = integrator[1].__name__
+    else:
+      name = integrator.__name__
+    return name + '-' + str(valid_args_id.count(str(integrator)))
 
 
 @pytest.fixture(scope="function", params=_invalid_args, ids=invalid_args_id)
 def invalid_args(request):
     return deepcopy(request.param)
 
+def _test_moves_id(args):
+    integrator = args[0]
+    return integrator.__name__
 
 def _test_moves_args(_valid_args):
     integrator_str = []
@@ -699,7 +712,7 @@ def _test_moves_args(_valid_args):
     return args_list
 
 
-@pytest.fixture(scope="function", params=_test_moves_args(_valid_args))
+@pytest.fixture(scope="function", params=_test_moves_args(_valid_args), ids=_test_moves_id)
 def test_moves_args(request):
     return deepcopy(request.param)
 
