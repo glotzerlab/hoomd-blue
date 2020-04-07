@@ -324,7 +324,7 @@ _valid_args = [(ConvexPolygon, {'vertices': [(0, (0.75**0.5) / 2),
                          'centers': [(0, 0, 0), (0, 0, .6)]}),
                (Sphinx, {'diameters': [0.5, -0.25],
                          'centers': [(0, 0, 0), (0.3, 0, 0)],
-                         'ignore_statistics': 1})]
+                         'ignore_statistics': 1}),]
 
 
 _invalid_args = [(ConvexPolygon, {'vertices': "str"}),
@@ -649,7 +649,7 @@ _invalid_args = [(ConvexPolygon, {'vertices': "str"}),
                  (Sphinx, {'diameters': 1,
                            'centers': [(0, 0, 0), (0, 0, .6)]}),
                  (Sphinx, {'diameters': [0.5, -0.25],
-                           'centers': 1})]
+                           'centers': 1}),]
 
 
 class CounterWrapper:
