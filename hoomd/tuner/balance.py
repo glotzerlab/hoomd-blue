@@ -77,7 +77,7 @@ class LoadBalancer(_Tuner):
     not built or is running on a single rank).
     """
 
-    def __init__(self, trigger, x=False, y=False, z=False, tolerance=1.02,
+    def __init__(self, trigger, x=True, y=True, z=True, tolerance=1.02,
                  max_iterations=1):
         defaults = dict(x=x, y=y, z=z, tolerance=tolerance,
                         max_iterations=max_iterations, trigger=trigger)
