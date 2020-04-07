@@ -176,7 +176,7 @@ struct ShapeUnionParams : ShapeParams
 
         for (unsigned int i = 0; i < N; i++)
             {
-            typename Shape::param_type param(shapes[i]);
+            typename Shape::param_type param(shapes[i], managed);
 
             pybind11::list position = positions[i];
             if (len(position) != 3)

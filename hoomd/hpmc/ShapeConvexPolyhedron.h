@@ -59,6 +59,9 @@ struct PolyhedronVertices : ShapeParams
         : ignore(0)
         {
         std::vector<vec3<OverlapReal>> v(_N, vec3<OverlapReal>(0,0,0));
+        x = ManagedArray<OverlapReal>(1, managed);
+        y = ManagedArray<OverlapReal>(1, managed);
+        z = ManagedArray<OverlapReal>(1, managed);
         setVerts(v, 0);
         }
 
