@@ -91,7 +91,5 @@ class LoadBalancer(_Tuner):
             cpp_cls = getattr(_hoomd, 'LoadBalancerGPU')
         else:
             cpp_cls = getattr(_hoomd, 'LoadBalancer')
-        self._cpp_obj = cpp_cls(simulation.state._cpp_sys_def,
-                                simulation.device.decomposition._cpp_obj,
-                                self.trigger)
+        self._cpp_obj = cpp_cls(simulation.state._cpp_sys_def, self.trigger)
         super().attach(simulation)

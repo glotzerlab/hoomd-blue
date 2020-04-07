@@ -378,4 +378,3 @@ class Communicator(object):
 
         if _hoomd.is_MPI_available():
             self.cpp_mpi_conf.barrier()
-

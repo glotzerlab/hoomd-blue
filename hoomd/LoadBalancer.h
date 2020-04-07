@@ -48,7 +48,6 @@ class PYBIND11_EXPORT LoadBalancer : public Tuner
     public:
         //! Constructor
         LoadBalancer(std::shared_ptr<SystemDefinition> sysdef,
-                     std::shared_ptr<DomainDecomposition> decomposition,
                      std::shared_ptr<Trigger> trigger);
         //! Destructor
         virtual ~LoadBalancer();
