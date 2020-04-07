@@ -8,13 +8,14 @@ from hoomd._hoomd import BoxResizeUpdater
 
 
 class BoxResize(_Updater):
-    def __init__(self, box1, box2, variant, trigger=1, scale_particles=True):
+    def __init__(self, initial_box, final_box,
+                 variant, trigger=1, scale_particles=True):
         params = ParameterDict(
-            box1=OnlyType(Box), box2=OnlyType(Box),
+            initial_box=OnlyType(Box), final_box=OnlyType(Box),
             variant=OnlyType(Variant, variant_preprocessing),
             scale_particles=bool)
-        params['box1'] = box1
-        params['box2'] = box2
+        params['initial_box'] = initial_box
+        params['final_box'] = final_box
         params['variant'] = variant
         params['trigger'] = trigger
         params['scale_particles'] = scale_particles
@@ -23,7 +24,8 @@ class BoxResize(_Updater):
 
     def attach(self, simulation):
         self._cpp_obj = BoxResizeUpdater(simulation.state._cpp_sys_def,
-                                         self.box1, self.box2, self.variant)
+                                         self.initial_box, self.final_box,
+                                         self.variant)
         super().attach(simulation)
 
     def get_box(self, timestep):

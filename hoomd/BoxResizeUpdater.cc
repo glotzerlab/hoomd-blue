@@ -23,22 +23,12 @@ namespace py = pybind11;
 
     The default setting is to scale particle positions along with the box.
 */
-BoxResizeUpdater::BoxResizeUpdater(std::shared_ptr<SystemDefinition> sysdef,
-                                   BoxDim box1,
-                                   BoxDim box2,
-                                   std::shared_ptr<Variant> variant)
-    : Updater(sysdef), m_box1(box1), m_py_box1(pybind11::none()), m_box2(box2),
-      m_py_box2(pybind11::none()), m_variant(variant), m_scale_particles(true)
-    {
-    m_exec_conf->msg->notice(5) << "Constructing BoxResizeUpdater" << endl;
-    }
 
 BoxResizeUpdater::BoxResizeUpdater(std::shared_ptr<SystemDefinition> sysdef,
-                                   pybind11::object box1,
-                                   pybind11::object box2,
+                                   pybind11::object initial_box,
+                                   pybind11::object final_box,
                                    std::shared_ptr<Variant> variant)
-    : Updater(sysdef), m_box1(getBoxDimFromPyObject(box1)), m_py_box1(box1),
-      m_box2(getBoxDimFromPyObject(box2)), m_py_box2(box2),
+    : Updater(sysdef), m_initial_box(initial_box), m_final_box(final_box),
       m_variant(variant), m_scale_particles(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing BoxResizeUpdater" << endl;
@@ -47,38 +37,6 @@ BoxResizeUpdater::BoxResizeUpdater(std::shared_ptr<SystemDefinition> sysdef,
 BoxResizeUpdater::~BoxResizeUpdater()
     {
     m_exec_conf->msg->notice(5) << "Destroying BoxResizeUpdater" << endl;
-    }
-
-void BoxResizeUpdater::setBox1(BoxDim box)
-    {
-    if (!m_py_box1.is_none())
-        {
-        m_py_box1 = m_py_box1.attr("__class__")
-                            .attr("_from_cpp")(box);
-        }
-    m_box1 = box;
-    }
-
-void BoxResizeUpdater::setBox1Py(pybind11::object box)
-    {
-    m_box1 = getBoxDimFromPyObject(box);
-    m_py_box1 = box;
-    }
-
-void BoxResizeUpdater::setBox2(BoxDim box)
-    {
-    if (!m_py_box2.is_none())
-        {
-        m_py_box2 = m_py_box2.attr("__class__")
-                            .attr("_from_cpp")(box);
-        }
-    m_box2 = box;
-    }
-
-void BoxResizeUpdater::setBox2Py(pybind11::object box)
-    {
-    m_box2 = getBoxDimFromPyObject(box);
-    m_py_box2 = box;
     }
 
 /// Get the current box based on the timestep
@@ -97,17 +55,19 @@ BoxDim BoxResizeUpdater::getCurrentBox(unsigned int timestep)
         scale = (cur_value - min) / (max - min);
         }
 
-    Scalar3 L1 = m_box1.getL();
-    Scalar3 L2 = m_box2.getL();
+    auto initial_box = getBoxDimFromPyObject(m_initial_box);
+    auto final_box = getBoxDimFromPyObject(m_final_box);
+    Scalar3 L1 = initial_box.getL();
+    Scalar3 L2 = final_box.getL();
     Scalar Lx = L2.x * scale + (1.0 - scale) * L1.x;
     Scalar Ly = L2.y * scale + (1.0 - scale) * L1.y;
     Scalar Lz = L2.z * scale + (1.0 - scale) * L1.z;
-    Scalar xy = m_box2.getTiltFactorXY() * scale +
-                (1.0 - scale) * m_box1.getTiltFactorXY();
-    Scalar xz = m_box2.getTiltFactorXZ() * scale +
-                (1.0 - scale) * m_box1.getTiltFactorXZ();
-    Scalar yz = m_box2.getTiltFactorYZ() * scale +
-                (1.0 - scale) * m_box1.getTiltFactorYZ();
+    Scalar xy = final_box.getTiltFactorXY() * scale +
+                (1.0 - scale) * initial_box.getTiltFactorXY();
+    Scalar xz = final_box.getTiltFactorXZ() * scale +
+                (1.0 - scale) * initial_box.getTiltFactorXZ();
+    Scalar yz = final_box.getTiltFactorYZ() * scale +
+                (1.0 - scale) * initial_box.getTiltFactorYZ();
 
     BoxDim new_box = BoxDim(make_scalar3(Lx, Ly, Lz));
     new_box.setTiltFactors(xy, xz, yz);
@@ -206,12 +166,12 @@ void export_BoxResizeUpdater(py::module& m)
     .def_property("scale_particles",
                   &BoxResizeUpdater::getScaleParticles,
                   &BoxResizeUpdater::setScaleParticles)
-    .def_property("box1",
-                  &BoxResizeUpdater::getBox1Py,
-                  &BoxResizeUpdater::setBox1Py)
-    .def_property("box2",
-                  &BoxResizeUpdater::getBox2Py,
-                  &BoxResizeUpdater::setBox2Py)
+    .def_property("initial_box",
+                  &BoxResizeUpdater::getBox1,
+                  &BoxResizeUpdater::setBox1)
+    .def_property("final_box",
+                  &BoxResizeUpdater::getBox2,
+                  &BoxResizeUpdater::setBox2)
     .def_property("variant",
                   &BoxResizeUpdater::getVariant,
                   &BoxResizeUpdater::setVariant)

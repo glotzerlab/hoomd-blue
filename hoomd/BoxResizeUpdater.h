@@ -35,13 +35,8 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
     public:
         /// Constructor
         BoxResizeUpdater(std::shared_ptr<SystemDefinition> sysdef,
-                         BoxDim box1,
-                         BoxDim box2,
-                         std::shared_ptr<Variant> variant);
-
-        BoxResizeUpdater(std::shared_ptr<SystemDefinition> sysdef,
-                         pybind11::object box1,
-                         pybind11::object box2,
+                         pybind11::object initial_box,
+                         pybind11::object final_box,
                          std::shared_ptr<Variant> variant);
 
         /// Destructor
@@ -57,28 +52,19 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
         bool getScaleParticles() {return m_scale_particles;}
 
         /// Set a new initial box from a python object
-        void setBox1(BoxDim box);
-
-        /// Set a new initial box from a python object
-        void setBox1Py(pybind11::object box1);
-
-        /// Get the C++ final box
-        BoxDim getBox1() {return m_box1;}
+        void setBox1(pybind11::object initial_box)
+            {
+            m_initial_box = initial_box;
+            }
 
         /// Get the final box
-        pybind11::object getBox1Py() {return m_py_box1;}
-
-        /// Set a new initial box from a python object
-        void setBox2(BoxDim box);
+        pybind11::object getBox1() {return m_initial_box;}
 
         /// Set a new final box from a python object
-        void setBox2Py(pybind11::object box2);
-
-        /// Get the C++ final box
-        BoxDim getBox2() {return m_box2;};
+        void setBox2(pybind11::object final_box) {m_final_box = final_box;}
 
         /// Get the final box
-        pybind11::object getBox2Py() {return m_py_box2;}
+        pybind11::object getBox2() {return m_final_box;}
 
         /// Set the variant for interpolation
         void setVariant(std::shared_ptr<Variant> variant) {m_variant = variant;}
@@ -96,10 +82,8 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
         virtual void update(unsigned int timestep);
 
     private:
-        BoxDim m_box1;   //!< Initial box size
-        pybind11::object m_py_box1;  ///< The python box1
-        BoxDim m_box2;  //!< Final box size
-        pybind11::object m_py_box2;  ///< The python box2
+        pybind11::object m_initial_box;  ///< The python box1
+        pybind11::object m_final_box;  ///< The python box2
         std::shared_ptr<Variant> m_variant; //!< Variant that interpolates between boxes
         bool m_scale_particles; //!< Set to true if particle positions are to be scaled as well
     };
