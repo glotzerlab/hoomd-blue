@@ -57,12 +57,12 @@ class Box:
     R""" Define box dimensions.
 
     Args:
-        Lx (float): box extent in the x direction (distance units)
-        Ly (float): box extent in the y direction (distance units)
-        Lz (float): box extent in the z direction (distance units)
-        xy (float): tilt factor xy (dimensionless)
-        xz (float): tilt factor xz (dimensionless)
-        yz (float): tilt factor yz (dimensionless)
+        Lx (float): box extent in the x direction (distance units).
+        Ly (float): box extent in the y direction (distance units).
+        Lz (float): box extent in the z direction (distance units).
+        xy (float): tilt factor xy (dimensionless).
+        xz (float): tilt factor xz (dimensionless).
+        yz (float): tilt factor yz (dimensionless).
 
     Simulation boxes in hoomd are specified by six parameters, ``Lx``, ``Ly``,
     ``Lz``, ``xy``, ``xz`` and ``yz``. A ``Box`` provides a way to specify all
@@ -294,9 +294,9 @@ class Box:
         R""" Wrap a vector using the periodic boundary conditions.
 
         Args:
-            v (Sequence[float]): The vector to wrap of length 3
+            v (Sequence[float]): The vector to wrap of length 3.
             image (Sequence[float]): A vector of integer image flags that will
-                be updated (optional)
+                be updated (optional).
 
         Returns:
             The wrapped vector and the image flags as two numpy arrays.
@@ -311,7 +311,7 @@ class Box:
         R""" Apply the minimum image convention to a vector.
 
         Args:
-            v (Sequence[float]): The vector to apply minimum image to
+            v (Sequence[float]): The vector to apply minimum image to.
 
         Returns:
             The minimum image as a tuple.
@@ -326,7 +326,8 @@ class Box:
         components are between 0 and 1 representing their scaled position.
 
         Args:
-            v (Sequence[float]): The vector to convert to fractional coordinates
+            v (Sequence[float]): The vector to convert to fractional
+                coordinates.
 
         Returns:
             The scaled vector.
