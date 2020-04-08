@@ -94,9 +94,10 @@ class Box:
 
     Examples:
 
-    * Cubic box with given length: ``Box.cube(L=L)``
-    * Square box with given length: ``Box.cube(L=L, dimensions=2)``
+    * Cubic box with given length: ``Box.cube(L=1)``
+    * Square box with given length: ``Box.cube(L=1, dimensions=2)``
     * From an upper triangular matrix: ``Box.from_matrix(matrix)``
+    * Full spec ``Box(Lx=1, Ly=2, Lz=3, xy=1., xz=2., yz=3.)``
     """
 
     def __init__(self, Lx=1.0, Ly=1.0, Lz=1.0, xy=0.0, xz=0.0, yz=0.0):
