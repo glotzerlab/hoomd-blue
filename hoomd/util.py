@@ -13,13 +13,6 @@ from hoomd.trigger import PeriodicTrigger
 from hoomd.variant import Constant
 
 ## \internal
-# \brief Compatibility definition of a basestring for python 2/3
-try:
-    _basestring = basestring
-except NameError:
-    _basestring = str
-
-## \internal
 # \brief Checks if a variable is an instance of a string and always returns a list.
 # \param s Variable to turn into a list
 # \returns A list
