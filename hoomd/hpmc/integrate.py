@@ -16,16 +16,16 @@ import json
 # Helper method to inform about implicit depletants citation
 # TODO: figure out where to call this
 def cite_depletants():
-    _citation = hoomd.cite.article(cite_key='glaser2015',
-                                   author=['J Glaser',
-                                           'A S Karas', 'S C Glotzer'],
-                                   title='A parallel algorithm for implicit depletant simulations',
-                                   journal='The Journal of Chemical Physics',
-                                   volume=143,
-                                   pages='184110',
-                                   year='2015',
-                                   doi='10.1063/1.4935175',
-                                   feature='implicit depletants')
+    _citation = hoomd.cite.article(
+        cite_key='glaser2015',
+        author=['J Glaser', 'A S Karas', 'S C Glotzer'],
+        title='A parallel algorithm for implicit depletant simulations',
+        journal='The Journal of Chemical Physics',
+        volume=143,
+        pages='184110',
+        year='2015',
+        doi='10.1063/1.4935175',
+        feature='implicit depletants')
     hoomd.cite._ensure_global_bib().add(_citation)
 
 
@@ -77,40 +77,38 @@ class _HPMCIntegrator(_BaseIntegrator):
         param_dict = ParameterDict(seed=int(seed),
                                    move_ratio=float(move_ratio),
                                    nselect=int(nselect),
-                                   deterministic=bool(deterministic)
-                                   )
+                                   deterministic=bool(deterministic))
         self._param_dict.update(param_dict)
 
         # Set standard typeparameters for hpmc integrators
-        typeparam_d = TypeParameter('d', type_kind='particle_types',
+        typeparam_d = TypeParameter('d',
+                                    type_kind='particle_types',
                                     param_dict=TypeParameterDict(float(d),
-                                                                 len_keys=1)
-                                    )
-        typeparam_a = TypeParameter('a', type_kind='particle_types',
+                                                                 len_keys=1))
+        typeparam_a = TypeParameter('a',
+                                    type_kind='particle_types',
                                     param_dict=TypeParameterDict(float(a),
-                                                                 len_keys=1)
-                                    )
+                                                                 len_keys=1))
 
         typeparam_fugacity = TypeParameter('depletant_fugacity',
                                            type_kind='particle_types',
                                            param_dict=TypeParameterDict(
-                                               0., len_keys=1)
-                                           )
+                                               0., len_keys=1))
 
         typeparam_inter_matrix = TypeParameter('interaction_matrix',
                                                type_kind='particle_types',
                                                param_dict=TypeParameterDict(
-                                                   True, len_keys=2)
-                                               )
+                                                   True, len_keys=2))
 
-        self._extend_typeparam([typeparam_d, typeparam_a,
-                                typeparam_fugacity, typeparam_inter_matrix])
+        self._extend_typeparam([
+            typeparam_d, typeparam_a, typeparam_fugacity, typeparam_inter_matrix
+        ])
 
     def attach(self, simulation):
         '''initialize the reflected c++ class'''
         sys_def = simulation.state._cpp_sys_def
         if (simulation.device.mode == 'gpu'
-            and (self._cpp_cls + 'GPU') in _hpmc.__dict__):
+                and (self._cpp_cls + 'GPU') in _hpmc.__dict__):
             self._cpp_cell = _hoomd.CellListGPU(sys_def)
             if simulation._system_communicator is not None:
                 self._cpp_cell.setCommunicator(simulation._system_communicator)
@@ -122,8 +120,7 @@ class _HPMCIntegrator(_BaseIntegrator):
             if simulation.device.mode == 'gpu':
                 simulation.device.cpp_msg.warning(
                     "Falling back on CPU. No GPU implementation for shape.\n")
-            self._cpp_obj = getattr(_hpmc,
-                                    self._cpp_cls)(sys_def, self.seed)
+            self._cpp_obj = getattr(_hpmc, self._cpp_cls)(sys_def, self.seed)
             self._cpp_cell = None
 
         super().attach(simulation)
@@ -183,7 +180,8 @@ class _HPMCIntegrator(_BaseIntegrator):
         R""" Build an energy map of the system
 
         Returns:
-            List of tuples. The i,j entry contains the pairwise interaction energy of the ith and jth particles (by tag)
+            List of tuples. The i,j entry contains the pairwise interaction
+            energy of the ith and jth particles (by tag)
 
         Note:
             :py:meth:`map_energies` does not support MPI parallel simulations.
@@ -197,7 +195,8 @@ class _HPMCIntegrator(_BaseIntegrator):
         # TODO: update map_energies to new API
 
         self.update_forces()
-        N = hoomd.context.current.system_definition.getParticleData().getMaximumTag() + 1
+        N = hoomd.context.current.system_definition.getParticleData(
+        ).getMaximumTag() + 1
         energy_map = self.cpp_integrator.mapEnergies()
         return list(zip(*[iter(energy_map)] * N))
 
@@ -220,7 +219,13 @@ class _HPMCIntegrator(_BaseIntegrator):
         self._cpp_obj.communicate(True)
         return self._cpp_obj.countOverlaps(False)
 
-    def test_overlap(self, type_i, type_j, rij, qi, qj, use_images=True,
+    def test_overlap(self,
+                     type_i,
+                     type_j,
+                     rij,
+                     qi,
+                     qj,
+                     use_images=True,
                      exclude_self=False):
         R""" Test overlap between two particles.
 
@@ -244,13 +249,16 @@ class _HPMCIntegrator(_BaseIntegrator):
         """
         self.update_forces()
 
-        ti = hoomd.context.current.system_definition.getParticleData().getTypeByName(type_i)
-        tj = hoomd.context.current.system_definition.getParticleData().getTypeByName(type_j)
+        ti = hoomd.context.current.system_definition.getParticleData(
+        ).getTypeByName(type_i)
+        tj = hoomd.context.current.system_definition.getParticleData(
+        ).getTypeByName(type_j)
 
         rij = hoomd.util.listify(rij)
         qi = hoomd.util.listify(qi)
         qj = hoomd.util.listify(qj)
-        return self._cpp_obj.py_test_overlap(ti, tj, rij, qi, qj, use_images, exclude_self)
+        return self._cpp_obj.py_test_overlap(ti, tj, rij, qi, qj, use_images,
+                                             exclude_self)
 
     @Loggable.log(flag='multi')
     def translate_moves(self):
@@ -323,9 +331,9 @@ class Sphere(_HPMCIntegrator):
         Keys:
             * *diameter* (float, **required**) - diameter of the sphere
               (distance units)
-            * *ignore_statistics* (**default: False**) - set to True to ignore
+            * *ignore_statistics* (**default:** False) - set to True to ignore
               tracked statistics
-            * *orientable* (**default: False**) - set to True for spheres with
+            * *orientable* (**default:** False) - set to True for spheres with
               orientation
 
     d (particle type, float): the size of displacement trial moves
@@ -363,19 +371,24 @@ class Sphere(_HPMCIntegrator):
     """
     _cpp_cls = 'IntegratorHPMCMonoSphere'
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
-                 nselect=4, deterministic=False):
+    def __init__(self,
+                 seed,
+                 d=0.1,
+                 a=0.1,
+                 move_ratio=0.5,
+                 nselect=4,
+                 deterministic=False):
 
         # initialize base class
         super().__init__(seed, d, a, move_ratio, nselect, deterministic)
 
-        typeparam_shape = TypeParameter('shape', type_kind='particle_types',
+        typeparam_shape = TypeParameter('shape',
+                                        type_kind='particle_types',
                                         param_dict=TypeParameterDict(
                                             diameter=float,
                                             ignore_statistics=False,
                                             orientable=False,
-                                            len_keys=1)
-                                        )
+                                            len_keys=1))
         self._add_typeparam(typeparam_shape)
 
     @Loggable.log(flag='multi')
@@ -411,9 +424,9 @@ class ConvexPolygon(_HPMCIntegrator):
                 * The origin centered circle that encloses all vertices should
                   be of minimal size for optimal performance (e.g. don't put the
                   origin right next to an edge).
-            * *ignore_statistics* (**default: False**) - set to True to ignore
+            * *ignore_statistics* (**default:** False) - set to True to ignore
               tracked statistics
-            * *sweep_radius* (**default: 0.0**) - radius of the sphere swept
+            * *sweep_radius* (**default:** 0.0) - radius of the sphere swept
               around the edges of the polygon (distance units). Set a non-zero
               sweep_radius to create a spheropolygon
 
@@ -454,19 +467,25 @@ class ConvexPolygon(_HPMCIntegrator):
     """
     _cpp_cls = 'IntegratorHPMCMonoConvexPolygon'
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
-                 nselect=4, deterministic=False):
+    def __init__(self,
+                 seed,
+                 d=0.1,
+                 a=0.1,
+                 move_ratio=0.5,
+                 nselect=4,
+                 deterministic=False):
 
         # initialize base class
         super().__init__(seed, d, a, move_ratio, nselect, deterministic)
 
-        typeparam_shape = TypeParameter('shape', type_kind='particle_types',
+        typeparam_shape = TypeParameter('shape',
+                                        type_kind='particle_types',
                                         param_dict=TypeParameterDict(
                                             vertices=[(float, float)],
                                             ignore_statistics=False,
                                             sweep_radius=0.0,
-                                            len_keys=1,)
-                                        )
+                                            len_keys=1,
+                                        ))
 
         self._add_typeparam(typeparam_shape)
 
@@ -502,9 +521,9 @@ class ConvexSpheropolygon(_HPMCIntegrator):
                 * The origin centered circle that encloses all vertices should
                   be of minimal size for optimal performance (e.g. don't put the
                   origin right next to an edge).
-            * *ignore_statistics* (**default: False**) - set to True to ignore
+            * *ignore_statistics* (**default:** False) - set to True to ignore
               tracked statistics
-            * *sweep_radius* (**default: 0.0**) - radius of the sphere swept
+            * *sweep_radius* (**default:** 0.0) - radius of the sphere swept
               around the edges of the polygon (distance units).
 
     d (particle type, float): the size of displacement trial moves
@@ -553,19 +572,24 @@ class ConvexSpheropolygon(_HPMCIntegrator):
 
     _cpp_cls = 'IntegratorHPMCMonoSpheropolygon'
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
-                 nselect=4, deterministic=False):
+    def __init__(self,
+                 seed,
+                 d=0.1,
+                 a=0.1,
+                 move_ratio=0.5,
+                 nselect=4,
+                 deterministic=False):
 
         # initialize base class
         super().__init__(seed, d, a, move_ratio, nselect, deterministic)
 
-        typeparam_shape = TypeParameter('shape', type_kind='particle_types',
+        typeparam_shape = TypeParameter('shape',
+                                        type_kind='particle_types',
                                         param_dict=TypeParameterDict(
                                             vertices=[(float, float)],
                                             sweep_radius=0.0,
                                             ignore_statistics=False,
-                                            len_keys=1)
-                                        )
+                                            len_keys=1))
 
         self._add_typeparam(typeparam_shape)
 
@@ -603,9 +627,9 @@ class SimplePolygon(_HPMCIntegrator):
                 * The origin doesn't necessarily need to be inside the shape.
                 * The origin centered circle that encloses all vertices should
                   be of minimal size for optimal performance.
-            * *ignore_statistics* (**default: False**) - set to True to ignore
+            * *ignore_statistics* (**default:** False) - set to True to ignore
               tracked statistics
-            * *sweep_radius* (**default: 0.0**) - radius of the sphere swept
+            * *sweep_radius* (**default:** 0.0) - radius of the sphere swept
               around the edges of the polygon (distance units). Set a non-zero
               sweep_radius to create a spheropolygon
 
@@ -644,19 +668,24 @@ class SimplePolygon(_HPMCIntegrator):
 
     _cpp_cls = 'IntegratorHPMCMonoSimplePolygon'
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
-                 nselect=4, deterministic=False):
+    def __init__(self,
+                 seed,
+                 d=0.1,
+                 a=0.1,
+                 move_ratio=0.5,
+                 nselect=4,
+                 deterministic=False):
 
         # initialize base class
         super().__init__(seed, d, a, move_ratio, nselect, deterministic)
 
-        typeparam_shape = TypeParameter('shape', type_kind='particle_types',
+        typeparam_shape = TypeParameter('shape',
+                                        type_kind='particle_types',
                                         param_dict=TypeParameterDict(
                                             vertices=[(float, float)],
                                             ignore_statistics=False,
                                             sweep_radius=0,
-                                            len_keys=1)
-                                        )
+                                            len_keys=1))
 
         self._add_typeparam(typeparam_shape)
 
@@ -703,19 +732,19 @@ class Polyhedron(_HPMCIntegrator):
               face
                 * For visualization purposes, the faces **MUST** be defined with
                   a counterclockwise winding order to produce an outward normal.
-            * *ignore_statistics* (**default: False**) - set to True to ignore
+            * *ignore_statistics* (**default:** False) - set to True to ignore
               tracked statistics
-            * *sweep_radius* (**default: 0.0**) - radius of the sphere swept
+            * *sweep_radius* (**default:** 0.0) - radius of the sphere swept
               around the edges of the polyhedron (distance units). Set a
               non-zero sweep_radius to create a spheropolyhedron
-            * *overlap* (**default: None**) - only check overlap between
+            * *overlap* (**default:** None) - only check overlap between
               constituent particles for which *overlap [i] & overlap[j]* is !=0,
               where '&' is the bitwise AND operator.
-            * *capacity* (**default: 4**) - set to the maximum number of
+            * *capacity* (**default:** 4) - set to the maximum number of
               particles per leaf node for better performance
-            * *origin* (**default: (0,0,0)**) - a point strictly inside the
+            * *origin* (**default:** (0,0,0)) - a point strictly inside the
               shape, needed for correctness of overlap checks
-            * *hull_only* (**default: True**) - if True, only consider
+            * *hull_only* (**default:** True) - if True, only consider
               intersections between hull polygons
 
     d (particle type, float): the size of displacement trial moves
@@ -804,25 +833,30 @@ class Polyhedron(_HPMCIntegrator):
 
     _cpp_cls = 'IntegratorHPMCMonoPolyhedron'
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
-                 nselect=4, deterministic=False):
+    def __init__(self,
+                 seed,
+                 d=0.1,
+                 a=0.1,
+                 move_ratio=0.5,
+                 nselect=4,
+                 deterministic=False):
 
         # initialize base class
         super().__init__(seed, d, a, move_ratio, nselect, deterministic)
 
-        typeparam_shape = TypeParameter('shape', type_kind='particle_types',
-                                        param_dict=TypeParameterDict(
-                                            vertices=[(float, float, float)],
-                                            faces=[[int, int, int]],
-                                            sweep_radius=0.0,
-                                            capacity=4,
-                                            origin=(0., 0., 0.),
-                                            hull_only=True,
-                                            overlap=[bool],
-                                            ignore_statistics=False,
-                                            len_keys=1,
-                                            explicit_defaults={'overlap': None})
-                                        )
+        typeparam_shape = TypeParameter(
+            'shape',
+            type_kind='particle_types',
+            param_dict=TypeParameterDict(vertices=[(float, float, float)],
+                                         faces=[[int, int, int]],
+                                         sweep_radius=0.0,
+                                         capacity=4,
+                                         origin=(0., 0., 0.),
+                                         hull_only=True,
+                                         overlap=[bool],
+                                         ignore_statistics=False,
+                                         len_keys=1,
+                                         explicit_defaults={'overlap': None}))
 
         self._add_typeparam(typeparam_shape)
 
@@ -856,9 +890,9 @@ class ConvexPolyhedron(_HPMCIntegrator):
                 * The origin centered circle that encloses all vertices should
                   be of minimal size for optimal performance (e.g. don't put the
                   origin right next to a face).
-            * *ignore_statistics* (**default: False**) - set to True to ignore
+            * *ignore_statistics* (**default:** False) - set to True to ignore
               tracked statistics
-            * *sweep_radius* (**default: 0.0**) - radius of the sphere swept
+            * *sweep_radius* (**default:** 0.0) - radius of the sphere swept
               around the edges of the polyhedron (distance units). Set a
               non-zero sweep_radius to create a spheropolyhedron
 
@@ -912,19 +946,24 @@ class ConvexPolyhedron(_HPMCIntegrator):
 
     _cpp_cls = 'IntegratorHPMCMonoConvexPolyhedron'
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
-                 nselect=4, deterministic=False):
+    def __init__(self,
+                 seed,
+                 d=0.1,
+                 a=0.1,
+                 move_ratio=0.5,
+                 nselect=4,
+                 deterministic=False):
 
         # initialize base class
         super().__init__(seed, d, a, move_ratio, nselect, deterministic)
 
-        typeparam_shape = TypeParameter('shape', type_kind='particle_types',
+        typeparam_shape = TypeParameter('shape',
+                                        type_kind='particle_types',
                                         param_dict=TypeParameterDict(
                                             vertices=[(float, float, float)],
                                             sweep_radius=0.0,
                                             ignore_statistics=False,
-                                            len_keys=1)
-                                        )
+                                            len_keys=1))
         self._add_typeparam(typeparam_shape)
 
     @Loggable.log(flag='multi')
@@ -976,7 +1015,7 @@ class FacetedEllipsoid(_HPMCIntegrator):
               polyhedron
             * *origin* (**required**) - (x, y, z) tuple representing origin
               vector
-            * *ignore_statistics* (**default: False**) - set to True to ignore
+            * *ignore_statistics* (**default:** False) - set to True to ignore
               tracked statistics
 
     d (particle type, float): the size of displacement trial moves
@@ -1053,13 +1092,19 @@ class FacetedEllipsoid(_HPMCIntegrator):
 
     _cpp_cls = 'IntegratorHPMCMonoFacetedEllipsoid'
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
-                 nselect=4, deterministic=False):
+    def __init__(self,
+                 seed,
+                 d=0.1,
+                 a=0.1,
+                 move_ratio=0.5,
+                 nselect=4,
+                 deterministic=False):
 
         # initialize base class
         super().__init__(seed, d, a, move_ratio, nselect, deterministic)
 
-        typeparam_shape = TypeParameter('shape', type_kind='particle_types',
+        typeparam_shape = TypeParameter('shape',
+                                        type_kind='particle_types',
                                         param_dict=TypeParameterDict(
                                             normals=[(float, float, float)],
                                             offsets=[float],
@@ -1069,8 +1114,7 @@ class FacetedEllipsoid(_HPMCIntegrator):
                                             vertices=[(float, float, float)],
                                             origin=tuple,
                                             ignore_statistics=False,
-                                            len_keys=1)
-                                        )
+                                            len_keys=1))
         self._add_typeparam(typeparam_shape)
 
 
@@ -1088,7 +1132,7 @@ class Sphinx(_HPMCIntegrator):
             * *diameters* - diameters of spheres (positive OR negative real
               numbers)
             * *centers* - centers of spheres in local coordinate frame
-            * *ignore_statistics* (**default: False**) - set to True to ignore
+            * *ignore_statistics* (**default:** False) - set to True to ignore
               tracked statistics
 
     d (particle type, float): the size of displacement trial moves
@@ -1128,19 +1172,24 @@ class Sphinx(_HPMCIntegrator):
 
     _cpp_cls = 'IntegratorHPMCMonoSphinx'
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
-                 nselect=4, deterministic=False):
+    def __init__(self,
+                 seed,
+                 d=0.1,
+                 a=0.1,
+                 move_ratio=0.5,
+                 nselect=4,
+                 deterministic=False):
 
         # initialize base class
         super().__init__(seed, d, a, move_ratio, nselect, deterministic)
 
-        typeparam_shape = TypeParameter('shape', type_kind='particle_types',
+        typeparam_shape = TypeParameter('shape',
+                                        type_kind='particle_types',
                                         param_dict=TypeParameterDict(
                                             diameters=[float],
                                             centers=[(float, float, float)],
                                             ignore_statistics=False,
-                                            len_keys=1)
-                                        )
+                                            len_keys=1))
         self._add_typeparam(typeparam_shape)
 
 
@@ -1166,9 +1215,9 @@ class ConvexSpheropolyhedron(_HPMCIntegrator):
                   (i.e. vertices=[]) and a non-zero radius R
                 * Two vertices and a non-zero radius R define a prolate
                   spherocylinder.
-            * *ignore_statistics* (**default: False**) - set to True to ignore
+            * *ignore_statistics* (**default:** False) - set to True to ignore
               tracked statistics
-            * *sweep_radius* (**default: 0.0**) - radius of the sphere swept
+            * *sweep_radius* (**default:** 0.0) - radius of the sphere swept
               around the edges of the polyhedron (distance units).
 
     d (particle type, float): the size of displacement trial moves
@@ -1220,19 +1269,24 @@ class ConvexSpheropolyhedron(_HPMCIntegrator):
 
     _cpp_cls = 'IntegratorHPMCMonoSpheropolyhedron'
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
-                 nselect=4, deterministic=False):
+    def __init__(self,
+                 seed,
+                 d=0.1,
+                 a=0.1,
+                 move_ratio=0.5,
+                 nselect=4,
+                 deterministic=False):
 
         # initialize base class
         super().__init__(seed, d, a, move_ratio, nselect, deterministic)
 
-        typeparam_shape = TypeParameter('shape', type_kind='particle_types',
+        typeparam_shape = TypeParameter('shape',
+                                        type_kind='particle_types',
                                         param_dict=TypeParameterDict(
                                             vertices=[(float, float, float)],
                                             sweep_radius=0.0,
                                             ignore_statistics=False,
-                                            len_keys=1)
-                                        )
+                                            len_keys=1))
         self._add_typeparam(typeparam_shape)
 
     @Loggable.log(flag='multi')
@@ -1265,7 +1319,7 @@ class Ellipsoid(_HPMCIntegrator):
               the y direction) (distance units)
             * *c* (**required**) - principle axis c of the ellipsoid (radius in
               the z direction) (distance units)
-            * *ignore_statistics* (**default: False**) - set to True to ignore
+            * *ignore_statistics* (**default:** False) - set to True to ignore
               tracked statistics
 
     d (particle type, float): the size of displacement trial moves
@@ -1305,20 +1359,25 @@ class Ellipsoid(_HPMCIntegrator):
 
     _cpp_cls = 'IntegratorHPMCMonoEllipsoid'
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
-                 nselect=4, deterministic=False):
+    def __init__(self,
+                 seed,
+                 d=0.1,
+                 a=0.1,
+                 move_ratio=0.5,
+                 nselect=4,
+                 deterministic=False):
 
         # initialize base class
         super().__init__(seed, d, a, move_ratio, nselect, deterministic)
 
-        typeparam_shape = TypeParameter('shape', type_kind='particle_types',
+        typeparam_shape = TypeParameter('shape',
+                                        type_kind='particle_types',
                                         param_dict=TypeParameterDict(
                                             a=float,
                                             b=float,
                                             c=float,
                                             ignore_statistics=False,
-                                            len_keys=1)
-                                        )
+                                            len_keys=1))
 
         self._extend_typeparam([typeparam_shape])
 
@@ -1354,12 +1413,12 @@ class SphereUnion(_HPMCIntegrator):
               spheres in particle coordinates.
             * *orientations* (**required**) - list of orientations of
               constituent spheres.
-            * *overlap* (**default: 1**) - only check overlap
+            * *overlap* (**default:** 1) - only check overlap
               between constituent particles for which *overlap [i] & overlap[j]*
               is !=0, where '&' is the bitwise AND operator.
-            * *capacity* (**default: 4**) - set to the maximum number of
+            * *capacity* (**default:** 4) - set to the maximum number of
               particles per leaf node for better performance
-            * *ignore_statistics* (**default: False**) - set to True to ignore
+            * *ignore_statistics* (**default:** False) - set to True to ignore
               tracked statistics
 
     d (particle type, float): the size of displacement trial moves
@@ -1405,26 +1464,36 @@ class SphereUnion(_HPMCIntegrator):
 
     _cpp_cls = 'IntegratorHPMCMonoSphereUnion'
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
-                 nselect=4, deterministic=False):
+    def __init__(self,
+                 seed,
+                 d=0.1,
+                 a=0.1,
+                 move_ratio=0.5,
+                 nselect=4,
+                 deterministic=False):
 
         # initialize base class
         super().__init__(seed, d, a, move_ratio, nselect, deterministic)
 
-        typeparam_shape = TypeParameter(
-            'shape', type_kind='particle_types',
-            param_dict=TypeParameterDict(
-                shapes=[dict(diameter=float, ignore_statistics=False,
-                             orientable=False)],
-                positions=[(float, float, float)],
-                orientations=[(float, float, float, float)],
-                capacity=4,
-                overlap=[int],
-                ignore_statistics=False,
-                len_keys=1,
-                explicit_defaults={'orientations': None,
-                                   'overlap': None})
-        )
+        typeparam_shape = TypeParameter('shape',
+                                        type_kind='particle_types',
+                                        param_dict=TypeParameterDict(
+                                            shapes=[
+                                                dict(diameter=float,
+                                                     ignore_statistics=False,
+                                                     orientable=False)
+                                            ],
+                                            positions=[(float, float, float)],
+                                            orientations=[(float, float, float,
+                                                           float)],
+                                            capacity=4,
+                                            overlap=[int],
+                                            ignore_statistics=False,
+                                            len_keys=1,
+                                            explicit_defaults={
+                                                'orientations': None,
+                                                'overlap': None
+                                            }))
         self._add_typeparam(typeparam_shape)
 
     @Loggable.log(flag='multi')
@@ -1435,8 +1504,12 @@ class SphereUnion(_HPMCIntegrator):
             The type will be 'SphereUnion' regardless of dimensionality.
 
             >>> mc.type_shapes
-            [{'type': 'SphereUnion', 'centers': [[0, 0, 0], [0, 0, 1]], 'diameters': [1, 0.5]},
-             {'type': 'SphereUnion', 'centers': [[1, 2, 3], [4, 5, 6]], 'diameters': [0.5, 1]}]
+            [{'type': 'SphereUnion',
+              'centers': [[0, 0, 0], [0, 0, 1]],
+              'diameters': [1, 0.5]},
+             {'type': 'SphereUnion',
+              'centers': [[1, 2, 3], [4, 5, 6]],
+              'diameters': [0.5, 1]}]
 
         Returns:
             A list of dictionaries, one for each particle type in the system.
@@ -1459,14 +1532,14 @@ class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
               polyhedra in particle coordinates.
             * *orientations* (**required**) - list of orientations of
               constituent polyhedra.
-            * *overlap* (**default: 1**) - only check overlap
+            * *overlap* (**default:** 1) - only check overlap
               between constituent particles for which *overlap [i] & overlap[j]*
               is !=0, where '&' is the bitwise AND operator.
-            * *sweep_radii* (**default: 0 for all particle**) - radii of spheres
+            * *sweep_radii* (**default:** 0 for all particle) - radii of spheres
               sweeping out each constituent polyhedron
-            * *capacity* (**default: 4**) - set to the maximum number of
+            * *capacity* (**default:** 4) - set to the maximum number of
               particles per leaf node for better performance
-            * *ignore_statistics* (**default: False**) - set to True to ignore
+            * *ignore_statistics* (**default:** False) - set to True to ignore
               tracked statistics
 
     d (particle type, float): the size of displacement trial moves
@@ -1513,27 +1586,36 @@ class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
 
     _cpp_cls = 'IntegratorHPMCMonoConvexPolyhedronUnion'
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
-                 nselect=4, deterministic=False):
+    def __init__(self,
+                 seed,
+                 d=0.1,
+                 a=0.1,
+                 move_ratio=0.5,
+                 nselect=4,
+                 deterministic=False):
 
         # initialize base class
         super().__init__(seed, d, a, move_ratio, nselect, deterministic)
 
         typeparam_shape = TypeParameter(
-            'shape', type_kind='particle_types',
-            param_dict=TypeParameterDict(
-                shapes=[dict(vertices=[(float, float, float)],
-                             sweep_radius=0.0,
-                             ignore_statistics=False)],
-                positions=[(float, float, float)],
-                orientations=[(float, float, float, float)],
-                overlap=[int],
-                ignore_statistics=False,
-                capacity=4,
-                len_keys=1,
-                explicit_defaults={'orientations': None,
-                                   'overlap': None})
-        )
+            'shape',
+            type_kind='particle_types',
+            param_dict=TypeParameterDict(shapes=[
+                dict(vertices=[(float, float, float)],
+                     sweep_radius=0.0,
+                     ignore_statistics=False)
+            ],
+                                         positions=[(float, float, float)],
+                                         orientations=[(float, float, float,
+                                                        float)],
+                                         overlap=[int],
+                                         ignore_statistics=False,
+                                         capacity=4,
+                                         len_keys=1,
+                                         explicit_defaults={
+                                             'orientations': None,
+                                             'overlap': None
+                                         }))
 
         self._add_typeparam(typeparam_shape)
         # meta data
@@ -1558,12 +1640,12 @@ class FacetedEllipsoidUnion(_HPMCIntegrator):
               ellipsoids in particle coordinates.
             * *orientations* (**required**) - list of orientations of
               constituent ellipsoids.
-            * *overlap* (**default: 1**) - only check overlap
+            * *overlap* (**default:** 1) - only check overlap
               between constituent particles for which *overlap [i] & overlap[j]*
               is !=0, where '&' is the bitwise AND operator.
-            * *capacity* (**default: 4**) - set to the maximum number of
+            * *capacity* (**default:** 4) - set to the maximum number of
               particles per leaf node for better performance
-            * *ignore_statistics* (**default: False**) - set to True to ignore
+            * *ignore_statistics* (**default:** False) - set to True to ignore
               tracked statistics
 
     d (particle type, float): the size of displacement trial moves
@@ -1633,27 +1715,39 @@ class FacetedEllipsoidUnion(_HPMCIntegrator):
 
     _cpp_cls = 'IntegratorHPMCMonoFacetedEllipsoidUnion'
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5,
-                 nselect=4, deterministic=False):
+    def __init__(self,
+                 seed,
+                 d=0.1,
+                 a=0.1,
+                 move_ratio=0.5,
+                 nselect=4,
+                 deterministic=False):
 
         # initialize base class
         super().__init__(seed, d, a, move_ratio, nselect, deterministic)
 
         typeparam_shape = TypeParameter(
-            'shape', type_kind='particle_types',
-            param_dict=TypeParameterDict(
-                shapes=[
-                    dict(a=float, b=float, c=float,
-                         normals=[(float, float, float)], offsets=[float],
-                         vertices=[(float, float, float)], origin=tuple,
-                         ignore_statistics=False)],
-                positions=[(float, float, float)],
-                orientations=[(float, float, float, float)],
-                overlap=[int],
-                ignore_statistics=False,
-                capacity=4,
-                len_keys=1,
-                explicit_defaults={'orientations': None,
-                                   'overlap': None})
-        )
+            'shape',
+            type_kind='particle_types',
+            param_dict=TypeParameterDict(shapes=[
+                dict(a=float,
+                     b=float,
+                     c=float,
+                     normals=[(float, float, float)],
+                     offsets=[float],
+                     vertices=[(float, float, float)],
+                     origin=tuple,
+                     ignore_statistics=False)
+            ],
+                                         positions=[(float, float, float)],
+                                         orientations=[(float, float, float,
+                                                        float)],
+                                         overlap=[int],
+                                         ignore_statistics=False,
+                                         capacity=4,
+                                         len_keys=1,
+                                         explicit_defaults={
+                                             'orientations': None,
+                                             'overlap': None
+                                         }))
         self._add_typeparam(typeparam_shape)
