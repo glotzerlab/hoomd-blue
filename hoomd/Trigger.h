@@ -123,10 +123,10 @@ class PYBIND11_EXPORT BeforeTrigger : public Trigger
         return timestep < m_timestep;
         }
 
-    /// Get the point where triggering will stop
+    /// Get the timestep before which the trigger is active.
     uint64_t getTimestep() {return m_timestep;}
 
-    /// Set the point where triggering will stop
+    /// Set the timestep before which the trigger is active.
     void setTimestep(uint64_t timestep) {m_timestep = timestep;}
 
     protected:
@@ -149,10 +149,10 @@ class PYBIND11_EXPORT OnTrigger : public Trigger
         return timestep == m_timestep;
         }
 
-    /// Get the point where triggering will stop
+    /// Get the timestep when the trigger is active.
     uint64_t getTimestep() {return m_timestep;}
 
-    /// Set the point where triggering will stop
+    /// Set the timestep when the trigger is active.
     void setTimestep(uint64_t timestep) {m_timestep = timestep;}
 
     protected:
@@ -175,10 +175,10 @@ class PYBIND11_EXPORT AfterTrigger : public Trigger
         return timestep > m_timestep;
         }
 
-    /// Get the point where triggering will stop
+    /// Get the timestep after which the trigger is active.
     uint64_t getTimestep() {return m_timestep;}
 
-    /// Set the point where triggering will stop
+    /// Set the timestep after which the trigger is active.
     void setTimestep(uint64_t timestep) {m_timestep = timestep;}
 
     protected:
@@ -213,7 +213,7 @@ class PYBIND11_EXPORT NotTrigger : public Trigger
 
 /** And trigger
  *
- *  The logical AND between n triggers.
+ *  The logical AND between multiple triggers.
 */
 class PYBIND11_EXPORT AndTrigger : public Trigger
     {
@@ -251,7 +251,7 @@ class PYBIND11_EXPORT AndTrigger : public Trigger
 
 /** Or trigger
  *
- *  The logical OR between n triggers.
+ *  The logical OR between multiple triggers.
 */
 class PYBIND11_EXPORT OrTrigger : public Trigger
     {
