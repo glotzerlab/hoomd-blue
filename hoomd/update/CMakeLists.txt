@@ -5,7 +5,7 @@
 #        )
 
 set(files __init__.py
-	  box_resize.py
+          box_resize.py
           )
 
 install(FILES ${files}
