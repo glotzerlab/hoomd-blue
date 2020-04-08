@@ -1,6 +1,6 @@
 # Copyright (c) 2009-2019 The Regents of the University of Michigan
-# License.
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
 
 from hoomd import _hoomd
 from inspect import isclass
@@ -18,7 +18,7 @@ class Periodic(_hoomd.PeriodicTrigger, Trigger):
 class Before(_hoomd.BeforeTrigger, Trigger):
     def __init__(self, timestep):
         if timestep < 0:
-            raise ValueError("timestep must be positive.")
+            raise ValueError("timestep must be greater than or equal to 0.")
         else:
             _hoomd.BeforeTrigger.__init__(self, timestep)
 

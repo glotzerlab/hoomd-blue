@@ -7,8 +7,8 @@ hoomd.trigger
     :nosignatures:
 
     hoomd.trigger.After
-    hoomd.trigger.Before
     hoomd.trigger.And
+    hoomd.trigger.Before
     hoomd.trigger.Not
     hoomd.trigger.On
     hoomd.trigger.Or
