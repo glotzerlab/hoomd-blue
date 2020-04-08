@@ -66,22 +66,22 @@ class Box:
         yz (float): tilt factor yz (dimensionless)
         dimensions (int): Number of dimensions in the box (2 or 3).
         L (float): shorthand for specifying Lx=Ly=Lz=L (distance units)
-        volume (float): Scale the given box dimensions up to the this volume (area if dimensions=2)
+        volume (float): Scale the given box dimensions up to this volume (area if dimensions=2)
 
-    Simulation boxes in hoomd are specified by six parameters, *Lx*, *Ly*, *Lz*,
-    *xy*, *xz* and *yz*. For full details, see TODO: ref page. A boxdim provides
+    Simulation boxes in hoomd are specified by six parameters, ``Lx``, ``Ly``, ``Lz``,
+    ``xy``, ``xz`` and ``yz``. For full details, see :ref:`boxdim`. A boxdim provides
     a way to specify all six parameters for a given box and perform some common
     operations with them. Modifying a boxdim does not modify the underlying
     simulation box in hoomd. A boxdim can be passed to an initialization method
-    or to assigned to a saved sysdef variable (`system.box = new_box`) to set
+    or to assigned to a saved sysdef variable (``system.box = new_box``) to set
     the simulation box.
 
     Access attributes directly::
 
-        b = data.boxdim(L=20);
-        b.xy = 1.0;
-        b.yz = 0.5;
-        b.Lz = 40;
+        b = hoomd.box.Box(L=20)
+        b.xy = 1.0
+        b.yz = 0.5
+        b.Lz = 40
 
 
     .. rubric:: Two dimensional systems
@@ -97,9 +97,9 @@ class Box:
 
     .. rubric:: Shorthand notation
 
-    data.boxdim accepts the keyword argument *L=x* as shorthand notation for
-    `Lx=x, Ly=x, Lz=x` in 3D and `Lx=x, Ly=z, Lz=1` in 2D. If you specify both
-    `L=` and `Lx,Ly, or Lz`, then the value for `L` will override the others.
+    data.boxdim accepts the keyword argument ``L=x`` as shorthand notation for
+    ``Lx=x, Ly=x, Lz=x`` in 3D and ``Lx=x, Ly=x, Lz=1`` in 2D. If you specify both
+    ``L`` and ``Lx``, ``Ly``, or ``Lz``, then the value for ``L`` will override the others.
 
     Examples:
 
@@ -275,7 +275,7 @@ class Box:
     def scale(self, *args):
         R""" Scale box dimensions.
 
-        Scales the box by the given scale factors.Tilt factors are not
+        Scales the box by the given scale factors. Tilt factors are not
         modified.
 
         Args:

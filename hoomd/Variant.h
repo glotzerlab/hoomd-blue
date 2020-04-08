@@ -187,10 +187,10 @@ class PYBIND11_EXPORT VariantRamp : public Variant
             return m_t_ramp;
             }
 
-        /// Return m_A;
+        /// Return m_A
         Scalar min() {return m_A;}
 
-        /// Return m_B;
+        /// Return m_B
         Scalar max() {return m_B;}
 
     protected:

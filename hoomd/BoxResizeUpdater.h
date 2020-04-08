@@ -42,7 +42,7 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
         /// Destructor
         virtual ~BoxResizeUpdater();
 
-        /// Sets particle scaling when true particles scale with box
+        /// Sets particle scaling. When true, particle positions are scaled with the box.
         void setScaleParticles(bool scale_particles)
             {
             m_scale_particles = scale_particles;

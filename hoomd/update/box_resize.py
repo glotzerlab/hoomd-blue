@@ -32,7 +32,7 @@ class BoxResize(_Updater):
         if self.is_attached:
             timestep = int(timestep)
             if timestep < 0:
-                raise ValueError("Must be a non-negative integer.")
+                raise ValueError("Timestep must be a non-negative integer.")
             return Box._from_cpp(self._cpp_obj.get_current_box(timestep))
         else:
             return None
