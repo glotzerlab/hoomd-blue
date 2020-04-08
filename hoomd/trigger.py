@@ -46,13 +46,15 @@ class Not(_hoomd.NotTrigger, Trigger):
 
 class And(_hoomd.AndTrigger, Trigger):
     def __init__(self, triggers):
-        if not hasattr(triggers, '__iter__') or isclass(triggers):
+        triggers = list(triggers)
+        if not all(isinstance(t, Trigger) for t in triggers):
             raise ValueError("triggers must an iterable of Triggers.")
         _hoomd.AndTrigger.__init__(self, triggers)
 
 
 class Or(_hoomd.OrTrigger, Trigger):
     def __init__(self, triggers):
-        if not hasattr(triggers, '__iter__') or isclass(triggers):
+        triggers = list(triggers)
+        if not all(isinstance(t, Trigger) for t in triggers):
             raise ValueError("triggers must an iterable of Triggers.")
         _hoomd.OrTrigger.__init__(self, triggers)
