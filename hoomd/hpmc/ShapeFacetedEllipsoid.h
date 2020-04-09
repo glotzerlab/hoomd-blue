@@ -63,7 +63,7 @@ struct FacetedEllipsoidParams : ShapeParams
         {
         pybind11::list normals = v["normals"];
         pybind11::list offsets = v["offsets"];
-        pybind11::list vertices = v["vertices"];
+        pybind11::object vertices = v["vertices"];
         a = v["a"].cast<OverlapReal>();
         b = v["b"].cast<OverlapReal>();
         c = v["c"].cast<OverlapReal>();
@@ -88,8 +88,15 @@ struct FacetedEllipsoidParams : ShapeParams
             }
 
         // extract the vertices from the python list
+        pybind11::list vertices_list;
+        if (!vertices.is_none())
+            {
+            vertices_list = pybind11::list(vertices);
+            }
+        // when vertices is None, pass an empty list to PolyhedronVertices
+
         pybind11::dict verts_dict;
-        verts_dict["vertices"] = vertices;
+        verts_dict["vertices"] = vertices_list;
         verts_dict["sweep_radius"] = 0;
         verts_dict["ignore_statistics"] = ignore;
         verts = PolyhedronVertices(verts_dict, managed);
