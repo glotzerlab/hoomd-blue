@@ -30,14 +30,54 @@ def cite_depletants():
 
 
 class _HPMCIntegrator(_BaseIntegrator):
-    """Base class HPMC integrator.
+    """Base class hard particle Monte Carlo integrator.
 
-    :py:class:`_HPMCIntegrator` is the base class for all HPMC integrators.
-    Users should not instantiate this class directly. The attributes documented
-    here are available to all HPMC integrators.
+    Note:
+        :py:class:`_HPMCIntegrator` is the base class for all HPMC integrators.
+        Users should not instantiate this class directly. The attributes
+        documented here are available to all HPMC integrators.
 
-    TODO: Describe Monte Carlo (specifically how these parameters effect trial
-    moves).
+    .. rubric:: Hard particle Monte Carlo
+
+    In hard particle Monte Carlo systems, the particles in the `Simulation`
+    `State` are extended objects with positions and orientations. During
+    each time step of a `Simulation.run`, `nselect` trial moves are attempted
+    for each particle in the system.
+
+    A trial move may be a rotation or a translation move, selected randomly
+    according to the `move_ratio`. Translation trial moves are selected randomly
+    from a sphere of radius `d`, where `d` is set independently for each
+    particle type. Rotational trial moves are selected with a maximum move size
+    of `a`, where `a` is set independently for each particle type. In 2D
+    simulations, `a` is the maximum angle (in radians) by which a particle will
+    be rotated. In 3D, `a` is the magnitude of the random rotation quaternion as
+    defined in Frenkel and Smit. `move_ratio` can be set to 0 or 1 to enable
+    only rotation or translation moves, respectively.
+
+    The `seed` parameter sets the seed for the random number generator.
+    Simulations with the same initial condition and same seed will follow
+    the same trajectory.
+
+    Note:
+        Full trajectory reproducibility is only possible with the same HOOMD
+        binary installation, hardware, and execution configuration.
+        Recompiling with different options, using a different version of HOOMD,
+        running on a different hardware platform, or changing the parallel
+        execution configuration may produce different trajectories due to
+        limited floating point precision or parallel algorithmic differences.
+
+    After proposing the trial move, the HPMC integrator checks to see if the
+    new particle configuration overlaps with any other particles in the system.
+    If there are overlaps, it rejects the move. It accepts the move when there
+    are no overlaps.
+
+    Setting elements of `interaction_matrix` to False disables overlap checks
+    between specific particle types. `interaction_matrix` is a particle types
+    by particle types matrix allowing for non-additive systems.
+
+    The `fugacity` parameter enables implicit depletants when non-zero.
+    TODO: Describe implicit depletants algorithm. No need to write this now,
+    as Jens is rewriting the implementation.
 
     .. rubric:: Parameters
 
