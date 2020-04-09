@@ -130,8 +130,7 @@ class PYBIND11_EXPORT BeforeTrigger : public Trigger
     void setTimestep(uint64_t timestep) {m_timestep = timestep;}
 
     protected:
-        /// Always trigger timestep this timestep
-        uint64_t m_timestep;
+        uint64_t m_timestep;  /// trigger timestep < m_timestep
     };
 
 /** On trigger
@@ -156,8 +155,7 @@ class PYBIND11_EXPORT OnTrigger : public Trigger
     void setTimestep(uint64_t timestep) {m_timestep = timestep;}
 
     protected:
-        /// Always trigger timestep this timestep
-        uint64_t m_timestep;
+        uint64_t m_timestep;  /// only trigger on this timestep
     };
 
 /** After trigger
@@ -182,8 +180,7 @@ class PYBIND11_EXPORT AfterTrigger : public Trigger
     void setTimestep(uint64_t timestep) {m_timestep = timestep;}
 
     protected:
-        /// Always trigger timestep this timestep
-        uint64_t m_timestep;
+        uint64_t m_timestep;  /// trigger timestep > m_timestep
     };
 
 /** Not trigger
@@ -208,7 +205,7 @@ class PYBIND11_EXPORT NotTrigger : public Trigger
         void setTrigger(std::shared_ptr<Trigger> trigger) {m_trigger = trigger;}
 
     protected:
-        std::shared_ptr<Trigger> m_trigger;
+        std::shared_ptr<Trigger> m_trigger; ///  trigger to be negated
     };
 
 /** And trigger
@@ -246,6 +243,7 @@ class PYBIND11_EXPORT AndTrigger : public Trigger
             }
 
     protected:
+        /// Vector of triggers to do a n-way AND
         std::vector<std::shared_ptr<Trigger> > m_triggers;
     };
 
@@ -271,8 +269,7 @@ class PYBIND11_EXPORT OrTrigger : public Trigger
 
         bool compute(uint64_t timestep)
             {
-            return std::any_of(
-                m_triggers.begin(), m_triggers.end(),
+            return std::any_of(m_triggers.begin(), m_triggers.end(),
                 [timestep](std::shared_ptr<Trigger> t)
                     {
                     return t->operator()(timestep);
@@ -285,6 +282,7 @@ class PYBIND11_EXPORT OrTrigger : public Trigger
             }
 
     protected:
+        /// Vector of triggers to do a n-way OR
         std::vector<std::shared_ptr<Trigger> > m_triggers;
     };
 
