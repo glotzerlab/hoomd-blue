@@ -89,9 +89,6 @@ class _HPMCIntegrator(_BaseIntegrator):
             Maximum size of displacement trial moves
             (distance units).
 
-        deterministic (bool): Set to ``True`` to make HPMC integration
-            deterministic on the GPU.
-
         fugacity (TypeParameter[particle type, float]):
             Depletant fugacity (in units of 1/volume) (**default:** ``0``)
 
@@ -113,14 +110,13 @@ class _HPMCIntegrator(_BaseIntegrator):
 
     _cpp_cls = None
 
-    def __init__(self, seed, d, a, move_ratio, nselect, deterministic):
+    def __init__(self, seed, d, a, move_ratio, nselect):
         super().__init__()
 
         # Set base parameter dict for hpmc integrators
         param_dict = ParameterDict(seed=int(seed),
                                    move_ratio=float(move_ratio),
-                                   nselect=int(nselect),
-                                   deterministic=bool(deterministic))
+                                   nselect=int(nselect))
         self._param_dict.update(param_dict)
 
         # Set standard typeparameters for hpmc integrators
@@ -363,9 +359,6 @@ class Sphere(_HPMCIntegrator):
         nselect (int): Number of trial moves to perform per particle per
             timestep.
 
-        deterministic (bool): Set to ``True`` to make HPMC integration
-            deterministic on the GPU.
-
     Important:
         Assign a `shape` specification for each particle type in the `State`.
 
@@ -403,11 +396,10 @@ class Sphere(_HPMCIntegrator):
                  d=0.1,
                  a=0.1,
                  move_ratio=0.5,
-                 nselect=4,
-                 deterministic=False):
+                 nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect, deterministic)
+        super().__init__(seed, d, a, move_ratio, nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -457,9 +449,6 @@ class ConvexPolygon(_HPMCIntegrator):
         nselect (int): Number of trial moves to perform per particle per
             timestep.
 
-        deterministic (bool): Set to ``True`` to make HPMC integration
-            deterministic on the GPU.
-
     Important:
         Assign a `shape` specification for each particle type in the `State`.
 
@@ -504,11 +493,10 @@ class ConvexPolygon(_HPMCIntegrator):
                  d=0.1,
                  a=0.1,
                  move_ratio=0.5,
-                 nselect=4,
-                 deterministic=False):
+                 nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect, deterministic)
+        super().__init__(seed, d, a, move_ratio, nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -560,9 +548,6 @@ class ConvexSpheropolygon(_HPMCIntegrator):
         nselect (int): Number of trial moves to perform per particle per
             timestep.
 
-        deterministic (bool): Set to ``True`` to make HPMC integration
-            deterministic on the GPU.
-
     Important:
         Assign a `shape` specification for each particle type in the `State`.
 
@@ -612,11 +597,10 @@ class ConvexSpheropolygon(_HPMCIntegrator):
                  d=0.1,
                  a=0.1,
                  move_ratio=0.5,
-                 nselect=4,
-                 deterministic=False):
+                 nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect, deterministic)
+        super().__init__(seed, d, a, move_ratio, nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -665,9 +649,6 @@ class SimplePolygon(_HPMCIntegrator):
         nselect (int): Number of trial moves to perform per particle per
             timestep.
 
-        deterministic (bool): Set to ``True`` to make HPMC integration
-            deterministic on the GPU.
-
     Important:
         Assign a `shape` specification for each particle type in the `State`.
 
@@ -714,11 +695,10 @@ class SimplePolygon(_HPMCIntegrator):
                  d=0.1,
                  a=0.1,
                  move_ratio=0.5,
-                 nselect=4,
-                 deterministic=False):
+                 nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect, deterministic)
+        super().__init__(seed, d, a, move_ratio, nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -764,9 +744,6 @@ class Polyhedron(_HPMCIntegrator):
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
-
-        deterministic (bool): Set to ``True`` to make HPMC integration
-            deterministic on the GPU.
 
     Note:
 
@@ -888,11 +865,10 @@ class Polyhedron(_HPMCIntegrator):
                  d=0.1,
                  a=0.1,
                  move_ratio=0.5,
-                 nselect=4,
-                 deterministic=False):
+                 nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect, deterministic)
+        super().__init__(seed, d, a, move_ratio, nselect)
 
         typeparam_shape = TypeParameter(
             'shape',
@@ -944,9 +920,6 @@ class ConvexPolyhedron(_HPMCIntegrator):
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
-
-        deterministic (bool): Set to ``True`` to make HPMC integration
-            deterministic on the GPU.
 
     Important:
         Assign a `shape` specification for each particle type in the `State`.
@@ -1007,11 +980,10 @@ class ConvexPolyhedron(_HPMCIntegrator):
                  d=0.1,
                  a=0.1,
                  move_ratio=0.5,
-                 nselect=4,
-                 deterministic=False):
+                 nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect, deterministic)
+        super().__init__(seed, d, a, move_ratio, nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -1059,9 +1031,6 @@ class FacetedEllipsoid(_HPMCIntegrator):
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
-
-        deterministic (bool): Set to ``True`` to make HPMC integration
-            deterministic on the GPU.
 
     Important:
         Assign a `shape` specification for each particle type in the `State`.
@@ -1153,11 +1122,10 @@ class FacetedEllipsoid(_HPMCIntegrator):
                  d=0.1,
                  a=0.1,
                  move_ratio=0.5,
-                 nselect=4,
-                 deterministic=False):
+                 nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect, deterministic)
+        super().__init__(seed, d, a, move_ratio, nselect)
 
         typeparam_shape = TypeParameter(
             'shape',
@@ -1193,9 +1161,6 @@ class Sphinx(_HPMCIntegrator):
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
-
-        deterministic (bool): Set to ``True`` to make HPMC integration
-            deterministic on the GPU.
 
     Important:
         Assign a `shape` specification for each particle type in the `State`.
@@ -1234,11 +1199,10 @@ class Sphinx(_HPMCIntegrator):
                  d=0.1,
                  a=0.1,
                  move_ratio=0.5,
-                 nselect=4,
-                 deterministic=False):
+                 nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect, deterministic)
+        super().__init__(seed, d, a, move_ratio, nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -1272,9 +1236,6 @@ class ConvexSpheropolyhedron(_HPMCIntegrator):
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
-
-        deterministic (bool): Set to ``True`` to make HPMC integration
-            deterministic on the GPU.
 
     Important:
         Assign a `shape` specification for each particle type in the `State`.
@@ -1332,11 +1293,10 @@ class ConvexSpheropolyhedron(_HPMCIntegrator):
                  d=0.1,
                  a=0.1,
                  move_ratio=0.5,
-                 nselect=4,
-                 deterministic=False):
+                 nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect, deterministic)
+        super().__init__(seed, d, a, move_ratio, nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -1379,9 +1339,6 @@ class Ellipsoid(_HPMCIntegrator):
         nselect (int): Number of trial moves to perform per particle per
             timestep.
 
-        deterministic (bool): Set to ``True`` to make HPMC integration
-            deterministic on the GPU.
-
     Important:
         Assign a `shape` specification for each particle type in the `State`.
 
@@ -1423,11 +1380,10 @@ class Ellipsoid(_HPMCIntegrator):
                  d=0.1,
                  a=0.1,
                  move_ratio=0.5,
-                 nselect=4,
-                 deterministic=False):
+                 nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect, deterministic)
+        super().__init__(seed, d, a, move_ratio, nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -1468,9 +1424,6 @@ class SphereUnion(_HPMCIntegrator):
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
-
-        deterministic (bool): Set to ``True`` to make HPMC integration
-            deterministic on the GPU.
 
     Note:
 
@@ -1538,11 +1491,10 @@ class SphereUnion(_HPMCIntegrator):
                  d=0.1,
                  a=0.1,
                  move_ratio=0.5,
-                 nselect=4,
-                 deterministic=False):
+                 nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect, deterministic)
+        super().__init__(seed, d, a, move_ratio, nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -1601,9 +1553,6 @@ class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
-
-        deterministic (bool): Set to ``True`` to make HPMC integration
-            deterministic on the GPU.
 
     Note:
 
@@ -1672,11 +1621,10 @@ class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
                  d=0.1,
                  a=0.1,
                  move_ratio=0.5,
-                 nselect=4,
-                 deterministic=False):
+                 nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect, deterministic)
+        super().__init__(seed, d, a, move_ratio, nselect)
 
         typeparam_shape = TypeParameter(
             'shape',
@@ -1721,9 +1669,6 @@ class FacetedEllipsoidUnion(_HPMCIntegrator):
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
-
-        deterministic (bool): Set to ``True`` to make HPMC integration
-            deterministic on the GPU.
 
     Note:
 
@@ -1815,11 +1760,10 @@ class FacetedEllipsoidUnion(_HPMCIntegrator):
                  d=0.1,
                  a=0.1,
                  move_ratio=0.5,
-                 nselect=4,
-                 deterministic=False):
+                 nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect, deterministic)
+        super().__init__(seed, d, a, move_ratio, nselect)
 
         typeparam_shape = TypeParameter(
             'shape',
