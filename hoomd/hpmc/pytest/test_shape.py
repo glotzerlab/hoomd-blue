@@ -116,7 +116,7 @@ def test_moves(device, simulation_factory, lattice_snapshot_factory,
     assert sum(sim.operations.integrator.translate_moves) == 0
     assert sum(sim.operations.integrator.rotate_moves) == 0
 
-    sim.run(100)
+    sim.run(10)
     accepted_rejected_trans = sum(sim.operations.integrator.translate_moves)
     assert accepted_rejected_trans > 0
     if 'sphere' not in str(integrator).lower():
