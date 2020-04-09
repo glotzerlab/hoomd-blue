@@ -291,7 +291,7 @@ class box_resize(_updater):
         yz (:py:mod:`hoomd.variant`): (if set) Y-Z tilt factor as a function of time (dimensionless)
         period (int): The box size will be updated every *period* time steps.
         phase (int): When -1, start on the current time step. When >= 0, execute on steps where *(step + phase) % period == 0*.
-        scale_particles (bool): When True (the default), scale particles into the new box. When False, do not change particle positions when changing the box.
+        scale_particles (bool): When True (the default),scale particles into the new box. When False, do not change particle positions when changing the box.
 
     Every *period* time steps, the system box dimensions is updated to values given by
     the user (in a variant). As an option, the particles can either be left in place
@@ -413,12 +413,20 @@ class hypersphere_resize(_updater):
         curv_space = update.hypersphere_resize(R = hoomd.variant.linear_interp([(0, 20), (1e6, 50)]), period = 10)
     """
 
-    def __init__(self, R, period = 1, phase=0, scale_particles=True):
+    def __init__(self, R = None, period = 1, phase=0, scale_particles=True):
         hoomd.util.print_status_line();
 
         # initialize base class
         _updater.__init__(self);
 
+        if R is None:
+            hoomd.context.msg.warning("update.hypersphere._resize: Ignoring request to setup updater without new radius parameter R\n")
+            return
+
+        R = hoomd.variant._setup_variant_input(R);
+
+        # store metadata
+        self.R = R
         self.metadata_fields = ['period','R']
 
         # create the c++ mirror class

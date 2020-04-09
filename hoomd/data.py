@@ -783,6 +783,14 @@ class hypersphere(hoomd.meta._metadata):
         self.R = math.pow(volume/(2*math.pi*math.pi),1./3.)
         return self
 
+    def get_volume(self):
+        R""" Get the surface volume of the hypersphere
+
+        Returns:
+            The hypersphere surface volume
+        """
+        return self._getHypersphere().getVolume();
+
     ## \internal
     # \brief Get a C++ hypersphere
     def _getHypersphere(self):

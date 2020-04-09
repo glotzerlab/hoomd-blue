@@ -1391,7 +1391,7 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(unsigned int timestep, boo
                             {
                             // read in its position and orientation
                             unsigned int j = m_aabb_tree.getNodeParticle(cur_node_idx, cur_p);
-
+                            
                             if (i == j)
                                 continue;
 
@@ -2056,7 +2056,7 @@ const detail::AABBTree& IntegratorHPMCMono<Shape>::buildAABBTree()
                     {
                     unsigned int i = cur_particle;
                     unsigned int typ_i = __scalar_as_int(h_postype.data[i].w);
-                    Shape shape(quat<Scalar>(), m_params[typ_i]);
+                    Shape shape(quat<Scalar>(h_quat_l.data[i]), quat<Scalar>(h_quat_r.data[i]), m_params[typ_i]);
 
                     if (!this->m_patch)
                         m_aabbs[i] = shape.getAABBHypersphere(hypersphere);

@@ -2680,6 +2680,7 @@ void export_Hypersphere(py::module& m)
     .def(py::init<Scalar>())
     .def("getR", &Hypersphere::getR)
     .def("setR", &Hypersphere::setR)
+    .def("getVolume", &Hypersphere::getVolume)
     ;
     }
 
