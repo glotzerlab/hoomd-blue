@@ -1015,7 +1015,7 @@ class FacetedEllipsoid(_HPMCIntegrator):
     halfspaces (see `shape`). The equation defining each halfspace is given by:
 
     .. math::
-        \\vec{n}_i\cdot \\vec{r} + b_i \le 0
+        \\vec{n}_i\\cdot \\vec{r} + b_i \\le 0
 
     where :math:`\\vec{n}_i` is the face normal, and :math:`b_i` is  the offset.
 
