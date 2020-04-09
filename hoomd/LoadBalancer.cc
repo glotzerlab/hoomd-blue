@@ -575,7 +575,9 @@ void LoadBalancer::resetStats()
 void export_LoadBalancer(py::module& m)
     {
     py::class_<LoadBalancer, Updater, std::shared_ptr<LoadBalancer> >(m,"LoadBalancer")
-    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition> >())
+    .def(py::init< std::shared_ptr<SystemDefinition>,
+                   std::shared_ptr<DomainDecomposition>,
+                   std::shared_ptr<Trigger> >())
     .def_property("tolerance", &LoadBalancer::getTolerance,
                   &LoadBalancer::setTolerance)
     .def_property("max_iterations", &LoadBalancer::getMaxIterations,
