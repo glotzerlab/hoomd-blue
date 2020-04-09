@@ -496,7 +496,7 @@ _union_shapes = [({
                      "vertices": [],
                      "origin": (0, 0, 0),
                      "offsets": [0]
-                 }, hoomd.hpmc.integrate.FacetedEllipsoidUnion)]
+                 }, hoomd.hpmc.integrate.FacetedEllipsoidUnion),]
 
 
 @pytest.fixture(scope="function", params=_union_shapes)

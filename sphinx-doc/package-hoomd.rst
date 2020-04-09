@@ -34,3 +34,4 @@ hoomd
    module-hoomd-update
    module-hoomd-util
    module-hoomd-variant
+   hoomd-misc
