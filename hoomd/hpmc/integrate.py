@@ -1119,19 +1119,19 @@ class FacetedEllipsoid(_HPMCIntegrator):
         # initialize base class
         super().__init__(seed, d, a, move_ratio, nselect, deterministic)
 
-        typeparam_shape = TypeParameter('shape',
-                                        type_kind='particle_types',
-                                        param_dict=TypeParameterDict(
-                                            normals=[(float, float, float)],
-                                            offsets=[float],
-                                            a=float,
-                                            b=float,
-                                            c=float,
-                                            vertices=[(float, float, float)],
-                                            origin=(float, float, float),
-                                            ignore_statistics=False,
-                                            len_keys=1,
-                                            explicit_defaults={'vertices': None}))
+        typeparam_shape = TypeParameter(
+            'shape',
+            type_kind='particle_types',
+            param_dict=TypeParameterDict(normals=[(float, float, float)],
+                                         offsets=[float],
+                                         a=float,
+                                         b=float,
+                                         c=float,
+                                         vertices=[(float, float, float)],
+                                         origin=(float, float, float),
+                                         ignore_statistics=False,
+                                         len_keys=1,
+                                         explicit_defaults={'vertices': None}))
         self._add_typeparam(typeparam_shape)
 
 
