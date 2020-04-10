@@ -566,7 +566,8 @@ void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const qu
                 ArrayHandle<unsigned int> d_tag(this->m_pdata->getTags(), access_location::device, access_mode::read);
 
                 // depletants
-                m_n_depletants.resize(this->m_n_particles_old);
+                auto& depletant_idx = this->m_mc->getDepletantIndexer();
+                m_n_depletants.resize(this->m_n_particles_old*depletant_idx.getNumElements()*this->m_pdata->getMaxN());
 
                 ArrayHandle<Scalar> d_lambda(m_lambda, access_location::device, access_mode::read);
                 ArrayHandle<unsigned int> d_n_depletants(m_n_depletants, access_location::device, access_mode::overwrite);
@@ -632,7 +633,6 @@ void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const qu
                  */
 
                 // allow concurrency between depletant types in multi GPU block
-                auto& depletant_idx = this->m_mc->getDepletantIndexer();
                 for (unsigned int itype = 0; itype < this->m_pdata->getNTypes(); ++itype)
                     {
                     for (unsigned int jtype = itype; jtype < this->m_pdata->getNTypes(); ++jtype)
@@ -658,7 +658,7 @@ void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const qu
                             depletant_idx,
                             d_lambda.data,
                             d_postype.data,
-                            d_n_depletants.data,
+                            d_n_depletants.data + depletant_idx(itype,jtype)*this->m_pdata->getMaxN(),
                             m_tuner_num_depletants->getParam(),
                             &m_depletant_streams[depletant_idx(itype,jtype)].front(),
                             m_old_gpu_partition);
@@ -669,7 +669,7 @@ void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const qu
                         // max reduce over result
                         unsigned int max_n_depletants[this->m_exec_conf->getNumActiveGPUs()];
                         gpu::get_max_num_depletants(
-                            d_n_depletants.data,
+                            d_n_depletants.data + depletant_idx(itype,jtype)*this->m_pdata->getMaxN(),
                             &max_n_depletants[0],
                             &m_depletant_streams[depletant_idx(itype,jtype)].front(),
                             m_old_gpu_partition,
@@ -691,7 +691,7 @@ void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const qu
                             0, // implicit_counters
                             0, // implicit_counters pitch
                             false, // repulsive
-                            d_n_depletants.data,
+                            d_n_depletants.data + depletant_idx(itype,jtype)*this->m_pdata->getMaxN(),
                             &max_n_depletants[0],
                             depletants_per_group,
                             &m_depletant_streams[depletant_idx(itype,jtype)].front()
