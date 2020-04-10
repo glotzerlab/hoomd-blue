@@ -604,6 +604,19 @@ void IntegratorHPMCMonoGPU< Shape >::updateGPUAdvice()
                 cudaMemPrefetchAsync(m_nneigh_patch_new.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
                 }
             CHECK_CUDA_ERROR();
+
+            for (unsigned int itype = 0; itype < this->m_pdata->getNTypes(); ++itype)
+                {
+                for (unsigned int jtype = 0; jtype < this->m_pdata->getNTypes(); ++jtype)
+                    {
+                    cudaMemAdvise(m_n_depletants.get()+this->m_depletant_idx(itype,jtype)*this->m_pdata->getMaxN()+range.first,
+                        sizeof(unsigned int)*nelem,
+                        cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+                    cudaMemPrefetchAsync(m_n_depletants.get()+this->m_depletant_idx(itype,jtype)*this->m_pdata->getMaxN()+range.first,
+                        sizeof(unsigned int)*nelem, gpu_map[idev]);
+                    CHECK_CUDA_ERROR();
+                    }
+                }
             }
         }
     #endif
@@ -683,7 +696,6 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
             m_trial_postype.resize(this->m_pdata->getMaxN());
             m_trial_orientation.resize(this->m_pdata->getMaxN());
             m_trial_move_type.resize(this->m_pdata->getMaxN());
-            m_n_depletants.resize(this->m_pdata->getMaxN());
 
             update_gpu_advice = true;
             }
@@ -697,6 +709,11 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
             update_gpu_advice = true;
             }
 
+        if (m_n_depletants.getNumElements() < this->m_pdata->getMaxN()*this->m_depletant_idx.getNumElements())
+            {
+            m_n_depletants.resize(this->m_pdata->getMaxN()*this->m_depletant_idx.getNumElements());
+            update_gpu_advice = true;
+            }
 
         if (update_gpu_advice)
             updateGPUAdvice();
@@ -973,7 +990,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                                 this->m_depletant_idx,
                                 d_lambda.data,
                                 d_postype.data,
-                                d_n_depletants.data,
+                                d_n_depletants.data + this->m_depletant_idx(itype,jtype)*this->m_pdata->getMaxN(),
                                 m_tuner_num_depletants->getParam(),
                                 &m_depletant_streams[this->m_depletant_idx(itype,jtype)].front(),
                                 this->m_pdata->getGPUPartition());
@@ -984,7 +1001,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                             // max reduce over result
                             unsigned int max_n_depletants[this->m_exec_conf->getNumActiveGPUs()];
                             gpu::get_max_num_depletants(
-                                d_n_depletants.data,
+                                d_n_depletants.data + this->m_depletant_idx(itype,jtype)*this->m_pdata->getMaxN(),
                                 &max_n_depletants[0],
                                 &m_depletant_streams[this->m_depletant_idx(itype,jtype)].front(),
                                 this->m_pdata->getGPUPartition(),
@@ -1006,7 +1023,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                                 ngpu > 1 ? d_implicit_counters_per_device.data : d_implicit_count.data,
                                 m_implicit_counters.getPitch(),
                                 this->m_fugacity[this->m_depletant_idx(itype,jtype)] < 0,
-                                d_n_depletants.data,
+                                d_n_depletants.data + this->m_depletant_idx(itype,jtype)*this->m_pdata->getMaxN(),
                                 &max_n_depletants[0],
                                 depletants_per_group,
                                 &m_depletant_streams[this->m_depletant_idx(itype,jtype)].front()
