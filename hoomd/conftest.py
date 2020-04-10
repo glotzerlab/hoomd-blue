@@ -20,7 +20,13 @@ def device(request):
     device object is session scoped to avoid device creation overhead when
     running tests.
     """
-    return request.param()
+    d = request.param()
+
+    # enable GPU error checking
+    if isinstance(d, hoomd.device.GPU):
+        d.gpu_error_checking = True
+
+    return d
 
 
 @pytest.fixture(scope='session',
