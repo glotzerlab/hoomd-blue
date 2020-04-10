@@ -154,7 +154,11 @@ def lattice_snapshot_factory(device):
                 pos = list(itertools.product(range_,range_,[0]))
             else:
                 pos = list(itertools.product(range_, repeat=3))
-            pos = numpy.array(pos) * a + a/2
+            pos = numpy.array(pos) * a
+            pos[:, 0] += a / 2
+            pos[:, 1] += a / 2
+            if dimensions == 3:
+                pos[:, 2] += a / 2
 
             # perturb the positions
             if r > 0:
