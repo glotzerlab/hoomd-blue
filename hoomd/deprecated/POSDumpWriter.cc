@@ -125,7 +125,7 @@ void POSDumpWriter::analyze(unsigned int timestep)
     else if (m_pdata->getCoordinateType() == ParticleData::hyperspherical)
         {
         Hypersphere hypersphere(m_pdata->getHypersphere());
-        m_file << "hypersphere true " << hypersphere.getR() << std::endl;
+        m_file << "hypersphere true 3 " << hypersphere.getR() << std::endl;
         }
 
     for (unsigned int j = 0; j < numtype; j++)
