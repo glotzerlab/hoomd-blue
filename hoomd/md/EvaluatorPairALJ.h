@@ -45,9 +45,8 @@ struct alj_shape_params
     #ifndef NVCC
 
     //! Shape constructor
-    alj_shape_params(pybind11::list vertices, pybind11::list rr, bool use_device) : has_rounding(false)
+    alj_shape_params(pybind11::list vertices, pybind11::list faces_, pybind11::list rr, bool use_device) : has_rounding(false)
         {
-        //! Construct table for particle i
         unsigned int N = len(vertices);
         verts = ManagedArray<vec3<Scalar> >(N, use_device);
         for (unsigned int i = 0; i < N; ++i)
@@ -55,6 +54,31 @@ struct alj_shape_params
             pybind11::list vertices_tmp = pybind11::cast<pybind11::list>(vertices[i]);
             verts[i] = vec3<Scalar>(pybind11::cast<Scalar>(vertices_tmp[0]), pybind11::cast<Scalar>(vertices_tmp[1]), pybind11::cast<Scalar>(vertices_tmp[2]));
             }
+
+        // First count the total number of indices required for all faces.
+        N = len(faces_);
+        face_offsets = ManagedArray<unsigned int>(N, use_device);
+        face_offsets[0] = 0;
+        for (unsigned int i = 0; i < (N-1); ++i)
+            {
+            pybind11::list faces_tmp = pybind11::cast<pybind11::list>(faces_[i]);
+            face_offsets[i+1] = face_offsets[i] + len(faces_tmp);
+            }
+        pybind11::list faces_tmp = pybind11::cast<pybind11::list>(faces_[N-1]);
+        const unsigned int total_face_indices = face_offsets[N-1] + len(faces_tmp);
+
+        // Then store all the faces.
+        faces = ManagedArray<unsigned int>(total_face_indices, use_device);
+        unsigned int counter = 0;
+        for (unsigned int i = 0; i < N; ++i)
+        {
+            pybind11::list faces_tmp = pybind11::cast<pybind11::list>(faces_[i]);
+            for (unsigned int j = 0; j < len(faces_tmp); ++j)
+            {
+                faces[counter] = pybind11::cast<unsigned int>(faces_tmp[j]);
+                ++counter;
+            }
+        }
 
         rounding_radii.x = pybind11::cast<Scalar>(rr[0]);
         rounding_radii.y = pybind11::cast<Scalar>(rr[1]);
@@ -74,6 +98,8 @@ struct alj_shape_params
     HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
         {
         verts.load_shared(ptr, available_bytes);
+        faces.load_shared(ptr, available_bytes);
+        face_offsets.load_shared(ptr, available_bytes);
         }
 
     #ifdef ENABLE_CUDA
@@ -81,11 +107,15 @@ struct alj_shape_params
     void attach_to_stream(cudaStream_t stream) const
         {
         verts.attach_to_stream(stream);
+        faces.attach_to_stream(stream);
+        face_offsets.attach_to_stream(stream);
         }
     #endif
 
     //! Shape parameters
     ManagedArray<vec3<Scalar> > verts;       //! Shape vertices.
+    ManagedArray<unsigned int> faces;       //! Shape faces.
+    ManagedArray<unsigned int> face_offsets;       //! Index where each faces starts.
     vec3<Scalar> rounding_radii;  //! The rounding ellipse.
     bool has_rounding;    //! Whether or not the shape has rounding radii.
     };
@@ -1021,9 +1051,9 @@ std::string EvaluatorPairALJ<3>::getShapeSpec() const
 
 
 #ifndef NVCC
-alj_shape_params make_alj_shape_params(pybind11::list shape, pybind11::list rounding_radii, std::shared_ptr<const ExecutionConfiguration> exec_conf)
+alj_shape_params make_alj_shape_params(pybind11::list vertices, pybind11::list faces, pybind11::list rounding_radii, std::shared_ptr<const ExecutionConfiguration> exec_conf)
     {
-    alj_shape_params result(shape, rounding_radii, exec_conf->isCUDAEnabled());
+    alj_shape_params result(vertices, faces, rounding_radii, exec_conf->isCUDAEnabled());
     return result;
     }
 
@@ -1034,7 +1064,7 @@ pair_alj_params make_pair_alj_params(Scalar epsilon, Scalar sigma_i, Scalar sigm
     }
 
 //! Function to export the ALJ parameter type to python
-void export_shape_params(pybind11::module& m)
+void export_alj_params(pybind11::module& m)
 {
     pybind11::class_<pair_alj_params>(m, "pair_alj_params")
         .def(pybind11::init<>())

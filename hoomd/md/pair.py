@@ -2956,6 +2956,76 @@ class alj(ai_pair):
             epsilon, sigma_i, sigma_j, contact_sigma_i, contact_sigma_j, alpha,
             self.average_simplices, hoomd.context.exec_conf)
 
+
+    ### COPIED FROM dem.utils
+    def convexHull(self, vertices, tol=1e-6):
+        """Compute the 3D convex hull of a set of vertices and merge coplanar faces.
+
+        Args:
+            vertices (list): List of (x, y, z) coordinates
+            tol (float): Floating point tolerance for merging coplanar faces
+
+
+        Returns an array of vertices and a list of faces (vertex
+        indices) for the convex hull of the given set of vertice.
+
+        .. note::
+            This method uses scipy's quickhull wrapper and therefore requires scipy.
+
+        """
+        from scipy.spatial import cKDTree, ConvexHull;
+        from scipy.sparse.csgraph import connected_components;
+        from collections import defaultdict
+        import numpy as np
+
+        hull = ConvexHull(vertices);
+        # Triangles in the same face will be defined by the same linear equalities
+        dist = cKDTree(hull.equations);
+        trianglePairs = dist.query_pairs(tol);
+
+        connectivity = np.zeros((len(hull.simplices), len(hull.simplices)), dtype=np.int32);
+
+        for (i, j) in trianglePairs:
+            connectivity[i, j] = connectivity[j, i] = 1;
+
+        # connected_components returns (number of faces, cluster index for each input)
+        (_, joinTarget) = connected_components(connectivity, directed=False);
+        faces = defaultdict(list);
+        norms = defaultdict(list);
+        for (idx, target) in enumerate(joinTarget):
+            faces[target].append(idx);
+            norms[target] = hull.equations[idx][:3];
+
+        # a list of sets of all vertex indices in each face
+        faceVerts = [set(hull.simplices[faces[faceIndex]].flat) for faceIndex in sorted(faces)];
+        # normal vector for each face
+        faceNorms = [norms[faceIndex] for faceIndex in sorted(faces)];
+
+        # polygonal faces
+        polyFaces = [];
+        for (norm, faceIndices) in zip(faceNorms, faceVerts):
+            face = np.array(list(faceIndices), dtype=np.uint32);
+            N = len(faceIndices);
+
+            r = hull.points[face];
+            rcom = np.mean(r, axis=0);
+
+            # plane_{a, b}: basis vectors in the plane
+            plane_a = r[0] - rcom;
+            plane_a /= np.sqrt(np.sum(plane_a**2));
+            plane_b = np.cross(norm, plane_a);
+
+            dr = r - rcom[np.newaxis, :];
+
+            thetas = np.arctan2(dr.dot(plane_b), dr.dot(plane_a));
+
+            sortidx = np.argsort(thetas);
+
+            face = face[sortidx];
+            polyFaces.append(face.tolist());
+
+        return (hull.points.tolist(), polyFaces);
+
     def _set_cpp_shape(self, type_id, type_name):
         # Ensure that shape parameters are always 3D lists, even in 2D.
         # TODO: Ensure that the centroid is contained in the shape.
@@ -2993,23 +3063,30 @@ class alj(ai_pair):
                 rounding_radii = [rrs, rrs, rrs]
 
         # Process vertices
-        vertices = list(self.shape[type_name].get('vertices', [[0, 0, 0]]))
-        if ndim == 2:
-            vertices = [[v[0], v[1], 0] for v in vertices]
+        vertices = self.shape[type_name].get('vertices')
+        if vertices is not None:
+            vertices = list(vertices)
+            if ndim == 2:
+                vertices = [[v[0], v[1], 0] for v in vertices]
 
-        if len(vertices) <= ndim and rrs == 0:
-            raise ValueError("Your shape must have at least {} vertices in "
-                             "{} dimensions".format(
-                                 ndim+1, ndim));
+            if len(vertices) <= ndim and rrs == 0:
+                raise ValueError("Your shape must have at least {} vertices in "
+                                "{} dimensions".format(
+                                    ndim+1, ndim));
 
-        if np.linalg.norm(np.mean(vertices, axis=0)) > 1e-6:
-            raise ValueError(
-                "The vertices must be centered at the centroid of your shape. "
-                "Please subtract the centroid (e.g. via "
-                "`np.mean(vertices, axis=0)`) from the vertices.")
+            if np.linalg.norm(np.mean(vertices, axis=0)) > 1e-6:
+                raise ValueError(
+                    "The vertices must be centered at the centroid of your shape. "
+                    "Please subtract the centroid (e.g. via "
+                    "`np.mean(vertices, axis=0)`) from the vertices.")
+
+            vertices, faces = self.convexHull(vertices)
+        else:
+            vertices = [[0, 0, 0]]
+            faces = [[0]]
 
         param = _md.make_alj_shape_params(
-            vertices, rounding_radii, hoomd.context.exec_conf)
+            vertices, faces, rounding_radii, hoomd.context.exec_conf)
         self.cpp_force.setShape(type_id, param)
 
     def get_type_shapes(self):
