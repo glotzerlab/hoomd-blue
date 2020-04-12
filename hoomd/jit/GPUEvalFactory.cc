@@ -25,8 +25,6 @@ void GPUEvalFactory::compileGPU(
     const std::string& cuda_devrt_library_path,
     const unsigned int compute_arch)
     {
-    m_exec_conf->msg->notice(3) << "Compiling nvrtc code" << std::endl;
-
     std::vector<std::string> compile_options = {
         "--gpu-architecture=compute_"+std::to_string(compute_arch),
         "--relocatable-device-code=true",
@@ -54,8 +52,15 @@ void GPUEvalFactory::compileGPU(
 
     m_exec_conf->msg->notice(5) << code << std::endl;
 
-    // compile, substituting common headers with fake headers
-    m_program.reset(new jitify::Program(m_cache.program(code, 0, compile_options)));
+    // compile on each GPU, substituting common headers with fake headers
+    auto gpu_map = m_exec_conf->getGPUIds();
+    m_program.clear();
+    for (int idev = m_exec_conf->getNumActiveGPUs()-1; idev >= 0; idev--)
+        {
+        m_exec_conf->msg->notice(3) << "Compiling nvrtc code on GPU " << idev << std::endl;
+        cudaSetDevice(gpu_map[idev]);
+        m_program.push_back(m_cache[idev].program(code, 0, compile_options));
+        }
 
     m_exec_conf->msg->notice(3) << "nvrtc options (notice level 5 shows code):" << std::endl;
     for (unsigned int i = 0; i < compile_options.size(); ++i)
