@@ -20,11 +20,11 @@ class PYBIND11_EXPORT PatchEnergyJITGPU : public PatchEnergyJIT
                        const unsigned int array_size,
                        const std::string& code,
                        const std::string& kernel_name,
-                       const std::vector<std::string>& include_paths,
+                       const std::vector<std::string>& options,
                        const std::string& cuda_devrt_library_path,
                        unsigned int compute_arch)
             : PatchEnergyJIT(exec_conf, llvm_ir, r_cut, array_size),
-              m_gpu_factory(exec_conf, code, kernel_name, include_paths, cuda_devrt_library_path, compute_arch)
+              m_gpu_factory(exec_conf, code, kernel_name, options, cuda_devrt_library_path, compute_arch)
             {
             m_gpu_factory.setAlphaPtr(&m_alpha.front());
 

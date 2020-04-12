@@ -49,7 +49,7 @@ class GPUEvalFactory
         GPUEvalFactory(std::shared_ptr<ExecutionConfiguration> exec_conf,
                        const std::string& code,
                        const std::string& kernel_name,
-                       const std::vector<std::string>& include_paths,
+                       const std::vector<std::string>& options,
                        const std::string& cuda_devrt_library_path,
                        unsigned int compute_arch)
             : m_exec_conf(exec_conf), m_kernel_name(kernel_name)
@@ -63,7 +63,7 @@ class GPUEvalFactory
             // instantiate jitify cache
             m_cache.resize(this->m_exec_conf->getNumActiveGPUs());
 
-            compileGPU(code, kernel_name, include_paths, cuda_devrt_library_path, compute_arch);
+            compileGPU(code, kernel_name, options, cuda_devrt_library_path, compute_arch);
             }
 
         ~GPUEvalFactory()
@@ -270,7 +270,7 @@ class GPUEvalFactory
         //! Helper function for RTC
         void compileGPU(const std::string& code,
             const std::string& kernel_name,
-            const std::vector<std::string>& include_paths,
+            const std::vector<std::string>& options,
             const std::string& cuda_devrt_library_path,
             unsigned int compute_arch);
 

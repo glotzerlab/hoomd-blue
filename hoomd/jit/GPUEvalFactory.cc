@@ -21,7 +21,7 @@
 void GPUEvalFactory::compileGPU(
     const std::string& code,
     const std::string& kernel_name,
-    const std::vector<std::string>& include_paths,
+    const std::vector<std::string>& options,
     const std::string& cuda_devrt_library_path,
     const unsigned int compute_arch)
     {
@@ -38,8 +38,8 @@ void GPUEvalFactory::compileGPU(
         "-D__HIP_PLATFORM_NVCC__",
         };
 
-    for (auto p: include_paths)
-        compile_options.push_back("-I"+p);
+    for (auto p: options)
+        compile_options.push_back(p);
 
     char *compileParams[compile_options.size()];
     for (unsigned int i = 0; i < compile_options.size(); ++i)
