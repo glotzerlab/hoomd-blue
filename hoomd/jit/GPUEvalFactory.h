@@ -245,17 +245,23 @@ class GPUEvalFactory
                 {
                 cudaSetDevice(gpu_map[idev]);
 
-                CUdeviceptr ptr = m_program[idev].kernel(m_kernel_name)
-                    .instantiate(m_eval_threads[0], m_launch_bounds[0])
-                    .get_global_ptr("jit::d_union_params");
-
-                // copy the array pointer to the device
-                char *error;
-                CUresult custatus = cuMemcpyHtoD(ptr, &d_params, sizeof(jit::union_params_t *));
-                if (custatus != CUDA_SUCCESS)
+                for (auto e: m_eval_threads)
                     {
-                    cuGetErrorString(custatus, const_cast<const char **>(&error));
-                    throw std::runtime_error("cuMemcpyHtoD: "+std::string(error));
+                    for (auto l:  m_launch_bounds)
+                        {
+                        CUdeviceptr ptr = m_program[idev].kernel(m_kernel_name)
+                            .instantiate(e, l)
+                            .get_global_ptr("jit::d_union_params");
+
+                        // copy the array pointer to the device
+                        char *error;
+                        CUresult custatus = cuMemcpyHtoD(ptr, &d_params, sizeof(jit::union_params_t *));
+                        if (custatus != CUDA_SUCCESS)
+                            {
+                            cuGetErrorString(custatus, const_cast<const char **>(&error));
+                            throw std::runtime_error("cuMemcpyHtoD: "+std::string(error));
+                            }
+                        }
                     }
                 }
             #endif
