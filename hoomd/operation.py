@@ -94,7 +94,10 @@ class _Operation(metaclass=Loggable):
         elif attr in self._typeparam_dict.keys():
             self._setattr_typeparam(attr, value)
         else:
-            super().__setattr__(attr, value)
+            self._setattr_hook(attr, value)
+
+    def _setattr_hook(self, attr, value):
+        super().__setattr__(attr, value)
 
     def _setattr_param(self, attr, value):
         self._param_dict[attr] = value
