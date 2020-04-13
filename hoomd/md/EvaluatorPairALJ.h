@@ -72,10 +72,10 @@ struct alj_shape_params
         unsigned int counter = 0;
         for (unsigned int i = 0; i < N; ++i)
         {
-            pybind11::list faces_tmp = pybind11::cast<pybind11::list>(faces_[i]);
-            for (unsigned int j = 0; j < len(faces_tmp); ++j)
+            pybind11::list face_tmp = pybind11::cast<pybind11::list>(faces_[i]);
+            for (unsigned int j = 0; j < len(face_tmp); ++j)
             {
-                faces[counter] = pybind11::cast<unsigned int>(faces_tmp[j]);
+                faces[counter] = pybind11::cast<unsigned int>(face_tmp[j]);
                 ++counter;
             }
         }
@@ -166,6 +166,136 @@ pointSegmentDistance(const vec3<Scalar> &point, const vec3<Scalar> &e1, const ve
     delta = point - projection;
     }
 
+/*! Clip a value between 0 and 1 */
+template<typename Real>
+HOSTDEVICE inline Real clip(const Real &x)
+    {
+    return (x >= 0)*(x + (x > 1)*(1 - x));
+    }
+
+
+/*! Evaluate the force and torque contributions for particles i
+    and j, with centers of mass separated by rij. r0 is a vertex
+    in particle i, verticesj is a list of the vertices of j, and facesj
+    is a list of the indices of the polygon(s) that make up each face,
+    and vertex0 is the first vertex in that particular face.
+    r0 and calculations should be relative to the centers of mass of
+    the corresponding particle. The appropriate forces and torques
+    for particles i and j will be added to {force, torque}_{i, j}.
+*/
+HOSTDEVICE inline void pointFaceDistance(
+    const vec3<Scalar> &rij, const alj_shape_params *shape_j, const vec3<Scalar> &r0, const Scalar (&matj)[3][3], unsigned int face_j, vec3<Scalar> &delta, vec3<Scalar> &projection)
+    {
+    // distsq will be used to hold the square distance from r0 to the
+    // face of interest; work relative to particle j's center of mass
+    Scalar distsq(0);
+    // r0 from particle j's frame of reference
+    const vec3<Scalar> r0j(r0 - rij);
+    // rPrime is the closest point to r0
+    vec3<Scalar> rPrime;
+
+    // vertex0 is the reference point in particle j to "fan out" from
+    unsigned int start_idx = shape_j->face_offsets[face_j];
+    unsigned int end_idx = (face_j == shape_j->face_offsets.size() - 1) ? shape_j->faces.size() : shape_j->face_offsets[face_j+1];
+    const vec3<Scalar> vertex0(rotate(matj, shape_j->verts[shape_j->faces[start_idx]]));
+
+    // r0r0: vector from vertex0 to r0 relative to particle j
+    const vec3<Scalar> r0r0(r0j - vertex0);
+
+    // check distance for first edge of polygon
+    const vec3<Scalar> secondVertex(rotate(matj, shape_j->verts[shape_j->faces[start_idx+1]]));
+    const vec3<Scalar> rsec(secondVertex - vertex0);
+    Scalar lambda(dot(r0r0, rsec)/dot(rsec, rsec));
+    lambda = clip(lambda);
+    vec3<Scalar> closest(vertex0 + lambda*rsec);
+    vec3<Scalar> closestr0(closest - r0j);
+    Scalar closestDistsq(dot(closestr0, closestr0));
+    distsq = closestDistsq;
+    rPrime = closest;
+
+    // indices of three points in triangle of interest: vertex0Index, i, facesj[i]
+    // p01 and p02: two edge vectors of the triangle of interest
+    vec3<Scalar> p1, p2(secondVertex), p01, p02(secondVertex - vertex0);
+
+    // iterate through all fan triangles
+    for(unsigned int next_idx = start_idx+2; next_idx < end_idx; ++next_idx)
+        {
+        Scalar alpha(0), beta(0);
+
+        p1 = p2;
+        p2 = rotate(matj, shape_j->verts[shape_j->faces[next_idx]]);
+        p01 = p02;
+        p02 = p2 - vertex0;
+
+        // pc: vector normal to the triangle of interest
+        const vec3<Scalar> pc(cross(p01, p02));
+
+        // distance matrix A is:
+        // [ p01.x p02.x pc.x ]
+        // [ p01.y p02.y pc.y ]
+        // [ p01.z p02.z pc.z ]
+        Scalar magA(p01.x*(p02.y*pc.z - pc.y*p02.z) - p02.x*(p01.y*pc.z - pc.y*p01.z) +
+            pc.x*(p01.y*p02.z - p02.y*p01.z));
+
+        alpha = ((p02.y*pc.z - pc.y*p02.z)*r0r0.x + (pc.x*p02.z - p02.x*pc.z)*r0r0.y +
+            (p02.x*pc.y - pc.x*p02.y)*r0r0.z)/magA;
+        beta = ((pc.y*p01.z - p01.y*pc.z)*r0r0.x + (p01.x*pc.z - pc.x*p01.z)*r0r0.y +
+            (pc.x*p01.y - p01.x*pc.y)*r0r0.z)/magA;
+
+        alpha = clip(alpha);
+        beta = clip(beta);
+        const Scalar k(alpha + beta);
+
+        if(k > 1)
+            {
+            alpha /= k;
+            beta /= k;
+            }
+
+        // check distance for exterior edge of polygon
+        const vec3<Scalar> p12(p2 - p1);
+        Scalar lambda(dot(r0j - p1, p12)/dot(p12, p12));
+        lambda = clip(lambda);
+        vec3<Scalar> closest(p1 + lambda*p12);
+        vec3<Scalar> closestr0(closest - r0j);
+        Scalar closestDistsq(dot(closestr0, closestr0));
+        if(closestDistsq < distsq)
+            {
+            distsq = closestDistsq;
+            rPrime = closest;
+            }
+
+        // closest: closest point in triangle (in particle j's reference frame)
+        closest = vertex0 + alpha*p01 + beta*p02;
+        // closestr0: vector between r0 and closest
+        closestr0 = closest - r0j;
+        closestDistsq = dot(closestr0, closestr0);
+        if(closestDistsq < distsq)
+            {
+            distsq = closestDistsq;
+            rPrime = closest;
+            }
+
+        // if(k > 1 or beta <= 0.)
+        //     break;
+        }
+
+    // check distance for last edge of polygon
+    const vec3<Scalar> rlast(p2 - vertex0);
+    lambda = dot(r0r0, rlast)/dot(rlast, rlast);
+    lambda = clip(lambda);
+    closest = vertex0 + lambda*rlast;
+    closestr0 = closest - r0j;
+    closestDistsq = dot(closestr0, closestr0);
+    if(closestDistsq < distsq)
+        {
+        distsq = closestDistsq;
+        rPrime = closest;
+        }
+
+    projection = rPrime;
+    delta = r0j - projection;
+    }
 
 // Note: delta is from the edge to the point.
 HOSTDEVICE inline void
@@ -548,6 +678,67 @@ HOSTDEVICE inline void find_simplex(const ManagedArray<vec3<Scalar> > &verts, co
     }
 
 
+template <unsigned int ndim>
+HOSTDEVICE inline void find_face(const vec3<Scalar> &vector, const Scalar (&mat)[3][3], unsigned int &face, const alj_shape_params *shape)
+    {
+    // First identify the closest points
+    unsigned int unique_vectors[ndim];
+    Scalar angles[ndim];
+    for (unsigned int i = 0; i < ndim; ++i)
+        angles[i] = Scalar(M_PI);
+
+    vec3<Scalar> norm_vector = vector / sqrt(dot(vector, vector));
+
+    vec3<Scalar> rot_shift_vec = rotate(mat, shape->verts[0]);
+    vec3<Scalar> norm_rot_shift_vector = rot_shift_vec / sqrt(dot(rot_shift_vec, rot_shift_vec));
+    unique_vectors[0] = 0;
+    angles[0] = acos(dot(norm_rot_shift_vector, norm_vector));
+
+    for (unsigned int i = 1; i < shape->verts.size(); ++i)
+        {
+        rot_shift_vec = rotate(mat, shape->verts[i]);
+        norm_rot_shift_vector = rot_shift_vec / sqrt(dot(rot_shift_vec, rot_shift_vec));
+        Scalar angle = acos(dot(norm_rot_shift_vector, norm_vector));
+
+        unsigned int insertion_index = (angle < angles[0] ? 0 : (angle < angles[1] ? 1 : 2 ));
+        if (ndim == 3 && angle >= angles[2])
+            {
+            insertion_index = 3;
+            }
+
+        if (insertion_index < ndim)
+            {
+            for (unsigned int j = (ndim-1); j > insertion_index; --j)
+                {
+                unique_vectors[j] = unique_vectors[j-1];
+                angles[j] = angles[j-1];
+                }
+            unique_vectors[insertion_index] = i;
+            angles[insertion_index] = angle;
+            }
+        }
+
+    // Now loop over all faces and find the one that has the three closest points.
+    unsigned int num_faces = shape->face_offsets.size();
+    for (face = 0; face < num_faces; ++face)
+        {
+        unsigned int last_idx = (face == num_faces-1) ? shape->faces.size() : shape->face_offsets[face+1];
+        bool found0 = false, found1 = false, found2 = false;
+        for (unsigned int j = shape->face_offsets[face]; j < last_idx; ++j)
+            {
+            if (shape->faces[j] == unique_vectors[0])
+                found0 = true;
+            if (shape->faces[j] == unique_vectors[1])
+                found1 = true;
+            if (shape->faces[j] == unique_vectors[2])
+                found2 = true;
+            }
+        if (found0 && found1 && found2)
+            break;
+        }
+    }
+
+
 
 /*!
  * Anisotropic LJ potential.
@@ -758,6 +949,9 @@ class EvaluatorPairALJ
                 // not worthwhile. We should consider if we ever want to enable
                 // this during the HOOMD3.0 rewrite, though.
 
+                // TODO: Can prefilter whether we need to call the function
+                // based on whether the minimum distance is within rcut,
+                // otherwise we know that none of the interactions will count.
                 if (_params.average_simplices && shape_i->verts.size() > ndim && shape_j->verts.size() > ndim)
                     {
                     // If we have polytopes, we need to identify the entire
@@ -771,20 +965,13 @@ class EvaluatorPairALJ
                     // TODO: For 3D shapes other than tetrahedra this will need
                     // to be generalized to get the entire face, not just a
                     // triangular simplex.
-                    vec3<Scalar> support_vectors1[ndim], support_vectors2[ndim];
-                    find_simplex(shape_i->verts, b, mati, support_vectors1);
 
                     // Since simplex finding is based on angles, we need to compute dot
                     // products in the local frame of the second particle and then shift
                     // the final result back into the global frame (the body frame of
                     // particle 1).
-                    find_simplex(shape_j->verts, dr+a, matj, support_vectors2);
-                    for (unsigned int i = 0; i < ndim; ++i)
-                        {
-                        support_vectors2[i] += Scalar(-1.0)*dr;
-                        }
                     computeSimplexInteractions(
-                            support_vectors1, support_vectors2, contact_sphere_diameter_sq, four_epsilon, f, pair_eng, torque_i, torque_j);
+                            a, b, dr, mati, matj, contact_sphere_diameter_sq, four_epsilon, f, pair_eng, torque_i, torque_j);
                     }
                 else
                     {
@@ -857,7 +1044,8 @@ class EvaluatorPairALJ
          *  \param torque_j The current torque on particle j to which the torque computed in this method is added.
          */
         HOSTDEVICE inline void computeSimplexInteractions(
-                const vec3<Scalar> support_vectors1[ndim], const vec3<Scalar> support_vectors2[ndim],
+                const vec3<Scalar> &a, const vec3<Scalar> &b, const vec3<Scalar> &dr,
+                const Scalar (&mati)[3][3], const Scalar (&matj)[3][3],
                 const Scalar contact_sphere_diameter_sq, const Scalar &four_epsilon,
                 vec3<Scalar> &force, Scalar &pair_eng, Scalar3 &torque_i, Scalar3 &torque_j) {}
 
@@ -930,10 +1118,19 @@ class EvaluatorPairALJ
 
 template <>
 HOSTDEVICE inline void EvaluatorPairALJ<2>::computeSimplexInteractions(
-        const vec3<Scalar> support_vectors1[2], const vec3<Scalar> support_vectors2[2],
+        const vec3<Scalar> &a, const vec3<Scalar> &b, const vec3<Scalar> &dr,
+        const Scalar (&mati)[3][3], const Scalar (&matj)[3][3],
         const Scalar contact_sphere_diameter_sq, const Scalar &four_epsilon,
         vec3<Scalar> &force, Scalar &pair_eng, Scalar3 &torque_i, Scalar3 &torque_j)
     {
+    vec3<Scalar> support_vectors1[2], support_vectors2[2];
+    find_simplex(shape_i->verts, b, mati, support_vectors1);
+    find_simplex(shape_j->verts, dr+a, matj, support_vectors2);
+    for (unsigned int i = 0; i < 2; ++i)
+        {
+        support_vectors2[i] += Scalar(-1.0)*dr;
+        }
+
     vec3<Scalar> torquei, torquej;
     vec3<Scalar> projection, vec;
     // First compute the interaction of the verts on 1 to the edge on 2.
@@ -956,37 +1153,61 @@ HOSTDEVICE inline void EvaluatorPairALJ<2>::computeSimplexInteractions(
 
 template <>
 HOSTDEVICE inline void EvaluatorPairALJ<3>::computeSimplexInteractions(
-        const vec3<Scalar> support_vectors1[3], const vec3<Scalar> support_vectors2[3],
+        const vec3<Scalar> &a, const vec3<Scalar> &b, const vec3<Scalar> &dr,
+        const Scalar (&mati)[3][3], const Scalar (&matj)[3][3],
         const Scalar contact_sphere_diameter_sq, const Scalar &four_epsilon,
         vec3<Scalar> &force, Scalar &pair_eng, Scalar3 &torque_i, Scalar3 &torque_j)
     {
+    unsigned int face_i, face_j;
+    find_face<3>(b, mati, face_i, shape_i);
+    find_face<3>(dr+a, matj, face_j, shape_j);
+
     vec3<Scalar> torquei, torquej;
     vec3<Scalar> projection, vec;
+
+    unsigned int start_idx_i = shape_i->face_offsets[face_i];
+    unsigned int end_idx_i = (face_i == shape_i->face_offsets.size() - 1) ? shape_i->faces.size() : shape_i->face_offsets[face_i+1];
+    const vec3<Scalar> rij(Scalar(-1.0)*dr);
     // Compute the interaction of the verts on 1 to the face on 2.
-    for (unsigned int i = 0; i < 3; ++i)
+    for (unsigned int i = start_idx_i; i < end_idx_i; ++i)
         {
-        pointFaceDistance(support_vectors1[i], support_vectors2[0], support_vectors2[1], support_vectors2[2], vec, projection);
-        computeContactLJ(contact_sphere_diameter_sq, -vec, four_epsilon, support_vectors1[i], dr + support_vectors1[i] - vec, force, pair_eng, torquei, torquej);
+        const vec3<Scalar> vertex(rotate(mati, shape_i->verts[shape_i->faces[i]]));
+        pointFaceDistance(rij, shape_j, vertex, matj, face_j, vec, projection);
+
+        computeContactLJ(contact_sphere_diameter_sq, -vec, four_epsilon, vertex, dr + vertex - vec, force, pair_eng, torquei, torquej);
         }
 
+    unsigned int start_idx_j = shape_j->face_offsets[face_j];
+    unsigned int end_idx_j = (face_j == shape_j->face_offsets.size() - 1) ? shape_j->faces.size() : shape_j->face_offsets[face_j+1];
     // Compute the interaction of the verts on 2 to the edge on 1.
-    for (unsigned int i = 0; i < 3; ++i)
+    for (unsigned int i = start_idx_j; i < end_idx_j; ++i)
         {
-        pointFaceDistance(support_vectors2[i], support_vectors1[0], support_vectors1[1], support_vectors1[2], vec, projection);
-        computeContactLJ(contact_sphere_diameter_sq, vec, four_epsilon, projection, dr + support_vectors2[i], force, pair_eng, torquei, torquej);
+        const vec3<Scalar> vertex(rotate(matj, shape_j->verts[shape_j->faces[i]]));
+
+        pointFaceDistance(dr, shape_i, vertex, mati, face_i, vec, projection);
+
+        computeContactLJ(contact_sphere_diameter_sq, vec, four_epsilon, projection, dr + vertex, force, pair_eng, torquei, torquej);
         }
 
     // Compute interaction between pairs of edges.
-    for (unsigned int i = 0; i < 3; ++i)
-    {
-        for (unsigned int j = 0; j < 3; ++j)
+    for (unsigned int i = start_idx_i; i < end_idx_i; ++i)
         {
+        vec3<Scalar> e00(rotate(mati, shape_i->verts[shape_i->faces[i]]));
+        unsigned int idx_e01(i == end_idx_i-1 ? start_idx_i : i+1);
+        vec3<Scalar> e01(rotate(mati, shape_i->verts[shape_i->faces[idx_e01]]));
+
+        for (unsigned int j = start_idx_j; j < end_idx_j; ++j)
+            {
+            vec3<Scalar> e10(rotate(matj, shape_j->verts[shape_j->faces[j]]) + Scalar(-1.0)*dr);
+            unsigned int idx_e11(j == end_idx_j-1 ? start_idx_j : j+1);
+            vec3<Scalar> e11(rotate(matj, shape_j->verts[shape_j->faces[idx_e11]]) + Scalar(-1.0)*dr);
+
             vec3<Scalar> closestI, closestJ;
-            edgeEdgeDistance(support_vectors1[i], support_vectors1[(i+1)%3], support_vectors2[j], support_vectors2[(j+1)%3], closestI, closestJ);
+            edgeEdgeDistance(e00, e01, e10, e11, closestI, closestJ);
             vec3<Scalar> vec = closestJ-closestI;
-        computeContactLJ(contact_sphere_diameter_sq, vec, four_epsilon, closestI, dr + closestJ, force, pair_eng, torquei, torquej);
+            computeContactLJ(contact_sphere_diameter_sq, vec, four_epsilon, closestI, dr + closestJ, force, pair_eng, torquei, torquej);
+            }
         }
-    }
     torque_i = vec_to_scalar3(torquei);
     torque_j = vec_to_scalar3(torquej);
     }
