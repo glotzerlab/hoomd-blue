@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 
 class _CustomAction(ABC):
     flags = []
+    log_quantities = dict()
 
     def __init__(self):
         pass

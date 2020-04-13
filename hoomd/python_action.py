@@ -3,12 +3,20 @@ from hoomd.parameterdicts import ParameterDict
 from hoomd.typeconverter import OnlyType
 from hoomd.trigger import Trigger
 from hoomd.util import trigger_preprocessing
+from hoomd.logger import LoggerQuantity
 from hoomd import _hoomd
 
 
 class _PythonAction(_TriggeredOperation):
     def __init__(self, action, trigger=1):
         self._action = action
+        loggables = list(action.log_quantities)
+        if not all(isinstance(l, LoggerQuantity) for l in loggables.values()):
+            raise ValueError("Error wrapping {}. All advertised log "
+                             "quantities must be of type LoggerQuantity."
+                             "".format(action))
+        self._export_dict = loggables
+
         param_dict = ParameterDict(
             trigger=OnlyType(Trigger, preprocess=trigger_preprocessing))
         param_dict['trigger'] = trigger
