@@ -39,6 +39,11 @@ class _PythonAction(_TriggeredOperation):
 class _InternalPythonAction(_PythonAction):
     _use_default_setattr = {'_action'}
 
+    def __init__(self, trigger, *args, **kwargs):
+        super().__init__(self._internal_class(*args, **kwargs), trigger)
+        self._export_dict = {key: value.update_cls(self.__class__)
+                             for key, value in self._export_dict.items()}
+
     def __getattr__(self, attr):
         try:
             return super().__getattr__(attr)
