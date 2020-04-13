@@ -289,13 +289,13 @@ install(TARGETS _hoomd quickhull EXPORT HOOMDTargets
 
 ################ Python only modules
 # copy python modules to the build directory to make it a working python package
-set(files analyze.py
-          benchmark.py
+set(files benchmark.py
           cite.py
           comm.py
           compute.py
           conftest.py
           context.py
+          custom_action.py
           data.py
           device.py
           dump.py
@@ -307,7 +307,6 @@ set(files analyze.py
           operation.py
           operations.py
           option.py
-          update.py
           util.py
           variant.py
           lattice.py
@@ -317,6 +316,7 @@ set(files analyze.py
           state.py
           syncedlist.py
           parameterdicts.py
+          python_action.py
           trigger.py
           typeparam.py
           typeconverter.py

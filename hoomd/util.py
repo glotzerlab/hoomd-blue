@@ -10,6 +10,7 @@ from numpy import ndarray
 from inspect import isclass
 from copy import deepcopy
 from hoomd.trigger import Periodic
+from enum import IntEnum
 
 ## \internal
 # \brief Compatibility definition of a basestring for python 2/3
@@ -292,3 +293,9 @@ def raise_from_previous(previous):
             else:
                 prv_str += "in key {} ".format(s)
     raise ValueError("Expected a value, {}. Found RequiredArg.".format(prv_str))
+
+
+class ParticleDataFlags(IntEnum):
+    PRESSURE_TENSOR = 0
+    ROTATIONAL_KINETIC_ENERGY = 1
+    EXTERNAL_FIELD_VIRIAL = 2
