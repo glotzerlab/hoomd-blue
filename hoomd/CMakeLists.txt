@@ -49,6 +49,8 @@ set(_hoomd_sources Analyzer.cc
                    ParticleData.cc
                    ParticleGroup.cc
                    Profiler.cc
+                   PythonUpdater.cc
+                   PythonAnalyzer.cc
                    SFCPackTuner.cc
                    SignalHandler.cc
                    SnapshotSystemData.cc
@@ -137,6 +139,8 @@ set(_hoomd_headers
     ParticleGroup.cuh
     ParticleGroup.h
     Profiler.h
+    PythonUpdater.h
+    PythonAnalyzer.h
     RandomNumbers.h
     RNGIdentifiers.h
     SFCPackTunerGPU.cuh
