@@ -209,6 +209,7 @@ pointSegmentDistance(const vec3<Scalar> &point, const vec3<Scalar> &e1, const ve
     delta = point - projection;
     }
 
+
 /*! Clip a value between 0 and 1 */
 HOSTDEVICE inline Scalar clip(const Scalar &x)
     {
@@ -345,6 +346,7 @@ HOSTDEVICE inline void pointFaceDistance(
     projection = rPrime;
     delta = r0j - projection;
     }
+
 
 //! Compute the distance between two line segments in 3D.
 /*! This function is adapted from DEMEvaluator::edgeEdge. Like
@@ -519,7 +521,7 @@ HOSTDEVICE inline void quat2mat(const quat<Scalar> &q, Scalar (&mat)[3][3])
  * \param unique_vectors Array of vec3 to which the rotated vectors on the simplex are written (overwritten by references).
  */
 template <unsigned int ndim>
-HOSTDEVICE inline void findSimplex(const ManagedArray<vec3<Scalar> > &verts, const vec3<Scalar> &vector, const Scalar mat[3][3], vec3<Scalar> (&unique_vectors)[ndim])
+HOSTDEVICE inline void findSimplex(const ManagedArray<vec3<Scalar> > &verts, const vec3<Scalar> &vector, const Scalar (&mat)[3][3], vec3<Scalar> (&unique_vectors)[ndim])
     {
     Scalar angles[ndim];
     for (unsigned int i = 0; i < ndim; ++i)
@@ -635,7 +637,6 @@ HOSTDEVICE inline void findFace(const vec3<Scalar> &vector, const Scalar (&mat)[
             break;
         }
     }
-
 
 
 //! Anisotropic LJ (ALJ) potential.

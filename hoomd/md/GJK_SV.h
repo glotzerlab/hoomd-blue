@@ -13,7 +13,7 @@
 
 // Define matrix vector multiplication since it's faster than quat vector.
 template <typename Scalar>
-HOSTDEVICE inline vec3<Scalar> rotate(const Scalar mat[3][3], const vec3<Scalar>& v)
+HOSTDEVICE inline vec3<Scalar> rotate(const Scalar (&mat)[3][3], const vec3<Scalar> &v)
     {
     return vec3<Scalar>(
             mat[0][0]*v.x + mat[0][1]*v.y + mat[0][2]*v.z,
@@ -23,7 +23,7 @@ HOSTDEVICE inline vec3<Scalar> rotate(const Scalar mat[3][3], const vec3<Scalar>
     }
 
 
-HOSTDEVICE inline void support_polyhedron(const ManagedArray<vec3<Scalar> > &verts, const vec3<Scalar> &vector, const Scalar mat[3][3], const vec3<Scalar> shift, unsigned int &idx)
+HOSTDEVICE inline void support_polyhedron(const ManagedArray<vec3<Scalar> > &verts, const vec3<Scalar> &vector, const Scalar (&mat)[3][3], const vec3<Scalar> shift, unsigned int &idx)
     {
     // Compute the support function of the polyhedron.
     unsigned int index = 0;
