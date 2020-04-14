@@ -1,8 +1,13 @@
 from hoomd.python_action import _PythonAction, _InternalPythonAction
-from hoomd.custom_action import _CustomAction
+from hoomd.custom_action import _CustomAction, _InternalCustomAction
 
 
 class _CustomUpdater(_CustomAction):
+    def update(self, timestep):
+        return self.act(timestep)
+
+
+class _InternalCustomUpdater(_InternalCustomAction):
     def update(self, timestep):
         return self.act(timestep)
 

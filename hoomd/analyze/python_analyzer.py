@@ -1,9 +1,15 @@
 from hoomd.python_action import _PythonAction, _InternalPythonAction
-from hoomd.custom_action import _CustomAction
+from hoomd.custom_action import _CustomAction, _InternalCustomAction
 
 
 class CustomAnalyzer(_CustomAction):
-    pass
+    def analyze(self, timestep):
+        return self.act(timestep)
+
+
+class _InternalCustomAnayzer(_InternalCustomAction):
+    def analyze(self, timestep):
+        return self.act(timestep)
 
 
 class _PythonAnalyzer(_PythonAction):
