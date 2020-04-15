@@ -6,7 +6,9 @@ from hoomd.analyze.custom_analyzer import _InternalCustomAnalyzer
 from hoomd.operation import _Analyzer
 
 
-class Formatter:
+class _Formatter:
+    """Internal class for number and string formatting for CSV object."""
+
     def __init__(self, pretty=True,
                  max_precision=15, max_decimals_pretty=5,
                  pad=" ", align="^"):
@@ -79,14 +81,14 @@ class _CSVInternal(_InternalCustomAction):
             raise ValueError("Given Logger must have the scalar flag set.")
         else:
             self._logger = logger
-            self.sep = sep
+            self._sep = sep
             # Ensure that columns are always at least ten characters
             self._min_width = max(10, 10 if pretty else max_precision + 6)
             # Used to truncate namespaces
             self._max_len_namespace = max_len_namespace
             # Records the current keys and their lengths
             self._cur_headers = dict()
-            self._fmt = Formatter(pretty, max_precision)
+            self._fmt = _Formatter(pretty, max_precision)
             # the output file or stdout
             self._output = output
 
