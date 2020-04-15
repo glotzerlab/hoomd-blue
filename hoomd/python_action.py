@@ -9,6 +9,13 @@ from hoomd import _hoomd
 
 
 class _PythonAction(_TriggeredOperation):
+    """Wrapper for user created ``Action``s.
+
+    A basic wrapper that allows for Python object inherenting from
+    :py:class:`hoomd.custom_action.CustomAction` to be attached to a simulation.
+    To see how to implement a custom Python ``Action``, look at the
+    documentation for :py:class:`hoomd.custom_action._CustomAction`.
+    """
     def __init__(self, action, trigger=1):
         if not issubclass(action, _CustomAction):
             raise ValueError("action must be a subclass of "
@@ -34,13 +41,20 @@ class _PythonAction(_TriggeredOperation):
         self._action.attach(simulation)
 
     def act(self, timestep):
+        """Perform the action of the custom action if attached."""
         if self.is_attached:
-            getattr(self._cpp_obj, self._cpp_action)(timestep)
+            self._action.act(timestep)
         else:
             pass
 
 
 class _InternalPythonAction(_PythonAction):
+    """Internal class for Python ``Action``s.
+
+    Allows access to the owned action's attributes through modifying the
+    __getattr__ and __setattr__. This is to make the Python ``Action``s appear
+    to be one object even though 2 are needed.
+    """
     _use_default_setattr = {'_action'}
 
     def __init__(self, trigger, *args, **kwargs):
