@@ -12,12 +12,19 @@
 #include <cuda_runtime.h>
 #include <nvrtc.h>
 
+//! uncomment to debug JIT compilation errors
+//#define DEBUG_JIT
+
+#ifdef DEBUG_JIT
+#define JITIFY_PRINT_LOG 1
+#define JITIFY_PRINT_LINKER_LOG 1
+#else
 #define JITIFY_PRINT_LOG 0
+#endif
+
 #define JITIFY_PRINT_INSTANTIATION 0
 #define JITIFY_PRINT_SOURCE 0
-#define JITIFY_PRINT_LOG 0
 #define JITIFY_PRINT_PTX 0
-//#define JITIFY_PRINT_LINKER_LOG
 #define JITIFY_PRINT_LAUNCH 0
 #define JITIFY_PRINT_HEADER_PATHS 0
 
