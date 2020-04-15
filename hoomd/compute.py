@@ -291,7 +291,6 @@ class thermoHMA(_compute):
     """
 
     def __init__(self, group, temperature, harmonicPressure=0):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _compute.__init__(self);
@@ -301,7 +300,7 @@ class thermoHMA(_compute):
             suffix = '_' + group.name;
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_compute = _hoomd.ComputeThermoHMA(hoomd.context.current.system_definition, group.cpp_group, temperature, harmonicPressure, suffix);
         else:
             self.cpp_compute = _hoomd.ComputeThermoHMAGPU(hoomd.context.current.system_definition, group.cpp_group, temperature, harmonicPressure, suffix);
@@ -323,11 +322,8 @@ class thermoHMA(_compute):
 
         A disabled thermoHMA compute can be re-enabled with :py:meth:`enable()`.
         """
-        hoomd.util.print_status_line()
 
-        hoomd.util.quiet_status()
         _compute.disable(self)
-        hoomd.util.unquiet_status()
 
     def enable(self):
         R""" Enables the thermoHMA compute.
@@ -338,11 +334,7 @@ class thermoHMA(_compute):
 
         See :py:meth:`disable()`.
         """
-        hoomd.util.print_status_line()
-
-        hoomd.util.quiet_status()
         _compute.enable(self)
-        hoomd.util.unquiet_status()
 
 ## \internal
 # \brief Returns the previously created compute.thermo with the same group, if created. Otherwise, creates a new
