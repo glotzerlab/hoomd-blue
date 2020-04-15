@@ -10,20 +10,22 @@ class LoadBalancer(_Tuner):
     R""" Adjusts the boundaries of a domain decomposition on a regular 3D grid.
 
     Args:
-        x (bool): If True, balance in x dimension.
-        y (bool): If True, balance in y dimension.
-        z (bool): If True, balance in z dimension.
-        tolerance (float): Load imbalance tolerance (if <= 1.0, balance every
-            step).
-        maxiter (int): Maximum number of iterations to attempt in a single step.
-        period (int): Balancing will be attempted every \a period time steps
-        phase (int): When -1, start on the current time step. When >= 0, execute
-            on steps where *(step + phase) % period == 0*.
+        trigger (hoomd.trigger.Trigger): A ``Trigger`` object to activate the
+            ``LoadBalancer``. If passed an integer, a
+            :py:class:`hoomd.trigger.Periodic` trigger will be used with the
+            integer as its period.
+        x (bool, optional): If True, balance in x dimension, defaults to True.
+        y (bool, optional): If True, balance in y dimension, defaults to True.
+        z (bool, optional): If True, balance in z dimension, defaults to True.
+        tolerance (float, optional): Load imbalance tolerance (if <= 1.0,
+            balance every step), defaults to 1.02.
+        max_iterations (int, optional): Maximum number of iterations to attempt
+            in a single step, defaults to 1.
 
-    Every *period* steps, the boundaries of the processor domains are adjusted
-    to distribute the particle load close to evenly between them. The load
-    imbalance is defined as the number of particles owned by a rank divided by
-    the average number of particles per rank if the particles had a uniform
+    Every ``trigger`` activation, the boundaries of the processor domains are
+    adjusted to distribute the particle load close to evenly between them. The
+    load imbalance is defined as the number of particles owned by a rank divided
+    by the average number of particles per rank if the particles had a uniform
     distribution:
 
     .. math::
