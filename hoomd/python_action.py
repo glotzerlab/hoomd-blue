@@ -1,5 +1,6 @@
 from hoomd.operation import _TriggeredOperation
 from hoomd.parameterdicts import ParameterDict
+from hoomd.custom_action import _CustomAction
 from hoomd.typeconverter import OnlyType
 from hoomd.trigger import Trigger
 from hoomd.util import trigger_preprocessing
@@ -9,6 +10,9 @@ from hoomd import _hoomd
 
 class _PythonAction(_TriggeredOperation):
     def __init__(self, action, trigger=1):
+        if not issubclass(action, _CustomAction):
+            raise ValueError("action must be a subclass of "
+                             "hoomd.custom_action._CustomAction.")
         self._action = action
         loggables = list(action.log_quantities)
         if not all(isinstance(l, LoggerQuantity) for l in loggables.values()):
