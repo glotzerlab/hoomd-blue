@@ -190,20 +190,6 @@ void ComputeThermoHMA::computeProperties()
     if (m_prof) m_prof->pop();
     }
 
-#ifdef ENABLE_MPI
-void ComputeThermoHMA::reduceProperties()
-    {
-    if (m_properties_reduced) return;
-
-    // reduce properties
-    ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::readwrite);
-    MPI_Allreduce(MPI_IN_PLACE, h_properties.data, thermoHMA_index::num_quantities, MPI_HOOMD_SCALAR,
-            MPI_SUM, m_exec_conf->getMPICommunicator());
-
-    m_properties_reduced = true;
-    }
-#endif
-
 void export_ComputeThermoHMA(py::module& m)
     {
     py::class_<ComputeThermoHMA, Compute, std::shared_ptr<ComputeThermoHMA> >(m,"ComputeThermoHMA")
