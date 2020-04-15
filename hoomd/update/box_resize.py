@@ -8,6 +8,33 @@ from hoomd._hoomd import BoxResizeUpdater
 
 
 class BoxResize(_Updater):
+    """Resizes the box between an initial and final box.
+
+    When part of a :py:class:`hoomd.Simulation` ``updater`` list, this object
+    will resize the box between the initial and final boxes passed. The behavior
+    a linear interpolation between the initial and final boxes where the minimum
+    of the variant represents initial box and the maximum represents the final
+    box. All values between the minimum and maximum result in a box that is the
+    interpolation of the three lengths and tilt factors of the initial and final
+    box.
+
+    Note:
+        The passed :py:class:`hoomd.variant.Variant` must be well behaved (i.e.
+        it must have a true minimum and maximum) or the behavior of the updater
+        is undefined.
+
+    Args:
+        initial_box (hoomd.box.Box): The box associated with the minimum of the
+            passed variant.
+        final_box (hoomd.box.Box): The box associated with the maximum of the
+            passed variant.
+        variant (hoomd.variant.Variant): A variant used to interpolate between
+            the two boxes.
+        trigger (hoomd.trigger.Trigger): The trigger to activate this updater.
+        scale_particles (bool): Whether to scale particles to the new box
+            dimensions when the box is resized.
+
+    """
     def __init__(self, initial_box, final_box,
                  variant, trigger=1, scale_particles=True):
         params = ParameterDict(
@@ -29,6 +56,19 @@ class BoxResize(_Updater):
         super().attach(simulation)
 
     def get_box(self, timestep):
+        """Get the box for a given timestep.
+
+        This method allows for the querying of the box that would be used for a
+        given timestep.
+
+        Args:
+            timestep (int): The timestep to use for determining the resized
+                box.
+
+        Returns:
+            box (hoomd.box.Box): The box that would be used for resizing at the
+                given timestep.
+        """
         if self.is_attached:
             timestep = int(timestep)
             if timestep < 0:
