@@ -100,10 +100,30 @@ class Box:
     * Full spec ``Box(Lx=1, Ly=2, Lz=3, xy=1., xz=2., yz=3.)``
     """
 
+    # Constructors
     def __init__(self, Lx=1.0, Ly=1.0, Lz=1.0, xy=0.0, xz=0.0, yz=0.0):
         self._cpp_obj = _hoomd.BoxDim(Lx, Ly, Lz)
         self._cpp_obj.setTiltFactors(xy, xz, yz)
         self._lattice_vectors = _LatticeVectors(self._cpp_obj)
+
+    @classmethod
+    def cube(cls, L, dimensions=3):
+        if dimensions == 3:
+            return cls(L, L, L, 0, 0, 0)
+        else:
+            return cls(L, L, 0, 0, 0, 0)
+
+    @classmethod
+    def from_matrix(cls, box_matrix):
+        b = cls()
+        b.matrix = box_matrix
+        return b
+
+    @classmethod
+    def _from_cpp(self, cpp_obj):
+        b = Box()
+        b._cpp_obj = cpp_obj
+        return b
 
     # Dimension based properties
     @property
@@ -291,71 +311,7 @@ class Box:
             raise ValueError("Either one or three scaling factors need to be "
                              "provided.")
 
-    def wrap(self, v, image=(0, 0, 0)):
-        R""" Wrap a vector using the periodic boundary conditions.
-
-        Args:
-            v (Sequence[float]): The vector to wrap of length 3.
-            image (Sequence[float]): A vector of integer image flags that will
-                be updated (optional).
-
-        Returns:
-            The wrapped vector and the image flags as two numpy arrays.
-        """
-        u = make_scalar3(v, name='v')
-        image = make_int3(image, name="img")
-        c = make_char3([0, 0, 0])
-        self._cpp_obj.wrap(u, image, c)
-        return _to_three_array(u), _to_three_array(image)
-
-    def min_image(self, v):
-        R""" Apply the minimum image convention to a vector.
-
-        Args:
-            v (Sequence[float]): The vector to apply minimum image to.
-
-        Returns:
-            The minimum image as a tuple.
-        """
-        u = make_scalar3(v, name="v")
-        return _to_three_array(self._cpp_obj.minImage(u))
-
-    def make_fraction(self, v):
-        R""" Scale a vector to fractional coordinates.
-
-        make_fraction takes a vector in a box and computes a vector where all
-        components are between 0 and 1 representing their scaled position.
-
-        Args:
-            v (Sequence[float]): The vector to convert to fractional
-                coordinates.
-
-        Returns:
-            The scaled vector.
-        """
-        u = make_scalar3(v, name="v")
-        w = make_scalar3([0., 0., 0.])
-        return _to_three_array(self._cpp_obj.makeFraction(u, w))
-
-    @classmethod
-    def cube(cls, L, dimensions=3):
-        if dimensions == 3:
-            return cls(L, L, L, 0, 0, 0)
-        else:
-            return cls(L, L, 0, 0, 0, 0)
-
-    @classmethod
-    def from_matrix(cls, box_matrix):
-        b = cls()
-        b.matrix = box_matrix
-        return b
-
-    @classmethod
-    def _from_cpp(self, cpp_obj):
-        b = Box()
-        b._cpp_obj = cpp_obj
-        return b
-
+    # Magic Methods
     def __repr__(self):
         return "Box(Lx={}, Ly={}, Lz={}, xy={}, xz={}, yz={})".format(
             self.Lx, self.Ly, self.Lz, self.xy, self.xz, self.yz)
@@ -368,3 +324,49 @@ class Box:
 
     def __neq__(self, other):
         return self._cpp_obj != other._cpp_obj
+
+#     def wrap(self, v, image=(0, 0, 0)):
+#         R""" Wrap a vector using the periodic boundary conditions.
+
+#         Args:
+#             v (Sequence[float]): The vector to wrap of length 3.
+#             image (Sequence[float]): A vector of integer image flags that will
+#                 be updated (optional).
+
+#         Returns:
+#             The wrapped vector and the image flags as two numpy arrays.
+#         """
+#         u = make_scalar3(v, name='v')
+#         image = make_int3(image, name="img")
+#         c = make_char3([0, 0, 0])
+#         self._cpp_obj.wrap(u, image, c)
+#         return _to_three_array(u), _to_three_array(image)
+
+#     def min_image(self, v):
+#         R""" Apply the minimum image convention to a vector.
+
+#         Args:
+#             v (Sequence[float]): The vector to apply minimum image to.
+
+#         Returns:
+#             The minimum image as a tuple.
+#         """
+#         u = make_scalar3(v, name="v")
+#         return _to_three_array(self._cpp_obj.minImage(u))
+
+#     def make_fraction(self, v):
+#         R""" Scale a vector to fractional coordinates.
+
+#         make_fraction takes a vector in a box and computes a vector where all
+#         components are between 0 and 1 representing their scaled position.
+
+#         Args:
+#             v (Sequence[float]): The vector to convert to fractional
+#                 coordinates.
+
+#         Returns:
+#             The scaled vector.
+#         """
+#         u = make_scalar3(v, name="v")
+#         w = make_scalar3([0., 0., 0.])
+#         return _to_three_array(self._cpp_obj.makeFraction(u, w))
