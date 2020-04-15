@@ -77,7 +77,9 @@ class _CSVInternal(_InternalCustomAction):
     def __init__(self, logger, output=stdout, sep='.',
                  pretty=True, max_precision=10, max_len_namespace=None):
         # Only accept loggers with scalar and string quantities
-        if set(logger.flags).difference(['scalar', 'string']) != set():
+        flags = set(logger.flags)
+        if flags.difference(['scalar', 'string']) != set() \
+                or 'scalar' not in flags:
             raise ValueError("Given Logger must have the scalar flag set.")
         else:
             self._logger = logger
