@@ -2,7 +2,7 @@ from hoomd.python_action import _PythonAction, _InternalPythonAction
 from hoomd.custom_action import _CustomAction, _InternalCustomAction
 
 
-class CustomAnalyzer(_CustomAction):
+class _CustomAnalyzer(_CustomAction):
     def analyze(self, timestep):
         return self.act(timestep)
 
