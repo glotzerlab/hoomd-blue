@@ -35,10 +35,6 @@
      - pressure (valid for the all group)
      - potential energy
 
-    Values available all the time
-     - number of degrees of freedom (ndof)
-     - number of particles in the group
-
     All quantities are made available for the logger. ComputeThermo can be given a suffix which it will append
     to each quantity provided to the logger. Typical usage is to provide _groupname as the suffix so that properties
     of different groups can be logged seperately (e.g. pressureHMA_group1 and pressureHMA_group2).
