@@ -136,5 +136,34 @@ class _CSVInternal(_InternalCustomAction):
         self.log()
 
 
-class CSV(_InternalPythonAnalyzer, _Analyzer):
+class CSV(_InternalCustomAnalyzer, _Analyzer):
+    """A space separate value file backend for a Logger.
+
+    This can serve as a way to output scalar simulation data to standard out.
+    However, this is useable to store simulation scalar data to a file as well.
+
+    Args:
+        logger (hoomd.logger.Logger): The logger to query for output. The
+            'scalar' flag must be set on the logger, and the 'string' flag is
+            optional.
+        output (file, optional): A file-like object to output the data from,
+            defaults to standard out.
+        sep (string, optional): String to use to separate names in the logger's
+            namespace, defaults to '.'.
+        pretty (bool, optional): Flags whether to attempt to make output
+            prettier and easier to read, defaults to True. To make the ouput
+            easier to read, the output will compromise on outputted precision
+            for improved readability.
+        max_precision (int, optional): If pretty is not set, then this controls
+            the maximum precision to use when outputing numerical values,
+            defaults to 10.
+        max_len_namespace (int, optional): If not None limit the outputted
+            namespace to ``max_len_namespace`` names, defaults to None. When not
+            None, names are grabbed from the most specific to the least. For
+            example, if set to 2 the namespace 'hoomd.md.pair.LJ' would be set
+            to 'pair.LJ'.
+
+    Note:
+        This only works with scalar and string quantities.
+    """
     _internal_class = _CSVInternal
