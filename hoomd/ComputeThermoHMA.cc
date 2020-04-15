@@ -71,8 +71,6 @@ ComputeThermoHMA::ComputeThermoHMA(std::shared_ptr<SystemDefinition> sysdef,
 ComputeThermoHMA::~ComputeThermoHMA()
     {
     m_exec_conf->msg->notice(5) << "Destroying ComputeThermoHMA" << endl;
-
-    //m_pdata->getParticleSortSignal().disconnect<ComputeThermoHMA, &ComputeThermoHMA::slotParticleSort>(this);
     }
 
 /*! Calls computeProperties if the properties need updating
@@ -159,7 +157,6 @@ void ComputeThermoHMA::computeProperties()
     unsigned int virial_pitch = net_virial.getPitch();
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
-        //unsigned int tag = m_group->getMemberTag(group_idx);
         unsigned int j = m_group->getMemberIndex(group_idx);
         unsigned int tag = h_tag.data[group_idx];
         pe_total += (double)h_net_force.data[j].w;
