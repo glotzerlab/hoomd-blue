@@ -4,7 +4,7 @@ from hoomd.parameterdicts import ParameterDict
 
 class _CustomAction(ABC):
     flags = []
-    log_quantities = []
+    log_quantities = {}
 
     def __init__(self):
         pass
