@@ -209,7 +209,7 @@ std::shared_ptr<PotentialPairMorse> base_class_morse_creator(std::shared_ptr<Sys
     return std::shared_ptr<PotentialPairMorse>(new PotentialPairMorse(sysdef, nlist));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! PotentialPairMorseGPU creator for unit tests
 std::shared_ptr<PotentialPairMorseGPU> gpu_morse_creator(std::shared_ptr<SystemDefinition> sysdef,
                                                       std::shared_ptr<NeighborList> nlist)
@@ -227,7 +227,7 @@ UP_TEST( MorseForce_particle )
     morse_force_particle_test(morse_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-# ifdef ENABLE_CUDA
+# ifdef ENABLE_HIP
 //! test case for particle test on GPU
 UP_TEST( MorseForceGPU_particle )
     {

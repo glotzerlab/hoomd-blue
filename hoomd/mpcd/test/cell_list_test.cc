@@ -4,9 +4,9 @@
 // Maintainer: mphoward
 
 #include "hoomd/mpcd/CellList.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/mpcd/CellListGPU.h"
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 
 #include "hoomd/SnapshotSystemData.h"
 #include "hoomd/test/upp11_config.h"
@@ -616,7 +616,7 @@ UP_TEST( mpcd_cell_list_embed_test )
     celllist_embed_test<mpcd::CellList>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! dimension test case for MPCD CellListGPU class
 UP_TEST( mpcd_cell_list_gpu_dimensions )
     {
@@ -640,4 +640,4 @@ UP_TEST( mpcd_cell_list_gpu_embed_test )
     {
     celllist_embed_test<mpcd::CellListGPU>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP

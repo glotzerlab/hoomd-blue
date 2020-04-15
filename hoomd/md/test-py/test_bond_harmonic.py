@@ -44,7 +44,7 @@ class bond_harmonic_tests (unittest.TestCase):
         md.integrate.nve(all);
         # remove a particle
         del(self.s.particles[0])
-        if comm.get_num_ranks() == 1:
+        if context.current.device.comm.num_ranks == 1:
             self.assertRaises(RuntimeError, run, 100);
         else:
             # in MPI simulations, we cannot check for an assertion during a simulation

@@ -5,6 +5,10 @@
 #include "hoomd/VectorMath.h"
 #include "hoomd/RandomNumbers.h"
 
+#include "hoomd/AABB.h"
+#include "hoomd/hpmc/HPMCPrecisionSetup.h"
+#include "hoomd/hpmc/OBB.h"
+
 /*! \file Moves.h
     \brief Trial move generators
 */
@@ -14,7 +18,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -59,8 +63,8 @@ DEVICE inline void move_translate(vec3<Scalar>& v, RNG& rng, Scalar d, unsigned 
 
     When \a dim == 2, a random rotation about (0,0,1) is generated. When \a dim == 3 a random 3D rotation is generated.
 */
-template <class RNG>
-DEVICE void move_rotate(quat<Scalar>& orientation, RNG& rng, Scalar a, unsigned int dim)
+template <unsigned int dim, class RNG>
+DEVICE void move_rotate(quat<Scalar>& orientation, RNG& rng, Scalar a)
     {
     if (dim==2)
         {
@@ -128,24 +132,25 @@ DEVICE inline bool isActive(Scalar3 pos, const BoxDim& box, Scalar3 ghost_fracti
 // see Shoemake, Uniform random rotations, Graphics Gems III, p.142-132
 // and http://math.stackexchange.com/questions/131336/uniform-random-quaternion-in-a-restricted-angle-range
 template<class RNG>
-DEVICE inline quat<Scalar> generateRandomOrientation(RNG& rng)
+DEVICE inline quat<Scalar> generateRandomOrientation(RNG& rng, unsigned int ndim)
     {
-    Scalar u1 = hoomd::detail::generate_canonical<Scalar>(rng);
-    Scalar u2 = hoomd::detail::generate_canonical<Scalar>(rng);
-    Scalar u3 = hoomd::detail::generate_canonical<Scalar>(rng);
-    return quat<Scalar>(fast::sqrt(u1)*fast::cos(Scalar(2.0*M_PI)*u3),
-        vec3<Scalar>(fast::sqrt(Scalar(1.0)-u1)*fast::sin(Scalar(2.0*M_PI)*u2),
-            fast::sqrt(Scalar(1.0-u1))*fast::cos(Scalar(2.0*M_PI)*u2),
-            fast::sqrt(u1)*fast::sin(Scalar(2.0*M_PI)*u3)));
-
-    }
-
-//! Generate a random rotation about the z-axis
-template<class RNG>
-DEVICE inline quat<Scalar> generateRandomOrientation2D(RNG& rng)
-    {
-    Scalar theta = hoomd::UniformDistribution<Scalar>(-M_PI, M_PI)(rng);
-    return quat<Scalar>(fast::cos(theta/2.0), vec3<Scalar>(0, 0, fast::sin(theta/2.0)));
+    // 2D just needs a random rotation in the plane
+    if (ndim==2)
+        {
+        Scalar angle = hoomd::UniformDistribution<Scalar>(-M_PI, M_PI)(rng);
+        vec3<Scalar> axis(Scalar(0), Scalar(0), Scalar(1));
+        return quat<Scalar>::fromAxisAngle(axis, angle);
+        }
+    else
+        {
+        Scalar u1 = hoomd::detail::generate_canonical<Scalar>(rng);
+        Scalar u2 = hoomd::detail::generate_canonical<Scalar>(rng);
+        Scalar u3 = hoomd::detail::generate_canonical<Scalar>(rng);
+        return quat<Scalar>(fast::sqrt(u1)*fast::cos(Scalar(2.0*M_PI)*u3),
+            vec3<Scalar>(fast::sqrt(Scalar(1.0)-u1)*fast::sin(Scalar(2.0*M_PI)*u2),
+                fast::sqrt(Scalar(1.0-u1))*fast::cos(Scalar(2.0*M_PI)*u2),
+                fast::sqrt(u1)*fast::sin(Scalar(2.0*M_PI)*u3)));
+        }
     }
 
 /* Generate a uniformly distributed random position in a sphere
@@ -154,7 +159,7 @@ DEVICE inline quat<Scalar> generateRandomOrientation2D(RNG& rng)
  * \param R radius of insertion sphere
  */
 template<class RNG>
-inline vec3<Scalar> generatePositionInSphere(RNG& rng, vec3<Scalar> pos_sphere, Scalar R)
+DEVICE inline vec3<Scalar> generatePositionInSphere(RNG& rng, vec3<Scalar> pos_sphere, Scalar R)
     {
     // random normalized vector
     vec3<Scalar> n;
@@ -219,6 +224,51 @@ inline vec3<Scalar> generatePositionInSphericalCap(RNG& rng, const vec3<Scalar>&
 
     // test depletant position
     return pos_sphere+r_cone;
+    }
+
+/* Generate a uniformly distributed random position in an AABB
+ *
+ * \param rng The random number generator
+ * \param aabb The AABB to sample in
+ */
+template<class RNG>
+DEVICE inline vec3<Scalar> generatePositionInAABB(RNG& rng, const detail::AABB& aabb, unsigned int ndim)
+    {
+    vec3<Scalar> p;
+    vec3<Scalar> lower = aabb.getLower();
+    vec3<Scalar> upper = aabb.getUpper();
+
+    p.x = hoomd::UniformDistribution<Scalar>(lower.x, upper.x)(rng);
+    p.y = hoomd::UniformDistribution<Scalar>(lower.y, upper.y)(rng);
+    if (ndim == 3)
+        p.z = hoomd::UniformDistribution<Scalar>(lower.z, upper.z)(rng);
+    else
+        p.z = Scalar(0);
+
+    return p;
+    }
+
+/* Generate a uniformly distributed random position in an OBB
+ *
+ * \param rng The random number generator
+ * \param aabb The OBB to sample in
+ * \param dim Dimensionality of system
+ */
+template<class RNG>
+DEVICE inline vec3<OverlapReal> generatePositionInOBB(RNG& rng, const detail::OBB& obb, unsigned int dim)
+    {
+    vec3<OverlapReal> p;
+    vec3<OverlapReal> lower = -obb.lengths;
+    vec3<OverlapReal> upper = obb.lengths;
+
+    p.x = hoomd::UniformDistribution<OverlapReal>(lower.x, upper.x)(rng);
+    p.y = hoomd::UniformDistribution<OverlapReal>(lower.y, upper.y)(rng);
+    if (dim == 3)
+        p.z = hoomd::UniformDistribution<OverlapReal>(lower.z, upper.z)(rng);
+    else
+        p.z = OverlapReal(0.0);
+
+    return rotate(obb.rotation,p)+obb.center;
     }
 
 /*! Reflect a point in R3 around a line (pi rotation), given by a point p through which it passes

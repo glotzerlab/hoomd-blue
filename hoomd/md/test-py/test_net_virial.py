@@ -3,6 +3,7 @@
 from __future__ import print_function
 from __future__ import division
 
+import hoomd
 from hoomd import *
 from hoomd import md
 context.initialize()
@@ -19,7 +20,7 @@ class compute_net_virial_tests (unittest.TestCase):
         self.N = 1000
         self.snap = data.make_snapshot(N=self.N, particle_types=['A'], box=data.boxdim(L=self.L))
 
-        if comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             for i in range(self.N):
                 self.snap.particles.position[i] = numpy.random.random( 3)
                 #no kinetic contribution to the pressure wanted

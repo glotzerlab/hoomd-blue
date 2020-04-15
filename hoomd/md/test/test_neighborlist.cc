@@ -16,7 +16,7 @@
 #include "hoomd/md/NeighborListTree.h"
 #include "hoomd/Initializers.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/NeighborListGPU.h"
 #include "hoomd/md/NeighborListGPUBinned.h"
 #include "hoomd/md/NeighborListGPUStencil.h"
@@ -1423,7 +1423,7 @@ UP_TEST( NeighborListTree_comparison )
     neighborlist_comparison_test<NeighborListBinned, NeighborListTree>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 ///////////////
 // BINNED GPU
 ///////////////

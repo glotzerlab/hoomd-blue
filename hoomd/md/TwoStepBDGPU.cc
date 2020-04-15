@@ -93,6 +93,7 @@ void TwoStepBDGPU::integrateStepOne(unsigned int timestep)
 
     bool aniso = m_aniso;
 
+    #ifdef __HIP_PLATFORM_NVCC__
     if (m_exec_conf->allConcurrentManagedAccess())
         {
         // prefetch gammas
@@ -105,6 +106,7 @@ void TwoStepBDGPU::integrateStepOne(unsigned int timestep)
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
+    #endif
 
     m_exec_conf->beginMultiGPU();
 
@@ -151,7 +153,7 @@ void TwoStepBDGPU::integrateStepTwo(unsigned int timestep)
 
 void export_TwoStepBDGPU(py::module& m)
     {
-    py::class_<TwoStepBDGPU, std::shared_ptr<TwoStepBDGPU> >(m, "TwoStepBDGPU", py::base<TwoStepBD>())
+    py::class_<TwoStepBDGPU, TwoStepBD, std::shared_ptr<TwoStepBDGPU> >(m, "TwoStepBDGPU")
         .def(py::init< std::shared_ptr<SystemDefinition>,
                                std::shared_ptr<ParticleGroup>,
                                std::shared_ptr<Variant>,

@@ -9,11 +9,11 @@
  */
 
 #include "EAMForceComputeGPU.h"
-#include <cuda_runtime.h>
+#include <hip/hip_runtime.h>
 
 #include <stdexcept>
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 namespace py = pybind11;
 using namespace std;
@@ -33,21 +33,25 @@ EAMForceComputeGPU::EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
         throw std::runtime_error("Error initializing EAMForceComputeGPU");
         }
 
-    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "pair_eam", this->m_exec_conf));
+    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    unsigned int max_threads = m_exec_conf->dev_prop.maxThreadsPerBlock;
+    m_tuner.reset(new Autotuner(warp_size, max_threads, warp_size, 5, 100000, "pair_eam", this->m_exec_conf));
 
     // allocate the coefficients data on the GPU
     loadFile(filename, type_of_file);
-    eam_data.nr = nr; //!< number of tabulated values of interpolated rho(r), r*phi(r)
-    eam_data.nrho = nrho; //!< number of tabulated values of interpolated F(rho)
-    eam_data.dr = dr;                   //!< interval of r in interpolated table
-    eam_data.rdr = 1.0 / dr;              //!< 1.0 / dr
-    eam_data.drho = drho;             //!< interval of rho in interpolated table
-    eam_data.rdrho = 1.0 / drho;          //!< 1.0 / drho
-    eam_data.r_cut = m_r_cut;             //!< cut-off radius
-    eam_data.r_cutsq = m_r_cut * m_r_cut; //!< r_cut^2
-    eam_data.ntypes = m_ntypes;           //!< number of potential element types
+    GlobalArray<EAMTexInterData> eam_data(1, m_exec_conf);
+    std::swap(eam_data, m_eam_data);
 
-    CHECK_CUDA_ERROR();
+    ArrayHandle<EAMTexInterData> h_eam_data(m_eam_data, access_location::host, access_mode::overwrite);
+    h_eam_data.data->nr = nr; //!< number of tabulated values of interpolated rho(r), r*phi(r)
+    h_eam_data.data->nrho = nrho; //!< number of tabulated values of interpolated F(rho)
+    h_eam_data.data->dr = dr;                   //!< interval of r in interpolated table
+    h_eam_data.data->rdr = 1.0 / dr;              //!< 1.0 / dr
+    h_eam_data.data->drho = drho;             //!< interval of rho in interpolated table
+    h_eam_data.data->rdrho = 1.0 / drho;          //!< 1.0 / drho
+    h_eam_data.data->r_cut = m_r_cut;             //!< cut-off radius
+    h_eam_data.data->r_cutsq = m_r_cut * m_r_cut; //!< r_cut^2
+    h_eam_data.data->ntypes = m_ntypes;           //!< number of potential element types
     }
 
 EAMForceComputeGPU::~EAMForceComputeGPU()
@@ -91,6 +95,7 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep)
     ArrayHandle<Scalar4> d_drho(m_drho, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_rphi(m_rphi, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_drphi(m_drphi, access_location::device, access_mode::read);
+    ArrayHandle<EAMTexInterData> d_eam_data(m_eam_data, access_location::device, access_mode::read);
 
     // Derivative Embedding Function for each atom
     GPUArray<Scalar> t_dFdP(m_pdata->getN(), m_exec_conf);
@@ -99,10 +104,10 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep)
 
     // Compute energy and forces in GPU
     m_tuner->begin();
-    eam_data.block_size = m_tuner->getParam();
     gpu_compute_eam_tex_inter_forces(d_force.data, d_virial.data, m_virial.getPitch(), m_pdata->getN(), d_pos.data, box,
-            d_n_neigh.data, d_nlist.data, d_head_list.data, this->m_nlist->getNListArray().getPitch(), eam_data,
-            d_dFdP.data, d_F.data, d_rho.data, d_rphi.data, d_dF.data, d_drho.data, d_drphi.data);
+            d_n_neigh.data, d_nlist.data, d_head_list.data, this->m_nlist->getNListArray().getPitch(), d_eam_data.data,
+            d_dFdP.data, d_F.data, d_rho.data, d_rphi.data, d_dF.data, d_drho.data, d_drphi.data,
+            m_tuner->getParam());
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -114,6 +119,6 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_EAMForceComputeGPU(py::module &m)
     {
-    py::class_<EAMForceComputeGPU, std::shared_ptr<EAMForceComputeGPU>>(m, "EAMForceComputeGPU",
-            py::base<EAMForceCompute>()).def(py::init<std::shared_ptr<SystemDefinition>, char *, int>());
+    py::class_<EAMForceComputeGPU, EAMForceCompute, std::shared_ptr<EAMForceComputeGPU>>(m, "EAMForceComputeGPU")
+        .def(py::init<std::shared_ptr<SystemDefinition>, char *, int>());
     }

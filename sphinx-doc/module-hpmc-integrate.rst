@@ -10,7 +10,6 @@ hpmc.integrate
 
     hpmc.integrate.convex_polygon
     hpmc.integrate.convex_polyhedron
-    hpmc.integrate.convex_polyhedron_union
     hpmc.integrate.convex_spheropolygon
     hpmc.integrate.convex_spheropolyhedron
     hpmc.integrate.convex_spheropolyhedron_union

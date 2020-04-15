@@ -7,7 +7,7 @@
 #include "ParticleData.cuh"
 #include "ParticleGroup.cuh"
 
-#include "hoomd/extern/cub/cub/cub.cuh"
+#include <hipcub/hipcub.hpp>
 #include <thrust/reduce.h>
 #include <thrust/device_ptr.h>
 #include <thrust/execution_policy.h>
@@ -52,7 +52,7 @@ __global__ void gpu_scatter_member_indices(unsigned int N,
     \param d_tag Array of tags
     \param num_local_members Number of members on the local processor (return value)
 */
-cudaError_t gpu_rebuild_index_list(unsigned int N,
+hipError_t gpu_rebuild_index_list(unsigned int N,
                                    unsigned int *d_is_member_tag,
                                    unsigned int *d_is_member,
                                    unsigned int *d_tag)
@@ -61,14 +61,15 @@ cudaError_t gpu_rebuild_index_list(unsigned int N,
     assert(d_is_member_tag);
     assert(d_tag);
 
-    unsigned int block_size = 512;
+    unsigned int block_size = 256;
     unsigned int n_blocks = N/block_size + 1;
 
-    gpu_rebuild_index_list_kernel<<<n_blocks,block_size>>>(N,
-                                                         d_tag,
-                                                         d_is_member_tag,
-                                                         d_is_member);
-    return cudaSuccess;
+    hipLaunchKernelGGL(gpu_rebuild_index_list_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
+         N,
+         d_tag,
+         d_is_member_tag,
+         d_is_member);
+    return hipSuccess;
     }
 
 //! GPU method for compacting the group member indices
@@ -79,7 +80,7 @@ cudaError_t gpu_rebuild_index_list(unsigned int N,
     \param d_tag Array of tags
     \param num_local_members Number of members on the local processor (return value)
 */
-cudaError_t gpu_compact_index_list(unsigned int N,
+hipError_t gpu_compact_index_list(unsigned int N,
                                    unsigned int *d_is_member,
                                    unsigned int *d_member_idx,
                                    unsigned int &num_local_members,
@@ -94,22 +95,27 @@ cudaError_t gpu_compact_index_list(unsigned int N,
     size_t   temp_storage_bytes = 0;
 
     // determine size of temporary storage
-    cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_is_member, d_tmp, N);
+    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_is_member, d_tmp, N);
 
     d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
-    cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_is_member, d_tmp, N);
+    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_is_member, d_tmp, N);
     alloc.deallocate((char *)d_temp_storage);
 
     thrust::device_ptr<unsigned int> is_member(d_is_member);
+    #ifdef __HIP_PLATFORM_HCC__
+    num_local_members = thrust::reduce(thrust::hip::par(alloc),
+    #else
     num_local_members = thrust::reduce(thrust::cuda::par(alloc),
+    #endif
         is_member,
         is_member + N);
 
     // fill member_idx array
-    unsigned int block_size = 512;
+    unsigned int block_size = 256;
     unsigned int n_blocks = N/block_size + 1;
 
-    gpu_scatter_member_indices<<<n_blocks, block_size>>>(N, d_tmp, d_is_member, d_member_idx);
+    hipLaunchKernelGGL(gpu_scatter_member_indices, dim3(n_blocks), dim3(block_size), 0, 0,
+        N, d_tmp, d_is_member, d_member_idx);
 
-    return cudaSuccess;
+    return hipSuccess;
     }

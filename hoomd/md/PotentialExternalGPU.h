@@ -13,11 +13,11 @@
     \brief Declares a class for computing an external potential field on the GPU
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __POTENTIAL_EXTERNAL_GPU_H__
 #define __POTENTIAL_EXTERNAL_GPU_H__
@@ -60,7 +60,8 @@ PotentialExternalGPU<evaluator>::PotentialExternalGPU(std::shared_ptr<SystemDefi
                                                                 const std::string& log_suffix)
     : PotentialExternal<evaluator>(sysdef, log_suffix)
     {
-    this->m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "external_" + evaluator::getName(), this->m_exec_conf));
+    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
+    this->m_tuner.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "external_" + evaluator::getName(), this->m_exec_conf));
     }
 
 /*! Computes the specified constraint forces
@@ -126,7 +127,7 @@ void PotentialExternalGPU<evaluator>::computeForces(unsigned int timestep)
 template < class T, class base >
 void export_PotentialExternalGPU(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base<base>())
+    pybind11::class_<T, base, std::shared_ptr<T> >(m, name.c_str())
                 .def(pybind11::init< std::shared_ptr<SystemDefinition>, const std::string&  >())
                 .def("setParams", &T::setParams)
                 .def("setField", &T::setField)

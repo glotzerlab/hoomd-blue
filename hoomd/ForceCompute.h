@@ -3,6 +3,7 @@
 
 
 // Maintainer: joaander
+
 #include "Compute.h"
 #include "Index1D.h"
 #include "ParticleGroup.h"
@@ -10,7 +11,7 @@
 #include "GlobalArray.h"
 #include "GlobalArray.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "ParticleData.cuh"
 #endif
 
@@ -25,11 +26,11 @@
     \brief Declares the ForceCompute class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __FORCECOMPUTE_H__
 #define __FORCECOMPUTE_H__
@@ -198,7 +199,7 @@ class PYBIND11_EXPORT ForceCompute : public Compute
     };
 
 //! Exports the ForceCompute class to python
-#ifndef NVCC
+#ifndef __HIPCC__
 void export_ForceCompute(pybind11::module& m);
 #endif
 

@@ -10,7 +10,9 @@
     After construction, the LLVM IR is loaded, compiled, and the energy() method is ready to be called.
 */
 PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& llvm_ir, Scalar r_cut,
-                const unsigned int array_size) : m_r_cut(r_cut), m_alpha_size(array_size)
+                const unsigned int array_size)
+    : m_exec_conf(exec_conf), m_r_cut(r_cut), m_alpha_size(array_size),
+      m_alpha(array_size, 0.0, managed_allocator<float>(m_exec_conf->isCUDAEnabled()))
     {
     // build the JIT.
     m_factory = std::shared_ptr<EvalFactory>(new EvalFactory(llvm_ir));
@@ -18,21 +20,20 @@ PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf
     // get the evaluator
     m_eval = m_factory->getEval();
 
-    m_alpha = m_factory->getAlphaArray();
-
-    if (!m_eval || !m_alpha)
+    if (!m_eval)
         {
         exec_conf->msg->error() << m_factory->getError() << std::endl;
         throw std::runtime_error("Error compiling JIT code.");
         }
-    }
 
+    m_factory->setAlphaArray(&m_alpha.front());
+    }
 
 void export_PatchEnergyJIT(pybind11::module &m)
     {
-      pybind11::class_<hpmc::PatchEnergy, std::shared_ptr<hpmc::PatchEnergy> >(m, "PatchEnergy")
+    pybind11::class_<hpmc::PatchEnergy, std::shared_ptr<hpmc::PatchEnergy> >(m, "PatchEnergy")
               .def(pybind11::init< >());
-    pybind11::class_<PatchEnergyJIT, std::shared_ptr<PatchEnergyJIT> >(m, "PatchEnergyJIT", pybind11::base< hpmc::PatchEnergy >())
+    pybind11::class_<PatchEnergyJIT, hpmc::PatchEnergy, std::shared_ptr<PatchEnergyJIT> >(m, "PatchEnergyJIT")
             .def(pybind11::init< std::shared_ptr<ExecutionConfiguration>,
                                  const std::string&,
                                  Scalar,

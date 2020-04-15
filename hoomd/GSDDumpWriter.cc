@@ -16,8 +16,8 @@
 #include "Communicator.h"
 #endif
 
-#include "hoomd/extern/pybind/include/pybind11/stl_bind.h"
-#include "hoomd/extern/pybind/include/pybind11/numpy.h"
+#include <pybind11/stl_bind.h>
+#include <pybind11/numpy.h>
 
 #include <string.h>
 #include <stdexcept>
@@ -983,7 +983,7 @@ void export_GSDDumpWriter(py::module& m)
     {
     py::bind_map<std::map<std::string, pybind11::function>>(m, "MapStringFunction");
 
-    py::class_<GSDDumpWriter, std::shared_ptr<GSDDumpWriter> >(m,"GSDDumpWriter",py::base<Analyzer>())
+    py::class_<GSDDumpWriter, Analyzer, std::shared_ptr<GSDDumpWriter> >(m,"GSDDumpWriter")
         .def(py::init< std::shared_ptr<SystemDefinition>, std::string, std::shared_ptr<ParticleGroup>, bool, bool>())
         .def("setWriteAttribute", &GSDDumpWriter::setWriteAttribute)
         .def("setWriteProperty", &GSDDumpWriter::setWriteProperty)

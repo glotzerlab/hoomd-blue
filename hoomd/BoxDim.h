@@ -14,14 +14,14 @@
 #include "HOOMDMath.h"
 #include "VectorMath.h"
 
-// Don't include MPI when compiling with NVCC or an LLVM JIT build
-#if defined(ENABLE_MPI) && !defined(NVCC) && !defined(HOOMD_LLVMJIT_BUILD)
+// Don't include MPI when compiling with __HIPCC__ or an LLVM JIT build
+#if defined(ENABLE_MPI) && !defined(__HIPCC__) && !defined(HOOMD_LLVMJIT_BUILD)
 #include "HOOMDMPI.h"
 #endif
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define HOSTDEVICE __host__ __device__ inline
 #else
 #define HOSTDEVICE inline __attribute__((always_inline))
@@ -60,7 +60,11 @@
 
     \note minImage() and wrap() only work for particles that have moved up to 1 box image out of the box.
 */
-struct __attribute__((visibility("default"))) BoxDim
+struct
+#ifndef __HIPCC__
+__attribute__((visibility("default")))
+#endif
+BoxDim
     {
     public:
         //! Constructs a useless box
@@ -279,7 +283,7 @@ struct __attribute__((visibility("default"))) BoxDim
             Scalar3 w = v;
             Scalar3 L = getL();
 
-            #ifdef NVCC
+            #ifdef __HIPCC__
             if (m_periodic.z)
                 {
                 Scalar img = rintf(w.z * m_Linv.z);
@@ -485,9 +489,9 @@ struct __attribute__((visibility("default"))) BoxDim
         HOSTDEVICE Scalar3 shift(const Scalar3& v, const int3& shift) const
             {
             Scalar3 r = v;
-            r += shift.x*getLatticeVector(0);
-            r += shift.y*getLatticeVector(1);
-            r += shift.z*getLatticeVector(2);
+            r += Scalar(shift.x)*getLatticeVector(0);
+            r += Scalar(shift.y)*getLatticeVector(1);
+            r += Scalar(shift.z)*getLatticeVector(2);
             return r;
             }
 
@@ -555,14 +559,24 @@ struct __attribute__((visibility("default"))) BoxDim
         template<class Archive>
         void serialize(Archive & ar, const unsigned int version)
             {
-            ar & m_lo;
-            ar & m_hi;
-            ar & m_L;
-            ar & m_Linv;
+            ar & m_lo.x;
+            ar & m_lo.y;
+            ar & m_lo.z;
+            ar & m_hi.x;
+            ar & m_hi.y;
+            ar & m_hi.z;
+            ar & m_L.x;
+            ar & m_L.y;
+            ar & m_L.z;
+            ar & m_Linv.x;
+            ar & m_Linv.y;
+            ar & m_Linv.z;
             ar & m_xy;
             ar & m_xz;
             ar & m_yz;
-            ar & m_periodic;
+            ar & m_periodic.x;
+            ar & m_periodic.y;
+            ar & m_periodic.z;
             }
         #endif
 

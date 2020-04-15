@@ -12,8 +12,8 @@
 #include <memory>
 #include <sstream>
 
-#ifdef ENABLE_CUDA
-#include <cuda_runtime.h>
+#ifdef ENABLE_HIP
+#include <hip/hip_runtime.h>
 #endif
 
 #include "NeighborList.h"
@@ -29,11 +29,11 @@
     \note This header cannot be compiled by nvcc
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Template class for computing pair potentials
 /*! <b>Overview:</b>
@@ -191,7 +191,7 @@ class AnisoPotentialPair : public ForceCompute
             GlobalArray<shape_param_type> shape_params(m_pdata->getNTypes(), m_exec_conf, "shape_params", true);
             m_shape_params.swap(shape_params);
 
-            #ifdef ENABLE_CUDA
+            #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
             if (m_pdata->getExecConf()->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
                 {
                 cudaMemAdvise(m_rcutsq.get(), m_rcutsq.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
@@ -254,7 +254,7 @@ AnisoPotentialPair< aniso_evaluator >::AnisoPotentialPair(std::shared_ptr<System
     GlobalArray<shape_param_type> shape_params(m_pdata->getNTypes(), m_exec_conf, "shape_params", true);
     m_shape_params.swap(shape_params);
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         cudaMemAdvise(m_rcutsq.get(), m_rcutsq.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
@@ -627,7 +627,7 @@ CommFlags AnisoPotentialPair< aniso_evaluator >::getRequestedCommFlags(unsigned 
 */
 template < class T > void export_AnisoPotentialPair(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, std::shared_ptr<T> > anisopotentialpair(m, name.c_str(), pybind11::base<ForceCompute>());
+    pybind11::class_<T, ForceCompute, std::shared_ptr<T> > anisopotentialpair(m, name.c_str());
     anisopotentialpair.def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
         .def("setParams", &T::setParams)
         .def("setRcut", &T::setRcut)

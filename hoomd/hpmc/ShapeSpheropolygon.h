@@ -16,7 +16,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -123,69 +123,39 @@ struct ShapeSpheropolygon
         return OverlapReal(0.0);
         }
 
-    #ifndef NVCC
-    std::string getShapeSpec() const
-        {
-        std::ostringstream shapedef;
-        unsigned int nverts = verts.N;
-        if (nverts == 1)
-            {
-            shapedef << "{\"type\": \"Sphere\", " << "\"diameter\": " << verts.diameter << "}";
-            }
-        else if (nverts == 2)
-            {
-            throw std::runtime_error("Shape definition not supported for 2-vertex spheropolygons");
-            }
-        else
-            {
-            shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": " << verts.sweep_radius << ", \"vertices\": [";
-            for (unsigned int i = 0; i < nverts-1; i++)
-                {
-                shapedef << "[" << verts.x[i] << ", " << verts.y[i] << "], ";
-                }
-            shapedef << "[" << verts.x[nverts-1] << ", " << verts.y[nverts-1] << "]]}";
-            }
-        return shapedef.str();
-        }
-    #endif
-
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         return detail::AABB(pos, verts.diameter/Scalar(2));
         }
 
+    //! Return a tight fitting OBB
+    DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
+        {
+        // just use the AABB for now
+        return detail::OBB(getAABB(pos));
+        }
+
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel() { return false; }
+
+    //! Retrns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    HOSTDEVICE static bool supportsSweepRadius()
+        {
+        return false;
+        }
 
     quat<Scalar> orientation;    //!< Orientation of the polygon
 
     const detail::poly2d_verts& verts;     //!< Vertices
     };
 
-//! Check if circumspheres overlap
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shape
-    \param b second shape
-    \returns true if the circumspheres of both shapes overlap
-
-    \ingroup shape
-*/
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeSpheropolygon& a,
-    const ShapeSpheropolygon &b)
-    {
-    vec2<OverlapReal> dr(r_ab.x, r_ab.y);
-
-    OverlapReal rsq = dot(dr,dr);
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    return (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-    }
-
 //! Convex polygon overlap test
 /*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
     \param a first shape
     \param b second shape
     \param err in/out variable incremented when error conditions occur in the overlap test
+    \param sweep_radius Additional sphere radius to sweep the shapes with
     \returns true when *a* and *b* overlap, and false when they are disjoint
 
     \ingroup shape
@@ -194,7 +164,9 @@ template <>
 DEVICE inline bool test_overlap<ShapeSpheropolygon,ShapeSpheropolygon>(const vec3<Scalar>& r_ab,
                                                                        const ShapeSpheropolygon& a,
                                                                        const ShapeSpheropolygon& b,
-                                                                       unsigned int& err)
+                                                                       unsigned int& err,
+                                                                       Scalar sweep_radius_a,
+                                                                       Scalar sweep_radius_b)
     {
     vec2<OverlapReal> dr(r_ab.x, r_ab.y);
 
@@ -211,6 +183,34 @@ DEVICE inline bool test_overlap<ShapeSpheropolygon,ShapeSpheropolygon>(const vec
                                   quat<OverlapReal>(b.orientation),
                                   err);
     }
+
+#ifndef __HIPCC__
+template<>
+inline std::string getShapeSpec(const ShapeSpheropolygon& spoly)
+    {
+    std::ostringstream shapedef;
+    auto& verts = spoly.verts;
+    unsigned int nverts = verts.N;
+    if (nverts == 1)
+        {
+        shapedef << "{\"type\": \"Sphere\", " << "\"diameter\": " << verts.diameter << "}";
+        }
+    else if (nverts == 2)
+        {
+        throw std::runtime_error("Shape definition not supported for 2-vertex spheropolygons");
+        }
+    else
+        {
+        shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": " << verts.sweep_radius << ", \"vertices\": [";
+        for (unsigned int i = 0; i < nverts-1; i++)
+            {
+            shapedef << "[" << verts.x[i] << ", " << verts.y[i] << "], ";
+            }
+        shapedef << "[" << verts.x[nverts-1] << ", " << verts.y[nverts-1] << "]]}";
+        }
+    return shapedef.str();
+    }
+#endif
 
 }; // end namespace hpmc
 

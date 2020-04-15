@@ -11,11 +11,11 @@
     \brief Declares the CellListStencil class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 
 #ifndef __CELLLISTSTENCIL_H__
@@ -113,7 +113,7 @@ class PYBIND11_EXPORT CellListStencil : public Compute
     };
 
 //! Exports CellListStencil to python
-#ifndef NVCC
+#ifndef __HIPCC__
 void export_CellListStencil(pybind11::module& m);
 #endif
 

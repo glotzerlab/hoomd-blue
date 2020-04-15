@@ -4,7 +4,6 @@
 // Include the defined classes that are to be exported to python
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
-#include "IntegratorHPMCMonoImplicit.h"
 #include "ComputeFreeVolume.h"
 
 #include "ShapeConvexPolygon.h"
@@ -20,14 +19,10 @@
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterRemoveDrift.h"
 #include "UpdaterMuVT.h"
-#include "UpdaterMuVTImplicit.h"
 #include "UpdaterClusters.h"
-#include "UpdaterClustersImplicit.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "IntegratorHPMCMonoGPU.h"
-#include "IntegratorHPMCMonoImplicitGPU.h"
-#include "IntegratorHPMCMonoImplicitNewGPU.h"
 #include "ComputeFreeVolumeGPU.h"
 #endif
 
@@ -46,13 +41,10 @@ namespace hpmc
 void export_convex_polygon(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeConvexPolygon >(m, "IntegratorHPMCMonoConvexPolygon");
-    export_IntegratorHPMCMonoImplicit< ShapeConvexPolygon >(m, "IntegratorHPMCMonoImplicitConvexPolygon");
     export_ComputeFreeVolume< ShapeConvexPolygon >(m, "ComputeFreeVolumeConvexPolygon");
     export_AnalyzerSDF< ShapeConvexPolygon >(m, "AnalyzerSDFConvexPolygon");
     export_UpdaterMuVT< ShapeConvexPolygon >(m, "UpdaterMuVTConvexPolygon");
-    export_UpdaterMuVTImplicit< ShapeConvexPolygon, IntegratorHPMCMonoImplicit<ShapeConvexPolygon> >(m, "UpdaterMuVTImplicitConvexPolygon");
     export_UpdaterClusters< ShapeConvexPolygon >(m, "UpdaterClustersConvexPolygon");
-    export_UpdaterClustersImplicit< ShapeConvexPolygon, IntegratorHPMCMonoImplicit<ShapeConvexPolygon> >(m, "UpdaterClustersImplicitConvexPolygon");
 
     export_ExternalFieldInterface<ShapeConvexPolygon>(m, "ExternalFieldConvexPolygon");
     export_LatticeField<ShapeConvexPolygon>(m, "ExternalFieldLatticeConvexPolygon");
@@ -62,10 +54,8 @@ void export_convex_polygon(py::module& m)
     // export_UpdaterExternalFieldWall<ShapeConvexPolygon>(m, "UpdaterExternalFieldWallConvexPolygon");
     export_ExternalCallback<ShapeConvexPolygon>(m, "ExternalCallbackConvexPolygon");
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     export_IntegratorHPMCMonoGPU< ShapeConvexPolygon >(m, "IntegratorHPMCMonoGPUConvexPolygon");
-    export_IntegratorHPMCMonoImplicitGPU< ShapeConvexPolygon >(m, "IntegratorHPMCMonoImplicitGPUConvexPolygon");
-    export_IntegratorHPMCMonoImplicitNewGPU< ShapeConvexPolygon >(m, "IntegratorHPMCMonoImplicitNewGPUConvexPolygon");
     export_ComputeFreeVolumeGPU< ShapeConvexPolygon >(m, "ComputeFreeVolumeGPUConvexPolygon");
     #endif
     }

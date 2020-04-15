@@ -599,7 +599,7 @@ Scalar EAMForceCompute::get_r_cut()
 
 void export_EAMForceCompute(py::module &m)
     {
-    py::class_<EAMForceCompute, std::shared_ptr<EAMForceCompute> >(m, "EAMForceCompute", py::base<ForceCompute>()).def(
+    py::class_<EAMForceCompute, ForceCompute, std::shared_ptr<EAMForceCompute> >(m, "EAMForceCompute").def(
             py::init<std::shared_ptr<SystemDefinition>, char *, int>()).def("set_neighbor_list",
             &EAMForceCompute::set_neighbor_list).def("get_r_cut", &EAMForceCompute::get_r_cut);
     }

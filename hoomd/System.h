@@ -26,11 +26,11 @@ class Communicator;
     \brief Declares the System class and associated helper classes
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Ties Analyzers, Updaters, and Computes together to run a full MD simulation
 /*! The System class is responsible for making all the time steps in an MD simulation.

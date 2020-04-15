@@ -102,7 +102,7 @@ class npt_rigid_validation(unittest.TestCase):
         P_avg = np.mean(np.array(Pval))
         i, P_err = block.get_error_estimate()
 
-        context.msg.notice(1,'rho_star={:.3f} P_star = {:.5f}+-{:.5f}\n'.format(rho_star,P_avg*d_eff**3.0,P_err*d_eff**3.0))
+        context.current.device.cpp_msg.notice(1,'rho_star={:.3f} P_star = {:.5f}+-{:.5f}\n'.format(rho_star,P_avg*d_eff**3.0,P_err*d_eff**3.0))
 
         # max error 0.5 %
         self.assertLessEqual(P_err/P_avg,0.005)

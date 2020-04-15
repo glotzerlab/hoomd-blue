@@ -30,7 +30,7 @@ n = 8;
 
 class nvt_lj_sphere_energy(unittest.TestCase):
 
-    def run_statepoint(self, Tstar, rho_star, mean_Uref, sigma_Uref, use_clusters, use_depletants):
+    def run_statepoint(self, Tstar, rho_star, mean_Uref, sigma_Uref, use_clusters, union):
         """
         Tstar: Temperature (kT/eps)
         rho_star: Reduced density: rhostar = (N / V) * sigma**3
@@ -50,22 +50,11 @@ class nvt_lj_sphere_energy(unittest.TestCase):
 
         system = init.create_lattice(unitcell=lattice.sc(a=a), n=n);
 
-        depletant_mode = 'overlap_regions'
-
         N = len(system.particles);
 
-        if use_depletants:
-            mc = hpmc.integrate.sphere(d=0.3,seed=54871,implicit=True,depletant_mode=depletant_mode);
-        else:
-            mc = hpmc.integrate.sphere(d=0.3,seed=65412);
+        mc = hpmc.integrate.sphere(d=0.3,seed=321);
 
         mc.shape_param.set('A',diameter=0)
-
-        if use_depletants:
-            # set up a dummy depletant
-            system.particles.types.add('B')
-            mc.set_params(depletant_type='B',nR=0)
-            mc.shape_param.set('B', diameter=0)
 
         lennard_jones = """
                         float rsq = dot(r_ij, r_ij);
@@ -87,7 +76,11 @@ class nvt_lj_sphere_energy(unittest.TestCase):
 
         from hoomd import jit
 
-        jit.patch.user(mc,r_cut=rcut, code=lennard_jones);
+        if not union:
+            jit.patch.user(mc, r_cut=rcut, code=lennard_jones);
+        else:
+            u = jit.patch.user_union(mc,r_cut=rcut, code=lennard_jones)
+            u.set_params('A', positions=[(0,0,0)],typeids=[0])
 
         log = analyze.log(filename=None, quantities=['hpmc_overlap_count','hpmc_patch_energy'],period=100,overwrite=True);
 
@@ -97,7 +90,7 @@ class nvt_lj_sphere_energy(unittest.TestCase):
             # apply long range correction (used in reference data)
             energy += 8/9.0 * math.pi * rho_star * ((1/rcut)**9-3*(1/rcut)**3)
             energy_val.append(energy);
-            if (timestep % 100 == 0): context.msg.notice(1,'energy = {:.5f}\n'.format(energy));
+            if (timestep % 100 == 0): context.current.device.cpp_msg.notice(1,'energy = {:.5f}\n'.format(energy));
 
         mc_tune = hpmc.util.tune(mc, tunables=['d','a'],max_val=[4,0.5],gamma=0.5,target=0.4);
 
@@ -105,7 +98,6 @@ class nvt_lj_sphere_energy(unittest.TestCase):
             run(100,quiet=True);
             d = mc.get_d();
             translate_acceptance = mc.get_translate_acceptance();
-            util.quiet_status();
             print('d: {:3.2f} accept: {:3.2f}'.format(d,translate_acceptance));
             mc_tune.update();
 
@@ -123,8 +115,8 @@ class nvt_lj_sphere_energy(unittest.TestCase):
         mean_U = np.mean(energy_val)
         i, sigma_U = block.get_error_estimate()
 
-        context.msg.notice(1,'rho_star = {:.3f}\nU    = {:.5f} +- {:.5f}\n'.format(rho_star,mean_U,sigma_U))
-        context.msg.notice(1,'Uref = {:.5f} +- {:.5f}\n'.format(mean_Uref,sigma_Uref))
+        context.current.device.cpp_msg.notice(1,'rho_star = {:.3f}\nU    = {:.5f} +- {:.5f}\n'.format(rho_star,mean_U,sigma_U))
+        context.current.device.cpp_msg.notice(1,'Uref = {:.5f} +- {:.5f}\n'.format(mean_Uref,sigma_Uref))
 
         # max error 0.5%
         self.assertLessEqual(sigma_U/mean_U,0.005)
@@ -138,27 +130,29 @@ class nvt_lj_sphere_energy(unittest.TestCase):
 
     def test_low_density_normal(self):
         self.run_statepoint(Tstar=8.50E-01, rho_star=5.00E-03, mean_Uref=-5.1901E-02, sigma_Uref=7.53E-05,
-                            use_clusters=False, use_depletants=False);
+                            use_clusters=False, union=False);
         self.run_statepoint(Tstar=8.50E-01, rho_star=7.00E-03, mean_Uref=-7.2834E-02, sigma_Uref=1.34E-04,
-                            use_clusters=False, use_depletants=False);
+                            use_clusters=False, union=False);
         self.run_statepoint(Tstar=8.50E-01, rho_star=9.00E-03, mean_Uref=-9.3973E-02, sigma_Uref=1.29E-04,
-                            use_clusters=False, use_depletants=False);
+                            use_clusters=False, union=False);
+
+    def test_low_density_union(self):
+        # test that the trivial union shape (a single point particle) also works
+        self.run_statepoint(Tstar=8.50E-01, rho_star=5.00E-03, mean_Uref=-5.1901E-02, sigma_Uref=7.53E-05,
+                            use_clusters=False, union=True);
+        self.run_statepoint(Tstar=8.50E-01, rho_star=7.00E-03, mean_Uref=-7.2834E-02, sigma_Uref=1.34E-04,
+                            use_clusters=False, union=True);
+        self.run_statepoint(Tstar=8.50E-01, rho_star=9.00E-03, mean_Uref=-9.3973E-02, sigma_Uref=1.29E-04,
+                            use_clusters=False, union=True);
+
 
     def test_low_density_clusters(self):
         self.run_statepoint(Tstar=8.50E-01, rho_star=9.00E-03, mean_Uref=-9.3973E-02, sigma_Uref=1.29E-04,
-                            use_clusters=True, use_depletants=False);
-
-    def test_low_density_clusters_depletants(self):
-        self.run_statepoint(Tstar=8.50E-01, rho_star=9.00E-03, mean_Uref=-9.3973E-02, sigma_Uref=1.29E-04,
-                            use_clusters=True, use_depletants=True);
+                            use_clusters=True, union=False);
 
     def test_moderate_density_normal(self):
         self.run_statepoint(Tstar=9.00E-01, rho_star=7.76E-01, mean_Uref=-5.4689E+00, sigma_Uref=4.20E-04,
-                            use_clusters=False, use_depletants=False);
-
-    def test_moderate_density_depletants(self):
-        self.run_statepoint(Tstar=9.00E-01, rho_star=7.76E-01, mean_Uref=-5.4689E+00, sigma_Uref=4.20E-04,
-                            use_clusters=False, use_depletants=True);
+                            use_clusters=False, union=False);
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

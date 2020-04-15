@@ -8,15 +8,15 @@
     \brief Declares the Profiler class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
 #include "ExecutionConfiguration.h"
 #include "ClockSource.h"
 
-#ifdef ENABLE_CUDA
-#include <cuda_runtime.h>
+#ifdef ENABLE_HIP
+#include <hip/hip_runtime.h>
 #endif
 
 #ifdef ENABLE_NVTOOLS
@@ -29,7 +29,7 @@
 #include <iostream>
 #include <cassert>
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Allow score-p instrumentation
 #ifdef SCOREP_USER_ENABLE
@@ -149,7 +149,7 @@ class PYBIND11_EXPORT Profiler
     };
 
 //! Exports the Profiler class to python
-#ifndef NVCC
+#ifndef __HIPCC__
 void export_Profiler(pybind11::module& m);
 #endif
 
@@ -162,12 +162,12 @@ PYBIND11_EXPORT std::ostream& operator<<(std::ostream &o, Profiler& prof);
 
 inline void Profiler::push(std::shared_ptr<const ExecutionConfiguration> exec_conf, const std::string& name)
     {
-#if defined(ENABLE_CUDA) && !defined(ENABLE_NVTOOLS)
+#if defined(ENABLE_HIP) && !defined(ENABLE_NVTOOLS)
     // nvtools profiling disables synchronization so that async CPU/GPU overlap can be seen
     if(exec_conf->isCUDAEnabled())
         {
         exec_conf->multiGPUBarrier();
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
         }
 #endif
     push(name);
@@ -175,12 +175,12 @@ inline void Profiler::push(std::shared_ptr<const ExecutionConfiguration> exec_co
 
 inline void Profiler::pop(std::shared_ptr<const ExecutionConfiguration> exec_conf, uint64_t flop_count, uint64_t byte_count)
     {
-#if defined(ENABLE_CUDA) && !defined(ENABLE_NVTOOLS)
+#if defined(ENABLE_HIP) && !defined(ENABLE_NVTOOLS)
     // nvtools profiling disables synchronization so that async CPU/GPU overlap can be seen
     if(exec_conf->isCUDAEnabled())
         {
         exec_conf->multiGPUBarrier();
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
         }
 #endif
     pop(flop_count, byte_count);

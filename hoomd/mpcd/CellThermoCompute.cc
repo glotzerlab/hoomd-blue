@@ -524,8 +524,8 @@ void mpcd::detail::export_CellThermoCompute(pybind11::module& m)
     {
     namespace py = pybind11;
 
-    py::class_<mpcd::CellThermoCompute, std::shared_ptr<mpcd::CellThermoCompute> >
-        (m, "CellThermoCompute", py::base<Compute>())
+    py::class_<mpcd::CellThermoCompute, Compute, std::shared_ptr<mpcd::CellThermoCompute> >
+        (m, "CellThermoCompute")
         .def(py::init< std::shared_ptr<mpcd::SystemData> >())
         .def(py::init< std::shared_ptr<mpcd::SystemData>, const std::string& >());
     }

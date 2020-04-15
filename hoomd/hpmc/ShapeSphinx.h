@@ -16,7 +16,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -46,9 +46,9 @@ struct sphinx3d_params : param_base
     vec3<OverlapReal> center[MAX_SPHERE_CENTERS];  //!< Sphere Centers (in local frame)
     unsigned int ignore;    //!< 0: Process overlaps - if (a.ignore == True) and (b.ignore == True) then test_overlap(a,b) = False
 
-    #ifdef ENABLE_CUDA
-    //! Attach managed memory to CUDA stream
-    void attach_to_stream(cudaStream_t stream) const
+    #ifdef ENABLE_HIP
+    //! Set CUDA memory hints
+    void set_memory_hint() const
         {
         // default implementation does nothing
         }
@@ -130,17 +130,17 @@ struct ShapeSphinx
         return Scalar(0.0);
         }
 
-    #ifndef NVCC
-    std::string getShapeSpec() const
-        {
-        throw std::runtime_error("Shape definition not supported for this shape class.");
-        }
-    #endif
-
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         return detail::AABB(pos, getCircumsphereDiameter()/Scalar(2.0));
+        }
+
+    //! Return a tight fitting OBB
+    DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
+        {
+        // just use the AABB for now
+        return detail::OBB(getAABB(pos));
         }
 
     //!Ignore flag for acceptance statistics
@@ -148,6 +148,12 @@ struct ShapeSphinx
 
     //!Ignore flag for overlaps
     HOSTDEVICE static bool isParallel() {return false; }
+
+    //! Retrns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    HOSTDEVICE static bool supportsSweepRadius()
+        {
+        return false;
+        }
 
     quat<Scalar> orientation;                   //!< Orientation of the sphinx
 
@@ -167,28 +173,12 @@ struct ShapeSphinx
     const detail::sphinx3d_params& spheres;     //!< Vertices
     };
 
-//! Check if circumspheres overlap
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shape
-    \param b second shape
-    \returns true if the circumspheres of both shapes overlap
-
-    \ingroup shape
-*/
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeSphinx& a,
-    const ShapeSphinx &b)
-    {
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    vec3<OverlapReal> dr(r_ab);
-
-    return (dot(dr,dr) <= DaDb*DaDb/OverlapReal(4.0));
-    }
-
-
 template <>
 DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_ab,
                                                           const ShapeSphinx& p,
-                                                          const ShapeSphinx& q, unsigned int& err)
+                                                          const ShapeSphinx& q, unsigned int& err,
+                                                          Scalar sweep_radius_a,
+                                                          Scalar sweep_radius_b)
     {
     vec3<OverlapReal> pv[detail::MAX_SPHERE_CENTERS];           //!< rotated centers of p
     vec3<OverlapReal> qv[detail::MAX_SPHERE_CENTERS];           //!< rotated centers of q

@@ -14,11 +14,11 @@
  *        mpcd::CellCommunicator
  */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #define HOSTDEVICE __host__ __device__
 #else
 #define HOSTDEVICE
-#endif // NVCC
+#endif // __HIPCC__
 
 namespace mpcd
 {

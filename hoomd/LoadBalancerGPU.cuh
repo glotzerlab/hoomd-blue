@@ -9,6 +9,7 @@
 */
 
 #ifdef ENABLE_MPI
+
 #include "ParticleData.cuh"
 #include "Index1D.h"
 

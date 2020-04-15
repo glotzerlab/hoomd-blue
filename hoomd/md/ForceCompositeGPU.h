@@ -12,11 +12,11 @@
     \brief Implementation of a rigid body force compute, GPU version
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __ForceCompositeGPU_H__
 #define __ForceCompositeGPU_H__

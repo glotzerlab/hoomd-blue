@@ -77,7 +77,6 @@ class pppm(force._force):
 
     """
     def __init__(self, group, nlist):
-        hoomd.util.print_status_line();
 
         # initialize the base class
         force._force.__init__(self);
@@ -103,7 +102,7 @@ class pppm(force._force):
         self.nlist.subscribe(lambda : None)
         self.nlist.update_rcut()
 
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.PPPMForceCompute(hoomd.context.current.system_definition, self.nlist.cpp_nlist, group.cpp_group);
         else:
             self.cpp_force = _md.PPPMForceComputeGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, group.cpp_group);
@@ -114,26 +113,18 @@ class pppm(force._force):
         self.params_set = False;
 
         # initialize the short range part of electrostatics
-        hoomd.util.quiet_status();
         self.ewald = pair.ewald(r_cut = False, nlist = self.nlist);
-        hoomd.util.unquiet_status();
 
     # override disable and enable to work with both of the forces
     def disable(self, log=False):
-        hoomd.util.print_status_line();
 
-        hoomd.util.quiet_status();
         force._force.disable(self, log);
         self.ewald.disable(log);
-        hoomd.util.unquiet_status();
 
     def enable(self):
-        hoomd.util.print_status_line();
 
-        hoomd.util.quiet_status();
         force._force.enable(self);
         self.ewald.enable();
-        hoomd.util.unquiet_status();
 
     def set_params(self, Nx, Ny, Nz, order, rcut, alpha = 0.0):
         """ Sets PPPM parameters.
@@ -153,10 +144,9 @@ class pppm(force._force):
 
         Note that the Fourier transforms are much faster for number of grid points of the form 2^N.
         """
-        hoomd.util.print_status_line();
 
         if hoomd.context.current.system_definition.getNDimensions() != 3:
-            hoomd.context.msg.error("System must be 3 dimensional\n");
+            hoomd.context.current.device.cpp_msg.error("System must be 3 dimensional\n");
             raise RuntimeError("Cannot compute PPPM");
 
         self.params_set = True;
@@ -183,7 +173,7 @@ class pppm(force._force):
         fmid = diffpr(hx, hy, hz, Lx, Ly, Lz, N, order, kappa, q2, rcut)
 
         if f*fmid >= 0.0:
-            hoomd.context.msg.error("f*fmid >= 0.0\n");
+            hoomd.context.current.device.cpp_msg.error("f*fmid >= 0.0\n");
             raise RuntimeError("Cannot compute PPPM");
 
         if f < 0.0:
@@ -203,7 +193,7 @@ class pppm(force._force):
                 rtb = kappa
             ncount += 1
             if ncount > 10000.0:
-                hoomd.context.msg.error("kappa not converging\n");
+                hoomd.context.current.device.cpp_msg.error("kappa not converging\n");
                 raise RuntimeError("Cannot compute PPPM");
 
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
@@ -211,22 +201,20 @@ class pppm(force._force):
         for i in range(0,ntypes):
             type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
 
-        hoomd.util.quiet_status();
         for i in range(0,ntypes):
             for j in range(0,ntypes):
                 self.ewald.pair_coeff.set(type_list[i], type_list[j], kappa = kappa, alpha = alpha, r_cut=rcut)
-        hoomd.util.unquiet_status();
 
         # set the parameters for the appropriate type
         self.cpp_force.setParams(Nx, Ny, Nz, order, kappa, rcut, alpha);
 
     def update_coeffs(self):
         if not self.params_set:
-            hoomd.context.msg.error("Coefficients for PPPM are not set. Call set_coeff prior to run()\n");
+            hoomd.context.current.device.cpp_msg.error("Coefficients for PPPM are not set. Call set_coeff prior to run()\n");
             raise RuntimeError("Error initializing run");
 
         if self.nlist.cpp_nlist.getDiameterShift():
-            hoomd.context.msg.warning("Neighbor diameter shifting is enabled, PPPM may not correct for all excluded interactions\n");
+            hoomd.context.current.device.cpp_msg.warning("Neighbor diameter shifting is enabled, PPPM may not correct for all excluded interactions\n");
 
 def diffpr(hx, hy, hz, xprd, yprd, zprd, N, order, kappa, q2, rcut):
     lprx = rms(hx, xprd, N, order, kappa, q2)

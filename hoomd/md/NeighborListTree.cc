@@ -388,7 +388,7 @@ void NeighborListTree::traverseTree()
 
 void export_NeighborListTree(py::module& m)
     {
-    py::class_<NeighborListTree, std::shared_ptr<NeighborListTree> >(m, "NeighborListTree", py::base<NeighborList>())
+    py::class_<NeighborListTree, NeighborList, std::shared_ptr<NeighborListTree> >(m, "NeighborListTree")
     .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
                      ;
     }

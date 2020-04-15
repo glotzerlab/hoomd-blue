@@ -4,8 +4,8 @@
 #ifndef __MODULES__
 #define __MODULES__
 
-#ifndef NVCC
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#ifndef __HIPCC__
+#include <pybind11/pybind11.h>
 #endif
 
 namespace hpmc

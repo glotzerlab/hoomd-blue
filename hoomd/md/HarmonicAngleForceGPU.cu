@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -207,12 +208,12 @@ extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(Scalar4* d_f
     \param compute_capability Device compute capability (200, 300, 350, ...)
 
     \returns Any error code resulting from the kernel launch
-    \note Always returns cudaSuccess in release builds to avoid the cudaThreadSynchronize()
+    \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
 
     \a d_params should include one Scalar2 element per angle type. The x component contains K the spring constant
     and the y component contains t_0 the equilibrium angle.
 */
-cudaError_t gpu_compute_harmonic_angle_forces(Scalar4* d_force,
+hipError_t gpu_compute_harmonic_angle_forces(Scalar4* d_force,
                                               Scalar* d_virial,
                                               const unsigned int virial_pitch,
                                               const unsigned int N,
@@ -231,8 +232,8 @@ cudaError_t gpu_compute_harmonic_angle_forces(Scalar4* d_force,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void *)gpu_compute_harmonic_angle_forces_kernel);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void *)gpu_compute_harmonic_angle_forces_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
@@ -243,8 +244,8 @@ cudaError_t gpu_compute_harmonic_angle_forces(Scalar4* d_force,
     dim3 threads(run_block_size, 1, 1);
 
     // run the kernel
-    gpu_compute_harmonic_angle_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, d_params, box,
+    hipLaunchKernelGGL((gpu_compute_harmonic_angle_forces_kernel), dim3(grid), dim3(threads), 0, 0, d_force, d_virial, virial_pitch, N, d_pos, d_params, box,
         atable, apos_list, pitch, n_angles_list);
 
-    return cudaSuccess;
+    return hipSuccess;
     }

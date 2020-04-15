@@ -11,7 +11,7 @@
 #ifndef MPCD_SYSTEM_DATA_H_
 #define MPCD_SYSTEM_DATA_H_
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -19,7 +19,7 @@
 #include "ParticleData.h"
 #include "SystemDataSnapshot.h"
 #include "hoomd/SystemDefinition.h"
-#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
+#include <pybind11/pybind11.h>
 
 namespace mpcd
 {

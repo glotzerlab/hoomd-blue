@@ -10,8 +10,8 @@
 #include <iostream>
 #include <stdexcept>
 #include <memory>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#include "hoomd/extern/pybind/include/pybind11/numpy.h"
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
@@ -20,8 +20,8 @@
 #include "NeighborList.h"
 #include "hoomd/GSDShapeSpecWriter.h"
 
-#ifdef ENABLE_CUDA
-#include <cuda_runtime.h>
+#ifdef ENABLE_HIP
+#include <hip/hip_runtime.h>
 #endif
 
 #ifdef ENABLE_MPI
@@ -35,7 +35,7 @@
     \note This header cannot be compiled by nvcc
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -189,7 +189,7 @@ class PotentialPair : public ForceCompute
             GlobalArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
             m_params.swap(params);
 
-            #ifdef ENABLE_CUDA
+            #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
             if (m_pdata->getExecConf()->isCUDAEnabled() && m_pdata->getExecConf()->allConcurrentManagedAccess())
                 {
                 cudaMemAdvise(m_rcutsq.get(), m_rcutsq.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
@@ -234,7 +234,7 @@ PotentialPair< evaluator >::PotentialPair(std::shared_ptr<SystemDefinition> sysd
     GlobalArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
     m_params.swap(params);
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_pdata->getExecConf()->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         cudaMemAdvise(m_rcutsq.get(), m_rcutsq.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
@@ -816,7 +816,7 @@ Scalar PotentialPair< evaluator >::computeEnergyBetweenSetsPythonList(  pybind11
 */
 template < class T > void export_PotentialPair(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, std::shared_ptr<T> > potentialpair(m, name.c_str(), pybind11::base<ForceCompute>());
+    pybind11::class_<T, ForceCompute, std::shared_ptr<T> > potentialpair(m, name.c_str());
     potentialpair.def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
         .def("setParams", &T::setParams)
         .def("setRcut", &T::setRcut)

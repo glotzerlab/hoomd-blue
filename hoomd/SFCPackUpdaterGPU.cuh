@@ -9,8 +9,7 @@
 
 #include "HOOMDMath.h"
 #include "BoxDim.h"
-
-#include "hoomd/extern/util/mgpucontext.h"
+#include "CachedAllocator.h"
 
 /*! \file SFCPackUpdaterGPU.cuh
     \brief Defines GPU functions for generating the space-filling curve sorted order on the GPU. Used by SFCPackUpdaterGPU.
@@ -25,7 +24,7 @@ void gpu_generate_sorted_order(unsigned int N,
         unsigned int *d_sorted_order,
         const BoxDim& box,
         bool twod,
-        mgpu::ContextPtr mgpu_context);
+        CachedAllocator& alloc);
 
 //! Reorder particle data (GPU driver function)
 void gpu_apply_sorted_order(

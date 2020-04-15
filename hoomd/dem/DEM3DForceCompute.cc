@@ -10,7 +10,7 @@
 
 #include "DEM3DForceCompute.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 
 #include <stdexcept>

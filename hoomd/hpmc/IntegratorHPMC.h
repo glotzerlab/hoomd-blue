@@ -9,6 +9,9 @@
     \brief Declaration of IntegratorHPMC
 */
 
+#ifdef ENABLE_HIP
+#include <hip/hip_runtime.h>
+#endif
 
 #include "hoomd/Integrator.h"
 #include "hoomd/CellList.h"
@@ -16,8 +19,8 @@
 #include "HPMCCounters.h"
 #include "ExternalField.h"
 
-#ifndef NVCC
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#ifndef __HIPCC__
+#include <pybind11/pybind11.h>
 #endif
 
 namespace hpmc
@@ -77,6 +80,55 @@ class PatchEnergy
         return 0;
         }
 
+    #ifdef ENABLE_HIP
+    //! Return the maximum number of threads per block for this kernel
+    /* \param idev the logical GPU id
+       \param eval_threads template parameter
+       \param launch_bounds template parameter
+     */
+    virtual unsigned int getKernelMaxThreads(unsigned int idev, unsigned int eval_threads, unsigned int launch_bounds)
+        {
+        throw std::runtime_error("PatchEnergy (base class) does not support getKernelMaxThreads.");
+        }
+
+    //! Return the shared size usage in bytes for this kernel
+    /* \param idev the logical GPU id
+       \param eval_threads template parameter
+       \param launch_bounds template parameter
+     */
+    virtual unsigned int getKernelSharedSize(unsigned int idev, unsigned int eval_threads, unsigned int launch_bounds)
+        {
+        throw std::runtime_error("PatchEnergy (base class) does not support getKernelSharedSize.");
+        }
+
+    //! Return the list of available launch bounds
+    /* \param idev the logical GPU id
+       \param eval_threads template parameter
+     */
+    virtual const std::vector<unsigned int>& getLaunchBounds() const
+        {
+        throw std::runtime_error("PatchEnergy (base class) does not support getLaunchBounds.");
+        }
+
+    //! Asynchronously launch the JIT kernel
+    /*! \param logical GPU id
+        \param grid The grid dimensions
+        \param threads The thread block dimensions
+        \param sharedMemBytes The size of the dynamic shared mem allocation
+        \param hStream stream to execute on
+        \param kernelParams the kernel parameters
+        \param max_extra_bytes Maximum extra bytes of shared memory (modifiable)
+        \param eval_threads template parameter
+        \param launch_bounds template parameter
+        */
+    virtual void launchKernel(unsigned int idev,
+        dim3 grid, dim3 threads, unsigned int sharedMemBytes, hipStream_t hStream,
+        void** kernelParams, unsigned int& max_extra_bytes,
+        unsigned int eval_threads, unsigned int launch_bounds)
+        {
+        throw std::runtime_error("PatchEnergy (base class) does not support launchKernel");
+        }
+    #endif
     };
 
 class PYBIND11_EXPORT IntegratorHPMC : public Integrator
@@ -329,7 +381,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             }
 
         //! Set the patch energy
-        void setPatchEnergy(std::shared_ptr< PatchEnergy > patch)
+        virtual void setPatchEnergy(std::shared_ptr< PatchEnergy > patch)
             {
             m_patch = patch;
             }
@@ -350,7 +402,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         GPUVector<Scalar> m_d;                      //!< Maximum move displacement by type
         GPUVector<Scalar> m_a;                      //!< Maximum angular displacement by type
 
-        GPUArray< hpmc_counters_t > m_count_total;  //!< Accept/reject total count
+        GlobalArray< hpmc_counters_t > m_count_total;  //!< Accept/reject total count
 
         Scalar m_nominal_width;                      //!< nominal cell width
         Scalar m_extra_ghost_width;                  //!< extra ghost width to add

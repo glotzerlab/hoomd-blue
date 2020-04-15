@@ -35,7 +35,8 @@ TableAngleForceComputeGPU::TableAngleForceComputeGPU(std::shared_ptr<SystemDefin
     GPUArray<unsigned int> flags(1, this->m_exec_conf);
     m_flags.swap(flags);
 
-    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "table_angle", this->m_exec_conf));
+    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    m_tuner.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "table_angle", this->m_exec_conf));
     }
 
 /*! \post The table based forces are computed for the given timestep.
@@ -97,7 +98,7 @@ void TableAngleForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_TableAngleForceComputeGPU(py::module& m)
     {
-    py::class_<TableAngleForceComputeGPU, std::shared_ptr<TableAngleForceComputeGPU> >(m, "TableAngleForceComputeGPU", py::base<TableAngleForceCompute>())
+    py::class_<TableAngleForceComputeGPU, TableAngleForceCompute, std::shared_ptr<TableAngleForceComputeGPU> >(m, "TableAngleForceComputeGPU")
     .def(py::init< std::shared_ptr<SystemDefinition>,
                          unsigned int,
                          const std::string& >())

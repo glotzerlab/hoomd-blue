@@ -9,7 +9,7 @@
  */
 
 #ifdef ENABLE_MPI
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #include "CommunicatorGPU.h"
 #include "CommunicatorGPU.cuh"
@@ -358,10 +358,10 @@ void mpcd::CommunicatorGPU::setCommFlags(const BoxDim& box)
  */
 void mpcd::detail::export_CommunicatorGPU(py::module& m)
     {
-    py::class_<mpcd::CommunicatorGPU, std::shared_ptr<mpcd::CommunicatorGPU> >(m,"CommunicatorGPU",py::base<Communicator>())
+    py::class_<mpcd::CommunicatorGPU, mpcd::Communicator, std::shared_ptr<mpcd::CommunicatorGPU> >(m,"CommunicatorGPU")
         .def(py::init<std::shared_ptr<mpcd::SystemData> >())
         .def("setMaxStages",&mpcd::CommunicatorGPU::setMaxStages);
     }
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // ENABLE_MPI

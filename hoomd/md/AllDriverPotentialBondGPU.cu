@@ -12,7 +12,7 @@
 #include "EvaluatorBondFENE.h"
 #include "AllDriverPotentialBondGPU.cuh"
 
-cudaError_t gpu_compute_harmonic_forces(const bond_args_t& bond_args,
+hipError_t gpu_compute_harmonic_forces(const bond_args_t& bond_args,
                                         const Scalar2 *d_params,
                                         unsigned int *d_flags)
     {
@@ -21,7 +21,7 @@ cudaError_t gpu_compute_harmonic_forces(const bond_args_t& bond_args,
                                                     d_flags);
     }
 
-cudaError_t gpu_compute_fene_forces(const bond_args_t& bond_args,
+hipError_t gpu_compute_fene_forces(const bond_args_t& bond_args,
                                    const Scalar4 *d_params,
                                    unsigned int *d_flags)
     {

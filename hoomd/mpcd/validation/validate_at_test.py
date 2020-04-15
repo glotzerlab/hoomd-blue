@@ -21,7 +21,7 @@ class mpcd_at_validation(unittest.TestCase):
         # solute initially on simple cubic lattice
         self.solute = hoomd.init.create_lattice(hoomd.lattice.sc(a=1.0), L)
         snap = self.solute.take_snapshot(all=True)
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             snap.particles.mass[:] = self.density
         self.solute.restore_snapshot(snap)
 
@@ -38,7 +38,7 @@ class mpcd_at_validation(unittest.TestCase):
         # initial momentum of both should be zero
         slv = self.solvent.take_snapshot()
         slt = self.solute.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             slv_p0 = np.sum(slv.particles.velocity, axis=0)
             slt_p0 = self.density*np.sum(slt.particles.velocity, axis=0)
             np.testing.assert_allclose(slv_p0, [0,0,0], atol=1.e-6)
@@ -49,7 +49,7 @@ class mpcd_at_validation(unittest.TestCase):
         # both groups should still have zero momentum, since the solute is not coupled to solvent
         slv = self.solvent.take_snapshot()
         slt = self.solute.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             slv_p1 = np.sum(slv.particles.velocity, axis=0)
             slt_p1 = self.density*np.sum(slt.particles.velocity, axis=0)
             np.testing.assert_allclose(slv_p1, [0,0,0], atol=1.e-6)
@@ -63,7 +63,7 @@ class mpcd_at_validation(unittest.TestCase):
         # initial momentum of both should be zero
         slv = self.solvent.take_snapshot()
         slt = self.solute.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             slv_p0 = np.sum(slv.particles.velocity, axis=0)
             slt_p0 = self.density*np.sum(slt.particles.velocity, axis=0)
             np.testing.assert_allclose(slv_p0, [0,0,0], atol=1.e-6)
@@ -74,7 +74,7 @@ class mpcd_at_validation(unittest.TestCase):
         # each group should not have zero momentum, but total momentum should be zero
         slv = self.solvent.take_snapshot()
         slt = self.solute.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             slv_p1 = np.sum(slv.particles.velocity, axis=0)
             slt_p1 = self.density*np.sum(slt.particles.velocity, axis=0)
             self.assertFalse(np.allclose(slv_p1, [0,0,0]))

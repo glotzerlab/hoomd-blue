@@ -23,7 +23,8 @@ namespace gpu
 
 //! Kernel driver to pack cell communication buffer
 template<typename T, class PackOpT>
-cudaError_t pack_cell_buffer(typename PackOpT::element *d_send_buf,
+cudaError_t __attribute__((visibility("default")))
+pack_cell_buffer(typename PackOpT::element *d_send_buf,
                              const T *d_props,
                              const unsigned int *d_send_idx,
                              const PackOpT op,
@@ -32,7 +33,8 @@ cudaError_t pack_cell_buffer(typename PackOpT::element *d_send_buf,
 
 //! Kernel driver to unpack cell communication buffer
 template<typename T, class PackOpT>
-cudaError_t unpack_cell_buffer(T *d_props,
+cudaError_t __attribute__((visibility("default")))
+unpack_cell_buffer(T *d_props,
                                const unsigned int *d_cells,
                                const unsigned int *d_recv,
                                const unsigned int *d_recv_begin,
@@ -42,7 +44,7 @@ cudaError_t unpack_cell_buffer(T *d_props,
                                const unsigned int num_cells,
                                const unsigned int block_size);
 
-#ifdef NVCC
+#ifdef __HIPCC__
 
 namespace kernel
 {
@@ -221,7 +223,7 @@ cudaError_t unpack_cell_buffer(T *d_props,
 
     return cudaSuccess;
     }
-#endif // NVCC
+#endif // __HIPCC__
 
 } // end namespace gpu
 } // end namespace mpcd

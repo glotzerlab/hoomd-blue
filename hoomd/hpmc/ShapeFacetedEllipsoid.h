@@ -30,7 +30,7 @@
  */
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -53,7 +53,7 @@ struct faceted_ellipsoid_params : param_base
         : a(1.0), b(1.0), c(1.0), N(0), ignore(1)
         { }
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     faceted_ellipsoid_params(unsigned int n_facet, bool managed )
         : a(1.0), b(1.0), c(1.0), N(n_facet), ignore(0)
         {
@@ -78,7 +78,7 @@ struct faceted_ellipsoid_params : param_base
     /*! \param ptr Pointer to load data to (will be incremented)
         \param available_bytes Size of remaining shared memory allocation
      */
-    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
+    DEVICE void load_shared(char *& ptr, unsigned int &available_bytes)
         {
         n.load_shared(ptr,available_bytes);
         offset.load_shared(ptr,available_bytes);
@@ -86,14 +86,26 @@ struct faceted_ellipsoid_params : param_base
         additional_verts.load_shared(ptr, available_bytes);
         }
 
-    #ifdef ENABLE_CUDA
-    //! Attach managed memory to CUDA stream
-    void attach_to_stream(cudaStream_t stream) const
+    //! Determine size of a shared memory alloation
+    /*! \param ptr Pointer to increment
+        \param available_bytes Size of remaining shared memory allocation
+     */
+    HOSTDEVICE void allocate_shared(char *& ptr, unsigned int &available_bytes) const
         {
-        n.attach_to_stream(stream);
-        offset.attach_to_stream(stream);
-        verts.attach_to_stream(stream);
-        additional_verts.attach_to_stream(stream);
+        n.allocate_shared(ptr,available_bytes);
+        offset.allocate_shared(ptr,available_bytes);
+        verts.allocate_shared(ptr,available_bytes);
+        additional_verts.allocate_shared(ptr, available_bytes);
+        }
+
+    #ifdef ENABLE_HIP
+    //! Set CUDA memory hints
+    void set_memory_hint() const
+        {
+        n.set_memory_hint();
+        offset.set_memory_hint();
+        verts.set_memory_hint();
+        additional_verts.set_memory_hint();
         }
     #endif
     } __attribute__((aligned(32)));
@@ -107,8 +119,9 @@ class SupportFuncFacetedEllipsoid
         //! Construct a support function for a faceted sphere
         /*! \param _params Parameters of the faceted sphere
         */
-        DEVICE SupportFuncFacetedEllipsoid(const faceted_ellipsoid_params& _params)
-            : params(_params)
+        DEVICE SupportFuncFacetedEllipsoid(const faceted_ellipsoid_params& _params,
+            const OverlapReal& _sweep_radius=OverlapReal(0.0))
+            : params(_params), sweep_radius(_sweep_radius)
             {
             }
 
@@ -131,9 +144,10 @@ class SupportFuncFacetedEllipsoid
         /*! \param n Normal vector input (in the local frame)
             \returns Local coords of the point furthest in the direction of n
         */
-        DEVICE vec3<OverlapReal> operator() (vec3<OverlapReal> n) const
+        DEVICE vec3<OverlapReal> operator() (const vec3<OverlapReal>& n_in) const
             {
             // transform support direction into coordinate system of the unit sphere
+            vec3<OverlapReal> n(n_in);
             n.x *= params.a; n.y *= params.b; n.z *= params.c;
 
             OverlapReal nsq = dot(n,n);
@@ -226,11 +240,16 @@ class SupportFuncFacetedEllipsoid
             // transform vertex on unit sphere back onto ellipsoid surface
             max_vec.x *= params.a; max_vec.y *= params.b; max_vec.z *= params.c;
 
-            return max_vec - params.origin;
+            // origin shift
+            max_vec -= params.origin;
+
+            // extend out by sweep radius
+            return max_vec + (sweep_radius * fast::rsqrt(dot(n_in,n_in))) * n_in;
             }
 
     private:
         const faceted_ellipsoid_params& params;      //!< Definition of faceted ellipsoid
+        const OverlapReal sweep_radius;             //!< The radius of a sphere sweeping the shape
     };
 
 
@@ -274,13 +293,6 @@ struct ShapeFacetedEllipsoid
         {
         return 0.0;
         }
-
-    #ifndef NVCC
-    std::string getShapeSpec() const
-        {
-        throw std::runtime_error("Shape definition not supported for this shape class.");
-        }
-    #endif
 
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
@@ -332,12 +344,18 @@ struct ShapeFacetedEllipsoid
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel() { return false; }
 
+    //! Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    HOSTDEVICE static bool supportsSweepRadius()
+        {
+        return true;
+        }
+
     /*!
      * Generate the intersections points of polyhedron edges with the sphere
      */
     DEVICE static void initializeVertices(param_type& _params, bool managed)
         {
-        #ifndef NVCC
+        #ifndef __HIPCC__
         _params.additional_verts = detail::poly3d_verts(2*_params.N*_params.N, managed);
         _params.additional_verts.diameter = OverlapReal(2.0); // for unit sphere
         _params.additional_verts.N = 0;
@@ -450,40 +468,25 @@ struct ShapeFacetedEllipsoid
     const param_type& params;           //!< Faceted sphere parameters
     };
 
-//! Check if circumspheres overlap
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shape
-    \param b second shape
-    \returns true if the circumspheres of both shapes overlap
-
-    \ingroup shape
-*/
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeFacetedEllipsoid& a,
-    const ShapeFacetedEllipsoid &b)
-    {
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    vec3<OverlapReal> dr(r_ab);
-
-    return (dot(dr,dr) <= DaDb*DaDb/OverlapReal(4.0));
-    }
-
 //! Overlap of faceted spheres
 /*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
     \param a first shape
     \param b second shape
     \param err in/out variable incremented when error conditions occur in the overlap test
+    \param sweep_radius Additional sphere radius to sweep the shapes with
     \returns true when *a* and *b* overlap, and false when they are disjoint
 
     \ingroup shape
 */
 template <>
-DEVICE inline bool test_overlap<ShapeFacetedEllipsoid, ShapeFacetedEllipsoid>(const vec3<Scalar>& r_ab, const ShapeFacetedEllipsoid& a, const ShapeFacetedEllipsoid& b, unsigned int& err)
+DEVICE inline bool test_overlap<ShapeFacetedEllipsoid, ShapeFacetedEllipsoid>(const vec3<Scalar>& r_ab, const ShapeFacetedEllipsoid& a, const ShapeFacetedEllipsoid& b,
+    unsigned int& err, Scalar sweep_radius_a, Scalar sweep_radius_b)
     {
     vec3<OverlapReal> dr(r_ab);
 
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    return detail::xenocollide_3d(detail::SupportFuncFacetedEllipsoid(a.params),
-                           detail::SupportFuncFacetedEllipsoid(b.params),
+    return detail::xenocollide_3d(detail::SupportFuncFacetedEllipsoid(a.params, sweep_radius_a),
+                           detail::SupportFuncFacetedEllipsoid(b.params, sweep_radius_b),
                            rotate(conj(quat<OverlapReal>(a.orientation)), dr + rotate(quat<OverlapReal>(b.orientation),b.params.origin))-a.params.origin,
                            conj(quat<OverlapReal>(a.orientation))* quat<OverlapReal>(b.orientation),
                            DaDb/2.0,

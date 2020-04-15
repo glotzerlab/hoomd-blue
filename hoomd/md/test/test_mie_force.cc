@@ -431,7 +431,7 @@ std::shared_ptr<PotentialPairMie> base_class_mie_creator(std::shared_ptr<SystemD
     return std::shared_ptr<PotentialPairMie>(new PotentialPairMie(sysdef, nlist));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! MieForceComputeGPU creator for unit tests
 std::shared_ptr<PotentialPairMieGPU> gpu_mie_creator(std::shared_ptr<SystemDefinition> sysdef,
                                           std::shared_ptr<NeighborList> nlist)
@@ -456,7 +456,7 @@ UP_TEST( PotentialPairMie_shift )
     mie_force_shift_test(mie_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-# ifdef ENABLE_CUDA
+# ifdef ENABLE_HIP
 //! test case for particle test on GPU
 UP_TEST( MieForceGPU_particle )
     {

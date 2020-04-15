@@ -330,7 +330,7 @@ void TableAngleForceCompute::computeForces(unsigned int timestep)
 //! Exports the TableAngleForceCompute class to python
 void export_TableAngleForceCompute(py::module& m)
     {
-    py::class_<TableAngleForceCompute, std::shared_ptr<TableAngleForceCompute> >(m, "TableAngleForceCompute", py::base<ForceCompute>())
+    py::class_<TableAngleForceCompute, ForceCompute, std::shared_ptr<TableAngleForceCompute> >(m, "TableAngleForceCompute")
     .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int, const std::string& >())
     .def("setTable", &TableAngleForceCompute::setTable)
     ;

@@ -7,7 +7,8 @@ import hoomd;
 from hoomd import _hoomd
 if _hoomd.is_TBB_available():
     # test the command line option
-    context.initialize("--nthreads=4")
+    context.initialize()
+    context.current.device.num_threads = 4
 
     import unittest
     import os
@@ -19,9 +20,9 @@ if _hoomd.is_TBB_available():
 
         # tests that mode settings work properly
         def test_nthreads(self):
-            self.assertEqual(hoomd.context.ExecutionContext().num_threads, 4);
-            option.set_num_threads(2)
-            self.assertEqual(hoomd.context.ExecutionContext().num_threads, 2);
+            self.assertEqual(hoomd.context.current.device.num_threads, 4);
+            context.current.device.num_threads = 2
+            self.assertEqual(hoomd.context.current.device.num_threads, 2);
 
         def tearDown(self):
             pass;
