@@ -222,29 +222,29 @@ stages:
       displayName: Add user to render group
     - template: templates/build_test.yml
 
-- stage: doc
-  displayName: Documentation
-  dependsOn: []
+# - stage: doc
+#   displayName: Documentation
+#   dependsOn: []
 
-  jobs:
-  - job: sphinx_doc
-    displayName: Sphinx
-    pool:
-      vmImage: 'ubuntu-16.04'
+#   jobs:
+#   - job: sphinx_doc
+#     displayName: Sphinx
+#     pool:
+#       vmImage: 'ubuntu-16.04'
 
-    container:
-      image: $(image_root)-gcc7_py37
-      options: -u 0
+#     container:
+#       image: $(image_root)-gcc7_py37
+#       options: -u 0
 
-    workspace:
-      clean: all
+#     workspace:
+#       clean: all
 
-    steps:
-    - checkout: self
-      submodules: true
-    - script: sphinx-build -b html -d _build/doctrees -W --keep-going -n . _build/html
-      displayName: (HTML)
-      workingDirectory: sphinx-doc
-    - script: sphinx-build -b latex -d _build/doctrees -W --keep-going -n . _build/latex
-      displayName: (LaTeX)
-      workingDirectory: sphinx-doc
+#     steps:
+#     - checkout: self
+#       submodules: true
+#     - script: sphinx-build -b html -d _build/doctrees -W --keep-going -n . _build/html
+#       displayName: (HTML)
+#       workingDirectory: sphinx-doc
+#     - script: sphinx-build -b latex -d _build/doctrees -W --keep-going -n . _build/latex
+#       displayName: (LaTeX)
+#       workingDirectory: sphinx-doc

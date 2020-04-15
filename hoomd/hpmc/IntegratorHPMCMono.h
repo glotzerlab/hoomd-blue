@@ -314,7 +314,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
             // many things depend internally on the orientation field (for ghosts) being initialized, therefore always request it
             flags[comm_flag::orientation] = 1;
 
-            if (m_patch && (!m_patch_log || m_pdata->getFlags()[pdata_flag::potential_energy]))
+            if (m_patch && (!m_patch_log))
                 {
                 flags[comm_flag::diameter] = 1;
                 flags[comm_flag::charge] = 1;
@@ -419,7 +419,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
             for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
                 {
                 Shape shape(q, params[i]);
-                type_shape_mapping[i] = shape.getShapeSpec();
+                type_shape_mapping[i] = getShapeSpec(shape);
                 }
             return type_shape_mapping;
             }

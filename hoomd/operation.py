@@ -10,9 +10,9 @@ _TriggeredOperation is _Operation for objects that are triggered.
 """
 
 from hoomd.util import is_iterable, dict_map, str_to_tuple_keys
-from hoomd.triggers import PeriodicTrigger, Trigger
+from hoomd.trigger import Periodic, Trigger
 from hoomd.variant import Variant, Constant
-from hoomd.filters import ParticleFilter
+from hoomd.filter import _ParticleFilter
 from hoomd.logger import Loggable
 from hoomd.typeconverter import RequiredArg
 from hoomd.util import NamespaceDict
@@ -30,7 +30,7 @@ def convert_values_to_log_form(value):
             return (value.value, 'scalar')
         else:
             return (value, 'object')
-    elif isinstance(value, Trigger) or isinstance(value, ParticleFilter):
+    elif isinstance(value, Trigger) or isinstance(value, _ParticleFilter):
         return (value, 'object')
     elif isinstance(value, _Operation):
         return (value, 'object')
@@ -176,7 +176,7 @@ class _Operation(metaclass=Loggable):
             try:
                 typeparam.attach(cpp_obj, simulation)
             except ValueError as verr:
-                raise ValueError("TypeParameter {}:"
+                raise ValueError("In TypeParameter {}:"
                                  " ".format(typeparam.name) + verr.args[0])
 
     def _update_param_dict(self):
@@ -294,9 +294,9 @@ def trigger_preprocessing(value):
     if isinstance(value, Trigger):
         return value
     if isinstance(value, int):
-        return PeriodicTrigger(period=value, phase=0)
+        return Periodic(period=value, phase=0)
     elif hasattr(value, '__len__') and len(value) == 2:
-        return PeriodicTrigger(period=value[0], phase=value[1])
+        return Periodic(period=value[0], phase=value[1])
     else:
         raise ValueError("Value {} could not be converted to a Trigger.")
 

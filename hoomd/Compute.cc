@@ -5,6 +5,7 @@
 // Maintainer: joaander
 
 #include "Compute.h"
+#include "Communicator.h"
 
 namespace py = pybind11;
 
@@ -126,5 +127,8 @@ void export_Compute(py::module& m)
     .def("benchmark", &Compute::benchmark)
     .def("printStats", &Compute::printStats)
     .def("setProfiler", &Compute::setProfiler)
+    #ifdef ENABLE_MPI
+    .def("setCommunicator", &Compute::setCommunicator)
+    #endif
     ;
     }

@@ -6,7 +6,13 @@ hoomd.trigger
 .. autosummary::
     :nosignatures:
 
-    hoomd.trigger.PeriodicTrigger
+    hoomd.trigger.After
+    hoomd.trigger.And
+    hoomd.trigger.Before
+    hoomd.trigger.Not
+    hoomd.trigger.On
+    hoomd.trigger.Or
+    hoomd.trigger.Periodic
     hoomd.trigger.Trigger
 
 .. rubric:: Details

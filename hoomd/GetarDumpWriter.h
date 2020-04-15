@@ -242,8 +242,6 @@ namespace getardump{
                         iter_j != iter_i->second.end(); ++iter_j)
                         {
                         const Property prop(iter_j->m_prop);
-                        flags[pdata_flag::potential_energy] = (flags[pdata_flag::potential_energy] |
-                            (prop == PotentialEnergy));
                         flags[pdata_flag::pressure_tensor] = (flags[pdata_flag::pressure_tensor] |
                             (unsigned int)(prop == Virial));
                         }

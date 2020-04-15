@@ -74,10 +74,25 @@ class Trigger:
 class PeriodicTrigger:
     pass
 
+class ParticleFilter:
+    pass
+
 class ParticleFilterAll:
     pass
 
 class ParticleFilterTags:
+    pass
+
+class ParticleFilterType:
+    pass
+
+class ParticleFilterIntersection:
+    pass
+
+class ParticleFilterSetDifference:
+    pass
+
+class ParticleFilterUnion:
     pass
 
 class GSDStateReader:
@@ -93,4 +108,7 @@ class VariantRamp(Variant):
     pass
 
 class VariantCycle(Variant):
+    pass
+
+class MPIConfiguration():
     pass

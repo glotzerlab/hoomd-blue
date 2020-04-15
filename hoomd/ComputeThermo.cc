@@ -65,6 +65,8 @@ ComputeThermo::ComputeThermo(std::shared_ptr<SystemDefinition> sysdef,
     m_logname_list.push_back(string("pressure_yz") + suffix);
     m_logname_list.push_back(string("pressure_zz") + suffix);
 
+    m_computed_flags.reset();
+
     #ifdef ENABLE_MPI
     m_properties_reduced = true;
     #endif
@@ -94,10 +96,11 @@ void ComputeThermo::setNDOF(unsigned int ndof)
 */
 void ComputeThermo::compute(unsigned int timestep)
     {
-    if (!shouldCompute(timestep))
-        return;
-
-    computeProperties();
+    if (shouldCompute(timestep))
+        {
+        computeProperties();
+        m_computed_flags = m_pdata->getFlags();
+        }
     }
 
 std::vector< std::string > ComputeThermo::getProvidedLogQuantities()
@@ -313,21 +316,18 @@ void ComputeThermo::computeProperties()
 
     // total potential energy
     double pe_total = 0.0;
-    if (flags[pdata_flag::potential_energy])
+    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
-        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+        unsigned int j = m_group->getMemberIndex(group_idx);
+
+        // ignore rigid body constituent particles in the sum
+        if (h_body.data[j] >= MIN_FLOPPY || h_body.data[j] == h_tag.data[j])
             {
-            unsigned int j = m_group->getMemberIndex(group_idx);
-
-            // ignore rigid body constituent particles in the sum
-            if (h_body.data[j] >= MIN_FLOPPY || h_body.data[j] == h_tag.data[j])
-                {
-                pe_total += (double)h_net_force.data[j].w;
-                }
+            pe_total += (double)h_net_force.data[j].w;
             }
-
-        pe_total += m_pdata->getExternalEnergy();
         }
+
+    pe_total += m_pdata->getExternalEnergy();
 
     double W = 0.0;
     double virial_xx = m_pdata->getExternalVirial(0);
@@ -356,27 +356,8 @@ void ComputeThermo::computeProperties()
                 }
             }
 
-        if (flags[pdata_flag::isotropic_virial])
-            {
-            // isotropic virial = 1/3 trace of virial tensor
-            W = Scalar(1./3.) * (virial_xx + virial_yy + virial_zz);
-            }
-        }
-     else if (flags[pdata_flag::isotropic_virial])
-        {
-        // only sum up isotropic part of virial tensor
-        unsigned int virial_pitch = net_virial.getPitch();
-        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
-            {
-            unsigned int j = m_group->getMemberIndex(group_idx);
-            // ignore rigid body constituent particles in the sum
-            if (h_body.data[j] >= MIN_FLOPPY || h_body.data[j] == h_tag.data[j])
-                {
-                W += Scalar(1./3.)* ((double)h_net_virial.data[j+0*virial_pitch] +
-                                     (double)h_net_virial.data[j+3*virial_pitch] +
-                                     (double)h_net_virial.data[j+5*virial_pitch] );
-                }
-            }
+        // isotropic virial = 1/3 trace of virial tensor
+        W = Scalar(1./3.) * (virial_xx + virial_yy + virial_zz);
         }
 
     // compute the pressure

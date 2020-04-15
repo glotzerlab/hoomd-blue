@@ -14,6 +14,8 @@ namespace py = pybind11;
 #endif
 
 #include <pybind11/stl_bind.h>
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<ForceConstraint> >);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<ForceCompute> >);
 
 using namespace std;
 
@@ -646,7 +648,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
                                          force_list,
                                          nparticles,
                                          clear,
-                                         flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
+                                         flags[pdata_flag::pressure_tensor],
                                          m_pdata->getGPUPartition());
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -811,7 +813,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
                                          force_list,
                                          nparticles,
                                          clear,
-                                         flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
+                                         flags[pdata_flag::pressure_tensor],
                                          m_pdata->getGPUPartition());
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())

@@ -6,7 +6,7 @@ set(files __init__.py
     )
 
 install(FILES ${files}
-        DESTINATION ${PYTHON_SITE_INSTALL_DIR}/md
+        DESTINATION ${PYTHON_SITE_INSTALL_DIR}/tuner
        )
 
 copy_files_to_build("${files}" "tuner" "*.py")

@@ -1,12 +1,12 @@
 from hoomd.pytest.dummy import DummyCppObj, DummySimulation, DummyTrigger
 from hoomd.pytest.dummy import DummyOperation, DummyTriggeredOp
 from hoomd.syncedlist import SyncedList
-from hoomd.triggers import PeriodicTrigger
+from hoomd.trigger import Periodic
 
 
 def test_initialization():
     triggered_op = DummyTriggeredOp(trigger=1)
-    assert type(triggered_op.trigger) == PeriodicTrigger
+    assert type(triggered_op.trigger) == Periodic
     assert triggered_op.trigger.period == 1
     assert triggered_op.trigger.phase == 0
 
