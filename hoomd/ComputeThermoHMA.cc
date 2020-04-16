@@ -57,6 +57,9 @@ ComputeThermoHMA::ComputeThermoHMA(std::shared_ptr<SystemDefinition> sysdef,
     m_lattice_site.swap(lat);
     TAG_ALLOCATION(m_lattice_site);
     ArrayHandle<Scalar3> h_lattice_site(m_lattice_site, access_location::host, access_mode::overwrite);
+#ifdef ENABLE_MPI
+    snapshot.bcast(0, m_exec_conf->getMPICommunicator());
+#endif
 
     // for each particle in the data
     for (unsigned int tag = 0; tag < snapshot.size; tag++)
