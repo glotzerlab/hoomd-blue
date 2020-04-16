@@ -2891,6 +2891,28 @@ class alj(ai_pair):
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
 
+    The following shape parameters may be set per particle type:
+
+    - *vertices* - The vertices of a convex polytope in 2 or 3 dimensions. The
+                   array may be :math:`N\times2` or :math:`N\times3` in 2D (in
+                   the latter case, the third dimension is ignored).
+    - *rounding radii* - The semimajor axes of a rounding ellipsoid. If a
+                         single number is specified, the rounding ellipsoid is
+                         a sphere.
+    - *faces* - The faces of the polyhedron specified as a (possible ragged) 2D
+                array of integers. The vertices must be ordered (see
+                :meth:`~.convexHull` for more information).
+
+    At least one of ``vertices`` or ``rounding_radii`` must be specified.
+    Specifying only ``rounding radii creates an ellipsoid, while specifying
+    only vertices creates a convex polytope. In general, the faces will be
+    inferred by computing the convex hull of the vertices and merging coplanar
+    faces. However, because merging of faces requires applying a numerical
+    threshold to find coplanar faces, in some cases the default value may
+    result in not all coplanar faces actually being merged. In such cases,
+    users can precompute the faces and provide them. The convenience class
+    method :meth:`~.convexHull` can be used for this purpose.
+
     Example::
 
         nl = nlist.cell()
@@ -2958,7 +2980,8 @@ class alj(ai_pair):
 
 
     ### COPIED FROM dem.utils
-    def convexHull(self, vertices, tol=1e-6):
+    @classmethod
+    def convexHull(cls, vertices, tol=1e-6):
         """Compute the 3D convex hull of a set of vertices and merge coplanar faces.
 
         Args:
@@ -3080,7 +3103,9 @@ class alj(ai_pair):
                     "Please subtract the centroid (e.g. via "
                     "`np.mean(vertices, axis=0)`) from the vertices.")
 
-            vertices, faces = self.convexHull(vertices)
+            faces = self.shape[type_name].get('faces')
+            if faces is None:
+                vertices, faces = self.convexHull(vertices)
         else:
             vertices = [[0, 0, 0]]
             faces = [[0]]
