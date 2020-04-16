@@ -190,7 +190,7 @@ void ComputeThermoHMAGPU::computeProperties()
 
 void export_ComputeThermoHMAGPU(py::module& m)
     {
-    py::class_<ComputeThermoHMAGPU, std::shared_ptr<ComputeThermoHMAGPU> >(m,"ComputeThermoHMAGPU",py::base<ComputeThermoHMA>())
+    py::class_<ComputeThermoHMAGPU, ComputeThermoHMA, std::shared_ptr<ComputeThermoHMAGPU> >(m,"ComputeThermoHMAGPU")
     .def(py::init< std::shared_ptr<SystemDefinition>,
          std::shared_ptr<ParticleGroup>,
          const double,
