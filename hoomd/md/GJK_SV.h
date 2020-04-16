@@ -594,9 +594,15 @@ HOSTDEVICE inline void sv_subalgorithm(vec3<Scalar>* W, unsigned int &W_used, Sc
  *  \param b Reference to vec3 that will be overwritten with the vector from the origin (in the frame defined by verts1) to the point on the body represented by verts2 that is closest to verts1.
  *  \param success Reference to bool that will be overwritten with whether or not the algorithm terminated in the maximum number of allowed iterations (verts1.size + verts2.size + 1).
  *  \param overlap Reference to bool that will be overwritten with whether or not an overlap was detected.
- *  \param qi The orientation of the first shape (will be applied to verts1).
- *  \param qj The orientation of the first shape (will be applied to verts2).
+ *  \param mati The orientation of the first shape to be applied to verts1.
+ *  \param matj The orientation of the second shape to be applied to verts2.
+ *  \param qi The orientation of the first shape to be applied to verts1 (used in place of mati when the inverse rotation is required).
+ *  \param qj The orientation of the second shape to be applied to verts2 (used in place of matj when the inverse rotation is required).
  *  \param dr The vector pointing from the position of particle 2 to the position of particle 1 (note the sign; this is reversed throughout most of the calculations below).
+ *  \param rounding_radii1 The semimajor axes of the rounding ellipse for particle i.
+ *  \param rounding_radii2 The semimajor axes of the rounding ellipse for particle j.
+ *  \param has_rounding1 Whether or not to actually use roundingradii1 to add to the support function.
+ *  \param has_rounding2 Whether or not to actually use roundingradii2 to add to the support function.
  */
 template <unsigned int ndim>
 HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const ManagedArray<vec3<Scalar> > &verts2, vec3<Scalar> &v, vec3<Scalar> &a, vec3<Scalar> &b, bool& success, bool& overlap, const Scalar (&mati)[3][3], const Scalar (&matj)[3][3], const quat<Scalar> &qi, const quat<Scalar> &qj, const vec3<Scalar> &dr, const vec3<Scalar> &rounding_radii1, const vec3<Scalar> &rounding_radii2, bool has_rounding1, bool has_rounding2)

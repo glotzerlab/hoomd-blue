@@ -184,6 +184,14 @@ struct pair_alj_params
     bool average_simplices;              //! Whether or not to average interactions over simplices.
     };
 
+
+/*! Clip a value between 0 and 1 */
+HOSTDEVICE inline Scalar clip(const Scalar &x)
+    {
+    return (x >= 0)*(x + (x > 1)*(1 - x));
+    }
+
+
 // Note: delta is from the edge to the point.
 //! Compute the distance from a point to a line segment in 2D.
 /*! All the points (point, e1, and e2) must be provided in the same coordinate
@@ -203,17 +211,9 @@ pointSegmentDistance(const vec3<Scalar> &point, const vec3<Scalar> &e1, const ve
     {
     vec3<Scalar> edge = e1 - e2;
     Scalar edge_length_sq = dot(edge, edge);
-    // TODO: Change to use clip.
-    Scalar t = fmax(0.0, fmin(dot(point - e1, e2 - e1)/edge_length_sq, 1.0));
+    Scalar t = clip(dot(point - e1, e2 - e1)/edge_length_sq);
     projection = e1 - t * edge;
     delta = point - projection;
-    }
-
-
-/*! Clip a value between 0 and 1 */
-HOSTDEVICE inline Scalar clip(const Scalar &x)
-    {
-    return (x >= 0)*(x + (x > 1)*(1 - x));
     }
 
 
