@@ -37,15 +37,14 @@ def device_gpu():
 
 @pytest.fixture(scope='session')
 def dummy_simulation_factory(device):
-    def make_simulation(particle_types=['A']):
+    def make_simulation(particle_types=['A'], n=10):
         s = Snapshot(device.comm)
-        N = 10
 
         if s.exists:
             s.configuration.box = [20, 20, 20, 0, 0, 0]
 
-            s.particles.N = N
-            s.particles.position[:] = numpy.random.uniform(-10, 10, size=(N, 3))
+            s.particles.N = n
+            s.particles.position[:] = numpy.random.uniform(-10, 10, size=(n, 3))
             s.particles.types = particle_types
 
         sim = Simulation(device)
