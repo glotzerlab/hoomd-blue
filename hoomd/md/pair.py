@@ -3105,7 +3105,12 @@ class alj(ai_pair):
 
             faces = self.shape[type_name].get('faces')
             if faces is None:
-                vertices, faces = self.convexHull(vertices)
+                if ndim == 3:
+                    vertices, faces = self.convexHull(vertices)
+                else:
+                    # The faces don't actually get used for 2D, so just pass a
+                    # dummy for now.
+                    faces = [[0]]
         else:
             vertices = [[0, 0, 0]]
             faces = [[0]]
