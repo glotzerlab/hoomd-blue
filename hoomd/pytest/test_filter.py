@@ -1,6 +1,9 @@
 import pytest
 from hoomd.filter.type_ import Type
+from hoomd.filter.tags import Tags
+from hoomd.filter.set_ import SetDifference, Union, Intersection
 from copy import deepcopy
+from itertools import combinations
 
 
 def set_types(s, inds, particle_types, particle_type):
@@ -24,6 +27,7 @@ def test_type_filter(dummy_simulation_factory, type_indices):
 
     A_filter = Type(["A"])
     B_filter = Type(["B"])
+    AB_filter = Type(["A", "B"])
     assert A_filter(sim.state) == list(range(N))
     assert B_filter(sim.state) == []
 
@@ -42,3 +46,25 @@ def test_type_filter(dummy_simulation_factory, type_indices):
     sim.state.snapshot = s
     assert A_filter(sim.state) == A_inds
     assert B_filter(sim.state) == B_inds
+    assert AB_filter(sim.state) == list(range(N))
+
+_tag_indices = [[0, 3, 4, 8],
+                [1, 2, 5, 6, 7, 9],
+                [2, 3, 5, 6, 7, 8, 9],
+                [0, 1, 4],
+                [3, 7],
+                [0, 1, 2, 4, 5, 6, 8, 9]]
+
+
+@pytest.fixture(scope="function", params=_tag_indices)
+def tag_indices(request):
+    return deepcopy(request.param)
+
+
+def test_tags_filter(dummy_simulation_factory, tag_indices):
+    particle_types = ['A']
+    N = 10
+    sim = dummy_simulation_factory(particle_types=particle_types, n=N)
+    inds = tag_indices
+    tag_filter = Tags(inds)
+    assert tag_filter(sim.state) == inds
