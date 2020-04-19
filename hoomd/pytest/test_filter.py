@@ -68,3 +68,42 @@ def test_tags_filter(dummy_simulation_factory, tag_indices):
     inds = tag_indices
     tag_filter = Tags(inds)
     assert tag_filter(sim.state) == inds
+
+_set_indices = [([0, 3, 8], [1, 6, 7, 9], [2, 4, 5]),
+                ([2, 3, 5, 7, 8], [0, 1, 4], [6, 9]),
+                ([3], [0, 7, 8], [1, 2, 4, 5, 6, 9])]
+
+
+@pytest.fixture(scope="function", params=_set_indices)
+def set_indices(request):
+    return deepcopy(request.param)
+
+
+def type_not_in_combo(combo, particle_types):
+    for particle_type in particle_types:
+        if particle_type not in combo:
+            return particle_type
+
+
+def test_intersection(dummy_simulation_factory, set_indices):
+    particle_types = ['A', 'B', 'C']
+    N = 10
+    sim = dummy_simulation_factory(particle_types=particle_types, n=N)
+    A_inds, B_inds, C_inds = set_indices
+    s = sim.state.snapshot
+    if s.exists:
+        set_types(s, A_inds, particle_types, "A")
+        set_types(s, B_inds, particle_types, "B")
+        set_types(s, C_inds, particle_types, "C")
+    sim.state.snapshot = s
+
+    for type_combo in combinations(particle_types, 2):
+        combo_filter = Type(type_combo)
+        for particle_type in type_combo:
+            type_filter = Type([particle_type])
+            intersection_filter = Intersection(combo_filter, type_filter)
+            assert intersection_filter(sim.state) == type_filter(sim.state)
+        remaining_type = type_not_in_combo(type_combo, particle_types)
+        remaining_filter = Type([remaining_type])
+        intersection_filter = Intersection(combo_filter, remaining_filter)
+        assert intersection_filter(sim.state) == []
