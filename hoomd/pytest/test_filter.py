@@ -107,3 +107,23 @@ def test_intersection(dummy_simulation_factory, set_indices):
         remaining_filter = Type([remaining_type])
         intersection_filter = Intersection(combo_filter, remaining_filter)
         assert intersection_filter(sim.state) == []
+
+
+def test_union(dummy_simulation_factory, set_indices):
+    particle_types = ['A', 'B', 'C']
+    N = 10
+    sim = dummy_simulation_factory(particle_types=particle_types, n=N)
+    A_inds, B_inds, C_inds = set_indices
+    s = sim.state.snapshot
+    if s.exists:
+        set_types(s, A_inds, particle_types, "A")
+        set_types(s, B_inds, particle_types, "B")
+        set_types(s, C_inds, particle_types, "C")
+    sim.state.snapshot = s
+
+    for type_combo in combinations(particle_types, 2):
+        filter1 = Type([type_combo[0]])
+        filter2 = Type([type_combo[1]])
+        combo_filter = Type(type_combo)
+        union_filter = Union(filter1, filter2)
+        assert union_filter(sim.state) == combo_filter(sim.state)
