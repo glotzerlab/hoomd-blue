@@ -815,12 +815,12 @@ class EvaluatorPairALJ
                 Scalar rho = sigma12 / (r - (k1 - Scalar(0.5)*_params.sigma_i) - (k2 - Scalar(0.5)*_params.sigma_j));
                 Scalar invr_rsq = rho*rho;
                 Scalar invr_6 = invr_rsq*invr_rsq*invr_rsq;
-                Scalar numer = (invr_6*invr_6 - invr_6) - SHIFT_RHO_DIFF;
+                Scalar numer = (invr_6*invr_6 - invr_6) - (_params.alpha % 2 == 0 ? SHIFT_RHO_DIFF : 0);
 
                 invr_rsq = sigma12_sq/rsq;
                 invr_6 = invr_rsq*invr_rsq*invr_rsq;
                 Scalar invr_12 = invr_6*invr_6;
-                Scalar denom = invr_12 - invr_6 - SHIFT_RHO_DIFF;
+                Scalar denom = invr_12 - invr_6 - (_params.alpha % 2 == 0 ? SHIFT_RHO_DIFF : 0);
                 Scalar scale_factor = denom != 0 ? (numer/denom) : 1;
 
                 Scalar four_epsilon = Scalar(4.0) * _params.epsilon;
