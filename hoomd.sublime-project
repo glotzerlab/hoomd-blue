@@ -19,7 +19,7 @@
         "spell_check": true,
         "translate_tabs_to_spaces": true,
         "trim_automatic_white_space": false,
-        "rulers": [120],
+        "rulers": [80, 100],
         "detect_indentation": false
     },
     "build_systems":

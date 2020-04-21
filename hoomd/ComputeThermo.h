@@ -124,8 +124,7 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
             if (!m_properties_reduced) reduceProperties();
             #endif
             // return NaN if the flags are not valid or we have no rotational DOF
-            PDataFlags flags = m_pdata->getFlags();
-            if (flags[pdata_flag::rotational_kinetic_energy] && m_ndof_rot)
+            if (m_computed_flags[pdata_flag::rotational_kinetic_energy] && m_ndof_rot)
                 {
                 ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
                 return Scalar(2.0)/m_ndof_rot*h_properties.data[thermo_index::rotational_kinetic_energy];
@@ -142,8 +141,7 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
         Scalar getPressure()
             {
             // return NaN if the flags are not valid
-            PDataFlags flags = m_pdata->getFlags();
-            if (flags[pdata_flag::isotropic_virial])
+            if (m_computed_flags[pdata_flag::pressure_tensor])
                 {
                 // return the pressure
                 #ifdef ENABLE_MPI
@@ -182,8 +180,7 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
             #endif
 
             // return NaN if the flags are not valid
-            PDataFlags flags = m_pdata->getFlags();
-            if (flags[pdata_flag::rotational_kinetic_energy])
+            if (m_computed_flags[pdata_flag::rotational_kinetic_energy])
                 {
                 ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
                 return h_properties.data[thermo_index::rotational_kinetic_energy];
@@ -204,9 +201,8 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
             #endif
 
             // return only translational component if the flags are not valid
-            PDataFlags flags = m_pdata->getFlags();
             ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
-            if (flags[pdata_flag::rotational_kinetic_energy])
+            if (m_computed_flags[pdata_flag::rotational_kinetic_energy])
                 {
                 return (h_properties.data[thermo_index::translational_kinetic_energy] +
                         h_properties.data[thermo_index::rotational_kinetic_energy]);
@@ -226,17 +222,8 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
             if (!m_properties_reduced) reduceProperties();
             #endif
 
-            // return NaN if the flags are not valid
-            PDataFlags flags = m_pdata->getFlags();
-            if (flags[pdata_flag::potential_energy])
-                {
-                ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
-                return h_properties.data[thermo_index::potential_energy];
-                }
-            else
-                {
-                return std::numeric_limits<Scalar>::quiet_NaN();
-                }
+            ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
+            return h_properties.data[thermo_index::potential_energy];
             }
 
         //! Returns the upper triangular virial tensor last computed by compute()
@@ -246,9 +233,8 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
         PressureTensor getPressureTensor()
             {
             // return tensor of NaN's if flags are not valid
-            PDataFlags flags = m_pdata->getFlags();
             PressureTensor p;
-            if (flags[pdata_flag::pressure_tensor])
+            if (m_computed_flags[pdata_flag::pressure_tensor])
                 {
                 #ifdef ENABLE_MPI
                 if (!m_properties_reduced) reduceProperties();
@@ -309,6 +295,9 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
         unsigned int m_ndof_rot;        //!< Stores the number of rotational degrees of freedom in the system
         std::vector<std::string> m_logname_list;  //!< Cache all generated logged quantities names
         bool m_logging_enabled;         //!< Set to false to disable communication with the logger
+
+        /// Store the particle data flags used during the last computation
+        PDataFlags m_computed_flags;
 
         //! Does the actual computation
         virtual void computeProperties();

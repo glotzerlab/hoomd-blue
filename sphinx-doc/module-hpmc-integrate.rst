@@ -8,24 +8,38 @@ hpmc.integrate
 .. autosummary::
     :nosignatures:
 
-    hpmc.integrate.convex_polygon
-    hpmc.integrate.convex_polyhedron
-    hpmc.integrate.convex_spheropolygon
-    hpmc.integrate.convex_spheropolyhedron
-    hpmc.integrate.convex_spheropolyhedron_union
-    hpmc.integrate.ellipsoid
-    hpmc.integrate.faceted_sphere
-    hpmc.integrate.interaction_matrix
-    hpmc.integrate.HPMCIntegrator
-    hpmc.integrate.polyhedron
-    hpmc.integrate.simple_polygon
+    hpmc.integrate._HPMCIntegrator
+    hpmc.integrate.ConvexPolygon
+    hpmc.integrate.ConvexPolyhedron
+    hpmc.integrate.ConvexSpheropolygon
+    hpmc.integrate.ConvexSpheropolyhedron
+    hpmc.integrate.ConvexSpheropolyhedronUnion
+    hpmc.integrate.Ellipsoid
+    hpmc.integrate.FacetedEllipsoid
+    hpmc.integrate.FacetedEllipsoidUnion
+    hpmc.integrate.Polyhedron
+    hpmc.integrate.SimplePolygon
     hpmc.integrate.Sphere
-    hpmc.integrate.sphere_union
-    hpmc.integrate.sphinx
+    hpmc.integrate.SphereUnion
+    hpmc.integrate.Sphinx
 
 .. rubric:: Details
 
 .. automodule:: hoomd.hpmc.integrate
     :synopsis: HPMC integrators.
-    :members:
+    :members: _HPMCIntegrator,
+              ConvexPolygon,
+              ConvexPolyhedron,
+              ConvexSpheropolygon,
+              ConvexSpheropolyhedron,
+              ConvexSpheropolyhedronUnion,
+              Ellipsoid,
+              FacetedEllipsoid,
+              FacetedEllipsoidUnion,
+              Polyhedron,
+              SimplePolygon,
+              Sphere,
+              SphereUnion,
+              Sphinx
     :no-inherited-members:
+    :show-inheritance:

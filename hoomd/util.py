@@ -9,8 +9,9 @@ R""" Utilities.
 from numpy import ndarray
 from inspect import isclass
 from copy import deepcopy
-from hoomd.trigger import PeriodicTrigger
 from hoomd.variant import Constant
+from hoomd.trigger import Periodic
+
 
 ## \internal
 # \brief Checks if a variable is an instance of a string and always returns a list.
@@ -246,7 +247,7 @@ def array_to_strings(value):
 
 def trigger_preprocessing(trigger):
     if isinstance(trigger, int):
-        return PeriodicTrigger(period=int(trigger), phase=0)
+        return Periodic(period=int(trigger), phase=0)
     else:
         return trigger
 

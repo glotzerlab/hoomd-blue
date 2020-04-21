@@ -1734,8 +1734,7 @@ void CommunicatorGPU::exchangeGhosts()
     CommFlags current_flags = getFlags();
     if (current_flags[comm_flag::reverse_net_force] && this->m_exec_conf->isCUDAEnabled())
         {
-        this->m_exec_conf->msg->error() << "Reverse force communication is not enabled on the GPU." << std::endl;
-        throw std::runtime_error("Error during communication");
+        throw std::runtime_error("Communication error: Reverse force communication is not enabled on the GPU.");
         }
 
     // check if simulation box is sufficiently large for domain decomposition

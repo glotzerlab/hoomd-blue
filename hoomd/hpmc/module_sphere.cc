@@ -52,8 +52,8 @@ void export_sphere(py::module& m)
     export_ExternalCallback<ShapeSphere>(m, "ExternalCallbackSphere");
 
     #ifdef ENABLE_HIP
-    export_IntegratorHPMCMonoGPU< ShapeSphere >(m, "IntegratorHPMCMonoGPUSphere");
-    export_ComputeFreeVolumeGPU< ShapeSphere >(m, "ComputeFreeVolumeGPUSphere");
+    export_IntegratorHPMCMonoGPU< ShapeSphere >(m, "IntegratorHPMCMonoSphereGPU");
+    export_ComputeFreeVolumeGPU< ShapeSphere >(m, "ComputeFreeVolumeSphereGPU");
     #endif
     }
 
