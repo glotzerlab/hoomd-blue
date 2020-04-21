@@ -14,6 +14,7 @@ set(_${PACKAGE_NAME}_sources
      module-${PACKAGE_NAME}.cc
      PatchEnergyJIT.cc
      GPUEvalFactory.cc
+     PatchEnergyJITGPU.cc
      PatchEnergyJITUnion.cc
      PatchEnergyJITUnionGPU.cc
    )

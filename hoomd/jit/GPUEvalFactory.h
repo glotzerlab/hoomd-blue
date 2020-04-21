@@ -4,6 +4,7 @@
 
 #include "PatchEnergyJIT.h"
 #include "EvaluatorUnionGPU.cuh"
+#include "hoomd/hpmc/IntegratorHPMC.h"
 
 #include <hip/hip_runtime.h>
 
@@ -18,14 +19,14 @@
 #ifdef DEBUG_JIT
 #define JITIFY_PRINT_LOG 1
 #define JITIFY_PRINT_LINKER_LOG 1
+#define JITIFY_PRINT_LAUNCH 1
 #else
 #define JITIFY_PRINT_LOG 0
+#define JITIFY_PRINT_LAUNCH 0
 #endif
-
 #define JITIFY_PRINT_INSTANTIATION 0
 #define JITIFY_PRINT_SOURCE 0
 #define JITIFY_PRINT_PTX 0
-#define JITIFY_PRINT_LAUNCH 0
 #define JITIFY_PRINT_HEADER_PATHS 0
 
 #include "jitify.hpp"
@@ -48,7 +49,7 @@ class GPUEvalFactory
         GPUEvalFactory(std::shared_ptr<ExecutionConfiguration> exec_conf,
                        const std::string& code,
                        const std::string& kernel_name,
-                       const std::vector<std::string>& include_paths,
+                       const std::vector<std::string>& options,
                        const std::string& cuda_devrt_library_path,
                        unsigned int compute_arch)
             : m_exec_conf(exec_conf), m_kernel_name(kernel_name)
@@ -59,7 +60,10 @@ class GPUEvalFactory
             for (unsigned int i = 32; i <= (unsigned int) m_exec_conf->dev_prop.maxThreadsPerBlock; i *= 2)
                 m_launch_bounds.push_back(i);
 
-            compileGPU(code, kernel_name, include_paths, cuda_devrt_library_path, compute_arch);
+            // instantiate jitify cache
+            m_cache.resize(this->m_exec_conf->getNumActiveGPUs());
+
+            compileGPU(code, kernel_name, options, cuda_devrt_library_path, compute_arch);
             }
 
         ~GPUEvalFactory()
@@ -84,17 +88,15 @@ class GPUEvalFactory
             int max_threads = 0;
 
             #ifdef __HIP_PLATFORM_NVCC__
-            cudaSetDevice(m_exec_conf->getGPUIds()[idev]);
             CUresult custatus = cuFuncGetAttribute(&max_threads,
                 CU_FUNC_ATTRIBUTE_MAX_THREADS_PER_BLOCK,
-                m_program->kernel(m_kernel_name).instantiate(eval_threads, launch_bounds));
+                m_program[idev].kernel(m_kernel_name).instantiate(eval_threads, launch_bounds));
             char *error;
             if (custatus != CUDA_SUCCESS)
                 {
                 cuGetErrorString(custatus, const_cast<const char **>(&error));
                 throw std::runtime_error("cuFuncGetAttribute: "+std::string(error));
                 }
-            cudaSetDevice(m_exec_conf->getGPUIds()[0]);
             #endif
 
             return max_threads;
@@ -110,17 +112,15 @@ class GPUEvalFactory
             #ifdef __HIP_PLATFORM_NVCC__
             int shared_size = 0;
 
-            cudaSetDevice(m_exec_conf->getGPUIds()[idev]);
             CUresult custatus = cuFuncGetAttribute(&shared_size,
                 CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES,
-                m_program->kernel(m_kernel_name).instantiate(eval_threads, launch_bounds));
+                m_program[idev].kernel(m_kernel_name).instantiate(eval_threads, launch_bounds));
             char *error;
             if (custatus != CUDA_SUCCESS)
                 {
                 cuGetErrorString(custatus, const_cast<const char **>(&error));
                 throw std::runtime_error("cuFuncGetAttribute: "+std::string(error));
                 }
-            cudaSetDevice(m_exec_conf->getGPUIds()[0]);
             #endif
 
             return shared_size;
@@ -132,22 +132,20 @@ class GPUEvalFactory
             \param threads The thread block dimensions
             \param sharedMemBytes The size of the dynamic shared mem allocation
             \param hStream stream to execute on
-            \param kernelParams the kernel parameters
             \param eval_threads template parameter
             \param launch_bounds template parameter
             */
-        void launchKernel(unsigned int idev, dim3 grid, dim3 threads, unsigned int sharedMemBytes, cudaStream_t hStream,
-            void** kernelParams, unsigned int eval_threads, unsigned int launch_bounds)
+        #ifdef __HIP_PLATFORM_NVCC__
+        jitify::KernelLauncher configureKernel(unsigned int idev, dim3 grid, dim3 threads, unsigned int sharedMemBytes, cudaStream_t hStream,
+            unsigned int eval_threads, unsigned int launch_bounds)
             {
-            #ifdef __HIP_PLATFORM_NVCC__
             cudaSetDevice(m_exec_conf->getGPUIds()[idev]);
 
-            m_program->kernel(m_kernel_name)
+            return m_program[idev].kernel(m_kernel_name)
                 .instantiate(eval_threads, launch_bounds)
-                .configure(grid, threads, sharedMemBytes, hStream)
-                .launch(kernelParams);
-            #endif
+                .configure(grid, threads, sharedMemBytes, hStream);
             }
+        #endif
 
         void setAlphaPtr(float *d_alpha)
             {
@@ -161,7 +159,7 @@ class GPUEvalFactory
                     {
                     for (auto l: m_launch_bounds)
                         {
-                        CUdeviceptr ptr = m_program->kernel(m_kernel_name)
+                        CUdeviceptr ptr = m_program[idev].kernel(m_kernel_name)
                             .instantiate(e,l)
                             .get_global_ptr("alpha_iso");
 
@@ -191,7 +189,7 @@ class GPUEvalFactory
                     {
                     for (auto l:  m_launch_bounds)
                         {
-                        CUdeviceptr ptr = m_program->kernel(m_kernel_name)
+                        CUdeviceptr ptr = m_program[idev].kernel(m_kernel_name)
                             .instantiate(e, l)
                             .get_global_ptr("alpha_union");
 
@@ -221,7 +219,7 @@ class GPUEvalFactory
                     {
                     for (auto l:  m_launch_bounds)
                         {
-                        CUdeviceptr ptr = m_program->kernel(m_kernel_name)
+                        CUdeviceptr ptr = m_program[idev].kernel(m_kernel_name)
                             .instantiate(e,l)
                             .get_global_ptr("jit::d_rcut_union");
 
@@ -247,17 +245,23 @@ class GPUEvalFactory
                 {
                 cudaSetDevice(gpu_map[idev]);
 
-                CUdeviceptr ptr = m_program->kernel(m_kernel_name)
-                    .instantiate(m_eval_threads[0], m_launch_bounds[0])
-                    .get_global_ptr("jit::d_union_params");
-
-                // copy the array pointer to the device
-                char *error;
-                CUresult custatus = cuMemcpyHtoD(ptr, &d_params, sizeof(jit::union_params_t *));
-                if (custatus != CUDA_SUCCESS)
+                for (auto e: m_eval_threads)
                     {
-                    cuGetErrorString(custatus, const_cast<const char **>(&error));
-                    throw std::runtime_error("cuMemcpyHtoD: "+std::string(error));
+                    for (auto l:  m_launch_bounds)
+                        {
+                        CUdeviceptr ptr = m_program[idev].kernel(m_kernel_name)
+                            .instantiate(e, l)
+                            .get_global_ptr("jit::d_union_params");
+
+                        // copy the array pointer to the device
+                        char *error;
+                        CUresult custatus = cuMemcpyHtoD(ptr, &d_params, sizeof(jit::union_params_t *));
+                        if (custatus != CUDA_SUCCESS)
+                            {
+                            cuGetErrorString(custatus, const_cast<const char **>(&error));
+                            throw std::runtime_error("cuMemcpyHtoD: "+std::string(error));
+                            }
+                        }
                     }
                 }
             #endif
@@ -272,13 +276,13 @@ class GPUEvalFactory
         //! Helper function for RTC
         void compileGPU(const std::string& code,
             const std::string& kernel_name,
-            const std::vector<std::string>& include_paths,
+            const std::vector<std::string>& options,
             const std::string& cuda_devrt_library_path,
             unsigned int compute_arch);
 
         #ifdef __HIP_PLATFORM_NVCC__
-        jitify::JitCache m_cache;                           //!< jitify kernel cache
-        std::unique_ptr<jitify::Program> m_program;         //!< The kernel object
+        std::vector<jitify::JitCache> m_cache;          //!< jitify kernel cache, one per GPU
+        std::vector<jitify::Program> m_program;         //!< The kernel object, one per GPU
         #endif
     };
 #endif
