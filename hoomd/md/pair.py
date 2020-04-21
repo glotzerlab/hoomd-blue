@@ -2015,6 +2015,120 @@ class tersoff(pair):
         ang_consts = _hoomd.make_scalar3(c2, d2, m);
 
         return _md.make_tersoff_params(cutoff_d, tersoff_coeffs, exp_consts, dimer_r, n, gamman, lambda3_cube, ang_consts, alpha);
+	
+class revcross(pair):
+    R""" Reversible crosslinker three-body potential to model bond swaps.
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
+        name (str): Name of the force instance.
+
+    :py:class:`revcross` specifies that the revcross three-body potential should be applied to every
+    non-bonded particle pair in the simulation.  Despite the fact that the revcross potential accounts
+    for the effects of third bodies, it is included in the pair potentials because its is actually just a
+    combination of two body potential terms. It can thus use type-pair parameters similar to those of the pair potentials.
+
+    The revcross potential has been described in detail in `S. Ciarella and W.G. Ellenbroek 2019 <https://arxiv.org/abs/1912.08569>`_. It is based on a generalized-Lennard-Jones pairwise
+    attraction to form bonds between interacting particless:
+
+    .. math::
+        :nowrap:
+
+        \begin{equation}
+        V_{ij}(r)  =  4 \varepsilon \left[ \left( \dfrac{ \sigma}{r_{ij}} \right) ^{2n}- \left( \dfrac{ \sigma}{r_{ij}} \right)^{n} \right] \qquad r<r_{cut}
+        \end{equation}
+
+    with the following coefficients:
+
+    - :math:`\varepsilon` - *epsilon* (in energy units)
+    - :math:`\sigma` - *sigma* (in distance units)
+    - :math:`n` - *n* (unitless)
+    - :math:`m` - *m* (unitless)
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+
+    Then an additional three-body repulsion is evaluated to compensate the bond energies imposing single bond per particle condition: 
+
+    .. math::
+        :nowrap:
+            \begin{equation}
+v^{\left( 3b \right)}_{ijk}=\lambda \epsilon\,\hat{v}^{ \left( 2b \right)}_{ij}\left(\vec{r}_{ij}\right) \cdot \hat{v}^{ \left( 2b \right)}_{ik}\left(\vec{r}_{ik}\right)~,
+            \end{equation}
+
+    where the two body potential is rewritten as:
+    .. math::
+        :nowrap:
+            \begin{equation}
+            \hat{v}^{ \left( 2b \right)}_{ij}\left(\vec{r}_{ij}\right) =
+            \begin{cases}
+            & 1 \qquad \qquad \; \; \qquad r\le r_{min}\\
+            & - \dfrac{v_{ij}\left(\vec{r}_{ij}\right)}{\epsilon} \qquad r > r_{min}~.\\
+            \end{cases}
+            \end{equation}
+
+    .. attention::
+
+        The revcross potential models an asymmetric interaction between two different chemical moieties that can form a reversible bond. 
+	This requires the definition of (at least) two different types of particles.
+	A reversible bond is only possible between two different species, otherwise :math:` v^{\left( 3b \right)}_{ijk}` would prevent any bond.
+	In our example we then set the interactions for types A and B with ``potRevC.pair_coeff.set(['A','B'],['A','B'],sigma=0.0,n=0,epsilon=0,lambda3=0)`` and the only non-zero energy only between the different types ``potRevC.pair_coeff.set('A','B',sigma=1,n=100,epsilon=100,lambda3=1) ``. 
+	Notice that the number of the minoritary species corresponds to the maximum number of bonds.
+                                
+
+    This three-body term also tunes the energy required for a bond swap through the coefficient: 
+    - :math:`\lambda` - *lambda3* (unitless)
+    in `S. Ciarella and W.G. Ellenbroek 2019 <https://arxiv.org/abs/1912.08569>`_ is explained that setting :math:`\lambda=1` corresponds to no energy requirement to initiate bond swap, while this
+    energy barrier scales roughly as :math:`\beta \Delta E_\text{sw} =\beta \varepsilon(\lambda-1)`.
+
+    Note:
+
+        Choosing :math:`\lambda=1` pushes the system towards clusterization because the three-body term is not enough to
+        compensate the energy of multiple bonds, so it may cause unphysical situations. 
+    
+
+    Example::
+
+        nl = md.nlist.cell()
+        potBondSwap = md.pair.revcross(r_cut=1.3,nlist=nl)
+        potBondSwap.pair_coeff.set(['A','B'],['A','B'],sigma=0,n=0,epsilon=0,lambda3=0)
+	# a bond can be made only between A-B and not A-A or B-B
+        potBondSwap.pair_coeff.set('A','B',sigma=1,n=100,epsilon=10,lambda3=1)
+    """
+    def __init__(self, r_cut, nlist, name=None):
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        pair.__init__(self, r_cut, nlist, name);
+
+        # this potential cannot handle a half neighbor list
+        self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
+
+        # create the c++ mirror class
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.PotentialRevCross(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = _md.PotentialRevCross;
+        else:
+            self.cpp_force = _md.PotentialRevCrossGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = _md.PotentialRevCrossGPU;
+
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficients
+        self.required_coeffs = ['sigma', 'n', 'epsilon', 'lambda3']
+        self.pair_coeff.set_default_coeff('sigma', 2.);
+        self.pair_coeff.set_default_coeff('n', 1.0);
+        self.pair_coeff.set_default_coeff('epsilon', 1.0);
+        self.pair_coeff.set_default_coeff('lambda3', 1.0);
+
+    def process_coeff(self, coeff):
+        sigma = coeff['sigma'];
+        n = coeff['n'];
+        epsilon = coeff['epsilon'];
+        lambda3 = coeff['lambda3'];
+
+        return _md.make_revcross_params(sigma, n, epsilon, lambda3);
 
 class mie(pair):
     R""" Mie pair potential.

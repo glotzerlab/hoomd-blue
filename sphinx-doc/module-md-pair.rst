@@ -29,6 +29,7 @@ md.pair
     md.pair.square_density
     md.pair.table
     md.pair.tersoff
+    md.pair.revcross
     md.pair.yukawa
     md.pair.zbl
 
