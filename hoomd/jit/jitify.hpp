@@ -116,6 +116,25 @@
 #endif
 #include <nvrtc.h>
 
+// For use by get_current_executable_path().
+#ifdef __linux__
+#include <linux/limits.h>  // For PATH_MAX
+
+#include <cstdlib>  // For realpath
+#define JITIFY_PATH_MAX PATH_MAX
+#elif defined(_WIN32) || defined(_WIN64)
+#include <windows.h>
+#define JITIFY_PATH_MAX MAX_PATH
+#else
+#error "Unsupported platform"
+#endif
+
+#ifdef _MSC_VER       // MSVC compiler
+#include <dbghelp.h>  // For UnDecorateSymbolName
+#else
+#include <cxxabi.h>  // For abi::__cxa_demangle
+#endif
+
 #if defined(_WIN32) || defined(_WIN64)
 // WAR for strtok_r being called strtok_s on Windows
 #pragma push_macro("strtok_r")
@@ -424,27 +443,34 @@ inline bool extract_include_info_from_compile_error(std::string log,
                                                     std::string& name,
                                                     std::string& parent,
                                                     int& line_num) {
-  static const std::string pattern = "cannot open source file \"";
-  size_t beg = log.find(pattern);
-  if (beg == std::string::npos) {
-    return false;
-  }
-  beg += pattern.size();
-  size_t end = log.find("\"", beg);
-  name = log.substr(beg, end - beg);
+  static const std::vector<std::string> pattern = {
+      "could not open source file \"", "cannot open source file \""};
 
-  size_t line_beg = log.rfind("\n", beg);
-  if (line_beg == std::string::npos) {
-    line_beg = 0;
-  } else {
-    line_beg += 1;
+  for (auto& p : pattern) {
+    size_t beg = log.find(p);
+    if (beg != std::string::npos) {
+      beg += p.size();
+      size_t end = log.find("\"", beg);
+      name = log.substr(beg, end - beg);
+
+      size_t line_beg = log.rfind("\n", beg);
+      if (line_beg == std::string::npos) {
+        line_beg = 0;
+      } else {
+        line_beg += 1;
+      }
+
+      size_t split = log.find("(", line_beg);
+      parent = log.substr(line_beg, split - line_beg);
+      line_num =
+          atoi(log.substr(split + 1, log.find(")", split + 1) - (split + 1))
+                   .c_str());
+
+      return true;
+    }
   }
 
-  size_t split = log.find("(", line_beg);
-  parent = log.substr(line_beg, split - line_beg);
-  line_num = atoi(
-      log.substr(split + 1, log.find(")", split + 1) - (split + 1)).c_str());
-  return true;
+  return false;
 }
 
 inline bool is_include_directive_with_quotes(const std::string& source,
@@ -744,29 +770,50 @@ inline std::string value_string<bool>(const bool& x) {
   return x ? "true" : "false";
 }
 
+// Removes all tokens that start with double underscores.
+inline void strip_double_underscore_tokens(char* s) {
+  using jitify::detail::is_tokenchar;
+  char* w = s;
+  do {
+    if (*s == '_' && *(s + 1) == '_') {
+      while (is_tokenchar(*++s))
+        ;
+    }
+  } while ((*w++ = *s++));
+}
+
 //#if CUDA_VERSION < 8000
 #ifdef _MSC_VER  // MSVC compiler
-inline std::string demangle(const char* verbose_name) {
-  // Strips annotations from the verbose name returned by typeid(X).name()
-  std::string result = verbose_name;
-  result = jitify::detail::replace_token(result, "__ptr64", "");
-  result = jitify::detail::replace_token(result, "__cdecl", "");
-  result = jitify::detail::replace_token(result, "class", "");
-  result = jitify::detail::replace_token(result, "struct", "");
-  return result;
+inline std::string demangle_cuda_symbol(const char* mangled_name) {
+  // We don't have a way to demangle CUDA symbol names under MSVC.
+  return mangled_name;
 }
-#else  // not MSVC
-#include <cxxabi.h>
-inline std::string demangle(const char* mangled_name) {
-  size_t bufsize = 1024;
-  auto buf = std::unique_ptr<char, decltype(free)*>(
-      reinterpret_cast<char*>(malloc(bufsize)), free);
+inline std::string demangle_native_type(const std::type_info& typeinfo) {
+  // Get the decorated name and skip over the leading '.'.
+  const char* decorated_name = typeinfo.raw_name() + 1;
+  char undecorated_name[4096];
+  if (UnDecorateSymbolName(
+          decorated_name, undecorated_name,
+          sizeof(undecorated_name) / sizeof(*undecorated_name),
+          UNDNAME_NO_ARGUMENTS |          // Treat input as a type name
+              UNDNAME_NAME_ONLY           // No "class" and "struct" prefixes
+          /*UNDNAME_NO_MS_KEYWORDS*/)) {  // No "__cdecl", "__ptr64" etc.
+    // WAR for UNDNAME_NO_MS_KEYWORDS messing up function types.
+    strip_double_underscore_tokens(undecorated_name);
+    return undecorated_name;
+  }
+  throw std::runtime_error("UnDecorateSymbolName failed");
+}
+#else   // not MSVC
+inline std::string demangle_cuda_symbol(const char* mangled_name) {
+  size_t bufsize = 0;
+  char* buf = nullptr;
   std::string demangled_name;
   int status;
-  char* demangled_ptr =
-      abi::__cxa_demangle(mangled_name, buf.get(), &bufsize, &status);
+  auto demangled_ptr = std::unique_ptr<char, decltype(free)*>(
+      abi::__cxa_demangle(mangled_name, buf, &bufsize, &status), free);
   if (status == 0) {
-    demangled_name = demangled_ptr;  // all worked as expected
+    demangled_name = demangled_ptr.get();  // all worked as expected
   } else if (status == -2) {
     demangled_name = mangled_name;  // we interpret this as plain C name
   } else if (status == -1) {
@@ -777,29 +824,34 @@ inline std::string demangle(const char* mangled_name) {
   }
   return demangled_name;
 }
+inline std::string demangle_native_type(const std::type_info& typeinfo) {
+  return demangle_cuda_symbol(typeinfo.name());
+}
 #endif  // not MSVC
 //#endif // CUDA_VERSION < 8000
+
+template <typename>
+class JitifyTypeNameWrapper_ {};
 
 template <typename T>
 struct type_reflection {
   inline static std::string name() {
     //#if CUDA_VERSION < 8000
+    // TODO: Use nvrtcGetTypeName once it has the same behavior as this.
     // WAR for typeid discarding cv qualifiers on value-types
-    // We use a pointer type to maintain cv qualifiers, then strip out the '*'
-    std::string no_cv_name = demangle(typeid(T).name());
-    std::string ptr_name = demangle(typeid(T*).name());
-    // Find the right '*' by diffing the type name and ptr name
-    // Note that the '*' will also be prefixed with the cv qualifiers
-    size_t diff_begin =
-        std::mismatch(no_cv_name.begin(), no_cv_name.end(), ptr_name.begin())
-            .first -
-        no_cv_name.begin();
-    size_t star_begin = ptr_name.find("*", diff_begin);
-    if (star_begin == std::string::npos) {
-      throw std::runtime_error("Type reflection failed: " + ptr_name);
+    // Wrap type in dummy template class to preserve cv-qualifiers, then strip
+    // off the wrapper from the resulting string.
+    std::string wrapped_name =
+        demangle_native_type(typeid(JitifyTypeNameWrapper_<T>));
+    // Note: The reflected name of this class also has namespace prefixes.
+    const std::string wrapper_class_name = "JitifyTypeNameWrapper_<";
+    size_t start = wrapped_name.find(wrapper_class_name);
+    if (start == std::string::npos) {
+      throw std::runtime_error("Type reflection failed: " + wrapped_name);
     }
+    start += wrapper_class_name.size();
     std::string name =
-        ptr_name.substr(0, star_begin) + ptr_name.substr(star_begin + 1);
+        wrapped_name.substr(start, wrapped_name.size() - (start + 1));
     return name;
     //#else
     //         std::string ret;
@@ -906,7 +958,7 @@ inline std::string reflect(jitify::reflection::Type<T>) {
  */
 template <typename T>
 inline std::string reflect(jitify::reflection::Instance<T>& value) {
-  return detail::demangle(typeid(value.value).name());
+  return detail::demangle_native_type(typeid(value.value));
 }
 
 // Type from value
@@ -995,6 +1047,19 @@ inline std::string demangle_ptx_variable_name(const char* name) {
   return ss.str();
 }
 
+static const char* get_current_executable_path() {
+  static const char* path = []() -> const char* {
+    static char buffer[JITIFY_PATH_MAX] = {};
+#ifdef __linux__
+    if (!::realpath("/proc/self/exe", buffer)) return nullptr;
+#elif defined(_WIN32) || defined(_WIN64)
+    if (!GetModuleFileNameA(nullptr, buffer, JITIFY_PATH_MAX)) return nullptr;
+#endif
+    return buffer;
+  }();
+  return path;
+}
+
 inline bool endswith(const std::string& str, const std::string& suffix) {
   return str.size() >= suffix.size() &&
          str.substr(str.size() - suffix.size()) == suffix;
@@ -1076,7 +1141,15 @@ class CUDAKernel {
                                    "jitified_source.ptx", 0, 0, 0));
       for (int i = 0; i < (int)link_files.size(); ++i) {
         std::string link_file = link_files[i];
-        CUjitInputType jit_input_type = get_cuda_jit_input_type(&link_file);
+        CUjitInputType jit_input_type;
+        if (link_file == ".") {
+          // Special case for linking to current executable.
+          link_file = get_current_executable_path();
+          jit_input_type = CU_JIT_INPUT_OBJECT;
+        } else {
+          // Infer based on filename.
+          jit_input_type = get_cuda_jit_input_type(&link_file);
+        }
         CUresult result = cuLinkAddFile(_link_state, jit_input_type,
                                         link_file.c_str(), 0, 0, 0);
         int path_num = 0;
@@ -1086,7 +1159,7 @@ class CUDAKernel {
           result = cuLinkAddFile(_link_state, jit_input_type, filename.c_str(),
                                  0, 0, 0);
         }
-#if JITIFY_PRINT_LOG
+#if JITIFY_PRINT_LINKER_LOG
         if (result == CUDA_ERROR_FILE_NOT_FOUND) {
           std::cerr << "Linker error: Device library not found: " << link_file
                     << std::endl;
@@ -1108,8 +1181,8 @@ class CUDAKernel {
 #ifdef JITIFY_PRINT_LINKER_LOG
     std::cout << "---------------------------------------" << std::endl;
     std::cout << "--- Linker for "
-              << reflection::detail::demangle(_func_name.c_str()) << " ---"
-              << std::endl;
+              << reflection::detail::demangle_cuda_symbol(_func_name.c_str())
+              << " ---" << std::endl;
     std::cout << "---------------------------------------" << std::endl;
     std::cout << _info_log << std::endl;
     std::cout << std::endl;
@@ -1143,7 +1216,8 @@ class CUDAKernel {
       pos = std::min(_ptx.find(".const .align", pos),
                      _ptx.find(".global .align", pos));
       if (pos == std::string::npos) break;
-      size_t end = _ptx.find(";", pos);
+      size_t end = _ptx.find_first_of(";=", pos);
+      if (_ptx[end] == '=') --end;
       std::string line = _ptx.substr(pos, end - pos);
       pos = end;
       size_t symbol_start = line.find_last_of(" ") + 1;
@@ -1223,16 +1297,47 @@ class CUDAKernel {
                           block.z, smem, stream, arg_ptrs.data(), NULL);
   }
 
-  inline CUdeviceptr get_global_ptr(const char* name) const {
+  inline CUdeviceptr get_global_ptr(const char* name,
+                                    size_t* size = nullptr) const {
     CUdeviceptr global_ptr = 0;
     auto global = _global_map.find(name);
     if (global != _global_map.end()) {
-      cuda_safe_call(
-          cuModuleGetGlobal(&global_ptr, 0, _module, global->second.c_str()));
+      cuda_safe_call(cuModuleGetGlobal(&global_ptr, size, _module,
+                                       global->second.c_str()));
     } else {
       throw std::runtime_error(std::string("failed to look up global ") + name);
     }
     return global_ptr;
+  }
+
+  template <typename T>
+  inline CUresult get_global_data(const char* name, T* data, size_t count,
+                                  CUstream stream = 0) const {
+    size_t size_bytes;
+    CUdeviceptr ptr = get_global_ptr(name, &size_bytes);
+    size_t given_size_bytes = count * sizeof(T);
+    if (given_size_bytes != size_bytes) {
+      throw std::runtime_error(
+          std::string("Value for global variable ") + name +
+          " has wrong size: got " + std::to_string(given_size_bytes) +
+          " bytes, expected " + std::to_string(size_bytes));
+    }
+    return cuMemcpyDtoH(data, ptr, size_bytes);
+  }
+
+  template <typename T>
+  inline CUresult set_global_data(const char* name, const T* data, size_t count,
+                                  CUstream stream = 0) const {
+    size_t size_bytes;
+    CUdeviceptr ptr = get_global_ptr(name, &size_bytes);
+    size_t given_size_bytes = count * sizeof(T);
+    if (given_size_bytes != size_bytes) {
+      throw std::runtime_error(
+          std::string("Value for global variable ") + name +
+          " has wrong size: got " + std::to_string(given_size_bytes) +
+          " bytes, expected " + std::to_string(size_bytes));
+    }
+    return cuMemcpyHtoD(ptr, data, size_bytes);
   }
 
   const std::string& function_name() const { return _func_name; }
@@ -1315,13 +1420,11 @@ static const char* jitsafe_header_limits_h =
     "#define SCHAR_MIN   (-128)\n"
     "#define SCHAR_MAX   127\n"
     "#define UCHAR_MAX   255\n"
-    "#ifdef __CHAR_UNSIGNED__\n"
-    " #define CHAR_MIN   0\n"
-    " #define CHAR_MAX   UCHAR_MAX\n"
-    "#else\n"
-    " #define CHAR_MIN   SCHAR_MIN\n"
-    " #define CHAR_MAX   SCHAR_MAX\n"
-    "#endif\n"
+    "enum {\n"
+    " _JITIFY_CHAR_IS_UNSIGNED = (char)-1 >= 0,\n"
+    " CHAR_MIN = _JITIFY_CHAR_IS_UNSIGNED ? 0 : SCHAR_MIN,\n"
+    " CHAR_MAX = _JITIFY_CHAR_IS_UNSIGNED ? UCHAR_MAX : SCHAR_MAX,\n"
+    " };\n"
     "#define SHRT_MIN    (-32768)\n"
     "#define SHRT_MAX    32767\n"
     "#define USHRT_MAX   65535\n"
@@ -1982,7 +2085,6 @@ static const char* jitsafe_header_algorithm = R"(
       return (b < a) ? b : a;
     }
 
-    #endif
     } // namespace __jitify_algorithm_ns
     namespace std { using namespace __jitify_algorithm_ns; }
     using namespace __jitify_algorithm_ns;
@@ -2836,16 +2938,59 @@ class KernelInstantiation {
   /*
    * \deprecated Use \p get_global_ptr instead.
    */
-  inline CUdeviceptr get_constant_ptr(const char* name) const {
-    return get_global_ptr(name);
+  inline CUdeviceptr get_constant_ptr(const char* name,
+                                      size_t* size = nullptr) const {
+    return get_global_ptr(name, size);
   }
 
   /*
    * Get a device pointer to a global __constant__ or __device__ variable using
+   * its un-mangled name. If provided, *size is set to the size of the variable
+   * in bytes.
+   */
+  inline CUdeviceptr get_global_ptr(const char* name,
+                                    size_t* size = nullptr) const {
+    return _impl->cuda_kernel().get_global_ptr(name, size);
+  }
+
+  /*
+   * Copy data from a global __constant__ or __device__ array to the host using
    * its un-mangled name.
    */
-  inline CUdeviceptr get_global_ptr(const char* name) const {
-    return _impl->cuda_kernel().get_global_ptr(name);
+  template <typename T>
+  inline CUresult get_global_array(const char* name, T* data, size_t count,
+                                   CUstream stream = 0) const {
+    return _impl->cuda_kernel().get_global_data(name, data, count, stream);
+  }
+
+  /*
+   * Copy a value from a global __constant__ or __device__ variable to the host
+   * using its un-mangled name.
+   */
+  template <typename T>
+  inline CUresult get_global_value(const char* name, T* value,
+                                   CUstream stream = 0) const {
+    return get_global_array(name, value, 1, stream);
+  }
+
+  /*
+   * Copy data from the host to a global __constant__ or __device__ array using
+   * its un-mangled name.
+   */
+  template <typename T>
+  inline CUresult set_global_array(const char* name, const T* data,
+                                   size_t count, CUstream stream = 0) const {
+    return _impl->cuda_kernel().set_global_data(name, data, count, stream);
+  }
+
+  /*
+   * Copy a value from the host to a global __constant__ or __device__ variable
+   * using its un-mangled name.
+   */
+  template <typename T>
+  inline CUresult set_global_value(const char* name, const T& value,
+                                   CUstream stream = 0) const {
+    return set_global_array(name, &value, 1, stream);
   }
 
   const std::string& mangled_name() const {
@@ -3783,16 +3928,57 @@ class KernelInstantiation {
   /*
    * \deprecated Use \p get_global_ptr instead.
    */
-  CUdeviceptr get_constant_ptr(const char* name) const {
-    return get_global_ptr(name);
+  CUdeviceptr get_constant_ptr(const char* name, size_t* size = nullptr) const {
+    return get_global_ptr(name, size);
   }
 
   /*
    * Get a device pointer to a global __constant__ or __device__ variable using
+   * its un-mangled name. If provided, *size is set to the size of the variable
+   * in bytes.
+   */
+  CUdeviceptr get_global_ptr(const char* name, size_t* size = nullptr) const {
+    return _cuda_kernel->get_global_ptr(name, size);
+  }
+
+  /*
+   * Copy data from a global __constant__ or __device__ array to the host using
    * its un-mangled name.
    */
-  CUdeviceptr get_global_ptr(const char* name) const {
-    return _cuda_kernel->get_global_ptr(name);
+  template <typename T>
+  CUresult get_global_array(const char* name, T* data, size_t count,
+                            CUstream stream = 0) const {
+    return _cuda_kernel->get_global_data(name, data, count, stream);
+  }
+
+  /*
+   * Copy a value from a global __constant__ or __device__ variable to the host
+   * using its un-mangled name.
+   */
+  template <typename T>
+  CUresult get_global_value(const char* name, T* value,
+                            CUstream stream = 0) const {
+    return get_global_array(name, value, 1, stream);
+  }
+
+  /*
+   * Copy data from the host to a global __constant__ or __device__ array using
+   * its un-mangled name.
+   */
+  template <typename T>
+  CUresult set_global_array(const char* name, const T* data, size_t count,
+                            CUstream stream = 0) const {
+    return _cuda_kernel->set_global_data(name, data, count, stream);
+  }
+
+  /*
+   * Copy a value from the host to a global __constant__ or __device__ variable
+   * using its un-mangled name.
+   */
+  template <typename T>
+  CUresult set_global_value(const char* name, const T& value,
+                            CUstream stream = 0) const {
+    return set_global_array(name, &value, 1, stream);
   }
 
   const std::string& mangled_name() const {
