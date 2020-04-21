@@ -25,12 +25,12 @@ using namespace hpmc::detail;
 unsigned int err_count;
 
 // helper function to compute poly radius
-poly2d_verts setup_verts(const vector< vec2<OverlapReal> > vlist, OverlapReal sweep_radius=0.0)
+PolygonVertices setup_verts(const vector< vec2<OverlapReal> > vlist, OverlapReal sweep_radius=0.0)
     {
     if (vlist.size() > MAX_POLY2D_VERTS)
         throw runtime_error("Too many polygon vertices");
 
-    poly2d_verts result;
+    PolygonVertices result;
     result.N = vlist.size();
     result.sweep_radius = sweep_radius;
     result.ignore = 0;
@@ -64,7 +64,7 @@ UP_TEST( construction )
     vlist.push_back(vec2<OverlapReal>(0,0));
     vlist.push_back(vec2<OverlapReal>(1,0));
     vlist.push_back(vec2<OverlapReal>(0,1.25));
-    poly2d_verts verts = setup_verts(vlist, 0.25);
+    PolygonVertices verts = setup_verts(vlist, 0.25);
 
     ShapeSpheropolygon a(o, verts);
 
@@ -96,7 +96,7 @@ UP_TEST( overlap_disk )
     // build a square
     std::vector< vec2<OverlapReal> > vlist;
     vlist.push_back(vec2<OverlapReal>(0,0));
-    poly2d_verts verts = setup_verts(vlist, 0.5);
+    PolygonVertices verts = setup_verts(vlist, 0.5);
 
     ShapeSpheropolygon a(o, verts);
 
@@ -171,7 +171,7 @@ UP_TEST( overlap_square_no_rot )
     vlist.push_back(vec2<OverlapReal>(0.5,-0.5));
     vlist.push_back(vec2<OverlapReal>(0.5,0.5));
     vlist.push_back(vec2<OverlapReal>(-0.5,0.5));
-    poly2d_verts verts = setup_verts(vlist, 0.1);
+    PolygonVertices verts = setup_verts(vlist, 0.1);
 
     ShapeSpheropolygon a(o, verts);
 
@@ -279,11 +279,11 @@ UP_TEST( overlap_square_disk )
     vlist_sq.push_back(vec2<OverlapReal>(0.5,-0.5));
     vlist_sq.push_back(vec2<OverlapReal>(0.5,0.5));
     vlist_sq.push_back(vec2<OverlapReal>(-0.5,0.5));
-    poly2d_verts verts_sq = setup_verts(vlist_sq, 0.0);
+    PolygonVertices verts_sq = setup_verts(vlist_sq, 0.0);
 
     std::vector< vec2<OverlapReal> > vlist_dsk;
     vlist_dsk.push_back(vec2<OverlapReal>(0,0));
-    poly2d_verts verts_dsk = setup_verts(vlist_dsk, 0.5);
+    PolygonVertices verts_dsk = setup_verts(vlist_dsk, 0.5);
 
     ShapeSpheropolygon a(o, verts_sq);
 
@@ -364,7 +364,7 @@ UP_TEST( overlap_square_precise )
     vlist.push_back(vec2<OverlapReal>(0.5,-0.5));
     vlist.push_back(vec2<OverlapReal>(0.5,0.5));
     vlist.push_back(vec2<OverlapReal>(-0.5,0.5));
-    poly2d_verts verts = setup_verts(vlist, R);
+    PolygonVertices verts = setup_verts(vlist, R);
 
     ShapeSpheropolygon a(o, verts);
     ShapeSpheropolygon b(o, verts);

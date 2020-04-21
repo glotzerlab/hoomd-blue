@@ -44,11 +44,14 @@ napoleon_include_special_with_doc = True
 intersphinx_mapping = {'python': ('https://docs.python.org/3', None), 'numpy': ('https://docs.scipy.org/doc/numpy', None)}
 autodoc_docstring_signature = True;
 
-if sphinx_ver < (1,8,0):
-    autodoc_default_flags = ['inherited-members'];
-else:
-    autodoc_default_options = {'inherited-members': None};
-    #pass
+# Commenting out inherited-members by default. Leaving the code here in case we
+# decide to go back to this setting after making more progress in the
+# documentation.
+
+# if sphinx_ver < (1,8,0):
+#     autodoc_default_flags = ['inherited-members'];
+# else:
+#     autodoc_default_options = {'inherited-members': None};
 
 autodoc_mock_imports = ['numpy','h5py'];
 
@@ -100,7 +103,7 @@ exclude_patterns = ['_build']
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
-#default_role = None
+default_role = 'any'
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
 #add_function_parentheses = True

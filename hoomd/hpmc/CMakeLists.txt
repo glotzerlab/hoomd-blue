@@ -56,7 +56,6 @@ set(_hpmc_headers
     ShapeEllipsoid.h
     ShapeFacetedEllipsoid.h
     ShapePolyhedron.h
-    ShapeProxy.h
     ShapeSimplePolygon.h
     ShapeSphere.h
     ShapeSpheropolygon.h
@@ -116,7 +115,6 @@ install(TARGETS _hpmc EXPORT HOOMDTargets
 # copy python modules to the build directory to make it a working python package
 set(files   analyze.py
             compute.py
-            data.py
             __init__.py
             integrate.py
             update.py

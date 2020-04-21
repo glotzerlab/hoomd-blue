@@ -839,8 +839,7 @@ void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
 
                     if (pidx >= max_local)
                         {
-                        this->m_exec_conf->msg->error() << "comm.*: encountered incomplete " << group_data::getName() << std::endl;
-                        throw std::runtime_error("Error during communication");
+                        throw std::runtime_error("Communication error: encountered incomplete " + group_data::getName());
                         }
 
                     plan |= h_plan.data[pidx];

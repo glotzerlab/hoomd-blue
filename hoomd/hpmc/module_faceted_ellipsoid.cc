@@ -54,8 +54,8 @@ void export_faceted_ellipsoid(py::module& m)
     export_ExternalCallback<ShapeFacetedEllipsoid>(m, "ExternalCallbackFacetedEllipsoid");
 
     #ifdef ENABLE_HIP
-    export_IntegratorHPMCMonoGPU< ShapeFacetedEllipsoid >(m, "IntegratorHPMCMonoGPUFacetedEllipsoid");
-    export_ComputeFreeVolumeGPU< ShapeFacetedEllipsoid >(m, "ComputeFreeVolumeGPUFacetedEllipsoid");
+    export_IntegratorHPMCMonoGPU< ShapeFacetedEllipsoid >(m, "IntegratorHPMCMonoFacetedEllipsoidGPU");
+    export_ComputeFreeVolumeGPU< ShapeFacetedEllipsoid >(m, "ComputeFreeVolumeFacetedEllipsoidGPU");
     #endif
     }
 

@@ -174,20 +174,6 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
             m_tuner_accept->setEnabled(enable);
             }
 
-        //! Enable deterministic simulations
-        virtual void setDeterministic(bool deterministic)
-            {
-            this->m_exec_conf->msg->notice(2) << "hpmc: Sorting cell list to enable deterministic simulations." << std::endl;
-            m_cl->setSortCellList(deterministic);
-            m_deterministic = true;
-            }
-
-        //! Get the deterministic setting
-        virtual bool getDeterministic()
-            {
-            return m_deterministic;
-            }
-
         //! Method called when numbe of particle types changes
         virtual void slotNumTypesChange();
 
@@ -244,9 +230,6 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
 
         //!< Variables for implicit depletants
         GlobalArray<Scalar> m_lambda;                              //!< Poisson means, per type pair
-
-        //! Whether we are in deterministic mode
-        bool m_deterministic = false;
 
         //! Set up excell_list
         virtual void initializeExcellMem();

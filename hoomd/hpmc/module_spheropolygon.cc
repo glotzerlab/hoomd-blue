@@ -52,8 +52,8 @@ void export_spheropolygon(py::module& m)
     export_ExternalCallback<ShapeSpheropolygon>(m, "ExternalCallbackSpheropolygon");
 
     #ifdef ENABLE_HIP
-    export_IntegratorHPMCMonoGPU< ShapeSpheropolygon >(m, "IntegratorHPMCMonoGPUSpheropolygon");
-    export_ComputeFreeVolumeGPU< ShapeSpheropolygon >(m, "ComputeFreeVolumeGPUSpheropolygon");
+    export_IntegratorHPMCMonoGPU< ShapeSpheropolygon >(m, "IntegratorHPMCMonoSpheropolygonGPU");
+    export_ComputeFreeVolumeGPU< ShapeSpheropolygon >(m, "ComputeFreeVolumeSpheropolygonGPU");
     #endif
     }
 

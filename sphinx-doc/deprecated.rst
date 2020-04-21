@@ -51,12 +51,10 @@ Commands and features deprecated in v2.x will be removed in v3.0.
 
    * - Feature
      - Replace with
-   * - ``ignore_overlaps`` parameter
-     - :py:class:`interaction_matrix <hoomd.hpmc.integrate.interaction_matrix>`
    * - ``sphere_union::max_members`` parameter
      - no longer needed
    * - ``convex_polyhedron_union``
-     - :py:class:`convex_spheropolyhedron_union <hoomd.hpmc.integrate.convex_spheropolyhedron_union>`, ``sweep_radius=0``
+     - :py:class:`ConvexSpheropolyhedronUnion <hoomd.hpmc.integrate.ConvexSpheropolyhedronUnion>`, ``sweep_radius=0``
    * - ``setup_pos_writer`` member
      - n/a
    * - ``depletant_mode='circumsphere'``
