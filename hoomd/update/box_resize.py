@@ -4,33 +4,32 @@ from hoomd.parameterdicts import ParameterDict
 from hoomd.typeconverter import OnlyType
 from hoomd.variant import Variant
 from hoomd.util import variant_preprocessing
-from hoomd._hoomd import BoxResizeUpdater
+from hoomd import _hoomd
 
 
 class BoxResize(_Updater):
     """Resizes the box between an initial and final box.
 
-    When part of a :py:class:`hoomd.Simulation` ``updater`` list, this object
-    will resize the box between the initial and final boxes passed. The behavior
-    a linear interpolation between the initial and final boxes where the minimum
-    of the variant represents initial box and the maximum represents the final
-    box. All values between the minimum and maximum result in a box that is the
+    When part of a `Simulation` ``updater`` list, this object will resize the
+    box between the initial and final boxes passed. The behavior a linear
+    interpolation between the initial and final boxes where the minimum of the
+    variant represents initial box and the maximum represents the final box. All
+    values between the minimum and maximum result in a box that is the
     interpolation of the three lengths and tilt factors of the initial and final
     box.
 
     Note:
-        The passed :py:class:`hoomd.variant.Variant` must be well behaved (i.e.
-        it must have a true minimum and maximum) or the behavior of the updater
-        is undefined.
+        The passed `Variant` must be well behaved (i.e. it must have a
+        true minimum and maximum) or the behavior of the updater is undefined.
 
     Args:
-        initial_box (hoomd.box.Box): The box associated with the minimum of the
+        initial_box (Box): The box associated with the minimum of the
             passed variant.
-        final_box (hoomd.box.Box): The box associated with the maximum of the
+        final_box (Box): The box associated with the maximum of the
             passed variant.
-        variant (hoomd.variant.Variant): A variant used to interpolate between
+        variant (Variant): A variant used to interpolate between
             the two boxes.
-        trigger (hoomd.trigger.Trigger): The trigger to activate this updater.
+        trigger (Trigger): The trigger to activate this updater.
         scale_particles (bool): Whether to scale particles to the new box
             dimensions when the box is resized.
 
@@ -50,9 +49,10 @@ class BoxResize(_Updater):
         super().__init__(trigger)
 
     def attach(self, simulation):
-        self._cpp_obj = BoxResizeUpdater(simulation.state._cpp_sys_def,
-                                         self.initial_box, self.final_box,
-                                         self.variant)
+        self._cpp_obj = _hoomd.BoxResizeUpdater(simulation.state._cpp_sys_def,
+                                                self.initial_box,
+                                                self.final_box,
+                                                self.variant)
         super().attach(simulation)
 
     def get_box(self, timestep):
@@ -66,8 +66,7 @@ class BoxResize(_Updater):
                 box.
 
         Returns:
-            box (hoomd.box.Box): The box that would be used for resizing at the
-                given timestep.
+            Box: The box that would be used for resizing at the given timestep.
         """
         if self.is_attached:
             timestep = int(timestep)

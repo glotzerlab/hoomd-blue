@@ -74,6 +74,24 @@ class Trigger:
 class PeriodicTrigger:
     pass
 
+class BeforeTrigger:
+    pass
+
+class OnTrigger:
+    pass
+
+class AfterTrigger:
+    pass
+
+class NotTrigger:
+    pass
+
+class AndTrigger:
+    pass
+
+class OrTrigger:
+    pass
+
 class ParticleFilter:
     pass
 
@@ -111,4 +129,13 @@ class VariantCycle(Variant):
     pass
 
 class MPIConfiguration():
+    pass
+
+def make_scalar3():
+    pass
+
+def make_int3():
+    pass
+
+def make_char3():
     pass

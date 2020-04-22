@@ -6,12 +6,11 @@ hoomd.update
 .. autosummary::
     :nosignatures:
 
-    hoomd.update.balance
-    hoomd.update.box_resize
-    hoomd.update.sort
+    hoomd.update.BoxResize
 
 .. rubric:: Details
 
 .. automodule:: hoomd.update
     :synopsis: Modify the system state periodically.
     :members:
+    :imported-members:

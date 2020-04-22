@@ -3,12 +3,17 @@ hoomd
 
 .. rubric:: Overview
 
+.. py:currentmodule:: hoomd
+
 .. autosummary::
     :nosignatures:
 
-    hoomd.Simulation
-    hoomd.Snapshot
-    hoomd.Logger
+    Box
+    Logger
+    Operations
+    Simulation
+    Snapshot
+    State
 
 .. rubric:: Details
 

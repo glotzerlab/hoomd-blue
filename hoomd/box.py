@@ -65,9 +65,9 @@ class Box:
         yz (float): tilt factor yz (dimensionless).
 
     Simulation boxes in hoomd are specified by six parameters, ``Lx``, ``Ly``,
-    ``Lz``, ``xy``, ``xz`` and ``yz``. A ``Box`` provides a way to specify all
+    ``Lz``, ``xy``, ``xz`` and ``yz``. `Box` provides a way to specify all
     six parameters for a given box and perform some common operations with them.
-    A ``Box`` can be passed to an initialization method or to assigned to a
+    A `Box` can be passed to an initialization method or to assigned to a
     saved :py:class:`State` variable (``state.box = new_box``) to set the
     simulation box.
 
@@ -81,7 +81,7 @@ class Box:
     .. rubric:: Two dimensional systems
 
     2D simulations in HOOMD are 3D boxes with ``Lz == 0``; this means that
-    ``xz`` and ``yz`` values will be ignored. When you assign a new ``Box`` to
+    ``xz`` and ``yz`` values will be ignored. When you assign a new `Box` to
     an already initialized system, the dimensionality if different is changed
     with a warning.
 
@@ -89,15 +89,15 @@ class Box:
 
     .. rubric:: Factory Methods
 
-    ``Box`` has a couple factory methods to enable easier creation of boxes:
-    ``cube`` and ``from_matrix``. See the method documentation for usage.
+    `Box` has a factory methods to enable easier creation of boxes:
+    `cube` and `from_matrix`. See the method documentation for usage.
 
     Examples:
 
     * Cubic box with given length: ``Box.cube(L=1)``
     * Square box with given length: ``Box.cube(L=1, dimensions=2)``
     * From an upper triangular matrix: ``Box.from_matrix(matrix)``
-    * Full spec ``Box(Lx=1, Ly=2, Lz=3, xy=1., xz=2., yz=3.)``
+    * Full spec: ``Box(Lx=1, Ly=2, Lz=3, xy=1., xz=2., yz=3.)``
     """
 
     # Constructors
@@ -267,9 +267,10 @@ class Box:
         """The upper triangular matrix that defines the box.
 
         .. code-block:: python
+
             [[Lx, Ly * xy, Lz * xz],
-             [0, Ly, Lz * yz],
-             [0, 0, Lz]]
+             [0,  Ly,      Lz * yz],
+             [0,  0,       Lz]]
 
         """
         Lx, Ly, Lz = self.L
