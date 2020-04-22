@@ -208,7 +208,7 @@ class PYBIND11_EXPORT Communicator
             }
 
         /// Get the domain decomposition
-        std::shared_ptr<DomainDecomposition> getDomainDecomposition
+        std::shared_ptr<DomainDecomposition> getDomainDecomposition()
             {
             return m_decomposition;
             }

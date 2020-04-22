@@ -106,19 +106,19 @@ class PYBIND11_EXPORT LoadBalancer : public Tuner
         void setEnableX(bool enable) {m_enable_x = enable;}
 
         /// Get value of m_enable_x
-        void getEnableX(bool enable) {return m_enable_x;}
+        bool getEnableX(bool enable) {return m_enable_x;}
 
         /// Set m_enable_y
         void setEnableY(bool enable) {m_enable_y = enable;}
 
         /// Get value of m_enable_y
-        void getEnableY(bool enable) {return m_enable_y;}
+        bool getEnableY(bool enable) {return m_enable_y;}
 
         /// Set m_enable_z
         void setEnableZ(bool enable) {m_enable_z = enable;}
 
         /// Get value of m_enable_z
-        void getEnableZ(bool enable) {return m_enable_z;}
+        bool getEnableZ(bool enable) {return m_enable_z;}
 
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
