@@ -24,7 +24,7 @@ def _create_domain_decomposition(device, box):
 
     # create a default domain decomposition
     result = _hoomd.DomainDecomposition(device.cpp_exec_conf,
-                                        box.L,
+                                        box.getL(),
                                         0,
                                         0,
                                         0,
