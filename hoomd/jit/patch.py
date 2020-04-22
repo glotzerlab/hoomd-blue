@@ -151,7 +151,7 @@ class user(object):
             include_path_hoomd = os.path.dirname(hoomd.__file__) + '/include';
             include_path_source = hoomd._hoomd.__hoomd_source_dir__
             include_path_cuda = _jit.__cuda_include_path__
-            include_paths = [include_path_hoomd, include_path_source, include_path_cuda]
+            options = ["-I"+include_path_hoomd, "-I"+include_path_source, "-I"+include_path_cuda]
             cuda_devrt_library_path = _jit.__cuda_devrt_library_path__
 
             # select maximum supported compute capability out of those we compile for
@@ -166,7 +166,7 @@ class user(object):
 
             gpu_code = self.wrap_gpu_code(code)
             self.cpp_evaluator = _jit.PatchEnergyJITGPU(hoomd.context.current.device.cpp_exec_conf, llvm_ir, r_cut, array_size,
-                gpu_code, "hpmc::gpu::kernel::hpmc_narrow_phase_patch", include_paths, cuda_devrt_library_path, max_arch);
+                gpu_code, "hpmc::gpu::kernel::hpmc_narrow_phase_patch", options, cuda_devrt_library_path, max_arch);
         else:
             self.cpp_evaluator = _jit.PatchEnergyJIT(hoomd.context.current.device.cpp_exec_conf, llvm_ir, r_cut, array_size);
 
@@ -244,23 +244,16 @@ float eval(const vec3<float>& r_ij,
 
         return llvm_ir
 
-    def wrap_gpu_code(self, code, union = False):
+    def wrap_gpu_code(self, code):
         R'''Helper function to compile the provided code into a device function
 
         Args:
             code (str): C++ code to compile
-            union (bool): If true, compile code for use with `patch.user_union()`
 
         .. versionadded:: 3.0
         '''
 
-        if union:
-            cpp_function = """#define UNION_EVAL
-"""
-        else:
-            cpp_function = ""
-
-        cpp_function += """
+        cpp_function = """
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 #include "hoomd/hpmc/IntegratorHPMCMonoGPUJIT.inc"
@@ -414,7 +407,11 @@ class user_union(user):
             include_path_hoomd = os.path.dirname(hoomd.__file__) + '/include';
             include_path_source = hoomd._hoomd.__hoomd_source_dir__
             include_path_cuda = _jit.__cuda_include_path__
-            include_paths = [include_path_hoomd, include_path_source, include_path_cuda]
+            options = ["-I"+include_path_hoomd, "-I"+include_path_source, "-I"+include_path_cuda]
+
+            # use union evaluator
+            options += ["-DUNION_EVAL"]
+
             cuda_devrt_library_path = _jit.__cuda_devrt_library_path__
 
             # select maximum supported compute capability out of those we compile for
@@ -427,10 +424,10 @@ class user_union(user):
                 if int(a) < int(compute_major)*10+int(compute_major):
                     max_arch = int(a)
 
-            gpu_code = self.wrap_gpu_code(code, union=True)
+            gpu_code = self.wrap_gpu_code(code)
             self.cpp_evaluator = _jit.PatchEnergyJITUnionGPU(hoomd.context.current.system_definition, hoomd.context.current.device.cpp_exec_conf,
                 llvm_ir_iso, r_cut_iso, array_size_iso, llvm_ir, r_cut,  array_size,
-                gpu_code, "hpmc::gpu::kernel::hpmc_narrow_phase_patch", include_paths, cuda_devrt_library_path, max_arch);
+                gpu_code, "hpmc::gpu::kernel::hpmc_narrow_phase_patch", options, cuda_devrt_library_path, max_arch);
         else:
             self.cpp_evaluator = _jit.PatchEnergyJITUnion(hoomd.context.current.system_definition, hoomd.context.current.device.cpp_exec_conf,
                 llvm_ir_iso, r_cut_iso, array_size_iso, llvm_ir, r_cut,  array_size);

@@ -9,6 +9,8 @@
 
 #include <vector>
 
+#include "hoomd/Autotuner.h"
+
 //! Evaluate patch energies via runtime generated code, GPU version
 class PYBIND11_EXPORT PatchEnergyJITGPU : public PatchEnergyJIT
     {
@@ -18,62 +20,51 @@ class PYBIND11_EXPORT PatchEnergyJITGPU : public PatchEnergyJIT
                        const unsigned int array_size,
                        const std::string& code,
                        const std::string& kernel_name,
-                       const std::vector<std::string>& include_paths,
+                       const std::vector<std::string>& options,
                        const std::string& cuda_devrt_library_path,
                        unsigned int compute_arch)
             : PatchEnergyJIT(exec_conf, llvm_ir, r_cut, array_size),
-              m_gpu_factory(exec_conf, code, kernel_name, include_paths, cuda_devrt_library_path, compute_arch)
+              m_gpu_factory(exec_conf, code, kernel_name, options, cuda_devrt_library_path, compute_arch)
             {
             m_gpu_factory.setAlphaPtr(&m_alpha.front());
-            }
 
-        //! Return the list of available launch bounds
-        /* \param idev the logical GPU id
-           \param eval_threads template parameter
-         */
-        virtual const std::vector<unsigned int>& getLaunchBounds() const
-            {
-            return m_gpu_factory.getLaunchBounds();
-            }
+            // tuning params for patch narrow phase
+            std::vector<unsigned int> valid_params_patch;
+            const unsigned int narrow_phase_max_threads_per_eval = this->m_exec_conf->dev_prop.warpSize;
+            auto& launch_bounds = m_gpu_factory.getLaunchBounds();
+            for (auto cur_launch_bounds: launch_bounds)
+                {
+                for (unsigned int group_size=1; group_size <= cur_launch_bounds; group_size*=2)
+                    {
+                    for (unsigned int eval_threads=1; eval_threads <= narrow_phase_max_threads_per_eval; eval_threads *= 2)
+                        {
+                        if ((cur_launch_bounds % (group_size*eval_threads)) == 0)
+                            valid_params_patch.push_back(cur_launch_bounds*1000000 + group_size*100 + eval_threads);
+                        }
+                    }
+                }
 
-        //! Return the maximum number of threads per block for this kernel
-        /* \param idev the logical GPU id
-           \param eval_threads kernel template parameter
-           \param launch_bounds launch bounds, template parameter
-         */
-        virtual unsigned int getKernelMaxThreads(unsigned int idev, unsigned int eval_threads, unsigned int launch_bounds)
-            {
-            return m_gpu_factory.getKernelMaxThreads(idev, eval_threads, launch_bounds);
-            }
-
-        //! Return the shared size usage in bytes for this kernel
-        /* \param idev the logical GPU id
-           \param eval_threads template parameter
-           \param launch_bounds template parameter
-         */
-        virtual unsigned int getKernelSharedSize(unsigned int idev, unsigned int eval_threads, unsigned int launch_bounds)
-            {
-            return m_gpu_factory.getKernelSharedSize(idev, eval_threads, launch_bounds);
+            m_tuner_narrow_patch.reset(new Autotuner(valid_params_patch, 5, 100000, "hpmc_narrow_patch", this->m_exec_conf));
             }
 
         //! Asynchronously launch the JIT kernel
-        /*! \param idev logical GPU id to launch on
-            \param grid The grid dimensions
-            \param threads The thread block dimensions
-            \param sharedMemBytes The size of the dynamic shared mem allocation
+        /*! \param args Kernel arguments
             \param hStream stream to execute on
-            \param kernelParams the kernel parameters
-            \param max_extra_bytes Maximum extra bytes of shared memory, kernel argument
-            \param eval_threads template parameter
-            \param launch_bouds template parameter
             */
-        virtual void launchKernel(unsigned int idev, dim3 grid, dim3 threads,
-            unsigned int sharedMemBytes, hipStream_t hStream,
-            void** kernelParams, unsigned int& max_extra_bytes,
-            unsigned int eval_threads, unsigned int launch_bounds)
+        virtual void computePatchEnergyGPU(const gpu_args_t& args, hipStream_t hStream);
+
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
+        */
+        virtual void setAutotunerParams(bool enable, unsigned int period)
             {
-            m_gpu_factory.launchKernel(idev, grid, threads, sharedMemBytes, hStream, kernelParams, eval_threads, launch_bounds);
+            m_tuner_narrow_patch->setPeriod(period);
+            m_tuner_narrow_patch->setEnabled(enable);
             }
+
+    protected:
+        std::unique_ptr<Autotuner> m_tuner_narrow_patch;     //!< Autotuner for the narrow phase
 
     private:
         GPUEvalFactory m_gpu_factory;                       //!< JIT implementation
