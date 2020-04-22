@@ -11,12 +11,12 @@ class BoxResize(_Updater):
     """Resizes the box between an initial and final box.
 
     When part of a `Simulation` ``updater`` list, this object will resize the
-    box between the initial and final boxes passed. The behavior a linear
+    box between the initial and final boxes passed. The behavior is a linear
     interpolation between the initial and final boxes where the minimum of the
-    variant represents initial box and the maximum represents the final box. All
+    variant is the initial box and the maximum is the final box. All
     values between the minimum and maximum result in a box that is the
     interpolation of the three lengths and tilt factors of the initial and final
-    box.
+    boxes.
 
     Note:
         The passed `Variant` must be well behaved (i.e. it must have a
@@ -66,7 +66,7 @@ class BoxResize(_Updater):
                 box.
 
         Returns:
-            Box: The box that would be used for resizing at the given timestep.
+            Box: The box used at the given timestep.
         """
         if self.is_attached:
             timestep = int(timestep)

@@ -59,9 +59,7 @@ BoxDim BoxResizeUpdater::getCurrentBox(unsigned int timestep)
     auto final_box = getBoxDimFromPyObject(m_final_box);
     Scalar3 L1 = initial_box.getL();
     Scalar3 L2 = final_box.getL();
-    Scalar Lx = L2.x * scale + (1.0 - scale) * L1.x;
-    Scalar Ly = L2.y * scale + (1.0 - scale) * L1.y;
-    Scalar Lz = L2.z * scale + (1.0 - scale) * L1.z;
+    Scalar3 new_L = L2 * scale + (1.0 - scale) * L1;
     Scalar xy = final_box.getTiltFactorXY() * scale +
                 (1.0 - scale) * initial_box.getTiltFactorXY();
     Scalar xz = final_box.getTiltFactorXZ() * scale +
@@ -69,7 +67,7 @@ BoxDim BoxResizeUpdater::getCurrentBox(unsigned int timestep)
     Scalar yz = final_box.getTiltFactorYZ() * scale +
                 (1.0 - scale) * initial_box.getTiltFactorYZ();
 
-    BoxDim new_box = BoxDim(make_scalar3(Lx, Ly, Lz));
+    BoxDim new_box = BoxDim(new_L);
     new_box.setTiltFactors(xy, xz, yz);
     return new_box;
     }

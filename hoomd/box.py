@@ -31,16 +31,13 @@ make_char3 = partial(_make_three_vec, func=_hoomd.make_char3, sc=int)
 
 
 def _to_three_array(vec, dtype=None):
-    if dtype is None:
-        return np.array((vec.x, vec.y, vec.z))
-    else:
-        return np.array((vec.x, vec.y, vec.z), dtype=dtype)
+    return np.array((vec.x, vec.y, vec.z), dtype=dtype)
 
 
 class _LatticeVectors:
     """Class that allows access to the lattice vectors of a box.
 
-    Is designed to be write only.
+    The lattice vectors are read-only.
     """
     def __init__(self, cpp_box):
         self._cpp_obj = cpp_box
@@ -65,7 +62,7 @@ class Box:
         yz (float): tilt factor yz (dimensionless).
 
     Simulation boxes in hoomd are specified by six parameters, ``Lx``, ``Ly``,
-    ``Lz``, ``xy``, ``xz`` and ``yz``. `Box` provides a way to specify all
+    ``Lz``, ``xy``, ``xz``, and ``yz``. `Box` provides a way to specify all
     six parameters for a given box and perform some common operations with them.
     A `Box` can be passed to an initialization method or to assigned to a
     saved :py:class:`State` variable (``state.box = new_box``) to set the
@@ -80,16 +77,16 @@ class Box:
 
     .. rubric:: Two dimensional systems
 
-    2D simulations in HOOMD are 3D boxes with ``Lz == 0``; this means that
-    ``xz`` and ``yz`` values will be ignored. When you assign a new `Box` to
-    an already initialized system, the dimensionality if different is changed
-    with a warning.
+    2D simulations in HOOMD use boxes with ``Lz == 0``. The ``xz`` and ``yz``
+    values will be ignored. If a new `Box` is assigned to a system that has
+    already been initialized, a warning will be shown if the dimensionality
+    changes.
 
     In 2D boxes, *volume* is in units of area.
 
     .. rubric:: Factory Methods
 
-    `Box` has a factory methods to enable easier creation of boxes:
+    `Box` has factory methods to enable easier creation of boxes:
     `cube` and `from_matrix`. See the method documentation for usage.
 
     Examples:
@@ -101,7 +98,7 @@ class Box:
     """
 
     # Constructors
-    def __init__(self, Lx=1.0, Ly=1.0, Lz=1.0, xy=0.0, xz=0.0, yz=0.0):
+    def __init__(self, Lx, Ly, Lz=0, xy=0, xz=0, yz=0):
         self._cpp_obj = _hoomd.BoxDim(Lx, Ly, Lz)
         self._cpp_obj.setTiltFactors(xy, xz, yz)
         self._lattice_vectors = _LatticeVectors(self._cpp_obj)
@@ -128,12 +125,12 @@ class Box:
     # Dimension based properties
     @property
     def dimensions(self):
-        """The dimension of the box.
+        """The dimensionality of the box.
 
-        If ``Lz == 0``, the dimension is 2.  otherwise the dimension of the box
-        is 3. This property is not directly settable.
+        If ``Lz == 0``, the box is treated as 2D, otherwise it is 3D. This
+        property is not settable.
         """
-        return 2 if self.Lz == 0 else 3
+        return 2 if self.is2D else 3
 
     @property
     def is2D(self):
@@ -143,7 +140,7 @@ class Box:
     # Length based properties
     @property
     def L(self):
-        """A numpy array of the three box lengths.
+        """A NumPy array of box lengths ``[Lx, Ly, Lz]``.
 
         Can be set to a 2 or 3 dimension array, changing the dimesion
         if necessary."""
@@ -217,7 +214,6 @@ class Box:
     @property
     def xz(self):
         """The tilt for the xz plane."""
-        return self._cpp_obj.getTiltFactorXY()
         return self._cpp_obj.getTiltFactorXZ()
 
     @xz.setter
@@ -241,7 +237,10 @@ class Box:
 
     @property
     def lattice_vectors(self):
-        """Box lattice vectors"""
+        """Box lattice vectors.
+        
+        The lattice vectors are read-only.
+        """
         return self._lattice_vectors
 
     @property
@@ -254,12 +253,11 @@ class Box:
         return self._cpp_obj.getVolume(self.is2D)
 
     @volume.setter
-    def volume(self, vol):
-        cur_vol = self.volume
-        if self.dimension == 3:
-            s = (vol / cur_vol) ** (1.0 / 3.0)
+    def volume(self, volume):
+        if self.is2D:
+            s = np.sqrt(volume / self.volume)
         else:
-            s = (vol / cur_vol) ** (1.0 / 2.0)
+            s = np.cbrt(volume / self.volume)
         self.scale(s)
 
     @property
@@ -279,8 +277,7 @@ class Box:
 
     @matrix.setter
     def matrix(self, box_matrix):
-        if not isinstance(box_matrix, np.ndarray):
-            box_matrix = np.array(box_matrix)
+        box_matrix = np.asarray(box_matrix)
         if not np.allclose(box_matrix, np.triu(box_matrix)):
             raise ValueError("Box matrix must be upper triangular.")
         if box_matrix.shape != (3, 3):
@@ -292,7 +289,7 @@ class Box:
         self.yz = box_matrix[1, 2] / L[2]
 
     def scale(self, s):
-        R""" Scale box dimensions.
+        R"""Scale box dimensions.
 
         Scales the box by the given scale factors. Tilt factors are not
         modified.
@@ -300,21 +297,18 @@ class Box:
         Args:
             s (float or Sequence[float]): scale factors in each dimension. If a
                 single float is given then scale all dimensions by s; otherwise,
-                3 value to scale for each dimension.
+                s must be a sequence of 3 values used to scale each dimension.
         """
+        s = np.asarray(s, dtype=np.float)
         try:
-            s = np.array(s, dtype=np.float)
-        except ValueError:
-            raise ValueError("Scaling factors must be convertable to floats.")
-        try:
-            self.L = s * self.L
+            self.L *= s
         except ValueError:
             raise ValueError("Either one or three scaling factors need to be "
                              "provided.")
 
     # Magic Methods
     def __repr__(self):
-        return "Box(Lx={}, Ly={}, Lz={}, xy={}, xz={}, yz={})".format(
+        return "hoomd.box.Box(Lx={}, Ly={}, Lz={}, xy={}, xz={}, yz={})".format(
             self.Lx, self.Ly, self.Lz, self.xy, self.xz, self.yz)
 
     def __copy__(self):
