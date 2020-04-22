@@ -207,6 +207,12 @@ class PYBIND11_EXPORT Communicator
             return m_requested_flags;
             }
 
+        /// Get the domain decomposition
+        std::shared_ptr<DomainDecomposition> getDomainDecomposition()
+            {
+            return m_decomposition;
+            }
+
 
         //! Subscribe to list of call-backs for ghost communication
         /*!

@@ -2924,6 +2924,9 @@ const BoxDim Communicator::getShiftedBox() const
 void export_Communicator(py::module& m)
     {
     py::class_<Communicator, std::shared_ptr<Communicator> >(m,"Communicator")
-    .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition> >());
+    .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition> >())
+    .def_property_readonly("domain_decomposition",
+                           &Communicator::getDomainDecomposition)
+    ;
     }
 #endif // ENABLE_MPI
