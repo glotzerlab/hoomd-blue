@@ -34,22 +34,6 @@ def _to_three_array(vec, dtype=None):
     return np.array((vec.x, vec.y, vec.z), dtype=dtype)
 
 
-class _LatticeVectors:
-    """Class that allows access to the lattice vectors of a box.
-
-    The lattice vectors are read-only.
-    """
-    def __init__(self, cpp_box):
-        self._cpp_obj = cpp_box
-
-    def __getitem__(self, index):
-        if index < 0 or index > 2:
-            raise ValueError("The index for the lattice vector must be 0, 1, "
-                             "or 2.")
-
-        return _to_three_array(self._cpp_obj.getLatticeVector(index))
-
-
 class Box:
     R""" Define box dimensions.
 
@@ -101,7 +85,6 @@ class Box:
     def __init__(self, Lx, Ly, Lz=0, xy=0, xz=0, yz=0):
         self._cpp_obj = _hoomd.BoxDim(Lx, Ly, Lz)
         self._cpp_obj.setTiltFactors(xy, xz, yz)
-        self._lattice_vectors = _LatticeVectors(self._cpp_obj)
 
     @classmethod
     def cube(cls, L):
@@ -243,11 +226,14 @@ class Box:
 
     @property
     def lattice_vectors(self):
-        """Box lattice vectors.
-        
+        """[``numpy.ndarray``](``shape=(3, 3), dtype=float64``): Box lattice
+        vectors.
+
         The lattice vectors are read-only.
         """
-        return self._lattice_vectors
+        return np.concatenate(
+            [_to_three_array(self._cpp_obj.getLatticeVector(i))
+             for i in range(3)]).reshape(3, 3)
 
     @property
     def volume(self):
@@ -268,7 +254,7 @@ class Box:
 
     @property
     def matrix(self):
-        """[``numpy.ndarray``](``shape=(3, 3), dtype=float64): The upper
+        """[``numpy.ndarray``](``shape=(3, 3), dtype=float64``): The upper
         triangular matrix that defines the box.
 
         Can be used to set the box to one defined by an upper triangular
