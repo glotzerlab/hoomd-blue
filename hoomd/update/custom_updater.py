@@ -1,18 +1,18 @@
-from hoomd.python_action import _PythonAction, _InternalPythonAction
+from hoomd.python_action import _CustomOperation, _InternalCustomOperation
 from hoomd.custom_action import _CustomAction, _InternalCustomAction
 
 
-class _CustomUpdater(_CustomAction):
+class _CustomUpdaterAction(_CustomAction):
     def update(self, timestep):
         return self.act(timestep)
 
 
-class _InternalCustomUpdater(_InternalCustomAction):
+class _InternalCustomUpdaterAction(_InternalCustomAction):
     def update(self, timestep):
         return self.act(timestep)
 
 
-class _PythonUpdater(_PythonAction):
+class _CustomUpdater(_CustomOperation):
     _cpp_list_name = 'updaters'
     _cpp_class_name = 'PythonUpdater'
     _cpp_action = 'update'
@@ -29,7 +29,7 @@ class _PythonUpdater(_PythonAction):
             raise ValueError("updater must be an instance of _CustomAction")
 
 
-class _InternalPythonUpdater(_InternalPythonAction):
+class _InternalCustomUpdater(_InternalCustomOperation):
     _cpp_list_name = 'updaters'
     _cpp_class_name = 'PythonUpdater'
     _cpp_action = 'update'

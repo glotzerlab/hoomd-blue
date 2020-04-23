@@ -8,7 +8,7 @@ from hoomd.logger import LoggerQuantity
 from hoomd import _hoomd
 
 
-class _PythonAction(_TriggeredOperation):
+class _CustomOperation(_TriggeredOperation):
     """Wrapper for user created ``Action``s.
 
     A basic wrapper that allows for Python object inherenting from
@@ -48,7 +48,7 @@ class _PythonAction(_TriggeredOperation):
             pass
 
 
-class _InternalPythonAction(_PythonAction):
+class _InternalCustomOperation(_CustomOperation):
     """Internal class for Python ``Action``s.
 
     Allows access to the owned action's attributes through modifying the

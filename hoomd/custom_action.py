@@ -11,14 +11,14 @@ class _CustomAction(ABC):
     analyzing some property of the system.
 
     To use subclasses of this class, the object must be passed as an argument
-    for the :py:class:`hoomd.python_action._PythonAction` constructor.
+    for the :py:class:`hoomd.python_action._CustomOperation` constructor.
 
     If the pressure, rotational kinetic energy, or external field virial is
     needed for a subclass, the flags attribute of the class needs to be set with
     the appropriate flags from :py:class:`hoomd.util.ParticleDataFlags`.
 
     For advertising loggable quantities through the
-    :py:class:`hoomd.python_action._PythonAction` object, the class attribute
+    :py:class:`hoomd.python_action._CustomOperation` object, the class attribute
     ``log_quantities`` can be used. The dictionary expects string keys with the
     name of the loggable and :py:class:`LoggerQuantity` objects as the values.
     """
