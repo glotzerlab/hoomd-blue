@@ -300,11 +300,7 @@ class Box:
                 s must be a sequence of 3 values used to scale each dimension.
         """
         s = np.asarray(s, dtype=np.float)
-        try:
-            self.L *= s
-        except ValueError:
-            raise ValueError("Either one or three scaling factors need to be "
-                             "provided.")
+        self.L *= s
 
     # Magic Methods
     def __repr__(self):
