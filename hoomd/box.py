@@ -113,7 +113,7 @@ class Box:
 
     @classmethod
     def from_matrix(cls, box_matrix):
-        b = cls()
+        b = cls(0, 0)
         b.matrix = box_matrix
         return b
 
@@ -163,8 +163,8 @@ class Box:
 
     @Lx.setter
     def Lx(self, value):
-        L = self._cpp_obj.getL()
-        L.x = float(value)
+        L = self.L
+        L[0] = float(value)
         self.L = L
 
     @property
@@ -174,8 +174,8 @@ class Box:
 
     @Ly.setter
     def Ly(self, value):
-        L = self._cpp_obj.getL()
-        L.y = float(value)
+        L = self.L
+        L[1] = float(value)
         self.L = L
 
     @property
@@ -185,8 +185,8 @@ class Box:
 
     @Lz.setter
     def Lz(self, value):
-        L = self._cpp_obj.getL()
-        L.z = float(value)
+        L = self.L
+        L[2] = float(value)
         self.L = L
 
     # Box tilt based properties

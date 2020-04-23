@@ -2456,8 +2456,13 @@ void export_BoxDim(py::module& m)
     .def(py::init<Scalar, Scalar, Scalar, Scalar>())
     .def(py::self == py::self)
     .def(py::self != py::self)
-    .def("getPeriodic", &BoxDim::getPeriodic)
-    .def("setPeriodic", &BoxDim::setPeriodic)
+    .def("getPeriodic", [](const BoxDim &box)
+                            {
+                            auto periodic = box.getPeriodic();
+                            return make_uint3(periodic.x,
+                                              periodic.y,
+                                              periodic.z);
+                            })
     .def("getL", &BoxDim::getL)
     .def("setL", &BoxDim::setL)
     .def("getLo", &BoxDim::getLo)
