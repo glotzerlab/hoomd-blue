@@ -126,7 +126,7 @@ class Box:
     # Dimension based properties
     @property
     def dimensions(self):
-        """The dimensionality of the box.
+        """int: The dimensionality of the box.
 
         If ``Lz == 0``, the box is treated as 2D, otherwise it is 3D. This
         property is not settable.
@@ -135,26 +135,30 @@ class Box:
 
     @property
     def is2D(self):
-        """A bool which represents whether the box is 2D."""
+        """bool: Flag whether the box is 2D.
+
+        If ``Lz == 0``, the box is treated as 2D, otherwise it is 3D. This
+        property is not settable.
+        """
         return self.Lz == 0
 
     # Length based properties
     @property
     def L(self):
-        """A NumPy array of box lengths ``[Lx, Ly, Lz]``."""
+        """[``numpy.ndarray``](``shape=(3,), dtype=float64``): The box lengths,
+        ``[Lx, Ly, Lz]``.
+
+        Can be set with a float which sets all lengths, or a length 3 vector.
+        """
         return _to_three_array(self._cpp_obj.getL())
 
     @L.setter
     def L(self, new_L):
-        try:
-            if len(new_L) != 3:
-                raise ValueError("Expected a sequence of length 3.")
-        except TypeError:
-            raise ValueError("Expected a sequence of length 3.")
+        self._cpp_obj.setL(make_scalar3(new_L))
 
     @property
     def Lx(self):
-        """The length of the box in the x dimension."""
+        """float: The length of the box in the x dimension."""
         return self.L[0]
 
     @Lx.setter
@@ -165,7 +169,7 @@ class Box:
 
     @property
     def Ly(self):
-        """The length of the box in the y dimension."""
+        """float: The length of the box in the y dimension."""
         return self.L[1]
 
     @Ly.setter
@@ -176,7 +180,7 @@ class Box:
 
     @property
     def Lz(self):
-        """The length of the box in the z dimension."""
+        """float: The length of the box in the z dimension."""
         return self.L[2]
 
     @Lz.setter
@@ -188,7 +192,8 @@ class Box:
     # Box tilt based properties
     @property
     def tilts(self):
-        """The three box tilts for axis ``xy``, ``xz``, and ``yz``.
+        """[``numpy.ndarray``](``shape(3,), dtype=float64``): The box tilts,
+        ``[xy, xz, yz]``.
 
         Can be set using one tilt for all axes or three tilts. If the box is 2D
         ``xz`` and ``yz`` will automatically be set to zero."""
@@ -204,7 +209,7 @@ class Box:
 
     @property
     def xy(self):
-        """The tilt for the xy plane."""
+        """float: The tilt for the xy plane."""
         return self._cpp_obj.getTiltFactorXY()
 
     @xy.setter
@@ -213,7 +218,7 @@ class Box:
 
     @property
     def xz(self):
-        """The tilt for the xz plane."""
+        """float: The tilt for the xz plane."""
         return self._cpp_obj.getTiltFactorXZ()
 
     @xz.setter
@@ -222,7 +227,7 @@ class Box:
 
     @property
     def yz(self):
-        """The tilt for the yz plane."""
+        """float: The tilt for the yz plane."""
         return self._cpp_obj.getTiltFactorYZ()
 
     @yz.setter
@@ -232,7 +237,8 @@ class Box:
     # Misc. properties
     @property
     def periodic(self):
-        """The periodicity of each dimension."""
+        """[``numpy.ndarray``](``shape(3,), dtype=float64``): The periodicity of
+        each dimension."""
         return _to_three_array(self._cpp_obj.getPeriodic(), np.bool)
 
     @property
@@ -245,7 +251,7 @@ class Box:
 
     @property
     def volume(self):
-        """The current volume (area in 2D) of the box.
+        """float: The current volume (area in 2D) of the box.
 
         When setting volume the aspect ratio of the box is maintained while the
         lengths are changed.
@@ -262,7 +268,11 @@ class Box:
 
     @property
     def matrix(self):
-        """The upper triangular matrix that defines the box.
+        """[``numpy.ndarray``](``shape=(3, 3), dtype=float64): The upper
+        triangular matrix that defines the box.
+
+        Can be used to set the box to one defined by an upper triangular
+        matrix.
 
         .. code-block:: python
 
