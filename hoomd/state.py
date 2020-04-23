@@ -159,16 +159,17 @@ class State:
 
     @property
     def box(self):
+        """The state's box (a :py:class:`hoomd.box.Box` object).
+
+        Ediing the box directly is not allowed.  For example
+        ``state.box.scale(1.1)`` would not scale the state's box. To set the
+        state's box to a new box ``state.box = new_box`` must be used.
+        """
         b = self._cpp_sys_def.getParticleData().getGlobalBox()
         return Box._from_cpp(b)
 
     @box.setter
     def box(self, value):
-        """Set the system box.
-
-        Args:
-            value (hoomd.box.Box): The new box.
-        """
         if not isinstance(value, Box):
             raise TypeError('box must be a hoomd.box.Box object')
         if value.dimensions != self._cpp_sys_def.getNDimensions():
