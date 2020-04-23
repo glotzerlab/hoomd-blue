@@ -3,6 +3,7 @@
 
 // Maintainer: joaander
 #include "Updater.h"
+#include "Communicator.h"
 
 namespace py = pybind11;
 
@@ -41,5 +42,8 @@ void export_Updater(py::module& m)
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     .def("update", &Updater::update)
     .def("setProfiler", &Updater::setProfiler)
+    #ifdef ENABLE_MPI
+    .def("setCommunicator", &Updater::setCommunicator)
+    #endif
     ;
     }

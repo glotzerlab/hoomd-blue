@@ -107,9 +107,6 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
     // enable the energy computation
     PDataFlags flags;
     flags[pdata_flag::pressure_tensor] = 1;
-    flags[pdata_flag::isotropic_virial] = 1;
-    // only for output of enthalpy
-    flags[pdata_flag::potential_energy] = 1;
     pdata->setFlags(flags);
 
     std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterTag(sysdef, 0, pdata->getN()-1));
@@ -388,9 +385,6 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, std::shared_ptr<E
     // enable the energy computation
     PDataFlags flags;
     flags[pdata_flag::pressure_tensor] = 1;
-    flags[pdata_flag::isotropic_virial] = 1;
-    // only for output of enthalpy
-    flags[pdata_flag::potential_energy] = 1;
     pdata->setFlags(flags);
 
     std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterTag(sysdef, 0, pdata->getN()-1));
@@ -551,8 +545,6 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
     // enable the energy computation
     PDataFlags flags;
     flags[pdata_flag::pressure_tensor] = 1;
-    flags[pdata_flag::isotropic_virial] = 1;
-    flags[pdata_flag::potential_energy] = 1;
     flags[pdata_flag::rotational_kinetic_energy] = 1;
     pdata->setFlags(flags);
 

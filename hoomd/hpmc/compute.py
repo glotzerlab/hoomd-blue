@@ -110,7 +110,7 @@ class free_volume(_compute):
                 hoomd.context.current.device.cpp_msg.error("compute.free_volume: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing compute.free_volume");
 
-        if suffix is not '':
+        if suffix != '':
             suffix = '_' + suffix
 
         self.cpp_compute = cls(hoomd.context.current.system_definition,

@@ -839,8 +839,7 @@ void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
 
                     if (pidx >= max_local)
                         {
-                        this->m_exec_conf->msg->error() << "comm.*: encountered incomplete " << group_data::getName() << std::endl;
-                        throw std::runtime_error("Error during communication");
+                        throw std::runtime_error("Communication error: encountered incomplete " + group_data::getName());
                         }
 
                     plan |= h_plan.data[pidx];
@@ -2925,6 +2924,9 @@ const BoxDim Communicator::getShiftedBox() const
 void export_Communicator(py::module& m)
     {
     py::class_<Communicator, std::shared_ptr<Communicator> >(m,"Communicator")
-    .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition> >());
+    .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition> >())
+    .def_property_readonly("domain_decomposition",
+                           &Communicator::getDomainDecomposition)
+    ;
     }
 #endif // ENABLE_MPI

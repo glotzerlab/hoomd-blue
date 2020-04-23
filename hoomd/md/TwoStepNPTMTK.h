@@ -137,8 +137,7 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
         virtual void integrateStepTwo(unsigned int timestep);
 
         //! Get needed pdata flags
-        /*! TwoStepNPTMTK needs the pressure, so the isotropic_virial or pressure_tensor flag is set,
-            depending on the integration mode
+        /*! TwoStepNPTMTK needs the pressure, so the pressure_tensor flag is set
         */
         virtual PDataFlags getRequestedPDataFlags()
             {
@@ -147,7 +146,6 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
             if (m_aniso)
                 {
                 flags[pdata_flag::rotational_kinetic_energy] = 1;
-//                flags[pdata_flag::rotational_virial] = 1;
                 }
             flags[pdata_flag::external_field_virial]=1;
             return flags;
