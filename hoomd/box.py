@@ -104,11 +104,12 @@ class Box:
         self._lattice_vectors = _LatticeVectors(self._cpp_obj)
 
     @classmethod
-    def cube(cls, L, dimensions=3):
-        if dimensions == 3:
-            return cls(L, L, L, 0, 0, 0)
-        else:
-            return cls(L, L, 0, 0, 0, 0)
+    def cube(cls, L):
+        return cls(L, L, L, 0, 0, 0)
+
+    @classmethod
+    def square(cls, L):
+        return cls(L, L, 0, 0, 0, 0)
 
     @classmethod
     def from_matrix(cls, box_matrix):
