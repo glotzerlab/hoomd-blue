@@ -58,9 +58,6 @@ class BoxResize(_Updater):
     def get_box(self, timestep):
         """Get the box for a given timestep.
 
-        This method allows for the querying of the box that would be used for a
-        given timestep.
-
         Args:
             timestep (int): The timestep to use for determining the resized
                 box.
