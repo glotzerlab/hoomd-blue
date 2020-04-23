@@ -6,4 +6,4 @@ class _updater:
     pass
 
 
-__all__ = [BoxResize]
+__all__ = ['BoxResize']
