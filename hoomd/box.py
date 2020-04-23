@@ -141,17 +141,16 @@ class Box:
     # Length based properties
     @property
     def L(self):
-        """A NumPy array of box lengths ``[Lx, Ly, Lz]``.
-
-        Can be set to a 2 or 3 dimension array, changing the dimesion
-        if necessary."""
+        """A NumPy array of box lengths ``[Lx, Ly, Lz]``."""
         return _to_three_array(self._cpp_obj.getL())
 
     @L.setter
     def L(self, new_L):
-        if len(new_L) == 2:
-            new_L = [new_L[0], new_L[1], 0]
-        self._cpp_obj.setL(make_scalar3(new_L))
+        try:
+            if len(new_L) != 3:
+                raise ValueError("Expected a sequence of length 3.")
+        except TypeError:
+            raise ValueError("Expected a sequence of length 3.")
 
     @property
     def Lx(self):
