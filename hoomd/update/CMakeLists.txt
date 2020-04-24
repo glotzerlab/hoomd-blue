@@ -1,5 +1,5 @@
 set(files __init__.py
-          python_updater.py
+          custom_updater.py
           )
 
 install(FILES ${files}

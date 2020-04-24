@@ -1,5 +1,5 @@
 set(files __init__.py
-          python_analyzer.py
+          custom_analyzer.py
           )
 
 install(FILES ${files}
