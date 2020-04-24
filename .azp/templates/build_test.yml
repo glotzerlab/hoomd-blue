@@ -29,15 +29,6 @@ steps:
   displayName: Install
   workingDirectory: $(Build.BinariesDirectory)
 
-- script: ls /usr/local/lib/python3.7/site-packages
-
-- script: >-
-    PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
-    python3 -c "import numpy; print(numpy); print(numpy.__version__)"
-  displayName: Test numpy installation
-  workingDirectory: $(Pipeline.Workspace)/install
-
-
 - script: >-
     PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
     python3 -m pytest -v -ra
