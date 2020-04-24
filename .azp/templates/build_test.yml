@@ -29,6 +29,8 @@ steps:
   displayName: Install
   workingDirectory: $(Build.BinariesDirectory)
 
+- script: ls /usr/local/lib/python3.7/site-packages
+
 - script: >-
     PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
     python3 -c "import numpy; print(numpy); print(numpy.__version__)"
