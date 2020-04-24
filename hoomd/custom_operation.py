@@ -11,7 +11,7 @@ from hoomd import _hoomd
 class _CustomOperation(_TriggeredOperation):
     """Wrapper for user created ``Action``s.
 
-    A basic wrapper that allows for Python object inherenting from
+    A basic wrapper that allows for Python object inheriting from
     :py:class:`hoomd.custom_action.CustomAction` to be attached to a simulation.
     To see how to implement a custom Python ``Action``, look at the
     documentation for :py:class:`hoomd.custom_action._CustomAction`.

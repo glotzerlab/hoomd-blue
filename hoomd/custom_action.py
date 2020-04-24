@@ -59,8 +59,8 @@ class _InternalCustomAction(_CustomAction):
         elif attr in self._typeparam_dict.keys():
             return self._getattr_typeparam(attr)
         else:
-            raise AttributeError("Object {} has no attribute {}"
-                                 "".format(self, attr))
+            raise AttributeError("Object {} has no attribute {}".format(
+                self, attr))
 
     def __setattr__(self, attr, value):
         if attr in self._reserved_attrs_with_dft.keys():

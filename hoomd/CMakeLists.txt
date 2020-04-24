@@ -316,7 +316,7 @@ set(files benchmark.py
           state.py
           syncedlist.py
           parameterdicts.py
-          python_action.py
+          custom_operation.py
           trigger.py
           typeparam.py
           typeconverter.py

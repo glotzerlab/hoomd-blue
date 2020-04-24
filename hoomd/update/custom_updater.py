@@ -1,4 +1,4 @@
-from hoomd.python_action import _CustomOperation, _InternalCustomOperation
+from hoomd.custom_operation import _CustomOperation, _InternalCustomOperation
 from hoomd.custom_action import _CustomAction, _InternalCustomAction
 
 

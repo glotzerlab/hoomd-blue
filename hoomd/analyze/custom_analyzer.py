@@ -1,4 +1,4 @@
-from hoomd.python_action import _CustomOperation, _InternalCustomOperation
+from hoomd.custom_operation import _CustomOperation, _InternalCustomOperation
 from hoomd.custom_action import _CustomAction, _InternalCustomAction
 
 
@@ -7,7 +7,7 @@ class _CustomAnalyzerAction(_CustomAction):
         return self.act(timestep)
 
 
-class _InternalCustomAnayzerAction(_InternalCustomAction):
+class _InternalCustomAnalyzerAction(_InternalCustomAction):
     def analyze(self, timestep):
         return self.act(timestep)
 
