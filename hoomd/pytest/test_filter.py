@@ -2,8 +2,23 @@ import pytest
 from hoomd.filter.type_ import Type
 from hoomd.filter.tags import Tags
 from hoomd.filter.set_ import SetDifference, Union, Intersection
+from hoomd.snapshot import Snapshot
 from copy import deepcopy
 from itertools import combinations
+import numpy
+
+
+@pytest.fixture(scope="function")
+def make_filter_snapshot(device):
+    def filter_snapshot(n=10, particle_types=['A']):
+        s = Snapshot(device.comm)
+        if s.exists:
+            s.configuration.box = [20, 20, 20, 0, 0, 0]
+            s.particles.N = n
+            s.particles.position[:] = numpy.random.uniform(-10, 10, size=(n, 3))
+            s.particles.types = particle_types
+        return s
+    return filter_snapshot
 
 
 def set_types(s, inds, particle_types, particle_type):
@@ -20,10 +35,11 @@ def type_indices(request):
     return deepcopy(request.param)
 
 
-def test_type_filter(dummy_simulation_factory, type_indices):
+def test_type_filter(make_filter_snapshot, simulation_factory, type_indices):
     particle_types = ['A', 'B']
     N = 10
-    sim = dummy_simulation_factory(particle_types=particle_types, n=N)
+    filter_snapshot = make_filter_snapshot(n=N, particle_types=particle_types)
+    sim = simulation_factory(filter_snapshot)
 
     A_filter = Type(["A"])
     B_filter = Type(["B"])
@@ -61,10 +77,11 @@ def tag_indices(request):
     return deepcopy(request.param)
 
 
-def test_tags_filter(dummy_simulation_factory, tag_indices):
+def test_tags_filter(make_filter_snapshot, simulation_factory, tag_indices):
     particle_types = ['A']
     N = 10
-    sim = dummy_simulation_factory(particle_types=particle_types, n=N)
+    filter_snapshot = make_filter_snapshot(n=N, particle_types=particle_types)
+    sim = simulation_factory(filter_snapshot)
     inds = tag_indices
     tag_filter = Tags(inds)
     assert tag_filter(sim.state) == inds
@@ -85,10 +102,11 @@ def type_not_in_combo(combo, particle_types):
             return particle_type
 
 
-def test_intersection(dummy_simulation_factory, set_indices):
+def test_intersection(make_filter_snapshot, simulation_factory, set_indices):
     particle_types = ['A', 'B', 'C']
     N = 10
-    sim = dummy_simulation_factory(particle_types=particle_types, n=N)
+    filter_snapshot = make_filter_snapshot(n=N, particle_types=particle_types)
+    sim = simulation_factory(filter_snapshot)
     A_inds, B_inds, C_inds = set_indices
     s = sim.state.snapshot
     if s.exists:
@@ -109,10 +127,11 @@ def test_intersection(dummy_simulation_factory, set_indices):
         assert intersection_filter(sim.state) == []
 
 
-def test_union(dummy_simulation_factory, set_indices):
+def test_union(make_filter_snapshot, simulation_factory, set_indices):
     particle_types = ['A', 'B', 'C']
     N = 10
-    sim = dummy_simulation_factory(particle_types=particle_types, n=N)
+    filter_snapshot = make_filter_snapshot(n=N, particle_types=particle_types)
+    sim = simulation_factory(filter_snapshot)
     A_inds, B_inds, C_inds = set_indices
     s = sim.state.snapshot
     if s.exists:
@@ -129,10 +148,11 @@ def test_union(dummy_simulation_factory, set_indices):
         assert union_filter(sim.state) == combo_filter(sim.state)
 
 
-def test_difference(dummy_simulation_factory, set_indices):
+def test_difference(make_filter_snapshot, simulation_factory, set_indices):
     particle_types = ['A', 'B', 'C']
     N = 10
-    sim = dummy_simulation_factory(particle_types=particle_types, n=N)
+    filter_snapshot = make_filter_snapshot(n=N, particle_types=particle_types)
+    sim = simulation_factory(filter_snapshot)
     A_inds, B_inds, C_inds = set_indices
     s = sim.state.snapshot
     if s.exists:
