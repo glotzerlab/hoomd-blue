@@ -105,7 +105,6 @@ def two_particle_snapshot_factory(device):
                 box[2] = 1
             s.configuration.box = box
             s.configuration.dimensions = dimensions
-            
             s.particles.N = N
             s.particles.position[:] = [[-d / 2, 0, 0], [d / 2, 0, 0]]
             s.particles.types = particle_types
