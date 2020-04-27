@@ -162,15 +162,15 @@ def test_difference(make_filter_snapshot, simulation_factory, set_indices):
     sim.state.snapshot = s
 
     for type_combo in combinations(particle_types, 2):
-        print(type_combo)
-        print(str((A_inds, B_inds, C_inds)))
-        filter1 = Type([type_combo[0]])
-        filter2 = Type([type_combo[1]])
+        combo_filter = Type(type_combo)
         remaining_type = type_not_in_combo(type_combo, particle_types)
         remaining_filter = Type([remaining_type])
-        combo_filter = Type(type_combo)
-        difference_filter = SetDifference(filter1, filter2)
-        assert difference_filter(sim.state) == remaining_filter(sim.state)
-
+        for i in [0, 1]:
+            type_filter1 = Type([type_combo[i]])
+            type_filter2 = Type([type_combo[i - 1]])
+            difference_filter = SetDifference(combo_filter, type_filter1)
+            assert difference_filter(sim.state) == type_filter2(sim.state)
+            difference_filter = SetDifference(combo_filter, type_filter2)
+            assert difference_filter(sim.state) == type_filter1(sim.state)
         difference_filter = SetDifference(combo_filter, remaining_filter)
-        assert difference_filter(sim.state) == []
+        assert difference_filter(sim.state) == combo_filter(sim.state)
