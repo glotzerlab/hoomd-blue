@@ -87,4 +87,5 @@ def _hoomd_sys_excepthook(type, value, traceback):
 
 sys.excepthook = _hoomd_sys_excepthook
 
-__version__ = "{0}.{1}.{2}".format(*_hoomd.__version__)
+#  __version__ = "{0}.{1}.{2}".format(*_hoomd.__version__)
+__version__ = "3.0.0"
