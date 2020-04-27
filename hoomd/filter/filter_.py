@@ -15,4 +15,3 @@ class _ParticleFilter(ParticleFilter):
     def __call__(self, state):
         """Needs to interact with state to get particles across MPI rank."""
         return self._get_selected_tags(state._cpp_sys_def)
-        # raise NotImplementedError
