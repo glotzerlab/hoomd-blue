@@ -21,14 +21,13 @@
 
 #ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
-
 #ifdef ENABLE_ROCTRACER
 #ifdef __HIP_PLATFORM_HCC__
 #include <roctracer/roctracer_ext.h>
 #endif
 #endif
-
 #endif
+
 #ifdef ENABLE_TBB
 #include <tbb/tbb.h>
 #endif
