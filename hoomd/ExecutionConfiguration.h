@@ -29,7 +29,7 @@
 #endif
 
 #ifdef ENABLE_TBB
-#include <tbb/tbb.h>
+#include <tbb/task_scheduler_init.h>
 #endif
 
 #include "Messenger.h"
