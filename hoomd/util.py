@@ -253,7 +253,7 @@ def trigger_preprocessing(trigger):
 
 
 def variant_preprocessing(variant):
-    if isinstance(variant, float) or isinstance(variant, int):
+    if isinstance(variant, (float, int)):
         return Constant(variant)
     else:
         return variant
