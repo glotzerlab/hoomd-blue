@@ -776,7 +776,24 @@ struct quat
         quat<Real> q(fast::cos(theta/2.0), (Real)fast::sin(theta/2.0) * axis);
         return q;
         }
-
+    
+    //! Swap with another vector
+    DEVICE void swap(quat<Real>& q)
+        {
+        Real tx, ty, tz, ts;
+        ts = q.s;
+        tx = q.v.x;
+        ty = q.v.y;
+        tz = q.v.z;
+        q.s = s;
+        q.v.x = v.x;
+        q.v.y = v.y;
+        q.v.z = v.z;
+        s = ts;
+        v.x = tx;
+        v.y = ty;
+        v.z = tz;
+        }
     Real s;         //!< scalar component
     vec3<Real> v;   //!< vector component
     };
@@ -852,6 +869,14 @@ DEVICE inline quat<Real> operator-(const quat<Real>& a, const quat<Real>& b)
     return quat<Real>(a.s - b.s,
                       a.v - b.v);
     }
+
+template < class Real >
+DEVICE inline quat<Real> operator-(const quat<Real>& a)
+    {
+    return quat<Real>(-a.s,
+                      -a.v);
+    }
+
 
 //! Assignment-addition of two quats
 /*! \param a First quat
@@ -1043,6 +1068,46 @@ template < class Real >
 DEVICE inline Real dot(const quat<Real>& a, const quat<Real>& b)
     {
     return (a.s*b.s+dot(a.v,b.v));
+    }
+
+//! dot product of two quats at different positions on the hypersphere
+/*! \param si First quat (orientation i)
+    \param ri First quat (norm position on hypersphere i)
+    \param sj Second quat (orientation j)
+    \param rj First quat (norm position on hypersphere j)
+
+    \returns the dot product dot(si,sj) - dot(si,rj)*dot(sj,ri)/(1+dot(ri,rj))
+*/
+template < class Real >
+DEVICE inline Real dot_hypersphere(const quat<Real>& si, const quat<Real>& ri, const quat<Real>& sj, const quat<Real>& rj)
+    {
+    return dot(si,sj) - dot(si,rj)*dot(sj,ri)/(1+dot(ri,rj));
+    }
+
+//! plane reflection of a quaternion around normal on the hypersphere
+/*! \param a quat which we want to reflect
+    \param r reflection normal
+
+    \returns the plane reflection (r*conj(a))*r
+*/
+template < class Real >
+DEVICE inline quat<Real> plane_reflection(const quat<Real>& a, const quat<Real>& r)
+    {
+    return (r*conj(a))*r;
+    }
+
+//! parallel transport of a quaternion from position i to position j on the hypersphere
+/*! \param a quat which we want to transport
+    \param ri original position
+    \param rj final position
+*/
+template < class Real >
+DEVICE inline quat<Real> parallel_transport(const quat<Real>& a, const quat<Real>& ri, const quat<Real>& rj)
+    {
+    quat<Real> rm = ri+rj;
+    Real norm = 1.0/fast::sqrt(norm2(rm));
+    rm = rm*norm;
+    return plane_reflection(plane_reflection(a,ri),rm);
     }
 
 /////////////////////////////// rotmat2 ////////////////////////////////

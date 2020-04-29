@@ -1376,7 +1376,6 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(unsigned int timestep, boo
                 if (early_exit)
                     break;
                 }
-
             // Check particle against AABB tree for neighbors
             detail::AABB aabb_i = shape_i.getAABBHypersphere(hypersphere);
 

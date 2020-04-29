@@ -83,6 +83,31 @@ struct __attribute__((visibility("default"))) Hypersphere
             return q_l*quat<Real>(R,vec3<Real>(0,0,0))*q_r;
             }
 
+        template<class Real>
+        HOSTDEVICE quat<Real> cartesianToHyperspherical(const quat<Real>& q) const
+            {
+            quat<Real> p;
+            p.s= fast::cos(fast::acos(q.s/R)/2.0);
+            Real pn = Scalar(1.0)/fast::sqrt(dot(q.v,q.v));
+            pn = fast::sqrt(1-p.s*p.s)*pn;
+            p.v = q.v*pn; 
+            return p;
+            }
+
+        template<class Real>
+        HOSTDEVICE quat<Real> cartesianToHyperspherical(const vec3<Real>& b) const
+            {
+            quat<Real> p(1,vec3<Real>(0,0,0));
+            Real bn = fast::sqrt(dot(b,b));
+            if(bn > 1e-8){
+                Real theta_2 = bn/(2.0*R);
+                p.s = fast::cos(theta_2);
+                p.v = b;
+                p.v = fast::sin(theta_2)*p.v/bn;
+            }
+            return p;
+            }
+
     private:
         Scalar R;        //!< Hypersphere radius
     };

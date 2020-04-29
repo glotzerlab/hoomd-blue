@@ -3,9 +3,11 @@
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/BoxDim.h"
+#include "hoomd/Hypersphere.h"
 #include "hoomd/VectorMath.h"
 #include "ShapeSphere.h"    //< For the base template of test_overlap
 #include "XenoCollide3D.h"
+#include "XenoCollideHypersphere.h"
 #include "hoomd/ManagedArray.h"
 
 #ifndef __SHAPE_CONVEX_POLYHEDRON_H__
@@ -321,9 +323,8 @@ struct ShapeConvexPolyhedron
 
     //! Initialize a shape with a given left and right quaternion (hyperspherical coordinates)
     DEVICE ShapeConvexPolyhedron(const quat<Scalar>& _quat_l, const quat<Scalar>& _quat_r, const param_type& _params)
-        : verts(_params)
+        : quat_l(_quat_l), quat_r(_quat_r), verts(_params)
         {
-        // not implemented
         }
 
     //! Does this shape have an orientation
@@ -423,6 +424,18 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
     return (rsq*OverlapReal(4.0) <= DaDb * DaDb);
     }
 
+DEVICE inline bool check_circumsphere_overlap_hypersphere(const ShapeConvexPolyhedron& a,
+    const ShapeConvexPolyhedron &b, const Hypersphere& hypersphere)
+    {
+    OverlapReal arc_length = detail::get_arclength_hypersphere(a.quat_l,a.quat_r,b.quat_l,b.quat_r, hypersphere);
+    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
+    if (arc_length*OverlapReal(2.0) < DaDb)
+        return true;
+    else
+        return false;
+    }
+
+
 //! Convex polyhedron overlap test
 /*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
     \param a first shape
@@ -455,6 +468,29 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                            DaDb/2.0,
                            err);
     */
+    }
+
+//! Returns true if the shape overlaps with itself
+DEVICE inline bool test_self_overlap_hypersphere(const ShapeConvexPolyhedron& shape, const Hypersphere& hypersphere)
+    {
+    return shape.getCircumsphereDiameter() >= 2*Scalar(M_PI)*hypersphere.getR();
+    }
+
+DEVICE inline bool test_overlap_hypersphere(const ShapeConvexPolyhedron& a,
+                                 const ShapeConvexPolyhedron& b,
+                                 const Hypersphere& hypersphere,
+                                 unsigned int& err)
+    {
+    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
+
+
+    return detail::xenocollide_hypersphere(a.verts,
+                                  b.verts,
+                                  conj(a.quat_l)*b.quat_l,
+                                  b.quat_r*conj(a.quat_r),
+                                  hypersphere,
+                                  DaDb/2.0,
+                                  err);
     }
 
 }; // end namespace hpmc
