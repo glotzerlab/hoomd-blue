@@ -246,11 +246,7 @@ class Box:
 
     @volume.setter
     def volume(self, volume):
-        if self.is2D:
-            s = np.sqrt(volume / self.volume)
-        else:
-            s = np.cbrt(volume / self.volume)
-        self.scale(s)
+        self.scale((volume / self.volume)**(1/self.dimensions))
 
     @property
     def matrix(self):
