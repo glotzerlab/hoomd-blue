@@ -91,74 +91,9 @@ class CompositeSupportFunc3D
 #endif
     };
 
+}
 
-//! Composite support functor
-/*! \tparam SupportFuncA Support function class type for shape A
-    \tparam SupportFuncB Support function class type for shape B
-
-    Helper functor that computes the support function of the Minkowski difference B-A from the given two support
-    functions. The given support functions are kept in local coords and translations/rotations are performed going in
-    and out so that the input *n* and final result are in the space frame (where a is at the origin).
-
-    This operation is performed many times in XenoCollide, so this convenience class simplifies the calling code
-    from having too many rotations/translations.
-
-    \ingroup minkowski
-*/
-template<class SupportFuncA, class SupportFuncB>
-class CompositeSupportFuncHypersphere
-    {
-    public:
-        //! Construct a composite support function
-        /*! \param _sa Support function for shape A
-            \param _sb Support function for shape B
-            \param _q_l left quaternion of shape B in frame A
-            \param _q_r right quaternion of shape B in frame A
-            \param _hypersphere Hypersphere particles are living on
-        */
-        DEVICE CompositeSupportFuncHypersphere(const SupportFuncA& _sa,
-                                    const SupportFuncB& _sb,
-                                    const quat<OverlapReal>& _q_l,
-                                    const quat<OverlapReal>& _q_r,
-                                    const Hypersphere& _hypersphere)
-            : sa(_sa), sb(_sb), q_l(_q_l), q_r(_q_r), hypersphere(_hypersphere)
-            {}
-
-        //! Compute the support function
-        /*! \param n Normal vector input (in the A frame)
-            \returns S_B(n) - S_A(n) in world space coords (transformations put n into local coords for S_A and S_b)
-        */
-        DEVICE quat<OverlapReal> operator() (const quat<OverlapReal>& n, const bool& A) const
-            {
-            // translation/rotation formula comes from pg 168 of "Games Programming Gems 7"
-
-            quat<OverlapReal> p;
-            if(A)
-                {
-                vec3<OverlapReal> SA_n = sa(-n.v);
-                p = hypersphere.cartesianToHyperspherical(SA_n);
-                }
-            else
-                {
-                quat<OverlapReal> q_n = q_l*q_r;
-                quat<OverlapReal> new_n = parallel_transport(n,quat<OverlapReal>(),q_n);
-                new_n = conj(q_l)*(new_n*conj(q_r));
-                vec3<OverlapReal> SB_n = sb(new_n.v);
-                p = hypersphere.cartesianToHyperspherical(SB_n);
-                }
-            return p;
-            }
-
-    private:
-        const SupportFuncA& sa;    //!< Support function for shape A
-        const SupportFuncB& sb;    //!< Support function for shape B
-        const quat<OverlapReal>& q_l;  //!< left quaternion
-        const quat<OverlapReal>& q_r;  //!< right quaternion
-        const Hypersphere hypersphere; //!< Hypersphere
-    };
-
-}; // end namespace detail
-
-}; // end namespace hpmc
+}
 
 #endif // __MINKOWSKI_MATH_H__
+
