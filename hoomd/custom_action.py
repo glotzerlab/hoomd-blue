@@ -37,6 +37,25 @@ class _CustomAction(ABC):
     ``log_quantities`` can be used. The dictionary expects string keys with the
     name of the loggable and `hooomd.logger.LoggerQuantity` objects as the
     values.
+
+    .. code-block:: python
+
+        from hoomd.python_action import _CustomAction
+        from hoomd.logger import LoggerQuantity
+
+
+        class ExampleActionWithFlag(_CustomAction):
+            def __init__(self):
+                self.log_quantities = {
+                    'loggable': LoggerQuantity('scalar_loggable',
+                                               self.__class__,
+                                               flag='scalar')}
+
+            def loggable(self):
+                return 42
+
+            def act(self, timestep):
+                pass
     """
     flags = []
     log_quantities = {}
