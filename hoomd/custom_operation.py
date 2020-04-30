@@ -81,6 +81,10 @@ class _CustomOperation(_TriggeredOperation):
         if self.is_attached:
             self._action.act(timestep)
 
+    @property
+    def action(self):
+        return self._action
+
 
 class _InternalCustomOperation(_CustomOperation):
     """Internal class for Python ``Action``s. Offers a streamlined __init__.
@@ -95,3 +99,8 @@ class _InternalCustomOperation(_CustomOperation):
         super().__init__(self._internal_class(*args, **kwargs), trigger)
         self._export_dict = {key: value.update_cls(self.__class__)
                              for key, value in self._export_dict.items()}
+
+    @property
+    def action(self):
+        """Prevents the access of action in public API."""
+        raise AttributeError
