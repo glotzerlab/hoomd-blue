@@ -1,6 +1,6 @@
 from hoomd.operation import _TriggeredOperation
 from hoomd.parameterdicts import ParameterDict
-from hoomd.custom_action import _CustomAction
+from hoomd.custom_action import CustomAction
 from hoomd.typeconverter import OnlyType
 from hoomd.trigger import Trigger
 from hoomd.util import trigger_preprocessing
@@ -14,7 +14,7 @@ class _CustomOperation(_TriggeredOperation):
     A basic wrapper that allows for Python object inheriting from
     :py:class:`hoomd.custom_action.CustomAction` to be attached to a simulation.
     To see how to implement a custom Python ``Action``, look at the
-    documentation for :py:class:`hoomd.custom_action._CustomAction`.
+    documentation for :py:class:`hoomd.custom_action.CustomAction`.
 
     This class also implements a "pass-through" system for attributes.
     Attributes and methods from the passed in `action` will be available
@@ -23,7 +23,10 @@ class _CustomOperation(_TriggeredOperation):
 
     Note:
         Due to the pass through no attribute should exist both in
-        `hoomd._CustomOperation` and the `hoomd._CustomAction`.
+        `hoomd._CustomOperation` and the `hoomd.CustomAction`.
+
+    Note:
+        This object should not be instantiated directly.
     """
 
     _override_setattr = {'_action'}
@@ -34,9 +37,9 @@ class _CustomOperation(_TriggeredOperation):
         raise NotImplementedError
 
     def __init__(self, action, trigger=1):
-        if not isinstance(action, _CustomAction):
+        if not isinstance(action, CustomAction):
             raise ValueError("action must be a subclass of "
-                             "hoomd.custom_action._CustomAction.")
+                             "hoomd.custom_action.CustomAction.")
         self._action = action
         loggables = list(action.log_quantities)
         if not all(isinstance(l, LoggerQuantity) for l in loggables.values()):
