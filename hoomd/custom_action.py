@@ -18,6 +18,20 @@ class _CustomAction(ABC):
     needed for a subclass, the flags attribute of the class needs to be set with
     the appropriate flags from `hoomd.util.ParticleDataFlags`.
 
+    .. code-block:: python
+
+        from hoomd.python_action import _CustomAction
+        from hoomd.util import ParticleDataFlags
+
+
+        class ExampleActionWithFlag(_CustomAction):
+            flags = [ParticleDataFlags.ROTATIONAL_KINETIC_ENERGY,
+                     ParticleDataFlags.PRESSURE_TENSOR,
+                     ParticleDataFlags.EXTERNAL_FIELD_VIRIAL]
+
+            def act(self, timestep):
+                pass
+
     For advertising loggable quantities through the
     `hoomd.python_action._CustomOperation` object, the class attribute
     ``log_quantities`` can be used. The dictionary expects string keys with the
