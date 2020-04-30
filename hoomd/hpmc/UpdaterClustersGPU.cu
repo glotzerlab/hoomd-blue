@@ -13,7 +13,9 @@
 #include <thrust/unique.h>
 #include <thrust/binary_search.h>
 
+#ifdef __HIP_PLATFORM_NVCC__
 #include <cusparse.h>
+#endif
 
 #include "hoomd/extern/ECL.cuh"
 
@@ -27,6 +29,7 @@ namespace hpmc
 namespace gpu
 {
 
+#ifdef HIP_PLATFORM_NVCC
 #define check_cusparse(a) \
     {\
     cusparseStatus_t status = (a);\
@@ -36,6 +39,7 @@ namespace gpu
         throw std::runtime_error("Error during clusters update");\
         }\
     }
+#endif
 
 struct flip : public thrust::unary_function<uint2, uint2>
     {
@@ -82,6 +86,7 @@ void connected_components(
     const hipDeviceProp_t& dev_prop,
     CachedAllocator& alloc)
     {
+    #ifdef __HIP_PLATFORM_NVCC__
     // make a copy of the input, reserving for 2*size
     uint2 *d_adj_copy = alloc.getTemporaryBuffer<uint2>(2*n_elements);
     thrust::device_ptr<uint2> adj_copy(d_adj_copy);
@@ -189,6 +194,7 @@ void connected_components(
 
     // clean cusparse
     cusparseDestroy(handle);
+    #endif
     }
 
 } // end namespace gpu

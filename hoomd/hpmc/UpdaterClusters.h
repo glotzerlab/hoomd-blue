@@ -1702,7 +1702,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                 // wrap particle back into box, incrementing image flags
                 int3 img = box.getImage(snap.pos[i]);
                 snap.pos[i] = box.shift(snap.pos[i],-img);
-                snap.image[i] += img;
+                snap.image[i] = snap.image[i] + img;
                 }
             }
         }

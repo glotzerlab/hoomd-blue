@@ -12,7 +12,7 @@
 #include "UpdaterClustersGPU.cuh"
 #include "IntegratorHPMCMonoGPU.cuh"
 
-#include <cuda_runtime.h>
+#include <hip/hip_runtime.h>
 
 namespace hpmc
 {

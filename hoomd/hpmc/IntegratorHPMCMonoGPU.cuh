@@ -528,7 +528,7 @@ __global__ void hpmc_gen_moves(Scalar4 *d_postype,
 
 //! Check narrow-phase overlaps
 template< class Shape, unsigned int max_threads >
-__launch_bounds__(max_threads)
+__launch_bounds__(max_threads > 0 ? max_threads : 1)
 __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
                            Scalar4 *d_orientation,
                            Scalar4 *d_trial_postype,
@@ -955,7 +955,7 @@ void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_
 
 //! Kernel to insert depletants on-the-fly
 template< class Shape, unsigned int max_threads >
-__launch_bounds__(max_threads)
+__launch_bounds__(max_threads > 0 ? max_threads : 1)
 __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                                      const Scalar4 *d_trial_orientation,
                                      const unsigned int *d_trial_move_type,

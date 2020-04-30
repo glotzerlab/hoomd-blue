@@ -166,7 +166,7 @@ namespace kernel
 
 //! Check narrow-phase overlaps
 template< class Shape, unsigned int max_threads >
-__launch_bounds__(max_threads)
+__launch_bounds__(max_threads > 0 ? max_threads : 1)
 __global__ void hpmc_cluster_overlaps(const Scalar4 *d_postype,
                            const Scalar4 *d_orientation,
                            const unsigned int *d_tag,
@@ -548,7 +548,7 @@ void cluster_overlaps_launcher(const cluster_args_t& args, const typename Shape:
 
 //! Kernel to insert depletants on-the-fly
 template< class Shape, unsigned int max_threads >
-__launch_bounds__(max_threads)
+__launch_bounds__(max_threads > 0 ? max_threads : 1)
 __global__ void clusters_insert_depletants(const Scalar4 *d_postype,
                                      const Scalar4 *d_orientation,
                                      const unsigned int *d_tag,
