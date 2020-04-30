@@ -88,14 +88,48 @@ class Box:
 
     @classmethod
     def cube(cls, L):
+        """Create a cube with side lengths ``L``.
+
+        Args:
+            L (float): The box side length (distance units).
+
+        Returns:
+            box (hoomd.Box): The created box.
+        """
         return cls(L, L, L, 0, 0, 0)
 
     @classmethod
     def square(cls, L):
+        """Create a square with side lengths ``L``.
+
+        Args:
+            L (float): The box side length (distance units).
+
+        Returns:
+            box (hoomd.Box): The created 2D box.
+        """
         return cls(L, L, 0, 0, 0, 0)
 
     @classmethod
     def from_matrix(cls, box_matrix):
+        """Create a box from an upper triangular matrix.
+
+        Args:
+            box_matrix ((3, 3) `numpy.ndarray` of ``np.float64``): An upper
+                triangular matrix representing a box. The values for ``Lx``,
+                ``Ly``, ``Lz``, ``xy``, ``xz``, and ``yz`` are related to the
+                matrix by the following expressions.
+
+                .. code-block:: python
+
+                    [[Lx, Ly * xy, Lz * xz],
+                    [0,  Ly,      Lz * yz],
+                    [0,  0,       Lz]]
+
+
+        Returns:
+            box (hoomd.Box): The created box.
+        """
         b = cls(0, 0)
         b.matrix = box_matrix
         return b
