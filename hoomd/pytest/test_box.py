@@ -197,9 +197,3 @@ def test_neq(base_box, box_dict):
     assert not base_box != box2
     box2.Lx = 2
     assert base_box != box2
-
-
-def test_copy(base_box):
-    copied_box = copy(base_box)
-    assert copied_box == base_box
-    assert copied_box is not base_box

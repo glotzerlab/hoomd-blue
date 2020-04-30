@@ -351,9 +351,6 @@ class Box:
         return "hoomd.box.Box(Lx={}, Ly={}, Lz={}, xy={}, xz={}, yz={})".format(
             self.Lx, self.Ly, self.Lz, self.xy, self.xz, self.yz)
 
-    def __copy__(self):
-        return type(self)(*self.L, *self.tilts)
-
     def __eq__(self, other):
         return self._cpp_obj == other._cpp_obj
 
