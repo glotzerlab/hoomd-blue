@@ -133,7 +133,7 @@ class Box:
         """Create a box from an upper triangular matrix.
 
         Args:
-            box_matrix ((3, 3) `numpy.ndarray` of ``np.float64``): An upper
+            box_matrix ((3, 3) `numpy.ndarray` of `float`): An upper
                 triangular matrix representing a box. The values for ``Lx``,
                 ``Ly``, ``Lz``, ``xy``, ``xz``, and ``yz`` are related to the
                 matrix by the following expressions.
@@ -180,7 +180,7 @@ class Box:
     # Length based properties
     @property
     def L(self):
-        """[``numpy.ndarray``](``shape=(3,), dtype=float64``): The box lengths,
+        """(3) `numpy.ndarray` of `float`: The box lengths,
         ``[Lx, Ly, Lz]``.
 
         Can be set with a float which sets all lengths, or a length 3 vector.
@@ -227,8 +227,7 @@ class Box:
     # Box tilt based properties
     @property
     def tilts(self):
-        """[``numpy.ndarray``](``shape(3,), dtype=float64``): The box tilts,
-        ``[xy, xz, yz]``.
+        """(3) `numpy.ndarray` of `float`: The box tilts, ``[xy, xz, yz]``.
 
         Can be set using one tilt for all axes or three tilts. If the box is 2D
         ``xz`` and ``yz`` will automatically be set to zero."""
@@ -272,14 +271,13 @@ class Box:
     # Misc. properties
     @property
     def periodic(self):
-        """[``numpy.ndarray``](``shape(3,), dtype=float64``): The periodicity of
+        """(3) `numpy.ndarray` of `float`: The periodicity of
         each dimension."""
         return _to_three_array(self._cpp_obj.getPeriodic(), np.bool)
 
     @property
     def lattice_vectors(self):
-        """[``numpy.ndarray``](``shape=(3, 3), dtype=float64``): Box lattice
-        vectors.
+        """(3, 3) `numpy.ndarray` of `float`: Box lattice vectors.
 
         The lattice vectors are read-only.
         """
@@ -302,8 +300,8 @@ class Box:
 
     @property
     def matrix(self):
-        """[``numpy.ndarray``](``shape=(3, 3), dtype=float64``): The upper
-        triangular matrix that defines the box.
+        """(3, 3) `numpy.ndarray` `float`: The upper triangular matrix that
+        defines the box.
 
         Can be used to set the box to one defined by an upper triangular
         matrix.
