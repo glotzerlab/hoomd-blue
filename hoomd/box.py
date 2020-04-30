@@ -3,31 +3,50 @@ from functools import partial
 import hoomd._hoomd as _hoomd
 
 
-def _make_three_vec(vec, func, sc, name="vector"):
+def _make_vec_three(vec, vec_factory, scalar_type):
+    """A helper function for converting Python sequences to HOOMD T3 classes.
+
+    Args:
+        vec (Sequence[X] or X): A sequence of type X where X is the type
+            returned by scalar_type.
+        vec_factory (function): A function from `hoomd._hoomd` that makes a T3
+            class (e.g. Scalar3, Int3).
+        scalar_type (function): A function to convert a Python value into the
+            base type for the vec_factory function. For `Scalar3` this would be
+            `float`.
+    """
     try:
         l_vec = len(vec)
     except TypeError:
         try:
-            v = sc(vec)
+            v = scalar_type(vec)
         except (ValueError, TypeError):
-            raise ValueError("Expected value of type {}.".format(sc))
+            raise ValueError("Expected value of type {}.".format(scalar_type))
         else:
-            return func(v, v, v)
+            return vec_factory(v, v, v)
     if l_vec == 3:
         try:
-            return func(sc(vec[0]), sc(vec[1]), sc(vec[2]))
+            return vec_factory(scalar_type(vec[0]),
+                               scalar_type(vec[1]),
+                               scalar_type(vec[2]))
         except (ValueError, TypeError):
-            raise ValueError("Expected values of type {}.".format(sc))
+            raise ValueError("Expected values of type {}.".format(scalar_type))
     else:
-        raise ValueError("Expected three or one value for {}, received {}."
-                         "".format(name, len(vec)))
+        raise ValueError("Expected three or one value received {}.".format(
+            len(vec)))
 
 
-make_scalar3 = partial(_make_three_vec, func=_hoomd.make_scalar3, sc=float)
+_make_scalar3 = partial(_make_vec_three,
+                        vec_factory=_hoomd.make_scalar3,
+                        scalar_type=float)
 
-make_int3 = partial(_make_three_vec, func=_hoomd.make_int3, sc=int)
+_make_int3 = partial(_make_vec_three,
+                     vec_factory=_hoomd.make_int3,
+                     scalar_type=int)
 
-make_char3 = partial(_make_three_vec, func=_hoomd.make_char3, sc=int)
+_make_char3 = partial(_make_vec_three,
+                      vec_factory=_hoomd.make_char3,
+                      scalar_type=int)
 
 
 def _to_three_array(vec, dtype=None):
@@ -171,7 +190,7 @@ class Box:
 
     @L.setter
     def L(self, new_L):
-        self._cpp_obj.setL(make_scalar3(new_L))
+        self._cpp_obj.setL(_make_scalar3(new_L))
 
     @property
     def Lx(self):
@@ -218,7 +237,7 @@ class Box:
 
     @tilts.setter
     def tilts(self, new_tilts):
-        new_tilts = make_scalar3(new_tilts, name="tilts")
+        new_tilts = _make_scalar3(new_tilts)
         if self.is2D:
             new_tilts.y = 0
             new_tilts.z = 0
@@ -280,7 +299,7 @@ class Box:
 
     @volume.setter
     def volume(self, volume):
-        self.scale((volume / self.volume)**(1/self.dimensions))
+        self.scale((volume / self.volume)**(1 / self.dimensions))
 
     @property
     def matrix(self):
@@ -353,9 +372,9 @@ class Box:
 #         Returns:
 #             The wrapped vector and the image flags as two numpy arrays.
 #         """
-#         u = make_scalar3(v, name='v')
-#         image = make_int3(image, name="img")
-#         c = make_char3([0, 0, 0])
+#         u = _make_scalar3(v)
+#         image = _make_int3(image)
+#         c = _make_char3([0, 0, 0])
 #         self._cpp_obj.wrap(u, image, c)
 #         return _to_three_array(u), _to_three_array(image)
 
@@ -368,7 +387,7 @@ class Box:
 #         Returns:
 #             The minimum image as a tuple.
 #         """
-#         u = make_scalar3(v, name="v")
+#         u = _make_scalar3(v)
 #         return _to_three_array(self._cpp_obj.minImage(u))
 
 #     def make_fraction(self, v):
@@ -384,6 +403,6 @@ class Box:
 #         Returns:
 #             The scaled vector.
 #         """
-#         u = make_scalar3(v, name="v")
-#         w = make_scalar3([0., 0., 0.])
+#         u = _make_scalar3(v)
+#         w = _make_scalar3([0., 0., 0.])
 #         return _to_three_array(self._cpp_obj.makeFraction(u, w))
