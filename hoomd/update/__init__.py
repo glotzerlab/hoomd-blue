@@ -1,4 +1,4 @@
-from custom_updater import CustomUpdater
+from hoomd.update.custom_updater import CustomUpdater
 
 
 # TODO remove class

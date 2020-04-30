@@ -1,4 +1,4 @@
-from custom_analyzer import CustomAnalyzer
+from hoomd.analyze.custom_analyzer import CustomAnalyzer
 
 
 # TODO remove class
