@@ -3,15 +3,15 @@ hoomd.update
 
 .. rubric:: Overview
 
+.. py:currentmodule:: hoomd.update
+
 .. autosummary::
     :nosignatures:
 
-    hoomd.update.balance
-    hoomd.update.box_resize
-    hoomd.update.sort
+    CustomUpdater
 
 .. rubric:: Details
 
 .. automodule:: hoomd.update
     :synopsis: Modify the system state periodically.
-    :members:
+    :members: CustomUpdater
