@@ -22,6 +22,9 @@ class BoxResize(_Updater):
         The passed `Variant` must be well behaved (i.e. it must have a
         true minimum and maximum) or the behavior of the updater is undefined.
 
+    Note:
+        Currently for MPI simulations the rescaling of particles does not work.
+
     Args:
         initial_box (Box): The box associated with the minimum of the
             passed variant.
@@ -32,7 +35,6 @@ class BoxResize(_Updater):
         trigger (Trigger): The trigger to activate this updater.
         scale_particles (bool): Whether to scale particles to the new box
             dimensions when the box is resized.
-
     """
     def __init__(self, initial_box, final_box,
                  variant, trigger=1, scale_particles=True):

@@ -27,7 +27,8 @@
 /// Updates the simulation box over time
 /** This simple updater gets the box lengths from specified variants and sets
  * those box sizes over time. As an option, particles can be rescaled with the
- * box lengths or left where they are.
+ * box lengths or left where they are. Note: rescaling particles does not work
+ * properly in MPI simulations.
  * \ingroup updaters
 */
 class PYBIND11_EXPORT BoxResizeUpdater : public Updater
