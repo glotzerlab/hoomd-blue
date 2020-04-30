@@ -4,7 +4,7 @@ from hoomd.operation import _HOOMDGetSetAttrBase
 
 
 class CustomAction(ABC):
-    """Base class for all Python ``Action``s.
+    """Base class for all Python Action's.
 
     This class must be the parent class for all Python ``Action``s. This class
     requires all subclasses to implement the act method which performs the
@@ -56,6 +56,16 @@ class CustomAction(ABC):
 
             def act(self, timestep):
                 pass
+
+    Attributes:
+        flags (list[hoomd.util.ParticleDataFlags]): List of flags from the
+            `hoomd.util.ParticleDataFlags`. Used to tell the integrator if
+            specific quantities are needed for the action.
+        log_quantities (dict[str, hoomd.logger.LoggerQuantity]): Dictionary of
+            the name of loggable quantites to the `hoomd.logger.LoggerQuantity`
+            instance for the class method or property. Allows for subclasses of
+            `CustomAction` to specify to a `hoomd.Logger` that is exposes
+            loggable quantities.
     """
     flags = []
     log_quantities = {}
@@ -64,14 +74,34 @@ class CustomAction(ABC):
         pass
 
     def attach(self, simulation):
+        """Attaches the Action to the `hoomd.Simulation`.
+
+        Args:
+            simulation (hoomd.Simulation): The simulation to attach the action
+            to.
+        """
         self._state = simulation.state
 
     def detach(self):
+        """Detaches the Action from the `hoomd.Simulation`."""
         if hasattr(self, '_state'):
             del self._state
 
     @abstractmethod
     def act(self, timestep):
+        """Performs whatever action a subclass implements.
+
+        This method can change the state (updater) or compute or store data
+        (analyzer).
+
+        Args:
+            timestep (int): The current timestep in a simulation.
+
+        Note:
+            A `hoomd.State` is not given here. This means that if the default
+            `attach` method is overwritten, there is no way to query or change
+            the state when called.
+        """
         pass
 
 
