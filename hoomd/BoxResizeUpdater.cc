@@ -145,12 +145,6 @@ void BoxResizeUpdater::update(unsigned int timestep)
 
 BoxDim getBoxDimFromPyObject(pybind11::object box)
     {
-    auto type_name = box.get_type().attr("__name__").cast<std::string>();
-    if (type_name != "Box")
-        {
-        std::string err = "Expected type of Box. Received type ";
-        throw std::runtime_error(err + type_name);
-        }
     return box.attr("_cpp_obj").cast<BoxDim>();
     }
 
