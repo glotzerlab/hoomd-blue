@@ -41,17 +41,19 @@ class VariantPy : public Variant
 
         Scalar min() override
             {
-            PYBIND11_OVERLOAD_PURE(Scalar,       // Return type
-                                   Variant,      // Parent class
-                                   min           // name of function
+            PYBIND11_OVERLOAD_PURE_NAME(Scalar,  // Return type
+                                        Variant, // Parent class
+                                        "_min",  // name of function in python
+                                        min      // name of function
                     );
             }
 
         Scalar max() override
             {
-            PYBIND11_OVERLOAD_PURE(Scalar,       // Return type
-                                   Variant,      // Parent class
-                                   max           // name of function
+            PYBIND11_OVERLOAD_PURE_NAME(Scalar,  // Return type
+                                        Variant, // Parent class
+                                        "_max",  // name of function in python
+                                        max      // name of function
                     );
             }
     };
@@ -61,8 +63,8 @@ void export_Variant(pybind11::module& m)
     pybind11::class_<Variant, VariantPy, std::shared_ptr<Variant> >(m,"Variant")
         .def(pybind11::init<>())
         .def("__call__", &Variant::operator())
-        .def("min", &Variant::min)
-        .def("max", &Variant::max)
+        .def("_min", &Variant::min)
+        .def("_max", &Variant::max)
         .def_property_readonly("range", &Variant::range)
         ;
 

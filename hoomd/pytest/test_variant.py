@@ -37,10 +37,10 @@ def test_custom():
         def __call__(self, timestep):
             return (float(timestep)**(1 / 2))
 
-        def min(self):
+        def _min(self):
             return 0.0
 
-        def max(self):
+        def _max(self):
             return 1.0
 
     c = CustomVariant()
