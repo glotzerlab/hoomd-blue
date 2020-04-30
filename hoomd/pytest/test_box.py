@@ -88,13 +88,15 @@ def get_aspect(L):
 def test_scale(base_box):
     aspect = get_aspect(base_box.L)
     for s in np.linspace(0.5, 1.5, 10):
+        prev_vol = base_box.volume
         base_box.scale(s)
         assert np.allclose(aspect, get_aspect(base_box.L))
+        assert not isclose(prev_vol, base_box.volume)
 
     L = base_box.L
     s = np.array([1, 0.75, 0.5])
     base_box.scale(s)
-    assert not np.allclose(aspect, get_aspect(base_box.L))
+    assert np.allclose(aspect * get_aspect(s), get_aspect(base_box.L))
     assert np.allclose(base_box.L, L * s)
 
 
