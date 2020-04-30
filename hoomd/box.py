@@ -80,10 +80,9 @@ class Box:
 
     .. rubric:: Two dimensional systems
 
-    2D simulations in HOOMD use boxes with ``Lz == 0``. The ``xz`` and ``yz``
-    values will be ignored. If a new `Box` is assigned to a system that has
-    already been initialized, a warning will be shown if the dimensionality
-    changes.
+    2D simulations in HOOMD use boxes with ``Lz == 0``. 2D boxes ignore ``xz``
+    and ``yz``. If a new `Box` is assigned to a system with differnt
+    dimensionality, a warning will be shown.
 
     In 2D boxes, *volume* is in units of area.
 
