@@ -9,24 +9,29 @@ from hoomd import _hoomd
 
 
 class _CustomOperation(_TriggeredOperation):
-    """Wrapper for user created ``Action``s.
+    """Wrapper for user created `hoomd.CustomAction`s.
 
-    A basic wrapper that allows for Python object inheriting from
-    :py:class:`hoomd.custom_action.CustomAction` to be attached to a simulation.
-    To see how to implement a custom Python ``Action``, look at the
-    documentation for :py:class:`hoomd.custom_action.CustomAction`.
+    This is the parent class for `hoomd.update.CustomUpdater` and
+    `hoomd.analyzer.CustomAnalzyer`.  A basic wrapper that allows for Python
+    object inheriting from `hoomd.custom_action.CustomAction` to be attached to
+    a simulation.  To see how to implement a custom Python action, look at the
+    documentation for `hoomd.CustomAction`.
 
     This class also implements a "pass-through" system for attributes.
     Attributes and methods from the passed in `action` will be available
     directly in this class. This does not apply to attributes with these names:
-    `trigger` and `_action`.
+    ``trigger``, ``_action``, and ``action``.
 
     Note:
         Due to the pass through no attribute should exist both in
         `hoomd._CustomOperation` and the `hoomd.CustomAction`.
 
     Note:
-        This object should not be instantiated directly.
+        This object should not be instantiated or subclassed by an user.
+
+    Attributes:
+        trigger (hoomd.Trigger): A trigger to determine when the wrapped
+        `hoomd.CustomAction` is run.
     """
 
     _override_setattr = {'_action'}
@@ -70,6 +75,14 @@ class _CustomOperation(_TriggeredOperation):
             object.__setattr__(self, attr, value)
 
     def attach(self, simulation):
+        """Attach to a `hoomd.Simulation`.
+
+        Detaching is implemented by a parent class.
+
+        Args:
+            simulation (hoomd.Simulation): The simulation the operation operates
+            on.
+        """
         self._cpp_obj = getattr(_hoomd, self._cpp_class_name)(
             simulation.state._cpp_sys_def, self._action)
 
@@ -77,12 +90,19 @@ class _CustomOperation(_TriggeredOperation):
         self._action.attach(simulation)
 
     def act(self, timestep):
-        """Perform the action of the custom action if attached."""
+        """Perform the action of the custom action if attached.
+
+        Calls through to the action property of the instance.
+
+        Args:
+            timestep (int): The current timestep of the state.
+        """
         if self.is_attached:
             self._action.act(timestep)
 
     @property
     def action(self):
+        """`hoomd.CustomAction` The action the operation wraps."""
         return self._action
 
 
