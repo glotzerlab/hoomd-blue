@@ -159,11 +159,11 @@ void export_BoxResizeUpdater(py::module& m)
                   &BoxResizeUpdater::getScaleParticles,
                   &BoxResizeUpdater::setScaleParticles)
     .def_property("initial_box",
-                  &BoxResizeUpdater::getBox1,
-                  &BoxResizeUpdater::setBox1)
+                  &BoxResizeUpdater::getInitialBox,
+                  &BoxResizeUpdater::setInitialBox)
     .def_property("final_box",
-                  &BoxResizeUpdater::getBox2,
-                  &BoxResizeUpdater::setBox2)
+                  &BoxResizeUpdater::getFinalBox,
+                  &BoxResizeUpdater::setFinalBox)
     .def_property("variant",
                   &BoxResizeUpdater::getVariant,
                   &BoxResizeUpdater::setVariant)

@@ -52,19 +52,19 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
         bool getScaleParticles() {return m_scale_particles;}
 
         /// Set a new initial box from a python object
-        void setBox1(pybind11::object initial_box)
+        void setInitialBox(pybind11::object initial_box)
             {
             m_initial_box = initial_box;
             }
 
         /// Get the final box
-        pybind11::object getBox1() {return m_initial_box;}
+        pybind11::object getInitialBox() {return m_initial_box;}
 
         /// Set a new final box from a python object
-        void setBox2(pybind11::object final_box) {m_final_box = final_box;}
+        void setFinalBox(pybind11::object final_box) {m_final_box = final_box;}
 
         /// Get the final box
-        pybind11::object getBox2() {return m_final_box;}
+        pybind11::object getFinalBox() {return m_final_box;}
 
         /// Set the variant for interpolation
         void setVariant(std::shared_ptr<Variant> variant) {m_variant = variant;}
