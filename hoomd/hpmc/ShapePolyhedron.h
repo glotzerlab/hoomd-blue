@@ -52,7 +52,7 @@ namespace detail
      The polyhedrons's diameter is precomputed from the vertex farthest from the origin. Arrays are
     stored in ManagedArray to support arbitrary numbers of verticles.
 */
-struct TriangleMesh : param_base
+struct TriangleMesh : ShapeParams
     {
     TriangleMesh()
         : convex_hull_verts(), verts(), face_offs(),
@@ -70,7 +70,7 @@ struct TriangleMesh : param_base
                  bool managed)
         : n_verts(n_verts_), n_faces(n_faces_), hull_only(0)
         {
-        convex_hull_verts = poly3d_verts(n_hull_verts_, managed);
+        convex_hull_verts = PolyhedronVertices(n_hull_verts_, managed);
         verts = ManagedArray<vec3<OverlapReal> >(n_verts, managed);
         face_offs = ManagedArray<unsigned int>(n_faces+1, managed);
         face_verts = ManagedArray<unsigned int>(n_face_verts_, managed);
@@ -119,7 +119,7 @@ struct TriangleMesh : param_base
         auto hull = qh.getConvexHull(qh_pts, true, false);
         auto vertexBuffer = hull.getVertexBuffer();
 
-        convex_hull_verts = poly3d_verts(vertexBuffer.size(), managed);
+        convex_hull_verts = PolyhedronVertices(vertexBuffer.size(), managed);
         verts = ManagedArray<vec3<OverlapReal> >(n_verts, managed);
         face_offs = ManagedArray<unsigned int>(n_faces + 1, managed);
         face_verts = ManagedArray<unsigned int>(n_faces * 3, managed);
@@ -279,7 +279,7 @@ struct TriangleMesh : param_base
     GPUTree tree;
 
     /// Holds parameters of convex hull
-    poly3d_verts convex_hull_verts;
+    PolyhedronVertices convex_hull_verts;
 
     /// Vertex coordinates
     ManagedArray<vec3<OverlapReal> > verts;

@@ -55,8 +55,8 @@ void export_simple_polygon(py::module& m)
     export_ExternalCallback<ShapeSimplePolygon>(m, "ExternalCallbackSimplePolygon");
 
     #ifdef ENABLE_HIP
-    export_IntegratorHPMCMonoGPU< ShapeSimplePolygon >(m, "IntegratorHPMCMonoGPUSimplePolygon");
-    export_ComputeFreeVolumeGPU< ShapeSimplePolygon >(m, "ComputeFreeVolumeGPUSimplePolygon");
+    export_IntegratorHPMCMonoGPU< ShapeSimplePolygon >(m, "IntegratorHPMCMonoSimplePolygonGPU");
+    export_ComputeFreeVolumeGPU< ShapeSimplePolygon >(m, "ComputeFreeVolumeSimplePolygonGPU");
     #endif
     }
 

@@ -1,6 +1,8 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
+#pragma once
+
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/BoxDim.h"
 #include "HPMCPrecisionSetup.h"
@@ -11,25 +13,6 @@
 #include "hoomd/AABB.h"
 #include "OBB.h"
 
-#ifndef __SHAPE_FACETED_SPHERE_H__
-#define __SHAPE_FACETED_SPHERE_H__
-
-/*! \file ShapeFacetedEllipsoid.h
-    \brief Defines the faceted ellipsoid shape
-*/
-
-/*! The faceted ellipsoid is defined by the intersection of an ellipsoid of half axes a,b,c with
- * planes given by the face normals n and offsets b, obeying the equation:
- *
- * r.n + b <= 0
- *
- * Intersections of planes within the ellipsoid volume are accounted for.
- * Internally, the overlap check works by computing the support function for an ellipsoid
- * deformed into a unit sphere.
- *
- */
-// need to declare these class methods with __device__ qualifiers when building in nvcc
-// DEVICE is __device__ when included in nvcc and blank when included into the host compiler
 #ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
@@ -44,12 +27,20 @@ namespace hpmc
 namespace detail
 {
 
-//! Data structure for intersection planes
-/*! \ingroup hpmc_data_structs */
-struct faceted_ellipsoid_params : param_base
+/** The faceted ellipsoid is defined by the intersection of an ellipsoid of half axes a,b,c with
+ * planes given by the face normals n and offsets b, obeying the equation:
+ *
+ * r.n + b <= 0
+ *
+ * Intersections of planes within the ellipsoid volume are accounted for.
+ * Internally, the overlap check works by computing the support function for an ellipsoid
+ * deformed into a unit sphere.
+ *
+ */
+struct FacetedEllipsoidParams : ShapeParams
     {
-    //! Empty constructor
-    faceted_ellipsoid_params()
+    /// Empty constructor
+    FacetedEllipsoidParams()
         : verts(),
           additional_verts(),
           n(),
@@ -58,45 +49,59 @@ struct faceted_ellipsoid_params : param_base
         { }
 
     #ifndef __HIPCC__
-    faceted_ellipsoid_params(unsigned int n_facet, bool managed )
+    /// Construct a faceted ellipsoid with n_facet facets
+    FacetedEllipsoidParams(unsigned int n_facet, bool managed )
         : a(1.0), b(1.0), c(1.0), N(n_facet), ignore(0)
         {
         n = ManagedArray<vec3<OverlapReal> >(n_facet, managed);
         offset = ManagedArray<OverlapReal> (n_facet, managed);
         }
 
-
-    faceted_ellipsoid_params(pybind11::dict v)
-        : faceted_ellipsoid_params(pybind11::len(v["normals"]), false)
+    /// Construct from a Python dictionary
+    FacetedEllipsoidParams(pybind11::dict v, bool managed=false)
+        : FacetedEllipsoidParams(pybind11::len(v["normals"]), managed)
         {
-        pybind11::list normals = v["normals"].cast<pybind11::list>();
-        pybind11::list offsets = v["offsets"].cast<pybind11::list>();
-        pybind11::list vertices = v["vertices"].cast<pybind11::list>();
+        pybind11::list normals = v["normals"];
+        pybind11::list offsets = v["offsets"];
+        pybind11::object vertices = v["vertices"];
         a = v["a"].cast<OverlapReal>();
         b = v["b"].cast<OverlapReal>();
         c = v["c"].cast<OverlapReal>();
-        pybind11::tuple origin_tuple = v["origin"].cast<pybind11::tuple>();
+        pybind11::tuple origin_tuple = v["origin"];
         ignore = v["ignore_statistics"].cast<unsigned int>();
 
         if (pybind11::len(offsets) != pybind11::len(normals))
             throw std::runtime_error("Number of normals unequal number of offsets");
 
-
         // extract the normals from the python list
         for (unsigned int i = 0; i < len(normals); i++)
             {
-            pybind11::list normals_i = pybind11::cast<pybind11::list>(normals[i]);
-            n[i] = vec3<OverlapReal>(pybind11::cast<OverlapReal>(normals_i[0]), pybind11::cast<OverlapReal>(normals_i[1]), pybind11::cast<OverlapReal>(normals_i[2]));
+            pybind11::list normals_i = normals[i];
+            if (len(normals_i) != 3)
+                throw std::runtime_error("Each normal must have 3 elements: found "
+                                        + pybind11::str(normals_i).cast<std::string>()
+                                        + " in " + pybind11::str(normals).cast<std::string>());
+            n[i] = vec3<OverlapReal>(pybind11::cast<OverlapReal>(normals_i[0]),
+                                     pybind11::cast<OverlapReal>(normals_i[1]),
+                                     pybind11::cast<OverlapReal>(normals_i[2]));
             offset[i] = pybind11::cast<OverlapReal>(offsets[i]);
             }
 
         // extract the vertices from the python list
-        pybind11::dict verts_dict;
-        verts_dict["vertices"] = vertices;
-        verts_dict["ignore_statistics"] = ignore;
-        verts=poly3d_verts(verts_dict);
+        pybind11::list vertices_list;
+        if (!vertices.is_none())
+            {
+            vertices_list = pybind11::list(vertices);
+            }
+        // when vertices is None, pass an empty list to PolyhedronVertices
 
-        // scale vertices onto unit sphere
+        pybind11::dict verts_dict;
+        verts_dict["vertices"] = vertices_list;
+        verts_dict["sweep_radius"] = 0;
+        verts_dict["ignore_statistics"] = ignore;
+        verts = PolyhedronVertices(verts_dict, managed);
+
+        // scale vertices onto the surface of the ellipsoid
         for (unsigned int i = 0; i < verts.N; ++i)
             {
             verts.x[i] /= a;
@@ -104,19 +109,20 @@ struct faceted_ellipsoid_params : param_base
             verts.z[i] /= c;
             }
 
-
         // set the origin
-        origin = vec3<OverlapReal>(pybind11::cast<OverlapReal>(origin_tuple[0]), pybind11::cast<OverlapReal>(origin_tuple[1]), pybind11::cast<OverlapReal>(origin_tuple[2]));
+        origin = vec3<OverlapReal>(pybind11::cast<OverlapReal>(origin_tuple[0]),
+                                   pybind11::cast<OverlapReal>(origin_tuple[1]),
+                                   pybind11::cast<OverlapReal>(origin_tuple[2]));
 
         // add the edge-sphere vertices
-        //ShapeFacetedEllipsoid::initializeVertices(result, exec_conf->isCUDAEnabled());
-
+        initializeVertices(managed);
         }
+
+    /// Convert parameters to a python dictionary
     pybind11::dict asDict()
         {
         pybind11::dict v;
-        pybind11::dict poly3d_verts_dict = verts.asDict();
-        pybind11::list vertices = poly3d_verts_dict["vertices"];
+        pybind11::list vertices = verts.asDict()["vertices"];
         pybind11::list offsets;
         pybind11::list normals;
 
@@ -127,11 +133,10 @@ struct faceted_ellipsoid_params : param_base
             OverlapReal x = vert_i[0].cast<OverlapReal>();
             OverlapReal y = vert_i[1].cast<OverlapReal>();
             OverlapReal z = vert_i[2].cast<OverlapReal>();
-            vert.append(x*a);
-            vert.append(y*b);
-            vert.append(z*c);
-            pybind11::tuple vert_tuple = pybind11::tuple(vert);
-            vertices[i] = vert_tuple;
+            vert.append(x * a);
+            vert.append(y * b);
+            vert.append(z * c);
+            vertices[i] = pybind11::tuple(vert);
             }
 
         for (unsigned int i = 0; i < offset.size(); i++)
@@ -143,8 +148,7 @@ struct faceted_ellipsoid_params : param_base
             normal_i_list.append(normal_i.x);
             normal_i_list.append(normal_i.y);
             normal_i_list.append(normal_i.z);
-            pybind11::tuple normal_tuple = pybind11::tuple(normal_i_list);
-            normals.append(normal_tuple);
+            normals.append(pybind11::tuple(normal_i_list));
             }
 
         pybind11::list origin_list;
@@ -163,29 +167,148 @@ struct faceted_ellipsoid_params : param_base
         v["ignore_statistics"] = ignore;
         return v;
         }
-    #endif
 
-    bool isManaged()
+    /// Generate the intersections points of polyhedron edges with the sphere
+    DEVICE void initializeVertices(bool managed=false)
         {
-        return n.isManaged();
+        additional_verts = detail::PolyhedronVertices(2*N*N, managed);
+        additional_verts.diameter = OverlapReal(2.0); // for unit sphere
+        additional_verts.N = 0;
+
+        // iterate over unique pairs of planes
+        for (unsigned int i = 0; i < N; ++i)
+            {
+            vec3<OverlapReal> n_p(n[i]);
+            // transform plane normal into the coordinate system of the unit sphere
+            n_p.x *= a; n_p.y *= b; n_p.z *= c;
+
+            OverlapReal b(offset[i]);
+
+            for (unsigned int j = i+1; j < N; ++j)
+                {
+                vec3<OverlapReal> np2(n[j]);
+                // transform plane normal into the coordinate system of the unit sphere
+                np2.x *= a; np2.y *= b; np2.z *= c;
+
+                OverlapReal b2 = offset[j];
+                OverlapReal np2_sq = dot(np2,np2);
+
+                // determine intersection line between plane i and plane j
+
+                // point on intersection line closest to center of sphere
+                OverlapReal dotp = dot(np2,n_p);
+                OverlapReal denom = dotp*dotp-dot(n_p,n_p)*np2_sq;
+                OverlapReal lambda0 = OverlapReal(2.0)*(b2*dotp - b*np2_sq)/denom;
+                OverlapReal lambda1 = OverlapReal(2.0)*(-b2*dot(n_p,n_p)+b*dotp)/denom;
+
+                vec3<OverlapReal> r = -(lambda0*n_p+lambda1*np2)/OverlapReal(2.0);
+
+                // if the line does not intersect the sphere, ignore
+                if (dot(r,r) > OverlapReal(1.0))
+                    continue;
+
+                // the line intersects with the sphere at two points, one of
+                // which maximizes the support function
+                vec3<OverlapReal> c01 = cross(n_p,np2);
+                OverlapReal s = fast::sqrt((OverlapReal(1.0)-dot(r,r))*dot(c01,c01));
+
+                OverlapReal t0 = (-dot(r,c01)-s)/dot(c01,c01);
+                OverlapReal t1 = (-dot(r,c01)+s)/dot(c01,c01);
+
+                vec3<OverlapReal> v1 = r+t0*c01;
+                vec3<OverlapReal> v2 = r+t1*c01;
+
+                // check first point
+                bool allowed = true;
+                for (unsigned int k = 0; k < N; ++k)
+                    {
+                    if (k == i || k == j) continue;
+
+                    vec3<OverlapReal> np3(n[k]);
+                    // transform plane normal into the coordinate system of the unit sphere
+                    np3.x *= a; np3.y *= b; np3.z *= c;
+
+                    OverlapReal b3(offset[k]);
+
+                    // is this vertex inside the volume bounded by all halfspaces?
+                    if (dot(np3,v1) + b3 > OverlapReal(0.0))
+                        {
+                        allowed = false;
+                        break;
+                        }
+                    }
+
+                if (allowed && dot(v1,v1) <= OverlapReal(1.0+SMALL))
+                    {
+                    additional_verts.x[additional_verts.N] = v1.x;
+                    additional_verts.y[additional_verts.N] = v1.y;
+                    additional_verts.z[additional_verts.N] = v1.z;
+                    additional_verts.N++;
+                    }
+
+                // check second point
+                allowed = true;
+                for (unsigned int k = 0; k < N; ++k)
+                    {
+                    if (k == i || k == j) continue;
+
+                    vec3<OverlapReal> np3(n[k]);
+                    // transform plane normal into the coordinate system of the unit sphere
+                    np3.x *= a; np3.y *= b; np3.z *= c;
+
+                    OverlapReal b3(offset[k]);
+
+                    // is this vertex inside the volume bounded by all halfspaces?
+                    if (dot(np3,v2) + b3 > OverlapReal(0.0))
+                        {
+                        allowed = false;
+                        break;
+                        }
+                    }
+
+                if (allowed && dot(v2,v2) <= (OverlapReal(1.0+SMALL)))
+                    {
+                    additional_verts.x[additional_verts.N] = v2.x;
+                    additional_verts.y[additional_verts.N] = v2.y;
+                    additional_verts.z[additional_verts.N] = v2.z;
+                    additional_verts.N++;
+                    }
+                }
+            }
         }
 
-    poly3d_verts verts;           //!< Vertices of the polyhedron
-    poly3d_verts additional_verts;//!< Vertices of the polyhedron edge-sphere intersection
-    ManagedArray<vec3<OverlapReal> > n;              //!< Normal vectors of planes
-    ManagedArray<OverlapReal> offset;                //!< Offset of every plane
-    OverlapReal a;                                   //!< First half-axis
-    OverlapReal b;                                   //!< Second half-axis
-    OverlapReal c;                                   //!< Third half-axis
-    vec3<OverlapReal> origin;                        //!< Origin shift
-    unsigned int N;                                  //!< Number of cut planes
-    unsigned int ignore;                             //!< Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
-                                                     //   First bit is ignore overlaps, Second bit is ignore statistics
+    #endif
 
-    //! Load dynamic data members into shared memory and increase pointer
-    /*! \param ptr Pointer to load data to (will be incremented)
-        \param available_bytes Size of remaining shared memory allocation
-     */
+    /// Vertices of the polyhedron
+    PolyhedronVertices verts;
+
+    /// Vertices of the polyhedron edge-sphere intersection
+    PolyhedronVertices additional_verts;
+
+    /// Normal vectors of planes
+    ManagedArray<vec3<OverlapReal> > n;
+
+    /// Offset of every plane
+    ManagedArray<OverlapReal> offset;
+
+    /// First half-axis
+    OverlapReal a;
+
+    /// Second half-axis
+    OverlapReal b;
+
+    /// Third half-axis
+    OverlapReal c;
+
+    /// Origin shift
+    vec3<OverlapReal> origin;
+
+    /// Number of cut planes
+    unsigned int N;
+
+    /// True when move statistics should not be counted
+    unsigned int ignore;
+
     DEVICE void load_shared(char *& ptr, unsigned int &available_bytes)
         {
         n.load_shared(ptr,available_bytes);
@@ -194,10 +317,6 @@ struct faceted_ellipsoid_params : param_base
         additional_verts.load_shared(ptr, available_bytes);
         }
 
-    //! Determine size of a shared memory alloation
-    /*! \param ptr Pointer to increment
-        \param available_bytes Size of remaining shared memory allocation
-     */
     HOSTDEVICE void allocate_shared(char *& ptr, unsigned int &available_bytes) const
         {
         n.allocate_shared(ptr,available_bytes);
@@ -207,7 +326,6 @@ struct faceted_ellipsoid_params : param_base
         }
 
     #ifdef ENABLE_HIP
-    //! Set CUDA memory hints
     void set_memory_hint() const
         {
         n.set_memory_hint();
@@ -218,17 +336,17 @@ struct faceted_ellipsoid_params : param_base
     #endif
     } __attribute__((aligned(32)));
 
-//! Support function for ShapeFacetedEllipsoid
-/* \ingroup minkowski
-*/
+/// Support function for ShapeFacetedEllipsoid
 class SupportFuncFacetedEllipsoid
     {
     public:
-        //! Construct a support function for a faceted sphere
-        /*! \param _params Parameters of the faceted sphere
+        /** Construct a support function for a faceted ellipsoid
+
+            @param _params Parameters of the faceted ellipsoid
+            @param _sweep_radius additional sweep radius
         */
-        DEVICE SupportFuncFacetedEllipsoid(const faceted_ellipsoid_params& _params,
-            const OverlapReal& _sweep_radius=OverlapReal(0.0))
+        DEVICE SupportFuncFacetedEllipsoid(const FacetedEllipsoidParams& _params,
+                                           const OverlapReal& _sweep_radius=OverlapReal(0.0))
             : params(_params), sweep_radius(_sweep_radius)
             {
             }
@@ -248,9 +366,10 @@ class SupportFuncFacetedEllipsoid
             }
 
 
-        //! Compute the support function
-        /*! \param n Normal vector input (in the local frame)
-            \returns Local coords of the point furthest in the direction of n
+        /** Compute the support function
+
+            @param n Normal vector input (in the local frame)
+            @returns Local coords of the point furthest in the direction of n
         */
         DEVICE vec3<OverlapReal> operator() (const vec3<OverlapReal>& n_in) const
             {
@@ -356,8 +475,11 @@ class SupportFuncFacetedEllipsoid
             }
 
     private:
-        const faceted_ellipsoid_params& params;      //!< Definition of faceted ellipsoid
-        const OverlapReal sweep_radius;             //!< The radius of a sphere sweeping the shape
+        /// Definition of faceted ellipsoid
+        const FacetedEllipsoidParams& params;
+
+        /// The radius of a sphere sweeping the shape
+        const OverlapReal sweep_radius;
     };
 
 
@@ -365,44 +487,40 @@ class SupportFuncFacetedEllipsoid
 } // end namespace detail
 
 
-//! Faceted sphere shape template
-/*! ShapeFacetedEllipsoid implements IntegratorHPMC 's shape protocol for a sphere that is truncated
-    by a set of planes, defined through their plane equations n_i*x = n_i^2.
+/** Faceted ellipsoid shape
 
-    The parameter defining the sphere is just a single Scalar, the sphere radius.
-
-    \ingroup shape
+    Implement the HPMC shape interface for a faceted ellipsoid.
 */
 struct ShapeFacetedEllipsoid
     {
-    //! Define the parameter type
-    typedef detail::faceted_ellipsoid_params param_type;
+    /// Define the parameter type
+    typedef detail::FacetedEllipsoidParams param_type;
 
-    //! Initialize a shape at a given position
+    /// Construct a shape at a given orientation
     DEVICE ShapeFacetedEllipsoid(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), params(_params)
         { }
 
-    //! Does this shape have an orientation
+    /// Check if the shape may be rotated
     DEVICE bool hasOrientation() { return (params.N > 0) ||
         (params.a != params.b) || (params.a != params.c) || (params.b != params.c); }
 
-    //!Ignore flag for acceptance statistics
+    /// Check if this shape should be ignored in the move statistics
     DEVICE bool ignoreStatistics() const { return params.ignore; }
 
-    //! Get the circumsphere diameter
+    /// Get the circumsphere diameter of the shape
     DEVICE OverlapReal getCircumsphereDiameter() const
         {
         return OverlapReal(2)*detail::max(params.a, detail::max(params.b, params.c));
         }
 
-    //! Get the in-sphere radius
+    /// Get the in-sphere radius of the shape
     DEVICE OverlapReal getInsphereRadius() const
         {
         return 0.0;
         }
 
-    //! Return the bounding box of the shape in world coordinates
+    /// Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         // use support function of the ellipsoid to determine the furthest extent in each direction
@@ -426,7 +544,7 @@ struct ShapeFacetedEllipsoid
         return detail::AABB(lower, upper);
         }
 
-    //! Return a tight fitting OBB
+    /// Return a tight fitting OBB around the shape
     DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
         {
         detail::SupportFuncFacetedEllipsoid sfunc(params);
@@ -449,144 +567,32 @@ struct ShapeFacetedEllipsoid
         return obb;
         }
 
-    //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
+    /** Returns true if this shape splits the overlap check over several threads of a warp using
+        threadIdx.x
+    */
     HOSTDEVICE static bool isParallel() { return false; }
 
-    //! Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    /// Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
     HOSTDEVICE static bool supportsSweepRadius()
         {
         return true;
         }
 
-    /*!
-     * Generate the intersections points of polyhedron edges with the sphere
-     */
-    DEVICE static void initializeVertices(param_type& _params)
-        {
-        bool managed = _params.isManaged();
+    /// Orientation of the shape
+    quat<Scalar> orientation;
 
-        #ifndef __HIPCC__
-        _params.additional_verts = detail::poly3d_verts(2*_params.N*_params.N, managed);
-        _params.additional_verts.diameter = OverlapReal(2.0); // for unit sphere
-        _params.additional_verts.N = 0;
-
-        // iterate over unique pairs of planes
-        for (unsigned int i = 0; i < _params.N; ++i)
-            {
-            vec3<OverlapReal> n_p(_params.n[i]);
-            // transform plane normal into the coordinate system of the unit sphere
-            n_p.x *= _params.a; n_p.y *= _params.b; n_p.z *= _params.c;
-
-            OverlapReal b(_params.offset[i]);
-
-            for (unsigned int j = i+1; j < _params.N; ++j)
-                {
-                vec3<OverlapReal> np2(_params.n[j]);
-                // transform plane normal into the coordinate system of the unit sphere
-                np2.x *= _params.a; np2.y *= _params.b; np2.z *= _params.c;
-
-                OverlapReal b2 = _params.offset[j];
-                OverlapReal np2_sq = dot(np2,np2);
-
-                // determine intersection line between plane i and plane j
-
-                // point on intersection line closest to center of sphere
-                OverlapReal dotp = dot(np2,n_p);
-                OverlapReal denom = dotp*dotp-dot(n_p,n_p)*np2_sq;
-                OverlapReal lambda0 = OverlapReal(2.0)*(b2*dotp - b*np2_sq)/denom;
-                OverlapReal lambda1 = OverlapReal(2.0)*(-b2*dot(n_p,n_p)+b*dotp)/denom;
-
-                vec3<OverlapReal> r = -(lambda0*n_p+lambda1*np2)/OverlapReal(2.0);
-
-                // if the line does not intersect the sphere, ignore
-                if (dot(r,r) > OverlapReal(1.0))
-                    continue;
-
-                // the line intersects with the sphere at two points, one of
-                // maximizes the support function
-                vec3<OverlapReal> c01 = cross(n_p,np2);
-                OverlapReal s = fast::sqrt((OverlapReal(1.0)-dot(r,r))*dot(c01,c01));
-
-                OverlapReal t0 = (-dot(r,c01)-s)/dot(c01,c01);
-                OverlapReal t1 = (-dot(r,c01)+s)/dot(c01,c01);
-
-                vec3<OverlapReal> v1 = r+t0*c01;
-                vec3<OverlapReal> v2 = r+t1*c01;
-
-                // check first point
-                bool allowed = true;
-                for (unsigned int k = 0; k < _params.N; ++k)
-                    {
-                    if (k == i || k == j) continue;
-
-                    vec3<OverlapReal> np3(_params.n[k]);
-                    // transform plane normal into the coordinate system of the unit sphere
-                    np3.x *= _params.a; np3.y *= _params.b; np3.z *= _params.c;
-
-                    OverlapReal b3(_params.offset[k]);
-
-                    // is this vertex inside the volume bounded by all halfspaces?
-                    if (dot(np3,v1) + b3 > OverlapReal(0.0))
-                        {
-                        allowed = false;
-                        break;
-                        }
-                    }
-
-                if (allowed && dot(v1,v1) <= OverlapReal(1.0+SMALL))
-                    {
-                    _params.additional_verts.x[_params.additional_verts.N] = v1.x;
-                    _params.additional_verts.y[_params.additional_verts.N] = v1.y;
-                    _params.additional_verts.z[_params.additional_verts.N] = v1.z;
-                    _params.additional_verts.N++;
-                    }
-
-                // check second point
-                allowed = true;
-                for (unsigned int k = 0; k < _params.N; ++k)
-                    {
-                    if (k == i || k == j) continue;
-
-                    vec3<OverlapReal> np3(_params.n[k]);
-                    // transform plane normal into the coordinate system of the unit sphere
-                    np3.x *= _params.a; np3.y *= _params.b; np3.z *= _params.c;
-
-                    OverlapReal b3(_params.offset[k]);
-
-                    // is this vertex inside the volume bounded by all halfspaces?
-                    if (dot(np3,v2) + b3 > OverlapReal(0.0))
-                        {
-                        allowed = false;
-                        break;
-                        }
-                    }
-
-                if (allowed && dot(v2,v2) <= (OverlapReal(1.0+SMALL)))
-                    {
-                    _params.additional_verts.x[_params.additional_verts.N] = v2.x;
-                    _params.additional_verts.y[_params.additional_verts.N] = v2.y;
-                    _params.additional_verts.z[_params.additional_verts.N] = v2.z;
-                    _params.additional_verts.N++;
-                    }
-                }
-            }
-        #endif
-        }
-
-    quat<Scalar> orientation;    //!< Orientation of the sphere (unused)
-
-    const param_type& params;           //!< Faceted sphere parameters
+    /// Faceted sphere parameters
+    const param_type& params;
     };
 
-//! Overlap of faceted spheres
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shape
-    \param b second shape
-    \param err in/out variable incremented when error conditions occur in the overlap test
-    \param sweep_radius Additional sphere radius to sweep the shapes with
-    \returns true when *a* and *b* overlap, and false when they are disjoint
+/** Test overlap of faceted ellipsoids
 
-    \ingroup shape
+    @param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
+    @param a first shape
+    @param b second shape
+    @param err in/out variable incremented when error conditions occur in the overlap test
+    @param sweep_radius Additional sphere radius to sweep the shapes with
+    @returns true when *a* and *b* overlap, and false when they are disjoint
 */
 template <>
 DEVICE inline bool test_overlap<ShapeFacetedEllipsoid, ShapeFacetedEllipsoid>(const vec3<Scalar>& r_ab, const ShapeFacetedEllipsoid& a, const ShapeFacetedEllipsoid& b,
@@ -608,4 +614,3 @@ DEVICE inline bool test_overlap<ShapeFacetedEllipsoid, ShapeFacetedEllipsoid>(co
 
 #undef DEVICE
 #undef HOSTDEVICE
-#endif //__SHAPE_FACETED_SPHERE_H__

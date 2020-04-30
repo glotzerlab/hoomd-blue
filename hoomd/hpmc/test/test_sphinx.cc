@@ -27,7 +27,7 @@ UP_TEST( construction )
     //parameters for constructing a P2N
     quat<Scalar> o(1.0, vec3<Scalar>(0.0, 0.0, 0.0));
 
-    sphinx3d_params data;
+    SphinxParams data;
     data.N = 3;
     data.diameter[0] = 2.0;
     data.diameter[1] = -2.2;
@@ -87,8 +87,8 @@ UP_TEST( overlap_P2N_no_rot )
     BoxDim box(100);
 
     // build a double dimpled sphinx - P2N
-    sphinx3d_params data;
-    UP_ASSERT(MAX_SPHERE_CENTERS >= 3);
+    SphinxParams data;
+    UP_ASSERT(MAX_SPHINX_SPHERE_CENTERS >= 3);
     data.N = 3;
     data.diameter[0] = 2.0;
     data.diameter[1] = -2.2;
@@ -217,8 +217,8 @@ UP_TEST( overlap_P4Nth_no_rot )
     BoxDim box(100);
 
     // build a tetrahedrally dimpled sphinx - P4Nth
-    sphinx3d_params data;
-    UP_ASSERT(MAX_SPHERE_CENTERS >= 5);
+    SphinxParams data;
+    UP_ASSERT(MAX_SPHINX_SPHERE_CENTERS >= 5);
     data.N = 5;
     data.diameter[0] = 2.0;
     data.diameter[1] = -2.0;
@@ -342,8 +342,8 @@ UP_TEST( overlap_P4Nth_P2N )
     BoxDim box(100);
 
     // build a tetrahedrally dimpled sphinx - P4Nth
-    sphinx3d_params data;
-    UP_ASSERT(MAX_SPHERE_CENTERS >= 5);
+    SphinxParams data;
+    UP_ASSERT(MAX_SPHINX_SPHERE_CENTERS >= 5);
     data.N = 5;
     data.diameter[0] = 2.0;
     data.diameter[1] = -2.0;
@@ -361,8 +361,8 @@ UP_TEST( overlap_P4Nth_P2N )
     ShapeSphinx a(o, data);
 
     // build a double dimpled sphinx - P2N
-    sphinx3d_params data_P2N;
-    UP_ASSERT(MAX_SPHERE_CENTERS >= 3);
+    SphinxParams data_P2N;
+    UP_ASSERT(MAX_SPHINX_SPHERE_CENTERS >= 3);
     data_P2N.N = 3;
     data_P2N.diameter[0] = 2.0;
     data_P2N.diameter[1] = -2.2;

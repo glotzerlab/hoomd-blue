@@ -24,7 +24,7 @@ UP_TEST( construction )
     // parameters
     quat<Scalar> o(1.0, vec3<Scalar>(-3.0, 9.0, 6.0));
     o = o * (Scalar)(Scalar(1.0)/sqrt(norm2(o)));
-    sph_params par;
+    SphereParams par;
     par.radius = 1.25;
     par.ignore = 0;
     par.isOriented = false;
@@ -51,7 +51,7 @@ UP_TEST( overlap_sphere)
     quat<Scalar> o;
     BoxDim box(100);
 
-    sph_params par;
+    SphereParams par;
     par.radius=1.25;
     par.ignore=0;
     par.isOriented = false;
@@ -87,7 +87,7 @@ UP_TEST( overlap_boundaries )
     // parameters
     quat<Scalar> o;
     BoxDim box(20);
-    sph_params par;
+    SphereParams par;
     par.radius=1.0;
     par.ignore = 0;
     par.isOriented = false;
@@ -114,7 +114,7 @@ UP_TEST( overlap_boundaries )
     {
     // parameters
     quat<Scalar> o;
-    sph_params par;
+    SphereParams par;
     par.radius=0.5;
     par.ignore = 0;
     par.isOriented = false;
@@ -128,7 +128,7 @@ UP_TEST( overlap_boundaries )
     UP_ASSERT(!test_overlap_intersection(a,b,c,r_ab,r_ac,err_count));
 
     // place three circles with pairwise, but no joint overlap
-    sph_params par2;
+    SphereParams par2;
     par2.radius = 0.77;
     par2.ignore = 0;
     par2.isOriented = false;
