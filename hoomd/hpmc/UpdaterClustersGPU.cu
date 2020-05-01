@@ -29,7 +29,7 @@ namespace hpmc
 namespace gpu
 {
 
-#ifdef HIP_PLATFORM_NVCC
+#ifdef __HIP_PLATFORM_NVCC__
 #define check_cusparse(a) \
     {\
     cusparseStatus_t status = (a);\
