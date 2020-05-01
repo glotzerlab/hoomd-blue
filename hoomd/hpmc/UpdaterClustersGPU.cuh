@@ -20,13 +20,13 @@
 
 #include "IntegratorHPMCMonoGPU.cuh"
 
-// currently this is hardcoded, we should set it to the max of platforms
 #if defined(__HIP_PLATFORM_NVCC__)
 #define MAX_BLOCK_SIZE 1024
+#define MIN_BLOCK_SIZE 128 // a reasonable minimum to limit the number of template instantiations
 #elif defined(__HIP_PLATFORM_HCC__)
 #define MAX_BLOCK_SIZE 1024
+#define MIN_BLOCK_SIZE 1024 // __launch_bounds__ not properly supported
 #endif
-#define MIN_BLOCK_SIZE 128 // a reasonable minimum to limit the number of template instantiations
 
 namespace hpmc
 {
@@ -166,7 +166,9 @@ namespace kernel
 
 //! Check narrow-phase overlaps
 template< class Shape, unsigned int max_threads >
+#ifdef __HIP_PLATFORM_NVCC__
 __launch_bounds__(max_threads > 0 ? max_threads : 1)
+#endif
 __global__ void hpmc_cluster_overlaps(const Scalar4 *d_postype,
                            const Scalar4 *d_orientation,
                            const unsigned int *d_tag,
@@ -548,7 +550,9 @@ void cluster_overlaps_launcher(const cluster_args_t& args, const typename Shape:
 
 //! Kernel to insert depletants on-the-fly
 template< class Shape, unsigned int max_threads >
+#ifdef __HIP_PLATFORM_NVCC__
 __launch_bounds__(max_threads > 0 ? max_threads : 1)
+#endif
 __global__ void clusters_insert_depletants(const Scalar4 *d_postype,
                                      const Scalar4 *d_orientation,
                                      const unsigned int *d_tag,

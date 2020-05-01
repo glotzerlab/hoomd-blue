@@ -26,13 +26,13 @@ namespace hpmc {
 
 namespace gpu {
 
-// currently this is hardcoded, we should set it to the max of platforms
 #if defined(__HIP_PLATFORM_NVCC__)
 #define MAX_BLOCK_SIZE 1024
+#define MIN_BLOCK_SIZE 128 // a reasonable minimum to limit the number of template instantiations
 #elif defined(__HIP_PLATFORM_HCC__)
 #define MAX_BLOCK_SIZE 1024
+#define MIN_BLOCK_SIZE 1024 // __launch_bounds__ not properly supported
 #endif
-#define MIN_BLOCK_SIZE 128 // a reasonable minimum to limit the number of template instantiations
 
 //! Wraps arguments to hpmc_* template functions
 /*! \ingroup hpmc_data_structs */
@@ -76,7 +76,6 @@ struct hpmc_args_t
                 unsigned int *_d_nneigh,
                 const unsigned int _maxn,
                 unsigned int *_d_overflow,
-                const bool _update_shape_param,
                 const hipDeviceProp_t &_devprop,
                 const GPUPartition& _gpu_partition,
                 const hipStream_t *_streams)
@@ -117,7 +116,6 @@ struct hpmc_args_t
                   d_nneigh(_d_nneigh),
                   maxn(_maxn),
                   d_overflow(_d_overflow),
-                  update_shape_param(_update_shape_param),
                   devprop(_devprop),
                   gpu_partition(_gpu_partition),
                   streams(_streams)
@@ -161,7 +159,6 @@ struct hpmc_args_t
     unsigned int *d_nneigh;       //!< Number of overlapping particles after trial move
     unsigned int maxn;                //!< Width of neighbor list
     unsigned int *d_overflow;         //!< Overflow condition for neighbor list
-    const bool update_shape_param;    //!< True if shape parameters have changed
     const hipDeviceProp_t& devprop;     //!< CUDA device properties
     const GPUPartition& gpu_partition; //!< Multi-GPU partition
     const hipStream_t *streams;        //!< kernel streams
@@ -528,7 +525,9 @@ __global__ void hpmc_gen_moves(Scalar4 *d_postype,
 
 //! Check narrow-phase overlaps
 template< class Shape, unsigned int max_threads >
-__launch_bounds__(max_threads > 0 ? max_threads : 1)
+#ifdef __HIP_PLATFORM_NVCC__
+__launch_bounds__(max_threads > 0 ? max_threads : 1, 1)
+#endif
 __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
                            Scalar4 *d_orientation,
                            Scalar4 *d_trial_postype,
@@ -854,9 +853,6 @@ void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_
             {
             hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_narrow_phase<Shape, cur_launch_bounds*MIN_BLOCK_SIZE>));
             max_block_size = attr.maxThreadsPerBlock;
-            if (max_block_size % args.devprop.warpSize)
-                // handle non-sensical return values from hipFuncGetAttributes
-                max_block_size = (max_block_size/args.devprop.warpSize-1)*args.devprop.warpSize;
             }
 
         // choose a block size based on the max block size by regs (max_block_size) and include dynamic shared memory usage
@@ -907,24 +903,15 @@ void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_
             }
 
         // determine dynamically allocated shared memory size
-        static unsigned int base_shared_bytes = UINT_MAX;
-        bool shared_bytes_changed = base_shared_bytes != shared_bytes + attr.sharedSizeBytes;
-        base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
-
+        unsigned int base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
         unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - base_shared_bytes;
-        static unsigned int extra_bytes = UINT_MAX;
-        if (extra_bytes == UINT_MAX || args.update_shape_param || shared_bytes_changed)
+        char *ptr = (char *)nullptr;
+        unsigned int available_bytes = max_extra_bytes;
+        for (unsigned int i = 0; i < args.num_types; ++i)
             {
-            // determine dynamically requested shared memory
-            char *ptr = (char *)nullptr;
-            unsigned int available_bytes = max_extra_bytes;
-            for (unsigned int i = 0; i < args.num_types; ++i)
-                {
-                params[i].allocate_shared(ptr, available_bytes);
-                }
-            extra_bytes = max_extra_bytes - available_bytes;
+            params[i].allocate_shared(ptr, available_bytes);
             }
-
+        unsigned int extra_bytes = max_extra_bytes - available_bytes;
         shared_bytes += extra_bytes;
 
         dim3 thread(overlap_threads, tpp, n_groups);
@@ -954,8 +941,10 @@ void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_
     }
 
 //! Kernel to insert depletants on-the-fly
-template< class Shape, unsigned int max_threads >
+template< class Shape, unsigned int max_threads, bool pairwise >
+#ifdef __HIP_PLATFORM_NVCC__
 __launch_bounds__(max_threads > 0 ? max_threads : 1)
+#endif
 __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                                      const Scalar4 *d_trial_orientation,
                                      const unsigned int *d_trial_move_type,
@@ -1172,7 +1161,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                 && test_overlap(r_ij, shape_test_a, shape_i, err_count));
 
             bool overlap_old_b = overlap_old_a;
-            if (depletant_type_a != depletant_type_b)
+            if (pairwise)
                 {
                 overlap_checks++;
                 overlap_old_b = (s_check_overlaps[overlap_idx(s_type_i, depletant_type_b)]
@@ -1189,7 +1178,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
 
             bool overlap_new_b = overlap_new_a;
 
-            if (depletant_type_a != depletant_type_b)
+            if (pairwise)
                 {
                 overlap_checks++;
                 overlap_new_b = (s_check_overlaps[overlap_idx(s_type_i, depletant_type_b)]
@@ -1333,7 +1322,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                     bool circumsphere_overlap = s_check_overlaps[overlap_idx(depletant_type_a, type_j)] &&
                         check_circumsphere_overlap(r_jk, shape_test_a, shape_j);
 
-                    circumsphere_overlap |= (depletant_type_a != depletant_type_b) &&
+                    circumsphere_overlap |= pairwise &&
                         s_check_overlaps[overlap_idx(depletant_type_b, type_j)] &&
                         check_circumsphere_overlap(r_jk, shape_test_b, shape_j);
 
@@ -1409,7 +1398,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                 bool overlap_i_other_a = false;
                 bool overlap_i_other_b = false;
 
-                if (depletant_type_a != depletant_type_b)
+                if (pairwise)
                     {
                     overlap_j_b = s_check_overlaps[overlap_idx(depletant_type_b, type_j)] &&
                         test_overlap(r_jk, shape_test_b, shape_j, err_count);
@@ -1466,7 +1455,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                         }
                     }
                 } // end if (processing neighbor)
-
+            
             // threads that need to do more looking set the still_searching flag
             __syncthreads();
             if (master && group == 0)
@@ -1534,7 +1523,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
     }
 
 //! Launcher for hpmc_insert_depletants kernel with templated launch bounds
-template< class Shape, unsigned int cur_launch_bounds>
+template< class Shape, bool pairwise, unsigned int cur_launch_bounds>
 void depletants_launcher(const hpmc_args_t& args, const hpmc_implicit_args_t& implicit_args,
     const typename Shape::param_type *params, unsigned int max_threads, detail::int2type<cur_launch_bounds>)
     {
@@ -1545,11 +1534,9 @@ void depletants_launcher(const hpmc_args_t& args, const hpmc_implicit_args_t& im
         static hipFuncAttributes attr;
         if (max_block_size == -1)
             {
-            hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(&kernel::hpmc_insert_depletants<Shape, cur_launch_bounds*MIN_BLOCK_SIZE>));
+            hipFuncGetAttributes(&attr,
+                reinterpret_cast<const void*>(&kernel::hpmc_insert_depletants<Shape, cur_launch_bounds*MIN_BLOCK_SIZE, pairwise>));
             max_block_size = attr.maxThreadsPerBlock;
-            if (max_block_size % args.devprop.warpSize)
-                // handle non-sensical return values from hipFuncGetAttributes
-                max_block_size = (max_block_size/args.devprop.warpSize-1)*args.devprop.warpSize;
             }
 
         // choose a block size based on the max block size by regs (max_block_size) and include dynamic shared memory usage
@@ -1595,24 +1582,17 @@ void depletants_launcher(const hpmc_args_t& args, const hpmc_implicit_args_t& im
                            min_shared_bytes;
             }
 
-        static unsigned int base_shared_bytes = UINT_MAX;
-        bool shared_bytes_changed = base_shared_bytes != shared_bytes + attr.sharedSizeBytes;
-        base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
 
+        // determine dynamically requested shared memory
+        unsigned int base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
         unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - base_shared_bytes;
-        static unsigned int extra_bytes = UINT_MAX;
-        if (extra_bytes == UINT_MAX || args.update_shape_param || shared_bytes_changed)
+        char *ptr = (char *) nullptr;
+        unsigned int available_bytes = max_extra_bytes;
+        for (unsigned int i = 0; i < args.num_types; ++i)
             {
-            // determine dynamically requested shared memory
-            char *ptr = (char *) nullptr;
-            unsigned int available_bytes = max_extra_bytes;
-            for (unsigned int i = 0; i < args.num_types; ++i)
-                {
-                params[i].allocate_shared(ptr, available_bytes);
-                }
-            extra_bytes = max_extra_bytes - available_bytes;
+            params[i].allocate_shared(ptr, available_bytes);
             }
-
+        unsigned int extra_bytes = max_extra_bytes - available_bytes;
         shared_bytes += extra_bytes;
 
         // setup the grid to run the kernel
@@ -1636,7 +1616,7 @@ void depletants_launcher(const hpmc_args_t& args, const hpmc_implicit_args_t& im
                 grid.z = blocks_per_particle/args.devprop.maxGridSize[1]+1;
                 }
 
-            hipLaunchKernelGGL((kernel::hpmc_insert_depletants<Shape, cur_launch_bounds*MIN_BLOCK_SIZE>),
+            hipLaunchKernelGGL((kernel::hpmc_insert_depletants<Shape, cur_launch_bounds*MIN_BLOCK_SIZE, pairwise>),
                 dim3(grid), dim3(threads), shared_bytes, implicit_args.streams[idev],
                                  args.d_trial_postype,
                                  args.d_trial_orientation,
@@ -1680,7 +1660,7 @@ void depletants_launcher(const hpmc_args_t& args, const hpmc_implicit_args_t& im
         }
     else
         {
-        depletants_launcher<Shape>(args, implicit_args, params, max_threads, detail::int2type<cur_launch_bounds/2>());
+        depletants_launcher<Shape, pairwise>(args, implicit_args, params, max_threads, detail::int2type<cur_launch_bounds/2>());
         }
     }
 
@@ -1798,9 +1778,6 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type *p
             {
             hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_gen_moves<Shape,2>));
             max_block_size = attr.maxThreadsPerBlock;
-            if (max_block_size % args.devprop.warpSize)
-                // handle non-sensical return values from hipFuncGetAttributes
-                max_block_size = (max_block_size/args.devprop.warpSize-1)*args.devprop.warpSize;
             }
 
         // choose a block size based on the max block size by regs (max_block_size) and include dynamic shared memory usage
@@ -1847,9 +1824,6 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type *p
             {
             hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_gen_moves<Shape,3>));
             max_block_size = attr.maxThreadsPerBlock;
-            if (max_block_size % args.devprop.warpSize)
-                // handle non-sensical return values from hipFuncGetAttributes
-                max_block_size = (max_block_size/args.devprop.warpSize-1)*args.devprop.warpSize;
             }
 
         // choose a block size based on the max block size by regs (max_block_size) and include dynamic shared memory usage
@@ -1930,7 +1904,22 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
     while (launch_bounds < args.block_size)
         launch_bounds *= 2;
 
-    kernel::depletants_launcher<Shape>(args, implicit_args, params, launch_bounds, detail::int2type<MAX_BLOCK_SIZE/MIN_BLOCK_SIZE>());
+    if (implicit_args.depletant_type_a == implicit_args.depletant_type_b)
+        {
+        kernel::depletants_launcher<Shape, false>(args,
+            implicit_args,
+            params,
+            launch_bounds,
+            detail::int2type<MAX_BLOCK_SIZE/MIN_BLOCK_SIZE>());
+        }
+    else
+        {
+        kernel::depletants_launcher<Shape, true>(args,
+            implicit_args,
+            params,
+            launch_bounds,
+            detail::int2type<MAX_BLOCK_SIZE/MIN_BLOCK_SIZE>());
+        }
     }
 
 //! Driver for kernel::hpmc_update_pdata()

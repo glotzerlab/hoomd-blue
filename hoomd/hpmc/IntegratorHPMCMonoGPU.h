@@ -809,7 +809,6 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     d_nneigh.data,
                     m_maxn,
                     d_overflow.data,
-                    i == 0,
                     this->m_exec_conf->dev_prop,
                     this->m_pdata->getGPUPartition(),
                     0);
@@ -908,7 +907,6 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         d_nneigh.data,
                         m_maxn,
                         d_overflow.data,
-                        i == 0,
                         this->m_exec_conf->dev_prop,
                         this->m_pdata->getGPUPartition(),
                         &m_narrow_phase_streams.front());
