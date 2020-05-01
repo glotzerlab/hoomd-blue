@@ -526,7 +526,7 @@ __global__ void hpmc_gen_moves(Scalar4 *d_postype,
 //! Check narrow-phase overlaps
 template< class Shape, unsigned int max_threads >
 #ifdef __HIP_PLATFORM_NVCC__
-__launch_bounds__(max_threads > 0 ? max_threads : 1, 1)
+__launch_bounds__(max_threads > 0 ? max_threads : 1)
 #endif
 __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
                            Scalar4 *d_orientation,
