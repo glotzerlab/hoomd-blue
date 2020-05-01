@@ -118,7 +118,7 @@ stages:
       vmImage: '$(mac_image)'
 
     steps:
-    - script: brew install cereal cmake eigen ninja open-mpi python numpy pybind11
+    - script: brew install cereal cmake eigen ninja open-mpi python pybind11
       displayName: Brew install prereqs
     # Install Intel's provided TBB builds, homebrew's tbb does not support exception translation
     - script: |
@@ -129,7 +129,7 @@ stages:
       displayName: Install TBB
       workingDirectory: $(Pipeline.Workspace)
 
-    - script: python3 -m pip install pytest
+    - script: python3 -m pip install pytest numpy
       displayName: Pip install prereqs
 
     - template: templates/build_test.yml
