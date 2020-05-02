@@ -222,8 +222,8 @@ endif(SINGLE_PRECISION)
 
 # Libraries and compile definitions for CUDA enabled builds
 if (ENABLE_HIP)
-    if (HIP_PLATFORM STREQUAL "hcc")
-        target_link_libraries(_hoomd PUBLIC HIP::hipfft HIP::hiprt)
+    if (HIP_PLATFORM STREQUAL "hcc" OR HIP_PLATFORM STREQUAL "hip-clang")
+        target_link_libraries(_hoomd PUBLIC HIP::hiprt HIP::hipfft HIP::hiprt)
     elseif(HIP_PLATFORM STREQUAL "nvcc")
         target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
     endif()

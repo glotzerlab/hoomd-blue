@@ -49,7 +49,7 @@ namespace detail
 struct faceted_ellipsoid_params : param_base
     {
     //! Empty constructor
-    faceted_ellipsoid_params()
+    DEVICE faceted_ellipsoid_params()
         : a(1.0), b(1.0), c(1.0), N(0), ignore(1)
         { }
 

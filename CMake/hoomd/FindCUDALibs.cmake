@@ -190,7 +190,7 @@ if (HIP_PLATFORM STREQUAL "hip-clang" OR HIP_PLATFORM STREQUAL "hcc")
     find_library(HIP_rocfft_LIBRARY rocfft
         PATHS
         "${HIP_ROOT_DIR}"
-        ENV ROCM_PATH
+        $ENV{ROCM_PATH}/rocfft
         ENV HIP_PATH
         /opt/rocm
         /opt/rocm/rocfft
