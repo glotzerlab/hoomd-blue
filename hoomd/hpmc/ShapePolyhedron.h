@@ -60,7 +60,7 @@ namespace detail
 
 struct poly3d_data : param_base
     {
-    poly3d_data() : n_faces(0), ignore(0) {};
+    DEVICE poly3d_data() : n_faces(0), ignore(0) {};
 
     #ifndef __HIPCC__
     //! Constructor
