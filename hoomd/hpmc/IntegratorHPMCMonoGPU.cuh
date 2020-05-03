@@ -931,7 +931,7 @@ void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_
                 args.d_nlist, args.d_nneigh, args.maxn, args.d_counters+idev*args.counters_pitch, args.num_types,
                 args.box, args.ghost_width, args.cell_dim, args.ci, args.N + args.N_ghost, args.N, args.d_check_overlaps,
                 args.overlap_idx, params, args.d_overflow, args.d_reject_out_of_cell,
-                max_extra_bytes, max_queue_size, range.first, args.N, d_f_out, nwork);
+                max_extra_bytes, max_queue_size, range.first, nwork);
             }
         }
     else
