@@ -26,13 +26,8 @@ namespace hpmc {
 
 namespace gpu {
 
-#if defined(__HIP_PLATFORM_NVCC__)
 #define MAX_BLOCK_SIZE 1024
 #define MIN_BLOCK_SIZE 128 // a reasonable minimum to limit the number of template instantiations
-#elif defined(__HIP_PLATFORM_HCC__)
-#define MAX_BLOCK_SIZE 1024
-#define MIN_BLOCK_SIZE 1024 // __launch_bounds__ not properly supported
-#endif
 
 //! Wraps arguments to hpmc_* template functions
 /*! \ingroup hpmc_data_structs */
@@ -468,7 +463,7 @@ __global__ void hpmc_gen_moves(Scalar4 *d_postype,
 
     vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
     unsigned int old_cell = computeParticleCell(vec_to_scalar3(pos_i), box, ghost_width,
-        cell_dim, ci, false);
+        cell_dim, ci, true);
 
     // for domain decomposition simulations, we need to leave all particles in the inactive region alone
     // in order to avoid even more divergence, this is done by setting the move_active flag
@@ -480,7 +475,8 @@ __global__ void hpmc_gen_moves(Scalar4 *d_postype,
     // make the move
     hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCMonoTrialMove, idx, seed, select, timestep);
 
-    unsigned int reject = 0;
+    // do not move particles that are outside the boundaries
+    unsigned int reject = old_cell >= ci.getNumElements();
 
     unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng);
     bool move_type_translate = !shape_i.hasOrientation() || (move_type_select < move_ratio);
@@ -550,6 +546,7 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
                            const Index2D overlap_idx,
                            const typename Shape::param_type *d_params,
                            unsigned int *d_overflow,
+                           const unsigned int *d_reject_out_of_cell,
                            const unsigned int max_extra_bytes,
                            const unsigned int max_queue_size,
                            const unsigned int work_offset,
@@ -611,7 +608,6 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
     unsigned int available_bytes = max_extra_bytes;
     for (unsigned int cur_type = 0; cur_type < num_types; ++cur_type)
         s_params[cur_type].load_shared(s_extra, available_bytes);
-
     __syncthreads();
 
     if (master && group == 0)
@@ -633,9 +629,13 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
     unsigned int overlap_checks = 0;
     unsigned int overlap_err_count = 0;
 
+    // if this particle is rejected a priori because it has left the cell, don't check overlaps
+    // and avoid out of range memory access when computing the cell
+    if (active && d_reject_out_of_cell[idx])
+        active = false;
+
     if (active)
         {
-        // load particle i
         Scalar4 postype_i(d_trial_postype[idx]);
         vec3<Scalar> pos_i(postype_i);
         unsigned int type_i = __scalar_as_int(postype_i.w);
@@ -930,8 +930,8 @@ void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_
                 args.d_excell_idx, args.d_excell_size, args.excli,
                 args.d_nlist, args.d_nneigh, args.maxn, args.d_counters+idev*args.counters_pitch, args.num_types,
                 args.box, args.ghost_width, args.cell_dim, args.ci, args.N + args.N_ghost, args.N, args.d_check_overlaps,
-                args.overlap_idx, params,
-                args.d_overflow, max_extra_bytes, max_queue_size, range.first, nwork);
+                args.overlap_idx, params, args.d_overflow, args.d_reject_out_of_cell,
+                max_extra_bytes, max_queue_size, range.first, args.N, d_f_out, nwork);
             }
         }
     else
@@ -942,7 +942,7 @@ void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_
 
 //! Kernel to insert depletants on-the-fly
 template< class Shape, unsigned int max_threads, bool pairwise >
-#ifdef __HIP_PLATFORM_NVCC__
+#ifdef __HIP_PLAFORM_NVCC__
 __launch_bounds__(max_threads > 0 ? max_threads : 1)
 #endif
 __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
@@ -967,7 +967,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                                      const unsigned int dim,
                                      const BoxDim box,
                                      const unsigned int select,
-                                     unsigned int *d_reject,
+                                     unsigned int *d_reject_out_of_cell,
                                      const typename Shape::param_type *d_params,
                                      unsigned int max_queue_size,
                                      unsigned int max_extra_bytes,
@@ -1065,6 +1065,11 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
 
     // identify the active cell that this thread handles
     unsigned int i = blockIdx.x + work_offset;
+
+    // if this particle is rejected a priori because it has left the cell, don't check overlaps
+    // and avoid out of range memory access when computing the cell
+    if (d_reject_out_of_cell[i])
+        return;
 
     // load updated particle position
     if (master && group == 0)
@@ -1789,7 +1794,7 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type *p
 
         // setup the grid to run the kernel
         dim3 threads( block_size, 1, 1);
-        dim3 grid((args.N+block_size-1)/block_size,1,1);
+        dim3 grid(args.N/block_size+1,1,1);
 
         hipLaunchKernelGGL((kernel::hpmc_gen_moves<Shape,2>), grid, threads, shared_bytes, 0,
                                                                      args.d_postype,
@@ -1835,7 +1840,7 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type *p
 
         // setup the grid to run the kernel
         dim3 threads( block_size, 1, 1);
-        dim3 grid((args.N+block_size-1)/block_size,1,1);
+        dim3 grid(args.N/block_size+1,1,1);
 
         hipLaunchKernelGGL((kernel::hpmc_gen_moves<Shape,3>), grid, threads, shared_bytes, 0,
                                                                      args.d_postype,

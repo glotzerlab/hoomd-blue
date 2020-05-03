@@ -1030,6 +1030,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         ArrayHandle<float> d_energy_new(m_energy_new, access_location::device, access_mode::overwrite);
                         ArrayHandle<unsigned int> d_nneigh_patch_new(m_nneigh_patch_new, access_location::device, access_mode::overwrite);
 
+                        ArrayHandle<unsigned int> d_reject_out_of_cell(m_reject_out_of_cell, access_location::device, access_mode::read);
                         ArrayHandle<unsigned int> d_overflow_patch(m_overflow_patch, access_location::device, access_mode::readwrite);
 
                         PatchEnergy::gpu_args_t patch_args(
@@ -1059,6 +1060,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                             d_overflow_patch.data,
                             d_charge.data,
                             d_diameter.data,
+                            d_reject_out_of_cell.data,
                             this->m_pdata->getGPUPartition());
 
                         // compute patch energy on default stream

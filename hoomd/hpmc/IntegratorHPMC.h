@@ -64,6 +64,7 @@ struct hpmc_patch_args_t
                 unsigned int *_d_overflow,
                 const Scalar *_d_charge,
                 const Scalar *_d_diameter,
+                const unsigned int *_d_reject_out_of_cell,
                 const GPUPartition& _gpu_partition)
                 : d_postype(_d_postype),
                   d_orientation(_d_orientation),
@@ -91,6 +92,7 @@ struct hpmc_patch_args_t
                   d_overflow(_d_overflow),
                   d_charge(_d_charge),
                   d_diameter(_d_diameter),
+                  d_reject_out_of_cell(_d_reject_out_of_cell),
                   gpu_partition(_gpu_partition)
         { }
 
@@ -120,6 +122,7 @@ struct hpmc_patch_args_t
     unsigned int *d_overflow;        //!< Overflow condition
     const Scalar *d_charge;          //!< Particle charges
     const Scalar *d_diameter;        //!< Particle diameters
+    const unsigned int *d_reject_out_of_cell;   //!< Flag if a particle move has been rejected a priori
     const GPUPartition& gpu_partition; //!< split particles among GPUs
     };
 #endif

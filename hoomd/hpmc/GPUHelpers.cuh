@@ -3,6 +3,10 @@
 
 //! Helper functions used by GPU kernels
 
+#include <hip/hip_runtime.h>
+#include "hoomd/HOOMDMath.h"
+#include "hoomd/Index1D.h"
+
 #pragma once
 namespace hpmc {
 
@@ -51,4 +55,4 @@ __device__ inline unsigned int computeParticleCell(const Scalar3& p,
 
 } // end namespace hpmc
 } // end namespace gpu
-} // end namespaec kernel
+} // end namespace kernel

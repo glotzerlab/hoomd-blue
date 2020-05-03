@@ -49,6 +49,7 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
                            Scalar r_cut_patch,
                            const Scalar *d_additive_cutoff,
                            unsigned int *d_overflow,
+                           const unsigned int *d_reject_out_of_cell,
                            const unsigned int max_queue_size,
                            const unsigned int work_offset,
                            const unsigned int nwork,
@@ -147,6 +148,11 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
     __syncthreads();
 
     unsigned int my_cell;
+
+    // if this particle is rejected a priori because it has left the cell, don't check overlaps
+    // and avoid out of range memory access when computing the cell
+    if (active && d_reject_out_of_cell[idx])
+        active = false;
 
     if (active)
         {
