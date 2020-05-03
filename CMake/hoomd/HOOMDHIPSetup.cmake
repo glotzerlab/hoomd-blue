@@ -37,6 +37,18 @@ int main(int argc, char **argv)
         set(CMAKE_CUDA_COMPILE_WHOLE_COMPILATION
             "<CMAKE_CUDA_COMPILER> ${CMAKE_CUDA_HOST_FLAGS} <DEFINES> <INCLUDES> <FLAGS> -c <SOURCE> -o <OBJECT>")
 
+        # compile for these architectures
+        if (HIP_PLATFORM STREQUAL "hip-clang" OR HIP_PLATFORM STREQUAL "hcc")
+            set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --amdgpu-target=gfx900")
+            set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --amdgpu-target=gfx906")
+            set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --amdgpu-target=gfx908")
+        endif()
+
+        if (HIP_FOUND)
+            # reduce link time (no device linking)
+            set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -fno-gpu-rdc")
+        endif()
+
         # these are no-ops, as device linking is not supported with hcc
         set(CMAKE_CUDA_DEVICE_LINK_LIBRARY "<CMAKE_CUDA_COMPILER> -o <TARGET> -x c++ -c /dev/null")
         set(CMAKE_CUDA_DEVICE_LINK_EXECUTABLE "<CMAKE_CUDA_COMPILER> -o <TARGET> -x c++ -c /dev/null")
@@ -93,11 +105,6 @@ int main(int argc, char **argv)
     endif()
 
     ENABLE_LANGUAGE(CUDA)
-
-    if (HIP_FOUND)
-        # reduce link time (no device linking)
-        set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -fno-gpu-rdc")
-    endif()
 
     if(NOT TARGET HIP::hip)
         add_library(HIP::hip INTERFACE IMPORTED)
