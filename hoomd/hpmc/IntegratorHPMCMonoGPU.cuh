@@ -988,7 +988,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
     unsigned int group = threadIdx.z;
     unsigned int offset = threadIdx.y;
     unsigned int group_size = blockDim.y;
-    bool master = (offset == 0);
+    bool master = (offset == 0) && (threadIdx.x==0);
     unsigned int n_groups = blockDim.z;
 
     unsigned int err_count = 0;
@@ -1091,7 +1091,6 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
     unsigned int n_depletants = d_n_depletants[i];
 
     unsigned int overlap_checks = 0;
-    unsigned int n_inserted = 0;
 
     // find the cell this particle should be in
     unsigned int my_cell = computeParticleCell(s_pos_i_old, box, ghost_width,
@@ -1139,7 +1138,6 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                 select*depletant_idx.getNumElements() + depletant_idx(depletant_type_a,depletant_type_b),
                 timestep);
 
-            n_inserted++;
             overlap_checks += 2;
 
             // test depletant position and orientation
@@ -1460,7 +1458,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                         }
                     }
                 } // end if (processing neighbor)
-            
+
             // threads that need to do more looking set the still_searching flag
             __syncthreads();
             if (master && group == 0)
@@ -1513,7 +1511,9 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
         atomicAdd(&d_counters->overlap_checks, s_overlap_checks);
         #endif
 
-        if (blockIdx.y == 0 && blockIdx.z == 0)
+        Shape shape_i(quat<Scalar>(quat<Scalar>()), s_params[s_type_i]);
+        bool ignore_stats = shape_i.ignoreStatistics();
+        if (!ignore_stats && blockIdx.y == 0 && blockIdx.z == 0)
             {
             // increment number of inserted depletants
             #if (__CUDA_ARCH__ >= 600)
