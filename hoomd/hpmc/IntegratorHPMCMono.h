@@ -2811,11 +2811,14 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                                 break;
                             }
 
-                        #ifdef ENABLE_TBB
-                        thread_implicit_counters[m_depletant_idx(type_a,type_b)].local().insert_count++;
-                        #else
-                        implicit_counters[m_depletant_idx(type_a,type_b)].insert_count++;
-                        #endif
+                        if (! shape_i.ignoreStatistics())
+                            {
+                            #ifdef ENABLE_TBB
+                            thread_implicit_counters[m_depletant_idx(type_a,type_b)].local().insert_count++;
+                            #else
+                            implicit_counters[m_depletant_idx(type_a,type_b)].insert_count++;
+                            #endif
+                            }
 
                         // rejection sampling
                         Shape shape_j(!new_config ? orientation_j_old[k] : orientation_j_new[k],
