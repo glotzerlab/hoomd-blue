@@ -35,7 +35,12 @@ def type_indices(request):
     return deepcopy(request.param)
 
 
-def test_type_filter(make_filter_snapshot, simulation_factory, type_indices):
+def test_type_filter(make_filter_snapshot,
+                     simulation_factory,
+                     type_indices,
+                     device):
+    if device.comm.num_ranks > 1:
+        pytest.skip('Test does not support MPI execution')
     particle_types = ['A', 'B']
     N = 10
     filter_snapshot = make_filter_snapshot(n=N, particle_types=particle_types)
