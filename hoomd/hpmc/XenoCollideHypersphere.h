@@ -106,15 +106,16 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,
 
 
     //move to Vertex 1 of A
-     pos_u = conj(a_p1)*conj(a_p1);
-     pos_a2 = conj(a_p1)*a_p2*a_p2*conj(a_p1);
-     pos_a3 = conj(a_p1)*a_p3*a_p3*conj(a_p1);
-     pos_a4 = conj(a_p1)*a_p4*a_p4*conj(a_p1);
+     pos_u =  hypersphere.hypersphericalToCartesian(conj(a_p1),conj(a_p1));
+     pos_a2 = hypersphere.hypersphericalToCartesian(conj(a_p1)*a_p2,a_p2*conj(a_p1));
+     pos_a3 = hypersphere.hypersphericalToCartesian(conj(a_p1)*a_p3,a_p3*conj(a_p1));
+     pos_a4 = hypersphere.hypersphericalToCartesian(conj(a_p1)*a_p4,a_p4*conj(a_p1));
 
-     pos_b.push_back(conj(a_p1)*quat_l*b_p1*b_p1*quat_r*conj(a_p1));
-     pos_b.push_back(conj(a_p1)*quat_l*b_p2*b_p2*quat_r*conj(a_p1));
-     pos_b.push_back(conj(a_p1)*quat_l*b_p3*b_p3*quat_r*conj(a_p1));
-     pos_b.push_back(conj(a_p1)*quat_l*b_p4*b_p4*quat_r*conj(a_p1));
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p1)*quat_l*b_p1,b_p1*quat_r*conj(a_p1)));
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p1)*quat_l*b_p2,b_p2*quat_r*conj(a_p1)));
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p1)*quat_l*b_p3,b_p3*quat_r*conj(a_p1)));
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p1)*quat_l*b_p4,b_p4*quat_r*conj(a_p1)));
+
 
     // Face (1,2,3) of A 
     n123 = cross(pos_a2.v, pos_a3.v);
@@ -153,11 +154,13 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,
 
     // See if edge of B goes through A 
     if(mp.size() > 0  && pm.size() > 0 && !mm){
-        for (int i =0; i < mp.size(); i++){
+        for (int i =0; i < pm.size(); i++){
             vec3<OverlapReal> n = cross(pm[i],pos_a2.v);
-            if(dot(n,n123)<0) n = -n;
+            if(dot(n,pos_u.v)>0) n = -n;
             for (int j =0; j < mp.size(); j++){
-                if(dot(n,mp[j]) < 0 ) mm = true;
+                if(dot(n,mp[j]) < 0 ){ 
+                    mm = true;
+                }
             }
         }
 
@@ -191,11 +194,13 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,
 
     // See if edge of B goes through A 
     if(mp.size() > 0  && pm.size() > 0 && !mm){
-        for (int i =0; i < mp.size(); i++){
+        for (int i =0; i < pm.size(); i++){
             vec3<OverlapReal> n = cross(pm[i],pos_a3.v);
-            if(dot(n,n123)<0) n = -n;
+            if(dot(n,pos_u.v)>0) n = -n;
             for (int j =0; j < mp.size(); j++){
-                if(dot(n,mp[j]) < 0 ) mm = true;
+                if(dot(n,mp[j]) < 0 ){ 
+                    mm = true;
+                }
             }
         }
 
@@ -217,12 +222,14 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,
     }
 
     // See if edge of B goes through A 
-    if(mp.size() > 0  && pm.size() > 0){
-        for (int i =0; i < mp.size(); i++){
+    if(mp.size() > 0  && pm.size() > 0 && !mm){
+        for (int i =0; i < pm.size(); i++){
             vec3<OverlapReal> n = cross(pm[i],pos_a4.v);
-            if(dot(n,n124)<0) n = -n;
+            if(dot(n,pos_u.v)>0) n = -n;
             for (int j =0; j < mp.size(); j++){
-                if(dot(n,mp[j]) < 0 ) mm = true;
+                if(dot(n,mp[j]) < 0 ){ 
+                    mm = true;
+                }
             }
         }
 
@@ -231,16 +238,17 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,
 
 
     //move to Vertex 2 of A
-     pos_u = conj(a_p2)*conj(a_p2);
-     pos_a3 = conj(a_p2)*a_p3*a_p3*conj(a_p2);
-     pos_a4 = conj(a_p2)*a_p4*a_p4*conj(a_p2);
-
+     pos_u =  hypersphere.hypersphericalToCartesian(conj(a_p2),conj(a_p2));
+     pos_a3 = hypersphere.hypersphericalToCartesian(conj(a_p2)*a_p3,a_p3*conj(a_p2));
+     pos_a4 = hypersphere.hypersphericalToCartesian(conj(a_p2)*a_p4,a_p4*conj(a_p2));
 
      pos_b.resize(0);
-     pos_b.push_back(conj(a_p2)*quat_l*b_p1*b_p1*quat_r*conj(a_p2));
-     pos_b.push_back(conj(a_p2)*quat_l*b_p2*b_p2*quat_r*conj(a_p2));
-     pos_b.push_back(conj(a_p2)*quat_l*b_p3*b_p3*quat_r*conj(a_p2));
-     pos_b.push_back(conj(a_p2)*quat_l*b_p4*b_p4*quat_r*conj(a_p2));
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p2)*quat_l*b_p1,b_p1*quat_r*conj(a_p2)));
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p2)*quat_l*b_p2,b_p2*quat_r*conj(a_p2)));
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p2)*quat_l*b_p3,b_p3*quat_r*conj(a_p2)));
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p2)*quat_l*b_p4,b_p4*quat_r*conj(a_p2)));
+
+
 
 
     // Face (2,3,4) of A 
@@ -273,12 +281,14 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,
     }
 
     // See if edge of B goes through A 
-    if(mp.size() > 0 && pm.size() > 0){
-        for (int i =0; i < mp.size(); i++){
+    if(mp.size() > 0 && pm.size() > 0 && !mm){
+        for (int i =0; i < pm.size(); i++){
             vec3<OverlapReal> n = cross(pm[i],pos_a3.v);
-            if(dot(n,n234)<0) n = -n;
+            if(dot(n,pos_u.v)>0) n = -n;
             for (int j =0; j < mp.size(); j++){
-                if(dot(n,mp[j]) < 0 ) mm = true;
+                if(dot(n,mp[j]) < 0 ){ 
+                    mm = true;
+                }
             }
         }
 
@@ -300,12 +310,14 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,
     }
 
     // See if edge of B goes through A 
-    if(mp.size() > 0 && pm.size() > 0){
-        for (int i =0; i < mp.size(); i++){
+    if(mp.size() > 0 && pm.size() > 0 && !mm){
+        for (int i =0; i < pm.size(); i++){
             vec3<OverlapReal> n = cross(pm[i],pos_a4.v);
-            if(dot(n,n234)<0) n = -n;
+            if(dot(n,pos_u.v)>0) n = -n;
             for (int j =0; j < mp.size(); j++){
-                if(dot(n,mp[j]) < 0 ) mm = true;
+                if(dot(n,mp[j]) < 0 ){ 
+                    mm = true;
+                }
             }
         }
 
@@ -313,19 +325,16 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,
     }
 
     //move to Vertex 3 of A
-     pos_u = conj(a_p3)*conj(a_p3);
-     pos_a2 = conj(a_p3)*a_p2*a_p2*conj(a_p3);
-     pos_a4 = conj(a_p3)*a_p4*a_p4*conj(a_p3);
-
+     pos_u =  hypersphere.hypersphericalToCartesian(conj(a_p3),conj(a_p3));
+     pos_a2 = hypersphere.hypersphericalToCartesian(conj(a_p3)*a_p2,a_p2*conj(a_p3));
+     pos_a4 = hypersphere.hypersphericalToCartesian(conj(a_p3)*a_p4,a_p4*conj(a_p3));
 
      pos_b.resize(0);
-     pos_b.push_back(conj(a_p3)*quat_l*b_p1*b_p1*quat_r*conj(a_p3));
-     pos_b.push_back(conj(a_p3)*quat_l*b_p2*b_p2*quat_r*conj(a_p3));
-     pos_b.push_back(conj(a_p3)*quat_l*b_p3*b_p3*quat_r*conj(a_p3));
-     pos_b.push_back(conj(a_p3)*quat_l*b_p4*b_p4*quat_r*conj(a_p3));
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p3)*quat_l*b_p1,b_p1*quat_r*conj(a_p3)));
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p3)*quat_l*b_p2,b_p2*quat_r*conj(a_p3)));
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p3)*quat_l*b_p3,b_p3*quat_r*conj(a_p3)));
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(a_p3)*quat_l*b_p4,b_p4*quat_r*conj(a_p3)));
 
-     n234 = cross(pos_a2.v, pos_a4.v);
-     if(dot(n234,pos_u.v) > 0) n234 = -n234;
 
     // Edge (3,4) of A 
     pm.resize(0);
@@ -342,12 +351,14 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,
     }
 
     // See if edge of B goes through A 
-    if(mp.size() > 0 && pm.size() > 0){
-        for (int i =0; i < mp.size(); i++){
+    if(mp.size() > 0 && pm.size() > 0 && !mm){
+        for (int i =0; i < pm.size(); i++){
             vec3<OverlapReal> n = cross(pm[i],pos_a4.v);
-            if(dot(n,n234)<0) n = -n;
+            if(dot(n,pos_u.v)>0) n = -n;
             for (int j =0; j < mp.size(); j++){
-                if(dot(n,mp[j]) < 0 ) mm = true;
+                if(dot(n,mp[j]) < 0 ){ 
+                    mm = true;
+                }
             }
         }
 
@@ -356,29 +367,25 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,
 
 
     //move to Vertex 1 of B
-     pos_u = conj(b_p1)*conj(b_p1);
-     pos_a2 = conj(b_p1)*b_p2*b_p2*conj(b_p1);
-     pos_a3 = conj(b_p1)*b_p3*b_p3*conj(b_p1);
-     pos_a4 = conj(b_p1)*b_p4*b_p4*conj(b_p1);
+     pos_u =  hypersphere.hypersphericalToCartesian(conj(b_p1),conj(b_p1));
+     pos_a2 = hypersphere.hypersphericalToCartesian(conj(b_p1)*b_p2,b_p2*conj(b_p1));
+     pos_a3 = hypersphere.hypersphericalToCartesian(conj(b_p1)*b_p3,b_p3*conj(b_p1));
+     pos_a4 = hypersphere.hypersphericalToCartesian(conj(b_p1)*b_p4,b_p4*conj(b_p1));
 
      pos_b.resize(0);
-     pos_b.push_back(conj(quat_l*b_p1)*a_p1*a_p1*conj(b_p1*quat_r));
-     pos_b.push_back(conj(quat_l*b_p1)*a_p2*a_p2*conj(b_p1*quat_r));
-     pos_b.push_back(conj(quat_l*b_p1)*a_p3*a_p3*conj(b_p1*quat_r));
-     pos_b.push_back(conj(quat_l*b_p1)*a_p4*a_p4*conj(b_p1*quat_r));
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(quat_l*b_p1)*a_p1,a_p1*conj(b_p1*quat_r)));
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(quat_l*b_p1)*a_p2,a_p2*conj(b_p1*quat_r)));
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(quat_l*b_p1)*a_p3,a_p3*conj(b_p1*quat_r)));
+     pos_b.push_back(hypersphere.hypersphericalToCartesian(conj(quat_l*b_p1)*a_p4,a_p4*conj(b_p1*quat_r)));
 
     // Face (1,2,3) of AB
     n123 = cross(pos_a2.v, pos_a3.v);
     if(dot(n123,pos_u.v) > 0) n123 = -n123;
 
     //inside or outside halfspace of (1,2,3)
-    side123[0]=false;
-    side123[1]=false;
-    side123[2]=false;
-    side123[3]=false;
-
     for( int i = 0; i < side123.size(); i++){
         if(dot(n123,pos_b[i].v) > 0) side123[i] = true;
+        else side123[i] = false;
     }
 
     if(side123[0] && side123[1] && side123[2] && side123[3]) return false;
@@ -388,13 +395,9 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,
     if(dot(n124,pos_u.v) > 0) n124 = -n124;
 
     //inside or outside halfspace of (1,2,4)
-    side124[0]=false;
-    side124[1]=false;
-    side124[2]=false;
-    side124[3]=false;
-
     for( int i = 0; i < side124.size(); i++){
         if(dot(n124,pos_b[i].v) > 0) side124[i] = true;
+        else side124[i] = false;
     }
 
     if(side124[0] && side124[1] && side124[2] && side124[3]) return false;
@@ -404,13 +407,9 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,
     if(dot(n134,pos_u.v) > 0) n134 = -n134;
 
     //inside or outside halfspace of (1,2,4)
-    side134[0]=false;
-    side134[1]=false;
-    side134[2]=false;
-    side134[3]=false;
-
     for( int i = 0; i < side134.size(); i++){
         if(dot(n134,pos_b[i].v) > 0) side134[i] = true;
+        else side134[i] = false;
     }
 
     if(side134[0] && side134[1] && side134[2] && side134[3]) return false;
@@ -431,13 +430,9 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,
     if(dot(n234,pos_u.v) > 0) n234 = -n234;
 
     //inside or outside halfspace of (2,3,4)
-    side234[0]=false;
-    side234[1]=false;
-    side234[2]=false;
-    side234[3]=false;
-
     for( int i = 0; i < side234.size(); i++){
         if(dot(n234,pos_b[i].v) > 0) side234[i] = true;
+        else side234[i] = false;
     }
 
     if(side234[0] && side234[1] && side234[2] && side234[3]) return false;

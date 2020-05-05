@@ -1032,6 +1032,15 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                                         arc_length = detail::get_arclength_hypersphere(shape_i.quat_l, shape_i.quat_r,
                                             quat_l_j, quat_r_j, hypersphere);
 
+                                    if (h_overlaps.data[m_overlap_idx(typ_i, typ_j)] && check_circumsphere_overlap_hypersphere(shape_i, shape_j, hypersphere)){
+                                        if(test_overlap_hypersphere(shape_i, shape_j, hypersphere, counters.overlap_err_count) != test_overlap_hypersphere(shape_j, shape_i, hypersphere, counters.overlap_err_count))
+                                        {
+                                            std::cout << "R " << hypersphere.getR() << std::endl;
+                                            std::cout << "Problem with i " << i_nselect << ": (" <<  shape_i.quat_l.s << "," << shape_i.quat_l.v.x << "," << shape_i.quat_l.v.y << "," << shape_i.quat_l.v.z <<  ") : (" << shape_i.quat_r.s << "," << shape_i.quat_r.v.x << "," << shape_i.quat_r.v.y << "," << shape_i.quat_r.v.z << ")" << std::endl;
+                                            std::cout << "Problem with j " << j << ": (" <<  shape_j.quat_l.s << "," << shape_j.quat_l.v.x << "," << shape_j.quat_l.v.y << "," << shape_j.quat_l.v.z <<  ") : (" << shape_j.quat_r.s << "," << shape_j.quat_r.v.x << "," << shape_j.quat_r.v.y << "," << shape_j.quat_r.v.z << ")" << std::endl;
+                                        }
+                                    }
+
                                     if (h_overlaps.data[m_overlap_idx(typ_i, typ_j)]
                                         && check_circumsphere_overlap_hypersphere(shape_i, shape_j, hypersphere)
                                         && test_overlap_hypersphere(shape_i, shape_j, hypersphere, counters.overlap_err_count))
