@@ -279,7 +279,7 @@ class Box:
     # Misc. properties
     @property
     def periodic(self):
-        """(3) `numpy.ndarray` of `float`: The periodicity of
+        """(3) `numpy.ndarray` of `bool`: The periodicity of
         each dimension."""
         return _to_three_array(self._cpp_obj.getPeriodic(), np.bool)
 
