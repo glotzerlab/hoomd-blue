@@ -13,7 +13,7 @@ from hoomd.operation import _Operation
 from hoomd.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.filter import _ParticleFilter
 from hoomd.typeparam import TypeParameter
-from hoomd.typeconverter import OnlyType 
+from hoomd.typeconverter import OnlyType
 import copy
 
 
@@ -43,7 +43,7 @@ class _Method(_Operation):
     pass
 
 
-class nvt(_Method):
+class NVT(_Method):
     R""" NVT Integration via the Nosé-Hoover thermostat.
 
     Args:
@@ -91,68 +91,31 @@ class nvt(_Method):
         typeA = group.type('A')
         integrator = integrate.nvt(group=typeA, tau=1.0, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
     """
-    def __init__(self, group, kT, tau):
-
-        # initialize base class
-        _Method.__init__(self)
-
-        # setup the variant inputs
-        kT = hoomd.variant._setup_variant_input(kT)
-
-        # create the compute thermo
-        # the NVT integrator uses the ComputeThermo in such a way that
-        # ComputeThermo stores half-time step values. By assigning a separate
-        # ComputeThermo to the integrator, we are still able to log full time
-        # step values
-        if group is hoomd.context.current.group_all:
-            group_copy = copy.copy(group)
-            group_copy.name = "__nvt_all"
-            thermo = hoomd.compute.thermo(group_copy)
-            thermo.cpp_compute.setLoggingEnabled(False)
-        else:
-            thermo = hoomd.compute._get_unique_thermo(group=group)
+    def __init__(self, filter, kT, tau)
 
         # store metadata
-        self.group = group
-        self.kT = kT
-        self.tau = tau
-        self.metadata_fields = ['group', 'kT', 'tau']
+        param_dict = ParameterDict(
+            filter=OnlyType(_ParticleFilter),
+            kT=create_variant,
+            tau=float(tau)
+            )
+        # set defaults
+        self._param_dict.update(param_dict)
 
-        # setup suffix
-        suffix = '_' + group.name
+    def attach(self, simulation):
 
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_method = _md.TwoStepNVTMTK(hoomd.context.current.system_definition, group.cpp_group, thermo.cpp_compute, tau, kT.cpp_variant, suffix)
+        # initialize the reflected cpp class
+        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+            my_class = _md.TwoStepNVTMKT
         else:
-            self.cpp_method = _md.TwoStepNVTMTKGPU(hoomd.context.current.system_definition, group.cpp_group, thermo.cpp_compute, tau, kT.cpp_variant, suffix)
+            my_class = _md.TwoStepNVTMKTGPU
 
-        self.cpp_method.validateGroup()
-
-    def set_params(self, kT=None, tau=None):
-        R""" Changes parameters of an existing integrator.
-
-        Args:
-            kT (float): New temperature (if set) (in energy units)
-            tau (float): New coupling constant (if set) (in time units)
-
-        Examples::
-
-            integrator.set_params(tau=0.6)
-            integrator.set_params(tau=0.7, kT=2.0)
-
-        """
-        self.check_initialization()
-
-        # change the parameters
-        if kT is not None:
-            # setup the variant inputs
-            kT = hoomd.variant._setup_variant_input(kT)
-            self.cpp_method.setT(kT.cpp_variant)
-            self.kT = kT
-
-        if tau is not None:
-            self.cpp_method.setTau(tau)
-            self.tau = tau
+        group = simulation.state.get_group(self.filter)
+        self._cpp_obj = my_class(simulation.state._cpp_sys_def,
+                                 group,
+                                 hoomd.compute.thermo(group).cpp_obj,  # placeholder
+                                 self.kT)
+        super().attach(simulation)
 
     def randomize_velocities(self, seed):
         R""" Assign random velocities and angular momenta to particles in the
@@ -178,9 +141,15 @@ class nvt(_Method):
             run(100)
 
         """
-        timestep = hoomd.get_step()
-        kT = self.kT.cpp_variant.getValue(timestep)
-        self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
+        #timestep = hoomd.get_step()
+        #kT = self.kT.cpp_variant.getValue(timestep)
+        #self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
+        if self.is_attached():
+            step = self.simulation.timestep
+            kT = self.kT._cpp_obj.getValue(timestep)
+            self._cpp_obj.setRandomVelocititesParams(kT, seed)
+        else:
+            # notify the user somehow that this is illegal
 
 
 class npt(_Method):
