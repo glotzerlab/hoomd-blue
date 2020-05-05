@@ -101,6 +101,8 @@ class Box:
 
     # Constructors
     def __init__(self, Lx, Ly, Lz=0, xy=0, xz=0, yz=0):
+        if Lz != 0 and (xz != 0 or yz !=0):
+            raise ValueError("Cannot set the xz or yz tilt factor on a 2D box.")
         self._cpp_obj = _hoomd.BoxDim(Lx, Ly, Lz)
         self._cpp_obj.setTiltFactors(xy, xz, yz)
 
@@ -189,7 +191,10 @@ class Box:
 
     @L.setter
     def L(self, new_L):
-        self._cpp_obj.setL(_make_scalar3(new_L))
+        newL = _make_scalar3(new_L)
+        if newL.z == 0 and not self.is2D:
+            self.tilts = [self.xy, 0, 0]
+        self._cpp_obj.setL(newL)
 
     @property
     def Lx(self):
@@ -236,9 +241,8 @@ class Box:
     @tilts.setter
     def tilts(self, new_tilts):
         new_tilts = _make_scalar3(new_tilts)
-        if self.is2D:
-            new_tilts.y = 0
-            new_tilts.z = 0
+        if self.is2D and (new_tilts.y != 0 or new_tilts.z != 0):
+            raise ValueError("Cannot set the xz or yz tilt factor on a 2D box.")
         self._cpp_obj.setTiltFactors(new_tilts.x, new_tilts.y, new_tilts.z)
 
     @property
@@ -257,6 +261,8 @@ class Box:
 
     @xz.setter
     def xz(self, xz):
+        if self.is2D:
+            raise ValueError("Cannot set xz tilt factor on a 2D box.")
         self.tilts = [self.xy, xz, self.yz]
 
     @property
@@ -266,6 +272,8 @@ class Box:
 
     @yz.setter
     def yz(self, yz):
+        if self.is2D:
+            raise ValueError("Cannot set yz tilt factor on a 2D box.")
         self.tilts = [self.xy, self.xz, yz]
 
     # Misc. properties
