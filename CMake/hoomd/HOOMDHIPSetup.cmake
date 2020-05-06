@@ -37,12 +37,12 @@ int main(int argc, char **argv)
         set(CMAKE_CUDA_COMPILE_WHOLE_COMPILATION
             "<CMAKE_CUDA_COMPILER> ${CMAKE_CUDA_HOST_FLAGS} <DEFINES> <INCLUDES> <FLAGS> -c <SOURCE> -o <OBJECT>")
 
-        # compile for these architectures
-        if (HIP_PLATFORM STREQUAL "hip-clang" OR HIP_PLATFORM STREQUAL "hcc")
-            set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --amdgpu-target=gfx900")
-            set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --amdgpu-target=gfx906")
-            set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --amdgpu-target=gfx908")
-        endif()
+        # setup nvcc to build for all CUDA architectures. Allow user to modify the list if desired
+        set(AMDGPU_TARGET_LIST gfx900 gfx906 gfx908 CACHE STRING "List of AMD GPU to compile HIP code for. Separate with semicolons.")
+
+        foreach(_amdgpu_target ${AMDGPU_TARGET_LIST})
+            set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --amdgpu-target=${_amdgpu_target}")
+        endforeach (_amdgpu_target)
 
         if (HIP_FOUND)
             # reduce link time (no device linking)
