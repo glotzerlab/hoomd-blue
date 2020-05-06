@@ -187,6 +187,7 @@ void PatchEnergyJITUnionGPU::computePatchEnergyGPU(const gpu_args_t& args, hipSt
             args.r_cut_patch,
             args.d_additive_cutoff,
             args.d_overflow,
+            args.d_reject_out_of_cell,
             max_queue_size,
             range.first,
             nwork,

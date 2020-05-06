@@ -149,12 +149,13 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
 
     unsigned int my_cell;
 
-    // if this particle is rejected a priori because it has left the cell, don't check overlaps
+    // if this particle is rejected a priori because it has left the cell, don't compute the energy
     // and avoid out of range memory access when computing the cell
+    bool compute_energy = true;
     if (active && d_reject_out_of_cell[idx])
-        active = false;
+        compute_energy = false;
 
-    if (active)
+    if (active && compute_energy)
         {
         // load particle i
         Scalar4 postype_i_old(d_postype[idx]);
@@ -186,14 +187,14 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
     unsigned int k = offset;
 
     // true if we are checking against the old configuration
-    if (active)
+    if (active && compute_energy)
         {
         excell_size = d_excell_size[my_cell];
         }
 
     // loop while still searching
 
-    // only the first thread of every group of eval_threads threads adds to the queueu
+    // only the first thread of every group of eval_threads threads adds to the queue
     active &= threadIdx.x == 0;
 
     while (s_still_searching)
@@ -202,7 +203,7 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
         // loop through particles in the excell list and add them to the queue if they pass the circumsphere check
 
         // active threads add to the queue
-        if (active)
+        if (active && compute_energy)
             {
             // prefetch j
             unsigned int j, next_j = 0;
@@ -353,7 +354,7 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
         if (master && group == 0)
             s_queue_size = 0;
 
-        if (active && (k >> 2) < excell_size)
+        if (active && compute_energy && (k >> 2) < excell_size)
             atomicAdd(&s_still_searching, 1);
 
         __syncthreads();
