@@ -9,7 +9,7 @@
 from hoomd import _hoomd
 from hoomd.md import _md
 import hoomd
-from hoomd.operation import _Operation
+from hoomd.operation import _Operation, NotAttachedError
 from hoomd.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.filter import _ParticleFilter
 from hoomd.typeparam import TypeParameter
@@ -113,11 +113,11 @@ class NVT(_Method):
         group = simulation.state.get_group(self.filter)
         self._cpp_obj = my_class(simulation.state._cpp_sys_def,
                                  group,
-                                 hoomd.compute.thermo(group).cpp_obj,  # placeholder
+                                 hoomd.compute.thermo(group)._cpp_obj,  # placeholder
                                  self.kT)
         super().attach(simulation)
 
-    def randomize_velocities(self, seed):
+    def thermalize_velocities(self, seed):
         R""" Assign random velocities and angular momenta to particles in the
         group, sampling from the Maxwell-Boltzmann distribution. This method
         considers the dimensionality of the system and particle anisotropy, and
@@ -141,15 +141,12 @@ class NVT(_Method):
             run(100)
 
         """
-        #timestep = hoomd.get_step()
-        #kT = self.kT.cpp_variant.getValue(timestep)
-        #self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
-        if self.is_attached():
-            step = self.simulation.timestep
-            kT = self.kT._cpp_obj.getValue(timestep)
-            self._cpp_obj.setRandomVelocititesParams(kT, seed)
-        else:
-            # notify the user somehow that this is illegal
+        if not self.is_attached():
+            raise NotAttachedError("Must be attached before calling thermalize_velocities()")
+
+        step = self._sim.timestep  # need to give operations access to the sim object
+        kT = self.kT._cpp_obj.getValue(timestep)
+        self._cpp_obj.setRandomVelocititesParams(kT, seed)
 
 
 class npt(_Method):
