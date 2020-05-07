@@ -21,6 +21,9 @@ from hoomd.parameterdicts import ParameterDict
 
 from copy import deepcopy
 
+class NotAttachedError(RuntimeError):
+    """ Raised when a method that requires attachment is called before attaching """
+    pass
 
 def convert_values_to_log_form(value):
     if value is RequiredArg:
