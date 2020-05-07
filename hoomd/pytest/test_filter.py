@@ -2,6 +2,7 @@ import pytest
 from hoomd.filter.type_ import Type
 from hoomd.filter.tags import Tags
 from hoomd.filter.set_ import SetDifference, Union, Intersection
+from hoomd.filter.all_ import All
 from hoomd.snapshot import Snapshot
 from copy import deepcopy
 from itertools import combinations
@@ -21,6 +22,16 @@ def make_filter_snapshot(device):
     return filter_snapshot
 
 
+@pytest.mark.serial
+def test_all_filter(make_filter_snapshot, simulation_factory):
+    particle_types = ['A']
+    N = 10
+    filter_snapshot = make_filter_snapshot(n=N, particle_types=particle_types)
+    sim = simulation_factory(filter_snapshot)
+    all_filter = All()
+    assert all_filter(sim.state) == list(range(N))
+
+
 def set_types(s, inds, particle_types, particle_type):
     for i in inds:
         s.particles.typeid[i] = particle_types.index(particle_type)
@@ -36,10 +47,7 @@ def type_indices(request):
 
 
 @pytest.mark.serial
-def test_type_filter(make_filter_snapshot,
-                     simulation_factory,
-                     type_indices,
-                     device):
+def test_type_filter(make_filter_snapshot, simulation_factory, type_indices):
     particle_types = ['A', 'B']
     N = 10
     filter_snapshot = make_filter_snapshot(n=N, particle_types=particle_types)
