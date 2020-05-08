@@ -3,6 +3,7 @@ from collections import defaultdict
 from . import _hoomd
 from .data import boxdim
 from hoomd.snapshot import Snapshot
+from hoomd.local_access import LocalSnapshot
 
 
 def _create_domain_decomposition(device, box):
@@ -187,3 +188,7 @@ class State:
             group = _hoomd.ParticleGroup(self._cpp_sys_def, filter_)
             self._groups[cls][filter_] = group
             return group
+
+    @property
+    def local_snapshot(self):
+        return LocalSnapshot(self)

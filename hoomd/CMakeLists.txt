@@ -300,6 +300,7 @@ set(files analyze.py
           __init__.py
           init.py
           integrate.py
+          local_access.py
           meta.py
           operation.py
           operations.py
