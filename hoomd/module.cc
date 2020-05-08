@@ -337,6 +337,7 @@ PYBIND11_MODULE(_hoomd, m)
     export_BoxDim(m);
     export_ParticleData(m);
     export_SnapshotParticleData(m);
+    export_LocalParticleData(m);
     export_MPIConfiguration(m);
     export_ExecutionConfiguration(m);
     export_SystemDefinition(m);

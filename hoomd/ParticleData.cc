@@ -3566,3 +3566,27 @@ void export_SnapshotParticleData(py::module& m)
     .def_readonly("is_accel_set", &SnapshotParticleData<double>::is_accel_set)
     ;
    }
+
+void export_LocalParticleData(py::module& m)
+    {
+    py::class_<LocalParticleData, std::shared_ptr<LocalParticleData> >(
+        m, "LocalParticleData")
+    .def(py::init<ParticleData&>())
+    .def("getPosition", &LocalParticleData::getPosition)
+    .def("getTypes", &LocalParticleData::getTypes)
+    .def("getVelocities", &LocalParticleData::getVelocities)
+    .def("getAcceleration", &LocalParticleData::getAcceleration)
+    .def("getMasses", &LocalParticleData::getMasses)
+    .def("getOrientation", &LocalParticleData::getOrientation)
+    .def("getAngularMomentum", &LocalParticleData::getAngularMomentum)
+    .def("getMomentsOfIntertia", &LocalParticleData::getMomentsOfInertia)
+    .def("getCharge", &LocalParticleData::getCharge)
+    .def("getDiameter", &LocalParticleData::getDiameter)
+    .def("getImages", &LocalParticleData::getImages)
+    .def("getTags", &LocalParticleData::getTags)
+    .def("getRTags", &LocalParticleData::getRTags)
+    .def("getBodies", &LocalParticleData::getBodies)
+    .def("enter", &LocalParticleData::enter)
+    .def("exit", &LocalParticleData::exit)
+    ;
+    }
