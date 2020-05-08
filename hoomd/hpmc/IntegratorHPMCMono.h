@@ -984,9 +984,10 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                           }
 
                       // subtract minimum AABB extent from search radius
-                      OverlapReal R_query = std::max(shape_i.getCircumsphereDiameter()/OverlapReal(2.0),
-                          r_cut_patch-getMinCoreDiameter()/(OverlapReal)2.0);
-                      detail::AABB aabb_i = detail::AABB(hypersphere.hypersphericalToCartesian(shape_i.quat_l, shape_i.quat_r),R_query);
+                      //OverlapReal R_query = std::max(shape_i.getAABBHypersphere(hypersphere),
+                      //    r_cut_patch-getMinCoreDiameter()/(OverlapReal)2.0);
+                      //detail::AABB aabb_i = detail::AABB(hypersphere.hypersphericalToCartesian(shape_i.quat_l, shape_i.quat_r),R_query);
+                      detail::AABB aabb_i = shape_i.getAABBHypersphere(hypersphere);
 
                       // patch + field interaction deltaU
                       double patch_field_energy_diff = 0;
