@@ -290,7 +290,7 @@ class Gauss(_Pair):
 
     """
     _cpp_class_name = "PotentialPairGauss"
-    def __init__(self, nlist, r_cut=None, r_on=0, mode='none'):
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         super().__init__(nlist, r_cut, r_on, mode)
         params = TypeParameter('params', 'particle_types',
                                TypeParameterDict(epsilon=float, sigma=float,
@@ -303,7 +303,7 @@ class Gauss(_Pair):
 
         return _hoomd.make_scalar2(epsilon, sigma);
 
-class slj(pair):
+class SLJ(_Pair):
     R""" Shifted Lennard-Jones pair potential.
 
     Args:
@@ -367,37 +367,23 @@ class slj(pair):
         slj.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=2.0)
 
     """
-    def __init__(self, r_cut, nlist, d_max=None, name=None):
+    _cpp_class_name = 'PotentialPairSLJ'
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none', d_max=None):
+        super().__init__(nlist, r_cut, r_on, mode)
+        params = TypeParameter('params', 'particle_types',
+                               TypeParameterDict(epsilon=float, sigma=float,
+                                                 alpha=1.0, len_keys=2)
+                               )
+        self._add_typeparam(params)
 
-        # tell the base class how we operate
+        param_dict = ParameterDict(
+            d_max=float,
+            mode=OnlyFrom(['none', 'shifted'])  # mode not allowed to be xplor
+            explicit_defaults=dict(mode=mode, d_max=__) # largest particle diameter in the system taken from cpp
+            )
+        self._param_dict.update(param_dict)
 
-        # initialize the base class
-        pair.__init__(self, r_cut, nlist, name);
-
-        # update the neighbor list
-        if d_max is None :
-            sysdef = hoomd.context.current.system_definition;
-            d_max = sysdef.getParticleData().getMaxDiameter()
-            hoomd.context.current.device.cpp_msg.notice(2, "Notice: slj set d_max=" + str(d_max) + "\n");
-
-        # SLJ requires diameter shifting to be on
-        self.nlist.cpp_nlist.setDiameterShift(True);
-        self.nlist.cpp_nlist.setMaximumDiameter(d_max);
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PotentialPairSLJ(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairSLJ;
-        else:
-            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-            self.cpp_force = _md.PotentialPairSLJGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairSLJGPU;
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-
-        # setup the coefficient options
-        self.required_coeffs = ['epsilon', 'sigma', 'alpha'];
-        self.pair_coeff.set_default_coeff('alpha', 1.0);
+        # NOTE need to set diameter shift and max diameter in the neighborlist once attached
 
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
@@ -408,21 +394,6 @@ class slj(pair):
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
         return _hoomd.make_scalar2(lj1, lj2);
 
-    def set_params(self, mode=None):
-        R""" Set parameters controlling the way forces are computed.
-
-        See :py:meth:`pair.set_params()`.
-
-        Note:
-            **xplor** is not a valid setting for :py:class:`slj`.
-
-        """
-
-        if mode == "xplor":
-            hoomd.context.current.device.cpp_msg.error("XPLOR is smoothing is not supported with slj\n");
-            raise RuntimeError("Error changing parameters in pair force");
-
-        pair.set_params(self, mode=mode);
 
 class yukawa(pair):
     R""" Yukawa pair potential.
