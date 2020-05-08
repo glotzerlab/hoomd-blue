@@ -67,48 +67,61 @@ def state_args(request):
     return deepcopy(request.param)
 
 
+class FileContext():
+    def __init__(self, filename):
+        self.filename = filename
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        os.remove(self.filename)
+
+
 def test_state_from_gsd(simulation_factory, get_snapshot, device, state_args):
     filename = 'test_file.gsd'
 
-    snap_params, integrator, shape_dict, run_sequence = state_args
-    sim = simulation_factory(get_snapshot(n=snap_params[0],
-                                          particle_types=snap_params[1]))
-    mc = integrator(2345)
-    mc.shape['A'] = shape_dict
+    with FileContext(filename) as file:
+        snap_params, integrator, shape_dict, run_sequence = state_args
+        sim = simulation_factory(get_snapshot(n=snap_params[0],
+                                              particle_types=snap_params[1]))
+        mc = integrator(2345)
+        mc.shape['A'] = shape_dict
 
-    sim.operations.add(mc)
-    gsd_dumper = hoomd.dump.GSD(filename=filename, trigger=1, overwrite=True)
-    gsd_logger = hoomd.logger.Logger()
-    gsd_logger += mc
-    gsd_dumper.log = gsd_logger
-    sim.operations.add(gsd_dumper)
-    sim.operations.schedule()
-    pos_dict = {}
-    initial_pos = sim.state.snapshot.particles.position
-    count = 0
-    for nsteps in run_sequence:
-        sim.run(nsteps)
-        count += nsteps
-        pos_dict[count] = sim.state.snapshot.particles.position
+        sim.operations.add(mc)
+        gsd_dumper = hoomd.dump.GSD(filename=file.filename,
+                                    trigger=1,
+                                    overwrite=True)
+        gsd_logger = hoomd.logger.Logger()
+        gsd_logger += mc
+        gsd_dumper.log = gsd_logger
+        sim.operations.add(gsd_dumper)
+        sim.operations.schedule()
+        pos_dict = {}
+        initial_pos = sim.state.snapshot.particles.position
+        count = 0
+        for nsteps in run_sequence:
+            sim.run(nsteps)
+            count += nsteps
+            pos_dict[count] = sim.state.snapshot.particles.position
 
-    final_pos = sim.state.snapshot.particles.position
-    sim.run(1)
+        final_pos = sim.state.snapshot.particles.position
+        sim.run(1)
 
-    initial_pos_sim = hoomd.simulation.Simulation(device)
-    initial_pos_sim.create_state_from_gsd(filename, frame=0)
-    initial_pos_snap = initial_pos_sim.state.snapshot
-    numpy.testing.assert_allclose(initial_pos,
-                                  initial_pos_snap.particles.position)
+        initial_pos_sim = hoomd.simulation.Simulation(device)
+        initial_pos_sim.create_state_from_gsd(file.filename, frame=0)
+        initial_pos_snap = initial_pos_sim.state.snapshot
+        numpy.testing.assert_allclose(initial_pos,
+                                      initial_pos_snap.particles.position)
 
-    final_pos_sim = hoomd.simulation.Simulation(device)
-    final_pos_sim.create_state_from_gsd(filename)
-    final_pos_snap = final_pos_sim.state.snapshot
-    numpy.testing.assert_allclose(final_pos, final_pos_snap.particles.position)
+        final_pos_sim = hoomd.simulation.Simulation(device)
+        final_pos_sim.create_state_from_gsd(file.filename)
+        final_pos_snap = final_pos_sim.state.snapshot
+        numpy.testing.assert_allclose(final_pos,
+                                      final_pos_snap.particles.position)
 
-    for nsteps, positions in pos_dict.items():
-        sim = hoomd.simulation.Simulation(device)
-        sim.create_state_from_gsd(filename, frame=nsteps)
-        snap = sim.state.snapshot
-        numpy.testing.assert_allclose(positions, snap.particles.position)
-
-    os.remove(filename)
+        for nsteps, positions in pos_dict.items():
+            sim = hoomd.simulation.Simulation(device)
+            sim.create_state_from_gsd(file.filename, frame=nsteps)
+            snap = sim.state.snapshot
+            numpy.testing.assert_allclose(positions, snap.particles.position)
