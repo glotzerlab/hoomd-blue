@@ -137,6 +137,7 @@ set(_hoomd_headers
     ParticleGroup.cuh
     ParticleGroup.h
     Profiler.h
+    PythonLocalDataAccess.h
     RandomNumbers.h
     RNGIdentifiers.h
     SFCPackTunerGPU.cuh
