@@ -491,7 +491,7 @@ DEVICE inline bool test_overlap_hypersphere(const ShapeConvexPolyhedron& a,
                                   hypersphere,
                                   DaDb/2.0,
                                   err);
-    }
+   }
 
 }; // end namespace hpmc
 
