@@ -248,7 +248,7 @@ class LJ(_Pair):
                                )
         self._add_typeparam(params)
 
-class gauss(pair):
+class Gauss(_Pair):
     R""" Gaussian pair potential.
 
     Args:
@@ -289,26 +289,13 @@ class gauss(pair):
         gauss.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=3.0, sigma=0.5)
 
     """
-    def __init__(self, r_cut, nlist, name=None):
-
-        # tell the base class how we operate
-
-        # initialize the base class
-        pair.__init__(self, r_cut, nlist, name);
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PotentialPairGauss(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairGauss;
-        else:
-            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-            self.cpp_force = _md.PotentialPairGaussGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairGaussGPU;
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-
-        # setup the coefficient options
-        self.required_coeffs = ['epsilon', 'sigma'];
+    _cpp_class_name = "PotentialPairGauss"
+    def __init__(self, nlist, r_cut=None, r_on=0, mode='none'):
+        super().__init__(nlist, r_cut, r_on, mode)
+        params = TypeParameter('params', 'particle_types',
+                               TypeParameterDict(epsilon=float, sigma=float,
+                                                 len_keys=2))
+        self._add_typeparam(params)
 
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
