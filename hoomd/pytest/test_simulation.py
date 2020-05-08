@@ -67,7 +67,7 @@ def state_args(request):
     return deepcopy(request.param)
 
 
-class FileContext():
+class TemporaryFileContext():
     def __init__(self, filename):
         self.filename = filename
 
@@ -79,9 +79,9 @@ class FileContext():
 
 
 def test_state_from_gsd(simulation_factory, get_snapshot, device, state_args):
-    filename = 'test_file.gsd'
+    filename = 'temporary_test_file.gsd'
 
-    with FileContext(filename) as file:
+    with TemporaryFileContext(filename) as file:
         snap_params, integrator, shape_dict, run_sequence = state_args
         sim = simulation_factory(get_snapshot(n=snap_params[0],
                                               particle_types=snap_params[1]))
