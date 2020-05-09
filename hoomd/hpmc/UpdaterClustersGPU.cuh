@@ -41,7 +41,6 @@ struct cluster_args_t
     //! Construct a cluster_args_t
     cluster_args_t(Scalar4 *_d_postype,
                 Scalar4 *_d_orientation,
-                const unsigned int *_d_tag,
                 const Index3D& _ci,
                 const uint3& _cell_dim,
                 const Scalar3& _ghost_width,
@@ -57,7 +56,6 @@ struct cluster_args_t
                 const unsigned int _overlap_threads,
                 Scalar4 *_d_trial_postype,
                 Scalar4 *_d_trial_orientation,
-                unsigned int *_d_trial_tag,
                 unsigned int *_d_excell_idx,
                 const unsigned int *_d_excell_size,
                 const Index2D& _excli,
@@ -74,7 +72,6 @@ struct cluster_args_t
                 const hipStream_t *_streams)
                 : d_postype(_d_postype),
                   d_orientation(_d_orientation),
-                  d_tag(_d_tag),
                   ci(_ci),
                   cell_dim(_cell_dim),
                   ghost_width(_ghost_width),
@@ -90,7 +87,6 @@ struct cluster_args_t
                   overlap_threads(_overlap_threads),
                   d_trial_postype(_d_trial_postype),
                   d_trial_orientation(_d_trial_orientation),
-                  d_trial_tag(_d_trial_tag),
                   d_excell_idx(_d_excell_idx),
                   d_excell_size(_d_excell_size),
                   excli(_excli),
@@ -110,7 +106,6 @@ struct cluster_args_t
 
     Scalar4 *d_postype;               //!< postype array
     Scalar4 *d_orientation;           //!< orientation array
-    const unsigned int *d_tag;        //!< tag array
     const Index3D& ci;                //!< Cell indexer
     const uint3& cell_dim;            //!< Cell dimensions
     const Scalar3& ghost_width;       //!< Width of the ghost layer
@@ -126,7 +121,6 @@ struct cluster_args_t
     unsigned int overlap_threads;     //!< Threads per overlap check
     Scalar4 *d_trial_postype;         //!< New positions (and type) of particles
     Scalar4 *d_trial_orientation;     //!< New orientations of particles
-    unsigned int *d_trial_tag;        //!< List of tags of particles in new configuration
     unsigned int *d_excell_idx;       //!< Expanded cell list
     const unsigned int *d_excell_size;//!< Size of expanded cells
     const Index2D& excli;             //!< Excell indexer
@@ -171,10 +165,8 @@ __launch_bounds__(max_threads)
 #endif
 __global__ void hpmc_cluster_overlaps(const Scalar4 *d_postype,
                            const Scalar4 *d_orientation,
-                           const unsigned int *d_tag,
                            const Scalar4 *d_trial_postype,
                            const Scalar4 *d_trial_orientation,
-                           const unsigned int *d_trial_tag,
                            const unsigned int *d_excell_idx,
                            const unsigned int *d_excell_size,
                            const Index2D excli,
@@ -213,7 +205,7 @@ __global__ void hpmc_cluster_overlaps(const Scalar4 *d_postype,
     unsigned int *s_queue_j =   (unsigned int*)(s_check_overlaps + overlap_idx.getNumElements());
     unsigned int *s_queue_gid = (unsigned int*)(s_queue_j + max_queue_size);
     unsigned int *s_type_group = (unsigned int*)(s_queue_gid + max_queue_size);
-    unsigned int *s_tag_group = (unsigned int*)(s_type_group + n_groups);
+    unsigned int *s_idx_group = (unsigned int*)(s_type_group + n_groups);
 
         {
         // copy over parameters one int per thread for fast loads
@@ -243,7 +235,7 @@ __global__ void hpmc_cluster_overlaps(const Scalar4 *d_postype,
     __syncthreads();
 
     // initialize extra shared mem
-    char *s_extra = (char *)(s_tag_group + n_groups);
+    char *s_extra = (char *)(s_idx_group + n_groups);
 
     unsigned int available_bytes = max_extra_bytes;
     for (unsigned int cur_type = 0; cur_type < num_types; ++cur_type)
@@ -274,7 +266,6 @@ __global__ void hpmc_cluster_overlaps(const Scalar4 *d_postype,
         Scalar4 postype_i(d_trial_postype[idx]);
         vec3<Scalar> pos_i(postype_i);
         unsigned int type_i = __scalar_as_int(postype_i.w);
-        unsigned int tag_i = d_trial_tag[idx];
 
         // find the cell this particle should be in
         my_cell = computeParticleCell(vec_to_scalar3(pos_i), box, ghost_width,
@@ -285,7 +276,7 @@ __global__ void hpmc_cluster_overlaps(const Scalar4 *d_postype,
             s_pos_group[group] = make_scalar3(pos_i.x, pos_i.y, pos_i.z);
             s_type_group[group] = type_i;
             s_orientation_group[group] = d_trial_orientation[idx];
-            s_tag_group[group] = tag_i;
+            s_idx_group[group] = idx;
             }
         }
 
@@ -351,9 +342,7 @@ __global__ void hpmc_cluster_overlaps(const Scalar4 *d_postype,
                 vec3<Scalar> r_ij = pos_j - pos_i;
                 r_ij = box.minImage(r_ij);
 
-                unsigned int tag_j = d_tag[j];
-
-                if (s_tag_group[group] != tag_j && check_circumsphere_overlap(r_ij, shape_i, shape_j))
+                if (s_idx_group[group] != j && check_circumsphere_overlap(r_ij, shape_i, shape_j))
                     {
                     // add this particle to the queue
                     unsigned int insert_point = atomicAdd(&s_queue_size, 1);
@@ -419,7 +408,7 @@ __global__ void hpmc_cluster_overlaps(const Scalar4 *d_postype,
                 #endif
                 if (n < maxn)
                     {
-                    d_adjacency[n] = make_uint2(s_tag_group[check_group],d_tag[check_j]);
+                    d_adjacency[n] = make_uint2(s_idx_group[check_group],check_j);
                     }
                 }
             }
@@ -535,7 +524,7 @@ void cluster_overlaps_launcher(const cluster_args_t& args, const typename Shape:
             dim3 grid(num_blocks, 1, 1);
 
             hipLaunchKernelGGL((hpmc_cluster_overlaps<Shape, launch_bounds_nonzero*MIN_BLOCK_SIZE>), grid, thread, shared_bytes, args.streams[idev],
-                args.d_postype, args.d_orientation, args.d_tag, args.d_trial_postype, args.d_trial_orientation, args.d_trial_tag,
+                args.d_postype, args.d_orientation, args.d_trial_postype, args.d_trial_orientation,
                 args.d_excell_idx, args.d_excell_size, args.excli,
                 args.d_adjacency, args.d_nneigh, args.maxn, args.num_types,
                 args.box, args.ghost_width, args.cell_dim, args.ci, args.d_check_overlaps,
@@ -556,7 +545,6 @@ __launch_bounds__(max_threads)
 #endif
 __global__ void clusters_insert_depletants(const Scalar4 *d_postype,
                                      const Scalar4 *d_orientation,
-                                     const unsigned int *d_tag,
                                      bool line,
                                      vec3<Scalar> pivot,
                                      quat<Scalar> q,
@@ -598,7 +586,6 @@ __global__ void clusters_insert_depletants(const Scalar4 *d_postype,
     __shared__ Scalar4 s_orientation_i;
     __shared__ Scalar3 s_pos_i;
     __shared__ unsigned int s_type_i;
-    __shared__ unsigned int s_tag_i;
     __shared__ int3 s_img_i;
 
     // shared queue variables
@@ -663,7 +650,6 @@ __global__ void clusters_insert_depletants(const Scalar4 *d_postype,
         Scalar4 postype_i = d_postype[i];
         s_pos_i = make_scalar3(postype_i.x, postype_i.y, postype_i.z);
         s_type_i = __scalar_as_int(postype_i.w);
-        s_tag_i = d_tag[i];
         s_orientation_i = d_orientation[i];
 
         // get image of particle i after transformation
@@ -879,7 +865,7 @@ __global__ void clusters_insert_depletants(const Scalar4 *d_postype,
                     bool circumsphere_overlap = s_check_overlaps[overlap_idx(depletant_type, type_j)] &&
                         check_circumsphere_overlap(r_jk, shape_test, shape_j);
 
-                    if (s_tag_i != d_tag[j] && circumsphere_overlap)
+                    if (i != j && circumsphere_overlap)
                         {
                         // add this particle to the queue
                         unsigned int insert_point = atomicAdd(&s_queue_size, 1);
@@ -935,7 +921,7 @@ __global__ void clusters_insert_depletants(const Scalar4 *d_postype,
 
                 if (s_check_overlaps[overlap_idx(depletant_type, type_j)] &&
                     test_overlap(r_jk, shape_test, shape_j, err_count) &&
-                    d_tag[check_j] < s_tag_i)
+                    check_j < i)
                     {
                     s_reject_group[check_group] = 1;
                     }
@@ -1246,7 +1232,7 @@ __global__ void clusters_insert_depletants(const Scalar4 *d_postype,
                     #endif
                     if (n < maxn)
                         {
-                        d_adjacency[n] = make_uint2(s_tag_i,d_tag[check_j]);
+                        d_adjacency[n] = make_uint2(i,check_j);
                         }
                     }
                 } // end if (processing neighbor)
@@ -1372,7 +1358,6 @@ void clusters_depletants_launcher(const cluster_args_t& args, const hpmc_implici
                 dim3(grid), dim3(threads), shared_bytes, implicit_args.streams[idev],
                                  args.d_postype,
                                  args.d_orientation,
-                                 args.d_tag,
                                  args.line,
                                  args.pivot,
                                  args.q,

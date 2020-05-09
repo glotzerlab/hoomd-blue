@@ -98,7 +98,6 @@ class UpdaterClustersGPU : public UpdaterClusters<Shape>
         #endif
 
          /*! \param timestep Current time step
-            \param map Map to lookup new tag from old tag
          */
         virtual void findInteractions(unsigned int timestep, const quat<Scalar> q, const vec3<Scalar> pivot, bool line);
 
@@ -558,16 +557,14 @@ void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const qu
                 // access backup particle data
                 ArrayHandle<Scalar4> d_postype_backup(this->m_postype_backup, access_location::device, access_mode::read);
                 ArrayHandle<Scalar4> d_orientation_backup(this->m_orientation_backup, access_location::device, access_mode::read);
-                ArrayHandle<unsigned int> d_tag_backup(this->m_tag_backup, access_location::device, access_mode::read);
 
                 // access the particle data
                 ArrayHandle<Scalar4> d_postype(this->m_pdata->getPositions(), access_location::device, access_mode::read);
                 ArrayHandle<Scalar4> d_orientation(this->m_pdata->getOrientationArray(), access_location::device, access_mode::read);
-                ArrayHandle<unsigned int> d_tag(this->m_pdata->getTags(), access_location::device, access_mode::read);
 
                 // depletants
                 auto& depletant_idx = this->m_mc->getDepletantIndexer();
-                m_n_depletants.resize(this->m_n_particles_old*depletant_idx.getNumElements()*this->m_pdata->getMaxN());
+                m_n_depletants.resize(this->m_pdata->getN()*depletant_idx.getNumElements()*this->m_pdata->getMaxN());
 
                 ArrayHandle<Scalar> d_lambda(m_lambda, access_location::device, access_mode::read);
                 ArrayHandle<unsigned int> d_n_depletants(m_n_depletants, access_location::device, access_mode::overwrite);
@@ -576,7 +573,6 @@ void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const qu
                 gpu::cluster_args_t args(
                     d_postype_backup.data,
                     d_orientation_backup.data,
-                    d_tag_backup.data,
                     this->m_cl->getCellIndexer(),
                     this->m_cl->getDim(),
                     ghost_width,
@@ -592,7 +588,6 @@ void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const qu
                     0, // overlap_threads
                     d_postype.data,
                     d_orientation.data,
-                    d_tag.data,
                     d_excell_idx.data,
                     d_excell_size.data,
                     m_excell_list_indexer,
@@ -748,17 +743,8 @@ void UpdaterClustersGPU< Shape >::updateGPUAdvice()
             cudaMemAdvise(this->m_postype_backup.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             cudaMemPrefetchAsync(this->m_postype_backup.get()+range.first, sizeof(Scalar4)*nelem, gpu_map[idev]);
 
-            cudaMemAdvise(this->m_tag_backup.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-            cudaMemPrefetchAsync(this->m_tag_backup.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
-
             cudaMemAdvise(this->m_orientation_backup.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             cudaMemPrefetchAsync(this->m_orientation_backup.get()+range.first, sizeof(Scalar4)*nelem, gpu_map[idev]);
-
-            cudaMemAdvise(this->m_diameter_backup.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-            cudaMemPrefetchAsync(this->m_diameter_backup.get()+range.first, sizeof(Scalar4)*nelem, gpu_map[idev]);
-
-            cudaMemAdvise(this->m_charge_backup.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-            cudaMemPrefetchAsync(this->m_charge_backup.get()+range.first, sizeof(Scalar4)*nelem, gpu_map[idev]);
             }
         }
     #endif
