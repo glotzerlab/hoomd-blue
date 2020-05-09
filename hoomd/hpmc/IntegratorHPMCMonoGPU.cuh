@@ -27,7 +27,7 @@ namespace hpmc {
 namespace gpu {
 
 #define MAX_BLOCK_SIZE 1024
-#define MIN_BLOCK_SIZE 128 // a reasonable minimum to limit the number of template instantiations
+#define MIN_BLOCK_SIZE 256 // a reasonable minimum to limit the number of template instantiations
 
 //! Wraps arguments to hpmc_* template functions
 /*! \ingroup hpmc_data_structs */
@@ -205,6 +205,7 @@ struct hpmc_update_args_t
     hpmc_update_args_t(Scalar4 *_d_postype,
         Scalar4 *_d_orientation,
         hpmc_counters_t *_d_counters,
+        unsigned int _counters_pitch,
         const GPUPartition& _gpu_partition,
         const Scalar4 *_d_trial_postype,
         const Scalar4 *_d_trial_orientation,
@@ -215,6 +216,7 @@ struct hpmc_update_args_t
         : d_postype(_d_postype),
           d_orientation(_d_orientation),
           d_counters(_d_counters),
+          counters_pitch(_counters_pitch),
           gpu_partition(_gpu_partition),
           d_trial_postype(_d_trial_postype),
           d_trial_orientation(_d_trial_orientation),
@@ -228,6 +230,7 @@ struct hpmc_update_args_t
     Scalar4 *d_postype;
     Scalar4 *d_orientation;
     hpmc_counters_t *d_counters;
+    unsigned int counters_pitch;
     const GPUPartition& gpu_partition;
     const Scalar4 *d_trial_postype;
     const Scalar4 *d_trial_orientation;
@@ -522,7 +525,9 @@ __global__ void hpmc_gen_moves(Scalar4 *d_postype,
 //! Check narrow-phase overlaps
 template< class Shape, unsigned int max_threads >
 #ifdef __HIP_PLATFORM_NVCC__
-__launch_bounds__(max_threads > 0 ? max_threads : 1)
+__launch_bounds__(max_threads)
+#else
+__launch_bounds__(max_threads, max_threads/256)
 #endif
 __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
                            Scalar4 *d_orientation,
@@ -849,9 +854,10 @@ void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_
         // determine the maximum block size and clamp the input block size down
         static int max_block_size = -1;
         static hipFuncAttributes attr;
+        constexpr unsigned int launch_bounds_nonzero = cur_launch_bounds > 0 ? cur_launch_bounds : 1;
         if (max_block_size == -1)
             {
-            hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_narrow_phase<Shape, cur_launch_bounds*MIN_BLOCK_SIZE>));
+            hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_narrow_phase<Shape, launch_bounds_nonzero*MIN_BLOCK_SIZE>));
             max_block_size = attr.maxThreadsPerBlock;
             }
 
@@ -925,7 +931,21 @@ void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_
 
             dim3 grid(num_blocks, 1, 1);
 
-            hipLaunchKernelGGL((hpmc_narrow_phase<Shape, cur_launch_bounds*MIN_BLOCK_SIZE>), grid, thread, shared_bytes, args.streams[idev],
+            assert(args.d_postype);
+            assert(args.d_orientation);
+            assert(args.d_trial_postype);
+            assert(args.d_trial_orientation);
+            assert(args.d_excell_idx);
+            assert(args.d_excell_size);
+            assert(args.d_nlist);
+            assert(args.d_nneigh);
+            assert(args.d_counters);
+            assert(args.d_check_overlaps);
+            assert(args.d_overflow);
+            assert(args.d_reject_out_of_cell);
+
+            hipLaunchKernelGGL((hpmc_narrow_phase<Shape, launch_bounds_nonzero*MIN_BLOCK_SIZE>),
+                grid, thread, shared_bytes, args.streams[idev],
                 args.d_postype, args.d_orientation, args.d_trial_postype, args.d_trial_orientation,
                 args.d_excell_idx, args.d_excell_size, args.excli,
                 args.d_nlist, args.d_nneigh, args.maxn, args.d_counters+idev*args.counters_pitch, args.num_types,
@@ -942,8 +962,10 @@ void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_
 
 //! Kernel to insert depletants on-the-fly
 template< class Shape, unsigned int max_threads, bool pairwise >
-#ifdef __HIP_PLAFORM_NVCC__
-__launch_bounds__(max_threads > 0 ? max_threads : 1)
+#ifdef __HIP_PLATFORM_NVCC__
+__launch_bounds__(max_threads)
+#else
+__launch_bounds__(max_threads, max_threads/256)
 #endif
 __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                                      const Scalar4 *d_trial_orientation,
@@ -1537,10 +1559,11 @@ void depletants_launcher(const hpmc_args_t& args, const hpmc_implicit_args_t& im
         // determine the maximum block size and clamp the input block size down
         static int max_block_size = -1;
         static hipFuncAttributes attr;
+        constexpr unsigned int launch_bounds_nonzero = cur_launch_bounds > 0 ? cur_launch_bounds : 1;
         if (max_block_size == -1)
             {
             hipFuncGetAttributes(&attr,
-                reinterpret_cast<const void*>(&kernel::hpmc_insert_depletants<Shape, cur_launch_bounds*MIN_BLOCK_SIZE, pairwise>));
+                reinterpret_cast<const void*>(&kernel::hpmc_insert_depletants<Shape, launch_bounds_nonzero*MIN_BLOCK_SIZE, pairwise>));
             max_block_size = attr.maxThreadsPerBlock;
             }
 
@@ -1621,14 +1644,30 @@ void depletants_launcher(const hpmc_args_t& args, const hpmc_implicit_args_t& im
                 grid.z = blocks_per_particle/args.devprop.maxGridSize[1]+1;
                 }
 
-            hipLaunchKernelGGL((kernel::hpmc_insert_depletants<Shape, cur_launch_bounds*MIN_BLOCK_SIZE, pairwise>),
+            assert(args.d_trial_postype);
+            assert(args.d_trial_orientation);
+            assert(args.d_trial_move_type);
+            assert(args.d_postype);
+            assert(args.d_orientation);
+            assert(args.d_counters);
+            assert(args.d_excell_idx);
+            assert(args.d_excell_size);
+            assert(args.d_check_overlaps);
+            assert(args.d_reject_out_of_cell);
+            assert(implicit_args.d_implicit_count);
+            assert(args.d_nneigh);
+            assert(args.d_nlist);
+            assert(args.d_overflow);
+            assert(implicit_args.d_n_depletants);
+
+            hipLaunchKernelGGL((kernel::hpmc_insert_depletants<Shape, launch_bounds_nonzero*MIN_BLOCK_SIZE, pairwise>),
                 dim3(grid), dim3(threads), shared_bytes, implicit_args.streams[idev],
                                  args.d_trial_postype,
                                  args.d_trial_orientation,
                                  args.d_trial_move_type,
                                  args.d_postype,
                                  args.d_orientation,
-                                 args.d_counters,
+                                 args.d_counters + idev*args.counters_pitch,
                                  args.d_excell_idx,
                                  args.d_excell_size,
                                  args.excli,
@@ -1897,13 +1936,6 @@ void hpmc_narrow_phase(const hpmc_args_t& args, const typename Shape::param_type
 template< class Shape >
 void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t& implicit_args, const typename Shape::param_type *params)
     {
-    assert(args.d_postype);
-    assert(args.d_orientation);
-    assert(args.d_counters);
-    assert(args.d_excell_idx);
-    assert(args.d_excell_size);
-    assert(args.d_check_overlaps);
-
     // select the kernel template according to the next power of two of the block size
     unsigned int launch_bounds = MIN_BLOCK_SIZE;
     while (launch_bounds < args.block_size)
@@ -1951,7 +1983,7 @@ void hpmc_update_pdata(const hpmc_update_args_t& args, const typename Shape::par
         hipLaunchKernelGGL((kernel::hpmc_update_pdata<Shape>), dim3(num_blocks), dim3(block_size), 0, 0,
             args.d_postype,
             args.d_orientation,
-            args.d_counters,
+            args.d_counters+idev*args.counters_pitch,
             nwork,
             range.first,
             args.d_trial_postype,

@@ -1173,6 +1173,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     d_postype.data,
                     d_orientation.data,
                     ngpu > 1 ? d_counters_per_device.data : d_counters.data,
+                    this->m_counters.getPitch(),
                     this->m_pdata->getGPUPartition(),
                     d_trial_postype.data,
                     d_trial_orientation.data,

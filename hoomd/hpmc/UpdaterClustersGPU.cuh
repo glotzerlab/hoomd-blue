@@ -20,13 +20,8 @@
 
 #include "IntegratorHPMCMonoGPU.cuh"
 
-#ifdef __HIP_PLATFORM_NVCC__
 #define MAX_BLOCK_SIZE 1024
 #define MIN_BLOCK_SIZE 128 // a reasonable minimum to limit the number of template instantiations
-#elif defined(__HIP_PLATFORM_HCC__)
-#define MAX_BLOCK_SIZE 1024
-#define MIN_BLOCK_SIZE 1024 // __launch_bounds__ not properly supported
-#endif
 
 namespace hpmc
 {
@@ -166,7 +161,11 @@ namespace kernel
 
 //! Check narrow-phase overlaps
 template< class Shape, unsigned int max_threads >
-__launch_bounds__(max_threads > 0 ? max_threads : 1)
+#ifdef __HIP_PLATFORM_NVCC__
+__launch_bounds__(max_threads)
+#else
+__launch_bounds__(max_threads, max_threads/256)
+#endif
 __global__ void hpmc_cluster_overlaps(const Scalar4 *d_postype,
                            const Scalar4 *d_orientation,
                            const unsigned int *d_tag,
@@ -444,9 +443,10 @@ void cluster_overlaps_launcher(const cluster_args_t& args, const typename Shape:
         // determine the maximum block size and clamp the input block size down
         static int max_block_size = -1;
         static hipFuncAttributes attr;
+        constexpr unsigned int launch_bounds_nonzero = cur_launch_bounds > 0 ? cur_launch_bounds : 1;
         if (max_block_size == -1)
             {
-            hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_cluster_overlaps<Shape, cur_launch_bounds*MIN_BLOCK_SIZE>));
+            hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_cluster_overlaps<Shape, launch_bounds_nonzero*MIN_BLOCK_SIZE>));
             max_block_size = attr.maxThreadsPerBlock;
             if (max_block_size % args.devprop.warpSize)
                 // handle non-sensical return values from hipFuncGetAttributes
@@ -531,7 +531,7 @@ void cluster_overlaps_launcher(const cluster_args_t& args, const typename Shape:
 
             dim3 grid(num_blocks, 1, 1);
 
-            hipLaunchKernelGGL((hpmc_cluster_overlaps<Shape, cur_launch_bounds*MIN_BLOCK_SIZE>), grid, thread, shared_bytes, args.streams[idev],
+            hipLaunchKernelGGL((hpmc_cluster_overlaps<Shape, launch_bounds_nonzero*MIN_BLOCK_SIZE>), grid, thread, shared_bytes, args.streams[idev],
                 args.d_postype, args.d_orientation, args.d_tag, args.d_trial_postype, args.d_trial_orientation, args.d_trial_tag,
                 args.d_excell_idx, args.d_excell_size, args.excli,
                 args.d_adjacency, args.d_nneigh, args.maxn, args.num_types,
@@ -548,7 +548,11 @@ void cluster_overlaps_launcher(const cluster_args_t& args, const typename Shape:
 
 //! Kernel to insert depletants on-the-fly
 template< class Shape, unsigned int max_threads >
-__launch_bounds__(max_threads > 0 ? max_threads : 1)
+#ifdef __HIP_PLATFORM_NVCC__
+__launch_bounds__(max_threads)
+#else
+__launch_bounds__(max_threads, max_threads/256)
+#endif
 __global__ void clusters_insert_depletants(const Scalar4 *d_postype,
                                      const Scalar4 *d_orientation,
                                      const unsigned int *d_tag,
@@ -1275,9 +1279,10 @@ void clusters_depletants_launcher(const cluster_args_t& args, const hpmc_implici
         // determine the maximum block size and clamp the input block size down
         static int max_block_size = -1;
         static hipFuncAttributes attr;
+        constexpr unsigned int launch_bounds_nonzero = cur_launch_bounds > 0 ? cur_launch_bounds : 1;
         if (max_block_size == -1)
             {
-            hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(&kernel::clusters_insert_depletants<Shape, cur_launch_bounds*MIN_BLOCK_SIZE>));
+            hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(&kernel::clusters_insert_depletants<Shape, launch_bounds_nonzero*MIN_BLOCK_SIZE>));
             max_block_size = attr.maxThreadsPerBlock;
             if (max_block_size % args.devprop.warpSize)
                 // handle non-sensical return values from hipFuncGetAttributes
@@ -1362,7 +1367,7 @@ void clusters_depletants_launcher(const cluster_args_t& args, const hpmc_implici
                 grid.z = blocks_per_particle/args.devprop.maxGridSize[1]+1;
                 }
 
-            hipLaunchKernelGGL((kernel::clusters_insert_depletants<Shape, cur_launch_bounds*MIN_BLOCK_SIZE>),
+            hipLaunchKernelGGL((kernel::clusters_insert_depletants<Shape, launch_bounds_nonzero*MIN_BLOCK_SIZE>),
                 dim3(grid), dim3(threads), shared_bytes, implicit_args.streams[idev],
                                  args.d_postype,
                                  args.d_orientation,

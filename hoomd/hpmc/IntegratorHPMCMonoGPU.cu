@@ -559,6 +559,7 @@ void get_max_num_depletants(unsigned int *d_n_depletants,
                             const GPUPartition& gpu_partition,
                             CachedAllocator& alloc)
     {
+    assert(d_n_depletants);
     thrust::device_ptr<unsigned int> n_depletants(d_n_depletants);
     for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
         {
