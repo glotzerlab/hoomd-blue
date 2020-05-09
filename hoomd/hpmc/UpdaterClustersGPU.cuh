@@ -20,8 +20,13 @@
 
 #include "IntegratorHPMCMonoGPU.cuh"
 
+#ifdef __HIP_PLATFORM_NVCC__
 #define MAX_BLOCK_SIZE 1024
-#define MIN_BLOCK_SIZE 128 // a reasonable minimum to limit the number of template instantiations
+#define MIN_BLOCK_SIZE 256 // a reasonable minimum to limit the number of template instantiations
+#else
+#define MAX_BLOCK_SIZE 1024
+#define MIN_BLOCK_SIZE 1024 // on AMD, we do not use __launch_bounds__
+#endif
 
 namespace hpmc
 {
@@ -161,7 +166,9 @@ namespace kernel
 
 //! Check narrow-phase overlaps
 template< class Shape, unsigned int max_threads >
+#ifdef __HIP_PLATFORM_NVCC__
 __launch_bounds__(max_threads)
+#endif
 __global__ void hpmc_cluster_overlaps(const Scalar4 *d_postype,
                            const Scalar4 *d_orientation,
                            const unsigned int *d_tag,
@@ -544,7 +551,9 @@ void cluster_overlaps_launcher(const cluster_args_t& args, const typename Shape:
 
 //! Kernel to insert depletants on-the-fly
 template< class Shape, unsigned int max_threads >
+#ifdef __HIP_PLATFORM_NVCC__
 __launch_bounds__(max_threads)
+#endif
 __global__ void clusters_insert_depletants(const Scalar4 *d_postype,
                                      const Scalar4 *d_orientation,
                                      const unsigned int *d_tag,
