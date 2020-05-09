@@ -55,6 +55,9 @@ class UpdaterClustersGPU : public UpdaterClusters<Shape>
 
             m_tuner_num_depletants->setPeriod(period);
             m_tuner_num_depletants->setEnabled(enable);
+
+            m_tuner_concatenate->setPeriod(period);
+            m_tuner_concatenate->setEnabled(enable);
             }
 
         //! Take one timestep forward
@@ -63,8 +66,9 @@ class UpdaterClustersGPU : public UpdaterClusters<Shape>
         virtual void update(unsigned int timestep);
 
     protected:
-        GlobalVector<uint2> m_adjacency;     //!< List of overlaps between old and new configuration
-        GlobalVector<int> m_components;      //!< The connected component labels per particle
+        GlobalArray<unsigned int> m_adjacency;     //!< List of overlaps between old and new configuration
+        GlobalVector<uint2> m_adjacency_copy;       //!< List of overlaps between old and new configuration, contiguous
+        GlobalVector<int> m_components;             //!< The connected component labels per particle
 
         std::shared_ptr<CellList> m_cl;                      //!< Cell list
         uint3 m_last_dim;                                    //!< Dimensions of the cell list on the last call to update
@@ -74,12 +78,16 @@ class UpdaterClustersGPU : public UpdaterClusters<Shape>
         std::unique_ptr<Autotuner> m_tuner_overlaps;  //!< Autotuner for overlap checks
         std::unique_ptr<Autotuner> m_tuner_depletants;       //!< Autotuner for inserting depletants
         std::unique_ptr<Autotuner> m_tuner_num_depletants;   //!< Autotuner for calculating number of depletants
+        std::unique_ptr<Autotuner> m_tuner_concatenate;   //!< Autotuner for contenating the per-particle neighbor lists
 
         GlobalArray<unsigned int> m_excell_idx;              //!< Particle indices in expanded cells
         GlobalArray<unsigned int> m_excell_size;             //!< Number of particles in each expanded cell
         Index2D m_excell_list_indexer;                       //!< Indexer to access elements of the excell_idx list
 
-        GlobalArray<unsigned int> m_nneigh;                     //!< Number of neighbors
+        GlobalVector<unsigned int> m_nneigh;                 //!< Number of neighbors
+        GlobalVector<unsigned int> m_nneigh_scan;            //!< Exclusive prefix sum over number of neighbors
+        unsigned int m_maxn;                                 //!< Max number of neighbors
+        GlobalArray<unsigned int> m_overflow;                //!< Overflow condition for neighbor list
 
         GPUPartition m_old_gpu_partition;                     //!< The partition in the old configuration
         GlobalVector<unsigned int> m_n_depletants;             //!< List of number of depletants, per particle
@@ -176,6 +184,19 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
         }
     m_tuner_depletants.reset(new Autotuner(valid_params_depletants, 5, 100000, "clusters_depletants", this->m_exec_conf));
 
+    // tuning parameters for nlist concatenation kernel
+    std::vector<unsigned int> valid_params_concatenate;
+    for (unsigned int block_size = dev_prop.warpSize; block_size <= (unsigned int) dev_prop.maxThreadsPerBlock;
+        block_size += dev_prop.warpSize)
+        {
+        for (unsigned int group_size=1; group_size <= overlaps_max_tpp; group_size*=2)
+            {
+            if ((block_size % group_size) == 0)
+                valid_params_concatenate.push_back(block_size*10000 + group_size);
+            }
+        }
+    m_tuner_concatenate.reset(new Autotuner(valid_params_concatenate, 5, 100000, "clusters_concatenate", this->m_exec_conf));
+
     GlobalArray<unsigned int> excell_size(0, this->m_exec_conf);
     m_excell_size.swap(excell_size);
     TAG_ALLOCATION(m_excell_size);
@@ -185,10 +206,13 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
     TAG_ALLOCATION(m_excell_idx);
 
     // allocate memory for connected components
-    GlobalVector<uint2>(this->m_exec_conf).swap(m_adjacency);
+    GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_adjacency);
     TAG_ALLOCATION(m_adjacency);
     GlobalVector<int>(this->m_exec_conf).swap(m_components);
     TAG_ALLOCATION(m_components);
+
+    GlobalVector<uint2>(this->m_exec_conf).swap(m_adjacency_copy);
+    TAG_ALLOCATION(m_adjacency_copy);
 
     m_overlaps_streams.resize(this->m_exec_conf->getNumActiveGPUs());
     for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
@@ -199,6 +223,18 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
 
     GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_nneigh);
     TAG_ALLOCATION(m_nneigh);
+
+    GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_nneigh_scan);
+    TAG_ALLOCATION(m_nneigh_scan);
+
+    m_maxn = 0;
+    GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_overflow);
+    TAG_ALLOCATION(m_overflow);
+
+        {
+        ArrayHandle<unsigned int> h_overflow(m_overflow, access_location::host, access_mode::overwrite);
+        *h_overflow.data = 0;
+        }
 
     // Depletants
     const Index2D& depletant_idx = this->m_mc->getDepletantIndexer();
@@ -338,99 +374,83 @@ void UpdaterClustersGPU<Shape>::connectedComponents(unsigned int N, std::vector<
 void UpdaterClustersGPU<Shape>::connectedComponents(unsigned int N, std::vector<std::vector<unsigned int> >& clusters)
 #endif
     {
-    // collect interactions on rank 0
-    bool master = !this->m_exec_conf->getRank();
-
-    // copy overlaps into GPU array
-    #ifdef ENABLE_MPI
-    if (this->m_comm)
-        {
-        // gather lists from different ranks
-        std::vector< std::set<std::pair<unsigned int, unsigned int> > > all_overlaps;
-        std::set<std::pair<unsigned int, unsigned int> > overlaps;
-
-            {
-            ArrayHandle<uint2> h_adjacency(m_adjacency, access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_nneigh(m_nneigh, access_location::host, access_mode::read);
-            unsigned int nneigh_local = *h_nneigh.data;
-            for (unsigned int i = 0; i < nneigh_local; ++i)
-                {
-                overlaps.insert(std::make_pair(h_adjacency.data[i].x, h_adjacency.data[i].y));
-                }
-            }
-
-        gather_v(overlaps, all_overlaps, 0, this->m_exec_conf->getMPICommunicator());
-
-        if (master)
-            {
-            // determine new size for overlaps list
-            unsigned int n_overlaps = 0;
-            for (auto it = all_overlaps.begin(); it != all_overlaps.end(); ++it)
-                n_overlaps += it->size();
-
-            // resize local adjacency list
-            m_adjacency.resize(n_overlaps);
-
-                {
-                ArrayHandle<uint2> h_adjacency(m_adjacency, access_location::host, access_mode::overwrite);
-                ArrayHandle<unsigned int> h_nneigh(m_nneigh, access_location::host, access_mode::overwrite);
-
-                // collect adjacency matrix
-                unsigned int offs = 0;
-                for (auto it = all_overlaps.begin(); it != all_overlaps.end(); ++it)
-                    {
-                    for (auto p : *it)
-                        {
-                        h_adjacency.data[offs++] = make_uint2(p.first, p.second);
-                        }
-                    }
-                *h_nneigh.data = n_overlaps;
-                }
-            }
-        }
-    #endif
-
     if (this->m_prof)
         this->m_prof->push(this->m_exec_conf, "connected components");
 
-    if (master)
+    // this will contain the number of strongly connected components
+    unsigned int num_components = 0;
+
+    m_components.resize(N);
+
+    // access edges of adajacency matrix
+    ArrayHandle<unsigned int> d_adjacency(m_adjacency, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_nneigh(m_nneigh, access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> d_nneigh_scan(m_nneigh_scan, access_location::host, access_mode::overwrite);
+
+    // determine total size of adjacency list, and do prefix sum
+    unsigned int nneigh_total;
+    this->m_exec_conf->beginMultiGPU();
+    gpu::get_num_neighbors(
+        d_nneigh.data,
+        d_nneigh_scan.data,
+        nneigh_total,
+        this->m_pdata->getGPUPartition(),
+        this->m_exec_conf->getCachedAllocatorManaged());
+    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+    this->m_exec_conf->endMultiGPU();
+
+    // allocate memory for contiguous adjacency list, factor of two for symmetry
+    m_adjacency_copy.resize(nneigh_total*2);
+
+    ArrayHandle<uint2> d_adjacency_copy(m_adjacency_copy, access_location::device, access_mode::overwrite);
+
+    // concatenate per-particle neighbor lists into a single one
+    this->m_exec_conf->beginMultiGPU();
+    unsigned int param = m_tuner_concatenate->getParam();
+    unsigned int block_size = param / 10000;
+    unsigned int group_size = param % 10000;
+    m_tuner_concatenate->begin();
+    gpu::concatenate_adjacency_list(
+        d_adjacency.data,
+        d_nneigh.data,
+        d_nneigh_scan.data,
+        m_maxn,
+        d_adjacency_copy.data,
+        this->m_pdata->getGPUPartition(),
+        block_size,
+        group_size);
+    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+    m_tuner_concatenate->end();
+    this->m_exec_conf->endMultiGPU();
+
         {
-        m_components.resize(N);
+        // access the output array
+        ArrayHandle<int> d_components(m_components, access_location::device, access_mode::overwrite);
 
-        // access edges of adajacency matrix
-        ArrayHandle<uint2> d_adjacency(m_adjacency, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> h_nneigh(m_nneigh, access_location::host, access_mode::read);
+        gpu::connected_components(
+            d_adjacency_copy.data,
+            N,
+            nneigh_total*2,
+            d_components.data,
+            num_components,
+            this->m_exec_conf->dev_prop,
+            this->m_exec_conf->getCachedAllocator());
 
-        // this will contain the number of strongly connected components
-        unsigned int num_components = 0;
+        if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
 
-            {
-            // access the output array
-            ArrayHandle<int> d_components(m_components, access_location::device, access_mode::overwrite);
+    clusters.clear();
+    clusters.resize(num_components);
 
-            gpu::connected_components(
-                d_adjacency.data,
-                N,
-                *h_nneigh.data,
-                d_components.data,
-                num_components,
-                this->m_exec_conf->dev_prop,
-                this->m_exec_conf->getCachedAllocator());
+    // copy back to host
+    ArrayHandle<int> h_components(m_components, access_location::host, access_mode::read);
 
-            if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-                CHECK_CUDA_ERROR();
-            }
-
-        clusters.clear();
-        clusters.resize(num_components);
-
-        // copy back to host
-        ArrayHandle<int> h_components(m_components, access_location::host, access_mode::read);
-
-        for (unsigned int i = 0; i < N; ++i)
-            {
-            clusters[h_components.data[i]].push_back(i);
-            }
+    for (unsigned int i = 0; i < N; ++i)
+        {
+        clusters[h_components.data[i]].push_back(i);
         }
 
     if (this->m_prof)
@@ -548,10 +568,21 @@ void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const qu
 
         bool reallocate = false;
 
+        // allocate memory for number of neighbors
+        unsigned int old_size = m_nneigh.size();
+        m_nneigh.resize(this->m_pdata->getN());
+        m_nneigh_scan.resize(this->m_pdata->getN());
+
+        if (m_nneigh.size() != old_size)
+            {
+            // update memory hints
+            updateGPUAdvice();
+            }
+
         do
             {
                 { // ArrayHandle scope
-                ArrayHandle<uint2> d_adjacency(m_adjacency, access_location::device, access_mode::overwrite);
+                ArrayHandle<unsigned int> d_adjacency(m_adjacency, access_location::device, access_mode::overwrite);
                 ArrayHandle<unsigned int> d_nneigh(m_nneigh, access_location::device, access_mode::overwrite);
 
                 // access backup particle data
@@ -568,6 +599,8 @@ void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const qu
 
                 ArrayHandle<Scalar> d_lambda(m_lambda, access_location::device, access_mode::read);
                 ArrayHandle<unsigned int> d_n_depletants(m_n_depletants, access_location::device, access_mode::overwrite);
+
+                ArrayHandle<unsigned int> d_overflow(m_overflow, access_location::device, access_mode::readwrite);
 
                 // fill the parameter structure for the GPU kernel
                 gpu::cluster_args_t args(
@@ -593,7 +626,8 @@ void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const qu
                     m_excell_list_indexer,
                     d_adjacency.data,
                     d_nneigh.data,
-                    m_adjacency.getNumElements(),
+                    m_maxn,
+                    d_overflow.data,
                     this->m_sysdef->getNDimensions(),
                     line,
                     pivot,
@@ -603,16 +637,24 @@ void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const qu
                     m_old_gpu_partition,
                     &m_overlaps_streams.front());
 
+                this->m_exec_conf->beginMultiGPU();
+
                 // reset number of neighbors
-                hipMemsetAsync(d_nneigh.data, 0,  sizeof(unsigned int));
-                if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-                    CHECK_CUDA_ERROR();
+                for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
+                    {
+                    hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
+
+                    auto range = this->m_pdata->getGPUPartition().getRange(idev);
+                    if (range.second - range.first != 0)
+                        hipMemsetAsync(d_nneigh.data + range.first, 0,  sizeof(unsigned int)*(range.second-range.first));
+                    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                        CHECK_CUDA_ERROR();
+                    }
 
                 /*
                  *  check overlaps, new configuration simultaneously against old configuration
                  */
 
-                this->m_exec_conf->beginMultiGPU();
                 m_tuner_overlaps->begin();
                 unsigned int param = m_tuner_overlaps->getParam();
                 args.block_size = param/1000000;
@@ -711,16 +753,54 @@ void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const qu
 template< class Shape >
 bool UpdaterClustersGPU< Shape >::checkReallocate()
     {
-    // read back number of neighbors and resize as necessary
-    ArrayHandle<unsigned int> h_nneigh(m_nneigh, access_location::host, access_mode::read);
-    unsigned int req_maxn = *h_nneigh.data;
+    // read back overflow condition and resize as necessary
+    ArrayHandle<unsigned int> h_overflow(m_overflow, access_location::host, access_mode::read);
+    unsigned int req_maxn = *h_overflow.data;
 
-    bool reallocate = req_maxn > m_adjacency.getNumElements();
+    bool maxn_changed = false;
+    if (req_maxn > m_maxn)
+        {
+        m_maxn = req_maxn;
+        maxn_changed = true;
+        }
+
+    unsigned int req_size_nlist = m_maxn*this->m_pdata->getN();
 
     // resize
-    m_adjacency.resize(req_maxn);
+    bool reallocate = req_size_nlist > m_adjacency.getNumElements();
+    if (reallocate)
+        {
+        this->m_exec_conf->msg->notice(9) << "hpmc clusters resizing neighbor list "
+            << m_adjacency.getNumElements() << " -> " << req_size_nlist << std::endl;
 
-    return reallocate;
+        GlobalArray<unsigned int> adjacency(req_size_nlist, this->m_exec_conf);
+        m_adjacency.swap(adjacency);
+        TAG_ALLOCATION(m_adjacency);
+
+        #ifdef __HIP_PLATFORM_NVCC__
+        // update memory hints
+        if (this->m_exec_conf->allConcurrentManagedAccess())
+            {
+            // set memory hints
+            auto gpu_map = this->m_exec_conf->getGPUIds();
+            for (unsigned int idev = 0; idev < this->m_exec_conf->getNumActiveGPUs(); ++idev)
+                {
+                auto range = this->m_pdata->getGPUPartition().getRange(idev);
+
+                unsigned int nelem = range.second-range.first;
+                if (nelem == 0)
+                    continue;
+
+                cudaMemAdvise(m_adjacency.get()+range.first*m_maxn, sizeof(unsigned int)*nelem*m_maxn,
+                    cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+                cudaMemPrefetchAsync(m_adjacency.get()+range.first*m_maxn, sizeof(unsigned int)*nelem*m_maxn,
+                    gpu_map[idev]);
+                CHECK_CUDA_ERROR();
+                }
+            }
+        #endif
+        }
+    return reallocate || maxn_changed;
     }
 
 template< class Shape >
@@ -740,11 +820,25 @@ void UpdaterClustersGPU< Shape >::updateGPUAdvice()
             if (nelem == 0)
                 continue;
 
-            cudaMemAdvise(this->m_postype_backup.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-            cudaMemPrefetchAsync(this->m_postype_backup.get()+range.first, sizeof(Scalar4)*nelem, gpu_map[idev]);
+            cudaMemAdvise(this->m_postype_backup.get()+range.first, sizeof(Scalar4)*nelem,
+                cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemPrefetchAsync(this->m_postype_backup.get()+range.first,
+                sizeof(Scalar4)*nelem, gpu_map[idev]);
 
-            cudaMemAdvise(this->m_orientation_backup.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-            cudaMemPrefetchAsync(this->m_orientation_backup.get()+range.first, sizeof(Scalar4)*nelem, gpu_map[idev]);
+            cudaMemAdvise(this->m_orientation_backup.get()+range.first, sizeof(Scalar4)*nelem,
+                cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemPrefetchAsync(this->m_orientation_backup.get()+range.first, sizeof(Scalar4)*nelem,
+                gpu_map[idev]);
+
+            cudaMemAdvise(this->m_nneigh.get()+range.first, sizeof(unsigned int)*nelem,
+                cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemPrefetchAsync(this->m_nneigh.get()+range.first, sizeof(unsigned int)*nelem,
+                gpu_map[idev]);
+
+            cudaMemAdvise(this->m_nneigh_scan.get()+range.first, sizeof(unsigned int)*nelem,
+                cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemPrefetchAsync(this->m_nneigh_scan.get()+range.first, sizeof(unsigned int)*nelem,
+                gpu_map[idev]);
             }
         }
     #endif

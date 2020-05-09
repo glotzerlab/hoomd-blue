@@ -475,7 +475,7 @@ void hpmc_accept(const unsigned int *d_update_order_by_ptl,
         auto range = gpu_partition.getRangeAndSetGPU(idev);
 
         unsigned int nwork = range.second - range.first;
-        const unsigned int num_blocks = (nwork + n_groups - 1)/n_groups;
+        const unsigned int num_blocks = nwork/n_groups + 1;
         dim3 grid(num_blocks, 1, 1);
 
         unsigned int shared_bytes = n_groups * (2*sizeof(float) + sizeof(unsigned int));

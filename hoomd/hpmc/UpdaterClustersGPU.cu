@@ -41,16 +41,6 @@ namespace gpu
     }
 #endif
 
-struct flip : public thrust::unary_function<uint2, uint2>
-    {
-    __host__ __device__
-    uint2 operator()(const uint2& u) const
-        {
-        return make_uint2(u.y,u.x);
-        }
-    };
-
-
 struct get_source : public thrust::unary_function<uint2, unsigned int>
     {
     __host__ __device__
@@ -77,40 +67,156 @@ struct pair_less : public thrust::binary_function<uint2, uint2, bool>
         }
     };
 
+void get_num_neighbors(const unsigned int *d_nneigh,
+                       unsigned int *d_nneigh_scan,
+                       unsigned int &nneigh_total,
+                       const GPUPartition& gpu_partition,
+                       CachedAllocator& alloc)
+    {
+    assert(d_nneigh);
+    thrust::device_ptr<const unsigned int> nneigh(d_nneigh);
+    thrust::device_ptr<unsigned int> nneigh_scan(d_nneigh_scan);
+
+    nneigh_total = 0;
+    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+        {
+        auto range = gpu_partition.getRangeAndSetGPU(idev);
+
+        #ifdef __HIP_PLATFORM_HCC__
+        thrust::exclusive_scan(thrust::hip::par(alloc),
+        #else
+        thrust::exclusive_scan(thrust::cuda::par(alloc),
+        #endif
+            nneigh + range.first,
+            nneigh + range.second,
+            nneigh_scan + range.first,
+            nneigh_total);
+
+        #ifdef __HIP_PLATFORM_HCC__
+        nneigh_total + = thrust::reduce(thrust::hip::par(alloc),
+        #else
+        nneigh_total += thrust::reduce(thrust::cuda::par(alloc),
+        #endif
+            nneigh + range.first,
+            nneigh + range.second,
+            0,
+            thrust::plus<unsigned int>());
+        }
+    }
+
+namespace kernel {
+
+__global__ void concatenate_adjacency_list(
+    const unsigned int *d_adjacency,
+    const unsigned int *d_nneigh,
+    const unsigned int *d_nneigh_scan,
+    const unsigned int maxn,
+    uint2 *d_adjacency_out,
+    const unsigned int nwork,
+    const unsigned int work_offset)
+    {
+    // one group per particle to copy over neighbors
+    unsigned int group = threadIdx.y;
+    unsigned int offset = threadIdx.x;
+    unsigned int group_size = blockDim.x;
+    unsigned int n_groups = blockDim.y;
+
+    unsigned int i = blockIdx.x*n_groups+group;
+    if (i >= nwork)
+        return;
+    i += work_offset;
+
+    unsigned int nneigh = d_nneigh[i];
+    unsigned int start = d_nneigh_scan[i];
+    for (unsigned int k = 0; k < nneigh; k += group_size)
+        {
+        if (k + offset < nneigh)
+            {
+            // generate a symmetric adjacency list
+            unsigned int j = d_adjacency[k + offset + i*maxn];
+            d_adjacency_out[2*(start + k + offset)] = make_uint2(i, j);
+            d_adjacency_out[2*(start + k + offset)+1] = make_uint2(j, i);
+            }
+        }
+    }
+} // end namespace kernel
+
+void concatenate_adjacency_list(
+    const unsigned int *d_adjacency,
+    const unsigned int *d_nneigh,
+    const unsigned int *d_nneigh_scan,
+    const unsigned int maxn,
+    uint2 *d_adjacency_out,
+    const GPUPartition& gpu_partition,
+    const unsigned int block_size,
+    const unsigned int group_size)
+    {
+    // determine the maximum block size and clamp the input block size down
+    static int max_block_size = -1;
+    if (max_block_size == -1)
+        {
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::concatenate_adjacency_list));
+        max_block_size = attr.maxThreadsPerBlock;
+        }
+
+    // setup the grid to run the kernel
+    unsigned int run_block_size = min(block_size, (unsigned int)max_block_size);
+
+    // threads per particle
+    unsigned int cur_group_size = min(run_block_size,group_size);
+    while (run_block_size % cur_group_size != 0)
+        cur_group_size--;
+
+    unsigned int n_groups = run_block_size/cur_group_size;
+    dim3 threads(cur_group_size, n_groups, 1);
+
+    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+        {
+        auto range = gpu_partition.getRangeAndSetGPU(idev);
+
+        unsigned int nwork = range.second - range.first;
+        const unsigned int num_blocks = nwork/n_groups + 1;
+        dim3 grid(num_blocks, 1, 1);
+
+        hipLaunchKernelGGL(kernel::concatenate_adjacency_list, grid, threads, 0, 0,
+            d_adjacency,
+            d_nneigh,
+            d_nneigh_scan,
+            maxn,
+            d_adjacency_out,
+            nwork,
+            range.first);
+        }
+    }
+
 void connected_components(
-    const uint2 *d_adj,
+    uint2 *d_adj,
     unsigned int N,
-    unsigned int n_elements,
+    const unsigned int n_elements,
     int *d_components,
     unsigned int &num_components,
     const hipDeviceProp_t& dev_prop,
     CachedAllocator& alloc)
     {
     #ifdef __HIP_PLATFORM_NVCC__
-    // make a copy of the input, reserving for 2*size
-    uint2 *d_adj_copy = alloc.getTemporaryBuffer<uint2>(2*n_elements);
-    thrust::device_ptr<uint2> adj_copy(d_adj_copy);
-    thrust::device_ptr<const uint2> adj(d_adj);
-    thrust::copy(adj, adj+n_elements, adj_copy);
-
-    // make edges undirected
-    thrust::transform(adj, adj+n_elements, adj_copy + n_elements, flip());
+    thrust::device_ptr<uint2> adj(d_adj);
 
     // sort the list of pairs
     thrust::sort(
         thrust::cuda::par(alloc),
-        adj_copy,
-        adj_copy + 2*n_elements,
+        adj,
+        adj + n_elements,
         pair_less());
 
     // remove duplicates
     auto new_last = thrust::unique(thrust::cuda::par(alloc),
-        adj_copy,
-        adj_copy + 2*n_elements);
-    unsigned int nnz = new_last - adj_copy;
+        adj,
+        adj + n_elements);
+    unsigned int nnz = new_last - adj;
 
-    auto source = thrust::make_transform_iterator(adj_copy, get_source());
-    auto destination = thrust::make_transform_iterator(adj_copy, get_destination());
+    auto source = thrust::make_transform_iterator(adj, get_source());
+    auto destination = thrust::make_transform_iterator(adj, get_destination());
 
     // input matrix in COO format
     unsigned int nverts = N;
@@ -185,7 +291,6 @@ void connected_components(
         components);
 
     // free temporary storage
-    alloc.deallocate((char *)d_adj_copy);
     alloc.deallocate((char *)d_rowidx);
     alloc.deallocate((char *)d_colidx);
     alloc.deallocate((char *)d_csr_rowptr);

@@ -59,9 +59,10 @@ struct cluster_args_t
                 unsigned int *_d_excell_idx,
                 const unsigned int *_d_excell_size,
                 const Index2D& _excli,
-                uint2 *_d_adjacency,
+                unsigned int *_d_adjacency,
                 unsigned int *_d_nneigh,
                 const unsigned int _maxn,
+                unsigned int *_d_overflow,
                 const unsigned int _dim,
                 const bool _line,
                 const vec3<Scalar> _pivot,
@@ -93,6 +94,7 @@ struct cluster_args_t
                   d_adjacency(_d_adjacency),
                   d_nneigh(_d_nneigh),
                   maxn(_maxn),
+                  d_overflow(_d_overflow),
                   dim(_dim),
                   line(_line),
                   pivot(_pivot),
@@ -124,9 +126,10 @@ struct cluster_args_t
     unsigned int *d_excell_idx;       //!< Expanded cell list
     const unsigned int *d_excell_size;//!< Size of expanded cells
     const Index2D& excli;             //!< Excell indexer
-    uint2 *d_adjacency;               //!< Neighbor list of overlapping particle pairs after trial move
+    unsigned int *d_adjacency;        //!< Neighbor list
     unsigned int *d_nneigh;       //!< Number of overlapping particles after trial move
     unsigned int maxn;                //!< Width of neighbor list
+    unsigned int *d_overflow;         //<! Max number of neighbors (output)
     const unsigned int dim;           //!< Spatial dimension
     const bool line;                  //!< Is this a line reflection?
     const vec3<Scalar> pivot;         //!< pivot point
@@ -138,13 +141,29 @@ struct cluster_args_t
     };
 
 void connected_components(
-    const uint2 *d_adj,
+    uint2 *d_adj,
     unsigned int N,
-    unsigned int n_elements,
+    const unsigned int n_elements,
     int *d_components,
     unsigned int &num_components,
     const hipDeviceProp_t& dev_prop,
     CachedAllocator& alloc);
+
+void get_num_neighbors(const unsigned int *d_nneigh,
+                       unsigned int *d_nneigh_scan,
+                       unsigned int &nneigh_total,
+                       const GPUPartition& gpu_partition,
+                       CachedAllocator& alloc);
+
+void concatenate_adjacency_list(
+    const unsigned int *d_adjacency,
+    const unsigned int *d_nneigh,
+    const unsigned int *d_nneigh_scan,
+    const unsigned int maxn,
+    uint2 *d_adjacency_out,
+    const GPUPartition& gpu_partition,
+    const unsigned int block_size,
+    const unsigned int group_size);
 
 //! Kernel driver for kernel::hpmc_clusters_overlaps
 template< class Shape >
@@ -170,9 +189,10 @@ __global__ void hpmc_cluster_overlaps(const Scalar4 *d_postype,
                            const unsigned int *d_excell_idx,
                            const unsigned int *d_excell_size,
                            const Index2D excli,
-                           uint2 *d_adjacency,
+                           unsigned int *d_adjacency,
                            unsigned int *d_nneigh,
                            const unsigned int maxn,
+                           unsigned int *d_overflow,
                            const unsigned int num_types,
                            const BoxDim box,
                            const Scalar3 ghost_width,
@@ -401,14 +421,10 @@ __global__ void hpmc_cluster_overlaps(const Scalar4 *d_postype,
                 && test_overlap(r_ij, shape_i, shape_j, overlap_err_count))
                 {
                 // write out to global memory
-                #if (__CUDA_ARCH__ >= 600)
-                unsigned int n = atomicAdd_system(d_nneigh, 1);
-                #else
-                unsigned int n = atomicAdd(d_nneigh, 1);
-                #endif
+                unsigned int n = atomicAdd(&d_nneigh[s_idx_group[check_group]], 1);
                 if (n < maxn)
                     {
-                    d_adjacency[n] = make_uint2(s_idx_group[check_group],check_j);
+                    d_adjacency[n+s_idx_group[check_group]*maxn] = check_j;
                     }
                 }
             }
@@ -423,6 +439,20 @@ __global__ void hpmc_cluster_overlaps(const Scalar4 *d_postype,
 
         __syncthreads();
         } // end while (s_still_searching)
+
+    if (active && master)
+        {
+        // overflowed?
+        unsigned int nneigh = d_nneigh[idx];
+        if (nneigh > maxn)
+            {
+            #if (__CUDA_ARCH__ >= 600)
+            atomicMax_system(d_overflow, nneigh);
+            #else
+            atomicMax(d_overflow, nneigh);
+            #endif
+            }
+        }
     }
 
 //! Launcher for narrow phase kernel with templated launch bounds
@@ -526,7 +556,7 @@ void cluster_overlaps_launcher(const cluster_args_t& args, const typename Shape:
             hipLaunchKernelGGL((hpmc_cluster_overlaps<Shape, launch_bounds_nonzero*MIN_BLOCK_SIZE>), grid, thread, shared_bytes, args.streams[idev],
                 args.d_postype, args.d_orientation, args.d_trial_postype, args.d_trial_orientation,
                 args.d_excell_idx, args.d_excell_size, args.excli,
-                args.d_adjacency, args.d_nneigh, args.maxn, args.num_types,
+                args.d_adjacency, args.d_nneigh, args.maxn, args.d_overflow, args.num_types,
                 args.box, args.ghost_width, args.cell_dim, args.ci, args.d_check_overlaps,
                 args.overlap_idx, params,
                 max_extra_bytes, max_queue_size, range.first, nwork);
@@ -567,8 +597,9 @@ __global__ void clusters_insert_depletants(const Scalar4 *d_postype,
                                      unsigned int depletant_type,
                                      const Index2D depletant_idx,
                                      unsigned int *d_nneigh,
-                                     uint2 *d_adjacency,
+                                     unsigned int *d_adjacency,
                                      const unsigned int maxn,
+                                     unsigned int *d_overflow,
                                      unsigned int work_offset,
                                      unsigned int max_depletant_queue_size,
                                      const unsigned int *d_n_depletants)
@@ -1225,14 +1256,10 @@ __global__ void clusters_insert_depletants(const Scalar4 *d_postype,
                     test_overlap(r_jk, shape_test, shape_j, err_count))
                     {
                     // write out to global memory
-                    #if (__CUDA_ARCH__ >= 600)
-                    unsigned int n = atomicAdd_system(d_nneigh, 1);
-                    #else
-                    unsigned int n = atomicAdd(d_nneigh, 1);
-                    #endif
+                    unsigned int n = atomicAdd(&d_nneigh[i], 1);
                     if (n < maxn)
                         {
-                        d_adjacency[n] = make_uint2(i,check_j);
+                        d_adjacency[n+i*maxn] = check_j;
                         }
                     }
                 } // end if (processing neighbor)
@@ -1254,6 +1281,20 @@ __global__ void clusters_insert_depletants(const Scalar4 *d_postype,
             atomicAdd(&s_adding_depletants, 1);
         __syncthreads();
         } // end loop over depletants
+
+    if (master && group == 0)
+        {
+        // overflowed?
+        unsigned int nneigh = d_nneigh[i];
+        if (nneigh > maxn)
+            {
+            #if (__CUDA_ARCH__ >= 600)
+            atomicMax_system(d_overflow, nneigh);
+            #else
+            atomicMax(d_overflow, nneigh);
+            #endif
+            }
+        }
     }
 
 //! Launcher for clusters_insert_depletants kernel with templated launch bounds
@@ -1382,6 +1423,7 @@ void clusters_depletants_launcher(const cluster_args_t& args, const hpmc_implici
                                  args.d_nneigh,
                                  args.d_adjacency,
                                  args.maxn,
+                                 args.d_overflow,
                                  range.first,
                                  max_depletant_queue_size,
                                  implicit_args.d_n_depletants);
