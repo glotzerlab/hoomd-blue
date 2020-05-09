@@ -121,34 +121,14 @@ class __attribute__((visibility("default"))) CachedAllocator
             // deallocate all outstanding blocks in both lists
             for(free_blocks_type::iterator i = m_free_blocks.begin(); i != m_free_blocks.end(); ++i)
                 {
-                #ifdef __HIP_PLATFORM_HCC__
-                if (m_managed)
-                    {
-                    // workaround, HIP doesn't fully support managed memory API
-                    hipHostFree((void *) i->second);
-                    }
-                else
-                #endif
-                    {
-                    hipFree((void *) i->second);
-                    }
+                hipFree((void *) i->second);
                 CHECK_CUDA();
                 }
 
             for(allocated_blocks_type::iterator i = m_allocated_blocks.begin();
                 i != m_allocated_blocks.end(); ++i)
                 {
-                #ifdef __HIP_PLATFORM_HCC__
-                if (m_managed)
-                    {
-                    // workaround, HIP doesn't fully support managed memory API
-                    hipHostFree((void *) i->first);
-                    }
-                else
-                #endif
-                    {
-                    hipFree((void *) i->first);
-                    }
+                hipFree((void *) i->first);
                 CHECK_CUDA();
                 }
             }
@@ -235,18 +215,7 @@ T* CachedAllocator::getTemporaryBuffer(unsigned int num_elements)
 //                << "reached; removing unused block ("
 //                << float(i->first)/1024.0f/1024.0f << " MB)" << std::endl;
 
-            // transform the pointer to cuda::pointer before calling cuda::free
-            #ifdef __HIP_PLATFORM_HCC__
-            if (m_managed)
-                {
-                // workaround, HIP doesn't fully support managed memory API
-                hipHostFree((void *) i->second);
-                }
-            else
-            #endif
-                {
-                hipFree((void *) i->second);
-                }
+            hipFree((void *) i->second);
 
             CHECK_CUDA();
             m_num_bytes_tot -= i->first;

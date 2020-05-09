@@ -31,6 +31,9 @@
 #include <stdlib.h>
 #include <memory>
 
+#include <cxxabi.h>
+#include <sstream>
+
 //! Specifies where to acquire the data
 struct access_location
     {
@@ -106,7 +109,7 @@ class device_deleter
             if (m_use_device && ! m_mapped)
                 {
                 assert(m_exec_conf);
-                this->m_exec_conf->msg->notice(7) << "Freeing " << m_N*sizeof(T) << " bytes of CUDA memory." << std::endl;
+                this->m_exec_conf->msg->notice(10) << "Freeing " << m_N*sizeof(T) << " bytes of CUDA memory." << std::endl;
 
                 #ifdef ENABLE_HIP
                 hipFree(ptr);
@@ -148,7 +151,7 @@ class host_deleter
                 return;
 
             if (m_exec_conf)
-                m_exec_conf->msg->notice(7) << "Freeing " << m_N*sizeof(T) << " bytes of host memory." << std::endl;
+                m_exec_conf->msg->notice(10) << "Freeing " << m_N*sizeof(T) << " bytes of host memory." << std::endl;
 
             if (m_use_device)
                 {
@@ -522,6 +525,31 @@ class GPUArray : public GPUArrayBase<T, GPUArray<T> >
 
         //! Resize a 2D GPUArray
         void resize(unsigned int width, unsigned int height);
+
+        //! Return a string representation of this array
+        std::string getRepresentation() const
+            {
+            if (! isNull())
+                {
+                std::ostringstream o;
+                const std::string type_name = typeid(T).name();
+                int status;
+                char *realname = abi::__cxa_demangle(type_name.c_str(), 0, 0, &status);
+                if (status)
+                    throw std::runtime_error("Status "+std::to_string(status)+" while trying to demangle data type.");
+
+                o << h_data.get() << "-" << h_data.get() + m_num_elements;
+
+                if (m_exec_conf->isCUDAEnabled())
+                    o << " (host) " << d_data.get() << "-" << d_data.get() + m_num_elements << " (device)";
+
+                o << " [" << realname << "]";
+                free(realname);
+                return o.str();
+                }
+            else
+                return std::string("null");
+            }
 
     protected:
         //! Clear memory starting from a given element
@@ -901,7 +929,7 @@ template<class T> void GPUArray<T>::allocate()
 #endif
 
     if (m_exec_conf)
-        m_exec_conf->msg->notice(7) << "GPUArray: Allocating " << float(m_num_elements*sizeof(T))/1024.0f/1024.0f << " MB" << std::endl;
+        m_exec_conf->msg->notice(10) << "GPUArray: Allocating " << float(m_num_elements*sizeof(T))/1024.0f/1024.0f << " MB" << std::endl;
 
     void *host_ptr = nullptr;
 
@@ -1007,7 +1035,7 @@ template<class T> void GPUArray<T>::memcpyDeviceToHost(bool async) const
         }
 
     if (m_exec_conf)
-        m_exec_conf->msg->notice(8) << "GPUArray: Copying " << float(m_num_elements*sizeof(T))/1024.0f/1024.0f << " MB device->host " <<
+        m_exec_conf->msg->notice(10) << "GPUArray: Copying " << float(m_num_elements*sizeof(T))/1024.0f/1024.0f << " MB device->host " <<
            (async ? std::string("async") : std::string()) << std::endl;
     #ifdef ENABLE_HIP
     if (async)
@@ -1039,7 +1067,7 @@ template<class T> void GPUArray<T>::memcpyHostToDevice(bool async) const
         }
 
     if (m_exec_conf)
-        m_exec_conf->msg->notice(8) << "GPUArray: Copying " << float(m_num_elements*sizeof(T))/1024.0f/1024.0f << " MB host->device " <<
+        m_exec_conf->msg->notice(10) << "GPUArray: Copying " << float(m_num_elements*sizeof(T))/1024.0f/1024.0f << " MB host->device " <<
            (async ? std::string("async") : std::string()) << std::endl;
     if (async)
         #ifdef ENABLE_HIP
