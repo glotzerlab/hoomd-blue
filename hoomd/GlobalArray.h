@@ -661,11 +661,13 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
                 o << "anonymous: ";
                 }
 
+            #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (! m_is_managed)
                 {
                 o << m_fallback.getRepresentation();
                 }
             else
+            #endif
                 {
                 if (! isNull())
                     {
