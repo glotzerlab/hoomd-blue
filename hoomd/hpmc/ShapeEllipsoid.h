@@ -412,7 +412,6 @@ DEVICE inline int test_overlap_ellipsoids(OverlapReal *M1, OverlapReal *M2)
     \param a Shape a
     \param b Shape b
     \param err in/out variable incremented when error conditions occur in the overlap test
-    \param sweep_radius Additional sphere radius to sweep the shapes with
     \returns true if the two particles overlap
 
     \ingroup shape
@@ -421,9 +420,7 @@ template <>
 DEVICE inline bool test_overlap<ShapeEllipsoid,ShapeEllipsoid>(const vec3<Scalar>& r_ab,
                                                                const ShapeEllipsoid& a,
                                                                const ShapeEllipsoid& b,
-                                                               unsigned int& err,
-                                                               Scalar sweep_radius_a,
-                                                               Scalar sweep_radius_b)
+                                                               unsigned int& err)
     {
 
     // matrix representations of the two ellipsoids

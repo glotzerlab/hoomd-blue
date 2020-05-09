@@ -729,7 +729,6 @@ inline bool BVHCollision(const ShapePolyhedron& a, const ShapePolyhedron &b,
     \param a first shape
     \param b second shape
     \param err in/out variable incremented when error conditions occur in the overlap test
-    \param sweep_radius Additional sphere radius to sweep the shapes by
     \returns true when *a* and *b* overlap, and false when they are disjoint
 
     \ingroup shape
@@ -738,9 +737,7 @@ template<>
 DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                  const ShapePolyhedron& a,
                                  const ShapePolyhedron& b,
-                                 unsigned int& err,
-                                 Scalar sweep_radius_a,
-                                 Scalar sweep_radius_b)
+                                 unsigned int& err)
     {
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
     const OverlapReal abs_tol(DaDb*1e-12);

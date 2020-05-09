@@ -490,7 +490,6 @@ DEVICE inline bool test_overlap_separating_planes(const poly2d_verts& a,
     \param a first shape
     \param b second shape
     \param err in/out variable incremented when error conditions occur in the overlap test
-    \param sweep_radius Additional radius to sweep both shapes by
     \returns true when *a* and *b* overlap, and false when they are disjoint
 
     \ingroup shape
@@ -499,9 +498,7 @@ template <>
 DEVICE inline bool test_overlap<ShapeConvexPolygon,ShapeConvexPolygon>(const vec3<Scalar>& r_ab,
                                                                        const ShapeConvexPolygon& a,
                                                                        const ShapeConvexPolygon& b,
-                                                                       unsigned int& err,
-                                                                       Scalar sweep_radius_a,
-                                                                       Scalar sweep_radius_b)
+                                                                       unsigned int& err)
     {
     vec2<OverlapReal> dr(r_ab.x,r_ab.y);
     #ifdef __HIPCC__

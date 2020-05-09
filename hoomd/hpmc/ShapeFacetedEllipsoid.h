@@ -476,20 +476,20 @@ struct ShapeFacetedEllipsoid
     \param a first shape
     \param b second shape
     \param err in/out variable incremented when error conditions occur in the overlap test
-    \param sweep_radius Additional sphere radius to sweep the shapes with
     \returns true when *a* and *b* overlap, and false when they are disjoint
 
     \ingroup shape
 */
 template <>
-DEVICE inline bool test_overlap<ShapeFacetedEllipsoid, ShapeFacetedEllipsoid>(const vec3<Scalar>& r_ab, const ShapeFacetedEllipsoid& a, const ShapeFacetedEllipsoid& b,
-    unsigned int& err, Scalar sweep_radius_a, Scalar sweep_radius_b)
+DEVICE inline bool test_overlap<ShapeFacetedEllipsoid, ShapeFacetedEllipsoid>(
+    const vec3<Scalar>& r_ab, const ShapeFacetedEllipsoid& a, const ShapeFacetedEllipsoid& b,
+    unsigned int &err)
     {
     vec3<OverlapReal> dr(r_ab);
 
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    return detail::xenocollide_3d(detail::SupportFuncFacetedEllipsoid(a.params, sweep_radius_a),
-                           detail::SupportFuncFacetedEllipsoid(b.params, sweep_radius_b),
+    return detail::xenocollide_3d(detail::SupportFuncFacetedEllipsoid(a.params),
+                           detail::SupportFuncFacetedEllipsoid(b.params),
                            rotate(conj(quat<OverlapReal>(a.orientation)), dr + rotate(quat<OverlapReal>(b.orientation),b.params.origin))-a.params.origin,
                            conj(quat<OverlapReal>(a.orientation))* quat<OverlapReal>(b.orientation),
                            DaDb/2.0,

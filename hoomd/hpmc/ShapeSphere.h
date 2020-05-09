@@ -83,7 +83,7 @@ struct param_base
     /*! \param ptr Pointer to load data to (will be incremented)
         \param available_bytes Size of remaining shared memory allocation
      */
-    DEVICE void load_shared(char *& ptr,unsigned int &available_bytes)
+    DEVICE inline void load_shared(char *& ptr,unsigned int &available_bytes)
         {
         // default implementation does nothing
         }
@@ -137,16 +137,16 @@ struct ShapeSphere
         : orientation(_orientation), params(_params) {}
 
     //! Does this shape have an orientation
-    DEVICE bool hasOrientation() const
+    DEVICE inline bool hasOrientation() const
         {
         return params.isOriented;
         }
 
     //! Ignore flag for acceptance statistics
-    DEVICE bool ignoreStatistics() const { return params.ignore; }
+    DEVICE inline bool ignoreStatistics() const { return params.ignore; }
 
     //! Get the circumsphere diameter
-    DEVICE OverlapReal getCircumsphereDiameter() const
+    DEVICE inline OverlapReal getCircumsphereDiameter() const
         {
         return params.radius*OverlapReal(2.0);
         }
@@ -158,25 +158,19 @@ struct ShapeSphere
         }
 
     //! Return the bounding box of the shape in world coordinates
-    DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
+    DEVICE inline detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         return detail::AABB(pos, params.radius);
         }
 
     //! Return a tight fitting OBB
-    DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
+    DEVICE inline detail::OBB getOBB(const vec3<Scalar>& pos) const
         {
         return detail::OBB(pos, params.radius);
         }
 
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel() { return false; }
-
-    //! Retrns true if the overlap check supports sweeping both shapes by a sphere of given radius
-    HOSTDEVICE static bool supportsSweepRadius()
-        {
-        return true;
-        }
 
     quat<Scalar> orientation;    //!< Orientation of the sphere (unused)
 
@@ -192,14 +186,12 @@ struct ShapeSphere
     \ingroup shape
 */
 template<class ShapeA, class ShapeB>
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeA& a, const ShapeB &b,
-    const OverlapReal sweep_radius_a = OverlapReal(0.0), const OverlapReal sweep_radius_b = OverlapReal(0.0))
+DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeA& a, const ShapeB &b)
     {
     vec2<OverlapReal> dr(r_ab.x, r_ab.y);
 
     OverlapReal rsq = dot(dr,dr);
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter()
-        + OverlapReal(2.0)*(sweep_radius_a + sweep_radius_b);
+    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
     return (rsq*OverlapReal(4.0) <= DaDb * DaDb);
     }
 
@@ -209,13 +201,10 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
     \param a first shape
     \param b second shape
     \param err Incremented if there is an error condition. Left unchanged otherwise.
-    \param sweep_radius_a Additional radius to sweep both shapes by
-    \param sweep_radius_b Additional radius to sweep both shapes by
     \returns true when *a* and *b* overlap, and false when they are disjoint
 */
 template <class ShapeA, class ShapeB>
-DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab, const ShapeA &a, const ShapeB& b, unsigned int& err,
-    Scalar sweep_radius_a=Scalar(0.0), Scalar sweep_radius_b=Scalar(0.0))
+DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab, const ShapeA &a, const ShapeB& b, unsigned int& err)
     {
     // default implementation returns true, will make it obvious if something calls this
     return true;
@@ -226,21 +215,19 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab, const ShapeA &a, const
     \param a first shape
     \param b second shape
     \param err in/out variable incremented when error conditions occur in the overlap test
-    \param sweep_radius_a Additional radius to sweep the first shape by
-    \param sweep_radius_b Additional radius to sweep the second shape by
     \returns true when *a* and *b* overlap, and false when they are disjoint
 
     \ingroup shape
 */
 template <>
-DEVICE inline bool test_overlap<ShapeSphere, ShapeSphere>(const vec3<Scalar>& r_ab, const ShapeSphere& a, const ShapeSphere& b, unsigned int& err,
-    Scalar sweep_radius_a, Scalar sweep_radius_b)
+DEVICE inline bool test_overlap<ShapeSphere, ShapeSphere>(const vec3<Scalar>& r_ab,
+    const ShapeSphere& a, const ShapeSphere& b, unsigned int& err)
     {
     vec3<OverlapReal> dr(r_ab);
 
     OverlapReal rsq = dot(dr,dr);
 
-    OverlapReal RaRb = a.params.radius + b.params.radius + sweep_radius_a + sweep_radius_b;
+    OverlapReal RaRb = a.params.radius + b.params.radius;
     if (rsq < RaRb*RaRb)
         {
         return true;
