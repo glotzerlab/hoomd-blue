@@ -26,8 +26,13 @@ namespace hpmc {
 
 namespace gpu {
 
+#ifdef __HIP_PLATFORM_NVCC__
 #define MAX_BLOCK_SIZE 1024
 #define MIN_BLOCK_SIZE 256 // a reasonable minimum to limit the number of template instantiations
+#else
+#define MAX_BLOCK_SIZE 1024
+#define MIN_BLOCK_SIZE 1024 // on AMD, we do not use __launch_bounds__
+#endif
 
 //! Wraps arguments to hpmc_* template functions
 /*! \ingroup hpmc_data_structs */
@@ -526,8 +531,6 @@ __global__ void hpmc_gen_moves(Scalar4 *d_postype,
 template< class Shape, unsigned int max_threads >
 #ifdef __HIP_PLATFORM_NVCC__
 __launch_bounds__(max_threads)
-#else
-__launch_bounds__(max_threads, max_threads/256)
 #endif
 __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
                            Scalar4 *d_orientation,
@@ -964,8 +967,6 @@ void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_
 template< class Shape, unsigned int max_threads, bool pairwise >
 #ifdef __HIP_PLATFORM_NVCC__
 __launch_bounds__(max_threads)
-#else
-__launch_bounds__(max_threads, max_threads/256)
 #endif
 __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                                      const Scalar4 *d_trial_orientation,

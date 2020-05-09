@@ -161,11 +161,7 @@ namespace kernel
 
 //! Check narrow-phase overlaps
 template< class Shape, unsigned int max_threads >
-#ifdef __HIP_PLATFORM_NVCC__
 __launch_bounds__(max_threads)
-#else
-__launch_bounds__(max_threads, max_threads/256)
-#endif
 __global__ void hpmc_cluster_overlaps(const Scalar4 *d_postype,
                            const Scalar4 *d_orientation,
                            const unsigned int *d_tag,
@@ -548,11 +544,7 @@ void cluster_overlaps_launcher(const cluster_args_t& args, const typename Shape:
 
 //! Kernel to insert depletants on-the-fly
 template< class Shape, unsigned int max_threads >
-#ifdef __HIP_PLATFORM_NVCC__
 __launch_bounds__(max_threads)
-#else
-__launch_bounds__(max_threads, max_threads/256)
-#endif
 __global__ void clusters_insert_depletants(const Scalar4 *d_postype,
                                      const Scalar4 *d_orientation,
                                      const unsigned int *d_tag,
