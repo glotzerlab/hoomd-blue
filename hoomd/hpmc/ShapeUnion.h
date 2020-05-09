@@ -61,7 +61,7 @@ struct union_params : param_base
     typedef typename Shape::param_type mparam_type;
 
     //! Default constructor
-    DEVICE union_params()
+    DEVICE inline union_params()
         : diameter(0.0), N(0), ignore(0)
         { }
 
@@ -69,7 +69,7 @@ struct union_params : param_base
     /*! \param ptr Pointer to load data to (will be incremented)
         \param available_bytes Size of remaining shared memory allocation
      */
-    DEVICE void load_shared(char *& ptr, unsigned int &available_bytes)
+    DEVICE inline void load_shared(char *& ptr, unsigned int &available_bytes)
         {
         tree.load_shared(ptr, available_bytes);
         mpos.load_shared(ptr, available_bytes);
@@ -82,17 +82,12 @@ struct union_params : param_base
         __syncthreads();
         #endif
 
-        for (unsigned int i = 0; i < mparams.size(); ++i)
+        if (params_in_shared_mem)
             {
-            if (params_in_shared_mem)
+            // load only if we are sure that we are not touching any unified memory
+            for (unsigned int i = 0; i < mparams.size(); ++i)
                 {
-                // load only if we are sure that we are not touching any unified memory
                 mparams[i].load_shared(ptr, available_bytes);
-                }
-            else
-                {
-                // increment pointer only
-                mparams[i].allocate_shared(ptr, available_bytes);
                 }
             }
         }
@@ -105,12 +100,15 @@ struct union_params : param_base
         {
         tree.allocate_shared(ptr, available_bytes);
         mpos.allocate_shared(ptr, available_bytes);
-        mparams.allocate_shared(ptr, available_bytes);
+        bool params_in_shared_mem = mparams.allocate_shared(ptr, available_bytes) != nullptr;
         moverlap.allocate_shared(ptr, available_bytes);
         morientation.allocate_shared(ptr, available_bytes);
 
-        for (unsigned int i = 0; i < mparams.size(); ++i)
-            mparams[i].allocate_shared(ptr, available_bytes);
+        if (params_in_shared_mem)
+            {
+            for (unsigned int i = 0; i < mparams.size(); ++i)
+                mparams[i].allocate_shared(ptr, available_bytes);
+            }
         }
 
 
@@ -175,13 +173,13 @@ struct ShapeUnion
     typedef struct detail::union_depletion_storage depletion_storage_type;
 
     //! Initialize a sphere_union
-    DEVICE ShapeUnion(const quat<Scalar>& _orientation, const param_type& _params)
+    DEVICE inline ShapeUnion(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), members(_params)
         {
         }
 
     //! Does this shape have an orientation
-    DEVICE bool hasOrientation() const
+    DEVICE inline bool hasOrientation() const
         {
         if (members.N == 1)
             {
@@ -198,10 +196,10 @@ struct ShapeUnion
         }
 
     //!Ignore flag for acceptance statistics
-    DEVICE bool ignoreStatistics() const { return members.ignore; }
+    DEVICE inline bool ignoreStatistics() const { return members.ignore; }
 
     //! Get the circumsphere diameter
-    DEVICE OverlapReal getCircumsphereDiameter() const
+    DEVICE inline OverlapReal getCircumsphereDiameter() const
         {
         // return the precomputed diameter
         return members.diameter;
@@ -215,13 +213,13 @@ struct ShapeUnion
         }
 
     //! Return the bounding box of the shape in world coordinates
-    DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
+    DEVICE inline detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         return getOBB(pos).getAABB();
         }
 
     //! Return a tight fitting OBB
-    DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
+    DEVICE inline detail::OBB getOBB(const vec3<Scalar>& pos) const
         {
         if (members.N > 0)
             {
@@ -271,58 +269,50 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
     unsigned int ptls_j_end = b.members.tree.getLeafNodePtrByNode(cur_node_b+1);
 
     // get starting offset for this thread
+    unsigned int na = ptls_i_end - ptl_i;
     unsigned int nb = ptls_j_end - ptl_j;
-    if (nb == 0)
-        return false;
+
+    unsigned int len = na*nb;
 
     #if defined (__HIP_DEVICE_COMPILE__)
-    ptl_i += threadIdx.x / nb;
-    ptl_j += threadIdx.x % nb;
+    unsigned int offset = threadIdx.x;
+    unsigned int incr = blockDim.x;
+    #else
+    unsigned int offset = 0;
+    unsigned int incr = 1;
     #endif
 
-    while ((ptl_i < ptls_i_end) && (ptl_j < ptls_j_end))
+    // iterate over (a,b) pairs in row major
+    for (unsigned int n = 0; n < len; n += incr)
         {
-        unsigned int ishape = a.members.tree.getParticleByIndex(ptl_i);
-        unsigned int jshape = b.members.tree.getParticleByIndex(ptl_j);
-
-        const mparam_type& params_i = a.members.mparams[ishape];
-        Shape shape_i(quat<Scalar>(), params_i);
-        if (shape_i.hasOrientation())
-            shape_i.orientation = conj(quat<OverlapReal>(b.orientation))*quat<OverlapReal>(a.orientation) * a.members.morientation[ishape];
-
-        vec3<OverlapReal> pos_i(rotate(conj(quat<OverlapReal>(b.orientation))*quat<OverlapReal>(a.orientation),a.members.mpos[ishape])-r_ab);
-        unsigned int overlap_i = a.members.moverlap[ishape];
-
-        const mparam_type& params_j = b.members.mparams[jshape];
-        Shape shape_j(quat<Scalar>(), params_j);
-        if (shape_j.hasOrientation())
-            shape_j.orientation = b.members.morientation[jshape];
-
-        unsigned int overlap_j = b.members.moverlap[jshape];
-
-        if (overlap_i & overlap_j)
+        if (n + offset < len)
             {
-            vec3<OverlapReal> r_ij = b.members.mpos[jshape] - pos_i;
-            if (test_overlap(r_ij, shape_i, shape_j, err))
+            unsigned int ishape = a.members.tree.getParticleByIndex(ptl_i+(n+offset)/nb);
+            unsigned int jshape = b.members.tree.getParticleByIndex(ptl_j+(n+offset)%nb);
+
+            const mparam_type& params_i = a.members.mparams[ishape];
+            Shape shape_i(quat<Scalar>(), params_i);
+            if (shape_i.hasOrientation())
+                shape_i.orientation = conj(quat<OverlapReal>(b.orientation))*quat<OverlapReal>(a.orientation) * a.members.morientation[ishape];
+
+            vec3<OverlapReal> pos_i(rotate(conj(quat<OverlapReal>(b.orientation))*quat<OverlapReal>(a.orientation),a.members.mpos[ishape])-r_ab);
+            unsigned int overlap_i = a.members.moverlap[ishape];
+
+            const mparam_type& params_j = b.members.mparams[jshape];
+            Shape shape_j(quat<Scalar>(), params_j);
+            if (shape_j.hasOrientation())
+                shape_j.orientation = b.members.morientation[jshape];
+
+            unsigned int overlap_j = b.members.moverlap[jshape];
+
+            if (overlap_i & overlap_j)
                 {
-                return true;
+                vec3<OverlapReal> r_ij = b.members.mpos[jshape] - pos_i;
+                if (test_overlap(r_ij, shape_i, shape_j, err))
+                    {
+                    return true;
+                    }
                 }
-            }
-
-        // increment counters
-        #ifdef __HIP_DEVICE_COMPILE__
-        ptl_j += blockDim.x;
-        #else
-        ptl_j++;
-        #endif
-
-        while (ptl_j >= ptls_j_end)
-            {
-            ptl_j -= nb;
-            ptl_i++;
-
-            if (ptl_i == ptls_i_end)
-                break;
             }
         }
 
