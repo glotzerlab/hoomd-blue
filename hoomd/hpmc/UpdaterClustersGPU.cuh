@@ -39,8 +39,8 @@ namespace gpu
 struct cluster_args_t
     {
     //! Construct a cluster_args_t
-    cluster_args_t(Scalar4 *_d_postype,
-                Scalar4 *_d_orientation,
+    cluster_args_t(const Scalar4 *_d_postype,
+                const Scalar4 *_d_orientation,
                 const Index3D& _ci,
                 const uint3& _cell_dim,
                 const Scalar3& _ghost_width,
@@ -54,8 +54,8 @@ struct cluster_args_t
                 const unsigned int _block_size,
                 const unsigned int _tpp,
                 const unsigned int _overlap_threads,
-                Scalar4 *_d_trial_postype,
-                Scalar4 *_d_trial_orientation,
+                const Scalar4 *_d_trial_postype,
+                const Scalar4 *_d_trial_orientation,
                 unsigned int *_d_excell_idx,
                 const unsigned int *_d_excell_size,
                 const Index2D& _excli,
@@ -106,8 +106,8 @@ struct cluster_args_t
         {
         };
 
-    Scalar4 *d_postype;               //!< postype array
-    Scalar4 *d_orientation;           //!< orientation array
+    const Scalar4 *d_postype;         //!< postype array
+    const Scalar4 *d_orientation;     //!< orientation array
     const Index3D& ci;                //!< Cell indexer
     const uint3& cell_dim;            //!< Cell dimensions
     const Scalar3& ghost_width;       //!< Width of the ghost layer
@@ -121,8 +121,8 @@ struct cluster_args_t
     unsigned int block_size;          //!< Block size to execute
     unsigned int tpp;                 //!< Threads per particle
     unsigned int overlap_threads;     //!< Threads per overlap check
-    Scalar4 *d_trial_postype;         //!< New positions (and type) of particles
-    Scalar4 *d_trial_orientation;     //!< New orientations of particles
+    const Scalar4 *d_trial_postype;         //!< New positions (and type) of particles
+    const Scalar4 *d_trial_orientation;     //!< New orientations of particles
     unsigned int *d_excell_idx;       //!< Expanded cell list
     const unsigned int *d_excell_size;//!< Size of expanded cells
     const Index2D& excli;             //!< Excell indexer
@@ -164,6 +164,48 @@ void concatenate_adjacency_list(
     const GPUPartition& gpu_partition,
     const unsigned int block_size,
     const unsigned int group_size);
+
+//! Arguments to gpu::transform_particles
+struct clusters_transform_args_t
+    {
+    //! Construct a cluster_args_t
+    clusters_transform_args_t(
+        Scalar4 *_d_postype,
+        Scalar4 *_d_orientation,
+        int3 *_d_image,
+        const vec3<Scalar>& _pivot,
+        const quat<Scalar>& _q,
+        const bool _line,
+        const GPUPartition& _gpu_partition,
+        const BoxDim& _box,
+        const unsigned int _num_types,
+        const unsigned int _block_size)
+        : d_postype(_d_postype),
+          d_orientation(_d_orientation),
+          d_image(_d_image),
+          pivot(_pivot),
+          q(_q),
+          line(_line),
+          gpu_partition(_gpu_partition),
+          box(_box),
+          num_types(_num_types),
+          block_size(_block_size)
+          { }
+
+    Scalar4 *d_postype;
+    Scalar4 *d_orientation;
+    int3 *d_image;
+    const vec3<Scalar> pivot;
+    const quat<Scalar> q;
+    const bool line;
+    const GPUPartition& gpu_partition;
+    const BoxDim& box;
+    const unsigned int num_types;
+    const unsigned int block_size;
+    };
+
+template<class Shape>
+void transform_particles(const clusters_transform_args_t& args, const typename Shape::param_type *d_params);
 
 //! Kernel driver for kernel::hpmc_clusters_overlaps
 template< class Shape >
@@ -553,7 +595,8 @@ void cluster_overlaps_launcher(const cluster_args_t& args, const typename Shape:
 
             dim3 grid(num_blocks, 1, 1);
 
-            hipLaunchKernelGGL((hpmc_cluster_overlaps<Shape, launch_bounds_nonzero*MIN_BLOCK_SIZE>), grid, thread, shared_bytes, args.streams[idev],
+            hipLaunchKernelGGL((hpmc_cluster_overlaps<Shape, launch_bounds_nonzero*MIN_BLOCK_SIZE>),
+                grid, thread, shared_bytes, args.streams[idev],
                 args.d_postype, args.d_orientation, args.d_trial_postype, args.d_trial_orientation,
                 args.d_excell_idx, args.d_excell_size, args.excli,
                 args.d_adjacency, args.d_nneigh, args.maxn, args.d_overflow, args.num_types,
@@ -1435,6 +1478,68 @@ void clusters_depletants_launcher(const cluster_args_t& args, const hpmc_implici
         }
     }
 
+template<class Shape>
+__global__ void transform_particles(
+    Scalar4 *d_postype,
+    Scalar4 *d_orientation,
+    int3 *d_image,
+    const vec3<Scalar> pivot,
+    const quat<Scalar> q,
+    const bool line,
+    const unsigned int num_types,
+    const BoxDim box,
+    const unsigned int nwork,
+    const unsigned int work_offset,
+    const typename Shape::param_type *d_params)
+    {
+    unsigned int work_idx = threadIdx.x+blockDim.x*blockIdx.x;
+
+    extern __shared__ char s_data[];
+    typename Shape::param_type *s_params = (typename Shape::param_type *) s_data;
+        {
+        // copy over parameters one int per thread for fast loads
+        unsigned int tidx = threadIdx.x+blockDim.x*threadIdx.y + blockDim.x*blockDim.y*threadIdx.z;
+        unsigned int block_size = blockDim.x*blockDim.y*blockDim.z;
+        unsigned int param_size = num_types*sizeof(typename Shape::param_type) / sizeof(int);
+
+        for (unsigned int cur_offset = 0; cur_offset < param_size; cur_offset += block_size)
+            {
+            if (cur_offset + tidx < param_size)
+                {
+                ((int *)s_params)[cur_offset + tidx] = ((int *)d_params)[cur_offset + tidx];
+                }
+            }
+        }
+
+    __syncthreads();
+
+    if (work_idx >= nwork)
+        return;
+    unsigned int i = work_idx + work_offset;
+
+    vec3<Scalar> new_pos(d_postype[i]);
+
+    if (!line)
+        {
+        // point reflection
+        new_pos = pivot-(new_pos-pivot);
+        }
+    else
+        {
+        // line reflection
+        new_pos = lineReflection(new_pos, pivot, q);
+        Shape shape_i(quat<Scalar>(), s_params[__scalar_as_int(d_postype[i].w)]);
+        if (shape_i.hasOrientation())
+            d_orientation[i] = quat_to_scalar4(q*quat<Scalar>(d_orientation[i]));
+        }
+
+    // wrap particle back into box, incrementing image flags
+    int3 img = box.getImage(new_pos);
+    new_pos = box.shift(new_pos,-img);
+    d_postype[i] = make_scalar4(new_pos.x, new_pos.y, new_pos.z, d_postype[i].w);
+    d_image[i] = d_image[i] + img;
+    }
+
 } // end namespace kernel
 
 //! Kernel driver for kernel::hpmc_clusters_overlaps
@@ -1462,6 +1567,48 @@ void hpmc_clusters_depletants(const cluster_args_t& args, const hpmc_implicit_ar
         launch_bounds *= 2;
 
     kernel::clusters_depletants_launcher<Shape>(args, depletants_args, params, launch_bounds, detail::int2type<MAX_BLOCK_SIZE/MIN_BLOCK_SIZE>());
+    }
+
+template<class Shape>
+void transform_particles(const clusters_transform_args_t& args, const typename Shape::param_type *d_params)
+    {
+    // determine the maximum block size and clamp the input block size down
+    static int max_block_size = -1;
+    if (max_block_size == -1)
+        {
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(&kernel::transform_particles<Shape>));
+        max_block_size = attr.maxThreadsPerBlock;
+        }
+
+    // setup the grid to run the kernel
+    unsigned int run_block_size = min(args.block_size, (unsigned int)max_block_size);
+
+    unsigned int shared_bytes = sizeof(typename Shape::param_type)*args.num_types;
+
+    dim3 threads(run_block_size, 1, 1);
+
+    for (int idev = args.gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+        {
+        auto range = args.gpu_partition.getRangeAndSetGPU(idev);
+
+        unsigned int nwork = range.second - range.first;
+        const unsigned int num_blocks = nwork/run_block_size + 1;
+        dim3 grid(num_blocks, 1, 1);
+
+        hipLaunchKernelGGL((kernel::transform_particles<Shape>), grid, threads, shared_bytes, 0,
+            args.d_postype,
+            args.d_orientation,
+            args.d_image,
+            args.pivot,
+            args.q,
+            args.line,
+            args.num_types,
+            args.box,
+            nwork,
+            range.first,
+            d_params);
+        }
     }
 #endif
 

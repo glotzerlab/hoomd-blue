@@ -401,23 +401,8 @@ class UpdaterClusters : public Updater
         virtual void connectedComponents(unsigned int N, std::vector<std::vector<unsigned int> >& clusters);
         #endif
 
-        //! Helper function to get interaction range
-        virtual Scalar getNominalWidth()
-            {
-            Scalar nominal_width = m_mc->getMaxCoreDiameter();
-            auto patch = m_mc->getPatchInteraction();
-            if (patch)
-                {
-                Scalar max_extent = 0.0;
-                for (unsigned int typ = 0; typ < this->m_pdata->getNTypes(); typ++)
-                    {
-                    max_extent = std::max(max_extent, patch->getAdditiveCutoff(typ));
-                    }
-
-                nominal_width = std::max(nominal_width, max_extent+patch->getRCut());
-                }
-            return nominal_width;
-            }
+        // Transform particles using an self-inverse, isometric operation
+        virtual void transform(const quat<Scalar>& q, const vec3<Scalar>& pivot, bool line);
     };
 
 template< class Shape >
@@ -1053,6 +1038,52 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
     }
 
 template< class Shape >
+void UpdaterClusters<Shape>::transform(const quat<Scalar>& q, const vec3<Scalar>& pivot, bool line)
+    {
+    if (this->m_prof)
+        m_prof->push(m_exec_conf, "Transform");
+
+    // store old locality data
+    m_aabb_tree_old = m_mc->buildAABBTree();
+    const BoxDim& box = m_pdata->getGlobalBox();
+
+        {
+        ArrayHandle<Scalar4> h_pos(this->m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<int3> h_image(this->m_pdata->getImages(), access_location::host, access_mode::readwrite);
+
+        // access parameters
+        auto params = m_mc->getParams();
+        unsigned int nptl = this->m_pdata->getN();
+
+        for (unsigned int i = 0; i < nptl; ++i)
+            {
+            vec3<Scalar> new_pos(h_pos.data[i]);
+            if (!line)
+                {
+                // point reflection
+                new_pos = pivot-(new_pos-pivot);
+                }
+            else
+                {
+                // line reflection
+                new_pos = lineReflection(new_pos, pivot, q);
+                Shape shape_i(quat<Scalar>(h_orientation.data[i]), params[__scalar_as_int(h_pos.data[i].w)]);
+                if (shape_i.hasOrientation())
+                    h_orientation.data[i] = quat_to_scalar4(q*quat<Scalar>(h_orientation.data[i]));
+                }
+            // wrap particle back into box, incrementing image flags
+            int3 img = box.getImage(new_pos);
+            new_pos = box.shift(new_pos,-img);
+            h_pos.data[i] = make_scalar4(new_pos.x, new_pos.y, new_pos.z, h_pos.data[i].w);
+            h_image.data[i] = h_image.data[i] + img;
+            }
+        }
+
+    if (m_prof) m_prof->pop(m_exec_conf);
+    }
+
+template< class Shape >
 void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, const quat<Scalar> q, const vec3<Scalar> pivot, bool line)
     {
     if (m_prof)
@@ -1404,13 +1435,13 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, const quat<
 
 template<class Shape>
 void UpdaterClusters<Shape>::backupState()
-
     {
-    unsigned int nptl = m_pdata->getN()+m_pdata->getNGhosts();
+    unsigned int nptl = m_pdata->getN();
 
     // resize as necessary
     m_postype_backup.resize(nptl);
     m_orientation_backup.resize(nptl);
+    m_image_backup.resize(nptl);
 
         {
         ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -1466,11 +1497,8 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
     if (m_prof) m_prof->push(m_exec_conf,"HPMC Clusters");
 
-    if (m_prof) m_prof->push(m_exec_conf,"Transform");
-
     // generate the move, select a pivot
     hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterClusters, timestep, this->m_seed);
-    BoxDim box = m_pdata->getGlobalBox();
     vec3<Scalar> pivot(0,0,0);
 
     // is this a line reflection?
@@ -1516,6 +1544,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
         f.z = 0.5;
         }
 
+    const BoxDim& box = m_pdata->getGlobalBox();
     pivot = vec3<Scalar>(box.makeCoordinates(f));
     if (m_sysdef->getNDimensions() == 2)
         {
@@ -1526,43 +1555,8 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     // store backup of particle data
     backupState();
 
-    // store old locality data
-    m_aabb_tree_old = m_mc->buildAABBTree();
-
-        {
-        ArrayHandle<Scalar4> h_pos(this->m_pdata->getPositions(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
-        ArrayHandle<int3> h_image(this->m_pdata->getImages(), access_location::host, access_mode::readwrite);
-
-        // access parameters
-        auto& params = m_mc->getParams();
-        unsigned int nptl = this->m_pdata->getN();
-
-        for (unsigned int i = 0; i < nptl; ++i)
-            {
-            vec3<Scalar> new_pos(h_pos.data[i]);
-            if (!line)
-                {
-                // point reflection
-                new_pos = pivot-(new_pos-pivot);
-                }
-            else
-                {
-                // line reflection
-                new_pos = lineReflection(new_pos, pivot, q);
-                Shape shape_i(quat<Scalar>(h_orientation.data[i]), params[__scalar_as_int(h_pos.data[i].w)]);
-                if (shape_i.hasOrientation())
-                    h_orientation.data[i] = quat_to_scalar4(q*quat<Scalar>(h_orientation.data[i]));
-                }
-            // wrap particle back into box, incrementing image flags
-            int3 img = box.getImage(new_pos);
-            new_pos = box.shift(new_pos,-img);
-            h_pos.data[i] = make_scalar4(new_pos.x, new_pos.y, new_pos.z, h_pos.data[i].w);
-            h_image.data[i] = h_image.data[i] + img;
-            }
-        }
-
-    if (m_prof) m_prof->pop(m_exec_conf);
+    // transform particle data
+    this->transform(q, pivot, line);
 
     // signal that AABB tree is invalid
     m_mc->invalidateAABBTree();

@@ -3,6 +3,8 @@
 
 #include "UpdaterClustersGPU.cuh"
 
+#include "Moves.h"
+
 #include <thrust/device_ptr.h>
 #include <thrust/iterator/transform_iterator.h>
 #include <thrust/iterator/counting_iterator.h>
@@ -139,6 +141,7 @@ __global__ void concatenate_adjacency_list(
             }
         }
     }
+
 } // end namespace kernel
 
 void concatenate_adjacency_list(

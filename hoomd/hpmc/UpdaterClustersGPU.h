@@ -58,6 +58,9 @@ class UpdaterClustersGPU : public UpdaterClusters<Shape>
 
             m_tuner_concatenate->setPeriod(period);
             m_tuner_concatenate->setEnabled(enable);
+
+            m_tuner_transform->setPeriod(period);
+            m_tuner_transform->setEnabled(enable);
             }
 
         //! Take one timestep forward
@@ -79,6 +82,7 @@ class UpdaterClustersGPU : public UpdaterClusters<Shape>
         std::unique_ptr<Autotuner> m_tuner_depletants;       //!< Autotuner for inserting depletants
         std::unique_ptr<Autotuner> m_tuner_num_depletants;   //!< Autotuner for calculating number of depletants
         std::unique_ptr<Autotuner> m_tuner_concatenate;   //!< Autotuner for contenating the per-particle neighbor lists
+        std::unique_ptr<Autotuner> m_tuner_transform;     //!< Autotuner for transforming particles
 
         GlobalArray<unsigned int> m_excell_idx;              //!< Particle indices in expanded cells
         GlobalArray<unsigned int> m_excell_size;             //!< Number of particles in each expanded cell
@@ -105,9 +109,15 @@ class UpdaterClustersGPU : public UpdaterClusters<Shape>
         virtual void connectedComponents(unsigned int N, std::vector<std::vector<unsigned int> >& clusters);
         #endif
 
+        // backup current particle data
+        virtual void backupState();
+
          /*! \param timestep Current time step
          */
         virtual void findInteractions(unsigned int timestep, const quat<Scalar> q, const vec3<Scalar> pivot, bool line);
+
+        //! Transform particles
+        virtual void transform(const quat<Scalar>& q, const vec3<Scalar>& pivot, bool line);
 
         //! Set up excell_list
         virtual void initializeExcellMem();
@@ -146,6 +156,7 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
     hipDeviceProp_t dev_prop = this->m_exec_conf->dev_prop;
     m_tuner_excell_block_size.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "clusters_excell_block_size", this->m_exec_conf));
     m_tuner_num_depletants.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "clusters_num_depletants", this->m_exec_conf));
+    m_tuner_transform.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "clusters_transform", this->m_exec_conf));
 
     // tuning parameters for overlap checks
     std::vector<unsigned int> valid_params;
@@ -488,6 +499,90 @@ void UpdaterClustersGPU< Shape >::initializeExcellMem()
             }
         }
     #endif
+    }
+
+template<class Shape>
+void UpdaterClustersGPU<Shape>::backupState()
+    {
+    unsigned int nptl = this->m_pdata->getN();
+
+    // resize as necessary
+    this->m_postype_backup.resize(nptl);
+    this->m_orientation_backup.resize(nptl);
+    this->m_image_backup.resize(nptl);
+
+        {
+        ArrayHandle<Scalar4> d_postype(this->m_pdata->getPositions(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_orientation(this->m_pdata->getOrientationArray(), access_location::device, access_mode::read);
+        ArrayHandle<int3> d_image(this->m_pdata->getImages(), access_location::device, access_mode::read);
+
+        ArrayHandle<Scalar4> d_postype_backup(this->m_postype_backup, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar4> d_orientation_backup(this->m_orientation_backup, access_location::device, access_mode::overwrite);
+        ArrayHandle<int3> d_image_backup(this->m_image_backup, access_location::device, access_mode::overwrite);
+
+        // copy over data
+        this->m_exec_conf->beginMultiGPU();
+        for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
+            {
+            hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
+
+            auto range = this->m_pdata->getGPUPartition().getRange(idev);
+            if (range.second - range.first != 0)
+                {
+                hipMemcpyAsync(d_postype_backup.data + range.first,
+                               d_postype.data + range.first,
+                               sizeof(Scalar4)*(range.second-range.first),
+                               hipMemcpyDeviceToDevice);
+                hipMemcpyAsync(d_orientation_backup.data + range.first,
+                               d_orientation.data + range.first,
+                               sizeof(Scalar4)*(range.second-range.first),
+                               hipMemcpyDeviceToDevice);
+                hipMemcpyAsync(d_image_backup.data + range.first,
+                               d_image.data + range.first,
+                               sizeof(int3)*(range.second-range.first),
+                               hipMemcpyDeviceToDevice);
+                }
+            if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
+            }
+        this->m_exec_conf->endMultiGPU();
+        }
+    }
+
+template<class Shape>
+void UpdaterClustersGPU<Shape>::transform(const quat<Scalar>& q, const vec3<Scalar>& pivot, bool line)
+    {
+    if (this->m_prof)
+        this->m_prof->push(this->m_exec_conf, "Transform");
+
+    ArrayHandle<Scalar4> d_postype(this->m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_orientation(this->m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
+    ArrayHandle<int3> d_image(this->m_pdata->getImages(), access_location::device, access_mode::readwrite);
+
+    auto params = this->m_mc->getParams();
+    unsigned int block_size = m_tuner_transform->getParam();
+    gpu::clusters_transform_args_t args(
+        d_postype.data,
+        d_orientation.data,
+        d_image.data,
+        pivot,
+        q,
+        line,
+        this->m_pdata->getGPUPartition(),
+        this->m_pdata->getGlobalBox(),
+        this->m_pdata->getNTypes(),
+        block_size);
+
+    m_tuner_transform->begin();
+    this->m_exec_conf->beginMultiGPU();
+    gpu::transform_particles<Shape>(args, params.data());
+    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+    this->m_exec_conf->endMultiGPU();
+    m_tuner_transform->end();
+
+    if (this->m_prof)
+        this->m_prof->pop(this->m_exec_conf);
     }
 
 template<class Shape>

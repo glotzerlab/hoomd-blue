@@ -32,6 +32,8 @@ template void hpmc_update_pdata<ShapeSpheropolygon>(const hpmc_update_args_t& ar
 template void hpmc_cluster_overlaps<ShapeSpheropolygon>(const cluster_args_t& args, const ShapeSpheropolygon::param_type *params);
 //! Kernel driver for kernel::clusters_depletants
 template void hpmc_clusters_depletants<ShapeSpheropolygon>(const cluster_args_t& args, const hpmc_implicit_args_t& implicit_args, const ShapeSpheropolygon::param_type *params);
+//! Driver for kernel::transform_particles
+template void transform_particles<ShapeSpheropolygon>(const clusters_transform_args_t& args, const ShapeSpheropolygon::param_type *params);
 }
 
 } // end namespace hpmc

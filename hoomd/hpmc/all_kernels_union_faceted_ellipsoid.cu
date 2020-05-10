@@ -33,6 +33,8 @@ template void hpmc_update_pdata<ShapeUnion<ShapeFacetedEllipsoid> >(const hpmc_u
 template void hpmc_cluster_overlaps<ShapeUnion<ShapeFacetedEllipsoid> >(const cluster_args_t& args, const ShapeUnion<ShapeFacetedEllipsoid>::param_type *params);
 //! Kernel driver for kernel::clusters_depletants
 template void hpmc_clusters_depletants<ShapeUnion<ShapeFacetedEllipsoid> >(const cluster_args_t& args, const hpmc_implicit_args_t& implicit_args, const ShapeUnion<ShapeFacetedEllipsoid>::param_type *params);
+//! Driver for kernel::transform_particles
+template void transform_particles<ShapeUnion<ShapeFacetedEllipsoid> >(const clusters_transform_args_t& args, const ShapeUnion<ShapeFacetedEllipsoid>::param_type *params);
 }
 
 } // end namespace hpmc
