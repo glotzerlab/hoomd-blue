@@ -566,13 +566,13 @@ void UpdaterClustersGPU<Shape>::transform(const quat<Scalar>& q, const vec3<Scal
         this->m_pdata->getNTypes(),
         block_size);
 
-    m_tuner_transform->begin();
     this->m_exec_conf->beginMultiGPU();
+    m_tuner_transform->begin();
     gpu::transform_particles<Shape>(args, params.data());
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    this->m_exec_conf->endMultiGPU();
     m_tuner_transform->end();
+    this->m_exec_conf->endMultiGPU();
 
     if (this->m_prof)
         this->m_prof->pop(this->m_exec_conf);
@@ -594,8 +594,8 @@ void UpdaterClustersGPU<Shape>::flip(unsigned int timestep)
 
     ArrayHandle<int> d_components(m_components, access_location::device, access_mode::read);
 
-    m_tuner_flip->begin();
     this->m_exec_conf->beginMultiGPU();
+    m_tuner_flip->begin();
     gpu::flip_clusters(
         d_postype.data,
         d_orientation.data,
@@ -611,8 +611,8 @@ void UpdaterClustersGPU<Shape>::flip(unsigned int timestep)
         m_tuner_flip->getParam());
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    this->m_exec_conf->endMultiGPU();
     m_tuner_flip->end();
+    this->m_exec_conf->endMultiGPU();
 
     if (this->m_prof)
         this->m_prof->pop(this->m_exec_conf);
