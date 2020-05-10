@@ -1072,7 +1072,10 @@ ArrayHandleDispatch<T> GPUArray<T>::acquire(const access_location::Enum location
                                         ) const
     {
     // sanity check
-    assert(!m_acquired);
+    if (m_acquired)
+        {
+        throw std::runtime_error("Cannot acquire access to array in use.");
+        }
     m_acquired = true;
 
     // base case - handle acquiring a NULL GPUArray by simply returning NULL to prevent any memcpys from being attempted
