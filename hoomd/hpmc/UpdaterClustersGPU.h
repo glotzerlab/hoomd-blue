@@ -61,6 +61,9 @@ class UpdaterClustersGPU : public UpdaterClusters<Shape>
 
             m_tuner_transform->setPeriod(period);
             m_tuner_transform->setEnabled(enable);
+
+            m_tuner_flip->setPeriod(period);
+            m_tuner_flip->setEnabled(enable);
             }
 
         //! Take one timestep forward
@@ -83,6 +86,7 @@ class UpdaterClustersGPU : public UpdaterClusters<Shape>
         std::unique_ptr<Autotuner> m_tuner_num_depletants;   //!< Autotuner for calculating number of depletants
         std::unique_ptr<Autotuner> m_tuner_concatenate;   //!< Autotuner for contenating the per-particle neighbor lists
         std::unique_ptr<Autotuner> m_tuner_transform;     //!< Autotuner for transforming particles
+        std::unique_ptr<Autotuner> m_tuner_flip;          //!< Autotuner for flipping clusters
 
         GlobalArray<unsigned int> m_excell_idx;              //!< Particle indices in expanded cells
         GlobalArray<unsigned int> m_excell_size;             //!< Number of particles in each expanded cell
@@ -103,11 +107,7 @@ class UpdaterClustersGPU : public UpdaterClusters<Shape>
         GlobalArray<Scalar> m_lambda;                              //!< Poisson means, per type pair
 
         //! Determine connected components of the interaction graph
-        #ifdef ENABLE_TBB
-        virtual void connectedComponents(unsigned int N, std::vector<tbb::concurrent_vector<unsigned int> >& clusters);
-        #else
-        virtual void connectedComponents(unsigned int N, std::vector<std::vector<unsigned int> >& clusters);
-        #endif
+        virtual void connectedComponents();
 
         // backup current particle data
         virtual void backupState();
@@ -118,6 +118,9 @@ class UpdaterClustersGPU : public UpdaterClusters<Shape>
 
         //! Transform particles
         virtual void transform(const quat<Scalar>& q, const vec3<Scalar>& pivot, bool line);
+
+        //! Flip clusters randomly
+        virtual void flip(unsigned int timestep);
 
         //! Set up excell_list
         virtual void initializeExcellMem();
@@ -157,6 +160,7 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
     m_tuner_excell_block_size.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "clusters_excell_block_size", this->m_exec_conf));
     m_tuner_num_depletants.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "clusters_num_depletants", this->m_exec_conf));
     m_tuner_transform.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "clusters_transform", this->m_exec_conf));
+    m_tuner_flip.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "clusters_flip", this->m_exec_conf));
 
     // tuning parameters for overlap checks
     std::vector<unsigned int> valid_params;
@@ -379,11 +383,7 @@ void UpdaterClustersGPU<Shape>::update(unsigned int timestep)
     }
 
 template<class Shape>
-#ifdef ENABLE_TBB
-void UpdaterClustersGPU<Shape>::connectedComponents(unsigned int N, std::vector<tbb::concurrent_vector<unsigned int> >& clusters)
-#else
-void UpdaterClustersGPU<Shape>::connectedComponents(unsigned int N, std::vector<std::vector<unsigned int> >& clusters)
-#endif
+void UpdaterClustersGPU<Shape>::connectedComponents()
     {
     if (this->m_prof)
         this->m_prof->push(this->m_exec_conf, "connected components");
@@ -391,7 +391,7 @@ void UpdaterClustersGPU<Shape>::connectedComponents(unsigned int N, std::vector<
     // this will contain the number of strongly connected components
     unsigned int num_components = 0;
 
-    m_components.resize(N);
+    m_components.resize(this->m_pdata->getN());
 
     // access edges of adajacency matrix
     ArrayHandle<unsigned int> d_adjacency(m_adjacency, access_location::device, access_mode::read);
@@ -442,7 +442,7 @@ void UpdaterClustersGPU<Shape>::connectedComponents(unsigned int N, std::vector<
 
         gpu::connected_components(
             d_adjacency_copy.data,
-            N,
+            this->m_pdata->getN(),
             nneigh_total*2,
             d_components.data,
             num_components,
@@ -453,16 +453,9 @@ void UpdaterClustersGPU<Shape>::connectedComponents(unsigned int N, std::vector<
             CHECK_CUDA_ERROR();
         }
 
-    clusters.clear();
-    clusters.resize(num_components);
-
-    // copy back to host
-    ArrayHandle<int> h_components(m_components, access_location::host, access_mode::read);
-
-    for (unsigned int i = 0; i < N; ++i)
-        {
-        clusters[h_components.data[i]].push_back(i);
-        }
+    // count clusters
+    this->m_count_total.n_particles_in_clusters += this->m_pdata->getN();
+    this->m_count_total.n_clusters += num_components;
 
     if (this->m_prof)
         this->m_prof->pop(this->m_exec_conf);
@@ -580,6 +573,46 @@ void UpdaterClustersGPU<Shape>::transform(const quat<Scalar>& q, const vec3<Scal
         CHECK_CUDA_ERROR();
     this->m_exec_conf->endMultiGPU();
     m_tuner_transform->end();
+
+    if (this->m_prof)
+        this->m_prof->pop(this->m_exec_conf);
+    }
+
+template<class Shape>
+void UpdaterClustersGPU<Shape>::flip(unsigned int timestep)
+    {
+    if (this->m_prof)
+        this->m_prof->push(this->m_exec_conf, "flip");
+
+    ArrayHandle<Scalar4> d_postype(this->m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_orientation(this->m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
+    ArrayHandle<int3> d_image(this->m_pdata->getImages(), access_location::device, access_mode::readwrite);
+
+    ArrayHandle<Scalar4> d_postype_backup(this->m_postype_backup, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_orientation_backup(this->m_orientation_backup, access_location::device, access_mode::read);
+    ArrayHandle<int3> d_image_backup(this->m_image_backup, access_location::device, access_mode::read);
+
+    ArrayHandle<int> d_components(m_components, access_location::device, access_mode::read);
+
+    m_tuner_flip->begin();
+    this->m_exec_conf->beginMultiGPU();
+    gpu::flip_clusters(
+        d_postype.data,
+        d_orientation.data,
+        d_image.data,
+        d_postype_backup.data,
+        d_orientation_backup.data,
+        d_image_backup.data,
+        d_components.data,
+        this->m_flip_probability,
+        this->m_seed,
+        timestep,
+        this->m_pdata->getGPUPartition(),
+        m_tuner_flip->getParam());
+    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+    this->m_exec_conf->endMultiGPU();
+    m_tuner_flip->end();
 
     if (this->m_prof)
         this->m_prof->pop(this->m_exec_conf);

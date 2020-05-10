@@ -394,14 +394,13 @@ class UpdaterClusters : public Updater
         virtual void findInteractions(unsigned int timestep, const quat<Scalar> q, const vec3<Scalar> pivot, bool line);
 
         //! Determine connected components of the interaction graph
-        #ifdef ENABLE_TBB
-        virtual void connectedComponents(unsigned int N, std::vector<tbb::concurrent_vector<unsigned int> >& clusters);
-        #else
-        virtual void connectedComponents(unsigned int N, std::vector<std::vector<unsigned int> >& clusters);
-        #endif
+        virtual void connectedComponents();
 
         // Transform particles using an self-inverse, isometric operation
         virtual void transform(const quat<Scalar>& q, const vec3<Scalar>& pivot, bool line);
+
+        //! Flip clusters randomly
+        virtual void flip(unsigned int timestep);
     };
 
 template< class Shape >
@@ -1089,6 +1088,52 @@ void UpdaterClusters<Shape>::transform(const quat<Scalar>& q, const vec3<Scalar>
     }
 
 template< class Shape >
+void UpdaterClusters<Shape>::flip(unsigned int timestep)
+    {
+    if (this->m_prof) this->m_prof->push("flip");
+
+    // move every cluster independently
+    m_count_total.n_clusters += m_clusters.size();
+
+        {
+        ArrayHandle<Scalar4> h_pos(this->m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<int3> h_image(this->m_pdata->getImages(), access_location::host, access_mode::readwrite);
+
+        ArrayHandle<Scalar4> h_pos_backup(m_postype_backup, access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_orientation_backup(m_orientation_backup, access_location::host, access_mode::read);
+        ArrayHandle<int3> h_image_backup(m_image_backup, access_location::host, access_mode::read);
+
+        for (unsigned int icluster = 0; icluster < m_clusters.size(); icluster++)
+            {
+            m_count_total.n_particles_in_clusters += m_clusters[icluster].size();
+
+            // seed by id of first particle in cluster to make independent of cluster labeling
+            hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::UpdaterClusters+1, this->m_seed, timestep,
+                m_clusters[icluster][0]);
+
+            bool flip = hoomd::detail::generate_canonical<float>(rng_i) <= m_flip_probability;
+
+            if (!flip)
+                {
+                // revert cluster
+                for (auto it = m_clusters[icluster].begin(); it != m_clusters[icluster].end(); ++it)
+                    {
+                    // particle index
+                    unsigned int i = *it;
+
+                    h_pos.data[i] = h_pos_backup.data[i];
+                    h_orientation.data[i] = h_orientation_backup.data[i];
+                    h_image.data[i] = h_image_backup.data[i];
+                    }
+                }
+            } // end loop over clusters
+        }
+
+    if (this->m_prof) this->m_prof->pop();
+    }
+
+template< class Shape >
 void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, const quat<Scalar> q, const vec3<Scalar> pivot, bool line)
     {
     if (m_prof)
@@ -1468,17 +1513,13 @@ void UpdaterClusters<Shape>::backupState()
     }
 
 template<class Shape>
-#ifdef ENABLE_TBB
-void UpdaterClusters<Shape>::connectedComponents(unsigned int N, std::vector<tbb::concurrent_vector<unsigned int> >& clusters)
-#else
-void UpdaterClusters<Shape>::connectedComponents(unsigned int N, std::vector<std::vector<unsigned int> >& clusters)
-#endif
+void UpdaterClusters<Shape>::connectedComponents()
     {
     if (this->m_prof) this->m_prof->push("connected components");
 
     // compute connected components
-    clusters.clear();
-    m_G.connectedComponents(clusters);
+    m_clusters.clear();
+    m_G.connectedComponents(m_clusters);
     if (this->m_prof) this->m_prof->pop();
     }
 
@@ -1569,8 +1610,6 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     // determine which particles interact
     findInteractions(timestep, q, pivot, line);
 
-    if (m_prof) m_prof->push(m_exec_conf,"Move");
-
     if (this->m_prof)
         this->m_prof->push("fill");
 
@@ -1584,7 +1623,6 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
     if (m_prof)
         m_prof->pop();
-
 
     if (m_prof)
         m_prof->push("overlap");
@@ -1686,51 +1724,11 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
         } // end if (patch)
 
     // compute connected components
-    connectedComponents(this->m_pdata->getN(), m_clusters);
+    connectedComponents();
 
-    if (this->m_prof) this->m_prof->push("flip");
+    // flip clusters randomly
+    flip(timestep);
 
-    // move every cluster independently
-    m_count_total.n_clusters += m_clusters.size();
-
-        {
-        ArrayHandle<Scalar4> h_pos(this->m_pdata->getPositions(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
-        ArrayHandle<int3> h_image(this->m_pdata->getImages(), access_location::host, access_mode::readwrite);
-
-        ArrayHandle<Scalar4> h_pos_backup(m_postype_backup, access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> h_orientation_backup(m_orientation_backup, access_location::host, access_mode::read);
-        ArrayHandle<int3> h_image_backup(m_image_backup, access_location::host, access_mode::read);
-
-        for (unsigned int icluster = 0; icluster < m_clusters.size(); icluster++)
-            {
-            m_count_total.n_particles_in_clusters += m_clusters[icluster].size();
-
-            // seed by id of first particle in cluster to make independent of cluster labeling
-            hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::UpdaterClusters+1, this->m_seed, timestep,
-                m_clusters[icluster][0]);
-
-            bool flip = hoomd::detail::generate_canonical<float>(rng_i) <= m_flip_probability;
-
-            if (!flip)
-                {
-                // revert cluster
-                for (auto it = m_clusters[icluster].begin(); it != m_clusters[icluster].end(); ++it)
-                    {
-                    // particle index
-                    unsigned int i = *it;
-
-                    h_pos.data[i] = h_pos_backup.data[i];
-                    h_orientation.data[i] = h_orientation_backup.data[i];
-                    h_image.data[i] = h_image_backup.data[i];
-                    }
-                }
-            } // end loop over clusters
-        }
-
-    if (this->m_prof) this->m_prof->pop();
-
-    if (m_prof) m_prof->pop(m_exec_conf);
     if (m_prof) m_prof->pop(m_exec_conf);
 
     m_mc->invalidateAABBTree();

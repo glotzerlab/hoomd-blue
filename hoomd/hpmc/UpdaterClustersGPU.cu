@@ -144,6 +144,41 @@ __global__ void concatenate_adjacency_list(
         }
     }
 
+__global__ void flip_clusters(
+    Scalar4 *d_postype,
+    Scalar4 *d_orientation,
+    int3 *d_image,
+    const Scalar4 *d_postype_backup,
+    const Scalar4 *d_orientation_backup,
+    const int3 *d_image_backup,
+    const int *d_components,
+    float flip_probability,
+    unsigned int seed,
+    unsigned int timestep,
+    unsigned int nwork,
+    unsigned int work_offset)
+    {
+    unsigned int work_idx = threadIdx.x + blockIdx.x*blockDim.x;
+
+    if (work_idx >= nwork)
+        return;
+
+    unsigned int i = work_idx + work_offset;
+
+    // seed by cluster id
+    int component = d_components[i];
+    hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::UpdaterClusters+1, seed, timestep, component);
+
+    bool flip = hoomd::detail::generate_canonical<float>(rng_i) <= flip_probability;
+
+    if (!flip)
+        {
+        d_postype[i] = d_postype_backup[i];
+        d_orientation[i] = d_orientation_backup[i];
+        d_image[i] = d_image_backup[i];
+        }
+    }
+
 } // end namespace kernel
 
 void concatenate_adjacency_list(
@@ -190,6 +225,58 @@ void concatenate_adjacency_list(
             d_nneigh_scan,
             maxn,
             d_adjacency_out,
+            nwork,
+            range.first);
+        }
+    }
+
+void flip_clusters(
+    Scalar4 *d_postype,
+    Scalar4 *d_orientation,
+    int3 *d_image,
+    const Scalar4 *d_postype_backup,
+    const Scalar4 *d_orientation_backup,
+    const int3 *d_image_backup,
+    const int *d_components,
+    float flip_probability,
+    unsigned int seed,
+    unsigned int timestep,
+    const GPUPartition& gpu_partition,
+    const unsigned int block_size)
+    {
+    // determine the maximum block size and clamp the input block size down
+    static int max_block_size = -1;
+    if (max_block_size == -1)
+        {
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::flip_clusters));
+        max_block_size = attr.maxThreadsPerBlock;
+        }
+
+    // setup the grid to run the kernel
+    unsigned int run_block_size = min(block_size, (unsigned int)max_block_size);
+
+    dim3 threads(run_block_size, 1);
+
+    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+        {
+        auto range = gpu_partition.getRangeAndSetGPU(idev);
+
+        unsigned int nwork = range.second - range.first;
+        const unsigned int num_blocks = nwork/run_block_size + 1;
+        dim3 grid(num_blocks, 1, 1);
+
+        hipLaunchKernelGGL(kernel::flip_clusters, grid, threads, 0, 0,
+            d_postype,
+            d_orientation,
+            d_image,
+            d_postype_backup,
+            d_orientation_backup,
+            d_image_backup,
+            d_components,
+            flip_probability,
+            seed,
+            timestep,
             nwork,
             range.first);
         }

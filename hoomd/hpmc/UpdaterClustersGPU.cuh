@@ -165,6 +165,20 @@ void concatenate_adjacency_list(
     const unsigned int block_size,
     const unsigned int group_size);
 
+void flip_clusters(
+    Scalar4 *d_postype,
+    Scalar4 *d_orientation,
+    int3 *d_image,
+    const Scalar4 *d_postype_backup,
+    const Scalar4 *d_orientation_backup,
+    const int3 *d_image_backup,
+    const int *d_components,
+    float flip_probability,
+    unsigned int seed,
+    unsigned int timestep,
+    const GPUPartition& gpu_partition,
+    const unsigned int block_size);
+
 //! Arguments to gpu::transform_particles
 struct clusters_transform_args_t
     {
