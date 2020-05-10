@@ -237,11 +237,10 @@ void Graph::resize(unsigned int V)
     adj.clear();
     }
 
-// method to add an undirected edge
+// method to add a directed edge
 void Graph::addEdge(unsigned int v, unsigned int w)
     {
     adj.insert(std::make_pair(v,w));
-    adj.insert(std::make_pair(w,v));
     }
 } // end namespace detail
 
@@ -981,7 +980,10 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                         }
 
                     if (overlap_old)
+                        {
+                        // this depletant was not in the free volume
                         continue;
+                        }
 
                     for (unsigned int m = k; m < n_intersect; ++m)
                         {
@@ -1020,6 +1022,9 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                             {
                             // add bond
                             this->m_overlap.insert(std::make_pair(i,idx_j[m]));
+
+                            // since i<=j by construction, make matrix symmetric explicitly
+                            this->m_overlap.insert(std::make_pair(idx_j[m],i));
                             }
                         }
                     } // end loop over intersections
@@ -1594,6 +1599,9 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
             {
             unsigned int i = it->first;
             unsigned int j = it->second;
+
+            // we're adding a directed edge, but the actual graph will be undirected
+            // if the symmetry operation is self-inverse
             m_G.addEdge(i,j);
             }
         }
@@ -1661,7 +1669,8 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                 unsigned int j = it->first.second;
 
                 // create a RNG specific to this particle pair
-                hoomd::RandomGenerator rng_ij(hoomd::RNGIdentifier::UpdaterClustersPairwise, this->m_seed, timestep, std::min(i,j), std::max(i,j));
+                hoomd::RandomGenerator rng_ij(hoomd::RNGIdentifier::UpdaterClustersPairwise,
+                    this->m_seed, timestep, std::min(i,j), std::max(i,j));
 
                 float pij = 1.0f-exp(-delU);
                 if (hoomd::detail::generate_canonical<float>(rng_ij) <= pij) // GCA

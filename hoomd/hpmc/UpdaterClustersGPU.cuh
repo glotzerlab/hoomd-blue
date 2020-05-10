@@ -939,7 +939,8 @@ __global__ void clusters_insert_depletants(const Scalar4 *d_postype,
                     bool circumsphere_overlap = s_check_overlaps[overlap_idx(depletant_type, type_j)] &&
                         check_circumsphere_overlap(r_jk, shape_test, shape_j);
 
-                    if (i != j && circumsphere_overlap)
+                    // upper triangular matrix
+                    if (i < j && circumsphere_overlap)
                         {
                         // add this particle to the queue
                         unsigned int insert_point = atomicAdd(&s_queue_size, 1);
@@ -994,8 +995,7 @@ __global__ void clusters_insert_depletants(const Scalar4 *d_postype,
                 r_jk = vec3<Scalar>(box.minImage(vec_to_scalar3(r_jk)));
 
                 if (s_check_overlaps[overlap_idx(depletant_type, type_j)] &&
-                    test_overlap(r_jk, shape_test, shape_j, err_count) &&
-                    check_j < i)
+                    test_overlap(r_jk, shape_test, shape_j, err_count))
                     {
                     s_reject_group[check_group] = 1;
                     }

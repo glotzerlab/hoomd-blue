@@ -134,8 +134,10 @@ __global__ void concatenate_adjacency_list(
         {
         if (k + offset < nneigh)
             {
-            // generate a symmetric adjacency list
             unsigned int j = d_adjacency[k + offset + i*maxn];
+
+            // we make the matrix explicitly symmetric, because
+            // inserting symmetric pairs in the overlap kernels would violate memory locality
             d_adjacency_out[2*(start + k + offset)] = make_uint2(i, j);
             d_adjacency_out[2*(start + k + offset)+1] = make_uint2(j, i);
             }
