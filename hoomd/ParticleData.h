@@ -1268,170 +1268,187 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<ParticleData>
 
             virtual ~LocalParticleData() = default;
 
-            pybind11::array_t<Scalar> getPosition(bool ghost=false)
+            pybind11::array_t<Scalar> getPosition(bool ghost=false, bool include_both=false)
             {
                 return getArray<Scalar4, Scalar, GlobalArray>(
                     m_position_handle,
                     &ParticleData::getPositions,
                     ghost,
+                    include_both,
                     3,
                     0
                 );
             }
 
-            pybind11::array_t<Scalar> getTypes(bool ghost=false)
+            pybind11::array_t<Scalar> getTypes(bool ghost=false, bool include_both=false)
             {
                 return getArray<Scalar4, Scalar, GlobalArray>(
                     m_position_handle,
                     &ParticleData::getPositions,
                     ghost,
+                    include_both,
                     0,
                     3
                 );
             }
 
-            pybind11::array_t<Scalar> getVelocities(bool ghost=false)
+            pybind11::array_t<Scalar> getVelocities(bool ghost=false, bool include_both=false)
             {
                 return getArray<Scalar4, Scalar, GlobalArray>(
                     m_velocities_handle,
                     &ParticleData::getVelocities,
                     ghost,
+                    include_both,
                     3,
                     0,
                     std::vector<size_t>({sizeof(Scalar4), sizeof(Scalar)})
                 );
             }
 
-            pybind11::array_t<Scalar> getAcceleration(bool ghost=false)
+            pybind11::array_t<Scalar> getAcceleration(bool ghost=false, bool include_both=false)
                 {
                 return getArray<Scalar3, Scalar, GlobalArray>(m_acceleration_handle,
                                                 &ParticleData::getAccelerations,
                                                 ghost,
+                                                include_both,
                                                 3);
                 }
 
-            pybind11::array_t<Scalar> getMasses(bool ghost=false)
+            pybind11::array_t<Scalar> getMasses(bool ghost=false, bool include_both=false)
                 {
                 return getArray<Scalar4, Scalar, GlobalArray>(
                     m_velocities_handle,
                     &ParticleData::getVelocities,
                     ghost,
+                    include_both,
                     0,
                     3
                 );
                 }
 
-            pybind11::array_t<Scalar> getOrientation(bool ghost=false)
+            pybind11::array_t<Scalar> getOrientation(bool ghost=false, bool include_both=false)
                 {
                 return getArray<Scalar4, Scalar, GlobalArray>(
                     m_orientation_handle,
                     &ParticleData::getOrientationArray,
                     ghost,
+                    include_both,
                     4
                 );
                 }
 
-            pybind11::array_t<Scalar> getAngularMomentum(bool ghost=false)
+            pybind11::array_t<Scalar> getAngularMomentum(bool ghost=false, bool include_both=false)
                 {
                 return getArray<Scalar4, Scalar, GlobalArray>(
                     m_angular_momentum_handle,
                     &ParticleData::getAngularMomentumArray,
                     ghost,
+                    include_both,
                     4
                 );
                 }
 
-            pybind11::array_t<Scalar> getMomentsOfInertia(bool ghost=false)
+            pybind11::array_t<Scalar> getMomentsOfInertia(bool ghost=false, bool include_both=false)
                 {
                 return getArray<Scalar3, Scalar>(
                     m_inertia_handle,
                     &ParticleData::getMomentsOfInertiaArray,
                     ghost,
+                    include_both,
                     3
                 );
                 }
 
-            pybind11::array_t<Scalar> getCharge(bool ghost=false)
+            pybind11::array_t<Scalar> getCharge(bool ghost=false, bool include_both=false)
                 {
                 return getArray<Scalar, Scalar>(
                     m_charge_handle,
                     &ParticleData::getCharges,
-                    ghost
+                    ghost,
+                    include_both
                 );
                 }
 
-            pybind11::array_t<Scalar> getDiameter(bool ghost=false)
+            pybind11::array_t<Scalar> getDiameter(bool ghost=false, bool include_both=false)
                 {
                 return getArray<Scalar, Scalar>(
                     m_diameter_handle,
                     &ParticleData::getDiameters,
-                    ghost
+                    ghost,
+                    include_both
                 );
                 }
 
-            pybind11::array_t<int> getImages(bool ghost=false)
+            pybind11::array_t<int> getImages(bool ghost=false, bool include_both=false)
                 {
                 return getArray<int3, int>(
                     m_image_handle,
                     &ParticleData::getImages,
                     ghost,
+                    include_both,
                     3
                 );
                 }
 
-            pybind11::array_t<unsigned int> getTags(bool ghost=false)
+            pybind11::array_t<unsigned int> getTags(bool ghost=false, bool include_both=false)
                 {
                 return getArray<unsigned int, unsigned int>(
                     m_tag_handle,
                     &ParticleData::getTags,
-                    ghost
+                    ghost,
+                    include_both
                 );
                 }
 
-            pybind11::array_t<unsigned int> getRTags(bool ghost=false)
+            pybind11::array_t<unsigned int> getRTags(bool ghost=false, bool include_both=false)
                 {
                 return getArray<unsigned int, unsigned int, GlobalVector>(
                     m_tag_handle,
                     &ParticleData::getRTags,
-                    ghost
+                    ghost,
+                    include_both
                 );
                 }
 
-            pybind11::array_t<unsigned int> getBodies(bool ghost=false)
+            pybind11::array_t<unsigned int> getBodies(bool ghost=false, bool include_both=false)
                 {
                 return getArray<unsigned int, unsigned int>(
                     m_rigid_body_ids_handle,
                     &ParticleData::getBodies,
-                    ghost
+                    ghost,
+                    include_both
                 );
                 }
 
-            pybind11::array_t<Scalar> getNetForce(bool ghost=false)
+            pybind11::array_t<Scalar> getNetForce(bool ghost=false, bool include_both=false)
                 {
                 return getArray<Scalar4, Scalar>(
                     m_net_force_handle,
                     &ParticleData::getNetForce,
                     ghost,
+                    include_both,
                     4
                 );
                 }
 
-            pybind11::array_t<Scalar> getNetTorque(bool ghost=false)
+            pybind11::array_t<Scalar> getNetTorque(bool ghost=false, bool include_both=false)
                 {
                 return getArray<Scalar4, Scalar>(
                     m_net_torque_handle,
                     &ParticleData::getNetTorqueArray,
                     ghost,
+                    include_both,
                     4
                 );
                 }
 
-            pybind11::array_t<Scalar> getNetVirial(bool ghost=false)
+            pybind11::array_t<Scalar> getNetVirial(bool ghost=false, bool include_both=false)
                 {
                 return getArray<Scalar, Scalar>(
                     m_net_virial_handle,
                     &ParticleData::getNetVirial,
                     ghost,
+                    include_both,
                     6,
                     0,
                     std::vector<size_t>({6 * sizeof(Scalar), sizeof(Scalar)})

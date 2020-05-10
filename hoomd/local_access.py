@@ -15,12 +15,20 @@ class LocalAccess(ABC):
             return self._accessed_fields[attr]
         elif attr.startswith("ghost_"):
             if attr[6:] in self._fields:
-                arr = getattr(self._cpp_obj, self._fields[attr[6:]])(True)
+                arr = getattr(self._cpp_obj, self._fields[attr[6:]])(
+                    True, False)
+            else:
+                raise AttributeError(
+                    "{} object has no attribute {}".format(type(self), attr))
+        elif attr.endswith("_with_ghosts"):
+            if attr[:-12] in self._fields:
+                arr = getattr(self._cpp_obj, self._fields[attr[:-12]])(
+                    False, True)
             else:
                 raise AttributeError(
                     "{} object has no attribute {}".format(type(self), attr))
         elif attr in self._fields:
-            arr = getattr(self._cpp_obj, self._fields[attr])(False)
+            arr = getattr(self._cpp_obj, self._fields[attr])(False, False)
         else:
             raise AttributeError(
                 "{} object has no attribute {}".format(type(self), attr))

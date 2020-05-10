@@ -30,6 +30,8 @@ class LocalDataAccess
             const U<T>& (DATA::*get_array_func)() const,
             // Whether to return ghost particles properties
             bool ghost = false,
+            // Whether to return normal and ghost particles
+            bool include_both = false,
             // Size of the second dimension
             unsigned int second_dimension_size = 0,
             // offset from beginning of pointer
@@ -44,9 +46,17 @@ class LocalDataAccess
                     "Cannot access arrays outside context manager.");
                 }
 
+            if (ghost && include_both)
+                {
+                throw std::runtime_error(
+                    "Cannot specify both the ghost and include_both flags.");
+                }
+
+            auto read_only = ghost || include_both;
+
             if (!handle)
                 {
-                auto mode = ghost ? access_mode::read : access_mode::readwrite;
+                auto mode = read_only ? access_mode::read : access_mode::readwrite;
                 std::unique_ptr<ArrayHandle<T> > new_handle(
                     new ArrayHandle<T>((m_data.*get_array_func)(),
                     access_location::host,
@@ -59,7 +69,11 @@ class LocalDataAccess
             auto size = N;
             T* _data = handle.get()->data;
 
-            if (ghost)
+            if (include_both)
+                {
+                size += ghostN;
+                }
+            else if (ghost)
                 {
                 _data += N;
                 size = ghostN;
@@ -76,7 +90,7 @@ class LocalDataAccess
                         1,
                         std::vector<size_t>({size}),
                         std::vector<size_t>({sizeof(T)}),
-                        !ghost));
+                        read_only));
                 }
             else if (strides.size() == 0 && second_dimension_size != 0)
                 {
@@ -90,7 +104,7 @@ class LocalDataAccess
                     2,
                     std::vector<size_t>({size, second_dimension_size}),
                     strides,
-                    !ghost)
+                    read_only)
                 );
             }
 
