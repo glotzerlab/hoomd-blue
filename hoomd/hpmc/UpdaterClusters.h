@@ -1723,6 +1723,8 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
         #endif
         } // end if (patch)
 
+    if (m_prof) m_prof->pop(m_exec_conf);
+
     // compute connected components
     connectedComponents();
 
