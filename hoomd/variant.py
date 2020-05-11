@@ -29,15 +29,9 @@ class Variant(_hoomd.Variant):
         :return: The value of the function at the given time step.
         :rtype: float
     """
-    def _min(self):
-        raise NotImplementedError
-
     @property
     def min(self):
         return self._min()
-
-    def _max(self):
-        raise NotImplementedError
 
     @property
     def max(self):

@@ -18,6 +18,10 @@ def test_constant():
 
     a.value = 0.125
 
+    assert a.min == 0.125
+    assert a.max == 0.125
+    assert a.range == (0.125, 0.125)
+
 
 def test_constant_eval():
     a = hoomd.variant.Constant(10.0)
@@ -100,6 +104,17 @@ def test_ramp_properties():
 
     with pytest.raises(ValueError):
         a.t_ramp = int(2**53 + 1)
+
+
+def test_ramp_min_max():
+    a = hoomd.variant.Ramp(1.0, 11.0, 100, 10000)
+    assert a.min == 1.
+    assert a.max == 11.
+    assert a.range == (1., 11.)
+    a.B = -5
+    assert a.min == -5
+    assert a.max == 1.
+    assert a.range == (-5., 1.)
 
 
 def test_cycle():
@@ -199,6 +214,25 @@ def test_cycle_properties():
         a.t_BA = int(2**53 + 1)
 
 
+def test_cycle_min_max():
+    A = 0.0
+    B = 10.0
+    t_start = 100
+    t_A = 200
+    t_AB = 400
+    t_B = 300
+    t_BA = 100
+
+    a = hoomd.variant.Cycle(A, B, t_start, t_A, t_AB, t_B, t_BA)
+    assert a.min == 0.
+    assert a.max == 10.
+    assert a.range == (0., 10.)
+    a.B = -5
+    assert a.min == -5
+    assert a.max == 0.
+    assert a.range == (-5., 0.)
+
+
 def test_power():
     args = (1.0, 100.0, 2., 100, 1000)
     a = hoomd.variant.Power(*args)
@@ -262,3 +296,14 @@ def test_power_properties():
 
     with pytest.raises(ValueError):
         a.t_size = int(2**53 + 1)
+
+
+def test_power_min_max():
+    a = hoomd.variant.Power(1.0, 11.0, 2, 100, 10000)
+    assert a.min == 1.
+    assert a.max == 11.
+    assert a.range == (1., 11.)
+    a.B = -5
+    assert a.min == -5
+    assert a.max == 1.
+    assert a.range == (-5., 1.)

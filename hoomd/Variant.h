@@ -187,11 +187,11 @@ class PYBIND11_EXPORT VariantRamp : public Variant
             return m_t_ramp;
             }
 
-        /// Return m_A
-        Scalar min() {return m_A;}
+        /// Return min
+        Scalar min() {return m_A > m_B ? m_B : m_A;}
 
-        /// Return m_B
-        Scalar max() {return m_B;}
+        /// Return max
+        Scalar max() {return m_A > m_B ? m_A : m_B;}
 
     protected:
         /// The starting value.
@@ -375,11 +375,11 @@ class PYBIND11_EXPORT VariantCycle : public Variant
             return m_t_BA;
             }
 
-        /// Return m_A
-        Scalar min() {return m_A;}
+        /// Return min
+        Scalar min() {return m_A > m_B ? m_B : m_A;}
 
-        /// Return m_B
-        Scalar max() {return m_B;}
+        /// Return max
+        Scalar max() {return m_A > m_B ? m_A : m_B;}
 
     protected:
         /// The starting value.
