@@ -91,7 +91,7 @@ class NVT(_Method):
         typeA = group.type('A')
         integrator = integrate.nvt(group=typeA, tau=1.0, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
     """
-    def __init__(self, filter, kT, tau)
+    def __init__(self, filter, kT, tau):
 
         # store metadata
         param_dict = ParameterDict(
