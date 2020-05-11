@@ -104,7 +104,8 @@ class TemporaryFileContext():
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        os.remove(self.filename)
+        if os.path.exists(self.filename):
+            os.remove(self.filename)
 
 
 def test_state_from_gsd(simulation_factory, get_snapshot, device, state_args):
@@ -139,16 +140,16 @@ def test_state_from_gsd(simulation_factory, get_snapshot, device, state_args):
         final_snap = sim.state.snapshot
         sim.run(1)
 
-        initial_snap_sim = hoomd.simulation.Simulation(device)
-        initial_snap_sim.create_state_from_gsd(file.filename, frame=0)
-        assert_equivalent_boxes(box, initial_snap_sim.state.box)
+        initial_sim = hoomd.simulation.Simulation(device)
+        initial_sim.create_state_from_gsd(file.filename, frame=0)
+        assert_equivalent_boxes(box, initial_sim.state.box)
         assert_equivalent_snapshots(initial_snap,
-                                    initial_snap_sim.state.snapshot)
+                                    initial_sim.state.snapshot)
 
-        final_snap_sim = hoomd.simulation.Simulation(device)
-        final_snap_sim.create_state_from_gsd(file.filename)
-        assert_equivalent_boxes(box, final_snap_sim.state.box)
-        assert_equivalent_snapshots(final_snap, final_snap_sim.state.snapshot)
+        final_sim = hoomd.simulation.Simulation(device)
+        final_sim.create_state_from_gsd(file.filename)
+        assert_equivalent_boxes(box, final_sim.state.box)
+        assert_equivalent_snapshots(final_snap, final_sim.state.snapshot)
 
         for nsteps, snap in snapshot_dict.items():
             sim = hoomd.simulation.Simulation(device)
