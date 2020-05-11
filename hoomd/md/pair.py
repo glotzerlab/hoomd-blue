@@ -395,7 +395,7 @@ class SLJ(_Pair):
         return _hoomd.make_scalar2(lj1, lj2);
 
 
-class yukawa(pair):
+class Yukawa(_Pair):
     R""" Yukawa pair potential.
 
     Args:
@@ -435,26 +435,13 @@ class yukawa(pair):
         yukawa.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=0.5, kappa=3.0)
 
     """
-    def __init__(self, r_cut, nlist, name=None):
-
-        # tell the base class how we operate
-
-        # initialize the base class
-        pair.__init__(self, r_cut, nlist, name);
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PotentialPairYukawa(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairYukawa;
-        else:
-            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-            self.cpp_force = _md.PotentialPairYukawaGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairYukawaGPU;
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-
-        # setup the coefficient options
-        self.required_coeffs = ['epsilon', 'kappa'];
+    _cpp_class_name = "PotentialPairYukawa"
+    def __init__(self, nlist, r_cut=None, r_on=0, mode='none'):
+        super().__init__(nlist, r_cut, r_on, mode)
+        params = TypeParameter('params', 'particle_types',
+                               TypeParamDict(kappa=float, epsilon=float,
+                                             len_keys=2))
+        self.add_typeparam(params)
 
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
