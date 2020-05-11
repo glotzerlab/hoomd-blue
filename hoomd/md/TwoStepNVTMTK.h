@@ -70,6 +70,12 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
             m_tau = tau;
             }
 
+        /// get the tau value
+        Scalar getTau()
+            {
+            return m_tau;
+            }
+
         //! Set the value of xi (for unit tests)
         void setXi(Scalar new_xi)
             {
