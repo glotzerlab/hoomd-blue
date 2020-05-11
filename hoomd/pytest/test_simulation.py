@@ -143,5 +143,4 @@ def test_state_from_gsd(simulation_factory, get_snapshot, device, state_args):
         for nsteps, snap in snapshot_dict.items():
             sim = hoomd.simulation.Simulation(device)
             sim.create_state_from_gsd(file.filename, frame=nsteps)
-            snap = sim.state.snapshot
             assert_equivalent_snapshots(snap, sim.state.snapshot)
