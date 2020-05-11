@@ -369,6 +369,9 @@ class SLJ(_Pair):
     """
     _cpp_class_name = 'PotentialPairSLJ'
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none', d_max=None):
+        if mode == 'xplor':
+            raise ValueError("xplor is not a valid mode for SLJ potential")
+
         super().__init__(nlist, r_cut, r_on, mode)
         params = TypeParameter('params', 'particle_types',
                                TypeParameterDict(epsilon=float, sigma=float,
@@ -376,9 +379,10 @@ class SLJ(_Pair):
                                )
         self._add_typeparam(params)
 
+        # mode not allowed to be xplor, so re-do param dict without that option
         param_dict = ParameterDict(
             d_max=float,
-            mode=OnlyFrom(['none', 'shifted'])  # mode not allowed to be xplor
+            mode=OnlyFrom(['none', 'shifted'])
             explicit_defaults=dict(mode=mode, d_max=__) # largest particle diameter in the system taken from cpp
             )
         self._param_dict.update(param_dict)
