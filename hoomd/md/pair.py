@@ -382,7 +382,7 @@ class SLJ(_Pair):
         # mode not allowed to be xplor, so re-do param dict without that option
         param_dict = ParameterDict(
             d_max=float,
-            mode=OnlyFrom(['none', 'shifted'])
+            mode=OnlyFrom(['none', 'shifted']),
             explicit_defaults=dict(mode=mode, d_max=__) # largest particle diameter in the system taken from cpp
             )
         self._param_dict.update(param_dict)
