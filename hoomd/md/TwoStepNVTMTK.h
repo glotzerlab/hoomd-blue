@@ -57,7 +57,7 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
             }
 
         /// Get the current temperature variant
-        std:shared_ptr<Variant> getT()
+        std::shared_ptr<Variant> getT()
             {
             return m_T;
             }
