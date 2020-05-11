@@ -1,5 +1,5 @@
 import hoomd
-import numpy
+import numpy as np
 import pytest
 import os
 from copy import deepcopy
@@ -12,10 +12,32 @@ def get_snapshot(device):
         if s.exists:
             s.configuration.box = [20, 20, 20, 0, 0, 0]
             s.particles.N = n
-            s.particles.position[:] = numpy.random.uniform(-10, 10, size=(n, 3))
+            s.particles.position[:] = np.random.uniform(-10, 10, size=(n, 3))
             s.particles.types = particle_types
         return s
     return make_snapshot
+
+
+def assert_equivalent_snapshots(snap1, snap2):
+    particles1 = snap1.particles
+    particles2 = snap2.particles
+    particle_data = [(particles1.N, particles2.N),
+                     (particles1.typeid, particles2.typeid),
+                     (particles1.mass, particles2.mass),
+                     (particles1.diameter, particles2.diameter),
+                     (particles1.charge, particles2.charge),
+                     (particles1.position, particles2.position),
+                     (particles1.orientation, particles2.orientation),
+                     (particles1.velocity, particles2.velocity),
+                     (particles1.acceleration, particles2.acceleration),
+                     (particles1.image, particles2.image),
+                     (particles1.body, particles2.body),
+                     (particles1.moment_inertia, particles2.moment_inertia),
+                     (particles1.angmom, particles2.angmom)]
+
+    assert particles1.types == particles2.types
+    for snap_data1, snap_data2 in particle_data:
+        np.testing.assert_allclose(snap_data1, snap_data2)
 
 
 def test_initialization(device, simulation_factory, get_snapshot):
@@ -80,9 +102,9 @@ class TemporaryFileContext():
 
 def test_state_from_gsd(simulation_factory, get_snapshot, device, state_args):
     filename = 'temporary_test_file.gsd'
+    snap_params, integrator, shape_dict, run_sequence = state_args
 
     with TemporaryFileContext(filename) as file:
-        snap_params, integrator, shape_dict, run_sequence = state_args
         sim = simulation_factory(get_snapshot(n=snap_params[0],
                                               particle_types=snap_params[1]))
         mc = integrator(2345)
@@ -97,31 +119,29 @@ def test_state_from_gsd(simulation_factory, get_snapshot, device, state_args):
         gsd_dumper.log = gsd_logger
         sim.operations.add(gsd_dumper)
         sim.operations.schedule()
-        pos_dict = {}
-        initial_pos = sim.state.snapshot.particles.position
+        snapshot_dict = {}
+        initial_snap = sim.state.snapshot
+
         count = 0
         for nsteps in run_sequence:
             sim.run(nsteps)
             count += nsteps
-            pos_dict[count] = sim.state.snapshot.particles.position
+            snapshot_dict[count] = sim.state.snapshot
 
-        final_pos = sim.state.snapshot.particles.position
+        final_snap = sim.state.snapshot
         sim.run(1)
 
-        initial_pos_sim = hoomd.simulation.Simulation(device)
-        initial_pos_sim.create_state_from_gsd(file.filename, frame=0)
-        initial_pos_snap = initial_pos_sim.state.snapshot
-        numpy.testing.assert_allclose(initial_pos,
-                                      initial_pos_snap.particles.position)
+        initial_snap_sim = hoomd.simulation.Simulation(device)
+        initial_snap_sim.create_state_from_gsd(file.filename, frame=0)
+        assert_equivalent_snapshots(initial_snap,
+                                    initial_snap_sim.state.snapshot)
 
-        final_pos_sim = hoomd.simulation.Simulation(device)
-        final_pos_sim.create_state_from_gsd(file.filename)
-        final_pos_snap = final_pos_sim.state.snapshot
-        numpy.testing.assert_allclose(final_pos,
-                                      final_pos_snap.particles.position)
+        final_snap_sim = hoomd.simulation.Simulation(device)
+        final_snap_sim.create_state_from_gsd(file.filename)
+        assert_equivalent_snapshots(final_snap, final_snap_sim.state.snapshot)
 
-        for nsteps, positions in pos_dict.items():
+        for nsteps, snap in snapshot_dict.items():
             sim = hoomd.simulation.Simulation(device)
             sim.create_state_from_gsd(file.filename, frame=nsteps)
             snap = sim.state.snapshot
-            numpy.testing.assert_allclose(positions, snap.particles.position)
+            assert_equivalent_snapshots(snap, sim.state.snapshot)
