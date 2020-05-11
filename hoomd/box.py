@@ -101,7 +101,7 @@ class Box:
 
     # Constructors
     def __init__(self, Lx, Ly, Lz=0, xy=0, xz=0, yz=0):
-        if Lz != 0 and (xz != 0 or yz !=0):
+        if Lz == 0 and (xz != 0 or yz !=0):
             raise ValueError("Cannot set the xz or yz tilt factor on a 2D box.")
         self._cpp_obj = _hoomd.BoxDim(Lx, Ly, Lz)
         self._cpp_obj.setTiltFactors(xy, xz, yz)
