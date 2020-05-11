@@ -68,6 +68,9 @@ class OnlyType(_HelpValidate):
                 raise ValueError("value {} not convertible into type {}."
                                  "".format(value, self.type))
 
+    def __str__(self):
+        return "OnlyType({})".format(self.type.__name__)
+
 
 class OnlyTypeValidNone(_HelpValidateWithNone):
     def __init__(self, type_, strict=False, preprocess=None, postprocess=None):
@@ -157,9 +160,9 @@ class TypeConverterValue(TypeConverter):
             if value is RequiredArg:
                 raise TypeConversionError("Value is a required argument")
             raise TypeConversionError(
-                "Value {} of type {} cannot be converted using {}. The "
-                "conversion raised this error: {}".format(
-                    value, type(value), self.converter, str(err)))
+                "Value {} of type {} cannot be converted using {}. Raised "
+                "error: {}".format(
+                    value, type(value), str(self.converter), str(err)))
 
 
 class TypeConverterSequence(TypeConverter):
