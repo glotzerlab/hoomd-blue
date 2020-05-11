@@ -78,17 +78,13 @@ def test_run(simulation_factory, get_snapshot):
 _tetrahedron_verts = [(0.5, 0.5, 0.5), (-0.5, -0.5, 0.5),
                       (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5)]
 
+
 _state_args = [((10, ['A']),
                 hoomd.hpmc.integrate.Sphere,
                 {'diameter': 1}, [10]),
-               ((100, ['A']),
-                hoomd.hpmc.integrate.ConvexPolyhedron,
-                {'vertices': _tetrahedron_verts}, [10, 3]),
                ((5, ['A']),
                 hoomd.hpmc.integrate.Ellipsoid,
-                {'a': 0.2, 'b': 0.25, 'c': 0.5}, [1, 3, 4]),
-               ((50, ['A']), hoomd.hpmc.integrate.ConvexSpheropolyhedron,
-                {'vertices': _tetrahedron_verts, 'sweep_radius': 0.1}, [10])]
+                {'a': 0.2, 'b': 0.25, 'c': 0.5}, [1, 3, 4])]
 
 
 @pytest.fixture(scope="function", params=_state_args)
