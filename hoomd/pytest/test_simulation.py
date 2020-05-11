@@ -75,9 +75,6 @@ def test_run(simulation_factory, get_snapshot):
         assert sim.timestep == steps
     assert sim.timestep == sum(n_step_list)
 
-_tetrahedron_verts = [(0.5, 0.5, 0.5), (-0.5, -0.5, 0.5),
-                      (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5)]
-
 
 _state_args = [((10, ['A']),
                 hoomd.hpmc.integrate.Sphere,
@@ -104,51 +101,53 @@ class TemporaryFileContext():
             os.remove(self.filename)
 
 
-def test_state_from_gsd(simulation_factory, get_snapshot, device, state_args):
-    filename = 'temporary_test_file.gsd'
+def test_state_from_gsd(simulation_factory, get_snapshot, device, state_args, tmp_path):
     snap_params, integrator, shape_dict, run_sequence = state_args
 
-    with TemporaryFileContext(filename) as file:
-        sim = simulation_factory(get_snapshot(n=snap_params[0],
-                                              particle_types=snap_params[1]))
-        mc = integrator(2345)
-        mc.shape['A'] = shape_dict
+    # with TemporaryFileContext(filename) as file:
+    d = tmp_path / "sub"
+    d.mkdir()
+    p = d / "temporary_test_file.gsd"
+    sim = simulation_factory(get_snapshot(n=snap_params[0],
+                                          particle_types=snap_params[1]))
+    mc = integrator(2345)
+    mc.shape['A'] = shape_dict
 
-        sim.operations.add(mc)
-        gsd_dumper = hoomd.dump.GSD(filename=file.filename,
-                                    trigger=1,
-                                    overwrite=True)
-        gsd_logger = hoomd.logger.Logger()
-        gsd_logger += mc
-        gsd_dumper.log = gsd_logger
-        sim.operations.add(gsd_dumper)
-        sim.operations.schedule()
-        snapshot_dict = {}
-        initial_snap = sim.state.snapshot
-        box = sim.state.box
+    sim.operations.add(mc)
+    gsd_dumper = hoomd.dump.GSD(filename=p,
+                                trigger=1,
+                                overwrite=True)
+    gsd_logger = hoomd.logger.Logger()
+    gsd_logger += mc
+    gsd_dumper.log = gsd_logger
+    sim.operations.add(gsd_dumper)
+    sim.operations.schedule()
+    snapshot_dict = {}
+    initial_snap = sim.state.snapshot
+    box = sim.state.box
 
-        count = 0
-        for nsteps in run_sequence:
-            sim.run(nsteps)
-            count += nsteps
-            snapshot_dict[count] = sim.state.snapshot
+    count = 0
+    for nsteps in run_sequence:
+        sim.run(nsteps)
+        count += nsteps
+        snapshot_dict[count] = sim.state.snapshot
 
-        final_snap = sim.state.snapshot
-        sim.run(1)
+    final_snap = sim.state.snapshot
+    sim.run(1)
 
-        initial_sim = hoomd.simulation.Simulation(device)
-        initial_sim.create_state_from_gsd(file.filename, frame=0)
-        assert_equivalent_boxes(box, initial_sim.state.box)
-        assert_equivalent_snapshots(initial_snap,
-                                    initial_sim.state.snapshot)
+    initial_sim = hoomd.simulation.Simulation(device)
+    initial_sim.create_state_from_gsd(p, frame=0)
+    assert_equivalent_boxes(box, initial_sim.state.box)
+    assert_equivalent_snapshots(initial_snap,
+                                initial_sim.state.snapshot)
 
-        final_sim = hoomd.simulation.Simulation(device)
-        final_sim.create_state_from_gsd(file.filename)
-        assert_equivalent_boxes(box, final_sim.state.box)
-        assert_equivalent_snapshots(final_snap, final_sim.state.snapshot)
+    final_sim = hoomd.simulation.Simulation(device)
+    final_sim.create_state_from_gsd(p)
+    assert_equivalent_boxes(box, final_sim.state.box)
+    assert_equivalent_snapshots(final_snap, final_sim.state.snapshot)
 
-        for nsteps, snap in snapshot_dict.items():
-            sim = hoomd.simulation.Simulation(device)
-            sim.create_state_from_gsd(file.filename, frame=nsteps)
-            assert_equivalent_boxes(box, sim.state.box)
-            assert_equivalent_snapshots(snap, sim.state.snapshot)
+    for nsteps, snap in snapshot_dict.items():
+        sim = hoomd.simulation.Simulation(device)
+        sim.create_state_from_gsd(p, frame=nsteps)
+        assert_equivalent_boxes(box, sim.state.box)
+        assert_equivalent_snapshots(snap, sim.state.snapshot)
