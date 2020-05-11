@@ -776,7 +776,7 @@ class table(force._force):
 
         self.pair_coeff.set(a, b, func=_table_eval, rmin=rmin_table, rmax=rmax_table, coeff=dict(V=V_table, F=F_table, width=self.width))
 
-class morse(pair):
+class Morse(_Pair):
     R""" Morse pair potential.
 
     :py:class:`morse` specifies that a Morse pair potential should be applied between every
