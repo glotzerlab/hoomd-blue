@@ -453,7 +453,7 @@ class Yukawa(_Pair):
 
         return _hoomd.make_scalar2(epsilon, kappa);
 
-class ewald(pair):
+class Ewald(_Pair):
     R""" Ewald pair potential.
 
     :py:class:`ewald` specifies that a Ewald pair potential should be applied between every
@@ -497,39 +497,19 @@ class ewald(pair):
         :py:class:`ewald` for you.
 
     """
-    def __init__(self, r_cut, nlist, name=None):
-
-        # tell the base class how we operate
-
-        # initialize the base class
-        pair.__init__(self, r_cut, nlist, name);
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PotentialPairEwald(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairEwald;
-        else:
-            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-            self.cpp_force = _md.PotentialPairEwaldGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairEwaldGPU;
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-
-        # setup the coefficient options
-        self.required_coeffs = ['kappa','alpha'];
-        self.pair_coeff.set_default_coeff('alpha', 0.0);
+    _cpp_class_name = "PotentialPairEwald"
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
+        super().__init__(nlist, r_cut, r_on, mode)
+        params = TypeParameter('params', 'particle_types',
+                               TypeParamDict(kappa=float, alpha=0.0,
+                                             len_keys=2))
+        self.add_typeparam(params)
 
     def process_coeff(self, coeff):
         kappa = coeff['kappa'];
         alpha = coeff['alpha'];
 
         return _hoomd.make_scalar2(kappa, alpha)
-
-    def set_params(self, coeff):
-        """ :py:class:`ewald` has no energy shift modes """
-
-        raise RuntimeError('Not implemented for DPD Conservative');
-        return;
 
 def _table_eval(r, rmin, rmax, V, F, width):
     dr = (rmax - rmin) / float(width-1);
