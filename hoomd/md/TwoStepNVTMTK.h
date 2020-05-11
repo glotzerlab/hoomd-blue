@@ -56,6 +56,12 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
             m_T = T;
             }
 
+        /// Get the current temperature variant
+        std:shared_ptr<Variant> getT()
+            {
+            return m_T;
+            }
+
         //! Update the tau value
         /*! \param tau New time constant to set
         */
