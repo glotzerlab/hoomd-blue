@@ -429,7 +429,8 @@ class PYBIND11_EXPORT VariantPower : public Variant
               m_t_start(t_start),
               m_t_size(t_size)
             {
-            setInternals();
+            m_offset = computeOffset(m_A, m_B);
+            setStartEnd();
             }
 
         /// Return the value.
@@ -542,8 +543,8 @@ class PYBIND11_EXPORT VariantPower : public Variant
 
         void setStartEnd()
             {
-            m_inv_start = pow(m_A + m_offset, 1 / m_power);
-            m_inv_end = pow(m_B + m_offset, 1 / m_power);
+            m_inv_start = pow(m_A + m_offset, 1.0 / m_power);
+            m_inv_end = pow(m_B + m_offset, 1.0 / m_power);
             }
 
         void setInternals()
@@ -575,10 +576,10 @@ class PYBIND11_EXPORT VariantPower : public Variant
         double m_offset;
 
         /// internal start to work with negative values
-        Scalar m_inv_start;
+        double m_inv_start;
 
         /// internal end to work with negative values
-        Scalar m_inv_end;
+        double m_inv_end;
     };
 
 
