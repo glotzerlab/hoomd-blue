@@ -440,7 +440,7 @@ class Yukawa(_Pair):
 
     """
     _cpp_class_name = "PotentialPairYukawa"
-    def __init__(self, nlist, r_cut=None, r_on=0, mode='none'):
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         super().__init__(nlist, r_cut, r_on, mode)
         params = TypeParameter('params', 'particle_types',
                                TypeParamDict(kappa=float, epsilon=float,
