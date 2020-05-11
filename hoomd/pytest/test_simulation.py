@@ -40,6 +40,13 @@ def assert_equivalent_snapshots(snap1, snap2):
         np.testing.assert_allclose(snap_data1, snap_data2)
 
 
+def assert_equivalent_boxes(box1, box2):
+    metadata1 = box1.get_metadata()
+    metadata2 = box2.get_metadata()
+    for key in metadata1:
+        assert metadata1[key] == metadata2[key]
+
+
 def test_initialization(device, simulation_factory, get_snapshot):
     with pytest.raises(TypeError):
         sim = hoomd.simulation.Simulation()
@@ -121,6 +128,7 @@ def test_state_from_gsd(simulation_factory, get_snapshot, device, state_args):
         sim.operations.schedule()
         snapshot_dict = {}
         initial_snap = sim.state.snapshot
+        box = sim.state.box
 
         count = 0
         for nsteps in run_sequence:
@@ -133,14 +141,17 @@ def test_state_from_gsd(simulation_factory, get_snapshot, device, state_args):
 
         initial_snap_sim = hoomd.simulation.Simulation(device)
         initial_snap_sim.create_state_from_gsd(file.filename, frame=0)
+        assert_equivalent_boxes(box, initial_snap_sim.state.box)
         assert_equivalent_snapshots(initial_snap,
                                     initial_snap_sim.state.snapshot)
 
         final_snap_sim = hoomd.simulation.Simulation(device)
         final_snap_sim.create_state_from_gsd(file.filename)
+        assert_equivalent_boxes(box, final_snap_sim.state.box)
         assert_equivalent_snapshots(final_snap, final_snap_sim.state.snapshot)
 
         for nsteps, snap in snapshot_dict.items():
             sim = hoomd.simulation.Simulation(device)
             sim.create_state_from_gsd(file.filename, frame=nsteps)
+            assert_equivalent_boxes(box, sim.state.box)
             assert_equivalent_snapshots(snap, sim.state.snapshot)
