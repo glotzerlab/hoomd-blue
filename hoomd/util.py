@@ -6,6 +6,7 @@
 R""" Utilities.
 """
 
+from collections.abc import Mapping
 from numpy import ndarray
 from inspect import isclass
 from copy import deepcopy
@@ -56,7 +57,7 @@ def bad_iterable_type(obj):
 def dict_map(dict_, func):
     new_dict = dict()
     for key, value in dict_.items():
-        if isinstance(value, dict):
+        if isinstance(value, Mapping):
             new_dict[key] = dict_map(value, func)
         else:
             new_dict[key] = func(value)
@@ -93,6 +94,19 @@ def _dict_flatten(value, key):
         for k, val in value.items():
             new_dict.update(_dict_flatten(val, key + (k,)))
         return new_dict
+
+
+def dict_filter(dict_, filter_):
+    new_dict = dict()
+    for key in dict_:
+        if not isinstance(dict_[key], Mapping):
+            if filter_(dict_[key]):
+                new_dict[key] = dict_[key]
+        else:
+            sub_dict = dict_filter(dict_[key], filter_)
+            if sub_dict:
+                new_dict[key] = sub_dict
+    return new_dict
 
 
 class NamespaceDict:
