@@ -405,5 +405,182 @@ class PYBIND11_EXPORT VariantCycle : public Variant
     };
 
 
+/** Power variant
+
+    Variant that goes from m_A -> m_B as x ^ (power)
+*/
+class PYBIND11_EXPORT VariantPower : public Variant
+    {
+    public:
+
+        /** Construct a VariantPower.
+
+            @param A the initial value
+            @param B the finial value
+            @param power the power to approach as
+            @param t_start the first timestep
+            @param t_size the length of the approach
+        */
+        VariantPower(Scalar A, Scalar B, double power,
+                     uint64_t t_start, uint64_t t_size)
+            : m_A(A),
+              m_B(B),
+              m_power(power),
+              m_t_start(t_start),
+              m_t_size(t_size)
+            {
+            setInternals();
+            }
+
+        /// Return the value.
+        Scalar operator()(uint64_t timestep)
+            {
+            if (timestep <= m_t_start)
+                {
+                return m_A;
+                }
+            else if (timestep < m_t_start + m_t_size)
+                {
+                double s = double(timestep - m_t_start) / double(m_t_size);
+                double inv_result =  m_inv_end * s + m_inv_start * (1.0 - s);
+                return pow(inv_result, m_power) - m_offset;
+                }
+            else
+                {
+                return m_B;
+                }
+            }
+
+        /// Set the starting value.
+        void setA(Scalar A)
+            {
+            m_A = A;
+            setInternals();
+            }
+
+        /// Get the starting value.
+        Scalar getA()
+            {
+            return m_A;
+            }
+
+        /// Set the ending value.
+        void setB(Scalar B)
+            {
+            m_B = B;
+            setInternals();
+            }
+
+        /// Get the ending value.
+        Scalar getB()
+            {
+            return m_B;
+            }
+
+        /// Set the approaching power.
+        void setPower(double power)
+            {
+            m_power = power;
+            setStartEnd();
+            }
+
+        /// Get the ending value.
+        Scalar getPower()
+            {
+            return m_power;
+            }
+
+        /// Set the starting time step.
+        void setTStart(uint64_t t_start)
+            {
+            m_t_start = t_start;
+            }
+
+        /// Get the starting time step.
+        uint64_t getTStart()
+            {
+            return m_t_start;
+            }
+
+        /// Set the length of the ramp.
+        void setTSize(uint64_t t_size)
+            {
+            // doubles can only represent integers accuracy up to 2**53.
+            if (t_size >= 9007199254740992ull)
+                {
+                throw std::invalid_argument("t_size must be less than 2**53");
+                }
+            m_t_size = t_size;
+            }
+
+        /// Get the length of the ramp.
+        uint64_t getTSize()
+            {
+            return m_t_size;
+            }
+
+        /// Return min
+        Scalar min() {return m_A > m_B ? m_B : m_A;}
+
+        /// Return max
+        Scalar max() {return m_A > m_B ? m_A : m_B;}
+
+
+    protected:
+        /// Get the new offset
+        double computeOffset(Scalar a, Scalar b)
+            {
+            if (a > 0 && b > 0)
+                {
+                return 0;
+                }
+            else
+                {
+                return a > b ? -b : -a;
+                }
+            }
+
+        void setStartEnd()
+            {
+            m_inv_start = pow(m_A + m_offset, 1 / m_power);
+            m_inv_end = pow(m_B + m_offset, 1 / m_power);
+            }
+
+        void setInternals()
+            {
+            auto new_offset = computeOffset(m_A, m_B);
+            if (new_offset != m_offset)
+                {
+                m_offset = new_offset;
+                setStartEnd();
+                }
+            }
+
+        /// initial value
+        Scalar m_A;
+
+        /// final value
+        Scalar m_B;
+
+        /// power of the approach to m_B
+        double m_power;
+
+        /// starting timestep
+        uint64_t m_t_start;
+
+        /// length of apporach to m_B
+        uint64_t m_t_size;
+
+        /// offset from given positions allows for negative values
+        double m_offset;
+
+        /// internal start to work with negative values
+        Scalar m_inv_start;
+
+        /// internal end to work with negative values
+        Scalar m_inv_end;
+    };
+
+
 /// Export Variant classes to Python
 void export_Variant(pybind11::module& m);

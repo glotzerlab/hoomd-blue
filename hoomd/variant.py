@@ -115,3 +115,28 @@ class Cycle(_hoomd.VariantCycle, Variant):
     """
     def __init__(self, A, B, t_start, t_A, t_AB, t_B, t_BA):
         _hoomd.VariantCycle.__init__(self, A, B, t_start, t_A, t_AB, t_B, t_BA)
+
+
+class Power(_hoomd.VariantPower, Variant):
+    """A approach from initial to final value of x ^ (power).
+
+    Args:
+        A (float): The start value.
+        B (float): The end value.
+        power (float): The power of the approach to ``B``.
+        t_start (int): The start time step.
+        t_ramp (int): The length of the ramp.
+
+    :py:class:`Power` holds the value *A* until time *t_start*. Then it
+    progresses at :math:`x^{power}` from *A* to *B* over *t_ramp* steps and
+    holds the value *B* after that.
+
+    Attributes:
+        A (float): The start value.
+        B (float): The end value.
+        power (float): The power of the approach to ``B``.
+        t_start (int): The start time step.
+        t_ramp (int): The length of the ramp.
+    """
+    def __init__(self, A, B, power, t_start, t_ramp):
+        _hoomd.VariantPower.__init__(self, A, B, power, t_start, t_ramp)

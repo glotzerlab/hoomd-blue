@@ -197,3 +197,68 @@ def test_cycle_properties():
 
     with pytest.raises(ValueError):
         a.t_BA = int(2**53 + 1)
+
+
+def test_power():
+    args = (1.0, 100.0, 2., 100, 1000)
+    a = hoomd.variant.Power(*args)
+
+    def power(init, final, power, start, length):
+        def expected_value(timestep):
+            if timestep < start:
+                return init
+            elif timestep < start + length:
+                inv_a, inv_b = (init ** (1 / power)), (final ** (1 / power))
+                frac = (timestep - start) / length
+                return ((inv_b * frac) + ((1 - frac) * inv_a)) ** power
+            else:
+                return final
+        return expected_value
+
+    expected_value = power(*args)
+
+    for i in range(100):
+        assert a(i) == 1.0
+
+    assert a(100) == 1.0
+    for i in range(101, 1000):
+        numpy.testing.assert_allclose(a(i), expected_value(i))
+    assert a(10100) == 100.0
+
+    for i in range(10000000000, 10000010000):
+        assert a(i) == 100.0
+
+
+def test_power_properties():
+    a = hoomd.variant.Power(1.0, 100.0, 2., 100, 1000)
+    assert a.A == 1.0
+    assert a.B == 100.0
+    assert a.power == 2.
+    assert a.t_start == 100
+    assert a.t_size == 1000
+
+    a.A = 100
+    assert a.A == 100.0
+    assert a(0) == 100.0
+
+    a.B = -25
+    assert a.B == -25.0
+    assert a(10100) == -25.0
+
+    pow_2 = a(101)
+    a.power = 1 / 10
+    assert a.power == 1 / 10
+    assert a(101) > pow_2
+
+    a.t_start = 1000
+    assert a.t_start == 1000
+    assert a(1000) == 100.0
+    assert a(1001) < 100.0
+
+    a.t_size = int(1e6)
+    assert a.t_size == int(1e6)
+    assert a(1001000) == -25.0
+    assert a(1000990) > -25.0
+
+    with pytest.raises(ValueError):
+        a.t_size = int(2**53 + 1)

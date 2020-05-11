@@ -110,6 +110,26 @@ void export_Variant(pybind11::module& m)
         .def_property("t_BA", &VariantCycle::getTBA, &VariantCycle::setTBA)
         ;
 
+    pybind11::class_<VariantPower, Variant,
+                     std::shared_ptr<VariantPower> >(m, "VariantPower")
+        .def(pybind11::init<Scalar, Scalar, double,
+                            uint64_t, uint64_t>(),
+             pybind11::arg("A"),
+             pybind11::arg("B"),
+             pybind11::arg("power"),
+             pybind11::arg("t_start"),
+             pybind11::arg("t_ramp")
+             )
+        .def_property("A", &VariantPower::getA, &VariantPower::setA)
+        .def_property("B", &VariantPower::getB, &VariantPower::setB)
+        .def_property("power", &VariantPower::getPower,
+                      &VariantPower::setPower)
+        .def_property("t_start", &VariantPower::getTStart,
+                      &VariantPower::setTStart)
+        .def_property("t_size", &VariantPower::getTSize,
+                      &VariantPower::setTSize)
+        ;
+
     m.def("_test_variant_call", &testVariantCall);
     m.def("_test_variant_min", &testVariantMin);
     m.def("_test_variant_max", &testVariantMax);
