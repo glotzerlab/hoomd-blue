@@ -42,6 +42,11 @@ def make_gsd_snapshot(hoomd_snapshot):
     return s
 
 
+def set_types(s, inds, particle_types, particle_type):
+    for i in inds:
+        s.particles.typeid[i] = particle_types.index(particle_type)
+
+
 def update_positions(snap):
     if snap.exists:
         noise = 0.01
@@ -85,6 +90,14 @@ def assert_equivalent_boxes(box1, box2):
         assert metadata1[key] == metadata2[key]
 
 
+def random_inds(n):
+    inds = []
+    for i in range(n):
+        if np.random.rand() > 0.5:
+            inds.append(i)
+    return inds
+
+
 def test_initialization(device, simulation_factory, get_snapshot):
     with pytest.raises(TypeError):
         sim = hoomd.simulation.Simulation()
@@ -115,7 +128,9 @@ def test_run(simulation_factory, get_snapshot):
 
 
 _state_args = [((10, ['A']), 10),
-               ((5, ['A']), 20)]
+               ((5, ['A', 'B']), 20),
+               ((50, ['A', 'B', 'C']), 4),
+               ((100, ['A', 'B']), 30)]
 
 
 @pytest.fixture(scope="function", params=_state_args)
@@ -143,7 +158,10 @@ def test_state_from_gsd(simulation_factory, get_snapshot,
         file.append(make_gsd_snapshot(snap))
         box = sim.state.box
         for step in range(1, nsteps):
+            particle_type = np.random.choice(snap_params[1])
             snap = update_positions(sim.state.snapshot)
+            set_types(snap, random_inds(snap.particles.N),
+                      snap_params[1], particle_type)
             file.append(make_gsd_snapshot(snap))
             snapshot_dict[step] = snap
 
