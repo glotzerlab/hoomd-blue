@@ -110,12 +110,8 @@ def test_run(simulation_factory, get_snapshot):
     assert sim.timestep == sum(n_step_list)
 
 
-_state_args = [((10, ['A']),
-                hoomd.hpmc.integrate.Sphere,
-                {'diameter': 1}, 10),
-               ((5, ['A']),
-                hoomd.hpmc.integrate.Ellipsoid,
-                {'a': 0.2, 'b': 0.25, 'c': 0.5}, 20)]
+_state_args = [((10, ['A']), 10),
+               ((5, ['A']), 20)]
 
 
 @pytest.fixture(scope="function", params=_state_args)
@@ -125,7 +121,7 @@ def state_args(request):
 
 def test_state_from_gsd(simulation_factory, get_snapshot,
                         device, state_args, tmp_path):
-    snap_params, integrator, shape_dict, nsteps = state_args
+    snap_params, nsteps = state_args
 
     d = tmp_path / "sub"
     d.mkdir()
