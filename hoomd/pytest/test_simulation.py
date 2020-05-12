@@ -126,30 +126,20 @@ def test_state_from_gsd(simulation_factory, get_snapshot,
     d = tmp_path / "sub"
     d.mkdir()
     filename = d / "temporary_test_file.gsd"
-    file = gsd.hoomd.open(name=filename, mode='wb+')
-    sim = simulation_factory(get_snapshot(n=snap_params[0],
-                                          particle_types=snap_params[1]))
+    with gsd.hoomd.open(name=filename, mode='wb+') as file:
+        sim = simulation_factory(get_snapshot(n=snap_params[0],
+                                              particle_types=snap_params[1]))
+        snap = sim.state.snapshot
+        box = sim.state.box
 
-    snap = sim.state.snapshot
-    box = sim.state.box
-    assert_equivalent_snapshots(make_gsd_snapshot(snap), snap)
-
-    file.append(make_gsd_snapshot(snap))
-    sim = hoomd.simulation.Simulation(device)
-    sim.create_state_from_gsd(filename)
-
-    assert_equivalent_boxes(box, sim.state.box)
-    assert_equivalent_snapshots(snap, sim.state.snapshot)
-
-    snapshot_dict = {}
-    for step in range(1, nsteps):
-        snap = update_positions(sim.state.snapshot)
+        snapshot_dict = {}
+        snapshot_dict[0] = snap
         file.append(make_gsd_snapshot(snap))
-        sim = hoomd.simulation.Simulation(device)
-        sim.create_state_from_gsd(filename)
-        assert_equivalent_boxes(box, sim.state.box)
-        assert_equivalent_snapshots(snap, sim.state.snapshot)
-        snapshot_dict[step] = snap
+        box = sim.state.box
+        for step in range(1, nsteps):
+            snap = update_positions(sim.state.snapshot)
+            file.append(make_gsd_snapshot(snap))
+            snapshot_dict[step] = snap
 
     for step, snap in snapshot_dict.items():
         sim = hoomd.simulation.Simulation(device)
