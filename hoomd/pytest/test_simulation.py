@@ -1,8 +1,8 @@
 import hoomd
 import numpy as np
 import pytest
-import os
 from copy import deepcopy
+import gsd.hoomd
 
 
 @pytest.fixture(scope="function")
@@ -18,26 +18,60 @@ def get_snapshot(device):
     return make_snapshot
 
 
-def assert_equivalent_snapshots(snap1, snap2):
-    particles1 = snap1.particles
-    particles2 = snap2.particles
-    particle_data = [(particles1.N, particles2.N),
-                     (particles1.typeid, particles2.typeid),
-                     (particles1.mass, particles2.mass),
-                     (particles1.diameter, particles2.diameter),
-                     (particles1.charge, particles2.charge),
-                     (particles1.position, particles2.position),
-                     (particles1.orientation, particles2.orientation),
-                     (particles1.velocity, particles2.velocity),
-                     (particles1.acceleration, particles2.acceleration),
-                     (particles1.image, particles2.image),
-                     (particles1.body, particles2.body),
-                     (particles1.moment_inertia, particles2.moment_inertia),
-                     (particles1.angmom, particles2.angmom)]
+def make_gsd_snapshot(hoomd_snapshot):
+    s = gsd.hoomd.Snapshot()
+    snap_properties = []
+    all_attr = dir(hoomd_snapshot)
+    for att in all_attr:
+        if att[0] != '_' and att not in ['exists', 'replicate']:
+            snap_properties.append(att)
+    for prop in snap_properties:
+        prop_attr = dir(getattr(hoomd_snapshot, prop))
+        nested_properties = []
+        for att in prop_attr:
+            if att[0] != '_':
+                nested_properties.append(att)
+        for nested_prop in nested_properties:
+            # s.prop.nested_prop = hoomd_snapshot.prop.nested_prop
+            setattr(getattr(s, prop), nested_prop,
+                    getattr(getattr(hoomd_snapshot, prop), nested_prop))
+    return s
 
-    assert particles1.types == particles2.types
-    for snap_data1, snap_data2 in particle_data:
-        np.testing.assert_allclose(snap_data1, snap_data2)
+
+def update_positions(snap):
+    if snap.exists:
+        noise = 0.01
+        rs = np.random.RandomState(0)
+        mean = [0] * 3
+        var = noise * noise
+        cov = np.diag([var, var, var])
+        shape = snap.particles.position.shape
+        snap.particles.position[:] += rs.multivariate_normal(mean, cov,
+                                                             size=shape[:-1])
+    return snap
+
+
+def assert_equivalent_snapshots(snap1, snap2):
+    snap_properties = []
+    all_attr = dir(snap2)
+    for att in all_attr:
+        if att[0] != '_' and att not in ['exists', 'replicate']:
+            snap_properties.append(att)
+    for prop in snap_properties:
+        snap1_prop = getattr(snap1, prop)
+        snap2_prop = getattr(snap2, prop)
+        prop_attr = dir(snap2_prop)
+        nested_properties = []
+        for att in prop_attr:
+            if att[0] != '_':
+                nested_properties.append(att)
+        for nested_prop in nested_properties:
+            if nested_prop == 'types':
+                assert getattr(snap1_prop, nested_prop) == \
+                    getattr(snap2_prop, nested_prop)
+            else:
+                np.testing.assert_allclose(getattr(snap1_prop, nested_prop),
+                                           getattr(snap2_prop, nested_prop))
 
 
 def assert_equivalent_boxes(box1, box2):
@@ -78,10 +112,10 @@ def test_run(simulation_factory, get_snapshot):
 
 _state_args = [((10, ['A']),
                 hoomd.hpmc.integrate.Sphere,
-                {'diameter': 1}, [10]),
+                {'diameter': 1}, 10),
                ((5, ['A']),
                 hoomd.hpmc.integrate.Ellipsoid,
-                {'a': 0.2, 'b': 0.25, 'c': 0.5}, [1, 3, 4])]
+                {'a': 0.2, 'b': 0.25, 'c': 0.5}, 20)]
 
 
 @pytest.fixture(scope="function", params=_state_args)
@@ -89,65 +123,40 @@ def state_args(request):
     return deepcopy(request.param)
 
 
-class TemporaryFileContext():
-    def __init__(self, filename):
-        self.filename = filename
+def test_state_from_gsd(simulation_factory, get_snapshot,
+                        device, state_args, tmp_path):
+    snap_params, integrator, shape_dict, nsteps = state_args
 
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, exc_traceback):
-        if os.path.exists(self.filename):
-            os.remove(self.filename)
-
-
-def test_state_from_gsd(simulation_factory, get_snapshot, device, state_args, tmp_path):
-    snap_params, integrator, shape_dict, run_sequence = state_args
-
-    # with TemporaryFileContext(filename) as file:
     d = tmp_path / "sub"
     d.mkdir()
-    p = d / "temporary_test_file.gsd"
+    filename = d / "temporary_test_file.gsd"
+    file = gsd.hoomd.open(name=filename, mode='wb+')
     sim = simulation_factory(get_snapshot(n=snap_params[0],
                                           particle_types=snap_params[1]))
-    mc = integrator(2345)
-    mc.shape['A'] = shape_dict
 
-    sim.operations.add(mc)
-    gsd_dumper = hoomd.dump.GSD(filename=p,
-                                trigger=1,
-                                overwrite=True)
-    gsd_logger = hoomd.logger.Logger()
-    gsd_logger += mc
-    gsd_dumper.log = gsd_logger
-    sim.operations.add(gsd_dumper)
-    sim.operations.schedule()
-    snapshot_dict = {}
-    initial_snap = sim.state.snapshot
+    snap = sim.state.snapshot
     box = sim.state.box
+    assert_equivalent_snapshots(make_gsd_snapshot(snap), snap)
 
-    count = 0
-    for nsteps in run_sequence:
-        sim.run(nsteps)
-        count += nsteps
-        snapshot_dict[count] = sim.state.snapshot
+    file.append(make_gsd_snapshot(snap))
+    sim = hoomd.simulation.Simulation(device)
+    sim.create_state_from_gsd(filename)
 
-    final_snap = sim.state.snapshot
-    sim.run(1)
+    assert_equivalent_boxes(box, sim.state.box)
+    assert_equivalent_snapshots(snap, sim.state.snapshot)
 
-    initial_sim = hoomd.simulation.Simulation(device)
-    initial_sim.create_state_from_gsd(p, frame=0)
-    assert_equivalent_boxes(box, initial_sim.state.box)
-    assert_equivalent_snapshots(initial_snap,
-                                initial_sim.state.snapshot)
-
-    final_sim = hoomd.simulation.Simulation(device)
-    final_sim.create_state_from_gsd(p)
-    assert_equivalent_boxes(box, final_sim.state.box)
-    assert_equivalent_snapshots(final_snap, final_sim.state.snapshot)
-
-    for nsteps, snap in snapshot_dict.items():
+    snapshot_dict = {}
+    for step in range(1, nsteps):
+        snap = update_positions(sim.state.snapshot)
+        file.append(make_gsd_snapshot(snap))
         sim = hoomd.simulation.Simulation(device)
-        sim.create_state_from_gsd(p, frame=nsteps)
+        sim.create_state_from_gsd(filename)
+        assert_equivalent_boxes(box, sim.state.box)
+        assert_equivalent_snapshots(snap, sim.state.snapshot)
+        snapshot_dict[step] = snap
+
+    for step, snap in snapshot_dict.items():
+        sim = hoomd.simulation.Simulation(device)
+        sim.create_state_from_gsd(filename, frame=step)
         assert_equivalent_boxes(box, sim.state.box)
         assert_equivalent_snapshots(snap, sim.state.snapshot)
