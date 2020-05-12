@@ -2,7 +2,11 @@ import hoomd
 import numpy as np
 import pytest
 from copy import deepcopy
-import gsd.hoomd
+try:
+    import gsd.hoomd
+    skip_gsd = False
+except ImportError:
+    skip_gsd = True
 
 
 @pytest.fixture(scope="function")
@@ -121,6 +125,8 @@ def state_args(request):
 
 def test_state_from_gsd(simulation_factory, get_snapshot,
                         device, state_args, tmp_path):
+    if skip_gsd:
+        pytest.skip('gsd module is not available')
     snap_params, nsteps = state_args
 
     d = tmp_path / "sub"
