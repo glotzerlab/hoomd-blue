@@ -163,8 +163,8 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
             m_tuner_excell_block_size->setPeriod(period);
             m_tuner_excell_block_size->setEnabled(enable);
 
-            m_tuner_accept->setPeriod(period*this->m_nselect);
-            m_tuner_accept->setEnabled(enable);
+            m_tuner_convergence->setPeriod(period*this->m_nselect);
+            m_tuner_convergence->setEnabled(enable);
 
             m_tuner_num_depletants->setPeriod(period*this->m_nselect);
             m_tuner_num_depletants->setEnabled(enable);
@@ -196,7 +196,7 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
         std::unique_ptr<Autotuner> m_tuner_narrow;           //!< Autotuner for the narrow phase
         std::unique_ptr<Autotuner> m_tuner_update_pdata;    //!< Autotuner for the update step group and block sizes
         std::unique_ptr<Autotuner> m_tuner_excell_block_size;  //!< Autotuner for excell block_size
-        std::unique_ptr<Autotuner> m_tuner_accept;           //!< Autotuner for acceptance kernel
+        std::unique_ptr<Autotuner> m_tuner_convergence;      //!< Autotuner for convergence check
         std::unique_ptr<Autotuner> m_tuner_depletants;       //!< Autotuner for inserting depletants
         std::unique_ptr<Autotuner> m_tuner_num_depletants;   //!< Autotuner for calculating number of depletants
 
@@ -209,22 +209,10 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
 
         GlobalArray<unsigned int> m_n_depletants;             //!< List of number of depletants, per particle
 
-        GlobalArray<unsigned int> m_nlist;                       //!< List of overlapping particles
-        GlobalArray<unsigned int> m_nneigh;                     //!< Number of neighbors
         detail::UpdateOrderGPU m_update_order;                   //!< Particle update order
-        unsigned int m_maxn;                                     //!< Max number of neighbors
-        GlobalArray<unsigned int> m_overflow;                    //!< Overflow condition for neighbor list
-        GlobalArray<unsigned int> m_condition;                  //!< Condition of acceptance kernel
+        GlobalArray<unsigned int> m_condition;                  //!< Condition of convergence check
 
         //! For energy evaluation
-        unsigned int m_maxn_patch;                            //!< Maximum number of patch neighbors
-        GlobalArray<unsigned int> m_overflow_patch;           //!< Overflow condition for neighbor list
-        GlobalArray<unsigned int> m_nlist_patch_old;          //!< List of neighbors in old config
-        GlobalArray<float> m_energy_old;                      //!< Energy contribution per neighbor in old config
-        GlobalArray<unsigned int> m_nneigh_patch_old;         //!< Number of neighbors in old config
-        GlobalArray<unsigned int> m_nlist_patch_new;          //!< List of neighbors in new config
-        GlobalArray<float> m_energy_new;                      //!< Energy contribution per neighbor in new config
-        GlobalArray<unsigned int> m_nneigh_patch_new;         //!< Number of neighbors in new config
         GlobalArray<Scalar> m_additive_cutoff;                //!< Per-type additive cutoffs from patch potential
 
         GlobalArray<hpmc_counters_t> m_counters;                    //!< Per-device counters
@@ -239,12 +227,6 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
         //! Set up excell_list
         virtual void initializeExcellMem();
 
-        //! Reallocate nlist as necessary
-        bool checkReallocate();
-
-        //! Reallocate nlist as necessary for energy evaluation
-        bool checkReallocatePatch();
-
         //! Set the nominal width appropriate for looped moves
         virtual void updateCellWidth();
 
@@ -257,8 +239,7 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
                                                                    std::shared_ptr<CellList> cl,
                                                                    unsigned int seed)
     : IntegratorHPMCMono<Shape>(sysdef, seed), m_cl(cl),
-      m_update_order(this->m_exec_conf, seed+this->m_exec_conf->getRank()),
-      m_maxn(0), m_maxn_patch(0)
+      m_update_order(this->m_exec_conf, seed+this->m_exec_conf->getRank())
     {
     this->m_cl->setRadius(1);
     this->m_cl->setComputeTDB(false);
@@ -300,17 +281,8 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
 
     m_tuner_narrow.reset(new Autotuner(valid_params, 5, 100000, "hpmc_narrow", this->m_exec_conf));
 
-    // tuning parameters for acceptance kernel
-    std::vector<unsigned int> valid_params_accept;
-    for (unsigned int block_size = dev_prop.warpSize; block_size <= (unsigned int) dev_prop.maxThreadsPerBlock; block_size += dev_prop.warpSize)
-        {
-        for (unsigned int group_size=1; group_size <= narrow_phase_max_tpp; group_size*=2)
-            {
-            if ((block_size % group_size) == 0)
-                valid_params_accept.push_back(block_size*10000 + group_size);
-            }
-        }
-    m_tuner_accept.reset(new Autotuner(valid_params_accept, 5, 100000, "hpmc_accept", this->m_exec_conf));
+    m_tuner_convergence.reset(new Autotuner(dev_prop.warpSize,
+        dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "hpmc_convergence", this->m_exec_conf));
 
     // tuning parameters for depletants
     std::vector<unsigned int> valid_params_depletants;
@@ -345,36 +317,6 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
 
     GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_reject_out);
     TAG_ALLOCATION(m_reject_out);
-
-    GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_nlist);
-    TAG_ALLOCATION(m_nlist);
-
-    GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_nneigh);
-    TAG_ALLOCATION(m_nneigh);
-
-    GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_nlist_patch_old);
-    TAG_ALLOCATION(m_nlist_patch_old);
-
-    GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_nlist_patch_new);
-    TAG_ALLOCATION(m_nlist_patch_new);
-
-    GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_nneigh_patch_old);
-    TAG_ALLOCATION(m_nneigh_patch_old);
-
-    GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_nneigh_patch_new);
-    TAG_ALLOCATION(m_nneigh_patch_new);
-
-    GlobalArray<float>(1, this->m_exec_conf).swap(m_energy_old);
-    TAG_ALLOCATION(m_energy_old);
-
-    GlobalArray<float>(1, this->m_exec_conf).swap(m_energy_new);
-    TAG_ALLOCATION(m_energy_new);
-
-    GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_overflow);
-    TAG_ALLOCATION(m_overflow);
-
-    GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_overflow_patch);
-    TAG_ALLOCATION(m_overflow_patch);
 
     GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_condition);
     TAG_ALLOCATION(m_condition);
@@ -445,16 +387,6 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
             }
         }
     #endif
-
-        {
-        ArrayHandle<unsigned int> h_overflow(m_overflow, access_location::host, access_mode::overwrite);
-        *h_overflow.data = 0;
-        }
-
-        {
-        ArrayHandle<unsigned int> h_overflow_patch(m_overflow_patch, access_location::host, access_mode::overwrite);
-        *h_overflow_patch.data = 0;
-        }
 
     m_narrow_phase_streams.resize(this->m_exec_conf->getNumActiveGPUs());
     for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
@@ -548,24 +480,11 @@ void IntegratorHPMCMonoGPU< Shape >::updateGPUAdvice()
             cudaMemAdvise(m_trial_orientation.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             cudaMemPrefetchAsync(m_trial_orientation.get()+range.first, sizeof(Scalar4)*nelem, gpu_map[idev]);
 
-            cudaMemAdvise(m_nneigh.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-            cudaMemPrefetchAsync(m_nneigh.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
-
             cudaMemAdvise(m_reject_out.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             cudaMemPrefetchAsync(m_reject_out.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
 
             cudaMemAdvise(m_reject_out_of_cell.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             cudaMemPrefetchAsync(m_reject_out_of_cell.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
-
-            if (this->m_patch && !this->m_patch_log)
-                {
-                cudaMemAdvise(m_nneigh_patch_old.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-                cudaMemPrefetchAsync(m_nneigh_patch_old.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
-
-                cudaMemAdvise(m_nneigh_patch_new.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-                cudaMemPrefetchAsync(m_nneigh_patch_new.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
-                }
-            CHECK_CUDA_ERROR();
 
             for (unsigned int itype = 0; itype < this->m_pdata->getNTypes(); ++itype)
                 {
@@ -654,19 +573,9 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
             m_reject.resize(this->m_pdata->getMaxN());
             m_reject_out_of_cell.resize(this->m_pdata->getMaxN());
             m_reject_out.resize(this->m_pdata->getMaxN());
-            m_nneigh.resize(this->m_pdata->getMaxN());
             m_trial_postype.resize(this->m_pdata->getMaxN());
             m_trial_orientation.resize(this->m_pdata->getMaxN());
             m_trial_move_type.resize(this->m_pdata->getMaxN());
-
-            update_gpu_advice = true;
-            }
-
-        if (m_nneigh_patch_old.getNumElements() < this->m_pdata->getMaxN()
-            && this->m_patch && !this->m_patch_log)
-            {
-            m_nneigh_patch_old.resize(this->m_pdata->getMaxN());
-            m_nneigh_patch_new.resize(this->m_pdata->getMaxN());
 
             update_gpu_advice = true;
             }
@@ -744,7 +653,6 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
         this->m_tuner_excell_block_size->end();
 
-        bool reallocate = false;
         // depletants
         ArrayHandle<Scalar> d_lambda(m_lambda, access_location::device, access_mode::read);
 
@@ -752,9 +660,6 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
             {
                 { // ArrayHandle scope
                 ArrayHandle<unsigned int> d_update_order_by_ptl(m_update_order.get(), access_location::device, access_mode::read);
-                ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::read);
-                ArrayHandle<unsigned int> d_nneigh(m_nneigh, access_location::device, access_mode::read);
-                ArrayHandle<unsigned int> d_overflow(m_overflow, access_location::device, access_mode::read);
                 ArrayHandle<unsigned int> d_reject_out_of_cell(m_reject_out_of_cell, access_location::device, access_mode::overwrite);
 
                 // access data for proposed moves
@@ -780,7 +685,6 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     this->m_cl->getDim(),
                     ghost_width,
                     this->m_pdata->getN(),
-                    this->m_pdata->getNGhosts(),
                     this->m_pdata->getNTypes(),
                     this->m_seed + this->m_exec_conf->getRank()*this->m_nselect + i,
                     d_d.data,
@@ -805,10 +709,8 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     d_excell_idx.data,
                     d_excell_size.data,
                     m_excell_list_indexer,
-                    d_nlist.data,
-                    d_nneigh.data,
-                    m_maxn,
-                    d_overflow.data,
+                    0, // d_reject_in
+                    0, // d_reject_out
                     this->m_exec_conf->dev_prop,
                     this->m_pdata->getGPUPartition(),
                     0);
@@ -824,17 +726,44 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                 m_tuner_moves->end();
                 }
 
-            // make sure neighbor list size is sufficient before running the kernels
-            checkReallocate();
+            bool converged = false;
 
-            do
                 {
+                // reset reject flags
+                ArrayHandle<unsigned int> d_reject(m_reject, access_location::device, access_mode::overwrite);
+                ArrayHandle<unsigned int> d_reject_out(m_reject_out, access_location::device, access_mode::overwrite);
+
+                this->m_exec_conf->beginMultiGPU();
+                for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
+                    {
+                    hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
+
+                    auto range = this->m_pdata->getGPUPartition().getRange(idev);
+                    if (range.second - range.first != 0)
+                        hipMemsetAsync(d_reject.data + range.first, 0,  sizeof(unsigned int)*(range.second-range.first));
+                    if (range.second - range.first != 0)
+                        hipMemsetAsync(d_reject_out.data + range.first, 0,  sizeof(unsigned int)*(range.second-range.first));
+                    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                        CHECK_CUDA_ERROR();
+                    }
+                this->m_exec_conf->endMultiGPU();
+                }
+
+            while (!converged)
+                {
+                    {
+                    ArrayHandle<unsigned int> d_condition(m_condition, access_location::device, access_mode::overwrite);
+                    // reset condition flag
+                    hipMemsetAsync(d_condition.data, 0, sizeof(unsigned int));
+                    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                        CHECK_CUDA_ERROR();
+                    }
+
                     {
                     // ArrayHandle scope
                     ArrayHandle<unsigned int> d_update_order_by_ptl(m_update_order.get(), access_location::device, access_mode::read);
-                    ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
-                    ArrayHandle<unsigned int> d_nneigh(m_nneigh, access_location::device, access_mode::overwrite);
-                    ArrayHandle<unsigned int> d_overflow(m_overflow, access_location::device, access_mode::readwrite);
+                    ArrayHandle<unsigned int> d_reject(m_reject, access_location::device, access_mode::read);
+                    ArrayHandle<unsigned int> d_reject_out(m_reject_out, access_location::device, access_mode::overwrite);
                     ArrayHandle<unsigned int> d_reject_out_of_cell(m_reject_out_of_cell, access_location::device, access_mode::read);
 
                     // access data for proposed moves
@@ -856,17 +785,8 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
 
                     ArrayHandle<unsigned int> d_n_depletants(m_n_depletants, access_location::device, access_mode::overwrite);
 
-                    // reset number of neighbors
-                    for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
-                        {
-                        hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
-
-                        auto range = this->m_pdata->getGPUPartition().getRange(idev);
-                        if (range.second - range.first != 0)
-                            hipMemsetAsync(d_nneigh.data + range.first, 0,  sizeof(unsigned int)*(range.second-range.first));
-                        if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-                            CHECK_CUDA_ERROR();
-                        }
+                    // open block early to allow concurrency between evaluation kernels
+                    this->m_exec_conf->beginMultiGPU();
 
                     // fill the parameter structure for the GPU kernels
                     gpu::hpmc_args_t args(
@@ -878,7 +798,6 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         this->m_cl->getDim(),
                         ghost_width,
                         this->m_pdata->getN(),
-                        this->m_pdata->getNGhosts(),
                         this->m_pdata->getNTypes(),
                         this->m_seed,
                         d_d.data,
@@ -903,10 +822,8 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         d_excell_idx.data,
                         d_excell_size.data,
                         m_excell_list_indexer,
-                        d_nlist.data,
-                        d_nneigh.data,
-                        m_maxn,
-                        d_overflow.data,
+                        d_reject.data,
+                        d_reject_out.data,
                         this->m_exec_conf->dev_prop,
                         this->m_pdata->getGPUPartition(),
                         &m_narrow_phase_streams.front());
@@ -915,7 +832,6 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                      *  check overlaps, new configuration simultaneously against the old and the new configuration
                      */
 
-                    this->m_exec_conf->beginMultiGPU();
                     m_tuner_narrow->begin();
                     unsigned int param = m_tuner_narrow->getParam();
                     args.block_size = param/1000000;
@@ -996,19 +912,13 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         }
                     this->m_exec_conf->endMultiGPU();
                     } // end ArrayHandle scope
-                reallocate = checkReallocate();
-                } while (reallocate);
 
-            if (this->m_patch && !this->m_patch_log)
-                {
-                // make sure neighbor list size is sufficient before running the kernels
-                checkReallocatePatch();
-
-                do
+                if (this->m_patch && !this->m_patch_log)
                     {
                     // access data for proposed moves
                     ArrayHandle<Scalar4> d_trial_postype(m_trial_postype, access_location::device, access_mode::read);
                     ArrayHandle<Scalar4> d_trial_orientation(m_trial_orientation, access_location::device, access_mode::read);
+                    ArrayHandle<unsigned int> d_trial_move_type(m_trial_move_type, access_location::device, access_mode::read);
 
                     // access the particle data
                     ArrayHandle<Scalar4> d_postype(this->m_pdata->getPositions(), access_location::device, access_mode::readwrite);
@@ -1018,136 +928,79 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
                     ArrayHandle<Scalar> d_additive_cutoff(m_additive_cutoff, access_location::device, access_mode::read);
 
-                        {
-                        /*
-                         *  evaluate energy of old and new configuration simultaneously against the old and the new configuration
-                         */
-                        ArrayHandle<unsigned int> d_nlist_patch_old(m_nlist_patch_old, access_location::device, access_mode::overwrite);
-                        ArrayHandle<float> d_energy_old(m_energy_old, access_location::device, access_mode::overwrite);
-                        ArrayHandle<unsigned int> d_nneigh_patch_old(m_nneigh_patch_old, access_location::device, access_mode::overwrite);
-
-                        ArrayHandle<unsigned int> d_nlist_patch_new(m_nlist_patch_new, access_location::device, access_mode::overwrite);
-                        ArrayHandle<float> d_energy_new(m_energy_new, access_location::device, access_mode::overwrite);
-                        ArrayHandle<unsigned int> d_nneigh_patch_new(m_nneigh_patch_new, access_location::device, access_mode::overwrite);
-
-                        ArrayHandle<unsigned int> d_reject_out_of_cell(m_reject_out_of_cell, access_location::device, access_mode::read);
-                        ArrayHandle<unsigned int> d_overflow_patch(m_overflow_patch, access_location::device, access_mode::readwrite);
-
-                        PatchEnergy::gpu_args_t patch_args(
-                            d_postype.data,
-                            d_orientation.data,
-                            d_trial_postype.data,
-                            d_trial_orientation.data,
-                            this->m_cl->getCellIndexer(),
-                            this->m_cl->getDim(),
-                            ghost_width,
-                            this->m_pdata->getN(),
-                            this->m_pdata->getNGhosts(),
-                            this->m_pdata->getNTypes(),
-                            box,
-                            d_excell_idx.data,
-                            d_excell_size.data,
-                            m_excell_list_indexer,
-                            this->m_patch->getRCut(),
-                            d_additive_cutoff.data,
-                            d_nlist_patch_old.data,
-                            d_nneigh_patch_old.data,
-                            d_energy_old.data,
-                            d_nlist_patch_new.data,
-                            d_nneigh_patch_new.data,
-                            d_energy_new.data,
-                            m_maxn_patch,
-                            d_overflow_patch.data,
-                            d_charge.data,
-                            d_diameter.data,
-                            d_reject_out_of_cell.data,
-                            this->m_pdata->getGPUPartition());
-
-                        // compute patch energy on default stream
-                        this->m_patch->computePatchEnergyGPU(patch_args, 0);
-                        } // end ArrayHandle scope
-
-                    reallocate = checkReallocatePatch();
-                    } while (reallocate);
-                } // end patch energy
-
-            /*
-             * make accept/reject decisions
-             */
-             bool done = false;
-             while (!done)
-                {
-                    {
+                    /*
+                     *  evaluate energy of old and new configuration simultaneously against the old and the new configuration
+                     */
                     ArrayHandle<unsigned int> d_update_order_by_ptl(m_update_order.get(), access_location::device, access_mode::read);
-                    ArrayHandle<unsigned int> d_trial_move_type(m_trial_move_type, access_location::device, access_mode::read);
+                    ArrayHandle<unsigned int> d_reject_out_of_cell(m_reject_out_of_cell, access_location::device, access_mode::read);
+                    ArrayHandle<unsigned int> d_reject(m_reject, access_location::device, access_mode::read);
+                    ArrayHandle<unsigned int> d_reject_out(m_reject_out, access_location::device, access_mode::readwrite);
+
+                    // future optimization opportunity: put patch on its own stream
+                    PatchEnergy::gpu_args_t patch_args(
+                        d_postype.data,
+                        d_orientation.data,
+                        d_trial_postype.data,
+                        d_trial_orientation.data,
+                        d_trial_move_type.data,
+                        this->m_cl->getCellIndexer(),
+                        this->m_cl->getDim(),
+                        ghost_width,
+                        this->m_pdata->getN(),
+                        this->m_seed,
+                        timestep,
+                        this->m_exec_conf->getRank()*this->m_nselect + i,
+                        this->m_pdata->getNTypes(),
+                        box,
+                        d_excell_idx.data,
+                        d_excell_size.data,
+                        m_excell_list_indexer,
+                        this->m_patch->getRCut(),
+                        d_additive_cutoff.data,
+                        d_update_order_by_ptl.data,
+                        d_reject.data,
+                        d_reject_out.data,
+                        d_charge.data,
+                        d_diameter.data,
+                        d_reject_out_of_cell.data,
+                        this->m_pdata->getGPUPartition());
+
+                    // compute patch energy on default stream
+                    this->m_patch->computePatchEnergyGPU(patch_args, 0);
+                    } // end patch energy
+
+                    {
                     ArrayHandle<unsigned int> d_reject_out_of_cell(m_reject_out_of_cell, access_location::device, access_mode::read);
                     ArrayHandle<unsigned int> d_reject(m_reject, access_location::device, access_mode::readwrite);
-                    ArrayHandle<unsigned int> d_reject_out(m_reject_out, access_location::device, access_mode::overwrite);
-                    ArrayHandle<unsigned int> d_nneigh(m_nneigh, access_location::device, access_mode::read);
-                    ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::read);
-                    ArrayHandle<unsigned int> d_condition(m_condition, access_location::device, access_mode::overwrite);
-
-                    // patch energy
-                    ArrayHandle<unsigned int> d_nlist_patch_old(m_nlist_patch_old, access_location::device, access_mode::read);
-                    ArrayHandle<unsigned int> d_nlist_patch_new(m_nlist_patch_new, access_location::device, access_mode::read);
-
-                    ArrayHandle<unsigned int> d_nneigh_patch_old(m_nneigh_patch_old, access_location::device, access_mode::read);
-                    ArrayHandle<unsigned int> d_nneigh_patch_new(m_nneigh_patch_new, access_location::device, access_mode::read);
-
-                    ArrayHandle<float> d_energy_old(m_energy_old, access_location::device, access_mode::read);
-                    ArrayHandle<float> d_energy_new(m_energy_new, access_location::device, access_mode::read);
-
-                    // reset condition flag
-                    hipMemsetAsync(d_condition.data, 0, sizeof(unsigned int));
-                    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-                        CHECK_CUDA_ERROR();
+                    ArrayHandle<unsigned int> d_reject_out(m_reject_out, access_location::device, access_mode::readwrite);
+                    ArrayHandle<unsigned int> d_condition(m_condition, access_location::device, access_mode::readwrite);
+                    ArrayHandle<unsigned int> d_trial_move_type(m_trial_move_type, access_location::device, access_mode::read);
 
                     this->m_exec_conf->beginMultiGPU();
-                    m_tuner_accept->begin();
-                    unsigned int param = m_tuner_accept->getParam();
-                    unsigned int block_size = param/10000;
-                    unsigned int tpp = param%10000;
-                    gpu::hpmc_accept(d_update_order_by_ptl.data,
+                    m_tuner_convergence->begin();
+                    gpu::hpmc_check_convergence(
                         d_trial_move_type.data,
                         d_reject_out_of_cell.data,
                         d_reject.data,
                         d_reject_out.data,
-                        d_nneigh.data,
-                        d_nlist.data,
-                        this->m_pdata->getN() + this->m_pdata->getNGhosts(),
-                        this->m_pdata->getN(),
-                        this->m_pdata->getGPUPartition(),
-                        m_maxn,
-                        (this->m_patch != 0) && !this->m_patch_log,
-                        d_nlist_patch_old.data,
-                        d_nlist_patch_new.data,
-                        d_nneigh_patch_old.data,
-                        d_nneigh_patch_new.data,
-                        d_energy_old.data,
-                        d_energy_new.data,
-                        m_maxn_patch,
                         d_condition.data,
-                        this->m_seed,
-                        this->m_exec_conf->getRank()*this->m_nselect + i,
-                        timestep,
-                        block_size,
-                        tpp);
-
+                        this->m_pdata->getGPUPartition(),
+                        m_tuner_convergence->getParam());
                     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                         CHECK_CUDA_ERROR();
-                    m_tuner_accept->end();
+                    m_tuner_convergence->end();
                     this->m_exec_conf->endMultiGPU();
-
                     }
-                // update reject flags
+
+                // flip reject flags
                 std::swap(m_reject,  m_reject_out);
 
                     {
                     ArrayHandle<unsigned int> h_condition(m_condition, access_location::host, access_mode::read);
                     if (*h_condition.data == 0)
-                        done = true;
+                        converged = true;
                     }
-                } //end while (!done)
+                } //end while (!converged)
 
                 {
                 // access data for proposed moves
@@ -1179,7 +1032,6 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     d_trial_orientation.data,
                     d_trial_move_type.data,
                     d_reject.data,
-                    m_maxn,
                     m_tuner_update_pdata->getParam()
                     );
                 gpu::hpmc_update_pdata<Shape>(args, params.data());
@@ -1247,130 +1099,6 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
 
     // all particle have been moved, the aabb tree is now invalid
     this->m_aabb_tree_invalid = true;
-    }
-
-template< class Shape >
-bool IntegratorHPMCMonoGPU< Shape >::checkReallocate()
-    {
-    // read back overflow condition and resize as necessary
-    ArrayHandle<unsigned int> h_overflow(m_overflow, access_location::host, access_mode::read);
-    unsigned int req_maxn = *h_overflow.data;
-
-    bool maxn_changed = false;
-    if (req_maxn > m_maxn)
-        {
-        m_maxn = req_maxn;
-        maxn_changed = true;
-        }
-
-    unsigned int req_size_nlist = m_maxn*this->m_pdata->getN();
-
-    // resize
-    bool reallocate = req_size_nlist > m_nlist.getNumElements();
-    if (reallocate)
-        {
-        this->m_exec_conf->msg->notice(9) << "hpmc resizing neighbor list " << m_nlist.getNumElements() << " -> " << req_size_nlist << std::endl;
-
-        GlobalArray<unsigned int> nlist(req_size_nlist, this->m_exec_conf);
-        m_nlist.swap(nlist);
-        TAG_ALLOCATION(m_nlist);
-
-        #ifdef __HIP_PLATFORM_NVCC__
-        // update memory hints
-        if (this->m_exec_conf->allConcurrentManagedAccess())
-            {
-            // set memory hints
-            auto gpu_map = this->m_exec_conf->getGPUIds();
-            for (unsigned int idev = 0; idev < this->m_exec_conf->getNumActiveGPUs(); ++idev)
-                {
-                auto range = this->m_pdata->getGPUPartition().getRange(idev);
-
-                unsigned int nelem = range.second-range.first;
-                if (nelem == 0)
-                    continue;
-
-                cudaMemAdvise(m_nlist.get()+range.first*m_maxn, sizeof(unsigned int)*nelem*m_maxn, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-                cudaMemPrefetchAsync(m_nlist.get()+range.first*m_maxn, sizeof(unsigned int)*nelem*m_maxn, gpu_map[idev]);
-                CHECK_CUDA_ERROR();
-                }
-            }
-        #endif
-        }
-    return reallocate || maxn_changed;
-    }
-
-template< class Shape >
-bool IntegratorHPMCMonoGPU< Shape >::checkReallocatePatch()
-    {
-    // read back overflow condition and resize as necessary
-    ArrayHandle<unsigned int> h_overflow_patch(m_overflow_patch, access_location::host, access_mode::read);
-    unsigned int req_maxn = *h_overflow_patch.data;
-
-    bool maxn_changed = false;
-    if (req_maxn > m_maxn_patch)
-        {
-        m_maxn_patch = req_maxn;
-        maxn_changed = true;
-        }
-
-    unsigned int req_size_nlist = m_maxn_patch*this->m_pdata->getN();
-
-    // resize
-    bool reallocate = req_size_nlist > m_nlist_patch_old.getNumElements();
-    if (reallocate)
-        {
-        this->m_exec_conf->msg->notice(9) << "hpmc resizing patch neighbor list " << m_nlist_patch_old.getNumElements() << " -> " << req_size_nlist << std::endl;
-
-        GlobalArray<unsigned int> nlist_patch_old(req_size_nlist, this->m_exec_conf);
-        m_nlist_patch_old.swap(nlist_patch_old);
-        TAG_ALLOCATION(m_nlist_patch_old);
-
-        GlobalArray<unsigned int> nlist_patch_new(req_size_nlist, this->m_exec_conf);
-        m_nlist_patch_new.swap(nlist_patch_new);
-        TAG_ALLOCATION(m_nlist_patch_new);
-
-        GlobalArray<float> energy_old(req_size_nlist, this->m_exec_conf);
-        m_energy_old.swap(energy_old);
-        TAG_ALLOCATION(m_energy_old);
-
-        GlobalArray<float> energy_new(req_size_nlist, this->m_exec_conf);
-        m_energy_new.swap(energy_new);
-        TAG_ALLOCATION(m_energy_new);
-
-        #ifdef __HIP_PLATFORM_NVCC__
-        // update memory hints
-        if (this->m_exec_conf->allConcurrentManagedAccess())
-            {
-            // set memory hints
-            auto gpu_map = this->m_exec_conf->getGPUIds();
-            for (unsigned int idev = 0; idev < this->m_exec_conf->getNumActiveGPUs(); ++idev)
-                {
-                auto range = this->m_pdata->getGPUPartition().getRange(idev);
-
-                unsigned int nelem = range.second-range.first;
-                if (nelem == 0)
-                    continue;
-
-                cudaMemAdvise(m_nlist_patch_old.get()+range.first*m_maxn_patch, sizeof(unsigned int)*nelem*m_maxn_patch, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-                cudaMemPrefetchAsync(m_nlist_patch_old.get()+range.first*m_maxn_patch, sizeof(unsigned int)*nelem*m_maxn_patch, gpu_map[idev]);
-                CHECK_CUDA_ERROR();
-
-                cudaMemAdvise(m_nlist_patch_new.get()+range.first*m_maxn_patch, sizeof(unsigned int)*nelem*m_maxn_patch, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-                cudaMemPrefetchAsync(m_nlist_patch_new.get()+range.first*m_maxn_patch, sizeof(unsigned int)*nelem*m_maxn_patch, gpu_map[idev]);
-                CHECK_CUDA_ERROR();
-
-                cudaMemAdvise(m_energy_old.get()+range.first*m_maxn_patch, sizeof(float)*nelem*m_maxn_patch, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-                cudaMemPrefetchAsync(m_energy_old.get()+range.first*m_maxn_patch, sizeof(float)*nelem*m_maxn_patch, gpu_map[idev]);
-                CHECK_CUDA_ERROR();
-
-                cudaMemAdvise(m_energy_new.get()+range.first*m_maxn_patch, sizeof(float)*nelem*m_maxn_patch, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-                cudaMemPrefetchAsync(m_energy_new.get()+range.first*m_maxn_patch, sizeof(float)*nelem*m_maxn_patch, gpu_map[idev]);
-                CHECK_CUDA_ERROR();
-                }
-            }
-        #endif
-        }
-    return reallocate || maxn_changed;
     }
 
 template< class Shape >

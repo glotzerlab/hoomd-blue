@@ -47,7 +47,6 @@ struct hpmc_args_t
                 const uint3& _cell_dim,
                 const Scalar3& _ghost_width,
                 const unsigned int _N,
-                const unsigned int _N_ghost,
                 const unsigned int _num_types,
                 const unsigned int _seed,
                 const Scalar* _d,
@@ -72,10 +71,8 @@ struct hpmc_args_t
                 unsigned int *_d_excell_idx,
                 const unsigned int *_d_excell_size,
                 const Index2D& _excli,
-                unsigned int *_d_nlist,
-                unsigned int *_d_nneigh,
-                const unsigned int _maxn,
-                unsigned int *_d_overflow,
+                const unsigned int *_d_reject_in,
+                unsigned int *_d_reject_out,
                 const hipDeviceProp_t &_devprop,
                 const GPUPartition& _gpu_partition,
                 const hipStream_t *_streams)
@@ -87,7 +84,6 @@ struct hpmc_args_t
                   cell_dim(_cell_dim),
                   ghost_width(_ghost_width),
                   N(_N),
-                  N_ghost(_N_ghost),
                   num_types(_num_types),
                   seed(_seed),
                   d_d(_d),
@@ -112,10 +108,8 @@ struct hpmc_args_t
                   d_excell_idx(_d_excell_idx),
                   d_excell_size(_d_excell_size),
                   excli(_excli),
-                  d_nlist(_d_nlist),
-                  d_nneigh(_d_nneigh),
-                  maxn(_maxn),
-                  d_overflow(_d_overflow),
+                  d_reject_in(_d_reject_in),
+                  d_reject_out(_d_reject_out),
                   devprop(_devprop),
                   gpu_partition(_gpu_partition),
                   streams(_streams)
@@ -130,7 +124,6 @@ struct hpmc_args_t
     const uint3& cell_dim;            //!< Cell dimensions
     const Scalar3& ghost_width;       //!< Width of the ghost layer
     const unsigned int N;             //!< Number of particles
-    const unsigned int N_ghost;       //!< Number of ghost particles
     const unsigned int num_types;     //!< Number of particle types
     const unsigned int seed;          //!< RNG seed
     const Scalar* d_d;                //!< Maximum move displacement
@@ -155,10 +148,8 @@ struct hpmc_args_t
     unsigned int *d_excell_idx;       //!< Expanded cell list
     const unsigned int *d_excell_size;//!< Size of expanded cells
     const Index2D& excli;             //!< Excell indexer
-    unsigned int *d_nlist;        //!< Neighbor list of overlapping particles after trial move
-    unsigned int *d_nneigh;       //!< Number of overlapping particles after trial move
-    unsigned int maxn;                //!< Width of neighbor list
-    unsigned int *d_overflow;         //!< Overflow condition for neighbor list
+    const unsigned int *d_reject_in;  //!< Reject flags per particle (in)
+    unsigned int *d_reject_out;       //!< Reject flags per particle (out)
     const hipDeviceProp_t& devprop;     //!< CUDA device properties
     const GPUPartition& gpu_partition; //!< Multi-GPU partition
     const hipStream_t *streams;        //!< kernel streams
@@ -216,7 +207,6 @@ struct hpmc_update_args_t
         const Scalar4 *_d_trial_orientation,
         const unsigned int *_d_trial_move_type,
         const unsigned int *_d_reject,
-        const unsigned int _maxn,
         const unsigned int _block_size)
         : d_postype(_d_postype),
           d_orientation(_d_orientation),
@@ -227,7 +217,6 @@ struct hpmc_update_args_t
           d_trial_orientation(_d_trial_orientation),
           d_trial_move_type(_d_trial_move_type),
           d_reject(_d_reject),
-          maxn(_maxn),
           block_size(_block_size)
      {}
 
@@ -241,7 +230,6 @@ struct hpmc_update_args_t
     const Scalar4 *d_trial_orientation;
     const unsigned int *d_trial_move_type;
     const unsigned int *d_reject;
-    const unsigned int maxn;
     const unsigned int block_size;
     };
 
@@ -257,58 +245,6 @@ void hpmc_excell(unsigned int *d_excell_idx,
                  const Index2D& cadji,
                  const unsigned int ngpu,
                  const unsigned int block_size);
-
-//! Wraps arguments to hpmc_* template functions
-/*! \ingroup hpmc_data_structs */
-struct hpmc_patch_args_t
-    {
-    //! Construct a hpmc_patch_args_t
-    hpmc_patch_args_t(const Scalar _r_cut_patch,
-                const Scalar *_d_additive_cutoff,
-                unsigned int *_d_nlist_old,
-                unsigned int *_d_nneigh_old,
-                float *_d_energy_old,
-                unsigned int *_d_nlist_new,
-                unsigned int *_d_nneigh_new,
-                float *_d_energy_new,
-                const unsigned int _maxn,
-                unsigned int *_d_overflow,
-                const Scalar *_d_charge,
-                const Scalar *_d_diameter,
-                const unsigned int _eval_threads,
-                const unsigned int _launch_bounds)
-                : r_cut_patch(_r_cut_patch),
-                  d_additive_cutoff(_d_additive_cutoff),
-                  d_nlist_old(_d_nlist_old),
-                  d_nneigh_old(_d_nneigh_old),
-                  d_energy_old(_d_energy_old),
-                  d_nlist_new(_d_nlist_new),
-                  d_nneigh_new(_d_nneigh_new),
-                  d_energy_new(_d_energy_new),
-                  maxn(_maxn),
-                  d_overflow(_d_overflow),
-                  d_charge(_d_charge),
-                  d_diameter(_d_diameter),
-                  eval_threads(_eval_threads),
-                  launch_bounds(_launch_bounds)
-        {
-        };
-
-    const Scalar r_cut_patch;        //!< Global cutoff radius
-    const Scalar *d_additive_cutoff; //!< Additive contribution to cutoff per type
-    unsigned int *d_nlist_old;       //!< List of neighbor particle indices, in old configuration of particle i
-    unsigned int *d_nneigh_old;      //!< Number of neighbors
-    float* d_energy_old;             //!< Evaluated energy terms for every neighbor
-    unsigned int *d_nlist_new;       //!< List of neighbor particle indices, in new configuration of particle i
-    unsigned int *d_nneigh_new;      //!< Number of neighbors
-    float* d_energy_new;             //!< Evaluated energy terms for every neighbor
-    const unsigned int maxn;         //!< Max number of neighbors
-    unsigned int *d_overflow;        //!< Overflow condition
-    const Scalar *d_charge;          //!< Particle charges
-    const Scalar *d_diameter;        //!< Particle diameters
-    const unsigned int eval_threads; //!< Number of threads for energy evaluation
-    const unsigned int launch_bounds; //!< Launch bounds, template parameter
-    };
 
 //! Driver for kernel::hpmc_gen_moves()
 template< class Shape >
@@ -334,31 +270,15 @@ void hpmc_shift(Scalar4 *d_postype,
                 const Scalar3 shift,
                 const unsigned int block_size);
 
-void hpmc_accept(const unsigned int *d_update_order_by_ptl,
-                 const unsigned int *d_trial_move_type,
-                 const unsigned int *d_reject_out_of_cell,
-                 unsigned int *d_reject,
-                 unsigned int *d_reject_out,
-                 const unsigned int *d_nneigh,
-                 const unsigned int *d_nlist,
-                 const unsigned int N_old,
-                 const unsigned int N,
-                 const GPUPartition& gpu_partition,
-                 const unsigned int maxn,
-                 bool patch,
-                 const unsigned int *d_nlist_patch_old,
-                 const unsigned int *d_nlist_patch_new,
-                 const unsigned int *d_nneigh_patch_old,
-                 const unsigned int *d_nneigh_patch_new,
-                 const float *d_energy_old,
-                 const float *d_energy_new,
-                 const unsigned int maxn_patch,
-                 unsigned int *d_condition,
-                 const unsigned int seed,
-                 const unsigned int select,
-                 const unsigned int timestep,
-                 const unsigned int block_size,
-                 const unsigned int tpp);
+//!< Kernel to evaluate convergence
+void hpmc_check_convergence(
+     const unsigned int *d_trial_move_type,
+     const unsigned int *d_reject_out_of_cell,
+     unsigned int *d_reject_in,
+     unsigned int *d_reject_out,
+     unsigned int *d_condition,
+     const GPUPartition& gpu_partition,
+     unsigned int block_size);
 
 void generate_num_depletants(const unsigned int seed,
                              const unsigned int timestep,
@@ -532,28 +452,28 @@ template< class Shape, unsigned int max_threads >
 #ifdef __HIP_PLATFORM_NVCC__
 __launch_bounds__(max_threads)
 #endif
+ 
 __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
                            Scalar4 *d_orientation,
                            Scalar4 *d_trial_postype,
                            Scalar4 *d_trial_orientation,
+                           const unsigned int *d_trial_move_type,
                            const unsigned int *d_excell_idx,
                            const unsigned int *d_excell_size,
                            const Index2D excli,
-                           unsigned int *d_nlist,
-                           unsigned int *d_nneigh,
-                           const unsigned int maxn,
                            hpmc_counters_t *d_counters,
                            const unsigned int num_types,
                            const BoxDim box,
                            const Scalar3 ghost_width,
                            const uint3 cell_dim,
                            const Index3D ci,
-                           const unsigned int N_old,
-                           const unsigned int N_new,
+                           const unsigned int N_local,
                            const unsigned int *d_check_overlaps,
                            const Index2D overlap_idx,
                            const typename Shape::param_type *d_params,
-                           unsigned int *d_overflow,
+                           const unsigned int *d_update_order_by_ptl,
+                           const unsigned int *d_reject_in,
+                           unsigned int *d_reject_out,
                            const unsigned int *d_reject_out_of_cell,
                            const unsigned int max_extra_bytes,
                            const unsigned int max_queue_size,
@@ -581,7 +501,7 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
     unsigned int *s_queue_j =   (unsigned int*)(s_check_overlaps + overlap_idx.getNumElements());
     unsigned int *s_queue_gid = (unsigned int*)(s_queue_j + max_queue_size);
     unsigned int *s_type_group = (unsigned int*)(s_queue_gid + max_queue_size);
-    unsigned int *s_idx_group = (unsigned int*)(s_type_group + n_groups);
+    unsigned int *s_reject_group = (unsigned int*)(s_type_group + n_groups);
 
         {
         // copy over parameters one int per thread for fast loads
@@ -611,7 +531,7 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
     __syncthreads();
 
     // initialize extra shared mem
-    char *s_extra = (char *)(s_idx_group + n_groups);
+    char *s_extra = (char *)(s_reject_group + n_groups);
 
     unsigned int available_bytes = max_extra_bytes;
     for (unsigned int cur_type = 0; cur_type < num_types; ++cur_type)
@@ -642,6 +562,7 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
     if (active && d_reject_out_of_cell[idx])
         active = false;
 
+    unsigned int update_order_i;
     if (active)
         {
         Scalar4 postype_i(d_trial_postype[idx]);
@@ -653,13 +574,22 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
         my_cell = computeParticleCell(vec_to_scalar3(pos_i_old), box, ghost_width,
             cell_dim, ci, false);
 
+        // the order of this particle in the chain
+        update_order_i = d_update_order_by_ptl[idx];
+
         if (master)
             {
             s_pos_group[group] = make_scalar3(pos_i.x, pos_i.y, pos_i.z);
             s_type_group[group] = type_i;
             s_orientation_group[group] = d_trial_orientation[idx];
-            s_idx_group[group] = idx;
             }
+        }
+
+    if (master && active)
+        {
+        // load from output, this race condition is intentional and implements an 
+        // optional early exit flag between concurrently running kernels
+        s_reject_group[group] = atomicCAS(&d_reject_out[idx], 0, 0);
         }
 
      // sync so that s_postype_group and s_orientation are available before other threads might process overlap checks
@@ -673,7 +603,7 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
     if (active)
         {
         excell_size = d_excell_size[my_cell];
-        overlap_checks += 2*excell_size;
+        overlap_checks += excell_size;
         }
 
     // loop while still searching
@@ -684,40 +614,50 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
         // loop through particles in the excell list and add them to the queue if they pass the circumsphere check
 
         // active threads add to the queue
-        if (active && threadIdx.x == 0)
+        if (active && !s_reject_group[group] && threadIdx.x == 0)
             {
             // prefetch j
             unsigned int j, next_j = 0;
-            if ((k >> 1) < excell_size)
+            if (k < excell_size)
                 {
-                next_j = __ldg(&d_excell_idx[excli(k >> 1, my_cell)]);
+                next_j = __ldg(&d_excell_idx[excli(k, my_cell)]);
                 }
 
             // add to the queue as long as the queue is not full, and we have not yet reached the end of our own list
             // and as long as no overlaps have been found
 
             // every thread can add at most one element to the neighbor list
-            while (s_queue_size < max_queue_size && (k >> 1) < excell_size)
+            while (s_queue_size < max_queue_size && k < excell_size)
                 {
                 // build some shapes, but we only need them to get diameters, so don't load orientations
                 // build shape i from shared memory
                 vec3<Scalar> pos_i(s_pos_group[group]);
                 Shape shape_i(quat<Scalar>(), s_params[s_type_group[group]]);
 
-                bool old = k & 1;
 
                 // prefetch next j
                 j = next_j;
                 k += group_size;
-                if ((k >> 1) < excell_size)
+                if (k < excell_size)
                     {
-                    next_j = __ldg(&d_excell_idx[excli(k >> 1, my_cell)]);
+                    next_j = __ldg(&d_excell_idx[excli(k, my_cell)]);
                     }
+
+                // has j been updated? ghost particles are not updated
+
+                // these multiple gmem loads present a minor optimization opportunity for the future
+                bool j_has_been_updated = j < N_local &&
+                    d_update_order_by_ptl[j] < update_order_i &&
+                    !d_reject_in[j] &&
+                    d_trial_move_type[j];
+
+                // true if particle j is in the old configuration
+                bool old = !j_has_been_updated;
 
                 // check particle circumspheres
 
                 // load particle j (always load ghosts from particle data)
-                const Scalar4 postype_j = (old || j >= N_new) ? d_postype[j] : d_trial_postype[j];
+                const Scalar4 postype_j = (old || j >= N_local) ? d_postype[j] : d_trial_postype[j];
                 unsigned int type_j = __scalar_as_int(postype_j.w);
                 vec3<Scalar> pos_j(postype_j);
                 Shape shape_j(quat<Scalar>(), s_params[type_j]);
@@ -726,7 +666,7 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
                 vec3<Scalar> r_ij = pos_j - pos_i;
                 r_ij = box.minImage(r_ij);
 
-                if (idx != j && (old || j < N_new)
+                if (idx != j && (old || j < N_local)
                     && check_circumsphere_overlap(r_ij, shape_i, shape_j))
                     {
                     // add this particle to the queue
@@ -744,7 +684,7 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
                         k -= group_size;
                         }
                     }
-                } // end while (s_queue_size < max_queue_size && (k>>1) < excell_size)
+                } // end while (s_queue_size < max_queue_size && k < excell_size)
             } // end if active
 
         // sync to make sure all threads in the block are caught up
@@ -791,13 +731,7 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
             if (s_check_overlaps[overlap_idx(type_i, type_j)]
                 && test_overlap(r_ij, shape_i, shape_j, overlap_err_count))
                 {
-                // write out to global memory
-                unsigned int i = s_idx_group[check_group];
-                unsigned int n = atomicAdd(&d_nneigh[i], 1);
-                if (n < maxn)
-                    {
-                    d_nlist[n+maxn*i] = check_old ? check_j : (check_j + N_old);
-                    }
+                atomicAdd(&s_reject_group[check_group],1);
                 }
             }
 
@@ -806,7 +740,7 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
         if (master && group == 0)
             s_queue_size = 0;
 
-        if (active && (threadIdx.x == 0) && (k >> 1) < excell_size)
+        if (active && (threadIdx.x == 0) && !s_reject_group[group] && k < excell_size)
             atomicAdd(&s_still_searching, 1);
 
         __syncthreads();
@@ -814,16 +748,9 @@ __global__ void hpmc_narrow_phase(Scalar4 *d_postype,
 
     if (active && master)
         {
-        // overflowed?
-        unsigned int nneigh = d_nneigh[idx];
-        if (nneigh > maxn)
-            {
-            #if (__CUDA_ARCH__ >= 600)
-            atomicMax_system(d_overflow, nneigh);
-            #else
-            atomicMax(d_overflow, nneigh);
-            #endif
-            }
+        // update reject flags in global mem
+        if (s_reject_group[group])
+            atomicAdd(&d_reject_out[idx], 1);
         }
 
     if (master)
@@ -852,6 +779,8 @@ template< class Shape, unsigned int cur_launch_bounds >
 void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_type *params,
     unsigned int max_threads, detail::int2type<cur_launch_bounds>)
     {
+    assert(params);
+
     if (max_threads == cur_launch_bounds*MIN_BLOCK_SIZE)
         {
         // determine the maximum block size and clamp the input block size down
@@ -940,20 +869,19 @@ void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_
             assert(args.d_trial_orientation);
             assert(args.d_excell_idx);
             assert(args.d_excell_size);
-            assert(args.d_nlist);
-            assert(args.d_nneigh);
             assert(args.d_counters);
             assert(args.d_check_overlaps);
-            assert(args.d_overflow);
+            assert(args.d_reject_in);
+            assert(args.d_reject_out);
             assert(args.d_reject_out_of_cell);
 
             hipLaunchKernelGGL((hpmc_narrow_phase<Shape, launch_bounds_nonzero*MIN_BLOCK_SIZE>),
                 grid, thread, shared_bytes, args.streams[idev],
                 args.d_postype, args.d_orientation, args.d_trial_postype, args.d_trial_orientation,
-                args.d_excell_idx, args.d_excell_size, args.excli,
-                args.d_nlist, args.d_nneigh, args.maxn, args.d_counters+idev*args.counters_pitch, args.num_types,
-                args.box, args.ghost_width, args.cell_dim, args.ci, args.N + args.N_ghost, args.N, args.d_check_overlaps,
-                args.overlap_idx, params, args.d_overflow, args.d_reject_out_of_cell,
+                args.d_trial_move_type, args.d_excell_idx, args.d_excell_size, args.excli,
+                args.d_counters+idev*args.counters_pitch, args.num_types,
+                args.box, args.ghost_width, args.cell_dim, args.ci, args.N, args.d_check_overlaps,
+                args.overlap_idx, params, args.d_update_order_by_ptl, args.d_reject_in, args.d_reject_out, args.d_reject_out_of_cell,
                 max_extra_bytes, max_queue_size, range.first, nwork);
             }
         }
@@ -980,8 +908,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                                      const uint3 cell_dim,
                                      const Scalar3 ghost_width,
                                      const Index3D ci,
-                                     const unsigned int N_old,
-                                     const unsigned int N_new,
+                                     const unsigned int N_local,
                                      const unsigned int num_types,
                                      const unsigned int seed,
                                      const unsigned int *d_check_overlaps,
@@ -998,10 +925,9 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                                      unsigned int depletant_type_b,
                                      const Index2D depletant_idx,
                                      hpmc_implicit_counters_t *d_implicit_counters,
-                                     unsigned int *d_nneigh,
-                                     unsigned int *d_nlist,
-                                     const unsigned int maxn,
-                                     unsigned int *d_overflow,
+                                     const unsigned int *d_update_order_by_ptl,
+                                     const unsigned int *d_reject_in,
+                                     unsigned int *d_reject_out,
                                      bool repulsive,
                                      unsigned int work_offset,
                                      unsigned int max_depletant_queue_size,
@@ -1032,6 +958,9 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
     __shared__ unsigned int s_still_searching;
     __shared__ unsigned int s_adding_depletants;
     __shared__ unsigned int s_depletant_queue_size;
+
+    // per particle reject flag
+    __shared__ unsigned int s_reject;
 
     // load the per type pair parameters into shared memory
     HIP_DYNAMIC_SHARED( char, s_data)
@@ -1107,6 +1036,13 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
         s_orientation_i_old = d_orientation[i];
         }
 
+    if (master && group == 0)
+        {
+        // load from output, this race condition is intentional and implements an 
+        // optional early exit flag between concurrently running kernels
+        s_reject = atomicCAS(&d_reject_out[i], 0, 0);
+        }
+
     // sync so that s_pos_i_old etc. are available
     __syncthreads();
 
@@ -1118,6 +1054,9 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
     // find the cell this particle should be in
     unsigned int my_cell = computeParticleCell(s_pos_i_old, box, ghost_width,
         cell_dim, ci, false);
+
+    // the order of this particle in the chain
+    unsigned int update_order_i = d_update_order_by_ptl[i];
 
     detail::OBB obb_i;
         {
@@ -1154,7 +1093,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
 
     while (s_adding_depletants)
         {
-        while (s_depletant_queue_size < max_depletant_queue_size && i_dep < n_depletants)
+        while (s_depletant_queue_size < max_depletant_queue_size && i_dep < n_depletants && !s_reject)
             {
             // one RNG per depletant
             hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCDepletants, seed+i, i_dep,
@@ -1291,11 +1230,11 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
             excell_size = d_excell_size[my_cell];
 
             if (master)
-                overlap_checks += 2*excell_size;
+                overlap_checks += excell_size;
             }
 
         // loop while still searching
-        while (s_still_searching)
+        while (s_still_searching && !s_reject)
             {
             // fill the neighbor queue
             // loop through particles in the excell list and add them to the queue if they pass the circumsphere check
@@ -1305,16 +1244,13 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                 {
                 // prefetch j
                 unsigned int j, next_j = 0;
-                if ((k>>1) < excell_size)
-                    next_j = __ldg(&d_excell_idx[excli(k>>1, my_cell)]);
+                if (k < excell_size)
+                    next_j = __ldg(&d_excell_idx[excli(k, my_cell)]);
 
                 // add to the queue as long as the queue is not full, and we have not yet reached the end of our own list
                 // and as long as no overlaps have been found
-                while (s_queue_size < max_queue_size && (k>>1) < excell_size)
+                while (s_queue_size < max_queue_size && k < excell_size)
                     {
-                    // which configuration are we handling?
-                    bool old = k & 1;
-
                     Scalar4 postype_j;
                     Scalar4 orientation_j = make_scalar4(1,0,0,0);
                     vec3<Scalar> r_jk;
@@ -1325,12 +1261,23 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                     k += group_size;
                     j = next_j;
 
-                    if ((k >> 1) < excell_size)
-                        next_j = __ldg(&d_excell_idx[excli(k>>1, my_cell)]);
+                    if (k < excell_size)
+                        next_j = __ldg(&d_excell_idx[excli(k, my_cell)]);
+
+                    // has j been updated? ghost particles are not updated
+
+                    // these multiple gmem loads present a minor optimization opportunity for the future
+                    bool j_has_been_updated = j < N_local &&
+                        d_update_order_by_ptl[j] < update_order_i &&
+                        !d_reject_in[j] &&
+                        d_trial_move_type[j];
+
+                    // true if particle j is in the old configuration
+                    bool old = !j_has_been_updated;
 
                     // read in position of neighboring particle, do not need it's orientation for circumsphere check
                     // for ghosts always load particle data
-                    postype_j = (old || j >= N_new) ? d_postype[j] : d_trial_postype[j];
+                    postype_j = (old || j >= N_local) ? d_postype[j] : d_trial_postype[j];
                     unsigned int type_j = __scalar_as_int(postype_j.w);
                     Shape shape_j(quat<Scalar>(orientation_j), s_params[type_j]);
 
@@ -1343,7 +1290,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                     r_jk = vec3<Scalar>(postype_j) - vec3<Scalar>(pos_test);
                     r_jk = vec3<Scalar>(box.minImage(vec_to_scalar3(r_jk)));
 
-                    bool insert_in_queue = i != j && (old || j < N_new);
+                    bool insert_in_queue = i != j && (old || j < N_local);
 
                     bool circumsphere_overlap = s_check_overlaps[overlap_idx(depletant_type_a, type_j)] &&
                         check_circumsphere_overlap(r_jk, shape_test_a, shape_j);
@@ -1473,12 +1420,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                 if (((overlap_i_a && overlap_j_b) || (overlap_i_b && overlap_j_a)) &&
                     !(overlap_i_other_b && overlap_j_a) && !(overlap_i_other_a && overlap_j_b))
                     {
-                    // write out to global memory
-                    unsigned int n = atomicAdd(&d_nneigh[i], 1);
-                    if (n < maxn)
-                        {
-                        d_nlist[n+maxn*i] = check_old ? check_j : (check_j + N_old);
-                        }
+                    atomicAdd(&s_reject,1);
                     }
                 } // end if (processing neighbor)
 
@@ -1486,7 +1428,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
             __syncthreads();
             if (master && group == 0)
                 s_queue_size = 0;
-            if (active && (k>>1) < excell_size)
+            if (active && k < excell_size && !s_reject)
                 atomicAdd(&s_still_searching, 1);
             __syncthreads();
 
@@ -1496,23 +1438,16 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
         __syncthreads();
         if (master && group == 0)
             s_depletant_queue_size = 0;
-        if (i_dep < n_depletants)
+        if (i_dep < n_depletants && !s_reject)
             atomicAdd(&s_adding_depletants, 1);
         __syncthreads();
         } // end loop over depletants
 
     if (master && group == 0)
         {
-        // overflowed?
-        unsigned int nneigh = d_nneigh[i];
-        if (nneigh > maxn)
-            {
-            #if (__CUDA_ARCH__ >= 600)
-            atomicMax_system(d_overflow, nneigh);
-            #else
-            atomicMax(d_overflow, nneigh);
-            #endif
-            }
+        // update reject flag per particle
+        if (s_reject)
+            atomicAdd(&d_reject_out[i], 1);
         }
 
     if (err_count > 0)
@@ -1656,9 +1591,9 @@ void depletants_launcher(const hpmc_args_t& args, const hpmc_implicit_args_t& im
             assert(args.d_check_overlaps);
             assert(args.d_reject_out_of_cell);
             assert(implicit_args.d_implicit_count);
-            assert(args.d_nneigh);
-            assert(args.d_nlist);
-            assert(args.d_overflow);
+            assert(args.d_update_order_by_ptl);
+            assert(args.d_reject_in);
+            assert(args.d_reject_out);
             assert(implicit_args.d_n_depletants);
 
             hipLaunchKernelGGL((kernel::hpmc_insert_depletants<Shape, launch_bounds_nonzero*MIN_BLOCK_SIZE, pairwise>),
@@ -1675,7 +1610,6 @@ void depletants_launcher(const hpmc_args_t& args, const hpmc_implicit_args_t& im
                                  args.cell_dim,
                                  args.ghost_width,
                                  args.ci,
-                                 args.N + args.N_ghost,
                                  args.N,
                                  args.num_types,
                                  args.seed,
@@ -1693,10 +1627,9 @@ void depletants_launcher(const hpmc_args_t& args, const hpmc_implicit_args_t& im
                                  implicit_args.depletant_type_b,
                                  implicit_args.depletant_idx,
                                  implicit_args.d_implicit_count + idev*implicit_args.implicit_counters_pitch,
-                                 args.d_nneigh,
-                                 args.d_nlist,
-                                 args.maxn,
-                                 args.d_overflow,
+                                 args.d_update_order_by_ptl,
+                                 args.d_reject_in,
+                                 args.d_reject_out,
                                  implicit_args.repulsive,
                                  range.first,
                                  max_depletant_queue_size,
@@ -1726,7 +1659,6 @@ __global__ void hpmc_update_pdata(Scalar4 *d_postype,
                                   const Scalar4 *d_trial_orientation,
                                   const unsigned int *d_trial_move_type,
                                   const unsigned int *d_reject,
-                                  const unsigned int maxn,
                                   const typename Shape::param_type *d_params)
     {
     // determine which update step we are handling
@@ -1991,7 +1923,6 @@ void hpmc_update_pdata(const hpmc_update_args_t& args, const typename Shape::par
             args.d_trial_orientation,
             args.d_trial_move_type,
             args.d_reject,
-            args.maxn,
             params);
         }
     }

@@ -31,7 +31,7 @@ struct RNGIdentifier
     static const uint32_t HPMCDepletantNum = 0x89effeba;
     static const uint32_t HPMCDepletantsClusters = 0x871ab82d;
     static const uint32_t HPMCDepletantNumClusters = 0xdfebefe8;
-    static const uint32_t HPMCMonoAccept = 0xbfabfabf;
+    static const uint32_t HPMCMonoPatch = 0xbfabfabf;
     static const uint32_t UpdaterBoxMC= 0xf6a510ab;
     static const uint32_t UpdaterClusters =  0x09365bf5;
     static const uint32_t UpdaterClustersPairwise = 0x50060112;

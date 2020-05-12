@@ -38,15 +38,18 @@ namespace detail
 struct hpmc_patch_args_t
     {
     //! Construct a hpmc_patch_args_t
-    hpmc_patch_args_t(Scalar4 *_d_postype,
-                Scalar4 *_d_orientation,
-                Scalar4 *_d_trial_postype,
-                Scalar4 *_d_trial_orientation,
+    hpmc_patch_args_t(const Scalar4 *_d_postype,
+                const Scalar4 *_d_orientation,
+                const Scalar4 *_d_trial_postype,
+                const Scalar4 *_d_trial_orientation,
+                const unsigned int *_d_trial_move_type,
                 const Index3D& _ci,
                 const uint3& _cell_dim,
                 const Scalar3& _ghost_width,
                 const unsigned int _N,
-                const unsigned int _N_ghost,
+                const unsigned int _seed,
+                const unsigned int _timestep,
+                const unsigned int _select,
                 const unsigned int _num_types,
                 const BoxDim& _box,
                 const unsigned int *_d_excell_idx,
@@ -54,14 +57,9 @@ struct hpmc_patch_args_t
                 const Index2D& _excli,
                 const Scalar _r_cut_patch,
                 const Scalar *_d_additive_cutoff,
-                unsigned int *_d_nlist_old,
-                unsigned int *_d_nneigh_old,
-                float *_d_energy_old,
-                unsigned int *_d_nlist_new,
-                unsigned int *_d_nneigh_new,
-                float *_d_energy_new,
-                const unsigned int _maxn,
-                unsigned int *_d_overflow,
+                const unsigned int *_d_update_order_by_ptl,
+                const unsigned int *_d_reject_in,
+                unsigned int *_d_reject_out,
                 const Scalar *_d_charge,
                 const Scalar *_d_diameter,
                 const unsigned int *_d_reject_out_of_cell,
@@ -70,11 +68,14 @@ struct hpmc_patch_args_t
                   d_orientation(_d_orientation),
                   d_trial_postype(_d_trial_postype),
                   d_trial_orientation(_d_trial_orientation),
+                  d_trial_move_type(_d_trial_move_type),
                   ci(_ci),
                   cell_dim(_cell_dim),
                   ghost_width(_ghost_width),
                   N(_N),
-                  N_ghost(_N_ghost),
+                  seed(_seed),
+                  timestep(_timestep),
+                  select(_select),
                   num_types(_num_types),
                   box(_box),
                   d_excell_idx(_d_excell_idx),
@@ -82,29 +83,27 @@ struct hpmc_patch_args_t
                   excli(_excli),
                   r_cut_patch(_r_cut_patch),
                   d_additive_cutoff(_d_additive_cutoff),
-                  d_nlist_old(_d_nlist_old),
-                  d_nneigh_old(_d_nneigh_old),
-                  d_energy_old(_d_energy_old),
-                  d_nlist_new(_d_nlist_new),
-                  d_nneigh_new(_d_nneigh_new),
-                  d_energy_new(_d_energy_new),
-                  maxn(_maxn),
-                  d_overflow(_d_overflow),
+                  d_update_order_by_ptl(_d_update_order_by_ptl),
+                  d_reject_in(_d_reject_in),
+                  d_reject_out(_d_reject_out),
                   d_charge(_d_charge),
                   d_diameter(_d_diameter),
                   d_reject_out_of_cell(_d_reject_out_of_cell),
                   gpu_partition(_gpu_partition)
         { }
 
-    Scalar4 *d_postype;               //!< postype array
-    Scalar4 *d_orientation;           //!< orientation array
-    Scalar4 *d_trial_postype;         //!< New positions (and type) of particles
-    Scalar4 *d_trial_orientation;     //!< New orientations of particles
+    const Scalar4 *d_postype;               //!< postype array
+    const Scalar4 *d_orientation;           //!< orientation array
+    const Scalar4 *d_trial_postype;         //!< New positions (and type) of particles
+    const Scalar4 *d_trial_orientation;     //!< New orientations of particles
+    const unsigned int *d_trial_move_type;  //!< 0=no move, 1/2 = translate/rotate
     const Index3D& ci;                //!< Cell indexer
     const uint3& cell_dim;            //!< Cell dimensions
     const Scalar3& ghost_width;       //!< Width of the ghost layer
     const unsigned int N;             //!< Number of particles
-    const unsigned int N_ghost;       //!< Number of ghost particles
+    const unsigned int seed;          //!< RNG seed
+    const unsigned int timestep;      //!< Current timestep 
+    const unsigned int select;        //!< loop iteration nselect
     const unsigned int num_types;     //!< Number of particle types
     const BoxDim& box;                //!< Current simulation box
     const unsigned int *d_excell_idx;       //!< Expanded cell list
@@ -112,14 +111,9 @@ struct hpmc_patch_args_t
     const Index2D& excli;             //!< Excell indexer
     const Scalar r_cut_patch;        //!< Global cutoff radius
     const Scalar *d_additive_cutoff; //!< Additive contribution to cutoff per type
-    unsigned int *d_nlist_old;       //!< List of neighbor particle indices, in old configuration of particle i
-    unsigned int *d_nneigh_old;      //!< Number of neighbors
-    float* d_energy_old;             //!< Evaluated energy terms for every neighbor
-    unsigned int *d_nlist_new;       //!< List of neighbor particle indices, in new configuration of particle i
-    unsigned int *d_nneigh_new;      //!< Number of neighbors
-    float* d_energy_new;             //!< Evaluated energy terms for every neighbor
-    const unsigned int maxn;         //!< Max number of neighbors
-    unsigned int *d_overflow;        //!< Overflow condition
+    const unsigned int *d_update_order_by_ptl; //!< Order of the update sequence
+    const unsigned int *d_reject_in; //!< Previous reject flags
+    unsigned int *d_reject_out;      //!< New reject flags
     const Scalar *d_charge;          //!< Particle charges
     const Scalar *d_diameter;        //!< Particle diameters
     const unsigned int *d_reject_out_of_cell;   //!< Flag if a particle move has been rejected a priori
