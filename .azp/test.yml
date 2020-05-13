@@ -148,7 +148,7 @@ stages:
       displayName: Install TBB
       workingDirectory: $(Pipeline.Workspace)
 
-    - script: python3 -m pip install pytest numpy
+    - script: python3 -m pip install pytest numpy gsd
       displayName: Pip install prereqs
 
     - template: templates/build_test.yml
