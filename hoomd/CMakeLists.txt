@@ -297,6 +297,7 @@ set(files analyze.py
           device.py
           dump.py
           group.py
+          hoomd_array.py
           __init__.py
           init.py
           integrate.py
