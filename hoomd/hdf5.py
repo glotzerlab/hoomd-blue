@@ -12,6 +12,7 @@ you can use any command.
 from hoomd import _hoomd
 from hoomd.analyze import _analyzer
 import hoomd
+import hoomd.dump
 import numpy
 import os
 
@@ -358,3 +359,58 @@ class log(hoomd.analyze._analyzer):
                             hoomd.context.current.device.cpp_msg.error("Quantity position is not vacant.")
                             raise RuntimeError("Error updating quantities with log_hdf5.")
                     data_set.attrs[quantities[i]] = i
+
+
+# For the HDF5 logger, I inherit from the GSDLogWriter.
+# This makes the assumption that the GSDLogWriter creates with the log function
+# a dictionary that has the names as keys and np.arrays as values.
+# HDF5 has the restriction that the dimension of the matrices cannot change.
+# This translates to the restriction that the dimensions of the logged quantities cannot change during a simulation run.
+class HDF5LogWriter(hoomd.dump.GSDLogWriter):
+    def __init__(self,logger):
+        super().__init__(logger)
+
+    def _write_frame(self,h5file):
+
+        f = None
+        if hoomd.context.current.device.comm.rank == 0:
+        f = self.h5file
+
+        log_dict = self.log()
+        for key in log_dict.keys():
+            if f is not None:  # Only the root rank further process the received data
+                data = log_dict[key]
+                # Check the returned object
+                if not isinstance(data, numpy.ndarray):
+                    hoomd.context.current.device.cpp_msg.error("For quantity " + key + " no numpy array to log obtainable.")
+                    raise RuntimeError("Error writing matrix quantity " + key)
+
+                if key not in f:
+                    # Create a new container in hdf5 file, if not already existing.
+                    data_set = f.create_dataset(key, shape=(0,) + data.shape, maxshape=(None,) + data.shape)
+                else:
+                    data_set = f[key]
+
+                    # check compatibility of data in file and returned matrix
+                    if len(data.shape) + 1 != len(data_set.shape):
+                        msg = "Trying to log numpy array " + key + ", but dimensions are incompatible with "
+                        msg += "dimensions in file."
+                        hoomd.context.current.device.cpp_msg.error(msg)
+                        raise RuntimeError("Error writing matrix quantity " + key)
+
+                    for i in range(len(new_matrix.shape)):
+                        if data_set.shape[i + 1] != new_matrix.shape[i]:
+                            msg = "Trying to log numpy array " + key + ", but dimension " + str(i) + " is "
+                            msg += "incompatible with  dimension in file."
+                            hoomd.context.current.device.cpp_msg.error(msg)
+                            raise RuntimeError("Error writing matrix quantity " + key)
+
+                old_size = data_set.shape[0]
+
+                data_set.resize(old_size + 1, axis=0)
+                data_set[old_size, ] = data
+
+
+        if hoomd.context.current.device.comm.rank == 0:
+            # Flush the file after each write to maximize integrity of written data
+            f.flush()
