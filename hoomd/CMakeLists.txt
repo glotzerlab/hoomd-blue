@@ -246,7 +246,14 @@ endif()
 
 # Libraries and compile definitions for TBB enabled builds
 if (ENABLE_TBB)
-    find_package(TBB 4.3)
+    find_package_config_first(TBB 4.3)
+
+    if (TBB_FOUND)
+        get_target_property(_tbb_library TBB::tbb IMPORTED_LOCATION_RELEASE)
+        get_target_property(_tbb_include_dir TBB::tbb INTERFACE_INCLUDE_DIRECTORIES)
+        find_package_message(tbb "Found TBB: ${TBB_DIR} ${_tbb_library} ${_tbb_include_dir}" "[${_tbb_library}][${_tbb_include_dir}]")
+    endif()
+
     target_compile_definitions(_hoomd PUBLIC ENABLE_TBB)
     target_link_libraries(_hoomd PUBLIC TBB::tbb)
 endif()
