@@ -12,6 +12,9 @@ v3.0.0 (not yet released)
 - Implicit depletants are now supported by any **hpmc** integrator through
   ``mc.set_fugacity('type', fugacity)``.
 - Enable implicit depletants for two-dimensional shapes in **hpmc**.
+- ``jit.patch.user()`` and ``jit.patch.user_union()`` now support GPUs via
+  NVRTC.
+  - Add harmonically mapped averaging.
 
 *Changed*
 
