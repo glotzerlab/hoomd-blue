@@ -334,6 +334,7 @@ PYBIND11_MODULE(_hoomd, m)
     export_Profiler(m);
 
     // data structures
+    export_HOOMDHostBuffer(m);
     export_BoxDim(m);
     export_ParticleData(m);
     export_SnapshotParticleData(m);

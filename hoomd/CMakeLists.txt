@@ -49,6 +49,7 @@ set(_hoomd_sources Analyzer.cc
                    ParticleData.cc
                    ParticleGroup.cc
                    Profiler.cc
+                   PythonLocalDataAccess.cc
                    SFCPackTuner.cc
                    SignalHandler.cc
                    SnapshotSystemData.cc

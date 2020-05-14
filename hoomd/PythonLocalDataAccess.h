@@ -2,8 +2,46 @@
 #define __PYTHON_LOCAL_DATA_ACCESS_H__
 
 #include "GlobalArray.h"
+#include <string>
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
+
+
+struct HOOMDHostBuffer
+    {
+    pybind11::buffer_info m_buffer_info;
+
+    HOOMDHostBuffer(pybind11::buffer_info buff)
+        : m_buffer_info(std::move(buff)) {}
+
+    pybind11::buffer_info new_buffer()
+        {
+        return pybind11::buffer_info(
+            m_buffer_info.ptr,
+            m_buffer_info.itemsize,
+            m_buffer_info.format,
+            m_buffer_info.ndim,
+            std::vector<ssize_t>(m_buffer_info.shape),
+            std::vector<ssize_t>(m_buffer_info.strides),
+            m_buffer_info.readonly
+            );
+        }
+    pybind11::tuple getShape()
+        {
+        auto shape = pybind11::list();
+        for (auto dim : m_buffer_info.shape)
+            {
+            shape.append(dim);
+            }
+        return pybind11::tuple(shape);
+        }
+
+    std::string getType()
+        {
+        return m_buffer_info.format;
+        }
+    };
+
 
 template <class DATA>
 class LocalDataAccess
@@ -23,7 +61,7 @@ class LocalDataAccess
 
     protected:
         template <class T, class S, template<class> class U>
-        pybind11::array_t<S> getArray(
+        HOOMDHostBuffer getBuffer(
             // handle to operate on
             std::unique_ptr<ArrayHandle<T> >& handle,
             // function to use for getting array
@@ -82,29 +120,28 @@ class LocalDataAccess
 
             if (strides.size() == 0 && second_dimension_size == 0)
                 {
-                return pybind11::array_t<S>(
-                    pybind11::buffer_info(
-                        data + offset,
-                        sizeof(S),
-                        pybind11::format_descriptor<S>::format(),
-                        1,
-                        std::vector<size_t>({size}),
-                        std::vector<size_t>({sizeof(T)}),
-                        read_only));
+                return HOOMDHostBuffer(pybind11::buffer_info(
+                    data + offset,
+                    sizeof(S),
+                    pybind11::format_descriptor<S>::format(),
+                    1,
+                    std::vector<size_t>({size}),
+                    std::vector<size_t>({sizeof(T)}),
+                    read_only)
+                    );
                 }
             else if (strides.size() == 0 && second_dimension_size != 0)
                 {
                 strides = std::vector<size_t>({sizeof(T), sizeof(S)});
                 }
-            return pybind11::array_t<S>(
-                pybind11::buffer_info(
-                    data + offset,
-                    sizeof(S),
-                    pybind11::format_descriptor<S>::format(),
-                    2,
-                    std::vector<size_t>({size, second_dimension_size}),
-                    strides,
-                    read_only)
+            return HOOMDHostBuffer(pybind11::buffer_info(
+                data + offset,
+                sizeof(S),
+                pybind11::format_descriptor<S>::format(),
+                2,
+                std::vector<size_t>({size, second_dimension_size}),
+                strides,
+                read_only)
                 );
             }
 
@@ -118,5 +155,7 @@ class LocalDataAccess
 template <class DATA>
 LocalDataAccess<DATA>::LocalDataAccess(DATA& data)
     : m_data(data), m_in_manager(false) {}
+
+void export_HOOMDHostBuffer(pybind11::module &m);
 
 #endif
