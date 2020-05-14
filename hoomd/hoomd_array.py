@@ -229,6 +229,20 @@ class HOOMDArray(metaclass=WrapClass(_wrap_list)):
     inside the context manager. *References to a ``HOOMDArray`` object's buffer
     after leaving the context manager is UNSAFE.* It can cause SEGFAULTs and
     cause your program to crash. Use this function only if absolutely necessary.
+
+    Performance Tips:
+        *Assume ``a`` represents a `HOOMDArray` for examples given.*
+        * Place the HOOMDArray to the left of the expression (e.g. ``a + b + c``
+          is faster than ``b + a + c``). This has to do with the mechanisms
+          `HOOMDArray` has to do to hook into NumPy's functionality.
+        * If a copy will need to be made, do it as early as possible (i.e. if
+          you will need access outside the context manager use
+          ``numpy.array(a, copy=True)`` before doing any calculations.
+        * If you know that your access of the internal buffer is safe and we
+          cannot detect this (i.e. we return a HOOMDArray), using
+          `HOOMDArray._coerce_to_ndarray` should help. Note that for large
+          arrays this only gives a few percentage performance improvements at
+          greater risk of breaking your program.
     """
     def __init__(self, buffer, callback):
         """Create a HOOMDArray.
