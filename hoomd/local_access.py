@@ -41,9 +41,15 @@ class LocalAccess(ABC):
         return arr
 
     def __setattr__(self, attr, value):
-        raise RuntimeError(
-            "Setting attributes directly to {} object is not allowed.".format(
-                type(self)))
+        try:
+            arr = getattr(self, attr)
+        except AttributeError:
+            raise AttributeError(
+                "Cannot set attribute {}, does not exist.".format(attr))
+        if arr.flags['WRITEABLE'] == False:
+            raise RuntimeError(
+                "Attribute {} is not settable.".format(attr))
+        arr[:] = value
 
     def _enter(self):
         self._cpp_obj.enter()
