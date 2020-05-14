@@ -15,6 +15,7 @@
 #include "GSDReader.h"
 #include "Compute.h"
 #include "ComputeThermo.h"
+#include "ComputeThermoHMA.h"
 #include "CellList.h"
 #include "CellListStencil.h"
 #include "ForceCompute.h"
@@ -44,6 +45,7 @@
 #include <hip/hip_runtime.h>
 #include "CellListGPU.h"
 #include "ComputeThermoGPU.h"
+#include "ComputeThermoHMAGPU.h"
 #include "SFCPackUpdaterGPU.h"
 #endif
 
@@ -336,6 +338,7 @@ PYBIND11_MODULE(_hoomd, m)
     // computes
     export_Compute(m);
     export_ComputeThermo(m);
+    export_ComputeThermoHMA(m);
     export_CellList(m);
     export_CellListStencil(m);
     export_ForceCompute(m);
@@ -345,6 +348,7 @@ PYBIND11_MODULE(_hoomd, m)
 #ifdef ENABLE_HIP
     export_CellListGPU(m);
     export_ComputeThermoGPU(m);
+    export_ComputeThermoHMAGPU(m);
 #endif
 
     // analyzers

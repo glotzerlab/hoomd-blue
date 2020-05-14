@@ -35,6 +35,10 @@ Aaron Keys, University of Michigan
   * binary restart files
   * integrate.mode_minimize_fire
 
+Andrew Schultz, University at Buffalo
+
+  * Harmonically Mapped Averaging implementation
+
 Axel Kohlmeyer, David LeBard, Ben Levine, from the ICMS group at Temple University
 
   * pair.cgcmm
