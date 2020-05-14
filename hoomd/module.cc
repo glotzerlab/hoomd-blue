@@ -8,6 +8,7 @@
 #include "ClockSource.h"
 #include "Profiler.h"
 #include "ParticleData.h"
+#include "PythonLocalDataAccess.h"
 #include "SystemDefinition.h"
 #include "BondedGroupData.h"
 #include "Initializers.h"
@@ -335,10 +336,16 @@ PYBIND11_MODULE(_hoomd, m)
 
     // data structures
     export_HOOMDHostBuffer(m);
+    # if ENABLE_HIP
+    export_HOOMDDeviceBuffer(m);
+    # endif
     export_BoxDim(m);
     export_ParticleData(m);
     export_SnapshotParticleData(m);
-    export_LocalParticleData(m);
+    export_LocalParticleData<HOOMDHostBuffer>(m, "LocalParticleDataHost");
+    #if ENABLE_HIP
+    export_LocalParticleData<HOOMDDeviceBuffer>(m, "LocalParticleDataDevice");
+    #endif
     export_MPIConfiguration(m);
     export_ExecutionConfiguration(m);
     export_SystemDefinition(m);

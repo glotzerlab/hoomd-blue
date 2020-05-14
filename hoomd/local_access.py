@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from hoomd.hoomd_array import HOOMDArray
-from hoomd._hoomd import LocalParticleData
+from hoomd._hoomd import LocalParticleDataHost
 
 
 class LocalAccess(ABC):
@@ -85,7 +85,7 @@ class ParticleLocalAccess(LocalAccess):
         super().__init__()
         object.__setattr__(
             self, '_cpp_obj',
-            LocalParticleData(state._cpp_sys_def.getParticleData()))
+            LocalParticleDataHost(state._cpp_sys_def.getParticleData()))
 
 
 class LocalSnapshot:

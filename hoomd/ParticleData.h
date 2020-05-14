@@ -1242,11 +1242,13 @@ class PYBIND11_EXPORT ParticleData
         void setGPUAdvice();
     };
 
-class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<ParticleData>
+template<class OUTPUT>
+class PYBIND11_EXPORT LocalParticleData :
+        public LocalDataAccess<OUTPUT, ParticleData>
     {
     public:
         LocalParticleData(ParticleData& data)
-          : LocalDataAccess<ParticleData>(data),
+          : LocalDataAccess<OUTPUT, ParticleData>(data),
             m_position_handle(),
             m_orientation_handle(),
             m_velocities_handle(),
@@ -1268,9 +1270,9 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<ParticleData>
 
             virtual ~LocalParticleData() = default;
 
-            HOOMDHostBuffer getPosition(bool ghost=false, bool include_both=false)
-            {
-                return getBuffer<Scalar4, Scalar, GlobalArray>(
+            OUTPUT getPosition(bool ghost=false, bool include_both=false)
+                {
+                return this->template getBuffer<Scalar4, Scalar, GlobalArray>(
                     m_position_handle,
                     &ParticleData::getPositions,
                     ghost,
@@ -1278,11 +1280,11 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<ParticleData>
                     3,
                     0
                 );
-            }
+                }
 
-            HOOMDHostBuffer getTypes(bool ghost=false, bool include_both=false)
+            OUTPUT getTypes(bool ghost=false, bool include_both=false)
             {
-                return getBuffer<Scalar4, Scalar, GlobalArray>(
+                return this->template getBuffer<Scalar4, Scalar, GlobalArray>(
                     m_position_handle,
                     &ParticleData::getPositions,
                     ghost,
@@ -1292,31 +1294,31 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<ParticleData>
                 );
             }
 
-            HOOMDHostBuffer getVelocities(bool ghost=false, bool include_both=false)
+            OUTPUT getVelocities(bool ghost=false, bool include_both=false)
             {
-                return getBuffer<Scalar4, Scalar, GlobalArray>(
+                return this->template getBuffer<Scalar4, Scalar, GlobalArray>(
                     m_velocities_handle,
                     &ParticleData::getVelocities,
                     ghost,
                     include_both,
                     3,
                     0,
-                    std::vector<size_t>({sizeof(Scalar4), sizeof(Scalar)})
+                    std::vector<ssize_t>({sizeof(Scalar4), sizeof(Scalar)})
                 );
             }
 
-            HOOMDHostBuffer getAcceleration(bool ghost=false, bool include_both=false)
+            OUTPUT getAcceleration(bool ghost=false, bool include_both=false)
                 {
-                return getBuffer<Scalar3, Scalar, GlobalArray>(m_acceleration_handle,
+                return this->template getBuffer<Scalar3, Scalar, GlobalArray>(m_acceleration_handle,
                                                 &ParticleData::getAccelerations,
                                                 ghost,
                                                 include_both,
                                                 3);
                 }
 
-            HOOMDHostBuffer getMasses(bool ghost=false, bool include_both=false)
+            OUTPUT getMasses(bool ghost=false, bool include_both=false)
                 {
-                return getBuffer<Scalar4, Scalar, GlobalArray>(
+                return this->template getBuffer<Scalar4, Scalar, GlobalArray>(
                     m_velocities_handle,
                     &ParticleData::getVelocities,
                     ghost,
@@ -1326,9 +1328,9 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<ParticleData>
                 );
                 }
 
-            HOOMDHostBuffer getOrientation(bool ghost=false, bool include_both=false)
+            OUTPUT getOrientation(bool ghost=false, bool include_both=false)
                 {
-                return getBuffer<Scalar4, Scalar, GlobalArray>(
+                return this->template getBuffer<Scalar4, Scalar, GlobalArray>(
                     m_orientation_handle,
                     &ParticleData::getOrientationArray,
                     ghost,
@@ -1337,9 +1339,9 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<ParticleData>
                 );
                 }
 
-            HOOMDHostBuffer getAngularMomentum(bool ghost=false, bool include_both=false)
+            OUTPUT getAngularMomentum(bool ghost=false, bool include_both=false)
                 {
-                return getBuffer<Scalar4, Scalar, GlobalArray>(
+                return this->template getBuffer<Scalar4, Scalar, GlobalArray>(
                     m_angular_momentum_handle,
                     &ParticleData::getAngularMomentumArray,
                     ghost,
@@ -1348,9 +1350,9 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<ParticleData>
                 );
                 }
 
-            HOOMDHostBuffer getMomentsOfInertia(bool ghost=false, bool include_both=false)
+            OUTPUT getMomentsOfInertia(bool ghost=false, bool include_both=false)
                 {
-                return getBuffer<Scalar3, Scalar>(
+                return this->template getBuffer<Scalar3, Scalar>(
                     m_inertia_handle,
                     &ParticleData::getMomentsOfInertiaArray,
                     ghost,
@@ -1359,9 +1361,9 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<ParticleData>
                 );
                 }
 
-            HOOMDHostBuffer getCharge(bool ghost=false, bool include_both=false)
+            OUTPUT getCharge(bool ghost=false, bool include_both=false)
                 {
-                return getBuffer<Scalar, Scalar>(
+                return this->template getBuffer<Scalar, Scalar>(
                     m_charge_handle,
                     &ParticleData::getCharges,
                     ghost,
@@ -1369,9 +1371,9 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<ParticleData>
                 );
                 }
 
-            HOOMDHostBuffer getDiameter(bool ghost=false, bool include_both=false)
+            OUTPUT getDiameter(bool ghost=false, bool include_both=false)
                 {
-                return getBuffer<Scalar, Scalar>(
+                return this->template getBuffer<Scalar, Scalar>(
                     m_diameter_handle,
                     &ParticleData::getDiameters,
                     ghost,
@@ -1379,9 +1381,9 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<ParticleData>
                 );
                 }
 
-            HOOMDHostBuffer getImages(bool ghost=false, bool include_both=false)
+            OUTPUT getImages(bool ghost=false, bool include_both=false)
                 {
-                return getBuffer<int3, int>(
+                return this->template getBuffer<int3, int>(
                     m_image_handle,
                     &ParticleData::getImages,
                     ghost,
@@ -1390,9 +1392,9 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<ParticleData>
                 );
                 }
 
-            HOOMDHostBuffer getTags(bool ghost=false, bool include_both=false)
+            OUTPUT getTags(bool ghost=false, bool include_both=false)
                 {
-                return getBuffer<unsigned int, unsigned int>(
+                return this->template getBuffer<unsigned int, unsigned int>(
                     m_tag_handle,
                     &ParticleData::getTags,
                     ghost,
@@ -1400,9 +1402,9 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<ParticleData>
                 );
                 }
 
-            HOOMDHostBuffer getRTags(bool ghost=false, bool include_both=false)
+            OUTPUT getRTags(bool ghost=false, bool include_both=false)
                 {
-                return getBuffer<unsigned int, unsigned int, GlobalVector>(
+                return this->template getBuffer<unsigned int, unsigned int, GlobalVector>(
                     m_tag_handle,
                     &ParticleData::getRTags,
                     ghost,
@@ -1410,9 +1412,9 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<ParticleData>
                 );
                 }
 
-            HOOMDHostBuffer getBodies(bool ghost=false, bool include_both=false)
+            OUTPUT getBodies(bool ghost=false, bool include_both=false)
                 {
-                return getBuffer<unsigned int, unsigned int>(
+                return this->template getBuffer<unsigned int, unsigned int>(
                     m_rigid_body_ids_handle,
                     &ParticleData::getBodies,
                     ghost,
@@ -1420,9 +1422,9 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<ParticleData>
                 );
                 }
 
-            HOOMDHostBuffer getNetForce(bool ghost=false, bool include_both=false)
+            OUTPUT getNetForce(bool ghost=false, bool include_both=false)
                 {
-                return getBuffer<Scalar4, Scalar>(
+                return this->template getBuffer<Scalar4, Scalar>(
                     m_net_force_handle,
                     &ParticleData::getNetForce,
                     ghost,
@@ -1431,9 +1433,9 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<ParticleData>
                 );
                 }
 
-            HOOMDHostBuffer getNetTorque(bool ghost=false, bool include_both=false)
+            OUTPUT getNetTorque(bool ghost=false, bool include_both=false)
                 {
-                return getBuffer<Scalar4, Scalar>(
+                return this->template getBuffer<Scalar4, Scalar>(
                     m_net_torque_handle,
                     &ParticleData::getNetTorqueArray,
                     ghost,
@@ -1442,16 +1444,16 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<ParticleData>
                 );
                 }
 
-            HOOMDHostBuffer getNetVirial(bool ghost=false, bool include_both=false)
+            OUTPUT getNetVirial(bool ghost=false, bool include_both=false)
                 {
-                return getBuffer<Scalar, Scalar>(
+                return this->template getBuffer<Scalar, Scalar>(
                     m_net_virial_handle,
                     &ParticleData::getNetVirial,
                     ghost,
                     include_both,
                     6,
                     0,
-                    std::vector<size_t>({6 * sizeof(Scalar), sizeof(Scalar)})
+                    std::vector<ssize_t>({6 * sizeof(Scalar), sizeof(Scalar)})
                 );
                 }
 
@@ -1494,13 +1496,39 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<ParticleData>
         std::unique_ptr<ArrayHandle<Scalar4> > m_net_torque_handle;
     };
 
+
 #ifndef __HIPCC__
 //! Exports the BoxDim class to python
 void export_BoxDim(pybind11::module& m);
 //! Exports ParticleData to python
 void export_ParticleData(pybind11::module& m);
-/// Export rank local access to ParticleData
-void export_LocalParticleData(pybind11::module& m);
+/// Export local access to ParticleData
+template<class OUTPUT>
+void export_LocalParticleData(pybind11::module& m, std::string name)
+    {
+    pybind11::class_<LocalParticleData<OUTPUT>,
+                     std::shared_ptr<LocalParticleData<OUTPUT> > >(
+        m, name.c_str())
+    .def(pybind11::init<ParticleData&>())
+    .def("getPosition", &LocalParticleData<OUTPUT>::getPosition)
+    .def("getTypes", &LocalParticleData<OUTPUT>::getTypes)
+    .def("getVelocities", &LocalParticleData<OUTPUT>::getVelocities)
+    .def("getAcceleration", &LocalParticleData<OUTPUT>::getAcceleration)
+    .def("getMasses", &LocalParticleData<OUTPUT>::getMasses)
+    .def("getOrientation", &LocalParticleData<OUTPUT>::getOrientation)
+    .def("getAngularMomentum", &LocalParticleData<OUTPUT>::getAngularMomentum)
+    .def("getMomentsOfIntertia",
+         &LocalParticleData<OUTPUT>::getMomentsOfInertia)
+    .def("getCharge", &LocalParticleData<OUTPUT>::getCharge)
+    .def("getDiameter", &LocalParticleData<OUTPUT>::getDiameter)
+    .def("getImages", &LocalParticleData<OUTPUT>::getImages)
+    .def("getTags", &LocalParticleData<OUTPUT>::getTags)
+    .def("getRTags", &LocalParticleData<OUTPUT>::getRTags)
+    .def("getBodies", &LocalParticleData<OUTPUT>::getBodies)
+    .def("enter", &LocalParticleData<OUTPUT>::enter)
+    .def("exit", &LocalParticleData<OUTPUT>::exit)
+    ;
+    }
 //! Export SnapshotParticleData to python
 void export_SnapshotParticleData(pybind11::module& m);
 #endif
