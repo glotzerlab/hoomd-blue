@@ -1,15 +1,14 @@
 import functools
-from inspect import isclass
 from collections import Iterable
 
-from numpy import ndarray, array
+from numpy import ndarray, array, may_share_memory
 
 
 class HOOMDArrayError(RuntimeError):
     pass
 
 
-def WrapClass(methods, functor, *args, **kwargs):
+def WrapClass(methods_wrap_func_list, *args, **kwargs):
     """Factory method for metaclasses that produce methods via a functor.
 
     Applies the functor to each method given in methods. This occurs before
@@ -17,66 +16,182 @@ def WrapClass(methods, functor, *args, **kwargs):
     for the method name must be the same accross all methods.
 
     Args:
-        methods (Sequence[str]): A sequence of method names to apply the functor
-            to.
-        functor (Callable): A callable object that takes a method name and
-            the passed ``*args``, ``**kwargs``.
-        *args (Any): Required position arguments for ``functor``.
-        **kwargs (Any): Required key word arugments for ``functor``.
+        methods_wrap_func_list (Sequence[tuple(Sequence[str], Callable]): A
+            sequence of method names, functor pairs. For each tuple in the list,
+            the provided callable is used to wrap all the methods listed in the
+            tuple.
+        *args (Any): Required position arguments for the functors.
+        **kwargs (Any): Required key word arugments for the functors.
     """
     class _WrapClass(type):
         def __new__(cls, name, bases, class_dict):
-            for method in methods:
-                class_dict[method] = functor(method, *args, **kwargs)
+            for methods, functor in methods_wrap_func_list:
+                for method in methods:
+                    class_dict[method] = functor(method, *args, **kwargs)
             return super().__new__(cls, name, bases, class_dict)
 
     return _WrapClass
 
+"""Various list of NumPy ndarray functions.
 
+We separate them out by the kind of wrapping they need. We have to distinguish
+between functions that return a new array, functions that return the same array,
+and functions that return a new array with the same underlying data.
 """
-Get all methods that need to be wrapped for a ndarray.
 
-These are essentially all the `__method__` methods, except those we implement or
-make sense for an invalid array. By default we include all magic methods so we
-are cautious by default.
-"""
-# don't include normal methods `__getattribute__` handles these
-_wrap_ndarray_methods = filter(lambda x: x.startswith('__'), dir(ndarray))
-# don't include `__array_...` methods
-_wrap_ndarray_methods = filter(lambda x: not x.startswith('__array'),
-                               _wrap_ndarray_methods)
+# Functions that return a new array and wrapper
+def _op_wrap(method):
+    func = getattr(ndarray, method)
 
-_exclude_methods = ['__class__', '__dir__', '__doc__', '__getattribute__',
-    '__getattr__', '__init__', '__init_subclass__', '__new__', '__setattr__',
-    '__repr__', '__str__', '__subclasshook__']
-_wrap_ndarray_methods = filter(lambda x: x not in _exclude_methods,
-                               _wrap_ndarray_methods)
+    @functools.wraps(func)
+    def wrapped(self, *args, **kwargs):
+        arr = self._coerce_to_ndarray()
+        return func(arr, *args, **kwargs)
 
-_wrap_ndarray_methods = list(_wrap_ndarray_methods)
+    return wrapped
+
+_ndarray_ops_ = ([
+    # Comparison
+    '__lt__', '__le__', '__gt__', '__ge__', '__eq__', '__ne__', '__bool__',
+    # Unary
+    '__neg__', '__pos__', '__abs__', '__invert__',
+    # Arithmetic
+    '__add__', '__sub__', '__mul__', '__truediv__', '__floordiv__', '__mod__',
+    '__divmod__', '__pow__',
+    # Bitwise
+    '__lshift__', '__rshift__', '__and__', '__or__', '__xor__',
+    # Matrix
+    '__matmul__',
+    ], _op_wrap)
+
+# Magic methods that never return an array to the same underlying buffer
+_magic_wrap = _op_wrap
+
+_ndarray_magic_safe_ = ([
+    # Copy
+    '__copy__', '__deepcopy__',
+    # Pickling
+    '__reduce__', '__setstate__',
+    # Container based
+    '__len__', '__setitem__', '__contains__',
+    # Conversion
+    '__int__', '__float__', '__complex__'
+    ], _magic_wrap)
+
+# Magic methods that may return an array pointing to the same buffer
+def _magic_wrap_with_check(method):
+    func = getattr(ndarray, method)
+
+    @functools.wraps(func)
+    def wrapped(self, *args, **kwargs):
+        arr = self._coerce_to_ndarray()
+        rtn = func(arr, *args, **kwargs)
+        if isinstance(rtn, ndarray) and may_share_memory(rtn, arr):
+            return self.__class__(rtn, self._callback)
+        else:
+            return rtn
+
+    return wrapped
+
+_ndarray_magic_unsafe_ = ([
+    # Container based
+    '__getitem__',
+    ], _magic_wrap_with_check)
 
 
-def _ndarray_wrapper(method):
-    """Wraps methods of ``numpy.ndarray`` for use with HOOMDArray.
+# Functions that return an array pointing to the same buffer
+def _iop_wrap(method):
+    func = getattr(ndarray, method)
 
-    Given a method name it calls the corresponding NumPy function with a
-    ``ndarray`` view of the underlying `HOOMDArray` buffer. It is designed for
-    the dunder (__) methods.
-    """
-    # This conditional is required since a += b acts like a = a + b. Since we in
-    # return a NumPy array in __add__, we must ensure that we do not return
-    # access to our internal buffer in __iadd__.
-    if method.startswith('__i') and method not in {
-            '__index__', '__int__', '__iter__'}:
-        def wrapped_method(self, *args, **kwargs):
-            arr = self._coerce_to_ndarray()
-            getattr(arr, method)(*args, **kwargs)
-            return self
-    else:
-        def wrapped_method(self, *args, **kwargs):
-            arr = self._coerce_to_ndarray()
-            return getattr(arr, method)(*args, **kwargs)
+    @functools.wraps(func)
+    def wrapped(self, *args, **kwargs):
+        arr = self._coerce_to_ndarray()
+        return self.__class__(func(arr, *args, **kwargs), self._callback)
 
-    return wrapped_method
+    return wrapped
+
+_ndarray_iops_ = ([
+    # Inplace Arithmetic
+    '__iadd__', '__isub__', '__imul__', '__itruediv__', '__ifloordiv__',
+    '__imod__', '__ipow__',
+    # Inplace Bitwise
+    '__ilshift__', '__irshift__', '__iand__', '__ior__', '__ixor__'
+    ], _iop_wrap)
+
+# Regular functions that may return an array pointing to the same buffer
+_std_func_with_check = _magic_wrap_with_check
+
+_ndarray_std_funcs_ = ([
+    # Select subset of array
+    'diagonal',
+    # Reshapes array
+    'reshape', 'transpose', 'swapaxes', 'ravel', 'squeeze',
+    ], _std_func_with_check)
+
+# Functions that we disallow use of
+def _disallowed_wrap(method):
+    def raise_error(*args, **kwargs):
+        raise HOOMDArrayError(
+            "The {} method is not allowed for {} objects.".format(
+                method, self.__class__))
+
+    return raise_error
+
+_ndarray_disallow_funcs_ = ([
+    'view', 'resize', 'flat', 'flatiter'
+    ], _disallowed_wrap)
+
+# Properties that can return an array pointing to the same buffer
+def _wrap_properties_with_check(prop):
+    prop = getattr(ndarray, prop)
+
+    @property
+    @functools.wraps(prop)
+    def wrapped(self):
+        arr = self._coerce_to_ndarray()
+        rtn = getattr(arr, prop)
+        if may_share_memory(rtn, arr):
+            return self.__class__(rtn, self._callback)
+        else:
+            return rtn
+
+    @wrapped.setter
+    def wrapped(self, value):
+        arr = self._coerce_to_ndarray()
+        return setattr(arr, value)
+
+    return wrapped
+
+_ndarray_properties_ = ([
+    'T'
+    ], _wrap_properties_with_check)
+
+# Properties we disallow access of
+def _disallowed_property_wrap(method):
+
+    @property
+    def raise_error(self):
+        raise HOOMDArrayError(
+            "The {} property is not allowed for {} objects.".format(
+                method, self.__class__))
+
+    return raise_error
+
+_ndarray_disallow_properties_ = ([
+    'data', 'base'
+    ], _disallowed_property_wrap)
+
+
+_wrap_list = [
+    _ndarray_ops_,
+    _ndarray_magic_safe_,
+    _ndarray_magic_unsafe_,
+    _ndarray_iops_,
+    _ndarray_std_funcs_,
+    _ndarray_disallow_funcs_,
+    _ndarray_properties_,
+    _ndarray_disallow_properties_,
+]
 
 
 def coerce_mock_to_array(val):
@@ -84,12 +199,12 @@ def coerce_mock_to_array(val):
 
     Coerces ``HOOMDArray`` objects into ``numpy.ndarray`` objects.
     """
-    if isinstance(val, Iterable) and not isinstance(val, (ndarray, MockArray)):
+    if isinstance(val, Iterable) and not isinstance(val, (ndarray, HOOMDArray)):
         return [coerce_mock_to_array(v) for v in val]
-    return val if not isinstance(val, MockArray) else val._coerce_to_ndarray()
+    return val if not isinstance(val, HOOMDArray) else val._coerce_to_ndarray()
 
 
-class HOOMDArray(metaclass=WrapClass(_wrap_ndarray_methods, _ndarray_wrapper)):
+class HOOMDArray(metaclass=WrapClass(_wrap_list)):
     """A NumPy like interface to internal HOOMD-blue data.
 
     These objects are returned by HOOMD-blue's zero copy access to system data.
@@ -99,10 +214,13 @@ class HOOMDArray(metaclass=WrapClass(_wrap_ndarray_methods, _ndarray_wrapper)):
     For typical use cases, understanding this class is not necessary. Treat it
     as a ``numpy.ndarray``.
 
-    We attempt to escape this class whenever possible. To ensure memory safety,
-    a `HOOMDArray` object cannot be accessed outside of the context manager in
-    which it was created. To have access outside the manager an explicit copy
-    must be made (e.g. ``numpy.array(obj, copy=True)``).
+    We attempt to escape this class whenever possible. This essentially means
+    that whenever a new array is returned we can the `numpy.ndarray`. However,
+    any array pointing to the same data will be returned as a `HOOMDArray`. To
+    ensure memory safety, a `HOOMDArray` object cannot be accessed outside of
+    the context manager in which it was created. To have access outside the
+    manager an explicit copy must be made (e.g. ``numpy.array(obj,
+    copy=True)``).
 
     In general this class should be nearly as fast as a standard NumPy array,
     but there is some overhead. This is mitigated by escaping the class when
@@ -137,7 +255,11 @@ class HOOMDArray(metaclass=WrapClass(_wrap_ndarray_methods, _ndarray_wrapper)):
                     [coerce_mock_to_array(val) for val in value])
             else:
                 kwargs[key] = coerce_mock_to_array(value)
-        return func(*new_inputs, **kwargs)
+        arr = func(*new_inputs, **kwargs)
+        if isinstance(arr, ndarray):
+            if may_share_memory(arr, self._coerce_to_ndarray()):
+                return self.__class__(arr, self._callback)
+        return arr
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         """Called when a NumPy ufunc is used.
@@ -180,17 +302,20 @@ class HOOMDArray(metaclass=WrapClass(_wrap_ndarray_methods, _ndarray_wrapper)):
         Raises a `HOOMDArrayError` when the provide callback returns False.
         """
         if self._callback():
-            buffer_ = self._buffer
-            return ndarray(buffer_.shape, buffer_.dtype, buffer_)
+            return array(self._buffer, copy=False)
         else:
             raise HOOMDArrayError(
                 "Cannot access HOOMDArray outside context manager. Use "
                 "numpy.array inside context manager instead.")
 
-    def view(self, dtype=None, cls=None):
-        """We disallow views, since the copying for a view is not intuitive."""
-        raise HOOMDArrayError(
-            "Cannot view HOOMDArray directly. Copy array for use.")
+    @property
+    def shape(self):
+        return self._coerce_to_ndarray().shape
+
+    @shape.setter
+    def shape(self, value):
+        raise HOOMDArrayError("Shape cannot be set on a HOOMDArray. Use "
+                              "``array.reshape`` instead.")
 
     def __str__(self):
         cls = self.__class__
