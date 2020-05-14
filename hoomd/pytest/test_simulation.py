@@ -91,11 +91,10 @@ def assert_equivalent_boxes(box1, box2):
 
 
 def random_inds(n):
-    inds = []
-    for i in range(n):
-        if np.random.rand() > 0.5:
-            inds.append(i)
-    return inds
+    return np.random.choose(np.arange(n),
+                            size=int(n * np.random.rand()),
+                            replace=False)
+
 
 
 def test_initialization(device, simulation_factory, get_snapshot):
