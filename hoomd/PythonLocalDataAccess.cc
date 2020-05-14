@@ -8,7 +8,9 @@ void export_HOOMDHostBuffer(pybind11::module &m)
         .def_buffer([](HOOMDHostBuffer &b) -> pybind11::buffer_info 
                 {
                 return b.new_buffer();
-                });
+                })
+        .def_property_readonly("read_only", &HOOMDHostBuffer::getReadOnly);
+        ;
     }
 
 
@@ -17,7 +19,7 @@ void export_HOOMDDeviceBuffer(pybind11::module &m)
     {
     pybind11::class_<HOOMDDeviceBuffer>(m, "HOOMDDeviceBuffer")
         .def_property_readonly("__cuda_array_interface__",
-                               &HOOMDHostBuffer::getCudaArrayInterface)
+                               &HOOMDDeviceBuffer::getCudaArrayInterface)
         ;
     }
 #endif

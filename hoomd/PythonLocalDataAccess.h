@@ -3,6 +3,7 @@
 
 #include "GlobalArray.h"
 #include <string>
+#include <utility>
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 
@@ -33,9 +34,11 @@ struct HOOMDHostBuffer
                 m_typestr,
                 m_dimensions,
                 std::vector<ssize_t>(m_shape),
-                std::vector<ssize_t>(m_strides),
-                m_read_only);
+                std::vector<ssize_t>(m_strides)
+                );
         }
+
+    bool getReadOnly() { return m_read_only; }
     };
 
 
@@ -58,7 +61,8 @@ struct HOOMDDeviceBuffer
     pybind11::dict getCudaArrayInterface()
         {
         auto interface = pybind11::dict();
-        interface["data"] = pybind11::tuple({(intptr_t)data, m_read_only});
+        interface["data"] = std::pair<intptr_t, bool>(
+            (intptr_t)m_data, m_read_only);
         interface["typestr"] = m_typestr;
         interface["version"] = 2;
         pybind11::list shape;

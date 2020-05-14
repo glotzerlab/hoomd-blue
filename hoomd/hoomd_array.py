@@ -244,7 +244,7 @@ class HOOMDArray(metaclass=WrapClass(_wrap_list)):
           arrays this only gives a few percentage performance improvements at
           greater risk of breaking your program.
     """
-    def __init__(self, buffer, callback):
+    def __init__(self, buffer, callback, read_only=False):
         """Create a HOOMDArray.
 
         Args:
@@ -255,6 +255,7 @@ class HOOMDArray(metaclass=WrapClass(_wrap_list)):
         """
         self._buffer = buffer
         self._callback = callback
+        self._read_only = read_only
 
     def __array_function__(self, func, types, args, kwargs):
         """Called when a non-ufunc NumPy method is called.
@@ -316,7 +317,12 @@ class HOOMDArray(metaclass=WrapClass(_wrap_list)):
         Raises a `HOOMDArrayError` when the provide callback returns False.
         """
         if self._callback():
-            return array(self._buffer, copy=False)
+            if self._read_only:
+                arr = array(self._buffer, copy=False)
+                arr.flags['WRITEABLE'] = False
+                return arr
+            else:
+                return array(self._buffer, copy=False)
         else:
             raise HOOMDArrayError(
                 "Cannot access HOOMDArray outside context manager. Use "
