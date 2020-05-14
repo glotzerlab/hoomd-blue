@@ -68,10 +68,12 @@ def assert_equivalent_snapshots(snap1, snap2):
 
 
 def assert_equivalent_boxes(box1, box2):
-    metadata1 = box1.get_metadata()
-    metadata2 = box2.get_metadata()
-    for key in metadata1:
-        assert metadata1[key] == metadata2[key]
+    assert box1.Lx == box2.Lx
+    assert box1.Ly == box2.Ly
+    assert box1.Lz == box2.Lz
+    assert box1.xy == box2.xy
+    assert box1.xz == box2.xz
+    assert box1.yz == box2.yz
 
 
 def random_inds(n):
