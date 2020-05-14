@@ -24,21 +24,13 @@ def get_snapshot(device):
 
 def make_gsd_snapshot(hoomd_snapshot):
     s = gsd.hoomd.Snapshot()
-    snap_properties = []
-    all_attr = dir(hoomd_snapshot)
-    for att in all_attr:
-        if att[0] != '_' and att not in ['exists', 'replicate']:
-            snap_properties.append(att)
-    for prop in snap_properties:
-        prop_attr = dir(getattr(hoomd_snapshot, prop))
-        nested_properties = []
-        for att in prop_attr:
-            if att[0] != '_':
-                nested_properties.append(att)
-        for nested_prop in nested_properties:
-            # s.prop.nested_prop = hoomd_snapshot.prop.nested_prop
-            setattr(getattr(s, prop), nested_prop,
-                    getattr(getattr(hoomd_snapshot, prop), nested_prop))
+    for attr in dir(hoomd_snapshot):
+        if attr[0] != '_' and attr not in ['exists', 'replicate']:
+            for prop in dir(getattr(hoomd_snapshot, attr)):
+                if prop[0] != '_':
+                    # s.attr.prop = hoomd_snapshot.attr.prop
+                    setattr(getattr(s, attr), prop,
+                            getattr(getattr(hoomd_snapshot, attr), prop))
     return s
 
 
@@ -61,26 +53,18 @@ def update_positions(snap):
 
 
 def assert_equivalent_snapshots(snap1, snap2):
-    snap_properties = []
-    all_attr = dir(snap2)
-    for att in all_attr:
-        if att[0] != '_' and att not in ['exists', 'replicate']:
-            snap_properties.append(att)
-    for prop in snap_properties:
-        snap1_prop = getattr(snap1, prop)
-        snap2_prop = getattr(snap2, prop)
-        prop_attr = dir(snap2_prop)
-        nested_properties = []
-        for att in prop_attr:
-            if att[0] != '_':
-                nested_properties.append(att)
-        for nested_prop in nested_properties:
-            if nested_prop == 'types':
-                assert getattr(snap1_prop, nested_prop) == \
-                    getattr(snap2_prop, nested_prop)
-            else:
-                np.testing.assert_allclose(getattr(snap1_prop, nested_prop),
-                                           getattr(snap2_prop, nested_prop))
+    for attr in dir(snap2):
+        if attr[0] != '_' and attr not in ['exists', 'replicate']:
+            for prop in dir(getattr(snap2, attr)):
+                if prop[0] != '_':
+                    if prop == 'types':
+                        assert getattr(getattr(snap1, attr), prop) == \
+                            getattr(getattr(snap2, attr), prop)
+                    else:
+                        np.testing.assert_allclose(getattr(getattr(snap1, attr),
+                                                           prop),
+                                                   getattr(getattr(snap2, attr),
+                                                           prop))
 
 
 def assert_equivalent_boxes(box1, box2):
@@ -91,10 +75,9 @@ def assert_equivalent_boxes(box1, box2):
 
 
 def random_inds(n):
-    return np.random.choose(np.arange(n),
+    return np.random.choice(np.arange(n),
                             size=int(n * np.random.rand()),
                             replace=False)
-
 
 
 def test_initialization(device, simulation_factory, get_snapshot):
