@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from hoomd.hoomd_array import HOOMDArray
 from hoomd._hoomd import LocalParticleData
 
 
@@ -10,28 +11,32 @@ class LocalAccess(ABC):
 
     _accessed_fields = dict()
 
+    def __init__(self):
+        object.__setattr__(self, '_entered', False)
+
     def __getattr__(self, attr):
         if attr in self._accessed_fields:
             return self._accessed_fields[attr]
         elif attr.startswith("ghost_"):
             if attr[6:] in self._fields:
-                arr = getattr(self._cpp_obj, self._fields[attr[6:]])(
+                buff = getattr(self._cpp_obj, self._fields[attr[6:]])(
                     True, False)
             else:
                 raise AttributeError(
                     "{} object has no attribute {}".format(type(self), attr))
         elif attr.endswith("_with_ghosts"):
             if attr[:-12] in self._fields:
-                arr = getattr(self._cpp_obj, self._fields[attr[:-12]])(
+                buff = getattr(self._cpp_obj, self._fields[attr[:-12]])(
                     False, True)
             else:
                 raise AttributeError(
                     "{} object has no attribute {}".format(type(self), attr))
         elif attr in self._fields:
-            arr = getattr(self._cpp_obj, self._fields[attr])(False, False)
+            buff = getattr(self._cpp_obj, self._fields[attr])(False, False)
         else:
             raise AttributeError(
                 "{} object has no attribute {}".format(type(self), attr))
+        arr = HOOMDArray(buff, lambda: self._entered)
         self._accessed_fields[attr] = arr
         return arr
 
@@ -42,9 +47,12 @@ class LocalAccess(ABC):
 
     def _enter(self):
         self._cpp_obj.enter()
+        object.__setattr__(self, '_entered', True)
 
     def _exit(self):
         self._cpp_obj.exit()
+        object.__setattr__(self, '_entered', False)
+        object.__setattr__(self, '_accessed_fields', dict())
 
 
 class ParticleLocalAccess(LocalAccess):
@@ -68,6 +76,7 @@ class ParticleLocalAccess(LocalAccess):
         'net_virial': 'getNetVirial'}
 
     def __init__(self, state):
+        super().__init__()
         object.__setattr__(
             self, '_cpp_obj',
             LocalParticleData(state._cpp_sys_def.getParticleData()))

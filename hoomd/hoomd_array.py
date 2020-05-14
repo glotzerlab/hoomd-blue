@@ -1,46 +1,36 @@
 import functools
 from inspect import isclass
+from collections import Iterable
 
-from numpy import ndarray, generic
+from numpy import ndarray, array
 
 
 class HOOMDArrayError(RuntimeError):
     pass
 
 
-def _error_outside_manager(cls, method):
-    """Higher order function to wrap classmethods of numpy.ndarray.
+def WrapClass(methods, functor, *args, **kwargs):
+    """Factory method for metaclasses that produce methods via a functor.
 
-    This lets us ensure that all calls to dunder (__) functions are valid by
-    checking the return value of the callback.
+    Applies the functor to each method given in methods. This occurs before
+    class creation. The functor can take any number of arguments, but besides
+    for the method name must be the same accross all methods.
+
+    Args:
+        methods (Sequence[str]): A sequence of method names to apply the functor
+            to.
+        functor (Callable): A callable object that takes a method name and
+            the passed ``*args``, ``**kwargs``.
+        *args (Any): Required position arguments for ``functor``.
+        **kwargs (Any): Required key word arugments for ``functor``.
     """
-    parent_method = getattr(super(cls, cls), method)
-    @functools.wraps(parent_method)
-    def error(self, *args, **kwargs):
-        if object.__getattribute__(self, '__callback__')():
-            return parent_method(self, *args, **kwargs)
-        else:
-            raise HOOMDArrayError(
-                "Cannot access array outside context manager.")
+    class _WrapClass(type):
+        def __new__(cls, name, bases, class_dict):
+            for method in methods:
+                class_dict[method] = functor(method, *args, **kwargs)
+            return super().__new__(cls, name, bases, class_dict)
 
-    return error
-
-
-class _WrapMethods(type):
-    """Metaclass for wrapping class methods that error outside context manager.
-
-    Uses the _wrap_methods attribute defined in a class. This attribute is
-    not found in the actual class instance, however. The purpose of this class
-    is to ensure that :class:`_HOOMDArrayBase` wraps all methods that aren't
-    grabbed by a class's `__getattribute` method.
-    """
-    def __new__(cls, name, bases, class_dict):
-        wrap_methods = class_dict.pop("_wrap_methods", [])
-        new_cls = super().__new__(cls, name, bases, class_dict)
-        for method in wrap_methods:
-            setattr(new_cls, method,
-                    _error_outside_manager(new_cls, method))
-        return new_cls
+    return _WrapClass
 
 
 """
@@ -57,147 +47,170 @@ _wrap_ndarray_methods = filter(lambda x: not x.startswith('__array'),
                                _wrap_ndarray_methods)
 
 _exclude_methods = ['__class__', '__dir__', '__doc__', '__getattribute__',
-    '__init__', '__init_subclass__', '__new__', '__setattr__', '__repr__',
-    '__str__', '__subclasshook__']
+    '__getattr__', '__init__', '__init_subclass__', '__new__', '__setattr__',
+    '__repr__', '__str__', '__subclasshook__']
 _wrap_ndarray_methods = filter(lambda x: x not in _exclude_methods,
                                _wrap_ndarray_methods)
 
+_wrap_ndarray_methods = list(_wrap_ndarray_methods)
 
-class _HOOMDArrayBase(ndarray, metaclass=_WrapMethods):
-    """Internal base class for zero copy NumPy array views of State data.
 
-    We use ``_wrap_methods`` to signify functions that must be wrapped using
-    _error_outside_manager. ``_raise_attribute_error`` is to ensure we can view
-    invalid ``_HOOMDArrayBase`` instances in notebooks.
+def _ndarray_wrapper(method):
+    """Wraps methods of ``numpy.ndarray`` for use with HOOMDArray.
 
-    The logic of the class comes in the ``__callback__`` attribute of an
-    instance of ``_HOOMDArrayBase``. The attribute is a function that returns a
-    Boolean. If True then the array is considered valid, if False invalid. Most
-    methods will raise a ``HOOMDArrayError`` if called on an invalid array. The
-    ``__callback__`` is designed to tell us whether we are in the context
-    manager of for the :class:`LocalSnapshot` object (this is used by the
-    :class:`hoomd.State` object.
-
-    A quirk of the class that makes it faster is that ``__callback__`` should
-    only every be queried using
-    ``object.__getattribute__(self, '__callback__)``.
+    Given a method name it calls the corresponding NumPy function with a
+    ``ndarray`` view of the underlying `HOOMDArray` buffer. It is designed for
+    the dunder (__) methods.
     """
-    _wrap_methods = list(_wrap_ndarray_methods)
-    _raise_attribute_error = {
-        '_ipython_canary_method_should_not_exist_',
-        '_repr_javascript_',
-        '_ipython_display_',
-        '_repr_mimebundle_',
-        '_repr_svg_',
-        '_repr_html_',
-        '_repr_markdown_',
-        '_repr_png_',
-        '_repr_jpeg_',
-        '_repr_latex_',
-        '_repr_json_'}
+    # This conditional is required since a += b acts like a = a + b. Since we in
+    # return a NumPy array in __add__, we must ensure that we do not return
+    # access to our internal buffer in __iadd__.
+    if method.startswith('__i') and method not in {
+            '__index__', '__int__', '__iter__'}:
+        def wrapped_method(self, *args, **kwargs):
+            arr = self._coerce_to_ndarray()
+            getattr(arr, method)(*args, **kwargs)
+            return self
+    else:
+        def wrapped_method(self, *args, **kwargs):
+            arr = self._coerce_to_ndarray()
+            return getattr(arr, method)(*args, **kwargs)
 
-    def __new__(cls, *args, **kwargs):
-        try:
-            callback = kwargs.pop('callback')
-        except KeyError:
-            raise ValueError("callback is a required key word argument.")
-        if not callable(callback):
-            raise ValueError("callback must be callable.")
-            
-        arr = super(_HOOMDArrayBase, cls).__new__(cls, *args, **kwargs)
-        arr.__callback__ = callback
-        return arr
+    return wrapped_method
 
-    def __array_finalize__(self, obj):
-        if obj is None:
-            pass
-        elif isinstance(obj, _HOOMDArrayBase):
-            self.__callback__ = obj.__callback__
-        else:
-            self.__callback__ = lambda: True
-            
-    def __getattribute__(self, item):
-        try:
-            callback = object.__getattribute__(self, '__callback__')()
-        except AttributeError:
-            callback = True
-        if callback:
-            return super().__getattribute__(item)
-        else:
-            if item == '__class__':
-                return super().__getattribute__(item)
-            elif item in self.__class__._raise_attribute_error:
-                raise AttributeError
+
+def coerce_mock_to_array(val):
+    """Helper function for ``__array_{ufunc,function}__``.
+
+    Coerces ``HOOMDArray`` objects into ``numpy.ndarray`` objects.
+    """
+    if isinstance(val, Iterable) and not isinstance(val, (ndarray, MockArray)):
+        return [coerce_mock_to_array(v) for v in val]
+    return val if not isinstance(val, MockArray) else val._coerce_to_ndarray()
+
+
+class HOOMDArray(metaclass=WrapClass(_wrap_ndarray_methods, _ndarray_wrapper)):
+    """A NumPy like interface to internal HOOMD-blue data.
+
+    These objects are returned by HOOMD-blue's zero copy access to system data.
+    This class acts like a ``numpy.ndarray`` object through NumPy's provided
+    interface
+    [https://numpy.org/doc/stable/reference/arrays.classes.html](link).
+    For typical use cases, understanding this class is not necessary. Treat it
+    as a ``numpy.ndarray``.
+
+    We attempt to escape this class whenever possible. To ensure memory safety,
+    a `HOOMDArray` object cannot be accessed outside of the context manager in
+    which it was created. To have access outside the manager an explicit copy
+    must be made (e.g. ``numpy.array(obj, copy=True)``).
+
+    In general this class should be nearly as fast as a standard NumPy array,
+    but there is some overhead. This is mitigated by escaping the class when
+    possible. If every ounce of performance is necessary,
+    ``HOOMDArray._coerce_to_ndarray`` can provide a ``numpy.ndarray`` object
+    inside the context manager. *References to a ``HOOMDArray`` object's buffer
+    after leaving the context manager is UNSAFE.* It can cause SEGFAULTs and
+    cause your program to crash. Use this function only if absolutely necessary.
+    """
+    def __init__(self, buffer, callback):
+        """Create a HOOMDArray.
+
+        Args:
+            buffer (hoomd._hoomd.HOOMDHostBuffer): The data buffer for the
+                system data.
+            callback (Callable): A function when called signifies whether the
+                array is in the context manager where it was created.
+        """
+        self._buffer = buffer
+        self._callback = callback
+
+    def __array_function__(self, func, types, args, kwargs):
+        """Called when a non-ufunc NumPy method is called.
+
+        It is safe generally to convert `HOOMDArray` objects to `numpy.ndarray`
+        objects inside a NumPy function.
+        """
+        new_inputs = [coerce_mock_to_array(val) for val in args]
+        for key, value in kwargs.items():
+            if type(value) == tuple:
+                kwargs[key] = tuple(
+                    [coerce_mock_to_array(val) for val in value])
             else:
-                raise HOOMDArrayError(
-                    "Cannot access array outside context manager.")
+                kwargs[key] = coerce_mock_to_array(value)
+        return func(*new_inputs, **kwargs)
 
-    def __repr__(self):
-        if object.__getattribute__(self, '__callback__')():
-            return super().__repr__()
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        """Called when a NumPy ufunc is used.
+
+        It is safe generally to convert `HOOMDArray` objects to `numpy.ndarray`
+        objects inside a NumPy function. However, we must ensure that if out is
+        specified to be a HOOMDArray, we return the HOOMDArray not a
+        `numpy.ndarray` pointing to the internal buffer.
+        """
+        new_inputs = [coerce_mock_to_array(val) for val in inputs]
+        out = kwargs.pop("out", None)
+        kwargs = {k: coerce_mock_to_array(v) for k, v in kwargs}
+        if out is not None:
+            if any(isinstance(o, HOOMDArray) for o in out):
+                kwargs['out'] = tuple((coerce_mock_to_array(v) for v in out))
+                getattr(ufunc, method)(*new_inputs, **kwargs)
+                return self
+        return getattr(ufunc, method)(*new_inputs, **kwargs)
+
+    def __getattr__(self, item):
+        """Used to mock `numpy.ndarray`'s interface."""
+        arr = self._coerce_to_ndarray()
+        return getattr(arr, item)
+
+    @property
+    def __array_interface__(self):
+        """Returns the information for a copy of the underlying data buffer.
+
+        This ensures that calls to functions like `numpy.array` do not cause
+        invalid access to the buffer. We must copy because ones we release
+        `numpy.ndarray` pointing to the underlying buffer we cannot guarentee
+        safety.
+        """
+        return np.array(self._coerce_to_ndarray(),
+                        copy=True).__array_interface__
+
+    def _coerce_to_ndarray(self):
+        """Provide a `numpy.ndarray` to the underlying buffer.
+
+        Raises a `HOOMDArrayError` when the provide callback returns False.
+        """
+        if self._callback():
+            buffer_ = self._buffer
+            return ndarray(buffer_.shape, buffer_.dtype, buffer_)
         else:
-            return "HOOMDArray(INVALID)"
+            raise HOOMDArrayError(
+                "Cannot access HOOMDArray outside context manager. Use "
+                "numpy.array inside context manager instead.")
+
+    def view(self, dtype=None, cls=None):
+        """We disallow views, since the copying for a view is not intuitive."""
+        raise HOOMDArrayError(
+            "Cannot view HOOMDArray directly. Copy array for use.")
 
     def __str__(self):
-        if object.__getattribute__(self, '__callback__')():
-            return super().__str__()
+        cls = self.__class__
+        if self._callback():
+            return cls.__name__ + "(" + str(self._coerce_to_ndarray()) + ")"
         else:
-            return "HOOMDArray(INVALID)"
+            return cls.__name__ + "(INVALID)"
 
-    @classmethod
-    def _from_buffer(cls, buffer, callback):
-        """Expects buffer to have a shape and dtype property."""
-        shape = buffer.shape
-        dtype = buffer.dtype
-        return cls(shape, dtype, buffer, callback=callback)
+    def __repr__(self):
+        cls = self.__class__
+        if self._callback():
+            return cls.__name__ + "(" + str(self._coerce_to_ndarray()) + ")"
+        else:
+            return cls.__name__ + "(INVALID)"
 
-
-def _get_hoomd_array_subclass():
-    class HOOMDArray(_HOOMDArrayBase):
-        """Adds logic to enable us to strip numpy.ndarray subclass if possible.
-
-        Keeps a set of pointers that have been used for this class currently.
-        Classes are instantiated when necessary by the :class:`hoomd.State` or
-        other objects. The class is expected to be destroyed when it is done.
-        """
-        _existing_pointers = set()
-
-        def __new__(cls, *args, **kwargs):
-            arr = super(HOOMDArray, cls).__new__(cls, *args, **kwargs)
-            cls._existing_pointers.add(arr.__array_interface__['data'][0])
-            return arr
-
-        def __array_wrap__(self, output, context=None):
-            """Gets called after a _ufunc_ is called.
-
-            (e.g) in ``a = b + c`` after ``b + c`` is computed. This allows us
-            to drop the subclass of ``numpy.ndarray`` when possible.
-            """
-            pointer = output.__array_interface__['data'][0]
-            cls = self.__class__
-            if isinstance(output, _HOOMDArrayBase):
-                other_pointers = output.__class__._existing_pointers
-                if pointer not in cls._existing_pointers.union(
-                        other_pointers):
-                    return output.view(ndarray)
-            else:
-                if pointer not in cls._existing_pointers:
-                    return output.view(ndarray)
-                else:
-                    return super().__array_wrap__(output, context)
-
-        def view(self, dtype=None, type=None):
-            """In general it is not safe to view a HOOMDArray in another class.
-
-            This would circumvent the logic to prevent invalid accesses of
-            memory and segfaults.
-            """
-            if (type is not None 
-                    or (isclass(dtype) and isinstance(dtype, generic))):
-                if (self.__array_interface__['data'][0]
-                        in self.__class__._existing_pointers):
-                    raise HOOMDArrayError(
-                        "Cannot view HOOMDArray as another array type.")
-            return super().view(dtype)
-
-    return HOOMDArray
+    def _repr_html_(self):
+        cls = self.__class__
+        if self._callback():
+            return "<emph>" + cls.__name__ + "</emph>" \
+                + "(" + str(self._coerce_to_ndarray()) + ")"
+        else:
+            return "<emph>" + cls.__name__ + "</emph>" \
+                + "(<strong>INVALID</strong>)"
