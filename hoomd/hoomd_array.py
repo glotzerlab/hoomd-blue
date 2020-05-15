@@ -281,8 +281,6 @@ class HOOMDArray(metaclass=_WrapClassFactory(_wrap_list)):
                         "Whether the buffer is read only could not be "
                         "discerned. Pass read_only manually.")
 
-        self._read_only = read_only
-
     def __array_function__(self, func, types, args, kwargs):
         """Called when a non-ufunc NumPy method is called.
 
@@ -345,7 +343,7 @@ class HOOMDArray(metaclass=_WrapClassFactory(_wrap_list)):
         if self._callback():
             if self._read_only:
                 arr = array(self._buffer, copy=False)
-                arr.flags['WRITEABLE'] = False
+                arr.flags['WRITEABLE'] = True
                 return arr
             else:
                 return array(self._buffer, copy=False)

@@ -1,12 +1,17 @@
 from abc import ABC, abstractmethod
-from hoomd.hoomd_array import HOOMDArray
-from hoomd._hoomd import LocalParticleDataHost
+from hoomd.hoomd_array import HOOMDArray, HOOMDGPUArray
+from hoomd import _hoomd
 
 
-class LocalAccess(ABC):
+class _LocalAccess(ABC):
     @property
     @abstractmethod
     def _fields(self):
+        pass
+
+    @property
+    @abstractmethod
+    def _array_cls(self):
         pass
 
     _accessed_fields = dict()
@@ -36,7 +41,7 @@ class LocalAccess(ABC):
         else:
             raise AttributeError(
                 "{} object has no attribute {}".format(type(self), attr))
-        arr = HOOMDArray(buff, lambda: self._entered)
+        arr = self._array_cls(buff, lambda: self._entered)
         self._accessed_fields[attr] = arr
         return arr
 
@@ -46,7 +51,7 @@ class LocalAccess(ABC):
         except AttributeError:
             raise AttributeError(
                 "Cannot set attribute {}, does not exist.".format(attr))
-        if arr.flags['WRITEABLE'] == False:
+        if arr.read_only == True:
             raise RuntimeError(
                 "Attribute {} is not settable.".format(attr))
         arr[:] = value
@@ -61,7 +66,12 @@ class LocalAccess(ABC):
         object.__setattr__(self, '_accessed_fields', dict())
 
 
-class ParticleLocalAccess(LocalAccess):
+class _ParticleLocalAccess(_LocalAccess):
+    @property
+    @abstractmethod
+    def _cpp_cls(self):
+        pass
+
     _fields = {
         'position': 'getPosition',
         'type': 'getTypes',
@@ -85,13 +95,20 @@ class ParticleLocalAccess(LocalAccess):
         super().__init__()
         object.__setattr__(
             self, '_cpp_obj',
-            LocalParticleDataHost(state._cpp_sys_def.getParticleData()))
+            self._cpp_cls(state._cpp_sys_def.getParticleData()))
 
 
-class LocalSnapshot:
-    def __init__(self, state):
-        self._particles = ParticleLocalAccess(state)
+class ParticleLocalAccessCPU(_ParticleLocalAccess):
+    _cpp_cls = _hoomd.LocalParticleDataHost
+    _array_cls = HOOMDArray
 
+
+class ParticleLocalAccessGPU(_ParticleLocalAccess):
+    _cpp_cls = _hoomd.LocalParticleDataDevice
+    _array_cls = HOOMDGPUArray
+
+
+class _LocalSnapshotBase:
     @property
     def particles(self):
         return self._particles
@@ -102,3 +119,13 @@ class LocalSnapshot:
 
     def __exit__(self, type, value, traceback):
         self._particles._exit()
+
+
+class LocalSnapshot(_LocalSnapshotBase):
+    def __init__(self, state):
+        self._particles = ParticleLocalAccessCPU(state)
+
+
+class LocalSnapshotGPU(_LocalSnapshotBase):
+    def __init__(self, state):
+        self._particles = ParticleLocalAccessGPU(state)
