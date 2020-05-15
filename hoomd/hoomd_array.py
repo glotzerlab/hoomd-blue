@@ -353,7 +353,7 @@ class HOOMDArray(metaclass=_WrapClassFactory(_wrap_list)):
             raise HOOMDArrayError(
                 "Cannot access {} outside context manager. Use "
                 "numpy.array inside context manager instead.".format(
-                    self.__class__))
+                    self.__class__.__name__))
 
     @property
     def shape(self):
@@ -363,33 +363,33 @@ class HOOMDArray(metaclass=_WrapClassFactory(_wrap_list)):
     def shape(self, value):
         raise HOOMDArrayError("Shape cannot be set on a {}. Use "
                               "``array.reshape`` instead.".format(
-                                  self.__class__))
+                                  self.__class__.__name__))
 
     @property
     def read_only(self):
         return self._read_only
 
     def __str__(self):
-        cls = self.__class__
+        name = self.__class__.__name__
         if self._callback():
-            return cls.__name__ + "(" + str(self._coerce_to_ndarray()) + ")"
+            return name + "(" + str(self._coerce_to_ndarray()) + ")"
         else:
-            return cls.__name__ + "(INVALID)"
+            return name + "(INVALID)"
 
     def __repr__(self):
-        cls = self.__class__
+        name = self.__class__.__name__
         if self._callback():
-            return cls.__name__ + "(" + str(self._coerce_to_ndarray()) + ")"
+            return name + "(" + str(self._coerce_to_ndarray()) + ")"
         else:
-            return cls.__name__ + "(INVALID)"
+            return name + "(INVALID)"
 
     def _repr_html_(self):
-        cls = self.__class__
+        name = self.__class__.__name__
         if self._callback():
-            return "<emph>" + cls.__name__ + "</emph>" \
+            return "<emph>" + name + "</emph>" \
                 + "(" + str(self._coerce_to_ndarray()) + ")"
         else:
-            return "<emph>" + cls.__name__ + "</emph>" \
+            return "<emph>" + name + "</emph>" \
                 + "(<strong>INVALID</strong>)"
 
 if isCUDAAvailable():
@@ -423,7 +423,7 @@ if isCUDAAvailable():
             def shape(self, value):
                 raise HOOMDArrayError("Shape cannot be set on a {}. Use "
                                     "``array.reshape`` instead.".format(
-                                        self.__class__))
+                                        self.__class__.__name__))
             @property
             def strides(self):
                 protocol = self._buffer.__cuda_array_interface__
@@ -434,31 +434,29 @@ if isCUDAAvailable():
                 return len(self.shape)
 
             def __str__(self):
-                cls = self.__class__
+                name = self.__class__
                 if self._callback():
-                    return cls.__name__ + "(shape=(" + str(self.shape) \
+                    return name + "(shape=(" + str(self.shape) \
                             + "), dtype=(" + str(self.dtype) + "))"
                 else:
-                    return cls.__name__ + "(INVALID)"
+                    return name + "(INVALID)"
 
             def __repr__(self):
-                cls = self.__class__
+                name = self.__class__.__name__
                 if self._callback():
-                    return cls.__name__ + "(shape=(" + str(self.shape) \
+                    return name + "(shape=(" + str(self.shape) \
                             + "), dtype=(" + str(self.dtype) + "))"
                 else:
-                    return cls.__name__ + "(INVALID)"
-                cls = self.__class__
+                    return name + "(INVALID)"
 
             def _repr_html_(self):
-                cls = self.__class__
+                name = self.__class__.__name__
                 if self._callback():
-                    return "<emph>" + cls.__name__ + "</emph>" + "(shape=(" \
+                    return "<emph>" + name + "</emph>" + "(shape=(" \
                             + str(self.shape) + "), dtype=(" \
                             + str(self.dtype) + "))"
                 else:
-                    return "<emph>" + cls.__name__ + "</emph>" \
-                        + "(<strong>INVALID</strong>)"
+                    return "<emph>" + name + "</emph>(<strong>INVALID</strong>)"
 
     else:
         _cupy_ndarray_magic_safe_ = [
@@ -492,31 +490,31 @@ if isCUDAAvailable():
             def shape(self, value):
                 raise HOOMDArrayError("Shape cannot be set on a {}. Use "
                                     "``array.reshape`` instead.".format(
-                                        self.__class__))
+                                        self.__class__.__name__))
 
             def __str__(self):
-                cls = self.__class__
+                name = self.__class__.__name__
                 if self._callback():
-                    return cls.__name__ + "(" \
+                    return name + "(" \
                         + str(self._coerce_to_ndarray()) + ")"
                 else:
-                    return cls.__name__ + "(INVALID)"
+                    return name + "(INVALID)"
 
             def __repr__(self):
-                cls = self.__class__
+                name = self.__class__.__name__
                 if self._callback():
-                    return cls.__name__ + "(" + str(self._coerce_to_ndarray()) \
+                    return name + "(" + str(self._coerce_to_ndarray()) \
                             + ")"
                 else:
-                    return cls.__name__ + "(INVALID)"
+                    return name + "(INVALID)"
 
             def _repr_html_(self):
-                cls = self.__class__
+                name = self.__class__.__name__
                 if self._callback():
-                    return "<emph>" + cls.__name__ + "</emph>" \
+                    return "<emph>" + name + "</emph>" \
                         + "(" + str(self._coerce_to_ndarray()) + ")"
                 else:
-                    return "<emph>" + cls.__name__ + "</emph>" \
+                    return "<emph>" + name + "</emph>" \
                         + "(<strong>INVALID</strong>)"
 else:
     from hoomd.util import NoGPU
