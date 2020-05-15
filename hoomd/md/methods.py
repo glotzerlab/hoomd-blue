@@ -97,7 +97,8 @@ class NVT(_Method):
         param_dict = ParameterDict(
             filter=OnlyType(_ParticleFilter),
             kT=create_variant,
-            tau=float(tau)
+            tau=float(tau),
+            explicit_defaults=dict(kT=kT, filter=filter)
             )
         # set defaults
         self._param_dict.update(param_dict)
@@ -106,14 +107,14 @@ class NVT(_Method):
 
         # initialize the reflected cpp class
         if not simulation.device.cpp_exec_conf.isCUDAEnabled():
-            my_class = _md.TwoStepNVTMKT
+            my_class = _md.TwoStepNVTMTK
         else:
-            my_class = _md.TwoStepNVTMKTGPU
+            my_class = _md.TwoStepNVTMTKGPU
 
         group = simulation.state.get_group(self.filter)
         self._cpp_obj = my_class(simulation.state._cpp_sys_def,
                                  group,
-                                 hoomd.compute.thermo(group)._cpp_obj,  # placeholder
+                                 hoomd.compute.thermo(group).cpp_compute,
                                  self.kT)
         super().attach(simulation)
 
