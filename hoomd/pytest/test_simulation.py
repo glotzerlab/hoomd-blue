@@ -101,6 +101,10 @@ def test_initialization(device, simulation_factory, get_snapshot):
     sim.operations.schedule()
     sim.run(1)
 
+    assert sim.always_compute_pressure is False
+    sim.always_compute_pressure = True
+    assert sim.always_compute_pressure is True
+
 
 def test_run(simulation_factory, get_snapshot, device):
     sim = hoomd.simulation.Simulation(device)
