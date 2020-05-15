@@ -338,7 +338,7 @@ class HOOMDArray(metaclass=_WrapClassFactory(_wrap_list)):
                         copy=True).__array_interface__
 
     def _coerce_to_ndarray(self):
-        """Provide a `numpy.ndarray` to the underlying buffer.
+        """Provide a `numpy.ndarray` interface to the underlying buffer.
 
         Raises a `HOOMDArrayError` when the provide callback returns False.
         """
@@ -459,19 +459,20 @@ if isCUDAAvailable():
                     return "<emph>" + name + "</emph>(<strong>INVALID</strong>)"
 
     else:
-        _cupy_ndarray_magic_safe_ = [
-            item for item in _ndarray_magic_safe_
+        _cupy_ndarray_magic_safe_ = ([
+            item for item in _ndarray_magic_safe_[0]
             if item not in {
-                '__copy__', '__setstate__', '__contains__'}]
+                '__copy__', '__setstate__', '__contains__'}],
+            _ndarray_magic_safe_[1])
 
         _wrap_gpu_array_list = [
             _ndarray_iops_,
             _cupy_ndarray_magic_safe_,
             _ndarray_magic_unsafe_,
-            _ndarray_std_funcs,
+            _ndarray_std_funcs_,
             _ndarray_disallow_funcs_,
             _ndarray_properties_,
-            ndarray_disallow_properties
+            _ndarray_disallow_properties_
             ]
 
         meta = _WrapClassFactory(_wrap_gpu_array_list,
@@ -491,6 +492,20 @@ if isCUDAAvailable():
                 raise HOOMDArrayError("Shape cannot be set on a {}. Use "
                                     "``array.reshape`` instead.".format(
                                         self.__class__.__name__))
+
+            def _coerce_to_ndarray(self):
+                """Provide a `cupy.ndarray` interface to the underlying buffer.
+
+                Raises a `HOOMDArrayError` when the provide callback returns
+                False.
+                """
+                if self._callback():
+                    return cupy.array(self._buffer, copy=False)
+                else:
+                    raise HOOMDArrayError(
+                        "Cannot access {} outside context manager. Use "
+                        "cupy.array(obj, copy=True) inside context manager "
+                        "instead.".format(self.__class__.__name__))
 
             def __str__(self):
                 name = self.__class__.__name__
