@@ -36,7 +36,7 @@ class LocalAccess(ABC):
         else:
             raise AttributeError(
                 "{} object has no attribute {}".format(type(self), attr))
-        arr = HOOMDArray(buff, lambda: self._entered, buff.read_only)
+        arr = HOOMDArray(buff, lambda: self._entered)
         self._accessed_fields[attr] = arr
         return arr
 

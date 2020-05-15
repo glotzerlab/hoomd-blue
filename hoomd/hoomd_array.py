@@ -244,7 +244,7 @@ class HOOMDArray(metaclass=WrapClass(_wrap_list)):
           arrays this only gives a few percentage performance improvements at
           greater risk of breaking your program.
     """
-    def __init__(self, buffer, callback, read_only=False):
+    def __init__(self, buffer, callback, read_only=None):
         """Create a HOOMDArray.
 
         Args:
@@ -252,9 +252,23 @@ class HOOMDArray(metaclass=WrapClass(_wrap_list)):
                 system data.
             callback (Callable): A function when called signifies whether the
                 array is in the context manager where it was created.
+            read_only (bool, optional): Whether the array is read only. Default
+                is None and we attempt to discern from the buffer whether it is
+                read only or not.
         """
         self._buffer = buffer
         self._callback = callback
+        if read_only is None:
+            try:
+                self._read_only = buffer.read_only
+            except AttributeError:
+                try:
+                    self._read_only = not buffer.flags['WRITEABLE']
+                except AttributeError:
+                    raise ValueError(
+                        "Whether the buffer is read only could not be "
+                        "discerned. Pass read_only manually.")
+
         self._read_only = read_only
 
     def __array_function__(self, func, types, args, kwargs):
@@ -325,8 +339,9 @@ class HOOMDArray(metaclass=WrapClass(_wrap_list)):
                 return array(self._buffer, copy=False)
         else:
             raise HOOMDArrayError(
-                "Cannot access HOOMDArray outside context manager. Use "
-                "numpy.array inside context manager instead.")
+                "Cannot access {} outside context manager. Use "
+                "numpy.array inside context manager instead.".format(
+                    self.__class__))
 
     @property
     def shape(self):
@@ -334,8 +349,13 @@ class HOOMDArray(metaclass=WrapClass(_wrap_list)):
 
     @shape.setter
     def shape(self, value):
-        raise HOOMDArrayError("Shape cannot be set on a HOOMDArray. Use "
-                              "``array.reshape`` instead.")
+        raise HOOMDArrayError("Shape cannot be set on a {}. Use "
+                              "``array.reshape`` instead.".format(
+                                  self.__class__))
+
+    @property
+    def read_only(self):
+        return self._read_only
 
     def __str__(self):
         cls = self.__class__
