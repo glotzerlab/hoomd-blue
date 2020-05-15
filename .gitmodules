@@ -25,3 +25,6 @@
 [submodule "hoomd/extern/random123"]
 	path = hoomd/extern/random123
 	url = https://github.com/glotzerlab/random123.git
+[submodule "hoomd/extern/neighbor"]
+	path = hoomd/extern/neighbor
+	url = https://github.com/mphoward/neighbor.git

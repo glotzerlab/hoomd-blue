@@ -508,6 +508,9 @@ class PYBIND11_EXPORT NeighborList : public Compute
         //! Loops through all pairs, and updates the r_list(i,j)
         void updateRList();
 
+        //! Checks that box is big enough for neighbor list cutoff
+        void checkBoxSize();
+
         //! Filter the neighbor list of excluded particles
         virtual void filterNlist();
 

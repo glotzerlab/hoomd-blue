@@ -141,30 +141,7 @@ void NeighborListTree::updateImageVectors()
     {
     const BoxDim& box = m_pdata->getBox();
     uchar3 periodic = box.getPeriodic();
-
-    // check if the box is 3d or 2d, and use this to compute number of lattice vectors below
     unsigned char sys3d = (this->m_sysdef->getNDimensions() == 3);
-
-    // check that rcut fits in the box
-    Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
-    Scalar rmax = m_rcut_max_max + m_r_buff;
-    if (m_diameter_shift)
-        rmax += m_d_max - Scalar(1.0);
-
-    if (m_filter_body)
-        {
-        // add the maximum diameter of all composite particles
-        Scalar max_d_comp = m_pdata->getMaxCompositeParticleDiameter();
-        rmax += 0.5*max_d_comp;
-        }
-
-    if ((periodic.x && nearest_plane_distance.x <= rmax * 2.0) ||
-        (periodic.y && nearest_plane_distance.y <= rmax * 2.0) ||
-        (sys3d && periodic.z && nearest_plane_distance.z <= rmax * 2.0))
-        {
-        m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
-        throw runtime_error("Error updating neighborlist bins");
-        }
 
     // now compute the image vectors
     // each dimension increases by one power of 3

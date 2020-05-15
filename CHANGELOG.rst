@@ -1,6 +1,33 @@
 Change Log
 ==========
 
+v2.9.0 (2020-02-03)
+-------------------
+
+*New features*
+
+* General
+
+  * Read and write GSD 2.0 files.
+
+    * HOOMD >=2.9 can read and write GSD files created by HOOMD <= 2.8 or GSD
+      1.x. HOOMD <= 2.8 cannot read GSD files created by HOOMD >=2.9 or GSD >=
+      2.0.
+    * OVITO >=3.0.0-dev652 reads GSD 2.0 files.
+    * A future release of the ``gsd-vmd`` plugin will read GSD 2.0 files.
+
+* HPMC
+
+  * User-settable parameters in ``jit.patch``.
+  * 2D system support in muVT updater.
+  * Fix bug in HPMC where overlaps were not checked after adding new particle
+    types.
+
+* MD
+
+  * The performance of ``nlist.tree`` has been drastically improved for a
+    variety of systems.
+
 v2.8.2 (2019-12-20)
 -------------------
 
