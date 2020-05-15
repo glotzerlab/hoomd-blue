@@ -16,6 +16,7 @@
 #include "hoomd/md/NeighborListTree.h"
 #include "hoomd/Initializers.h"
 #include "hoomd/SnapshotSystemData.h"
+#include "hoomd/md/EvaluatorPairGauss.h"
 
 #include <math.h>
 
@@ -62,9 +63,7 @@ void gauss_force_particle_test(gaussforce_creator gauss_creator, std::shared_ptr
     fc_3->setRcut(0, 0, Scalar(1.3));
 
     // first test: choose a basic sigma
-    Scalar epsilon = Scalar(1.15);
-    Scalar sigma = Scalar(0.5);
-    fc_3->setParams(0,0,make_scalar2(epsilon,sigma));
+    fc_3->setParams(0,0,gauss_params(Scalar(1.15), Scalar(0.5)));
 
     // compute the forces
     fc_3->compute(0);
@@ -172,12 +171,12 @@ void gauss_force_periodic_test(gaussforce_creator gauss_creator, std::shared_ptr
     Scalar sigma = Scalar(0.5);
 
     // make life easy: just change epsilon for the different pairs
-    fc_6->setParams(0,0,make_scalar2(epsilon,sigma));
-    fc_6->setParams(0,1,make_scalar2(Scalar(2.0)*epsilon,sigma));
-    fc_6->setParams(0,2,make_scalar2(Scalar(3.0)*epsilon,sigma));
-    fc_6->setParams(1,1,make_scalar2(Scalar(4.0)*epsilon,sigma));
-    fc_6->setParams(1,2,make_scalar2(Scalar(5.0)*epsilon,sigma));
-    fc_6->setParams(2,2,make_scalar2(Scalar(6.0)*epsilon,sigma));
+    fc_6->setParams(0,0,gauss_params(epsilon,sigma));
+    fc_6->setParams(0,1,gauss_params(Scalar(2.0)*epsilon,sigma));
+    fc_6->setParams(0,2,gauss_params(Scalar(3.0)*epsilon,sigma));
+    fc_6->setParams(1,1,gauss_params(Scalar(4.0)*epsilon,sigma));
+    fc_6->setParams(1,2,gauss_params(Scalar(5.0)*epsilon,sigma));
+    fc_6->setParams(2,2,gauss_params(Scalar(6.0)*epsilon,sigma));
 
     fc_6->compute(0);
 
@@ -263,8 +262,8 @@ void gauss_force_comparison_test(gaussforce_creator gauss_creator1,
     Scalar sigma = Scalar(1.2);
 
     // specify the force parameters
-    fc1->setParams(0,0,make_scalar2(epsilon,sigma));
-    fc2->setParams(0,0,make_scalar2(epsilon,sigma));
+    fc1->setParams(0,0,gauss_params(epsilon,sigma));
+    fc2->setParams(0,0,gauss_params(epsilon,sigma));
 
     // compute the forces
     fc1->compute(0);
@@ -338,8 +337,8 @@ void gauss_force_shift_test(gaussforce_creator gauss_creator, std::shared_ptr<Ex
     // setup a standard epsilon and sigma
     Scalar epsilon = Scalar(1.0);
     Scalar sigma = Scalar(1.0);
-    fc_no_shift->setParams(0,0,make_scalar2(epsilon,sigma));
-    fc_shift->setParams(0,0,make_scalar2(epsilon,sigma));
+    fc_no_shift->setParams(0,0,gauss_params(epsilon,sigma));
+    fc_shift->setParams(0,0,gauss_params(epsilon,sigma));
 
     fc_no_shift->compute(0);
     fc_shift->compute(0);
