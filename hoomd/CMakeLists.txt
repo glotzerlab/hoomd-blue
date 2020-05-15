@@ -303,6 +303,7 @@ set(files analyze.py
           init.py
           integrate.py
           local_access.py
+          local_access_gpu.py
           meta.py
           operation.py
           operations.py

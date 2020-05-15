@@ -103,11 +103,6 @@ class ParticleLocalAccessCPU(_ParticleLocalAccess):
     _array_cls = HOOMDArray
 
 
-class ParticleLocalAccessGPU(_ParticleLocalAccess):
-    _cpp_cls = _hoomd.LocalParticleDataDevice
-    _array_cls = HOOMDGPUArray
-
-
 class _LocalSnapshotBase:
     @property
     def particles(self):
@@ -124,8 +119,3 @@ class _LocalSnapshotBase:
 class LocalSnapshot(_LocalSnapshotBase):
     def __init__(self, state):
         self._particles = ParticleLocalAccessCPU(state)
-
-
-class LocalSnapshotGPU(_LocalSnapshotBase):
-    def __init__(self, state):
-        self._particles = ParticleLocalAccessGPU(state)

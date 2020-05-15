@@ -292,3 +292,27 @@ def raise_from_previous(previous):
             else:
                 prv_str += "in key {} ".format(s)
     raise ValueError("Expected a value, {}. Found RequiredArg.".format(prv_str))
+
+
+def create_NotImplementedClass(error, reason):
+    class NotImplementedClass(type):
+        def __new__(cls, name, bases, class_dict):
+            def new_init(self, *args, **kwargs):
+                raise error(reason)
+
+            new_class_dict = {'__init__': new_init}
+
+            return super().__new__(cls, name, bases, new_class_dict)
+
+    return NotImplementedClass
+
+
+class GPUNotAvailableError(NotImplementedError):
+    pass
+
+
+class NoGPU(metaclass=create_NotImplementedClass(
+    GPUNotAvailableError,
+    "This build of HOOMD-blue does not support GPUs.")
+    ):
+    pass

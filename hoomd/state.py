@@ -4,6 +4,7 @@ from . import _hoomd
 from .data import boxdim
 from hoomd.snapshot import Snapshot
 from hoomd.local_access import LocalSnapshot
+from hoomd.local_access_gpu import LocalSnapshotGPU
 
 
 def _create_domain_decomposition(device, box):
