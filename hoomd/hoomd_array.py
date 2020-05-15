@@ -8,7 +8,7 @@ class HOOMDArrayError(RuntimeError):
     pass
 
 
-def WrapClass(methods_wrap_func_list, *args, **kwargs):
+def WrapClass(methods_wrap_func_list, *args, allow_exceptions=False, **kwargs):
     """Factory method for metaclasses that produce methods via a functor.
 
     Applies the functor to each method given in methods. This occurs before
@@ -21,13 +21,23 @@ def WrapClass(methods_wrap_func_list, *args, **kwargs):
             the provided callable is used to wrap all the methods listed in the
             tuple.
         *args (Any): Required position arguments for the functors.
+        allow_exceptions (bool, optional): A key word only arugment that
+            defaults to False. When True exceptions are ignored when setting
+            class methods, and the method raising the error is skipped.
         **kwargs (Any): Required key word arugments for the functors.
     """
     class _WrapClass(type):
         def __new__(cls, name, bases, class_dict):
             for methods, functor in methods_wrap_func_list:
                 for method in methods:
-                    class_dict[method] = functor(method, *args, **kwargs)
+                    try:
+                        class_dict[method] = functor(method, *args, **kwargs)
+                    except Exception as err:
+                        if allow_exceptions:
+                            continue
+                        else:
+                            raise err from None
+
             return super().__new__(cls, name, bases, class_dict)
 
     return _WrapClass
