@@ -9,6 +9,7 @@ except ImportError:
     skip_gsd = True
 skip_gsd = pytest.mark.skipif(skip_gsd, reason="gsd Python package was not found.")
 
+
 @pytest.fixture(scope="function")
 def get_snapshot(device):
     def make_snapshot(n=10, particle_types=['A']):
@@ -101,7 +102,9 @@ def test_initialization(device, simulation_factory, get_snapshot):
     sim.run(1)
 
 
-def test_run(simulation_factory, get_snapshot):
+def test_run(simulation_factory, get_snapshot, device):
+    sim = hoomd.simulation.Simulation(device)
+    assert sim.timestep is None
     sim = simulation_factory(get_snapshot())
     sim.operations.schedule()
     assert sim.timestep == 0
