@@ -87,6 +87,9 @@ def test_initialization(device, simulation_factory, get_snapshot):
         sim = hoomd.simulation.Simulation()
 
     sim = hoomd.simulation.Simulation(device)
+    with pytest.raises(ValueError):
+        sim.device = device
+
     with pytest.raises(RuntimeError):
         sim.run(1)  # Before setting state
 
