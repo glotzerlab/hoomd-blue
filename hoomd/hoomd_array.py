@@ -40,8 +40,8 @@ and functions that return a new array with the same underlying data.
 """
 
 # Functions that return a new array and wrapper
-def _op_wrap(method):
-    func = getattr(ndarray, method)
+def _op_wrap(method, cls=ndarray):
+    func = getattr(cls, method)
 
     @functools.wraps(func)
     def wrapped(self, *args, **kwargs):
@@ -79,8 +79,8 @@ _ndarray_magic_safe_ = ([
     ], _magic_wrap)
 
 # Magic methods that may return an array pointing to the same buffer
-def _magic_wrap_with_check(method):
-    func = getattr(ndarray, method)
+def _magic_wrap_with_check(method, cls=ndarray):
+    func = getattr(cls, method)
 
     @functools.wraps(func)
     def wrapped(self, *args, **kwargs):
@@ -100,8 +100,8 @@ _ndarray_magic_unsafe_ = ([
 
 
 # Functions that return an array pointing to the same buffer
-def _iop_wrap(method):
-    func = getattr(ndarray, method)
+def _iop_wrap(method, cls=ndarray):
+    func = getattr(cls, method)
 
     @functools.wraps(func)
     def wrapped(self, *args, **kwargs):
@@ -142,8 +142,8 @@ _ndarray_disallow_funcs_ = ([
     ], _disallowed_wrap)
 
 # Properties that can return an array pointing to the same buffer
-def _wrap_properties_with_check(prop):
-    prop = getattr(ndarray, prop)
+def _wrap_properties_with_check(prop, cls=ndarray):
+    prop = getattr(cls, prop)
 
     @property
     @functools.wraps(prop)
