@@ -214,7 +214,7 @@ class PYBIND11_EXPORT System
                     if (m_is_variable_period)
                         {
                         pybind11::object pynext = m_update_func(m_n);
-												int next = pybind11::cast<int>(pynext) + m_created_tstep;
+                        int next = pybind11::cast<int>(pynext) + m_created_tstep;
 
                         if (next < 0)
                             {
