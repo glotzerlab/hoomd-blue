@@ -22,6 +22,11 @@ from the ``conda-forge`` channel::
 
     $ conda install -c conda-forge hoomd
 
+A build of HOOMD with support for NVIDIA GPUs is also available from the
+``conda-forge`` channel::
+
+    $ conda install -c conda-forge hoomd=*=*gpu*
+
 Compiling from source
 =====================
 
