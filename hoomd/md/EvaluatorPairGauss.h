@@ -99,7 +99,7 @@ class EvaluatorPairGauss
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairGauss(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), epsilon(_params.epsilon), sigma(_params.epsilon)
+            : rsq(_rsq), rcutsq(_rcutsq), epsilon(_params.epsilon), sigma(_params.sigma)
             {
             }
 
