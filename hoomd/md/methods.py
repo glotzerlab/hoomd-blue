@@ -115,9 +115,11 @@ class NVT(_Method):
 
         group = simulation.state.get_group(self.filter)
         cpp_sys_def = simulation.state._cpp_sys_def
+        thermo = thermo_cls(cpp_sys_def, group, "")
         self._cpp_obj = my_class(cpp_sys_def,
                                  group,
-                                 thermo_cls(cpp_sys_def, group, ""),
+                                 thermo,
+                                 self.tau,
                                  self.kT,
                                  "")
         super().attach(simulation)
