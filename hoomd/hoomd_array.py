@@ -8,8 +8,9 @@ class HOOMDArrayError(RuntimeError):
     pass
 
 
-def WrapClass(methods_wrap_func_list, *args, allow_exceptions=False, **kwargs):
-    """Factory method for metaclasses that produce methods via a functor.
+def _WrapClassFactory(
+        methods_wrap_func_list, *args, allow_exceptions=False, **kwargs):
+    """Factory function for metaclasses that produce methods via a functor.
 
     Applies the functor to each method given in methods. This occurs before
     class creation. The functor can take any number of arguments, but besides
@@ -214,7 +215,7 @@ def coerce_mock_to_array(val):
     return val if not isinstance(val, HOOMDArray) else val._coerce_to_ndarray()
 
 
-class HOOMDArray(metaclass=WrapClass(_wrap_list)):
+class HOOMDArray(metaclass=_WrapClassFactory(_wrap_list)):
     """A NumPy like interface to internal HOOMD-blue data.
 
     These objects are returned by HOOMD-blue's zero copy access to system data.
