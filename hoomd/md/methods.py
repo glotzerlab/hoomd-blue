@@ -108,14 +108,18 @@ class NVT(_Method):
         # initialize the reflected cpp class
         if not simulation.device.cpp_exec_conf.isCUDAEnabled():
             my_class = _md.TwoStepNVTMTK
+            thermo_cls = _hoomd.ComputeThermo
         else:
             my_class = _md.TwoStepNVTMTKGPU
+            thermo_cls = _hoomd.ComputeThermoGPU
 
         group = simulation.state.get_group(self.filter)
-        self._cpp_obj = my_class(simulation.state._cpp_sys_def,
+        cpp_sys_def = simulation.state._cpp_sys_def
+        self._cpp_obj = my_class(cpp_sys_def,
                                  group,
-                                 hoomd.compute.thermo(group).cpp_compute,
-                                 self.kT)
+                                 thermo_cls(cpp_sys_def, group, ""),
+                                 self.kT,
+                                 "")
         super().attach(simulation)
 
     def thermalize_velocities(self, seed):
