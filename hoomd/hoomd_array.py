@@ -1,3 +1,4 @@
+from copy import deepcopy
 import functools
 from collections import Iterable
 
@@ -390,3 +391,129 @@ class HOOMDArray(metaclass=_WrapClassFactory(_wrap_list)):
         else:
             return "<emph>" + cls.__name__ + "</emph>" \
                 + "(<strong>INVALID</strong>)"
+
+
+class _HOOMDGPUArrayBase:
+    def __init__(self, buffer, callback):
+        self._buffer = buffer
+        self._callback = callback
+        self._read_only = buffer.read_only
+
+    @property
+    def __cuda_array_interface__(self):
+        return deepcopy(self._buffer.__cuda_array_interface__)
+
+    @property
+    def read_only(self):
+        return self._buffer.read_only
+
+try:
+    import cupy
+except ImportError:
+    _wrap_gpu_array_list = []
+
+    class HOOMDGPUArray(_HOOMDGPUArrayBase,
+                        metaclass=_WrapClassFactory(_wrap_gpu_array_list)):
+        @property
+        def shape(self):
+            protocol = self._buffer.__cuda_array_interface__
+            return protocol['shape']
+
+        @shape.setter
+        def shape(self, value):
+            raise HOOMDArrayError("Shape cannot be set on a {}. Use "
+                                "``array.reshape`` instead.".format(
+                                    self.__class__))
+        @property
+        def strides(self):
+            protocol = self._buffer.__cuda_array_interface__
+            return protocol['strides']
+
+        @property
+        def ndim(self):
+            return len(self.shape)
+
+        def __str__(self):
+            cls = self.__class__
+            if self._callback():
+                return cls.__name__ + "(shape=(" + str(self.shape) \
+                        + "), dtype=(" + str(self.dtype) + "))"
+            else:
+                return cls.__name__ + "(INVALID)"
+
+        def __repr__(self):
+            cls = self.__class__
+            if self._callback():
+                return cls.__name__ + "(shape=(" + str(self.shape) \
+                        + "), dtype=(" + str(self.dtype) + "))"
+            else:
+                return cls.__name__ + "(INVALID)"
+            cls = self.__class__
+
+        def _repr_html_(self):
+            cls = self.__class__
+            if self._callback():
+                return "<emph>" + cls.__name__ + "</emph>" + "(shape=(" \
+                        + str(self.shape) + "), dtype=(" \
+                        + str(self.dtype) + "))"
+            else:
+                return "<emph>" + cls.__name__ + "</emph>" \
+                    + "(<strong>INVALID</strong>)"
+
+else:
+    _cupy_ndarray_magic_safe_ = [
+        item for item in _ndarray_magic_safe_
+        if item not in {
+            '__copy__', '__setstate__', '__contains__'}]
+
+    _wrap_gpu_array_list = [
+        _ndarray_iops_,
+        _cupy_ndarray_magic_safe_,
+        _ndarray_magic_unsafe_,
+        _ndarray_std_funcs,
+        _ndarray_disallow_funcs_,
+        _ndarray_properties_,
+        ndarray_disallow_properties
+        ]
+
+    meta = _WrapClassFactory(_wrap_gpu_array_list,
+                             allow_exceptions=True,
+                             cls=cupy.ndarray)
+
+    class HOOMDGPUArray(_HOOMDGPUArrayBase, metaclass=meta):
+        def __getattr__(self, item):
+            return getattr(self._coerce_to_ndarray(), item)
+
+        @property
+        def shape(self):
+            return self._coerce_to_ndarray().shape()
+
+        @shape.setter
+        def shape(self, value):
+            raise HOOMDArrayError("Shape cannot be set on a {}. Use "
+                                "``array.reshape`` instead.".format(
+                                    self.__class__))
+
+        def __str__(self):
+            cls = self.__class__
+            if self._callback():
+                return cls.__name__ + "(" + str(self._coerce_to_ndarray()) + ")"
+            else:
+                return cls.__name__ + "(INVALID)"
+
+        def __repr__(self):
+            cls = self.__class__
+            if self._callback():
+                return cls.__name__ + "(" + str(self._coerce_to_ndarray()) \
+                        + ")"
+            else:
+                return cls.__name__ + "(INVALID)"
+
+        def _repr_html_(self):
+            cls = self.__class__
+            if self._callback():
+                return "<emph>" + cls.__name__ + "</emph>" \
+                    + "(" + str(self._coerce_to_ndarray()) + ")"
+            else:
+                return "<emph>" + cls.__name__ + "</emph>" \
+                    + "(<strong>INVALID</strong>)"
