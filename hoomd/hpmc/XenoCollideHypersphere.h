@@ -70,13 +70,7 @@ const unsigned int XENOCOLLIDE_HYPERSPHERE_MAX_ITERATIONS = 1024;
     \ingroup minkowski
 */
 template<class SupportFuncA, class SupportFuncB>
-DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,
-                                  const SupportFuncB& b,
-                                  const quat<OverlapReal>& quat_l,
-                                  const quat<OverlapReal>& quat_r,
-                                  const Hypersphere& hypersphere,
-                                  const OverlapReal Ra,
-                                  unsigned int& err_count)
+DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,const SupportFuncB& b,const quat<OverlapReal>& quat_l,const quat<OverlapReal>& quat_r,const Hypersphere& hypersphere,const OverlapReal Ra,unsigned int& err_count)
     {
     // This implementation of XenoCollide is hand-written from the description of the algorithm on page 171 of _Games
     // Programming Gems 7_
@@ -436,6 +430,7 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,
     }
 
     if(side234[0] && side234[1] && side234[2] && side234[3]) return false;
+
 
     return true;
 

@@ -425,7 +425,7 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
     }
 
 DEVICE inline bool check_circumsphere_overlap_hypersphere(const ShapeConvexPolyhedron& a,
-    const ShapeConvexPolyhedron &b, const Hypersphere& hypersphere)
+    const ShapeConvexPolyhedron& b, const Hypersphere& hypersphere)
     {
     OverlapReal arc_length = detail::get_arclength_hypersphere(a.quat_l,a.quat_r,b.quat_l,b.quat_r, hypersphere);
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();

@@ -1065,7 +1065,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                             }
                         else
                             {
-                            // skip ahead
+                             //skip ahead
                             cur_node_idx += m_aabb_tree.getNodeSkip(cur_node_idx);
                             }
 
@@ -1403,6 +1403,7 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(unsigned int timestep, boo
 
                             Shape shape_j(quat_l_j, quat_r_j, m_params[typ_j]);
 
+
                             if (h_tag.data[i] <= h_tag.data[j]
                                 && h_overlaps.data[m_overlap_idx(typ_i,typ_j)]
                                 && check_circumsphere_overlap_hypersphere(shape_i, shape_j, hypersphere)
@@ -1421,7 +1422,7 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(unsigned int timestep, boo
                     }
                 else
                     {
-                    // skip ahead
+                     //skip ahead
                     cur_node_idx += m_aabb_tree.getNodeSkip(cur_node_idx);
                     }
 
