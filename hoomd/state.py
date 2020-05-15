@@ -192,3 +192,11 @@ class State:
     @property
     def local_snapshot(self):
         return LocalSnapshot(self)
+
+    @property
+    def gpu_snapshot(self):
+        if self._simulation.device.mode != 'gpu':
+            raise RuntimeError(
+                "Cannot access gpu_snapshot with a non GPU device.")
+        else:
+            return LocalSnapshotGPU(self)
