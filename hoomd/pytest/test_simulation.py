@@ -134,8 +134,6 @@ def test_state_from_gsd(simulation_factory, get_snapshot,
         sim = simulation_factory(get_snapshot(n=snap_params[0],
                                               particle_types=snap_params[1]))
         snap = sim.state.snapshot
-        box = sim.state.box
-
         snapshot_dict = {}
         snapshot_dict[0] = snap
         file.append(make_gsd_snapshot(snap))
