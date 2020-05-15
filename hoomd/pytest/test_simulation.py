@@ -125,8 +125,6 @@ def state_args(request):
 @skip_gsd
 def test_state_from_gsd(simulation_factory, get_snapshot,
                         device, state_args, tmp_path):
-    if skip_gsd:
-        pytest.skip('gsd module is not available')
     snap_params, nsteps = state_args
 
     d = tmp_path / "sub"
