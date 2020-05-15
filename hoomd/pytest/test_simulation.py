@@ -7,7 +7,7 @@ try:
     skip_gsd = False
 except ImportError:
     skip_gsd = True
-
+skip_gsd = pytest.mark.skipif(skip_gsd, reason="gsd Python package was not found.")
 
 @pytest.fixture(scope="function")
 def get_snapshot(device):
