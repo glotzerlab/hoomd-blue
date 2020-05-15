@@ -122,6 +122,7 @@ def state_args(request):
     return deepcopy(request.param)
 
 
+@skip_gsd
 def test_state_from_gsd(simulation_factory, get_snapshot,
                         device, state_args, tmp_path):
     if skip_gsd:
