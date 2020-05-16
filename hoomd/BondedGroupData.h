@@ -33,6 +33,7 @@ const unsigned int GROUP_NOT_LOCAL ((unsigned int) 0xffffffff);
 
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <memory>
+#include <type_traits>
 #ifndef __HIPCC__
 #include <pybind11/pybind11.h>
 #endif
@@ -991,4 +992,70 @@ extern char name_pair_data[];
 //! Definition of PairData
 typedef BondedGroupData<2, Bond, name_pair_data> PairData;
 
+
+template<class OUTPUT,
+         unsigned int group_size,
+         class Group,
+         const char* name,
+         bool has_type_mapping>
+class LocalGroupData : public LocalDataAccess<
+    OUTPUT, BondedGroupData<group_size, Group, name, has_type_mapping> >
+    {
+    typedef BondedGroupData<
+        group_size, Group, name, has_type_mapping> group_type;
+
+    OUTPUT getTags(bool ghost, bool include_both)
+        {
+        return this->template getBufferSameType<unsigned int, GPUVector>(
+            m_tags_handle,
+            &group_type::getTags,
+            ghost,
+            include_both
+            );
+        }
+
+    OUTPUT getRTags(bool ghost, bool include_both)
+        {
+        return this->template getBufferSameType<unsigned int, GPUVector>(
+            m_rtags_handle,
+            &group_type::getRTags,
+            ghost,
+            include_both
+            );
+        }
+
+    OUTPUT getTypeValArray(bool ghost, bool include_both)
+        {
+        // This forces resolution at compile time for the returned types
+        return this->template getBuffer<
+                typeval_t,
+                std::conditional<
+                    group_type::has_type_mapping, unsigned int, Scalar>,
+                GPUVector>(
+            m_typeval_handle,
+            &group_type::getTypeValArray,
+            ghost,
+            include_both
+            );
+
+        }
+
+    /* OUTPUT getMembersArray(bool ghost, bool include_both) */
+    /*     { */
+    /*     return this->template getBuffer< */
+    /*             group_type::members_t, unsigned int, GPUVector>( */
+    /*         m_members_handle, */
+    /*         &group_type::getMembersArray, */
+    /*         ghost, */
+    /*         include_both, */
+    /*         group_size */
+    /*         ); */
+    /*     } */
+
+    protected:
+        std::unique_ptr<ArrayHandle<unsigned int> > m_tags_handle;
+        std::unique_ptr<ArrayHandle<unsigned int> > m_rtags_handle;
+        /* std::unique_ptr<ArrayHandle<group_type::members_t> > m_members_handle; */
+        std::unique_ptr<ArrayHandle<typeval_t> > m_typeval_handle;
+    };
 #endif
