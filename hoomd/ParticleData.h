@@ -1272,7 +1272,7 @@ class PYBIND11_EXPORT LocalParticleData :
 
             OUTPUT getPosition(bool ghost=false, bool include_both=false)
                 {
-                return this->template getBuffer<Scalar4, Scalar, GlobalArray>(
+                return this->template getBuffer<Scalar4, Scalar>(
                     m_position_handle,
                     &ParticleData::getPositions,
                     ghost,
@@ -1284,7 +1284,7 @@ class PYBIND11_EXPORT LocalParticleData :
 
             OUTPUT getTypes(bool ghost=false, bool include_both=false)
             {
-                return this->template getBuffer<Scalar4, Scalar, GlobalArray>(
+                return this->template getBuffer<Scalar4, Scalar>(
                     m_position_handle,
                     &ParticleData::getPositions,
                     ghost,
@@ -1296,7 +1296,7 @@ class PYBIND11_EXPORT LocalParticleData :
 
             OUTPUT getVelocities(bool ghost=false, bool include_both=false)
             {
-                return this->template getBuffer<Scalar4, Scalar, GlobalArray>(
+                return this->template getBuffer<Scalar4, Scalar>(
                     m_velocities_handle,
                     &ParticleData::getVelocities,
                     ghost,
@@ -1309,16 +1309,17 @@ class PYBIND11_EXPORT LocalParticleData :
 
             OUTPUT getAcceleration(bool ghost=false, bool include_both=false)
                 {
-                return this->template getBuffer<Scalar3, Scalar, GlobalArray>(m_acceleration_handle,
-                                                &ParticleData::getAccelerations,
-                                                ghost,
-                                                include_both,
-                                                3);
+                return this->template getBuffer<Scalar3, Scalar>(
+                        m_acceleration_handle,
+                        &ParticleData::getAccelerations,
+                        ghost,
+                        include_both,
+                        3);
                 }
 
             OUTPUT getMasses(bool ghost=false, bool include_both=false)
                 {
-                return this->template getBuffer<Scalar4, Scalar, GlobalArray>(
+                return this->template getBuffer<Scalar4, Scalar>(
                     m_velocities_handle,
                     &ParticleData::getVelocities,
                     ghost,
@@ -1330,7 +1331,7 @@ class PYBIND11_EXPORT LocalParticleData :
 
             OUTPUT getOrientation(bool ghost=false, bool include_both=false)
                 {
-                return this->template getBuffer<Scalar4, Scalar, GlobalArray>(
+                return this->template getBuffer<Scalar4, Scalar>(
                     m_orientation_handle,
                     &ParticleData::getOrientationArray,
                     ghost,
@@ -1341,7 +1342,7 @@ class PYBIND11_EXPORT LocalParticleData :
 
             OUTPUT getAngularMomentum(bool ghost=false, bool include_both=false)
                 {
-                return this->template getBuffer<Scalar4, Scalar, GlobalArray>(
+                return this->template getBuffer<Scalar4, Scalar>(
                     m_angular_momentum_handle,
                     &ParticleData::getAngularMomentumArray,
                     ghost,
@@ -1363,7 +1364,7 @@ class PYBIND11_EXPORT LocalParticleData :
 
             OUTPUT getCharge(bool ghost=false, bool include_both=false)
                 {
-                return this->template getBuffer<Scalar, Scalar>(
+                return this->template getBufferSameType<Scalar>(
                     m_charge_handle,
                     &ParticleData::getCharges,
                     ghost,
@@ -1373,7 +1374,7 @@ class PYBIND11_EXPORT LocalParticleData :
 
             OUTPUT getDiameter(bool ghost=false, bool include_both=false)
                 {
-                return this->template getBuffer<Scalar, Scalar>(
+                return this->template getBufferSameType<Scalar>(
                     m_diameter_handle,
                     &ParticleData::getDiameters,
                     ghost,
@@ -1394,7 +1395,7 @@ class PYBIND11_EXPORT LocalParticleData :
 
             OUTPUT getTags(bool ghost=false, bool include_both=false)
                 {
-                return this->template getBuffer<unsigned int, unsigned int>(
+                return this->template getBufferSameType<unsigned int>(
                     m_tag_handle,
                     &ParticleData::getTags,
                     ghost,
@@ -1404,7 +1405,8 @@ class PYBIND11_EXPORT LocalParticleData :
 
             OUTPUT getRTags(bool ghost=false, bool include_both=false)
                 {
-                return this->template getBuffer<unsigned int, unsigned int, GlobalVector>(
+                return this->template getBufferSameType<unsigned int,
+                                                        GlobalVector>(
                     m_tag_handle,
                     &ParticleData::getRTags,
                     ghost,
@@ -1414,7 +1416,7 @@ class PYBIND11_EXPORT LocalParticleData :
 
             OUTPUT getBodies(bool ghost=false, bool include_both=false)
                 {
-                return this->template getBuffer<unsigned int, unsigned int>(
+                return this->template getBufferSameType<unsigned int>(
                     m_rigid_body_ids_handle,
                     &ParticleData::getBodies,
                     ghost,
