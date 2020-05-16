@@ -367,29 +367,30 @@ class log(hoomd.analyze._analyzer):
 # HDF5 has the restriction that the dimension of the matrices cannot change.
 # This translates to the restriction that the dimensions of the logged quantities cannot change during a simulation run.
 class HDF5LogWriter(hoomd.dump.GSDLogWriter):
-    def __init__(self,logger):
+    def __init__(self,logger,h5file):
         super().__init__(logger)
+        self.h5file = h5file
 
-    def _write_frame(self,h5file):
+    def log(self):
 
-        f = None
+        file_handle = None
         if hoomd.context.current.device.comm.rank == 0:
-        f = self.h5file
+            file_handle = self.h5file
 
-        log_dict = self.log()
-        for key in log_dict.keys():
-            if f is not None:  # Only the root rank further process the received data
-                data = log_dict[key]
-                # Check the returned object
-                if not isinstance(data, numpy.ndarray):
+        log_dict = super().log()
+        for key in log_dict:
+            if file_handle is not None:  # Only the root rank further process the received data
+                data = np.asarray( log_dict[key])
+                # Check the returned object is numpy array of numerical type
+                if data,dtype.kind in ['b','i','u','f','c']:
                     hoomd.context.current.device.cpp_msg.error("For quantity " + key + " no numpy array to log obtainable.")
                     raise RuntimeError("Error writing matrix quantity " + key)
 
-                if key not in f:
+                if key not in file_handle:
                     # Create a new container in hdf5 file, if not already existing.
-                    data_set = f.create_dataset(key, shape=(0,) + data.shape, maxshape=(None,) + data.shape)
+                    data_set = file_handle.create_dataset(key, shape=(0,) + data.shape, maxshape=(None,) + data.shape)
                 else:
-                    data_set = f[key]
+                    data_set = file_handle[key]
 
                     # check compatibility of data in file and returned matrix
                     if len(data.shape) + 1 != len(data_set.shape):
@@ -398,8 +399,8 @@ class HDF5LogWriter(hoomd.dump.GSDLogWriter):
                         hoomd.context.current.device.cpp_msg.error(msg)
                         raise RuntimeError("Error writing matrix quantity " + key)
 
-                    for i in range(len(new_matrix.shape)):
-                        if data_set.shape[i + 1] != new_matrix.shape[i]:
+                    for i in range(len(data.shape)):
+                        if data_set.shape[i + 1] != data.shape[i]:
                             msg = "Trying to log numpy array " + key + ", but dimension " + str(i) + " is "
                             msg += "incompatible with  dimension in file."
                             hoomd.context.current.device.cpp_msg.error(msg)
@@ -413,4 +414,4 @@ class HDF5LogWriter(hoomd.dump.GSDLogWriter):
 
         if hoomd.context.current.device.comm.rank == 0:
             # Flush the file after each write to maximize integrity of written data
-            f.flush()
+            file_handle.flush()
