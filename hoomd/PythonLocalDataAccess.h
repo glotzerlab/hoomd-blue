@@ -97,7 +97,7 @@ class LocalDataAccess
             }
 
     protected:
-        template <class T, class S, template<class> class U>
+        template<class T, class S, template<class> class U=GlobalArray>
         OUTPUT getBuffer(
             // handle to operate on
             std::unique_ptr<ArrayHandle<T> >& handle,
@@ -178,6 +178,23 @@ class LocalDataAccess
                 std::vector<ssize_t>({size, second_dimension_size}),
                 strides,
                 read_only);
+            }
+
+        // Helper function for when the exposed type and the internal type are
+        // the same.
+        template<class T, template<class> class U>
+        OUTPUT getBufferSameType(std::unique_ptr<ArrayHandle<T> >& handle,
+                                 const U<T>& (DATA::*get_array_func)() const,
+                                 bool ghost = false,
+                                 bool include_both = false,
+                                 unsigned int second_dimension_size = 0,
+                                 ssize_t offset = 0,
+                                 std::vector<ssize_t> strides = {})
+            {
+            return this->template getBuffer<T, T, U>(
+                handle, get_array_func, ghost, include_both,
+                second_dimension_size, offset, strides
+                );
             }
 
         virtual void clear() = 0;
