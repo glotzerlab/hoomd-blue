@@ -10,7 +10,7 @@ class Loggable(type):
     def log(cls, func=None, is_property=True, flag='scalar'):
         def helper(func):
             name = func.__name__
-            if name in cls._meta_export_dict.keys():
+            if name in cls._meta_export_dict:
                 raise KeyError("Multiple loggable quantities named "
                                "{}.".format(name))
             cls._meta_export_dict[name] = flag
@@ -130,9 +130,20 @@ class Logger(SafeNamespaceDict):
                 return namespace
 
     def __setitem__(self, namespace, value):
-        if not isinstance(value, tuple) or len(value) != 3:
-            raise ValueError("Logger expects values of "
-                             "(obj, method/property, flag)")
+        if len(value) != 3:
+            if len(value) == 2:
+                if not callable(value[0]):
+                    raise ValueError(
+                        "Expected either (callable, flag) or (obj, "
+                        "method/property, flag).")
+                else:
+                    super().__setitem__(
+                        namespace, (value[0], '__call__', value[1]))
+                    return None
+            else:
+                raise ValueError(
+                    "Expected either (callable, flag) or (obj, "
+                    "method/property, flag).")
         super().__setitem__(namespace, value)
 
     def __iadd__(self, obj):
