@@ -7,6 +7,7 @@
 
 #include "hoomd/hpmc/IntegratorHPMCMono.h"
 #include "hoomd/hpmc/IntegratorHPMCMonoGPU.cuh"
+#include "hoomd/hpmc/IntegratorHPMCMonoGPUDepletants.cuh"
 #include "IntegratorHPMCMonoGPU.cuh"
 #include "hoomd/Autotuner.h"
 #include "hoomd/GlobalArray.h"

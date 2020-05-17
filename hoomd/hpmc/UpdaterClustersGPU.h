@@ -10,6 +10,7 @@
 
 #include "UpdaterClusters.h"
 #include "UpdaterClustersGPU.cuh"
+#include "UpdaterClustersGPUDepletants.cuh"
 #include "IntegratorHPMCMonoGPU.cuh"
 
 #include <hip/hip_runtime.h>

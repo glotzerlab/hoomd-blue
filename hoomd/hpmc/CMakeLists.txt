@@ -57,6 +57,7 @@ set(_hpmc_headers
     HPMCPrecisionSetup.h
     IntegratorHPMC.h
     IntegratorHPMCMonoGPU.cuh
+    IntegratorHPMCMonoGPUDepletants.cuh
     IntegratorHPMCMonoGPUJIT.inc
     IntegratorHPMCMonoGPU.h
     IntegratorHPMCMono.h
@@ -80,6 +81,7 @@ set(_hpmc_headers
     SphinxOverlap.h
     UpdaterClusters.h
     UpdaterClustersGPU.cuh
+    UpdaterClustersGPUDepletants.cuh
     UpdaterExternalFieldWall.h
     UpdaterMuVT.h
     UpdaterRemoveDrift.h
