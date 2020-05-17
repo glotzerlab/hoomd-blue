@@ -22,9 +22,13 @@ class _ConfigurationData:
 
     @box.setter
     def box(self, box):
-        b = _hoomd.BoxDim(box[0], box[1], box[2])
-        b.setTiltFactors(box[3], box[4], box[5])
-        self._cpp_obj._global_box = b
+        if isinstance(box, hoomd.Box):
+            self._cpp_obj._global_box = hoomd.Box._from_cpp(
+                box._cpp_obj)._cpp_obj
+        else:
+            b = _hoomd.BoxDim(box[0], box[1], box[2])
+            b.setTiltFactors(box[3], box[4], box[5])
+            self._cpp_obj._global_box = b
 
 
 class Snapshot:
