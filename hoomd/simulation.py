@@ -35,7 +35,7 @@ class Simulation:
     @property
     def timestep(self):
         if not hasattr(self, '_cpp_sys'):
-            return None
+            return self._timestep
         else:
             return self._cpp_sys.getCurrentTimeStep()
 
@@ -104,8 +104,8 @@ class Simulation:
         self._state = State(self, snapshot)
 
         step = 0
-        if self._timestep is not None:
-            step = self._timestep
+        if self.timestep is not None:
+            step = self.timestep
 
         # Store System and Reader for Operations
         self._cpp_sys = _hoomd.System(self.state._cpp_sys_def, step)
