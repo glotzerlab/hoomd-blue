@@ -3,13 +3,17 @@ import pytest
 from copy import deepcopy
 
 _pairs = [
-    (hoomd.md.pair.Gauss(hoomd.md.nlist.Cell()), {'epsilon': 0.05, "sigma": 0.02}),
-    (hoomd.md.pair.LJ(hoomd.md.nlist.Cell()), {"epsilon": 0.0005, "sigma": 1}),
+    ["Gauss",
+     hoomd.md.pair.Gauss(hoomd.md.nlist.Cell()),
+     {'epsilon': 0.05, "sigma": 0.02}],
+    ["LJ",
+     hoomd.md.pair.LJ(hoomd.md.nlist.Cell()),
+     {"epsilon": 0.0005, "sigma": 1}],
 ]
 
-@pytest.fixture(scope='function', params=_pairs)
+@pytest.fixture(scope='function', params=_pairs, ids=(lambda x: x[0]))
 def pair_and_params(request):
-    return deepcopy(request.param)
+    return deepcopy(request.param[1:])
 
 def test_attach(simulation_factory, two_particle_snapshot_factory, pair_and_params):
     pair = pair_and_params[0]
