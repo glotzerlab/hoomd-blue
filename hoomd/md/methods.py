@@ -152,7 +152,7 @@ class NVT(_Method):
             raise NotAttachedError("Must be attached before calling thermalize_velocities()")
 
         step = self._sim.timestep  # need to give operations access to the sim object
-        kT = self.kT._cpp_obj.getValue(timestep)
+        kT = self.kT(timestep)
         self._cpp_obj.setRandomVelocititesParams(kT, seed)
 
 
