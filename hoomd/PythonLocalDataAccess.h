@@ -80,16 +80,23 @@ struct HOOMDDeviceBuffer
 #endif
 
 
-template <class OUTPUT, class DATA>
+// LocalDataAccess is a base class for allowing the converting of arrays stored
+// using Global or GPU arrays/vectors.
+// Output - the output buffer class for the class should be HOOMDDeviceBuffer or
+// HOOMDHostBuffer
+// Data - the class of the object we wish to expose data from
+template <class Output, class Data>
 class LocalDataAccess
     {
     public:
-        inline LocalDataAccess(DATA& data);
+        inline LocalDataAccess(Data& data);
 
         virtual ~LocalDataAccess() = default;
 
+        // signifies entering into a Python context manager
         void enter() {m_in_manager = true;}
 
+        // signifies exiting a Python context manager
         void exit()
             {
             clear();
@@ -97,12 +104,16 @@ class LocalDataAccess
             }
 
     protected:
+        // T - the value stored in the by the internal array (i.e. the template
+        // parameter of the ArrayHandle
+        // S - the exposed type of data to Python
+        // U - the array class returned by the parameter get_array_func
         template<class T, class S, template<class> class U=GlobalArray>
-        OUTPUT getBuffer(
+        Output getBuffer(
             // handle to operate on
             std::unique_ptr<ArrayHandle<T> >& handle,
             // function to use for getting array
-            const U<T>& (DATA::*get_array_func)() const,
+            const U<T>& (Data::*get_array_func)() const,
             // Whether to return ghost particles properties
             bool ghost = false,
             // Whether to return normal and ghost particles
@@ -134,7 +145,7 @@ class LocalDataAccess
                 auto mode = read_only ? access_mode::read : access_mode::readwrite;
                 std::unique_ptr<ArrayHandle<T> > new_handle(
                     new ArrayHandle<T>((m_data.*get_array_func)(),
-                    OUTPUT::device,
+                    Output::device,
                     mode));
                 handle = std::move(new_handle);
                 }
@@ -157,7 +168,7 @@ class LocalDataAccess
 
             if (strides.size() == 0 && second_dimension_size == 0)
                 {
-                return OUTPUT(
+                return Output(
                     data + offset,
                     sizeof(S),
                     pybind11::format_descriptor<S>::format(),
@@ -170,7 +181,7 @@ class LocalDataAccess
                 {
                 strides = std::vector<ssize_t>({sizeof(T), sizeof(S)});
                 }
-            return OUTPUT(
+            return Output(
                 data + offset,
                 sizeof(S),
                 pybind11::format_descriptor<S>::format(),
@@ -183,8 +194,8 @@ class LocalDataAccess
         // Helper function for when the exposed type and the internal type are
         // the same.
         template<class T, template<class> class U>
-        OUTPUT getBufferSameType(std::unique_ptr<ArrayHandle<T> >& handle,
-                                 const U<T>& (DATA::*get_array_func)() const,
+        Output getBufferSameType(std::unique_ptr<ArrayHandle<T> >& handle,
+                                 const U<T>& (Data::*get_array_func)() const,
                                  bool ghost = false,
                                  bool include_both = false,
                                  unsigned int second_dimension_size = 0,
@@ -197,15 +208,17 @@ class LocalDataAccess
                 );
             }
 
+        // clear should remove any references to ArrayHandle objects so the
+        // handle can be released for other objects.
         virtual void clear() = 0;
 
     private:
-        DATA& m_data;
+        Data& m_data;
         bool m_in_manager;
     };
 
-template <class OUTPUT, class DATA>
-LocalDataAccess<OUTPUT, DATA>::LocalDataAccess(DATA& data)
+template <class Output, class Data>
+LocalDataAccess<Output, Data>::LocalDataAccess(Data& data)
     : m_data(data), m_in_manager(false) {}
 
 void export_HOOMDHostBuffer(pybind11::module &m);
