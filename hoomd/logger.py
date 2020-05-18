@@ -1,6 +1,7 @@
 from itertools import count
 from copy import deepcopy
 from hoomd.util import is_iterable, dict_fold, dict_map, SafeNamespaceDict
+from collections.abc import Sequence
 
 
 class Loggable(type):
@@ -130,21 +131,24 @@ class Logger(SafeNamespaceDict):
                 return namespace
 
     def __setitem__(self, namespace, value):
-        if len(value) != 3:
-            if len(value) == 2:
-                if not callable(value[0]):
-                    raise ValueError(
-                        "Expected either (callable, flag) or (obj, "
-                        "method/property, flag).")
-                else:
-                    super().__setitem__(
-                        namespace, (value[0], '__call__', value[1]))
-                    return None
+        # raise errors if necessary
+        err_msg = "Expected either (callable, flag) or \
+                   (obj, method/property, flag)."
+        if not isinstance(value, Sequence):
+            raise ValueError(err_msg)
+        if not all(isinstance(v, str) for v in value[1:]):
+            raise ValueError("Method/property and flags must be strings.")
+
+        # Check length for setting with either (obj, prop, flag) or (func, flag)
+        elif len(value) == 3:
+            super().__setitem__(namespace, value)
+        elif len(value) == 2:
+            if not callable(value[0]):
+                raise ValueError(err_msg)
             else:
-                raise ValueError(
-                    "Expected either (callable, flag) or (obj, "
-                    "method/property, flag).")
-        super().__setitem__(namespace, value)
+                super().__setitem__(namespace, (value[0], '__call__', value[1]))
+        else:
+            raise ValueError(err_msg)
 
     def __iadd__(self, obj):
         self.add(obj)
