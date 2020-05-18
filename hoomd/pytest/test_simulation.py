@@ -109,10 +109,14 @@ def test_initialization(device, simulation_factory, get_snapshot):
 def test_run(simulation_factory, get_snapshot, device):
     sim = hoomd.simulation.Simulation(device)
     assert sim.timestep is None
-    sim.timestep = 10
-    assert sim.timestep == 10
-    sim.create_state_from_snapshot(get_snapshot())  # set state
-    assert sim.timestep == 10
+
+    initial_steps = 10
+    sim.timestep = initial_steps
+    assert sim._timestep == initial_steps
+    assert sim.timestep is None
+    sim.create_state_from_snapshot(get_snapshot())
+    assert sim.timestep == initial_steps
+
     with pytest.raises(RuntimeError):
         sim.timestep = 20
 
@@ -122,8 +126,8 @@ def test_run(simulation_factory, get_snapshot, device):
     for n_steps in n_step_list:
         steps += n_steps
         sim.run(n_steps)
-        assert sim.timestep == steps
-    assert sim.timestep == sum(n_step_list)
+        assert sim.timestep == steps + initial_steps
+    assert sim.timestep == sum(n_step_list) + initial_steps
 
 
 _state_args = [((10, ['A']), 10),
