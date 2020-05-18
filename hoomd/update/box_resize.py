@@ -85,10 +85,8 @@ class BoxResize(_Updater):
         This uses a :class:`hoomd.variant.Power` variant under the hood.
 
         Args:
-            initial_box (hoomd.Box): The box associated with the minimum of the
-                passed variant.
-            final_box (hoomd.Box): The box associated with the maximum of the
-                passed variant.
+            initial_box (hoomd.Box): The box associated with *t_start*.
+            final_box (hoomd.Box): The box associated with *t_start + t_ramp*.
             t_start (int): The timestep to start the volume ramp.
             t_ramp (int): The length of the volume ramp
             trigger (hoomd.trigger.Trigger): The trigger to activate this
