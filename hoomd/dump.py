@@ -618,9 +618,9 @@ class GSD(_Analyzer):
                           filter=OnlyType(_ParticleFilter, strict=True),
                           overwrite=bool(overwrite), truncate=bool(truncate),
                           dynamic=[dynamic_validation],
-                          explicit_defaults=dict(filter=filter, dynamic=dynamic)
+                          _defaults=dict(filter=filter, dynamic=dynamic)
                           )
-            )
+                )
 
         self._log = None if log is None else GSDLogWriter(log)
 

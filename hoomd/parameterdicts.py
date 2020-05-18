@@ -1,9 +1,10 @@
 from itertools import product, combinations_with_replacement
 from copy import copy, deepcopy
 from hoomd.util import to_camel_case, is_iterable
-from hoomd.typeconverter import toTypeConverter, TypeConversionError
-from hoomd.typeconverter import to_defaults, RequiredArg
-from hoomd.smart_default import toDefault, SmartDefault, NoDefault
+from hoomd.typeconverter import (
+    toTypeConverter, TypeConversionError, RequiredArg)
+from hoomd.smart_default import (
+    to_base_defaults, toDefault, SmartDefault, NoDefault)
 
 
 def has_str_elems(obj):
@@ -29,7 +30,7 @@ def proper_type_return(val):
 class _ValidatedDefaultDict:
 
     def __init__(self, *args, **kwargs):
-        explicit_defaults = kwargs.pop('explicit_defaults', NoDefault)
+        _defaults = kwargs.pop('_defaults', NoDefault)
         if len(kwargs) != 0 and len(args) != 0:
             raise ValueError("An unnamed argument and keyword arguments "
                              "cannot both be specified.")
@@ -44,7 +45,7 @@ class _ValidatedDefaultDict:
         else:
             default_arg = args[0]
         self._type_converter = toTypeConverter(default_arg)
-        self._default = toDefault(default_arg, explicit_defaults)
+        self._default = toDefault(default_arg, _defaults)
 
     def _validate_values(self, val):
         val = self._type_converter(val)
@@ -241,10 +242,6 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
         for key in keys:
             getattr(self._cpp_obj, self._setter)(key, val)
 
-    def _trusted_setitem(self, key, val):
-        for key in self._yield_keys(key):
-            getattr(self._cpp_obj, self._setter)(key, val)
-
     def _yield_keys(self, key):
         '''Includes key check for existing simulation keys.'''
         curr_keys = self.keys()
@@ -291,9 +288,9 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
 
 
 class ParameterDict(dict):
-    def __init__(self, explicit_defaults=None, **kwargs):
+    def __init__(self, _defaults=NoDefault, **kwargs):
         self._type_converter = toTypeConverter(kwargs)
-        super().__init__(**to_defaults(kwargs, explicit_defaults))
+        super().__init__(**to_base_defaults(kwargs, _defaults))
 
     def __setitem__(self, key, value):
         if key not in self._type_converter.keys():

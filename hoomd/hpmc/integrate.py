@@ -882,7 +882,7 @@ class Polyhedron(_HPMCIntegrator):
                                          overlap=[bool],
                                          ignore_statistics=False,
                                          len_keys=1,
-                                         explicit_defaults={'overlap': None}))
+                                         _defaults={'overlap': None}))
 
         self._add_typeparam(typeparam_shape)
 
@@ -1139,7 +1139,7 @@ class FacetedEllipsoid(_HPMCIntegrator):
                                          origin=(float, float, float),
                                          ignore_statistics=False,
                                          len_keys=1,
-                                         explicit_defaults={'vertices': None}))
+                                         _defaults={'vertices': None}))
         self._add_typeparam(typeparam_shape)
 
 
@@ -1511,7 +1511,7 @@ class SphereUnion(_HPMCIntegrator):
                                             overlap=[int],
                                             ignore_statistics=False,
                                             len_keys=1,
-                                            explicit_defaults={
+                                            _defaults={
                                                 'orientations': None,
                                                 'overlap': None
                                             }))
@@ -1641,7 +1641,7 @@ class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
                                          ignore_statistics=False,
                                          capacity=4,
                                          len_keys=1,
-                                         explicit_defaults={
+                                         _defaults={
                                              'orientations': None,
                                              'overlap': None
                                          }))
@@ -1785,7 +1785,7 @@ class FacetedEllipsoidUnion(_HPMCIntegrator):
                                          ignore_statistics=False,
                                          capacity=4,
                                          len_keys=1,
-                                         explicit_defaults={
+                                         _defaults={
                                              'orientations': None,
                                              'overlap': None
                                          }))

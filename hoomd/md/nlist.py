@@ -76,7 +76,7 @@ class _NList(_Operation):
                                check_dist=bool(check_dist),
                                diameter_shift=bool(diameter_shift),
                                max_diameter=float(max_diameter),
-                               explicit_defaults={'exclusions': exclusions}
+                               _defaults={'exclusions': exclusions}
                                )
         self._param_dict.update(params)
 

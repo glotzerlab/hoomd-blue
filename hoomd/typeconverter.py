@@ -239,26 +239,3 @@ def toTypeConverter(value):
         return TypeConverterMapping(value)
     else:
         return TypeConverterValue(value)
-
-
-def to_defaults(value, explicit_defaults=None):
-    if isinstance(value, dict):
-        new_default = dict()
-        # if explicit_defaults exists use those values over value
-        if explicit_defaults is not None:
-            for key, dft in value.items():
-                sub_explicit_default = explicit_defaults.get(key)
-                new_default[key] = to_defaults(dft, sub_explicit_default)
-        else:
-            for key, value in value.items():
-                new_default[key] = to_defaults(value)
-        return new_default
-    elif isclass(value) or callable(value) or \
-            (is_iterable(value) and not isinstance(value, tuple)):
-        return RequiredArg if explicit_defaults is None else explicit_defaults
-    else:
-        return value if explicit_defaults is None else explicit_defaults
-
-
-def from_spec(spec, explicit_defaults):
-    return (toTypeConverter(spec), to_defaults(spec, explicit_defaults))
