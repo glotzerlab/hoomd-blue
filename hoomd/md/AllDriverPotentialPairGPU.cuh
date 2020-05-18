@@ -18,6 +18,7 @@
 #include "EvaluatorPairFourier.h"
 #include "EvaluatorPairLJ.h"
 #include "EvaluatorPairGauss.h"
+#include "EvaluatorPairYukawa.h"
 
 //! Compute lj pair forces on the GPU with PairEvaluatorLJ
 hipError_t __attribute__((visibility("default")))
@@ -37,7 +38,7 @@ gpu_compute_slj_forces(const pair_args_t& pair_args,
 //! Compute yukawa pair forces on the GPU with PairEvaluatorGauss
 hipError_t __attribute__((visibility("default")))
 gpu_compute_yukawa_forces(const pair_args_t& pair_args,
-                          const Scalar2 *d_params);
+                          const yukawa_params *d_params);
 
 //! Compute morse pair forces on the GPU with PairEvaluatorMorse
 hipError_t __attribute__((visibility("default")))
