@@ -9,6 +9,9 @@ _pairs = [
     ["LJ",
      hoomd.md.pair.LJ(hoomd.md.nlist.Cell()),
      {"epsilon": 0.0005, "sigma": 1}],
+    ["Yukawa",
+     hoomd.md.pair.Yukawa(hoomd.md.nlist.Cell()),
+     {"epsilon": 0.0005, "kappa": 1}],
 ]
 
 @pytest.fixture(scope='function', params=_pairs, ids=(lambda x: x[0]))

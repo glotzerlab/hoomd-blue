@@ -437,15 +437,9 @@ class Yukawa(_Pair):
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         super().__init__(nlist, r_cut, r_on, mode)
         params = TypeParameter('params', 'particle_types',
-                               TypeParamDict(kappa=float, epsilon=float,
-                                             len_keys=2))
-        self.add_typeparam(params)
-
-    def process_coeff(self, coeff):
-        epsilon = coeff['epsilon'];
-        kappa = coeff['kappa'];
-
-        return _hoomd.make_scalar2(epsilon, kappa);
+                               TypeParameterDict(kappa=float, epsilon=float,
+                                                 len_keys=2))
+        self._add_typeparam(params)
 
 class Ewald(_Pair):
     R""" Ewald pair potential.
