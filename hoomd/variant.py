@@ -125,6 +125,12 @@ class Power(_hoomd.VariantPower, Variant):
     progresses at :math:`x^{power}` from *A* to *B* over *t_ramp* steps and
     holds the value *B* after that.
 
+    :code-block: python
+
+        p = Power(2, 8, 1 / 10, 10, 20)
+
+    .. image: variant-power.svg
+
     Attributes:
         A (float): The start value.
         B (float): The end value.
