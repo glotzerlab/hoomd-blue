@@ -66,14 +66,11 @@ class GPUVectorBase : public Array
         */
         virtual void resize(unsigned int new_size);
 
-        //! Resizing a vector as a matrix is not supported
-        /*!
-        */
-        virtual void resize(unsigned int width, unsigned int height)
-            {
-            this->m_exec_conf->msg->error() << "Cannot change a GPUVectorBase into a matrix." << std::endl;
-            throw std::runtime_error("Error resizing GPUVectorBase.");
-            }
+        //! Resize the GPUVectorBase
+        /*! \param new_size New number of elements
+         *  \param const value to initialize newly added elements with
+         */
+        virtual void resize(unsigned int new_size, const T& value);
 
         //! Insert an element at the end of the vector
         /*! \param val The new element
@@ -140,8 +137,11 @@ class GPUVectorBase : public Array
         //! Constructs an empty GPUVectorBase
         GPUVectorBase(std::shared_ptr<const ExecutionConfiguration> exec_conf);
 
-        //! Constructs a GPUVectorBase
+        //! Constructs a GPUVectorBase of given size
         GPUVectorBase(unsigned int size, std::shared_ptr<const ExecutionConfiguration> exec_conf);
+
+        //! Constructs a GPUVectorBase of given size, initialized with a constant value
+        GPUVectorBase(unsigned int size, const T& value, std::shared_ptr<const ExecutionConfiguration> exec_conf);
 
     #ifdef ENABLE_HIP
         //! Constructs an empty GPUVectorBase
@@ -193,6 +193,22 @@ template<class T, class Array>
 GPUVectorBase<T, Array>::GPUVectorBase(unsigned int size, std::shared_ptr<const ExecutionConfiguration> exec_conf)
      : Array(size, exec_conf), m_size(size)
     {
+    }
+
+/*! \param size Number of elements to allocate initial memory for in the array
+    \param value constant value to initialize the array with
+    \param exec_conf Shared pointer to the execution configuration
+*/
+template<class T, class Array>
+GPUVectorBase<T, Array>::GPUVectorBase(unsigned int size,
+    const T& value,
+    std::shared_ptr<const ExecutionConfiguration> exec_conf)
+     : Array(size, exec_conf), m_size(size)
+    {
+    auto dispatch = acquireHost(access_mode::readwrite);
+    T * data = dispatch.get();
+    for (unsigned int i = 0; i < size; ++i)
+        data[i] = value;
     }
 
 template<class T, class Array>
@@ -265,6 +281,20 @@ void GPUVectorBase<T, Array>::resize(unsigned int new_size)
     m_size = new_size;
     }
 
+/*!
+ \post The GPUVectorBase will be re-allocated if necessary to hold the new elements.
+       The newly allocated memory is initialized with a constant value.
+*/
+template<class T, class Array>
+void GPUVectorBase<T, Array>::resize(unsigned int new_size, const T& value)
+    {
+    unsigned int old_size = m_size;
+    resize(new_size);
+    auto dispatch = acquireHost(access_mode::readwrite);
+    T * data = dispatch.get();
+    for (unsigned int i = old_size; i < new_size; ++i)
+        data[i] = value;
+    }
 
 //! Insert an element at the end of the vector
 template<class T, class Array>
@@ -353,6 +383,11 @@ class GPUVector : public GPUVectorBase<T, GPUArray<T> >
         GPUVector(unsigned int size, std::shared_ptr<const ExecutionConfiguration> exec_conf)
             : GPUVectorBase<T, GPUArray<T> >(size, exec_conf)
             { }
+
+        //! Constructs a GPUVector
+        GPUVector(unsigned int size, const T& value, std::shared_ptr<const ExecutionConfiguration> exec_conf)
+            : GPUVectorBase<T, GPUArray<T> >(size, value, exec_conf)
+            { }
     };
 
 //******************************************
@@ -372,9 +407,14 @@ class GlobalVector : public GPUVectorBase<T, GlobalArray<T> >
             : GPUVectorBase<T, GlobalArray<T> >(exec_conf)
             { }
 
-        //! Constructs a GPUVector
+        //! Constructs a GlobalVector
         GlobalVector(unsigned int size, std::shared_ptr<const ExecutionConfiguration> exec_conf)
             : GPUVectorBase<T, GlobalArray<T> >(size, exec_conf)
+            { }
+
+        //! Constructs a GlobalVector
+        GlobalVector(unsigned int size, const T& value, std::shared_ptr<const ExecutionConfiguration> exec_conf)
+            : GPUVectorBase<T, GlobalArray<T> >(size, value, exec_conf)
             { }
 
         //! Set the tag

@@ -16,9 +16,11 @@
 #include "HPMCMiscFunctions.h"
 #include "hoomd/CachedAllocator.h"
 #include "hoomd/GPUPartition.cuh"
-#include "hoomd/hpmc/GPUHelpers.cuh"
 
-#include "IntegratorHPMCMonoGPU.cuh"
+#include "GPUHelpers.cuh"
+#include "Moves.h"
+
+#include "IntegratorHPMCMonoGPUTypes.cuh"
 
 #ifdef __HIP_PLATFORM_NVCC__
 #define MAX_BLOCK_SIZE 1024

@@ -156,7 +156,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
          * Depletant related options
          */
 
-        //! Set number of reinsertion attepmpts
+        //! Set number of reinsertion attempts
         void setNTrial(unsigned int type_a, unsigned int type_b, unsigned int ntrial)
             {
             m_ntrial[m_depletant_idx(type_a,type_b)] = ntrial;
@@ -459,8 +459,8 @@ class IntegratorHPMCMono : public IntegratorHPMC
         /* Depletants related data members */
 
         Index2D m_depletant_idx;                    //!< Indexer for deplepant type pairs
-        std::vector<Scalar> m_fugacity;             //!< Average depletant number density in free volume, per type
-        std::vector<unsigned int> m_ntrial;         //!< Number of reinsertion attempts per depletant in overlap volume, per type
+        GlobalVector<Scalar> m_fugacity;            //!< Average depletant number density in free volume, per type
+        GlobalVector<unsigned int> m_ntrial;        //!< Number of reinsertion attempts per depletant in overlap volume, per type
 
         GlobalArray<hpmc_implicit_counters_t> m_implicit_count;               //!< Counter of depletant insertions
         std::vector<hpmc_implicit_counters_t> m_implicit_count_run_start;     //!< Counter of depletant insertions at run start
@@ -507,7 +507,9 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
               m_image_list_is_initialized(false),
               m_image_list_valid(false),
               m_hasOrientation(true),
-              m_extra_image_width(0.0)
+              m_extra_image_width(0.0),
+              m_fugacity(m_exec_conf),
+              m_ntrial(m_exec_conf)
     {
     // allocate the parameter storage
     m_params = std::vector<param_type, managed_allocator<param_type> >(m_pdata->getNTypes(), param_type(), managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
@@ -535,8 +537,8 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
     m_aabb_tree_invalid = true;
 
     m_depletant_idx = Index2D(this->m_pdata->getNTypes());
-    m_fugacity.resize(m_depletant_idx.getNumElements(),0.0);
-    m_ntrial.resize(m_depletant_idx.getNumElements(), 1);
+    m_fugacity.resize(m_depletant_idx.getNumElements(), 0.0);
+    m_ntrial.resize(m_depletant_idx.getNumElements(), 0);
 
     GlobalArray<hpmc_implicit_counters_t> implicit_count(m_depletant_idx.getNumElements(),this->m_exec_conf);
     m_implicit_count.swap(implicit_count);
@@ -878,16 +880,16 @@ void IntegratorHPMCMono<Shape>::slotNumTypesChange()
 
     // depletant fugacities
     Index2D depletant_idx(this->m_pdata->getNTypes());
-    std::vector<Scalar> fugacity(depletant_idx.getNumElements(),0.0);
-    std::vector<unsigned int> ntrial(depletant_idx.getNumElements(),1);
+    GlobalVector<Scalar> fugacity(depletant_idx.getNumElements(),0.0, this->m_exec_conf);
+    GlobalVector<unsigned int> ntrial(depletant_idx.getNumElements(), 0, this->m_exec_conf);
 
     // copy over old fugacities (this assumes the number of types is greater or equal to the old number of types)
     for (unsigned int i = 0; i < m_depletant_idx.getW(); ++i)
         {
         for (unsigned int j = 0; j < m_depletant_idx.getH(); ++j)
             {
-            fugacity[depletant_idx(i,j)] = m_fugacity[m_depletant_idx(i,j)];
-            ntrial[depletant_idx(i,j)] = m_ntrial[m_depletant_idx(i,j)];
+            fugacity[depletant_idx(i,j)] = (Scalar) m_fugacity[m_depletant_idx(i,j)];
+            ntrial[depletant_idx(i,j)] = (unsigned int) m_ntrial[m_depletant_idx(i,j)];
             }
         }
     m_fugacity = fugacity;
@@ -2507,8 +2509,9 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
         {
         for (unsigned int type_b = type_a; type_b < this->m_pdata->getNTypes(); ++type_b)
             {
-            if (m_fugacity[m_depletant_idx(type_a,type_b)] == 0.0
-                || (!h_overlaps[this->m_overlap_idx(type_a, typ_i)]
+            // GlobalVector is not thread-safe, access it outside the parallel loop
+            Scalar fugacity = m_fugacity[m_depletant_idx(type_a,type_b)];
+            if (fugacity == 0.0 || (!h_overlaps[this->m_overlap_idx(type_a, typ_i)]
                 && !h_overlaps[this->m_overlap_idx(type_b, typ_i)]))
                 continue;
 
@@ -2535,7 +2538,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
             std::vector<unsigned int> tag_j_new;
             std::vector<unsigned int> seed_j_new;
 
-            bool repulsive = m_fugacity[m_depletant_idx(type_a,type_b)] < 0.0;
+            bool repulsive = fugacity < 0.0;
 
             // find neighbors whose OBBs overlap particle i's OBB in the old configuration
             Shape tmp_a(quat<Scalar>(), this->m_params[type_a]);
@@ -2761,7 +2764,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                 #endif
                     {
                     // chooose the number of depletants in the insertion OBB
-                    Scalar lambda = std::abs(m_fugacity[m_depletant_idx(type_a,type_b)])*V_i;
+                    Scalar lambda = std::abs(fugacity)*V_i;
                     hoomd::PoissonDistribution<Scalar> poisson(lambda);
                     unsigned int ntypes = this->m_pdata->getNTypes();
                     hoomd::RandomGenerator rng_num(hoomd::RNGIdentifier::HPMCDepletantNum,
@@ -3078,7 +3081,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                             }
 
                         // random number of depletants uniquely for this volume
-                        Scalar lambda = std::abs(m_fugacity[m_depletant_idx(type_a,type_b)])*V_k;
+                        Scalar lambda = std::abs(fugacity)*V_k;
                         hoomd::PoissonDistribution<Scalar> poisson(lambda);
                         unsigned int ntypes = this->m_pdata->getNTypes();
                         unsigned int seed_j = new_config ? seed_j_new[k] : seed_j_old[k];

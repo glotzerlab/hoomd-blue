@@ -57,7 +57,14 @@ set(_hpmc_headers
     HPMCPrecisionSetup.h
     IntegratorHPMC.h
     IntegratorHPMCMonoGPU.cuh
+    IntegratorHPMCMonoGPUMoves.cuh
+    IntegratorHPMCMonoGPUTypes.cuh
+    IntegratorHPMCMonoGPUHelpers.cuh
     IntegratorHPMCMonoGPUDepletants.cuh
+    IntegratorHPMCMonoGPUDepletantsAuxilliaryHelpers.cuh
+    IntegratorHPMCMonoGPUDepletantsAuxilliaryPhase1.cuh
+    IntegratorHPMCMonoGPUDepletantsAuxilliaryPhase2.cuh
+    IntegratorHPMCMonoGPUDepletantsAuxilliaryTypes.cuh
     IntegratorHPMCMonoGPUJIT.inc
     IntegratorHPMCMonoGPU.h
     IntegratorHPMCMono.h
@@ -90,6 +97,7 @@ set(_hpmc_headers
     )
 
 set(_hpmc_cu_sources IntegratorHPMCMonoGPU.cu
+                     IntegratorHPMCMonoGPUDepletants.cu
                      UpdaterClustersGPU.cu
                      )
 
@@ -100,7 +108,9 @@ set(_hpmc_kernel_templates kernel_free_volume
                            kernel_update_pdata
                            kernel_cluster_overlaps
                            kernel_cluster_depletants
-                           kernel_cluster_transform)
+                           kernel_cluster_transform
+                           kernel_depletants_auxilliary_phase1
+                           kernel_depletants_auxilliary_phase2)
 
 if(ENABLE_HIP)
     # expand the shape x GPU kernel matrix of template instantiations

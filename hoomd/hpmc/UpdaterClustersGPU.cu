@@ -2,7 +2,8 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "UpdaterClustersGPU.cuh"
-
+#include "hoomd/RandomNumbers.h"
+#include "hoomd/RNGIdentifiers.h"
 #include "Moves.h"
 
 #include <thrust/device_ptr.h>

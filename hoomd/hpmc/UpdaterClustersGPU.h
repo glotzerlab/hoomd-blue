@@ -11,7 +11,7 @@
 #include "UpdaterClusters.h"
 #include "UpdaterClustersGPU.cuh"
 #include "UpdaterClustersGPUDepletants.cuh"
-#include "IntegratorHPMCMonoGPU.cuh"
+#include "IntegratorHPMCMonoGPUDepletants.cuh"
 
 #include <hip/hip_runtime.h>
 
@@ -818,7 +818,6 @@ void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const qu
                             this->m_seed,
                             timestep,
                             this->m_exec_conf->getRank(),
-                            this->m_pdata->getNTypes(),
                             itype,
                             jtype,
                             depletant_idx,
