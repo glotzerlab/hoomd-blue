@@ -41,13 +41,7 @@ def to_camel_case(string):
 
 def is_iterable(obj):
     '''Returns True if object is iterable and not a str or dict.'''
-    return not isclass(obj) and hasattr(obj, '__iter__') \
-        and not bad_iterable_type(obj)
-
-
-def is_mapping(obj):
-    return not isclass(obj) \
-        and all([hasattr(obj, attr) for attr in ('keys', 'values', 'items')])
+    return isinstance(obj, Iterable) and not bad_iterable_type(obj)
 
 
 def bad_iterable_type(obj):
@@ -274,36 +268,3 @@ def trigger_preprocessing(trigger):
 
 class RequiredArg:
     pass
-
-
-def check_for_required(value, previous=None):
-    if is_mapping(value):
-        for k, v in value.items():
-            if previous is None:
-                check_for_required(v, [k])
-            else:
-                check_for_required(v, previous + [k])
-    elif is_iterable(value):
-        for i, v in enumerate(value):
-            if previous is None:
-                check_for_required(v, [i])
-            else:
-                check_for_required(v, previous + [i])
-    else:
-        if value is RequiredArg:
-            raise_from_previous(previous)
-        else:
-            pass
-
-
-def raise_from_previous(previous):
-    prv_str = ""
-    if previous is None:
-        pass
-    else:
-        for s in previous:
-            if isinstance(s, int):
-                prv_str += "in list item {} ".format(s)
-            else:
-                prv_str += "in key {} ".format(s)
-    raise ValueError("Expected a value, {}. Found RequiredArg.".format(prv_str))
