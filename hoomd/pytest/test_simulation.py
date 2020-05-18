@@ -110,10 +110,11 @@ def test_run(simulation_factory, get_snapshot, device):
     sim = hoomd.simulation.Simulation(device)
     assert sim.timestep is None
     sim.timestep = 10
+    assert sim.timestep == 10
     sim.create_state_from_snapshot(get_snapshot())  # set state
-    assert sim.timestep == 0
+    assert sim.timestep == 10
     with pytest.raises(RuntimeError):
-        sim.timestep = 10
+        sim.timestep = 20
 
     sim.operations.schedule()
     steps = 0
