@@ -723,11 +723,14 @@ void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const qu
                 ArrayHandle<Scalar4> d_orientation(this->m_pdata->getOrientationArray(), access_location::device, access_mode::read);
 
                 // depletants
-                auto& depletant_idx = this->m_mc->getDepletantIndexer();
+                auto depletant_idx = this->m_mc->getDepletantIndexer();
                 m_n_depletants.resize(this->m_pdata->getN()*depletant_idx.getNumElements()*this->m_pdata->getMaxN());
 
                 ArrayHandle<Scalar> d_lambda(m_lambda, access_location::device, access_mode::read);
                 ArrayHandle<unsigned int> d_n_depletants(m_n_depletants, access_location::device, access_mode::overwrite);
+
+                // depletant parameters
+                ArrayHandle<Scalar> h_fugacity(this->m_mc->getFugacityArray(), access_location::host, access_mode::read);
 
                 ArrayHandle<unsigned int> d_overflow(m_overflow, access_location::device, access_mode::readwrite);
 
@@ -803,14 +806,14 @@ void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const qu
                     {
                     for (unsigned int jtype = itype; jtype < this->m_pdata->getNTypes(); ++jtype)
                         {
-                        if (this->m_mc->getDepletantFugacity(itype,jtype) == 0)
+                        if (h_fugacity.data[depletant_idx(itype,jtype)] == 0)
                             continue;
 
                         if (itype != jtype)
                             throw std::runtime_error("Non-additive depletants are not supported by UpdaterClustersGPU.");
 
-                        if (this->m_mc->getDepletantFugacity(itype,jtype) < 0.0)
-                            throw std::runtime_error("Negative depletants are not supported by UpdaterClustersGPU.");
+                        if (h_fugacity.data[depletant_idx(itype,jtype)] < 0)
+                            throw std::runtime_error("Negative fugacities are not supported by UpdaterClustersGPU.");
 
                         // draw random number of depletant insertions per particle from Poisson distribution
                         m_tuner_num_depletants->begin();

@@ -187,6 +187,18 @@ class IntegratorHPMCMono : public IntegratorHPMC
             return m_fugacity[m_depletant_idx(type_a,type_b)];
             }
 
+        //! Returns a GlobalVector of the depletant fugacities
+        const GlobalVector<Scalar>& getFugacityArray()
+            {
+            return m_fugacity;
+            }
+
+        //! Returns a GlobalVector of the depletant ntrial values
+        const GlobalVector<Scalar>& getNtrialArray()
+            {
+            return m_ntrial;
+            }
+
         //! Get the current counter values
         std::vector<hpmc_implicit_counters_t> getImplicitCounters(unsigned int mode=0);
 
