@@ -11,7 +11,8 @@ from numpy import ndarray
 from collections.abc import Iterable, Mapping
 from inspect import isclass
 from copy import deepcopy
-from hoomd.trigger import Periodic
+from hoomd.trigger import Periodic, Trigger
+from hoomd.variant import Variant, Constant
 
 ## \internal
 # \brief Compatibility definition of a basestring for python 2/3
@@ -260,10 +261,24 @@ def array_to_strings(value):
 
 
 def trigger_preprocessing(trigger):
-    if isinstance(trigger, int):
-        return Periodic(period=int(trigger), phase=0)
-    else:
+    if isinstance(trigger, Trigger):
         return trigger
+    else:
+        try:
+            return Periodic(period=int(trigger), phase=0)
+        except Exception:
+            raise ValueError("Expected a hoomd.trigger.Trigger or int object.")
+
+
+def variant_preprocessing(variant):
+    if isinstance(variant, Variant):
+        return variant
+    else:
+        try:
+            return Constant(float(variant))
+        except Exception:
+            raise ValueError(
+                "Expected a hoomd.variant.Variant or float object.")
 
 
 class RequiredArg:

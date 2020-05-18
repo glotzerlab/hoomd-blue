@@ -13,18 +13,10 @@ from hoomd.operation import _Operation
 from hoomd.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.filter import _ParticleFilter
 from hoomd.typeparam import TypeParameter
-from hoomd.typeconverter import OnlyType 
+from hoomd.typeconverter import OnlyType
+from hoomd.variant import Variant
+from hoomd.util import variant_preprocessing
 import copy
-
-
-def create_variant(value):
-    if isinstance(value, float) or isinstance(value, int):
-        return hoomd.variant.Constant(value)
-    elif isinstance(value, hoomd.variant.Variant):
-        return value
-    else:
-        raise ValueError("Expected a scalar value or a "
-                         "hoomd.variant.Variant.")
 
 
 def none_or(type_):
@@ -849,7 +841,7 @@ class Langevin(_Method):
         # store metadata
         param_dict = ParameterDict(
             filter=OnlyType(_ParticleFilter),
-            kT=create_variant,
+            kT=OnlyType(Variant, preprocess=variant_preprocessing),
             seed=int(seed),
             alpha=OnlyType(float, allow_none=True),
             tally_reservoir_energy=bool(tally_reservoir_energy),
