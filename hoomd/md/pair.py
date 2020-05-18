@@ -297,12 +297,6 @@ class Gauss(_Pair):
                                                  len_keys=2))
         self._add_typeparam(params)
 
-    def process_coeff(self, coeff):
-        epsilon = coeff['epsilon'];
-        sigma = coeff['sigma'];
-
-        return _hoomd.make_scalar2(epsilon, sigma);
-
 class SLJ(_Pair):
     R""" Shifted Lennard-Jones pair potential.
 
