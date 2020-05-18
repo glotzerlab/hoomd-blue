@@ -196,22 +196,6 @@ void ComputeThermoGPU::computeProperties()
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-#ifdef ENABLE_MPI
-void ComputeThermoGPU::reduceProperties()
-    {
-    if (m_properties_reduced) return;
-
-    ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::readwrite);
-
-    // reduce properties
-    MPI_Allreduce(MPI_IN_PLACE, h_properties.data, thermo_index::num_quantities, MPI_HOOMD_SCALAR,
-            MPI_SUM, m_exec_conf->getMPICommunicator());
-
-    m_properties_reduced = true;
-    }
-#endif
-
-
 void export_ComputeThermoGPU(py::module& m)
     {
     py::class_<ComputeThermoGPU, ComputeThermo, std::shared_ptr<ComputeThermoGPU> >(m,"ComputeThermoGPU")
