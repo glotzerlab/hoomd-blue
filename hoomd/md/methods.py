@@ -98,8 +98,8 @@ class NVT(_Method):
             filter=OnlyType(_ParticleFilter),
             kT=create_variant,
             tau=float(tau),
-            explicit_defaults=dict(kT=kT, filter=filter)
             )
+        param_dict.update(dict(kT=kT, filter=filter))
         # set defaults
         self._param_dict.update(param_dict)
 
