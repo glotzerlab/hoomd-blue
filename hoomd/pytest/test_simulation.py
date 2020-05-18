@@ -112,8 +112,7 @@ def test_run(simulation_factory, get_snapshot, device):
 
     initial_steps = 10
     sim.timestep = initial_steps
-    assert sim._timestep == initial_steps
-    assert sim.timestep is None
+    assert sim.timestep == initial_steps
     sim.create_state_from_snapshot(get_snapshot())
     assert sim.timestep == initial_steps
 
