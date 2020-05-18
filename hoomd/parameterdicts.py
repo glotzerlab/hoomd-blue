@@ -210,10 +210,7 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
         self._type_converter = type_param_dict._type_converter
         # add all types to c++
         for key in self.keys():
-            try:
-                self._trusted_setitem(key, type_param_dict[key])
-            except Exception as err:
-                raise err.__class__("For key {}: {}".format(key, str(err)))
+            self[key] = type_param_dict[key]
 
     def to_dettached(self):
         if isinstance(self.default, dict):
@@ -332,4 +329,4 @@ class ParameterDict(dict):
 
     def setitem_with_validation_function(self, key, value, converter):
         self._type_converter[key] = converter
-        self[key] = value
+        super().__setitem__(key, value)
