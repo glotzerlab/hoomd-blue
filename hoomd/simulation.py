@@ -21,6 +21,7 @@ class Simulation:
         self._state = None
         self._operations = Operations(self)
         self._verbose = False
+        self._timestep = None
 
     @property
     def device(self):
@@ -103,8 +104,8 @@ class Simulation:
         self._state = State(self, snapshot)
 
         step = 0
-        if self.timestep is not None:
-            step = self.timestep
+        if self._timestep is not None:
+            step = self._timestep
 
         # Store System and Reader for Operations
         self._cpp_sys = _hoomd.System(self.state._cpp_sys_def, step)
