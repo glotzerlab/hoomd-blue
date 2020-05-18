@@ -21,16 +21,15 @@
 
 #ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
-
 #ifdef ENABLE_ROCTRACER
 #ifdef __HIP_PLATFORM_HCC__
 #include <roctracer/roctracer_ext.h>
 #endif
 #endif
-
 #endif
+
 #ifdef ENABLE_TBB
-#include <tbb/tbb.h>
+#include <tbb/task_scheduler_init.h>
 #endif
 
 #include "Messenger.h"
