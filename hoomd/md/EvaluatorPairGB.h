@@ -190,7 +190,7 @@ class EvaluatorPairGB
 
             // define r_cut to be along the long axis
             Scalar sigma_max = Scalar(2.0)*HOOMD_GB_MAX(params.lperp,params.lpar);
-            Scalar zetacut = (rcut*sigma/sigma_max-sigma+sigma_min)/sigma_min;
+            Scalar zetacut = rcut/sigma_max;
             Scalar zetacutsq = zetacut*zetacut;
 
             // compute the force divided by r in force_divr
