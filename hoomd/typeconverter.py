@@ -1,82 +1,64 @@
 from numpy import array, ndarray
-from copy import deepcopy
 from itertools import repeat
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from inspect import isclass
-from hoomd.util import is_iterable, is_mapping, RequiredArg
+from hoomd.util import is_iterable, RequiredArg
 
 
 class TypeConversionError(ValueError):
     pass
 
 
-def to_list(value):
-    if isinstance(value, str) or isinstance(value, dict):
-        raise ValueError
-    else:
-        return list(value)
-
-
-def to_array(value):
-    if isinstance(value, ndarray):
-        return TypeConverter(array)
-
-
-def is_string(value):
-    if not isinstance(value, str):
-        raise ValueError("Not a string.")
-    else:
+def preprocess_list(value):
+    if is_iterable:
         return value
+    else:
+        raise ValueError("Expected an iterable (excluding str and dict).")
 
 
 class _HelpValidate:
-    def __init__(self, preprocess=None, postprocess=None):
+    def __init__(self, preprocess=None, postprocess=None, allow_none=False):
         def identity(value):
             return value
 
         self._preprocess = identity if preprocess is None else preprocess
         self._postprocess = identity if postprocess is None else postprocess
+        self._allow_none = allow_none
 
     def __call__(self, value):
+        if value is None:
+            if not self._allow_none:
+                raise ValueError("None is not allowed.")
+            else:
+                return None
         return self._postprocess(self._validate(self._preprocess(value)))
 
 
-class _HelpValidateWithNone(_HelpValidate):
-    def __call__(self, value):
-        if value is None:
-            return value
-        else:
-            return super().__call__(value)
+class Either(_HelpValidate):
+    def __init__(self, specs, preprocess=None, postprocess=None):
+        super().__init__(preprocess, postprocess)
+        self.specs = specs
+
+    def _validate(self, value):
+        for spec in self.specs:
+            try:
+                return spec(value)
+            except Exception:
+                continue
+        raise ValueError("value {} not converible using {}".format(
+            value, [str(spec) for spec in self.specs]))
+
+    def __str__(self):
+        return "Either({})".format([str(spec) for spec in self.specs])
 
 
 class OnlyType(_HelpValidate):
-    def __init__(self, type_, strict=False, preprocess=None, postprocess=None):
-        super().__init__(preprocess, postprocess)
+    def __init__(self, type_, strict=False,
+                 preprocess=None, postprocess=None, allow_none=False):
+        super().__init__(preprocess, postprocess, allow_none)
         self.type = type_
         self.strict = strict
-
-    def _validate(self, value):
-        if isinstance(value, self.type):
-            return value
-        elif self.strict:
-            raise ValueError("value {} not instance of type {}."
-                             "".format(value, self.type))
-        else:
-            try:
-                return self.type(value)
-            except Exception:
-                raise ValueError("value {} not convertible into type {}."
-                                 "".format(value, self.type))
-
-    def __str__(self):
-        return "OnlyType({})".format(self.type.__name__)
-
-
-class OnlyTypeValidNone(_HelpValidateWithNone):
-    def __init__(self, type_, strict=False, preprocess=None, postprocess=None):
-        self.type = type_
-        self.strict = strict
-        super().__init__(preprocess, postprocess)
 
     def _validate(self, value):
         if isinstance(value, self.type):
@@ -93,8 +75,9 @@ class OnlyTypeValidNone(_HelpValidateWithNone):
 
 
 class OnlyFrom(_HelpValidate):
-    def __init__(self, options, preprocess=None, postprocess=None):
-        super().__init__(preprocess, postprocess)
+    def __init__(self, options,preprocess=None, postprocess=None,
+                 allow_none=False):
+        super().__init__(preprocess, postprocess, allow_none)
         self.options = set(options)
 
     def _validate(self, value):
@@ -111,18 +94,6 @@ class OnlyFrom(_HelpValidate):
         return "OnlyFrom[{}]".format(self.options)
 
 
-class MultipleOnlyFrom(OnlyFrom):
-    def _validate(self, value):
-        if all(v in self for v in value):
-            return value
-        else:
-            raise ValueError("Value {} all not in options: {}".format(
-                value, self.options))
-
-    def __str__(self):
-        return "MultipleOnlyFrom{}".format(self.options)
-
-
 class TypeConverter(ABC):
     @abstractmethod
     def __init__(self, *args, **kwargs):
@@ -134,7 +105,10 @@ class TypeConverter(ABC):
 
 
 class TypeConverterValue(TypeConverter):
-    _conversion_func_dict = {list: to_list, ndarray: to_array, str: is_string}
+    _conversion_func_dict = {
+        list: OnlyType(list, preprocess=preprocess_list),
+        ndarray: OnlyType(ndarray, preprocess=array),
+        str: OnlyType(str, strict=True)}
 
     def __init__(self, value):
         # if constructor with special default setting logic
@@ -156,7 +130,7 @@ class TypeConverterValue(TypeConverter):
     def __call__(self, value):
         try:
             return self.converter(value)
-        except (TypeError, ValueError) as err:
+        except (TypeError, ValueError, TypeConversionError) as err:
             if value is RequiredArg:
                 raise TypeConversionError("Value is a required argument")
             raise TypeConversionError(
@@ -226,7 +200,7 @@ class TypeConverterMapping(TypeConverter):
                           for key, value in mapping.items()}
 
     def __call__(self, mapping):
-        if not is_mapping(mapping):
+        if not isinstance(mapping, Mapping):
             raise TypeConversionError(
                 "Expected a dict like value. Recieved {} of type {}."
                 "".format(mapping, type(mapping)))
@@ -261,7 +235,7 @@ def toTypeConverter(value):
         return TypeConverterFixedLengthSequence(value)
     if is_iterable(value):
         return TypeConverterSequence(value)
-    elif is_mapping(value):
+    elif isinstance(value, Mapping):
         return TypeConverterMapping(value)
     else:
         return TypeConverterValue(value)

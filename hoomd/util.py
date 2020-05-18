@@ -8,6 +8,7 @@ R""" Utilities.
 
 from collections.abc import Mapping
 from numpy import ndarray
+from collections.abc import Iterable, Mapping
 from inspect import isclass
 from copy import deepcopy
 from hoomd.trigger import Periodic

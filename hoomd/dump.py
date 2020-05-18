@@ -11,7 +11,7 @@ each command writes.
 from collections import namedtuple
 from hoomd import _hoomd
 from hoomd.util import dict_flatten, array_to_strings
-from hoomd.typeconverter import MultipleOnlyFrom, OnlyType
+from hoomd.typeconverter import OnlyFrom, OnlyType
 from hoomd.filter import _ParticleFilter, All
 from hoomd.parameterdicts import ParameterDict
 from hoomd.logger import Logger
@@ -608,7 +608,7 @@ class GSD(_Analyzer):
 
         super().__init__(trigger)
 
-        dynamic_string_validation = MultipleOnlyFrom(
+        dynamic_validation = OnlyFrom(
             ['attribute', 'property', 'momentum', 'topology'],
             preprocess=array_to_strings)
 
@@ -617,7 +617,7 @@ class GSD(_Analyzer):
             ParameterDict(filename=str(filename),
                           filter=OnlyType(_ParticleFilter, strict=True),
                           overwrite=bool(overwrite), truncate=bool(truncate),
-                          dynamic=dynamic_string_validation,
+                          dynamic=[dynamic_validation],
                           explicit_defaults=dict(filter=filter, dynamic=dynamic)
                           )
             )

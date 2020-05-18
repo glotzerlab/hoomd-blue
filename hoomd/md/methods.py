@@ -851,10 +851,10 @@ class Langevin(_Method):
             filter=OnlyType(_ParticleFilter),
             kT=create_variant,
             seed=int(seed),
-            alpha=none_or(float),
+            alpha=OnlyType(float, allow_none=True),
             tally_reservoir_energy=bool(tally_reservoir_energy),
-            explicit_defaults=dict(kT=kT, alpha=alpha, filter=filter)
-            )
+        )
+        param_dict.update(dict(kT=kT, alpha=alpha, filter=filter))
         # set defaults
         self._param_dict.update(param_dict)
 
