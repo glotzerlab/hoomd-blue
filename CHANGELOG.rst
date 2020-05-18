@@ -62,6 +62,20 @@ v3.0.0 (not yet released)
 v2.x
 ----
 
+v2.9.1 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Bug fixes*
+
+* Fixed a minor bug where the variable period timestep would be off by one when
+  the timestep got sufficiently large.
+* Updated collections API to hide ``DeprecationWarning``.
+* Fix scaling of cutoff in Gay-Berne potential to scale the current maximum
+  distance based on the orientations of the particles, ensuring ellipsoidal
+  energy isocontours.
+* Misc documentation fixes.
+
+
 v2.9.0 (2020-02-03)
 ^^^^^^^^^^^^^^^^^^^
 
