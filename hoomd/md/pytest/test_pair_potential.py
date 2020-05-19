@@ -1,9 +1,3 @@
-# Like with the HPMC tests, include tests that set all param_dict and type_param
-# entries before and after attaching.
-
-
-# Test setting param dict
-
 import hoomd
 import pytest
 import numpy as np
@@ -30,27 +24,38 @@ def assert_equivalent_parameter_dicts(param_dict1, param_dict2):
 def _lj_params(particle_types):
     combos = list(combinations(particle_types, 2))
     sample_range = np.linspace(0.5, 1.5, len(combos) * 100)
-    splt = np.array_split(np.random.choice(sample_range,
-                                           size=len(combos) * 3,
-                                           replace=True),
-                          3)
-    sigmas, epsilons, r_multipliers = splt
-    return zip(combos, sigmas, epsilons, r_multipliers)
+    samples = np.array_split(np.random.choice(sample_range,
+                                              size=len(combos) * 3,
+                                              replace=True),
+                             3)
+    pair_potential = [hoomd.md.pair.LJ] * len(combos)
+    pair_potential_dicts = []
+    for i in range(len(combos)):
+        pair_potential_dicts.append({'sigma': samples[0][i],
+                                    'epsilon': samples[1][i]})
+
+    modes = np.random.choice(['none', 'shifted', 'xplor'], size=len(combos))
+    return zip(pair_potential,
+               pair_potential_dicts,
+               combos,
+               2.5 * samples[0],
+               2.5 * samples[0] * samples[2],
+               modes)
 
 
 @pytest.fixture(scope="function", params=_lj_params(['A', 'B', 'C', 'D']))
-def lj_params(request):
+def valid_params(request):
     return deepcopy(request.param)
 
 
-def test_valid_params(simulation_factory, lattice_snapshot_factory, lj_params):
-    combo, sigma, epsilon, r_multiplier = lj_params
+def test_valid_params(valid_params):
+    pair_potential, pair_potential_dict, combo, r_cut, r_on, mode = valid_params
     cell = hoomd.md.nlist.Cell()
-    lj = hoomd.md.pair.LJ(nlist=cell)
-    lj.params[combo] = dict(sigma=sigma, epsilon=epsilon)
-    lj.r_cut[combo] = 2.5 * epsilon
-    lj.r_on[combo] = lj.r_cut[combo] * r_multiplier
-    assert_equivalent_type_params(lj.params, lj.params)
-    assert_equivalent_type_params(lj.r_cut, lj.r_cut)
-    assert_equivalent_type_params(lj.r_on, lj.r_on)
-    assert_equivalent_parameter_dicts(lj.nlist._param_dict, cell._param_dict)
+    pot = pair_potential(nlist=cell, mode=mode)
+    pot.params[combo] = pair_potential_dict
+    pot.r_cut[combo] = r_cut
+    pot.r_on[combo] = r_on
+    assert_equivalent_type_params(pot.params, pot.params)
+    assert_equivalent_type_params(pot.r_cut, pot.r_cut)
+    assert_equivalent_type_params(pot.r_on, pot.r_on)
+    assert_equivalent_parameter_dicts(pot.nlist._param_dict, cell._param_dict)
