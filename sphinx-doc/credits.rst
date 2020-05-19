@@ -291,7 +291,6 @@ Luis Rivera-Rivera, University of Michigan
 
   * ``hoomd.dump.gsd.dump_shape`` implementation
 
-
 Alex Yang, Vanderbilt University
 
   * ``hoomd.md.dihedral.harmonic`` update for phase shift
@@ -300,6 +299,13 @@ Geert Kapteijns, University of Amsterdam
 
   * Bug fixes.
 
+<<<<<<< 51313bd79a430abc3090080f456aabe8beab8b0d
+=======
+Simone Ciarella, Wouter Ellenbroek, Eindhoven University of Technology
+
+ * Add RevCross potential
+
+>>>>>>> Tersoff as base class for RevCross
 HPMC developers
 ---------------
 
@@ -406,10 +412,6 @@ William Zygmunt, Luis Rivera-Rivera, University of Michigan
 
  * Patchy interaction support in HPMC CPU integrators
  * GSD state bug fixes
-
-Simone Ciarella, Wouter Ellenbroek, Eindhoven University of Technology
-
- * RevCross potential
 
 DEM developers
 --------------

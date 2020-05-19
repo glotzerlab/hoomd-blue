@@ -81,6 +81,22 @@ class EvaluatorRevCross
             rik_sq = rsq;
             }
 
+        //! This is a pure pair potential
+        DEVICE static bool hasPerParticleEnergy() { return false; }
+
+        //! We do not need chi
+        DEVICE static bool needsChi() { return false; }
+
+        //! We have ik-forces
+        DEVICE static bool hasIkForce() { return true; }
+
+        //! The RevCross potential does not need the bond angle
+        DEVICE static bool needsAngle() { return false; }
+
+        //! No need for the bond angle value
+        DEVICE void setAngle(Scalar _cos_th)
+            { }
+
         //! Check whether a pair of particles is interactive
         DEVICE bool areInteractive()
             {
@@ -107,9 +123,20 @@ class EvaluatorRevCross
             else return false;
             }
 
+        //! We do not have to evaluate chi 
+        DEVICE void evalChi(Scalar& chi)
+            { }
+
+        //! We don't have a scalar ij contribution
+        DEVICE void evalPhi(Scalar& phi)
+            { }
+
         //! Evaluate the force and potential energy due to ij interactions
         DEVICE void evalForceij(Scalar invratio,
                                 Scalar invratio2,
+				Scalar chi, // not used
+				Scalar phi, // not used
+				Scalar& bij, // not used
                                 Scalar& force_divr,
                                 Scalar& potential_eng)
             {
@@ -120,15 +147,25 @@ class EvaluatorRevCross
 	    // compute the potential energy
             potential_eng = epsilon_dev*( invratio2 - invratio);   
             }                                                                     
+        
+	DEVICE void evalSelfEnergy(Scalar& energy, Scalar phi)
+            { }
                                                                            
         //! Evaluate the forces due to ijk interactions
         DEVICE bool evalForceik(Scalar ijinvratio,
                                 Scalar ijinvratio2,
-                                Scalar& force_divr_ij,
-                                Scalar& force_divr_ik)
+				Scalar chi, // not used
+				Scalar bij, // not used
+                                Scalar3& IN_force_divr_ij,
+                                Scalar3& IN_force_divr_ik)
             {
             if (rik_sq < rcutsq)
                 {
+		// For compatibility with Tersoff I get 3d vectors in, but I need only to calculate their modulus and I store it in the x component
+		Scalar force_divr_ij=IN_force_divr_ij.x;
+		Scalar force_divr_ik=IN_force_divr_ik.x;
+
+
                 // compute rij, rik, rcut
                 Scalar rij = fast::sqrt(rij_sq);
                 Scalar rik = fast::sqrt(rik_sq);
@@ -166,6 +203,10 @@ class EvaluatorRevCross
 		       force_divr_ik = lambda3_dev * Scalar(16.0) * epsilon_dev * n_dev * ( Scalar(2.0)*ikinvratio2 - ikinvratio )*( ijinvratio2 - ijinvratio ) / rik_sq ;		
 		       	
 		}
+
+		// Return the forces
+		IN_force_divr_ij.x=force_divr_ij;
+		IN_force_divr_ik.x=force_divr_ik;
 	
                 return true;
                 }
@@ -182,6 +223,8 @@ class EvaluatorRevCross
             return std::string("revcross");
             }
         #endif
+	
+	static const bool flag_for_RevCross=true;
 
     protected:
         Scalar rij_sq; //!< Stored rij_sq from the constructor

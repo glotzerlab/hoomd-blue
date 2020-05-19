@@ -92,7 +92,6 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairYukawa.h
                 EvaluatorPairZBL.h
                 EvaluatorTersoff.h
-                EvaluatorRevCross.h
                 EvaluatorWalls.h
                 FIREEnergyMinimizerGPU.h
                 FIREEnergyMinimizer.h
@@ -135,9 +134,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 PotentialSpecialPairGPU.h
                 PotentialSpecialPair.h
                 PotentialTersoffGPU.h
-                PotentialRevCrossGPU.h
                 PotentialTersoff.h
-                PotentialRevCross.h
                 PPPMForceComputeGPU.h
                 PPPMForceCompute.h
                 QuaternionMath.h
@@ -227,7 +224,6 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       ConstraintSphereGPU.cu
                       OneDConstraintGPU.cu
                       DriverTersoffGPU.cu
-                      DriverRevCrossGPU.cu
                       Enforce2DUpdaterGPU.cu
                       FIREEnergyMinimizerGPU.cu
                       ForceCompositeGPU.cu

@@ -8,15 +8,12 @@
 #include "PotentialPair.h"
 #include "PotentialTersoff.h"
 #include "EvaluatorTersoff.h"
-#include "PotentialRevCross.h"
-#include "EvaluatorRevCross.h"
 #include "EvaluatorSquareDensity.h"
+#include "EvaluatorRevCross.h"
 
 #ifdef ENABLE_HIP
 #include "PotentialTersoffGPU.h"
 #include "DriverTersoffGPU.cuh"
-#include "PotentialRevCrossGPU.h"
-#include "DriverRevCrossGPU.cuh"
 #endif
 
 /*! \file AllTripletPotentials.h
@@ -33,16 +30,16 @@ typedef PotentialTersoff< EvaluatorTersoff > PotentialTripletTersoff;
 //! Three-body potential force compute forces for soft vdW fluid
 typedef PotentialTersoff< EvaluatorSquareDensity > PotentialTripletSquareDensity;
 
-//! Three-body potential force compute for Reversible Crosslinker
-typedef PotentialRevCross< EvaluatorRevCross > PotentialTripletRevCross;
+//! Three-body potential force compute forces for reversible crosslinkers
+typedef PotentialTersoff< EvaluatorRevCross > PotentialTripletRevCross;
 
 #ifdef ENABLE_HIP
 //! Three-body potential force compute for Tersoff forces on the GPU
 typedef PotentialTersoffGPU< EvaluatorTersoff, gpu_compute_tersoff_forces > PotentialTripletTersoffGPU;
 //! Three-body potential force compute for Tersoff forces on the GPU
 typedef PotentialTersoffGPU< EvaluatorSquareDensity, gpu_compute_sq_density_forces > PotentialTripletSquareDensityGPU;
-//! Three-body potential force compute for Reversible Crosslinker on the GPU
-typedef PotentialRevCrossGPU< EvaluatorRevCross, gpu_compute_revcross_forces > PotentialTripletRevCrossGPU;
+//! Three-body potential force compute for RevCross forces on the GPU
+typedef PotentialTersoffGPU< EvaluatorRevCross, gpu_compute_revcross_forces > PotentialTripletRevCrossGPU;
 #endif // ENABLE_HIP
 
 #endif // __TRIPLET_POTENTIALS_H__

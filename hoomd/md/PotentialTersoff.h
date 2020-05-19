@@ -271,80 +271,72 @@ Scalar PotentialTersoff< evaluator >::getLogValue(const std::string& quantity, u
 template< class evaluator >
 void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
     {
-    // start by updating the neighborlist
-    m_nlist->compute(timestep);
+    // *****  check if we need the structure of the Tersoff or the RevCross potential for evaluation	    
+    if (evaluator::flag_for_RevCross )
+	{
+	// ***** RevCross potential	
+        // start by updating the neighborlist
+        m_nlist->compute(timestep);
 
-    // start the profile for this compute
-    if (m_prof) m_prof->push(m_prof_name);
+        // start the profile for this compute
+        if (m_prof) m_prof->push(m_prof_name);
 
-    // The three-body potentials can't handle a half neighbor list, so check now.
-    bool third_law = m_nlist->getStorageMode() == NeighborList::half;
-    if (third_law)
-        {
-        m_exec_conf->msg->error() << std::endl << "PotentialTersoff cannot handle a half neighborlist"
-                                  << std::endl;
-        throw std::runtime_error("Error computing forces in PotentialTersoff");
-        }
-
-    // access the neighbor list, particle data, and system box
-    ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_head_list(m_nlist->getHeadList(), access_location::host, access_mode::read);
-
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-
-
-    //force and virial arrays
-    ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
-    ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
-
-    PDataFlags flags = this->m_pdata->getFlags();
-    bool compute_virial = flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial];
-
-    const BoxDim& box = m_pdata->getBox();
-    ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
-    ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
-
-    // need to start from a zero force, energy
-    memset(h_force.data, 0, sizeof(Scalar4)*(m_pdata->getN()+m_pdata->getNGhosts()));
-    memset(h_virial.data, 0, sizeof(Scalar)*6*m_virial_pitch);
-
-    unsigned int ntypes = m_pdata->getNTypes();
-
-    // for each particle
-    for (int i = 0; i < (int)m_pdata->getN(); i++)
-        {
-        // access the particle's position and type (MEM TRANSFER: 4 scalars)
-        Scalar3 posi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
-        unsigned int typei = __scalar_as_int(h_pos.data[i].w);
-        const unsigned int head_i = h_head_list.data[i];
-        // sanity check
-        assert(typei < m_pdata->getNTypes());
-
-        // initialize current force and potential energy of particle i to 0
-        Scalar3 fi = make_scalar3(0.0, 0.0, 0.0);
-        Scalar pei = 0.0;
-
-        Scalar viriali_xx(0.0);
-        Scalar viriali_xy(0.0);
-        Scalar viriali_xz(0.0);
-        Scalar viriali_yy(0.0);
-        Scalar viriali_yz(0.0);
-        Scalar viriali_zz(0.0);
-
-        Scalar phi_ab[ntypes];
-
-        // reset phi
-        for (unsigned int typ_b = 0; typ_b < ntypes; ++typ_b)
+        // The three-body potentials can't handle a half neighbor list, so check now.
+        bool third_law = m_nlist->getStorageMode() == NeighborList::half;
+        if (third_law)
             {
-            phi_ab[typ_b] = Scalar(0.0);
+            m_exec_conf->msg->error() << std::endl << "PotentialRevCross cannot handle a half neighborlist"
+                                      << std::endl;
+            throw std::runtime_error("Error computing forces in PotentialRevCross");
             }
 
-        // all neighbors of this particle
-        const unsigned int size = (unsigned int)h_n_neigh.data[i];
-        if (evaluator::hasPerParticleEnergy())
+        // access the neighbor list, particle data, and system box
+        ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_head_list(m_nlist->getHeadList(), access_location::host, access_mode::read);
+
+        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+
+
+        //force and virial arrays
+        ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
+
+        PDataFlags flags = this->m_pdata->getFlags();
+        bool compute_virial = flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial];
+
+        const BoxDim& box = m_pdata->getBox();
+        ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
+        ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
+
+        // need to start from a zero force, energy
+        memset(h_force.data, 0, sizeof(Scalar4)*(m_pdata->getN()+m_pdata->getNGhosts()));
+        memset(h_virial.data, 0, sizeof(Scalar)*6*m_virial_pitch);
+
+        // for each particle
+        for (int i = 0; i < (int)m_pdata->getN(); i++)
             {
+            // access the particle's position and type (MEM TRANSFER: 4 scalars)
+            Scalar3 posi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
+            unsigned int typei = __scalar_as_int(h_pos.data[i].w);
+            const unsigned int head_i = h_head_list.data[i];
+            // sanity check
+            assert(typei < m_pdata->getNTypes());
+
+            // initialize current force and potential energy of particle i to 0
+            Scalar3 fi = make_scalar3(0.0, 0.0, 0.0);
+            Scalar pei = 0.0;
+
+            Scalar virialixx(0.0);
+            Scalar virialixy(0.0);
+            Scalar virialixz(0.0);
+            Scalar virialiyy(0.0);
+            Scalar virialiyz(0.0);
+            Scalar virializz(0.0);
+
+            // loop over all of the neighbors of this particle
+            const unsigned int size = (unsigned int)h_n_neigh.data[i];
             for (unsigned int j = 0; j < size; j++)
                 {
                 // access the index of neighbor j (MEM TRANSFER: 1 scalar)
@@ -355,6 +347,10 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
                 Scalar3 posj = make_scalar3(h_pos.data[jj].x, h_pos.data[jj].y, h_pos.data[jj].z);
                 unsigned int typej = __scalar_as_int(h_pos.data[jj].w);
                 assert(typej < m_pdata->getNTypes());
+
+                // initialize the current force and potential energy of particle j to 0
+                Scalar3 fj = make_scalar3(0.0, 0.0, 0.0);
+                Scalar pej = 0.0;
 
                 // calculate dr_ij (MEM TRANSFER: 3 scalars / FLOPS: 3)
                 Scalar3 dxij = posi - posj;
@@ -370,159 +366,45 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
                 param_type param = h_params.data[typpair_idx];
                 Scalar rcutsq = h_rcutsq.data[typpair_idx];
 
-                // evaluate the scalar per-neighbor contribution
+                // evaluate the base repulsive and attractive terms
+                Scalar invratio = 0.0;
+                Scalar invratio2 = 0.0;
                 evaluator eval(rij_sq, rcutsq, param);
-                eval.evalPhi(phi_ab[typej]);
-                }
+                bool evaluated = eval.evalRepulsiveAndAttractive(invratio, invratio2);
 
-            // self-energy
-            for (unsigned int typ_b = 0; typ_b < ntypes; ++typ_b)
-                {
-                unsigned int typpair_idx = m_typpair_idx(typei,typ_b);
-                param_type param = h_params.data[typpair_idx];
-                Scalar rcutsq = h_rcutsq.data[typpair_idx];
-                evaluator eval(Scalar(0.0), rcutsq, param);
-                Scalar energy(0.0);
-                eval.evalSelfEnergy(energy, phi_ab[typ_b]);
-                pei += energy;
-                }
-            }
-
-        // loop over all of the neighbors of this particle
-        for (unsigned int j = 0; j < size; j++)
-            {
-            // access the index of neighbor j (MEM TRANSFER: 1 scalar)
-            unsigned int jj = h_nlist.data[head_i + j];
-            assert(jj < m_pdata->getN() + m_pdata->getNGhosts());
-
-            // access the position and type of particle j
-            Scalar3 posj = make_scalar3(h_pos.data[jj].x, h_pos.data[jj].y, h_pos.data[jj].z);
-            unsigned int typej = __scalar_as_int(h_pos.data[jj].w);
-            assert(typej < m_pdata->getNTypes());
-
-            // initialize the current force and potential energy of particle j to 0
-            Scalar3 fj = make_scalar3(0.0, 0.0, 0.0);
-            Scalar pej = 0.0;
-
-            // calculate dr_ij (MEM TRANSFER: 3 scalars / FLOPS: 3)
-            Scalar3 dxij = posi - posj;
-
-            // apply periodic boundary conditions
-            dxij = box.minImage(dxij);
-
-            // compute rij_sq (FLOPS: 5)
-            Scalar rij_sq = dot(dxij, dxij);
-
-            // get parameters for this type pair
-            unsigned int typpair_idx = m_typpair_idx(typei, typej);
-            param_type param = h_params.data[typpair_idx];
-            Scalar rcutsq = h_rcutsq.data[typpair_idx];
-
-            // evaluate the base repulsive and attractive terms
-            Scalar fR = 0.0;
-            Scalar fA = 0.0;
-            evaluator eval(rij_sq, rcutsq, param);
-            bool evaluated = eval.evalRepulsiveAndAttractive(fR, fA);
-
-            Scalar virialj_xx(0.0);
-            Scalar virialj_xy(0.0);
-            Scalar virialj_xz(0.0);
-            Scalar virialj_yy(0.0);
-            Scalar virialj_yz(0.0);
-            Scalar virialj_zz(0.0);
-
-            if (evaluated)
-                {
-                // evaluate chi
-                Scalar chi = 0.0;
-                if (evaluator::needsChi())
+                // Even though the i-j interaction is symmetric so in principle I could consider i>j only,
+                // I have to loop over both i-j-k and j-i-k because I search only in neighbors of of the first element
+                // (since nl are type-wise I can not even merge them because i, j and k could be different types)
+                if (evaluated)
                     {
-                    for (unsigned int k = 0; k < size; k++)
-                        {
-                        // access the index of neighbor k
-                        unsigned int kk = h_nlist.data[head_i + k];
-                        assert(kk < m_pdata->getN());
+            	//printf("\nEvaluating the pair (i,j)=(%d, %d)  from inside HOOMD CPU",i,jj);
+                    // evaluate the force and energy from the ij interaction
+                    Scalar force_divr = Scalar(0.0);
+                    Scalar potential_eng = Scalar(0.0);
+                    Scalar bij = Scalar(0.0); // not used
+                    eval.evalForceij(invratio, invratio2, Scalar(0.0), Scalar(0.0), bij, force_divr, potential_eng);
 
-                        // access the position and type of neighbor k
-                        Scalar3 posk = make_scalar3(h_pos.data[kk].x, h_pos.data[kk].y, h_pos.data[kk].z);
-                        unsigned int typek = __scalar_as_int(h_pos.data[kk].w);
-                        assert(typek < m_pdata->getNTypes());
+                    // add this force to particle i
+                    fi += force_divr * dxij;
+                    pei += potential_eng ;
 
-                        // access the type pair parameters for i and k
-                        typpair_idx = m_typpair_idx(typei, typek);
-                        param_type temp_param = h_params.data[typpair_idx];
-
-                        evaluator temp_eval(rij_sq, rcutsq, temp_param);
-                        bool temp_evaluated = temp_eval.areInteractive();
-
-                        if (kk != jj && temp_evaluated)
-                            {
-                            // compute drik
-                            Scalar3 dxik = posi - posk;
-
-                            // apply periodic boundary conditions
-                            dxik = box.minImage(dxik);
-
-                            // compute rik_sq
-                            Scalar rik_sq = dot(dxik, dxik);
-
-                            // compute the bond angle (if needed)
-                            Scalar cos_th = Scalar(0.0);
-                            if (evaluator::needsAngle())
-                                cos_th = dot(dxij, dxik) / fast::sqrt(rij_sq * rik_sq);
-
-                            // evaluate the partial chi term
-                            eval.setRik(rik_sq);
-                            if (evaluator::needsAngle())
-                                eval.setAngle(cos_th);
-
-                            eval.evalChi(chi);
-                            }
-                        }
-                    }
-
-                // evaluate the force and energy from the ij interaction
-                Scalar force_divr = Scalar(0.0);
-                Scalar potential_eng = Scalar(0.0);
-                Scalar bij = Scalar(0.0);
-                eval.evalForceij(fR, fA, chi, phi_ab[typej], bij, force_divr, potential_eng);
-
-                // add this force to particle i
-                fi += force_divr * dxij;
-                pei += potential_eng * Scalar(0.5);
-
-                if (compute_virial)
-                    {
-                    Scalar force_div2r = Scalar(0.5)*force_divr;
-
-                    viriali_xx += force_div2r*dxij.x*dxij.x;
-                    viriali_xy += force_div2r*dxij.x*dxij.y;
-                    viriali_xz += force_div2r*dxij.x*dxij.z;
-                    viriali_yy += force_div2r*dxij.y*dxij.y;
-                    viriali_yz += force_div2r*dxij.y*dxij.z;
-                    viriali_zz += force_div2r*dxij.z*dxij.z;
-                    }
-
-                // add this force to particle j
-                fj += Scalar(-1.0) * force_divr * dxij;
-                pej += potential_eng * Scalar(0.5);
-
-                if (compute_virial)
-                    {
-                    Scalar force_div2r = Scalar(0.5)*force_divr;
-
-                    virialj_xx += force_div2r*dxij.x*dxij.x;
-                    virialj_xy += force_div2r*dxij.x*dxij.y;
-                    virialj_xz += force_div2r*dxij.x*dxij.z;
-                    virialj_yy += force_div2r*dxij.y*dxij.y;
-                    virialj_yz += force_div2r*dxij.y*dxij.z;
-                    virialj_zz += force_div2r*dxij.z*dxij.z;
-                    }
-
-                if (evaluator::hasIkForce())
-                    {
+                    // add this force to particle j
+                    fj += Scalar(-1.0) * force_divr * dxij;
+                    pej += potential_eng ;
+                    
+                    //vir contribute for i j direct interaction on particle i and j
+            	if (compute_virial)
+            	    {
+                	    virialixx += force_divr*dxij.x*dxij.x;
+                	    virialixy += force_divr*dxij.x*dxij.y;
+                	    virialixz += force_divr*dxij.x*dxij.z;
+                	    virialiyy += force_divr*dxij.y*dxij.y;
+                	    virialiyz += force_divr*dxij.y*dxij.z;
+            	    	    virializz += force_divr*dxij.z*dxij.z;
+            	    }
+                    
                     // evaluate the force from the ik interactions
-                    for (unsigned int k = 0; k < size; k++)
+                    for (unsigned int k = j+1; k < size; k++)                    //I want to account only a single time for each triplets 
                         {
                         // access the index of neighbor k
                         unsigned int kk = h_nlist.data[head_i + k];
@@ -535,135 +417,495 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
 
                         // access the type pair parameters for i and k
                         typpair_idx = m_typpair_idx(typei, typek);
-                        param_type temp_param = h_params.data[typpair_idx];
-
+                        param_type temp_param = h_params.data[typpair_idx];             // use this to control the species wich have to interact
+            				
+                        // compute dr_ik
+                        Scalar3 dxik = posi - posk;
+                        // apply periodic boundary conditions
+                        dxik = box.minImage(dxik);
+                        // compute rik_sq
+                        Scalar rik_sq = dot(dxik, dxik);
+                        
+                        // check if k interacts using a temporary evaluator to analyze i-k parameters                        
                         evaluator temp_eval(rij_sq, rcutsq, temp_param);
+                        temp_eval.setRik(rik_sq);
                         bool temp_evaluated = temp_eval.areInteractive();
 
-                        if (kk != jj && temp_evaluated)
+            	    // 3 Body interaction ******
+                        if (temp_evaluated)
                             {
-                            // create variable for the force on k
-                            Scalar3 fk = make_scalar3(0.0, 0.0, 0.0);
-
-                            // compute dr_ik
-                            Scalar3 dxik = posi - posk;
-
-                            // apply periodic boundary conditions
-                            dxik = box.minImage(dxik);
-
-                            // compute rik_sq
-                            Scalar rik_sq = dot(dxik, dxik);
-
-                            // compute the bond angle (if needed)
-                            Scalar cos_th = Scalar(0.0);
-                            if (evaluator::needsAngle())
-                                cos_th = dot(dxij, dxik) / sqrt(rij_sq * rik_sq);
-
-                            // set up the evaluator
-                            eval.setRik(rik_sq);
-                            if (evaluator::needsAngle())
-                                eval.setAngle(cos_th);
-
+            		eval.setRik(rik_sq);
                             // compute the total force and energy
-                            Scalar3 force_divr_ij = make_scalar3(0.0, 0.0, 0.0);
-                            Scalar3 force_divr_ik = make_scalar3(0.0, 0.0, 0.0);
-                            eval.evalForceik(fR, fA, chi, bij, force_divr_ij, force_divr_ik);
+                            Scalar3 fk = make_scalar3(0.0, 0.0, 0.0);
+                            Scalar3 force_divr_ij_vec = make_scalar3(0.0, 0.0, 0.0);
+                            Scalar3 force_divr_ik_vec = make_scalar3(0.0, 0.0, 0.0);
+                            bool evaluatedk = eval.evalForceik(invratio,invratio2, Scalar(0.0), Scalar(0.0), force_divr_ij_vec, force_divr_ik_vec);
+            	            // k interacts with the i-j as an additional third body
+                            if(evaluatedk)
+                            	{
+				// I stored the modulus of the force in the first component
+				Scalar force_divr_ij=force_divr_ij_vec.x;
+				Scalar force_divr_ik=force_divr_ik_vec.x;
 
-                            // add the force to particle i
-                            // (FLOPS: 17)
-                            fi.x += force_divr_ij.x * dxij.x + force_divr_ik.x * dxik.x;
-                            fi.y += force_divr_ij.x * dxij.y + force_divr_ik.x * dxik.y;
-                            fi.z += force_divr_ij.x * dxij.z + force_divr_ik.x * dxik.z;
-
-                            // NOTE: virial for ik forces not tested
-                            if (compute_virial)
-                                {
-                                Scalar force_div2r_ij = Scalar(0.5)*force_divr_ij.x;
-                                Scalar force_div2r_ik = Scalar(0.5)*force_divr_ik.x;
-                                viriali_xx += force_div2r_ij*dxij.x*dxij.x + force_div2r_ik*dxik.x*dxik.x;
-                                viriali_xy += force_div2r_ij*dxij.x*dxij.y + force_div2r_ik*dxik.x*dxik.y;
-                                viriali_xz += force_div2r_ij*dxij.x*dxij.z + force_div2r_ik*dxik.x*dxik.z;
-                                viriali_yy += force_div2r_ij*dxij.y*dxij.y + force_div2r_ik*dxik.y*dxik.y;
-                                viriali_yz += force_div2r_ij*dxij.y*dxij.z + force_div2r_ik*dxik.y*dxik.z;
-                                viriali_zz += force_div2r_ij*dxij.z*dxij.z + force_div2r_ik*dxik.z*dxik.z;
-                                }
-
-                            // add the force to particle j (FLOPS: 17)
-                            fj.x += force_divr_ij.y * dxij.x + force_divr_ik.y * dxik.x;
-                            fj.y += force_divr_ij.y * dxij.y + force_divr_ik.y * dxik.y;
-                            fj.z += force_divr_ij.y * dxij.z + force_divr_ik.y * dxik.z;
-
-                            // NOTE: virial for ik forces not tested
-                            if (compute_virial)
-                                {
-                                Scalar force_div2r_ij = Scalar(0.5)*force_divr_ij.y;
-                                Scalar force_div2r_ik = Scalar(0.5)*force_divr_ik.y;
-                                virialj_xx += force_div2r_ij*dxij.x*dxij.x + force_div2r_ik*dxik.x*dxik.x;
-                                virialj_xy += force_div2r_ij*dxij.x*dxij.y + force_div2r_ik*dxik.x*dxik.y;
-                                virialj_xz += force_div2r_ij*dxij.x*dxij.z + force_div2r_ik*dxik.x*dxik.z;
-                                virialj_yy += force_div2r_ij*dxij.y*dxij.y + force_div2r_ik*dxik.y*dxik.y;
-                                virialj_yz += force_div2r_ij*dxij.y*dxij.z + force_div2r_ik*dxik.y*dxik.z;
-                                virialj_zz += force_div2r_ij*dxij.z*dxij.z + force_div2r_ik*dxik.z*dxik.z;
-                                }
-
-                            // add the force to particle k
-                            fk.x += force_divr_ij.z * dxij.x + force_divr_ik.z * dxik.x;
-                            fk.y += force_divr_ij.z * dxij.y + force_divr_ik.z * dxik.y;
-                            fk.z += force_divr_ij.z * dxij.z + force_divr_ik.z * dxik.z;
-
-                            // increment the force for particle k
-                            unsigned int mem_idx = kk;
-                            h_force.data[mem_idx].x += fk.x;
-                            h_force.data[mem_idx].y += fk.y;
-                            h_force.data[mem_idx].z += fk.z;
-
-                            if (compute_virial)
-                                {
-                                Scalar force_div2r_ij = Scalar(0.5)*force_divr_ij.z;
-                                Scalar force_div2r_ik = Scalar(0.5)*force_divr_ik.z;
-                                h_virial.data[0*m_virial_pitch+mem_idx] += force_div2r_ij*dxij.x*dxij.x + force_div2r_ik*dxik.x*dxik.x;
-                                h_virial.data[1*m_virial_pitch+mem_idx] += force_div2r_ij*dxij.x*dxij.y + force_div2r_ik*dxik.x*dxik.y;
-                                h_virial.data[2*m_virial_pitch+mem_idx] += force_div2r_ij*dxij.x*dxij.z + force_div2r_ik*dxik.x*dxik.z;
-                                h_virial.data[3*m_virial_pitch+mem_idx] += force_div2r_ij*dxij.y*dxij.y + force_div2r_ik*dxik.y*dxik.y;
-                                h_virial.data[4*m_virial_pitch+mem_idx] += force_div2r_ij*dxij.y*dxij.z + force_div2r_ik*dxik.y*dxik.z;
-                                h_virial.data[5*m_virial_pitch+mem_idx] += force_div2r_ij*dxij.z*dxij.z + force_div2r_ik*dxik.z*dxik.z;
+                            	// add the force to particle i
+                            	fi += force_divr_ij * dxij + force_divr_ik * dxik;
+                            
+                            	// add the force to particle j (FLOPS: 17)
+                            	fj += force_divr_ij * dxij * Scalar(-1.0);
+                            
+                            	// add the force to particle k
+                            	fk += force_divr_ik * dxik * Scalar(-1.0);
+                            	
+                            	if (compute_virial)
+                               	{
+                            		//***look at 3 body pressure notes
+                            		//i just need a single term to account for all of the 3 body virial that i decide to store in the i particle's data 
+                            		//and i just defined the diagonal component of pressure tensor, I don't know how the off diagonal terms can be included
+                            		virialixx += (force_divr_ij*dxij.x*dxij.x + force_divr_ik*dxik.x*dxik.x);	
+                            		virialiyy += (force_divr_ij*dxij.y*dxij.y + force_divr_ik*dxik.y*dxik.y);	
+                            		virializz += (force_divr_ij*dxij.z*dxij.z + force_divr_ik*dxik.z*dxik.z);	
+                            		virialixy += (force_divr_ij*dxij.x*dxij.y + force_divr_ik*dxik.x*dxik.y);
+                              			virialixz += (force_divr_ij*dxij.x*dxij.z + force_divr_ik*dxik.x*dxik.z);
+                            			virialiyz += (force_divr_ij*dxij.y*dxij.z + force_divr_ik*dxik.y*dxik.z);
+                                   	}
+                            
+                                         
+                            	// increment the force for particle k
+                            	unsigned int mem_idx = kk;
+                            	h_force.data[mem_idx].x += fk.x;
+                            	h_force.data[mem_idx].y += fk.y;
+                            	h_force.data[mem_idx].z += fk.z;
                                 }
                             }
                         }
                     }
-                }
-            // increment the force and potential energy for particle j
-            unsigned int mem_idx = jj;
-            h_force.data[mem_idx].x += fj.x;
-            h_force.data[mem_idx].y += fj.y;
-            h_force.data[mem_idx].z += fj.z;
-            h_force.data[mem_idx].w += pej;
+                        
+                // increment the force and potential energy for particle j
+                unsigned int mem_idx = jj;
+                h_force.data[mem_idx].x += fj.x;
+                h_force.data[mem_idx].y += fj.y;
+                h_force.data[mem_idx].z += fj.z;
+                h_force.data[mem_idx].w += pej;
 
+                }
+                
+            // finally, increment the force and potential energy for particle i
+            unsigned int mem_idx = i;
+            h_force.data[mem_idx].x += fi.x;
+            h_force.data[mem_idx].y += fi.y;
+            h_force.data[mem_idx].z += fi.z;
+            h_force.data[mem_idx].w += pei;
+            
+            //imcrement vir for i
             if (compute_virial)
                 {
-                h_virial.data[0*m_virial_pitch+mem_idx] += virialj_xx;
-                h_virial.data[1*m_virial_pitch+mem_idx] += virialj_xy;
-                h_virial.data[2*m_virial_pitch+mem_idx] += virialj_xz;
-                h_virial.data[3*m_virial_pitch+mem_idx] += virialj_yy;
-                h_virial.data[4*m_virial_pitch+mem_idx] += virialj_yz;
-                h_virial.data[5*m_virial_pitch+mem_idx] += virialj_zz;
+                h_virial.data[0*m_virial_pitch+mem_idx] += virialixx;
+                h_virial.data[1*m_virial_pitch+mem_idx] += virialixy;
+                h_virial.data[2*m_virial_pitch+mem_idx] += virialixz;
+                h_virial.data[3*m_virial_pitch+mem_idx] += virialiyy;
+                h_virial.data[4*m_virial_pitch+mem_idx] += virialiyz;
+                h_virial.data[5*m_virial_pitch+mem_idx] += virializz;
                 }
-            }
-        // finally, increment the force and potential energy for particle i
-        unsigned int mem_idx = i;
-        h_force.data[mem_idx].x += fi.x;
-        h_force.data[mem_idx].y += fi.y;
-        h_force.data[mem_idx].z += fi.z;
-        h_force.data[mem_idx].w += pei;
 
-        if (compute_virial)
+            }
+	}
+    else
+        {	    
+        // ****** Tersoff or SquareDensity potential       
+        // start by updating the neighborlist
+        m_nlist->compute(timestep);
+   
+        // start the profile for this compute
+        if (m_prof) m_prof->push(m_prof_name);
+   
+        // The three-body potentials can't handle a half neighbor list, so check now.
+        bool third_law = m_nlist->getStorageMode() == NeighborList::half;
+        if (third_law)
             {
-            h_virial.data[0*m_virial_pitch+mem_idx] += viriali_xx;
-            h_virial.data[1*m_virial_pitch+mem_idx] += viriali_xy;
-            h_virial.data[2*m_virial_pitch+mem_idx] += viriali_xz;
-            h_virial.data[3*m_virial_pitch+mem_idx] += viriali_yy;
-            h_virial.data[4*m_virial_pitch+mem_idx] += viriali_yz;
-            h_virial.data[5*m_virial_pitch+mem_idx] += viriali_zz;
+            m_exec_conf->msg->error() << std::endl << "PotentialTersoff cannot handle a half neighborlist"
+                                      << std::endl;
+            throw std::runtime_error("Error computing forces in PotentialTersoff");
+            }
+   
+        // access the neighbor list, particle data, and system box
+        ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_head_list(m_nlist->getHeadList(), access_location::host, access_mode::read);
+   
+        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+   
+   
+        //force and virial arrays
+        ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
+   
+        PDataFlags flags = this->m_pdata->getFlags();
+        bool compute_virial = flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial];
+   
+        const BoxDim& box = m_pdata->getBox();
+        ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
+        ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
+   
+        // need to start from a zero force, energy
+        memset(h_force.data, 0, sizeof(Scalar4)*(m_pdata->getN()+m_pdata->getNGhosts()));
+        memset(h_virial.data, 0, sizeof(Scalar)*6*m_virial_pitch);
+   
+        unsigned int ntypes = m_pdata->getNTypes();
+   
+        // for each particle
+        for (int i = 0; i < (int)m_pdata->getN(); i++)
+            {
+            // access the particle's position and type (MEM TRANSFER: 4 scalars)
+            Scalar3 posi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
+            unsigned int typei = __scalar_as_int(h_pos.data[i].w);
+            const unsigned int head_i = h_head_list.data[i];
+            // sanity check
+            assert(typei < m_pdata->getNTypes());
+   
+            // initialize current force and potential energy of particle i to 0
+            Scalar3 fi = make_scalar3(0.0, 0.0, 0.0);
+            Scalar pei = 0.0;
+   
+            Scalar viriali_xx(0.0);
+            Scalar viriali_xy(0.0);
+            Scalar viriali_xz(0.0);
+            Scalar viriali_yy(0.0);
+            Scalar viriali_yz(0.0);
+            Scalar viriali_zz(0.0);
+   
+            Scalar phi_ab[ntypes];
+   
+            // reset phi
+            for (unsigned int typ_b = 0; typ_b < ntypes; ++typ_b)
+                {
+                phi_ab[typ_b] = Scalar(0.0);
+                }
+   
+            // all neighbors of this particle
+            const unsigned int size = (unsigned int)h_n_neigh.data[i];
+            if (evaluator::hasPerParticleEnergy())
+                {
+                for (unsigned int j = 0; j < size; j++)
+                    {
+                    // access the index of neighbor j (MEM TRANSFER: 1 scalar)
+                    unsigned int jj = h_nlist.data[head_i + j];
+                    assert(jj < m_pdata->getN() + m_pdata->getNGhosts());
+   
+                    // access the position and type of particle j
+                    Scalar3 posj = make_scalar3(h_pos.data[jj].x, h_pos.data[jj].y, h_pos.data[jj].z);
+                    unsigned int typej = __scalar_as_int(h_pos.data[jj].w);
+                    assert(typej < m_pdata->getNTypes());
+   
+                    // calculate dr_ij (MEM TRANSFER: 3 scalars / FLOPS: 3)
+                    Scalar3 dxij = posi - posj;
+   
+                    // apply periodic boundary conditions
+                    dxij = box.minImage(dxij);
+   
+                    // compute rij_sq (FLOPS: 5)
+                    Scalar rij_sq = dot(dxij, dxij);
+   
+                    // get parameters for this type pair
+                    unsigned int typpair_idx = m_typpair_idx(typei, typej);
+                    param_type param = h_params.data[typpair_idx];
+                    Scalar rcutsq = h_rcutsq.data[typpair_idx];
+   
+                    // evaluate the scalar per-neighbor contribution
+                    evaluator eval(rij_sq, rcutsq, param);
+                    eval.evalPhi(phi_ab[typej]);
+                    }
+   
+                // self-energy
+                for (unsigned int typ_b = 0; typ_b < ntypes; ++typ_b)
+                    {
+                    unsigned int typpair_idx = m_typpair_idx(typei,typ_b);
+                    param_type param = h_params.data[typpair_idx];
+                    Scalar rcutsq = h_rcutsq.data[typpair_idx];
+                    evaluator eval(Scalar(0.0), rcutsq, param);
+                    Scalar energy(0.0);
+                    eval.evalSelfEnergy(energy, phi_ab[typ_b]);
+                    pei += energy;
+                    }
+                }
+   
+            // loop over all of the neighbors of this particle
+            for (unsigned int j = 0; j < size; j++)
+                {
+                // access the index of neighbor j (MEM TRANSFER: 1 scalar)
+                unsigned int jj = h_nlist.data[head_i + j];
+                assert(jj < m_pdata->getN() + m_pdata->getNGhosts());
+   
+                // access the position and type of particle j
+                Scalar3 posj = make_scalar3(h_pos.data[jj].x, h_pos.data[jj].y, h_pos.data[jj].z);
+                unsigned int typej = __scalar_as_int(h_pos.data[jj].w);
+                assert(typej < m_pdata->getNTypes());
+   
+                // initialize the current force and potential energy of particle j to 0
+                Scalar3 fj = make_scalar3(0.0, 0.0, 0.0);
+                Scalar pej = 0.0;
+   
+                // calculate dr_ij (MEM TRANSFER: 3 scalars / FLOPS: 3)
+                Scalar3 dxij = posi - posj;
+   
+                // apply periodic boundary conditions
+                dxij = box.minImage(dxij);
+   
+                // compute rij_sq (FLOPS: 5)
+                Scalar rij_sq = dot(dxij, dxij);
+   
+                // get parameters for this type pair
+                unsigned int typpair_idx = m_typpair_idx(typei, typej);
+                param_type param = h_params.data[typpair_idx];
+                Scalar rcutsq = h_rcutsq.data[typpair_idx];
+   
+                // evaluate the base repulsive and attractive terms
+                Scalar fR = 0.0;
+                Scalar fA = 0.0;
+                evaluator eval(rij_sq, rcutsq, param);
+                bool evaluated = eval.evalRepulsiveAndAttractive(fR, fA);
+   
+                Scalar virialj_xx(0.0);
+                Scalar virialj_xy(0.0);
+                Scalar virialj_xz(0.0);
+                Scalar virialj_yy(0.0);
+                Scalar virialj_yz(0.0);
+                Scalar virialj_zz(0.0);
+   
+                if (evaluated)
+                    {
+                    // evaluate chi
+                    Scalar chi = 0.0;
+                    if (evaluator::needsChi())
+                        {
+                        for (unsigned int k = 0; k < size; k++)
+                            {
+                            // access the index of neighbor k
+                            unsigned int kk = h_nlist.data[head_i + k];
+                            assert(kk < m_pdata->getN());
+   
+                            // access the position and type of neighbor k
+                            Scalar3 posk = make_scalar3(h_pos.data[kk].x, h_pos.data[kk].y, h_pos.data[kk].z);
+                            unsigned int typek = __scalar_as_int(h_pos.data[kk].w);
+                            assert(typek < m_pdata->getNTypes());
+   
+                            // access the type pair parameters for i and k
+                            typpair_idx = m_typpair_idx(typei, typek);
+                            param_type temp_param = h_params.data[typpair_idx];
+   
+                            evaluator temp_eval(rij_sq, rcutsq, temp_param);
+                            bool temp_evaluated = temp_eval.areInteractive();
+   
+                            if (kk != jj && temp_evaluated)
+                                {
+                                // compute drik
+                                Scalar3 dxik = posi - posk;
+   
+                                // apply periodic boundary conditions
+                                dxik = box.minImage(dxik);
+   
+                                // compute rik_sq
+                                Scalar rik_sq = dot(dxik, dxik);
+   
+                                // compute the bond angle (if needed)
+                                Scalar cos_th = Scalar(0.0);
+                                if (evaluator::needsAngle())
+                                    cos_th = dot(dxij, dxik) / fast::sqrt(rij_sq * rik_sq);
+   
+                                // evaluate the partial chi term
+                                eval.setRik(rik_sq);
+                                if (evaluator::needsAngle())
+                                    eval.setAngle(cos_th);
+   
+                                eval.evalChi(chi);
+                                }
+                            }
+                        }
+   
+                    // evaluate the force and energy from the ij interaction
+                    Scalar force_divr = Scalar(0.0);
+                    Scalar potential_eng = Scalar(0.0);
+                    Scalar bij = Scalar(0.0);
+                    eval.evalForceij(fR, fA, chi, phi_ab[typej], bij, force_divr, potential_eng);
+   
+                    // add this force to particle i
+                    fi += force_divr * dxij;
+                    pei += potential_eng * Scalar(0.5);
+   
+                    if (compute_virial)
+                        {
+                        Scalar force_div2r = Scalar(0.5)*force_divr;
+   
+                        viriali_xx += force_div2r*dxij.x*dxij.x;
+                        viriali_xy += force_div2r*dxij.x*dxij.y;
+                        viriali_xz += force_div2r*dxij.x*dxij.z;
+                        viriali_yy += force_div2r*dxij.y*dxij.y;
+                        viriali_yz += force_div2r*dxij.y*dxij.z;
+                        viriali_zz += force_div2r*dxij.z*dxij.z;
+                        }
+   
+                    // add this force to particle j
+                    fj += Scalar(-1.0) * force_divr * dxij;
+                    pej += potential_eng * Scalar(0.5);
+   
+                    if (compute_virial)
+                        {
+                        Scalar force_div2r = Scalar(0.5)*force_divr;
+   
+                        virialj_xx += force_div2r*dxij.x*dxij.x;
+                        virialj_xy += force_div2r*dxij.x*dxij.y;
+                        virialj_xz += force_div2r*dxij.x*dxij.z;
+                        virialj_yy += force_div2r*dxij.y*dxij.y;
+                        virialj_yz += force_div2r*dxij.y*dxij.z;
+                        virialj_zz += force_div2r*dxij.z*dxij.z;
+                        }
+   
+                    if (evaluator::hasIkForce())
+                        {
+                        // evaluate the force from the ik interactions
+                        for (unsigned int k = 0; k < size; k++)
+                            {
+                            // access the index of neighbor k
+                            unsigned int kk = h_nlist.data[head_i + k];
+                            assert(kk < m_pdata->getN());
+   
+                            // access the position and type of neighbor k
+                            Scalar3 posk = make_scalar3(h_pos.data[kk].x, h_pos.data[kk].y, h_pos.data[kk].z);
+                            unsigned int typek = __scalar_as_int(h_pos.data[kk].w);
+                            assert(typek < m_pdata->getNTypes());
+   
+                            // access the type pair parameters for i and k
+                            typpair_idx = m_typpair_idx(typei, typek);
+                            param_type temp_param = h_params.data[typpair_idx];
+   
+                            evaluator temp_eval(rij_sq, rcutsq, temp_param);
+                            bool temp_evaluated = temp_eval.areInteractive();
+   
+                            if (kk != jj && temp_evaluated)
+                                {
+                                // create variable for the force on k
+                                Scalar3 fk = make_scalar3(0.0, 0.0, 0.0);
+   
+                                // compute dr_ik
+                                Scalar3 dxik = posi - posk;
+   
+                                // apply periodic boundary conditions
+                                dxik = box.minImage(dxik);
+   
+                                // compute rik_sq
+                                Scalar rik_sq = dot(dxik, dxik);
+   
+                                // compute the bond angle (if needed)
+                                Scalar cos_th = Scalar(0.0);
+                                if (evaluator::needsAngle())
+                                    cos_th = dot(dxij, dxik) / sqrt(rij_sq * rik_sq);
+   
+                                // set up the evaluator
+                                eval.setRik(rik_sq);
+                                if (evaluator::needsAngle())
+                                    eval.setAngle(cos_th);
+   
+                                // compute the total force and energy
+                                Scalar3 force_divr_ij = make_scalar3(0.0, 0.0, 0.0);
+                                Scalar3 force_divr_ik = make_scalar3(0.0, 0.0, 0.0);
+                                eval.evalForceik(fR, fA, chi, bij, force_divr_ij, force_divr_ik);
+   
+                                // add the force to particle i
+                                // (FLOPS: 17)
+                                fi.x += force_divr_ij.x * dxij.x + force_divr_ik.x * dxik.x;
+                                fi.y += force_divr_ij.x * dxij.y + force_divr_ik.x * dxik.y;
+                                fi.z += force_divr_ij.x * dxij.z + force_divr_ik.x * dxik.z;
+   
+                                // NOTE: virial for ik forces not tested
+                                if (compute_virial)
+                                    {
+                                    Scalar force_div2r_ij = Scalar(0.5)*force_divr_ij.x;
+                                    Scalar force_div2r_ik = Scalar(0.5)*force_divr_ik.x;
+                                    viriali_xx += force_div2r_ij*dxij.x*dxij.x + force_div2r_ik*dxik.x*dxik.x;
+                                    viriali_xy += force_div2r_ij*dxij.x*dxij.y + force_div2r_ik*dxik.x*dxik.y;
+                                    viriali_xz += force_div2r_ij*dxij.x*dxij.z + force_div2r_ik*dxik.x*dxik.z;
+                                    viriali_yy += force_div2r_ij*dxij.y*dxij.y + force_div2r_ik*dxik.y*dxik.y;
+                                    viriali_yz += force_div2r_ij*dxij.y*dxij.z + force_div2r_ik*dxik.y*dxik.z;
+                                    viriali_zz += force_div2r_ij*dxij.z*dxij.z + force_div2r_ik*dxik.z*dxik.z;
+                                    }
+   
+                                // add the force to particle j (FLOPS: 17)
+                                fj.x += force_divr_ij.y * dxij.x + force_divr_ik.y * dxik.x;
+                                fj.y += force_divr_ij.y * dxij.y + force_divr_ik.y * dxik.y;
+                                fj.z += force_divr_ij.y * dxij.z + force_divr_ik.y * dxik.z;
+   
+                                // NOTE: virial for ik forces not tested
+                                if (compute_virial)
+                                    {
+                                    Scalar force_div2r_ij = Scalar(0.5)*force_divr_ij.y;
+                                    Scalar force_div2r_ik = Scalar(0.5)*force_divr_ik.y;
+                                    virialj_xx += force_div2r_ij*dxij.x*dxij.x + force_div2r_ik*dxik.x*dxik.x;
+                                    virialj_xy += force_div2r_ij*dxij.x*dxij.y + force_div2r_ik*dxik.x*dxik.y;
+                                    virialj_xz += force_div2r_ij*dxij.x*dxij.z + force_div2r_ik*dxik.x*dxik.z;
+                                    virialj_yy += force_div2r_ij*dxij.y*dxij.y + force_div2r_ik*dxik.y*dxik.y;
+                                    virialj_yz += force_div2r_ij*dxij.y*dxij.z + force_div2r_ik*dxik.y*dxik.z;
+                                    virialj_zz += force_div2r_ij*dxij.z*dxij.z + force_div2r_ik*dxik.z*dxik.z;
+                                    }
+   
+                                // add the force to particle k
+                                fk.x += force_divr_ij.z * dxij.x + force_divr_ik.z * dxik.x;
+                                fk.y += force_divr_ij.z * dxij.y + force_divr_ik.z * dxik.y;
+                                fk.z += force_divr_ij.z * dxij.z + force_divr_ik.z * dxik.z;
+   
+                                // increment the force for particle k
+                                unsigned int mem_idx = kk;
+                                h_force.data[mem_idx].x += fk.x;
+                                h_force.data[mem_idx].y += fk.y;
+                                h_force.data[mem_idx].z += fk.z;
+   
+                                if (compute_virial)
+                                    {
+                                    Scalar force_div2r_ij = Scalar(0.5)*force_divr_ij.z;
+                                    Scalar force_div2r_ik = Scalar(0.5)*force_divr_ik.z;
+                                    h_virial.data[0*m_virial_pitch+mem_idx] += force_div2r_ij*dxij.x*dxij.x + force_div2r_ik*dxik.x*dxik.x;
+                                    h_virial.data[1*m_virial_pitch+mem_idx] += force_div2r_ij*dxij.x*dxij.y + force_div2r_ik*dxik.x*dxik.y;
+                                    h_virial.data[2*m_virial_pitch+mem_idx] += force_div2r_ij*dxij.x*dxij.z + force_div2r_ik*dxik.x*dxik.z;
+                                    h_virial.data[3*m_virial_pitch+mem_idx] += force_div2r_ij*dxij.y*dxij.y + force_div2r_ik*dxik.y*dxik.y;
+                                    h_virial.data[4*m_virial_pitch+mem_idx] += force_div2r_ij*dxij.y*dxij.z + force_div2r_ik*dxik.y*dxik.z;
+                                    h_virial.data[5*m_virial_pitch+mem_idx] += force_div2r_ij*dxij.z*dxij.z + force_div2r_ik*dxik.z*dxik.z;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                // increment the force and potential energy for particle j
+                unsigned int mem_idx = jj;
+                h_force.data[mem_idx].x += fj.x;
+                h_force.data[mem_idx].y += fj.y;
+                h_force.data[mem_idx].z += fj.z;
+                h_force.data[mem_idx].w += pej;
+   
+                if (compute_virial)
+                    {
+                    h_virial.data[0*m_virial_pitch+mem_idx] += virialj_xx;
+                    h_virial.data[1*m_virial_pitch+mem_idx] += virialj_xy;
+                    h_virial.data[2*m_virial_pitch+mem_idx] += virialj_xz;
+                    h_virial.data[3*m_virial_pitch+mem_idx] += virialj_yy;
+                    h_virial.data[4*m_virial_pitch+mem_idx] += virialj_yz;
+                    h_virial.data[5*m_virial_pitch+mem_idx] += virialj_zz;
+                    }
+                }
+            // finally, increment the force and potential energy for particle i
+            unsigned int mem_idx = i;
+            h_force.data[mem_idx].x += fi.x;
+            h_force.data[mem_idx].y += fi.y;
+            h_force.data[mem_idx].z += fi.z;
+            h_force.data[mem_idx].w += pei;
+   
+            if (compute_virial)
+                {
+                h_virial.data[0*m_virial_pitch+mem_idx] += viriali_xx;
+                h_virial.data[1*m_virial_pitch+mem_idx] += viriali_xy;
+                h_virial.data[2*m_virial_pitch+mem_idx] += viriali_xz;
+                h_virial.data[3*m_virial_pitch+mem_idx] += viriali_yy;
+                h_virial.data[4*m_virial_pitch+mem_idx] += viriali_yz;
+                h_virial.data[5*m_virial_pitch+mem_idx] += viriali_zz;
+                }
             }
         }
 
