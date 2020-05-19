@@ -46,6 +46,7 @@ def _WrapClassFactory(
 
     return _WrapClass
 
+
 """Various list of NumPy ndarray functions.
 
 We separate them out by the kind of wrapping they need. We have to distinguish
@@ -54,6 +55,8 @@ and functions that return a new array with the same underlying data.
 """
 
 # Functions that return a new array and wrapper
+
+
 def _op_wrap(method, cls=ndarray):
     func = getattr(cls, method)
 
@@ -63,6 +66,7 @@ def _op_wrap(method, cls=ndarray):
         return func(arr, *args, **kwargs)
 
     return wrapped
+
 
 _ndarray_ops_ = ([
     # Comparison
@@ -76,7 +80,7 @@ _ndarray_ops_ = ([
     '__lshift__', '__rshift__', '__and__', '__or__', '__xor__',
     # Matrix
     '__matmul__',
-    ], _op_wrap)
+], _op_wrap)
 
 # Magic methods that never return an array to the same underlying buffer
 _magic_wrap = _op_wrap
@@ -90,9 +94,11 @@ _ndarray_magic_safe_ = ([
     '__len__', '__setitem__', '__contains__',
     # Conversion
     '__int__', '__float__', '__complex__'
-    ], _magic_wrap)
+], _magic_wrap)
 
 # Magic methods that may return an array pointing to the same buffer
+
+
 def _magic_wrap_with_check(method, cls=ndarray):
     func = getattr(cls, method)
 
@@ -101,16 +107,17 @@ def _magic_wrap_with_check(method, cls=ndarray):
         arr = self._coerce_to_ndarray()
         rtn = func(arr, *args, **kwargs)
         if isinstance(rtn, ndarray) and may_share_memory(rtn, arr):
-            return self.__class__(rtn, self._callback)
+            return self.__class__(rtn, self._callback, self.read_only)
         else:
             return rtn
 
     return wrapped
 
+
 _ndarray_magic_unsafe_ = ([
     # Container based
     '__getitem__',
-    ], _magic_wrap_with_check)
+], _magic_wrap_with_check)
 
 
 # Functions that return an array pointing to the same buffer
@@ -119,10 +126,13 @@ def _iop_wrap(method, cls=ndarray):
 
     @functools.wraps(func)
     def wrapped(self, *args, **kwargs):
+        if self.read_only:
+            raise ValueError("Cannot set to a readonly array.")
         arr = self._coerce_to_ndarray()
         return self.__class__(func(arr, *args, **kwargs), self._callback)
 
     return wrapped
+
 
 _ndarray_iops_ = ([
     # Inplace Arithmetic
@@ -130,7 +140,7 @@ _ndarray_iops_ = ([
     '__imod__', '__ipow__',
     # Inplace Bitwise
     '__ilshift__', '__irshift__', '__iand__', '__ior__', '__ixor__'
-    ], _iop_wrap)
+], _iop_wrap)
 
 # Regular functions that may return an array pointing to the same buffer
 _std_func_with_check = _magic_wrap_with_check
@@ -140,9 +150,11 @@ _ndarray_std_funcs_ = ([
     'diagonal',
     # Reshapes array
     'reshape', 'transpose', 'swapaxes', 'ravel', 'squeeze',
-    ], _std_func_with_check)
+], _std_func_with_check)
 
 # Functions that we disallow use of
+
+
 def _disallowed_wrap(method):
     def raise_error(*args, **kwargs):
         raise HOOMDArrayError(
@@ -151,11 +163,14 @@ def _disallowed_wrap(method):
 
     return raise_error
 
+
 _ndarray_disallow_funcs_ = ([
     'view', 'resize', 'flat', 'flatiter'
-    ], _disallowed_wrap)
+], _disallowed_wrap)
 
 # Properties that can return an array pointing to the same buffer
+
+
 def _wrap_properties_with_check(prop, cls=ndarray):
     prop = getattr(cls, prop)
 
@@ -165,7 +180,7 @@ def _wrap_properties_with_check(prop, cls=ndarray):
         arr = self._coerce_to_ndarray()
         rtn = getattr(arr, prop)
         if may_share_memory(rtn, arr):
-            return self.__class__(rtn, self._callback)
+            return self.__class__(rtn, self._callback, self.read_only)
         else:
             return rtn
 
@@ -176,11 +191,14 @@ def _wrap_properties_with_check(prop, cls=ndarray):
 
     return wrapped
 
+
 _ndarray_properties_ = ([
     'T'
-    ], _wrap_properties_with_check)
+], _wrap_properties_with_check)
 
 # Properties we disallow access of
+
+
 def _disallowed_property_wrap(method):
 
     @property
@@ -191,9 +209,10 @@ def _disallowed_property_wrap(method):
 
     return raise_error
 
+
 _ndarray_disallow_properties_ = ([
     'data', 'base'
-    ], _disallowed_property_wrap)
+], _disallowed_property_wrap)
 
 
 _wrap_list = [
@@ -258,6 +277,7 @@ class HOOMDArray(metaclass=_WrapClassFactory(_wrap_list)):
           arrays this only gives a few percentage performance improvements at
           greater risk of breaking your program.
     """
+
     def __init__(self, buffer, callback, read_only=None):
         """Create a HOOMDArray.
 
@@ -282,6 +302,8 @@ class HOOMDArray(metaclass=_WrapClassFactory(_wrap_list)):
                     raise ValueError(
                         "Whether the buffer is read only could not be "
                         "discerned. Pass read_only manually.")
+        else:
+            self._read_only = bool(read_only)
 
     def __array_function__(self, func, types, args, kwargs):
         """Called when a non-ufunc NumPy method is called.
@@ -392,12 +414,16 @@ class HOOMDArray(metaclass=_WrapClassFactory(_wrap_list)):
             return "<emph>" + name + "</emph>" \
                 + "(<strong>INVALID</strong>)"
 
+
 if isCUDAAvailable():
     class _HOOMDGPUArrayBase:
-        def __init__(self, buffer, callback):
+        def __init__(self, buffer, callback, read_only=None):
             self._buffer = buffer
             self._callback = callback
-            self._read_only = buffer.read_only
+            if read_only is None:
+                self._read_only = buffer.read_only
+            else:
+                self._read_only = bool(read_only)
 
         @property
         def __cuda_array_interface__(self):
@@ -422,8 +448,9 @@ if isCUDAAvailable():
             @shape.setter
             def shape(self, value):
                 raise HOOMDArrayError("Shape cannot be set on a {}. Use "
-                                    "``array.reshape`` instead.".format(
-                                        self.__class__.__name__))
+                                      "``array.reshape`` instead.".format(
+                                          self.__class__.__name__))
+
             @property
             def strides(self):
                 protocol = self._buffer.__cuda_array_interface__
@@ -437,7 +464,7 @@ if isCUDAAvailable():
                 name = self.__class__
                 if self._callback():
                     return name + "(shape=(" + str(self.shape) \
-                            + "), dtype=(" + str(self.dtype) + "))"
+                        + "), dtype=(" + str(self.dtype) + "))"
                 else:
                     return name + "(INVALID)"
 
@@ -445,7 +472,7 @@ if isCUDAAvailable():
                 name = self.__class__.__name__
                 if self._callback():
                     return name + "(shape=(" + str(self.shape) \
-                            + "), dtype=(" + str(self.dtype) + "))"
+                        + "), dtype=(" + str(self.dtype) + "))"
                 else:
                     return name + "(INVALID)"
 
@@ -453,8 +480,8 @@ if isCUDAAvailable():
                 name = self.__class__.__name__
                 if self._callback():
                     return "<emph>" + name + "</emph>" + "(shape=(" \
-                            + str(self.shape) + "), dtype=(" \
-                            + str(self.dtype) + "))"
+                        + str(self.shape) + "), dtype=(" \
+                        + str(self.dtype) + "))"
                 else:
                     return "<emph>" + name + "</emph>(<strong>INVALID</strong>)"
 
@@ -473,11 +500,11 @@ if isCUDAAvailable():
             _ndarray_disallow_funcs_,
             _ndarray_properties_,
             _ndarray_disallow_properties_
-            ]
+        ]
 
         meta = _WrapClassFactory(_wrap_gpu_array_list,
-                                allow_exceptions=True,
-                                cls=cupy.ndarray)
+                                 allow_exceptions=True,
+                                 cls=cupy.ndarray)
 
         class HOOMDGPUArray(_HOOMDGPUArrayBase, metaclass=meta):
             def __getattr__(self, item):
@@ -490,8 +517,8 @@ if isCUDAAvailable():
             @shape.setter
             def shape(self, value):
                 raise HOOMDArrayError("Shape cannot be set on a {}. Use "
-                                    "``array.reshape`` instead.".format(
-                                        self.__class__.__name__))
+                                      "``array.reshape`` instead.".format(
+                                          self.__class__.__name__))
 
             def _coerce_to_ndarray(self):
                 """Provide a `cupy.ndarray` interface to the underlying buffer.
@@ -519,7 +546,7 @@ if isCUDAAvailable():
                 name = self.__class__.__name__
                 if self._callback():
                     return name + "(" + str(self._coerce_to_ndarray()) \
-                            + ")"
+                        + ")"
                 else:
                     return name + "(INVALID)"
 
