@@ -38,7 +38,7 @@ gpu_compute_slj_forces(const pair_args_t& pair_args,
 //! Compute yukawa pair forces on the GPU with PairEvaluatorGauss
 hipError_t __attribute__((visibility("default")))
 gpu_compute_yukawa_forces(const pair_args_t& pair_args,
-                          const yukawa_params *d_params);
+                          const EvaluatorPairYukawa::param_type *d_params);
 
 //! Compute morse pair forces on the GPU with PairEvaluatorMorse
 hipError_t __attribute__((visibility("default")))

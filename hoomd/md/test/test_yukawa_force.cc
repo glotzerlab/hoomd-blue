@@ -66,7 +66,7 @@ void yukawa_force_particle_test(yukawaforce_creator yukawa_creator, std::shared_
     // first test: choose a basic set of values
     Scalar epsilon = Scalar(1.15);
     Scalar kappa = Scalar(0.6);
-    fc_3->setParams(0,0,yukawa_params(epsilon,kappa));
+    fc_3->setParams(0,0,EvaluatorPairYukawa::param_type(epsilon,kappa));
 
     // compute the forces
     fc_3->compute(0);
@@ -158,8 +158,8 @@ void yukawa_force_comparison_test(yukawaforce_creator yukawa_creator1,
     Scalar kappa = Scalar(6.0);
 
     // specify the force parameters
-    fc1->setParams(0,0,yukawa_params(epsilon,kappa));
-    fc2->setParams(0,0,yukawa_params(epsilon,kappa));
+    fc1->setParams(0,0,EvaluatorPairYukawa::param_type(epsilon,kappa));
+    fc2->setParams(0,0,EvaluatorPairYukawa::param_type(epsilon,kappa));
 
     // compute the forces
     fc1->compute(0);
