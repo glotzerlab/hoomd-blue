@@ -357,6 +357,30 @@ PYBIND11_MODULE(_hoomd, m)
     export_BondedGroupData<ConstraintData,Constraint>(m,"ConstraintData","ConstraintDataSnapshot");
     export_BondedGroupData<PairData,Bond>(m,"PairData","PairDataSnapshot",false);
 
+    export_LocalGroupData<HOOMDHostBuffer, BondData>(m, "LocalBondDataHost");
+    export_LocalGroupData<HOOMDHostBuffer, AngleData>(m, "LocalAngleDataHost");
+    export_LocalGroupData<HOOMDHostBuffer, DihedralData>(
+        m, "LocalDihedralDataHost");
+    export_LocalGroupData<HOOMDHostBuffer, ImproperData>(
+        m, "LocalImproperDataHost");
+    export_LocalGroupData<HOOMDHostBuffer, ConstraintData>(
+        m, "LocalConstraintDataHost");
+    export_LocalGroupData<HOOMDHostBuffer, PairData>(m, "LocalPairDataHost");
+    #if ENABLE_HIP
+    export_LocalGroupData<HOOMDDeviceBuffer, BondData>(
+        m, "LocalBondDataDevice");
+    export_LocalGroupData<HOOMDDeviceBuffer, AngleData>(
+        m, "LocalAngleDataDevice");
+    export_LocalGroupData<HOOMDDeviceBuffer, DihedralData>(
+        m, "LocalDihedralDataDevice");
+    export_LocalGroupData<HOOMDDeviceBuffer, ImproperData>(
+        m, "LocalImproperDataDevice");
+    export_LocalGroupData<HOOMDDeviceBuffer, ConstraintData>(
+        m, "LocalConstraintDataDevice");
+    export_LocalGroupData<HOOMDDeviceBuffer, PairData>(
+        m, "LocalPairDataDevice");
+    #endif
+
     // initializers
     export_GSDReader(m);
     getardump::export_GetarInitializer(m);

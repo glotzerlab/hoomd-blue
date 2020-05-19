@@ -993,69 +993,97 @@ extern char name_pair_data[];
 typedef BondedGroupData<2, Bond, name_pair_data> PairData;
 
 
-template<class OUTPUT,
-         unsigned int group_size,
-         class Group,
-         const char* name,
-         bool has_type_mapping>
-class LocalGroupData : public LocalDataAccess<
-    OUTPUT, BondedGroupData<group_size, Group, name, has_type_mapping> >
+template<class Output, class GroupData>
+class LocalGroupData : public LocalDataAccess<Output, GroupData>
     {
-    typedef BondedGroupData<
-        group_size, Group, name, has_type_mapping> group_type;
+    public:
+        LocalGroupData(GroupData& data)
+            : LocalDataAccess<Output, GroupData>(data),
+            m_tags_handle(nullptr),
+            m_rtags_handle(nullptr),
+            m_members_handle(nullptr),
+            m_typeval_handle(nullptr) {}
 
-    OUTPUT getTags(bool ghost, bool include_both)
-        {
-        return this->template getBufferSameType<unsigned int, GPUVector>(
-            m_tags_handle,
-            &group_type::getTags,
-            ghost,
-            include_both
-            );
-        }
+        virtual ~LocalGroupData() = default;
 
-    OUTPUT getRTags(bool ghost, bool include_both)
-        {
-        return this->template getBufferSameType<unsigned int, GPUVector>(
-            m_rtags_handle,
-            &group_type::getRTags,
-            ghost,
-            include_both
-            );
-        }
+        Output getTags(bool ghost, bool include_both)
+            {
+            return this->template getBufferSameType<unsigned int, GPUVector>(
+                m_tags_handle,
+                &GroupData::getTags,
+                ghost,
+                include_both
+                );
+            }
 
-    OUTPUT getTypeValArray(bool ghost, bool include_both)
-        {
-        // This forces resolution at compile time for the returned types
-        return this->template getBuffer<
-                typeval_t,
-                std::conditional<
-                    group_type::has_type_mapping, unsigned int, Scalar>,
-                GPUVector>(
-            m_typeval_handle,
-            &group_type::getTypeValArray,
-            ghost,
-            include_both
-            );
+        Output getRTags(bool ghost, bool include_both)
+            {
+            return this->template getBufferSameType<unsigned int, GPUVector>(
+                m_rtags_handle,
+                &GroupData::getRTags,
+                ghost,
+                include_both
+                );
+            }
 
-        }
+        Output getTypeVal(bool ghost, bool include_both)
+            {
+            // This forces resolution at compile time for the returned types
+            return this->template getBuffer<
+                    typeval_t,
+                    typename std::conditional<
+                        GroupData::typemap_val, unsigned int, Scalar>::type,
+                        GPUVector>(
+                m_typeval_handle,
+                &GroupData::getTypeValArray,
+                ghost,
+                include_both
+                );
 
-    /* OUTPUT getMembersArray(bool ghost, bool include_both) */
-    /*     { */
-    /*     return this->template getBuffer< */
-    /*             group_type::members_t, unsigned int, GPUVector>( */
-    /*         m_members_handle, */
-    /*         &group_type::getMembersArray, */
-    /*         ghost, */
-    /*         include_both, */
-    /*         group_size */
-    /*         ); */
-    /*     } */
+            }
+
+        Output getMembers(bool ghost, bool include_both)
+            {
+            return this->template getBuffer<typename GroupData::members_t,
+                                            unsigned int, GPUVector>(
+                m_members_handle,
+                &GroupData::getMembersArray,
+                ghost,
+                include_both,
+                GroupData::size
+                );
+            }
 
     protected:
+        void clear()
+            {
+            m_tags_handle.reset(nullptr);
+            m_rtags_handle.reset(nullptr);
+            m_typeval_handle.reset(nullptr);
+            m_members_handle.reset(nullptr);
+            }
+
         std::unique_ptr<ArrayHandle<unsigned int> > m_tags_handle;
         std::unique_ptr<ArrayHandle<unsigned int> > m_rtags_handle;
-        /* std::unique_ptr<ArrayHandle<group_type::members_t> > m_members_handle; */
+        std::unique_ptr<ArrayHandle<typename GroupData::members_t>
+                       > m_members_handle;
         std::unique_ptr<ArrayHandle<typeval_t> > m_typeval_handle;
+
     };
+
+template<class Output, class Data>
+void export_LocalGroupData(pybind11::module& m, std::string name)
+    {
+    pybind11::class_<LocalGroupData<Output, Data>,
+                     std::shared_ptr<LocalGroupData<Output, Data> > >(
+        m, name.c_str())
+    .def(pybind11::init<Data&>())
+    .def("getTags", &LocalGroupData<Output, Data>::getTags)
+    .def("getRTags", &LocalGroupData<Output, Data>::getRTags)
+    .def("getTypeVal", &LocalGroupData<Output, Data>::getTypeVal)
+    .def("getMembers", &LocalGroupData<Output, Data>::getMembers)
+    .def("enter", &LocalGroupData<Output, Data>::enter)
+    .def("exit", &LocalGroupData<Output, Data>::exit)
+    ;
+    }
 #endif
