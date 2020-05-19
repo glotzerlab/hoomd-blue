@@ -23,7 +23,7 @@
 //! Compute lj pair forces on the GPU with PairEvaluatorLJ
 hipError_t __attribute__((visibility("default")))
 gpu_compute_ljtemp_forces(const pair_args_t& pair_args,
-                          const lj_params *d_params);
+                          const EvaluatorPairLJ::param_type *d_params);
 
 //! Compute gauss pair forces on the GPU with PairEvaluatorGauss
 hipError_t __attribute__((visibility("default")))

@@ -27,45 +27,6 @@
 #define DEVICE
 #endif
 
-struct lj_params
-    {
-    Scalar lj1;
-    Scalar lj2;
-
-    #ifdef ENABLE_HIP
-    //! Set CUDA memory hints
-    void set_memory_hint() const
-        {
-        // default implementation does nothing
-        }
-    #endif
-
-    #ifndef __HIPCC__
-    lj_params() {lj1 = 0; lj2 = 0;}
-
-    lj_params(pybind11::dict v)
-        {
-        auto sigma(v["sigma"].cast<Scalar>());
-        auto epsilon(v["epsilon"].cast<Scalar>());
-        lj1 = 4.0 * epsilon * pow(sigma, 12.0);
-        lj2 = 4.0 * epsilon * pow(sigma, 6.0);
-        }
-
-    pybind11::dict asDict()
-        {
-        pybind11::dict v;
-        auto sigma6 = lj1 / lj2;
-        v["sigma"] = pow(sigma6, 1. / 6.);
-        v["epsilon"] = lj2 / (sigma6 * 4);
-        return v;
-        }
-    #endif
-    }
-    #ifdef SINGLE_PRECISION
-    __attribute__((aligned(8)));
-    #else
-    __attribute__((aligned(16)));
-    #endif
 
 //! Class for evaluating the LJ pair potential
 /*! <b>General Overview</b>
@@ -137,7 +98,53 @@ class EvaluatorPairLJ
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef lj_params param_type;
+        struct param_type
+            {
+            Scalar lj1;
+            Scalar lj2;
+
+            #ifdef ENABLE_HIP
+            //! Set CUDA memory hints
+            void set_memory_hint() const
+                {
+                // default implementation does nothing
+                }
+            #endif
+
+            #ifndef __HIPCC__
+            param_type() {lj1 = 0; lj2 = 0;}
+
+            param_type(pybind11::dict v)
+                {
+                auto sigma(v["sigma"].cast<Scalar>());
+                auto epsilon(v["epsilon"].cast<Scalar>());
+                lj1 = 4.0 * epsilon * pow(sigma, 12.0);
+                lj2 = 4.0 * epsilon * pow(sigma, 6.0);
+                }
+
+            // this constructor facilitates unit testing
+            param_type(Scalar sigma, Scalar epsilon, Scalar alpha=1.0)
+                {
+                lj1 = 4.0 * epsilon * pow(sigma, 12.0);
+                lj2 = 4.0 * epsilon * alpha * pow(sigma, 6.0);
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+                auto sigma6 = lj1 / lj2;
+                v["sigma"] = pow(sigma6, 1. / 6.);
+                v["epsilon"] = lj2 / (sigma6 * 4);
+                return v;
+                }
+            #endif
+            }
+            #ifdef SINGLE_PRECISION
+            __attribute__((aligned(8)));
+            #else
+            __attribute__((aligned(16)));
+            #endif
+
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
