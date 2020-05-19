@@ -22,10 +22,16 @@ def assert_equivalent_parameter_dicts(param_dict1, param_dict2):
         assert param_dict1[key] == param_dict2[key]
 
 
-def _lj_params(particle_types):
-    combos = list(itertools.combinations_with_replacement(particle_types, 2))
-    N = len(combos)
-    combos = [combos for i in range(1)]
+def _lj_params():
+    particle_types_list = [['A'], ['A', 'B'],
+                           ['A', 'B', 'C'],
+                           ['A', 'B', 'C', 'D']]
+    combos = []
+    for particle_types in particle_types_list:
+        type_combo = list(itertools.combinations_with_replacement(particle_types,
+                                                                  2))
+        combos.append(type_combo)
+        N = len(type_combo)
     sample_range = np.linspace(0.5, 1.5, 100)
     samples = np.array_split(np.random.choice(sample_range,
                                               size=N * len(combos) * 3,
@@ -58,7 +64,7 @@ def _lj_params(particle_types):
                modes)
 
 
-@pytest.fixture(scope="function", params=_lj_params(['A', 'B', 'C', 'D']))
+@pytest.fixture(scope="function", params=_lj_params())
 def valid_params(request):
     return deepcopy(request.param)
 
@@ -78,10 +84,10 @@ def test_valid_params(valid_params):
     assert_equivalent_parameter_dicts(pot.nlist._param_dict, cell._param_dict)
 
 
-def test_attached_params(simulation_factory, two_particle_snapshot_factory,
-                         valid_params, lattice_snapshot_factory):
+def test_attached_params(simulation_factory, lattice_snapshot_factory,
+                         valid_params):
     pair_potential, pair_potential_dict, r_cut, r_on, mode = valid_params
-    particle_types = ['A', 'B', 'C', 'D']
+    particle_types = list(set(itertools.chain.from_iterable(r_cut.keys())))
     cell = hoomd.md.nlist.Cell()
     pot = pair_potential(nlist=cell, r_cut=2.5)
 
