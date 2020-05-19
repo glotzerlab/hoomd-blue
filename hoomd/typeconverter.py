@@ -53,6 +53,19 @@ class Either(_HelpValidate):
         return "Either({})".format([str(spec) for spec in self.specs])
 
 
+class OnlyIf(_HelpValidate):
+    def __init__(self, cond,
+                 preprocess=None, postprocess=None, allow_none=False):
+        super().__init__(preprocess, postprocess, allow_none)
+        self.cond = cond
+
+    def _validate(self, value):
+        return self.cond(value)
+
+    def __str__(self):
+        return "OnlyIf({})".format(str(self.cond))
+
+
 class OnlyType(_HelpValidate):
     def __init__(self, type_, strict=False,
                  preprocess=None, postprocess=None, allow_none=False):
