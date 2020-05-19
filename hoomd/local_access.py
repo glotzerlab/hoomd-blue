@@ -103,19 +103,131 @@ class ParticleLocalAccessCPU(_ParticleLocalAccess):
     _array_cls = HOOMDArray
 
 
+class _GroupLocalAccess(_LocalAccess):
+    @property
+    @abstractmethod
+    def _cpp_cls(self):
+        pass
+
+    @property
+    @abstractmethod
+    def _cpp_data_get_method(self):
+        pass
+
+    _fields = {
+        'typeid': 'getTypeVal',
+        'group': 'getMembers',
+        'tags': 'getTags',
+        'rtags': 'getRTags'
+    }
+
+    def __init__(self, state):
+        super().__init__()
+        object.__setattr__(
+            self, '_cpp_obj',
+            self._cpp_cls(
+                getattr(state._cpp_sys_def, self._cpp_data_get_method)()
+            )
+        )
+
+
+class BondLocalAccessCPU(_GroupLocalAccess):
+    _cpp_cls = _hoomd.LocalBondDataHost
+    _cpp_data_get_method = "getBondData"
+    _array_cls = HOOMDArray
+
+
+class AngleLocalAccessCPU(_GroupLocalAccess):
+    _cpp_cls = _hoomd.LocalAngleDataHost
+    _cpp_data_get_method = "getAngleData"
+    _array_cls = HOOMDArray
+
+
+class DihedralLocalAccessCPU(_GroupLocalAccess):
+    _cpp_cls = _hoomd.LocalDihedralDataHost
+    _cpp_data_get_method = "getDihedralData"
+    _array_cls = HOOMDArray
+
+
+class ImproperLocalAccessCPU(_GroupLocalAccess):
+    _cpp_cls = _hoomd.LocalImproperDataHost
+    _cpp_data_get_method = "getImproperData"
+    _array_cls = HOOMDArray
+
+
+class ConstraintLocalAccessCPU(_GroupLocalAccess):
+    _fields = {
+        'constraint': 'getTypeVal',
+        'group': 'getMembers',
+        'tags': 'getTags',
+        'rtags': 'getRTags'
+    }
+    _cpp_cls = _hoomd.LocalConstraintDataHost
+    _cpp_data_get_method = "getConstraintData"
+    _array_cls = HOOMDArray
+
+
+class PairLocalAccessCPU(_GroupLocalAccess):
+    _cpp_cls = _hoomd.LocalPairDataHost
+    _cpp_data_get_method = "getPairData"
+    _array_cls = HOOMDArray
+
+
 class _LocalSnapshotBase:
     @property
     def particles(self):
         return self._particles
 
+    @property
+    def bonds(self):
+        return self._bonds
+
+    @property
+    def angles(self):
+        return self._angles
+
+    @property
+    def dihedrals(self):
+        return self._dihedrals
+
+    @property
+    def impropers(self):
+        return self._impropers
+
+    @property
+    def constraints(self):
+        return self._constraints
+
+    @property
+    def pairs(self):
+        return self._pairs
+
     def __enter__(self):
         self._particles._enter()
+        self._bonds._enter()
+        self._angles._enter()
+        self._dihedrals._enter()
+        self._impropers._enter()
+        self._constraints._enter()
+        self._pairs._enter()
         return self
 
     def __exit__(self, type, value, traceback):
         self._particles._exit()
+        self._bonds._exit()
+        self._angles._exit()
+        self._dihedrals._exit()
+        self._impropers._exit()
+        self._constraints._exit()
+        self._pairs._exit()
 
 
 class LocalSnapshot(_LocalSnapshotBase):
     def __init__(self, state):
         self._particles = ParticleLocalAccessCPU(state)
+        self._bonds = BondLocalAccessCPU(state)
+        self._angles = AngleLocalAccessCPU(state)
+        self._dihedrals = DihedralLocalAccessCPU(state)
+        self._impropers = ImproperLocalAccessCPU(state)
+        self._pairs = PairLocalAccessCPU(state)
+        self._constraints = ConstraintLocalAccessCPU(state)
