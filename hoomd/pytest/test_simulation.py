@@ -55,19 +55,23 @@ def update_positions(snap):
     return snap
 
 
-def assert_equivalent_snapshots(snap1, snap2):
-    for attr in dir(snap2):
-        if attr[0] != '_' and attr not in ['exists', 'replicate']:
-            for prop in dir(getattr(snap2, attr)):
-                if prop[0] != '_':
-                    if prop == 'types':
-                        assert getattr(getattr(snap1, attr), prop) == \
-                            getattr(getattr(snap2, attr), prop)
-                    else:
-                        np.testing.assert_allclose(getattr(getattr(snap1, attr),
-                                                           prop),
-                                                   getattr(getattr(snap2, attr),
-                                                           prop))
+def assert_equivalent_snapshots(gsd_snap, hoomd_snap):
+    for attr in dir(hoomd_snap):
+        if attr[0] == '_' or attr in ['exists', 'replicate']:
+            continue
+        for prop in dir(getattr(hoomd_snap, attr)):
+            if prop[0] == '_':
+                continue
+            elif prop == 'types':
+                if hoomd_snap.exists:
+                    assert getattr(getattr(gsd_snap, attr), prop) == \
+                        getattr(getattr(hoomd_snap, attr), prop)
+            else:
+                if hoomd_snap.exists:
+                    np.testing.assert_allclose(
+                        getattr(getattr(gsd_snap, attr), prop),
+                        getattr(getattr(hoomd_snap, attr), prop)
+                    )
 
 
 def assert_equivalent_boxes(box1, box2):
