@@ -194,7 +194,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
             }
 
         //! Returns a GlobalVector of the depletant ntrial values
-        const GlobalVector<Scalar>& getNtrialArray()
+        const GlobalVector<unsigned int>& getNtrialArray()
             {
             return m_ntrial;
             }
