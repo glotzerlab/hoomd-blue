@@ -25,49 +25,6 @@
 #define DEVICE
 #endif
 
-struct gauss_params
-    {
-    Scalar epsilon;
-    Scalar sigma;
-
-    #ifdef ENABLE_HIP
-    // set CUDA memory hints
-    void set_memory_hint() const
-        {
-        // default implementation does nothing
-        }
-    #endif
-
-    #ifndef __HIPCC__
-    gauss_params() {sigma = 0; epsilon = 0;}
-
-    gauss_params(pybind11::dict v)
-        {
-        sigma = v["sigma"].cast<Scalar>();
-        epsilon = v["epsilon"].cast<Scalar>();
-        }
-
-    // used to facilitate unit testing
-    gauss_params(Scalar eps, Scalar sig)
-        {
-        sigma = sig;
-        epsilon = eps;
-        }
-
-    pybind11::dict asDict()
-        {
-        pybind11::dict v;
-        v["sigma"] = sigma;
-        v["epsilon"] = epsilon;
-        return v;
-        }
-    #endif
-    }
-    #ifdef SINGLE_PRECISION
-    __attribute__((aligned(8)));
-    #else
-    __attribute__((aligned(16)));
-    #endif
 
 //! Class for evaluating the Gaussian pair potential
 /*! <b>General Overview</b>
@@ -91,7 +48,50 @@ class EvaluatorPairGauss
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef gauss_params param_type;
+        struct param_type
+            {
+            Scalar epsilon;
+            Scalar sigma;
+
+            #ifdef ENABLE_HIP
+            // set CUDA memory hints
+            void set_memory_hint() const
+                {
+                // default implementation does nothing
+                }
+            #endif
+
+            #ifndef __HIPCC__
+            param_type() {sigma = 0; epsilon = 0;}
+
+            param_type(pybind11::dict v)
+                {
+                sigma = v["sigma"].cast<Scalar>();
+                epsilon = v["epsilon"].cast<Scalar>();
+                }
+
+            // used to facilitate unit testing
+            param_type(Scalar eps, Scalar sig)
+                {
+                sigma = sig;
+                epsilon = eps;
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+                v["sigma"] = sigma;
+                v["epsilon"] = epsilon;
+                return v;
+                }
+            #endif
+            }
+            #ifdef SINGLE_PRECISION
+            __attribute__((aligned(8)));
+            #else
+            __attribute__((aligned(16)));
+            #endif
+
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
