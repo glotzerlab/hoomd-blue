@@ -1,18 +1,24 @@
-hoomd.filters
--------------
+hoomd.filter
+------------
+
+.. py:currentmodule:: hoomd.filter
 
 .. rubric:: Overview
 
 .. autosummary::
     :nosignatures:
 
-    hoomd.filters.All
-    hoomd.filters.ParticleFilter
-    hoomd.filters.Tags
+    All
+    Intersection
+    SetDifference
+    Tags
+    Type
+    Union
 
 .. rubric:: Details
 
-.. automodule:: hoomd.filters
+.. automodule:: hoomd.filter
     :synopsis: Particle selection filters.
     :members:
+    :imported-members:
     :undoc-members:

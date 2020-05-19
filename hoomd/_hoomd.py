@@ -74,6 +74,27 @@ class Trigger:
 class PeriodicTrigger:
     pass
 
+class BeforeTrigger:
+    pass
+
+class AfterTrigger:
+    pass
+
+class AndTrigger:
+    pass
+
+class NotTrigger:
+    pass
+
+class AndTrigger:
+    pass
+
+class OrTrigger:
+    pass
+
+class OnTrigger:
+    pass
+
 class ParticleFilter:
     pass
 
