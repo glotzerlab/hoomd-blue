@@ -7,7 +7,9 @@ try:
     skip_gsd = False
 except ImportError:
     skip_gsd = True
-skip_gsd = pytest.mark.skipif(skip_gsd, reason="gsd Python package was not found.")
+
+skip_gsd = pytest.mark.skipif(
+    skip_gsd, reason="gsd Python package was not found.")
 
 
 @pytest.fixture(scope="function")
@@ -85,29 +87,42 @@ def random_inds(n):
 
 def test_initialization(device, simulation_factory, get_snapshot):
     with pytest.raises(TypeError):
-        sim = hoomd.simulation.Simulation()
+        sim = hoomd.Simulation()
 
-    sim = hoomd.simulation.Simulation(device)
+    sim = hoomd.Simulation(device)
+
+
+def test_device_property(device):
+    sim = hoomd.Simulation(device)
+    assert sim.device is device
+
     with pytest.raises(ValueError):
         sim.device = device
 
-    with pytest.raises(RuntimeError):
-        sim.run(1)  # Before setting state
 
-    sim = simulation_factory(get_snapshot())
-    with pytest.raises(RuntimeError):
-        sim.run(1)  # Before scheduling operations
-
-    sim.operations.schedule()
-    sim.run(1)
-
+def test_allows_compute_pressure(device, get_snapshot):
+    sim = hoomd.Simulation(device)
     assert sim.always_compute_pressure is False
+    with pytest.raises(RuntimeError):
+        sim.always_compute_pressure = True
+    sim.create_state_from_snapshot(get_snapshot())
     sim.always_compute_pressure = True
     assert sim.always_compute_pressure is True
 
 
 def test_run(simulation_factory, get_snapshot, device):
-    sim = hoomd.simulation.Simulation(device)
+    sim = hoomd.Simulation(device)
+    with pytest.raises(RuntimeError):
+        sim.run(1)  # Before setting state
+
+    sim = simulation_factory(get_snapshot())
+    sim.run(1)
+
+    assert sim.operations.scheduled
+
+
+def test_timestep(simulation_factory, get_snapshot, device):
+    sim = hoomd.Simulation(device)
     assert sim.timestep is None
 
     initial_steps = 10
@@ -119,14 +134,20 @@ def test_run(simulation_factory, get_snapshot, device):
     with pytest.raises(RuntimeError):
         sim.timestep = 20
 
+
+def test_run_with_timestep(simulation_factory, get_snapshot, device):
+    sim = hoomd.Simulation(device)
+    sim.create_state_from_snapshot(get_snapshot())
     sim.operations.schedule()
+
     steps = 0
     n_step_list = [1, 10, 100]
     for n_steps in n_step_list:
         steps += n_steps
         sim.run(n_steps)
-        assert sim.timestep == steps + initial_steps
-    assert sim.timestep == sum(n_step_list) + initial_steps
+        assert sim.timestep == steps
+
+    assert sim.timestep == sum(n_step_list)
 
 
 _state_args = [((10, ['A']), 10),
@@ -165,7 +186,7 @@ def test_state_from_gsd(simulation_factory, get_snapshot,
             snapshot_dict[step] = snap
 
     for step, snap in snapshot_dict.items():
-        sim = hoomd.simulation.Simulation(device)
+        sim = hoomd.Simulation(device)
         sim.create_state_from_gsd(filename, frame=step)
         assert_equivalent_boxes(box, sim.state.box)
         assert_equivalent_snapshots(snap, sim.state.snapshot)
