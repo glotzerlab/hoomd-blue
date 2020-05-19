@@ -1,7 +1,7 @@
 import hoomd
 import pytest
 import numpy as np
-from itertools import combinations
+import itertools
 from copy import deepcopy
 
 np.random.seed(0)
@@ -11,7 +11,8 @@ def assert_equivalent_type_params(type_param1, type_param2):
     for pair in type_param1:
         if isinstance(type_param1[pair], dict):
             for key in type_param1[pair]:
-                assert type_param1[pair][key] == type_param2[pair][key]
+                np.testing.assert_allclose(type_param1[pair][key],
+                                           type_param2[pair][key])
         else:
             assert type_param1[pair] == type_param2[pair]
 
@@ -22,12 +23,12 @@ def assert_equivalent_parameter_dicts(param_dict1, param_dict2):
 
 
 def _lj_params(particle_types):
-    combos = list(combinations(particle_types, 2))
-    idx = np.random.choice(len(combos), size=100, replace=True)
-    combos = np.array_split([combos[i] for i in idx], 10)
+    combos = list(itertools.combinations_with_replacement(particle_types, 2))
+    N = len(combos)
+    combos = [combos for i in range(1)]
     sample_range = np.linspace(0.5, 1.5, 100)
     samples = np.array_split(np.random.choice(sample_range,
-                                              size=100 * 3,
+                                              size=N * len(combos) * 3,
                                               replace=True), 3)
     pair_potential_dicts = []
     r_cut_dicts = []
@@ -75,3 +76,32 @@ def test_valid_params(valid_params):
     assert_equivalent_type_params(pot.r_cut.to_dict(), r_cut)
     assert_equivalent_type_params(pot.r_on.to_dict(), r_on)
     assert_equivalent_parameter_dicts(pot.nlist._param_dict, cell._param_dict)
+
+
+def test_attached_params(simulation_factory, two_particle_snapshot_factory,
+                         valid_params, lattice_snapshot_factory):
+    pair_potential, pair_potential_dict, r_cut, r_on, mode = valid_params
+    particle_types = ['A', 'B', 'C', 'D']
+    cell = hoomd.md.nlist.Cell()
+    pot = pair_potential(nlist=cell, r_cut=2.5)
+
+    for pair in pair_potential_dict:
+        pot.params[pair] = pair_potential_dict[pair]
+        pot.r_cut[pair] = r_cut[pair]
+        pot.r_on[pair] = r_on[pair]
+
+    snap = lattice_snapshot_factory(particle_types=particle_types,
+                                    n=100, a=0.5, r=0.01)
+    snap.particles.typeid[:] = np.random.randint(0, len(snap.particles.types),
+                                                 snap.particles.N)
+    sim = simulation_factory(snap)
+    sim.operations.integrator = hoomd.md.Integrator(dt=0.005)
+    sim.operations.integrator.forces.append(pot)
+    sim.operations.schedule()
+    attached_pot = sim.operations.integrator.forces[0]
+    assert_equivalent_type_params(attached_pot.params.to_dict(),
+                                  pair_potential_dict)
+    assert_equivalent_type_params(attached_pot.r_cut.to_dict(), r_cut)
+    assert_equivalent_type_params(attached_pot.r_on.to_dict(), r_on)
+    assert_equivalent_parameter_dicts(attached_pot.nlist._param_dict,
+                                      cell._param_dict)
