@@ -91,7 +91,7 @@ class EvaluatorPairDPDThermo
                 // protect against a user setting gamma to 0 in dpd
                 if (v.contains("gamma"))
                     {
-                    gam = v["gamma"].cast<Scalar>();
+                    auto gam = v["gamma"].cast<Scalar>();
                     if (gam == 0)
                         throw std::invalid_argument("Cannot set gamma to 0 in DPD, try using DPDConservative instead.");
                     else
