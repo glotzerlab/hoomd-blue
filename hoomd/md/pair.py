@@ -489,15 +489,10 @@ class Ewald(_Pair):
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         super().__init__(nlist, r_cut, r_on, mode)
         params = TypeParameter('params', 'particle_types',
-                               TypeParamDict(kappa=float, alpha=0.0,
+                               TypeParameterDict(kappa=float, alpha=0.0,
                                              len_keys=2))
-        self.add_typeparam(params)
+        self._add_typeparam(params)
 
-    def process_coeff(self, coeff):
-        kappa = coeff['kappa'];
-        alpha = coeff['alpha'];
-
-        return _hoomd.make_scalar2(kappa, alpha)
 
 def _table_eval(r, rmin, rmax, V, F, width):
     dr = (rmax - rmin) / float(width-1);
