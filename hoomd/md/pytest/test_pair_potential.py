@@ -22,7 +22,7 @@ def assert_equivalent_parameter_dicts(param_dict1, param_dict2):
         assert param_dict1[key] == param_dict2[key]
 
 
-def _lj_params():
+def _lj_valid_params():
     particle_types_list = [['A'], ['A', 'B'],
                            ['A', 'B', 'C'],
                            ['A', 'B', 'C', 'D']]
@@ -64,7 +64,7 @@ def _lj_params():
                modes)
 
 
-@pytest.fixture(scope="function", params=_lj_params())
+@pytest.fixture(scope="function", params=_lj_valid_params())
 def valid_params(request):
     return deepcopy(request.param)
 
@@ -82,6 +82,83 @@ def test_valid_params(valid_params):
     assert_equivalent_type_params(pot.r_cut.to_dict(), r_cut)
     assert_equivalent_type_params(pot.r_on.to_dict(), r_on)
     assert_equivalent_parameter_dicts(pot.nlist._param_dict, cell._param_dict)
+
+_lj_invalid_params = [(hoomd.md.pair.LJ,
+                       {('A', 'A'): {'sigma': [1, 2], 'epsilon': 1.0}},
+                       {('A', 'A'): 2.5},
+                       {('A', 'A'): 2.1},
+                       'none'),
+                      (hoomd.md.pair.LJ,
+                       {('A', 'A'): {'sigma': 1.0, 'epsilon': [1, 2]}},
+                       {('A', 'A'): 2.5},
+                       {('A', 'A'): 2.1},
+                       'none'),
+                      (hoomd.md.pair.LJ,
+                       {('A', 'A'): {'sigma': 'str', 'epsilon': 1.0}},
+                       {('A', 'A'): 2.5},
+                       {('A', 'A'): 2.1},
+                       'none'),
+                      (hoomd.md.pair.LJ,
+                       {('A', 'A'): {'sigma': 1.0, 'epsilon': 'str'}},
+                       {('A', 'A'): 2.5},
+                       {('A', 'A'): 2.1},
+                       'none'),
+                      (hoomd.md.pair.LJ,
+                       {('A', 'A'): {'sigma': 1.0, 'epsilon': 1.0}},
+                       {('A', 'A'): [1, 2]},
+                       {('A', 'A'): 2.1},
+                       'none'),
+                      (hoomd.md.pair.LJ,
+                       {('A', 'A'): {'sigma': 1.0, 'epsilon': 1.0}},
+                       {('A', 'A'): 'str'},
+                       {('A', 'A'): 2.1},
+                       'none'),
+                      (hoomd.md.pair.LJ,
+                       {('A', 'A'): {'sigma': 1.0, 'epsilon': 1.0}},
+                       {('A', 'A'): 2.5},
+                       {('A', 'A'): [1, 2]},
+                       'none'),
+                      (hoomd.md.pair.LJ,
+                       {('A', 'A'): {'sigma': 1.0, 'epsilon': 1.0}},
+                       {('A', 'A'): 2.5},
+                       {('A', 'A'): 'str'},
+                       'none'),
+                      (hoomd.md.pair.LJ,
+                       {('A', 'A'): {'sigma': 1.0, 'epsilon': 1.0}},
+                       {('A', 'A'): 2.5},
+                       {('A', 'A'): 2.1},
+                       5),
+                      (hoomd.md.pair.LJ,
+                       {3: {'sigma': 1.0, 'epsilon': 1.0}},
+                       {3: 2.5},
+                       {3: 2.1},
+                       'none')]
+
+
+@pytest.fixture(scope="function", params=_lj_invalid_params)
+def invalid_params(request):
+    return deepcopy(request.param)
+
+
+def test_invalid_params(invalid_params):
+    pair_potential, pair_potential_dict, r_cut, r_on, mode = invalid_params
+    cell = hoomd.md.nlist.Cell()
+    if isinstance(mode, str):
+        pot = pair_potential(nlist=cell, mode=mode)
+        for pair in pair_potential_dict:
+            if isinstance(pair, tuple):
+                with pytest.raises(hoomd.typeconverter.TypeConversionError):
+                    pot.params[pair] = pair_potential_dict[pair]
+                    pot.r_cut[pair] = r_cut[pair]
+                    pot.r_on[pair] = r_on[pair]
+            else:
+                with pytest.raises(KeyError):
+                    pot.params[pair] = pair_potential_dict[pair]
+                    pot.r_cut[pair] = r_cut[pair]
+                    pot.r_on[pair] = r_on[pair]
+    else:
+        with pytest.raises(hoomd.typeconverter.TypeConversionError):
+            pot = pair_potential(nlist=cell, mode=mode)
 
 
 def test_attached_params(simulation_factory, lattice_snapshot_factory,
