@@ -80,11 +80,11 @@ __global__ void clusters_insert_depletants(const Scalar4 *d_postype,
                                      const unsigned int *d_n_depletants)
     {
     // variables to tell what type of thread we are
-    unsigned int group = threadIdx.z;
-    unsigned int offset = threadIdx.y;
-    unsigned int group_size = blockDim.y;
+    unsigned int group = threadIdx.y;
+    unsigned int offset = threadIdx.z;
+    unsigned int group_size = blockDim.z;
     bool master = (offset == 0);
-    unsigned int n_groups = blockDim.z;
+    unsigned int n_groups = blockDim.y;
 
     unsigned int err_count = 0;
 
@@ -796,8 +796,8 @@ void clusters_depletants_launcher(const cluster_args_t& args, const hpmc_implici
         unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);
 
         unsigned int tpp = min(args.tpp,block_size);
+        tpp = std::min((unsigned int) args.devprop.maxThreadsDim[2], tpp); // clamp blockDim.z
         unsigned int n_groups = block_size / tpp;
-        n_groups = std::min((unsigned int) args.devprop.maxThreadsDim[2], n_groups);
         unsigned int max_queue_size = n_groups*tpp;
         unsigned int max_depletant_queue_size = n_groups;
 
@@ -818,8 +818,8 @@ void clusters_depletants_launcher(const cluster_args_t& args, const hpmc_implici
             if (block_size == 0)
                 throw std::runtime_error("Insufficient shared memory for HPMC kernel");
             tpp = min(tpp, block_size);
+            tpp = std::min((unsigned int) args.devprop.maxThreadsDim[2], tpp); // clamp blockDim.z
             n_groups = block_size / tpp;
-            n_groups = std::min((unsigned int) args.devprop.maxThreadsDim[2], n_groups);
             max_queue_size = n_groups*tpp;
             max_depletant_queue_size = n_groups;
 
@@ -850,7 +850,7 @@ void clusters_depletants_launcher(const cluster_args_t& args, const hpmc_implici
         shared_bytes += extra_bytes;
 
         // setup the grid to run the kernel
-        dim3 threads(1, tpp, n_groups);
+        dim3 threads(1, n_groups, tpp);
 
         for (int idev = args.gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
             {

@@ -166,7 +166,7 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
     // tuning parameters for overlap checks
     std::vector<unsigned int> valid_params;
     unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
-    const unsigned int overlaps_max_tpp = dev_prop.maxThreadsPerBlock;
+    const unsigned int overlaps_max_tpp = dev_prop.maxThreadsDim[2];
     for (unsigned int block_size = warp_size; block_size <= (unsigned int) dev_prop.maxThreadsPerBlock; block_size += warp_size)
         {
         for (auto s : Autotuner::getTppListPow2(overlaps_max_tpp))

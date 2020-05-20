@@ -263,11 +263,11 @@ __global__ void hpmc_cluster_overlaps(const Scalar4 *d_postype,
     __shared__ unsigned int s_queue_size;
     __shared__ unsigned int s_still_searching;
 
-    unsigned int group = threadIdx.z;
-    unsigned int offset = threadIdx.y;
-    unsigned int group_size = blockDim.y;
+    unsigned int group = threadIdx.y;
+    unsigned int offset = threadIdx.z;
+    unsigned int group_size = blockDim.z;
     bool master = (offset == 0) && (threadIdx.x == 0);
-    unsigned int n_groups = blockDim.z;
+    unsigned int n_groups = blockDim.y;
 
     // load the per type pair parameters into shared memory
     HIP_DYNAMIC_SHARED( char, s_data)
@@ -539,10 +539,9 @@ void cluster_overlaps_launcher(const cluster_args_t& args, const typename Shape:
             {
             tpp--;
             }
+        tpp = std::min((unsigned int) args.devprop.maxThreadsDim[2], tpp); // clamp blockDim.z
 
         unsigned int n_groups = run_block_size/(tpp*overlap_threads);
-        n_groups = std::min((unsigned int) args.devprop.maxThreadsDim[2], n_groups);
-
         unsigned int max_queue_size = n_groups*tpp;
 
         const unsigned int min_shared_bytes = args.num_types * sizeof(typename Shape::param_type)
@@ -566,9 +565,9 @@ void cluster_overlaps_launcher(const cluster_args_t& args, const typename Shape:
                 {
                 tpp--;
                 }
+            tpp = std::min((unsigned int) args.devprop.maxThreadsDim[2], tpp); // clamp blockDim.z
 
             n_groups = run_block_size/(tpp*overlap_threads);
-            n_groups = std::min((unsigned int) args.devprop.maxThreadsDim[2], n_groups);
             max_queue_size = n_groups*tpp;
 
             shared_bytes = n_groups * (2*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3))
@@ -596,7 +595,7 @@ void cluster_overlaps_launcher(const cluster_args_t& args, const typename Shape:
             }
 
         shared_bytes += extra_bytes;
-        dim3 thread(overlap_threads, tpp, n_groups);
+        dim3 thread(overlap_threads, n_groups, tpp);
 
         for (int idev = args.gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
             {

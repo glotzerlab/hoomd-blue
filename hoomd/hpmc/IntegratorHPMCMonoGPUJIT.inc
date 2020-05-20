@@ -58,11 +58,11 @@ __global__ void hpmc_narrow_phase_patch(const Scalar4 *d_postype,
     __shared__ unsigned int s_queue_size;
     __shared__ unsigned int s_still_searching;
 
-    unsigned int group = threadIdx.z;
-    unsigned int offset = threadIdx.y;
-    unsigned int group_size = blockDim.y;
+    unsigned int group = threadIdx.y;
+    unsigned int offset = threadIdx.z;
+    unsigned int group_size = blockDim.z;
     bool master = (offset == 0) && threadIdx.x == 0;
-    unsigned int n_groups = blockDim.z;
+    unsigned int n_groups = blockDim.y;
 
     // load the per type pair parameters into shared memory
     extern __shared__ char s_data[];

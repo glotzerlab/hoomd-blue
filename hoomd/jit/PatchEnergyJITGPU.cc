@@ -29,12 +29,11 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
         {
         tpp--;
         }
+    auto& devprop = m_exec_conf->dev_prop;
+    tpp = std::min((unsigned int) devprop.maxThreadsDim[2], tpp); // clamp blockDim.z
 
     unsigned int n_groups = run_block_size/(tpp*eval_threads);
 
-    // truncate blockDim.z
-    auto& devprop = m_exec_conf->dev_prop;
-    n_groups = std::min((unsigned int) devprop.maxThreadsDim[2], n_groups);
     unsigned int max_queue_size = n_groups*tpp;
 
     const unsigned int min_shared_bytes = args.num_types * sizeof(Scalar);
@@ -58,12 +57,9 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
             {
             tpp--;
             }
+        tpp = std::min((unsigned int) devprop.maxThreadsDim[2], tpp); // clamp blockDim.z
 
         n_groups = run_block_size / (tpp*eval_threads);
-
-        // truncate blockDim.z
-        n_groups = std::min((unsigned int)devprop.maxThreadsDim[2], n_groups);
-
         max_queue_size = n_groups*tpp;
 
         shared_bytes = n_groups * (sizeof(unsigned int) + 2*sizeof(Scalar4) + 2*sizeof(Scalar3) + 2*sizeof(Scalar) + 2*sizeof(float))
@@ -71,7 +67,7 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
             + min_shared_bytes;
         }
 
-    dim3 thread(eval_threads, tpp, n_groups);
+    dim3 thread(eval_threads, n_groups, tpp);
 
     auto& gpu_partition = args.gpu_partition;
 
