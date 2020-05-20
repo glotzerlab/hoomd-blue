@@ -248,7 +248,7 @@ class LJ(_Pair):
                                )
         self._add_typeparam(params)
 
-class gauss(pair):
+class Gauss(_Pair):
     R""" Gaussian pair potential.
 
     Args:
@@ -289,34 +289,15 @@ class gauss(pair):
         gauss.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=3.0, sigma=0.5)
 
     """
-    def __init__(self, r_cut, nlist, name=None):
+    _cpp_class_name = "PotentialPairGauss"
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
+        super().__init__(nlist, r_cut, r_on, mode)
+        params = TypeParameter('params', 'particle_types',
+                               TypeParameterDict(epsilon=float, sigma=float,
+                                                 len_keys=2))
+        self._add_typeparam(params)
 
-        # tell the base class how we operate
-
-        # initialize the base class
-        pair.__init__(self, r_cut, nlist, name);
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PotentialPairGauss(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairGauss;
-        else:
-            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-            self.cpp_force = _md.PotentialPairGaussGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairGaussGPU;
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-
-        # setup the coefficient options
-        self.required_coeffs = ['epsilon', 'sigma'];
-
-    def process_coeff(self, coeff):
-        epsilon = coeff['epsilon'];
-        sigma = coeff['sigma'];
-
-        return _hoomd.make_scalar2(epsilon, sigma);
-
-class slj(pair):
+class SLJ(_Pair):
     R""" Shifted Lennard-Jones pair potential.
 
     Args:
@@ -380,37 +361,27 @@ class slj(pair):
         slj.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=2.0)
 
     """
-    def __init__(self, r_cut, nlist, d_max=None, name=None):
+    _cpp_class_name = 'PotentialPairSLJ'
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none', d_max=None):
+        if mode == 'xplor':
+            raise ValueError("xplor is not a valid mode for SLJ potential")
 
-        # tell the base class how we operate
+        super().__init__(nlist, r_cut, r_on, mode)
+        params = TypeParameter('params', 'particle_types',
+                               TypeParameterDict(epsilon=float, sigma=float,
+                                                 alpha=1.0, len_keys=2)
+                               )
+        self._add_typeparam(params)
 
-        # initialize the base class
-        pair.__init__(self, r_cut, nlist, name);
+        # mode not allowed to be xplor, so re-do param dict without that option
+        param_dict = ParameterDict(
+            d_max=float,
+            mode=OnlyFrom(['none', 'shifted']),
+            explicit_defaults=dict(mode=mode, d_max=__) # largest particle diameter in the system taken from cpp
+            )
+        self._param_dict.update(param_dict)
 
-        # update the neighbor list
-        if d_max is None :
-            sysdef = hoomd.context.current.system_definition;
-            d_max = sysdef.getParticleData().getMaxDiameter()
-            hoomd.context.current.device.cpp_msg.notice(2, "Notice: slj set d_max=" + str(d_max) + "\n");
-
-        # SLJ requires diameter shifting to be on
-        self.nlist.cpp_nlist.setDiameterShift(True);
-        self.nlist.cpp_nlist.setMaximumDiameter(d_max);
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PotentialPairSLJ(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairSLJ;
-        else:
-            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-            self.cpp_force = _md.PotentialPairSLJGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairSLJGPU;
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-
-        # setup the coefficient options
-        self.required_coeffs = ['epsilon', 'sigma', 'alpha'];
-        self.pair_coeff.set_default_coeff('alpha', 1.0);
+        # NOTE need to set diameter shift and max diameter in the neighborlist once attached
 
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
@@ -421,23 +392,8 @@ class slj(pair):
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
         return _hoomd.make_scalar2(lj1, lj2);
 
-    def set_params(self, mode=None):
-        R""" Set parameters controlling the way forces are computed.
 
-        See :py:meth:`pair.set_params()`.
-
-        Note:
-            **xplor** is not a valid setting for :py:class:`slj`.
-
-        """
-
-        if mode == "xplor":
-            hoomd.context.current.device.cpp_msg.error("XPLOR is smoothing is not supported with slj\n");
-            raise RuntimeError("Error changing parameters in pair force");
-
-        pair.set_params(self, mode=mode);
-
-class yukawa(pair):
+class Yukawa(_Pair):
     R""" Yukawa pair potential.
 
     Args:
@@ -477,34 +433,15 @@ class yukawa(pair):
         yukawa.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=0.5, kappa=3.0)
 
     """
-    def __init__(self, r_cut, nlist, name=None):
+    _cpp_class_name = "PotentialPairYukawa"
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
+        super().__init__(nlist, r_cut, r_on, mode)
+        params = TypeParameter('params', 'particle_types',
+                               TypeParameterDict(kappa=float, epsilon=float,
+                                                 len_keys=2))
+        self._add_typeparam(params)
 
-        # tell the base class how we operate
-
-        # initialize the base class
-        pair.__init__(self, r_cut, nlist, name);
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PotentialPairYukawa(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairYukawa;
-        else:
-            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-            self.cpp_force = _md.PotentialPairYukawaGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairYukawaGPU;
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-
-        # setup the coefficient options
-        self.required_coeffs = ['epsilon', 'kappa'];
-
-    def process_coeff(self, coeff):
-        epsilon = coeff['epsilon'];
-        kappa = coeff['kappa'];
-
-        return _hoomd.make_scalar2(epsilon, kappa);
-
-class ewald(pair):
+class Ewald(_Pair):
     R""" Ewald pair potential.
 
     :py:class:`ewald` specifies that a Ewald pair potential should be applied between every
@@ -548,39 +485,14 @@ class ewald(pair):
         :py:class:`ewald` for you.
 
     """
-    def __init__(self, r_cut, nlist, name=None):
+    _cpp_class_name = "PotentialPairEwald"
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
+        super().__init__(nlist, r_cut, r_on, mode)
+        params = TypeParameter('params', 'particle_types',
+                               TypeParameterDict(kappa=float, alpha=0.0,
+                                             len_keys=2))
+        self._add_typeparam(params)
 
-        # tell the base class how we operate
-
-        # initialize the base class
-        pair.__init__(self, r_cut, nlist, name);
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PotentialPairEwald(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairEwald;
-        else:
-            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-            self.cpp_force = _md.PotentialPairEwaldGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairEwaldGPU;
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-
-        # setup the coefficient options
-        self.required_coeffs = ['kappa','alpha'];
-        self.pair_coeff.set_default_coeff('alpha', 0.0);
-
-    def process_coeff(self, coeff):
-        kappa = coeff['kappa'];
-        alpha = coeff['alpha'];
-
-        return _hoomd.make_scalar2(kappa, alpha)
-
-    def set_params(self, coeff):
-        """ :py:class:`ewald` has no energy shift modes """
-
-        raise RuntimeError('Not implemented for DPD Conservative');
-        return;
 
 def _table_eval(r, rmin, rmax, V, F, width):
     dr = (rmax - rmin) / float(width-1);
@@ -847,7 +759,7 @@ class table(force._force):
 
         self.pair_coeff.set(a, b, func=_table_eval, rmin=rmin_table, rmax=rmax_table, coeff=dict(V=V_table, F=F_table, width=self.width))
 
-class morse(pair):
+class Morse(_Pair):
     R""" Morse pair potential.
 
     :py:class:`morse` specifies that a Morse pair potential should be applied between every
@@ -883,33 +795,13 @@ class morse(pair):
         morse.pair_coeff.set(['A', 'B'], ['C', 'D'], D0=1.0, alpha=3.0)
 
     """
-    def __init__(self, r_cut, nlist, name=None):
-
-        # tell the base class how we operate
-
-        # initialize the base class
-        pair.__init__(self, r_cut, nlist, name);
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PotentialPairMorse(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairMorse;
-        else:
-            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-            self.cpp_force = _md.PotentialPairMorseGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairMorseGPU;
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-
-        # setup the coefficient options
-        self.required_coeffs = ['D0', 'alpha', 'r0'];
-
-    def process_coeff(self, coeff):
-        D0 = coeff['D0'];
-        alpha = coeff['alpha'];
-        r0 = coeff['r0']
-
-        return _hoomd.make_scalar4(D0, alpha, r0, 0.0);
+    _cpp_class_name = "PotentialPairMorse"
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
+        super().__init__(nlist, r_cut, r_on, mode)
+        params = TypeParameter('params', 'particle_types',
+                               TypeParameterDict(D0=float, alpha=float, r0=float,
+                                             len_keys=2))
+        self._add_typeparam(params)
 
 class dpd(pair):
     R""" Dissipative Particle Dynamics.
@@ -1060,7 +952,7 @@ class dpd(pair):
         gamma = coeff['gamma'];
         return _hoomd.make_scalar2(a, gamma);
 
-class dpd_conservative(pair):
+class DPDConservative(_Pair):
     R""" DPD Conservative pair force.
 
     Args:
@@ -1102,7 +994,8 @@ class dpd_conservative(pair):
         dpdc.pair_coeff.set(['A', 'B'], ['C', 'D'], A=5.0)
 
     """
-    def __init__(self, r_cut, nlist, name=None):
+    _cpp_class_name = "PotentialPairDPD"
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
 
         # register the citation
         c = hoomd.cite.article(cite_key='phillips2011',
@@ -1121,22 +1014,10 @@ class dpd_conservative(pair):
         # tell the base class how we operate
 
         # initialize the base class
-        pair.__init__(self, r_cut, nlist, name);
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PotentialPairDPD(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairDPD;
-        else:
-            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-            self.cpp_force = _md.PotentialPairDPDGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairDPDGPU;
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-
-        # setup the coefficient options
-        self.required_coeffs = ['A'];
-
+        super().__init__(self, nlist, r_cut, r_on, mode)
+        params =  TypeParameter('params', 'particle_types',
+                                TypeParameterDict(A=float, len_keys=2))
+        self._add_typeparam(params)
 
     def process_coeff(self, coeff):
         a = coeff['A'];

@@ -101,7 +101,6 @@ class PotentialPair : public ForceCompute
 
         //! Set and get the pair parameters for a single type pair
         virtual void setParams(unsigned int typ1, unsigned int typ2, const param_type& param);
-        virtual void setParamsLJ(unsigned int typ1, unsigned int typ2, const Scalar2& param);
         virtual void setParamsPython(pybind11::tuple typ, pybind11::dict params);
         /// Get params for a single type pair using a tuple of strings
         virtual pybind11::dict getParams(pybind11::tuple typ);
@@ -406,29 +405,6 @@ void PotentialPair< evaluator >::setParams(unsigned int typ1, unsigned int typ2,
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::readwrite);
     h_params.data[m_typpair_idx(typ1, typ2)] = param;
     h_params.data[m_typpair_idx(typ2, typ1)] = param;
-    }
-
-template< class evaluator >
-void PotentialPair< evaluator >::setParamsLJ(unsigned int typ1, unsigned int typ2, const Scalar2& param)
-    {
-    }
-
-template<>
-void PotentialPair<EvaluatorPairLJ>::setParamsLJ(unsigned int typ1, unsigned int typ2, const Scalar2& param)
-    {
-    if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
-        {
-        this->m_exec_conf->msg->error() << "pair." << EvaluatorPairLJ::getName() << ": Trying to set pair params for a non existent type! "
-                  << typ1 << "," << typ2 << std::endl;
-        throw std::runtime_error("Error setting parameters in PotentialPair");
-        }
-
-    ArrayHandle<EvaluatorPairLJ::param_type> h_params(m_params, access_location::host, access_mode::readwrite);
-    EvaluatorPairLJ::param_type lj_params;
-    lj_params.lj1 = param.x;
-    lj_params.lj2 = param.y;
-    h_params.data[m_typpair_idx(typ1, typ2)] = lj_params;
-    h_params.data[m_typpair_idx(typ2, typ1)] = lj_params;
     }
 
 template< class evaluator >

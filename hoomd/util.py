@@ -125,7 +125,7 @@ class NamespaceDict:
         # traverse through dictionary hierarchy
         for name in namespace:
             try:
-                if name in current_dict.keys():
+                if name in current_dict:
                     current_dict = current_dict[name]
                     continue
                 else:

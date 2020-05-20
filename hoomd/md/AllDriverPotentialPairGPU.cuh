@@ -17,16 +17,20 @@
 #include "EvaluatorPairDPDLJThermo.h"
 #include "EvaluatorPairFourier.h"
 #include "EvaluatorPairLJ.h"
+#include "EvaluatorPairGauss.h"
+#include "EvaluatorPairYukawa.h"
+#include "EvaluatorPairEwald.h"
+#include "EvaluatorPairMorse.h"
 
 //! Compute lj pair forces on the GPU with PairEvaluatorLJ
 hipError_t __attribute__((visibility("default")))
 gpu_compute_ljtemp_forces(const pair_args_t& pair_args,
-                          const lj_params *d_params);
+                          const EvaluatorPairLJ::param_type *d_params);
 
 //! Compute gauss pair forces on the GPU with PairEvaluatorGauss
 hipError_t __attribute__((visibility("default")))
 gpu_compute_gauss_forces(const pair_args_t& pair_args,
-                         const Scalar2 *d_params);
+                         const EvaluatorPairGauss::param_type *d_params);
 
 //! Compute slj pair forces on the GPU with PairEvaluatorGauss
 hipError_t __attribute__((visibility("default")))
@@ -36,12 +40,12 @@ gpu_compute_slj_forces(const pair_args_t& pair_args,
 //! Compute yukawa pair forces on the GPU with PairEvaluatorGauss
 hipError_t __attribute__((visibility("default")))
 gpu_compute_yukawa_forces(const pair_args_t& pair_args,
-                          const Scalar2 *d_params);
+                          const EvaluatorPairYukawa::param_type *d_params);
 
 //! Compute morse pair forces on the GPU with PairEvaluatorMorse
 hipError_t __attribute__((visibility("default")))
 gpu_compute_morse_forces(const pair_args_t& pair_args,
-                          const Scalar4 *d_params);
+                          const EvaluatorPairMorse::param_type *d_params);
 
 //! Compute dpd thermostat on GPU with PairEvaluatorDPDThermo
 hipError_t __attribute__((visibility("default")))
@@ -56,7 +60,7 @@ gpu_compute_dpdthermo_forces(const pair_args_t& pair_args,
 //! Compute ewlad pair forces on the GPU with PairEvaluatorEwald
 hipError_t __attribute__((visibility("default")))
 gpu_compute_ewald_forces(const pair_args_t& pair_args,
-                         const Scalar2 *d_params);
+                         const EvaluatorPairEwald::param_type *d_params);
 
 //! Compute moliere pair forces on the GPU with EvaluatorPairMoliere
 hipError_t __attribute__((visibility("default")))

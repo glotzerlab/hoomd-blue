@@ -65,10 +65,7 @@ void lj_force_particle_test(ljforce_creator lj_creator, std::shared_ptr<Executio
     // first test: setup a sigma of 1.0 so that all forces will be 0
     Scalar epsilon = Scalar(1.15);
     Scalar sigma = Scalar(1.0);
-    Scalar alpha = Scalar(1.0);
-    Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
-    Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
-    fc_3->setParamsLJ(0,0,make_scalar2(lj1,lj2));
+    fc_3->setParams(0,0,EvaluatorPairLJ::param_type(sigma,epsilon));
 
     // compute the forces
     fc_3->compute(0);
@@ -106,10 +103,8 @@ void lj_force_particle_test(ljforce_creator lj_creator, std::shared_ptr<Executio
 
     // now change sigma and alpha so we can check that it is computing the right force
     sigma = Scalar(1.2); // < bigger sigma should push particle 0 left and particle 2 right
-    alpha = Scalar(0.45);
-    lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
-    lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
-    fc_3->setParamsLJ(0,0,make_scalar2(lj1,lj2));
+    Scalar alpha = Scalar(0.45);
+    fc_3->setParams(0,0,EvaluatorPairLJ::param_type(sigma,epsilon,alpha));
     fc_3->compute(1);
 
     {
@@ -217,16 +212,14 @@ void lj_force_periodic_test(ljforce_creator lj_creator, std::shared_ptr<Executio
     Scalar epsilon = Scalar(1.0);
     Scalar sigma = Scalar(0.5);
     Scalar alpha = Scalar(0.45);
-    Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
-    Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
 
     // make life easy: just change epsilon for the different pairs
-    fc_6->setParamsLJ(0,0,make_scalar2(lj1,lj2));
-    fc_6->setParamsLJ(0,1,make_scalar2(Scalar(2.0)*lj1,Scalar(2.0)*lj2));
-    fc_6->setParamsLJ(0,2,make_scalar2(Scalar(3.0)*lj1,Scalar(3.0)*lj2));
-    fc_6->setParamsLJ(1,1,make_scalar2(Scalar(4.0)*lj1,Scalar(4.0)*lj2));
-    fc_6->setParamsLJ(1,2,make_scalar2(Scalar(5.0)*lj1,Scalar(5.0)*lj2));
-    fc_6->setParamsLJ(2,2,make_scalar2(Scalar(6.0)*lj1,Scalar(6.0)*lj2));
+    fc_6->setParams(0,0,EvaluatorPairLJ::param_type(sigma,epsilon, alpha));
+    fc_6->setParams(0,1,EvaluatorPairLJ::param_type(sigma,Scalar(2.0)*epsilon, alpha));
+    fc_6->setParams(0,2,EvaluatorPairLJ::param_type(sigma,Scalar(3.0)*epsilon, alpha));
+    fc_6->setParams(1,1,EvaluatorPairLJ::param_type(sigma,Scalar(4.0)*epsilon, alpha));
+    fc_6->setParams(1,2,EvaluatorPairLJ::param_type(sigma,Scalar(5.0)*epsilon, alpha));
+    fc_6->setParams(2,2,EvaluatorPairLJ::param_type(sigma,Scalar(6.0)*epsilon, alpha));
 
     fc_6->compute(0);
 
@@ -309,12 +302,10 @@ void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_cr
     Scalar epsilon = Scalar(1.0);
     Scalar sigma = Scalar(1.2);
     Scalar alpha = Scalar(0.45);
-    Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
-    Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
 
     // specify the force parameters
-    fc1->setParamsLJ(0,0,make_scalar2(lj1,lj2));
-    fc2->setParamsLJ(0,0,make_scalar2(lj1,lj2));
+    fc1->setParams(0,0,EvaluatorPairLJ::param_type(sigma,epsilon,alpha));
+    fc2->setParams(0,0,EvaluatorPairLJ::param_type(sigma,epsilon,alpha));
 
     // compute the forces
     fc1->compute(0);
@@ -399,12 +390,9 @@ void lj_force_shift_test(ljforce_creator lj_creator, std::shared_ptr<ExecutionCo
     // setup a standard epsilon and sigma
     Scalar epsilon = Scalar(1.0);
     Scalar sigma = Scalar(1.0);
-    Scalar alpha = Scalar(1.0);
-    Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
-    Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
-    fc_no_shift->setParamsLJ(0,0,make_scalar2(lj1,lj2));
-    fc_shift->setParamsLJ(0,0,make_scalar2(lj1,lj2));
-    fc_xplor->setParamsLJ(0,0,make_scalar2(lj1,lj2));
+    fc_no_shift->setParams(0,0,EvaluatorPairLJ::param_type(sigma, epsilon));
+    fc_shift->setParams(0,0,EvaluatorPairLJ::param_type(sigma, epsilon));
+    fc_xplor->setParams(0,0,EvaluatorPairLJ::param_type(sigma, epsilon));
 
     fc_no_shift->compute(0);
     fc_shift->compute(0);

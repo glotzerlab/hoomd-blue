@@ -67,7 +67,7 @@ void morse_force_particle_test(morseforce_creator morse_creator, std::shared_ptr
     Scalar D0 = Scalar(1.0);
     Scalar alpha = Scalar(3.0);
     Scalar r0 = Scalar(0.9);
-    fc_3->setParams(0,0,make_scalar4(D0,alpha,r0,Scalar(0.0)));
+    fc_3->setParams(0,0,EvaluatorPairMorse::param_type(D0,alpha,r0));
 
     // compute the forces
     fc_3->compute(0);
@@ -150,8 +150,8 @@ void morse_force_comparison_test(morseforce_creator morse_creator1,
     Scalar r0 = Scalar(1.0);
 
     // specify the force parameters
-    fc1->setParams(0,0,make_scalar4(D0,alpha,r0,Scalar(0.0)));
-    fc2->setParams(0,0,make_scalar4(D0,alpha,r0,Scalar(0.0)));
+    fc1->setParams(0,0,EvaluatorPairMorse::param_type(D0,alpha,r0));
+    fc2->setParams(0,0,EvaluatorPairMorse::param_type(D0,alpha,r0));
 
     // compute the forces
     fc1->compute(0);

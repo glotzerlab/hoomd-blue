@@ -25,6 +25,7 @@
 #define DEVICE
 #endif
 
+
 //! Class for evaluating the Gaussian pair potential
 /*! <b>General Overview</b>
 
@@ -47,7 +48,50 @@ class EvaluatorPairGauss
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar2 param_type;
+        struct param_type
+            {
+            Scalar epsilon;
+            Scalar sigma;
+
+            #ifdef ENABLE_HIP
+            // set CUDA memory hints
+            void set_memory_hint() const
+                {
+                // default implementation does nothing
+                }
+            #endif
+
+            #ifndef __HIPCC__
+            param_type() {sigma = 0; epsilon = 0;}
+
+            param_type(pybind11::dict v)
+                {
+                sigma = v["sigma"].cast<Scalar>();
+                epsilon = v["epsilon"].cast<Scalar>();
+                }
+
+            // used to facilitate unit testing
+            param_type(Scalar eps, Scalar sig)
+                {
+                sigma = sig;
+                epsilon = eps;
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+                v["sigma"] = sigma;
+                v["epsilon"] = epsilon;
+                return v;
+                }
+            #endif
+            }
+            #ifdef SINGLE_PRECISION
+            __attribute__((aligned(8)));
+            #else
+            __attribute__((aligned(16)));
+            #endif
+
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
@@ -55,7 +99,7 @@ class EvaluatorPairGauss
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairGauss(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), epsilon(_params.x), sigma(_params.y)
+            : rsq(_rsq), rcutsq(_rcutsq), epsilon(_params.epsilon), sigma(_params.sigma)
             {
             }
 
