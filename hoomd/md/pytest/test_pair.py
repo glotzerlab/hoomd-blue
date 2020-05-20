@@ -18,6 +18,9 @@ _pairs = [
     ["Morse",
      hoomd.md.pair.Morse(hoomd.md.nlist.Cell()),
      {"D0": 0.05, "alpha": 1, "r0": 0}],
+    ["DPDConservative",
+     hoomd.md.pair.DPDConservative(hoomd.md.nlist.Cell()),
+     {"A": 0.05}],
 ]
 
 @pytest.fixture(scope='function', params=_pairs, ids=(lambda x: x[0]))
