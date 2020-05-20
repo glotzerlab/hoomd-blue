@@ -19,6 +19,7 @@
 #include "EvaluatorPairLJ.h"
 #include "EvaluatorPairGauss.h"
 #include "EvaluatorPairYukawa.h"
+#include "EvaluatorPairEwald.h"
 
 //! Compute lj pair forces on the GPU with PairEvaluatorLJ
 hipError_t __attribute__((visibility("default")))
@@ -58,7 +59,7 @@ gpu_compute_dpdthermo_forces(const pair_args_t& pair_args,
 //! Compute ewlad pair forces on the GPU with PairEvaluatorEwald
 hipError_t __attribute__((visibility("default")))
 gpu_compute_ewald_forces(const pair_args_t& pair_args,
-                         const Scalar2 *d_params);
+                         const EvaluatorPairEwald::param_type *d_params);
 
 //! Compute moliere pair forces on the GPU with EvaluatorPairMoliere
 hipError_t __attribute__((visibility("default")))

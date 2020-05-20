@@ -47,7 +47,45 @@ class EvaluatorPairEwald
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar2 param_type;
+        struct param_type
+            {
+            Scalar kappa;
+            Scalar alpha;
+
+            #ifdef ENABLE_HIP
+            //! Set CUDA memory hints
+            void set_memory_hints() const {}
+            #endif
+
+            #ifndef __HIPCC__
+            param_type() {kappa=1; alpha=0;}
+
+            param_type(pybind11::dict v)
+                {
+                kappa = v["kappa"].cast<Scalar>();
+                alpha = v["alpha"].cast<Scalar>();
+                }
+
+            param_type(Scalar kap, Scalar alph)
+                {
+                kappa = kap;
+                alpha = alph;
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+                v["kappa"] = kappa;
+                v["alpha"] = alpha;
+                return v;
+                }
+            #endif
+            }
+            #ifdef SINGLE_PRECISION
+            __attribute__((aligned(8)));
+            #else
+            __attribute__((aligned(16)));
+            #endif
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
@@ -55,7 +93,7 @@ class EvaluatorPairEwald
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairEwald(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-          : rsq(_rsq), rcutsq(_rcutsq), kappa(_params.x), alpha(_params.y)
+          : rsq(_rsq), rcutsq(_rcutsq), kappa(_params.kappa), alpha(_params.alpha)
             {
             }
 
