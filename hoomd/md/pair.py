@@ -952,7 +952,7 @@ class dpd(pair):
         gamma = coeff['gamma'];
         return _hoomd.make_scalar2(a, gamma);
 
-class dpd_conservative(pair):
+class DPDConservative(_Pair):
     R""" DPD Conservative pair force.
 
     Args:
@@ -994,7 +994,8 @@ class dpd_conservative(pair):
         dpdc.pair_coeff.set(['A', 'B'], ['C', 'D'], A=5.0)
 
     """
-    def __init__(self, r_cut, nlist, name=None):
+    _cpp_class_name = "PotentialPairDPD"
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
 
         # register the citation
         c = hoomd.cite.article(cite_key='phillips2011',
@@ -1013,22 +1014,10 @@ class dpd_conservative(pair):
         # tell the base class how we operate
 
         # initialize the base class
-        pair.__init__(self, r_cut, nlist, name);
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PotentialPairDPD(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairDPD;
-        else:
-            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-            self.cpp_force = _md.PotentialPairDPDGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairDPDGPU;
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-
-        # setup the coefficient options
-        self.required_coeffs = ['A'];
-
+        super().__init__(self, nlist, r_cut, r_on, mode)
+        params =  TypeParameter('params', 'particle_types',
+                                TypeParameterDict(A=float, len_keys=2))
+        self._add_typeparam(params)
 
     def process_coeff(self, coeff):
         a = coeff['A'];
