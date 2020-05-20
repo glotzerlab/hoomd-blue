@@ -184,7 +184,7 @@ def test_state_from_gsd(simulation_factory, get_snapshot,
         for step in range(1, nsteps):
             particle_type = np.random.choice(snap_params[1])
             snap = update_positions(sim.state.snapshot)
-            set_types(snap, random_inds(snap.particles.N),
+            set_types(snap, random_inds(snap_params[0]),
                       snap_params[1], particle_type)
             file.append(make_gsd_snapshot(snap))
             snapshot_dict[step] = snap
