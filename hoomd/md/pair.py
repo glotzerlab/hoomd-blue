@@ -799,16 +799,9 @@ class Morse(_Pair):
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         super().__init__(nlist, r_cut, r_on, mode)
         params = TypeParameter('params', 'particle_types',
-                               TypeParamDict(D0=float, alpha=float, r0=float,
+                               TypeParameterDict(D0=float, alpha=float, r0=float,
                                              len_keys=2))
-        self.add_typeparam(params)
-
-    def process_coeff(self, coeff):
-        D0 = coeff['D0'];
-        alpha = coeff['alpha'];
-        r0 = coeff['r0']
-
-        return _hoomd.make_scalar4(D0, alpha, r0, 0.0);
+        self._add_typeparam(params)
 
 class dpd(pair):
     R""" Dissipative Particle Dynamics.

@@ -15,6 +15,9 @@ _pairs = [
     ["Ewald",
      hoomd.md.pair.Ewald(hoomd.md.nlist.Cell()),
      {"alpha": 0.05, "kappa": 1}],
+    ["Morse",
+     hoomd.md.pair.Morse(hoomd.md.nlist.Cell()),
+     {"D0": 0.05, "alpha": 1, "r0": 0}],
 ]
 
 @pytest.fixture(scope='function', params=_pairs, ids=(lambda x: x[0]))
