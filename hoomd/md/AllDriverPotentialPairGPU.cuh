@@ -20,6 +20,7 @@
 #include "EvaluatorPairGauss.h"
 #include "EvaluatorPairYukawa.h"
 #include "EvaluatorPairEwald.h"
+#include "EvaluatorPairMorse.h"
 
 //! Compute lj pair forces on the GPU with PairEvaluatorLJ
 hipError_t __attribute__((visibility("default")))
@@ -44,7 +45,7 @@ gpu_compute_yukawa_forces(const pair_args_t& pair_args,
 //! Compute morse pair forces on the GPU with PairEvaluatorMorse
 hipError_t __attribute__((visibility("default")))
 gpu_compute_morse_forces(const pair_args_t& pair_args,
-                          const Scalar4 *d_params);
+                          const EvaluatorPairMorse::param_type *d_params);
 
 //! Compute dpd thermostat on GPU with PairEvaluatorDPDThermo
 hipError_t __attribute__((visibility("default")))
