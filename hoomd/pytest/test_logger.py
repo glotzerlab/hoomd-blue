@@ -197,11 +197,14 @@ def base_namespace():
 class TestLogger:
     def test_setitem(self, blank_logger):
         logger = blank_logger
-        logger['a'] = (5, 2, 1)
-        logger[('b', 'c')] = (5, 2, 1)
-        for value in [dict(), list(), None, 5, (5, 2)]:
+        logger['a'] = (5, 'eg', 'scalar')
+        logger[('b', 'c')] = (5, 'eg', 'scalar')
+        logger['c'] = (lambda: [1, 2, 3], 'multi')
+        for value in [dict(), list(), None, 5, (5, 2), (5, 2, 1)]:
             with raises(ValueError):
                 logger[('c', 'd')] = value
+        with raises(KeyError):
+            logger['a'] = (lambda: [1, 2, 3], 'multi')
 
     def test_add_single_quantity(self, blank_logger, log_quantity):
         blank_logger._add_single_quantity(None, log_quantity)

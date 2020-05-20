@@ -1,6 +1,7 @@
 from itertools import count
 from copy import deepcopy
 from hoomd.util import is_iterable, dict_fold, dict_map, SafeNamespaceDict
+from collections.abc import Sequence
 
 
 class Loggable(type):
@@ -10,7 +11,7 @@ class Loggable(type):
     def log(cls, func=None, is_property=True, flag='scalar'):
         def helper(func):
             name = func.__name__
-            if name in cls._meta_export_dict.keys():
+            if name in cls._meta_export_dict:
                 raise KeyError("Multiple loggable quantities named "
                                "{}.".format(name))
             cls._meta_export_dict[name] = flag
@@ -130,10 +131,24 @@ class Logger(SafeNamespaceDict):
                 return namespace
 
     def __setitem__(self, namespace, value):
-        if not isinstance(value, tuple) or len(value) != 3:
-            raise ValueError("Logger expects values of "
-                             "(obj, method/property, flag)")
-        super().__setitem__(namespace, value)
+        # raise errors if necessary
+        err_msg = "Expected either (callable, flag) or \
+                   (obj, method/property, flag)."
+        if not isinstance(value, Sequence):
+            raise ValueError(err_msg)
+        if not all(isinstance(v, str) for v in value[1:]):
+            raise ValueError("Method/property and flags must be strings.")
+
+        # Check length for setting with either (obj, prop, flag) or (func, flag)
+        elif len(value) == 3:
+            super().__setitem__(namespace, value)
+        elif len(value) == 2:
+            if not callable(value[0]):
+                raise ValueError(err_msg)
+            else:
+                super().__setitem__(namespace, (value[0], '__call__', value[1]))
+        else:
+            raise ValueError(err_msg)
 
     def __iadd__(self, obj):
         self.add(obj)
