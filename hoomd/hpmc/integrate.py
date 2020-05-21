@@ -4,7 +4,7 @@
 
 from hoomd import _hoomd
 from hoomd.parameterdicts import TypeParameterDict, ParameterDict
-from hoomd.typeconverter import OnlyIf, toTypeConverter
+from hoomd.typeconverter import OnlyIf, to_type_converter
 from hoomd.typeparam import TypeParameter
 from hoomd.hpmc import _hpmc
 from hoomd.integrate import _BaseIntegrator
@@ -879,7 +879,7 @@ class Polyhedron(_HPMCIntegrator):
                                          capacity=4,
                                          origin=(0., 0., 0.),
                                          hull_only=False,
-                                         overlap=OnlyIf(toTypeConverter(
+                                         overlap=OnlyIf(to_type_converter(
                                              [bool]), allow_none=True),
                                          ignore_statistics=False,
                                          len_keys=1,
@@ -1137,7 +1137,7 @@ class FacetedEllipsoid(_HPMCIntegrator):
                                          b=float,
                                          c=float,
                                          vertices=OnlyIf(
-                                             toTypeConverter(
+                                             to_type_converter(
                                                  [(float, float, float)]),
                                              allow_none=True),
                                          origin=(float, float, float),
@@ -1510,12 +1510,12 @@ class SphereUnion(_HPMCIntegrator):
                                             ],
                                             positions=[(float, float, float)],
                                             orientations=OnlyIf(
-                                                toTypeConverter(
+                                                to_type_converter(
                                                     [(float, float, float,
                                                       float)]),
                                                 allow_none=True),
                                             capacity=4,
-                                            overlap=OnlyIf(toTypeConverter(
+                                            overlap=OnlyIf(to_type_converter(
                                                 [int]), allow_none=True),
                                             ignore_statistics=False,
                                             len_keys=1,
@@ -1643,9 +1643,9 @@ class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
                      ignore_statistics=False)
             ],
                 positions=[(float, float, float)],
-                orientations=OnlyIf(toTypeConverter(
+                orientations=OnlyIf(to_type_converter(
                     [(float, float, float, float)]), allow_none=True),
-                overlap=OnlyIf(toTypeConverter([int]), allow_none=True),
+                overlap=OnlyIf(to_type_converter([int]), allow_none=True),
                 ignore_statistics=False,
                 capacity=4,
                 len_keys=1,
@@ -1787,9 +1787,9 @@ class FacetedEllipsoidUnion(_HPMCIntegrator):
                      ignore_statistics=False)
             ],
                 positions=[(float, float, float)],
-                orientations=OnlyIf(toTypeConverter(
+                orientations=OnlyIf(to_type_converter(
                     [(float, float, float, float)]), allow_none=True),
-                overlap=OnlyIf(toTypeConverter([int]), allow_none=True),
+                overlap=OnlyIf(to_type_converter([int]), allow_none=True),
                 ignore_statistics=False,
                 capacity=4,
                 len_keys=1,

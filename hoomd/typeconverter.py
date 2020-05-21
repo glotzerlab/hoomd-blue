@@ -429,7 +429,18 @@ class TypeConverterMapping(TypeConverter):
         return value in self.converter
 
 
-def toTypeConverter(value):
+def to_type_converter(value):
+    """The function to use for creating a structure of `TypeConverter` objects.
+
+    This is the function to use when defining validation not any of the
+    `TypeConverter` subclasses.
+
+    .. code-block:: python
+
+        # list take a list of tuples of 3 floats each
+        validation = to_type_converter(
+            {'str': str, 'list': [(float, float, float)]})
+    """
     if isinstance(value, tuple):
         return TypeConverterFixedLengthSequence(value)
     if is_iterable(value):
