@@ -1013,24 +1013,12 @@ class DPDConservative(_Pair):
                          feature='DPD')
         hoomd.cite._ensure_global_bib().add(c)
         """
-        # tell the base class how we operate
-
         # initialize the base class
         super().__init__(nlist, r_cut, r_on, mode)
         params =  TypeParameter('params', 'particle_types',
                                 TypeParameterDict(A=float, len_keys=2))
         self._add_typeparam(params)
 
-    def process_coeff(self, coeff):
-        a = coeff['A'];
-        gamma = 0;
-        return _hoomd.make_scalar2(a, gamma);
-
-    def set_params(self, coeff):
-        """ :py:class:`dpd_conservative` has no energy shift modes """
-
-        raise RuntimeError('Not implemented for DPD Conservative');
-        return;
 
 class dpdlj(pair):
     R""" Dissipative Particle Dynamics with a LJ conservative force
