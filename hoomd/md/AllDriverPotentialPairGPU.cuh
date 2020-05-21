@@ -22,6 +22,7 @@
 #include "EvaluatorPairEwald.h"
 #include "EvaluatorPairMorse.h"
 #include "EvaluatorPairForceShiftedLJ.h"
+#include "EvaluatorPairMoliere.h"
 
 //! Compute lj pair forces on the GPU with PairEvaluatorLJ
 hipError_t __attribute__((visibility("default")))
@@ -66,7 +67,7 @@ gpu_compute_ewald_forces(const pair_args_t& pair_args,
 //! Compute moliere pair forces on the GPU with EvaluatorPairMoliere
 hipError_t __attribute__((visibility("default")))
 gpu_compute_moliere_forces(const pair_args_t& pair_args,
-                           const Scalar2 *d_params);
+                           const EvaluatorPairMoliere::param_type *d_params);
 
 //! Compute zbl pair forces on the GPU with EvaluatorPairZBL
 hipError_t __attribute__((visibility("default")))
