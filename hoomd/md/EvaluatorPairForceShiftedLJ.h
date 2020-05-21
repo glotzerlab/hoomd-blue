@@ -12,6 +12,7 @@
 #endif
 
 #include "hoomd/HOOMDMath.h"
+#include "hoomd/md/EvaluatorPairLJ.h"
 
 /*! \file EvaluatorPairForceShiftedLJ.h
     \brief Defines the pair evaluator class for LJ potentials
@@ -47,7 +48,12 @@ class EvaluatorPairForceShiftedLJ
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar2 param_type;
+        typedef EvaluatorPairLJ::param_type param_type;
+        #ifdef SINGLE_PRECISION
+        __attribute__((aligned(8)));
+        #else
+        __attribute__((aligned(16)));
+        #endif
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
@@ -55,7 +61,7 @@ class EvaluatorPairForceShiftedLJ
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairForceShiftedLJ(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.x), lj2(_params.y)
+            : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.lj1), lj2(_params.lj2)
             {
             }
 

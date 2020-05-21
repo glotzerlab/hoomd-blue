@@ -21,6 +21,7 @@
 #include "EvaluatorPairYukawa.h"
 #include "EvaluatorPairEwald.h"
 #include "EvaluatorPairMorse.h"
+#include "EvaluatorPairForceShiftedLJ.h"
 
 //! Compute lj pair forces on the GPU with PairEvaluatorLJ
 hipError_t __attribute__((visibility("default")))
@@ -85,7 +86,7 @@ gpu_compute_dpdljthermo_forces(const pair_args_t& args,
 //! Compute force shifted lj pair forces on the GPU with PairEvaluatorForceShiftedLJ
 hipError_t __attribute__((visibility("default")))
 gpu_compute_force_shifted_lj_forces(const pair_args_t & args,
-                                    const Scalar2 *d_params);
+                                    const EvaluatorPairForceShiftedLJ::param_type *d_params);
 
 //! Compute mie potential pair forces on the GPU with PairEvaluatorMie
 hipError_t __attribute__((visibility("default")))

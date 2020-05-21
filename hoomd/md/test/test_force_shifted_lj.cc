@@ -60,10 +60,8 @@ void fslj_force_particle_test(ljforce_creator lj_creator, std::shared_ptr<Execut
     Scalar epsilon = Scalar(1.0);
     Scalar sigma = Scalar(1.0);
     Scalar alpha = Scalar(1.0);
-    Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
-    Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
-    fc_no_shift->setParams(0,0,make_scalar2(lj1,lj2));
-    fc_shift->setParams(0,0,make_scalar2(lj1,lj2));
+    fc_no_shift->setParams(0,0,EvaluatorPairForceShiftedLJ::param_type(sigma,epsilon,alpha));
+    fc_shift->setParams(0,0,EvaluatorPairForceShiftedLJ::param_type(sigma,epsilon,alpha));
 
     fc_no_shift->compute(0);
     fc_shift->compute(0);
