@@ -96,7 +96,7 @@ void get_num_neighbors(const unsigned int *d_nneigh,
             nneigh_total);
 
         #ifdef __HIP_PLATFORM_HCC__
-        nneigh_total + = thrust::reduce(thrust::hip::par(alloc),
+        nneigh_total += thrust::reduce(thrust::hip::par(alloc),
         #else
         nneigh_total += thrust::reduce(thrust::cuda::par(alloc),
         #endif

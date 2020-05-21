@@ -25,6 +25,7 @@
 
 #ifdef ENABLE_HIP
 #include "hoomd/GPUPartition.cuh"
+#include "hoomd/Autotuner.h"
 #endif
 
 namespace hpmc
