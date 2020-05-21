@@ -38,8 +38,9 @@ def make_gsd_snapshot(hoomd_snapshot):
 
 
 def set_types(s, inds, particle_types, particle_type):
-    for i in inds:
-        s.particles.typeid[i] = particle_types.index(particle_type)
+    if s.exists:
+        for i in inds:
+            s.particles.typeid[i] = particle_types.index(particle_type)
 
 
 def update_positions(snap):
