@@ -26,6 +26,9 @@ _pairs = [
     ["ForceShiftedLJ",
      hoomd.md.pair.ForceShiftedLJ(hoomd.md.nlist.Cell()),
      {"epsilon": 0.0005, "sigma": 1}],
+    ["Moliere",
+     hoomd.md.pair.Moliere(hoomd.md.nlist.Cell()),
+     {"Zi": 15, "Zj": 12, "a0": 1, "e": .5}],
 ]
 
 
