@@ -258,28 +258,3 @@ def array_to_strings(value):
         return string_list
     else:
         return value
-
-
-def trigger_preprocessing(trigger):
-    if isinstance(trigger, Trigger):
-        return trigger
-    else:
-        try:
-            return Periodic(period=int(trigger), phase=0)
-        except Exception:
-            raise ValueError("Expected a hoomd.trigger.Trigger or int object.")
-
-
-def variant_preprocessing(variant):
-    if isinstance(variant, Variant):
-        return variant
-    else:
-        try:
-            return Constant(float(variant))
-        except Exception:
-            raise ValueError(
-                "Expected a hoomd.variant.Variant or float object.")
-
-
-class RequiredArg:
-    pass

@@ -3,7 +3,13 @@ from itertools import repeat, cycle
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from inspect import isclass
-from hoomd.util import is_iterable, RequiredArg
+from hoomd.util import is_iterable
+from hoomd.variant import Variant
+from hoomd.trigger import Trigger
+
+
+class RequiredArg:
+    pass
 
 
 class TypeConversionError(ValueError):
@@ -20,7 +26,35 @@ def preprocess_list(value):
         raise ValueError("Expected an iterable (excluding str and dict).")
 
 
-class _HelpValidate:
+def trigger_preprocessing(trigger):
+    if isinstance(trigger, Trigger):
+        return trigger
+    else:
+        try:
+            return Periodic(period=int(trigger), phase=0)
+        except Exception:
+            raise ValueError("Expected a hoomd.trigger.Trigger or int object.")
+
+
+def variant_preprocessing(variant):
+    if isinstance(variant, Variant):
+        return variant
+    else:
+        try:
+            return Constant(float(variant))
+        except Exception:
+            raise ValueError(
+                "Expected a hoomd.variant.Variant or float object.")
+
+
+class _HelpValidate(ABC):
+    """Base class for classes that perform validation on an inputed value.
+
+    Supports arbitrary pre and post processing as well as optionally allowing
+    None values. The `_validate` function should raise a `ValueError` or
+    `TypeConverterValue` if validation fails, else it should return the
+    validated/transformed value.
+    """
     def __init__(self, preprocess=None, postprocess=None, allow_none=False):
         def identity(value):
             return value
@@ -197,7 +231,10 @@ class TypeConverterValue(TypeConverter):
     _conversion_func_dict = {
         list: OnlyType(list, preprocess=preprocess_list),
         ndarray: OnlyType(ndarray, preprocess=array),
-        str: OnlyType(str, strict=True)}
+        str: OnlyType(str, strict=True),
+        Variant: OnlyType(Variant, preprocess=variant_preprocessing),
+        Trigger: OnlyType(Trigger, preprocess=trigger_preprocessing)
+    }
 
     def __init__(self, value):
         # if constructor with special default setting logic
