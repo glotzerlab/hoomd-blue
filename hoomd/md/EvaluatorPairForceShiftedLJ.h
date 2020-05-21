@@ -49,11 +49,6 @@ class EvaluatorPairForceShiftedLJ
     public:
         //! Define the parameter type used by this pair potential evaluator
         typedef EvaluatorPairLJ::param_type param_type;
-        #ifdef SINGLE_PRECISION
-        __attribute__((aligned(8)));
-        #else
-        __attribute__((aligned(16)));
-        #endif
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles

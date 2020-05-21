@@ -1292,25 +1292,6 @@ class Moliere(_Pair):
                                TypeParameterDict(Zi=int, Zj=int, e=float,
                                                  a0=float, len_keys=2))
         self._add_typeparam(params)
-        """
-        # setup the coefficient options
-        self.required_coeffs = ['Z_i', 'Z_j', 'elementary_charge', 'a_0'];
-        self.pair_coeff.set_default_coeff('elementary_charge', 1.0);
-        self.pair_coeff.set_default_coeff('a_0', 1.0);
-        """
-
-    def process_coeff(self, coeff):
-        Z_i = coeff['Z_i'];
-        Z_j = coeff['Z_j'];
-        elementary_charge = coeff['elementary_charge'];
-        a_0 = coeff['a_0'];
-
-        Zsq = Z_i * Z_j * elementary_charge * elementary_charge;
-        if (not (Z_i == 0)) or (not (Z_j == 0)):
-            aF = 0.8853 * a_0 / math.pow(math.sqrt(Z_i) + math.sqrt(Z_j), 2.0 / 3.0);
-        else:
-            aF = 1.0;
-        return _hoomd.make_scalar2(Zsq, aF);
 
 class zbl(pair):
     R""" ZBL pair potential.
