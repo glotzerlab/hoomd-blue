@@ -21,6 +21,9 @@ _pairs = [
     ["DPDConservative",
      hoomd.md.pair.DPDConservative(hoomd.md.nlist.Cell()),
      {"A": 0.05}],
+    ["ForceShiftedLJ",
+     hoomd.md.pair.ForceShiftedLJ(hoomd.md.nlist.Cell()),
+     {"epsilon": 0.0005, "sigma": 1}],
 ]
 
 @pytest.fixture(scope='function', params=_pairs, ids=(lambda x: x[0]))

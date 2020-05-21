@@ -1186,7 +1186,7 @@ class dpdlj(pair):
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
         return _hoomd.make_scalar4(lj1, lj2, gamma, 0.0);
 
-class force_shifted_lj(pair):
+class ForceShiftedLJ(_Pair):
     R""" Force-shifted Lennard-Jones pair potential.
 
     Args:
@@ -1235,36 +1235,15 @@ class force_shifted_lj(pair):
         fslj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
 
     """
-    def __init__(self, r_cut, nlist, name=None):
-
-        # tell the base class how we operate
-
+    _cpp_class_name = "PotentialPairForceShiftedLJ"
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         # initialize the base class
-        pair.__init__(self, r_cut, nlist, name);
+        super().__init__(nlist, r_cut, r_on, mode)
 
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PotentialPairForceShiftedLJ(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairForceShiftedLJ;
-        else:
-            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-            self.cpp_force = _md.PotentialPairForceShiftedLJGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairForceShiftedLJGPU;
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-
-        # setup the coefficient options
-        self.required_coeffs = ['epsilon', 'sigma', 'alpha'];
-        self.pair_coeff.set_default_coeff('alpha', 1.0);
-
-    def process_coeff(self, coeff):
-        epsilon = coeff['epsilon'];
-        sigma = coeff['sigma'];
-        alpha = coeff['alpha'];
-
-        lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
-        lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return _hoomd.make_scalar2(lj1, lj2);
+        params = TypeParameter('params', 'particle_types',
+                               TypeParameterDict(sigma=float, epsilon=float,
+                                                 len_keys=2))
+        self._add_typeparam(params)
 
 class moliere(pair):
     R""" Moliere pair potential.
