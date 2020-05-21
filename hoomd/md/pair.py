@@ -997,7 +997,8 @@ class DPDConservative(_Pair):
     """
     _cpp_class_name = "PotentialPairDPD"
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
-
+        # add this back in once we redo the cite module
+        """
         # register the citation
         c = hoomd.cite.article(cite_key='phillips2011',
                          author=['C L Phillips', 'J A Anderson', 'S C Glotzer'],
@@ -1011,7 +1012,7 @@ class DPDConservative(_Pair):
                          doi='10.1016/j.jcp.2011.05.021',
                          feature='DPD')
         hoomd.cite._ensure_global_bib().add(c)
-
+        """
         # tell the base class how we operate
 
         # initialize the base class
