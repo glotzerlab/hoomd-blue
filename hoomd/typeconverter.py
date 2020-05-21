@@ -1,5 +1,5 @@
 from numpy import array, ndarray
-from itertools import repeat
+from itertools import repeat, cycle
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from inspect import isclass
@@ -7,10 +7,13 @@ from hoomd.util import is_iterable, RequiredArg
 
 
 class TypeConversionError(ValueError):
+    """An error class for errors in the validation of TypeConverter subclasses.
+    """
     pass
 
 
 def preprocess_list(value):
+    """Function for TypeConverterValue to exclude `str` and `dict` objects."""
     if is_iterable:
         return value
     else:
@@ -34,8 +37,22 @@ class _HelpValidate:
                 return None
         return self._postprocess(self._validate(self._preprocess(value)))
 
+    @abstractmethod
+    def _validate(self, value):
+        pass
+
 
 class Either(_HelpValidate):
+    """Class that has multiple equally valid validation methods for an input.
+
+    For instance if a parameter can either be a length 6 tuple or float then
+
+    .. code-blocks:: python
+
+       e = Either(to_type_converter((float,) * 6), to_type_converter(float))
+
+    would allow either value to pass.
+    """
     def __init__(self, specs, preprocess=None, postprocess=None):
         super().__init__(preprocess, postprocess)
         self.specs = specs
@@ -54,6 +71,11 @@ class Either(_HelpValidate):
 
 
 class OnlyIf(_HelpValidate):
+    """A wrapper around a validation function.
+
+    Not strictly necessary, but keeps the theme of the other classes, and allows
+    pre/post-processing and optionally allows None.
+    """
     def __init__(self, cond,
                  preprocess=None, postprocess=None, allow_none=False):
         super().__init__(preprocess, postprocess, allow_none)
@@ -67,6 +89,12 @@ class OnlyIf(_HelpValidate):
 
 
 class OnlyType(_HelpValidate):
+    """Only alllow values that are instances of type.
+
+    Developers should consider the `collections.abc` module in using this type.
+    In general `OnlyType(Sequence)` is more readible than the similar
+    `OnlyIf(lambda x: hasattr(x, '__iter__'))`.
+    """
     def __init__(self, type_, strict=False,
                  preprocess=None, postprocess=None, allow_none=False):
         super().__init__(preprocess, postprocess, allow_none)
@@ -88,6 +116,11 @@ class OnlyType(_HelpValidate):
 
 
 class OnlyFrom(_HelpValidate):
+    """Validates a value against a given set of options.
+
+    An example that allows integers less than ten `OnlyFrom(range(10))`. Note
+    that generator expressions are fine.
+    """
     def __init__(self, options,preprocess=None, postprocess=None,
                  allow_none=False):
         super().__init__(preprocess, postprocess, allow_none)
@@ -108,6 +141,16 @@ class OnlyFrom(_HelpValidate):
 
 
 class TypeConverter(ABC):
+    """Base class for TypeConverter's encodes structure and validation.
+
+    Subclasses represent validating a different data structure. When called they
+    are to attempt to validate and transform the inputs as given by the
+    specification set up at the initialization.
+
+    Note:
+        Subclasses should not be instantiated directly. Instead use
+        `to_type_converter`.
+    """
     @abstractmethod
     def __init__(self, *args, **kwargs):
         pass
@@ -118,6 +161,39 @@ class TypeConverter(ABC):
 
 
 class TypeConverterValue(TypeConverter):
+    """Represents a scalar value of some kind (or not represented structures.)
+
+    Parameters:
+        value (Any): Whatever defines the validation. Many ways to specify the
+        validation exist.
+
+    Attributes:
+        _conversion_func_dict (dict[type, Callable[Any]): A dictionary of type
+        (e.g. list, str) - callable mappings. The callable is the default
+        validation for a given type.
+
+    Specification:
+        The initialization specification goes through the following process. If
+        the value is of a type in `self._conversion_func_dict` or is a type
+        in `self._conversion_func_dict` then we use the mapping validation
+        function. Otherwise if the value is a class we use `OnlyType(value)`.
+        Generic callables just get used directly, and finally if no check passes
+        we use `OnlyType(type(value))`.
+
+        Examples of valid ways to specify an integer specification,
+
+        .. code-block:: python
+
+            TypeConverterValue(1)
+            TypeConverterValue(int)
+
+            def natural_number(value):
+                if i < 1:
+                    raise ValueError(
+                        "Value {} must be a natural number.".format(value))
+
+            TypeConverterValue(OnlyType(int, postprocess=natural_number))
+    """
     _conversion_func_dict = {
         list: OnlyType(list, preprocess=preprocess_list),
         ndarray: OnlyType(ndarray, preprocess=array),
@@ -153,13 +229,38 @@ class TypeConverterValue(TypeConverter):
 
 
 class TypeConverterSequence(TypeConverter):
+    """Validation for a generic any length sequence.
+
+    Uses `to_type_converter` for construction the validation. For each item in
+    the inputted sequence, a corresponding `TypeConverter` object is
+    constructed.
+
+    Parameters:
+        sequence (Sequence[Any]): Any sequence or iterator, anything else passed
+            is an error.
+
+    Specification:
+        When validating, if a single element was given that element is repeated
+        for every element of the inputed sequence. Otherwise, we cycle through
+        the given values. This makes this class unsuited for fix length
+        sequences (`TypeConverterFixedLengthSequence` exists for this). Examples
+        include,
+
+        .. code-block:: python
+
+            # All elements should be floats
+            TypeConverterSequence([float])
+
+            # All elements should be in a float int ordering
+            TypeConverterSequence([float, int])
+    """
     def __init__(self, sequence):
-        self.converter = [toTypeConverter(item) for item in sequence]
+        self.converter = [to_type_converter(item) for item in sequence]
 
     def __call__(self, sequence):
         if not is_iterable(sequence):
             raise TypeConversionError(
-                "Expected a list like object. Received {} of type {}."
+                "Expected a sequence like instance. Received {} of type {}."
                 "".format(sequence, type(sequence)))
         else:
             new_sequence = []
@@ -176,12 +277,34 @@ class TypeConverterSequence(TypeConverter):
         if len(self.converter) == 1:
             yield from repeat(self.converter[0])
         else:
-            yield from self.converter
+            yield from cycle(self.converter)
 
 
 class TypeConverterFixedLengthSequence(TypeConverter):
+    """Validation for a fixed length sequence (read tuple).
+
+    Uses `to_type_converter` for construction the validation. For each item in
+    the inputted sequence, a corresponding `TypeConverter` object is
+    constructed.
+
+    Parameters:
+        sequence (Sequence[Any]): Any sequence or iterable, anything else passed
+            is an error.
+
+    Specification:
+        When validating, a sequence of the exact length given on instantiation
+        is expected, else an error is raised.
+
+        .. code-block:: python
+
+            # Three floats
+            TypeConverterFixedLengthSequence((float, float, float))
+
+            # a string followed for a float and int
+            TypeConverterFixedLengthSequence((string, float, int))
+    """
     def __init__(self, sequence):
-        self.converter = tuple([toTypeConverter(item) for item in sequence])
+        self.converter = tuple([to_type_converter(item) for item in sequence])
 
     def __call__(self, sequence):
         if not is_iterable(sequence):
@@ -208,8 +331,34 @@ class TypeConverterFixedLengthSequence(TypeConverter):
 
 
 class TypeConverterMapping(TypeConverter):
+    """Validation for a mapping of string keys to any type values.
+
+    Uses `to_type_converter` for construction the validation. For each value in
+    the inputted sequence, a corresponding `TypeConverter` object is
+    constructed.
+
+    Parameters:
+        mapping (Mapping[str, Any]): Any mapping, anything else passed is an
+            error.
+
+    Specification:
+        When validating, a subset of keys is expected to be used. No error is
+        raised if not all keys are used in the validation. The validation either
+        errors or returns a mapping with all the same keys as the inputted
+        mapping.
+
+        .. code-block:: python
+
+            t = TypeConverterMapping({'str': str, 'list_of_floats': [float]})
+
+            # valid
+            t({'str': 'hello'})
+
+            # invalid
+            t({'new_key': None})
+    """
     def __init__(self, mapping):
-        self.converter = {key: toTypeConverter(value)
+        self.converter = {key: to_type_converter(value)
                           for key, value in mapping.items()}
 
     def __call__(self, mapping):
