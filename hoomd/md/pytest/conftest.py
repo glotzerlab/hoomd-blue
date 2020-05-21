@@ -36,8 +36,7 @@ def pair_and_params(request):
 
 def _lj_valid_params():
     particle_types_list = [['A'], ['A', 'B'],
-                           ['A', 'B', 'C'],
-                           ['A', 'B', 'C', 'D']]
+                           ['A', 'B', 'C']]
     combos = []
     for particle_types in particle_types_list:
         type_combo = list(itertools.combinations_with_replacement(particle_types,
@@ -80,58 +79,44 @@ def _lj_valid_params():
 def valid_params(request):
     return deepcopy(request.param)
 
-_lj_invalid_params = [(hoomd.md.pair.LJ,
-                       {('A', 'A'): {'sigma': [1, 2], 'epsilon': 1.0}},
-                       {('A', 'A'): 2.5},
-                       {('A', 'A'): 2.1},
-                       'none'),
-                      (hoomd.md.pair.LJ,
-                       {('A', 'A'): {'sigma': 1.0, 'epsilon': [1, 2]}},
-                       {('A', 'A'): 2.5},
-                       {('A', 'A'): 2.1},
-                       'none'),
-                      (hoomd.md.pair.LJ,
-                       {('A', 'A'): {'sigma': 'str', 'epsilon': 1.0}},
-                       {('A', 'A'): 2.5},
-                       {('A', 'A'): 2.1},
-                       'none'),
-                      (hoomd.md.pair.LJ,
-                       {('A', 'A'): {'sigma': 1.0, 'epsilon': 'str'}},
-                       {('A', 'A'): 2.5},
-                       {('A', 'A'): 2.1},
-                       'none'),
-                      (hoomd.md.pair.LJ,
-                       {('A', 'A'): {'sigma': 1.0, 'epsilon': 1.0}},
-                       {('A', 'A'): [1, 2]},
-                       {('A', 'A'): 2.1},
-                       'none'),
-                      (hoomd.md.pair.LJ,
-                       {('A', 'A'): {'sigma': 1.0, 'epsilon': 1.0}},
-                       {('A', 'A'): 'str'},
-                       {('A', 'A'): 2.1},
-                       'none'),
-                      (hoomd.md.pair.LJ,
-                       {('A', 'A'): {'sigma': 1.0, 'epsilon': 1.0}},
-                       {('A', 'A'): 2.5},
-                       {('A', 'A'): [1, 2]},
-                       'none'),
-                      (hoomd.md.pair.LJ,
-                       {('A', 'A'): {'sigma': 1.0, 'epsilon': 1.0}},
-                       {('A', 'A'): 2.5},
-                       {('A', 'A'): 'str'},
-                       'none'),
-                      (hoomd.md.pair.LJ,
-                       {('A', 'A'): {'sigma': 1.0, 'epsilon': 1.0}},
-                       {('A', 'A'): 2.5},
-                       {('A', 'A'): 2.1},
-                       5),
-                      (hoomd.md.pair.LJ,
-                       {3: {'sigma': 1.0, 'epsilon': 1.0}},
-                       {3: 2.5},
-                       {3: 2.1},
-                       'none')]
+
+def _make_invalid_param_dict(keys, valid_vals):
+    invalid_dicts = [dict(zip(keys, valid_vals))] * len(keys) * 2
+    count = 0
+    for key in keys:
+        invalid_dicts[count][key] = [1, 2]
+        invalid_dicts[count + 1][key] = 'str'
+        count += 2
+    return invalid_dicts
 
 
-@pytest.fixture(scope="function", params=_lj_invalid_params)
+def _invalid_params():
+    lj_param_dict = {'sigma': 1.0, 'epsilon': 1.0}
+    lj_invalid_param_dict = _make_invalid_param_dict(lj_param_dict.keys(),
+                                                     lj_param_dict.values())
+    N = len(lj_invalid_param_dict) + 7  # +6 is r_cut, r_on, mode, and pair key
+    lj_pot = [hoomd.md.pair.LJ] * N
+    lj_params = [{('A', 'A'): lj_param_dict}] * N
+    for i in range(len(lj_invalid_param_dict)):
+        lj_params[i][('A', 'A')] = lj_invalid_param_dict[i]
+
+    lj_rcuts = [{('A', 'A'): 2.5}] * N
+    lj_rcuts[len(lj_invalid_param_dict)][('A', 'A')] = [1, 2]
+    lj_rcuts[len(lj_invalid_param_dict) + 1][('A', 'A')] = 'str'
+
+    lj_rons = [{('A', 'A'): 2.5}] * N
+    lj_rons[len(lj_invalid_param_dict) + 2][('A', 'A')] = [1, 2]
+    lj_rons[len(lj_invalid_param_dict) + 3][('A', 'A')] = 'str'
+
+    lj_modes = ['none'] * N
+    lj_modes[len(lj_invalid_param_dict) + 4] = [1, 2]
+    lj_modes[len(lj_invalid_param_dict) + 5] = 1
+
+    lj_rcuts[len(lj_invalid_param_dict) + 6] = {1: 2.4}
+
+    return zip(lj_pot, lj_params, lj_rcuts, lj_rons, lj_modes)
+
+
+@pytest.fixture(scope="function", params=_invalid_params())
 def invalid_params(request):
     return deepcopy(request.param)
