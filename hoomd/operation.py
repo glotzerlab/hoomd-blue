@@ -292,24 +292,13 @@ class _Operation(metaclass=Loggable):
         return obj
 
 
-def trigger_preprocessing(value):
-    if isinstance(value, Trigger):
-        return value
-    if isinstance(value, int):
-        return Periodic(period=value, phase=0)
-    elif hasattr(value, '__len__') and len(value) == 2:
-        return Periodic(period=value[0], phase=value[1])
-    else:
-        raise ValueError("Value {} could not be converted to a Trigger.")
-
-
 class _TriggeredOperation(_Operation):
     _cpp_list_name = None
 
     _use_default_setattr = set(['trigger'])
 
     def __init__(self, trigger):
-        trigger_dict = ParameterDict(trigger=trigger_preprocessing)
+        trigger_dict = ParameterDict(trigger=Trigger)
         trigger_dict['trigger'] = trigger
         self._param_dict.update(trigger_dict)
 

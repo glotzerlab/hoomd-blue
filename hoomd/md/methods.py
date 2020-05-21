@@ -15,7 +15,6 @@ from hoomd.filter import _ParticleFilter
 from hoomd.typeparam import TypeParameter
 from hoomd.typeconverter import OnlyType
 from hoomd.variant import Variant
-from hoomd.util import variant_preprocessing
 import copy
 
 
@@ -841,7 +840,7 @@ class Langevin(_Method):
         # store metadata
         param_dict = ParameterDict(
             filter=OnlyType(_ParticleFilter),
-            kT=OnlyType(Variant, preprocess=variant_preprocessing),
+            kT=Variant,
             seed=int(seed),
             alpha=OnlyType(float, allow_none=True),
             tally_reservoir_energy=bool(tally_reservoir_energy),

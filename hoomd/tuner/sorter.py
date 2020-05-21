@@ -1,7 +1,6 @@
 from hoomd.operation import _Tuner
 from hoomd.parameterdicts import ParameterDict
 from hoomd.typeconverter import OnlyType
-from hoomd.util import trigger_preprocessing
 from hoomd.trigger import Trigger
 from hoomd import _hoomd
 from math import log2, ceil
@@ -24,7 +23,7 @@ def natural_number(value):
 class ParticleSorter(_Tuner):
     def __init__(self, trigger=200, grid=None):
         self._param_dict = ParameterDict(
-            trigger=OnlyType(Trigger, preprocess=trigger_preprocessing),
+            trigger=Trigger,
             grid=OnlyType(int,
                           postprocess=lambda x: int(to_power_of_two(x)),
                           preprocess=natural_number,

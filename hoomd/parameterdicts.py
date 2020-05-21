@@ -2,7 +2,7 @@ from itertools import product, combinations_with_replacement
 from copy import copy, deepcopy
 from hoomd.util import to_camel_case, is_iterable
 from hoomd.typeconverter import (
-    toTypeConverter, TypeConversionError, RequiredArg)
+    to_type_converter, TypeConversionError, RequiredArg)
 from hoomd.smart_default import (
     to_base_defaults, toDefault, SmartDefault, NoDefault)
 
@@ -44,7 +44,7 @@ class _ValidatedDefaultDict:
             default_arg = kwargs
         else:
             default_arg = args[0]
-        self._type_converter = toTypeConverter(default_arg)
+        self._type_converter = to_type_converter(default_arg)
         self._default = toDefault(default_arg, _defaults)
 
     def _validate_values(self, val):
@@ -289,13 +289,13 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
 
 class ParameterDict(dict):
     def __init__(self, _defaults=NoDefault, **kwargs):
-        self._type_converter = toTypeConverter(kwargs)
+        self._type_converter = to_type_converter(kwargs)
         super().__init__(**to_base_defaults(kwargs, _defaults))
 
     def __setitem__(self, key, value):
         if key not in self._type_converter.keys():
             super().__setitem__(key, value)
-            self._type_converter[key] = toTypeConverter(value)
+            self._type_converter[key] = to_type_converter(value)
         else:
             super().__setitem__(key, self._type_converter[key](value))
 
