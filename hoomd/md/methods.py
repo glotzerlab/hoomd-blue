@@ -82,14 +82,15 @@ class NVT(_Method):
         typeA = filter.Type('A')
         integrator = integrate.NVT(filter=typeA, tau=1.0, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
     """
+
     def __init__(self, filter, kT, tau):
 
         # store metadata
         param_dict = ParameterDict(
-            filter=OnlyType(_ParticleFilter),
-            kT=create_variant,
+            filter=_ParticleFilter,
+            kT=Variant,
             tau=float(tau),
-            )
+        )
         param_dict.update(dict(kT=kT, filter=filter))
         # set defaults
         self._param_dict.update(param_dict)
@@ -781,7 +782,7 @@ class Langevin(_Method):
 
         # store metadata
         param_dict = ParameterDict(
-            filter=OnlyType(_ParticleFilter),
+            filter=_ParticleFilter,
             kT=Variant,
             seed=int(seed),
             alpha=OnlyType(float, allow_none=True),

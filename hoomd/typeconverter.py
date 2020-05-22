@@ -6,6 +6,7 @@ from inspect import isclass
 from hoomd.util import is_iterable
 from hoomd.variant import Variant
 from hoomd.trigger import Trigger, Periodic
+from hoomd.filter import _ParticleFilter
 
 
 class RequiredArg:
@@ -139,14 +140,15 @@ class OnlyType(_HelpValidate):
         if isinstance(value, self.type):
             return value
         elif self.strict:
-            raise ValueError("value {} not instance of type {}."
-                             "".format(value, self.type))
+            raise ValueError(
+                "value {} not instance of type {}.".format(value, self.type))
         else:
             try:
                 return self.type(value)
             except Exception:
-                raise ValueError("value {} not convertible into type {}."
-                                 "".format(value, self.type))
+                raise ValueError(
+                    "value {} not convertible into type {}.".format(
+                        value, self.type))
 
 
 class OnlyFrom(_HelpValidate):
@@ -233,7 +235,8 @@ class TypeConverterValue(TypeConverter):
         ndarray: OnlyType(ndarray, preprocess=array),
         str: OnlyType(str, strict=True),
         Variant: OnlyType(Variant, preprocess=variant_preprocessing),
-        Trigger: OnlyType(Trigger, preprocess=trigger_preprocessing)
+        Trigger: OnlyType(Trigger, preprocess=trigger_preprocessing),
+        _ParticleFilter: OnlyType(_ParticleFilter, strict=True)
     }
 
     def __init__(self, value):

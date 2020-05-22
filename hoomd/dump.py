@@ -615,7 +615,7 @@ class GSD(_Analyzer):
         dynamic = ['property'] if dynamic is None else dynamic
         self._param_dict.update(
             ParameterDict(filename=str(filename),
-                          filter=OnlyType(_ParticleFilter, strict=True),
+                          filter=_ParticleFilter,
                           overwrite=bool(overwrite), truncate=bool(truncate),
                           dynamic=[dynamic_validation],
                           _defaults=dict(filter=filter, dynamic=dynamic)
