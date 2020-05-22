@@ -100,12 +100,14 @@ class _Operation(metaclass=Loggable):
             super().__setattr__(attr, value)
 
     def _setattr_param(self, attr, value):
+        old_value = self._param_dict[attr]
         self._param_dict[attr] = value
         new_value = self._param_dict[attr]
         if self.is_attached:
             try:
                 setattr(self._cpp_obj, attr, new_value)
             except (AttributeError):
+                self._param_dict[attr] = old_value
                 raise AttributeError("{} cannot be set after cpp"
                                      " initialization".format(attr))
 
@@ -293,24 +295,13 @@ class _Operation(metaclass=Loggable):
         return obj
 
 
-def trigger_preprocessing(value):
-    if isinstance(value, Trigger):
-        return value
-    if isinstance(value, int):
-        return Periodic(period=value, phase=0)
-    elif hasattr(value, '__len__') and len(value) == 2:
-        return Periodic(period=value[0], phase=value[1])
-    else:
-        raise ValueError("Value {} could not be converted to a Trigger.")
-
-
 class _TriggeredOperation(_Operation):
     _cpp_list_name = None
 
     _use_default_setattr = set(['trigger'])
 
     def __init__(self, trigger):
-        trigger_dict = ParameterDict(trigger=trigger_preprocessing)
+        trigger_dict = ParameterDict(trigger=Trigger)
         trigger_dict['trigger'] = trigger
         self._param_dict.update(trigger_dict)
 

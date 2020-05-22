@@ -670,7 +670,7 @@ unsigned int NeighborList::getNumExclusions(unsigned int size)
     return count;
     }
 
-void NeighborList::setExclusions(pybind11::tuple exclusions)
+void NeighborList::setExclusions(pybind11::list exclusions)
     {
     clearExclusions();
     setFilterBody(false);
