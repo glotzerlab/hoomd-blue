@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from inspect import isclass
 from hoomd.util import is_iterable
-from hoomd.variant import Variant
+from hoomd.variant import Variant, Constant
 from hoomd.trigger import Trigger, Periodic
 from hoomd.filter import _ParticleFilter
 
@@ -150,6 +150,8 @@ class OnlyType(_HelpValidate):
                     "value {} not convertible into type {}.".format(
                         value, self.type))
 
+    def __str__(self):
+        return "OnlyType({})".format(str(self.type))
 
 class OnlyFrom(_HelpValidate):
     """Validates a value against a given set of options.
@@ -157,6 +159,7 @@ class OnlyFrom(_HelpValidate):
     An example that allows integers less than ten `OnlyFrom(range(10))`. Note
     that generator expressions are fine.
     """
+
     def __init__(self, options,preprocess=None, postprocess=None,
                  allow_none=False):
         super().__init__(preprocess, postprocess, allow_none)
