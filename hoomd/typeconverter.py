@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from inspect import isclass
 from hoomd.util import is_iterable
 from hoomd.variant import Variant
-from hoomd.trigger import Trigger
+from hoomd.trigger import Trigger, Periodic
 
 
 class RequiredArg:
