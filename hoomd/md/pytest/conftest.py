@@ -48,11 +48,12 @@ def _make_valid_param_dicts(key_range_dict, n_dicts):
 def _make_valid_params(valid_param_dicts, combos, pair_potential):
     r_cut_vals = np.random.choice(np.linspace(1.5, 3.5), len(combos))
     r_on_vals = np.random.choice(np.linspace(1.5, 3.5), len(combos))
-    pair_potential_dicts = [dict(zip(combos, valid_param_dicts))] * 3
-    r_cut_dicts = [dict(zip(combos, r_cut_vals))] * 3
-    r_on_dicts = [dict(zip(combos, r_on_vals))] * 3
-    modes = ['none', 'shifted', 'xplor']
-    pair_potentials = [pair_potential] * 3
+    pair_potential_dicts = [dict(zip(combos, valid_param_dicts))] * 5
+    r_cut_dicts = [dict(zip(combos, r_cut_vals))] * 5
+    r_on_dicts = [dict(zip(combos, r_on_vals))] * 5
+    r_on_dicts[-1] = None
+    modes = ['none', 'shifted', 'xplor', 'none', None]
+    pair_potentials = [pair_potential] * 5
     return zip(pair_potentials,
                pair_potential_dicts,
                r_cut_dicts,
