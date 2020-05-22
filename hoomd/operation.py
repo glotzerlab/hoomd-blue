@@ -21,9 +21,11 @@ from hoomd.parameterdicts import ParameterDict
 
 from copy import deepcopy
 
+
 class NotAttachedError(RuntimeError):
     """ Raised when something that requires attachment happens before attaching """
     pass
+
 
 def convert_values_to_log_form(value):
     if value is RequiredArg:
@@ -115,7 +117,16 @@ class _HOOMDGetSetAttrBase:
 
     def _setattr_param(self, attr, value):
         """Hook for setting an attribute in `_param_dict`."""
+        old_value = self._param_dict[attr]
         self._param_dict[attr] = value
+        new_value = self._param_dict[attr]
+        if self.is_attached:
+            try:
+                setattr(self._cpp_obj, attr, new_value)
+            except (AttributeError):
+                self._param_dict[attr] = old_value
+                raise AttributeError("{} cannot be set after cpp"
+                                     " initialization".format(attr))
 
     def _setattr_typeparam(self, attr, value):
         """Hook for setting an attribute in `_typeparam_dict`."""
@@ -327,24 +338,13 @@ class _Operation(_HOOMDGetSetAttrBase, metaclass=Loggable):
         return obj
 
 
-def trigger_preprocessing(value):
-    if isinstance(value, Trigger):
-        return value
-    if isinstance(value, int):
-        return Periodic(period=value, phase=0)
-    elif hasattr(value, '__len__') and len(value) == 2:
-        return Periodic(period=value[0], phase=value[1])
-    else:
-        raise ValueError("Value {} could not be converted to a Trigger.")
-
-
 class _TriggeredOperation(_Operation):
     _cpp_list_name = None
 
     _override_setattr = {'trigger'}
 
     def __init__(self, trigger):
-        trigger_dict = ParameterDict(trigger=trigger_preprocessing)
+        trigger_dict = ParameterDict(trigger=Trigger)
         trigger_dict['trigger'] = trigger
         self._param_dict.update(trigger_dict)
 

@@ -132,7 +132,7 @@ class _Pair(force._Force):
         self._extend_typeparam([r_cut, r_on])
         self._param_dict.update(
             ParameterDict(mode=OnlyFrom(['none', 'shifted', 'xplor']),
-                          explicit_defaults=dict(mode=mode))
+                          _defaults=dict(mode=mode))
             )
 
     def compute_energy(self, tags1, tags2):

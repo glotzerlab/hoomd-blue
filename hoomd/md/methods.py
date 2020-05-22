@@ -14,17 +14,8 @@ from hoomd.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.filter import _ParticleFilter
 from hoomd.typeparam import TypeParameter
 from hoomd.typeconverter import OnlyType
+from hoomd.variant import Variant
 import copy
-
-
-def create_variant(value):
-    if isinstance(value, float) or isinstance(value, int):
-        return hoomd.variant.Constant(value)
-    elif isinstance(value, hoomd.variant.Variant):
-        return value
-    else:
-        raise ValueError("Expected a scalar value or a "
-                         "hoomd.variant.Variant.")
 
 
 def none_or(type_):
@@ -91,14 +82,15 @@ class NVT(_Method):
         typeA = filter.Type('A')
         integrator = integrate.NVT(filter=typeA, tau=1.0, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
     """
+
     def __init__(self, filter, kT, tau):
 
         # store metadata
         param_dict = ParameterDict(
-            filter=OnlyType(_ParticleFilter),
-            kT=create_variant,
+            filter=_ParticleFilter,
+            kT=Variant,
             tau=float(tau),
-            )
+        )
         param_dict.update(dict(kT=kT, filter=filter))
         # set defaults
         self._param_dict.update(param_dict)
@@ -790,12 +782,12 @@ class Langevin(_Method):
 
         # store metadata
         param_dict = ParameterDict(
-            filter=OnlyType(_ParticleFilter),
-            kT=create_variant,
+            filter=_ParticleFilter,
+            kT=Variant,
             seed=int(seed),
-            alpha=none_or(float),
-            tally_reservoir_energy=bool(tally_reservoir_energy)
-            )
+            alpha=OnlyType(float, allow_none=True),
+            tally_reservoir_energy=bool(tally_reservoir_energy),
+        )
         param_dict.update(dict(kT=kT, alpha=alpha, filter=filter))
         # set defaults
         self._param_dict.update(param_dict)
