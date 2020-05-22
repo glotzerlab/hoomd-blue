@@ -20,5 +20,5 @@ hoomd.filter
 .. automodule:: hoomd.filter
     :synopsis: Particle selection filters.
     :members:
-    :undoc-members:
     :imported-members:
+    :undoc-members:

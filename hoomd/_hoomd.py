@@ -71,25 +71,25 @@ def is_MPI_available():
 class Trigger:
     pass
 
-class PeriodicTrigger:
-    pass
-
-class BeforeTrigger:
-    pass
-
-class OnTrigger:
-    pass
-
 class AfterTrigger:
-    pass
-
-class NotTrigger:
     pass
 
 class AndTrigger:
     pass
 
+class BeforeTrigger:
+    pass
+
+class NotTrigger:
+    pass
+
 class OrTrigger:
+    pass
+
+class OnTrigger:
+    pass
+
+class PeriodicTrigger:
     pass
 
 class ParticleFilter:
