@@ -43,6 +43,7 @@ add_library(HOOMD::_${PACKAGE_NAME} ALIAS _${PACKAGE_NAME})
 
 add_library (_${PACKAGE_NAME}_llvm SHARED ${_${PACKAGE_NAME}_llvm_sources})
 set_property(TARGET _${PACKAGE_NAME}_llvm PROPERTY CXX_STANDARD 14)
+set_property(TARGET _${PACKAGE_NAME} PROPERTY CXX_STANDARD 14)
 
 if (ENABLE_HIP)
     # no device linking
