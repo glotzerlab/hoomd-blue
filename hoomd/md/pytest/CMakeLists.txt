@@ -1,6 +1,7 @@
 # copy python modules to the build directory to make it a working python package
 set(files __init__.py
     test_flags.py
+    test_methods.py
     )
 
 install(FILES ${files}
