@@ -4,7 +4,7 @@ import hoomd._hoomd as _hoomd
 
 
 def _make_vec_three(vec, vec_factory, scalar_type):
-    """A helper function for converting Python sequences to HOOMD T3 classes.
+    """A helper function for converting Python sequences to HOOMD T3 classes (e.g. Scalar3, Int3).
 
     Args:
         vec (Sequence[X] or X): A sequence of type X where X is the type
