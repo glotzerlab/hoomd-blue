@@ -31,6 +31,8 @@ BoxResizeUpdater::BoxResizeUpdater(std::shared_ptr<SystemDefinition> sysdef,
     : Updater(sysdef), m_initial_box(initial_box), m_final_box(final_box),
       m_variant(variant), m_scale_particles(true)
     {
+    assert(m_pdata);
+    assert(m_variant);
     m_exec_conf->msg->notice(5) << "Constructing BoxResizeUpdater" << endl;
     }
 
