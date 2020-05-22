@@ -57,6 +57,19 @@ class CustomAction(ABC):
             def act(self, timestep):
                 pass
 
+    An example of a ``CustomAction`` that actually performs an action is given
+    below. This ``CustomAction`` computes the center of mass of the system.
+
+    .. code-block:: python
+
+        from hoomd.python_action import CustomAction
+
+
+        class ExampleActionWithFlag(CustomAction):
+            def act(self, timestep):
+                self.com = self.snapshot.particles.position.mean(axis=0)
+
+
     Attributes:
         flags (list[hoomd.util.ParticleDataFlags]): List of flags from the
             `hoomd.util.ParticleDataFlags`. Used to tell the integrator if
@@ -100,7 +113,8 @@ class CustomAction(ABC):
         Note:
             A `hoomd.State` is not given here. This means that if the default
             `attach` method is overwritten, there is no way to query or change
-            the state when called.
+            the state when called. By default, the state is accessible through
+            ``self.state`` after attaching.
         """
         pass
 
@@ -110,5 +124,12 @@ class _InternalCustomAction(CustomAction, _HOOMDGetSetAttrBase):
 
     Gives additional support in using HOOMD constructs like ``ParameterDict``s
     and ``TypeParameters``.
+
+    When wrapped around a subclass of `hoomd._CustomOperation`, the operation
+    acts like the action (i.e. we mock the behavior of this object with the
+    wrapping object). That means we can use ``op.a = 3`` rather than
+    ``op.action.a = 3``. In addition, when creating Python Actions, all logic
+    should go in these classes. In general there should be no need to create a
+    custom wrapping class.
     """
     pass
