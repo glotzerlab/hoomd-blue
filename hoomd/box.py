@@ -160,6 +160,69 @@ class Box:
         b._cpp_obj = cpp_obj
         return b
 
+    @classmethod
+    def from_box(cls, box):
+        R"""Initialize a Box instance from a box-like object.
+
+        Args:
+            box:
+                A box-like object
+
+        .. note:: Objects that can be converted to HOOMD-blue boxes include
+                  lists like :code:`[Lx, Ly, Lz, xy, xz, yz]`,
+                  dictionaries with keys
+                  :code:`'Lx', 'Ly', 'Lz', 'xy', 'xz', 'yz', 'dimensions'`,
+                  objects with attributes
+                  :code:`Lx, Ly, Lz, xy, xz, yz, dimensions`,
+                  3x3 matrices (see `~.from_matrix`),
+                  or existing :class:`hoomd.Box` objects.
+
+                  If any of :code:`Lz, xy, xz, yz` are not provided, they will
+                  be set to 0.
+
+                  If all values are provided, a triclinic box will be
+                  constructed. If only :code:`Lx, Ly, Lz` are provided, an
+                  orthorhombic box will be constructed. If only :code:`Lx, Ly`
+                  are provided, a rectangular (2D) box will be constructed.
+
+        Returns:
+            :class:`hoomd.Box`: The resulting box object.
+        """
+        if np.asarray(box).shape == (3, 3):
+            # Handles 3x3 matrices
+            return cls.from_matrix(box)
+        try:
+            # Handles hoomd.box.Box and objects with attributes
+            Lx = box.Lx
+            Ly = box.Ly
+            Lz = getattr(box, 'Lz', 0)
+            xy = getattr(box, 'xy', 0)
+            xz = getattr(box, 'xz', 0)
+            yz = getattr(box, 'yz', 0)
+        except AttributeError:
+            try:
+                # Handle dictionary-like
+                Lx = box['Lx']
+                Ly = box['Ly']
+                Lz = box.get('Lz', 0)
+                xy = box.get('xy', 0)
+                xz = box.get('xz', 0)
+                yz = box.get('yz', 0)
+            except (IndexError, KeyError, TypeError):
+                if not len(box) in [2, 3, 6]:
+                    raise ValueError(
+                        "List-like objects must have length 2, 3, or 6 to be "
+                        "converted to freud.box.Box.")
+                # Handle list-like
+                Lx = box[0]
+                Ly = box[1]
+                Lz = box[2] if len(box) > 2 else 0
+                xy, xz, yz = box[3:6] if len(box) == 6 else (0, 0, 0)
+        except:  # noqa
+            raise
+
+        return cls(Lx=Lx, Ly=Ly, Lz=Lz, xy=xy, xz=xz, yz=yz)
+
     # Dimension based properties
     @property
     def dimensions(self):

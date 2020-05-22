@@ -170,15 +170,19 @@ class State:
 
     @box.setter
     def box(self, value):
-        if not isinstance(value, Box):
-            raise TypeError('box must be a hoomd.box.Box object')
+        try:
+            value = Box.from_box(value)
+        except Exception:
+            raise ValueError('{} is not convertable to hoomd.Box using '
+                             'hoomd.Box.from_box'.format(value))
+
         if value.dimensions != self._cpp_sys_def.getNDimensions():
             self._simulation.device.cpp_msg.warning(
                 "Box changing dimensions from {} to {}."
                 "".format(self._cpp_sys_def.getNDimensions(),
                           value.dimensions))
             self._cpp_sys_def.setNDimensions(value.dimensions)
-        self._cpp_sys_def.getParticleData().setGlobalBox(copy(value)._cpp_obj)
+        self._cpp_sys_def.getParticleData().setGlobalBox(value._cpp_obj)
 
     def replicate(self):
         raise NotImplementedError

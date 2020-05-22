@@ -3,8 +3,19 @@ from hoomd.box import Box
 from hoomd.parameterdicts import ParameterDict
 from hoomd.typeconverter import OnlyType
 from hoomd.variant import Variant, Power
-from hoomd.util import variant_preprocessing
 from hoomd import _hoomd
+
+
+def box_preprocessing(box):
+    if isinstance(box, Box):
+        return box
+    else:
+        try:
+            return Box.from_box(box)
+        except Exception:
+            raise ValueError(
+                "{} is not convertible into a hoomd.Box object. "
+                "using hoomd.Box.from_box".format(box))
 
 
 class BoxResize(_Updater):
@@ -40,8 +51,9 @@ class BoxResize(_Updater):
     def __init__(self, initial_box, final_box,
                  variant, trigger, scale_particles=True):
         params = ParameterDict(
-            initial_box=OnlyType(Box), final_box=OnlyType(Box),
-            variant=OnlyType(Variant, variant_preprocessing),
+            initial_box=OnlyType(Box, preprocess=box_preprocessing),
+            final_box=OnlyType(Box, preprocess=box_preprocessing),
+            variant=Variant,
             scale_particles=bool)
         params['initial_box'] = initial_box
         params['final_box'] = final_box

@@ -18,17 +18,20 @@ class _ConfigurationData:
     def box(self):
         b = self._cpp_obj._global_box
         L = b.getL()
-        return (L.x, L.y, L.z, b.getTiltFactorXY(), b.getTiltFactorXZ(), b.getTiltFactorYZ())
+        return (L.x, L.y, L.z,
+                b.getTiltFactorXY(),
+                b.getTiltFactorXZ(),
+                b.getTiltFactorYZ())
 
     @box.setter
     def box(self, box):
-        if isinstance(box, hoomd.Box):
-            self._cpp_obj._global_box = hoomd.Box._from_cpp(
-                box._cpp_obj)._cpp_obj
-        else:
-            b = _hoomd.BoxDim(box[0], box[1], box[2])
-            b.setTiltFactors(box[3], box[4], box[5])
-            self._cpp_obj._global_box = b
+        try:
+            new_box = hoomd.Box.from_box(box)
+        except Exception:
+            raise ValueError(
+                "{} is not convertible to a hoomd.Box object. "
+                "using hoomd.Box.from_box".format(box))
+        self._cpp_obj._global_box = new_box._cpp_obj
 
 
 class Snapshot:
