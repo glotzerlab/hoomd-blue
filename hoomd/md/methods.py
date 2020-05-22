@@ -9,7 +9,7 @@
 from hoomd import _hoomd
 from hoomd.md import _md
 import hoomd
-from hoomd.operation import _Operation
+from hoomd.operation import _Operation, NotAttachedError
 from hoomd.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.filter import _ParticleFilter
 from hoomd.typeparam import TypeParameter
@@ -34,29 +34,29 @@ class _Method(_Operation):
     pass
 
 
-class nvt(_Method):
+class NVT(_Method):
     R""" NVT Integration via the Nosé-Hoover thermostat.
 
     Args:
-        group (:py:mod:`hoomd.group`): Group of particles on which to apply this
+        filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply this
             method.
         kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set point
             for the Nosé-Hoover thermostat. (in energy units).
         tau (float): Coupling constant for the Nosé-Hoover thermostat. (in time
             units).
 
-    :py:class:`nvt` performs constant volume, constant temperature simulations
+    :py:class:`NVT` performs constant volume, constant temperature simulations
     using the Nosé-Hoover thermostat, using the MTK equations described in Refs.
     `G. J. Martyna, D. J. Tobias, M. L. Klein  1994
     <http://dx.doi.org/10.1063/1.467468>`_ and `J. Cao, G. J. Martyna 1996
     <http://dx.doi.org/10.1063/1.470959>`_.
 
-    :py:class:`nvt` is an integration method. It must be used in connection with
+    :py:class:`NVT` is an integration method. It must be used in connection with
     :py:class:`mode_standard`.
 
-    :py:class:`nvt` uses the proper number of degrees of freedom to compute the
+    :py:class:`NVT` uses the proper number of degrees of freedom to compute the
     temperature of the system in both 2 and 3 dimensional systems, as long as
-    the number of dimensions is set before the integrate.nvt command is
+    the number of dimensions is set before the integrate.NVT command is
     specified.
 
     :math:`\tau` is related to the Nosé mass :math:`Q` by
@@ -76,102 +76,44 @@ class nvt(_Method):
 
     Examples::
 
-        all = group.all()
-        integrate.nvt(group=all, kT=1.0, tau=0.5)
-        integrator = integrate.nvt(group=all, tau=1.0, kT=0.65)
-        typeA = group.type('A')
-        integrator = integrate.nvt(group=typeA, tau=1.0, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
+        all = filter.All()
+        integrate.NVT(filter=all, kT=1.0, tau=0.5)
+        integrator = integrate.NVT(filter=all, tau=1.0, kT=0.65)
+        typeA = filter.Type('A')
+        integrator = integrate.NVT(filter=typeA, tau=1.0, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
     """
-    def __init__(self, group, kT, tau):
-
-        # initialize base class
-        _Method.__init__(self)
-
-        # setup the variant inputs
-        kT = hoomd.variant._setup_variant_input(kT)
-
-        # create the compute thermo
-        # the NVT integrator uses the ComputeThermo in such a way that
-        # ComputeThermo stores half-time step values. By assigning a separate
-        # ComputeThermo to the integrator, we are still able to log full time
-        # step values
-        if group is hoomd.context.current.group_all:
-            group_copy = copy.copy(group)
-            group_copy.name = "__nvt_all"
-            thermo = hoomd.compute.thermo(group_copy)
-            thermo.cpp_compute.setLoggingEnabled(False)
-        else:
-            thermo = hoomd.compute._get_unique_thermo(group=group)
+    def __init__(self, filter, kT, tau):
 
         # store metadata
-        self.group = group
-        self.kT = kT
-        self.tau = tau
-        self.metadata_fields = ['group', 'kT', 'tau']
+        param_dict = ParameterDict(
+            filter=OnlyType(_ParticleFilter),
+            kT=create_variant,
+            tau=float(tau),
+            )
+        param_dict.update(dict(kT=kT, filter=filter))
+        # set defaults
+        self._param_dict.update(param_dict)
 
-        # setup suffix
-        suffix = '_' + group.name
+    def attach(self, simulation):
 
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_method = _md.TwoStepNVTMTK(hoomd.context.current.system_definition, group.cpp_group, thermo.cpp_compute, tau, kT.cpp_variant, suffix)
+        # initialize the reflected cpp class
+        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+            my_class = _md.TwoStepNVTMTK
+            thermo_cls = _hoomd.ComputeThermo
         else:
-            self.cpp_method = _md.TwoStepNVTMTKGPU(hoomd.context.current.system_definition, group.cpp_group, thermo.cpp_compute, tau, kT.cpp_variant, suffix)
+            my_class = _md.TwoStepNVTMTKGPU
+            thermo_cls = _hoomd.ComputeThermoGPU
 
-        self.cpp_method.validateGroup()
-
-    def set_params(self, kT=None, tau=None):
-        R""" Changes parameters of an existing integrator.
-
-        Args:
-            kT (float): New temperature (if set) (in energy units)
-            tau (float): New coupling constant (if set) (in time units)
-
-        Examples::
-
-            integrator.set_params(tau=0.6)
-            integrator.set_params(tau=0.7, kT=2.0)
-
-        """
-        self.check_initialization()
-
-        # change the parameters
-        if kT is not None:
-            # setup the variant inputs
-            kT = hoomd.variant._setup_variant_input(kT)
-            self.cpp_method.setT(kT.cpp_variant)
-            self.kT = kT
-
-        if tau is not None:
-            self.cpp_method.setTau(tau)
-            self.tau = tau
-
-    def randomize_velocities(self, seed):
-        R""" Assign random velocities and angular momenta to particles in the
-        group, sampling from the Maxwell-Boltzmann distribution. This method
-        considers the dimensionality of the system and particle anisotropy, and
-        removes drift (the center of mass velocity).
-
-        .. versionadded:: 2.3
-
-        Starting in version 2.5, `randomize_velocities` also chooses random values
-        for the internal integrator variables.
-
-        Args:
-            seed (int): Random number seed
-
-        Note:
-            Randomization is applied at the start of the next call to :py:func:`hoomd.run`.
-
-        Example::
-
-            integrator = md.integrate.nvt(group=group.all(), kT=1.0, tau=0.5)
-            integrator.randomize_velocities(seed=42)
-            run(100)
-
-        """
-        timestep = hoomd.get_step()
-        kT = self.kT.cpp_variant.getValue(timestep)
-        self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
+        group = simulation.state.get_group(self.filter)
+        cpp_sys_def = simulation.state._cpp_sys_def
+        thermo = thermo_cls(cpp_sys_def, group, "")
+        self._cpp_obj = my_class(cpp_sys_def,
+                                 group,
+                                 thermo,
+                                 self.tau,
+                                 self.kT,
+                                 "")
+        super().attach(simulation)
 
 
 class npt(_Method):
