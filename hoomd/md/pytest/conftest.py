@@ -37,6 +37,14 @@ def pair_and_params(request):
     return deepcopy(request.param[1:])
 
 
+def _make_valid_param_dicts(key_range_dict, n_dicts):
+    sample_dict = {}
+    for key, val_range in key_range_dict.items():
+        sample_dict[key] = np.random.choice(val_range, n_dicts)
+    # turn {'a': [0, 1], 'b':[2, 3]} into [{'a': 0, 'b': 2}, {'a': 1, 'b': 3}]
+    return [dict(zip(sample_dict, val)) for val in zip(*sample_dict.values())]
+
+
 def _lj_valid_params():
     particle_types_list = [['A'], ['A', 'B'],
                            ['A', 'B', 'C']]
@@ -46,10 +54,9 @@ def _lj_valid_params():
                                                                   2))
         combos.append(type_combo)
         N = len(type_combo)
-    sample_range = np.linspace(0.5, 1.5, 100)
-    samples = np.array_split(np.random.choice(sample_range,
-                                              size=N * len(combos) * 3,
-                                              replace=True), 3)
+    lj_sample_dict = {'sigma': np.linspace(0.5, 1.5),
+                      'epsilon': np.linspace(0.5, 1.5)}
+    valid_param_dicts = _make_valid_param_dicts(lj_sample_dict, N * len(combos))
     pair_potential_dicts = []
     r_cut_dicts = []
     r_on_dicts = []
@@ -59,10 +66,9 @@ def _lj_valid_params():
         combo_rcuts = {}
         combo_rons = {}
         for combo in combo_list:
-            combo_pair_potentials[tuple(combo)] = {'sigma': samples[0][count],
-                                                   'epsilon': samples[1][count]}
-            combo_rcuts[tuple(combo)] = 2.5 * samples[0][count]
-            combo_rons[tuple(combo)] = 2.5 * samples[0][count] * samples[2][count]
+            combo_pair_potentials[tuple(combo)] = valid_param_dicts[count]
+            combo_rcuts[tuple(combo)] = (np.random.random() * 2) + 1.5
+            combo_rons[tuple(combo)] = (np.random.random() * 2) + 1.5
             count += 1
         pair_potential_dicts.append(combo_pair_potentials)
         r_cut_dicts.append(combo_rcuts)
@@ -83,10 +89,10 @@ def valid_params(request):
     return deepcopy(request.param)
 
 
-def _make_invalid_param_dict(keys, valid_vals):
-    invalid_dicts = [dict(zip(keys, valid_vals))] * len(keys) * 2
+def _make_invalid_param_dict(valid_dict):
+    invalid_dicts = [valid_dict] * len(valid_dict.keys()) * 2
     count = 0
-    for key in keys:
+    for key in valid_dict.keys():
         invalid_dicts[count][key] = [1, 2]
         invalid_dicts[count + 1][key] = 'str'
         count += 2
@@ -95,9 +101,8 @@ def _make_invalid_param_dict(keys, valid_vals):
 
 def _invalid_params():
     lj_param_dict = {'sigma': 1.0, 'epsilon': 1.0}
-    lj_invalid_param_dict = _make_invalid_param_dict(lj_param_dict.keys(),
-                                                     lj_param_dict.values())
-    N = len(lj_invalid_param_dict) + 7  # +6 is r_cut, r_on, mode, and pair key
+    lj_invalid_param_dict = _make_invalid_param_dict(lj_param_dict)
+    N = len(lj_invalid_param_dict) + 7  # +7 is r_cut, r_on, mode, and pair key
     lj_pot = [hoomd.md.pair.LJ] * N
     lj_params = [{('A', 'A'): lj_param_dict}] * N
     for i in range(len(lj_invalid_param_dict)):
