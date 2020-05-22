@@ -7,9 +7,9 @@ class CustomAction(ABC):
     """Base class for all Python Action's.
 
     This class must be the parent class for all Python ``Action``s. This class
-    requires all subclasses to implement the :meth:`~.act` method which performs the
-    Python object's task whether that be updating the system, writing output, or
-    analyzing some property of the system.
+    requires all subclasses to implement the :meth:`~.act` method which performs
+    the Python object's task whether that be updating the system, writing
+    output, or analyzing some property of the system.
 
     To use subclasses of this class, the object must be passed as an argument
     to a `hoomd.update.CustomUpdater` or `hoomd.analyze.CustomAnalyzer`
@@ -65,7 +65,7 @@ class CustomAction(ABC):
         from hoomd.python_action import CustomAction
 
 
-        class ExampleActionWithFlag(CustomAction):
+        class ExampleAction(CustomAction):
             def act(self, timestep):
                 self.com = self.snapshot.particles.position.mean(axis=0)
 
@@ -125,11 +125,13 @@ class _InternalCustomAction(CustomAction, _HOOMDGetSetAttrBase):
     Gives additional support in using HOOMD constructs like ``ParameterDict``s
     and ``TypeParameters``.
 
-    When wrapped around a subclass of `hoomd._CustomOperation`, the operation
-    acts like the action (i.e. we mock the behavior of this object with the
-    wrapping object). That means we can use ``op.a = 3`` rather than
+    When wrapped around a subclass of `hoomd._InternalCustomOperation`, the
+    operation acts like the action (i.e. we mock the behavior of this object
+    with the wrapping object). That means we can use ``op.a = 3`` rather than
     ``op.action.a = 3``. In addition, when creating Python Actions, all logic
-    should go in these classes. In general there should be no need to create a
-    custom wrapping class.
+    should go in these classes. In general, in creating a subclass of
+    `hoomd.custom_operation._InternalCustomOperation` only a ``_internal_class``
+    should be specified in the subclass. No other methods or attributes should
+    be created.
     """
     pass

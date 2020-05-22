@@ -59,6 +59,8 @@ class _CustomOperation(_TriggeredOperation):
         self._param_dict.update(param_dict)
 
     def __getattr__(self, attr):
+        """Allows pass through to grab attributes/methods of the wrapped object.
+        """
         try:
             return super().__getattr__(attr)
         except AttributeError:
@@ -69,6 +71,7 @@ class _CustomOperation(_TriggeredOperation):
                     "{} object has no attribute {}".format(type(self), attr))
 
     def _setattr_hook(self, attr, value):
+        """This implements the __setattr__ pass through to the CustomAction."""
         if hasattr(self._action, attr):
             setattr(self._action, attr, value)
         else:
@@ -108,6 +111,11 @@ class _CustomOperation(_TriggeredOperation):
 
 class _InternalCustomOperation(_CustomOperation):
     """Internal class for Python ``Action``s. Offers a streamlined __init__.
+
+    Adds a wrapper around an hoomd Python action. This extends the attribute
+    getting and setting wrapper of `hoomd._CustomOperation` with a wrapping of
+    the `__init__` method as well as a error raised if the ``action`` is
+    attempted to be accessed directly.
     """
 
     @property
