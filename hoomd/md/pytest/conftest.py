@@ -45,46 +45,31 @@ def _make_valid_param_dicts(key_range_dict, n_dicts):
     return [dict(zip(sample_dict, val)) for val in zip(*sample_dict.values())]
 
 
-def _lj_valid_params():
-    particle_types_list = [['A'], ['A', 'B'],
-                           ['A', 'B', 'C']]
-    combos = []
-    for particle_types in particle_types_list:
-        type_combo = list(itertools.combinations_with_replacement(particle_types,
-                                                                  2))
-        combos.append(type_combo)
-        N = len(type_combo)
-    lj_sample_dict = {'sigma': np.linspace(0.5, 1.5),
-                      'epsilon': np.linspace(0.5, 1.5)}
-    valid_param_dicts = _make_valid_param_dicts(lj_sample_dict, N * len(combos))
-    pair_potential_dicts = []
-    r_cut_dicts = []
-    r_on_dicts = []
-    count = 0
-    for combo_list in combos:
-        combo_pair_potentials = {}
-        combo_rcuts = {}
-        combo_rons = {}
-        for combo in combo_list:
-            combo_pair_potentials[tuple(combo)] = valid_param_dicts[count]
-            combo_rcuts[tuple(combo)] = (np.random.random() * 2) + 1.5
-            combo_rons[tuple(combo)] = (np.random.random() * 2) + 1.5
-            count += 1
-        pair_potential_dicts.append(combo_pair_potentials)
-        r_cut_dicts.append(combo_rcuts)
-        r_on_dicts.append(combo_rons)
-
-    pair_potential = [hoomd.md.pair.LJ] * len(combos)
-    modes = np.random.choice(['none', 'shifted', 'xplor'], size=len(combos))
-
-    return zip(pair_potential,
+def _make_valid_params(valid_param_dicts, combos, pair_potential):
+    r_cut_vals = np.random.choice(np.linspace(1.5, 3.5), len(combos))
+    r_on_vals = np.random.choice(np.linspace(1.5, 3.5), len(combos))
+    pair_potential_dicts = [dict(zip(combos, valid_param_dicts))] * 3
+    r_cut_dicts = [dict(zip(combos, r_cut_vals))] * 3
+    r_on_dicts = [dict(zip(combos, r_on_vals))] * 3
+    modes = ['none', 'shifted', 'xplor']
+    pair_potentials = [pair_potential] * 3
+    return zip(pair_potentials,
                pair_potential_dicts,
                r_cut_dicts,
                r_on_dicts,
                modes)
 
 
-@pytest.fixture(scope="function", params=_lj_valid_params())
+def _valid_params(particle_types=['A', 'B']):
+    combos = list(itertools.combinations_with_replacement(particle_types, 2))
+    lj_sample_dict = {'sigma': np.linspace(0.5, 1.5),
+                      'epsilon': np.linspace(0.5, 1.5)}
+    valid_param_dicts = _make_valid_param_dicts(lj_sample_dict, len(combos))
+    lj_params = _make_valid_params(valid_param_dicts, combos, hoomd.md.pair.LJ)
+    return lj_params
+
+
+@pytest.fixture(scope="function", params=_valid_params())
 def valid_params(request):
     return deepcopy(request.param)
 
