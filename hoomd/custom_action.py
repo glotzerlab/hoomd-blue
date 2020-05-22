@@ -7,7 +7,7 @@ class CustomAction(ABC):
     """Base class for all Python Action's.
 
     This class must be the parent class for all Python ``Action``s. This class
-    requires all subclasses to implement the act method which performs the
+    requires all subclasses to implement the :meth:`~.act` method which performs the
     Python object's task whether that be updating the system, writing output, or
     analyzing some property of the system.
 
