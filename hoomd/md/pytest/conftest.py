@@ -84,30 +84,38 @@ def _make_invalid_param_dict(valid_dict):
     return invalid_dicts
 
 
+def _make_invalid_params(valid_param_dict, invalid_param_dicts, pair_potential):
+    N = len(invalid_param_dicts) + 7  # +7 is r_cut, r_on, mode, and pair key
+    pair_potentials = [pair_potential] * N
+
+    params = [{('A', 'A'): valid_param_dict}] * N
+    for i in range(len(invalid_param_dicts)):
+        params[i][('A', 'A')] = invalid_param_dicts[i]
+
+    r_cuts = [{('A', 'A'): 2.5}] * N
+    r_cuts[len(invalid_param_dicts)][('A', 'A')] = [1, 2]
+    r_cuts[len(invalid_param_dicts) + 1][('A', 'A')] = 'str'
+
+    r_ons = [{('A', 'A'): 2.5}] * N
+    r_ons[len(invalid_param_dicts) + 2][('A', 'A')] = [1, 2]
+    r_ons[len(invalid_param_dicts) + 3][('A', 'A')] = 'str'
+
+    modes = ['none'] * N
+    modes[len(invalid_param_dicts) + 4] = [1, 2]
+    modes[len(invalid_param_dicts) + 5] = 1
+
+    r_cuts[len(invalid_param_dicts) + 6] = {1: 2.4}
+
+    return zip(pair_potentials, params, r_cuts, r_ons, modes)
+
+
 def _invalid_params():
-    lj_param_dict = {'sigma': 1.0, 'epsilon': 1.0}
-    lj_invalid_param_dict = _make_invalid_param_dict(lj_param_dict)
-    N = len(lj_invalid_param_dict) + 7  # +7 is r_cut, r_on, mode, and pair key
-    lj_pot = [hoomd.md.pair.LJ] * N
-    lj_params = [{('A', 'A'): lj_param_dict}] * N
-    for i in range(len(lj_invalid_param_dict)):
-        lj_params[i][('A', 'A')] = lj_invalid_param_dict[i]
-
-    lj_rcuts = [{('A', 'A'): 2.5}] * N
-    lj_rcuts[len(lj_invalid_param_dict)][('A', 'A')] = [1, 2]
-    lj_rcuts[len(lj_invalid_param_dict) + 1][('A', 'A')] = 'str'
-
-    lj_rons = [{('A', 'A'): 2.5}] * N
-    lj_rons[len(lj_invalid_param_dict) + 2][('A', 'A')] = [1, 2]
-    lj_rons[len(lj_invalid_param_dict) + 3][('A', 'A')] = 'str'
-
-    lj_modes = ['none'] * N
-    lj_modes[len(lj_invalid_param_dict) + 4] = [1, 2]
-    lj_modes[len(lj_invalid_param_dict) + 5] = 1
-
-    lj_rcuts[len(lj_invalid_param_dict) + 6] = {1: 2.4}
-
-    return zip(lj_pot, lj_params, lj_rcuts, lj_rons, lj_modes)
+    lj_valid_param_dict = {'sigma': 1.0, 'epsilon': 1.0}
+    lj_invalid_param_dicts = _make_invalid_param_dict(lj_valid_param_dict)
+    lj_params = _make_invalid_params(lj_valid_param_dict,
+                                     lj_invalid_param_dicts,
+                                     hoomd.md.pair.LJ)
+    return lj_params
 
 
 @pytest.fixture(scope="function", params=_invalid_params())
