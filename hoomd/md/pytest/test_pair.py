@@ -40,11 +40,15 @@ def assert_equivalent_parameter_dicts(param_dict1, param_dict2):
 def test_valid_params(valid_params):
     pair_potential, pair_potential_dict, r_cut, r_on, mode = valid_params
     cell = hoomd.md.nlist.Cell()
-    pot = pair_potential(nlist=cell, mode=mode)
+    if mode is not None:
+        pot = pair_potential(nlist=cell, mode=mode)
+    else:
+        pot = pair_potential(nlist=cell)
     for pair in pair_potential_dict:
         pot.params[pair] = pair_potential_dict[pair]
         pot.r_cut[pair] = r_cut[pair]
-        pot.r_on[pair] = r_on[pair]
+        if r_on is not None:
+            pot.r_on[pair] = r_on[pair]
 
     assert_equivalent_type_params(pot.params.to_dict(), pair_potential_dict)
     assert_equivalent_type_params(pot.r_cut.to_dict(), r_cut)
@@ -78,12 +82,16 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
     pair_potential, pair_potential_dict, r_cut, r_on, mode = valid_params
     particle_types = list(set(itertools.chain.from_iterable(r_cut.keys())))
     cell = hoomd.md.nlist.Cell()
-    pot = pair_potential(nlist=cell, r_cut=2.5)
+    if mode is not None:
+        pot = pair_potential(nlist=cell, r_cut=2.5, mode=mode)
+    else:
+        pot = pair_potential(nlist=cell, r_cut=2.5)
 
     for pair in pair_potential_dict:
         pot.params[pair] = pair_potential_dict[pair]
         pot.r_cut[pair] = r_cut[pair]
-        pot.r_on[pair] = r_on[pair]
+        if r_on is not None:
+            pot.r_on[pair] = r_on[pair]
 
     snap = lattice_snapshot_factory(particle_types=particle_types,
                                     n=100, a=0.5, r=0.01)
@@ -97,6 +105,9 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
     assert_equivalent_type_params(attached_pot.params.to_dict(),
                                   pair_potential_dict)
     assert_equivalent_type_params(attached_pot.r_cut.to_dict(), r_cut)
-    assert_equivalent_type_params(attached_pot.r_on.to_dict(), r_on)
+    if r_on is None:
+        assert attached_pot.r_on.to_dict() == {key: 0.0 for key in r_cut.keys()}
+    else:
+        assert_equivalent_type_params(attached_pot.r_on.to_dict(), r_on)
     assert_equivalent_parameter_dicts(attached_pot.nlist._param_dict,
                                       cell._param_dict)
