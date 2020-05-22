@@ -407,7 +407,7 @@ class PYBIND11_EXPORT VariantCycle : public Variant
 
 /** Power variant
 
-    Variant that goes from m_A -> m_B as x ^ (power)
+    Variant that goes from m_A -> m_B as timestep ^ (power)
 */
 class PYBIND11_EXPORT VariantPower : public Variant
     {
@@ -416,7 +416,7 @@ class PYBIND11_EXPORT VariantPower : public Variant
         /** Construct a VariantPower.
 
             @param A the initial value
-            @param B the finial value
+            @param B the final value
             @param power the power to approach as
             @param t_start the first timestep
             @param t_size the length of the approach
@@ -506,7 +506,7 @@ class PYBIND11_EXPORT VariantPower : public Variant
         /// Set the length of the ramp.
         void setTSize(uint64_t t_size)
             {
-            // doubles can only represent integers accuracy up to 2**53.
+            // Doubles can only represent integers accurately up to 2**53.
             if (t_size >= 9007199254740992ull)
                 {
                 throw std::invalid_argument("t_size must be less than 2**53");
