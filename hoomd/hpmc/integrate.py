@@ -925,6 +925,12 @@ class ConvexPolyhedron(HPMCIntegrator):
             (distance units).
 
         a (float): Default maximum size of rotation trial moves.
+        quasi2d(int): Run a quasi 2d simulation in three dimensions. This means
+                      that all moves will only occur in the XY plane. A value
+                      of 0 is False, a value of 1 indicates that out-of-plane
+                      rotations will be allowed but translations forbidden, and
+                      a value of 2 indicates that all rotations will be
+                      in-plane rotations.
 
         translation_move_probability (float): Fraction of moves that are
             translation moves.
@@ -995,7 +1001,8 @@ class ConvexPolyhedron(HPMCIntegrator):
                  d=0.1,
                  a=0.1,
                  translation_move_probability=0.5,
-                 nselect=4):
+                 nselect=4,
+                 quasi2d=0):
 
         # initialize base class
         super().__init__(d, a, translation_move_probability, nselect)

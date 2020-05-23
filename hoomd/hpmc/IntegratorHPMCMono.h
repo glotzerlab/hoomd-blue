@@ -132,7 +132,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         typedef typename Shape::param_type param_type;
 
         //! Constructor
-        IntegratorHPMCMono(std::shared_ptr<SystemDefinition> sysdef);
+        IntegratorHPMCMono(std::shared_ptr<SystemDefinition> sysdef, unsigned int quasi2d=0);
 
         virtual ~IntegratorHPMCMono()
             {
@@ -466,6 +466,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
 
         bool m_quermass;                                         //!< True if quermass integration mode is enabled
         Scalar m_sweep_radius;                                   //!< Radius of sphere to sweep shapes by
+        unsigned int m_quasi2d;                                  //!< Whether or not to run quasi2d simulations.
 
         //! Test whether to reject the current particle move based on depletants
         #ifndef ENABLE_TBB
@@ -507,7 +508,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
     };
 
 template <class Shape>
-IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> sysdef)
+IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> sysdef, unsigned int quasi2d)
             : IntegratorHPMC(sysdef),
               m_update_order(m_pdata->getN()),
               m_image_list_is_initialized(false),
@@ -515,7 +516,8 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
               m_hasOrientation(true),
               m_extra_image_width(0.0),
               m_quermass(false),
-              m_sweep_radius(0.0)
+              m_sweep_radius(0.0),
+              m_quasi2d(quasi2d)
     {
     // allocate the parameter storage, setting the managed flag
     m_params = std::vector<param_type, managed_allocator<param_type> >(m_pdata->getNTypes(),
@@ -875,7 +877,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                     continue;
                     }
 
-                move_translate(pos_i, rng_i, h_d.data[typ_i], ndim);
+                move_translate(pos_i, rng_i, h_d.data[typ_i], (ndim == 2) ? 2 : ((m_quasi2d > 0) ? 2 : 3));
 
                 #ifdef ENABLE_MPI
                 if (m_comm)
@@ -895,7 +897,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                     continue;
                     }
 
-                if (ndim == 2)
+                if ((ndim == 2) || (m_quasi2d == 2))
                     move_rotate<2>(shape_i.orientation, rng_i, h_a.data[typ_i]);
                 else
                     move_rotate<3>(shape_i.orientation, rng_i, h_a.data[typ_i]);
@@ -3229,7 +3231,7 @@ bool IntegratorHPMCMono<Shape>::attemptBoxResize(uint64_t timestep, const BoxDim
 template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, const std::string& name)
     {
     pybind11::class_< IntegratorHPMCMono<Shape>, IntegratorHPMC, std::shared_ptr< IntegratorHPMCMono<Shape> > >(m, name.c_str())
-          .def(pybind11::init< std::shared_ptr<SystemDefinition> >())
+          .def(pybind11::init< std::shared_ptr<SystemDefinition>, unsigned int >())
           .def("setParam", &IntegratorHPMCMono<Shape>::setParam)
           .def("setInteractionMatrix", &IntegratorHPMCMono<Shape>::setInteractionMatrix)
           .def("getInteractionMatrix", &IntegratorHPMCMono<Shape>::getInteractionMatrixPy)
