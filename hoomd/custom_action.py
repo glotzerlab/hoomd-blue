@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from hoomd.parameterdicts import ParameterDict
 from hoomd.operation import _HOOMDGetSetAttrBase
 
 

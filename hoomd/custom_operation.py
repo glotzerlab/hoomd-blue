@@ -3,7 +3,6 @@ from hoomd.parameterdicts import ParameterDict
 from hoomd.custom_action import CustomAction
 from hoomd.typeconverter import OnlyType
 from hoomd.trigger import Trigger
-from hoomd.util import trigger_preprocessing
 from hoomd.logger import LoggerQuantity
 from hoomd import _hoomd
 
@@ -47,14 +46,14 @@ class _CustomOperation(_TriggeredOperation):
                              "hoomd.custom_action.CustomAction.")
         self._action = action
         loggables = list(action.log_quantities)
-        if not all(isinstance(l, LoggerQuantity) for l in loggables.values()):
+        if not all(isinstance(val, LoggerQuantity)
+                   for val in loggables.values()):
             raise ValueError("Error wrapping {}. All advertised log "
                              "quantities must be of type LoggerQuantity."
                              "".format(action))
         self._export_dict = loggables
 
-        param_dict = ParameterDict(
-            trigger=OnlyType(Trigger, preprocess=trigger_preprocessing))
+        param_dict = ParameterDict(trigger=Trigger)
         param_dict['trigger'] = trigger
         self._param_dict.update(param_dict)
 
