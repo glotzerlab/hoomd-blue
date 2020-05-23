@@ -9,6 +9,7 @@
 #include "hoomd/Index1D.h"
 #include "hoomd/BoxDim.h"
 #include "hoomd/hpmc/HPMCCounters.h"
+#include "hoomd/GPUPartition.cuh"
 
 namespace hpmc {
 
@@ -191,6 +192,49 @@ struct hpmc_update_args_t
     const unsigned int *d_reject;
     const unsigned int block_size;
     };
+
+//! Driver for kernel::hpmc_narrow_phase()
+template< class Shape >
+void hpmc_narrow_phase(const hpmc_args_t& args, const typename Shape::param_type *params);
+
+//! Driver for kernel::hpmc_gen_moves()
+template< class Shape >
+void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type *params);
+
+//! Driver for kernel::hpmc_update_pdata()
+template< class Shape >
+void hpmc_update_pdata(const hpmc_update_args_t& args, const typename Shape::param_type *params);
+
+//! Driver for kernel::hpmc_excell()
+void hpmc_excell(unsigned int *d_excell_idx,
+                 unsigned int *d_excell_size,
+                 const Index2D& excli,
+                 const unsigned int *d_cell_idx,
+                 const unsigned int *d_cell_size,
+                 const unsigned int *d_cell_adj,
+                 const Index3D& ci,
+                 const Index2D& cli,
+                 const Index2D& cadji,
+                 const unsigned int ngpu,
+                 const unsigned int block_size);
+
+//! Kernel driver for kernel::hpmc_shift()
+void hpmc_shift(Scalar4 *d_postype,
+                int3 *d_image,
+                const unsigned int N,
+                const BoxDim& box,
+                const Scalar3 shift,
+                const unsigned int block_size);
+
+//! Kernel to evaluate convergence
+void hpmc_check_convergence(
+     const unsigned int *d_trial_move_type,
+     const unsigned int *d_reject_out_of_cell,
+     unsigned int *d_reject_in,
+     unsigned int *d_reject_out,
+     unsigned int *d_condition,
+     const GPUPartition& gpu_partition,
+     unsigned int block_size);
 
 } // end namespace gpu
 

@@ -55,6 +55,7 @@ __global__ void generate_num_depletants_ntrial(const Scalar4 *d_vel,
                                         const Scalar *d_lambda,
                                         const Scalar4 *d_postype,
                                         unsigned int *d_n_depletants,
+                                        const unsigned int N_local,
                                         const unsigned int work_offset,
                                         const unsigned int nwork)
     {
@@ -68,6 +69,9 @@ __global__ void generate_num_depletants_ntrial(const Scalar4 *d_vel,
     unsigned int i_trial_config = blockIdx.y;
     unsigned int i_trial = (i_trial_config >> 1)%ntrial;
     unsigned int new_config = i_trial_config & 1;
+
+    if (i >= N_local && new_config)
+        return; // ghosts only exist in the old config
 
     // draw a Poisson variate according to the seed stored in the auxillary variable (vel.x)
     unsigned int seed_i = new_config ? __scalar_as_int(d_trial_vel[i].x) : __scalar_as_int(d_vel[i].x);
@@ -204,6 +208,8 @@ void generate_num_depletants_ntrial(const Scalar4 *d_vel,
                                     const Scalar *d_lambda,
                                     const Scalar4 *d_postype,
                                     unsigned int *d_n_depletants,
+                                    const unsigned int N_local,
+                                    const unsigned int n_ghosts,
                                     const GPUPartition& gpu_partition,
                                     const unsigned int block_size,
                                     const hipStream_t *streams)
@@ -222,7 +228,14 @@ void generate_num_depletants_ntrial(const Scalar4 *d_vel,
     for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
         {
         auto range = gpu_partition.getRangeAndSetGPU(idev);
+
         unsigned int nwork = range.second - range.first;
+
+        // add ghosts to final range
+        if (idev == (int)gpu_partition.getNumActiveGPUs()-1)
+            nwork += n_ghosts;
+
+        if (!nwork) continue;
 
         dim3 grid(nwork/run_block_size + 1, 2*ntrial, 1);
         dim3 threads(run_block_size, 1, 1);
@@ -237,6 +250,7 @@ void generate_num_depletants_ntrial(const Scalar4 *d_vel,
             d_lambda,
             d_postype,
             d_n_depletants,
+            N_local,
             range.first,
             nwork);
         }
@@ -270,6 +284,7 @@ void get_max_num_depletants(unsigned int *d_n_depletants,
 void get_max_num_depletants_ntrial(const unsigned int ntrial,
                             unsigned int *d_n_depletants,
                             unsigned int *max_n_depletants,
+                            const unsigned int n_ghosts,
                             const hipStream_t *streams,
                             const GPUPartition& gpu_partition,
                             CachedAllocator& alloc)
@@ -280,13 +295,19 @@ void get_max_num_depletants_ntrial(const unsigned int ntrial,
         {
         auto range = gpu_partition.getRangeAndSetGPU(idev);
 
+        unsigned int nwork = range.second - range.first;
+
+        // add ghosts to final range
+        if (idev == (int)gpu_partition.getNumActiveGPUs()-1)
+            nwork += n_ghosts;
+
         #ifdef __HIP_PLATFORM_HCC__
         max_n_depletants[idev] = thrust::reduce(thrust::hip::par(alloc).on(streams[idev]),
         #else
         max_n_depletants[idev] = thrust::reduce(thrust::cuda::par(alloc).on(streams[idev]),
         #endif
             n_depletants + range.first*2*ntrial,
-            n_depletants + range.second*2*ntrial,
+            n_depletants + (range.first+nwork)*2*ntrial,
             0,
             thrust::maximum<unsigned int>());
         }

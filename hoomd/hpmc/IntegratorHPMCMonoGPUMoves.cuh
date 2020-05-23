@@ -23,14 +23,6 @@ namespace hpmc {
 
 namespace gpu {
 
-//! Driver for kernel::hpmc_gen_moves()
-template< class Shape >
-void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type *params);
-
-//! Driver for kernel::hpmc_update_pdata()
-template< class Shape >
-void hpmc_update_pdata(const hpmc_update_args_t& args, const typename Shape::param_type *params);
-
 #ifdef __HIPCC__
 namespace kernel
 {

@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-#include "IntegratorHPMCMonoGPUHelpers.cuh"
+#include "IntegratorHPMCMonoGPUTypes.cuh"
 #include "hoomd/GPUPartition.cuh"
 
 namespace hpmc
@@ -130,20 +130,21 @@ __global__ void hpmc_check_convergence(
     bool move_active = d_trial_move_type[i] > 0;
 
     // combine with reject flag from gen_moves for particles which are always rejected
-    bool reject = d_reject_out_of_cell[i] || d_reject_out[i];
+    bool reject_out_of_cell = d_reject_out_of_cell[i];
+    bool reject = d_reject_out[i];
 
     // did the answer change since the last iteration?
-    if (move_active && reject != d_reject_in[i])
+    if (move_active && !reject_out_of_cell && reject != d_reject_in[i])
         {
         // flag that we're not done yet (a trivial race condition upon write)
         *d_condition = 1;
         }
 
     // update the reject flags
-    d_reject_out[i] = reject;
+    d_reject_out[i] = reject || reject_out_of_cell;
 
     // clear input
-    d_reject_in[i] = 0;
+    d_reject_in[i] = reject_out_of_cell;
     }
 } // end namespace kernel
 

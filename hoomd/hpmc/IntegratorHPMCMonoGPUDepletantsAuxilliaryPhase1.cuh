@@ -35,13 +35,6 @@ namespace gpu {
 #define MIN_BLOCK_SIZE 1024 // on AMD, we do not use __launch_bounds__
 #endif
 
-//! Driver for kernel::hpmc_insert_depletants_auxilliary_phase1()
-template< class Shape >
-void hpmc_depletants_auxilliary_phase1(const hpmc_args_t& args,
-                                       const hpmc_implicit_args_t& implicit_args,
-                                       const hpmc_auxilliary_args_t& auxilliary_args,
-                                       const typename Shape::param_type *params);
-
 #ifdef __HIPCC__
 namespace kernel
 {
@@ -436,7 +429,7 @@ __global__ void hpmc_insert_depletants_phase1(const Scalar4 *d_trial_postype,
                     Shape shape_test_a(quat<Scalar>(s_orientation_group[group]), s_params[depletant_type_a]);
                     Shape shape_test_b(quat<Scalar>(s_orientation_group[group]), s_params[depletant_type_b]);
 
-                    // put particle j into the coordinate system of particle i
+                    // put particle j into the coordinate system of the test particle
                     vec3<Scalar> r_jk = vec3<Scalar>(postype_j) - vec3<Scalar>(pos_test);
                     r_jk = vec3<Scalar>(box.minImage(vec_to_scalar3(r_jk)));
 
@@ -491,25 +484,21 @@ __global__ void hpmc_insert_depletants_phase1(const Scalar4 *d_trial_postype,
                 bool check_old = check_j_flag & 1;
                 unsigned int check_j  = check_j_flag >> 1;
 
-                Scalar4 postype_j;
-                Scalar4 orientation_j;
-                vec3<Scalar> r_jk;
-
                 // build depletant shape from shared memory
                 Scalar3 pos_test = s_pos_group[check_group];
                 Shape shape_test_a(quat<Scalar>(s_orientation_group[check_group]), s_params[depletant_type_a]);
                 Shape shape_test_b(quat<Scalar>(s_orientation_group[check_group]), s_params[depletant_type_b]);
 
                 // build shape j from global memory
-                postype_j = check_old ? d_postype[check_j] : d_trial_postype[check_j];
-                orientation_j = make_scalar4(1,0,0,0);
+                Scalar4 postype_j = check_old ? d_postype[check_j] : d_trial_postype[check_j];
+                Scalar4 orientation_j = make_scalar4(1,0,0,0);
                 unsigned int type_j = __scalar_as_int(postype_j.w);
                 Shape shape_j(quat<Scalar>(orientation_j), s_params[type_j]);
                 if (shape_j.hasOrientation())
                     shape_j.orientation = quat<Scalar>(check_old ? d_orientation[check_j] : d_trial_orientation[check_j]);
 
-                // put particle j into the coordinate system of particle i
-                r_jk = vec3<Scalar>(postype_j) - vec3<Scalar>(pos_test);
+                // put particle j into the coordinate system of the test particle
+                vec3<Scalar> r_jk = vec3<Scalar>(postype_j) - vec3<Scalar>(pos_test);
                 r_jk = vec3<Scalar>(box.minImage(vec_to_scalar3(r_jk)));
 
                 bool overlap_j_a = s_check_overlaps[overlap_idx(depletant_type_a, type_j)] &&
@@ -796,9 +785,10 @@ void depletants_launcher_phase1(const hpmc_args_t& args,
 
 } // end namespace kernel
 
-//! Kernel driver for kernel::insert_depletants()
+//! Kernel driver for kernel::insert_depletants_phase1()
 /*! \param args Bundled arguments
     \param implicit_args Bundled arguments related to depletants
+    \param auxilliary_args Bundled arguments for auxillary variable depletants
     \param d_params Per-type shape parameters
 
     This templatized method is the kernel driver for HPMC update of any shape. It is instantiated for every shape at the

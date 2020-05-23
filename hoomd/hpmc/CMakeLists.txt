@@ -59,9 +59,8 @@ set(_hpmc_headers
     IntegratorHPMCMonoGPU.cuh
     IntegratorHPMCMonoGPUMoves.cuh
     IntegratorHPMCMonoGPUTypes.cuh
-    IntegratorHPMCMonoGPUHelpers.cuh
     IntegratorHPMCMonoGPUDepletants.cuh
-    IntegratorHPMCMonoGPUDepletantsAuxilliaryHelpers.cuh
+    IntegratorHPMCMonoGPUDepletantsTypes.cuh
     IntegratorHPMCMonoGPUDepletantsAuxilliaryPhase1.cuh
     IntegratorHPMCMonoGPUDepletantsAuxilliaryPhase2.cuh
     IntegratorHPMCMonoGPUDepletantsAuxilliaryTypes.cuh

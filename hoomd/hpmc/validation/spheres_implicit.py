@@ -9,7 +9,6 @@ import math
 import unittest
 
 context.initialize()
-
 #seed_list=[123, 456]
 seed_list = [123]
 #phi_c_list=[0.01, 0.05, 0.10, 0.2, 0.3]
@@ -113,14 +112,16 @@ class implicit_test (unittest.TestCase):
 
         self.system.particles.types.add('B')
 
+    def test_sphere_ntrial0(self):
+        self.measure_etap_sphere(all_use_clusters, ntrial=0)
+
     def test_sphere_ntrial1(self):
         self.measure_etap_sphere(all_use_clusters, ntrial=1)
 
     def test_sphere_ntrial2(self):
         self.measure_etap_sphere(all_use_clusters, ntrial=2)
 
-    # we could coment this one out if the CI takes too long
-    def test_sphere_ntrial3(self):
+    def test_sphere_ntrial3(self): # we could coment out this one if the CI takes too long
         self.measure_etap_sphere(all_use_clusters, ntrial=3)
 
     def test_sphere_union_ntrial1(self):
@@ -156,7 +157,7 @@ class implicit_test (unittest.TestCase):
             self.assertEqual(log.query('hpmc_overlap_count'),0)
 
             if context.current.device.comm.rank == 0:
-               print('eta_p =', v);
+               context.current.device.cpp_msg.notice(1,'eta_p = {}\n'.format(v));
 
         if use_clusters:
             # use clusters exclusively to equilibrate
@@ -223,7 +224,7 @@ class implicit_test (unittest.TestCase):
             self.assertEqual(log.query('hpmc_overlap_count'),0)
 
             if context.current.device.comm.rank == 0:
-               print('eta_p =', v);
+               context.current.device.cpp_msg.notice(1,'eta_p = {}\n'.format(v));
 
         if use_clusters:
             # use clusters exclusively to equilibrate

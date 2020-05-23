@@ -314,24 +314,28 @@ class IntegratorHPMCMono : public IntegratorHPMC
                 {
                 flags[comm_flag::diameter] = 1;
                 flags[comm_flag::charge] = 1;
-                o << "diameter charge";
+                o << " diameter charge";
                 }
 
-            bool has_depletants = false;
+            bool have_auxilliary_variables = false;
             for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
                 {
                 for (unsigned int j = 0; j < this->m_pdata->getNTypes(); ++j)
                     {
-                    if (m_fugacity[m_depletant_idx(i,j)] != 0.0)
+                    if (m_fugacity[m_depletant_idx(i,j)] != 0.0 &&
+                        m_ntrial[m_depletant_idx(i,j)] > 0)
                         {
-                        has_depletants = true;
+                        have_auxilliary_variables = true;
                         break;
                         }
                     }
                 }
 
-            if (has_depletants)
+            if (have_auxilliary_variables)
+                {
                 flags[comm_flag::velocity] = 1;
+                o << " velocity";
+                }
 
             m_exec_conf->msg->notice(9) << o.str() << std::endl;
             return flags;
@@ -2902,76 +2906,6 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                             continue;
                             }
 
-                        // Check if the new (old) configuration of particle i generates an overlap
-                        bool overlap_i_other_a = false;
-                        bool overlap_i_other_b = false;
-
-                        vec3<Scalar> r_i_test_other = pos_test - (!new_config ? pos_i : pos_i_old);
-                            {
-                            const Shape& shape = new_config ? shape_old : shape_i;
-
-                            OverlapReal rsq = dot(r_i_test_other,r_i_test_other);
-                            OverlapReal DaDb = shape_test_a.getCircumsphereDiameter() + shape.getCircumsphereDiameter();
-                            bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-
-                            if (h_overlaps[this->m_overlap_idx(type_a, typ_i)])
-                                {
-                                #ifdef ENABLE_TBB
-                                thread_counters.local().overlap_checks++;
-                                #else
-                                counters.overlap_checks++;
-                                #endif
-
-                                unsigned int err = 0;
-                                if (circumsphere_overlap &&
-                                    test_overlap(r_i_test_other, shape, shape_test_a, err))
-                                    {
-                                    overlap_i_other_a = true;
-                                    }
-                                if (err)
-                                #ifdef ENABLE_TBB
-                                    thread_counters.local().overlap_err_count++;
-                                #else
-                                    counters.overlap_err_count++;
-                                #endif
-                                }
-                            }
-
-                        if (type_b == type_a)
-                            {
-                            overlap_i_other_b = overlap_i_other_a;
-                            }
-                        else
-                            {
-                            const Shape& shape = new_config ? shape_old : shape_i;
-
-                            OverlapReal rsq = dot(r_i_test_other,r_i_test_other);
-                            OverlapReal DaDb = shape_test_b.getCircumsphereDiameter() + shape.getCircumsphereDiameter();
-                            bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-
-                            if (h_overlaps[this->m_overlap_idx(type_b, typ_i)])
-                                {
-                                #ifdef ENABLE_TBB
-                                thread_counters.local().overlap_checks++;
-                                #else
-                                counters.overlap_checks++;
-                                #endif
-
-                                unsigned int err = 0;
-                                if (circumsphere_overlap &&
-                                    test_overlap(r_i_test_other, shape, shape_test_b, err))
-                                    {
-                                    overlap_i_other_b = true;
-                                    }
-                                if (err)
-                                #ifdef ENABLE_TBB
-                                    thread_counters.local().overlap_err_count++;
-                                #else
-                                    counters.overlap_err_count++;
-                                #endif
-                                }
-                            }
-
                         unsigned int n_overlap = 0;
                         unsigned int tag_i = h_tag[i];
                         for (unsigned int m = 0; m < n_intersect; ++m)
@@ -3014,7 +2948,6 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
 
                             // non-additive depletants
                             if (((overlap_i_a && overlap_j_b) || (overlap_i_b && overlap_j_a)))
-//                                !((overlap_i_other_a && overlap_j_b) || (overlap_i_other_b && overlap_j_a)))
                                 {
                                 unsigned int tag_m = new_config ? tag_j_new[m] : tag_j_old[m];
                                 if (tag_i < tag_m)

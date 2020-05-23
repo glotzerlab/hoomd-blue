@@ -35,18 +35,11 @@ namespace gpu {
 #define MIN_BLOCK_SIZE 1024 // on AMD, we do not use __launch_bounds__
 #endif
 
-//! Driver for kernel::hpmc_insert_depletants_auxilliary_phase2()
-template< class Shape >
-void hpmc_depletants_auxilliary_phase2(const hpmc_args_t& args,
-    const hpmc_implicit_args_t& implicit_args,
-    const hpmc_auxilliary_args_t& auxilliary_args,
-    const typename Shape::param_type *params);
-
 #ifdef __HIPCC__
 namespace kernel
 {
 
-//! Kernel for computing the depletion Metropolis-Hastings weight (phase 2)
+//! Kernel for computing the depletion Metropolis-Hastings weight  (phase 1)
 template< class Shape, unsigned int max_threads, bool pairwise >
 #ifdef __HIP_PLATFORM_NVCC__
 __launch_bounds__(max_threads)
@@ -89,7 +82,10 @@ __global__ void hpmc_insert_depletants_phase2(const Scalar4 *d_trial_postype,
                                      int *d_deltaF_int,
                                      bool repulsive,
                                      unsigned int work_offset,
-                                     const unsigned int *d_n_depletants)
+                                     unsigned int max_depletant_queue_size,
+                                     const unsigned int *d_n_depletants,
+                                     const unsigned int max_len,
+                                     unsigned int *d_req_len)
     {
     // variables to tell what type of thread we are
     unsigned int group = threadIdx.y;
@@ -101,10 +97,8 @@ __global__ void hpmc_insert_depletants_phase2(const Scalar4 *d_trial_postype,
     unsigned int err_count = 0;
 
     // shared particle configuation
-    __shared__ Scalar4 s_orientation_i_new;
-    __shared__ Scalar4 s_orientation_i_old;
-    __shared__ Scalar3 s_pos_i_new;
-    __shared__ Scalar3 s_pos_i_old;
+    __shared__ Scalar4 s_cur_orientation_i;
+    __shared__ Scalar3 s_cur_pos_i;
     __shared__ unsigned int s_type_i;
 
     // shared arrays for per type pair parameters
@@ -117,24 +111,17 @@ __global__ void hpmc_insert_depletants_phase2(const Scalar4 *d_trial_postype,
     __shared__ unsigned int s_adding_depletants;
     __shared__ unsigned int s_depletant_queue_size;
 
-    // per particle free energy in units of log(1+1/ntrial)
-    __shared__ int s_deltaF_int;
-
     // load the per type pair parameters into shared memory
     HIP_DYNAMIC_SHARED( char, s_data)
     typename Shape::param_type *s_params = (typename Shape::param_type *)(&s_data[0]);
     Scalar4 *s_orientation_group = (Scalar4*)(s_params + num_types);
     Scalar3 *s_pos_group = (Scalar3*)(s_orientation_group + n_groups);
-    unsigned int *s_j_group = (unsigned int *) (s_pos_group + n_groups);
-    unsigned int *s_overlap_group = (unsigned int *)(s_j_group + n_groups);
-    unsigned int *s_check_overlaps = (unsigned int *) (s_overlap_group + n_groups);
-    unsigned int *s_queue_j = (unsigned int*)(s_check_overlaps + overlap_idx.getNumElements());
-    unsigned int *s_queue_k = (unsigned int*)(s_queue_j + max_queue_size);
-    unsigned int *s_queue_gid = (unsigned int*)(s_queue_k + max_queue_size);
-    unsigned int *s_queue_tid = (unsigned int*)(s_queue_gid + max_queue_size);
-    unsigned int max_depletant_queue_size = n_groups;
-    unsigned int *s_queue_offset = (unsigned int *)(s_queue_tid + max_depletant_queue_size);
-    unsigned int *s_queue_didx = (unsigned int *)(s_queue_offset + max_depletant_queue_size);
+    unsigned int *s_check_overlaps = (unsigned int *) (s_pos_group + n_groups);
+    unsigned int *s_len_group = (unsigned int *) (s_check_overlaps + overlap_idx.getNumElements());
+    unsigned int *s_overlap_idx_list = (unsigned int *) (s_len_group + n_groups);
+    unsigned int *s_queue_j = (unsigned int*)(s_overlap_idx_list + max_len*n_groups);
+    unsigned int *s_queue_gid = (unsigned int*)(s_queue_j + max_queue_size);
+    unsigned int *s_queue_didx = (unsigned int *)(s_queue_gid + max_queue_size);
 
     // copy over parameters one int per thread for fast loads
         {
@@ -164,76 +151,23 @@ __global__ void hpmc_insert_depletants_phase2(const Scalar4 *d_trial_postype,
     __syncthreads();
 
     // initialize extra shared mem
-    char *s_extra = (char *)(s_queue_didx + max_queue_size);
+    char *s_extra = (char *)(s_queue_didx + max_depletant_queue_size);
 
     unsigned int available_bytes = max_extra_bytes;
     for (unsigned int cur_type = 0; cur_type < num_types; ++cur_type)
         s_params[cur_type].load_shared(s_extra, available_bytes);
 
-    // initialize shared memory
+    // initialize the shared memory array for communicating overlaps
     if (master && group == 0)
         {
         s_overlap_checks = 0;
         s_overlap_err_count = 0;
-
-        s_deltaF_int = 0;
         }
 
     __syncthreads();
 
     // identify the active cell that this thread handles
     unsigned int i = blockIdx.x + work_offset;
-
-    // if this particle is rejected a priori because it has left the cell, don't check overlaps
-    // and avoid out of range memory access when computing the cell
-    if (d_reject_out_of_cell[i])
-        return;
-
-    // load updated particle position
-    if (master && group == 0)
-        {
-        Scalar4 postype_i_new = d_trial_postype[i];
-        Scalar4 postype_i_old = d_postype[i];
-        s_pos_i_new = make_scalar3(postype_i_new.x, postype_i_new.y, postype_i_new.z);
-        s_pos_i_old = make_scalar3(postype_i_old.x, postype_i_old.y, postype_i_old.z);
-        s_type_i = __scalar_as_int(postype_i_new.w);
-
-        s_orientation_i_new = d_trial_orientation[i];
-        s_orientation_i_old = d_orientation[i];
-        }
-
-    // sync so that s_pos_i_old etc. are available
-    __syncthreads();
-
-    unsigned int overlap_checks = 0;
-
-    // find the cell this particle should be in
-    unsigned int my_cell = computeParticleCell(s_pos_i_old, box, ghost_width,
-        cell_dim, ci, false);
-
-    // the order of this particle in the chain
-    unsigned int update_order_i = d_update_order_by_ptl[i];
-    unsigned int tag_i = d_tag[i];
-
-    if (master && group == 0)
-        {
-        s_still_searching = 1;
-        s_queue_size = 0;
-        }
-
-    __syncthreads();
-
-    /*
-     * Phase 2: insert into neighbor particle excluded volumes
-     */
-
-    // count depletant insertions
-    unsigned int n_depletants = 0;
-
-    // fill the neighbor queue for i using n_groups*group_size threads
-    unsigned int k = offset;
-
-    unsigned int excell_size = d_excell_size[my_cell];
 
     // unpack the block index
     unsigned int gconfig = (blockIdx.z >> 1)/ntrial;
@@ -243,571 +177,440 @@ __global__ void hpmc_insert_depletants_phase2(const Scalar4 *d_trial_postype,
     unsigned int i_trial = (blockIdx.z >> 1) % ntrial;
     unsigned int blocks_per_depletant = gridDim.y*dim_config;
 
-    // loop while still searching
-    while (s_still_searching)
+    bool reject_i = i < N_local && (d_reject_in[i] || !d_trial_move_type[i]);
+    if ((reject_i || i >= N_local) && new_config)
+        return;
+
+    // load updated particle position
+    if (master && group == 0)
         {
-        // one depletant per group of neighbors
-        unsigned int i_dep = group + gidx*n_groups;
+        Scalar4 cur_postype = new_config ? d_trial_postype[i] : d_postype[i];
+        s_cur_pos_i = make_scalar3(cur_postype.x, cur_postype.y, cur_postype.z);
+        s_type_i = __scalar_as_int(cur_postype.w);
+        s_cur_orientation_i = new_config ? d_trial_orientation[i] : d_orientation[i];
+        }
 
-        // prefetch j
-        unsigned int j, next_j = 0;
-        if (k < excell_size)
-            next_j = __ldg(&d_excell_idx[excli(k, my_cell)]);
+    // sync so that s_cur_pos_i etc. are available
+    __syncthreads();
 
-        // add to the queue as long as the queue is not full, and we have not yet reached the end of our own list
-        while (s_queue_size < max_queue_size && k < excell_size)
+    unsigned int overlap_checks = 0;
+
+    // the order of this particle in the chain
+    unsigned int cur_seed_i = new_config ? __scalar_as_int(d_trial_vel[i].x) : __scalar_as_int(d_vel[i].x);
+    unsigned int tag_i = d_tag[i];
+
+    if (master && group == 0)
+        {
+        s_depletant_queue_size = 0;
+        s_adding_depletants = 1;
+        }
+
+    __syncthreads();
+
+    unsigned int i_dep = group_size*group+offset + gidx*group_size*n_groups;
+
+    // find the cell this particle should be in
+    Scalar4 postype_i_old = d_postype[i];
+    unsigned int my_cell = computeParticleCell(
+        make_scalar3(postype_i_old.x,postype_i_old.y,postype_i_old.z),
+        box, ghost_width, cell_dim, ci, false);
+
+    detail::OBB obb_i;
+        {
+        // get shape OBB
+        Shape shape_i(quat<Scalar>(s_cur_orientation_i), s_params[s_type_i]);
+        obb_i = shape_i.getOBB(vec3<Scalar>(s_cur_pos_i));
+
+        // extend by depletant radius
+        Shape shape_test_a(quat<Scalar>(), s_params[depletant_type_a]);
+        Shape shape_test_b(quat<Scalar>(), s_params[depletant_type_b]);
+
+        OverlapReal r = 0.5*detail::max(shape_test_a.getCircumsphereDiameter(),
+            shape_test_b.getCircumsphereDiameter());
+        obb_i.lengths.x += r;
+        obb_i.lengths.y += r;
+        obb_i.lengths.z += r;
+        }
+
+    /*
+     * Phase 2: insert into particle j's excluded volume
+     *
+     * This phase is similar to the first one, except that we are inserting into neighbor i
+     * of every particle j, updating particle j's free energy instead of our own one
+     */
+
+    unsigned int n_depletants = 0;
+
+    // load random number of depletants from Poisson distribution
+    unsigned int n_depletants_i = d_n_depletants[i*2*ntrial+new_config*ntrial+i_trial];
+
+    while (s_adding_depletants)
+        {
+        if (i_dep == 0)
+            n_depletants += n_depletants_i;
+
+        while (s_depletant_queue_size < max_depletant_queue_size && i_dep < n_depletants_i)
             {
-            // prefetch next j
-            k += group_size;
-            j = next_j;
+            // one RNG per depletant and trial insertion
+            hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCDepletants, cur_seed_i,
+                i_dep, i_trial, depletant_idx(depletant_type_a,depletant_type_b));
 
-            if (k < excell_size)
-                next_j = __ldg(&d_excell_idx[excli(k, my_cell)]);
-
-            // has j been updated? ghost particles are not updated
-            bool j_has_been_updated = j < N_local &&
-                d_update_order_by_ptl[j] < update_order_i &&
-                !d_reject_in[j] &&
-                d_trial_move_type[j];
-
-            // true if particle j is in the old configuration
-            bool old = !j_has_been_updated;
-
-            // read in position of neighboring particle, do not need it's orientation for circumsphere check
-            // for ghosts always load particle data
-            Scalar4 postype_j = (old || j >= N_local) ? d_postype[j] : d_trial_postype[j];
-            unsigned int type_j = __scalar_as_int(postype_j.w);
-            Shape shape_j(quat<Scalar>(), s_params[type_j]);
-
-            // load test particle configuration from shared mem
-            vec3<Scalar> pos_i(new_config ? s_pos_i_new : s_pos_i_old);
-            Shape shape_i(quat<Scalar>(), s_params[s_type_i]);
-
-            // put particle j into the coordinate system of particle i
-            vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i;
-            r_ij = vec3<Scalar>(box.minImage(vec_to_scalar3(r_ij)));
-
-            bool insert_in_queue = i != j && (old || j < N_local);
+            // filter depletants overlapping with particle i
+            vec3<Scalar> pos_test = vec3<Scalar>(generatePositionInOBB(rng, obb_i, dim));
 
             Shape shape_test_a(quat<Scalar>(), s_params[depletant_type_a]);
             Shape shape_test_b(quat<Scalar>(), s_params[depletant_type_b]);
+            quat<Scalar> o;
+            if (shape_test_a.hasOrientation() || shape_test_b.hasOrientation())
+                {
+                o = generateRandomOrientation(rng, dim);
+                }
+            if (shape_test_a.hasOrientation())
+                shape_test_a.orientation = o;
+            if (shape_test_b.hasOrientation())
+                shape_test_b.orientation = o;
 
-            OverlapReal rsq(dot(r_ij, r_ij));
-            OverlapReal DaDb = shape_i.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter();
-            DaDb += shape_test_a.getCircumsphereDiameter() + shape_test_b.getCircumsphereDiameter();
-            bool excluded_volume_overlap = (s_check_overlaps[overlap_idx(depletant_type_a, type_j)] ||
-                s_check_overlaps[overlap_idx(depletant_type_b, type_j)]) &&
-                (OverlapReal(4.0)*rsq <= DaDb*DaDb);
+            Shape shape_i(quat<Scalar>(), s_params[s_type_i]);
+            if (shape_i.hasOrientation())
+                shape_i.orientation = quat<Scalar>(s_cur_orientation_i);
+            vec3<Scalar> r_ij = vec3<Scalar>(s_cur_pos_i) - pos_test;
+            overlap_checks ++;
+            bool overlap_i_a = (s_check_overlaps[overlap_idx(s_type_i, depletant_type_a)]
+                && check_circumsphere_overlap(r_ij, shape_test_a, shape_i)
+                && test_overlap(r_ij, shape_test_a, shape_i, err_count));
 
-            insert_in_queue &= excluded_volume_overlap;
+            bool overlap_i_b = overlap_i_a;
+            if (pairwise)
+                {
+                overlap_checks++;
+                overlap_i_b = (s_check_overlaps[overlap_idx(s_type_i, depletant_type_b)]
+                    && check_circumsphere_overlap(r_ij, shape_test_b, shape_i)
+                    && test_overlap(r_ij, shape_test_b, shape_i, err_count));
+                }
 
-            if (insert_in_queue)
+            if (overlap_i_a || overlap_i_b)
                 {
                 // add this particle to the queue
-                unsigned int insert_point = atomicAdd(&s_queue_size, 1);
+                unsigned int insert_point = atomicAdd(&s_depletant_queue_size, 1);
 
-                if (insert_point < max_queue_size)
+                if (insert_point < max_depletant_queue_size)
                     {
-                    // store this group's depletant index
-                    s_queue_j[insert_point] = (j << 1) | (old ? 1 : 0);
                     s_queue_didx[insert_point] = i_dep;
                     }
                 else
                     {
-                    // or back up if the queue is already full
                     // we will recheck and insert this on the next time through
-                    k -= group_size;
+                    break;
                     }
-                } // end if k < excell_size
-            } // end while (s_queue_size < max_queue_size && k < excell_size)
+                } // end if add_to_queue
 
-        // sync to make sure all threads in the block are caught up
+            // advance depletant idx
+            i_dep += group_size*n_groups*blocks_per_depletant;
+            } // end while (s_depletant_queue_size < max_depletant_queue_size && i_dep < n_depletants_i)
+
         __syncthreads();
+
+        // process the queue, group by group
+        if (master && group == 0)
+            s_adding_depletants = 0;
 
         if (master && group == 0)
             {
-            s_depletant_queue_size = 0;
-            s_adding_depletants = 1;
+            // reset the queue for neighbor checks
+            s_queue_size = 0;
+            s_still_searching = 1;
             }
 
-        // max_queue_size is always <= block size, so we just need an if here
-        unsigned int tidx_1d = offset + group_size*group;
-        bool active = tidx_1d < min(s_queue_size, max_queue_size);
+        __syncthreads();
 
-        // a few variables
-        unsigned int check_old;
-        unsigned int check_j;
-        unsigned int check_i_dep;
-        unsigned int n_depletants_j;
+        // is this group processing work from the first queue?
+        bool active = group < min(s_depletant_queue_size, max_depletant_queue_size);
 
         if (active)
             {
-            // need to extract the j particle out of the shared mem queue
-            unsigned int check_j_flag = s_queue_j[tidx_1d];
-            check_old = check_j_flag & 1;
-            check_j  = check_j_flag >> 1;
-            check_i_dep = s_queue_didx[tidx_1d];
+            // regenerate depletant using seed from queue, this costs a few flops but is probably
+            // better than storing one Scalar4 and a Scalar3 per thread in shared mem
+            unsigned int i_dep_queue = s_queue_didx[group];
 
-            // load number of depletants from Poisson distribution
-            n_depletants_j = d_n_depletants[check_j*2*ntrial+(1-check_old)*ntrial+i_trial];
+            hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCDepletants,
+                cur_seed_i,
+                i_dep_queue, i_trial,
+                depletant_idx(depletant_type_a,depletant_type_b));
 
-            if (check_i_dep == 0)
-                n_depletants += n_depletants_j;
+            // depletant position and orientation
+            vec3<Scalar> pos_test = vec3<Scalar>(generatePositionInOBB(rng, obb_i, dim));
+            Shape shape_test_a(quat<Scalar>(), s_params[depletant_type_a]);
+            Shape shape_test_b(quat<Scalar>(), s_params[depletant_type_b]);
+            quat<Scalar> o;
+            if (shape_test_a.hasOrientation() || shape_test_b.hasOrientation())
+                {
+                o = generateRandomOrientation(rng,dim);
+                }
+
+            // store them per group
+            if (master)
+                {
+                s_pos_group[group] = vec_to_scalar3(pos_test);
+                s_orientation_group[group] = quat_to_scalar4(o);
+                }
+            }
+
+        if (master)
+            {
+            // stores overlaps
+            s_len_group[group] = 0;
             }
 
         __syncthreads();
 
-        while (s_adding_depletants)
+        // counters to track progress through the loop over potential neighbors
+        unsigned int excell_size;
+        unsigned int k = offset;
+
+        if (active)
             {
-            // every active thread adds more depletants to the intermediate queue
-            while (active && s_depletant_queue_size < max_depletant_queue_size && check_i_dep < n_depletants_j)
-                {
-                // one RNG per particle, depletant and trial insertion
-                unsigned int seed_j = __scalar_as_int(check_old ? d_vel[check_j].x : d_trial_vel[check_j].x);
-                unsigned int tag_j = d_tag[check_j];
-                hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCDepletants, seed_j,
-                    check_i_dep, i_trial, depletant_idx(depletant_type_a,depletant_type_b));
-
-                // filter depletants overlapping with particle j and i (in both configurations)
-                Scalar4 postype_j(check_old ? d_postype[check_j] : d_trial_postype[check_j]);
-                unsigned int type_j = __scalar_as_int(postype_j.w);
-
-                detail::OBB obb_j;
-                    {
-                    // get shape OBB
-                    Shape shape_j(quat<Scalar>(check_old ?
-                        d_orientation[check_j] : d_trial_orientation[check_j]), s_params[type_j]);
-                    obb_j = shape_j.getOBB(vec3<Scalar>(postype_j));
-
-                    // extend by depletant radius
-                    Shape shape_test_a(quat<Scalar>(), s_params[depletant_type_a]);
-                    Shape shape_test_b(quat<Scalar>(), s_params[depletant_type_b]);
-
-                    OverlapReal r = 0.5*detail::max(shape_test_a.getCircumsphereDiameter(),
-                        shape_test_b.getCircumsphereDiameter());
-                    obb_j.lengths.x += r;
-                    obb_j.lengths.y += r;
-                    obb_j.lengths.z += r;
-                    }
-
-                // regenerate depletant
-                vec3<Scalar> pos_test = vec3<Scalar>(generatePositionInOBB(rng, obb_j, dim));
-
-                // check against j
-                Shape shape_test_a(quat<Scalar>(), s_params[depletant_type_a]);
-                Shape shape_test_b(quat<Scalar>(), s_params[depletant_type_b]);
-                quat<Scalar> o;
-                if (shape_test_a.hasOrientation() || shape_test_b.hasOrientation())
-                    {
-                    o = generateRandomOrientation(rng, dim);
-                    }
-                if (shape_test_a.hasOrientation())
-                    shape_test_a.orientation = o;
-                if (shape_test_b.hasOrientation())
-                    shape_test_b.orientation = o;
-
-                Shape shape_j(quat<Scalar>(), s_params[type_j]);
-                if (shape_j.hasOrientation())
-                    shape_j.orientation = quat<Scalar>(check_old ?
-                        d_orientation[check_j] : d_trial_orientation[check_j]);
-
-                vec3<Scalar> pos_j(postype_j);
-                vec3<Scalar> r_jk = pos_test - pos_j;
-                overlap_checks ++;
-                bool overlap_j_a = (s_check_overlaps[overlap_idx(type_j, depletant_type_a)]
-                    && check_circumsphere_overlap(r_jk, shape_j, shape_test_a)
-                    && test_overlap(r_jk, shape_j, shape_test_a, err_count));
-
-                bool overlap_j_b = overlap_j_a;
-                if (pairwise)
-                    {
-                    overlap_checks++;
-                    overlap_j_b = (s_check_overlaps[overlap_idx(type_j, depletant_type_b)]
-                        && check_circumsphere_overlap(r_jk, shape_j, shape_test_b)
-                        && test_overlap(r_jk, shape_j, shape_test_b, err_count));
-                    }
-
-                // check against i in this and other config
-                vec3<Scalar> pos_i(new_config ? s_pos_i_new : s_pos_i_old);
-                Shape shape_i(quat<Scalar>(), s_params[s_type_i]);
-
-                if (shape_i.hasOrientation())
-                    shape_i.orientation = new_config ?
-                        quat<Scalar>(s_orientation_i_new) : quat<Scalar>(s_orientation_i_old);
-
-                vec3<Scalar> pos_i_other(!new_config ? s_pos_i_new : s_pos_i_old);
-                Shape shape_i_other(quat<Scalar>(), s_params[s_type_i]);
-
-                if (shape_i_other.hasOrientation())
-                    shape_i_other.orientation = !new_config ?
-                        quat<Scalar>(s_orientation_i_new) : quat<Scalar>(s_orientation_i_old);
-
-                vec3<Scalar> r_i_test = pos_test - pos_i;
-                r_i_test = vec3<Scalar>(box.minImage(vec_to_scalar3(r_i_test)));
-
-                overlap_checks ++;
-                bool overlap_i_a = (s_check_overlaps[overlap_idx(s_type_i, depletant_type_a)]
-                    && check_circumsphere_overlap(r_i_test, shape_i, shape_test_a)
-                    && test_overlap(r_i_test, shape_i, shape_test_a, err_count));
-
-                bool overlap_i_b = overlap_i_a;
-                if (pairwise)
-                    {
-                    overlap_checks++;
-                    overlap_i_b = (s_check_overlaps[overlap_idx(s_type_i, depletant_type_b)]
-                        && check_circumsphere_overlap(r_i_test, shape_i, shape_test_b)
-                        && test_overlap(r_i_test, shape_i, shape_test_b, err_count));
-                    }
-
-                vec3<Scalar> r_i_test_other = pos_test - pos_i_other;
-                r_i_test_other = vec3<Scalar>(box.minImage(vec_to_scalar3(r_i_test_other)));
-                overlap_checks++;
-                bool overlap_i_a_other = (s_check_overlaps[overlap_idx(s_type_i, depletant_type_a)]
-                    && check_circumsphere_overlap(r_i_test_other, shape_i_other, shape_test_a)
-                    && test_overlap(r_i_test_other, shape_i_other, shape_test_a, err_count));
-
-                bool overlap_i_b_other = overlap_i_a_other;
-                if (pairwise)
-                    {
-                    overlap_checks++;
-                    overlap_i_b_other = (s_check_overlaps[overlap_idx(s_type_i, depletant_type_b)]
-                        && check_circumsphere_overlap(r_i_test_other, shape_i_other, shape_test_b)
-                        && test_overlap(r_i_test_other, shape_i_other, shape_test_b, err_count));
-                    }
-
-                bool overlap_ij = ((overlap_j_a && overlap_i_b) ||
-                    (overlap_j_b && overlap_i_a)) && tag_i > tag_j;
-                bool overlap_ij_other = ((overlap_j_a && overlap_i_b_other) ||
-                    (overlap_j_b && overlap_i_a_other)) && tag_i > tag_j;
-
-                bool insert_into_queue = overlap_ij && !overlap_ij_other;
-
-                if (insert_into_queue)
-                    {
-                    // add this particle to the queue
-                    unsigned int insert_point = atomicAdd(&s_depletant_queue_size, 1);
-
-                    if (insert_point < max_depletant_queue_size)
-                        {
-                        s_queue_tid[insert_point] = tidx_1d;
-                        s_queue_offset[insert_point] = check_i_dep;
-                        }
-                    else
-                        {
-                        // we will recheck and insert this on the next time through
-                        break;
-                        }
-                    } // end if add_to_queue
-
-                // advance depletant idx
-                check_i_dep += n_groups*blocks_per_depletant;
-                } // end while (active && s_depletant_queue_size < max_depletant_queue_size && (check_i_dep) < n_depletants_j)
-
-            __syncthreads();
-
-            // process the queue, group by group
-            if (master && group == 0)
-                s_adding_depletants = 0;
-
-            if (master && group == 0)
-                {
-                // reset the queue for neighbor checks
-                s_queue_size = 0;
-                s_still_searching = 1;
-                }
-
-            __syncthreads();
-
-            // is this group processing work from the intermediate queue?
-            bool checking_overlaps = group < min(s_depletant_queue_size, max_depletant_queue_size);
-
-            unsigned int tag_j;
-
-            if (checking_overlaps)
-                {
-                // regenerate depletant using seed from queue
-                unsigned int check_tidx = s_queue_tid[group];
-
-                // extract neighbor info from first queue
-                unsigned int check_j_flag = s_queue_j[check_tidx];
-                unsigned int i_dep_queue = s_queue_offset[group];
-
-                unsigned int check_old = check_j_flag & 1;
-                unsigned check_j  = check_j_flag >> 1;
-
-                // store in shared mem
-                if (master)
-                    s_j_group[group] = check_j_flag;
-
-                // load tag for this group
-                tag_j = d_tag[check_j];
-
-                unsigned int seed_j = __scalar_as_int(check_old ? d_vel[check_j].x : d_trial_vel[check_j].x);
-                hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCDepletants, seed_j,
-                    i_dep_queue, i_trial, depletant_idx(depletant_type_a, depletant_type_b));
-
-                detail::OBB obb_j;
-                Scalar4 postype_j(check_old ? d_postype[check_j] : d_trial_postype[check_j]);
-                unsigned int type_j = __scalar_as_int(postype_j.w);
-
-                    {
-                    // get shape OBB
-                    Shape shape_j(quat<Scalar>(check_old ?
-                        d_orientation[check_j] : d_trial_orientation[check_j]), s_params[type_j]);
-                    obb_j = shape_j.getOBB(vec3<Scalar>(postype_j));
-
-                    // extend by depletant radius
-                    Shape shape_test_a(quat<Scalar>(), s_params[depletant_type_a]);
-                    Shape shape_test_b(quat<Scalar>(), s_params[depletant_type_b]);
-
-                    OverlapReal r = 0.5*detail::max(shape_test_a.getCircumsphereDiameter(),
-                        shape_test_b.getCircumsphereDiameter());
-                    obb_j.lengths.x += r;
-                    obb_j.lengths.y += r;
-                    obb_j.lengths.z += r;
-                    }
-
-                // depletant position and orientation
-                vec3<Scalar> pos_test = vec3<Scalar>(generatePositionInOBB(rng, obb_j, dim));
-                Shape shape_test_a(quat<Scalar>(), s_params[depletant_type_a]);
-                Shape shape_test_b(quat<Scalar>(), s_params[depletant_type_b]);
-                quat<Scalar> o;
-                if (shape_test_a.hasOrientation() || shape_test_b.hasOrientation())
-                    {
-                    o = generateRandomOrientation(rng,dim);
-                    }
-
-                // store them per group
-                if (master)
-                    {
-                    s_pos_group[group] = vec_to_scalar3(pos_test);
-                    s_orientation_group[group] = quat_to_scalar4(o);
-                    }
-                }
-
-            __syncthreads();
-
-            // inner queue, every group is an overlapping depletant and neighbor pair
-            unsigned int k = offset;
-
-            if (checking_overlaps)
-                {
-                if (master)
-                    overlap_checks += excell_size;
-                }
+            excell_size = d_excell_size[my_cell];
 
             if (master)
-                s_overlap_group[group] = 0;
+                overlap_checks += 2*excell_size;
+            }
 
+        // loop while still searching
+        while (s_still_searching)
+            {
+            // fill the neighbor queue
+            // loop through particles in the excell list and add them to the queue if they pass the circumsphere check
+
+            // active threads add to the queue
+            if (active)
+                {
+                // prefetch j
+                unsigned int j, next_j = 0;
+                if ((k >> 1) < excell_size)
+                    next_j = __ldg(&d_excell_idx[excli(k >> 1, my_cell)]);
+
+                // add to the queue as long as the queue is not full, and we have not yet reached the end of our own list
+                while (s_queue_size < max_queue_size && (k >> 1) < excell_size)
+                    {
+                    // which configuration of particle j are we checking against?
+                    bool old = k & 1;
+
+                    // prefetch next j
+                    k += group_size;
+                    j = next_j;
+
+                    if ((k>>1) < excell_size)
+                        next_j = __ldg(&d_excell_idx[excli(k >> 1, my_cell)]);
+
+                    unsigned int tag_j = d_tag[j];
+
+                    // read in position of neighboring particle, do not need it's orientation for circumsphere check
+                    // for ghosts always load old particle data
+                    Scalar4 postype_j = (old || j >= N_local) ? d_postype[j] : d_trial_postype[j];
+                    unsigned int type_j = __scalar_as_int(postype_j.w);
+                    Shape shape_j(quat<Scalar>(), s_params[type_j]);
+
+                    // load test particle configuration from shared mem
+                    vec3<Scalar> pos_test(s_pos_group[group]);
+                    Shape shape_test_a(quat<Scalar>(s_orientation_group[group]), s_params[depletant_type_a]);
+                    Shape shape_test_b(quat<Scalar>(s_orientation_group[group]), s_params[depletant_type_b]);
+
+                    // put particle j into the coordinate system of particle i
+                    vec3<Scalar> r_j_test = vec3<Scalar>(pos_test) - vec3<Scalar>(postype_j);
+                    r_j_test = vec3<Scalar>(box.minImage(vec_to_scalar3(r_j_test)));
+
+                    bool insert_in_queue = i != j && (old || j < N_local) && tag_i < tag_j;
+
+                    bool circumsphere_overlap = s_check_overlaps[overlap_idx(depletant_type_a, type_j)] &&
+                        check_circumsphere_overlap(r_j_test, shape_j, shape_test_a);
+
+                    circumsphere_overlap |= pairwise &&
+                        s_check_overlaps[overlap_idx(depletant_type_b, type_j)] &&
+                        check_circumsphere_overlap(r_j_test, shape_j, shape_test_b);
+
+                    insert_in_queue &= circumsphere_overlap;
+
+                    if (insert_in_queue)
+                        {
+                        // add this particle to the queue
+                        unsigned int insert_point = atomicAdd(&s_queue_size, 1);
+
+                        if (insert_point < max_queue_size)
+                            {
+                            s_queue_gid[insert_point] = group;
+                            s_queue_j[insert_point] = (j << 1) | (old ? 1 : 0);
+                            }
+                        else
+                            {
+                            // or back up if the queue is already full
+                            // we will recheck and insert this on the next time through
+                            k -= group_size;
+                            }
+                        } // end if k < excell_size
+                    } // end while (s_queue_size < max_queue_size && k < excell_size)
+                } // end if active
+
+            // sync to make sure all threads in the block are caught up
             __syncthreads();
 
-            // loop while still searching
-            while (s_still_searching)
+            // when we get here, all threads have either finished their list, or encountered a full queue
+            // either way, it is time to process overlaps
+            // need to clear the still searching flag and sync first
+            if (master && group == 0)
+                s_still_searching = 0;
+
+            unsigned int tidx_1d = offset + group_size*group;
+
+            // max_queue_size is always <= block size, so we just need an if here
+            if (tidx_1d < min(s_queue_size, max_queue_size))
                 {
-                // fill the neighbor queue
-                // loop through particles in the excell list and add them to the queue if they pass the circumsphere check
+                // need to extract the overlap check to perform out of the shared mem queue
+                unsigned int check_group = s_queue_gid[tidx_1d];
+                unsigned int check_j_flag = s_queue_j[tidx_1d];
+                bool check_old = check_j_flag & 1;
+                unsigned int check_j  = check_j_flag >> 1;
 
-                // active threads add to the queue
-                if (checking_overlaps)
+                // build depletant shape from shared memory
+                Scalar3 pos_test = s_pos_group[check_group];
+                Shape shape_test_a(quat<Scalar>(s_orientation_group[check_group]), s_params[depletant_type_a]);
+                Shape shape_test_b(quat<Scalar>(s_orientation_group[check_group]), s_params[depletant_type_b]);
+
+                // build shape j from global memory
+                Scalar4 postype_j = check_old ? d_postype[check_j] : d_trial_postype[check_j];
+                unsigned int type_j = __scalar_as_int(postype_j.w);
+                Shape shape_j(quat<Scalar>(), s_params[type_j]);
+                if (shape_j.hasOrientation())
+                    shape_j.orientation = quat<Scalar>(check_old ? d_orientation[check_j] : d_trial_orientation[check_j]);
+
+                // put particle j into the coordinate system of the test particle
+                vec3<Scalar> r_j_test = vec3<Scalar>(pos_test) - vec3<Scalar>(postype_j);
+                r_j_test = vec3<Scalar>(box.minImage(vec_to_scalar3(r_j_test)));
+
+                bool overlap_j_a = s_check_overlaps[overlap_idx(depletant_type_a, type_j)] &&
+                    test_overlap(r_j_test, shape_j, shape_test_a, err_count);
+
+                bool overlap_j_b = overlap_j_a;
+                bool overlap_i_a = true;
+                bool overlap_i_b = true;
+
+                if (pairwise)
                     {
-                    // prefetch j
-                    unsigned int j, next_j = 0;
-                    if (k < excell_size)
-                        next_j = __ldg(&d_excell_idx[excli(k, my_cell)]);
+                    overlap_j_b = s_check_overlaps[overlap_idx(depletant_type_b, type_j)] &&
+                        test_overlap(r_j_test, shape_j, shape_test_b, err_count);
 
-                    // add to the queue as long as the queue is not full, and we have not yet reached the end of our own list
-                    // and as long as no overlaps have been found
-                    while (s_queue_size < max_queue_size && k < excell_size && !s_overlap_group[group])
+                    if (overlap_j_b)
                         {
-                        // build some shapes, but we only need them to get diameters, so don't load orientations
-
-                        // prefetch next j
-                        k += group_size;
-                        j = next_j;
-
-                        if (k < excell_size)
-                            next_j = __ldg(&d_excell_idx[excli(k, my_cell)]);
-
-                        unsigned int tag_k = d_tag[j];
-
-                        // has k been updated?
-                        bool k_has_been_updated = j < N_local &&
-                            d_update_order_by_ptl[j] < update_order_i &&
-                            !d_reject_in[j] &&
-                            d_trial_move_type[j];
-
-                        // true if particle j is in the old configuration
-                        bool old = !k_has_been_updated;
-
-                        // read in position of neighboring particle, do not need it's orientation for circumsphere check
-                        // for ghosts always load particle data
-                        Scalar4 postype_j = (old || j >= N_local) ? d_postype[j] : d_trial_postype[j];
-                        unsigned int type_j = __scalar_as_int(postype_j.w);
-                        Shape shape_j(quat<Scalar>(), s_params[type_j]);
-
-                        // load test particle configuration from shared mem
-                        vec3<Scalar> pos_test(s_pos_group[group]);
-                        Shape shape_test_a(quat<Scalar>(s_orientation_group[group]), s_params[depletant_type_a]);
-                        Shape shape_test_b(quat<Scalar>(s_orientation_group[group]), s_params[depletant_type_b]);
-
-                        // put particle j into the coordinate system of particle i
-                        vec3<Scalar> r_jk = vec3<Scalar>(postype_j) - vec3<Scalar>(pos_test);
-                        r_jk = vec3<Scalar>(box.minImage(vec_to_scalar3(r_jk)));
-
-                        bool insert_in_queue = i != j && (old || j < N_local) && tag_j < tag_k;
-
-                        bool circumsphere_overlap = s_check_overlaps[overlap_idx(depletant_type_a, type_j)] &&
-                            check_circumsphere_overlap(r_jk, shape_test_a, shape_j);
-
-                        circumsphere_overlap |= pairwise &&
-                            s_check_overlaps[overlap_idx(depletant_type_b, type_j)] &&
-                            check_circumsphere_overlap(r_jk, shape_test_b, shape_j);
-
-                        insert_in_queue &= circumsphere_overlap;
-
-                        if (insert_in_queue)
-                            {
-                            // add this particle to the queue
-                            unsigned int insert_point = atomicAdd(&s_queue_size, 1);
-
-                            if (insert_point < max_queue_size)
-                                {
-                                s_queue_gid[insert_point] = group;
-                                s_queue_k[insert_point] = (j << 1) | (old ? 1 : 0);
-                                }
-                            else
-                                {
-                                // or back up if the queue is already full
-                                // we will recheck and insert this on the next time through
-                                k -= group_size;
-                                }
-                            } // end if k < excell_size
-                        } // end while (s_queue_size < max_queue_size && k < excell_size)
-                    } // end if checking_overlaps
-
-                // sync to make sure all threads in the block are caught up
-                __syncthreads();
-
-                if (master && group == 0)
-                    s_still_searching = 0;
-
-                // all threads processing overlaps
-                if (tidx_1d < min(s_queue_size, max_queue_size))
-                    {
-                    // need to extract the overlap check to perform out of the shared mem queue
-                    unsigned int check_group = s_queue_gid[tidx_1d];
-                    unsigned int check_k_flag = s_queue_k[tidx_1d];
-                    bool check_k_old = check_k_flag & 1;
-                    unsigned int check_k  = check_k_flag >> 1;
-
-                    // build depletant shape from shared memory
-                    Scalar3 pos_test = s_pos_group[check_group];
-                    Shape shape_test_a(quat<Scalar>(s_orientation_group[check_group]), s_params[depletant_type_a]);
-                    Shape shape_test_b(quat<Scalar>(s_orientation_group[check_group]), s_params[depletant_type_b]);
-
-                    // build shape k from global memory
-                    Scalar4 postype_k = check_k_old ? d_postype[check_k] : d_trial_postype[check_k];
-                    unsigned int type_k = __scalar_as_int(postype_k.w);
-                    Shape shape_k(quat<Scalar>(), s_params[type_k]);
-                    if (shape_k.hasOrientation())
-                        shape_k.orientation = quat<Scalar>(check_k_old ? d_orientation[check_k] : d_trial_orientation[check_k]);
-                    // put particle k into the coordinate system of test particle
-                    vec3<Scalar> r_k_test = vec3<Scalar>(pos_test) - vec3<Scalar>(postype_k);
-                    r_k_test = vec3<Scalar>(box.minImage(vec_to_scalar3(r_k_test)));
-
-                    bool overlap_k_a = s_check_overlaps[overlap_idx(depletant_type_a, type_k)] &&
-                        test_overlap(r_k_test, shape_k, shape_test_a, err_count);
-
-                    bool overlap_k_b = overlap_k_a;
-                    bool overlap_j_a = true;
-                    bool overlap_j_b = true;
-
-                    if (pairwise)
-                        {
-                        overlap_k_b = s_check_overlaps[overlap_idx(depletant_type_b, type_k)] &&
-                            test_overlap(r_k_test, shape_k, shape_test_b, err_count);
-
-                        unsigned int check_j_flag = s_j_group[check_group];
-                        bool check_old_j = check_j_flag & 1;
-                        unsigned int check_j = check_old_j >> 1;
-
-                        Scalar4 postype_j = check_old_j ? d_postype[check_j] : d_trial_postype[check_j];
-                        vec3<Scalar> pos_j(postype_j);
-                        unsigned int type_j = __scalar_as_int(postype_j.w);
-                        Shape shape_j(quat<Scalar>(), s_params[type_j]);
-                        if (shape_j.hasOrientation())
-                            shape_j.orientation = quat<Scalar>(check_old_j ?
-                                d_orientation[j] : d_trial_orientation[j]);
-
-                        if (overlap_k_b)
-                            {
-                            // check depletant a against j
-                            vec3<Scalar> r_j_test = vec3<Scalar>(pos_test) - pos_j;
-                            overlap_j_a = (s_check_overlaps[overlap_idx(type_j, depletant_type_a)]
-                                && check_circumsphere_overlap(r_j_test, shape_j, shape_test_a)
-                                && test_overlap(r_j_test, shape_j, shape_test_a, err_count));
-                            }
-
-                        if (overlap_k_a)
-                            {
-                            // check depletant b against j
-                            vec3<Scalar> r_j_test = vec3<Scalar>(pos_test) - pos_j;
-                            overlap_j_b = (s_check_overlaps[overlap_idx(type_j, depletant_type_b)]
-                                && check_circumsphere_overlap(r_j_test, shape_j, shape_test_b)
-                                && test_overlap(r_j_test, shape_j, shape_test_b, err_count));
-                            }
+                        // check depletant a against i
+                        Shape shape_i(quat<Scalar>(), s_params[s_type_i]);
+                        if (shape_i.hasOrientation())
+                            shape_i.orientation = quat<Scalar>(s_cur_orientation_i);
+                        vec3<Scalar> r_ik = vec3<Scalar>(pos_test) - vec3<Scalar>(s_cur_pos_i);
+                        overlap_i_a = (s_check_overlaps[overlap_idx(s_type_i, depletant_type_a)]
+                            && check_circumsphere_overlap(r_ik, shape_i, shape_test_a)
+                            && test_overlap(r_ik, shape_i, shape_test_a, err_count));
                         }
 
-                    if ((overlap_j_a && overlap_k_b) || (overlap_j_b && overlap_k_a))
+                    if (overlap_j_a)
                         {
-                        // store result
-                        atomicAdd(&s_overlap_group[check_group],1);
+                        // check depletant b against i
+                        Shape shape_i(quat<Scalar>(), s_params[s_type_i]);
+                        if (shape_i.hasOrientation())
+                            shape_i.orientation = quat<Scalar>(s_cur_orientation_i);
+                        vec3<Scalar> r_ik = vec3<Scalar>(pos_test) - vec3<Scalar>(s_cur_pos_i);
+                        overlap_i_b = (s_check_overlaps[overlap_idx(s_type_i, depletant_type_b)]
+                            && check_circumsphere_overlap(r_ik, shape_i, shape_test_b)
+                            && test_overlap(r_ik, shape_i, shape_test_b, err_count));
                         }
-                    } // end if (processing neighbor)
+                    }
 
-                // threads that need to do more looking set the still_searching flag
-                __syncthreads();
-                if (master && group == 0)
-                    s_queue_size = 0;
-                if (!s_overlap_group[group] && checking_overlaps && k < excell_size)
-                    atomicAdd(&s_still_searching, 1);
-                __syncthreads();
+                if ((overlap_i_a && overlap_j_b) || (overlap_i_b && overlap_j_a))
+                    {
+                    // store the overlapping particle index in dynamically allocated shared memory
+                    unsigned int position = atomicAdd(&s_len_group[check_group], 1);
+                    if (position < max_len)
+                        s_overlap_idx_list[check_group*max_len+position] = check_j_flag;
+                    }
+                } // end if (processing neighbor)
 
-                } // end while (s_still_searching)
-
-            // overlap checks have been processed for this group, accumulate free energy
-            if (checking_overlaps && master && !s_overlap_group[group])
-                {
-                if ((new_config && !repulsive) || (!new_config && repulsive))
-                    atomicAdd(&s_deltaF_int, 1); // numerator
-                else
-                    atomicAdd(&s_deltaF_int, -1); // denominator
-                }
-
-            // do we still need to process depletants?
+            // threads that need to do more looking set the still_searching flag
             __syncthreads();
             if (master && group == 0)
-                s_depletant_queue_size = 0;
-            if (active && check_i_dep < n_depletants_j)
-                atomicAdd(&s_adding_depletants, 1);
+                s_queue_size = 0;
+            if (active && (k >> 1) < excell_size)
+                atomicAdd(&s_still_searching, 1);
             __syncthreads();
-            } // end loop over depletants
+            } // end while (s_still_searching)
 
-        // threads that need to do more looking set the still_searching flag
+        if (active && s_len_group[group] <= max_len)
+            {
+            // go through the list of overlaps for this group
+            for (unsigned int k = offset; k < s_len_group[group]; k += group_size)
+                {
+                unsigned int overlap_k_flag = s_overlap_idx_list[group*max_len+k];
+                bool overlap_old_k = overlap_k_flag & 1;
+                unsigned int overlap_k = overlap_k_flag >> 1;
+
+                bool i_updated_before_k = i < N_local && overlap_k < N_local &&
+                    d_update_order_by_ptl[i] < d_update_order_by_ptl[overlap_k] &&
+                    !reject_i;
+                bool valid_k = overlap_k < N_local &&
+                    !((i_updated_before_k && !new_config) || (!i_updated_before_k && new_config));
+
+                if (valid_k)
+                    {
+                    unsigned int update_order_k = d_update_order_by_ptl[overlap_k];
+
+                    for (unsigned int m = 0; m < s_len_group[group]; ++m)
+                        {
+                        unsigned int overlap_m_flag = s_overlap_idx_list[group*max_len+m];
+                        bool overlap_old_m = overlap_m_flag & 1;
+                        unsigned int overlap_m = overlap_m_flag >> 1;
+                        if (overlap_m != overlap_k)
+                            {
+                            // are we testing m in the right config for k?
+                            bool m_updated_before_k = overlap_m < N_local &&
+                                d_update_order_by_ptl[overlap_m] < update_order_k &&
+                                !d_reject_in[overlap_m] && d_trial_move_type[overlap_m];
+                            if ((m_updated_before_k && !overlap_old_m) ||
+                                (!m_updated_before_k && overlap_old_m))
+                                {
+                                valid_k = false; // insertion into k is also one for m
+                                break;
+                                }
+                            }
+                        else if (overlap_old_k != overlap_old_m)
+                            {
+                            valid_k = false;
+                            break;
+                            }
+                        }
+                    }
+
+                if (valid_k)
+                    {
+                    // add to free energy of particle k
+                    if ((!overlap_old_k && !repulsive) || (overlap_old_k && repulsive))
+                        atomicAdd_system(&d_deltaF_int[overlap_k], 1); // numerator
+                    else
+                        atomicAdd_system(&d_deltaF_int[overlap_k], -1); // denominator
+                    }
+                }
+            }
+
+        // shared mem overflowed?
+        if (active && master && s_len_group[group] > max_len)
+            {
+            atomicMax_system(d_req_len, s_len_group[group]);
+            }
+
+        // do we still need to process depletants?
         __syncthreads();
         if (master && group == 0)
-            s_queue_size = 0;
-        if (k < excell_size)
-            atomicAdd(&s_still_searching, 1);
+            s_depletant_queue_size = 0;
+        if (i_dep < n_depletants_i)
+            atomicAdd(&s_adding_depletants, 1);
         __syncthreads();
-
-        } // end while (s_still_searching)
-
-    // write out free energy for this particle
-    if (master && group == 0)
-        {
-        atomicAdd(&d_deltaF_int[i], s_deltaF_int);
-        }
+        } // end loop over depletants
 
     if (err_count > 0)
         atomicAdd(&s_overlap_err_count, err_count);
@@ -882,9 +685,10 @@ void depletants_launcher_phase2(const hpmc_args_t& args,
         const unsigned int min_shared_bytes = args.num_types * sizeof(typename Shape::param_type) +
                    args.overlap_idx.getNumElements() * sizeof(unsigned int);
 
-        unsigned int shared_bytes = n_groups *(sizeof(Scalar4) + sizeof(Scalar3) + 2*sizeof(unsigned int)) +
-                                    max_queue_size*4*sizeof(unsigned int) +
-                                    max_depletant_queue_size*2*sizeof(unsigned int) +
+        unsigned int shared_bytes = n_groups *(sizeof(Scalar4) + sizeof(Scalar3) + sizeof(unsigned int)) +
+                                    max_queue_size*2*sizeof(unsigned int) +
+                                    max_depletant_queue_size*sizeof(unsigned int) +
+                                    n_groups*auxilliary_args.max_len*sizeof(unsigned int) +
                                     min_shared_bytes;
 
         if (min_shared_bytes >= args.devprop.sharedMemPerBlock)
@@ -902,9 +706,10 @@ void depletants_launcher_phase2(const hpmc_args_t& args,
             max_queue_size = n_groups*tpp;
             max_depletant_queue_size = n_groups;
 
-            shared_bytes = n_groups * (sizeof(Scalar4) + sizeof(Scalar3) + 2*sizeof(unsigned int)) +
-                           max_queue_size*4*sizeof(unsigned int) +
-                           max_depletant_queue_size*2*sizeof(unsigned int) +
+            shared_bytes = n_groups * (sizeof(Scalar4) + sizeof(Scalar3) + sizeof(unsigned int)) +
+                           max_queue_size*2*sizeof(unsigned int) +
+                           max_depletant_queue_size*sizeof(unsigned int) +
+                           n_groups*auxilliary_args.max_len*sizeof(unsigned int) +
                            min_shared_bytes;
             }
 
@@ -928,12 +733,18 @@ void depletants_launcher_phase2(const hpmc_args_t& args,
             {
             auto range = args.gpu_partition.getRangeAndSetGPU(idev);
 
-            if (range.first == range.second)
-                continue;
+            unsigned int nwork = range.second - range.first;
+
+            // add ghosts to final range
+            if (idev == (int)args.gpu_partition.getNumActiveGPUs()-1)
+                nwork += auxilliary_args.n_ghosts;
+
+            if (!nwork) continue;
 
             unsigned int blocks_per_particle = (implicit_args.max_n_depletants[idev]) /
                 (implicit_args.depletants_per_group*n_groups) + 1;
-            dim3 grid( range.second-range.first, blocks_per_particle, 2*auxilliary_args.ntrial);
+
+            dim3 grid(nwork, blocks_per_particle, 2*auxilliary_args.ntrial);
 
             if (blocks_per_particle > args.devprop.maxGridSize[1])
                 {
@@ -1000,7 +811,10 @@ void depletants_launcher_phase2(const hpmc_args_t& args,
                                  auxilliary_args.d_deltaF_int,
                                  implicit_args.repulsive,
                                  range.first,
-                                 auxilliary_args.d_n_depletants_ntrial);
+                                 max_depletant_queue_size,
+                                 auxilliary_args.d_n_depletants_ntrial,
+                                 auxilliary_args.max_len,
+                                 auxilliary_args.d_req_len);
             }
         }
     else
@@ -1019,16 +833,19 @@ void depletants_launcher_phase2(const hpmc_args_t& args,
 //! Kernel driver for kernel::insert_depletants_phase2()
 /*! \param args Bundled arguments
     \param implicit_args Bundled arguments related to depletants
-    \param auxilliary_args Arguments for auxilliary variable depletants
+    \param implicit_args Bundled arguments related to auxilliary variable depletants
     \param d_params Per-type shape parameters
+
+    This templatized method is the kernel driver for HPMC update of any shape. It is instantiated for every shape at the
+    bottom of this file.
 
     \ingroup hpmc_kernels
 */
 template< class Shape >
 void hpmc_depletants_auxilliary_phase2(const hpmc_args_t& args,
-    const hpmc_implicit_args_t& implicit_args,
-    const hpmc_auxilliary_args_t& auxilliary_args,
-    const typename Shape::param_type *params)
+                                       const hpmc_implicit_args_t& implicit_args,
+                                       const hpmc_auxilliary_args_t& auxilliary_args,
+                                       const typename Shape::param_type *params)
     {
     // select the kernel template according to the next power of two of the block size
     unsigned int launch_bounds = MIN_BLOCK_SIZE;

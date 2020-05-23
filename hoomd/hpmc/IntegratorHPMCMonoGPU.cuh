@@ -36,10 +36,6 @@ namespace gpu {
 #define MIN_BLOCK_SIZE 1024 // on AMD, we do not use __launch_bounds__
 #endif
 
-//! Driver for kernel::hpmc_narrow_phase()
-template< class Shape >
-void hpmc_narrow_phase(const hpmc_args_t& args, const typename Shape::param_type *params);
-
 #ifdef __HIPCC__
 namespace kernel
 {
@@ -183,7 +179,7 @@ __global__ void hpmc_narrow_phase(const Scalar4 *d_postype,
 
     if (master && active)
         {
-        // load from output, this race condition is intentional and implements an 
+        // load from output, this race condition is intentional and implements an
         // optional early exit flag between concurrently running kernels
         s_reject_group[group] = atomicCAS(&d_reject_out[idx], 0, 0);
         }
