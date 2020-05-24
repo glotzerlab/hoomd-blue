@@ -200,7 +200,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
             }
 
         //! Get the current counter values
-        std::vector<hpmc_implicit_counters_t> getImplicitCounters(unsigned int mode=0);
+        virtual std::vector<hpmc_implicit_counters_t> getImplicitCounters(unsigned int mode=0);
 
         //! Method to scale the box
         virtual bool attemptBoxResize(unsigned int timestep, const BoxDim& new_box);

@@ -76,6 +76,7 @@ __global__ void hpmc_insert_depletants_phase1(const Scalar4 *d_trial_postype,
                                      const unsigned int *d_update_order_by_ptl,
                                      const unsigned int *d_reject_in,
                                      const unsigned int ntrial,
+                                     const unsigned int ntrial_local,
                                      const unsigned int *d_tag,
                                      const Scalar4 *d_vel,
                                      const Scalar4 *d_trial_vel,
@@ -83,7 +84,8 @@ __global__ void hpmc_insert_depletants_phase1(const Scalar4 *d_trial_postype,
                                      bool repulsive,
                                      unsigned int work_offset,
                                      unsigned int max_depletant_queue_size,
-                                     const unsigned int *d_n_depletants)
+                                     const unsigned int *d_n_depletants,
+                                     const unsigned int ntrial_offset)
     {
     // variables to tell what type of thread we are
     unsigned int group = threadIdx.y;
@@ -173,9 +175,9 @@ __global__ void hpmc_insert_depletants_phase1(const Scalar4 *d_trial_postype,
     // identify the active cell that this thread handles
     unsigned int i = blockIdx.x + work_offset;
 
-    // if this particle is rejected a priori because it has left the cell, don't check overlaps
-    // and avoid out of range memory access when computing the cell
-    if (d_reject_out_of_cell[i])
+    // if this particle is rejected a priori because it has left the cell or is in
+    // an inactive region, don't check overlaps
+    if (d_reject_out_of_cell[i] || !d_trial_move_type[i])
         return;
 
     // load updated particle position
@@ -215,11 +217,11 @@ __global__ void hpmc_insert_depletants_phase1(const Scalar4 *d_trial_postype,
     __syncthreads();
 
     // unpack the block index
-    unsigned int gconfig = (blockIdx.z >> 1)/ntrial;
-    unsigned int dim_config = (gridDim.z >> 1)/ntrial;
+    unsigned int gconfig = (blockIdx.z >> 1)/ntrial_local;
+    unsigned int dim_config = (gridDim.z >> 1)/ntrial_local;
     unsigned int gidx = gridDim.y*gconfig+blockIdx.y;
     unsigned int new_config = blockIdx.z & 1;
-    unsigned int i_trial = (blockIdx.z >> 1) % ntrial;
+    unsigned int i_trial = (blockIdx.z >> 1) % ntrial_local + ntrial_offset;
     unsigned int blocks_per_depletant = gridDim.y*dim_config;
 
     unsigned int i_dep = group_size*group+offset + gidx*group_size*n_groups;
@@ -701,7 +703,7 @@ void depletants_launcher_phase1(const hpmc_args_t& args,
 
             unsigned int blocks_per_particle = (implicit_args.max_n_depletants[idev]) /
                 (implicit_args.depletants_per_group*n_groups) + 1;
-            dim3 grid( range.second-range.first, blocks_per_particle, 2*auxilliary_args.ntrial);
+            dim3 grid( range.second-range.first, blocks_per_particle, 2*auxilliary_args.ntrial_local);
 
             if (blocks_per_particle > args.devprop.maxGridSize[1])
                 {
@@ -762,6 +764,7 @@ void depletants_launcher_phase1(const hpmc_args_t& args,
                                  args.d_update_order_by_ptl,
                                  args.d_reject_in,
                                  auxilliary_args.ntrial,
+                                 auxilliary_args.ntrial_local,
                                  auxilliary_args.d_tag,
                                  auxilliary_args.d_vel,
                                  auxilliary_args.d_trial_vel,
@@ -769,7 +772,8 @@ void depletants_launcher_phase1(const hpmc_args_t& args,
                                  implicit_args.repulsive,
                                  range.first,
                                  max_depletant_queue_size,
-                                 auxilliary_args.d_n_depletants_ntrial);
+                                 auxilliary_args.d_n_depletants_ntrial,
+                                 auxilliary_args.ntrial_offset);
             }
         }
     else

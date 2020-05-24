@@ -5,6 +5,7 @@ from hoomd import _hoomd
 from hoomd.hpmc import _hpmc
 from hoomd.hpmc import data
 from hoomd.integrate import _integrator
+from hoomd.comm import Communicator
 import hoomd
 import sys
 import json
@@ -349,6 +350,22 @@ class mode_hpmc(_integrator):
 
         if deterministic is not None:
             self.cpp_integrator.setDeterministic(deterministic);
+
+    def set_ntrial_comm(self, comm):
+        R""" Set a MPI communicator to perform insertion attempts per depletant
+             on diffferent MPI ranks. Only supported with GPU execution.
+
+        Args:
+            comm: A hoomd.comm.Communicator() object
+        """
+
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
+            raise RuntimeError('set_ntrial_comm() only supported in GPU execution mode')
+
+        if not isinstance(comm, hoomd.comm.Communicator):
+            raise RuntimeError('The provided comm argument is not a comm.Communicator.\n')
+
+        self.cpp_integrator.setNtrialCommunicator(comm.cpp_mpi_conf)
 
     def map_overlaps(self):
         R""" Build an overlap map of the system

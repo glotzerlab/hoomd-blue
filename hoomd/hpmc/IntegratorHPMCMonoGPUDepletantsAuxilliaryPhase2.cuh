@@ -76,6 +76,7 @@ __global__ void hpmc_insert_depletants_phase2(const Scalar4 *d_trial_postype,
                                      const unsigned int *d_update_order_by_ptl,
                                      const unsigned int *d_reject_in,
                                      const unsigned int ntrial,
+                                     const unsigned int ntrial_local,
                                      const unsigned int *d_tag,
                                      const Scalar4 *d_vel,
                                      const Scalar4 *d_trial_vel,
@@ -85,7 +86,8 @@ __global__ void hpmc_insert_depletants_phase2(const Scalar4 *d_trial_postype,
                                      unsigned int max_depletant_queue_size,
                                      const unsigned int *d_n_depletants,
                                      const unsigned int max_len,
-                                     unsigned int *d_req_len)
+                                     unsigned int *d_req_len,
+                                     const unsigned int ntrial_offset)
     {
     // variables to tell what type of thread we are
     unsigned int group = threadIdx.y;
@@ -170,11 +172,11 @@ __global__ void hpmc_insert_depletants_phase2(const Scalar4 *d_trial_postype,
     unsigned int i = blockIdx.x + work_offset;
 
     // unpack the block index
-    unsigned int gconfig = (blockIdx.z >> 1)/ntrial;
-    unsigned int dim_config = (gridDim.z >> 1)/ntrial;
+    unsigned int gconfig = (blockIdx.z >> 1)/ntrial_local;
+    unsigned int dim_config = (gridDim.z >> 1)/ntrial_local;
     unsigned int gidx = gridDim.y*gconfig+blockIdx.y;
     unsigned int new_config = blockIdx.z & 1;
-    unsigned int i_trial = (blockIdx.z >> 1) % ntrial;
+    unsigned int i_trial = (blockIdx.z >> 1) % ntrial_local + ntrial_offset;
     unsigned int blocks_per_depletant = gridDim.y*dim_config;
 
     bool reject_i = i < N_local && (d_reject_in[i] || !d_trial_move_type[i]);
@@ -744,7 +746,7 @@ void depletants_launcher_phase2(const hpmc_args_t& args,
             unsigned int blocks_per_particle = (implicit_args.max_n_depletants[idev]) /
                 (implicit_args.depletants_per_group*n_groups) + 1;
 
-            dim3 grid(nwork, blocks_per_particle, 2*auxilliary_args.ntrial);
+            dim3 grid(nwork, blocks_per_particle, 2*auxilliary_args.ntrial_local);
 
             if (blocks_per_particle > args.devprop.maxGridSize[1])
                 {
@@ -805,6 +807,7 @@ void depletants_launcher_phase2(const hpmc_args_t& args,
                                  args.d_update_order_by_ptl,
                                  args.d_reject_in,
                                  auxilliary_args.ntrial,
+                                 auxilliary_args.ntrial_local,
                                  auxilliary_args.d_tag,
                                  auxilliary_args.d_vel,
                                  auxilliary_args.d_trial_vel,
@@ -814,7 +817,8 @@ void depletants_launcher_phase2(const hpmc_args_t& args,
                                  max_depletant_queue_size,
                                  auxilliary_args.d_n_depletants_ntrial,
                                  auxilliary_args.max_len,
-                                 auxilliary_args.d_req_len);
+                                 auxilliary_args.d_req_len,
+                                 auxilliary_args.ntrial_offset);
             }
         }
     else

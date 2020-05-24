@@ -20,6 +20,11 @@
 
 #include <hip/hip_runtime.h>
 
+#ifdef ENABLE_MPI
+#include <mpi.h>
+#include "hoomd/MPIConfiguration.h"
+#endif
+
 /*! \file IntegratorHPMCMonoGPU.h
     \brief Defines the template class for HPMC on the GPU
     \note This header cannot be compiled by nvcc
@@ -205,6 +210,15 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
 
+        #ifdef ENABLE_MPI
+        void setNtrialCommunicator(std::shared_ptr<MPIConfiguration> mpi_conf)
+            {
+            m_ntrial_comm = mpi_conf;
+            }
+        #endif
+
+        virtual std::vector<hpmc_implicit_counters_t> getImplicitCounters(unsigned int mode=0);
+
     protected:
         std::shared_ptr<CellList> m_cl;                      //!< Cell list
         uint3 m_last_dim;                                    //!< Dimensions of the cell list on the last call to update
@@ -256,6 +270,10 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
         std::vector<std::vector<hipEvent_t> > m_sync;                //!< Synchronization event for every stream and device
         std::vector<std::vector<hipEvent_t> > m_sync_phase1;         //!< Synchronization event for phase1 stream
         std::vector<std::vector<hipEvent_t> > m_sync_phase2;         //!< Synchronization event for phase2 stream
+
+        #ifdef ENABLE_MPI
+        std::shared_ptr<MPIConfiguration> m_ntrial_comm;             //!< Communicator for MPI parallel ntrial
+        #endif
 
         //!< Variables for implicit depletants
         GlobalArray<Scalar> m_lambda;                              //!< Poisson means, per type pair
@@ -753,6 +771,17 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
         bool have_auxilliary_variables = false;
         bool have_depletants = false;
         unsigned int ntrial_tot = 0;
+
+        #ifdef ENABLE_MPI
+        int ntrial_comm_size;
+        int ntrial_comm_rank;
+        if (m_ntrial_comm)
+            {
+            MPI_Comm_size((*m_ntrial_comm)(), &ntrial_comm_size);
+            MPI_Comm_rank((*m_ntrial_comm)(), &ntrial_comm_rank);
+            }
+        #endif
+
         for (unsigned int itype = 0; itype < this->m_pdata->getNTypes(); ++itype)
             {
             for (unsigned int jtype = itype; jtype < this->m_pdata->getNTypes(); ++jtype)
@@ -765,6 +794,17 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     continue;
                 have_auxilliary_variables = true;
                 ntrial_tot += ntrial;
+
+                #ifdef ENABLE_MPI
+                // ensure that the ntrial is a multiple of the communicator size
+                if (m_ntrial_comm && (ntrial % ntrial_comm_size))
+                    {
+                    throw std::runtime_error("ntrial = "+std::to_string(ntrial)+" for type pair "+
+                        this->m_pdata->getNameByType(itype) + ", " +
+                        this->m_pdata->getNameByType(jtype) + " is not a multiple of the " +
+                        "size of the communicator (" + std::to_string(ntrial_comm_size)+")\n");
+                    }
+                #endif
                 }
             }
         unsigned int req_n_depletants_size = ntrial_tot*2*this->m_pdata->getMaxN();
@@ -966,6 +1006,8 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         CHECK_CUDA_ERROR();
                     }
 
+                bool reallocate_smem = true;
+                while (reallocate_smem)
                     {
                     // ArrayHandle scope
                     ArrayHandle<unsigned int> d_update_order_by_ptl(m_update_order.get(), access_location::device, access_mode::read);
@@ -1226,11 +1268,23 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                                         0 // stream (unused)
                                         );
 
+                                    unsigned int ntrial_rank = ntrial;
+                                    unsigned int i_trial_offset = 0;
+                                    #ifdef ENABLE_MPI
+                                    if (m_ntrial_comm)
+                                        {
+                                        ntrial_rank = ntrial/ntrial_comm_size; // divide up work among ranks
+                                        i_trial_offset = ntrial_comm_rank*ntrial_rank;
+                                        }
+                                    #endif
+
                                     gpu::hpmc_auxilliary_args_t auxilliary_args(
                                         d_tag.data,
                                         d_vel.data,
                                         d_trial_vel.data,
                                         ntrial,
+                                        ntrial_rank,
+                                        i_trial_offset,
                                         d_n_depletants_ntrial.data + ntrial_offset,
                                         d_deltaF_int.data + this->m_depletant_idx(itype,jtype)*this->m_pdata->getMaxN(),
                                         &m_depletant_streams_phase1[this->m_depletant_idx(itype,jtype)].front(),
@@ -1290,43 +1344,82 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
 
                        } // end ArrayHandle scope
 
-                    if (have_depletants && have_auxilliary_variables)
+                    // did the dynamically allocated shared memory overflow during kernel execution?
+                    ArrayHandle<unsigned int> h_req_len(m_req_len, access_location::host, access_mode::read);
+
+                    if (*h_req_len.data > m_max_len)
                         {
-                        // did the dynamically allocated shared memory overflow during kernel execution?
-                        ArrayHandle<unsigned int> h_req_len(m_req_len, access_location::host, access_mode::read);
-
-                        if (*h_req_len.data > m_max_len)
-                            {
-                            this->m_exec_conf->msg->notice(9) << "Increasing shared mem list size per group "
-                                << m_max_len << "->" << *h_req_len.data << std::endl;
-                            m_max_len = *h_req_len.data;
-                            continue; // rerun kernels
-                            }
-
-                        // final tally, do Metropolis-Hastings
-                        ArrayHandle<Scalar> d_fugacity(this->m_fugacity, access_location::device, access_mode::read);
-                        ArrayHandle<unsigned int> d_ntrial(this->m_ntrial, access_location::device, access_mode::read);
-
-                        this->m_exec_conf->beginMultiGPU();
-                        m_tuner_depletants_accept->begin();
-                        gpu::hpmc_depletants_accept(
-                            this->m_seed,
-                            timestep,
-                            this->m_exec_conf->getRank()*this->m_nselect + i,
-                            d_deltaF_int.data,
-                            this->m_depletant_idx,
-                            this->m_pdata->getMaxN(),
-                            d_fugacity.data,
-                            d_ntrial.data,
-                            d_reject_out.data,
-                            this->m_pdata->getGPUPartition(),
-                            m_tuner_depletants_accept->getParam());
-                        if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-                            CHECK_CUDA_ERROR();
-                        m_tuner_depletants_accept->end();
-                        this->m_exec_conf->endMultiGPU();
+                        this->m_exec_conf->msg->notice(9) << "Increasing shared mem list size per group "
+                            << m_max_len << "->" << *h_req_len.data << std::endl;
+                        m_max_len = *h_req_len.data;
+                        continue; // rerun kernels
                         }
-                    } // end ArrayHandle scope
+
+                   reallocate_smem = false;
+                   } // end while (reallocate_smem)
+
+               if (have_depletants && have_auxilliary_variables)
+                    {
+                    #ifdef ENABLE_MPI
+                    if (m_ntrial_comm)
+                        {
+                        // reduce free energy across communicator
+                        #ifdef ENABLE_MPI_CUDA
+                        ArrayHandle<int> d_deltaF_int(m_deltaF_int, access_location::device, access_mode::readwrite);
+                        MPI_Allreduce(MPI_IN_PLACE,
+                            d_deltaF_int.data,
+                            this->m_pdata->getMaxN()*this->m_depletant_idx.getNumElements(),
+                            MPI_INT,
+                            MPI_SUM,
+                            (*m_ntrial_comm)());
+                        #else
+                        ArrayHandle<int> h_deltaF_int(m_deltaF_int, access_location::host, access_mode::readwrite);
+                        MPI_Allreduce(MPI_IN_PLACE,
+                            h_deltaF_int.data,
+                            this->m_pdata->getMaxN()*this->m_depletant_idx.getNumElements(),
+                            MPI_INT,
+                            MPI_SUM,
+                            (*m_ntrial_comm)());
+                        #endif
+                        }
+                    #endif
+
+                    // did the dynamically allocated shared memory overflow during kernel execution?
+                    ArrayHandle<unsigned int> h_req_len(m_req_len, access_location::host, access_mode::read);
+
+                    if (*h_req_len.data > m_max_len)
+                        {
+                        this->m_exec_conf->msg->notice(9) << "Increasing shared mem list size per group "
+                            << m_max_len << "->" << *h_req_len.data << std::endl;
+                        m_max_len = *h_req_len.data;
+                        continue; // rerun kernels
+                        }
+
+                    // final tally, do Metropolis-Hastings
+                    ArrayHandle<Scalar> d_fugacity(this->m_fugacity, access_location::device, access_mode::read);
+                    ArrayHandle<unsigned int> d_ntrial(this->m_ntrial, access_location::device, access_mode::read);
+                    ArrayHandle<int> d_deltaF_int(m_deltaF_int, access_location::device, access_mode::read);
+                    ArrayHandle<unsigned int> d_reject_out(m_reject_out, access_location::device, access_mode::readwrite);
+
+                    this->m_exec_conf->beginMultiGPU();
+                    m_tuner_depletants_accept->begin();
+                    gpu::hpmc_depletants_accept(
+                        this->m_seed,
+                        timestep,
+                        this->m_exec_conf->getRank()*this->m_nselect + i,
+                        d_deltaF_int.data,
+                        this->m_depletant_idx,
+                        this->m_pdata->getMaxN(),
+                        d_fugacity.data,
+                        d_ntrial.data,
+                        d_reject_out.data,
+                        this->m_pdata->getGPUPartition(),
+                        m_tuner_depletants_accept->getParam());
+                    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                        CHECK_CUDA_ERROR();
+                    m_tuner_depletants_accept->end();
+                    this->m_exec_conf->endMultiGPU();
+                    }
 
                 if (this->m_patch && !this->m_patch_log)
                     {
@@ -1684,6 +1777,26 @@ void IntegratorHPMCMonoGPU< Shape >::updateCellWidth()
         }
     }
 
+#ifdef ENABLE_MPI
+template<class Shape>
+std::vector<hpmc_implicit_counters_t> IntegratorHPMCMonoGPU<Shape>::getImplicitCounters(unsigned int mode)
+    {
+    std::vector<hpmc_implicit_counters_t> result = IntegratorHPMCMono<Shape>::getImplicitCounters(mode);
+
+    if (m_ntrial_comm)
+        {
+        // MPI Reduction to total result values on all ranks
+        for (unsigned int i = 0; i < this->m_depletant_idx.getNumElements(); ++i)
+            {
+            MPI_Allreduce(MPI_IN_PLACE, &result[i].insert_count, 1, MPI_LONG_LONG_INT, MPI_SUM, (*m_ntrial_comm)());
+            MPI_Allreduce(MPI_IN_PLACE, &result[i].insert_accept_count, 1, MPI_LONG_LONG_INT, MPI_SUM, (*m_ntrial_comm)());
+            MPI_Allreduce(MPI_IN_PLACE, &result[i].insert_accept_count_sq, 1, MPI_LONG_LONG_INT, MPI_SUM, (*m_ntrial_comm)());
+            }
+        }
+
+    return result;
+    }
+#endif
 
 //! Export this hpmc integrator to python
 /*! \param name Name of the class in the exported python module
@@ -1691,8 +1804,12 @@ void IntegratorHPMCMonoGPU< Shape >::updateCellWidth()
 */
 template < class Shape > void export_IntegratorHPMCMonoGPU(pybind11::module& m, const std::string& name)
     {
-     pybind11::class_<IntegratorHPMCMonoGPU<Shape>, IntegratorHPMCMono<Shape>, std::shared_ptr< IntegratorHPMCMonoGPU<Shape> > >(m, name.c_str())
+     pybind11::class_<IntegratorHPMCMonoGPU<Shape>, IntegratorHPMCMono<Shape>,
+        std::shared_ptr< IntegratorHPMCMonoGPU<Shape> > >(m, name.c_str())
               .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<CellList>, unsigned int >())
+              #ifdef ENABLE_MPI
+              .def("setNtrialCommunicator", &IntegratorHPMCMonoGPU<Shape>::setNtrialCommunicator)
+              #endif
               ;
     }
 
