@@ -45,7 +45,7 @@ class _CustomOperation(_TriggeredOperation):
             raise ValueError("action must be a subclass of "
                              "hoomd.custom_action.CustomAction.")
         self._action = action
-        loggables = list(action.log_quantities)
+        loggables = dict(action.log_quantities)
         if not all(isinstance(val, LoggerQuantity)
                    for val in loggables.values()):
             raise ValueError("Error wrapping {}. All advertised log "
