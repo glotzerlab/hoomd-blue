@@ -21,9 +21,11 @@ from hoomd.parameterdicts import ParameterDict
 
 from copy import deepcopy
 
+
 class NotAttachedError(RuntimeError):
     """ Raised when something that requires attachment happens before attaching """
     pass
+
 
 def convert_values_to_log_form(value):
     if value is RequiredArg:
@@ -57,49 +59,64 @@ def handle_gsd_arrays(arr):
         return arr
 
 
-class _Operation(metaclass=Loggable):
-    _reserved_attrs_with_dft = {'_cpp_obj': lambda: None,
-                                '_param_dict': ParameterDict,
-                                '_typeparam_dict': dict,
-                                '_dependent_list': lambda: []}
+class _HOOMDGetSetAttrBase:
+    """Provides the use of `ParameterDicts` and `TypeParameterDicts` as attrs.
 
-    _use_default_setattr = set()
+    Provides many hooks for varying behavior.
 
-    _skip_for_equality = set(['_cpp_obj', '_dependent_list'])
+    Attributes:
+        _reserved_default_attrs (dict[str, Callable([], T)]): Attributes that
+            have defaults and should be set using `object.__setattr__`. Has
+            `_param_dict` and `_typeparam_dict` keys by default.
+        _override_setattr (set[str]): Attributes that should not use the
+            provided `__setattr__`. `super().__setattr__` is called for them.
+            Likely, this wil no longer be necessary when triggers are added to
+            C++ Updaters and Analyzers.
+        _param_dict (ParameterDict): The `ParameterDict` for the class/instance.
+        _typeparam_dict (dict[str, TypeParameter]): A dict of all the
+            `TypeParameter`s for the class/instance.
+    """
+    _reserved_default_attrs = dict(_param_dict=ParameterDict,
+                                   _typeparam_dict=dict)
+    _override_setattr = set()
 
     def __getattr__(self, attr):
-        if attr in self._reserved_attrs_with_dft.keys():
-            setattr(self, attr, self._reserved_attrs_with_dft[attr]())
-            return self.__dict__[attr]
+        if attr in self._reserved_default_attrs.keys():
+            value = self._reserved_default_attrs[attr]()
+            object.__setattr__(self, attr, value)
+            return value
         elif attr in self._param_dict.keys():
             return self._getattr_param(attr)
         elif attr in self._typeparam_dict.keys():
             return self._getattr_typeparam(attr)
         else:
-            raise AttributeError("Object {} has no attribute {}"
-                                 "".format(self, attr))
+            raise AttributeError("Object {} has no attribute {}".format(
+                self, attr))
 
     def _getattr_param(self, attr):
-        if self.is_attached:
-            return getattr(self._cpp_obj, attr)
-        else:
-            return self._param_dict[attr]
+        """Hook for getting an attribute from `_param_dict`."""
+        return self._param_dict[attr]
 
     def _getattr_typeparam(self, attr):
+        """Hook for getting an attribute from `_typeparam_dict`."""
         return self._typeparam_dict[attr]
 
     def __setattr__(self, attr, value):
-        if attr in self._reserved_attrs_with_dft.keys() or \
-                attr in self._use_default_setattr:
+        if attr in self._override_setattr:
             super().__setattr__(attr, value)
         elif attr in self._param_dict.keys():
             self._setattr_param(attr, value)
         elif attr in self._typeparam_dict.keys():
             self._setattr_typeparam(attr, value)
         else:
-            super().__setattr__(attr, value)
+            self._setattr_hook(attr, value)
+
+    def _setattr_hook(self, attr, value):
+        """Used when attr is not found in `_param_dict` or `_typeparam_dict`."""
+        super().__setattr__(attr, value)
 
     def _setattr_param(self, attr, value):
+        """Hook for setting an attribute in `_param_dict`."""
         old_value = self._param_dict[attr]
         self._param_dict[attr] = value
         new_value = self._param_dict[attr]
@@ -112,12 +129,38 @@ class _Operation(metaclass=Loggable):
                                      " initialization".format(attr))
 
     def _setattr_typeparam(self, attr, value):
+        """Hook for setting an attribute in `_typeparam_dict`."""
         try:
             for k, v in value.items():
                 self._typeparam_dict[attr][k] = v
         except TypeError:
             raise ValueError("To set {}, you must use a dictionary "
                              "with types as keys.".format(attr))
+
+
+class _Operation(_HOOMDGetSetAttrBase, metaclass=Loggable):
+    _reserved_default_attrs = {**_HOOMDGetSetAttrBase._reserved_default_attrs,
+                               '_cpp_obj': lambda: None,
+                               '_dependent_list': lambda: []}
+
+    _skip_for_equality = set(['_cpp_obj', '_dependent_list'])
+
+    def _getattr_param(self, attr):
+        if self.is_attached:
+            return getattr(self._cpp_obj, attr)
+        else:
+            return self._param_dict[attr]
+
+    def _setattr_param(self, attr, value):
+        self._param_dict[attr] = value
+        if self.is_attached:
+            new_value = self._param_dict[attr]
+            try:
+                setattr(self._cpp_obj, attr, new_value)
+            except (AttributeError):
+                raise AttributeError("{} cannot be set after cpp"
+                                     " initialization".format(attr))
+
 
     def __eq__(self, other):
         other_keys = set(other.__dict__.keys())
@@ -298,7 +341,7 @@ class _Operation(metaclass=Loggable):
 class _TriggeredOperation(_Operation):
     _cpp_list_name = None
 
-    _use_default_setattr = set(['trigger'])
+    _override_setattr = {'trigger'}
 
     def __init__(self, trigger):
         trigger_dict = ParameterDict(trigger=Trigger)

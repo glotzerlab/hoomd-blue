@@ -6,11 +6,11 @@
 R""" Utilities.
 """
 
-from collections.abc import Mapping
 from numpy import ndarray
 from collections.abc import Iterable, Mapping
 from inspect import isclass
 from copy import deepcopy
+from enum import IntEnum
 from hoomd.trigger import Periodic, Trigger
 from hoomd.variant import Variant, Constant
 
@@ -258,3 +258,9 @@ def array_to_strings(value):
         return string_list
     else:
         return value
+
+
+class ParticleDataFlags(IntEnum):
+    PRESSURE_TENSOR = 0
+    ROTATIONAL_KINETIC_ENERGY = 1
+    EXTERNAL_FIELD_VIRIAL = 2
