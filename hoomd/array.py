@@ -2,7 +2,7 @@ from copy import deepcopy
 import functools
 from collections import Iterable
 
-from numpy import ndarray, array, may_share_memory
+import numpy as np
 
 from hoomd._hoomd import isCUDAAvailable
 
@@ -59,7 +59,7 @@ and functions that return a new array with the same underlying data.
 # Functions that return a new array and wrapper
 
 
-def _op_wrap(method, cls=ndarray):
+def _op_wrap(method, cls=np.ndarray):
     func = getattr(cls, method)
 
     @functools.wraps(func)
@@ -101,14 +101,14 @@ _ndarray_magic_safe_ = ([
 # Magic methods that may return an array pointing to the same buffer
 
 
-def _magic_wrap_with_check(method, cls=ndarray):
+def _magic_wrap_with_check(method, cls=np.ndarray):
     func = getattr(cls, method)
 
     @functools.wraps(func)
     def wrapped(self, *args, **kwargs):
         arr = self._coerce_to_ndarray()
         rtn = func(arr, *args, **kwargs)
-        if isinstance(rtn, ndarray) and may_share_memory(rtn, arr):
+        if isinstance(rtn, np.ndarray) and np.may_share_memory(rtn, arr):
             return self.__class__(rtn, self._callback, self.read_only)
         else:
             return rtn
@@ -123,7 +123,7 @@ _ndarray_magic_unsafe_ = ([
 
 
 # Functions that return an array pointing to the same buffer
-def _iop_wrap(method, cls=ndarray):
+def _iop_wrap(method, cls=np.ndarray):
     func = getattr(cls, method)
 
     @functools.wraps(func)
@@ -173,7 +173,7 @@ _ndarray_disallow_funcs_ = ([
 # Properties that can return an array pointing to the same buffer
 
 
-def _wrap_properties_with_check(prop, cls=ndarray):
+def _wrap_properties_with_check(prop, cls=np.ndarray):
     prop = getattr(cls, prop)
 
     @property
@@ -181,7 +181,7 @@ def _wrap_properties_with_check(prop, cls=ndarray):
     def wrapped(self):
         arr = self._coerce_to_ndarray()
         rtn = getattr(arr, prop)
-        if may_share_memory(rtn, arr):
+        if np.may_share_memory(rtn, arr):
             return self.__class__(rtn, self._callback, self.read_only)
         else:
             return rtn
@@ -234,7 +234,8 @@ def coerce_mock_to_array(val):
 
     Coerces ``HOOMDArray`` objects into ``numpy.ndarray`` objects.
     """
-    if isinstance(val, Iterable) and not isinstance(val, (ndarray, HOOMDArray)):
+    if isinstance(val, Iterable) and not isinstance(val,
+                                                    (np.ndarray, HOOMDArray)):
         return [coerce_mock_to_array(v) for v in val]
     return val if not isinstance(val, HOOMDArray) else val._coerce_to_ndarray()
 
@@ -243,12 +244,11 @@ class HOOMDArray(metaclass=_WrapClassFactory(_wrap_list)):
     """A NumPy like interface to internal HOOMD-blue data.
 
     These objects are returned by HOOMD-blue's zero copy access to system data.
-    This class acts like a ``numpy.ndarray`` object through NumPy's provided
-    interface
-    `<link https://numpy.org/doc/stable/reference/arrays.classes.html>`. Some
-    excepts are the ``view``, ``resize``, ``flat`` and ``flatiter`` methods and
-    the ``data`` and ``base`` properties.  For typical use cases, understanding
-    this class is not necessary. Treat it as a ``numpy.ndarray``.
+    This class acts like a `numpy.ndarray` object through NumPy's provided
+    `interface <https://numpy.org/doc/stable/reference/arrays.classes.html>`_.
+    Some excepts are the ``view``, ``resize``, ``flat`` and ``flatiter`` methods
+    and the ``data`` and ``base`` properties.  For typical use cases,
+    understanding this class is not necessary. Treat it as a ``numpy.ndarray``.
 
     We attempt to escape this class whenever possible. This essentially means
     that whenever a array pointing to a new buffer is returned we can return
@@ -268,17 +268,19 @@ class HOOMDArray(metaclass=_WrapClassFactory(_wrap_list)):
 
     Performance Tips:
         *Assume ``a`` represents a `HOOMDArray` for examples given.*
-        * Place the HOOMDArray to the left of the expression (e.g. ``a + b + c``
-          is faster than ``b + a + c``). This has to do with the mechanisms
-          `HOOMDArray` has to do to hook into NumPy's functionality.
-        * If a copy will need to be made, do it as early as possible (i.e. if
-          you will need access outside the context manager use
+
+        * Place the ``HOOMDArray`` to the left of the expression
+          (e.g. ``a + b + c`` is faster than ``b + a + c``). This has to do with
+          the mechanisms ``HOOMDArray`` has to do to hook into NumPy's
+          functionality.
+        * If a copy will need to be made, do it as early as possible. In other
+          words, if you will need access outside the context manager, use
           ``numpy.array(a, copy=True)`` before doing any calculations.
         * If you know that your access of the internal buffer is safe and we
-          cannot detect this (i.e. we return a HOOMDArray), using
-          `HOOMDArray._coerce_to_ndarray` should help. Note that for large
-          arrays this only gives a few percentage performance improvements at
-          greater risk of breaking your program.
+          cannot detect this (i.e. we return a ``HOOMDArray``), using
+          ``HOOMDArray._coerce_to_ndarray`` should help. Note that for large
+          arrays this only gives minimal performance improvements at greater
+          risk of breaking your program.
     """
 
     def __init__(self, buffer, callback, read_only=None):
@@ -322,8 +324,8 @@ class HOOMDArray(metaclass=_WrapClassFactory(_wrap_list)):
             else:
                 kwargs[key] = coerce_mock_to_array(value)
         arr = func(*new_inputs, **kwargs)
-        if isinstance(arr, ndarray):
-            if may_share_memory(arr, self._coerce_to_ndarray()):
+        if isinstance(arr, np.ndarray):
+            if np.may_share_memory(arr, self._coerce_to_ndarray()):
                 return self.__class__(arr, self._callback)
         return arr
 
@@ -369,11 +371,11 @@ class HOOMDArray(metaclass=_WrapClassFactory(_wrap_list)):
         """
         if self._callback():
             if self._read_only:
-                arr = array(self._buffer, copy=False)
+                arr = np.array(self._buffer, copy=False)
                 arr.flags['WRITEABLE'] = True
                 return arr
             else:
-                return array(self._buffer, copy=False)
+                return np.array(self._buffer, copy=False)
         else:
             raise HOOMDArrayError(
                 "Cannot access {} outside context manager. Use "
@@ -584,8 +586,8 @@ _gpu_array_docs = """
 Exposes an internal HOOMD-blue GPU buffer.
 
 The HOOMDGPUArray object exposes a GPU data buffer using the
-`:code:`__cuda_array_interface__`
-<https://numba.pydata.org/numba-doc/latest/cuda/cuda_array_interface.html>`.
+`__cuda_array_interface__
+<https://numba.pydata.org/numba-doc/latest/cuda/cuda_array_interface.html>`_.
 This class tries to prevent invalid memory access through only allow the buffer
 to be exposed within a context manager (`hoomd.State.gpu_local_snapshot`).
 However, to prevent copying the data, we cannot guarentee the data will not
@@ -614,14 +616,15 @@ basic properties.
 In either case `HOOMDGPUArray` supports getting (but not setting) the ``shape``,
 ``strides``, and ``ndim`` properties.
 
-When CuPy is imported, compound assignment operators (e.g. +=, -=, *=) are
-available. In addition, most methods besides ``view``, ``resize``, ``flat``,
-``flatiter`` are available. The same is true for properties except the ``data``
-and ``base`` properties. See CuPy's documentation for a list of methods. An
-important note is that due their being no way to hook into standard operators
-like (+, -, *) direct addition, subtraction, and multiplication cannot be
-performed between `HOOMDGPUArray` and `cupy.ndarray`s. However, ``cupy.add`` can
-be directly used and is recommended for memory safety.
+When CuPy is imported, compound assignment operators (e.g. ``+=``, ``-=``,
+``*=``) are available. In addition, most methods besides ``view``, ``resize``,
+``flat``, ``flatiter`` are available. The same is true for properties except the
+``data`` and ``base`` properties. See CuPy's documentation for a list of
+methods. An important note is that due their being no way to hook into standard
+operators like (``+``, ``-``, ``*``) direct addition, subtraction, and
+multiplication cannot be performed between `HOOMDGPUArray` and ``cupy.ndarray``
+objects.  However, ``cupy.add`` can be directly used and is recommended for
+memory safety.
 """
 
 HOOMDGPUArray.__doc__ = _gpu_array_docs

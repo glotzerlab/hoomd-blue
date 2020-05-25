@@ -1,6 +1,9 @@
 # This file exists to allow the hoomd module to import from the source checkout dir
 # for use when building the sphinx documentation.
 
+def isCUDAAvailable():
+    return True
+
 class Messenger(object):
     def openPython(self):
         pass
@@ -132,4 +135,46 @@ class VariantCycle(Variant):
     pass
 
 class MPIConfiguration():
+    pass
+
+class LocalParticleDataHost():
+    pass
+
+class LocalParticleDataDevice():
+    pass
+
+class LocalBondDataHost():
+    pass
+
+class LocalBondDataDevice():
+    pass
+
+class LocalAngleDataHost():
+    pass
+
+class LocalAngleDataDevice():
+    pass
+
+class LocalDihedralDataHost():
+    pass
+
+class LocalDihedralDataDevice():
+    pass
+
+class LocalImproperDataHost():
+    pass
+
+class LocalImproperDataDevice():
+    pass
+
+class LocalPairDataHost():
+    pass
+
+class LocalPairDataDevice():
+    pass
+
+class LocalConstraintDataHost():
+    pass
+
+class LocalConstraintDataDevice():
     pass
