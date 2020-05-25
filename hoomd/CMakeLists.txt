@@ -316,7 +316,7 @@ set(files benchmark.py
           device.py
           dump.py
           group.py
-          hoomd_array.py
+          array.py
           __init__.py
           init.py
           integrate.py

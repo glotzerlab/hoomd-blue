@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from hoomd.hoomd_array import HOOMDArray
+from hoomd.array import HOOMDArray
 from hoomd import _hoomd
 
 
