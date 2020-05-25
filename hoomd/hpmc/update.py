@@ -108,7 +108,7 @@ class boxmc(_updater):
 
     def disable(self):
         self.mc.trigger.removeFromSet(self.cpp_updater)
-        _updater.enable(self);
+        _updater.disable(self);
 
     def set_betap(self, betaP):
         R""" Update the pressure set point for Metropolis Monte Carlo volume updates.
@@ -543,10 +543,11 @@ class wall(_updater):
 
     def enable(self):
         self.mc.trigger.addToSet(self.cpp_updater)
-        _updater.enable()
+        _updater.enable(self)
 
     def disable(self):
         self.mc.trigger.removeFromSet(self.cpp_updater)
+        _updater.disable(self)
 
 class muvt(_updater):
     R""" Insert and remove particles in the muVT ensemble.
@@ -728,11 +729,11 @@ class muvt(_updater):
 
     def enable(self):
         self.mc.trigger.addToSet(self.cpp_updater)
-        _updater.enable()
+        _updater.enable(self)
 
     def disable(self):
         self.mc.trigger.removeFromSet(self.cpp_updater)
-
+        _updater.disable(self)
 
 class remove_drift(_updater):
     R""" Remove the center of mass drift from a system restrained on a lattice.
@@ -982,7 +983,8 @@ class clusters(_updater):
 
     def enable(self):
         self.mc.trigger.addToSet(self.cpp_updater)
-        _updater.enable()
+        _updater.enable(self)
 
     def disable(self):
         self.mc.trigger.removeFromSet(self.cpp_updater)
+        _updater.disable(self)
