@@ -192,7 +192,7 @@ class State:
             return group
 
     @property
-    def local_snapshot(self):
+    def cpu_local_snapshot(self):
         if self._in_context_manager:
             raise RuntimeError(
                 "Cannot enter cpu_local_snapshot context manager inside "
@@ -200,7 +200,7 @@ class State:
         return LocalSnapshot(self)
 
     @property
-    def gpu_snapshot(self):
+    def gpu_local_snapshot(self):
         if self._simulation.device.mode != 'gpu':
             raise RuntimeError(
                 "Cannot access gpu_snapshot with a non GPU device.")
