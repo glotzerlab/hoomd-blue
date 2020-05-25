@@ -15,7 +15,6 @@ except ImportError:
 import hoomd
 import sys
 import re
-import math
 
 #replace range with xrange for python3 compatibility
 if sys.version_info[0]==2:
@@ -652,12 +651,6 @@ class tune(object):
                                                      'set': lambda x: getattr(obj, 'set_params')(a=x),
                                                      'maximum': 0.5
                                                       }})
-                tunable_map.update({'ntrial':   {
-                                        'get': lambda: getattr(obj, 'get_ntrial')(),
-                                        'acceptance': lambda: getattr(obj, 'get_insertion_std')(),
-                                        'set': lambda x: getattr(obj, 'set_params')(ntrial=x),
-                                        'maximum': 10000
-                                        }})
             else:
                 tunable_map.update({'d': {
                                                  'get': lambda: getattr(obj, 'get_d')(type),
@@ -672,12 +665,6 @@ class tune(object):
                                                  'maximum': 0.5
                                                  }})
 
-                tunable_map.update({'ntrial':   {
-                                        'get': lambda: getattr(obj, 'get_ntrial')(type),
-                                        'acceptance': lambda: getattr(obj, 'get_insertion_std')(type),
-                                        'set': lambda x: getattr(obj, 'set_params')(ntrial={type: x}),
-                                        'maximum': 10000
-                                        }})
         #init rest of tuner
         self.target = float(target)
         self.max_scale = float(max_scale)
@@ -716,12 +703,9 @@ class tune(object):
             if (acceptance > 0.0):
                 # find (damped) scale somewhere between 1.0 and acceptance/target
                 scale = ((1.0 + self.gamma) * acceptance) / (self.target + self.gamma * acceptance)
-            elif (acceptance == 0.0):
+            else:
                 # acceptance rate was zero. Try a parameter value an order of magnitude smaller
                 scale = 0.1
-            elif (math.isnan(acceptance)):
-                # bump up parameter
-                scale = 2
             if (scale > self.max_scale):
                 scale = self.max_scale
             # find new value

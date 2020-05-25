@@ -26,9 +26,10 @@ CellListGPU::CellListGPU(std::shared_ptr<SystemDefinition> sysdef)
         throw std::runtime_error("Error initializing CellListGPU");
         }
 
-    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "cell_list", this->m_exec_conf));
-    m_tuner_combine.reset(new Autotuner(32, 1024, 32, 5, 100000, "cell_list_combine", this->m_exec_conf));
-
+    unsigned int max_threads = m_exec_conf->dev_prop.maxThreadsPerBlock;
+    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    m_tuner.reset(new Autotuner(warp_size, max_threads, warp_size, 5, 100000, "cell_list", this->m_exec_conf));
+    m_tuner_combine.reset(new Autotuner(warp_size, max_threads, warp_size, 5, 100000, "cell_list_combine", this->m_exec_conf));
     }
 
 void CellListGPU::computeCellList()

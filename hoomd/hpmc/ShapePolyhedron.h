@@ -917,9 +917,7 @@ template<>
 DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                  const ShapePolyhedron& a,
                                  const ShapePolyhedron& b,
-                                 unsigned int& err,
-                                 Scalar sweep_radius_a,
-                                 Scalar sweep_radius_b)
+                                 unsigned int& err)
     {
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
     const OverlapReal abs_tol(DaDb*1e-12);

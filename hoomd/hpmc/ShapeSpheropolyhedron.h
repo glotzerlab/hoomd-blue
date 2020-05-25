@@ -148,8 +148,6 @@ struct ShapeSpheropolyhedron
     \param a first shape
     \param b second shape
     \param err in/out variable incremented when error conditions occur in the overlap test
-    \param sweep_radius_a Radius of a sphere to sweep the first shape by
-    \param sweep_radius_b Radius of a sphere to sweep the second shape by
     \returns true when *a* and *b* overlap, and false when they are disjoint
 
     \ingroup shape
@@ -158,16 +156,14 @@ template<>
 DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                  const ShapeSpheropolyhedron& a,
                                  const ShapeSpheropolyhedron& b,
-                                 unsigned int& err,
-                                 Scalar sweep_radius_a,
-                                 Scalar sweep_radius_b)
+                                 unsigned int& err)
     {
     vec3<OverlapReal> dr = r_ab;
 
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
 
-    return xenocollide_3d(detail::SupportFuncConvexPolyhedron(a.verts,a.verts.sweep_radius+sweep_radius_a),
-                          detail::SupportFuncConvexPolyhedron(b.verts,b.verts.sweep_radius+sweep_radius_b),
+    return xenocollide_3d(detail::SupportFuncConvexPolyhedron(a.verts,a.verts.sweep_radius),
+                          detail::SupportFuncConvexPolyhedron(b.verts,b.verts.sweep_radius),
                           rotate(conj(quat<OverlapReal>(a.orientation)),dr),
                           conj(quat<OverlapReal>(a.orientation)) * quat<OverlapReal>(b.orientation),
                           DaDb/2.0,

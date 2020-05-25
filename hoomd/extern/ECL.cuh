@@ -51,12 +51,17 @@ inline void ecl_connected_components(const int nodes,
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <cuda.h>
+#include <hip/hip_runtime.h>
 #include <set>
 
 static const int Device = 0;
 static const int ThreadsPerBlock = 256;
+
+#ifdef __HIP_PLATFORM_NVCC__
 static const int warpsize = 32;
+#else
+static const int warpsize = 64;
+#endif
 
 static __device__ int topL, posL, topH, posH;
 
@@ -160,7 +165,12 @@ void compute2(const int nodes, const int* const __restrict__ nidx, const int* co
 
   int idx;
   if (lane == 0) idx = atomicAdd(&posL, 1);
+
+  #ifdef __HIP_PLATFORM_NVCC__
   idx = __shfl_sync(0xffffffff,idx, 0);
+  #else
+  idx = __shfl(idx,0);
+  #endif
   while (idx < topL) {
     const int v = wl[idx];
     int vstat = representative(v, nstat);
@@ -189,7 +199,12 @@ void compute2(const int nodes, const int* const __restrict__ nidx, const int* co
       }
     }
     if (lane == 0) idx = atomicAdd(&posL, 1);
+
+    #ifdef __HIP_PLATFORM_NVCC__
     idx = __shfl_sync(0xffffffff,idx, 0);
+    #else
+    idx = __shfl(idx,0);
+    #endif
   }
 }
 
@@ -270,29 +285,29 @@ inline void ecl_connected_components(const int nodes,
     const int mTSM = deviceProp.maxThreadsPerMultiProcessor;
 
     const int blocks = SMs * mTSM / ThreadsPerBlock;
-    init<<<blocks, ThreadsPerBlock>>>(nodes, d_nidx, d_nlist, d_nstat);
-    compute1<<<blocks, ThreadsPerBlock>>>(nodes, d_nidx, d_nlist, d_nstat, d_wl);
-    compute2<<<blocks, ThreadsPerBlock>>>(nodes, d_nidx, d_nlist, d_nstat, d_wl);
-    compute3<<<blocks, ThreadsPerBlock>>>(nodes, d_nidx, d_nlist, d_nstat, d_wl);
-    flatten<<<blocks, ThreadsPerBlock>>>(nodes, d_nidx, d_nlist, d_nstat);
+    hipLaunchKernelGGL(init, dim3(blocks), dim3(ThreadsPerBlock), 0, 0, nodes, d_nidx, d_nlist, d_nstat);
+    hipLaunchKernelGGL(compute1, dim3(blocks), dim3(ThreadsPerBlock), 0, 0, nodes, d_nidx, d_nlist, d_nstat, d_wl);
+    hipLaunchKernelGGL(compute2, dim3(blocks), dim3(ThreadsPerBlock), 0, 0, nodes, d_nidx, d_nlist, d_nstat, d_wl);
+    hipLaunchKernelGGL(compute3, dim3(blocks), dim3(ThreadsPerBlock), 0, 0, nodes, d_nidx, d_nlist, d_nstat, d_wl);
+    hipLaunchKernelGGL(flatten, dim3(blocks), dim3(ThreadsPerBlock), 0, 0, nodes, d_nidx, d_nlist, d_nstat);
     }
 
 
 #if 0
 struct GPUTimer
 {
-  cudaEvent_t beg, end;
-  GPUTimer() {cudaEventCreate(&beg);  cudaEventCreate(&end);}
-  ~GPUTimer() {cudaEventDestroy(beg);  cudaEventDestroy(end);}
-  void start() {cudaEventRecord(beg, 0);}
-  double stop() {cudaEventRecord(end, 0);  cudaEventSynchronize(end);  float ms;  cudaEventElapsedTime(&ms, beg, end);  return 0.001 * ms;}
+  hipEvent_t beg, end;
+  GPUTimer() {hipEventCreate(&beg);  hipEventCreate(&end);}
+  ~GPUTimer() {hipEventDestroy(beg);  hipEventDestroy(end);}
+  void start() {hipEventRecord(beg, 0);}
+  double stop() {hipEventRecord(end, 0);  hipEventSynchronize(end);  float ms;  hipEventElapsedTime(&ms, beg, end);  return 0.001 * ms;}
 };
 
 static void computeCC(const int nodes, const int edges, const int* const __restrict__ nidx, const int* const __restrict__ nlist, int* const __restrict__ nstat)
 {
-  cudaSetDevice(Device);
+  hipSetDevice(Device);
   hipDeviceProp_t deviceProp;
-  cudaGetDeviceProperties(&deviceProp, Device);
+  hipGetDeviceProperties(&deviceProp, Device);
   if ((deviceProp.major == 9999) && (deviceProp.minor == 9999)) {fprintf(stderr, "ERROR: there is no CUDA capable device\n\n");  exit(-1);}
   const int SMs = deviceProp.multiProcessorCount;
   const int mTSM = deviceProp.maxThreadsPerMultiProcessor;
@@ -303,19 +318,19 @@ static void computeCC(const int nodes, const int edges, const int* const __restr
   int* nstat_d;
   int* wl_d;
 
-  if (cudaSuccess != cudaMalloc((void **)&nidx_d, (nodes + 1) * sizeof(int))) {fprintf(stderr, "ERROR: could not allocate nidx_d\n\n");  exit(-1);}
-  if (cudaSuccess != cudaMalloc((void **)&nlist_d, edges * sizeof(int))) {fprintf(stderr, "ERROR: could not allocate nlist_d\n\n");  exit(-1);}
-  if (cudaSuccess != cudaMalloc((void **)&nstat_d, nodes * sizeof(int))) {fprintf(stderr, "ERROR: could not allocate nstat_d,\n\n");  exit(-1);}
-  if (cudaSuccess != cudaMalloc((void **)&wl_d, nodes * sizeof(int))) {fprintf(stderr, "ERROR: could not allocate wl_d,\n\n");  exit(-1);}
+  if (hipSuccess != hipMalloc((void **)&nidx_d, (nodes + 1) * sizeof(int))) {fprintf(stderr, "ERROR: could not allocate nidx_d\n\n");  exit(-1);}
+  if (hipSuccess != hipMalloc((void **)&nlist_d, edges * sizeof(int))) {fprintf(stderr, "ERROR: could not allocate nlist_d\n\n");  exit(-1);}
+  if (hipSuccess != hipMalloc((void **)&nstat_d, nodes * sizeof(int))) {fprintf(stderr, "ERROR: could not allocate nstat_d,\n\n");  exit(-1);}
+  if (hipSuccess != hipMalloc((void **)&wl_d, nodes * sizeof(int))) {fprintf(stderr, "ERROR: could not allocate wl_d,\n\n");  exit(-1);}
 
-  if (cudaSuccess != cudaMemcpy(nidx_d, nidx, (nodes + 1) * sizeof(int), cudaMemcpyHostToDevice)) {fprintf(stderr, "ERROR: copying to device failed\n\n");  exit(-1);}
-  if (cudaSuccess != cudaMemcpy(nlist_d, nlist, edges * sizeof(int), cudaMemcpyHostToDevice)) {fprintf(stderr, "ERROR: copying to device failed\n\n");  exit(-1);}
+  if (hipSuccess != hipMemcpy(nidx_d, nidx, (nodes + 1) * sizeof(int), hipMemcpyHostToDevice)) {fprintf(stderr, "ERROR: copying to device failed\n\n");  exit(-1);}
+  if (hipSuccess != hipMemcpy(nlist_d, nlist, edges * sizeof(int), hipMemcpyHostToDevice)) {fprintf(stderr, "ERROR: copying to device failed\n\n");  exit(-1);}
 
-  cudaFuncSetCacheConfig(init, cudaFuncCachePreferL1);
-  cudaFuncSetCacheConfig(compute1, cudaFuncCachePreferL1);
-  cudaFuncSetCacheConfig(compute2, cudaFuncCachePreferL1);
-  cudaFuncSetCacheConfig(compute3, cudaFuncCachePreferL1);
-  cudaFuncSetCacheConfig(flatten, cudaFuncCachePreferL1);
+  hipFuncSetCacheConfig(init, hipFuncCachePreferL1);
+  hipFuncSetCacheConfig(compute1, hipFuncCachePreferL1);
+  hipFuncSetCacheConfig(compute2, hipFuncCachePreferL1);
+  hipFuncSetCacheConfig(compute3, hipFuncCachePreferL1);
+  hipFuncSetCacheConfig(flatten, hipFuncCachePreferL1);
 
   const int blocks = SMs * mTSM / ThreadsPerBlock;
   GPUTimer timer;
@@ -331,12 +346,12 @@ static void computeCC(const int nodes, const int edges, const int* const __restr
   printf("throughput: %.3f Mnodes/s\n", nodes * 0.000001 / runtime);
   printf("throughput: %.3f Medges/s\n", edges * 0.000001 / runtime);
 
-  if (cudaSuccess != cudaMemcpy(nstat, nstat_d, nodes * sizeof(int), cudaMemcpyDeviceToHost)) {fprintf(stderr, "ERROR: copying from device failed\n\n");  exit(-1);}
+  if (hipSuccess != hipMemcpy(nstat, nstat_d, nodes * sizeof(int), hipMemcpyDeviceToHost)) {fprintf(stderr, "ERROR: copying from device failed\n\n");  exit(-1);}
 
-  cudaFree(wl_d);
-  cudaFree(nstat_d);
-  cudaFree(nlist_d);
-  cudaFree(nidx_d);
+  hipFree(wl_d);
+  hipFree(nstat_d);
+  hipFree(nlist_d);
+  hipFree(nidx_d);
 }
 
 static void verify(const int v, const int id, const int* const __restrict__ nidx, const int* const __restrict__ nlist, int* const __restrict__ nstat)
@@ -360,7 +375,7 @@ int main(int argc, char* argv[])
   ECLgraph g = readECLgraph(argv[1]);
 
   int* nodestatus = NULL;
-  cudaHostAlloc(&nodestatus, g.nodes * sizeof(int), cudaHostAllocDefault);
+  hipHostAlloc(&nodestatus, g.nodes * sizeof(int), hipHostAllocDefault);
   if (nodestatus == NULL) {fprintf(stderr, "ERROR: nodestatus - host memory allocation failed\n\n");  exit(-1);}
 
   printf("input graph: %d nodes and %d edges (%s)\n", g.nodes, g.edges, argv[1]);
@@ -409,7 +424,7 @@ int main(int argc, char* argv[])
 
   printf("all good\n\n");
 
-  cudaFreeHost(nodestatus);
+  hipFreeHost(nodestatus);
   return 0;
 }
 #endif

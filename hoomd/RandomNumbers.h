@@ -20,15 +20,9 @@
 #endif
 
 #include <hoomd/extern/random123/include/Random123/philox.h>
-
-// in JIT compilation, we pre-include some fake headers
-#ifndef __CUDACC_RTC__
-#include <math.h>
 #include <type_traits>
-#endif
 
 namespace r123 {
-// from random123/examples/uniform.hpp
 using std::make_signed;
 using std::make_unsigned;
 

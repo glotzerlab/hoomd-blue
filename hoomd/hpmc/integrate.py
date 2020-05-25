@@ -9,6 +9,7 @@ from hoomd.typeparam import TypeParameter
 from hoomd.hpmc import _hpmc
 from hoomd.integrate import _BaseIntegrator
 from hoomd.logger import Loggable
+from hoomd.comm import Communicator
 import hoomd
 import json
 import math
@@ -239,6 +240,22 @@ class _HPMCIntegrator(_BaseIntegrator):
         ).getMaximumTag() + 1
         energy_map = self.cpp_integrator.mapEnergies()
         return list(zip(*[iter(energy_map)] * N))
+
+    def setNtrialCommunicator(self, comm):
+        R""" Set a MPI communicator to perform insertion attempts per depletant
+             on diffferent MPI ranks. Only supported with GPU execution.
+
+        Args:
+            comm: A hoomd.comm.Communicator() object
+        """
+
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
+            raise RuntimeError('set_ntrial_comm() only supported in GPU execution mode')
+
+        if not isinstance(comm, hoomd.comm.Communicator):
+            raise RuntimeError('The provided comm argument is not a comm.Communicator.\n')
+
+        self._cpp_obj.setNtrialCommunicator(comm.cpp_mpi_conf)
 
     @Loggable.log
     def overlaps(self):

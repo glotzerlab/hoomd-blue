@@ -29,17 +29,16 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
         {
         tpp--;
         }
+    auto& devprop = m_exec_conf->dev_prop;
+    tpp = std::min((unsigned int) devprop.maxThreadsDim[2], tpp); // clamp blockDim.z
 
     unsigned int n_groups = run_block_size/(tpp*eval_threads);
 
-    // truncate blockDim.z
-    auto& devprop = m_exec_conf->dev_prop;
-    n_groups = std::min((unsigned int) devprop.maxThreadsDim[2], n_groups);
     unsigned int max_queue_size = n_groups*tpp;
 
     const unsigned int min_shared_bytes = args.num_types * sizeof(Scalar);
 
-    unsigned int shared_bytes = n_groups * (4*sizeof(unsigned int) + 2*sizeof(Scalar4) + 2*sizeof(Scalar3) + 2*sizeof(Scalar))
+    unsigned int shared_bytes = n_groups * (sizeof(unsigned int) + 2*sizeof(Scalar4) + 2*sizeof(Scalar3) + 2*sizeof(Scalar) + 2*sizeof(float))
         + max_queue_size * 2 * sizeof(unsigned int)
         + min_shared_bytes;
 
@@ -58,20 +57,17 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
             {
             tpp--;
             }
+        tpp = std::min((unsigned int) devprop.maxThreadsDim[2], tpp); // clamp blockDim.z
 
         n_groups = run_block_size / (tpp*eval_threads);
-
-        // truncate blockDim.z
-        n_groups = std::min((unsigned int)devprop.maxThreadsDim[2], n_groups);
-
         max_queue_size = n_groups*tpp;
 
-        shared_bytes = n_groups * (4*sizeof(unsigned int) + 2*sizeof(Scalar4) + 2*sizeof(Scalar3) + 2*sizeof(Scalar))
+        shared_bytes = n_groups * (sizeof(unsigned int) + 2*sizeof(Scalar4) + 2*sizeof(Scalar3) + 2*sizeof(Scalar) + 2*sizeof(float))
             + max_queue_size * 2 * sizeof(unsigned int)
             + min_shared_bytes;
         }
 
-    dim3 thread(eval_threads, tpp, n_groups);
+    dim3 thread(eval_threads, n_groups, tpp);
 
     auto& gpu_partition = args.gpu_partition;
 
@@ -85,7 +81,6 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
         dim3 grid(num_blocks, 1, 1);
 
         unsigned int max_extra_bytes = 0;
-        unsigned int N_old = args.N + args.N_ghost;
 
         // configure the kernel
         auto launcher = m_gpu_factory.configureKernel(idev, grid, thread, shared_bytes, hStream, eval_threads, block_size);
@@ -94,28 +89,27 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
             args.d_orientation,
             args.d_trial_postype,
             args.d_trial_orientation,
+            args.d_trial_move_type,
             args.d_charge,
             args.d_diameter,
             args.d_excell_idx,
             args.d_excell_size,
             args.excli,
-            args.d_nlist_old,
-            args.d_energy_old,
-            args.d_nneigh_old,
-            args.d_nlist_new,
-            args.d_energy_new,
-            args.d_nneigh_new,
-            args.maxn,
+            args.d_update_order_by_ptl,
+            args.d_reject_in,
+            args.d_reject_out,
+            args.seed,
+            args.timestep,
+            args.select,
             args.num_types,
             args.box,
             args.ghost_width,
             args.cell_dim,
             args.ci,
-            N_old,
             args.N,
             args.r_cut_patch,
             args.d_additive_cutoff,
-            args.d_overflow,
+            args.d_reject_out_of_cell,
             max_queue_size,
             range.first,
             nwork,

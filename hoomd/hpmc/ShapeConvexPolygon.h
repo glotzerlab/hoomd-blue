@@ -577,9 +577,7 @@ template <>
 DEVICE inline bool test_overlap<ShapeConvexPolygon,ShapeConvexPolygon>(const vec3<Scalar>& r_ab,
                                                                        const ShapeConvexPolygon& a,
                                                                        const ShapeConvexPolygon& b,
-                                                                       unsigned int& err,
-                                                                       Scalar sweep_radius_a,
-                                                                       Scalar sweep_radius_b)
+                                                                       unsigned int& err)
     {
     vec2<OverlapReal> dr(r_ab.x,r_ab.y);
     #ifdef __HIPCC__

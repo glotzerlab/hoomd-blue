@@ -437,9 +437,7 @@ template <>
 DEVICE inline bool test_overlap<ShapeEllipsoid,ShapeEllipsoid>(const vec3<Scalar>& r_ab,
                                                                const ShapeEllipsoid& a,
                                                                const ShapeEllipsoid& b,
-                                                               unsigned int& err,
-                                                               Scalar sweep_radius_a,
-                                                               Scalar sweep_radius_b)
+                                                               unsigned int& err)
     {
 
     // matrix representations of the two ellipsoids

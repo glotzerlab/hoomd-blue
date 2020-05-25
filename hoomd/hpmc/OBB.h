@@ -14,6 +14,7 @@
 #define __OBB_H__
 
 #include <cfloat>
+#include <cmath>
 
 #ifndef __HIPCC__
 #include <algorithm>

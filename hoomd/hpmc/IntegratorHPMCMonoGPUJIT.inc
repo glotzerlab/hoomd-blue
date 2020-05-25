@@ -9,6 +9,8 @@
 
 #include "GPUHelpers.cuh"
 #include "hoomd/WarpTools.cuh"
+#include "hoomd/RandomNumbers.h"
+#include "hoomd/RNGIdentifiers.h"
 
 namespace hpmc
 {
@@ -23,32 +25,31 @@ namespace kernel
  */
 template<unsigned int eval_threads, unsigned int max_threads>
 __launch_bounds__(max_threads)
-__global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
-                           Scalar4 *d_orientation,
-                           Scalar4 *d_trial_postype,
-                           Scalar4 *d_trial_orientation,
+__global__ void hpmc_narrow_phase_patch(const Scalar4 *d_postype,
+                           const Scalar4 *d_orientation,
+                           const Scalar4 *d_trial_postype,
+                           const Scalar4 *d_trial_orientation,
+                           const unsigned *d_trial_move_type,
                            const Scalar *d_charge,
                            const Scalar *d_diameter,
                            const unsigned int *d_excell_idx,
                            const unsigned int *d_excell_size,
                            const Index2D excli,
-                           unsigned int *d_nlist_old,
-                           float *d_energy_old,
-                           unsigned int *d_nneigh_old,
-                           unsigned int *d_nlist_new,
-                           float *d_energy_new,
-                           unsigned int *d_nneigh_new,
-                           const unsigned int maxn,
+                           const unsigned int *d_update_order_by_ptl,
+                           const unsigned int *d_reject_in,
+                           unsigned int *d_reject_out,
+                           const unsigned int seed,
+                           const unsigned int timestep,
+                           const unsigned int select,
                            const unsigned int num_types,
                            const BoxDim box,
                            const Scalar3 ghost_width,
                            const uint3 cell_dim,
                            const Index3D ci,
-                           const unsigned int N_old,
-                           const unsigned int N_new,
+                           const unsigned int N_local,
                            Scalar r_cut_patch,
                            const Scalar *d_additive_cutoff,
-                           unsigned int *d_overflow,
+                           const unsigned int *d_reject_out_of_cell,
                            const unsigned int max_queue_size,
                            const unsigned int work_offset,
                            const unsigned int nwork,
@@ -57,11 +58,11 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
     __shared__ unsigned int s_queue_size;
     __shared__ unsigned int s_still_searching;
 
-    unsigned int group = threadIdx.z;
-    unsigned int offset = threadIdx.y;
-    unsigned int group_size = blockDim.y;
+    unsigned int group = threadIdx.y;
+    unsigned int offset = threadIdx.z;
+    unsigned int group_size = blockDim.z;
     bool master = (offset == 0) && threadIdx.x == 0;
-    unsigned int n_groups = blockDim.z;
+    unsigned int n_groups = blockDim.y;
 
     // load the per type pair parameters into shared memory
     extern __shared__ char s_data[];
@@ -79,12 +80,11 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
     Scalar *s_diameter_group = (Scalar *)(s_pos_group_new + n_groups);
     Scalar *s_charge_group = (Scalar *)(s_diameter_group + n_groups);
     Scalar *s_additive_cutoff = (Scalar *)(s_charge_group + n_groups);
-    unsigned int *s_queue_j =   (unsigned int*)(s_additive_cutoff + num_types);
+    float *s_energy_old_group = (float *)(s_additive_cutoff + num_types);
+    float *s_energy_new_group = (float *)(s_energy_old_group + n_groups);
+    unsigned int *s_queue_j =   (unsigned int*)(s_energy_new_group + n_groups);
     unsigned int *s_queue_gid = (unsigned int*)(s_queue_j + max_queue_size);
     unsigned int *s_type_group = (unsigned int*)(s_queue_gid + max_queue_size);
-    unsigned int *s_idx_group = (unsigned int*)(s_type_group + n_groups);
-    unsigned int *s_nneigh_group_old = (unsigned int *)(s_idx_group + n_groups);
-    unsigned int *s_nneigh_group_new = (unsigned int *)(s_nneigh_group_old + n_groups);
 
         {
         // copy over parameters one int per thread for fast loads
@@ -116,7 +116,7 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
 
     #ifdef UNION_EVAL
     // initialize extra shared mem
-    char *s_extra = (char *)(s_nneigh_group_new + n_groups);
+    char *s_extra = (char *)(s_type_group + n_groups);
 
     unsigned int available_bytes = max_extra_bytes;
     for (unsigned int cur_type = 0; cur_type < num_types; ++cur_type)
@@ -137,17 +137,15 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
         active = false;
     idx += work_offset;
 
-    if (master && active)
-        {
-        // reset number of neighbors
-        s_nneigh_group_old[group] = 0;
-        s_nneigh_group_new[group] = 0;
-        }
-
     __syncthreads();
 
     unsigned int my_cell;
 
+    // early exit
+    if (active && d_reject_out_of_cell[idx] || d_reject_out[idx])
+        active = false;
+
+    unsigned int update_order_i;
     if (active)
         {
         // load particle i
@@ -157,7 +155,10 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
 
         // find the cell this particle should be in
         vec3<Scalar> pos_i_old(postype_i_old);
-        my_cell = computeParticleCell(vec_to_scalar3(pos_i_old), box, ghost_width, cell_dim, ci);
+        my_cell = computeParticleCell(vec_to_scalar3(pos_i_old), box, ghost_width, cell_dim, ci, false);
+
+        // load order in update sequence
+        update_order_i = d_update_order_by_ptl[idx];
 
         if (master)
             {
@@ -168,7 +169,10 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
             s_orientation_group_new[group] = d_trial_orientation[idx];
             s_diameter_group[group] = d_diameter[idx];
             s_charge_group[group] = d_charge[idx];
-            s_idx_group[group] = idx;
+
+            // shared variables to accumulate energy
+            s_energy_old_group[group] = 0.0f;
+            s_energy_new_group[group] = 0.0f;
             }
         }
 
@@ -187,7 +191,7 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
 
     // loop while still searching
 
-    // only the first thread of every group of eval_threads threads adds to the queueu
+    // only the first thread of every group of eval_threads threads adds to the queue
     active &= threadIdx.x == 0;
 
     while (s_still_searching)
@@ -200,17 +204,16 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
             {
             // prefetch j
             unsigned int j, next_j = 0;
-            if ((k >> 2) < excell_size)
+            if ((k >> 1) < excell_size)
                 {
-                next_j = __ldg(&d_excell_idx[excli(k >> 2, my_cell)]);
+                next_j = __ldg(&d_excell_idx[excli(k >> 1, my_cell)]);
                 }
 
             // add to the queue as long as the queue is not full, and we have not yet reached the end of our own list
             // every thread can add at most one element to the neighbor list
-            while (s_queue_size < max_queue_size && (k >> 2) < excell_size)
+            while (s_queue_size < max_queue_size && (k >> 1) < excell_size)
                 {
                 bool old_i = k & 1;
-                bool old_j = k & 2;
 
                 // build some shapes, but we only need them to get diameters, so don't load orientations
                 // build shape i from shared memory
@@ -219,15 +222,24 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
                 // prefetch next j
                 j = next_j;
                 k += group_size;
-                if ((k >> 2) < excell_size)
+                if ((k >> 1) < excell_size)
                     {
-                    next_j = __ldg(&d_excell_idx[excli(k >> 2, my_cell)]);
+                    next_j = __ldg(&d_excell_idx[excli(k >> 1, my_cell)]);
                     }
+
+                // these multiple gmem loads present a minor optimization opportunity for the future
+                bool j_has_been_updated = j < N_local &&
+                    d_update_order_by_ptl[j] < update_order_i &&
+                    !d_reject_in[j] &&
+                    d_trial_move_type[j];
+
+                // true if particle j is in the old configuration
+                bool old_j = !j_has_been_updated;
 
                 // check particle circumspheres
 
                 // load particle j (always load ghosts from particle data)
-                const Scalar4 postype_j = (old_j || j >= N_new) ? d_postype[j] : d_trial_postype[j];
+                const Scalar4 postype_j = (old_j || j >= N_local) ? d_postype[j] : d_trial_postype[j];
                 unsigned int type_j = __scalar_as_int(postype_j.w);
                 vec3<Scalar> pos_j(postype_j);
 
@@ -238,7 +250,7 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
                 OverlapReal rcut = r_cut_patch + Scalar(0.5)*(s_additive_cutoff[type_i] + s_additive_cutoff[type_j]);
                 OverlapReal rsq = dot(r_ij,r_ij);
 
-                if (idx != j && (old_j || j < N_new)
+                if (idx != j && (old_j || j < N_local)
                     && (rsq <= rcut*rcut))
                     {
                     // add this particle to the queue
@@ -256,7 +268,7 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
                         k -= group_size;
                         }
                     }
-                } // end while (s_queue_size < max_queue_size && (k>>2) < excell_size)
+                } // end while (s_queue_size < max_queue_size && (k>>1) < excell_size)
             } // end if active
 
         // sync to make sure all threads in the block are caught up
@@ -321,23 +333,11 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
                 // store energy term in global memory
                 if (check_old_i)
                     {
-                    unsigned int n = atomicAdd(&s_nneigh_group_old[check_group], 1);
-                    if (n < maxn)
-                        {
-                        unsigned int pidx = s_idx_group[check_group];
-                        d_nlist_old[n+maxn*pidx] = check_old_j ? check_j : (check_j + N_old);
-                        d_energy_old[n+maxn*pidx] = energy;
-                        }
+                    atomicAdd(&s_energy_old_group[check_group], energy);
                     }
                 else
                     {
-                    unsigned int n = atomicAdd(&s_nneigh_group_new[check_group], 1);
-                    if (n < maxn)
-                        {
-                        unsigned int pidx = s_idx_group[check_group];
-                        d_nlist_new[n+maxn*pidx] = check_old_j ? check_j : (check_j + N_old);
-                        d_energy_new[n+maxn*pidx] = energy;
-                        }
+                    atomicAdd(&s_energy_new_group[check_group], energy);
                     }
                 }
             }
@@ -347,7 +347,7 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
         if (master && group == 0)
             s_queue_size = 0;
 
-        if (active && (k >> 2) < excell_size)
+        if (active && (k >> 1) < excell_size)
             atomicAdd(&s_still_searching, 1);
 
         __syncthreads();
@@ -355,29 +355,15 @@ __global__ void hpmc_narrow_phase_patch(Scalar4 *d_postype,
 
     if (active && master)
         {
-        // overflowed?
-        unsigned int nneigh_old = s_nneigh_group_old[group];
-        if (nneigh_old > maxn)
-            {
-            #if (__CUDA_ARCH__ >= 600)
-            atomicMax_system(d_overflow, nneigh_old);
-            #else
-            atomicMax(d_overflow, nneigh_old);
-            #endif
-            }
-        unsigned int nneigh_new = s_nneigh_group_new[group];
-        if (nneigh_new > maxn)
-            {
-            #if (__CUDA_ARCH__ >= 600)
-            atomicMax_system(d_overflow, nneigh_new);
-            #else
-            atomicMax(d_overflow, nneigh_new);
-            #endif
-            }
+        float beta_delta_U = s_energy_new_group[group] - s_energy_old_group[group];
 
-        // write out number of neighbors to global mem
-        d_nneigh_old[idx] = nneigh_old;
-        d_nneigh_new[idx] = nneigh_new;
+        // Metropolis-Hastings
+        hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::HPMCMonoPatch, seed, idx, select, timestep);
+        bool accept = hoomd::detail::generate_canonical<double>(rng_i) < slow::exp(-beta_delta_U);
+
+        // update device memory
+        if (!accept)
+            atomicAdd(&d_reject_out[idx],1);
         }
     }
 } // end namespace kernel

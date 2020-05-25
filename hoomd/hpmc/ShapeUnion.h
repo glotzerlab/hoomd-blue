@@ -66,7 +66,7 @@ struct ShapeUnionParams : ShapeParams
         @param ptr Pointer to load data to (will be incremented)
         @param available_bytes Size of remaining shared memory allocation
      */
-    DEVICE void load_shared(char *& ptr, unsigned int &available_bytes)
+    DEVICE inline void load_shared(char *& ptr, unsigned int &available_bytes)
         {
         tree.load_shared(ptr, available_bytes);
         mpos.load_shared(ptr, available_bytes);
@@ -79,17 +79,12 @@ struct ShapeUnionParams : ShapeParams
         __syncthreads();
         #endif
 
-        for (unsigned int i = 0; i < mparams.size(); ++i)
+        if (params_in_shared_mem)
             {
-            if (params_in_shared_mem)
+            // load only if we are sure that we are not touching any unified memory
+            for (unsigned int i = 0; i < mparams.size(); ++i)
                 {
-                // load only if we are sure that we are not touching any unified memory
                 mparams[i].load_shared(ptr, available_bytes);
-                }
-            else
-                {
-                // increment pointer only
-                mparams[i].allocate_shared(ptr, available_bytes);
                 }
             }
         }
@@ -103,12 +98,15 @@ struct ShapeUnionParams : ShapeParams
         {
         tree.allocate_shared(ptr, available_bytes);
         mpos.allocate_shared(ptr, available_bytes);
-        mparams.allocate_shared(ptr, available_bytes);
+        bool params_in_shared_mem = mparams.allocate_shared(ptr, available_bytes) != nullptr;
         moverlap.allocate_shared(ptr, available_bytes);
         morientation.allocate_shared(ptr, available_bytes);
 
-        for (unsigned int i = 0; i < mparams.size(); ++i)
-            mparams[i].allocate_shared(ptr, available_bytes);
+        if (params_in_shared_mem)
+            {
+            for (unsigned int i = 0; i < mparams.size(); ++i)
+                mparams[i].allocate_shared(ptr, available_bytes);
+            }
         }
 
 
@@ -444,11 +442,7 @@ struct ShapeUnion
         threadIdx.x
     */
     HOSTDEVICE static bool isParallel() {
-        #ifdef SHAPE_UNION_LEAVES_AGAINST_TREE_TRAVERSAL
         return true;
-        #else
-        return false;
-        #endif
         }
 
 
@@ -467,33 +461,48 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
                                              unsigned int cur_node_b,
                                              unsigned int &err)
     {
+    //! Param type of the member shapes
+    typedef typename Shape::param_type mparam_type;
+
     vec3<OverlapReal> r_ab = rotate(conj(quat<OverlapReal>(b.orientation)),vec3<OverlapReal>(dr));
 
-    // loop through shape of cur_node_a
-    unsigned int na = a.members.tree.getNumParticles(cur_node_a);
-    unsigned int nb = b.members.tree.getNumParticles(cur_node_b);
+    // loop through leaf particles of cur_node_a
+    // parallel loop over N^2 interacting particle pairs
+    unsigned int ptl_i = a.members.tree.getLeafNodePtrByNode(cur_node_a);
+    unsigned int ptl_j = b.members.tree.getLeafNodePtrByNode(cur_node_b);
 
-    for (unsigned int i= 0; i < na; i++)
+    unsigned int ptls_i_end = a.members.tree.getLeafNodePtrByNode(cur_node_a+1);
+    unsigned int ptls_j_end = b.members.tree.getLeafNodePtrByNode(cur_node_b+1);
+
+    // get starting offset for this thread
+    unsigned int na = ptls_i_end - ptl_i;
+    unsigned int nb = ptls_j_end - ptl_j;
+
+    unsigned int len = na*nb;
+
+    #if defined (__HIP_DEVICE_COMPILE__)
+    unsigned int offset = threadIdx.x;
+    unsigned int incr = blockDim.x;
+    #else
+    unsigned int offset = 0;
+    unsigned int incr = 1;
+    #endif
+
+    // iterate over (a,b) pairs in row major
+    for (unsigned int n = 0; n < len; n += incr)
         {
-        unsigned int ishape = a.members.tree.getParticleByNode(cur_node_a, i);
-
-        const auto& params_i = a.members.mparams[ishape];
-        Shape shape_i(quat<Scalar>(), params_i);
-        if (shape_i.hasOrientation())
-            shape_i.orientation = conj(quat<OverlapReal>(b.orientation))
-                                  * quat<OverlapReal>(a.orientation)
-                                  * a.members.morientation[ishape];
-
-        vec3<OverlapReal> pos_i(rotate(conj(quat<OverlapReal>(b.orientation))
-                                       * quat<OverlapReal>(a.orientation),
-                                       a.members.mpos[ishape])
-                                - r_ab);
-        unsigned int overlap_i = a.members.moverlap[ishape];
-
-        // loop through shapes of cur_node_b
-        for (unsigned int j= 0; j < nb; j++)
+        if (n + offset < len)
             {
-            unsigned int jshape = b.members.tree.getParticleByNode(cur_node_b, j);
+            unsigned int ishape = a.members.tree.getParticleByIndex(ptl_i+(n+offset)/nb);
+            unsigned int jshape = b.members.tree.getParticleByIndex(ptl_j+(n+offset)%nb);
+
+            const mparam_type& params_i = a.members.mparams[ishape];
+            Shape shape_i(quat<Scalar>(), params_i);
+            if (shape_i.hasOrientation())
+                shape_i.orientation = conj(quat<OverlapReal>(b.orientation))*quat<OverlapReal>(a.orientation) * a.members.morientation[ishape];
+
+            vec3<OverlapReal> pos_i(rotate(conj(quat<OverlapReal>(b.orientation))*quat<OverlapReal>(a.orientation),a.members.mpos[ishape])-r_ab);
+            unsigned int overlap_i = a.members.moverlap[ishape];
 
             const auto& params_j = b.members.mparams[jshape];
             Shape shape_j(quat<Scalar>(), params_j);
@@ -512,6 +521,7 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
                 }
             }
         }
+
     return false;
     }
 
@@ -524,62 +534,6 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     const detail::GPUTree& tree_a = a.members.tree;
     const detail::GPUTree& tree_b = b.members.tree;
 
-    #ifdef SHAPE_UNION_LEAVES_AGAINST_TREE_TRAVERSAL
-    #ifdef __HIPCC__
-    // Parallel tree traversal
-    unsigned int offset = threadIdx.x;
-    unsigned int stride = blockDim.x;
-    #else
-    unsigned int offset = 0;
-    unsigned int stride = 1;
-    #endif
-
-    if (tree_a.getNumLeaves() <= tree_b.getNumLeaves())
-        {
-        for (unsigned int cur_leaf_a = offset;
-             cur_leaf_a < tree_a.getNumLeaves();
-             cur_leaf_a += stride)
-            {
-            unsigned int cur_node_a = tree_a.getLeafNode(cur_leaf_a);
-            hpmc::detail::OBB obb_a = tree_a.getOBB(cur_node_a);
-            // rotate and translate a's obb into b's body frame
-            obb_a.affineTransform(conj(b.orientation)*a.orientation,
-                rotate(conj(b.orientation),-r_ab));
-
-            unsigned cur_node_b = 0;
-            while (cur_node_b < tree_b.getNumNodes())
-                {
-                unsigned int query_node = cur_node_b;
-                if (tree_b.queryNode(obb_a, cur_node_b) &&
-                    test_narrow_phase_overlap(r_ab, a, b, cur_node_a, query_node, err))
-                    return true;
-                }
-            }
-        }
-    else
-        {
-        for (unsigned int cur_leaf_b = offset;
-             cur_leaf_b < tree_b.getNumLeaves();
-             cur_leaf_b += stride)
-            {
-            unsigned int cur_node_b = tree_b.getLeafNode(cur_leaf_b);
-            hpmc::detail::OBB obb_b = tree_b.getOBB(cur_node_b);
-
-            // rotate and translate b's obb into a's body frame
-            obb_b.affineTransform(conj(a.orientation)*b.orientation,
-                rotate(conj(a.orientation),r_ab));
-
-            unsigned cur_node_a = 0;
-            while (cur_node_a < tree_a.getNumNodes())
-                {
-                unsigned int query_node = cur_node_a;
-                if (tree_a.queryNode(obb_b, cur_node_a) &&
-                    test_narrow_phase_overlap(-r_ab, b, a, cur_node_b, query_node, err))
-                    return true;
-                }
-            }
-        }
-    #else
     // perform a tandem tree traversal
     unsigned long int stack = 0;
     unsigned int cur_node_a = 0;
@@ -605,7 +559,6 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             && test_narrow_phase_overlap(r_ab, a, b, query_node_a, query_node_b, err))
             return true;
         }
-    #endif
 
     return false;
     }

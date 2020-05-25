@@ -819,7 +819,11 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
 
     // initialize random number generator
     #ifdef ENABLE_MPI
-    unsigned int group = (m_exec_conf->getPartition()/m_npartition);
+    unsigned int group = 0;
+    if (m_gibbs)
+        {
+        group = (m_exec_conf->getPartition()/m_npartition);
+        }
     #else
     unsigned int group = 0;
     #endif
