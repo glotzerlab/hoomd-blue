@@ -7,7 +7,22 @@ from hoomd.operation import _Analyzer
 
 
 class _Formatter:
-    """Internal class for number and string formatting for CSV object."""
+    """Internal class for number and string formatting for CSV object.
+
+    Main method is ``__call__``. It takes a value with the corresponding column
+    width and outputs the string to use for that column.
+
+    Args:
+        pretty (bool): whether to attempt to make output pretty (more readable).
+        max_precision (int): The max length for formatting a number or string.
+        max_decimals_pretty (int): The maximum number of decimals. This is
+            required to ensure that the decimals don't eat up all space in a
+            pretty print.
+        pad (str, optional): What to pad extra column space with, defaults to
+            space.
+        align (str, optional): What type of alignment to use, defaults to
+            centered ('^').
+    """
 
     def __init__(self, pretty=True,
                  max_precision=15, max_decimals_pretty=5,
@@ -101,7 +116,7 @@ class _CSVInternal(_InternalCustomAction):
         pass
 
     def log(self):
-        # Get logger output in {"module.class": value} form
+        # Get logger output in {"module{self._sep}class": value} form
         if self._max_len_namespace is None:
             output_dict = {
                 self._sep.join(key): value[0]
@@ -147,6 +162,8 @@ class CSV(_InternalCustomAnalyzer, _Analyzer):
     However, this is useable to store simulation scalar data to a file as well.
 
     Args:
+        trigger (hoomd.trigger.Trigger): The trigger to determine when to run
+        the CSV logger.
         logger (hoomd.logger.Logger): The logger to query for output. The
             'scalar' flag must be set on the logger, and the 'string' flag is
             optional.
