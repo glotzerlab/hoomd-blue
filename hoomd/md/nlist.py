@@ -46,7 +46,7 @@ Examples::
 from hoomd import _hoomd
 from hoomd.md import _md
 import hoomd
-from hoomd.typeconverter import MultipleOnlyFrom
+from hoomd.typeconverter import OnlyFrom
 from hoomd.parameterdicts import ParameterDict
 from hoomd.operation import _Operation
 from hoomd.logger import Loggable
@@ -65,18 +65,18 @@ class _NList(_Operation):
     def __init__(self, buffer, exclusions, rebuild_check_delay,
                  diameter_shift, check_dist, max_diameter):
 
-        validate_exclusions = MultipleOnlyFrom(
+        validate_exclusions = OnlyFrom(
             ['bond', 'angle', 'constraint', 'dihedral', 'special_pair',
-             'body', '1-3', '1-4'],
-            postprocess=tuple, preprocess=set)
+             'body', '1-3', '1-4']
+        )
         # default exclusions
-        params = ParameterDict(exclusions=validate_exclusions,
+        params = ParameterDict(exclusions=[validate_exclusions],
                                buffer=float(buffer),
                                rebuild_check_delay=int(rebuild_check_delay),
                                check_dist=bool(check_dist),
                                diameter_shift=bool(diameter_shift),
                                max_diameter=float(max_diameter),
-                               explicit_defaults={'exclusions': exclusions}
+                               _defaults={'exclusions': exclusions}
                                )
         self._param_dict.update(params)
 

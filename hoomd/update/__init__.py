@@ -1,6 +1,7 @@
 from hoomd.update.box_resize import BoxResize
+from hoomd.update.custom_updater import CustomUpdater
 
 
-# TODO remove when no longer necessary
+# TODO remove class
 class _updater:
     pass

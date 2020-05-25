@@ -9,11 +9,14 @@ hoomd
     :nosignatures:
 
     Box
+    CustomAction
     Logger
     Operations
     Simulation
     Snapshot
     State
+    _CustomOperation
+>>>>>>> feature/new-object-API
 
 .. rubric:: Details
 
@@ -21,7 +24,18 @@ hoomd
     :synopsis: HOOMD-blue main package.
     :undoc-members:
     :imported-members:
-    :members:
+    :members: Simulation,
+              State,
+              Snapshot,
+              Operations,
+              Box,
+              Logger,
+              CustomAction,
+              _CustomOperation
+
+.. autoclass:: CustomAction
+   :exclude-members: flags, log_quantities
+   :members: attach, detach, act
 
 .. rubric:: Modules
 
