@@ -169,7 +169,7 @@ __global__ void hpmc_insert_depletants_phase2(const Scalar4 *d_trial_postype,
 
     __syncthreads();
 
-    // identify the active cell that this thread handles
+    // identify the particle that this block handles
     unsigned int i = blockIdx.x + work_offset;
 
     // unpack the block index to find out which work element this group handles
@@ -181,12 +181,9 @@ __global__ void hpmc_insert_depletants_phase2(const Scalar4 *d_trial_postype,
     unsigned int blocks_per_depletant = (grid>>1)/ntrial_local; // ensure that we have at least 2*n_trial_local blocks
 
     // compute the local offset of depletant and trial insertion from the global one
-    unsigned int i_dep_global = global_work_offset/ntrial;
+    unsigned int i_dep_global = (global_work_offset+i_trial_local)/ntrial;
     unsigned int i_trial_global = global_work_offset%ntrial;
-    unsigned int i_trial = i_trial_global + i_trial_local;
-
-    if (i_trial >= ntrial)
-        return;
+    unsigned int i_trial = (i_trial_global + i_trial_local) % ntrial;
 
     // we always have at least two blocks
     bool new_config = block & 1;
@@ -259,7 +256,7 @@ __global__ void hpmc_insert_depletants_phase2(const Scalar4 *d_trial_postype,
     while (s_adding_depletants)
         {
         // compute global indices
-        unsigned int local_work_idx = i_dep_local*ntrial_local + i_trial_local;
+        unsigned int local_work_idx = i_dep_local*ntrial + i_trial;
         if (i_dep_local == 0 && i_dep_global == 0) n_depletants += n_depletants_i;
 
         while (s_depletant_queue_size < max_depletant_queue_size &&
@@ -622,7 +619,7 @@ __global__ void hpmc_insert_depletants_phase2(const Scalar4 *d_trial_postype,
         if (master && group == 0)
             s_depletant_queue_size = 0;
 
-        local_work_idx = i_dep_local*ntrial_local + i_trial_local;
+        local_work_idx = i_dep_local*ntrial + i_trial;
         unsigned int i_dep = i_dep_global + i_dep_local;
         if (local_work_idx < n_work_local && i_dep < n_depletants_i)
             atomicAdd(&s_adding_depletants, 1);
@@ -759,7 +756,7 @@ void depletants_launcher_phase2(const hpmc_args_t& args,
             if (!nwork) continue;
 
             const unsigned int n_depletants_local = auxilliary_args.nwork_local[idev] / auxilliary_args.ntrial + 1;
-            const unsigned int ntrial_local = auxilliary_args.nwork_local[idev] / n_depletants_local + 1;
+            const unsigned int ntrial_local = detail::min(auxilliary_args.ntrial, auxilliary_args.nwork_local[idev] / n_depletants_local + 1);
             unsigned int blocks_per_particle = n_depletants_local/(implicit_args.depletants_per_group*n_groups) + 1;
 
             dim3 grid( range.second-range.first, 2*blocks_per_particle*ntrial_local, 1);
