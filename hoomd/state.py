@@ -165,8 +165,8 @@ class State:
         ``state.box.scale(1.1)`` would not scale the state's box. To set the
         state's box to a new box ``state.box = new_box`` must be used.
         """
-        b = self._cpp_sys_def.getParticleData().getGlobalBox()
-        return Box._from_cpp(b)
+        b = Box._from_cpp(self._cpp_sys_def.getParticleData().getGlobalBox())
+        return Box.from_box(b)
 
     @box.setter
     def box(self, value):

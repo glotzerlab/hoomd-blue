@@ -156,6 +156,10 @@ class Box:
 
     @classmethod
     def _from_cpp(self, cpp_obj):
+        """Wrap a C++ BoxDim.
+
+        Does not copy the C++ object.
+        """
         b = Box(0, 0)
         b._cpp_obj = cpp_obj
         return b
