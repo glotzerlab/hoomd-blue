@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from itertools import repeat, cycle
 from inspect import isclass
-from hoomd.util import is_iterable, is_mapping
+from hoomd.util import is_iterable
 from hoomd.typeconverter import RequiredArg
 
 
@@ -157,8 +158,8 @@ def toDefault(value, defaults=NoDefault):
             return SmartDefaultSequence(value, defaults)
         else:
             return defaults
-    elif is_mapping(value):
-        if defaults is NoDefault or is_mapping(defaults):
+    elif isinstance(value, Mapping):
+        if defaults is NoDefault or isinstance(defaults, Mapping):
             return SmartDefaultMapping(value, defaults)
         else:
             return defaults
@@ -173,3 +174,25 @@ def fromDefault(value):
         return value.to_base()
     else:
         return value
+
+
+def to_base_defaults(value, _defaults=NoDefault):
+    if isinstance(value, Mapping):
+        new_default = dict()
+        # if _defaults exists use those values over value
+        if _defaults is not NoDefault:
+            if isinstance(_defaults, Mapping):
+                for key, dft in value.items():
+                    sub_explicit_default = _defaults.get(key, NoDefault)
+                    new_default[key] = to_base_defaults(
+                        dft, sub_explicit_default)
+            else:
+                return None
+        else:
+            for key, value in value.items():
+                new_default[key] = to_base_defaults(value)
+        return new_default
+    elif isclass(value) or callable(value):
+        return RequiredArg if _defaults is NoDefault else _defaults
+    else:
+        return value if _defaults is NoDefault else _defaults

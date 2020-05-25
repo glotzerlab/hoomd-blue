@@ -19,7 +19,11 @@
 #include "IntegratorHPMCMono.h"
 
 #ifdef ENABLE_TBB
-#include <tbb/tbb.h>
+#include <tbb/concurrent_unordered_map.h>
+#include <tbb/concurrent_unordered_set.h>
+#include <tbb/concurrent_vector.h>
+#include <tbb/parallel_for.h>
+#include <tbb/task.h>
 #include <atomic>
 #endif
 

@@ -54,9 +54,9 @@ void export_union_sphere(py::module& m)
 
     #ifdef ENABLE_HIP
 
-    export_IntegratorHPMCMonoGPU< ShapeUnion<ShapeSphere> >(m, "IntegratorHPMCMonoGPUSphereUnion");
-    export_ComputeFreeVolumeGPU< ShapeUnion<ShapeSphere> >(m, "ComputeFreeVolumeGPUSphereUnion");
-    export_UpdaterClustersGPU< ShapeUnion<ShapeSphere> >(m, "UpdaterClustersGPUSphereUnion");
+    export_IntegratorHPMCMonoGPU< ShapeUnion<ShapeSphere> >(m, "IntegratorHPMCMonoSphereUnionGPU");
+    export_ComputeFreeVolumeGPU< ShapeUnion<ShapeSphere> >(m, "ComputeFreeVolumeSphereUnionGPU");
+    export_UpdaterClustersGPU< ShapeUnion<ShapeSphere> >(m, "UpdaterClustersSphereUnionGPU");
 
     #endif
     }

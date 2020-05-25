@@ -10,6 +10,7 @@
 
 from hoomd.md import _md
 from hoomd.parameterdicts import ParameterDict
+from hoomd.typeconverter import OnlyFrom
 from hoomd.integrate import _BaseIntegrator
 from hoomd.syncedlist import SyncedList
 from hoomd.md.methods import _Method
@@ -17,20 +18,13 @@ from hoomd.md.force import _Force
 from hoomd.md.constrain import _ConstraintForce
 
 
-def validate_aniso(value):
+def preprocess_aniso(value):
     if value is True:
         return "true"
     elif value is False:
         return "false"
-    elif value.lower() == 'true':
-        return "true"
-    elif value.lower() == 'false':
-        return "false"
-    elif value.lower() == 'auto':
-        return "auto"
     else:
-        raise ValueError("input could not be converted to a proper "
-                         "anisotropic mode.")
+        return value
 
 
 def set_synced_list(old_list, new_list):
@@ -138,9 +132,12 @@ class Integrator(_DynamicIntegrator):
 
         super().__init__(forces, constraints, methods)
 
-        self._param_dict = ParameterDict(dt=float(dt), aniso=validate_aniso,
-                                         explicit_defaults=dict(aniso="auto")
-                                         )
+        self._param_dict = ParameterDict(
+            dt=float(dt),
+            aniso=OnlyFrom(['true', 'false', 'auto'],
+                           preprocess=preprocess_aniso),
+            _defaults=dict(aniso="auto")
+        )
         if aniso is not None:
             self.aniso = aniso
 

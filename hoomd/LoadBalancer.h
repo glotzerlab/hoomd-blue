@@ -16,7 +16,8 @@
 
 #ifndef __LOADBALANCER_H__
 #define __LOADBALANCER_H__
-#include "Updater.h"
+#include "Tuner.h"
+#include "Trigger.h"
 
 #include <memory>
 #include <pybind11/pybind11.h>
@@ -42,11 +43,13 @@
  *
  * \ingroup updaters
  */
-class PYBIND11_EXPORT LoadBalancer : public Updater
+class PYBIND11_EXPORT LoadBalancer : public Tuner
     {
     public:
         //! Constructor
-        LoadBalancer(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<DomainDecomposition> decomposition);
+        LoadBalancer(std::shared_ptr<SystemDefinition> sysdef,
+                     std::shared_ptr<DomainDecomposition> decomposition,
+                     std::shared_ptr<Trigger> trigger);
         //! Destructor
         virtual ~LoadBalancer();
 
@@ -99,6 +102,24 @@ class PYBIND11_EXPORT LoadBalancer : public Updater
                 }
             }
 
+        /// Set m_enable_x
+        void setEnableX(bool enable) {m_enable_x = enable;}
+
+        /// Get value of m_enable_x
+        bool getEnableX(bool enable) {return m_enable_x;}
+
+        /// Set m_enable_y
+        void setEnableY(bool enable) {m_enable_y = enable;}
+
+        /// Get value of m_enable_y
+        bool getEnableY(bool enable) {return m_enable_y;}
+
+        /// Set m_enable_z
+        void setEnableZ(bool enable) {m_enable_z = enable;}
+
+        /// Get value of m_enable_z
+        bool getEnableZ(bool enable) {return m_enable_z;}
+
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
 
@@ -110,6 +131,7 @@ class PYBIND11_EXPORT LoadBalancer : public Updater
 
     protected:
         std::shared_ptr<DomainDecomposition> m_decomposition; //!< The domain decomposition to balance
+        std::shared_ptr<Trigger> m_trigger;
 
         const MPI_Comm m_mpi_comm;  //!< MPI communicator for all ranks
 

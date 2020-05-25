@@ -53,9 +53,9 @@ void export_union_faceted_ellipsoid(py::module& m)
 
     #ifdef ENABLE_HIP
 
-    export_IntegratorHPMCMonoGPU< ShapeUnion<ShapeFacetedEllipsoid> >(m, "IntegratorHPMCMonoGPUFacetedEllipsoidUnion");
-    export_ComputeFreeVolumeGPU< ShapeUnion<ShapeFacetedEllipsoid> >(m, "ComputeFreeVolumeGPUFacetedEllipsoidUnion");
-    export_UpdaterClustersGPU< ShapeUnion<ShapeFacetedEllipsoid> >(m, "UpdaterClustersGPUFacetedEllipsoidUnion");
+    export_IntegratorHPMCMonoGPU< ShapeUnion<ShapeFacetedEllipsoid> >(m, "IntegratorHPMCMonoFacetedEllipsoidUnionGPU");
+    export_ComputeFreeVolumeGPU< ShapeUnion<ShapeFacetedEllipsoid> >(m, "ComputeFreeVolumeFacetedEllipsoidUnionGPU");
+    export_UpdaterClustersGPU< ShapeUnion<ShapeFacetedEllipsoid> >(m, "UpdaterClustersFacetedEllipsoidUnionGPU");
 
     #endif
     }

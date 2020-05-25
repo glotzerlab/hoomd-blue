@@ -11,8 +11,7 @@ if hoomd.device.GPU.is_available():
     devices.append(hoomd.device.GPU)
 
 
-@pytest.fixture(scope='session',
-                params=devices)
+@pytest.fixture(scope='session', params=devices)
 def device(request):
     """Parameterized Device fixture.
 
@@ -20,11 +19,16 @@ def device(request):
     device object is session scoped to avoid device creation overhead when
     running tests.
     """
-    return request.param()
+    d = request.param()
+
+    # enable GPU error checking
+    if isinstance(d, hoomd.device.GPU):
+        d.gpu_error_checking = True
+
+    return d
 
 
-@pytest.fixture(scope='session',
-                params=devices)
+@pytest.fixture(scope='session', params=devices)
 def device_class(request):
     """Parameterized Device class fixture.
 
@@ -72,6 +76,7 @@ def simulation_factory(device):
 
         sim.create_state_from_snapshot(snapshot)
         return sim
+
     return make_simulation
 
 
@@ -89,6 +94,7 @@ def two_particle_snapshot_factory(device):
     dimensions==3, the box is L by L by L. When dimensions==2, the box is L by L
     by 1.
     """
+
     def make_snapshot(particle_types=['A'], dimensions=3, d=1, L=20):
         s = Snapshot(device.comm)
         N = 2
@@ -99,7 +105,6 @@ def two_particle_snapshot_factory(device):
                 box[2] = 1
             s.configuration.box = box
             s.configuration.dimensions = dimensions
-
             s.particles.N = N
             s.particles.position[:] = [[-d / 2, 0, 0], [d / 2, 0, 0]]
             s.particles.types = particle_types
@@ -138,26 +143,32 @@ def lattice_snapshot_factory(device):
             s.configuration.box = box
             s.configuration.dimensions = dimensions
 
-
             s.particles.N = n**dimensions
             s.particles.types = particle_types
 
             # create the lattice
             range_ = numpy.arange(-n / 2, n / 2)
             if dimensions == 2:
-                pos = list(itertools.product(range_,range_,[0]))
+                pos = list(itertools.product(range_, range_, [0]))
             else:
                 pos = list(itertools.product(range_, repeat=3))
             pos = numpy.array(pos) * a
+            pos[:, 0] += a / 2
+            pos[:, 1] += a / 2
+            if dimensions == 3:
+                pos[:, 2] += a / 2
 
             # perturb the positions
             if r > 0:
-                shift = numpy.random.uniform(-r, r, size=(N, 3))
+                shift = numpy.random.uniform(-r, r, size=(s.particles.N, 3))
                 if dimensions == 2:
-                    shift[:,2] = 0
+                    shift[:, 2] = 0
                 pos += shift
 
+            s.particles.position[:] = pos
+
         return s
+
     return make_snapshot
 
 
@@ -182,8 +193,12 @@ def numpy_random_seed():
 
 
 def pytest_configure(config):
-    config.addinivalue_line("markers", "serial: Tests that will not execute with more than 1 MPI process")
-    config.addinivalue_line("markers", "validation: Long running tests that validate simulation output")
+    config.addinivalue_line(
+        "markers",
+        "serial: Tests that will not execute with more than 1 MPI process")
+    config.addinivalue_line(
+        "markers",
+        "validation: Long running tests that validate simulation output")
 
 
 def abort(exitstatus):

@@ -39,11 +39,6 @@ class PYBIND11_EXPORT ComputeThermoGPU : public ComputeThermo
         unsigned int m_block_size;   //!< Block size executed
         hipEvent_t m_event;         //!< CUDA event for synchronization
 
-#ifdef ENABLE_MPI
-        //! Reduce properties over MPI
-        virtual void reduceProperties();
-#endif
-
         //! Does the actual computation
         virtual void computeProperties();
     };

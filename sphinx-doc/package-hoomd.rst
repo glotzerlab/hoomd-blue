@@ -29,8 +29,9 @@ hoomd
    module-hoomd-compute
    module-hoomd-device
    module-hoomd-dump
-   module-hoomd-filters
+   module-hoomd-filter
    module-hoomd-triggers
    module-hoomd-update
    module-hoomd-util
    module-hoomd-variant
+   hoomd-misc

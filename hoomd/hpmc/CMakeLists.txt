@@ -22,7 +22,6 @@ set(_hpmc_sources   module.cc
                     module_convex_spheropolyhedron.cc
                     UpdaterBoxMC.cc
                     IntegratorHPMC.cc
-                    IntegratorHPMCMonoGPU.cc
                     )
 
 set(_hpmc_headers
