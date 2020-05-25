@@ -3,12 +3,19 @@ hoomd
 
 .. rubric:: Overview
 
+.. py:currentmodule:: hoomd
+
 .. autosummary::
     :nosignatures:
 
-    hoomd.Simulation
-    hoomd.Snapshot
-    hoomd.Logger
+    Simulation
+    State
+    Snapshot
+    Operations
+    Snapshot
+    Logger
+    _CustomOperation
+    CustomAction
 
 .. rubric:: Details
 
@@ -16,7 +23,16 @@ hoomd
     :synopsis: HOOMD-blue main package.
     :undoc-members:
     :imported-members:
-    :members:
+    :members: Simulation,
+              State,
+              Snapshot,
+              Operations,
+              Logger,
+              _CustomOperation
+
+.. autoclass:: CustomAction
+   :exclude-members: flags, log_quantities
+   :members: attach, detach, act
 
 .. rubric:: Modules
 
@@ -29,7 +45,7 @@ hoomd
    module-hoomd-compute
    module-hoomd-device
    module-hoomd-dump
-   module-hoomd-filters
+   module-hoomd-filter
    module-hoomd-triggers
    module-hoomd-update
    module-hoomd-util

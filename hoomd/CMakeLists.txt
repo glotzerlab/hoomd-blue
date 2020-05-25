@@ -22,6 +22,7 @@ set(_hoomd_sources Analyzer.cc
                    CommunicatorGPU.cc
                    Compute.cc
                    ComputeThermo.cc
+                   ComputeThermoHMA.cc
                    ConstForceCompute.cc
                    DCDDumpWriter.cc
                    DomainDecomposition.cc
@@ -50,6 +51,8 @@ set(_hoomd_sources Analyzer.cc
                    ParticleGroup.cc
                    Profiler.cc
                    PythonLocalDataAccess.cc
+                   PythonUpdater.cc
+                   PythonAnalyzer.cc
                    SFCPackTuner.cc
                    SignalHandler.cc
                    SnapshotSystemData.cc
@@ -90,8 +93,12 @@ set(_hoomd_headers
     Compute.h
     ComputeThermoGPU.cuh
     ComputeThermoGPU.h
+    ComputeThermoHMAGPU.cuh
+    ComputeThermoHMAGPU.h
     ComputeThermo.h
+    ComputeThermoHMA.h
     ComputeThermoTypes.h
+    ComputeThermoHMATypes.h
     ConstForceCompute.h
     DCDDumpWriter.h
     DomainDecomposition.h
@@ -139,6 +146,8 @@ set(_hoomd_headers
     ParticleGroup.h
     Profiler.h
     PythonLocalDataAccess.h
+    PythonUpdater.h
+    PythonAnalyzer.h
     RandomNumbers.h
     RNGIdentifiers.h
     SFCPackTunerGPU.cuh
@@ -162,6 +171,7 @@ if (ENABLE_HIP)
 list(APPEND _hoomd_sources CellListGPU.cc
                            CommunicatorGPU.cc
                            ComputeThermoGPU.cc
+                           ComputeThermoHMAGPU.cc
                            LoadBalancerGPU.cc
                            SFCPackTunerGPU.cc
                            )
@@ -171,6 +181,7 @@ set(_hoomd_cu_sources BondedGroupData.cu
                       CellListGPU.cu
                       CommunicatorGPU.cu
                       ComputeThermoGPU.cu
+                      ComputeThermoHMAGPU.cu
                       Integrator.cu
                       LoadBalancerGPU.cu
                       ParticleData.cu
@@ -253,7 +264,14 @@ endif()
 
 # Libraries and compile definitions for TBB enabled builds
 if (ENABLE_TBB)
-    find_package(TBB 4.3)
+    find_package_config_first(TBB 4.3)
+
+    if (TBB_FOUND)
+        get_target_property(_tbb_library TBB::tbb IMPORTED_LOCATION_RELEASE)
+        get_target_property(_tbb_include_dir TBB::tbb INTERFACE_INCLUDE_DIRECTORIES)
+        find_package_message(tbb "Found TBB: ${TBB_DIR} ${_tbb_library} ${_tbb_include_dir}" "[${_tbb_library}][${_tbb_include_dir}]")
+    endif()
+
     target_compile_definitions(_hoomd PUBLIC ENABLE_TBB)
     target_link_libraries(_hoomd PUBLIC TBB::tbb)
 endif()
@@ -287,13 +305,13 @@ install(TARGETS _hoomd quickhull EXPORT HOOMDTargets
 
 ################ Python only modules
 # copy python modules to the build directory to make it a working python package
-set(files analyze.py
-          benchmark.py
+set(files benchmark.py
           cite.py
           comm.py
           compute.py
           conftest.py
           context.py
+          custom_action.py
           data.py
           device.py
           dump.py
@@ -308,7 +326,6 @@ set(files analyze.py
           operation.py
           operations.py
           option.py
-          update.py
           util.py
           variant.py
           lattice.py
@@ -318,6 +335,7 @@ set(files analyze.py
           state.py
           syncedlist.py
           parameterdicts.py
+          custom_operation.py
           trigger.py
           typeparam.py
           typeconverter.py

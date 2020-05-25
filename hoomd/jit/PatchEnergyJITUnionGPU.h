@@ -29,16 +29,8 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
               m_gpu_factory(exec_conf, code, kernel_name, options, cuda_devrt_library_path, compute_arch),
               m_d_union_params(m_sysdef->getParticleData()->getNTypes(), jit::union_params_t(), managed_allocator<jit::union_params_t>(m_exec_conf->isCUDAEnabled()))
             {
-            // allocate data array
-            cudaMallocManaged(&m_d_alpha, sizeof(float)*m_alpha_size);
-            CHECK_CUDA_ERROR();
-
-            // allocate data array for unions
-            cudaMallocManaged(&m_d_alpha_union, sizeof(float)*m_alpha_size_union);
-            CHECK_CUDA_ERROR();
-
             m_gpu_factory.setAlphaPtr(&m_alpha.front());
-            m_gpu_factory.setAlphaUnionPtr(&m_alpha.front());
+            m_gpu_factory.setAlphaUnionPtr(&m_alpha_union.front());
             m_gpu_factory.setUnionParamsPtr(&m_d_union_params.front());
             m_gpu_factory.setRCutUnion(m_rcut_union);
 
@@ -61,13 +53,7 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
             m_tuner_narrow_patch.reset(new Autotuner(valid_params_patch, 5, 100000, "hpmc_narrow_patch", this->m_exec_conf));
             }
 
-        virtual ~PatchEnergyJITUnionGPU()
-            {
-            cudaFree(m_d_alpha);
-            CHECK_CUDA_ERROR();
-            cudaFree(m_d_alpha_union);
-            CHECK_CUDA_ERROR();
-            }
+        virtual ~PatchEnergyJITUnionGPU() {}
 
         //! Set the per-type constituent particles
         /*! \param type The particle type to set the constituent particles for
@@ -111,15 +97,13 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
             m_tuner_narrow_patch->setPeriod(period);
             m_tuner_narrow_patch->setEnabled(enable);
             }
- 
+
     protected:
         std::unique_ptr<Autotuner> m_tuner_narrow_patch;     //!< Autotuner for the narrow phase
 
     private:
         GPUEvalFactory m_gpu_factory;                       //!< JIT implementation
 
-        float *m_d_alpha;                                   //!< device memory holding auxillary data
-        float *m_d_alpha_union;                             //!< device memory holding auxillary data
         std::vector<jit::union_params_t, managed_allocator<jit::union_params_t> > m_d_union_params;   //!< Parameters for each particle type on GPU
     };
 

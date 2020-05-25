@@ -1,7 +1,6 @@
 from hoomd.operation import _Tuner
 from hoomd.parameterdicts import ParameterDict
 from hoomd.typeconverter import OnlyType
-from hoomd.util import trigger_preprocessing
 from hoomd.trigger import Trigger
 from hoomd import _hoomd
 
@@ -85,7 +84,7 @@ class LoadBalancer(_Tuner):
                         max_iterations=max_iterations, trigger=trigger)
         self._param_dict = ParameterDict(
             x=bool, y=bool, z=bool, max_iterations=int, tolerance=float,
-            trigger=OnlyType(Trigger, preprocess=trigger_preprocessing))
+            trigger=Trigger)
         self._param_dict.update(defaults)
 
     def attach(self, simulation):

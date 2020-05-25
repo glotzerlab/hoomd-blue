@@ -22,8 +22,8 @@ class PYBIND11_EXPORT ParticleFilterTags : public ParticleFilter
                               pybind11::array::forcecast> tags)
             : ParticleFilter()
             {
-            unsigned int* tags_ptr = (unsigned int*)m_tags.data();
-            m_tags.assign(tags_ptr, tags_ptr+m_tags.size());
+            unsigned int* tags_ptr = (unsigned int*)tags.data();
+            m_tags.assign(tags_ptr, tags_ptr + tags.size());
             }
 
         virtual ~ParticleFilterTags() {}
