@@ -36,11 +36,8 @@ def _create_domain_decomposition(device, box):
 class State:
     R""" Simulation state.
 
-    Parameters:
-        simulation
+    Args:
         snapshot
-
-    Attributes:
     """
 
     def __init__(self, simulation, snapshot):
@@ -193,6 +190,33 @@ class State:
 
     @property
     def cpu_local_snapshot(self):
+        """hoomd.local_access.LocalSnapshot: Directly expose HOOMD data buffers
+        on the CPU.
+
+        Provides access directly to the system state's particle, bond, angle,
+        dihedral, improper, constaint, and pair data through a context manager.
+        The `hoomd.local_access.LocalSnapshot` object is only usable within a
+        context manager (i.e. ``with sim.state.cpu_local_snapshot as data:``)
+        The interface is similar to that of the `hoomd.Snapshot`. Data is local
+        to a given MPI rank. The returned arrays are `hoomd.array.HOOMDArray`
+        objects. Through this interface zero-copy access is available (access is
+        guarenteed to be zero-copy when running on CPU, may be zero copy if
+        running on GPU).
+
+        Changing the data in the buffers exposed by the local snapshot will
+        change the data across the HOOMD-blue simulation. For a trivial example,
+        this example would set all particle z-axis positions to 0.
+
+        .. code-block:: python
+
+            with sim.state.cpu_local_snapshot as data:
+                data.particles.position[:, 2] = 0
+
+        Note:
+            The state's box and the number of particles, bonds, angles,
+            dihedrals, impropers, constaints, and pairs cannot change within the
+            context manager.
+        """
         if self._in_context_manager:
             raise RuntimeError(
                 "Cannot enter cpu_local_snapshot context manager inside "
@@ -201,6 +225,37 @@ class State:
 
     @property
     def gpu_local_snapshot(self):
+        """hoomd.local_access_gpu.LocalSnapshotGPU: Directly expose HOOMD data
+        buffers on the GPU.
+
+        Provides access directly to the system state's particle, bond, angle,
+        dihedral, improper, constaint, and pair data through a context manager.
+        The `hoomd.local_access_gpu.GPULocalSnapshot` object is only usable
+        within a context manager (i.e. ``with sim.state.gpu_local_snapshot as
+        data:``) The interface is similar to that of the `hoomd.Snapshot`. Data
+        is local to a given MPI rank. The returned arrays are
+        `hoomd.array.HOOMDGPUArray` objects. Through this interface potential
+        zero-copy access is available (access cannot be guarenteed to be
+        zero-copy, but will be if the most recent copy of the data is on the
+        GPU).
+
+        Changing the data in the buffers exposed by the local snapshot will
+        change the data across the HOOMD-blue simulation. For a trivial example,
+        this example would set all particle z-axis positions to 0.
+
+        .. code-block:: python
+
+            with sim.state.gpu_local_snapshot as data:
+                data.particles.position[:, 2] = 0
+
+        Note:
+            The state's box and the number of particles, bonds, angles,
+            dihedrals, impropers, constaints, and pairs cannot change within the
+            context manager.
+
+        Note:
+            This property is only available when running on a GPU(s).
+        """
         if self._simulation.device.mode != 'gpu':
             raise RuntimeError(
                 "Cannot access gpu_snapshot with a non GPU device.")
