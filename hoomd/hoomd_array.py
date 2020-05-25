@@ -8,6 +8,8 @@ from hoomd._hoomd import isCUDAAvailable
 
 
 class HOOMDArrayError(RuntimeError):
+    """Represents errors in accessing HOOMD buffers outside a context manager.
+    """
     pass
 
 
@@ -243,24 +245,25 @@ class HOOMDArray(metaclass=_WrapClassFactory(_wrap_list)):
     These objects are returned by HOOMD-blue's zero copy access to system data.
     This class acts like a ``numpy.ndarray`` object through NumPy's provided
     interface
-    [https://numpy.org/doc/stable/reference/arrays.classes.html](link).
-    For typical use cases, understanding this class is not necessary. Treat it
-    as a ``numpy.ndarray``.
+    `<link https://numpy.org/doc/stable/reference/arrays.classes.html>`. Some
+    excepts are the ``view``, ``resize``, ``flat`` and ``flatiter`` methods and
+    the ``data`` and ``base`` properties.  For typical use cases, understanding
+    this class is not necessary. Treat it as a ``numpy.ndarray``.
 
     We attempt to escape this class whenever possible. This essentially means
-    that whenever a new array is returned we can the `numpy.ndarray`. However,
-    any array pointing to the same data will be returned as a `HOOMDArray`. To
-    ensure memory safety, a `HOOMDArray` object cannot be accessed outside of
-    the context manager in which it was created. To have access outside the
-    manager an explicit copy must be made (e.g. ``numpy.array(obj,
-    copy=True)``).
+    that whenever a array pointing to a new buffer is returned we can return
+    a `numpy.ndarray`.  However, any array pointing to the same data will be
+    returned as a `HOOMDArray`. To ensure memory safety, a `HOOMDArray` object
+    cannot be accessed outside of the context manager in which it was created.
+    To have access outside the manager an explicit copy must be made (e.g.
+    ``numpy.array(obj, copy=True)``).
 
     In general this class should be nearly as fast as a standard NumPy array,
     but there is some overhead. This is mitigated by escaping the class when
     possible. If every ounce of performance is necessary,
     ``HOOMDArray._coerce_to_ndarray`` can provide a ``numpy.ndarray`` object
-    inside the context manager. *References to a ``HOOMDArray`` object's buffer
-    after leaving the context manager is UNSAFE.* It can cause SEGFAULTs and
+    inside the context manager. **References to a ``HOOMDArray`` object's buffer
+    after leaving the context manager is UNSAFE.** It can cause SEGFAULTs and
     cause your program to crash. Use this function only if absolutely necessary.
 
     Performance Tips:
@@ -417,6 +420,18 @@ class HOOMDArray(metaclass=_WrapClassFactory(_wrap_list)):
 
 if isCUDAAvailable():
     class _HOOMDGPUArrayBase:
+        """Base GPUArray class. Functions work with or without CuPy.
+
+        Args:
+            buffer (_hoomd.HOOMDDeviceBuffer): Object that stores the
+                information required to access GPU data buffer. Can also accept
+                anything that implements the ``__cuda_array_interface__``.
+            callback (Callable[[], bool]): A callable that returns whether the
+                array is in a valid state to access the data buffer.
+            read_only (bool): Is the array read only? This is necessary as CuPy
+                does not support read only arrays (although the
+                ``__cuda_array_interface__`` does).
+        """
         def __init__(self, buffer, callback, read_only=None):
             self._buffer = buffer
             self._callback = callback
@@ -563,3 +578,50 @@ else:
 
     class HOOMDGPUArray(NoGPU):
         pass
+
+
+_gpu_array_docs = """
+Exposes an internal HOOMD-blue GPU buffer.
+
+The HOOMDGPUArray object exposes a GPU data buffer using the
+`:code:`__cuda_array_interface__`
+<https://numba.pydata.org/numba-doc/latest/cuda/cuda_array_interface.html>`.
+This class tries to prevent invalid memory access through only allow the buffer
+to be exposed within a context manager (`hoomd.State.gpu_local_snapshot`).
+However, to prevent copying the data, we cannot guarentee the data will not
+leak. This means that it is possible to *escape* this class. An example of an
+error of this kind is shown below.
+
+.. code-block:: python
+
+    with sim.state.gpu_local_snapshot as data:
+        # valid within context manager
+        pos = cupy.array(data.particles.position, copy=False)
+        # can use pos within manager
+        pos[:, 2] += 1
+    # invalid data access can cause SEGFAULTs and other issues
+    pos[:, 2] -= 1
+
+In general, it is safer to not store any non `HOOMDGPUArray` references to a
+data buffer. This can be done when necessary, but care must be taken not to use
+references to the data outside the context manager.
+
+The full functionality of this class depends on whether, HOOMD-blue can import
+CuPy.  If CuPy can be installed then, we wrap much of the ``cupy.ndarray``
+class's functionality. Otherwise, we just expose the buffer and provide a few
+basic properties.
+
+In either case `HOOMDGPUArray` supports getting (but not setting) the ``shape``,
+``strides``, and ``ndim`` properties.
+
+When CuPy is imported, compound assignment operators (e.g. +=, -=, *=) are
+available. In addition, most methods besides ``view``, ``resize``, ``flat``,
+``flatiter`` are available. The same is true for properties except the ``data``
+and ``base`` properties. See CuPy's documentation for a list of methods. An
+important note is that due their being no way to hook into standard operators
+like (+, -, *) direct addition, subtraction, and multiplication cannot be
+performed between `HOOMDGPUArray` and `cupy.ndarray`s. However, ``cupy.add`` can
+be directly used and is recommended for memory safety.
+"""
+
+HOOMDGPUArray.__doc__ = _gpu_array_docs
