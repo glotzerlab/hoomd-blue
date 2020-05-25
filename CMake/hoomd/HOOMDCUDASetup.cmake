@@ -26,7 +26,7 @@ if (ENABLE_HIP)
         list(GET _cuda_arch_list_sorted 0 _cuda_min_arch)
         list(GET _cuda_arch_list_sorted -1 _cuda_max_arch)
 
-        if (_cuda_min_arch LESS 35)
+        if (_cuda_min_arch LESS 60)
             message(SEND_ERROR "HOOMD requires compute 6.0 or newer")
         endif ()
 

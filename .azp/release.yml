@@ -1,8 +1,9 @@
 variables:
-  image_root: glotzerlab/ci:2020.01
+  image_root: glotzerlab/ci:2020.05
   name: hoomd
 
 trigger:
+  batch: true
   branches:
     include:
     - '*'
@@ -17,10 +18,10 @@ jobs:
   displayName: Build release tarball
 
   pool:
-    vmImage: 'ubuntu-16.04'
+    vmImage: 'ubuntu-latest'
 
   container:
-    image: $(image_root)-ubuntu19.10
+    image: $(image_root)-ubuntu20.04
     options: -u 0
 
   steps:
