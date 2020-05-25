@@ -3,6 +3,10 @@
 
 #include "Variant.h"
 
+// These testVariant{Method} functions allow us to test that Python custom
+// variants work properly in C++. This ensures we can test that the function
+// itself can be called in C++ when defined in Python.
+
 /// Method to enable unit testing of C++ variant calls from pytest
 Scalar testVariantCall(std::shared_ptr<Variant> t, uint64_t step)
     {
