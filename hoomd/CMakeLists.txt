@@ -303,8 +303,7 @@ install(TARGETS _hoomd quickhull EXPORT HOOMDTargets
 
 ################ Python only modules
 # copy python modules to the build directory to make it a working python package
-set(files analyze.py
-          benchmark.py
+set(files benchmark.py
           box.py
           cite.py
           comm.py
