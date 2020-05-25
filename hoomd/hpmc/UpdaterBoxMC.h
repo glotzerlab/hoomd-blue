@@ -15,6 +15,7 @@
 #include <cmath>
 
 #include "IntegratorHPMC.h"
+#include "RandomTrigger.h"
 
 #ifndef __HIPCC__
 #include <pybind11/pybind11.h>
@@ -44,7 +45,9 @@ class UpdaterBoxMC : public Updater
                       std::shared_ptr<IntegratorHPMC> mc,
                       std::shared_ptr<Variant> P,
                       const Scalar frequency,
-                      const unsigned int seed);
+                      const unsigned int seed,
+                      const std::shared_ptr<RandomTrigger> trigger
+                      );
 
         //! Destructor
         virtual ~UpdaterBoxMC();
@@ -301,6 +304,8 @@ class UpdaterBoxMC : public Updater
         hpmc_boxmc_counters_t m_count_step_start;     //!< Count saved at the start of the last step
 
         unsigned int m_seed;                        //!< Seed for pseudo-random number generator
+
+        std::shared_ptr<RandomTrigger> m_trigger;   //!< Trigger for random move selection
 
         inline bool is_oversheared();               //!< detect oversheared box
         inline bool remove_overshear();             //!< detect and remove overshear

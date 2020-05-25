@@ -17,7 +17,8 @@ UpdaterBoxMC::UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<IntegratorHPMC> mc,
                              std::shared_ptr<Variant> P,
                              const Scalar frequency,
-                             const unsigned int seed)
+                             const unsigned int seed,
+                             std::shared_ptr<RandomTrigger> trigger)
         : Updater(sysdef),
           m_mc(mc),
           m_P(P),
@@ -35,7 +36,8 @@ UpdaterBoxMC::UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
           m_Shear_reduce(0.0),
           m_Aspect_delta(0.0),
           m_Aspect_weight(0.0),
-          m_seed(seed)
+          m_seed(seed),
+          m_trigger(trigger)
     {
     m_exec_conf->msg->notice(5) << "Constructing UpdaterBoxMC" << std::endl;
 
@@ -405,6 +407,9 @@ inline bool UpdaterBoxMC::safe_box(const Scalar newL[3], const unsigned int& Ndi
 */
 void UpdaterBoxMC::update(unsigned int timestep)
     {
+    if (!m_trigger->isEligibleForExecution(timestep, *this))
+        return;
+
     if (m_prof) m_prof->push("UpdaterBoxMC");
     m_count_step_start = m_count_total;
     m_exec_conf->msg->notice(10) << "UpdaterBoxMC: " << timestep << std::endl;
@@ -884,7 +889,8 @@ void export_UpdaterBoxMC(py::module& m)
                          std::shared_ptr<IntegratorHPMC>,
                          std::shared_ptr<Variant>,
                          Scalar,
-                         const unsigned int >())
+                         const unsigned int,
+                         std::shared_ptr<RandomTrigger> >())
     .def("volume", &UpdaterBoxMC::volume)
     .def("ln_volume", &UpdaterBoxMC::ln_volume)
     .def("length", &UpdaterBoxMC::length)

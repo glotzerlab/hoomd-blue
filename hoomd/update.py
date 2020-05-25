@@ -23,10 +23,10 @@ import sys;
 class _updater(hoomd.meta._metadata):
     ## \internal
     # \brief Constructs the updater
-    #
+    # \param name Name for this updater, if it exists already it will overwrite the existing one (None to assign unique one)
     # Initializes the cpp_updater to None.
     # Assigns a name to the updater in updater_name;
-    def __init__(self):
+    def __init__(self, name=None):
         # check if initialization has occurred
         if not hoomd.init.is_initialized():
             raise RuntimeError('Cannot create updater before initialization\n');
@@ -37,12 +37,20 @@ class _updater(hoomd.meta._metadata):
         id = _updater.cur_id;
         _updater.cur_id += 1;
 
-        self.updater_name = "updater%d" % (id);
-        self.enabled = True;
+        if name is None:
+            self.updater_name = "updater%d" % (id);
 
-        # Store a reference in global simulation variables
+        else:
+            self.updater_name = name
+
+            for updater in hoomd.context.current.updaters:
+                 if updater.updater_name == name:
+                    hoomd.context.current.updaters.remove(updater) # replace with current one
+                    break
+
         hoomd.context.current.updaters.append(self)
 
+        self.enabled = True;
         # base class constructor
         hoomd.meta._metadata.__init__(self)
 

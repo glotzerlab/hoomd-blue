@@ -15,10 +15,12 @@ namespace hpmc
 
 UpdaterGridShift::UpdaterGridShift(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<IntegratorHPMC> mc,
-                             const unsigned int seed)
+                             const unsigned int seed,
+                             std::shared_ptr<RandomTrigger> trigger)
         : Updater(sysdef),
           m_mc(mc),
-          m_seed(seed)
+          m_seed(seed),
+          m_trigger(trigger)
     {
     m_exec_conf->msg->notice(5) << "Constructing UpdaterGridShift" << std::endl;
     }
@@ -33,6 +35,9 @@ UpdaterGridShift::~UpdaterGridShift()
 */
 void UpdaterGridShift::update(unsigned int timestep)
     {
+    if (!m_trigger->isEligibleForExecution(timestep, *this))
+        return;
+
     if (m_prof) m_prof->push("UpdaterGridShift");
 
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -73,7 +78,8 @@ void export_UpdaterGridShift(py::module& m)
    py::class_< UpdaterGridShift, Updater, std::shared_ptr< UpdaterGridShift > >(m, "UpdaterGridShift")
     .def(py::init< std::shared_ptr<SystemDefinition>,
                          std::shared_ptr<IntegratorHPMC>,
-                         const unsigned int >())
+                         const unsigned int,
+                         std::shared_ptr<RandomTrigger> >())
     ;
     }
 

@@ -19,8 +19,9 @@ namespace hpmc
 
 UpdaterGridShiftGPU::UpdaterGridShiftGPU(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<IntegratorHPMC> mc,
-                             const unsigned int seed)
-        : UpdaterGridShift(sysdef, mc, seed)
+                             const unsigned int seed,
+                             std::shared_ptr<RandomTrigger> trigger)
+        : UpdaterGridShift(sysdef, mc, seed, trigger)
     {
     m_exec_conf->msg->notice(5) << "Constructing UpdaterGridShiftGPU" << std::endl;
     }
@@ -35,6 +36,9 @@ UpdaterGridShiftGPU::~UpdaterGridShiftGPU()
 */
 void UpdaterGridShiftGPU::update(unsigned int timestep)
     {
+    if (!m_trigger->isEligibleForExecution(timestep, *this))
+        return;
+
     if (m_prof) m_prof->push(this->m_exec_conf, "UpdaterGridShiftGPU");
 
     // RNG for grid shift
@@ -84,7 +88,8 @@ void export_UpdaterGridShiftGPU(py::module& m)
    py::class_< UpdaterGridShiftGPU, UpdaterGridShift, std::shared_ptr< UpdaterGridShiftGPU > >(m, "UpdaterGridShiftGPU")
     .def(py::init< std::shared_ptr<SystemDefinition>,
                          std::shared_ptr<IntegratorHPMC>,
-                         const unsigned int >())
+                         const unsigned int,
+                         std::shared_ptr<RandomTrigger> >())
     ;
     }
 

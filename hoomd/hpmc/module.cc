@@ -22,8 +22,7 @@
 #include "UpdaterGridShift.h"
 
 #include "ShapeProxy.h"
-
-#include "GPUTree.h"
+#include "RandomTrigger.h"
 
 #ifdef ENABLE_HIP
 #include "UpdaterGridShiftGPU.h"
@@ -65,6 +64,7 @@ PYBIND11_MODULE(_hpmc, m)
     export_UpdaterBoxMC(m);
     export_external_fields(m);
     export_shape_params(m);
+    export_RandomTrigger(m);
 
     #ifdef ENABLE_HIP
     export_UpdaterGridShiftGPU(m);

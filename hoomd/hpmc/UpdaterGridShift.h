@@ -13,6 +13,7 @@
 #include "hoomd/RandomNumbers.h"
 
 #include "IntegratorHPMC.h"
+#include "RandomTrigger.h"
 
 #ifndef __HIPCC__
 #include <pybind11/pybind11.h>
@@ -32,7 +33,8 @@ class UpdaterGridShift : public Updater
          */
         UpdaterGridShift(std::shared_ptr<SystemDefinition> sysdef,
                       std::shared_ptr<IntegratorHPMC> mc,
-                      const unsigned int seed);
+                      const unsigned int seed,
+                      std::shared_ptr<RandomTrigger> trigger);
 
         //! Destructor
         virtual ~UpdaterGridShift();
@@ -45,6 +47,7 @@ class UpdaterGridShift : public Updater
     protected:
         std::shared_ptr<IntegratorHPMC> m_mc;     //!< HPMC integrator object
         unsigned int m_seed;                      //!< Seed for pseudo-random number generator
+        std::shared_ptr<RandomTrigger> m_trigger; //!< Random selection of MC moves
     };
 
 //! Export UpdaterGridShift to Python
