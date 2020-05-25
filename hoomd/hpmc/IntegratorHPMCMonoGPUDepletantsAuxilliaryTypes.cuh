@@ -21,8 +21,8 @@ struct hpmc_auxilliary_args_t
                            const Scalar4 *_d_vel,
                            const Scalar4 *_d_trial_vel,
                            const unsigned int _ntrial,
-                           const unsigned int _ntrial_local,
-                           const unsigned int _ntrial_offset,
+                           const unsigned int _nwork_local[],
+                           const unsigned int _work_offset[],
                            const unsigned int *_d_n_depletants_ntrial,
                            int *_d_deltaF_int,
                            const hipStream_t *_streams_phase1,
@@ -34,8 +34,8 @@ struct hpmc_auxilliary_args_t
                   d_vel(_d_vel),
                   d_trial_vel(_d_trial_vel),
                   ntrial(_ntrial),
-                  ntrial_local(_ntrial_local),
-                  ntrial_offset(_ntrial_offset),
+                  nwork_local(_nwork_local),
+                  work_offset(_work_offset),
                   d_n_depletants_ntrial(_d_n_depletants_ntrial),
                   d_deltaF_int(_d_deltaF_int),
                   streams_phase1(_streams_phase1),
@@ -49,8 +49,8 @@ struct hpmc_auxilliary_args_t
     const Scalar4 *d_vel;               //!< Particle velocities (.x component is the auxilliary variable)
     const Scalar4 *d_trial_vel;         //!< Particle velocities after trial move (.x component is the auxilliary variable)
     const unsigned int ntrial;          //!< Number of trial insertions per depletant
-    const unsigned int ntrial_local;    //!< Number of trial insertions this rank handles
-    const unsigned int ntrial_offset;   //!< The first i_trial this rank handles
+    const unsigned int *nwork_local;    //!< Number of insertions this rank handles, per GPU
+    const unsigned int *work_offset;    //!< Offset into insertions for this rank
     const unsigned int *d_n_depletants_ntrial;     //!< Number of depletants per particle, depletant type pair and trial insertion
     int *d_deltaF_int;                  //!< Free energy difference rescaled to integer units
     const hipStream_t *streams_phase1;             //!< Stream for this depletant type, phase1 kernel

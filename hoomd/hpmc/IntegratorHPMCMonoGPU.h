@@ -794,17 +794,6 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     continue;
                 have_auxilliary_variables = true;
                 ntrial_tot += ntrial;
-
-                #ifdef ENABLE_MPI
-                // ensure that the ntrial is a multiple of the communicator size
-                if (m_ntrial_comm && (ntrial % ntrial_comm_size))
-                    {
-                    throw std::runtime_error("ntrial = "+std::to_string(ntrial)+" for type pair "+
-                        this->m_pdata->getNameByType(itype) + ", " +
-                        this->m_pdata->getNameByType(jtype) + " is not a multiple of the " +
-                        "size of the communicator (" + std::to_string(ntrial_comm_size)+")\n");
-                    }
-                #endif
                 }
             }
         unsigned int req_n_depletants_size = ntrial_tot*2*this->m_pdata->getMaxN();
@@ -1268,13 +1257,23 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                                         0 // stream (unused)
                                         );
 
-                                    unsigned int ntrial_rank = ntrial;
-                                    unsigned int i_trial_offset = 0;
+                                    unsigned int nwork_rank[this->m_exec_conf->getNumActiveGPUs()];
+                                    unsigned int work_offset[this->m_exec_conf->getNumActiveGPUs()];
+                                    for (unsigned int idev = 0; idev < this->m_exec_conf->getNumActiveGPUs(); ++idev)
+                                        {
+                                        nwork_rank[idev] = ntrial*max_n_depletants[idev];
+                                        work_offset[idev] = 0;
+                                        }
+
                                     #ifdef ENABLE_MPI
                                     if (m_ntrial_comm)
                                         {
-                                        ntrial_rank = ntrial/ntrial_comm_size; // divide up work among ranks
-                                        i_trial_offset = ntrial_comm_rank*ntrial_rank;
+                                        // split up work among ranks
+                                        for (unsigned int idev = 0; idev < this->m_exec_conf->getNumActiveGPUs(); ++idev)
+                                            {
+                                            nwork_rank[idev] = nwork_rank[idev]/ntrial_comm_size + 1; // can't have zero work per rank
+                                            work_offset[idev] = ntrial_comm_rank*nwork_rank[idev];
+                                            }
                                         }
                                     #endif
 
@@ -1283,8 +1282,8 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                                         d_vel.data,
                                         d_trial_vel.data,
                                         ntrial,
-                                        ntrial_rank,
-                                        i_trial_offset,
+                                        &nwork_rank[0],
+                                        &work_offset[0],
                                         d_n_depletants_ntrial.data + ntrial_offset,
                                         d_deltaF_int.data + this->m_depletant_idx(itype,jtype)*this->m_pdata->getMaxN(),
                                         &m_depletant_streams_phase1[this->m_depletant_idx(itype,jtype)].front(),
