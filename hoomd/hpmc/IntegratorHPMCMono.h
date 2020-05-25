@@ -1336,36 +1336,6 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             }
         }
 
-    // perform the grid shift
-    #ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
-        ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
-
-        // precalculate the grid shift
-        hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCMonoShift, this->m_seed, timestep);
-        Scalar3 shift = make_scalar3(0,0,0);
-        hoomd::UniformDistribution<Scalar> uniform(-m_nominal_width/Scalar(2.0),m_nominal_width/Scalar(2.0));
-        shift.x = uniform(rng);
-        shift.y = uniform(rng);
-        if (this->m_sysdef->getNDimensions() == 3)
-            {
-            shift.z = uniform(rng);
-            }
-        for (unsigned int i = 0; i < m_pdata->getN(); i++)
-            {
-            // read in the current position and orientation
-            Scalar4 postype_i = h_postype.data[i];
-            vec3<Scalar> r_i = vec3<Scalar>(postype_i); // translation from local to global coordinates
-            r_i += vec3<Scalar>(shift);
-            h_postype.data[i] = vec_to_scalar4(r_i, postype_i.w);
-            box.wrap(h_postype.data[i], h_image.data[i]);
-            }
-        this->m_pdata->translateOrigin(shift);
-        }
-    #endif
-
     if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
 
     // migrate and exchange particles

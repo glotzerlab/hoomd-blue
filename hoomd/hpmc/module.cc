@@ -19,13 +19,14 @@
 #include "AnalyzerSDF.h"
 #include "UpdaterBoxMC.h"
 #include "UpdaterClusters.h"
+#include "UpdaterGridShift.h"
 
 #include "ShapeProxy.h"
 
 #include "GPUTree.h"
 
 #ifdef ENABLE_HIP
-#include "IntegratorHPMCMonoGPU.h"
+#include "UpdaterGridShiftGPU.h"
 #endif
 
 #include "modules.h"
@@ -60,9 +61,14 @@ PYBIND11_MODULE(_hpmc, m)
     {
     export_IntegratorHPMC(m);
 
+    export_UpdaterGridShift(m);
     export_UpdaterBoxMC(m);
     export_external_fields(m);
     export_shape_params(m);
+
+    #ifdef ENABLE_HIP
+    export_UpdaterGridShiftGPU(m);
+    #endif
 
     export_sphere(m);
     export_convex_polygon(m);
