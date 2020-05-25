@@ -53,19 +53,16 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
         bool getScaleParticles() {return m_scale_particles;}
 
         /// Set a new initial box from a python object
-        void setInitialBox(pybind11::object initial_box)
-            {
-            m_initial_box = initial_box;
-            }
+        void setPyInitialBox(pybind11::object initial_box);
 
         /// Get the final box
-        pybind11::object getInitialBox() {return m_initial_box;}
+        pybind11::object getPyInitialBox() {return m_py_initial_box;}
 
         /// Set a new final box from a python object
-        void setFinalBox(pybind11::object final_box) {m_final_box = final_box;}
+        void setPyFinalBox(pybind11::object final_box);
 
         /// Get the final box
-        pybind11::object getFinalBox() {return m_final_box;}
+        pybind11::object getPyFinalBox() {return m_py_final_box;}
 
         /// Set the variant for interpolation
         void setVariant(std::shared_ptr<Variant> variant) {m_variant = variant;}
@@ -83,8 +80,10 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
         virtual void update(unsigned int timestep);
 
     private:
-        pybind11::object m_initial_box;  ///< The python box1
-        pybind11::object m_final_box;  ///< The python box2
+        pybind11::object m_py_initial_box;  ///< The python initial box
+        pybind11::object m_py_final_box;  ///< The python final box
+        BoxDim& m_initial_box;  ///< C++ initial box
+        BoxDim& m_final_box;  ///< C++ final box
         std::shared_ptr<Variant> m_variant; //!< Variant that interpolates between boxes
         bool m_scale_particles; //!< Set to true if particle positions are to be scaled as well
     };
@@ -93,6 +92,6 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
 void export_BoxResizeUpdater(pybind11::module& m);
 
 /// Get a BoxDim object from a pybind11::object or raise error
-BoxDim getBoxDimFromPyObject(pybind11::object box);
+BoxDim& getBoxDimFromPyObject(pybind11::object box);
 
 #endif
