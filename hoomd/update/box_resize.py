@@ -90,7 +90,7 @@ class BoxResize(_Updater):
 
     @classmethod
     def linear_volume(cls, initial_box, final_box,
-                      t_start, t_ramp,
+                      t_start, t_size,
                       trigger, scale_particles=True):
         """Create a BoxResize object that will scale volume/area linearly.
 
@@ -98,9 +98,9 @@ class BoxResize(_Updater):
 
         Args:
             initial_box (hoomd.Box): The box associated with *t_start*.
-            final_box (hoomd.Box): The box associated with *t_start + t_ramp*.
+            final_box (hoomd.Box): The box associated with *t_start + t_size*.
             t_start (int): The timestep to start the volume ramp.
-            t_ramp (int): The length of the volume ramp
+            t_size (int): The length of the volume ramp
             trigger (hoomd.trigger.Trigger): The trigger to activate this
                 updater.  scale_particles (bool): Whether to scale particles to
                 the new box dimensions when the box is resized.
@@ -111,6 +111,9 @@ class BoxResize(_Updater):
             box_resize (hoomd.update.BoxResize): Returns a ``BoxResize`` object
             that will scale between the boxes linearly in volume (area for 2D).
         """
-        var = Power(initial_box.volume, final_box.volume,
-                    1 / final_box.dimensions, t_start, t_size)
+        initial_box = box_preprocessing(initial_box)
+        final_box = box_preprocessing(final_box)
+        min_ = min(initial_box.volume, final_box.volume)
+        max_ = max(initial_box.volume, final_box.volume)
+        var = Power(min_, max_, 1 / final_box.dimensions, t_start, t_size)
         return cls(initial_box, final_box, var, trigger, scale_particles)
