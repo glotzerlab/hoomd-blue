@@ -45,6 +45,7 @@ class State:
 
     def __init__(self, simulation, snapshot):
         self._simulation = simulation
+        self._in_context_manager = False
         snapshot._broadcast_box()
         domain_decomp = _create_domain_decomposition(
             simulation.device,
@@ -192,6 +193,10 @@ class State:
 
     @property
     def local_snapshot(self):
+        if self._in_context_manager:
+            raise RuntimeError(
+                "Cannot enter cpu_local_snapshot context manager inside "
+                "another local_snapshot context manager.")
         return LocalSnapshot(self)
 
     @property
@@ -199,5 +204,9 @@ class State:
         if self._simulation.device.mode != 'gpu':
             raise RuntimeError(
                 "Cannot access gpu_snapshot with a non GPU device.")
+        elif self._in_context_manager:
+            raise RuntimeError(
+                "Cannot enter gpu_local_snapshot context manager inside "
+                "another local_snapshot context manager.")
         else:
             return LocalSnapshotGPU(self)

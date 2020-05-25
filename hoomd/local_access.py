@@ -174,6 +174,9 @@ class PairLocalAccessCPU(_GroupLocalAccess):
 
 
 class _LocalSnapshotBase:
+    def __init__(self, state):
+        self._state = state
+
     @property
     def particles(self):
         return self._particles
@@ -203,6 +206,7 @@ class _LocalSnapshotBase:
         return self._pairs
 
     def __enter__(self):
+        self._state._in_context_manager = True
         self._particles._enter()
         self._bonds._enter()
         self._angles._enter()
@@ -213,6 +217,7 @@ class _LocalSnapshotBase:
         return self
 
     def __exit__(self, type, value, traceback):
+        self._state._in_context_manager = False
         self._particles._exit()
         self._bonds._exit()
         self._angles._exit()
@@ -224,6 +229,7 @@ class _LocalSnapshotBase:
 
 class LocalSnapshot(_LocalSnapshotBase):
     def __init__(self, state):
+        super().__init__(state)
         self._particles = ParticleLocalAccessCPU(state)
         self._bonds = BondLocalAccessCPU(state)
         self._angles = AngleLocalAccessCPU(state)

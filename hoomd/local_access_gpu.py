@@ -40,6 +40,7 @@ if _hoomd.isCUDAAvailable():
 
     class LocalSnapshotGPU(_LocalSnapshotBase):
         def __init__(self, state):
+            super().__init__(state)
             self._particles = ParticleLocalAccessGPU(state)
             self._bonds = BondLocalAccessGPU(state)
             self._angles = AngleLocalAccessGPU(state)
