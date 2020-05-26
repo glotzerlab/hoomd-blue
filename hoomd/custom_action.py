@@ -5,10 +5,10 @@ from hoomd.operation import _HOOMDGetSetAttrBase
 class CustomAction(ABC):
     """Base class for all Python Action's.
 
-    This class must be the parent class for all Python ``Action``s. This class
-    requires all subclasses to implement the :meth:`~.act` method which performs
-    the Python object's task whether that be updating the system, writing
-    output, or analyzing some property of the system.
+    This class is the parent class for all Python ``Action`` subclasses. This
+    class requires all subclasses to implement the :meth:`~.act` method which
+    performs the Python object's task whether that be updating the system,
+    writing output, or analyzing some property of the system.
 
     To use subclasses of this class, the object must be passed as an argument
     to a `hoomd.update.CustomUpdater` or `hoomd.analyze.CustomAnalyzer`
@@ -34,7 +34,7 @@ class CustomAction(ABC):
 
     For advertising loggable quantities through the wrappping object, the class
     attribute ``log_quantities`` can be used. The dictionary expects string keys
-    with the name of the loggable and `hooomd.logger.LoggerQuantity` objects as
+    with the name of the loggable and `hoomd.logger.LoggerQuantity` objects as
     the values.
 
     .. code-block:: python

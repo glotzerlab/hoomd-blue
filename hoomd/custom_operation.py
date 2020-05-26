@@ -8,11 +8,11 @@ from hoomd import _hoomd
 
 
 class _CustomOperation(_TriggeredOperation):
-    """Wrapper for user created `hoomd.CustomAction`s.
+    """Wrapper for user created `hoomd.CustomAction` objects.
 
     This is the parent class for `hoomd.update.CustomUpdater` and
-    `hoomd.analyzer.CustomAnalzyer`.  A basic wrapper that allows for Python
-    object inheriting from `hoomd.custom_action.CustomAction` to be attached to
+    `hoomd.analyze.CustomAnalyzer`.  A basic wrapper that allows for Python
+    object inheriting from `hoomd.CustomAction` to be attached to
     a simulation.  To see how to implement a custom Python action, look at the
     documentation for `hoomd.CustomAction`.
 
@@ -30,7 +30,7 @@ class _CustomOperation(_TriggeredOperation):
 
     Attributes:
         trigger (hoomd.Trigger): A trigger to determine when the wrapped
-        `hoomd.CustomAction` is run.
+            `hoomd.CustomAction` is run.
     """
 
     _override_setattr = {'_action'}
