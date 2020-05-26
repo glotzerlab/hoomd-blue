@@ -1,7 +1,9 @@
+from copy import copy
 from collections import defaultdict
+from warnings import warn
 
 from . import _hoomd
-from .data import boxdim
+from hoomd.box import Box
 from hoomd.snapshot import Snapshot
 from hoomd.local_access import LocalSnapshot
 from hoomd.local_access_gpu import LocalSnapshotGPU
@@ -157,21 +159,30 @@ class State:
 
     @property
     def box(self):
-        b = self._cpp_sys_def.getParticleData().getGlobalBox()
-        L = b.getL()
-        return boxdim(Lx=L.x, Ly=L.y, Lz=L.z,
-                      xy=b.getTiltFactorXY(),
-                      xz=b.getTiltFactorXZ(),
-                      yz=b.getTiltFactorYZ(),
-                      dimensions=self._cpp_sys_def.getNDimensions())
+        """The state's box (a :py:class:`hoomd.box.Box` object).
 
-    # Set the system box
-    # \param value The new boundaries (a data.boxdim object)
+        Ediing the box directly is not allowed.  For example
+        ``state.box.scale(1.1)`` would not scale the state's box. To set the
+        state's box to a new box ``state.box = new_box`` must be used.
+        """
+        b = Box._from_cpp(self._cpp_sys_def.getParticleData().getGlobalBox())
+        return Box.from_box(b)
+
     @box.setter
     def box(self, value):
-        if not isinstance(value, boxdim):
-            raise TypeError('box must be a data.boxdim object')
-        self._cpp_sys_def.getParticleData().setGlobalBox(value._getBoxDim())
+        try:
+            value = Box.from_box(value)
+        except Exception:
+            raise ValueError('{} is not convertable to hoomd.Box using '
+                             'hoomd.Box.from_box'.format(value))
+
+        if value.dimensions != self._cpp_sys_def.getNDimensions():
+            self._simulation.device.cpp_msg.warning(
+                "Box changing dimensions from {} to {}."
+                "".format(self._cpp_sys_def.getNDimensions(),
+                          value.dimensions))
+            self._cpp_sys_def.setNDimensions(value.dimensions)
+        self._cpp_sys_def.getParticleData().setGlobalBox(value._cpp_obj)
 
     def replicate(self):
         raise NotImplementedError

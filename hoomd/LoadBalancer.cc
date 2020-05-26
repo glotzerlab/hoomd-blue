@@ -32,13 +32,12 @@ LoadBalancer::LoadBalancer(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<DomainDecomposition> decomposition,
                            std::shared_ptr<Trigger> trigger)
         : Tuner(sysdef, trigger), m_decomposition(decomposition),
-          m_mpi_comm(m_exec_conf->getMPICommunicator()),
-          m_max_imbalance(Scalar(1.0)), m_recompute_max_imbalance(true),
-          m_needs_migrate(false), m_needs_recount(false),
-          m_tolerance(Scalar(1.05)), m_maxiter(1), m_max_scale(Scalar(0.05)),
-          m_N_own(m_pdata->getN()), m_max_max_imbalance(1.0),
-          m_total_max_imbalance(0.0), m_n_calls(0), m_n_iterations(0),
-          m_n_rebalances(0)
+          m_mpi_comm(m_exec_conf->getMPICommunicator()), m_max_imbalance(Scalar(1.0)),
+          m_recompute_max_imbalance(true), m_needs_migrate(false),
+          m_needs_recount(false), m_tolerance(Scalar(1.05)), m_maxiter(1),
+          m_max_scale(Scalar(0.05)), m_N_own(m_pdata->getN()),
+          m_max_max_imbalance(1.0), m_total_max_imbalance(0.0), m_n_calls(0),
+          m_n_iterations(0), m_n_rebalances(0)
     {
     m_exec_conf->msg->notice(5) << "Constructing LoadBalancer" << endl;
 

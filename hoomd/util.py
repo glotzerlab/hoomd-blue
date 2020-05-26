@@ -8,18 +8,9 @@ R""" Utilities.
 
 from numpy import ndarray
 from collections.abc import Iterable, Mapping
-from inspect import isclass
 from copy import deepcopy
 from enum import IntEnum
-from hoomd.trigger import Periodic, Trigger
-from hoomd.variant import Variant, Constant
 
-## \internal
-# \brief Compatibility definition of a basestring for python 2/3
-try:
-    _basestring = basestring
-except NameError:
-    _basestring = str
 
 ## \internal
 # \brief Checks if a variable is an instance of a string and always returns a list.

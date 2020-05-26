@@ -74,28 +74,25 @@ def is_MPI_available():
 class Trigger:
     pass
 
-class PeriodicTrigger:
-    pass
-
-class BeforeTrigger:
-    pass
-
 class AfterTrigger:
     pass
 
 class AndTrigger:
     pass
 
-class NotTrigger:
+class BeforeTrigger:
     pass
 
-class AndTrigger:
+class NotTrigger:
     pass
 
 class OrTrigger:
     pass
 
 class OnTrigger:
+    pass
+
+class PeriodicTrigger:
     pass
 
 class ParticleFilter:
@@ -132,6 +129,9 @@ class VariantRamp(Variant):
     pass
 
 class VariantCycle(Variant):
+    pass
+
+class VariantPower(Variant):
     pass
 
 class MPIConfiguration():
@@ -177,4 +177,12 @@ class LocalConstraintDataHost():
     pass
 
 class LocalConstraintDataDevice():
+
+def make_scalar3():
+    pass
+
+def make_int3():
+    pass
+
+def make_char3():
     pass

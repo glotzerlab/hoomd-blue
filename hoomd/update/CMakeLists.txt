@@ -1,6 +1,7 @@
 set(files __init__.py
+          box_resize.py
           custom_updater.py
-          )
+   )
 
 install(FILES ${files}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/update
