@@ -128,6 +128,9 @@ class VariantRamp(Variant):
 class VariantCycle(Variant):
     pass
 
+class VariantPower(Variant):
+    pass
+
 class MPIConfiguration():
     pass
 

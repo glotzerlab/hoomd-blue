@@ -15,6 +15,5 @@ hoomd.update
 
 .. automodule:: hoomd.update
     :synopsis: Modify the system state periodically.
-    :members:
-    :imported-members:
     :members: BoxResize, CustomUpdater
+    :imported-members:
