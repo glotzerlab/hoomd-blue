@@ -73,5 +73,29 @@ else:
     class ParticleLocalAccessGPU(NoGPU):
         pass
 
-    class LocalSnapshotGPU(NoGPU):
+    class LocalSnapshotGPU(NoGPU, _LocalSnapshotBase):
         pass
+
+_gpu_snapshot_docs = """
+Provides context manager access to HOOMD-blue GPU data buffers.
+
+The interface of a `LocalSnapshot` is similar to that of the `hoomd.Snapshot`.
+Data is MPI rank local so for MPI parallel simulations only the data possessed
+by a rank is exposed. This means that users must handle the domain decomposition
+directly. One consequence of this is that access to ghost particle data is
+provided. A ghost particle is a particle that is not owned by a rank, but
+nevertheless is required for operations that use particle neighbors. Also,
+changing the global or local box within a `LocalSnapshot` context manager is not
+allowed.
+
+For every property (e.g. ``data.particles.position``), only grabs the
+data for the regular (non-ghost) particles. The property can be prefixed
+with ``ghost_`` to grab the ghost particles in a read only manner. Likewise,
+suffixing with ``_with_ghosts`` will grab all data on the rank (regular and
+ghost particles) in a read only array.
+
+All array-like properties return a `hoomd.array.HOOMDGPUArray` object which
+prevents invalid memory accesses.
+"""
+
+LocalSnapshotGPU.__doc__ = _gpu_snapshot_docs

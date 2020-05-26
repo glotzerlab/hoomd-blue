@@ -115,7 +115,7 @@ class _GroupLocalAccess(_LocalAccess):
         pass
 
     _fields = {
-        'typeid': 'getTypeVal',
+        'type': 'getTypeVal',
         'group': 'getMembers',
         'tags': 'getTags',
         'rtags': 'getRTags'
@@ -179,30 +179,182 @@ class _LocalSnapshotBase:
 
     @property
     def particles(self):
+        """Local particle data.
+
+        Attributes:
+            type ((N) `hoomd.array` object of ``float``): The integer type of a
+                particle
+            tag ((N) `hoomd.array` object of ``int``): the tag of a particle.
+                HOOMD-blue uses spacial sorting to improve cache efficiency in
+                particle look-ups. This means the ordering of the array changes.
+                However, particle tags remain constant. This means that if
+                ``particles.tag[0]`` is 1, then later whatever index has a value
+                of 1 later in the simulation is the same particle.
+            rtag ((N) `hoomd.array` object of ``int``): the reverse tag of a
+                particle. This means that the value ``particles.rtag[0]``
+                represents the current index for particle with tag 0.
+            position ((N, 3) `hoomd.array` object of ``float``): particle
+                positions
+            image ((N, 3) `hoomd.array` object of ``int``): the periodic image
+                a particle occupies
+            velocity ((N, 3) `hoomd.array` object of ``float``): particle
+                velocities (note that changing velocities may or may not effect
+                the future trajectory)
+            acceleration ((N, 3) `hoomd.array` object of ``float``): particle
+                accelerations (note that changing accelerations may or may not
+                effect the future trajectory)
+            mass ((N) `hoomd.array` object of ``float``): particles' masses
+            orientation ((N, 4) `hoomd.array` object of ``float``): particle
+                orientations expressed as quaternions
+            angular_momentum ((N, 4) `hoomd.array` object of ``float``):
+                particle angular momenta expressed as quaternions
+            moment_of_inertia ((N, 3) `hoomd.array` object of ``float``):
+                particle principle moments of inertia
+            charge ((N) `hoomd.array` object of ``float``): particle electrical
+                charges
+            diameter ((N) `hoomd.array` object of ``float``): particle
+                diameters
+            rigid_body_id ((N) `hoomd.array` object of ``int``): The id of the
+                rigid body the particle is in.
+            net_force ((N, 3) `hoomd.array` object of ``float``): net force on
+                particle
+            net_torque ((N, 3) `hoomd.array` object of ``float``): net torque
+                on particle
+            net_virial ((N, 3) `hoomd.array` object of ``float``): net virial
+                on particle
+        """
         return self._particles
 
     @property
     def bonds(self):
+        """Local bond data.
+
+        Attributes:
+            typeid ((N_bonds) `hoomd.array` object of ``int``): The integer
+                type of a bond.
+            members ((N_bonds, 2) `hoomd.array` object of ``int``): the tags of
+                particles in a bond.
+            tag ((N_bonds) `hoomd.array` object of ``int``): the tag of the
+                bond.  HOOMD-blue uses spacial sorting to improve cache
+                efficiency in bond look-ups. This means the ordering of the
+                array changes.  However, bond tags remain constant. This means
+                that if ``bond.tag[0]`` is 1, then later whatever index has a
+                value of 1 later in the simulation is the same bond.
+            rtag ((N_bonds) `hoomd.array` object of ``int``): the reverse tag
+                of a bond. This means that the value ``bond.rtag[0]`` represents
+                the current index for bond with tag 0.
+        """
         return self._bonds
 
     @property
     def angles(self):
+        """Local angle data.
+
+        Attributes:
+            typeid ((N_angles) `hoomd.array` object of ``int``): The integer
+                type of a angle.
+            members ((N_angles, 3) `hoomd.array` object of ``int``): the tags
+                of particles in a angle.
+            tag ((N_angles) `hoomd.array` object of ``int``): the tag of the
+                angle.  HOOMD-blue uses spacial sorting to improve cache
+                efficiency in angle look-ups. This means the ordering of the
+                array changes.  However, angle tags remain constant. This means
+                that if ``angle.tag[0]`` is 1, then later whatever index has a
+                value of 1 later in the simulation is the same angle.
+            rtag ((N_angles) `hoomd.array` object of ``int``): the reverse tag
+                of a angle. This means that the value ``angle.rtag[0]``
+                represents the current index for angle with tag 0.
+        """
         return self._angles
 
     @property
     def dihedrals(self):
+        """Local dihedral data.
+
+        Attributes:
+            typeid ((N_dihedrals) `hoomd.array` object of ``int``): The integer
+                type of a dihedral.
+            members ((N_dihedrals, 3) `hoomd.array` object of ``int``): the
+                tags of particles in a dihedral.
+            tag ((N_dihedrals) `hoomd.array` object of ``int``): the tag of the
+                dihedral.  HOOMD-blue uses spacial sorting to improve cache
+                efficiency in dihedral look-ups. This means the ordering of the
+                array changes.  However, dihedral tags remain constant. This
+                means that if ``dihedral.tag[0]`` is 1, then later whatever
+                index has a value of 1 later in the simulation is the same
+                dihedral.
+            rtag ((N_dihedrals) `hoomd.array` object of ``int``): the reverse
+                tag of a dihedral. This means that the value
+                ``dihedral.rtag[0]`` represents the current index for dihedral
+                with tag 0.
+        """
         return self._dihedrals
 
     @property
     def impropers(self):
+        """Local improper data.
+
+        Attributes:
+            typeid ((N_impropers) `hoomd.array` object of ``int``): The integer
+                type of a improper.
+            members ((N_impropers, 3) `hoomd.array` object of ``int``): the
+                tags of particles in a improper.
+            tag ((N_impropers) `hoomd.array` object of ``int``): the tag of the
+                improper.  HOOMD-blue uses spacial sorting to improve cache
+                efficiency in improper look-ups. This means the ordering of the
+                array changes.  However, improper tags remain constant. This
+                means that if ``improper.tag[0]`` is 1, then later whatever
+                index has a value of 1 later in the simulation is the same
+                improper.
+            rtag ((N_impropers) `hoomd.array` object of ``int``): the reverse
+                tag of a improper. This means that the value
+                ``improper.rtag[0]`` represents the current index for improper
+                with tag 0.
+        """
         return self._impropers
 
     @property
     def constraints(self):
+        """Local constraint data.
+
+        Attributes:
+            value ((N_constraints) `hoomd.array` object of ``float``): The
+                constaint value.
+            members ((N_constraints, 3) `hoomd.array` object of ``int``): the
+                tags of particles in a constraint.
+            tag ((N_constraints) `hoomd.array` object of ``int``): the tag of
+                the constraint.  HOOMD-blue uses spacial sorting to improve
+                cache efficiency in constraint look-ups. This means the ordering
+                of the array changes.  However, constraint tags remain constant.
+                This means that if ``constraint.tag[0]`` is 1, then later
+                whatever index has a value of 1 later in the simulation is the
+                same constraint.
+            rtag ((N_constraints) `hoomd.array` object of ``int``): the reverse
+                tag of a constraint. This means that the value
+                ``constraint.rtag[0]`` represents the current index for
+                constraint with tag 0.
+        """
         return self._constraints
 
     @property
     def pairs(self):
+        """Local special pair data.
+
+        Attributes:
+            typeid ((N_pairs) `hoomd.array` object of ``float``): The type of
+                special pair.
+            members ((N_pairs, 3) `hoomd.array` object of ``int``): the tags of
+                particles in a special pair.
+            tag ((N_pairs) `hoomd.array` object of ``int``): the tag of the
+                special pair.  HOOMD-blue uses spacial sorting to improve cache
+                efficiency in pair look-ups. This means the ordering of the
+                array changes.  However, special pair tags remain constant.
+                This means that if ``pair.tag[0]`` is 1, then later whatever
+                index has a value of 1 later in the simulation is the same pair.
+            rtag ((N_pairs) `hoomd.array` object of ``int``): the reverse tag
+                of a special pair. This means that the value ``pair.rtag[0]``
+                represents the current index for special pair with tag 0.
+        """
         return self._pairs
 
     def __enter__(self):
@@ -228,6 +380,27 @@ class _LocalSnapshotBase:
 
 
 class LocalSnapshot(_LocalSnapshotBase):
+    """Provides context manager access to HOOMD-blue CPU data buffers.
+
+    The interface of a `LocalSnapshot` is similar to that of the
+    `hoomd.Snapshot`. Data is MPI rank local so for MPI parallel simulations
+    only the data possessed by a rank is exposed. This means that users must
+    handle the domain decomposition directly. One consequence of this is that
+    access to ghost particle data is provided. A ghost particle is a particle
+    that is not owned by a rank, but nevertheless is required for operations
+    that use particle neighbors. Also, changing the global or local box within a
+    `LocalSnapshot` context manager is not allowed.
+
+    For every property (e.g. ``data.particles.position``), only grabs the
+    data for the regular (non-ghost) particles. The property can be prefixed
+    with ``ghost_`` to grab the ghost particles in a read only manner. Likewise,
+    suffixing with ``_with_ghosts`` will grab all data on the rank (regular and
+    ghost particles) in a read only array.
+
+    All array-like properties return a `hoomd.array.HOOMDArray` object which
+    prevents invalid memory accesses.
+    """
+
     def __init__(self, state):
         super().__init__(state)
         self._particles = ParticleLocalAccessCPU(state)

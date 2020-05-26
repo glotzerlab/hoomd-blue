@@ -47,6 +47,8 @@ hoomd
    module-hoomd-device
    module-hoomd-dump
    module-hoomd-filter
+   module-hoomd-local
+   module-hoomd-local-gpu
    module-hoomd-triggers
    module-hoomd-update
    module-hoomd-util

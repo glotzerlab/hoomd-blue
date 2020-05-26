@@ -230,7 +230,7 @@ class State:
 
         Provides access directly to the system state's particle, bond, angle,
         dihedral, improper, constaint, and pair data through a context manager.
-        The `hoomd.local_access_gpu.GPULocalSnapshot` object is only usable
+        The `hoomd.local_access_gpu.LocalSnapshotGPU` object is only usable
         within a context manager (i.e. ``with sim.state.gpu_local_snapshot as
         data:``) The interface is similar to that of the `hoomd.Snapshot`. Data
         is local to a given MPI rank. The returned arrays are
