@@ -8,14 +8,15 @@ hoomd
 .. autosummary::
     :nosignatures:
 
-    Simulation
-    State
-    Snapshot
-    Operations
-    Snapshot
-    Logger
-    _CustomOperation
+    Box
     CustomAction
+    Logger
+    Operations
+    Simulation
+    Snapshot
+    State
+    _CustomOperation
+>>>>>>> feature/new-object-API
 
 .. rubric:: Details
 
@@ -27,7 +28,9 @@ hoomd
               State,
               Snapshot,
               Operations,
+              Box,
               Logger,
+              CustomAction,
               _CustomOperation
 
 .. autoclass:: CustomAction
