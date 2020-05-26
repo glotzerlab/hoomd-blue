@@ -25,14 +25,14 @@ namespace py = pybind11;
 */
 
 BoxResizeUpdater::BoxResizeUpdater(std::shared_ptr<SystemDefinition> sysdef,
-                                   pybind11::object initial_box,
-                                   pybind11::object final_box,
+                                   pybind11::object box1,
+                                   pybind11::object box2,
                                    std::shared_ptr<Variant> variant)
     : Updater(sysdef),
-      m_py_initial_box(initial_box),
-      m_py_final_box(final_box),
-      m_initial_box(getBoxDimFromPyObject(initial_box)),
-      m_final_box(getBoxDimFromPyObject(final_box)),
+      m_py_box1(box1),
+      m_py_box2(box2),
+      m_box1(getBoxDimFromPyObject(box1)),
+      m_box2(getBoxDimFromPyObject(box2)),
       m_variant(variant), m_scale_particles(true)
     {
     assert(m_pdata);
@@ -46,17 +46,17 @@ BoxResizeUpdater::~BoxResizeUpdater()
     }
 
 /// Set a new initial box from a python object
-void BoxResizeUpdater::setPyInitialBox(pybind11::object initial_box)
+void BoxResizeUpdater::setPyBox1(pybind11::object box1)
     {
-    m_py_initial_box = initial_box;
-    m_initial_box = getBoxDimFromPyObject(initial_box);
+    m_py_box1 = box1;
+    m_box1 = getBoxDimFromPyObject(box1);
     }
 
 /// Set a new final box from a python object
-void BoxResizeUpdater::setPyFinalBox(pybind11::object final_box)
+void BoxResizeUpdater::setPyBox2(pybind11::object box2)
     {
-    m_py_final_box = final_box;
-    m_final_box = getBoxDimFromPyObject(final_box);
+    m_py_box2 = box2;
+    m_box2 = getBoxDimFromPyObject(box2);
     }
 
 /// Get the current box based on the timestep
@@ -75,14 +75,14 @@ else if (cur_value > min)
 scale = (cur_value - min) / (max - min);
 }
 
-Scalar3 new_L = m_final_box.getL() * scale +
-            m_initial_box.getL() * (1.0 - scale);
-Scalar xy = m_final_box.getTiltFactorXY() * scale +
-        (1.0 - scale) * m_initial_box.getTiltFactorXY();
-Scalar xz = m_final_box.getTiltFactorXZ() * scale +
-        (1.0 - scale) * m_initial_box.getTiltFactorXZ();
-Scalar yz = m_final_box.getTiltFactorYZ() * scale +
-        (1.0 - scale) * m_initial_box.getTiltFactorYZ();
+Scalar3 new_L = m_box2.getL() * scale +
+            m_box1.getL() * (1.0 - scale);
+Scalar xy = m_box2.getTiltFactorXY() * scale +
+        (1.0 - scale) * m_box1.getTiltFactorXY();
+Scalar xz = m_box2.getTiltFactorXZ() * scale +
+        (1.0 - scale) * m_box1.getTiltFactorXZ();
+Scalar yz = m_box2.getTiltFactorYZ() * scale +
+        (1.0 - scale) * m_box1.getTiltFactorYZ();
 
 BoxDim new_box = BoxDim(new_L);
 new_box.setTiltFactors(xy, xz, yz);
@@ -175,12 +175,12 @@ void export_BoxResizeUpdater(py::module& m)
     .def_property("scale_particles",
                   &BoxResizeUpdater::getScaleParticles,
                   &BoxResizeUpdater::setScaleParticles)
-    .def_property("initial_box",
-                  &BoxResizeUpdater::getPyInitialBox,
-                  &BoxResizeUpdater::setPyInitialBox)
-    .def_property("final_box",
-                  &BoxResizeUpdater::getPyFinalBox,
-                  &BoxResizeUpdater::setPyFinalBox)
+    .def_property("box1",
+                  &BoxResizeUpdater::getPyBox1,
+                  &BoxResizeUpdater::setPyBox1)
+    .def_property("box2",
+                  &BoxResizeUpdater::getPyBox2,
+                  &BoxResizeUpdater::setPyBox2)
     .def_property("variant",
                   &BoxResizeUpdater::getVariant,
                   &BoxResizeUpdater::setVariant)

@@ -36,8 +36,8 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
     public:
         /// Constructor
         BoxResizeUpdater(std::shared_ptr<SystemDefinition> sysdef,
-                         pybind11::object initial_box,
-                         pybind11::object final_box,
+                         pybind11::object box1,
+                         pybind11::object box2,
                          std::shared_ptr<Variant> variant);
 
         /// Destructor
@@ -53,16 +53,16 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
         bool getScaleParticles() {return m_scale_particles;}
 
         /// Set a new initial box from a python object
-        void setPyInitialBox(pybind11::object initial_box);
+        void setPyBox1(pybind11::object box1);
 
         /// Get the final box
-        pybind11::object getPyInitialBox() {return m_py_initial_box;}
+        pybind11::object getPyBox1() {return m_py_box1;}
 
         /// Set a new final box from a python object
-        void setPyFinalBox(pybind11::object final_box);
+        void setPyBox2(pybind11::object box2);
 
         /// Get the final box
-        pybind11::object getPyFinalBox() {return m_py_final_box;}
+        pybind11::object getPyBox2() {return m_py_box2;}
 
         /// Set the variant for interpolation
         void setVariant(std::shared_ptr<Variant> variant) {m_variant = variant;}
@@ -73,17 +73,14 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
         /// Get the current box for the given timestep
         BoxDim getCurrentBox(unsigned int timestep);
 
-        /// Determine if two boxes are essentially identical
-        bool boxesAreEquivalent(BoxDim& box1, BoxDim& box2);
-
         /// Update box interpolation based on provided timestep
         virtual void update(unsigned int timestep);
 
     private:
-        pybind11::object m_py_initial_box;  ///< The python initial box
-        pybind11::object m_py_final_box;  ///< The python final box
-        BoxDim& m_initial_box;  ///< C++ initial box
-        BoxDim& m_final_box;  ///< C++ final box
+        pybind11::object m_py_box1;  ///< The python box assoc with min
+        pybind11::object m_py_box2;  ///< The python box assoc with max
+        BoxDim& m_box1;  ///< C++ box assoc with min
+        BoxDim& m_box2;  ///< C++ box assoc with max
         std::shared_ptr<Variant> m_variant; //!< Variant that interpolates between boxes
         bool m_scale_particles; //!< Set to true if particle positions are to be scaled as well
     };

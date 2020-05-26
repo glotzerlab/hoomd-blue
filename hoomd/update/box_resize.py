@@ -24,23 +24,34 @@ class BoxResize(_Updater):
     When part of a `Simulation` ``updater`` list, this object will resize the
     box between the initial and final boxes passed. The behavior is a linear
     interpolation between the initial and final boxes where the minimum of the
-    variant is the initial box and the maximum is the final box. All
+    variant is tagged to `~.box1` and the maximum is tagged to  `~.box2`. All
     values between the minimum and maximum result in a box that is the
     interpolation of the three lengths and tilt factors of the initial and final
     boxes.
 
     Note:
-        The passed `Variant` must be well behaved (i.e. it must have a
-        true minimum and maximum) or the behavior of the updater is undefined.
+        The passed `Variant` must be bounded (i.e. it must have a true minimum
+        and maximum) or the behavior of the updater is undefined.
 
     Note:
         Currently for MPI simulations the rescaling of particles does not work
         properly.
 
     Args:
-        initial_box (hoomd.Box): The box associated with the minimum of the
+        box1 (hoomd.Box): The box associated with the minimum of the
             passed variant.
-        final_box (hoomd.Box): The box associated with the maximum of the
+        box2 (hoomd.Box): The box associated with the maximum of the
+            passed variant.
+        variant (hoomd.variant.Variant): A variant used to interpolate between
+            the two boxes.
+        trigger (hoomd.trigger.Trigger): The trigger to activate this updater.
+        scale_particles (bool): Whether to scale particles to the new box
+            dimensions when the box is resized.
+
+    Attributes:
+        box1 (hoomd.Box): The box associated with the minimum of the
+            passed variant.
+        box2 (hoomd.Box): The box associated with the maximum of the
             passed variant.
         variant (hoomd.variant.Variant): A variant used to interpolate between
             the two boxes.
@@ -48,15 +59,15 @@ class BoxResize(_Updater):
         scale_particles (bool): Whether to scale particles to the new box
             dimensions when the box is resized.
     """
-    def __init__(self, initial_box, final_box,
+    def __init__(self, box1, box2,
                  variant, trigger, scale_particles=True):
         params = ParameterDict(
-            initial_box=OnlyType(Box, preprocess=box_preprocessing),
-            final_box=OnlyType(Box, preprocess=box_preprocessing),
+            box1=OnlyType(Box, preprocess=box_preprocessing),
+            box2=OnlyType(Box, preprocess=box_preprocessing),
             variant=Variant,
             scale_particles=bool)
-        params['initial_box'] = initial_box
-        params['final_box'] = final_box
+        params['box1'] = box1
+        params['box2'] = box2
         params['variant'] = variant
         params['trigger'] = trigger
         params['scale_particles'] = scale_particles
@@ -65,8 +76,8 @@ class BoxResize(_Updater):
 
     def attach(self, simulation):
         self._cpp_obj = _hoomd.BoxResizeUpdater(simulation.state._cpp_sys_def,
-                                                self.initial_box,
-                                                self.final_box,
+                                                self.box1,
+                                                self.box2,
                                                 self.variant)
         super().attach(simulation)
 
@@ -89,7 +100,7 @@ class BoxResize(_Updater):
             return None
 
     @classmethod
-    def linear_volume(cls, initial_box, final_box,
+    def linear_volume(cls, box1, box2,
                       t_start, t_size,
                       trigger, scale_particles=True):
         """Create a BoxResize object that will scale volume/area linearly.
@@ -97,8 +108,8 @@ class BoxResize(_Updater):
         This uses a :class:`hoomd.variant.Power` variant under the hood.
 
         Args:
-            initial_box (hoomd.Box): The box associated with *t_start*.
-            final_box (hoomd.Box): The box associated with *t_start + t_size*.
+            box1 (hoomd.Box): The box associated with *t_start*.
+            box2 (hoomd.Box): The box associated with *t_start + t_size*.
             t_start (int): The timestep to start the volume ramp.
             t_size (int): The length of the volume ramp
             trigger (hoomd.trigger.Trigger): The trigger to activate this
@@ -111,9 +122,9 @@ class BoxResize(_Updater):
             box_resize (hoomd.update.BoxResize): Returns a ``BoxResize`` object
             that will scale between the boxes linearly in volume (area for 2D).
         """
-        initial_box = box_preprocessing(initial_box)
-        final_box = box_preprocessing(final_box)
-        min_ = min(initial_box.volume, final_box.volume)
-        max_ = max(initial_box.volume, final_box.volume)
-        var = Power(min_, max_, 1 / final_box.dimensions, t_start, t_size)
-        return cls(initial_box, final_box, var, trigger, scale_particles)
+        box1 = box_preprocessing(box1)
+        box2 = box_preprocessing(box2)
+        min_ = min(box1.volume, box2.volume)
+        max_ = max(box1.volume, box2.volume)
+        var = Power(min_, max_, 1 / box2.dimensions, t_start, t_size)
+        return cls(box1, box2, var, trigger, scale_particles)
