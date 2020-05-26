@@ -13,4 +13,4 @@ hoomd.util
 
 .. automodule:: hoomd.util
     :synopsis: Utilities.
-    :members:
+    :members: is_iterable
