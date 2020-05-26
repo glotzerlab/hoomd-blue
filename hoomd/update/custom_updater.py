@@ -1,5 +1,5 @@
 from hoomd.custom_operation import _CustomOperation, _InternalCustomOperation
-from hoomd.custom_action import CustomAction, _InternalCustomAction
+from hoomd.custom_action import CustomAction
 
 
 class _UpdaterProperty:
