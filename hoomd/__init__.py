@@ -78,6 +78,8 @@ from hoomd import tuner
 from hoomd.custom_action import CustomAction
 from hoomd.custom_operation import _CustomOperation
 
+from hoomd import logger
+
 from hoomd._hoomd import WalltimeLimitReached
 
 _default_excepthook = sys.excepthook

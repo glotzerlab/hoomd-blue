@@ -1,6 +1,6 @@
 from itertools import count
 from copy import deepcopy
-from hoomd.util import is_iterable, dict_fold, dict_map, SafeNamespaceDict
+from hoomd.util import dict_map, SafeNamespaceDict
 from collections.abc import Sequence
 
 
@@ -50,18 +50,47 @@ def generate_namespace(cls):
 
 
 class LoggerQuantity:
+    """The information required to automatically log to a `hoomd.Logger`.
+
+    Args:
+        name (str): The name of the quantity.
+        cls (class object): The class that the quantity comes from.
+        flag (str, optional): The type of quantity it is. Valid values include
+            scalar, multi (array-like), particle (per particle quantity), bond,
+            angle, dihedral, constraint, pair, dict (a mapping of multiple
+            logged quantity names with their values), and object.
+    """
     def __init__(self, name, cls, flag='scalar'):
         self.name = name
         self.update_cls(cls)
         self.flag = flag
 
     def yield_names(self):
+        """Infinitely yield potential namespaces.
+
+        Used to ensure that all namespaces are unique for a `hoomd.Logger`
+        object. We simple increment a number at the end until the caller stops
+        asking for another namespace.
+
+        Yields:
+            tuple[str]: A potential namespace for the given
+                `hoomd.logger.LoggerQuantity`.
+        """
         yield self.namespace + (self.name,)
         for i in count(start=1, step=1):
             yield self.namespace[:-1] + \
                 (self.namespace[-1] + '_' + str(i), self.name)
 
     def update_cls(self, cls):
+        """Allow updating the class/namespace of the object.
+
+        Since the namespace is determined by the passed class's module and class
+        name, if inheritanting `hoomd.logger.LoggerQuantity`, the class needs to
+        be updated to the subclass.
+
+        Args:
+            cls (class object): The class to update the namespace with.
+        """
         self.namespace = generate_namespace(cls)
         return self
 
