@@ -1,5 +1,5 @@
 hoomd.local_access
---------------
+------------------
 
 .. rubric:: Overview
 
@@ -15,4 +15,4 @@ hoomd.local_access
     :undoc-members:
 
     .. autoclass:: hoomd.local_access.LocalSnapshot
-        :members: particles, bonds, angles, dihedrals, impropers, constraints, pairs
+        :members: box, local_box, particles, bonds, angles, dihedrals, impropers, constraints, pairs

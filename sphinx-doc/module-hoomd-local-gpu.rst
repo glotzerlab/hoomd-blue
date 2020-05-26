@@ -1,5 +1,5 @@
 hoomd.local_access_gpu
---------------
+----------------------
 
 .. rubric:: Overview
 
@@ -15,4 +15,4 @@ hoomd.local_access_gpu
     :undoc-members:
 
     .. autoclass:: hoomd.local_access_gpu.LocalSnapshotGPU
-        :members: particles, bonds, angles, dihedrals, impropers, constraints, pairs
+        :members: box, local_box, particles, bonds, angles, dihedrals, impropers, constraints, pairs

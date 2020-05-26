@@ -68,12 +68,12 @@ except ImportError:
 # except ImportError:
 #     pass
 
+from hoomd.box import Box
 from hoomd.simulation import Simulation
 from hoomd.state import State
 from hoomd.operations import Operations
 from hoomd.snapshot import Snapshot
 from hoomd.logger import Logger
-from hoomd.box import Box
 from hoomd import tuner
 from hoomd.custom_action import CustomAction
 from hoomd.custom_operation import _CustomOperation

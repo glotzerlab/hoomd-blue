@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from hoomd import Box
 from hoomd.array import HOOMDArray
 from hoomd import _hoomd
 
@@ -176,6 +177,18 @@ class PairLocalAccessCPU(_GroupLocalAccess):
 class _LocalSnapshotBase:
     def __init__(self, state):
         self._state = state
+        self._box = state.box
+        self._local_box = state._cpp_sys_def.getParticleData().getBox()
+
+    @property
+    def box(self):
+        """hoomd.Box: The global simulation box."""
+        return Box.from_box(self._box)
+
+    @property
+    def local_box(self):
+        """hoomd.Box: The local box according to the domain decomposition."""
+        return Box.from_box(self._local_box)
 
     @property
     def particles(self):

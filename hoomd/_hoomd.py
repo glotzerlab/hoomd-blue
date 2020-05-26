@@ -177,6 +177,7 @@ class LocalConstraintDataHost():
     pass
 
 class LocalConstraintDataDevice():
+    pass
 
 def make_scalar3():
     pass
@@ -185,4 +186,7 @@ def make_int3():
     pass
 
 def make_char3():
+    pass
+
+class BoxDim:
     pass
