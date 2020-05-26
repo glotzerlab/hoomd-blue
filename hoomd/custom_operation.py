@@ -1,7 +1,6 @@
 from hoomd.operation import _TriggeredOperation
 from hoomd.parameterdicts import ParameterDict
 from hoomd.custom_action import CustomAction
-from hoomd.typeconverter import OnlyType
 from hoomd.trigger import Trigger
 from hoomd.logger import LoggerQuantity
 from hoomd import _hoomd
@@ -29,7 +28,7 @@ class _CustomOperation(_TriggeredOperation):
         This object should not be instantiated or subclassed by an user.
 
     Attributes:
-        trigger (hoomd.Trigger): A trigger to determine when the wrapped
+        trigger (hoomd.trigger.Trigger): A trigger to determine when the wrapped
             `hoomd.CustomAction` is run.
     """
 
