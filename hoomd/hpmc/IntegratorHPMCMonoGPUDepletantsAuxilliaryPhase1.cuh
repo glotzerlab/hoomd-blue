@@ -85,7 +85,8 @@ __global__ void hpmc_insert_depletants_phase1(const Scalar4 *d_trial_postype,
                                      unsigned int max_depletant_queue_size,
                                      const unsigned int *d_n_depletants,
                                      const unsigned int global_work_offset,
-                                     const unsigned int n_work_local
+                                     const unsigned int n_work_local,
+                                     const unsigned int max_n_depletants
                                      )
     {
     // variables to tell what type of thread we are
@@ -127,6 +128,7 @@ __global__ void hpmc_insert_depletants_phase1(const Scalar4 *d_trial_postype,
     unsigned int *s_queue_j = (unsigned int*)(s_overlap_group + n_groups);
     unsigned int *s_queue_gid = (unsigned int*)(s_queue_j + max_queue_size);
     unsigned int *s_queue_didx = (unsigned int *)(s_queue_gid + max_queue_size);
+    unsigned int *s_queue_itrial = (unsigned int *)(s_queue_didx + max_depletant_queue_size);
 
     // copy over parameters one int per thread for fast loads
         {
@@ -156,7 +158,7 @@ __global__ void hpmc_insert_depletants_phase1(const Scalar4 *d_trial_postype,
     __syncthreads();
 
     // initialize extra shared mem
-    char *s_extra = (char *)(s_queue_didx + max_depletant_queue_size);
+    char *s_extra = (char *)(s_queue_itrial + max_depletant_queue_size);
 
     unsigned int available_bytes = max_extra_bytes;
     for (unsigned int cur_type = 0; cur_type < num_types; ++cur_type)
@@ -221,14 +223,10 @@ __global__ void hpmc_insert_depletants_phase1(const Scalar4 *d_trial_postype,
     unsigned int block = blockIdx.z*gridDim.y + blockIdx.y;
     unsigned int grid = gridDim.y*gridDim.z;
 
-    unsigned int i_trial_local = (block >> 1) % ntrial; // shift by one for old config/new config
-    unsigned int i_dep_local = offset + group*group_size + n_groups*group_size*((block >> 1)/ntrial);
-    unsigned int blocks_per_depletant = (grid>>1)/ntrial; // ensure that we have at least 2*n_trial_local blocks
+    unsigned int local_work_idx = offset + group*group_size + n_groups*group_size*(block >> 1);
+    unsigned int blocks_per_depletant = grid>>1;
 
-    // compute the local offset of depletant and trial insertion from the global one
-    unsigned int i_trial = (global_work_offset + i_trial_local) % ntrial;
-
-    // we always have at least two blocks
+    // we always have a number of blocks that is a multiple of two
     bool new_config = block & 1;
 
     detail::OBB obb_i;
@@ -254,19 +252,20 @@ __global__ void hpmc_insert_depletants_phase1(const Scalar4 *d_trial_postype,
 
     unsigned int n_depletants = 0;
 
-    // load random number of depletants from Poisson distribution
-    unsigned int n_depletants_i = d_n_depletants[i*2*ntrial+new_config*ntrial+i_trial];
-
     while (s_adding_depletants)
         {
         // compute global indices
-        unsigned int local_work_idx = i_dep_local*ntrial + i_trial_local;
         unsigned int global_work_idx = global_work_offset + local_work_idx;
-        unsigned int i_dep = global_work_idx/ntrial;
+        unsigned int i_dep = global_work_idx % max_n_depletants;
+        unsigned int i_trial = global_work_idx/max_n_depletants;
+
+        // load random number of depletants from Poisson distribution
+        unsigned int n_depletants_i = d_n_depletants[i*2*ntrial+new_config*ntrial+i_trial];
 
         if (i_dep == 0) n_depletants += n_depletants_i;
 
-        while (s_depletant_queue_size < max_depletant_queue_size && i_dep < n_depletants_i && local_work_idx < n_work_local)
+        while (s_depletant_queue_size < max_depletant_queue_size && i_dep < n_depletants_i
+            && local_work_idx < n_work_local && i_trial < ntrial)
             {
             // one RNG per depletant and trial insertion
             hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCDepletants, new_config ? seed_i_new : seed_i_old,
@@ -313,6 +312,7 @@ __global__ void hpmc_insert_depletants_phase1(const Scalar4 *d_trial_postype,
                 if (insert_point < max_depletant_queue_size)
                     {
                     s_queue_didx[insert_point] = i_dep;
+                    s_queue_itrial[insert_point] = i_trial;
                     }
                 else
                     {
@@ -322,12 +322,12 @@ __global__ void hpmc_insert_depletants_phase1(const Scalar4 *d_trial_postype,
                 } // end if add_to_queue
 
             // advance local depletant idx
-            i_dep_local += group_size*n_groups*blocks_per_depletant;
+            local_work_idx += group_size*n_groups*blocks_per_depletant;
 
             // compute new global index
-            local_work_idx = i_dep_local*ntrial + i_trial_local;
             global_work_idx = global_work_offset + local_work_idx;
-            i_dep = global_work_idx/ntrial;
+            i_dep = global_work_idx % max_n_depletants;
+            i_trial = global_work_idx/max_n_depletants;
             } // end while (s_depletant_queue_size < max_depletant_queue_size && i_dep < n_depletants_i)
 
         __syncthreads();
@@ -353,10 +353,11 @@ __global__ void hpmc_insert_depletants_phase1(const Scalar4 *d_trial_postype,
             // regenerate depletant using seed from queue, this costs a few flops but is probably
             // better than storing one Scalar4 and a Scalar3 per thread in shared mem
             unsigned int i_dep_queue = s_queue_didx[group];
+            unsigned int i_trial_queue = s_queue_itrial[group];
 
             hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCDepletants,
                 new_config ? seed_i_new : seed_i_old,
-                i_dep_queue, i_trial,
+                i_dep_queue, i_trial_queue,
                 depletant_idx(depletant_type_a,depletant_type_b));
 
             // depletant position and orientation
@@ -582,7 +583,7 @@ __global__ void hpmc_insert_depletants_phase1(const Scalar4 *d_trial_postype,
         __syncthreads();
         if (master && group == 0)
             s_depletant_queue_size = 0;
-        if (local_work_idx < n_work_local && i_dep < n_depletants_i)
+        if (local_work_idx < n_work_local && i_trial < ntrial && i_dep < n_depletants_i)
             atomicAdd(&s_adding_depletants, 1);
         __syncthreads();
         } // end loop over depletants
@@ -668,7 +669,7 @@ void depletants_launcher_phase1(const hpmc_args_t& args,
 
         unsigned int shared_bytes = n_groups *(sizeof(Scalar4) + sizeof(Scalar3) + sizeof(unsigned int)) +
                                     max_queue_size*2*sizeof(unsigned int) +
-                                    max_depletant_queue_size*sizeof(unsigned int) +
+                                    max_depletant_queue_size*2*sizeof(unsigned int) +
                                     min_shared_bytes;
 
         if (min_shared_bytes >= args.devprop.sharedMemPerBlock)
@@ -688,7 +689,7 @@ void depletants_launcher_phase1(const hpmc_args_t& args,
 
             shared_bytes = n_groups * (sizeof(Scalar4) + sizeof(Scalar3) + sizeof(unsigned int)) +
                            max_queue_size*2*sizeof(unsigned int) +
-                           max_depletant_queue_size*sizeof(unsigned int) +
+                           max_depletant_queue_size*2*sizeof(unsigned int) +
                            min_shared_bytes;
             }
 
@@ -715,15 +716,15 @@ void depletants_launcher_phase1(const hpmc_args_t& args,
             if (range.first == range.second)
                 continue;
 
-            const unsigned int n_depletants_local = auxilliary_args.nwork_local[idev] / auxilliary_args.ntrial + 1;
-            unsigned int blocks_per_particle = n_depletants_local/(implicit_args.depletants_per_group*n_groups) + 1;
+            unsigned int blocks_per_particle = auxilliary_args.nwork_local[idev]/
+                (implicit_args.depletants_per_group*n_groups) + 1;
 
-            dim3 grid( range.second-range.first, 2*blocks_per_particle*auxilliary_args.ntrial, 1);
+            dim3 grid( range.second-range.first, 2*blocks_per_particle, 1);
 
             if (blocks_per_particle > args.devprop.maxGridSize[1])
                 {
                 grid.y = args.devprop.maxGridSize[1];
-                grid.z = 2*blocks_per_particle*auxilliary_args.ntrial/args.devprop.maxGridSize[1]+1;
+                grid.z = 2*blocks_per_particle/args.devprop.maxGridSize[1]+1;
                 }
 
             assert(args.d_trial_postype);
@@ -788,7 +789,8 @@ void depletants_launcher_phase1(const hpmc_args_t& args,
                                  max_depletant_queue_size,
                                  auxilliary_args.d_n_depletants_ntrial,
                                  auxilliary_args.work_offset[idev],
-                                 auxilliary_args.nwork_local[idev]);
+                                 auxilliary_args.nwork_local[idev],
+                                 implicit_args.max_n_depletants[idev]);
             }
         }
     else
