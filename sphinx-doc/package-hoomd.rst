@@ -16,7 +16,6 @@ hoomd
     Snapshot
     State
     _CustomOperation
->>>>>>> feature/new-object-API
 
 .. rubric:: Details
 
