@@ -193,10 +193,10 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
         {
         for (unsigned int group_size=1; group_size <= overlaps_max_tpp; group_size*=2)
             {
-            for (unsigned int depletants_per_group=1; depletants_per_group <= 32; depletants_per_group*=2)
+            for (unsigned int depletants_per_thread=1; depletants_per_thread <= 32; depletants_per_thread*=2)
                 {
                 if ((block_size % group_size) == 0)
-                    valid_params_depletants.push_back(block_size*1000000 + depletants_per_group*10000 + group_size);
+                    valid_params_depletants.push_back(block_size*1000000 + depletants_per_thread*10000 + group_size);
                 }
             }
         }
@@ -851,7 +851,7 @@ void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const qu
                         m_tuner_depletants->begin();
                         unsigned int param = m_tuner_depletants->getParam();
                         args.block_size = param/1000000;
-                        unsigned int depletants_per_group = (param % 1000000)/10000;
+                        unsigned int depletants_per_thread = (param % 1000000)/10000;
                         args.tpp = param%10000;
 
                         gpu::hpmc_implicit_args_t implicit_args(
@@ -863,7 +863,7 @@ void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const qu
                             false, // repulsive
                             d_n_depletants.data + depletant_idx(itype,jtype)*this->m_pdata->getMaxN(),
                             &max_n_depletants[0],
-                            depletants_per_group,
+                            depletants_per_thread,
                             &m_depletant_streams[depletant_idx(itype,jtype)].front()
                             );
                         gpu::hpmc_clusters_depletants<Shape>(args, implicit_args, params.data());

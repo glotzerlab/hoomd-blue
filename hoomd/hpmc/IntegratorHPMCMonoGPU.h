@@ -347,10 +347,10 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
         {
         for (unsigned int group_size=1; group_size <= narrow_phase_max_tpp; group_size*=2)
             {
-            for (unsigned int depletants_per_group=1; depletants_per_group <= 32; depletants_per_group*=2)
+            for (unsigned int depletants_per_thread=1; depletants_per_thread <= 32; depletants_per_thread*=2)
                 {
                 if ((block_size % group_size) == 0)
-                    valid_params_depletants.push_back(block_size*1000000 + depletants_per_group*10000 + group_size);
+                    valid_params_depletants.push_back(block_size*1000000 + depletants_per_thread*10000 + group_size);
                 }
             }
         }
@@ -1147,7 +1147,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                                     m_tuner_depletants->begin();
                                     unsigned int param = m_tuner_depletants->getParam();
                                     args.block_size = param/1000000;
-                                    unsigned int depletants_per_group = (param % 1000000)/10000;
+                                    unsigned int depletants_per_thread = (param % 1000000)/10000;
                                     args.tpp = param%10000;
 
                                     gpu::hpmc_implicit_args_t implicit_args(
@@ -1159,7 +1159,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                                         h_fugacity.data[this->m_depletant_idx(itype,jtype)] < 0,
                                         d_n_depletants.data + this->m_depletant_idx(itype,jtype)*this->m_pdata->getMaxN(),
                                         &max_n_depletants[0],
-                                        depletants_per_group,
+                                        depletants_per_thread,
                                         &m_depletant_streams[this->m_depletant_idx(itype,jtype)].front()
                                         );
                                     gpu::hpmc_insert_depletants<Shape>(args, implicit_args, params.data());
@@ -1253,7 +1253,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                                         h_fugacity.data[this->m_depletant_idx(itype,jtype)] < 0,
                                         0, // d_n_depletants (unused)
                                         &max_n_depletants[0],
-                                        0,// depletants_per_group
+                                        0,// depletants_per_thread
                                         0 // stream (unused)
                                         );
 
@@ -1296,7 +1296,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                                     m_tuner_depletants_phase1->begin();
                                     unsigned int param = m_tuner_depletants_phase1->getParam();
                                     args.block_size = param/1000000;
-                                    implicit_args.depletants_per_group = (param % 1000000)/10000;
+                                    implicit_args.depletants_per_thread = (param % 1000000)/10000;
                                     args.tpp = param%10000;
                                     gpu::hpmc_depletants_auxilliary_phase1<Shape>(args,
                                         implicit_args,
@@ -1310,7 +1310,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                                     m_tuner_depletants_phase2->begin();
                                     param = m_tuner_depletants_phase2->getParam();
                                     args.block_size = param/1000000;
-                                    implicit_args.depletants_per_group = (param % 1000000)/10000;
+                                    implicit_args.depletants_per_thread = (param % 1000000)/10000;
                                     args.tpp = param%10000;
                                     gpu::hpmc_depletants_auxilliary_phase2<Shape>(args,
                                         implicit_args,

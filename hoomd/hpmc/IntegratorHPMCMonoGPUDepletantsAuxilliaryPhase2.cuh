@@ -257,63 +257,64 @@ __global__ void hpmc_insert_depletants_phase2(const Scalar4 *d_trial_postype,
 
         if (i_dep == 0) n_depletants += n_depletants_i;
 
-        while (s_depletant_queue_size < max_depletant_queue_size && i_dep < n_depletants_i
-            && local_work_idx < n_work_local && i_trial < ntrial)
+        while (s_depletant_queue_size < max_depletant_queue_size && local_work_idx < n_work_local)
             {
-            // one RNG per depletant and trial insertion
-            hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCDepletants, cur_seed_i,
-                i_dep, i_trial, depletant_idx(depletant_type_a,depletant_type_b));
-
-            // filter depletants overlapping with particle i
-            vec3<Scalar> pos_test = vec3<Scalar>(generatePositionInOBB(rng, obb_i, dim));
-
-            Shape shape_test_a(quat<Scalar>(), s_params[depletant_type_a]);
-            Shape shape_test_b(quat<Scalar>(), s_params[depletant_type_b]);
-            quat<Scalar> o;
-            if (shape_test_a.hasOrientation() || shape_test_b.hasOrientation())
+            if (i_dep < n_depletants_i && i_trial < ntrial)
                 {
-                o = generateRandomOrientation(rng, dim);
-                }
-            if (shape_test_a.hasOrientation())
-                shape_test_a.orientation = o;
-            if (shape_test_b.hasOrientation())
-                shape_test_b.orientation = o;
+                // one RNG per depletant and trial insertion
+                hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCDepletants, cur_seed_i,
+                    i_dep, i_trial, depletant_idx(depletant_type_a,depletant_type_b));
 
-            Shape shape_i(quat<Scalar>(), s_params[s_type_i]);
-            if (shape_i.hasOrientation())
-                shape_i.orientation = quat<Scalar>(s_cur_orientation_i);
-            vec3<Scalar> r_ij = vec3<Scalar>(s_cur_pos_i) - pos_test;
-            overlap_checks ++;
-            bool overlap_i_a = (s_check_overlaps[overlap_idx(s_type_i, depletant_type_a)]
-                && check_circumsphere_overlap(r_ij, shape_test_a, shape_i)
-                && test_overlap(r_ij, shape_test_a, shape_i, err_count));
+                // filter depletants overlapping with particle i
+                vec3<Scalar> pos_test = vec3<Scalar>(generatePositionInOBB(rng, obb_i, dim));
 
-            bool overlap_i_b = overlap_i_a;
-            if (pairwise)
-                {
-                overlap_checks++;
-                overlap_i_b = (s_check_overlaps[overlap_idx(s_type_i, depletant_type_b)]
-                    && check_circumsphere_overlap(r_ij, shape_test_b, shape_i)
-                    && test_overlap(r_ij, shape_test_b, shape_i, err_count));
-                }
-
-            if (overlap_i_a || overlap_i_b)
-                {
-                // add this particle to the queue
-                unsigned int insert_point = atomicAdd(&s_depletant_queue_size, 1);
-
-                if (insert_point < max_depletant_queue_size)
+                Shape shape_test_a(quat<Scalar>(), s_params[depletant_type_a]);
+                Shape shape_test_b(quat<Scalar>(), s_params[depletant_type_b]);
+                quat<Scalar> o;
+                if (shape_test_a.hasOrientation() || shape_test_b.hasOrientation())
                     {
-                    s_queue_didx[insert_point] = i_dep;
-                    s_queue_itrial[insert_point] = i_trial;
+                    o = generateRandomOrientation(rng, dim);
                     }
-                else
-                    {
-                    // we will recheck and insert this on the next time through
-                    break;
-                    }
-                } // end if add_to_queue
+                if (shape_test_a.hasOrientation())
+                    shape_test_a.orientation = o;
+                if (shape_test_b.hasOrientation())
+                    shape_test_b.orientation = o;
 
+                Shape shape_i(quat<Scalar>(), s_params[s_type_i]);
+                if (shape_i.hasOrientation())
+                    shape_i.orientation = quat<Scalar>(s_cur_orientation_i);
+                vec3<Scalar> r_ij = vec3<Scalar>(s_cur_pos_i) - pos_test;
+                overlap_checks ++;
+                bool overlap_i_a = (s_check_overlaps[overlap_idx(s_type_i, depletant_type_a)]
+                    && check_circumsphere_overlap(r_ij, shape_test_a, shape_i)
+                    && test_overlap(r_ij, shape_test_a, shape_i, err_count));
+
+                bool overlap_i_b = overlap_i_a;
+                if (pairwise)
+                    {
+                    overlap_checks++;
+                    overlap_i_b = (s_check_overlaps[overlap_idx(s_type_i, depletant_type_b)]
+                        && check_circumsphere_overlap(r_ij, shape_test_b, shape_i)
+                        && test_overlap(r_ij, shape_test_b, shape_i, err_count));
+                    }
+
+                if (overlap_i_a || overlap_i_b)
+                    {
+                    // add this particle to the queue
+                    unsigned int insert_point = atomicAdd(&s_depletant_queue_size, 1);
+
+                    if (insert_point < max_depletant_queue_size)
+                        {
+                        s_queue_didx[insert_point] = i_dep;
+                        s_queue_itrial[insert_point] = i_trial;
+                        }
+                    else
+                        {
+                        // we will recheck and insert this on the next time through
+                        break;
+                        }
+                    } // end if add_to_queue
+                }
             // advance local depletant idx
             local_work_idx += group_size*n_groups*blocks_per_depletant;
 
@@ -321,6 +322,7 @@ __global__ void hpmc_insert_depletants_phase2(const Scalar4 *d_trial_postype,
             global_work_idx = global_work_offset + local_work_idx;
             i_dep = global_work_idx % max_n_depletants;
             i_trial = global_work_idx/max_n_depletants;
+            n_depletants_i = d_n_depletants[i*2*ntrial+new_config*ntrial+i_trial];
             } // end while (s_depletant_queue_size < max_depletant_queue_size && i_dep < n_depletants_i)
 
         __syncthreads();
@@ -622,7 +624,7 @@ __global__ void hpmc_insert_depletants_phase2(const Scalar4 *d_trial_postype,
         __syncthreads();
         if (master && group == 0)
             s_depletant_queue_size = 0;
-        if (local_work_idx < n_work_local && i_trial < ntrial && i_dep < n_depletants_i)
+        if (local_work_idx < n_work_local)
             atomicAdd(&s_adding_depletants, 1);
         __syncthreads();
         } // end loop over depletants
@@ -757,7 +759,7 @@ void depletants_launcher_phase2(const hpmc_args_t& args,
             if (!nwork) continue;
 
             unsigned int blocks_per_particle = auxilliary_args.nwork_local[idev]/
-                (implicit_args.depletants_per_group*n_groups) + 1;
+                (implicit_args.depletants_per_thread*n_groups*tpp) + 1;
 
             dim3 grid( range.second-range.first, 2*blocks_per_particle, 1);
 

@@ -32,7 +32,7 @@ struct hpmc_implicit_args_t
                          const bool _repulsive,
                          const unsigned int *_d_n_depletants,
                          const unsigned int *_max_n_depletants,
-                         const unsigned int _depletants_per_group,
+                         const unsigned int _depletants_per_thread,
                          const hipStream_t *_streams)
                 : depletant_type_a(_depletant_type_a),
                   depletant_type_b(_depletant_type_b),
@@ -42,7 +42,7 @@ struct hpmc_implicit_args_t
                   repulsive(_repulsive),
                   d_n_depletants(_d_n_depletants),
                   max_n_depletants(_max_n_depletants),
-                  depletants_per_group(_depletants_per_group),
+                  depletants_per_thread(_depletants_per_thread),
                   streams(_streams)
         { };
 
@@ -54,7 +54,7 @@ struct hpmc_implicit_args_t
     const bool repulsive;                          //!< True if the fugacity is negative
     const unsigned int *d_n_depletants;            //!< Number of depletants per particle
     const unsigned int *max_n_depletants;          //!< Maximum number of depletants inserted per particle, per device
-    unsigned int depletants_per_group;             //!< Controls parallelism (number of depletant loop iterations per group)
+    unsigned int depletants_per_thread;             //!< Controls parallelism (number of depletant loop iterations per group)
     const hipStream_t *streams;                    //!< Stream for this depletant type
     };
 

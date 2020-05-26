@@ -860,7 +860,7 @@ void clusters_depletants_launcher(const cluster_args_t& args, const hpmc_implici
                 continue;
 
             unsigned int blocks_per_particle = implicit_args.max_n_depletants[idev] /
-                (implicit_args.depletants_per_group*n_groups) + 1;
+                (implicit_args.depletants_per_thread*n_groups*tpp) + 1;
 
             dim3 grid( range.second-range.first, blocks_per_particle, 1);
 
