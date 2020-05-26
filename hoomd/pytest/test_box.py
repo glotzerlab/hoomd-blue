@@ -1,7 +1,6 @@
-from copy import copy
 from math import isclose
 import numpy as np
-from pytest import fixture, raises
+from pytest import fixture
 
 from hoomd.box import Box
 
