@@ -496,39 +496,42 @@ class GSD(_Analyzer):
 
     Args:
         filename (str): File name to write.
-        trigger (``hoomd.ParticleTrigger``): Select the timesteps to write.
-        filter_ (``hoomd._ParticleFilter``): Select the particles to write.
-        overwrite (bool): When ``True``, overwite the file. When ``False``
-                          append frames to `filename` if it exists and create
-                          the file if it does not.
-        truncate (bool): When True, truncate the file and write a new frame 0
-                         each time this operation triggers.
-        dynamic (list[str]): Quantity categories to save in every frame.
-        log (``hoomd.logger.Logger``): A ``Logger`` object for GSD logging.
+        trigger (hoomd.trigger.Trigger): Select the timesteps to write.
+        filter_ (hoomd.filter._ParticleFilter, optional): Select the particles
+            to write, defaults to `hoomd.filter.All`.
+        overwrite (bool, optional): When ``True``, overwite the file. When
+            ``False`` append frames to ``filename`` if it exists and create the
+            file if it does not, defaults to ``False``.
+        truncate (bool, optional): When ``True``, truncate the file and write a
+            new frame 0 each time this operation triggers, defaults to
+            ``False``.
+        dynamic (list[str], optional): Quantity categories to save in every
+            frame, defaults to property.
+        log (hoomd.Logger, optional): A ``Logger`` object for GSD logging,
+            defaults to ``None``.
 
     .. note::
 
         All parameters are also available as instance attributes. Only
         *trigger* and *log* may be modified after construction.
 
-    :py:class:`GSD` Write a simulation snapshot to the specified file each time
-    it triggers. :py:class:`GSD` can store all particle, bond, angle, dihedral,
-    improper, pair, and constraint data fields in every frame of the
-    trajectory. :py:class:`GSD` can write trajectories where the number of
-    particles, number of particle types, particle types, diameter, mass,
-    charge, or other quantities change over time. :py:class:`GSD` can also
-    store operation-specific state information necessary for restarting
-    simulations and user-defined log quantities.
+    `GSD` writes a simulation snapshot to the specified file each time it
+    triggers. `GSD` can store all particle, bond, angle, dihedral, improper,
+    pair, and constraint data fields in every frame of the trajectory.  `GSD`
+    can write trajectories where the number of particles, number of particle
+    types, particle types, diameter, mass, charge, or other quantities change
+    over time. `GSD` can also store operation-specific state information
+    necessary for restarting simulations and user-defined log quantities.
 
-    To reduce file size, :py:class:`GSD` does not write properties that are set
-    to defaults. When masses, orientations, angular momenta, etc... are left
+    To reduce file size, `GSD` does not write properties that are set to
+    defaults. When masses, orientations, angular momenta, etc... are left
     default for all particles, these fields will not take up any space in the
-    file. Additionally, :py:class:`GSD` only writes *dynamic* quantities to
-    all frames. It writes non-dynamic quantities only the first frame. When
-    reading a GSD file, the data in frame 0 is read when a quantity is missing
-    in frame *i*, supplying data that is static over the entire trajectory.
-    Set the *dynamic* parameter to specify dynamic attributes by category.
-    **property** is always dynamic:
+    file. Additionally, `GSD` only writes *dynamic* quantities to all frames. It
+    writes non-dynamic quantities only the first frame. When reading a GSD file,
+    the data in frame 0 is read when a quantity is missing in frame *i*,
+    supplying data that is static over the entire trajectory.  Set the *dynamic*
+    parameter to specify dynamic attributes by category.  **property** is always
+    dynamic:
 
     * **property**
 
@@ -592,9 +595,6 @@ class GSD(_Analyzer):
     .. rubric:: Examples:
 
     TODO: link to example notebooks
-
-    TODO: should ``filter_`` default to All?
-
     """
 
     def __init__(self,
@@ -622,7 +622,7 @@ class GSD(_Analyzer):
                           )
                 )
 
-        self._log = None if log is None else GSDLogWriter(log)
+        self._log = None if log is None else _GSDLogWriter(log)
 
     def attach(self, simulation):
         # validate dynamic property
@@ -650,55 +650,6 @@ class GSD(_Analyzer):
         self._cpp_obj.log_writer = self.log
         super().attach(simulation)
 
-    def dump_state(self, obj):
-        """Write state information for a hoomd object.
-
-        Call :py:meth:`dump_state` if you want to write the state of a hoomd object
-        to the gsd file.
-
-        .. versionadded:: 2.2
-        """
-        if self._cpp_obj is None:
-            raise RuntimeError("GSD must be scheduled first");
-
-        if hasattr(obj, '_connect_gsd') and type(getattr(obj, '_connect_gsd')) == types.MethodType:
-            obj._connect_gsd(self)
-        else:
-            raise RuntimeError("GSD.dump_shape does not support {}".format(obj.__class__.__name__))
-
-    def dump_shape(self, obj):
-        """Writes particle shape information stored by a hoomd object.
-
-        This method writes particle shape information into a GSD file, in the
-        chunk :code:`particle/type_shapes`. This information can be used by
-        other libraries for visualization. The following classes support
-        writing shape information to GSD files:
-
-        * :py:class:`hoomd.hpmc.integrate.Sphere`
-        * :py:class:`hoomd.hpmc.integrate.ConvexPolyhedron`
-        * :py:class:`hoomd.hpmc.integrate.ConvexSpheropolyhedron`
-        * :py:class:`hoomd.hpmc.integrate.Polyhedron`
-        * :py:class:`hoomd.hpmc.integrate.ConvexPolygon`
-        * :py:class:`hoomd.hpmc.integrate.ConvexSpheropolygon`
-        * :py:class:`hoomd.hpmc.integrate.SimplePolygon`
-        * :py:class:`hoomd.hpmc.integrate.Ellipsoid`
-        * :py:class:`hoomd.dem.pair.WCA`
-        * :py:class:`hoomd.dem.pair.SWCA`
-        * :py:class:`hoomd.md.pair.gb`
-
-        See the `Shape Visualization Specification <https://gsd.readthedocs.io/en/stable/shapes.html>`_
-        section of the GSD package documentation for a detailed description of shape definitions.
-
-        .. versionadded:: 2.7
-        """
-        if self._cpp_obj is None:
-            raise RuntimeError("GSD must be scheduled first")
-
-        if hasattr(obj, '_connect_gsd_shape_spec') and type(getattr(obj, '_connect_gsd_shape_spec')) == types.MethodType:
-            obj._connect_gsd_shape_spec(self)
-        else:
-            raise RuntimeError("GSD.dump_shape does not support {}".format(obj.__class__.__name__))
-
     @property
     def log(self):
         return self._log
@@ -706,7 +657,7 @@ class GSD(_Analyzer):
     @log.setter
     def log(self, log):
         if isinstance(log, Logger):
-            log = GSDLogWriter(log)
+            log = _GSDLogWriter(log)
         else:
             raise ValueError("GSD.log can only be set with a Logger.")
         if self.is_attached:
@@ -714,7 +665,7 @@ class GSD(_Analyzer):
         self._log = log
 
 
-class GSDLogWriter:
+class _GSDLogWriter:
 
     _per_keys = ['particles', 'bonds', 'dihedrals', 'impropers', 'pairs']
     _convert_kinds = ['string', 'strings']
