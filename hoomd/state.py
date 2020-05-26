@@ -170,6 +170,9 @@ class State:
 
     @box.setter
     def box(self, value):
+        if self._in_context_manager:
+            raise RuntimeError(
+                "Cannot set system box within local snapshot context manager.")
         try:
             value = Box.from_box(value)
         except Exception:
