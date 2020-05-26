@@ -16,6 +16,10 @@ class _AnalyzerProperty:
 
 
 class CustomAnalyzer(_CustomOperation, _AnalyzerProperty):
+    """Analyzer wrapper for `hoomd.CustomAction` objects.
+
+    For usage see `hoomd._CustomOperation`.
+    """
     _cpp_list_name = 'analyzers'
     _cpp_class_name = 'PythonAnalyzer'
 

@@ -16,6 +16,10 @@ class _UpdaterProperty:
 
 
 class CustomUpdater(_CustomOperation, _UpdaterProperty):
+    """Updater wrapper for `hoomd.CustomAction` objects.
+
+    For usage see `hoomd._CustomOperation`.
+    """
     _cpp_list_name = 'updaters'
     _cpp_class_name = 'PythonUpdater'
 
