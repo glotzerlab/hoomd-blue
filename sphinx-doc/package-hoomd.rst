@@ -16,6 +16,8 @@ hoomd
     Snapshot
     State
     _CustomOperation
+    CustomAction
+    ParticleDataFlags
 
 .. rubric:: Details
 
@@ -29,8 +31,8 @@ hoomd
               Operations,
               Box,
               Logger,
-              CustomAction,
               _CustomOperation
+              ParticleDataFlags
 
 .. autoclass:: CustomAction
    :exclude-members: flags, log_quantities

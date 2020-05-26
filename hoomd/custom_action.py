@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from enum import IntEnum
 from hoomd.operation import _HOOMDGetSetAttrBase
 
 
@@ -16,12 +17,11 @@ class CustomAction(ABC):
 
     If the pressure, rotational kinetic energy, or external field virial is
     needed for a subclass, the flags attribute of the class needs to be set with
-    the appropriate flags from `hoomd.util.ParticleDataFlags`.
+    the appropriate flags from `hoomd.ParticleDataFlags`.
 
     .. code-block:: python
 
-        from hoomd.python_action import CustomAction
-        from hoomd.util import ParticleDataFlags
+        from hoomd import CustomAction, ParticleDataFlags
 
 
         class ExampleActionWithFlag(CustomAction):
@@ -70,8 +70,8 @@ class CustomAction(ABC):
 
 
     Attributes:
-        flags (list[hoomd.util.ParticleDataFlags]): List of flags from the
-            `hoomd.util.ParticleDataFlags`. Used to tell the integrator if
+        flags (list[hoomd.ParticleDataFlags]): List of flags from the
+            `hoomd.ParticleDataFlags`. Used to tell the integrator if
             specific quantities are needed for the action.
         log_quantities (dict[str, hoomd.logger.LoggerQuantity]): Dictionary of
             the name of loggable quantites to the `hoomd.logger.LoggerQuantity`
@@ -90,7 +90,7 @@ class CustomAction(ABC):
 
         Args:
             simulation (hoomd.Simulation): The simulation to attach the action
-            to.
+                to.
         """
         self._state = simulation.state
 
@@ -134,3 +134,13 @@ class _InternalCustomAction(CustomAction, _HOOMDGetSetAttrBase):
     be created.
     """
     pass
+
+
+class ParticleDataFlags(IntEnum):
+    """Enumeration of flags for the integrator to calcuate certain quantities.
+
+    Used for setting the flags required for operation of a `hoomd.CustomAction`.
+    """
+    PRESSURE_TENSOR = 0
+    ROTATIONAL_KINETIC_ENERGY = 1
+    EXTERNAL_FIELD_VIRIAL = 2
