@@ -4,6 +4,8 @@ import numpy as np
 from copy import deepcopy
 import itertools
 
+np.random.seed(0)
+
 _pairs = [
     ["Gauss",
      hoomd.md.pair.Gauss(hoomd.md.nlist.Cell()),
