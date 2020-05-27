@@ -115,7 +115,7 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
                                       cell._param_dict)
 
 
-@pytest.mark.parametrize("nsteps", [1, 5, 10])
+@pytest.mark.parametrize("nsteps", [1, 3, 5])
 def test_run(simulation_factory, lattice_snapshot_factory,
              valid_params, nsteps):
     pair_potential, pair_potential_dict, r_cut, r_on, mode = valid_params
