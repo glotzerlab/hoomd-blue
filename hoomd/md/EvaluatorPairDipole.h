@@ -58,22 +58,6 @@
 #define _EXP(x) exp( (x) )
 #endif
 
-struct pair_dipole_params
-    {
-    Scalar mu;         //! The magnitude of the magnetic moment.
-    Scalar A;          //! The electrostatic energy scale.
-    Scalar kappa;      //! The inverse screening length.
-
-    //! Load dynamic data members into shared memory and increase pointer
-    /*! \param ptr Pointer to load data to (will be incremented)
-        \param available_bytes Size of remaining shared memory allocation
-     */
-    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
-        {
-        // No-op for this struct since it contains no arrays.
-        }
-    };
-
 // Nullary structure required by AnisoPotentialPair.
 struct dipole_shape_params
     {
@@ -94,7 +78,55 @@ struct dipole_shape_params
 class EvaluatorPairDipole
     {
     public:
-        typedef pair_dipole_params param_type;
+        struct param_type
+            {
+            Scalar mu;
+            Scalar A;
+            Scalar kappa;
+
+            #ifdef ENABLE_HIP
+            //! Set CUDA memory hints
+            void set_memory_hint() const
+                {
+                // default implementation does nothing
+                }
+            #endif
+
+            #ifndef __HIPCC__
+            param_type() {mu = 0; A = 0; kappa = 0;}
+
+            // this constructor facilitates unit testing
+            //param_type(Scalar muu, Scalar Aa, Scalar kappaa)
+            //    {
+            //    mu = muu;
+            //    A = Aa;
+            //    kappa = kappaa;
+            //    }
+
+            param_type(pybind11::dict v)
+                {
+                auto mu(v["mu"].cast<Scalar>());
+                auto A(v["A"].cast<Scalar>());
+                auto kappa(v["kappa"].cast<Scalar>());
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+                v["mu"] = mu;
+                v["A"] = A;
+                v["kappa"] = kappa;
+                return v;
+                }
+            #endif
+            }
+            #ifdef SINGLE_PRECISION
+            __attribute__((aligned(8)));
+            #else
+            __attribute__((aligned(16)));
+            #endif
+
+        //TODO: make a similar structure for shapedef
         typedef dipole_shape_params shape_param_type;
 
         //! Constructs the pair potential evaluator
@@ -108,7 +140,7 @@ class EvaluatorPairDipole
             \param _params Per type pair parameters of this potential
         */
         HOSTDEVICE EvaluatorPairDipole(Scalar3& _dr, Scalar4& _quat_i, Scalar4& _quat_j, Scalar _rcutsq, const param_type& _params)
-            :dr(_dr), rcutsq(_rcutsq), quat_i(_quat_i), quat_j(_quat_j), params(_params)
+            :dr(_dr), rcutsq(_rcutsq), quat_i(_quat_i), quat_j(_quat_j), mu(_params.mu), A(_params.A), kappa(_params.kappa)
             {
             }
 
@@ -187,8 +219,8 @@ class EvaluatorPairDipole
             Scalar r5inv = r3inv*r2inv;
 
             // convert dipole vector in the body frame of each particle to space frame
-            vec3<Scalar> p_i = rotate(quat<Scalar>(quat_i), vec3<Scalar>(params.mu, 0, 0));
-            vec3<Scalar> p_j = rotate(quat<Scalar>(quat_j), vec3<Scalar>(params.mu, 0, 0));
+            vec3<Scalar> p_i = rotate(quat<Scalar>(quat_i), vec3<Scalar>(mu, 0, 0));
+            vec3<Scalar> p_j = rotate(quat<Scalar>(quat_j), vec3<Scalar>(mu, 0, 0));
 
             vec3<Scalar> f;
             vec3<Scalar> t_i;
@@ -196,10 +228,10 @@ class EvaluatorPairDipole
             Scalar e = Scalar(0.0);
 
             Scalar r = Scalar(1.0)/rinv;
-            Scalar prefactor = params.A*_EXP(-params.kappa*r);
+            Scalar prefactor = A*_EXP(-kappa*r);
 
             // dipole-dipole
-            if (params.mu != Scalar(0.0))
+            if (mu != Scalar(0.0))
                 {
                 Scalar r7inv = r5inv*r2inv;
                 Scalar pidotpj = dot(p_i, p_j);
@@ -210,7 +242,7 @@ class EvaluatorPairDipole
                 Scalar pre2 = prefactor*Scalar(3.0)*r5inv*pjdotr;
                 Scalar pre3 = prefactor*Scalar(3.0)*r5inv*pidotr;
                 Scalar pre4 = prefactor*Scalar(-1.0)*r3inv;
-                Scalar pre5 = prefactor*(r3inv*pidotpj - Scalar(3.0)*r5inv*pidotr*pjdotr)*params.kappa*rinv;
+                Scalar pre5 = prefactor*(r3inv*pidotpj - Scalar(3.0)*r5inv*pidotr*pjdotr)*kappa*rinv;
 
                 f += pre1*rvec + pre2*p_i + pre3*p_j + pre5*rvec;
 
@@ -222,12 +254,12 @@ class EvaluatorPairDipole
                 e += prefactor*(r3inv*pidotpj - Scalar(3.0)*r5inv*pidotr*pjdotr);
                 }
             // dipole i - electrostatic j
-            if (params.mu != Scalar(0.0) && q_j != Scalar(0.0))
+            if (mu != Scalar(0.0) && q_j != Scalar(0.0))
                 {
                 Scalar pidotr = dot(p_i, rvec);
                 Scalar pre1 = prefactor*Scalar(3.0)*q_j*r5inv * pidotr;
                 Scalar pre2 = prefactor*q_j*r3inv;
-                Scalar pre3 = prefactor*q_j*r3inv*pidotr*params.kappa*rinv;
+                Scalar pre3 = prefactor*q_j*r3inv*pidotr*kappa*rinv;
 
                 f += pre2*p_i - pre1*rvec - pre3*rvec;
 
@@ -236,12 +268,12 @@ class EvaluatorPairDipole
                 e -= pidotr*pre2;
                 }
             // electrostatic i - dipole j
-            if (q_i != Scalar(0.0) && params.mu != Scalar(0.0))
+            if (q_i != Scalar(0.0) && mu != Scalar(0.0))
                 {
                 Scalar pjdotr = dot(p_j, rvec);
                 Scalar pre1 = prefactor*Scalar(3.0)*q_i*r5inv * pjdotr;
                 Scalar pre2 = prefactor*q_i*r3inv;
-                Scalar pre3 = prefactor*q_i*r3inv*pjdotr*params.kappa*rinv;
+                Scalar pre3 = prefactor*q_i*r3inv*pjdotr*kappa*rinv;
 
                 f += pre1*rvec - pre2*p_j + pre3*rvec;
 
@@ -252,7 +284,7 @@ class EvaluatorPairDipole
             // electrostatic-electrostatic
             if (q_i != Scalar(0.0) && q_j != Scalar(0.0))
                 {
-                Scalar fforce = prefactor*q_i*q_j*(params.kappa+rinv)*r2inv;
+                Scalar fforce = prefactor*q_i*q_j*(kappa+rinv)*r2inv;
 
                 f += fforce*rvec;
 
@@ -288,17 +320,10 @@ class EvaluatorPairDipole
         Scalar rcutsq;              //!< Stored rcutsq from the constructor
         Scalar q_i, q_j;            //!< Stored particle charges
         Scalar4 quat_i,quat_j;      //!< Stored quaternion of ith and jth particle from constructor
-        const param_type &params;   //!< The pair potential parameters
+        Scalar mu;
+        Scalar A;
+        Scalar kappa;
+        // const param_type &params;   //!< The pair potential parameters
     };
-
-//! Function to make the dipole parameter type
-inline pair_dipole_params make_pair_dipole_params(Scalar mu, Scalar A, Scalar kappa)
-    {
-    pair_dipole_params retval;
-    retval.mu = mu;
-    retval.A = A;
-    retval.kappa = kappa;
-    return retval;
-    }
 
 #endif // __PAIR_EVALUATOR_DIPOLE_H__

@@ -1724,7 +1724,7 @@ class _shape_dict(dict):
             raise KeyError("No shape parameters specified for particle type {}!".format(key)) from e
 
 
-class ai_pair(pair):
+class _AnisotropicPair(_Pair):
     R"""Generic anisotropic pair potential.
 
     Users should not instantiate :py:class:`ai_pair` directly. It is a base class that
@@ -1745,49 +1745,23 @@ class ai_pair(pair):
     #  - self.required_coeffs (a list of the coeff names the derived class needs)
     #  - self.process_coeffs() (a method that takes in the coeffs and spits out a param struct to use in
     #       self.cpp_force.set_params())
-    def __init__(self, r_cut, nlist, name=None):
-        # initialize the base class
-        force._force.__init__(self, name);
 
-        self.global_r_cut = r_cut;
-
-        # setup the coefficient matrix
-        self.pair_coeff = coeff();
-        self.pair_coeff.set_default_coeff('r_cut', self.global_r_cut);
-
-        # setup the neighbor list
-        self.nlist = nlist
-        self.nlist.subscribe(lambda:self.get_rcut())
-        self.nlist.update_rcut()
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
+        self._nlist = validate_nlist(nlist)
+        r_cut = float if r_cut is None else float(r_cut)
+        r_cut = TypeParameter('r_cut', 'particle_types',
+                              TypeParameterDict(r_cut, len_keys=2)
+                             )
+        r_on = TypeParameter('r_on', 'particle_types',
+                             TypeParameterDict(float(r_on), len_keys=2)
+                            )
+        self._extend_typeparam([r_cut, r_on])
+        self._param_dict.update(
+            ParameterDict(mode=OnlyFrom(['none', 'shifted', 'xplor']),
+                          explicit_defaults=dict(mode=mode))
+            )
 
         self._shape = _shape_dict()
-
-    def set_params(self, mode=None):
-        R"""Set parameters controlling the way forces are computed.
-
-        Args:
-            mode (str): (if set) Set the mode with which potentials are handled at the cutoff
-
-        valid values for mode are: "none" (the default) and "shift":
-
-        - *none* - No shifting is performed and potentials are abruptly cut off
-        - *shift* - A constant shift is applied to the entire potential so that it is 0 at the cutoff
-
-        Examples::
-
-            mypair.set_params(mode="shift")
-            mypair.set_params(mode="no_shift")
-
-        """
-
-        if mode is not None:
-            if mode == "no_shift":
-                self.cpp_force.setShiftMode(self.cpp_class.energyShiftMode.no_shift)
-            elif mode == "shift":
-                self.cpp_force.setShiftMode(self.cpp_class.energyShiftMode.shift)
-            else:
-                hoomd.context.current.device.cpp_msg.error("Invalid mode\n");
-                raise RuntimeError("Error changing parameters in pair force");
 
     @property
     def shape(self):
@@ -1801,40 +1775,18 @@ class ai_pair(pair):
         """
         return self._shape
 
-    def update_coeffs(self):
-        coeff_list = self.required_coeffs + ["r_cut"];
-        # check that the pair coefficients are valid
-        if not self.pair_coeff.verify(coeff_list):
-            hoomd.context.current.device.cpp_msg.error("Not all pair coefficients are set\n");
-            raise RuntimeError("Error updating pair coefficients");
+    @property
+    def nlist(self):
+        return self._nlist
 
-        # set all the params
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
+    @nlist.setter
+    def nlist(self, value):
+        if self.is_attached:
+            raise RuntimeError("nlist cannot be set after attaching.")
+        else:
+            self._nlist = validate_nlist(_NList)(value)
 
-        for i in range(0,ntypes):
-            self._set_cpp_shape(i, type_list[i])
-
-            for j in range(i,ntypes):
-                # build a dict of the coeffs to pass to process_coeff
-                coeff_dict = {}
-                for name in coeff_list:
-                    coeff_dict[name] = self.pair_coeff.get(type_list[i], type_list[j], name);
-
-                param = self.process_coeff(coeff_dict);
-                self.cpp_force.setParams(i, j, param);
-                self.cpp_force.setRcut(i, j, coeff_dict['r_cut']);
-
-    def _set_cpp_shape(self, type_id, type_name):
-        """Update shape information in C++.
-
-        This method must be implemented by subclasses to generate the
-        appropriate shape structure. The default behavior is to do nothing."""
-        pass
-
-class gb(ai_pair):
+class gb(_AnisotropicPair):
     R""" Gay-Berne anisotropic pair potential.
 
     Args:
@@ -1895,35 +1847,14 @@ class gb(ai_pair):
         gb.pair_coeff.set('A', 'B', epsilon=2.0, lperp=0.45, lpar=0.5, r_cut=2**(1.0/6.0));
 
     """
-    def __init__(self, r_cut, nlist, name=None):
+    _cpp_class_name = "AnisoPotentialPairGB"
+    def __init__(self, nlist, r_cut=None, r_on=0, mode='none'):
+        super().__init__(nlist, r_cut, r_on, mode)
+        params = TypeParameter('params', 'particle_types',
+                               TypeParameterDict(epsilon=float, lperp=float, lpar=float, len_keys=3))
+        self._add_typeparam(params)
 
-        # tell the base class how we operate
-
-        # initialize the base class
-        ai_pair.__init__(self, r_cut, nlist, name);
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.AnisoPotentialPairGB(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.AnisoPotentialPairGB;
-        else:
-            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-            self.cpp_force = _md.AnisoPotentialPairGBGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.AnisoPotentialPairGBGPU;
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-
-        # setup the coefficient options
-        self.required_coeffs = ['epsilon', 'lperp', 'lpar'];
-
-    def process_coeff(self, coeff):
-        epsilon = coeff['epsilon'];
-        lperp = coeff['lperp'];
-        lpar = coeff['lpar'];
-
-        return _md.make_pair_gb_params(epsilon, lperp, lpar);
-
-    def get_type_shapes(self):
+    #def get_type_shapes(self):
         """Get all the types of shapes in the current simulation.
 
         Example:
@@ -1934,9 +1865,9 @@ class gb(ai_pair):
         Returns:
             A list of dictionaries, one for each particle type in the system.
         """
-        return super(ai_pair, self)._return_type_shapes();
+        #return super(ai_pair, self)._return_type_shapes();
 
-class dipole(ai_pair):
+class Dipole(_AnisotropicPair):
     R""" Screened dipole-dipole interactions.
 
     Args:
@@ -1974,42 +1905,13 @@ class dipole(ai_pair):
         dipole.pair_coeff.set('A', 'B', mu=0.5, kappa=1.0)
 
     """
-    def __init__(self, r_cut, nlist, name=None):
-
-        ## tell the base class how we operate
-
-        # initialize the base class
-        ai_pair.__init__(self, r_cut, nlist, name);
-
-        ## create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.AnisoPotentialPairDipole(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.AnisoPotentialPairDipole;
-        else:
-            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-            self.cpp_force = _md.AnisoPotentialPairDipoleGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.AnisoPotentialPairDipoleGPU;
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-
-        ## setup the coefficient options
-        self.required_coeffs = ['mu', 'A', 'kappa'];
-
-        self.pair_coeff.set_default_coeff('A', 1.0)
-
-    def process_coeff(self, coeff):
-        mu = float(coeff['mu']);
-        A = float(coeff['A']);
-        kappa = float(coeff['kappa']);
-
-        return _md.make_pair_dipole_params(mu, A, kappa);
-
-    def set_params(self, *args, **kwargs):
-        """ :py:class:`dipole` has no energy shift modes """
-
-        raise RuntimeError('Not implemented for dipole');
-        return;
-
+    _cpp_class_name = "AnisoPotentialPairDipole"
+    def __init__(self, nlist, r_cut=None, r_on=0, mode='none'):
+        super().__init__(nlist, r_cut, r_on, mode)
+        params = TypeParameter('params', 'particle_types',
+                               TypeParameterDict(mu=float, A=float, kappa=float,
+                                                 len_keys=2))
+        self._add_typeparam(params)
 
 class reaction_field(pair):
     R""" Onsager reaction field pair potential.

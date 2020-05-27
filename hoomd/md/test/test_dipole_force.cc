@@ -69,11 +69,10 @@ void dipole_force_particle_test(dipoleforce_creator dipole_creator, std::shared_
     fc_2->setRcut(0, 0, Scalar(6.0));
 
     // Compare with lammps dipole potential, which fixes A=1 and kappa=0
-    pair_dipole_params params;
-    params.mu = 0.6;
-    params.A = 1;
-    params.kappa = 0;
-    fc_2->setParams(0, 0, params);
+    Scalar mu = 0.6;
+    Scalar A = 1;
+    Scalar kappa = 0;
+    fc_2->setParams(0, 0, EvaluatorPairDipole::param_type(mu, A, kappa));
 
     // compute the forces
     fc_2->compute(0);
