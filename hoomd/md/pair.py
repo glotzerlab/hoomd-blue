@@ -170,7 +170,7 @@ class _Pair(force._Force):
         """
         # TODO future versions could use np functions to test the assumptions
         # above and raise an error if they occur.
-        return self.cpp_force.computeEnergyBetweenSets(tags1, tags2)
+        return self._cpp_obj.computeEnergyBetweenSets(tags1, tags2)
 
     def _return_type_shapes(self):
         type_shapes = self.cpp_force.getTypeShapesPy()
