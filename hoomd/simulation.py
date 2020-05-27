@@ -21,6 +21,7 @@ class Simulation:
         self._state = None
         self._operations = Operations(self)
         self._verbose = False
+        self._timestep = None
 
     @property
     def device(self):
@@ -34,7 +35,7 @@ class Simulation:
     @property
     def timestep(self):
         if not hasattr(self, '_cpp_sys'):
-            return None
+            return self._timestep
         else:
             return self._cpp_sys.getCurrentTimeStep()
 
