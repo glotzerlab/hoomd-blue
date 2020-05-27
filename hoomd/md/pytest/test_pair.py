@@ -115,8 +115,9 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
                                       cell._param_dict)
 
 
+@pytest.mark.parametrize("nsteps", [1, 5, 10])
 def test_run(simulation_factory, lattice_snapshot_factory,
-             valid_params):
+             valid_params, nsteps):
     pair_potential, pair_potential_dict, r_cut, r_on, mode = valid_params
     particle_types = list(set(itertools.chain.from_iterable(r_cut.keys())))
     cell = hoomd.md.nlist.Cell()
@@ -144,9 +145,46 @@ def test_run(simulation_factory, lattice_snapshot_factory,
                                                         kT=1, seed=1))
     sim.operations.integrator = integrator
     sim.operations.schedule()
-    for nsteps in [1, 5, 10]:
-        initial_pos = sim.state.snapshot.particles.position
+    initial_pos = sim.state.snapshot.particles.position
+    sim.run(nsteps)
+    with pytest.raises(AssertionError):
+        np.testing.assert_allclose(sim.state.snapshot.particles.position,
+                                   initial_pos)
+
+
+@pytest.mark.parametrize("nsteps", [1, 5, 10])
+def test_compute_energy(simulation_factory, two_particle_snapshot_factory,
+                        valid_params, nsteps):
+    pair_potential, pair_potential_dict, r_cut, r_on, mode = valid_params
+    particle_types = list(set(itertools.chain.from_iterable(r_cut.keys())))
+    cell = hoomd.md.nlist.Cell()
+    if mode is not None:
+        pot = pair_potential(nlist=cell, r_cut=2.5, mode=mode)
+    else:
+        pot = pair_potential(nlist=cell, r_cut=2.5)
+    for pair in pair_potential_dict:
+        pot.params[pair] = pair_potential_dict[pair]
+        pot.r_cut[pair] = r_cut[pair]
+        if r_on is not None:
+            pot.r_on[pair] = r_on[pair]
+    snap = two_particle_snapshot_factory(particle_types=particle_types)
+    sim = simulation_factory(snap)
+    integrator = hoomd.md.Integrator(dt=0.005)
+    integrator.forces.append(pot)
+    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
+                                                        kT=1, seed=1))
+    sim.operations.integrator = integrator
+    sim.operations.schedule()
+    for pair in pair_potential_dict:
+        snap = sim.state.snapshot
+        if snap.exists:
+            snap.particles.typeid[0] = particle_types.index(pair[0])
+            snap.particles.typeid[1] = particle_types.index(pair[1])
+
+        sim.state.snapshot = snap
         sim.run(nsteps)
-        with pytest.raises(AssertionError):
-            np.testing.assert_allclose(sim.state.snapshot.particles.position,
-                                       initial_pos)
+        sim_energies = sim.operations.integrator.forces[0].energies
+        pair_energy = pot.compute_energy(np.array([0], dtype=np.int32),
+                                         np.array([1], dtype=np.int32))
+        assert pair_energy / 2 == sim_energies[0]
+        assert pair_energy / 2 == sim_energies[1]
