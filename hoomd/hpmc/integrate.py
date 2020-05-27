@@ -374,6 +374,25 @@ class mode_hpmc(_integrator):
 
         self.cpp_integrator.setNtrialCommunicator(comm.cpp_mpi_conf)
 
+    def set_particle_comm(self, comm):
+        R""" Set a MPI communicator to split the local particle data further (particle decomposition).
+             Only supported with GPU execution.
+
+        Args:
+            comm: A hoomd.comm.Communicator() object
+
+        comm needs to be split from the local domain decomposition communicator (which can be MPI.COMM_WORLD).
+        """
+
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
+            raise RuntimeError('set_particle_comm() only supported in GPU execution mode')
+
+        if not isinstance(comm, hoomd.comm.Communicator):
+            raise RuntimeError('The provided comm argument is not a comm.Communicator.\n')
+
+        self.cpp_integrator.setParticleCommunicator(comm.cpp_mpi_conf)
+
+
     def map_overlaps(self):
         R""" Build an overlap map of the system
 

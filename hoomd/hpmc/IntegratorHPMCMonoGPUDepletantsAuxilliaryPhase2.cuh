@@ -29,7 +29,7 @@ namespace gpu {
 
 #ifdef __HIP_PLATFORM_NVCC__
 #define MAX_BLOCK_SIZE 1024
-#define MIN_BLOCK_SIZE 32
+#define MIN_BLOCK_SIZE 256 // a reasonable minimum to limit compile time
 #else
 #define MAX_BLOCK_SIZE 1024
 #define MIN_BLOCK_SIZE 1024 // on AMD, we do not use __launch_bounds__
@@ -746,14 +746,14 @@ void depletants_launcher_phase2(const hpmc_args_t& args,
         // setup the grid to run the kernel
         dim3 threads(1, n_groups, tpp);
 
-        for (int idev = args.gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+        for (int idev = auxilliary_args.gpu_partition_rank.getNumActiveGPUs() - 1; idev >= 0; --idev)
             {
-            auto range = args.gpu_partition.getRangeAndSetGPU(idev);
+            auto range = auxilliary_args.gpu_partition_rank.getRangeAndSetGPU(idev);
 
             unsigned int nwork = range.second - range.first;
 
             // add ghosts to final range
-            if (idev == (int)args.gpu_partition.getNumActiveGPUs()-1)
+            if (idev == (int)auxilliary_args.gpu_partition_rank.getNumActiveGPUs()-1 && auxilliary_args.add_ghosts)
                 nwork += auxilliary_args.n_ghosts;
 
             if (!nwork) continue;

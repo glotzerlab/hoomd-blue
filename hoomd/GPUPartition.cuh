@@ -96,12 +96,12 @@ class __attribute__((visibility("default"))) GPUPartition
                 }
             return *this;
             }
- 
+
         //! Update the number of particles and distribute particles equally between GPUs
-        void setN(unsigned int N)
+        void setN(unsigned int N, unsigned int offset=0)
             {
             unsigned int n_per_gpu = N/m_n_gpu;
-            unsigned int offset = 0;
+            unsigned int ini_offset = offset;
             for (unsigned int i = 0; i < m_n_gpu; ++i)
                 {
                 m_gpu_range[i] = std::make_pair(offset, offset+n_per_gpu);
@@ -109,7 +109,7 @@ class __attribute__((visibility("default"))) GPUPartition
                 }
 
             // fill last GPU with remaining particles
-            m_gpu_range[m_n_gpu-1].second = N;
+            m_gpu_range[m_n_gpu-1].second = ini_offset + N;
             }
 
         //! Get the number of active GPUs
@@ -148,6 +148,7 @@ class __attribute__((visibility("default"))) GPUPartition
     private:
         unsigned int m_n_gpu;
         unsigned int *m_gpu_map;
+        unsigned int m_offset;
 
         std::pair<unsigned int, unsigned int> *m_gpu_range;
     };

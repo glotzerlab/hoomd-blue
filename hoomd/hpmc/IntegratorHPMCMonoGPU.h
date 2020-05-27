@@ -217,6 +217,13 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
             }
         #endif
 
+        #ifdef ENABLE_MPI
+        void setParticleCommunicator(std::shared_ptr<MPIConfiguration> mpi_conf)
+            {
+            m_particle_comm = mpi_conf;
+            }
+        #endif
+
         virtual std::vector<hpmc_implicit_counters_t> getImplicitCounters(unsigned int mode=0);
 
     protected:
@@ -273,6 +280,7 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
 
         #ifdef ENABLE_MPI
         std::shared_ptr<MPIConfiguration> m_ntrial_comm;             //!< Communicator for MPI parallel ntrial
+        std::shared_ptr<MPIConfiguration> m_particle_comm;           //!< Communicator for MPI particle decomposition
         #endif
 
         //!< Variables for implicit depletants
@@ -779,6 +787,27 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
             {
             MPI_Comm_size((*m_ntrial_comm)(), &ntrial_comm_size);
             MPI_Comm_rank((*m_ntrial_comm)(), &ntrial_comm_rank);
+            }
+        #endif
+
+        GPUPartition gpu_partition_rank = this->m_pdata->getGPUPartition();
+        unsigned int nparticles_rank = this->m_pdata->getN();
+
+        #ifdef ENABLE_MPI
+        int particle_comm_size;
+        int particle_comm_rank;
+        if (m_particle_comm)
+            {
+            // split local particle data further if a communicator is supplied
+            MPI_Comm_size((*m_particle_comm)(), &particle_comm_size);
+            MPI_Comm_rank((*m_particle_comm)(), &particle_comm_rank);
+
+            nparticles_rank = this->m_pdata->getN()/particle_comm_size + 1;
+            unsigned int offset = (particle_comm_rank*nparticles_rank < this->m_pdata->getN()) ?
+                particle_comm_rank*nparticles_rank : this->m_pdata->getN();
+            unsigned np = ((offset + nparticles_rank) < this->m_pdata->getN()) ?
+                nparticles_rank : (this->m_pdata->getN() - offset);
+            gpu_partition_rank.setN(np, offset);
             }
         #endif
 
@@ -1290,7 +1319,9 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                                         &m_depletant_streams_phase2[this->m_depletant_idx(itype,jtype)].front(),
                                         m_max_len,
                                         d_req_len.data,
-                                        this->m_pdata->getNGhosts());
+                                        particle_comm_rank == particle_comm_size - 1,
+                                        this->m_pdata->getNGhosts(),
+                                        gpu_partition_rank);
 
                                     // phase 1, insert into excluded volume of particle i
                                     m_tuner_depletants_phase1->begin();
@@ -1362,7 +1393,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     #ifdef ENABLE_MPI
                     if (m_ntrial_comm)
                         {
-                        // reduce free energy across communicator
+                        // reduce free energy across rows (depletants)
                         #ifdef ENABLE_MPI_CUDA
                         ArrayHandle<int> d_deltaF_int(m_deltaF_int, access_location::device, access_mode::readwrite);
                         MPI_Allreduce(MPI_IN_PLACE,
@@ -1379,6 +1410,30 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                             MPI_INT,
                             MPI_SUM,
                             (*m_ntrial_comm)());
+                        #endif
+                        }
+                    #endif
+
+                    #ifdef ENABLE_MPI
+                    if (m_particle_comm)
+                        {
+                        // reduce free energy across columns (particles)
+                        #ifdef ENABLE_MPI_CUDA
+                        ArrayHandle<int> d_deltaF_int(m_deltaF_int, access_location::device, access_mode::readwrite);
+                        MPI_Allreduce(MPI_IN_PLACE,
+                            d_deltaF_int.data,
+                            this->m_pdata->getMaxN()*this->m_depletant_idx.getNumElements(),
+                            MPI_INT,
+                            MPI_SUM,
+                            (*m_particle_comm)());
+                        #else
+                        ArrayHandle<int> h_deltaF_int(m_deltaF_int, access_location::host, access_mode::readwrite);
+                        MPI_Allreduce(MPI_IN_PLACE,
+                            h_deltaF_int.data,
+                            this->m_pdata->getMaxN()*this->m_depletant_idx.getNumElements(),
+                            MPI_INT,
+                            MPI_SUM,
+                            (*m_particle_comm)());
                         #endif
                         }
                     #endif
@@ -1797,6 +1852,7 @@ template < class Shape > void export_IntegratorHPMCMonoGPU(pybind11::module& m, 
               .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<CellList>, unsigned int >())
               #ifdef ENABLE_MPI
               .def("setNtrialCommunicator", &IntegratorHPMCMonoGPU<Shape>::setNtrialCommunicator)
+              .def("setParticleCommunicator", &IntegratorHPMCMonoGPU<Shape>::setParticleCommunicator)
               #endif
               ;
     }

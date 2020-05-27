@@ -29,7 +29,9 @@ struct hpmc_auxilliary_args_t
                            const hipStream_t *_streams_phase2,
                            const unsigned int _max_len,
                            unsigned int *_d_req_len,
-                           const unsigned int _n_ghosts)
+                           const bool _add_ghosts,
+                           const unsigned int _n_ghosts,
+                           const GPUPartition& _gpu_partition_rank)
                 : d_tag(_d_tag),
                   d_vel(_d_vel),
                   d_trial_vel(_d_trial_vel),
@@ -42,7 +44,9 @@ struct hpmc_auxilliary_args_t
                   streams_phase2(_streams_phase2),
                   max_len(_max_len),
                   d_req_len(_d_req_len),
-                  n_ghosts(_n_ghosts)
+                  add_ghosts(_add_ghosts),
+                  n_ghosts(_n_ghosts),
+                  gpu_partition_rank(_gpu_partition_rank)
         { };
 
     const unsigned int *d_tag;          //!< Particle tags
@@ -57,7 +61,9 @@ struct hpmc_auxilliary_args_t
     const hipStream_t *streams_phase2;             //!< Stream for this depletant type, phase2 kernel
     const unsigned int max_len;         //!< Max length of dynamically allocated shared memory list
     unsigned int *d_req_len;            //!< Requested length of shared mem list per group
+    const bool add_ghosts;              //!< True if we should add the ghosts from the domain decomposition
     const unsigned int n_ghosts;        //!< Number of ghost particles
+    const GPUPartition& gpu_partition_rank; //!< Split of particles for this rank
     };
 
 //! Driver for kernel::hpmc_insert_depletants_auxilliary_phase2()
