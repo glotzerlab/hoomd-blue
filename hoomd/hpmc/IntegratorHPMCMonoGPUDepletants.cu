@@ -209,6 +209,7 @@ void generate_num_depletants_ntrial(const Scalar4 *d_vel,
                                     const Scalar4 *d_postype,
                                     unsigned int *d_n_depletants,
                                     const unsigned int N_local,
+                                    const bool add_ghosts,
                                     const unsigned int n_ghosts,
                                     const GPUPartition& gpu_partition,
                                     const unsigned int block_size,
@@ -232,7 +233,7 @@ void generate_num_depletants_ntrial(const Scalar4 *d_vel,
         unsigned int nwork = range.second - range.first;
 
         // add ghosts to final range
-        if (idev == (int)gpu_partition.getNumActiveGPUs()-1)
+        if (idev == (int)gpu_partition.getNumActiveGPUs()-1 && add_ghosts)
             nwork += n_ghosts;
 
         if (!nwork) continue;
@@ -284,6 +285,7 @@ void get_max_num_depletants(unsigned int *d_n_depletants,
 void get_max_num_depletants_ntrial(const unsigned int ntrial,
                             unsigned int *d_n_depletants,
                             unsigned int *max_n_depletants,
+                            const bool add_ghosts,
                             const unsigned int n_ghosts,
                             const hipStream_t *streams,
                             const GPUPartition& gpu_partition,
@@ -298,7 +300,7 @@ void get_max_num_depletants_ntrial(const unsigned int ntrial,
         unsigned int nwork = range.second - range.first;
 
         // add ghosts to final range
-        if (idev == (int)gpu_partition.getNumActiveGPUs()-1)
+        if (idev == (int)gpu_partition.getNumActiveGPUs()-1 && add_ghosts)
             nwork += n_ghosts;
 
         #ifdef __HIP_PLATFORM_HCC__

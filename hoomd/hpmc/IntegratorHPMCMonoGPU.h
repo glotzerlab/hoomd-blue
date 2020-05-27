@@ -1234,8 +1234,9 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                                         d_postype.data,
                                         d_n_depletants_ntrial.data + ntrial_offset,
                                         this->m_pdata->getN(),
+                                        particle_comm_rank == particle_comm_size - 1,
                                         this->m_pdata->getNGhosts(),
-                                        this->m_pdata->getGPUPartition(),
+                                        gpu_partition_rank,
                                         m_tuner_num_depletants_ntrial->getParam(),
                                         &m_depletant_streams[this->m_depletant_idx(itype,jtype)].front());
                                     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -1248,9 +1249,10 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                                         ntrial,
                                         d_n_depletants_ntrial.data + ntrial_offset,
                                         &max_n_depletants[0],
+                                        particle_comm_rank == particle_comm_size - 1,
                                         this->m_pdata->getNGhosts(),
                                         &m_depletant_streams[this->m_depletant_idx(itype,jtype)].front(),
-                                        this->m_pdata->getGPUPartition(),
+                                        gpu_partition_rank,
                                         this->m_exec_conf->getCachedAllocatorManaged());
                                     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                                         CHECK_CUDA_ERROR();
