@@ -8,7 +8,7 @@ from hoomd.typeconverter import OnlyIf, to_type_converter
 from hoomd.typeparam import TypeParameter
 from hoomd.hpmc import _hpmc
 from hoomd.integrate import _BaseIntegrator
-from hoomd.logger import Loggable
+from hoomd.logging import Loggable
 import hoomd
 import json
 

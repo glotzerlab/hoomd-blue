@@ -34,13 +34,13 @@ class CustomAction(ABC):
 
     For advertising loggable quantities through the wrappping object, the class
     attribute ``log_quantities`` can be used. The dictionary expects string keys
-    with the name of the loggable and `hoomd.logger.LoggerQuantity` objects as
+    with the name of the loggable and `hoomd.logging.LoggerQuantity` objects as
     the values.
 
     .. code-block:: python
 
         from hoomd.python_action import CustomAction
-        from hoomd.logger import LoggerQuantity
+        from hoomd.logging import LoggerQuantity
 
 
         class ExampleActionWithFlag(CustomAction):
@@ -73,10 +73,10 @@ class CustomAction(ABC):
         flags (list[hoomd.ParticleDataFlags]): List of flags from the
             `hoomd.ParticleDataFlags`. Used to tell the integrator if
             specific quantities are needed for the action.
-        log_quantities (dict[str, hoomd.logger.LoggerQuantity]): Dictionary of
-            the name of loggable quantites to the `hoomd.logger.LoggerQuantity`
+        log_quantities (dict[str, hoomd.logging.LoggerQuantity]): Dictionary of
+            the name of loggable quantites to the `hoomd.logging.LoggerQuantity`
             instance for the class method or property. Allows for subclasses of
-            `CustomAction` to specify to a `hoomd.Logger` that is exposes
+            `CustomAction` to specify to a `hoomd.logging.Logger` that is exposes
             loggable quantities.
     """
     flags = []

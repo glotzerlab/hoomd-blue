@@ -14,7 +14,7 @@ from hoomd.util import dict_flatten, array_to_strings
 from hoomd.typeconverter import OnlyFrom, OnlyType
 from hoomd.filter import _ParticleFilter, All
 from hoomd.parameterdicts import ParameterDict
-from hoomd.logger import Logger
+from hoomd.logging import Logger
 from hoomd.operation import _Analyzer
 import numpy as np
 import hoomd
@@ -507,8 +507,8 @@ class GSD(_Analyzer):
             ``False``.
         dynamic (list[str], optional): Quantity categories to save in every
             frame, defaults to property.
-        log (hoomd.Logger, optional): A ``Logger`` object for GSD logging,
-            defaults to ``None``.
+        log (hoomd.logging.Logger, optional): A ``Logger`` object for GSD
+            logging, defaults to ``None``.
 
     .. note::
 

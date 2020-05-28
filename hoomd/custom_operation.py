@@ -2,7 +2,7 @@ from hoomd.operation import _TriggeredOperation
 from hoomd.parameterdicts import ParameterDict
 from hoomd.custom_action import CustomAction
 from hoomd.trigger import Trigger
-from hoomd.logger import LoggerQuantity
+from hoomd.logging import LoggerQuantity
 from hoomd import _hoomd
 
 

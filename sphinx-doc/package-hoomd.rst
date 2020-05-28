@@ -30,7 +30,6 @@ hoomd
               Snapshot,
               Operations,
               Box,
-              Logger,
               _CustomOperation
               ParticleDataFlags
 
@@ -50,7 +49,7 @@ hoomd
    module-hoomd-device
    module-hoomd-dump
    module-hoomd-filter
-   module-hoomd-logger
+   module-hoomd-logging
    module-hoomd-triggers
    module-hoomd-update
    module-hoomd-util

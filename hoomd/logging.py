@@ -50,7 +50,7 @@ def generate_namespace(cls):
 
 
 class LoggerQuantity:
-    """The information required to automatically log to a `hoomd.Logger`.
+    """The information to automatically log to a `hoomd.logging.Logger`.
 
     Args:
         name (str): The name of the quantity.
@@ -68,13 +68,13 @@ class LoggerQuantity:
     def yield_names(self):
         """Infinitely yield potential namespaces.
 
-        Used to ensure that all namespaces are unique for a `hoomd.Logger`
-        object. We simple increment a number at the end until the caller stops
-        asking for another namespace.
+        Used to ensure that all namespaces are unique for a
+        `hoomd.logging.Logger` object. We simple increment a number at the end
+        until the caller stops asking for another namespace.
 
         Yields:
             tuple[str]: A potential namespace for the given
-                `hoomd.logger.LoggerQuantity`.
+                `hoomd.logging.LoggerQuantity`.
         """
         yield self.namespace + (self.name,)
         for i in count(start=1, step=1):
@@ -85,8 +85,8 @@ class LoggerQuantity:
         """Allow updating the class/namespace of the object.
 
         Since the namespace is determined by the passed class's module and class
-        name, if inheritanting `hoomd.logger.LoggerQuantity`, the class needs to
-        be updated to the subclass.
+        name, if inheritanting `hoomd.logging.LoggerQuantity`, the class needs
+        to be updated to the subclass.
 
         Args:
             cls (class object): The class to update the namespace with.
