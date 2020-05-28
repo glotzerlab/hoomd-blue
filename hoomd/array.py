@@ -372,7 +372,7 @@ class HOOMDArray(metaclass=_WrapClassFactory(_wrap_list)):
         if self._callback():
             if self._read_only:
                 arr = np.array(self._buffer, copy=False)
-                arr.flags['WRITEABLE'] = True
+                arr.flags['WRITEABLE'] = False
                 return arr
             else:
                 return np.array(self._buffer, copy=False)
@@ -506,7 +506,7 @@ if isCUDAAvailable():
         _cupy_ndarray_magic_safe_ = ([
             item for item in _ndarray_magic_safe_[0]
             if item not in {
-                '__copy__', '__setstate__', '__contains__'}],
+                '__copy__', '__setstate__', '__contains__', '__setitem__'}],
             _ndarray_magic_safe_[1])
 
         _wrap_gpu_array_list = [
@@ -526,6 +526,11 @@ if isCUDAAvailable():
         class HOOMDGPUArray(_HOOMDGPUArrayBase, metaclass=meta):
             def __getattr__(self, item):
                 return getattr(self._coerce_to_ndarray(), item)
+
+            def __setitem__(self, item, value):
+                if self.read_only:
+                    raise ValueError("assignment destination is read-only.")
+                setattr(self._coerce_to_ndarray(), item, value)
 
             @property
             def shape(self):
