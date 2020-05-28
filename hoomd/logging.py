@@ -59,6 +59,11 @@ class LoggerQuantity:
             scalar, multi (array-like), particle (per particle quantity), bond,
             angle, dihedral, constraint, pair, dict (a mapping of multiple
             logged quantity names with their values), and object.
+
+    Note:
+        For users, this class is meant to be used in conjunction with
+        `hoomd.custom.Action` for exposing loggable quantities for custom user
+        actions.
     """
     def __init__(self, name, cls, flag='scalar'):
         self.name = name
@@ -73,8 +78,7 @@ class LoggerQuantity:
         until the caller stops asking for another namespace.
 
         Yields:
-            tuple[str]: A potential namespace for the given
-                `hoomd.logging.LoggerQuantity`.
+            tuple[str]: A potential namespace for the object.
         """
         yield self.namespace + (self.name,)
         for i in count(start=1, step=1):
@@ -96,7 +100,7 @@ class LoggerQuantity:
 
 
 class Logger(SafeNamespaceDict):
-    '''Logs Hoomd Operation data and custom quantities.'''
+    '''Logs HOOMD-blue operation data and custom quantities.'''
 
     def __init__(self, accepted_flags=None):
         accepted_flags = [] if accepted_flags is None else accepted_flags
