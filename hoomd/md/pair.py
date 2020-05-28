@@ -2097,7 +2097,6 @@ v^{\left( 3b \right)}_{ijk}=\lambda \epsilon\,\hat{v}^{ \left( 2b \right)}_{ij}\
         potBondSwap.pair_coeff.set('A','B',sigma=1,n=100,epsilon=10,lambda3=1)
     """
     def __init__(self, r_cut, nlist, name=None):
-        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -2108,7 +2107,7 @@ v^{\left( 3b \right)}_{ijk}=\lambda \epsilon\,\hat{v}^{ \left( 2b \right)}_{ij}\
         self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.PotentialRevCross(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialRevCross;
         else:

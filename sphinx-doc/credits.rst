@@ -299,13 +299,10 @@ Geert Kapteijns, University of Amsterdam
 
   * Bug fixes.
 
-<<<<<<< 51313bd79a430abc3090080f456aabe8beab8b0d
-=======
 Simone Ciarella, Wouter Ellenbroek, Eindhoven University of Technology
 
  * Add RevCross potential
 
->>>>>>> Tersoff as base class for RevCross
 HPMC developers
 ---------------
 
