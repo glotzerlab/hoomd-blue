@@ -182,6 +182,16 @@ def skip_mpi(request):
             raise ValueError('skip_mpi requires the *device* fixture')
 
 
+@pytest.fixture(autouse=True)
+def only_gpu(request):
+    if request.node.get_closest_marker('gpu'):
+        if 'device' in request.fixturenames:
+            if request.getfixturevalue('device').mode != 'gpu':
+                pytest.skip('Test is run on GPU(s).')
+        else:
+            raise ValueError('only_gpu requires the *device* fixture')
+
+
 @pytest.fixture(scope='function', autouse=True)
 def numpy_random_seed():
     """Seed the numpy random number generator.
@@ -199,6 +209,9 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers",
         "validation: Long running tests that validate simulation output")
+    config.addinivalue_line(
+        "markers",
+        "gpu: Tests that should only run on the gpu.")
 
 
 def abort(exitstatus):

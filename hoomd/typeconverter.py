@@ -153,6 +153,7 @@ class OnlyType(_HelpValidate):
     def __str__(self):
         return "OnlyType({})".format(str(self.type))
 
+
 class OnlyFrom(_HelpValidate):
     """Validates a value against a given set of options.
 

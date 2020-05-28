@@ -9,6 +9,7 @@ set(files __init__.py
           test_operation.py
           test_syncedlist.py
           test_triggeredops.py
+          test_local_snapshot.py
           test_logger.py
           test_filter.py
           dummy.py
