@@ -3,10 +3,10 @@ from enum import IntEnum
 from hoomd.operation import _HOOMDGetSetAttrBase
 
 
-class CustomAction(ABC):
+class Action(ABC):
     """Base class for all Python Action's.
 
-    This class is the parent class for all Python ``Action`` subclasses. This
+    This class is the parent class for all Python `Action` subclasses. This
     class requires all subclasses to implement the :meth:`~.act` method which
     performs the Python object's task whether that be updating the system,
     writing output, or analyzing some property of the system.
@@ -17,14 +17,14 @@ class CustomAction(ABC):
 
     If the pressure, rotational kinetic energy, or external field virial is
     needed for a subclass, the flags attribute of the class needs to be set with
-    the appropriate flags from `hoomd.ParticleDataFlags`.
+    the appropriate flags from `hoomd.custom.ParticleDataFlags`.
 
     .. code-block:: python
 
-        from hoomd import CustomAction, ParticleDataFlags
+        from hoomd.custom import Action, ParticleDataFlags
 
 
-        class ExampleActionWithFlag(CustomAction):
+        class ExampleActionWithFlag(Action):
             flags = [ParticleDataFlags.ROTATIONAL_KINETIC_ENERGY,
                      ParticleDataFlags.PRESSURE_TENSOR,
                      ParticleDataFlags.EXTERNAL_FIELD_VIRIAL]
@@ -39,11 +39,11 @@ class CustomAction(ABC):
 
     .. code-block:: python
 
-        from hoomd.python_action import CustomAction
+        from hoomd.python_action import Action
         from hoomd.logging import LoggerQuantity
 
 
-        class ExampleActionWithFlag(CustomAction):
+        class ExampleActionWithFlag(Action):
             def __init__(self):
                 self.log_quantities = {
                     'loggable': LoggerQuantity('scalar_loggable',
@@ -56,27 +56,27 @@ class CustomAction(ABC):
             def act(self, timestep):
                 pass
 
-    An example of a ``CustomAction`` that actually performs an action is given
-    below. This ``CustomAction`` computes the center of mass of the system.
+    An example of a `Action` that actually performs an action is given
+    below. This `Action` computes the center of mass of the system.
 
     .. code-block:: python
 
-        from hoomd.python_action import CustomAction
+        from hoomd.custom import Action
 
 
-        class ExampleAction(CustomAction):
+        class ExampleAction(Action):
             def act(self, timestep):
                 self.com = self.snapshot.particles.position.mean(axis=0)
 
 
     Attributes:
-        flags (list[hoomd.ParticleDataFlags]): List of flags from the
-            `hoomd.ParticleDataFlags`. Used to tell the integrator if
+        flags (list[hoomd.custom.ParticleDataFlags]): List of flags from the
+            `hoomd.custom.ParticleDataFlags`. Used to tell the integrator if
             specific quantities are needed for the action.
         log_quantities (dict[str, hoomd.logging.LoggerQuantity]): Dictionary of
             the name of loggable quantites to the `hoomd.logging.LoggerQuantity`
             instance for the class method or property. Allows for subclasses of
-            `CustomAction` to specify to a `hoomd.logging.Logger` that is exposes
+            `Action` to specify to a `hoomd.logging.Logger` that is exposes
             loggable quantities.
     """
     flags = []
@@ -118,7 +118,7 @@ class CustomAction(ABC):
         pass
 
 
-class _InternalCustomAction(CustomAction, _HOOMDGetSetAttrBase):
+class _InternalAction(Action, _HOOMDGetSetAttrBase):
     """An internal class for Python ``Action``s.
 
     Gives additional support in using HOOMD constructs like ``ParameterDict``s
@@ -139,7 +139,8 @@ class _InternalCustomAction(CustomAction, _HOOMDGetSetAttrBase):
 class ParticleDataFlags(IntEnum):
     """Enumeration of flags for the integrator to calcuate certain quantities.
 
-    Used for setting the flags required for operation of a `hoomd.CustomAction`.
+    Used for setting the flags required for operation of a
+    `hoomd.custom.Action`.
     """
     PRESSURE_TENSOR = 0
     ROTATIONAL_KINETIC_ENERGY = 1

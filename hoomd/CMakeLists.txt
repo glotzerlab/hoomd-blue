@@ -310,7 +310,6 @@ set(files benchmark.py
           compute.py
           conftest.py
           context.py
-          custom_action.py
           data.py
           device.py
           dump.py
@@ -331,7 +330,6 @@ set(files benchmark.py
           state.py
           syncedlist.py
           parameterdicts.py
-          custom_operation.py
           trigger.py
           typeparam.py
           typeconverter.py
@@ -352,6 +350,9 @@ install(FILES ${_hoomd_headers}
 
 # subdirectories that are not components
 add_subdirectory(filter)
+add_subdirectory(custom)
+add_subdirectory(update)
+add_subdirector(analyze)
 add_subdirectory(pytest)
 add_subdirectory(minimize)
 
