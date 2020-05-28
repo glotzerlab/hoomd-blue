@@ -1266,8 +1266,6 @@ class PYBIND11_EXPORT LocalParticleData :
             m_net_torque_handle()
             {}
 
-
-
             virtual ~LocalParticleData() = default;
 
             Output getPosition(bool ghost=false, bool include_both=false)
@@ -1284,13 +1282,13 @@ class PYBIND11_EXPORT LocalParticleData :
 
             Output getTypes(bool ghost=false, bool include_both=false)
             {
-                return this->template getBuffer<Scalar4, Scalar>(
+                return this->template getBuffer<Scalar4, int>(
                     m_position_handle,
                     &ParticleData::getPositions,
                     ghost,
                     include_both,
                     0,
-                    3
+                    3 * sizeof(Scalar)
                 );
             }
 
@@ -1302,8 +1300,7 @@ class PYBIND11_EXPORT LocalParticleData :
                     ghost,
                     include_both,
                     3,
-                    0,
-                    std::vector<ssize_t>({sizeof(Scalar4), sizeof(Scalar)})
+                    0
                 );
             }
 
@@ -1325,7 +1322,7 @@ class PYBIND11_EXPORT LocalParticleData :
                     ghost,
                     include_both,
                     0,
-                    3
+                    3 * sizeof(Scalar)
                 );
                 }
 

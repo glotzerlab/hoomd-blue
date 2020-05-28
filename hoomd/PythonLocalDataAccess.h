@@ -164,12 +164,12 @@ class LocalDataAccess
                 _data += N;
                 size = ghostN;
                 }
-            S* data = (S*)_data;
+            S* data = (S*)(((char*)_data) + offset);
 
             if (strides.size() == 0 && second_dimension_size == 0)
                 {
                 return Output(
-                    data + offset,
+                    data,
                     sizeof(S),
                     pybind11::format_descriptor<S>::format(),
                     1,
@@ -182,7 +182,7 @@ class LocalDataAccess
                 strides = std::vector<ssize_t>({sizeof(T), sizeof(S)});
                 }
             return Output(
-                data + offset,
+                data,
                 sizeof(S),
                 pybind11::format_descriptor<S>::format(),
                 2,
