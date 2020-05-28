@@ -6,8 +6,7 @@ hoomd.util
 .. autosummary::
     :nosignatures:
 
-    hoomd.util.cuda_profile_start
-    hoomd.util.cuda_profile_stop
+    :members: is_iterable
 
 .. rubric:: Details
 
