@@ -66,7 +66,7 @@ def _make_valid_params(valid_param_dicts, combos, pair_potential):
 def _valid_params(particle_types=['A', 'B']):
     combos = list(itertools.combinations_with_replacement(particle_types, 2))
     lj_sample_dict = {'sigma': np.linspace(0.5, 1.5),
-                      'epsilon': np.linspace(0.5, 1.5)}
+                      'epsilon': np.linspace(0.0005, 0.0015)}
     valid_param_dicts = _make_valid_param_dicts(lj_sample_dict, len(combos))
     lj_params = _make_valid_params(valid_param_dicts, combos, hoomd.md.pair.LJ)
     return lj_params
