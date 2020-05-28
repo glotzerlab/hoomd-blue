@@ -2,7 +2,6 @@
 `hoomd.local_access_gpu.LocalSnapshotGPu` work.
 """
 from copy import deepcopy
-import pdb
 import hoomd
 import numpy as np
 import pytest
@@ -175,33 +174,37 @@ def pair_data():
 
 
 @pytest.fixture(scope='session')
-def base_snapshot():
+def base_snapshot(device):
 
     def set_snapshot(snap, data, base):
-        snap_section = getattr(snap, base)
-        snap_section.N = data.pop('_N')
-        if '_types' in data:
-            snap_section.types = data.pop('_types')
-        for k in data:
-            if data[k]['value'] is None:
-                continue
-            try:
-                array = getattr(snap_section, k)
-                array[:] = data[k]['value']
-            except TypeError:
-                setattr(snap_section, k, data[k]['value'])
+        # N and types are outside if snaps.exists to ensure that they are
+        # removed on all ranks
+        N = data.pop('_N')
+        types = data.pop('_types', None)
+        if snap.exists:
+            snap_section = getattr(snap, base)
+            snap_section.N = N
+            if types:
+                snap_section.types = types
+            for k in data:
+                if data[k]['value'] is None:
+                    continue
+                try:
+                    array = getattr(snap_section, k)
+                    array[:] = data[k]['value']
+                except TypeError:
+                    setattr(snap_section, k, data[k]['value'])
 
-    snapshot = hoomd.Snapshot()
+    snapshot = hoomd.Snapshot(device.comm)
 
-    if snapshot.exists:
-        snapshot.configuration.box = [2.1, 2.1, 2.1, 0, 0, 0]
-        set_snapshot(snapshot, _particle_data, 'particles')
-        set_snapshot(snapshot, _bond_data, 'bonds')
-        set_snapshot(snapshot, _angle_data, 'angles')
-        set_snapshot(snapshot, _dihedral_data, 'dihedrals')
-        set_snapshot(snapshot, _improper_data, 'impropers')
-        set_snapshot(snapshot, _constraint_data, 'constraints')
-        set_snapshot(snapshot, _pair_data, 'pairs')
+    snapshot.configuration.box = [2.1, 2.1, 2.1, 0, 0, 0]
+    set_snapshot(snapshot, _particle_data, 'particles')
+    set_snapshot(snapshot, _bond_data, 'bonds')
+    set_snapshot(snapshot, _angle_data, 'angles')
+    set_snapshot(snapshot, _dihedral_data, 'dihedrals')
+    set_snapshot(snapshot, _improper_data, 'impropers')
+    set_snapshot(snapshot, _constraint_data, 'constraints')
+    set_snapshot(snapshot, _pair_data, 'pairs')
     return snapshot
 
 
@@ -287,7 +290,7 @@ def test_cpu_local_snapshot_data(simulation, data_name_pair):
 
 
 @ pytest.mark.gpu(True)
-def test_gpu_local_snapshot_data(simulation, data_with_name):
+def test_gpu_local_snapshot_data(simulation, data_name_pair):
     name, data_dict = data_name_pair
     with simulation.state.gpu_local_snapshot as snapshot:
         # gets the particle, bond, etc data
