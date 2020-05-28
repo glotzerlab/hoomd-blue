@@ -852,7 +852,7 @@ template < class T > void export_AnisoPotentialPair(pybind11::module& m, const s
     {
     pybind11::class_<T, ForceCompute, std::shared_ptr<T> > anisopotentialpair(m, name.c_str());
     anisopotentialpair.def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
-        .def("setParams", &T::setParams)
+        .def("setParams", &T::setParamsPython)
         .def("getParams", &T::getParams)
         .def("setRCut", &T::setRCutPython)
         .def("getRCut", &T::getRCut)
