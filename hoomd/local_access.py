@@ -15,10 +15,9 @@ class _LocalAccess(ABC):
     def _array_cls(self):
         pass
 
-    _accessed_fields = dict()
-
     def __init__(self):
         object.__setattr__(self, '_entered', False)
+        object.__setattr__(self, '_accessed_fields', dict())
 
     def __getattr__(self, attr):
         if attr in self._accessed_fields:
@@ -75,7 +74,7 @@ class _ParticleLocalAccess(_LocalAccess):
 
     _fields = {
         'position': 'getPosition',
-        'type': 'getTypes',
+        'typeid': 'getTypes',
         'velocity': 'getVelocities',
         'mass': 'getMasses',
         'acceleration': 'getAcceleration',
@@ -116,10 +115,10 @@ class _GroupLocalAccess(_LocalAccess):
         pass
 
     _fields = {
-        'type': 'getTypeVal',
+        'typeid': 'getTypeVal',
         'group': 'getMembers',
-        'tags': 'getTags',
-        'rtags': 'getRTags'
+        'tag': 'getTags',
+        'rtag': 'getRTags'
     }
 
     def __init__(self, state):
@@ -158,10 +157,10 @@ class ImproperLocalAccessCPU(_GroupLocalAccess):
 
 class ConstraintLocalAccessCPU(_GroupLocalAccess):
     _fields = {
-        'constraint': 'getTypeVal',
+        'value': 'getTypeVal',
         'group': 'getMembers',
-        'tags': 'getTags',
-        'rtags': 'getRTags'
+        'tag': 'getTags',
+        'rtag': 'getRTags'
     }
     _cpp_cls = _hoomd.LocalConstraintDataHost
     _cpp_data_get_method = "getConstraintData"
@@ -188,7 +187,7 @@ class _LocalSnapshotBase:
     @property
     def local_box(self):
         """hoomd.Box: The local box according to the domain decomposition."""
-        return Box.from_box(self._local_box)
+        return Box.from_box(Box._from_cpp(self._local_box))
 
     @property
     def particles(self):
