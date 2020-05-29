@@ -115,7 +115,7 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
                                       cell._param_dict)
 
 
-@pytest.mark.parametrize("nsteps", [1, 3, 5])
+@pytest.mark.parametrize("nsteps", [1, 5, 10])
 def test_run(simulation_factory, lattice_snapshot_factory,
              valid_params, nsteps):
     pair_potential, pair_potential_dict, r_cut, r_on, mode = valid_params
@@ -180,11 +180,30 @@ def test_compute_energy(simulation_factory, two_particle_snapshot_factory,
         if snap.exists:
             snap.particles.typeid[0] = particle_types.index(pair[0])
             snap.particles.typeid[1] = particle_types.index(pair[1])
-
+        r0 = snap.particles.position[0] - snap.particles.position[1]
+        E0 = sim.operations.integrator.forces[0].energies
         sim.state.snapshot = snap
         sim.run(nsteps)
+        snap = sim.state.snapshot
+
+        r1 = snap.particles.position[0] - snap.particles.position[1]
+        E1 = sim.operations.integrator.forces[0].energies
+        dr = r1 - r0
+        magnitude_dr = np.linalg.norm(dr)
+        unit_dr = dr / magnitude_dr
+
+        if magnitude_dr == 0:
+            F = (np.array([0., 0., 0.]), np.array([0., 0., 0.]))
+        else:
+            Fa = -(E1[0] - E0[0] / magnitude_dr) * unit_dr
+            Fb = -(E1[1] - E0[1] / magnitude_dr) * unit_dr
+            F = (Fa, Fb)
+
         sim_energies = sim.operations.integrator.forces[0].energies
+        sim_forces = sim.operations.integrator.forces[0].forces
         pair_energy = pot.compute_energy(np.array([0], dtype=np.int32),
                                          np.array([1], dtype=np.int32))
         assert pair_energy / 2 == sim_energies[0]
         assert pair_energy / 2 == sim_energies[1]
+        np.testing.assert_allclose(F[0], sim_forces[0])
+        np.testing.assert_allclose(F[1], sim_forces[1])
