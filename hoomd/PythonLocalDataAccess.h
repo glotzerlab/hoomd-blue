@@ -56,7 +56,13 @@ struct HOOMDDeviceBuffer
                       ssize_t unused2, std::vector<ssize_t> shape,
                       std::vector<ssize_t> strides, bool read_only)
         : m_data(data), m_typestr(typestr), m_shape(shape), m_strides(strides),
-          m_read_only(read_only) {}
+          m_read_only(read_only)
+		{
+		if (m_shape.size() != m_strides.size())
+			{
+			throw std::runtime_error("GPU buffer shape != strides.");
+			}
+		}
 
     pybind11::dict getCudaArrayInterface()
         {
@@ -70,7 +76,8 @@ struct HOOMDDeviceBuffer
             {
             data = std::pair<intptr_t, bool>(0, m_read_only);
             shape.append(0);
-            stride = pybind11::none;
+            strides.append(0);
+			}
         else
             {
             data = std::pair<intptr_t, bool>((intptr_t)m_data, m_read_only);
@@ -78,13 +85,12 @@ struct HOOMDDeviceBuffer
                 {
                 shape.append(s);
                 }
-            pybind11::list strides;
             for (auto s : m_strides)
                 {
                 strides.append(s);
                 }
             }
-        interface["data"]
+        interface["data"] = data;
         interface["shape"] = pybind11::tuple(shape);
         interface["strides"] = pybind11::tuple(strides);
         return interface;
