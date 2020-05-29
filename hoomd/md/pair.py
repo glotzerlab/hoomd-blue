@@ -2055,7 +2055,7 @@ class revcross(pair):
         :nowrap:
 
             \begin{eqnarray*}
-v^{\left( 3b \right)}_{ijk}=\lambda \epsilon\,\hat{v}^{ \left( 2b \right)}_{ij}\left(\vec{r}_{ij}\right) \cdot \hat{v}^{ \left( 2b \right)}_{ik}\left(\vec{r}_{ik}\right)~,
+            v^{\left( 3b \right)}_{ijk}=\lambda \epsilon\,\hat{v}^{ \left( 2b \right)}_{ij}\left(\vec{r}_{ij}\right) \cdot \hat{v}^{ \left( 2b \right)}_{ik}\left(\vec{r}_{ik}\right)~,\\
             \end{eqnarray*}
 
     where the two body potential is rewritten as:
@@ -2075,8 +2075,9 @@ v^{\left( 3b \right)}_{ijk}=\lambda \epsilon\,\hat{v}^{ \left( 2b \right)}_{ij}\
 
         The revcross potential models an asymmetric interaction between two different chemical moieties that can form a reversible bond. 
 	This requires the definition of (at least) two different types of particles.
-	A reversible bond is only possible between two different species, otherwise :math:` v^{\left( 3b \right)}_{ijk}` would prevent any bond.
-	In our example we then set the interactions for types A and B with ``potRevC.pair_coeff.set(['A','B'],['A','B'],sigma=0.0,n=0,epsilon=0,lambda3=0)`` and the only non-zero energy only between the different types ``potRevC.pair_coeff.set('A','B',sigma=1,n=100,epsilon=100,lambda3=1) ``. 
+	A reversible bond is only possible between two different species, otherwise :math:`v^{\left( 3b \right)}_{ijk}`, would prevent any bond.
+	In our example we then set the interactions for types A and B with ``potRevC.pair_coeff.set(['A','B'],['A','B'],sigma=0.0,n=0,epsilon=0,lambda3=0)``
+        and the only non-zero energy only between the different types ``potRevC.pair_coeff.set('A','B',sigma=1,n=100,epsilon=100,lambda3=1)``. 
 	Notice that the number of the minoritary species corresponds to the maximum number of bonds.
                                 
 
