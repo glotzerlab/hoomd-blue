@@ -115,7 +115,7 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
                                       cell._param_dict)
 
 
-@pytest.mark.parametrize("nsteps", [1, 5, 10])
+@pytest.mark.parametrize("nsteps", [3, 5, 10])
 def test_run(simulation_factory, lattice_snapshot_factory,
              valid_params, nsteps):
     pair_potential, pair_potential_dict, r_cut, r_on, mode = valid_params
@@ -133,7 +133,7 @@ def test_run(simulation_factory, lattice_snapshot_factory,
             pot.r_on[pair] = r_on[pair]
 
     snap = lattice_snapshot_factory(particle_types=particle_types,
-                                    n=10, a=1, r=0.01)
+                                    n=2, a=5, r=0.01)
     if snap.exists:
         snap.particles.typeid[:] = np.random.randint(0,
                                                      len(snap.particles.types),
@@ -167,7 +167,7 @@ def test_compute_energy(simulation_factory, two_particle_snapshot_factory,
         pot.r_cut[pair] = r_cut[pair]
         if r_on is not None:
             pot.r_on[pair] = r_on[pair]
-    snap = two_particle_snapshot_factory(particle_types=particle_types)
+    snap = two_particle_snapshot_factory(particle_types=particle_types, d=5)
     sim = simulation_factory(snap)
     integrator = hoomd.md.Integrator(dt=0.005)
     integrator.forces.append(pot)
