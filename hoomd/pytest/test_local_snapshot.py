@@ -13,6 +13,13 @@ except ImportError:
 else:
     skip_mpi4py = False
 
+try:
+    import cupy
+    CUPY_IMPORTED=True
+except ImportError:
+    CUPY_IMPORTED=False
+
+
 skip_mpi4py = pytest.mark.skipif(
     skip_mpi4py, reason='mpi4py could not be imported.')
 
@@ -290,18 +297,34 @@ def check_type(data, prop_dict, tags):
 def check_shape(data, prop_dict, tags):
     """Check shape of properties in the snapshot."""
     # checks size of prop_dict values and tags.
-    assert data.shape == (len(tags),) + prop_dict['shape'][1:]
+    if isinstance(data, HOOMDGPUArray):
+        if len(tags) == 0:
+            assert data.shape == (0,)
+        else:
+            assert data.shape == (len(tags),) + prop_dict['shape'][1:]
+    else:
+        assert data.shape == (len(tags),) + prop_dict['shape'][1:]
 
 
 def check_getting(data, prop_dict, tags):
     """Checks getting properties of the state through a local snapshot."""
+    if len(tags) == 0:
+        return None
     if prop_dict['value'] is not None:
         if hasattr(data, '__getitem__'):
-            expected_values = np.array(prop_dict['value'])
-            if prop_dict['np_typecode_key'] == 'Float':
-                assert np.allclose(expected_values[tags], data[:])
+            if isinstance(data, HOOMDGPUArray):
+                expected_values = cupy.array(prop_dict['value'])
             else:
-                assert all(expected_values[tags].ravel() == data[:].ravel())
+                expected_values = np.array(prop_dict['value'])
+            if prop_dict['np_typecode_key'] == 'Float':
+                if isinstance(data, HOOMDGPUArray):
+                    assert cupy.allclose(
+                        expected_values[tags.tolist()], data[:])
+                else:
+                    assert np.allclose(expected_values[tags], data[:])
+            else:
+                assert all(
+                    expected_values[tags.tolist()].ravel() == data[:].ravel())
         else:
             # Ensure that only HOOMDGPUArray can not have __getitem__
             assert isinstance(data, HOOMDGPUArray)
@@ -313,14 +336,20 @@ def check_setting(data, prop_dict, tags):
     Also tests error raising for read only arrays."""
     if 'new_value' in prop_dict:
         if hasattr(data, '__setitem__'):
-            new_values = np.array(prop_dict['new_value'])[tags]
+            if isinstance(data, HOOMDGPUArray):
+                new_values = cupy.array(prop_dict['new_value'])[tags.tolist()]
+            else:
+                new_values = np.array(prop_dict['new_value'])[tags]
             if data.read_only:
                 with pytest.raises(ValueError):
                     data[:] = new_values
             else:
                 data[:] = new_values
                 if prop_dict['np_typecode_key'] == 'Float':
-                    assert np.allclose(new_values, data[:])
+                    if isinstance(data, HOOMDGPUArray):
+                        assert cupy.allclose(new_values, data[:])
+                    else:
+                        assert np.allclose(new_values, data[:])
                 else:
                     assert all(new_values.ravel() == data[:].ravel())
         else:
@@ -387,8 +416,6 @@ def test_local_snapshot_arrays(
     # gets the particle, bond, etc data
     snapshot_section = getattr(local_snapshot, name)
     # Checks each property of data from passed dictionary
-    if property_name.startswith('_'):
-        return None
     if affix.startswith('_'):
         hoomd_buffer = getattr(snapshot_section, property_name + affix)
         tags = getattr(snapshot_section, 'tag' + affix)
