@@ -477,6 +477,11 @@ if isCUDAAvailable():
             def ndim(self):
                 return len(self.shape)
 
+            @property
+            def dtype(self):
+                protocol = self._buffer.__cuda_array_interface__
+                return protocol['typestr']
+
             def __str__(self):
                 name = self.__class__
                 if self._callback():
