@@ -55,6 +55,8 @@ def _make_valid_params(valid_param_dicts, combos, pair_potential):
     r_on_dicts = [dict(zip(combos, r_on_vals))] * 5
     r_on_dicts[-1] = None
     modes = ['none', 'shifted', 'xplor', None, 'none']
+    if 'ForceShiftedLJ' in str(pair_potential):
+        modes[2] = 'shifted'
     pair_potentials = [pair_potential] * 5
     return zip(pair_potentials,
                pair_potential_dicts,
@@ -64,12 +66,23 @@ def _make_valid_params(valid_param_dicts, combos, pair_potential):
 
 
 def _valid_params(particle_types=['A', 'B']):
+    valid_params_list = []
     combos = list(itertools.combinations_with_replacement(particle_types, 2))
+
     lj_sample_dict = {'sigma': np.linspace(0.5, 1.5),
                       'epsilon': np.linspace(0.0005, 0.0015)}
-    valid_param_dicts = _make_valid_param_dicts(lj_sample_dict, len(combos))
-    lj_params = _make_valid_params(valid_param_dicts, combos, hoomd.md.pair.LJ)
-    return lj_params
+    lj_valid_param_dicts = _make_valid_param_dicts(lj_sample_dict, len(combos))
+    valid_params_list.append(_make_valid_params(lj_valid_param_dicts,
+                                                combos, hoomd.md.pair.LJ))
+
+    gauss_sample_dict = {'epsilon': np.linspace(0.025, 0.075),
+                         'sigma': np.linspace(0.01, 0.03)}
+    gauss_valid_param_dicts = _make_valid_param_dicts(gauss_sample_dict,
+                                                      len(combos))
+    valid_params_list.append(_make_valid_params(gauss_valid_param_dicts,
+                                                combos, hoomd.md.pair.Gauss))
+
+    return [params for param_list in valid_params_list for params in param_list]
 
 
 @pytest.fixture(scope="function", params=_valid_params())
