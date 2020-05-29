@@ -2036,9 +2036,9 @@ class revcross(pair):
     .. math::
         :nowrap:
 
-        \begin{equation}
+        \begin{eqnarray*}
         V_{ij}(r)  =  4 \varepsilon \left[ \left( \dfrac{ \sigma}{r_{ij}} \right) ^{2n}- \left( \dfrac{ \sigma}{r_{ij}} \right)^{n} \right] \qquad r<r_{cut}
-        \end{equation}
+        \end{eqnarray*}
 
     with the following coefficients:
 
@@ -2053,20 +2053,22 @@ class revcross(pair):
 
     .. math::
         :nowrap:
-            \begin{equation}
+
+            \begin{eqnarray*}
 v^{\left( 3b \right)}_{ijk}=\lambda \epsilon\,\hat{v}^{ \left( 2b \right)}_{ij}\left(\vec{r}_{ij}\right) \cdot \hat{v}^{ \left( 2b \right)}_{ik}\left(\vec{r}_{ik}\right)~,
-            \end{equation}
+            \end{eqnarray*}
 
     where the two body potential is rewritten as:
     .. math::
         :nowrap:
-            \begin{equation}
+
+            \begin{eqnarray*}
             \hat{v}^{ \left( 2b \right)}_{ij}\left(\vec{r}_{ij}\right) =
             \begin{cases}
             & 1 \qquad \qquad \; \; \qquad r\le r_{min}\\
             & - \dfrac{v_{ij}\left(\vec{r}_{ij}\right)}{\epsilon} \qquad r > r_{min}~.\\
             \end{cases}
-            \end{equation}
+            \end{eqnarray*}
 
     .. attention::
 
