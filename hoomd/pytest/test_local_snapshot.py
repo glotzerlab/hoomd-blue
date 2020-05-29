@@ -230,15 +230,15 @@ def gpu_simulation_factory(device_gpu):
 
 def check_box(local_snapshot, global_box, ranks):
     """General check that ``box`` and ``local_box`` properties work."""
-    assert type(local_snapshot.box) == hoomd.Box
+    assert type(local_snapshot.global_box) == hoomd.Box
     assert type(local_snapshot.local_box) == hoomd.Box
 
     if ranks == 1:
         assert local_snapshot.local_box == global_box
-        assert local_snapshot.box == global_box
+        assert local_snapshot.global_box == global_box
     else:
         assert local_snapshot.local_box != global_box
-        assert local_snapshot.box == global_box
+        assert local_snapshot.global_box == global_box
 
 
 def test_box_cpu(cpu_simulation_factory, base_snapshot):

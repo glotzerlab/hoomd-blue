@@ -180,7 +180,7 @@ class _LocalSnapshotBase:
         self._local_box = state._cpp_sys_def.getParticleData().getBox()
 
     @property
-    def box(self):
+    def global_box(self):
         """hoomd.Box: The global simulation box."""
         return Box.from_box(self._box)
 
