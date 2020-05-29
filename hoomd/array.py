@@ -512,7 +512,6 @@ if isCUDAAvailable():
         _wrap_gpu_array_list = [
             _ndarray_iops_,
             _cupy_ndarray_magic_safe_,
-            _ndarray_magic_unsafe_,
             _ndarray_std_funcs_,
             _ndarray_disallow_funcs_,
             _ndarray_properties_,
@@ -527,14 +526,21 @@ if isCUDAAvailable():
             def __getattr__(self, item):
                 return getattr(self._coerce_to_ndarray(), item)
 
-            def __setitem__(self, item, value):
+            def __setitem__(self, index, value):
                 if self.read_only:
                     raise ValueError("assignment destination is read-only.")
-                setattr(self._coerce_to_ndarray(), item, value)
+                self._coerce_to_ndarray()[index] = value
+
+            def __getitem__(self, index):
+                if isinstance(index, HOOMDGPUArray):
+                    arr = self._coerce_to_ndarray()[index._coerce_to_ndarray()]
+                else:
+                    arr = self._coerce_to_ndarray()[index]
+                return HOOMDGPUArray(arr, self._callback, self.read_only)
 
             @property
             def shape(self):
-                return self._coerce_to_ndarray().shape()
+                return self._coerce_to_ndarray().shape
 
             @shape.setter
             def shape(self, value):
