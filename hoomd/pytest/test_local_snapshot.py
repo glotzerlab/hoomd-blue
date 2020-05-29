@@ -387,7 +387,7 @@ def check_shape(data, prop_dict, tags):
 
 
 def general_array_equality(arr1, arr2):
-    if any(np.issubdtype(a.dtype, np.float) for a in (arr1, arr2)):
+    if any(np.issubdtype(a.dtype, np.floating) for a in (arr1, arr2)):
         if any(isinstance(a, HOOMDGPUArray) for a in (arr1, arr2)):
             return cupy.allclose(arr1, arr2)
         else:
