@@ -2059,6 +2059,7 @@ v^{\left( 3b \right)}_{ijk}=\lambda \epsilon\,\hat{v}^{ \left( 2b \right)}_{ij}\
             \end{eqnarray*}
 
     where the two body potential is rewritten as:
+
     .. math::
         :nowrap:
 
