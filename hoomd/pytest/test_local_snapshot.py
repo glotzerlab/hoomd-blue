@@ -408,7 +408,7 @@ def check_getting(data, prop_dict, tags):
         expected_values = cupy.array(prop_dict['value'])
     else:
         expected_values = np.array(prop_dict['value'])
-    assert general_array_equality(data, expected_values[tags])
+    assert general_array_equality(data, expected_values[tags.tolist()])
 
 
 def check_setting(data, prop_dict, tags):
@@ -422,7 +422,7 @@ def check_setting(data, prop_dict, tags):
         return None
 
     if isinstance(data, HOOMDGPUArray):
-        new_values = cupy.array(prop_dict['new_value'])[tags]
+        new_values = cupy.array(prop_dict['new_value'])[tags.tolist()]
     else:
         new_values = np.array(prop_dict['new_value'])[tags]
 
