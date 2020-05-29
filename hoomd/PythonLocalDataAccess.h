@@ -57,13 +57,21 @@ struct HOOMDDeviceBuffer
                       std::vector<ssize_t> strides, bool read_only)
         : m_data(data), m_typestr(typestr), m_shape(shape), m_strides(strides),
           m_read_only(read_only)
-		{
-		if (m_shape.size() != m_strides.size())
-			{
-			throw std::runtime_error("GPU buffer shape != strides.");
-			}
-		}
+        {
+        if (m_shape.size() != m_strides.size())
+            {
+            throw std::runtime_error("GPU buffer shape != strides.");
+            }
+        }
 
+    /// Convert object to a __cuda_array_interface__ v2 compliant Python dict.
+    /// We can't only add the existing values in the HOOMDDeviceBuffer because
+    /// CuPy and potentially other packages that use the interface can't handle
+    /// a shape where the first dimension is zero and the rest are non-zero. In
+    /// addition, strides must always be the same length as shape, meaning we
+    /// need to ensure that we change strides to (0,) when the shape is (0,).
+    /// Likewise, we need to ensure that the int that serves as the device
+    /// pointer is zero for size 0 arrays.
     pybind11::dict getCudaArrayInterface()
         {
         auto interface = pybind11::dict();
@@ -77,7 +85,7 @@ struct HOOMDDeviceBuffer
             data = std::pair<intptr_t, bool>(0, m_read_only);
             shape.append(0);
             strides.append(0);
-			}
+            }
         else
             {
             data = std::pair<intptr_t, bool>((intptr_t)m_data, m_read_only);
