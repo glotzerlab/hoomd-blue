@@ -29,6 +29,12 @@ if _hoomd.isCUDAAvailable():
         _array_cls = HOOMDGPUArray
 
     class ConstraintLocalAccessGPU(_GroupLocalAccess):
+        _fields = {
+            'value': 'getTypeVal',
+            'group': 'getMembers',
+            'tag': 'getTags',
+            'rtag': 'getRTags'
+        }
         _cpp_cls = _hoomd.LocalConstraintDataDevice
         _cpp_data_get_method = "getConstraintData"
         _array_cls = HOOMDGPUArray
