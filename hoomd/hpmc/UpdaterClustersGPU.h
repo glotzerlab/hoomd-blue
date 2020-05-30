@@ -34,8 +34,7 @@ class UpdaterClustersGPU : public UpdaterClusters<Shape>
         UpdaterClustersGPU(std::shared_ptr<SystemDefinition> sysdef,
                         std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
                         std::shared_ptr<CellList> cl,
-                        unsigned int seed,
-                        std::shared_ptr<RandomTrigger> trigger);
+                        unsigned int seed);
 
         //! Destructor
         virtual ~UpdaterClustersGPU();
@@ -141,9 +140,8 @@ template< class Shape >
 UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
                              std::shared_ptr<CellList> cl,
-                             unsigned int seed,
-                             std::shared_ptr<RandomTrigger> trigger)
-    : UpdaterClusters<Shape>(sysdef, mc, seed, trigger), m_cl(cl)
+                             unsigned int seed)
+    : UpdaterClusters<Shape>(sysdef, mc, seed), m_cl(cl)
     {
     this->m_exec_conf->msg->notice(5) << "Constructing UpdaterClustersGPU" << std::endl;
 
@@ -1030,8 +1028,7 @@ void export_UpdaterClustersGPU(pybind11::module& m, const std::string& name)
         .def( pybind11::init< std::shared_ptr<SystemDefinition>,
                          std::shared_ptr< IntegratorHPMCMono<Shape> >,
                          std::shared_ptr<CellList>,
-                         unsigned int,
-                         std::shared_ptr<RandomTrigger> >())
+                         unsigned int >())
     ;
     }
 

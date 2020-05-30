@@ -74,7 +74,6 @@ set(_hpmc_headers
     Moves.h
     OBB.h
     OBBTree.h
-    RandomTrigger.h
     ShapeConvexPolygon.h
     ShapeConvexPolyhedron.h
     ShapeEllipsoid.h

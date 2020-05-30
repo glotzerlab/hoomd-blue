@@ -32,8 +32,7 @@ class UpdaterGridShiftGPU : public UpdaterGridShift
          */
         UpdaterGridShiftGPU(std::shared_ptr<SystemDefinition> sysdef,
                       std::shared_ptr<IntegratorHPMC> mc,
-                      const unsigned int seed,
-                      std::shared_ptr<RandomTrigger> trigger);
+                      const unsigned int seed);
 
         //! Destructor
         virtual ~UpdaterGridShiftGPU();

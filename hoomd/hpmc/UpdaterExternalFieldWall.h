@@ -15,7 +15,6 @@
 #include "IntegratorHPMCMono.h"
 #include "ExternalField.h"
 #include "ExternalFieldWall.h" // do we need anything else?
-#include "RandomTrigger.h"
 
 #ifndef __HIPCC__
 #include <pybind11/pybind11.h>
@@ -40,10 +39,7 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
                       std::shared_ptr< ExternalFieldWall<Shape> > external,
                       pybind11::object py_updater,
                       Scalar move_ratio,
-                      unsigned int seed,
-                      std::shared_ptr<RandomTrigger> trigger)
-                        : Updater(sysdef), m_mc(mc), m_external(external), m_py_updater(py_updater),
-                          m_move_ratio(move_ratio), m_seed(seed), m_trigger(trigger)
+                      unsigned int seed) : Updater(sysdef), m_mc(mc), m_external(external), m_py_updater(py_updater), m_move_ratio(move_ratio), m_seed(seed)
                       {
                       // broadcast the seed from rank 0 to all other ranks.
                       #ifdef ENABLE_MPI
@@ -140,9 +136,6 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
         */
         virtual void update(unsigned int timestep)
             {
-            if (! m_trigger->isEligibleForExecution(timestep, *this))
-                return;
-
             // Choose whether or not to update the external field
             hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterExternalFieldWall, m_seed, timestep);
             unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng);
@@ -194,16 +187,13 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
         std::vector<SphereWall> m_CurrSpheres;                    //!< Copy of current sphere walls
         std::vector<CylinderWall> m_CurrCylinders;                //!< Copy of current cylinder walls
         std::vector<PlaneWall> m_CurrPlanes;                      //!< Copy of current plane walls
-        std::shared_ptr<RandomTrigger> m_trigger;                 //!< Random trigger for MC moves
     };
 
 template< class Shape >
 void export_UpdaterExternalFieldWall(pybind11::module& m, std::string name)
     {
    pybind11::class_< UpdaterExternalFieldWall<Shape>, Updater, std::shared_ptr< UpdaterExternalFieldWall<Shape> > >(m, name.c_str())
-    .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr< IntegratorHPMCMono<Shape> >,
-        std::shared_ptr< ExternalFieldWall<Shape> >, pybind11::object, Scalar, unsigned int,
-        std::shared_ptr< RandomTrigger> >())
+    .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr< IntegratorHPMCMono<Shape> >, std::shared_ptr< ExternalFieldWall<Shape> >, pybind11::object, Scalar, unsigned int >())
     .def("getAcceptedCount", &UpdaterExternalFieldWall<Shape>::getAcceptedCount)
     .def("getTotalCount", &UpdaterExternalFieldWall<Shape>::getTotalCount)
     .def("resetStats", &UpdaterExternalFieldWall<Shape>::resetStats)

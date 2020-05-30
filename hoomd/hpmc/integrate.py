@@ -186,7 +186,7 @@ class mode_hpmc(_integrator):
     # \brief Initialize an empty integrator
     #
     # \post the member shape_param is created
-    def __init__(self, seed):
+    def __init__(self):
         _integrator.__init__(self);
 
         # setup the shape parameters
@@ -197,9 +197,6 @@ class mode_hpmc(_integrator):
 
         #initialize list to check implicit params
         self.implicit_params=list()
-
-        # the trigger for random move selection
-        self.trigger = _hpmc.RandomTrigger(seed)
 
     ## Set the external field
     def set_external(self, ext):
@@ -250,9 +247,6 @@ class mode_hpmc(_integrator):
         # check that particle orientations are normalized
         if not self.cpp_integrator.checkParticleOrientations():
            hoomd.context.current.device.cpp_msg.warning("Particle orientations are not normalized\n");
-
-        # add ourselves to the move set
-        self.trigger.addToSet(self.cpp_integrator, 1)
 
     # Declare the GSD state schema.
     @classmethod
@@ -740,7 +734,7 @@ class sphere(mode_hpmc):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
 
         # initialize base class
-        mode_hpmc.__init__(self, seed);
+        mode_hpmc.__init__(self);
 
         # initialize the reflected c++ class
         self.grid_shift = None
@@ -823,7 +817,7 @@ class convex_polygon(mode_hpmc):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
 
         # initialize base class
-        mode_hpmc.__init__(self, seed);
+        mode_hpmc.__init__(self);
 
         # initialize the reflected c++ class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -904,7 +898,7 @@ class convex_spheropolygon(mode_hpmc):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
 
         # initialize base class
-        mode_hpmc.__init__(self, seed);
+        mode_hpmc.__init__(self);
 
         # initialize the reflected c++ class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -983,7 +977,7 @@ class simple_polygon(mode_hpmc):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
 
         # initialize base class
-        mode_hpmc.__init__(self, seed);
+        mode_hpmc.__init__(self);
 
         # initialize the reflected c++ class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -1097,7 +1091,7 @@ class polyhedron(mode_hpmc):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
 
         # initialize base class
-        mode_hpmc.__init__(self, seed)
+        mode_hpmc.__init__(self)
 
         # initialize the reflected c++ class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -1178,7 +1172,7 @@ class convex_polyhedron(mode_hpmc):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
 
         # initialize base class
-        mode_hpmc.__init__(self, seed);
+        mode_hpmc.__init__(self);
 
         # initialize the reflected c++ class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -1287,7 +1281,7 @@ class faceted_ellipsoid(mode_hpmc):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
 
         # initialize base class
-        mode_hpmc.__init__(self, seed);
+        mode_hpmc.__init__(self);
 
         # initialize the reflected c++ class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -1414,7 +1408,7 @@ class sphinx(mode_hpmc):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
 
         # initialize base class
-        mode_hpmc.__init__(self, seed)
+        mode_hpmc.__init__(self)
 
         # initialize the reflected c++ class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -1490,7 +1484,7 @@ class convex_spheropolyhedron(mode_hpmc):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
 
         # initialize base class
-        mode_hpmc.__init__(self, seed)
+        mode_hpmc.__init__(self)
 
         # initialize the reflected c++ class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -1566,7 +1560,7 @@ class ellipsoid(mode_hpmc):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
 
         # initialize base class
-        mode_hpmc.__init__(self, seed);
+        mode_hpmc.__init__(self);
 
         # initialize the reflected c++ class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -1654,7 +1648,7 @@ class sphere_union(mode_hpmc):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
 
         # initialize base class
-        mode_hpmc.__init__(self, seed);
+        mode_hpmc.__init__(self);
 
         # initialize the reflected c++ class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -1719,7 +1713,7 @@ class convex_spheropolyhedron_union(mode_hpmc):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4):
 
         # initialize base class
-        mode_hpmc.__init__(self, seed)
+        mode_hpmc.__init__(self)
 
         # initialize the reflected c++ class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -1793,7 +1787,7 @@ class faceted_ellipsoid_union(mode_hpmc):
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4):
 
         # initialize base class
-        mode_hpmc.__init__(self, seed);
+        mode_hpmc.__init__(self);
 
         # initialize the reflected c++ class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():

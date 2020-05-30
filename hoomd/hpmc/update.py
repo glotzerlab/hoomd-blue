@@ -72,13 +72,8 @@ class boxmc(_updater):
                                                self.betaP.cpp_variant,
                                                1,
                                                self.seed,
-                                               mc.trigger
                                                );
         self.setupUpdater(period);
-
-        # register MC move
-        self.mc = mc
-        self.mc.trigger.addToSet(self.cpp_updater)
 
         self.volume_delta = 0.0;
         self.volume_weight = 0.0;
@@ -105,10 +100,6 @@ class boxmc(_updater):
                                  'shear_reduce',
                                  'aspect_delta',
                                  'aspect_weight']
-
-    def disable(self):
-        self.mc.trigger.removeFromSet(self.cpp_updater)
-        _updater.enable(self);
 
     def set_betap(self, betaP):
         R""" Update the pressure set point for Metropolis Monte Carlo volume updates.
@@ -402,7 +393,6 @@ class boxmc(_updater):
         See updater base class documentation for more information
         """
         self.cpp_updater.computeAspectRatios();
-        self.mc.trigger.addToSet(self.cpp_updater)
         _updater.enable(self);
 
 class _grid_shift(_updater):
@@ -414,19 +404,16 @@ class _grid_shift(_updater):
         period (int): The period (number of time steps) of execution for this updater
     """
     def __init__(self, mc, seed, period=1):
-        #initialize base class with a unique name to ensure this Updater is added only once
-        _updater.__init__(self, name="grid_shift")
+        #initialize base class
+        _updater.__init__(self);
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_updater = _hpmc.UpdaterGridShift(hoomd.context.current.system_definition,
-                mc.cpp_integrator, seed, mc.trigger)
+                mc.cpp_integrator, seed)
         else:
             self.cpp_updater = _hpmc.UpdaterGridShiftGPU(hoomd.context.current.system_definition,
-                mc.cpp_integrator, seed, mc.trigger)
+                mc.cpp_integrator, seed)
 
         self.setupUpdater(period);
-
-        # register MC moves
-        mc.trigger.addToSet(self.cpp_updater)
 
 class wall(_updater):
     R""" Apply wall updates with a user-provided python callback.
@@ -485,12 +472,8 @@ class wall(_updater):
             hoomd.context.current.device.cpp_msg.error("update.wall: Unsupported integrator.\n");
             raise RuntimeError("Error initializing update.wall");
 
-        self.cpp_updater = cls(hoomd.context.current.system_definition, mc.cpp_integrator, walls.cpp_compute, py_updater, move_ratio, seed,
-            mc.trigger);
+        self.cpp_updater = cls(hoomd.context.current.system_definition, mc.cpp_integrator, walls.cpp_compute, py_updater, move_ratio, seed);
         self.setupUpdater(period);
-
-        self.mc = mc
-        self.mc.trigger.addToSet(self.cpp_updater)
 
     def get_accepted_count(self, mode=0):
         R""" Get the number of accepted wall update moves.
@@ -540,13 +523,6 @@ class wall(_updater):
 
         """
         return self.cpp_updater.getTotalCount(mode);
-
-    def enable(self):
-        self.mc.trigger.addToSet(self.cpp_updater)
-        _updater.enable()
-
-    def disable(self):
-        self.mc.trigger.removeFromSet(self.cpp_updater)
 
 class muvt(_updater):
     R""" Insert and remove particles in the muVT ensemble.
@@ -633,8 +609,7 @@ class muvt(_updater):
         self.cpp_updater = cls(hoomd.context.current.system_definition,
                                mc.cpp_integrator,
                                int(seed),
-                               ngibbs,
-                               mc.trigger);
+                               ngibbs);
 
         # register the muvt updater
         self.setupUpdater(period);
@@ -655,10 +630,6 @@ class muvt(_updater):
             cpp_transfer_types.append(type_id)
 
         self.cpp_updater.setTransferTypes(cpp_transfer_types)
-
-        # add as MC move
-        self.mc = mc
-        self.mc.trigger.addToSet(self.cpp_updater)
 
     def set_fugacity(self, type, fugacity):
         R""" Change muVT fugacities.
@@ -726,14 +697,6 @@ class muvt(_updater):
         if n_trial is not None:
             self.cpp_updater.setNTrial(int(n_trial))
 
-    def enable(self):
-        self.mc.trigger.addToSet(self.cpp_updater)
-        _updater.enable()
-
-    def disable(self):
-        self.mc.trigger.removeFromSet(self.cpp_updater)
-
-
 class remove_drift(_updater):
     R""" Remove the center of mass drift from a system restrained on a lattice.
 
@@ -791,13 +754,8 @@ class remove_drift(_updater):
         else:
             raise RuntimeError("update.remove_drift: Error! GPU not implemented.");
 
-        self.cpp_updater = cls(hoomd.context.current.system_definition, external_lattice.cpp_compute, mc.cpp_integrator,
-            mc.trigger);
+        self.cpp_updater = cls(hoomd.context.current.system_definition, external_lattice.cpp_compute, mc.cpp_integrator);
         self.setupUpdater(period);
-
-        # add as MC move
-        self.mc = mc
-        self.mc.trigger.addToSet(self.cpp_updater.cpp_updater)
 
 class clusters(_updater):
     R""" Equilibrate the system according to the geometric cluster algorithm (GCA).
@@ -906,11 +864,6 @@ class clusters(_updater):
         # register the clusters updater
         self.setupUpdater(period)
 
-        # add as MC move
-        self.mc = mc
-        self.mc.trigger.addToSet(self.cpp_updater)
-
-
     def set_params(self, move_ratio=None, flip_probability=None, swap_move_ratio=None, delta_mu=None, swap_types=None):
         R""" Set options for the clusters moves.
 
@@ -979,10 +932,3 @@ class clusters(_updater):
         """
         counters = self.cpp_updater.getCounters(1);
         return counters.getSwapAcceptance();
-
-    def enable(self):
-        self.mc.trigger.addToSet(self.cpp_updater)
-        _updater.enable()
-
-    def disable(self):
-        self.mc.trigger.removeFromSet(self.cpp_updater)

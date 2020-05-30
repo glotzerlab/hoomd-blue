@@ -17,8 +17,6 @@
 #include "HPMCCounters.h"
 #include "IntegratorHPMCMono.h"
 
-#include "RandomTrigger.h"
-
 #ifdef ENABLE_TBB
 #include <tbb/concurrent_unordered_map.h>
 #include <tbb/concurrent_unordered_set.h>
@@ -265,12 +263,10 @@ class UpdaterClusters : public Updater
         /*! \param sysdef System definition
             \param mc HPMC integrator
             \param seed PRNG seed
-            \param trigger Trigger for random move selection
         */
         UpdaterClusters(std::shared_ptr<SystemDefinition> sysdef,
                         std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
-                        unsigned int seed,
-                        std::shared_ptr<RandomTrigger> trigger);
+                        unsigned int seed);
 
         //! Destructor
         virtual ~UpdaterClusters();
@@ -384,8 +380,6 @@ class UpdaterClusters : public Updater
         hpmc_clusters_counters_t m_count_run_start;             //!< Count saved at run() start
         hpmc_clusters_counters_t m_count_step_start;            //!< Count saved at the start of the last step
 
-        std::shared_ptr<RandomTrigger> m_trigger;               //!< Trigger for random move selection
-
         //! Check overlaps of a particle with depletants
         inline void checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i,
             const Scalar4 *h_postype_backup, const Scalar4 *h_orientation_backup,
@@ -412,10 +406,9 @@ class UpdaterClusters : public Updater
 template< class Shape >
 UpdaterClusters<Shape>::UpdaterClusters(std::shared_ptr<SystemDefinition> sysdef,
                                  std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
-                                 unsigned int seed,
-                                 std::shared_ptr<RandomTrigger> trigger)
+                                 unsigned int seed)
         : Updater(sysdef), m_mc(mc), m_seed(seed), m_move_ratio(0.5),
-          m_flip_probability(0.5), m_trigger(trigger)
+            m_flip_probability(0.5)
     {
     m_exec_conf->msg->notice(5) << "Constructing UpdaterClusters" << std::endl;
 
@@ -1541,9 +1534,6 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
         throw std::runtime_error("UpdaterClusters does not work with spatial domain decomposition.");
     #endif
 
-    if (!m_trigger->isEligibleForExecution(timestep, *this))
-        return;
-
     m_exec_conf->msg->notice(10) << timestep << " UpdaterClusters" << std::endl;
 
     m_count_step_start = m_count_total;
@@ -1752,8 +1742,7 @@ template < class Shape> void export_UpdaterClusters(pybind11::module& m, const s
     pybind11::class_< UpdaterClusters<Shape>, Updater, std::shared_ptr< UpdaterClusters<Shape> > >(m, name.c_str())
           .def( pybind11::init< std::shared_ptr<SystemDefinition>,
                          std::shared_ptr< IntegratorHPMCMono<Shape> >,
-                         unsigned int,
-                         std::shared_ptr< RandomTrigger> >())
+                         unsigned int >())
         .def("getCounters", &UpdaterClusters<Shape>::getCounters)
         .def("setMoveRatio", &UpdaterClusters<Shape>::setMoveRatio)
         .def("setFlipProbability", &UpdaterClusters<Shape>::setFlipProbability)

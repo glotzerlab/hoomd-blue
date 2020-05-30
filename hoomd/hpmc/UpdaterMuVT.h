@@ -11,8 +11,6 @@
 #include "IntegratorHPMCMono.h"
 #include "hoomd/RandomNumbers.h"
 
-#include "RandomTrigger.h"
-
 #ifndef __HIPCC__
 #include <pybind11/pybind11.h>
 #endif
@@ -33,8 +31,7 @@ class UpdaterMuVT : public Updater
         UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
             std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
             unsigned int seed,
-            unsigned int npartition,
-            std::shared_ptr<RandomTrigger> trigger);
+            unsigned int npartition);
         virtual ~UpdaterMuVT();
 
         //! The entry method for this updater
@@ -168,8 +165,6 @@ class UpdaterMuVT : public Updater
 
         unsigned int m_n_trial;
 
-        std::shared_ptr<RandomTrigger> m_trigger;    //!< Trigger for random MC moves
-
         /*! Check for overlaps of a fictitious particle
          * \param timestep Current time step
          * \param type Type of particle to test
@@ -299,11 +294,10 @@ template<class Shape>
 UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<IntegratorHPMCMono< Shape > > mc,
     unsigned int seed,
-    unsigned int npartition,
-    std::shared_ptr<RandomTrigger> trigger)
+    unsigned int npartition)
     : Updater(sysdef), m_mc(mc), m_seed(seed), m_npartition(npartition), m_gibbs(false),
       m_max_vol_rescale(0.1), m_move_ratio(0.5), m_gibbs_other(0),
-      m_n_trial(1), m_trigger(trigger)
+      m_n_trial(1)
     {
     // broadcast the seed from rank 0 to all other ranks.
     #ifdef ENABLE_MPI
@@ -816,9 +810,6 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(unsigned int timestep, const BoxDim o
 template<class Shape>
 void UpdaterMuVT<Shape>::update(unsigned int timestep)
     {
-    if (!m_trigger->isEligibleForExecution(timestep, *this))
-        return;
-
     m_count_step_start = m_count_total;
     unsigned int ndim = this->m_sysdef->getNDimensions();
 
@@ -2678,8 +2669,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlaps(unsigned int timestep, u
 template < class Shape > void export_UpdaterMuVT(pybind11::module& m, const std::string& name)
     {
     pybind11::class_< UpdaterMuVT<Shape>, Updater, std::shared_ptr< UpdaterMuVT<Shape> > >(m, name.c_str())
-          .def( pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr< IntegratorHPMCMono<Shape> >,
-            unsigned int, unsigned int, std::shared_ptr<RandomTrigger> >())
+          .def( pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr< IntegratorHPMCMono<Shape> >, unsigned int, unsigned int>())
           .def("setFugacity", &UpdaterMuVT<Shape>::setFugacity)
           .def("setMaxVolumeRescale", &UpdaterMuVT<Shape>::setMaxVolumeRescale)
           .def("setMoveRatio", &UpdaterMuVT<Shape>::setMoveRatio)

@@ -207,8 +207,6 @@ std::vector<System::updater_item>::iterator System::findUpdaterItem(const std::s
     \a period during time step calculations performed when run() is called. An updater
     can be prevented from running in future runs by removing it (removeUpdater()) before
     calling run()
-
-    If an updater with given name already exists, it will be replaced
 */
 void System::addUpdater(std::shared_ptr<Updater> updater, const std::string& name, unsigned int period, int phase)
     {
@@ -227,9 +225,8 @@ void System::addUpdater(std::shared_ptr<Updater> updater, const std::string& nam
         {
         if (i->m_name == name)
             {
-            // no, replace the existing one
-            m_updaters.erase(i);
-            break;
+            m_exec_conf->msg->error() << "Updater " << name << " already exists" << endl;
+            throw runtime_error("System: cannot add Updater");
             }
         }
 

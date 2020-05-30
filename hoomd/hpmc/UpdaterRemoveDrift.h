@@ -21,8 +21,6 @@
 #include "ExternalFieldLattice.h"
 #include "IntegratorHPMCMono.h"
 
-#include "RandomTrigger.h"
-
 #ifndef __HIPCC__
 #include <pybind11/pybind11.h>
 #endif
@@ -47,18 +45,14 @@ class RemoveDriftUpdater : public Updater
         //! Constructor
         RemoveDriftUpdater( std::shared_ptr<SystemDefinition> sysdef,
                             std::shared_ptr<ExternalFieldLattice<Shape> > externalLattice,
-                            std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
-                            std::shared_ptr<RandomTrigger> trigger
-                          ) : Updater(sysdef), m_externalLattice(externalLattice), m_mc(mc), m_trigger(trigger)
+                            std::shared_ptr<IntegratorHPMCMono<Shape> > mc
+                          ) : Updater(sysdef), m_externalLattice(externalLattice), m_mc(mc)
             {
             }
 
         //! Take one timestep forward
         virtual void update(unsigned int timestep)
             {
-            if (! m_trigger->isEligibleForExecution(timestep, *this))
-                return;
-
             ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar3> h_r0(m_externalLattice->getReferenceLatticePositions(), access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(), access_location::host, access_mode::read);
@@ -109,7 +103,6 @@ class RemoveDriftUpdater : public Updater
     protected:
                 std::shared_ptr<ExternalFieldLattice<Shape> > m_externalLattice;
                 std::shared_ptr<IntegratorHPMCMono<Shape> > m_mc;
-                std::shared_ptr<RandomTrigger> m_trigger;
     };
 
 //! Export the ExampleUpdater class to python
@@ -120,8 +113,7 @@ void export_RemoveDriftUpdater(pybind11::module& m, std::string name)
    pybind11::class_<RemoveDriftUpdater<Shape>, Updater, std::shared_ptr<RemoveDriftUpdater<Shape> > >(m, name.c_str())
    .def(pybind11::init<     std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ExternalFieldLattice<Shape> >,
-                            std::shared_ptr<IntegratorHPMCMono<Shape> >,
-                            std::shared_ptr<RandomTrigger> >())
+                            std::shared_ptr<IntegratorHPMCMono<Shape> > >())
     ;
     }
 }
