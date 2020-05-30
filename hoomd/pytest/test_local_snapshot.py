@@ -15,9 +15,9 @@ else:
 
 try:
     import cupy
-    CUPY_IMPORTED=True
+    CUPY_IMPORTED = True
 except ImportError:
-    CUPY_IMPORTED=False
+    CUPY_IMPORTED = False
 
 
 skip_mpi4py = pytest.mark.skipif(
@@ -33,83 +33,83 @@ Np = 5
 _particle_data = dict(
     _N=Np,
     position=dict(
-        np_typecode_key='Float',
+        np_type=np.floating,
         value=[[-1, -1, -1], [-1, -1, 0], [-1, 0, 0], [1, 1, 1], [1, 0, 0]],
         new_value=[[5, 5, 5]] * Np,
         shape=(Np, 3)),
     velocity=dict(
-        np_typecode_key='Float',
+        np_type=np.floating,
         value=np.linspace(-4, 4, Np * 3).reshape((Np, 3)),
         new_value=np.linspace(4, 8, Np * 3).reshape((Np, 3)),
         shape=(Np, 3)),
     acceleration=dict(
-        np_typecode_key='Float',
+        np_type=np.floating,
         value=np.linspace(-4, 4, Np * 3).reshape((Np, 3)),
         new_value=np.linspace(4, 8, Np * 3).reshape((Np, 3)),
         shape=(Np, 3)),
     typeid=dict(
-        np_typecode_key='Integer',
+        np_type=np.integer,
         value=[0, 0, 0, 1, 1],
         new_value=[1, 1, 1, 0, 0],
         shape=(Np,)),
-    mass=dict(np_typecode_key='Float', value=[5, 4, 3, 2, 1],
+    mass=dict(np_type=np.floating, value=[5, 4, 3, 2, 1],
               new_value=[1, 2, 3, 4, 5], shape=(Np,)),
-    charge=dict(np_typecode_key='Float', value=[1, 2, 3, 2, 1],
+    charge=dict(np_type=np.floating, value=[1, 2, 3, 2, 1],
                 new_value=[-1, -1, -3, -2, -1], shape=(Np,)),
-    diameter=dict(np_typecode_key='Float', value=[5, 2, 3, 2, 5],
+    diameter=dict(np_type=np.floating, value=[5, 2, 3, 2, 5],
                   new_value=[2, 1, 0.5, 1, 2], shape=(Np,)),
     image=dict(
-        np_typecode_key='Integer',
+        np_type=np.integer,
         value=np.linspace(-10, 20, Np * 3, dtype=np.int).reshape(Np, 3),
         new_value=np.linspace(-20, 10, Np * 3, dtype=np.int).reshape(Np, 3),
         shape=(Np, 3)),
-    tag=dict(np_typecode_key='UnsignedInteger', value=None, shape=(Np,)),
-    rtag=dict(np_typecode_key='UnsignedInteger', value=None, shape=(Np,)),
+    tag=dict(np_type=np.unsignedinteger, value=None, shape=(Np,)),
+    rtag=dict(np_type=np.unsignedinteger, value=None, shape=(Np,)),
     _types=['p1', 'p2']
 )
 
 Nb = 2
 _bond_data = dict(
     _N=Nb,
-    typeid=dict(np_typecode_key='UnsignedInteger',
+    typeid=dict(np_type=np.unsignedinteger,
                 value=[0, 1], new_value=[1, 0], shape=(Nb,)),
     group=dict(
-        np_typecode_key='UnsignedInteger',
+        np_type=np.unsignedinteger,
         value=[[0, 1], [2, 3]],
         new_value=[[1, 0], [3, 2]],
         shape=(Nb, 2)),
-    tag=dict(np_typecode_key='UnsignedInteger', value=None, shape=(Nb,)),
-    rtag=dict(np_typecode_key='UnsignedInteger', value=None, shape=(Nb,)),
+    tag=dict(np_type=np.unsignedinteger, value=None, shape=(Nb,)),
+    rtag=dict(np_type=np.unsignedinteger, value=None, shape=(Nb,)),
     _types=['b1', 'b2']
 )
 
 Na = 2
 _angle_data = dict(
     _N=Na,
-    typeid=dict(np_typecode_key='UnsignedInteger',
+    typeid=dict(np_type=np.unsignedinteger,
                 value=[1, 0], new_value=[0, 1], shape=(Na,)),
     group=dict(
-        np_typecode_key='UnsignedInteger',
+        np_type=np.unsignedinteger,
         value=[[0, 1, 2], [2, 3, 4]],
         new_value=[[1, 3, 4], [0, 2, 4]],
         shape=(Na, 3)),
-    tag=dict(np_typecode_key='UnsignedInteger', value=None, shape=(Na,)),
-    rtag=dict(np_typecode_key='UnsignedInteger', value=None, shape=(Na,)),
+    tag=dict(np_type=np.unsignedinteger, value=None, shape=(Na,)),
+    rtag=dict(np_type=np.unsignedinteger, value=None, shape=(Na,)),
     _types=['a1', 'a2']
 )
 
 Nd = 2
 _dihedral_data = dict(
     _N=Nd,
-    typeid=dict(np_typecode_key='UnsignedInteger',
+    typeid=dict(np_type=np.unsignedinteger,
                 value=[1, 0], new_value=[0, 1], shape=(Nd,)),
     group=dict(
-        np_typecode_key='UnsignedInteger',
+        np_type=np.unsignedinteger,
         value=[[0, 1, 2, 3], [1, 2, 3, 4]],
         new_value=[[4, 3, 2, 1], [2, 4, 0, 1]],
         shape=(Nd, 4)),
-    tag=dict(np_typecode_key='UnsignedInteger', value=None, shape=(Nd,)),
-    rtag=dict(np_typecode_key='UnsignedInteger', value=None, shape=(Nd,)),
+    tag=dict(np_type=np.unsignedinteger, value=None, shape=(Nd,)),
+    rtag=dict(np_type=np.unsignedinteger, value=None, shape=(Nd,)),
     _types=['d1', 'd2']
 )
 
@@ -117,45 +117,45 @@ Ni = 2
 _improper_data = dict(
     _N=Ni,
     typeid=dict(
-        np_typecode_key='UnsignedInteger', value=[0, 0], shape=(Ni,)),
+        np_type=np.unsignedinteger, value=[0, 0], shape=(Ni,)),
     group=dict(
-        np_typecode_key='UnsignedInteger',
+        np_type=np.unsignedinteger,
         value=[[3, 2, 1, 0], [1, 2, 3, 4]],
         new_value=[[1, 2, 3, 0], [4, 2, 3, 1]],
         shape=(Ni, 4)),
     tag=dict(
-        np_typecode_key='UnsignedInteger', value=None, shape=(Ni,)),
+        np_type=np.unsignedinteger, value=None, shape=(Ni,)),
     rtag=dict(
-        np_typecode_key='UnsignedInteger', value=None, shape=(Ni,)),
+        np_type=np.unsignedinteger, value=None, shape=(Ni,)),
     _types=['i1']
 )
 
 Nc = 3
 _constraint_data = dict(
     _N=Nc,
-    value=dict(np_typecode_key='Float', value=[2.5, 0.5, 2.],
+    value=dict(np_type=np.floating, value=[2.5, 0.5, 2.],
                new_value=[3., 1.5, 1.], shape=(Nc,)),
     group=dict(
-        np_typecode_key='UnsignedInteger',
+        np_type=np.unsignedinteger,
         value=[[0, 1], [2, 3], [1, 3]],
         new_value=[[4, 1], [3, 1], [2, 4]],
         shape=(Nc, 2)),
-    tag=dict(np_typecode_key='UnsignedInteger', value=None, shape=(Nc,)),
-    rtag=dict(np_typecode_key='UnsignedInteger', value=None, shape=(Nc,)),
+    tag=dict(np_type=np.unsignedinteger, value=None, shape=(Nc,)),
+    rtag=dict(np_type=np.unsignedinteger, value=None, shape=(Nc,)),
 )
 
 Npa = 2
 _pair_data = dict(
     _N=Npa,
-    typeid=dict(np_typecode_key='UnsignedInteger',
+    typeid=dict(np_type=np.unsignedinteger,
                 value=[0, 1], new_value=[1, 0], shape=(Npa,)),
     group=dict(
-        np_typecode_key='UnsignedInteger',
+        np_type=np.unsignedinteger,
         value=[[0, 1], [2, 3]],
         new_value=[[4, 1], [0, 3]],
         shape=(Npa, 2)),
-    tag=dict(np_typecode_key='UnsignedInteger', value=None, shape=(Npa,)),
-    rtag=dict(np_typecode_key='UnsignedInteger', value=None, shape=(Npa,)),
+    tag=dict(np_type=np.unsignedinteger, value=None, shape=(Npa,)),
+    rtag=dict(np_type=np.unsignedinteger, value=None, shape=(Npa,)),
     _types=['p1', 'p2']
 )
 
@@ -364,14 +364,7 @@ def get_property_name_from_affix(name, affix):
 
 def check_type(data, prop_dict, tags):
     """Check that the expected dtype is found for local snapshots."""
-    expected_typecodes = np.typecodes[prop_dict['np_typecode_key']]
-    if hasattr(data, 'dtype'):
-        given_typecode = data.dtype.char
-    elif isinstance(data, HOOMDGPUArray):
-        given_typecode = data.__cuda_array_interface__['typestr']
-    else:
-        raise RuntimeError("Array expected to have dtype attribute.")
-    assert given_typecode in expected_typecodes
+    assert np.issubdtype(data.dtype, prop_dict['np_type'])
 
 
 def check_shape(data, prop_dict, tags):
@@ -442,7 +435,7 @@ def property_check(request):
 
 
 def test_cpu_arrays_properties(cpu_simulation_factory, base_snapshot,
-                           section_name_dict, affix, property_check):
+                               section_name_dict, affix, property_check):
     """This test makes extensive use of parameterizing in pytest.
 
     This test tests the type, shape, getting, and setting of array values in the
