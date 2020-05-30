@@ -902,7 +902,7 @@ class clusters(_updater):
 
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
             hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl3")
-            self.cpp_updater = cls(hoomd.context.current.system_definition, mc.cpp_integrator, cl_c, int(seed), mc.trigger)
+            self.cpp_updater = cls(hoomd.context.current.system_definition, mc.cpp_integrator, cl_c, int(seed))
 
         # register the clusters updater
         self.setupUpdater(period)
