@@ -457,6 +457,9 @@ if isCUDAAvailable():
 
         class HOOMDGPUArray(_HOOMDGPUArrayBase,
                             metaclass=_WrapClassFactory(_wrap_gpu_array_list)):
+            def __len__(self):
+                return self.shape[0]
+
             @property
             def shape(self):
                 protocol = self._buffer.__cuda_array_interface__
