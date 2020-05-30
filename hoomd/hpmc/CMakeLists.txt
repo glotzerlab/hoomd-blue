@@ -37,8 +37,6 @@ set(_hpmc_sources   module.cc
                     module_convex_polyhedron.cc
                     module_convex_spheropolyhedron.cc
                     UpdaterBoxMC.cc
-                    UpdaterGridShift.cc
-                    UpdaterGridShiftGPU.cc
                     IntegratorHPMC.cc
                     )
 
@@ -91,8 +89,6 @@ set(_hpmc_headers
     UpdaterClustersGPU.cuh
     UpdaterClustersGPUDepletants.cuh
     UpdaterExternalFieldWall.h
-    UpdaterGridShift.h
-    UpdaterGridShiftGPU.h
     UpdaterMuVT.h
     UpdaterRemoveDrift.h
     XenoCollide2D.h

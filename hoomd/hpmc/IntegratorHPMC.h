@@ -316,12 +316,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             return m_nselect;
             }
 
-        //! Get the range of HPMC interactions
-        virtual Scalar getNominalWidth()
-            {
-            return m_nominal_width;
-            }
-
         //! Print statistics about the hmc steps taken
         virtual void printStats()
             {

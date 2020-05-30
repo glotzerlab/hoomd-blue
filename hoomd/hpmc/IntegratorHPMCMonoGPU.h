@@ -705,8 +705,8 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
             }
         }
 
-    // rng for shuffle
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCMonoShuffle, this->m_seed, timestep);
+    // rng for shuffle and grid shift
+    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCMonoShift, this->m_seed, timestep);
 
     if (this->m_pdata->getN() > 0)
         {
@@ -1636,8 +1636,16 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
             }
         }
 
-    // wrap particles back into box (call shift kernel with shift=(0,0,0))
+    // shift particles
     Scalar3 shift = make_scalar3(0,0,0);
+    hoomd::UniformDistribution<Scalar> uniform(-this->m_nominal_width/Scalar(2.0),this->m_nominal_width/Scalar(2.0));
+    shift.x = uniform(rng);
+    shift.y = uniform(rng);
+    if (this->m_sysdef->getNDimensions() == 3)
+        {
+        shift.z = uniform(rng);
+        }
+
     if (this->m_pdata->getN() > 0)
         {
         BoxDim box = this->m_pdata->getBox();
@@ -1656,6 +1664,9 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
         }
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+
+    // update the particle data origin
+    this->m_pdata->translateOrigin(shift);
 
     if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
 
