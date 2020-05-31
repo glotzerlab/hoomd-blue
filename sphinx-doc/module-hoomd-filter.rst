@@ -1,9 +1,9 @@
 hoomd.filter
 ------------
 
-.. py:currentmodule:: hoomd.filter
-
 .. rubric:: Overview
+
+.. py:currentmodule:: hoomd.filter
 
 .. autosummary::
     :nosignatures:

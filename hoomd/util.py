@@ -6,18 +6,11 @@
 R""" Utilities.
 """
 
-from collections.abc import Mapping
 from numpy import ndarray
-from inspect import isclass
+from collections.abc import Iterable, Mapping
 from copy import deepcopy
-from hoomd.trigger import Periodic
+from enum import IntEnum
 
-## \internal
-# \brief Compatibility definition of a basestring for python 2/3
-try:
-    _basestring = basestring
-except NameError:
-    _basestring = str
 
 ## \internal
 # \brief Checks if a variable is an instance of a string and always returns a list.
@@ -40,13 +33,7 @@ def to_camel_case(string):
 
 def is_iterable(obj):
     '''Returns True if object is iterable and not a str or dict.'''
-    return not isclass(obj) and hasattr(obj, '__iter__') \
-        and not bad_iterable_type(obj)
-
-
-def is_mapping(obj):
-    return not isclass(obj) \
-        and all([hasattr(obj, attr) for attr in ('keys', 'values', 'items')])
+    return isinstance(obj, Iterable) and not bad_iterable_type(obj)
 
 
 def bad_iterable_type(obj):
@@ -264,45 +251,7 @@ def array_to_strings(value):
         return value
 
 
-def trigger_preprocessing(trigger):
-    if isinstance(trigger, int):
-        return Periodic(period=int(trigger), phase=0)
-    else:
-        return trigger
-
-
-class RequiredArg:
-    pass
-
-
-def check_for_required(value, previous=None):
-    if is_mapping(value):
-        for k, v in value.items():
-            if previous is None:
-                check_for_required(v, [k])
-            else:
-                check_for_required(v, previous + [k])
-    elif is_iterable(value):
-        for i, v in enumerate(value):
-            if previous is None:
-                check_for_required(v, [i])
-            else:
-                check_for_required(v, previous + [i])
-    else:
-        if value is RequiredArg:
-            raise_from_previous(previous)
-        else:
-            pass
-
-
-def raise_from_previous(previous):
-    prv_str = ""
-    if previous is None:
-        pass
-    else:
-        for s in previous:
-            if isinstance(s, int):
-                prv_str += "in list item {} ".format(s)
-            else:
-                prv_str += "in key {} ".format(s)
-    raise ValueError("Expected a value, {}. Found RequiredArg.".format(prv_str))
+class ParticleDataFlags(IntEnum):
+    PRESSURE_TENSOR = 0
+    ROTATIONAL_KINETIC_ENERGY = 1
+    EXTERNAL_FIELD_VIRIAL = 2
