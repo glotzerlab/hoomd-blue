@@ -43,7 +43,7 @@ class EvaluatorPairMoliere
             // just holding on to these so if the user calls asDict,
             // we can give them back correctly
             unsigned int Zi;
-            unsigned int Zf;
+            unsigned int Zj;
             Scalar e;
             Scalar a0;
 
@@ -59,14 +59,14 @@ class EvaluatorPairMoliere
             #ifndef __HIPCC__
             param_type()
                 {
-                Zi = Zf = a0 = e = 1;
+                Zi = Zj = a0 = e = 1;
                 computeParams();
                 }
 
             param_type(pybind11::dict v)
                 {
                 Zi = v["Zi"].cast<unsigned int>();
-                Zf = v["Zf"].cast<unsigned int>();
+                Zj = v["Zj"].cast<unsigned int>();
                 e = v["e"].cast<Scalar>();
                 a0 = v["a0"].cast<Scalar>();
 
@@ -77,7 +77,7 @@ class EvaluatorPairMoliere
                 {
                 pybind11::dict v;
                 v["Zi"] = Zi;
-                v["Zf"] = Zf;
+                v["Zj"] = Zj;
                 v["a0"] = a0;
                 v["e"] = e;
                 return v;
@@ -88,10 +88,10 @@ class EvaluatorPairMoliere
                 // user given params
                 void computeParams()
                     {
-                    Zsq = Zi * Zf * e * e;
+                    Zsq = Zi * Zj * e * e;
                     aF = 1.0;
-                    if (Zi && Zf)  // if neither of the Z's are 0
-                        aF = 0.8853 * a0 / pow(sqrt(Zi) * sqrt(Zf), 2.0 / 3.0);
+                    if (Zi && Zj)  // if neither of the Z's are 0
+                        aF = 0.8853 * a0 / pow(sqrt(Zi) * sqrt(Zj), 2.0 / 3.0);
                     }
             #endif
             }
