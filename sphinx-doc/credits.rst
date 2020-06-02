@@ -291,7 +291,6 @@ Luis Rivera-Rivera, University of Michigan
 
   * ``hoomd.dump.gsd.dump_shape`` implementation
 
-
 Alex Yang, Vanderbilt University
 
   * ``hoomd.md.dihedral.harmonic`` update for phase shift
@@ -299,6 +298,10 @@ Alex Yang, Vanderbilt University
 Geert Kapteijns, University of Amsterdam
 
   * Bug fixes.
+
+Simone Ciarella, Wouter Ellenbroek, Eindhoven University of Technology
+
+ * Add RevCross potential
 
 HPMC developers
 ---------------

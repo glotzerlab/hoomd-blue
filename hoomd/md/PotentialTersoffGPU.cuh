@@ -243,9 +243,10 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
     Scalar viriali_yz(0.0);
     Scalar viriali_zz(0.0);
 
-    // loop over neighbors to calculate per-particle energy
-    if (evaluator::hasPerParticleEnergy())
+    // check if this is the Tersoff/SquareDensity potential or the RevCross
+    if (evaluator::flag_for_RevCross )
         {
+	// this is the RevCross potential
         // prefetch neighbor index
         const unsigned int head_idx = d_head_list[idx];
         unsigned int cur_j = 0;
@@ -286,339 +287,539 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
             Scalar rcutsq = s_rcutsq[typpair];
             typename evaluator::param_type param = s_params[typpair];
 
+            // compute the base repulsive and attractive terms of the potential
+            Scalar invratio = 0.0;        
+            Scalar invratio2 = 0.0;
             evaluator eval(rij_sq, rcutsq, param);
-            eval.evalPhi(s_phi_ab[threadIdx.x*ntypes+__scalar_as_int(postypej.w)]);
-            }
+            bool evaluatedij = eval.evalRepulsiveAndAttractive(invratio, invratio2);
 
-        // self-energy
-        for (unsigned int typ_b = 0; typ_b < ntypes; ++typ_b)
-            {
-            Scalar phi = s_phi_ab[threadIdx.x*ntypes+typ_b];
-
-            // reduce in warp
-            phi = hoomd::detail::WarpReduce<Scalar, tpp>().Sum(phi);
-
-            // broadcast into shared mem
-            s_phi_ab[threadIdx.x*ntypes+typ_b] = hoomd::detail::WarpScan<Scalar, tpp>().Broadcast(phi, 0);
-
-            if (threadIdx.x % tpp == 0)
+            if (evaluatedij)
                 {
-                unsigned int typpair = typpair_idx(__scalar_as_int(postypei.w), typ_b);
-                Scalar rcutsq = s_rcutsq[typpair];
-                typename evaluator::param_type param = s_params[typpair];
-
-                evaluator eval(Scalar(0.0), rcutsq, param);
-                Scalar energy(0.0);
-
-                eval.evalSelfEnergy(energy, phi);
-                forcei.w += energy;
-                }
-            }
-        }
-
-    // prefetch neighbor index
-    const unsigned int head_idx = d_head_list[idx];
-    unsigned int cur_j = 0;
-    unsigned int next_j(0);
-    unsigned int my_head = d_head_list[idx];
-
-    next_j = threadIdx.x%tpp < n_neigh ? __ldg(d_nlist + my_head + threadIdx.x%tpp) : 0;
-
-    // loop over neighbors in strided way
-    for (int neigh_idx = threadIdx.x%tpp; neigh_idx < n_neigh; neigh_idx+=tpp)
-        {
-        // read the current neighbor index (MEM TRANSFER: 4 bytes)
-        // prefetch the next value and set the current one
-        cur_j = next_j;
-        if (neigh_idx+tpp < n_neigh)
-            {
-            next_j = __ldg(d_nlist + head_idx + neigh_idx + tpp);
-            }
-
-        // read the position of j (MEM TRANSFER: 16 bytes)
-        Scalar4 postypej = __ldg(d_pos + cur_j);
-        Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
-
-        // initialize the force on j
-        Scalar4 forcej = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
-
-        Scalar virialj_xx(0.0);
-        Scalar virialj_xy(0.0);
-        Scalar virialj_xz(0.0);
-        Scalar virialj_yy(0.0);
-        Scalar virialj_yz(0.0);
-        Scalar virialj_zz(0.0);
-
-        // compute r_ij (FLOPS: 3)
-        Scalar3 dxij = posi - posj;
-
-        // apply periodic boundary conditions (FLOPS: 12)
-        dxij = box.minImage(dxij);
-
-        // compute rij_sq (FLOPS: 5)
-        Scalar rij_sq = dot(dxij, dxij);
-
-        // access the per type-pair parameters
-        unsigned int typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
-        Scalar rcutsq = s_rcutsq[typpair];
-        typename evaluator::param_type param = s_params[typpair];
-
-        // compute the base repulsive and attractive terms of the potential
-        Scalar fR = Scalar(0.0);
-        Scalar fA = Scalar(0.0);
-        evaluator eval(rij_sq, rcutsq, param);
-        bool evaluatedij = eval.evalRepulsiveAndAttractive(fR, fA);
-
-        if (evaluatedij)
-            {
-            Scalar chi = Scalar(0.0);
-
-            if (evaluator::needsChi())
-                {
-                // compute chi
-                unsigned int cur_k = 0;
-                unsigned int next_k(0);
-                next_k = __ldg(d_nlist + head_idx);
-
-                // loop over neighbors one by one
-                for (int neigh_idy = 0; neigh_idy < n_neigh; neigh_idy++)
-                    {
-                    // read the current index of k and prefetch the next one
-                    cur_k = next_k;
-                    next_k = __ldg(d_nlist + head_idx + neigh_idy+1);
-
-                    // get the position of neighbor k
-                    Scalar4 postypek = __ldg(d_pos + cur_k);
-                    Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
-
-                    // get the type pair parameters for i and k
-                    typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypek.w));
-                    Scalar temp_rcutsq = s_rcutsq[typpair];
-                    typename evaluator::param_type temp_param = s_params[typpair];
-
-                    evaluator temp_eval(rij_sq, temp_rcutsq, temp_param);
-                    bool temp_evaluated = temp_eval.areInteractive();
-
-                    if (cur_k != cur_j && temp_evaluated)
-                        {
-                        // compute rik
-                        Scalar3 dxik = posi - posk;
-
-                        // apply the periodic boundary conditions
-                        dxik = box.minImage(dxik);
-
-                        // compute rik_sq
-                        Scalar rik_sq = dot(dxik, dxik);
-
-                        // compute the bond angle (if needed)
-                        Scalar cos_th = Scalar(0.0);
-                        if (evaluator::needsAngle())
-                            cos_th = dot(dxij, dxik) * fast::rsqrt(rij_sq * rik_sq);
-                        else cos_th += Scalar(1.0); // shuts up the compiler warning
-
-                        // set up the evaluator
-                        eval.setRik(rik_sq);
-                        if (evaluator::needsAngle())
-                            eval.setAngle(cos_th);
-
-                        // compute the partial chi term
-                        eval.evalChi(chi);
-                        }
-                    }
-                }
-            // evaluate the force and energy from the ij interaction
-            Scalar force_divr = Scalar(0.0);
-            Scalar potential_eng = Scalar(0.0);
-            Scalar bij = Scalar(0.0);
-            const Scalar& phi = s_phi_ab[threadIdx.x*ntypes+__scalar_as_int(postypej.w)];
-            eval.evalForceij(fR, fA, chi, phi, bij, force_divr, potential_eng);
-
-            // add the forces and energies to their respective particles
-            Scalar2 v_coeffs = make_scalar2(Scalar(1.0 / 6.0) * rij_sq, Scalar(0.0));
-            forcei.x += dxij.x * force_divr;
-            forcei.y += dxij.y * force_divr;
-            forcei.z += dxij.z * force_divr;
-
-            if (compute_virial)
-                {
-                Scalar force_div2r = Scalar(0.5)*force_divr;
-                viriali_xx += force_div2r*dxij.x*dxij.x;
-                viriali_xy += force_div2r*dxij.x*dxij.y;
-                viriali_xz += force_div2r*dxij.x*dxij.z;
-                viriali_yy += force_div2r*dxij.y*dxij.y;
-                viriali_yz += force_div2r*dxij.y*dxij.z;
-                viriali_zz += force_div2r*dxij.z*dxij.z;
-                }
-
-            forcej.x -= dxij.x * force_divr;
-            forcej.y -= dxij.y * force_divr;
-            forcej.z -= dxij.z * force_divr;
-
-            if (compute_virial)
-                {
-                Scalar force_div2r = Scalar(0.5)*force_divr;
-                virialj_xx += force_div2r*dxij.x*dxij.x;
-                virialj_xy += force_div2r*dxij.x*dxij.y;
-                virialj_xz += force_div2r*dxij.x*dxij.z;
-                virialj_yy += force_div2r*dxij.y*dxij.y;
-                virialj_yz += force_div2r*dxij.y*dxij.z;
-                virialj_zz += force_div2r*dxij.z*dxij.z;
-                }
-
-            // potential energy of j must be halved
-            forcej.w += Scalar(0.5)*potential_eng;
-
-            // potential energy per particle must be halved
-            forcei.w += Scalar(0.5)*potential_eng;
-
-            if (evaluator::hasIkForce())
-                {
+                // evaluate the force and energy from the ij interaction
+                Scalar force_divr = Scalar(0.0);
+                Scalar potential_eng = Scalar(0.0);
+                Scalar bij = Scalar(0.0); // not used
+                eval.evalForceij(invratio, invratio2, Scalar(0.0), Scalar(0.0), bij, force_divr, potential_eng);
+        
+                // add the forces and energies to their respective particles
+                forcei.x += dxij.x * force_divr;
+                forcei.y += dxij.y * force_divr;
+                forcei.z += dxij.z * force_divr;
+        
+                forcej.x -= dxij.x * force_divr;
+                forcej.y -= dxij.y * force_divr;
+                forcej.z -= dxij.z * force_divr;
+        
+                forcej.w += potential_eng;
+                forcei.w += potential_eng;
+                
+                // calculate the virial
+                if (compute_virial)
+                   {
+                   viriali_xx +=  dxij.x * dxij.x * force_divr;
+                   viriali_xy +=  dxij.x * dxij.y * force_divr;
+                   viriali_xz +=  dxij.x * dxij.z * force_divr;
+                   viriali_yy +=  dxij.y * dxij.y * force_divr;
+                   viriali_yz +=  dxij.y * dxij.z * force_divr;
+                   viriali_zz +=  dxij.z * dxij.z * force_divr;
+                   }
+        
                 // now evaluate the force from the ik interactions
                 unsigned int cur_k = 0;
-                unsigned int next_k(0);
-                next_k = __ldg(d_nlist + head_idx);
-
-                // loop over neighbors one by one
+                unsigned int next_k(0);  
+        
+                // loop over k neighbors one by one
                 for (int neigh_idy = 0; neigh_idy < n_neigh; neigh_idy++)
                     {
                     // read the current neighbor index and prefetch the next one
                     cur_k = next_k;
                     next_k = __ldg(d_nlist + head_idx + neigh_idy+1);
-
-                    // get the position of neighbor k
-                    Scalar4 postypek = __ldg(d_pos + cur_k);
-                    Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
-
-                    // get the type pair parameters for i and k
-                    typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypek.w));
-                    Scalar temp_rcutsq = s_rcutsq[typpair];
-                    typename evaluator::param_type temp_param = s_params[typpair];
-
-                    evaluator temp_eval(rij_sq, temp_rcutsq, temp_param);
-                    bool temp_evaluated = temp_eval.areInteractive();
-
-                    if (cur_k != cur_j && temp_evaluated)
-                        {
-                        Scalar4 forcek = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
-
-                        // compute rik
+        
+        	        // I continue only if k is not the same as j
+        	        if((cur_k>cur_j)&&(cur_j>idx))
+        	            {
+                        // get the position of neighbor k
+                        Scalar4 postypek = __ldg(d_pos + cur_k);
+                        Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
+        
+                        // get the type pair parameters for i and k
+                        typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypek.w));
+                        Scalar temp_rcutsq = s_rcutsq[typpair];
+                        typename evaluator::param_type temp_param = s_params[typpair];
+                        
+                         // compute rik
                         Scalar3 dxik = posi - posk;
-
                         // apply the periodic boundary conditions
                         dxik = box.minImage(dxik);
-
                         // compute rik_sq
                         Scalar rik_sq = dot(dxik, dxik);
-
-                        // compute the bond angle (if needed)
-                        Scalar cos_th = Scalar(0.0);
-                        if (evaluator::needsAngle())
-                            cos_th = dot(dxij, dxik) * fast::rsqrt(rij_sq * rik_sq);
-                        else cos_th += Scalar(1.0); // shuts up the compiler warning
-
-                        // set up the evaluator
-                        eval.setRik(rik_sq);
-                        if (evaluator::needsAngle())
-                            eval.setAngle(cos_th);
-
-                        // compute the force
-                        Scalar3 force_divr_ij = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
-                        Scalar3 force_divr_ik = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
-                        bool evaluatedjk = eval.evalForceik(fR, fA, chi, bij, force_divr_ij, force_divr_ik);
-
-                        if (evaluatedjk)
+        
+                        evaluator temp_eval(rij_sq, temp_rcutsq, temp_param);
+                        temp_eval.setRik(rik_sq);
+                        bool temp_evaluated = temp_eval.areInteractive();
+        
+                        if (temp_evaluated)
                             {
-                            // add the forces to their respective particles
-                            v_coeffs.y = Scalar(1.0 / 6.0) * rik_sq;
-                            forcei.x += force_divr_ij.x * dxij.x + force_divr_ik.x * dxik.x;
-                            forcei.y += force_divr_ij.x * dxij.y + force_divr_ik.x * dxik.y;
-                            forcei.z += force_divr_ij.x * dxij.z + force_divr_ik.x * dxik.z;
-
-                            // NOTE: virial for ik forces not tested
-                            if (compute_virial)
+                            Scalar4 forcek = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
+        
+                            // set up the evaluator
+                            eval.setRik(rik_sq);
+        
+                            // compute the force
+                            Scalar force_divr_ij = 0.0;
+                            Scalar force_divr_ik = 0.0;                    
+                            Scalar3 force_divr_ij_vec = make_scalar3(0.0, 0.0, 0.0);
+                            Scalar3 force_divr_ik_vec = make_scalar3(0.0, 0.0, 0.0);
+                            bool evaluatedjk = eval.evalForceik(invratio,invratio2, Scalar(0.0), Scalar(0.0), force_divr_ij_vec, force_divr_ik_vec);
+                            
+        
+                            if (evaluatedjk)
                                 {
-                                Scalar force_div2r_ij = Scalar(0.5)*force_divr_ij.x;
-                                Scalar force_div2r_ik = Scalar(0.5)*force_divr_ik.x;
-                                viriali_xx += force_div2r_ij*dxij.x*dxij.x + force_div2r_ik*dxik.x*dxik.x;
-                                viriali_xy += force_div2r_ij*dxij.x*dxij.y + force_div2r_ik*dxik.x*dxik.y;
-                                viriali_xz += force_div2r_ij*dxij.x*dxij.z + force_div2r_ik*dxik.x*dxik.z;
-                                viriali_yy += force_div2r_ij*dxij.y*dxij.y + force_div2r_ik*dxik.y*dxik.y;
-                                viriali_yz += force_div2r_ij*dxij.y*dxij.z + force_div2r_ik*dxik.y*dxik.z;
-                                viriali_zz += force_div2r_ij*dxij.z*dxij.z + force_div2r_ik*dxik.z*dxik.z;
-                                }
+				// I stored the modulus of the force in the first component
+				force_divr_ij=force_divr_ij_vec.x;
+				force_divr_ik=force_divr_ik_vec.x;
 
-                            forcej.x += force_divr_ij.y * dxij.x + force_divr_ik.y * dxik.x;
-                            forcej.y += force_divr_ij.y * dxij.y + force_divr_ik.y * dxik.y;
-                            forcej.z += force_divr_ij.y * dxij.z + force_divr_ik.y * dxik.z;
+                                // add the forces to their respective particles
+                                forcei.x += force_divr_ij * dxij.x + force_divr_ik * dxik.x;
+                                forcei.y += force_divr_ij * dxij.y + force_divr_ik * dxik.y;
+                                forcei.z += force_divr_ij * dxij.z + force_divr_ik * dxik.z;
+        
+                                forcej.x -= force_divr_ij * dxij.x;
+                                forcej.y -= force_divr_ij * dxij.y;
+                                forcej.z -= force_divr_ij * dxij.z;
+        
+                                forcek.x -= force_divr_ik * dxik.x;
+                                forcek.y -= force_divr_ik * dxik.y;
+                                forcek.z -= force_divr_ik * dxik.z;
+        
+                                myAtomicAdd(&d_force[cur_k].x, forcek.x);
+                                myAtomicAdd(&d_force[cur_k].y, forcek.y);
+                                myAtomicAdd(&d_force[cur_k].z, forcek.z);
+                            
+        	        	       //evaluate the virial contribute of this 3 body interaction    
+        	        	       if (compute_virial)
+        	        	           {
+        	        	           //a single term is needed to account for all of the 3 body virial that is stored in the 'i' particle data
+        	        	           //look at S. Ciarella and W.G. Ellenbroek 2019 https://arxiv.org/abs/1912.08569 for the definition of the virial tensor
+        	        	           viriali_xx += (force_divr_ij*dxij.x*dxij.x + force_divr_ik*dxik.x*dxik.x);	
+        	        	           viriali_yy += (force_divr_ij*dxij.y*dxij.y + force_divr_ik*dxik.y*dxik.y);	
+        	        	           viriali_zz += (force_divr_ij*dxij.z*dxij.z + force_divr_ik*dxik.z*dxik.z);	
+        	        	           viriali_xy += (force_divr_ij*dxij.x*dxij.y + force_divr_ik*dxik.x*dxik.y);
+        	        	           viriali_xz += (force_divr_ij*dxij.x*dxij.z + force_divr_ik*dxik.x*dxik.z);
+        	        	           viriali_yz += (force_divr_ij*dxij.y*dxij.z + force_divr_ik*dxik.y*dxik.z);
+        	        	           }
+                                }    
+                            }
+                        }
+                    }
 
-                            if (compute_virial)
+                // potential energy of j must be halved
+                // write out the result for particle j
+                myAtomicAdd(&d_force[cur_j].x, forcej.x);
+                myAtomicAdd(&d_force[cur_j].y, forcej.y);
+                myAtomicAdd(&d_force[cur_j].z, forcej.z);
+                myAtomicAdd(&d_force[cur_j].w, forcej.w);
+                }
+            }
+        // potential energy per particle must be halved
+        // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
+        myAtomicAdd(&d_force[idx].x, forcei.x);
+        myAtomicAdd(&d_force[idx].y, forcei.y);
+        myAtomicAdd(&d_force[idx].z, forcei.z);
+        myAtomicAdd(&d_force[idx].w, forcei.w);
+        
+        if (compute_virial)
+            {
+            myAtomicAdd(&d_virial[0*virial_pitch+idx], viriali_xx);
+            myAtomicAdd(&d_virial[1*virial_pitch+idx], viriali_xy);
+            myAtomicAdd(&d_virial[2*virial_pitch+idx], viriali_xz);
+            myAtomicAdd(&d_virial[3*virial_pitch+idx], viriali_yy);
+            myAtomicAdd(&d_virial[4*virial_pitch+idx], viriali_yz);
+            myAtomicAdd(&d_virial[5*virial_pitch+idx], viriali_zz);     
+            }        
+        
+        
+        }
+    else
+	{
+	// this is the Tersoff potential
+        // loop over neighbors to calculate per-particle energy
+        if (evaluator::hasPerParticleEnergy())
+            {
+            // prefetch neighbor index
+            const unsigned int head_idx = d_head_list[idx];
+            unsigned int cur_j = 0;
+            unsigned int next_j(0);
+            unsigned int my_head = d_head_list[idx];
+
+            next_j = threadIdx.x%tpp < n_neigh ? __ldg(d_nlist + my_head + threadIdx.x%tpp) : 0;
+
+            // loop over neighbors in strided way
+            for (int neigh_idx = threadIdx.x%tpp; neigh_idx < n_neigh; neigh_idx+=tpp)
+                {
+                // read the current neighbor index (MEM TRANSFER: 4 bytes)
+                // prefetch the next value and set the current one
+                cur_j = next_j;
+                if (neigh_idx+tpp < n_neigh)
+                    {
+                    next_j = __ldg(d_nlist + head_idx + neigh_idx + tpp);
+                    }
+
+                // read the position of j (MEM TRANSFER: 16 bytes)
+                Scalar4 postypej = __ldg(d_pos + cur_j);
+                Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
+
+                // initialize the force on j
+                Scalar4 forcej = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
+
+                // compute r_ij (FLOPS: 3)
+                Scalar3 dxij = posi - posj;
+
+                // apply periodic boundary conditions (FLOPS: 12)
+                dxij = box.minImage(dxij);
+
+                // compute rij_sq (FLOPS: 5)
+                Scalar rij_sq = dot(dxij, dxij);
+
+                // access the per type-pair parameters
+                unsigned int typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
+                Scalar rcutsq = s_rcutsq[typpair];
+                typename evaluator::param_type param = s_params[typpair];
+
+                evaluator eval(rij_sq, rcutsq, param);
+                eval.evalPhi(s_phi_ab[threadIdx.x*ntypes+__scalar_as_int(postypej.w)]);
+                }
+
+            // self-energy
+            for (unsigned int typ_b = 0; typ_b < ntypes; ++typ_b)
+                {
+                Scalar phi = s_phi_ab[threadIdx.x*ntypes+typ_b];
+
+                // reduce in warp
+                phi = hoomd::detail::WarpReduce<Scalar, tpp>().Sum(phi);
+
+                // broadcast into shared mem
+                s_phi_ab[threadIdx.x*ntypes+typ_b] = hoomd::detail::WarpScan<Scalar, tpp>().Broadcast(phi, 0);
+
+                if (threadIdx.x % tpp == 0)
+                    {
+                    unsigned int typpair = typpair_idx(__scalar_as_int(postypei.w), typ_b);
+                    Scalar rcutsq = s_rcutsq[typpair];
+                    typename evaluator::param_type param = s_params[typpair];
+
+                    evaluator eval(Scalar(0.0), rcutsq, param);
+                    Scalar energy(0.0);
+
+                    eval.evalSelfEnergy(energy, phi);
+                    forcei.w += energy;
+                    }
+                }
+            }
+
+        // prefetch neighbor index
+        const unsigned int head_idx = d_head_list[idx];
+        unsigned int cur_j = 0;
+        unsigned int next_j(0);
+        unsigned int my_head = d_head_list[idx];
+
+        next_j = threadIdx.x%tpp < n_neigh ? __ldg(d_nlist + my_head + threadIdx.x%tpp) : 0;
+
+        // loop over neighbors in strided way
+        for (int neigh_idx = threadIdx.x%tpp; neigh_idx < n_neigh; neigh_idx+=tpp)
+            {
+            // read the current neighbor index (MEM TRANSFER: 4 bytes)
+            // prefetch the next value and set the current one
+            cur_j = next_j;
+            if (neigh_idx+tpp < n_neigh)
+                {
+                next_j = __ldg(d_nlist + head_idx + neigh_idx + tpp);
+                }
+
+            // read the position of j (MEM TRANSFER: 16 bytes)
+            Scalar4 postypej = __ldg(d_pos + cur_j);
+            Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
+
+            // initialize the force on j
+            Scalar4 forcej = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
+
+            Scalar virialj_xx(0.0);
+            Scalar virialj_xy(0.0);
+            Scalar virialj_xz(0.0);
+            Scalar virialj_yy(0.0);
+            Scalar virialj_yz(0.0);
+            Scalar virialj_zz(0.0);
+
+            // compute r_ij (FLOPS: 3)
+            Scalar3 dxij = posi - posj;
+
+            // apply periodic boundary conditions (FLOPS: 12)
+            dxij = box.minImage(dxij);
+
+            // compute rij_sq (FLOPS: 5)
+            Scalar rij_sq = dot(dxij, dxij);
+
+            // access the per type-pair parameters
+            unsigned int typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
+            Scalar rcutsq = s_rcutsq[typpair];
+            typename evaluator::param_type param = s_params[typpair];
+
+            // compute the base repulsive and attractive terms of the potential
+            Scalar fR = Scalar(0.0);
+            Scalar fA = Scalar(0.0);
+            evaluator eval(rij_sq, rcutsq, param);
+            bool evaluatedij = eval.evalRepulsiveAndAttractive(fR, fA);
+
+            if (evaluatedij)
+                {
+                Scalar chi = Scalar(0.0);
+
+                if (evaluator::needsChi())
+                    {
+                    // compute chi
+                    unsigned int cur_k = 0;
+                    unsigned int next_k(0);
+                    next_k = __ldg(d_nlist + head_idx);
+
+                    // loop over neighbors one by one
+                    for (int neigh_idy = 0; neigh_idy < n_neigh; neigh_idy++)
+                        {
+                        // read the current index of k and prefetch the next one
+                        cur_k = next_k;
+                        next_k = __ldg(d_nlist + head_idx + neigh_idy+1);
+
+                        // get the position of neighbor k
+                        Scalar4 postypek = __ldg(d_pos + cur_k);
+                        Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
+
+                        // get the type pair parameters for i and k
+                        typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypek.w));
+                        Scalar temp_rcutsq = s_rcutsq[typpair];
+                        typename evaluator::param_type temp_param = s_params[typpair];
+
+                        evaluator temp_eval(rij_sq, temp_rcutsq, temp_param);
+                        bool temp_evaluated = temp_eval.areInteractive();
+
+                        if (cur_k != cur_j && temp_evaluated)
+                            {
+                            // compute rik
+                            Scalar3 dxik = posi - posk;
+
+                            // apply the periodic boundary conditions
+                            dxik = box.minImage(dxik);
+
+                            // compute rik_sq
+                            Scalar rik_sq = dot(dxik, dxik);
+
+                            // compute the bond angle (if needed)
+                            Scalar cos_th = Scalar(0.0);
+                            if (evaluator::needsAngle())
+                                cos_th = dot(dxij, dxik) * fast::rsqrt(rij_sq * rik_sq);
+                            else cos_th += Scalar(1.0); // shuts up the compiler warning
+
+                            // set up the evaluator
+                            eval.setRik(rik_sq);
+                            if (evaluator::needsAngle())
+                                eval.setAngle(cos_th);
+
+                            // compute the partial chi term
+                            eval.evalChi(chi);
+                            }
+                        }
+                    }
+                // evaluate the force and energy from the ij interaction
+                Scalar force_divr = Scalar(0.0);
+                Scalar potential_eng = Scalar(0.0);
+                Scalar bij = Scalar(0.0);
+                const Scalar& phi = s_phi_ab[threadIdx.x*ntypes+__scalar_as_int(postypej.w)];
+                eval.evalForceij(fR, fA, chi, phi, bij, force_divr, potential_eng);
+
+                // add the forces and energies to their respective particles
+                Scalar2 v_coeffs = make_scalar2(Scalar(1.0 / 6.0) * rij_sq, Scalar(0.0));
+                forcei.x += dxij.x * force_divr;
+                forcei.y += dxij.y * force_divr;
+                forcei.z += dxij.z * force_divr;
+
+                if (compute_virial)
+                    {
+                    Scalar force_div2r = Scalar(0.5)*force_divr;
+                    viriali_xx += force_div2r*dxij.x*dxij.x;
+                    viriali_xy += force_div2r*dxij.x*dxij.y;
+                    viriali_xz += force_div2r*dxij.x*dxij.z;
+                    viriali_yy += force_div2r*dxij.y*dxij.y;
+                    viriali_yz += force_div2r*dxij.y*dxij.z;
+                    viriali_zz += force_div2r*dxij.z*dxij.z;
+                    }
+
+                forcej.x -= dxij.x * force_divr;
+                forcej.y -= dxij.y * force_divr;
+                forcej.z -= dxij.z * force_divr;
+
+                if (compute_virial)
+                    {
+                    Scalar force_div2r = Scalar(0.5)*force_divr;
+                    virialj_xx += force_div2r*dxij.x*dxij.x;
+                    virialj_xy += force_div2r*dxij.x*dxij.y;
+                    virialj_xz += force_div2r*dxij.x*dxij.z;
+                    virialj_yy += force_div2r*dxij.y*dxij.y;
+                    virialj_yz += force_div2r*dxij.y*dxij.z;
+                    virialj_zz += force_div2r*dxij.z*dxij.z;
+                    }
+
+                // potential energy of j must be halved
+                forcej.w += Scalar(0.5)*potential_eng;
+
+                // potential energy per particle must be halved
+                forcei.w += Scalar(0.5)*potential_eng;
+
+                if (evaluator::hasIkForce())
+                    {
+                    // now evaluate the force from the ik interactions
+                    unsigned int cur_k = 0;
+                    unsigned int next_k(0);
+                    next_k = __ldg(d_nlist + head_idx);
+
+                    // loop over neighbors one by one
+                    for (int neigh_idy = 0; neigh_idy < n_neigh; neigh_idy++)
+                        {
+                        // read the current neighbor index and prefetch the next one
+                        cur_k = next_k;
+                        next_k = __ldg(d_nlist + head_idx + neigh_idy+1);
+
+                        // get the position of neighbor k
+                        Scalar4 postypek = __ldg(d_pos + cur_k);
+                        Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
+
+                        // get the type pair parameters for i and k
+                        typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypek.w));
+                        Scalar temp_rcutsq = s_rcutsq[typpair];
+                        typename evaluator::param_type temp_param = s_params[typpair];
+
+                        evaluator temp_eval(rij_sq, temp_rcutsq, temp_param);
+                        bool temp_evaluated = temp_eval.areInteractive();
+
+                        if (cur_k != cur_j && temp_evaluated)
+                            {
+                            Scalar4 forcek = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
+
+                            // compute rik
+                            Scalar3 dxik = posi - posk;
+
+                            // apply the periodic boundary conditions
+                            dxik = box.minImage(dxik);
+
+                            // compute rik_sq
+                            Scalar rik_sq = dot(dxik, dxik);
+
+                            // compute the bond angle (if needed)
+                            Scalar cos_th = Scalar(0.0);
+                            if (evaluator::needsAngle())
+                                cos_th = dot(dxij, dxik) * fast::rsqrt(rij_sq * rik_sq);
+                            else cos_th += Scalar(1.0); // shuts up the compiler warning
+
+                            // set up the evaluator
+                            eval.setRik(rik_sq);
+                            if (evaluator::needsAngle())
+                                eval.setAngle(cos_th);
+
+                            // compute the force
+                            Scalar3 force_divr_ij = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
+                            Scalar3 force_divr_ik = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
+                            bool evaluatedjk = eval.evalForceik(fR, fA, chi, bij, force_divr_ij, force_divr_ik);
+
+                            if (evaluatedjk)
                                 {
-                                Scalar force_div2r_ij = Scalar(0.5)*force_divr_ij.y;
-                                Scalar force_div2r_ik = Scalar(0.5)*force_divr_ik.y;
-                                virialj_xx += force_div2r_ij*dxij.x*dxij.x + force_div2r_ik*dxik.x*dxik.x;
-                                virialj_xy += force_div2r_ij*dxij.x*dxij.y + force_div2r_ik*dxik.x*dxik.y;
-                                virialj_xz += force_div2r_ij*dxij.x*dxij.z + force_div2r_ik*dxik.x*dxik.z;
-                                virialj_yy += force_div2r_ij*dxij.y*dxij.y + force_div2r_ik*dxik.y*dxik.y;
-                                virialj_yz += force_div2r_ij*dxij.y*dxij.z + force_div2r_ik*dxik.y*dxik.z;
-                                virialj_zz += force_div2r_ij*dxij.z*dxij.z + force_div2r_ik*dxik.z*dxik.z;
-                                }
+                                // add the forces to their respective particles
+                                v_coeffs.y = Scalar(1.0 / 6.0) * rik_sq;
+                                forcei.x += force_divr_ij.x * dxij.x + force_divr_ik.x * dxik.x;
+                                forcei.y += force_divr_ij.x * dxij.y + force_divr_ik.x * dxik.y;
+                                forcei.z += force_divr_ij.x * dxij.z + force_divr_ik.x * dxik.z;
 
-                            forcek.x += force_divr_ij.z * dxij.x + force_divr_ik.z * dxik.x;
-                            forcek.y += force_divr_ij.z * dxij.y + force_divr_ik.z * dxik.y;
-                            forcek.z += force_divr_ij.z * dxij.z + force_divr_ik.z * dxik.z;
+                                // NOTE: virial for ik forces not tested
+                                if (compute_virial)
+                                    {
+                                    Scalar force_div2r_ij = Scalar(0.5)*force_divr_ij.x;
+                                    Scalar force_div2r_ik = Scalar(0.5)*force_divr_ik.x;
+                                    viriali_xx += force_div2r_ij*dxij.x*dxij.x + force_div2r_ik*dxik.x*dxik.x;
+                                    viriali_xy += force_div2r_ij*dxij.x*dxij.y + force_div2r_ik*dxik.x*dxik.y;
+                                    viriali_xz += force_div2r_ij*dxij.x*dxij.z + force_div2r_ik*dxik.x*dxik.z;
+                                    viriali_yy += force_div2r_ij*dxij.y*dxij.y + force_div2r_ik*dxik.y*dxik.y;
+                                    viriali_yz += force_div2r_ij*dxij.y*dxij.z + force_div2r_ik*dxik.y*dxik.z;
+                                    viriali_zz += force_div2r_ij*dxij.z*dxij.z + force_div2r_ik*dxik.z*dxik.z;
+                                    }
 
-                            myAtomicAdd(&d_force[cur_k].x, forcek.x);
-                            myAtomicAdd(&d_force[cur_k].y, forcek.y);
-                            myAtomicAdd(&d_force[cur_k].z, forcek.z);
+                                forcej.x += force_divr_ij.y * dxij.x + force_divr_ik.y * dxik.x;
+                                forcej.y += force_divr_ij.y * dxij.y + force_divr_ik.y * dxik.y;
+                                forcej.z += force_divr_ij.y * dxij.z + force_divr_ik.y * dxik.z;
 
-                            if (compute_virial)
-                                {
-                                Scalar force_div2r_ij = Scalar(0.5)*force_divr_ij.z;
-                                Scalar force_div2r_ik = Scalar(0.5)*force_divr_ik.z;
-                                myAtomicAdd(&d_virial[0*virial_pitch+cur_k],force_div2r_ij*dxij.x*dxij.x + force_div2r_ik*dxik.x*dxik.x);
-                                myAtomicAdd(&d_virial[1*virial_pitch+cur_k],force_div2r_ij*dxij.x*dxij.y + force_div2r_ik*dxik.x*dxik.y);
-                                myAtomicAdd(&d_virial[2*virial_pitch+cur_k],force_div2r_ij*dxij.x*dxij.z + force_div2r_ik*dxik.x*dxik.z);
-                                myAtomicAdd(&d_virial[3*virial_pitch+cur_k],force_div2r_ij*dxij.y*dxij.y + force_div2r_ik*dxik.y*dxik.y);
-                                myAtomicAdd(&d_virial[4*virial_pitch+cur_k],force_div2r_ij*dxij.y*dxij.z + force_div2r_ik*dxik.y*dxik.z);
-                                myAtomicAdd(&d_virial[5*virial_pitch+cur_k],force_div2r_ij*dxij.z*dxij.z + force_div2r_ik*dxik.z*dxik.z);
+                                if (compute_virial)
+                                    {
+                                    Scalar force_div2r_ij = Scalar(0.5)*force_divr_ij.y;
+                                    Scalar force_div2r_ik = Scalar(0.5)*force_divr_ik.y;
+                                    virialj_xx += force_div2r_ij*dxij.x*dxij.x + force_div2r_ik*dxik.x*dxik.x;
+                                    virialj_xy += force_div2r_ij*dxij.x*dxij.y + force_div2r_ik*dxik.x*dxik.y;
+                                    virialj_xz += force_div2r_ij*dxij.x*dxij.z + force_div2r_ik*dxik.x*dxik.z;
+                                    virialj_yy += force_div2r_ij*dxij.y*dxij.y + force_div2r_ik*dxik.y*dxik.y;
+                                    virialj_yz += force_div2r_ij*dxij.y*dxij.z + force_div2r_ik*dxik.y*dxik.z;
+                                    virialj_zz += force_div2r_ij*dxij.z*dxij.z + force_div2r_ik*dxik.z*dxik.z;
+                                    }
+
+                                forcek.x += force_divr_ij.z * dxij.x + force_divr_ik.z * dxik.x;
+                                forcek.y += force_divr_ij.z * dxij.y + force_divr_ik.z * dxik.y;
+                                forcek.z += force_divr_ij.z * dxij.z + force_divr_ik.z * dxik.z;
+
+                                myAtomicAdd(&d_force[cur_k].x, forcek.x);
+                                myAtomicAdd(&d_force[cur_k].y, forcek.y);
+                                myAtomicAdd(&d_force[cur_k].z, forcek.z);
+
+                                if (compute_virial)
+                                    {
+                                    Scalar force_div2r_ij = Scalar(0.5)*force_divr_ij.z;
+                                    Scalar force_div2r_ik = Scalar(0.5)*force_divr_ik.z;
+                                    myAtomicAdd(&d_virial[0*virial_pitch+cur_k],force_div2r_ij*dxij.x*dxij.x + force_div2r_ik*dxik.x*dxik.x);
+                                    myAtomicAdd(&d_virial[1*virial_pitch+cur_k],force_div2r_ij*dxij.x*dxij.y + force_div2r_ik*dxik.x*dxik.y);
+                                    myAtomicAdd(&d_virial[2*virial_pitch+cur_k],force_div2r_ij*dxij.x*dxij.z + force_div2r_ik*dxik.x*dxik.z);
+                                    myAtomicAdd(&d_virial[3*virial_pitch+cur_k],force_div2r_ij*dxij.y*dxij.y + force_div2r_ik*dxik.y*dxik.y);
+                                    myAtomicAdd(&d_virial[4*virial_pitch+cur_k],force_div2r_ij*dxij.y*dxij.z + force_div2r_ik*dxik.y*dxik.z);
+                                    myAtomicAdd(&d_virial[5*virial_pitch+cur_k],force_div2r_ij*dxij.z*dxij.z + force_div2r_ik*dxik.z*dxik.z);
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-            // write out the result for particle j
-            myAtomicAdd(&d_force[cur_j].x, forcej.x);
-            myAtomicAdd(&d_force[cur_j].y, forcej.y);
-            myAtomicAdd(&d_force[cur_j].z, forcej.z);
-            myAtomicAdd(&d_force[cur_j].w, forcej.w);
+                // write out the result for particle j
+                myAtomicAdd(&d_force[cur_j].x, forcej.x);
+                myAtomicAdd(&d_force[cur_j].y, forcej.y);
+                myAtomicAdd(&d_force[cur_j].z, forcej.z);
+                myAtomicAdd(&d_force[cur_j].w, forcej.w);
 
-            if (compute_virial)
-                {
-                myAtomicAdd(&d_virial[0*virial_pitch+cur_j], virialj_xx);
-                myAtomicAdd(&d_virial[1*virial_pitch+cur_j], virialj_xy);
-                myAtomicAdd(&d_virial[2*virial_pitch+cur_j], virialj_xz);
-                myAtomicAdd(&d_virial[3*virial_pitch+cur_j], virialj_yy);
-                myAtomicAdd(&d_virial[4*virial_pitch+cur_j], virialj_yz);
-                myAtomicAdd(&d_virial[5*virial_pitch+cur_j], virialj_zz);
+                if (compute_virial)
+                    {
+                    myAtomicAdd(&d_virial[0*virial_pitch+cur_j], virialj_xx);
+                    myAtomicAdd(&d_virial[1*virial_pitch+cur_j], virialj_xy);
+                    myAtomicAdd(&d_virial[2*virial_pitch+cur_j], virialj_xz);
+                    myAtomicAdd(&d_virial[3*virial_pitch+cur_j], virialj_yy);
+                    myAtomicAdd(&d_virial[4*virial_pitch+cur_j], virialj_yz);
+                    myAtomicAdd(&d_virial[5*virial_pitch+cur_j], virialj_zz);
+                    }
                 }
             }
-        }
-    // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
-    myAtomicAdd(&d_force[idx].x, forcei.x);
-    myAtomicAdd(&d_force[idx].y, forcei.y);
-    myAtomicAdd(&d_force[idx].z, forcei.z);
-    myAtomicAdd(&d_force[idx].w, forcei.w);
+        // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
+        myAtomicAdd(&d_force[idx].x, forcei.x);
+        myAtomicAdd(&d_force[idx].y, forcei.y);
+        myAtomicAdd(&d_force[idx].z, forcei.z);
+        myAtomicAdd(&d_force[idx].w, forcei.w);
 
-    if (compute_virial)
-        {
-        myAtomicAdd(&d_virial[0*virial_pitch+idx], viriali_xx);
-        myAtomicAdd(&d_virial[1*virial_pitch+idx], viriali_xy);
-        myAtomicAdd(&d_virial[2*virial_pitch+idx], viriali_xz);
-        myAtomicAdd(&d_virial[3*virial_pitch+idx], viriali_yy);
-        myAtomicAdd(&d_virial[4*virial_pitch+idx], viriali_yz);
-        myAtomicAdd(&d_virial[5*virial_pitch+idx], viriali_zz);
-        }
+        if (compute_virial)
+            {
+            myAtomicAdd(&d_virial[0*virial_pitch+idx], viriali_xx);
+            myAtomicAdd(&d_virial[1*virial_pitch+idx], viriali_xy);
+            myAtomicAdd(&d_virial[2*virial_pitch+idx], viriali_xz);
+            myAtomicAdd(&d_virial[3*virial_pitch+idx], viriali_yy);
+            myAtomicAdd(&d_virial[4*virial_pitch+idx], viriali_yz);
+            myAtomicAdd(&d_virial[5*virial_pitch+idx], viriali_zz);
+            }
+	}
     }
 
 //! Kernel for zeroing forces and virial before computation with atomic additions.
