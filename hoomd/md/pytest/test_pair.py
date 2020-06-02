@@ -72,6 +72,28 @@ def test_rcut(simulation_factory, two_particle_snapshot_factory):
     assert_equivalent_type_params(lj.r_cut.to_dict(), {('A', 'A'): 2.5})
 
 
+@pytest.mark.parametrize("mode", ['none', 'shifted', 'xplor'])
+def test_mode(simulation_factory, two_particle_snapshot_factory, mode):
+    cell = hoomd.md.nlist.Cell()
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
+        lj = hoomd.md.pair.LJ(nlist=cell, r_cut=2.5, mode=1)
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
+        lj = hoomd.md.pair.LJ(nlist=cell, r_cut=2.5, mode='str')
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
+        lj = hoomd.md.pair.LJ(nlist=cell, r_cut=2.5, mode=[1, 2, 3])
+
+    lj = hoomd.md.pair.LJ(nlist=cell, r_cut=2.5, mode=mode)
+    lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
+    sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=.5))
+    integrator = hoomd.md.Integrator(dt=0.005)
+    integrator.forces.append(lj)
+    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
+                                                        kT=1, seed=1))
+    sim.operations.integrator = integrator
+    sim.operations.schedule()
+    sim.run(1)
+
+
 def test_valid_params(valid_params):
     pair_potential, pair_potential_dict, r_cut, r_on, mode = valid_params
     cell = hoomd.md.nlist.Cell()
