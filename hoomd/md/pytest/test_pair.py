@@ -18,13 +18,15 @@ np.random.seed(0)
 # Test energy
 
 
-def test_attach(simulation_factory, two_particle_snapshot_factory, pair_and_params):
+def test_attach(two_particle_snapshot_factory,
+                simulation_factory, pair_and_params):
     pair = pair_and_params[0]
     params = pair_and_params[1]
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=.5))
     integrator = hoomd.md.Integrator(dt=0.5)
-    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1, seed=1))
+    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
+                                                        kT=1, seed=1))
     pair.params[('A', 'A')] = params
     pair.r_cut[('A', 'A')] = .02
     integrator.forces.append(pair)
@@ -121,59 +123,39 @@ def test_ron(simulation_factory, two_particle_snapshot_factory):
 
 def test_valid_params(valid_params):
     pair_potential, pair_potential_dict, r_cut, r_on, mode = valid_params
-    cell = hoomd.md.nlist.Cell()
-    if mode is not None:
-        pot = pair_potential(nlist=cell, mode=mode)
-    else:
-        pot = pair_potential(nlist=cell)
+    pot = pair_potential(nlist=hoomd.md.nlist.Cell())
     for pair in pair_potential_dict:
         pot.params[pair] = pair_potential_dict[pair]
-        pot.r_cut[pair] = r_cut[pair]
-        if r_on is not None:
-            pot.r_on[pair] = r_on[pair]
-
     assert_equivalent_type_params(pot.params.to_dict(), pair_potential_dict)
-    assert_equivalent_type_params(pot.r_cut.to_dict(), r_cut)
-    assert_equivalent_type_params(pot.r_on.to_dict(), r_on)
-    assert_equivalent_parameter_dicts(pot.nlist._param_dict, cell._param_dict)
 
 
 def test_invalid_params(invalid_params):
     pair_potential, pair_potential_dict, r_cut, r_on, mode = invalid_params
-    cell = hoomd.md.nlist.Cell()
-    if isinstance(mode, str):
-        pot = pair_potential(nlist=cell, mode=mode)
-        for pair in pair_potential_dict:
-            if isinstance(pair, tuple):
-                with pytest.raises(hoomd.typeconverter.TypeConversionError):
-                    pot.params[pair] = pair_potential_dict[pair]
-                    pot.r_cut[pair] = r_cut[pair]
-                    pot.r_on[pair] = r_on[pair]
-            else:
-                with pytest.raises(KeyError):
-                    pot.params[pair] = pair_potential_dict[pair]
-                    pot.r_cut[pair] = r_cut[pair]
-                    pot.r_on[pair] = r_on[pair]
-    else:
-        with pytest.raises(hoomd.typeconverter.TypeConversionError):
-            pot = pair_potential(nlist=cell, mode=mode)
+    pot = pair_potential(nlist=hoomd.md.nlist.Cell())
+    for pair in pair_potential_dict:
+        if isinstance(pair, tuple):
+            with pytest.raises(hoomd.typeconverter.TypeConversionError):
+                pot.params[pair] = pair_potential_dict[pair]
+
+
+def test_invalid_pair_key():
+    pot = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell())
+    with pytest.raises(KeyError):
+        pot.r_cut[3] = 2.5
+    with pytest.raises(KeyError):
+        pot.r_cut[[1, 2]] = 2.5
+    with pytest.raises(KeyError):
+        pot.r_cut['str'] = 2.5
 
 
 def test_attached_params(simulation_factory, lattice_snapshot_factory,
                          valid_params):
     pair_potential, pair_potential_dict, r_cut, r_on, mode = valid_params
-    particle_types = list(set(itertools.chain.from_iterable(r_cut.keys())))
-    cell = hoomd.md.nlist.Cell()
-    if mode is not None:
-        pot = pair_potential(nlist=cell, r_cut=2.5, mode=mode)
-    else:
-        pot = pair_potential(nlist=cell, r_cut=2.5)
-
+    pair_keys = pair_potential_dict.keys()
+    particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
+    pot = pair_potential(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
     for pair in pair_potential_dict:
         pot.params[pair] = pair_potential_dict[pair]
-        pot.r_cut[pair] = r_cut[pair]
-        if r_on is not None:
-            pot.r_on[pair] = r_on[pair]
 
     snap = lattice_snapshot_factory(particle_types=particle_types,
                                     n=10, a=0.5, r=0.01)
@@ -188,31 +170,17 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
     attached_pot = sim.operations.integrator.forces[0]
     assert_equivalent_type_params(attached_pot.params.to_dict(),
                                   pair_potential_dict)
-    assert_equivalent_type_params(attached_pot.r_cut.to_dict(), r_cut)
-    if r_on is None:
-        assert attached_pot.r_on.to_dict() == {key: 0.0 for key in r_cut.keys()}
-    else:
-        assert_equivalent_type_params(attached_pot.r_on.to_dict(), r_on)
-    assert_equivalent_parameter_dicts(attached_pot.nlist._param_dict,
-                                      cell._param_dict)
 
 
 @pytest.mark.parametrize("nsteps", [3, 5, 10])
 def test_run(simulation_factory, lattice_snapshot_factory,
              valid_params, nsteps):
     pair_potential, pair_potential_dict, r_cut, r_on, mode = valid_params
-    particle_types = list(set(itertools.chain.from_iterable(r_cut.keys())))
-    cell = hoomd.md.nlist.Cell()
-    if mode is not None:
-        pot = pair_potential(nlist=cell, r_cut=2.5, mode=mode)
-    else:
-        pot = pair_potential(nlist=cell, r_cut=2.5)
-
+    pair_keys = pair_potential_dict.keys()
+    particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
+    pot = pair_potential(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
     for pair in pair_potential_dict:
         pot.params[pair] = pair_potential_dict[pair]
-        pot.r_cut[pair] = r_cut[pair]
-        if r_on is not None:
-            pot.r_on[pair] = r_on[pair]
 
     snap = lattice_snapshot_factory(particle_types=particle_types,
                                     n=2, a=5, r=0.01)
@@ -266,17 +234,12 @@ def calculate_force(sim):
 def test_compute_energy(simulation_factory, two_particle_snapshot_factory,
                         valid_params, nsteps):
     pair_potential, pair_potential_dict, r_cut, r_on, mode = valid_params
-    particle_types = list(set(itertools.chain.from_iterable(r_cut.keys())))
-    cell = hoomd.md.nlist.Cell()
-    if mode is not None:
-        pot = pair_potential(nlist=cell, r_cut=2.5, mode=mode)
-    else:
-        pot = pair_potential(nlist=cell, r_cut=2.5)
+    pair_keys = pair_potential_dict.keys()
+    particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
+    pot = pair_potential(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
     for pair in pair_potential_dict:
         pot.params[pair] = pair_potential_dict[pair]
-        pot.r_cut[pair] = r_cut[pair]
-        if r_on is not None:
-            pot.r_on[pair] = r_on[pair]
+
     snap = two_particle_snapshot_factory(particle_types=particle_types, d=1.5)
     sim = simulation_factory(snap)
     integrator = hoomd.md.Integrator(dt=0.005)
