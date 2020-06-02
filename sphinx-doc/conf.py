@@ -53,7 +53,16 @@ autodoc_docstring_signature = True;
 # else:
 #     autodoc_default_options = {'inherited-members': None};
 
-autodoc_mock_imports = ['numpy','h5py'];
+autodoc_mock_imports = ['numpy', 'h5py',
+                        'hoomd._hoomd',
+                        'hoomd.md._md',
+                        'hoomd.metal._metal',
+                        'hoomd.mpcd._mpcd',
+                        'hoomd.dem._dem',
+                        'hoomd.minimize._minimize',
+                        'hoomd.jit._jit',
+                        'hoomd.hpmc._hpmc',
+                        ]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
