@@ -6,6 +6,17 @@ import hoomd.hpmc.pytest.conftest
 
 np.random.seed(0)
 
+# Test attach
+# Test r_cut
+# Test mode
+# Test r_on
+# Test valid params
+# Test invalid params
+# Test run
+# Test force energy relationship
+# Test force
+# Test energy
+
 
 def test_attach(simulation_factory, two_particle_snapshot_factory, pair_and_params):
     pair = pair_and_params[0]
@@ -35,6 +46,30 @@ def assert_equivalent_type_params(type_param1, type_param2):
 def assert_equivalent_parameter_dicts(param_dict1, param_dict2):
     for key in param_dict1:
         assert param_dict1[key] == param_dict2[key]
+
+
+def test_rcut(simulation_factory, two_particle_snapshot_factory):
+    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell())
+    lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
+        lj.r_cut[('A', 'A')] = 'str'
+    with pytest.raises(hoomd.typeconverter.TypeConversionError):
+        lj.r_cut[('A', 'A')] = [1, 2, 3]
+
+    sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=.5))
+    integrator = hoomd.md.Integrator(dt=0.005)
+    integrator.forces.append(lj)
+    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
+                                                        kT=1, seed=1))
+    sim.operations.integrator = integrator
+    with pytest.raises(TypeError):
+        sim.operations.schedule()  # Before setting r_cut
+
+    lj.r_cut[('A', 'A')] = 2.5
+    assert_equivalent_type_params(lj.r_cut.to_dict(), {('A', 'A'): 2.5})
+    sim.operations.schedule()
+    sim.run(1)
+    assert_equivalent_type_params(lj.r_cut.to_dict(), {('A', 'A'): 2.5})
 
 
 def test_valid_params(valid_params):
