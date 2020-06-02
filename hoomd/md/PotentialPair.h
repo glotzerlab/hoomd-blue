@@ -408,17 +408,13 @@ void PotentialPair< evaluator >::setParams(unsigned int typ1, unsigned int typ2,
     }
 
 template< class evaluator >
-void PotentialPair< evaluator >::setParamsPython(pybind11::tuple typ, pybind11::dict params)
-    {}
-
-template<>
-void PotentialPair<EvaluatorPairLJ>::setParamsPython(pybind11::tuple typ, pybind11::dict params)
+void PotentialPair<evaluator>::setParamsPython(pybind11::tuple typ, pybind11::dict params)
     {
     auto typ1 = m_pdata->getTypeByName(typ[0].cast<std::string>());
     auto typ2 = m_pdata->getTypeByName(typ[1].cast<std::string>());
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
-        this->m_exec_conf->msg->error() << "pair." << EvaluatorPairLJ::getName()
+        this->m_exec_conf->msg->error() << "pair." << evaluator::getName()
             << ": Trying to set pair params for a non existent type! "
             << typ1 << "," << typ2 << std::endl;
         throw std::runtime_error("Error setting parameters in PotentialPair");
@@ -433,18 +429,11 @@ void PotentialPair<EvaluatorPairLJ>::setParamsPython(pybind11::tuple typ, pybind
 template< class evaluator >
 pybind11::dict PotentialPair< evaluator >::getParams(pybind11::tuple typ)
     {
-    pybind11::dict v;
-    return v;
-    }
-
-template<>
-pybind11::dict PotentialPair< EvaluatorPairLJ >::getParams(pybind11::tuple typ)
-    {
     auto typ1 = m_pdata->getTypeByName(typ[0].cast<std::string>());
     auto typ2 = m_pdata->getTypeByName(typ[1].cast<std::string>());
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
-        this->m_exec_conf->msg->error() << "pair." << EvaluatorPairLJ::getName()
+        this->m_exec_conf->msg->error() << "pair." << evaluator::getName()
             << ": Trying to set pair params for a non existent type! "
             << typ1 << "," << typ2 << std::endl;
         throw std::runtime_error("Error setting parameters in PotentialPair");
