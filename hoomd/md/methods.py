@@ -9,23 +9,33 @@
 from hoomd import _hoomd
 from hoomd.md import _md
 import hoomd
-from hoomd.operation import _Operation
+from hoomd.operation import _Operation, NotAttachedError
 from hoomd.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.filter import _ParticleFilter
 from hoomd.typeparam import TypeParameter
-from hoomd.typeconverter import OnlyType 
+from hoomd.typeconverter import OnlyType
+from hoomd.typeconverter import OnlyFrom
 import copy
 
 
-def create_variant(value):
-    if isinstance(value, float) or isinstance(value, int):
-        return hoomd.variant.Constant(value)
-    elif isinstance(value, hoomd.variant.Variant):
+def preprocess_variant(value):
+    if isinstance(value, hoomd.variant.Variant):
         return value
     else:
-        raise ValueError("Expected a scalar value or a "
-                         "hoomd.variant.Variant.")
+        try:
+            return hoomd.variant.Constant(float(value))
+        except (TypeError, ValueError):
+            raise ValueError("Expected a hoomd.variant.Variant or a float.")
 
+from collections.abc import Sequence
+def preprocess_stress(value):
+    if isinstance(value, Sequence):
+        if len(value) != 6:
+            raise ValueError(
+                "Expected a single hoomd.variant.Variant / float or six.")
+        return tuple(map(preprocess_variant, value))
+    else:
+        return tuple([preprocess_variant(value),preprocess_variant(value),preprocess_variant(value),0,0,0])
 
 def none_or(type_):
     def None_or_type(value):
@@ -182,40 +192,31 @@ class nvt(_Method):
         kT = self.kT.cpp_variant.getValue(timestep)
         self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
 
-
-class npt(_Method):
+class NPT(_Method):
     R""" NPT Integration via MTK barostat-thermostat.
 
     Args:
-        group (:py:mod:`hoomd.group`): Group of particles on which to apply this method.
+        filter (:py:mod:`hoomd.filter._ParticleFilter`): Group of particles on which to apply this method.
         kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set point for the thermostat, not needed if *nph=True* (in energy units).
         tau (float): Coupling constant for the thermostat, not needed if *nph=True* (in time units).
-        S (:py:class:`list` of :py:mod:`hoomd.variant` or :py:obj:`float`): Stress components set point for the barostat (in pressure units). In Voigt notation: [Sxx, Syy, Szz, Syz, Sxz, Sxy]
-        P (:py:mod:`hoomd.variant` or :py:obj:`float`): Isotropic pressure set point for the barostat (in pressure units). Overrides *S* if set.
-        tauP (float): Coupling constant for the barostat (in time units).
+        S (:py:class:`list` of :py:mod:`hoomd.variant` or :py:obj:`float`): Stress components set point for the barostat (in pressure units). In Voigt notation: [Sxx, Syy, Szz, Syz, Sxz, Sxy]. In case of isotropic pressure P, use [P,P,P,0,0,0]
+        tauS (float): Coupling constant for the barostat (in time units).
         couple (str): Couplings of diagonal elements of the stress tensor, can be "none", "xy", "xz","yz", or "xyz" (default).
-        x (bool): if True, rescale *Lx* and x component of particle coordinates and velocities
-        y (bool): if True, rescale *Ly* and y component of particle coordinates and velocities
-        z (bool): if True, rescale *Lz* and z component of particle coordinates and velocities
-        xy (bool): if True, rescale xy tilt factor and x and y components of particle coordinates and velocities
-        xz (bool): if True, rescale xz tilt factor and x and z components of particle coordinates and velocities
-        yz (bool): if True, rescale yz tilt factor and y and z components of particle coordinates and velocities
-        all (bool): if True, rescale all lengths and tilt factors and components of particle coordinates and velocities
-        nph (bool): if True, integrate without a thermostat, i.e. in the NPH ensemble
+        box_dof(tuple): Box degrees of freedom with six boolean elements corresponding to x, y, z, xy, xz, yz, each. (default: [True,True,True,False,False,False]) If turned on to True, rescale corresponding lengths or tilt factors and components of particle coordinates and velocities
         rescale_all (bool): if True, rescale all particles, not only those in the group
         gamma: (:py:obj:`float`): Dimensionless damping factor for the box degrees of freedom (default: 0)
 
-    :py:class:`npt` performs constant pressure, constant temperature simulations, allowing for a fully deformable
+    :py:class:`NPT` performs constant pressure, constant temperature simulations, allowing for a fully deformable
     simulation box.
 
     The integration method is based on the rigorous Martyna-Tobias-Klein equations of motion for NPT.
     For optimal stability, the update equations leave the phase-space measure invariant and are manifestly
     time-reversible.
 
-    By default, :py:class:`npt` performs integration in a cubic box under hydrostatic pressure by simultaneously
+    By default, :py:class:`NPT` performs integration in a cubic box under hydrostatic pressure by simultaneously
     rescaling the lengths *Lx*, *Ly* and *Lz* of the simulation box.
 
-    :py:class:`npt` can also perform more advanced integration modes. The integration mode
+    :py:class:`NPT` can also perform more advanced integration modes. The integration mode
     is specified by a set of couplings and by specifying the box degrees of freedom that are put under
     barostat control.
 
@@ -235,18 +236,16 @@ class npt(_Method):
     Degrees of freedom of the box specify which lengths and tilt factors of the box should be updated,
     and how particle coordinates and velocities should be rescaled.
 
-    Valid keywords for degrees of freedom are:
+    Valid form for elements of box_dof(box degrees of freedom) is :
 
-    - x (the box length Lx is updated)
-    - y (the box length Ly is updated)
-    - z (the box length Lz is updated)
-    - xy (the tilt factor xy is updated)
-    - xz (the tilt factor xz is updated)
-    - yz (the tilt factor yz is updated)
-    - all (all elements are updated, equivalent to x, y, z, xy, xz, and yz together)
+    - bool(box_dof[0]) (if True, rescale *Lx* and x component of particle coordinates and velocities, and the box length Lx is updated)
+    - bool(box_dof[1]) (if True, rescale *Ly* and y component of particle coordinates and velocities, and the box length Ly is updated)
+    - bool(box_dof[2]) (if True, rescale *Lz* and z component of particle coordinates and velocities, and the box length Lz is updated)
+    - bool(box_dof[3]) (if True, rescale xy tilt factor and x and y components of particle coordinates and velocities, and the tilt factor xy is updated)
+    - bool(box_dof[4]) (if True, rescale xz tilt factor and x and z components of particle coordinates and velocities, and the tilt factor xz is updated)
+    - bool(box_dof[5]) (if True, rescale yz tilt factor and y and z components of particle coordinates and velocities, and the tilt factor yz is updated)
 
-    Any of the six keywords can be combined together. By default, the x, y, and z degrees of freedom
-    are updated.
+    By default, the x, y, and z degrees of freedomare updated. [True,True,True,False,False,False]
 
     Note:
         If any of the diagonal x, y, z degrees of freedom is not being integrated, pressure tensor components
@@ -258,17 +257,17 @@ class npt(_Method):
     - Specifying xy couplings and x, y, and z degrees of freedom amounts to tetragonal symmetry.
     - Specifying no couplings and all degrees of freedom amounts to a fully deformable triclinic unit cell
 
-    :py:class:`npt` Can also apply a constant stress to the simulation box. To do so, specify the symmetric
+    :py:class:`NPT` Can also apply a constant stress to the simulation box. To do so, specify the symmetric
     stress tensor *S* instead of an isotropic pressure *P*.
 
     Note:
-        :py:class:`npt` assumes that isotropic pressures are positive. Conventions for the stress tensor sometimes
+        :py:class:`NPT` assumes that isotropic pressures are positive. Conventions for the stress tensor sometimes
         assume negative values on the diagonal. You need to set these values negative manually in HOOMD.
 
-    :py:class:`npt` is an integration method. It must be used with :py:class:`mode_standard`.
+    :py:class:`NPT` is an integration method. It must be used with :py:class:`mode_standard`.
 
-    :py:class:`npt` uses the proper number of degrees of freedom to compute the temperature and pressure of the system in
-    both 2 and 3 dimensional systems, as long as the number of dimensions is set before the :py:class:`npt` command
+    :py:class:`NPT` uses the proper number of degrees of freedom to compute the temperature and pressure of the system in
+    both 2 and 3 dimensional systems, as long as the number of dimensions is set before the :py:class:`NPT` command
     is specified.
 
     For the MTK equations of motion, see:
@@ -292,250 +291,72 @@ class npt(_Method):
 
     Examples::
 
-        integrate.npt(group=all, kT=1.0, tau=0.5, tauP=1.0, P=2.0)
-        integrator = integrate.npt(group=all, tau=1.0, kT=0.65, tauP = 1.2, P=2.0)
+        integrate.NPT(group=all, kT=1.0, tau=0.5, tauP=1.0, P=2.0)
+        integrator = integrate.NPT(group=all, tau=1.0, kT=0.65, tauP = 1.2, P=2.0)
         # orthorhombic symmetry
-        integrator = integrate.npt(group=all, tau=1.0, kT=0.65, tauP = 1.2, P=2.0, couple="none")
+        integrator = integrate.NPT(group=all, tau=1.0, kT=0.65, tauP = 1.2, P=2.0, couple="none")
         # tetragonal symmetry
-        integrator = integrate.npt(group=all, tau=1.0, kT=0.65, tauP = 1.2, P=2.0, couple="xy")
+        integrator = integrate.NPT(group=all, tau=1.0, kT=0.65, tauP = 1.2, P=2.0, couple="xy")
         # triclinic symmetry
-        integrator = integrate.npt(group=all, tau=1.0, kT=0.65, tauP = 1.2, P=2.0, couple="none", rescale_all=True)
+        integrator = integrate.NPT(group=all, tau=1.0, kT=0.65, tauP = 1.2, P=2.0, couple="none", rescale_all=True)
     """
-    def __init__(self, group, kT=None, tau=None, S=None, P=None, tauP=None, couple="xyz", x=True, y=True, z=True, xy=False, xz=False, yz=False, all=False, nph=False, rescale_all=None, gamma=None):
+    def __init__(self, filter, kT=None, tau=None, S=None, tauS=None, couple="xyz", box_dof=[True,True,True,False,False,False], rescale_all=None, gamma=None):
 
-        # check the input
-        if (kT is None or tau is None):
-            if nph is False:
-                hoomd.context.current.device.cpp_msg.error("integrate.npt: Need temperature T and thermostat time scale tau.\n")
-                raise RuntimeError("Error setting up NPT integration.")
-            else:
-                # use dummy values
-                kT=1.0
-                tau=1.0
-
-        if (tauP is None):
-                hoomd.context.current.device.cpp_msg.error("integrate.npt: Need barostat time scale tauP.\n")
-                raise RuntimeError("Error setting up NPT integration.")
-
-        # initialize base class
-        _Method.__init__(self)
-
-        # setup the variant inputs
-        kT = hoomd.variant._setup_variant_input(kT)
-
-        # If P is set
-        if P is not None:
-            self.S = [P,P,P,0,0,0]
-        else:
-            # S is a stress, should be [xx, yy, zz, yz, xz, xy]
-            if S is not None and len(S)==6:
-                self.S = S
-            else:
-                raise RuntimeError("Unrecognized stress tensor form")
-
-        S = [hoomd.variant._setup_variant_input(self.S[i]) for i in range(6)]
-
-        Svar = [S[i].cpp_variant for i in range(6)]
-
-        # create the compute thermo for half time steps
-        if group is hoomd.context.current.group_all:
-            group_copy = copy.copy(group)
-            group_copy.name = "__npt_all"
-            thermo_group = hoomd.compute.thermo(group_copy)
-            thermo_group.cpp_compute.setLoggingEnabled(False)
-        else:
-            thermo_group = hoomd.compute._get_unique_thermo(group=group)
-
-        # create the compute thermo for full time step
-        thermo_group_t = hoomd.compute._get_unique_thermo(group=group)
-
-        # need to know if we are running 2D simulations
-        twod = (hoomd.context.current.system_definition.getNDimensions() == 2)
-        if twod:
-            hoomd.context.current.device.cpp_msg.notice(2, "When running in 2D, z couplings and degrees of freedom are silently ignored.\n")
-
-        # initialize the reflected c++ class
-        if twod:
-            # silently ignore any couplings that involve z
-            if couple == "none":
-                cpp_couple = _md.TwoStepNPTMTK.couplingMode.couple_none
-            elif couple == "xy":
-                cpp_couple = _md.TwoStepNPTMTK.couplingMode.couple_xy
-            elif couple == "xz":
-                cpp_couple = _md.TwoStepNPTMTK.couplingMode.couple_none
-            elif couple == "yz":
-                cpp_couple = _md.TwoStepNPTMTK.couplingMode.couple_none
-            elif couple == "xyz":
-                cpp_couple = _md.TwoStepNPTMTK.couplingMode.couple_xy
-            else:
-                hoomd.context.current.device.cpp_msg.error("Invalid coupling mode\n")
-                raise RuntimeError("Error setting up NPT integration.")
-        else:
-            if couple == "none":
-                cpp_couple = _md.TwoStepNPTMTK.couplingMode.couple_none
-            elif couple == "xy":
-                cpp_couple = _md.TwoStepNPTMTK.couplingMode.couple_xy
-            elif couple == "xz":
-                cpp_couple = _md.TwoStepNPTMTK.couplingMode.couple_xz
-            elif couple == "yz":
-                cpp_couple = _md.TwoStepNPTMTK.couplingMode.couple_yz
-            elif couple == "xyz":
-                cpp_couple = _md.TwoStepNPTMTK.couplingMode.couple_xyz
-            else:
-                hoomd.context.current.device.cpp_msg.error("Invalid coupling mode\n")
-                raise RuntimeError("Error setting up NPT integration.")
-
-        # set degrees of freedom flags
-        # silently ignore z related degrees of freedom when running in 2d
-        flags = 0
-        if x or all:
-            flags |= int(_md.TwoStepNPTMTK.baroFlags.baro_x)
-        if y or all:
-            flags |= int(_md.TwoStepNPTMTK.baroFlags.baro_y)
-        if (z or all) and not twod:
-            flags |= int(_md.TwoStepNPTMTK.baroFlags.baro_z)
-        if xy or all:
-            flags |= int(_md.TwoStepNPTMTK.baroFlags.baro_xy)
-        if (xz or all) and not twod:
-            flags |= int(_md.TwoStepNPTMTK.baroFlags.baro_xz)
-        if (yz or all) and not twod:
-            flags |= int(_md.TwoStepNPTMTK.baroFlags.baro_yz)
-
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_method = _md.TwoStepNPTMTK(hoomd.context.current.system_definition,
-                                                group.cpp_group,
-                                                thermo_group.cpp_compute,
-                                                thermo_group_t.cpp_compute,
-                                                tau,
-                                                tauP,
-                                                kT.cpp_variant,
-                                                Svar,
-                                                cpp_couple,
-                                                flags,
-                                                nph)
-        else:
-            self.cpp_method = _md.TwoStepNPTMTKGPU(hoomd.context.current.system_definition,
-                                                   group.cpp_group,
-                                                   thermo_group.cpp_compute,
-                                                   thermo_group_t.cpp_compute,
-                                                   tau,
-                                                   tauP,
-                                                   kT.cpp_variant,
-                                                   Svar,
-                                                   cpp_couple,
-                                                   flags,
-                                                   nph)
-
-        if rescale_all is not None:
-            self.cpp_method.setRescaleAll(rescale_all)
-
-        if gamma is not None:
-            self.cpp_method.setGamma(gamma)
-
-        self.cpp_method.validateGroup()
 
         # store metadata
-        self.group  = group
-        self.kT = kT
-        self.tau = tau
-        self.tauP = tauP
-        self.couple = couple
-        self.rescale_all = rescale_all
-        self.all = all
-        self.x = x
-        self.y = y
-        self.z = z
-        self.xy = xy
-        self.xz = xz
-        self.yz = yz
-        self.nph = nph
+        param_dict = ParameterDict(
+            filter=OnlyType(_ParticleFilter),
+            kT=preprocess_variant,
+            tau=float(tau),
+            S=preprocess_stress,
+            tauS=float(tauS),
+            couple=none_or(OnlyFrom('xyz')),
+            box_dof=(bool,)*6,
+            nph=bool(False),
+            rescale_all=none_or(bool),
+            gamma=none_or(float))
 
-    def set_params(self, kT=None, tau=None, S=None, P=None, tauP=None, rescale_all=None, gamma=None):
-        R""" Changes parameters of an existing integrator.
+        #param_dict.update(dict(filter=filter, kT=kT, tau=tau, S=S, tauS=tauS, couple=couple, box_dof=box_dof))
 
-        Args:
-            kT (:py:mod:`hoomd.variant` or :py:obj:`float`): New temperature (if set) (in energy units)
-            tau (float): New coupling constant (if set) (in time units)
-            S (:py:class:`list` of :py:mod:`hoomd.variant` or :py:obj:`float`): New stress components set point (if set) for the barostat (in pressure units). In Voigt notation: [Sxx, Syy, Szz, Syz, Sxz, Sxy]
-            P (:py:mod:`hoomd.variant` or :py:obj:`float`): New isotropic pressure set point (if set) for the barostat (in pressure units). Overrides *S* if set.
-            tauP (float): New barostat coupling constant (if set) (in time units)
-            rescale_all (bool): When True, rescale all particles, not only those in the group
+        # set defaults
+        self._param_dict.update(param_dict)
 
-        Examples::
 
-            integrator.set_params(tau=0.6)
-            integrator.set_params(dt=3e-3, kT=2.0, P=1.0)
+    def attach(self, simulation):
+        # initialize the reflected c++ class
+        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+            my_class = _md.TwoStepNPTMTK
+            thermo_cls = _hoomd.ComputeThermo
+        else:
+            my_class = _md.TwoStepNPTMTKGPU
+            thermo_cls = _hoomd.ComputeThermoGPU
 
-        """
-        self.check_initialization()
+        thermo_group = simulation.state.get_group(self.filter)
+        # compute thermo half time step
+        thermo = thermo_cls(simulation.state._cpp_sys_def, 
+                            thermo_group,
+                            "")
+        # compute thermo full time step
+        thermo_t = thermo_cls(simulation.state._cpp_sys_def, 
+                              thermo_group, 
+                              "")
+        self._cpp_obj = my_class(simulation.state._cpp_sys_def,
+                                 simulations.state.get_group(self.filter),
+                                 thermo,
+                                 thermo_t,
+                                 self.tau,
+                                 self.tauS,
+                                 self.kT
+                                 self.S,
+                                 self.couple,
+                                 self.box_dof,
+                                 False,
+                                 self.rescale_all,
+                                 self.gamma,
+                                 "")
 
-        # change the parameters
-        if kT is not None:
-            # setup the variant inputs
-            kT = hoomd.variant._setup_variant_input(kT)
-            self.kT = kT
-            self.cpp_method.setT(kT.cpp_variant)
-        if tau is not None:
-            self.cpp_method.setTau(tau)
-            self.tau = tau
-
-        # If P is set
-        if P is not None:
-            self.S = [P,P,P,0,0,0]
-        elif S is not None:
-            # S is a stress, should be [xx, yy, zz, yz, xz, xy]
-            if (len(S)==6):
-                self.S = S
-            else:
-                raise RuntimeError("Unrecognized stress tensor form")
-
-        if P is not None or S is not None:
-            S = [hoomd.variant._setup_variant_input(self.S[i]) for i in range(6)]
-
-            Svar = [S[i].cpp_variant for i in range(6)]
-            self.cpp_method.setS(Svar)
-
-        if tauP is not None:
-            self.cpp_method.setTauP(tauP)
-            self.tauP = tauP
-        if rescale_all is not None:
-            self.cpp_method.setRescaleAll(rescale_all)
-            self.rescale_all = rescale_all
-        if gamma is not None:
-            self.cpp_method.setGamma(gamma)
-
-    ## \internal
-    # \brief Return information about this integration method
-    #
-    def get_metadata(self):
-        # Metadata output involves transforming some variables into human-readable
-        # form, so we override get_metadata()
-        data = _Method.get_metadata(self)
-        data['group'] = self.group.name
-        if not self.nph:
-            data['kT'] = self.kT
-            data['tau'] = self.tau
-        data['S'] = self.S
-        data['tauP'] = self.tauP
-
-        lengths = ''
-        if self.x or self.all:
-            lengths += 'x '
-        if self.y or self.all:
-            lengths += 'y '
-        if self.z or self.all:
-            lengths += 'z '
-        if self.xy or self.all:
-            lengths += 'xy '
-        if self.xz or self.all:
-            lengths += 'xz '
-        if self.yz or self.all:
-            lengths += 'yz '
-        data['lengths'] = lengths.rstrip()
-        if self.rescale_all is not None:
-            data['rescale_all'] = self.rescale_all
-
-        return data
+        # Attach param_dict and typeparam_dict
+        super().attach(simulation)
 
     def randomize_velocities(self, seed):
         R""" Assign random velocities and angular momenta to particles in the
@@ -563,7 +384,7 @@ class npt(_Method):
         """
         timestep = hoomd.get_step()
         kT = self.kT.cpp_variant.getValue(timestep)
-        self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
+        self._cpp_obj.setRandomizeVelocitiesParams(kT, seed)
 
 
 class nph(npt):

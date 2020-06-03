@@ -55,12 +55,12 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
          */
         enum baroFlags
             {
-            baro_x = 1,
-            baro_y = 2,
-            baro_z = 4,
-            baro_xy = 8,
-            baro_xz = 16,
-            baro_yz = 32
+            baro_x = 32,
+            baro_y = 16,
+            baro_z = 8,
+            baro_xy = 4,
+            baro_xz = 2,
+            baro_yz = 1
             };
 
         //! Constructs the integration method and associates it with the system
@@ -69,9 +69,9 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
                    std::shared_ptr<ComputeThermo> thermo_group,
                    std::shared_ptr<ComputeThermo> thermo_group_t,
                    Scalar tau,
-                   Scalar tauP,
+                   Scalar tauS,
                    std::shared_ptr<Variant> T,
-                   pybind11::list S,
+                   std::vector<std::shared_ptr<Variant>> S,
                    couplingMode couple,
                    unsigned int flags,
                    const bool nph=false);
@@ -86,9 +86,17 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
             m_T = T;
             }
 
+        //! Update the stress components
+        /*! \param S list of stress components: [xx, yy, zz, yz, xz, xy]
+         */
+        virtual void setS(std::vector<std::shared_ptr<Variant>> S)
+            {
+             m_S = S;
+            }
+
+    /*
     //! Update the stress components
-    /*! \param S list of stress components: [xx, yy, zz, yz, xz, xy]
-     */
+    //! \param S list of stress components: [xx, yy, zz, yz, xz, xy]
     virtual void setS(pybind11::list S)
             {
             std::vector<std::shared_ptr<Variant> > swapS;
@@ -99,7 +107,7 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
                 }
             m_S.swap(swapS);
             }
-
+    */
         //! Update the tau value
         /*! \param tau New time constant to set
         */
@@ -109,11 +117,11 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
             }
 
         //! Update the nuP value
-        /*! \param tauP New pressure constant to set
+        /*! \param tauS New pressure constant to set
         */
-        virtual void setTauP(Scalar tauP)
+        virtual void setTauS(Scalar tauS)
             {
-            m_tauP = tauP;
+            m_tauS = tauS;
             }
 
         //! Set the scale all particles option
@@ -129,6 +137,43 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
             {
             m_gamma = gamma;
             }
+
+        //! Get temperature
+        virtual std::shared_ptr<Variant> getT()
+            {
+            return m_T
+            }
+
+        // Get stress
+        virtual std::vector<std::shared_ptr<Variant>> S getS()
+            {
+            return m_S
+            }
+
+        // Get tau
+        virtual Scalar getTau()
+            {
+            return m_tau
+            }
+
+        // Get tauS
+        virtual Scalar getTauS()
+            {
+            return m_tauS
+            }
+
+        // Get rescale_all
+        bool getRescaleAll()
+            {
+            return m_rescale_all
+            }
+
+        // Get gamma
+        Scalar getGamma()
+            {
+            return m_gamma
+            }
+
 
         //! Performs the first step of the integration
         virtual void integrateStepOne(unsigned int timestep);
@@ -176,7 +221,7 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
         unsigned int m_ndof;            //!< Number of degrees of freedom from ComputeThermo
 
         Scalar m_tau;                   //!< tau value for Nose-Hoover
-        Scalar m_tauP;                  //!< tauP value for the barostat
+        Scalar m_tauS;                  //!< tauS value for the barostat
         std::shared_ptr<Variant> m_T; //!< Temperature set point
         std::vector<std::shared_ptr<Variant>> m_S;  //!< Stress matrix (upper diagonal, components [xx, yy, zz, yz, xz, xy])
         Scalar m_V;                     //!< Current volume
