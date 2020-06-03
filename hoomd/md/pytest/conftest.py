@@ -22,9 +22,9 @@ _pairs = [
     ["Morse",
      hoomd.md.pair.Morse(hoomd.md.nlist.Cell()),
      {"D0": 0.05, "alpha": 1, "r0": 0}],
-    ["DPDConservative",
-     hoomd.md.pair.DPDConservative(hoomd.md.nlist.Cell()),
-     {"A": 0.05}],
+    # ["DPDConservative",
+    #  hoomd.md.pair.DPDConservative(hoomd.md.nlist.Cell()),
+    #  {"A": 0.05}],
     ["ForceShiftedLJ",
      hoomd.md.pair.ForceShiftedLJ(hoomd.md.nlist.Cell()),
      {"epsilon": 0.0005, "sigma": 1}],
@@ -47,24 +47,6 @@ def _make_valid_param_dicts(key_range_dict, n_dicts):
     return [dict(zip(sample_dict, val)) for val in zip(*sample_dict.values())]
 
 
-def _make_valid_params(valid_param_dicts, combos, pair_potential):
-    r_cut_vals = np.random.choice(np.linspace(1.5, 3.5), len(combos))
-    r_on_vals = np.random.choice(np.linspace(1.5, 3.5), len(combos))
-    pair_potential_dicts = [dict(zip(combos, valid_param_dicts))] * 5
-    r_cut_dicts = [dict(zip(combos, r_cut_vals))] * 5
-    r_on_dicts = [dict(zip(combos, r_on_vals))] * 5
-    r_on_dicts[-1] = None
-    modes = ['none', 'shifted', 'xplor', None, 'none']
-    if 'ForceShiftedLJ' in str(pair_potential):
-        modes[2] = 'shifted'
-    pair_potentials = [pair_potential] * 5
-    return zip(pair_potentials,
-               pair_potential_dicts,
-               r_cut_dicts,
-               r_on_dicts,
-               modes)
-
-
 def _valid_params(particle_types=['A', 'B']):
     valid_params_list = []
     combos = list(itertools.combinations_with_replacement(particle_types, 2))
@@ -72,17 +54,16 @@ def _valid_params(particle_types=['A', 'B']):
     lj_sample_dict = {'sigma': np.linspace(0.5, 1.5),
                       'epsilon': np.linspace(0.0005, 0.0015)}
     lj_valid_param_dicts = _make_valid_param_dicts(lj_sample_dict, len(combos))
-    valid_params_list.append(_make_valid_params(lj_valid_param_dicts,
-                                                combos, hoomd.md.pair.LJ))
+    valid_params_list.append((hoomd.md.pair.LJ,
+                              dict(zip(combos, lj_valid_param_dicts))))
 
     gauss_sample_dict = {'epsilon': np.linspace(0.025, 0.075),
                          'sigma': np.linspace(0.01, 0.03)}
     gauss_valid_param_dicts = _make_valid_param_dicts(gauss_sample_dict,
                                                       len(combos))
-    valid_params_list.append(_make_valid_params(gauss_valid_param_dicts,
-                                                combos, hoomd.md.pair.Gauss))
-
-    return [params for param_list in valid_params_list for params in param_list]
+    valid_params_list.append((hoomd.md.pair.Gauss,
+                              dict(zip(combos, gauss_valid_param_dicts))))
+    return valid_params_list
 
 
 @pytest.fixture(scope="function", params=_valid_params())
@@ -101,28 +82,14 @@ def _make_invalid_param_dict(valid_dict):
 
 
 def _make_invalid_params(valid_param_dict, invalid_param_dicts, pair_potential):
-    N = len(invalid_param_dicts) + 7  # +7 is r_cut, r_on, mode, and pair key
+    N = len(invalid_param_dicts)
     pair_potentials = [pair_potential] * N
 
     params = [{('A', 'A'): valid_param_dict}] * N
     for i in range(len(invalid_param_dicts)):
         params[i][('A', 'A')] = invalid_param_dicts[i]
 
-    r_cuts = [{('A', 'A'): 2.5}] * N
-    r_cuts[len(invalid_param_dicts)][('A', 'A')] = [1, 2]
-    r_cuts[len(invalid_param_dicts) + 1][('A', 'A')] = 'str'
-
-    r_ons = [{('A', 'A'): 2.5}] * N
-    r_ons[len(invalid_param_dicts) + 2][('A', 'A')] = [1, 2]
-    r_ons[len(invalid_param_dicts) + 3][('A', 'A')] = 'str'
-
-    modes = ['none'] * N
-    modes[len(invalid_param_dicts) + 4] = [1, 2]
-    modes[len(invalid_param_dicts) + 5] = 1
-
-    r_cuts[len(invalid_param_dicts) + 6] = {1: 2.4}
-
-    return zip(pair_potentials, params, r_cuts, r_ons, modes)
+    return zip(pair_potentials, params)
 
 
 def _invalid_params():

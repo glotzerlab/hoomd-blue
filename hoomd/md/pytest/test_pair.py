@@ -122,7 +122,7 @@ def test_ron(simulation_factory, two_particle_snapshot_factory):
 
 
 def test_valid_params(valid_params):
-    pair_potential, pair_potential_dict, r_cut, r_on, mode = valid_params
+    pair_potential, pair_potential_dict = valid_params
     pot = pair_potential(nlist=hoomd.md.nlist.Cell())
     for pair in pair_potential_dict:
         pot.params[pair] = pair_potential_dict[pair]
@@ -130,7 +130,7 @@ def test_valid_params(valid_params):
 
 
 def test_invalid_params(invalid_params):
-    pair_potential, pair_potential_dict, r_cut, r_on, mode = invalid_params
+    pair_potential, pair_potential_dict = invalid_params
     pot = pair_potential(nlist=hoomd.md.nlist.Cell())
     for pair in pair_potential_dict:
         if isinstance(pair, tuple):
@@ -150,7 +150,7 @@ def test_invalid_pair_key():
 
 def test_attached_params(simulation_factory, lattice_snapshot_factory,
                          valid_params):
-    pair_potential, pair_potential_dict, r_cut, r_on, mode = valid_params
+    pair_potential, pair_potential_dict = valid_params
     pair_keys = pair_potential_dict.keys()
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
     pot = pair_potential(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
@@ -175,7 +175,7 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
 @pytest.mark.parametrize("nsteps", [3, 5, 10])
 def test_run(simulation_factory, lattice_snapshot_factory,
              valid_params, nsteps):
-    pair_potential, pair_potential_dict, r_cut, r_on, mode = valid_params
+    pair_potential, pair_potential_dict = valid_params
     pair_keys = pair_potential_dict.keys()
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
     pot = pair_potential(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
@@ -233,7 +233,7 @@ def calculate_force(sim):
 @pytest.mark.parametrize("nsteps", [1, 5, 10])
 def test_compute_energy(simulation_factory, two_particle_snapshot_factory,
                         valid_params, nsteps):
-    pair_potential, pair_potential_dict, r_cut, r_on, mode = valid_params
+    pair_potential, pair_potential_dict = valid_params
     pair_keys = pair_potential_dict.keys()
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
     pot = pair_potential(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
