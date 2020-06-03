@@ -1107,12 +1107,29 @@ std::string EvaluatorPairALJ<2>::getShapeSpec() const
     std::ostringstream shapedef;
     const ManagedArray<vec3<Scalar> > &verts(shape_i->verts);       //! Shape vertices.
     const unsigned int N = verts.size();
-    shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": 0, \"vertices\": [";
-    for (unsigned int i = 0; i < N-1; ++i)
+    if (N == 1)
         {
-        shapedef << "[" << verts[i].x << ", " << verts[i].y << "], ";
+        shapedef << "{\"type\": \"Ellipsoid\", \"a\": " << shape_i->rounding_radii.x <<
+                    ", \"b\": " << shape_i->rounding_radii.y <<
+                    // Render ellipsoid with a third dimension of 1.
+                    ", \"c\": " << 1 <<
+                    "}";
         }
-    shapedef << "[" << verts[N-1].x << ", " << verts[N-1].y << "]]}";
+    else
+        {
+        if (shape_i->rounding_radii.x != shape_i->rounding_radii.y ||
+                shape_i->rounding_radii.x != shape_i->rounding_radii.z)
+            {
+                throw std::runtime_error("Shape definition not supported for spheropolygons with distinct rounding radii.");
+            }
+
+        shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": 0, \"vertices\": [";
+        for (unsigned int i = 0; i < N-1; ++i)
+            {
+            shapedef << "[" << verts[i].x << ", " << verts[i].y << "], ";
+            }
+        shapedef << "[" << verts[N-1].x << ", " << verts[N-1].y << "]]}";
+        }
     return shapedef.str();
     }
 

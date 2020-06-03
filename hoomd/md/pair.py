@@ -2888,6 +2888,10 @@ class alj(ai_pair):
     - *sigma_j* - the insphere radius of the second particle type.
     - *alpha* - Integer 0-3 indicating whether or not to include the attractive
                 component of the interaction (see above for details).
+    - *contact_sigma_i* - the contact sphere radius of the first type.
+      - *optional*: defaults to 0.15*sigma_i
+    - *contact_sigma_j* - the contact sphere radius of the second type.
+      - *optional*: defaults to 0.15*sigma_j
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
 
@@ -3070,6 +3074,8 @@ class alj(ai_pair):
             ndim = hoomd.context.current.system_definition.getNDimensions()
             if len(rounding_radii) == 1:
                 rounding_radii *= ndim
+                if ndim == 2:
+                    rounding_radii += [0]
             elif ndim == 2:
                 if len(rounding_radii) == 2:
                     rounding_radii += [0]

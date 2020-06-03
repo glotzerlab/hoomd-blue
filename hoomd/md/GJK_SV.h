@@ -46,7 +46,7 @@ HOSTDEVICE inline void support_polyhedron(const ManagedArray<vec3<Scalar> > &ver
 HOSTDEVICE inline void support_ellipsoid(const vec3<Scalar> &rounding_radii, const vec3<Scalar> &vector, const quat<Scalar> &q, vec3<Scalar> &ellipsoid_support_vector)
     {
     // Compute the support function of the rounding ellipsoid. Since we only
-    // have the principal axes, we have to otate the vector into the principal
+    // have the principal axes, we have to rotate the vector into the principal
     // frame, compute the support, and then rotate back out.
     vec3<Scalar> rotated_vector = rotate(conj(q), vector);
     vec3<Scalar> numerator(
