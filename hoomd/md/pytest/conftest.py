@@ -93,12 +93,20 @@ def _make_invalid_params(valid_param_dict, invalid_param_dicts, pair_potential):
 
 
 def _invalid_params():
+    invalid_params_list = []
+
     lj_valid_param_dict = {'sigma': 1.0, 'epsilon': 1.0}
     lj_invalid_param_dicts = _make_invalid_param_dict(lj_valid_param_dict)
-    lj_params = _make_invalid_params(lj_valid_param_dict,
-                                     lj_invalid_param_dicts,
-                                     hoomd.md.pair.LJ)
-    return lj_params
+    invalid_params_list.append(_make_invalid_params(lj_valid_param_dict,
+                                                    lj_invalid_param_dicts,
+                                                    hoomd.md.pair.LJ))
+
+    lj_valid_param_dict = {'sigma': 0.05, 'epsilon': 0.05}
+    lj_invalid_param_dicts = _make_invalid_param_dict(lj_valid_param_dict)
+    invalid_params_list.append(_make_invalid_params(lj_valid_param_dict,
+                                                    lj_invalid_param_dicts,
+                                                    hoomd.md.pair.LJ))
+    return [params for param_list in invalid_params_list for params in param_list]
 
 
 @pytest.fixture(scope="function", params=_invalid_params())
