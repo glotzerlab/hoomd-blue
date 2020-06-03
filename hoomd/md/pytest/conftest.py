@@ -70,6 +70,13 @@ def _valid_params(particle_types=['A', 'B']):
                                                        len(combos))
     valid_params_list.append((hoomd.md.pair.Yukawa,
                               dict(zip(combos, yukawa_valid_param_dicts))))
+
+    ewald_sample_dict = {"alpha": np.linspace(0.025, 0.075),
+                         "kappa": np.linspace(0.5, 1.5)}
+    ewald_valid_param_dicts = _make_valid_param_dicts(ewald_sample_dict,
+                                                      len(combos))
+    valid_params_list.append((hoomd.md.pair.Ewald,
+                              dict(zip(combos, ewald_valid_param_dicts))))
     return valid_params_list
 
 
@@ -119,6 +126,13 @@ def _invalid_params():
     invalid_params_list.append(_make_invalid_params(yukawa_valid_dict,
                                                     yukawa_invalid_dicts,
                                                     hoomd.md.pair.Yukawa))
+
+    ewald_valid_dict = {"alpha": 0.05, "kappa": 1}
+    ewald_invalid_dicts = _make_invalid_param_dict(ewald_valid_dict)
+    invalid_params_list.append(_make_invalid_params(ewald_valid_dict,
+                                                    ewald_invalid_dicts,
+                                                    hoomd.md.pair.Ewald))
+
     return [params for param_list in invalid_params_list for params in param_list]
 
 
