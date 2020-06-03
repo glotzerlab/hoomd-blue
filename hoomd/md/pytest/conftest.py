@@ -63,6 +63,13 @@ def _valid_params(particle_types=['A', 'B']):
                                                       len(combos))
     valid_params_list.append((hoomd.md.pair.Gauss,
                               dict(zip(combos, gauss_valid_param_dicts))))
+
+    yukawa_sample_dict = {'epsilon': np.linspace(0.00025, 0.00075),
+                          'kappa': np.linspace(0.5, 1.5)}
+    yukawa_valid_param_dicts = _make_valid_param_dicts(yukawa_sample_dict,
+                                                       len(combos))
+    valid_params_list.append((hoomd.md.pair.Yukawa,
+                              dict(zip(combos, yukawa_valid_param_dicts))))
     return valid_params_list
 
 
@@ -95,17 +102,23 @@ def _make_invalid_params(valid_param_dict, invalid_param_dicts, pair_potential):
 def _invalid_params():
     invalid_params_list = []
 
-    lj_valid_param_dict = {'sigma': 1.0, 'epsilon': 1.0}
-    lj_invalid_param_dicts = _make_invalid_param_dict(lj_valid_param_dict)
-    invalid_params_list.append(_make_invalid_params(lj_valid_param_dict,
-                                                    lj_invalid_param_dicts,
+    lj_valid_dict = {'sigma': 1.0, 'epsilon': 1.0}
+    lj_invalid_dicts = _make_invalid_param_dict(lj_valid_dict)
+    invalid_params_list.append(_make_invalid_params(lj_valid_dict,
+                                                    lj_invalid_dicts,
                                                     hoomd.md.pair.LJ))
 
-    lj_valid_param_dict = {'sigma': 0.05, 'epsilon': 0.05}
-    lj_invalid_param_dicts = _make_invalid_param_dict(lj_valid_param_dict)
-    invalid_params_list.append(_make_invalid_params(lj_valid_param_dict,
-                                                    lj_invalid_param_dicts,
-                                                    hoomd.md.pair.LJ))
+    gauss_valid_dict = {'sigma': 0.05, 'epsilon': 0.05}
+    gauss_invalid_dicts = _make_invalid_param_dict(gauss_valid_dict)
+    invalid_params_list.append(_make_invalid_params(gauss_valid_dict,
+                                                    gauss_invalid_dicts,
+                                                    hoomd.md.pair.Gauss))
+
+    yukawa_valid_dict = {"epsilon": 0.0005, "kappa": 1}
+    yukawa_invalid_dicts = _make_invalid_param_dict(yukawa_valid_dict)
+    invalid_params_list.append(_make_invalid_params(yukawa_valid_dict,
+                                                    yukawa_invalid_dicts,
+                                                    hoomd.md.pair.Yukawa))
     return [params for param_list in invalid_params_list for params in param_list]
 
 
