@@ -26,7 +26,7 @@ using namespace std;
     \param thermo_group ComputeThermo to compute thermo properties of the integrated \a group
     \param thermo_group ComputeThermo to compute thermo properties of the integrated \a group at full time step
     \param tau NPT temperature period
-    \param tauP NPT pressure period
+    \param tauS NPT pressure period
     \param T Temperature set point
     \param S Pressure or Stress set point. Pressure if one value, Stress if a list of 6. Stress should be ordered as [xx, yy, zz, yz, xz, xy]
     \param couple Coupling mode
@@ -37,14 +37,14 @@ TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
                        std::shared_ptr<ComputeThermo> thermo_group,
                        std::shared_ptr<ComputeThermo> thermo_group_t,
                        Scalar tau,
-                       Scalar tauP,
+                       Scalar tauS,
                        std::shared_ptr<Variant> T,
-                       pybind11::list S,
-                       couplingMode couple,
-                       unsigned int flags,
+                       std::vector<std::shared_ptr<Variant>> S,
+                       string couple,
+                       std::vector<bool> flags,
                        const bool nph)
 
-    : TwoStepNPTMTK(sysdef, group, thermo_group, thermo_group_t, tau, tauP, T, S, couple, flags,nph)
+    : TwoStepNPTMTK(sysdef, group, thermo_group, thermo_group_t, tau, tauS, T, S, couple, flags,nph)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
@@ -383,9 +383,9 @@ void export_TwoStepNPTMTKGPU(py::module& m)
                        Scalar,
                        Scalar,
                        std::shared_ptr<Variant>,
-                       pybind11::list,
-                       TwoStepNPTMTKGPU::couplingMode,
-                       unsigned int,
+                       std::vector<std::shared_ptr<Variant>>,
+                       string,
+                       std::vector<bool>,
                        const bool>());
 
     }

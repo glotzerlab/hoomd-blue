@@ -1160,7 +1160,7 @@ void export_TwoStepNPTMTK(py::module& m)
                        Scalar,
                        std::shared_ptr<Variant>,
                        std::vector<std::shared_ptr<Variant>>,
-                       string couple,
+                       string,
                        std::vector<bool>,
                        const bool>())
         .def_property("T", &TwoStepNPTMTK::getT, &TwoStepNPTMTK::setT)
