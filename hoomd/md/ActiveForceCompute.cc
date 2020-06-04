@@ -32,16 +32,15 @@ namespace py = pybind11;
 ActiveForceCompute::ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
                                         std::shared_ptr<ParticleGroup> group,
                                         int seed,
-                                        py::list f_lst,
-                                        py::list t_lst,
+                                        //py::list f_lst,
+                                        //py::list t_lst,
                                         bool orientation_link,
-                                        bool orientation_reverse_link,
                                         Scalar rotation_diff,
                                         Scalar3 P,
                                         Scalar rx,
                                         Scalar ry,
                                         Scalar rz)
-        : ForceCompute(sysdef), m_group(group), m_orientationLink(orientation_link), m_orientationReverseLink(orientation_reverse_link),
+        : ForceCompute(sysdef), m_group(group), m_orientationLink(orientation_link),
             m_rotationDiff(rotation_diff), m_P(P), m_rx(rx), m_ry(ry), m_rz(rz)
     {
 
@@ -207,16 +206,16 @@ void ActiveForceCompute::setForces()
             h_torque.data[idx].z = t.z;
             }
         // rotate particle orientation only if orientation is reverse linked to active force vector. Does not operate on torque vector
-        if (m_orientationReverseLink == true)
-            {
-            vec3<Scalar> f(h_f_actMag.data[i]*h_f_actVec.data[i].x, h_f_actMag.data[i]*h_f_actVec.data[i].y, h_f_actMag.data[i]*h_f_actVec.data[i].z);
-            vec3<Scalar> vecZ(0.0, 0.0, 1.0);
-            vec3<Scalar> quatVec = cross(vecZ, f);
-            Scalar quatScal = slow::sqrt(h_f_actMag.data[i]*h_f_actMag.data[i]) + dot(f, vecZ);
-            quat<Scalar> quati(quatScal, quatVec);
-            quati = quati * (Scalar(1.0) / slow::sqrt(norm2(quati)));
-            h_orientation.data[idx] = quat_to_scalar4(quati);
-            }
+        //if (m_orientationReverseLink == true)
+        //    {
+        //    vec3<Scalar> f(h_f_actMag.data[i]*h_f_actVec.data[i].x, h_f_actMag.data[i]*h_f_actVec.data[i].y, h_f_actMag.data[i]*h_f_actVec.data[i].z);
+        //    vec3<Scalar> vecZ(0.0, 0.0, 1.0);
+        //    vec3<Scalar> quatVec = cross(vecZ, f);
+        //    Scalar quatScal = slow::sqrt(h_f_actMag.data[i]*h_f_actMag.data[i]) + dot(f, vecZ);
+        //    quat<Scalar> quati(quatScal, quatVec);
+        //    quati = quati * (Scalar(1.0) / slow::sqrt(norm2(quati)));
+        //    h_orientation.data[idx] = quat_to_scalar4(quati);
+        //    }
         }
     }
 
@@ -400,7 +399,15 @@ void ActiveForceCompute::computeForces(unsigned int timestep)
 void export_ActiveForceCompute(py::module& m)
     {
     py::class_< ActiveForceCompute, ForceCompute, std::shared_ptr<ActiveForceCompute> >(m, "ActiveForceCompute")
-    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, int, py::list, py::list,  bool, bool, Scalar,
+    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, int, bool, Scalar,
                     Scalar3, Scalar, Scalar, Scalar >())
     ;
     }
+
+//void export_ActiveForceCompute(py::module& m)
+//    {
+//    py::class_< ActiveForceCompute, ForceCompute, std::shared_ptr<ActiveForceCompute> >(m, "ActiveForceCompute")
+//    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, int, py::list, py::list,  bool, bool, Scalar,
+//                    Scalar3, Scalar, Scalar, Scalar >())
+//    ;
+//    }

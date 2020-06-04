@@ -12,7 +12,19 @@ from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.operation import _Operation
 from hoomd.logger import Loggable
+from hoomd.typeparam import TypeParameter
+from hoomd.typeconverter import OnlyType
+from hoomd.parameterdicts import ParameterDict, TypeParameterDict
 import hoomd
+
+def tuplelength_preprocessing(act_force):
+    if aforce is not None:
+        if len(act_force) != 3:
+            raise RuntimeError("Active force passed in should be a list of 3-tuples (fx, fy, fz)")
+        else:
+            return act_force
+    else:
+        return (0,0,0)
 
 
 class _force(hoomd.meta._metadata):
@@ -238,7 +250,7 @@ class constant(_Force):
         pass
 
 
-class active(_Force):
+class Active(_Force):
     R""" Active force.
 
     Args:
@@ -276,68 +288,102 @@ class active(_Force):
         ellipsoid = update.constraint_ellipsoid(group=groupA, P=(0,0,0), rx=3, ry=4, rz=5)
         force.active( seed=7, f_list=[tuple(1,2,3) for i in range(N)], orientation_link=False, rotation_diff=100, constraint=ellipsoid)
     """
-    def __init__(self, seed, group, f_lst=None, t_lst=None, orientation_link=True, orientation_reverse_link=False, rotation_diff=0, constraint=None):
+    #def __init__(self, seed, group, f_lst=None, t_lst=None, orientation_link=True, orientation_reverse_link=False, rotation_diff=0, constraint=None):
+    def __init__(self, filter, seed, orientation_link=True,constraint=None):
 
         # initialize the base class
-        Force.__init__(self)
+        #Force.__init__(self)
 
-        if (f_lst is None) and (t_lst is None):
-            raise RuntimeError('No forces or torques are being set')
+        # store metadata
+        param_dict = ParameterDict(
+            filter=_ParticleFilter,
+            seed=int(seed),
+            orientation_link=bool(orientation_link),
+            constraint=OnlyType(_ConstraintForce,allow_none=True),
+        )
+        param_dict.update(dict(constraint=constraint,seed=seed, orientation_link=orientation_link, filter=filter))
+        # set defaults
+        self._param_dict.update(param_dict)
+
+        active_force =  TypeParameter('active_force', type_kind='particle_types',  param_dict=TypeParameterDict( OnlyType(tuple, preprocess=tuplelength_preprocessing), len_keys=1) )
+        active_torque =  TypeParameter('active_torque', type_kind='particle_types',  param_dict=TypeParameterDict( OnlyType(tuple, preprocess=tuplelength_preprocessing), len_keys=1) )
+
+
+        self._extend_typeparam([active_force, active_torque])
+
+        #if (f_lst is None) and (t_lst is None):
+        #    raise RuntimeError('No forces or torques are being set')
 
         # input check
-        if (f_lst is not None):
-            for element in f_lst:
-                if type(element) != tuple or len(element) != 3:
-                    raise RuntimeError("Active force passed in should be a list of 3-tuples (fx, fy, fz)")
-        else:
-            f_lst = []
-            for element in t_lst:
-                f_lst.append((0,0,0))
+        #if (f_lst is not None):
+        #    for element in f_lst:
+        #        if type(element) != tuple or len(element) != 3:
+        #            raise RuntimeError("Active force passed in should be a list of 3-tuples (fx, fy, fz)")
+        #else:
+        #    f_lst = []
+        #    for element in t_lst:
+        #        f_lst.append((0,0,0))
 
-        if (t_lst is not None):
-            for element in t_lst:
-                if type(element) != tuple or len(element) != 3:
-                    raise RuntimeError("Active torque passed in should be a list of 3-tuples (tx, ty, tz)")
-        else:
-            t_lst = []
-            for element in f_lst:
-                t_lst.append((0,0,0))
+        #if (t_lst is not None):
+        #    for element in t_lst:
+        #        if type(element) != tuple or len(element) != 3:
+        #            raise RuntimeError("Active torque passed in should be a list of 3-tuples (tx, ty, tz)")
+        #else:
+        #    t_lst = []
+        #    for element in f_lst:
+        #        t_lst.append((0,0,0))
 
         # assign constraints
-        if (constraint is not None):
-            if (constraint.__class__.__name__ == "constraint_ellipsoid"):
-                P = constraint.P
-                rx = constraint.rx
-                ry = constraint.ry
-                rz = constraint.rz
-            else:
-                raise RuntimeError("Active force constraint is not accepted (currently only accepts ellipsoids)")
+        #if (constraint is not None):
+        #    if (constraint.__class__.__name__ == "constraint_ellipsoid"):
+        #        P = constraint.P
+        #        rx = constraint.rx
+        #        ry = constraint.ry
+        #        rz = constraint.rz
+        #    else:
+        #        raise RuntimeError("Active force constraint is not accepted (currently only accepts ellipsoids)")
+        #else:
+        #    P = _hoomd.make_scalar3(0, 0, 0)
+        #    rx = 0
+        #    ry = 0
+        #    rz = 0
+
+    def attach(self, simulation):
+
+        # initialize the reflected c++ class
+        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+            my_class = _md.ActiveForceCompute
         else:
-            P = _hoomd.make_scalar3(0, 0, 0)
-            rx = 0
-            ry = 0
-            rz = 0
+            #my_class = _md.ActiveForceComputeGPU
+            raise RuntimeError("Active force not yet in GPU")
+
+        self._cpp_obj = my_class(simulation.state._cpp_sys_def,
+                                 simulation.state.get_group(self.filter),
+                                 self.seed, self.orientation_link,self.rotation_diff,_hoomd.make_scalar3(0,0,0), 0, 0, 0)
+
+        # Attach param_dict and typeparam_dict
+        super().attach(simulation)
 
         # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cppForce = _md.ActiveForceCompute(hoomd.context.current.system_definition, group.cpp_group, seed, f_lst, t_lst,
-                                                      orientation_link, orientation_reverse_link, rotation_diff, P, rx, ry, rz)
+        #if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
+        #    self.cppForce = _md.ActiveForceCompute(hoomd.context.current.system_definition, group.cpp_group, seed,
+        #                                              orientation_link, rotation_diff, _hoomd.make_scalar3(0,0,0), 0, 0, 0)
 
-        else:
-            self.cppForce = _md.ActiveForceComputeGPU(hoomd.context.current.system_definition, group.cpp_group, seed, f_lst, t_lst,
-                                                         orientation_link, orientation_reverse_link, rotation_diff, P, rx, ry, rz)
+        #else:
+        #    self.cppForce = _md.ActiveForceComputeGPU(hoomd.context.current.system_definition, group.cpp_group, seed, f_lst, t_lst,
+        #                                                 orientation_link, orientation_reverse_link, rotation_diff, P, rx, ry, rz)
 
 
         # store metadata
-        self.metadata_fields = ['group', 'seed', 'orientation_link', 'rotation_diff', 'constraint']
-        self.group = group
-        self.seed = seed
-        self.orientation_link = orientation_link
-        self.orientation_reverse_link = orientation_reverse_link
-        self.rotation_diff = rotation_diff
-        self.constraint = constraint
+        #self.metadata_fields = ['group', 'seed', 'orientation_link', 'rotation_diff', 'constraint']
+        #self.group = group
+        #self.seed = seed
+        #self.orientation_link = orientation_link
+        #self.orientation_reverse_link = orientation_reverse_link
+        #self.rotation_diff = rotation_diff
+        #self.constraint = constraint
 
-        hoomd.context.current.system.addCompute(self.cppForce, self.force_name)
+        #hoomd.context.current.system.addCompute(self.cppForce, self.force_name)
 
     # there are no coeffs to update in the active force compute
     def update_coeffs(self):

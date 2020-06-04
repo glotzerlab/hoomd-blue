@@ -35,8 +35,8 @@ class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
         //! Constructs the compute
         ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<ParticleGroup> group,
-                             int seed, pybind11::list f_lst, pybind11::list t_lst,
-                             bool orientation_link, bool orientation_reverse_link,
+                             int seed, 
+                             bool orientation_link, 
                              Scalar rotation_diff,
                              Scalar3 P,
                              Scalar rx,
@@ -61,7 +61,6 @@ class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
 
         std::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this force is applied
         bool m_orientationLink;
-        bool m_orientationReverseLink;
         Scalar m_rotationDiff;
         Scalar m_rotationConst;
         Scalar3 m_P;          //!< Position of the Ellipsoid
