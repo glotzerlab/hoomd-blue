@@ -17,7 +17,7 @@ np.random.seed(0)
 # Test energy
 
 
-def assert_equivalent_type_params(type_param1, type_param2):
+def _assert_equivalent_type_params(type_param1, type_param2):
     for pair in type_param1:
         if isinstance(type_param1[pair], dict):
             for key in type_param1[pair]:
@@ -27,7 +27,7 @@ def assert_equivalent_type_params(type_param1, type_param2):
             assert type_param1[pair] == type_param2[pair]
 
 
-def assert_equivalent_parameter_dicts(param_dict1, param_dict2):
+def _assert_equivalent_parameter_dicts(param_dict1, param_dict2):
     for key in param_dict1:
         assert param_dict1[key] == param_dict2[key]
 
@@ -50,10 +50,10 @@ def test_rcut(simulation_factory, two_particle_snapshot_factory):
         sim.operations.schedule()  # Before setting r_cut
 
     lj.r_cut[('A', 'A')] = 2.5
-    assert_equivalent_type_params(lj.r_cut.to_dict(), {('A', 'A'): 2.5})
+    _assert_equivalent_type_params(lj.r_cut.to_dict(), {('A', 'A'): 2.5})
     sim.operations.schedule()
     sim.run(1)
-    assert_equivalent_type_params(lj.r_cut.to_dict(), {('A', 'A'): 2.5})
+    _assert_equivalent_type_params(lj.r_cut.to_dict(), {('A', 'A'): 2.5})
 
 
 @pytest.mark.parametrize("mode", ['none', 'shifted', 'xplor'])
@@ -95,12 +95,12 @@ def test_ron(simulation_factory, two_particle_snapshot_factory):
     assert lj.r_on.to_dict() == {}
 
     sim.operations.schedule()  # Before setting r_on
-    assert_equivalent_type_params(lj.r_on.to_dict(), {('A', 'A'): 0.0})
+    _assert_equivalent_type_params(lj.r_on.to_dict(), {('A', 'A'): 0.0})
 
     lj.r_on[('A', 'A')] = 1.5
-    assert_equivalent_type_params(lj.r_on.to_dict(), {('A', 'A'): 1.5})
+    _assert_equivalent_type_params(lj.r_on.to_dict(), {('A', 'A'): 1.5})
     sim.run(1)
-    assert_equivalent_type_params(lj.r_on.to_dict(), {('A', 'A'): 1.5})
+    _assert_equivalent_type_params(lj.r_on.to_dict(), {('A', 'A'): 1.5})
 
 
 def test_valid_params(valid_params):
@@ -108,7 +108,7 @@ def test_valid_params(valid_params):
     pot = pair_potential(nlist=hoomd.md.nlist.Cell())
     for pair in pair_potential_dict:
         pot.params[pair] = pair_potential_dict[pair]
-    assert_equivalent_type_params(pot.params.to_dict(), pair_potential_dict)
+    _assert_equivalent_type_params(pot.params.to_dict(), pair_potential_dict)
 
 
 def test_invalid_params(invalid_params):
@@ -151,8 +151,8 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
     sim.operations.schedule()
     sim.run(10)
     attached_pot = sim.operations.integrator.forces[0]
-    assert_equivalent_type_params(attached_pot.params.to_dict(),
-                                  pair_potential_dict)
+    _assert_equivalent_type_params(attached_pot.params.to_dict(),
+                                   pair_potential_dict)
 
 
 @pytest.mark.parametrize("nsteps", [3, 5, 10])
@@ -187,7 +187,7 @@ def test_run(simulation_factory, lattice_snapshot_factory,
 
 # This function calculates the forces in a two particle simulation frame by
 # finding the negative derivative of energy over inter particle distance
-def calculate_force(sim):
+def _calculate_force(sim):
     snap = sim.state.snapshot
     initial_pos = snap.particles.position
     snap.particles.position[1] = initial_pos[1] * 0.99999999
@@ -214,8 +214,9 @@ def calculate_force(sim):
 
 
 @pytest.mark.parametrize("nsteps", [1, 5, 10])
-def test_compute_energy(simulation_factory, two_particle_snapshot_factory,
-                        valid_params, nsteps):
+def test_force_energy_relationship(simulation_factory,
+                                   two_particle_snapshot_factory,
+                                   valid_params, nsteps):
     pair_potential, pair_potential_dict = valid_params[1:]
     pair_keys = pair_potential_dict.keys()
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
@@ -238,13 +239,7 @@ def test_compute_energy(simulation_factory, two_particle_snapshot_factory,
             snap.particles.typeid[1] = particle_types.index(pair[1])
         sim.state.snapshot = snap
 
-        pair_energy = pot.compute_energy(np.array([0], dtype=np.int32),
-                                         np.array([1], dtype=np.int32))
-        sim_energies = sim.operations.integrator.forces[0].energies
-        assert pair_energy / 2 == sim_energies[0]
-        assert pair_energy / 2 == sim_energies[1]
-
-        calculated_forces = calculate_force(sim)
+        calculated_forces = _calculate_force(sim)
         sim_forces = sim.operations.integrator.forces[0].forces
         np.testing.assert_allclose(calculated_forces[0], sim_forces[0])
         np.testing.assert_allclose(calculated_forces[1], sim_forces[1])
