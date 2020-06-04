@@ -6,7 +6,6 @@ import hoomd.hpmc.pytest.conftest
 
 np.random.seed(0)
 
-# Test attach
 # Test r_cut
 # Test mode
 # Test r_on
@@ -16,23 +15,6 @@ np.random.seed(0)
 # Test force energy relationship
 # Test force
 # Test energy
-
-
-def test_attach(two_particle_snapshot_factory,
-                simulation_factory, pair_and_params):
-    pair = pair_and_params[0]
-    params = pair_and_params[1]
-
-    sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=.5))
-    integrator = hoomd.md.Integrator(dt=0.5)
-    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
-                                                        kT=1, seed=1))
-    pair.params[('A', 'A')] = params
-    pair.r_cut[('A', 'A')] = .02
-    integrator.forces.append(pair)
-    sim.operations.integrator = integrator
-    sim.operations.schedule()
-    sim.run(10)
 
 
 def assert_equivalent_type_params(type_param1, type_param2):
