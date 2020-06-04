@@ -77,6 +77,37 @@ def _valid_params(particle_types=['A', 'B']):
                                                       len(combos))
     valid_params_list.append((hoomd.md.pair.Ewald,
                               dict(zip(combos, ewald_valid_param_dicts))))
+
+    morse_sample_dict = {"D0": np.linspace(0.025, 0.075),
+                         "alpha": np.linspace(0.5, 1.5),
+                         "r0": np.linspace(0, 0.1)}
+    morse_valid_param_dicts = _make_valid_param_dicts(morse_sample_dict,
+                                                      len(combos))
+    valid_params_list.append((hoomd.md.pair.Morse,
+                              dict(zip(combos, morse_valid_param_dicts))))
+
+    dpd_conservative_sample_dict = {"A": np.linspace(0.025, 0.075)}
+    dpd_conservative_valid_param_dicts = _make_valid_param_dicts(dpd_conservative_sample_dict,
+                                                                 len(combos))
+    valid_params_list.append((hoomd.md.pair.DPDConservative,
+                              dict(zip(combos,
+                                       dpd_conservative_valid_param_dicts))))
+
+    force_shifted_LJ_sample_dict = {'sigma': np.linspace(0.5, 1.5),
+                                    'epsilon': np.linspace(0.0005, 0.0015)}
+    force_shifted_LJ_valid_param_dicts = _make_valid_param_dicts(force_shifted_LJ_sample_dict,
+                                                                 len(combos))
+    valid_params_list.append((hoomd.md.pair.ForceShiftedLJ,
+                              dict(zip(combos,
+                                       force_shifted_LJ_valid_param_dicts))))
+
+    moliere_sample_dict = {'Zi': range(10, 20), 'Zj': range(8, 16),
+                           'a0': np.linspace(0.5, 1.5),
+                           'e': np.linspace(0.25, 0.75)}
+    moliere_valid_param_dicts = _make_valid_param_dicts(moliere_sample_dict,
+                                                        len(combos))
+    valid_params_list.append((hoomd.md.pair.Moliere,
+                              dict(zip(combos, moliere_valid_param_dicts))))
     return valid_params_list
 
 
@@ -133,6 +164,29 @@ def _invalid_params():
                                                     ewald_invalid_dicts,
                                                     hoomd.md.pair.Ewald))
 
+    morse_valid_dict = {"D0": 0.05, "alpha": 1, "r0": 0}
+    morse_invalid_dicts = _make_invalid_param_dict(morse_valid_dict)
+    invalid_params_list.append(_make_invalid_params(morse_valid_dict,
+                                                    morse_invalid_dicts,
+                                                    hoomd.md.pair.Morse))
+
+    dpd_conservative_valid_dict = {"A": 0.05}
+    dpd_conservative_invalid_dicts = _make_invalid_param_dict(dpd_conservative_valid_dict)
+    invalid_params_list.append(_make_invalid_params(dpd_conservative_valid_dict,
+                                                    dpd_conservative_invalid_dicts,
+                                                    hoomd.md.pair.DPDConservative))
+
+    force_shifted_LJ_valid_dict = {"epsilon": 0.0005, "sigma": 1}
+    force_shifted_LJ_invalid_dicts = _make_invalid_param_dict(force_shifted_LJ_valid_dict)
+    invalid_params_list.append(_make_invalid_params(force_shifted_LJ_valid_dict,
+                                                    force_shifted_LJ_invalid_dicts,
+                                                    hoomd.md.pair.ForceShiftedLJ))
+
+    moliere_valid_dict = {"Zi": 15, "Zj": 12, "a0": 1, "e": .5}
+    moliere_invalid_dicts = _make_invalid_param_dict(moliere_valid_dict)
+    invalid_params_list.append(_make_invalid_params(moliere_valid_dict,
+                                                    moliere_invalid_dicts,
+                                                    hoomd.md.pair.Moliere))
     return [params for param_list in invalid_params_list for params in param_list]
 
 
