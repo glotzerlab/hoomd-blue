@@ -14,28 +14,19 @@ from hoomd.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.filter import _ParticleFilter
 from hoomd.typeparam import TypeParameter
 from hoomd.typeconverter import OnlyType
+from hoomd.variant import Variant
 from hoomd.typeconverter import OnlyFrom
 import copy
-
-
-def preprocess_variant(value):
-    if isinstance(value, hoomd.variant.Variant):
-        return value
-    else:
-        try:
-            return hoomd.variant.Constant(float(value))
-        except (TypeError, ValueError):
-            raise ValueError("Expected a hoomd.variant.Variant or a float.")
-
 from collections.abc import Sequence
+
 def preprocess_stress(value):
     if isinstance(value, Sequence):
         if len(value) != 6:
             raise ValueError(
                 "Expected a single hoomd.variant.Variant / float or six.")
-        return tuple(map(preprocess_variant, value))
+        return tuple(map(Variant, value))
     else:
-        return tuple([preprocess_variant(value),preprocess_variant(value),preprocess_variant(value),0,0,0])
+        return tuple([Variant(value),Variant(value),Variant(value),0,0,0])
 
 def none_or(type_):
     def None_or_type(value):
@@ -306,7 +297,7 @@ class NPT(_Method):
         # store metadata
         param_dict = ParameterDict(
             filter=OnlyType(_ParticleFilter),
-            kT=preprocess_variant,
+            kT=Variant,
             tau=float(tau),
             S=preprocess_stress,
             tauS=float(tauS),
