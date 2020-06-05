@@ -32,109 +32,141 @@ namespace py = pybind11;
 ActiveForceCompute::ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
                                         std::shared_ptr<ParticleGroup> group,
                                         int seed,
-                                        //py::list f_lst,
-                                        //py::list t_lst,
-                                        bool orientation_link,
                                         Scalar rotation_diff,
                                         Scalar3 P,
                                         Scalar rx,
                                         Scalar ry,
                                         Scalar rz)
-        : ForceCompute(sysdef), m_group(group), m_orientationLink(orientation_link),
+        : ForceCompute(sysdef), m_group(group),
             m_rotationDiff(rotation_diff), m_P(P), m_rx(rx), m_ry(ry), m_rz(rz)
     {
 
-    unsigned int group_size = m_group->getNumMembersGlobal();
-    if (group_size == 0)
-        {
-        m_exec_conf->msg->error() << "Creating a ActiveForceCompute with an empty group" << endl;
-        throw std::runtime_error("Error initializing ActiveForceCompute");
-        }
+    // In case of MPI run, every rank should be initialized with the same seed.
+    // For simplicity we broadcast the seed of rank 0 to all ranks.
 
-    vector<Scalar3> c_f_lst;
-    py::tuple tmp_force;
-    for (unsigned int i = 0; i < len(f_lst); i++)
-        {
-        tmp_force = py::cast<py::tuple>(f_lst[i]);
-        if (len(tmp_force) !=3)
-            throw runtime_error("Non-3D force given for ActiveForceCompute");
-        c_f_lst.push_back( make_scalar3(py::cast<Scalar>(tmp_force[0]), py::cast<Scalar>(tmp_force[1]), py::cast<Scalar>(tmp_force[2])));
-        }
+    m_seed = seed*0x12345677 + 0x12345; seed^=(seed>>16); seed*= 0x45679;
 
-    vector<Scalar3> c_t_lst;
-    py::tuple tmp_torque;
-    for (unsigned int i = 0; i < len(t_lst); i++)
-        {
-        tmp_torque = py::cast<py::tuple>(t_lst[i]);
-        if (len(tmp_torque) !=3)
-            throw runtime_error("Non-3D torque given for ActiveForceCompute");
-        c_t_lst.push_back( make_scalar3(py::cast<Scalar>(tmp_torque[0]), py::cast<Scalar>(tmp_torque[1]), py::cast<Scalar>(tmp_torque[2])));
-        }
+    #ifdef ENABLE_MPI
+    if( this->m_pdata->getDomainDecomposition() )
+        bcast(m_seed,0,this->m_exec_conf->getMPICommunicator());
+    #endif
 
 
-    if (c_f_lst.size() != group_size) { throw runtime_error("Force given for ActiveForceCompute doesn't match particle number."); }
-    if (c_t_lst.size() != group_size) { throw runtime_error("Torque given for ActiveForceCompute doesn't match particle number."); }
-    if (m_orientationLink == true && m_rotationDiff != 0)
-        {
-        throw runtime_error("Non-spherical particles and rotational diffusion is ill defined. Instead implement rotational diffusion through the integrator, or if you are working with point particles set orientation_link=False.");
-        }
-
-    GPUArray<Scalar3> tmp_f_activeVec(group_size, m_exec_conf);
-    GPUArray<Scalar> tmp_f_activeMag(group_size, m_exec_conf);
-
-    GPUArray<Scalar3> tmp_t_activeVec(group_size, m_exec_conf);
-    GPUArray<Scalar> tmp_t_activeMag(group_size, m_exec_conf);
-
+    // allocate memory for the per-type active_force storage and initialize them to (1.0,0,0)
+    GlobalVector<Scalar3> tmp_f_activeVec(m_pdata->getNTypes(), m_exec_conf);
+    GlobalVector<Scalar> tmp_f_activeMag(m_pdata->getNTypes(), m_exec_conf);
 
     m_f_activeVec.swap(tmp_f_activeVec);
     m_f_activeMag.swap(tmp_f_activeMag);
+    TAG_ALLOCATION(m_f_activeVec);
+    TAG_ALLOCATION(m_f_activeMag);
+
+    ArrayHandle<Scalar3> h_f_activeVec(m_f_activeVec, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_f_activeMag(m_f_activeMag, access_location::host, access_mode::overwrite);
+    for (unsigned int i = 0; i < m_f_activeMag.size(); i++){
+        h_f_activeMag.data[i] = 1;
+        h_f_activeVec.data[i] = make_scalar3(1.0,0.0,0.0);
+    }
+
+    // allocate memory for the per-type active_force storage and initialize them to (0,0,0)
+    GlobalVector<Scalar3> tmp_t_activeVec(m_pdata->getNTypes(), m_exec_conf);
+    GlobalVector<Scalar> tmp_t_activeMag(m_pdata->getNTypes(), m_exec_conf);
 
     m_t_activeVec.swap(tmp_t_activeVec);
     m_t_activeMag.swap(tmp_t_activeMag);
+    TAG_ALLOCATION(m_t_activeVec);
+    TAG_ALLOCATION(m_t_activeMag);
 
-    ArrayHandle<Scalar3> h_f_activeVec(m_f_activeVec, access_location::host);
-    ArrayHandle<Scalar> h_f_activeMag(m_f_activeMag, access_location::host);
+    ArrayHandle<Scalar3> h_t_activeVec(m_t_activeVec, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_t_activeMag(m_t_activeMag, access_location::host, access_mode::overwrite);
+    for (unsigned int i = 0; i < m_t_activeMag.size(); i++){
+        h_t_activeMag.data[i] = 0;
+        h_t_activeVec.data[i] = make_scalar3(0.0,0.0,0.0);
+    }
 
-    ArrayHandle<Scalar3> h_t_activeVec(m_t_activeVec, access_location::host);
-    ArrayHandle<Scalar> h_t_activeMag(m_t_activeMag, access_location::host);
 
-
-    // for each of the particles in the group
-    for (unsigned int i = 0; i < group_size; i++)
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
+    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
-        h_f_activeMag.data[i] = slow::sqrt(c_f_lst[i].x*c_f_lst[i].x + c_f_lst[i].y*c_f_lst[i].y + c_f_lst[i].z*c_f_lst[i].z);
-        h_t_activeMag.data[i] = slow::sqrt(c_t_lst[i].x*c_t_lst[i].x + c_t_lst[i].y*c_t_lst[i].y + c_t_lst[i].z*c_t_lst[i].z);
-        if(h_f_activeMag.data[i] == 0.0) // fixes divide by 0 case if magnitude of active force vector is 0
-            {
-            h_f_activeMag.data[i] = 0.000000000001;
-            }
-        if(h_t_activeMag.data[i] == 0.0) // fixes divide by 0 case if magnitude of active torque vector is 0
-            {
-            h_t_activeMag.data[i] = 0.000000000001;
-            }
+        cudaMemAdvise(m_f_activeVec.get(), sizeof(Scalar3)*m_f_activeVec.getNumElements(), cudaMemAdviseSetReadMostly, 0);
+        cudaMemAdvise(m_f_activeMag.get(), sizeof(Scalar)*m_f_activeMag.getNumElements(), cudaMemAdviseSetReadMostly, 0);
 
-        h_f_activeVec.data[i] = make_scalar3(0, 0, 0);
-        h_f_activeVec.data[i].x = c_f_lst[i].x / h_f_activeMag.data[i];
-        h_f_activeVec.data[i].y = c_f_lst[i].y / h_f_activeMag.data[i];
-        h_f_activeVec.data[i].z = c_f_lst[i].z / h_f_activeMag.data[i];
+        cudaMemAdvise(m_t_activeVec.get(), sizeof(Scalar3)*m_t_activeVec.getNumElements(), cudaMemAdviseSetReadMostly, 0);
+        cudaMemAdvise(m_t_activeMag.get(), sizeof(Scalar)*m_t_activeMag.getNumElements(), cudaMemAdviseSetReadMostly, 0);
+        }
+    #endif
 
-        h_t_activeVec.data[i] = make_scalar3(0, 0, 0);
-        h_t_activeVec.data[i].x = c_t_lst[i].x / h_t_activeMag.data[i];
-        h_t_activeVec.data[i].y = c_t_lst[i].y / h_t_activeMag.data[i];
-        h_t_activeVec.data[i].z = c_t_lst[i].z / h_t_activeMag.data[i];
+    }
 
+
+void ActiveForceCompute::setActiveForce(const std::string& type_name, pybind11::tuple v)
+    {
+    unsigned int typ = this->m_pdata->getTypeByName(type_name);
+
+    if (pybind11::len(v) != 3)
+        {
+        throw invalid_argument("gamma_r values must be 3-tuples");
         }
 
-    last_computed = 10;
+    // check for user errors
+    if (typ >= m_pdata->getNTypes())
+        {
+        throw invalid_argument("Type does not exist");
+        }
 
-    // Hash the User's Seed to make it less likely to be a low positive integer
-    m_seed = seed*0x12345677 + 0x12345; seed^=(seed>>16); seed*= 0x45679;
+    Scalar3 f_activeVec;
+    f_activeVec.x = pybind11::cast<Scalar>(v[0]);
+    f_activeVec.y = pybind11::cast<Scalar>(v[1]);
+    f_activeVec.z = pybind11::cast<Scalar>(v[2]);
 
-    // broadcast the seed from rank 0 to all other ranks.
-    #ifdef ENABLE_MPI
-        if(this->m_pdata->getDomainDecomposition())
-            bcast(m_seed, 0, this->m_exec_conf->getMPICommunicator());
-    #endif
+    Scalar f_activeMag = slow::sqrt(f_activeVec.x*f_activeVec.x+f_activeVec.y*f_activeVec.y+f_activeVec.z*f_activeVec.z);
+
+    f_activeVec.x /= f_activeMag;
+    f_activeVec.y /= f_activeMag;
+    f_activeVec.z /= f_activeMag;
+
+    ArrayHandle<Scalar3> h_f_activeVec(m_f_activeVec, access_location::host, access_mode::readwrite);
+    h_f_activeVec.data[typ] = f_activeVec;
+
+    ArrayHandle<Scalar> h_f_activeMag(m_f_activeMag, access_location::host, access_mode::readwrite);
+    h_f_activeMag.data[typ] = f_activeMag;
+
+    std::cout << f_activeVec.x << " " << f_activeVec.y << " " << f_activeVec.z << std::endl;
+    }
+
+void ActiveForceCompute::setActiveTorque(const std::string& type_name, pybind11::tuple v)
+    {
+    unsigned int typ = this->m_pdata->getTypeByName(type_name);
+
+    if (pybind11::len(v) != 3)
+        {
+        throw invalid_argument("gamma_r values must be 3-tuples");
+        }
+
+    // check for user errors
+    if (typ >= m_pdata->getNTypes())
+        {
+        throw invalid_argument("Type does not exist");
+        }
+
+    Scalar3 t_activeVec;
+    t_activeVec.x = pybind11::cast<Scalar>(v[0]);
+    t_activeVec.y = pybind11::cast<Scalar>(v[1]);
+    t_activeVec.z = pybind11::cast<Scalar>(v[2]);
+
+    Scalar t_activeMag = slow::sqrt(t_activeVec.x*t_activeVec.x+t_activeVec.y*t_activeVec.y+t_activeVec.z*t_activeVec.z);
+
+    t_activeVec.x /= t_activeMag;
+    t_activeVec.y /= t_activeMag;
+    t_activeVec.z /= t_activeMag;
+
+    ArrayHandle<Scalar3> h_t_activeVec(m_t_activeVec, access_location::host, access_mode::readwrite);
+    h_t_activeVec.data[typ] = t_activeVec;
+
+    ArrayHandle<Scalar> h_t_activeMag(m_t_activeMag, access_location::host, access_mode::readwrite);
+    h_t_activeMag.data[typ] = t_activeMag;
+
+    std::cout << t_activeVec.x << " " << t_activeVec.y << " " << t_activeVec.z << std::endl;
     }
 
 ActiveForceCompute::~ActiveForceCompute()
@@ -155,6 +187,7 @@ void ActiveForceCompute::setForces()
     ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite);
     ArrayHandle<Scalar4> h_torque(m_torque,access_location::host,access_mode::overwrite);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
     // sanity check
@@ -163,6 +196,7 @@ void ActiveForceCompute::setForces()
     assert(h_f_actMag.data != NULL);
     assert(h_t_actMag.data != NULL);
     assert(h_orientation.data != NULL);
+    assert(h_pos.data != NULL);
 
     // zero forces so we don't leave any forces set for indices that are no longer part of our group
     memset(h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
@@ -172,6 +206,8 @@ void ActiveForceCompute::setForces()
         {
         unsigned int tag = m_group->getMemberTag(i);
         unsigned int idx = h_rtag.data[tag];
+        unsigned int j = m_group->getMemberIndex(i);
+        unsigned int type = __scalar_as_int(h_pos.data[j].w);
 
         Scalar3 f;
         Scalar3 t;
@@ -179,7 +215,7 @@ void ActiveForceCompute::setForces()
         if (m_orientationLink == true)
             {
             vec3<Scalar> fi;
-            f = make_scalar3(h_f_actMag.data[i]*h_f_actVec.data[i].x, h_f_actMag.data[i]*h_f_actVec.data[i].y, h_f_actMag.data[i]*h_f_actVec.data[i].z);
+            f = make_scalar3(h_f_actMag.data[type]*h_f_actVec.data[type].x, h_f_actMag.data[type]*h_f_actVec.data[type].y, h_f_actMag.data[type]*h_f_actVec.data[type].z);
             quat<Scalar> quati(h_orientation.data[idx]);
             fi = rotate(quati, vec3<Scalar>(f));
             h_force.data[idx].x = fi.x;
@@ -187,37 +223,15 @@ void ActiveForceCompute::setForces()
             h_force.data[idx].z = fi.z;
 
             vec3<Scalar> ti;
-            t = make_scalar3(h_t_actMag.data[i]*h_t_actVec.data[i].x, h_t_actMag.data[i]*h_t_actVec.data[i].y, h_t_actMag.data[i]*h_t_actVec.data[i].z);
+            t = make_scalar3(h_t_actMag.data[type]*h_t_actVec.data[type].x, h_t_actMag.data[type]*h_t_actVec.data[type].y, h_t_actMag.data[type]*h_t_actVec.data[type].z);
             ti = rotate(quati, vec3<Scalar>(t));
             h_torque.data[idx].x = ti.x;
             h_torque.data[idx].y = ti.y;
             h_torque.data[idx].z = ti.z;
             }
-        else // no orientation link
-            {
-            f = make_scalar3(h_f_actMag.data[i]*h_f_actVec.data[i].x, h_f_actMag.data[i]*h_f_actVec.data[i].y, h_f_actMag.data[i]*h_f_actVec.data[i].z);
-            h_force.data[idx].x = f.x;
-            h_force.data[idx].y = f.y;
-            h_force.data[idx].z = f.z;
-
-            t = make_scalar3(h_t_actMag.data[i]*h_t_actVec.data[i].x, h_t_actMag.data[i]*h_t_actVec.data[i].y, h_t_actMag.data[i]*h_t_actVec.data[i].z);
-            h_torque.data[idx].x = t.x;
-            h_torque.data[idx].y = t.y;
-            h_torque.data[idx].z = t.z;
-            }
-        // rotate particle orientation only if orientation is reverse linked to active force vector. Does not operate on torque vector
-        //if (m_orientationReverseLink == true)
-        //    {
-        //    vec3<Scalar> f(h_f_actMag.data[i]*h_f_actVec.data[i].x, h_f_actMag.data[i]*h_f_actVec.data[i].y, h_f_actMag.data[i]*h_f_actVec.data[i].z);
-        //    vec3<Scalar> vecZ(0.0, 0.0, 1.0);
-        //    vec3<Scalar> quatVec = cross(vecZ, f);
-        //    Scalar quatScal = slow::sqrt(h_f_actMag.data[i]*h_f_actMag.data[i]) + dot(f, vecZ);
-        //    quat<Scalar> quati(quatScal, quatVec);
-        //    quati = quati * (Scalar(1.0) / slow::sqrt(norm2(quati)));
-        //    h_orientation.data[idx] = quat_to_scalar4(quati);
-        //    }
         }
     }
+
 
 /*! This function applies rotational diffusion to all active particles. The orientation of any torque vector
  * relative to the force vector is preserved
@@ -399,15 +413,9 @@ void ActiveForceCompute::computeForces(unsigned int timestep)
 void export_ActiveForceCompute(py::module& m)
     {
     py::class_< ActiveForceCompute, ForceCompute, std::shared_ptr<ActiveForceCompute> >(m, "ActiveForceCompute")
-    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, int, bool, Scalar,
+    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, int, Scalar,
                     Scalar3, Scalar, Scalar, Scalar >())
+    .def("setActiveForce", &ActiveForceCompute::setActiveForce)
+    .def("setActiveTorque", &ActiveForceCompute::setActiveTorque)
     ;
     }
-
-//void export_ActiveForceCompute(py::module& m)
-//    {
-//    py::class_< ActiveForceCompute, ForceCompute, std::shared_ptr<ActiveForceCompute> >(m, "ActiveForceCompute")
-//    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, int, py::list, py::list,  bool, bool, Scalar,
-//                    Scalar3, Scalar, Scalar, Scalar >())
-//    ;
-//    }

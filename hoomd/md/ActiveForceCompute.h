@@ -36,7 +36,6 @@ class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
         ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<ParticleGroup> group,
                              int seed, 
-                             bool orientation_link, 
                              Scalar rotation_diff,
                              Scalar3 P,
                              Scalar rx,
@@ -45,6 +44,9 @@ class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
 
         //! Destructor
         ~ActiveForceCompute();
+
+        void setActiveForce(const std::string& type_name, pybind11::tuple v);
+        void setActiveTorque(const std::string& type_name, pybind11::tuple v);
 
     protected:
         //! Actually compute the forces
@@ -60,7 +62,7 @@ class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
         virtual void setConstraint();
 
         std::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this force is applied
-        bool m_orientationLink;
+        bool m_orientationLink = true;
         Scalar m_rotationDiff;
         Scalar m_rotationConst;
         Scalar3 m_P;          //!< Position of the Ellipsoid
@@ -68,11 +70,11 @@ class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
         Scalar m_ry;          //!< Radius in Y direction of the Ellipsoid
         Scalar m_rz;          //!< Radius in Z direction of the Ellipsoid
         int m_seed;           //!< Random number seed
-        GPUArray<Scalar3> m_f_activeVec; //! active force unit vectors for each particle
-        GPUArray<Scalar> m_f_activeMag; //! active force magnitude for each particle
+        GlobalVector<Scalar3> m_f_activeVec; //! active force unit vectors for each particle type
+        GlobalVector<Scalar> m_f_activeMag; //! active force magnitude for each particle type
 
-        GPUArray<Scalar3> m_t_activeVec; //! active torque unit vectors for each particle
-        GPUArray<Scalar> m_t_activeMag; //! active torque magnitude for each particle
+        GlobalVector<Scalar3> m_t_activeVec; //! active torque unit vectors for each particle type
+        GlobalVector<Scalar> m_t_activeMag; //! active torque magnitude for each particle type
 
         unsigned int last_computed;
     };
