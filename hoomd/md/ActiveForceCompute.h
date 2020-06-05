@@ -45,6 +45,21 @@ class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
         //! Destructor
         ~ActiveForceCompute();
 
+        /** Set a new temperature
+            @param T new temperature to set
+        */
+        void setRdiff(Scalar rdiff)
+            {
+            m_rotationDiff = rdiff;
+            }
+
+        /// Get the current temperature variant
+        Scalar getRdiff()
+            {
+            return m_rotationDiff;
+            }
+
+
         /** Sets active force vector for a given particle type
             @param typ Particle type to set active force vector
             @param v The active force vector value to set (a 3-tuple)
@@ -78,7 +93,6 @@ class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
         virtual void setConstraint();
 
         std::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this force is applied
-        bool m_orientationLink = true;
         Scalar m_rotationDiff;
         Scalar m_rotationConst;
         Scalar3 m_P;          //!< Position of the Ellipsoid

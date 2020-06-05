@@ -20,10 +20,6 @@ namespace py = pybind11;
 */
 
 /*! \param seed required user-specified seed number for random number generator.
-    \param f_lst An array of (x,y,z) tuples for the active force vector for each particle.
-    \param t_lst An array of (xyz) tuples for the active torque vector for each particle
-    \param orientation_link if True then forces and torques are applied in the particle's reference frame. If false, then the box reference fra    me is used. Only relevant for non-point-like anisotropic particles.
-    /param orientation_reverse_link When True, the particle's orientation is set to match the active force vector. Useful for
     for using a particle's orientation to log the active force vector. Not recommended for anisotropic particles
     \param rotation_diff rotational diffusion constant for all particles.
     \param constraint specifies a constraint surface, to which particles are confined,
@@ -136,8 +132,6 @@ void ActiveForceCompute::setActiveForce(const std::string& type_name, pybind11::
 
     ArrayHandle<Scalar> h_f_activeMag(m_f_activeMag, access_location::host, access_mode::readwrite);
     h_f_activeMag.data[typ] = f_activeMag;
-
-    std::cout << f_activeVec.x << " " << f_activeVec.y << " " << f_activeVec.z << std::endl;
     }
 
 pybind11::tuple ActiveForceCompute::getActiveForce(const std::string& type_name)
@@ -195,8 +189,6 @@ void ActiveForceCompute::setActiveTorque(const std::string& type_name, pybind11:
 
     ArrayHandle<Scalar> h_t_activeMag(m_t_activeMag, access_location::host, access_mode::readwrite);
     h_t_activeMag.data[typ] = t_activeMag;
-
-    std::cout << t_activeVec.x << " " << t_activeVec.y << " " << t_activeVec.z << std::endl;
     }
 
 pybind11::tuple ActiveForceCompute::getActiveTorque(const std::string& type_name)
@@ -272,8 +264,9 @@ void ActiveForceCompute::setForces()
 void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
     {
     //  array handles
-    ArrayHandle<Scalar3> h_f_actVec(m_f_activeVec, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar3> h_t_actVec(m_t_activeVec, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_f_actVec(m_f_activeVec, access_location::host, access_mode::read);
+    ArrayHandle<Scalar3> h_t_actVec(m_t_activeVec, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     assert(h_pos.data != NULL);
@@ -282,17 +275,26 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
         {
         unsigned int tag = m_group->getMemberTag(i);
         unsigned int idx = h_rtag.data[tag];
+        unsigned int j = m_group->getMemberIndex(i);
+        unsigned int type = __scalar_as_int(h_pos.data[j].w);
         hoomd::RandomGenerator rng(hoomd::RNGIdentifier::ActiveForceCompute, m_seed, tag, timestep);
+
+        quat<Scalar> quati(h_orientation.data[idx]);
 
         if (m_sysdef->getNDimensions() == 2) // 2D
             {
             Scalar delta_theta; // rotational diffusion angle
             delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
-            Scalar theta; // angle on plane defining orientation of active force vector
-            theta = atan2(h_f_actVec.data[i].y, h_f_actVec.data[i].x);
-            theta += delta_theta;
-            h_f_actVec.data[i].x = slow::cos(theta);
-            h_f_actVec.data[i].y = slow::sin(theta);
+            Scalar theta = delta_theta/2.0; // angle on plane defining orientation of active force vector
+            vec3<Scalar> b(0,0,slow::sin(theta));
+
+            quat<Scalar> rot_quat(slow::cos(theta),b);
+
+            quati = rot_quat*quati;
+            h_orientation.data[idx].x = quati.s;
+            h_orientation.data[idx].y = quati.v.x;
+            h_orientation.data[idx].z = quati.v.y;
+            h_orientation.data[idx].w = quati.v.z;
             // In 2D, the only meaningful torque vector is out of plane and should not change
             }
         else // 3D: Following Stenhammar, Soft Matter, 2014
@@ -303,33 +305,28 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
                 vec3<Scalar> rand_vec;
                 unit_vec(rng, rand_vec);
 
+                Scalar3 f = make_scalar3(h_f_actVec.data[type].x, h_f_actVec.data[type].y, h_f_actVec.data[type].z);
+                vec3<Scalar> fi = rotate(quati, vec3<Scalar>(f));
+
                 vec3<Scalar> aux_vec;
-                aux_vec.x = h_f_actVec.data[i].y * rand_vec.z - h_f_actVec.data[i].z * rand_vec.y;
-                aux_vec.y = h_f_actVec.data[i].z * rand_vec.x - h_f_actVec.data[i].x * rand_vec.z;
-                aux_vec.z = h_f_actVec.data[i].x * rand_vec.y - h_f_actVec.data[i].y * rand_vec.x;
-                Scalar aux_vec_mag = slow::sqrt(aux_vec.x*aux_vec.x + aux_vec.y*aux_vec.y + aux_vec.z*aux_vec.z);
-                aux_vec.x /= aux_vec_mag;
-                aux_vec.y /= aux_vec_mag;
-                aux_vec.z /= aux_vec_mag;
+                aux_vec.x = fi.y * rand_vec.z - fi.z * rand_vec.y;
+                aux_vec.y = fi.z * rand_vec.x - fi.x * rand_vec.z;
+                aux_vec.z = fi.x * rand_vec.y - fi.y * rand_vec.x;
+                Scalar aux_vec_mag = 1.0/slow::sqrt(aux_vec.x*aux_vec.x + aux_vec.y*aux_vec.y + aux_vec.z*aux_vec.z);
+                aux_vec.x *= aux_vec_mag;
+                aux_vec.y *= aux_vec_mag;
+                aux_vec.z *= aux_vec_mag;
 
-                vec3<Scalar> current_f_vec;
-                current_f_vec.x = h_f_actVec.data[i].x;
-                current_f_vec.y = h_f_actVec.data[i].y;
-                current_f_vec.z = h_f_actVec.data[i].z;
-
-                vec3<Scalar> current_t_vec;
-                current_t_vec.x = h_t_actVec.data[i].x;
-                current_t_vec.y = h_t_actVec.data[i].y;
-                current_t_vec.z = h_t_actVec.data[i].z;
 
                 Scalar delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
-                h_f_actVec.data[i].x = slow::cos(delta_theta)*current_f_vec.x + slow::sin(delta_theta)*aux_vec.x;
-                h_f_actVec.data[i].y = slow::cos(delta_theta)*current_f_vec.y + slow::sin(delta_theta)*aux_vec.y;
-                h_f_actVec.data[i].z = slow::cos(delta_theta)*current_f_vec.z + slow::sin(delta_theta)*aux_vec.z;
+                Scalar theta = delta_theta/2.0; // angle on plane defining orientation of active force vector
+                quat<Scalar> rot_quat(slow::cos(theta),slow::sin(theta)*aux_vec);
 
-                h_t_actVec.data[i].x = slow::cos(delta_theta)*current_t_vec.x + slow::sin(delta_theta)*aux_vec.x;
-                h_t_actVec.data[i].y = slow::cos(delta_theta)*current_t_vec.y + slow::sin(delta_theta)*aux_vec.y;
-                h_t_actVec.data[i].z = slow::cos(delta_theta)*current_t_vec.z + slow::sin(delta_theta)*aux_vec.z;
+                quati = rot_quat*quati;
+                h_orientation.data[idx].x = quati.s;
+                h_orientation.data[idx].y = quati.v.x;
+                h_orientation.data[idx].z = quati.v.y;
+                h_orientation.data[idx].w = quati.v.z;
 
                 }
             else // if constraint exists
@@ -342,28 +339,15 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
                 vec3<Scalar> norm;
                 norm = vec3<Scalar> (norm_scalar3);
 
-                vec3<Scalar> current_f_vec;
-                current_f_vec.x = h_f_actVec.data[i].x;
-                current_f_vec.y = h_f_actVec.data[i].y;
-                current_f_vec.z = h_f_actVec.data[i].z;
+                Scalar delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
+                Scalar theta = delta_theta/2.0; // angle on plane defining orientation of active force vector
+                quat<Scalar> rot_quat(slow::cos(theta),slow::sin(theta)*norm);
 
-                vec3<Scalar> current_t_vec;
-                current_t_vec.x = h_t_actVec.data[i].x;
-                current_t_vec.y = h_t_actVec.data[i].y;
-                current_t_vec.z = h_t_actVec.data[i].z;
-
-                vec3<Scalar> aux_vec = cross(current_f_vec, norm); // aux vec for defining direction that active force vector rotates towards. Torque ignored
-
-                Scalar delta_theta; // rotational diffusion angle
-                delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
-
-                h_f_actVec.data[i].x = slow::cos(delta_theta)*current_f_vec.x + slow::sin(delta_theta)*aux_vec.x;
-                h_f_actVec.data[i].y = slow::cos(delta_theta)*current_f_vec.y + slow::sin(delta_theta)*aux_vec.y;
-                h_f_actVec.data[i].z = slow::cos(delta_theta)*current_f_vec.z + slow::sin(delta_theta)*aux_vec.z;
-
-                h_t_actVec.data[i].x = slow::cos(delta_theta)*current_t_vec.x + slow::sin(delta_theta)*aux_vec.x;
-                h_t_actVec.data[i].y = slow::cos(delta_theta)*current_t_vec.y + slow::sin(delta_theta)*aux_vec.y;
-                h_t_actVec.data[i].z = slow::cos(delta_theta)*current_t_vec.z + slow::sin(delta_theta)*aux_vec.z;
+                quati = rot_quat*quati;
+                h_orientation.data[idx].x = quati.s;
+                h_orientation.data[idx].y = quati.v.x;
+                h_orientation.data[idx].z = quati.v.y;
+                h_orientation.data[idx].w = quati.v.z;
 
                 }
             }
@@ -396,12 +380,6 @@ void ActiveForceCompute::setConstraint()
         Scalar3 norm_scalar3 = Ellipsoid.evalNormal(current_pos); // the normal vector to which the particles are confined.
         vec3<Scalar> norm = vec3<Scalar>(norm_scalar3);
 
-        Scalar new_norm = slow::sqrt(norm.x*norm.x + norm.y*norm.y + norm.z*norm.z);
-
-        norm.x /= new_norm;
-        norm.y /= new_norm;
-        norm.z /= new_norm;
-
         Scalar3 f = make_scalar3(h_f_actVec.data[type].x, h_f_actVec.data[type].y, h_f_actVec.data[type].z);
         quat<Scalar> quati(h_orientation.data[idx]);
         vec3<Scalar> fi = rotate(quati, vec3<Scalar>(f));
@@ -418,11 +396,11 @@ void ActiveForceCompute::setConstraint()
         fi.y -= norm.y * dot_prod;
         fi.z -= norm.z * dot_prod;
 
-        new_norm = slow::sqrt(fi.x*fi.x + fi.y*fi.y + fi.z*fi.z);
+        Scalar new_norm = 1.0/slow::sqrt(fi.x*fi.x + fi.y*fi.y + fi.z*fi.z);
 
-        fi.x /= new_norm;
-        fi.y /= new_norm;
-        fi.z /= new_norm;
+        fi.x *= new_norm;
+        fi.y *= new_norm;
+        fi.z *= new_norm;
 
         vec3<Scalar> rot_vec = cross(norm,fi);
         rot_vec.x *= slow::sin(phi_half);
@@ -480,6 +458,7 @@ void export_ActiveForceCompute(py::module& m)
     py::class_< ActiveForceCompute, ForceCompute, std::shared_ptr<ActiveForceCompute> >(m, "ActiveForceCompute")
     .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, int, Scalar,
                     Scalar3, Scalar, Scalar, Scalar >())
+    .def_property("rotation_diff", &ActiveForceCompute::getRdiff, &ActiveForceCompute::setRdiff)
     .def("setActiveForce", &ActiveForceCompute::setActiveForce)
     .def("getActiveForce", &ActiveForceCompute::getActiveForce)
     .def("setActiveTorque", &ActiveForceCompute::setActiveTorque)

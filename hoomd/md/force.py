@@ -19,28 +19,6 @@ from hoomd.filter import _ParticleFilter
 import hoomd
 from hoomd.md.constrain import _ConstraintForce
 
-def tuplelength_preprocessing(act_force):
-    if act_force is not None:
-        if len(act_force) != 3:
-            raise RuntimeError("Active force passed in should be a list of 3-tuples (fx, fy, fz)")
-        else:
-            return act_force
-    else:
-        return (0,0,0)
-
-        #if (constraint is not None):
-        #    if (constraint.__class__.__name__ == "constraint_ellipsoid"):
-        #        P = constraint.P
-        #        rx = constraint.rx
-        #        ry = constraint.ry
-        #        rz = constraint.rz
-        #    else:
-        #        raise RuntimeError("Active force constraint is not accepted (currently only accepts ellipsoids)")
-        #else:
-        #    P = _hoomd.make_scalar3(0, 0, 0)
-        #    rx = 0
-        #    ry = 0
-        #    rz = 0
 
 def ellip_preprocessing(constraint):
     if constraint is not None:
@@ -283,7 +261,6 @@ class Active(_Force):
         f_list (list): An array of (x,y,z) tuples for the active force vector for each individual particle.
         t_list (list): An array of (x,y,z) tuples that indicate active torque vectors for each particle
         group (:py:mod:`hoomd.group`): Group for which the force will be set
-        orientation_link (bool): if True then forces and torques are applied in the particle's reference frame. If false, then the box
          reference frame is used. Only relevant for non-point-like anisotropic particles.
         orientation_reverse_link (bool): When True, the particle's orientation is set to match the active force vector. Useful for
          for using a particle's orientation to log the active force vector. Not recommended for anisotropic particles. Quaternion rotation
@@ -313,7 +290,7 @@ class Active(_Force):
         ellipsoid = update.constraint_ellipsoid(group=groupA, P=(0,0,0), rx=3, ry=4, rz=5)
         force.active( seed=7, f_list=[tuple(1,2,3) for i in range(N)], orientation_link=False, rotation_diff=100, constraint=ellipsoid)
     """
-    def __init__(self, filter, seed,constraint=None):
+    def __init__(self, filter, seed,constraint=None,rotation_diff=0.1):
 
         # initialize the base class
         #Force.__init__(self)
@@ -322,9 +299,10 @@ class Active(_Force):
         param_dict = ParameterDict(
             filter=_ParticleFilter,
             seed=int(seed),
+            rotation_diff=float(rotation_diff),
             constraint=OnlyType(_ConstraintForce,allow_none=True,preprocess=ellip_preprocessing),
         )
-        param_dict.update(dict(constraint=constraint,seed=seed, filter=filter))
+        param_dict.update(dict(constraint=constraint,rotation_diff=rotation_diff,seed=seed, filter=filter))
         # set defaults
         self._param_dict.update(param_dict)
 
@@ -333,9 +311,10 @@ class Active(_Force):
 
 
         self._extend_typeparam([active_force, active_torque])
-
+        
     def attach(self, simulation):
 
+        
         # initialize the reflected c++ class
         if not simulation.device.cpp_exec_conf.isCUDAEnabled():
             my_class = _md.ActiveForceCompute
@@ -345,7 +324,7 @@ class Active(_Force):
 
         self._cpp_obj = my_class(simulation.state._cpp_sys_def,
                                  simulation.state.get_group(self.filter),
-                                 self.seed, self.orientation_link,self.rotation_diff,_hoomd.make_scalar3(0,0,0), 0, 0, 0)
+                                 self.seed, self.rotation_diff,_hoomd.make_scalar3(0,0,0), 0, 0, 0)
 
         # Attach param_dict and typeparam_dict
         super().attach(simulation)
