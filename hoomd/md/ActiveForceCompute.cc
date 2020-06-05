@@ -98,6 +98,12 @@ ActiveForceCompute::ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
 
     }
 
+ActiveForceCompute::~ActiveForceCompute()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying ActiveForceCompute" << endl;
+    }
+
+
 
 void ActiveForceCompute::setActiveForce(const std::string& type_name, pybind11::tuple v)
     {
@@ -134,6 +140,21 @@ void ActiveForceCompute::setActiveForce(const std::string& type_name, pybind11::
     std::cout << f_activeVec.x << " " << f_activeVec.y << " " << f_activeVec.z << std::endl;
     }
 
+pybind11::tuple ActiveForceCompute::getActiveForce(const std::string& type_name)
+    {
+    pybind11::list v;
+    unsigned int typ = this->m_pdata->getTypeByName(type_name);
+
+    ArrayHandle<Scalar3> h_f_activeVec(m_f_activeVec, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_f_activeMag(m_f_activeMag, access_location::host, access_mode::readwrite);
+    Scalar3 f_activeVec = h_f_activeVec.data[typ];
+    Scalar f_activeMag = h_f_activeMag.data[typ];
+    v.append(f_activeMag*f_activeVec.x);
+    v.append(f_activeMag*f_activeVec.y);
+    v.append(f_activeMag*f_activeVec.z);
+    return pybind11::tuple(v);
+    }
+
 void ActiveForceCompute::setActiveTorque(const std::string& type_name, pybind11::tuple v)
     {
     unsigned int typ = this->m_pdata->getTypeByName(type_name);
@@ -156,9 +177,18 @@ void ActiveForceCompute::setActiveTorque(const std::string& type_name, pybind11:
 
     Scalar t_activeMag = slow::sqrt(t_activeVec.x*t_activeVec.x+t_activeVec.y*t_activeVec.y+t_activeVec.z*t_activeVec.z);
 
-    t_activeVec.x /= t_activeMag;
-    t_activeVec.y /= t_activeMag;
-    t_activeVec.z /= t_activeMag;
+    if(t_activeMag > 0)
+        {
+        t_activeVec.x /= t_activeMag;
+        t_activeVec.y /= t_activeMag;
+        t_activeVec.z /= t_activeMag;
+        }
+    else
+       {
+        t_activeVec.x = 0;
+        t_activeVec.y = 0;
+        t_activeVec.z = 0;
+        }
 
     ArrayHandle<Scalar3> h_t_activeVec(m_t_activeVec, access_location::host, access_mode::readwrite);
     h_t_activeVec.data[typ] = t_activeVec;
@@ -169,9 +199,19 @@ void ActiveForceCompute::setActiveTorque(const std::string& type_name, pybind11:
     std::cout << t_activeVec.x << " " << t_activeVec.y << " " << t_activeVec.z << std::endl;
     }
 
-ActiveForceCompute::~ActiveForceCompute()
+pybind11::tuple ActiveForceCompute::getActiveTorque(const std::string& type_name)
     {
-    m_exec_conf->msg->notice(5) << "Destroying ActiveForceCompute" << endl;
+    pybind11::list v;
+    unsigned int typ = this->m_pdata->getTypeByName(type_name);
+
+    ArrayHandle<Scalar3> h_t_activeVec(m_t_activeVec, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_t_activeMag(m_t_activeMag, access_location::host, access_mode::readwrite);
+    Scalar3 t_activeVec = h_t_activeVec.data[typ];
+    Scalar t_activeMag = h_t_activeMag.data[typ];
+    v.append(t_activeMag*t_activeVec.x);
+    v.append(t_activeMag*t_activeVec.y);
+    v.append(t_activeMag*t_activeVec.z);
+    return pybind11::tuple(v);
     }
 
 /*! This function sets appropriate active forces on all active particles.
@@ -209,26 +249,18 @@ void ActiveForceCompute::setForces()
         unsigned int j = m_group->getMemberIndex(i);
         unsigned int type = __scalar_as_int(h_pos.data[j].w);
 
-        Scalar3 f;
-        Scalar3 t;
-        // rotate force according to particle orientation only if orientation is linked to active force vector
-        if (m_orientationLink == true)
-            {
-            vec3<Scalar> fi;
-            f = make_scalar3(h_f_actMag.data[type]*h_f_actVec.data[type].x, h_f_actMag.data[type]*h_f_actVec.data[type].y, h_f_actMag.data[type]*h_f_actVec.data[type].z);
-            quat<Scalar> quati(h_orientation.data[idx]);
-            fi = rotate(quati, vec3<Scalar>(f));
-            h_force.data[idx].x = fi.x;
-            h_force.data[idx].y = fi.y;
-            h_force.data[idx].z = fi.z;
+        Scalar3 f = make_scalar3(h_f_actMag.data[type]*h_f_actVec.data[type].x, h_f_actMag.data[type]*h_f_actVec.data[type].y, h_f_actMag.data[type]*h_f_actVec.data[type].z);
+        quat<Scalar> quati(h_orientation.data[idx]);
+        vec3<Scalar> fi = rotate(quati, vec3<Scalar>(f));
+        h_force.data[idx].x = fi.x;
+        h_force.data[idx].y = fi.y;
+        h_force.data[idx].z = fi.z;
 
-            vec3<Scalar> ti;
-            t = make_scalar3(h_t_actMag.data[type]*h_t_actVec.data[type].x, h_t_actMag.data[type]*h_t_actVec.data[type].y, h_t_actMag.data[type]*h_t_actVec.data[type].z);
-            ti = rotate(quati, vec3<Scalar>(t));
-            h_torque.data[idx].x = ti.x;
-            h_torque.data[idx].y = ti.y;
-            h_torque.data[idx].z = ti.z;
-            }
+        Scalar3 t = make_scalar3(h_t_actMag.data[type]*h_t_actVec.data[type].x, h_t_actMag.data[type]*h_t_actVec.data[type].y, h_t_actMag.data[type]*h_t_actVec.data[type].z);
+        vec3<Scalar> ti = rotate(quati, vec3<Scalar>(t));
+        h_torque.data[idx].x = ti.x;
+        h_torque.data[idx].y = ti.y;
+        h_torque.data[idx].z = ti.z;
         }
     }
 
@@ -345,8 +377,10 @@ void ActiveForceCompute::setConstraint()
     EvaluatorConstraintEllipsoid Ellipsoid(m_P, m_rx, m_ry, m_rz);
 
     //  array handles
-    ArrayHandle<Scalar3> h_f_actVec(m_f_activeVec, access_location::host, access_mode::readwrite);
-    ArrayHandle <Scalar4> h_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar3> h_f_actVec(m_f_activeVec, access_location::host, access_mode::read);
+    ArrayHandle<Scalar3> h_t_actVec(m_t_activeVec, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     assert(h_pos.data != NULL);
 
@@ -354,25 +388,56 @@ void ActiveForceCompute::setConstraint()
         {
         unsigned int tag = m_group->getMemberTag(i);
         unsigned int idx = h_rtag.data[tag];
+        unsigned int j = m_group->getMemberIndex(i);
+        unsigned int type = __scalar_as_int(h_pos.data[j].w);
 
         Scalar3 current_pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
 
         Scalar3 norm_scalar3 = Ellipsoid.evalNormal(current_pos); // the normal vector to which the particles are confined.
-        vec3<Scalar> norm;
-        norm = vec3<Scalar>(norm_scalar3);
-        Scalar dot_prod = h_f_actVec.data[i].x * norm.x + h_f_actVec.data[i].y * norm.y + h_f_actVec.data[i].z * norm.z;
+        vec3<Scalar> norm = vec3<Scalar>(norm_scalar3);
 
-        h_f_actVec.data[i].x -= norm.x * dot_prod;
-        h_f_actVec.data[i].y -= norm.y * dot_prod;
-        h_f_actVec.data[i].z -= norm.z * dot_prod;
+        Scalar new_norm = slow::sqrt(norm.x*norm.x + norm.y*norm.y + norm.z*norm.z);
 
-        Scalar new_norm = slow::sqrt(h_f_actVec.data[i].x*h_f_actVec.data[i].x
-                                     + h_f_actVec.data[i].y*h_f_actVec.data[i].y
-                                     + h_f_actVec.data[i].z*h_f_actVec.data[i].z);
+        norm.x /= new_norm;
+        norm.y /= new_norm;
+        norm.z /= new_norm;
 
-        h_f_actVec.data[i].x /= new_norm;
-        h_f_actVec.data[i].y /= new_norm;
-        h_f_actVec.data[i].z /= new_norm;
+        Scalar3 f = make_scalar3(h_f_actVec.data[type].x, h_f_actVec.data[type].y, h_f_actVec.data[type].z);
+        quat<Scalar> quati(h_orientation.data[idx]);
+        vec3<Scalar> fi = rotate(quati, vec3<Scalar>(f));
+
+
+        Scalar dot_prod = fi.x * norm.x + fi.y * norm.y + fi.z * norm.z;
+
+        Scalar dot_perp_prod = slow::sqrt(1-dot_prod*dot_prod);
+
+        Scalar phi_half = slow::atan(dot_perp/dot_perp_prod)/2.0
+
+
+        fi.x -= norm.x * dot_prod;
+        fi.y -= norm.y * dot_prod;
+        fi.z -= norm.z * dot_prod;
+
+        new_norm = slow::sqrt(fi.x*fi.x + fi.y*fi.y + fi.z*fi.z);
+
+        fi.x /= new_norm;
+        fi.y /= new_norm;
+        fi.z /= new_norm;
+
+        vec3<Scalar> rot_vec = cross(norm,fi) 
+        rot_vec.x *= slow::sin(phi_half)
+        rot_vec.y *= slow::sin(phi_half)
+        rot_vec.z *= slow::sin(phi_half)
+
+        quat<Scalar> rot_quat(cos(phi_half),rot_vec);
+
+        quati = rot_quat*quati
+
+        h_orientation.data[idx].x = quati.s;
+        h_orientation.data[idx].y = quati.v.x;
+        h_orientation.data[idx].z = quati.v.y;
+        h_orientation.data[idx].w = quati.v.z;
+
         }
     }
 
@@ -416,6 +481,8 @@ void export_ActiveForceCompute(py::module& m)
     .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, int, Scalar,
                     Scalar3, Scalar, Scalar, Scalar >())
     .def("setActiveForce", &ActiveForceCompute::setActiveForce)
+    .def("getActiveForce", &ActiveForceCompute::getActiveForce)
     .def("setActiveTorque", &ActiveForceCompute::setActiveTorque)
+    .def("getActiveTorque", &ActiveForceCompute::getActiveTorque)
     ;
     }

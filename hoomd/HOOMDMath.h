@@ -739,6 +739,19 @@ inline HOSTDEVICE double acos(double x)
     return ::acos(x);
     }
 
+//! Compute the atan of x
+inline HOSTDEVICE float atan(float x)
+    {
+    return ::atanf(x);
+    }
+
+//! Compute the atan of x
+inline HOSTDEVICE double atan(double x)
+    {
+    return ::atan(x);
+    }
+
+
 //! Compute the floor of x
 inline HOSTDEVICE float floor(float x)
     {
