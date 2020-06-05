@@ -3,12 +3,16 @@
 
 #include "GlobalArray.h"
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 
 
-struct HOOMDHostBuffer
+struct HOOMDBuffer {};
+
+
+struct HOOMDHostBuffer : public HOOMDBuffer
     {
     static const auto device = access_location::host;
     void* m_data;
@@ -43,7 +47,7 @@ struct HOOMDHostBuffer
 
 
 #if ENABLE_HIP
-struct HOOMDDeviceBuffer
+struct HOOMDDeviceBuffer : public HOOMDBuffer
     {
     static const auto device = access_location::device;
     void* m_data;
@@ -118,6 +122,11 @@ struct HOOMDDeviceBuffer
 template <class Output, class Data>
 class LocalDataAccess
     {
+    static_assert(
+        std::is_base_of<HOOMDBuffer, Output>::value,
+        "Output template parameter for LocalDataAccess must be a subclass of HOOMDBuffer."
+    );
+
     public:
         inline LocalDataAccess(Data& data);
 

@@ -1071,7 +1071,6 @@ ArrayHandleDispatch<T> GPUArray<T>::acquire(const access_location::Enum location
 #endif
                                         ) const
     {
-    // sanity check
     if (m_acquired)
         {
         throw std::runtime_error("Cannot acquire access to array in use.");
