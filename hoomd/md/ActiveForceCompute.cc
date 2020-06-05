@@ -411,7 +411,7 @@ void ActiveForceCompute::setConstraint()
 
         Scalar dot_perp_prod = slow::sqrt(1-dot_prod*dot_prod);
 
-        Scalar phi_half = slow::atan(dot_perp/dot_perp_prod)/2.0
+        Scalar phi_half = slow::atan(dot_prod/dot_perp_prod)/2.0;
 
 
         fi.x -= norm.x * dot_prod;
@@ -424,14 +424,14 @@ void ActiveForceCompute::setConstraint()
         fi.y /= new_norm;
         fi.z /= new_norm;
 
-        vec3<Scalar> rot_vec = cross(norm,fi) 
-        rot_vec.x *= slow::sin(phi_half)
-        rot_vec.y *= slow::sin(phi_half)
-        rot_vec.z *= slow::sin(phi_half)
+        vec3<Scalar> rot_vec = cross(norm,fi);
+        rot_vec.x *= slow::sin(phi_half);
+        rot_vec.y *= slow::sin(phi_half);
+        rot_vec.z *= slow::sin(phi_half);
 
         quat<Scalar> rot_quat(cos(phi_half),rot_vec);
 
-        quati = rot_quat*quati
+        quati = rot_quat*quati;
 
         h_orientation.data[idx].x = quati.s;
         h_orientation.data[idx].y = quati.v.x;
