@@ -319,8 +319,7 @@ class Active(_Force):
         if not simulation.device.cpp_exec_conf.isCUDAEnabled():
             my_class = _md.ActiveForceCompute
         else:
-            #my_class = _md.ActiveForceComputeGPU
-            raise RuntimeError("Active force not yet in GPU")
+            my_class = _md.ActiveForceComputeGPU
 
         self._cpp_obj = my_class(simulation.state._cpp_sys_def,
                                  simulation.state.get_group(self.filter),

@@ -47,8 +47,6 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int gr
                                                     Scalar rx,
                                                     Scalar ry,
                                                     Scalar rz,
-                                                    bool orientationLink,
-                                                    bool orientationReverseLink,
                                                     const unsigned int N)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -57,57 +55,21 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int gr
 
     unsigned int tag = d_groupTags[group_idx];
     unsigned int idx = d_rtag[tag];
+    unsigned int type = __scalar_as_int(d_pos[idx].w);
 
-    Scalar3 f;
-    Scalar3 t;
-    // rotate force according to particle orientation only if orientation is linked to active force vector
-    if (orientationLink == true)
-        {
-        vec3<Scalar> fi;
-        f = make_scalar3(d_f_actMag[tag] * d_f_actVec[tag].x,
-                        d_f_actMag[tag] * d_f_actVec[tag].y, d_f_actMag[tag] * d_f_actVec[tag].z);
-        quat<Scalar> quati(d_orientation[idx]);
-        fi = rotate(quati, vec3<Scalar>(f));
-        d_force[idx].x = fi.x;
-        d_force[idx].y = fi.y;
-        d_force[idx].z = fi.z;
+    Scalar3 f = make_scalar3(d_f_actMag[type]*d_f_actVec[type].x, d_f_actMag[type]*d_f_actVec[type].y, d_f_actMag[type]*d_f_actVec[type].z);
+    quat<Scalar> quati(d_orientation[idx]);
+    vec3<Scalar> fi = rotate(quati, vec3<Scalar>(f));
+    d_force[idx].x = fi.x;
+    d_force[idx].y = fi.y;
+    d_force[idx].z = fi.z;
 
-        vec3<Scalar> ti;
-        t = make_scalar3(d_t_actMag[tag] * d_t_actVec[tag].x,
-                        d_t_actMag[tag] * d_t_actVec[tag].y, d_t_actMag[tag] * d_t_actVec[tag].z);
-        ti = rotate(quati, vec3<Scalar>(t));
-        d_torque[idx].x = ti.x;
-        d_torque[idx].y = ti.y;
-        d_torque[idx].z = ti.z;
+    Scalar3 t = make_scalar3(d_t_actMag[type]*d_t_actVec[type].x, d_t_actMag[type]*d_t_actVec[type].y, d_t_actMag[type]*d_t_actVec[type].z);
+    vec3<Scalar> ti = rotate(quati, vec3<Scalar>(t));
+    d_torque.data[idx].x = ti.x;
+    d_torque.data[idx].y = ti.y;
+    d_torque.data[idx].z = ti.z;
 
-        }
-    else // no orientation link
-        {
-        f = make_scalar3(d_f_actMag[tag] * d_f_actVec[tag].x,
-                        d_f_actMag[tag] * d_f_actVec[tag].y, d_f_actMag[tag] * d_f_actVec[tag].z);
-        d_force[idx].x = f.x;
-        d_force[idx].y = f.y;
-        d_force[idx].z = f.z;
-
-        t = make_scalar3(d_t_actMag[tag] * d_t_actVec[tag].x,
-                        d_t_actMag[tag] * d_t_actVec[tag].y, d_t_actMag[tag] * d_t_actVec[tag].z);
-        d_torque[idx].x = t.x;
-        d_torque[idx].y = t.y;
-        d_torque[idx].z = t.z;
-
-        }
-    // rotate particle orientation only if orientation is reverse linked to active force vector. Ignore torque here
-    if (orientationReverseLink == true)
-        {
-        vec3<Scalar> f(d_f_actMag[tag] * d_f_actVec[tag].x,
-                        d_f_actMag[tag] * d_f_actVec[tag].y, d_f_actMag[tag] * d_f_actVec[tag].z);
-        vec3<Scalar> vecZ(0.0, 0.0, 1.0);
-        vec3<Scalar> quatVec = cross(vecZ, f);
-        Scalar quatScal = slow::sqrt(d_f_actMag[tag]*d_f_actMag[tag]) + dot(f, vecZ);
-        quat<Scalar> quati(quatScal, quatVec);
-        quati = quati * (Scalar(1.0) / slow::sqrt(norm2(quati)));
-        d_orientation[idx] = quat_to_scalar4(quati);
-        }
     }
 
 //! Kernel for adjusting active force vectors to align parallel to an ellipsoid surface constraint on the GPU
@@ -126,8 +88,9 @@ __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned i
                                                    unsigned int *d_rtag,
                                                    unsigned int *d_groupTags,
                                                    const Scalar4 *d_pos,
-                                                   Scalar3 *d_f_actVec,
-                                                   Scalar3 *d_t_actVec,
+                                                   Scalar4 *d_orientation,
+                                                   const Scalar3 *d_f_actVec,
+                                                   const Scalar3 *d_t_actVec,
                                                    const Scalar3 P,
                                                    Scalar rx,
                                                    Scalar ry,
@@ -139,40 +102,49 @@ __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned i
 
     unsigned int tag = d_groupTags[group_idx];
     unsigned int idx = d_rtag[tag];
+    unsigned int type = __scalar_as_int(d_pos[idx].w);
 
     EvaluatorConstraintEllipsoid Ellipsoid(P, rx, ry, rz);
     Scalar3 current_pos = make_scalar3(d_pos[idx].x, d_pos[idx].y, d_pos[idx].z);
 
     Scalar3 norm_scalar3 = Ellipsoid.evalNormal(current_pos); // the normal vector to which the particles are confined.
-    vec3<Scalar> norm;
-    norm = vec3<Scalar>(norm_scalar3);
-    Scalar f_dot_prod = d_f_actVec[tag].x * norm.x + d_f_actVec[tag].y * norm.y + d_f_actVec[tag].z * norm.z;
-    Scalar t_dot_prod = d_t_actVec[tag].x * norm.x + d_t_actVec[tag].y * norm.y + d_t_actVec[tag].z * norm.z;
+    vec3<Scalar> norm = vec3<Scalar>(norm_scalar3);
 
-    d_f_actVec[tag].x -= norm.x * f_dot_prod;
-    d_f_actVec[tag].y -= norm.y * f_dot_prod;
-    d_f_actVec[tag].z -= norm.z * f_dot_prod;
-
-    d_t_actVec[tag].x -= norm.x * t_dot_prod;
-    d_t_actVec[tag].y -= norm.y * t_dot_prod;
-    d_t_actVec[tag].z -= norm.z * t_dot_prod;
+    Scalar3 f = make_scalar3(d_f_actVec[type].x, d_f_actVec[type].y, d_f_actVec[type].z);
+    quat<Scalar> quati(d_orientation[idx]);
+    vec3<Scalar> fi = rotate(quati, vec3<Scalar>(f));
 
 
-    Scalar new_f_norm = slow::sqrt(d_f_actVec[tag].x * d_f_actVec[tag].x
-                                 + d_f_actVec[tag].y * d_f_actVec[tag].y
-                                 + d_f_actVec[tag].z * d_f_actVec[tag].z);
-    Scalar new_t_norm = slow::sqrt(d_t_actVec[tag].x * d_t_actVec[tag].x
-                                 + d_t_actVec[tag].y * d_t_actVec[tag].y
-                                 + d_t_actVec[tag].z * d_t_actVec[tag].z);
+    Scalar dot_prod = fi.x * norm.x + fi.y * norm.y + fi.z * norm.z;
+
+    Scalar dot_perp_prod = slow::sqrt(1-dot_prod*dot_prod);
+
+    Scalar phi_half = slow::atan(dot_prod/dot_perp_prod)/2.0;
 
 
-    d_f_actVec[tag].x /= new_f_norm;
-    d_f_actVec[tag].y /= new_f_norm;
-    d_f_actVec[tag].z /= new_f_norm;
+    fi.x -= norm.x * dot_prod;
+    fi.y -= norm.y * dot_prod;
+    fi.z -= norm.z * dot_prod;
 
-    d_t_actVec[tag].x /= new_t_norm;
-    d_t_actVec[tag].y /= new_t_norm;
-    d_t_actVec[tag].z /= new_t_norm;
+    Scalar new_norm = 1.0/slow::sqrt(fi.x*fi.x + fi.y*fi.y + fi.z*fi.z);
+
+    fi.x *= new_norm;
+    fi.y *= new_norm;
+    fi.z *= new_norm;
+
+    vec3<Scalar> rot_vec = cross(norm,fi);
+    rot_vec.x *= slow::sin(phi_half);
+    rot_vec.y *= slow::sin(phi_half);
+    rot_vec.z *= slow::sin(phi_half);
+
+    quat<Scalar> rot_quat(cos(phi_half),rot_vec);
+
+    quati = rot_quat*quati;
+
+    d_orientation[idx].x = quati.s;
+    d_orientation[idx].y = quati.v.x;
+    d_orientation[idx].z = quati.v.y;
+    d_orientation[idx].w = quati.v.z;
 
     }
 
@@ -195,8 +167,9 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
                                                    unsigned int *d_rtag,
                                                    unsigned int *d_groupTags,
                                                    const Scalar4 *d_pos,
-                                                   Scalar3 *d_f_actVec,
-                                                   Scalar3 *d_t_actVec,
+                                                   Scalar4 *d_orientation,
+                                                   const Scalar3 *d_f_actVec,
+                                                   const Scalar3 *d_t_actVec,
                                                    const Scalar3 P,
                                                    Scalar rx,
                                                    Scalar ry,
@@ -212,50 +185,56 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
 
     unsigned int tag = d_groupTags[group_idx];
     unsigned int idx = d_rtag[tag];
+    unsigned int type = __scalar_as_int(d_pos[idx].w);
+
     hoomd::RandomGenerator rng(hoomd::RNGIdentifier::ActiveForceCompute, seed, tag, timestep);
 
     if (is2D) // 2D
         {
         Scalar delta_theta; // rotational diffusion angle
         delta_theta = hoomd::NormalDistribution<Scalar>(rotationDiff)(rng);
-        Scalar theta; // angle on plane defining orientation of active force vector
-        theta = atan2(d_f_actVec[tag].y, d_f_actVec[tag].x);
-        theta += delta_theta;
-        d_f_actVec[tag].x = cos(theta);
-        d_f_actVec[tag].y = sin(theta);
+        Scalar theta = delta_theta/2.0; // angle on plane defining orientation of active force vector
+        vec3<Scalar> b(0,0,slow::sin(theta));
+
+        quat<Scalar> rot_quat(slow::cos(theta),b);
+
+        quati = rot_quat*quati;
+        d_orientation[idx].x = quati.s;
+        d_orientation[idx].y = quati.v.x;
+        d_orientation[idx].z = quati.v.y;
+        d_orientation[idx].w = quati.v.z;
         // in 2D there is only one meaningful direction for torque
         }
     else // 3D: Following Stenhammar, Soft Matter, 2014
         {
         if (rx == 0) // if no constraint
             {
-            hoomd::SpherePointGenerator<Scalar> unit_vec;
-            vec3<Scalar> rand_vec;
-            unit_vec(rng, rand_vec);
+                hoomd::SpherePointGenerator<Scalar> unit_vec;
+                vec3<Scalar> rand_vec;
+                unit_vec(rng, rand_vec);
 
-            vec3<Scalar> aux_vec;
-            aux_vec.x = d_f_actVec[tag].y * rand_vec.z - d_f_actVec[tag].z * rand_vec.y;
-            aux_vec.y = d_f_actVec[tag].z * rand_vec.x - d_f_actVec[tag].x * rand_vec.z;
-            aux_vec.z = d_f_actVec[tag].x * rand_vec.y - d_f_actVec[tag].y * rand_vec.x;
-            Scalar aux_vec_mag = sqrt(aux_vec.x*aux_vec.x + aux_vec.y*aux_vec.y + aux_vec.z*aux_vec.z);
-            aux_vec.x /= aux_vec_mag;
-            aux_vec.y /= aux_vec_mag;
-            aux_vec.z /= aux_vec_mag;
+                Scalar3 f = make_scalar3(d_f_actVec[type].x, d_f_actVec[type].y, d_f_actVec[type].z);
+                vec3<Scalar> fi = rotate(quati, vec3<Scalar>(f));
 
-            vec3<Scalar> current_vec;
-            current_vec.x = d_f_actVec[tag].x;
-            current_vec.y = d_f_actVec[tag].y;
-            current_vec.z = d_f_actVec[tag].z;
+                vec3<Scalar> aux_vec;
+                aux_vec.x = fi.y * rand_vec.z - fi.z * rand_vec.y;
+                aux_vec.y = fi.z * rand_vec.x - fi.x * rand_vec.z;
+                aux_vec.z = fi.x * rand_vec.y - fi.y * rand_vec.x;
+                Scalar aux_vec_mag = 1.0/slow::sqrt(aux_vec.x*aux_vec.x + aux_vec.y*aux_vec.y + aux_vec.z*aux_vec.z);
+                aux_vec.x *= aux_vec_mag;
+                aux_vec.y *= aux_vec_mag;
+                aux_vec.z *= aux_vec_mag;
 
-            Scalar delta_theta = hoomd::NormalDistribution<Scalar>(rotationDiff)(rng);
-            d_f_actVec[tag].x = cos(delta_theta)*current_vec.x + sin(delta_theta)*aux_vec.x;
-            d_f_actVec[tag].y = cos(delta_theta)*current_vec.y + sin(delta_theta)*aux_vec.y;
-            d_f_actVec[tag].z = cos(delta_theta)*current_vec.z + sin(delta_theta)*aux_vec.z;
 
-            // torque vector rotates rigidly along with force vector
-            d_t_actVec[tag].x = cos(delta_theta)*current_vec.x + sin(delta_theta)*aux_vec.x;
-            d_t_actVec[tag].y = cos(delta_theta)*current_vec.y + sin(delta_theta)*aux_vec.y;
-            d_t_actVec[tag].z = cos(delta_theta)*current_vec.z + sin(delta_theta)*aux_vec.z;
+                Scalar delta_theta = hoomd::NormalDistribution<Scalar>(rotationConst)(rng);
+                Scalar theta = delta_theta/2.0; // angle on plane defining orientation of active force vector
+                quat<Scalar> rot_quat(slow::cos(theta),slow::sin(theta)*aux_vec);
+
+                quati = rot_quat*quati;
+                d_orientation[idx].x = quati.s;
+                d_orientation[idx].y = quati.v.x;
+                d_orientation[idx].z = quati.v.y;
+                d_orientation[idx].w = quati.v.z;
 
             }
         else // if constraint
@@ -267,23 +246,15 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
             vec3<Scalar> norm;
             norm = vec3<Scalar> (norm_scalar3);
 
-            vec3<Scalar> current_vec;
-            current_vec.x = d_f_actVec[tag].x;
-            current_vec.y = d_f_actVec[tag].y;
-            current_vec.z = d_f_actVec[tag].z;
-            vec3<Scalar> aux_vec = cross(current_vec, norm); // aux vec for defining direction that active force vector rotates towards.
+            Scalar delta_theta = hoomd::NormalDistribution<Scalar>(rotationConst)(rng);
+            Scalar theta = delta_theta/2.0; // angle on plane defining orientation of active force vector
+            quat<Scalar> rot_quat(slow::cos(theta),slow::sin(theta)*norm);
 
-            Scalar delta_theta; // rotational diffusion angle
-            delta_theta = hoomd::NormalDistribution<Scalar>(rotationDiff)(rng);
-
-            d_f_actVec[tag].x = cos(delta_theta) * current_vec.x + sin(delta_theta) * aux_vec.x;
-            d_f_actVec[tag].y = cos(delta_theta) * current_vec.y + sin(delta_theta) * aux_vec.y;
-            d_f_actVec[tag].z = cos(delta_theta) * current_vec.z + sin(delta_theta) * aux_vec.z;
-
-            // torque vector rotates rigidly along with force vector
-            d_t_actVec[tag].x = cos(delta_theta) * current_vec.x + sin(delta_theta) * aux_vec.x;
-            d_t_actVec[tag].y = cos(delta_theta) * current_vec.y + sin(delta_theta) * aux_vec.y;
-            d_t_actVec[tag].z = cos(delta_theta) * current_vec.z + sin(delta_theta) * aux_vec.z;
+            quati = rot_quat*quati;
+            d_orientation[idx].x = quati.s;
+            d_orientation[idx].y = quati.v.x;
+            d_orientation[idx].z = quati.v.y;
+            d_orientation[idx].w = quati.v.z;
 
             }
         }
@@ -304,8 +275,6 @@ hipError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
                                            Scalar rx,
                                            Scalar ry,
                                            Scalar rz,
-                                           bool orientationLink,
-                                           bool orientationReverseLink,
                                            const unsigned int N,
                                            unsigned int block_size)
     {
@@ -329,8 +298,6 @@ hipError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
                                                                     rx,
                                                                     ry,
                                                                     rz,
-                                                                    orientationLink,
-                                                                    orientationReverseLink,
                                                                     N);
     return hipSuccess;
     }
@@ -339,10 +306,11 @@ hipError_t gpu_compute_active_force_set_constraints(const unsigned int group_siz
                                                    unsigned int *d_rtag,
                                                    unsigned int *d_groupTags,
                                                    const Scalar4 *d_pos,
+                                                   Scalar4 *d_orientation,
                                                    Scalar4 *d_force,
                                                    Scalar4 *d_torque,
-                                                   Scalar3 *d_f_actVec,
-                                                   Scalar3 *d_t_actVec,
+                                                   const Scalar3 *d_f_actVec,
+                                                   const Scalar3 *d_t_actVec,
                                                    const Scalar3& P,
                                                    Scalar rx,
                                                    Scalar ry,
@@ -358,6 +326,7 @@ hipError_t gpu_compute_active_force_set_constraints(const unsigned int group_siz
                                                                     d_rtag,
                                                                     d_groupTags,
                                                                     d_pos,
+                                                                    d_orientation,
                                                                     d_f_actVec,
                                                                     d_t_actVec,
                                                                     P,
@@ -371,10 +340,11 @@ hipError_t gpu_compute_active_force_rotational_diffusion(const unsigned int grou
                                                        unsigned int *d_rtag,
                                                        unsigned int *d_groupTags,
                                                        const Scalar4 *d_pos,
+                                                       Scalar4 *d_orientation,
                                                        Scalar4 *d_force,
                                                        Scalar4 *d_torque,
-                                                       Scalar3 *d_f_actVec,
-                                                       Scalar3 *d_t_actVec,
+                                                       const Scalar3 *d_f_actVec,
+                                                       const Scalar3 *d_t_actVec,
                                                        const Scalar3& P,
                                                        Scalar rx,
                                                        Scalar ry,
@@ -394,6 +364,7 @@ hipError_t gpu_compute_active_force_rotational_diffusion(const unsigned int grou
                                                                     d_rtag,
                                                                     d_groupTags,
                                                                     d_pos,
+                                                                    d_orientation,
                                                                     d_f_actVec,
                                                                     d_t_actVec,
                                                                     P,
