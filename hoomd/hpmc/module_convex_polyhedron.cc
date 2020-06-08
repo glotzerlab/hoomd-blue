@@ -63,7 +63,7 @@ void export_convex_polyhedron(py::module& m)
     export_UpdaterExternalFieldWall<ShapeConvexPolyhedron >(m, "UpdaterExternalFieldWallConvexPolyhedron");
     export_ExternalCallback<ShapeConvexPolyhedron>(m, "ExternalCallbackConvexPolyhedron");
 
-    export_massProperties< ShapeConvexPolyhedron >(m, "MassPropertiesConvexPolyhedron");
+    export_MassProperties< ShapeConvexPolyhedron >(m, "MassPropertiesConvexPolyhedron");
     export_ShapeMoveInterface< ShapeConvexPolyhedron >(m, "ShapeMoveConvexPolyhedron");
     export_ShapeLogBoltzmann< ShapeConvexPolyhedron >(m, "LogBoltzmannConvexPolyhedron");
     export_ElasticShapeMove< ShapeConvexPolyhedron >(m, "ElasticShapeMoveConvexPolyhedron");

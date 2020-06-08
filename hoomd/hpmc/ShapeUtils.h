@@ -18,12 +18,6 @@
 
 namespace hpmc{
 
-// Namespaces: All lowercase somenamespace
-// Class names: UpperCamelCase
-// Methods: lowerCamelCase
-// Member variables: m_ prefix followed by lowercase with words separated by underscores m_member_variable
-// Constants: all upper-case with words separated by underscores SOME_CONSTANT
-// Functions: lowerCamelCase
 
 class ShapeUtilError : public std::runtime_error
     {
@@ -937,10 +931,10 @@ private:
 
 
 template<class Shape>
-void export_massPropertiesBase(pybind11::module& m, std::string name);
+void export_MassPropertiesBase(pybind11::module& m, std::string name);
 
 template<class Shape>
-void export_massProperties(pybind11::module& m, std::string name);
+void export_MassProperties(pybind11::module& m, std::string name);
 
 } // end namespace hpmc
 #endif // end inclusion guard
