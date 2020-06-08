@@ -139,8 +139,8 @@ pybind11::tuple ActiveForceCompute::getActiveForce(const std::string& type_name)
     pybind11::list v;
     unsigned int typ = this->m_pdata->getTypeByName(type_name);
 
-    ArrayHandle<Scalar3> h_f_activeVec(m_f_activeVec, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> h_f_activeMag(m_f_activeMag, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_f_activeVec(m_f_activeVec, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_f_activeMag(m_f_activeMag, access_location::host, access_mode::read);
     Scalar3 f_activeVec = h_f_activeVec.data[typ];
     Scalar f_activeMag = h_f_activeMag.data[typ];
     v.append(f_activeMag*f_activeVec.x);
@@ -196,8 +196,8 @@ pybind11::tuple ActiveForceCompute::getActiveTorque(const std::string& type_name
     pybind11::list v;
     unsigned int typ = this->m_pdata->getTypeByName(type_name);
 
-    ArrayHandle<Scalar3> h_t_activeVec(m_t_activeVec, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> h_t_activeMag(m_t_activeMag, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_t_activeVec(m_t_activeVec, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_t_activeMag(m_t_activeMag, access_location::host, access_mode::read);
     Scalar3 t_activeVec = h_t_activeVec.data[typ];
     Scalar t_activeMag = h_t_activeMag.data[typ];
     v.append(t_activeMag*t_activeVec.x);
@@ -264,12 +264,13 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
     {
     //  array handles
     ArrayHandle<Scalar3> h_f_actVec(m_f_activeVec, access_location::host, access_mode::read);
-    ArrayHandle<Scalar3> h_t_actVec(m_t_activeVec, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
+    assert(h_f_actVec.data != NULL);
     assert(h_pos.data != NULL);
+    assert(h_orientation.data != NULL);
 
     for (unsigned int i = 0; i < m_group->getNumMembers(); i++)
         {
@@ -361,11 +362,13 @@ void ActiveForceCompute::setConstraint()
 
     //  array handles
     ArrayHandle<Scalar3> h_f_actVec(m_f_activeVec, access_location::host, access_mode::read);
-    ArrayHandle<Scalar3> h_t_actVec(m_t_activeVec, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
+    assert(h_f_actVec.data != NULL);
     assert(h_pos.data != NULL);
+    assert(h_orientation.data != NULL);
 
     for (unsigned int i = 0; i < m_group->getNumMembers(); i++)
         {

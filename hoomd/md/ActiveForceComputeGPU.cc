@@ -95,7 +95,8 @@ void ActiveForceComputeGPU::setForces()
     ArrayHandle<Scalar> d_t_actMag(m_t_activeMag, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_torque(m_torque, access_location::device, access_mode::overwrite);
 
-    ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_pos(m_pdata -> getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_groupTags(m_groupTags, access_location::device, access_mode::read);
 
@@ -105,6 +106,7 @@ void ActiveForceComputeGPU::setForces()
     assert(d_f_actMag.data != NULL);
     assert(d_t_actVec.data != NULL);
     assert(d_t_actMag.data != NULL);
+    assert(d_pos.data != NULL);
     assert(d_orientation.data != NULL);
     assert(d_rtag.data != NULL);
     assert(d_groupTags.data != NULL);
@@ -116,6 +118,7 @@ void ActiveForceComputeGPU::setForces()
                                      d_groupTags.data,
                                      d_force.data,
                                      d_torque.data,
+                                     d_pos.data,
                                      d_orientation.data,
                                      d_f_actVec.data,
                                      d_f_actMag.data,
@@ -137,11 +140,8 @@ void ActiveForceComputeGPU::rotationalDiffusion(unsigned int timestep)
     {
     //  array handles
     ArrayHandle<Scalar3> d_f_actVec(m_f_activeVec, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar3> d_t_actVec(m_t_activeVec, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_pos(m_pdata -> getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar4> d_torque(m_torque, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_groupTags(m_groupTags, access_location::device, access_mode::read);
 
@@ -155,10 +155,7 @@ void ActiveForceComputeGPU::rotationalDiffusion(unsigned int timestep)
                                                 d_groupTags.data,
                                                 d_pos.data,
                                                 d_orientation.data,
-                                                d_force.data,
-                                                d_torque.data,
                                                 d_f_actVec.data,
-                                                d_t_actVec.data,
                                                 m_P,
                                                 m_rx,
                                                 m_ry,
@@ -178,11 +175,8 @@ void ActiveForceComputeGPU::setConstraint()
 
     //  array handles
     ArrayHandle<Scalar3> d_f_actVec(m_f_activeVec, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar3> d_t_actVec(m_t_activeVec, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_pos(m_pdata -> getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar4> d_torque(m_torque, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_groupTags(m_groupTags, access_location::device, access_mode::read);
 
@@ -195,10 +189,7 @@ void ActiveForceComputeGPU::setConstraint()
                                              d_groupTags.data,
                                              d_pos.data,
                                              d_orientation.data,
-                                             d_force.data,
-                                             d_torque.data,
                                              d_f_actVec.data,
-                                             d_t_actVec.data,
                                              m_P,
                                              m_rx,
                                              m_ry,
