@@ -257,19 +257,14 @@ class Active(_Force):
     R""" Active force.
 
     Args:
+        filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply active
+            forces.
         seed (int): required user-specified seed number for random number generator.
-        f_list (list): An array of (x,y,z) tuples for the active force vector for each individual particle.
-        t_list (list): An array of (x,y,z) tuples that indicate active torque vectors for each particle
-        group (:py:mod:`hoomd.group`): Group for which the force will be set
-         reference frame is used. Only relevant for non-point-like anisotropic particles.
-        orientation_reverse_link (bool): When True, the particle's orientation is set to match the active force vector. Useful for
-         for using a particle's orientation to log the active force vector. Not recommended for anisotropic particles. Quaternion rotation
-         assumes base vector of (0,0,1).
-        rotation_diff (float): rotational diffusion constant, :math:`D_r`, for all particles in the group.
         constraint (:py:class:`hoomd.md.update.constraint_ellipsoid`) specifies a constraint surface, to which particles are confined,
           such as update.constraint_ellipsoid.
+        rotation_diff (float): rotational diffusion constant, :math:`D_r`, for all particles in the group.
 
-    :py:class:`active` specifies that an active force should be added to all particles.
+    :py:class:`Active` specifies that an active force should be added to all particles.
     Obeys :math:`\delta {\bf r}_i = \delta t v_0 \hat{p}_i`, where :math:`v_0` is the active velocity. In 2D
     :math:`\hat{p}_i = (\cos \theta_i, \sin \theta_i)` is the active force vector for particle :math:`i` and the
     diffusion of the active force vector follows :math:`\delta \theta / \delta t = \sqrt{2 D_r / \delta t} \Gamma`,
@@ -285,15 +280,14 @@ class Active(_Force):
 
     Examples::
 
-        force.active( seed=13, f_list=[tuple(3,0,0) for i in range(N)])
 
+        all = filter.All()
         ellipsoid = update.constraint_ellipsoid(group=groupA, P=(0,0,0), rx=3, ry=4, rz=5)
-        force.active( seed=7, f_list=[tuple(1,2,3) for i in range(N)], orientation_link=False, rotation_diff=100, constraint=ellipsoid)
+        active = hoomd.md.force.Active(filter=hoomd.filter.All(), seed=1,rotation_diff=0.01,constraint=ellipsoid)
+        active.active_force['A','B'] = (1,0,0)
+        active.active_torque['A','B'] = (0,0,0)
     """
     def __init__(self, filter, seed,constraint=None,rotation_diff=0.1):
-
-        # initialize the base class
-        #Force.__init__(self)
 
         # store metadata
         param_dict = ParameterDict(
