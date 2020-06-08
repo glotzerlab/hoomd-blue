@@ -194,7 +194,7 @@ public:
             }
         pybind11::object shape_data = m_python_callback(m_params[type_id]);
         shape = pybind11::cast< typename Shape::param_type >(shape_data);
-        detail::mass_properties<Shape> mp(shape);
+        detail::MassProperties<Shape> mp(shape);
         this->m_det_inertia_tensor = mp.getDeterminant();
         }
 
@@ -271,7 +271,7 @@ public:
             throw std::runtime_error("Must supply a shape move for each type");
         for(size_t i = 0; i < m_shape_moves.size(); i++)
             {
-            detail::mass_properties<Shape> mp(m_shape_moves[i]);
+            detail::MassProperties<Shape> mp(m_shape_moves[i]);
             m_determinants.push_back(mp.getDeterminant());
             }
         }
@@ -330,7 +330,7 @@ public:
             {
             detail::ConvexHull convex_hull(shape); // compute the convex_hull.
             convex_hull.compute();
-            detail::mass_properties<ShapeConvexPolyhedron> mp(convex_hull.getPoints(), convex_hull.getFaces());
+            detail::MassProperties<ShapeConvexPolyhedron> mp(convex_hull.getPoints(), convex_hull.getFaces());
             m_centroids[type_id] = mp.getCenterOfMass();
             m_calculated[type_id] = true;
             }
@@ -349,7 +349,7 @@ public:
 
         detail::ConvexHull convex_hull(shape); // compute the convex_hull.
         convex_hull.compute();
-        detail::mass_properties<ShapeConvexPolyhedron> mp(convex_hull.getPoints(), convex_hull.getFaces());
+        detail::MassProperties<ShapeConvexPolyhedron> mp(convex_hull.getPoints(), convex_hull.getFaces());
         Scalar volume = mp.getVolume();
         vec3<Scalar> dr = m_centroids[type_id] - mp.getCenterOfMass();
         m_scale = fast::pow(m_volume/volume, 1.0/3.0);
@@ -367,7 +367,7 @@ public:
             rsq = fmax(rsq, dot(vert, vert));
             points[i] = vert;
             }
-        detail::mass_properties<ShapeConvexPolyhedron> mp2(points, convex_hull.getFaces());
+        detail::MassProperties<ShapeConvexPolyhedron> mp2(points, convex_hull.getFaces());
         this->m_det_inertia_tensor = mp2.getDeterminant();
         m_isoperimetric_quotient = mp2.getIsoperimetricQuotient();
         shape.diameter = 2.0*fast::sqrt(rsq);
@@ -453,7 +453,7 @@ class ElasticShapeMove : public ShapeMoveBase<Shape>
             m_mass_props[type_id].updateParam(param, false); // update allows caching since for some shapes a full compute is not necessary.
             this->m_det_inertia_tensor = m_mass_props[type_id].getDeterminant();
             #ifdef DEBUG
-                detail::mass_properties<Shape> mp(param);
+                detail::MassProperties<Shape> mp(param);
                 this->m_det_inertia_tensor = mp.getDeterminant();
                 assert(fabs(this->m_det_inertia_tensor-mp.getDeterminant()) < 1e-5);
             #endif
@@ -553,7 +553,7 @@ class ElasticShapeMove : public ShapeMoveBase<Shape>
 
         protected:
             unsigned int m_select_ratio;
-            std::vector< detail::mass_properties<Shape> > m_mass_props;
+            std::vector< detail::MassProperties<Shape> > m_mass_props;
             std::vector <Eigen::Matrix3d> m_Fbar_last;
             std::vector <Eigen::Matrix3d> m_Fbar;
 
@@ -639,7 +639,7 @@ class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEllipsoid>
             Scalar x = fast::exp(lnx+dlnx);
             m_mass_props[type_id].updateParam(param);
             Scalar volume = m_mass_props[type_id].getVolume();
-            Scalar vol_factor = detail::mass_properties<ShapeEllipsoid>::m_vol_factor;
+            Scalar vol_factor = detail::MassProperties<ShapeEllipsoid>::m_vol_factor;
             Scalar b = fast::pow(volume/vol_factor/x, 1.0/3.0);
             param.x = x*b;
             param.y = b;
@@ -655,7 +655,7 @@ class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEllipsoid>
             }
 
     private:
-        std::vector< detail::mass_properties<ShapeEllipsoid> > m_mass_props;
+        std::vector< detail::MassProperties<ShapeEllipsoid> > m_mass_props;
         Scalar m_move_ratio;
     };
 
@@ -734,7 +734,7 @@ public:
     ShapeSpringBase(std::shared_ptr<Variant> k, typename Shape::param_type shape) : m_reference_shape(new typename Shape::param_type), m_k(k)
         {
         (*m_reference_shape) = shape;
-        detail::mass_properties<Shape> mp(*m_reference_shape);
+        detail::MassProperties<Shape> mp(*m_reference_shape);
         m_volume = mp.getVolume();
         m_provided_quantities.push_back("shape_move_stiffness");
         }

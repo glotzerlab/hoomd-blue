@@ -217,7 +217,7 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
         double volume = 0.0;
         for(size_t i = 0; i < m_pdata->getNTypes(); i++)
             {
-            detail::mass_properties<Shape> mp(params[i]);
+            detail::MassProperties<Shape> mp(params[i]);
             volume += mp.getVolume()*Scalar(h_ntypes.data[i]);
             }
 		return volume;
@@ -254,7 +254,7 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
             ptype = m_pdata->getTypeByName(type_name);
             }
         auto params = m_mc->getParams();
-        detail::mass_properties<Shape> mp(params[ptype]);
+        detail::MassProperties<Shape> mp(params[ptype]);
         return mp.getIsoperimetricQuotient();
         }
     else
@@ -478,7 +478,7 @@ void UpdaterShape<Shape>::initialize()
     auto params = m_mc->getParams();
     for(size_t i = 0; i < m_pdata->getNTypes(); i++)
         {
-        detail::mass_properties<Shape> mp(params[i]);
+        detail::MassProperties<Shape> mp(params[i]);
         h_det.data[i] = mp.getDeterminant();
         h_iq.data[i] = mp.getIsoperimetricQuotient();
         }

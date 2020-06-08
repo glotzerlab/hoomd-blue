@@ -18,18 +18,24 @@
 
 namespace hpmc{
 
+// Namespaces: All lowercase somenamespace
+// Class names: UpperCamelCase
+// Methods: lowerCamelCase
+// Member variables: m_ prefix followed by lowercase with words separated by underscores m_member_variable
+// Constants: all upper-case with words separated by underscores SOME_CONSTANT
+// Functions: lowerCamelCase
 
-class shape_util_error : public std::runtime_error
+class ShapeUtilError : public std::runtime_error
     {
     public:
-        shape_util_error(const std::string& msg) : runtime_error(msg) {}
+        ShapeUtilError(const std::string& msg) : runtime_error(msg) {}
     };
 
 template<class ShapeParam>
-inline void print_param(const ShapeParam& param){ std::cout << "not implemented" << std::endl;}
+inline void printParam(const ShapeParam& param){ std::cout << "not implemented" << std::endl;}
 
 template< >
-inline void print_param< ShapeConvexPolyhedron::param_type >(const ShapeConvexPolyhedron::param_type& param)
+inline void printParam< ShapeConvexPolyhedron::param_type >(const ShapeConvexPolyhedron::param_type& param)
     {
         for(size_t i = 0; i < param.N; i++)
             {
@@ -43,15 +49,15 @@ namespace detail{
 // TODO: template Scalar type.
 
 template<class Shape>
-class mass_properties_base
+class MassPropertiesBase
 {
 public:
-    mass_properties_base() : m_volume(0.0), m_surface_area(0.0), m_center_of_mass(0.0, 0.0, 0.0), m_isoperimetric_quotient(0.0)
+    MassPropertiesBase() : m_volume(0.0), m_surface_area(0.0), m_center_of_mass(0.0, 0.0, 0.0), m_isoperimetric_quotient(0.0)
         {
         for(unsigned int i = 0; i < 6; i++) m_inertia[i] = 0.0;
         }
 
-    virtual ~mass_properties_base() {};
+    virtual ~MassPropertiesBase() {};
 
     Scalar getVolume() { return m_volume; }
 
@@ -89,27 +95,27 @@ public:
     virtual void updateParam(const typename Shape::param_type& param, bool force = true) { }
 
 protected:
-    virtual void compute() {throw std::runtime_error("mass_properties::compute() is not implemented for this shape.");}
+    virtual void compute() {throw std::runtime_error("MassProperties::compute() is not implemented for this shape.");}
     Scalar m_volume;
     Scalar m_surface_area;
     vec3<Scalar> m_center_of_mass;
     Scalar m_isoperimetric_quotient;
     Scalar m_inertia[6]; // xx, yy, zz, xy, yz, xz
-};   // end class mass_properties_base
+};   // end class MassPropertiesBase
 
 template<class Shape>
-class mass_properties : public mass_properties_base<Shape>
+class MassProperties : public MassPropertiesBase<Shape>
 {
 public:
-    mass_properties() : mass_properties_base<Shape>() {}
+    MassProperties() : MassPropertiesBase<Shape>() {}
 
-    mass_properties(const typename Shape::param_type& shape) :  mass_properties_base<Shape>()
+    MassProperties(const typename Shape::param_type& shape) :  MassPropertiesBase<Shape>()
     {
     this->compute();
     }
 };
 
-inline void normalize_inplace(vec3<Scalar>& v) { v /= sqrt(dot(v,v)); }
+inline void normalizeInplace(vec3<Scalar>& v) { v /= sqrt(dot(v,v)); }
 
 inline vec3<Scalar> normalize(const vec3<Scalar>& v) { return v / sqrt(dot(v,v)); }
 // face is assumed to be an array of indices of triangular face of a convex body.
@@ -121,10 +127,10 @@ inline vec3<Scalar> getOutwardNormal(const std::vector< vec3<Scalar> >& points, 
     vec3<Scalar> a = points[face[0]], b = points[face[1]], c = points[face[2]];
     vec3<Scalar> di = (inside_point - a), n;
     n = cross((b - a),(c - a));
-    normalize_inplace(n);
+    normalizeInplace(n);
     Scalar d = dot(n, di);
     if(fabs(d) < thresh)
-        throw(shape_util_error("ShapeUtils.h::getOutwardNormal -- inner point is in the plane"));
+        throw(ShapeUtilError("ShapeUtils.h::getOutwardNormal -- inner point is in the plane"));
     return (d > 0) ? -n : n;
     }
 
@@ -154,8 +160,8 @@ inline void sortFaces(const std::vector< vec3<Scalar> >& points, std::vector< st
 // Right now I am just solving the problem in 3d but I think that it should be easy to generalize to 2d as well.
 class ConvexHull
 {
-    static const unsigned int invalid_index;
-    static const Scalar       epsilon;
+    static const unsigned int INVALID_INDEX;
+    static const Scalar epsilon;
 public:
     ConvexHull() { m_ravg = vec3<Scalar>(0.0,0.0,0.0); }
 
@@ -173,7 +179,7 @@ public:
     void compute()
         {
         std::vector<bool> inside(m_points.size(), false); // all points are outside.
-        std::vector<unsigned int> outside(m_points.size(), invalid_index);
+        std::vector<unsigned int> outside(m_points.size(), INVALID_INDEX);
         try{
         if(m_points.size() < 4) // problem is not well posed.
             return;
@@ -192,20 +198,20 @@ public:
                 {
                 if(m_deleted[f])
                     continue;
-                if(outside[i] == invalid_index && is_above(i,f))
+                if(outside[i] == INVALID_INDEX && isAbove(i,f))
                     {
                     outside[i] = f;
                     break;
                     }
                 }
-            if(!inside[i] && outside[i] == invalid_index)
+            if(!inside[i] && outside[i] == INVALID_INDEX)
                 {
                 inside[i] = true;
                 }
             }
 
         unsigned int faceid = 0;
-        // write_pos_frame(inside);
+        // writePosFrame(inside);
         while(faceid < m_faces.size())
             {
             if(m_deleted[faceid]) // this facet is deleted so we can skip it.
@@ -215,12 +221,12 @@ public:
                 }
 
             Scalar dist = 0.0;
-            unsigned int _id = invalid_index;
+            unsigned int _id = INVALID_INDEX;
             for(unsigned int out = 0; out < outside.size(); out++)
                 {
                 if(outside[out] == faceid)
                     {
-                    Scalar sd = signed_distance(out, faceid);
+                    Scalar sd = signedDistance(out, faceid);
                     assert(sd > epsilon);
                     if( sd > dist)
                         {
@@ -229,7 +235,7 @@ public:
                         }
                     }
                 }
-            if(_id == invalid_index) // no point found.
+            if(_id == INVALID_INDEX) // no point found.
                 {
                 faceid++;
                 continue;
@@ -237,10 +243,10 @@ public:
 
             // step 3: Find the visible set
             std::vector< unsigned int > visible;
-            build_visible_set(_id, faceid, visible);
+            buildVisibleSet(_id, faceid, visible);
             // step 4: Build the new faces
             std::vector< std::vector<unsigned int> > new_faces;
-            build_horizon_set(visible, new_faces); // boundary of the visible set
+            buildHorizonSet(visible, new_faces); // boundary of the visible set
             assert(visible[0] == faceid);
             for(unsigned int dd = 0; dd < visible.size(); dd++)
                 {
@@ -254,14 +260,14 @@ public:
                 unsigned int fnew = m_faces.size();
                 m_faces.push_back(new_faces[i]);
                 m_deleted.push_back(false);
-                build_adjacency_for_face(fnew);
+                buildAdjacencyForFace(fnew);
                 for(unsigned int out = 0; out < outside.size(); out++)
                     {
                     for(unsigned int v = 0; v < visible.size() && !inside[out]; v++)
                         {
                         if(outside[out] == visible[v])
                             {
-                            if(is_above(out, fnew))
+                            if(isAbove(out, fnew))
                                 {
                                 outside[out] = fnew;
                                 }
@@ -273,16 +279,16 @@ public:
             // update the inside set for fun.
             for(unsigned int out = 0; out < outside.size(); out++)
                 {
-                if(outside[out] != invalid_index && m_deleted[outside[out]])
+                if(outside[out] != INVALID_INDEX && m_deleted[outside[out]])
                     {
-                    outside[out] = invalid_index;
+                    outside[out] = INVALID_INDEX;
                     inside[out] = true;
                     }
                 }
             inside[_id] = true;
             assert(m_deleted.size() == m_faces.size() && m_faces.size() == m_adjacency.size());
             faceid++;
-            // write_pos_frame(inside);
+            // writePosFrame(inside);
             #ifndef NDEBUG
             for(size_t i = 0; i < m_faces.size(); i++)
                 {
@@ -292,7 +298,7 @@ public:
                     if(m_deleted[j]) continue;
                     for(size_t k = 0; k < m_faces[j].size(); k++)
                         {
-                        if(is_above(m_faces[j][k], i))
+                        if(isAbove(m_faces[j][k], i))
                             {
                             std::cout << "ERROR!!! point " << m_faces[j][k] << ": [" << m_points[m_faces[j][k]].x << ", " << m_points[m_faces[j][k]].y << m_points[m_faces[j][k]].z << "]" << std::endl
                                       << "         is above face " << i << ": [" << m_faces[i][0] << ", " << m_faces[i][1] << ", " << m_faces[i][2] << "]" << std::endl
@@ -304,18 +310,18 @@ public:
                 }
             #endif
             }
-        remove_deleted_faces(); // actually remove the deleted faces.
-        build_edge_list();
+        removeDeletedFaces(); // actually remove the deleted faces.
+        buildEdgeList();
         sortFaces(m_points, m_faces, epsilon);
         }
-        catch(const shape_util_error &e){
-            write_pos_frame(inside);
+        catch(const ShapeUtilError &e){
+            writePosFrame(inside);
             throw(e);
         }
         }
 
 private:
-    void write_pos_frame(const std::vector<bool>& inside)
+    void writePosFrame(const std::vector<bool>& inside)
         {
         std::ofstream file("convex_hull.pos", std::ios_base::out | std::ios_base::app);
         std::string inside_sphere  = "def In \"sphere 0.1 005F5F5F\"";
@@ -356,34 +362,34 @@ private:
         file << "eof" << std::endl;
         }
 
-    Scalar signed_distance(const unsigned int& i, const unsigned int& faceid)
+    Scalar signedDistance(const unsigned int& i, const unsigned int& faceid)
         {
         vec3<Scalar> n = getOutwardNormal(m_points, m_ravg, m_faces, faceid, epsilon); // unit normal
         vec3<Scalar> dx = m_points[i] -  m_points[m_faces[faceid][0]];              //
         return dot(dx, n); // signed distance. either in the plane or outside.
         }
 
-    bool is_above(const unsigned int& i, const unsigned int& faceid)
+    bool isAbove(const unsigned int& i, const unsigned int& faceid)
         {
         if(i == m_faces[faceid][0] || i == m_faces[faceid][1] || i == m_faces[faceid][2])
             return false;
-        return (signed_distance(i, faceid) > epsilon); // signed distance. either in the plane or outside.
+        return (signedDistance(i, faceid) > epsilon); // signed distance. either in the plane or outside.
         }
 
-    bool is_coplanar(const unsigned int& i, const unsigned int& j, const unsigned int& k, const unsigned int& l)
+    bool isCoplanar(const unsigned int& i, const unsigned int& j, const unsigned int& k, const unsigned int& l)
         {
         if( i == j || i == k || i == l || j == k || j == l || k == l)
             return true;
 
         const vec3<Scalar>& x1 = m_points[i], x2 = m_points[j],x3 = m_points[k],x4 = m_points[l];
         Scalar d = dot(x3-x1, cross(x2-x1, x4-x3));
-        // std::cout << "is_coplanar: " << d << " <= " << epsilon << std::boolalpha << (fabs(d) <= epsilon) << std::endl;
+        // std::cout << "isCoplanar: " << d << " <= " << epsilon << std::boolalpha << (fabs(d) <= epsilon) << std::endl;
         // TODO: Note I have seen that this will often times return false for nearly coplanar points!!
         //       How do we choose a good threshold. (an absolute threshold is not good)
         return fabs(d) <= epsilon;
         }
 
-    void edges_from_face(const unsigned int& faceid, std::vector< std::vector<unsigned int> >& edges)
+    void edgesFromFace(const unsigned int& faceid, std::vector< std::vector<unsigned int> >& edges)
         {
         assert(faceid < m_faces.size());
         unsigned int N = m_faces[faceid].size();
@@ -400,7 +406,7 @@ private:
             }
         }
 
-    unsigned int farthest_point_point(const unsigned int& a, bool greater=false)
+    unsigned int farthestPointPoint(const unsigned int& a, bool greater=false)
         {
         unsigned int ndx = a;
         Scalar maxdsq = 0.0;
@@ -417,7 +423,7 @@ private:
         return ndx;
         }
 
-    unsigned int farthest_point_line(const unsigned int& a, const unsigned int& b)
+    unsigned int farthestPointLine(const unsigned int& a, const unsigned int& b)
         {
         unsigned int ndx = a;
         Scalar maxdsq = 0.0, denom = 0.0;
@@ -444,7 +450,7 @@ private:
         return ndx;
         }
 
-    unsigned int farthest_point_plane(const unsigned int& a, const unsigned int& b, const unsigned int& c)
+    unsigned int farthestPointPlane(const unsigned int& a, const unsigned int& b, const unsigned int& c)
         {
         unsigned int ndx = a;
         Scalar maxd = 0.0, denom = 0.0;
@@ -454,7 +460,7 @@ private:
         denom = dot(n,n);
         if(denom <= epsilon)
             return a;
-        normalize_inplace(n);
+        normalizeInplace(n);
         for(unsigned int p = 0; p < m_points.size(); p++)
             {
             if(p == a || p == b || p == c)
@@ -473,8 +479,8 @@ private:
     void initialize()
         {
         const unsigned int Nsym = 4; // number of points in the simplex.
-        unsigned int ik[Nsym] = {invalid_index, invalid_index, invalid_index, invalid_index}; // indices of the four points.
-        ik[0] = ik[1] = ik[2] = ik[3] = invalid_index;
+        unsigned int ik[Nsym] = {INVALID_INDEX, INVALID_INDEX, INVALID_INDEX, INVALID_INDEX}; // indices of the four points.
+        ik[0] = ik[1] = ik[2] = ik[3] = INVALID_INDEX;
         m_faces.clear(); m_faces.reserve(100000);
         m_edges.clear(); m_edges.reserve(100000);
         m_deleted.clear(); m_deleted.reserve(100000);
@@ -489,25 +495,25 @@ private:
         bool coplanar = true;
         while( coplanar )
             {
-            ik[1] = farthest_point_point(ik[0], true); // will only search for points with a higher index than ik[0].
-            ik[2] = farthest_point_line(ik[0], ik[1]);
-            ik[3] = farthest_point_plane(ik[0], ik[1], ik[2]);
-            if(!is_coplanar(ik[0], ik[1], ik[2], ik[3]))
+            ik[1] = farthestPointPoint(ik[0], true); // will only search for points with a higher index than ik[0].
+            ik[2] = farthestPointLine(ik[0], ik[1]);
+            ik[3] = farthestPointPlane(ik[0], ik[1], ik[2]);
+            if(!isCoplanar(ik[0], ik[1], ik[2], ik[3]))
                 {
                 coplanar = false;
                 }
             else
                 {
                 ik[0]++;
-                ik[1] = ik[2] = ik[3] = invalid_index;
+                ik[1] = ik[2] = ik[3] = INVALID_INDEX;
                 if( ik[0] >= m_points.size() ) // tried all of the points and this will not.
                     {
-                    ik[0] = invalid_index; // exit loop and throw an error.
+                    ik[0] = INVALID_INDEX; // exit loop and throw an error.
                     coplanar = false;
                     }
                 }
             }
-        if(ik[0] == invalid_index || ik[1] == invalid_index || ik[2] == invalid_index || ik[3] == invalid_index)
+        if(ik[0] == INVALID_INDEX || ik[1] == INVALID_INDEX || ik[2] == INVALID_INDEX || ik[3] == INVALID_INDEX)
             {
             std::cerr << std::endl << std::endl<< "*************************" << std::endl;
             for(size_t i = 0; i < m_points.size(); i++)
@@ -541,13 +547,13 @@ private:
         std::sort(face.begin(), face.end());
         m_faces.push_back(face);
         m_deleted.resize(4, false); // we have 4 facets at this point.
-        build_adjacency_for_face(0);
-        build_adjacency_for_face(1);
-        build_adjacency_for_face(2);
-        build_adjacency_for_face(3);
+        buildAdjacencyForFace(0);
+        buildAdjacencyForFace(1);
+        buildAdjacencyForFace(2);
+        buildAdjacencyForFace(3);
         }
 
-    void build_adjacency_for_face(const unsigned int& f)
+    void buildAdjacencyForFace(const unsigned int& f)
         {
         if(f >= m_faces.size())
             throw std::runtime_error("index out of range!");
@@ -570,7 +576,7 @@ private:
             }
         }
 
-    void build_visible_set(const unsigned int& pointid, const unsigned int& faceid, std::vector< unsigned int >& visible)
+    void buildVisibleSet(const unsigned int& pointid, const unsigned int& faceid, std::vector< unsigned int >& visible)
         {
         // std::cout << "building visible set point: "<< pointid << " face: " << faceid << std::endl;
         visible.clear();
@@ -593,7 +599,7 @@ private:
                 if(!found[*i]) // face was not found yet and the point is above the face.
                     {
                     found[*i] = true;
-                    if( is_above(pointid, *i) )
+                    if( isAbove(pointid, *i) )
                         {
                         assert(!m_deleted[*i]);
                         worklist.push(*i);
@@ -604,11 +610,11 @@ private:
             }
         }
 
-    void build_horizon_set(const std::vector< unsigned int >& visible, std::vector< std::vector<unsigned int> >& horizon)
+    void buildHorizonSet(const std::vector< unsigned int >& visible, std::vector< std::vector<unsigned int> >& horizon)
         {
         std::vector< std::vector<unsigned int> > edges;
         for(unsigned int i = 0; i < visible.size(); i++)
-            edges_from_face(visible[i], edges); // all visible edges.
+            edgesFromFace(visible[i], edges); // all visible edges.
         std::vector<bool> unique(edges.size(), true);
         for(unsigned int i = 0; i < edges.size(); i++)
             {
@@ -628,12 +634,12 @@ private:
             }
         }
 
-    void build_edge_list()
+    void buildEdgeList()
         {
         return;
         std::vector< std::vector<unsigned int> > edges;
         for(unsigned int i = 0; i < m_faces.size(); i++)
-            edges_from_face(i, edges); // all edges.
+            edgesFromFace(i, edges); // all edges.
 
         for(unsigned int i = 0; i < edges.size(); i++)
             {
@@ -652,7 +658,7 @@ private:
             }
         }
 
-    void remove_deleted_faces()
+    void removeDeletedFaces()
         {
         std::vector< std::vector<unsigned int> >::iterator f;
         std::vector< bool >::iterator d;
@@ -700,13 +706,13 @@ protected:
 };
 
 template< >
-class mass_properties< ShapeConvexPolyhedron > : public mass_properties_base< ShapeConvexPolyhedron >
+class MassProperties< ShapeConvexPolyhedron > : public MassPropertiesBase< ShapeConvexPolyhedron >
 {
 public:
-    mass_properties() : mass_properties_base() {};
+    MassProperties() : MassPropertiesBase() {};
 
-    mass_properties(const typename ShapeConvexPolyhedron::param_type& param, bool do_compute=true)
-                   : mass_properties_base()
+    MassProperties(const typename ShapeConvexPolyhedron::param_type& param, bool do_compute=true)
+                   : MassPropertiesBase()
         {
         ConvexHull hull(param);
         hull.compute();
@@ -717,7 +723,7 @@ public:
             }
         }
 
-    mass_properties(
+    MassProperties(
             const std::vector< vec3<Scalar> >& p,
             const std::vector<std::vector<unsigned int> >& f,
             bool do_compute = true)
@@ -753,11 +759,11 @@ public:
         }
 
 protected:
-    using mass_properties_base< ShapeConvexPolyhedron >::m_volume;
-    using mass_properties_base< ShapeConvexPolyhedron >::m_surface_area;
-    using mass_properties_base< ShapeConvexPolyhedron >::m_center_of_mass;
-    using mass_properties_base< ShapeConvexPolyhedron >::m_isoperimetric_quotient;
-    using mass_properties_base< ShapeConvexPolyhedron >::m_inertia;
+    using MassPropertiesBase< ShapeConvexPolyhedron >::m_volume;
+    using MassPropertiesBase< ShapeConvexPolyhedron >::m_surface_area;
+    using MassPropertiesBase< ShapeConvexPolyhedron >::m_center_of_mass;
+    using MassPropertiesBase< ShapeConvexPolyhedron >::m_isoperimetric_quotient;
+    using MassPropertiesBase< ShapeConvexPolyhedron >::m_inertia;
     std::vector< vec3<Scalar> > points;
     std::vector<std::vector<unsigned int> > faces;
 /*
@@ -827,18 +833,18 @@ protected:
         m_inertia[3] = -(intg[7] - m_volume*cxy);
         m_inertia[4] = -(intg[8] - m_volume*cyz);
         m_inertia[5] = -(intg[9] - m_volume*cxz);
-        }  // end mass_properties<ShapeConvexPolyhedron>::compute()
-};  // end class mass_properties < ShapeConvexPolyhedron >
+        }  // end MassProperties<ShapeConvexPolyhedron>::compute()
+};  // end class MassProperties < ShapeConvexPolyhedron >
 
 template<>
-class mass_properties<ShapeEllipsoid> : public mass_properties_base<ShapeEllipsoid>
+class MassProperties<ShapeEllipsoid> : public MassPropertiesBase<ShapeEllipsoid>
     {
 
     public:
-        mass_properties() : mass_properties_base() {};
+        MassProperties() : MassPropertiesBase() {};
 
-        mass_properties(const typename ShapeEllipsoid::param_type& param, bool do_compute = true) :
-                        mass_properties_base(), m_param(param)
+        MassProperties(const typename ShapeEllipsoid::param_type& param, bool do_compute = true) :
+                        MassPropertiesBase(), m_param(param)
             {
             if (do_compute) compute();
             }
@@ -857,8 +863,8 @@ class mass_properties<ShapeEllipsoid> : public mass_properties_base<ShapeEllipso
     static constexpr Scalar m_vol_factor = Scalar(4.0)/Scalar(3.0)*M_PI;
 
     protected:
-        using mass_properties_base<ShapeEllipsoid>::m_volume;
-        using mass_properties_base<ShapeEllipsoid>::m_inertia;
+        using MassPropertiesBase<ShapeEllipsoid>::m_volume;
+        using MassPropertiesBase<ShapeEllipsoid>::m_inertia;
 
         virtual void compute()
             {
@@ -880,13 +886,13 @@ class mass_properties<ShapeEllipsoid> : public mass_properties_base<ShapeEllipso
 
 //TODO: Enable true spheropolyhedron calculation
 template < >
-class mass_properties< ShapeSpheropolyhedron > : public mass_properties < ShapeConvexPolyhedron >
+class MassProperties< ShapeSpheropolyhedron > : public MassProperties < ShapeConvexPolyhedron >
 {
-using mass_properties< ShapeConvexPolyhedron >::m_inertia;
+using MassProperties< ShapeConvexPolyhedron >::m_inertia;
 public:
-    mass_properties(const typename ShapeSpheropolyhedron::param_type& param)
+    MassProperties(const typename ShapeSpheropolyhedron::param_type& param)
         // Prevent computation on construction of the parent so we can first check if it's possible.
-        : mass_properties< ShapeConvexPolyhedron >(param, false)
+        : MassProperties< ShapeConvexPolyhedron >(param, false)
         {
         if (param.sweep_radius != 0 and param.N > 0)
             {
@@ -919,7 +925,7 @@ protected:
             }
         else
             {
-            return mass_properties< ShapeConvexPolyhedron >::compute();
+            return MassProperties< ShapeConvexPolyhedron >::compute();
             }
         }
 
