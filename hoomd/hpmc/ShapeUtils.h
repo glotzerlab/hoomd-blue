@@ -33,7 +33,8 @@ inline void printParam< ShapeConvexPolyhedron::param_type >(const ShapeConvexPol
     {
         for(size_t i = 0; i < param.N; i++)
             {
-            std::cout << "vert " << i << ": [" << param.x[i] << ", " << param.y[i] << ", " << param.z[i] << "]" << std::endl;
+            std::cout << "vert " << i << ": [" << param.x[i] << ", "
+                      << param.y[i] << ", " << param.z[i] << "]" << std::endl;
             }
 
     }
@@ -46,7 +47,10 @@ template<class Shape>
 class MassPropertiesBase
 {
 public:
-    MassPropertiesBase() : m_volume(0.0), m_surface_area(0.0), m_center_of_mass(0.0, 0.0, 0.0), m_isoperimetric_quotient(0.0)
+    MassPropertiesBase() : m_volume(0.0),
+                           m_surface_area(0.0),
+                           m_center_of_mass(0.0, 0.0, 0.0),
+                           m_isoperimetric_quotient(0.0)
         {
         for(unsigned int i = 0; i < 6; i++) m_inertia[i] = 0.0;
         }
@@ -82,7 +86,9 @@ public:
 
     Scalar getDeterminant()
         {
-        vec3<Scalar> a(m_inertia[0], m_inertia[3], m_inertia[5]), b(m_inertia[3], m_inertia[1], m_inertia[4]), c(m_inertia[5], m_inertia[4], m_inertia[2]);
+        vec3<Scalar> a(m_inertia[0], m_inertia[3], m_inertia[5]),
+                     b(m_inertia[3], m_inertia[1], m_inertia[4]),
+                     c(m_inertia[5], m_inertia[4], m_inertia[2]);
         return dot(a, cross(b,c));
         }
 
@@ -115,7 +121,11 @@ inline vec3<Scalar> normalize(const vec3<Scalar>& v) { return v / sqrt(dot(v,v))
 // face is assumed to be an array of indices of triangular face of a convex body.
 // points may contain points inside or outside the body defined by faces.
 // faces may include faces that contain vertices that are inside the body.
-inline vec3<Scalar> getOutwardNormal(const std::vector< vec3<Scalar> >& points, const vec3<Scalar>& inside_point, const std::vector< std::vector<unsigned int> >& faces, const unsigned int& faceid, Scalar thresh = 0.0001)
+inline vec3<Scalar> getOutwardNormal(const std::vector< vec3<Scalar> >& points,
+                                     const vec3<Scalar>& inside_point,
+                                     const std::vector< std::vector<unsigned int> >& faces,
+                                     const unsigned int& faceid,
+                                     Scalar thresh = 0.0001)
     {
     const std::vector<unsigned int>& face = faces[faceid];
     vec3<Scalar> a = points[face[0]], b = points[face[1]], c = points[face[2]];
@@ -128,17 +138,27 @@ inline vec3<Scalar> getOutwardNormal(const std::vector< vec3<Scalar> >& points, 
     return (d > 0) ? -n : n;
     }
 
-inline void sortFace(const std::vector< vec3<Scalar> >& points, const vec3<Scalar>& inside_point, std::vector< std::vector<unsigned int> >& faces, const unsigned int& faceid, Scalar thresh = 0.0001)
+inline void sortFace(const std::vector< vec3<Scalar> >& points,
+                     const vec3<Scalar>& inside_point,
+                     std::vector< std::vector<unsigned int> >& faces,
+                     const unsigned int& faceid,
+                     Scalar thresh = 0.0001)
     {
     assert(faces[faceid].size() == 3);
-    vec3<Scalar> a = points[faces[faceid][0]], b = points[faces[faceid][1]], c = points[faces[faceid][2]], n, nout;
+    vec3<Scalar> a = points[faces[faceid][0]],
+                 b = points[faces[faceid][1]],
+                 c = points[faces[faceid][2]],
+                 n,
+                 nout;
     nout = getOutwardNormal(points, inside_point, faces, faceid, thresh);
     n = cross((b - a),(c - a));
     if ( dot(nout, n) < 0 )
         std::reverse(faces[faceid].begin(), faces[faceid].end());
     }
 
-inline void sortFaces(const std::vector< vec3<Scalar> >& points, std::vector< std::vector<unsigned int> >& faces, Scalar thresh = 0.0001)
+inline void sortFaces(const std::vector< vec3<Scalar> >& points,
+                      std::vector< std::vector<unsigned int> >& faces,
+                      Scalar thresh = 0.0001)
     {
     vec3<Scalar> inside_point(0.0,0.0,0.0);
     for(size_t i = 0; i < points.size(); i++)
@@ -151,7 +171,8 @@ inline void sortFaces(const std::vector< vec3<Scalar> >& points, std::vector< st
         sortFace(points, inside_point, faces, f, thresh);
     }
 
-// Right now I am just solving the problem in 3d but I think that it should be easy to generalize to 2d as well.
+// Right now I am just solving the problem in 3d but I think
+// that it should be easy to generalize to 2d as well.
 class ConvexHull
 {
     static const unsigned int INVALID_INDEX;
@@ -180,8 +201,8 @@ public:
         // My thoughts:
         // A note here is that the m_faces will be append only and we will mark it
         // for delete and remove all of the ones at the end. there could be a memory issue
-        // with this but since max_verts is only 128 then there is really no reason to worry about that
-        // since 128*127*126 = 2,048,256 maximum number of facets.
+        // with this but since max_verts is only 128 then there is really no reason to worry about
+        // that since 128*127*126 = 2,048,256 maximum number of facets.
 
         // step 1: create a tetrahedron from the first 4 points.
         initialize(); // makes the tetrahedron
@@ -294,9 +315,19 @@ public:
                         {
                         if(isAbove(m_faces[j][k], i))
                             {
-                            std::cout << "ERROR!!! point " << m_faces[j][k] << ": [" << m_points[m_faces[j][k]].x << ", " << m_points[m_faces[j][k]].y << m_points[m_faces[j][k]].z << "]" << std::endl
-                                      << "         is above face " << i << ": [" << m_faces[i][0] << ", " << m_faces[i][1] << ", " << m_faces[i][2] << "]" << std::endl
-                                      << "         from the face " << j << ": [" << m_faces[j][0] << ", " << m_faces[j][1] << ", " << m_faces[j][2] << "]" << std::endl;
+                            std::cout << "ERROR!!! point " << m_faces[j][k] << ": ["
+                                      << m_points[m_faces[j][k]].x << ", "
+                                      << m_points[m_faces[j][k]].y
+                                      << m_points[m_faces[j][k]].z
+                                      << "]" << std::endl
+                                      << "         is above face "
+                                      << i << ": [" << m_faces[i][0]
+                                      << ", " << m_faces[i][1] << ", "
+                                      << m_faces[i][2] << "]" << std::endl
+                                      << "         from the face "
+                                      << j << ": [" << m_faces[j][0]
+                                      << ", " << m_faces[j][1] << ", "
+                                      << m_faces[j][2] << "]" << std::endl;
                             throw std::runtime_error("ERROR in ConvexHull::compute() !");
                             }
                         }
@@ -328,8 +359,11 @@ private:
             if(m_deleted[f]) continue;
             verts.insert(m_faces[f].begin(), m_faces[f].end());
             for(size_t k = 0; k < 3; k++)
-                connections << "connection 0.05 005F5FFF "<< m_points[m_faces[f][k]].x << " "<< m_points[m_faces[f][k]].y << " "<< m_points[m_faces[f][k]].z << " "
-                                                          << m_points[m_faces[f][(k+1)%3]].x << " "<< m_points[m_faces[f][(k+1)%3]].y << " "<< m_points[m_faces[f][(k+1)%3]].z << std::endl;
+                connections << "connection 0.05 005F5FFF "<< m_points[m_faces[f][k]].x << " "
+                            << m_points[m_faces[f][k]].y << " "<< m_points[m_faces[f][k]].z << " "
+                            << m_points[m_faces[f][(k+1)%3]].x << " "
+                            << m_points[m_faces[f][(k+1)%3]].y << " "
+                            << m_points[m_faces[f][(k+1)%3]].z << std::endl;
             }
         ss << "def hull \"poly3d " << verts.size() << " ";
         for(std::set<unsigned int>::iterator iter = verts.begin(); iter != verts.end(); iter++)
@@ -351,15 +385,17 @@ private:
                 file << "In ";
             else
                 file << "Out ";
-            file << m_points[i].x << " " << m_points[i].y << " " << m_points[i].z << " " << std::endl;
+            file << m_points[i].x << " " << m_points[i].y << " "
+                 << m_points[i].z << " " << std::endl;
             }
         file << "eof" << std::endl;
         }
 
     Scalar signedDistance(const unsigned int& i, const unsigned int& faceid)
         {
-        vec3<Scalar> n = getOutwardNormal(m_points, m_ravg, m_faces, faceid, epsilon); // unit normal
-        vec3<Scalar> dx = m_points[i] -  m_points[m_faces[faceid][0]];              //
+        // unit normal
+        vec3<Scalar> n = getOutwardNormal(m_points, m_ravg, m_faces, faceid, epsilon);
+        vec3<Scalar> dx = m_points[i] -  m_points[m_faces[faceid][0]];
         return dot(dx, n); // signed distance. either in the plane or outside.
         }
 
@@ -367,18 +403,24 @@ private:
         {
         if(i == m_faces[faceid][0] || i == m_faces[faceid][1] || i == m_faces[faceid][2])
             return false;
-        return (signedDistance(i, faceid) > epsilon); // signed distance. either in the plane or outside.
+        // signed distance. either in the plane or outside.
+        return (signedDistance(i, faceid) > epsilon);
         }
 
-    bool isCoplanar(const unsigned int& i, const unsigned int& j, const unsigned int& k, const unsigned int& l)
+    bool isCoplanar(const unsigned int& i,
+                    const unsigned int& j,
+                    const unsigned int& k,
+                    const unsigned int& l)
         {
         if( i == j || i == k || i == l || j == k || j == l || k == l)
             return true;
 
         const vec3<Scalar>& x1 = m_points[i], x2 = m_points[j],x3 = m_points[k],x4 = m_points[l];
         Scalar d = dot(x3-x1, cross(x2-x1, x4-x3));
-        // std::cout << "isCoplanar: " << d << " <= " << epsilon << std::boolalpha << (fabs(d) <= epsilon) << std::endl;
-        // TODO: Note I have seen that this will often times return false for nearly coplanar points!!
+        // std::cout << "isCoplanar: " << d << " <= " << epsilon << std::boolalpha
+        //           << (fabs(d) <= epsilon) << std::endl;
+        // TODO: Note I have seen that this will often times
+        //       return false for nearly coplanar points!!
         //       How do we choose a good threshold. (an absolute threshold is not good)
         return fabs(d) <= epsilon;
         }
@@ -444,7 +486,9 @@ private:
         return ndx;
         }
 
-    unsigned int farthestPointPlane(const unsigned int& a, const unsigned int& b, const unsigned int& c)
+    unsigned int farthestPointPlane(const unsigned int& a,
+                                    const unsigned int& b,
+                                    const unsigned int& c)
         {
         unsigned int ndx = a;
         Scalar maxd = 0.0, denom = 0.0;
@@ -473,14 +517,16 @@ private:
     void initialize()
         {
         const unsigned int Nsym = 4; // number of points in the simplex.
-        unsigned int ik[Nsym] = {INVALID_INDEX, INVALID_INDEX, INVALID_INDEX, INVALID_INDEX}; // indices of the four points.
+        // indices of the four points.
+        unsigned int ik[Nsym] = {INVALID_INDEX, INVALID_INDEX, INVALID_INDEX, INVALID_INDEX};
         ik[0] = ik[1] = ik[2] = ik[3] = INVALID_INDEX;
         m_faces.clear(); m_faces.reserve(100000);
         m_edges.clear(); m_edges.reserve(100000);
         m_deleted.clear(); m_deleted.reserve(100000);
         m_adjacency.clear(); m_adjacency.reserve(100000);
-
-        if(m_points.size() < Nsym) // TODO: the problem is basically done. but need to set up the data structures and return. not common in our use case so put it off until later.
+        // TODO: the problem is basically done. but need to set up the data structures and return.
+        // not common in our use case so put it off until later.
+        if(m_points.size() < Nsym)
             {
             throw(std::runtime_error("Could not initialize ConvexHull: need 4 points to take the convex hull in 3D"));
             }
@@ -489,7 +535,8 @@ private:
         bool coplanar = true;
         while( coplanar )
             {
-            ik[1] = farthestPointPoint(ik[0], true); // will only search for points with a higher index than ik[0].
+            // will only search for points with a higher index than ik[0].
+            ik[1] = farthestPointPoint(ik[0], true);
             ik[2] = farthestPointLine(ik[0], ik[1]);
             ik[3] = farthestPointPlane(ik[0], ik[1], ik[2]);
             if(!isCoplanar(ik[0], ik[1], ik[2], ik[3]))
@@ -507,12 +554,16 @@ private:
                     }
                 }
             }
-        if(ik[0] == INVALID_INDEX || ik[1] == INVALID_INDEX || ik[2] == INVALID_INDEX || ik[3] == INVALID_INDEX)
+        if(ik[0] == INVALID_INDEX ||
+           ik[1] == INVALID_INDEX ||
+           ik[2] == INVALID_INDEX ||
+           ik[3] == INVALID_INDEX)
             {
             std::cerr << std::endl << std::endl<< "*************************" << std::endl;
             for(size_t i = 0; i < m_points.size(); i++)
                 {
-                std::cerr << "point " << i << ": [" << m_points[i].x << ", " << m_points[i].y << ", " << m_points[i].z << "]" << std::endl;
+                std::cerr << "point " << i << ": [" << m_points[i].x << ", "
+                          << m_points[i].y << ", " << m_points[i].z << "]" << std::endl;
                 }
             throw(std::runtime_error("Could not initialize ConvexHull: found only nearly coplanar points"));
             }
@@ -560,7 +611,11 @@ private:
             // note this is why we need the faces to be sorted here.
             std::vector<unsigned int> intersection(3, 0);
             assert(m_faces[f].size() == 3 && m_faces[g].size() == 3);
-            std::vector<unsigned int>::iterator it = std::set_intersection(m_faces[f].begin(), m_faces[f].end(), m_faces[g].begin(), m_faces[g].end(), intersection.begin());
+            std::vector<unsigned int>::iterator it = std::set_intersection(m_faces[f].begin(),
+                                                                           m_faces[f].end(),
+                                                                           m_faces[g].begin(),
+                                                                           m_faces[g].end(),
+                                                                           intersection.begin());
             intersection.resize(it-intersection.begin());
             if(intersection.size() == 2)
                 {
@@ -570,9 +625,12 @@ private:
             }
         }
 
-    void buildVisibleSet(const unsigned int& pointid, const unsigned int& faceid, std::vector< unsigned int >& visible)
+    void buildVisibleSet(const unsigned int& pointid,
+                         const unsigned int& faceid,
+                         std::vector< unsigned int >& visible)
         {
-        // std::cout << "building visible set point: "<< pointid << " face: " << faceid << std::endl;
+        // std::cout << "building visible set point: "<< pointid 
+        //           << " face: " << faceid << std::endl;
         visible.clear();
         visible.push_back(faceid);
         std::queue<unsigned int> worklist;
@@ -584,12 +642,19 @@ private:
             {
             unsigned int f = worklist.front();
             worklist.pop();
-            // std::cout << "face " << f << ": " << "[ " << m_faces[f][0] << ", " << m_faces[f][1] << ", " << m_faces[f][2] << "] "<< std::endl;
+            // std::cout << "face " << f << ": " << "[ " << m_faces[f][0] << ", " 
+            //           << m_faces[f][1] << ", " << m_faces[f][2] << "] "<< std::endl;
             if(m_deleted[f]) continue;
-            // std::cout << " m_adjacency.size = "<< m_adjacency.size() << " m_adjacency["<<f<<"].size = "<< m_adjacency[f].size() << std::endl;
-            for(std::set<unsigned int>::iterator i = m_adjacency[f].begin(); i != m_adjacency[f].end(); i++)
+            // std::cout << " m_adjacency.size = "<< m_adjacency.size()
+            //           << " m_adjacency["<<f<<"].size = "
+            //           << m_adjacency[f].size() << std::endl;
+            for(std::set<unsigned int>::iterator i = m_adjacency[f].begin();
+                i != m_adjacency[f].end();
+                i++)
                 {
-                // std::cout << "found: " << found[*i] << " - neighbor "<< *i << ": " << "[ " << m_faces[*i][0] << ", " << m_faces[*i][1] << ", " << m_faces[*i][2] << "] "<< std::endl;
+                // std::cout << "found: " << found[*i] << " - neighbor "<< *i
+                //           << ": " << "[ " << m_faces[*i][0] << ", " 
+                //           << m_faces[*i][1] << ", " << m_faces[*i][2] << "] "<< std::endl;
                 if(!found[*i]) // face was not found yet and the point is above the face.
                     {
                     found[*i] = true;
@@ -604,7 +669,8 @@ private:
             }
         }
 
-    void buildHorizonSet(const std::vector< unsigned int >& visible, std::vector< std::vector<unsigned int> >& horizon)
+    void buildHorizonSet(const std::vector< unsigned int >& visible,
+                         std::vector< std::vector<unsigned int> >& horizon)
         {
         std::vector< std::vector<unsigned int> > edges;
         for(unsigned int i = 0; i < visible.size(); i++)
@@ -683,7 +749,8 @@ public:
 
     const std::vector< vec3<Scalar> >& getPoints() { return m_points; }
 
-    void moveData(std::vector< std::vector<unsigned int> >& faces, std::vector< vec3<Scalar> >& points)
+    void moveData(std::vector< std::vector<unsigned int> >& faces,
+                  std::vector< vec3<Scalar> >& points)
         {
         // NOTE: *this is not valid after using this method!
         faces = std::move(m_faces);
@@ -767,7 +834,7 @@ protected:
     virtual void compute()
         {
         const Scalar mult[10] = {1.0/6.0, 1.0/24.0, 1.0/24.0, 1.0/24.0, 1.0/60.0,
-            1.0/60.0, 1.0/60.0, 1.0/120.0, 1.0/120.0, 1.0/120.0};
+                                 1.0/60.0, 1.0/60.0, 1.0/120.0, 1.0/120.0, 1.0/120.0};
         Scalar intg[10] = {0,0,0,0,0,0,0,0,0,0};  // order: 1, x, y, z, xˆ2, yˆ2, zˆ2, xy, yz, zx
         Scalar surface_area = 0.0;
         for (unsigned int t=0; t<faces.size(); t++)
@@ -812,15 +879,20 @@ protected:
 
         m_volume = intg[0];
         m_surface_area = surface_area;
-        m_isoperimetric_quotient = 36 * M_PI * m_volume * m_volume / (m_surface_area * m_surface_area * m_surface_area);
+        m_isoperimetric_quotient = 36 * M_PI * m_volume * m_volume /
+                                  (m_surface_area * m_surface_area * m_surface_area);
 
         m_center_of_mass.x = intg[1];
         m_center_of_mass.y = intg[2];
         m_center_of_mass.z = intg[3];
         m_center_of_mass /= m_volume;
 
-        Scalar cx2 = m_center_of_mass.x*m_center_of_mass.x, cy2 = m_center_of_mass.y*m_center_of_mass.y, cz2 = m_center_of_mass.z*m_center_of_mass.z;
-        Scalar cxy = m_center_of_mass.x*m_center_of_mass.y, cyz = m_center_of_mass.y*m_center_of_mass.z, cxz = m_center_of_mass.x*m_center_of_mass.z;
+        Scalar cx2 = m_center_of_mass.x*m_center_of_mass.x,
+               cy2 = m_center_of_mass.y*m_center_of_mass.y,
+               cz2 = m_center_of_mass.z*m_center_of_mass.z;
+        Scalar cxy = m_center_of_mass.x*m_center_of_mass.y,
+               cyz = m_center_of_mass.y*m_center_of_mass.z,
+               cxz = m_center_of_mass.x*m_center_of_mass.z;
         m_inertia[0] = intg[5] + intg[6] - m_volume*(cy2 + cz2);
         m_inertia[1] = intg[4] + intg[6] - m_volume*(cz2 + cx2);
         m_inertia[2] = intg[4] + intg[5] - m_volume*(cx2 + cy2);
@@ -843,7 +915,8 @@ class MassProperties<ShapeEllipsoid> : public MassPropertiesBase<ShapeEllipsoid>
             if (do_compute) compute();
             }
 
-        virtual void updateParam(const typename ShapeEllipsoid::param_type& param, bool force = true)
+        virtual void updateParam(const typename ShapeEllipsoid::param_type& param,
+                                 bool force = true)
             {
             m_param = param;
             compute();
