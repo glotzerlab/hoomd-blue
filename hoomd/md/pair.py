@@ -1342,30 +1342,6 @@ class ZBL(_Pair):
                                                  a0=float, len_keys=2))
         self._add_typeparam(params)
 
-        # setup the coefficient options
-        #self.required_coeffs = ['Z_i', 'Z_j', 'elementary_charge', 'a_0'];
-        #self.pair_coeff.set_default_coeff('elementary_charge', 1.0);
-        #self.pair_coeff.set_default_coeff('a_0', 1.0);
-
-    def process_coeff(self, coeff):
-        Z_i = coeff['Z_i'];
-        Z_j = coeff['Z_j'];
-        elementary_charge = coeff['elementary_charge'];
-        a_0 = coeff['a_0'];
-
-        Zsq = Z_i * Z_j * elementary_charge * elementary_charge;
-        if (not (Z_i == 0)) or (not (Z_j == 0)):
-            aF = 0.88534 * a_0 / ( math.pow( Z_i, 0.23 ) + math.pow( Z_j, 0.23 ) );
-        else:
-            aF = 1.0;
-        return _hoomd.make_scalar2(Zsq, aF);
-
-    def set_params(self, coeff):
-        """ :py:class:`zbl` has no energy shift modes """
-
-        raise RuntimeError('Not implemented for DPD Conservative');
-        return;
-
 class tersoff(pair):
     R""" Tersoff Potential.
 
