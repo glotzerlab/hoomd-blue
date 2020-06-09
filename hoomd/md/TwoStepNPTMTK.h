@@ -55,12 +55,12 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
          */
         enum baroFlags
             {
-            baro_x = 32,
-            baro_y = 16,
-            baro_z = 8,
-            baro_xy = 4,
-            baro_xz = 2,
-            baro_yz = 1
+            baro_x = 1,
+            baro_y = 2,
+            baro_z = 4,
+            baro_xy = 8,
+            baro_xz = 16,
+            baro_yz = 32
             };
 
         //! Constructs the integration method and associates it with the system

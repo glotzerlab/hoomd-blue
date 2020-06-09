@@ -692,7 +692,7 @@ void TwoStepNPTMTK::updatePropagator(Scalar nuxx, Scalar nuxy, Scalar nuxz, Scal
     }
 
 // Set Flags from 6 element boolean tuple named box_df to integer flag 
-void TwoStepNPTMTK::setFlags(const std::vector<bool>& value
+void TwoStepNPTMTK::setFlags(const std::vector<bool>& value)
     {
     int flags = 0;
     if (value[0])
@@ -705,7 +705,7 @@ void TwoStepNPTMTK::setFlags(const std::vector<bool>& value
         flags |= int(baroFlags::baro_xy);
     if (value[4])
         flags |= int(baroFlags::baro_xz);
-    if (value[5])
+    if (value[5]) 
         flags |= int(baroFlags::baro_yz);
     m_flags = flags
     }
@@ -714,12 +714,12 @@ void TwoStepNPTMTK::setFlags(const std::vector<bool>& value
 std::vector<bool> TwoStepNPTMTK::getFlags()
     {
     std::vector<bool> result;
-    result.push_back(m_flags & baro_x);
-    result.push_back(m_flags & baro_y);
-    result.push_back(m_flags & baro_z);
-    result.push_back(m_flags & baro_xy);
-    result.push_back(m_flags & baro_xz);
     result.push_back(m_flags & baro_yz);
+    result.push_back(m_flags & baro_xz);
+    result.push_back(m_flags & baro_xy);
+    result.push_back(m_flags & baro_z);
+    result.push_back(m_flags & baro_y);
+    result.push_back(m_flags & baro_x);
     return result
     }
 
