@@ -30,7 +30,7 @@ class ParticleSorter(_Tuner):
                           allow_none=True)
         )
         self.trigger = trigger
-        self.grid = None
+        self.grid = grid
 
     def attach(self, simulation):
         if simulation.device.mode == 'gpu':
