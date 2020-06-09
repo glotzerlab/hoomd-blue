@@ -115,6 +115,9 @@ option(BUILD_JIT "Build the jit package" off)
 # Optionally use TBB for threading
 option(ENABLE_TBB "Enable support for Threading Building Blocks (TBB)" off)
 
+# Add list of plugins
+set(PLUGINS "example_plugin;" CACHE STRING "List of plugin directories.")
+
 # this needs to go before CUDA setup
 include (HOOMDHIPSetup)
 
