@@ -877,41 +877,34 @@ void TwoStepNPTMTK::setCouple(const std::string& value)
     {
     if (value == "x")
         {
-        m_couple = couple_x
+        m_couple = couple_x;
         }
     else if (value == "y")
         {
-        m_couple = couple_y
+        m_couple = couple_y;
         }
     else if (value == "z")
         {
-        m_couple = couple_z
+        m_couple = couple_z;
         }
     else if (value == "xy")
         {
-        m_couple = couple_xy
+        m_couple = couple_xy;
         }
     else if (value == "xz")
         {
-        m_couple = couple_xz
+        m_couple = couple_xz;
         }
     else if (value == "yz")
         {
-        m_couple = couple_yz
+        m_couple = couple_yz;
         }
     else if (value == "xyz")
         {
-        m_couple = couple_xyz
+        m_couple = couple_xyz;
         }
     }
-
-std::string TwoStepNPTMTK::getCouple()
-    {
-    std::string delimiter = "_";
-    std::string split = m_couple.substr(1, s.find(delimiter));
-    return split
-    }
- /*   
+ 
 std::string TwoStepNPTMTK::getCouple()
     {
     std::string couple;
@@ -945,7 +938,6 @@ std::string TwoStepNPTMTK::getCouple()
         }
     return couple
     }
-*/
 
 TwoStepNPTMTK::couplingMode TwoStepNPTMTK::getRelevantCouplings()
     {
