@@ -386,6 +386,7 @@ class box_resize(_updater):
 
         if period is None:
             self.cpp_updater.update(hoomd.context.current.system.getCurrentTimeStep());
+            hoomd.context.current.updaters.remove(self)
         else:
             self.setupUpdater(period, phase);
 
