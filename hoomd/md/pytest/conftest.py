@@ -76,6 +76,14 @@ def _valid_params(particle_types=['A', 'B']):
                                                         len(combos))
     valid_params_list.append(("Moliere", hoomd.md.pair.Moliere,
                               dict(zip(combos, moliere_valid_param_dicts))))
+
+    zbl_sample_dict = {'Zi': range(10, 20), 'Zj': range(8, 16),
+                           'a0': np.linspace(0.5, 1.5),
+                           'e': np.linspace(0.25, 0.75)}
+    zbl_valid_param_dicts = _make_valid_param_dicts(zbl_sample_dict,
+                                                        len(combos))
+    valid_params_list.append(("ZBL", hoomd.md.pair.ZBL,
+                              dict(zip(combos, zbl_valid_param_dicts))))
     return valid_params_list
 
 

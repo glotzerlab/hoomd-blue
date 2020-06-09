@@ -1293,7 +1293,7 @@ class Moliere(_Pair):
                                                  a0=float, len_keys=2))
         self._add_typeparam(params)
 
-class zbl(pair):
+class ZBL(_Pair):
     R""" ZBL pair potential.
 
     Args:
@@ -1333,28 +1333,19 @@ class zbl(pair):
         zbl.pair_coeff.set('A', 'B', Z_i = 54.0, Z_j = 7.0, elementary_charge = 1.0, a_0 = 1.0);
 
     """
-    def __init__(self, r_cut, nlist, name=None):
+    _cpp_class_name = "PotentialPairZBL"
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
 
-        # tell the base class how we operate
-
-        # initialize the base class
-        pair.__init__(self, r_cut, nlist, name);
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PotentialPairZBL(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairZBL;
-        else:
-            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-            self.cpp_force = _md.PotentialPairZBLGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairZBLGPU;
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+        super().__init__(nlist, r_cut, r_on, mode);
+        params = TypeParameter('params', 'particle_types',
+                               TypeParameterDict(Zi=int, Zj=int, e=float,
+                                                 a0=float, len_keys=2))
+        self._add_typeparam(params)
 
         # setup the coefficient options
-        self.required_coeffs = ['Z_i', 'Z_j', 'elementary_charge', 'a_0'];
-        self.pair_coeff.set_default_coeff('elementary_charge', 1.0);
-        self.pair_coeff.set_default_coeff('a_0', 1.0);
+        #self.required_coeffs = ['Z_i', 'Z_j', 'elementary_charge', 'a_0'];
+        #self.pair_coeff.set_default_coeff('elementary_charge', 1.0);
+        #self.pair_coeff.set_default_coeff('a_0', 1.0);
 
     def process_coeff(self, coeff):
         Z_i = coeff['Z_i'];
