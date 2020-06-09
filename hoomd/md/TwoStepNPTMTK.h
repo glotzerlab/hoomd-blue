@@ -89,25 +89,11 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
         //! Update the stress components
         /*! \param S list of stress components: [xx, yy, zz, yz, xz, xy]
          */
-        virtual void setS(std::vector<std::shared_ptr<Variant>> S)
+        virtual void setS(const std::vector<std::shared_ptr<Variant>> S)
             {
              m_S = S;
             }
 
-    /*
-    //! Update the stress components
-    //! \param S list of stress components: [xx, yy, zz, yz, xz, xy]
-    virtual void setS(pybind11::list S)
-            {
-            std::vector<std::shared_ptr<Variant> > swapS;
-            swapS.resize(0);
-            for (int i = 0; i< 6; ++i)
-                   {
-                swapS.push_back(pybind11::cast<std::shared_ptr<Variant>>(S[i]));
-                }
-            m_S.swap(swapS);
-            }
-    */
         //! Update the tau value
         /*! \param tau New time constant to set
         */

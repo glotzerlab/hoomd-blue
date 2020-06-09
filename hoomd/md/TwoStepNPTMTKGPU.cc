@@ -40,7 +40,7 @@ TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
                        Scalar tauS,
                        std::shared_ptr<Variant> T,
                        std::vector<std::shared_ptr<Variant>> S,
-                       string couple,
+                       std::string couple,
                        std::vector<bool> flags,
                        const bool nph)
 
@@ -384,7 +384,7 @@ void export_TwoStepNPTMTKGPU(py::module& m)
                        Scalar,
                        std::shared_ptr<Variant>,
                        std::vector<std::shared_ptr<Variant>>,
-                       string,
+                       std::string,
                        std::vector<bool>,
                        const bool>());
 

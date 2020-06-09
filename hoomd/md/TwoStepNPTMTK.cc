@@ -44,7 +44,7 @@ TwoStepNPTMTK::TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
                        Scalar tauS,
                        std::shared_ptr<Variant> T,
                        std::vector<std::shared_ptr<Variant>> S,
-                       string couple,
+                       std::string couple,
                        std::vector<bool> flags,
                        const bool nph)
     : IntegrationMethodTwoStep(sysdef, group),
@@ -692,11 +692,11 @@ void TwoStepNPTMTK::updatePropagator(Scalar nuxx, Scalar nuxy, Scalar nuxz, Scal
     }
 
 // Set Flags from 6 element boolean tuple named box_df to integer flag 
-void TwoStepNPTMTK::setFlags(const std::vector<bool>& value(6))
+void TwoStepNPTMTK::setFlags(const std::vector<bool>& value
     {
     int flags = 0;
     if (value[0])
-        m_flags |= int(baroFlags::baro_x);
+        flags |= int(baroFlags::baro_x);
     if (value[1])
         flags |= int(baroFlags::baro_y);
     if (value[2])
@@ -711,33 +711,15 @@ void TwoStepNPTMTK::setFlags(const std::vector<bool>& value(6))
     }
 
 // Get Flags from integer flag to 6 element boolean tuple
-std::vector TwoStepNPTMTK::getFlags()
+std::vector<bool> TwoStepNPTMTK::getFlags()
     {
     std::vector<bool> result;
-    if (m_flags & baro_x)
-        result.push_back(true);
-    if (!(m_flags & baro_x))
-        result.push_back(false);
-    if (m_flags & baro_y)
-        result.push_back(true);
-    if (!(m_flags & baro_y))
-        result.push_back(false);
-    if (m_flags & baro_z)
-        result.push_back(true);
-    if (!(m_flags & baro_z))
-        result.push_back(false);
-    if (m_flags & baro_xy)
-        result.push_back(true);
-    if (!(m_flags & baro_xy))
-        result.push_back(false);
-    if (m_flags & baro_xz)
-        result.push_back(true);
-    if (!(m_flags & baro_xz))
-        result.push_back(false);
-    if (m_flags & baro_yz)
-        result.push_back(true);
-    if (!(m_flags & baro_yz))
-        result.push_back(false);
+    result.push_back(m_flags & baro_x);
+    result.push_back(m_flags & baro_y);
+    result.push_back(m_flags & baro_z);
+    result.push_back(m_flags & baro_xy);
+    result.push_back(m_flags & baro_xz);
+    result.push_back(m_flags & baro_yz);
     return result
     }
 
