@@ -875,66 +875,81 @@ void TwoStepNPTMTK::advanceThermostat(unsigned int timestep)
 
 void TwoStepNPTMTK::setCouple(const std::string& value)
     {
-    if (value == "x")
+    bool twod = m_sysdef->getNDimensions()==2
+    if (!(twod))
         {
-        m_couple = couple_x;
+        if (value == "none")
+            {
+            m_couple = couple_none;
+            }
+        else if (value == "xy")
+            {
+            m_couple = couple_xy;
+            }
+        else if (value == "xz")
+            {
+            m_couple = couple_xz;
+            }
+        else if (value == "yz")
+            {
+            m_couple = couple_yz;
+            }
+        else if (value == "xyz")
+            {
+            m_couple = couple_xyz;
+            }
         }
-    else if (value == "y")
+    // if sys_def is 2D, silently ignore any couplings that involve z
+    if (twod)
         {
-        m_couple = couple_y;
-        }
-    else if (value == "z")
-        {
-        m_couple = couple_z;
-        }
-    else if (value == "xy")
-        {
-        m_couple = couple_xy;
-        }
-    else if (value == "xz")
-        {
-        m_couple = couple_xz;
-        }
-    else if (value == "yz")
-        {
-        m_couple = couple_yz;
-        }
-    else if (value == "xyz")
-        {
-        m_couple = couple_xyz;
+        if (value == "none")
+            {
+            m_couple = couple_none;
+            }
+        else if (value == "xy")
+            {
+            m_couple = couple_xy;
+            }
+        else if (value == "xz")
+            {
+            m_couple = couple_none;
+            m_exec_conf->msg->warning() << "z coupling is ignored, since system is two dimensional. coupling is none." << endl;
+            }
+        else if (value == "yz")
+            {
+            m_couple = couple_none;
+            m_exec_conf->msg->warning() << "z coupling is ignored, since system is two dimensional. coupling is none." << endl;
+            }
+        else if (value == "xyz")
+            {
+            m_couple = couple_xy;
+            m_exec_conf->msg->warning() << "z coupling is ignored, since system is two dimensional. coupling is xy." << endl;
+            }
         }
     }
  
 std::string TwoStepNPTMTK::getCouple()
     {
     std::string couple;
-    if (m_couple == couple_x)
+    if (m_couple == couple_none)
         {
-        couple = "x"
-        }
-    else if (m_couple == couple_y)
-        {
-        couple = "y"
-        }
-    else if (m_couple == couple_z)
-        {
-        couple = "z"
+        couple = "none";
         }
     else if (m_couple == couple_xy)
         {
-        couple = "xy"
+        couple = "xy";
         }
     else if (m_couple == couple_xz)
         {
-        couple = "xz"
+        couple = "xz";
         }
     else if (m_couple == couple_yz)
         {
-        couple = "yz"
+        couple = "yz";
         }
     else if (m_couple == couple_xyz)
         {
-        couple = "xyz"
+        couple = "xyz";
         }
     return couple
     }
@@ -942,25 +957,6 @@ std::string TwoStepNPTMTK::getCouple()
 TwoStepNPTMTK::couplingMode TwoStepNPTMTK::getRelevantCouplings()
     {
     couplingMode couple = m_couple;
-
-    // if sys_def is 2D, silently ignore any couplings that involve z
-    bool twod = m_sysdef->getNDimensions()==2;
-    if (twod) 
-        {
-        if (couple == couple_xz)
-            {
-            couple = couple_none
-            }
-        else if (couple == couple_yz)
-            {
-            couple = couple_none
-            }
-        else if (couple == couple_xyz)
-            {
-            couple = couple_xy
-            }
-        }
-
     // disable irrelevant couplings
     if (! (m_flags & baro_x))
         {
