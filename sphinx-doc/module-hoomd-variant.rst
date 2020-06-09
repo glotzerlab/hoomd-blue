@@ -8,6 +8,7 @@ hoomd.variant
 
     hoomd.variant.Constant
     hoomd.variant.Cycle
+    hoomd.variant.Power
     hoomd.variant.Ramp
     hoomd.variant.Variant
 

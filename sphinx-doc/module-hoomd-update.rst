@@ -8,10 +8,12 @@ hoomd.update
 .. autosummary::
     :nosignatures:
 
+    BoxResize
     CustomUpdater
 
 .. rubric:: Details
 
 .. automodule:: hoomd.update
     :synopsis: Modify the system state periodically.
-    :members: CustomUpdater
+    :members: BoxResize, CustomUpdater
+    :imported-members:

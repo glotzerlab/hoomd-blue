@@ -1,3 +1,4 @@
+from hoomd.update.box_resize import BoxResize
 from hoomd.update.custom_updater import CustomUpdater
 
 
