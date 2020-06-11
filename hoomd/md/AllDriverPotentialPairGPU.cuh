@@ -23,6 +23,7 @@
 #include "EvaluatorPairMorse.h"
 #include "EvaluatorPairForceShiftedLJ.h"
 #include "EvaluatorPairMoliere.h"
+#include "EvaluatorPairZBL.h"
 
 //! Compute lj pair forces on the GPU with PairEvaluatorLJ
 hipError_t __attribute__((visibility("default")))
@@ -72,7 +73,7 @@ gpu_compute_moliere_forces(const pair_args_t& pair_args,
 //! Compute zbl pair forces on the GPU with EvaluatorPairZBL
 hipError_t __attribute__((visibility("default")))
 gpu_compute_zbl_forces(const pair_args_t& pair_args,
-                       const Scalar2 *d_params);
+                       const EvaluatorPairZBL::param_type *d_params);
 
 //! Compute dpdlj thermostat on GPU with PairEvaluatorDPDThermo
 hipError_t __attribute__((visibility("default")))

@@ -10,6 +10,7 @@
 #endif
 
 #include "hoomd/HOOMDMath.h"
+#include "EvaluatorPairMoliere.h"
 
 /*! \file EvaluatorPairZBL.h
     \brief Defines the pair evaluator class for ZBL potentials
@@ -40,7 +41,68 @@ class EvaluatorPairZBL
 {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar2 param_type;
+        struct param_type
+            {
+            // just holding on to these so if the user calls asDict,
+            // we can give them back correctly
+            unsigned int Zi;
+            unsigned int Zj;
+            Scalar e;
+            Scalar a0;
+
+            // these are the params the potential cares about
+            Scalar Zsq;
+            Scalar aF;
+
+            #ifdef ENABLE_HIP
+            // set CUDA memory hints
+            void set_memory_hint() const {}
+            #endif
+
+            #ifndef __HIPCC__
+            param_type()
+                {
+                Zi = Zj = a0 = e = 1;
+                computeParams();
+                }
+
+            param_type(pybind11::dict v)
+                {
+                Zi = v["Zi"].cast<unsigned int>();
+                Zj = v["Zj"].cast<unsigned int>();
+                e = v["e"].cast<Scalar>();
+                a0 = v["a0"].cast<Scalar>();
+
+                computeParams();
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+                v["Zi"] = Zi;
+                v["Zj"] = Zj;
+                v["a0"] = a0;
+                v["e"] = e;
+                return v;
+                }
+
+            private:
+                // compute the parameters relevant for the potential from the
+                // user given params
+                void computeParams()
+                    {
+                    Zsq = Zi * Zj * e * e;
+                    aF = 1.0;
+                    if (Zi && Zj)  // if neither of the Z's are 0
+                        aF = 0.8853 * a0 / (pow(Zi, 0.23) + pow(Zj, 0.23));
+                    }
+            #endif
+            }
+            #ifdef SINGLE_PRECISION
+            __attribute__((aligned(8)));
+            #else
+            __attribute__((aligned(16)));
+            #endif
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles.
@@ -48,7 +110,7 @@ class EvaluatorPairZBL
             \param _params Per type-pair parameters of this potential
         */
         DEVICE EvaluatorPairZBL(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), Zsq(_params.x), aF(_params.y)
+            : rsq(_rsq), rcutsq(_rcutsq), Zsq(_params.Zsq), aF(_params.aF)
             {
             }
 
