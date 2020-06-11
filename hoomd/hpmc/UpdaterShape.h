@@ -78,7 +78,7 @@ public:
     int slotWriteGSD(gsd_handle&, std::string name) const;
 
     //! Method that is called to connect to the gsd write state signal
-    void connectGSDSignal(std::shared_ptr<GSDDumpWriter> writer, std::string name);
+    void connectGSDStateSignal(std::shared_ptr<GSDDumpWriter> writer, std::string name);
 
     //! Method that is called to connect to the gsd write state signal
     bool restoreStateGSD(std::shared_ptr<GSDReader> reader, std::string name);
@@ -546,7 +546,7 @@ int UpdaterShape<Shape>::slotWriteGSD(gsd_handle& handle, std::string name) cons
     }
 
 template< typename Shape>
-void UpdaterShape<Shape>::connectGSDSignal(std::shared_ptr<GSDDumpWriter> writer, std::string name)
+void UpdaterShape<Shape>::connectGSDStateSignal(std::shared_ptr<GSDDumpWriter> writer, std::string name)
     {
     typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
     auto func = std::bind(&UpdaterShape<Shape>::slotWriteGSD, this, std::placeholders::_1, name);
@@ -588,7 +588,7 @@ void export_UpdaterShape(pybind11::module& m, const std::string& name)
     .def("resetStatistics", &UpdaterShape<Shape>::resetStatistics)
     .def("getStepSize", &UpdaterShape<Shape>::getStepSize)
     .def("setStepSize", &UpdaterShape<Shape>::setStepSize)
-    .def("connectGSDSignal", &UpdaterShape<Shape>::connectGSDSignal)
+    .def("connectGSDStateSignal", &UpdaterShape<Shape>::connectGSDStateSignal)
     .def("restoreStateGSD", &UpdaterShape<Shape>::restoreStateGSD)
     ;
     }

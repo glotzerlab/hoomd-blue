@@ -323,7 +323,7 @@ class shape_updater_test(unittest.TestCase):
         self.updater = hpmc.update.alchemy(mc=self.mc, move_ratio=1.0, seed=0,
                 period=1, nselect=1);
         self.updater.vertex_shape_move(stepsize=0.0, param_ratio=0.2, volume=1.0);
-        log1, log2 = 'shape_isoperimetric_quotient-1', 'shape_isoperimetric_quotient'
+        log1, log2 = 'shape_isoperimetric_quotient_1', 'shape_isoperimetric_quotient'
         iq_logger = hoomd.analyze.log(filename="iq.log", period=1, overwrite=True,
                 quantities=[log1, log2])
         hoomd.run(10, quiet=True);

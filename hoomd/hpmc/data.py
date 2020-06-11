@@ -99,7 +99,7 @@ class _param(object):
         return data;
 
     def __setattr__(self, name, value):
-        if not hasattr(self, name):
+        if not hasattr(self, name) and name != 'make_fn':
             raise AttributeError('{} instance has no attribute {!r}'.format(type(self).__name__, name));
         super(_param, self).__setattr__(name, value);
 
@@ -426,7 +426,7 @@ class convex_spheropolyhedron_union_params(_hpmc.convex_polyhedron_union_param_p
         return data;
 
     @classmethod
-    def make_param(cls, centers, orientations, vertices, overlap=None, ignore_statistics=False, capacity=4): #colors=None,
+    def make_param(cls, centers, orientations, vertices, overlap=None, ignore_statistics=False, capacity=4, sweep_radii=None): #colors=None,
         if overlap is None:
             overlap = [1 for c in centers]
 
