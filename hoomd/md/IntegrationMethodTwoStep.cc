@@ -321,5 +321,8 @@ void export_IntegrationMethodTwoStep(py::module& m)
                                              {
                                              return method->getGroup()->getFilter();
                                              })
+        #ifdef ENABLE_MPI
+        .def("setCommunicator", &IntegrationMethodTwoStep::setCommunicator)
+        #endif
         ;
     }

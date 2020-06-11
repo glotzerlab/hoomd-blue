@@ -3,8 +3,8 @@
 # License.
 
 from hoomd import _hoomd
-from hoomd.parameterdicts import TypeParameterDict
-from hoomd.parameterdicts import ParameterDict
+from hoomd.parameterdicts import TypeParameterDict, ParameterDict
+from hoomd.typeconverter import OnlyIf, to_type_converter
 from hoomd.typeparam import TypeParameter
 from hoomd.hpmc import _hpmc
 from hoomd.integrate import _BaseIntegrator
@@ -879,10 +879,11 @@ class Polyhedron(_HPMCIntegrator):
                                          capacity=4,
                                          origin=(0., 0., 0.),
                                          hull_only=False,
-                                         overlap=[bool],
+                                         overlap=OnlyIf(to_type_converter(
+                                             [bool]), allow_none=True),
                                          ignore_statistics=False,
                                          len_keys=1,
-                                         explicit_defaults={'overlap': None}))
+                                         _defaults={'overlap': None}))
 
         self._add_typeparam(typeparam_shape)
 
@@ -1135,11 +1136,14 @@ class FacetedEllipsoid(_HPMCIntegrator):
                                          a=float,
                                          b=float,
                                          c=float,
-                                         vertices=[(float, float, float)],
+                                         vertices=OnlyIf(
+                                             to_type_converter(
+                                                 [(float, float, float)]),
+                                             allow_none=True),
                                          origin=(float, float, float),
                                          ignore_statistics=False,
                                          len_keys=1,
-                                         explicit_defaults={'vertices': None}))
+                                         _defaults={'vertices': None}))
         self._add_typeparam(typeparam_shape)
 
 
@@ -1505,13 +1509,17 @@ class SphereUnion(_HPMCIntegrator):
                                                      orientable=False)
                                             ],
                                             positions=[(float, float, float)],
-                                            orientations=[(float, float, float,
-                                                           float)],
+                                            orientations=OnlyIf(
+                                                to_type_converter(
+                                                    [(float, float, float,
+                                                      float)]),
+                                                allow_none=True),
                                             capacity=4,
-                                            overlap=[int],
+                                            overlap=OnlyIf(to_type_converter(
+                                                [int]), allow_none=True),
                                             ignore_statistics=False,
                                             len_keys=1,
-                                            explicit_defaults={
+                                            _defaults={
                                                 'orientations': None,
                                                 'overlap': None
                                             }))
@@ -1634,17 +1642,17 @@ class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
                      sweep_radius=0.0,
                      ignore_statistics=False)
             ],
-                                         positions=[(float, float, float)],
-                                         orientations=[(float, float, float,
-                                                        float)],
-                                         overlap=[int],
-                                         ignore_statistics=False,
-                                         capacity=4,
-                                         len_keys=1,
-                                         explicit_defaults={
-                                             'orientations': None,
-                                             'overlap': None
-                                         }))
+                positions=[(float, float, float)],
+                orientations=OnlyIf(to_type_converter(
+                    [(float, float, float, float)]), allow_none=True),
+                overlap=OnlyIf(to_type_converter([int]), allow_none=True),
+                ignore_statistics=False,
+                capacity=4,
+                len_keys=1,
+                _defaults={
+                'orientations': None,
+                'overlap': None
+            }))
 
         self._add_typeparam(typeparam_shape)
         # meta data
@@ -1778,15 +1786,15 @@ class FacetedEllipsoidUnion(_HPMCIntegrator):
                      origin=tuple,
                      ignore_statistics=False)
             ],
-                                         positions=[(float, float, float)],
-                                         orientations=[(float, float, float,
-                                                        float)],
-                                         overlap=[int],
-                                         ignore_statistics=False,
-                                         capacity=4,
-                                         len_keys=1,
-                                         explicit_defaults={
-                                             'orientations': None,
-                                             'overlap': None
-                                         }))
+                positions=[(float, float, float)],
+                orientations=OnlyIf(to_type_converter(
+                    [(float, float, float, float)]), allow_none=True),
+                overlap=OnlyIf(to_type_converter([int]), allow_none=True),
+                ignore_statistics=False,
+                capacity=4,
+                len_keys=1,
+                _defaults={
+                'orientations': None,
+                'overlap': None
+            }))
         self._add_typeparam(typeparam_shape)

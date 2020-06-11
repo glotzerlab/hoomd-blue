@@ -29,7 +29,13 @@ class Variant(_hoomd.Variant):
         :return: The value of the function at the given time step.
         :rtype: float
     """
-    pass
+    @property
+    def min(self):
+        return self._min()
+
+    @property
+    def max(self):
+        return self._max()
 
 
 class Constant(_hoomd.VariantConstant, Variant):
@@ -71,6 +77,7 @@ class Ramp(_hoomd.VariantRamp, Variant):
     def __init__(self, A, B, t_start, t_ramp):
         _hoomd.VariantRamp.__init__(self, A, B, t_start, t_ramp)
 
+
 class Cycle(_hoomd.VariantCycle, Variant):
     """ A cycle of linear ramps.
 
@@ -102,3 +109,34 @@ class Cycle(_hoomd.VariantCycle, Variant):
     """
     def __init__(self, A, B, t_start, t_A, t_AB, t_B, t_BA):
         _hoomd.VariantCycle.__init__(self, A, B, t_start, t_A, t_AB, t_B, t_BA)
+
+
+class Power(_hoomd.VariantPower, Variant):
+    """A approach from initial to final value of x ^ (power).
+
+    Args:
+        A (float): The start value.
+        B (float): The end value.
+        power (float): The power of the approach to ``B``.
+        t_start (int): The start time step.
+        t_ramp (int): The length of the ramp.
+
+    :py:class:`Power` holds the value *A* until time *t_start*. Then it
+    progresses at :math:`x^{power}` from *A* to *B* over *t_ramp* steps and
+    holds the value *B* after that.
+
+    :code-block: python
+
+        p = Power(2, 8, 1 / 10, 10, 20)
+
+    .. image: variant-power.svg
+
+    Attributes:
+        A (float): The start value.
+        B (float): The end value.
+        power (float): The power of the approach to ``B``.
+        t_start (int): The start time step.
+        t_ramp (int): The length of the ramp.
+    """
+    def __init__(self, A, B, power, t_start, t_ramp):
+        _hoomd.VariantPower.__init__(self, A, B, power, t_start, t_ramp)

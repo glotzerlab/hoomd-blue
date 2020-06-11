@@ -15,12 +15,14 @@
 #include "GSDReader.h"
 #include "Compute.h"
 #include "ComputeThermo.h"
+#include "ComputeThermoHMA.h"
 #include "CellList.h"
 #include "CellListStencil.h"
 #include "ForceCompute.h"
 #include "ForceConstraint.h"
 #include "ConstForceCompute.h"
 #include "Analyzer.h"
+#include "PythonAnalyzer.h"
 #include "IMDInterface.h"
 #include "DCDDumpWriter.h"
 #include "GetarDumpWriter.h"
@@ -31,6 +33,7 @@
 #include "LogHDF5.h"
 #include "CallbackAnalyzer.h"
 #include "Updater.h"
+#include "PythonUpdater.h"
 #include "Integrator.h"
 #include "SFCPackTuner.h"
 #include "BoxResizeUpdater.h"
@@ -50,6 +53,7 @@
 #include "CellListGPU.h"
 #include "ComputeThermoGPU.h"
 #include "SFCPackTunerGPU.h"
+#include "ComputeThermoHMAGPU.h"
 #endif
 
 // include MPI classes
@@ -355,6 +359,7 @@ PYBIND11_MODULE(_hoomd, m)
     // computes
     export_Compute(m);
     export_ComputeThermo(m);
+    export_ComputeThermoHMA(m);
     export_CellList(m);
     export_CellListStencil(m);
     export_ForceCompute(m);
@@ -364,10 +369,12 @@ PYBIND11_MODULE(_hoomd, m)
 #ifdef ENABLE_HIP
     export_CellListGPU(m);
     export_ComputeThermoGPU(m);
+    export_ComputeThermoHMAGPU(m);
 #endif
 
     // analyzers
     export_Analyzer(m);
+    export_PythonAnalyzer(m);
     export_IMDInterface(m);
     export_DCDDumpWriter(m);
     getardump::export_GetarDumpWriter(m);
@@ -380,6 +387,7 @@ PYBIND11_MODULE(_hoomd, m)
 
     // updaters
     export_Updater(m);
+    export_PythonUpdater(m);
     export_Integrator(m);
     export_BoxResizeUpdater(m);
 

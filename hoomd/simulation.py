@@ -21,6 +21,7 @@ class Simulation:
         self._state = None
         self._operations = Operations(self)
         self._verbose = False
+        self._timestep = None
 
     @property
     def device(self):
@@ -34,7 +35,7 @@ class Simulation:
     @property
     def timestep(self):
         if not hasattr(self, '_cpp_sys'):
-            return None
+            return self._timestep
         else:
             return self._cpp_sys.getCurrentTimeStep()
 
@@ -181,8 +182,9 @@ class Simulation:
         if not hasattr(self, '_cpp_sys'):
             raise RuntimeError('Cannot run before state is set.')
         if not self.operations.scheduled:
-            raise RuntimeError('Cannot run before operations are scheduled.')
+            self.operations.schedule()
 
+        # TODO either remove or refactor this code
         # if context.current.integrator is None:
         #     context.current.device.cpp_msg.warning("Starting a run without an integrator set")
         # else:
