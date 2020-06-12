@@ -74,11 +74,10 @@ def _valid_params(particle_types=['A', 'B']):
     valid_params_list.append(("Moliere", hoomd.md.pair.Moliere,
                               dict(zip(combos, moliere_valid_param_dicts))))
 
-    zbl_sample_dict = {'Zi': range(10, 20), 'Zj': range(8, 16),
-                           'a0': np.linspace(0.5, 1.5),
-                           'e': np.linspace(0.25, 0.75)}
-    zbl_valid_param_dicts = _make_valid_param_dicts(zbl_sample_dict,
-                                                        len(combos))
+    zbl_arg_dict = {'Zi': [10, 15, 20], 'Zj': [8, 12, 16],
+                    'a0': [0.5, 1.0, 1.5], 'e': [0.25, 0.5, 0.75]}
+    zbl_valid_param_dicts = _make_valid_param_dicts(zbl_arg_dict,
+                                                    len(combos))
     valid_params_list.append(("ZBL", hoomd.md.pair.ZBL,
                               dict(zip(combos, zbl_valid_param_dicts))))
     return valid_params_list
@@ -232,12 +231,12 @@ def _forces_and_energies():
                          [-0.0459083, -0.0172438]]
 
     params["DPDConservative"] = [{"A": 0.025}, {"A": 0.05}, {"A": 0.075}]
-    forces["DPDConservative"] = [[-0.0646875, -0.09],
-                                 [-0.129375, -0.18],
-                                 [-0.1940625, -0.27]]
-    energies["DPDConservative"] = [[0.022421875, 0.005],
-                                   [0.04484375, 0.01],
-                                   [0.067265625, 0.015]]
+    forces["DPDConservative"] = [[-0.0175, -0.01],
+                                 [-0.035, -0.02],
+                                 [-0.0525, -0.03]]
+    energies["DPDConservative"] = [[0.0153125, 0.005],
+                                   [0.030625, 0.01],
+                                   [0.0459375, 0.015]]
 
     params["ForceShiftedLJ"] = [{"sigma": 0.5, "epsilon": 0.0005},
                                 {"sigma": 1.0, "epsilon": 0.001},
@@ -258,6 +257,16 @@ def _forces_and_energies():
     energies["Moliere"] = [[0.166633, 0.0417324],
                            [2.4074, 0.74985],
                            [11.6133, 4.06028]]
+
+    params["ZBL"] = [{"Zi": 10, "Zj": 8, "a0": 0.5, "e": 0.25},
+                     {"Zi": 15, "Zj": 12, "a0": 1.0, "e": 0.5},
+                     {"Zi": 10, "Zj": 16, "a0": 1.5, "e": 0.75}]
+    forces["ZBL"] = [[-0.410864, -0.057494],
+                     [-4.98428, -0.924445],
+                     [-22.0778, -4.50414]]
+    energies["ZBL"] = [[0.158881, 0.0342836],
+                       [2.38421, 0.714966],
+                       [11.642, 3.97672]]
 
     param_list = []
     for pair_potential in params.keys():
