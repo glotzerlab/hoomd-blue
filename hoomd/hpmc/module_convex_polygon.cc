@@ -24,10 +24,6 @@
 #include "UpdaterClusters.h"
 #include "UpdaterClustersImplicit.h"
 
-#include "ShapeUtils.h"
-#include "ShapeMoves.h"
-#include "UpdaterShape.h"
-
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
 #include "IntegratorHPMCMonoImplicitGPU.h"
@@ -65,13 +61,6 @@ void export_convex_polygon(py::module& m)
     // export_ExternalFieldWall<ShapeConvexPolygon>(m, "WallConvexPolygon");
     // export_UpdaterExternalFieldWall<ShapeConvexPolygon>(m, "UpdaterExternalFieldWallConvexPolygon");
     export_ExternalCallback<ShapeConvexPolygon>(m, "ExternalCallbackConvexPolygon");
-
-    export_ShapeMoveInterface< ShapeConvexPolygon >(m, "ShapeMoveConvexPolygon");
-    export_ShapeLogBoltzmann< ShapeConvexPolygon >(m, "LogBoltzmannConvexPolygon");
-    export_AlchemyLogBoltzmannFunction< ShapeConvexPolygon >(m, "AlchemyLogBoltzmannConvexPolygon");
-    export_UpdaterShape< ShapeConvexPolygon >(m, "UpdaterShapeConvexPolygon");
-    export_PythonShapeMove< ShapeConvexPolygon >(m, "PythonShapeMoveConvexPolygon");
-    export_ConstantShapeMove< ShapeConvexPolygon >(m, "ConstantShapeMoveConvexPolygon");
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeConvexPolygon >(m, "IntegratorHPMCMonoGPUConvexPolygon");

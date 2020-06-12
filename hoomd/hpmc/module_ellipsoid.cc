@@ -24,10 +24,6 @@
 #include "UpdaterClusters.h"
 #include "UpdaterClustersImplicit.h"
 
-#include "ShapeUtils.h"
-#include "ShapeMoves.h"
-#include "UpdaterShape.h"
-
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
 #include "IntegratorHPMCMonoImplicitGPU.h"
@@ -62,15 +58,6 @@ void export_ellipsoid(py::module& m)
     export_ExternalFieldWall<ShapeEllipsoid>(m, "WallEllipsoid");
     export_UpdaterExternalFieldWall<ShapeEllipsoid>(m, "UpdaterExternalFieldWallEllipsoid");
     export_ExternalCallback<ShapeEllipsoid>(m, "ExternalCallbackEllipsoid");
-
-    export_ShapeMoveInterface< ShapeEllipsoid >(m, "ShapeMoveEllipsoid");
-    export_ShapeLogBoltzmann< ShapeEllipsoid >(m, "LogBoltzmannEllipsoid");
-    export_ElasticShapeMove< ShapeEllipsoid >(m, "ElasticShapeMoveEllipsoid");
-    export_AlchemyLogBoltzmannFunction< ShapeEllipsoid >(m, "AlchemyLogBoltzmannEllipsoid");
-    export_UpdaterShape< ShapeEllipsoid >(m, "UpdaterShapeEllipsoid");
-    export_ShapeSpringLogBoltzmannFunction<ShapeEllipsoid>(m, "ShapeSpringLogBoltzmannEllipsoid");
-    export_PythonShapeMove< ShapeEllipsoid >(m, "PythonShapeMoveEllipsoid");
-    export_ConstantShapeMove< ShapeEllipsoid >(m, "ConstantShapeMoveEllipsoid");
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeEllipsoid >(m, "IntegratorHPMCMonoGPUEllipsoid");

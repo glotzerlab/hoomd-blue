@@ -24,10 +24,6 @@
 #include "UpdaterClusters.h"
 #include "UpdaterClustersImplicit.h"
 
-#include "ShapeUtils.h"
-#include "ShapeMoves.h"
-#include "UpdaterShape.h"
-
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
 #include "IntegratorHPMCMonoImplicitGPU.h"
@@ -62,13 +58,6 @@ void export_spheropolygon(py::module& m)
     // export_ExternalFieldWall<ShapeSpheropolygon>(m, "WallSpheropolygon");
     // export_UpdaterExternalFieldWall<ShapeSpheropolygon>(m, "UpdaterExternalFieldWallSpheropolygon");
     export_ExternalCallback<ShapeSpheropolygon>(m, "ExternalCallbackSpheropolygon");
-
-    export_ShapeMoveInterface< ShapeSpheropolygon >(m, "ShapeMoveSpheropolygon");
-    export_ShapeLogBoltzmann< ShapeSpheropolygon >(m, "LogBoltzmannSpheropolygon");
-    export_AlchemyLogBoltzmannFunction< ShapeSpheropolygon >(m, "AlchemyLogBoltzmannSpheropolygon");
-    export_UpdaterShape< ShapeSpheropolygon >(m, "UpdaterShapeSpheropolygon");
-    export_PythonShapeMove< ShapeSpheropolygon >(m, "PythonShapeMoveSpheropolygon");
-    export_ConstantShapeMove< ShapeSpheropolygon >(m, "ConstantShapeMoveSpheropolygon");
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeSpheropolygon >(m, "IntegratorHPMCMonoGPUSpheropolygon");

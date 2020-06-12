@@ -23,10 +23,6 @@
 #include "UpdaterClusters.h"
 #include "UpdaterClustersImplicit.h"
 
-#include "ShapeUtils.h"
-#include "ShapeMoves.h"
-#include "UpdaterShape.h"
-
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
 #include "IntegratorHPMCMonoImplicitGPU.h"
@@ -61,13 +57,6 @@ void export_union_sphere(py::module& m)
     export_RemoveDriftUpdater<ShapeUnion<ShapeSphere> >(m, "RemoveDriftUpdaterSphereUnion");
     export_ExternalFieldWall<ShapeUnion<ShapeSphere> >(m, "WallSphereUnion");
     export_UpdaterExternalFieldWall<ShapeUnion<ShapeSphere> >(m, "UpdaterExternalFieldWallSphereUnion");
-
-    export_ShapeMoveInterface< ShapeUnion<ShapeSphere> >(m, "ShapeMoveSphereUnion");
-    export_ShapeLogBoltzmann< ShapeUnion<ShapeSphere> >(m, "LogBoltzmannSphereUnion");
-    export_AlchemyLogBoltzmannFunction< ShapeUnion<ShapeSphere> >(m, "AlchemyLogBoltzmannSphereUnion");
-    export_UpdaterShape< ShapeUnion<ShapeSphere> >(m, "UpdaterShapeSphereUnion");
-    export_PythonShapeMove< ShapeUnion<ShapeSphere> >(m, "PythonShapeMoveSphereUnion");
-    export_ConstantShapeMove< ShapeUnion<ShapeSphere> >(m, "ConstantShapeMoveSphereUnion");
     export_ExternalCallback<ShapeUnion<ShapeSphere> >(m, "ExternalCallbackSphereUnion");
 
     #ifdef ENABLE_CUDA

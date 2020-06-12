@@ -24,10 +24,6 @@
 #include "UpdaterClusters.h"
 #include "UpdaterClustersImplicit.h"
 
-#include "ShapeUtils.h"
-#include "ShapeMoves.h"
-#include "UpdaterShape.h"
-
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
 #include "IntegratorHPMCMonoImplicitGPU.h"
@@ -62,17 +58,6 @@ void export_convex_polyhedron(py::module& m)
     export_ExternalFieldWall<ShapeConvexPolyhedron >(m, "WallConvexPolyhedron");
     export_UpdaterExternalFieldWall<ShapeConvexPolyhedron >(m, "UpdaterExternalFieldWallConvexPolyhedron");
     export_ExternalCallback<ShapeConvexPolyhedron>(m, "ExternalCallbackConvexPolyhedron");
-
-    export_MassProperties< ShapeConvexPolyhedron >(m, "MassPropertiesConvexPolyhedron");
-    export_ShapeMoveInterface< ShapeConvexPolyhedron >(m, "ShapeMoveConvexPolyhedron");
-    export_ShapeLogBoltzmann< ShapeConvexPolyhedron >(m, "LogBoltzmannConvexPolyhedron");
-    export_ElasticShapeMove< ShapeConvexPolyhedron >(m, "ElasticShapeMoveConvexPolyhedron");
-    export_ShapeSpringLogBoltzmannFunction<ShapeConvexPolyhedron >(m, "ShapeSpringLogBoltzmannConvexPolyhedron");
-    export_AlchemyLogBoltzmannFunction< ShapeConvexPolyhedron >(m, "AlchemyLogBoltzmannConvexPolyhedron");
-    export_ConvexPolyhedronGeneralizedShapeMove< ShapeConvexPolyhedron >(m, "GeneralizedShapeMoveConvexPolyhedron");
-    export_UpdaterShape< ShapeConvexPolyhedron >(m, "UpdaterShapeConvexPolyhedron");
-    export_PythonShapeMove< ShapeConvexPolyhedron >(m, "PythonShapeMoveConvexPolyhedron");
-    export_ConstantShapeMove< ShapeConvexPolyhedron >(m, "ConstantShapeMoveConvexPolyhedron");
 
     #ifdef ENABLE_CUDA
 
