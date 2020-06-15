@@ -1425,7 +1425,7 @@ class tersoff(pair):
 
         return _md.make_tersoff_params(cutoff_d, tersoff_coeffs, exp_consts, dimer_r, n, gamman, lambda3_cube, ang_consts, alpha);
 
-class mie(pair):
+class Mie(_Pair):
     R""" Mie pair potential.
 
     Args:
@@ -1469,26 +1469,15 @@ class mie(pair):
         mie.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=1.5, sigma=2.0)
 
     """
-    def __init__(self, r_cut, nlist, name=None):
+    _cpp_class_name = "PotentialPairMie"
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
 
-        # tell the base class how we operate
+        super().__init__(nlist, r_cut, r_on, mode)
+        params = TypeParameter('params', 'particle_types',
+                               TypeParameterDict(epsilon=float, sigma=float,
+                                                 n=float, m=float, len_keys=2))
 
-        # initialize the base class
-        pair.__init__(self, r_cut, nlist, name);
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PotentialPairMie(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairMie;
-        else:
-            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-            self.cpp_force = _md.PotentialPairMieGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairMieGPU;
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-
-        # setup the coefficient options
-        self.required_coeffs = ['epsilon', 'sigma', 'n', 'm'];
+        self._add_typeparam(params)
 
     def process_coeff(self, coeff):
         epsilon = float(coeff['epsilon']);

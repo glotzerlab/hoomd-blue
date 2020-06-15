@@ -80,6 +80,13 @@ def _valid_params(particle_types=['A', 'B']):
                                                     len(combos))
     valid_params_list.append(("ZBL", hoomd.md.pair.ZBL,
                               dict(zip(combos, zbl_valid_param_dicts))))
+
+    mie_arg_dict = {'epsilon': [.05, .025, .010], 'sigma': [.5, 1, 1.5],
+                    'n': [12, 14, 16], 'm': [6, 8, 10]}
+    mie_valid_param_dicts = _make_valid_param_dicts(mie_arg_dict,
+                                                    len(combos))
+    valid_params_list.append(("Mie", hoomd.md.pair.Mie,
+                              dict(zip(combos, mie_valid_param_dicts))))
     return valid_params_list
 
 
