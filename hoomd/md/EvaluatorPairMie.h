@@ -52,7 +52,67 @@ class EvaluatorPairMie
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar4 param_type;
+        struct param_type
+            {
+            // params given by user
+            Scalar epsilon, sigma, n, m;
+
+            // params of interest for evaluating the potential
+            Scalar m1, m2, m3, m4;
+
+            #ifdef ENABLE_HIP
+            // set CUDA memory hints
+            void set_memory_hint() const {}
+            #endif
+
+            #ifndef __HIPCC__
+            param_type()
+                {
+                n = 12;
+                m = 6;
+                epsilon = 1;
+                sigma = 1;
+                computeParams();
+                }
+
+            param_type(pybind11::dict v)
+                {
+                epsilon = v["epsilon"].cast<Scalar>();
+                sigma = v["sigma"].cast<Scalar>();
+                n = v["n"].cast<Scalar>();
+                m = v["m"].cast<Scalar>();
+
+                computeParams();
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+                v["epsilon"] = epsilon;
+                v["sigma"] = sigma;
+                v["n"] = n;
+                v["m"] = m;
+
+                return v;
+                }
+
+            private:
+                // compute params relevant for evaluating potential from the
+                // ones given by the user
+                void computeParams()
+                    {
+                        m1 = epsilon * pow(sigma, n) * (n/(n-m)) * pow(n/m, m/(n-m));
+                        m2 = epsilon * pow(sigma, m) * (n/(n-m)) * pow(n/m, m/(n-m));
+                        m3 = n;
+                        m4 = m;
+                    }
+            #endif
+            }
+            #ifdef SINGLE_PRECISION
+            __attribute__((aligned(8)));
+            #else
+            __attribute__((aligned(16)));
+            #endif
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
@@ -62,7 +122,7 @@ class EvaluatorPairMie
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairMie(Scalar _rsq, Scalar _rcutsq,  const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), mie1(_params.x), mie2(_params.y), mie3(_params.z), mie4(_params.w)
+            : rsq(_rsq), rcutsq(_rcutsq), mie1(_params.m1), mie2(_params.m2), mie3(_params.m3), mie4(_params.m4)
             {
             }
 

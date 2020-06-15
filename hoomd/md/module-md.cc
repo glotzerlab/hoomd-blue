@@ -245,7 +245,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairZBL>(m, "PotentialPairZBL");
     // export_PotentialTersoff<PotentialTripletTersoff>(m, "PotentialTersoff");
     // export_PotentialTersoff<PotentialTripletSquareDensity> (m, "PotentialSquareDensity");
-    // export_PotentialPair<PotentialPairMie>(m, "PotentialPairMie");
+    export_PotentialPair<PotentialPairMie>(m, "PotentialPairMie");
     // export_PotentialPair<PotentialPairReactionField>(m, "PotentialPairReactionField");
     // export_PotentialPair<PotentialPairDLVO>(m, "PotentialPairDLVO");
     // export_PotentialPair<PotentialPairFourier>(m, "PotentialPairFourier");
@@ -307,7 +307,7 @@ PYBIND11_MODULE(_md, m)
     // export_PotentialTersoffGPU<PotentialTripletTersoffGPU, PotentialTripletTersoff>(m, "PotentialTersoffGPU");
     // export_PotentialTersoffGPU<PotentialTripletSquareDensityGPU, PotentialTripletSquareDensity> (m, "PotentialSquareDensityGPU");
     export_PotentialPairGPU<PotentialPairForceShiftedLJGPU, PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJGPU");
-    // export_PotentialPairGPU<PotentialPairMieGPU, PotentialPairMie>(m, "PotentialPairMieGPU");
+    export_PotentialPairGPU<PotentialPairMieGPU, PotentialPairMie>(m, "PotentialPairMieGPU");
     // export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD >(m, "PotentialPairDPDThermoDPDGPU");
     // export_PotentialPairGPU<PotentialPairDPDLJGPU, PotentialPairDPDLJ>(m, "PotentialPairDPDLJGPU");
     // export_PotentialPairDPDThermoGPU<PotentialPairDPDLJThermoDPDGPU, PotentialPairDPDLJThermoDPD >(m, "PotentialPairDPDLJThermoDPDGPU");
