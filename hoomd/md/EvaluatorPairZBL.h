@@ -93,8 +93,8 @@ class EvaluatorPairZBL
                     {
                     Zsq = Zi * Zj * e * e;
                     aF = 1.0;
-                    if (Zi && Zj)  // if neither of the Z's are 0
-                        aF = 0.8853 * a0 / (pow(Zi, 0.23) + pow(Zj, 0.23));
+                    if (Zi || Zj)  // if either Zi or Zj is not 0
+                        aF = 0.88534 * a0 / (pow(Zi, 0.23) + pow(Zj, 0.23));
                     }
             #endif
             }
