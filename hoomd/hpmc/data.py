@@ -84,7 +84,7 @@ class param_dict(dict):
 
 class _param(object):
     def __init__(self, mc, typid):
-        self.__dict__.update(dict(_keys=['ignore_statistics'], mc=mc, typid=typid, is_set=False, _py_params=[]));
+        self.__dict__.update(dict(_keys=['ignore_statistics'], mc=mc, typid=typid, make_fn=None, is_set=False));
 
     @classmethod
     def ensure_list(cls, li):
@@ -99,23 +99,12 @@ class _param(object):
         return data;
 
     def __setattr__(self, name, value):
-        if not hasattr(self, name) and name != 'make_fn':
+        if not hasattr(self, name):
             raise AttributeError('{} instance has no attribute {!r}'.format(type(self).__name__, name));
         super(_param, self).__setattr__(name, value);
 
     def set(self, **params):
         self.is_set = True;
-
-        # backwards compatibility
-        if 'ignore_overlaps' in params:
-            # ugly workaround
-            super(_param,self).__setattr__('ignore_overlaps',params['ignore_overlaps'])
-            # do not pass to C++
-            params.pop('ignore_overlaps',None)
-
-        for pname in self._py_params:
-            if pname in params:
-                self.__setattr__(pname, params.pop(pname, None))
 
         self.mc.cpp_integrator.setParam(self.typid, self.make_param(**params), True);
 
@@ -124,119 +113,123 @@ class sphere_params(_hpmc.sphere_param_proxy, _param):
         _hpmc.sphere_param_proxy.__init__(self, mc.cpp_integrator, index);
         _param.__init__(self, mc, index);
         self._keys += ['diameter','orientable'];
+        self.make_fn = _hpmc.make_sph_params;
 
     def __str__(self):
+        # should we put this in the c++ side?
         return "sphere(diameter = {})".format(self.diameter)
 
-    @classmethod
-    def make_param(cls, diameter, ignore_statistics=False, orientable=False):
-        return _hpmc.make_sph_params(   float(diameter)/2.0,
-                                        ignore_statistics,orientable);
+    def make_param(self, diameter, ignore_statistics=False,orientable=False):
+        return self.make_fn(float(diameter)/2.0,ignore_statistics,orientable);
 
 class convex_polygon_params(_hpmc.convex_polygon_param_proxy, _param):
     def __init__(self, mc, index):
         _hpmc.convex_polygon_param_proxy.__init__(self, mc.cpp_integrator, index);
         _param.__init__(self, mc, index);
         self._keys += ['vertices'];
+        self.make_fn = _hpmc.make_poly2d_verts;
 
     def __str__(self):
+        # should we put this in the c++ side?
         string = "convex polygon(vertices = {})".format(self.vertices);
         return string;
 
-    @classmethod
-    def make_param(cls, vertices, ignore_statistics=False):
-        return _hpmc.make_poly2d_verts( cls.ensure_list(vertices),
-                                        float(0.0),
-                                        ignore_statistics);
+    def make_param(self, vertices, ignore_statistics=False):
+        return self.make_fn(self.ensure_list(vertices),
+                            float(0.0),
+                            ignore_statistics);
 
 class convex_spheropolygon_params(_hpmc.convex_spheropolygon_param_proxy, _param):
     def __init__(self, mc, index):
         _hpmc.convex_spheropolygon_param_proxy.__init__(self, mc.cpp_integrator, index);
         _param.__init__(self, mc, index);
         self._keys += ['vertices', 'sweep_radius'];
+        self.make_fn = _hpmc.make_poly2d_verts;
 
     def __str__(self):
+        # should we put this in the c++ side?
         string = "convex spheropolygon(sweep radius = {}, , vertices = {})".format(self.sweep_radius, self.vertices);
         return string;
 
-    @classmethod
-    def make_param(cls, vertices, sweep_radius = 0.0, ignore_statistics=False):
-        return _hpmc.make_poly2d_verts( cls.ensure_list(vertices),
-                                        float(sweep_radius),
-                                        ignore_statistics);
+    def make_param(self, vertices, sweep_radius = 0.0, ignore_statistics=False):
+        return self.make_fn(self.ensure_list(vertices),
+                            float(sweep_radius),
+                            ignore_statistics);
 
 class simple_polygon_params(_hpmc.simple_polygon_param_proxy, _param):
     def __init__(self, mc, index):
         _hpmc.simple_polygon_param_proxy.__init__(self, mc.cpp_integrator, index);
         _param.__init__(self, mc, index);
         self._keys += ['vertices'];
+        self.make_fn = _hpmc.make_poly2d_verts;
 
     def __str__(self):
+        # should we put this in the c++ side?
         string = "simple polygon(vertices = {})".format(self.vertices);
         return string;
 
-    @classmethod
-    def make_param(cls, vertices, ignore_statistics=False):
-        return _hpmc.make_poly2d_verts( cls.ensure_list(vertices),
-                                        float(0),
-                                        ignore_statistics);
+    def make_param(self, vertices, ignore_statistics=False):
+        return self.make_fn(self.ensure_list(vertices),
+                            float(0),
+                            ignore_statistics);
 
 class convex_polyhedron_params(_hpmc.convex_polyhedron_param_proxy,_param):
     def __init__(self, mc, index):
         _hpmc.convex_polyhedron_param_proxy.__init__(self, mc.cpp_integrator, index);
         _param.__init__(self, mc, index);
         self._keys += ['vertices'];
+        self.make_fn = _hpmc.make_poly3d_verts
 
     def __str__(self):
+        # should we put this in the c++ side?
         string = "convex polyhedron(vertices = {})".format(self.vertices);
         return string;
 
-    @classmethod
-    def make_param(cls, vertices, ignore_statistics=False):
-        return _hpmc.make_poly3d_verts( cls.ensure_list(vertices),
-                                        float(0),
-                                        ignore_statistics,
-                                        hoomd.context.current.system_definition.getParticleData().getExecConf());
+    def make_param(self, vertices, ignore_statistics=False):
+        return self.make_fn(self.ensure_list(vertices),
+                            float(0),
+                            ignore_statistics,
+                            hoomd.context.current.system_definition.getParticleData().getExecConf());
 
 class convex_spheropolyhedron_params(_hpmc.convex_spheropolyhedron_param_proxy,_param):
     def __init__(self, mc, index):
         _hpmc.convex_spheropolyhedron_param_proxy.__init__(self, mc.cpp_integrator, index);
         _param.__init__(self, mc, index);
         self._keys += ['vertices', 'sweep_radius'];
+        self.make_fn = _hpmc.make_poly3d_verts;
 
     def __str__(self):
+        # should we put this in the c++ side?
         string = "convex spheropolyhedron(sweep radius = {}, vertices = {})".format(self.sweep_radius, self.vertices);
         return string;
 
-    @classmethod
-    def make_param(cls, vertices, sweep_radius = 0.0, ignore_statistics=False):
-        return _hpmc.make_poly3d_verts( cls.ensure_list(vertices),
-                                        float(sweep_radius),
-                                        ignore_statistics,
-                                        hoomd.context.current.system_definition.getParticleData().getExecConf());
+    def make_param(self, vertices, sweep_radius = 0.0, ignore_statistics=False):
+        return self.make_fn(self.ensure_list(vertices),
+                            float(sweep_radius),
+                            ignore_statistics,
+                            hoomd.context.current.system_definition.getParticleData().getExecConf());
 
 class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
-
     def __init__(self, mc, index):
         _hpmc.polyhedron_param_proxy.__init__(self, mc.cpp_integrator, index);
         _param.__init__(self, mc, index);
         self._keys += ['vertices', 'faces','overlap', 'colors', 'sweep_radius', 'capacity','origin','hull_only'];
+        self.make_fn = _hpmc.make_poly3d_data;
         self.__dict__.update(dict(colors=None));
-        self._py_params = ['colors'];
 
     def __str__(self):
+        # should we put this in the c++ side?
         string = "polyhedron(vertices = {}, faces = {}, overlap = {}, colors= {}, sweep_radius = {}, capacity = {}, origin = {})".format(self.vertices, self.faces, self.overlap, self.colors, self.sweep_radius, self.capacity, self.hull_only);
         return string;
 
-    @classmethod
-    def make_param(cls, vertices, faces, sweep_radius=0.0, ignore_statistics=False, origin=(0,0,0), capacity=4, hull_only=True, overlap=None): #  colors=None
+    def make_param(self, vertices, faces, sweep_radius=0.0, ignore_statistics=False, origin=(0,0,0), capacity=4, hull_only=True, overlap=None, colors=None):
         face_offs = []
         face_verts = []
         offs = 0
 
         for face in faces:
             if len(face) != 3 and len(face) != 1:
-                hoomd.context.msg.error("Only triangulated shapes and spheres are supported.\n")
+                hoomd.context.current.device.cpp_msg.error("Only triangulated shapes and spheres are supported.\n")
                 raise RuntimeError('Error setting shape parameters')
             face_offs.append(offs)
             for face_idx in face:
@@ -246,26 +239,27 @@ class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
         # end offset
         face_offs.append(offs)
 
+        self.colors = None if colors is None else self.ensure_list(colors);
+
         if overlap is None:
             overlap = [1 for f in faces]
 
         if sweep_radius < 0.0:
-            hoomd.context.msg.warning("A rounding radius < 0 does not make sense.\n")
+            hoomd.context.current.device.cpp_msg.warning("A rounding radius < 0 does not make sense.\n")
 
-        # TODO: make this a class method
         if len(origin) != 3:
             hoomd.context.error("Origin must be a coordinate triple.\n")
 
-        return _hpmc.make_poly3d_data( [cls.ensure_list(v) for v in vertices],
-                                        cls.ensure_list(face_verts),
-                                        cls.ensure_list(face_offs),
-                                        cls.ensure_list(overlap),
-                                        float(sweep_radius),
-                                        ignore_statistics,
-                                        capacity,
-                                        cls.ensure_list(origin),
-                                        int(hull_only),
-                                        hoomd.context.current.system_definition.getParticleData().getExecConf());
+        return self.make_fn([self.ensure_list(v) for v in vertices],
+                            self.ensure_list(face_verts),
+                            self.ensure_list(face_offs),
+                            self.ensure_list(overlap),
+                            float(sweep_radius),
+                            ignore_statistics,
+                            capacity,
+                            self.ensure_list(origin),
+                            int(hull_only),
+                            hoomd.context.current.system_definition.getParticleData().getExecConf());
 
 class faceted_ellipsoid_params(_hpmc.faceted_ellipsoid_param_proxy, _param):
     def __init__(self, mc, index):
@@ -320,45 +314,46 @@ class sphinx_params(_hpmc.sphinx3d_param_proxy, _param):
         _param.__init__(self, mc, index);
         self.__dict__.update(dict(colors=None));
         self._keys += ['diameters', 'centers', 'diameter', 'colors'];
-        self._py_params = ['colors'];
-        self.colors = None;
+        self.make_fn = _hpmc.make_sphinx3d_params;
 
     def __str__(self):
+        # should we put this in the c++ side?
         string = "sphinx(centers = {}, diameters = {}, diameter = {})".format(self.centers, self.diameters, self.diameter);
         return string;
 
-    @classmethod
-    def make_param(cls, diameters, centers, ignore_statistics=False): # colors=None
-        return _hpmc.make_sphinx3d_params(  cls.ensure_list(diameters),
-                                            cls.ensure_list(centers),
-                                            ignore_statistics);
+    def make_param(self, diameters, centers, ignore_statistics=False, colors=None):
+        self.colors = None if colors is None else self.ensure_list(colors);
+        return self.make_fn(self.ensure_list(diameters),
+                            self.ensure_list(centers),
+                            ignore_statistics);
 
 class ellipsoid_params(_hpmc.ell_param_proxy, _param):
     def __init__(self, mc, index):
         _hpmc.ell_param_proxy.__init__(self, mc.cpp_integrator, index);
         _param.__init__(self, mc, index);
         self._keys += ['a', 'b', 'c'];
+        self.make_fn = _hpmc.make_ell_params;
 
     def __str__(self):
+        # should we put this in the c++ side?
         return "ellipsoid(a = {}, b = {}, c = {})".format(self.a, self.b, self.c)
 
-    @classmethod
-    def make_param(cls, a, b, c, ignore_statistics=False):
-        return _hpmc.make_ell_params(   float(a),
-                                        float(b),
-                                        float(c),
-                                        ignore_statistics);
+    def make_param(self, a, b, c, ignore_statistics=False):
+        return self.make_fn(float(a),
+                            float(b),
+                            float(c),
+                            ignore_statistics);
 
 class sphere_union_params(_hpmc.sphere_union_param_proxy,_param):
     def __init__(self, mc, index):
         _hpmc.sphere_union_param_proxy.__init__(self, mc.cpp_integrator, index); # we will add this base class later because of the size template
         _param.__init__(self, mc, index);
         self.__dict__.update(dict(colors=None));
-        self._py_params = ['colors'];
-        self.colors = None;
         self._keys += ['centers', 'orientations', 'diameter', 'colors','overlap'];
+        self.make_fn = _hpmc.make_sphere_union_params;
 
     def __str__(self):
+        # should we put this in the c++ side?
         string = "sphere union(centers = {}, orientations = {}, diameter = {}, overlap = {}, capacity = {})\n".format(self.centers, self.orientations, self.diameter, self.overlap, self.capacity);
         ct = 0;
         members = self.members;
@@ -378,18 +373,19 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy,_param):
             data[key] = val;
         return data;
 
-    @classmethod
-    def make_param(cls, diameters, centers, overlap=None, ignore_statistics=False, capacity=4):
+    def make_param(self, diameters, centers, overlap=None, ignore_statistics=False, colors=None, capacity=4):
         if overlap is None:
             overlap = [1 for c in centers]
+
         members = [_hpmc.make_sph_params(float(d)/2.0, False, False) for d in diameters];
         N = len(diameters)
         if len(centers) != N:
             raise RuntimeError("Lists of constituent particle parameters and centers must be equal length.")
-        return _hpmc.make_sphere_union_params(cls.ensure_list(members),
-                            cls.ensure_list(centers),
-                            cls.ensure_list([[1,0,0,0] for i in range(N)]),
-                            cls.ensure_list(overlap),
+        self.colors = None if colors is None else self.ensure_list(colors);
+        return self.make_fn(self.ensure_list(members),
+                            self.ensure_list(centers),
+                            self.ensure_list([[1,0,0,0] for i in range(N)]),
+                            self.ensure_list(overlap),
                             ignore_statistics,
                             capacity,
                             hoomd.context.current.system_definition.getParticleData().getExecConf());
@@ -425,8 +421,7 @@ class convex_spheropolyhedron_union_params(_hpmc.convex_polyhedron_union_param_p
             data[key] = val;
         return data;
 
-    @classmethod
-    def make_param(cls, centers, orientations, vertices, overlap=None, ignore_statistics=False, capacity=4, sweep_radii=None): #colors=None,
+    def make_param(self, centers, orientations, vertices, overlap=None, sweep_radii=None, ignore_statistics=False, colors=None, capacity=4):
         if overlap is None:
             overlap = [1 for c in centers]
 
@@ -436,16 +431,16 @@ class convex_spheropolyhedron_union_params(_hpmc.convex_polyhedron_union_param_p
         members = []
         for i,(verts, sweep_radius) in enumerate(zip(vertices, sweep_radii)):
             member_fn = _hpmc.make_poly3d_verts
-            members.append(member_fn(cls.ensure_list(verts), float(0), ignore_statistics, hoomd.context.current.system_definition.getParticleData().getExecConf()))
+            members.append(member_fn(self.ensure_list(verts), float(sweep_radius), ignore_statistics, hoomd.context.current.system_definition.getParticleData().getExecConf()))
 
         N = len(vertices)
         if len(centers) != N or len(orientations)!= N:
             raise RuntimeError("Lists of constituent particle parameters and centers must be equal length.")
-        return _hpmc.make_convex_polyhedron_union_params(
-                            cls.ensure_list(members),
-                            cls.ensure_list(centers),
-                            cls.ensure_list(orientations),
-                            cls.ensure_list(overlap),
+        self.colors = None if colors is None else self.ensure_list(colors);
+        return self.make_fn(self.ensure_list(members),
+                            self.ensure_list(centers),
+                            self.ensure_list(orientations),
+                            self.ensure_list(overlap),
                             ignore_statistics,
                             capacity,
                             hoomd.context.current.system_definition.getParticleData().getExecConf());
