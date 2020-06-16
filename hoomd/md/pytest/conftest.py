@@ -275,6 +275,16 @@ def _forces_and_energies():
                        [2.38421, 0.714966],
                        [11.642, 3.97672]]
 
+    params["Mie"] = [{"epsilon": 0.05, "sigma": 0.5, "n": 12, "m": 6},
+                     {"epsilon": 0.025, "sigma": 1.0, "n": 14, "m": 8},
+                     {"epsilon": 0.01, "sigma": 1.5, "n": 16, "m": 10}]
+    forces["Mie"] = [[0.115803, 0.00109438],
+                     [-115.77, 0.0216668],
+                     [-80806.3, -0.2334687]]
+    energies["Mie"] = [[-0.0160168, -0.000273972],
+                       [5.67535, -0.00437856],
+                       [3765.38, 0.0]]
+
     param_list = []
     for pair_potential in params.keys():
         for i in range(3):
