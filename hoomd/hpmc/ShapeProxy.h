@@ -239,7 +239,7 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
             }
         result.face_verts[i] = j;
         }
-    std::vector<hpmc::detail::OBB> obbs(len(face_offs));
+    hpmc::detail::OBB *obbs = new hpmc::detail::OBB[len(face_offs)];
     std::vector<std::vector<vec3<OverlapReal> > > internal_coordinates;
 
     // construct bounding box tree
@@ -262,8 +262,9 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
         }
 
     OBBTree tree;
-    tree.buildTree(obbs.data(), internal_coordinates, result.sweep_radius, len(face_offs)-1, leaf_capacity);
+    tree.buildTree(obbs, internal_coordinates, result.sweep_radius, len(face_offs)-1, leaf_capacity);
     result.tree = GPUTree(tree, exec_conf->isCUDAEnabled());
+    delete [] obbs;
 
     // set the diameter
     result.convex_hull_verts.diameter = 2*(sqrt(radius_sq)+result.sweep_radius);

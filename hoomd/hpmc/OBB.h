@@ -93,15 +93,6 @@ struct OBB
         is_sphere = 0;
         }
 
-    DEVICE OBB(const OBB& obb)
-        {
-        lengths = obb.lengths;
-        center = obb.center;
-        rotation = obb.rotation;
-        mask = obb.mask;
-        is_sphere = obb.is_sphere;
-        }
-
     //! Construct an OBB from an AABB
     //! Get the OBB's position
     DEVICE vec3<OverlapReal> getPosition() const
