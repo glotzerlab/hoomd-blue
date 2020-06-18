@@ -1,13 +1,4 @@
 
-[submodule "hoomd/extern/pybind"]
-    path = hoomd/extern/pybind
-    url = https://github.com/glotzerlab/pybind11.git
-[submodule "hoomd/extern/cereal"]
-    path = hoomd/extern/cereal
-    url = https://github.com/glotzerlab/cereal.git
-[submodule "hoomd/extern/Eigen"]
-    path = hoomd/extern/Eigen
-    url = https://github.com/glotzerlab/eigen-git-mirror.git
 [submodule "hoomd/extern/libgetar"]
     path = hoomd/extern/libgetar
     url = https://github.com/glotzerlab/libgetar
