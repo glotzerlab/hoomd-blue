@@ -1,30 +1,29 @@
-
 [submodule "hoomd/extern/libgetar"]
-    path = hoomd/extern/libgetar
-    url = https://github.com/glotzerlab/libgetar
+	path = hoomd/extern/libgetar
+	url = https://github.com/glotzerlab/libgetar
 [submodule "hoomd/extern/upp11"]
-    path = hoomd/extern/upp11
-    url = https://github.com/glotzerlab/upp11.git
+	path = hoomd/extern/upp11
+	url = https://github.com/glotzerlab/upp11.git
 [submodule "hoomd/extern/nano-signal-slot"]
-    path = hoomd/extern/nano-signal-slot
-    url = https://github.com/glotzerlab/nano-signal-slot.git
+	path = hoomd/extern/nano-signal-slot
+	url = https://github.com/glotzerlab/nano-signal-slot.git
 [submodule "hoomd/extern/cub"]
-    path = hoomd/extern/cub
-    url = https://github.com/glotzerlab/cub.git
+	path = hoomd/extern/cub
+	url = https://github.com/glotzerlab/cub.git
 [submodule "hoomd/extern/quickhull"]
-    path = hoomd/extern/quickhull
-    url = https://github.com/glotzerlab/quickhull
+	path = hoomd/extern/quickhull
+	url = https://github.com/glotzerlab/quickhull
 [submodule "hoomd/extern/random123"]
-    path = hoomd/extern/random123
-    url = https://github.com/glotzerlab/random123.git
+	path = hoomd/extern/random123
+	url = https://github.com/glotzerlab/random123.git
 [submodule "hoomd/extern/HIP"]
-    path = hoomd/extern/HIP
-    url = https://github.com/glotzerlab/HIP.git
+	path = hoomd/extern/HIP
+	url = https://github.com/glotzerlab/HIP.git
 [submodule "hoomd/extern/hipCUB"]
-    path = hoomd/extern/hipCUB
-    url = https://github.com/glotzerlab/hipCUB
-    branch = header_only
+	path = hoomd/extern/hipCUB
+	url = https://github.com/glotzerlab/hipCUB
+	branch = header_only
 [submodule "hoomd/extern/neighbor"]
-    path = hoomd/extern/neighbor
-    url = https://github.com/jglaser/neighbor.git
-    branch = hip
+	path = hoomd/extern/neighbor
+	url = https://github.com/jglaser/neighbor.git
+	branch = hip
