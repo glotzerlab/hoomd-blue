@@ -28,7 +28,22 @@ struct HOOMDHostBuffer : public HOOMDBuffer
                       std::vector<ssize_t> strides, bool read_only)
         : m_data(data), m_itemsize(itemsize), m_typestr(typestr),
           m_dimensions(dimensions), m_shape(shape), m_strides(strides),
-          m_read_only(read_only) {}
+          m_read_only(read_only)
+        {
+        if (m_shape.size() != m_strides.size())
+            {
+            throw std::runtime_error("GPU buffer shape != strides.");
+            }
+        }
+
+    template<class T>
+    static HOOMDHostBuffer make(T* data, std::vector<ssize_t> shape,
+                                std::vector<ssize_t> strides, bool read_only)
+        {
+        return HOOMDHostBuffer(
+            data, sizeof(T), pybind11::format_descriptor<T>::format(),
+            shape.size(), shape, strides, read_only);
+        }
 
     pybind11::buffer_info new_buffer()
         {
@@ -56,9 +71,9 @@ struct HOOMDDeviceBuffer : public HOOMDBuffer
     std::vector<ssize_t> m_strides;
     bool m_read_only;
 
-    HOOMDDeviceBuffer(void* data, ssize_t unused1, std::string typestr,
-                      ssize_t unused2, std::vector<ssize_t> shape,
-                      std::vector<ssize_t> strides, bool read_only)
+    HOOMDDeviceBuffer(void* data, std::string typestr,
+                      std::vector<ssize_t> shape, std::vector<ssize_t> strides,
+                      bool read_only)
         : m_data(data), m_typestr(typestr), m_shape(shape), m_strides(strides),
           m_read_only(read_only)
         {
@@ -66,6 +81,14 @@ struct HOOMDDeviceBuffer : public HOOMDBuffer
             {
             throw std::runtime_error("GPU buffer shape != strides.");
             }
+        }
+
+    template<class T>
+    static HOOMDDeviceBuffer make(T* data, std::vector<ssize_t> shape,
+                                  std::vector<ssize_t> strides, bool read_only)
+        {
+        return HOOMDDeviceBuffer(data, pybind11::format_descriptor<T>::format(),
+                                 shape, strides, read_only);
         }
 
     /// Convert object to a __cuda_array_interface__ v2 compliant Python dict.
@@ -205,29 +228,17 @@ class LocalDataAccess
                 }
             S* data = (S*)(((char*)_data) + offset);
 
+            std::vector<ssize_t> shape{size, second_dimension_size};
             if (strides.size() == 0 && second_dimension_size == 0)
                 {
-                return Output(
-                    data,
-                    sizeof(S),
-                    pybind11::format_descriptor<S>::format(),
-                    1,
-                    std::vector<ssize_t>({size}),
-                    std::vector<ssize_t>({sizeof(T)}),
-                    read_only);
+                shape.pop_back();
+                strides = std::vector<ssize_t>({sizeof(T)});
                 }
             else if (strides.size() == 0 && second_dimension_size != 0)
                 {
                 strides = std::vector<ssize_t>({sizeof(T), sizeof(S)});
                 }
-            return Output(
-                data,
-                sizeof(S),
-                pybind11::format_descriptor<S>::format(),
-                2,
-                std::vector<ssize_t>({size, second_dimension_size}),
-                strides,
-                read_only);
+            return Output::make(data, shape, strides, read_only);
             }
 
         // Helper function for when the exposed type and the internal type are
