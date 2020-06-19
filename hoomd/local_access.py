@@ -10,6 +10,8 @@ class _LocalAccess(ABC):
     def _fields(self):
         pass
 
+    _global_fields = {'rtag': 'getRTags'}
+
     @property
     @abstractmethod
     def _array_cls(self):
@@ -22,6 +24,8 @@ class _LocalAccess(ABC):
     def __getattr__(self, attr):
         if attr in self._accessed_fields:
             return self._accessed_fields[attr]
+        elif attr in self._global_fields:
+            buff = getattr(self._cpp_obj, self._global_fields[attr])()
         elif attr.startswith("ghost_"):
             if attr[6:] in self._fields:
                 buff = getattr(self._cpp_obj, self._fields[attr[6:]])(

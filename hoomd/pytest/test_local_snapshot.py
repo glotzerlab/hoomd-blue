@@ -64,9 +64,9 @@ _particle_data = dict(
         new_value=np.linspace(-20, 10, Np * 3, dtype=np.int).reshape(Np, 3),
         shape=(Np, 3)),
     tag=dict(np_type=np.unsignedinteger, value=None, shape=(Np,)),
-    rtag=dict(np_type=np.unsignedinteger, value=None, shape=(Np,)),
     _types=['p1', 'p2']
 )
+
 
 Nb = 2
 _bond_data = dict(
@@ -79,9 +79,9 @@ _bond_data = dict(
         new_value=[[1, 0], [3, 2]],
         shape=(Nb, 2)),
     tag=dict(np_type=np.unsignedinteger, value=None, shape=(Nb,)),
-    rtag=dict(np_type=np.unsignedinteger, value=None, shape=(Nb,)),
     _types=['b1', 'b2']
 )
+
 
 Na = 2
 _angle_data = dict(
@@ -94,9 +94,9 @@ _angle_data = dict(
         new_value=[[1, 3, 4], [0, 2, 4]],
         shape=(Na, 3)),
     tag=dict(np_type=np.unsignedinteger, value=None, shape=(Na,)),
-    rtag=dict(np_type=np.unsignedinteger, value=None, shape=(Na,)),
     _types=['a1', 'a2']
 )
+
 
 Nd = 2
 _dihedral_data = dict(
@@ -109,9 +109,9 @@ _dihedral_data = dict(
         new_value=[[4, 3, 2, 1], [2, 4, 0, 1]],
         shape=(Nd, 4)),
     tag=dict(np_type=np.unsignedinteger, value=None, shape=(Nd,)),
-    rtag=dict(np_type=np.unsignedinteger, value=None, shape=(Nd,)),
     _types=['d1', 'd2']
 )
+
 
 Ni = 2
 _improper_data = dict(
@@ -124,8 +124,6 @@ _improper_data = dict(
         new_value=[[1, 2, 3, 0], [4, 2, 3, 1]],
         shape=(Ni, 4)),
     tag=dict(
-        np_type=np.unsignedinteger, value=None, shape=(Ni,)),
-    rtag=dict(
         np_type=np.unsignedinteger, value=None, shape=(Ni,)),
     _types=['i1']
 )
@@ -141,8 +139,8 @@ _constraint_data = dict(
         new_value=[[4, 1], [3, 1], [2, 4]],
         shape=(Nc, 2)),
     tag=dict(np_type=np.unsignedinteger, value=None, shape=(Nc,)),
-    rtag=dict(np_type=np.unsignedinteger, value=None, shape=(Nc,)),
 )
+
 
 Npa = 2
 _pair_data = dict(
@@ -155,9 +153,19 @@ _pair_data = dict(
         new_value=[[4, 1], [0, 3]],
         shape=(Npa, 2)),
     tag=dict(np_type=np.unsignedinteger, value=None, shape=(Npa,)),
-    rtag=dict(np_type=np.unsignedinteger, value=None, shape=(Npa,)),
     _types=['p1', 'p2']
 )
+
+
+_global_dict = dict(rtag=dict(
+    particles=dict(np_type=np.unsignedinteger, value=None, shape=(Np,)),
+    bonds=dict(np_type=np.unsignedinteger, value=None, shape=(Nb,)),
+    angles=dict(np_type=np.unsignedinteger, value=None, shape=(Na,)),
+    dihedrals=dict(np_type=np.unsignedinteger, value=None, shape=(Nd,)),
+    impropers=dict(np_type=np.unsignedinteger, value=None, shape=(Ni,)),
+    constraints=dict(np_type=np.unsignedinteger, value=None, shape=(Nc,)),
+    pairs=dict(np_type=np.unsignedinteger, value=None, shape=(Npa,)),
+))
 
 
 @pytest.fixture(scope='session')
@@ -257,6 +265,8 @@ def test_box_gpu(gpu_simulation_factory, base_snapshot):
         check_box(data, sim.state.box, sim.device.num_ranks)
 
 
+# Test tags and rtags
+
 def check_tag_shape(base_snapshot, local_snapshot, group, ranks):
     mpi_comm = MPI.COMM_WORLD
 
@@ -264,7 +274,7 @@ def check_tag_shape(base_snapshot, local_snapshot, group, ranks):
         N = getattr(base_snapshot, group).N
     else:
         N = None
-    return mpi_comm.bcast(N, root=0)
+    N = mpi_comm.bcast(N, root=0)
 
     # check particles tag size
     if group == 'particles':
@@ -318,7 +328,65 @@ def test_gpu_tags_shape(
             base_snapshot, data, snapshot_section, sim.device.num_ranks)
 
 
+@pytest.fixture(
+    scope="function",
+    params=[(section_name, prop_name, prop_dict)
+            for prop_name, global_prop_dict in _global_dict.items()
+            for section_name, prop_dict in global_prop_dict.items()],
+    ids=lambda x: x[0] + '-' + x[1])
+def global_property(request):
+    return request.param
+
+
+def check_global_properties(prop, global_property_dict, N):
+    assert prop.shape == global_property_dict['shape']
+    assert np.issubdtype(prop.dtype, global_property_dict['np_type'])
+    if global_property_dict['value'] is not None:
+        general_array_equality(prop, global_property_dict['value'])
+    with pytest.raises(ValueError):
+        prop[:] = 1
+
+
+@skip_mpi4py
+def test_cpu_global_properties(cpu_simulation_factory, base_snapshot,
+                               global_property):
+    section_name, prop_name, prop_dict = global_property
+    sim = cpu_simulation_factory(base_snapshot)
+    snapshot = sim.state.snapshot
+
+    mpi_comm = MPI.COMM_WORLD
+
+    if snapshot.exists:
+        N = getattr(snapshot, section_name).N
+    else:
+        N = None
+    N = mpi_comm.bcast(N, root=0)
+    with sim.state.cpu_local_snapshot as data:
+        check_global_properties(
+            getattr(getattr(data, section_name), prop_name), prop_dict, N)
+
+
+@skip_mpi4py
+def test_gpu_global_properties(gpu_simulation_factory, base_snapshot,
+                               global_property):
+    section_name, prop_name, prop_dict = global_property
+    sim = gpu_simulation_factory(base_snapshot)
+    snapshot = sim.state.snapshot
+
+    mpi_comm = MPI.COMM_WORLD
+
+    if snapshot.exists:
+        N = getattr(snapshot, section_name).N
+    else:
+        N = None
+    N = mpi_comm.bcast(N, root=0)
+    with sim.state.gpu_local_snapshot as data:
+        check_global_properties(
+            getattr(getattr(data, section_name), prop_name), prop_dict, N)
+
 # Testing local snapshot array properties
+
+# Create fixtures that allow for parametrized tests
 
 @pytest.fixture(
     scope='function',
@@ -380,6 +448,7 @@ def check_shape(data, prop_dict, tags):
 
 
 def general_array_equality(arr1, arr2):
+    """Allows checking of equality with both HOOMDArrays and HOOMDGPUArrays."""
     if any(np.issubdtype(a.dtype, np.floating) for a in (arr1, arr2)):
         if any(isinstance(a, HOOMDGPUArray) for a in (arr1, arr2)):
             return cupy.allclose(arr1, arr2)

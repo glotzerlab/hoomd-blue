@@ -1400,14 +1400,10 @@ class PYBIND11_EXPORT LocalParticleData :
                 );
                 }
 
-            Output getRTags(bool ghost=false, bool include_both=false)
+            Output getRTags()
                 {
-                return this->template getBuffer<unsigned int, unsigned int>(
-                    m_rtag_handle,
-                    &ParticleData::getRTags
-                    ghost,
-                    include_both
-                    );
+                return this->template getGlobalBuffer<unsigned int>(
+                    m_rtag_handle, &ParticleData::getRTags);
                 }
 
             Output getBodies(bool ghost=false, bool include_both=false)

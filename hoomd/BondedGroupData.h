@@ -1016,13 +1016,11 @@ class LocalGroupData : public LocalDataAccess<Output, GroupData>
                 );
             }
 
-        Output getRTags(bool ghost, bool include_both)
+        Output getRTags()
             {
-            return this->template getBufferSameType<unsigned int, GPUVector>(
+            return this->template getGlobalBuffer<unsigned int, GPUVector>(
                 m_rtags_handle,
-                &GroupData::getRTags,
-                ghost,
-                include_both
+                &GroupData::getRTags
                 );
             }
 
