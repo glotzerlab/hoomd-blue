@@ -21,7 +21,14 @@
 #include "hoomd/hpmc/ShapeFacetedEllipsoid.h"
 #include "hoomd/hpmc/ShapeSphinx.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <string>
+
+#ifdef ENABLE_HIP
+#include "PatchEnergyJITGPU.h"
+#include "PatchEnergyJITUnionGPU.h"
+#endif
+
+#include <pybind11/pybind11.h>
 
 using namespace hpmc;
 using namespace hpmc::detail;
@@ -46,4 +53,13 @@ PYBIND11_MODULE(_jit, m)
     export_ExternalFieldJIT<ShapeEllipsoid>(m, "ExternalFieldJITEllipsoid");
     export_ExternalFieldJIT<ShapeFacetedEllipsoid>(m, "ExternalFieldJITFacetedEllipsoid");
     export_ExternalFieldJIT<ShapeSphinx>(m, "ExternalFieldJITSphinx");
+
+    #ifdef ENABLE_HIP
+    m.attr("__cuda_devrt_library_path__") = std::string(CUDA_DEVRT_LIBRARY_PATH);
+    m.attr("__cuda_include_path__") = std::string(CUDA_INCLUDE_PATH);
+    m.attr("__cuda_compute_archs__") = std::string(CUDA_COMPUTE_ARCHS);
+
+    export_PatchEnergyJITGPU(m);
+    export_PatchEnergyJITUnionGPU(m);
+    #endif
     }

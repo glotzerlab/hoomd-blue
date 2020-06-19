@@ -150,7 +150,7 @@ void ConstraintEllipsoid::validate()
 
 void export_ConstraintEllipsoid(py::module& m)
     {
-    py::class_< ConstraintEllipsoid, std::shared_ptr<ConstraintEllipsoid> >(m, "ConstraintEllipsoid", py::base<Updater>())
+    py::class_< ConstraintEllipsoid, Updater, std::shared_ptr<ConstraintEllipsoid> >(m, "ConstraintEllipsoid")
         .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar3, Scalar, Scalar, Scalar >())
     ;
     }

@@ -593,7 +593,7 @@ void ForceDistanceConstraint::assignMoleculeTags()
 
 void export_ForceDistanceConstraint(py::module& m)
     {
-    py::class_< ForceDistanceConstraint, std::shared_ptr<ForceDistanceConstraint> >(m, "ForceDistanceConstraint", py::base<MolecularForceCompute>())
+    py::class_< ForceDistanceConstraint, MolecularForceCompute, std::shared_ptr<ForceDistanceConstraint> >(m, "ForceDistanceConstraint")
         .def(py::init< std::shared_ptr<SystemDefinition> >())
         .def("setRelativeTolerance", &ForceDistanceConstraint::setRelativeTolerance)
     ;

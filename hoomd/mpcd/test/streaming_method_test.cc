@@ -5,9 +5,9 @@
 
 #include "hoomd/mpcd/StreamingGeometry.h"
 #include "hoomd/mpcd/ConfinedStreamingMethod.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/mpcd/ConfinedStreamingMethodGPU.h"
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 
 #include "hoomd/SnapshotSystemData.h"
 #include "hoomd/test/upp11_config.h"
@@ -111,11 +111,11 @@ UP_TEST( mpcd_streaming_method_basic )
     typedef mpcd::ConfinedStreamingMethod<mpcd::detail::BulkGeometry> method;
     streaming_method_basic_test<method>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
     }
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! basic test case for MPCD StreamingMethod class
 UP_TEST( mpcd_streaming_method_setup )
     {
     typedef mpcd::ConfinedStreamingMethodGPU<mpcd::detail::BulkGeometry> method;
     streaming_method_basic_test<method>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
     }
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP

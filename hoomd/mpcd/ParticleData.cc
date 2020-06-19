@@ -16,7 +16,7 @@
 #include "hoomd/HOOMDMPI.h"
 #endif // ENABLE_MPI
 
-#include "hoomd/extern/pybind/include/pybind11/stl.h"
+#include <pybind11/stl.h>
 
 #include <random>
 #include <iomanip>
@@ -647,14 +647,14 @@ void mpcd::ParticleData::allocate(unsigned int N_max)
         GPUArray<unsigned int> remove_ids(N_max, m_exec_conf);
         m_remove_ids.swap(remove_ids);
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         GPUFlags<unsigned int> num_remove(m_exec_conf);
         m_num_remove.swap(num_remove);
 
         // this array is used for particle migration
         GPUArray<unsigned char> remove_flags(N_max, m_exec_conf);
         m_remove_flags.swap(remove_flags);
-        #endif // ENABLE_CUDA
+        #endif // ENABLE_HIP
         }
     #endif // ENABLE_MPI
     }
@@ -691,9 +691,9 @@ void mpcd::ParticleData::reallocate(unsigned int N_max)
         m_comm_flags_alt.resize(N_max);
         m_remove_ids.resize(N_max);
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         m_remove_flags.resize(N_max);
-        #endif // ENABLE_CUDA
+        #endif // ENABLE_HIP
         }
     #endif // ENABLE_MPI
     }
@@ -1008,7 +1008,7 @@ void mpcd::ParticleData::addParticles(const GPUVector<mpcd::detail::pdata_elemen
     notifySort(timestep);
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 /*!
  * \param out Buffer into which particle data is packed
  * \param mask Mask for \a m_comm_flags to determine if communication is necessary
@@ -1164,7 +1164,7 @@ void mpcd::ParticleData::addParticlesGPU(const GPUVector<mpcd::detail::pdata_ele
     invalidateCellCache();
     notifySort(timestep);
     }
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 
 void mpcd::ParticleData::setupMPI(std::shared_ptr<DomainDecomposition> decomposition)
     {
@@ -1172,14 +1172,14 @@ void mpcd::ParticleData::setupMPI(std::shared_ptr<DomainDecomposition> decomposi
     if (decomposition)
         m_decomposition = decomposition;
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         {
         m_mark_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_mark", m_exec_conf));
         m_remove_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_remove", m_exec_conf));
         m_add_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_add", m_exec_conf));
         }
-    #endif // ENABLE_CUDA
+    #endif // ENABLE_HIP
     }
 #endif // ENABLE_MPI
 

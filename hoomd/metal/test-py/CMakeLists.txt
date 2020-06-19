@@ -12,19 +12,19 @@ macro(add_hoomd_script_test test_py)
                 COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1
                 ${PYTHON_EXECUTABLE} ${test_py} "--mode=cpu" "--gpu_error_checking")
         set_tests_properties(script-${_test_name}-cpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH}")
-        if (ENABLE_CUDA)
+        if (ENABLE_HIP)
             add_test(NAME script-${_test_name}-gpu
                     COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1
                     ${PYTHON_EXECUTABLE} ${test_py} "--mode=gpu" "--gpu_error_checking")
             set_tests_properties(script-${_test_name}-gpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH}")
-        endif (ENABLE_CUDA)
+        endif (ENABLE_HIP)
     else ()
         add_test(NAME script-${_test_name}-cpu COMMAND ${PYTHON_EXECUTABLE} ${test_py} "--mode=cpu" "--gpu_error_checking")
         set_tests_properties(script-${_test_name}-cpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH}")
-        if (ENABLE_CUDA)
+        if (ENABLE_HIP)
             add_test(NAME script-${_test_name}-gpu COMMAND ${PYTHON_EXECUTABLE} ${test_py} "--mode=gpu" "--gpu_error_checking")
             set_tests_properties(script-${_test_name}-gpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH}")
-        endif (ENABLE_CUDA)
+        endif (ENABLE_HIP)
     endif()
 
 endmacro(add_hoomd_script_test)

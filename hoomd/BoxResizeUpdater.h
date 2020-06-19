@@ -8,7 +8,7 @@
     \brief Declares an updater that resizes the simulation box of the system
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -16,7 +16,7 @@
 #include "Variant.h"
 
 #include <memory>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __BOXRESIZEUPDATER_H__
 #define __BOXRESIZEUPDATER_H__

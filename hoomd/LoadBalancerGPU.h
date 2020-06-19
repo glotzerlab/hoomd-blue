@@ -8,12 +8,12 @@
     \brief Declares an updater that changes the MPI domain decomposition to balance the load using the GPU
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
 #ifdef ENABLE_MPI
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #ifndef __LOADBALANCERGPU_H__
 #define __LOADBALANCERGPU_H__
@@ -23,7 +23,7 @@
 #include "LoadBalancer.h"
 #include "Autotuner.h"
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! GPU implementation of dynamic load balancing
 class PYBIND11_EXPORT LoadBalancerGPU : public LoadBalancer
@@ -68,5 +68,5 @@ void export_LoadBalancerGPU(pybind11::module& m);
 
 #endif // __LOADBALANCERGPU_H__
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // ENABLE_MPI

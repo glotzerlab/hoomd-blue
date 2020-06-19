@@ -32,7 +32,8 @@ OneDConstraintGPU::OneDConstraintGPU(std::shared_ptr<SystemDefinition> sysdef,
         throw std::runtime_error("Error initializing OneDConstraintGPU");
         }
 
-    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "oneD_constraint", this->m_exec_conf));
+    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    m_tuner.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "oneD_constraint", this->m_exec_conf));
 
     }
 
@@ -91,7 +92,7 @@ void OneDConstraintGPU::computeForces(unsigned int timestep)
 
 void export_OneDConstraintGPU(py::module& m)
     {
-    py::class_< OneDConstraintGPU, std::shared_ptr<OneDConstraintGPU> >(m, "OneDConstraintGPU", py::base<ForceConstraint>())
+    py::class_< OneDConstraintGPU, ForceConstraint, std::shared_ptr<OneDConstraintGPU> >(m, "OneDConstraintGPU")
     .def(py::init< std::shared_ptr<SystemDefinition>,
                    std::shared_ptr<ParticleGroup>,
                    Scalar3 >())

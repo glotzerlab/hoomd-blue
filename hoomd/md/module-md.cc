@@ -20,6 +20,7 @@
 #include "Enforce2DUpdater.h"
 #include "EvaluatorTersoff.h"
 #include "EvaluatorSquareDensity.h"
+#include "EvaluatorRevCross.h"
 #include "FIREEnergyMinimizer.h"
 #include "ForceComposite.h"
 #include "ForceDistanceConstraint.h"
@@ -58,7 +59,7 @@
 #include "MuellerPlatheFlow.h"
 
 // include GPU classes
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "ActiveForceComputeGPU.h"
 #include "AnisoPotentialPairGPU.h"
 #include "BondTablePotentialGPU.h"
@@ -96,7 +97,7 @@
 #include "MuellerPlatheFlowGPU.h"
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 namespace py = pybind11;
 
 /*! \file hoomd_module.cc
@@ -122,6 +123,20 @@ void export_tersoff_params(py::module& m)
     m.def("make_tersoff_params", &make_tersoff_params);
 }
 
+//! Function to export the revcross parameter type to python
+void export_revcross_params(py::module& m)
+{
+    py::class_<revcross_params>(m, "revcross_params")
+        .def(py::init<>())
+        .def_readwrite("sigma", &revcross_params::sigma)
+        .def_readwrite("n", &revcross_params::n)
+        .def_readwrite("epsilon", &revcross_params::epsilon)
+        .def_readwrite("lambda3", &revcross_params::lambda3)
+        ;
+
+    m.def("make_revcross_params", &make_revcross_params);
+}
+
 //! Function to make the Fourier parameter type
 inline pair_fourier_params make_pair_fourier_params(py::list a, py::list b)
     {
@@ -131,26 +146,6 @@ inline pair_fourier_params make_pair_fourier_params(py::list a, py::list b)
         retval.a[i] = py::cast<Scalar>(a[i]);
         retval.b[i] = py::cast<Scalar>(b[i]);
         }
-    return retval;
-    }
-
-//! Function to make the Gay-Berne parameter type
-inline pair_gb_params make_pair_gb_params(Scalar epsilon, Scalar lperp, Scalar lpar)
-    {
-    pair_gb_params retval;
-    retval.epsilon = epsilon;
-    retval.lperp = lperp;
-    retval.lpar = lpar;
-    return retval;
-    }
-
-//! Function to make the dipole parameter type
-inline pair_dipole_params make_pair_dipole_params(Scalar mu, Scalar A, Scalar kappa)
-    {
-    pair_dipole_params retval;
-    retval.mu = mu;
-    retval.A = A;
-    retval.kappa = kappa;
     return retval;
     }
 
@@ -264,11 +259,13 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairZBL>(m, "PotentialPairZBL");
     export_PotentialTersoff<PotentialTripletTersoff>(m, "PotentialTersoff");
     export_PotentialTersoff<PotentialTripletSquareDensity> (m, "PotentialSquareDensity");
+    export_PotentialTersoff<PotentialTripletRevCross> (m, "PotentialRevCross");
     export_PotentialPair<PotentialPairMie>(m, "PotentialPairMie");
     export_PotentialPair<PotentialPairReactionField>(m, "PotentialPairReactionField");
     export_PotentialPair<PotentialPairDLVO>(m, "PotentialPairDLVO");
     export_PotentialPair<PotentialPairFourier>(m, "PotentialPairFourier");
     export_tersoff_params(m);
+    export_revcross_params(m);
     export_pair_params(m);
     export_AnisoPotentialPair<AnisoPotentialPairGB>(m, "AnisoPotentialPairGB");
     export_AnisoPotentialPair<AnisoPotentialPairDipole>(m, "AnisoPotentialPairDipole");
@@ -303,7 +300,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalWall<EvaluatorPairGauss>(m, "WallsPotentialGauss");
     export_PotentialExternalWall<EvaluatorPairMorse>(m, "WallsPotentialMorse");
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     export_NeighborListGPU(m);
     export_NeighborListGPUBinned(m);
     export_NeighborListGPUStencil(m);
@@ -325,6 +322,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairGPU<PotentialPairZBLGPU, PotentialPairZBL>(m, "PotentialPairZBLGPU");
     export_PotentialTersoffGPU<PotentialTripletTersoffGPU, PotentialTripletTersoff>(m, "PotentialTersoffGPU");
     export_PotentialTersoffGPU<PotentialTripletSquareDensityGPU, PotentialTripletSquareDensity> (m, "PotentialSquareDensityGPU");
+    export_PotentialTersoffGPU<PotentialTripletRevCrossGPU, PotentialTripletRevCross> (m, "PotentialRevCrossGPU");
     export_PotentialPairGPU<PotentialPairForceShiftedLJGPU, PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJGPU");
     export_PotentialPairGPU<PotentialPairMieGPU, PotentialPairMie>(m, "PotentialPairMieGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD >(m, "PotentialPairDPDThermoDPDGPU");
@@ -379,7 +377,7 @@ PYBIND11_MODULE(_md, m)
     export_FIREEnergyMinimizer(m);
     export_MuellerPlatheFlow(m);
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     export_TwoStepNVEGPU(m);
     export_TwoStepNVTMTKGPU(m);
     export_TwoStepLangevinGPU(m);

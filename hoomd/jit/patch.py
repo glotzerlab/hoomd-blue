@@ -5,8 +5,6 @@ from hoomd import _hoomd
 from hoomd.jit import _jit
 import hoomd
 
-import tempfile
-import shutil
 import subprocess
 import os
 
@@ -34,7 +32,7 @@ class user(object):
     in the MC loop with full performance. It enables researchers to quickly and easily implement custom energetic
     interactions without the need to modify and recompile HOOMD. Additionally, :py:class:`user` provides a mechanism,
     through the `alpha_iso` attribute (numpy array), to adjust user defined potential parameters without the need
-    to recompile the patch energy code.
+    to recompile the patch energy code. These arrays are **read-only** during function evaluation.
 
     .. rubric:: C++ code
 
@@ -130,18 +128,13 @@ class user(object):
     .. versionadded:: 2.3
     '''
     def __init__(self, mc, r_cut, array_size=1, code=None, llvm_ir_file=None, clang_exec=None):
-        hoomd.util.print_status_line();
 
         # check if initialization has occurred
-        if hoomd.context.exec_conf is None:
-            raise RuntimeError('Error creating patch energy, call context.initialize() first');
+        hoomd.context._verify_init()
 
-        # raise an error if this run is on the GPU
-        if hoomd.context.exec_conf.isCUDAEnabled():
-            hoomd.context.msg.error("Patch energies are not supported on the GPU\n");
-            raise RuntimeError("Error initializing patch energy");
+        self.compute_name = "patch"
 
-        # Find a clang executable if none is provided
+        # Find a clang executable if none is provided (we need the CPU version even when running on GPU)
         if clang_exec is not None:
             clang = clang_exec;
         else:
@@ -154,8 +147,29 @@ class user(object):
             with open(llvm_ir_file,'r') as f:
                 llvm_ir = f.read()
 
-        self.compute_name = "patch"
-        self.cpp_evaluator = _jit.PatchEnergyJIT(hoomd.context.exec_conf, llvm_ir, r_cut, array_size);
+        if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
+            include_path_hoomd = os.path.dirname(hoomd.__file__) + '/include';
+            include_path_source = hoomd._hoomd.__hoomd_source_dir__
+            include_path_cuda = _jit.__cuda_include_path__
+            options = ["-I"+include_path_hoomd, "-I"+include_path_source, "-I"+include_path_cuda]
+            cuda_devrt_library_path = _jit.__cuda_devrt_library_path__
+
+            # select maximum supported compute capability out of those we compile for
+            compute_archs = _jit.__cuda_compute_archs__;
+            compute_archs_vec = _hoomd.std_vector_uint()
+            compute_capability = hoomd.context.current.device.cpp_exec_conf.getComputeCapability(0) # GPU 0
+            compute_major, compute_minor = compute_capability.split('.')
+            max_arch = 0
+            for a in compute_archs.split('_'):
+                if int(a) < int(compute_major)*10+int(compute_major):
+                    max_arch = int(a)
+
+            gpu_code = self.wrap_gpu_code(code)
+            self.cpp_evaluator = _jit.PatchEnergyJITGPU(hoomd.context.current.device.cpp_exec_conf, llvm_ir, r_cut, array_size,
+                gpu_code, "hpmc::gpu::kernel::hpmc_narrow_phase_patch", options, cuda_devrt_library_path, max_arch);
+        else:
+            self.cpp_evaluator = _jit.PatchEnergyJIT(hoomd.context.current.device.cpp_exec_conf, llvm_ir, r_cut, array_size);
+
         mc.set_PatchEnergyEvaluator(self);
 
         self.mc = mc
@@ -177,14 +191,16 @@ class user(object):
         .. versionadded:: 2.3
         '''
         cpp_function = """
+#include <stdio.h>
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 
-float alpha_iso[{}];
-float alpha_union[{}];
+// these are allocated by the library
+float *alpha_iso;
+float *alpha_union;
 
 extern "C"
-{{
+{
 float eval(const vec3<float>& r_ij,
     unsigned int type_i,
     const quat<float>& q_i,
@@ -194,8 +210,8 @@ float eval(const vec3<float>& r_ij,
     const quat<float>& q_j,
     float d_j,
     float charge_j)
-    {{
-""".format(array_size_iso, array_size_union);
+    {
+"""
         cpp_function += code
         cpp_function += """
     }
@@ -221,12 +237,49 @@ float eval(const vec3<float>& r_ij,
         llvm_ir = output[0].decode()
 
         if p.returncode != 0:
-            hoomd.context.msg.error("Error compiling provided code\n");
-            hoomd.context.msg.error("Command "+' '.join(cmd)+"\n");
-            hoomd.context.msg.error(output[1].decode()+"\n");
+            hoomd.context.current.device.cpp_msg.error("Error compiling provided code\n");
+            hoomd.context.current.device.cpp_msg.error("Command "+' '.join(cmd)+"\n");
+            hoomd.context.current.device.cpp_msg.error(output[1].decode()+"\n");
             raise RuntimeError("Error initializing patch energy");
 
         return llvm_ir
+
+    def wrap_gpu_code(self, code):
+        R'''Helper function to compile the provided code into a device function
+
+        Args:
+            code (str): C++ code to compile
+
+        .. versionadded:: 3.0
+        '''
+
+        cpp_function = """
+#include "hoomd/HOOMDMath.h"
+#include "hoomd/VectorMath.h"
+#include "hoomd/hpmc/IntegratorHPMCMonoGPUJIT.inc"
+
+// these are allocated by the library
+__device__ float *alpha_iso;
+__device__ float *alpha_union;
+
+__device__ inline float eval(const vec3<float>& r_ij,
+    unsigned int type_i,
+    const quat<float>& q_i,
+    float d_i,
+    float charge_i,
+    unsigned int type_j,
+    const quat<float>& q_j,
+    float d_j,
+    float charge_j)
+    {
+"""
+        cpp_function += code
+        cpp_function += """
+    }
+"""
+
+        # Compile on C++ side
+        return cpp_function
 
     R''' Disable the patch energy and optionally enable it only for logging
 
@@ -235,7 +288,6 @@ float eval(const vec3<float>& r_ij,
 
     '''
     def disable(self,log=None):
-        hoomd.util.print_status_line();
 
         if log:
             # enable only for logging purposes
@@ -252,7 +304,6 @@ float eval(const vec3<float>& r_ij,
 
     '''
     def enable(self):
-        hoomd.util.print_status_line()
         self.mc.cpp_integrator.setPatchEnergy(self.cpp_evaluator);
 
 class user_union(user):
@@ -321,11 +372,8 @@ class user_union(user):
     def __init__(self, mc, r_cut, array_size=1, code=None, llvm_ir_file=None, r_cut_iso=None, code_iso=None,
         llvm_ir_file_iso=None, array_size_iso=1, clang_exec=None):
 
-        hoomd.util.print_status_line();
-
         # check if initialization has occurred
-        if hoomd.context.exec_conf is None:
-            raise RuntimeError('Error creating patch energy, call context.initialize() first');
+        hoomd.context._verify_init()
 
         if clang_exec is not None:
             clang = clang_exec;
@@ -354,8 +402,36 @@ class user_union(user):
             r_cut_iso = -1.0
 
         self.compute_name = "patch_union"
-        self.cpp_evaluator = _jit.PatchEnergyJITUnion(hoomd.context.current.system_definition, hoomd.context.exec_conf,
-            llvm_ir_iso, r_cut_iso, array_size_iso, llvm_ir, r_cut,  array_size);
+
+        if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
+            include_path_hoomd = os.path.dirname(hoomd.__file__) + '/include';
+            include_path_source = hoomd._hoomd.__hoomd_source_dir__
+            include_path_cuda = _jit.__cuda_include_path__
+            options = ["-I"+include_path_hoomd, "-I"+include_path_source, "-I"+include_path_cuda]
+
+            # use union evaluator
+            options += ["-DUNION_EVAL"]
+
+            cuda_devrt_library_path = _jit.__cuda_devrt_library_path__
+
+            # select maximum supported compute capability out of those we compile for
+            compute_archs = _jit.__cuda_compute_archs__;
+            compute_archs_vec = _hoomd.std_vector_uint()
+            compute_capability = hoomd.context.current.device.cpp_exec_conf.getComputeCapability(0) # GPU 0
+            compute_major, compute_minor = compute_capability.split('.')
+            max_arch = 0
+            for a in compute_archs.split('_'):
+                if int(a) < int(compute_major)*10+int(compute_major):
+                    max_arch = int(a)
+
+            gpu_code = self.wrap_gpu_code(code)
+            self.cpp_evaluator = _jit.PatchEnergyJITUnionGPU(hoomd.context.current.system_definition, hoomd.context.current.device.cpp_exec_conf,
+                llvm_ir_iso, r_cut_iso, array_size_iso, llvm_ir, r_cut,  array_size,
+                gpu_code, "hpmc::gpu::kernel::hpmc_narrow_phase_patch", options, cuda_devrt_library_path, max_arch);
+        else:
+            self.cpp_evaluator = _jit.PatchEnergyJITUnion(hoomd.context.current.system_definition, hoomd.context.current.device.cpp_exec_conf,
+                llvm_ir_iso, r_cut_iso, array_size_iso, llvm_ir, r_cut,  array_size);
+
         mc.set_PatchEnergyEvaluator(self);
 
         self.mc = mc
@@ -366,17 +442,18 @@ class user_union(user):
         self.alpha_iso = self.cpp_evaluator.alpha_iso[:]
         self.alpha_union = self.cpp_evaluator.alpha_union[:]
 
-    R''' Set the union shape parameters for a given particle type
-
-    Args:
-        type (string): The type to set the interactions for
-        positions: The positions of the constituent particles (list of vectors)
-        orientations: The orientations of the constituent particles (list of four-vectors)
-        diameters: The diameters of the constituent particles (list of floats)
-        charges: The charges of the constituent particles (list of floats)
-        leaf_capacity: The number of particles in a leaf of the internal tree data structure
-    '''
     def set_params(self, type, positions, typeids, orientations=None, charges=None, diameters=None, leaf_capacity=4):
+        R''' Set the union shape parameters for a given particle type
+
+        Args:
+            type (str): The type to set the interactions for
+            positions (list): The positions of the constituent particles (list of vectors)
+            orientations (list): The orientations of the constituent particles (list of four-vectors)
+            diameters (list): The diameters of the constituent particles (list of floats)
+            charges (list): The charges of the constituent particles (list of floats)
+            leaf_capacity (int): The number of particles in a leaf of the internal tree data structure
+        '''
+
         if orientations is None:
             orientations = [[1,0,0,0]]*len(positions)
 
@@ -384,7 +461,7 @@ class user_union(user):
             charges = [0]*len(positions)
 
         if diameters is None:
-            diameters = [1.0]*len(positions)
+            diameters = [0.0]*len(positions)
 
         positions = np.array(positions).tolist()
         orientations = np.array(orientations).tolist()
@@ -395,7 +472,7 @@ class user_union(user):
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         type_names = [ hoomd.context.current.system_definition.getParticleData().getNameByType(i) for i in range(0,ntypes) ];
         if not type in type_names:
-            hoomd.context.msg.error("{} is not a valid particle type.\n".format(type));
+            hoomd.context.current.device.cpp_msg.error("{} is not a valid particle type.\n".format(type));
             raise RuntimeError("Error initializing patch energy.");
         typeid = type_names.index(type)
 

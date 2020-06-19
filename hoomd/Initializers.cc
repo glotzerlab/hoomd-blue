@@ -3,8 +3,6 @@
 
 // Maintainer: joaander
 
-
-
 #include "Initializers.h"
 #include "SnapshotSystemData.h"
 
@@ -16,7 +14,7 @@
 
 using namespace std;
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 /*! \file Initializers.cc
     \brief Defines a few initializers for setting up ParticleData instances

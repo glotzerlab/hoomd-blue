@@ -16,7 +16,7 @@
 #include "hoomd/md/TwoStepNVTMTK.h"
 #include "hoomd/ComputeThermo.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/Enforce2DUpdaterGPU.h"
 #endif
 
@@ -179,7 +179,7 @@ std::shared_ptr<Enforce2DUpdater> base_class_enforce2d_creator(std::shared_ptr<S
     return std::shared_ptr<Enforce2DUpdater>(new Enforce2DUpdater(sysdef));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! Enforce2DUpdaterGPU creator for unit tests
 std::shared_ptr<Enforce2DUpdater> gpu_enforce2d_creator(std::shared_ptr<SystemDefinition> sysdef)
     {
@@ -194,7 +194,7 @@ UP_TEST( Enforce2DUpdater_basic )
    enforce2d_basic_test(creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! test case for basic enforce2d tests
 UP_TEST( Enforce2DUpdaterGPU_basic )
     {

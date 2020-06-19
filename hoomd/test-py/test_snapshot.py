@@ -151,7 +151,7 @@ class init_verify_npy_dtype (unittest.TestCase):
     def test_take_snapshot_double(self):
         snapshot = self.s.take_snapshot(all=True, dtype='double');
 
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             float_type = numpy.float64;
 
             # check the particles
@@ -245,7 +245,7 @@ class init_verify_npy_dtype (unittest.TestCase):
     def test_take_snapshot_float(self):
         snapshot = self.s.take_snapshot(all=True, dtype='float');
 
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             float_type = numpy.float32;
 
             # check the particles
@@ -323,7 +323,7 @@ class init_verify_npy_dtype (unittest.TestCase):
 class init_take_snapshot_float (unittest.TestCase):
     def setUp(self):
         self.snapshot = data.make_snapshot(N=4, box=data.boxdim(L=10), dtype='float');
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             # particles
             self.snapshot.particles.position[0] = [0,1,2];
             self.snapshot.particles.position[1] = [1,2,3];
@@ -559,7 +559,7 @@ class init_take_snapshot_float (unittest.TestCase):
 class init_take_snapshot_double (unittest.TestCase):
     def setUp(self):
         self.snapshot = data.make_snapshot(N=4, box=data.boxdim(L=10), dtype='double');
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             # particles
             self.snapshot.particles.position[0] = [0,1,2];
             self.snapshot.particles.position[1] = [1,2,3];
@@ -801,7 +801,7 @@ class init_take_snapshot (unittest.TestCase):
                                       dihedral_types=['dihedralA', 'dihedralB'],
                                       improper_types=['improperA', 'improperB', 'improperC']);
 
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             self.assertEqual(snapshot.particles.N, 10);
             self.assertEqual(snapshot.particles.types, ['p1', 'p2']);
             self.assertEqual(snapshot.bonds.N, 0);

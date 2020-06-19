@@ -21,7 +21,7 @@ class cite_tests (unittest.TestCase):
         cite._ensure_global_bib()
 
         # tmp file
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             tmp = tempfile.mkstemp(suffix='.test.bib');
             self.tmp_file = tmp[1];
         else:
@@ -103,7 +103,7 @@ class cite_tests (unittest.TestCase):
         md.integrate.mode_standard(dt=0.005)
         md.integrate.nve(group=all)
 
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             # at first, nothing should be in the file
             nl = sum(1 for line in open(self.tmp_file))
             self.assertEqual(nl, 0)
@@ -111,21 +111,21 @@ class cite_tests (unittest.TestCase):
         # force a save at this immediate moment
         cite.save(file=self.tmp_file)
 
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             nl1 = sum(1 for line in open(self.tmp_file))
             self.assertTrue(nl1 > nl)
 
         # add a citation and file should be resaved
         c = cite.misc(cite_key='test')
         cite._ensure_global_bib().add(c)
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             nl2 = sum(1 for line in open(self.tmp_file))
             self.assertTrue(nl2 > nl1)
 
     def tearDown(self):
         context.initialize();
         hoomd.context.bib = None;
-        if (comm.get_rank()==0):
+        if (context.current.device.comm.rank==0):
             os.remove(self.tmp_file);
 
 if __name__ == '__main__':

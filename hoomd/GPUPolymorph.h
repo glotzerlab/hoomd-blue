@@ -19,7 +19,7 @@
 #include <functional>
 #include <type_traits>
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "GPUPolymorph.cuh"
 #endif
 
@@ -67,7 +67,7 @@ class GPUPolymorph
     private:
         typedef std::unique_ptr<Base> host_ptr;
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         //! Simple custom deleter for the base class.
         /*!
          * This custom deleter is used by std::unique_ptr to free the memory allocation.
@@ -103,7 +103,7 @@ class GPUPolymorph
             };
 
         typedef std::unique_ptr<Base,CUDADeleter> device_ptr;
-        #endif // ENABLE_CUDA
+        #endif // ENABLE_HIP
 
     public:
         //! Constructor
@@ -116,9 +116,9 @@ class GPUPolymorph
               m_host_data(nullptr)
             {
             m_exec_conf->msg->notice(4) << "Constructing GPUPolymorph [Base = " << typeid(Base).name() << "]" << std::endl;
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             m_device_data = device_ptr(nullptr, CUDADeleter(m_exec_conf));
-            #endif // ENABLE_CUDA
+            #endif // ENABLE_HIP
             }
 
         //! Destructor
@@ -148,9 +148,9 @@ class GPUPolymorph
             : m_exec_conf(std::move(other.m_exec_conf)),
               m_host_data(std::move(other.m_host_data))
             {
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             m_device_data = std::move(other.m_device_data);
-            #endif // ENABLE_CUDA
+            #endif // ENABLE_HIP
             }
 
         //! Move assignment.
@@ -164,9 +164,9 @@ class GPUPolymorph
                 {
                 m_exec_conf = std::move(other.m_exec_conf);
                 m_host_data = std::move(other.m_host_data);
-                #ifdef ENABLE_CUDA
+                #ifdef ENABLE_HIP
                 m_device_data = std::move(other.m_device_data);
-                #endif // ENABLE_CUDA
+                #endif // ENABLE_HIP
                 }
             return *this;
             }
@@ -191,13 +191,13 @@ class GPUPolymorph
                                        << ", Base = " << typeid(Base).name() << "] (" << sizeof(Derived) << " bytes)" << std::endl;
 
             m_host_data.reset(new Derived(args...));
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             if (m_exec_conf->isCUDAEnabled())
                 {
                 m_device_data.reset(gpu::device_new<Derived>(args...));
                 if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
                 }
-            #endif // ENABLE_CUDA
+            #endif // ENABLE_HIP
             }
 
         //! Get the raw pointer associated with a given copy.
@@ -214,12 +214,12 @@ class GPUPolymorph
                 {
                 return m_host_data.get();
                 }
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             else if (location == access_location::device)
                 {
                 return m_device_data.get();
                 }
-            #endif // ENABLE_CUDA
+            #endif // ENABLE_HIP
             else
                 {
                 return nullptr;
@@ -229,9 +229,9 @@ class GPUPolymorph
     private:
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< HOOMD execution configuration
         host_ptr m_host_data;        //!< Host-memory copy
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         device_ptr m_device_data;    //!< Device-memory copy
-        #endif // ENABLE_CUDA
+        #endif // ENABLE_HIP
     };
 
 } // end namespace hoomd

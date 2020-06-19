@@ -13,11 +13,11 @@
  \brief Declares the EAMForceCompute class
  */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __EAMFORCECOMPUTE_H__
 #define __EAMFORCECOMPUTE_H__

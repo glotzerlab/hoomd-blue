@@ -16,13 +16,13 @@
 #include <tuple>
 #include <limits>
 
-#ifndef NVCC
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#ifndef __HIPCC__
+#include <pybind11/pybind11.h>
 #endif
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -842,7 +842,7 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
 template<class Shape>
 void export_ExternalFieldWall(pybind11::module& m, const std::string& name)
 {
-   pybind11::class_< ExternalFieldWall<Shape>, std::shared_ptr< ExternalFieldWall<Shape> > >(m, name.c_str(), pybind11::base< ExternalFieldMono<Shape> >())
+   pybind11::class_< ExternalFieldWall<Shape>, ExternalFieldMono<Shape>, std::shared_ptr< ExternalFieldWall<Shape> > >(m, name.c_str())
     .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr< IntegratorHPMCMono<Shape> > >())
     .def("SetSphereWallParameter", &ExternalFieldWall<Shape>::SetSphereWallParameter)
     .def("SetCylinderWallParameter", &ExternalFieldWall<Shape>::SetCylinderWallParameter)

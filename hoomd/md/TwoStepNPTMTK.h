@@ -15,12 +15,12 @@
     \brief Declares the TwoStepNPTMTK class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#include <hoomd/extern/pybind/include/pybind11/stl.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 //! Integrates part of the system forward in two steps in the NPT ensemble
 /*! Implements the Martyna Tobias Klein (MTK) equations for rigorous integration in the NPT ensemble.

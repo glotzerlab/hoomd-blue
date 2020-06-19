@@ -3,7 +3,7 @@ from __future__ import print_function
 
 import hoomd
 from hoomd import context, data, init
-import hoomd.deprecated
+# import hoomd.deprecated
 from hoomd import hpmc
 
 import unittest
@@ -21,7 +21,8 @@ class shape_move_funciton(object):
         self.shape_params = shape_params;
 
     def __call__(self, params):
-        return self.mc.shape_class.make_param(**self.shape_params);
+        sp = self.mc.shape_class(self.mc, 0)
+        return sp.make_param(**self.shape_params);
 
 def create_empty(**kwargs):
     snap = data.make_snapshot(**kwargs);
@@ -92,7 +93,7 @@ class shape_updater_test(unittest.TestCase):
         self.setUp();
 
         v = np.random.random((15,3));
-        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0, max_verts=v.shape[0])
+        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0)
         self.mc.shape_param.set(self.types, vertices=v)
 
         self.updater = hpmc.update.alchemy(mc=self.mc, move_ratio=1.0, seed=3832765, period=1, nselect=1);
@@ -110,7 +111,7 @@ class shape_updater_test(unittest.TestCase):
         self.setUp();
 
         v = np.random.random((31,3));
-        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0, max_verts=v.shape[0])
+        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0)
         self.mc.shape_param.set(self.types, vertices=v)
 
         self.updater = hpmc.update.alchemy(mc=self.mc, move_ratio=1.0, seed=3832765, period=1, nselect=1);
@@ -128,7 +129,7 @@ class shape_updater_test(unittest.TestCase):
         self.setUp();
 
         v = np.random.random((63,3));
-        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0, max_verts=v.shape[0])
+        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0)
         self.mc.shape_param.set(self.types, vertices=v)
 
         self.updater = hpmc.update.alchemy(mc=self.mc, move_ratio=1.0, seed=3832765, period=1, nselect=1);
@@ -146,7 +147,7 @@ class shape_updater_test(unittest.TestCase):
         self.setUp();
 
         v = np.random.random((127,3));
-        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0, max_verts=v.shape[0])
+        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0)
         self.mc.shape_param.set(self.types, vertices=v)
 
         self.updater = hpmc.update.alchemy(mc=self.mc, move_ratio=1.0, seed=3832765, period=1, nselect=1);
@@ -175,7 +176,7 @@ class shape_updater_test(unittest.TestCase):
         self.setUp();
 
         v = np.random.random((15,3));
-        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0, max_verts=v.shape[0])
+        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0)
         self.mc.shape_param.set(self.types, vertices=v)
 
         self.updater = hpmc.update.alchemy(mc=self.mc, move_ratio=1.0, seed=3832765, period=1, nselect=1);
@@ -187,7 +188,7 @@ class shape_updater_test(unittest.TestCase):
         self.setUp();
 
         v = np.random.random((31,3));
-        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0, max_verts=v.shape[0])
+        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0)
         self.mc.shape_param.set(self.types, vertices=v)
 
         self.updater = hpmc.update.alchemy(mc=self.mc, move_ratio=1.0, seed=3832765, period=1, nselect=1);
@@ -199,7 +200,7 @@ class shape_updater_test(unittest.TestCase):
         self.setUp();
 
         v = np.random.random((63,3));
-        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0, max_verts=v.shape[0])
+        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0)
         self.mc.shape_param.set(self.types, vertices=v)
 
         self.updater = hpmc.update.alchemy(mc=self.mc, move_ratio=1.0, seed=3832765, period=1, nselect=1);
@@ -211,7 +212,7 @@ class shape_updater_test(unittest.TestCase):
         self.setUp();
 
         v = np.random.random((127,3));
-        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0, max_verts=v.shape[0])
+        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0)
         self.mc.shape_param.set(self.types, vertices=v)
 
         self.updater = hpmc.update.alchemy(mc=self.mc, move_ratio=1.0, seed=3832765, period=1, nselect=1);
@@ -222,7 +223,7 @@ class shape_updater_test(unittest.TestCase):
     def test_convex_polyhedron_elastic(self):
         # convex_polyhedron
         v = 0.33*np.array([(1,1,1), (1,-1,1), (-1,-1,1), (-1,1,1),(1,1,-1), (1,-1,-1), (-1,-1,-1), (-1,1,-1)]);
-        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0, max_verts=16)
+        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0)
         self.mc.shape_param.set(self.types, vertices=v)
         self.pos = None; #hoomd.deprecated.dump.pos("shape_updater.pos", period=10)
         self.updater = hpmc.update.elastic_shape(mc=self.mc, stepsize=0.001, move_ratio=1.0, seed=3832765, stiffness=1.0, reference=dict(vertices=v), pos=self.pos, nselect=3, nsweeps=2, param_ratio=0.5)
@@ -232,7 +233,7 @@ class shape_updater_test(unittest.TestCase):
         self.tearDown();
         self.setUp();
         v = np.random.random((15,3));
-        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0, max_verts=v.shape[0])
+        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0)
         self.mc.shape_param.set(self.types, vertices=v)
         self.pos = None; #hoomd.deprecated.dump.pos("shape_updater.pos", period=10)
         self.updater = hpmc.update.elastic_shape(mc=self.mc, stepsize=0.001, move_ratio=1.0, seed=3832765, stiffness=1.0, reference=dict(vertices=v), pos=self.pos, nselect=3, nsweeps=2, param_ratio=0.5)
@@ -242,7 +243,7 @@ class shape_updater_test(unittest.TestCase):
         self.tearDown();
         self.setUp();
         v = np.random.random((31,3));
-        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0, max_verts=v.shape[0])
+        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0)
         self.mc.shape_param.set(self.types, vertices=v)
         self.pos = None; #hoomd.deprecated.dump.pos("shape_updater.pos", period=10)
         self.updater = hpmc.update.elastic_shape(mc=self.mc, stepsize=0.001, move_ratio=1.0, seed=3832765, stiffness=1.0, reference=dict(vertices=v), pos=self.pos, nselect=3, nsweeps=2, param_ratio=0.5)
@@ -252,7 +253,7 @@ class shape_updater_test(unittest.TestCase):
         self.tearDown();
         self.setUp();
         v = np.random.random((63,3));
-        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0, max_verts=v.shape[0])
+        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0)
         self.mc.shape_param.set(self.types, vertices=v)
         self.pos = None; #hoomd.deprecated.dump.pos("shape_updater.pos", period=10)
         self.updater = hpmc.update.elastic_shape(mc=self.mc, stepsize=0.001, move_ratio=1.0, seed=3832765, stiffness=1.0, reference=dict(vertices=v), pos=self.pos, nselect=3, nsweeps=2, param_ratio=0.5)
@@ -262,7 +263,7 @@ class shape_updater_test(unittest.TestCase):
         self.tearDown();
         self.setUp();
         v = np.random.random((127,3));
-        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0, max_verts=v.shape[0])
+        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0)
         self.mc.shape_param.set(self.types, vertices=v)
         self.pos = None; #hoomd.deprecated.dump.pos("shape_updater.pos", period=10)
         self.updater = hpmc.update.elastic_shape(mc=self.mc, stepsize=0.001, move_ratio=1.0, seed=3832765, stiffness=1.0, reference=dict(vertices=v), pos=self.pos, nselect=3, nsweeps=2, param_ratio=0.5)
@@ -297,10 +298,8 @@ class shape_updater_test(unittest.TestCase):
         # self.updater.scale_shear_shape_move(stepsize=0.1);
         tuner = self.updater.get_tuner(average=True);
         for _ in range(100):
-            hoomd.util.quiet_status();
             print( "stepsizes: ", [ self.updater.get_step_size(i) for i in range(len(self.types))] );
             print( "acceptance: ", [ self.updater.get_move_acceptance(i) for i in range(len(self.types))] );
-            hoomd.util.unquiet_status();
             hoomd.run(100, quiet=True);
             tuner.update();
 

@@ -37,7 +37,7 @@ ComputeThermo::ComputeThermo(std::shared_ptr<SystemDefinition> sysdef,
     m_properties.swap(properties);
     TAG_ALLOCATION(m_properties);
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         // store in host memory for faster access from CPU
@@ -446,7 +446,7 @@ void ComputeThermo::reduceProperties()
 
 void export_ComputeThermo(py::module& m)
     {
-    py::class_<ComputeThermo, std::shared_ptr<ComputeThermo> >(m,"ComputeThermo",py::base<Compute>())
+    py::class_<ComputeThermo, Compute, std::shared_ptr<ComputeThermo> >(m,"ComputeThermo")
     .def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>,const std::string& >())
     .def("setNDOF", &ComputeThermo::setNDOF)
     .def("setRotationalNDOF", &ComputeThermo::setRotationalNDOF)

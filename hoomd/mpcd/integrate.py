@@ -86,7 +86,7 @@ class _bounce_back(hoomd.integrate._integration_method):
         elif bc == "slip":
             return _mpcd.boundary.slip
         else:
-            hoomd.context.msg.error("mpcd.integrate: boundary condition " + bc + " not recognized.\n")
+            hoomd.context.current.device.cpp_msg.error("mpcd.integrate: boundary condition " + bc + " not recognized.\n")
             raise ValueError("Unrecognized streaming boundary condition")
             return None
 
@@ -115,14 +115,12 @@ class slit(_bounce_back):
 
     """
     def __init__(self, group, H, V=0.0, boundary="no_slip"):
-        hoomd.util.print_status_line()
-
         # initialize base class
         _bounce_back.__init__(self,group)
         self.metadata_fields += ['H','V']
 
         # initialize the c++ class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.mode == 'gpu':
             cpp_class = _mpcd.BounceBackNVESlit
         else:
             cpp_class = _mpcd.BounceBackNVESlitGPU
@@ -153,7 +151,6 @@ class slit(_bounce_back):
             slit.set_params(H=5, V=0., boundary='no_slip')
 
         """
-        hoomd.util.print_status_line()
 
         if H is not None:
             self.H = H
@@ -191,14 +188,12 @@ class slit_pore(_bounce_back):
 
     """
     def __init__(self, group, H, L, boundary="no_slip"):
-        hoomd.util.print_status_line()
-
         # initialize base class
         _bounce_back.__init__(self,group)
         self.metadata_fields += ['H','L']
 
         # initialize the c++ class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.mode == 'gpu':
             cpp_class = _mpcd.BounceBackNVESlitPore
         else:
             cpp_class = _mpcd.BounceBackNVESlitPoreGPU
@@ -229,8 +224,6 @@ class slit_pore(_bounce_back):
             slit_pore.set_params(H=5, L=4., boundary='no_slip')
 
         """
-        hoomd.util.print_status_line()
-
         if H is not None:
             self.H = H
 

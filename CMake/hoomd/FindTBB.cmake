@@ -1,11 +1,7 @@
+find_path(TBB_INCLUDE_DIR tbb/tbb.h)
+
 find_library(TBB_LIBRARY tbb
-             HINTS ENV TBB_LINK)
-
-get_filename_component(_tbb_lib_dir ${TBB_LIBRARY} DIRECTORY)
-
-find_path(TBB_INCLUDE_DIR tbb/tbb.h
-          HINTS ENV TBB_INC
-          HINTS ${_tbb_lib_dir}/../include)
+             HINTS ${TBB_INCLUDE_DIR}/../lib )
 
 if(TBB_INCLUDE_DIR AND EXISTS "${TBB_INCLUDE_DIR}/tbb/tbb_stddef.h")
     file(STRINGS "${TBB_INCLUDE_DIR}/tbb/tbb_stddef.h" TBB_H REGEX "^#define TBB_VERSION_.*$")
@@ -22,6 +18,24 @@ find_package_handle_standard_args(TBB
                                   REQUIRED_VARS TBB_LIBRARY TBB_INCLUDE_DIR
                                   VERSION_VAR TBB_VERSION_STRING)
 
-if(TBB_FOUND)
-  set(TBB_LIBRARIES ${TBB_LIBRARY})
+# Detect clang and fix incompatibility with TBB
+# https://github.com/wjakob/tbb/blob/master/CMakeLists.txt
+if (NOT TBB_USE_GLIBCXX_VERSION AND UNIX AND NOT APPLE)
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    # using Clang
+    string(REPLACE "." "0" TBB_USE_GLIBCXX_VERSION ${CMAKE_CXX_COMPILER_VERSION})
+  endif()
+endif()
+
+if(TBB_LIBRARY AND NOT TARGET TBB::tbb)
+    add_library(TBB::tbb UNKNOWN IMPORTED)
+    set_target_properties(TBB::tbb PROPERTIES
+        IMPORTED_LOCATION_RELEASE "${TBB_LIBRARY}"
+        IMPORTED_LOCATION "${TBB_LIBRARY}"
+        INTERFACE_INCLUDE_DIRECTORIES "${TBB_INCLUDE_DIR}")
+
+    if (TBB_USE_GLIBCXX_VERSION)
+        set_target_properties(TBB::tbb PROPERTIES
+            INTERFACE_COMPILE_DEFINITIONS "TBB_USE_GLIBCXX_VERSION=${TBB_USE_GLIBCXX_VERSION}")
+    endif()
 endif()

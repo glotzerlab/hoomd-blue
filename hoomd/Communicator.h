@@ -13,10 +13,6 @@
 #ifndef __COMMUNICATOR_H__
 #define __COMMUNICATOR_H__
 
-#define NCORNER 8
-#define NEDGE 12
-#define NFACE 6
-
 #include "HOOMDMath.h"
 #include "GlobalArray.h"
 #include "GPUVector.h"
@@ -27,8 +23,8 @@
 #include <memory>
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 
-#ifndef NVCC
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#ifndef __HIPCC__
+#include <pybind11/pybind11.h>
 #endif
 
 #include "Autotuner.h"
@@ -521,6 +517,8 @@ class PYBIND11_EXPORT Communicator
 
         unsigned int m_ghosts_added;             //!< Number of ghosts added
         bool m_has_ghost_particles;              //!< True if we have a current copy of ghost particles
+
+        MPI_Datatype m_mpi_pdata_element;        //!< A datatype for the (non-packed) pdata_element struct
 
         //! Update the ghost width array
         void updateGhostWidth();

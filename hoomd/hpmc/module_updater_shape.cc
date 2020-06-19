@@ -3,8 +3,10 @@
 
 // Include the defined classes that are to be exported to python
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#include <hoomd/extern/pybind/include/pybind11/stl.h>
+// #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+// #include <hoomd/extern/pybind/include/pybind11/stl.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 #include "ShapeSphere.h"
 #include "ShapeConvexPolygon.h"

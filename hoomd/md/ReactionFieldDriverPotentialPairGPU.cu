@@ -7,7 +7,7 @@
 
 #include "EvaluatorPairReactionField.h"
 #include "AllDriverPotentialPairGPU.cuh"
-cudaError_t gpu_compute_reaction_field_forces(const pair_args_t & args,
+hipError_t gpu_compute_reaction_field_forces(const pair_args_t & args,
                                                 const Scalar3 *d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairReactionField>(args,

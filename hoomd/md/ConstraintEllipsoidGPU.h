@@ -10,11 +10,11 @@
     \brief Declares a class for computing ellipsoid constraint forces
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __CONSTRAINT_ELLIPSOID_GPU_H__
 #define __CONSTRAINT_ELLIPSOID_GPU_H__

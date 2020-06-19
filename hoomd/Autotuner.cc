@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 #include "Autotuner.h"
 
 #ifdef ENABLE_MPI
@@ -59,9 +58,9 @@ Autotuner::Autotuner(const std::vector<unsigned int>& parameters,
     m_current_param = m_parameters[m_current_element];
 
     // create CUDA events
-    #ifdef ENABLE_CUDA
-    cudaEventCreate(&m_start);
-    cudaEventCreate(&m_stop);
+    #ifdef ENABLE_HIP
+    hipEventCreate(&m_start);
+    hipEventCreate(&m_stop);
     CHECK_CUDA_ERROR();
     #endif
 
@@ -123,9 +122,9 @@ Autotuner::Autotuner(unsigned int start,
     m_current_param = m_parameters[m_current_element];
 
     // create CUDA events
-    #ifdef ENABLE_CUDA
-    cudaEventCreate(&m_start);
-    cudaEventCreate(&m_stop);
+    #ifdef ENABLE_HIP
+    hipEventCreate(&m_start);
+    hipEventCreate(&m_stop);
     CHECK_CUDA_ERROR();
     #endif
 
@@ -135,9 +134,9 @@ Autotuner::Autotuner(unsigned int start,
 Autotuner::~Autotuner()
     {
     m_exec_conf->msg->notice(5) << "Destroying Autotuner " << m_name << endl;
-    #ifdef ENABLE_CUDA
-    cudaEventDestroy(m_start);
-    cudaEventDestroy(m_stop);
+    #ifdef ENABLE_HIP
+    hipEventDestroy(m_start);
+    hipEventDestroy(m_stop);
     CHECK_CUDA_ERROR();
     #endif
     }
@@ -148,11 +147,11 @@ void Autotuner::begin()
     if (!m_enabled)
         return;
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     // if we are scanning, record a cuda event - otherwise do nothing
     if (m_state == STARTUP || m_state == SCANNING)
         {
-        cudaEventRecord(m_start, 0);
+        hipEventRecord(m_start, 0);
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
@@ -165,13 +164,13 @@ void Autotuner::end()
     if (!m_enabled)
         return;
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     // handle timing updates if scanning
     if (m_state == STARTUP || m_state == SCANNING)
         {
-        cudaEventRecord(m_stop, 0);
-        cudaEventSynchronize(m_stop);
-        cudaEventElapsedTime(&m_samples[m_current_element][m_current_sample], m_start, m_stop);
+        hipEventRecord(m_stop, 0);
+        hipEventSynchronize(m_stop);
+        hipEventElapsedTime(&m_samples[m_current_element][m_current_sample], m_start, m_stop);
         m_exec_conf->msg->notice(9) << "Autotuner " << m_name << ": t(" << m_current_param << "," << m_current_sample
                                      << ") = " << m_samples[m_current_element][m_current_sample] << endl;
 

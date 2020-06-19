@@ -10,7 +10,7 @@
 #include "hoomd/ConstForceCompute.h"
 #include "hoomd/md/TwoStepNVTMTK.h"
 #include "hoomd/ComputeThermo.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/TwoStepNVTMTKGPU.h"
 #endif
 #include "hoomd/md/IntegratorTwoStep.h"
@@ -54,7 +54,7 @@ std::shared_ptr<TwoStepNVTMTK> base_class_nvt_creator(std::shared_ptr<SystemDefi
     return std::shared_ptr<TwoStepNVTMTK>(new TwoStepNVTMTK(sysdef, group, thermo, Q, T_variant));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! NVTUpdaterGPU factory for the unit tests
 std::shared_ptr<TwoStepNVTMTK> gpu_nvt_creator(std::shared_ptr<SystemDefinition> sysdef,
                                        std::shared_ptr<ParticleGroup> group,
@@ -196,7 +196,7 @@ void test_nvt_mtk_integrator_aniso(std::shared_ptr<ExecutionConfiguration> exec_
     Scalar epsilon = Scalar(1.0);
     Scalar lperp = Scalar(0.45);
     Scalar lpar = Scalar(0.5);
-    fc_1->setParams(0,0,make_scalar3(epsilon,lperp,lpar));
+    fc_1->setParams(0,0,make_pair_gb_params(epsilon,lperp,lpar));
     // If we want accurate calculation of potential energy, we need to apply the
     // energy shift
     fc_1->setShiftMode(AnisoPotentialPairGB::shift);
@@ -396,7 +396,7 @@ UP_TEST( TwoStepNVTMTK_basic_aniso_test )
     test_nvt_mtk_integrator_aniso(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),bind(base_class_nvt_creator, _1, _2, _3, _4, _5));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! Performs a basic equilibration test of TwoStepNVTMTKGPU
 UP_TEST( TwoStepNVTMTKGPU_basic_test )
     {

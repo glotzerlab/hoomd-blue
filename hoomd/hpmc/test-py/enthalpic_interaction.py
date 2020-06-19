@@ -12,6 +12,7 @@ import itertools
 import sys
 
 context.initialize();
+context.current.device.gpu_error_checking = True
 
 class enthalpic_dipole_interaction(unittest.TestCase):
         def setUp(self):
@@ -40,7 +41,7 @@ class enthalpic_dipole_interaction(unittest.TestCase):
                                 else
                                     return 0.0f;
                             """.format(self.r_cut,self.lamb);
-            self.snapshot = data.make_snapshot(N=2, box=data.boxdim(L=2*self.r_cut, dimensions=3), particle_types=['A']);
+            self.snapshot = data.make_snapshot(N=2, box=data.boxdim(L=10*self.r_cut, dimensions=3), particle_types=['A']);
 
         # a) particle 1 on top of particle 2: parallel dipole orientations
         def test_head_to_tail_parallel(self):
@@ -195,6 +196,7 @@ class enthalpic_dipole_interaction(unittest.TestCase):
             del self.snapshot;
             del self.log;
             context.initialize();
+            context.current.device.gpu_error_checking = True
 
 class patch_alpha_user(unittest.TestCase):
 
@@ -268,6 +270,7 @@ class patch_alpha_user(unittest.TestCase):
         del self.logger
         del self.patch
         context.initialize();
+        context.current.device.gpu_error_checking = True
 
 class patch_alpha_user_union(unittest.TestCase):
 
@@ -338,6 +341,7 @@ class patch_alpha_user_union(unittest.TestCase):
         del self.logger
         del self.patch
         context.initialize();
+        context.current.device.gpu_error_checking = True
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

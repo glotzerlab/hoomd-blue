@@ -12,7 +12,7 @@
 #define __COMMUNICATOR_GPU_H__
 
 #ifdef ENABLE_MPI
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #include "Communicator.h"
 #include "Autotuner.h"
@@ -22,8 +22,8 @@
 #include "GPUFlags.h"
 #include "GPUVector.h"
 
-#ifndef NVCC
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#ifndef __HIPCC__
+#include <pybind11/pybind11.h>
 #endif
 
 
@@ -126,6 +126,7 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
                 std::shared_ptr<group_data> m_gdata;                  //!< The group data
 
                 GlobalVector<unsigned int> m_rank_mask;                    //!< Bitfield for every group to keep track of updated rank fields
+                GlobalVector<unsigned int> m_marked_groups;                //!< List of group membership
                 GlobalVector<unsigned int> m_scan;                         //!< Temporary array for exclusive scan of group membership information
 
                 GlobalVector<rank_element_t> m_ranks_out;                  //!< Packed ranks data
@@ -145,6 +146,7 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
                 GlobalVector<unsigned int> m_ghost_group_neigh;            //!< Neighbor ranks for every ghost group
                 GlobalVector<unsigned int> m_ghost_group_plan;             //!< Plans for every particle
                 GlobalVector<unsigned int> m_neigh_counts;                 //!< List of number of neighbors to send ghost to (temp array)
+                GlobalVector<unsigned int> m_ghost_scan;                   //!< Prefix sum of number of neighbors to send ghost to (temp array)
             };
 
         //! Remove tags of ghost particles
@@ -226,6 +228,7 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
         std::vector<unsigned int> m_idx_offs;         //!< Per-stage offset into ghost idx list
 
         GlobalVector<unsigned int> m_neigh_counts;       //!< List of number of neighbors to send ghost to (temp array)
+        GlobalVector<unsigned int> m_scan;               //!< exclusive prefix sum of number of neighbors to send ghost to (temp array)
 
         std::vector<std::vector<unsigned int> > m_n_send_ghosts; //!< Number of ghosts to send per stage and neighbor
         std::vector<std::vector<unsigned int> > m_n_recv_ghosts; //!< Number of ghosts to receive per stage and neighbor
@@ -234,8 +237,7 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
         std::vector<unsigned int> m_n_send_ghosts_tot; //!< Total number of sent ghosts per stage
         std::vector<unsigned int> m_n_recv_ghosts_tot; //!< Total number of received ghosts per stage
 
-        mgpu::ContextPtr m_mgpu_context;              //!< MGPU context
-        cudaEvent_t m_event;                          //!< CUDA event for synchronization
+        hipEvent_t m_event;                          //!< CUDA event for synchronization
 
         //! Helper function to allocate various buffers
         void allocateBuffers();
@@ -247,6 +249,6 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
 //! Export CommunicatorGPU class to python
 void export_CommunicatorGPU(pybind11::module& m);
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // ENABLE_MPI
 #endif // __COMMUNICATOR_GPU_H

@@ -63,7 +63,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     m_r_cut.swap(r_cut);
     TAG_ALLOCATION(m_r_cut);
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         cudaMemAdvise(m_r_cut.get(), m_r_cut.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
@@ -76,7 +76,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     m_rcut_max.swap(rcut_max);
     TAG_ALLOCATION(m_rcut_max);
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         // store in host memory for faster access from CPU
@@ -90,7 +90,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     m_r_listsq.swap(r_listsq);
     TAG_ALLOCATION(m_r_listsq);
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         cudaMemAdvise(m_r_listsq.get(), m_r_listsq.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
@@ -106,8 +106,8 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     m_n_neigh.swap(n_neigh);
     TAG_ALLOCATION(m_n_neigh);
 
-    // default allocation of 8 neighbors per particle for the neighborlist
-    GlobalArray<unsigned int> nlist(8*m_pdata->getMaxN(), m_exec_conf);
+    // default allocation of 4 neighbors per particle for the neighborlist
+    GlobalArray<unsigned int> nlist(4*m_pdata->getMaxN(), m_exec_conf);
     m_nlist.swap(nlist);
     TAG_ALLOCATION(m_nlist);
 
@@ -121,16 +121,16 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     m_Nmax.swap(Nmax);
     TAG_ALLOCATION(m_Nmax);
 
-    // flood Nmax with 8s initially
+    // flood Nmax with 4s initially
         {
         ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::overwrite);
         for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
             {
-            h_Nmax.data[i] = 8;
+            h_Nmax.data[i] = 4;
             }
         }
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         cudaMemAdvise(m_Nmax.get(), m_Nmax.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetReadMostly, 0);
@@ -143,7 +143,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     m_conditions.swap(conditions);
     TAG_ALLOCATION(m_conditions);
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         // store in host memory for faster access from CPU
@@ -207,7 +207,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     for (unsigned int i = 0; i < m_update_periods.size(); i++)
         m_update_periods[i] = 0;
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         m_last_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
     #endif
@@ -242,7 +242,7 @@ void NeighborList::reallocateTypes()
     m_typpair_idx = Index2D(m_pdata->getNTypes());
     m_r_cut.resize(m_typpair_idx.getNumElements());
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         cudaMemAdvise(m_r_cut.get(), m_r_cut.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
@@ -252,7 +252,7 @@ void NeighborList::reallocateTypes()
 
     m_rcut_max.resize(m_pdata->getNTypes());
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         // store in host memory for faster access from CPU
@@ -265,18 +265,18 @@ void NeighborList::reallocateTypes()
     unsigned int old_ntypes = m_Nmax.getNumElements();
     m_Nmax.resize(m_pdata->getNTypes());
 
-    // flood Nmax with 8s initially
+    // flood Nmax with 4s initially
         {
         ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::readwrite);
         for (unsigned int i=old_ntypes; i < m_pdata->getNTypes(); ++i)
             {
-            h_Nmax.data[i] = 8;
+            h_Nmax.data[i] = 4;
             }
         }
 
     m_conditions.resize(m_pdata->getNTypes());
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         // store in host memory for faster access from CPU
@@ -342,6 +342,9 @@ void NeighborList::compute(unsigned int timestep)
     // check if the list needs to be updated and update it
     if (needsUpdating(timestep))
         {
+        // check simulation box size is OK
+        checkBoxSize();
+
         // rebuild the list until there is no overflow
         bool overflowed = false;
         do
@@ -382,10 +385,10 @@ double NeighborList::benchmark(unsigned int num_iters)
     compute(0);
     buildNlist(0);
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     if(m_exec_conf->isCUDAEnabled())
         {
-        cudaThreadSynchronize();
+        hipDeviceSynchronize();
         CHECK_CUDA_ERROR();
         }
 #endif
@@ -395,9 +398,9 @@ double NeighborList::benchmark(unsigned int num_iters)
     for (unsigned int i = 0; i < num_iters; i++)
         buildNlist(0);
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     if(m_exec_conf->isCUDAEnabled())
-        cudaThreadSynchronize();
+        hipDeviceSynchronize();
 #endif
     uint64_t total_time_ns = t.getTime() - start_time;
 
@@ -514,6 +517,37 @@ void NeighborList::updateRList()
 
     // rcut has been updated to the latest values now
     m_rcut_changed = false;
+    }
+
+/*!
+ * Check that the largest neighbor search radius is not bigger than twice the shortest box size.
+ * Raises an error if this condition is not met. Otherwise, nothing happens.
+ */
+void NeighborList::checkBoxSize()
+    {
+    const BoxDim& box = m_pdata->getBox();
+    const uchar3 periodic = box.getPeriodic();
+
+    // check that rcut fits in the box
+    Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
+    Scalar rmax = m_rcut_max_max + m_r_buff;
+    if (m_diameter_shift)
+        rmax += m_d_max - Scalar(1.0);
+
+    if (m_filter_body)
+        {
+        // add the maximum diameter of all composite particles
+        Scalar max_d_comp = m_pdata->getMaxCompositeParticleDiameter();
+        rmax += 0.5*max_d_comp;
+        }
+
+    if ((periodic.x && nearest_plane_distance.x <= rmax * 2.0) ||
+        (periodic.y && nearest_plane_distance.y <= rmax * 2.0) ||
+        (m_sysdef->getNDimensions() == 3 && periodic.z && nearest_plane_distance.z <= rmax * 2.0))
+        {
+        m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
+        throw runtime_error("Error updating neighborlist bins");
+        }
     }
 
 /*! \returns an estimate of the number of neighbors per particle
@@ -1100,7 +1134,7 @@ bool NeighborList::distanceCheck(unsigned int timestep)
     // Find direction of maximum box length contraction (smallest eigenvalue of deformation tensor)
     Scalar3 lambda = L_g / m_last_L;
     Scalar lambda_min = (lambda.x < lambda.y) ? lambda.x : lambda.y;
-    lambda_min = (lambda_min < lambda.z) ? lambda_min : lambda.z;
+    lambda_min = (lambda_min < lambda.z) ? lambda_min : (Scalar) lambda.z;
 
     ArrayHandle<Scalar4> h_last_pos(m_last_pos, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_rcut_max(m_rcut_max, access_location::host, access_mode::read);
@@ -1494,6 +1528,9 @@ void NeighborList::resizeNlist(unsigned int size)
             alloc_size = ((unsigned int) (((float) alloc_size) * 1.125f)) + 1 ;
             }
 
+        // round up to nearest multiple of 4
+        alloc_size = (alloc_size > 4) ? (alloc_size + 3) & ~3 : 4;
+
         m_nlist.resize(alloc_size);
         }
     }
@@ -1502,7 +1539,7 @@ void NeighborList::resizeNlist(unsigned int size)
  * \returns true if an overflow is detected for any particle type
  * \returns false if all particle types have enough memory for their neighbors
  *
- * The maximum number of neighbors per particle (rounded up to the nearest 8, min of 8) is recomputed when
+ * The maximum number of neighbors per particle (rounded up to the nearest 4, min of 4) is recomputed when
  * an overflow happens.
  */
 bool NeighborList::checkConditions()
@@ -1515,7 +1552,7 @@ bool NeighborList::checkConditions()
         {
         if (h_conditions.data[i] > h_Nmax.data[i])
             {
-            h_Nmax.data[i] = (h_conditions.data[i] > 8) ? (h_conditions.data[i] + 7) & ~7 : 8;
+            h_Nmax.data[i] = (h_conditions.data[i] > 4) ? (h_conditions.data[i] + 3) & ~3 : 4;
             result = true;
             }
         }
@@ -1576,10 +1613,11 @@ bool NeighborList::peekUpdate(unsigned int timestep)
     }
 #endif
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! Update GPU memory locality
 void NeighborList::updateMemoryMapping()
     {
+    #ifdef _HIP_PLATFORM_NVCC__
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         auto gpu_map = m_exec_conf->getGPUIds();
@@ -1628,13 +1666,14 @@ void NeighborList::updateMemoryMapping()
             }
         CHECK_CUDA_ERROR();
         }
+    #endif // __HIP_PLATFORM_NVCC__
     }
 #endif
 
 
 void export_NeighborList(py::module& m)
     {
-    py::class_<NeighborList, std::shared_ptr<NeighborList> > nlist(m, "NeighborList", py::base<Compute>());
+    py::class_<NeighborList, Compute, std::shared_ptr<NeighborList> > nlist(m, "NeighborList");
     nlist.def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
         .def("setRCut", &NeighborList::setRCut)
         .def("setRCutPair", &NeighborList::setRCutPair)

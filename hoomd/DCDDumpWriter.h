@@ -18,11 +18,11 @@
     \brief Declares the DCDDumpWriter class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 // The DCD Dump writer is based on code from the molfile plugin to VMD
 // and is use under the following license

@@ -15,7 +15,7 @@
 #include "ParticleData.h"
 
 #include "HOOMDMPI.h"
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #include <algorithm>
 #include <cmath>

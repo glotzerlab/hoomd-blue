@@ -13,7 +13,7 @@
 #ifndef MPCD_COMMUNICATOR_H_
 #define MPCD_COMMUNICATOR_H_
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -30,7 +30,7 @@
 #include <memory>
 #include <vector>
 #include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
-#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
+#include <pybind11/pybind11.h>
 
 //! Forward declarations for some classes
 class SystemDefinition;
@@ -193,6 +193,7 @@ class PYBIND11_EXPORT Communicator
         //! Helper function to initialize adjacency arrays
         void initializeNeighborArrays();
 
+        MPI_Datatype m_pdata_element;                       //!< MPI struct for pdata_element
         GPUVector<mpcd::detail::pdata_element> m_sendbuf;   //!< Buffer for particles that are sent
         GPUVector<mpcd::detail::pdata_element> m_recvbuf;   //!< Buffer for particles that are received
         std::vector<MPI_Request> m_reqs;    //!< MPI requests

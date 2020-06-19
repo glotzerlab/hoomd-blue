@@ -31,8 +31,7 @@ class _compute:
     def __init__(self):
         # check if initialization has occurred
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("Cannot create compute before initialization\n");
-            raise RuntimeError('Error creating compute');
+            raise RuntimeError('Cannot create compute before initialization\n');
 
         self.cpp_compute = None;
 
@@ -60,7 +59,7 @@ class _compute:
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_compute is None:
-            hoomd.context.msg.error('Bug in hoomd: cpp_compute not set, please report\n');
+            hoomd.context.current.device.cpp_msg.error('Bug in hoomd: cpp_compute not set, please report\n');
             raise RuntimeError();
 
     def disable(self):
@@ -76,12 +75,11 @@ class _compute:
         A disabled compute can be re-enabled with :py:meth:`enable()`.
         """
 
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # check if we are already disabled
         if not self.enabled:
-            hoomd.context.msg.warning("Ignoring command to disable a compute that is already disabled");
+            hoomd.context.current.device.cpp_msg.warning("Ignoring command to disable a compute that is already disabled");
             return;
 
         hoomd.context.current.system.removeCompute(self.compute_name);
@@ -96,12 +94,11 @@ class _compute:
 
         See :py:meth:`disable()`.
         """
-        hoomd.util.print_status_line();
         self.check_initialization();
 
         # check if we are already disabled
         if self.enabled:
-            hoomd.context.msg.warning("Ignoring command to enable a compute that is already enabled");
+            hoomd.context.current.device.cpp_msg.warning("Ignoring command to enable a compute that is already enabled");
             return;
 
         hoomd.context.current.system.addCompute(self.cpp_compute, self.compute_name);
@@ -121,14 +118,13 @@ class _compute:
     def restore_state(self):
         """ Restore the state information from the file used to initialize the simulations
         """
-        hoomd.util.print_status_line();
         if isinstance(hoomd.context.current.state_reader, _hoomd.GSDReader) and hasattr(self.cpp_compute, "restoreStateGSD"):
             self.cpp_compute.restoreStateGSD(hoomd.context.current.state_reader, self._gsd_state_name());
         else:
             if hoomd.context.current.state_reader is None:
-                hoomd.context.msg.error("Can only restore after the state reader has been initialized.\n");
+                hoomd.context.current.device.cpp_msg.error("Can only restore after the state reader has been initialized.\n");
             else:
-                hoomd.context.msg.error("Restoring state from {reader_name} is not currently supported for {name}\n".format(reader_name=hoomd.context.current.state_reader.__name__, name=self.__class__.__name__));
+                hoomd.context.current.device.cpp_msg.error("Restoring state from {reader_name} is not currently supported for {name}\n".format(reader_name=hoomd.context.current.state_reader.__name__, name=self.__class__.__name__));
             raise RuntimeError("Can not restore state information!");
 
 
@@ -200,7 +196,6 @@ class thermo(_compute):
     """
 
     def __init__(self, group):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _compute.__init__(self);
@@ -212,12 +207,12 @@ class thermo(_compute):
         # warn user if an existing compute thermo already uses this group or name
         for t in hoomd.context.current.thermos:
             if t.group is group:
-                hoomd.context.msg.warning("compute.thermo already specified for this group");
+                hoomd.context.current.device.cpp_msg.warning("compute.thermo already specified for this group");
             elif t.group.name == group.name:
-                hoomd.context.msg.warning("compute.thermo already specified for a group with name " + str(group.name) + "\n");
+                hoomd.context.current.device.cpp_msg.warning("compute.thermo already specified for a group with name " + str(group.name) + "\n");
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_compute = _hoomd.ComputeThermo(hoomd.context.current.system_definition, group.cpp_group, suffix);
         else:
             self.cpp_compute = _hoomd.ComputeThermoGPU(hoomd.context.current.system_definition, group.cpp_group, suffix);
@@ -241,11 +236,8 @@ class thermo(_compute):
 
         A disabled thermo compute can be re-enabled with :py:meth:`enable()`.
         """
-        hoomd.util.print_status_line()
 
-        hoomd.util.quiet_status()
         _compute.disable(self)
-        hoomd.util.unquiet_status()
 
         hoomd.context.current.thermos.remove(self)
 
@@ -258,13 +250,92 @@ class thermo(_compute):
 
         See :py:meth:`disable()`.
         """
-        hoomd.util.print_status_line()
 
-        hoomd.util.quiet_status()
         _compute.enable(self)
-        hoomd.util.unquiet_status()
 
         hoomd.context.current.thermo.append(self)
+
+class thermoHMA(_compute):
+    R""" Compute HMA thermodynamic properties of a group of particles.
+
+    Args:
+        group (:py:mod:`hoomd.group`): Group to compute thermodynamic properties for.
+        temperature (float): Temperature
+        harmonicPressure (float): Harmonic contribution to the pressure.  If ommitted, the HMA pressure can still be
+            computed, but will be similar in precision to the conventional pressure.
+
+    :py:class:`hoomd.compute.thermoHMA` acts on a given group of particles and calculates HMA (harmonically mapped
+    averaging) properties of those particles when requested.  HMA computes properties more precisely (with less
+    variance) for atomic crystals in NVT simulations.  The presence of diffusion (vanacy hopping, etc.) will prevent
+    HMA from providing improvement.  HMA tracks displacements from the lattice positions, which are saved when the
+    :py:class:`hoomd.compute.thermoHMA` is instantiated.
+
+    The specified properties are available for logging via the :py:class:`hoomd.analyze.log` command. Each one provides
+    a set of quantities for logging, suffixed with *_groupname*, so that values for different groups are differentiated
+    in the log file. The default :py:class:`hoomd.compute.thermoHMA` specified on the group of all particles has no suffix
+    placed on its quantity names.
+
+    The quantities provided are (where **groupname** is replaced with the name of the group):
+
+    * **potential_energyHMA_groupname** - :math:`U` HMA potential energy that the group contributes to the entire
+      system (in energy units)
+    * **pressureHMA_groupname** - :math:`P` HMA pressure that the group contributes to the entire
+      system (in pressure units)
+
+    See Also:
+        :py:class:`hoomd.analyze.log`.
+
+    Examples::
+
+        g = group.all()
+        compute.thermoHMA(group=g, temperature=1.0)
+    """
+
+    def __init__(self, group, temperature, harmonicPressure=0):
+
+        # initialize base class
+        _compute.__init__(self);
+
+        suffix = '';
+        if group.name != 'all':
+            suffix = '_' + group.name;
+
+        # create the c++ mirror class
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
+            self.cpp_compute = _hoomd.ComputeThermoHMA(hoomd.context.current.system_definition, group.cpp_group, temperature, harmonicPressure, suffix);
+        else:
+            self.cpp_compute = _hoomd.ComputeThermoHMAGPU(hoomd.context.current.system_definition, group.cpp_group, temperature, harmonicPressure, suffix);
+
+        hoomd.context.current.system.addCompute(self.cpp_compute, self.compute_name);
+
+        # save the group for later referencing
+        self.group = group;
+
+    def disable(self):
+        R""" Disables the thermoHMA.
+
+        Examples::
+
+            my_thermo.disable()
+
+        Executing the disable command will remove the thermoHMA compute from the system. Any :py:meth:`hoomd.run()` command
+        executed after disabling a thermoHMA compute will not be able to log computed values with :py:class:`hoomd.analyze.log`.
+
+        A disabled thermoHMA compute can be re-enabled with :py:meth:`enable()`.
+        """
+
+        _compute.disable(self)
+
+    def enable(self):
+        R""" Enables the thermoHMA compute.
+
+        Examples::
+
+            my_thermo.enable()
+
+        See :py:meth:`disable()`.
+        """
+        _compute.enable(self)
 
 ## \internal
 # \brief Returns the previously created compute.thermo with the same group, if created. Otherwise, creates a new
@@ -278,7 +349,5 @@ def _get_unique_thermo(group):
             return t;
 
     # if we get here, there were no matches: create a new one
-    hoomd.util.quiet_status();
     res = thermo(group);
-    hoomd.util.unquiet_status();
     return res;

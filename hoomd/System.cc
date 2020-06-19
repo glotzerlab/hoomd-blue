@@ -8,7 +8,6 @@
     \brief Defines the System class
 */
 
-
 #include "System.h"
 #include "SignalHandler.h"
 
@@ -16,7 +15,7 @@
 #include "Communicator.h"
 #endif
 
-// #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+// #include <pybind11/pybind11.h>
 #include <stdexcept>
 #include <time.h>
 
@@ -551,10 +550,10 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
 
         // execute python callback, if present and needed
         // a negative return value indicates immediate end of run.
-        if (callback != py::none() && (cb_frequency > 0) && (m_cur_tstep % cb_frequency == 0))
+        if (!callback.is(py::none()) && (cb_frequency > 0) && (m_cur_tstep % cb_frequency == 0))
             {
             py::object rv = callback(m_cur_tstep);
-            if (rv != py::none())
+            if (!rv.is(py::none()))
                 {
                 int extracted_rv = py::cast<int>(rv);
                 if (extracted_rv < 0)
@@ -573,7 +572,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
             m_last_status_tstep = m_cur_tstep;
 
             // check for any CUDA errors
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             if (m_exec_conf->isCUDAEnabled())
                 {
                 CHECK_CUDA_ERROR();
@@ -618,7 +617,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     m_last_status_tstep = m_cur_tstep;
 
     // execute python callback, if present and needed
-    if (callback != py::none() && (cb_frequency == 0))
+    if (!callback.is(py::none()) && (cb_frequency == 0))
         {
         callback(m_cur_tstep);
         }
@@ -892,7 +891,7 @@ PyObject* createExceptionClass(py::module& m, const char* name, PyObject* baseTy
 
     PyObject* typeObj = PyErr_NewException(qualifiedName1, baseTypeObj, 0);
     if(!typeObj) throw py::error_already_set();
-    m.attr(name) = py::object(typeObj,true);
+    m.attr(name) = py::reinterpret_borrow<py::object>(typeObj);
     return typeObj;
     }
 

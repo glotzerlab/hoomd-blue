@@ -4,9 +4,9 @@
 #ifndef __MODULES__
 #define __MODULES__
 
-#ifndef NVCC
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#include <hoomd/extern/pybind/include/pybind11/stl.h> // will automatically export stl class to python equivalents vector, set, map, ...
+#ifndef __HIPCC__
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 #endif
 
 namespace hpmc

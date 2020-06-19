@@ -11,7 +11,7 @@
 
 #include "hoomd/md/HarmonicImproperForceCompute.h"
 #include "hoomd/ConstForceCompute.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/HarmonicImproperForceComputeGPU.h"
 #endif
 
@@ -484,7 +484,7 @@ std::shared_ptr<HarmonicImproperForceCompute> base_class_tf_creator(std::shared_
     return std::shared_ptr<HarmonicImproperForceCompute>(new HarmonicImproperForceCompute(sysdef));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! ImproperForceCompute creator for bond_force_basic_tests()
 std::shared_ptr<HarmonicImproperForceCompute> gpu_tf_creator(std::shared_ptr<SystemDefinition> sysdef)
     {
@@ -500,7 +500,7 @@ UP_TEST( HarmonicImproperForceCompute_basic )
     improper_force_basic_tests(tf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! test case for improper forces on the GPU
 UP_TEST( HarmonicImproperForceComputeGPU_basic )
     {

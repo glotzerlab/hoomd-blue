@@ -12,14 +12,14 @@
 #pragma warning( disable : 4103 4244 )
 #endif
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #include "DEM2DForceComputeGPU.h"
-#include "cuda_runtime.h"
+#include "hip/hip_runtime.h"
 
 #include <stdexcept>
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 using namespace std;
 
@@ -50,7 +50,9 @@ DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::DEM2DForceComputeGPU(
         throw std::runtime_error("Error initializing DEM2DForceComputeGPU");
         }
 
-    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "dem_2d", this->m_exec_conf));
+    unsigned warp_size = this->m_exec_conf->dev_prop.warpSize;
+    unsigned max_threads = this->m_exec_conf->dev_prop.maxThreadsPerBlock;
+    m_tuner.reset(new Autotuner(warp_size, max_threads, warp_size, 5, 100000, "dem_2d", this->m_exec_conf));
     }
 
 /*! Destructor. */

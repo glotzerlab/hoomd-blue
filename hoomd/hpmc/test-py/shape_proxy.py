@@ -142,7 +142,7 @@ class shape_proxy_sanity_checks (unittest.TestCase):
         context.initialize()
 
         # GPU Sphinx is not built on most the time
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             cent = [(0,0,0), (0,0,1.15), (0,0,-1.15)]
             diams = [2,-2.2,-2.2];
             self.system = init.read_snapshot(self.snapshot)

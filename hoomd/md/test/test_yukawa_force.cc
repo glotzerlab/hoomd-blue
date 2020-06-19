@@ -218,7 +218,7 @@ std::shared_ptr<PotentialPairYukawa> base_class_yukawa_creator(std::shared_ptr<S
     return std::shared_ptr<PotentialPairYukawa>(new PotentialPairYukawa(sysdef, nlist));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! PotentialPairYukawaGPU creator for unit tests
 std::shared_ptr<PotentialPairYukawaGPU> gpu_yukawa_creator(std::shared_ptr<SystemDefinition> sysdef,
                                                       std::shared_ptr<NeighborList> nlist)
@@ -236,7 +236,7 @@ UP_TEST( YukawaForce_particle )
     yukawa_force_particle_test(yukawa_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-# ifdef ENABLE_CUDA
+# ifdef ENABLE_HIP
 //! test case for particle test on GPU
 UP_TEST( YukawaForceGPU_particle )
     {

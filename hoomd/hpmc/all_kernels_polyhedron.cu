@@ -3,8 +3,6 @@
 
 #include "ComputeFreeVolumeGPU.cuh"
 #include "IntegratorHPMCMonoGPU.cuh"
-#include "IntegratorHPMCMonoImplicitGPU.cuh"
-#include "IntegratorHPMCMonoImplicitNewGPU.cuh"
 
 #include "ShapePolyhedron.h"
 
@@ -13,21 +11,21 @@ namespace hpmc
 
 namespace detail
 {
-
 //! HPMC kernels for ShapePolyhedron
-template cudaError_t gpu_hpmc_free_volume<ShapePolyhedron>(const hpmc_free_volume_args_t &args,
+template hipError_t gpu_hpmc_free_volume<ShapePolyhedron>(const hpmc_free_volume_args_t &args,
                                                        const typename ShapePolyhedron::param_type *d_params);
-template cudaError_t gpu_hpmc_update<ShapePolyhedron>(const hpmc_args_t& args,
-                                                  const typename ShapePolyhedron::param_type *d_params);
-template cudaError_t gpu_hpmc_implicit_count_overlaps<ShapePolyhedron>(const hpmc_implicit_args_t& args,
-                                                  const typename ShapePolyhedron::param_type *d_params);
-template cudaError_t gpu_hpmc_implicit_accept_reject<ShapePolyhedron>(const hpmc_implicit_args_t& args,
-                                                  const typename ShapePolyhedron::param_type *d_params);
-template cudaError_t gpu_hpmc_insert_depletants_queue<ShapePolyhedron>(const hpmc_implicit_args_new_t& args,
-                                                  const typename ShapePolyhedron::param_type *d_params);
-template cudaError_t gpu_hpmc_implicit_accept_reject_new<ShapePolyhedron>(const hpmc_implicit_args_new_t& args,
-                                                  const typename ShapePolyhedron::param_type *d_params);
+}
 
-}; // end namespace detail
+namespace gpu
+{
+//! Driver for kernel::hpmc_gen_moves()
+template void hpmc_gen_moves<ShapePolyhedron>(const hpmc_args_t& args, const ShapePolyhedron::param_type *params);
+//! Driver for kernel::hpmc_narrow_phase()
+template void hpmc_narrow_phase<ShapePolyhedron>(const hpmc_args_t& args, const ShapePolyhedron::param_type *params);
+//! Driver for kernel::hpmc_insert_depletants()
+template void hpmc_insert_depletants<ShapePolyhedron>(const hpmc_args_t& args, const hpmc_implicit_args_t& implicit_args, const ShapePolyhedron::param_type *params);
+//! Driver for kernel::hpmc_update_pdata()
+template void hpmc_update_pdata<ShapePolyhedron>(const hpmc_update_args_t& args, const ShapePolyhedron::param_type *params);
+}
 
 } // end namespace hpmc

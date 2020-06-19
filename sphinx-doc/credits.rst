@@ -35,6 +35,10 @@ Aaron Keys, University of Michigan
   * binary restart files
   * integrate.mode_minimize_fire
 
+Andrew Schultz, University at Buffalo
+
+  * Harmonically Mapped Averaging implementation
+
 Axel Kohlmeyer, David LeBard, Ben Levine, from the ICMS group at Temple University
 
   * pair.cgcmm
@@ -156,6 +160,7 @@ Michael P. Howard, Princeton University & University of Texas at Austin
  * Misc. bug fixes
  * CUDA9+V100 compatibility
  * GPU polymorphic object wrapper
+ * Performance improvements to tree neighbor lists
 
 James Antonaglia, University of Michigan
 
@@ -212,6 +217,7 @@ Vyas Ramasubramani, University of Michigan
  * Enable simulation of floppy bodies that can be integrated separately but are ignored by the NeighborList
  * Enabled use of shared memory for Evaluator structs
  * Added per-type shape information to anisotropic pair potentials
+ * Fix cutoff rescaling in Gay-Berne potential
 
 Nathan Horst
 
@@ -274,6 +280,9 @@ Pengji Zhou, University of Michigan
 
   * pair.fourier
 
+Tommy Waltmann, University of Michigan
+  * hoomd.device module
+
 Patrick Lawton, University of Michigan
 
   * Documentation changes
@@ -282,10 +291,17 @@ Luis Rivera-Rivera, University of Michigan
 
   * ``hoomd.dump.gsd.dump_shape`` implementation
 
-
 Alex Yang, Vanderbilt University
 
   * ``hoomd.md.dihedral.harmonic`` update for phase shift
+
+Geert Kapteijns, University of Amsterdam
+
+  * Bug fixes.
+
+Simone Ciarella, Wouter Ellenbroek, Eindhoven University of Technology
+
+ * Add RevCross potential
 
 HPMC developers
 ---------------
@@ -530,22 +546,6 @@ Source code
     ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
     INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-**Saru** is used for random number generation - Used under the following license::
-
-    Copyright (c) 2008 Steve Worley < m a t h g e e k@(my last name).com >
-
-    Permission to use, copy, modify, and distribute this software for any
-    purpose with or without fee is hereby granted, provided that the above
-    copyright notice and this permission notice appear in all copies.
-
-    THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-    WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-    MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-    ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-    WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 Some **CUDA API headers** are included in the HOOMD-blue source code for code compatibility in CPU only builds - Used under the following license::
 
@@ -819,6 +819,119 @@ Random123 is used to generate random numbers and is used under the following lic
     (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+A CUDA [neighbor](https://github.com/mphoward/neighbor) search library is
+used under the Modified BSD license::
+
+    Copyright (c) 2018-2019, Michael P. Howard. All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without modification,
+    are permitted provided that the following conditions are met:
+
+    1. Redistributions of source code must retain the above copyright notice, this
+    list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimer in the documentation and/or
+    other materials provided with the distribution.
+
+    3. Neither the name of the copyright holder nor the names of its contributors
+    may be used to endorse or promote products derived from this software without
+    specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+    ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+    ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+    (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+    ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+[HIP](https://github.com/ROCm-Developer-Tools/HIP) is included under the following license::
+
+    Copyright (c) 2015-2016 Advanced Micro Devices, Inc. All rights reserved.
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+    THE SOFTWARE.
+
+[hipCUB](https://github.com/ROCmSoftwarePlatform/hipCUB/blob/develop/LICENSE.txt) is included under the following license::
+
+    Copyright (c) 2010-2011, Duane Merrill.  All rights reserved.
+    Copyright (c) 2011-2018, NVIDIA CORPORATION.  All rights reserved.
+    Modifications Copyright (c) 2019, Advanced Micro Devices, Inc.  All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+       *  Redistributions of source code must retain the above copyright
+          notice, this list of conditions and the following disclaimer.
+       *  Redistributions in binary form must reproduce the above copyright
+          notice, this list of conditions and the following disclaimer in the
+          documentation and/or other materials provided with the distribution.
+       *  Neither the name of the NVIDIA CORPORATION nor the
+          names of its contributors may be used to endorse or promote products
+          derived from this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+    ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL NVIDIA CORPORATION BE LIABLE FOR ANY
+    DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+    (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+    ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+HOOMD-blue uses headers from `jitify` (https://github.com/NVIDIA/jitify) under the following
+license:
+
+    BSD 3-Clause License
+
+    Copyright (c) 2017-2019, NVIDIA Corporation
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice, this
+      list of conditions and the following disclaimer.
+
+    * Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
+
+    * Neither the name of the copyright holder nor the names of its
+      contributors may be used to endorse or promote products derived from
+      this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+    OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 Libraries
 ---------
@@ -827,3 +940,8 @@ HOOMD-blue links to the following libraries:
 
  * python - Used under the Python license (http://www.python.org/psf/license/)
  * cuFFT - Used under the NVIDIA CUDA toolkit license (http://docs.nvidia.com/cuda/eula/index.html)
+ * rocFFT - Used under the MIT license (https://github.com/ROCmSoftwarePlatform/rocFFT)
+
+HOOMD-blue uses the following header-only libraries:
+ * rocPRIM - https://github.com/ROCmSoftwarePlatform/rocPRIM
+ * rocThrust - https://github.com/ROCmSoftwarePlatform/rocThrust

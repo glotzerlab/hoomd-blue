@@ -3,7 +3,6 @@
 
 
 // Maintainer: joaander All developers are free to add the calls needed to export their modules
-
 #include "HOOMDMath.h"
 #include "ExecutionConfiguration.h"
 #include "ClockSource.h"
@@ -16,6 +15,7 @@
 #include "GSDReader.h"
 #include "Compute.h"
 #include "ComputeThermo.h"
+#include "ComputeThermoHMA.h"
 #include "CellList.h"
 #include "CellListStencil.h"
 #include "ForceCompute.h"
@@ -41,13 +41,12 @@
 #include "SnapshotSystemData.h"
 
 // include GPU classes
-#ifdef ENABLE_CUDA
-#include <cuda.h>
+#ifdef ENABLE_HIP
+#include <hip/hip_runtime.h>
 #include "CellListGPU.h"
 #include "ComputeThermoGPU.h"
+#include "ComputeThermoHMAGPU.h"
 #include "SFCPackUpdaterGPU.h"
-
-#include <cuda_profiler_api.h>
 #endif
 
 // include MPI classes
@@ -56,18 +55,18 @@
 #include "DomainDecomposition.h"
 #include "LoadBalancer.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "CommunicatorGPU.h"
 #include "LoadBalancerGPU.h"
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // ENABLE_MPI
 
 #include "SignalHandler.h"
 
 #include "HOOMDVersion.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#include <hoomd/extern/pybind/include/pybind11/stl_bind.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl_bind.h>
 
 #include <iostream>
 #include <sstream>
@@ -81,15 +80,6 @@ using namespace std;
 /*! \file hoomd_module.cc
     \brief Brings all of the export_* functions together to export the hoomd python module
 */
-
-/* numpy is terrible (see /opt/local/Library/Frameworks/Python.framework/Versions/2.7/
-lib/python2.7/site-packages/numpy/core/generate_numpy_array.py)
-The following #defines help get around this
-*/
-
-#if (PYBIND11_VERSION_MAJOR) != 2 || (PYBIND11_VERSION_MINOR) != 2
-#error HOOMD-blue requires pybind11 2.2.x
-#endif
 
 //! Method for getting the current version of HOOMD
 /*! \returns Current HOOMD version identification string
@@ -118,9 +108,9 @@ pybind11::object get_hoomd_version_tuple()
 //! Get the CUDA version as a tuple
 pybind11::object get_cuda_version_tuple()
     {
-    #ifdef ENABLE_CUDA
-    int major = CUDA_VERSION / 1000;
-    int minor = CUDA_VERSION / 10 % 100;
+    #ifdef ENABLE_HIP
+    int major = HIP_VERSION_MAJOR / 1000;
+    int minor = HIP_VERSION_MINOR / 10 % 100;
     return pybind11::make_tuple(major, minor);
     #else
     return pybind11::make_tuple(0,0);
@@ -348,15 +338,17 @@ PYBIND11_MODULE(_hoomd, m)
     // computes
     export_Compute(m);
     export_ComputeThermo(m);
+    export_ComputeThermoHMA(m);
     export_CellList(m);
     export_CellListStencil(m);
     export_ForceCompute(m);
     export_ForceConstraint(m);
     export_ConstForceCompute(m);
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     export_CellListGPU(m);
     export_ComputeThermoGPU(m);
+    export_ComputeThermoHMAGPU(m);
 #endif
 
     // analyzers
@@ -377,7 +369,7 @@ PYBIND11_MODULE(_hoomd, m)
     export_Integrator(m);
     export_BoxResizeUpdater(m);
     export_SFCPackUpdater(m);
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     export_SFCPackUpdaterGPU(m);
 #endif
 
@@ -385,10 +377,10 @@ PYBIND11_MODULE(_hoomd, m)
     export_Communicator(m);
     export_DomainDecomposition(m);
     export_LoadBalancer(m);
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     export_CommunicatorGPU(m);
     export_LoadBalancerGPU(m);
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // ENABLE_MPI
 
     // system

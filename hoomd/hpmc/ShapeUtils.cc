@@ -1,6 +1,7 @@
 
 #include "ShapeUtils.h"
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+// #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 namespace hpmc{
 

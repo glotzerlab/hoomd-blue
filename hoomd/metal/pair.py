@@ -60,12 +60,10 @@ class eam(force._force):
                          feature = 'EAM')
         hoomd.cite._ensure_global_bib().add(c)
 
-        hoomd.util.print_status_line();
-
         # Error out in MPI simulations
         if (_hoomd.is_MPI_available()):
             if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
-                hoomd.context.msg.error("pair.eam is not supported in multi-processor simulations.\n\n")
+                hoomd.context.current.device.cpp_msg.error("pair.eam is not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error setting up pair potential.")
 
         # initialize the base class
@@ -76,7 +74,7 @@ class eam(force._force):
         else: raise RuntimeError('Unknown EAM input file type');
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _metal.EAMForceCompute(hoomd.context.current.system_definition, file, type_of_file);
         else:
             self.cpp_force = _metal.EAMForceComputeGPU(hoomd.context.current.system_definition, file, type_of_file);
@@ -89,10 +87,10 @@ class eam(force._force):
 
         #Load neighbor list to compute.
         self.cpp_force.set_neighbor_list(self.nlist.cpp_nlist);
-        if hoomd.context.exec_conf.isCUDAEnabled():
+        if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
 
-        hoomd.context.msg.notice(2, "Set r_cut = " + str(self.r_cut_new) + " from potential`s file '" +  str(file) + "'.\n");
+        hoomd.context.current.device.cpp_msg.notice(2, "Set r_cut = " + str(self.r_cut_new) + " from potential`s file '" +  str(file) + "'.\n");
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
         self.pair_coeff = hoomd.md.pair.coeff();

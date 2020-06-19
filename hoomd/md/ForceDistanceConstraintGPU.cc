@@ -7,7 +7,7 @@
 #include "ForceDistanceConstraintGPU.h"
 #include "ForceDistanceConstraintGPU.cuh"
 
-#include <cuda_runtime.h>
+#include <hip/hip_runtime.h>
 
 #include <string.h>
 namespace py = pybind11;
@@ -29,8 +29,9 @@ ForceDistanceConstraintGPU::ForceDistanceConstraintGPU(std::shared_ptr<SystemDef
         m_nnz(m_exec_conf), m_nnz_tot(0)
 #endif
     {
-    m_tuner_fill.reset(new Autotuner(32, 1024, 32, 5, 100000, "dist_constraint_fill_matrix_vec", this->m_exec_conf));
-    m_tuner_force.reset(new Autotuner(32, 1024, 32, 5, 100000, "dist_constraint_force", this->m_exec_conf));
+    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    m_tuner_fill.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "dist_constraint_fill_matrix_vec", this->m_exec_conf));
+    m_tuner_force.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "dist_constraint_force", this->m_exec_conf));
 
     #ifdef CUSOLVER_AVAILABLE
     // initialize cuSPARSE
@@ -116,8 +117,8 @@ void ForceDistanceConstraintGPU::fillMatrixVector(unsigned int timestep)
 
 
         // reset matrix elements
-        cudaMemset(d_cmatrix.data, 0, sizeof(double)*n_constraint*n_constraint);
-        cudaMemset(d_cvec.data, 0, sizeof(double)*n_constraint);
+        hipMemset(d_cmatrix.data, 0, sizeof(double)*n_constraint*n_constraint);
+        hipMemset(d_cvec.data, 0, sizeof(double)*n_constraint);
         }
 
         {
@@ -189,7 +190,7 @@ void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
         {
         // copy new sparse values to host sparse matrix
         ArrayHandle<double> h_sparse_val(m_sparse_val, access_location::device, access_mode::read);
-        cudaMemcpy(m_sparse.valuePtr(), h_sparse_val.data, sizeof(double)*m_sparse.data().size(),cudaMemcpyDeviceToHost);
+        hipMemcpy(m_sparse.valuePtr(), h_sparse_val.data, sizeof(double)*m_sparse.data().size(),hipMemcpyDeviceToHost);
         }
 
     // solve on CPU
@@ -542,7 +543,7 @@ void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
 
     // copy RHS into solution vector
     ArrayHandle<double> d_vec(m_cvec, access_location::device, access_mode::read);
-    cudaMemcpy(d_lagrange.data, d_vec.data, sizeof(double)*n_constraint,cudaMemcpyDeviceToDevice);
+    hipMemcpy(d_lagrange.data, d_vec.data, sizeof(double)*n_constraint,hipMemcpyDeviceToDevice);
 
     int nrhs = 1;
     // solve
@@ -612,7 +613,7 @@ void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
 
 void export_ForceDistanceConstraintGPU(py::module& m)
     {
-    py::class_< ForceDistanceConstraintGPU, std::shared_ptr<ForceDistanceConstraintGPU> >(m, "ForceDistanceConstraintGPU", py::base<ForceDistanceConstraint>())
+    py::class_< ForceDistanceConstraintGPU, ForceDistanceConstraint, std::shared_ptr<ForceDistanceConstraintGPU> >(m, "ForceDistanceConstraintGPU")
         .def(py::init< std::shared_ptr<SystemDefinition> >())
         ;
     }

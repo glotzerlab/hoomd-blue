@@ -8,7 +8,7 @@
 #include "EvaluatorPairMoliere.h"
 #include "AllDriverPotentialPairGPU.cuh"
 
-cudaError_t gpu_compute_moliere_forces(const pair_args_t& pair_args,
+hipError_t gpu_compute_moliere_forces(const pair_args_t& pair_args,
                                        const Scalar2 *d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairMoliere>(pair_args,

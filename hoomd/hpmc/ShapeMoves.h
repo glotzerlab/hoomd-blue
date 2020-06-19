@@ -6,7 +6,8 @@
 #include "Moves.h"
 #include "GSDHPMCSchema.h"
 #include <hoomd/extern/Eigen/Eigen/Dense>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+// #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 namespace hpmc {
 
@@ -429,7 +430,7 @@ class ElasticShapeMove : public ShapeMoveBase<Shape>
             else                                        // perform a rotation-scale-rotation move
                 {
                 quat<Scalar> q(1.0,vec3<Scalar>(0.0,0.0,0.0));
-                move_rotate(q, rng, 0.5, 3);
+                move_rotate<3>(q, rng, 0.5);
                 Matrix3d rot, rot_inv, scale;
                 Eigen::Quaternion<double> eq(q.s, q.v.x, q.v.y, q.v.z);
                 rot = eq.toRotationMatrix();

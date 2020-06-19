@@ -93,7 +93,6 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
-    Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
 
     // validate that the cutoff fits inside the box
     Scalar rmax = getMaxRCut() + m_r_buff;
@@ -105,14 +104,6 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
         // add the maximum diameter of all composite particles
         Scalar max_d_comp = m_pdata->getMaxCompositeParticleDiameter();
         rmax += 0.5*max_d_comp;
-        }
-
-    if ((box.getPeriodic().x && nearest_plane_distance.x <= rmax * 2.0) ||
-        (box.getPeriodic().y && nearest_plane_distance.y <= rmax * 2.0) ||
-        (this->m_sysdef->getNDimensions() == 3 && box.getPeriodic().z && nearest_plane_distance.z <= rmax * 2.0))
-        {
-        m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
-        throw runtime_error("Error updating neighborlist bins");
         }
 
     // access the rlist data
@@ -242,7 +233,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
 
 void export_NeighborListBinned(py::module& m)
     {
-    py::class_<NeighborListBinned, std::shared_ptr<NeighborListBinned> >(m, "NeighborListBinned", py::base<NeighborList>())
+    py::class_<NeighborListBinned, NeighborList, std::shared_ptr<NeighborListBinned> >(m, "NeighborListBinned")
     .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, std::shared_ptr<CellList> >())
                      ;
     }

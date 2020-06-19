@@ -117,7 +117,7 @@ unsigned int OneDConstraint::getNDOFRemoved()
 
 void export_OneDConstraint(py::module& m)
     {
-    py::class_< OneDConstraint, std::shared_ptr<OneDConstraint> >(m, "OneDConstraint", py::base<ForceConstraint>())
+    py::class_< OneDConstraint, ForceConstraint, std::shared_ptr<OneDConstraint> >(m, "OneDConstraint")
     .def(py::init< std::shared_ptr<SystemDefinition>,
                    std::shared_ptr<ParticleGroup>,
                    Scalar3 >())

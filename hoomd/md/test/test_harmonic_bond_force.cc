@@ -449,7 +449,7 @@ std::shared_ptr<PotentialBondHarmonic> base_class_bf_creator(std::shared_ptr<Sys
     return std::shared_ptr<PotentialBondHarmonic>(new PotentialBondHarmonic(sysdef));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! PotentialBondHarmonic creator for bond_force_basic_tests()
 std::shared_ptr<PotentialBondHarmonic> gpu_bf_creator(std::shared_ptr<SystemDefinition> sysdef)
     {
@@ -464,7 +464,7 @@ UP_TEST( PotentialBondHarmonic_basic )
     bond_force_basic_tests(bf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! test case for bond forces on the GPU
 UP_TEST( PotentialBondHarmonicGPU_basic )
     {

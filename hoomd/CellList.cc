@@ -80,10 +80,6 @@ uint3 CellList::computeDimensions()
 
     Scalar3 L = box.getNearestPlaneDistance();
 
-    dim.x = roundDown((unsigned int)((L.x) / (m_nominal_width)), m_multiple);
-    dim.y = roundDown((unsigned int)((L.y) / (m_nominal_width)), m_multiple);
-    dim.z = (m_sysdef->getNDimensions() == 3) ? roundDown((unsigned int)((L.z) / (m_nominal_width)), m_multiple) : 1;
-
     // size the ghost layer width
     m_ghost_width = make_scalar3(0.0, 0.0, 0.0);
 #ifdef ENABLE_MPI
@@ -104,24 +100,9 @@ uint3 CellList::computeDimensions()
         }
 #endif
 
-    // expand for ghost width if communicating ghosts
-#ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        const Scalar3 cell_size = make_scalar3(L.x / Scalar(dim.x), L.y / Scalar(dim.y), L.z / Scalar(dim.z));
-
-        // add cells up to the next integer to cover the whole ghost width on both sides
-        if (!box.getPeriodic().x)
-            dim.x += 2*static_cast<int>(ceil(m_ghost_width.x/cell_size.x));
-
-        if (!box.getPeriodic().y)
-            dim.y += 2*static_cast<int>(ceil(m_ghost_width.y/cell_size.y));
-
-        if (m_sysdef->getNDimensions() == 3 && !box.getPeriodic().z)
-            dim.z += 2*static_cast<int>(ceil(m_ghost_width.z/cell_size.z));
-        }
-#endif
-
+    dim.x = roundDown((unsigned int)((L.x + 2.0*m_ghost_width.x) / (m_nominal_width)), m_multiple);
+    dim.y = roundDown((unsigned int)((L.y + 2.0*m_ghost_width.y) / (m_nominal_width)), m_multiple);
+    dim.z = (m_sysdef->getNDimensions() == 3) ? roundDown((unsigned int)((L.z + 2.0*m_ghost_width.z) / (m_nominal_width)), m_multiple) : 1;
 
     // In extremely small boxes, the calculated dimensions could go to zero, but need at least one cell in each dimension
     // for particles to be in a cell and to pass the checkCondition tests.
@@ -219,10 +200,10 @@ double CellList::benchmark(unsigned int num_iters)
     // warm up run
     computeCellList();
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     if(m_exec_conf->isCUDAEnabled())
         {
-        cudaThreadSynchronize();
+        hipDeviceSynchronize();
         CHECK_CUDA_ERROR();
         }
 #endif
@@ -232,9 +213,9 @@ double CellList::benchmark(unsigned int num_iters)
     for (unsigned int i = 0; i < num_iters; i++)
         computeCellList();
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     if(m_exec_conf->isCUDAEnabled())
-        cudaThreadSynchronize();
+        hipDeviceSynchronize();
 #endif
     uint64_t total_time_ns = t.getTime() - start_time;
 
@@ -305,9 +286,9 @@ void CellList::initializeMemory()
         {
         // if we have less than radius*2+1 cells in a direction, restrict to unique neighbors
         uint3 n_unique_neighbors = m_dim;
-        n_unique_neighbors.x = n_unique_neighbors.x > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.x;
-        n_unique_neighbors.y = n_unique_neighbors.y > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.y;
-        n_unique_neighbors.z = n_unique_neighbors.z > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.z;
+        n_unique_neighbors.x = n_unique_neighbors.x > m_radius*2+1 ? m_radius*2+1 : (unsigned int) n_unique_neighbors.x;
+        n_unique_neighbors.y = n_unique_neighbors.y > m_radius*2+1 ? m_radius*2+1 : (unsigned int) n_unique_neighbors.y;
+        n_unique_neighbors.z = n_unique_neighbors.z > m_radius*2+1 ? m_radius*2+1 : (unsigned int) n_unique_neighbors.z;
 
         unsigned int n_adj;
         if (m_sysdef->getNDimensions() == 2)
@@ -581,7 +562,7 @@ void CellList::computeCellList()
             }
         else
             {
-            conditions.x = max(conditions.x, offset+1);
+            conditions.x = max((unsigned int)conditions.x, offset+1);
             }
 
         // increment the cell occupancy counter
@@ -701,7 +682,7 @@ void CellList::printStats()
 
 void export_CellList(py::module& m)
     {
-    py::class_<CellList, std::shared_ptr<CellList> >(m,"CellList",py::base<Compute>())
+    py::class_<CellList, Compute, std::shared_ptr<CellList> >(m,"CellList")
         .def(py::init< std::shared_ptr<SystemDefinition> >())
         .def("setNominalWidth", &CellList::setNominalWidth)
         .def("setRadius", &CellList::setRadius)
