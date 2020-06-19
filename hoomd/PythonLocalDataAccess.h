@@ -9,9 +9,22 @@
 #include <pybind11/numpy.h>
 
 
+/// Base class for buffers for LocalDataAccess template class type checking.
+/** HOOMDBuffer classes need to implement a templated make method that takes
+ *  data: pointer to type T
+ *  shape: shape of the array
+ *  stride: the strides to move one index in each dimension of shape
+ *  read_only: whether the buffer is meant to be read_only
+ */
 struct HOOMDBuffer {};
 
 
+/// Represents the data required to specify a CPU buffer object in Python.
+/** Stores the data to create pybind11::buffer_info objects. This is necessary
+ *  since buffer_info objects cannot be reused. Once the buffer is read many of
+ *  the members are moved. In addition, this class allows for a uniform way of
+ *  specifying a CPU(Host) or GPU(Device) buffer.
+ */
 struct HOOMDHostBuffer : public HOOMDBuffer
     {
     static const auto device = access_location::host;
@@ -62,6 +75,10 @@ struct HOOMDHostBuffer : public HOOMDBuffer
 
 
 #if ENABLE_HIP
+/// Represents the data required to implement the __cuda_array_interface__.
+/** Creates the Python dictionary to represent a GPU array through the
+ *  __cuda_array_interface__. Currently supports version 2 of the protocol.
+ */
 struct HOOMDDeviceBuffer : public HOOMDBuffer
     {
     static const auto device = access_location::device;
@@ -137,11 +154,25 @@ struct HOOMDDeviceBuffer : public HOOMDBuffer
 #endif
 
 
-// LocalDataAccess is a base class for allowing the converting of arrays stored
-// using Global or GPU arrays/vectors.
-// Output - the output buffer class for the class should be HOOMDDeviceBuffer or
-// HOOMDHostBuffer
-// Data - the class of the object we wish to expose data from
+/// Base class for accessing Global or GPU arrays/vectors in Python.
+/** Template Parameters:
+ *  Output - the output buffer class for the class should be HOOMDDeviceBuffer
+ *  or HOOMDHostBuffer
+ *  Data - the class of the object we wish to expose data from
+ *
+ *  This class only allows access when the m_in_manager flag is true. The flag
+ *  should only be changed when entering or exiting a Python context manager.
+ *  The design of Python access is to restrict access to within a context
+ *  manager to prevent invalid reads/writes in Python (and SEGFAULTS).
+ *
+ *  The main methods of LocalDataAccess are getBuffer and getGlobalBuffer which
+ *  provide a way to automatically convert an Global/GPUArray into an object of
+ *  type Output. All classes that expose arrays in Python should use these
+ *  classes.
+ *
+ *  This class stores ArrayHandles using a unique pointer to prevent a resource
+ *  from being dropped before the object is destroyed.
+ */
 template <class Output, class Data>
 class LocalDataAccess
     {
@@ -156,10 +187,10 @@ class LocalDataAccess
 
         virtual ~LocalDataAccess() = default;
 
-        // signifies entering into a Python context manager
+        /// signifies entering into a Python context manager
         void enter() {m_in_manager = true;}
 
-        // signifies exiting a Python context manager
+        /// signifies exiting a Python context manager
         void exit()
             {
             clear();
@@ -167,25 +198,39 @@ class LocalDataAccess
             }
 
     protected:
-        // T - the value stored in the by the internal array (i.e. the template
-        // parameter of the ArrayHandle
-        // S - the exposed type of data to Python
-        // U - the array class returned by the parameter get_array_func
+        /// Convert Global/GPUArray or vector into an Ouput object for Python
+        /** This function is for arrays that are of a size less than or equal to
+         *  their global size. An example is particle positions. On each MPI
+         *  rank or GPU, the number of positions a ranks knows about (including
+         *  ghost particles) is less than or equal to the number of total
+         *  particles in the system. For arrays that are the sized according to
+         *  the global number, use getGlobalBuffer (quantities such as rtags).
+         *  Template parameters:
+         *  T - the value stored in the by the internal array (i.e. the template
+         *  parameter of the ArrayHandle
+         *  S - the exposed type of data to Python
+         *  U - the array class returned by the parameter get_array_func
+         *
+         *  Arguments:
+         *  handle: a reference to the unique_ptr that holds the ArrayHandle.
+         *  get_array_func: the method of m_data to use to access the array.
+         *  ghost: whether to return only ghost data (defaults to false)
+         *  include_both: whether to return all known data (defaults to false)
+         *  second_dimension_size: the size of the second dimension (defaults to
+         *  0)
+         *  offest: the offset in bytes from the start of the array to the
+         *  start of the exposed array in Python (defaults to no offset).
+         *  strides: the strides in bytes of the array (defaults to sizeof(T) or
+         *  {sizeof(S), sizeof(T)} depending on dimension).
+         */
         template<class T, class S, template<class> class U=GlobalArray>
         Output getBuffer(
-            // handle to operate on
             std::unique_ptr<ArrayHandle<T> >& handle,
-            // function to use for getting array
             const U<T>& (Data::*get_array_func)() const,
-            // Whether to return ghost particles properties
             bool ghost = false,
-            // Whether to return normal and ghost particles
             bool include_both = false,
-            // Size of the second dimension
             unsigned int second_dimension_size = 0,
-            // offset from beginning of pointer
             ssize_t offset = 0,
-            // Strides in each dimension
             std::vector<ssize_t> strides = {}
         )
             {
