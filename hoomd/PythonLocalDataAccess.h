@@ -230,22 +230,38 @@ class LocalDataAccess
             return Output::make(data, shape, strides, read_only);
             }
 
-        // Helper function for when the exposed type and the internal type are
-        // the same.
-        template<class T, template<class> class U>
-        Output getBufferSameType(std::unique_ptr<ArrayHandle<T> >& handle,
-                                 const U<T>& (Data::*get_array_func)() const,
-                                 bool ghost = false,
-                                 bool include_both = false,
-                                 unsigned int second_dimension_size = 0,
-                                 ssize_t offset = 0,
-                                 std::vector<ssize_t> strides = {})
+        /// Convert Global/GPUArray or vector into an Ouput object for Python
+        /** This function is for arrays that are of a size equal to their global
+         *  size. An example is the reverse tag index. On each MPI rank or GPU,
+         *  the size of the reverse tag index is equal to the entire number of
+         *  particles in the system.  For arrays that are the sized according to
+         *  the local box, use getBuffer (quantities such as particle positions).
+         *  Template parameters:
+         *  T - the value stored in the by the internal array (i.e. the template
+         *  parameter of the ArrayHandle
+         *  U - the array class returned by the parameter get_array_func
+         *
+         *  Arguments:
+         *  handle: a reference to the unique_ptr that holds the ArrayHandle.
+         *  get_array_func: the method of m_data to use to access the array.
+         *  of the exposed array in Python.
+         *  read_only: whether the array should be read only (defaults to True).
+         */
+        template<class T, template<class> class U=GlobalArray>
+        Output getGlobalBuffer(std::unique_ptr<ArrayHandle<T> >& handle,
+                               const U<T>& (Data::*get_array_func)() const,
+                               bool read_only=true)
             {
-            return this->template getBuffer<T, T, U>(
-                handle, get_array_func, ghost, include_both,
-                second_dimension_size, offset, strides
-                );
+            checkManager();
+            updateHandle(handle, get_array_func, read_only);
+
+            auto size = m_data.getNGlobal();
+            unsigned int* data = handle.get()->data;
+
+            return Output::make(data, std::vector<ssize_t>({size}),
+                                std::vector<ssize_t>({sizeof(T)}), true);
             }
+
 
         // clear should remove any references to ArrayHandle objects so the
         // handle can be released for other objects.
