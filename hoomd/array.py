@@ -421,6 +421,8 @@ class HOOMDArray(metaclass=_WrapClassFactory(_wrap_list)):
 
 
 if isCUDAAvailable():
+    import os
+
     class _HOOMDGPUArrayBase:
         """Base GPUArray class. Functions work with or without CuPy.
 
@@ -451,6 +453,8 @@ if isCUDAAvailable():
             return self._buffer.read_only
 
     try:
+        if os.environ.get('_HOOMD_DISABLE_CUPY_') is not None:
+            raise ImportError
         import cupy
     except ImportError:
         _wrap_gpu_array_list = []
@@ -509,7 +513,6 @@ if isCUDAAvailable():
                         + str(self.dtype) + "))"
                 else:
                     return "<emph>" + name + "</emph>(<strong>INVALID</strong>)"
-
     else:
         _cupy_ndarray_magic_safe_ = ([
             item for item in _ndarray_magic_safe_[0]
