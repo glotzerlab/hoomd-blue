@@ -188,11 +188,7 @@ class LocalDataAccess
             std::vector<ssize_t> strides = {}
         )
             {
-            if (!m_in_manager)
-                {
-                throw std::runtime_error(
-                    "Cannot access arrays outside context manager.");
-                }
+            checkManager();
 
             if (ghost && include_both)
                 {
@@ -200,17 +196,9 @@ class LocalDataAccess
                     "Cannot specify both the ghost and include_both flags.");
                 }
 
-            auto read_only = ghost || include_both;
+            bool read_only = ghost || include_both;
 
-            if (!handle)
-                {
-                auto mode = read_only ? access_mode::read : access_mode::readwrite;
-                std::unique_ptr<ArrayHandle<T> > new_handle(
-                    new ArrayHandle<T>((m_data.*get_array_func)(),
-                    Output::device,
-                    mode));
-                handle = std::move(new_handle);
-                }
+            updateHandle(handle, get_array_func, read_only);
 
             auto N = m_data.getN();
             auto ghostN = m_data.getNGhosts();
@@ -263,7 +251,36 @@ class LocalDataAccess
         virtual void clear() = 0;
 
     private:
+        /// Ensure that arrays are not accessed outside context manager.
+        inline void checkManager()
+            {
+            if (!m_in_manager)
+                {
+                throw std::runtime_error(
+                    "Cannot access arrays outside context manager.");
+                }
+            }
+
+        /// Helper function to acquire array handle if not already acquired.
+        template<class T, template<class> class U>
+        void updateHandle(std::unique_ptr<ArrayHandle<T> >& handle,
+                          const U<T>& (Data::*get_array_func)() const,
+                          bool read_only)
+            {
+            if (!handle)
+                {
+                auto mode = read_only ? access_mode::read : access_mode::readwrite;
+                std::unique_ptr<ArrayHandle<T> > new_handle(
+                    new ArrayHandle<T>((m_data.*get_array_func)(),
+                    Output::device,
+                    mode));
+                handle = std::move(new_handle);
+                }
+            }
+
+        /// object to access array data from
         Data& m_data;
+        /// flag for being inside Python context manager
         bool m_in_manager;
     };
 
