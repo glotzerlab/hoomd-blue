@@ -1008,7 +1008,7 @@ class LocalGroupData : public LocalDataAccess<Output, GroupData>
 
         Output getTags(bool ghost, bool include_both)
             {
-            return this->template getBufferSameType<unsigned int, GPUVector>(
+            return this->template getBuffer<unsigned int, unsigned int, GPUVector>(
                 m_tags_handle,
                 &GroupData::getTags,
                 ghost,

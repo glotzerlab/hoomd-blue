@@ -1361,7 +1361,7 @@ class PYBIND11_EXPORT LocalParticleData :
 
             Output getCharge(bool ghost=false, bool include_both=false)
                 {
-                return this->template getBufferSameType<Scalar>(
+                return this->template getBuffer<Scalar, Scalar>(
                     m_charge_handle,
                     &ParticleData::getCharges,
                     ghost,
@@ -1371,7 +1371,7 @@ class PYBIND11_EXPORT LocalParticleData :
 
             Output getDiameter(bool ghost=false, bool include_both=false)
                 {
-                return this->template getBufferSameType<Scalar>(
+                return this->template getBuffer<Scalar, Scalar>(
                     m_diameter_handle,
                     &ParticleData::getDiameters,
                     ghost,
@@ -1392,7 +1392,7 @@ class PYBIND11_EXPORT LocalParticleData :
 
             Output getTags(bool ghost=false, bool include_both=false)
                 {
-                return this->template getBufferSameType<unsigned int>(
+                return this->template getBuffer<unsigned int, unsigned int>(
                     m_tag_handle,
                     &ParticleData::getTags,
                     ghost,
@@ -1400,20 +1400,17 @@ class PYBIND11_EXPORT LocalParticleData :
                 );
                 }
 
-            Output getRTags(bool ghost=false, bool include_both=false)
+            Output getRTags()
                 {
-                return this->template getBufferSameType<unsigned int,
-                                                        GlobalVector>(
-                    m_tag_handle,
-                    &ParticleData::getRTags,
-                    ghost,
-                    include_both
-                );
+                return this->template getGlobalBuffer<unsigned int>(
+                    m_rtag_handle,
+                    &ParticleData::getRTags
+                    );
                 }
 
             Output getBodies(bool ghost=false, bool include_both=false)
                 {
-                return this->template getBufferSameType<unsigned int>(
+                return this->template getBuffer<unsigned int, unsigned int>(
                     m_rigid_body_ids_handle,
                     &ParticleData::getBodies,
                     ghost,
