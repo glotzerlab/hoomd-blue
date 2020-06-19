@@ -151,7 +151,8 @@ class LocalDataAccess
     );
 
     public:
-        inline LocalDataAccess(Data& data);
+        inline LocalDataAccess(Data& data) :
+            m_data(data), m_in_manager(false) {}
 
         virtual ~LocalDataAccess() = default;
 
@@ -283,10 +284,6 @@ class LocalDataAccess
         /// flag for being inside Python context manager
         bool m_in_manager;
     };
-
-template <class Output, class Data>
-LocalDataAccess<Output, Data>::LocalDataAccess(Data& data)
-    : m_data(data), m_in_manager(false) {}
 
 void export_HOOMDHostBuffer(pybind11::module &m);
 
