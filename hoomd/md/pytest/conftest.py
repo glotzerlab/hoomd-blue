@@ -107,6 +107,14 @@ def _valid_params(particle_types=['A', 'B']):
 
     valid_params_list.append(("LJ1208", hoomd.md.pair.LJ1208,
                               dict(zip(combos, lj1208_valid_param_dicts))))
+
+    fourier_arg_dict = {'a': [[0.5, 1.0, 1.5], [.05, .1, .15], [.005, .01, .015]],
+                        'b': [[0.25, 0.034, 0.76], [0.36, 0.12, 0.65], [0.78, 0.04, 0.98]]}
+    fourier_valid_param_dicts = _make_valid_param_dicts(fourier_arg_dict, len(combos))
+
+    valid_params_list.append(("Fourier", hoomd.md.pair.Fourier,
+                              dict(zip(combos, fourier_valid_param_dicts))))
+
     return valid_params_list
 
 

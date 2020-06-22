@@ -2127,7 +2127,7 @@ class LJ1208(_Pair):
         self._add_typeparam(params)
 
 
-class fourier(pair):
+class Fourier(_Pair):
     R""" Fourier pair potential.
 
     Args:
@@ -2174,33 +2174,11 @@ class fourier(pair):
         fourier = pair.fourier(r_cut=3.0, nlist=nl)
         fourier.pair_coeff.set('A', 'A', a=[a2,a3,a4], b=[b2,b3,b4])
     """
+    _cpp_class_name = "PotentialPairFourier"
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
+        super().__init__(nlist, r_cut, r_on, mode)
+        params = TypeParameter('params', 'particle_types',
+            TypeParameterDict(a=list, b=list,
+            explicit_defaults=dict(a=[float]*3, b=[float]*3), len_keys=2))
+        self._add_typeparam(params)
 
-    def __init__(self, r_cut, nlist, name=None):
-
-
-        # tell the base class how we operate
-
-        # initialize the base class
-        pair.__init__(self, r_cut, nlist, name);
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PotentialPairFourier(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairFourier;
-        else:
-            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-            self.cpp_force = _md.PotentialPairFourierGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairFourierGPU;
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-
-        # setup the coefficent options
-
-        self.required_coeffs = ['fourier_a','fourier_b'];
-        # self.pair_coeff.set_default_coeff('alpha', 1.0);
-
-    def process_coeff(self, coeff):
-        fourier_a = coeff['fourier_a'];
-        fourier_b = coeff['fourier_b'];
-
-        return _md.make_pair_fourier_params(fourier_a,fourier_b);
