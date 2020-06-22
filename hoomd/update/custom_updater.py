@@ -1,3 +1,4 @@
+from hoomd.operation import _Updater
 from hoomd.custom_operation import _CustomOperation, _InternalCustomOperation
 from hoomd.custom_action import CustomAction, _InternalCustomAction
 
@@ -15,11 +16,12 @@ class _UpdaterProperty:
             raise ValueError("updater must be an instance of CustomAction")
 
 
-class CustomUpdater(_CustomOperation, _UpdaterProperty):
+class CustomUpdater(_CustomOperation, _UpdaterProperty, _Updater):
     _cpp_list_name = 'updaters'
     _cpp_class_name = 'PythonUpdater'
 
 
-class _InternalCustomUpdater(_InternalCustomOperation, _UpdaterProperty):
+class _InternalCustomUpdater(
+        _InternalCustomOperation, _UpdaterProperty, _Updater):
     _cpp_list_name = 'updaters'
     _cpp_class_name = 'PythonUpdater'

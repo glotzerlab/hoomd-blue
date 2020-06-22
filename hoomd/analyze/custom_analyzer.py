@@ -1,3 +1,4 @@
+from hoomd.operation import _Analyzer
 from hoomd.custom_operation import _CustomOperation, _InternalCustomOperation
 from hoomd.custom_action import CustomAction, _InternalCustomAction
 
@@ -15,11 +16,12 @@ class _AnalyzerProperty:
             raise ValueError("analyzer must be an instance of CustomAction")
 
 
-class CustomAnalyzer(_CustomOperation, _AnalyzerProperty):
+class CustomAnalyzer(_CustomOperation, _AnalyzerProperty, _Analyzer):
     _cpp_list_name = 'analyzers'
     _cpp_class_name = 'PythonAnalyzer'
 
 
-class _InternalCustomAnalyzer(_InternalCustomOperation, _AnalyzerProperty):
+class _InternalCustomAnalyzer(
+        _InternalCustomOperation, _AnalyzerProperty, _Analyzer):
     _cpp_list_name = 'analyzers'
     _cpp_class_name = 'PythonAnalyzer'
