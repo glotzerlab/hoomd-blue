@@ -26,6 +26,7 @@
 #include "EvaluatorPairZBL.h"
 #include "EvaluatorPairMie.h"
 #include "EvaluatorPairReactionField.h"
+#include "EvaluatorPairBuckingham.h"
 
 //! Compute lj pair forces on the GPU with PairEvaluatorLJ
 hipError_t __attribute__((visibility("default")))
@@ -105,7 +106,7 @@ gpu_compute_reaction_field_forces(const pair_args_t & args,
 //! Compute buckingham pair forces on the GPU with PairEvaluatorBuckingham
 hipError_t __attribute__((visibility("default")))
 gpu_compute_buckingham_forces(const pair_args_t& pair_args,
-                          const Scalar4 *d_params);
+                          const EvaluatorPairBuckingham::param_type *d_params);
 
 //! Compute lj1208 pair forces on the GPU with PairEvaluatorLJ1208
 hipError_t __attribute__((visibility("default")))

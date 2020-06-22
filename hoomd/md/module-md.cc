@@ -232,7 +232,7 @@ PYBIND11_MODULE(_md, m)
     export_HarmonicImproperForceCompute(m);
     export_TablePotential(m);
     export_BondTablePotential(m);
-    // export_PotentialPair<PotentialPairBuckingham>(m, "PotentialPairBuckingham");
+    export_PotentialPair<PotentialPairBuckingham>(m, "PotentialPairBuckingham");
     export_PotentialPair<PotentialPairLJ>(m, "PotentialPairLJ");
     // export_PotentialPair<PotentialPairLJ1208>(m, "PotentialPairLJ1208");
     export_PotentialPair<PotentialPairGauss>(m, "PotentialPairGauss");
@@ -290,7 +290,7 @@ PYBIND11_MODULE(_md, m)
     export_NeighborListGPUStencil(m);
     export_NeighborListGPUTree(m);
     export_ForceCompositeGPU(m);
-    // export_PotentialPairGPU<PotentialPairBuckinghamGPU, PotentialPairBuckingham>(m, "PotentialPairBuckinghamGPU");
+    export_PotentialPairGPU<PotentialPairBuckinghamGPU, PotentialPairBuckingham>(m, "PotentialPairBuckinghamGPU");
     export_PotentialPairGPU<PotentialPairLJGPU, PotentialPairLJ>(m, "PotentialPairLJGPU");
     // export_PotentialPairGPU<PotentialPairLJ1208GPU, PotentialPairLJ1208>(m, "PotentialPairLJ1208GPU");
     export_PotentialPairGPU<PotentialPairGaussGPU, PotentialPairGauss>(m, "PotentialPairGaussGPU");
