@@ -94,6 +94,13 @@ def _valid_params(particle_types=['A', 'B']):
                                                     len(combos))
     valid_params_list.append(("ReactionField", hoomd.md.pair.ReactionField,
                               dict(zip(combos, reactfield_valid_param_dicts))))
+
+    buckingham_arg_dict = {'A': [.05, .025, .010], 'rho': [.5, 1, 1.5],
+                    'C': [.05, .025, .01]}
+    buckingham_valid_param_dicts = _make_valid_param_dicts(buckingham_arg_dict,
+                                                    len(combos))
+    valid_params_list.append(("Buckingham", hoomd.md.pair.Buckingham,
+                              dict(zip(combos, buckingham_valid_param_dicts))))
     return valid_params_list
 
 
