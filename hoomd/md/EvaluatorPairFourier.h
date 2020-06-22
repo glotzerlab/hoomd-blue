@@ -60,7 +60,61 @@ class EvaluatorPairFourier
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef pair_fourier_params param_type; //first try a 4th order fourier expression of potential
+        struct param_type
+            {
+            Scalar a[3], b[3];
+
+            #ifdef ENABLE_HIP
+            //! set CUDA memory hint
+            void set_memory_hint() const {}
+            #endif
+
+            #ifndef __HIPCC__
+            param_type()
+                {
+                for (int i=0; i<3; i++)
+                    {
+                    a[i] = 1.0;
+                    b[i] = 1.0;
+                    }
+                }
+
+            param_type(pybind11::dict v)
+                {
+                pybind11::list py_a(v["a"]);
+                pybind11::list py_b(v["b"]);
+
+                for (int i=0; i<3; i++)
+                    {
+                    a[i] = pybind11::cast<Scalar>(py_a[i]);
+                    b[i] = pybind11::cast<Scalar>(py_b[i]);
+                    }
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+                pybind11::list py_a, py_b;
+
+                for (int i=0; i<3; i++)
+                    {
+                    py_a.append(a[i]);
+                    py_b.append(b[i]);
+                    }
+
+                v["a"] = py_a;
+                v["b"] = py_b;
+                return v;
+                }
+            #endif
+            }
+            #ifdef SINGLE_PRECISION
+            __attribute__((aligned(8)));
+            #else
+            __attribute__((aligned(16)));
+            #endif
+
+
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance beteen the particles
             \param _rcutsq Sqauared distance at which the potential goes to 0
@@ -105,7 +159,7 @@ class EvaluatorPairFourier
             if (rsq < rcutsq)
                 {
                 Scalar half_period = fast::sqrt(rcutsq);
-		Scalar period_scale = M_PI / half_period;
+                Scalar period_scale = M_PI / half_period;
                 Scalar r = fast::sqrt(rsq);
                 Scalar x = r * period_scale;
                 Scalar r1inv = Scalar(1)/r;
@@ -164,7 +218,7 @@ class EvaluatorPairFourier
     protected:
         Scalar rsq;     //!< Stored rsq from the constructor
         Scalar rcutsq;  //!< Stored rcutsq from the constructor
-        const pair_fourier_params& params;      //!< Fourier component coefficents
+        const param_type& params;      //!< Fourier component coefficents
     };
 
 
