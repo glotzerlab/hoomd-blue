@@ -1479,18 +1479,6 @@ class Mie(_Pair):
 
         self._add_typeparam(params)
 
-    def process_coeff(self, coeff):
-        epsilon = float(coeff['epsilon']);
-        sigma = float(coeff['sigma']);
-        n = float(coeff['n']);
-        m = float(coeff['m']);
-
-        mie1 = epsilon * math.pow(sigma, n) * (n/(n-m)) * math.pow(n/m,m/(n-m));
-        mie2 = epsilon * math.pow(sigma, m) * (n/(n-m)) * math.pow(n/m,m/(n-m));
-        mie3 = n
-        mie4 = m
-        return _hoomd.make_scalar4(mie1, mie2, mie3, mie4);
-
 
 class _shape_dict(dict):
     """Simple dictionary subclass to improve handling of anisotropic potential
@@ -1789,7 +1777,7 @@ class dipole(ai_pair):
         return;
 
 
-class reaction_field(pair):
+class ReactionField(_Pair):
     R""" Onsager reaction field pair potential.
 
     Args:
@@ -1849,27 +1837,14 @@ class reaction_field(pair):
         reaction_field.pair_coeff.set(system.particles.types, system.particles.types, epsilon=1.0, eps_rf=0.0, use_charge=True)
 
     """
-    def __init__(self, r_cut, nlist, name=None):
+    _cpp_class_name = "PotentialPairReactionField"
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
+        super().__init__(nlist, r_cut, r_on, mode)
+        params = TypeParameter('params', 'particle_types',
+                               TypeParameterDict(epsilon=float, eps_rf=float,
+                                                 use_charge=False, len_keys=2))
 
-        # tell the base class how we operate
-
-        # initialize the base class
-        pair.__init__(self, r_cut, nlist, name);
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PotentialPairReactionField(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairReactionField;
-        else:
-            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-            self.cpp_force = _md.PotentialPairReactionFieldGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairReactionFieldGPU;
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-
-        # setup the coefficient options
-        self.required_coeffs = ['epsilon', 'eps_rf', 'use_charge'];
-        self.pair_coeff.set_default_coeff('use_charge', False)
+        self._add_typeparam(params)
 
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];

@@ -87,6 +87,13 @@ def _valid_params(particle_types=['A', 'B']):
                                                     len(combos))
     valid_params_list.append(("Mie", hoomd.md.pair.Mie,
                               dict(zip(combos, mie_valid_param_dicts))))
+
+    reactfield_arg_dict = {'epsilon': [.05, .025, .010], 'eps_rf': [.5, 1, 1.5],
+                    'use_charge': [False, True, False]}
+    reactfield_valid_param_dicts = _make_valid_param_dicts(reactfield_arg_dict,
+                                                    len(combos))
+    valid_params_list.append(("ReactionField", hoomd.md.pair.ReactionField,
+                              dict(zip(combos, reactfield_valid_param_dicts))))
     return valid_params_list
 
 
