@@ -101,6 +101,12 @@ def _valid_params(particle_types=['A', 'B']):
                                                     len(combos))
     valid_params_list.append(("Buckingham", hoomd.md.pair.Buckingham,
                               dict(zip(combos, buckingham_valid_param_dicts))))
+
+    lj1208_arg_dict = {'sigma': [0.5, 1.0, 1.5], 'epsilon': [0.0005, 0.001, 0.0015]}
+    lj1208_valid_param_dicts = _make_valid_param_dicts(lj1208_arg_dict, len(combos))
+
+    valid_params_list.append(("LJ1208", hoomd.md.pair.LJ1208,
+                              dict(zip(combos, lj1208_valid_param_dicts))))
     return valid_params_list
 
 
