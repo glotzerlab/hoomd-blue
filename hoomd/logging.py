@@ -12,8 +12,8 @@ class Loggable(type):
         def helper(func):
             name = func.__name__
             if name in cls._meta_export_dict:
-                raise KeyError("Multiple loggable quantities named "
-                               "{}.".format(name))
+                raise KeyError(
+                    "Multiple loggable quantities named {}.".format(name))
             cls._meta_export_dict[name] = flag
             if is_property:
                 return property(func)
