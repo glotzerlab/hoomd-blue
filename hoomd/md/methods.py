@@ -280,7 +280,7 @@ class NPT(_Method):
                                  thermo_t,
                                  self.tau,
                                  self.tauS,
-                                 self.kT
+                                 self.kT,
                                  self.S,
                                  self.couple,
                                  self.box_dof,
