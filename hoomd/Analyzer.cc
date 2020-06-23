@@ -43,5 +43,8 @@ void export_Analyzer(py::module& m)
         .def(py::init< std::shared_ptr<SystemDefinition> >())
         .def("analyze", &Analyzer::analyze)
         .def("setProfiler", &Analyzer::setProfiler)
+# ifdef ENABLE_MPI
+        .def("setCommunicator", &Analyzer::setCommunicator)
+# endif
         ;
     }
