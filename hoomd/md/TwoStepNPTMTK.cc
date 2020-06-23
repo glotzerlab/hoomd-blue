@@ -43,19 +43,18 @@ TwoStepNPTMTK::TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
                        Scalar tau,
                        Scalar tauS,
                        std::shared_ptr<Variant> T,
-                       std::vector<std::shared_ptr<Variant>> S,
-                       std::string couple,
-                       std::vector<bool> flags,
+                       const std::vector<std::shared_ptr<Variant>>& S,
+                       const std::string& couple,
+                       const std::vector<bool>& flags,
                        const bool nph)
     : IntegrationMethodTwoStep(sysdef, group),
-                            m_thermo_group(thermo_group), m_thermo_group_t(thermo_group_t),
+                            m_thermo_group(thermo_group), 
+                            m_thermo_group_t(thermo_group_t),
                             m_ndof(0),
                             m_tau(tau),
                             m_tauS(tauS),
                             m_T(T),
                             m_S(S),
-                            m_couple(couple),
-                            m_flags(flags),
                             m_nph(nph),
                             m_rescale_all(false),
                             m_gamma(0.0)
@@ -67,10 +66,11 @@ TwoStepNPTMTK::TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
     if (m_tauS <= 0.0)
         m_exec_conf->msg->warning() << "integrate.npt: tauS set less than 0.0" << endl;
 
-    if (flags == 0)
+    if (m_flags == 0)
         m_exec_conf->msg->warning() << "integrate.npt: No barostat couplings specified."
                                     << endl;
-
+    setCouple(couple);
+    setFlags(flags);
      /*                               
     // Set the stress vector from the python list
     for (int i = 0; i< 6; ++i)
@@ -707,7 +707,7 @@ void TwoStepNPTMTK::setFlags(const std::vector<bool>& value)
         flags |= int(baroFlags::baro_xz);
     if (value[5]) 
         flags |= int(baroFlags::baro_yz);
-    m_flags = flags
+    m_flags = flags;
     }
 
 // Get Flags from integer flag to 6 element boolean tuple
@@ -720,7 +720,7 @@ std::vector<bool> TwoStepNPTMTK::getFlags()
     result.push_back(m_flags & baro_z);
     result.push_back(m_flags & baro_y);
     result.push_back(m_flags & baro_x);
-    return result
+    return result;
     }
 
 //! Helper function to advance the barostat parameters
@@ -875,7 +875,7 @@ void TwoStepNPTMTK::advanceThermostat(unsigned int timestep)
 
 void TwoStepNPTMTK::setCouple(const std::string& value)
     {
-    bool twod = m_sysdef->getNDimensions()==2
+    bool twod = m_sysdef->getNDimensions()==2;
     if (!(twod))
         {
         if (value == "none")
@@ -951,7 +951,7 @@ std::string TwoStepNPTMTK::getCouple()
         {
         couple = "xyz";
         }
-    return couple
+    return couple;
     }
 
 TwoStepNPTMTK::couplingMode TwoStepNPTMTK::getRelevantCouplings()
@@ -1129,9 +1129,9 @@ void export_TwoStepNPTMTK(py::module& m)
                        Scalar,
                        Scalar,
                        std::shared_ptr<Variant>,
-                       std::vector<std::shared_ptr<Variant>>,
-                       string,
-                       std::vector<bool>,
+                       const std::vector<std::shared_ptr<Variant>>&,
+                       const string&,
+                       const std::vector<bool>&,
                        const bool>())
         .def_property("T", &TwoStepNPTMTK::getT, &TwoStepNPTMTK::setT)
         .def_property("S", &TwoStepNPTMTK::getS, &TwoStepNPTMTK::setS)

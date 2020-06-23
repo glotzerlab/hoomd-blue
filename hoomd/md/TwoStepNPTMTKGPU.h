@@ -41,8 +41,8 @@ class PYBIND11_EXPORT TwoStepNPTMTKGPU : public TwoStepNPTMTK
                    Scalar tau,
                    Scalar tauS,
                    std::shared_ptr<Variant> T,
-                   std::vector<std::shared_ptr<Variant>> S,
-                   couplingMode couple,
+                   const std::vector<std::shared_ptr<Variant>>& S,
+                   const std::string& couple,
                    unsigned int flags,
                    const bool nph=false);
 

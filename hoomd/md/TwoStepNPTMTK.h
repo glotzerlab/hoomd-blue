@@ -71,9 +71,9 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
                    Scalar tau,
                    Scalar tauS,
                    std::shared_ptr<Variant> T,
-                   std::vector<std::shared_ptr<Variant>> S,
-                   couplingMode couple,
-                   unsigned int flags,
+                   const std::vector<std::shared_ptr<Variant>>& S,
+                   const std::string& couple,
+                   const std::vector<bool>& flags,
                    const bool nph=false);
 
         virtual ~TwoStepNPTMTK();
@@ -123,42 +123,54 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
             {
             m_gamma = gamma;
             }
+        //! declaration for setting the parameter couple
+        void setCouple(const std::string& value);
+
+        //! declaration for setting the parameter flags
+        void setFlags(const std::vector<bool>& value);
 
         //! Get temperature
         virtual std::shared_ptr<Variant> getT()
             {
-            return m_T
+            return m_T;
             }
 
         // Get stress
-        virtual std::vector<std::shared_ptr<Variant>> S getS()
+        std::vector<std::shared_ptr<Variant>> getS()
             {
-            return m_S
+            return m_S;
             }
 
         // Get tau
         virtual Scalar getTau()
             {
-            return m_tau
+            return m_tau;
             }
 
         // Get tauS
         virtual Scalar getTauS()
             {
-            return m_tauS
+            return m_tauS;
             }
 
         // Get rescale_all
         bool getRescaleAll()
             {
-            return m_rescale_all
+            return m_rescale_all;
             }
 
         // Get gamma
         Scalar getGamma()
             {
-            return m_gamma
+            return m_gamma;
             }
+
+        // declaration get function of couple
+        std::string getCouple();
+
+        // declaration get function of flags
+        std::vector<bool> getFlags();
+
 
 
         //! Performs the first step of the integration
@@ -166,6 +178,7 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
 
         //! Performs the second step of the integration
         virtual void integrateStepTwo(unsigned int timestep);
+
 
         //! Get needed pdata flags
         /*! TwoStepNPTMTK needs the pressure, so the pressure_tensor flag is set
