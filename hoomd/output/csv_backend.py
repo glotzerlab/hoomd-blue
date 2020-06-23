@@ -44,7 +44,7 @@ class _Formatter:
             return self.format_num(value, column_width)
 
     def format_num(self, value, column_width):
-        digit_guess = int(log10(abs(value))) + 1
+        digit_guess = int(log10(max(abs(value), 1))) + 1
         if value < 0:
             digit_guess += 1
         # Use scientific formatting
@@ -86,73 +86,87 @@ class _Formatter:
             return self._str_format.format(value, width=column_width)
 
 
+def _determine_header(namespace, sep, max_len):
+    index = -1
+    char_count = 0
+    for name in reversed(namespace[:-1]):
+        if char_count + len(name) > max_len:
+            break
+        index -= 1
+    return sep.join(namespace[index:])
+
+
 class _CSVInternal(_InternalCustomAction):
     """Implements the logic for a simple text based logger backend."""
 
-    def __init__(self, logger, output=stdout, sep='.',
-                 pretty=True, max_precision=10, max_len_namespace=None):
-        # Only accept loggers with scalar and string quantities
+    def __init__(self, logger, output=None, header_sep='.', delimiter=' ',
+                 pretty=True, max_precision=10, max_header_len=None):
         flags = set(logger.flags)
         if flags.difference(['scalar', 'string']) != set() \
                 or 'scalar' not in flags:
             raise ValueError("Given Logger must have the scalar flag set.")
+        self._logger = logger
+        self._header_sep = header_sep
+        self._delimiter = delimiter
+        self._min_width = max(10, max_precision + 6)
+        self._max_header_len = max_header_len
+        self._cur_headers_with_width = dict()
+        self._fmt = _Formatter(pretty, max_precision)
+        if output is None:
+            self._output = stdout
+        elif isinstance(output, str):
+            self._output = open(output, 'a')
         else:
-            self._logger = logger
-            self._sep = sep
-            # Ensure that columns are always at least ten characters
-            self._min_width = max(10, 10 if pretty else max_precision + 6)
-            # Used to truncate namespaces
-            self._max_len_namespace = max_len_namespace
-            # Records the current keys and their lengths
-            self._cur_headers = dict()
-            self._fmt = _Formatter(pretty, max_precision)
-            # the output file or stdout
             self._output = output
 
     def attach(self, simulation):
-        pass
+        self._comm = simulation.device._comm
 
     def detach(self):
-        pass
+        self._comm = None
 
-    def log(self):
-        # Get logger output in {"module{self._sep}class": value} form
-        if self._max_len_namespace is None:
-            output_dict = {
-                self._sep.join(key): value[0]
+    def _get_log_dict(self):
+        """Get a flattened dict for writing to output."""
+        return {key: value[0]
                 for key, value in dict_flatten(self._logger.log()).items()
                 if value[1] in {'string', 'scalar'}
-            }
-        else:
-            output_dict = {
-                self._sep.join(key[-self._max_len_namespace:]): value[0]
-                for key, value in dict_flatten(self._logger.log()).items()
-                if value[1] in {'string', 'scalar'}
-            }
-        new_keys = output_dict.keys()
-        if new_keys != self._cur_headers.keys():
-            self._cur_headers = {key: max(len(key), self._min_width)
-                                 for key in new_keys}
-            self._write_header()
+                }
 
-        self._write_row(output_dict)
-
-    def _write_header(self):
-        headers = self._cur_headers
+    def _update_headers(self, new_keys):
+        """Update headers and write the current headers to output."""
+        header_output_list = []
+        header_dict = {}
+        for namespace in new_keys:
+            header = _determine_header(
+                namespace, self._header_sep, self._max_header_len)
+            column_size = max(len(header), self._min_width)
+            header_dict[namespace] = column_size
+            header_output_list.append((header, column_size))
+        self._cur_headers_with_width = header_dict
         self._output.write(
-            ' '.join((self._fmt.format_str(k, headers[k]) for k in headers))
-            )
+            self._delimiter.join((self._fmt.format_str(hdr, width)
+                                  for hdr, width in header_output_list))
+        )
         self._output.write('\n')
 
     def _write_row(self, data):
-        headers = self._cur_headers
-        self._output.write(' '.join((self._fmt(data[k], headers[k])
-                                     for k in headers))
+        """Write a row of data to output."""
+        headers = self._cur_headers_with_width
+        self._output.write(self._delimiter.join((self._fmt(data[k], headers[k])
+                                                 for k in headers))
                            )
         self._output.write('\n')
 
     def act(self, timestep):
-        self.log()
+        """Write row to designated output."""
+        if self._comm is not None and self._comm.rank == 0:
+            output_dict = self._get_log_dict()
+            new_keys = output_dict.keys()
+            if new_keys != self._cur_headers_with_width.keys():
+                self._update_headers(new_keys)
+
+            self._write_row(output_dict)
+            self._output.flush()
 
 
 class CSV(_InternalCustomAnalyzer, _Analyzer):
@@ -169,8 +183,8 @@ class CSV(_InternalCustomAnalyzer, _Analyzer):
             optional.
         output (file, optional): A file-like object to output the data from,
             defaults to standard out.
-        sep (string, optional): String to use to separate names in the logger's
-            namespace, defaults to '.'.
+        header_sep (string, optional): String to use to separate names in the
+            logger's namespace, defaults to '.'.
         pretty (bool, optional): Flags whether to attempt to make output
             prettier and easier to read, defaults to True. To make the ouput
             easier to read, the output will compromise on outputted precision
@@ -178,10 +192,10 @@ class CSV(_InternalCustomAnalyzer, _Analyzer):
         max_precision (int, optional): If pretty is not set, then this controls
             the maximum precision to use when outputing numerical values,
             defaults to 10.
-        max_len_namespace (int, optional): If not None limit the outputted
-            namespace to ``max_len_namespace`` names, defaults to None. When not
-            None, names are grabbed from the most specific to the least. For
-            example, if set to 2 the namespace 'hoomd.md.pair.LJ' would be set
+        max_header_len (int, optional): If not None limit the outputted
+            header names to length ``max_header_len``, defaults to None. When
+            not None, names are grabbed from the most specific to the least. For
+            example, if set to 7 the namespace 'hoomd.md.pair.LJ' would be set
             to 'pair.LJ'.
 
     Note:
