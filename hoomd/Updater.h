@@ -9,6 +9,7 @@
 #include "SystemDefinition.h"
 #include "Profiler.h"
 #include "SharedSignal.h"
+#include "Communicator.h"
 
 #include <memory>
 
