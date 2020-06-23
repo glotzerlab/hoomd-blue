@@ -321,7 +321,7 @@ class NPT(_Method):
         self._cpp_obj.setRandomizeVelocitiesParams(kT, seed)
 
 
-class nph(npt):
+class nph(NPT):
     R""" NPH Integration via MTK barostat-thermostat..
 
     Args:
