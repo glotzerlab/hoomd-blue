@@ -15,7 +15,6 @@ from hoomd.filter import _ParticleFilter
 from hoomd.typeparam import TypeParameter
 from hoomd.typeconverter import OnlyType
 from hoomd.variant import Variant
-<<<<<<< HEAD
 from hoomd.typeconverter import OnlyFrom
 import copy
 from collections.abc import Sequence
