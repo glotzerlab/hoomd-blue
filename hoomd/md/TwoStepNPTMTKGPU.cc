@@ -42,7 +42,7 @@ TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
                        const std::vector<std::shared_ptr<Variant>>& S,
                        const std::string& couple,
                        const std::vector<bool>& flags,
-                       const bool nph=false)
+                       const bool nph)
 
     : TwoStepNPTMTK(sysdef, group, thermo_group, thermo_group_t, tau, tauS, T, S, couple, flags,nph)
     {
