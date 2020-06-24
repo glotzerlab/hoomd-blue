@@ -674,10 +674,6 @@ class GSD(_Analyzer):
             writer.log_writer = GSDLogWriter(log)
         writer.analyze(state._simulation.timestep)
 
-        # Avoid issues where repeated calls to write_state appear to leak memory
-        del writer
-        gc.collect()
-
     def dump_state(self, obj):
         """Write state information for a hoomd object.
 

@@ -113,10 +113,6 @@ class BoxResize(_Updater):
                                           Constant(1))
         updater.update(state._simulation.timestep)
 
-        # Avoid issues where repeated calls to scale_state appear to leak memory
-        del updater
-        gc.collect()
-
     @classmethod
     def linear_volume(cls, box1, box2,
                       t_start, t_size,
