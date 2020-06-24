@@ -115,6 +115,13 @@ def _valid_params(particle_types=['A', 'B']):
     valid_params_list.append(("Fourier", hoomd.md.pair.Fourier,
                               dict(zip(combos, fourier_valid_param_dicts))))
 
+    slj_arg_dict = {'sigma': [0.5, 1.0, 1.5],
+                   'epsilon': [0.0005, 0.001, 0.0015]}
+    slj_valid_param_dicts = _make_valid_param_dicts(slj_arg_dict, len(combos))
+
+    valid_params_list.append(("SLJ", hoomd.md.pair.SLJ,
+                              dict(zip(combos, slj_valid_param_dicts))))
+
     return valid_params_list
 
 

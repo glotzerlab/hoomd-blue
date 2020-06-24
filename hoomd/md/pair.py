@@ -6,6 +6,7 @@ from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.md import force
 from hoomd.md import nlist as nl
+from hoomd.md.methods import none_or
 from hoomd.md.nlist import _NList
 from hoomd.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.typeparam import TypeParameter
@@ -363,7 +364,7 @@ class SLJ(_Pair):
 
     """
     _cpp_class_name = 'PotentialPairSLJ'
-    def __init__(self, nlist, r_cut=None, r_on=0., mode='none', d_max=None):
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         if mode == 'xplor':
             raise ValueError("xplor is not a valid mode for SLJ potential")
 
@@ -374,24 +375,17 @@ class SLJ(_Pair):
                                )
         self._add_typeparam(params)
 
-        # mode not allowed to be xplor, so re-do param dict without that option
+        # mode not allowed to be xplor, so re-do param dict entry without that option
         param_dict = ParameterDict(
-            d_max=float,
             mode=OnlyFrom(['none', 'shifted']),
-            explicit_defaults=dict(mode=mode, d_max=__) # largest particle diameter in the system taken from cpp
+            explicit_defaults=dict(mode=mode)
             )
         self._param_dict.update(param_dict)
 
-        # NOTE need to set diameter shift and max diameter in the neighborlist once attached
+        # this potential needs diameter shifting on
+        self._nlist.diameter_shift = True
 
-    def process_coeff(self, coeff):
-        epsilon = coeff['epsilon'];
-        sigma = coeff['sigma'];
-        alpha = coeff['alpha'];
-
-        lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
-        lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return _hoomd.make_scalar2(lj1, lj2);
+        # NOTE do we need something to automatically set the max_diameter correctly?
 
 
 class Yukawa(_Pair):
