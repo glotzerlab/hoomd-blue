@@ -43,7 +43,7 @@ class PYBIND11_EXPORT TwoStepNPTMTKGPU : public TwoStepNPTMTK
                    std::shared_ptr<Variant> T,
                    const std::vector<std::shared_ptr<Variant>>& S,
                    const std::string& couple,
-                   unsigned int flags,
+                   const std::vector<bool>& flags,
                    const bool nph=false);
 
         virtual ~TwoStepNPTMTKGPU();

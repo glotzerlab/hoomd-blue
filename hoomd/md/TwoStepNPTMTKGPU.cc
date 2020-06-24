@@ -383,9 +383,9 @@ void export_TwoStepNPTMTKGPU(py::module& m)
                        Scalar,
                        Scalar,
                        std::shared_ptr<Variant>,
-                       std::vector<std::shared_ptr<Variant>>,
-                       std::string,
-                       std::vector<bool>,
+                       const std::vector<std::shared_ptr<Variant>>&,
+                       const std::string&,
+                       const std::vector<bool>&,
                        const bool>());
 
     }
