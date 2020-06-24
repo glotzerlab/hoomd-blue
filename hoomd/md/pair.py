@@ -2959,8 +2959,11 @@ class alj(ai_pair):
 
         # Setup the coefficent options. Note that the contact sigmas are
         # optional, but if not provided they are computed based on the sigmas
-        # so we can't directly use set_default_coeffs.
-        self.required_coeffs = ['epsilon', 'sigma_i', 'sigma_j', 'alpha']
+        # so we have to provide dummy values here for checking.
+        self.required_coeffs = ['epsilon', 'sigma_i', 'sigma_j', 'alpha',
+                                'contact_sigma_i', 'contact_sigma_j']
+        self.pair_coeff.set_default_coeff('contact_sigma_i', -1.0);
+        self.pair_coeff.set_default_coeff('contact_sigma_j', -1.0);
 
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon']
@@ -2969,10 +2972,12 @@ class alj(ai_pair):
         alpha = int(coeff['alpha'])
 
         default_contact_multiplier = 0.15
-        contact_sigma_i = coeff.get(
-            'contact_sigma_i', sigma_i*default_contact_multiplier)
-        contact_sigma_j = coeff.get(
-            'contact_sigma_j', sigma_j*default_contact_multiplier)
+        contact_sigma_i = coeff['contact_sigma_i']
+        contact_sigma_j = coeff['contact_sigma_j']
+        if contact_sigma_i == -1:
+            contact_sigma_i = sigma_i*default_contact_multiplier
+        if contact_sigma_j == -1:
+            contact_sigma_j = sigma_j*default_contact_multiplier
 
         if alpha not in range(4):
             raise ValueError(
