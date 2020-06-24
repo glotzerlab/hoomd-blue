@@ -2529,8 +2529,8 @@ class DLVO(pair):
             + \frac{a_1 a_2}{a_1+a_2} Z e^{-\kappa(r - (a_1+a_2))} & r < (r_{\mathrm{cut}} + \Delta)
             = & 0 & r \ge (r_{\mathrm{cut}} + \Delta)
 
-     where math:`a_i` is the radius of particle :math:`i`, :math:`\Delta = (d_i + d_j)/2` and
-     :math:`d_i` is the diameter of particle :math:`i`.
+    where math:`a_i` is the radius of particle :math:`i`, :math:`\Delta = (d_i + d_j)/2` and
+    :math:`d_i` is the diameter of particle :math:`i`.
 
     The first term corresponds to the attractive van der Waals interaction with A being the Hamaker constant,
     the second term to the repulsive double-layer interaction between two spherical surfaces with Z proportional
