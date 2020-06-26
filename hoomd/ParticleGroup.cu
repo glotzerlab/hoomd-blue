@@ -7,7 +7,12 @@
 #include "ParticleData.cuh"
 #include "ParticleGroup.cuh"
 
+#if __CUDACC_VER_MAJOR__ >= 11
+#include <cub/cub.cuh>
+#else
 #include "hoomd/extern/cub/cub/cub.cuh"
+#endif
+
 #include <thrust/reduce.h>
 #include <thrust/device_ptr.h>
 #include <thrust/execution_policy.h>

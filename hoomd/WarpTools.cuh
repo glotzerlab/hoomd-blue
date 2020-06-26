@@ -11,7 +11,11 @@
 #ifndef HOOMD_WARP_TOOLS_CUH_
 #define HOOMD_WARP_TOOLS_CUH_
 
+#if __CUDACC_VER_MAJOR__ >= 11
+#include <cub/cub.cuh>
+#else
 #include "hoomd/extern/cub/cub/cub.cuh"
+#endif
 
 #define DEVICE __device__ __forceinline__
 

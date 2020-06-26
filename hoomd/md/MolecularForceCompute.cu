@@ -18,7 +18,11 @@
 #include <thrust/sort.h>
 #include <thrust/execution_policy.h>
 
+#if __CUDACC_VER_MAJOR__ >= 11
+#include <cub/cub.cuh>
+#else
 #include "hoomd/extern/cub/cub/cub.cuh"
+#endif
 
 #include <exception>
 #include <string>

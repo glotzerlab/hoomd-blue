@@ -15,7 +15,6 @@
 #include "CellCommunicator.cuh"
 #include "ReductionOperators.h"
 
-#include "hoomd/extern/cub/cub/cub.cuh"
 #include "hoomd/WarpTools.cuh"
 
 namespace mpcd
