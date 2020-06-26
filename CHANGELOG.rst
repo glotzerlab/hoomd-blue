@@ -8,6 +8,8 @@ v2.9.2 (not yet released)
 
 * Fix a bug where repeatedly using objects with ``period=None`` would use
   significant amounts of memory.
+* Reccomend citing the 2020 Computational Materials Science paper
+  10.1016/j.commatsci.2019.109363.
 
 v2.9.1 (2020-05-28)
 -------------------
