@@ -1,6 +1,14 @@
 Change Log
 ==========
 
+v2.9.2 (not yet released)
+-------------------------
+
+*Bug fixes*
+
+* Fix a bug where repeatedly using objects with ``period=None`` would use
+  significant amounts of memory.
+
 v2.9.1 (2020-05-28)
 -------------------
 
