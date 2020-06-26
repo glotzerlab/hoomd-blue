@@ -34,9 +34,8 @@ class cite_tests (unittest.TestCase):
 
         # check that it has two entries, the default HOOMD citations, and that the keys match what they should be
         print(hoomd.context.bib.entries)
-        self.assertEqual(len(hoomd.context.bib.entries), 2)
-        self.assertIn('anderson2008', hoomd.context.bib.entries)
-        self.assertIn('glaser2015', hoomd.context.bib.entries)
+        self.assertEqual(len(hoomd.context.bib.entries), 1)
+        self.assertIn('Anderson2020', hoomd.context.bib.entries)
 
         # stringify the global bibliography (basically, save the pointer)
         s1 = str(hoomd.context.bib)

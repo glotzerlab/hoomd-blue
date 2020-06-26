@@ -400,7 +400,7 @@ def _ensure_global_bib():
     if hoomd.context.bib is None:
         hoomd.context.bib = bibliography()
         # the hoomd bibliography always includes the following citations
-        hoomd_base = article(cite_key = 'anderson2020',
+        hoomd_base = article(cite_key = 'Anderson2020',
                         author = ['J A Anderson','J Glaser','S C Glotzer'],
                         title = 'HOOMD-blue: A Python package for high-performance molecular dynamics and hard particle Monte Carlo simulations',
                         journal = 'Computational Materials Science',
