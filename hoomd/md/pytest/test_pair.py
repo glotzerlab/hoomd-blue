@@ -2,19 +2,9 @@ import hoomd
 import pytest
 import numpy as np
 import itertools
-import hoomd.hpmc.pytest.conftest
+import hoomd.md.pytest.conftest
 
 np.random.seed(0)
-
-# Test r_cut
-# Test mode
-# Test r_on
-# Test valid params
-# Test invalid params
-# Test run
-# Test force energy relationship
-# Test force
-# Test energy
 
 
 def _assert_equivalent_type_params(type_param1, type_param2):
@@ -108,7 +98,7 @@ def test_valid_params(valid_params):
     pot = pair_potential(nlist=hoomd.md.nlist.Cell())
     for pair in pair_potential_dict:
         pot.params[pair] = pair_potential_dict[pair]
-    _assert_equivalent_type_params(pot.params.to_dict(), pair_potential_dict)
+    _assert_equivalent_type_params(pair_potential_dict, pot.params.to_dict())
 
 
 def test_invalid_params(invalid_params):
@@ -241,8 +231,12 @@ def test_force_energy_relationship(simulation_factory,
 
         calculated_forces = _calculate_force(sim)
         sim_forces = sim.operations.integrator.forces[0].forces
-        np.testing.assert_allclose(calculated_forces[0], sim_forces[0])
-        np.testing.assert_allclose(calculated_forces[1], sim_forces[1])
+        np.testing.assert_allclose(calculated_forces[0],
+                                   sim_forces[0],
+                                   rtol=1e-06)
+        np.testing.assert_allclose(calculated_forces[1],
+                                   sim_forces[1],
+                                   rtol=1e-06)
 
 
 def test_force_energy_accuracy(simulation_factory,
@@ -252,6 +246,8 @@ def test_force_energy_accuracy(simulation_factory,
     pot = pair_potential(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
     pot.params[('A', 'A')] = params
     snap = two_particle_snapshot_factory(particle_types=['A'], d=0.75)
+    if 'Ewald' in str(pair_potential):
+        snap.particles.charge[:] = 1
     sim = simulation_factory(snap)
     integrator = hoomd.md.Integrator(dt=0.005)
     integrator.forces.append(pot)
@@ -270,6 +266,12 @@ def test_force_energy_accuracy(simulation_factory,
         sim.state.snapshot = snap
         sim_energies = sim.operations.integrator.forces[0].energies
         sim_forces = sim.operations.integrator.forces[0].forces
-    np.testing.assert_almost_equal(energies[i], sum(sim_energies))
-    np.testing.assert_almost_equal(forces[i] * r, sim_forces[0])
-    np.testing.assert_almost_equal(forces[i] * r * -1, sim_forces[1])
+        np.testing.assert_almost_equal(energies[i],
+                                       sum(sim_energies),
+                                       decimal=3)
+        np.testing.assert_almost_equal(forces[i] * r,
+                                       sim_forces[0],
+                                       decimal=3)
+        np.testing.assert_almost_equal(forces[i] * r * -1,
+                                       sim_forces[1],
+                                       decimal=3)
