@@ -130,7 +130,7 @@ class NPT(_Method):
     R""" NPT Integration via MTK barostat-thermostat.
 
     Args:
-        filter (:py:mod:`hoomd.filter._ParticleFilter`): Group of particles on which to apply this method.
+        filter (:py:mod:`hoomd.filter._ParticleFilter`): Subset of particles on which to apply this method.
         kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set point for the thermostat, not needed if *nph=True* (in energy units).
         tau (float): Coupling constant for the thermostat, not needed if *nph=True* (in time units).
         S (:py:class:`list` of :py:mod:`hoomd.variant` or :py:obj:`float`): Stress components set point for the barostat (in pressure units). In Voigt notation: [Sxx, Syy, Szz, Syz, Sxz, Sxy]. In case of isotropic pressure P, use [P,P,P,0,0,0]
@@ -224,15 +224,15 @@ class NPT(_Method):
     A :py:class:`hoomd.compute.thermo` is automatically specified and associated with *group*.
 
     Examples::
-
-        integrate.NPT(group=all, kT=1.0, tau=0.5, tauP=1.0, P=2.0)
-        integrator = integrate.NPT(group=all, tau=1.0, kT=0.65, tauP = 1.2, P=2.0)
+        all = filter.All()
+        integrate.NPT(filter=all, kT=1.0, tau=0.5, tauS=1.0, S=2.0)
+        integrator = integrate.NPT(filter=all, tau=1.0, kT=0.65, tauS = 1.2, S=2.0)
         # orthorhombic symmetry
-        integrator = integrate.NPT(group=all, tau=1.0, kT=0.65, tauP = 1.2, P=2.0, couple="none")
+        integrator = integrate.NPT(filter=all, tau=1.0, kT=0.65, tauS = 1.2, S=2.0, couple="none")
         # tetragonal symmetry
-        integrator = integrate.NPT(group=all, tau=1.0, kT=0.65, tauP = 1.2, P=2.0, couple="xy")
+        integrator = integrate.NPT(filter=all, tau=1.0, kT=0.65, tauS = 1.2, S=2.0, couple="xy")
         # triclinic symmetry
-        integrator = integrate.NPT(group=all, tau=1.0, kT=0.65, tauP = 1.2, P=2.0, couple="none", rescale_all=True)
+        integrator = integrate.NPT(filter=all, tau=1.0, kT=0.65, tauS = 1.2, S=2.0, couple="none", rescale_all=True)
     """
     def __init__(self, filter, kT=None, tau=None, S=None, tauS=None, couple="xyz", box_dof=[True,True,True,False,False,False], rescale_all=None, gamma=None):
 
@@ -265,17 +265,18 @@ class NPT(_Method):
             my_class = _md.TwoStepNPTMTKGPU
             thermo_cls = _hoomd.ComputeThermoGPU
 
+        cpp_sys_def = simulation.state._cpp_sys_def
         thermo_group = simulation.state.get_group(self.filter)
         # compute thermo half time step
-        thermo = thermo_cls(simulation.state._cpp_sys_def, 
+        thermo = thermo_cls(cpp_sys_def, 
                             thermo_group,
                             "")
         # compute thermo full time step
-        thermo_t = thermo_cls(simulation.state._cpp_sys_def, 
+        thermo_t = thermo_cls(cpp_sys_def, 
                               thermo_group, 
                               "")
-        self._cpp_obj = my_class(simulation.state._cpp_sys_def,
-                                 simulations.state.get_group(self.filter),
+        self._cpp_obj = my_class(cpp_sys_def,
+                                 thermo_group,
                                  thermo,
                                  thermo_t,
                                  self.tau,
