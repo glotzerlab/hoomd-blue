@@ -40,10 +40,10 @@
     EvaluatorPairDLVO evaluates the function:
     \f{eqnarray*}
     V_{\mathrm{DLVO}}(r)  = & - \frac{A}{6} \left[ \frac{2a_1a_2}{r^2 - (a_1+a_2)^2} + \frac{2a_1a_2}{r^2 - (a_1-a_2)^2}
-                            + \log \left( \frac{r^2 - (a_1+a_2)^2}{r^2 - (a_1+a_2)^2} \right) \right] + \frac{r_1r_2}{r_1+r_2} Z e^{-\kappa(r - (a_1+a_2))} & r < (r_{\mathrm{cut}} + \Delta) \\
+                            + \log \left( \frac{r^2 - (a_1+a_2)^2}{r^2 - (a_1-a_2)^2} \right) \right] + \frac{r_1r_2}{r_1+r_2} Z e^{-\kappa(r - (a_1+a_2))} & r < (r_{\mathrm{cut}} + \Delta) \\
                          = & 0 & r \ge (r_{\mathrm{cut}} + \Delta) \\
     \f}
-    where \f $a_i \f$ is the radius of particle \f$ i \f$; \f$ \Delta = (d_i + d_j)/2  \f$ and \f$ d_i \f$ is the diameter of particle \f$ i \f$.
+    where \f$ a_i \f$ is the radius of particle \f$ i \f$, \f$ d_j \f$ is the diameter of particle \f$ j \f$, and \f$ \Delta = (d_i + d_j)/2  \f$.
 
     See Israelachvili 2011, pp. 317.
 
