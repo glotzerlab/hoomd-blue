@@ -9,7 +9,7 @@
 #include "AllDriverPotentialPairGPU.cuh"
 
 hipError_t gpu_compute_dlvo_forces(const pair_args_t & args,
-                                                const Scalar3 *d_params)
+                                                const EvaluatorPairDLVO::param_type *d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairDLVO>(args,
                                                      d_params);

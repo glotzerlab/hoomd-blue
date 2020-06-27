@@ -57,7 +57,7 @@ class EvaluatorPairDLVO
     public:
         //! Define the parameter type used by this pair potential evaluator
         //May need to be changed to Scalar3 later
-		typedef Scalar3 param_type;
+		typedef EvaluatorPairDLVO::param_type param_type;
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
