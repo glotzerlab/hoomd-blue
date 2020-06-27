@@ -1858,7 +1858,7 @@ class DLVO(_Pair):
 
         V_{\mathrm{DLVO}}(r)  = & - \frac{A}{6} \left[
             \frac{2a_1a_2}{r^2 - (a_1+a_2)^2} + \frac{2a_1a_2}{r^2 - (a_1-a_2)^2}
-            + \log \left( \frac{r^2 - (a_1+a_2)^2}{r^2 - (a_1+a_2)^2} \right) \right]
+            + \log \left( \frac{r^2 - (a_1+a_2)^2}{r^2 - (a_1-a_2)^2} \right) \right]
             + \frac{a_1 a_2}{a_1+a_2} Z e^{-\kappa(r - (a_1+a_2))} & r < (r_{\mathrm{cut}} + \Delta)
             = & 0 & r \ge (r_{\mathrm{cut}} + \Delta)
 
