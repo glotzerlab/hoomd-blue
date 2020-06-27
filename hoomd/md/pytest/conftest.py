@@ -122,6 +122,11 @@ def _valid_params(particle_types=['A', 'B']):
     valid_params_list.append(("SLJ", hoomd.md.pair.SLJ,
                               dict(zip(combos, slj_valid_param_dicts))))
 
+    dlvo_arg_dict = {'kappa': [1.0, 2.0, 5.0],
+                     'Z': [0.1, 0.5, 2.0],
+                     'A': [0.1, 0.5, 2.0]}
+    dlvo_valid_param_dicts = _make_valid_param_dicts(dlvo_arg_dict, len(combos))
+
     return valid_params_list
 
 
