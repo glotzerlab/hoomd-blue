@@ -65,7 +65,7 @@ class EvaluatorPairDLVO
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairDLVO(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), kappa(_params.x), Z(_params.y), A(_params.z)
+            : rsq(_rsq), rcutsq(_rcutsq), kappa(_params.kappa), Z(_params.Z), A(_params.A)
             {
             }
 
