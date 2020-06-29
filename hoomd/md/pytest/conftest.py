@@ -89,34 +89,41 @@ def _valid_params(particle_types=['A', 'B']):
                               dict(zip(combos, mie_valid_param_dicts))))
 
     reactfield_arg_dict = {'epsilon': [.05, .025, .010], 'eps_rf': [.5, 1, 1.5],
-                    'use_charge': [False, True, False]}
+                           'use_charge': [False, True, False]}
     reactfield_valid_param_dicts = _make_valid_param_dicts(reactfield_arg_dict,
-                                                    len(combos))
+                                                           len(combos))
     valid_params_list.append(("ReactionField", hoomd.md.pair.ReactionField,
                               dict(zip(combos, reactfield_valid_param_dicts))))
 
     buckingham_arg_dict = {'A': [.05, .025, .010], 'rho': [.5, 1, 1.5],
-                    'C': [.05, .025, .01]}
+                           'C': [.05, .025, .01]}
     buckingham_valid_param_dicts = _make_valid_param_dicts(buckingham_arg_dict,
-                                                    len(combos))
+                                                           len(combos))
     valid_params_list.append(("Buckingham", hoomd.md.pair.Buckingham,
                               dict(zip(combos, buckingham_valid_param_dicts))))
 
-    lj1208_arg_dict = {'sigma': [0.5, 1.0, 1.5], 'epsilon': [0.0005, 0.001, 0.0015]}
-    lj1208_valid_param_dicts = _make_valid_param_dicts(lj1208_arg_dict, len(combos))
+    lj1208_arg_dict = {'sigma': [0.5, 1.0, 1.5],
+                       'epsilon': [0.0005, 0.001, 0.0015]}
+    lj1208_valid_param_dicts = _make_valid_param_dicts(lj1208_arg_dict,
+                                                       len(combos))
 
     valid_params_list.append(("LJ1208", hoomd.md.pair.LJ1208,
                               dict(zip(combos, lj1208_valid_param_dicts))))
 
-    fourier_arg_dict = {'a': [[0.5, 1.0, 1.5], [.05, .1, .15], [.005, .01, .015]],
-                        'b': [[0.25, 0.034, 0.76], [0.36, 0.12, 0.65], [0.78, 0.04, 0.98]]}
-    fourier_valid_param_dicts = _make_valid_param_dicts(fourier_arg_dict, len(combos))
+    fourier_arg_dict = {'a': [[0.5, 1.0, 1.5],
+                              [.05, .1, .15],
+                              [.005, .01, .015]],
+                        'b': [[0.25, 0.034, 0.76],
+                              [0.36, 0.12, 0.65],
+                              [0.78, 0.04, 0.98]]}
+    fourier_valid_param_dicts = _make_valid_param_dicts(fourier_arg_dict,
+                                                        len(combos))
 
     valid_params_list.append(("Fourier", hoomd.md.pair.Fourier,
                               dict(zip(combos, fourier_valid_param_dicts))))
 
     slj_arg_dict = {'sigma': [0.5, 1.0, 1.5],
-                   'epsilon': [0.0005, 0.001, 0.0015]}
+                    'epsilon': [0.0005, 0.001, 0.0015]}
     slj_valid_param_dicts = _make_valid_param_dicts(slj_arg_dict, len(combos))
 
     valid_params_list.append(("SLJ", hoomd.md.pair.SLJ,
@@ -319,6 +326,42 @@ def _forces_and_energies():
     energies["Mie"] = [[-0.0160168, -0.000273972],
                        [5.67535, -0.00437856],
                        [3765.38, 0.0]]
+
+    params["ReactionField"] = [{"epsilon": 0.05,
+                                "eps_rf": 0.5,
+                                "use_charge": False},
+                               {"epsilon": 0.025,
+                                "eps_rf": 1.0,
+                                "use_charge": False},
+                               {"epsilon": 0.01,
+                                "eps_rf": 1.5,
+                                "use_charge": False}]
+    forces["ReactionField"] = [[-0.0900889, -0.0246222],
+                               [-0.0444444, -0.0111111],
+                               [-0.0176578, -0.00420444]]
+    energies["ReactionField"] = [[0.0662167, 0.0315333],
+                                 [0.0333333, 0.0166667],
+                                 [0.0133783, 0.00684667]]
+
+    params["Buckingham"] = [{"A": 0.05, "rho": 0.5, "C": 0.05},
+                            {"A": 0.025, "rho": 1.0, "C": 0.025},
+                            {"A": 0.01, "rho": 1.5, "C": 0.01}]
+    forces["Buckingham"] = [[2.22515, 0.0125796],
+                            [1.11192, 0.0032009],
+                            [0.445449, 0.00105913]]
+    energies["Buckingham"] = [[-0.269776, -0.00190022],
+                              [-0.128657, 0.00338347],
+                              [-0.0501213, 0.00280088]]
+
+    params["LJ1208"] = [{"sigma": 0.5, "epsilon": 0.0005},
+                        {"sigma": 1.0, "epsilon": 0.001},
+                        {"sigma": 1.5, "epsilon": 0.0015}]
+    forces["LJ1208"] = [[0.000585758, 1.59566 * 10**(-6)],
+                        [-1.59425, 0.000585758],
+                        [-376.832, -0.016]]
+    energies["LJ1208"] = [[-0.0000626222, -3.01068 * 10**(-7)],
+                          [0.0863223, -0.000125244],
+                          [23.04, 0.0]]
 
     param_list = []
     for pair_potential in params.keys():
