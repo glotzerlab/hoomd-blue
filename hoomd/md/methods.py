@@ -26,7 +26,7 @@ def preprocess_stress(value):
                 "Expected a single hoomd.variant.Variant / float or six.")
         return tuple(map(Variant, value))
     else:
-        return tuple([Variant(value),Variant(value),Variant(value),0,0,0])
+        return tuple([value,value,value,0,0,0])
         
 def none_or(type_):
     def None_or_type(value):
@@ -234,23 +234,28 @@ class NPT(_Method):
         # triclinic symmetry
         integrator = integrate.NPT(filter=all, tau=1.0, kT=0.65, tauS = 1.2, S=2.0, couple="none", rescale_all=True)
     """
-    def __init__(self, filter, kT=None, tau=None, S=None, tauS=None, couple="xyz", box_dof=[True,True,True,False,False,False], rescale_all=None, gamma=None):
+    def __init__(self, filter, kT=None, tau=None, S=None, tauS=None, couple="xyz", box_dof=[True,True,True,False,False,False], rescale_all=False, gamma=0.0):
 
 
         # store metadata
         param_dict = ParameterDict(
-            filter=OnlyType(_ParticleFilter),
+            filter=_ParticleFilter,
             kT=Variant,
             tau=float(tau),
-            S=preprocess_stress,
+            S=(Variant,)*6,
             tauS=float(tauS),
-            couple=none_or(OnlyFrom('xyz')),
+            couple=str(couple),
             box_dof=(bool,)*6,
             nph=bool(False),
-            rescale_all=none_or(bool),
-            gamma=none_or(float))
-
-        #param_dict.update(dict(filter=filter, kT=kT, tau=tau, S=S, tauS=tauS, couple=couple, box_dof=box_dof))
+            rescale_all=bool(rescale_all),
+            gamma=float(gamma)
+            )
+        #couple=none_or(OnlyFrom('xyz')),
+        #S=(Variant,)*6,
+        #S=preprocess_stress,
+        #filter=OnlyType(_ParticleFilter)
+        param_dict.update(dict(filter=filter, kT=kT, S=preprocess_stress(S), 
+                                 couple=couple, box_dof=box_dof)) #S=preprocess_stress,
 
         # set defaults
         self._param_dict.update(param_dict)
@@ -285,10 +290,10 @@ class NPT(_Method):
                                  self.S,
                                  self.couple,
                                  self.box_dof,
-                                 False,
-                                 self.rescale_all,
-                                 self.gamma,
-                                 "")
+                                 False)
+                                 #self.rescale_all,
+                                 #self.gamma,
+                                 #"")
 
         # Attach param_dict and typeparam_dict
         super().attach(simulation)
