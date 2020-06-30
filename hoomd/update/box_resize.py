@@ -4,7 +4,6 @@ from hoomd.parameterdicts import ParameterDict
 from hoomd.typeconverter import OnlyType
 from hoomd.variant import Variant, Power, Constant
 from hoomd import _hoomd
-import gc
 
 
 def box_preprocessing(box):

@@ -21,7 +21,6 @@ import hoomd
 import json
 import os
 import types
-import gc
 
 
 class dcd(hoomd.analyze._analyzer):
