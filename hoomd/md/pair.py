@@ -2102,11 +2102,11 @@ class Fourier(_Pair):
 
         where:
         \begin{eqnarray*}
-        a_1 = \sum_{n=2}^4 (-1)^n a_n cos(\frac{n \pi r}{r_{cut}})
+        a_1 = \sum_{n=2}^4 (-1)^n a_n
         \end{eqnarray*}
 
         \begin{eqnarray*}
-        b_1 = \sum_{n=2}^4 n (-1)^n b_n cos(\frac{n \pi r}{r_{cut}})
+        b_1 = \sum_{n=2}^4 n (-1)^n b_n
         \end{eqnarray*}
 
         is calculated to enforce close to zero value at r_cut.
