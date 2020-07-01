@@ -274,7 +274,7 @@ else()
     target_link_libraries(_md PUBLIC _hoomd)
 endif()
 if (ENABLE_HIP)
-    target_link_libraries(_md PRIVATE neighbor::neighbor)
+    target_link_libraries(_md PRIVATE neighbor)
 endif()
 
 fix_cudart_rpath(_md)

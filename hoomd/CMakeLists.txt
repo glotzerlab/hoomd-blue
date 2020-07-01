@@ -341,21 +341,6 @@ if (BUILD_MD)
         # add the distributed FFT library
         add_subdirectory(${HOOMD_SOURCE_DIR}/hoomd/extern/dfftlib)
     endif()
-
-    if (ENABLE_HIP)
-        # add the neighbor library
-        set(NEIGHBOR_HIP ${HIP_FOUND} CACHE BOOL "Use HIP layer?" FORCE)
-        if (HIP_FOUND)
-            set(HIPCUB_ROOT ${HIP_INCLUDE_DIR})
-        endif()
-        add_subdirectory(${HOOMD_SOURCE_DIR}/hoomd/extern/neighbor)
-        if (HIP_FOUND)
-            unset(HIPCUB_ROOT)
-        endif()
-        # hide these variables in the cache
-        mark_as_advanced(NEIGHBOR_BENCHMARK NEIGHBOR_HIP NEIGHBOR_INSTALL NEIGHBOR_TEST)
-    endif (ENABLE_HIP)
-
     add_subdirectory(md)
 endif()
 
