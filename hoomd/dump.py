@@ -651,7 +651,7 @@ class GSD(_Analyzer):
         super().attach(simulation)
 
     @staticmethod
-    def write_state(state, filename, filter=All(), log=None):
+    def write(state, filename, filter=All(), log=None):
         """Write the given simulation state out to a GSD file.
 
         Args:
