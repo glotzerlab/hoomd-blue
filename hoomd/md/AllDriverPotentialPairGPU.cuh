@@ -84,12 +84,12 @@ gpu_compute_zbl_forces(const pair_args_t& pair_args,
 //! Compute dpdlj thermostat on GPU with PairEvaluatorDPDThermo
 hipError_t __attribute__((visibility("default")))
 gpu_compute_dpdljthermodpd_forces(const dpd_pair_args_t& args,
-                                  const Scalar4 *d_params);
+                                  const EvaluatorPairDPDLJThermo::param_type *d_params);
 
 //! Compute dpdlj conservative force on GPU with PairEvaluatorDPDThermo
 hipError_t __attribute__((visibility("default")))
 gpu_compute_dpdljthermo_forces(const pair_args_t& args,
-                               const Scalar4 *d_params);
+                               const EvaluatorPairDPDLJThermo::param_type *d_params);
 
 //! Compute force shifted lj pair forces on the GPU with PairEvaluatorForceShiftedLJ
 hipError_t __attribute__((visibility("default")))
