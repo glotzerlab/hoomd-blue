@@ -6,7 +6,7 @@ from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.md import force
 from hoomd.md import nlist as nl
-from hoomd.md.methods import none_or
+from hoomd.md.methods import none_or, create_variant
 from hoomd.md.nlist import _NList
 from hoomd.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.typeparam import TypeParameter
@@ -798,7 +798,7 @@ class Morse(_Pair):
                                              len_keys=2))
         self._add_typeparam(params)
 
-class dpd(pair):
+class DPD(_Pair):
     R""" Dissipative Particle Dynamics.
 
     Args:
@@ -881,8 +881,9 @@ class dpd(pair):
         integrate.nve(group=group.all())
 
     """
-    def __init__(self, r_cut, nlist, kT, seed, name=None):
-
+    _cpp_class_name = "PotentialPairDPDThermoDPD"
+    def __init__(self, nlist, kT, seed=3, r_cut=None, r_on=0., mode='none'):
+        """
         # register the citation
         c = hoomd.cite.article(cite_key='phillips2011',
                          author=['C L Phillips', 'J A Anderson', 'S C Glotzer'],
@@ -896,56 +897,16 @@ class dpd(pair):
                          doi='10.1016/j.jcp.2011.05.021',
                          feature='DPD')
         hoomd.cite._ensure_global_bib().add(c)
-
-        # tell the base class how we operate
-
-        # initialize the base class
-        pair.__init__(self, r_cut, nlist, name);
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PotentialPairDPDThermoDPD(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairDPDThermoDPD;
-        else:
-            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-            self.cpp_force = _md.PotentialPairDPDThermoDPDGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairDPDThermoDPDGPU;
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-
-        # setup the coefficient options
-        self.required_coeffs = ['A', 'gamma'];
-
-        # set the seed for dpd thermostat
-        self.cpp_force.setSeed(seed);
-
-        # set the temperature
-        # setup the variant inputs
-        kT = hoomd.variant._setup_variant_input(kT);
-        self.cpp_force.setT(kT.cpp_variant);
-
-    def set_params(self, kT=None):
-        R""" Changes parameters.
-
-        Args:
-            kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of thermostat (in energy units).
-
-        Example::
-
-            dpd.set_params(kT=2.0)
         """
-        self.check_initialization();
+        super().__init__(nlist, r_cut, r_on, mode)
+        params = TypeParameter('params', 'particle_types',
+                               TypeParameterDict(A=float, gamma=float, len_keys=2))
+        self._add_typeparam(params)
 
-        # change the parameters
-        if kT is not None:
-            # setup the variant inputs
-            kT = hoomd.variant._setup_variant_input(kT);
-            self.cpp_force.setT(kT.cpp_variant);
-
-    def process_coeff(self, coeff):
-        a = coeff['A'];
-        gamma = coeff['gamma'];
-        return _hoomd.make_scalar2(a, gamma);
+        d = ParameterDict(kT=create_variant,
+                          seed=int,
+                          explicit_defaults=dict(kT=kT, seed=seed))
+        self._param_dict.update(d)
 
 class DPDConservative(_Pair):
     R""" DPD Conservative pair force.

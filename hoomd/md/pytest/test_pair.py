@@ -122,10 +122,10 @@ def test_invalid_pair_key():
 
 def test_attached_params(simulation_factory, lattice_snapshot_factory,
                          valid_params):
-    pair_potential, pair_potential_dict = valid_params[1:]
+    pair_potential, xtra_args, pair_potential_dict = valid_params[1:]
     pair_keys = pair_potential_dict.keys()
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
-    pot = pair_potential(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
+    pot = pair_potential(**xtra_args, nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
     for pair in pair_potential_dict:
         pot.params[pair] = pair_potential_dict[pair]
 
@@ -148,10 +148,10 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
 @pytest.mark.parametrize("nsteps", [3, 5, 10])
 def test_run(simulation_factory, lattice_snapshot_factory,
              valid_params, nsteps):
-    pair_potential, pair_potential_dict = valid_params[1:]
+    pair_potential, xtra_args, pair_potential_dict = valid_params[1:]
     pair_keys = pair_potential_dict.keys()
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
-    pot = pair_potential(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
+    pot = pair_potential(**xtra_args, nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
     for pair in pair_potential_dict:
         pot.params[pair] = pair_potential_dict[pair]
 
@@ -207,10 +207,10 @@ def _calculate_force(sim):
 def test_force_energy_relationship(simulation_factory,
                                    two_particle_snapshot_factory,
                                    valid_params, nsteps):
-    pair_potential, pair_potential_dict = valid_params[1:]
+    pair_potential, xtra_args, pair_potential_dict = valid_params[1:]
     pair_keys = pair_potential_dict.keys()
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
-    pot = pair_potential(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
+    pot = pair_potential(**xtra_args, nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
     for pair in pair_potential_dict:
         pot.params[pair] = pair_potential_dict[pair]
 

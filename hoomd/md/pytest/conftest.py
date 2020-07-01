@@ -20,28 +20,28 @@ def _valid_params(particle_types=['A', 'B']):
                    'epsilon': [0.0005, 0.001, 0.0015]}
     lj_valid_param_dicts = _make_valid_param_dicts(lj_arg_dict, len(combos))
 
-    valid_params_list.append(("LJ", hoomd.md.pair.LJ,
+    valid_params_list.append(("LJ", hoomd.md.pair.LJ, {},
                               dict(zip(combos, lj_valid_param_dicts))))
 
     gauss_arg_dict = {'epsilon': [0.025, 0.05, 0.075],
                       'sigma': [0.5, 1.0, 1.5]}
     gauss_valid_param_dicts = _make_valid_param_dicts(gauss_arg_dict,
                                                       len(combos))
-    valid_params_list.append(("Gauss", hoomd.md.pair.Gauss,
+    valid_params_list.append(("Gauss", hoomd.md.pair.Gauss, {},
                               dict(zip(combos, gauss_valid_param_dicts))))
 
     yukawa_arg_dict = {'epsilon': [0.00025, 0.0005, 0.00075],
                        'kappa': [0.5, 1.0, 1.5]}
     yukawa_valid_param_dicts = _make_valid_param_dicts(yukawa_arg_dict,
                                                        len(combos))
-    valid_params_list.append(("Yukawa", hoomd.md.pair.Yukawa,
+    valid_params_list.append(("Yukawa", hoomd.md.pair.Yukawa, {},
                               dict(zip(combos, yukawa_valid_param_dicts))))
 
     ewald_arg_dict = {"alpha": [0.025, 0.05, 0.075],
                       "kappa": [0.5, 1.0, 1.5]}
     ewald_valid_param_dicts = _make_valid_param_dicts(ewald_arg_dict,
                                                       len(combos))
-    valid_params_list.append(("Ewald", hoomd.md.pair.Ewald,
+    valid_params_list.append(("Ewald", hoomd.md.pair.Ewald, {},
                               dict(zip(combos, ewald_valid_param_dicts))))
 
     morse_arg_dict = {"D0": [0.025, 0.05, 0.075],
@@ -49,13 +49,13 @@ def _valid_params(particle_types=['A', 'B']):
                       "r0": [0, 0.05, 0.1]}
     morse_valid_param_dicts = _make_valid_param_dicts(morse_arg_dict,
                                                       len(combos))
-    valid_params_list.append(("Morse", hoomd.md.pair.Morse,
+    valid_params_list.append(("Morse", hoomd.md.pair.Morse, {},
                               dict(zip(combos, morse_valid_param_dicts))))
 
     dpd_conservative_arg_dict = {"A": [0.025, 0.05, 0.075]}
     dpd_conservative_valid_param_dicts = _make_valid_param_dicts(dpd_conservative_arg_dict,
                                                                  len(combos))
-    valid_params_list.append(("DPDConservative", hoomd.md.pair.DPDConservative,
+    valid_params_list.append(("DPDConservative", hoomd.md.pair.DPDConservative, {},
                               dict(zip(combos,
                                        dpd_conservative_valid_param_dicts))))
 
@@ -63,7 +63,7 @@ def _valid_params(particle_types=['A', 'B']):
                                  'epsilon': [0.0005, 0.001, 0.0015]}
     force_shifted_LJ_valid_param_dicts = _make_valid_param_dicts(force_shifted_LJ_arg_dict,
                                                                  len(combos))
-    valid_params_list.append(("ForceShiftedLJ", hoomd.md.pair.ForceShiftedLJ,
+    valid_params_list.append(("ForceShiftedLJ", hoomd.md.pair.ForceShiftedLJ, {},
                               dict(zip(combos,
                                        force_shifted_LJ_valid_param_dicts))))
 
@@ -71,57 +71,63 @@ def _valid_params(particle_types=['A', 'B']):
                         'a0': [0.5, 1.0, 1.5], 'e': [0.25, 0.5, 0.75]}
     moliere_valid_param_dicts = _make_valid_param_dicts(moliere_arg_dict,
                                                         len(combos))
-    valid_params_list.append(("Moliere", hoomd.md.pair.Moliere,
+    valid_params_list.append(("Moliere", hoomd.md.pair.Moliere, {},
                               dict(zip(combos, moliere_valid_param_dicts))))
 
     zbl_arg_dict = {'Zi': [10, 15, 20], 'Zj': [8, 12, 16],
                     'a0': [0.5, 1.0, 1.5], 'e': [0.25, 0.5, 0.75]}
     zbl_valid_param_dicts = _make_valid_param_dicts(zbl_arg_dict,
                                                     len(combos))
-    valid_params_list.append(("ZBL", hoomd.md.pair.ZBL,
+    valid_params_list.append(("ZBL", hoomd.md.pair.ZBL, {},
                               dict(zip(combos, zbl_valid_param_dicts))))
 
     mie_arg_dict = {'epsilon': [.05, .025, .010], 'sigma': [.5, 1, 1.5],
                     'n': [12, 14, 16], 'm': [6, 8, 10]}
     mie_valid_param_dicts = _make_valid_param_dicts(mie_arg_dict,
                                                     len(combos))
-    valid_params_list.append(("Mie", hoomd.md.pair.Mie,
+    valid_params_list.append(("Mie", hoomd.md.pair.Mie, {},
                               dict(zip(combos, mie_valid_param_dicts))))
 
     reactfield_arg_dict = {'epsilon': [.05, .025, .010], 'eps_rf': [.5, 1, 1.5],
                     'use_charge': [False, True, False]}
     reactfield_valid_param_dicts = _make_valid_param_dicts(reactfield_arg_dict,
                                                     len(combos))
-    valid_params_list.append(("ReactionField", hoomd.md.pair.ReactionField,
+    valid_params_list.append(("ReactionField", hoomd.md.pair.ReactionField, {},
                               dict(zip(combos, reactfield_valid_param_dicts))))
 
     buckingham_arg_dict = {'A': [.05, .025, .010], 'rho': [.5, 1, 1.5],
                     'C': [.05, .025, .01]}
     buckingham_valid_param_dicts = _make_valid_param_dicts(buckingham_arg_dict,
                                                     len(combos))
-    valid_params_list.append(("Buckingham", hoomd.md.pair.Buckingham,
+    valid_params_list.append(("Buckingham", hoomd.md.pair.Buckingham, {},
                               dict(zip(combos, buckingham_valid_param_dicts))))
 
     lj1208_arg_dict = {'sigma': [0.5, 1.0, 1.5], 'epsilon': [0.0005, 0.001, 0.0015]}
     lj1208_valid_param_dicts = _make_valid_param_dicts(lj1208_arg_dict, len(combos))
 
-    valid_params_list.append(("LJ1208", hoomd.md.pair.LJ1208,
+    valid_params_list.append(("LJ1208", hoomd.md.pair.LJ1208, {},
                               dict(zip(combos, lj1208_valid_param_dicts))))
 
     fourier_arg_dict = {'a': [[0.5, 1.0, 1.5], [.05, .1, .15], [.005, .01, .015]],
                         'b': [[0.25, 0.034, 0.76], [0.36, 0.12, 0.65], [0.78, 0.04, 0.98]]}
     fourier_valid_param_dicts = _make_valid_param_dicts(fourier_arg_dict, len(combos))
 
-    valid_params_list.append(("Fourier", hoomd.md.pair.Fourier,
+    valid_params_list.append(("Fourier", hoomd.md.pair.Fourier, {},
                               dict(zip(combos, fourier_valid_param_dicts))))
 
     slj_arg_dict = {'sigma': [0.5, 1.0, 1.5],
                    'epsilon': [0.0005, 0.001, 0.0015]}
     slj_valid_param_dicts = _make_valid_param_dicts(slj_arg_dict, len(combos))
 
-    valid_params_list.append(("SLJ", hoomd.md.pair.SLJ,
+    valid_params_list.append(("SLJ", hoomd.md.pair.SLJ, {},
                               dict(zip(combos, slj_valid_param_dicts))))
 
+    dpd_arg_dict = {'A': [0.5, 1.0, 1.5],
+                   'gamma': [0.0005, 0.001, 0.0015]}
+    dpd_valid_param_dicts = _make_valid_param_dicts(dpd_arg_dict, len(combos))
+    dpd_extra_args = {"kT": 2}
+    valid_params_list.append(("DPD", hoomd.md.pair.DPD, dpd_extra_args,
+                              dict(zip(combos, dpd_valid_param_dicts))))
     return valid_params_list
 
 
