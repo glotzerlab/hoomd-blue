@@ -975,7 +975,7 @@ class DPDConservative(_Pair):
         self._add_typeparam(params)
 
 
-class dpdlj(pair):
+class DPDLJ(_Pair):
     R""" Dissipative Particle Dynamics with a LJ conservative force
 
     Args:
@@ -1056,9 +1056,9 @@ class dpdlj(pair):
         integrate.nve(group=group.all())
 
     """
-
-    def __init__(self, r_cut, nlist, kT, seed, name=None):
-
+    _cpp_class_name = "PotentialPairDPDLJThermoDPD"
+    def __init__(self, nlist, kT, seed=3, r_cut=None, r_on=0., mode='none'):
+        """
         # register the citation
         c = hoomd.cite.article(cite_key='phillips2011',
                          author=['C L Phillips', 'J A Anderson', 'S C Glotzer'],
@@ -1072,74 +1072,20 @@ class dpdlj(pair):
                          doi='10.1016/j.jcp.2011.05.021',
                          feature='DPD')
         hoomd.cite._ensure_global_bib().add(c)
-
-        # tell the base class how we operate
-
-        # initialize the base class
-        pair.__init__(self, r_cut, nlist, name);
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PotentialPairDPDLJThermoDPD(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairDPDLJThermoDPD;
-        else:
-            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-            self.cpp_force = _md.PotentialPairDPDLJThermoDPDGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialPairDPDLJThermoDPDGPU;
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-
-        # setup the coefficient options
-        self.required_coeffs = ['epsilon','sigma', 'alpha', 'gamma'];
-        self.pair_coeff.set_default_coeff('alpha', 1.0);
-
-
-        # set the seed for dpdlj thermostat
-        self.cpp_force.setSeed(seed);
-
-        # set the temperature
-        # setup the variant inputs
-        kT = hoomd.variant._setup_variant_input(kT);
-        self.cpp_force.setT(kT.cpp_variant);
-
-    def set_params(self, kT=None, mode=None):
-        R""" Changes parameters.
-
-        Args:
-            T (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature (if set) (in energy units)
-            mode (str): energy shift/smoothing mode (default noshift).
-
-        Examples::
-
-            dpdlj.set_params(kT=variant.linear_interp(points = [(0, 1.0), (1e5, 2.0)]))
-            dpdlj.set_params(kT=2.0, mode="shift")
-
         """
-        self.check_initialization();
+        if mode == 'xplor':
+            raise ValueError("xplor smoothing is not supported with pair.DPDLJ")
 
-        # change the parameters
-        if kT is not None:
-            # setup the variant inputs
-            kT = hoomd.variant._setup_variant_input(kT);
-            self.cpp_force.setT(kT.cpp_variant);
+        super().__init__(nlist, r_cut, r_on, mode)
+        params = TypeParameter('params', 'particle_types', TypeParameterDict(
+            epsilon=float, sigma=float, alpha=1.0, gamma=float,
+            len_keys=2))
+        self._add_typeparam(params)
 
-        if mode is not None:
-            if mode == "xplor":
-                hoomd.context.current.device.cpp_msg.error("XPLOR is smoothing is not supported with pair.dpdlj\n");
-                raise RuntimeError("Error changing parameters in pair force");
+        d = ParameterDict(kT=create_variant, seed=int, mode=OnlyFrom(['none', 'shifted']),
+                          explicit_defaults=dict(kT=kT, seed=seed, mode=mode))
+        self._param_dict.update(d)
 
-            #use the inherited set_params
-            pair.set_params(self, mode=mode)
-
-    def process_coeff(self, coeff):
-        epsilon = coeff['epsilon'];
-        sigma = coeff['sigma'];
-        gamma = coeff['gamma'];
-        alpha = coeff['alpha'];
-
-        lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
-        lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return _hoomd.make_scalar4(lj1, lj2, gamma, 0.0);
 
 class ForceShiftedLJ(_Pair):
     R""" Force-shifted Lennard-Jones pair potential.

@@ -128,6 +128,14 @@ def _valid_params(particle_types=['A', 'B']):
     dpd_extra_args = {"kT": 2}
     valid_params_list.append(("DPD", hoomd.md.pair.DPD, dpd_extra_args,
                               dict(zip(combos, dpd_valid_param_dicts))))
+
+    dpdlj_arg_dict = {'sigma': [0.5, 1.0, 1.5],
+                      'epsilon': [0.0005, 0.001, 0.0015],
+                      'gamma': [0.034, 33.2, 1.2]}
+    dpdlj_valid_param_dicts = _make_valid_param_dicts(dpdlj_arg_dict, len(combos))
+
+    valid_params_list.append(("DPDLJ", hoomd.md.pair.DPDLJ, {"kT": 1},
+                              dict(zip(combos, dpdlj_valid_param_dicts))))
     return valid_params_list
 
 
