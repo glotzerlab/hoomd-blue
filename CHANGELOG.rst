@@ -12,6 +12,9 @@ v3.0.0 (not yet released)
 - Implicit depletants are now supported by any **hpmc** integrator through
   ``mc.set_fugacity('type', fugacity)``.
 - Enable implicit depletants for two-dimensional shapes in **hpmc**.
+- ``jit.patch.user()`` and ``jit.patch.user_union()`` now support GPUs via
+  NVRTC.
+  - Add harmonically mapped averaging.
 
 *Changed*
 
@@ -58,6 +61,31 @@ v3.0.0 (not yet released)
 
 v2.x
 ----
+
+v2.9.2 (2020-06-26)
+^^^^^^^^^^^^^^^^^^^
+
+*Bug fixes*
+
+* Fix a bug where repeatedly using objects with ``period=None`` would use
+  significant amounts of memory.
+* Support CUDA 11.
+* Reccomend citing the 2020 Computational Materials Science paper
+  10.1016/j.commatsci.2019.109363.
+
+v2.9.1 (2020-05-28)
+^^^^^^^^^^^^^^^^^^^
+
+*Bug fixes*
+
+* Fixed a minor bug where the variable period timestep would be off by one when
+  the timestep got sufficiently large.
+* Updated collections API to hide ``DeprecationWarning``.
+* Fix scaling of cutoff in Gay-Berne potential to scale the current maximum
+  distance based on the orientations of the particles, ensuring ellipsoidal
+  energy isocontours.
+* Misc documentation fixes.
+
 
 v2.9.0 (2020-02-03)
 ^^^^^^^^^^^^^^^^^^^
@@ -316,7 +344,11 @@ v2.4.2 (2018-12-20)
    returned from ``ParticleData`` and other classes (replace by
    ``GlobalArray``)
 
+<<<<<<< HEAD
 v2.4.1 (2018/11/27)
+=======
+v2.4.1 (2018-11-27)
+>>>>>>> master
 ^^^^^^^^^^^^^^^^^^^
 
 *Bug fixes*

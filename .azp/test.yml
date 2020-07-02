@@ -1,5 +1,5 @@
 variables:
-  image_root: glotzerlab/ci:2019.12
+  image_root: glotzerlab/ci:2020.05
 
   # default build parameters, will override as needed with job matrix values
   enable_gpu: off
@@ -16,6 +16,12 @@ variables:
   mpiexec_timeout: 300
   suite_name: $(Agent.JobName)
 
+trigger:
+  batch: true
+  branches:
+    include:
+    - '*'
+
 stages:
 - stage: build_test_cpu
   displayName: Unit test (CPU)
@@ -27,11 +33,24 @@ stages:
     timeoutInMinutes: 75
 
     strategy:
+      maxParallel: 5
       matrix:
+        gcc10_py38_mpi_tbb:
+          container_image: gcc10_py38
+          enable_mpi: on
+          enable_tbb: on
+
         gcc9_py38_mpi_tbb:
           container_image: gcc9_py38
           enable_mpi: on
           enable_tbb: on
+
+        clang10_py38_mpi_tbb:
+          container_image: clang10_py38
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '10'
 
         clang9_py38_mpi_tbb:
           container_image: clang9_py38
@@ -92,7 +111,7 @@ stages:
           container_image: gcc7_py36
 
     pool:
-      vmImage: 'ubuntu-16.04'
+      vmImage: 'ubuntu-latest'
 
     container:
       image: $(image_root)-$(container_image)
@@ -118,7 +137,7 @@ stages:
       vmImage: '$(mac_image)'
 
     steps:
-    - script: brew install cereal cmake eigen ninja open-mpi python numpy pybind11
+    - script: brew install cereal cmake eigen ninja open-mpi python pybind11
       displayName: Brew install prereqs
     # Install Intel's provided TBB builds, homebrew's tbb does not support exception translation
     - script: |
@@ -129,7 +148,7 @@ stages:
       displayName: Install TBB
       workingDirectory: $(Pipeline.Workspace)
 
-    - script: python3 -m pip install pytest
+    - script: python3 -m pip install pytest numpy gsd
       displayName: Pip install prereqs
 
     - template: templates/build_test.yml
@@ -222,10 +241,10 @@ stages:
   - job: sphinx_doc
     displayName: Sphinx
     pool:
-      vmImage: 'ubuntu-16.04'
+      vmImage: 'ubuntu-latest'
 
     container:
-      image: $(image_root)-gcc7_py37
+      image: $(image_root)-clang10_py38
       options: -u 0
 
     workspace:

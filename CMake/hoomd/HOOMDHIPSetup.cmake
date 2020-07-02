@@ -1,5 +1,5 @@
 if(ENABLE_HIP)
-    find_package(HIP)
+    find_package(HIP QUIET)
 
     if (HIP_FOUND)
         # call hipcc to tell us about the backend compiler
