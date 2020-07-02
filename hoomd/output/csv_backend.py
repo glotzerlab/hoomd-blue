@@ -1,9 +1,9 @@
-from collections.abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod
 from math import log10
 from sys import stdout
 
 from hoomd.analyze.custom_analyzer import _InternalCustomAnalyzer
-from hoomd.custom.custom_action import _InternalCustomAction
+from hoomd.custom.custom_action import _InternalAction
 from hoomd.parameterdicts import ParameterDict
 from hoomd.typeconverter import OnlyType
 from hoomd.util import dict_flatten
@@ -15,6 +15,7 @@ class _OutputWriter(metaclass=ABCMeta):
     We use this to ensure the output object passed to CSV will support the
     necessary functions.
     """
+
     @abstractmethod
     def flush(self):
         pass
@@ -24,9 +25,15 @@ class _OutputWriter(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    @property
-    def mode(self):
+    def writable(self):
         pass
+
+    @classmethod
+    def __subclasshook__(cls, C):
+        if cls is _OutputWriter:
+            return all(hasattr(C, method) for method in cls.__abstractmethods__)
+        else:
+            return NotImplemented
 
 
 class _Formatter:
@@ -114,7 +121,7 @@ class _Formatter:
             return self._str_format.format(value, width=column_width)
 
 
-class _CSVInternal(_InternalCustomAction):
+class _CSVInternal(_InternalAction):
     """Implements the logic for a simple text based logger backend.
 
     This currently has to check the logged quantites every time to ensure it has
@@ -126,15 +133,17 @@ class _CSVInternal(_InternalCustomAction):
     def __init__(self, logger, output=stdout, header_sep='.', delimiter=' ',
                  pretty=True, max_precision=10, max_header_len=None):
         def writable(fh):
-            if fh.mode[0] not in 'wxa' and fh.mode != 'r+':
-                raise ValueError("File handle is not writable.")
+            if not fh.writable():
+                raise ValueError("file-like object must be writable.")
+            return fh
 
         param_dict = ParameterDict(
             header_sep=str, delimiter=str, min_column_width=int,
-            max_header_len=int, pretty=bool, max_precision=int,
+            max_header_len=OnlyType(int, allow_none=True), pretty=bool,
+            max_precision=int,
             output=OnlyType(_OutputWriter, postprocess=writable))
         param_dict.update(dict(
-            header_set=header_sep, delimiter=delimiter,
+            header_sep=header_sep, delimiter=delimiter,
             min_column_width=max(10, max_precision + 6),
             max_header_len=max_header_len, max_precision=max_precision,
             pretty=pretty, output=output)
@@ -150,6 +159,7 @@ class _CSVInternal(_InternalCustomAction):
         self._logger = logger
         self._cur_headers_with_width = dict()
         self._fmt = _Formatter(pretty, max_precision)
+        self._comm = None
 
     def _setattr_param(self, attr, value):
         """Makes self._param_dict attributes read only."""
@@ -181,34 +191,38 @@ class _CSVInternal(_InternalCustomAction):
         header_dict = {}
         for namespace in new_keys:
             header = self._determine_header(
-                namespace, self._header_sep, self._max_header_len)
-            column_size = max(len(header), self._min_width)
+                namespace, self.header_sep, self.max_header_len)
+            column_size = max(len(header), self.min_column_width)
             header_dict[namespace] = column_size
             header_output_list.append((header, column_size))
         self._cur_headers_with_width = header_dict
-        self._output.write(
-            self._delimiter.join((self._fmt.format_str(hdr, width)
+        self.output.write(
+            self.delimiter.join((self._fmt.format_str(hdr, width)
                                   for hdr, width in header_output_list))
         )
-        self._output.write('\n')
+        self.output.write('\n')
 
     @staticmethod
     def _determine_header(namespace, sep, max_len):
-        index = -1
-        char_count = 0
-        for name in reversed(namespace[:-1]):
-            if char_count + len(name) > max_len:
-                break
-            index -= 1
-        return sep.join(namespace[index:])
+        if max_len is None:
+            return sep.join(namespace)
+        else:
+            index = -1
+            char_count = len(namespace[-1])
+            for name in reversed(namespace[:-1]):
+                char_count += len(name)
+                if char_count > max_len:
+                    break
+                index -= 1
+            return sep.join(namespace[index:])
 
     def _write_row(self, data):
         """Write a row of data to output."""
         headers = self._cur_headers_with_width
-        self._output.write(self._delimiter.join((self._fmt(data[k], headers[k])
-                                                 for k in headers))
+        self.output.write(self.delimiter.join(
+            (self._fmt(data[k], headers[k]) for k in headers))
                            )
-        self._output.write('\n')
+        self.output.write('\n')
 
     def act(self, timestep=None):
         """Write row to designated output.
@@ -228,7 +242,7 @@ class _CSVInternal(_InternalCustomAction):
             # Write the data and flush. We must flush to ensure that the data
             # isn't merely stored in Python ready to be written later.
             self._write_row(output_dict)
-            self._output.flush()
+            self.output.flush()
 
 
 class CSV(_InternalCustomAnalyzer):
@@ -251,6 +265,8 @@ class CSV(_InternalCustomAnalyzer):
             total energy of an `hoomd.md.pair.LJ` pair force object, the default
             header would be ``md.pair.LJ.energy`` (assuming that
             ``max_header_len`` is not set).
+        delimiter (string, optional): String used to separate elements in the
+            CSV file, defaults to ' '.
         pretty (bool, optional): Flags whether to attempt to make output
             prettier and easier to read, defaults to True. To make the ouput
             easier to read, the output will compromise on outputted precision
@@ -268,6 +284,12 @@ class CSV(_InternalCustomAnalyzer):
             previous example, we would still use 'energy' as the header).
 
     Note:
-        This only works with scalar and string quantities.
+        This only works with scalar and string quantities. If using string
+        quantities, keep in mind that the default space delimiter will make
+        strings with spaces in them will cause read errors if attempting to read
+        the outputed data with a csv reader.
     """
     _internal_class = _CSVInternal
+
+    def act(self, timestep=None):
+        self._action.act(timestep)
