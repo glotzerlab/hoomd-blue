@@ -13,12 +13,12 @@ add_library(hipper INTERFACE)
 add_library(HOOMD::hipper ALIAS hipper)
 target_include_directories(hipper INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/hipper/include>
                                             $<INSTALL_INTERFACE:${PYTHON_SITE_INSTALL_DIR}/include/hoomd/extern/hipper/include>)
-install(TARGETS hipper EXPORT HOOMDTargets)
 if (HIP_PLATFORM STREQUAL "hcc")
     target_compile_definitions(hipper INTERFACE HIPPER_HIP)
 elseif(HIP_PLATFORM STREQUAL "nvcc")
     target_compile_definitions(hipper INTERFACE HIPPER_CUDA)
 endif()
+install(TARGETS hipper EXPORT HOOMDTargets)
 
 # setup neighbor target, as it will be installed by HOOMD
 add_library(neighbor INTERFACE)
