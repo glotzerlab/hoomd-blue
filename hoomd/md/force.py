@@ -256,13 +256,13 @@ class constant(_Force):
 class Active(_Force):
     R""" Active force.
 
-    Args:
-        filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply active
-            forces.
+    Attributes:
+        filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply active forces.
         seed (int): required user-specified seed number for random number generator.
-        constraint (:py:class:`hoomd.md.update.constraint_ellipsoid`) specifies a constraint surface, to which particles are confined,
-          such as update.constraint_ellipsoid.
+        constraint (:py:class:`hoomd.md.update.constraint_ellipsoid`): specifies a constraint surface, to which particles are confined, such as update.constraint_ellipsoid.
         rotation_diff (float): rotational diffusion constant, :math:`D_r`, for all particles in the group.
+        active_force (tuple): active force vector in reference to the orientation of a particle. It is defined per particle type and stays constant during the simulation. 
+        active_torque (tuple): active torque vector in reference to the orientation of a particle. It is defined per particle type and stays constant during the simulation. 
 
     :py:class:`Active` specifies that an active force should be added to all particles.
     Obeys :math:`\delta {\bf r}_i = \delta t v_0 \hat{p}_i`, where :math:`v_0` is the active velocity. In 2D
@@ -274,9 +274,9 @@ class Active(_Force):
     :math:`\delta \hat{p}_i / \delta t = \sqrt{2 D_r / \delta t} \Gamma (\hat{p}_i (\cos \theta - 1) + \hat{p}_r \sin \theta)`, where
     :math:`\hat{p}_r` is an uncorrelated random unit vector. The persistence length of an active particle's path is
     :math:`v_0 / D_r`.
-
-    .. attention::
-        :py:meth:`active` does not support MPI execution.
+    The rotational diffusion is applied to the orientation vector/quaternion of each particle. This implies that both the active 
+    force and the active torque vectors in the particle frame stay constant during the simulation. Hence, the active forces in the system
+    frame are composed of the forces in particle frame and the current orientation of the particle.  
 
     Examples::
 
