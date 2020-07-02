@@ -153,6 +153,7 @@ class OnlyType(_HelpValidate):
     def __str__(self):
         return "OnlyType({})".format(str(self.type))
 
+
 class OnlyFrom(_HelpValidate):
     """Validates a value against a given set of options.
 
@@ -177,6 +178,23 @@ class OnlyFrom(_HelpValidate):
 
     def __str__(self):
         return "OnlyFrom[{}]".format(self.options)
+
+
+class SetOnce:
+    """Used to make properties read-only after setting."""
+    def __init__(self, validation):
+        if isclass(validation):
+            self._validation = OnlyType(validation)
+        else:
+            self._validation = validation
+
+    def __call__(self, value):
+        if self._validation is not None:
+            val = self._validation(value)
+            self._validation = None
+            return val
+        else:
+            raise ValueError("Attribute is read-only.")
 
 
 class TypeConverter(ABC):
