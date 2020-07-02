@@ -7,21 +7,28 @@ from hoomd.array import HOOMDGPUArray
 import numpy as np
 import pytest
 try:
+    # This try block is purely to allow testing locally without mpi4py. We could
+    # require it for testing, and simplify the logic here. The CI containers all
+    # have mpi4py.
     from mpi4py import MPI
 except ImportError:
     skip_mpi4py = True
 else:
     skip_mpi4py = False
 
+skip_mpi4py = pytest.mark.skipif(
+    skip_mpi4py, reason='mpi4py could not be imported.')
+
 try:
+    # We use the CUPY_IMPORTED variable to allow for local GPU testing without
+    # CuPy installed. This code could be simplified to only work with CuPy, by
+    # requiring its installation for testing. The CI containers already have
+    # CuPy installed when build for the GPU.
     import cupy
     CUPY_IMPORTED = True
 except ImportError:
     CUPY_IMPORTED = False
 
-
-skip_mpi4py = pytest.mark.skipif(
-    skip_mpi4py, reason='mpi4py could not be imported.')
 
 """
 _N and _types are distinct in that the local snapshot does not know about them.
