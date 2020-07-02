@@ -55,7 +55,7 @@ steps:
 
 - script: >-
     PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
-    python3 -m pytest -v -ra
+    python3 -m pytest -v -ra -m "cupy_optional"
     --junit-xml=$(Common.TestResultsDirectory)/pytest-serial.xml
   displayName: Run pytest (gpu without CuPy)
   workingDirectory: $(Pipeline.Workspace)/install
@@ -67,7 +67,7 @@ steps:
 - script: >-
     PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
     mpirun -n 2 $(Build.BinariesDirectory)/hoomd/pytest/pytest-openmpi.sh -v -x -ra
-    --junit-xml=$(Common.TestResultsDirectory)/pytest-mpi.xml
+    -m "cupy-optional" --junit-xml=$(Common.TestResultsDirectory)/pytest-mpi.xml
   displayName: Run pytest (gpu mpi without CuPy)
   workingDirectory: $(Pipeline.Workspace)/install
   condition: and(succeeded(), eq(variables['enable_mpi'], 'on'), eq(variables['enable_gpu'], 'on'))

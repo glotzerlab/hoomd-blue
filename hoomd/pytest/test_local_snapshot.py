@@ -311,6 +311,7 @@ def test_cpu_tags_shape(
 
 
 @skip_mpi4py
+@pytest.mark.cupy_optional
 def test_gpu_tags_shape(
         gpu_simulation_factory, base_snapshot, snapshot_section):
     """Checks that tags are the appropriate size from local snapshots.
@@ -367,6 +368,7 @@ def test_cpu_global_properties(cpu_simulation_factory, base_snapshot,
 
 
 @skip_mpi4py
+@pytest.mark.cupy_optional
 def test_gpu_global_properties(gpu_simulation_factory, base_snapshot,
                                global_property):
     section_name, prop_name, prop_dict = global_property
@@ -546,6 +548,7 @@ def test_cpu_arrays_properties_with_gpu_device(
         property_check(hoomd_buffer, property_dict, tags)
 
 
+@pytest.mark.cupy_optional
 def test_gpu_arrays_properties(gpu_simulation_factory, base_snapshot,
                                section_name_dict, affix, property_check):
     """This test makes extensive use of parameterizing in pytest.

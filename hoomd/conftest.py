@@ -212,6 +212,9 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers",
         "gpu: Tests that should only run on the gpu.")
+    config.addinivalue_line(
+        "markers",
+        "cupy_optional: tests that should pass with and without CuPy.")
 
 
 def abort(exitstatus):
