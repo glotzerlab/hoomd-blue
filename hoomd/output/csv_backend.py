@@ -1,16 +1,44 @@
-from sys import stdout
+from collections.abc import ABCMeta, abstractmethod
 from math import log10
-from hoomd.util import dict_flatten
-from hoomd.custom_action import _InternalCustomAction
+from sys import stdout
+
 from hoomd.analyze.custom_analyzer import _InternalCustomAnalyzer
-from hoomd.operation import _Analyzer
+from hoomd.custom_action import _InternalCustomAction
+from hoomd.parameterdicts import ParameterDict
+from hoomd.typeconverter import OnlyType
+from hoomd.util import dict_flatten
+
+
+class _OutputWriter(metaclass=ABCMeta):
+    """Represents the necessary functions for writing out data.
+
+    We use this to ensure the output object passed to CSV will support the
+    necessary functions.
+    """
+    @abstractmethod
+    def flush(self):
+        pass
+
+    @abstractmethod
+    def write(self):
+        pass
+
+    @abstractmethod
+    @property
+    def mode(self):
+        pass
 
 
 class _Formatter:
     """Internal class for number and string formatting for CSV object.
 
     Main method is ``__call__``. It takes a value with the corresponding column
-    width and outputs the string to use for that column.
+    width and outputs the string to use for that column. Some of these
+    parameters are not currently used in the _InternalCSV class, but are
+    available in the _Formatter class, meaning that adding these features later
+    would be fairly simple. I (Brandon Butler) did not think they were worth
+    complicating the CSV Logger any more than it currently is though, so they
+    are not used now.
 
     Args:
         pretty (bool): whether to attempt to make output pretty (more readable).
@@ -27,12 +55,12 @@ class _Formatter:
     def __init__(self, pretty=True,
                  max_precision=15, max_decimals_pretty=5,
                  pad=" ", align="^"):
-        self._generate_fmt_strings(pad, align)
+        self.generate_fmt_strings(pad, align)
         self.pretty = pretty
         self.precision = max_precision - 1
         self.max_decimals_pretty = max_decimals_pretty
 
-    def _generate_fmt_strings(self, pad, align):
+    def generate_fmt_strings(self, pad, align):
         base = "{:" + pad + align
         self._num_format = base + "{width}{type}}"
         self._str_format = base + "{width}}"
@@ -86,38 +114,46 @@ class _Formatter:
             return self._str_format.format(value, width=column_width)
 
 
-def _determine_header(namespace, sep, max_len):
-    index = -1
-    char_count = 0
-    for name in reversed(namespace[:-1]):
-        if char_count + len(name) > max_len:
-            break
-        index -= 1
-    return sep.join(namespace[index:])
-
-
 class _CSVInternal(_InternalCustomAction):
-    """Implements the logic for a simple text based logger backend."""
+    """Implements the logic for a simple text based logger backend.
 
-    def __init__(self, logger, output=None, header_sep='.', delimiter=' ',
+    This currently has to check the logged quantites every time to ensure it has
+    not changed since the last run of `~.act`. Performance could be improved by
+    allowing for writing of data without checking for a change in logged
+    quantites, but would be more fragile.
+    """
+
+    def __init__(self, logger, output=stdout, header_sep='.', delimiter=' ',
                  pretty=True, max_precision=10, max_header_len=None):
+        def writable(fh):
+            if fh.mode[0] not in 'wxa' and fh.mode != 'r+':
+                raise ValueError("File handle is not writable.")
+
+        param_dict = ParameterDict(
+            header_sep=str, delimiter=str, min_column_width=int,
+            max_header_len=int, pretty=bool, max_precision=int,
+            output=OnlyType(_OutputWriter, postprocess=writable))
+        param_dict.update(dict(
+            header_set=header_sep, delimiter=delimiter,
+            min_column_width=max(10, max_precision + 6),
+            max_header_len=max_header_len, max_precision=max_precision,
+            pretty=pretty, output=output)
+        )
+        self._param_dict = param_dict
+
+        # internal variables that are not part of the state.
         flags = set(logger.flags)
         if flags.difference(['scalar', 'string']) != set() \
                 or 'scalar' not in flags:
             raise ValueError("Given Logger must have the scalar flag set.")
+
         self._logger = logger
-        self._header_sep = header_sep
-        self._delimiter = delimiter
-        self._min_width = max(10, max_precision + 6)
-        self._max_header_len = max_header_len
         self._cur_headers_with_width = dict()
         self._fmt = _Formatter(pretty, max_precision)
-        if output is None:
-            self._output = stdout
-        elif isinstance(output, str):
-            self._output = open(output, 'a')
-        else:
-            self._output = output
+
+    def _setattr_param(self, attr, value):
+        """Makes self._param_dict attributes read only."""
+        raise ValueError("Attribute {} is read-only.".format(attr))
 
     def attach(self, simulation):
         self._comm = simulation.device._comm
@@ -133,11 +169,18 @@ class _CSVInternal(_InternalCustomAction):
                 }
 
     def _update_headers(self, new_keys):
-        """Update headers and write the current headers to output."""
+        """Update headers and write the current headers to output.
+
+        This function could be made simpler and faster by moving some of the
+        transformation to act. Since we don't expect the headers to change often
+        however, this would likely slow the writer down. The design is to
+        off-load any potnentially unnecessary calculations to this function even
+        if that means more overall computation when headers change.
+        """
         header_output_list = []
         header_dict = {}
         for namespace in new_keys:
-            header = _determine_header(
+            header = self._determine_header(
                 namespace, self._header_sep, self._max_header_len)
             column_size = max(len(header), self._min_width)
             header_dict[namespace] = column_size
@@ -149,6 +192,16 @@ class _CSVInternal(_InternalCustomAction):
         )
         self._output.write('\n')
 
+    @staticmethod
+    def _determine_header(namespace, sep, max_len):
+        index = -1
+        char_count = 0
+        for name in reversed(namespace[:-1]):
+            if char_count + len(name) > max_len:
+                break
+            index -= 1
+        return sep.join(namespace[index:])
+
     def _write_row(self, data):
         """Write a row of data to output."""
         headers = self._cur_headers_with_width
@@ -157,46 +210,62 @@ class _CSVInternal(_InternalCustomAction):
                            )
         self._output.write('\n')
 
-    def act(self, timestep):
-        """Write row to designated output."""
+    def act(self, timestep=None):
+        """Write row to designated output.
+
+        Will also write header when logged quantites are determined to have
+        changed.
+        """
         if self._comm is not None and self._comm.rank == 0:
             output_dict = self._get_log_dict()
+            # determine if a header needs to be written. This is always the case
+            # for the first call of act, and if the logged quantities change
+            # within a run.
             new_keys = output_dict.keys()
             if new_keys != self._cur_headers_with_width.keys():
                 self._update_headers(new_keys)
 
+            # Write the data and flush. We must flush to ensure that the data
+            # isn't merely stored in Python ready to be written later.
             self._write_row(output_dict)
             self._output.flush()
 
 
-class CSV(_InternalCustomAnalyzer, _Analyzer):
-    """A space separate value file backend for a Logger.
+class CSV(_InternalCustomAnalyzer):
+    """A delimiter separated value file backend for a Logger.
 
     This can serve as a way to output scalar simulation data to standard out.
     However, this is useable to store simulation scalar data to a file as well.
 
     Args:
         trigger (hoomd.trigger.Trigger): The trigger to determine when to run
-        the CSV logger.
+            the CSV logger.
         logger (hoomd.logger.Logger): The logger to query for output. The
             'scalar' flag must be set on the logger, and the 'string' flag is
             optional.
-        output (file, optional): A file-like object to output the data from,
-            defaults to standard out.
+        output (file handle, optional): A file-like object to output the data
+            from, defaults to standard out. The object must have write and flush
+            methods and a mode attribute.
         header_sep (string, optional): String to use to separate names in the
-            logger's namespace, defaults to '.'.
+            logger's namespace, defaults to '.'. For example, if logging the
+            total energy of an `hoomd.md.pair.LJ` pair force object, the default
+            header would be ``md.pair.LJ.energy`` (assuming that
+            ``max_header_len`` is not set).
         pretty (bool, optional): Flags whether to attempt to make output
             prettier and easier to read, defaults to True. To make the ouput
             easier to read, the output will compromise on outputted precision
-            for improved readability.
+            for improved readability. In many cases, though the precision will
+            still be high with pretty set to ``True``.
         max_precision (int, optional): If pretty is not set, then this controls
             the maximum precision to use when outputing numerical values,
             defaults to 10.
-        max_header_len (int, optional): If not None limit the outputted
-            header names to length ``max_header_len``, defaults to None. When
-            not None, names are grabbed from the most specific to the least. For
-            example, if set to 7 the namespace 'hoomd.md.pair.LJ' would be set
-            to 'pair.LJ'.
+        max_header_len (int, optional): If not None (the default), limit the
+            outputted header names to length ``max_header_len``. When not None,
+            names are grabbed from the most specific to the least. For example,
+            if set to 7 the namespace 'hoomd.md.pair.LJ.energy' would be set to
+            'energy'. Note that at least the most specific part of the namespace
+            will be used regardless of this setting (e.g. if set to 5 in the
+            previous example, we would still use 'energy' as the header).
 
     Note:
         This only works with scalar and string quantities.
