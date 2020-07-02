@@ -171,7 +171,8 @@ struct HOOMDDeviceBuffer : public HOOMDBuffer
  *  classes.
  *
  *  This class stores ArrayHandles using a unique pointer to prevent a resource
- *  from being dropped before the object is destroyed.
+ *  from being dropped before the object is destroyed. This can be simplified if
+ *  a move constructor for ArrayHandle is created.
  */
 template <class Output, class Data>
 class LocalDataAccess
@@ -205,11 +206,12 @@ class LocalDataAccess
          *  ghost particles) is less than or equal to the number of total
          *  particles in the system. For arrays that are the sized according to
          *  the global number, use getGlobalBuffer (quantities such as rtags).
+         *
          *  Template parameters:
-         *  T - the value stored in the by the internal array (i.e. the template
-         *  parameter of the ArrayHandle
-         *  S - the exposed type of data to Python
-         *  U - the array class returned by the parameter get_array_func
+         *  T: the value stored in the by the internal array (i.e. the template
+         *  parameter of the ArrayHandle)
+         *  S: the exposed type of data to Python
+         *  U: the array class returned by the parameter get_array_func
          *
          *  Arguments:
          *  handle: a reference to the unique_ptr that holds the ArrayHandle.
@@ -278,13 +280,15 @@ class LocalDataAccess
         /// Convert Global/GPUArray or vector into an Ouput object for Python
         /** This function is for arrays that are of a size equal to their global
          *  size. An example is the reverse tag index. On each MPI rank or GPU,
-         *  the size of the reverse tag index is equal to the entire number of
-         *  particles in the system.  For arrays that are the sized according to
-         *  the local box, use getBuffer (quantities such as particle positions).
+         *  the size of the particle reverse tag index is equal to the entire
+         *  number of particles in the system.  For arrays that are the sized
+         *  according to the local box, use getBuffer (quantities such as
+         *  particle positions).
+         *
          *  Template parameters:
-         *  T - the value stored in the by the internal array (i.e. the template
-         *  parameter of the ArrayHandle
-         *  U - the array class returned by the parameter get_array_func
+         *  T: the value stored in the by the internal array (i.e. the template
+         *  parameter of the ArrayHandle)
+         *  U: the array class returned by the parameter get_array_func
          *
          *  Arguments:
          *  handle: a reference to the unique_ptr that holds the ArrayHandle.

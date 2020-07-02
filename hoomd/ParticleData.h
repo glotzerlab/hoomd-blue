@@ -1242,6 +1242,14 @@ class PYBIND11_EXPORT ParticleData
         void setGPUAdvice();
     };
 
+/// Allow the usage of Particle Data arrays in Python.
+/** Uses the LocalDataAccess templated class to expose particle data arrays to
+ *  Python. For an explanation of the methods and structure see its
+ *  documentation.
+ *
+ *  Template Parameters
+ *  Output: The buffer output type (either HOOMDHostBuffer or HOOMDDeviceBuffer)
+*/
 template<class Output>
 class PYBIND11_EXPORT LocalParticleData :
         public LocalDataAccess<Output, ParticleData>
@@ -1473,6 +1481,10 @@ class PYBIND11_EXPORT LocalParticleData :
             }
 
     private:
+        // These members represent the various particle data that are available.
+        // We store them as unique_ptr to prevent the resource from being
+        // dropped prematurely. If a move constructor is created for ArrayHandle
+        // then the implementation can be simplified.
         std::unique_ptr<ArrayHandle<Scalar4> > m_position_handle;
         std::unique_ptr<ArrayHandle<Scalar4> > m_orientation_handle;
         std::unique_ptr<ArrayHandle<Scalar4> > m_velocities_handle;

@@ -993,6 +993,16 @@ extern char name_pair_data[];
 typedef BondedGroupData<2, Bond, name_pair_data> PairData;
 
 
+/// Allows the usage of group data arrays in Python
+/** Uses the LocalDataAccess templated class to expose group data arrays to
+ *  Python. For an explanation of the methods and structure see its
+ *  documentation. This exports the data of bonds, angles, dihedrals, special
+ *  pairs, constraints, and impropers to Python.
+ *
+ *  Template Parameters
+ *  Output: The buffer output type (either HOOMDHostBuffer or HOOMDDeviceBuffer)
+ *  GroupData: The realized class from the BondGroupData template.
+*/
 template<class Output, class GroupData>
 class LocalGroupData : public LocalDataAccess<Output, GroupData>
     {
