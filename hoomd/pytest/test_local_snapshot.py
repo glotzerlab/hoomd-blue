@@ -342,10 +342,13 @@ def global_property(request):
 def check_global_properties(prop, global_property_dict, N):
     assert prop.shape == global_property_dict['shape']
     assert np.issubdtype(prop.dtype, global_property_dict['np_type'])
-    if global_property_dict['value'] is not None:
-        general_array_equality(prop, global_property_dict['value'])
-    with pytest.raises(ValueError):
-        prop[:] = 1
+    if isinstance(prop, HOOMDGPUArray) and not CUPY_IMPORTED:
+        return
+    else:
+        if global_property_dict['value'] is not None:
+            general_array_equality(prop, global_property_dict['value'])
+        with pytest.raises(ValueError):
+            prop[:] = 1
 
 
 @skip_mpi4py
