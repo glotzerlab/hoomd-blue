@@ -25,5 +25,7 @@
 	branch = header_only
 [submodule "hoomd/extern/neighbor"]
 	path = hoomd/extern/neighbor
-	url = https://github.com/jglaser/neighbor.git
-	branch = hip
+	url = https://github.com/mphowardlab/neighbor.git
+[submodule "hoomd/extern/hipper"]
+	path = hoomd/extern/hipper
+	url = https://github.com/mphowardlab/hipper.git
