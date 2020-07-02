@@ -100,11 +100,9 @@ class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
         Scalar m_ry;          //!< Radius in Y direction of the Ellipsoid
         Scalar m_rz;          //!< Radius in Z direction of the Ellipsoid
         int m_seed;           //!< Random number seed
-        GlobalVector<Scalar3> m_f_activeVec; //! active force unit vectors for each particle type
-        GlobalVector<Scalar> m_f_activeMag; //! active force magnitude for each particle type
+        GlobalVector<Scalar4> m_f_activeVec; //! active force unit vectors and magnitudes for each particle type
 
-        GlobalVector<Scalar3> m_t_activeVec; //! active torque unit vectors for each particle type
-        GlobalVector<Scalar> m_t_activeMag; //! active torque magnitude for each particle type
+        GlobalVector<Scalar4> m_t_activeVec; //! active torque unit vectors and magnitudes for each particle type
 
         unsigned int last_computed;
     };

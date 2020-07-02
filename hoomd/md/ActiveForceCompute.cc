@@ -49,46 +49,32 @@ ActiveForceCompute::ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
 
 
     // allocate memory for the per-type active_force storage and initialize them to (1.0,0,0)
-    GlobalVector<Scalar3> tmp_f_activeVec(m_pdata->getNTypes(), m_exec_conf);
-    GlobalVector<Scalar> tmp_f_activeMag(m_pdata->getNTypes(), m_exec_conf);
+    GlobalVector<Scalar4> tmp_f_activeVec(m_pdata->getNTypes(), m_exec_conf);
 
     m_f_activeVec.swap(tmp_f_activeVec);
-    m_f_activeMag.swap(tmp_f_activeMag);
     TAG_ALLOCATION(m_f_activeVec);
-    TAG_ALLOCATION(m_f_activeMag);
 
-    ArrayHandle<Scalar3> h_f_activeVec(m_f_activeVec, access_location::host, access_mode::overwrite);
-    ArrayHandle<Scalar> h_f_activeMag(m_f_activeMag, access_location::host, access_mode::overwrite);
-    for (unsigned int i = 0; i < m_f_activeMag.size(); i++){
-        h_f_activeMag.data[i] = 1;
-        h_f_activeVec.data[i] = make_scalar3(1.0,0.0,0.0);
-    }
+    ArrayHandle<Scalar4> h_f_activeVec(m_f_activeVec, access_location::host, access_mode::overwrite);
+    for (unsigned int i = 0; i < m_f_activeVec.size(); i++)
+        h_f_activeVec.data[i] = make_scalar4(1.0,0.0,0.0,1.0);
 
     // allocate memory for the per-type active_force storage and initialize them to (0,0,0)
-    GlobalVector<Scalar3> tmp_t_activeVec(m_pdata->getNTypes(), m_exec_conf);
-    GlobalVector<Scalar> tmp_t_activeMag(m_pdata->getNTypes(), m_exec_conf);
+    GlobalVector<Scalar4> tmp_t_activeVec(m_pdata->getNTypes(), m_exec_conf);
 
     m_t_activeVec.swap(tmp_t_activeVec);
-    m_t_activeMag.swap(tmp_t_activeMag);
     TAG_ALLOCATION(m_t_activeVec);
-    TAG_ALLOCATION(m_t_activeMag);
 
-    ArrayHandle<Scalar3> h_t_activeVec(m_t_activeVec, access_location::host, access_mode::overwrite);
-    ArrayHandle<Scalar> h_t_activeMag(m_t_activeMag, access_location::host, access_mode::overwrite);
-    for (unsigned int i = 0; i < m_t_activeMag.size(); i++){
-        h_t_activeMag.data[i] = 0;
-        h_t_activeVec.data[i] = make_scalar3(1.0,0.0,0.0);
-    }
+    ArrayHandle<Scalar4> h_t_activeVec(m_t_activeVec, access_location::host, access_mode::overwrite);
+    for (unsigned int i = 0; i < m_t_activeVec.size(); i++)
+        h_t_activeVec.data[i] = make_scalar4(1.0,0.0,0.0,0.0);
 
 
     #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
-        cudaMemAdvise(m_f_activeVec.get(), sizeof(Scalar3)*m_f_activeVec.getNumElements(), cudaMemAdviseSetReadMostly, 0);
-        cudaMemAdvise(m_f_activeMag.get(), sizeof(Scalar)*m_f_activeMag.getNumElements(), cudaMemAdviseSetReadMostly, 0);
+        cudaMemAdvise(m_f_activeVec.get(), sizeof(Scalar4)*m_f_activeVec.getNumElements(), cudaMemAdviseSetReadMostly, 0);
 
-        cudaMemAdvise(m_t_activeVec.get(), sizeof(Scalar3)*m_t_activeVec.getNumElements(), cudaMemAdviseSetReadMostly, 0);
-        cudaMemAdvise(m_t_activeMag.get(), sizeof(Scalar)*m_t_activeMag.getNumElements(), cudaMemAdviseSetReadMostly, 0);
+        cudaMemAdvise(m_t_activeVec.get(), sizeof(Scalar4)*m_t_activeVec.getNumElements(), cudaMemAdviseSetReadMostly, 0);
         }
     #endif
 
@@ -116,7 +102,7 @@ void ActiveForceCompute::setActiveForce(const std::string& type_name, pybind11::
         throw invalid_argument("Type does not exist");
         }
 
-    Scalar3 f_activeVec;
+    Scalar4 f_activeVec;
     f_activeVec.x = pybind11::cast<Scalar>(v[0]);
     f_activeVec.y = pybind11::cast<Scalar>(v[1]);
     f_activeVec.z = pybind11::cast<Scalar>(v[2]);
@@ -126,12 +112,11 @@ void ActiveForceCompute::setActiveForce(const std::string& type_name, pybind11::
     f_activeVec.x /= f_activeMag;
     f_activeVec.y /= f_activeMag;
     f_activeVec.z /= f_activeMag;
+    f_activeVec.w = f_activeMag;
 
-    ArrayHandle<Scalar3> h_f_activeVec(m_f_activeVec, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_f_activeVec(m_f_activeVec, access_location::host, access_mode::readwrite);
     h_f_activeVec.data[typ] = f_activeVec;
 
-    ArrayHandle<Scalar> h_f_activeMag(m_f_activeMag, access_location::host, access_mode::readwrite);
-    h_f_activeMag.data[typ] = f_activeMag;
     }
 
 pybind11::tuple ActiveForceCompute::getActiveForce(const std::string& type_name)
@@ -139,13 +124,12 @@ pybind11::tuple ActiveForceCompute::getActiveForce(const std::string& type_name)
     pybind11::list v;
     unsigned int typ = this->m_pdata->getTypeByName(type_name);
 
-    ArrayHandle<Scalar3> h_f_activeVec(m_f_activeVec, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_f_activeMag(m_f_activeMag, access_location::host, access_mode::read);
-    Scalar3 f_activeVec = h_f_activeVec.data[typ];
-    Scalar f_activeMag = h_f_activeMag.data[typ];
-    v.append(f_activeMag*f_activeVec.x);
-    v.append(f_activeMag*f_activeVec.y);
-    v.append(f_activeMag*f_activeVec.z);
+    ArrayHandle<Scalar4> h_f_activeVec(m_f_activeVec, access_location::host, access_mode::read);
+
+    Scalar4 f_activeVec = h_f_activeVec.data[typ];
+    v.append(f_activeVec.w*f_activeVec.x);
+    v.append(f_activeVec.w*f_activeVec.y);
+    v.append(f_activeVec.w*f_activeVec.z);
     return pybind11::tuple(v);
     }
 
@@ -164,7 +148,7 @@ void ActiveForceCompute::setActiveTorque(const std::string& type_name, pybind11:
         throw invalid_argument("Type does not exist");
         }
 
-    Scalar3 t_activeVec;
+    Scalar4 t_activeVec;
     t_activeVec.x = pybind11::cast<Scalar>(v[0]);
     t_activeVec.y = pybind11::cast<Scalar>(v[1]);
     t_activeVec.z = pybind11::cast<Scalar>(v[2]);
@@ -176,19 +160,19 @@ void ActiveForceCompute::setActiveTorque(const std::string& type_name, pybind11:
         t_activeVec.x /= t_activeMag;
         t_activeVec.y /= t_activeMag;
         t_activeVec.z /= t_activeMag;
+        t_activeVec.w = t_activeMag;
         }
     else
        {
         t_activeVec.x = 0;
         t_activeVec.y = 0;
         t_activeVec.z = 0;
+        t_activeVec.w = 0;
         }
 
-    ArrayHandle<Scalar3> h_t_activeVec(m_t_activeVec, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_t_activeVec(m_t_activeVec, access_location::host, access_mode::readwrite);
     h_t_activeVec.data[typ] = t_activeVec;
 
-    ArrayHandle<Scalar> h_t_activeMag(m_t_activeMag, access_location::host, access_mode::readwrite);
-    h_t_activeMag.data[typ] = t_activeMag;
     }
 
 pybind11::tuple ActiveForceCompute::getActiveTorque(const std::string& type_name)
@@ -196,13 +180,11 @@ pybind11::tuple ActiveForceCompute::getActiveTorque(const std::string& type_name
     pybind11::list v;
     unsigned int typ = this->m_pdata->getTypeByName(type_name);
 
-    ArrayHandle<Scalar3> h_t_activeVec(m_t_activeVec, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_t_activeMag(m_t_activeMag, access_location::host, access_mode::read);
-    Scalar3 t_activeVec = h_t_activeVec.data[typ];
-    Scalar t_activeMag = h_t_activeMag.data[typ];
-    v.append(t_activeMag*t_activeVec.x);
-    v.append(t_activeMag*t_activeVec.y);
-    v.append(t_activeMag*t_activeVec.z);
+    ArrayHandle<Scalar4> h_t_activeVec(m_t_activeVec, access_location::host, access_mode::read);
+    Scalar4 t_activeVec = h_t_activeVec.data[typ];
+    v.append(t_activeVec.w*t_activeVec.x);
+    v.append(t_activeVec.w*t_activeVec.y);
+    v.append(t_activeVec.w*t_activeVec.z);
     return pybind11::tuple(v);
     }
 
@@ -212,10 +194,8 @@ void ActiveForceCompute::setForces()
     {
 
     //  array handles
-    ArrayHandle<Scalar3> h_f_actVec(m_f_activeVec, access_location::host, access_mode::read);
-    ArrayHandle<Scalar3> h_t_actVec(m_t_activeVec, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_f_actMag(m_f_activeMag, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_t_actMag(m_t_activeMag, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_f_actVec(m_f_activeVec, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_t_actVec(m_t_activeVec, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite);
     ArrayHandle<Scalar4> h_torque(m_torque,access_location::host,access_mode::overwrite);
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -225,8 +205,6 @@ void ActiveForceCompute::setForces()
     // sanity check
     assert(h_f_actVec.data != NULL);
     assert(h_t_actVec.data != NULL);
-    assert(h_f_actMag.data != NULL);
-    assert(h_t_actMag.data != NULL);
     assert(h_orientation.data != NULL);
     assert(h_pos.data != NULL);
 
@@ -240,14 +218,14 @@ void ActiveForceCompute::setForces()
         unsigned int idx = h_rtag.data[tag];
         unsigned int type = __scalar_as_int(h_pos.data[idx].w);
 
-        Scalar3 f = make_scalar3(h_f_actMag.data[type]*h_f_actVec.data[type].x, h_f_actMag.data[type]*h_f_actVec.data[type].y, h_f_actMag.data[type]*h_f_actVec.data[type].z);
+        Scalar3 f = make_scalar3(h_f_actVec.data[type].w*h_f_actVec.data[type].x, h_f_actVec.data[type].w*h_f_actVec.data[type].y, h_f_actVec.data[type].w*h_f_actVec.data[type].z);
         quat<Scalar> quati(h_orientation.data[idx]);
         vec3<Scalar> fi = rotate(quati, vec3<Scalar>(f));
         h_force.data[idx].x = fi.x;
         h_force.data[idx].y = fi.y;
         h_force.data[idx].z = fi.z;
 
-        Scalar3 t = make_scalar3(h_t_actMag.data[type]*h_t_actVec.data[type].x, h_t_actMag.data[type]*h_t_actVec.data[type].y, h_t_actMag.data[type]*h_t_actVec.data[type].z);
+        Scalar3 t = make_scalar3(h_t_actVec.data[type].w*h_t_actVec.data[type].x, h_t_actVec.data[type].w*h_t_actVec.data[type].y, h_t_actVec.data[type].w*h_t_actVec.data[type].z);
         vec3<Scalar> ti = rotate(quati, vec3<Scalar>(t));
         h_torque.data[idx].x = ti.x;
         h_torque.data[idx].y = ti.y;
@@ -263,7 +241,7 @@ void ActiveForceCompute::setForces()
 void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
     {
     //  array handles
-    ArrayHandle<Scalar3> h_f_actVec(m_f_activeVec, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_f_actVec(m_f_activeVec, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
@@ -361,7 +339,7 @@ void ActiveForceCompute::setConstraint()
     EvaluatorConstraintEllipsoid Ellipsoid(m_P, m_rx, m_ry, m_rz);
 
     //  array handles
-    ArrayHandle<Scalar3> h_f_actVec(m_f_activeVec, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_f_actVec(m_f_activeVec, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);

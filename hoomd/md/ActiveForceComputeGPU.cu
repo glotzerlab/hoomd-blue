@@ -24,9 +24,7 @@ using namespace hoomd;
     \param d_torque particle torque on device
     \param d_orientation particle orientation on device
     \param d_f_actVec particle active force unit vector
-    \param d_f_actMag particle active force vector magnitude
     \param d_t_actVec particle active torque unit vector
-    \param d_t_actMag particle active torque vector magnitude
     \param P position of the ellipsoid constraint
     \param rx radius of the ellipsoid in x direction
     \param ry radius of the ellipsoid in y direction
@@ -40,10 +38,8 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int gr
                                                     Scalar4 *d_torque,
                                                     const Scalar4 *d_pos,
                                                     const Scalar4 *d_orientation,
-                                                    const Scalar3 *d_f_actVec,
-                                                    const Scalar *d_f_actMag,
-                                                    const Scalar3 *d_t_actVec,
-                                                    const Scalar *d_t_actMag,
+                                                    const Scalar4 *d_f_actVec,
+                                                    const Scalar4 *d_t_actVec,
                                                     const Scalar3 P,
                                                     const Scalar rx,
                                                     const Scalar ry,
@@ -54,18 +50,23 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int gr
     if (group_idx >= group_size)
         return;
 
-    unsigned int tag = d_groupTags[group_idx];
-    unsigned int idx = d_rtag[tag];
-    unsigned int type = __scalar_as_int(d_pos[idx].w);
+    unsigned int tag = __ldg(d_groupTags + group_idx);
+    unsigned int idx = __ldg(d_rtag + tag);
+    Scalar4 posidx = __ldg(d_pos + idx);
+    unsigned int type = __scalar_as_int(posidx.w);
 
-    Scalar3 f = make_scalar3(d_f_actMag[type]*d_f_actVec[type].x, d_f_actMag[type]*d_f_actVec[type].y, d_f_actMag[type]*d_f_actVec[type].z);
-    quat<Scalar> quati(d_orientation[idx]);
+    Scalar4 fact = __ldg(d_f_act + type);
+
+    Scalar3 f = make_scalar3(fact.w*fact.x, fact.w*fact.y, fact.w*fact.z);
+    quat<Scalar> quati( __ldg(d_orientation + idx));
     vec3<Scalar> fi = rotate(quati, vec3<Scalar>(f));
     d_force[idx].x = fi.x;
     d_force[idx].y = fi.y;
     d_force[idx].z = fi.z;
 
-    Scalar3 t = make_scalar3(d_t_actMag[type]*d_t_actVec[type].x, d_t_actMag[type]*d_t_actVec[type].y, d_t_actMag[type]*d_t_actVec[type].z);
+    Scalar4 tact = __ldg(d_t_act + type);
+
+    Scalar3 t = make_scalar3(tact.w*tact.x, tact.w*tact.y, tact.w*tact.z);
     vec3<Scalar> ti = rotate(quati, vec3<Scalar>(t));
     d_torque.data[idx].x = ti.x;
     d_torque.data[idx].y = ti.y;
@@ -79,7 +80,6 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int gr
     \param d_groupTags stores list to convert group index to global tag
     \param d_pos particle positions on device
     \param d_f_actVec particle active force unit vector
-    \param d_t_actVec particle active force unit vector
     \param P position of the ellipsoid constraint
     \param rx radius of the ellipsoid in x direction
     \param ry radius of the ellipsoid in y direction
@@ -90,7 +90,7 @@ __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned i
                                                    unsigned int *d_groupTags,
                                                    const Scalar4 *d_pos,
                                                    Scalar4 *d_orientation,
-                                                   const Scalar3 *d_f_actVec,
+                                                   const Scalar4 *d_f_actVec,
                                                    const Scalar3 P,
                                                    const Scalar rx,
                                                    const Scalar ry,
@@ -100,18 +100,21 @@ __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned i
     if (group_idx >= group_size)
         return;
 
-    unsigned int tag = d_groupTags[group_idx];
-    unsigned int idx = d_rtag[tag];
-    unsigned int type = __scalar_as_int(d_pos[idx].w);
+    unsigned int tag = __ldg(d_groupTags + group_idx);
+    unsigned int idx = __ldg(d_rtag + tag);
+    Scalar4 posidx = __ldg(d_pos + idx);
+    unsigned int type = __scalar_as_int(posidx.w);
 
     EvaluatorConstraintEllipsoid Ellipsoid(P, rx, ry, rz);
-    Scalar3 current_pos = make_scalar3(d_pos[idx].x, d_pos[idx].y, d_pos[idx].z);
+    Scalar3 current_pos = make_scalar3(posidx.x, posidx.y, posidx.z);
 
     Scalar3 norm_scalar3 = Ellipsoid.evalNormal(current_pos); // the normal vector to which the particles are confined.
     vec3<Scalar> norm = vec3<Scalar>(norm_scalar3);
 
-    Scalar3 f = make_scalar3(d_f_actVec[type].x, d_f_actVec[type].y, d_f_actVec[type].z);
-    quat<Scalar> quati(d_orientation[idx]);
+    Scalar4 fact = __ldg(d_f_act + type);
+
+    Scalar3 f = make_scalar3(fact.x, fact.y, fact.z);
+    quat<Scalar> quati( __ldg(d_orientation + idx));
     vec3<Scalar> fi = rotate(quati, vec3<Scalar>(f));
 
 
@@ -154,7 +157,6 @@ __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned i
     \param d_groupTags stores list to convert group index to global tag
     \param d_pos particle positions on device
     \param d_f_actVec particle active force unit vector
-    \param d_t_actVec particle active torque unit vector
     \param P position of the ellipsoid constraint
     \param rx radius of the ellipsoid in x direction
     \param ry radius of the ellipsoid in y direction
@@ -168,7 +170,7 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
                                                    unsigned int *d_groupTags,
                                                    const Scalar4 *d_pos,
                                                    Scalar4 *d_orientation,
-                                                   const Scalar3 *d_f_actVec,
+                                                   const Scalar4 *d_f_actVec,
                                                    const Scalar3 P,
                                                    const Scalar rx,
                                                    const Scalar ry,
@@ -182,9 +184,12 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
     if (group_idx >= group_size)
         return;
 
-    unsigned int tag = d_groupTags[group_idx];
-    unsigned int idx = d_rtag[tag];
-    unsigned int type = __scalar_as_int(d_pos[idx].w);
+    unsigned int tag = __ldg(d_groupTags + group_idx);
+    unsigned int idx = __ldg(d_rtag + tag);
+    Scalar4 posidx = __ldg(d_pos + idx);
+    unsigned int type = __scalar_as_int(posidx.w);
+
+    quat<Scalar> quati( __ldg(d_orientation + idx));
 
     hoomd::RandomGenerator rng(hoomd::RNGIdentifier::ActiveForceCompute, seed, tag, timestep);
 
@@ -212,7 +217,9 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
                 vec3<Scalar> rand_vec;
                 unit_vec(rng, rand_vec);
 
-                Scalar3 f = make_scalar3(d_f_actVec[type].x, d_f_actVec[type].y, d_f_actVec[type].z);
+                Scalar4 fact = __ldg(d_f_act + type);
+
+                Scalar3 f = make_scalar3(fact.x, fact.y, fact.z);
                 vec3<Scalar> fi = rotate(quati, vec3<Scalar>(f));
 
                 vec3<Scalar> aux_vec;
@@ -239,7 +246,7 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
         else // if constraint
             {
             EvaluatorConstraintEllipsoid Ellipsoid(P, rx, ry, rz);
-            Scalar3 current_pos = make_scalar3(d_pos[idx].x, d_pos[idx].y, d_pos[idx].z);
+            Scalar3 current_pos = make_scalar3(posidx.x, posidx.y, posidx.z);
 
             Scalar3 norm_scalar3 = Ellipsoid.evalNormal(current_pos); // the normal vector to which the particles are confined.
             vec3<Scalar> norm;
@@ -267,10 +274,8 @@ hipError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
                                            Scalar4 *d_torque,
                                            const Scalar4 *d_pos,
                                            const Scalar4 *d_orientation,
-                                           const Scalar3 *d_f_actVec,
-                                           const Scalar *d_f_actMag,
-                                           const Scalar3 *d_t_actVec,
-                                           const Scalar *d_t_actMag,
+                                           const Scalar4 *d_f_actVec,
+                                           const Scalar4 *d_t_actVec,
                                            const Scalar3& P,
                                            const Scalar rx,
                                            const Scalar ry,
@@ -292,9 +297,7 @@ hipError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
                                                                     d_pos,
                                                                     d_orientation,
                                                                     d_f_actVec,
-                                                                    d_f_actMag,
                                                                     d_t_actVec,
-                                                                    d_t_actMag,
                                                                     P,
                                                                     rx,
                                                                     ry,
@@ -308,7 +311,7 @@ hipError_t gpu_compute_active_force_set_constraints(const unsigned int group_siz
                                                    unsigned int *d_groupTags,
                                                    const Scalar4 *d_pos,
                                                    Scalar4 *d_orientation,
-                                                   const Scalar3 *d_f_actVec,
+                                                   const Scalar4 *d_f_actVec,
                                                    const Scalar3& P,
                                                    const Scalar rx,
                                                    const Scalar ry,
@@ -338,7 +341,7 @@ hipError_t gpu_compute_active_force_rotational_diffusion(const unsigned int grou
                                                        unsigned int *d_groupTags,
                                                        const Scalar4 *d_pos,
                                                        Scalar4 *d_orientation,
-                                                       const Scalar3 *d_f_actVec,
+                                                       const Scalar4 *d_f_actVec,
                                                        const Scalar3& P,
                                                        const Scalar rx,
                                                        const Scalar ry,

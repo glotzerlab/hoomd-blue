@@ -43,29 +43,21 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> s
     //unsigned int N = m_pdata->getNGlobal();
     //unsigned int group_size = m_group->getNumMembersGlobal();
     unsigned int type = m_pdata->getNTypes();
-    GPUArray<Scalar3> tmp_f_activeVec(type, m_exec_conf);
-    GPUArray<Scalar3> tmp_t_activeVec(type, m_exec_conf);
-    GPUArray<Scalar> tmp_f_activeMag(type, m_exec_conf);
-    GPUArray<Scalar> tmp_t_activeMag(type, m_exec_conf);
+    GPUArray<Scalar4> tmp_f_activeVec(type, m_exec_conf);
+    GPUArray<Scalar4> tmp_t_activeVec(type, m_exec_conf);
 
         {
-        ArrayHandle<Scalar3> old_f_activeVec(m_f_activeVec, access_location::host);
-        ArrayHandle<Scalar3> old_t_activeVec(m_t_activeVec, access_location::host);
-        ArrayHandle<Scalar> old_f_activeMag(m_f_activeMag, access_location::host);
-        ArrayHandle<Scalar> old_t_activeMag(m_t_activeMag, access_location::host);
+        ArrayHandle<Scalar4> old_f_activeVec(m_f_activeVec, access_location::host);
+        ArrayHandle<Scalar4> old_t_activeVec(m_t_activeVec, access_location::host);
 
-        ArrayHandle<Scalar3> f_activeVec(tmp_f_activeVec, access_location::host);
-        ArrayHandle<Scalar3> t_activeVec(tmp_t_activeVec, access_location::host);
-        ArrayHandle<Scalar> f_activeMag(tmp_f_activeMag, access_location::host);
-        ArrayHandle<Scalar> t_activeMag(tmp_t_activeMag, access_location::host);
+        ArrayHandle<Scalar4> f_activeVec(tmp_f_activeVec, access_location::host);
+        ArrayHandle<Scalar4> t_activeVec(tmp_t_activeVec, access_location::host);
 
         // for each type of the particles in the group
         for (unsigned int i = 0; i < type; i++)
             {
-            f_activeMag.data[i] = old_f_activeMag.data[i];
             f_activeVec.data[i] = old_f_activeVec.data[i];
 
-            t_activeMag.data[i] = old_t_activeMag.data[i];
             t_activeVec.data[i] = old_t_activeVec.data[i];
 
             }
@@ -74,9 +66,7 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> s
         }
 
     m_f_activeVec.swap(tmp_f_activeVec);
-    m_f_activeMag.swap(tmp_f_activeMag);
     m_t_activeVec.swap(tmp_t_activeVec);
-    m_t_activeMag.swap(tmp_t_activeMag);
     }
 
 /*! This function sets appropriate active forces and torques on all active particles.
@@ -84,12 +74,10 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> s
 void ActiveForceComputeGPU::setForces()
     {
     //  array handles
-    ArrayHandle<Scalar3> d_f_actVec(m_f_activeVec, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_f_actMag(m_f_activeMag, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_f_actVec(m_f_activeVec, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
 
-    ArrayHandle<Scalar3> d_t_actVec(m_t_activeVec, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_t_actMag(m_t_activeMag, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_t_actVec(m_t_activeVec, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_torque(m_torque, access_location::device, access_mode::overwrite);
 
     ArrayHandle<Scalar4> d_pos(m_pdata -> getPositions(), access_location::device, access_mode::read);
@@ -100,9 +88,7 @@ void ActiveForceComputeGPU::setForces()
     // sanity check
     assert(d_force.data != NULL);
     assert(d_f_actVec.data != NULL);
-    assert(d_f_actMag.data != NULL);
     assert(d_t_actVec.data != NULL);
-    assert(d_t_actMag.data != NULL);
     assert(d_pos.data != NULL);
     assert(d_orientation.data != NULL);
     assert(d_rtag.data != NULL);
@@ -118,9 +104,7 @@ void ActiveForceComputeGPU::setForces()
                                      d_pos.data,
                                      d_orientation.data,
                                      d_f_actVec.data,
-                                     d_f_actMag.data,
                                      d_t_actVec.data,
-                                     d_t_actMag.data,
                                      m_P,
                                      m_rx,
                                      m_ry,
@@ -136,7 +120,7 @@ void ActiveForceComputeGPU::setForces()
 void ActiveForceComputeGPU::rotationalDiffusion(unsigned int timestep)
     {
     //  array handles
-    ArrayHandle<Scalar3> d_f_actVec(m_f_activeVec, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_f_actVec(m_f_activeVec, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_pos(m_pdata -> getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
@@ -171,7 +155,7 @@ void ActiveForceComputeGPU::setConstraint()
     EvaluatorConstraintEllipsoid Ellipsoid(m_P, m_rx, m_ry, m_rz);
 
     //  array handles
-    ArrayHandle<Scalar3> d_f_actVec(m_f_activeVec, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_f_actVec(m_f_activeVec, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_pos(m_pdata -> getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
