@@ -1,20 +1,19 @@
 from hoomd.operation import _TriggeredOperation
 from hoomd.parameterdicts import ParameterDict
-from hoomd.custom_action import CustomAction
-from hoomd.typeconverter import OnlyType
+from hoomd.custom import Action
 from hoomd.trigger import Trigger
-from hoomd.logger import LoggerQuantity
+from hoomd.logging import LoggerQuantity
 from hoomd import _hoomd
 
 
 class _CustomOperation(_TriggeredOperation):
-    """Wrapper for user created `hoomd.CustomAction`s.
+    """Wrapper for user created `hoomd.custom.Action` objects.
 
     This is the parent class for `hoomd.update.CustomUpdater` and
-    `hoomd.analyzer.CustomAnalzyer`.  A basic wrapper that allows for Python
-    object inheriting from `hoomd.custom_action.CustomAction` to be attached to
+    `hoomd.analyze.CustomAnalyzer`.  A basic wrapper that allows for Python
+    object inheriting from `hoomd.custom.Action` to be attached to
     a simulation.  To see how to implement a custom Python action, look at the
-    documentation for `hoomd.CustomAction`.
+    documentation for `hoomd.custom.Action`.
 
     This class also implements a "pass-through" system for attributes.
     Attributes and methods from the passed in `action` will be available
@@ -23,14 +22,14 @@ class _CustomOperation(_TriggeredOperation):
 
     Note:
         Due to the pass through no attribute should exist both in
-        `hoomd._CustomOperation` and the `hoomd.CustomAction`.
+        `hoomd.custom._CustomOperation` and the `hoomd.custom.Action`.
 
     Note:
         This object should not be instantiated or subclassed by an user.
 
     Attributes:
-        trigger (hoomd.Trigger): A trigger to determine when the wrapped
-        `hoomd.CustomAction` is run.
+        trigger (hoomd.trigger.Trigger): A trigger to determine when the wrapped
+            `hoomd.custom.Action` is run.
     """
 
     _override_setattr = {'_action'}
@@ -41,9 +40,9 @@ class _CustomOperation(_TriggeredOperation):
         raise NotImplementedError
 
     def __init__(self, action, trigger=1):
-        if not isinstance(action, CustomAction):
+        if not isinstance(action, Action):
             raise ValueError("action must be a subclass of "
-                             "hoomd.custom_action.CustomAction.")
+                             "hoomd.custom_action.custom.Action.")
         self._action = action
         loggables = dict(action.log_quantities)
         if not all(isinstance(val, LoggerQuantity)
@@ -70,7 +69,7 @@ class _CustomOperation(_TriggeredOperation):
                     "{} object has no attribute {}".format(type(self), attr))
 
     def _setattr_hook(self, attr, value):
-        """This implements the __setattr__ pass through to the CustomAction."""
+        """This implements the __setattr__ pass through to the Action."""
         if hasattr(self._action, attr):
             setattr(self._action, attr, value)
         else:
@@ -83,7 +82,7 @@ class _CustomOperation(_TriggeredOperation):
 
         Args:
             simulation (hoomd.Simulation): The simulation the operation operates
-            on.
+                on.
         """
         self._cpp_obj = getattr(_hoomd, self._cpp_class_name)(
             simulation.state._cpp_sys_def, self._action)
@@ -104,7 +103,7 @@ class _CustomOperation(_TriggeredOperation):
 
     @property
     def action(self):
-        """`hoomd.CustomAction` The action the operation wraps."""
+        """`hoomd.custom.Action` The action the operation wraps."""
         return self._action
 
 

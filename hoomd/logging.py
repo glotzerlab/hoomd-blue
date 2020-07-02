@@ -1,6 +1,6 @@
 from itertools import count
 from copy import deepcopy
-from hoomd.util import is_iterable, dict_fold, dict_map, SafeNamespaceDict
+from hoomd.util import dict_map, SafeNamespaceDict
 from collections.abc import Sequence
 
 
@@ -12,8 +12,8 @@ class Loggable(type):
         def helper(func):
             name = func.__name__
             if name in cls._meta_export_dict:
-                raise KeyError("Multiple loggable quantities named "
-                               "{}.".format(name))
+                raise KeyError(
+                    "Multiple loggable quantities named {}.".format(name))
             cls._meta_export_dict[name] = flag
             if is_property:
                 return property(func)
@@ -50,24 +50,57 @@ def generate_namespace(cls):
 
 
 class LoggerQuantity:
+    """The information to automatically log to a `hoomd.logging.Logger`.
+
+    Args:
+        name (str): The name of the quantity.
+        cls (class object): The class that the quantity comes from.
+        flag (str, optional): The type of quantity it is. Valid values include
+            scalar, multi (array-like), particle (per particle quantity), bond,
+            angle, dihedral, constraint, pair, dict (a mapping of multiple
+            logged quantity names with their values), and object.
+
+    Note:
+        For users, this class is meant to be used in conjunction with
+        `hoomd.custom.Action` for exposing loggable quantities for custom user
+        actions.
+    """
     def __init__(self, name, cls, flag='scalar'):
         self.name = name
         self.update_cls(cls)
         self.flag = flag
 
     def yield_names(self):
+        """Infinitely yield potential namespaces.
+
+        Used to ensure that all namespaces are unique for a
+        `hoomd.logging.Logger` object. We simple increment a number at the end
+        until the caller stops asking for another namespace.
+
+        Yields:
+            tuple[str]: A potential namespace for the object.
+        """
         yield self.namespace + (self.name,)
         for i in count(start=1, step=1):
             yield self.namespace[:-1] + \
                 (self.namespace[-1] + '_' + str(i), self.name)
 
     def update_cls(self, cls):
+        """Allow updating the class/namespace of the object.
+
+        Since the namespace is determined by the passed class's module and class
+        name, if inheritanting `hoomd.logging.LoggerQuantity`, the class needs
+        to be updated to the subclass.
+
+        Args:
+            cls (class object): The class to update the namespace with.
+        """
         self.namespace = generate_namespace(cls)
         return self
 
 
 class Logger(SafeNamespaceDict):
-    '''Logs Hoomd Operation data and custom quantities.'''
+    '''Logs HOOMD-blue operation data and custom quantities.'''
 
     def __init__(self, flags=None):
         flags = [] if flags is None else flags

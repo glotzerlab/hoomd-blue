@@ -3,7 +3,7 @@ from math import log10
 from sys import stdout
 
 from hoomd.analyze.custom_analyzer import _InternalCustomAnalyzer
-from hoomd.custom_action import _InternalCustomAction
+from hoomd.custom.custom_action import _InternalCustomAction
 from hoomd.parameterdicts import ParameterDict
 from hoomd.typeconverter import OnlyType
 from hoomd.util import dict_flatten

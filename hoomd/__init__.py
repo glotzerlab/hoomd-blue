@@ -72,13 +72,11 @@ from hoomd.simulation import Simulation
 from hoomd.state import State
 from hoomd.operations import Operations
 from hoomd.snapshot import Snapshot
-from hoomd.logger import Logger
 from hoomd.box import Box
 from hoomd import tuner
-from hoomd.custom_action import CustomAction
-from hoomd.custom_operation import _CustomOperation
 from hoomd import output
-
+from hoomd import logging
+from hoomd import custom
 from hoomd._hoomd import WalltimeLimitReached
 
 _default_excepthook = sys.excepthook
