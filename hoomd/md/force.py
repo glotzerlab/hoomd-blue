@@ -11,7 +11,7 @@ R""" Apply forces to particles.
 from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.operation import _Operation
-from hoomd.logger import Loggable
+from hoomd.logging import Loggable
 import hoomd
 
 

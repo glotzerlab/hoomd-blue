@@ -9,13 +9,10 @@ hoomd
     :nosignatures:
 
     Box
-    CustomAction
-    Logger
     Operations
     Simulation
     Snapshot
     State
-    _CustomOperation
 
 .. rubric:: Details
 
@@ -27,14 +24,7 @@ hoomd
               State,
               Snapshot,
               Operations,
-              Box,
-              Logger,
-              CustomAction,
-              _CustomOperation
-
-.. autoclass:: CustomAction
-   :exclude-members: flags, log_quantities
-   :members: attach, detach, act
+              Box
 
 .. rubric:: Modules
 
@@ -46,11 +36,13 @@ hoomd
    module-hoomd-cite
    module-hoomd-comm
    module-hoomd-compute
+   module-hoomd-custom
    module-hoomd-device
    module-hoomd-dump
    module-hoomd-filter
    module-hoomd-local
    module-hoomd-local-gpu
+   module-hoomd-logging
    module-hoomd-triggers
    module-hoomd-update
    module-hoomd-util

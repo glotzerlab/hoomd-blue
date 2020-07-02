@@ -8,7 +8,7 @@ from hoomd.typeconverter import OnlyIf, to_type_converter
 from hoomd.typeparam import TypeParameter
 from hoomd.hpmc import _hpmc
 from hoomd.integrate import _BaseIntegrator
-from hoomd.logger import Loggable
+from hoomd.logging import Loggable
 import hoomd
 import json
 
@@ -39,10 +39,10 @@ class _HPMCIntegrator(_BaseIntegrator):
 
     .. rubric:: Hard particle Monte Carlo
 
-    In hard particle Monte Carlo systems, the particles in the `Simulation`
-    `State` are extended objects with positions and orientations. During
-    each time step of a `Simulation.run`, `nselect` trial moves are attempted
-    for each particle in the system.
+    In hard particle Monte Carlo systems, the particles in the
+    `hoomd.Simulation` `hoomd.State` are extended objects with positions and
+    orientations. During each time step of a `hoomd.Simulation.run`, `nselect`
+    trial moves are attempted for each particle in the system.
 
     A trial move may be a rotation or a translation move, selected randomly
     according to the `move_ratio`. Translation trial moves are selected randomly
@@ -287,7 +287,7 @@ class _HPMCIntegrator(_BaseIntegrator):
         """int: Count of the accepted and rejected translate moves.
 
         Note:
-            The count is reset to 0 at the start of each `Simulation.run`.
+            The count is reset to 0 at the start of each `hoomd.Simulation.run`.
         """
         return self._cpp_obj.getCounters(1).translate
 
@@ -296,7 +296,7 @@ class _HPMCIntegrator(_BaseIntegrator):
         """int: Count of the accepted and rejected rotate moves.
 
         Note:
-            The count is reset to 0 at the start of each `Simulation.run`.
+            The count is reset to 0 at the start of each `hoomd.Simulation.run`.
         """
         return self._cpp_obj.getCounters(1).rotate
 
@@ -306,7 +306,7 @@ class _HPMCIntegrator(_BaseIntegrator):
 
         Note:
             The count of trial moves is reset at the start of each
-            `Simulation.run`.
+            `hoomd.Simulation.run`.
         """
         return self._cpp_obj.getMPS()
 
@@ -325,8 +325,8 @@ class _HPMCIntegrator(_BaseIntegrator):
           close to resolve.
 
         Note:
-            The counts are reset to 0 at the start of each `Simulation.run`.
-        """
+            The counts are reset to 0 at the start of each
+            `hoomd.Simulation.run`.  """
         return self._cpp_obj.getCounters(1)
 
 
@@ -360,7 +360,8 @@ class Sphere(_HPMCIntegrator):
             timestep.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Examples::
 
@@ -450,7 +451,8 @@ class ConvexPolygon(_HPMCIntegrator):
             timestep.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Examples::
 
@@ -549,7 +551,8 @@ class ConvexSpheropolygon(_HPMCIntegrator):
             timestep.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Examples::
 
@@ -650,7 +653,8 @@ class SimplePolygon(_HPMCIntegrator):
             timestep.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Examples::
 
@@ -753,7 +757,8 @@ class Polyhedron(_HPMCIntegrator):
         optimal performance. The capacity of leaf nodes is configurable.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Example::
 
@@ -923,7 +928,8 @@ class ConvexPolyhedron(_HPMCIntegrator):
             timestep.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Example::
 
@@ -1034,7 +1040,8 @@ class FacetedEllipsoid(_HPMCIntegrator):
             timestep.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Example::
 
@@ -1167,7 +1174,8 @@ class Sphinx(_HPMCIntegrator):
             timestep.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Example::
 
@@ -1242,7 +1250,8 @@ class ConvexSpheropolyhedron(_HPMCIntegrator):
             timestep.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Example::
 
@@ -1344,7 +1353,8 @@ class Ellipsoid(_HPMCIntegrator):
             timestep.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Example::
 
@@ -1437,7 +1447,8 @@ class SphereUnion(_HPMCIntegrator):
         performance. The capacity of leaf nodes is configurable.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Example::
 
@@ -1570,7 +1581,8 @@ class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
         yield different performance. The capacity of leaf nodes is configurable.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Example::
 
@@ -1686,7 +1698,8 @@ class FacetedEllipsoidUnion(_HPMCIntegrator):
         yield different performance. The capacity of leaf nodes is configurable.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Example::
 

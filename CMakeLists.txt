@@ -14,7 +14,7 @@ add_subdirectory (CMake)
 
 ################################
 ## Version information
-set(HOOMD_VERSION_RAW "2.9.0")
+set(HOOMD_VERSION_RAW "2.9.1")
 string(REGEX MATCH "(.*)\\.(.*)\\.(.*)$" _hoomd_version_match ${HOOMD_VERSION_RAW})
 set(HOOMD_VERSION_MAJOR ${CMAKE_MATCH_1})
 set(HOOMD_VERSION_MINOR ${CMAKE_MATCH_2})
@@ -114,6 +114,9 @@ option(BUILD_JIT "Build the jit package" off)
 
 # Optionally use TBB for threading
 option(ENABLE_TBB "Enable support for Threading Building Blocks (TBB)" off)
+
+# Add list of plugins
+set(PLUGINS "example_plugin;" CACHE STRING "List of plugin directories.")
 
 # this needs to go before CUDA setup
 include (HOOMDHIPSetup)

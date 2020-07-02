@@ -3,7 +3,6 @@
 
 // Maintainer: joaander
 #include "Updater.h"
-#include "Communicator.h"
 
 namespace py = pybind11;
 

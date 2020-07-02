@@ -1,14 +1,15 @@
 from abc import ABC, abstractmethod
+from enum import IntEnum
 from hoomd.operation import _HOOMDGetSetAttrBase
 
 
-class CustomAction(ABC):
+class Action(ABC):
     """Base class for all Python Action's.
 
-    This class must be the parent class for all Python ``Action``s. This class
-    requires all subclasses to implement the :meth:`~.act` method which performs
-    the Python object's task whether that be updating the system, writing
-    output, or analyzing some property of the system.
+    This class is the parent class for all Python `Action` subclasses. This
+    class requires all subclasses to implement the :meth:`~.act` method which
+    performs the Python object's task whether that be updating the system,
+    writing output, or analyzing some property of the system.
 
     To use subclasses of this class, the object must be passed as an argument
     to a `hoomd.update.CustomUpdater` or `hoomd.analyze.CustomAnalyzer`
@@ -16,34 +17,33 @@ class CustomAction(ABC):
 
     If the pressure, rotational kinetic energy, or external field virial is
     needed for a subclass, the flags attribute of the class needs to be set with
-    the appropriate flags from `hoomd.util.ParticleDataFlags`.
+    the appropriate flags from the internal `Action.Flags` enumeration.
 
     .. code-block:: python
 
-        from hoomd.python_action import CustomAction
-        from hoomd.util import ParticleDataFlags
+        from hoomd.custom import Action
 
 
-        class ExampleActionWithFlag(CustomAction):
-            flags = [ParticleDataFlags.ROTATIONAL_KINETIC_ENERGY,
-                     ParticleDataFlags.PRESSURE_TENSOR,
-                     ParticleDataFlags.EXTERNAL_FIELD_VIRIAL]
+        class ExampleActionWithFlag(Action):
+            flags = [Action.Flags.ROTATIONAL_KINETIC_ENERGY,
+                     Action.Flags.PRESSURE_TENSOR,
+                     Action.Flags.EXTERNAL_FIELD_VIRIAL]
 
             def act(self, timestep):
                 pass
 
     For advertising loggable quantities through the wrappping object, the class
     attribute ``log_quantities`` can be used. The dictionary expects string keys
-    with the name of the loggable and `hooomd.logger.LoggerQuantity` objects as
+    with the name of the loggable and `hoomd.logging.LoggerQuantity` objects as
     the values.
 
     .. code-block:: python
 
-        from hoomd.python_action import CustomAction
-        from hoomd.logger import LoggerQuantity
+        from hoomd.python_action import Action
+        from hoomd.logging import LoggerQuantity
 
 
-        class ExampleActionWithFlag(CustomAction):
+        class ExampleActionWithFlag(Action):
             def __init__(self):
                 self.log_quantities = {
                     'loggable': LoggerQuantity('scalar_loggable',
@@ -56,29 +56,40 @@ class CustomAction(ABC):
             def act(self, timestep):
                 pass
 
-    An example of a ``CustomAction`` that actually performs an action is given
-    below. This ``CustomAction`` computes the center of mass of the system.
+    An example of a `Action` that actually performs an action is given
+    below. This `Action` computes the center of mass of the system.
 
     .. code-block:: python
 
-        from hoomd.python_action import CustomAction
+        from hoomd.custom import Action
 
 
-        class ExampleAction(CustomAction):
+        class ExampleAction(Action):
             def act(self, timestep):
                 self.com = self.snapshot.particles.position.mean(axis=0)
 
 
     Attributes:
-        flags (list[hoomd.util.ParticleDataFlags]): List of flags from the
-            `hoomd.util.ParticleDataFlags`. Used to tell the integrator if
+        flags (list[hoomd.custom.Action.Flags]): List of flags from the
+            `hoomd.custom.Action.Flags`. Used to tell the integrator if
             specific quantities are needed for the action.
-        log_quantities (dict[str, hoomd.logger.LoggerQuantity]): Dictionary of
-            the name of loggable quantites to the `hoomd.logger.LoggerQuantity`
+        log_quantities (dict[str, hoomd.logging.LoggerQuantity]): Dictionary of
+            the name of loggable quantites to the `hoomd.logging.LoggerQuantity`
             instance for the class method or property. Allows for subclasses of
-            `CustomAction` to specify to a `hoomd.Logger` that is exposes
+            `Action` to specify to a `hoomd.logging.Logger` that is exposes
             loggable quantities.
     """
+    class Flags(IntEnum):
+        """Flags to indictate the integrator should calcuate certain quantities.
+
+        * PRESSURE_TENSOR = 0
+        * ROTATIONAL_KINETIC_ENERGY = 1
+        * EXTERNAL_FIELD_VIRIAL = 2
+        """
+        PRESSURE_TENSOR = 0
+        ROTATIONAL_KINETIC_ENERGY = 1
+        EXTERNAL_FIELD_VIRIAL = 2
+
     flags = []
     log_quantities = {}
 
@@ -90,7 +101,7 @@ class CustomAction(ABC):
 
         Args:
             simulation (hoomd.Simulation): The simulation to attach the action
-            to.
+                to.
         """
         self._state = simulation.state
 
@@ -118,7 +129,7 @@ class CustomAction(ABC):
         pass
 
 
-class _InternalCustomAction(CustomAction, _HOOMDGetSetAttrBase):
+class _InternalAction(Action, _HOOMDGetSetAttrBase):
     """An internal class for Python ``Action``s.
 
     Gives additional support in using HOOMD constructs like ``ParameterDict``s
@@ -134,3 +145,5 @@ class _InternalCustomAction(CustomAction, _HOOMDGetSetAttrBase):
     be created.
     """
     pass
+
+

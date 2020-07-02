@@ -24,10 +24,10 @@ class BoxResize(_Updater):
     When part of a `Simulation` ``updater`` list, this object will resize the
     box between the initial and final boxes passed. The behavior is a linear
     interpolation between the initial and final boxes where the minimum of the
-    variant is tagged to `~.box1` and the maximum is tagged to  `~.box2`. All
-    values between the minimum and maximum result in a box that is the
-    interpolation of the three lengths and tilt factors of the initial and final
-    boxes.
+    variant is tagged to `box1` and the maximum is tagged to
+    `box2`. All values between the minimum and maximum result in a box
+    that is the interpolation of the three lengths and tilt factors of the
+    initial and final boxes.
 
     Note:
         The passed `Variant` must be bounded (i.e. it must have a true minimum

@@ -178,7 +178,7 @@ class Box:
                   :code:`'Lx', 'Ly', 'Lz', 'xy', 'xz', 'yz', 'dimensions'`,
                   objects with attributes
                   :code:`Lx, Ly, Lz, xy, xz, yz, dimensions`,
-                  3x3 matrices (see `~.from_matrix`),
+                  3x3 matrices (see `from_matrix`),
                   or existing :class:`hoomd.Box` objects.
 
                   If any of :code:`Lz, xy, xz, yz` are not provided, they will

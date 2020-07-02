@@ -49,7 +49,7 @@ import hoomd
 from hoomd.typeconverter import OnlyFrom
 from hoomd.parameterdicts import ParameterDict
 from hoomd.operation import _Operation
-from hoomd.logger import Loggable
+from hoomd.logging import Loggable
 
 
 class nlist:

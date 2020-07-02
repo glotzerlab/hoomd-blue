@@ -11,6 +11,7 @@ set(files __init__.py
           test_triggeredops.py
           test_local_snapshot.py
           test_logger.py
+          test_logging.py
           test_filter.py
           dummy.py
           test_snapshot.py
