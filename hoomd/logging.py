@@ -71,7 +71,27 @@ class Loggable(type):
     _meta_export_dict = dict()
 
     @classmethod
-    def log(cls, func=None, is_property=True, flag='scalar', default=True):
+    def log(cls, func=None, *, is_property=True, flag='scalar', default=True):
+        """Creates loggable quantites for classes of type Loggable.
+
+        Args:
+            func (method): class method to make loggable. If using non-default
+                arguments, func should not be set.
+            is_property (bool, optional): Whether to make the method a property,
+                defaults to True. Argument position only
+            flag (str, optional): The string represention of the type of
+                loggable quantity, defaults to 'scalar'. See
+                `hoomd.logging.TypeFlags` for available types. Argument
+                position only
+            default (boo, optional): Whether the quantity should be logged by
+                default, defaults to True. This is orthogonal to the loggable
+                quantity's type. An example would be performance orientated
+                loggable quantities.  Many users may not want to log such
+                quantities even when logging other quantities of that type. The
+                default flag allows for these to be pass over by
+                `hoomd.logging.Logger` objects by default.
+        """
+
         def helper(func):
             name = func.__name__
             if name in cls._meta_export_dict:
