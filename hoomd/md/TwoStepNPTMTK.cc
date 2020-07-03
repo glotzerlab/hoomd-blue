@@ -61,6 +61,9 @@ TwoStepNPTMTK::TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNPTMTK" << endl;
 
+    setCouple(couple);
+    setFlags(flags);
+
     if (m_tau <= 0.0)
         m_exec_conf->msg->warning() << "integrate.npt: tau set less than 0.0" << endl;
     if (m_tauS <= 0.0)
@@ -69,8 +72,7 @@ TwoStepNPTMTK::TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
     if (m_flags == 0)
         m_exec_conf->msg->warning() << "integrate.npt: No barostat couplings specified."
                                     << endl;
-    setCouple(couple);
-    setFlags(flags);
+
      /*                               
     // Set the stress vector from the python list
     for (int i = 0; i< 6; ++i)
@@ -694,18 +696,19 @@ void TwoStepNPTMTK::updatePropagator(Scalar nuxx, Scalar nuxy, Scalar nuxz, Scal
 // Set Flags from 6 element boolean tuple named box_df to integer flag 
 void TwoStepNPTMTK::setFlags(const std::vector<bool>& value)
     {
+    bool twod = m_sysdef->getNDimensions()==2;
     int flags = 0;
     if (value[0])
         flags |= int(baroFlags::baro_x);
     if (value[1])
         flags |= int(baroFlags::baro_y);
-    if (value[2])
+    if (value[2] && !(twod))
         flags |= int(baroFlags::baro_z);
     if (value[3])
         flags |= int(baroFlags::baro_xy);
-    if (value[4])
+    if (value[4] && !(twod))
         flags |= int(baroFlags::baro_xz);
-    if (value[5]) 
+    if (value[5] && !(twod)) 
         flags |= int(baroFlags::baro_yz);
     m_flags = flags;
     }

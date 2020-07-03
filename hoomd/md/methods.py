@@ -24,7 +24,8 @@ def preprocess_stress(value):
         if len(value) != 6:
             raise ValueError(
                 "Expected a single hoomd.variant.Variant / float or six.")
-        return tuple(map(Variant, value))
+        #return tuple(map(Variant, value))
+        return tuple(value)
     else:
         return tuple([value,value,value,0,0,0])
         
