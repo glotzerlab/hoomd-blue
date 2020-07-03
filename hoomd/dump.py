@@ -667,7 +667,8 @@ class GSD(_Analyzer):
 
 class _GSDLogWriter:
 
-    _per_keys = ['particles', 'bonds', 'dihedrals', 'impropers', 'pairs']
+    _per_keys = ['angle', 'bond', 'constraint', 'dihedral',
+                 'improper', 'pair', 'particle']
     _convert_kinds = ['string', 'strings']
     _skip_kinds = ['object']
     _special_keys = ['type_shapes']

@@ -1,5 +1,6 @@
 from enum import Flag, auto
 from itertools import count
+from functools import reduce
 from copy import deepcopy
 from hoomd.util import dict_map, SafeNamespaceDict
 from collections.abc import Sequence
@@ -9,6 +10,61 @@ class LoggableEntry:
     def __init__(self, flag, default):
         self.flag = flag
         self.default = default
+
+
+class TypeFlags(Flag):
+    """Enum that marks all accepted logger types.
+
+    This class does not need to be used by users directly. We directly convert
+    from strings to the enum wherever necessary in the API. This class is
+    documented to show users what types of quantities can be logged, and what
+    flags to use for limiting what data is logged, user specified logged
+    quantites, and custom actions (`hoomd.custom.Action`).
+
+    Flags:
+        scalar: `float` or `int` objects (i.e. numbers)
+        sequence: sequence (e.g. `list`, `tuple`, `numpy.ndarray`) of numbers of
+            the same type.
+        string: a single Python `str` object
+        strings: a sequence of Python `str` objects
+        object: any Python object outside a sequence, string, or scalar.
+        angle: per-angle quantity
+        bond: per-bond quantity
+        constraint: per-constraint quantity
+        dihedral: per-dihedral quantity
+        improper: per-improper quantity
+        pair: per-pair quantity
+        particle: per-particle quantity
+        state: internal flag for specifying object's internal state
+        ALL: a combination of all other flags
+        NONE: represents no flag
+    """
+    NONE = 0
+    scalar = auto()
+    sequence = auto()
+    string = auto()
+    strings = auto()
+    object = auto()
+    angle = auto()
+    bond = auto()
+    constraint = auto()
+    dihedral = auto()
+    improper = auto()
+    pair = auto()
+    particle = auto()
+    state = auto()
+
+    @classmethod
+    def any(cls, flags):
+        def from_str(flag):
+            if isinstance(flag, str):
+                return cls[flag]
+            else:
+                return flag
+        return reduce(lambda x, y: from_str(x) | from_str(y), flags)
+
+
+TypeFlags.ALL = TypeFlags.any(TypeFlags.__members__.values())
 
 
 class Loggable(type):
@@ -21,7 +77,8 @@ class Loggable(type):
             if name in cls._meta_export_dict:
                 raise KeyError(
                     "Multiple loggable quantities named {}.".format(name))
-            cls._meta_export_dict[name] = LoggableEntry(flag, default)
+            cls._meta_export_dict[name] = LoggableEntry(
+                TypeFlags[flag], default)
             if is_property:
                 return property(func)
             else:
@@ -34,8 +91,9 @@ class Loggable(type):
     def __new__(cls, name, base, dct):
         new_cls = super().__new__(cls, name, base, dct)
         log_dict = dict()
-        for name, flag in cls._meta_export_dict.items():
-            log_dict[name] = LoggerQuantity(name, new_cls, flag)
+        for name, entry in cls._meta_export_dict.items():
+            log_dict[name] = LoggerQuantity(
+                name, new_cls, entry.flag, entry.default)
         if hasattr(new_cls, '_export_dict'):
             old_dict = deepcopy(new_cls._export_dict)
             for key, value in old_dict.items():
@@ -62,10 +120,9 @@ class LoggerQuantity:
     Args:
         name (str): The name of the quantity.
         cls (class object): The class that the quantity comes from.
-        flag (str, optional): The type of quantity it is. Valid values include
-            scalar, multi (array-like), particle (per particle quantity), bond,
-            angle, dihedral, constraint, pair, dict (a mapping of multiple
-            logged quantity names with their values), and object.
+        flag (str or TypeFlags, optional): The type of quantity it is.
+            Valid values are given in the `hoomd.logging.TypeFlags`
+            documentation.
 
     Note:
         For users, this class is meant to be used in conjunction with
@@ -73,10 +130,16 @@ class LoggerQuantity:
         actions.
     """
     def __init__(self, name, cls, flag='scalar', default=True):
-        self.name = name
+        self.name = str(name)
         self.update_cls(cls)
-        self.flag = flag
-        self.default = True
+        if isinstance(flag, str):
+            self.flag = TypeFlags[flag]
+        elif isinstance(flag, TypeFlags):
+            self.flag = flag
+        else:
+            raise ValueError("Flag must be a string convertable into "
+                             "TypeFlags or a TypeFlags object.")
+        self.default = bool(default)
 
     def yield_names(self):
         """Infinitely yield potential namespaces.
@@ -111,7 +174,10 @@ class Logger(SafeNamespaceDict):
     '''Logs HOOMD-blue operation data and custom quantities.'''
 
     def __init__(self, accepted_flags=None, only_default=True):
-        accepted_flags = [] if accepted_flags is None else accepted_flags
+        if accepted_flags is None:
+            accepted_flags = TypeFlags.ALL
+        else:
+            accepted_flags = TypeFlags.any(accepted_flags)
         self._flags = accepted_flags
         self._only_default = only_default
         super().__init__()
@@ -139,7 +205,7 @@ class Logger(SafeNamespaceDict):
     def add(self, obj, quantities=None):
         used_namespaces = []
         for quantity in self._grab_log_quantities_from_names(obj, quantities):
-            if self.flag_checks(quantity):
+            if quantity.flag in self._flags:
                 used_namespaces.append(self._add_single_quantity(obj,
                                                                  quantity))
         return used_namespaces
@@ -182,17 +248,28 @@ class Logger(SafeNamespaceDict):
                    (obj, method/property, flag)."
         if not isinstance(value, Sequence):
             raise ValueError(err_msg)
-        if not all(isinstance(v, str) for v in value[1:]):
-            raise ValueError("Method/property and flags must be strings.")
-
-        # Check length for setting with either (obj, prop, flag) or (func, flag)
-        elif len(value) == 3:
-            super().__setitem__(namespace, value)
-        elif len(value) == 2:
+        if len(value) == 2:
             if not callable(value[0]):
                 raise ValueError(err_msg)
+            if isinstance(value[1], str):
+                flag = TypeFlags[value[1]]
+            elif isinstance(value[1], TypeFlags):
+                flag = value[1]
             else:
-                super().__setitem__(namespace, (value[0], '__call__', value[1]))
+                raise ValueError(
+                    "flag must be a string or hoomd.logging.TypeFlags object.")
+            super().__setitem__(namespace, (value[0], '__call__', flag))
+        elif len(value) == 3:
+            if not isinstance(value[1], str):
+                raise ValueError(err_msg)
+            if isinstance(value[2], str):
+                flag = TypeFlags[value[2]]
+            elif isinstance(value[2], TypeFlags):
+                flag = value[2]
+            else:
+                raise ValueError(
+                    "flag must be a string or hoomd.logging.TypeFlags object.")
+            super().__setitem__(namespace, (*value[:2], flag))
         else:
             raise ValueError(err_msg)
 
@@ -222,12 +299,6 @@ class Logger(SafeNamespaceDict):
             return value
         else:
             return (value, flag)
-
-    def flag_checks(self, log_quantity):
-        if self._flags == []:
-            return True
-        else:
-            return log_quantity.flag in self._flags
 
     def _contains_obj(self, namespace, obj):
         '''evaulates based on identity.'''

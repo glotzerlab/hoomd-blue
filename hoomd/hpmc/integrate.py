@@ -192,7 +192,7 @@ class _HPMCIntegrator(_BaseIntegrator):
         ret = [json.loads(json_string) for json_string in type_shapes]
         return ret
 
-    @Loggable.log(flag='multi')
+    @Loggable.log(flag='sequence')
     def map_overlaps(self):
         """List[Tuple[int, int]]: List of overlapping particles.
 
@@ -282,7 +282,7 @@ class _HPMCIntegrator(_BaseIntegrator):
         return self._cpp_obj.py_test_overlap(ti, tj, rij, qi, qj, use_images,
                                              exclude_self)
 
-    @Loggable.log(flag='multi')
+    @Loggable.log(flag='sequence')
     def translate_moves(self):
         """int: Count of the accepted and rejected translate moves.
 
@@ -291,7 +291,7 @@ class _HPMCIntegrator(_BaseIntegrator):
         """
         return self._cpp_obj.getCounters(1).translate
 
-    @Loggable.log(flag='multi')
+    @Loggable.log(flag='sequence')
     def rotate_moves(self):
         """int: Count of the accepted and rejected rotate moves.
 
@@ -411,7 +411,7 @@ class Sphere(_HPMCIntegrator):
                                             len_keys=1))
         self._add_typeparam(typeparam_shape)
 
-    @Loggable.log(flag='multi')
+    @Loggable.log(flag='object')
     def type_shapes(self):
         """List[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -511,7 +511,7 @@ class ConvexPolygon(_HPMCIntegrator):
 
         self._add_typeparam(typeparam_shape)
 
-    @Loggable.log(flag='multi')
+    @Loggable.log(flag='object')
     def type_shapes(self):
         """List[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -615,7 +615,7 @@ class ConvexSpheropolygon(_HPMCIntegrator):
 
         self._add_typeparam(typeparam_shape)
 
-    @Loggable.log(flag='multi')
+    @Loggable.log(flag='object')
     def type_shapes(self):
         """List[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -714,7 +714,7 @@ class SimplePolygon(_HPMCIntegrator):
 
         self._add_typeparam(typeparam_shape)
 
-    @Loggable.log(flag='multi')
+    @Loggable.log(flag='object')
     def type_shapes(self):
         """List[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -892,7 +892,7 @@ class Polyhedron(_HPMCIntegrator):
 
         self._add_typeparam(typeparam_shape)
 
-    @Loggable.log(flag='multi')
+    @Loggable.log(flag='object')
     def type_shapes(self):
         """List[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -1001,7 +1001,7 @@ class ConvexPolyhedron(_HPMCIntegrator):
                                             len_keys=1))
         self._add_typeparam(typeparam_shape)
 
-    @Loggable.log(flag='multi')
+    @Loggable.log(flag='object')
     def type_shapes(self):
         """List[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -1320,7 +1320,7 @@ class ConvexSpheropolyhedron(_HPMCIntegrator):
                                             len_keys=1))
         self._add_typeparam(typeparam_shape)
 
-    @Loggable.log(flag='multi')
+    @Loggable.log(flag='object')
     def type_shapes(self):
         """List[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -1410,7 +1410,7 @@ class Ellipsoid(_HPMCIntegrator):
 
         self._extend_typeparam([typeparam_shape])
 
-    @Loggable.log(flag='multi')
+    @Loggable.log(flag='object')
     def type_shapes(self):
         """List[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -1536,7 +1536,7 @@ class SphereUnion(_HPMCIntegrator):
                                             }))
         self._add_typeparam(typeparam_shape)
 
-    @Loggable.log(flag='multi')
+    @Loggable.log(flag='object')
     def type_shapes(self):
         """List[dict]: Description of shapes in ``type_shapes`` format.
 
