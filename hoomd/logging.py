@@ -1,20 +1,27 @@
+from enum import Flag, auto
 from itertools import count
 from copy import deepcopy
 from hoomd.util import dict_map, SafeNamespaceDict
 from collections.abc import Sequence
 
 
+class LoggableEntry:
+    def __init__(self, flag, default):
+        self.flag = flag
+        self.default = default
+
+
 class Loggable(type):
     _meta_export_dict = dict()
 
     @classmethod
-    def log(cls, func=None, is_property=True, flag='scalar'):
+    def log(cls, func=None, is_property=True, flag='scalar', default=True):
         def helper(func):
             name = func.__name__
             if name in cls._meta_export_dict:
                 raise KeyError(
                     "Multiple loggable quantities named {}.".format(name))
-            cls._meta_export_dict[name] = flag
+            cls._meta_export_dict[name] = LoggableEntry(flag, default)
             if is_property:
                 return property(func)
             else:
@@ -65,10 +72,11 @@ class LoggerQuantity:
         `hoomd.custom.Action` for exposing loggable quantities for custom user
         actions.
     """
-    def __init__(self, name, cls, flag='scalar'):
+    def __init__(self, name, cls, flag='scalar', default=True):
         self.name = name
         self.update_cls(cls)
         self.flag = flag
+        self.default = True
 
     def yield_names(self):
         """Infinitely yield potential namespaces.
@@ -102,14 +110,19 @@ class LoggerQuantity:
 class Logger(SafeNamespaceDict):
     '''Logs HOOMD-blue operation data and custom quantities.'''
 
-    def __init__(self, accepted_flags=None):
+    def __init__(self, accepted_flags=None, only_default=True):
         accepted_flags = [] if accepted_flags is None else accepted_flags
         self._flags = accepted_flags
+        self._only_default = only_default
         super().__init__()
 
     def _grab_log_quantities_from_names(self, obj, quantities):
         if quantities is None:
-            return list(obj._export_dict.values())
+            if self._only_default:
+                return filter(lambda x: x.default, obj._export_dict.values())
+            else:
+                return obj._export_dict.values()
+
         else:
             log_quantities = []
             bad_keys = []
