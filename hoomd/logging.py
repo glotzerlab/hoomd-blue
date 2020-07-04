@@ -77,55 +77,6 @@ def _loggables(self):
 class Loggable(type):
     _meta_export_dict = dict()
 
-    @classmethod
-    def log(cls, func=None, *, is_property=True, flag='scalar', default=True):
-        """Creates loggable quantites for classes of type Loggable.
-
-        Args:
-            func (method): class method to make loggable. If using non-default
-                arguments, func should not be set.
-            is_property (bool, optional): Whether to make the method a property,
-                defaults to True. Argument position only
-            flag (str, optional): The string represention of the type of
-                loggable quantity, defaults to 'scalar'. See
-                `hoomd.logging.TypeFlags` for available types. Argument
-                position only
-            default (boo, optional): Whether the quantity should be logged by
-                default, defaults to True. This is orthogonal to the loggable
-                quantity's type. An example would be performance orientated
-                loggable quantities.  Many users may not want to log such
-                quantities even when logging other quantities of that type. The
-                default flag allows for these to be pass over by
-                `hoomd.logging.Logger` objects by default.
-
-        Note:
-            The namespace (where the loggable object is stored in the
-            `hoomd.logging.Logger` object's nested dictionary, is determined by
-            the module/script and class name the loggable class comes from. In
-            creating subclasses of `hoomd.custom.Action`, for instance, if the
-            module the subclass is defined in is `user.custom.action` and the
-            class name is `Foo` then the namespace used will be `('user',
-            'custom', 'action', 'Foo')`. This helps to prevent naming conflicts,
-            and automate the logging specification for developers and users.
-        """
-
-        def helper(func):
-            name = func.__name__
-            if name in cls._meta_export_dict:
-                raise KeyError(
-                    "Multiple loggable quantities named {}.".format(name))
-            cls._meta_export_dict[name] = _LoggableEntry(
-                TypeFlags[flag], default)
-            if is_property:
-                return property(func)
-            else:
-                return func
-
-        if func is None:
-            return helper
-        else:
-            return helper(func)
-
     def __init__(cls, name, bases, dct):
         """Adds marked quantites for logging in new class.
 
@@ -145,8 +96,8 @@ class Loggable(type):
         # Add property to get all available loggable quantities. We ensure that
         # we haven't already added a loggables property first. The empty dict
         # check is for improved speed while the not any checking of subclasses
-        # allows for certainty that a previous class of type Loggable (or one of
-        # its subclasses) did not already add that property. This is not
+        # allows for certainty that a previous class of type Loggable (or one
+        # of its subclasses) did not already add that property. This is not
         # necessary, but allows us to check that an user or developer didn't
         # accidentally create a loggables method, attribute, or property
         # already. We can speed this up by just removing the check and
@@ -194,6 +145,55 @@ class Loggable(type):
         """Gets the current class's new loggables (not inherited."""
         return {name: _LoggerQuantity(name, new_cls, entry.flag, entry.default)
                 for name, entry in cls._meta_export_dict.items()}
+
+
+def log(func=None, *, is_property=True, flag='scalar', default=True):
+    """Creates loggable quantites for classes of type Loggable.
+
+    Args:
+        func (method): class method to make loggable. If using non-default
+            arguments, func should not be set.
+        is_property (bool, optional): Whether to make the method a property,
+            defaults to True. Argument position only
+        flag (str, optional): The string represention of the type of
+            loggable quantity, defaults to 'scalar'. See
+            `hoomd.logging.TypeFlags` for available types. Argument
+            position only
+        default (boo, optional): Whether the quantity should be logged by
+            default, defaults to True. This is orthogonal to the loggable
+            quantity's type. An example would be performance orientated
+            loggable quantities.  Many users may not want to log such
+            quantities even when logging other quantities of that type. The
+            default flag allows for these to be pass over by
+            `hoomd.logging.Logger` objects by default.
+
+    Note:
+        The namespace (where the loggable object is stored in the
+        `hoomd.logging.Logger` object's nested dictionary, is determined by
+        the module/script and class name the loggable class comes from. In
+        creating subclasses of `hoomd.custom.Action`, for instance, if the
+        module the subclass is defined in is `user.custom.action` and the
+        class name is `Foo` then the namespace used will be `('user',
+        'custom', 'action', 'Foo')`. This helps to prevent naming conflicts,
+        and automate the logging specification for developers and users.
+    """
+
+    def helper(func):
+        name = func.__name__
+        if name in Loggable._meta_export_dict:
+            raise KeyError(
+                "Multiple loggable quantities named {}.".format(name))
+        Loggable._meta_export_dict[name] = _LoggableEntry(
+            TypeFlags[flag], default)
+        if is_property:
+            return property(func)
+        else:
+            return func
+
+    if func is None:
+        return helper
+    else:
+        return helper(func)
 
 
 class _LoggerQuantity:

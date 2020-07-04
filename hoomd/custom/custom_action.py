@@ -5,7 +5,7 @@ from hoomd.operation import _HOOMDGetSetAttrBase
 
 
 class _AbstractLoggable(Loggable, ABCMeta):
-    """Allows the use of abstractmethod with Loggable.log."""
+    """Allows the use of abstractmethod with log."""
     def __init__(cls, name, base, dct):
         Loggable.__init__(cls, name, base, dct)
         ABCMeta.__init__(cls, name, base, dct)
@@ -41,17 +41,17 @@ class Action(metaclass=_AbstractLoggable):
                 pass
 
     For advertising loggable quantities through the wrappping object, the
-    decorator `hoomd.logging.Loggable.log` can be used.
+    decorator `hoomd.logging.log` can be used.
 
     .. code-block:: python
 
         from hoomd.python_action import Action
-        from hoomd.logging import Loggable
+        from hoomd.logging import log
 
 
         class ExampleActionWithFlag(Action):
 
-            @Loggable.log
+            @log
             def loggable(self):
                 return 42
 

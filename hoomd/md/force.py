@@ -11,7 +11,7 @@ R""" Apply forces to particles.
 from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.operation import _Operation
-from hoomd.logging import Loggable
+from hoomd.logging import log
 import hoomd
 
 
@@ -29,7 +29,7 @@ class _Force(_Operation):
         self._simulation = simulation
         super().attach(simulation)
 
-    @Loggable.log
+    @log
     def energy(self):
         if self.is_attached:
             self._cpp_obj.compute(self._simulation.timestep)
@@ -37,7 +37,7 @@ class _Force(_Operation):
         else:
             return None
 
-    @Loggable.log(flag='particle')
+    @log(flag='particle')
     def energies(self):
         if self.is_attached:
             self._cpp_obj.compute(self._simulation.timestep)
@@ -45,7 +45,7 @@ class _Force(_Operation):
         else:
             return None
 
-    @Loggable.log(flag='particle')
+    @log(flag='particle')
     def forces(self):
         """
         Returns: The force for all particles.
@@ -56,7 +56,7 @@ class _Force(_Operation):
         else:
             return None
 
-    @Loggable.log(flag='particle')
+    @log(flag='particle')
     def torques(self):
         """
         Returns: The torque for all particles.
@@ -67,7 +67,7 @@ class _Force(_Operation):
         else:
             return None
 
-    @Loggable.log(flag='particle')
+    @log(flag='particle')
     def virials(self):
         R"""
         Returns: The virial for the members in the group.

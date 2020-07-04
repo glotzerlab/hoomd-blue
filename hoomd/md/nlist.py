@@ -49,7 +49,7 @@ import hoomd
 from hoomd.typeconverter import OnlyFrom
 from hoomd.parameterdicts import ParameterDict
 from hoomd.operation import _Operation
-from hoomd.logging import Loggable
+from hoomd.logging import log
 
 
 class nlist:
@@ -80,7 +80,7 @@ class _NList(_Operation):
                                )
         self._param_dict.update(params)
 
-    @Loggable.log
+    @log
     def shortest_rebuild(self):
         R""" Query the maximum possible check_period.
 

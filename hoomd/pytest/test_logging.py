@@ -1,6 +1,7 @@
 from pytest import raises, fixture
 from hoomd.logging import (
-    _LoggerQuantity, SafeNamespaceDict, Logger, dict_map, Loggable, TypeFlags)
+    _LoggerQuantity, SafeNamespaceDict, Logger, dict_map, Loggable, TypeFlags,
+    log)
 
 
 class DummyNamespace:
@@ -41,11 +42,11 @@ class TestLoggerQuantity:
 
 class DummyLoggable(metaclass=Loggable):
 
-    @Loggable.log
+    @log
     def prop(self):
         return 1
 
-    @Loggable.log(flag='sequence')
+    @log(flag='sequence')
     def proplist(self):
         return [1, 2, 3]
 
@@ -56,7 +57,7 @@ class TestLoggableMetaclass():
 
     class InherentedDummyLoggable(DummyLoggable):
 
-        @Loggable.log
+        @log
         def propinherented(self):
             return None
 
@@ -64,7 +65,7 @@ class TestLoggableMetaclass():
 
     class NotInherentedDummy(metaclass=Loggable):
 
-        @Loggable.log
+        @log
         def propnotinherented(self):
             return True
 
