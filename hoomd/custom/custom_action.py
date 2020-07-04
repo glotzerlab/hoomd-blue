@@ -1,9 +1,17 @@
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 from enum import IntEnum
+from hoomd.logging import Loggable
 from hoomd.operation import _HOOMDGetSetAttrBase
 
 
-class Action(ABC):
+class _AbstractLoggable(Loggable, ABCMeta):
+    """Allows the use of abstractmethod with Loggable.log."""
+    def __init__(cls, name, base, dct):
+        Loggable.__init__(cls, name, base, dct)
+        ABCMeta.__init__(cls, name, base, dct)
+
+
+class Action(metaclass=_AbstractLoggable):
     """Base class for all Python Action's.
 
     This class is the parent class for all Python `Action` subclasses. This
@@ -32,24 +40,18 @@ class Action(ABC):
             def act(self, timestep):
                 pass
 
-    For advertising loggable quantities through the wrappping object, the class
-    attribute ``log_quantities`` can be used. The dictionary expects string keys
-    with the name of the loggable and `hoomd.logging.LoggerQuantity` objects as
-    the values.
+    For advertising loggable quantities through the wrappping object, the
+    decorator `hoomd.logging.Loggable.log` can be used.
 
     .. code-block:: python
 
         from hoomd.python_action import Action
-        from hoomd.logging import LoggerQuantity
+        from hoomd.logging import Loggable
 
 
         class ExampleActionWithFlag(Action):
-            def __init__(self):
-                self.log_quantities = {
-                    'loggable': LoggerQuantity('scalar_loggable',
-                                               self.__class__,
-                                               flag='scalar')}
 
+            @Loggable.log
             def loggable(self):
                 return 42
 
@@ -145,5 +147,3 @@ class _InternalAction(Action, _HOOMDGetSetAttrBase):
     be created.
     """
     pass
-
-
