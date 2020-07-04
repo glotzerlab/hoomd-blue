@@ -1,12 +1,12 @@
+from copy import deepcopy
 from enum import Flag, auto
 from itertools import count
 from functools import reduce
-from copy import deepcopy
 from hoomd.util import dict_map, SafeNamespaceDict
 from collections.abc import Sequence
 
 
-class LoggableEntry:
+class _LoggableEntry:
     def __init__(self, flag, default):
         self.flag = flag
         self.default = default
@@ -67,6 +67,13 @@ class TypeFlags(Flag):
 TypeFlags.ALL = TypeFlags.any(TypeFlags.__members__.values())
 
 
+def _loggables(self):
+    """dict[str, str] Return a name: flag mapping of loggable quantities
+    for the class."""
+    return {name: str(quantity.flag)
+            for name, quantity in self._export_dict.items()}
+
+
 class Loggable(type):
     _meta_export_dict = dict()
 
@@ -97,34 +104,54 @@ class Loggable(type):
             if name in cls._meta_export_dict:
                 raise KeyError(
                     "Multiple loggable quantities named {}.".format(name))
-            cls._meta_export_dict[name] = LoggableEntry(
+            cls._meta_export_dict[name] = _LoggableEntry(
                 TypeFlags[flag], default)
             if is_property:
                 return property(func)
             else:
                 return func
+
         if func is None:
             return helper
         else:
             return helper(func)
 
     def __new__(cls, name, base, dct):
+        """Adds marked quantites for logging in new class.
+
+        Also adds a loggables property that returns a mapping of loggable
+        quantity names with the string flag.
+        """
         new_cls = super().__new__(cls, name, base, dct)
+
         log_dict = dict()
+        # grab loggable quantities through class inheritance. We reverse the mro
+        # list to ensure that if a conflict in names exist we take the one with
+        # the most priority in the mro. Also track if any parent classes also
+        # have Loggable as a metaclass. This allows us to know if we should
+        # errorr if a loggables method is defined.
+        add_loggables = True
+        for base_cls in reversed(new_cls.__mro__):
+            if type(base_cls) == cls:
+                add_loggables = False
+            if hasattr(base_cls, '_export_dict'):
+                log_dict.update(
+                    {name: deepcopy(quantity).update_cls(new_cls)
+                     for name, quantity in base_cls._export_dict.items()})
+        # handle new loggable quantities from current class
         for name, entry in cls._meta_export_dict.items():
             log_dict[name] = LoggerQuantity(
                 name, new_cls, entry.flag, entry.default)
-        if hasattr(new_cls, '_export_dict'):
-            old_dict = deepcopy(new_cls._export_dict)
-            for key, value in old_dict.items():
-                old_dict[key] = value.update_cls(new_cls)
-            old_dict.update(log_dict)
-            new_cls._export_dict = old_dict
-        else:
-            new_cls._export_dict = log_dict
+        new_cls._export_dict = log_dict
         cls._meta_export_dict = dict()
-        return new_cls
 
+        # Add property to get all available loggable quantities
+        if add_loggables:
+            if hasattr(new_cls, 'loggables'):
+                raise ValueError("classes of type Loggable cannot implement a "
+                                 "loggables method, property, or attribute.")
+            else:
+                new_cls.loggables = property(_loggables)
 
 def generate_namespace(cls):
     ns = tuple(cls.__module__.split('.') + [cls.__name__])
