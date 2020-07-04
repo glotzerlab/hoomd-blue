@@ -7,6 +7,7 @@ from collections.abc import Sequence
 
 
 class _LoggableEntry:
+    """Stores entries for _Loggable's store of a class's loggable quantities."""
     def __init__(self, flag, default):
         self.flag = flag
         self.default = default
