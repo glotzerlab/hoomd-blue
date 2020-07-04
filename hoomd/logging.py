@@ -116,44 +116,74 @@ class Loggable(type):
         else:
             return helper(func)
 
-    def __new__(cls, name, base, dct):
+    def __init__(cls, name, bases, dct):
         """Adds marked quantites for logging in new class.
 
         Also adds a loggables property that returns a mapping of loggable
-        quantity names with the string flag.
+        quantity names with the string flag. We overwrite __init__ instead of
+        __new__ since this plays much more nicely with inheritance. This allows,
+        for instance, `Loggable` to be subclassed with metaclasses that use
+        __new__ without having to hack the subclass's behavior.
         """
-        new_cls = super().__new__(cls, name, base, dct)
+        # This grabs the metaclass of the newly created class which will be a
+        # subclass of the Loggable metaclass (or the class itself)
+        loggable_cls = type(cls)
 
-        log_dict = dict()
-        # grab loggable quantities through class inheritance. We reverse the mro
-        # list to ensure that if a conflict in names exist we take the one with
-        # the most priority in the mro. Also track if any parent classes also
-        # have Loggable as a metaclass. This allows us to know if we should
-        # errorr if a loggables method is defined.
-        add_loggables = True
-        for base_cls in reversed(new_cls.__mro__):
-            if type(base_cls) == cls:
-                add_loggables = False
-            if hasattr(base_cls, '_export_dict'):
-                log_dict.update(
+        # grab loggable quantities through class inheritance.
+        log_dict = loggable_cls._get_inherited_loggables(cls)
+
+        # Add property to get all available loggable quantities. We ensure that
+        # we haven't already added a loggables property first. The empty dict
+        # check is for improved speed while the not any checking of subclasses
+        # allows for certainty that a previous class of type Loggable (or one of
+        # its subclasses) did not already add that property. This is not
+        # necessary, but allows us to check that an user or developer didn't
+        # accidentally create a loggables method, attribute, or property
+        # already. We can speed this up by just removing the check and
+        # overwriting the property every time, but lose the ability to error on
+        # improper class definitions.
+        if log_dict == {} and not any(issubclass(type(c), Loggable)
+                                      for c in cls.__mro__):
+            loggable_cls._add_loggable_property(cls)
+
+        # grab the current class's loggable quantities
+        log_dict.update(loggable_cls._get_current_cls_loggables(cls))
+        cls._export_dict = log_dict
+        loggable_cls._meta_export_dict = dict()
+
+    @staticmethod
+    def _add_loggable_property(new_cls):
+        if hasattr(new_cls, 'loggables'):
+            raise ValueError("classes of type Loggable cannot implement a "
+                             "loggables method, property, or attribute.")
+        else:
+            new_cls.loggables = property(_loggables)
+
+    @classmethod
+    def _get_inherited_loggables(cls, new_cls):
+        """Get loggable quantities from new class's __mro__."""
+
+        # We reverse the mro list to ensure that if a conflict in names exist we
+        # take the one with the most priority in the mro. Also track if any
+        # parent classes also have Loggable as a metaclass. This allows us to
+        # know if we should errorr if a loggables method is defined. We also
+        # skip the first entry since that is the new_cls itself.
+        inherited_loggables = dict()
+        for base_cls in reversed(new_cls.__mro__[1:]):
+            # The conditional checks if the type of one of the parent classes of
+            # new_cls has a metaclass (or type) which is a subclass of Loggable
+            # or one of its subclasses.
+            if issubclass(type(base_cls), Loggable):
+                inherited_loggables.update(
                     {name: deepcopy(quantity).update_cls(new_cls)
                      for name, quantity in base_cls._export_dict.items()})
-        # handle new loggable quantities from current class
-        for name, entry in cls._meta_export_dict.items():
-            log_dict[name] = LoggerQuantity(
-                name, new_cls, entry.flag, entry.default)
-        new_cls._export_dict = log_dict
-        cls._meta_export_dict = dict()
+        return inherited_loggables
 
-        # Add property to get all available loggable quantities
-        if add_loggables:
-            if hasattr(new_cls, 'loggables'):
-                raise ValueError("classes of type Loggable cannot implement a "
-                                 "loggables method, property, or attribute.")
-            else:
-                new_cls.loggables = property(_loggables)
-
-        return new_cls
+    @classmethod
+    def _get_current_cls_loggables(cls, new_cls):
+        """Gets the current class's new loggables (not inherited."""
+        return {name: LoggerQuantity(name, new_cls, entry.flag, entry.default)
+                for name, entry in cls._meta_export_dict.items()}
 
 
 class LoggerQuantity:
@@ -171,6 +201,7 @@ class LoggerQuantity:
         `hoomd.custom.Action` for exposing loggable quantities for custom user
         actions.
     """
+
     def __init__(self, name, cls, flag='scalar', default=True):
         self.name = str(name)
         self.update_cls(cls)
@@ -226,6 +257,7 @@ class LoggerQuantity:
 
 class _LoggerEntry:
     """Stores the information for an entry in a `hoomd.logging.Logger`."""
+
     def __init__(self, obj, attr, flag):
         self.obj = obj
         self.attr = attr
@@ -239,9 +271,9 @@ class _LoggerEntry:
     def from_tuple(cls, entry):
         err_msg = "Expected either (callable, flag) or \
                    (obj, method/property, flag)."
-        if (not isinstance(entry, Sequence)
-                or len(entry) <= 1
-                or len(entry) > 3):
+        if (not isinstance(entry, Sequence) or
+                len(entry) <= 1 or
+                len(entry) > 3):
             raise ValueError(err_msg)
         print(len(entry))
 
@@ -279,9 +311,9 @@ class _LoggerEntry:
             return (attr, self.flag)
 
     def __eq__(self, other):
-        return (self.obj == other.obj
-                and self.attr == other.attr
-                and self.flag == other.flag)
+        return (self.obj == other.obj and
+                self.attr == other.attr and
+                self.flag == other.flag)
         return all(getattr(self, attr) == getattr(other, attr)
                    for attr in ['obj', 'attr', 'flag'])
 
