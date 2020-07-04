@@ -1,6 +1,6 @@
 from pytest import raises, fixture
 from hoomd.logging import (
-    LoggerQuantity, SafeNamespaceDict, Logger, dict_map, Loggable, TypeFlags)
+    _LoggerQuantity, SafeNamespaceDict, Logger, dict_map, Loggable, TypeFlags)
 
 
 class DummyNamespace:
@@ -12,17 +12,17 @@ def dummy_namespace():
     return ('pytest', 'test_logging', 'DummyNamespace')
 
 
-# ------- Test LoggerQuantity
+# ------- Test _LoggerQuantity
 class TestLoggerQuantity:
     def test_initialization(self, dummy_namespace):
-        logquant = LoggerQuantity('foo', DummyNamespace, flag='particle')
+        logquant = _LoggerQuantity('foo', DummyNamespace, flag='particle')
         assert logquant.flag == TypeFlags['particle']
         assert logquant.name == 'foo'
         assert logquant.namespace == dummy_namespace
 
     def test_yield_names(self, dummy_namespace):
         name = 'foo'
-        quantity = LoggerQuantity(name=name, cls=DummyNamespace)
+        quantity = _LoggerQuantity(name=name, cls=DummyNamespace)
         for i, given_namespace in enumerate(quantity.yield_names()):
             if i == 0:
                 assert given_namespace == dummy_namespace + (name,)
@@ -35,7 +35,7 @@ class TestLoggerQuantity:
                 break
 
     def test_generate_namespace(self):
-        assert LoggerQuantity._generate_namespace(TestLoggerQuantity) == \
+        assert _LoggerQuantity._generate_namespace(TestLoggerQuantity) == \
             ('pytest', 'test_logging', 'TestLoggerQuantity')
 
 
@@ -74,7 +74,7 @@ class TestLoggableMetaclass():
         loggable_list = ['prop', 'proplist']
         assert set(self.dummy_loggable._export_dict.keys()
                    ) == set(loggable_list)
-        expected_namespace = LoggerQuantity._generate_namespace(
+        expected_namespace = _LoggerQuantity._generate_namespace(
             self.dummy_loggable)
         expected_flags = ['scalar', 'sequence']
         for loggable, flag in zip(loggable_list, expected_flags):
@@ -175,7 +175,7 @@ def blank_logger():
 
 @fixture
 def log_quantity():
-    return LoggerQuantity('example', DummyNamespace)
+    return _LoggerQuantity('example', DummyNamespace)
 
 
 @fixture

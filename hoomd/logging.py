@@ -97,6 +97,16 @@ class Loggable(type):
                 quantities even when logging other quantities of that type. The
                 default flag allows for these to be pass over by
                 `hoomd.logging.Logger` objects by default.
+
+        Note:
+            The namespace (where the loggable object is stored in the
+            `hoomd.logging.Logger` object's nested dictionary, is determined by
+            the module/script and class name the loggable class comes from. In
+            creating subclasses of `hoomd.custom.Action`, for instance, if the
+            module the subclass is defined in is `user.custom.action` and the
+            class name is `Foo` then the namespace used will be `('user',
+            'custom', 'action', 'Foo')`. This helps to prevent naming conflicts,
+            and automate the logging specification for developers and users.
         """
 
         def helper(func):
@@ -182,11 +192,11 @@ class Loggable(type):
     @classmethod
     def _get_current_cls_loggables(cls, new_cls):
         """Gets the current class's new loggables (not inherited."""
-        return {name: LoggerQuantity(name, new_cls, entry.flag, entry.default)
+        return {name: _LoggerQuantity(name, new_cls, entry.flag, entry.default)
                 for name, entry in cls._meta_export_dict.items()}
 
 
-class LoggerQuantity:
+class _LoggerQuantity:
     """The information to automatically log to a `hoomd.logging.Logger`.
 
     Args:
@@ -233,7 +243,7 @@ class LoggerQuantity:
         """Allow updating the class/namespace of the object.
 
         Since the namespace is determined by the passed class's module and class
-        name, if inheritanting `hoomd.logging.LoggerQuantity`, the class needs
+        name, if inheritanting `hoomd.logging._LoggerQuantity`, the class needs
         to be updated to the subclass.
 
         Args:
