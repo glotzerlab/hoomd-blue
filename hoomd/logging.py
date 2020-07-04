@@ -70,7 +70,7 @@ TypeFlags.ALL = TypeFlags.any(TypeFlags.__members__.values())
 def _loggables(self):
     """dict[str, str] Return a name: flag mapping of loggable quantities
     for the class."""
-    return {name: str(quantity.flag)
+    return {name: quantity.flag.name
             for name, quantity in self._export_dict.items()}
 
 
@@ -153,7 +153,7 @@ class Loggable(type):
         # overwriting the property every time, but lose the ability to error on
         # improper class definitions.
         if log_dict == {} and not any(issubclass(type(c), Loggable)
-                                      for c in cls.__mro__):
+                                      for c in cls.__mro__[1:]):
             loggable_cls._add_loggable_property(cls)
 
         # grab the current class's loggable quantities

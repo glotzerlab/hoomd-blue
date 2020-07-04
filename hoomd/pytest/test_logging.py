@@ -93,6 +93,10 @@ class TestLoggableMetaclass():
         assert 'propnotinherented' in \
             self.not_dummy_loggable_inher._export_dict.keys()
 
+    def test_loggables(self):
+        dummy_obj = self.dummy_loggable()
+        assert dummy_obj.loggables == {'prop': 'scalar', 'proplist': 'sequence'}
+
 
 # ------- Test dict_map function
 @fixture
