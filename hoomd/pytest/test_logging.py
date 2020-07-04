@@ -192,8 +192,8 @@ def base_namespace():
 class TestLogger:
     def test_setitem(self, blank_logger):
         logger = blank_logger
-        logger['a'] = (5, 'eg', 'scalar')
-        logger[('b', 'c')] = (5, 'eg', 'scalar')
+        logger['a'] = (5, '__eq__', 'scalar')
+        logger[('b', 'c')] = (5, '__eq__', 'scalar')
         logger['c'] = (lambda: [1, 2, 3], 'sequence')
         for value in [dict(), list(), None, 5, (5, 2), (5, 2, 1)]:
             with raises(ValueError):
@@ -206,18 +206,17 @@ class TestLogger:
         namespace = log_quantity.namespace + (log_quantity.name,)
         assert namespace in blank_logger
         log_value = blank_logger[namespace]
-        assert log_value[0] is None
-        assert log_value[1] == log_quantity.name
-        assert log_value[2] == log_quantity.flag
+        assert log_value.obj is None
+        assert log_value.attr == log_quantity.name
+        assert log_value.flag == log_quantity.flag
         blank_logger._add_single_quantity([], log_quantity)
         namespace = log_quantity.namespace[:-1] + \
             (log_quantity.namespace[-1] + '_1', log_quantity.name)
         assert namespace in blank_logger
 
-    def test_grab_log_quantities_from_names(self, blank_logger, logged_obj):
-
+    def test_get_loggables_by_names(self, blank_logger, logged_obj):
         # Check when quantities is None
-        log_quanities = blank_logger._grab_log_quantities_from_names(
+        log_quanities = blank_logger._get_loggables_by_name(
             logged_obj, None)
         logged_names = ['prop', 'proplist']
         assert all([log_quantity.name in logged_names
@@ -225,16 +224,16 @@ class TestLogger:
 
         # Check when quantities is given
         accepted_quantities = ['prop', 'proplist']
-        log_quanities = blank_logger._grab_log_quantities_from_names(
+        log_quanities = blank_logger._get_loggables_by_name(
             logged_obj, accepted_quantities)
         assert all([log_quantity.name in accepted_quantities
                     for log_quantity in log_quanities])
 
         # Check when quantities has a bad value
         bad_quantities = ['bad', 'quant']
-        with raises(KeyError):
-            blank_logger._grab_log_quantities_from_names(
-                logged_obj, bad_quantities)
+        with raises(ValueError):
+            a = blank_logger._get_loggables_by_name(logged_obj, bad_quantities)
+            list(a)
 
     def test_add(self, blank_logger, logged_obj, base_namespace):
 
@@ -324,7 +323,7 @@ class TestLogger:
 
         # Test remove when not in initial namespace
         log = Logger()
-        log[prop_namespace] = (None, '__call__', 'scalar')
+        log[prop_namespace] = (lambda: None, '__call__', 'scalar')
         log.add(logged_obj)
         assert len(log) == 3
         log.remove(logged_obj, 'prop')
