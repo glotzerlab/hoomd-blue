@@ -266,7 +266,17 @@ class _LoggerQuantity:
 
 
 class _LoggerEntry:
-    """Stores the information for an entry in a `hoomd.logging.Logger`."""
+    """Stores the information for an entry in a `hoomd.logging.Logger`.
+
+    The class deals with the logic of converting `tuple` and
+    `hoomd.logging._LoggerQuantity` objects into an object that can obtain the
+    actually log value when called.
+
+    Note:
+        This class could perform verification of the logged quantities. It
+        currently doesn't for performance reasons; this can be changed to give
+        greater security with regards to user specified quantities.
+    """
 
     def __init__(self, obj, attr, flag):
         self.obj = obj
@@ -281,9 +291,9 @@ class _LoggerEntry:
     def from_tuple(cls, entry):
         err_msg = "Expected either (callable, flag) or \
                    (obj, method/property, flag)."
-        if (not isinstance(entry, Sequence) or
-                len(entry) <= 1 or
-                len(entry) > 3):
+        if (not isinstance(entry, Sequence)
+                or len(entry) <= 1
+                or len(entry) > 3):
             raise ValueError(err_msg)
         print(len(entry))
 
