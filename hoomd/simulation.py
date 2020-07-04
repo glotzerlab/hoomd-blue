@@ -1,10 +1,11 @@
 import hoomd._hoomd as _hoomd
+from hoomd.logging import Loggable
 from hoomd.state import State
 from hoomd.snapshot import Snapshot
 from hoomd.operations import Operations
 
 
-class Simulation:
+class Simulation(metaclass=Loggable):
     r""" Simulation.
 
     Args:
@@ -27,7 +28,7 @@ class Simulation:
         raise ValueError("Device cannot be removed or replaced once in "
                          "Simulation object.")
 
-    @property
+    @Loggable.log
     def timestep(self):
         if not hasattr(self, '_cpp_sys'):
             return self._timestep
