@@ -1,7 +1,6 @@
 from pytest import raises, fixture
 from hoomd.logging import (
-    LoggerQuantity, SafeNamespaceDict, Logger, dict_map, generate_namespace,
-    Loggable, TypeFlags)
+    LoggerQuantity, SafeNamespaceDict, Logger, dict_map, Loggable, TypeFlags)
 
 
 class DummyNamespace:
@@ -35,11 +34,9 @@ class TestLoggerQuantity:
             else:
                 break
 
-
-# ------- Test generate_logging_decorator and associated functions
-def test_generate_namespace():
-    assert generate_namespace(TestLoggerQuantity) == \
-        ('pytest', 'test_logging', 'TestLoggerQuantity')
+    def test_generate_namespace(self):
+        assert LoggerQuantity._generate_namespace(TestLoggerQuantity) == \
+            ('pytest', 'test_logging', 'TestLoggerQuantity')
 
 
 class DummyLoggable(metaclass=Loggable):
@@ -77,7 +74,8 @@ class TestLoggableMetaclass():
         loggable_list = ['prop', 'proplist']
         assert set(self.dummy_loggable._export_dict.keys()
                    ) == set(loggable_list)
-        expected_namespace = generate_namespace(self.dummy_loggable)
+        expected_namespace = LoggerQuantity._generate_namespace(
+            self.dummy_loggable)
         expected_flags = ['scalar', 'sequence']
         for loggable, flag in zip(loggable_list, expected_flags):
             log_quantity = self.dummy_loggable._export_dict[loggable]

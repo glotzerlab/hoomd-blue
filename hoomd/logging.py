@@ -153,12 +153,7 @@ class Loggable(type):
             else:
                 new_cls.loggables = property(_loggables)
 
-def generate_namespace(cls):
-    ns = tuple(cls.__module__.split('.') + [cls.__name__])
-    if ns[0] == 'hoomd':
-        return ns[1:]
-    else:
-        return ns
+        return new_cls
 
 
 class LoggerQuantity:
@@ -213,8 +208,20 @@ class LoggerQuantity:
         Args:
             cls (class object): The class to update the namespace with.
         """
-        self.namespace = generate_namespace(cls)
+        self.namespace = self._generate_namespace(cls)
         return self
+
+    @staticmethod
+    def _generate_namespace(cls):
+        """Infite iterator of namespaces for a given class.
+
+        If namespace is taken add a number and increment until unique.
+        """
+        ns = tuple(cls.__module__.split('.') + [cls.__name__])
+        if ns[0] == 'hoomd':
+            return ns[1:]
+        else:
+            return ns
 
 
 class _LoggerEntry:
