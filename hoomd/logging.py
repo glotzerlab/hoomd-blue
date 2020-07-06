@@ -327,9 +327,9 @@ class _LoggerEntry:
         if self.flag is TypeFlags.state:
             return attr
         if callable(attr):
-            return (attr(), self.flag)
+            return (attr(), self.flag.name)
         else:
-            return (attr, self.flag)
+            return (attr, self.flag.name)
 
     def __eq__(self, other):
         return (self.obj == other.obj and

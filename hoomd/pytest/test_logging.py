@@ -378,6 +378,5 @@ class TestLogger:
         log += logged_obj
         logged = log.log()
         inner_dict = logged['pytest']['test_logging']['DummyLoggable']
-        assert inner_dict['prop'] == (logged_obj.prop, TypeFlags['scalar'])
-        assert inner_dict['proplist'] == (
-            logged_obj.proplist, TypeFlags['sequence'])
+        assert inner_dict['prop'] == (logged_obj.prop, 'scalar')
+        assert inner_dict['proplist'] == (logged_obj.proplist, 'sequence')
