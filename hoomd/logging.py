@@ -62,7 +62,13 @@ class TypeFlags(Flag):
                 return cls[flag]
             else:
                 return flag
-        return reduce(lambda x, y: from_str(x) | from_str(y), flags)
+
+        return reduce(
+            lambda x, y: from_str(x) | from_str(y), flags, TypeFlags.NONE)
+
+    @classmethod
+    def _get_string_list(cls, flag):
+        return [mem.name for mem in cls.__members__.values() if mem in flag]
 
 
 TypeFlags.ALL = TypeFlags.any(TypeFlags.__members__.values())
@@ -296,7 +302,6 @@ class _LoggerEntry:
                 or len(entry) <= 1
                 or len(entry) > 3):
             raise ValueError(err_msg)
-        print(len(entry))
 
         # Get the method and flag from the passed entry. Also perform some basic
         # validation.
@@ -397,12 +402,32 @@ class Logger(SafeNamespaceDict):
         available to specify logged quantites, see `hoomd.logging.TypeFlags`. To
         integrate with `hoomd.Operations` the back end should be a subclass of
         `hoomd.custom.Action` and used with `hoomd.analyze.CustomAnalyzer`.
+
+    Attributes:
+        flags (`hoomd.logging.TypeFlags`): The enum representing the acceptable
+            flags for the `~.Logger` object.
+        string_flags (`list` of `str`): A list of the string names of the
+            allowed flags for logging.
+        only_default (`bool`): Whether the logger object should only grab
+            default loggable quantites.
     '''
 
     def __init__(self, flags=None, only_default=True):
         self._flags = TypeFlags.ALL if flags is None else TypeFlags.any(flags)
         self._only_default = only_default
         super().__init__()
+
+    @property
+    def flags(self):
+        return self._flags
+
+    @property
+    def string_flags(self):
+        return TypeFlags._get_string_list(self._flags)
+
+    @property
+    def only_default(self):
+        return self._only_default
 
     def _filter_quantities(self, quantities, overwrite_default=False):
         if overwrite_default:
