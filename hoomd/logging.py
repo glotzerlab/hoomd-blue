@@ -388,6 +388,15 @@ class Logger(SafeNamespaceDict):
     for. You can override the ``only_default`` flag by explicitly listing the
     quantities you want in `Logger.add`, but the same is not true with regards
     to ``flags``.
+
+    Back Ends:
+        The logger provides a way for users to create their own logger back ends
+        if they wish. In making a custom logger back end, understanding the
+        intermediate representation is key. To get an introduction see
+        `hoomd.logging.Logger.log`. Furthermore, understanding the various flags
+        available to specify logged quantites, see `hoomd.logging.TypeFlags`. To
+        integrate with `hoomd.Operations` the back end should be a subclass of
+        `hoomd.custom.Action` and used with `hoomd.analyze.CustomAnalyzer`.
     '''
 
     def __init__(self, flags=None, only_default=True):
@@ -544,10 +553,17 @@ class Logger(SafeNamespaceDict):
     def log(self):
         """Get a nested dictionary of the current values for logged quantities.
 
+        The nested dictionary consist of one level for each element of a
+        namespace. The logged value and flag for the namespace `('example',
+        'namespace')` would be accessible in the returned dictionary via
+        `logger.log()['example']['namespace']`.
+
         Returns:
             log_dict (dict): A nested dictionary of the current logged
                 quantities. The end values are (value, flag) pairs which hold
-                the value along with its associated TypeFlags flag.
+                the value along with its associated TypeFlags flag represented
+                as a string (to get the `TypeFlags` enum value use
+                `TypeFlags[flag]`.
         """
         return dict_map(self._dict, lambda x: x())
 

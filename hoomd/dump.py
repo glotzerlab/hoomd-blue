@@ -710,10 +710,10 @@ class _GSDLogWriter:
                     # per-{particle,bond,...} into the correct GSD namespace
                     # log/particles/{remaining namespace}. This preserves OVITO
                     # intergration.
-                    if type_flag in self._per_keys:
+                    if type_flag in self._per_flags:
                         log['/'.join((self._global_prepend,
                                       type_flag.name + 's') + key)] = log_value
-                    elif type_flag in self._convert_type_flags:
+                    elif type_flag in self._convert_flags:
                         self._log_convert_value(
                             log, '/'.join((self._global_prepend,) + key),
                             type_flag, log_value)
