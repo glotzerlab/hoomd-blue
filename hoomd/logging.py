@@ -419,14 +419,6 @@ class Logger(SafeNamespaceDict):
         available to specify logged quantites, see `hoomd.logging.TypeFlags`. To
         integrate with `hoomd.Operations` the back end should be a subclass of
         `hoomd.custom.Action` and used with `hoomd.analyze.CustomAnalyzer`.
-
-    Attributes:
-        flags (`hoomd.logging.TypeFlags`): The enum representing the acceptable
-            flags for the `~.Logger` object.
-        string_flags (`list` of `str`): A list of the string names of the
-            allowed flags for logging.
-        only_default (`bool`): Whether the logger object should only grab
-            default loggable quantites.
     '''
 
     def __init__(self, flags=None, only_default=True):
@@ -436,14 +428,23 @@ class Logger(SafeNamespaceDict):
 
     @property
     def flags(self):
+        """`hoomd.logging.TypeFlags`: The enum representing the acceptable
+            flags for the `Logger` object.
+        """
         return self._flags
 
     @property
     def string_flags(self):
+        """`list` of `str`: A list of the string names of the allowed flags for
+        logging.
+        """
         return TypeFlags._get_string_list(self._flags)
 
     @property
     def only_default(self):
+        """`bool`: Whether the logger object should only grab default loggable
+        quantites.
+        """
         return self._only_default
 
     def _filter_quantities(self, quantities, overwrite_default=False):
@@ -559,7 +560,7 @@ class Logger(SafeNamespaceDict):
         Adds all quantities compatible with given flags and default value.
 
         Examples:
-            ..code-block: python
+            .. code-block:: python
 
                 logger += lj
                 logger += [lj, harmonic_bonds]
@@ -575,7 +576,7 @@ class Logger(SafeNamespaceDict):
         """Remove log entries for a list of quantities or objects.
 
         Examples:
-            ..code-block: python
+            .. code-block:: python
 
                 logger -= ('md', 'pair', 'lj')
                 logger -= [('md', 'pair', 'lj', 'energy'),
@@ -596,8 +597,8 @@ class Logger(SafeNamespaceDict):
         """Get a nested dictionary of the current values for logged quantities.
 
         The nested dictionary consist of one level for each element of a
-        namespace. The logged value and flag for the namespace `('example',
-        'namespace')` would be accessible in the returned dictionary via
+        namespace. The logged value and flag for the namespace ``('example',
+        'namespace')`` would be accessible in the returned dictionary via
         ``logger.log()['example']['namespace']``.
 
         Returns:
