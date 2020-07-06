@@ -24,20 +24,34 @@ class TypeFlags(Flag):
 
     Flags:
         scalar: `float` or `int` objects (i.e. numbers)
+
         sequence: sequence (e.g. `list`, `tuple`, `numpy.ndarray`) of numbers of
-            the same type.
+        the same type.
+
         string: a single Python `str` object
+
         strings: a sequence of Python `str` objects
+
         object: any Python object outside a sequence, string, or scalar.
+
         angle: per-angle quantity
+
         bond: per-bond quantity
+
         constraint: per-constraint quantity
+
         dihedral: per-dihedral quantity
+
         improper: per-improper quantity
+
         pair: per-pair quantity
+
         particle: per-particle quantity
+
         state: internal flag for specifying object's internal state
+
         ALL: a combination of all other flags
+
         NONE: represents no flag
     """
     NONE = 0
@@ -157,6 +171,9 @@ class Loggable(type):
 def log(func=None, *, is_property=True, flag='scalar', default=True):
     """Creates loggable quantites for classes of type Loggable.
 
+    For users this should be used with `hoomd.custom.Action` for exposing
+    loggable quantities from a custom action.
+
     Args:
         func (method): class method to make loggable. If using non-default
             arguments, func should not be set.
@@ -179,9 +196,9 @@ def log(func=None, *, is_property=True, flag='scalar', default=True):
         `hoomd.logging.Logger` object's nested dictionary, is determined by
         the module/script and class name the loggable class comes from. In
         creating subclasses of `hoomd.custom.Action`, for instance, if the
-        module the subclass is defined in is `user.custom.action` and the
-        class name is `Foo` then the namespace used will be `('user',
-        'custom', 'action', 'Foo')`. This helps to prevent naming conflicts,
+        module the subclass is defined in is ``user.custom.action`` and the
+        class name is ``Foo`` then the namespace used will be ``('user',
+        'custom', 'action', 'Foo')``. This helps to prevent naming conflicts,
         and automate the logging specification for developers and users.
     """
 
@@ -352,14 +369,14 @@ class Logger(SafeNamespaceDict):
     loggable). The `Logger` class makes use of *namespaces* which denote where a
     logged quantity fits in. For example internally all loggable quantities are
     ordered by the module and class them come from. For instance, the
-    `hoomd.md.pair.LJ` class has a namespace `('md', 'pair', 'LJ')`. This
+    `hoomd.md.pair.LJ` class has a namespace ``('md', 'pair', 'LJ')``. This
     applies to all loggable internal objects in HOOMD-blue. This ensures that
     logged quantities remain unambigious. To add a loggable object's quantities
     two methods exist `Logger.add` and the ``+=`` operator. Here we show an
     example using the ``+=`` operator.
 
     Example:
-        .. code-block: python
+        .. code-block:: python
 
             logger = hoomd.logging.Logger()
             lj = md.pair.lj(nlist)
@@ -373,7 +390,7 @@ class Logger(SafeNamespaceDict):
     as well.
 
     Example:
-        .. code-block: python
+        .. code-block:: python
 
             logger = hoomd.logging.Logger()
             # Add quantity to ('custom', 'name') namespace
@@ -394,7 +411,7 @@ class Logger(SafeNamespaceDict):
     quantities you want in `Logger.add`, but the same is not true with regards
     to ``flags``.
 
-    Back Ends:
+    Note:
         The logger provides a way for users to create their own logger back ends
         if they wish. In making a custom logger back end, understanding the
         intermediate representation is key. To get an introduction see
@@ -581,14 +598,14 @@ class Logger(SafeNamespaceDict):
         The nested dictionary consist of one level for each element of a
         namespace. The logged value and flag for the namespace `('example',
         'namespace')` would be accessible in the returned dictionary via
-        `logger.log()['example']['namespace']`.
+        ``logger.log()['example']['namespace']``.
 
         Returns:
             log_dict (dict): A nested dictionary of the current logged
                 quantities. The end values are (value, flag) pairs which hold
-                the value along with its associated TypeFlags flag represented
-                as a string (to get the `TypeFlags` enum value use
-                `TypeFlags[flag]`.
+                the value along with its associated `hoomd.logging.TypeFlags`
+                flag represented as a string (to get the
+                `hoomd.logging.TypeFlags` enum value use ``TypeFlags[flag]``.
         """
         return dict_map(self._dict, lambda x: x())
 
