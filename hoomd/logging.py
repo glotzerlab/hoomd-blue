@@ -419,6 +419,16 @@ class Logger(SafeNamespaceDict):
         available to specify logged quantites, see `hoomd.logging.TypeFlags`. To
         integrate with `hoomd.Operations` the back end should be a subclass of
         `hoomd.custom.Action` and used with `hoomd.analyze.CustomAnalyzer`.
+
+    Args:
+        flags (`list` of `str`, optional): A list of string flags (list of flags
+            can be found in `hoomd.logging.TypeFlags`). These are the only types
+            of loggable quantities that can be logged by this logger. Defaults
+            to allowing every type.
+        only_default (`bool`, optional): Whether to log only quantities that are
+            logged by "default", defaults to ``True``. This mostly means that
+            performance centric loggable quantities will be passed over when
+            logging when false.
     '''
 
     def __init__(self, flags=None, only_default=True):
