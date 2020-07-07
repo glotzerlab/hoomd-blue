@@ -49,8 +49,8 @@ stages:
           container_image: clang10_py38
           enable_mpi: on
           enable_tbb: on
-          build_jit: off
-          llvm_version: '9'
+          build_jit: on
+          llvm_version: '10'
 
         clang9_py38_mpi_tbb:
           container_image: clang9_py38

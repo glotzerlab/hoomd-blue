@@ -11,11 +11,11 @@ R""" Apply forces to particles.
 from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.operation import _Operation
-from hoomd.logger import Loggable
 from hoomd.typeparam import TypeParameter
 from hoomd.typeconverter import OnlyType
 from hoomd.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.filter import _ParticleFilter
+from hoomd.logging import Loggable
 import hoomd
 from hoomd.md.constrain import _ConstraintForce
 
