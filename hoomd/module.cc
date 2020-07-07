@@ -40,6 +40,7 @@
 #include "System.h"
 #include "Trigger.h"
 #include "Tuner.h"
+#include "PythonTuner.h"
 #include "Variant.h"
 #include "Messenger.h"
 #include "SnapshotSystemData.h"
@@ -393,6 +394,7 @@ PYBIND11_MODULE(_hoomd, m)
 
     // tuners
     export_Tuner(m);
+    export_PythonTuner(m);
     export_SFCPackTuner(m);
 #ifdef ENABLE_HIP
     export_SFCPackTunerGPU(m);
