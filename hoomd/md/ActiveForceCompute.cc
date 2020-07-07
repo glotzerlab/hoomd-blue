@@ -200,7 +200,6 @@ void ActiveForceCompute::setForces()
     ArrayHandle<Scalar4> h_torque(m_torque,access_location::host,access_mode::overwrite);
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
     // sanity check
     assert(h_f_actVec.data != NULL);
@@ -214,8 +213,7 @@ void ActiveForceCompute::setForces()
 
     for (unsigned int i = 0; i < m_group->getNumMembers(); i++)
         {
-        unsigned int tag = m_group->getMemberTag(i);
-        unsigned int idx = h_rtag.data[tag];
+        unsigned int idx = m_group->getMemberIndex(i);
         unsigned int type = __scalar_as_int(h_pos.data[idx].w);
 
         Scalar3 f = make_scalar3(h_f_actVec.data[type].w*h_f_actVec.data[type].x, h_f_actVec.data[type].w*h_f_actVec.data[type].y, h_f_actVec.data[type].w*h_f_actVec.data[type].z);
@@ -244,18 +242,19 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
     ArrayHandle<Scalar4> h_f_actVec(m_f_activeVec, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
-    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
     assert(h_f_actVec.data != NULL);
     assert(h_pos.data != NULL);
     assert(h_orientation.data != NULL);
+    assert(h_tag.data != NULL);
 
     for (unsigned int i = 0; i < m_group->getNumMembers(); i++)
         {
-        unsigned int tag = m_group->getMemberTag(i);
-        unsigned int idx = h_rtag.data[tag];
+        unsigned int idx = m_group->getMemberIndex(i);
         unsigned int type = __scalar_as_int(h_pos.data[idx].w);
-        hoomd::RandomGenerator rng(hoomd::RNGIdentifier::ActiveForceCompute, m_seed, tag, timestep);
+        unsigned int ptag = h_tag.data[idx];
+        hoomd::RandomGenerator rng(hoomd::RNGIdentifier::ActiveForceCompute, m_seed, ptag, timestep);
 
         quat<Scalar> quati(h_orientation.data[idx]);
 
@@ -342,7 +341,6 @@ void ActiveForceCompute::setConstraint()
     ArrayHandle<Scalar4> h_f_actVec(m_f_activeVec, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
     assert(h_f_actVec.data != NULL);
     assert(h_pos.data != NULL);
@@ -350,8 +348,7 @@ void ActiveForceCompute::setConstraint()
 
     for (unsigned int i = 0; i < m_group->getNumMembers(); i++)
         {
-        unsigned int tag = m_group->getMemberTag(i);
-        unsigned int idx = h_rtag.data[tag];
+        unsigned int idx = m_group->getMemberIndex(i);
         unsigned int type = __scalar_as_int(h_pos.data[idx].w);
 
         Scalar3 current_pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);

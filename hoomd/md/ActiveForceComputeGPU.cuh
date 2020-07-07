@@ -16,8 +16,7 @@
 #define __ACTIVE_FORCE_COMPUTE_GPU_CUH__
 
 hipError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
-                                           unsigned int *d_rtag,
-                                           unsigned int *d_groupTags,
+                                           unsigned int *d_index_array,
                                            Scalar4 *d_force,
                                            Scalar4 *d_torque,
                                            const Scalar4 *d_pos,
@@ -32,8 +31,7 @@ hipError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
                                            unsigned int block_size);
 
 hipError_t gpu_compute_active_force_set_constraints(const unsigned int group_size,
-                                                   unsigned int *d_rtag,
-                                                   unsigned int *d_groupTags,
+                                                   unsigned int *d_index_array,
                                                    const Scalar4 *d_pos,
                                                    Scalar4 *d_orientation,
                                                    const Scalar4 *d_f_actVec,
@@ -44,8 +42,8 @@ hipError_t gpu_compute_active_force_set_constraints(const unsigned int group_siz
                                                    unsigned int block_size);
 
 hipError_t gpu_compute_active_force_rotational_diffusion(const unsigned int group_size,
-                                                       unsigned int *d_rtag,
-                                                       unsigned int *d_groupTags,
+                                                       unsigned int *d_tag,
+                                                       unsigned int *d_index_array,
                                                        const Scalar4 *d_pos,
                                                        Scalar4 *d_orientation,
                                                        const Scalar4 *d_f_actVec,

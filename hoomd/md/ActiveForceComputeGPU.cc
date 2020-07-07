@@ -82,8 +82,7 @@ void ActiveForceComputeGPU::setForces()
 
     ArrayHandle<Scalar4> d_pos(m_pdata -> getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_groupTags(m_group->getIndexArray(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
     // sanity check
     assert(d_force.data != NULL);
@@ -91,14 +90,12 @@ void ActiveForceComputeGPU::setForces()
     assert(d_t_actVec.data != NULL);
     assert(d_pos.data != NULL);
     assert(d_orientation.data != NULL);
-    assert(d_rtag.data != NULL);
-    assert(d_groupTags.data != NULL);
+    assert(d_index_array.data != NULL);
     unsigned int group_size = m_group->getNumMembers();
     unsigned int N = m_pdata->getN();
 
     gpu_compute_active_force_set_forces(group_size,
-                                     d_rtag.data,
-                                     d_groupTags.data,
+                                     d_index_array.data,
                                      d_force.data,
                                      d_torque.data,
                                      d_pos.data,
@@ -123,8 +120,8 @@ void ActiveForceComputeGPU::rotationalDiffusion(unsigned int timestep)
     ArrayHandle<Scalar4> d_f_actVec(m_f_activeVec, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_pos(m_pdata -> getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
-    ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_groupTags(m_group->getIndexArray(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
 
     assert(d_pos.data != NULL);
 
@@ -132,8 +129,8 @@ void ActiveForceComputeGPU::rotationalDiffusion(unsigned int timestep)
     unsigned int group_size = m_group->getNumMembers();
 
     gpu_compute_active_force_rotational_diffusion(group_size,
-                                                d_rtag.data,
-                                                d_groupTags.data,
+                                                d_tag.data,
+                                                d_index_array.data,
                                                 d_pos.data,
                                                 d_orientation.data,
                                                 d_f_actVec.data,
@@ -158,16 +155,14 @@ void ActiveForceComputeGPU::setConstraint()
     ArrayHandle<Scalar4> d_f_actVec(m_f_activeVec, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_pos(m_pdata -> getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
-    ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_groupTags(m_group->getIndexArray(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
     assert(d_pos.data != NULL);
 
     unsigned int group_size = m_group->getNumMembers();
 
     gpu_compute_active_force_set_constraints(group_size,
-                                             d_rtag.data,
-                                             d_groupTags.data,
+                                             d_index_array.data,
                                              d_pos.data,
                                              d_orientation.data,
                                              d_f_actVec.data,

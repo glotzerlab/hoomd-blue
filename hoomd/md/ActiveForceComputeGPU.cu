@@ -18,8 +18,7 @@ using namespace hoomd;
 
 //! Kernel for setting active force vectors on the GPU
 /*! \param group_size number of particles
-    \param d_rtag convert global tag to global index
-    \param d_groupTags stores list to convert group index to global tag
+    \param d_index_array stores list to convert group index to global tag
     \param d_force particle force on device
     \param d_torque particle torque on device
     \param d_orientation particle orientation on device
@@ -32,8 +31,7 @@ using namespace hoomd;
     \param orientationLink check if particle orientation is linked to active force vector
 */
 __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int group_size,
-                                                    unsigned int *d_rtag,
-                                                    unsigned int *d_groupTags,
+                                                    unsigned int *d_index_array,
                                                     Scalar4 *d_force,
                                                     Scalar4 *d_torque,
                                                     const Scalar4 *d_pos,
@@ -50,8 +48,7 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int gr
     if (group_idx >= group_size)
         return;
 
-    unsigned int tag = __ldg(d_groupTags + group_idx);
-    unsigned int idx = __ldg(d_rtag + tag);
+    unsigned int idx = d_index_array[group_idx];
     Scalar4 posidx = __ldg(d_pos + idx);
     unsigned int type = __scalar_as_int(posidx.w);
 
@@ -76,8 +73,7 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int gr
 
 //! Kernel for adjusting active force vectors to align parallel to an ellipsoid surface constraint on the GPU
 /*! \param group_size number of particles
-    \param d_rtag convert global tag to global index
-    \param d_groupTags stores list to convert group index to global tag
+    \param d_index_array stores list to convert group index to global tag
     \param d_pos particle positions on device
     \param d_f_actVec particle active force unit vector
     \param P position of the ellipsoid constraint
@@ -86,8 +82,7 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int gr
     \param rz radius of the ellipsoid in z direction
 */
 __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned int group_size,
-                                                   unsigned int *d_rtag,
-                                                   unsigned int *d_groupTags,
+                                                   unsigned int *d_index_array,
                                                    const Scalar4 *d_pos,
                                                    Scalar4 *d_orientation,
                                                    const Scalar4 *d_f_actVec,
@@ -100,8 +95,7 @@ __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned i
     if (group_idx >= group_size)
         return;
 
-    unsigned int tag = __ldg(d_groupTags + group_idx);
-    unsigned int idx = __ldg(d_rtag + tag);
+    unsigned int idx = d_index_array[group_idx];
     Scalar4 posidx = __ldg(d_pos + idx);
     unsigned int type = __scalar_as_int(posidx.w);
 
@@ -153,8 +147,7 @@ __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned i
 
 //! Kernel for applying rotational diffusion to active force vectors on the GPU
 /*! \param group_size number of particles
-    \param d_rtag convert global tag to global index
-    \param d_groupTags stores list to convert group index to global tag
+    \param d_index_array stores list to convert group index to global tag
     \param d_pos particle positions on device
     \param d_f_actVec particle active force unit vector
     \param P position of the ellipsoid constraint
@@ -166,8 +159,8 @@ __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned i
     \param seed seed for random number generator
 */
 __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsigned int group_size,
-                                                   unsigned int *d_rtag,
-                                                   unsigned int *d_groupTags,
+                                                   unsigned int *d_tag,
+                                                   unsigned int *d_index_array,
                                                    const Scalar4 *d_pos,
                                                    Scalar4 *d_orientation,
                                                    const Scalar4 *d_f_actVec,
@@ -184,14 +177,14 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
     if (group_idx >= group_size)
         return;
 
-    unsigned int tag = __ldg(d_groupTags + group_idx);
-    unsigned int idx = __ldg(d_rtag + tag);
+    unsigned int idx = d_index_array[group_idx];
     Scalar4 posidx = __ldg(d_pos + idx);
     unsigned int type = __scalar_as_int(posidx.w);
+    unsigned int ptag = d_tag[group_idx];
 
     quat<Scalar> quati( __ldg(d_orientation + idx));
 
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::ActiveForceCompute, seed, tag, timestep);
+    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::ActiveForceCompute, seed, ptag, timestep);
 
     if (is2D) // 2D
         {
@@ -268,8 +261,7 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
 
 
 hipError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
-                                           unsigned int *d_rtag,
-                                           unsigned int *d_groupTags,
+                                           unsigned int *d_index_array,
                                            Scalar4 *d_force,
                                            Scalar4 *d_torque,
                                            const Scalar4 *d_pos,
@@ -290,8 +282,7 @@ hipError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
     // run the kernel
     hipMemset(d_force, 0, sizeof(Scalar4)*N);
     hipLaunchKernelGGL((gpu_compute_active_force_set_forces_kernel), dim3(grid), dim3(threads), 0, 0,  group_size,
-                                                                    d_rtag,
-                                                                    d_groupTags,
+                                                                    d_index_array,
                                                                     d_force,
                                                                     d_torque,
                                                                     d_pos,
@@ -307,8 +298,7 @@ hipError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
     }
 
 hipError_t gpu_compute_active_force_set_constraints(const unsigned int group_size,
-                                                   unsigned int *d_rtag,
-                                                   unsigned int *d_groupTags,
+                                                   unsigned int *d_index_array,
                                                    const Scalar4 *d_pos,
                                                    Scalar4 *d_orientation,
                                                    const Scalar4 *d_f_actVec,
@@ -324,8 +314,7 @@ hipError_t gpu_compute_active_force_set_constraints(const unsigned int group_siz
 
     // run the kernel
     hipLaunchKernelGGL((gpu_compute_active_force_set_constraints_kernel), dim3(grid), dim3(threads), 0, 0, group_size,
-                                                                    d_rtag,
-                                                                    d_groupTags,
+                                                                    d_index_array,
                                                                     d_pos,
                                                                     d_orientation,
                                                                     d_f_actVec,
@@ -337,8 +326,8 @@ hipError_t gpu_compute_active_force_set_constraints(const unsigned int group_siz
     }
 
 hipError_t gpu_compute_active_force_rotational_diffusion(const unsigned int group_size,
-                                                       unsigned int *d_rtag,
-                                                       unsigned int *d_groupTags,
+                                                       unsigned int *d_tag,
+                                                       unsigned int *d_index_array,
                                                        const Scalar4 *d_pos,
                                                        Scalar4 *d_orientation,
                                                        const Scalar4 *d_f_actVec,
@@ -358,8 +347,8 @@ hipError_t gpu_compute_active_force_rotational_diffusion(const unsigned int grou
 
     // run the kernel
     hipLaunchKernelGGL((gpu_compute_active_force_rotational_diffusion_kernel), dim3(grid), dim3(threads), 0, 0, group_size,
-                                                                    d_rtag,
-                                                                    d_groupTags,
+                                                                    d_tag,
+                                                                    d_index_array,
                                                                     d_pos,
                                                                     d_orientation,
                                                                     d_f_actVec,
