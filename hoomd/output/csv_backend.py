@@ -230,8 +230,8 @@ class _CSVInternal(_InternalAction):
         Will also write header when logged quantites are determined to have
         changed.
         """
+        output_dict = self._get_log_dict()
         if self._comm is not None and self._comm.rank == 0:
-            output_dict = self._get_log_dict()
             # determine if a header needs to be written. This is always the case
             # for the first call of act, and if the logged quantities change
             # within a run.
