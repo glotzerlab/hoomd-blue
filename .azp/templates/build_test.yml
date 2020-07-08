@@ -53,6 +53,11 @@ steps:
     # workaround issues on Mac
     TMPDIR: /tmp
 
+- script: cat pytest.out.1
+  displayName: Display rank 1 output
+  workingDirectory: $(Pipeline.Workspace)/install
+  condition: and(or(succeeded(), failed()), eq(variables['enable_mpi'], 'on'))
+
 - script: >-
     PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
     python3 -m pytest -v -ra -m "cupy_optional"
@@ -78,7 +83,8 @@ steps:
 - script: cat pytest.out.1
   displayName: Display rank 1 output
   workingDirectory: $(Pipeline.Workspace)/install
-  condition: and(or(succeeded(), failed()), eq(variables['enable_mpi'], 'on'))
+  condition: and(or(succeeded(), failed()), eq(variables['enable_mpi'], 'on'),
+                 eq(variables['enable_gpu'], 'on'))
 
 - script: >-
     PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
