@@ -100,7 +100,7 @@ class BoxResize(_Updater):
             return None
 
     @staticmethod
-    def apply(state, box):
+    def update(state, box):
         """Immediately scale the particle in the system state to the given box.
 
         Args:
