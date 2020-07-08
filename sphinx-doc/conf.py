@@ -48,7 +48,7 @@ else:
     autodoc_default_options = {'inherited-members': None};
     #pass
 
-autodoc_mock_imports = ['numpy','h5py'];
+autodoc_mock_imports = []
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

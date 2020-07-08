@@ -140,7 +140,8 @@ stages:
       options: -u 0
 
     steps:
-    - template: templates/build_test.yml
+    - template: templates/build.yml
+    - template: templates/run_tests.yml
 
 - stage: build_validate_nvidia
   displayName: Validate (NVIDIA GPU)
@@ -191,7 +192,8 @@ stages:
       clean: all
 
     steps:
-    - template: templates/build_test.yml
+    - template: templates/build.yml
+    - template: templates/run_tests.yml
 
 - stage: build_validate_amd
   displayName: Validate (AMD GPU)
@@ -246,4 +248,5 @@ stages:
       displayName: Add render group
     - script: sudo usermod -G render `whoami`
       displayName: Add user to render group
-    - template: templates/build_test.yml
+    - template: templates/build.yml
+    - template: templates/run_tests.yml
