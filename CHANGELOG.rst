@@ -610,7 +610,7 @@ v2.2.4 (2018-03-05)
 
 -  Fix a rare error in ``md.nlist.tree`` when particles are very close
    to each other.
--  Fix deadlock when ``init.read_getar`` is given different file names
+-  Fix deadlock when ```init.read_getar``` is given different file names
    on different ranks.
 -  Sample from the correct uniform distribution of depletants in a
    sphere cap with ``depletant_mode='overlap_regions'`` on the CPU
@@ -831,7 +831,7 @@ v2.1.8 (2017-07-19)
 
 *Bug fixes*
 
--  ``init.read_getar`` now correctly restores static quantities when
+-  ```init.read_getar``` now correctly restores static quantities when
    given a particular frame.
 -  Fix bug where many short calls to ``run()`` caused incorrect results
    when using ``md.integrate.langevin``.

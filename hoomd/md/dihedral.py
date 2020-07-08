@@ -54,7 +54,7 @@ class _Dihedral(_Force):
 class Harmonic(_Dihedral):
     R""" Harmonic dihedral potential.
 
-    :py:class:`harmonic` specifies a harmonic dihedral potential energy between
+    :py:class:`Harmonic` specifies a harmonic dihedral potential energy between
     every defined dihedral quadruplet of particles in the simulation:
 
     .. math::
@@ -73,8 +73,7 @@ class Harmonic(_Dihedral):
       defaults to 0.0
 
     Coefficients :math:`k`, :math:`d`, :math:`n` must be set for each type of
-    dihedral in the simulation using :py:meth:`dihedral_coeff.set()
-    <coeff.set()>`.
+    dihedral in the simulation using ``dihedral_coeff``.
 
     Examples::
 
@@ -114,7 +113,7 @@ class table(force._force):
     Parameters:
 
     - :math:`T_{\mathrm{user}}(\theta)` and :math:`V_{\mathrm{user}} (\theta)` - evaluated by ``func`` (see example)
-    - coefficients passed to `func` - `coeff` (see example)
+    - coefficients passed to ``func`` - ``coeff`` (see example)
 
     .. rubric:: Set table from a given function
 
@@ -287,7 +286,7 @@ class table(force._force):
 class OPLS(_Dihedral):
     R""" OPLS dihedral force
 
-    :py:class:`opls` specifies an OPLS-style dihedral potential energy between
+    :py:class:`OPLS` specifies an OPLS-style dihedral potential energy between
     every defined dihedral.
 
     .. math::
@@ -301,7 +300,6 @@ class OPLS(_Dihedral):
     :math:`k_n` are the force coefficients in the Fourier series (in energy
     units).
 
-    Example::
     """
 
     _cpp_class_name = "OPLSDihedralForceCompute"

@@ -152,7 +152,8 @@ if (
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/HIP/include/hip/hip_runtime.h OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/quickhull/ConvexHull.hpp OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/random123/include/Random123/philox.h OR
-    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/neighbor/neighbor/LBVH.h
+    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/neighbor/include/neighbor/neighbor.h OR
+    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/hipper/include/hipper/hipper_runtime.h
     )
 
     if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git)

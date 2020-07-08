@@ -100,7 +100,7 @@ class _streaming_method(hoomd.meta._metadata):
 
         Enabling the streaming method adds it to the current MPCD system definition.
         Only one streaming method can be attached to the system at any time.
-        If another method is already set, :py:meth:`disable()` must be called
+        If another method is already set, ``disable`` must be called
         first before switching. Streaming will occur when the timestep is the next
         multiple of *period*.
 

@@ -53,8 +53,7 @@ autodoc_docstring_signature = True;
 # else:
 #     autodoc_default_options = {'inherited-members': None};
 
-autodoc_mock_imports = ['h5py',
-                        'hoomd._hoomd',
+autodoc_mock_imports = ['hoomd._hoomd',
                         'hoomd.md._md',
                         'hoomd.metal._metal',
                         'hoomd.mpcd._mpcd',

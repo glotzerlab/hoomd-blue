@@ -1,34 +1,4 @@
 steps:
-- checkout: self
-  submodules: true
-
-- task: CMake@1
-  inputs:
-    cmakeArgs: >-
-      $(Build.SourcesDirectory)
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo
-      -DENABLE_GPU=$(enable_gpu)
-      -DENABLE_MPI=$(enable_mpi)
-      -DENABLE_TBB=$(enable_tbb)
-      -DBUILD_VALIDATION=$(build_validation)
-      -DBUILD_TESTING=$(build_testing)
-      -DBUILD_JIT=$(build_jit)
-      -DLLVM_DIR=/usr/lib/llvm-$(llvm_version)/cmake
-      -DBUILD_DEPRECATED=off
-      -DALWAYS_USE_MANAGED_MEMORY=$(always_use_managed_memory)
-      -DTEST_CPU_IN_GPU_BUILDS=off
-      -DCMAKE_INSTALL_PREFIX=$(Pipeline.Workspace)/install
-    workingDirectory: $(Build.BinariesDirectory)
-
-# hipcc is currently not supported with ninja
-- script: make -j 4
-  displayName: Compile
-  workingDirectory: $(Build.BinariesDirectory)
-
-- script: make install -j 4
-  displayName: Install
-  workingDirectory: $(Build.BinariesDirectory)
-
 - script: >-
     PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
     python3 -m pytest -v -ra

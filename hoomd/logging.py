@@ -54,8 +54,8 @@ class LoggerQuantity:
 
     Args:
         name (str): The name of the quantity.
-        cls (class object): The class that the quantity comes from.
-        flag (str, optional): The type of quantity it is. Valid values include
+        cls (``class object``): The class that the quantity comes from.
+        flag (str): The type of quantity it is. Valid values include
             scalar, multi (array-like), particle (per particle quantity), bond,
             angle, dihedral, constraint, pair, dict (a mapping of multiple
             logged quantity names with their values), and object.
@@ -93,7 +93,7 @@ class LoggerQuantity:
         to be updated to the subclass.
 
         Args:
-            cls (class object): The class to update the namespace with.
+            cls (``class object``): The class to update the namespace with.
         """
         self.namespace = generate_namespace(cls)
         return self
@@ -102,9 +102,9 @@ class LoggerQuantity:
 class Logger(SafeNamespaceDict):
     '''Logs HOOMD-blue operation data and custom quantities.'''
 
-    def __init__(self, accepted_flags=None):
-        accepted_flags = [] if accepted_flags is None else accepted_flags
-        self._flags = accepted_flags
+    def __init__(self, flags=None):
+        flags = [] if flags is None else flags
+        self._flags = flags
         super().__init__()
 
     def _grab_log_quantities_from_names(self, obj, quantities):
@@ -199,6 +199,10 @@ class Logger(SafeNamespaceDict):
 
     def log(self):
         return dict_map(self._dict, self._log_conversion)
+
+    @property
+    def flags(self):
+        return self._flags
 
     def _log_conversion(self, obj_prop_tuple):
         obj, prop, flag = obj_prop_tuple

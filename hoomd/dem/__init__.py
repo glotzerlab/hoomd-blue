@@ -37,21 +37,21 @@ Integration
 To allow particles to rotate, use integrators which can update
 rotational degrees of freedom:
 
-  * :py:mod:`hoomd.md.integrate.nve`
-  * :py:mod:`hoomd.md.integrate.nvt`
-  * :py:mod:`hoomd.md.integrate.npt`
-  * :py:mod:`hoomd.md.integrate.langevin`
-  * :py:mod:`hoomd.md.integrate.brownian`
+  * :py:mod:`hoomd.md.methods.nve`
+  * ``hoomd.md.methods.NVT``
+  * ``hoomd.md.methods.npt``
+  * :py:mod:`hoomd.md.methods.Langevin`
+  * :py:mod:`hoomd.md.methods.brownian`
 
 Note that the Nosé-Hoover thermostats used in
-:py:mod:`hoomd.md.integrate.nvt` and :py:mod:`hoomd.md.integrate.npt`
+``hoomd.md.methods.nvt`` and ``hoomd.md.methods.nvt``
 work by rescaling momenta and angular momenta. This can lead to
 instabilities in the start of the simulation if particles are
 initialized with 0 angular momentum and no neighbor interactions. Two
 easy fixes for this problem are to initialize each particle with some
 angular momentum or to first run for a few steps with
-:py:mod:`hoomd.md.integrate.langevin` or
-:py:mod:`hoomd.md.integrate.brownian`.
+:py:mod:`hoomd.md.methods.Langevin` or
+:py:mod:`hoomd.md.methods.brownian`.
 
 Data Storage
 ------------
