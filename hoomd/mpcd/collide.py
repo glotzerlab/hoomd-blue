@@ -65,7 +65,7 @@ class _collision_method(hoomd.meta._metadata):
         """ Embed a particle group into the MPCD collision
 
         Args:
-            group (:py:mod:`hoomd.group`): Group of particles to embed
+            group (``hoomd.group``): Group of particles to embed
 
         The *group* is embedded into the MPCD collision step and cell properties.
         During collisions, the embedded particles are included in determining
@@ -74,7 +74,7 @@ class _collision_method(hoomd.meta._metadata):
 
         No integrator is generated for *group*. Usually, you will need to create
         a separate method to integrate the embedded particles. The recommended
-        (and most common) integrator to use is :py:class:`~hoomd.md.integrate.nve`.
+        (and most common) integrator to use is :py:class:`~hoomd.md.methods.nve`.
         It is generally **not** a good idea to use a thermostatting integrator for
         the embedded particles, since the MPCD particles themselves already act
         as a heat bath that will thermalize the embedded particles.
@@ -99,7 +99,7 @@ class _collision_method(hoomd.meta._metadata):
 
         Enabling the collision method adds it to the current MPCD system definition.
         Only one collision method can be attached to the system at any time.
-        If another method is already set, :py:meth:`disable()` must be called
+        If another method is already set, ``disable`` must be called
         first before switching.
 
         """
@@ -163,7 +163,7 @@ class at(_collision_method):
         period (int): Number of integration steps between collisions
         kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set
             point for the thermostat (in energy units).
-        group (:py:mod:`hoomd.group`): Group of particles to embed in collisions
+        group (``hoomd.group``): Group of particles to embed in collisions
 
     This class implements the Andersen thermostat collision rule for MPCD, as described
     by `Allahyarov and Gompper <https://doi.org/10.1103/PhysRevE.66.036702>`_.
@@ -179,7 +179,7 @@ class at(_collision_method):
     Note:
         The *period* must be chosen as a multiple of the MPCD
         :py:mod:`~hoomd.mpcd.stream` period. Other values will result in an
-        error when :py:meth:`hoomd.run()` is called.
+        error when ```hoomd.run``` is called.
 
     When the total mean-free path of the MPCD particles is small, the underlying
     MPCD cell list must be randomly shifted in order to ensure Galilean
@@ -188,9 +188,9 @@ class at(_collision_method):
     :py:meth:`set_params()` if you are sure that you do not want to use it.
 
     HOOMD particles in *group* can be embedded into the collision step (see
-    :py:meth:`embed()`). A separate integration method (:py:mod:`~hoomd.md.integrate`)
+    ``embed``). A separate integration method (:py:mod:`~hoomd.md.methods`)
     must be specified in order to integrate the positions of particles in *group*.
-    The recommended integrator is :py:class:`~hoomd.md.integrate.nve`.
+    The recommended integrator is :py:class:`~hoomd.md.methods.nve`.
 
     Examples::
 
@@ -262,7 +262,7 @@ class srd(_collision_method):
         kT (:py:mod:`hoomd.variant` or :py:obj:`float` or bool): Temperature set
             point for the thermostat (in energy units). If False (default), no
             thermostat is applied and an NVE simulation is run.
-        group (:py:mod:`hoomd.group`): Group of particles to embed in collisions
+        group (``hoomd.group``): Group of particles to embed in collisions
 
     This class implements the classic stochastic rotation dynamics collision
     rule for MPCD as first proposed by `Malevanets and Kapral <http://dx.doi.org/10.1063/1.478857>`_.
@@ -278,7 +278,7 @@ class srd(_collision_method):
     Note:
         The *period* must be chosen as a multiple of the MPCD
         :py:mod:`~hoomd.mpcd.stream` period. Other values will
-        result in an error when :py:meth:`hoomd.run()` is called.
+        result in an error when ```hoomd.run``` is called.
 
     When the total mean-free path of the MPCD particles is small, the underlying
     MPCD cell list must be randomly shifted in order to ensure Galilean
@@ -287,9 +287,9 @@ class srd(_collision_method):
     :py:meth:`set_params()` if you are sure that you do not want to use it.
 
     HOOMD particles in *group* can be embedded into the collision step (see
-    :py:meth:`embed()`). A separate integration method (:py:mod:`~hoomd.md.integrate`)
+    ``embed()``). A separate integration method (:py:mod:`~hoomd.md.methods`)
     must be specified in order to integrate the positions of particles in *group*.
-    The recommended integrator is :py:class:`~hoomd.md.integrate.nve`.
+    The recommended integrator is :py:class:`~hoomd.md.methods.nve`.
 
     The SRD method naturally imparts the NVE ensemble to the system comprising
     the MPCD particles and *group*. Accordingly, the system must be properly

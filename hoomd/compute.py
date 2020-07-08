@@ -69,8 +69,8 @@ class _compute:
 
             c.disable()
 
-        Executing the disable command will remove the compute from the system. Any :py:meth:`hoomd.run()` command
-        executed after disabling a compute will not be able to log computed values with :py:class:`hoomd.analyze.log`.
+        Executing the disable command will remove the compute from the system. Any ```hoomd.run``` command
+        executed after disabling a compute will not be able to log computed values with ``hoomd.analyze.log``.
 
         A disabled compute can be re-enabled with :py:meth:`enable()`.
         """
@@ -92,7 +92,7 @@ class _compute:
 
             c.enable()
 
-        See :py:meth:`disable()`.
+        See ``disable``.
         """
         self.check_initialization();
 
@@ -135,15 +135,15 @@ class thermo(_compute):
     R""" Compute thermodynamic properties of a group of particles.
 
     Args:
-        group (:py:mod:`hoomd.group`): Group to compute thermodynamic properties for.
+        group (``hoomd.group``): Group to compute thermodynamic properties for.
 
     :py:class:`hoomd.compute.thermo` acts on a given group of particles and calculates thermodynamic properties of those particles when
     requested. A default :py:class:`hoomd.compute.thermo` is created that operates on the group of all particles. Integration methods
-    such as :py:class:`hoomd.md.integrate.nvt` automatically create an internal :py:class:`hoomd.compute.thermo` for the group that they operate on.
+    such as ``hoomd.md.integrate.nvt`` automatically create an internal :py:class:`hoomd.compute.thermo` for the group that they operate on.
     If thermodynamic properties are needed on additional groups, a user can specify additional :py:class:`hoomd.compute.thermo` commands.
 
     Whether they are automatically created or created by a user, all specified thermos are available for logging via
-    the :py:class:`hoomd.analyze.log` command. Each one provides a set of quantities for logging, suffixed with *_groupname*, so that
+    the ``hoomd.analyze.log`` command. Each one provides a set of quantities for logging, suffixed with *_groupname*, so that
     values for different groups are differentiated in the log file. The default :py:class:`hoomd.compute.thermo` specified on the group
     of all particles has no suffix placed on its quantity names.
 
@@ -187,7 +187,7 @@ class thermo(_compute):
                            \sum_{k\in[0..N)} \sum_{l > k} \frac{1}{2} \left(\vec{r}_{kl,i} \vec{F}_{kl,j} + \vec{r}_{kl,j} \vec{F}_{kl, i} \right) \right]/V
 
     See Also:
-        :py:class:`hoomd.analyze.log`.
+        ``hoomd.analyze.log``.
 
     Examples::
 
@@ -231,8 +231,8 @@ class thermo(_compute):
 
             my_thermo.disable()
 
-        Executing the disable command will remove the thermo compute from the system. Any :py:meth:`hoomd.run()` command
-        executed after disabling a thermo compute will not be able to log computed values with :py:class:`hoomd.analyze.log`.
+        Executing the disable command will remove the thermo compute from the system. Any ```hoomd.run``` command
+        executed after disabling a thermo compute will not be able to log computed values with ``hoomd.analyze.log``.
 
         A disabled thermo compute can be re-enabled with :py:meth:`enable()`.
         """
@@ -248,7 +248,7 @@ class thermo(_compute):
 
             my_thermo.enable()
 
-        See :py:meth:`disable()`.
+        See ``disable``.
         """
 
         _compute.enable(self)
@@ -259,7 +259,7 @@ class thermoHMA(_compute):
     R""" Compute HMA thermodynamic properties of a group of particles.
 
     Args:
-        group (:py:mod:`hoomd.group`): Group to compute thermodynamic properties for.
+        group (``hoomd.group``): Group to compute thermodynamic properties for.
         temperature (float): Temperature
         harmonicPressure (float): Harmonic contribution to the pressure.  If ommitted, the HMA pressure can still be
             computed, but will be similar in precision to the conventional pressure.
@@ -270,7 +270,7 @@ class thermoHMA(_compute):
     HMA from providing improvement.  HMA tracks displacements from the lattice positions, which are saved when the
     :py:class:`hoomd.compute.thermoHMA` is instantiated.
 
-    The specified properties are available for logging via the :py:class:`hoomd.analyze.log` command. Each one provides
+    The specified properties are available for logging via the ``hoomd.analyze.log`` command. Each one provides
     a set of quantities for logging, suffixed with *_groupname*, so that values for different groups are differentiated
     in the log file. The default :py:class:`hoomd.compute.thermoHMA` specified on the group of all particles has no suffix
     placed on its quantity names.
@@ -283,7 +283,7 @@ class thermoHMA(_compute):
       system (in pressure units)
 
     See Also:
-        :py:class:`hoomd.analyze.log`.
+        ``hoomd.analyze.log``.
 
     Examples::
 
@@ -318,8 +318,8 @@ class thermoHMA(_compute):
 
             my_thermo.disable()
 
-        Executing the disable command will remove the thermoHMA compute from the system. Any :py:meth:`hoomd.run()` command
-        executed after disabling a thermoHMA compute will not be able to log computed values with :py:class:`hoomd.analyze.log`.
+        Executing the disable command will remove the thermoHMA compute from the system. Any ```hoomd.run``` command
+        executed after disabling a thermoHMA compute will not be able to log computed values with ``hoomd.analyze.log``.
 
         A disabled thermoHMA compute can be re-enabled with :py:meth:`enable()`.
         """
@@ -333,7 +333,7 @@ class thermoHMA(_compute):
 
             my_thermo.enable()
 
-        See :py:meth:`disable()`.
+        See ``disable``.
         """
         _compute.enable(self)
 

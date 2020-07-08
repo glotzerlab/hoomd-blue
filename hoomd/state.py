@@ -159,7 +159,7 @@ class State:
 
     @property
     def box(self):
-        """The state's box (a :py:class:`hoomd.box.Box` object).
+        """The state's box (a :py:class:`hoomd.Box` object).
 
         Ediing the box directly is not allowed.  For example
         ``state.box.scale(1.1)`` would not scale the state's box. To set the

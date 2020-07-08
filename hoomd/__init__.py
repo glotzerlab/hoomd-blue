@@ -50,6 +50,7 @@ from hoomd import util
 from hoomd import variant
 from hoomd import lattice
 from hoomd import device
+from hoomd import trigger
 try:
     from hoomd import md
 except ImportError:

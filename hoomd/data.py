@@ -272,7 +272,7 @@ It behaves like standard python list in many ways.
     >>> print system.particles.types
     Particle types: ['A']
 
-* Particle types can be added between :py:func:`hoomd.run()` commands::
+* Particle types can be added between ```hoomd.run``` commands::
 
     >>> system.particles.types.add('newType')
 

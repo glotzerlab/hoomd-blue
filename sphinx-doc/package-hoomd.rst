@@ -39,6 +39,7 @@ hoomd
    module-hoomd-device
    module-hoomd-dump
    module-hoomd-filter
+   module-hoomd-integrate
    module-hoomd-logging
    module-hoomd-triggers
    module-hoomd-update
