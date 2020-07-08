@@ -116,7 +116,7 @@ class BoxResize(_Updater):
     def linear_volume(cls, box1, box2,
                       t_start, t_size,
                       trigger, scale_particles=True):
-        """Create a BoxResize object that will scale volume/area linearly.
+        """Create a `BoxResize` object that will scale volume/area linearly.
 
         This uses a :class:`hoomd.variant.Power` variant under the hood.
 
@@ -132,8 +132,8 @@ class BoxResize(_Updater):
                 dimensions when the box is resized.
 
         Returns:
-            box_resize (hoomd.update.BoxResize): Returns a ``BoxResize`` object
-            that will scale between the boxes linearly in volume (area for 2D).
+            hoomd.update.BoxResize: An operation that will scale between
+            the boxes linearly in volume (area for 2D).
         """
         box1 = box_preprocessing(box1)
         box2 = box_preprocessing(box2)
