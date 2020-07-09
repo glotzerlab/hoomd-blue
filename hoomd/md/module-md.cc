@@ -144,8 +144,8 @@ void export_pair_params(py::module& m)
     //py::class_<pair_dipole_params>(m, "pair_dipole_params").def(py::init<>());
     //m.def("make_pair_dipole_params", &make_pair_dipole_params);
 
-    py::class_<pair_gb_params>(m, "pair_gb_params").def(py::init<>());
-    m.def("make_pair_gb_params", &make_pair_gb_params);
+    //py::class_<pair_gb_params>(m, "pair_gb_params").def(py::init<>());
+    //m.def("make_pair_gb_params", &make_pair_gb_params);
 }
 
 //! Helper function for converting python wall group structure to wall_type
@@ -251,7 +251,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairFourier>(m, "PotentialPairFourier");
     export_tersoff_params(m);
     export_pair_params(m);
-    //export_AnisoPotentialPair<AnisoPotentialPairGB>(m, "AnisoPotentialPairGB");
+    export_AnisoPotentialPair<AnisoPotentialPairGB>(m, "AnisoPotentialPairGB");
     export_AnisoPotentialPair<AnisoPotentialPairDipole>(m, "AnisoPotentialPairDipole");
     export_PotentialPair<PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJ");
     export_PotentialPairDPDThermo<PotentialPairDPDThermoDPD, PotentialPairDPD>(m, "PotentialPairDPDThermoDPD");
@@ -311,7 +311,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD >(m, "PotentialPairDPDThermoDPDGPU");
     export_PotentialPairGPU<PotentialPairDPDLJGPU, PotentialPairDPDLJ>(m, "PotentialPairDPDLJGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDLJThermoDPDGPU, PotentialPairDPDLJThermoDPD >(m, "PotentialPairDPDLJThermoDPDGPU");
-    //export_AnisoPotentialPairGPU<AnisoPotentialPairGBGPU, AnisoPotentialPairGB>(m, "AnisoPotentialPairGBGPU");
+    export_AnisoPotentialPairGPU<AnisoPotentialPairGBGPU, AnisoPotentialPairGB>(m, "AnisoPotentialPairGBGPU");
     export_AnisoPotentialPairGPU<AnisoPotentialPairDipoleGPU, AnisoPotentialPairDipole>(m, "AnisoPotentialPairDipoleGPU");
     export_PotentialBondGPU<PotentialBondHarmonicGPU, PotentialBondHarmonic>(m, "PotentialBondHarmonicGPU");
     export_PotentialBondGPU<PotentialBondFENEGPU, PotentialBondFENE>(m, "PotentialBondFENEGPU");

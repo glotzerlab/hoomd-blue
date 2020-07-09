@@ -1786,7 +1786,7 @@ class _AnisotropicPair(_Pair):
         else:
             self._nlist = validate_nlist(_NList)(value)
 
-class gb(_AnisotropicPair):
+class GB(_AnisotropicPair):
     R""" Gay-Berne anisotropic pair potential.
 
     Args:
@@ -1851,7 +1851,7 @@ class gb(_AnisotropicPair):
     def __init__(self, nlist, r_cut=None, r_on=0, mode='none'):
         super().__init__(nlist, r_cut, r_on, mode)
         params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(epsilon=float, lperp=float, lpar=float, len_keys=3))
+                               TypeParameterDict(epsilon=float, lperp=float, lpar=float, len_keys=2))
         self._add_typeparam(params)
 
     #def get_type_shapes(self):

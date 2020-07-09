@@ -80,9 +80,9 @@ class EvaluatorPairDipole
     public:
         struct param_type
             {
-            Scalar mu;
-            Scalar A;
-            Scalar kappa;
+            Scalar mu;      //! The magnitude of the magnetic moment.
+            Scalar A;       //! The electrostatic energy scale.
+            Scalar kappa;   //! The inverse screening length.
 
             #ifdef ENABLE_HIP
             //! Set CUDA memory hints
