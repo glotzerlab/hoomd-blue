@@ -6,7 +6,7 @@ from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.md import force
 from hoomd.md import nlist as nl
-from hoomd.md.methods import none_or, create_variant
+from hoomd.md.methods import none_or
 from hoomd.md.nlist import _NList
 from hoomd.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.typeparam import TypeParameter
@@ -903,7 +903,7 @@ class DPD(_Pair):
                                TypeParameterDict(A=float, gamma=float, len_keys=2))
         self._add_typeparam(params)
 
-        d = ParameterDict(kT=create_variant,
+        d = ParameterDict(kT=hoomd.variant.Variant,
                           seed=int,
                           explicit_defaults=dict(kT=kT, seed=seed))
         self._param_dict.update(d)
@@ -1082,7 +1082,7 @@ class DPDLJ(_Pair):
             len_keys=2))
         self._add_typeparam(params)
 
-        d = ParameterDict(kT=create_variant, seed=int, mode=OnlyFrom(['none', 'shifted']),
+        d = ParameterDict(kT=hoomd.variant.Variant, seed=int, mode=OnlyFrom(['none', 'shifted']),
                           explicit_defaults=dict(kT=kT, seed=seed, mode=mode))
         self._param_dict.update(d)
 
