@@ -295,5 +295,9 @@ class CSV(_InternalCustomAnalyzer):
     """
     _internal_class = _CSVInternal
 
-    def act(self, timestep=None):
-        self._action.act(timestep)
+    def write(self):
+        """Write out data to ``self.output``.
+
+        Writes a row from given ``hoomd.logging.Logger`` object data.
+        """
+        self._action.act()

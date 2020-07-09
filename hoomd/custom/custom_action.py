@@ -75,11 +75,6 @@ class Action(metaclass=_AbstractLoggable):
         flags (list[hoomd.custom.Action.Flags]): List of flags from the
             `hoomd.custom.Action.Flags`. Used to tell the integrator if
             specific quantities are needed for the action.
-        log_quantities (dict[str, hoomd.logging.LoggerQuantity]): Dictionary of
-            the name of loggable quantites to the `hoomd.logging.LoggerQuantity`
-            instance for the class method or property. Allows for subclasses of
-            `Action` to specify to a `hoomd.logging.Logger` that is exposes
-            loggable quantities.
     """
     class Flags(IntEnum):
         """Flags to indictate the integrator should calcuate certain quantities.
