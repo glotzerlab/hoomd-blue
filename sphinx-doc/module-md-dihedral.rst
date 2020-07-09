@@ -3,14 +3,14 @@ md.dihedral
 
 .. rubric:: Overview
 
-.. py:currentmodule:: hoomd
+.. py:currentmodule:: hoomd.md.dihedral
 
 .. autosummary::
     :nosignatures:
 
-    md.dihedral.harmonic
-    md.dihedral.opls
-    md.dihedral.table
+    Harmonic
+    OPLS
+    table
 
 .. rubric:: Details
 

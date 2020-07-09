@@ -5,7 +5,7 @@
 
 R""" Set global options.
 
-Options may be set on the command line or from a job script using :py:func:`hoomd.context.initialize()`.
+Options may be set on the command line or from a job script using ``hoomd.context.initialize``.
 The option.set_* commands override any settings made previously.
 
 """

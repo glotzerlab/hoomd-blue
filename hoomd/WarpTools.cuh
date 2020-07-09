@@ -16,10 +16,17 @@
 #endif
 
 #if defined(__HIP_PLATFORM_HCC__)
-#include <hipcub/hipcub.hpp>
+    #include <hipcub/hipcub.hpp>
 #else
-#include "hoomd/extern/cub/cub/warp/warp_reduce.cuh"
-#include "hoomd/extern/cub/cub/warp/warp_scan.cuh"
+    #if __CUDACC_VER_MAJOR__ >= 11
+        #include <cub/cub.cuh>
+        #include <cub/warp/warp_reduce.cuh">
+        #include <cub/warp/warp_scan.cuh">
+    #else
+        #include "hoomd/extern/cub/cub/cub.cuh"
+        #include "hoomd/extern/cub/cub/warp/warp_reduce.cuh"
+        #include "hoomd/extern/cub/cub/warp/warp_scan.cuh"
+    #endif
 #endif
 
 #define DEVICE __device__ __forceinline__

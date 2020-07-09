@@ -3,14 +3,14 @@ md.bond
 
 .. rubric:: Overview
 
-.. py:currentmodule:: hoomd
+.. py:currentmodule:: hoomd.md.bond
 
 .. autosummary::
     :nosignatures:
 
-    md.bond.fene
-    md.bond.harmonic
-    md.bond.table
+    FENE
+    Harmonic
+    table
 
 .. rubric:: Details
 

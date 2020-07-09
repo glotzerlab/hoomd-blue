@@ -172,6 +172,13 @@ BoxDim
             m_hi = L/Scalar(2.0);
             m_lo = -m_hi;
             m_Linv = Scalar(1.0)/L;
+
+            // avoid NaN when Lz == 0
+            if (L.z == Scalar(0.0))
+                {
+                m_Linv.z = 0;
+                }
+
             m_L = L;
             }
 
@@ -199,7 +206,13 @@ BoxDim
             {
             m_hi = hi;
             m_lo = lo;
+
+            // avoid NaN when Lz == 0
             m_Linv = Scalar(1.0)/(m_hi - m_lo);
+            if (m_hi.z == Scalar(0.0) && m_lo.z == Scalar(0.0))
+                {
+                m_Linv.z = 0;
+                }
             m_L = m_hi - m_lo;
             }
 
@@ -516,6 +529,12 @@ BoxDim
             dist.y = m_L.y*fast::rsqrt(Scalar(1.0) + m_yz*m_yz);
             dist.z = m_L.z;
 
+            // avoid NaN when Lz == 0
+            if (m_L.z == Scalar(0.0))
+                {
+                dist.z = Scalar(1.0);
+                }
+
             return dist;
             }
 
@@ -554,6 +573,25 @@ BoxDim
             return make_scalar3(0.0,0.0,0.0);
             }
 
+        HOSTDEVICE bool operator==(const BoxDim& other) const
+            {
+            Scalar3 L1 = getL();
+            Scalar3 L2 = other.getL();
+
+            Scalar xy1 = getTiltFactorXY();
+            Scalar xy2 = other.getTiltFactorXY();
+            Scalar xz1 = getTiltFactorXZ();
+            Scalar xz2 = other.getTiltFactorXZ();
+            Scalar yz1 = getTiltFactorYZ();
+            Scalar yz2 = other.getTiltFactorYZ();
+
+            return L1 == L2 && xy1 == xy2 && xz1 == xz2 && yz1 == yz2;
+            }
+
+        HOSTDEVICE bool operator!=(const BoxDim& other) const
+            {
+            return !((*this) == other);
+            }
         #ifdef ENABLE_MPI
         //! Serialization method
         template<class Archive>

@@ -53,7 +53,7 @@ class Harmonic(_Bond):
     Args:
         name (str): Name of the bond instance.
 
-    :py:class:`harmonic` specifies a harmonic potential energy between the two
+    :py:class:`Harmonic` specifies a harmonic potential energy between the two
     particles in each defined bond.
 
     .. math::
@@ -82,7 +82,7 @@ class FENE(_Bond):
     Args:
         name (str): Name of the bond instance.
 
-    :py:class:`fene` specifies a FENE potential energy between the two particles
+    :py:class:`FENE` specifies a FENE potential energy between the two particles
     in each defined bond.
 
     .. math::
@@ -170,7 +170,7 @@ class table(force._force):
     The following coefficients must be set for each bond type:
 
     - :math:`F_{\mathrm{user}}(r)` and :math:`V_{\mathrm{user}}(r)` - evaluated by ``func`` (see example)
-    - coefficients passed to `func` - ``coeff`` (see example)
+    - coefficients passed to ``func`` - ``coeff`` (see example)
     - :math:`r_{\mathrm{min}}` - ``rmin`` (in distance units)
     - :math:`r_{\mathrm{max}}` - ``rmax`` (in distance units)
 

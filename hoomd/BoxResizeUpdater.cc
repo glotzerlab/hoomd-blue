@@ -23,20 +23,20 @@ namespace py = pybind11;
 
     The default setting is to scale particle positions along with the box.
 */
+
 BoxResizeUpdater::BoxResizeUpdater(std::shared_ptr<SystemDefinition> sysdef,
-                                   std::shared_ptr<Variant> Lx,
-                                   std::shared_ptr<Variant> Ly,
-                                   std::shared_ptr<Variant> Lz,
-                                   std::shared_ptr<Variant> xy,
-                                   std::shared_ptr<Variant> xz,
-                                   std::shared_ptr<Variant> yz)
-    : Updater(sysdef), m_Lx(Lx), m_Ly(Ly), m_Lz(Lz), m_xy(xy), m_xz(xz), m_yz(yz), m_scale_particles(true)
+                                   pybind11::object box1,
+                                   pybind11::object box2,
+                                   std::shared_ptr<Variant> variant)
+    : Updater(sysdef),
+      m_py_box1(box1),
+      m_py_box2(box2),
+      m_box1(getBoxDimFromPyObject(box1)),
+      m_box2(getBoxDimFromPyObject(box2)),
+      m_variant(variant), m_scale_particles(true)
     {
     assert(m_pdata);
-    assert(m_Lx);
-    assert(m_Ly);
-    assert(m_Lz);
-
+    assert(m_variant);
     m_exec_conf->msg->notice(5) << "Constructing BoxResizeUpdater" << endl;
     }
 
@@ -45,15 +45,51 @@ BoxResizeUpdater::~BoxResizeUpdater()
     m_exec_conf->msg->notice(5) << "Destroying BoxResizeUpdater" << endl;
     }
 
-/*! \param scale_particles Set to true to scale particles with the box. Set to false to leave particle positions alone
-    when scaling the box.
-*/
-void BoxResizeUpdater::setParams(bool scale_particles)
+/// Set a new initial box from a python object
+void BoxResizeUpdater::setPyBox1(pybind11::object box1)
     {
-    m_scale_particles = scale_particles;
+    m_py_box1 = box1;
+    m_box1 = getBoxDimFromPyObject(box1);
     }
 
-/*! Perform the needed calculations to scale the box size
+/// Set a new final box from a python object
+void BoxResizeUpdater::setPyBox2(pybind11::object box2)
+    {
+    m_py_box2 = box2;
+    m_box2 = getBoxDimFromPyObject(box2);
+    }
+
+/// Get the current box based on the timestep
+BoxDim BoxResizeUpdater::getCurrentBox(unsigned int timestep)
+{
+Scalar min = m_variant->min();
+Scalar max = m_variant->max();
+Scalar cur_value = (*m_variant)(timestep);
+Scalar scale = 0;
+if (cur_value == max)
+{
+scale = 1;
+}
+else if (cur_value > min)
+{
+scale = (cur_value - min) / (max - min);
+}
+
+Scalar3 new_L = m_box2.getL() * scale +
+            m_box1.getL() * (1.0 - scale);
+Scalar xy = m_box2.getTiltFactorXY() * scale +
+        (1.0 - scale) * m_box1.getTiltFactorXY();
+Scalar xz = m_box2.getTiltFactorXZ() * scale +
+        (1.0 - scale) * m_box1.getTiltFactorXZ();
+Scalar yz = m_box2.getTiltFactorYZ() * scale +
+        (1.0 - scale) * m_box1.getTiltFactorYZ();
+
+BoxDim new_box = BoxDim(new_L);
+new_box.setTiltFactors(xy, xz, yz);
+return new_box;
+}
+
+/** Perform the needed calculations to scale the box size
     \param timestep Current time step of the simulation
 */
 void BoxResizeUpdater::update(unsigned int timestep)
@@ -61,89 +97,93 @@ void BoxResizeUpdater::update(unsigned int timestep)
     m_exec_conf->msg->notice(10) << "Box resize update" << endl;
     if (m_prof) m_prof->push("BoxResize");
 
-    // first, compute what the current box size and tilt factors should be
-    Scalar Lx = (*m_Lx)(timestep);
-    Scalar Ly = (*m_Ly)(timestep);
-    Scalar Lz = (*m_Lz)(timestep);
-    Scalar xy = (*m_xy)(timestep);
-    Scalar xz = (*m_xz)(timestep);
-    Scalar yz = (*m_yz)(timestep);
+    // first, compute the new box
+    BoxDim new_box = getCurrentBox(timestep);
 
     // check if the current box size is the same
-    BoxDim curBox = m_pdata->getGlobalBox();
-    Scalar3 curL = curBox.getL();
-    Scalar curxy = curBox.getTiltFactorXY();
-    Scalar curxz = curBox.getTiltFactorXZ();
-    Scalar curyz = curBox.getTiltFactorYZ();
-
-    // copy and setL + setTiltFactors instead of creating a new box
-    BoxDim newBox = curBox;
-    newBox.setL(make_scalar3(Lx, Ly, Lz));
-    newBox.setTiltFactors(xy,xz,yz);
-
-    bool no_change = fabs((Lx - curL.x) / Lx) < 1e-7 &&
-                     fabs((Ly - curL.y) / Ly) < 1e-7 &&
-                     fabs((Lz - curL.z) / Lz) < 1e-7 &&
-                     fabs((xy - curxy) / xy) < 1e-7 &&
-                     fabs((xz - curxz) / xz) < 1e-7 &&
-                     fabs((yz - curyz) / yz) < 1e-7;
+    BoxDim cur_box = m_pdata->getGlobalBox();
 
     // only change the box if there is a change in the box dimensions
-    if (!no_change)
+    if (new_box != cur_box)
         {
         // set the new box
-        m_pdata->setGlobalBox(newBox);
+        m_pdata->setGlobalBox(new_box);
 
         // scale the particle positions (if we have been asked to)
         if (m_scale_particles)
             {
             // move the particles to be inside the new box
-            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
+                                       access_location::host,
+                                       access_mode::readwrite);
 
             for (unsigned int i = 0; i < m_pdata->getN(); i++)
                 {
                 // obtain scaled coordinates in the old global box
-                Scalar3 f = curBox.makeFraction(make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z));
+                Scalar3 fractional_pos = cur_box.makeFraction(
+                    make_scalar3(h_pos.data[i].x,
+                                 h_pos.data[i].y,
+                                 h_pos.data[i].z));
 
-                // intentionally scale both rigid body and free particles, this may waste a few cycles but it enables
-                // the debug inBox checks to be left as is (otherwise, setRV cannot fixup rigid body positions without
-                // failing the check)
-                Scalar3 scaled_pos = newBox.makeCoordinates(f);
+                // intentionally scale both rigid body and free particles, this
+                // may waste a few cycles but it enables the debug inBox checks
+                // to be left as is (otherwise, setRV cannot fixup rigid body
+                // positions without failing the check)
+                Scalar3 scaled_pos = new_box.makeCoordinates(fractional_pos);
                 h_pos.data[i].x = scaled_pos.x;
                 h_pos.data[i].y = scaled_pos.y;
                 h_pos.data[i].z = scaled_pos.z;
                 }
             }
+        // otherwise, we need to ensure that the particles are still in their
+        // local boxes by wrapping them if they are not
         else
             {
-            // otherwise, we need to ensure that the particles are still in the (local) box
-            // move the particles to be inside the new box
-            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
-            ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
+                                       access_location::host,
+                                       access_mode::readwrite);
+
+            ArrayHandle<int3> h_image(m_pdata->getImages(),
+                                      access_location::host,
+                                      access_mode::readwrite);
 
             const BoxDim& local_box = m_pdata->getBox();
 
             for (unsigned int i = 0; i < m_pdata->getN(); i++)
                 {
-                // need to update the image if we move particles from one side of the box to the other
+                // need to update the image if we move particles from one side
+                // of the box to the other
                 local_box.wrap(h_pos.data[i], h_image.data[i]);
                 }
             }
-
         }
-
     if (m_prof) m_prof->pop();
+    }
+
+BoxDim& getBoxDimFromPyObject(pybind11::object box)
+    {
+    return box.attr("_cpp_obj").cast<BoxDim&>();
     }
 
 void export_BoxResizeUpdater(py::module& m)
     {
-    py::class_<BoxResizeUpdater, Updater, std::shared_ptr<BoxResizeUpdater> >(m,"BoxResizeUpdater")
-    .def(py::init< std::shared_ptr<SystemDefinition>,
-     std::shared_ptr<Variant>,
-     std::shared_ptr<Variant>,
-     std::shared_ptr<Variant>,
-     std::shared_ptr<Variant>,
-     std::shared_ptr<Variant>,
-     std::shared_ptr<Variant> >())
-    .def("setParams", &BoxResizeUpdater::setParams);
+    py::class_<BoxResizeUpdater, Updater,
+               std::shared_ptr<BoxResizeUpdater> >(m,"BoxResizeUpdater")
+    .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                        pybind11::object, pybind11::object,
+                        std::shared_ptr<Variant> >())
+    .def_property("scale_particles",
+                  &BoxResizeUpdater::getScaleParticles,
+                  &BoxResizeUpdater::setScaleParticles)
+    .def_property("box1",
+                  &BoxResizeUpdater::getPyBox1,
+                  &BoxResizeUpdater::setPyBox1)
+    .def_property("box2",
+                  &BoxResizeUpdater::getPyBox2,
+                  &BoxResizeUpdater::setPyBox2)
+    .def_property("variant",
+                  &BoxResizeUpdater::getVariant,
+                  &BoxResizeUpdater::setVariant)
+    .def("get_current_box", &BoxResizeUpdater::getCurrentBox)
+    ;
     }

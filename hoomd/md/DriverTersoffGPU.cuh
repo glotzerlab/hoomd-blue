@@ -12,6 +12,7 @@
 #include "PotentialTersoffGPU.cuh"
 #include "EvaluatorTersoff.h"
 #include "EvaluatorSquareDensity.h"
+#include "EvaluatorRevCross.h"
 
 //! Compute Tersoff forces on the GPU with EvaluatorTersoff
 hipError_t gpu_compute_tersoff_forces(const tersoff_args_t& pair_args,
@@ -20,5 +21,9 @@ hipError_t gpu_compute_tersoff_forces(const tersoff_args_t& pair_args,
 //! Compute CG vdW liquid forces on the GPU with EvaluatorSquareDensity
 hipError_t gpu_compute_sq_density_forces(const tersoff_args_t& pair_args,
                                    const Scalar2 *d_params);
+
+//! Compute RevCross forces on the GPU with EvaluatorRevCross
+hipError_t gpu_compute_revcross_forces(const tersoff_args_t& pair_args,
+                                       const revcross_params *d_params);
 
 #endif

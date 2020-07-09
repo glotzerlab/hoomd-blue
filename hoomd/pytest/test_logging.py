@@ -1,7 +1,7 @@
 from pytest import raises, fixture
-from hoomd.logger import LoggerQuantity, SafeNamespaceDict, Logger, dict_map
-from hoomd.logger import generate_namespace
-from hoomd.logger import Loggable
+from hoomd.logging import (
+    LoggerQuantity, SafeNamespaceDict, Logger,
+    dict_map, generate_namespace, Loggable)
 
 
 class DummyNamespace:
@@ -10,7 +10,7 @@ class DummyNamespace:
 
 @fixture(scope='module')
 def dummy_namespace():
-    return ('pytest', 'test_logger', 'DummyNamespace')
+    return ('pytest', 'test_logging', 'DummyNamespace')
 
 
 # ------- Test LoggerQuantity
@@ -36,10 +36,10 @@ class TestLoggerQuantity:
                 break
 
 
-# ------- Test generate_logger_decorator and associated functions
+# ------- Test generate_logging_decorator and associated functions
 def test_generate_namespace():
     assert generate_namespace(TestLoggerQuantity) == \
-        ('pytest', 'test_logger', 'TestLoggerQuantity')
+        ('pytest', 'test_logging', 'TestLoggerQuantity')
 
 
 class DummyLoggable(metaclass=Loggable):
@@ -188,10 +188,9 @@ def log_quantity():
 def logged_obj():
     return DummyLoggable()
 
-
 @fixture
 def base_namespace():
-    return ('pytest', 'test_logger', 'DummyLoggable')
+    return ('pytest', 'test_logging', 'DummyLoggable')
 
 
 class TestLogger:
@@ -338,7 +337,7 @@ class TestLogger:
         assert dict_namespace in log
 
         # Test remove just given namespaces
-        prop_namespace = ('pytest', 'test_logger',
+        prop_namespace = ('pytest', 'test_logging',
                           'DummyLoggable', 'prop')
         log = Logger()
         log.add(logged_obj)
@@ -402,7 +401,7 @@ class TestLogger:
         log = Logger()
         log += logged_obj
         logged = log.log()
-        inner_dict = logged['pytest']['test_logger']['DummyLoggable']
+        inner_dict = logged['pytest']['test_logging']['DummyLoggable']
         assert inner_dict['prop'] == (logged_obj.prop, 'scalar')
         assert inner_dict['proplist'] == (logged_obj.proplist, 'multi')
         assert inner_dict['propdict'] == logged_obj.propdict

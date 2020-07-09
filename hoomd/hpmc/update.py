@@ -7,7 +7,7 @@
 from . import _hpmc
 from . import integrate
 from hoomd import _hoomd
-from hoomd.logger import Loggable
+from hoomd.logging import Loggable
 from hoomd.update import _updater
 from hoomd.operation import _Updater
 from hoomd.parameterdicts import ParameterDict
@@ -412,7 +412,7 @@ class wall(_updater):
                Then, update.wall only accepts an update move provided by the python callback if it maintains confinement conditions associated with all walls. Otherwise,
                it reverts back to a non-updated copy of the walls.
 
-    Once initialized, the update provides the following log quantities that can be logged via :py:class:`hoomd.analyze.log`:
+    Once initialized, the update provides the following log quantities that can be logged via ``hoomd.analyze.log``:
 
     * **hpmc_wall_acceptance_ratio** - the acceptance ratio for wall update moves
 

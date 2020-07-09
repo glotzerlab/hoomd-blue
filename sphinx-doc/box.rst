@@ -100,7 +100,7 @@ Resizing the box
 ^^^^^^^^^^^^^^^^
 
 The simulation box can be gradually resized during a simulation run using
-:py:class:`hoomd.update.box_resize`.
+:py:class:`hoomd.update.BoxResize`.
 
 To update the tilt factors continuously during the simulation (shearing
 the simulation box with **Lees-Edwards** boundary conditions), use::
@@ -110,7 +110,7 @@ the simulation box with **Lees-Edwards** boundary conditions), use::
 This command applies shear in the :math:`xy` -plane so that the angle between the *x*
 and *y*-directions changes continuously from 0 to :math:`45^\circ` during :math:`10^6` time steps.
 
-:py:class:`hoomd.update.box_resize` can change any or all of the six box parameters.
+:py:class:`hoomd.update.BoxResize` can change any or all of the six box parameters.
 
 NPT or NPH integration
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -118,5 +118,5 @@ NPT or NPH integration
 In a constant pressure ensemble, the box is updated every time step, according to the anisotropic stresses in the
 system. This is supported by:
 
-- :py:class:`hoomd.md.integrate.npt`
-- :py:class:`hoomd.md.integrate.nph`
+- ``hoomd.md.integrate.npt``
+- ``hoomd.md.integrate.nph``

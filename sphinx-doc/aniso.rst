@@ -7,8 +7,8 @@ Overview
 HOOMD-blue natively supports the integration of rotational degrees of freedom. Every particle in a hoomd simulation
 may have rotational degrees of freedom. When any torque-producing potential or constraint is defined in the system,
 integrators automatically integrate both the rotational and translational degrees of freedom of the system.
-Anisotropic integration can also be explicitly enabled or disabled through the ``aniso`` argument of :py:class:`hoomd.md.integrate.mode_standard`.
-:py:class:`hoomd.md.pair.gb`, :py:mod:`hoomd.dem`, :py:class:`hoomd.md.constrain.rigid` are examples of potentials and
+Anisotropic integration can also be explicitly enabled or disabled through the ``aniso`` argument of ``hoomd.md.integrate.mode_standard``.
+``hoomd.md.pair.gb``, :py:mod:`hoomd.dem`, ``hoomd.md.constrain.rigid`` are examples of potentials and
 constraints that produce torques on particles.
 
 The integrators detect what rotational degrees of freedom exist per particle. Each particle has a diagonal moment
@@ -16,7 +16,7 @@ of inertia tensor that specifies the moment of inertia about the 3 principle axe
 frame. Integrators only operate on rotational degrees of freedom about axes where the moment of inertia is non-zero.
 Ensure that you set appropriate moments of inertia for all particles that have them in the system.
 
-Particles have a number of properties related to rotation accessible using the particle data API (:py:mod:`hoomd.data`):
+Particles have a number of properties related to rotation accessible using the particle data API (``hoomd.data``):
 
  - orientation - Quaternion to rotate the particle from its base orientation to its current orientation, in the order :math:`(real, imag_x, imag_y, imag_z)`
  - angular_momentum - Conjugate quaternion representing the particle's angular momentum

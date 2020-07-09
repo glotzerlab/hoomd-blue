@@ -2,6 +2,10 @@ from hoomd._hoomd import ParticleFilter
 
 
 class _ParticleFilter(ParticleFilter):
+    """Base class for all particle filters.
+
+    Should not be instantiated or subclassed by users.
+    """
     def __hash__(self):
         return NotImplementedError("Must implement hash for ParticleFilters.")
 
