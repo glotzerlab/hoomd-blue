@@ -155,6 +155,6 @@ def test_only_string_and_scalar_quantities(device):
     output = StringIO("")
     with pytest.raises(ValueError):
         _ = hoomd.output.CSV(0, logger, output)
-    logger = hoomd.logging.Logger(flags=['multi'])
+    logger = hoomd.logging.Logger(flags=['sequence'])
     with pytest.raises(ValueError):
         _ = hoomd.output.CSV(0, logger, output)

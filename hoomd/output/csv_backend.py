@@ -4,6 +4,7 @@ from sys import stdout
 
 from hoomd.analyze.custom_analyzer import _InternalCustomAnalyzer
 from hoomd.custom.custom_action import _InternalAction
+from hoomd.logging import TypeFlags
 from hoomd.parameterdicts import ParameterDict
 from hoomd.typeconverter import OnlyType
 from hoomd.util import dict_flatten
@@ -130,6 +131,10 @@ class _CSVInternal(_InternalAction):
     quantites, but would be more fragile.
     """
 
+    _invalid_logger_flags = TypeFlags.any(
+        ['sequence', 'object', 'particle', 'bond', 'angle', 'dihedral',
+         'improper', 'pair', 'constraint', 'strings'])
+
     def __init__(self, logger, output=stdout, header_sep='.', delimiter=' ',
                  pretty=True, max_precision=10, max_header_len=None):
         def writable(fh):
@@ -151,9 +156,9 @@ class _CSVInternal(_InternalAction):
         self._param_dict = param_dict
 
         # internal variables that are not part of the state.
-        flags = set(logger.flags)
-        if flags.difference(['scalar', 'string']) != set() \
-                or 'scalar' not in flags:
+        # Ensure that only scalar and potentially string are set for the logger
+        if (TypeFlags.scalar not in logger.flags
+                or logger.flags & self._invalid_logger_flags != TypeFlags.NONE):
             raise ValueError("Given Logger must have the scalar flag set.")
 
         self._logger = logger
@@ -175,7 +180,6 @@ class _CSVInternal(_InternalAction):
         """Get a flattened dict for writing to output."""
         return {key: value[0]
                 for key, value in dict_flatten(self._logger.log()).items()
-                if value[1] in {'string', 'scalar'}
                 }
 
     def _update_headers(self, new_keys):
