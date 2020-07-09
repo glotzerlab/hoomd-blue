@@ -5,7 +5,7 @@ md
 
 .. automodule:: hoomd.md
     :synopsis: Molecular Dynamics.
-    :members:
+    :members: Integrator
 
 .. rubric:: Modules
 
@@ -20,7 +20,7 @@ md
     module-md-external
     module-md-force
     module-md-improper
-    module-md-integrate
+    module-md-methods
     module-md-nlist
     module-md-pair
     module-md-update

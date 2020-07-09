@@ -8,7 +8,7 @@ md.nlist
 .. autosummary::
     :nosignatures:
 
-    md.nlist.cell
+    md.nlist.Cell
     md.nlist.stencil
     md.nlist.tree
 

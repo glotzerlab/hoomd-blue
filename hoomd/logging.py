@@ -54,8 +54,8 @@ class LoggerQuantity:
 
     Args:
         name (str): The name of the quantity.
-        cls (class object): The class that the quantity comes from.
-        flag (str, optional): The type of quantity it is. Valid values include
+        cls (``class object``): The class that the quantity comes from.
+        flag (str): The type of quantity it is. Valid values include
             scalar, multi (array-like), particle (per particle quantity), bond,
             angle, dihedral, constraint, pair, dict (a mapping of multiple
             logged quantity names with their values), and object.
@@ -93,7 +93,7 @@ class LoggerQuantity:
         to be updated to the subclass.
 
         Args:
-            cls (class object): The class to update the namespace with.
+            cls (``class object``): The class to update the namespace with.
         """
         self.namespace = generate_namespace(cls)
         return self
