@@ -1,5 +1,5 @@
 from hoomd import _hoomd
-from hoomd.local_access import (
+from hoomd.data.local_access import (
     _ParticleLocalAccess, _GroupLocalAccess, _LocalSnapshotBase)
 from hoomd.array import HOOMDGPUArray
 
@@ -102,6 +102,9 @@ ghost particles) in a read only array.
 
 All array-like properties return a `hoomd.array.HOOMDGPUArray` object which
 prevents invalid memory accesses.
+
+Note:
+    See the CPU ``LocalAccess`` classes for available properties.
 """
 
 LocalSnapshotGPU.__doc__ = _gpu_snapshot_docs

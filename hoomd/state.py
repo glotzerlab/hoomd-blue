@@ -1,12 +1,10 @@
 from copy import copy
 from collections import defaultdict
-from warnings import warn
 
 from . import _hoomd
 from hoomd.box import Box
 from hoomd.snapshot import Snapshot
-from hoomd.local_access import LocalSnapshot
-from hoomd.local_access_gpu import LocalSnapshotGPU
+from hoomd.data import LocalSnapshot, LocalSnapshotGPU
 
 
 def _create_domain_decomposition(device, box):
@@ -204,12 +202,12 @@ class State:
 
     @property
     def cpu_local_snapshot(self):
-        """hoomd.local_access.LocalSnapshot: Directly expose HOOMD data buffers
+        """hoomd.data.LocalSnapshot: Directly expose HOOMD data buffers
         on the CPU.
 
         Provides access directly to the system state's particle, bond, angle,
         dihedral, improper, constaint, and pair data through a context manager.
-        The `hoomd.local_access.LocalSnapshot` object is only usable within a
+        The `hoomd.data.LocalSnapshot` object is only usable within a
         context manager (i.e. ``with sim.state.cpu_local_snapshot as data:``)
         The interface is similar to that of the `hoomd.Snapshot`. Data is local
         to a given MPI rank. The returned arrays are `hoomd.array.HOOMDArray`
@@ -239,12 +237,12 @@ class State:
 
     @property
     def gpu_local_snapshot(self):
-        """hoomd.local_access_gpu.LocalSnapshotGPU: Directly expose HOOMD data
+        """hoomd.data.LocalSnapshotGPU: Directly expose HOOMD data
         buffers on the GPU.
 
         Provides access directly to the system state's particle, bond, angle,
         dihedral, improper, constaint, and pair data through a context manager.
-        The `hoomd.local_access_gpu.LocalSnapshotGPU` object is only usable
+        The `hoomd.data.LocalSnapshotGPU` object is only usable
         within a context manager (i.e. ``with sim.state.gpu_local_snapshot as
         data:``) The interface is similar to that of the `hoomd.Snapshot`. Data
         is local to a given MPI rank. The returned arrays are

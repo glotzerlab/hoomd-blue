@@ -312,7 +312,6 @@ set(files benchmark.py
           compute.py
           conftest.py
           context.py
-          data.py
           device.py
           dump.py
           group.py
@@ -320,8 +319,6 @@ set(files benchmark.py
           __init__.py
           init.py
           integrate.py
-          local_access.py
-          local_access_gpu.py
           meta.py
           operation.py
           operations.py
@@ -356,6 +353,7 @@ install(FILES ${_hoomd_headers}
 # subdirectories that are not components
 add_subdirectory(analyze)
 add_subdirectory(custom)
+add_subdirectory(data)
 add_subdirectory(filter)
 add_subdirectory(minimize)
 add_subdirectory(output)

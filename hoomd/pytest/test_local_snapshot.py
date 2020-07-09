@@ -1,5 +1,4 @@
-"""Test that `hoomd.local_access.LocalSnapshot` and
-`hoomd.local_access_gpu.LocalSnapshotGPu` work.
+"""Test that `hoomd.data.LocalSnapshot` and hoomd.data.LocalSnapshotGPU` work.
 """
 from copy import deepcopy
 import hoomd
