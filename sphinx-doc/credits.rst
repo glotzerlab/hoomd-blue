@@ -293,6 +293,10 @@ Geert Kapteijns, University of Amsterdam
 
   * Bug fixes.
 
+Charlie Slominski, Caltech
+
+  * HOOMD-blue as a submodule
+
 HPMC developers
 ---------------
 
