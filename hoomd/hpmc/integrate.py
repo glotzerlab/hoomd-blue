@@ -3,12 +3,12 @@
 # License.
 
 from hoomd import _hoomd
-from hoomd.parameterdicts import TypeParameterDict
-from hoomd.parameterdicts import ParameterDict
+from hoomd.parameterdicts import TypeParameterDict, ParameterDict
+from hoomd.typeconverter import OnlyIf, to_type_converter
 from hoomd.typeparam import TypeParameter
 from hoomd.hpmc import _hpmc
 from hoomd.integrate import _BaseIntegrator
-from hoomd.logger import Loggable
+from hoomd.logging import Loggable
 import hoomd
 import json
 
@@ -39,10 +39,10 @@ class _HPMCIntegrator(_BaseIntegrator):
 
     .. rubric:: Hard particle Monte Carlo
 
-    In hard particle Monte Carlo systems, the particles in the `Simulation`
-    `State` are extended objects with positions and orientations. During
-    each time step of a `Simulation.run`, `nselect` trial moves are attempted
-    for each particle in the system.
+    In hard particle Monte Carlo systems, the particles in the
+    `hoomd.Simulation` `hoomd.State` are extended objects with positions and
+    orientations. During each time step of a `hoomd.Simulation.run`, `nselect`
+    trial moves are attempted for each particle in the system.
 
     A trial move may be a rotation or a translation move, selected randomly
     according to the `move_ratio`. Translation trial moves are selected randomly
@@ -82,18 +82,18 @@ class _HPMCIntegrator(_BaseIntegrator):
     .. rubric:: Parameters
 
     Attributes:
-        a (TypeParameter[particle type, float]):
+        a (TypeParameter[``particle type``, float]):
             Maximum size of rotation trial moves.
 
-        d (TypeParameter[particle type, float]):
+        d (TypeParameter[``particle type``, float]):
             Maximum size of displacement trial moves
             (distance units).
 
-        fugacity (TypeParameter[particle type, float]):
+        fugacity (TypeParameter[``particle type``, float]):
             Depletant fugacity (in units of 1/volume) (**default:** ``0``)
 
         interaction_matrix (TypeParameter[\
-                            Tuple[particle type, particle type], bool]):
+                            Tuple[``particle type``, ``particle type``], bool]):
             Set to ``False`` for a pair of particle types to allow disable
             overlap checks between particles of those types (**default:**
             ``True``).
@@ -287,7 +287,7 @@ class _HPMCIntegrator(_BaseIntegrator):
         """int: Count of the accepted and rejected translate moves.
 
         Note:
-            The count is reset to 0 at the start of each `Simulation.run`.
+            The count is reset to 0 at the start of each `hoomd.Simulation.run`.
         """
         return self._cpp_obj.getCounters(1).translate
 
@@ -296,7 +296,7 @@ class _HPMCIntegrator(_BaseIntegrator):
         """int: Count of the accepted and rejected rotate moves.
 
         Note:
-            The count is reset to 0 at the start of each `Simulation.run`.
+            The count is reset to 0 at the start of each `hoomd.Simulation.run`.
         """
         return self._cpp_obj.getCounters(1).rotate
 
@@ -306,7 +306,7 @@ class _HPMCIntegrator(_BaseIntegrator):
 
         Note:
             The count of trial moves is reset at the start of each
-            `Simulation.run`.
+            `hoomd.Simulation.run`.
         """
         return self._cpp_obj.getMPS()
 
@@ -325,8 +325,8 @@ class _HPMCIntegrator(_BaseIntegrator):
           close to resolve.
 
         Note:
-            The counts are reset to 0 at the start of each `Simulation.run`.
-        """
+            The counts are reset to 0 at the start of each
+            `hoomd.Simulation.run`.  """
         return self._cpp_obj.getCounters(1)
 
 
@@ -360,7 +360,8 @@ class Sphere(_HPMCIntegrator):
             timestep.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Examples::
 
@@ -378,7 +379,7 @@ class Sphere(_HPMCIntegrator):
         mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (TypeParameter[``particle type``, dict]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
@@ -450,7 +451,8 @@ class ConvexPolygon(_HPMCIntegrator):
             timestep.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Examples::
 
@@ -462,7 +464,7 @@ class ConvexPolygon(_HPMCIntegrator):
         print('vertices = ', mc.shape["A"]["vertices"])
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (TypeParameter[``particle type``, dict]):
             The shape parameters for each particle type. The dictionary has the
             following keys.
 
@@ -549,7 +551,8 @@ class ConvexSpheropolygon(_HPMCIntegrator):
             timestep.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Examples::
 
@@ -567,7 +570,7 @@ class ConvexSpheropolygon(_HPMCIntegrator):
         print('vertices = ', mc.shape["A"]["vertices"])
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (TypeParameter[``particle type``, dict]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
@@ -650,7 +653,8 @@ class SimplePolygon(_HPMCIntegrator):
             timestep.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Examples::
 
@@ -663,7 +667,7 @@ class SimplePolygon(_HPMCIntegrator):
 
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (TypeParameter[``particle type``, dict]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
@@ -753,7 +757,8 @@ class Polyhedron(_HPMCIntegrator):
         optimal performance. The capacity of leaf nodes is configurable.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Example::
 
@@ -817,7 +822,7 @@ class Polyhedron(_HPMCIntegrator):
         mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (TypeParameter[``particle type``, dict]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
@@ -879,10 +884,11 @@ class Polyhedron(_HPMCIntegrator):
                                          capacity=4,
                                          origin=(0., 0., 0.),
                                          hull_only=False,
-                                         overlap=[bool],
+                                         overlap=OnlyIf(to_type_converter(
+                                             [bool]), allow_none=True),
                                          ignore_statistics=False,
                                          len_keys=1,
-                                         explicit_defaults={'overlap': None}))
+                                         _defaults={'overlap': None}))
 
         self._add_typeparam(typeparam_shape)
 
@@ -922,7 +928,8 @@ class ConvexPolyhedron(_HPMCIntegrator):
             timestep.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Example::
 
@@ -950,7 +957,7 @@ class ConvexPolyhedron(_HPMCIntegrator):
         mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (TypeParameter[``particle type``, dict]):
             The shape parameters for each particle type. The dictionary has the
             following keys.
 
@@ -1033,7 +1040,8 @@ class FacetedEllipsoid(_HPMCIntegrator):
             timestep.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Example::
 
@@ -1079,7 +1087,7 @@ class FacetedEllipsoid(_HPMCIntegrator):
         mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (TypeParameter[``particle type``, dict]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
@@ -1135,11 +1143,14 @@ class FacetedEllipsoid(_HPMCIntegrator):
                                          a=float,
                                          b=float,
                                          c=float,
-                                         vertices=[(float, float, float)],
+                                         vertices=OnlyIf(
+                                             to_type_converter(
+                                                 [(float, float, float)]),
+                                             allow_none=True),
                                          origin=(float, float, float),
                                          ignore_statistics=False,
                                          len_keys=1,
-                                         explicit_defaults={'vertices': None}))
+                                         _defaults={'vertices': None}))
         self._add_typeparam(typeparam_shape)
 
 
@@ -1163,7 +1174,8 @@ class Sphinx(_HPMCIntegrator):
             timestep.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Example::
 
@@ -1179,7 +1191,7 @@ class Sphinx(_HPMCIntegrator):
         mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (TypeParameter[``particle type``, dict]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
@@ -1238,7 +1250,8 @@ class ConvexSpheropolyhedron(_HPMCIntegrator):
             timestep.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Example::
 
@@ -1264,7 +1277,7 @@ class ConvexSpheropolyhedron(_HPMCIntegrator):
         mc.depletant_fugacity["SphericalDepletant"] = 3.0
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (TypeParameter[``particle type``, dict]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
@@ -1340,7 +1353,8 @@ class Ellipsoid(_HPMCIntegrator):
             timestep.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Example::
 
@@ -1359,7 +1373,7 @@ class Ellipsoid(_HPMCIntegrator):
         mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (TypeParameter[``particle type``, dict]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
@@ -1433,7 +1447,8 @@ class SphereUnion(_HPMCIntegrator):
         performance. The capacity of leaf nodes is configurable.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Example::
 
@@ -1458,7 +1473,7 @@ class SphereUnion(_HPMCIntegrator):
         mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (TypeParameter[``particle type``, dict]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
@@ -1505,13 +1520,17 @@ class SphereUnion(_HPMCIntegrator):
                                                      orientable=False)
                                             ],
                                             positions=[(float, float, float)],
-                                            orientations=[(float, float, float,
-                                                           float)],
+                                            orientations=OnlyIf(
+                                                to_type_converter(
+                                                    [(float, float, float,
+                                                      float)]),
+                                                allow_none=True),
                                             capacity=4,
-                                            overlap=[int],
+                                            overlap=OnlyIf(to_type_converter(
+                                                [int]), allow_none=True),
                                             ignore_statistics=False,
                                             len_keys=1,
-                                            explicit_defaults={
+                                            _defaults={
                                                 'orientations': None,
                                                 'overlap': None
                                             }))
@@ -1562,7 +1581,8 @@ class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
         yield different performance. The capacity of leaf nodes is configurable.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Example::
 
@@ -1588,7 +1608,7 @@ class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
               mc.shape_param["A"]["orientations"][0])
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (TypeParameter[``particle type``, dict]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
@@ -1634,17 +1654,17 @@ class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
                      sweep_radius=0.0,
                      ignore_statistics=False)
             ],
-                                         positions=[(float, float, float)],
-                                         orientations=[(float, float, float,
-                                                        float)],
-                                         overlap=[int],
-                                         ignore_statistics=False,
-                                         capacity=4,
-                                         len_keys=1,
-                                         explicit_defaults={
-                                             'orientations': None,
-                                             'overlap': None
-                                         }))
+                positions=[(float, float, float)],
+                orientations=OnlyIf(to_type_converter(
+                    [(float, float, float, float)]), allow_none=True),
+                overlap=OnlyIf(to_type_converter([int]), allow_none=True),
+                ignore_statistics=False,
+                capacity=4,
+                len_keys=1,
+                _defaults={
+                'orientations': None,
+                'overlap': None
+            }))
 
         self._add_typeparam(typeparam_shape)
         # meta data
@@ -1678,7 +1698,8 @@ class FacetedEllipsoidUnion(_HPMCIntegrator):
         yield different performance. The capacity of leaf nodes is configurable.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Example::
 
@@ -1727,13 +1748,13 @@ class FacetedEllipsoidUnion(_HPMCIntegrator):
               mc.shape["A"]["shapes"][0]["vertices"]
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (TypeParameter[``particle type``, dict]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
             * ``shapes`` (List[dict], **required**) -
               Shape parameters for each faceted ellipsoid in the union. See
-              `ConvexFacetedEllipsoid.shape` for the accepted parameters.
+              `shape` for the accepted parameters.
             * ``positions`` (List[Tuple[float, float, float]], **required**) -
               Position of each faceted ellipsoid in the union.
             * ``orientations`` (List[Tuple[float, float, float, float]],\
@@ -1778,15 +1799,15 @@ class FacetedEllipsoidUnion(_HPMCIntegrator):
                      origin=tuple,
                      ignore_statistics=False)
             ],
-                                         positions=[(float, float, float)],
-                                         orientations=[(float, float, float,
-                                                        float)],
-                                         overlap=[int],
-                                         ignore_statistics=False,
-                                         capacity=4,
-                                         len_keys=1,
-                                         explicit_defaults={
-                                             'orientations': None,
-                                             'overlap': None
-                                         }))
+                positions=[(float, float, float)],
+                orientations=OnlyIf(to_type_converter(
+                    [(float, float, float, float)]), allow_none=True),
+                overlap=OnlyIf(to_type_converter([int]), allow_none=True),
+                ignore_statistics=False,
+                capacity=4,
+                len_keys=1,
+                _defaults={
+                'orientations': None,
+                'overlap': None
+            }))
         self._add_typeparam(typeparam_shape)

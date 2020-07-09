@@ -11,7 +11,7 @@ HPMC implements hard particle Monte Carlo in HOOMD-blue.
 
 .. rubric:: Logging
 
-The following quantities are provided by the integrator for use in HOOMD-blue's :py:class:`hoomd.analyze.log`.
+The following quantities are provided by the integrator for use in HOOMD-blue's ``hoomd.analyze.log``.
 
 - ``hpmc_sweep`` - Number of sweeps completed since the start of the MC integrator
 - ``hpmc_translate_acceptance`` - Fraction of translation moves accepted (averaged only over the last time step)

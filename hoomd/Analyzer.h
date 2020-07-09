@@ -20,6 +20,7 @@
 #include "Profiler.h"
 #include "SystemDefinition.h"
 #include "SharedSignal.h"
+#include "Communicator.h"
 
 #include <memory>
 

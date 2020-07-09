@@ -55,7 +55,7 @@ class log(hoomd.analyze._analyzer):
         overwrite(bool): When False (the default) the existing log will be append. When True the file will be overwritten.
         phase(int): When -1, start on the current time step. When >= 0 execute on steps where *(step +phase) % period == 0*.
 
-    For details on the loggable quantities refer :py:class:`hoomd.analyze.log` for details.
+    For details on the loggable quantities refer ``hoomd.analyze.log`` for details.
 
     The non-matrix quantities are combined in an array 'quantities' in the hdf5 file.
     The attributes list all the names of the logged quantities and their position in the file.
@@ -67,7 +67,7 @@ class log(hoomd.analyze._analyzer):
     Note:
         The number and order of non-matrix quantities cannot change compared to data which is already
         stored in the hdf5 file. As a result, if you append to a file make sure you are logging the
-        same values as before. In addition, also during a run with multiple `hoomd.run()` commands
+        same values as before. In addition, also during a run with multiple ``hoomd.run`` commands
         the logged values can not change.
     Note:
         The dimensions of logged matrix quantities cannot change compared to a matrix with same name
@@ -214,7 +214,7 @@ class log(hoomd.analyze._analyzer):
 
 
         Executing the disable command will remove the logger from the system.
-        Any :py:func:`hoomd.run()` command executed after disabling the logger will not use that
+        Any ```hoomd.run``` command executed after disabling the logger will not use that
         logger during the simulation. A disabled logger can be re-enabled
         with :py:meth:`enable()`.
         """
@@ -229,7 +229,7 @@ class log(hoomd.analyze._analyzer):
 
             logger.enable()
 
-        See :py:meth:`disable()`.
+        See ``disable``.
         """
 
         _analyzer.enable(self)

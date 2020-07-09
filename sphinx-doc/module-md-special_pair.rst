@@ -3,13 +3,13 @@ md.special_pair
 
 .. rubric:: Overview
 
-.. py:currentmodule:: hoomd
+.. py:currentmodule:: hoomd.md.special_pair
 
 .. autosummary::
     :nosignatures:
 
-    md.special_pair.lj
-    md.special_pair.coulomb
+    LJ
+    Coulomb
 
 .. rubric:: Details
 

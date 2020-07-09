@@ -3,15 +3,15 @@ hoomd.analyze
 
 .. rubric:: Overview
 
+.. py:currentmodule:: hoomd.analyze
+
 .. autosummary::
     :nosignatures:
 
-    hoomd.analyze.callback
-    hoomd.analyze.imd
-    hoomd.analyze.log
+    CustomAnalyzer
 
 .. rubric:: Details
 
 .. automodule:: hoomd.analyze
     :synopsis: Analyze system configurations.
-    :members:
+    :members: CustomAnalyzer

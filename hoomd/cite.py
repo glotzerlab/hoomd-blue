@@ -400,38 +400,18 @@ def _ensure_global_bib():
     if hoomd.context.bib is None:
         hoomd.context.bib = bibliography()
         # the hoomd bibliography always includes the following citations
-        hoomd_base = article(cite_key = 'anderson2008',
-                        author = ['J A Anderson','C D Lorenz','A Travesset'],
-                        title = 'General purpose molecular dynamics simulations fully implemented on graphics processing units',
-                        journal = 'Journal of Computational Physics',
-                        volume = 227,
-                        number = 10,
-                        pages = '5342--5359',
-                        year = 2008,
-                        month = 'may',
-                        doi = '10.1016/j.jcp.2008.01.047',
+        hoomd_base = article(cite_key = 'Anderson2020',
+                        author = ['J A Anderson','J Glaser','S C Glotzer'],
+                        title = 'HOOMD-blue: A Python package for high-performance molecular dynamics and hard particle Monte Carlo simulations',
+                        journal = 'Computational Materials Science',
+                        volume = 173,
+                        pages = '109363',
+                        year = 2020,
+                        month = 'feb',
+                        doi = '10.1016/j.commatsci.2019.109363',
                         feature = 'HOOMD-blue')
 
-        hoomd_mpi = article(cite_key = 'glaser2015',
-                        author = ['J Glaser',
-                                  'T D Nguyen',
-                                  'J A Anderson',
-                                  'P Lui',
-                                  'F Spiga',
-                                  'J A Millan',
-                                  'D C Morse',
-                                  'S C Glotzer'],
-                        title = 'Strong scaling of general-purpose molecular dynamics simulations on GPUs',
-                        journal = 'Computer Physics Communications',
-                        volume = 192,
-                        pages = '97--107',
-                        year = 2015,
-                        month = 'july',
-                        doi = '10.1016/j.cpc.2015.02.028',
-                        feature = 'HOOMD-blue')
-
-
-        hoomd.context.bib.add([hoomd_base, hoomd_mpi])
+        hoomd.context.bib.add([hoomd_base])
         hoomd.context.bib.add(_extra_default_entries)
 
     return hoomd.context.bib
