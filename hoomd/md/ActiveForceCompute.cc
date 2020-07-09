@@ -216,18 +216,14 @@ void ActiveForceCompute::setForces()
         unsigned int idx = m_group->getMemberIndex(i);
         unsigned int type = __scalar_as_int(h_pos.data[idx].w);
 
-        Scalar3 f = make_scalar3(h_f_actVec.data[type].w*h_f_actVec.data[type].x, h_f_actVec.data[type].w*h_f_actVec.data[type].y, h_f_actVec.data[type].w*h_f_actVec.data[type].z);
+        vec3<Scalar> f(h_f_actVec.data[type].w*h_f_actVec.data[type].x, h_f_actVec.data[type].w*h_f_actVec.data[type].y, h_f_actVec.data[type].w*h_f_actVec.data[type].z);
         quat<Scalar> quati(h_orientation.data[idx]);
-        vec3<Scalar> fi = rotate(quati, vec3<Scalar>(f));
-        h_force.data[idx].x = fi.x;
-        h_force.data[idx].y = fi.y;
-        h_force.data[idx].z = fi.z;
+        vec3<Scalar> fi = rotate(quati, f);
+        h_force.data[idx] = vec_to_scalar4(fi, 0);
 
-        Scalar3 t = make_scalar3(h_t_actVec.data[type].w*h_t_actVec.data[type].x, h_t_actVec.data[type].w*h_t_actVec.data[type].y, h_t_actVec.data[type].w*h_t_actVec.data[type].z);
-        vec3<Scalar> ti = rotate(quati, vec3<Scalar>(t));
-        h_torque.data[idx].x = ti.x;
-        h_torque.data[idx].y = ti.y;
-        h_torque.data[idx].z = ti.z;
+        vec3<Scalar> t(h_t_actVec.data[type].w*h_t_actVec.data[type].x, h_t_actVec.data[type].w*h_t_actVec.data[type].y, h_t_actVec.data[type].w*h_t_actVec.data[type].z);
+        vec3<Scalar> ti = rotate(quati, t);
+        h_torque.data[idx] = vec_to_scalar4(ti, 0);
         }
     }
 
@@ -258,7 +254,7 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
 
         quat<Scalar> quati(h_orientation.data[idx]);
 
-        
+
         if (m_sysdef->getNDimensions() == 2) // 2D
             {
             Scalar delta_theta; // rotational diffusion angle
@@ -283,8 +279,8 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
                 vec3<Scalar> rand_vec;
                 unit_vec(rng, rand_vec);
 
-                Scalar3 f = make_scalar3(h_f_actVec.data[type].x, h_f_actVec.data[type].y, h_f_actVec.data[type].z);
-                vec3<Scalar> fi = rotate(quati, vec3<Scalar>(f)); //rotate active force vector from local to global frame
+                vec3<Scalar> f(h_f_actVec.data[type].x, h_f_actVec.data[type].y, h_f_actVec.data[type].z);
+                vec3<Scalar> fi = rotate(quati, f); //rotate active force vector from local to global frame
 
                 vec3<Scalar> aux_vec; // rotation axis
                 aux_vec.x = fi.y * rand_vec.z - fi.z * rand_vec.y;
@@ -300,11 +296,7 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
                 quat<Scalar> rot_quat(slow::cos(theta),slow::sin(theta)*aux_vec); // rotational diffusion quaternion
 
                 quati = rot_quat*quati; //rotational diffusion quaternion applied to orientation
-                h_orientation.data[idx].x = quati.s;
-                h_orientation.data[idx].y = quati.v.x;
-                h_orientation.data[idx].z = quati.v.y;
-                h_orientation.data[idx].w = quati.v.z;
-
+                h_orientation.data[idx] = quat_to_scalar4(quati);
                 }
             else // if constraint exists
                 {
@@ -321,11 +313,7 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
                 quat<Scalar> rot_quat(slow::cos(theta),slow::sin(theta)*norm);//rotational diffusion quaternion
 
                 quati = rot_quat*quati; //rotational diffusion quaternion applied to orientation
-                h_orientation.data[idx].x = quati.s;
-                h_orientation.data[idx].y = quati.v.x;
-                h_orientation.data[idx].z = quati.v.y;
-                h_orientation.data[idx].w = quati.v.z;
-
+                h_orientation.data[idx] = quat_to_scalar4(quati);
                 }
             }
         }
@@ -387,11 +375,7 @@ void ActiveForceCompute::setConstraint()
 
         quati = rot_quat*quati;
 
-        h_orientation.data[idx].x = quati.s;
-        h_orientation.data[idx].y = quati.v.x;
-        h_orientation.data[idx].z = quati.v.y;
-        h_orientation.data[idx].w = quati.v.z;
-
+        h_orientation.data[idx] = quat_to_scalar4(quati);
         }
     }
 

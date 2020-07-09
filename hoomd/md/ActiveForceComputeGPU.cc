@@ -43,8 +43,8 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> s
     //unsigned int N = m_pdata->getNGlobal();
     //unsigned int group_size = m_group->getNumMembersGlobal();
     unsigned int type = m_pdata->getNTypes();
-    GPUArray<Scalar4> tmp_f_activeVec(type, m_exec_conf);
-    GPUArray<Scalar4> tmp_t_activeVec(type, m_exec_conf);
+    GlobalVector<Scalar4> tmp_f_activeVec(type, m_exec_conf);
+    GlobalVector<Scalar4> tmp_t_activeVec(type, m_exec_conf);
 
         {
         ArrayHandle<Scalar4> old_f_activeVec(m_f_activeVec, access_location::host);
