@@ -650,6 +650,29 @@ class GSD(_Analyzer):
         self._cpp_obj.log_writer = self.log
         super().attach(simulation)
 
+    @staticmethod
+    def write(state, filename, filter=All(), log=None):
+        """Write the given simulation state out to a GSD file.
+
+        Args:
+            state (State): Simulation state.
+            filename (str): File name to write.
+            filter_ (``hoomd._ParticleFilter``): Select the particles to write.
+            log (``hoomd.logger.Logger``): A ``Logger`` object for GSD logging.
+
+        Note:
+            The file is always overwritten.
+        """
+        writer = _hoomd.GSDDumpWriter(state._cpp_sys_def,
+                                      filename,
+                                      state.get_group(filter),
+                                      True,
+                                      False)
+
+        if log is not None:
+            writer.log_writer = GSDLogWriter(log)
+        writer.analyze(state._simulation.timestep)
+
     @property
     def log(self):
         return self._log
