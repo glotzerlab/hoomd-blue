@@ -225,7 +225,7 @@ class _LoggerQuantity:
 
     Args:
         name (str): The name of the quantity.
-        cls (class object): The class that the quantity comes from.
+        cls (``class object``): The class that the quantity comes from.
         flag (str or TypeFlags, optional): The type of quantity it is.
             Valid values are given in the `hoomd.logging.TypeFlags`
             documentation.
@@ -271,7 +271,7 @@ class _LoggerQuantity:
         to be updated to the subclass.
 
         Args:
-            cls (class object): The class to update the namespace with.
+            cls (``class object``): The class to update the namespace with.
         """
         self.namespace = self._generate_namespace(cls)
         return self

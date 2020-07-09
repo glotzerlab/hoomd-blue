@@ -28,7 +28,7 @@ class dcd(hoomd.analyze._analyzer):
     Args:
         filename (str): File name to write.
         period (int): Number of time steps between file dumps.
-        group (:py:mod:`hoomd.group`): Particle group to output to the dcd file. If left as None, all particles will be written.
+        group (``hoomd.group``): Particle group to output to the dcd file. If left as None, all particles will be written.
         overwrite (bool): When False, (the default) an existing DCD file will be appended to. When True, an existing DCD
                           file *filename* will be overwritten.
         unwrap_full (bool): When False, (the default) particle coordinates are always written inside the simulation box.
@@ -45,7 +45,7 @@ class dcd(hoomd.analyze._analyzer):
     units - see :ref:`page-units`.
 
     Due to constraints of the DCD file format, once you stop writing to
-    a file via :py:meth:`disable()`, you cannot continue writing to the same file,
+    a file via ``disable``, you cannot continue writing to the same file,
     nor can you change the period of the dump at any time. Either of these tasks
     can be performed by creating a new dump file with the needed settings.
 
@@ -113,7 +113,7 @@ class getar(hoomd.analyze._analyzer):
     Properties to dump can be given either as a
     :py:class:`getar.DumpProp` object or a name. Supported property
     names are specified in the Supported Property Table in
-    :py:class:`hoomd.init.read_getar`.
+    :py:class:``init.read_getar``.
 
     Files can be opened in write, append, or one-shot mode. Write mode
     overwrites files with the same name, while append mode adds to
@@ -158,7 +158,7 @@ class getar(hoomd.analyze._analyzer):
 
     Metadata about particle shape (for later visualization or use in
     restartable scripts) can be stored in a simple form through
-    :py:func:`hoomd.dump.getar.writeJSON`, which encodes JSON records
+    ``writeJSON``, which encodes JSON records
     as strings and stores them inside the dump file. Currently,
     classes inside :py:mod:`hoomd.dem` and :py:mod:`hoomd.hpmc` are
     equipped with `get_type_shapes()` methods which can provide
@@ -496,17 +496,17 @@ class GSD(_Analyzer):
     Args:
         filename (str): File name to write.
         trigger (hoomd.trigger.Trigger): Select the timesteps to write.
-        filter_ (hoomd.filter._ParticleFilter, optional): Select the particles
+        filter_ (hoomd.filter._ParticleFilter): Select the particles
             to write, defaults to `hoomd.filter.All`.
-        overwrite (bool, optional): When ``True``, overwite the file. When
+        overwrite (bool): When ``True``, overwite the file. When
             ``False`` append frames to ``filename`` if it exists and create the
             file if it does not, defaults to ``False``.
-        truncate (bool, optional): When ``True``, truncate the file and write a
+        truncate (bool): When ``True``, truncate the file and write a
             new frame 0 each time this operation triggers, defaults to
             ``False``.
-        dynamic (list[str], optional): Quantity categories to save in every
+        dynamic (list[str]): Quantity categories to save in every
             frame, defaults to property.
-        log (hoomd.logging.Logger, optional): A ``Logger`` object for GSD
+        log (hoomd.logging.Logger): A ``Logger`` object for GSD
             logging, defaults to ``None``.
 
     .. note::
@@ -648,6 +648,29 @@ class GSD(_Analyzer):
         self._cpp_obj.setWriteTopology('topology' in dynamic_quantities)
         self._cpp_obj.log_writer = self.log
         super().attach(simulation)
+
+    @staticmethod
+    def write(state, filename, filter=All(), log=None):
+        """Write the given simulation state out to a GSD file.
+
+        Args:
+            state (State): Simulation state.
+            filename (str): File name to write.
+            filter_ (``hoomd._ParticleFilter``): Select the particles to write.
+            log (``hoomd.logger.Logger``): A ``Logger`` object for GSD logging.
+
+        Note:
+            The file is always overwritten.
+        """
+        writer = _hoomd.GSDDumpWriter(state._cpp_sys_def,
+                                      filename,
+                                      state.get_group(filter),
+                                      True,
+                                      False)
+
+        if log is not None:
+            writer.log_writer = GSDLogWriter(log)
+        writer.analyze(state._simulation.timestep)
 
     @property
     def log(self):

@@ -2,7 +2,7 @@ from hoomd.operation import _Updater
 from hoomd.box import Box
 from hoomd.parameterdicts import ParameterDict
 from hoomd.typeconverter import OnlyType
-from hoomd.variant import Variant, Power
+from hoomd.variant import Variant, Power, Constant
 from hoomd import _hoomd
 
 
@@ -35,7 +35,7 @@ class BoxResize(_Updater):
 
     Note:
         Currently for MPI simulations the rescaling of particles does not work
-        properly.
+        properly in HPMC.
 
     Args:
         box1 (hoomd.Box): The box associated with the minimum of the
@@ -99,11 +99,24 @@ class BoxResize(_Updater):
         else:
             return None
 
+    @staticmethod
+    def update(state, box):
+        """Immediately scale the particle in the system state to the given box.
+
+        Args:
+            box (Box): New box.
+        """
+        updater = _hoomd.BoxResizeUpdater(state._cpp_sys_def,
+                                          state.box,
+                                          box,
+                                          Constant(1))
+        updater.update(state._simulation.timestep)
+
     @classmethod
     def linear_volume(cls, box1, box2,
                       t_start, t_size,
                       trigger, scale_particles=True):
-        """Create a BoxResize object that will scale volume/area linearly.
+        """Create a `BoxResize` object that will scale volume/area linearly.
 
         This uses a :class:`hoomd.variant.Power` variant under the hood.
 
@@ -119,8 +132,8 @@ class BoxResize(_Updater):
                 dimensions when the box is resized.
 
         Returns:
-            box_resize (hoomd.update.BoxResize): Returns a ``BoxResize`` object
-            that will scale between the boxes linearly in volume (area for 2D).
+            hoomd.update.BoxResize: An operation that will scale between
+            the boxes linearly in volume (area for 2D).
         """
         box1 = box_preprocessing(box1)
         box2 = box_preprocessing(box2)

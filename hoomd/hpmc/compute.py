@@ -28,7 +28,7 @@ class free_volume(_compute):
     to use for the integration.
 
     Once initialized, the compute provides a log quantity
-    called **hpmc_free_volume**, that can be logged via :py:class:`hoomd.analyze.log`.
+    called **hpmc_free_volume**, that can be logged via ``hoomd.analyze.log``.
     If a suffix is specified, the log quantities name will be
     **hpmc_free_volume_suffix**.
 

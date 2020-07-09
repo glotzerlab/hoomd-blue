@@ -82,18 +82,18 @@ class _HPMCIntegrator(_BaseIntegrator):
     .. rubric:: Parameters
 
     Attributes:
-        a (TypeParameter[particle type, float]):
+        a (TypeParameter[``particle type``, float]):
             Maximum size of rotation trial moves.
 
-        d (TypeParameter[particle type, float]):
+        d (TypeParameter[``particle type``, float]):
             Maximum size of displacement trial moves
             (distance units).
 
-        fugacity (TypeParameter[particle type, float]):
+        fugacity (TypeParameter[``particle type``, float]):
             Depletant fugacity (in units of 1/volume) (**default:** ``0``)
 
         interaction_matrix (TypeParameter[\
-                            Tuple[particle type, particle type], bool]):
+                            Tuple[``particle type``, ``particle type``], bool]):
             Set to ``False`` for a pair of particle types to allow disable
             overlap checks between particles of those types (**default:**
             ``True``).
@@ -379,7 +379,7 @@ class Sphere(_HPMCIntegrator):
         mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (TypeParameter[``particle type``, dict]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
@@ -464,7 +464,7 @@ class ConvexPolygon(_HPMCIntegrator):
         print('vertices = ', mc.shape["A"]["vertices"])
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (TypeParameter[``particle type``, dict]):
             The shape parameters for each particle type. The dictionary has the
             following keys.
 
@@ -570,7 +570,7 @@ class ConvexSpheropolygon(_HPMCIntegrator):
         print('vertices = ', mc.shape["A"]["vertices"])
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (TypeParameter[``particle type``, dict]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
@@ -667,7 +667,7 @@ class SimplePolygon(_HPMCIntegrator):
 
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (TypeParameter[``particle type``, dict]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
@@ -822,7 +822,7 @@ class Polyhedron(_HPMCIntegrator):
         mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (TypeParameter[``particle type``, dict]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
@@ -957,7 +957,7 @@ class ConvexPolyhedron(_HPMCIntegrator):
         mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (TypeParameter[``particle type``, dict]):
             The shape parameters for each particle type. The dictionary has the
             following keys.
 
@@ -1087,7 +1087,7 @@ class FacetedEllipsoid(_HPMCIntegrator):
         mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (TypeParameter[``particle type``, dict]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
@@ -1191,7 +1191,7 @@ class Sphinx(_HPMCIntegrator):
         mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (TypeParameter[``particle type``, dict]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
@@ -1277,7 +1277,7 @@ class ConvexSpheropolyhedron(_HPMCIntegrator):
         mc.depletant_fugacity["SphericalDepletant"] = 3.0
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (TypeParameter[``particle type``, dict]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
@@ -1373,7 +1373,7 @@ class Ellipsoid(_HPMCIntegrator):
         mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (TypeParameter[``particle type``, dict]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
@@ -1473,7 +1473,7 @@ class SphereUnion(_HPMCIntegrator):
         mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (TypeParameter[``particle type``, dict]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
@@ -1608,7 +1608,7 @@ class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
               mc.shape_param["A"]["orientations"][0])
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (TypeParameter[``particle type``, dict]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
@@ -1748,13 +1748,13 @@ class FacetedEllipsoidUnion(_HPMCIntegrator):
               mc.shape["A"]["shapes"][0]["vertices"]
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (TypeParameter[``particle type``, dict]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
             * ``shapes`` (List[dict], **required**) -
               Shape parameters for each faceted ellipsoid in the union. See
-              `ConvexFacetedEllipsoid.shape` for the accepted parameters.
+              `shape` for the accepted parameters.
             * ``positions`` (List[Tuple[float, float, float]], **required**) -
               Position of each faceted ellipsoid in the union.
             * ``orientations`` (List[Tuple[float, float, float, float]],\
