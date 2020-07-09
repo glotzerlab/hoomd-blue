@@ -267,7 +267,7 @@ class HOOMDArray(metaclass=_WrapClassFactory(_wrap_list)):
     cause your program to crash. Use this function only if absolutely necessary.
 
     Performance Tips:
-        *Assume ``a`` represents a `HOOMDArray` for examples given.*
+        *Assume* ``a`` *represents a* `HOOMDArray` *for examples given.*
 
         * Place the ``HOOMDArray`` to the left of the expression
           (e.g. ``a + b + c`` is faster than ``b + a + c``). This has to do with
