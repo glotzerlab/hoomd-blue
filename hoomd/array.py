@@ -8,8 +8,7 @@ from hoomd._hoomd import isCUDAAvailable
 
 
 class HOOMDArrayError(RuntimeError):
-    """Represents errors in accessing HOOMD buffers outside a context manager.
-    """
+    """Represents errors in accessing HOOMD buffers outside a context manager."""
     pass
 
 
@@ -251,7 +250,7 @@ class HOOMDArray(metaclass=_WrapClassFactory(_wrap_list)):
     understanding this class is not necessary. Treat it as a ``numpy.ndarray``.
 
     We attempt to escape this class whenever possible. This essentially means
-    that whenever a array pointing to a new buffer is returned we can return
+    that whenever an array pointing to a new buffer is returned we can return
     a `numpy.ndarray`.  However, any array pointing to the same data will be
     returned as a `HOOMDArray`. To ensure memory safety, a `HOOMDArray` object
     cannot be accessed outside of the context manager in which it was created.

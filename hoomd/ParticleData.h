@@ -1244,8 +1244,8 @@ class PYBIND11_EXPORT ParticleData
 
 /// Allow the usage of Particle Data arrays in Python.
 /** Uses the LocalDataAccess templated class to expose particle data arrays to
- *  Python. For an explanation of the methods and structure see its
- *  documentation.
+ *  Python. For an explanation of the methods and structure see the
+ *  documentation of LocalDataAccess.
  *
  *  Template Parameters
  *  Output: The buffer output type (either HOOMDHostBuffer or HOOMDDeviceBuffer)

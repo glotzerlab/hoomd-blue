@@ -45,7 +45,7 @@ struct HOOMDHostBuffer : public HOOMDBuffer
         {
         if (m_shape.size() != m_strides.size())
             {
-            throw std::runtime_error("GPU buffer shape != strides.");
+            throw std::runtime_error("CPU buffer shape != strides.");
             }
         }
 
@@ -220,7 +220,7 @@ class LocalDataAccess
          *  include_both: whether to return all known data (defaults to false)
          *  second_dimension_size: the size of the second dimension (defaults to
          *  0)
-         *  offest: the offset in bytes from the start of the array to the
+         *  offset: the offset in bytes from the start of the array to the
          *  start of the exposed array in Python (defaults to no offset).
          *  strides: the strides in bytes of the array (defaults to sizeof(T) or
          *  {sizeof(S), sizeof(T)} depending on dimension).

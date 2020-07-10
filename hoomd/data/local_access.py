@@ -103,7 +103,7 @@ class _ParticleLocalAccess(_LocalAccess):
 
 
 class ParticleLocalAccessCPU(_ParticleLocalAccess):
-    """Class for directly accessing HOOMD-blue particle data on CPU.
+    """Class for directly accessing HOOMD-blue particle data on the CPU.
 
     Attributes:
         type ((N_particles) `hoomd.array` object of ``float``): The integer
@@ -136,7 +136,7 @@ class ParticleLocalAccessCPU(_ParticleLocalAccess):
         angular_momentum ((N_particles, 4) `hoomd.array` object of ``float``):
             particle angular momenta expressed as quaternions
         moment_of_inertia ((N_particles, 3) `hoomd.array` object of ``float``):
-            particle principle moments of inertia
+            particle principal moments of inertia
         charge ((N_particles) `hoomd.array` object of ``float``): particle
             electrical charges
         diameter ((N_particles) `hoomd.array` object of ``float``): particle
@@ -183,7 +183,7 @@ class _GroupLocalAccess(_LocalAccess):
 
 
 class BondLocalAccessCPU(_GroupLocalAccess):
-    """Class for directly accessing HOOMD-blue bond data on CPU.
+    """Class for directly accessing HOOMD-blue bond data on the CPU.
 
     Attributes:
         typeid ((N_bonds) `hoomd.array` object of ``int``): The integer
