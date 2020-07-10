@@ -169,7 +169,7 @@ class _GroupLocalAccess(_LocalAccess):
 
     @property
     @abstractmethod
-    def _cpp_data_get_method(self):
+    def _cpp_get_data_method_name(self):
         pass
 
     _fields = {
@@ -182,7 +182,7 @@ class _GroupLocalAccess(_LocalAccess):
     def __init__(self, state):
         super().__init__()
         self._cpp_obj = self._cpp_cls(
-            getattr(state._cpp_sys_def, self._cpp_data_get_method)())
+            getattr(state._cpp_sys_def, self._cpp_get_data_method_name)())
 
 
 class BondLocalAccessCPU(_GroupLocalAccess):
@@ -204,7 +204,7 @@ class BondLocalAccessCPU(_GroupLocalAccess):
             represents the current index for bond with tag 0.
     """
     _cpp_cls = _hoomd.LocalBondDataHost
-    _cpp_data_get_method = "getBondData"
+    _cpp_get_data_method_name = "getBondData"
     _array_cls = HOOMDArray
 
 
@@ -228,7 +228,7 @@ class AngleLocalAccessCPU(_GroupLocalAccess):
             tag 0.
     """
     _cpp_cls = _hoomd.LocalAngleDataHost
-    _cpp_data_get_method = "getAngleData"
+    _cpp_get_data_method_name = "getAngleData"
     _array_cls = HOOMDArray
 
 
@@ -253,7 +253,7 @@ class DihedralLocalAccessCPU(_GroupLocalAccess):
             with tag 0.
     """
     _cpp_cls = _hoomd.LocalDihedralDataHost
-    _cpp_data_get_method = "getDihedralData"
+    _cpp_get_data_method_name = "getDihedralData"
     _array_cls = HOOMDArray
 
 
@@ -278,7 +278,7 @@ class ImproperLocalAccessCPU(_GroupLocalAccess):
             with tag 0.
     """
     _cpp_cls = _hoomd.LocalImproperDataHost
-    _cpp_data_get_method = "getImproperData"
+    _cpp_get_data_method_name = "getImproperData"
     _array_cls = HOOMDArray
 
 
@@ -309,7 +309,7 @@ class ConstraintLocalAccessCPU(_GroupLocalAccess):
         'rtag': 'getRTags'
     }
     _cpp_cls = _hoomd.LocalConstraintDataHost
-    _cpp_data_get_method = "getConstraintData"
+    _cpp_get_data_method_name = "getConstraintData"
     _array_cls = HOOMDArray
 
 
@@ -333,7 +333,7 @@ class PairLocalAccessCPU(_GroupLocalAccess):
                 with tag 0.
     """
     _cpp_cls = _hoomd.LocalPairDataHost
-    _cpp_data_get_method = "getPairData"
+    _cpp_get_data_method_name = "getPairData"
     _array_cls = HOOMDArray
 
 
