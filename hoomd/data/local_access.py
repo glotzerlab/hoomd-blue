@@ -130,11 +130,9 @@ class ParticleLocalAccessCPU(_ParticleLocalAccess):
         image ((N_particles, 3) `hoomd.array` object of ``int``):
             The periodic image a particle occupies
         velocity ((N_particles, 3) `hoomd.array` object of ``float``):
-            particle velocities (note that changing velocities may or may
-            not effect the future trajectory)
+            particle velocities
         acceleration ((N_particles, 3) `hoomd.array` object of ``float``):
-            particle accelerations (note that changing accelerations may or
-            may not effect the future trajectory)
+            particle accelerations
         mass ((N_particles) `hoomd.array` object of ``float``):
             particles' masses
         orientation ((N_particles, 4) `hoomd.array` object of ``float``):
@@ -155,6 +153,13 @@ class ParticleLocalAccessCPU(_ParticleLocalAccess):
             net torque on particle
         net_virial ((N_particles, 3) `hoomd.array` object of ``float``):
             net virial on particle
+
+    Note:
+        That changing some attributes like (``velocity`` or ``acceleration``)
+        may not change the trajectory of the system. Integration of the
+        equations of motion do not necessarily use velocity or accleration
+        directly. This is also true in HOOMD-blue's MD integration methods (see
+        `hoomd.md.methods`)
     """
     _cpp_cls = _hoomd.LocalParticleDataHost
     _array_cls = HOOMDArray
