@@ -1283,8 +1283,7 @@ class PYBIND11_EXPORT LocalParticleData :
                     &ParticleData::getPositions,
                     ghost,
                     include_both,
-                    3,
-                    0
+                    3
                 );
                 }
 
@@ -1307,8 +1306,7 @@ class PYBIND11_EXPORT LocalParticleData :
                     &ParticleData::getVelocities,
                     ghost,
                     include_both,
-                    3,
-                    0
+                    3
                 );
             }
 
