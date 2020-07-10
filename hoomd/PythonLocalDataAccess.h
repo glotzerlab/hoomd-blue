@@ -149,6 +149,14 @@ struct HOOMDDeviceBuffer : public HOOMDBuffer
 #endif
 
 
+enum class GhostDataFlag
+    {
+    standard,
+    ghost,
+    both
+    };
+
+
 /// Base class for accessing Global or GPU arrays/vectors in Python.
 /** Template Parameters:
  *  Output - the output buffer class for the class should be HOOMDDeviceBuffer
@@ -213,8 +221,8 @@ class LocalDataAccess
          *  Arguments:
          *  handle: a reference to the unique_ptr that holds the ArrayHandle.
          *  get_array_func: the method of m_data to use to access the array.
-         *  ghost: whether to return only ghost data (defaults to false)
-         *  include_both: whether to return all known data (defaults to false)
+         *  flag: indications whether to get data on ghost particles and/or
+         *  standard particles.
          *  second_dimension_size: the size of the second dimension (defaults to
          *  0)
          *  offset: the offset in bytes from the start of the array to the
@@ -226,8 +234,7 @@ class LocalDataAccess
         Output getBuffer(
             std::unique_ptr<ArrayHandle<T> >& handle,
             const U<T>& (Data::*get_array_func)() const,
-            bool ghost = false,
-            bool include_both = false,
+            GhostDataFlag flag,
             unsigned int second_dimension_size = 0,
             ssize_t offset = 0,
             std::vector<ssize_t> strides = {}
@@ -235,13 +242,7 @@ class LocalDataAccess
             {
             checkManager();
 
-            if (ghost && include_both)
-                {
-                throw std::runtime_error(
-                    "Cannot specify both the ghost and include_both flags.");
-                }
-
-            bool read_only = ghost || include_both;
+            bool read_only = flag != GhostDataFlag::standard;
 
             updateHandle(handle, get_array_func, read_only);
 
@@ -250,11 +251,11 @@ class LocalDataAccess
             auto size = N;
             T* _data = handle.get()->data;
 
-            if (include_both)
+            if (flag == GhostDataFlag::both)
                 {
                 size += ghostN;
                 }
-            else if (ghost)
+            else if (flag == GhostDataFlag::ghost)
                 {
                 _data += N;
                 size = ghostN;
@@ -349,6 +350,8 @@ class LocalDataAccess
     };
 
 void export_HOOMDHostBuffer(pybind11::module &m);
+
+void export_GhostDataFlag(pybind11::module &m);
 
 #if ENABLE_HIP
 void export_HOOMDDeviceBuffer(pybind11::module &m);

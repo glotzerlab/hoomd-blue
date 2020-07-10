@@ -26,28 +26,31 @@ class _LocalAccess(ABC):
             return self._accessed_fields[attr]
         elif attr in self._global_fields:
             buff = getattr(self._cpp_obj, self._global_fields[attr])()
-        elif attr.startswith("ghost_"):
-            if attr[6:] in self._fields:
-                buff = getattr(self._cpp_obj, self._fields[attr[6:]])(
-                    True, False)
-            else:
-                raise AttributeError(
-                    "{} object has no attribute {}".format(type(self), attr))
-        elif attr.endswith("_with_ghosts"):
-            if attr[:-12] in self._fields:
-                buff = getattr(self._cpp_obj, self._fields[attr[:-12]])(
-                    False, True)
-            else:
-                raise AttributeError(
-                    "{} object has no attribute {}".format(type(self), attr))
-        elif attr in self._fields:
-            buff = getattr(self._cpp_obj, self._fields[attr])(False, False)
         else:
-            raise AttributeError(
-                "{} object has no attribute {}".format(type(self), attr))
+            raw_attr, flag = self._get_raw_attr_and_flag(attr)
+            if raw_attr in self._fields:
+                buff = getattr(self._cpp_obj, self._fields[raw_attr])(flag)
+            else:
+                raise AttributeError(
+                    "{} object has no attribute {}".format(type(self), attr))
+
         arr = self._array_cls(buff, lambda: self._entered)
         self._accessed_fields[attr] = arr
         return arr
+
+    def _get_raw_attr_and_flag(self, attr):
+        ghosts_only = attr.startswith("ghost_")
+        with_ghosts = attr.endswith("_with_ghost")
+        raw_attr = attr.replace("_with_ghost", "").replace("ghost_", "")
+        if ghosts_only and with_ghosts:
+            raise ValueError("Attribute cannot be both prefixed with ghost_ "
+                             "and suffixed with _with_ghost")
+        elif ghosts_only:
+            return raw_attr, _hoomd.GhostDataFlag.ghost
+        elif with_ghosts:
+            return raw_attr, _hoomd.GhostDataFlag.both
+        else:
+            return raw_attr, _hoomd.GhostDataFlag.standard
 
     def __setattr__(self, attr, value):
         try:
@@ -430,7 +433,7 @@ class LocalSnapshot(_LocalSnapshotBase):
     For every property (e.g. ``data.particles.position``), only grabs the
     data for the regular (non-ghost) particles. The property can be prefixed
     with ``ghost_`` to grab the ghost particles in a read only manner. Likewise,
-    suffixing with ``_with_ghosts`` will grab all data on the rank (regular and
+    suffixing with ``_with_ghost`` will grab all data on the rank (regular and
     ghost particles) in a read only array.
 
     All array-like properties return a `hoomd.array.HOOMDArray` object which

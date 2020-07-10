@@ -340,6 +340,7 @@ PYBIND11_MODULE(_hoomd, m)
 
     // data structures
     export_HOOMDHostBuffer(m);
+    export_GhostDataFlag(m);
     # if ENABLE_HIP
     export_HOOMDDeviceBuffer(m);
     # endif

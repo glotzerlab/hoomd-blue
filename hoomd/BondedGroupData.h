@@ -1016,13 +1016,12 @@ class LocalGroupData : public LocalDataAccess<Output, GroupData>
 
         virtual ~LocalGroupData() = default;
 
-        Output getTags(bool ghost, bool include_both)
+        Output getTags(GhostDataFlag flag)
             {
             return this->template getBuffer<unsigned int, unsigned int, GPUVector>(
                 m_tags_handle,
                 &GroupData::getTags,
-                ghost,
-                include_both
+                flag
                 );
             }
 
@@ -1034,7 +1033,7 @@ class LocalGroupData : public LocalDataAccess<Output, GroupData>
                 );
             }
 
-        Output getTypeVal(bool ghost, bool include_both)
+        Output getTypeVal(GhostDataFlag flag)
             {
             // This forces resolution at compile time for the returned types
             return this->template getBuffer<
@@ -1044,20 +1043,18 @@ class LocalGroupData : public LocalDataAccess<Output, GroupData>
                         GPUVector>(
                 m_typeval_handle,
                 &GroupData::getTypeValArray,
-                ghost,
-                include_both
+                flag
                 );
 
             }
 
-        Output getMembers(bool ghost, bool include_both)
+        Output getMembers(GhostDataFlag flag)
             {
             return this->template getBuffer<typename GroupData::members_t,
                                             unsigned int, GPUVector>(
                 m_members_handle,
                 &GroupData::getMembersArray,
-                ghost,
-                include_both,
+                flag,
                 GroupData::size
                 );
             }

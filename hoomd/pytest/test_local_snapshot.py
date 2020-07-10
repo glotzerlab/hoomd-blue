@@ -421,7 +421,7 @@ def section_name_dict(request):
     return deepcopy(request.param)
 
 
-@pytest.fixture(scope='function', params=['', 'ghost_', '_with_ghosts'],
+@pytest.fixture(scope='function', params=['', 'ghost_', '_with_ghost'],
                 ids=lambda x: x.strip('_'))
 def affix(request):
     """Parameterizes over the different variations of a local_snapshot property.

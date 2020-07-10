@@ -1,6 +1,16 @@
 #include "PythonLocalDataAccess.h"
 
 
+void export_GhostDataFlag(pybind11::module &m)
+    {
+    pybind11::enum_<GhostDataFlag>(m, "GhostDataFlag")
+        .value("standard", GhostDataFlag::standard)
+        .value("ghost", GhostDataFlag::ghost)
+        .value("both", GhostDataFlag::both)
+        ;
+    }
+
+
 void export_HOOMDHostBuffer(pybind11::module &m)
     {
     pybind11::class_<HOOMDHostBuffer>(
