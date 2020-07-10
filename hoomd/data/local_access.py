@@ -35,8 +35,7 @@ class _LocalAccess(ABC):
                 raise AttributeError(
                     "{} object has no attribute {}".format(type(self), attr))
 
-        arr = self._array_cls(buff, lambda: self._entered)
-        self._accessed_fields[attr] = arr
+        self._accessed_fields[attr] = arr = self._array_cls(buff, lambda: self._entered)
         return arr
 
     def _get_raw_attr_and_flag(self, attr):
