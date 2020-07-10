@@ -284,12 +284,20 @@ def test_force_energy_accuracy(simulation_factory,
         sim.state.snapshot = snap
         sim_energies = sim.operations.integrator.forces[0].energies
         sim_forces = sim.operations.integrator.forces[0].forces
-        np.testing.assert_almost_equal(energies[i],
-                                       sum(sim_energies),
-                                       decimal=3)
-        np.testing.assert_almost_equal(forces[i] * r,
-                                       sim_forces[0],
-                                       decimal=3)
-        np.testing.assert_almost_equal(forces[i] * r * -1,
-                                       sim_forces[1],
-                                       decimal=3)
+        atol = 0
+        if energies[i] == 0 or sum(sim_energies) == 0:
+            atol = 1e-06
+        np.testing.assert_allclose(energies[i],
+                                   sum(sim_energies),
+                                   rtol=5e-06,
+                                   atol=atol)
+        if forces[i] == 0 or sum(sim_forces[0]) == 0:
+            atol = 1e-06
+        np.testing.assert_allclose(forces[i] * r,
+                                   sim_forces[0],
+                                   rtol=5e-06,
+                                   atol=atol)
+        np.testing.assert_allclose(forces[i] * r * -1,
+                                   sim_forces[1],
+                                   rtol=5e-06,
+                                   atol=atol)
