@@ -197,7 +197,7 @@ class Loggable(type):
         # improper class definitions.
         if log_dict == {} and not any(issubclass(type(c), Loggable)
                                       for c in cls.__mro__[1:]):
-            loggable_cls._add_loggable_property(cls)
+            loggable_cls._add_property_for_displaying_loggables(cls)
 
         # grab the current class's loggable quantities
         log_dict.update(loggable_cls._get_current_cls_loggables(cls))
@@ -205,7 +205,7 @@ class Loggable(type):
         loggable_cls._meta_export_dict = dict()
 
     @staticmethod
-    def _add_loggable_property(new_cls):
+    def _add_property_for_displaying_loggables(new_cls):
         if hasattr(new_cls, 'loggables'):
             raise ValueError("classes of type Loggable cannot implement a "
                              "loggables method, property, or attribute.")
