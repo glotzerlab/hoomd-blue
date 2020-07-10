@@ -163,7 +163,7 @@ class Loggable(type):
 
     @classmethod
     def _get_current_cls_loggables(cls, new_cls):
-        """Gets the current class's new loggables (not inherited."""
+        """Gets the current class's new loggables (not inherited)."""
         return {name: _LoggerQuantity(name, new_cls, entry.flag, entry.default)
                 for name, entry in cls._meta_export_dict.items()}
 
@@ -278,7 +278,7 @@ class _LoggerQuantity:
 
     @staticmethod
     def _generate_namespace(cls):
-        """Infite iterator of namespaces for a given class.
+        """Infinite iterator of namespaces for a given class.
 
         If namespace is taken add a number and increment until unique.
         """
@@ -406,7 +406,7 @@ class Logger(SafeNamespaceDict):
     `hoomd.logging.TypeFlags`) are appropriate for a given `Logger` object. This
     helps logging back ends determine if a `Logger` object is compatible. The
     ``only_default`` flag is mainly a convenience by allowing quantities not
-    commonly logged (but available) to be passed over unless explicityly asked
+    commonly logged (but available) to be passed over unless explicitly asked
     for. You can override the ``only_default`` flag by explicitly listing the
     quantities you want in `Logger.add`, but the same is not true with regards
     to ``flags``.
@@ -621,7 +621,7 @@ class Logger(SafeNamespaceDict):
         return dict_map(self._dict, lambda x: x())
 
     def _contains_obj(self, namespace, obj):
-        '''evaulates based on identity.'''
+        '''Evaluates based on identity.'''
         return self._unsafe_getitem(namespace).obj is obj
 
     @staticmethod

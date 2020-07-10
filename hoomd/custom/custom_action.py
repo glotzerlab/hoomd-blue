@@ -40,7 +40,7 @@ class Action(metaclass=_AbstractLoggable):
             def act(self, timestep):
                 pass
 
-    For advertising loggable quantities through the wrappping object, the
+    For advertising loggable quantities through the wrapping object, the
     decorator `hoomd.logging.log` can be used.
 
     .. code-block:: python
