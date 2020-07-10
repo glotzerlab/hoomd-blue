@@ -207,24 +207,6 @@ def base_snapshot(device):
 
 
 @pytest.fixture(scope='session')
-def cpu_simulation_factory(device_cpu):
-    """Creates the simulation from the base_snapshot."""
-
-    def make_simulation(snapshot):
-        sim = hoomd.Simulation(device_cpu)
-
-        # reduce sorter grid to avoid Hilbert curve overhead in unit tests
-        for tuner in sim.operations.tuners:
-            if isinstance(tuner, hoomd.tuner.ParticleSorter):
-                tuner.grid = 8
-
-        sim.create_state_from_snapshot(snapshot)
-        return sim
-
-    return make_simulation
-
-
-@pytest.fixture(scope='session')
 def gpu_simulation_factory(device_gpu):
     """Creates the simulation from the base_snapshot."""
 
@@ -242,95 +224,11 @@ def gpu_simulation_factory(device_gpu):
     return make_simulation
 
 
-def check_box(local_snapshot, global_box, ranks):
-    """General check that ``box`` and ``local_box`` properties work."""
-    assert type(local_snapshot.global_box) == hoomd.Box
-    assert type(local_snapshot.local_box) == hoomd.Box
-
-    assert local_snapshot.global_box == global_box
-    # The local box and global box are equal if and only if
-    # we run on a single rank.
-    assert (local_snapshot.local_box == global_box) == (ranks == 1)
-
-
-def test_box_cpu(cpu_simulation_factory, base_snapshot):
-    sim = cpu_simulation_factory(base_snapshot)
-    with sim.state.cpu_local_snapshot as data:
-        check_box(data, sim.state.box, sim.device.num_ranks)
-
-
-def test_box_gpu(gpu_simulation_factory, base_snapshot):
-    sim = gpu_simulation_factory(base_snapshot)
-
-    with sim.state.cpu_local_snapshot as data:
-        check_box(data, sim.state.box, sim.device.num_ranks)
-
-    with sim.state.gpu_local_snapshot as data:
-        check_box(data, sim.state.box, sim.device.num_ranks)
-
-
-# Test tags and rtags
-
-def check_tag_shape(base_snapshot, local_snapshot, group, ranks):
-    mpi_comm = MPI.COMM_WORLD
-
-    if base_snapshot.exists:
-        N = getattr(base_snapshot, group).N
-    else:
-        N = None
-    N = mpi_comm.bcast(N, root=0)
-
-    # check particles tag size
-    if group == 'particles':
-        total_len = mpi_comm.allreduce(
-            len(local_snapshot.particles.tag), op=MPI.SUM)
-        assert total_len == N
-    else:
-        local_snapshot_section = getattr(local_snapshot, group)
-        if ranks > 1:
-            assert len(local_snapshot_section.tag) <= N
-        else:
-            assert len(local_snapshot_section.tag) == N
-
-
 @pytest.fixture(
     params=['particles', 'bonds', 'angles',
             'dihedrals', 'impropers', 'constraints', 'pairs'])
 def snapshot_section(request):
     return request.param
-
-
-@skip_mpi4py
-def test_cpu_tags_shape(
-        cpu_simulation_factory, base_snapshot, snapshot_section):
-    """Checks that tags are the appropriate size from local snapshots.
-
-    tags are used for checking other shapes so this is necessary to validate
-    those tests.
-    """
-    sim = cpu_simulation_factory(base_snapshot)
-    with sim.state.cpu_local_snapshot as data:
-        check_tag_shape(
-            base_snapshot, data, snapshot_section, sim.device.num_ranks)
-
-
-@skip_mpi4py
-@pytest.mark.cupy_optional
-def test_gpu_tags_shape(
-        gpu_simulation_factory, base_snapshot, snapshot_section):
-    """Checks that tags are the appropriate size from local snapshots.
-
-    tags are used for checking other shapes so this is necessary to validate
-    those tests.
-    """
-    sim = gpu_simulation_factory(base_snapshot)
-    with sim.state.cpu_local_snapshot as data:
-        check_tag_shape(
-            base_snapshot, data, snapshot_section, sim.device.num_ranks)
-
-    with sim.state.gpu_local_snapshot as data:
-        check_tag_shape(
-            base_snapshot, data, snapshot_section, sim.device.num_ranks)
 
 
 @pytest.fixture(
@@ -342,60 +240,6 @@ def test_gpu_tags_shape(
 def global_property(request):
     return request.param
 
-
-def check_global_properties(prop, global_property_dict, N):
-    assert prop.shape == global_property_dict['shape']
-    assert np.issubdtype(prop.dtype, global_property_dict['np_type'])
-    if isinstance(prop, HOOMDGPUArray) and not CUPY_IMPORTED:
-        return
-    else:
-        if global_property_dict['value'] is not None:
-            general_array_equality(prop, global_property_dict['value'])
-        with pytest.raises(ValueError):
-            prop[:] = 1
-
-
-@skip_mpi4py
-def test_cpu_global_properties(cpu_simulation_factory, base_snapshot,
-                               global_property):
-    section_name, prop_name, prop_dict = global_property
-    sim = cpu_simulation_factory(base_snapshot)
-    snapshot = sim.state.snapshot
-
-    mpi_comm = MPI.COMM_WORLD
-
-    if snapshot.exists:
-        N = getattr(snapshot, section_name).N
-    else:
-        N = None
-    N = mpi_comm.bcast(N, root=0)
-    with sim.state.cpu_local_snapshot as data:
-        check_global_properties(
-            getattr(getattr(data, section_name), prop_name), prop_dict, N)
-
-
-@skip_mpi4py
-@pytest.mark.cupy_optional
-def test_gpu_global_properties(gpu_simulation_factory, base_snapshot,
-                               global_property):
-    section_name, prop_name, prop_dict = global_property
-    sim = gpu_simulation_factory(base_snapshot)
-    snapshot = sim.state.snapshot
-
-    mpi_comm = MPI.COMM_WORLD
-
-    if snapshot.exists:
-        N = getattr(snapshot, section_name).N
-    else:
-        N = None
-    N = mpi_comm.bcast(N, root=0)
-    with sim.state.gpu_local_snapshot as data:
-        check_global_properties(
-            getattr(getattr(data, section_name), prop_name), prop_dict, N)
-
-# Testing local snapshot array properties
-
-# Create fixtures that allow for parametrized tests
 
 @pytest.fixture(
     scope='function',
@@ -439,6 +283,17 @@ def get_property_name_from_affix(name, affix):
         return name
 
 
+def general_array_equality(arr1, arr2):
+    """Allows checking of equality with both HOOMDArrays and HOOMDGPUArrays."""
+    if any(np.issubdtype(a.dtype, np.floating) for a in (arr1, arr2)):
+        if any(isinstance(a, HOOMDGPUArray) for a in (arr1, arr2)):
+            return cupy.allclose(arr1, arr2)
+        else:
+            return np.allclose(arr1, arr2)
+    else:
+        return all(arr1.ravel() == arr2.ravel())
+
+
 def check_type(data, prop_dict, tags):
     """Check that the expected dtype is found for local snapshots."""
     assert np.issubdtype(data.dtype, prop_dict['np_type'])
@@ -454,17 +309,6 @@ def check_shape(data, prop_dict, tags):
             assert data.shape == (len(tags),) + prop_dict['shape'][1:]
     else:
         assert data.shape == (len(tags),) + prop_dict['shape'][1:]
-
-
-def general_array_equality(arr1, arr2):
-    """Allows checking of equality with both HOOMDArrays and HOOMDGPUArrays."""
-    if any(np.issubdtype(a.dtype, np.floating) for a in (arr1, arr2)):
-        if any(isinstance(a, HOOMDGPUArray) for a in (arr1, arr2)):
-            return cupy.allclose(arr1, arr2)
-        else:
-            return np.allclose(arr1, arr2)
-    else:
-        return all(arr1.ravel() == arr2.ravel())
 
 
 def check_getting(data, prop_dict, tags):
@@ -505,73 +349,158 @@ def check_setting(data, prop_dict, tags):
         assert general_array_equality(data, new_values)
 
 
-@pytest.fixture(scope='function',
-                params=[check_type, check_shape, check_getting, check_setting])
+@pytest.fixture(
+    scope='function',
+    params=[check_type, check_shape, check_getting, check_setting])
 def property_check(request):
     """Parameterizes differnt types of checks on local_snapshot properties."""
     return request.param
 
 
-def test_cpu_arrays_properties(cpu_simulation_factory, base_snapshot,
+class _TestLocalSnapshots:
+    """Base class for CPU and GPU based localsnapshot tests."""
+    @staticmethod
+    def check_box(local_snapshot, global_box, ranks):
+        """General check that ``box`` and ``local_box`` properties work."""
+        assert type(local_snapshot.global_box) == hoomd.Box
+        assert type(local_snapshot.local_box) == hoomd.Box
+
+        assert local_snapshot.global_box == global_box
+        # The local box and global box are equal if and only if
+        # we run on a single rank.
+        assert (local_snapshot.local_box == global_box) == (ranks == 1)
+
+    def test_box(self, simulation_factory, base_snapshot):
+        sim = simulation_factory()
+        for lcl_snapshot_attr in self._lcl_snapshot_attrs:
+            with getattr(sim.state, lcl_snapshot_attr) as data:
+                self.check_box(data, sim.state.box, sim.device.num_ranks)
+
+    @staticmethod
+    def check_tag_shape(base_snapshot, local_snapshot, group, ranks):
+        mpi_comm = MPI.COMM_WORLD
+
+        if base_snapshot.exists:
+            N = getattr(base_snapshot, group).N
+        else:
+            N = None
+        N = mpi_comm.bcast(N, root=0)
+
+        # check particles tag size
+        if group == 'particles':
+            total_len = mpi_comm.allreduce(
+                len(local_snapshot.particles.tag), op=MPI.SUM)
+            assert total_len == N
+        else:
+            local_snapshot_section = getattr(local_snapshot, group)
+            if ranks > 1:
+                assert len(local_snapshot_section.tag) <= N
+            else:
+                assert len(local_snapshot_section.tag) == N
+
+    @skip_mpi4py
+    @pytest.mark.cupy_optional
+    def test_tags_shape(self, simulation_factory,
+                        base_snapshot, snapshot_section):
+        """Checks that tags are the appropriate size from local snapshots.
+
+        tags are used for checking other shapes so this is necessary to validate
+        those tests.
+        """
+        sim = simulation_factory()
+        for lcl_snapshot_attr in self._lcl_snapshot_attrs:
+            with getattr(sim.state, lcl_snapshot_attr) as data:
+                self.check_tag_shape(
+                    base_snapshot, data, snapshot_section, sim.device.num_ranks)
+
+    @staticmethod
+    def check_global_properties(prop, global_property_dict, N):
+        assert prop.shape == global_property_dict['shape']
+        assert np.issubdtype(prop.dtype, global_property_dict['np_type'])
+        if isinstance(prop, HOOMDGPUArray) and not CUPY_IMPORTED:
+            return
+        else:
+            if global_property_dict['value'] is not None:
+                general_array_equality(prop, global_property_dict['value'])
+            with pytest.raises(ValueError):
+                prop[:] = 1
+
+    @skip_mpi4py
+    @pytest.mark.cupy_optional
+    def test_cpu_global_properties(self, simulation_factory,
+                                   base_snapshot, global_property):
+        section_name, prop_name, prop_dict = global_property
+        sim = simulation_factory()
+        snapshot = sim.state.snapshot
+
+        mpi_comm = MPI.COMM_WORLD
+
+        if snapshot.exists:
+            N = getattr(snapshot, section_name).N
+        else:
+            N = None
+        N = mpi_comm.bcast(N, root=0)
+        with sim.state.cpu_local_snapshot as data:
+            self.check_global_properties(
+                getattr(getattr(data, section_name), prop_name), prop_dict, N)
+
+    @pytest.mark.cupy_optional
+    def test_arrays_properties(self, simulation_factory, base_snapshot,
                                section_name_dict, affix, property_check):
-    """This test makes extensive use of parameterizing in pytest.
+        """This test makes extensive use of parameterizing in pytest.
 
-    This test tests the type, shape, getting, and setting of array values in the
-    local snapshot. We test all properties including ghost and both ghost and
-    normal particles, bonds, etc.
-    """
-    name, property_name, property_dict = section_name_dict
-    property_name = get_property_name_from_affix(property_name, affix)
-    tag_name = get_property_name_from_affix('tag', affix)
+        This test tests the type, shape, getting, and setting of array values in
+        the local snapshot. We test all properties including ghost and both
+        ghost and normal particles, bonds, etc.
+        """
+        name, property_name, property_dict = section_name_dict
+        property_name = get_property_name_from_affix(property_name, affix)
+        tag_name = get_property_name_from_affix('tag', affix)
 
-    sim = cpu_simulation_factory(base_snapshot)
-    with sim.state.cpu_local_snapshot as data:
-        # gets the particle, bond, etc data
-        snapshot_section = getattr(data, name)
-        hoomd_buffer = getattr(snapshot_section, property_name)
-        tags = getattr(snapshot_section, tag_name)
-        property_check(hoomd_buffer, property_dict, tags)
-
-
-def test_cpu_arrays_properties_with_gpu_device(
-        gpu_simulation_factory, base_snapshot,
-        section_name_dict, affix, property_check):
-    """This test makes extensive use of parameterizing in pytest.
-
-    This test tests the type, shape, getting, and setting of array values in the
-    local snapshot. We test all properties including ghost and both ghost and
-    normal particles, bonds, etc.
-    """
-    name, property_name, property_dict = section_name_dict
-    property_name = get_property_name_from_affix(property_name, affix)
-    tag_name = get_property_name_from_affix('tag', affix)
-
-    sim = gpu_simulation_factory(base_snapshot)
-    with sim.state.cpu_local_snapshot as data:
-        # gets the particle, bond, etc data
-        snapshot_section = getattr(data, name)
-        hoomd_buffer = getattr(snapshot_section, property_name)
-        tags = getattr(snapshot_section, tag_name)
-        property_check(hoomd_buffer, property_dict, tags)
+        sim = simulation_factory()
+        for lcl_snapshot_attr in self._lcl_snapshot_attrs:
+            with getattr(sim.state, lcl_snapshot_attr) as data:
+                # gets the particle, bond, etc data
+                snapshot_section = getattr(data, name)
+                hoomd_buffer = getattr(snapshot_section, property_name)
+                tags = getattr(snapshot_section, tag_name)
+                property_check(hoomd_buffer, property_dict, tags)
 
 
-@pytest.mark.cupy_optional
-def test_gpu_arrays_properties(gpu_simulation_factory, base_snapshot,
-                               section_name_dict, affix, property_check):
-    """This test makes extensive use of parameterizing in pytest.
+class TestLocalSnapshotCPUDevice(_TestLocalSnapshots):
+    _lcl_snapshot_attrs = ['cpu_local_snapshot']
 
-    This test tests the type, shape, getting, and setting of array values in the
-    local snapshot. We test all properties including ghost and both ghost and
-    normal particles, bonds, etc.
-    """
-    name, property_name, property_dict = section_name_dict
-    property_name = get_property_name_from_affix(property_name, affix)
-    tag_name = get_property_name_from_affix('tag', affix)
+    @pytest.fixture
+    def simulation_factory(self, device_cpu, base_snapshot):
+        """Creates the simulation from the base_snapshot."""
+        def factory():
+            sim = hoomd.Simulation(device_cpu)
 
-    sim = gpu_simulation_factory(base_snapshot)
-    with sim.state.gpu_local_snapshot as data:
-        # gets the particle, bond, etc data
-        snapshot_section = getattr(data, name)
-        hoomd_buffer = getattr(snapshot_section, property_name)
-        tags = getattr(snapshot_section, tag_name)
-        property_check(hoomd_buffer, property_dict, tags)
+            # reduce sorter grid to avoid Hilbert curve overhead in unit tests
+            for tuner in sim.operations.tuners:
+                if isinstance(tuner, hoomd.tuner.ParticleSorter):
+                    tuner.grid = 8
+
+            sim.create_state_from_snapshot(base_snapshot)
+            return sim
+        return factory
+
+
+class TestLocalSnapshotGPUDevice(_TestLocalSnapshots):
+    _lcl_snapshot_attrs = ['cpu_local_snapshot', 'gpu_local_snapshot']
+
+    @pytest.fixture
+    def simulation_factory(self, device_gpu, base_snapshot):
+        """Creates the simulation from the base_snapshot."""
+        def factory():
+            sim = hoomd.Simulation(device_gpu)
+
+            # reduce sorter grid to avoid Hilbert curve overhead in unit tests
+            for tuner in sim.operations.tuners:
+                if isinstance(tuner, hoomd.tuner.ParticleSorter):
+                    tuner.grid = 8
+
+            sim.create_state_from_snapshot(base_snapshot)
+            return sim
+
+        return factory
