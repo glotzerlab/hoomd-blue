@@ -1,5 +1,5 @@
 from .local_access import (
-    LocalSnapshot, AngleLocalAccessCPU, BondLocalAccessCPU,
-    ConstraintLocalAccessCPU, DihedralLocalAccessCPU, ImproperLocalAccessCPU,
-    PairLocalAccessCPU, ParticleLocalAccessCPU)
+    LocalSnapshot, AngleLocalAccess, BondLocalAccess,
+    ConstraintLocalAccess, DihedralLocalAccess, ImproperLocalAccess,
+    PairLocalAccess, ParticleLocalAccess)
 from .local_access_gpu import LocalSnapshotGPU

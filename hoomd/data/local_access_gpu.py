@@ -1,47 +1,38 @@
 from hoomd import _hoomd
 from hoomd.data.local_access import (
-    _ParticleLocalAccess, _GroupLocalAccess, _LocalSnapshotBase)
+    ParticleLocalAccess, BondLocalAccess, ConstraintLocalAccess,
+    DihedralLocalAccess, AngleLocalAccess, ImproperLocalAccess, PairLocalAccess,
+    _LocalSnapshotBase)
+
 from hoomd.array import HOOMDGPUArray
 
 if _hoomd.isCUDAAvailable():
-    class ParticleLocalAccessGPU(_ParticleLocalAccess):
+    class ParticleLocalAccessGPU(ParticleLocalAccess):
         _cpp_cls = _hoomd.LocalParticleDataDevice
         _array_cls = HOOMDGPUArray
 
-    class BondLocalAccessGPU(_GroupLocalAccess):
+    class BondLocalAccessGPU(BondLocalAccess):
         _cpp_cls = _hoomd.LocalBondDataDevice
-        _cpp_data_get_method = "getBondData"
         _array_cls = HOOMDGPUArray
 
-    class AngleLocalAccessGPU(_GroupLocalAccess):
+    class AngleLocalAccessGPU(AngleLocalAccess):
         _cpp_cls = _hoomd.LocalAngleDataDevice
-        _cpp_data_get_method = "getAngleData"
         _array_cls = HOOMDGPUArray
 
-    class DihedralLocalAccessGPU(_GroupLocalAccess):
+    class DihedralLocalAccessGPU(DihedralLocalAccess):
         _cpp_cls = _hoomd.LocalDihedralDataDevice
-        _cpp_data_get_method = "getDihedralData"
         _array_cls = HOOMDGPUArray
 
-    class ImproperLocalAccessGPU(_GroupLocalAccess):
+    class ImproperLocalAccessGPU(ImproperLocalAccess):
         _cpp_cls = _hoomd.LocalImproperDataDevice
-        _cpp_data_get_method = "getImproperData"
         _array_cls = HOOMDGPUArray
 
-    class ConstraintLocalAccessGPU(_GroupLocalAccess):
-        _fields = {
-            'value': 'getTypeVal',
-            'group': 'getMembers',
-            'tag': 'getTags',
-            'rtag': 'getRTags'
-        }
+    class ConstraintLocalAccessGPU(ConstraintLocalAccess):
         _cpp_cls = _hoomd.LocalConstraintDataDevice
-        _cpp_data_get_method = "getConstraintData"
         _array_cls = HOOMDGPUArray
 
-    class PairLocalAccessGPU(_GroupLocalAccess):
+    class PairLocalAccessGPU(PairLocalAccess):
         _cpp_cls = _hoomd.LocalPairDataDevice
-        _cpp_data_get_method = "getPairData"
         _array_cls = HOOMDGPUArray
 
     class LocalSnapshotGPU(_LocalSnapshotBase):
@@ -97,14 +88,11 @@ allowed.
 For every property (e.g. ``data.particles.position``), only grabs the
 data for the regular (non-ghost) particles. The property can be prefixed
 with ``ghost_`` to grab the ghost particles in a read only manner. Likewise,
-suffixing with ``_with_ghosts`` will grab all data on the rank (regular and
+suffixing with ``_with_ghost`` will grab all data on the rank (regular and
 ghost particles) in a read only array.
 
 All array-like properties return a `hoomd.array.HOOMDGPUArray` object which
 prevents invalid memory accesses.
-
-Note:
-    See the CPU ``LocalAccess`` classes for available properties.
 """
 
 LocalSnapshotGPU.__doc__ = _gpu_snapshot_docs

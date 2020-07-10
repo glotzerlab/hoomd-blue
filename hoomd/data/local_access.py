@@ -78,38 +78,8 @@ class _LocalAccess(ABC):
         self._accessed_fields = dict()
 
 
-class _ParticleLocalAccess(_LocalAccess):
-    @property
-    @abstractmethod
-    def _cpp_cls(self):
-        pass
-
-    _fields = {
-        'position': 'getPosition',
-        'typeid': 'getTypes',
-        'velocity': 'getVelocities',
-        'mass': 'getMasses',
-        'acceleration': 'getAcceleration',
-        'orientation': 'getOrientation',
-        'angular_momentum': 'getAngularMomentum',
-        'moment_of_inertia': 'getMomentsOfInertia',
-        'charge': 'getCharge',
-        'diameter': 'getDiameter',
-        'image': 'getImages',
-        'tag': 'getTags',
-        'rtag': 'getRTags',
-        'rigid_body_id': 'getBodies',
-        'net_force': 'getNetForce',
-        'net_torque': 'getNetTorque',
-        'net_virial': 'getNetVirial'}
-
-    def __init__(self, state):
-        super().__init__()
-        self._cpp_obj = self._cpp_cls(state._cpp_sys_def.getParticleData())
-
-
-class ParticleLocalAccessCPU(_ParticleLocalAccess):
-    """Class for directly accessing HOOMD-blue particle data on the CPU.
+class ParticleLocalAccess(_LocalAccess):
+    """Class for directly accessing HOOMD-blue particle data.
 
     Attributes:
         type ((N_particles) `hoomd.array` object of ``float``):
@@ -161,6 +131,36 @@ class ParticleLocalAccessCPU(_ParticleLocalAccess):
         directly. This is also true in HOOMD-blue's MD integration methods (see
         `hoomd.md.methods`)
     """
+    @property
+    @abstractmethod
+    def _cpp_cls(self):
+        pass
+
+    _fields = {
+        'position': 'getPosition',
+        'typeid': 'getTypes',
+        'velocity': 'getVelocities',
+        'mass': 'getMasses',
+        'acceleration': 'getAcceleration',
+        'orientation': 'getOrientation',
+        'angular_momentum': 'getAngularMomentum',
+        'moment_of_inertia': 'getMomentsOfInertia',
+        'charge': 'getCharge',
+        'diameter': 'getDiameter',
+        'image': 'getImages',
+        'tag': 'getTags',
+        'rtag': 'getRTags',
+        'rigid_body_id': 'getBodies',
+        'net_force': 'getNetForce',
+        'net_torque': 'getNetTorque',
+        'net_virial': 'getNetVirial'}
+
+    def __init__(self, state):
+        super().__init__()
+        self._cpp_obj = self._cpp_cls(state._cpp_sys_def.getParticleData())
+
+
+class ParticleLocalAccessCPU(ParticleLocalAccess):
     _cpp_cls = _hoomd.LocalParticleDataHost
     _array_cls = HOOMDArray
 
@@ -189,8 +189,8 @@ class _GroupLocalAccess(_LocalAccess):
             getattr(state._cpp_sys_def, self._cpp_get_data_method_name)())
 
 
-class BondLocalAccessCPU(_GroupLocalAccess):
-    """Class for directly accessing HOOMD-blue bond data on the CPU.
+class BondLocalAccess(_GroupLocalAccess):
+    """Class for directly accessing HOOMD-blue bond data.
 
     Attributes:
         typeid ((N_bonds) `hoomd.array` object of ``int``):
@@ -206,14 +206,17 @@ class BondLocalAccessCPU(_GroupLocalAccess):
         rtag ((N_bonds_global) `hoomd.array` object of ``int``): the reverse
             tag of a bond. This means that the value ``bond.rtag[0]``
             represents the current index to access data for the bond with tag 0.
-        """
-    _cpp_cls = _hoomd.LocalBondDataHost
+    """
     _cpp_get_data_method_name = "getBondData"
+
+
+class BondLocalAccessCPU(BondLocalAccess):
+    _cpp_cls = _hoomd.LocalBondDataHost
     _array_cls = HOOMDArray
 
 
-class AngleLocalAccessCPU(_GroupLocalAccess):
-    """Class for directly accessing HOOMD-blue angle data on CPU.
+class AngleLocalAccess(_GroupLocalAccess):
+    """Class for directly accessing HOOMD-blue angle data.
 
     Attributes:
         typeid ((N_angles) `hoomd.array` object of ``int``):
@@ -231,13 +234,16 @@ class AngleLocalAccessCPU(_GroupLocalAccess):
             ``angle.rtag[0]`` represents the current index for accessing data
             for the angle with tag 0.
     """
-    _cpp_cls = _hoomd.LocalAngleDataHost
     _cpp_get_data_method_name = "getAngleData"
+
+
+class AngleLocalAccessCPU(AngleLocalAccess):
+    _cpp_cls = _hoomd.LocalAngleDataHost
     _array_cls = HOOMDArray
 
 
-class DihedralLocalAccessCPU(_GroupLocalAccess):
-    """Class for directly accessing HOOMD-blue dihedral data on CPU.
+class DihedralLocalAccess(_GroupLocalAccess):
+    """Class for directly accessing HOOMD-blue dihedral data.
 
     Attributes:
         typeid ((N_dihedrals) `hoomd.array` object of ``int``): The integer
@@ -255,13 +261,16 @@ class DihedralLocalAccessCPU(_GroupLocalAccess):
             ``dihedral.rtag[0]`` represents the current index for accessing data
             for the dihedral with tag 0.
     """
-    _cpp_cls = _hoomd.LocalDihedralDataHost
     _cpp_get_data_method_name = "getDihedralData"
+
+
+class DihedralLocalAccessCPU(DihedralLocalAccess):
+    _cpp_cls = _hoomd.LocalDihedralDataHost
     _array_cls = HOOMDArray
 
 
-class ImproperLocalAccessCPU(_GroupLocalAccess):
-    """Class for directly accessing HOOMD-blue improper data on CPU.
+class ImproperLocalAccess(_GroupLocalAccess):
+    """Class for directly accessing HOOMD-blue improper data.
 
     Attributes:
         typeid ((N_impropers) `hoomd.array` object of ``int``):
@@ -279,13 +288,16 @@ class ImproperLocalAccessCPU(_GroupLocalAccess):
             ``improper.rtag[0]`` represents the current index for accessing data
             for the improper with tag 0.
     """
-    _cpp_cls = _hoomd.LocalImproperDataHost
     _cpp_get_data_method_name = "getImproperData"
+
+
+class ImproperLocalAccessCPU(ImproperLocalAccess):
+    _cpp_cls = _hoomd.LocalImproperDataHost
     _array_cls = HOOMDArray
 
 
-class ConstraintLocalAccessCPU(_GroupLocalAccess):
-    """Class for directly accessing HOOMD-blue constraint data on CPU.
+class ConstraintLocalAccess(_GroupLocalAccess):
+    """Class for directly accessing HOOMD-blue constraint data.
 
     Attributes:
         value ((N_constraints) `hoomd.array` object of ``float``): The
@@ -310,13 +322,16 @@ class ConstraintLocalAccessCPU(_GroupLocalAccess):
         'tag': 'getTags',
         'rtag': 'getRTags'
     }
-    _cpp_cls = _hoomd.LocalConstraintDataHost
     _cpp_get_data_method_name = "getConstraintData"
+
+
+class ConstraintLocalAccessCPU(ConstraintLocalAccess):
+    _cpp_cls = _hoomd.LocalConstraintDataHost
     _array_cls = HOOMDArray
 
 
-class PairLocalAccessCPU(_GroupLocalAccess):
-    """Class for directly accessing HOOMD-blue special pair data on CPU.
+class PairLocalAccess(_GroupLocalAccess):
+    """Class for directly accessing HOOMD-blue special pair data.
 
     Attributes:
         typeid ((N_pairs) `hoomd.array` object of ``float``): The type of
@@ -335,16 +350,12 @@ class PairLocalAccessCPU(_GroupLocalAccess):
             ``special pair.rtag[0]`` represents the current index for accessing
             data for the special pair with tag 0.
     """
-    _cpp_cls = _hoomd.LocalPairDataHost
     _cpp_get_data_method_name = "getPairData"
+
+
+class PairLocalAccessCPU(PairLocalAccess):
+    _cpp_cls = _hoomd.LocalPairDataHost
     _array_cls = HOOMDArray
-
-
-# The docs on the _LocalSnapshotBase are not exactly correct. It uses the
-# CPU based classes for the type of its properties. This is to prevent
-# documenting the underscored classes (e.g. _ParticleLocalAccess). This is to
-# document the attributes available to the LocalSnapshot class. We could
-# document the underscored classes or make the classes not private as well.
 
 
 class _LocalSnapshotBase:
@@ -365,38 +376,38 @@ class _LocalSnapshotBase:
 
     @property
     def particles(self):
-        """hoomd.data.ParticleLocalAccessCPU: Local particle data."""
+        """hoomd.data.ParticleLocalAccess: Local particle data."""
         return self._particles
 
     @property
     def bonds(self):
-        """hoomd.data.BondLocalAccessCPU: Local bond data."""
+        """hoomd.data.BondLocalAccess: Local bond data."""
         return self._bonds
 
     @property
     def angles(self):
-        """hoomd.data.AngleLocalAccessCPU: Local angle data."""
+        """hoomd.data.AngleLocalAccess: Local angle data."""
         return self._angles
 
     @property
     def dihedrals(self):
-        """hoomd.data.DihedralLocalAccessCPU: Local dihedral data."""
+        """hoomd.data.DihedralLocalAccess: Local dihedral data."""
         return self._dihedrals
 
     @property
     def impropers(self):
-        """hoomd.data.ImproperLocalAccessCPU: Local improper data."""
+        """hoomd.data.ImproperLocalAccess: Local improper data."""
         return self._impropers
 
     @property
     def constraints(self):
-        """hoomd.data.ConstraintLocalAccessCPU: Local constraint data.
+        """hoomd.data.ConstraintLocalAccess: Local constraint data.
         """
         return self._constraints
 
     @property
     def pairs(self):
-        """hoomd.data.PairLocalAccessCPU: Local special pair data."""
+        """hoomd.data.PairLocalAccess: Local special pair data."""
         return self._pairs
 
     def __enter__(self):
