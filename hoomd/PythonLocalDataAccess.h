@@ -142,9 +142,6 @@ struct HOOMDDeviceBuffer : public HOOMDBuffer
         interface["strides"] = pybind11::tuple(strides);
         return interface;
         }
-
-    bool getReadOnly() { return m_read_only; }
-
     };
 #endif
 
