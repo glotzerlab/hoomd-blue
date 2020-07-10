@@ -112,49 +112,49 @@ class ParticleLocalAccessCPU(_ParticleLocalAccess):
     """Class for directly accessing HOOMD-blue particle data on the CPU.
 
     Attributes:
-        type ((N_particles) `hoomd.array` object of ``float``): The integer
-            type of a particle
-        tag ((N_particles) `hoomd.array` object of ``int``): the tag of a
-            particle.  HOOMD-blue uses spacial sorting to improve cache
-            efficiency in particle look-ups. This means the ordering of the
-            array changes.  However, particle tags remain constant. This
+        type ((N_particles) `hoomd.array` object of ``float``):
+            The integer type of a particle
+        tag ((N_particles) `hoomd.array` object of ``int``):
+            The tag of a particle.  HOOMD-blue uses spacial sorting to improve
+            cache efficiency in particle look-ups. This means the ordering of
+            the array changes.  However, particle tags remain constant. This
             means that if ``particles.tag[0]`` is 1, then later whatever
-            index has a value of 1 later in the simulation is the same
+            particle has a tag of 1 later in the simulation is the same
             particle.
-        rtag ((N_particles_global) `hoomd.array` object of ``int``): the
-            reverse tag of a particle. This means that the value
-            ``particles.rtag[0]`` represents the current index for particle
-            with tag 0.
+        rtag ((N_particles_global) `hoomd.array` object of ``int``):
+            The reverse tag of a particle. This means that the value
+            ``particles.rtag[0]`` represents the current index accessing data
+            for the particle with tag 0.
         position ((N_particles, 3) `hoomd.array` object of ``float``):
             particle positions
-        image ((N_particles, 3) `hoomd.array` object of ``int``): the
-            periodic image a particle occupies
+        image ((N_particles, 3) `hoomd.array` object of ``int``):
+            The periodic image a particle occupies
         velocity ((N_particles, 3) `hoomd.array` object of ``float``):
             particle velocities (note that changing velocities may or may
             not effect the future trajectory)
         acceleration ((N_particles, 3) `hoomd.array` object of ``float``):
             particle accelerations (note that changing accelerations may or
             may not effect the future trajectory)
-        mass ((N_particles) `hoomd.array` object of ``float``): particles'
-            masses
-        'orientation ((N_particles, 4) `hoomd.array` object of ``float``):
+        mass ((N_particles) `hoomd.array` object of ``float``):
+            particles' masses
+        orientation ((N_particles, 4) `hoomd.array` object of ``float``):
             particle orientations expressed as quaternions
         angular_momentum ((N_particles, 4) `hoomd.array` object of ``float``):
             particle angular momenta expressed as quaternions
         moment_of_inertia ((N_particles, 3) `hoomd.array` object of ``float``):
             particle principal moments of inertia
-        charge ((N_particles) `hoomd.array` object of ``float``): particle
-            electrical charges
-        diameter ((N_particles) `hoomd.array` object of ``float``): particle
-            diameters
-        rigid_body_id ((N_particles) `hoomd.array` object of ``int``): The
-            id of the rigid body the particle is in.
-        net_force ((N_particles, 3) `hoomd.array` object of ``float``): net
-            force on particle
-        net_torque ((N_particles, 3) `hoomd.array` object of ``float``): net
-            torque on particle
-        net_virial ((N_particles, 3) `hoomd.array` object of ``float``): net
-            virial on particle
+        charge ((N_particles) `hoomd.array` object of ``float``):
+            particle electrical charges
+        diameter ((N_particles) `hoomd.array` object of ``float``):
+            particle diameters
+        rigid_body_id ((N_particles) `hoomd.array` object of ``int``):
+            The id of the rigid body the particle is in.
+        net_force ((N_particles, 3) `hoomd.array` object of ``float``):
+            net force on particle
+        net_torque ((N_particles, 3) `hoomd.array` object of ``float``):
+            net torque on particle
+        net_virial ((N_particles, 3) `hoomd.array` object of ``float``):
+            net virial on particle
     """
     _cpp_cls = _hoomd.LocalParticleDataHost
     _array_cls = HOOMDArray
@@ -188,20 +188,20 @@ class BondLocalAccessCPU(_GroupLocalAccess):
     """Class for directly accessing HOOMD-blue bond data on the CPU.
 
     Attributes:
-        typeid ((N_bonds) `hoomd.array` object of ``int``): The integer
-            type of a bond.
-        members ((N_bonds, 2) `hoomd.array` object of ``int``): the tags of
-            particles in a bond.
-        tag ((N_bonds) `hoomd.array` object of ``int``): the tag of the
-            bond.  HOOMD-blue uses spacial sorting to improve cache
-            efficiency in bond look-ups. This means the ordering of the
-            array changes.  However, bond tags remain constant. This means
-            that if ``bond.tag[0]`` is 1, then later whatever index has a
-            value of 1 later in the simulation is the same bond.
+        typeid ((N_bonds) `hoomd.array` object of ``int``):
+            The integer type of a bond.
+        members ((N_bonds, 2) `hoomd.array` object of ``int``):
+            The tags of particles in a bond.
+        tag ((N_bonds) `hoomd.array` object of ``int``):
+            The tag of the bond.  HOOMD-blue uses spacial sorting to improve
+            cache efficiency in bond look-ups. This means the ordering of the
+            array changes.  However, bond tags remain constant. This means that
+            if ``bond.tag[0]`` is 1, then later whatever bond has a tag of 1
+            later in the simulation is the same bond.
         rtag ((N_bonds_global) `hoomd.array` object of ``int``): the reverse
             tag of a bond. This means that the value ``bond.rtag[0]``
-            represents the current index for bond with tag 0.
-    """
+            represents the current index to access data for the bond with tag 0.
+        """
     _cpp_cls = _hoomd.LocalBondDataHost
     _cpp_get_data_method_name = "getBondData"
     _array_cls = HOOMDArray
@@ -211,20 +211,20 @@ class AngleLocalAccessCPU(_GroupLocalAccess):
     """Class for directly accessing HOOMD-blue angle data on CPU.
 
     Attributes:
-        typeid ((N_angles) `hoomd.array` object of ``int``): The integer
-            type of a angle.
-        members ((N_angles, 3) `hoomd.array` object of ``int``): the tags
-            of particles in a angle.
-        tag ((N_angles) `hoomd.array` object of ``int``): the tag of the
-            angle.  HOOMD-blue uses spacial sorting to improve cache
-            efficiency in angle look-ups. This means the ordering of the
+        typeid ((N_angles) `hoomd.array` object of ``int``):
+            The integer type of a angle.
+        members ((N_angles, 3) `hoomd.array` object of ``int``):
+            The tags of particles in a angle.
+        tag ((N_angles) `hoomd.array` object of ``int``):
+            The tag of the angle.  HOOMD-blue uses spacial sorting to improve
+            cache efficiency in angle look-ups. This means the ordering of the
             array changes.  However, angle tags remain constant. This means
-            that if ``angle.tag[0]`` is 1, then later whatever index has a
-            value of 1 later in the simulation is the same angle.
-        rtag ((N_angles_global) `hoomd.array` object of ``int``): the
-            reverse tag of a angle. This means that the value
-            ``angle.rtag[0]`` represents the current index for angle with
-            tag 0.
+            that if ``angle.tag[0]`` is 1, then later whatever angle has a
+            tag of 1 later in the simulation is the same angle.
+        rtag ((N_angles_global) `hoomd.array` object of ``int``):
+            The reverse tag of a angle. This means that the value
+            ``angle.rtag[0]`` represents the current index for accessing data
+            for the angle with tag 0.
     """
     _cpp_cls = _hoomd.LocalAngleDataHost
     _cpp_get_data_method_name = "getAngleData"
@@ -239,17 +239,16 @@ class DihedralLocalAccessCPU(_GroupLocalAccess):
             type of a dihedral.
         members ((N_dihedrals, 3) `hoomd.array` object of ``int``): the
             tags of particles in a dihedral.
-        tag ((N_dihedrals) `hoomd.array` object of ``int``): the tag of the
-            dihedral.  HOOMD-blue uses spacial sorting to improve cache
-            efficiency in dihedral look-ups. This means the ordering of the
-            array changes.  However, dihedral tags remain constant. This
-            means that if ``dihedral.tag[0]`` is 1, then later whatever
-            index has a value of 1 later in the simulation is the same
-            dihedral.
-        rtag ((N_dihedrals_global) `hoomd.array` object of ``int``): the
-            reverse tag of a dihedral. This means that the value
-            ``dihedral.rtag[0]`` represents the current index for dihedral
-            with tag 0.
+        tag ((N_dihedrals) `hoomd.array` object of ``int``):
+            The tag of the dihedral.  HOOMD-blue uses spacial sorting to improve
+            cache efficiency in dihedral look-ups. This means the ordering of
+            the array changes.  However, dihedral tags remain constant. This
+            means that if ``dihedral.tag[0]`` is 1, then later whatever dihedral
+            has a tag of 1 later in the simulation is the same dihedral.
+        rtag ((N_dihedrals_global) `hoomd.array` object of ``int``):
+            The reverse tag of a dihedral. This means that the value
+            ``dihedral.rtag[0]`` represents the current index for accessing data
+            for the dihedral with tag 0.
     """
     _cpp_cls = _hoomd.LocalDihedralDataHost
     _cpp_get_data_method_name = "getDihedralData"
@@ -257,24 +256,23 @@ class DihedralLocalAccessCPU(_GroupLocalAccess):
 
 
 class ImproperLocalAccessCPU(_GroupLocalAccess):
-    """Class for directly accessing HOOMD-blue dihedral data on CPU.
+    """Class for directly accessing HOOMD-blue improper data on CPU.
 
     Attributes:
-        typeid ((N_impropers) `hoomd.array` object of ``int``): The integer
-            type of a improper.
-        members ((N_impropers, 3) `hoomd.array` object of ``int``): the
-            tags of particles in a improper.
-        tag ((N_impropers) `hoomd.array` object of ``int``): the tag of the
-            improper.  HOOMD-blue uses spacial sorting to improve cache
-            efficiency in improper look-ups. This means the ordering of the
-            array changes.  However, improper tags remain constant. This
-            means that if ``improper.tag[0]`` is 1, then later whatever
-            index has a value of 1 later in the simulation is the same
-            improper.
-        rtag ((N_impropers_global) `hoomd.array` object of ``int``): the
-            reverse tag of a improper. This means that the value
-            ``improper.rtag[0]`` represents the current index for improper
-            with tag 0.
+        typeid ((N_impropers) `hoomd.array` object of ``int``):
+            The integer type of a improper.
+        members ((N_impropers, 3) `hoomd.array` object of ``int``):
+            The tags of particles in a improper.
+        tag ((N_impropers) `hoomd.array` object of ``int``):
+            The tag of the improper.  HOOMD-blue uses spacial sorting to improve
+            cache efficiency in improper look-ups. This means the ordering of
+            the array changes.  However, improper tags remain constant. This
+            means that if ``improper.tag[0]`` is 1, then later whatever improper
+            has a tag of 1 later in the simulation is the same improper.
+        rtag ((N_impropers_global) `hoomd.array` object of ``int``):
+            The reverse tag of a improper. This means that the value
+            ``improper.rtag[0]`` represents the current index for accessing data
+            for the improper with tag 0.
     """
     _cpp_cls = _hoomd.LocalImproperDataHost
     _cpp_get_data_method_name = "getImproperData"
@@ -284,22 +282,22 @@ class ImproperLocalAccessCPU(_GroupLocalAccess):
 class ConstraintLocalAccessCPU(_GroupLocalAccess):
     """Class for directly accessing HOOMD-blue constraint data on CPU.
 
-        Attributes:
-            value ((N_constraints) `hoomd.array` object of ``float``): The
-                constaint value.
-            members ((N_constraints, 3) `hoomd.array` object of ``int``): the
-                tags of particles in a constraint.
-            tag ((N_constraints) `hoomd.array` object of ``int``): the tag of
-                the constraint.  HOOMD-blue uses spacial sorting to improve
-                cache efficiency in constraint look-ups. This means the ordering
-                of the array changes.  However, constraint tags remain constant.
-                This means that if ``constraint.tag[0]`` is 1, then later
-                whatever index has a value of 1 later in the simulation is the
-                same constraint.
-            rtag ((N_constraints_global) `hoomd.array` object of ``int``): the
-                reverse tag of a constraint. This means that the value
-                ``constraint.rtag[0]`` represents the current index for
-                constraint with tag 0.
+    Attributes:
+        value ((N_constraints) `hoomd.array` object of ``float``): The
+            constaint value.
+        members ((N_constraints, 3) `hoomd.array` object of ``int``): the
+            tags of particles in a constraint.
+        tag ((N_constraints) `hoomd.array` object of ``int``):
+            The tag of the constraint.  HOOMD-blue uses spacial sorting to
+            improve cache efficiency in constraint look-ups. This means the
+            ordering of the array changes.  However, constraint tags remain
+            constant. This means that if ``constraint.tag[0]`` is 1, then later
+            whatever constraint has a tag of 1 later in the simulation is the
+            same constraint.
+        rtag ((N_constraints_global) `hoomd.array` object of ``int``):
+            The reverse tag of a constraint. This means that the value
+            ``constraint.rtag[0]`` represents the current index for accessing
+            data for the constraint with tag 0.
         """
     _fields = {
         'value': 'getTypeVal',
@@ -315,21 +313,22 @@ class ConstraintLocalAccessCPU(_GroupLocalAccess):
 class PairLocalAccessCPU(_GroupLocalAccess):
     """Class for directly accessing HOOMD-blue special pair data on CPU.
 
-        Attributes:
-            typeid ((N_pairs) `hoomd.array` object of ``float``): The type of
-                special pair.
-            members ((N_pairs, 3) `hoomd.array` object of ``int``): the tags of
-                particles in a special pair.
-            tag ((N_pairs) `hoomd.array` object of ``int``): the tag of the
-                special pair.  HOOMD-blue uses spacial sorting to improve cache
-                efficiency in pair look-ups. This means the ordering of the
-                array changes.  However, special pair tags remain constant.
-                This means that if ``pair.tag[0]`` is 1, then later whatever
-                index has a value of 1 later in the simulation is the same pair.
-            rtag ((N_pairs_global) `hoomd.array` object of ``int``): the reverse
-                tag of a special pair. This means that the value
-                ``pair.rtag[0]`` represents the current index for special pair
-                with tag 0.
+    Attributes:
+        typeid ((N_pairs) `hoomd.array` object of ``float``): The type of
+            special pair.
+        members ((N_pairs, 3) `hoomd.array` object of ``int``): the tags of
+            particles in a special pair.
+        tag ((N_special_pairs) `hoomd.array` object of ``int``):
+            The tag of the special pair.  HOOMD-blue uses spacial sorting to
+            improve cache efficiency in special pair look-ups. This means the
+            ordering of the array changes.  However, special pair tags remain
+            constant. This means that if ``special pair.tag[0]`` is 1, then
+            later whatever special pair has a tag of 1 later in the simulation
+            is the same special pair.
+        rtag ((N_special_pairs_global) `hoomd.array` object of ``int``):
+            The reverse tag of a special pair. This means that the value
+            ``special pair.rtag[0]`` represents the current index for accessing
+            data for the special pair with tag 0.
     """
     _cpp_cls = _hoomd.LocalPairDataHost
     _cpp_get_data_method_name = "getPairData"
