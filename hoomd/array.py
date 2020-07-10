@@ -528,11 +528,11 @@ if isCUDAAvailable():
             _ndarray_disallow_properties_
         ]
 
-        GPUArrayMeta = _WrapClassFactory(_wrap_gpu_array_list,
+        _GPUArrayMeta = _WrapClassFactory(_wrap_gpu_array_list,
                                          allow_exceptions=True,
                                          cls=cupy.ndarray)
 
-        class HOOMDGPUArray(_HOOMDGPUArrayBase, metaclass=GPUArrayMeta):
+        class HOOMDGPUArray(_HOOMDGPUArrayBase, metaclass=_GPUArrayMeta):
             def __getattr__(self, item):
                 return getattr(self._coerce_to_ndarray(), item)
 
