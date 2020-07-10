@@ -249,21 +249,21 @@ class HOOMDArray(metaclass=_WrapClassFactory(_wrap_list)):
     and the ``data`` and ``base`` properties.  For typical use cases,
     understanding this class is not necessary. Treat it as a ``numpy.ndarray``.
 
-    We attempt to escape this class whenever possible. This essentially means
-    that whenever an array pointing to a new buffer is returned we can return
-    a `numpy.ndarray`.  However, any array pointing to the same data will be
-    returned as a `HOOMDArray`. To ensure memory safety, a `HOOMDArray` object
-    cannot be accessed outside of the context manager in which it was created.
-    To have access outside the manager an explicit copy must be made (e.g.
-    ``numpy.array(obj, copy=True)``).
+    In general, whenever possible (when an array pointing to a new buffer is
+    returned) we return a `numpy.ndarray`.  However, any array pointing to the
+    same data will be returned as a `HOOMDArray`. To ensure memory safety, a
+    `HOOMDArray` object cannot be accessed outside of the context manager in
+    which it was created.  To have access outside the manager an explicit copy
+    must be made (e.g.  ``numpy.array(obj, copy=True)``).
 
     In general this class should be nearly as fast as a standard NumPy array,
-    but there is some overhead. This is mitigated by escaping the class when
-    possible. If every ounce of performance is necessary,
-    ``HOOMDArray._coerce_to_ndarray`` can provide a ``numpy.ndarray`` object
-    inside the context manager. **References to a ``HOOMDArray`` object's buffer
-    after leaving the context manager is UNSAFE.** It can cause SEGFAULTs and
-    cause your program to crash. Use this function only if absolutely necessary.
+    but there is some overhead. This is mitigated by returning a
+    ``numpy.ndarray`` whenever possible. If every ounce of performance is
+    necessary, ``HOOMDArray._coerce_to_ndarray`` can provide a ``numpy.ndarray``
+    object inside the context manager. **References to a ``HOOMDArray`` object's
+    buffer after leaving the context manager is UNSAFE.** It can cause SEGFAULTs
+    and cause your program to crash. Use this function only if absolutely
+    necessary.
 
     Performance Tips:
         *Assume* ``a`` *represents a* `HOOMDArray` *for examples given.*
