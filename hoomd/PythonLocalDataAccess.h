@@ -336,11 +336,10 @@ class LocalDataAccess
             if (!handle)
                 {
                 auto mode = read_only ? access_mode::read : access_mode::readwrite;
-                std::unique_ptr<ArrayHandle<T> > new_handle(
+                handle = std::move(std::unique_ptr<ArrayHandle<T> >(
                     new ArrayHandle<T>((m_data.*get_array_func)(),
                     Output::device,
-                    mode));
-                handle = std::move(new_handle);
+                    mode)));
                 }
             }
 
