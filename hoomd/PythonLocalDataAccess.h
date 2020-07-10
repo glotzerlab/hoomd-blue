@@ -104,13 +104,14 @@ struct HOOMDDeviceBuffer : public HOOMDBuffer
         }
 
     /// Convert object to a __cuda_array_interface__ v2 compliant Python dict.
-    /// We can't only add the existing values in the HOOMDDeviceBuffer because
-    /// CuPy and potentially other packages that use the interface can't handle
-    /// a shape where the first dimension is zero and the rest are non-zero. In
-    /// addition, strides must always be the same length as shape, meaning we
-    /// need to ensure that we change strides to (0,) when the shape is (0,).
-    /// Likewise, we need to ensure that the int that serves as the device
-    /// pointer is zero for size 0 arrays.
+    /** We can't only add the existing values in the HOOMDDeviceBuffer because
+     *  CuPy and potentially other packages that use the interface can't handle
+     *  a shape where the first dimension is zero and the rest are non-zero. In
+     *  addition, strides must always be the same length as shape, meaning we
+     *  need to ensure that we change strides to (0,) when the shape is (0,).
+     *  Likewise, we need to ensure that the int that serves as the device
+     *  pointer is zero for size 0 arrays.
+     */
     pybind11::dict getCudaArrayInterface()
         {
         auto interface = pybind11::dict();
@@ -205,7 +206,9 @@ class LocalDataAccess
          *  T: the value stored in the by the internal array (i.e. the template
          *  parameter of the ArrayHandle)
          *  S: the exposed type of data to Python
-         *  U: the array class returned by the parameter get_array_func
+         *  U: the templated array class returned by the parameter
+         *  get_array_func. It is templated off of T (which means that if
+         *  U=GlobalArray then the full type is GlobalArray<T>)
          *
          *  Arguments:
          *  handle: a reference to the unique_ptr that holds the ArrayHandle.
@@ -282,7 +285,9 @@ class LocalDataAccess
          *  Template parameters:
          *  T: the value stored in the by the internal array (i.e. the template
          *  parameter of the ArrayHandle)
-         *  U: the array class returned by the parameter get_array_func
+         *  U: the templated array class returned by the parameter
+         *  get_array_func. It is templated off of T (which means that if
+         *  U=GlobalArray then the full type is GlobalArray<T>)
          *
          *  Arguments:
          *  handle: a reference to the unique_ptr that holds the ArrayHandle.
