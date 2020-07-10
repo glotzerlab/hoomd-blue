@@ -6,13 +6,6 @@ from hoomd.util import dict_map, SafeNamespaceDict
 from collections.abc import Sequence
 
 
-class _LoggableEntry:
-    """Stores entries for _Loggable's store of a class's loggable quantities."""
-    def __init__(self, flag, default):
-        self.flag = flag
-        self.default = default
-
-
 class TypeFlags(Flag):
     """Enum that marks all accepted logger types.
 
@@ -88,11 +81,89 @@ class TypeFlags(Flag):
 TypeFlags.ALL = TypeFlags.any(TypeFlags.__members__.values())
 
 
+# function defined here to ensure that each class of type Loggable will have a
+# loggables property
 def _loggables(self):
     """dict[str, str] Return a name: flag mapping of loggable quantities
     for the class."""
     return {name: quantity.flag.name
             for name, quantity in self._export_dict.items()}
+
+
+class _LoggableEntry:
+    """Stores entries for _Loggable's store of a class's loggable quantities."""
+    def __init__(self, flag, default):
+        self.flag = flag
+        self.default = default
+
+
+class _LoggerQuantity:
+    """The information to automatically log to a `hoomd.logging.Logger`.
+
+    Args:
+        name (str): The name of the quantity.
+        cls (``class object``): The class that the quantity comes from.
+        flag (str or TypeFlags, optional): The type of quantity it is.
+            Valid values are given in the `hoomd.logging.TypeFlags`
+            documentation.
+
+    Note:
+        For users, this class is meant to be used in conjunction with
+        `hoomd.custom.Action` for exposing loggable quantities for custom user
+        actions.
+    """
+
+    def __init__(self, name, cls, flag='scalar', default=True):
+        self.name = str(name)
+        self.update_cls(cls)
+        if isinstance(flag, str):
+            self.flag = TypeFlags[flag]
+        elif isinstance(flag, TypeFlags):
+            self.flag = flag
+        else:
+            raise ValueError("Flag must be a string convertable into "
+                             "TypeFlags or a TypeFlags object.")
+        self.default = bool(default)
+
+    def yield_names(self):
+        """Infinitely yield potential namespaces.
+
+        Used to ensure that all namespaces are unique for a
+        `hoomd.logging.Logger` object. We simple increment a number at the end
+        until the caller stops asking for another namespace.
+
+        Yields:
+            tuple[str]: A potential namespace for the object.
+        """
+        yield self.namespace + (self.name,)
+        for i in count(start=1, step=1):
+            yield self.namespace[:-1] + \
+                (self.namespace[-1] + '_' + str(i), self.name)
+
+    def update_cls(self, cls):
+        """Allow updating the class/namespace of the object.
+
+        Since the namespace is determined by the passed class's module and class
+        name, if inheritanting `hoomd.logging._LoggerQuantity`, the class needs
+        to be updated to the subclass.
+
+        Args:
+            cls (``class object``): The class to update the namespace with.
+        """
+        self.namespace = self._generate_namespace(cls)
+        return self
+
+    @staticmethod
+    def _generate_namespace(cls):
+        """Infite iterator of namespaces for a given class.
+
+        If namespace is taken add a number and increment until unique.
+        """
+        ns = tuple(cls.__module__.split('.') + [cls.__name__])
+        if ns[0] == 'hoomd':
+            return ns[1:]
+        else:
+            return ns
 
 
 class Loggable(type):
@@ -218,75 +289,6 @@ def log(func=None, *, is_property=True, flag='scalar', default=True):
         return helper
     else:
         return helper(func)
-
-
-class _LoggerQuantity:
-    """The information to automatically log to a `hoomd.logging.Logger`.
-
-    Args:
-        name (str): The name of the quantity.
-        cls (``class object``): The class that the quantity comes from.
-        flag (str or TypeFlags, optional): The type of quantity it is.
-            Valid values are given in the `hoomd.logging.TypeFlags`
-            documentation.
-
-    Note:
-        For users, this class is meant to be used in conjunction with
-        `hoomd.custom.Action` for exposing loggable quantities for custom user
-        actions.
-    """
-
-    def __init__(self, name, cls, flag='scalar', default=True):
-        self.name = str(name)
-        self.update_cls(cls)
-        if isinstance(flag, str):
-            self.flag = TypeFlags[flag]
-        elif isinstance(flag, TypeFlags):
-            self.flag = flag
-        else:
-            raise ValueError("Flag must be a string convertable into "
-                             "TypeFlags or a TypeFlags object.")
-        self.default = bool(default)
-
-    def yield_names(self):
-        """Infinitely yield potential namespaces.
-
-        Used to ensure that all namespaces are unique for a
-        `hoomd.logging.Logger` object. We simple increment a number at the end
-        until the caller stops asking for another namespace.
-
-        Yields:
-            tuple[str]: A potential namespace for the object.
-        """
-        yield self.namespace + (self.name,)
-        for i in count(start=1, step=1):
-            yield self.namespace[:-1] + \
-                (self.namespace[-1] + '_' + str(i), self.name)
-
-    def update_cls(self, cls):
-        """Allow updating the class/namespace of the object.
-
-        Since the namespace is determined by the passed class's module and class
-        name, if inheritanting `hoomd.logging._LoggerQuantity`, the class needs
-        to be updated to the subclass.
-
-        Args:
-            cls (``class object``): The class to update the namespace with.
-        """
-        self.namespace = self._generate_namespace(cls)
-        return self
-
-    @staticmethod
-    def _generate_namespace(cls):
-        """Infinite iterator of namespaces for a given class.
-
-        If namespace is taken add a number and increment until unique.
-        """
-        ns = tuple(cls.__module__.split('.') + [cls.__name__])
-        if ns[0] == 'hoomd':
-            return ns[1:]
-        else:
-            return ns
 
 
 class _LoggerEntry:
