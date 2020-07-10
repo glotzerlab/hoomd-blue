@@ -464,7 +464,7 @@ class _TestLocalSnapshots:
                 snapshot_section = getattr(data, name)
                 hoomd_buffer = getattr(snapshot_section, property_name)
                 tags = getattr(snapshot_section, tag_name)
-                property_check(hoomd_buffer, property_dict, tags.tolist())
+                property_check(hoomd_buffer, property_dict, tags)
 
 
 class TestLocalSnapshotCPUDevice(_TestLocalSnapshots):

@@ -22,16 +22,15 @@
 struct HOOMDBuffer {
     void* m_data;
     std::string m_typestr;
-    int m_dimensions;
     std::vector<ssize_t> m_shape;
     std::vector<ssize_t> m_strides;
     bool m_read_only;
 
     HOOMDBuffer(void* data, std::string typestr,
-                int dimensions, std::vector<ssize_t> shape,
+                 std::vector<ssize_t> shape,
                 std::vector<ssize_t> strides, bool read_only)
-        : m_data(data), m_typestr(typestr), m_dimensions(dimensions),
-          m_shape(shape), m_strides(strides), m_read_only(read_only)
+        : m_data(data), m_typestr(typestr), m_shape(shape),
+          m_strides(strides), m_read_only(read_only)
         {
         if (m_shape.size() != m_strides.size())
             {
@@ -51,12 +50,13 @@ struct HOOMDHostBuffer : public HOOMDBuffer
     {
     static const auto device = access_location::host;
     ssize_t m_itemsize;
+    int m_dimensions;
 
-    HOOMDHostBuffer(void* data, std::string typestr, int dimensions,
+    HOOMDHostBuffer(void* data, std::string typestr,
                     std::vector<ssize_t> shape, std::vector<ssize_t> strides,
-                    bool read_only, ssize_t itemsize)
-        : HOOMDBuffer(data, typestr, dimensions, shape, strides, read_only),
-          m_itemsize(itemsize) {}
+                    bool read_only, ssize_t itemsize, int dimensions)
+        : HOOMDBuffer(data, typestr, shape, strides, read_only),
+          m_itemsize(itemsize), m_dimensions(dimensions) {}
 
     template<class T>
     static HOOMDHostBuffer make(T* data, std::vector<ssize_t> shape,
@@ -64,7 +64,7 @@ struct HOOMDHostBuffer : public HOOMDBuffer
         {
         return HOOMDHostBuffer(
             data, pybind11::format_descriptor<T>::format(),
-            shape.size(), shape, strides, read_only, sizeof(T));
+            shape, strides, read_only, sizeof(T), shape.size());
         }
 
     pybind11::buffer_info new_buffer()
@@ -117,7 +117,7 @@ struct HOOMDDeviceBuffer : public HOOMDBuffer
         auto interface = pybind11::dict();
         interface["typestr"] = m_typestr;
         interface["version"] = 2;
-        auto = std::pair<intptr_t, bool>(0, m_read_only);
+        auto data = std::pair<intptr_t, bool>(0, m_read_only);
         pybind11::list shape{};
         pybind11::list strides{};
         if (m_shape.size() == 0 || m_shape[0] == 0)
