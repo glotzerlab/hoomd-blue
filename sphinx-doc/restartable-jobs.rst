@@ -24,7 +24,7 @@ A restartable needs to:
  - Choose between an initial condition and the restart file when initializing.
  - Write a restart file periodically.
  - Set a phase for all analysis, dump, and update commands.
- - Use :py:func:`hoomd.run_upto()` to skip over time steps that were run in previous job submissions.
+ - Use ``hoomd.run_upto()`` to skip over time steps that were run in previous job submissions.
  - Use only commands that are restart capable.
  - Optionally ensure that jobs cleanly exit before the job walltime limit.
 
@@ -32,7 +32,7 @@ Choose the appropriate initialization file
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Let's assume that the initial condition for the simulation is in ``init.gsd``, and ``restart.gsd`` is saved periodically
-as the job runs. A single :py:func:`hoomd.init.read_gsd()` command will load the restart file if it exists, otherwise it will load
+as the job runs. A single ``hoomd.init.read_gsd()`` command will load the restart file if it exists, otherwise it will load
 the initial file. It is easiest to think about dump files, temperature ramps, etc... if ``init.gsd`` is at time step 0::
 
     init.read_gsd(filename='init.gsd', restart='restart.gsd')
@@ -69,7 +69,7 @@ Do not use, ``phase=-1``, as then these routines will start running immediately 
 Use run_upto
 ^^^^^^^^^^^^
 
-:py:func:`hoomd.run_upto` runs the simulation up to timestep ``n``. Use this in restartable jobs to allow them to run a
+``hoomd.run_upto`` runs the simulation up to timestep ``n``. Use this in restartable jobs to allow them to run a
 given number of steps, independent of the number of submissions needed to reach that::
 
     run_upto(100e6)
@@ -82,7 +82,7 @@ continue adding data to the file as if the job had never been restarted.
 
 However, not all features in hoomd are capable of restarting. Some are not even capable of appending to files. See the
 documentation for each individual command you use to tell whether it is compatible with restartable jobs.
-For those that are restart capable, do not set `overwrite=True`, or each time the job restarts it will erase the file
+For those that are restart capable, do not set ``overwrite=True``, or each time the job restarts it will erase the file
 and start writing a new one.
 
 Some analysis routines in HOOMD-blue store internal state and may require a period that is commensurate with the
@@ -93,7 +93,7 @@ Cleanly exit before the walltime limit
 
 Job queues will kill your job when it reaches the walltime limit. HOOMD can stop your run before that happens and
 give your job time to exit cleanly. Set the environment variable ``HOOMD_WALLTIME_STOP`` to enable this.
-Any :py:func:`hoomd.run()` or :py:func:`hoomd.run_upto()` command will exit before the specified time is reached.
+Any ```hoomd.run``` or ``hoomd.run_upto()`` command will exit before the specified time is reached.
 HOOMD monitors run performance and tries to ensure that it will end *before* ``HOOMD_WALLTIME_STOP``.
 Set the variable to a unix epoch time. For example in a job script that should run 12 hours, set ``HOOMD_WALLTIME_STOP``
 to 12 hours from now, minus 10 minutes to allow for job cleanup::
@@ -102,7 +102,7 @@ to 12 hours from now, minus 10 minutes to allow for job cleanup::
     export HOOMD_WALLTIME_STOP=$((`date +%s` + 12 * 3600 - 10 * 60))
     mpirun hoomd run.py
 
-When using ``HOOMD_WALLTIME_STOP``, :py:func:`hoomd.run()` will throw the exception ``WalltimeLimitReached`` when it exits due to the walltime
+When using ``HOOMD_WALLTIME_STOP``, ```hoomd.run``` will throw the exception ``WalltimeLimitReached`` when it exits due to the walltime
 limit. Catch this exception so that your job can exit cleanly. Also, make sure to write out a final restart file
 at the end of your job so you have the final system state to continue from. Set the ``limit_multiple`` for the run to
 the restart period so that any analyzers that must run commensurate with the restart file have a chance to run. If you

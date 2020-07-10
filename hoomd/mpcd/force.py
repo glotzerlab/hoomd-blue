@@ -17,7 +17,7 @@ required to maintain temperature control in the driven system (see
 .. note::
 
     The external force **must** be attached to a streaming method
-    (see :py:mod:`.mpcd.stream`) using `set_force` to take effect.
+    (see :py:mod:`.mpcd.stream`) using ``set_force`` to take effect.
     On its own, the force object will not affect the system.
 
 """
@@ -94,7 +94,7 @@ class block(_force):
     .. note::
 
         The external force **must** be attached to a streaming method
-        (see :py:mod:`.mpcd.stream`) using `set_force` to take effect.
+        (see :py:mod:`.mpcd.stream`) using ``set_force`` to take effect.
         On its own, the force object will not affect the system.
 
     .. versionadded:: 2.6
@@ -169,7 +169,7 @@ class constant(_force):
     .. note::
 
         The external force **must** be attached to a streaming method
-        (see :py:mod:`.mpcd.stream`) using `set_force` to take effect.
+        (see :py:mod:`.mpcd.stream`) using ``set_force`` to take effect.
         On its own, the force object will not affect the system.
 
     .. versionadded:: 2.6
@@ -230,7 +230,7 @@ class sine(_force):
     .. note::
 
         The external force **must** be attached to a streaming method
-        (see :py:mod:`.mpcd.stream`) using `set_force` to take effect.
+        (see :py:mod:`.mpcd.stream`) using ``set_force`` to take effect.
         On its own, the force object will not affect the system.
 
     .. versionadded:: 2.6

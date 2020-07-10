@@ -32,7 +32,7 @@ and disadvantages that the user should consider on a case-by-case basis.
 Cell list
 ---------
 
-The cell-list neighbor list (:py:class:`hoomd.md.nlist.cell`) spatially sorts particles into bins that
+The cell-list neighbor list (:py:class:`hoomd.md.nlist.Cell`) spatially sorts particles into bins that
 are sized by the **largest** cutoff radius of all pair potentials attached to the neighbor list. For example, in the
 figure below, there are small A particles and large B particles. The bin size is based on the cutoff radius of the
 largest particles :math:`r_{\rm BB}`. To find neighbors, each particle searches the 27 cells that are adjacent to
@@ -122,5 +122,5 @@ each potential to a different neighbor list may improve performance of the pair 
 duplicate computation of the neighbor list. When using multiple neighbor lists, it may be advantageous to adopt two
 different neighbor list styles. For example, in a colloidal suspension of a small number of large colloids dispersed
 in many solvent particles, a modest performance gain may be achieved by computing the solvent-solvent neighbors using
-:py:class:`hoomd.md.nlist.cell`, but the solvent-colloid and colloid-colloid interactions using :py:class:`hoomd.md.nlist.tree`.
+:py:class:`hoomd.md.nlist.Cell`, but the solvent-colloid and colloid-colloid interactions using :py:class:`hoomd.md.nlist.tree`.
 Particles can be excluded from neighbor lists by setting their cutoff radius to ``False`` or a negative value.

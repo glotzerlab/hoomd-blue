@@ -23,7 +23,7 @@ def _assert_equivalent_parameter_dicts(param_dict1, param_dict2):
 
 
 def test_rcut(simulation_factory, two_particle_snapshot_factory):
-    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell())
+    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
     lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
     with pytest.raises(hoomd.typeconverter.TypeConversionError):
         lj.r_cut[('A', 'A')] = 'str'
@@ -36,10 +36,7 @@ def test_rcut(simulation_factory, two_particle_snapshot_factory):
     integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
                                                         kT=1, seed=1))
     sim.operations.integrator = integrator
-    with pytest.raises(TypeError):
-        sim.operations.schedule()  # Before setting r_cut
 
-    lj.r_cut[('A', 'A')] = 2.5
     _assert_equivalent_type_params(lj.r_cut.to_dict(), {('A', 'A'): 2.5})
     sim.operations.schedule()
     sim.run(1)
@@ -58,7 +55,8 @@ def test_mode(simulation_factory, two_particle_snapshot_factory, mode):
 
     lj = hoomd.md.pair.LJ(nlist=cell, r_cut=2.5, mode=mode)
     lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
-    sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=.5))
+    snap = two_particle_snapshot_factory(dimensions=3, d=.5)
+    sim = simulation_factory(snap)
     integrator = hoomd.md.Integrator(dt=0.005)
     integrator.forces.append(lj)
     integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
@@ -94,8 +92,11 @@ def test_ron(simulation_factory, two_particle_snapshot_factory):
 
 
 def test_valid_params(valid_params):
-    pair_potential, pair_potential_dict = valid_params[1:]
-    pot = pair_potential(nlist=hoomd.md.nlist.Cell())
+    pair_potential, extra_args, pair_potential_dict = valid_params[1:]
+    pot = pair_potential(**extra_args,
+                         nlist=hoomd.md.nlist.Cell(),
+                         r_cut=2.5,
+                         mode='none')
     for pair in pair_potential_dict:
         pot.params[pair] = pair_potential_dict[pair]
     _assert_equivalent_type_params(pair_potential_dict, pot.params.to_dict())
@@ -103,7 +104,7 @@ def test_valid_params(valid_params):
 
 def test_invalid_params(invalid_params):
     pair_potential, pair_potential_dict = invalid_params[1:]
-    pot = pair_potential(nlist=hoomd.md.nlist.Cell())
+    pot = pair_potential(nlist=hoomd.md.nlist.Cell(), mode='none')
     for pair in pair_potential_dict:
         if isinstance(pair, tuple):
             with pytest.raises(hoomd.typeconverter.TypeConversionError):
@@ -122,15 +123,20 @@ def test_invalid_pair_key():
 
 def test_attached_params(simulation_factory, lattice_snapshot_factory,
                          valid_params):
-    pair_potential, pair_potential_dict = valid_params[1:]
+    pair_potential, xtra_args, pair_potential_dict = valid_params[1:]
     pair_keys = pair_potential_dict.keys()
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
-    pot = pair_potential(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
+    pot = pair_potential(**xtra_args, nlist=hoomd.md.nlist.Cell(),
+                         r_cut=2.5, mode='none')
     for pair in pair_potential_dict:
         pot.params[pair] = pair_potential_dict[pair]
 
     snap = lattice_snapshot_factory(particle_types=particle_types,
                                     n=10, a=1.5, r=0.01)
+    if 'Ewald' in str(pair_potential):
+        snap.particles.charge[:] = 1
+    elif 'SLJ' in str(pair_potential):
+        snap.particles.diameter[:] = 2
     if snap.exists:
         snap.particles.typeid[:] = np.random.randint(0,
                                                      len(snap.particles.types),
@@ -148,15 +154,20 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
 @pytest.mark.parametrize("nsteps", [3, 5, 10])
 def test_run(simulation_factory, lattice_snapshot_factory,
              valid_params, nsteps):
-    pair_potential, pair_potential_dict = valid_params[1:]
+    pair_potential, xtra_args, pair_potential_dict = valid_params[1:]
     pair_keys = pair_potential_dict.keys()
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
-    pot = pair_potential(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
+    pot = pair_potential(**xtra_args, nlist=hoomd.md.nlist.Cell(),
+                         r_cut=2.5, mode='none')
     for pair in pair_potential_dict:
         pot.params[pair] = pair_potential_dict[pair]
 
     snap = lattice_snapshot_factory(particle_types=particle_types,
                                     n=2, a=5, r=0.01)
+    if 'Ewald' in str(pair_potential):
+        snap.particles.charge[:] = 1
+    elif 'SLJ' in str(pair_potential):
+        snap.particles.diameter[:] = 2
     if snap.exists:
         snap.particles.typeid[:] = np.random.randint(0,
                                                      len(snap.particles.types),
@@ -207,14 +218,19 @@ def _calculate_force(sim):
 def test_force_energy_relationship(simulation_factory,
                                    two_particle_snapshot_factory,
                                    valid_params, nsteps):
-    pair_potential, pair_potential_dict = valid_params[1:]
+    pair_potential, xtra_args, pair_potential_dict = valid_params[1:]
     pair_keys = pair_potential_dict.keys()
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
-    pot = pair_potential(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
+    pot = pair_potential(**xtra_args, nlist=hoomd.md.nlist.Cell(),
+                         r_cut=2.5, mode='none')
     for pair in pair_potential_dict:
         pot.params[pair] = pair_potential_dict[pair]
 
     snap = two_particle_snapshot_factory(particle_types=particle_types, d=1.5)
+    if 'Ewald' in str(pair_potential):
+        snap.particles.charge[:] = 1
+    elif 'SLJ' in str(pair_potential):
+        snap.particles.diameter[:] = 2
     sim = simulation_factory(snap)
     integrator = hoomd.md.Integrator(dt=0.005)
     integrator.forces.append(pot)
@@ -243,11 +259,13 @@ def test_force_energy_accuracy(simulation_factory,
                                two_particle_snapshot_factory,
                                forces_and_energies):
     pair_potential, params, forces, energies = forces_and_energies[1:]
-    pot = pair_potential(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
+    pot = pair_potential(nlist=hoomd.md.nlist.Cell(), r_cut=2.5, mode='none')
     pot.params[('A', 'A')] = params
     snap = two_particle_snapshot_factory(particle_types=['A'], d=0.75)
     if 'Ewald' in str(pair_potential):
         snap.particles.charge[:] = 1
+    elif 'SLJ' in str(pair_potential):
+        snap.particles.diameter[:] = 2
     sim = simulation_factory(snap)
     integrator = hoomd.md.Integrator(dt=0.005)
     integrator.forces.append(pot)

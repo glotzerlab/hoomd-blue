@@ -52,17 +52,6 @@ def quatRot(q, v):
     vnew = v + 2*np.cross(r, np.cross(r,v) + w*v)
     return vnew
 
-# Construct a box matrix from a hoomd data.boxdim object
-# (requires numpy)
-# \param box hoomd boxdim object
-# \returns numpy matrix that transforms lattice coordinates to Cartesian coordinates
-def matFromBox(box):
-    Lx, Ly, Lz = box.Lx, box.Ly, box.Lz
-    xy = box.xy
-    xz = box.xz
-    yz = box.yz
-    return np.matrix([[Lx, xy*Ly, xz*Lz], [0, Ly, yz*Lz], [0, 0, Lz]])
-
 # Given a set of lattice vectors, rotate to produce an upper triangular right-handed box
 # as a hoomd boxdim object and a rotation quaternion that brings particles in the original coordinate system to the new one.
 # The conversion preserves handedness, so it is left to the user to provide a right-handed set of lattice vectors

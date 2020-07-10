@@ -409,7 +409,7 @@ hipError_t gpu_fill_molecule_table(
         idx_lookup);
 
     // write out the table
-    hipLaunchKernelGGL((gpu_fill_molecule_table_kernel), dim3(nptl/block_size+1), dim3(block_size), 0, 0, 
+    hipLaunchKernelGGL((gpu_fill_molecule_table_kernel), dim3(nptl/block_size+1), dim3(block_size), 0, 0,
         nptl,
         molecule_idx,
         d_molecule_idx,

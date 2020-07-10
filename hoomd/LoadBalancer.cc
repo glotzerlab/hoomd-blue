@@ -31,8 +31,8 @@ namespace py = pybind11;
 LoadBalancer::LoadBalancer(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<DomainDecomposition> decomposition,
                            std::shared_ptr<Trigger> trigger)
-        : Tuner(sysdef, trigger), m_mpi_comm(m_exec_conf->getMPICommunicator()),
-          m_decomposition(decomposition), m_max_imbalance(Scalar(1.0)),
+        : Tuner(sysdef, trigger), m_decomposition(decomposition),
+          m_mpi_comm(m_exec_conf->getMPICommunicator()), m_max_imbalance(Scalar(1.0)),
           m_recompute_max_imbalance(true), m_needs_migrate(false),
           m_needs_recount(false), m_tolerance(Scalar(1.05)), m_maxiter(1),
           m_max_scale(Scalar(0.05)), m_N_own(m_pdata->getN()),
