@@ -10,52 +10,61 @@
 
 
 /// Base class for buffers for LocalDataAccess template class type checking.
-/** HOOMDBuffer classes need to implement a templated make method that takes
+/** In addition, this class allows for a uniform way of specifying a CPU(Host)
+ *  or GPU(Device) buffer.  HOOMDBuffer classes need to implement a templated
+ *  make method that takes:
+ *
  *  data: pointer to type T
  *  shape: shape of the array
  *  stride: the strides to move one index in each dimension of shape
  *  read_only: whether the buffer is meant to be read_only
  */
-struct HOOMDBuffer {};
-
-
-/// Represents the data required to specify a CPU buffer object in Python.
-/** Stores the data to create pybind11::buffer_info objects. This is necessary
- *  since buffer_info objects cannot be reused. Once the buffer is read many of
- *  the members are moved. In addition, this class allows for a uniform way of
- *  specifying a CPU(Host) or GPU(Device) buffer.
- */
-struct HOOMDHostBuffer : public HOOMDBuffer
-    {
-    static const auto device = access_location::host;
+struct HOOMDBuffer {
     void* m_data;
-    ssize_t m_itemsize;
     std::string m_typestr;
     int m_dimensions;
     std::vector<ssize_t> m_shape;
     std::vector<ssize_t> m_strides;
     bool m_read_only;
 
-    HOOMDHostBuffer(void* data, ssize_t itemsize, std::string typestr,
-                      int dimensions, std::vector<ssize_t> shape,
-                      std::vector<ssize_t> strides, bool read_only)
-        : m_data(data), m_itemsize(itemsize), m_typestr(typestr),
-          m_dimensions(dimensions), m_shape(shape), m_strides(strides),
-          m_read_only(read_only)
+    HOOMDBuffer(void* data, std::string typestr,
+                int dimensions, std::vector<ssize_t> shape,
+                std::vector<ssize_t> strides, bool read_only)
+        : m_data(data), m_typestr(typestr), m_dimensions(dimensions),
+          m_shape(shape), m_strides(strides), m_read_only(read_only)
         {
         if (m_shape.size() != m_strides.size())
             {
-            throw std::runtime_error("CPU buffer shape != strides.");
+            throw std::runtime_error("buffer shape != strides.");
             }
         }
+
+    bool getReadOnly() const {return m_read_only;}
+};
+
+
+/// Represents the data required to specify a CPU buffer object in Python.
+/** Stores the data to create pybind11::buffer_info objects. This is necessary
+ *  since buffer_info objects cannot be reused. Once the buffer is read many of
+ *  the members are moved. */
+struct HOOMDHostBuffer : public HOOMDBuffer
+    {
+    static const auto device = access_location::host;
+    ssize_t m_itemsize;
+
+    HOOMDHostBuffer(void* data, std::string typestr, int dimensions,
+                    std::vector<ssize_t> shape, std::vector<ssize_t> strides,
+                    bool read_only, ssize_t itemsize)
+        : HOOMDBuffer(data, typestr, dimensions, shape, strides, read_only),
+          m_itemsize(itemsize) {}
 
     template<class T>
     static HOOMDHostBuffer make(T* data, std::vector<ssize_t> shape,
                                 std::vector<ssize_t> strides, bool read_only)
         {
         return HOOMDHostBuffer(
-            data, sizeof(T), pybind11::format_descriptor<T>::format(),
-            shape.size(), shape, strides, read_only);
+            data, pybind11::format_descriptor<T>::format(),
+            shape.size(), shape, strides, read_only, sizeof(T));
         }
 
     pybind11::buffer_info new_buffer()
@@ -69,8 +78,6 @@ struct HOOMDHostBuffer : public HOOMDBuffer
                 std::vector<ssize_t>(m_strides)
                 );
         }
-
-    bool getReadOnly() { return m_read_only; }
     };
 
 
@@ -82,23 +89,11 @@ struct HOOMDHostBuffer : public HOOMDBuffer
 struct HOOMDDeviceBuffer : public HOOMDBuffer
     {
     static const auto device = access_location::device;
-    void* m_data;
-    std::string m_typestr;
-    std::vector<ssize_t> m_shape;
-    std::vector<ssize_t> m_strides;
-    bool m_read_only;
 
     HOOMDDeviceBuffer(void* data, std::string typestr,
                       std::vector<ssize_t> shape, std::vector<ssize_t> strides,
                       bool read_only)
-        : m_data(data), m_typestr(typestr), m_shape(shape), m_strides(strides),
-          m_read_only(read_only)
-        {
-        if (m_shape.size() != m_strides.size())
-            {
-            throw std::runtime_error("GPU buffer shape != strides.");
-            }
-        }
+        : HOOMDBuffer(data, typestr, shape, strides, read_only) {}
 
     template<class T>
     static HOOMDDeviceBuffer make(T* data, std::vector<ssize_t> shape,
@@ -121,18 +116,17 @@ struct HOOMDDeviceBuffer : public HOOMDBuffer
         auto interface = pybind11::dict();
         interface["typestr"] = m_typestr;
         interface["version"] = 2;
-        std::pair<intptr_t, bool> data{};
+        auto = std::pair<intptr_t, bool>(0, m_read_only);
         pybind11::list shape{};
         pybind11::list strides{};
         if (m_shape.size() == 0 || m_shape[0] == 0)
             {
-            data = std::pair<intptr_t, bool>(0, m_read_only);
             shape.append(0);
             strides.append(0);
             }
         else
             {
-            data = std::pair<intptr_t, bool>((intptr_t)m_data, m_read_only);
+            data.first = (intptr_t)m_data;
             for (auto s : m_shape)
                 {
                 shape.append(s);
