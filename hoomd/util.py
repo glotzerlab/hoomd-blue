@@ -250,25 +250,11 @@ def array_to_strings(value):
         return value
 
 
-def create_NotImplementedClass(error, reason):
-    class NotImplementedClass(type):
-        def __new__(cls, name, bases, class_dict):
-            def new_init(self, *args, **kwargs):
-                raise error(reason)
-
-            new_class_dict = {'__init__': new_init}
-
-            return super().__new__(cls, name, bases, new_class_dict)
-
-    return NotImplementedClass
-
-
 class GPUNotAvailableError(NotImplementedError):
     pass
 
 
-class NoGPU(metaclass=create_NotImplementedClass(
-    GPUNotAvailableError,
-    "This build of HOOMD-blue does not support GPUs.")
-    ):
-    pass
+class NoGPU:
+    def __init__(self, *args, **kwargs):
+        raise GPUNotAvailableError(
+            "This build of HOOMD-blue does not support GPUs.")
