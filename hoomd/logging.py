@@ -64,6 +64,17 @@ class TypeFlags(Flag):
 
     @classmethod
     def any(cls, flags):
+        """Return a TypeFlags enum representing any of the given flags.
+
+        Args:
+            flags (list[str] or list[`TypeFlags`]): A list of `str` or
+            `TypeFlags` objects that should be represented by the returned
+            `TypeFlags` object.
+
+        Returns:
+            `TypeFlags`: the `TypeFlags` object that represents any of the given
+            flags.
+        """
         def from_str(flag):
             if isinstance(flag, str):
                 return cls[flag]
