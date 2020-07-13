@@ -133,9 +133,8 @@ class _Pair(force._Force):
                              )
         self._extend_typeparam([r_cut, r_on])
         self._param_dict.update(
-            ParameterDict(mode=OnlyFrom(['none', 'shifted', 'xplor']),
-                          _defaults=dict(mode=mode))
-            )
+            ParameterDict(mode=OnlyFrom(['none', 'shifted', 'xplor'])))
+        self.mode = mode
 
     def compute_energy(self, tags1, tags2):
         R""" Compute the energy between two sets of particles.
@@ -376,11 +375,9 @@ class SLJ(_Pair):
         self._add_typeparam(params)
 
         # mode not allowed to be xplor, so re-do param dict entry without that option
-        param_dict = ParameterDict(
-            mode=OnlyFrom(['none', 'shifted']),
-            _defaults=dict(mode=mode)
-            )
+        param_dict = ParameterDict(mode=OnlyFrom(['none', 'shifted']))
         self._param_dict.update(param_dict)
+        self.mode = mode
 
         # this potential needs diameter shifting on
         self._nlist.diameter_shift = True
@@ -903,10 +900,11 @@ class DPD(_Pair):
                                TypeParameterDict(A=float, gamma=float, len_keys=2))
         self._add_typeparam(params)
 
-        d = ParameterDict(kT=hoomd.variant.Variant,
-                          seed=int,
-                          _defaults=dict(kT=kT, seed=seed))
+        d = ParameterDict(kT=hoomd.variant.Variant, seed=int)
         self._param_dict.update(d)
+
+        self.kT = kT
+        self.seed = seed
 
 class DPDConservative(_Pair):
     R""" DPD Conservative pair force.
@@ -1082,10 +1080,13 @@ class DPDLJ(_Pair):
             len_keys=2))
         self._add_typeparam(params)
 
-        d = ParameterDict(kT=hoomd.variant.Variant, seed=int, mode=OnlyFrom(['none', 'shifted']),
-                          _defaults=dict(kT=kT, seed=seed, mode=mode))
+        d = ParameterDict(kT=hoomd.variant.Variant, seed=int,
+                          mode=OnlyFrom(['none', 'shifted']))
         self._param_dict.update(d)
 
+        self.kT = kT
+        self.seed = seed
+        self.mode = mode
 
 class ForceShiftedLJ(_Pair):
     R""" Force-shifted Lennard-Jones pair potential.
