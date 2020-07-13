@@ -1930,7 +1930,7 @@ class DLVO(_Pair):
     _cpp_class_name = "PotentialPairDLVO"
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         if mode=='xplor':
-            raise ValueError("xplore is not a valid mode for the DLVO potential")
+            raise ValueError("xplor is not a valid mode for the DLVO potential")
 
         super().__init__(nlist, r_cut, r_on, mode)
         params = TypeParameter('params', 'particle_types',
@@ -1940,21 +1940,12 @@ class DLVO(_Pair):
         self._add_typeparam(params)
 
         # mode not allowed to be xplor, so re-do param dict entry without that option
-        param_dict = ParameterDict(
-            mode=OnlyFrom(['none','shifted']),
-            explicit_defaults=dict(mode=mode)
-            )
+        param_dict = ParameterDict(mode=OnlyFrom(['none','shifted']))
         self._param_dict.update(param_dict)
+        self.mode = mode
 
         # this potential needs diameter shifting on
         self._nlist.diameter_shift = True
-
-        # Does this code need to be translated?
-        # update the neighbor list
-        # if d_max is None :
-        #     sysdef = hoomd.context.current.system_definition;
-        #     d_max = sysdef.getParticleData().getMaxDiameter()
-        #     hoomd.context.current.device.cpp_msg.notice(2, "Notice: DLVO set d_max=" + str(d_max) + "\n");
 
 
 class square_density(pair):
