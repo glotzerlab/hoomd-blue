@@ -50,6 +50,7 @@ from hoomd import util
 from hoomd import variant
 from hoomd import lattice
 from hoomd import device
+from hoomd import trigger
 try:
     from hoomd import md
 except ImportError:
@@ -72,9 +73,11 @@ from hoomd.simulation import Simulation
 from hoomd.state import State
 from hoomd.operations import Operations
 from hoomd.snapshot import Snapshot
-from hoomd.logger import Logger
+from hoomd.box import Box
 from hoomd import tuner
-
+from hoomd import output
+from hoomd import logging
+from hoomd import custom
 from hoomd._hoomd import WalltimeLimitReached
 
 _default_excepthook = sys.excepthook
@@ -87,4 +90,4 @@ def _hoomd_sys_excepthook(type, value, traceback):
 
 sys.excepthook = _hoomd_sys_excepthook
 
-__version__ = "{0}.{1}.{2}".format(*_hoomd.__version__)
+__version__ = "2.9.0"

@@ -10,7 +10,7 @@ R""" MPCD data structures
 MPCD data is currently initialized in a secondary step from HOOMD using a
 snapshot interface. Even if only MPCD particles are present in the system, an
 empty HOOMD system must first be created. Once the HOOMD system has been
-initialized (see :py:mod:`hoomd.init`), an MPCD snapshot can be created using::
+initialized (see ``hoomd.init``), an MPCD snapshot can be created using::
 
     >>> snap = mpcd.data.make_snapshot(100)
 
@@ -30,7 +30,7 @@ resizes or replications of the HOOMD system must occur before then::
     >>> hoomd_sys.replicate(2,1,1)
     **ERROR**
 
-Similarly, :py:class:`~hoomd.update.box_resize` will also fail after the MPCD
+Similarly, :py:class:`~hoomd.update.BoxResize` will also fail after the MPCD
 system has been initialized.
 
 During a simulation, the MPCD particle data can be read, modified, and restored
@@ -49,8 +49,8 @@ the snapshot collective calls.
 
 .. rubric:: Particle data
 
-All MPCD particle data is accessible through the `particles` snapshot property.
-The size of the MPCD particle data `N` can be resized::
+All MPCD particle data is accessible through the ``particles`` snapshot property.
+The size of the MPCD particle data ``N`` can be resized::
 
     >>> snap.particles.resize(200)
     >>> print(snap.particles.N)
@@ -59,7 +59,7 @@ The size of the MPCD particle data `N` can be resized::
 Because the number of MPCD particles in a simulation is large, fewer particle
 properties are tracked per particle than for standard HOOMD particles. All
 particle data can be set as for standard snapshots using numpy arrays. Each
-particle is assigned a tag from 0 to `N` (exclusive) that is tracked. The
+particle is assigned a tag from 0 to ``N`` (exclusive) that is tracked. The
 following particle properties are recorded:
 
 * Particle positions are stored as an Nx3 numpy array::
@@ -149,7 +149,7 @@ class snapshot(hoomd.meta._metadata):
             snap.replicate(nx=2,ny=1,nz=3)
 
         This method is intended only to be used with
-        :py:meth:`hoomd.data.system_data.replicate()` **prior** to initialization
+        ``hoomd.data.system_data.replicate()`` **prior** to initialization
         of the MPCD system. The MPCD snapshot must be replicated to a size consistent
         with the system at the time of initialization. An error will be raised
         otherwise.

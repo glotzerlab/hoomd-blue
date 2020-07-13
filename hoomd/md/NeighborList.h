@@ -317,7 +317,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
             return m_ex_list_indexer;
             }
 
-        void setExclusions(pybind11::tuple exclusions);
+        void setExclusions(pybind11::list exclusions);
 
         void setSingleExclusion(std::string exclusion);
 

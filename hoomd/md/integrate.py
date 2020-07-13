@@ -10,6 +10,7 @@
 
 from hoomd.md import _md
 from hoomd.parameterdicts import ParameterDict
+from hoomd.typeconverter import OnlyFrom
 from hoomd.integrate import _BaseIntegrator
 from hoomd.syncedlist import SyncedList
 from hoomd.md.methods import _Method
@@ -17,20 +18,13 @@ from hoomd.md.force import _Force
 from hoomd.md.constrain import _ConstraintForce
 
 
-def validate_aniso(value):
+def preprocess_aniso(value):
     if value is True:
         return "true"
     elif value is False:
         return "false"
-    elif value.lower() == 'true':
-        return "true"
-    elif value.lower() == 'false':
-        return "false"
-    elif value.lower() == 'auto':
-        return "auto"
     else:
-        raise ValueError("input could not be converted to a proper "
-                         "anisotropic mode.")
+        return value
 
 
 def set_synced_list(old_list, new_list):
@@ -90,17 +84,17 @@ class _DynamicIntegrator(_BaseIntegrator):
 class Integrator(_DynamicIntegrator):
     R""" Enables a variety of standard integration methods.
 
-    Args: dt (float): Each time step of the simulation :py:func:`hoomd.run()`
+    Args: dt (float): Each time step of the simulation ```hoomd.run```
     will advance the real time of the system forward by *dt* (in time units).
     aniso (bool): Whether to integrate rotational degrees of freedom (bool),
     default None (autodetect).
 
-    :py:class:`mode_standard` performs a standard time step integration
+    ``mode_standard`` performs a standard time step integration
     technique to move the system forward. At each time step, all of the
     specified forces are evaluated and used in moving the system forward to the
     next step.
 
-    By itself, :py:class:`mode_standard` does nothing. You must specify one or
+    By itself, ``mode_standard`` does nothing. You must specify one or
     more integration methods to apply to the system. Each integration method can
     be applied to only a specific group of particles enabling advanced
     simulation techniques.
@@ -108,29 +102,21 @@ class Integrator(_DynamicIntegrator):
     The following commands can be used to specify the integration methods used
     by integrate.mode_standard.
 
-    - :py:class:`brownian`
-    - :py:class:`langevin`
-    - :py:class:`nve`
-    - :py:class:`nvt`
-    - :py:class:`npt`
-    - :py:class:`nph`
+    - :py:class:`hoomd.md.methods.brownian`
+    - :py:class:`hoomd.md.methods.Langevin`
+    - :py:class:`hoomd.md.methods.nve`
+    - :py:class:`hoomd.md.methods.NVT`
+    - :py:class:`hoomd.md.methods.npt`
+    - :py:class:`hoomd.md.methods.nph`
 
     There can only be one integration mode active at a time. If there are more
     than one ``integrate.mode_*`` commands in a hoomd script, only the most
-    recent before a given :py:func:`hoomd.run()` will take effect.
+    recent before a given ```hoomd.run``` will take effect.
 
     Examples::
 
         integrate.mode_standard(dt=0.005) integrator_mode =
         integrate.mode_standard(dt=0.001)
-
-    Some integration methods (notable :py:class:`nvt`, :py:class:`npt` and
-    :py:class:`nph` maintain state between different :py:func:`hoomd.run()`
-    commands, to allow for restartable simulations. After adding or removing
-    particles, however, a new :py:func:`hoomd.run()` will continue from the old
-    state and the integrator variables will re-equilibrate.  To ensure
-    equilibration from a unique reference state (such as all integrator
-    use to re-initialize the variables.
     """
 
     def __init__(self, dt, aniso=None, forces=None, constraints=None,
@@ -138,9 +124,12 @@ class Integrator(_DynamicIntegrator):
 
         super().__init__(forces, constraints, methods)
 
-        self._param_dict = ParameterDict(dt=float(dt), aniso=validate_aniso,
-                                         explicit_defaults=dict(aniso="auto")
-                                         )
+        self._param_dict = ParameterDict(
+            dt=float(dt),
+            aniso=OnlyFrom(['true', 'false', 'auto'],
+                           preprocess=preprocess_aniso),
+            _defaults=dict(aniso="auto")
+        )
         if aniso is not None:
             self.aniso = aniso
 

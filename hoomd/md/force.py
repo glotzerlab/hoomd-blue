@@ -11,7 +11,7 @@ R""" Apply forces to particles.
 from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.operation import _Operation
-from hoomd.logger import Loggable
+from hoomd.logging import Loggable
 import hoomd
 
 
@@ -88,7 +88,7 @@ class constant(_Force):
         fx (float): x component of force, retained for backwards compatibility
         fy (float): y component of force, retained for backwards compatibility
         fz (float): z component of force, retained for backwards compatibility
-        group (:py:mod:`hoomd.group`): Group for which the force will be set.
+        group (``hoomd.group``): Group for which the force will be set.
         callback (`callable`): A python callback invoked every time the forces are computed
 
     :py:class:`constant` specifies that a constant force should be added to every
@@ -245,7 +245,7 @@ class active(_Force):
         seed (int): required user-specified seed number for random number generator.
         f_list (list): An array of (x,y,z) tuples for the active force vector for each individual particle.
         t_list (list): An array of (x,y,z) tuples that indicate active torque vectors for each particle
-        group (:py:mod:`hoomd.group`): Group for which the force will be set
+        group (``hoomd.group``): Group for which the force will be set
         orientation_link (bool): if True then forces and torques are applied in the particle's reference frame. If false, then the box
          reference frame is used. Only relevant for non-point-like anisotropic particles.
         orientation_reverse_link (bool): When True, the particle's orientation is set to match the active force vector. Useful for

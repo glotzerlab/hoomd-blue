@@ -1,7 +1,6 @@
 from hoomd.operation import _Tuner
 from hoomd.parameterdicts import ParameterDict
-from hoomd.typeconverter import OnlyType, OnlyTypeValidNone
-from hoomd.util import trigger_preprocessing
+from hoomd.typeconverter import OnlyType
 from hoomd.trigger import Trigger
 from hoomd import _hoomd
 from math import log2, ceil
@@ -11,25 +10,27 @@ def to_power_of_two(value):
     return int(2. ** ceil(log2(value)))
 
 
-class NaturalNumber(int):
-    def __new__(cls, value, *args, **kwargs):
-        try:
-            if value < 0:
-                raise ValueError("Expected positive integer.")
-            else:
-                return super(cls, cls).__new__(cls, value)
-        except TypeError:
+def natural_number(value):
+    try:
+        if value < 1:
             raise ValueError("Expected positive integer.")
+        else:
+            return value
+    except TypeError:
+        raise ValueError("Expected positive integer.")
 
 
 class ParticleSorter(_Tuner):
     def __init__(self, trigger=200, grid=None):
         self._param_dict = ParameterDict(
-            trigger=OnlyType(Trigger, preprocess=trigger_preprocessing),
-            grid=OnlyTypeValidNone(
-                NaturalNumber, postprocess=lambda x: int(to_power_of_two(x))))
+            trigger=Trigger,
+            grid=OnlyType(int,
+                          postprocess=lambda x: int(to_power_of_two(x)),
+                          preprocess=natural_number,
+                          allow_none=True)
+        )
         self.trigger = trigger
-        self.grid = None
+        self.grid = grid
 
     def attach(self, simulation):
         if simulation.device.mode == 'gpu':
