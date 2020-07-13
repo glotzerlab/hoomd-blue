@@ -56,55 +56,55 @@ class EvaluatorPairDLVO
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-		struct param_type
-		{
-			Scalar kappa;
-			Scalar Z;
-			Scalar A;
+        struct param_type
+            {
+            Scalar kappa;
+            Scalar Z;
+            Scalar A;
 
-			#ifdef ENABLE_HIP
-			//! Set CUDA memory hints
-			void set_memory_hint() const
-			{
-				// default implementation does nothing
-			}
-			#endif
-
-			#ifndef __HIPCC__
-			param_type()
-			{
-				kappa = 1.0;
-				Z = 1.0;
-				A = 1.0;
-			}
-
-			param_type(pybind11::dict v)
-			{
-				kappa = v["kappa"].cast<Scalar>();
-				Z = v["Z"].cast<Scalar>();
-				A = v["A"].cast<Scalar>();
-			}
-
-			param_type(Scalar kappa, Scalar Z, Scalar A)
-			{
-				//TODO for possible unit testing
-			}
-
-			pybind11::dict asDict()
-			{
-				pybind11::dict v;
-				v["kappa"] = kappa;
-				v["Z"] = Z;
-				v["A"] = A;
-				return v;
-			}
+            #ifdef ENABLE_HIP
+            //! Set CUDA memory hints
+            void set_memory_hint() const
+                {
+                // default implementation does nothing
+                }
             #endif
-		}
-        #ifdef SINGLE_PRECISION
-		__attribute__((aligned(8)));
-        #else
-		__attribute__((aligned(16)));
-        #endif
+
+            #ifndef __HIPCC__
+            param_type()
+                {
+                kappa = 1.0;
+                Z = 1.0;
+                A = 1.0;
+                }
+
+            param_type(pybind11::dict v)
+                {
+                kappa = v["kappa"].cast<Scalar>();
+                Z = v["Z"].cast<Scalar>();
+                A = v["A"].cast<Scalar>();
+                }
+
+            param_type(Scalar kappa, Scalar Z, Scalar A)
+                {
+                //TODO for possible unit testing
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+                v["kappa"] = kappa;
+                v["Z"] = Z;
+                v["A"] = A;
+                return v;
+                }
+            #endif
+            }
+            #ifdef SINGLE_PRECISION
+            __attribute__((aligned(8)));
+            #else
+            __attribute__((aligned(16)));
+            #endif
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
