@@ -84,8 +84,7 @@ TypeFlags.ALL = TypeFlags.any(TypeFlags.__members__.values())
 # function defined here to ensure that each class of type Loggable will have a
 # loggables property
 def _loggables(self):
-    """dict[str, str] Return a name: flag mapping of loggable quantities
-    for the class."""
+    """dict[str, str]: Return a name, flag mapping of loggable quantities."""
     return {name: quantity.flag.name
             for name, quantity in self._export_dict.items()}
 
@@ -246,16 +245,16 @@ def log(func=None, *, is_property=True, flag='scalar', default=True):
     loggable quantities from a custom action.
 
     Args:
-        func (method): class method to make loggable. If using non-default
+        func (`method`): class method to make loggable. If using non-default
             arguments, func should not be set.
-        is_property (bool, optional): Whether to make the method a property,
-            defaults to True. Argument position only
-        flag (str, optional): The string represention of the type of
+        is_property (:obj:`bool`, optional): Whether to make the method a
+            property, defaults to True. Argument position only
+        flag (:obj:`str`, optional): The string represention of the type of
             loggable quantity, defaults to 'scalar'. See
             `hoomd.logging.TypeFlags` for available types. Argument
             position only
-        default (boo, optional): Whether the quantity should be logged by
-            default, defaults to True. This is orthogonal to the loggable
+        default (:obj:`bool`, optional): Whether the quantity should be logged
+            by default, defaults to True. This is orthogonal to the loggable
             quantity's type. An example would be performance orientated
             loggable quantities.  Many users may not want to log such
             quantities even when logging other quantities of that type. The
@@ -486,12 +485,12 @@ class Logger(SafeNamespaceDict):
         """Add loggables from obj to logger. Returns the used namespaces.
 
         Args:
-            obj (loggable class): class of type loggable to add loggable
-                quantities from.
+            obj (object of class of type ``Loggable``): class of type loggable
+                to add loggable quantities from.
             quantities (Sequence[str]): list of str names of quantities to log.
 
         Returns:
-            used_namespaces (list[tuple[str]]): A list of namespaces that were
+            list[tuple[str]]: A list of namespaces that were
                 added to the logger.
         """
         used_namespaces = []
@@ -503,10 +502,11 @@ class Logger(SafeNamespaceDict):
         """Remove specified quantities from the logger.
 
         Args:
-            obj (loggable obj, optional): Object to remove quantities from. If
-                ``quantities`` is None, ``obj`` must be set. If ``obj`` is set
-                and ``quantities`` is None, all logged quanties from ``obj``
-                will be removed from the logger.
+            obj (object of class of type ``Loggable``, optional):
+                Object to remove quantities from. If ``quantities`` is None,
+                ``obj`` must be set. If ``obj`` is set and ``quantities`` is
+                None, all logged quanties from ``obj`` will be removed from the
+                logger.
             quantities (Sequence[tuple]): a sequence of namespaces to remove
                 from the logger. If specified with ``obj`` only remove
                 quantities listed that are exposed from ``obj``. If ``obj`` is
@@ -555,7 +555,7 @@ class Logger(SafeNamespaceDict):
         Args:
             namespace (tuple[str,] or str): key or nested key to determine where
                 to store logged quantity.
-            value (tuple[callable, str] or tuple[object, str, str]):
+            value (tuple[Callable, str] or tuple[object, str, str]):
                 Either a tuple with a callable and the `hoomd.logging.TypeFlags`
                 object or associated string or a object with a method/property
                 name and flag. If using a method it should not take arguments or
@@ -614,7 +614,7 @@ class Logger(SafeNamespaceDict):
         ``logger.log()['example']['namespace']``.
 
         Returns:
-            log_dict (dict): A nested dictionary of the current logged
+            dict: A nested dictionary of the current logged
                 quantities. The end values are (value, flag) pairs which hold
                 the value along with its associated `hoomd.logging.TypeFlags`
                 flag represented as a string (to get the

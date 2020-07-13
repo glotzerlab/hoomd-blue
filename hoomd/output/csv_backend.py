@@ -258,34 +258,34 @@ class CSV(_InternalCustomAnalyzer):
     Args:
         trigger (hoomd.trigger.Trigger): The trigger to determine when to run
             the CSV logger.
-        logger (hoomd.logger.Logger): The logger to query for output. The
+        logger (hoomd.logging.Logger): The logger to query for output. The
             'scalar' flag must be set on the logger, and the 'string' flag is
             optional.
-        output (file handle, optional): A file-like object to output the data
-            from, defaults to standard out. The object must have write and flush
-            methods and a mode attribute.
-        header_sep (string, optional): String to use to separate names in the
-            logger's namespace, defaults to '.'. For example, if logging the
+        output (``file-like`` object , optional): A file-like object to output
+            the data from, defaults to standard out. The object must have write
+            and flush methods and a mode attribute.
+        header_sep (:obj:`str`, optional): String to use to separate names in
+            the logger's namespace, defaults to '.'. For example, if logging the
             total energy of an `hoomd.md.pair.LJ` pair force object, the default
             header would be ``md.pair.LJ.energy`` (assuming that
             ``max_header_len`` is not set).
-        delimiter (string, optional): String used to separate elements in the
-            CSV file, defaults to ' '.
-        pretty (bool, optional): Flags whether to attempt to make output
+        delimiter (:obj:`str`, optional): String used to separate elements in
+            the CSV file, defaults to ' '.
+        pretty (:obj:`bool`, optional): Flags whether to attempt to make output
             prettier and easier to read, defaults to True. To make the ouput
             easier to read, the output will compromise on outputted precision
             for improved readability. In many cases, though the precision will
             still be high with pretty set to ``True``.
-        max_precision (int, optional): If pretty is not set, then this controls
-            the maximum precision to use when outputing numerical values,
-            defaults to 10.
-        max_header_len (int, optional): If not None (the default), limit the
-            outputted header names to length ``max_header_len``. When not None,
-            names are grabbed from the most specific to the least. For example,
-            if set to 7 the namespace 'hoomd.md.pair.LJ.energy' would be set to
-            'energy'. Note that at least the most specific part of the namespace
-            will be used regardless of this setting (e.g. if set to 5 in the
-            previous example, we would still use 'energy' as the header).
+        max_precision (:obj:`int`, optional): If pretty is not set, then this
+            controls the maximum precision to use when outputing numerical
+            values, defaults to 10.
+        max_header_len (:obj:`int`, optional): If not None (the default), limit
+            the outputted header names to length ``max_header_len``. When not
+            None, names are grabbed from the most specific to the least. For
+            example, if set to 7 the namespace 'hoomd.md.pair.LJ.energy' would
+            be set to 'energy'. Note that at least the most specific part of the
+            namespace will be used regardless of this setting (e.g. if set to 5
+            in the previous example, we would still use 'energy' as the header).
 
     Note:
         This only works with scalar and string quantities. If using string

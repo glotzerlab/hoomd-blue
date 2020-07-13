@@ -52,7 +52,7 @@ class Action(metaclass=_AbstractLoggable):
         class ExampleActionWithFlag(Action):
 
             @log
-            def loggable(self):
+            def answer(self):
                 return 42
 
             def act(self, timestep):
