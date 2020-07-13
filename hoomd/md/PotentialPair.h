@@ -267,9 +267,15 @@ class PotentialPair : public ForceCompute
                                                  access_location::host,
                                                  access_mode::overwrite);
 
-                for (unsigned int i = 0; i < new_type_pair_idx.getW(); i++)
+                // copy over entries that are valid in both the new and old matrices
+                unsigned int copy_w = std::min(new_type_pair_idx.getW(),
+                                               m_typpair_idx.getW());
+                unsigned int copy_h = std::min(new_type_pair_idx.getH(),
+                                               m_typpair_idx.getH());
+
+                for (unsigned int i = 0; i < copy_w; i++)
                     {
-                    for (unsigned int j = 0; j < new_type_pair_idx.getH(); j++)
+                    for (unsigned int j = 0; j < copy_h; j++)
                         {
                         h_new_rcutsq.data[new_type_pair_idx(i,j)] =
                             h_rcutsq.data[m_typpair_idx(i,j)];
