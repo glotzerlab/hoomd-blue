@@ -221,6 +221,10 @@ def _calculate_force(sim):
 def test_force_energy_relationship(simulation_factory,
                                    two_particle_snapshot_factory,
                                    valid_params, nsteps):
+    # don't really test DPD and DPDLJ for this test
+    if valid_params[0] == "DPD" or valid_params[0] == "DPDLJ":
+        return
+
     pair_potential, xtra_args, pair_potential_dict = valid_params[1:]
     pair_keys = pair_potential_dict.keys()
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
