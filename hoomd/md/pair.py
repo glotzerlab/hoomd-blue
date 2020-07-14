@@ -444,7 +444,7 @@ class Yukawa(_Pair):
 class Ewald(_Pair):
     R""" Ewald pair potential.
 
-    :py:class:`ewald` specifies that a Ewald pair potential should be applied between every
+    :py:class:`Ewald` specifies that a Ewald pair potential should be applied between every
     non-excluded particle pair in the simulation.
 
     .. math::
@@ -459,7 +459,7 @@ class Ewald(_Pair):
     The Ewald potential is designed to be used in conjunction with :py:class:`hoomd.md.charge.pppm`.
 
     See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use ``coeff.set`` to set potential coefficients.
+    Use ``params`` dictionary to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
@@ -469,20 +469,20 @@ class Ewald(_Pair):
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
     - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
+      - *optional*: defaults to the global r_on specified in the pair command
 
 
     Example::
 
-        nl = nlist.cell()
-        ewald = pair.ewald(r_cut=3.0, nlist=nl)
-        ewald.pair_coeff.set('A', 'A', kappa=1.0)
-        ewald.pair_coeff.set('A', 'A', kappa=1.0, alpha=1.5)
-        ewald.pair_coeff.set('A', 'B', kappa=1.0, r_cut=3.0, r_on=2.0);
+        nl = nlist.Cell()
+        ewald = pair.Ewald(r_cut=3.0, nlist=nl)
+        ewald.params[('A', 'A')]['kappa'] = 1.0
+        ewald.params[('A', 'A')] = dict(kappa=1.0, alpha=1.5)
+        ewald.params[('A', 'B')] = dict(kappa=1.0, r_cut=3.0, r_on=2.0)
 
     Warning:
         **DO NOT** use in conjunction with :py:class:`hoomd.md.charge.pppm`. It automatically creates and configures
-        :py:class:`ewald` for you.
+        :py:class:`Ewald` for you.
 
     """
     _cpp_class_name = "PotentialPairEwald"
