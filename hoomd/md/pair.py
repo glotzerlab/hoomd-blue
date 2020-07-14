@@ -210,9 +210,10 @@ class LJ(_Pair):
     R""" Lennard-Jones pair potential.
 
     Args:
-        r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        name (str): Name of the force instance.
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): energy shifting/smoothing mode
 
     :py:class:`LJ` specifies that a Lennard-Jones pair potential should be
     applied between every non-excluded particle pair in the simulation.
@@ -222,23 +223,30 @@ class LJ(_Pair):
 
         \begin{eqnarray*}
         V_{\mathrm{LJ}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r}
-        \right)^{12} - \alpha \left( \frac{\sigma}{r} \right)^{6} \right] & r <
+        \right)^{12} - \left( \frac{\sigma}{r} \right)^{6} \right] & r <
         r_{\mathrm{cut}} \\ = & 0 & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     See :py:class:`_Pair` for details on how forces are calculated and the
-    available energy shifting and smoothing modes.  Use ``coeff.set``
+    available energy shifting and smoothing modes.  Use ``params`` dictionary
     to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
     - :math:`\varepsilon` - *epsilon* (in energy units)
     - :math:`\sigma` - *sigma* (in distance units)
-    - :math:`\alpha` - *alpha* (unitless) - *optional*: defaults to 1.0
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
     - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
+      - *optional*: defaults to the global r_on specified in the pair command
+
+    Example::
+
+        nl = nlist.cell()
+        lj = pair.LJ(nl, r_cut=3.0)
+        lj.params[('A', 'A')]['epsilon'] = 1.0
+        lj.params[('A', 'A')]['sigma'] = 1.0
+        lj.params[('A', 'B')] = dict(epsilon=2.0, sigma=1.0, r_cut=3.0, r_on=2.0)
     """
     _cpp_class_name = "PotentialPairLJ"
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
