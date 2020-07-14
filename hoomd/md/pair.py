@@ -444,6 +444,12 @@ class Yukawa(_Pair):
 class Ewald(_Pair):
     R""" Ewald pair potential.
 
+    Args:
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): Energy shifting mode.
+
     :py:class:`Ewald` specifies that a Ewald pair potential should be applied between every
     non-excluded particle pair in the simulation.
 
