@@ -24,14 +24,6 @@
 #define DEVICE
 #endif
 
-// call different optimized exp functions on the host / device
-//! fast::exp is expf when included in nvcc and exp when included into the host compiler
-#ifdef __HIPCC__
-#define LOG logf
-#else
-#define LOG log
-#endif
-
 //! Class for evaluating the DLVO pair potential
 /*! <b>General Overview</b>
 
@@ -176,7 +168,7 @@ class EvaluatorPairDLVO
 
                 Scalar engt1 = radprod * rmdsqsinv * A / Scalar(3.0);
                 Scalar engt2 = radprod * rmdsqminv * A / Scalar(3.0);
-                Scalar engt3 = LOG(rmdsqs * rmdsqminv) * A / Scalar(6.0);
+                Scalar engt3 = slow::log(rmdsqs * rmdsqminv) * A / Scalar(6.0);
                 pair_eng = r * forcerep_divr / kappa - engt1 - engt2 - engt3;
                 if (energy_shift)
                     {
@@ -189,7 +181,7 @@ class EvaluatorPairDLVO
 
                     Scalar engt1cut = radprod * rmdsqsinvcut * A / Scalar(3.0);
                     Scalar engt2cut = radprod * rmdsqminvcut * A / Scalar(3.0);
-                    Scalar engt3cut = LOG(rmdsqscut * rmdsqminvcut) * A / Scalar(6.0);
+                    Scalar engt3cut = slow::log(rmdsqscut * rmdsqminvcut) * A / Scalar(6.0);
                     Scalar exp_valcut = fast::exp(-kappa * rmdscut);
                     Scalar forcerepcut_divr = kappa * radprod * radsuminv * Z * exp_valcut/rcutt;
                     pair_eng -= rcutt*forcerepcut_divr / kappa - engt1cut - engt2cut - engt3cut;
