@@ -242,6 +242,7 @@ def _forces_and_energies():
     params = {}
     forces = {}
     energies = {}
+    extra_args = {}
 
     params["LJ"] = [{"sigma": 0.5, "epsilon": 0.0005},
                     {"sigma": 1.0, "epsilon": 0.001},
@@ -397,11 +398,37 @@ def _forces_and_energies():
                        [67092.5, 16.128],
                        [13060400, 3184.27]]
 
+    params["DPD"] = [{"A": 0.5, "gamma": 0.0005},
+                     {"A": 1.0, "gamma": 0.001},
+                     {"A": 1.5, "gamma": 0.0015}]
+    forces["DPD"] = [[0.0125079, 0.00714736],
+                     [-0.187336, -0.107049],
+                     [-0.422118, -0.24121]]
+    energies["DPD"] = [[0.30625, 0.1],
+                       [0.6125, 0.2],
+                       [0.91875, 0.3]]
+
+    params["DPDLJ"] = [{'sigma': 0.5, 'epsilon': 0.0005, 'gamma': 0.034},
+                       {'sigma': 1.0, 'epsilon': 0.001, 'gamma': 33.2},
+                       {'sigma': 1.5, 'epsilon': 0.0015, 'gamma': 1.2}]
+    energies["DPDLJ"] = [[-0.000160168, -2.73972 * 10**(-6)],
+                         [0.103803, -0.000320337],
+                         [24.192, 0]]
+    forces["DPDLJ"] = [[2.1124, 1.20774],
+                       [67.8861, 37.7391],
+                       [-402.7, 7.19908]]
+
     param_list = []
     for pair_potential in params.keys():
+        kT_dict = {}
+        if pair_potential == "DPD":
+            kT_dict = {"kT": 2}
+        elif pair_potential == "DPDLJ":
+            kT_dict = {"kT": 1}
         for i in range(3):
             param_list.append((pair_potential,
                                getattr(hoomd.md.pair, pair_potential),
+                               kT_dict,
                                params[pair_potential][i],
                                forces[pair_potential][i],
                                energies[pair_potential][i]))

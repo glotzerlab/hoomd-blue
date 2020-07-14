@@ -265,13 +265,14 @@ def test_force_energy_relationship(simulation_factory,
 def test_force_energy_accuracy(simulation_factory,
                                two_particle_snapshot_factory,
                                forces_and_energies):
-    pair_potential, params, forces, energies = forces_and_energies[1:]
-    pot = pair_potential(nlist=hoomd.md.nlist.Cell(), r_cut=2.5, mode='none')
+    pair_pot, extra_args, params, forces, energies = forces_and_energies[1:]
+    pot = pair_pot(**extra_args, nlist=hoomd.md.nlist.Cell(),
+                   r_cut=2.5, mode='none')
     pot.params[('A', 'A')] = params
     snap = two_particle_snapshot_factory(particle_types=['A'], d=0.75)
-    if 'Ewald' in str(pair_potential) and snap.exists:
+    if 'Ewald' in str(pair_pot) and snap.exists:
         snap.particles.charge[:] = 1
-    elif 'SLJ' in str(pair_potential) and snap.exists:
+    elif 'SLJ' in str(pair_pot) and snap.exists:
         snap.particles.diameter[:] = 2
     sim = simulation_factory(snap)
     integrator = hoomd.md.Integrator(dt=0.005)
