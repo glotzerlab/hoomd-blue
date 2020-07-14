@@ -30,6 +30,7 @@
 #include "EvaluatorPairLJ1208.h"
 #include "EvaluatorPairFourier.h"
 #include "EvaluatorPairSLJ.h"
+#include "EvaluatorPairDLVO.h"
 
 //! Compute lj pair forces on the GPU with PairEvaluatorLJ
 hipError_t __attribute__((visibility("default")))
@@ -119,7 +120,7 @@ gpu_compute_lj1208_forces(const pair_args_t& pair_args,
 //! Compute DLVO potential pair forces on the GPU with EvaluatorPairDLVO
 hipError_t __attribute__((visibility("default")))
 gpu_compute_dlvo_forces(const pair_args_t & args,
-                                    const Scalar3 *d_params);
+                                    const EvaluatorPairDLVO::param_type *d_params);
 
 //! Compute Fourier potential pair forces on the GPU with PairEvaluatorFourier
 hipError_t __attribute__((visibility("default")))

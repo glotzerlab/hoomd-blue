@@ -262,7 +262,7 @@ PYBIND11_MODULE(_md, m)
     // export_PotentialTersoff<PotentialTripletRevCross> (m, "PotentialRevCross");
     export_PotentialPair<PotentialPairMie>(m, "PotentialPairMie");
     export_PotentialPair<PotentialPairReactionField>(m, "PotentialPairReactionField");
-    // export_PotentialPair<PotentialPairDLVO>(m, "PotentialPairDLVO");
+    export_PotentialPair<PotentialPairDLVO>(m, "PotentialPairDLVO");
     export_PotentialPair<PotentialPairFourier>(m, "PotentialPairFourier");
     export_tersoff_params(m);
     export_revcross_params(m);
@@ -313,7 +313,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairGPU<PotentialPairSLJGPU, PotentialPairSLJ>(m, "PotentialPairSLJGPU");
     export_PotentialPairGPU<PotentialPairYukawaGPU, PotentialPairYukawa>(m, "PotentialPairYukawaGPU");
     export_PotentialPairGPU<PotentialPairReactionFieldGPU, PotentialPairReactionField>(m, "PotentialPairReactionFieldGPU");
-    // export_PotentialPairGPU<PotentialPairDLVOGPU, PotentialPairDLVO>(m, "PotentialPairDLVOGPU");
+    export_PotentialPairGPU<PotentialPairDLVOGPU, PotentialPairDLVO>(m, "PotentialPairDLVOGPU");
     export_PotentialPairGPU<PotentialPairFourierGPU, PotentialPairFourier>(m, "PotentialPairFourierGPU");
     export_PotentialPairGPU<PotentialPairEwaldGPU, PotentialPairEwald>(m, "PotentialPairEwaldGPU");
     export_PotentialPairGPU<PotentialPairMorseGPU, PotentialPairMorse>(m, "PotentialPairMorseGPU");

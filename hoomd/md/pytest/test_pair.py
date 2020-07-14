@@ -223,7 +223,8 @@ def test_force_energy_relationship(simulation_factory,
                                    valid_params, nsteps):
     # don't really test DPD and DPDLJ for this test
     if valid_params[0] == "DPD" or valid_params[0] == "DPDLJ":
-        return
+        pytest.skip("Cannot test force energy relationship for " +
+                    valid_params[0] + " pair force")
 
     pair_potential, xtra_args, pair_potential_dict = valid_params[1:]
     pair_keys = pair_potential_dict.keys()
