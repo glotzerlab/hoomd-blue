@@ -133,9 +133,9 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
 
     snap = lattice_snapshot_factory(particle_types=particle_types,
                                     n=10, a=1.5, r=0.01)
-    if 'Ewald' in str(pair_potential):
+    if 'Ewald' in str(pair_potential) and snap.exists:
         snap.particles.charge[:] = 1
-    elif 'SLJ' in str(pair_potential):
+    elif 'SLJ' in str(pair_potential) and snap.exists:
         snap.particles.diameter[:] = 2
     if snap.exists:
         snap.particles.typeid[:] = np.random.randint(0,
@@ -164,9 +164,9 @@ def test_run(simulation_factory, lattice_snapshot_factory,
 
     snap = lattice_snapshot_factory(particle_types=particle_types,
                                     n=2, a=5, r=0.01)
-    if 'Ewald' in str(pair_potential):
+    if 'Ewald' in str(pair_potential) and snap.exists:
         snap.particles.charge[:] = 1
-    elif 'SLJ' in str(pair_potential):
+    elif 'SLJ' in str(pair_potential) and snap.exists:
         snap.particles.diameter[:] = 2
     if snap.exists:
         snap.particles.typeid[:] = np.random.randint(0,
@@ -191,7 +191,8 @@ def test_run(simulation_factory, lattice_snapshot_factory,
 def _calculate_force(sim):
     snap = sim.state.snapshot
     initial_pos = snap.particles.position
-    snap.particles.position[1] = initial_pos[1] * 0.99999999
+    if snap.exists:
+        snap.particles.position[1] = initial_pos[1] * 0.99999999
     sim.state.snapshot = snap
     E0 = sim.operations.integrator.forces[0].energies
     pos = sim.state.snapshot.particles.position
@@ -200,7 +201,8 @@ def _calculate_force(sim):
     direction = r0 / mag_r0
 
     snap = sim.state.snapshot
-    snap.particles.position[1] = initial_pos[1] * 1.00000001
+    if snap.exists:
+        snap.particles.position[1] = initial_pos[1] * 1.00000001
     sim.state.snapshot = snap
     E1 = sim.operations.integrator.forces[0].energies
     pos = sim.state.snapshot.particles.position
@@ -209,7 +211,8 @@ def _calculate_force(sim):
     Fa = -1 * ((E1[0] - E0[0]) / (mag_r1 - mag_r0)) * 2 * direction
     Fb = -1 * ((E1[1] - E0[1]) / (mag_r1 - mag_r0)) * 2 * direction * -1
     snap = sim.state.snapshot
-    snap.particles.position[1] = initial_pos[1]
+    if snap.exists:
+        snap.particles.position[1] = initial_pos[1]
     sim.state.snapshot = snap
     return Fa, Fb
 
@@ -220,7 +223,8 @@ def test_force_energy_relationship(simulation_factory,
                                    valid_params, nsteps):
     # don't really test DPD and DPDLJ for this test
     if valid_params[0] == "DPD" or valid_params[0] == "DPDLJ":
-        return
+        pytest.skip("Cannot test force energy relationship for " +
+                    valid_params[0] + " pair force")
 
     pair_potential, xtra_args, pair_potential_dict = valid_params[1:]
     pair_keys = pair_potential_dict.keys()
@@ -231,9 +235,9 @@ def test_force_energy_relationship(simulation_factory,
         pot.params[pair] = pair_potential_dict[pair]
 
     snap = two_particle_snapshot_factory(particle_types=particle_types, d=1.5)
-    if 'Ewald' in str(pair_potential):
+    if 'Ewald' in str(pair_potential) and snap.exists:
         snap.particles.charge[:] = 1
-    elif 'SLJ' in str(pair_potential):
+    elif 'SLJ' in str(pair_potential) and snap.exists:
         snap.particles.diameter[:] = 2
     sim = simulation_factory(snap)
     integrator = hoomd.md.Integrator(dt=0.005)
@@ -266,9 +270,9 @@ def test_force_energy_accuracy(simulation_factory,
     pot = pair_potential(nlist=hoomd.md.nlist.Cell(), r_cut=2.5, mode='none')
     pot.params[('A', 'A')] = params
     snap = two_particle_snapshot_factory(particle_types=['A'], d=0.75)
-    if 'Ewald' in str(pair_potential):
+    if 'Ewald' in str(pair_potential) and snap.exists:
         snap.particles.charge[:] = 1
-    elif 'SLJ' in str(pair_potential):
+    elif 'SLJ' in str(pair_potential) and snap.exists:
         snap.particles.diameter[:] = 2
     sim = simulation_factory(snap)
     integrator = hoomd.md.Integrator(dt=0.005)
