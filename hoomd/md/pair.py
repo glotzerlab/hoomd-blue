@@ -210,9 +210,10 @@ class LJ(_Pair):
     R""" Lennard-Jones pair potential.
 
     Args:
-        r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        name (str): Name of the force instance.
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): energy shifting/smoothing mode
 
     :py:class:`LJ` specifies that a Lennard-Jones pair potential should be
     applied between every non-excluded particle pair in the simulation.
@@ -222,23 +223,30 @@ class LJ(_Pair):
 
         \begin{eqnarray*}
         V_{\mathrm{LJ}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r}
-        \right)^{12} - \alpha \left( \frac{\sigma}{r} \right)^{6} \right] & r <
+        \right)^{12} - \left( \frac{\sigma}{r} \right)^{6} \right] & r <
         r_{\mathrm{cut}} \\ = & 0 & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     See :py:class:`_Pair` for details on how forces are calculated and the
-    available energy shifting and smoothing modes.  Use ``coeff.set``
+    available energy shifting and smoothing modes.  Use ``params`` dictionary
     to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
     - :math:`\varepsilon` - *epsilon* (in energy units)
     - :math:`\sigma` - *sigma* (in distance units)
-    - :math:`\alpha` - *alpha* (unitless) - *optional*: defaults to 1.0
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
     - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
+      - *optional*: defaults to the global r_on specified in the pair command
+
+    Example::
+
+        nl = nlist.Cell()
+        lj = pair.LJ(nl, r_cut=3.0)
+        lj.params[('A', 'A')]['epsilon'] = 1.0
+        lj.params[('A', 'A')]['sigma'] = 1.0
+        lj.params[('A', 'B')] = dict(epsilon=2.0, sigma=1.0, r_cut=3.0, r_on=2.0)
     """
     _cpp_class_name = "PotentialPairLJ"
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
@@ -253,11 +261,12 @@ class Gauss(_Pair):
     R""" Gaussian pair potential.
 
     Args:
-        r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        name (str): Name of the force instance.
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): energy shifting/smoothing mode.
 
-    :py:class:`gauss` specifies that a Gaussian pair potential should be applied between every
+    :py:class:`Gauss` specifies that a Gaussian pair potential should be applied between every
     non-excluded particle pair in the simulation.
 
     .. math::
@@ -270,7 +279,7 @@ class Gauss(_Pair):
         \end{eqnarray*}
 
     See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use ``coeff.set`` to set potential coefficients.
+    Use ``params`` dictionary to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
@@ -279,15 +288,14 @@ class Gauss(_Pair):
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
     - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
+      - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
 
-        nl = nlist.cell()
-        gauss = pair.gauss(r_cut=3.0, nlist=nl)
-        gauss.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
-        gauss.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, r_cut=3.0, r_on=2.0);
-        gauss.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=3.0, sigma=0.5)
+        nl = nlist.Cell()
+        gauss = pair.Gauss(r_cut=3.0, nlist=nl)
+        gauss.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0)
+        gauss.params[('A', 'B')] = dict(epsilon=2.0, sigma=1.0, r_cut=3.0, r_on=2.0)
 
     """
     _cpp_class_name = "PotentialPairGauss"
@@ -302,12 +310,12 @@ class SLJ(_Pair):
     R""" Shifted Lennard-Jones pair potential.
 
     Args:
-        r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        name (str): Name of the force instance.
-        d_max (float): Maximum diameter particles in the simulation will have (in distance units)
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): Energy shifting/smoothing mode
 
-    :py:class:`slj` specifies that a shifted Lennard-Jones type pair potential should be applied between every
+    :py:class:`SLJ` specifies that a shifted Lennard-Jones type pair potential should be applied between every
     non-excluded particle pair in the simulation.
 
     .. math::
@@ -322,7 +330,7 @@ class SLJ(_Pair):
     where :math:`\Delta = (d_i + d_j)/2 - 1` and :math:`d_i` is the diameter of particle :math:`i`.
 
     See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use ``coeff.set`` to set potential coefficients.
+    Use ``params`` dictionary to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
@@ -331,35 +339,35 @@ class SLJ(_Pair):
       - *optional*: defaults to 1.0
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
+    - :math:`r_{\mathrm{on}}` - *r_on* (in distance units)
+      - *optional*: defaults to the global r_on specified in the pair command
 
     .. attention::
         Due to the way that pair.slj modifies the cutoff criteria, a shift_mode of *xplor* is not supported.
 
     The actual cutoff radius for pair.slj is shifted by the diameter of two particles interacting.  Thus to determine
     the maximum possible actual r_cut in simulation
-    pair.slj must know the maximum diameter of all the particles over the entire run, *d_max* .
-    This value is either determined automatically from the initialization or can be set by the user and can be
-    modified between runs with ``hoomd.md.nlist.nlist.set_params()``. In most cases, the correct value can be
-    identified automatically.
+    pair.slj must know the maximum diameter of all the particles over the entire run.
+    This value must be set by the user and can be
+    modified between runs with the *max_diameter* property of the ``hoomd.md.nlist`` objects.
 
-    The specified value of *d_max* will be used to properly determine the neighbor lists during the following
-    ```hoomd.run``` commands. If not specified, :py:class:`slj` will set d_max to the largest diameter
-    in particle data at the time it is initialized.
+    The specified value of *max_diameter* will be used to properly determine the neighbor lists during the following
+    ```sim.run``` commands.
 
-    If particle diameters change after initialization, it is **imperative** that *d_max* be the largest
-    diameter that any particle will attain at any time during the following ```hoomd.run``` commands.
-    If *d_max* is smaller than it should be, some particles will effectively have a smaller value of *r_cut*
-    then was set and the simulation will be incorrect. *d_max* can be changed between runs by calling
-    ``hoomd.md.nlist.nlist.set_params()``.
+    If particle diameters change after initialization, it is **imperative** that *max_diameter* be the largest
+    diameter that any particle will attain at any time during the following ```sim.run``` commands.
+    If *max_diameter* is smaller than it should be, some particles will effectively have a smaller value of *r_cut*
+    than was set and the simulation will be incorrect. *max_diameter* can be changed between runs in the
+    same way it was set via the *max_diameter* property of the ``hoomd.md.nlist`` objects.
 
     Example::
 
-        nl = nlist.cell()
-        slj = pair.slj(r_cut=3.0, nlist=nl, d_max = 2.0)
-        slj.pair_coeff.set('A', 'A', epsilon=1.0)
-        slj.pair_coeff.set('A', 'B', epsilon=2.0, r_cut=3.0);
-        slj.pair_coeff.set('B', 'B', epsilon=1.0, r_cut=2**(1.0/6.0));
-        slj.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=2.0)
+        nl = nlist.Cell()
+        nl.max_diameter = 2.0
+        slj = pair.SLJ(r_cut=3.0, nlist=nl)
+        slj.params[('A', 'A')]['epsilon'] = 1.0
+        slj.params[('A', 'B')] = dict(epsilon=2.0, r_cut=3.0)
+        slj.params[('B', 'B')] = {'epsilon': 1.0, 'r_cut': 2**(1.0/6.0)}
 
     """
     _cpp_class_name = 'PotentialPairSLJ'
@@ -389,11 +397,12 @@ class Yukawa(_Pair):
     R""" Yukawa pair potential.
 
     Args:
-        r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        name (str): Name of the force instance.
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): Energy shifting mode.
 
-    :py:class:`yukawa` specifies that a Yukawa pair potential should be applied between every
+    :py:class:`Yukawa` specifies that a Yukawa pair potential should be applied between every
     non-excluded particle pair in the simulation.
 
     .. math::
@@ -405,7 +414,7 @@ class Yukawa(_Pair):
         \end{eqnarray*}
 
     See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use ``coeff.set`` to set potential coefficients.
+    Use ``params`` dictionary to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
@@ -414,15 +423,14 @@ class Yukawa(_Pair):
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
     - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
+      - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
 
-        nl = nlist.cell()
-        yukawa = pair.lj(r_cut=3.0, nlist=nl)
-        yukawa.pair_coeff.set('A', 'A', epsilon=1.0, kappa=1.0)
-        yukawa.pair_coeff.set('A', 'B', epsilon=2.0, kappa=0.5, r_cut=3.0, r_on=2.0);
-        yukawa.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=0.5, kappa=3.0)
+        nl = nlist.Cell()
+        yukawa = pair.Yukawa(r_cut=3.0, nlist=nl)
+        yukawa.params[('A', 'A')] = dict(epsilon=1.0, kappa=1.0)
+        yukawa.params[('A', 'B')] = dict(epsilon=2.0, kappa=0.5, r_cut=3.0, r_on=2.0)
 
     """
     _cpp_class_name = "PotentialPairYukawa"
@@ -436,7 +444,13 @@ class Yukawa(_Pair):
 class Ewald(_Pair):
     R""" Ewald pair potential.
 
-    :py:class:`ewald` specifies that a Ewald pair potential should be applied between every
+    Args:
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): Energy shifting mode.
+
+    :py:class:`Ewald` specifies that a Ewald pair potential should be applied between every
     non-excluded particle pair in the simulation.
 
     .. math::
@@ -451,7 +465,7 @@ class Ewald(_Pair):
     The Ewald potential is designed to be used in conjunction with :py:class:`hoomd.md.charge.pppm`.
 
     See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use ``coeff.set`` to set potential coefficients.
+    Use ``params`` dictionary to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
@@ -461,20 +475,20 @@ class Ewald(_Pair):
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
     - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
+      - *optional*: defaults to the global r_on specified in the pair command
 
 
     Example::
 
-        nl = nlist.cell()
-        ewald = pair.ewald(r_cut=3.0, nlist=nl)
-        ewald.pair_coeff.set('A', 'A', kappa=1.0)
-        ewald.pair_coeff.set('A', 'A', kappa=1.0, alpha=1.5)
-        ewald.pair_coeff.set('A', 'B', kappa=1.0, r_cut=3.0, r_on=2.0);
+        nl = nlist.Cell()
+        ewald = pair.Ewald(r_cut=3.0, nlist=nl)
+        ewald.params[('A', 'A')]['kappa'] = 1.0
+        ewald.params[('A', 'A')] = dict(kappa=1.0, alpha=1.5)
+        ewald.params[('A', 'B')] = dict(kappa=1.0, r_cut=3.0, r_on=2.0)
 
     Warning:
         **DO NOT** use in conjunction with :py:class:`hoomd.md.charge.pppm`. It automatically creates and configures
-        :py:class:`ewald` for you.
+        :py:class:`Ewald` for you.
 
     """
     _cpp_class_name = "PotentialPairEwald"
