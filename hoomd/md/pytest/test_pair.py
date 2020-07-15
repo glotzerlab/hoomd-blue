@@ -275,6 +275,9 @@ def test_force_energy_accuracy(simulation_factory,
         snap.particles.charge[:] = 1
     elif 'SLJ' in str(pair_pot) and snap.exists:
         snap.particles.diameter[:] = 2
+    elif 'DLVO' in str(pair_pot) and snap.exists:
+        snap.particles.diameter[0] = 0.2
+        snap.particles.diameter[1] = 0.5
     sim = simulation_factory(snap)
     integrator = hoomd.md.Integrator(dt=0.005)
     integrator.forces.append(pot)
