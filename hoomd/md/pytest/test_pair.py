@@ -103,8 +103,9 @@ def test_valid_params(valid_params):
 
 
 def test_invalid_params(invalid_params):
-    pair_potential, pair_potential_dict = invalid_params[1:]
-    pot = pair_potential(nlist=hoomd.md.nlist.Cell(), mode='none')
+    pair_potential, pair_potential_dict, extra_args = invalid_params[1:]
+    print(pair_potential_dict)
+    pot = pair_potential(**extra_args, nlist=hoomd.md.nlist.Cell(), mode='none')
     for pair in pair_potential_dict:
         if isinstance(pair, tuple):
             with pytest.raises(hoomd.typeconverter.TypeConversionError):

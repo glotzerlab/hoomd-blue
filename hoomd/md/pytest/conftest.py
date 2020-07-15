@@ -162,22 +162,27 @@ def _make_invalid_param_dict(valid_dict):
     invalid_dicts = [valid_dict] * len(valid_dict.keys()) * 2
     count = 0
     for key in valid_dict.keys():
-        invalid_dicts[count][key] = [1, 2]
-        invalid_dicts[count + 1][key] = 'str'
+        if not isinstance(invalid_dicts[count][key], list):
+            invalid_dicts[count][key] = [1, 2]
+            invalid_dicts[count + 1][key] = 'str'
+        else:
+            invalid_dicts[count][key] = 1
+            invalid_dicts[count + 1][key] = False
         count += 2
     return invalid_dicts
 
 
 def _make_invalid_params(valid_param_dict, invalid_param_dicts,
-                         pair_potential, pair_potential_name):
+                         pair_potential, extra_args_dict, pair_potential_name):
     N = len(invalid_param_dicts)
     pair_potentials = [pair_potential] * N
+    extra_args_dict = [extra_args_dict] * N
+    pair_potential_names = [pair_potential_name] * N
 
     params = [{('A', 'A'): valid_param_dict}] * N
     for i in range(len(invalid_param_dicts)):
         params[i][('A', 'A')] = invalid_param_dicts[i]
-
-    return zip(pair_potential_name, pair_potentials, params)
+    return zip(pair_potential_names, pair_potentials, params, extra_args_dict)
 
 
 def _invalid_params():
@@ -187,56 +192,126 @@ def _invalid_params():
     lj_invalid_dicts = _make_invalid_param_dict(lj_valid_dict)
     invalid_params_list.append(_make_invalid_params(lj_valid_dict,
                                                     lj_invalid_dicts,
-                                                    hoomd.md.pair.LJ, "LJ"))
+                                                    hoomd.md.pair.LJ, 
+                                                    {}, "LJ"))
 
     gauss_valid_dict = {'sigma': 0.05, 'epsilon': 0.05}
     gauss_invalid_dicts = _make_invalid_param_dict(gauss_valid_dict)
     invalid_params_list.append(_make_invalid_params(gauss_valid_dict,
                                                     gauss_invalid_dicts,
                                                     hoomd.md.pair.Gauss,
-                                                    "Gauss"))
+                                                    {}, "Gauss"))
 
     yukawa_valid_dict = {"epsilon": 0.0005, "kappa": 1}
     yukawa_invalid_dicts = _make_invalid_param_dict(yukawa_valid_dict)
     invalid_params_list.append(_make_invalid_params(yukawa_valid_dict,
                                                     yukawa_invalid_dicts,
                                                     hoomd.md.pair.Yukawa,
-                                                    "Yukawa"))
+                                                    {}, "Yukawa"))
 
     ewald_valid_dict = {"alpha": 0.05, "kappa": 1}
     ewald_invalid_dicts = _make_invalid_param_dict(ewald_valid_dict)
     invalid_params_list.append(_make_invalid_params(ewald_valid_dict,
                                                     ewald_invalid_dicts,
                                                     hoomd.md.pair.Ewald,
-                                                    "Ewald"))
+                                                    {}, "Ewald"))
 
     morse_valid_dict = {"D0": 0.05, "alpha": 1, "r0": 0}
     morse_invalid_dicts = _make_invalid_param_dict(morse_valid_dict)
     invalid_params_list.append(_make_invalid_params(morse_valid_dict,
                                                     morse_invalid_dicts,
                                                     hoomd.md.pair.Morse,
-                                                    "Morse"))
+                                                    {}, "Morse"))
 
     dpd_conservative_valid_dict = {"A": 0.05}
     dpd_conservative_invalid_dicts = _make_invalid_param_dict(dpd_conservative_valid_dict)
     invalid_params_list.append(_make_invalid_params(dpd_conservative_valid_dict,
                                                     dpd_conservative_invalid_dicts,
                                                     hoomd.md.pair.DPDConservative,
-                                                    "DPDConservative"))
+                                                    {}, "DPDConservative"))
 
     force_shifted_LJ_valid_dict = {"epsilon": 0.0005, "sigma": 1}
     force_shifted_LJ_invalid_dicts = _make_invalid_param_dict(force_shifted_LJ_valid_dict)
     invalid_params_list.append(_make_invalid_params(force_shifted_LJ_valid_dict,
                                                     force_shifted_LJ_invalid_dicts,
                                                     hoomd.md.pair.ForceShiftedLJ,
-                                                    "ForceShiftedLJ"))
+                                                    {}, "ForceShiftedLJ"))
 
     moliere_valid_dict = {"Zi": 15, "Zj": 12, "a0": 1, "e": .5}
     moliere_invalid_dicts = _make_invalid_param_dict(moliere_valid_dict)
     invalid_params_list.append(_make_invalid_params(moliere_valid_dict,
                                                     moliere_invalid_dicts,
                                                     hoomd.md.pair.Moliere,
-                                                    "Moliere"))
+                                                    {}, "Moliere"))
+    zbl_valid_dict = {"Zi": 10, "Zj": 8, "a0": 0.5, "e": 0.25}
+    zbl_invalid_dicts = _make_invalid_param_dict(zbl_valid_dict)
+    invalid_params_list.append(_make_invalid_params(zbl_valid_dict,
+                                                    zbl_invalid_dicts,
+                                                    hoomd.md.pair.ZBL,
+                                                    {}, "ZBL"))
+
+    mie_valid_dict = {"epsilon": 0.05, "sigma": 0.5, "n": 12, "m": 6}
+    mie_invalid_dicts = _make_invalid_param_dict(mie_valid_dict)
+    invalid_params_list.append(_make_invalid_params(mie_valid_dict,
+                                                    mie_invalid_dicts,
+                                                    hoomd.md.pair.Mie,
+                                                    {}, "Mie"))
+
+    rf_valid_dict = {"epsilon": 0.05, "eps_rf": 0.5, "use_charge": False}
+    rf_invalid_dicts = _make_invalid_param_dict(rf_valid_dict)
+    invalid_params_list.append(_make_invalid_params(rf_valid_dict,
+                                                    rf_invalid_dicts,
+                                                    hoomd.md.pair.ReactionField,
+                                                    {}, "ReactionField"))
+
+    buckingham_valid_dict = {"A": 0.05, "rho": 0.5, "C": 0.05}
+    buckingham_invalid_dicts = _make_invalid_param_dict(buckingham_valid_dict)
+    invalid_params_list.append(_make_invalid_params(buckingham_valid_dict,
+                                                    buckingham_invalid_dicts,
+                                                    hoomd.md.pair.Buckingham,
+                                                    {}, "Buckingham"))
+
+    lj1208_valid_dict = {"sigma": 0.5, "epsilon": 0.0005}
+    lj1208_invalid_dicts = _make_invalid_param_dict(lj1208_valid_dict)
+    invalid_params_list.append(_make_invalid_params(lj1208_valid_dict,
+                                                    lj1208_invalid_dicts,
+                                                    hoomd.md.pair.LJ1208,
+                                                    {}, "LJ1208"))
+
+    fourier_valid_dict = {"a": [0.5, 1.0, 1.5], "b": [0.25, 0.034, 0.76]}
+    fourier_invalid_dicts = _make_invalid_param_dict(fourier_valid_dict)
+    invalid_params_list.append(_make_invalid_params(fourier_valid_dict,
+                                                    fourier_invalid_dicts,
+                                                    hoomd.md.pair.Fourier,
+                                                    {}, "Fourier"))
+
+    slj_valid_dict = {"sigma": 0.5, "epsilon": 0.0005}
+    slj_invalid_dicts = _make_invalid_param_dict(slj_valid_dict)
+    invalid_params_list.append(_make_invalid_params(slj_valid_dict,
+                                                    slj_invalid_dicts,
+                                                    hoomd.md.pair.SLJ,
+                                                    {}, "SLJ"))
+
+    dpd_valid_dict = {"A": 0.5, "gamma": 0.0005}
+    dpd_invalid_dicts = _make_invalid_param_dict(dpd_valid_dict)
+    invalid_params_list.append(_make_invalid_params(dpd_valid_dict,
+                                                    dpd_invalid_dicts,
+                                                    hoomd.md.pair.DPD,
+                                                    {'kT': 2}, "DPD"))
+
+    dpdlj_valid_dict = {'sigma': 0.5, 'epsilon': 0.0005, 'gamma': 0.034}
+    dpdlj_invalid_dicts = _make_invalid_param_dict(dpdlj_valid_dict)
+    invalid_params_list.append(_make_invalid_params(dpdlj_valid_dict,
+                                                    dpdlj_invalid_dicts,
+                                                    hoomd.md.pair.DPDLJ,
+                                                    {'kT': 1}, "DPDLJ"))
+
+    dlvo_valid_dict = {'kappa': 1.0, 'Z': 0.1, 'A': 0.1}
+    dlvo_invalid_dicts = _make_invalid_param_dict(dlvo_valid_dict)
+    invalid_params_list.append(_make_invalid_params(dlvo_valid_dict,
+                                                    dlvo_invalid_dicts,
+                                                    hoomd.md.pair.DLVO,
+                                                    {}, "DLVO"))
     return [params for param_list in invalid_params_list for params in param_list]
 
 
@@ -249,7 +324,6 @@ def _forces_and_energies():
     params = {}
     forces = {}
     energies = {}
-    extra_args = {}
 
     params["LJ"] = [{"sigma": 0.5, "epsilon": 0.0005},
                     {"sigma": 1.0, "epsilon": 0.001},
