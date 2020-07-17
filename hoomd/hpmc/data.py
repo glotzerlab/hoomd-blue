@@ -106,7 +106,7 @@ class _param(object):
     def set(self, **params):
         self.is_set = True;
 
-        self.mc.cpp_integrator.setParam(self.typid, self.make_param(**params), True);
+        self.mc.cpp_integrator.setParam(self.typid, self.make_param(**params));
 
 class sphere_params(_hpmc.sphere_param_proxy, _param):
     def __init__(self, mc, index):

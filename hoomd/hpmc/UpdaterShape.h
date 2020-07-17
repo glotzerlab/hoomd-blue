@@ -258,6 +258,10 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
         detail::MassProperties<Shape> mp(params[ptype]);
         return mp.getIsoperimetricQuotient();
         }
+    else if(quantity.compare(0, 11, "shape_param") == 0)
+        {
+        return m_move_function->getLogValue(quantity, timestep);
+        }
     else
 	    {
         m_exec_conf->msg->error() << "update.shape: " << quantity << " is not a valid log quantity" << std::endl;
@@ -367,7 +371,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             // add the bias for the isoperimetric quotient;
             // useful for biasing away from spherical shapes
             log_boltz += -m_kappa_iq * (h_iq.data[typ_i] - h_iq_backup.data[typ_i]);
-            m_mc->setParam(typ_i, param, cur_type == (n_type_select-1));
+            m_mc->setParam(typ_i, param);
             }  // end loop over particle types
         if (this->m_prof)
             this->m_prof->pop();
@@ -392,14 +396,15 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
     if(p < Z)
         {
         unsigned int overlaps = 1;
-        if(m_pdata->getNTypes() == m_pdata->getNGlobal())
-            {
-            overlaps = m_mc->countOverlapsEx(timestep, true, m_update_order.begin(), m_update_order.begin()+n_type_select);
-            }
-        else
-            {
-            overlaps = m_mc->countOverlaps(timestep, true);
-            }
+        overlaps = m_mc->countOverlaps(timestep, true);
+        // if(m_pdata->getNTypes() == m_pdata->getNGlobal())
+        //     {
+        //     overlaps = m_mc->countOverlapsEx(timestep, true, m_update_order.begin(), m_update_order.begin()+n_type_select);
+        //     }
+        // else
+        //     {
+        //     overlaps = m_mc->countOverlaps(timestep, true);
+        //     }
         accept = !overlaps;
         m_exec_conf->msg->notice(5) << " UpdaterShape counted " << overlaps << " overlaps" << std::endl;
         if(m_multi_phase)
@@ -445,7 +450,6 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
                 int typ_i = m_update_order[cur_type];
                 m_count_accepted[typ_i]++;
                 }
-            // m_move_function->advance(timestep);
             reject = false;
             }
 
@@ -458,7 +462,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             // ArrayHandle<typename Shape::param_type> h_param_copy(param_copy, access_location::host, access_mode::readwrite);
             for(size_t typ = 0; typ < n_type_select; typ++)
                 {
-                m_mc->setParam(m_update_order[typ], param_copy[typ], typ == (n_type_select-1)); // set the params.
+                m_mc->setParam(m_update_order[typ], param_copy[typ]); // set the params.
                 }
             }
         if (this->m_prof)
