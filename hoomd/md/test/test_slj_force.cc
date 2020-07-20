@@ -77,9 +77,7 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, std
     Scalar epsilon = Scalar(1.15);
     Scalar sigma = Scalar(1.0);
     Scalar alpha = Scalar(1.0);
-    Scalar shiftedlj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
-    Scalar shiftedlj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
-    fc_3->setParams(0,0,make_scalar2(shiftedlj1,shiftedlj2));
+    fc_3->setParams(0,0,EvaluatorPairSLJ::param_type(sigma, epsilon, alpha));
 
     // compute the forces
     fc_3->compute(0);
@@ -118,9 +116,7 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, std
     // now change sigma and alpha so we can check that it is computing the right force
     sigma = Scalar(1.2); // < bigger sigma should push particle 0 left and particle 2 right
     alpha = Scalar(0.45);
-    shiftedlj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
-    shiftedlj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
-    fc_3->setParams(0,0,make_scalar2(shiftedlj1,shiftedlj2));
+    fc_3->setParams(0,0,EvaluatorPairSLJ::param_type(sigma, epsilon, alpha));
     fc_3->compute(1);
 
     {
@@ -237,16 +233,14 @@ void shiftedlj_force_periodic_test(shiftedljforce_creator shiftedlj_creator, std
     Scalar epsilon = Scalar(1.0);
     Scalar sigma = Scalar(0.5);
     Scalar alpha = Scalar(0.45);
-    Scalar shiftedlj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
-    Scalar shiftedlj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
 
     // make life easy: just change epsilon for the different pairs
-    fc_6->setParams(0,0,make_scalar2(shiftedlj1,shiftedlj2));
-    fc_6->setParams(0,1,make_scalar2(Scalar(2.0)*shiftedlj1,Scalar(2.0)*shiftedlj2));
-    fc_6->setParams(0,2,make_scalar2(Scalar(3.0)*shiftedlj1,Scalar(3.0)*shiftedlj2));
-    fc_6->setParams(1,1,make_scalar2(Scalar(4.0)*shiftedlj1,Scalar(4.0)*shiftedlj2));
-    fc_6->setParams(1,2,make_scalar2(Scalar(5.0)*shiftedlj1,Scalar(5.0)*shiftedlj2));
-    fc_6->setParams(2,2,make_scalar2(Scalar(6.0)*shiftedlj1,Scalar(6.0)*shiftedlj2));
+    fc_6->setParams(0,0,EvaluatorPairSLJ::param_type(sigma, epsilon, alpha));
+    fc_6->setParams(0,1,EvaluatorPairSLJ::param_type(sigma, Scalar(2.0)*epsilon, alpha));
+    fc_6->setParams(0,2,EvaluatorPairSLJ::param_type(sigma, Scalar(3.0)*epsilon, alpha));
+    fc_6->setParams(1,1,EvaluatorPairSLJ::param_type(sigma, Scalar(4.0)*epsilon, alpha));
+    fc_6->setParams(1,2,EvaluatorPairSLJ::param_type(sigma, Scalar(5.0)*epsilon, alpha));
+    fc_6->setParams(2,2,EvaluatorPairSLJ::param_type(sigma, Scalar(6.0)*epsilon, alpha));
 
     fc_6->compute(0);
 
@@ -335,8 +329,8 @@ void shiftedlj_force_comparison_test(shiftedljforce_creator shiftedlj_creator1,
     Scalar shiftedlj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
 
     // specify the force parameters
-    fc1->setParams(0,0,make_scalar2(shiftedlj1,shiftedlj2));
-    fc2->setParams(0,0,make_scalar2(shiftedlj1,shiftedlj2));
+    fc1->setParams(0,0,EvaluatorPairSLJ::param_type(sigma, epsilon, alpha));
+    fc2->setParams(0,0,EvaluatorPairSLJ::param_type(sigma, epsilon, alpha));
 
     // compute the forces
     fc1->compute(0);
