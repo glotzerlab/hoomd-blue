@@ -187,6 +187,81 @@ def test_run(simulation_factory, lattice_snapshot_factory,
                                    initial_pos)
 
 
+def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
+
+    def S_r(r, r_cut, r_on):
+        if r < r_on:
+            return 1
+        elif r > r_cut:
+            return 0
+        numerator = ((r_cut**2 - r**2)**2) * (r_cut**2 + 2 * r**2 - 3 * r_on**2)
+        denominator = (r_cut**2 - r_on**2)**3
+        return numerator / denominator
+
+    r_cut = 2.5
+    r_on = 0.5
+    r = 1.0
+
+    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(), r_cut=r_cut)
+    lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
+
+    snap = two_particle_snapshot_factory(dimensions=3, d=.5)
+    if snap.exists:
+        snap.particles.position[0] = [0, 0, 0]
+        snap.particles.position[1] = [0, 0, r]
+    sim = simulation_factory(snap)
+
+    integrator = hoomd.md.Integrator(dt=0.005)
+    integrator.forces.append(lj)
+    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
+                                                        kT=1, seed=1))
+    sim.operations.integrator = integrator
+    sim.operations.schedule()
+
+    E_r = sum(sim.operations.integrator.forces[0].energies)
+    snap = sim.state.snapshot
+    if snap.exists:
+        snap.particles.position[0] = [0, 0, 0]
+        snap.particles.position[1] = [0, 0, r_cut]
+    sim.state.snapshot = snap
+    E_rcut = sum(sim.operations.integrator.forces[0].energies)
+
+    lj_shift = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(),
+                                mode='shifted', r_cut=r_cut)
+    lj_shift.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
+    integrator = hoomd.md.Integrator(dt=0.005)
+    integrator.forces.append(lj)
+    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
+                                                        kT=1, seed=1))
+    sim.operations.integrator = integrator
+    sim.operations.schedule()
+
+    snap = sim.state.snapshot
+    if snap.exists:
+        snap.particles.position[0] = [0, 0, 0]
+        snap.particles.position[1] = [0, 0, r]
+    sim.state.snapshot = snap
+    assert sum(sim.operations.integrator.forces[0].energies) == E_r - E_rcut
+
+    lj_xplor = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(),
+                                mode='xplor', r_cut=r_cut)
+    lj_xplor.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
+    lj_xplor.r_on[('A', 'A')] = 0.5
+    integrator = hoomd.md.Integrator(dt=0.005)
+    integrator.forces.append(lj)
+    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
+                                                        kT=1, seed=1))
+
+    sim.operations.integrator = integrator
+    sim.operations.schedule()
+
+    xplor_E = sum(sim.operations.integrator.forces[0].energies)
+    assert xplor_E == E_r * S_r(r, r_cut, r_on)
+
+    lj_xplor.r_on[('A', 'A')] = 3.0
+    assert sum(sim.operations.integrator.forces[0].energies) == E_r - E_rcut
+
+
 # This function calculates the forces in a two particle simulation frame by
 # finding the negative derivative of energy over inter particle distance
 def _calculate_force(sim):
