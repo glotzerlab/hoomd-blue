@@ -147,7 +147,7 @@ void test_update_order(const unsigned int max)
     UpdateOrder o(10, max);
     for (unsigned int i = 0 ; i < nsamples; i++)
         {
-        o.shuffle(i);
+        o.setRandomDirection(i);
         if (o[0] == 0)
             {
             counts[0]++;

@@ -303,7 +303,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             this->m_prof->push(this->m_exec_conf, "UpdaterShape setup");
         // Shuffle the order of particles for this sweep
         // TODO: should these be better random numbers?
-        m_update_order.shuffle(timestep+40591); // order of the list doesn't matter the probability of each combination is the same.
+        m_update_order.setRandomDirection(timestep+40591); // order of the list doesn't matter the probability of each combination is the same.
         if (this->m_prof)
             this->m_prof->pop();
 
