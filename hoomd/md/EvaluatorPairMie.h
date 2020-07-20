@@ -75,6 +75,12 @@ class EvaluatorPairMie
                 computeParams();
                 }
 
+            param_type(Scalar eps, Scalar sig, Scalar n_, Scalar m_) :
+                epsilon(eps), sigma(sig), n(n_), m(m_)
+                {
+                computeParams();
+                }
+
             param_type(pybind11::dict v)
                 {
                 epsilon = v["epsilon"].cast<Scalar>();
@@ -101,10 +107,10 @@ class EvaluatorPairMie
                 // ones given by the user
                 void computeParams()
                     {
-                        m1 = epsilon * pow(sigma, n) * (n/(n-m)) * pow(n/m, m/(n-m));
-                        m2 = epsilon * pow(sigma, m) * (n/(n-m)) * pow(n/m, m/(n-m));
-                        m3 = n;
-                        m4 = m;
+                    m1 = epsilon * pow(sigma, n) * (n/(n-m)) * pow(n/m, m/(n-m));
+                    m2 = epsilon * pow(sigma, m) * (n/(n-m)) * pow(n/m, m/(n-m));
+                    m3 = n;
+                    m4 = m;
                     }
             #endif
             }

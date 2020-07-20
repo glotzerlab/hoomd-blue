@@ -67,9 +67,7 @@ void mie_force_particle_test(mieforce_creator mie_creator, std::shared_ptr<Execu
     Scalar sigma = Scalar(1.0);
     Scalar mie3 = Scalar(13.5);
     Scalar mie4 = Scalar(6.5);
-    Scalar mie1 = epsilon * Scalar(pow(sigma,mie3)) * Scalar(mie3/(mie3-mie4)) * Scalar(pow(mie3/mie4,(mie4/(mie3-mie4))));
-    Scalar mie2 = epsilon * Scalar(pow(sigma,mie4)) * Scalar(mie3/(mie3-mie4)) * Scalar(pow(mie3/mie4,(mie4/(mie3-mie4))));
-    fc_3->setParams(0,0,make_scalar4(mie1,mie2,mie3,mie4));
+    fc_3->setParams(0,0,EvaluatorPairMie::param_type(epsilon, sigma, mie3, mie4));
 
     // compute the forces
     fc_3->compute(0);
@@ -107,9 +105,7 @@ void mie_force_particle_test(mieforce_creator mie_creator, std::shared_ptr<Execu
 
     // now change sigma and alpha so we can check that it is computing the right force
     sigma = Scalar(1.2); // < bigger sigma should push particle 0 left and particle 2 right
-    mie1 = epsilon * Scalar(pow(sigma,mie3)) * Scalar(mie3/(mie3-mie4)) * Scalar(pow(mie3/mie4,(mie4/(mie3-mie4))));
-    mie2 = epsilon * Scalar(pow(sigma,mie4)) * Scalar(mie3/(mie3-mie4)) * Scalar(pow(mie3/mie4,(mie4/(mie3-mie4))));
-    fc_3->setParams(0,0,make_scalar4(mie1,mie2,mie3,mie4));
+    fc_3->setParams(0,0,EvaluatorPairMie::param_type(epsilon,sigma,mie3,mie4));
     fc_3->compute(1);
 
     {
@@ -201,12 +197,10 @@ void mie_force_comparison_test(mieforce_creator mie_creator1, mieforce_creator m
     Scalar sigma = Scalar(1.2);
     Scalar mie3 = Scalar(13.5);
     Scalar mie4 = Scalar(6.5);
-    Scalar mie1 = epsilon * Scalar(pow(sigma,mie3)) * Scalar(mie3/(mie3-mie4)) * Scalar(pow(mie3/mie4,(mie4/(mie3-mie4))));
-    Scalar mie2 = epsilon * Scalar(pow(sigma,mie4)) * Scalar(mie3/(mie3-mie4)) * Scalar(pow(mie3/mie4,(mie4/(mie3-mie4))));
 
     // specify the force parameters
-    fc1->setParams(0,0,make_scalar4(mie1,mie2,mie3,mie4));
-    fc2->setParams(0,0,make_scalar4(mie1,mie2,mie3,mie4));
+    fc1->setParams(0,0,EvaluatorPairMie::param_type(epsilon,sigma,mie3,mie4));
+    fc2->setParams(0,0,EvaluatorPairMie::param_type(epsilon,sigma,mie3,mie4));
 
     // compute the forces
     fc1->compute(0);
@@ -293,11 +287,9 @@ void mie_force_shift_test(mieforce_creator mie_creator, std::shared_ptr<Executio
     Scalar sigma = Scalar(1.0);
     Scalar mie3 = Scalar(13.5);
     Scalar mie4 = Scalar(6.5);
-    Scalar mie1 = epsilon * Scalar(pow(sigma,mie3)) * Scalar(mie3/(mie3-mie4)) * Scalar(pow(mie3/mie4,(mie4/(mie3-mie4))));
-    Scalar mie2 = epsilon * Scalar(pow(sigma,mie4)) * Scalar(mie3/(mie3-mie4)) * Scalar(pow(mie3/mie4,(mie4/(mie3-mie4))));
-    fc_no_shift->setParams(0,0,make_scalar4(mie1,mie2,mie3,mie4));
-    fc_shift->setParams(0,0,make_scalar4(mie1,mie2,mie3,mie4));
-    fc_xplor->setParams(0,0,make_scalar4(mie1,mie2,mie3,mie4));
+    fc_no_shift->setParams(0,0,EvaluatorPairMie::param_type(epsilon,sigma,mie3,mie4));
+    fc_shift->setParams(0,0,EvaluatorPairMie::param_type(epsilon,sigma,mie3,mie4));
+    fc_xplor->setParams(0,0,EvaluatorPairMie::param_type(epsilon,sigma,mie3,mie4));
 
     fc_no_shift->compute(0);
     fc_shift->compute(0);
