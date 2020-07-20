@@ -768,7 +768,7 @@ class table(force._force):
 class Morse(_Pair):
     R""" Morse pair potential.
 
-    :py:class:`morse` specifies that a Morse pair potential should be applied between every
+    :py:class:`Morse` specifies that a Morse pair potential should be applied between every
     non-excluded particle pair in the simulation.
 
     .. math::
@@ -819,7 +819,7 @@ class DPD(_Pair):
         seed (int): seed for the PRNG in the DPD thermostat.
         name (str): Name of the force instance.
 
-    :py:class:`dpd` specifies that a DPD pair force should be applied between every
+    :py:class:`DPD` specifies that a DPD pair force should be applied between every
     non-excluded particle pair in the simulation, including an interaction potential,
     pairwise drag force, and pairwise random force. See `Groot and Warren 1997 <http://dx.doi.org/10.1063/1.474784>`_.
 
@@ -850,7 +850,7 @@ class DPD(_Pair):
     where :math:`\hat r_{ij}` is a normalized vector from particle i to particle j, :math:`v_{ij} = v_i - v_j`,
     and :math:`\theta_{ij}` is a uniformly distributed random number in the range [-1, 1].
 
-    :py:class:`dpd` generates random numbers by hashing together the particle tags in the pair, the user seed,
+    :py:class:`DPD` generates random numbers by hashing together the particle tags in the pair, the user seed,
     and the current time step index.
 
     .. attention::
@@ -863,7 +863,7 @@ class DPD(_Pair):
     `C. L. Phillips et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_ describes the DPD implementation
     details in HOOMD-blue. Cite it if you utilize the DPD functionality in your work.
 
-    :py:class:`dpd` does not implement and energy shift / smoothing modes due to the function of the force.
+    :py:class:`DPD` does not implement and energy shift / smoothing modes due to the function of the force.
     Use ``coeff.set`` to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
@@ -928,9 +928,9 @@ class DPDConservative(_Pair):
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
 
-    :py:class:`dpd_conservative` specifies the conservative part of the DPD pair potential should be applied between
+    :py:class:`DPDConservative` specifies the conservative part of the DPD pair potential should be applied between
     every non-excluded particle pair in the simulation. No thermostat (e.g. Drag Force and Random Force) is applied,
-    as is in :py:class:`dpd`.
+    as is in :py:class:`DPD`.
 
     .. math::
         :nowrap:
@@ -943,7 +943,7 @@ class DPDConservative(_Pair):
         \end{eqnarray*}
 
 
-    :py:class:`dpd_conservative` does not implement and energy shift / smoothing modes due to the function of the force.
+    :py:class:`DPDConservative` does not implement and energy shift / smoothing modes due to the function of the force.
     Use ``coeff.set`` to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
@@ -997,7 +997,7 @@ class DPDLJ(_Pair):
         seed (int): seed for the PRNG in the DPD thermostat.
         name (str): Name of the force instance.
 
-    :py:class:`dpdlj` specifies that a DPD thermostat and a Lennard-Jones pair potential should be applied between
+    :py:class:`DPDLJ` specifies that a DPD thermostat and a Lennard-Jones pair potential should be applied between
     every non-excluded particle pair in the simulation.
 
     `C. L. Phillips et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_ describes the DPD implementation
@@ -1110,7 +1110,7 @@ class ForceShiftedLJ(_Pair):
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
 
-    :py:class:`force_shifted_lj` specifies that a modified Lennard-Jones pair force should be applied between
+    :py:class:`ForceShiftedLJ` specifies that a modified Lennard-Jones pair force should be applied between
     non-excluded particle pair in the simulation. The force differs from the one calculated by  :py:class:`LJ`
     by the subtraction of the value of the force at :math:`r_{\mathrm{cut}}`, such that the force smoothly goes
     to zero at the cut-off. The potential is modified by a linear function. This potential can be used as a substitute
@@ -1169,7 +1169,7 @@ class Moliere(_Pair):
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
 
-    :py:class:`moliere` specifies that a Moliere type pair potential should be applied between every
+    :py:class:`Moliere` specifies that a Moliere type pair potential should be applied between every
     non-excluded particle pair in the simulation.
 
     .. math::
@@ -1217,7 +1217,7 @@ class ZBL(_Pair):
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
 
-    :py:class:`zbl` specifies that a Ziegler-Biersack-Littmark pair potential should be applied between every
+    :py:class:`ZBL` specifies that a Ziegler-Biersack-Littmark pair potential should be applied between every
     non-excluded particle pair in the simulation.
 
     .. math::
@@ -1470,7 +1470,7 @@ class Mie(_Pair):
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
 
-    :py:class:`mie` specifies that a Mie pair potential should be applied between every
+    :py:class:`Mie` specifies that a Mie pair potential should be applied between every
     non-excluded particle pair in the simulation.
 
     .. math::
@@ -1822,7 +1822,7 @@ class ReactionField(_Pair):
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
 
-    :py:class:`reaction_field` specifies that an Onsager reaction field pair potential should be applied between every
+    :py:class:`ReactionField` specifies that an Onsager reaction field pair potential should be applied between every
     non-excluded particle pair in the simulation.
 
     Reaction field electrostatics is an approximation to the screened electrostatic interaction,
@@ -1905,7 +1905,7 @@ class DLVO(_Pair):
             + \frac{a_1 a_2}{a_1+a_2} Z e^{-\kappa(r - (a_1+a_2))} & r < (r_{\mathrm{cut}} + \Delta)
             = & 0 & r \ge (r_{\mathrm{cut}} + \Delta)
 
-    where math:`a_i` is the radius of particle :math:`i`, :math:`\Delta = (d_i + d_j)/2` and
+    where :math:`a_i` is the radius of particle :math:`i`, :math:`\Delta = (d_i + d_j)/2` and
     :math:`d_i` is the diameter of particle :math:`i`.
 
     The first term corresponds to the attractive van der Waals interaction with A being the Hamaker constant,
@@ -1914,7 +1914,7 @@ class DLVO(_Pair):
 
     See Israelachvili 2011, pp. 317.
 
-    The DLVO potential does not need charge, but does need diameter. See :py:class:`slj` for an explanation
+    The DLVO potential does not need charge, but does need diameter. See :py:class:`SLJ` for an explanation
     on how diameters are handled in the neighbor lists.
 
     Due to the way that DLVO modifies the cutoff condition, it will not function properly with the
@@ -2047,7 +2047,7 @@ class Buckingham(_Pair):
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
 
-    :py:class:`buckingham` specifies that a Buckingham pair potential should be applied between every
+    :py:class:`Buckingham` specifies that a Buckingham pair potential should be applied between every
     non-excluded particle pair in the simulation.
 
     .. math::
@@ -2102,7 +2102,7 @@ class LJ1208(_Pair):
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
 
-    :py:class:`lj1208` specifies that a Lennard-Jones pair potential should be applied between every
+    :py:class:`LJ1208` specifies that a Lennard-Jones pair potential should be applied between every
     non-excluded particle pair in the simulation.
 
     .. math::
@@ -2157,7 +2157,7 @@ class Fourier(_Pair):
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
 
-    :py:class:`fourier` specifies that a fourier series form potential.
+    :py:class:`Fourier` specifies that a fourier series form potential.
 
     .. math::
         :nowrap:
