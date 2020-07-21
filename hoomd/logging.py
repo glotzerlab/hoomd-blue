@@ -229,7 +229,7 @@ class Loggable(type):
         # We reverse the mro list to ensure that if a conflict in names exist we
         # take the one with the most priority in the mro. Also track if any
         # parent classes also have Loggable as a metaclass. This allows us to
-        # know if we should errorr if a loggables method is defined. We also
+        # know if we should error if a loggables method is defined. We also
         # skip the first entry since that is the new_cls itself.
         inherited_loggables = dict()
         for base_cls in reversed(new_cls.__mro__[1:]):
@@ -427,8 +427,8 @@ class Logger(SafeNamespaceDict):
         The logger provides a way for users to create their own logger back ends
         if they wish. In making a custom logger back end, understanding the
         intermediate representation is key. To get an introduction see
-        `hoomd.logging.Logger.log`. Furthermore, understanding the various flags
-        available to specify logged quantites, see `hoomd.logging.TypeFlags`. To
+        `hoomd.logging.Logger.log`. To understand the various flags
+        available to specify logged quantities, see `hoomd.logging.TypeFlags`. To
         integrate with `hoomd.Operations` the back end should be a subclass of
         `hoomd.custom.Action` and used with `hoomd.analyze.CustomAnalyzer`.
 
