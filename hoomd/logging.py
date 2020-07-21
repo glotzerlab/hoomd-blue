@@ -126,7 +126,7 @@ class _LoggerQuantity:
     """
 
     def __init__(self, name, cls, flag='scalar', default=True):
-        self.name = str(name)
+        self.name = name
         self.update_cls(cls)
         if isinstance(flag, str):
             self.flag = TypeFlags[flag]
