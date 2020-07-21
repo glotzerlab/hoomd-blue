@@ -37,11 +37,11 @@ def _WrapClassFactory(
                 for method in methods:
                     try:
                         class_dict[method] = functor(method, *args, **kwargs)
-                    except Exception as err:
+                    except Exception:
                         if allow_exceptions:
                             continue
                         else:
-                            raise err from None
+                            raise
 
             return super().__new__(cls, name, bases, class_dict)
 
