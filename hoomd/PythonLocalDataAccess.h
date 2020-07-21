@@ -114,9 +114,6 @@ struct HOOMDDeviceBuffer : public HOOMDBuffer
      */
     pybind11::dict getCudaArrayInterface()
         {
-        auto interface = pybind11::dict();
-        interface["typestr"] = m_typestr;
-        interface["version"] = 2;
         auto data = std::pair<intptr_t, bool>(0, m_read_only);
         pybind11::list shape{};
         pybind11::list strides{};
@@ -128,15 +125,15 @@ struct HOOMDDeviceBuffer : public HOOMDBuffer
         else
             {
             data.first = (intptr_t)m_data;
-            for (auto s : m_shape)
+            for (size_t i{0}; i < shape.size(); i++)
                 {
-                shape.append(s);
-                }
-            for (auto s : m_strides)
-                {
-                strides.append(s);
+                shape.append(m_shape[i]);
+                strides.append(m_strides[i]);
                 }
             }
+        auto interface = pybind11::dict();
+        interface["typestr"] = m_typestr;
+        interface["version"] = 2;
         interface["data"] = data;
         interface["shape"] = pybind11::tuple(shape);
         interface["strides"] = pybind11::tuple(strides);
