@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from hoomd import Box
-from hoomd.array import HOOMDArray
 from hoomd import _hoomd
 
 
@@ -78,7 +77,7 @@ class _LocalAccess(ABC):
         self._accessed_fields = dict()
 
 
-class ParticleLocalAccess(_LocalAccess):
+class ParticleLocalAccessBase(_LocalAccess):
     """Class for directly accessing HOOMD-blue particle data.
 
     Attributes:
@@ -160,11 +159,6 @@ class ParticleLocalAccess(_LocalAccess):
         self._cpp_obj = self._cpp_cls(state._cpp_sys_def.getParticleData())
 
 
-class ParticleLocalAccessCPU(ParticleLocalAccess):
-    _cpp_cls = _hoomd.LocalParticleDataHost
-    _array_cls = HOOMDArray
-
-
 class _GroupLocalAccess(_LocalAccess):
     @property
     @abstractmethod
@@ -189,7 +183,7 @@ class _GroupLocalAccess(_LocalAccess):
             getattr(state._cpp_sys_def, self._cpp_get_data_method_name)())
 
 
-class BondLocalAccess(_GroupLocalAccess):
+class BondLocalAccessBase(_GroupLocalAccess):
     """Class for directly accessing HOOMD-blue bond data.
 
     Attributes:
@@ -210,12 +204,7 @@ class BondLocalAccess(_GroupLocalAccess):
     _cpp_get_data_method_name = "getBondData"
 
 
-class BondLocalAccessCPU(BondLocalAccess):
-    _cpp_cls = _hoomd.LocalBondDataHost
-    _array_cls = HOOMDArray
-
-
-class AngleLocalAccess(_GroupLocalAccess):
+class AngleLocalAccessBase(_GroupLocalAccess):
     """Class for directly accessing HOOMD-blue angle data.
 
     Attributes:
@@ -237,12 +226,7 @@ class AngleLocalAccess(_GroupLocalAccess):
     _cpp_get_data_method_name = "getAngleData"
 
 
-class AngleLocalAccessCPU(AngleLocalAccess):
-    _cpp_cls = _hoomd.LocalAngleDataHost
-    _array_cls = HOOMDArray
-
-
-class DihedralLocalAccess(_GroupLocalAccess):
+class DihedralLocalAccessBase(_GroupLocalAccess):
     """Class for directly accessing HOOMD-blue dihedral data.
 
     Attributes:
@@ -264,12 +248,7 @@ class DihedralLocalAccess(_GroupLocalAccess):
     _cpp_get_data_method_name = "getDihedralData"
 
 
-class DihedralLocalAccessCPU(DihedralLocalAccess):
-    _cpp_cls = _hoomd.LocalDihedralDataHost
-    _array_cls = HOOMDArray
-
-
-class ImproperLocalAccess(_GroupLocalAccess):
+class ImproperLocalAccessBase(_GroupLocalAccess):
     """Class for directly accessing HOOMD-blue improper data.
 
     Attributes:
@@ -291,12 +270,7 @@ class ImproperLocalAccess(_GroupLocalAccess):
     _cpp_get_data_method_name = "getImproperData"
 
 
-class ImproperLocalAccessCPU(ImproperLocalAccess):
-    _cpp_cls = _hoomd.LocalImproperDataHost
-    _array_cls = HOOMDArray
-
-
-class ConstraintLocalAccess(_GroupLocalAccess):
+class ConstraintLocalAccessBase(_GroupLocalAccess):
     """Class for directly accessing HOOMD-blue constraint data.
 
     Attributes:
@@ -325,12 +299,7 @@ class ConstraintLocalAccess(_GroupLocalAccess):
     _cpp_get_data_method_name = "getConstraintData"
 
 
-class ConstraintLocalAccessCPU(ConstraintLocalAccess):
-    _cpp_cls = _hoomd.LocalConstraintDataHost
-    _array_cls = HOOMDArray
-
-
-class PairLocalAccess(_GroupLocalAccess):
+class PairLocalAccessBase(_GroupLocalAccess):
     """Class for directly accessing HOOMD-blue special pair data.
 
     Attributes:
@@ -353,12 +322,7 @@ class PairLocalAccess(_GroupLocalAccess):
     _cpp_get_data_method_name = "getPairData"
 
 
-class PairLocalAccessCPU(PairLocalAccess):
-    _cpp_cls = _hoomd.LocalPairDataHost
-    _array_cls = HOOMDArray
-
-
-class _LocalSnapshotBase:
+class _LocalSnapshot:
     def __init__(self, state):
         self._state = state
         self._box = state.box
@@ -376,38 +340,38 @@ class _LocalSnapshotBase:
 
     @property
     def particles(self):
-        """hoomd.data.ParticleLocalAccess: Local particle data."""
+        """hoomd.data.ParticleLocalAccessBase: Local particle data."""
         return self._particles
 
     @property
     def bonds(self):
-        """hoomd.data.BondLocalAccess: Local bond data."""
+        """hoomd.data.BondLocalAccessBase: Local bond data."""
         return self._bonds
 
     @property
     def angles(self):
-        """hoomd.data.AngleLocalAccess: Local angle data."""
+        """hoomd.data.AngleLocalAccessBase: Local angle data."""
         return self._angles
 
     @property
     def dihedrals(self):
-        """hoomd.data.DihedralLocalAccess: Local dihedral data."""
+        """hoomd.data.DihedralLocalAccessBase: Local dihedral data."""
         return self._dihedrals
 
     @property
     def impropers(self):
-        """hoomd.data.ImproperLocalAccess: Local improper data."""
+        """hoomd.data.ImproperLocalAccessBase: Local improper data."""
         return self._impropers
 
     @property
     def constraints(self):
-        """hoomd.data.ConstraintLocalAccess: Local constraint data.
+        """hoomd.data.ConstraintLocalAccessBase: Local constraint data.
         """
         return self._constraints
 
     @property
     def pairs(self):
-        """hoomd.data.PairLocalAccess: Local special pair data."""
+        """hoomd.data.PairLocalAccessBase: Local special pair data."""
         return self._pairs
 
     def __enter__(self):
@@ -430,41 +394,3 @@ class _LocalSnapshotBase:
         self._impropers._exit()
         self._constraints._exit()
         self._pairs._exit()
-
-
-class LocalSnapshot(_LocalSnapshotBase):
-    """Provides context manager access to HOOMD-blue CPU data buffers.
-
-    The interface of a `LocalSnapshot` is similar to that of the
-    `hoomd.Snapshot`. Data is MPI rank local so for MPI parallel simulations
-    only the data possessed by a rank is exposed. This means that users must
-    handle the domain decomposition directly. One consequence of this is that
-    access to ghost particle data is provided. A ghost particle is a particle
-    that is not owned by a rank, but nevertheless is required for operations
-    that use particle neighbors. Also, changing the global or local box within a
-    `LocalSnapshot` context manager is not allowed.
-
-    For every property (e.g. ``data.particles.position``), only grabs the
-    data for the regular (non-ghost) particles. The property can be prefixed
-    with ``ghost_`` to grab the ghost particles in a read only manner. Likewise,
-    suffixing with ``_with_ghost`` will grab all data on the rank (regular and
-    ghost particles) in a read only array.
-
-    All array-like properties return a `hoomd.array.HOOMDArray` object which
-    prevents invalid memory accesses.
-
-    Note:
-        For the ``LocalAccess`` classes the affixed attributes mentioned above
-        are not shown. Also of interest, ghost data always come immediately
-        after the regular data.
-    """
-
-    def __init__(self, state):
-        super().__init__(state)
-        self._particles = ParticleLocalAccessCPU(state)
-        self._bonds = BondLocalAccessCPU(state)
-        self._angles = AngleLocalAccessCPU(state)
-        self._dihedrals = DihedralLocalAccessCPU(state)
-        self._impropers = ImproperLocalAccessCPU(state)
-        self._pairs = PairLocalAccessCPU(state)
-        self._constraints = ConstraintLocalAccessCPU(state)

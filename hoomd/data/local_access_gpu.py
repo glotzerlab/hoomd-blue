@@ -1,8 +1,8 @@
 from hoomd import _hoomd
 from hoomd.data.local_access import (
-    ParticleLocalAccess, BondLocalAccess, ConstraintLocalAccess,
-    DihedralLocalAccess, AngleLocalAccess, ImproperLocalAccess, PairLocalAccess,
-    _LocalSnapshotBase)
+    ParticleLocalAccessBase, BondLocalAccessBase, ConstraintLocalAccessBase,
+    DihedralLocalAccessBase, AngleLocalAccessBase, ImproperLocalAccessBase,
+    PairLocalAccessBase, _LocalSnapshot)
 
 from hoomd.array import HOOMDGPUArray
 
@@ -35,7 +35,7 @@ if _hoomd.isCUDAAvailable():
         _cpp_cls = _hoomd.LocalPairDataDevice
         _array_cls = HOOMDGPUArray
 
-    class LocalSnapshotGPU(_LocalSnapshotBase):
+    class LocalSnapshotGPU(_LocalSnapshot):
         def __init__(self, state):
             super().__init__(state)
             self._particles = ParticleLocalAccessGPU(state)
@@ -70,7 +70,7 @@ else:
     class ParticleLocalAccessGPU(NoGPU):
         pass
 
-    class LocalSnapshotGPU(NoGPU, _LocalSnapshotBase):
+    class LocalSnapshotGPU(NoGPU, _LocalSnapshot):
         pass
 
 _gpu_snapshot_docs = """

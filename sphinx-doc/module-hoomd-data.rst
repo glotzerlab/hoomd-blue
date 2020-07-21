@@ -10,25 +10,25 @@ hoomd.data
 
     LocalSnapshot
     LocalSnapshotGPU
-    AngleLocalAccess
-    BondLocalAccess
-    ConstraintLocalAccess
-    DihedralLocalAccess
-    ImproperLocalAccess
-    PairLocalAccess
-    ParticleLocalAccess
+    AngleLocalAccessBase
+    BondLocalAccessBase
+    ConstraintLocalAccessBase
+    DihedralLocalAccessBase
+    ImproperLocalAccessBase
+    PairLocalAccessBase
+    ParticleLocalAccessBase
 
 .. rubric:: Details
 
 .. automodule:: hoomd.data
     :synopsis: Provide access in Python to data buffers on CPU or GPU.
-    :members: AngleLocalAccess,
-              BondLocalAccess,
-              ConstraintLocalAccess,
-              DihedralLocalAccess,
-              ImproperLocalAccess,
-              PairLocalAccess,
-              ParticleLocalAccess
+    :members: AngleLocalAccessBase,
+              BondLocalAccessBase,
+              ConstraintLocalAccessBase,
+              DihedralLocalAccessBase,
+              ImproperLocalAccessBase,
+              PairLocalAccessBase,
+              ParticleLocalAccessBase
     
     .. autoclass:: LocalSnapshot
         :inherited-members:
