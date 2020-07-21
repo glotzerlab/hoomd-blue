@@ -8,7 +8,7 @@ md.force
 .. autosummary::
     :nosignatures:
 
-    md.force.active
+    md.force.Active
     md.force.constant
     md.force.dipole
 

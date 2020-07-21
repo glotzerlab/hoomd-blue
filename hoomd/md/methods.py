@@ -801,7 +801,7 @@ class Langevin(_Method):
                                                              len_keys=1)
                                 )
 
-        self._extend_typeparam([gamma, gamma_r])
+        self._extend_typeparam([gamma,gamma_r])
 
     def attach(self, simulation):
 
