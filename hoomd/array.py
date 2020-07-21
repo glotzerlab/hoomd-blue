@@ -55,8 +55,13 @@ between functions that return a new array, functions that return the same array,
 and functions that return a new array with the same underlying data.
 """
 
-# Functions that return a new array and wrapper
 
+# Operations that return an new array pointing to a new buffer.
+# -----------------------------------------------------------
+# These are safe to just use the internal buffer and return the new array
+# without check for shared memory or wrapping the returned array into an
+# HOOMDArray. These all involve mutation or transformation of initial arrays
+# into a new array.
 
 def _op_wrap(method, cls=np.ndarray):
     func = getattr(cls, method)
@@ -83,7 +88,13 @@ _ndarray_ops_ = ([
     '__matmul__',
 ], _op_wrap)
 
-# Magic methods that never return an array to the same underlying buffer
+
+# Magic methods that never return an array to the same memory buffer
+# ----------------------------------------------------------------------
+# These are also safe to just lightly wrap like _ndarray_ops_. We even use the
+# same wrapping function. Not all these methods return arrays, but they all will
+# never return an array with the same memory buffer.
+
 _magic_wrap = _op_wrap
 
 _ndarray_magic_safe_ = ([
@@ -97,8 +108,13 @@ _ndarray_magic_safe_ = ([
     '__int__', '__float__', '__complex__'
 ], _magic_wrap)
 
-# Magic methods that may return an array pointing to the same buffer
 
+# Magic methods that may return an array pointing to the same buffer
+# ------------------------------------------------------------------
+# These methods may or may not return an array that shares memory with the
+# original array. We need to check the returned array for potential shared
+# memory, and if any may be shared (we cannot be sure that they do, but we won't
+# get any false negatives), we wrap the returned array with HOOMDArray.
 
 def _magic_wrap_with_check(method, cls=np.ndarray):
     func = getattr(cls, method)
@@ -121,7 +137,12 @@ _ndarray_magic_unsafe_ = ([
 ], _magic_wrap_with_check)
 
 
-# Functions that return an array pointing to the same buffer
+# Operations that return an array pointing to the same buffer
+# ----------------------------------------------------------
+# These operation are guarenteed to return an array pointing to the same memory
+# buffer. They all modify arrays in place (e.g. +=). We always return a
+# HOOMDArray for these methods that return anything.
+
 def _iop_wrap(method, cls=np.ndarray):
     func = getattr(cls, method)
 
@@ -143,7 +164,11 @@ _ndarray_iops_ = ([
     '__ilshift__', '__irshift__', '__iand__', '__ior__', '__ixor__'
 ], _iop_wrap)
 
-# Regular functions that may return an array pointing to the same buffer
+# Regular methods that may return an array pointing to the same buffer
+# --------------------------------------------------------------------
+# These methods may or may not return an array sharing memory with the original
+# array. Therefore, we have to check for memory sharing and wrap the ndarray if
+# it may share memory with the original HOOMDArray object.
 _std_func_with_check = _magic_wrap_with_check
 
 _ndarray_std_funcs_ = ([
@@ -153,8 +178,12 @@ _ndarray_std_funcs_ = ([
     'reshape', 'transpose', 'swapaxes', 'ravel', 'squeeze',
 ], _std_func_with_check)
 
-# Functions that we disallow use of
 
+# Functions that we disallow
+# --------------------------
+# These functions are removed because they either change the size of the
+# underlying array, reshape the array inplace, or would have a non-intuitive
+# wrapper (view).
 
 def _disallowed_wrap(method):
     def raise_error(*args, **kwargs):
@@ -169,8 +198,11 @@ _ndarray_disallow_funcs_ = ([
     'view', 'resize', 'flat', 'flatiter'
 ], _disallowed_wrap)
 
-# Properties that can return an array pointing to the same buffer
 
+# Properties that can return an array pointing to the same buffer
+# ---------------------------------------------------------------
+# Like before we must check these to ensure we don't leak an ndarray pointing to
+# the original buffer.
 
 def _wrap_properties_with_check(prop, cls=np.ndarray):
     prop = getattr(cls, prop)
@@ -197,8 +229,11 @@ _ndarray_properties_ = ([
     'T'
 ], _wrap_properties_with_check)
 
-# Properties we disallow access of
 
+# Properties we disallow
+# --------------------------------
+# We disallow data and base since we do not want users trying to get at the
+# underlying memory buffer of a HOOMDArray.
 
 def _disallowed_property_wrap(method):
 
