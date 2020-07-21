@@ -164,11 +164,9 @@ def test_run(simulation_factory, lattice_snapshot_factory,
         pot.params[pair] = pair_potential_dict[pair]
 
     snap = lattice_snapshot_factory(particle_types=particle_types,
-                                    n=2, a=5, r=0.01)
+                                    n=7, a=1.7, r=0.01)
     if 'Ewald' in str(pair_potential) and snap.exists:
         snap.particles.charge[:] = 1
-    elif 'SLJ' in str(pair_potential) and snap.exists:
-        snap.particles.diameter[:] = 2
     if snap.exists:
         snap.particles.typeid[:] = np.random.randint(0,
                                                      len(snap.particles.types),
@@ -180,11 +178,13 @@ def test_run(simulation_factory, lattice_snapshot_factory,
                                                         kT=1, seed=1))
     sim.operations.integrator = integrator
     sim.operations.schedule()
-    initial_pos = sim.state.snapshot.particles.position
-    sim.run(nsteps)
-    with pytest.raises(AssertionError):
-        np.testing.assert_allclose(sim.state.snapshot.particles.position,
-                                   initial_pos)
+    old_snap = sim.state.snapshot
+    if old_snap.exists:
+        initial_pos = old_snap.particles.position
+        sim.run(nsteps)
+        with pytest.raises(AssertionError):
+            np.testing.assert_allclose(sim.state.snapshot.particles.position,
+                                       initial_pos)
 
 
 def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
