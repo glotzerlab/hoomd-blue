@@ -53,6 +53,10 @@ def _WrapClassFactory(
 We separate them out by the kind of wrapping they need. We have to distinguish
 between functions that return a new array, functions that return the same array,
 and functions that return a new array with the same underlying data.
+
+In all cases we coerce, HOOMDArray objects into `numpy.ndarray` and
+`cupy.ndarray` objects for the wrapping. This is required to get to the original
+method used the mocked objects.
 """
 
 
