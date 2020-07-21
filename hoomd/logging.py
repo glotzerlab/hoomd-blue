@@ -63,7 +63,7 @@ class TypeFlags(Flag):
     state = auto()
 
     @classmethod
-    def any(cls, flags):
+    def any(cls, flags=None):
         """Return a TypeFlags enum representing any of the given flags.
 
         Args:
@@ -75,6 +75,8 @@ class TypeFlags(Flag):
             `TypeFlags`: the `TypeFlags` object that represents any of the given
             flags.
         """
+        flags = cls.__members__.values() if flags is None else flags
+
         def from_str(flag):
             if isinstance(flag, str):
                 return cls[flag]
@@ -89,7 +91,7 @@ class TypeFlags(Flag):
         return [mem.name for mem in cls.__members__.values() if mem in flag]
 
 
-TypeFlags.ALL = TypeFlags.any(TypeFlags.__members__.values())
+TypeFlags.ALL = TypeFlags.any()
 
 
 # function defined here to ensure that each class of type Loggable will have a
