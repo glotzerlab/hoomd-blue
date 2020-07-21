@@ -182,23 +182,86 @@ class simple_polygon_params(_hpmc.simple_polygon_param_proxy, _param):
                             float(0),
                             ignore_statistics);
 
+#class convex_polyhedron_params(_hpmc.convex_polyhedron_param_proxy,_param):
+#    def __init__(self, mc, index):
+#        _hpmc.convex_polyhedron_param_proxy.__init__(self, mc.cpp_integrator, index);
+#        _param.__init__(self, mc, index);
+#        self._keys += ['vertices'];
+#        self.make_fn = _hpmc.make_poly3d_verts
+#
+#    def __str__(self):
+#        # should we put this in the c++ side?
+#        string = "convex polyhedron(vertices = {})".format(self.vertices);
+#        return string;
+#
+#    def make_param(self, vertices, ignore_statistics=False):
+#        return self.make_fn(self.ensure_list(vertices),
+#                            float(0),
+#                            ignore_statistics,
+#                            hoomd.context.current.system_definition.getParticleData().getExecConf());
+
+def append(vert1,vert2,i,edges,boundary):
+    if vert1 > vert2:
+        vert1, vert2 = vert2, vert1
+
+    j = 0
+    for edge in edges:
+        if edge[0] == vert1 and edge[1] == vert2:
+            break
+        j += 1
+    if j == len(edges):
+        new_e = [vert1,vert2]
+        edges.append(new_e)
+        boundary.append([i])
+    else:
+        boundary[j].append(i)
+
+def sort(edges,boundary):
+
+    bed = []
+    ed = []
+    j = 0
+    while len(edges) != len(ed):
+        for i in range(len(edges)):
+            if edges[i][0] == j:
+                ed.append(edges[i]) 
+                bed.append(boundary[i]) 
+        j += 1
+    return ed, bed
+
+
 class convex_polyhedron_params(_hpmc.convex_polyhedron_param_proxy,_param):
     def __init__(self, mc, index):
         _hpmc.convex_polyhedron_param_proxy.__init__(self, mc.cpp_integrator, index);
         _param.__init__(self, mc, index);
-        self._keys += ['vertices'];
-        self.make_fn = _hpmc.make_poly3d_verts
+        self._keys += ['vertices','faces'];
+        self.make_fn = _hpmc.make_poly3d_full
 
     def __str__(self):
         # should we put this in the c++ side?
-        string = "convex polyhedron(vertices = {})".format(self.vertices);
+        string = "convex polyhedron(vertices = {}, faces = {})".format(self.vertices,self.edges,self.faces);
         return string;
 
-    def make_param(self, vertices, ignore_statistics=False):
-        return self.make_fn(self.ensure_list(vertices),
-                            float(0),
-                            ignore_statistics,
-                            hoomd.context.current.system_definition.getParticleData().getExecConf());
+    def make_param(self, vertices, faces=[], ignore_statistics=False):
+        if len(faces) == 0:
+            self.make_fn = _hpmc.make_poly3d_verts
+            return self.make_fn(self.ensure_list(vertices),0,ignore_statistics,hoomd.context.current.system_definition.getParticleData().getExecConf());
+            #return self.make_fn(self.ensure_list(vertices),self.ensure_list(edges),self.ensure_list(face_vertices),self.ensure_list(boundary_edges),0.0,ignore_statistics,hoomd.context.current.system_definition.getParticleData().getExecConf());
+        else:
+            boundary_edges = []
+            edges = []
+            face_vertices = []
+
+            for i in range(len(faces)):
+                for k in range(len(faces[i])-1):
+                    append(faces[i][k],faces[i][k+1],i,edges,boundary_edges)
+                append(faces[i][0],faces[i][-1],i,edges,boundary_edges)
+                face_vertices.append(len(faces[i]))
+                for vert in faces[i]:
+                    face_vertices.append(vert) 
+            edges, boundary_edges = sort(edges,boundary_edges)
+            return self.make_fn(self.ensure_list(vertices), self.ensure_list(edges),self.ensure_list(face_vertices),self.ensure_list(boundary_edges),0.0,ignore_statistics,hoomd.context.current.system_definition.getParticleData().getExecConf());
+
 
 class convex_spheropolyhedron_params(_hpmc.convex_spheropolyhedron_param_proxy,_param):
     def __init__(self, mc, index):

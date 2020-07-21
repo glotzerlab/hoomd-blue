@@ -48,7 +48,7 @@ class SupportFuncSpheropolyhedron
         //! Construct a support function for a convex spheropolyhedron
         /*! \param _verts Polyhedron vertices and additional parameters
         */
-        DEVICE SupportFuncSpheropolyhedron(const poly3d_verts& _verts)
+        DEVICE SupportFuncSpheropolyhedron(const poly3d_full& _verts)
             : verts(_verts)
             {
             }
@@ -68,7 +68,7 @@ class SupportFuncSpheropolyhedron
             }
 
     private:
-        const poly3d_verts& verts;        //!< Vertices of the polyhedron
+        const poly3d_full& verts;        //!< Vertices of the polyhedron
     };
 
 }; // end namespace detail
@@ -94,7 +94,7 @@ class SupportFuncSpheropolyhedron
 struct ShapeSpheropolyhedron
     {
     //! Define the parameter type
-    typedef detail::poly3d_verts param_type;
+    typedef detail::poly3d_full param_type;
 
     //! Initialize a polyhedron
     DEVICE ShapeSpheropolyhedron(const quat<Scalar>& _orientation, const param_type& _params)
@@ -205,7 +205,7 @@ struct ShapeSpheropolyhedron
     quat<Scalar> quat_l;         //!< Left quaternion of spherical coordinate
     quat<Scalar> quat_r;         //!< Right quaternion of spherical coordinate
 
-    const detail::poly3d_verts& verts;     //!< Vertices
+    const detail::poly3d_full& verts;     //!< Vertices
     };
 
 //! Check if circumspheres overlap

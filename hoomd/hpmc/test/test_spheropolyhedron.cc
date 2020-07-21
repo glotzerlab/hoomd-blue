@@ -25,9 +25,9 @@ using namespace hpmc::detail;
 unsigned int err_count = 0;
 
 // helper function to compute poly radius
-poly3d_verts setup_verts(const vector< vec3<OverlapReal> > vlist, OverlapReal sweep_radius)
+poly3d_full setup_verts(const vector< vec3<OverlapReal> > vlist, OverlapReal sweep_radius)
     {
-    poly3d_verts result(vlist.size(), false);
+    poly3d_full result(vlist.size(), 0, 0, false);
     result.sweep_radius = sweep_radius;
     result.ignore = 0;
 
@@ -63,7 +63,7 @@ UP_TEST( construction )
     vlist.push_back(vec3<Scalar>(1,0,0));
     vlist.push_back(vec3<Scalar>(0,1.25,0));
     vlist.push_back(vec3<Scalar>(0,0,1.1));
-    poly3d_verts verts = setup_verts(vlist, 0.25);
+    poly3d_full verts = setup_verts(vlist, 0.25);
 
     ShapeSpheropolyhedron a(o, verts);
 
@@ -97,7 +97,7 @@ UP_TEST( support )
     vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, 0.5));
     vlist.push_back(vec3<OverlapReal>(0.5, -0.5, 0.5));
     vlist.push_back(vec3<OverlapReal>(0.5, 0.5, -0.5));
-    poly3d_verts verts = setup_verts(vlist, 0.0);
+    poly3d_full verts = setup_verts(vlist, 0.0);
 
     ShapeSpheropolyhedron a(o, verts);
     SupportFuncSpheropolyhedron sa = SupportFuncSpheropolyhedron(verts);
@@ -133,7 +133,7 @@ UP_TEST( composite_support )
     vlist.push_back(vec3<Scalar>(-0.5, 0.5, -0.5));
     vlist.push_back(vec3<Scalar>(0.5, -0.5, -0.5));
     vlist.push_back(vec3<Scalar>(0.5, 0.5, 0.5));
-    poly3d_verts verts = setup_verts(vlist, 0.0);
+    poly3d_full verts = setup_verts(vlist, 0.0);
 
     ShapeSpheropolyhedron a(o, verts);
     ShapeSpheropolyhedron b(o, verts);
@@ -166,7 +166,7 @@ UP_TEST( sphere )
 
     // build a sphere
     vector< vec3<OverlapReal> > vlist;
-    poly3d_verts verts = setup_verts(vlist, 0.5);
+    poly3d_full verts = setup_verts(vlist, 0.5);
 
     // test overla
     ShapeSpheropolyhedron a(o, verts);
@@ -221,7 +221,7 @@ UP_TEST( overlap_octahedron_no_rot )
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0));
     vlist.push_back(vec3<OverlapReal>(0,0,0.707106781186548));
     vlist.push_back(vec3<OverlapReal>(0,0,-0.707106781186548));
-    poly3d_verts verts = setup_verts(vlist, 0.0);
+    poly3d_full verts = setup_verts(vlist, 0.0);
 
     ShapeSpheropolyhedron a(o, verts);
 
@@ -308,7 +308,7 @@ UP_TEST( overlap_cube_no_rot )
     vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(0.5,0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0.5));
-    poly3d_verts verts = setup_verts(vlist, 0.0);
+    poly3d_full verts = setup_verts(vlist, 0.0);
 
     ShapeSpheropolyhedron a(o, verts);
 
@@ -416,7 +416,7 @@ UP_TEST( overlap_cube_rot1 )
     vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(0.5,0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0.5));
-    poly3d_verts verts = setup_verts(vlist, 0.0);
+    poly3d_full verts = setup_verts(vlist, 0.0);
 
     ShapeSpheropolyhedron a(o_a, verts);
 
@@ -498,7 +498,7 @@ UP_TEST( overlap_cube_rot2 )
     vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(0.5,0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0.5));
-    poly3d_verts verts = setup_verts(vlist, 0.0);
+    poly3d_full verts = setup_verts(vlist, 0.0);
 
     ShapeSpheropolyhedron a(o_b, verts);
 
@@ -583,7 +583,7 @@ UP_TEST( overlap_cube_rot3 )
     vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(0.5,0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0.5));
-    poly3d_verts verts = setup_verts(vlist, 0.0);
+    poly3d_full verts = setup_verts(vlist, 0.0);
 
     ShapeSpheropolyhedron a(o_a, verts);
 
@@ -700,7 +700,7 @@ UP_TEST( overlap_cube_precise )
     vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(0.5,0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0.5));
-    poly3d_verts verts = setup_verts(vlist, R);
+    poly3d_full verts = setup_verts(vlist, R);
 
     ShapeSpheropolyhedron a(o, verts);
     ShapeSpheropolyhedron b(o, verts);

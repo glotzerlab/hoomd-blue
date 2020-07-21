@@ -23,9 +23,9 @@ using namespace hpmc::detail;
 unsigned int err_count;
 
 // helper function to compute poly radius
-poly3d_verts setup_verts(const vector< vec3<OverlapReal> > vlist)
+poly3d_full setup_verts(const vector< vec3<OverlapReal> > vlist)
     {
-    poly3d_verts result(vlist.size(),false);
+    poly3d_full result(vlist.size(),0,0,false);
     result.ignore = 0;
 
     // extract the verts from the python list and compute the radius on the way
@@ -60,7 +60,7 @@ UP_TEST( construction )
     vlist.push_back(vec3<Scalar>(1,0,0));
     vlist.push_back(vec3<Scalar>(0,1.25,0));
     vlist.push_back(vec3<Scalar>(0,0,1.1));
-    poly3d_verts verts = setup_verts(vlist);
+    poly3d_full verts = setup_verts(vlist);
 
     ShapeConvexPolyhedron a(o, verts);
 
@@ -93,7 +93,7 @@ UP_TEST( support )
     vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, 0.5));
     vlist.push_back(vec3<OverlapReal>(0.5, -0.5, 0.5));
     vlist.push_back(vec3<OverlapReal>(0.5, 0.5, -0.5));
-    poly3d_verts verts = setup_verts(vlist);
+    poly3d_full verts = setup_verts(vlist);
 
     ShapeConvexPolyhedron a(o, verts);
     SupportFuncConvexPolyhedron sa = SupportFuncConvexPolyhedron (verts);
@@ -129,7 +129,7 @@ UP_TEST( composite_support )
     vlist.push_back(vec3<Scalar>(-0.5, 0.5, -0.5));
     vlist.push_back(vec3<Scalar>(0.5, -0.5, -0.5));
     vlist.push_back(vec3<Scalar>(0.5, 0.5, 0.5));
-    poly3d_verts verts = setup_verts(vlist);
+    poly3d_full verts = setup_verts(vlist);
 
     ShapeConvexPolyhedron a(vec3<Scalar>(0,0,0), o, verts);
     ShapeConvexPolyhedron b(vec3<Scalar>(0,0,0), o, verts);
@@ -168,7 +168,7 @@ UP_TEST( overlap_octahedron_no_rot )
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0));
     vlist.push_back(vec3<OverlapReal>(0,0,0.707106781186548));
     vlist.push_back(vec3<OverlapReal>(0,0,-0.707106781186548));
-    poly3d_verts verts = setup_verts(vlist);
+    poly3d_full verts = setup_verts(vlist);
 
     ShapeConvexPolyhedron a(o, verts);
     ShapeConvexPolyhedron b(o, verts);
@@ -257,7 +257,7 @@ UP_TEST( overlap_cube_no_rot )
     vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(0.5,0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0.5));
-    poly3d_verts verts = setup_verts(vlist);
+    poly3d_full verts = setup_verts(vlist);
 
     ShapeConvexPolyhedron a(o, verts);
 
@@ -362,7 +362,7 @@ UP_TEST( overlap_cube_rot1 )
     vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(0.5,0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0.5));
-    poly3d_verts verts = setup_verts(vlist);
+    poly3d_full verts = setup_verts(vlist);
 
     ShapeConvexPolyhedron a(o_a, verts);
 
@@ -444,7 +444,7 @@ UP_TEST( overlap_cube_rot2 )
     vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(0.5,0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0.5));
-    poly3d_verts verts = setup_verts(vlist);
+    poly3d_full verts = setup_verts(vlist);
 
     ShapeConvexPolyhedron a(o_b, verts);
 
@@ -529,7 +529,7 @@ UP_TEST( overlap_cube_rot3 )
     vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(0.5,0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0.5));
-    poly3d_verts verts = setup_verts(vlist);
+    poly3d_full verts = setup_verts(vlist);
 
     ShapeConvexPolyhedron a(o_a, verts);
 

@@ -66,7 +66,7 @@ struct poly3d_data : param_base
     poly3d_data(unsigned int nverts, unsigned int _n_faces, unsigned int _n_face_verts, unsigned int n_hull_verts, bool _managed)
         : n_verts(nverts), n_faces(_n_faces), hull_only(0)
         {
-        convex_hull_verts = poly3d_verts(n_hull_verts, _managed);
+        convex_hull_verts = poly3d_full(n_hull_verts, 0, 0, _managed);
         verts = ManagedArray<vec3<OverlapReal> >(nverts, _managed);
         face_offs = ManagedArray<unsigned int>(n_faces+1,_managed);
         face_verts = ManagedArray<unsigned int>(_n_face_verts, _managed);
@@ -76,7 +76,7 @@ struct poly3d_data : param_base
     #endif
 
     GPUTree tree;                                   //!< Tree for fast locality lookups
-    poly3d_verts convex_hull_verts;                 //!< Holds parameters of convex hull
+    poly3d_full convex_hull_verts;                 //!< Holds parameters of convex hull
     ManagedArray<vec3<OverlapReal> > verts;         //!< Vertex coordinates
     ManagedArray<unsigned int> face_offs;           //!< Offset of every face in the list of vertices per face
     ManagedArray<unsigned int> face_verts;          //!< Ordered vertex IDs of every face

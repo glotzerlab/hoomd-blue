@@ -308,7 +308,7 @@ UP_TEST( overlap_faceted_threefacets )
     p.n[2] = vec3<OverlapReal>(sin(theta)*cos(2*phi),sin(theta)*sin(2*phi),cos(theta));
     p.offset[2] = -0.9*cos(theta)/2;
 
-    p.verts = detail::poly3d_verts(1,false);
+    p.verts = detail::poly3d_full(1,0,0,false);
     p.verts.diameter = 1.0;
     p.verts.x[0] = 0;
     p.verts.y[0] = 0;

@@ -102,6 +102,82 @@ struct poly3d_verts : param_base
                                             //   First bit is ignore overlaps, Second bit is ignore statistics
     } __attribute__((aligned(32)));
 
+//! Data structure for polyhedron vertices
+//! Note that vectorized methods using this struct will assume unused coordinates are set to zero.
+/*! \ingroup hpmc_data_structs */
+struct poly3d_full : param_base
+
+    {
+    //! Default constructor initializes zero values.
+    DEVICE poly3d_full()
+        : N(0),
+          diameter(OverlapReal(0)),
+          sweep_radius(OverlapReal(0)),
+          ignore(0)
+        { }
+
+    #ifndef NVCC
+    //! Shape constructor
+    poly3d_full(unsigned int _N, unsigned int _Ne, unsigned int _Nf, bool _managed)
+        : N(_N), Ne(_Ne), Nf(_Nf), diameter(0.0), sweep_radius(0.0), ignore(0)
+        {
+        unsigned int align_size = 8; //for AVX
+        unsigned int N_align =((N + align_size - 1)/align_size)*align_size;
+        x = ManagedArray<OverlapReal>(N_align,_managed);
+        y = ManagedArray<OverlapReal>(N_align,_managed);
+        z = ManagedArray<OverlapReal>(N_align,_managed);
+        for (unsigned int i = 0; i <  N_align; ++i)
+            {
+            x[i] = y[i] = z[i] = OverlapReal(0.0);
+            }
+        edges = ManagedArray<vec2<unsigned int> >(Ne,_managed);
+        boundary_edges = ManagedArray<vec2<unsigned int> >(Ne,_managed);
+        faces = ManagedArray<unsigned int>(Nf,_managed);
+        }
+    #endif
+
+    //! Load dynamic data members into shared memory and increase pointer
+    /*! \param ptr Pointer to load data to (will be incremented)
+        \param available_bytes Size of remaining shared memory allocation
+     */
+    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
+        {
+        x.load_shared(ptr,available_bytes);
+        y.load_shared(ptr,available_bytes);
+        z.load_shared(ptr,available_bytes);
+        edges.load_shared(ptr,available_bytes);
+        boundary_edges.load_shared(ptr,available_bytes);
+        faces.load_shared(ptr,available_bytes);
+        }
+
+    #ifdef ENABLE_CUDA
+    //! Attach managed memory to CUDA stream
+    void attach_to_stream(cudaStream_t stream) const
+        {
+        x.attach_to_stream(stream);
+        y.attach_to_stream(stream);
+        z.attach_to_stream(stream);
+        edges.attach_to_stream(stream);
+        boundary_edges.attach_to_stream(stream);
+        faces.attach_to_stream(stream);
+        }
+    #endif
+
+    ManagedArray<OverlapReal> x;        //!< X coordinate of vertices
+    ManagedArray<OverlapReal> y;        //!< Y coordinate of vertices
+    ManagedArray<OverlapReal> z;        //!< Z coordinate of vertices
+    ManagedArray<vec2<unsigned int> > edges;        //!< edges
+    ManagedArray<vec2<unsigned int> > boundary_edges;        //!< edges
+    ManagedArray<unsigned int> faces;        //!< faces
+    unsigned int N;                         //!< Number of vertices
+    unsigned int Ne;                         //!< Number of edges
+    unsigned int Nf;                         //!< Number of facess
+    OverlapReal diameter;                   //!< Circumsphere diameter
+    OverlapReal sweep_radius;               //!< Radius of the sphere sweep (used for spheropolyhedra)
+    unsigned int ignore;                    //!< Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
+                                            //   First bit is ignore overlaps, Second bit is ignore statistics
+    } __attribute__((aligned(32)));
+
 //! Support function for ShapePolyhedron
 /*! SupportFuncPolyhedron is a functor that computes the support function for ShapePolyhedron. For a given
     input vector in local coordinates, it finds the vertex most in that direction.
@@ -116,7 +192,7 @@ class SupportFuncConvexPolyhedron
         /*! \param _verts Polyhedron vertices
             Note that for performance it is assumed that unused vertices (beyond N) have already been set to zero.
         */
-        DEVICE SupportFuncConvexPolyhedron(const poly3d_verts& _verts)
+        DEVICE SupportFuncConvexPolyhedron(const poly3d_full& _verts)
             : verts(_verts)
             {
             }
@@ -296,7 +372,7 @@ class SupportFuncConvexPolyhedron
             }
 
     private:
-        const poly3d_verts& verts;      //!< Vertices of the polyhedron
+        const poly3d_full& verts;      //!< Vertices of the polyhedron
     };
 
 
@@ -313,7 +389,7 @@ class SupportFuncConvexPolyhedron
 struct ShapeConvexPolyhedron
     {
     //! Define the parameter type
-    typedef detail::poly3d_verts param_type;
+    typedef detail::poly3d_full param_type;
 
     //! Initialize a polyhedron
     DEVICE ShapeConvexPolyhedron(const quat<Scalar>& _orientation, const param_type& _params)
@@ -403,7 +479,7 @@ struct ShapeConvexPolyhedron
     quat<Scalar> quat_l;         //!< Left quaternion of spherical coordinate
     quat<Scalar> quat_r;         //!< Right quaternion of spherical coordinate
 
-    const detail::poly3d_verts& verts;     //!< Vertices
+    const detail::poly3d_full& verts;     //!< Vertices
     };
 
 //! Check if circumspheres overlap

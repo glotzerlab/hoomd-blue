@@ -62,8 +62,8 @@ struct faceted_ellipsoid_params : param_base
         }
     #endif
 
-    poly3d_verts verts;           //!< Vertices of the polyhedron
-    poly3d_verts additional_verts;//!< Vertices of the polyhedron edge-sphere intersection
+    poly3d_full verts;           //!< Vertices of the polyhedron
+    poly3d_full additional_verts;//!< Vertices of the polyhedron edge-sphere intersection
     ManagedArray<vec3<OverlapReal> > n;              //!< Normal vectors of planes
     ManagedArray<OverlapReal> offset;                //!< Offset of every plane
     OverlapReal a;                                   //!< First half-axis
@@ -353,7 +353,7 @@ struct ShapeFacetedEllipsoid
     DEVICE static void initializeVertices(param_type& _params, bool managed)
         {
         #ifndef NVCC
-        _params.additional_verts = detail::poly3d_verts(2*_params.N*_params.N, managed);
+        _params.additional_verts = detail::poly3d_full(2*_params.N*_params.N,0,0, managed);
         _params.additional_verts.diameter = OverlapReal(2.0); // for unit sphere
         _params.additional_verts.N = 0;
 

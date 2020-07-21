@@ -273,11 +273,10 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
     return result;
     }
 
-//! Helper function to build poly3d_verts from python
-poly3d_verts make_poly3d_verts(pybind11::list verts, OverlapReal sweep_radius, bool ignore_stats,
+poly3d_full make_poly3d_verts(pybind11::list verts, OverlapReal sweep_radius, bool ignore_stats,
                                         std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    poly3d_verts result(len(verts), exec_conf->isCUDAEnabled());
+    poly3d_full result(len(verts),0,0, exec_conf->isCUDAEnabled());
     result.N = len(verts);
     result.sweep_radius = sweep_radius;
     result.ignore = ignore_stats;
@@ -306,6 +305,60 @@ poly3d_verts make_poly3d_verts(pybind11::list verts, OverlapReal sweep_radius, b
     return result;
     }
 
+//! Helper function to build poly3d_full from python
+poly3d_full make_poly3d_full(pybind11::list verts, pybind11::list edges, pybind11::list faces, pybind11::list boundary_edges, OverlapReal sweep_radius, bool ignore_stats,
+                                        std::shared_ptr<ExecutionConfiguration> exec_conf)
+    {
+
+    poly3d_full result(len(verts), len(edges), len(faces), exec_conf->isCUDAEnabled());
+    result.N = len(verts);
+    result.Ne = len(edges);
+    result.Nf = len(faces);
+    result.ignore = ignore_stats;
+
+    // extract the verts from the python list and compute the radius on the way
+    OverlapReal radius_sq = OverlapReal(0.0);
+    for (unsigned int i = 0; i < len(verts); i++)
+        {
+        pybind11::list verts_i = pybind11::cast<pybind11::list>(verts[i]);
+        vec3<OverlapReal> vert = vec3<OverlapReal>(pybind11::cast<OverlapReal>(verts_i[0]), pybind11::cast<OverlapReal>(verts_i[1]), pybind11::cast<OverlapReal>(verts_i[2]));
+        result.x[i] = vert.x;
+        result.y[i] = vert.y;
+        result.z[i] = vert.z;
+        radius_sq = max(radius_sq, dot(vert, vert));
+        }
+    for (unsigned int i = len(verts); i < result.N; i++)
+        {
+        result.x[i] = 0;
+        result.y[i] = 0;
+        result.z[i] = 0;
+        }
+
+    for (unsigned int i = 0; i < len(faces); i++)
+        {
+             result.faces[i] = pybind11::cast<unsigned int>(faces[i]);
+        }
+
+    for (unsigned int i = 0; i < len(edges); i++)
+        {
+        pybind11::list edges_i = pybind11::cast<pybind11::list>(edges[i]);
+
+
+        vec2<unsigned int> new_vec(pybind11::cast<unsigned int>(edges_i[0]), pybind11::cast<unsigned int>(edges_i[1]) );
+
+        result.edges[i].x = new_vec.x;
+        result.edges[i].y = new_vec.y;
+
+        pybind11::list boundary_edges_i = pybind11::cast<pybind11::list>(boundary_edges[i]);
+        result.boundary_edges[i] = vec2<unsigned int>(pybind11::cast<unsigned int>(boundary_edges_i[0]), pybind11::cast<unsigned int>(boundary_edges_i[1]) );
+        }
+
+    // set the diameter
+    result.diameter = 2*(sqrt(radius_sq) + sweep_radius);
+
+    return result;
+    }
+
 //! Helper function to build faceted_ellipsoid_params from python
 faceted_ellipsoid_params make_faceted_ellipsoid(pybind11::list normals, pybind11::list offsets,
     pybind11::list vertices, Scalar a, Scalar b, Scalar c, pybind11::tuple origin, bool ignore_stats,
@@ -326,7 +379,7 @@ faceted_ellipsoid_params make_faceted_ellipsoid(pybind11::list normals, pybind11
         }
 
     // extract the vertices from the python list
-    result.verts=make_poly3d_verts(vertices, 0.0, false, exec_conf);
+    result.verts=make_poly3d_verts(vertices ,0.0, false, exec_conf);
 
     // scale vertices onto unit sphere
     for (unsigned int i = 0; i < result.verts.N; ++i)

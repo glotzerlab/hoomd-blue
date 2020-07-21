@@ -84,6 +84,7 @@ PYBIND11_MODULE(_hpmc, m)
     py::class_<poly2d_verts, std::shared_ptr<poly2d_verts> >(m, "poly2d_verts");
     py::class_<poly3d_data, std::shared_ptr<poly3d_data> >(m, "poly3d_data");
     py::class_< poly3d_verts, std::shared_ptr< poly3d_verts > >(m, "poly3d_verts");
+    py::class_< poly3d_full, std::shared_ptr< poly3d_full > >(m, "poly3d_full");
     py::class_<faceted_ellipsoid_params, std::shared_ptr<faceted_ellipsoid_params> >(m, "faceted_ellipsoid_params");
     py::class_<sphinx3d_params, std::shared_ptr<sphinx3d_params> >(m, "sphinx3d_params")
         .def_readwrite("circumsphereDiameter",&sphinx3d_params::circumsphereDiameter);
@@ -95,6 +96,7 @@ PYBIND11_MODULE(_hpmc, m)
     m.def("make_poly2d_verts", &make_poly2d_verts);
     m.def("make_poly3d_data", &make_poly3d_data);
     m.def("make_poly3d_verts", &make_poly3d_verts);
+    m.def("make_poly3d_full", &make_poly3d_full);
     m.def("make_ell_params", &make_ell_params);
     m.def("make_sph_params", &make_sph_params);
     m.def("make_faceted_ellipsoid", &make_faceted_ellipsoid);
