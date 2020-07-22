@@ -179,12 +179,11 @@ def test_run(simulation_factory, lattice_snapshot_factory,
     sim.operations.integrator = integrator
     sim.operations.schedule()
     old_snap = sim.state.snapshot
+    sim.run(nsteps)
     if old_snap.exists:
-        initial_pos = old_snap.particles.position
-        sim.run(nsteps)
         with pytest.raises(AssertionError):
             np.testing.assert_allclose(sim.state.snapshot.particles.position,
-                                       initial_pos)
+                                       old_snap.particles.position)
 
 
 def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
