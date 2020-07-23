@@ -180,9 +180,10 @@ def test_run(simulation_factory, lattice_snapshot_factory,
     sim.operations.schedule()
     old_snap = sim.state.snapshot
     sim.run(nsteps)
-    if old_snap.exists:
+    new_snap = sim.state.snapshot
+    if new_snap.exists:
         with pytest.raises(AssertionError):
-            np.testing.assert_allclose(sim.state.snapshot.particles.position,
+            np.testing.assert_allclose(new_snap.particles.position,
                                        old_snap.particles.position)
 
 
