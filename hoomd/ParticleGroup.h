@@ -285,6 +285,30 @@ class PYBIND11_EXPORT ParticleGroup
 
         // @}
 
+        //! Set the number of degrees of freedom
+        void setTranslationalDOF(Scalar dof)
+            {
+            m_translational_dof = dof;
+            }
+
+        //! Get the number translational degrees of freedom
+        unsigned int getTranslationalDOF()
+            {
+            return m_translational_dof;
+            }
+
+        //! Set the number of degrees of freedom
+        void setRotationalDOF(Scalar dof)
+            {
+            m_rotational_dof = dof;
+            }
+
+        //! Get the number of degrees of freedom
+        unsigned int getRotationalDOF()
+            {
+            return m_rotational_dof;
+            }
+
     private:
         std::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition this group is associated with
         std::shared_ptr<ParticleData> m_pdata;        //!< The particle data this group is associated with
@@ -309,6 +333,12 @@ class PYBIND11_EXPORT ParticleGroup
         #ifdef ENABLE_HIP
         mutable GPUPartition m_gpu_partition;           //!< A handy struct to store load balancing info for this group's local members
         #endif
+
+        /// Number of translational degrees of freedom in the group
+        Scalar m_translational_dof=0;
+
+        /// Number of rotational degrees of freedom in the group
+        Scalar m_rotational_dof=0;
 
         //! Helper function to resize array of member tags
         void reallocate() const;
