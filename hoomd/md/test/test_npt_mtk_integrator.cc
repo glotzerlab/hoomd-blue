@@ -632,7 +632,7 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
         npt_mtk->removeAllIntegrationMethods();
         npt_mtk->addIntegrationMethod(two_step_npt_mtk);
 
-        unsigned int ndof_rot = npt_mtk->getRotationalNDOF(group_all);
+        unsigned int ndof_rot = npt_mtk->getRotationalDOF(group_all);
         thermo_group->setRotationalNDOF(ndof_rot);
         thermo_group_t->setRotationalNDOF(ndof_rot);
 

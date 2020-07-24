@@ -40,7 +40,7 @@
     number of constraint forces. All constraint forces will be computed independently and will be able to read the
     current unconstrained net force. Separate constraint forces should not overlap. Degrees of freedom removed
     via the constraint forces can be totaled up with a call to getNDOFRemoved for convenience in derived classes
-    implementing correct counting in getNDOF().
+    implementing correct counting in getTranslationalDOF() and getRotationalDOF().
 
     Integrators take "ownership" of the particle's accelerations. Any other updater
     that modifies the particles accelerations will produce undefined results. If
@@ -104,7 +104,7 @@ class PYBIND11_EXPORT Integrator : public Updater
         /** @param group Group over which to count degrees of freedom.
             Base class Integrator returns 0. Derived classes should override.
         */
-        virtual unsigned int getNDOF(std::shared_ptr<ParticleGroup> group)
+        virtual Scalar getTranslationalDOF(std::shared_ptr<ParticleGroup> group)
             {
             return 0;
             }
@@ -113,7 +113,7 @@ class PYBIND11_EXPORT Integrator : public Updater
         /** @param group Group over which to count degrees of freedom.
             Base class Integrator returns 0. Derived classes should override.
         */
-        virtual unsigned int getRotationalNDOF(std::shared_ptr<ParticleGroup> group)
+        virtual Scalar getRotationalDOF(std::shared_ptr<ParticleGroup> group)
             {
             return 0;
             }

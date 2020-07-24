@@ -104,7 +104,7 @@ bool IntegrationMethodTwoStep::restartInfoTestValid(const IntegratorVariables& v
     group assigned to the method. Hence, the base class IntegrationMethodTwoStep will implement that counting.
     Derived classes can override if needed.
 */
-unsigned int IntegrationMethodTwoStep::getNDOF(std::shared_ptr<ParticleGroup> query_group)
+Scalar IntegrationMethodTwoStep::getTranslationalDOF(std::shared_ptr<ParticleGroup> query_group)
     {
     // get the size of the intersection between query_group and m_group
     unsigned int intersect_size = ParticleGroup::groupIntersection(query_group, m_group)->getNumMembersGlobal();
@@ -112,7 +112,7 @@ unsigned int IntegrationMethodTwoStep::getNDOF(std::shared_ptr<ParticleGroup> qu
     return m_sysdef->getNDimensions() * intersect_size;
     }
 
-unsigned int IntegrationMethodTwoStep::getRotationalNDOF(std::shared_ptr<ParticleGroup> query_group)
+Scalar IntegrationMethodTwoStep::getRotationalDOF(std::shared_ptr<ParticleGroup> query_group)
     {
     // get the size of the intersection between query_group and m_group
     std::shared_ptr<ParticleGroup> intersect = ParticleGroup::groupIntersection(query_group, m_group);
