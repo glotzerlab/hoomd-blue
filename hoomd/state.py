@@ -212,6 +212,13 @@ class State:
         """
         integrator = self._simulation.operations.integrator
 
+        # Do nothing if there is no integrator.
+        if integrator is None:
+            return
+
+        if not integrator.is_attached:
+            raise RuntimeError("Call update_group_dof after attaching")
+
         for groups in self._groups.values():
             for group in groups.values():
                 if integrator is not None:
