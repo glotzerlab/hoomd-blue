@@ -100,6 +100,15 @@ class PYBIND11_EXPORT Integrator : public Updater
         /// Return the timestep
         Scalar getDeltaT();
 
+        /// Update the number of degrees of freedom for a group
+        /** @param group Group to set the degrees of freedom for.
+        */
+        void updateGroupDOF(std::shared_ptr<ParticleGroup> group)
+            {
+            group->setTranslationalDOF(getTranslationalDOF(group));
+            group->setRotationalDOF(getRotationalDOF(group));
+            }
+
         /// Get the number of degrees of freedom granted to a given group
         /** @param group Group over which to count degrees of freedom.
             Base class Integrator returns 0. Derived classes should override.

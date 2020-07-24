@@ -940,6 +940,7 @@ void export_Integrator(py::module& m)
 
     py::class_<Integrator, Updater, std::shared_ptr<Integrator> >(m,"Integrator")
     .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
+    .def("updateGroupDOF", &Integrator::updateGroupDOF)
     .def_property("dt", &Integrator::getDeltaT, &Integrator::setDeltaT)
 	.def_property_readonly("forces", &Integrator::getForces)
 	.def_property_readonly("constraints", &Integrator::getConstraintForces)

@@ -786,5 +786,9 @@ void export_ParticleGroup(py::module& m)
             .def("groupIntersection", &ParticleGroup::groupIntersection)
             .def("groupDifference", &ParticleGroup::groupDifference)
             .def("updateMemberTags", &ParticleGroup::updateMemberTags)
+            .def("setTranslationalDOF", &ParticleGroup::setTranslationalDOF)
+            .def("getTranslationalDOF", &ParticleGroup::getTranslationalDOF)
+            .def("setRotationalDOF", &ParticleGroup::setRotationalDOF)
+            .def("getRotationalDOF", &ParticleGroup::getRotationalDOF)
             ;
     }
