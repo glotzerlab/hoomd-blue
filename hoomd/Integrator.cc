@@ -105,16 +105,17 @@ Scalar Integrator::getDeltaT()
     }
 
 /** Loops over all constraint forces in the Integrator and sums up the number of DOF removed
+    @param query The group over which to compute the removed degrees of freedom
 */
-unsigned int Integrator::getNDOFRemoved()
+Scalar Integrator::getNDOFRemoved(std::shared_ptr<ParticleGroup> query)
     {
     // start counting at 0
-    unsigned int n = 0;
+    Scalar n = 0;
 
     // loop through all constraint forces
     std::vector< std::shared_ptr<ForceConstraint> >::iterator force_compute;
     for (force_compute = m_constraint_forces.begin(); force_compute != m_constraint_forces.end(); ++force_compute)
-        n += (*force_compute)->getNDOFRemoved();
+        n += (*force_compute)->getNDOFRemoved(query);
 
     return n;
     }

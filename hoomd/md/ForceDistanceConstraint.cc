@@ -47,6 +47,39 @@ ForceDistanceConstraint::~ForceDistanceConstraint()
     #endif
     }
 
+Scalar ForceDistanceConstraint::getNDOFRemoved(std::shared_ptr<ParticleGroup> query)
+    {
+    // the distance constraint removes half a degree of freedom for each particle that is part
+    // of at least one side of the constraint. When both particles of a constraint are in the
+    // query group, this adds to one DOF removed for the pair
+    unsigned int half_dof_removed = 0;
+
+    unsigned int n_constraint = m_cdata->getN()+m_cdata->getNGhosts();
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+    unsigned int n_particles = m_pdata->getN();
+
+    for (unsigned int i = 0; i < n_constraint; i++)
+        {
+        auto constraint = m_cdata->getMembersByIndex(i);
+
+        unsigned int idx_a = h_rtag.data[constraint.tag[0]];
+        unsigned int idx_b = h_rtag.data[constraint.tag[1]];
+
+        if (idx_a < n_particles && query->isMember(idx_a))
+            half_dof_removed++;
+        if (idx_b < n_particles && query->isMember(idx_b))
+            half_dof_removed++;
+        }
+
+    #ifdef ENABLE_MPI
+    MPI_Allreduce(MPI_IN_PLACE, &half_dof_removed, 1, MPI_HOOMD_UINT, MPI_SUM,
+                  m_exec_conf->getMPICommunicator());
+    #endif
+
+    return half_dof_removed * 0.5;
+    }
+
+
 /*! Does nothing in the base class
     \param timestep Current timestep
 */

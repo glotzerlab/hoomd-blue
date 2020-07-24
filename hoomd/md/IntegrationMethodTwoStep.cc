@@ -107,46 +107,39 @@ bool IntegrationMethodTwoStep::restartInfoTestValid(const IntegratorVariables& v
 Scalar IntegrationMethodTwoStep::getTranslationalDOF(std::shared_ptr<ParticleGroup> query_group)
     {
     // get the size of the intersection between query_group and m_group
-    unsigned int intersect_size = ParticleGroup::groupIntersection(query_group, m_group)->getNumMembersGlobal();
+    unsigned int intersect_size = ParticleGroup::intersectionSize(query_group, m_group);
 
     return m_sysdef->getNDimensions() * intersect_size;
     }
 
 Scalar IntegrationMethodTwoStep::getRotationalDOF(std::shared_ptr<ParticleGroup> query_group)
     {
-    // get the size of the intersection between query_group and m_group
-    std::shared_ptr<ParticleGroup> intersect = ParticleGroup::groupIntersection(query_group, m_group);
-
-    unsigned int local_group_size = intersect->getNumMembers();
-
     unsigned int query_group_dof = 0;
     unsigned int dimension = m_sysdef->getNDimensions();
-    unsigned int dof_one;
     ArrayHandle<Scalar3> h_moment_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
 
-    for (unsigned int group_idx = 0; group_idx < local_group_size; group_idx++)
+    for (unsigned int group_idx = 0; group_idx < query_group->getNumMembers(); group_idx++)
         {
-        unsigned int j = intersect->getMemberIndex(group_idx);
-        if (dimension == 3)
+        unsigned int j = query_group->getMemberIndex(group_idx);
+        if (m_group->isMember(j))
             {
-            dof_one = 3;
-            if (fabs(h_moment_inertia.data[j].x) < EPSILON)
-                dof_one--;
+            if (dimension == 3)
+                {
+                if (fabs(h_moment_inertia.data[j].x) >= EPSILON)
+                    query_group_dof++;
 
-            if (fabs(h_moment_inertia.data[j].y) < EPSILON)
-                dof_one--;
+                if (fabs(h_moment_inertia.data[j].y) >= EPSILON)
+                    query_group_dof++;
 
-            if (fabs(h_moment_inertia.data[j].z) < EPSILON)
-                dof_one--;
+                if (fabs(h_moment_inertia.data[j].z) >= EPSILON)
+                    query_group_dof++;
+                }
+            else
+                {
+                if (fabs(h_moment_inertia.data[j].z) >= EPSILON)
+                    query_group_dof++;
+                }
             }
-        else
-            {
-            dof_one = 1;
-            if (fabs(h_moment_inertia.data[j].z) < EPSILON)
-                dof_one--;
-            }
-
-        query_group_dof += dof_one;
         }
 
     #ifdef ENABLE_MPI

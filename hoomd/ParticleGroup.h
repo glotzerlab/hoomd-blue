@@ -285,29 +285,37 @@ class PYBIND11_EXPORT ParticleGroup
 
         // @}
 
-        //! Set the number of degrees of freedom
+        /// Set the number of degrees of freedom
         void setTranslationalDOF(Scalar dof)
             {
             m_translational_dof = dof;
             }
 
-        //! Get the number translational degrees of freedom
+        /// Get the number translational degrees of freedom
         unsigned int getTranslationalDOF()
             {
             return m_translational_dof;
             }
 
-        //! Set the number of degrees of freedom
+        /// Set the number of degrees of freedom
         void setRotationalDOF(Scalar dof)
             {
             m_rotational_dof = dof;
             }
 
-        //! Get the number of degrees of freedom
+        /// Get the number of degrees of freedom
         unsigned int getRotationalDOF()
             {
             return m_rotational_dof;
             }
+
+        /** Get the number of particles present in both groups.
+
+            @param a First group
+            @param b Second group
+        */
+        static unsigned int intersectionSize(std::shared_ptr<ParticleGroup> a,
+                                             std::shared_ptr<ParticleGroup> b);
 
     private:
         std::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition this group is associated with

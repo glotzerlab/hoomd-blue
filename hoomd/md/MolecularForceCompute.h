@@ -52,7 +52,7 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
         virtual ~MolecularForceCompute();
 
         //! Return the number of DOF removed by this constraint
-        virtual unsigned int getNDOFRemoved() { return 0; }
+        virtual Scalar getNDOFRemoved(std::shared_ptr<ParticleGroup> query) { return 0; }
 
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential

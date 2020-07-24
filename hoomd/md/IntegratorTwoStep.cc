@@ -104,9 +104,13 @@ void IntegratorTwoStep::update(unsigned int timestep)
         m_prof->push("Integrate");
 
     // perform the first step of the integration on all groups
-    std::vector< std::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
-    for (method = m_methods.begin(); method != m_methods.end(); ++method)
+    for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
+        {
+        // deltaT should probably be passed as an argument, but that would require modifying many
+        // files. Work around this by calling setDeltaT every timestep.
+        (*method)->setDeltaT(m_deltaT);
         (*method)->integrateStepOne(timestep);
+        }
 
     if (m_prof)
         m_prof->pop();
@@ -145,7 +149,7 @@ void IntegratorTwoStep::update(unsigned int timestep)
         m_prof->push("Integrate");
 
     // perform the second step of the integration on all groups
-    for (method = m_methods.begin(); method != m_methods.end(); ++method)
+    for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->integrateStepTwo(timestep);
 
     /* NOTE: For composite particles, it is assumed that positions and orientations are not updated
@@ -295,7 +299,7 @@ Scalar IntegratorTwoStep::getTranslationalDOF(std::shared_ptr<ParticleGroup> gro
         total += (*method)->getTranslationalDOF(group);
         }
 
-    return total - periodic_dof_removed - getNDOFRemoved();
+    return total - periodic_dof_removed - getNDOFRemoved(group);
     }
 
 /*! \param group Group over which to count degrees of freedom.

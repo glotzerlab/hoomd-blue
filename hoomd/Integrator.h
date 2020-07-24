@@ -118,8 +118,9 @@ class PYBIND11_EXPORT Integrator : public Updater
             return 0;
             }
 
-        /// Get the number of rotational degrees of freedom granted to a given group
-        /** @param group Group over which to count degrees of freedom.
+        /** Get the number of rotational degrees of freedom granted to a given group
+
+            @param group Group over which to count degrees of freedom.
             Base class Integrator returns 0. Derived classes should override.
         */
         virtual Scalar getRotationalDOF(std::shared_ptr<ParticleGroup> group)
@@ -128,7 +129,7 @@ class PYBIND11_EXPORT Integrator : public Updater
             }
 
         /// Count the total number of degrees of freedom removed by all constraint forces
-        unsigned int getNDOFRemoved();
+        Scalar getNDOFRemoved(std::shared_ptr<ParticleGroup> query);
 
         /// Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
