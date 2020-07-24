@@ -771,20 +771,19 @@ void ParticleGroup::rebuildIndexListGPU() const
     }
 #endif
 
-unsigned int ParticleGroup::intersectionSize(std::shared_ptr<ParticleGroup> a,
-                                                    std::shared_ptr<ParticleGroup> b)
+unsigned int ParticleGroup::intersectionSize(std::shared_ptr<ParticleGroup> other)
     {
     unsigned int n = 0;
 
-    for (unsigned int i = 0; i < a->getNumMembers(); i++)
+    for (unsigned int i = 0; i < this->getNumMembers(); i++)
         {
-        unsigned int query_idx = a->getMemberIndex(i);
-        if (b->isMember(query_idx))
+        unsigned int query_idx = this->getMemberIndex(i);
+        if (other->isMember(query_idx))
             n++;
         }
 
     #ifdef ENABLE_MPI
-    MPI_Allreduce(MPI_IN_PLACE, &n, 1, MPI_HOOMD_UINT, MPI_SUM, m_exec_conf->getMPICommunicator());
+    MPI_Allreduce(MPI_IN_PLACE, &n, 1, MPI_UNSIGNED, MPI_SUM, m_exec_conf->getMPICommunicator());
     #endif
 
     return n;

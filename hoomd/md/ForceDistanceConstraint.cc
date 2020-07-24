@@ -72,7 +72,7 @@ Scalar ForceDistanceConstraint::getNDOFRemoved(std::shared_ptr<ParticleGroup> qu
         }
 
     #ifdef ENABLE_MPI
-    MPI_Allreduce(MPI_IN_PLACE, &half_dof_removed, 1, MPI_HOOMD_UINT, MPI_SUM,
+    MPI_Allreduce(MPI_IN_PLACE, &half_dof_removed, 1, MPI_UNSIGNED, MPI_SUM,
                   m_exec_conf->getMPICommunicator());
     #endif
 

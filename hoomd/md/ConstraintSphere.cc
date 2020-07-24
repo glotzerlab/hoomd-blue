@@ -51,7 +51,7 @@ void ConstraintSphere::setSphere(Scalar3 P, Scalar r)
 
 Scalar ConstraintSphere::getNDOFRemoved(std::shared_ptr<ParticleGroup> query)
     {
-    return ParticleGroup::intersectionSize(m_group, query);
+    return m_group->intersectionSize(query);
     }
 
 /*! Computes the specified constraint forces

@@ -311,11 +311,9 @@ class PYBIND11_EXPORT ParticleGroup
 
         /** Get the number of particles present in both groups.
 
-            @param a First group
-            @param b Second group
+            @param other Second group
         */
-        static unsigned int intersectionSize(std::shared_ptr<ParticleGroup> a,
-                                             std::shared_ptr<ParticleGroup> b);
+        unsigned int intersectionSize(std::shared_ptr<ParticleGroup> other);
 
     private:
         std::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition this group is associated with

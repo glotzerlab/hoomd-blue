@@ -107,7 +107,7 @@ bool IntegrationMethodTwoStep::restartInfoTestValid(const IntegratorVariables& v
 Scalar IntegrationMethodTwoStep::getTranslationalDOF(std::shared_ptr<ParticleGroup> query_group)
     {
     // get the size of the intersection between query_group and m_group
-    unsigned int intersect_size = ParticleGroup::intersectionSize(query_group, m_group);
+    unsigned int intersect_size = query_group->intersectionSize(m_group);
 
     return m_sysdef->getNDimensions() * intersect_size;
     }
