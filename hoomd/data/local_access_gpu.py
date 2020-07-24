@@ -7,31 +7,31 @@ from hoomd.data.local_access import (
 from hoomd.array import HOOMDGPUArray
 
 if _hoomd.isCUDAAvailable():
-    class ParticleLocalAccessGPU(ParticleLocalAccess):
+    class ParticleLocalAccessGPU(ParticleLocalAccessBase):
         _cpp_cls = _hoomd.LocalParticleDataDevice
         _array_cls = HOOMDGPUArray
 
-    class BondLocalAccessGPU(BondLocalAccess):
+    class BondLocalAccessGPU(BondLocalAccessBase):
         _cpp_cls = _hoomd.LocalBondDataDevice
         _array_cls = HOOMDGPUArray
 
-    class AngleLocalAccessGPU(AngleLocalAccess):
+    class AngleLocalAccessGPU(AngleLocalAccessBase):
         _cpp_cls = _hoomd.LocalAngleDataDevice
         _array_cls = HOOMDGPUArray
 
-    class DihedralLocalAccessGPU(DihedralLocalAccess):
+    class DihedralLocalAccessGPU(DihedralLocalAccessBase):
         _cpp_cls = _hoomd.LocalDihedralDataDevice
         _array_cls = HOOMDGPUArray
 
-    class ImproperLocalAccessGPU(ImproperLocalAccess):
+    class ImproperLocalAccessGPU(ImproperLocalAccessBase):
         _cpp_cls = _hoomd.LocalImproperDataDevice
         _array_cls = HOOMDGPUArray
 
-    class ConstraintLocalAccessGPU(ConstraintLocalAccess):
+    class ConstraintLocalAccessGPU(ConstraintLocalAccessBase):
         _cpp_cls = _hoomd.LocalConstraintDataDevice
         _array_cls = HOOMDGPUArray
 
-    class PairLocalAccessGPU(PairLocalAccess):
+    class PairLocalAccessGPU(PairLocalAccessBase):
         _cpp_cls = _hoomd.LocalPairDataDevice
         _array_cls = HOOMDGPUArray
 
