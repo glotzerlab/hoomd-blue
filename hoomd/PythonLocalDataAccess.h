@@ -125,7 +125,7 @@ struct HOOMDDeviceBuffer : public HOOMDBuffer
         else
             {
             data.first = (intptr_t)m_data;
-            for (size_t i{0}; i < shape.size(); i++)
+            for (size_t i = 0; i < m_shape.size(); i++)
                 {
                 shape.append(m_shape[i]);
                 strides.append(m_strides[i]);
