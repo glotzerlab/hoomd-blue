@@ -71,7 +71,7 @@ def simulation_factory(device):
 
         # reduce sorter grid to avoid Hilbert curve overhead in unit tests
         for tuner in sim.operations.tuners:
-            if isinstance(tuner, hoomd.tuner.ParticleSorter):
+            if isinstance(tuner, hoomd.tune.ParticleSorter):
                 tuner.grid = 8
 
         sim.create_state_from_snapshot(snapshot)

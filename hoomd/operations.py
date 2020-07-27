@@ -1,7 +1,7 @@
 import hoomd.integrate
 from hoomd.syncedlist import SyncedList
 from hoomd.operation import _Analyzer, _Updater, _Tuner
-from hoomd.tuner import ParticleSorter
+from hoomd.tune import ParticleSorter
 
 
 def list_validation(type_):
