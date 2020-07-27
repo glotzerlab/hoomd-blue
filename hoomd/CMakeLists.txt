@@ -356,7 +356,7 @@ add_subdirectory(filter)
 add_subdirectory(minimize)
 add_subdirectory(output)
 add_subdirectory(pytest)
-add_subdirectory(tuner)
+add_subdirectory(tune)
 add_subdirectory(update)
 
 if (BUILD_TESTING)
