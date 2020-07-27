@@ -19,6 +19,12 @@ hoomd.filter
 
 .. automodule:: hoomd.filter
     :synopsis: Particle selection filters.
-    :members:
-    :imported-members:
-    :undoc-members:
+
+    .. autoclass:: _ParticleFilter()
+    .. autoclass:: All()
+    .. autoclass:: Intersection(f, g)
+    .. autoclass:: SetDifference(f, g)
+    .. autoclass:: Tags(tags)
+    .. autoclass:: Type(types)
+    .. autoclass:: Union(f, g)
+

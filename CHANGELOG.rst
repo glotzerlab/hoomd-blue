@@ -62,8 +62,19 @@ v3.0.0 (not yet released)
 v2.x
 ----
 
-v2.9.1 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^
+v2.9.2 (2020-06-26)
+^^^^^^^^^^^^^^^^^^^
+
+*Bug fixes*
+
+* Fix a bug where repeatedly using objects with ``period=None`` would use
+  significant amounts of memory.
+* Support CUDA 11.
+* Reccomend citing the 2020 Computational Materials Science paper
+  10.1016/j.commatsci.2019.109363.
+
+v2.9.1 (2020-05-28)
+^^^^^^^^^^^^^^^^^^^
 
 *Bug fixes*
 
@@ -333,7 +344,11 @@ v2.4.2 (2018-12-20)
    returned from ``ParticleData`` and other classes (replace by
    ``GlobalArray``)
 
+<<<<<<< HEAD
 v2.4.1 (2018/11/27)
+=======
+v2.4.1 (2018-11-27)
+>>>>>>> master
 ^^^^^^^^^^^^^^^^^^^
 
 *Bug fixes*
@@ -595,7 +610,7 @@ v2.2.4 (2018-03-05)
 
 -  Fix a rare error in ``md.nlist.tree`` when particles are very close
    to each other.
--  Fix deadlock when ``init.read_getar`` is given different file names
+-  Fix deadlock when ```init.read_getar``` is given different file names
    on different ranks.
 -  Sample from the correct uniform distribution of depletants in a
    sphere cap with ``depletant_mode='overlap_regions'`` on the CPU
@@ -816,7 +831,7 @@ v2.1.8 (2017-07-19)
 
 *Bug fixes*
 
--  ``init.read_getar`` now correctly restores static quantities when
+-  ```init.read_getar``` now correctly restores static quantities when
    given a particular frame.
 -  Fix bug where many short calls to ``run()`` caused incorrect results
    when using ``md.integrate.langevin``.

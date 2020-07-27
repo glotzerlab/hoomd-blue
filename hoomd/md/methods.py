@@ -63,7 +63,7 @@ class NVT(_Method):
     <http://dx.doi.org/10.1063/1.470959>`_.
 
     :py:class:`NVT` is an integration method. It must be used in connection with
-    :py:class:`mode_standard`.
+    ``mode_standard``.
 
     :py:class:`NVT` uses the proper number of degrees of freedom to compute the
     temperature of the system in both 2 and 3 dimensional systems, as long as
@@ -314,7 +314,7 @@ class NPT(_Method):
             seed (int): Random number seed
 
         Note:
-            Randomization is applied at the start of the next call to :py:func:`hoomd.run`.
+            Randomization is applied at the start of the next call to ```hoomd.run```.
 
         Example::
 
@@ -349,7 +349,7 @@ class nph(NPT):
          :math:`W=d N T_0 \tau_P^2`, where :math:`d` is the dimensionality and :math:`N` the number
          of particles.
 
-    :py:class:`nph` is an integration method and must be used with :py:class:`mode_standard`.
+    :py:class:`nph` is an integration method and must be used with ``mode_standard``.
 
     Examples::
 
@@ -381,7 +381,7 @@ class nph(NPT):
             seed (int): Random number seed
 
         Note:
-            Randomization is applied at the start of the next call to :py:func:`hoomd.run`.
+            Randomization is applied at the start of the next call to ```hoomd.run```.
 
         Example::
 
@@ -397,7 +397,7 @@ class nve(_Method):
     R""" NVE Integration via Velocity-Verlet
 
     Args:
-        group (:py:mod:`hoomd.group`): Group of particles on which to apply this method.
+        group (``hoomd.group``): Group of particles on which to apply this method.
         limit (bool): (optional) Enforce that no particle moves more than a distance of \a limit in a single time step
         zero_force (bool): When set to true, particles in the \a group are integrated forward in time with constant
           velocity and any net force on them is ignored.
@@ -419,7 +419,7 @@ class nve(_Method):
         can gain linear momentum. Activate the :py:class:`hoomd.md.update.zero_momentum` updater during the limited nve
         run to prevent this.
 
-    :py:class:`nve` is an integration method. It must be used with :py:class:`mode_standard`.
+    :py:class:`nve` is an integration method. It must be used with ``mode_standard``.
 
     A :py:class:`hoomd.compute.thermo` is automatically specified and associated with *group*.
 
@@ -498,7 +498,7 @@ class nve(_Method):
             seed (int): Random number seed
 
         Note:
-            Randomization is applied at the start of the next call to :py:func:`hoomd.run`.
+            Randomization is applied at the start of the next call to ```hoomd.run```.
 
         Example::
 
@@ -529,7 +529,7 @@ class Langevin(_Method):
 
     .. rubric:: Translational degrees of freedom
 
-    :py:class:`langevin` integrates particles forward in time according to the
+    :py:class:`Langevin` integrates particles forward in time according to the
     Langevin equations of motion:
 
     .. math::
@@ -550,17 +550,17 @@ class Langevin(_Method):
     temperature, :math:`T`.  When :math:`kT=0`, the random force
     :math:`\vec{F}_\mathrm{R}=0`.
 
-    :py:class:`langevin` generates random numbers by hashing together the
+    :py:class:`Langevin` generates random numbers by hashing together the
     particle tag, user seed, and current time step index. See `C. L. Phillips
     et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_ for more
     information.
 
     .. attention::
 
-    Change the seed if you reset the simulation time step to 0.
-    If you keep the same seed, the simulation will continue with the same
-    sequence of random numbers used previously and may cause unphysical
-    correlations.
+        Change the seed if you reset the simulation time step to 0.
+        If you keep the same seed, the simulation will continue with the same
+        sequence of random numbers used previously and may cause unphysical
+        correlations.
 
         For MPI runs: all ranks other than 0 ignore the seed input and use the
         value of rank 0.
@@ -570,20 +570,20 @@ class Langevin(_Method):
     assumption is valid when underdamped: :math:`\frac{m}{\gamma} \gg \delta t`.
     Use :py:class:`brownian` if your system is not underdamped.
 
-    :py:class:`langevin` uses the same integrator as :py:class:`nve` with the
+    :py:class:`Langevin` uses the same integrator as :py:class:`nve` with the
     additional force term :math:`- \gamma \cdot \vec{v} + \vec{F}_\mathrm{R}`.
     The random force :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random
     number distribution.
 
     You can specify :math:`\gamma` in two ways:
 
-    1. Use :py:class:`set_gamma()` to specify it directly, with independent
-    values for each particle type in the system.
+    1. Use ``set_gamma()`` to specify it directly, with independent
+       values for each particle type in the system.
     2. Specify :math:`\lambda` which scales the particle diameter to
-    :math:`\gamma = \lambda d_i`. The units of
+       :math:`\gamma = \lambda d_i`. The units of
        :math:`\lambda` are mass / distance / time.
 
-    :py:class:`langevin` must be used with :py:class:`mode_standard`.
+    :py:class:`Langevin` must be used with ``mode_standard``.
 
     *kT* can be a variant type, allowing for temperature ramps in simulation
     runs.
@@ -629,7 +629,7 @@ class Langevin(_Method):
                                                              len_keys=1)
                                 )
 
-        self._extend_typeparam([gamma, gamma_r])
+        self._extend_typeparam([gamma,gamma_r])
 
     def attach(self, simulation):
 
@@ -651,7 +651,7 @@ class brownian(_Method):
     R""" Brownian dynamics.
 
     Args:
-        group (:py:mod:`hoomd.group`): Group of particles to apply this method to.
+        group (``hoomd.group``): Group of particles to apply this method to.
         kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of the simulation (in energy units).
         seed (int): Random seed to use for generating :math:`\vec{F}_\mathrm{R}`.
         dscale (bool): Control :math:`\lambda` options. If 0 or False, use :math:`\gamma` values set per type. If non-zero, :math:`\gamma = \lambda d_i`.
@@ -701,7 +701,7 @@ class brownian(_Method):
     commands.
 
     Brownian dynamics neglects the acceleration term in the Langevin equation. This assumption is valid when
-    overdamped: :math:`\frac{m}{\gamma} \ll \delta t`. Use :py:class:`langevin` if your system is not overdamped.
+    overdamped: :math:`\frac{m}{\gamma} \ll \delta t`. Use :py:class:`Langevin` if your system is not overdamped.
 
     You can specify :math:`\gamma` in two ways:
 
@@ -859,7 +859,7 @@ class berendsen(_Method):
     R""" Applies the Berendsen thermostat.
 
     Args:
-        group (:py:mod:`hoomd.group`): Group to which the Berendsen thermostat will be applied.
+        group (``hoomd.group``): Group to which the Berendsen thermostat will be applied.
         kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of thermostat. (in energy units).
         tau (float): Time constant of thermostat. (in time units)
 
@@ -925,7 +925,7 @@ class berendsen(_Method):
             seed (int): Random number seed
 
         Note:
-            Randomization is applied at the start of the next call to :py:func:`hoomd.run`.
+            Randomization is applied at the start of the next call to ```hoomd.run```.
 
         Example::
 

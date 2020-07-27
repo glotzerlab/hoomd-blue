@@ -114,7 +114,7 @@ class Box:
             L (float): The box side length (distance units).
 
         Returns:
-            box (hoomd.Box): The created box.
+            hoomd.Box: The created box.
         """
         return cls(L, L, L, 0, 0, 0)
 
@@ -126,7 +126,7 @@ class Box:
             L (float): The box side length (distance units).
 
         Returns:
-            box (hoomd.Box): The created 2D box.
+            hoomd.Box: The created 2D box.
         """
         return cls(L, L, 0, 0, 0, 0)
 
@@ -148,7 +148,7 @@ class Box:
 
 
         Returns:
-            box (hoomd.Box): The created box.
+            hoomd.Box: The created box.
         """
         b = cls(0, 0)
         b.matrix = box_matrix
@@ -178,7 +178,7 @@ class Box:
                   :code:`'Lx', 'Ly', 'Lz', 'xy', 'xz', 'yz', 'dimensions'`,
                   objects with attributes
                   :code:`Lx, Ly, Lz, xy, xz, yz, dimensions`,
-                  3x3 matrices (see `~.from_matrix`),
+                  3x3 matrices (see `from_matrix`),
                   or existing :class:`hoomd.Box` objects.
 
                   If any of :code:`Lz, xy, xz, yz` are not provided, they will

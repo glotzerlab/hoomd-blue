@@ -129,7 +129,7 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
         m_prof->push("NPT step 1");
 
     // update degrees of freedom for MTK term
-    m_ndof = m_thermo_group->getNDOF();
+    m_ndof = m_group->getTranslationalDOF();
 
     // advance barostat (nuxx, nuyy, nuzz) half a time step
     advanceBarostat(timestep);
@@ -533,14 +533,14 @@ Scalar TwoStepNPTMTK::getLogValue(const std::string& quantity, unsigned int time
         Scalar eta = v.variable[0];
         Scalar xi = v.variable[1];
 
-        Scalar thermostat_energy = m_thermo_group->getNDOF()*(*m_T)(timestep)
+        Scalar thermostat_energy = m_group->getTranslationalDOF()*(*m_T)(timestep)
                                    *(eta + m_tau*m_tau*xi*xi/Scalar(2.0));
 
         if (m_aniso)
             {
             Scalar xi_rot = v.variable[8];
             Scalar eta_rot = v.variable[9];
-            thermostat_energy += m_thermo_group->getRotationalNDOF()*(*m_T)(timestep)
+            thermostat_energy += m_group->getRotationalDOF()*(*m_T)(timestep)
                                    *(eta_rot + m_tau*m_tau*xi_rot*xi_rot/Scalar(2.0));
             }
 
@@ -865,7 +865,7 @@ void TwoStepNPTMTK::advanceThermostat(unsigned int timestep)
         Scalar &eta_rot = v.variable[9];
 
         Scalar curr_ke_rot = m_thermo_group->getRotationalKineticEnergy();
-        unsigned int ndof_rot = m_thermo_group->getRotationalNDOF();
+        unsigned int ndof_rot = m_group->getRotationalDOF();
 
         Scalar xi_prime_rot = xi_rot + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*(Scalar(2.0)*curr_ke_rot/ndof_rot/T - Scalar(1.0));
         xi_rot = xi_prime_rot + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*(Scalar(2.0)*curr_ke_rot/ndof_rot/T - Scalar(1.0));
@@ -1017,7 +1017,7 @@ void TwoStepNPTMTK::randomizeVelocities(unsigned int timestep)
         // randomize thermostat variables
         Scalar& xi = v.variable[1];
 
-        unsigned int g = m_thermo_group->getNDOF();
+        unsigned int g = m_group->getTranslationalDOF();
         Scalar sigmasq_t = Scalar(1.0)/((Scalar) g*m_tau*m_tau);
 
         if (master)
@@ -1030,7 +1030,7 @@ void TwoStepNPTMTK::randomizeVelocities(unsigned int timestep)
             {
             // update thermostat for rotational DOF
             Scalar &xi_rot = v.variable[8];
-            Scalar sigmasq_r = Scalar(1.0)/((Scalar)m_thermo_group->getRotationalNDOF()*m_tau*m_tau);
+            Scalar sigmasq_r = Scalar(1.0)/((Scalar)m_group->getRotationalDOF()*m_tau*m_tau);
 
             if (master)
                 {

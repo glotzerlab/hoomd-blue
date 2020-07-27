@@ -27,7 +27,7 @@ option is fastest for your simulation.
 
 Particles can be excluded from the neighbor list based on certain criteria. Setting :math:`r_\mathrm{cut}(i,j) \le 0`
 will exclude this cross interaction from the neighbor list on build time. Particles can also be excluded by topology
-or for belonging to the same rigid body (see :py:meth:`nlist.reset_exclusions()`). To support molecular structures,
+or for belonging to the same rigid body (see ``nlist.reset_exclusions``). To support molecular structures,
 the body flag can also be used to exclude particles that are not part of a rigid structure. All particles with
 positive values of the body flag are considered part of a rigid body (see :py:class:`hoomd.md.constrain.rigid`),
 while the default value of -1 indicates that a particle is free. Any other negative value of the body flag indicates
@@ -49,7 +49,7 @@ import hoomd
 from hoomd.typeconverter import OnlyFrom
 from hoomd.parameterdicts import ParameterDict
 from hoomd.operation import _Operation
-from hoomd.logger import Loggable
+from hoomd.logging import Loggable
 
 
 class nlist:
@@ -85,13 +85,13 @@ class _NList(_Operation):
         R""" Query the maximum possible check_period.
 
         :py:meth:`query_update_period` examines the counts of nlist rebuilds
-        during the previous :py:func:`hoomd.run()`.  It returns ``s-1``, where
+        during the previous ```hoomd.run```.  It returns ``s-1``, where
         *s* is the smallest update period experienced during that time.  Use it
         after a medium-length warm up run with *check_period=1* to determine
         what check_period to set for production runs.
 
         Warning:
-            If the previous :py:func:`hoomd.run()` was short, insufficient
+            If the previous ```hoomd.run``` was short, insufficient
             sampling may cause the queried update period to be large enough to
             result in dangerous builds during longer runs. Unless you use a
             really long warm up run, subtract an additional 1 from this when you
@@ -129,7 +129,7 @@ class Cell(_NList):
         deterministic (bool): When True, enable deterministic runs on the GPU by
             sorting the cell list.
 
-    :py:class:`cell` creates a cell list based neighbor list object to which
+    :py:class:`Cell` creates a cell list based neighbor list object to which
     pair potentials can be attached for computing non-bonded pairwise
     interactions. Cell listing allows for *O(N)* construction of the neighbor
     list. Particles are first spatially sorted into cells based on the largest
@@ -139,9 +139,9 @@ class Cell(_NList):
     monodisperse cutoffs, but performance degrades for large cutoff radius
     asymmetries due to the significantly increased number of particles per cell.
 
-    Use base class methods to change parameters (:py:meth:`set_params
-    <nlist.set_params>`), reset the exclusion list (:py:meth:`reset_exclusions
-    <nlist.reset_exclusions>`) or tune *r_buff* (:py:meth:`tune <nlist.tune>`).
+    Use base class methods to change parameters ``set_params``,
+    reset the exclusion list (``reset_exclusions``) or tune
+    *r_buff* ``nlist.tune``).
 
     Examples::
 
@@ -204,12 +204,12 @@ class stencil(nlist):
     `M.P. Howard et al. 2016 <http://dx.doi.org/10.1016/j.cpc.2016.02.003>`_ describes this neighbor list implementation
     in HOOMD-blue. Cite it if you utilize this neighbor list style in your work.
 
-    This neighbor-list style differs from :py:class:`cell` based on how the adjacent cells are searched for particles. The cell
+    This neighbor-list style differs from :py:class:`Cell` based on how the adjacent cells are searched for particles. The cell
     list *cell_width* is set by default using the shortest active cutoff radius in the system. One *stencil* is computed
     per particle type based on the largest cutoff radius that type participates in, which defines the bins that the
     particle must search in. Distances to the bins in the stencil are precomputed so that certain particles can be
-    quickly excluded from the neighbor list, leading to improved performance compared to :py:class:`cell` when there is size
-    disparity in the cutoff radius. The memory demands of :py:class:`stencil` can also be lower than :py:class:`cell` if your
+    quickly excluded from the neighbor list, leading to improved performance compared to :py:class:`Cell` when there is size
+    disparity in the cutoff radius. The memory demands of :py:class:`stencil` can also be lower than :py:class:`Cell` if your
     system is large and has many small cells in it; however, :py:class:`tree` is usually a better choice for these systems.
 
     The performance of the stencil depends strongly on the choice of *cell_width*. The best performance is obtained
@@ -382,7 +382,7 @@ class tree(nlist):
     for computing non-bonded pairwise interactions. A BVH tree of axis-aligned bounding boxes is constructed per particle
     type, and each particle queries each tree to determine its neighbors. This method of searching leads to significantly
     improved performance compared to cell lists in systems with moderate size asymmetry, but has slightly poorer performance
-    (10% slower) for monodisperse systems. :py:class:`tree` can also be slower than :py:class:`cell` if there are multiple
+    (10% slower) for monodisperse systems. :py:class:`tree` can also be slower than :py:class:`Cell` if there are multiple
     types in the system, but the cutoffs between types are identical. (This is because one BVH is created per type.)
     The user should carefully benchmark neighbor list build times to select the appropriate neighbor list construction type.
 

@@ -5,15 +5,10 @@ from hoomd.operations import Operations
 
 
 class Simulation:
-    R""" Simulation.
+    r""" Simulation.
 
-    Parameters:
+    Args:
         device (:py:mod:`hoomd.device`): Device to execute the simulation.
-
-    Attributes:
-        device
-        state
-        operations
     """
 
     def __init__(self, device):
@@ -151,7 +146,7 @@ class Simulation:
         log data to a file or when using an NPT integrator). Set
         ``always_compute_pressure`` to True to make the per particle virial,
         net virial, and system pressure available to query any time by property
-        or through the :py:class:`hoomd.Logger` interface.
+        or through the :py:class:`hoomd.logging.Logger` interface.
 
         Note:
             Enabling this flag will result in a moderate performance penalty

@@ -104,9 +104,13 @@ void IntegratorTwoStep::update(unsigned int timestep)
         m_prof->push("Integrate");
 
     // perform the first step of the integration on all groups
-    std::vector< std::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
-    for (method = m_methods.begin(); method != m_methods.end(); ++method)
+    for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
+        {
+        // deltaT should probably be passed as an argument, but that would require modifying many
+        // files. Work around this by calling setDeltaT every timestep.
+        (*method)->setDeltaT(m_deltaT);
         (*method)->integrateStepOne(timestep);
+        }
 
     if (m_prof)
         m_prof->pop();
@@ -145,7 +149,7 @@ void IntegratorTwoStep::update(unsigned int timestep)
         m_prof->push("Integrate");
 
     // perform the second step of the integration on all groups
-    for (method = m_methods.begin(); method != m_methods.end(); ++method)
+    for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->integrateStepTwo(timestep);
 
     /* NOTE: For composite particles, it is assumed that positions and orientations are not updated
@@ -264,29 +268,44 @@ void IntegratorTwoStep::initializeIntegrationMethods()
     }
 
 /*! \param group Group over which to count degrees of freedom.
-    IntegratorTwoStep totals up the degrees of freedom that each integration method provide to the group.
-    Three degrees of freedom are subtracted from the total to account for the constrained position of the system center of
-    mass.
-*/
-unsigned int IntegratorTwoStep::getNDOF(std::shared_ptr<ParticleGroup> group)
-    {
-    int res = 0;
 
-    // loop through all methods
-    std::vector< std::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
-    for (method = m_methods.begin(); method != m_methods.end(); ++method)
+    IntegratorTwoStep totals up the degrees of freedom that each integration method provide to the
+    group.
+
+    When the user has only one momentum conserving integration method applied to the all group,
+    getNDOF subtracts n_dimensions degrees of freedom from the system to account for the pinned
+    center of mass. When the query group is not the group of all particles, spread these these
+    removed DOF proportionately so that the results given by one ComputeThermo on the all group are
+    consitent with the average of many ComputeThermo's on disjoint subset groups.
+*/
+Scalar IntegratorTwoStep::getTranslationalDOF(std::shared_ptr<ParticleGroup> group)
+    {
+    // proportionately remove n_dimensions DOF when there is only one momentum conserving
+    // integration method
+    Scalar periodic_dof_removed = 0;
+    if (group->getNumMembersGlobal() == m_pdata->getNGlobal() &&
+        m_methods.size() == 1 &&
+        m_methods[0]->isMomentumConserving())
         {
-        // dd them all together
-        res += (*method)->getNDOF(group);
+        periodic_dof_removed = Scalar(m_sysdef->getNDimensions()) *
+                               (Scalar(group->getNumMembersGlobal())
+                               / Scalar(m_pdata->getNGlobal()));
         }
 
-    return res - m_sysdef->getNDimensions() - getNDOFRemoved();
+    // loop through all methods and add up the number of DOF They apply to the group
+    Scalar total = 0;
+    for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
+        {
+        total += (*method)->getTranslationalDOF(group);
+        }
+
+    return total - periodic_dof_removed - getNDOFRemoved(group);
     }
 
 /*! \param group Group over which to count degrees of freedom.
     IntegratorTwoStep totals up the rotational degrees of freedom that each integration method provide to the group.
 */
-unsigned int IntegratorTwoStep::getRotationalNDOF(std::shared_ptr<ParticleGroup> group)
+Scalar IntegratorTwoStep::getRotationalDOF(std::shared_ptr<ParticleGroup> group)
     {
     int res = 0;
 
@@ -315,7 +334,7 @@ unsigned int IntegratorTwoStep::getRotationalNDOF(std::shared_ptr<ParticleGroup>
         for (method = m_methods.begin(); method != m_methods.end(); ++method)
             {
             // dd them all together
-            res += (*method)->getRotationalNDOF(group);
+            res += (*method)->getRotationalDOF(group);
             }
         }
 

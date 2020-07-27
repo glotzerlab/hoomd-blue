@@ -40,8 +40,11 @@ class PYBIND11_EXPORT ConstraintSphere : public ForceConstraint
         //! Set the force to a new value
         void setSphere(Scalar3 P, Scalar r);
 
-        //! Return the number of DOF removed by this constraint
-        virtual unsigned int getNDOFRemoved();
+        /** ConstraintSphere removes 1 degree of freedom per particle in the group
+
+            @param query The group over which to compute the removed degrees of freedom
+        */
+        virtual Scalar getNDOFRemoved(std::shared_ptr<ParticleGroup> query);
 
     protected:
         std::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this constraint is applied

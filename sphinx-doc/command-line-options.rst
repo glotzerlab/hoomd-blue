@@ -6,8 +6,8 @@ Command line options
 Overview
 --------
 
-Arguments are processed in :py:func:`hoomd.context.initialize`. Call
-:py:func:`hoomd.context.initialize` immediately after importing hoomd so that the requested MPI and GPU options can be
+Arguments are processed in ``hoomd.context.initialize``. Call
+``hoomd.context.initialize`` immediately after importing hoomd so that the requested MPI and GPU options can be
 initialized as early as possible.
 
 There are two ways to specify arguments.
@@ -22,7 +22,7 @@ There are two ways to specify arguments.
         import hoomd
         hoomd.context.initialize("[options]")
 
-With no arguments, :py:func:`hoomd.context.initialize` will attempt to parse **all** arguments from the command line, whether
+With no arguments, ``hoomd.context.initialize`` will attempt to parse **all** arguments from the command line, whether
 it understands them or not. When you pass a string, it ignores the command line (:py:obj:`sys.argv`)
 and parses the given string as if it were issued on the command line. In jupyter notebooks, use
 ``context.initialize("")`` to avoid errors from jupyter specific command line arguments.
@@ -130,7 +130,7 @@ You can select the GPU on which to run using the ``--gpu`` command line option::
 .. note::
     ``--gpu`` implies ``--mode=gpu``. To find out which id
     is assigned to each GPU in your system, download the CUDA SDK for your system
-    from http://www.nvidia.com/object/cuda_get.html and run the `deviceQuery` sample.
+    from http://www.nvidia.com/object/cuda_get.html and run the ``deviceQuery`` sample.
 
 If you run a script without any options::
 
@@ -267,12 +267,12 @@ to which 3 GPUs each are assigned.
 User options
 ^^^^^^^^^^^^
 
-User defined options may be passed to a job script via ``--user`` and retrieved by calling :py:func:`hoomd.option.get_user()`. For example,
+User defined options may be passed to a job script via ``--user`` and retrieved by calling ``hoomd.option.get_user()``. For example,
 if hoomd is executed with::
 
     python script.py --gpu=2 --ignore-display-gpu --user="--N=5 --rho=0.5"
 
-then :py:func:`hoomd.option.get_user()` will return ``['--N=5', '--rho=0.5']``, which is a format suitable for processing by standard
+then ``hoomd.option.get_user()`` will return ``['--N=5', '--rho=0.5']``, which is a format suitable for processing by standard
 tools such as :py:obj:`optparse`.
 
 Execution with CPU threads (Intel TBB support)
@@ -284,6 +284,6 @@ the number of threads can be set. On the command line, this is done using::
 
     python script.py --mode=cpu --nthreads=20
 
-Alternatively, the same option can be passed to :py:class:`hoomd.context.initialize()`, and the number of threads can be updated any time
-by using the property :py:attr:`hoomd.device.num_threads`. If no number of threads is specified, TBB by default uses 
+Alternatively, the same option can be passed to ``hoomd.context.initialize``, and the number of threads can be updated any time
+by using the property :py:attr:`hoomd.device.num_threads`. If no number of threads is specified, TBB by default uses
 all CPUs  in the system. For compatibility with OpenMP, HOOMD also honors a value set in the environment variable **OMP_NUM_THREADS**.

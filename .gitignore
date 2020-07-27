@@ -12,3 +12,4 @@ __pycache__
 *.code-workspace
 .vscode/
 devdoc/
+docs/*

@@ -112,7 +112,7 @@ void test_nvt_mtk_integrator(std::shared_ptr<ExecutionConfiguration> exec_conf, 
     nvt_1->addIntegrationMethod(two_step_nvt_1);
     nvt_1->addForceCompute(fc_1);
 
-    unsigned int ndof = nvt_1->getNDOF(group_all_1);
+    unsigned int ndof = nvt_1->getTranslationalDOF(group_all_1);
     thermo_nvt->setNDOF(ndof);
     thermo_1->setNDOF(ndof);
 
@@ -211,10 +211,10 @@ void test_nvt_mtk_integrator_aniso(std::shared_ptr<ExecutionConfiguration> exec_
     nvt_1->addIntegrationMethod(two_step_nvt_1);
     nvt_1->addForceCompute(fc_1);
 
-    unsigned int ndof = nvt_1->getNDOF(group_all_1);
+    unsigned int ndof = nvt_1->getTranslationalDOF(group_all_1);
     thermo_nvt->setNDOF(ndof);
     thermo_1->setNDOF(ndof);
-    unsigned int ndof_rot = nvt_1->getRotationalNDOF(group_all_1);
+    unsigned int ndof_rot = nvt_1->getRotationalDOF(group_all_1);
     thermo_nvt->setRotationalNDOF(ndof_rot);
     thermo_1->setRotationalNDOF(ndof_rot);
 

@@ -310,7 +310,6 @@ set(files benchmark.py
           compute.py
           conftest.py
           context.py
-          custom_action.py
           data.py
           device.py
           dump.py
@@ -331,12 +330,11 @@ set(files benchmark.py
           state.py
           syncedlist.py
           parameterdicts.py
-          custom_operation.py
           trigger.py
           typeparam.py
           typeconverter.py
           snapshot.py
-          logger.py
+          logging.py
     )
 
 install(FILES ${files}
@@ -351,9 +349,14 @@ install(FILES ${_hoomd_headers}
        )
 
 # subdirectories that are not components
+add_subdirectory(analyze)
+add_subdirectory(custom)
 add_subdirectory(filter)
-add_subdirectory(pytest)
 add_subdirectory(minimize)
+add_subdirectory(output)
+add_subdirectory(pytest)
+add_subdirectory(tuner)
+add_subdirectory(update)
 
 if (BUILD_TESTING)
     # add_subdirectory(test-py)
@@ -368,19 +371,6 @@ if (BUILD_MD)
         # add the distributed FFT library
         add_subdirectory(${HOOMD_SOURCE_DIR}/hoomd/extern/dfftlib)
     endif()
-
-    if (ENABLE_HIP)
-        # add the neighbor library
-        set(NEIGHBOR_HOOMD_INTERNAL TRUE)
-
-        if (HIP_PLATFORM STREQUAL "hcc")
-            set(NEIGHBOR_DISABLE_MIXED TRUE)
-            target_compile_definitions(_hoomd PUBLIC NEIGHBOR_DISABLE_MIXED)
-        endif()
-
-        add_subdirectory(${HOOMD_SOURCE_DIR}/hoomd/extern/neighbor)
-    endif (ENABLE_HIP)
-
     add_subdirectory(md)
 endif()
 
@@ -406,26 +396,8 @@ if (BUILD_JIT)
     add_subdirectory(jit)
 endif()
 
-file(GLOB _directory_contents RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *)
-
-# explicitly remove directories which are already explicitly dealt with
-list(REMOVE_ITEM _directory_contents test
-                                     test-py
-                                     extern
-                                     md
-                                     hpmc
-                                     metal
-                                     dem
-                                     mpcd
-                                     jit
-                                     pytest
-                                     minimize
-                                     filter)
-
-foreach(entry ${_directory_contents})
-    if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${entry} OR IS_SYMLINK ${CMAKE_CURRENT_SOURCE_DIR}/${entry})
-        if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${entry}/CMakeLists.txt)
-            add_subdirectory(${entry})
-        endif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${entry}/CMakeLists.txt)
-    endif(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${entry} OR IS_SYMLINK ${CMAKE_CURRENT_SOURCE_DIR}/${entry})
+foreach(entry ${PLUGINS})
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${entry}/CMakeLists.txt)
+        add_subdirectory(${entry})
+    endif()
 endforeach()

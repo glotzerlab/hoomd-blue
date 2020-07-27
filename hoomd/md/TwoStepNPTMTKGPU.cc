@@ -85,7 +85,7 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
         m_prof->push("NPT step 1");
 
     // update degrees of freedom for MTK term
-    m_ndof = m_thermo_group->getNDOF();
+    m_ndof = m_group->getTranslationalDOF();
 
     // advance barostat (nuxx, nuyy, nuzz) half a time step
     advanceBarostat(timestep);

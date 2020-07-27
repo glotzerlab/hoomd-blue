@@ -1,6 +1,7 @@
 # copy python modules to the build directory to make it a working python package
 set(files __init__.py
           test_box.py
+          test_csv.py
           test_device.py
           test_example.py
           test_trigger.py
@@ -9,7 +10,7 @@ set(files __init__.py
           test_operation.py
           test_syncedlist.py
           test_triggeredops.py
-          test_logger.py
+          test_logging.py
           test_filter.py
           dummy.py
           test_snapshot.py

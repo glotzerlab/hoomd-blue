@@ -39,7 +39,7 @@ class _SpecialPair(_Force):
 class LJ(_SpecialPair):
     R""" LJ special pair potential.
 
-    :py:class:`lj` specifies a Lennard-Jones potential energy between the two
+    :py:class:`LJ` specifies a Lennard-Jones potential energy between the two
     particles in each defined pair.
 
     This is useful for implementing e.g. special 1-4 interactions in all-atom
@@ -92,7 +92,7 @@ class Coulomb(_SpecialPair):
     Args:
         name (str): Name of the special_pair instance.
 
-    :py:class:`coulomb` specifies a Coulomb potential energy between the two
+    :py:class:`Coulomb` specifies a Coulomb potential energy between the two
     particles in each defined pair.
 
     This is useful for implementing e.g. special 1-4 interactions in all-atom

@@ -159,7 +159,7 @@ class State:
 
     @property
     def box(self):
-        """The state's box (a :py:class:`hoomd.box.Box` object).
+        """The state's box (a :py:class:`hoomd.Box` object).
 
         Ediing the box directly is not allowed.  For example
         ``state.box.scale(1.1)`` would not scale the state's box. To set the
@@ -198,3 +198,31 @@ class State:
             group = _hoomd.ParticleGroup(self._cpp_sys_def, filter_)
             self._groups[cls][filter_] = group
             return group
+
+    def update_group_dof(self):
+        """Update the number of degrees of freedom in each group.
+
+        The groups of particles selected by filters each need to know the number
+        of degrees of freedom given to that group by the simulation's
+        Integrator. This method is called automatically when:
+
+        * The Integrator is attached to the simulation
+
+        Call it manually to force an update.
+        """
+        integrator = self._simulation.operations.integrator
+
+        # Do nothing if there is no integrator.
+        if integrator is None:
+            return
+
+        if not integrator.is_attached:
+            raise RuntimeError("Call update_group_dof after attaching")
+
+        for groups in self._groups.values():
+            for group in groups.values():
+                if integrator is not None:
+                    integrator._cpp_obj.updateGroupDOF(group)
+                else:
+                    group.setTranslationalDOF(0)
+                    group.setRotationalDOF(0)
