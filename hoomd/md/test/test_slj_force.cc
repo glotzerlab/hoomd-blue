@@ -325,8 +325,6 @@ void shiftedlj_force_comparison_test(shiftedljforce_creator shiftedlj_creator1,
     Scalar epsilon = Scalar(1.0);
     Scalar sigma = Scalar(1.2);
     Scalar alpha = Scalar(0.45);
-    Scalar shiftedlj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
-    Scalar shiftedlj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
 
     // specify the force parameters
     fc1->setParams(0,0,EvaluatorPairSLJ::param_type(sigma, epsilon, alpha));
