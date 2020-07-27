@@ -25,7 +25,6 @@
 #define DEVICE
 #endif
 
-
 //! Class for evaluating the Yukawa pair potential
 /*! <b>General Overview</b>
 

@@ -343,11 +343,11 @@ class SLJ(_Pair):
       - *optional*: defaults to the global r_on specified in the pair command
 
     .. attention::
-        Due to the way that pair.slj modifies the cutoff criteria, a shift_mode of *xplor* is not supported.
+        Due to the way that pair.SLJ modifies the cutoff criteria, a shift_mode of *xplor* is not supported.
 
-    The actual cutoff radius for pair.slj is shifted by the diameter of two particles interacting.  Thus to determine
+    The actual cutoff radius for pair.SLJ is shifted by the diameter of two particles interacting.  Thus to determine
     the maximum possible actual r_cut in simulation
-    pair.slj must know the maximum diameter of all the particles over the entire run.
+    pair.SLJ must know the maximum diameter of all the particles over the entire run.
     This value must be set by the user and can be
     modified between runs with the *max_diameter* property of the ``hoomd.md.nlist`` objects.
 
@@ -2203,4 +2203,3 @@ class Fourier(_Pair):
             TypeParameterDict(a=list, b=list,
             _defaults=dict(a=[float]*3, b=[float]*3), len_keys=2))
         self._add_typeparam(params)
-
