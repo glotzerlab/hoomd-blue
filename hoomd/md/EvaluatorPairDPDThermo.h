@@ -101,18 +101,6 @@ class EvaluatorPairDPDThermo
                     gamma = 0;
                 }
 
-            param_type(Scalar a, Scalar gam=-1)
-                {
-                A = a;
-                // protect against a user setting gamma to 0 in dpd
-                if (gam == 0)
-                    throw std::invalid_argument("Cannot set gamma to 0 in DPD, try using DPDConservative instead");
-                else if (gam != -1)
-                    gamma = gam;
-                else
-                    gamma = 0;
-                }
-
             pybind11::dict asDict()
                 {
                 pybind11::dict v;

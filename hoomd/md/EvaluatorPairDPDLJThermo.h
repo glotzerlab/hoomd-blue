@@ -101,14 +101,6 @@ class EvaluatorPairDPDLJThermo
                 gamma = v["gamma"].cast<Scalar>();
                 }
 
-            // this constructor facilitates unit testing
-            param_type(Scalar sigma, Scalar epsilon, Scalar alpha=1.0, Scalar gamma_=1.0)
-                {
-                lj1 = 4.0 * epsilon * pow(sigma, 12.0);
-                lj2 = 4.0 * epsilon * alpha * pow(sigma, 6.0);
-                gamma = gamma_;
-                }
-
             pybind11::dict asDict()
                 {
                 pybind11::dict v;

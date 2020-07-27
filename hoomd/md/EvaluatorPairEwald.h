@@ -66,12 +66,6 @@ class EvaluatorPairEwald
                 alpha = v["alpha"].cast<Scalar>();
                 }
 
-            param_type(Scalar kap, Scalar alph)
-                {
-                kappa = kap;
-                alpha = alph;
-                }
-
             pybind11::dict asDict()
                 {
                 pybind11::dict v;

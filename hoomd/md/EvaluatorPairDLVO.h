@@ -77,11 +77,6 @@ class EvaluatorPairDLVO
                 A = v["A"].cast<Scalar>();
                 }
 
-            param_type(Scalar kappa, Scalar Z, Scalar A)
-                {
-                //TODO for possible unit testing
-                }
-
             pybind11::dict asDict()
                 {
                 pybind11::dict v;
