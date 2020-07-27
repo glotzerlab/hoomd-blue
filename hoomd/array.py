@@ -1,6 +1,6 @@
 from copy import deepcopy
 import functools
-from collections import Iterable
+from collections.abc import Iterable
 
 import numpy as np
 
