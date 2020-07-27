@@ -57,6 +57,10 @@ and functions that return a new array with the same underlying data.
 In all cases we coerce, HOOMDArray objects into `numpy.ndarray` and
 `cupy.ndarray` objects for the wrapping. This is required to get to the original
 method used the mocked objects.
+
+Information regarding whether a returned array may share memory with the
+original array is gathered from the methods' documentation of which a list is
+found https://numpy.org/doc/stable/reference/arrays.ndarray.html.
 """
 
 
