@@ -207,8 +207,9 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
 
     snap = two_particle_snapshot_factory(dimensions=3, d=.5)
     if snap.exists:
-        snap.particles.position[0] = [0, 0, 0]
-        snap.particles.position[1] = [0, 0, r]
+        # avoid MPI errors by shifting positions by .1
+        snap.particles.position[0] = [0, 0, .1]
+        snap.particles.position[1] = [0, 0, r + .1]
     sim = simulation_factory(snap)
 
     integrator = hoomd.md.Integrator(dt=0.005)
@@ -218,13 +219,18 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     sim.operations.integrator = integrator
     sim.operations.schedule()
 
-    E_r = sum(sim.operations.integrator.forces[0].energies)
+    energies = sim.operations.integrator.forces[0].energies
+    if energies is not None:
+        E_r = sum(energies)
+
     snap = sim.state.snapshot
     if snap.exists:
-        snap.particles.position[0] = [0, 0, 0]
-        snap.particles.position[1] = [0, 0, r_cut]
+        snap.particles.position[0] = [0, 0, .1]
+        snap.particles.position[1] = [0, 0, r_cut + .1]
     sim.state.snapshot = snap
-    E_rcut = sum(sim.operations.integrator.forces[0].energies)
+    energies = sim.operations.integrator.forces[0].energies
+    if energies is not None:
+        E_rcut = sum(energies)
 
     lj_shift = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(),
                                 mode='shifted', r_cut=r_cut)
@@ -238,10 +244,13 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
 
     snap = sim.state.snapshot
     if snap.exists:
-        snap.particles.position[0] = [0, 0, 0]
-        snap.particles.position[1] = [0, 0, r]
+        snap.particles.position[0] = [0, 0, .1]
+        snap.particles.position[1] = [0, 0, r + .1]
     sim.state.snapshot = snap
-    assert sum(sim.operations.integrator.forces[0].energies) == E_r - E_rcut
+
+    energies = sim.operations.integrator.forces[0].energies
+    if energies is not None:
+        assert sum(energies) == E_r - E_rcut
 
     lj_xplor = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(),
                                 mode='xplor', r_cut=r_cut)
@@ -255,11 +264,13 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     sim.operations.integrator = integrator
     sim.operations.schedule()
 
-    xplor_E = sum(sim.operations.integrator.forces[0].energies)
-    assert xplor_E == E_r * S_r(r, r_cut, r_on)
+    energies = sim.operations.integrator.forces[0].energies
+    if energies is not None:
+        xplor_E = sum(energies)
+        assert xplor_E == E_r * S_r(r, r_cut, r_on)
 
-    lj_xplor.r_on[('A', 'A')] = 3.0
-    assert sum(sim.operations.integrator.forces[0].energies) == E_r - E_rcut
+        lj_xplor.r_on[('A', 'A')] = 3.0
+        assert sum(energies) == E_r - E_rcut
 
 
 # This function calculates the forces in a two particle simulation frame by
