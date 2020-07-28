@@ -92,7 +92,8 @@ class UpdateOrder
                 std::swap(m_update_order[i], m_update_order[j]);
                 }
             }
-
+        std::vector<unsigned int>::iterator begin() { return m_update_order.begin(); } // TODO: make const?
+        std::vector<unsigned int>::iterator end() { return m_update_order.end(); }
         //! Access element of the shuffled order
         unsigned int operator[](unsigned int i)
             {

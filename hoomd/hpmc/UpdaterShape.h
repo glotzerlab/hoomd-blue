@@ -395,18 +395,152 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         }
     if(p < Z)
         {
-        unsigned int overlaps = 1;
-        overlaps = m_mc->countOverlaps(timestep, true);
-        // if(m_pdata->getNTypes() == m_pdata->getNGlobal())
+        bool overlap = false;
+
+        bool early_exit = true;
+
+        unsigned int overlap_count = 0;
+        unsigned int err_count = 0;
+
+        m_exec_conf->msg->notice(10) << "HPMCMono count overlaps: " << timestep << std::endl;
+
+        // if (!m_past_first_run)
         //     {
-        //     overlaps = m_mc->countOverlapsEx(timestep, true, m_update_order.begin(), m_update_order.begin()+n_type_select);
+        //     m_exec_conf->msg->error() << "count_overlaps only works after a run() command" << std::endl;
+        //     throw std::runtime_error("Error communicating in count_overlaps");
         //     }
-        // else
-        //     {
-        //     overlaps = m_mc->countOverlaps(timestep, true);
-        //     }
-        accept = !overlaps;
-        m_exec_conf->msg->notice(5) << " UpdaterShape counted " << overlaps << " overlaps" << std::endl;
+
+        // build an up to date AABB tree
+        const detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
+        // update the image list
+        std::vector<vec3<Scalar> > image_list = m_mc->updateImageList();
+
+        if (this->m_prof) this->m_prof->push(this->m_exec_conf, "HPMC count overlaps");
+
+        const Index2D& overlap_idx = m_mc->getOverlapIndexer();
+        // access particle data and system box
+        ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+
+        // access parameters and interaction matrix
+        ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
+
+        // Find indices of particles corresponding to n_types_select
+        std::vector<unsigned int> pindices;
+        for (unsigned int i = 0; i < m_pdata->getN(); i++)
+            {
+            Scalar4 postype_i = h_postype.data[i];
+            int typ_i = __scalar_as_int(postype_i.w);
+            for (unsigned int cur_type = 0; cur_type < n_type_select; cur_type++)
+                {
+                if (typ_i == m_update_order[cur_type])
+                    {
+                    pindices.push_back(i);
+                    }
+                }
+            }
+
+        // Loop over particles corresponding to n_types_select
+        for (unsigned int j = 0; j < pindices.size(); j++)
+            {
+            unsigned int i = pindices[j];
+            // read in the current position and orientation
+            Scalar4 postype_i = h_postype.data[i];
+            Scalar4 orientation_i = h_orientation.data[i];
+            unsigned int typ_i = __scalar_as_int(postype_i.w);
+            Shape shape_i(quat<Scalar>(orientation_i), m_mc->getParams()[typ_i]);
+            vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
+
+            // Check particle against AABB tree for neighbors
+            detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
+
+            const unsigned int n_images = image_list.size();
+            for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
+                {
+                vec3<Scalar> pos_i_image = pos_i + image_list[cur_image];
+                detail::AABB aabb = aabb_i_local;
+                aabb.translate(pos_i_image);
+
+                // stackless search
+                for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes(); cur_node_idx++)
+                    {
+                    if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                        {
+                        if (aabb_tree.isNodeLeaf(cur_node_idx))
+                            {
+                            for (unsigned int cur_p = 0; cur_p < aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
+                                {
+                                // read in its position and orientation
+                                unsigned int j = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
+
+                                // skip i==j in the 0 image
+                                if (cur_image == 0 && i == j)
+                                    continue;
+
+                                Scalar4 postype_j = h_postype.data[j];
+                                Scalar4 orientation_j = h_orientation.data[j];
+
+                                // put particles in coordinate system of particle i
+                                vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
+
+                                unsigned int typ_j = __scalar_as_int(postype_j.w);
+                                Shape shape_j(quat<Scalar>(orientation_j), m_mc->getParams()[typ_j]);
+
+                                if (h_tag.data[i] <= h_tag.data[j]
+                                    && h_overlaps.data[overlap_idx(typ_i,typ_j)]
+                                    && check_circumsphere_overlap(r_ij, shape_i, shape_j)
+                                    && test_overlap(r_ij, shape_i, shape_j, err_count)
+                                    && test_overlap(-r_ij, shape_j, shape_i, err_count))
+                                    {
+                                    overlap_count++;
+                                    if (early_exit)
+                                        {
+                                        // exit early from loop over neighbor particles
+                                        break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    else
+                        {
+                        // skip ahead
+                        cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
+                        }
+
+                    if (overlap_count && early_exit)
+                        {
+                        break;
+                        }
+                    } // end loop over AABB nodes
+
+                if (overlap_count && early_exit)
+                    {
+                    break;
+                    }
+                } // end loop over images
+
+            if (overlap_count && early_exit)
+                {
+                break;
+                }
+            } // end loop over particles
+
+        if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
+
+        #ifdef ENABLE_MPI
+        if (this->m_pdata->getDomainDecomposition())
+            {
+            MPI_Allreduce(MPI_IN_PLACE, &overlap_count, 1, MPI_UNSIGNED, MPI_SUM, m_exec_conf->getMPICommunicator());
+            if (early_exit && overlap_count > 1)
+                overlap_count = 1;
+            }
+        #endif
+
+        accept = !overlap_count;
+
+        m_exec_conf->msg->notice(5) << " UpdaterShape counted " << overlap_count << " overlaps" << std::endl;
         if(m_multi_phase)
             {
             #ifdef ENABLE_MPI
@@ -427,7 +561,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         m_exec_conf->msg->notice(5) << " UpdaterShape p=" << p << ", z=" << Z << std::endl;
         }
 
-        if( !accept ) // catagorically reject the move.
+        if( !accept ) // categorically reject the move.
             {
             m_exec_conf->msg->notice(5) << " UpdaterShape move retreating" << std::endl;
             m_move_function->retreat(timestep);
