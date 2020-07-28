@@ -126,6 +126,7 @@ from hoomd.hpmc import analyze
 from hoomd.hpmc import compute
 from hoomd.hpmc import util
 from hoomd.hpmc import field
+from hoomd.hpmc import tune
 
 # add HPMC article citation notice
 import hoomd
