@@ -277,31 +277,36 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
 # finding the negative derivative of energy over inter particle distance
 def _calculate_force(sim):
     snap = sim.state.snapshot
-    initial_pos = snap.particles.position
     if snap.exists:
+        initial_pos = snap.particles.position
         snap.particles.position[1] = initial_pos[1] * 0.99999999
     sim.state.snapshot = snap
     E0 = sim.operations.integrator.forces[0].energies
-    pos = sim.state.snapshot.particles.position
-    r0 = pos[0] - pos[1]
-    mag_r0 = np.linalg.norm(r0)
-    direction = r0 / mag_r0
-
     snap = sim.state.snapshot
     if snap.exists:
+        pos = snap.particles.position
+        r0 = pos[0] - pos[1]
+        mag_r0 = np.linalg.norm(r0)
+        direction = r0 / mag_r0
+
         snap.particles.position[1] = initial_pos[1] * 1.00000001
     sim.state.snapshot = snap
     E1 = sim.operations.integrator.forces[0].energies
-    pos = sim.state.snapshot.particles.position
-    mag_r1 = np.linalg.norm(pos[0] - pos[1])
+    snap = sim.state.snapshot
+    if snap.exists:
+        pos = snap.particles.position
+        mag_r1 = np.linalg.norm(pos[0] - pos[1])
 
-    Fa = -1 * ((E1[0] - E0[0]) / (mag_r1 - mag_r0)) * 2 * direction
-    Fb = -1 * ((E1[1] - E0[1]) / (mag_r1 - mag_r0)) * 2 * direction * -1
+        Fa = -1 * ((E1[0] - E0[0]) / (mag_r1 - mag_r0)) * 2 * direction
+        Fb = -1 * ((E1[1] - E0[1]) / (mag_r1 - mag_r0)) * 2 * direction * -1
     snap = sim.state.snapshot
     if snap.exists:
         snap.particles.position[1] = initial_pos[1]
     sim.state.snapshot = snap
-    return Fa, Fb
+    if sim.state.snapshot.exists:
+        return Fa, Fb
+    else:
+        return 0, 0  # return dummy values if not on rank 1
 
 
 @pytest.mark.parametrize("nsteps", [1, 5, 10])
@@ -340,14 +345,17 @@ def test_force_energy_relationship(simulation_factory,
             snap.particles.typeid[1] = particle_types.index(pair[1])
         sim.state.snapshot = snap
 
+
         calculated_forces = _calculate_force(sim)
-        sim_forces = sim.operations.integrator.forces[0].forces
-        np.testing.assert_allclose(calculated_forces[0],
-                                   sim_forces[0],
-                                   rtol=1e-06)
-        np.testing.assert_allclose(calculated_forces[1],
-                                   sim_forces[1],
-                                   rtol=1e-06)
+        forces = sim.operations.integrator.forces[0].forces
+        if forces is not None:
+            sim_forces = forces
+            np.testing.assert_allclose(calculated_forces[0],
+                                       sim_forces[0],
+                                       rtol=1e-06)
+            np.testing.assert_allclose(calculated_forces[1],
+                                       sim_forces[1],
+                                       rtol=1e-06)
 
 
 def test_force_energy_accuracy(simulation_factory,
