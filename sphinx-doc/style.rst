@@ -1,9 +1,9 @@
 Code style
 ==========
 
-All code in HOOMD-blue must follow a consistent style to ensure readability.
-We provide configuration files for linters (specified below) so that developers
-can automatically validate and format files.
+All code in HOOMD-blue follows a consistent style to ensure readability. We
+provide configuration files for linters (specified below) so that developers can
+automatically validate and format files.
 
 At this time, the codebase is in a transition period to strict style guidelines.
 New code should follow these guidelines. In a pull request, **DO NOT** re-style
@@ -14,40 +14,50 @@ Python
 ------
 
 Python code in HOOMD should follow `PEP8
-<https://www.python.org/dev/peps/pep-0008>`_ with the following choices:
-
-* 80 character line widths.
-* Hang closing brackets.
-* Break before binary operators.
+<https://www.python.org/dev/peps/pep-0008>`_ with  with the formatting performed
+by `yapf <https://github.com/google/yapf>`_ (configuration in ``setup.cfg``).
+Code should pass all **flake8** tests and formatted by **yapf**.
 
 Tools
 ^^^^^
 
-* Linter: `flake8 <http://flake8.pycqa.org/en/latest/>`_ with
-  `pep8-naming <https://pypi.org/project/pep8-naming/>`_
-* Run: ``flake8`` to see a list of linter violations.
-* Autoformatter: `yapf <https://github.com/google/yapf>`_
-* Run: ``yapf -d -r .`` to see needed style changes.
-* Run: ``yapf -i file.py`` to apply style changes to a whole file, or use
-  your IDE to apply **yapf** to a selection.
+* Linter: `flake8 <http://flake8.pycqa.org/en/latest/>`_
 
+  * With these plugins:
+
+    * `pep8-naming <https://github.com/PyCQA/pep8-naming>`_
+    * `flake8-docstrings <https://gitlab.com/pycqa/flake8-docstrings>`_
+    * `flake8-rst-docstrings <https://github.com/peterjc/flake8-rst-docstrings>`_
+
+  * Run: ``flake8`` to see a list of linter violations.
+
+* Autoformatter: `yapf <https://github.com/google/yapf>`_
+
+  * Run: ``yapf -d -r .`` to see needed style changes.
+  * Run: ``yapf -i file.py`` to apply style changes to a whole file, or use
+    your IDE to apply **yapf** to a selection.
 
 Documentation
 ^^^^^^^^^^^^^
 
 Python code should be documented with docstrings and added to the Sphinx
-documentation index in ``sphinx-doc/``. Docstrings should follow Google style
+documentation index in ``sphinx-doc/``. Docstrings should follow `Google style
+<https://www.sphinx-doc.org/en/master/usage/extensions/example_google.html#example-google>`_
 formatting for use in `Napoleon
 <https://www.sphinx-doc.org/en/master/usage/extensions/napoleon.html>`_.
+
 
 C++/CUDA
 --------
 
-See ``SourceConventions.md``.
+* Style is set by **clang-format** >= 10
 
-* 100 character line width.
-* Indent only with spaces.
-* 4 spaces per indent level.
+  * Whitesmith's indentation style.
+  * 100 character line width.
+  * Indent only with spaces.
+  * 4 spaces per indent level.
+  * See :file:`.clang-format` for the full **clang-format** configuration.
+
 * Naming conventions:
 
     * Namespaces: All lowercase ``somenamespace``
@@ -62,8 +72,11 @@ See ``SourceConventions.md``.
 Tools
 ^^^^^
 
-* Autoformatter: We plan to provide a style configuration file once
-  **clang-format** 10 is more widely available.
+* Autoformatter: `clang-format <https://clang.llvm.org/docs/ClangFormat.html>`_.
+
+  * Run: ``./run-clang-format.py -r .`` to see needed changes.
+  * Run: ``clang-format -i file.c`` to apply the changes.
+
 
 Documentation
 ^^^^^^^^^^^^^
@@ -116,3 +129,10 @@ apply:
 * 100 character line width.
 * 4 spaces per indent level.
 * 4 space indent.
+
+Editor configuration
+--------------------
+
+`Visual Studio Code <https://code.visualstudio.com/>`_ users: Open the provided
+workspace file (``hoomd.code-workspace``) which provides configuration
+settings for these style guidelines.
