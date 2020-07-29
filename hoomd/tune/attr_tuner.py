@@ -139,20 +139,20 @@ class Solver(metaclass=ABCMeta):
         pass
 
     def solve(self, tunables):
-        for tunable in tunables:
-            self._solve_one(tunable)
-
-    def tuned(self, tunables, tol):
-        return all(abs(t.target - t.y) <= tol for t in tunables)
+        return all(self._solve_one(tunable) for tunable in tunables)
 
 
 class ScaleSolver(Solver):
-    def __init__(self, max_scale=2.0, gamma=2.0):
+    def __init__(self, max_scale=2.0, gamma=2.0, tol=1e-5):
         self.max_scale = max_scale
         self.gamma = gamma
+        self.tol = tol
 
     def _solve_one(self, tunable):
         x, y, target = tunable.x, tunable.y, tunable.target
+        if abs(y - target) <= self.tol:
+            return True
+
         if y > 0:
             scale = ((1.0 + self.gamma) * y) / (target + (self.gamma * y))
         else:
@@ -163,15 +163,20 @@ class ScaleSolver(Solver):
         # Ensures we stay within the tunable's domain (i.e. we don't take on
         # values to high or low).
         tunable.x = tunable.wrap_into_domain(scale * x)
+        return False
 
 
 class SecantSolver(Solver):
-    def __init__(self, gamma=0.9):
-        self._gamma = gamma
+    def __init__(self, gamma=0.9, tol=1e-5):
+        self.gamma = gamma
         self._previous_pair = dict()
+        self.tol = tol
 
     def _solve_one(self, tunable):
         x, y, target = tunable.x, tunable.y, tunable.target
+        if abs(y - target) <= self.tol:
+            return True
+
         if tunable not in self._previous_pair:
             # We must perturb x some to get a second point to find the correct
             # root.
@@ -187,7 +192,8 @@ class SecantSolver(Solver):
             self._previous_pair[tunable] = (x, y - target)
             f_x = y - target
             dxdf = (x - old_x) / (f_x - old_f_x)
-            new_x = x - (self._gamma * f_x * dxdf)
+            new_x = x - (self.gamma * f_x * dxdf)
 
         self._previous_pair[tunable] = (x, y - target)
         tunable.x = new_x
+        return False
