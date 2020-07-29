@@ -82,12 +82,9 @@ class _InternalMoveSize(_InternalAction):
             self._update_tunables_attr('target', is_fraction(target))
             return target
 
-        def set_for_solver(solver, attr):
-            def set_attr(value):
-                setattr(solver, attr, value)
-                return value
-
-            return set_attr
+        def max_move_size_postprocess(move_size):
+            self._update_tunables_attr( 'domain', (0, move_size))
+            return move_size
 
         def update_moves(value):
             self._update_tunables(new_moves=value)
@@ -114,8 +111,7 @@ class _InternalMoveSize(_InternalAction):
                 self._solver, 'max_scale')),
             max_move_size=OnlyType(
                 float, allow_none=True,
-                postprocess=lambda x: self._update_tunables_attr(
-                    'domain', (0, x))
+                postprocess=max_move_size_postprocess
             ),
             gamma=OnlyType(float, postprocess=set_for_solver(
                 self._solver, 'gamma'))
