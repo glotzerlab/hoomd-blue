@@ -133,7 +133,7 @@ class ManualTuneDefinition(metaclass=ABCMeta):
                 and self._target == other._target)
 
 
-class AttrTuner(metaclass=ABCMeta):
+class Solver(metaclass=ABCMeta):
     @abstractmethod
     def _solve_one(self, tunable):
         pass
@@ -146,7 +146,7 @@ class AttrTuner(metaclass=ABCMeta):
         return all(abs(t.target - t.y) <= tol for t in tunables)
 
 
-class _PositiveAttrTuner(AttrTuner):
+class ScaleSolver(Solver):
     def __init__(self, max_scale=2.0, gamma=2.0):
         self.max_scale = max_scale
         self.gamma = gamma
@@ -163,3 +163,31 @@ class _PositiveAttrTuner(AttrTuner):
         # Ensures we stay within the tunable's domain (i.e. we don't take on
         # values to high or low).
         tunable.x = tunable.wrap_into_domain(scale * x)
+
+
+class SecantSolver(Solver):
+    def __init__(self, gamma=0.9):
+        self._gamma = gamma
+        self._previous_pair = dict()
+
+    def _solve_one(self, tunable):
+        x, y, target = tunable.x, tunable.y, tunable.target
+        if tunable not in self._previous_pair:
+            # We must perturb x some to get a second point to find the correct
+            # root.
+            new_x = tunable.wrap_into_domain(x * 1.1)
+            if new_x == x:
+                new_x = tunable.wrap_into_domain(x * 0.9)
+                if new_x == x:
+                    raise RuntimeError("Unable to perturb x for secant solver.")
+        else:
+            # standard secant formula. A brief note, we use f(x) = y - target
+            # since this is the root we are searching for.
+            old_x, old_f_x = self._previous_pair[tunable]
+            self._previous_pair[tunable] = (x, y - target)
+            f_x = y - target
+            dxdf = (x - old_x) / (f_x - old_f_x)
+            new_x = x - (self._gamma * f_x * dxdf)
+
+        self._previous_pair[tunable] = (x, y - target)
+        tunable.x = new_x
