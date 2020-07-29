@@ -299,3 +299,28 @@ stages:
     - script: sphinx-build -b latex -d _build/doctrees -W -T --keep-going -n . _build/latex
       displayName: (LaTeX)
       workingDirectory: sphinx-doc
+
+- stage: style
+  displayName: Style checks
+  dependsOn: []
+
+  jobs:
+  - job: pydocstyle
+    displayName: pydocstyle
+    pool:
+      vmImage: 'ubuntu-latest'
+
+    container:
+      image: $(image_root)-clang10_py38
+      options: -u 0
+
+    workspace:
+      clean: all
+
+    steps:
+    - checkout: self
+      submodules: true
+    - script: >-
+        pydocstyle -v
+        hoomd/variant.py
+      displayName: Run pydocstyle
