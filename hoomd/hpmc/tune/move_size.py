@@ -93,6 +93,7 @@ class _InternalMoveSize(_InternalAction):
             return value
 
         self._tunables = []
+        self._tuned = False
         self._attached = False
         # This is a bit complicated because we are having to ensure that we keep
         # the list of tunables and the solver updated with the changes to
@@ -139,12 +140,17 @@ class _InternalMoveSize(_InternalAction):
     def is_attached(self):
         return self._attached
 
+    @property
+    def tuned(self):
+        return self._tuned
+
     def detach(self):
         self._update_tunables_attr('_integrator', None)
         self._attached = False
 
     def act(self, timestep):
-        self.solver.solve(self._tunables)
+        if not self._tuned:
+            self._tuned = self.solver.solve(self._tunables)
 
     def _update_tunables(self, *, new_moves=tuple(), new_types=tuple()):
         tunables = self._tunables
@@ -177,12 +183,13 @@ class MoveSize(_InternalCustomTuner):
 
     @classmethod
     def scaled_solver(cls, trigger, moves, target,
-                      types=None, max_move_size=None, max_scale=2., gamma=1.):
-        solver = ScaleSolver(max_scale, gamma)
+                      types=None, max_move_size=None,
+                      max_scale=2., gamma=1., tol=1e-2):
+        solver = ScaleSolver(max_scale, gamma, tol)
         return cls(trigger, moves, target, solver, types, max_move_size)
 
     @classmethod
     def secant_solver(cls, trigger, moves, target, types=None,
-                      max_move_size=None, gamma=0.9):
-        solver = SecantSolver(gamma)
+                      max_move_size=None, gamma=0.9, tol=1e-2):
+        solver = SecantSolver(gamma, tol)
         return cls(trigger, moves, target, solver, types, max_move_size)
