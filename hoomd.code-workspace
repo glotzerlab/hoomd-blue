@@ -1,12 +1,38 @@
 {
-	"folders": [
-		{
-			"path": "."
-		}
-	],
-	"settings": {
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
         "files.associations": {
             "**/.azp/**/*.yml": "azure-pipelines"
         },
-	}
+        "cSpell.words": [
+            "GPUs",
+            "HOOMD",
+            "Jupyter",
+            "Jupyter's",
+            "cmake",
+            "cpptools",
+            "cuda",
+            "dtype",
+            "noqa",
+            "numpy",
+            "pybind",
+            "pycodestyle",
+            "pylint",
+            "pyside",
+            "pytest",
+            "stkb",
+            "struct",
+            "tobytes",
+            "twxs",
+            "uint",
+            "unmap",
+            "verts",
+            "yapf",
+            "rtype"
+        ]
+    }
 }
