@@ -2,8 +2,8 @@ from hoomd.custom import _InternalAction
 from hoomd.parameterdicts import ParameterDict
 from hoomd.typeconverter import OnlyFrom, OnlyType, OnlyIf, to_type_converter
 from hoomd.tune import _InternalCustomTuner
-from hoomd.tune.attr_tuner import _TuneDefinition, _PositiveAttrTuner
-
+from hoomd.tune.attr_tuner import (
+        _TuneDefinition, Solver, ScaleSolver, SecantSolver)
 from hoomd.hpmc.integrate import _HPMCIntegrator
 
 
@@ -69,9 +69,7 @@ class _MoveSizeTuneDefinition(_TuneDefinition):
 
 
 class _InternalMoveSize(_InternalAction):
-    def __init__(self, moves, target, types=None, max_scale=2.0, gamma=2.0,
-                 max_move_size=None):
-
+    def __init__(self, moves, target, solver, types=None, max_move_size=None):
         def target_postprocess(target):
             def is_fraction(value):
                 if 0 <= value <= 1:
@@ -96,7 +94,6 @@ class _InternalMoveSize(_InternalAction):
 
         self._tunables = []
         self._attached = False
-        self._solver = _PositiveAttrTuner(max_scale, gamma)
         # This is a bit complicated because we are having to ensure that we keep
         # the list of tunables and the solver updated with the changes to
         # attributes. However, these are simply forwarding a change along.
@@ -107,22 +104,18 @@ class _InternalMoveSize(_InternalAction):
                          postprocess=update_types,
                          allow_none=True),
             target=OnlyType(float, postprocess=target_postprocess),
-            max_scale=OnlyType(float, postprocess=set_for_solver(
-                self._solver, 'max_scale')),
             max_move_size=OnlyType(
                 float, allow_none=True,
                 postprocess=max_move_size_postprocess
             ),
-            gamma=OnlyType(float, postprocess=set_for_solver(
-                self._solver, 'gamma'))
+            solver=Solver
         )
 
         param_dict['moves'] = moves
         param_dict['types'] = types
-        param_dict['max_scale'] = max_scale
         param_dict['max_move_size'] = max_move_size
-        param_dict['gamma'] = gamma
         param_dict['target'] = target
+        param_dict['solver'] = solver
         self._param_dict.update(param_dict)
         if types is not None:
             self._update_tunables(new_moves=moves, new_types=types)
@@ -151,7 +144,7 @@ class _InternalMoveSize(_InternalAction):
         self._attached = False
 
     def act(self, timestep):
-        self._solver.solve(self._tunables)
+        self.solver.solve(self._tunables)
 
     def _update_tunables(self, *, new_moves=tuple(), new_types=tuple()):
         tunables = self._tunables
@@ -181,3 +174,15 @@ class _InternalMoveSize(_InternalAction):
 
 class MoveSize(_InternalCustomTuner):
     _internal_class = _InternalMoveSize
+
+    @classmethod
+    def scaled_solver(cls, trigger, moves, target,
+                      types=None, max_move_size=None, max_scale=2., gamma=1.):
+        solver = ScaleSolver(max_scale, gamma)
+        return cls(trigger, moves, target, solver, types, max_move_size)
+
+    @classmethod
+    def secant_solver(cls, trigger, moves, target, types=None,
+                      max_move_size=None, gamma=0.9):
+        solver = SecantSolver(gamma)
+        return cls(trigger, moves, target, solver, types, max_move_size)
