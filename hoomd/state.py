@@ -1,10 +1,10 @@
 from copy import copy
 from collections import defaultdict
-from warnings import warn
 
 from . import _hoomd
 from hoomd.box import Box
 from hoomd.snapshot import Snapshot
+from hoomd.data import LocalSnapshot, LocalSnapshotGPU
 
 
 def _create_domain_decomposition(device, box):
@@ -36,15 +36,13 @@ def _create_domain_decomposition(device, box):
 class State:
     R""" Simulation state.
 
-    Parameters:
-        simulation
+    Args:
         snapshot
-
-    Attributes:
     """
 
     def __init__(self, simulation, snapshot):
         self._simulation = simulation
+        self._in_context_manager = False
         snapshot._broadcast_box()
         domain_decomp = _create_domain_decomposition(
             simulation.device,
@@ -170,6 +168,9 @@ class State:
 
     @box.setter
     def box(self, value):
+        if self._in_context_manager:
+            raise RuntimeError(
+                "Cannot set system box within local snapshot context manager.")
         try:
             value = Box.from_box(value)
         except Exception:
@@ -226,3 +227,80 @@ class State:
                 else:
                     group.setTranslationalDOF(0)
                     group.setRotationalDOF(0)
+    @property
+    def cpu_local_snapshot(self):
+        """hoomd.data.LocalSnapshot: Directly expose HOOMD data buffers
+        on the CPU.
+
+        Provides access directly to the system state's particle, bond, angle,
+        dihedral, improper, constaint, and pair data through a context manager.
+        The `hoomd.data.LocalSnapshot` object is only usable within a
+        context manager (i.e. ``with sim.state.cpu_local_snapshot as data:``)
+        The interface is similar to that of the `hoomd.Snapshot`. Data is local
+        to a given MPI rank. The returned arrays are `hoomd.array.HOOMDArray`
+        objects. Through this interface zero-copy access is available (access is
+        guarenteed to be zero-copy when running on CPU, may be zero copy if
+        running on GPU).
+
+        Changing the data in the buffers exposed by the local snapshot will
+        change the data across the HOOMD-blue simulation. For a trivial example,
+        this example would set all particle z-axis positions to 0.
+
+        .. code-block:: python
+
+            with sim.state.cpu_local_snapshot as data:
+                data.particles.position[:, 2] = 0
+
+        Note:
+            The state's box and the number of particles, bonds, angles,
+            dihedrals, impropers, constaints, and pairs cannot change within the
+            context manager.
+        """
+        if self._in_context_manager:
+            raise RuntimeError(
+                "Cannot enter cpu_local_snapshot context manager inside "
+                "another local_snapshot context manager.")
+        return LocalSnapshot(self)
+
+    @property
+    def gpu_local_snapshot(self):
+        """hoomd.data.LocalSnapshotGPU: Directly expose HOOMD data
+        buffers on the GPU.
+
+        Provides access directly to the system state's particle, bond, angle,
+        dihedral, improper, constaint, and pair data through a context manager.
+        The `hoomd.data.LocalSnapshotGPU` object is only usable
+        within a context manager (i.e. ``with sim.state.gpu_local_snapshot as
+        data:``) The interface is similar to that of the `hoomd.Snapshot`. Data
+        is local to a given MPI rank. The returned arrays are
+        `hoomd.array.HOOMDGPUArray` objects. Through this interface potential
+        zero-copy access is available (access cannot be guarenteed to be
+        zero-copy, but will be if the most recent copy of the data is on the
+        GPU).
+
+        Changing the data in the buffers exposed by the local snapshot will
+        change the data across the HOOMD-blue simulation. For a trivial example,
+        this example would set all particle z-axis positions to 0.
+
+        .. code-block:: python
+
+            with sim.state.gpu_local_snapshot as data:
+                data.particles.position[:, 2] = 0
+
+        Note:
+            The state's box and the number of particles, bonds, angles,
+            dihedrals, impropers, constaints, and pairs cannot change within the
+            context manager.
+
+        Note:
+            This property is only available when running on a GPU(s).
+        """
+        if self._simulation.device.mode != 'gpu':
+            raise RuntimeError(
+                "Cannot access gpu_snapshot with a non GPU device.")
+        elif self._in_context_manager:
+            raise RuntimeError(
+                "Cannot enter gpu_local_snapshot context manager inside "
+                "another local_snapshot context manager.")
+        else:
+            return LocalSnapshotGPU(self)

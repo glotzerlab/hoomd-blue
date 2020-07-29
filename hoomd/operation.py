@@ -10,13 +10,13 @@ _TriggeredOperation is _Operation for objects that are triggered.
 """
 
 from hoomd.util import is_iterable, dict_map, str_to_tuple_keys
-from hoomd.trigger import Periodic, Trigger
+from hoomd.trigger import Trigger
 from hoomd.variant import Variant, Constant
 from hoomd.filter import _ParticleFilter
-from hoomd.logging import Loggable
+from hoomd.logging import Loggable, log
 from hoomd.typeconverter import RequiredArg
 from hoomd.util import NamespaceDict
-from hoomd._hoomd import GSDStateReader, is_MPI_available
+from hoomd._hoomd import GSDStateReader
 from hoomd.parameterdicts import ParameterDict
 
 from copy import deepcopy
@@ -246,7 +246,7 @@ class _Operation(_HOOMDGetSetAttrBase, metaclass=Loggable):
         state = {name: tp.state for name, tp in self._typeparam_dict.items()}
         return deepcopy(state)
 
-    @Loggable.log(flag='state')
+    @log(flag='state')
     def state(self):
         self._update_param_dict()
         state = self._typeparam_states()

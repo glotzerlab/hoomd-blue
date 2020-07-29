@@ -4,6 +4,7 @@ from sys import stdout
 
 from hoomd.analyze.custom_analyzer import _InternalCustomAnalyzer
 from hoomd.custom.custom_action import _InternalAction
+from hoomd.logging import TypeFlags
 from hoomd.parameterdicts import ParameterDict
 from hoomd.typeconverter import OnlyType
 from hoomd.util import dict_flatten
@@ -130,6 +131,10 @@ class _CSVInternal(_InternalAction):
     quantites, but would be more fragile.
     """
 
+    _invalid_logger_flags = TypeFlags.any(
+        ['sequence', 'object', 'particle', 'bond', 'angle', 'dihedral',
+         'improper', 'pair', 'constraint', 'strings'])
+
     def __init__(self, logger, output=stdout, header_sep='.', delimiter=' ',
                  pretty=True, max_precision=10, max_header_len=None):
         def writable(fh):
@@ -151,9 +156,9 @@ class _CSVInternal(_InternalAction):
         self._param_dict = param_dict
 
         # internal variables that are not part of the state.
-        flags = set(logger.flags)
-        if flags.difference(['scalar', 'string']) != set() \
-                or 'scalar' not in flags:
+        # Ensure that only scalar and potentially string are set for the logger
+        if (TypeFlags.scalar not in logger.flags
+                or logger.flags & self._invalid_logger_flags != TypeFlags.NONE):
             raise ValueError("Given Logger must have the scalar flag set.")
 
         self._logger = logger
@@ -175,7 +180,6 @@ class _CSVInternal(_InternalAction):
         """Get a flattened dict for writing to output."""
         return {key: value[0]
                 for key, value in dict_flatten(self._logger.log()).items()
-                if value[1] in {'string', 'scalar'}
                 }
 
     def _update_headers(self, new_keys):
@@ -254,34 +258,34 @@ class CSV(_InternalCustomAnalyzer):
     Args:
         trigger (hoomd.trigger.Trigger): The trigger to determine when to run
             the CSV logger.
-        logger (hoomd.logger.Logger): The logger to query for output. The
+        logger (hoomd.logging.Logger): The logger to query for output. The
             'scalar' flag must be set on the logger, and the 'string' flag is
             optional.
-        output (file handle, optional): A file-like object to output the data
-            from, defaults to standard out. The object must have write and flush
-            methods and a mode attribute.
-        header_sep (string, optional): String to use to separate names in the
-            logger's namespace, defaults to '.'. For example, if logging the
+        output (``file-like`` object , optional): A file-like object to output
+            the data from, defaults to standard out. The object must have write
+            and flush methods and a mode attribute.
+        header_sep (:obj:`str`, optional): String to use to separate names in
+            the logger's namespace, defaults to '.'. For example, if logging the
             total energy of an `hoomd.md.pair.LJ` pair force object, the default
             header would be ``md.pair.LJ.energy`` (assuming that
             ``max_header_len`` is not set).
-        delimiter (string, optional): String used to separate elements in the
-            CSV file, defaults to ' '.
-        pretty (bool, optional): Flags whether to attempt to make output
+        delimiter (:obj:`str`, optional): String used to separate elements in
+            the CSV file, defaults to ' '.
+        pretty (:obj:`bool`, optional): Flags whether to attempt to make output
             prettier and easier to read, defaults to True. To make the ouput
             easier to read, the output will compromise on outputted precision
             for improved readability. In many cases, though the precision will
             still be high with pretty set to ``True``.
-        max_precision (int, optional): If pretty is not set, then this controls
-            the maximum precision to use when outputing numerical values,
-            defaults to 10.
-        max_header_len (int, optional): If not None (the default), limit the
-            outputted header names to length ``max_header_len``. When not None,
-            names are grabbed from the most specific to the least. For example,
-            if set to 7 the namespace 'hoomd.md.pair.LJ.energy' would be set to
-            'energy'. Note that at least the most specific part of the namespace
-            will be used regardless of this setting (e.g. if set to 5 in the
-            previous example, we would still use 'energy' as the header).
+        max_precision (:obj:`int`, optional): If pretty is not set, then this
+            controls the maximum precision to use when outputing numerical
+            values, defaults to 10.
+        max_header_len (:obj:`int`, optional): If not None (the default), limit
+            the outputted header names to length ``max_header_len``. When not
+            None, names are grabbed from the most specific to the least. For
+            example, if set to 7 the namespace 'hoomd.md.pair.LJ.energy' would
+            be set to 'energy'. Note that at least the most specific part of the
+            namespace will be used regardless of this setting (e.g. if set to 5
+            in the previous example, we would still use 'energy' as the header).
 
     Note:
         This only works with scalar and string quantities. If using string
@@ -291,5 +295,9 @@ class CSV(_InternalCustomAnalyzer):
     """
     _internal_class = _CSVInternal
 
-    def act(self, timestep=None):
-        self._action.act(timestep)
+    def write(self):
+        """Write out data to ``self.output``.
+
+        Writes a row from given ``hoomd.logging.Logger`` object data.
+        """
+        self._action.act()
