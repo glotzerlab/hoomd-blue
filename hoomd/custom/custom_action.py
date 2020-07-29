@@ -1,9 +1,17 @@
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 from enum import IntEnum
+from hoomd.logging import Loggable
 from hoomd.operation import _HOOMDGetSetAttrBase
 
 
-class Action(ABC):
+class _AbstractLoggable(Loggable, ABCMeta):
+    """Allows the use of abstractmethod with log."""
+    def __init__(cls, name, base, dct):
+        Loggable.__init__(cls, name, base, dct)
+        ABCMeta.__init__(cls, name, base, dct)
+
+
+class Action(metaclass=_AbstractLoggable):
     """Base class for all Python Action's.
 
     This class is the parent class for all Python `Action` subclasses. This
@@ -32,25 +40,19 @@ class Action(ABC):
             def act(self, timestep):
                 pass
 
-    For advertising loggable quantities through the wrappping object, the class
-    attribute ``log_quantities`` can be used. The dictionary expects string keys
-    with the name of the loggable and `hoomd.logging.LoggerQuantity` objects as
-    the values.
+    For advertising loggable quantities through the wrapping object, the
+    decorator `hoomd.logging.log` can be used.
 
     .. code-block:: python
 
         from hoomd.python_action import Action
-        from hoomd.logging import LoggerQuantity
+        from hoomd.logging import log
 
 
         class ExampleActionWithFlag(Action):
-            def __init__(self):
-                self.log_quantities = {
-                    'loggable': LoggerQuantity('scalar_loggable',
-                                               self.__class__,
-                                               flag='scalar')}
 
-            def loggable(self):
+            @log
+            def answer(self):
                 return 42
 
             def act(self, timestep):
@@ -73,11 +75,6 @@ class Action(ABC):
         flags (list[hoomd.custom.Action.Flags]): List of flags from the
             `hoomd.custom.Action.Flags`. Used to tell the integrator if
             specific quantities are needed for the action.
-        log_quantities (dict[str, hoomd.logging.LoggerQuantity]): Dictionary of
-            the name of loggable quantites to the `hoomd.logging.LoggerQuantity`
-            instance for the class method or property. Allows for subclasses of
-            `Action` to specify to a `hoomd.logging.Logger` that is exposes
-            loggable quantities.
     """
     class Flags(IntEnum):
         """Flags to indictate the integrator should calcuate certain quantities.
@@ -145,5 +142,3 @@ class _InternalAction(Action, _HOOMDGetSetAttrBase):
     be created.
     """
     pass
-
-

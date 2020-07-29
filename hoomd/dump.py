@@ -11,16 +11,15 @@ each command writes.
 from collections import namedtuple
 from hoomd import _hoomd
 from hoomd.util import dict_flatten, array_to_strings
-from hoomd.typeconverter import OnlyFrom, OnlyType
+from hoomd.typeconverter import OnlyFrom
 from hoomd.filter import _ParticleFilter, All
 from hoomd.parameterdicts import ParameterDict
-from hoomd.logging import Logger
+from hoomd.logging import Logger, TypeFlags
 from hoomd.operation import _Analyzer
 import numpy as np
 import hoomd
 import json
 import os
-import types
 
 
 class dcd(hoomd.analyze._analyzer):
@@ -650,6 +649,29 @@ class GSD(_Analyzer):
         self._cpp_obj.log_writer = self.log
         super().attach(simulation)
 
+    @staticmethod
+    def write(state, filename, filter=All(), log=None):
+        """Write the given simulation state out to a GSD file.
+
+        Args:
+            state (State): Simulation state.
+            filename (str): File name to write.
+            filter_ (``hoomd._ParticleFilter``): Select the particles to write.
+            log (``hoomd.logger.Logger``): A ``Logger`` object for GSD logging.
+
+        Note:
+            The file is always overwritten.
+        """
+        writer = _hoomd.GSDDumpWriter(state._cpp_sys_def,
+                                      filename,
+                                      state.get_group(filter),
+                                      True,
+                                      False)
+
+        if log is not None:
+            writer.log_writer = GSDLogWriter(log)
+        writer.analyze(state._simulation.timestep)
+
     @property
     def log(self):
         return self._log
@@ -666,10 +688,25 @@ class GSD(_Analyzer):
 
 
 class _GSDLogWriter:
+    """Helper class to store `hoomd.logging.Logger` log data to GSD file.
 
-    _per_keys = ['particles', 'bonds', 'dihedrals', 'impropers', 'pairs']
-    _convert_kinds = ['string', 'strings']
-    _skip_kinds = ['object']
+    Class Attributes:
+        _per_flags (`hoomd.logging.TypeFlags`): flag that contains all
+            per-{particle,bond,...} quantities.
+        _convert_flags (`hoomd.logging.TypeFlags`): flag that contains all types
+            that must be converted for storage in a GSD file.
+        _skip_flags (`hoomd.logging.TypeFlags`): flags that should be skipped by
+            and not stored.
+        _special_keys (`list` of `str`): list of loggable quantity names that
+            need to be treated specially. In general, this is only for
+            `type_shapes`.
+        _global_prepend (`str`): a str that gets prepending into the namespace
+            of each logged quantity.
+    """
+    _per_flags = TypeFlags.any(['angle', 'bond', 'constraint', 'dihedral',
+                               'improper', 'pair', 'particle'])
+    _convert_flags = TypeFlags.any(['string', 'strings'])
+    _skip_flags = TypeFlags['object']
     _special_keys = ['type_shapes']
     _global_prepend = 'log'
 
@@ -677,22 +714,32 @@ class _GSDLogWriter:
         self.logger = logger
 
     def log(self):
+        """Get the flattened dictionary for consumption by GSD object."""
         log = dict()
         for key, value in dict_flatten(self.logger.log()).items():
-            log_value, kind = value
-            if kind not in self._skip_kinds:
+            log_value, type_flag = value
+            type_flag = TypeFlags[type_flag]
+            # This has to be checked first since type_shapes has a flag
+            # TypeFlags.object.
+            if key[-1] in self._special_keys:
+                self._log_special(log, key[-1], log_value)
+            # Now we can skip any flags we don't process, in this case
+            # TypeFlags.object.
+            if type_flag not in self._skip_flags:
                 if log_value is None:
                     continue
-                if key[-1] in self._special_keys:
-                    self._log_special(log, key[-1], log_value)
                 else:
-                    if kind in self._per_keys:
+                    # This places logged quantities that are
+                    # per-{particle,bond,...} into the correct GSD namespace
+                    # log/particles/{remaining namespace}. This preserves OVITO
+                    # intergration.
+                    if type_flag in self._per_flags:
                         log['/'.join((self._global_prepend,
-                                    kind) + key)] = log_value
-                    elif kind in self._convert_kinds:
+                                      type_flag.name + 's') + key)] = log_value
+                    elif type_flag in self._convert_flags:
                         self._log_convert_value(
                             log, '/'.join((self._global_prepend,) + key),
-                            kind, log_value)
+                            type_flag, log_value)
                     else:
                         log['/'.join((self._global_prepend,) + key)] = \
                             log_value
@@ -704,6 +751,11 @@ class _GSDLogWriter:
         _gsd.writeLogQuantities(self.log())
 
     def _log_special(self, dict_, key, value):
+        """Handles special keys such as type_shapes.
+
+        When adding a key to this make sure this is the only option. In general,
+        special cases like this should be avoided if possible.
+        """
         if key == 'type_shapes':
             shape_list = [bytes(json.dumps(type_shape) + '\0', 'UTF-8')
                           for type_shape in value]
@@ -713,12 +765,13 @@ class _GSDLogWriter:
             dict_['particles/type_shapes'] = \
                 str_array.view(dtype=np.int8).reshape(num_shapes, max_len)
 
-    def _log_convert_value(self, dict_, key, kind, value):
-        if kind == 'string':
+    def _log_convert_value(self, dict_, key, flag, value):
+        """Convert loggable types that cannot be directly stored by GSD."""
+        if flag == TypeFlags.string:
             value = bytes(value, 'UTF-8')
             value = np.array([value], dtype=np.dtype((bytes, len(value) + 1)))
             value = value.view(dtype=np.int8)
-        if kind == 'strings':
+        if flag == TypeFlags.strings:
             value = [bytes(v + '\0', 'UTF-8') for v in value]
             max_len = np.max([len(string) for string in value])
             num_strings = len(value)

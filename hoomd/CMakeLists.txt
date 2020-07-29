@@ -50,6 +50,7 @@ set(_hoomd_sources Analyzer.cc
                    ParticleData.cc
                    ParticleGroup.cc
                    Profiler.cc
+                   PythonLocalDataAccess.cc
                    PythonUpdater.cc
                    PythonAnalyzer.cc
                    SFCPackTuner.cc
@@ -144,6 +145,7 @@ set(_hoomd_headers
     ParticleGroup.cuh
     ParticleGroup.h
     Profiler.h
+    PythonLocalDataAccess.h
     PythonUpdater.h
     PythonAnalyzer.h
     RandomNumbers.h
@@ -310,10 +312,10 @@ set(files benchmark.py
           compute.py
           conftest.py
           context.py
-          data.py
           device.py
           dump.py
           group.py
+          array.py
           __init__.py
           init.py
           integrate.py
@@ -351,6 +353,7 @@ install(FILES ${_hoomd_headers}
 # subdirectories that are not components
 add_subdirectory(analyze)
 add_subdirectory(custom)
+add_subdirectory(data)
 add_subdirectory(filter)
 add_subdirectory(minimize)
 add_subdirectory(output)
