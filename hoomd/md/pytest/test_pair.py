@@ -386,25 +386,27 @@ def test_force_energy_accuracy(simulation_factory,
         r = np.array([0, 0, d]) / d
         snap = sim.state.snapshot
         if snap.exists:
-            snap.particles.position[0] = [0, 0, 0]
-            snap.particles.position[1] = [0, 0, d]
+            snap.particles.position[0] = [0, 0, .1]
+            snap.particles.position[1] = [0, 0, d + .1]
         sim.state.snapshot = snap
         sim_energies = sim.operations.integrator.forces[0].energies
         sim_forces = sim.operations.integrator.forces[0].forces
         atol = 0
-        if energies[i] == 0 or sum(sim_energies) == 0:
-            atol = 1e-06
-        np.testing.assert_allclose(energies[i],
-                                   sum(sim_energies),
-                                   rtol=5e-06,
-                                   atol=atol)
-        if forces[i] == 0 or sum(sim_forces[0]) == 0:
-            atol = 1e-06
-        np.testing.assert_allclose(forces[i] * r,
-                                   sim_forces[0],
-                                   rtol=5e-06,
-                                   atol=atol)
-        np.testing.assert_allclose(forces[i] * r * -1,
-                                   sim_forces[1],
-                                   rtol=5e-06,
-                                   atol=atol)
+        if sim_energies is not None:
+            if energies[i] == 0 or sum(sim_energies) == 0:
+                atol = 1e-06
+            np.testing.assert_allclose(energies[i],
+                                       sum(sim_energies),
+                                       rtol=5e-06,
+                                       atol=atol)
+        if sim_forces is not None:
+            if forces[i] == 0 or sum(sim_forces[0]) == 0:
+                atol = 1e-06
+            np.testing.assert_allclose(forces[i] * r,
+                                       sim_forces[0],
+                                       rtol=5e-06,
+                                       atol=atol)
+            np.testing.assert_allclose(forces[i] * r * -1,
+                                       sim_forces[1],
+                                       rtol=5e-06,
+                                       atol=atol)
