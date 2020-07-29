@@ -100,25 +100,37 @@ class _TuneDefinition(metaclass=ABCMeta):
 
 class ManualTuneDefinition(metaclass=ABCMeta):
     def __init__(self, get_y, target_y, get_x, set_x, domain=None):
-        self._get_y = get_y
+        self.__get_x = get_x
+        self.__set_x = set_x
+        self.__get_y = get_y
         self._target = target_y
-        self._get_x = get_x
-        self._set_x = set_x
         if domain is not None and not len(domain) == 2:
             raise ValueError("domain must be a sequence of length two.")
         self._domain = domain
 
-    def get_x(self):
-        return self._get_x()
+    def _get_x(self):
+        return self.__get_x()
 
-    def set_x(self, value):
-        return self._set_x(value)
+    def _set_x(self, value):
+        return self.__set_x(value)
 
-    def get_y(self):
-        return self._get_y()
+    def _get_y(self):
+        return self.__get_y()
 
-    def get_target(self):
+    def _get_target(self):
         return self._target
+
+    def _set_target(self, value):
+        self._target = value
+
+    def __hash__(self):
+        return hash((self.__get_x, self.__set_x, self.__get_y, self._target))
+
+    def __eq__(self, other):
+        return (self.__get_x == other.__get_x
+                and self.__set_x == other.__set_x
+                and self.__get_y == other.__get_y
+                and self._target == other._target)
 
 
 class AttrTuner(metaclass=ABCMeta):
