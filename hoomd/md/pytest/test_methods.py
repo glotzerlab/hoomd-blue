@@ -7,6 +7,7 @@ from copy import deepcopy
 _method_data = [
     ("Langevin", hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1, seed=1)),
     ("NVT", hoomd.md.methods.NVT(hoomd.filter.All(), kT=1, tau=1)),
+    ("NPT", hoomd.md.methods.NPT(hoomd.filter.All(), kT=1, tau=1, S=1, tauS=1, box_dof=[True,True,True,False,False,False])),
 ]
 
 @pytest.fixture(scope='function', params=_method_data, ids=(lambda x: x[0]))
