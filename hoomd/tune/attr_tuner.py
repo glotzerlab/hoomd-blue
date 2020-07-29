@@ -3,9 +3,7 @@ from abc import ABCMeta, abstractmethod
 
 class _TuneDefinition(metaclass=ABCMeta):
     def __init__(self, target, domain=None):
-        if domain is not None and not len(domain) == 2:
-            raise ValueError("domain must be a sequence of length two.")
-        self._domain = domain
+        self.domain = domain
         self._target = target
 
     def in_domain(self, value):
@@ -90,6 +88,18 @@ class _TuneDefinition(metaclass=ABCMeta):
             return tuple(self._domain)
         else:
             return None
+
+    @domain.setter
+    def domain(self, value):
+        if value is not None and not len(value) == 2:
+            raise ValueError("domain must be a sequence of length two.")
+        self._domain = value
+
+    def __hash__(self):
+        raise NotImplementedError("This object is not hashable.")
+
+    def __eq__(self, other):
+        raise NotImplementedError("This object is not equatable.")
 
 
 class ManualTuneDefinition(metaclass=ABCMeta):
