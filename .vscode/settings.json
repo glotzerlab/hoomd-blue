@@ -1,0 +1,80 @@
+{
+    "files.insertFinalNewline": true,
+    "editor.autoIndent": "keep",
+    "editor.detectIndentation": false,
+    "editor.rulers": [
+        100
+    ],
+    "[restructuredtext]": {
+        "editor.rulers": [
+            80
+        ]
+    },
+    "[python]": {
+        "editor.rulers": [
+            80
+        ]
+    },
+    "[cython]": {
+        "editor.rulers": [
+            80
+        ]
+    },
+    "[markdown]": {
+        "editor.rulers": [
+            80
+        ]
+    },
+    "python.linting.flake8Enabled": true,
+    "python.linting.pycodestyleEnabled": false,
+    "python.linting.pylintEnabled": false,
+    "python.formatting.provider": "yapf",
+    "cSpell.allowCompoundWords": true,
+    "files.exclude": {
+        ".cache": true,
+        ".pytest_cache": true,
+        "build": true,
+        "sphinx-doc/_build": true,
+        "hoomd/extern/cereal": true,
+        "hoomd/extern/cub": true,
+        "hoomd/extern/device": true,
+        "hoomd/extern/Eigen": true,
+        "hoomd/extern/kernels": true,
+        "hoomd/extern/libgetar": true,
+        "hoomd/extern/nano-signal-slot": true,
+        "hoomd/extern/pybind": true,
+        "hoomd/extern/quickhull": true,
+        "hoomd/extern/random123": true,
+        "hoomd/extern/upp11": true,
+        "hoomd/extern/util": true
+    },
+    "cSpell.enableFiletypes": [
+        "cuda"
+    ],
+    "C_Cpp.default.configurationProvider": "vector-of-bool.cmake-tools",
+    "cSpell.words": [
+        "GPUs",
+        "HOOMD",
+        "Jupyter",
+        "Jupyter's",
+        "cmake",
+        "cpptools",
+        "cuda",
+        "dtype",
+        "noqa",
+        "numpy",
+        "pybind",
+        "pycodestyle",
+        "pylint",
+        "pyside",
+        "pytest",
+        "stkb",
+        "struct",
+        "tobytes",
+        "twxs",
+        "uint",
+        "unmap",
+        "verts",
+        "yapf"
+    ],
+}
