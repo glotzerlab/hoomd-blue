@@ -4,9 +4,9 @@
 
 """Define quantities that vary over the simulation.
 
-The `Variant` object represents a scalar function of the time step. Some
-`Operation`s accept `Variant` values for certain parameters, such as the
-`kT` parameter to `NVT`.
+A `Variant` object represents a scalar function of the time step. Some
+**Operations** accept `Variant` values for certain parameters, such as the
+``kT`` parameter to `NVT`.
 """
 
 from hoomd import _hoomd
