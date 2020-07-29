@@ -46,11 +46,7 @@ class _TuneDefinition(metaclass=ABCMeta):
 
     @x.setter
     def x(self, value):
-        if self.in_domain(value):
-            return self._set_x(value)
-        else:
-            raise ValueError("Cannot set to a value outside the domain "
-                             "{}.".format(self.domain))
+        return self._set_x(self.wrap_into_domain(value))
 
     @property
     def y(self):
