@@ -72,6 +72,8 @@ class _MoveSizeTuneDefinition(_TuneDefinition):
 
 
 class _InternalMoveSize(_InternalAction):
+    _min_move_size = 1e-7
+
     def __init__(self, moves, target, solver, types=None, max_move_size=None):
         def target_postprocess(target):
             def is_fraction(value):
@@ -81,22 +83,33 @@ class _InternalMoveSize(_InternalAction):
                     "Value {} should be between 0 and 1.".format(value))
 
             self._update_tunables_attr('target', is_fraction(target))
+            self._tuned = 0
             return target
 
         def max_move_size_postprocess(move_size):
-            self._update_tunables_attr( 'domain', (0, move_size))
+            self._update_tunables_attr(
+                'domain', (self._min_move_size, move_size))
             return move_size
 
         def update_moves(value):
             self._update_tunables(new_moves=value)
+            self._tuned = 0
             return value
 
         def update_types(value):
             self._update_tunables(new_types=value)
+            self._tuned = 0
             return value
 
         self._tunables = []
-        self._tuned = False
+        # A counter when tuned reaches 1 it means that the tuner has reported
+        # being tuned one time in a row. However, as the first run of the tuner
+        # is likely at timestep 0 which means that the counters are (0, 0) and
+        # _MoveSizeTuneDefinition returns y == target for that case, we need two
+        # rounds of tuning to be sure that we have converged. Since, in general,
+        # solvers do not do much if any work on already tuned tunables, this is
+        # not a performance problem.
+        self._tuned = 0
         self._attached = False
         # This is a bit complicated because we are having to ensure that we keep
         # the list of tunables and the solver updated with the changes to
@@ -136,7 +149,7 @@ class _InternalMoveSize(_InternalAction):
                 "Invalid particle type found specified types for tuning.")
         self._update_tunables(new_moves=self.moves, new_types=self.types)
         self._update_tunables_attr(
-            '_integrator', simulation.operations.integrator)
+            'integrator', simulation.operations.integrator)
         self._attached = True
 
     @property
@@ -145,15 +158,27 @@ class _InternalMoveSize(_InternalAction):
 
     @property
     def tuned(self):
-        return self._tuned
+        return self._tuned == 2
+
+    @tuned.setter
+    def tuned(self, value):
+        if not value:
+            self._tuned = 0
+        else:
+            raise ValueError("Cannot attempt to set tuned to True. "
+                             "Detach operation instead.")
 
     def detach(self):
-        self._update_tunables_attr('_integrator', None)
+        self._update_tunables_attr('integrator', None)
         self._attached = False
 
     def act(self, timestep):
-        if not self._tuned:
-            self._tuned = self.solver.solve(self._tunables)
+        if not self.tuned and self.is_attached:
+            tuned = self.solver.solve(self._tunables)
+            if tuned:
+                self._tuned += 1
+            else:
+                self._tuned = 0
 
     def _update_tunables(self, *, new_moves=tuple(), new_types=tuple()):
         tunables = self._tunables
@@ -162,8 +187,8 @@ class _InternalMoveSize(_InternalAction):
         # First filter out any move size tune definitions that don't match
         # the new specification.
         def filter_tunables(tunable):
-            return ((new_moves is None or tunable._attr in new_moves)
-                    and (new_types is None or tunable._type in new_types))
+            return ((new_moves is None or tunable.attr in new_moves) and
+                    (new_types is None or tunable.type in new_types))
 
         self._tunables = list(filter(filter_tunables, tunables))
 
@@ -172,7 +197,8 @@ class _InternalMoveSize(_InternalAction):
         for move in new_moves:
             for new_type in new_types:
                 move_definition = _MoveSizeTuneDefinition(
-                    move, new_type, self.target, (0, self.max_move_size))
+                    move, new_type, self.target,
+                    (self._min_move_size, self.max_move_size))
                 if move_definition not in tune_definitions:
                     self._tunables.append(move_definition)
 
@@ -188,11 +214,11 @@ class MoveSize(_InternalCustomTuner):
     def scaled_solver(cls, trigger, moves, target,
                       types=None, max_move_size=None,
                       max_scale=2., gamma=1., tol=1e-2):
-        solver = ScaleSolver(max_scale, gamma, tol)
+        solver = ScaleSolver(max_scale, gamma, 'negative', tol)
         return cls(trigger, moves, target, solver, types, max_move_size)
 
     @classmethod
     def secant_solver(cls, trigger, moves, target, types=None,
-                      max_move_size=None, gamma=0.9, tol=1e-2):
+                      max_move_size=None, gamma=0.8, tol=1e-2):
         solver = SecantSolver(gamma, tol)
         return cls(trigger, moves, target, solver, types, max_move_size)
