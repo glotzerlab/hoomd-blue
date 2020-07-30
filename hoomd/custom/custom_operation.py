@@ -73,8 +73,6 @@ class _CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
     def attach(self, simulation):
         """Attach to a `hoomd.Simulation`.
 
-        Detaching is implemented by a parent class.
-
         Args:
             simulation (hoomd.Simulation): The simulation the operation operates
                 on.
@@ -84,6 +82,11 @@ class _CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
 
         super().attach(simulation)
         self._action.attach(simulation)
+
+    def detach(self):
+        """Detaching to a `hoomd.Simulation`."""
+        self._action.detach()
+        super().detach()
 
     def act(self, timestep):
         """Perform the action of the custom action if attached.
