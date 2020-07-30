@@ -105,7 +105,23 @@ class _CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
         return self._action
 
 
-class _InternalCustomOperation(_CustomOperation):
+class _AbstractLoggableWithPassthrough(_AbstractLoggable):
+    def __getattr__(self, attr):
+        try:
+            # This will not work with classmethods that are constructors. We
+            # need a trigger for operations, and the action does not contain a
+            # trigger. This can be made to work for alternate constructors but
+            # would require wrapping the classmethod in question. Since this
+            # should only ever matter for internal actions, putting such
+            # classmethods in the wrapping operation should be fine.
+            return getattr(self._internal_class, attr)
+        except AttributeError:
+            raise AttributeError("{} object {} has no attribute {}".format(
+                type(self), self, attr))
+
+
+class _InternalCustomOperation(
+        _CustomOperation, metaclass=_AbstractLoggableWithPassthrough):
     """Internal class for Python ``Action``s. Offers a streamlined __init__.
 
     Adds a wrapper around an hoomd Python action. This extends the attribute
