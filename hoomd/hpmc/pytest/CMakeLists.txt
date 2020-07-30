@@ -1,6 +1,7 @@
 # copy python modules to the build directory to make it a working python package
 set(files __init__.py
           test_shape.py
+          test_move_size_tuner.py
           conftest.py
     )
 
