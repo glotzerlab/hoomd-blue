@@ -143,9 +143,11 @@ class Solver(metaclass=ABCMeta):
 
 
 class ScaleSolver(Solver):
-    def __init__(self, max_scale=2.0, gamma=2.0, tol=1e-5):
+    def __init__(self, max_scale=2.0, gamma=2.0,
+                 correlation='positive', tol=1e-5):
         self.max_scale = max_scale
         self.gamma = gamma
+        self.correlation = correlation.lower()
         self.tol = tol
 
     def _solve_one(self, tunable):
@@ -154,10 +156,17 @@ class ScaleSolver(Solver):
             return True
 
         if y > 0:
-            scale = ((1.0 + self.gamma) * y) / (target + (self.gamma * y))
+            if self.correlation == 'positive':
+                scale = (self.gamma + target) / (y + self.gamma)
+            else:
+                scale = (y + self.gamma) / (self.gamma + target)
         else:
             # y was zero. Try a value an order of magnitude smaller
-            scale = 0.1
+            if self.correlation == 'positive':
+                scale = 0.1
+            else:
+                scale = 1.1
+
         if (scale > self.max_scale):
             scale = self.max_scale
         # Ensures we stay within the tunable's domain (i.e. we don't take on
