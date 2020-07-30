@@ -3,7 +3,7 @@ from hoomd.parameterdicts import ParameterDict
 from hoomd.typeconverter import OnlyFrom, OnlyType, OnlyIf, to_type_converter
 from hoomd.tune import _InternalCustomTuner
 from hoomd.tune.attr_tuner import (
-        _TuneDefinition, Solver, ScaleSolver, SecantSolver)
+    _TuneDefinition, Solver, ScaleSolver, SecantSolver)
 from hoomd.hpmc.integrate import _HPMCIntegrator
 
 
@@ -17,16 +17,16 @@ class _MoveSizeTuneDefinition(_TuneDefinition):
         if attr not in self._attr_acceptance:
             raise ValueError("Only {} are allowed as tunable "
                              "attributes.".format(self._available_attrs))
-        self._attr = attr
-        self._type = type
-        self._integrator = None
-        self._previous_ratio = None
-        self._previous_total = None
+        self.attr = attr
+        self.type = type
+        self.integrator = None
+        self.previous_ratio = None
+        self.previous_total = None
         super().__init__(target, domain)
 
     def _get_y(self):
-        current_ratio = getattr(self._integrator,
-                                self._attr_acceptance[self._attr])
+        current_ratio = getattr(self.integrator,
+                                self._attr_acceptance[self.attr])
         current_total = sum(current_ratio)
         # We return the target when no moves are recorded since we don't want
         # the move size to be updated. This is "hackish", but there is no right
@@ -36,34 +36,37 @@ class _MoveSizeTuneDefinition(_TuneDefinition):
         if current_total == 0:
             return self._target
         # If no more trial moves have been recorded return previous
-        # acceptance_rate
-        if (self._previous_total is not None and
-                self._previous_total == current_total):
-            return self._previous_ratio[0] / self._previous_total
-        if self._previous_ratio is None:
+        # acceptance_rate. In general, this conditional should not be true, if
+        # it is true different solvers may error, but this is the most natural
+        # solution, I could think of.
+        if (self.previous_total is not None
+                and self.previous_total == current_total):
+            return self.previous_ratio[0] / self.previous_total
+
+        if self.previous_ratio is None or self.previous_total > current_total:
             acceptance_rate = current_ratio[0] / current_total
         else:
-            acceptance_rate = ((current_ratio[0] - self._previous_ratio[0]) /
-                               (current_total - self._previous_total))
+            acceptance_rate = ((current_ratio[0] - self.previous_ratio[0])
+                               / (current_total - self.previous_total))
         # We store the previous information becuase this lets us find the
         # acceptance rate since this has last been called which allows for us to
         # disregard the information before the last tune.
-        self._previous_ratio = current_ratio
-        self._previous_total = current_total
+        self.previous_ratio = current_ratio
+        self.previous_total = current_total
         return acceptance_rate
 
     def _get_x(self):
-        return getattr(self._integrator, self._attr)[self._type]
+        return getattr(self.integrator, self.attr)[self.type]
 
     def _set_x(self, value):
-        getattr(self._integrator, self._attr)[self._type] = value
+        getattr(self.integrator, self.attr)[self.type] = value
 
     def __hash__(self):
-        return hash((self._attr, self._type, self._target, self._domain))
+        return hash((self.attr, self.type, self._target, self._domain))
 
     def __eq__(self, other):
-        return (self._attr == other._attr and
-                self._type == other._type and
+        return (self.attr == other.attr and
+                self.type == other.type and
                 self._target == other._target and
                 self._domain == other._domain)
 
