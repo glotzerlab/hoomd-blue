@@ -98,12 +98,12 @@ class _TuneDefinition(metaclass=ABCMeta):
         raise NotImplementedError("This object is not equatable.")
 
 
-class ManualTuneDefinition(metaclass=ABCMeta):
-    def __init__(self, get_y, target_y, get_x, set_x, domain=None):
+class ManualTuneDefinition(_TuneDefinition):
+    def __init__(self, get_y, target, get_x, set_x, domain=None):
         self.__get_x = get_x
         self.__set_x = set_x
         self.__get_y = get_y
-        self._target = target_y
+        self._target = target
         if domain is not None and not len(domain) == 2:
             raise ValueError("domain must be a sequence of length two.")
         self._domain = domain
