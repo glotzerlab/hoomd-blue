@@ -2,11 +2,27 @@ from abc import ABCMeta, abstractmethod
 
 
 class _TuneDefinition(metaclass=ABCMeta):
+    """Internal class for defining y = f(x) relations
+
+    This class is designed to allow for tuning x to achieve a specified value
+    for y over a domain T. It abstracts over getting and setting x and getting
+    y. The class also provides helper functions for ensuring x is always set to
+    a value within the specified domain.
+    """
     def __init__(self, target, domain=None):
         self.domain = domain
         self._target = target
 
     def in_domain(self, value):
+        """Check whether a value is in the domain.
+
+        Args:
+            value (``any``): A value that can be compared to the minimum and
+                maximum of the domain.
+
+        Returns:
+            bool: Whether the value is in the domain of x.
+        """
         if self.domain is None:
             return True
         else:
@@ -15,6 +31,16 @@ class _TuneDefinition(metaclass=ABCMeta):
                     and (upper_bound is None or value <= upper_bound))
 
     def wrap_into_domain(self, value):
+        """Return the closest value within the domain.
+
+        Args:
+            value (``any``): A value of the same type as x.
+
+        Returns:
+            The value wrapped within the domains of x. Wrapping here refers to
+            returning the value or minimum or maximum of the domain if value is
+            outside the domain.
+        """
         if self._domain is None:
             return value
         else:
@@ -28,10 +54,16 @@ class _TuneDefinition(metaclass=ABCMeta):
 
     @property
     def x(self):
+        """The dependent variable."""
         return self._get_x()
+
+    @x.setter
+    def x(self, value):
+        return self._set_x(self.wrap_into_domain(value))
 
     @property
     def max_x(self):
+        """Maximum allowed x value."""
         if self.domain is None:
             return None
         else:
@@ -39,21 +71,20 @@ class _TuneDefinition(metaclass=ABCMeta):
 
     @property
     def min_x(self):
+        """Minimum allowed y value."""
         if self.domain is None:
             return None
         else:
             return self.domain[0]
 
-    @x.setter
-    def x(self, value):
-        return self._set_x(self.wrap_into_domain(value))
-
     @property
     def y(self):
+        """The independent variable, and is unsettable."""
         return self._get_y()
 
     @property
     def target(self):
+        """The targetted y value, can be set."""
         return self._get_target()
 
     @target.setter
@@ -80,6 +111,14 @@ class _TuneDefinition(metaclass=ABCMeta):
 
     @property
     def domain(self):
+        """tuple[any, any]: A tuple pair of the minimum and maximum accepted
+            values of x.
+
+            When, the domain is `None` then any value of x is accepted. Either
+            the minimum or maximum can be set to `None` as well which means
+            there is no maximum or minimum. The domain is used to wrap values
+            within the specified domain when setting x.
+        """
         if self._domain is not None:
             return tuple(self._domain)
         else:
@@ -99,6 +138,26 @@ class _TuneDefinition(metaclass=ABCMeta):
 
 
 class ManualTuneDefinition(_TuneDefinition):
+    """
+    Class for defining y = f(x) relationships for tuning x for a set y target.
+
+     This class is made to be used with `hoomd.tune.Solver` subclasses.  Here y
+     represents a dependent variable of x. In general, x and y should be of type
+     `float`, but specific `hoomd.tune.Solver` subclasses may accept other
+     types.
+
+    Args:
+        get_y (``callable``): A callable that gets the current value for y.
+        target (``any``): The target y value to approach.
+        get_x (``callable``): A callable that gets the current value for x.
+        set_x (``callable``): A callable that sets the current value for x.
+        domain (:obj:`tuple` [``any``, ``any``], optional): A tuple pair of the
+            minimum and maximum accepted values of x, defaults to `None`. When,
+            the domain is `None` then any value of x is accepted. Either the
+            minimum or maximum can be set to `None` as well which means there is
+            no maximum or minimum. The domain is used to wrap values within the
+            specified domain when setting x.
+    """
     def __init__(self, get_y, target, get_x, set_x, domain=None):
         self.__get_x = get_x
         self.__set_x = set_x
@@ -134,15 +193,57 @@ class ManualTuneDefinition(_TuneDefinition):
 
 
 class Solver(metaclass=ABCMeta):
+    """Abstract base class for "solving" equations of f(x) = y.
+
+    Requires a single method `Solver._solve_one` that steps forward one step in
+    solving the given variable relationship. Users can use subclasses of this
+    with `hoomd.tune.ManualTuneDefinition` to tune attributes with a functional
+    relation.
+    """
     @abstractmethod
     def _solve_one(self, tunable):
+        """Takes in a tunable object and attempts to solve x for a specified y.
+
+        Args:
+            tunable (`hoomd.tune.ManualTuneDefinition`): A tunable object that
+                represents a relationship of f(x) = y.
+
+        Returns:
+            bool : Whether or not the tunable converged to the target.
+        """
         pass
 
     def solve(self, tunables):
+        """Iterates towards a solution for a list of tunables.
+
+        Args:
+            tunables (list[`hoomd.tune.ManualTuneDefinition`]): A list of
+                tunable objects that represent a relationship f(x) = y.
+        """
         return all(self._solve_one(tunable) for tunable in tunables)
 
 
 class ScaleSolver(Solver):
+    """
+    Solves equations of f(x) = y using a ratio of the current y with the target.
+
+    Args:
+        max_scale (:obj:`float`, optional): The maximum amount to scale the
+            current x value with, defaults to 2.0.
+        gamma (:obj:`float`, optional): nonnegative real number used to dampen
+            or increase the rate of change in x. ``gamma`` is added to the
+            numerator and denominator of the ``y / target`` ratio. Larger values
+            of ``gamma`` lead to smaller changes while a ``gamma`` of 0 leads to
+            scaling x by exactly the ``y / target`` ratio.
+        correlation (:obj:`str`, optional): Defines whether the relationship
+            between x and y is of a positive or negative correlation, defaults
+            to 'positive'. This determines which direction to scale x in for a
+            given y.
+        tol (:obj:`float`, optional): The absolute tolerance for convergence of
+            y, defaults to 1e-5.
+    Note:
+        This solver is only useful when quantities are strictly positive.
+    """
     def __init__(self, max_scale=2.0, gamma=2.0,
                  correlation='positive', tol=1e-5):
         self.max_scale = max_scale
@@ -176,6 +277,21 @@ class ScaleSolver(Solver):
 
 
 class SecantSolver(Solver):
+    """
+    Solves equations of f(x) = y using the secant method.
+
+    Args:
+        gamma (:obj:`float`, optional): real number between 0 and 1 used to
+            dampen the rate of change in x. ``gamma`` scales the corrections to
+            x each iteration.  Larger values of ``gamma`` lead to larger changes
+            while a ``gamma`` of 0 leads to no change in x at all.
+        tol (:obj:`float`, optional): The absolute tolerance for convergence of
+            y, defaults to 1e-5.
+    Note:
+        Tempering the solver with a smaller than 1 ``gamma`` value is crucial
+        for numeric stability. If instability is found, then lowering ``gamma``
+        accordingly should help.
+    """
     def __init__(self, gamma=0.9, tol=1e-5):
         self.gamma = gamma
         self._previous_pair = dict()
