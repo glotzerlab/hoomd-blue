@@ -8,6 +8,7 @@
 #include "ClockSource.h"
 #include "Profiler.h"
 #include "ParticleData.h"
+#include "PythonLocalDataAccess.h"
 #include "SystemDefinition.h"
 #include "BondedGroupData.h"
 #include "Initializers.h"
@@ -339,9 +340,18 @@ PYBIND11_MODULE(_hoomd, m)
     export_Profiler(m);
 
     // data structures
+    export_HOOMDHostBuffer(m);
+    export_GhostDataFlag(m);
+    # if ENABLE_HIP
+    export_HOOMDDeviceBuffer(m);
+    # endif
     export_BoxDim(m);
     export_ParticleData(m);
     export_SnapshotParticleData(m);
+    export_LocalParticleData<HOOMDHostBuffer>(m, "LocalParticleDataHost");
+    #if ENABLE_HIP
+    export_LocalParticleData<HOOMDDeviceBuffer>(m, "LocalParticleDataDevice");
+    #endif
     export_MPIConfiguration(m);
     export_ExecutionConfiguration(m);
     export_SystemDefinition(m);
@@ -352,6 +362,30 @@ PYBIND11_MODULE(_hoomd, m)
     export_BondedGroupData<ImproperData,Dihedral>(m,"ImproperData","ImproperDataSnapshot",false);
     export_BondedGroupData<ConstraintData,Constraint>(m,"ConstraintData","ConstraintDataSnapshot");
     export_BondedGroupData<PairData,Bond>(m,"PairData","PairDataSnapshot",false);
+
+    export_LocalGroupData<HOOMDHostBuffer, BondData>(m, "LocalBondDataHost");
+    export_LocalGroupData<HOOMDHostBuffer, AngleData>(m, "LocalAngleDataHost");
+    export_LocalGroupData<HOOMDHostBuffer, DihedralData>(
+        m, "LocalDihedralDataHost");
+    export_LocalGroupData<HOOMDHostBuffer, ImproperData>(
+        m, "LocalImproperDataHost");
+    export_LocalGroupData<HOOMDHostBuffer, ConstraintData>(
+        m, "LocalConstraintDataHost");
+    export_LocalGroupData<HOOMDHostBuffer, PairData>(m, "LocalPairDataHost");
+    #if ENABLE_HIP
+    export_LocalGroupData<HOOMDDeviceBuffer, BondData>(
+        m, "LocalBondDataDevice");
+    export_LocalGroupData<HOOMDDeviceBuffer, AngleData>(
+        m, "LocalAngleDataDevice");
+    export_LocalGroupData<HOOMDDeviceBuffer, DihedralData>(
+        m, "LocalDihedralDataDevice");
+    export_LocalGroupData<HOOMDDeviceBuffer, ImproperData>(
+        m, "LocalImproperDataDevice");
+    export_LocalGroupData<HOOMDDeviceBuffer, ConstraintData>(
+        m, "LocalConstraintDataDevice");
+    export_LocalGroupData<HOOMDDeviceBuffer, PairData>(
+        m, "LocalPairDataDevice");
+    #endif
 
     // initializers
     export_GSDReader(m);

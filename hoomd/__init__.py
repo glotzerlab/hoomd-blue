@@ -39,7 +39,6 @@ from hoomd import analyze
 from hoomd import benchmark
 from hoomd import comm
 from hoomd import compute
-from hoomd import data
 from hoomd import dump
 from hoomd import group
 from hoomd import init
@@ -69,11 +68,11 @@ except ImportError:
 # except ImportError:
 #     pass
 
+from hoomd.box import Box
 from hoomd.simulation import Simulation
 from hoomd.state import State
 from hoomd.operations import Operations
 from hoomd.snapshot import Snapshot
-from hoomd.box import Box
 from hoomd import tune
 from hoomd import output
 from hoomd import logging
