@@ -269,6 +269,22 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             return maxD;
             }
 
+        //! Get the maximum particle translational move size
+        virtual Scalar getMinTransMoveSize()
+            {
+            // access the type parameters
+            ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::read);
+
+            // for each type, create a temporary shape and return the maximum diameter
+            Scalar minD = h_d.data[0];
+            for (unsigned int typ = 1; typ < this->m_pdata->getNTypes(); typ++)
+                {
+                minD = std::max(minD, h_d.data[typ]);
+                }
+
+            return minD;
+            }
+
         //! Change maximum rotation
         /*! \param name Type name to set
          *! \param a new a to set
