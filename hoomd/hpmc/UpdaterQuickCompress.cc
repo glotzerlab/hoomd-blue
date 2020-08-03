@@ -10,7 +10,7 @@ UpdaterQuickCompress::UpdaterQuickCompress(std::shared_ptr<SystemDefinition> sys
                                            std::shared_ptr<IntegratorHPMC> mc,
                                            double max_overlaps_per_particle,
                                            double min_scale,
-                                           const BoxDim& target_box,
+                                           pybind11::object target_box,
                                            const unsigned int seed)
     : Updater(sysdef), m_mc(mc), m_max_overlaps_per_particle(max_overlaps_per_particle),
       m_target_box(target_box), m_seed(seed)
@@ -48,9 +48,12 @@ void UpdaterQuickCompress::update(unsigned int timestep)
 
     // count the number of overlaps in the current configuration
     auto n_overlaps = m_mc->countOverlaps(false);
-    BoxDim curBox = m_pdata->getGlobalBox();
+    BoxDim current_box = m_pdata->getGlobalBox();
 
-    if (n_overlaps == 0 && curBox != m_target_box)
+    // TODO: This slow. We will implement a general reusable fix later in #705
+    BoxDim target_box = m_target_box.attr("_cpp_obj").cast<BoxDim>();
+
+    if (n_overlaps == 0 && current_box != target_box)
         {
         performBoxScale(timestep);
         }
@@ -59,7 +62,7 @@ void UpdaterQuickCompress::update(unsigned int timestep)
         m_prof->pop();
 
     // TODO: Enable the ability to flag that the compression is completed
-    // if (n_overlaps == 0 && curBox == m_target_box)
+    // if (n_overlaps == 0 && curBox == target_box)
     //     return true;
     // else
     //     return false;
@@ -84,6 +87,7 @@ void UpdaterQuickCompress::performBoxScale(unsigned int timestep)
     m_mc->attemptBoxResize(timestep, new_box);
 
     auto n_overlaps = m_mc->countOverlaps(false);
+    // std::cout << n_overlaps << " " << m_max_overlaps_per_particle * m_pdata->getN() << std::endl;
     if (n_overlaps > m_max_overlaps_per_particle * m_pdata->getN())
         {
         // the box move generated too many overlaps, undo the move
@@ -112,11 +116,11 @@ static inline double scaleValue(double current, double target, double s)
     assert(s <= 1.0);
     if (target < current)
         {
-        return std::min(target, current * s);
+        return std::max(target, current * s);
         }
     else
         {
-        return std::max(target, current * 1.0 / s);
+        return std::min(target, current * 1.0 / s);
         }
     }
 
@@ -139,18 +143,23 @@ BoxDim UpdaterQuickCompress::getNewBox(unsigned int timestep)
     hoomd::UniformDistribution<double> uniform(min_scale, 1.0);
     double scale = uniform(rng);
 
+    // std::cout << "Scaling: " << scale << std::endl;
+
+    // TODO: This slow. We will implement a general reusable fix later in #705
+    BoxDim target_box = m_target_box.attr("_cpp_obj").cast<BoxDim>();
+
     // construct the scaled box
     BoxDim current_box = m_pdata->getGlobalBox();
     Scalar3 new_L;
-    new_L.x = scaleValue(current_box.getL().x, m_target_box.getL().x, scale);
-    new_L.y = scaleValue(current_box.getL().y, m_target_box.getL().y, scale);
-    new_L.z = scaleValue(current_box.getL().z, m_target_box.getL().z, scale);
+    new_L.x = scaleValue(current_box.getL().x, target_box.getL().x, scale);
+    new_L.y = scaleValue(current_box.getL().y, target_box.getL().y, scale);
+    new_L.z = scaleValue(current_box.getL().z, target_box.getL().z, scale);
     Scalar new_xy
-        = scaleValue(current_box.getTiltFactorXY(), m_target_box.getTiltFactorXY(), scale);
+        = scaleValue(current_box.getTiltFactorXY(), target_box.getTiltFactorXY(), scale);
     Scalar new_xz
-        = scaleValue(current_box.getTiltFactorXZ(), m_target_box.getTiltFactorXZ(), scale);
+        = scaleValue(current_box.getTiltFactorXZ(), target_box.getTiltFactorXZ(), scale);
     Scalar new_yz
-        = scaleValue(current_box.getTiltFactorYZ(), m_target_box.getTiltFactorYZ(), scale);
+        = scaleValue(current_box.getTiltFactorYZ(), target_box.getTiltFactorYZ(), scale);
 
     BoxDim new_box = current_box;
     new_box.setL(new_L);
@@ -167,7 +176,7 @@ void export_UpdaterQuickCompress(pybind11::module& m)
                             std::shared_ptr<IntegratorHPMC>,
                             double,
                             double,
-                            const BoxDim&,
+                            pybind11::object,
                             const unsigned int>())
         .def_property("max_overlaps_per_particle",
                       &UpdaterQuickCompress::getMaxOverlapsPerParticle,

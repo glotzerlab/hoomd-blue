@@ -37,7 +37,7 @@ class UpdaterQuickCompress : public Updater
                          std::shared_ptr<IntegratorHPMC> mc,
                          double max_overlaps_per_particle,
                          double min_scale,
-                         const BoxDim& target_box,
+                         pybind11::object target_box,
                          const unsigned int seed);
 
     /// Destructor
@@ -88,13 +88,13 @@ class UpdaterQuickCompress : public Updater
         }
 
     /// Get the target box
-    BoxDim getTargetBox()
+    pybind11::object getTargetBox()
         {
         return m_target_box;
         }
 
     /// Set the target box
-    void setTargetBox(const BoxDim& target_box)
+    void setTargetBox(pybind11::object target_box)
         {
         m_target_box = target_box;
         }
@@ -115,7 +115,7 @@ class UpdaterQuickCompress : public Updater
     double m_min_scale;
 
     /// The target box dimensions
-    BoxDim m_target_box;
+    pybind11::object m_target_box;
 
     /// The RNG seed
     unsigned int m_seed;
