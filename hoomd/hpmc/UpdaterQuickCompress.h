@@ -99,9 +99,16 @@ class UpdaterQuickCompress : public Updater
         m_target_box = target_box;
         }
 
+    /// Get the PRNG seed
     unsigned int getSeed()
         {
         return m_seed;
+        }
+
+    /// Return true if the updater is complete and the simulation should end.
+    virtual bool isComplete()
+        {
+        return m_is_complete;
         }
 
     private:
@@ -131,6 +138,9 @@ class UpdaterQuickCompress : public Updater
 
     /// Store the last HPMC counters
     hpmc_counters_t m_last_move_counters;
+
+    /// Track whether the compression is complete
+    bool m_is_complete = false;
     };
 
 /// Export UpdaterQuickCompress to Python

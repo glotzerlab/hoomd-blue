@@ -376,6 +376,19 @@ class _TriggeredOperation(_Operation):
 class _Updater(_TriggeredOperation):
     _cpp_list_name = 'updaters'
 
+    @property
+    def complete(self):
+        """True when the operation is complete.
+
+        `Simulation.run` stops the running whenever any operation in the
+        `Simulation` is complete.
+        """
+        # TODO: make sure this appears in the user documentation
+        if not self.is_attached:
+            return False
+
+        return self._cpp_obj.isComplete()
+
 
 class _Analyzer(_TriggeredOperation):
     _cpp_list_name = 'analyzers'

@@ -63,11 +63,11 @@ void UpdaterQuickCompress::update(unsigned int timestep)
     if (m_prof)
         m_prof->pop();
 
-    // TODO: Enable the ability to flag that the compression is completed
-    // if (n_overlaps == 0 && curBox == target_box)
-    //     return true;
-    // else
-    //     return false;
+    // The compression is complete when we have reached the target box and there are no overlaps.
+    if (n_overlaps == 0 && current_box == target_box)
+        m_is_complete = true;
+    else
+        m_is_complete = false;
     }
 
 void UpdaterQuickCompress::performBoxScale(unsigned int timestep)
@@ -136,10 +136,12 @@ BoxDim UpdaterQuickCompress::getNewBox(unsigned int timestep)
     auto current_counters = m_mc->getCounters();
     auto counter_delta = current_counters - m_last_move_counters;
     m_last_move_counters = current_counters;
-    double accept_ratio = 1.0/5.0;
+    double accept_ratio = 1.0;
     if (counter_delta.translate_accept_count > 0)
         {
-        accept_ratio = std::min(accept_ratio, double(counter_delta.translate_accept_count) / double(counter_delta.translate_accept_count + counter_delta.translate_reject_count));
+        accept_ratio
+            = double(counter_delta.translate_accept_count)
+              / double(counter_delta.translate_accept_count + counter_delta.translate_reject_count);
         }
 
     // Determine the worst case minimum allowable scale factor. The minimum allowable scale factor
@@ -147,9 +149,9 @@ BoxDim UpdaterQuickCompress::getNewBox(unsigned int timestep)
     // times the maximum displacement. Assuming that the particles are all spheres with their
     // circumsphere diameter, set the minimum allowable scale factor so that overlaps of this size
     // can be removed by trial move. The worst case estimate uses the minimum move size and the
-    // maximum core diameter.
+    // maximum core diameter. Cap the acceptance ratio at 0.5 to prevent excessive box moves.
     double max_diameter = m_mc->getMaxCoreDiameter();
-    double min_move_size = m_mc->getMinTransMoveSize() * accept_ratio;
+    double min_move_size = m_mc->getMinTransMoveSize() * std::min(accept_ratio, 0.5);
     double min_scale = std::max(m_min_scale, 1.0 - min_move_size / max_diameter);
 
     // Create a prng instance for this timestep
@@ -168,12 +170,9 @@ BoxDim UpdaterQuickCompress::getNewBox(unsigned int timestep)
     new_L.x = scaleValue(current_box.getL().x, target_box.getL().x, scale);
     new_L.y = scaleValue(current_box.getL().y, target_box.getL().y, scale);
     new_L.z = scaleValue(current_box.getL().z, target_box.getL().z, scale);
-    Scalar new_xy
-        = scaleValue(current_box.getTiltFactorXY(), target_box.getTiltFactorXY(), scale);
-    Scalar new_xz
-        = scaleValue(current_box.getTiltFactorXZ(), target_box.getTiltFactorXZ(), scale);
-    Scalar new_yz
-        = scaleValue(current_box.getTiltFactorYZ(), target_box.getTiltFactorYZ(), scale);
+    Scalar new_xy = scaleValue(current_box.getTiltFactorXY(), target_box.getTiltFactorXY(), scale);
+    Scalar new_xz = scaleValue(current_box.getTiltFactorXZ(), target_box.getTiltFactorXZ(), scale);
+    Scalar new_yz = scaleValue(current_box.getTiltFactorYZ(), target_box.getTiltFactorYZ(), scale);
 
     BoxDim new_box = current_box;
     new_box.setL(new_L);
