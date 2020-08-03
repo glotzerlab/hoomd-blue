@@ -31,6 +31,8 @@ UpdaterQuickCompress::UpdaterQuickCompress(std::shared_ptr<SystemDefinition> sys
     // Connect to the MaxParticleNumberChange signal
     m_pdata->getMaxParticleNumberChangeSignal()
         .connect<UpdaterQuickCompress, &UpdaterQuickCompress::slotMaxNChange>(this);
+
+    m_last_move_counters = m_mc->getCounters();
     }
 
 UpdaterQuickCompress::~UpdaterQuickCompress()
@@ -70,7 +72,8 @@ void UpdaterQuickCompress::update(unsigned int timestep)
 
 void UpdaterQuickCompress::performBoxScale(unsigned int timestep)
     {
-    BoxDim new_box = getNewBox(timestep);
+    auto new_box = getNewBox(timestep);
+    auto old_box = m_pdata->getGlobalBox();
 
     // Make a backup copy of position data
     unsigned int N_backup = m_pdata->getN();
@@ -87,7 +90,6 @@ void UpdaterQuickCompress::performBoxScale(unsigned int timestep)
     m_mc->attemptBoxResize(timestep, new_box);
 
     auto n_overlaps = m_mc->countOverlaps(false);
-    // std::cout << n_overlaps << " " << m_max_overlaps_per_particle * m_pdata->getN() << std::endl;
     if (n_overlaps > m_max_overlaps_per_particle * m_pdata->getN())
         {
         // the box move generated too many overlaps, undo the move
@@ -98,6 +100,10 @@ void UpdaterQuickCompress::performBoxScale(unsigned int timestep)
         unsigned int N = m_pdata->getN();
         assert(N == N_backup);
         memcpy(h_pos.data, h_pos_backup.data, sizeof(Scalar4) * N);
+        m_pdata->setGlobalBox(old_box);
+
+        // we have moved particles, communicate those changes
+        m_mc->communicate(false);
         }
     }
 
@@ -126,24 +132,32 @@ static inline double scaleValue(double current, double target, double s)
 
 BoxDim UpdaterQuickCompress::getNewBox(unsigned int timestep)
     {
+    // compute the current MC translate acceptance ratio
+    auto current_counters = m_mc->getCounters();
+    auto counter_delta = current_counters - m_last_move_counters;
+    m_last_move_counters = current_counters;
+    double accept_ratio = 1.0/5.0;
+    if (counter_delta.translate_accept_count > 0)
+        {
+        accept_ratio = std::min(accept_ratio, double(counter_delta.translate_accept_count) / double(counter_delta.translate_accept_count + counter_delta.translate_reject_count));
+        }
+
+    // Determine the worst case minimum allowable scale factor. The minimum allowable scale factor
+    // assumes that the typical accepted trial move shifts particles by the current acceptance ratio
+    // times the maximum displacement. Assuming that the particles are all spheres with their
+    // circumsphere diameter, set the minimum allowable scale factor so that overlaps of this size
+    // can be removed by trial move. The worst case estimate uses the minimum move size and the
+    // maximum core diameter.
+    double max_diameter = m_mc->getMaxCoreDiameter();
+    double min_move_size = m_mc->getMinTransMoveSize() * accept_ratio;
+    double min_scale = std::max(m_min_scale, 1.0 - min_move_size / max_diameter);
+
     // Create a prng instance for this timestep
     hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterQuickCompress, m_seed, timestep);
-
-    // Determine the minimum allowable scale factor for each type in the simulation. The minimum
-    // allowable scale factor assumes that the typical accepted trial move shifts particles 1/4 of
-    // the maximum displacement. Assuming that the particles are all spheres with their circumsphere
-    // diameter, set the minimum allowable scale factor so that overlaps of this size can be removed
-    // by trial move. Max a conservative estimate using the minimum move size and the maximum core
-    // diameter.
-    double max_diameter = m_mc->getMaxCoreDiameter();
-    double min_move_size = m_mc->getMinTransMoveSize() / 4.0;
-    double min_scale = std::max(m_min_scale, 1.0 - min_move_size / max_diameter);
 
     // choose a scale randomly between min_scale and 1.0
     hoomd::UniformDistribution<double> uniform(min_scale, 1.0);
     double scale = uniform(rng);
-
-    // std::cout << "Scaling: " << scale << std::endl;
 
     // TODO: This slow. We will implement a general reusable fix later in #705
     BoxDim target_box = m_target_box.attr("_cpp_obj").cast<BoxDim>();

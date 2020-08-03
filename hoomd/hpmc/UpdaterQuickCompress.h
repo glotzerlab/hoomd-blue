@@ -128,6 +128,9 @@ class UpdaterQuickCompress : public Updater
 
     /// Get the new box to set
     BoxDim getNewBox(unsigned int timestep);
+
+    /// Store the last HPMC counters
+    hpmc_counters_t m_last_move_counters;
     };
 
 /// Export UpdaterQuickCompress to Python
