@@ -12,6 +12,7 @@ from hoomd.update import _updater
 from hoomd.operation import _Updater
 from hoomd.parameterdicts import ParameterDict
 import hoomd
+import hoomd.typeconverter
 
 
 class boxmc(_updater):
@@ -909,3 +910,50 @@ class Clusters(_Updater):
             return (0, 0)
         else:
             return counter.swap
+
+class QuickCompress(_Updater):
+    """Quickly compress a hard particle system to a target box.
+
+    Args:
+        trigger (Trigger): Update the box dimensions on triggered time steps.
+
+        seed (int): Random number seed.
+
+        target_box (Box): Dimensions of the target box.
+
+        max_overlaps_per_particle (float): The maximum number of overlaps to
+            allow per particle (may be less than 1).
+
+        min_scale (float): The minimum scale factor to apply to box dimensions.
+
+    """
+
+    def __init__(self, trigger, target_box, seed, max_overlaps_per_particle=0.25, min_scale=0.99):
+        super().__init__(trigger)
+
+        param_dict = ParameterDict(seed=int,
+                                   max_overlaps_per_particle=float,
+                                   min_scale=float,
+                                   target_box=hoomd.typeconverter.OnlyType(hoomd.Box, preprocess=hoomd.typeconverter.box_preprocessing))
+        param_dict['seed'] = seed
+        param_dict['max_overlaps_per_particle'] = max_overlaps_per_particle
+        param_dict['min_scale'] = min_scale
+        param_dict['target_box'] = target_box
+
+        self._param_dict.update(param_dict)
+
+    def attach(self, simulation):
+        integrator = simulation.operations.integrator
+        if not isinstance(integrator, integrate._HPMCIntegrator):
+            raise RuntimeError("The integrator must be a HPMC integrator.")
+
+        if not integrator.is_attached:
+            raise RuntimeError("Integrator is not attached yet.")
+
+        self._cpp_obj = _hpmc.UpdaterQuickCompress(simulation.state._cpp_sys_def,
+                                integrator._cpp_obj,
+                                self.max_overlaps_per_particle,
+                                self.min_scale,
+                                self.target_box,
+                                self.seed)
+        super().attach(simulation)
