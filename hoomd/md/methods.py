@@ -827,8 +827,6 @@ class Brownian(_Method):
             :math:`\vec{F}_\mathrm{R}`.
         alpha (float): (optional) When set, use :math:\alpha d:math: for the
             drag coefficient.
-        noiseless_t (bool): If set true, there will be no translational noise (random force)
-        noiseless_r (bool): If set true, there will be no rotational noise (random torque)
 
     :py:class:`brownian` integrates particles forward in time according to the overdamped Langevin equations of motion,
     sometimes called Brownian dynamics, or the diffusive limit.
