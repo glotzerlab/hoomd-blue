@@ -819,13 +819,16 @@ class Langevin(_Method):
         super().attach(simulation)
 
 
-class brownian(_Method):
+class Brownian(_Method):
     R""" Brownian dynamics.
 
     Args:
-        group (``hoomd.group``): Group of particles to apply this method to.
-        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of the simulation (in energy units).
-        seed (int): Random seed to use for generating :math:`\vec{F}_\mathrm{R}`.
+        filter (:py:mod:`hoomd.filter._ParticleFilter`): Group of particles to
+            apply this method to.
+        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of the
+            simulation (in energy units).
+        seed (int): Random seed to use for generating
+            :math:`\vec{F}_\mathrm{R}`.
         dscale (bool): Control :math:`\lambda` options. If 0 or False, use :math:`\gamma` values set per type. If non-zero, :math:`\gamma = \lambda d_i`.
         noiseless_t (bool): If set true, there will be no translational noise (random force)
         noiseless_r (bool): If set true, there will be no rotational noise (random torque)
@@ -889,142 +892,50 @@ class brownian(_Method):
 
     Examples::
 
-        all = group.all()
-        integrator = integrate.brownian(group=all, kT=1.0, seed=5)
-        integrator = integrate.brownian(group=all, kT=1.0, dscale=1.5)
+        all=hoomd.filter.All()
+        integrator = integrate.Brownian(filter=all, kT=1.0, seed=5)
+        integrator = integrate.Brownian(filter=all, kT=1.0, alpha=1.5)
         typeA = group.type('A')
-        integrator = integrate.brownian(group=typeA, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]), seed=10)
+        integrator = integrate.Brownian(filter=typeA, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]), seed=10)
 
     """
-    def __init__(self, group, kT, seed, dscale=False, noiseless_t=False, noiseless_r=False):
+    def __init__(self, filter, kT, seed, alpha):
 
-        # initialize base class
-        _Method.__init__(self)
+        # store metadata
+        param_dict = ParameterDict(
+            filter=_ParticleFilter,
+            kT=Variant,
+            seed=int(seed),
+            alpha=OnlyType(float, allow_none=True),
+            )
+        param_dict.update(dict(kT=kT, alpha=alpha, filter=filter))
+        #set defaults
+        self._param_dict.update(param_dict)
 
-        # setup the variant inputs
-        kT = hoomd.variant._setup_variant_input(kT)
+        gamma = TypeParameter('gamma', type_kind='particle_types',
+                              param_dict=TypeParameterDict(1., len_keys=1)
+                              )
 
-        # create the compute thermo
-        hoomd.compute._get_unique_thermo(group=group)
+        gamma_r = TypeParameter('gamma_r', type_kind='particle_types',
+                                param_dict=TypeParameterDict((1., 1., 1.), len_keys=1)
+                                )
+        self._extend_typeparam([gamma,gamma_r])
 
-        if dscale is False or dscale == 0:
-            use_lambda = False
-        else:
-            use_lambda = True
+
+    def attach(self, simulation):
 
         # initialize the reflected c++ class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
+        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
             my_class = _md.TwoStepBD
         else:
             my_class = _md.TwoStepBDGPU
 
-        self.cpp_method = my_class(hoomd.context.current.system_definition,
-                                   group.cpp_group,
-                                   kT.cpp_variant,
-                                   seed,
-                                   use_lambda,
-                                   float(dscale),
-                                   noiseless_t,
-                                   noiseless_r)
+        self._cpp_obj = my_class(simulation.state._cpp_sys_def, 
+                                 simulation.state.get_group(self.filter), 
+                                 self.kT, self.seed)
 
-        self.cpp_method.validateGroup()
-
-        # store metadata
-        self.group = group
-        self.kT = kT
-        self.seed = seed
-        self.dscale = dscale
-        self.noiseless_t = noiseless_t
-        self.noiseless_r = noiseless_r
-        self.metadata_fields = ['group', 'kT', 'seed', 'dscale','noiseless_t','noiseless_r']
-
-    def set_params(self, kT=None):
-        R""" Change langevin integrator parameters.
-
-        Args:
-            kT (:py:mod:`hoomd.variant` or :py:obj:`float`): New temperature (if set) (in energy units).
-
-        Examples::
-
-            integrator.set_params(kT=2.0)
-
-        """
-        self.check_initialization()
-
-        # change the parameters
-        if kT is not None:
-            # setup the variant inputs
-            kT = hoomd.variant._setup_variant_input(kT)
-            self.cpp_method.setT(kT.cpp_variant)
-            self.kT = kT
-
-    def set_gamma(self, a, gamma):
-        R""" Set gamma for a particle type.
-
-        Args:
-            a (str): Particle type name
-            gamma (float): :math:`\gamma` for particle type a (in units of force/velocity)
-
-        :py:meth:`set_gamma()` sets the coefficient :math:`\gamma` for a single particle type, identified
-        by name. The default is 1.0 if not specified for a type.
-
-        It is not an error to specify gammas for particle types that do not exist in the simulation.
-        This can be useful in defining a single simulation script for many different types of particles
-        even when some simulations only include a subset.
-
-        Examples::
-
-            bd.set_gamma('A', gamma=2.0)
-
-        """
-        self.check_initialization()
-        a = str(a)
-
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes()
-        type_list = []
-        for i in range(0,ntypes):
-            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i))
-
-        # change the parameters
-        for i in range(0,ntypes):
-            if a == type_list[i]:
-                self.cpp_method.setGamma(i,gamma)
-
-    def set_gamma_r(self, a, gamma_r):
-        R""" Set gamma_r for a particle type.
-
-        Args:
-            a (str):  Particle type name
-            gamma_r (float or tuple): :math:`\gamma_r` for particle type a (in units of force/velocity), optionally for all body frame directions
-
-        :py:meth:`set_gamma_r()` sets the coefficient :math:`\gamma_r` for a single particle type, identified
-        by name. The default is 1.0 if not specified for a type. It must be positive or zero, if set
-        zero, it will have no rotational damping or random torque, but still with updates from normal net torque.
-
-        Examples::
-
-            bd.set_gamma_r('A', gamma_r=2.0)
-            bd.set_gamma_r('A', gamma_r=(1,2,3))
-
-        """
-
-        self.check_initialization()
-
-        if not isinstance(gamma_r,tuple):
-            gamma_r = (gamma_r, gamma_r, gamma_r)
-
-        if (gamma_r[0] < 0 or gamma_r[1] < 0 or gamma_r[2] < 0):
-            raise ValueError("The gamma_r must be positive or zero (represent no rotational damping or random torque, but with updates)")
-
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes()
-        type_list = []
-        for i in range(0,ntypes):
-            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i))
-
-        # change the parameters
-        for i in range(0,ntypes):
-            if a == type_list[i]:
-                self.cpp_method.setGamma_r(i,_hoomd.make_scalar3(*gamma_r))
+        # Attach param_dict and typeparam_dict
+        super().attach(simulation)
 
 
 class berendsen(_Method):
