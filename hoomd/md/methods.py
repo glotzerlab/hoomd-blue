@@ -692,7 +692,7 @@ class Langevin(_Method):
             simulation (in energy units).
         seed (int): Random seed to use for generating
             :math:`\vec{F}_\mathrm{R}`.
-        lambda (float): (optional) When set, use :math:\lambda d:math: for the
+        alpha (float): (optional) When set, use :math:\alpha d:math: for the
             drag coefficient.
         tally_reservoir_energy (bool): (optional) If true, the energy exchange
             between the thermal reservoir and the particles is tracked. Total
@@ -751,11 +751,9 @@ class Langevin(_Method):
 
     1. Use ``set_gamma()`` to specify it directly, with independent
        values for each particle type in the system.
-    2. Specify :math:`\lambda` which scales the particle diameter to
-       :math:`\gamma = \lambda d_i`. The units of
-       :math:`\lambda` are mass / distance / time.
-
-    :py:class:`Langevin` must be used with ``mode_standard``.
+    2. Specify :math:`\alpha` which scales the particle diameter to
+       :math:`\gamma = \alpha d_i`. The units of
+       :math:`\alpha` are mass / distance / time.
 
     *kT* can be a variant type, allowing for temperature ramps in simulation
     runs.
@@ -769,11 +767,9 @@ class Langevin(_Method):
 
     Examples::
 
-        all = group.all()
-        integrator = integrate.langevin(group=all, kT=1.0, seed=5)
-        integrator = integrate.langevin(group=all, kT=1.0, dscale=1.5, tally=True)
-        typeA = group.type('A')
-        integrator = integrate.langevin(group=typeA, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]), seed=10)
+        all=hoomd.filter.All()
+        langevin = hoomd.md.methods.Langevin(filter=all, kT=0.2, seed=1, alpha=1.0)
+        integrator = hoomd.md.Integrator(dt=0.001, methods=[langevin], forces=[lj])
 
     """
 
@@ -829,7 +825,8 @@ class Brownian(_Method):
             simulation (in energy units).
         seed (int): Random seed to use for generating
             :math:`\vec{F}_\mathrm{R}`.
-        dscale (bool): Control :math:`\lambda` options. If 0 or False, use :math:`\gamma` values set per type. If non-zero, :math:`\gamma = \lambda d_i`.
+        alpha (float): (optional) When set, use :math:\alpha d:math: for the
+            drag coefficient.
         noiseless_t (bool): If set true, there will be no translational noise (random force)
         noiseless_r (bool): If set true, there will be no rotational noise (random torque)
 
@@ -881,10 +878,8 @@ class Brownian(_Method):
     You can specify :math:`\gamma` in two ways:
 
     1. Use :py:class:`set_gamma()` to specify it directly, with independent values for each particle type in the system.
-    2. Specify :math:`\lambda` which scales the particle diameter to :math:`\gamma = \lambda d_i`. The units of
-       :math:`\lambda` are mass / distance / time.
-
-    :py:class:`brownian` must be used with integrate.mode_standard.
+    2. Specify :math:`\alpha` which scales the particle diameter to :math:`\gamma = \alpha d_i`. The units of
+       :math:`\alpha` are mass / distance / time.
 
     *kT* can be a variant type, allowing for temperature ramps in simulation runs.
 
@@ -893,13 +888,11 @@ class Brownian(_Method):
     Examples::
 
         all=hoomd.filter.All()
-        integrator = integrate.Brownian(filter=all, kT=1.0, seed=5)
-        integrator = integrate.Brownian(filter=all, kT=1.0, alpha=1.5)
-        typeA = group.type('A')
-        integrator = integrate.Brownian(filter=typeA, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]), seed=10)
+        brownian = hoomd.md.methods.Brownian(filter=all, kT=0.2, seed=1, alpha=1.0)
+        integrator = hoomd.md.Integrator(dt=0.001, methods=[brownian], forces=[lj])
 
     """
-    def __init__(self, filter, kT, seed, alpha):
+    def __init__(self, filter, kT, seed, alpha=None):
 
         # store metadata
         param_dict = ParameterDict(
