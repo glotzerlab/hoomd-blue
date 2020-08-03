@@ -15,6 +15,7 @@
 #include "ShapeSimplePolygon.h"
 #include "ShapeEllipsoid.h"
 #include "ShapeSphinx.h"
+#include "hoomd/extern/quickhull/QuickHull.hpp"
 
 namespace hpmc
 {
@@ -178,8 +179,8 @@ inline void sortFaces(const std::vector< vec3<Scalar> >& points,
 // that it should be easy to generalize to 2d as well.
 class ConvexHull
     {
-        static const unsigned int INVALID_INDEX;
-        static const Scalar epsilon;
+    static const unsigned int INVALID_INDEX;
+    static const Scalar epsilon;
     public:
         ConvexHull() { m_ravg = vec3<Scalar>(0.0,0.0,0.0); }
 
@@ -785,9 +786,15 @@ class MassProperties< ShapeConvexPolyhedron > : public MassPropertiesBase< Shape
         MassProperties(const typename ShapeConvexPolyhedron::param_type& param,
                        bool do_compute=true) : MassPropertiesBase()
             {
-            ConvexHull hull(param);
-            hull.compute();
-            hull.moveData(faces, points);
+            // ConvexHull hull(param);
+            // hull.compute();
+            std::pair<std::vector<vec3<Scalar>>, std::vector<std::vector<unsigned int>>> p;
+            p = getQuickHullVertsAndFaces(param);
+            points = p.first;
+            // points = std::move(points);
+            faces = p.second;
+            // faces = std::move(faces);
+            // hull.moveData(faces, points);
             if (do_compute)
                 {
                 compute();
@@ -804,6 +811,47 @@ class MassProperties< ShapeConvexPolyhedron > : public MassPropertiesBase< Shape
                 }
             }
 
+        std::pair<std::vector<vec3<Scalar>>, std::vector<std::vector<unsigned int>>>
+        getQuickHullVertsAndFaces(const typename ShapeConvexPolyhedron::param_type& param)
+            {
+            std::vector<quickhull::Vector3<OverlapReal>> verts;
+            for(size_t i = 0; i < param.N; i++)
+                {
+                quickhull::Vector3<OverlapReal> vert(param.x[i],
+                                                     param.y[i],
+                                                     param.z[i]);
+                verts.push_back(vert);
+                }
+            quickhull::QuickHull<OverlapReal> qh;
+            auto mesh = qh.getConvexHullAsMesh(&verts[0].x, verts.size(), true);
+
+            std::vector<vec3<Scalar>> v;
+            for(size_t i = 0; i < mesh.m_vertices.size(); i++)
+                {
+                vec3<Scalar> vert(mesh.m_vertices[i].x,
+                                  mesh.m_vertices[i].y,
+                                  mesh.m_vertices[i].z);
+                v.push_back(vert);
+                }
+            using HalfEdge = quickhull::HalfEdgeMesh<float, unsigned long>::HalfEdge;
+            std::vector<std::vector<unsigned int>> faces;
+            for(size_t i = 0; i < mesh.m_faces.size(); i++)
+                {
+                std::array<size_t,3> facev;
+                HalfEdge he = mesh.m_halfEdges[mesh.m_faces[i].m_halfEdgeIndex];
+                facev[0] = he.m_endVertex;
+                he = mesh.m_halfEdges[he.m_next];
+                facev[1] = he.m_endVertex;
+                he = mesh.m_halfEdges[he.m_next];
+                facev[2] = he.m_endVertex;
+                std::vector<unsigned int> faceverts{static_cast<unsigned int>(facev[0]),
+                                                    static_cast<unsigned int>(facev[1]),
+                                                    static_cast<unsigned int>(facev[2])};
+                faces.push_back(faceverts);
+                }
+            return std::make_pair(v, faces);
+            }
+
         unsigned int getFaceIndex(unsigned int i, unsigned int j) { return faces[i][j]; }
 
         unsigned int getNumFaces() { return faces.size(); }
@@ -812,9 +860,16 @@ class MassProperties< ShapeConvexPolyhedron > : public MassPropertiesBase< Shape
             {
             if(force || param.N != points.size())
                 {
-                ConvexHull hull(param);
-                hull.compute();
-                hull.moveData(faces, points);
+                // ConvexHull hull(param);
+                // hull.compute();
+                // hull.moveData(faces, points);
+                std::pair<std::vector<vec3<Scalar>>, std::vector<std::vector<unsigned int>>> p;
+                p = getQuickHullVertsAndFaces(param);
+                points = p.first;
+                // points = std::move(points);
+                faces = p.second;
+                // faces = std::move(faces);
+                sortFaces(points, faces);
                 }
             else
                 {

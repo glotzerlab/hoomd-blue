@@ -395,10 +395,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         }
     if(p < Z)
         {
-        bool overlap = false;
-
         bool early_exit = true;
-
         unsigned int overlap_count = 0;
         unsigned int err_count = 0;
 

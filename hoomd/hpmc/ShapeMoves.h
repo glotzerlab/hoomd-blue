@@ -8,6 +8,7 @@
 #include <hoomd/extern/Eigen/Eigen/Dense>
 // #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <pybind11/pybind11.h>
+#include "hoomd/extern/quickhull/QuickHull.hpp"
 
 namespace hpmc {
 
@@ -329,9 +330,7 @@ public:
         {
         if(!m_calculated[type_id])
             {
-            detail::ConvexHull convex_hull(shape); // compute the convex_hull.
-            convex_hull.compute();
-            detail::MassProperties<ShapeConvexPolyhedron> mp(convex_hull.getPoints(), convex_hull.getFaces());
+            detail::MassProperties<ShapeConvexPolyhedron> mp(shape);
             m_centroids[type_id] = mp.getCenterOfMass();
             m_calculated[type_id] = true;
             }
@@ -348,9 +347,7 @@ public:
                 }
             }
 
-        detail::ConvexHull convex_hull(shape); // compute the convex_hull.
-        convex_hull.compute();
-        detail::MassProperties<ShapeConvexPolyhedron> mp(convex_hull.getPoints(), convex_hull.getFaces());
+        detail::MassProperties<ShapeConvexPolyhedron> mp(shape);
         Scalar volume = mp.getVolume();
         vec3<Scalar> dr = m_centroids[type_id] - mp.getCenterOfMass();
         m_scale = fast::pow(m_volume/volume, 1.0/3.0);
@@ -368,7 +365,10 @@ public:
             rsq = fmax(rsq, dot(vert, vert));
             points[i] = vert;
             }
-        detail::MassProperties<ShapeConvexPolyhedron> mp2(points, convex_hull.getFaces());
+        std::pair<std::vector<vec3<Scalar>>, std::vector<std::vector<unsigned int>>> p;
+        p = mp.getQuickHullVertsAndFaces(shape);
+        std::vector<std::vector<unsigned int>> faces = p.second;
+        detail::MassProperties<ShapeConvexPolyhedron> mp2(points, faces);
         this->m_det_inertia_tensor = mp2.getDeterminant();
         m_isoperimetric_quotient = mp2.getIsoperimetricQuotient();
         shape.diameter = 2.0*fast::sqrt(rsq);
