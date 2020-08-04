@@ -771,6 +771,25 @@ void ParticleGroup::rebuildIndexListGPU() const
     }
 #endif
 
+unsigned int ParticleGroup::intersectionSize(std::shared_ptr<ParticleGroup> other)
+    {
+    unsigned int n = 0;
+
+    for (unsigned int i = 0; i < this->getNumMembers(); i++)
+        {
+        unsigned int query_idx = this->getMemberIndex(i);
+        if (other->isMember(query_idx))
+            n++;
+        }
+
+    #ifdef ENABLE_MPI
+    MPI_Allreduce(MPI_IN_PLACE, &n, 1, MPI_UNSIGNED, MPI_SUM, m_exec_conf->getMPICommunicator());
+    #endif
+
+    return n;
+    }
+
+
 void export_ParticleGroup(py::module& m)
     {
     py::class_<ParticleGroup, std::shared_ptr<ParticleGroup> >(m,"ParticleGroup")
@@ -786,5 +805,9 @@ void export_ParticleGroup(py::module& m)
             .def("groupIntersection", &ParticleGroup::groupIntersection)
             .def("groupDifference", &ParticleGroup::groupDifference)
             .def("updateMemberTags", &ParticleGroup::updateMemberTags)
+            .def("setTranslationalDOF", &ParticleGroup::setTranslationalDOF)
+            .def("getTranslationalDOF", &ParticleGroup::getTranslationalDOF)
+            .def("setRotationalDOF", &ParticleGroup::setRotationalDOF)
+            .def("getRotationalDOF", &ParticleGroup::getRotationalDOF)
             ;
     }
