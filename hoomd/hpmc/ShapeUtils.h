@@ -823,7 +823,7 @@ class MassProperties< ShapeConvexPolyhedron > : public MassPropertiesBase< Shape
                 verts.push_back(vert);
                 }
             quickhull::QuickHull<OverlapReal> qh;
-            auto mesh = qh.getConvexHullAsMesh(&verts[0].x, verts.size(), true);
+            auto mesh = qh.getConvexHullAsMesh(&verts[0].x, verts.size(), true, true, 0.0000001);
 
             std::vector<vec3<Scalar>> v;
             for(size_t i = 0; i < mesh.m_vertices.size(); i++)
@@ -852,7 +852,15 @@ class MassProperties< ShapeConvexPolyhedron > : public MassPropertiesBase< Shape
             return std::make_pair(v, faces);
             }
 
-        unsigned int getFaceIndex(unsigned int i, unsigned int j) { return faces[i][j]; }
+        pybind11::list getFaceIndex(unsigned int i, unsigned int j)
+            {
+            vec3<double> pt = points[faces[i][j]];
+            pybind11::list l;
+            l.append(pt.x);
+            l.append(pt.y);
+            l.append(pt.z);
+            return l;
+            }
 
         unsigned int getNumFaces() { return faces.size(); }
 

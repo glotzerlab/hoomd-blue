@@ -75,10 +75,13 @@ class mass_properties_convex_polyhedron_test(unittest.TestCase):
             vol, com, inertia = geometry.massProperties(verts, faces);
             end = time.time();
             py_time += end-start;
-            py_ids = set(); # the actual points in the convex_hull
-            for f in faces:
-                py_ids.update(f);
-
+            py_verts = [] # the actual points in the convex_hull
+            for i, j, k in hull.vertices:
+                py_verts.append(list(verts[i]))
+                py_verts.append(list(verts[j]))
+                py_verts.append(list(verts[k]))
+            py_verts = np.asarray(sorted(py_verts,
+                                         key=lambda x: x[0]**2 + x[1]**2 + x[2]**2))
             start = time.time();
             mp = mass_class(make_verts(verts.tolist(), 0, False, hoomd.context.current.system_definition.getParticleData().getExecConf()));
             end = time.time();
@@ -88,19 +91,22 @@ class mass_properties_convex_polyhedron_test(unittest.TestCase):
             cpp_com = [ mp.center_of_mass(i) for i in range(3) ];
             cpp_inertia = [ mp.moment_of_inertia(i) for i in range(6) ];
 
-            cpp_ids = set(); # the actual points in the convex_hull
+            cpp_verts = [] # the actual points in the convex_hull
             for f in range(mp.num_faces()):
-                cpp_ids.update([mp.index(f, i) for i in range(3)]);
+                for i in range(3):
+                    cpp_verts.append(mp.index(f, i))
+                # cpp_ids.update([mp.index(f, i) for i in range(3)]);
 
             # faces my be differnt because triangulation is not unique but there should be
             # the same number of faces and the same vertices will be in the hull.
             # Also test the result gives us the same result for the volume, inertia and com
             self.assertEqual(len(faces), mp.num_faces());
             # test the vertices are the same.
-            diff = cpp_ids - py_ids;
-            self.assertEqual(len(diff), 0); # all points in cpp are in py.
-            diff = py_ids - cpp_ids;
-            self.assertEqual(len(diff), 0); # all points in cpp are in py.
+            cpp_verts = np.asarray(sorted(cpp_verts,
+                                          key=lambda x: x[0]**2 + x[1]**2 + x[2]**2))
+            cpp_verts = np.unique(cpp_verts, axis=0)
+            py_verts = np.unique(py_verts, axis=0)
+            np.testing.assert_allclose(cpp_verts, py_verts)
             # volume is equal
             self.assertAlmostEqual(vol, cpp_volume, 5);
             # com is equal
