@@ -30,6 +30,34 @@ steps:
 
 - script: >-
     PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
+    python3 -m pytest -v -ra -m "cupy_optional"
+    --junit-xml=$(Common.TestResultsDirectory)/pytest-serial.xml
+  displayName: Run pytest (gpu without CuPy)
+  workingDirectory: $(Pipeline.Workspace)/install
+  condition: and(succeeded(), eq(variables['enable_gpu'], 'on'))
+  env:
+    # disallow use of cupy
+    _HOOMD_DISALLOW_CUPY_: 1
+
+- script: >-
+    PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
+    mpirun -n 2 $(Build.BinariesDirectory)/hoomd/pytest/pytest-openmpi.sh -v -x -ra
+    -m "cupy_optional" --junit-xml=$(Common.TestResultsDirectory)/pytest-mpi.xml
+  displayName: Run pytest (gpu mpi without CuPy)
+  workingDirectory: $(Pipeline.Workspace)/install
+  condition: and(succeeded(), eq(variables['enable_mpi'], 'on'), eq(variables['enable_gpu'], 'on'))
+  env:
+    # disallow use of cupy
+    _HOOMD_DISALLOW_CUPY_: 1
+
+- script: cat pytest.out.1
+  displayName: Display rank 1 output
+  workingDirectory: $(Pipeline.Workspace)/install
+  condition: and(or(succeeded(), failed()), eq(variables['enable_mpi'], 'on'),
+                 eq(variables['enable_gpu'], 'on'))
+
+- script: >-
+    PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
     ctest
     -I $(ctest_start),,$(ctest_stride)
     --no-compress-output

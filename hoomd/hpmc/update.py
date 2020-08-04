@@ -7,7 +7,7 @@
 from . import _hpmc
 from . import integrate
 from hoomd import _hoomd
-from hoomd.logging import Loggable
+from hoomd.logging import log
 from hoomd.update import _updater
 from hoomd.operation import _Updater
 from hoomd.parameterdicts import ParameterDict
@@ -868,7 +868,7 @@ class Clusters(_Updater):
         else:
             return self._cpp_obj.getCounters(1)
 
-    @Loggable.log(flag='multi')
+    @log(flag='sequence')
     def pivot_moves(self):
         R""" Get a tuple with the accepted and rejected pivot moves.
 
@@ -882,7 +882,7 @@ class Clusters(_Updater):
         else:
             return counter.pivot
 
-    @Loggable.log(flag='multi')
+    @log(flag='sequence')
     def reflection_moves(self):
         R""" Get a tuple with the accepted and rejected reflection moves.
 
@@ -896,7 +896,7 @@ class Clusters(_Updater):
         else:
             return counter.reflection
 
-    @Loggable.log(flag='multi')
+    @log(flag='sequence')
     def swap_moves(self):
         R""" Get a tuple with the accepted and rejected swap moves.
 
