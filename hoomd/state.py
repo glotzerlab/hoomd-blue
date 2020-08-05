@@ -213,20 +213,18 @@ class State:
         """
         integrator = self._simulation.operations.integrator
 
-        # Do nothing if there is no integrator.
-        if integrator is None:
-            return
-
-        if not integrator.is_attached:
-            raise RuntimeError("Call update_group_dof after attaching")
-
         for groups in self._groups.values():
             for group in groups.values():
                 if integrator is not None:
+                    if not integrator.is_attached:
+                        raise RuntimeError(
+                            "Call update_group_dof after attaching")
+
                     integrator._cpp_obj.updateGroupDOF(group)
                 else:
                     group.setTranslationalDOF(0)
                     group.setRotationalDOF(0)
+
     @property
     def cpu_local_snapshot(self):
         """hoomd.data.LocalSnapshot: Directly expose HOOMD data buffers
