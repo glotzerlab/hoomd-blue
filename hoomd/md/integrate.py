@@ -106,7 +106,7 @@ class Integrator(_DynamicIntegrator):
     - :py:class:`hoomd.md.methods.Langevin`
     - :py:class:`hoomd.md.methods.nve`
     - :py:class:`hoomd.md.methods.NVT`
-    - :py:class:`hoomd.md.methods.npt`
+    - :py:class:`hoomd.md.methods.NPT`
     - :py:class:`hoomd.md.methods.nph`
 
     There can only be one integration mode active at a time. If there are more

@@ -28,7 +28,7 @@ def preprocess_stress(value):
         return tuple(value)
     else:
         return tuple([value,value,value,0,0,0])
-        
+
 def none_or(type_):
     def None_or_type(value):
         if None or isinstance(value, type_):
@@ -199,7 +199,7 @@ class NPT(_Method):
         :py:class:`NPT` assumes that isotropic pressures are positive. Conventions for the stress tensor sometimes
         assume negative values on the diagonal. You need to set these values negative manually in HOOMD.
 
-    :py:class:`NPT` is an integration method. It must be used with :py:class:`mode_standard`.
+    :py:class:`NPT` is an integration method. It must be used with ``mode_standard``.
 
     :py:class:`NPT` uses the proper number of degrees of freedom to compute the temperature and pressure of the system in
     both 2 and 3 dimensional systems, as long as the number of dimensions is set before the :py:class:`NPT` command
@@ -255,7 +255,7 @@ class NPT(_Method):
         #S=(Variant,)*6,
         #S=preprocess_stress,
         #filter=OnlyType(_ParticleFilter)
-        param_dict.update(dict(filter=filter, kT=kT, S=preprocess_stress(S), 
+        param_dict.update(dict(filter=filter, kT=kT, S=preprocess_stress(S),
                                  couple=couple, box_dof=box_dof)) #S=preprocess_stress,
 
         # set defaults
@@ -274,12 +274,12 @@ class NPT(_Method):
         cpp_sys_def = simulation.state._cpp_sys_def
         thermo_group = simulation.state.get_group(self.filter)
         # compute thermo half time step
-        thermo = thermo_cls(cpp_sys_def, 
+        thermo = thermo_cls(cpp_sys_def,
                             thermo_group,
                             "")
         # compute thermo full time step
-        thermo_t = thermo_cls(cpp_sys_def, 
-                              thermo_group, 
+        thermo_t = thermo_cls(cpp_sys_def,
+                              thermo_group,
                               "")
         self._cpp_obj = my_class(cpp_sys_def,
                                  thermo_group,
@@ -332,15 +332,15 @@ class nph(NPT):
     R""" NPH Integration via MTK barostat-thermostat..
 
     Args:
-        params: keyword arguments passed to :py:class:`npt`.
+        params: keyword arguments passed to :py:class:`NPT`.
         gamma: (:py:obj:`float`, units of energy): Damping factor for the box degrees of freedom
 
     :py:class:`nph` performs constant pressure (NPH) simulations using a Martyna-Tobias-Klein barostat, an
     explicitly reversible and measure-preserving integration scheme. It allows for fully deformable simulation
-    cells and uses the same underlying integrator as :py:class:`npt` (with *nph=True*).
+    cells and uses the same underlying integrator as :py:class:`NPT` (with *nph=True*).
 
-    The available options are identical to those of :py:class:`npt`, except that *kT* cannot be specified.
-    For further information, refer to the documentation of :py:class:`npt`.
+    The available options are identical to those of :py:class:`NPT`, except that *kT* cannot be specified.
+    For further information, refer to the documentation of :py:class:`NPT`.
 
     Note:
          A time scale *tauP* for the relaxation of the barostat is required. This is defined as the
