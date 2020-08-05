@@ -4,6 +4,13 @@ Change Log
 v2.x
 ----
 
+v2.9.3 (2020-08-05)
+^^^^^^^^^^^^^^^^^^^
+
+*Bug fixes*
+
+* Fix a compile error with CUDA 11
+
 v2.9.2 (2020-06-26)
 ^^^^^^^^^^^^^^^^^^^
 
