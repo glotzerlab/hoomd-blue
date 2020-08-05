@@ -77,10 +77,8 @@ class NVT(_Method):
     Examples::
 
         all = filter.All()
-        integrate.NVT(filter=all, kT=1.0, tau=0.5)
-        integrator = integrate.NVT(filter=all, tau=1.0, kT=0.65)
-        typeA = filter.Type('A')
-        integrator = integrate.NVT(filter=typeA, tau=1.0, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
+        nvt=hoomd.md.methods.NVT(filter=all, kT=1.0, tau=0.5)
+        integrator = hoomd.md.Integrator(dt=0.005, methods=[nvt], forces=[lj])
     """
 
     def __init__(self, filter, kT, tau):
@@ -565,11 +563,12 @@ class nph(npt):
         self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
 
 
-class nve(_Method):
+class NVE(_Method):
     R""" NVE Integration via Velocity-Verlet
 
     Args:
-        group (``hoomd.group``): Group of particles on which to apply this method.
+        filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply this
+            method.
         limit (bool): (optional) Enforce that no particle moves more than a distance of \a limit in a single time step
         zero_force (bool): When set to true, particles in the \a group are integrated forward in time with constant
           velocity and any net force on them is ignored.
@@ -597,27 +596,14 @@ class nve(_Method):
 
     Examples::
 
-        all = group.all()
-        integrate.nve(group=all)
-        integrator = integrate.nve(group=all)
-        typeA = group.type('A')
-        integrate.nve(group=typeA, limit=0.01)
-        integrate.nve(group=typeA, zero_force=True)
+        all = hoomd.filter.All()
+        nve = hoomd.md.methods.NVE(filter=all)
+        nve = hoomd.md.methods.NVE(filter=all, limit=0.01)
+        nve = hoomd.md.methods.NVE(filter=all, zero_force=True)
+        integrator = hoomd.md.Integrator(dt=0.005, methods=[nve], forces=[lj])
 
     """
-    def __init__(self, group, limit=None, zero_force=False):
-
-        # initialize base class
-        _Method.__init__(self)
-
-        # create the compute thermo
-        hoomd.compute._get_unique_thermo(group=group)
-
-        # initialize the reflected c++ class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_method = _md.TwoStepNVE(hoomd.context.current.system_definition, group.cpp_group, False)
-        else:
-            self.cpp_method = _md.TwoStepNVEGPU(hoomd.context.current.system_definition, group.cpp_group)
+    def __init__(self, filter, limit=None, zero_force=False):
 
         # set the limit
         if limit is not None:
@@ -628,10 +614,30 @@ class nve(_Method):
         self.cpp_method.validateGroup()
 
         # store metadata
-        self.group = group
-        self.limit = limit
-        self.metadata_fields = ['group', 'limit']
+        param_dict = ParameterDict(
+            filter=_ParticleFilter,
+            limit=OnlyType(float, allow_none=True),
+            zero_force=OnlyType(bool),
+        )
+        param_dict.update(dict(filter=filter, limit=limit, zero_force=zero_force))
 
+        # set defaults
+        self._param_dict.update(param_dict)
+
+    def attach(self, simulation):
+
+        # initialize the reflected c++ class
+        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+            my_class = _md.TwoStepNVE
+        else:
+            my_class = _md.TwoStepNVEGPU
+
+        self._cpp_obj = my_class(simulation.state._cpp_sys_def, 
+                                 simulation.state.get_group(self.filter))
+
+        # Attach param_dict and typeparam_dict
+        super().attach(simulation)
+'''
     def set_params(self, limit=None, zero_force=None):
         R""" Changes parameters of an existing integrator.
 
@@ -680,7 +686,7 @@ class nve(_Method):
 
         """
         self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
-
+'''
 
 class Langevin(_Method):
     R""" Langevin dynamics.
