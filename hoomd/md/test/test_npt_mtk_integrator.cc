@@ -425,10 +425,9 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, std::shared_ptr<E
     fc->setShiftMode(PotentialPairLJ::shift);
 
     std::shared_ptr<ComputeThermo> compute_thermo(new ComputeThermo(sysdef, group_all, "name"));
-    compute_thermo->setNDOF(3*N-3);
+    group_all->setTranslationalDOF(3*N-3);
 
     std::shared_ptr<ComputeThermo> compute_thermo_t(new ComputeThermo(sysdef, group_all, "name"));
-    compute_thermo_t->setNDOF(3*N-3);
 
     // set up integration without thermostat
     args_t args;
@@ -632,7 +631,7 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
         npt_mtk->removeAllIntegrationMethods();
         npt_mtk->addIntegrationMethod(two_step_npt_mtk);
 
-        unsigned int ndof_rot = npt_mtk->getRotationalNDOF(group_all);
+        unsigned int ndof_rot = npt_mtk->getRotationalDOF(group_all);
         thermo_group->setRotationalNDOF(ndof_rot);
         thermo_group_t->setRotationalNDOF(ndof_rot);
 
