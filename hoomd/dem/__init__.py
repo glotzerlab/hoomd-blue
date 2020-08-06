@@ -41,7 +41,7 @@ rotational degrees of freedom:
   * ``hoomd.md.methods.NVT``
   * ``hoomd.md.methods.npt``
   * :py:mod:`hoomd.md.methods.Langevin`
-  * :py:mod:`hoomd.md.methods.brownian`
+  * :py:mod:`hoomd.md.methods.Brownian`
 
 Note that the Nosé-Hoover thermostats used in
 ``hoomd.md.methods.nvt`` and ``hoomd.md.methods.nvt``
@@ -51,7 +51,7 @@ initialized with 0 angular momentum and no neighbor interactions. Two
 easy fixes for this problem are to initialize each particle with some
 angular momentum or to first run for a few steps with
 :py:mod:`hoomd.md.methods.Langevin` or
-:py:mod:`hoomd.md.methods.brownian`.
+:py:mod:`hoomd.md.methods.Brownian`.
 
 Data Storage
 ------------

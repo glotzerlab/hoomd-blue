@@ -740,7 +740,7 @@ class Langevin(_Method):
     Langevin dynamics includes the acceleration term in the Langevin equation
     and is useful for gently thermalizing systems using a small gamma. This
     assumption is valid when underdamped: :math:`\frac{m}{\gamma} \gg \delta t`.
-    Use :py:class:`brownian` if your system is not underdamped.
+    Use :py:class:`Brownian` if your system is not underdamped.
 
     :py:class:`Langevin` uses the same integrator as :py:class:`nve` with the
     additional force term :math:`- \gamma \cdot \vec{v} + \vec{F}_\mathrm{R}`.
@@ -828,7 +828,7 @@ class Brownian(_Method):
         alpha (float): (optional) When set, use :math:\alpha d:math: for the
             drag coefficient.
 
-    :py:class:`brownian` integrates particles forward in time according to the overdamped Langevin equations of motion,
+    :py:class:`Brownian` integrates particles forward in time according to the overdamped Langevin equations of motion,
     sometimes called Brownian dynamics, or the diffusive limit.
 
     .. math::
@@ -851,7 +851,7 @@ class Brownian(_Method):
     to be consistent with the specified drag and temperature, :math:`T`.
     When :math:`kT=0`, the random force :math:`\vec{F}_\mathrm{R}=0`.
 
-    :py:class:`brownian` generates random numbers by hashing together the particle tag, user seed, and current
+    :py:class:`Brownian` generates random numbers by hashing together the particle tag, user seed, and current
     time step index. See `C. L. Phillips et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_ for more
     information.
 
@@ -861,12 +861,12 @@ class Brownian(_Method):
 
         For MPI runs: all ranks other than 0 ignore the seed input and use the value of rank 0.
 
-    :py:class:`brownian` uses the integrator from `I. Snook, The Langevin and Generalised Langevin Approach to the Dynamics of
+    :py:class:`Brownian` uses the integrator from `I. Snook, The Langevin and Generalised Langevin Approach to the Dynamics of
     Atomic, Polymeric and Colloidal Systems, 2007, section 6.2.5 <http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6>`_,
     with the exception that :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random number distribution.
 
     In Brownian dynamics, particle velocities are completely decoupled from positions. At each time step,
-    :py:class:`brownian` draws a new velocity distribution consistent with the current set temperature so that
+    :py:class:`Brownian` draws a new velocity distribution consistent with the current set temperature so that
     :py:class:`hoomd.compute.thermo` will report appropriate temperatures and pressures if logged or needed by other
     commands.
 
@@ -875,7 +875,7 @@ class Brownian(_Method):
 
     You can specify :math:`\gamma` in two ways:
 
-    1. Use :py:class:`set_gamma()` to specify it directly, with independent values for each particle type in the system.
+    1. Use ``set_gamma`` to specify it directly, with independent values for each particle type in the system.
     2. Specify :math:`\alpha` which scales the particle diameter to :math:`\gamma = \alpha d_i`. The units of
        :math:`\alpha` are mass / distance / time.
 
@@ -921,8 +921,8 @@ class Brownian(_Method):
         else:
             my_class = _md.TwoStepBDGPU
 
-        self._cpp_obj = my_class(simulation.state._cpp_sys_def, 
-                                 simulation.state.get_group(self.filter), 
+        self._cpp_obj = my_class(simulation.state._cpp_sys_def,
+                                 simulation.state.get_group(self.filter),
                                  self.kT, self.seed)
 
         # Attach param_dict and typeparam_dict
