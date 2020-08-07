@@ -718,7 +718,9 @@ class AlchemyLogBoltzmannFunction : public ShapeLogBoltzmannFunction<Shape>
 public:
     virtual Scalar operator()(const unsigned int& timestep, const unsigned int& N,const unsigned int type_id, const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold)
         {
-        return (Scalar(N)/Scalar(2.0))*log(inew/iold);
+        Scalar newdivold = inew/iold;
+        if (newdivold < 0.0) {newdivold = -1.0*newdivold;} // MOI may be negative depending on order of vertices
+        return (Scalar(N)/Scalar(2.0))*log(newdivold);
         }
 };
 
@@ -792,14 +794,13 @@ public:
         Scalar e_ddot_e = (eps*eps.transpose()).trace();
         Scalar e_ddot_e_last = (eps_last*eps_last.transpose()).trace();
         // TODO: To make this more correct we need to calculate the previous volume and multiply accodingly.
-        return N*stiff*(e_ddot_e_last-e_ddot_e)*this->m_volume
-               + fn(timestep, N, type_id, shape_new, inew, shape_old, iold);
+        return N*stiff*(e_ddot_e_last-e_ddot_e)*this->m_volume + fn(timestep, N, type_id, shape_new, inew, shape_old, iold);
         }
 
     Scalar computeEnergy(const unsigned int &timestep, const unsigned int& N, const unsigned int type_id, const typename Shape::param_type& shape, const Scalar& inertia)
         {
         Scalar stiff = this->m_k->getValue(timestep);
-        Eigen::Matrix3d eps = m_shape_move->getEps(type_id);
+        Eigen::Matrix3d eps = m_shape_move->getEpsLast(type_id);
         Scalar e_ddot_e = (eps*eps.transpose()).trace();
         return N*stiff*e_ddot_e*this->m_volume;
         }
