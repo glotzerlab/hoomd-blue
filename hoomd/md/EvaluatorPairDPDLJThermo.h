@@ -99,6 +99,8 @@ class EvaluatorPairDPDLJThermo
                 lj1 = 4.0 * epsilon * pow(sigma, 12.0);
                 lj2 = 4.0 * epsilon * pow(sigma, 6.0);
                 gamma = v["gamma"].cast<Scalar>();
+                if (gamma == 0)
+                    throw std::invalid_argument("Cannot set gamma to 0, try using DPDConservative instead.");
                 }
 
             pybind11::dict asDict()
