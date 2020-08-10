@@ -55,9 +55,6 @@ class EvaluatorPairMie
         struct param_type
             {
             // params given by user
-            Scalar epsilon, sigma, n, m;
-
-            // params of interest for evaluating the potential
             Scalar m1, m2, m3, m4;
 
             #ifdef ENABLE_HIP
@@ -68,54 +65,39 @@ class EvaluatorPairMie
             #ifndef __HIPCC__
             param_type()
                 {
-                n = m = epsilon = sigma = 0;
                 m1 = m2 = m3 = m4 = 0;
-                }
-
-            param_type(Scalar eps, Scalar sig, Scalar n_, Scalar m_) :
-                epsilon(eps), sigma(sig), n(n_), m(m_)
-                {
-                computeParams();
                 }
 
             param_type(pybind11::dict v)
                 {
-                epsilon = v["epsilon"].cast<Scalar>();
-                sigma = v["sigma"].cast<Scalar>();
-                n = v["n"].cast<Scalar>();
-                m = v["m"].cast<Scalar>();
+                m3 = v["n"].cast<Scalar>();
+                m4 = v["m"].cast<Scalar>();
 
-                computeParams();
+                Scalar epsilon = v["epsilon"].cast<Scalar>();
+                Scalar sigma = v["sigma"].cast<Scalar>();
+
+                Scalar outFront = (m3/(m3-m4)) * pow(m3/m4, m4/(m3-m4));
+                m1 = outFront * epsilon * pow(sigma, m3);
+                m2 = outFront * epsilon * pow(sigma, m4);
                 }
 
             pybind11::dict asDict()
                 {
                 pybind11::dict v;
+                v["n"] = m3;
+                v["m"] = m4;
+
+                Scalar sigma = pow(m1 / m2, 1 / (m3 - m4));
+                Scalar epsilon = m1 / pow(sigma, m3) * (m3 - m4) / m3 * pow(m3 / m4, m4 / (m4 - m3));
+
                 v["epsilon"] = epsilon;
                 v["sigma"] = sigma;
-                v["n"] = n;
-                v["m"] = m;
 
                 return v;
                 }
-
-            private:
-                // compute params relevant for evaluating potential from the
-                // ones given by the user
-                void computeParams()
-                    {
-                    m1 = epsilon * pow(sigma, n) * (n/(n-m)) * pow(n/m, m/(n-m));
-                    m2 = epsilon * pow(sigma, m) * (n/(n-m)) * pow(n/m, m/(n-m));
-                    m3 = n;
-                    m4 = m;
-                    }
             #endif
             }
-            #ifdef SINGLE_PRECISION
-            __attribute__((aligned(8)));
-            #else
             __attribute__((aligned(16)));
-            #endif
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
