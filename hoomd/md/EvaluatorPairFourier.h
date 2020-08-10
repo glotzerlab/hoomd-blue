@@ -45,24 +45,20 @@
 
     is calculated to enforce close to zero value at r_cut
 
-    The Fourier potential does not need diameter or charge. two sets of parameters: a and b (both list of size 3) are specified and stored in a pair_fourier_params type.
+    The Fourier potential does not need diameter or charge. two sets of parameters: a and b (both list of size 3) are specified and stored in a param_type struct.
     - \a a is placed in params.a,
     - \a b is placed in params.b.
 
 */
-struct pair_fourier_params
-{
-  Scalar a[3];      //!< Fourier component coefficents
-  Scalar b[3];      //!< Fourier component coefficents
-};
-
 class EvaluatorPairFourier
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
         struct param_type
             {
-            Scalar a[3], b[3];
+            Scalar a[3];  //!< Fourier component coefficents
+            Scalar b[3];  //!< Fourier component coefficents
+
 
             #ifdef ENABLE_HIP
             //! set CUDA memory hint
