@@ -36,7 +36,7 @@ def test_header_generation(device, logger):
     csv_writer = hoomd.output.CSV(0, logger, output)
     csv_writer._comm = device.comm
     for i in range(10):
-        csv_writer.act()
+        csv_writer.write()
     output_str = output.getvalue()
     lines = output_str.split('\n')
     headers = lines[0].split()
@@ -47,7 +47,7 @@ def test_header_generation(device, logger):
         values = lines[i].split()
         assert not any(v in expected_headers for v in values)
     csv_writer._logger[('new', 'quantity')] = (lambda: 53, 'scalar')
-    csv_writer.act()
+    csv_writer.write()
     output_str = output.getvalue()
     lines = output_str.split('\n')
     headers = lines[-3].split()
@@ -61,7 +61,7 @@ def test_values(device, logger, expected_values):
     csv_writer = hoomd.output.CSV(0, logger, output)
     csv_writer._comm = device.comm
     for i in range(10):
-        csv_writer.act()
+        csv_writer.write()
     lines = output.getvalue().split('\n')
     headers = lines[0].split()
 
@@ -89,7 +89,7 @@ def test_mpi_write_only(device, logger):
     output = StringIO("")
     csv_writer = hoomd.output.CSV(0, logger, output)
     csv_writer._comm = device.comm
-    csv_writer.act()
+    csv_writer.write()
 
     comm = MPI.COMM_WORLD
     if comm.rank == 0:
@@ -104,7 +104,7 @@ def test_header_attributes(device, logger):
     csv_writer = hoomd.output.CSV(
         0, logger, output, header_sep='-', max_header_len=13)
     csv_writer._comm = device.comm
-    csv_writer.act()
+    csv_writer.write()
     lines = output.getvalue().split('\n')
     headers = lines[0].split()
     expected_headers = ['loggable-int', 'loggable-float', 'string']
@@ -117,7 +117,7 @@ def test_delimiter(device, logger):
     csv_writer = hoomd.output.CSV(
         0, logger, output, delimiter=',')
     csv_writer._comm = device.comm
-    csv_writer.act()
+    csv_writer.write()
     lines = output.getvalue().split('\n')
     assert all(len(row.split(',')) == 3 for row in lines[:-1])
 
@@ -129,7 +129,7 @@ def test_max_precision(device, logger):
                                   max_precision=5)
     csv_writer._comm = device.comm
     for i in range(10):
-        csv_writer.act()
+        csv_writer.write()
 
     smaller_lines = output.getvalue().split('\n')
 
@@ -138,7 +138,7 @@ def test_max_precision(device, logger):
                                   max_precision=15)
     csv_writer._comm = device.comm
     for i in range(10):
-        csv_writer.act()
+        csv_writer.write()
 
     longer_lines = output.getvalue().split('\n')
 
@@ -155,6 +155,6 @@ def test_only_string_and_scalar_quantities(device):
     output = StringIO("")
     with pytest.raises(ValueError):
         _ = hoomd.output.CSV(0, logger, output)
-    logger = hoomd.logging.Logger(flags=['multi'])
+    logger = hoomd.logging.Logger(flags=['sequence'])
     with pytest.raises(ValueError):
         _ = hoomd.output.CSV(0, logger, output)

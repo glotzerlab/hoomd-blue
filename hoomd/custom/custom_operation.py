@@ -1,12 +1,13 @@
+from abc import abstractmethod
+
 from hoomd.operation import _TriggeredOperation
 from hoomd.parameterdicts import ParameterDict
-from hoomd.custom import Action
+from hoomd.custom.custom_action import Action, _AbstractLoggable
 from hoomd.trigger import Trigger
-from hoomd.logging import LoggerQuantity
 from hoomd import _hoomd
 
 
-class _CustomOperation(_TriggeredOperation):
+class _CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
     """Wrapper for user created `hoomd.custom.Action` objects.
 
     This is the parent class for `hoomd.update.CustomUpdater` and
@@ -34,7 +35,7 @@ class _CustomOperation(_TriggeredOperation):
 
     _override_setattr = {'_action'}
 
-    @property
+    @abstractmethod
     def _cpp_class_name(self):
         """C++ Class to use for attaching."""
         raise NotImplementedError
@@ -44,13 +45,7 @@ class _CustomOperation(_TriggeredOperation):
             raise ValueError("action must be a subclass of "
                              "hoomd.custom_action.custom.Action.")
         self._action = action
-        loggables = dict(action.log_quantities)
-        if not all(isinstance(val, LoggerQuantity)
-                   for val in loggables.values()):
-            raise ValueError("Error wrapping {}. All advertised log "
-                             "quantities must be of type LoggerQuantity."
-                             "".format(action))
-        self._export_dict = loggables
+        self._export_dict = action._export_dict
 
         param_dict = ParameterDict(trigger=Trigger)
         param_dict['trigger'] = trigger
@@ -117,9 +112,10 @@ class _InternalCustomOperation(_CustomOperation):
     """
 
     @property
+    @abstractmethod
     def _internal_class(self):
         """Internal class to use for the Action of the Operation."""
-        raise NotImplementedError
+        pass
 
     def __init__(self, trigger, *args, **kwargs):
         super().__init__(self._internal_class(*args, **kwargs), trigger)
