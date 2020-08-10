@@ -63,10 +63,7 @@ class EvaluatorPairMie
             #endif
 
             #ifndef __HIPCC__
-            param_type()
-                {
-                m1 = m2 = m3 = m4 = 0;
-                }
+            param_type() : m1(0), m2(0), m3(0), m4(0) {}
 
             param_type(pybind11::dict v)
                 {
