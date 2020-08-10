@@ -823,7 +823,7 @@ class MassProperties< ShapeConvexPolyhedron > : public MassPropertiesBase< Shape
                 verts.push_back(vert);
                 }
             quickhull::QuickHull<OverlapReal> qh;
-            auto mesh = qh.getConvexHullAsMesh(&verts[0].x, verts.size(), true, true, 0.0000001);
+            auto mesh = qh.getConvexHullAsMesh(&verts[0].x, verts.size(), true, 0.0000001);
 
             std::vector<vec3<Scalar>> v;
             for(size_t i = 0; i < mesh.m_vertices.size(); i++)
