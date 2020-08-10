@@ -84,11 +84,7 @@ class EvaluatorPairReactionField
                 }
             #endif
             }
-            #ifdef SINGLE_PRECISION
-            __attribute((aligned(8)));
-            #else
             __attribute((aligned(16)));
-            #endif
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles

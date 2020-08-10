@@ -45,14 +45,17 @@ class EvaluatorPairZBL
             {
             // just holding on to these so if the user calls asDict,
             // we can give them back correctly
-            unsigned int Zi;
-            unsigned int Zj;
             Scalar e;
             Scalar a0;
 
             // these are the params the potential cares about
             Scalar Zsq;
             Scalar aF;
+
+            // just holding on to these so if the user calls asDict,
+            // we can give them back correctly
+            unsigned int Zi;
+            unsigned int Zj;
 
             #ifdef ENABLE_HIP
             // set CUDA memory hints
