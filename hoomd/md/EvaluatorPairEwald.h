@@ -58,7 +58,7 @@ class EvaluatorPairEwald
             #endif
 
             #ifndef __HIPCC__
-            param_type() {kappa=1; alpha=0;}
+            param_type() : kappa(0), alpha(0) {}
 
             param_type(pybind11::dict v)
                 {

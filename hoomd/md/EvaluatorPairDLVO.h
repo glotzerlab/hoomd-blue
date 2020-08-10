@@ -63,12 +63,7 @@ class EvaluatorPairDLVO
             #endif
 
             #ifndef __HIPCC__
-            param_type()
-                {
-                kappa = 1.0;
-                Z = 1.0;
-                A = 1.0;
-                }
+            param_type() : kappa(0), Z(0), A(0) {}
 
             param_type(pybind11::dict v)
                 {

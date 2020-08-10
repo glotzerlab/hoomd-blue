@@ -74,8 +74,8 @@ class EvaluatorPairFourier
                 {
                 for (int i=0; i<3; i++)
                     {
-                    a[i] = 1.0;
-                    b[i] = 1.0;
+                    a[i] = 0.0;
+                    b[i] = 0.0;
                     }
                 }
 
@@ -108,11 +108,7 @@ class EvaluatorPairFourier
                 }
             #endif
             }
-            #ifdef SINGLE_PRECISION
-            __attribute__((aligned(8)));
-            #else
             __attribute__((aligned(16)));
-            #endif
 
 
         //! Constructs the pair potential evaluator

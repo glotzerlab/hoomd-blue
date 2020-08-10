@@ -62,8 +62,7 @@ class EvaluatorPairMoliere
             #ifndef __HIPCC__
             param_type()
                 {
-                Zi = Zj = a0 = e = 1;
-                computeParams();
+                Zi = Zj = a0 = e = 0;
                 }
 
             param_type(pybind11::dict v)

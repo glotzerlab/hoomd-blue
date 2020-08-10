@@ -90,7 +90,7 @@ class EvaluatorPairDPDLJThermo
             #endif
 
             #ifndef __HIPCC__
-            param_type() {lj1 = 0; lj2 = 0; gamma = 1;}
+            param_type() : lj1(0), lj2(0), gamma(0) {}
 
             param_type(pybind11::dict v)
                 {

@@ -57,7 +57,7 @@ class EvaluatorPairMorse
             #endif
 
             #ifndef __HIPCC__
-            param_type() {D0=1; alpha=0; r0=0;}
+            param_type() : D0(0), alpha(0), r0(0) {}
 
             param_type(pybind11::dict v)
                 {

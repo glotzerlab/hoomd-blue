@@ -62,7 +62,7 @@ class EvaluatorPairGauss
             #endif
 
             #ifndef __HIPCC__
-            param_type() {sigma = 0; epsilon = 0;}
+            param_type() : epsilon(0), sigma(0) {}
 
             param_type(pybind11::dict v)
                 {

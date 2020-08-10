@@ -59,12 +59,7 @@ class EvaluatorPairReactionField
             #endif
 
             #ifndef __HIPCC__
-            param_type()
-                {
-                eps = 1;
-                eps_rf = 1;
-                use_charge = false;
-                }
+            param_type() : eps(0), eps_rf(0), use_charge(false) {}
 
             param_type(pybind11::dict v)
                 {

@@ -68,10 +68,7 @@ class EvaluatorPairBuckingham
             #endif
 
             #ifndef __HIPCC__
-            param_type()
-                {
-                A = rho = C = 1.0;
-                }
+            param_type() : A(0), rho(0), C(0) {}
 
             param_type(pybind11::dict v)
                 {

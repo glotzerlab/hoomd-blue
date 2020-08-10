@@ -83,7 +83,7 @@ class EvaluatorPairDPDThermo
             void set_memory_hints() const {}
             #endif
             #ifndef __HIPCC__
-            param_type() {A=1; gamma=0;}
+            param_type() : A(0), gamma(0) {}
 
             param_type(pybind11::dict v)
                 {

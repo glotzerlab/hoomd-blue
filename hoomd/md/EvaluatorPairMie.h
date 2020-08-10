@@ -68,11 +68,8 @@ class EvaluatorPairMie
             #ifndef __HIPCC__
             param_type()
                 {
-                n = 12;
-                m = 6;
-                epsilon = 1;
-                sigma = 1;
-                computeParams();
+                n = m = epsilon = sigma = 0;
+                m1 = m2 = m3 = m4 = 0;
                 }
 
             param_type(Scalar eps, Scalar sig, Scalar n_, Scalar m_) :
