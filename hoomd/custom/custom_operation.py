@@ -84,7 +84,7 @@ class _CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
         self._action.attach(simulation)
 
     def detach(self):
-        """Detaching to a `hoomd.Simulation`."""
+        """Detaching from a `hoomd.Simulation`."""
         self._action.detach()
         super().detach()
 
