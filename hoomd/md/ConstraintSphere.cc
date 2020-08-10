@@ -49,11 +49,9 @@ void ConstraintSphere::setSphere(Scalar3 P, Scalar r)
     validate();
     }
 
-/*! ConstraintSphere removes 1 degree of freedom per particle in the group
-*/
-unsigned int ConstraintSphere::getNDOFRemoved()
+Scalar ConstraintSphere::getNDOFRemoved(std::shared_ptr<ParticleGroup> query)
     {
-    return m_group->getNumMembersGlobal();
+    return m_group->intersectionSize(query);
     }
 
 /*! Computes the specified constraint forces

@@ -384,9 +384,9 @@ void nve_updater_aniso_test(std::shared_ptr<ExecutionConfiguration> exec_conf, t
     nve_1->addIntegrationMethod(two_step_nve_1);
     nve_1->addForceCompute(fc_1);
 
-    unsigned int ndof = nve_1->getNDOF(group_all_1);
+    unsigned int ndof = nve_1->getTranslationalDOF(group_all_1);
     thermo_1->setNDOF(ndof);
-    unsigned int ndof_rot = nve_1->getRotationalNDOF(group_all_1);
+    unsigned int ndof_rot = nve_1->getRotationalDOF(group_all_1);
     thermo_1->setRotationalNDOF(ndof_rot);
 
     nve_1->prepRun(0);
