@@ -1205,8 +1205,8 @@ class Moliere(_Pair):
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         super().__init__(nlist, r_cut, r_on, mode)
         params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(Zi=int, Zj=int, e=float,
-                                                 a0=float, len_keys=2))
+                               TypeParameterDict(qi=float, qj=float, aF=float,
+                                                 len_keys=2))
         self._add_typeparam(params)
 
 class ZBL(_Pair):

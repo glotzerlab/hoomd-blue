@@ -65,8 +65,12 @@ def _valid_params(particle_types=['A', 'B']):
                               dict(zip(combos,
                                        force_shifted_LJ_valid_param_dicts))))
 
-    moliere_arg_dict = {'Zi': [10, 15, 20], 'Zj': [8, 12, 16],
-                        'a0': [0.5, 1.0, 1.5], 'e': [0.25, 0.5, 0.75]}
+    es = [.25, .5, .75]
+    a0s = [.5, 1, 1.5]
+    Zis = [10, 15, 20]
+    Zjs = [8, 12, 16]
+    moliere_arg_dict = {'qi': [2.5, 7.5, 15], 'qj': [2, 6, 12],
+                        'aF': [.134197, .234463, .319536]}
     moliere_valid_param_dicts = _make_valid_param_dicts(moliere_arg_dict,
                                                         len(combos))
     valid_params_list.append(("Moliere", hoomd.md.pair.Moliere, {},
@@ -190,7 +194,7 @@ def _invalid_params():
     lj_invalid_dicts = _make_invalid_param_dict(lj_valid_dict)
     invalid_params_list.append(_make_invalid_params(lj_valid_dict,
                                                     lj_invalid_dicts,
-                                                    hoomd.md.pair.LJ, 
+                                                    hoomd.md.pair.LJ,
                                                     {}, "LJ"))
 
     gauss_valid_dict = {'sigma': 0.05, 'epsilon': 0.05}
@@ -235,7 +239,7 @@ def _invalid_params():
                                                     hoomd.md.pair.ForceShiftedLJ,
                                                     {}, "ForceShiftedLJ"))
 
-    moliere_valid_dict = {"Zi": 15, "Zj": 12, "a0": 1, "e": .5}
+    moliere_valid_dict = {"qi": 15, "qj": 12, "aF": 1}
     moliere_invalid_dicts = _make_invalid_param_dict(moliere_valid_dict)
     invalid_params_list.append(_make_invalid_params(moliere_valid_dict,
                                                     moliere_invalid_dicts,
@@ -391,9 +395,9 @@ def _forces_and_energies():
                                   [0.103871, -0.000281337],
                                   [24.1931, 0.000609155]]
 
-    params["Moliere"] = [{"Zi": 10, "Zj": 8, "a0": 0.5, "e": 0.25},
-                         {"Zi": 15, "Zj": 12, "a0": 1.0, "e": 0.5},
-                         {"Zi": 20, "Zj": 16, "a0": 1.5, "e": 0.75}]
+    params["Moliere"] = [{"qi": 2.5, "qj": 2, "aF": .134197},
+                         {"qi": 7.5, "qj": 6, "aF": .234463},
+                         {"qi": 15, "qj": 12, "aF": .319563}]
     forces["Moliere"] = [[-1.60329, -0.118428],
                          [-25.5994, -3.04229],
                          [-134.564, -17.5353]]
