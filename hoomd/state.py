@@ -200,6 +200,31 @@ class State:
             self._groups[cls][filter_] = group
             return group
 
+    def update_group_dof(self):
+        """Update the number of degrees of freedom in each group.
+
+        The groups of particles selected by filters each need to know the number
+        of degrees of freedom given to that group by the simulation's
+        Integrator. This method is called automatically when:
+
+        * The Integrator is attached to the simulation
+
+        Call it manually to force an update.
+        """
+        integrator = self._simulation.operations.integrator
+
+        for groups in self._groups.values():
+            for group in groups.values():
+                if integrator is not None:
+                    if not integrator.is_attached:
+                        raise RuntimeError(
+                            "Call update_group_dof after attaching")
+
+                    integrator._cpp_obj.updateGroupDOF(group)
+                else:
+                    group.setTranslationalDOF(0)
+                    group.setRotationalDOF(0)
+
     @property
     def cpu_local_snapshot(self):
         """hoomd.data.LocalSnapshot: Directly expose HOOMD data buffers

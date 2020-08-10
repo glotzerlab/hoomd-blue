@@ -54,7 +54,7 @@ UP_TEST( ComputeThermo_basic )
     std::shared_ptr<ComputeThermo> tc(new ComputeThermo(sysdef, group_all));
 
     // check that we can actually compute temperature
-    tc->setNDOF(3*pdata->getN());
+    group_all->setTranslationalDOF(3*pdata->getN());
     tc->compute(0);
     MY_CHECK_CLOSE(tc->getTemperature(), 15.1666666666666666666667, tol);
     }
@@ -83,7 +83,7 @@ UP_TEST( ComputeThermoGPU_basic )
     std::shared_ptr<ComputeThermoGPU> tc(new ComputeThermoGPU(sysdef, group_all));
 
     // check that we can actually compute temperature
-    tc->setNDOF(3*pdata->getN());
+    group_all->setTranslationalDOF(3*pdata->getN());
     tc->compute(0);
     Scalar cur_T = tc->getTemperature();
     cout << "Testing: T=" << cur_T << endl;
@@ -111,6 +111,7 @@ UP_TEST( TempRescaleUpdater_basic )
     std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterAll());
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     std::shared_ptr<ComputeThermo> tc(new ComputeThermo(sysdef, group_all));
+    group_all->setTranslationalDOF(3);
 
 
     // variant T for the rescaler

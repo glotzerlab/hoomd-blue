@@ -139,7 +139,7 @@ void ComputeThermoGPU::computeProperties()
     args.d_angmom = d_angmom.data;
     args.d_inertia = d_inertia.data;
     args.virial_pitch = net_virial.getPitch();
-    args.ndof = m_ndof;
+    args.ndof = m_group->getTranslationalDOF();
     args.D = m_sysdef->getNDimensions();
     args.d_scratch = d_scratch.data;
     args.d_scratch_pressure_tensor = d_scratch_pressure_tensor.data;
