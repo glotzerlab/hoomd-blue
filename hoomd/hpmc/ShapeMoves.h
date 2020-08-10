@@ -800,7 +800,7 @@ public:
     Scalar computeEnergy(const unsigned int &timestep, const unsigned int& N, const unsigned int type_id, const typename Shape::param_type& shape, const Scalar& inertia)
         {
         Scalar stiff = this->m_k->getValue(timestep);
-        Eigen::Matrix3d eps = m_shape_move->getEpsLast(type_id);
+        Eigen::Matrix3d eps = m_shape_move->getEps(type_id);
         Scalar e_ddot_e = (eps*eps.transpose()).trace();
         return N*stiff*e_ddot_e*this->m_volume;
         }
