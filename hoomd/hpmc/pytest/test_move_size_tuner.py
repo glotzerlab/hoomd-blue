@@ -12,7 +12,7 @@ def move_definition_dict():
         type='A',
         target=0.5,
         domain=(1e-5, None)
-    )
+        )
 
 
 @pytest.fixture
@@ -91,21 +91,21 @@ class Test_MoveSizeTuneDefinition:
 
 
 _move_size_options = [
-    (MoveSize.scaled_solver, dict(
+    (MoveSize.scale_solver, dict(
         trigger=300,
         moves=['d'],
         target=0.5,
         types=['A'],
         max_move_size=5,
         tol=1e-1
-    )),
+        )),
     (MoveSize.secant_solver, dict(
         trigger=300,
         moves=['d'],
         target=0.6,
         types=['A'],
-    ))
-]
+        ))
+    ]
 
 
 @pytest.fixture(params=_move_size_options,
