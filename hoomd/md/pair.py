@@ -1194,7 +1194,7 @@ class Moliere(_Pair):
 
     - :math:`q_i` - *qi* - :math:`q_i = Z_i e`
     - :math:`q_j` - *qj* - :math:`q_j = Z_j e`
-    - :math:`a_F` - *aF* - :math:`a_F = \frac{0.8853 a_0}{{\sqrt{Z_i} + \sqrt{Z_j}}^{2/3}}`
+    - :math:`a_F` - *aF* - :math:`a_F = \frac{0.8853 a_0}{{\left(\sqrt{Z_i} + \sqrt{Z_j}\right)}^{2/3}}`
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
     - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
