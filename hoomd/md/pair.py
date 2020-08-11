@@ -203,7 +203,7 @@ class _Pair(force._Force):
         if self.is_attached:
             raise RuntimeError("nlist cannot be set after attaching.")
         else:
-            self._nlist = validate_nlist(_NList)(value)
+            self._nlist = validate_nlist(value)
 
 
 class LJ(_Pair):
