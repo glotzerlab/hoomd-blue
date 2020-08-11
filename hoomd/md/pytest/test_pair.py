@@ -526,7 +526,6 @@ def test_rcut(simulation_factory, two_particle_snapshot_factory):
     sim.operations.integrator = integrator
 
     _assert_equivalent_type_params(lj.r_cut.to_dict(), {('A', 'A'): 2.5})
-    sim.operations.schedule()
     sim.run(1)
     _assert_equivalent_type_params(lj.r_cut.to_dict(), {('A', 'A'): 2.5})
 
@@ -550,7 +549,6 @@ def test_mode(simulation_factory, two_particle_snapshot_factory, mode):
     integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
                                                         kT=1, seed=1))
     sim.operations.integrator = integrator
-    sim.operations.schedule()
     sim.run(1)
 
 
@@ -633,7 +631,6 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
     sim = simulation_factory(snap)
     sim.operations.integrator = hoomd.md.Integrator(dt=0.005)
     sim.operations.integrator.forces.append(pot)
-    sim.operations.schedule()
     sim.run(10)
     attached_pot = sim.operations.integrator.forces[0]
     _assert_equivalent_type_params(attached_pot.params.to_dict(),
