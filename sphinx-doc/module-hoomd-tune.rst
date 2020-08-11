@@ -14,7 +14,7 @@ hoomd.tune
     ParticleSorter
     ScaleSolver
     SecantSolver
-    Solver
+    SolverStep
 
 .. rubric:: Details
 
@@ -27,5 +27,5 @@ hoomd.tune
               ScaleSolver,
               SecantSolver,
 
-    .. autoclass:: Solver
+    .. autoclass:: SolverStep
        :members: _solve_one, solve

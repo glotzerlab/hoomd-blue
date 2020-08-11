@@ -141,10 +141,10 @@ class ManualTuneDefinition(_TuneDefinition):
     """
     Class for defining y = f(x) relationships for tuning x for a set y target.
 
-     This class is made to be used with `hoomd.tune.Solver` subclasses.  Here y
-     represents a dependent variable of x. In general, x and y should be of type
-     `float`, but specific `hoomd.tune.Solver` subclasses may accept other
-     types.
+    This class is made to be used with `hoomd.tune.SolverStep` subclasses.
+    Here y represents a dependent variable of x. In general, x and y should be
+    of type `float`, but specific `hoomd.tune.SolverStep` subclasses may accept
+    other types.
 
     Args:
         get_y (``callable``): A callable that gets the current value for y.
@@ -192,13 +192,21 @@ class ManualTuneDefinition(_TuneDefinition):
                 and self._target == other._target)
 
 
-class Solver(metaclass=ABCMeta):
-    """Abstract base class for "solving" equations of f(x) = y.
+class SolverStep(metaclass=ABCMeta):
+    """Abstract base class for "solving" stepwise equations of f(x) = y.
 
-    Requires a single method `Solver._solve_one` that steps forward one step in
-    solving the given variable relationship. Users can use subclasses of this
-    with `hoomd.tune.ManualTuneDefinition` to tune attributes with a functional
-    relation.
+    Requires a single method `SolverStep._solve_one` that steps forward one
+    iteration in solving the given variable relationship. Users can use
+    subclasses of this with `hoomd.tune.ManualTuneDefinition` to tune attributes
+    with a functional relation.
+
+    Note:
+        A `SolverStep` object requires manual iteration to converge. This is to
+        support the use case of measuring quantities that require running the
+        simulation for some amount of time after one iteration before
+        remeasuring the dependent variable (i.e. the y). `SolverStep` object can
+        be used in `hoomd.custom.Action` subclasses for user defined tuners and
+        updaters.
     """
     @abstractmethod
     def _solve_one(self, tunable):
@@ -223,7 +231,7 @@ class Solver(metaclass=ABCMeta):
         return all(self._solve_one(tunable) for tunable in tunables)
 
 
-class ScaleSolver(Solver):
+class ScaleSolver(SolverStep):
     """
     Solves equations of f(x) = y using a ratio of the current y with the target.
 
@@ -242,7 +250,7 @@ class ScaleSolver(Solver):
         tol (:obj:`float`, optional): The absolute tolerance for convergence of
             y, defaults to 1e-5.
     Note:
-        This solver is only useful when quantities are strictly positive.
+        This solver is only usable when quantities are strictly positive.
     """
     def __init__(self, max_scale=2.0, gamma=2.0,
                  correlation='positive', tol=1e-5):
@@ -276,7 +284,7 @@ class ScaleSolver(Solver):
         return False
 
 
-class SecantSolver(Solver):
+class SecantSolver(SolverStep):
     """
     Solves equations of f(x) = y using the secant method.
 

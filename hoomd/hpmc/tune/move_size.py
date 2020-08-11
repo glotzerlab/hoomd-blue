@@ -3,7 +3,7 @@ from hoomd.parameterdicts import ParameterDict
 from hoomd.typeconverter import OnlyFrom, OnlyType, OnlyIf, to_type_converter
 from hoomd.tune import _InternalCustomTuner
 from hoomd.tune.attr_tuner import (
-    _TuneDefinition, Solver, ScaleSolver, SecantSolver)
+    _TuneDefinition, SolverStep, ScaleSolver, SecantSolver)
 from hoomd.hpmc.integrate import _HPMCIntegrator
 
 
@@ -17,7 +17,7 @@ class _MoveSizeTuneDefinition(_TuneDefinition):
     _attr_acceptance = {
         'a': 'rotate_moves',
         'd': 'translate_moves'
-    }
+        }
 
     def __init__(self, attr, type, target, domain=None):
         if attr not in self._attr_acceptance:
@@ -131,9 +131,9 @@ class _InternalMoveSize(_InternalAction):
             max_move_size=OnlyType(
                 float, allow_none=True,
                 postprocess=max_move_size_postprocess
-            ),
-            solver=Solver
-        )
+                ),
+            solver=SolverStep
+            )
 
         param_dict['moves'] = moves
         param_dict['types'] = types
@@ -238,13 +238,12 @@ class MoveSize(_InternalCustomTuner):
             are 'a' and 'd'.
         target (float): The acceptance rate for trial moves that is desired. The
             value should be between 0 and 1.
-        solver (`hoomd.tune.Solver`): A solver that tunes move sizes to reach
-            the specified target.
-        types (:obj:`list` [:obj:`str`], optional): A list of string particle
-            types to tune the move size for, defaults to None which upon
-            attaching will tune all types in the system currently.
-        max_move_size (:obj:`float`, optional): The max value of move size to
-            attempt.
+        solver (`hoomd.tune.SolverStep`): A solver that tunes move sizes to
+            reach the specified target.
+        types (list[str]): A list of string particle types to tune the move
+            size for, defaults to None which upon attaching will tune all types
+            in the system currently.
+        max_move_size (float): The max value of move size to attempt.
 
     Attributes:
         trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to run
@@ -253,8 +252,8 @@ class MoveSize(_InternalCustomTuner):
             are 'a' and 'd'.
         target (float): The acceptance rate for trial moves that is desired. The
             value should be between 0 and 1.
-        solver (`hoomd.tune.Solver`): A solver that tunes move sizes to reach
-            the specified target.
+        solver (hoomd.tune.SolverStep): A solver that tunes move sizes to
+            reach the specified target.
         types (list[str]): A list of string particle
             types to tune the move size for, defaults to None which upon
             attaching will tune all types in the system currently.
@@ -265,8 +264,8 @@ class MoveSize(_InternalCustomTuner):
 
     @classmethod
     def scale_solver(cls, trigger, moves, target,
-                      types=None, max_move_size=None,
-                      max_scale=2., gamma=1., tol=1e-2):
+                     types=None, max_move_size=None,
+                     max_scale=2., gamma=1., tol=1e-2):
         """Create a `MoveSize` tuner with a `hoomd.tune.ScaleSolver`.
 
         Args:
@@ -276,20 +275,19 @@ class MoveSize(_InternalCustomTuner):
                 options are 'a' and 'd'.
             target (float): The acceptance rate for trial moves that is desired.
                 The value should be between 0 and 1.
-            types (:obj:`list` [:obj:`str`], optional): A list of string
-                particle types to tune the move size for, defaults to None which
-                upon attaching will tune all types in the system currently.
-            max_move_size (:obj:`float`, optional): The max value of move size
-                to attempt.
-            gamma (:obj:`float`, optional): The value of gamma to pass through
-                to `hoomd.tune.ScaleSolver`. Controls the size of corrections
-                to the move size (larger values increase stability while
-                increasing convergence time).
-            tol (:obj:`float`, optional): The absolute tolerance to allow
-                between the current acceptance rate and the target before the
-                move sizes are considered tuned. The tolerance should not be too
-                much lower than the default as acceptance rates can be fairly
-                variable in typical tuning rates.
+            types (list[str]): A list of string particle types to tune the
+                move size for, defaults to None which upon attaching will tune
+                all types in the system currently.
+            max_move_size (`float`): The max value of move size to attempt.
+            gamma (float): The value of gamma to pass through to
+                `hoomd.tune.ScaleSolver`. Controls the size of corrections to
+                the move size (larger values increase stability while increasing
+                convergence time).
+            tol (float): The absolute tolerance to allow between the current
+                acceptance rate and the target before the move sizes are
+                considered tuned. The tolerance should not be too much lower
+                than the default of 0.01 as acceptance rates can vary
+                appreciable at typical tuning rates.
         """
         solver = ScaleSolver(max_scale, gamma, 'negative', tol)
         return cls(trigger, moves, target, solver, types, max_move_size)
@@ -300,8 +298,8 @@ class MoveSize(_InternalCustomTuner):
         """Create a `MoveSize` tuner with a `hoomd.tune.SecantSolver`.
 
         This solver can be faster than `hoomd.tune.ScaleSolver`, but depending
-        on the application less stable. In general, with the default value of
-        gamma this should not be a problem.
+        on the system slightly less stable. In general, with the default value
+        of gamma this should not be a problem.
 
         Args:
             trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to
@@ -310,20 +308,20 @@ class MoveSize(_InternalCustomTuner):
                 options are 'a' and 'd'.
             target (float): The acceptance rate for trial moves that is desired.
                 The value should be between 0 and 1.
-            types (:obj:`list` [:obj:`str`], optional): A list of string
+            types (list[str]): A list of string
                 particle types to tune the move size for, defaults to None which
                 upon attaching will tune all types in the system currently.
-            max_move_size (:obj:`float`, optional): The max value of move size
+            max_move_size (`float`): The max value of move size
                 to attempt, default to no max size.
-            gamma (:obj:`float`, optional): The value of gamma to pass through
+            gamma (float): The value of gamma to pass through
                 to `hoomd.tune.SecantSolver`. Controls the size of corrections
                 to the move size (smaller values increase stability). Should be
                 between 0 and 1, defaults to 0.8.
-            tol (:obj:`float`, optional): The absolute tolerance to allow
-                between the current acceptance rate and the target before the
-                move sizes are considered tuned, defaults to 1e-2. The tolerance
-                should not be too much lower than the default as acceptance
-                rates can be fairly variable in typical tuning rates.
+            tol (float): The absolute tolerance to allow between the current
+                acceptance rate and the target before the move sizes are
+                considered tuned. The tolerance should not be too much lower
+                than the default of 0.01 as acceptance rates can vary
+                appreciable at typical tuning rates.
 
         Note:
             Increasing ``gamma`` towards 1 does not necessarily speed up
