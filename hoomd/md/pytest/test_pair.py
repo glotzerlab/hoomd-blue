@@ -76,8 +76,8 @@ def _valid_params(particle_types=['A', 'B']):
     valid_params_list.append(("Moliere", hoomd.md.pair.Moliere, {},
                               dict(zip(combos, moliere_valid_param_dicts))))
 
-    zbl_arg_dict = {'Zi': [10, 15, 20], 'Zj': [8, 12, 16],
-                    'a0': [0.5, 1.0, 1.5], 'e': [0.25, 0.5, 0.75]}
+    zbl_arg_dict = {'qi': [2.5, 7.5, 15], 'qj': [2, 6, 12],
+                    'aF': [.133669, .243535, .341914]}
     zbl_valid_param_dicts = _make_valid_param_dicts(zbl_arg_dict,
                                                     len(combos))
     valid_params_list.append(("ZBL", hoomd.md.pair.ZBL, {},
@@ -245,7 +245,7 @@ def _invalid_params():
                                                     moliere_invalid_dicts,
                                                     hoomd.md.pair.Moliere,
                                                     {}, "Moliere"))
-    zbl_valid_dict = {"Zi": 10, "Zj": 8, "a0": 0.5, "e": 0.25}
+    zbl_valid_dict = {"qi": 10, "qj": 8, "aF": 0.5}
     zbl_invalid_dicts = _make_invalid_param_dict(zbl_valid_dict)
     invalid_params_list.append(_make_invalid_params(zbl_valid_dict,
                                                     zbl_invalid_dicts,
@@ -405,9 +405,9 @@ def _forces_and_energies():
                            [8.75397, 1.54813],
                            [49.4355, 10.5076]]
 
-    params["ZBL"] = [{"Zi": 10, "Zj": 8, "a0": 0.5, "e": 0.25},
-                     {"Zi": 15, "Zj": 12, "a0": 1.0, "e": 0.5},
-                     {"Zi": 20, "Zj": 16, "a0": 1.5, "e": 0.75}]
+    params["ZBL"] = [{"qi": 2.5, "qj": 2, "aF": .133669},
+                     {"qi": 7.5, "qj": 6, "aF": .243535},
+                     {"qi": 15, "qj": 12, "aF": .341914}]
     forces["ZBL"] = [[-1.16329, -0.058994],
                      [-25.238, -2.20563],
                      [-141.912, -15.7028]]

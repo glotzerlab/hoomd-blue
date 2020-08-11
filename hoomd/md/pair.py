@@ -1267,8 +1267,8 @@ class ZBL(_Pair):
 
         super().__init__(nlist, r_cut, r_on, mode);
         params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(Zi=int, Zj=int, e=float,
-                                                 a0=float, len_keys=2))
+                               TypeParameterDict(qi=float, qj=float, aF=float,
+                                                 len_keys=2))
         self._add_typeparam(params)
 
 class tersoff(pair):

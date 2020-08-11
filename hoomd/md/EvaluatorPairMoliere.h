@@ -65,20 +65,6 @@ class EvaluatorPairMoliere
                 v["aF"] = aF;
                 return v;
                 }
-
-            private:
-                // compute the parameters relevant for the potential from the
-                // user given params
-                // TODO add details on how to compute aF from a0 to python docs
-                /*
-                void computeParams()
-                    {
-                    Zsq = Zi * Zj * e * e;
-                    aF = 1.0;
-                    if (Zi || Zj)  // if at least one Zi or Zj is non-zero
-                        aF = 0.8853 * a0 / pow(sqrt(Zi) + sqrt(Zj), 2.0 / 3.0);
-                    }
-                */
             #endif
             }
             __attribute__((aligned(16)));
