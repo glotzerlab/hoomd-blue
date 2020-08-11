@@ -1194,7 +1194,7 @@ class Moliere(_Pair):
 
     - :math:`q_i` - *qi* - :math:`q_i = Z_i e`
     - :math:`q_j` - *qj* - :math:`q_j = Z_j e`
-    - :math:`a_F` - *aF* - :math:`a_F = \frac{0.8853 a_0}{{\left(\sqrt{Z_i} + \sqrt{Z_j}\right)}^{2/3}}`
+    - :math:`a_F` - *aF* - :math:`a_F = \frac{0.8853 a_0}{\left( \sqrt{Z_i} + \sqrt{Z_j} \right)^{2/3}}`
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
     - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
@@ -1202,9 +1202,16 @@ class Moliere(_Pair):
 
     Example::
 
-        nl = nlist.cell()
-        moliere = pair.moliere(r_cut = 3.0, nlist=nl)
-        moliere.pair_coeff.set('A', 'B', Z_i = 54.0, Z_j = 7.0, elementary_charge = 1.0, a_0 = 1.0);
+        nl = nlist.Cell()
+        moliere = pair.Moliere(r_cut = 3.0, nlist=nl)
+
+        Zi = 54
+        Zj = 7
+        e = 1
+        a0 = 1
+        aF = 0.8853 * a0 / (np.sqrt(Zi) + np.sqrt(Zj))**(2/3)
+
+        moliere.params[('A', 'B')] = dict(qi=Zi*e, qj=Zj*e, aF=aF)
 
     """
     _cpp_class_name = "PotentialPairMoliere"
