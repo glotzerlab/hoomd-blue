@@ -530,8 +530,7 @@ def test_rcut(simulation_factory, two_particle_snapshot_factory):
     _assert_equivalent_type_params(lj.r_cut.to_dict(), {('A', 'A'): 2.5})
 
 
-@pytest.mark.parametrize("mode", ['none', 'shifted', 'xplor'])
-def test_mode(simulation_factory, two_particle_snapshot_factory, mode):
+def test_invalid_mode():
     cell = hoomd.md.nlist.Cell()
     with pytest.raises(hoomd.typeconverter.TypeConversionError):
         lj = hoomd.md.pair.LJ(nlist=cell, r_cut=2.5, mode=1)
@@ -540,6 +539,10 @@ def test_mode(simulation_factory, two_particle_snapshot_factory, mode):
     with pytest.raises(hoomd.typeconverter.TypeConversionError):
         lj = hoomd.md.pair.LJ(nlist=cell, r_cut=2.5, mode=[1, 2, 3])
 
+
+@pytest.mark.parametrize("mode", ['none', 'shifted', 'xplor'])
+def test_mode(simulation_factory, two_particle_snapshot_factory, mode):
+    cell = hoomd.md.nlist.Cell()
     lj = hoomd.md.pair.LJ(nlist=cell, r_cut=2.5, mode=mode)
     lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
     snap = two_particle_snapshot_factory(dimensions=3, d=.5)
