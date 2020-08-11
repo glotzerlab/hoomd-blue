@@ -571,13 +571,12 @@ def test_ron(simulation_factory, two_particle_snapshot_factory):
     sim.operations.integrator = integrator
     assert lj.r_on.to_dict() == {}
 
-    sim.operations.schedule()  # Before setting r_on
-    _assert_equivalent_type_params(lj.r_on.to_dict(), {('A', 'A'): 0.0})
-
     lj.r_on[('A', 'A')] = 1.5
+    sim.operations.schedule()
     _assert_equivalent_type_params(lj.r_on.to_dict(), {('A', 'A'): 1.5})
-    sim.run(1)
-    _assert_equivalent_type_params(lj.r_on.to_dict(), {('A', 'A'): 1.5})
+
+    lj.r_on[('A', 'A')] = 1.0
+    _assert_equivalent_type_params(lj.r_on.to_dict(), {('A', 'A'): 1.0})
 
 
 def test_valid_params(valid_params):
