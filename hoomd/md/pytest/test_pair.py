@@ -639,9 +639,7 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
                                    pair_potential_dict)
 
 
-@pytest.mark.parametrize("nsteps", [3, 5, 10])
-def test_run(simulation_factory, lattice_snapshot_factory,
-             valid_params, nsteps):
+def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
     pair_potential, xtra_args, pair_potential_dict = valid_params[1:]
     pair_keys = pair_potential_dict.keys()
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
@@ -665,13 +663,14 @@ def test_run(simulation_factory, lattice_snapshot_factory,
                                                         kT=1, seed=1))
     sim.operations.integrator = integrator
     sim.operations.schedule()
-    old_snap = sim.state.snapshot
-    sim.run(nsteps)
-    new_snap = sim.state.snapshot
-    if new_snap.exists:
-        with pytest.raises(AssertionError):
-            np.testing.assert_allclose(new_snap.particles.position,
-                                       old_snap.particles.position)
+    for nsteps in [3, 5, 10]:
+        old_snap = sim.state.snapshot
+        sim.run(nsteps)
+        new_snap = sim.state.snapshot
+        if new_snap.exists:
+            with pytest.raises(AssertionError):
+                np.testing.assert_allclose(new_snap.particles.position,
+                                           old_snap.particles.position)
 
 
 def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
@@ -796,10 +795,9 @@ def _calculate_force(sim):
         return 0, 0  # return dummy values if not on rank 1
 
 
-@pytest.mark.parametrize("nsteps", [1, 5, 10])
 def test_force_energy_relationship(simulation_factory,
                                    two_particle_snapshot_factory,
-                                   valid_params, nsteps):
+                                   valid_params):
     # don't really test DPD and DPDLJ for this test
     if valid_params[0] == "DPD" or valid_params[0] == "DPDLJ":
         pytest.skip("Cannot test force energy relationship for " +
