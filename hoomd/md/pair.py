@@ -1180,15 +1180,21 @@ class Moliere(_Pair):
                                 = & 0 & r > r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
-    See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use ``coeff.set`` to set potential coefficients.
-
-    The following coefficients must be set per unique pair of particle types:
+    Where each variable is defined as:
 
     - :math:`Z_i` - *Z_i* - Atomic number of species i (unitless)
     - :math:`Z_j` - *Z_j* - Atomic number of species j (unitless)
     - :math:`e` - *elementary_charge* - The elementary charge (in charge units)
     - :math:`a_0` - *a_0* - The Bohr radius (in distance units)
+
+    See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
+    Use ``params`` property to set potential coefficients.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`q_i` - *qi* - :math:`q_i = Z_i e`
+    - :math:`q_j` - *qj* - :math:`q_j = Z_j e`
+    - :math:`a_F` - *aF* - :math:`a_F = \frac{0.8853 a_0}{{\sqrt{Z_i} + \sqrt{Z_j}}^{2/3}}`
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
     - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
