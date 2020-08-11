@@ -1180,7 +1180,7 @@ class Moliere(_Pair):
                                 = & 0 & r > r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
-    Where each variable is defined as:
+    Where each parameter is defined as:
 
     - :math:`Z_i` - *Z_i* - Atomic number of species i (unitless)
     - :math:`Z_j` - *Z_j* - Atomic number of species j (unitless)
@@ -1241,15 +1241,21 @@ class ZBL(_Pair):
                                 = & 0, & r > r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
-    See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use ``coeff.set`` to set potential coefficients.
-
-    The following coefficients must be set per unique pair of particle types:
+    Where each parameter is defined as:
 
     - :math:`Z_i` - *Z_i* - Atomic number of species i (unitless)
     - :math:`Z_j` - *Z_j* - Atomic number of species j (unitless)
     - :math:`e` - *elementary_charge* - The elementary charge (in charge units)
     - :math:`a_0` - *a_0* - The Bohr radius (in distance units)
+
+    See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
+    Use ``params`` property to set potential coefficients.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`q_i` - *qi* - :math:`q_i=Z_i e`
+    - :math:`q_j` - *qj* - :math:`q_j=Z_j e`
+    - :math:`a_F` - *aF* - :math:`a_F = \frac{0.8853 a_0}{ Z_i^{0.23} + Z_j^{0.23} }`
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
     - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
@@ -1257,9 +1263,16 @@ class ZBL(_Pair):
 
     Example::
 
-        nl = nlist.cell()
-        zbl = pair.zbl(r_cut = 3.0, nlist=nl)
-        zbl.pair_coeff.set('A', 'B', Z_i = 54.0, Z_j = 7.0, elementary_charge = 1.0, a_0 = 1.0);
+        nl = nlist.Cell()
+        zbl = pair.ZBL(r_cut = 3.0, nlist=nl)
+
+        Zi = 54
+        Zj = 7
+        e = 1
+        a0 = 1
+        aF = 0.8853 * a0 / (Zi**(0.23) + Zj**(0.23))
+
+        zbl.params[('A', 'B')] = dict(qi=Zi*e, qj=Zj*e, aF=aF)
 
     """
     _cpp_class_name = "PotentialPairZBL"
