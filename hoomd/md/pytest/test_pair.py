@@ -621,11 +621,12 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
 
     snap = lattice_snapshot_factory(particle_types=particle_types,
                                     n=10, a=1.5, r=0.01)
-    if 'Ewald' in str(pair_potential) and snap.exists:
-        snap.particles.charge[:] = 1
-    elif 'SLJ' in str(pair_potential) and snap.exists:
-        snap.particles.diameter[:] = 2
+
     if snap.exists:
+        if 'Ewald' in str(pair_potential) and snap.exists:
+            snap.particles.charge[:] = 1
+        elif 'SLJ' in str(pair_potential) and snap.exists:
+            snap.particles.diameter[:] = 2
         snap.particles.typeid[:] = np.random.randint(0,
                                                      len(snap.particles.types),
                                                      snap.particles.N)
