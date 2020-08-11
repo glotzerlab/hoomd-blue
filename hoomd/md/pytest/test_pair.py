@@ -164,9 +164,9 @@ def _make_invalid_params(valid_param_dict, invalid_param_dicts,
     extra_args_dict = [extra_args_dict] * N
     pair_potential_names = [pair_potential_name] * N
 
-    params = [{('A', 'A'): valid_param_dict}] * N
+    params = []
     for i in range(len(invalid_param_dicts)):
-        params[i][('A', 'A')] = invalid_param_dicts[i]
+        params.append({('A', 'A'): invalid_param_dicts[i]})
     return zip(pair_potential_names, pair_potentials, params, extra_args_dict)
 
 
