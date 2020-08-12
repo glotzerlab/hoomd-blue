@@ -178,13 +178,14 @@ class _Operation(_HOOMDGetSetAttrBase, metaclass=Loggable):
             self.notify_detach(self._simulation)
 
     def detach(self):
-        self._unapply_typeparam_dict()
-        self._update_param_dict()
-        self._cpp_obj = None
-        if hasattr(self, '_simulation'):
-            self.notify_detach(self._simulation)
-            del self._simulation
-        return self
+        if self.is_attached:
+            self._unapply_typeparam_dict()
+            self._update_param_dict()
+            self._cpp_obj = None
+            if hasattr(self, '_simulation'):
+                self.notify_detach(self._simulation)
+                del self._simulation
+            return self
 
     def add_dependent(self, obj):
         self._dependent_list.append(obj)

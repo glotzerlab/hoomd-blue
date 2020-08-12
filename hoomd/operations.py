@@ -64,6 +64,13 @@ class Operations:
             self.tuners.attach(sim, sim._cpp_sys.tuners)
         self._scheduled = True
 
+    def unschedule(self):
+        self._integrator.detach()
+        self._analyzers.detach()
+        self._updaters.detach()
+        self._tuners.detach()
+        self._scheduled = False
+
     def _store_reader(self, reader):
         # TODO
         pass
