@@ -1,17 +1,9 @@
+from itertools import chain
 import hoomd.integrate
 from hoomd.syncedlist import SyncedList
 from hoomd.operation import _Analyzer, _Updater, _Tuner
 from hoomd.tuner import ParticleSorter
-
-
-def list_validation(type_):
-    def validate(value):
-        if not isinstance(value, type_):
-            raise ValueError("Value {} is of type {}. Excepted instance of "
-                             "{}".format(value, type(value), type_))
-        else:
-            return True
-    return validate
+from hoomd.typeconverter import OnlyType
 
 
 def triggered_op_conversion(value):
@@ -24,12 +16,10 @@ class Operations:
         self._compute = list()
         self._auto_schedule = False
         self._scheduled = False
-        self._updaters = SyncedList(list_validation(_Updater),
-                                    triggered_op_conversion)
-        self._analyzers = SyncedList(list_validation(_Analyzer),
+        self._updaters = SyncedList(OnlyType(_Updater), triggered_op_conversion)
+        self._analyzers = SyncedList(OnlyType(_Analyzer),
                                      triggered_op_conversion)
-        self._tuners = SyncedList(list_validation(_Tuner),
-                                  lambda x: x._cpp_obj)
+        self._tuners = SyncedList(OnlyType(_Tuner), lambda x: x._cpp_obj)
         self._integrator = None
 
         self._tuners.append(ParticleSorter())
