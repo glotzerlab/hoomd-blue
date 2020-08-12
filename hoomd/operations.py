@@ -50,10 +50,7 @@ class Operations:
         if not self._sys_init:
             raise RuntimeError("System not initialized yet")
         sim = self._simulation
-        if self.integrator is None:
-            raise RuntimeError(
-                "Cannot schedule operations without an integrator.")
-        if not self.integrator.is_attached:
+        if not (self.integrator is None or self.integrator.is_attached):
             self.integrator.attach(sim)
         if not self.updaters.is_attached:
             self.updaters.attach(sim, sim._cpp_sys.updaters)
@@ -91,20 +88,15 @@ class Operations:
 
     @integrator.setter
     def integrator(self, op):
-        if op is None:
-            if not self._scheduled:
-                self._integrator = None
-            else:
-                raise ValueError(
-                    "Integrator cannot be set to None when operations are "
-                    "scheduled.")
-        if not isinstance(op, hoomd.integrate._BaseIntegrator):
+        if (not isinstance(op, hoomd.integrate._BaseIntegrator)
+                and op is not None):
             raise TypeError("Cannot set integrator to a type not derived "
                             "from hoomd.integrate._BaseIntegrator")
         old_ref = self.integrator
         self._integrator = op
         if self._scheduled:
-            op.attach(self._simulation)
+            if op is not None:
+                op.attach(self._simulation)
         if old_ref is not None:
             old_ref.notify_detach(self._simulation)
             old_ref.detach()
