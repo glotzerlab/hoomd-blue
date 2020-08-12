@@ -51,7 +51,10 @@ class Operations:
         if not self._sys_init:
             raise RuntimeError("System not initialized yet")
         sim = self._simulation
-        if self.integrator is not None and not self.integrator.is_attached:
+        if self.integrator is None:
+            raise RuntimeError(
+                "Cannot schedule operations without an integrator.")
+        if not self.integrator.is_attached:
             self.integrator.attach(sim)
         if not self.updaters.is_attached:
             self.updaters.attach(sim, sim._cpp_sys.updaters)
