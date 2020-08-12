@@ -18,18 +18,6 @@ from hoomd.variant import Variant
 import copy
 
 
-def none_or(type_):
-    def None_or_type(value):
-        if None or isinstance(value, type_):
-            return value
-        else:
-            try:
-                return type_(value)
-            except Exception:
-                raise ValueError("Value {} of type {} could not be made type "
-                                 "{}.".format(value, type(value), type_))
-
-
 class _Method(_Operation):
     pass
 

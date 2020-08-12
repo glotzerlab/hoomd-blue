@@ -6,7 +6,6 @@ from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.md import force
 from hoomd.md import nlist as nl
-from hoomd.md.methods import none_or
 from hoomd.md.nlist import _NList
 from hoomd.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.typeparam import TypeParameter
