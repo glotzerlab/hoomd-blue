@@ -398,6 +398,16 @@ def test_valid_params(valid_params):
     _assert_equivalent_type_params(pair_potential_dict, pot.params.to_dict())
 
 
+def _update_snap(pair_potential, snap):
+    if 'Ewald' in str(pair_potential) and snap.exists:
+        snap.particles.charge[:] = 1
+    elif 'SLJ' in str(pair_potential) and snap.exists:
+        snap.particles.diameter[:] = 2
+    elif 'DLVO' in str(pair_potential) and snap.exists:
+        snap.particles.diameter[0] = 0.2
+        snap.particles.diameter[1] = 0.5
+
+
 def test_attached_params(simulation_factory, lattice_snapshot_factory,
                          valid_params):
     pair_potential, xtra_args, pair_potential_dict = valid_params
@@ -411,11 +421,8 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
     snap = lattice_snapshot_factory(particle_types=particle_types,
                                     n=10, a=1.5, r=0.01)
 
+    _update_snap(pair_potential, snap)
     if snap.exists:
-        if 'Ewald' in str(pair_potential) and snap.exists:
-            snap.particles.charge[:] = 1
-        elif 'SLJ' in str(pair_potential) and snap.exists:
-            snap.particles.diameter[:] = 2
         snap.particles.typeid[:] = np.random.randint(0,
                                                      len(snap.particles.types),
                                                      snap.particles.N)
@@ -438,8 +445,6 @@ def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
 
     snap = lattice_snapshot_factory(particle_types=particle_types,
                                     n=7, a=1.7, r=0.01)
-    if 'Ewald' in str(pair_potential) and snap.exists:
-        snap.particles.charge[:] = 1
     if snap.exists:
         snap.particles.typeid[:] = np.random.randint(0,
                                                      len(snap.particles.types),
@@ -596,10 +601,7 @@ def test_force_energy_relationship(simulation_factory,
         pot.params[pair] = pair_potential_dict[pair]
 
     snap = two_particle_snapshot_factory(particle_types=particle_types, d=1.5)
-    if 'Ewald' in str(pair_potential) and snap.exists:
-        snap.particles.charge[:] = 1
-    elif 'SLJ' in str(pair_potential) and snap.exists:
-        snap.particles.diameter[:] = 2
+    _update_snap(pair_potential, snap)
     sim = simulation_factory(snap)
     integrator = hoomd.md.Integrator(dt=0.005)
     integrator.forces.append(pot)
@@ -848,13 +850,7 @@ def test_force_energy_accuracy(simulation_factory,
                    r_cut=2.5, mode='none')
     pot.params[('A', 'A')] = params
     snap = two_particle_snapshot_factory(particle_types=['A'], d=0.75)
-    if 'Ewald' in str(pair_pot) and snap.exists:
-        snap.particles.charge[:] = 1
-    elif 'SLJ' in str(pair_pot) and snap.exists:
-        snap.particles.diameter[:] = 2
-    elif 'DLVO' in str(pair_pot) and snap.exists:
-        snap.particles.diameter[0] = 0.2
-        snap.particles.diameter[1] = 0.5
+    _update_snap(pair_pot, snap)
     sim = simulation_factory(snap)
     integrator = hoomd.md.Integrator(dt=0.005)
     integrator.forces.append(pot)
