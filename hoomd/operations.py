@@ -109,3 +109,20 @@ class Operations:
     @property
     def tuners(self):
         return self._tuners
+
+    def __iadd__(self, operation):
+        self.add(operation)
+
+    def remove(self, operation):
+        if isinstance(operation, hoomd.integrate._BaseIntegrator):
+            raise ValueError(
+                "Cannot remove iterator without setting to a new integator.")
+        elif isinstance(operation, _Analyzer):
+            self._analyzers.remove(operation)
+        elif isinstance(operation, _Updater):
+            self._updaters.remove(operation)
+        elif isinstance(operation, _Tuner):
+            self._tuners.remove(operation)
+
+    def __isub__(self, operation):
+        self.remove(operation)

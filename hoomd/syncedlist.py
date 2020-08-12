@@ -85,7 +85,7 @@ class SyncedList:
                 del self[fixed_index]
             return
         if len(self) <= index or -len(self) > index:
-            raise IndexError("Cannot assign index {} to list of length {}."
+            raise IndexError("Cannot delete index {} to list of length {}."
                              "".format(index, len(self)))
         else:
             # Since delitem may not del the underlying object, we need to
