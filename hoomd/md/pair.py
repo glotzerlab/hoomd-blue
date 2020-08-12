@@ -244,8 +244,7 @@ class LJ(_Pair):
 
         nl = nlist.Cell()
         lj = pair.LJ(nl, r_cut=3.0)
-        lj.params[('A', 'A')]['epsilon'] = 1.0
-        lj.params[('A', 'A')]['sigma'] = 1.0
+        lj.params[('A', 'A')] = {'sigma': 1.0, 'epsilon': 1.0}
         lj.params[('A', 'B')] = dict(epsilon=2.0, sigma=1.0, r_cut=3.0, r_on=2.0)
     """
     _cpp_class_name = "PotentialPairLJ"
@@ -365,7 +364,6 @@ class SLJ(_Pair):
         nl = nlist.Cell()
         nl.max_diameter = 2.0
         slj = pair.SLJ(r_cut=3.0, nlist=nl)
-        slj.params[('A', 'A')]['epsilon'] = 1.0
         slj.params[('A', 'B')] = dict(epsilon=2.0, r_cut=3.0)
         slj.params[('B', 'B')] = {'epsilon': 1.0, 'r_cut': 2**(1.0/6.0)}
 
@@ -482,7 +480,6 @@ class Ewald(_Pair):
 
         nl = nlist.Cell()
         ewald = pair.Ewald(r_cut=3.0, nlist=nl)
-        ewald.params[('A', 'A')]['kappa'] = 1.0
         ewald.params[('A', 'A')] = dict(kappa=1.0, alpha=1.5)
         ewald.params[('A', 'B')] = dict(kappa=1.0, r_cut=3.0, r_on=2.0)
 
