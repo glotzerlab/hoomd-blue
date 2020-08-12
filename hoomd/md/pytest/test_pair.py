@@ -825,9 +825,8 @@ def test_force_energy_relationship(simulation_factory,
         sim.state.snapshot = snap
 
         calculated_forces = _calculate_force(sim)
-        forces = sim.operations.integrator.forces[0].forces
-        if forces is not None:
-            sim_forces = forces
+        sim_forces = sim.operations.integrator.forces[0].forces
+        if sim_forces is not None:
             np.testing.assert_allclose(calculated_forces[0],
                                        sim_forces[0],
                                        rtol=1e-06)
