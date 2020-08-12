@@ -823,31 +823,25 @@ class MassProperties< ShapeConvexPolyhedron > : public MassPropertiesBase< Shape
                 verts.push_back(vert);
                 }
             quickhull::QuickHull<OverlapReal> qh;
-            auto mesh = qh.getConvexHullAsMesh(&verts[0].x, verts.size(), true, 0.0000001);
-
+            auto hull = qh.getConvexHull(&verts[0].x, verts.size(), true, true, 0.0000001);
+            auto verts2 = hull.getVertexBuffer();
             std::vector<vec3<Scalar>> v;
-            for(size_t i = 0; i < mesh.m_vertices.size(); i++)
+            for(size_t i = 0; i < verts2.size(); i++)
                 {
-                vec3<Scalar> vert(mesh.m_vertices[i].x,
-                                  mesh.m_vertices[i].y,
-                                  mesh.m_vertices[i].z);
+                vec3<Scalar> vert(verts2[i].x,
+                                  verts2[i].y,
+                                  verts2[i].z);
                 v.push_back(vert);
                 }
+            auto face_inds = hull.getIndexBuffer();
             using HalfEdge = quickhull::HalfEdgeMesh<float, unsigned long>::HalfEdge;
             std::vector<std::vector<unsigned int>> faces;
-            for(size_t i = 0; i < mesh.m_faces.size(); i++)
+            for (size_t i = 0; i < face_inds.size(); i += 3)
                 {
-                std::array<size_t,3> facev;
-                HalfEdge he = mesh.m_halfEdges[mesh.m_faces[i].m_halfEdgeIndex];
-                facev[0] = he.m_endVertex;
-                he = mesh.m_halfEdges[he.m_next];
-                facev[1] = he.m_endVertex;
-                he = mesh.m_halfEdges[he.m_next];
-                facev[2] = he.m_endVertex;
-                std::vector<unsigned int> faceverts{static_cast<unsigned int>(facev[0]),
-                                                    static_cast<unsigned int>(facev[1]),
-                                                    static_cast<unsigned int>(facev[2])};
-                faces.push_back(faceverts);
+                std::vector<unsigned int> face{static_cast<unsigned int>(face_inds[i]),
+                                               static_cast<unsigned int>(face_inds[i+1]),
+                                               static_cast<unsigned int>(face_inds[i+2])};
+                faces.push_back(face);
                 }
             return std::make_pair(v, faces);
             }
@@ -945,7 +939,7 @@ class MassProperties< ShapeConvexPolyhedron > : public MassPropertiesBase< Shape
                 }  // end loop over faces
             for(unsigned int i = 0; i < 10; i++)
                 {
-                intg[i] *= mult[i];
+                intg[i] *= -1*mult[i];
                 }
 
             m_volume = intg[0];
