@@ -690,12 +690,7 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(), r_cut=r_cut)
     lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
 
-    snap = two_particle_snapshot_factory(dimensions=3, d=.5)
-    if snap.exists:
-        # avoid MPI errors by shifting positions by .1
-        snap.particles.position[0] = [0, 0, .1]
-        snap.particles.position[1] = [0, 0, r + .1]
-    sim = simulation_factory(snap)
+    sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=r))
 
     integrator = hoomd.md.Integrator(dt=0.005)
     integrator.forces.append(lj)
