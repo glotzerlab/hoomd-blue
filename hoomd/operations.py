@@ -41,15 +41,6 @@ class Operations:
                              " Operations.")
 
     @property
-    def _operations(self):
-        op = list()
-        if hasattr(self, '_integrator'):
-            op.append(self._integrator)
-        op.extend(self._updaters)
-        op.extend(self._analyzers)
-        return op
-
-    @property
     def _sys_init(self):
         if self._simulation is None or self._simulation.state is None:
             return False
@@ -75,7 +66,11 @@ class Operations:
         pass
 
     def __contains__(self, obj):
-        return any([op is obj for op in self._operations])
+        return any(op is obj for op in self)
+
+    def __iter__(self):
+        yield from chain(
+            (self._integrator,), self._analyzers, self._updaters, self._tuners)
 
     @property
     def scheduled(self):
