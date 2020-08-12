@@ -479,8 +479,7 @@ def _forces_and_energies():
         elif pair_potential == "DPDLJ":
             kT_dict = {"kT": 1}
         for i in range(3):
-            param_list.append((pair_potential,
-                               getattr(hoomd.md.pair, pair_potential),
+            param_list.append((getattr(hoomd.md.pair, pair_potential),
                                kT_dict,
                                params[pair_potential][i],
                                forces[pair_potential][i],
@@ -490,7 +489,7 @@ def _forces_and_energies():
 
 @pytest.fixture(scope="function",
                 params=_forces_and_energies(),
-                ids=(lambda x: x[0]))
+                ids=(lambda x: x[0].__name__))
 def forces_and_energies(request):
     return deepcopy(request.param)
 
@@ -846,7 +845,7 @@ def test_force_energy_relationship(simulation_factory,
 def test_force_energy_accuracy(simulation_factory,
                                two_particle_snapshot_factory,
                                forces_and_energies):
-    pair_pot, extra_args, params, forces, energies = forces_and_energies[1:]
+    pair_pot, extra_args, params, forces, energies = forces_and_energies
     pot = pair_pot(**extra_args, nlist=hoomd.md.nlist.Cell(),
                    r_cut=2.5, mode='none')
     pot.params[('A', 'A')] = params
