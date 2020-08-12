@@ -147,6 +147,8 @@ def _make_invalid_param_dict(valid_dict):
     invalid_dicts = [valid_dict] * len(valid_dict.keys()) * 2
     count = 0
     for key in valid_dict.keys():
+        # Set one invalid argument per dictionary
+        # Set two invalid arguments per key
         if not isinstance(invalid_dicts[count][key], list):
             invalid_dicts[count][key] = [1, 2]
             invalid_dicts[count + 1][key] = 'str'
@@ -167,6 +169,7 @@ def _make_invalid_params(invalid_param_dicts, pot, extra_args):
 
 def _invalid_params():
     invalid_params_list = []
+    # Start with valid parameters to get the keys and placeholder values
 
     lj_valid_dict = {'sigma': 1.0, 'epsilon': 1.0}
     lj_invalid_dicts = _make_invalid_param_dict(lj_valid_dict)
@@ -283,6 +286,9 @@ def invalid_params(request):
 
 
 def _forces_and_energies():
+    # Reference force and energy values were calculated using Mathematica 12.1.1
+    # and then hard coded. Values were calculated at distances of 0.75 and 1.5
+    # for each argument dictionary
     params = {}
     forces = {}
     energies = {}
