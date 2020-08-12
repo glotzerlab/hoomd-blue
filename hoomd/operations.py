@@ -14,7 +14,6 @@ class Operations:
     def __init__(self, simulation=None):
         self._simulation = simulation
         self._compute = list()
-        self._auto_schedule = False
         self._scheduled = False
         self._updaters = SyncedList(OnlyType(_Updater), triggered_op_conversion)
         self._analyzers = SyncedList(OnlyType(_Analyzer),
@@ -92,18 +91,23 @@ class Operations:
 
     @integrator.setter
     def integrator(self, op):
+        if op is None:
+            if not self._scheduled:
+                self._integrator = None
+            else:
+                raise ValueError(
+                    "Integrator cannot be set to None when operations are "
+                    "scheduled.")
         if not isinstance(op, hoomd.integrate._BaseIntegrator):
             raise TypeError("Cannot set integrator to a type not derived "
-                            "from hoomd.integrator._integrator")
+                            "from hoomd.integrate._BaseIntegrator")
         old_ref = self.integrator
         self._integrator = op
-        if self._auto_schedule:
-            new_objs = op.attach(self._simulation)
-            if old_ref is not None:
-                old_ref.notify_detach(self._simulation)
-                old_ref.detach()
-            if new_objs is not None:
-                self._compute.extend(new_objs)
+        if self._scheduled:
+            op.attach(self._simulation)
+        if old_ref is not None:
+            old_ref.notify_detach(self._simulation)
+            old_ref.detach()
 
     @property
     def updaters(self):
