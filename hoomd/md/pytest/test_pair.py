@@ -3,7 +3,8 @@ import pytest
 import numpy as np
 import itertools
 from copy import deepcopy
-
+import json
+from pathlib import Path
 
 def _assert_equivalent_type_params(type_param1, type_param2):
     for pair in type_param1:
@@ -629,209 +630,25 @@ def test_force_energy_relationship(simulation_factory,
 
 def _forces_and_energies():
     # Reference force and energy values were calculated using Mathematica 12.1.1
-    # and then hard coded. Values were calculated at distances of 0.75 and 1.5
-    # for each argument dictionary
-    params = {}
-    forces = {}
-    energies = {}
-
-    params["LJ"] = [{"sigma": 0.5, "epsilon": 0.0005},
-                    {"sigma": 1.0, "epsilon": 0.001},
-                    {"sigma": 1.5, "epsilon": 0.0015}]
-    forces["LJ"] = [[0.00115803, 0.0000109438],
-                    [-1.84064, 0.00115803],
-                    [-390.144, -0.024]]
-    energies["LJ"] = [[-0.000160168, -2.73972 * 10**(-6)],
-                      [0.103803, -0.000320337],
-                      [24.192, 0]]
-
-    params["Gauss"] = [{"sigma": 0.5, "epsilon": 0.025},
-                       {"sigma": 1.0, "epsilon": 0.05},
-                       {"sigma": 1.5, "epsilon": 0.075}]
-    forces["Gauss"] = [[-0.0243489, -0.00166635],
-                       [-0.0283065, -0.0243489],
-                       [-0.0220624, -0.0303265]]
-    energies["Gauss"] = [[0.00811631, 0.000277725],
-                         [0.037742, 0.0162326],
-                         [0.0661873, 0.0454898]]
-
-    params["Yukawa"] = [{"kappa": 0.5, "epsilon": 0.00025},
-                        {"kappa": 1.0, "epsilon": 0.0005},
-                        {"kappa": 1.5, "epsilon": 0.00075}]
-    forces["Yukawa"] = [[-0.00042001, -0.0000918491],
-                        [-0.000734792, -0.000123961],
-                        [-0.000919849, -0.000114182]]
-    energies["Yukawa"] = [[0.000229096, 0.0000787278],
-                          [0.000314911, 0.0000743767],
-                          [0.000324652, 0.0000526996]]
-
-    params["Ewald"] = [{"kappa": 0.5, "alpha": 0.025},
-                       {"kappa": 1.0, "alpha": 0.05},
-                       {"kappa": 1.5, "alpha": 0.075}]
-    forces["Ewald"] = [[-1.71273, -0.342595],
-                       [-1.37038, -0.0943089],
-                       [-0.834655, -0.0077883]]
-    energies["Ewald"] = [[0.794344, 0.192497],
-                         [0.384995, 0.0225858],
-                         [0.148753, 0.000974619]]
-
-    params["Morse"] = [{"D0": 0.025, "alpha": 0.5, "r0": 0},
-                       {"D0": 0.05, "alpha": 1.0, "r0": 0.05},
-                       {"D0": 0.075, "alpha": 1.5, "r0": 0.1}]
-    forces["Morse"] = [[0.00537307, 0.00623091],
-                       [0.0249988, 0.0179547],
-                       [0.0528566, 0.0241787]]
-    energies["Morse"] = [[-0.0225553, -0.0180401],
-                         [-0.0373287, -0.0207059],
-                         [-0.0459083, -0.0172438]]
-
-    params["DPDConservative"] = [{"A": 0.025}, {"A": 0.05}, {"A": 0.075}]
-    forces["DPDConservative"] = [[-0.0175, -0.01],
-                                 [-0.035, -0.02],
-                                 [-0.0525, -0.03]]
-    energies["DPDConservative"] = [[0.0153125, 0.005],
-                                   [0.030625, 0.01],
-                                   [0.0459375, 0.015]]
-
-    params["ForceShiftedLJ"] = [{"sigma": 0.5, "epsilon": 0.0005},
-                                {"sigma": 1.0, "epsilon": 0.001},
-                                {"sigma": 1.5, "epsilon": 0.0015}]
-    forces["ForceShiftedLJ"] = [[0.00115772, 0.0000106367],
-                                [-1.84068, 0.00111903],
-                                [-390.145, -0.0246092]]
-    energies["ForceShiftedLJ"] = [[-0.000159631, -2.43256 * 10**(-6)],
-                                  [0.103871, -0.000281337],
-                                  [24.1931, 0.000609155]]
-
-    params["Moliere"] = [{"qi": 2.5, "qj": 2, "aF": .134197},
-                         {"qi": 7.5, "qj": 6, "aF": .234463},
-                         {"qi": 15, "qj": 12, "aF": .319563}]
-    forces["Moliere"] = [[-1.60329, -0.118429],
-                         [-25.5994, -3.04229],
-                         [-134.573, -17.5369]]
-    energies["Moliere"] = [[0.44082, 0.0408005],
-                           [8.75396, 1.54813],
-                           [49.4399, 10.509]]
-
-    params["ZBL"] = [{"qi": 2.5, "qj": 2, "aF": .133669},
-                     {"qi": 7.5, "qj": 6, "aF": .243535},
-                     {"qi": 15, "qj": 12, "aF": .341914}]
-    forces["ZBL"] = [[-1.16319, -0.0589855],
-                     [-25.2367, -2.20544],
-                     [-141.906, -15.7017]]
-    energies["ZBL"] = [[0.272589, 0.0199771],
-                       [7.45044, 0.993112],
-                       [47.6608, 8.11749]]
-
-    params["Mie"] = [{"epsilon": 0.05, "sigma": 0.5, "n": 12, "m": 6},
-                     {"epsilon": 0.025, "sigma": 1.0, "n": 14, "m": 8},
-                     {"epsilon": 0.01, "sigma": 1.5, "n": 16, "m": 10}]
-    forces["Mie"] = [[0.115803, 0.00109438],
-                     [-115.77, 0.0216668],
-                     [-80806.3, -0.2334687]]
-    energies["Mie"] = [[-0.0160168, -0.000273972],
-                       [5.67535, -0.00437856],
-                       [3765.38, 0.0]]
-
-    params["ReactionField"] = [{"epsilon": 0.05,
-                                "eps_rf": 0.5,
-                                "use_charge": False},
-                               {"epsilon": 0.025,
-                                "eps_rf": 1.0,
-                                "use_charge": False},
-                               {"epsilon": 0.01,
-                                "eps_rf": 1.5,
-                                "use_charge": False}]
-    forces["ReactionField"] = [[-0.0900889, -0.0246222],
-                               [-0.0444444, -0.0111111],
-                               [-0.0176578, -0.00420444]]
-    energies["ReactionField"] = [[0.0662167, 0.0315333],
-                                 [0.0333333, 0.0166667],
-                                 [0.0133783, 0.00684667]]
-
-    params["Buckingham"] = [{"A": 0.05, "rho": 0.5, "C": 0.05},
-                            {"A": 0.025, "rho": 1.0, "C": 0.025},
-                            {"A": 0.01, "rho": 1.5, "C": 0.01}]
-    forces["Buckingham"] = [[2.22515, 0.0125796],
-                            [1.11192, 0.0032009],
-                            [0.445449, 0.00105913]]
-    energies["Buckingham"] = [[-0.269776, -0.00190022],
-                              [-0.128657, 0.00338347],
-                              [-0.0501213, 0.00280088]]
-
-    params["LJ1208"] = [{"sigma": 0.5, "epsilon": 0.0005},
-                        {"sigma": 1.0, "epsilon": 0.001},
-                        {"sigma": 1.5, "epsilon": 0.0015}]
-    forces["LJ1208"] = [[0.000585758, 1.59566 * 10**(-6)],
-                        [-1.59425, 0.000585758],
-                        [-376.832, -0.016]]
-    energies["LJ1208"] = [[-0.0000626222, -3.01068 * 10**(-7)],
-                          [0.0863223, -0.000125244],
-                          [23.04, 0.0]]
-
-    params["Fourier"] = [{"a": [0.5, 1.0, 1.5], "b": [0.25, 0.034, 0.76]},
-                         {"a": [.05, .1, .15], "b": [0.36, 0.12, 0.65]},
-                         {"a": [.005, .01, .015], "b": [0.78, 0.04, 0.98]}]
-    forces["Fourier"] = [[-508.812, -5.31354],
-                         [-517.515, -2.42745],
-                         [-527.788, -4.27573]]
-    energies["Fourier"] = [[33.0833, 1.95643],
-                           [35.5141, 1.43308],
-                           [39.5643, 2.47584]]
-
-    params["SLJ"] = [{"sigma": 0.5, "epsilon": 0.0005},
-                     {"sigma": 1.0, "epsilon": 0.001},
-                     {"sigma": 1.5, "epsilon": 0.0015}]
-    forces["SLJ"] = [[390.144, -0.024],
-                     [3220830, -390.144],
-                     [626907000, -76475]]
-    energies["SLJ"] = [[8.064, 0.0],
-                       [67092.5, 16.128],
-                       [13060400, 3184.27]]
-
-    params["DPD"] = [{"A": 0.5, "gamma": 0.0005},
-                     {"A": 1.0, "gamma": 0.001},
-                     {"A": 1.5, "gamma": 0.0015}]
-    forces["DPD"] = [[0.01250824, 0.00714756],
-                     [-0.187336, -0.107049],
-                     [-0.422118, -0.24121]]
-    energies["DPD"] = [[0.30625, 0.1],
-                       [0.6125, 0.2],
-                       [0.91875, 0.3]]
-
-    params["DPDLJ"] = [{'sigma': 0.5, 'epsilon': 0.0005, 'gamma': 0.034},
-                       {'sigma': 1.0, 'epsilon': 0.001, 'gamma': 33.2},
-                       {'sigma': 1.5, 'epsilon': 0.0015, 'gamma': 1.2}]
-    energies["DPDLJ"] = [[-0.000160168, -2.73972 * 10**(-6)],
-                         [0.103803, -0.000320337],
-                         [24.192, 0]]
-    forces["DPDLJ"] = [[2.11492, 1.20788],
-                       [64.2114, 37.7452],
-                       [-377.586, 7.15179]]
-
-    params["DLVO"] = [{'kappa': 1.0, 'Z': 0.1, 'A': 0.1},
-                      {'kappa': 2.0, 'Z': 0.5, 'A': 0.5},
-                      {'kappa': 5.0, 'Z': 2.0, 'A': 2.0}]
-    energies["DLVO"] = [[0.00476409, 0.00226142],
-                        [0.0159279, 0.00357933],
-                        [0.0188554, 0.000449299]]
-    forces["DLVO"] = [[-0.00456658, -0.00226058],
-                      [-0.0309878, -0.00715578],
-                      [-0.0922397, -0.00225115]]
-
-    param_list = []
-    for pair_potential in params.keys():
-        kT_dict = {}
-        if pair_potential == "DPD":
-            kT_dict = {"kT": 2}
-        elif pair_potential == "DPDLJ":
-            kT_dict = {"kT": 1}
-        for i in range(3):
-            param_list.append((getattr(hoomd.md.pair, pair_potential),
-                               kT_dict,
-                               params[pair_potential][i],
-                               forces[pair_potential][i],
-                               energies[pair_potential][i]))
+    # and then stored in the json file below. Values were calculated at
+    # distances of 0.75 and 1.5 for each argument dictionary
+    path = Path(__file__).parent / "forces_and_energies.json"
+    with path.open() as f:
+        F_and_E = json.load(f)
+        param_list = []
+        for pot in F_and_E.keys():
+            if pot[0].isalpha():
+                kT_dict = {}
+                if pot == "DPD":
+                    kT_dict = {"kT": 2}
+                elif pot == "DPDLJ":
+                    kT_dict = {"kT": 1}
+                for i in range(3):
+                    param_list.append((getattr(hoomd.md.pair, pot),
+                                       kT_dict,
+                                       F_and_E[pot]["params"][i],
+                                       F_and_E[pot]["forces"][i],
+                                       F_and_E[pot]["energies"][i]))
     return param_list
 
 
