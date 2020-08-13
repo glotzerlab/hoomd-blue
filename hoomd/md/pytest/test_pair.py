@@ -5,6 +5,8 @@ import itertools
 from copy import deepcopy
 import json
 from pathlib import Path
+from collections import namedtuple
+
 
 def _assert_equivalent_type_params(type_param1, type_param2):
     for pair in type_param1:
@@ -111,7 +113,12 @@ def _make_invalid_params(invalid_param_dicts, pot, extra_args):
     params = []
     for i in range(len(invalid_param_dicts)):
         params.append({('A', 'A'): invalid_param_dicts[i]})
-    return [(pot, params[i], extra_args) for i in range(N)]
+    return [paramtuple(pot, params[i], extra_args) for i in range(N)]
+
+paramtuple = namedtuple('paramtuple',
+                        ['pair_potential',
+                         'pair_potential_params',
+                         'extra_args'])
 
 
 def _invalid_params():
@@ -120,111 +127,111 @@ def _invalid_params():
 
     lj_valid_dict = {'sigma': 1.0, 'epsilon': 1.0}
     lj_invalid_dicts = _make_invalid_param_dict(lj_valid_dict)
-    invalid_params_list.append(_make_invalid_params(lj_invalid_dicts,
+    invalid_params_list.extend(_make_invalid_params(lj_invalid_dicts,
                                                     hoomd.md.pair.LJ,
                                                     {}))
 
     gauss_valid_dict = {'sigma': 0.05, 'epsilon': 0.05}
     gauss_invalid_dicts = _make_invalid_param_dict(gauss_valid_dict)
-    invalid_params_list.append(_make_invalid_params(gauss_invalid_dicts,
+    invalid_params_list.extend(_make_invalid_params(gauss_invalid_dicts,
                                                     hoomd.md.pair.Gauss,
                                                     {}))
 
     yukawa_valid_dict = {"epsilon": 0.0005, "kappa": 1}
     yukawa_invalid_dicts = _make_invalid_param_dict(yukawa_valid_dict)
-    invalid_params_list.append(_make_invalid_params(yukawa_invalid_dicts,
+    invalid_params_list.extend(_make_invalid_params(yukawa_invalid_dicts,
                                                     hoomd.md.pair.Yukawa,
                                                     {}))
 
     ewald_valid_dict = {"alpha": 0.05, "kappa": 1}
     ewald_invalid_dicts = _make_invalid_param_dict(ewald_valid_dict)
-    invalid_params_list.append(_make_invalid_params(ewald_invalid_dicts,
+    invalid_params_list.extend(_make_invalid_params(ewald_invalid_dicts,
                                                     hoomd.md.pair.Ewald,
                                                     {}))
 
     morse_valid_dict = {"D0": 0.05, "alpha": 1, "r0": 0}
     morse_invalid_dicts = _make_invalid_param_dict(morse_valid_dict)
-    invalid_params_list.append(_make_invalid_params(morse_invalid_dicts,
+    invalid_params_list.extend(_make_invalid_params(morse_invalid_dicts,
                                                     hoomd.md.pair.Morse,
                                                     {}))
 
     dpd_conservative_valid_dict = {"A": 0.05}
     dpd_conservative_invalid_dicts = _make_invalid_param_dict(dpd_conservative_valid_dict)
-    invalid_params_list.append(_make_invalid_params(dpd_conservative_invalid_dicts,
+    invalid_params_list.extend(_make_invalid_params(dpd_conservative_invalid_dicts,
                                                     hoomd.md.pair.DPDConservative,
                                                     {}))
 
     force_shifted_LJ_valid_dict = {"epsilon": 0.0005, "sigma": 1}
     force_shifted_LJ_invalid_dicts = _make_invalid_param_dict(force_shifted_LJ_valid_dict)
-    invalid_params_list.append(_make_invalid_params(force_shifted_LJ_invalid_dicts,
+    invalid_params_list.extend(_make_invalid_params(force_shifted_LJ_invalid_dicts,
                                                     hoomd.md.pair.ForceShiftedLJ,
                                                     {}))
 
     moliere_valid_dict = {"qi": 15, "qj": 12, "aF": 1}
     moliere_invalid_dicts = _make_invalid_param_dict(moliere_valid_dict)
-    invalid_params_list.append(_make_invalid_params(moliere_invalid_dicts,
+    invalid_params_list.extend(_make_invalid_params(moliere_invalid_dicts,
                                                     hoomd.md.pair.Moliere,
                                                     {}))
     zbl_valid_dict = {"qi": 10, "qj": 8, "aF": 0.5}
     zbl_invalid_dicts = _make_invalid_param_dict(zbl_valid_dict)
-    invalid_params_list.append(_make_invalid_params(zbl_invalid_dicts,
+    invalid_params_list.extend(_make_invalid_params(zbl_invalid_dicts,
                                                     hoomd.md.pair.ZBL,
                                                     {}))
 
     mie_valid_dict = {"epsilon": 0.05, "sigma": 0.5, "n": 12, "m": 6}
     mie_invalid_dicts = _make_invalid_param_dict(mie_valid_dict)
-    invalid_params_list.append(_make_invalid_params(mie_invalid_dicts,
+    invalid_params_list.extend(_make_invalid_params(mie_invalid_dicts,
                                                     hoomd.md.pair.Mie,
                                                     {}))
 
     rf_valid_dict = {"epsilon": 0.05, "eps_rf": 0.5, "use_charge": False}
     rf_invalid_dicts = _make_invalid_param_dict(rf_valid_dict)
-    invalid_params_list.append(_make_invalid_params(rf_invalid_dicts,
+    invalid_params_list.extend(_make_invalid_params(rf_invalid_dicts,
                                                     hoomd.md.pair.ReactionField,
                                                     {}))
 
     buckingham_valid_dict = {"A": 0.05, "rho": 0.5, "C": 0.05}
     buckingham_invalid_dicts = _make_invalid_param_dict(buckingham_valid_dict)
-    invalid_params_list.append(_make_invalid_params(buckingham_invalid_dicts,
+    invalid_params_list.extend(_make_invalid_params(buckingham_invalid_dicts,
                                                     hoomd.md.pair.Buckingham,
                                                     {}))
 
     lj1208_valid_dict = {"sigma": 0.5, "epsilon": 0.0005}
     lj1208_invalid_dicts = _make_invalid_param_dict(lj1208_valid_dict)
-    invalid_params_list.append(_make_invalid_params(lj1208_invalid_dicts,
+    invalid_params_list.extend(_make_invalid_params(lj1208_invalid_dicts,
                                                     hoomd.md.pair.LJ1208,
                                                     {}))
 
     fourier_valid_dict = {"a": [0.5, 1.0, 1.5], "b": [0.25, 0.034, 0.76]}
     fourier_invalid_dicts = _make_invalid_param_dict(fourier_valid_dict)
-    invalid_params_list.append(_make_invalid_params(fourier_invalid_dicts,
+    invalid_params_list.extend(_make_invalid_params(fourier_invalid_dicts,
                                                     hoomd.md.pair.Fourier,
                                                     {}))
 
     slj_valid_dict = {"sigma": 0.5, "epsilon": 0.0005}
     slj_invalid_dicts = _make_invalid_param_dict(slj_valid_dict)
-    invalid_params_list.append(_make_invalid_params(slj_invalid_dicts,
+    invalid_params_list.extend(_make_invalid_params(slj_invalid_dicts,
                                                     hoomd.md.pair.SLJ,
                                                     {}))
 
     dpd_valid_dict = {"A": 0.5, "gamma": 0.0005}
     dpd_invalid_dicts = _make_invalid_param_dict(dpd_valid_dict)
-    invalid_params_list.append(_make_invalid_params(dpd_invalid_dicts,
+    invalid_params_list.extend(_make_invalid_params(dpd_invalid_dicts,
                                                     hoomd.md.pair.DPD,
                                                     {'kT': 2}))
 
     dpdlj_valid_dict = {'sigma': 0.5, 'epsilon': 0.0005, 'gamma': 0.034}
     dpdlj_invalid_dicts = _make_invalid_param_dict(dpdlj_valid_dict)
-    invalid_params_list.append(_make_invalid_params(dpdlj_invalid_dicts,
+    invalid_params_list.extend(_make_invalid_params(dpdlj_invalid_dicts,
                                                     hoomd.md.pair.DPDLJ,
                                                     {'kT': 1}))
 
     dlvo_valid_dict = {'kappa': 1.0, 'Z': 0.1, 'A': 0.1}
     dlvo_invalid_dicts = _make_invalid_param_dict(dlvo_valid_dict)
-    invalid_params_list.append(_make_invalid_params(dlvo_invalid_dicts,
+    invalid_params_list.extend(_make_invalid_params(dlvo_invalid_dicts,
                                                     hoomd.md.pair.DLVO,
                                                     {}))
-    return [params for param_list in invalid_params_list for params in param_list]
+    return invalid_params_list
 
 
 @pytest.fixture(scope="function", params=_invalid_params(), ids=(lambda x: x[0].__name__))
@@ -233,12 +240,13 @@ def invalid_params(request):
 
 
 def test_invalid_params(invalid_params):
-    pair_potential, pair_potential_dict, extra_args = invalid_params
-    pot = pair_potential(**extra_args, nlist=hoomd.md.nlist.Cell(), mode='none')
-    for pair in pair_potential_dict:
+    pot = invalid_params.pair_potential(**invalid_params.extra_args,
+                                        nlist=hoomd.md.nlist.Cell(),
+                                        mode='none')
+    for pair in invalid_params.pair_potential_params:
         if isinstance(pair, tuple):
             with pytest.raises(hoomd.typeconverter.TypeConversionError):
-                pot.params[pair] = pair_potential_dict[pair]
+                pot.params[pair] = invalid_params.pair_potential_params[pair]
 
 
 def test_invalid_pair_key():
@@ -259,88 +267,109 @@ def _make_valid_param_dicts(arg_dict):
 def _valid_params(particle_types=['A', 'B']):
     valid_params_list = []
     combos = list(itertools.combinations_with_replacement(particle_types, 2))
-
     lj_arg_dict = {'sigma': [0.5, 1.0, 1.5],
                    'epsilon': [0.0005, 0.001, 0.0015]}
     lj_valid_param_dicts = _make_valid_param_dicts(lj_arg_dict)
-
-    valid_params_list.append((hoomd.md.pair.LJ, {},
-                              dict(zip(combos, lj_valid_param_dicts))))
+    valid_params_list.append(paramtuple(hoomd.md.pair.LJ,
+                                        dict(zip(combos,
+                                                 lj_valid_param_dicts)),
+                                        {}))
 
     gauss_arg_dict = {'epsilon': [0.025, 0.05, 0.075],
                       'sigma': [0.5, 1.0, 1.5]}
     gauss_valid_param_dicts = _make_valid_param_dicts(gauss_arg_dict)
-    valid_params_list.append((hoomd.md.pair.Gauss, {},
-                              dict(zip(combos, gauss_valid_param_dicts))))
+    valid_params_list.append(paramtuple(hoomd.md.pair.Gauss,
+                                        dict(zip(combos,
+                                                 gauss_valid_param_dicts)),
+                                        {}))
 
     yukawa_arg_dict = {'epsilon': [0.00025, 0.0005, 0.00075],
                        'kappa': [0.5, 1.0, 1.5]}
     yukawa_valid_param_dicts = _make_valid_param_dicts(yukawa_arg_dict)
-    valid_params_list.append((hoomd.md.pair.Yukawa, {},
-                              dict(zip(combos, yukawa_valid_param_dicts))))
+    valid_params_list.append(paramtuple(hoomd.md.pair.Yukawa,
+                                        dict(zip(combos,
+                                                 yukawa_valid_param_dicts)),
+                                        {}))
 
     ewald_arg_dict = {"alpha": [0.025, 0.05, 0.075],
                       "kappa": [0.5, 1.0, 1.5]}
     ewald_valid_param_dicts = _make_valid_param_dicts(ewald_arg_dict)
-    valid_params_list.append((hoomd.md.pair.Ewald, {},
-                              dict(zip(combos, ewald_valid_param_dicts))))
+    valid_params_list.append(paramtuple(hoomd.md.pair.Ewald,
+                                        dict(zip(combos,
+                                                 ewald_valid_param_dicts)),
+                                        {}))
 
     morse_arg_dict = {"D0": [0.025, 0.05, 0.075],
                       "alpha": [0.5, 1.0, 1.5],
                       "r0": [0, 0.05, 0.1]}
     morse_valid_param_dicts = _make_valid_param_dicts(morse_arg_dict)
-    valid_params_list.append((hoomd.md.pair.Morse, {},
-                              dict(zip(combos, morse_valid_param_dicts))))
+    valid_params_list.append(paramtuple(hoomd.md.pair.Morse,
+                                        dict(zip(combos,
+                                                 morse_valid_param_dicts)),
+                                        {}))
 
     dpd_conservative_arg_dict = {"A": [0.025, 0.05, 0.075]}
     dpd_conservative_valid_param_dicts = _make_valid_param_dicts(dpd_conservative_arg_dict)
-    valid_params_list.append((hoomd.md.pair.DPDConservative, {},
-                              dict(zip(combos,
-                                       dpd_conservative_valid_param_dicts))))
+    valid_params_list.append(paramtuple(hoomd.md.pair.DPDConservative,
+                                        dict(zip(combos,
+                                                 dpd_conservative_valid_param_dicts)),
+                                        {}))
 
     force_shifted_LJ_arg_dict = {'sigma': [0.5, 1.0, 1.5],
                                  'epsilon': [0.0005, 0.001, 0.0015]}
     force_shifted_LJ_valid_param_dicts = _make_valid_param_dicts(force_shifted_LJ_arg_dict)
-    valid_params_list.append((hoomd.md.pair.ForceShiftedLJ, {},
-                              dict(zip(combos,
-                                       force_shifted_LJ_valid_param_dicts))))
+    valid_params_list.append(paramtuple(hoomd.md.pair.ForceShiftedLJ,
+                                        dict(zip(combos,
+                                                 force_shifted_LJ_valid_param_dicts)),
+                                        {}))
 
     moliere_arg_dict = {'qi': [2.5, 7.5, 15], 'qj': [2, 6, 12],
                         'aF': [.134197, .234463, .319536]}
     moliere_valid_param_dicts = _make_valid_param_dicts(moliere_arg_dict)
-    valid_params_list.append((hoomd.md.pair.Moliere, {},
-                              dict(zip(combos, moliere_valid_param_dicts))))
+    valid_params_list.append(paramtuple(hoomd.md.pair.Moliere,
+                                        dict(zip(combos,
+                                                 moliere_valid_param_dicts)),
+                                        {}))
 
     zbl_arg_dict = {'qi': [2.5, 7.5, 15], 'qj': [2, 6, 12],
                     'aF': [.133669, .243535, .341914]}
     zbl_valid_param_dicts = _make_valid_param_dicts(zbl_arg_dict)
-    valid_params_list.append((hoomd.md.pair.ZBL, {},
-                              dict(zip(combos, zbl_valid_param_dicts))))
+    valid_params_list.append(paramtuple(hoomd.md.pair.ZBL,
+                                        dict(zip(combos,
+                                                 zbl_valid_param_dicts)),
+                                        {}))
 
     mie_arg_dict = {'epsilon': [.05, .025, .010], 'sigma': [.5, 1, 1.5],
                     'n': [12, 14, 16], 'm': [6, 8, 10]}
     mie_valid_param_dicts = _make_valid_param_dicts(mie_arg_dict)
-    valid_params_list.append((hoomd.md.pair.Mie, {},
-                              dict(zip(combos, mie_valid_param_dicts))))
+    valid_params_list.append(paramtuple(hoomd.md.pair.Mie,
+                                        dict(zip(combos,
+                                                 mie_valid_param_dicts)),
+                                        {}))
 
     reactfield_arg_dict = {'epsilon': [.05, .025, .010], 'eps_rf': [.5, 1, 1.5],
                            'use_charge': [False, True, False]}
     reactfield_valid_param_dicts = _make_valid_param_dicts(reactfield_arg_dict)
-    valid_params_list.append((hoomd.md.pair.ReactionField, {},
-                              dict(zip(combos, reactfield_valid_param_dicts))))
+    valid_params_list.append(paramtuple(hoomd.md.pair.ReactionField,
+                                        dict(zip(combos,
+                                                 reactfield_valid_param_dicts)),
+                                        {}))
 
     buckingham_arg_dict = {'A': [.05, .025, .010], 'rho': [.5, 1, 1.5],
                            'C': [.05, .025, .01]}
     buckingham_valid_param_dicts = _make_valid_param_dicts(buckingham_arg_dict)
-    valid_params_list.append((hoomd.md.pair.Buckingham, {},
-                              dict(zip(combos, buckingham_valid_param_dicts))))
+    valid_params_list.append(paramtuple(hoomd.md.pair.Buckingham,
+                                        dict(zip(combos,
+                                                 buckingham_valid_param_dicts)),
+                                        {}))
 
     lj1208_arg_dict = {'sigma': [0.5, 1.0, 1.5],
                        'epsilon': [0.0005, 0.001, 0.0015]}
     lj1208_valid_param_dicts = _make_valid_param_dicts(lj1208_arg_dict)
-
-    valid_params_list.append((hoomd.md.pair.LJ1208, {},
-                              dict(zip(combos, lj1208_valid_param_dicts))))
+    valid_params_list.append(paramtuple(hoomd.md.pair.LJ1208,
+                                        dict(zip(combos,
+                                                 lj1208_valid_param_dicts)),
+                                        {}))
 
     fourier_arg_dict = {'a': [[0.5, 1.0, 1.5],
                               [.05, .1, .15],
@@ -349,38 +378,45 @@ def _valid_params(particle_types=['A', 'B']):
                               [0.36, 0.12, 0.65],
                               [0.78, 0.04, 0.98]]}
     fourier_valid_param_dicts = _make_valid_param_dicts(fourier_arg_dict)
-
-    valid_params_list.append((hoomd.md.pair.Fourier, {},
-                              dict(zip(combos, fourier_valid_param_dicts))))
+    valid_params_list.append(paramtuple(hoomd.md.pair.Fourier,
+                                        dict(zip(combos,
+                                                 fourier_valid_param_dicts)),
+                                        {}))
 
     slj_arg_dict = {'sigma': [0.5, 1.0, 1.5],
                     'epsilon': [0.0005, 0.001, 0.0015]}
     slj_valid_param_dicts = _make_valid_param_dicts(slj_arg_dict)
-
-    valid_params_list.append((hoomd.md.pair.SLJ, {},
-                              dict(zip(combos, slj_valid_param_dicts))))
+    valid_params_list.append(paramtuple(hoomd.md.pair.SLJ,
+                                        dict(zip(combos,
+                                                 slj_valid_param_dicts)),
+                                        {}))
 
     dpd_arg_dict = {'A': [0.5, 1.0, 1.5],
                     'gamma': [0.0005, 0.001, 0.0015]}
     dpd_valid_param_dicts = _make_valid_param_dicts(dpd_arg_dict)
-    dpd_extra_args = {"kT": 2}
-    valid_params_list.append((hoomd.md.pair.DPD, dpd_extra_args,
-                              dict(zip(combos, dpd_valid_param_dicts))))
+    valid_params_list.append(paramtuple(hoomd.md.pair.DPD,
+                                        dict(zip(combos,
+                                                 dpd_valid_param_dicts)),
+                                        {"kT": 2}))
 
     dpdlj_arg_dict = {'sigma': [0.5, 1.0, 1.5],
                       'epsilon': [0.0005, 0.001, 0.0015],
                       'gamma': [0.034, 33.2, 1.2]}
     dpdlj_valid_param_dicts = _make_valid_param_dicts(dpdlj_arg_dict)
 
-    valid_params_list.append((hoomd.md.pair.DPDLJ, {"kT": 1},
-                              dict(zip(combos, dpdlj_valid_param_dicts))))
+    valid_params_list.append(paramtuple(hoomd.md.pair.DPDLJ,
+                                        dict(zip(combos,
+                                                 dpdlj_valid_param_dicts)),
+                                        {"kT": 1}))
 
     dlvo_arg_dict = {'kappa': [1.0, 2.0, 5.0],
                      'Z': [0.1, 0.5, 2.0],
                      'A': [0.1, 0.5, 2.0]}
     dlvo_valid_param_dicts = _make_valid_param_dicts(dlvo_arg_dict)
-    valid_params_list.append((hoomd.md.pair.DLVO, {},
-                              dict(zip(combos, dlvo_valid_param_dicts))))
+    valid_params_list.append(paramtuple(hoomd.md.pair.DLVO,
+                                        dict(zip(combos,
+                                                 dlvo_valid_param_dicts)),
+                                        {}))
     return valid_params_list
 
 
@@ -389,14 +425,14 @@ def valid_params(request):
     return deepcopy(request.param)
 
 def test_valid_params(valid_params):
-    pair_potential, extra_args, pair_potential_dict = valid_params
-    pot = pair_potential(**extra_args,
-                         nlist=hoomd.md.nlist.Cell(),
-                         r_cut=2.5,
-                         mode='none')
-    for pair in pair_potential_dict:
-        pot.params[pair] = pair_potential_dict[pair]
-    _assert_equivalent_type_params(pair_potential_dict, pot.params.to_dict())
+    pot = valid_params.pair_potential(**valid_params.extra_args,
+                                      nlist=hoomd.md.nlist.Cell(),
+                                      r_cut=2.5,
+                                      mode='none')
+    for pair in valid_params.pair_potential_params:
+        pot.params[pair] = valid_params.pair_potential_params[pair]
+    _assert_equivalent_type_params(valid_params.pair_potential_params,
+                                   pot.params.to_dict())
 
 
 def _update_snap(pair_potential, snap):
@@ -411,18 +447,19 @@ def _update_snap(pair_potential, snap):
 
 def test_attached_params(simulation_factory, lattice_snapshot_factory,
                          valid_params):
-    pair_potential, xtra_args, pair_potential_dict = valid_params
-    pair_keys = pair_potential_dict.keys()
+    pair_potential, pair_potential_dict, extra_args = valid_params
+    pair_keys = valid_params.pair_potential_params.keys()
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
-    pot = pair_potential(**xtra_args, nlist=hoomd.md.nlist.Cell(),
-                         r_cut=2.5, mode='none')
-    for pair in pair_potential_dict:
-        pot.params[pair] = pair_potential_dict[pair]
+    pot = valid_params.pair_potential(**valid_params.extra_args,
+                                      nlist=hoomd.md.nlist.Cell(),
+                                      r_cut=2.5, mode='none')
+    for pair in valid_params.pair_potential_params:
+        pot.params[pair] = valid_params.pair_potential_params[pair]
 
     snap = lattice_snapshot_factory(particle_types=particle_types,
                                     n=10, a=1.5, r=0.01)
 
-    _update_snap(pair_potential, snap)
+    _update_snap(valid_params.pair_potential, snap)
     if snap.exists:
         snap.particles.typeid[:] = np.random.randint(0,
                                                      len(snap.particles.types),
@@ -432,17 +469,17 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
     sim.operations.integrator.forces.append(pot)
     sim.run(10)
     _assert_equivalent_type_params(pot.params.to_dict(),
-                                   pair_potential_dict)
+                                   valid_params.pair_potential_params)
 
 
 def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
-    pair_potential, xtra_args, pair_potential_dict = valid_params
-    pair_keys = pair_potential_dict.keys()
+    pair_keys = valid_params.pair_potential_params.keys()
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
-    pot = pair_potential(**xtra_args, nlist=hoomd.md.nlist.Cell(),
-                         r_cut=2.5, mode='none')
-    for pair in pair_potential_dict:
-        pot.params[pair] = pair_potential_dict[pair]
+    pot = valid_params.pair_potential(**valid_params.extra_args,
+                                      nlist=hoomd.md.nlist.Cell(),
+                                      r_cut=2.5, mode='none')
+    for pair in valid_params.pair_potential_params:
+        pot.params[pair] = valid_params.pair_potential_params[pair]
 
     snap = lattice_snapshot_factory(particle_types=particle_types,
                                     n=7, a=1.7, r=0.01)
@@ -588,21 +625,21 @@ def test_force_energy_relationship(simulation_factory,
                                    two_particle_snapshot_factory,
                                    valid_params):
     # don't really test DPD and DPDLJ for this test
-    pot_name = valid_params[0].__name__
+    pot_name = valid_params.pair_potential.__name__
     if pot_name == "DPD" or pot_name == "DPDLJ":
         pytest.skip("Cannot test force energy relationship for " +
                     pot_name + " pair force")
 
-    pair_potential, xtra_args, pair_potential_dict = valid_params
-    pair_keys = pair_potential_dict.keys()
+    pair_keys = valid_params.pair_potential_params.keys()
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
-    pot = pair_potential(**xtra_args, nlist=hoomd.md.nlist.Cell(),
-                         r_cut=2.5, mode='none')
-    for pair in pair_potential_dict:
-        pot.params[pair] = pair_potential_dict[pair]
+    pot = valid_params.pair_potential(**valid_params.extra_args,
+                                      nlist=hoomd.md.nlist.Cell(),
+                                      r_cut=2.5, mode='none')
+    for pair in valid_params.pair_potential_params:
+        pot.params[pair] = valid_params.pair_potential_params[pair]
 
     snap = two_particle_snapshot_factory(particle_types=particle_types, d=1.5)
-    _update_snap(pair_potential, snap)
+    _update_snap(valid_params.pair_potential, snap)
     sim = simulation_factory(snap)
     integrator = hoomd.md.Integrator(dt=0.005)
     integrator.forces.append(pot)
@@ -610,7 +647,7 @@ def test_force_energy_relationship(simulation_factory,
                                                         kT=1, seed=1))
     sim.operations.integrator = integrator
     sim.operations.schedule()
-    for pair in pair_potential_dict:
+    for pair in valid_params.pair_potential_params:
         snap = sim.state.snapshot
         if snap.exists:
             snap.particles.typeid[0] = particle_types.index(pair[0])
@@ -626,6 +663,13 @@ def test_force_energy_relationship(simulation_factory,
             np.testing.assert_allclose(calculated_forces[1],
                                        sim_forces[1],
                                        rtol=1e-06)
+
+FandEtuple = namedtuple('FandEtuple',
+                        ['pair_potential',
+                         'pair_potential_params',
+                         'extra_args',
+                         'forces',
+                         'energies'])
 
 
 def _forces_and_energies():
@@ -644,11 +688,11 @@ def _forces_and_energies():
                 elif pot == "DPDLJ":
                     kT_dict = {"kT": 1}
                 for i in range(3):
-                    param_list.append((getattr(hoomd.md.pair, pot),
-                                       kT_dict,
-                                       F_and_E[pot]["params"][i],
-                                       F_and_E[pot]["forces"][i],
-                                       F_and_E[pot]["energies"][i]))
+                    param_list.append(FandEtuple(getattr(hoomd.md.pair, pot),
+                                                 F_and_E[pot]["params"][i],
+                                                 kT_dict,
+                                                 F_and_E[pot]["forces"][i],
+                                                 F_and_E[pot]["energies"][i]))
     return param_list
 
 
@@ -662,12 +706,12 @@ def forces_and_energies(request):
 def test_force_energy_accuracy(simulation_factory,
                                two_particle_snapshot_factory,
                                forces_and_energies):
-    pair_pot, extra_args, params, forces, energies = forces_and_energies
-    pot = pair_pot(**extra_args, nlist=hoomd.md.nlist.Cell(),
-                   r_cut=2.5, mode='none')
-    pot.params[('A', 'A')] = params
+    pot = forces_and_energies.pair_potential(**forces_and_energies.extra_args,
+                                             nlist=hoomd.md.nlist.Cell(),
+                                             r_cut=2.5, mode='none')
+    pot.params[('A', 'A')] = forces_and_energies.pair_potential_params
     snap = two_particle_snapshot_factory(particle_types=['A'], d=0.75)
-    _update_snap(pair_pot, snap)
+    _update_snap(forces_and_energies.pair_potential, snap)
     sim = simulation_factory(snap)
     integrator = hoomd.md.Integrator(dt=0.005)
     integrator.forces.append(pot)
@@ -688,20 +732,20 @@ def test_force_energy_accuracy(simulation_factory,
         sim_forces = sim.operations.integrator.forces[0].forces
         atol = 0
         if sim_energies is not None:
-            if energies[i] == 0 or sum(sim_energies) == 0:
+            if forces_and_energies.energies[i] == 0 or sum(sim_energies) == 0:
                 atol = 1e-06
-            np.testing.assert_allclose(energies[i],
+            np.testing.assert_allclose(forces_and_energies.energies[i],
                                        sum(sim_energies),
                                        rtol=5e-06,
                                        atol=atol)
         if sim_forces is not None:
-            if forces[i] == 0 or sum(sim_forces[0]) == 0:
+            if forces_and_energies.forces[i] == 0 or sum(sim_forces[0]) == 0:
                 atol = 1e-06
-            np.testing.assert_allclose(forces[i] * r,
+            np.testing.assert_allclose(forces_and_energies.forces[i] * r,
                                        sim_forces[0],
                                        rtol=5e-06,
                                        atol=atol)
-            np.testing.assert_allclose(forces[i] * r * -1,
+            np.testing.assert_allclose(forces_and_energies.forces[i] * r * -1,
                                        sim_forces[1],
                                        rtol=5e-06,
                                        atol=atol)
