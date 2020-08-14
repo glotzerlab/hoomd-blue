@@ -45,12 +45,9 @@ def test_rcut(simulation_factory, two_particle_snapshot_factory):
 
 def test_invalid_mode():
     cell = hoomd.md.nlist.Cell()
-    with pytest.raises(hoomd.typeconverter.TypeConversionError):
-        lj = hoomd.md.pair.LJ(nlist=cell, r_cut=2.5, mode=1)
-    with pytest.raises(hoomd.typeconverter.TypeConversionError):
-        lj = hoomd.md.pair.LJ(nlist=cell, r_cut=2.5, mode='str')
-    with pytest.raises(hoomd.typeconverter.TypeConversionError):
-        lj = hoomd.md.pair.LJ(nlist=cell, r_cut=2.5, mode=[1, 2, 3])
+    for invalid_mode in [1, 'str', [1, 2, 3]]:
+        with pytest.raises(hoomd.typeconverter.TypeConversionError):
+            lj = hoomd.md.pair.LJ(nlist=cell, r_cut=2.5, mode=invalid_mode)
 
 
 @pytest.mark.parametrize("mode", ['none', 'shifted', 'xplor'])
@@ -251,12 +248,9 @@ def test_invalid_params(invalid_params):
 
 def test_invalid_pair_key():
     pot = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell())
-    with pytest.raises(KeyError):
-        pot.r_cut[3] = 2.5
-    with pytest.raises(KeyError):
-        pot.r_cut[[1, 2]] = 2.5
-    with pytest.raises(KeyError):
-        pot.r_cut['str'] = 2.5
+    for invalid_key in [3, [1, 2], 'str']:
+        with pytest.raises(KeyError):
+            pot.r_cut[invalid_key] = 2.5
 
 
 def _make_valid_param_dicts(arg_dict):
