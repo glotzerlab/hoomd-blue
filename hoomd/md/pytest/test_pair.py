@@ -461,7 +461,7 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
     sim = simulation_factory(snap)
     sim.operations.integrator = hoomd.md.Integrator(dt=0.005)
     sim.operations.integrator.forces.append(pot)
-    sim.run(10)
+    sim.run(1)
     _assert_equivalent_type_params(pot.params.to_dict(),
                                    valid_params.pair_potential_params)
 
