@@ -448,8 +448,7 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
     pot = valid_params.pair_potential(**valid_params.extra_args,
                                       nlist=hoomd.md.nlist.Cell(),
                                       r_cut=2.5, mode='none')
-    for pair in valid_params.pair_potential_params:
-        pot.params[pair] = valid_params.pair_potential_params[pair]
+    pot.params = valid_params.pair_potential_params
 
     snap = lattice_snapshot_factory(particle_types=particle_types,
                                     n=10, a=1.5, r=0.01)
@@ -473,8 +472,7 @@ def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
     pot = valid_params.pair_potential(**valid_params.extra_args,
                                       nlist=hoomd.md.nlist.Cell(),
                                       r_cut=2.5, mode='none')
-    for pair in valid_params.pair_potential_params:
-        pot.params[pair] = valid_params.pair_potential_params[pair]
+    pot.params = valid_params.pair_potential_params
 
     snap = lattice_snapshot_factory(particle_types=particle_types,
                                     n=7, a=1.7, r=0.01)
