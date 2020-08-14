@@ -604,7 +604,7 @@ class NVE(_Method):
 
     """
     def __init__(self, filter, limit=None, zero_force=False):
-
+        """
         # set the limit
         if limit is not None:
             self.cpp_method.setLimit(limit)
@@ -612,12 +612,12 @@ class NVE(_Method):
         self.cpp_method.setZeroForce(zero_force)
 
         self.cpp_method.validateGroup()
-
+        """
         # store metadata
         param_dict = ParameterDict(
             filter=_ParticleFilter,
             limit=OnlyType(float, allow_none=True),
-            zero_force=OnlyType(bool),
+            zero_force=OnlyType(bool, allow_none=False),
         )
         param_dict.update(dict(filter=filter, limit=limit, zero_force=zero_force))
 
@@ -628,11 +628,10 @@ class NVE(_Method):
 
         # initialize the reflected c++ class
         if not simulation.device.cpp_exec_conf.isCUDAEnabled():
-            my_class = _md.TwoStepNVE
+            self._cpp_obj = _md.TwoStepNVE(simulation.state._cpp_sys_def,
+                                        simulation.state.get_group(self.filter), False)
         else:
-            my_class = _md.TwoStepNVEGPU
-
-        self._cpp_obj = my_class(simulation.state._cpp_sys_def, 
+            self._cpp_obj = _md.TwoStepNVEGPU(simulation.state._cpp_sys_def, 
                                  simulation.state.get_group(self.filter))
 
         # Attach param_dict and typeparam_dict
