@@ -82,6 +82,7 @@ def test_ron(simulation_factory, two_particle_snapshot_factory):
     assert lj.r_on.to_dict() == {}
 
     lj.r_on[('A', 'A')] = 1.5
+    _assert_equivalent_type_params(lj.r_on.to_dict(), {('A', 'A'): 1.5})
     sim.operations.schedule()
     _assert_equivalent_type_params(lj.r_on.to_dict(), {('A', 'A'): 1.5})
 
