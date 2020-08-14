@@ -9,6 +9,14 @@ from collections import namedtuple
 
 
 def _assert_equivalent_type_params(type_param1, type_param2):
+    """
+    Compare entries in type_param1 and type_param2.
+
+    type_param1 is the dictionary used to set the potential
+    arguments, whereas type_param2 is the dictionary returned
+    from the potential's to_dict method. This means type_param2
+    includes default arguments in addition to all keys in type_param1
+    """
     for pair in type_param1:
         if isinstance(type_param1[pair], dict):
             for key in type_param1[pair]:
@@ -255,7 +263,11 @@ def test_invalid_pair_key():
 
 
 def _make_valid_param_dicts(arg_dict):
-    # turn {'a': [0, 1], 'b':[2, 3]} into [{'a': 0, 'b': 2}, {'a': 1, 'b': 3}]
+    """
+    Unpack dictionary of lists of numbers into dictionary of numbers.
+
+    Ex: turn {'a': [0, 1], 'b':[2, 3]} into [{'a': 0, 'b': 2}, {'a': 1, 'b': 3}]
+    """
     return [dict(zip(arg_dict, val)) for val in zip(*arg_dict.values())]
 
 
@@ -577,9 +589,12 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
         assert sum(energies) == E_r - E_rcut
 
 
-# This function calculates the forces in a two particle simulation frame by
-# finding the negative derivative of energy over inter particle distance
 def _calculate_force(sim):
+    """
+    Calculate the forces in a two particle simulation frame.
+
+    Finds the negative derivative of energy divided by inter-particle distance
+    """
     snap = sim.state.snapshot
     if snap.exists:
         initial_pos = snap.particles.position
@@ -665,9 +680,13 @@ FandEtuple = namedtuple('FandEtuple',
 
 
 def _forces_and_energies():
-    # Reference force and energy values were calculated using Mathematica 12.1.1
-    # and then stored in the json file below. Values were calculated at
-    # distances of 0.75 and 1.5 for each argument dictionary
+    """
+    Return reference force and energy values.
+
+    Reference force and energy values were calculated using Mathematica 12.1.1
+    and then stored in the json file below. Values were calculated at
+    distances of 0.75 and 1.5 for each argument dictionary
+    """
     path = Path(__file__).parent / "forces_and_energies.json"
     with path.open() as f:
         F_and_E = json.load(f)
