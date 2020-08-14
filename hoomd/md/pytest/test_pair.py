@@ -113,6 +113,11 @@ def _make_invalid_param_dict(valid_dict):
         count += 2
     return invalid_dicts
 
+paramtuple = namedtuple('paramtuple',
+                        ['pair_potential',
+                         'pair_potential_params',
+                         'extra_args'])
+
 
 def _make_invalid_params(invalid_param_dicts, pot, extra_args):
     N = len(invalid_param_dicts)
@@ -120,11 +125,6 @@ def _make_invalid_params(invalid_param_dicts, pot, extra_args):
     for i in range(len(invalid_param_dicts)):
         params.append({('A', 'A'): invalid_param_dicts[i]})
     return [paramtuple(pot, params[i], extra_args) for i in range(N)]
-
-paramtuple = namedtuple('paramtuple',
-                        ['pair_potential',
-                         'pair_potential_params',
-                         'extra_args'])
 
 
 def _invalid_params():
