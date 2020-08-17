@@ -33,20 +33,20 @@ class PYBIND11_EXPORT TwoStepNVE : public IntegrationMethodTwoStep
                    bool skip_restart=false);
         virtual ~TwoStepNVE();
 
+        /// Get the movement limit
+        pybind11::object getLimit();
+
         //! Sets the movement limit
         void setLimit(pybind11::object limit);
 
-        /// Get the movement limit
-        pybind11::object getLimit();
+        /// Get zero force
+        pybind11::object getZeroForce();
 
         //! Sets the zero force option
         /*! \param zero_force Set to true to specify that the integration with a zero net force on each of the particles
                               in the group
         */
         void setZeroForce(pybind11::object zero_force);
-
-        /// Get zero force
-        pybind11::object getZeroForce();
 
 
         //! Performs the first step of the integration

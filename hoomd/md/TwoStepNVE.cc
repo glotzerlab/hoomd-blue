@@ -57,19 +57,6 @@ TwoStepNVE::~TwoStepNVE()
     a distance larger than the limit in a single time step
 */
 
-void TwoStepNVE::setLimit(pybind11::object limit)
-    {
-    if (limit.is_none())
-        {
-        m_limit = false;
-        }
-    else
-        {
-        m_limit=true;
-        m_limit_val=pybind11::cast<Scalar>(limit);
-        }
-    }
-
 pybind11::object TwoStepNVE::getLimit()
     {
     pybind11::object result;
@@ -84,10 +71,19 @@ pybind11::object TwoStepNVE::getLimit()
     return result;
     }
 
-void TwoStepNVE::setZeroForce(pybind11::object zero_force)
+void TwoStepNVE::setLimit(pybind11::object limit)
     {
-    m_zero_force=pybind11::cast<bool>(zero_force);
+    if (limit.is_none())
+        {
+        m_limit = false;
+        }
+    else
+        {
+        m_limit=true;
+        m_limit_val=pybind11::cast<Scalar>(limit);
+        }
     }
+
 
 pybind11::object TwoStepNVE::getZeroForce()
     {
@@ -95,6 +91,11 @@ pybind11::object TwoStepNVE::getZeroForce()
     result = pybind11::cast(m_zero_force);
 
     return result;
+    }
+
+void TwoStepNVE::setZeroForce(pybind11::object zero_force)
+    {
+    m_zero_force=pybind11::cast<bool>(zero_force);
     }
 
 
@@ -373,9 +374,9 @@ void export_TwoStepNVE(py::module& m)
         .def(py::init< std::shared_ptr<SystemDefinition>, 
                        std::shared_ptr<ParticleGroup>, 
                        bool >())
-        .def_property("limit", &TwoStepNVE::setLimit,
-                               &TwoStepNVE::getLimit)
-        .def_property("zero_force", &TwoStepNVE::setZeroForce,
-                                   &TwoStepNVE::getZeroForce)
+        .def_property("limit", &TwoStepNVE::getLimit,
+                               &TwoStepNVE::setLimit)
+        .def_property("zero_force", &TwoStepNVE::getZeroForce,
+                                   &TwoStepNVE::setZeroForce)
         ;
     }

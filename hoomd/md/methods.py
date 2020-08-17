@@ -603,23 +603,15 @@ class NVE(_Method):
         integrator = hoomd.md.Integrator(dt=0.005, methods=[nve], forces=[lj])
 
     """
-    def __init__(self, filter, limit=None, zero_force=False):
-        """
-        # set the limit
-        if limit is not None:
-            self.cpp_method.setLimit(limit)
+    def __init__(self, filter, limit=None):
 
-        self.cpp_method.setZeroForce(zero_force)
-
-        self.cpp_method.validateGroup()
-        """
         # store metadata
         param_dict = ParameterDict(
             filter=_ParticleFilter,
             limit=OnlyType(float, allow_none=True),
             zero_force=OnlyType(bool, allow_none=False),
         )
-        param_dict.update(dict(filter=filter, limit=limit, zero_force=zero_force))
+        param_dict.update(dict(filter=filter, limit=limit, zero_force=False))
 
         # set defaults
         self._param_dict.update(param_dict)
@@ -636,56 +628,6 @@ class NVE(_Method):
 
         # Attach param_dict and typeparam_dict
         super().attach(simulation)
-'''
-    def set_params(self, limit=None, zero_force=None):
-        R""" Changes parameters of an existing integrator.
-
-        Args:
-            limit (bool): (if set) New limit value to set. Removes the limit if limit is False
-            zero_force (bool): (if set) New value for the zero force option
-
-        Examples::
-
-            integrator.set_params(limit=0.01)
-            integrator.set_params(limit=False)
-        """
-        self.check_initialization()
-
-        # change the parameters
-        if limit is not None:
-            if limit == False:
-                self.cpp_method.removeLimit()
-            else:
-                self.cpp_method.setLimit(limit)
-            self.limit = limit
-
-        if zero_force is not None:
-            self.cpp_method.setZeroForce(zero_force)
-
-    def randomize_velocities(self, kT, seed):
-        R""" Assign random velocities and angular momenta to particles in the
-        group, sampling from the Maxwell-Boltzmann distribution. This method
-        considers the dimensionality of the system and particle anisotropy, and
-        removes drift (the center of mass velocity).
-
-        .. versionadded:: 2.3
-
-        Args:
-            kT (float): Temperature (in energy units)
-            seed (int): Random number seed
-
-        Note:
-            Randomization is applied at the start of the next call to ```hoomd.run```.
-
-        Example::
-
-            integrator = md.integrate.nve(group=group.all())
-            integrator.randomize_velocities(kT=1.0, seed=42)
-            run(100)
-
-        """
-        self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
-'''
 
 class Langevin(_Method):
     R""" Langevin dynamics.
