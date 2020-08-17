@@ -44,6 +44,7 @@ hoomd
    module-hoomd-integrate
    module-hoomd-logging
    module-hoomd-triggers
+   module-hoomd-tune
    module-hoomd-update
    module-hoomd-util
    module-hoomd-variant
