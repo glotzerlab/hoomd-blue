@@ -64,6 +64,7 @@ TwoStepNPTMTK::TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
     setCouple(couple);
     setFlags(flags);
 
+
     if (m_tau <= 0.0)
         m_exec_conf->msg->warning() << "integrate.npt: tau set less than 0.0" << endl;
     if (m_tauS <= 0.0)
@@ -726,8 +727,6 @@ void TwoStepNPTMTK::advanceBarostat(unsigned int timestep)
 
     // compute pressure for the next half time step
     PressureTensor P = m_thermo_full_step->getPressureTensor();
-
-    if(timestep % 1000 == 0) std::cout << timestep << " " <<  m_thermo_full_step->getPressure() << std::endl;
 
     if ( std::isnan(P.xx) || std::isnan(P.xy) || std::isnan(P.xz) || std::isnan(P.yy) || std::isnan(P.yz) || std::isnan(P.zz) )
         {

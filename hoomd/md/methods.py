@@ -13,7 +13,7 @@ from hoomd.operation import _Operation, NotAttachedError
 from hoomd.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.filter import _ParticleFilter
 from hoomd.typeparam import TypeParameter
-from hoomd.typeconverter import OnlyType
+from hoomd.typeconverter import OnlyType, OnlyIf, to_type_converter
 from hoomd.variant import Variant
 from hoomd.typeconverter import OnlyFrom
 import copy
@@ -133,7 +133,8 @@ class NPT(_Method):
         filter (:py:mod:`hoomd.filter._ParticleFilter`): Subset of particles on which to apply this method.
         kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set point for the thermostat, not needed if *nph=True* (in energy units).
         tau (float): Coupling constant for the thermostat, not needed if *nph=True* (in time units).
-        S (:py:class:`list` of :py:mod:`hoomd.variant` or :py:obj:`float`): Stress components set point for the barostat (in pressure units). In Voigt notation: [Sxx, Syy, Szz, Syz, Sxz, Sxy]. In case of isotropic pressure P, use [P,P,P,0,0,0]
+        S (:py:class:`list` of :py:mod:`hoomd.variant` or :py:obj:`float`): Stress components set point for the barostat (in pressure units). 
+        In Voigt notation: [Sxx, Syy, Szz, Syz, Sxz, Sxy]. In case of isotropic pressure P ( [ P, P, P, 0, 0, 0]), use S = P.
         tauS (float): Coupling constant for the barostat (in time units).
         couple (str): Couplings of diagonal elements of the stress tensor, can be "none", "xy", "xz","yz", or "xyz" (default).
         box_dof(list): Box degrees of freedom with six boolean elements corresponding to x, y, z, xy, xz, yz, each. (default: [True,True,True,False,False,False]) 
@@ -238,7 +239,7 @@ class NPT(_Method):
             filter=_ParticleFilter,
             kT=Variant,
             tau=float(tau),
-            S=OnlyIf(to_type_converter((Variant,)*6), preprocessing=preprocess_stress),
+            S=OnlyIf(to_type_converter((Variant,)*6), preprocess=preprocess_stress),
             tauS=float(tauS),
             couple=str(couple),
             box_dof=(bool,)*6,
@@ -246,8 +247,8 @@ class NPT(_Method):
             rescale_all=bool(rescale_all),
             gamma=float(gamma)
             )
-        param_dict.update(dict(filter=filter, kT=kT, S=preprocess_stress(S), 
-                                 couple=couple, box_dof=box_dof)) #S=preprocess_stress,
+        param_dict.update(dict(filter=filter, kT=kT, S=S, 
+                                 couple=couple, box_dof=box_dof))
 
         # set defaults
         self._param_dict.update(param_dict)
