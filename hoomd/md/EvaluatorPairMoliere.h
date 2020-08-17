@@ -75,7 +75,7 @@ class EvaluatorPairMoliere
             \param _params Per type-pair parameters of this potential
         */
         DEVICE EvaluatorPairMoliere(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), qi(_params.qi), qj(_params.qj), aF(_params.aF)
+            : rsq(_rsq), rcutsq(_rcutsq), Zsq(_params.qi * _params.qj), aF(_params.aF)
             {
             }
 
@@ -104,7 +104,6 @@ class EvaluatorPairMoliere
         */
         DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
         {
-            Scalar Zsq = qi * qj;
             // compute the force divided by r in force_divr
             if (rsq < rcutsq && Zsq != 0 && aF != 0)
             {
@@ -159,8 +158,7 @@ class EvaluatorPairMoliere
     protected:
         Scalar rsq;     //!< Stored rsq from the constructor
         Scalar rcutsq;  //!< Stored rcutsq from the constructor
-        Scalar qi;      //!< qi parameter extracted from the params passed to the constructor
-        Scalar qj;      //!< qj parameter extracted from the params passed to the constructor
+        Scalar Zsq;     //!< Zsi parameter computed from the params passed to the constructor
         Scalar aF;      //!< aF parameter extracted from the params passed to the constructor
 };
 

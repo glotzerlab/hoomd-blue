@@ -43,27 +43,13 @@ class EvaluatorPairZBL
         //! Define the parameter type used by this pair potential evaluator
         typedef EvaluatorPairMoliere::param_type param_type;
 
-            /*
-             * TODO add this to python docs
-            private:
-                // compute the parameters relevant for the potential from the
-                // user given params
-                void computeParams()
-                    {
-                    Zsq = Zi * Zj * e * e;
-                    aF = 1.0;
-                    if (Zi || Zj)  // if either Zi or Zj is not 0
-                        aF = 0.88534 * a0 / (pow(Zi, 0.23) + pow(Zj, 0.23));
-                    }
-            */
-
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles.
             \param _rcutsq Squared distance at which the potential goes to zero.
             \param _params Per type-pair parameters of this potential
         */
         DEVICE EvaluatorPairZBL(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), qi(_params.qi), qj(_params.qj), aF(_params.aF)
+            : rsq(_rsq), rcutsq(_rcutsq), Zsq(_params.qi * _params.qj), aF(_params.aF)
             {
             }
 
@@ -92,7 +78,6 @@ class EvaluatorPairZBL
         */
         DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
         {
-            Scalar Zsq = qi * qj;
             // compute the force divided by r in force_divr
             if (rsq < rcutsq && Zsq != 0 && aF != 0)
             {
@@ -140,8 +125,7 @@ class EvaluatorPairZBL
     protected:
         Scalar rsq;     //!< Stored rsq from the constructor
         Scalar rcutsq;  //!< Stored rcutsq from the constructor
-        Scalar qi;      //!< qi parameter extracted from the params passed to the constructor
-        Scalar qj;      //!< qj parameter extracted from the params passed to the constructor
+        Scalar Zsq;     //!< Zsq parameter computed from the params passed to the constructor
         Scalar aF;      //!< aF parameter extracted from the params passed to the constructor
 };
 
