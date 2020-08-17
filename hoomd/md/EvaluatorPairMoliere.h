@@ -40,7 +40,9 @@ class EvaluatorPairMoliere
         //! Define the parameter type used by this pair potential evaluator
         struct param_type
             {
-            Scalar qi, qj, aF;
+            Scalar qi;
+            Scalar qj;
+            Scalar aF;
 
             #ifdef ENABLE_HIP
             // set CUDA memory hints

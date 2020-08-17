@@ -60,7 +60,9 @@ class EvaluatorPairBuckingham
         //! Define the parameter type used by this pair potential evaluator
         struct param_type
             {
-            Scalar A, rho, C;
+            Scalar A;
+            Scalar rho;
+            Scalar C;
 
             #ifdef ENABLE_HIP
             //! set CUDA memory hint

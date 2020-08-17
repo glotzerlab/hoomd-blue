@@ -54,8 +54,10 @@ class EvaluatorPairMie
         //! Define the parameter type used by this pair potential evaluator
         struct param_type
             {
-            // params given by user
-            Scalar m1, m2, m3, m4;
+            Scalar m1;
+            Scalar m2;
+            Scalar m3;
+            Scalar m4;
 
             #ifdef ENABLE_HIP
             // set CUDA memory hints
