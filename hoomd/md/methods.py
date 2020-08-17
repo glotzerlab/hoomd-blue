@@ -24,10 +24,9 @@ def preprocess_stress(value):
         if len(value) != 6:
             raise ValueError(
                 "Expected a single hoomd.variant.Variant / float or six.")
-        #return tuple(map(Variant, value))
         return tuple(value)
     else:
-        return tuple([value,value,value,0,0,0])
+        return (value,value,value,0,0,0)
         
 def none_or(type_):
     def None_or_type(value):
@@ -137,7 +136,8 @@ class NPT(_Method):
         S (:py:class:`list` of :py:mod:`hoomd.variant` or :py:obj:`float`): Stress components set point for the barostat (in pressure units). In Voigt notation: [Sxx, Syy, Szz, Syz, Sxz, Sxy]. In case of isotropic pressure P, use [P,P,P,0,0,0]
         tauS (float): Coupling constant for the barostat (in time units).
         couple (str): Couplings of diagonal elements of the stress tensor, can be "none", "xy", "xz","yz", or "xyz" (default).
-        box_dof(tuple): Box degrees of freedom with six boolean elements corresponding to x, y, z, xy, xz, yz, each. (default: [True,True,True,False,False,False]) If turned on to True, rescale corresponding lengths or tilt factors and components of particle coordinates and velocities
+        box_dof(list): Box degrees of freedom with six boolean elements corresponding to x, y, z, xy, xz, yz, each. (default: [True,True,True,False,False,False]) 
+                       If turned on to True, rescale corresponding lengths or tilt factors and components of particle coordinates and velocities
         rescale_all (bool): if True, rescale all particles, not only those in the group
         gamma: (:py:obj:`float`): Dimensionless damping factor for the box degrees of freedom (default: 0)
 
@@ -173,14 +173,11 @@ class NPT(_Method):
 
     Valid form for elements of box_dof(box degrees of freedom) is :
 
-    - bool(box_dof[0]) (if True, rescale *Lx* and x component of particle coordinates and velocities, and the box length Lx is updated)
-    - bool(box_dof[1]) (if True, rescale *Ly* and y component of particle coordinates and velocities, and the box length Ly is updated)
-    - bool(box_dof[2]) (if True, rescale *Lz* and z component of particle coordinates and velocities, and the box length Lz is updated)
-    - bool(box_dof[3]) (if True, rescale xy tilt factor and x and y components of particle coordinates and velocities, and the tilt factor xy is updated)
-    - bool(box_dof[4]) (if True, rescale xz tilt factor and x and z components of particle coordinates and velocities, and the tilt factor xz is updated)
-    - bool(box_dof[5]) (if True, rescale yz tilt factor and y and z components of particle coordinates and velocities, and the tilt factor yz is updated)
+    The `box_dof` tuple controls the way the box is rescaled and updated. The first three elements ``box_dof[:2]``
+    controls whether the x, y, and z box lengths are rescaled and updated, respectively. The last three entries 
+    control the rescaling or the tilt factors xy, xz, and yz. All options also appropriately rescale particle coordinates and velocities.
 
-    By default, the x, y, and z degrees of freedomare updated. [True,True,True,False,False,False]
+    By default, the x, y, and z degrees of freedom are updated. [True,True,True,False,False,False]
 
     Note:
         If any of the diagonal x, y, z degrees of freedom is not being integrated, pressure tensor components
@@ -199,7 +196,7 @@ class NPT(_Method):
         :py:class:`NPT` assumes that isotropic pressures are positive. Conventions for the stress tensor sometimes
         assume negative values on the diagonal. You need to set these values negative manually in HOOMD.
 
-    :py:class:`NPT` is an integration method. It must be used with :py:class:`mode_standard`.
+    :py:class:`NPT` is an integration method.
 
     :py:class:`NPT` uses the proper number of degrees of freedom to compute the temperature and pressure of the system in
     both 2 and 3 dimensional systems, as long as the number of dimensions is set before the :py:class:`NPT` command
@@ -225,17 +222,15 @@ class NPT(_Method):
     A :py:class:`hoomd.compute.thermo` is automatically specified and associated with *group*.
 
     Examples::
-        all = filter.All()
-        integrate.NPT(filter=all, kT=1.0, tau=0.5, tauS=1.0, S=2.0)
-        integrator = integrate.NPT(filter=all, tau=1.0, kT=0.65, tauS = 1.2, S=2.0)
+        integrator = integrate.NPT(filter=filter.All(), tau=1.0, kT=0.65, tauS = 1.2, S=2.0)
         # orthorhombic symmetry
-        integrator = integrate.NPT(filter=all, tau=1.0, kT=0.65, tauS = 1.2, S=2.0, couple="none")
+        integrator = integrate.NPT(filter=filter.All(), tau=1.0, kT=0.65, tauS = 1.2, S=2.0, couple="none")
         # tetragonal symmetry
-        integrator = integrate.NPT(filter=all, tau=1.0, kT=0.65, tauS = 1.2, S=2.0, couple="xy")
+        integrator = integrate.NPT(filter=filter.All(), tau=1.0, kT=0.65, tauS = 1.2, S=2.0, couple="xy")
         # triclinic symmetry
-        integrator = integrate.NPT(filter=all, tau=1.0, kT=0.65, tauS = 1.2, S=2.0, couple="none", rescale_all=True)
+        integrator = integrate.NPT(filter=filter.All(), tau=1.0, kT=0.65, tauS = 1.2, S=2.0, couple="none", rescale_all=True)
     """
-    def __init__(self, filter, kT=None, tau=None, S=None, tauS=None, couple="xyz", box_dof=[True,True,True,False,False,False], rescale_all=False, gamma=0.0):
+    def __init__(self, filter, kT, tau, S, tauS, couple="xyz", box_dof=[True,True,True,False,False,False], rescale_all=False, gamma=0.0):
 
 
         # store metadata
@@ -243,7 +238,7 @@ class NPT(_Method):
             filter=_ParticleFilter,
             kT=Variant,
             tau=float(tau),
-            S=(Variant,)*6,
+            S=OnlyIf(to_type_converter((Variant,)*6), preprocessing=preprocess_stress),
             tauS=float(tauS),
             couple=str(couple),
             box_dof=(bool,)*6,
@@ -251,10 +246,6 @@ class NPT(_Method):
             rescale_all=bool(rescale_all),
             gamma=float(gamma)
             )
-        #couple=none_or(OnlyFrom('xyz')),
-        #S=(Variant,)*6,
-        #S=preprocess_stress,
-        #filter=OnlyType(_ParticleFilter)
         param_dict.update(dict(filter=filter, kT=kT, S=preprocess_stress(S), 
                                  couple=couple, box_dof=box_dof)) #S=preprocess_stress,
 
@@ -265,26 +256,27 @@ class NPT(_Method):
     def attach(self, simulation):
         # initialize the reflected c++ class
         if not simulation.device.cpp_exec_conf.isCUDAEnabled():
-            my_class = _md.TwoStepNPTMTK
+            cpp_cls = _md.TwoStepNPTMTK
             thermo_cls = _hoomd.ComputeThermo
         else:
-            my_class = _md.TwoStepNPTMTKGPU
+            cpp_cls = _md.TwoStepNPTMTKGPU
             thermo_cls = _hoomd.ComputeThermoGPU
 
         cpp_sys_def = simulation.state._cpp_sys_def
         thermo_group = simulation.state.get_group(self.filter)
-        # compute thermo half time step
-        thermo = thermo_cls(cpp_sys_def, 
+
+        thermo_half_step = thermo_cls(cpp_sys_def, 
                             thermo_group,
                             "")
-        # compute thermo full time step
-        thermo_t = thermo_cls(cpp_sys_def, 
+
+        thermo_full_step = thermo_cls(cpp_sys_def, 
                               thermo_group, 
                               "")
-        self._cpp_obj = my_class(cpp_sys_def,
+
+        self._cpp_obj = cpp_cls(cpp_sys_def,
                                  thermo_group,
-                                 thermo,
-                                 thermo_t,
+                                 thermo_half_step,
+                                 thermo_full_step,
                                  self.tau,
                                  self.tauS,
                                  self.kT,

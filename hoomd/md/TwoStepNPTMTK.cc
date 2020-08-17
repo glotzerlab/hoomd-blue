@@ -27,8 +27,8 @@ const Scalar h_coeff[] = {Scalar(1.0/3.0), Scalar(-1.0/15.0), Scalar(2.0/189.0),
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
-    \param thermo_group Own ComputeThermo to compute thermo properties of the integrated \a group (at half time step)
-    \param thermo_group_full_tstep ComputeThermo to compute thermo properties of the integrated \a group at full time step
+    \param thermo_half_step Own ComputeThermo to compute thermo properties of the integrated \a group (at half time step)
+    \param thermo_half_step_full_tstep ComputeThermo to compute thermo properties of the integrated \a group at full time step
     \param tau NPT temperature period
     \param tauS NPT pressure period
     \param T Temperature set point
@@ -38,8 +38,8 @@ const Scalar h_coeff[] = {Scalar(1.0/3.0), Scalar(-1.0/15.0), Scalar(2.0/189.0),
 */
 TwoStepNPTMTK::TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
                        std::shared_ptr<ParticleGroup> group,
-                       std::shared_ptr<ComputeThermo> thermo_group,
-                       std::shared_ptr<ComputeThermo> thermo_group_t,
+                       std::shared_ptr<ComputeThermo> thermo_half_step,
+                       std::shared_ptr<ComputeThermo> thermo_full_step,
                        Scalar tau,
                        Scalar tauS,
                        std::shared_ptr<Variant> T,
@@ -48,8 +48,8 @@ TwoStepNPTMTK::TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
                        const std::vector<bool>& flags,
                        const bool nph)
     : IntegrationMethodTwoStep(sysdef, group),
-                            m_thermo_group(thermo_group), 
-                            m_thermo_group_t(thermo_group_t),
+                            m_thermo_half_step(thermo_half_step), 
+                            m_thermo_full_step(thermo_full_step),
                             m_ndof(0),
                             m_tau(tau),
                             m_tauS(tauS),
@@ -73,16 +73,8 @@ TwoStepNPTMTK::TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
         m_exec_conf->msg->warning() << "integrate.npt: No barostat couplings specified."
                                     << endl;
 
-     /*                               
-    // Set the stress vector from the python list
-    for (int i = 0; i< 6; ++i)
-        {
-        m_S.push_back(py::cast<std::shared_ptr<Variant>>(S[i]));
-        }
-    */
-
-    bool twod = m_sysdef->getNDimensions()==2;
-    m_V = m_pdata->getGlobalBox().getVolume(twod);  // volume
+    bool is_two_dimensions = m_sysdef->getNDimensions()==2;
+    m_V = m_pdata->getGlobalBox().getVolume(is_two_dimensions);  // volume
 
     // set initial state
     if (!restartInfoTestValid(getIntegratorVariables(), "npt_mtk", 10))
@@ -118,9 +110,9 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
         }
 
     // update box dimensions
-    bool twod = m_sysdef->getNDimensions()==2;
+    bool is_two_dimensions = m_sysdef->getNDimensions()==2;
 
-    m_V = m_pdata->getGlobalBox().getVolume(twod);  // current volume
+    m_V = m_pdata->getGlobalBox().getVolume(is_two_dimensions);  // current volume
 
     unsigned int group_size = m_group->getNumMembers();
 
@@ -169,7 +161,7 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
     Scalar xz(0.0);
     Scalar yz(0.0);
 
-    if (!twod)
+    if (!is_two_dimensions)
         {
         xz = c.x/c.z;
         yz = c.y/c.z;
@@ -179,7 +171,7 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
 
     // set global box
     m_pdata->setGlobalBox(global_box);
-    m_V = global_box.getVolume(twod);  // volume
+    m_V = global_box.getVolume(is_two_dimensions);  // volume
 
     if (m_rescale_all)
         {
@@ -696,19 +688,19 @@ void TwoStepNPTMTK::updatePropagator(Scalar nuxx, Scalar nuxy, Scalar nuxz, Scal
 // Set Flags from 6 element boolean tuple named box_df to integer flag 
 void TwoStepNPTMTK::setFlags(const std::vector<bool>& value)
     {
-    bool twod = m_sysdef->getNDimensions()==2;
+    bool is_three_dimensions = m_sysdef->getNDimensions()==3;
     int flags = 0;
     if (value[0])
         flags |= int(baroFlags::baro_x);
     if (value[1])
         flags |= int(baroFlags::baro_y);
-    if (value[2] && !(twod))
+    if (value[2] && is_three_dimensions)
         flags |= int(baroFlags::baro_z);
     if (value[3])
         flags |= int(baroFlags::baro_xy);
-    if (value[4] && !(twod))
+    if (value[4] && is_three_dimensions)
         flags |= int(baroFlags::baro_xz);
-    if (value[5] && !(twod)) 
+    if (value[5] && is_three_dimensions) 
         flags |= int(baroFlags::baro_yz);
     m_flags = flags;
     }
@@ -717,12 +709,12 @@ void TwoStepNPTMTK::setFlags(const std::vector<bool>& value)
 std::vector<bool> TwoStepNPTMTK::getFlags()
     {
     std::vector<bool> result;
-    result.push_back(m_flags & baro_yz);
-    result.push_back(m_flags & baro_xz);
-    result.push_back(m_flags & baro_xy);
-    result.push_back(m_flags & baro_z);
-    result.push_back(m_flags & baro_y);
     result.push_back(m_flags & baro_x);
+    result.push_back(m_flags & baro_y);
+    result.push_back(m_flags & baro_z);
+    result.push_back(m_flags & baro_xy);
+    result.push_back(m_flags & baro_xz);
+    result.push_back(m_flags & baro_yz);
     return result;
     }
 
@@ -730,10 +722,12 @@ std::vector<bool> TwoStepNPTMTK::getFlags()
 void TwoStepNPTMTK::advanceBarostat(unsigned int timestep)
     {
     // compute thermodynamic properties at full time step
-    m_thermo_group_t->compute(timestep);
+    m_thermo_full_step->compute(timestep);
 
     // compute pressure for the next half time step
-    PressureTensor P = m_thermo_group_t->getPressureTensor();
+    PressureTensor P = m_thermo_full_step->getPressureTensor();
+
+    if(timestep % 1000 == 0) std::cout << timestep << " " <<  m_thermo_full_step->getPressure() << std::endl;
 
     if ( std::isnan(P.xx) || std::isnan(P.xy) || std::isnan(P.xz) || std::isnan(P.yy) || std::isnan(P.yz) || std::isnan(P.zz) )
         {
@@ -749,7 +743,7 @@ void TwoStepNPTMTK::advanceBarostat(unsigned int timestep)
     // Martyna-Tobias-Klein correction
     unsigned int d = m_sysdef->getNDimensions();
     Scalar W = (Scalar)(m_ndof+d)/(Scalar)d*(*m_T)(timestep)*m_tauS*m_tauS;
-    Scalar mtk_term = Scalar(2.0)*m_thermo_group_t->getTranslationalKineticEnergy();
+    Scalar mtk_term = Scalar(2.0)*m_thermo_full_step->getTranslationalKineticEnergy();
     mtk_term *= Scalar(1.0/2.0)*m_deltaT/(Scalar)m_ndof/W;
 
     couplingMode couple = getRelevantCouplings();
@@ -848,10 +842,12 @@ void TwoStepNPTMTK::advanceThermostat(unsigned int timestep)
     Scalar& xi = v.variable[1];
 
     // compute the current thermodynamic properties
-    m_thermo_group->compute(timestep);
+    m_thermo_half_step->compute(timestep);
 
-    Scalar curr_T_trans = m_thermo_group->getTranslationalTemperature();
+    Scalar curr_T_trans = m_thermo_half_step->getTranslationalTemperature();
     Scalar T = (*m_T)(timestep);
+
+    if(timestep % 1000 == 0) std::cerr << timestep << " " <<  m_thermo_half_step->getTemperature() << std::endl;
 
     // update the state variables Xi and eta
     Scalar xi_prime = xi + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*(curr_T_trans/T - Scalar(1.0));
@@ -864,7 +860,7 @@ void TwoStepNPTMTK::advanceThermostat(unsigned int timestep)
         Scalar &xi_rot = v.variable[8];
         Scalar &eta_rot = v.variable[9];
 
-        Scalar curr_ke_rot = m_thermo_group->getRotationalKineticEnergy();
+        Scalar curr_ke_rot = m_thermo_half_step->getRotationalKineticEnergy();
         unsigned int ndof_rot = m_group->getRotationalDOF();
 
         Scalar xi_prime_rot = xi_rot + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*(Scalar(2.0)*curr_ke_rot/ndof_rot/T - Scalar(1.0));
@@ -878,55 +874,50 @@ void TwoStepNPTMTK::advanceThermostat(unsigned int timestep)
 
 void TwoStepNPTMTK::setCouple(const std::string& value)
     {
-    bool twod = m_sysdef->getNDimensions()==2;
-    if (!(twod))
+    bool is_two_dimensions = m_sysdef->getNDimensions()==2;
+    // if sys_def is 2D, silently ignore any couplings that involve z
+    if (is_two_dimensions)
         {
-        if (value == "none")
+        if(value == "none")
             {
             m_couple = couple_none;
             }
-        else if (value == "xy")
+        else if ( value == "xy")
             {
             m_couple = couple_xy;
             }
-        else if (value == "xz")
+        else
+            {
+            m_exec_conf->msg->warning() << "z coupling is ignored, since system is two dimensional." << endl;
+            throw std::runtime_error("Error in NPT integration");
+            }
+        }
+    else
+        {
+        if(value == "none")
+            {
+            m_couple = couple_none;
+            }
+        else if ( value == "xy")
+            {
+            m_couple = couple_xy;
+            }
+        else if ( value == "xz")
             {
             m_couple = couple_xz;
             }
-        else if (value == "yz")
+        else if ( value == "yz")
             {
             m_couple = couple_yz;
             }
-        else if (value == "xyz")
+        else if ( value == "xyz")
             {
             m_couple = couple_xyz;
             }
-        }
-    // if sys_def is 2D, silently ignore any couplings that involve z
-    if (twod)
-        {
-        if (value == "none")
+        else
             {
-            m_couple = couple_none;
-            }
-        else if (value == "xy")
-            {
-            m_couple = couple_xy;
-            }
-        else if (value == "xz")
-            {
-            m_couple = couple_none;
-            m_exec_conf->msg->warning() << "z coupling is ignored, since system is two dimensional. coupling is none." << endl;
-            }
-        else if (value == "yz")
-            {
-            m_couple = couple_none;
-            m_exec_conf->msg->warning() << "z coupling is ignored, since system is two dimensional. coupling is none." << endl;
-            }
-        else if (value == "xyz")
-            {
-            m_couple = couple_xy;
-            m_exec_conf->msg->warning() << "z coupling is ignored, since system is two dimensional. coupling is xy." << endl;
+            m_exec_conf->msg->warning() << "Coupling mode not recognised." << endl;
+            throw std::runtime_error("Error in NPT integration");
             }
         }
     }
@@ -934,25 +925,23 @@ void TwoStepNPTMTK::setCouple(const std::string& value)
 std::string TwoStepNPTMTK::getCouple()
     {
     std::string couple;
-    if (m_couple == couple_none)
+
+    switch(m_couple)
         {
-        couple = "none";
-        }
-    else if (m_couple == couple_xy)
-        {
-        couple = "xy";
-        }
-    else if (m_couple == couple_xz)
-        {
-        couple = "xz";
-        }
-    else if (m_couple == couple_yz)
-        {
-        couple = "yz";
-        }
-    else if (m_couple == couple_xyz)
-        {
-        couple = "xyz";
+        case couple_none :
+            couple = "none";
+            break;
+        case couple_xy :
+            couple = "xy";
+            break;
+        case couple_xz :
+            couple = "xz";
+            break;
+        case couple_yz :
+            couple = "yz";
+            break;
+        case couple_xyz :
+            couple = "xyz";
         }
     return couple;
     }
@@ -1085,26 +1074,25 @@ void TwoStepNPTMTK::randomizeVelocities(unsigned int timestep)
         // couple box degrees of freedom
         couplingMode couple = getRelevantCouplings();
 
-        if (couple == couple_xy)
+        switch(couple)
             {
-            nuyy = nuxx;
-            }
-        else if (couple == couple_xz)
-            {
-            nuzz = nuxx;
-            }
-        else if (couple == couple_yz)
-            {
-            nuyy = nuzz;
-            }
-        else if (couple == couple_xyz)
-            {
-            nuxx = nuyy = nuzz;
-            }
-        else if (couple != couple_none)
-            {
-            m_exec_conf->msg->error() << "integrate.npt: Invalid coupling mode." << std::endl << std::endl;
-            throw std::runtime_error("Error in NPT integration");
+            case couple_none:
+                break;
+            case couple_xy:
+                nuyy = nuxx;
+                break;
+            case couple_xz:
+                nuzz = nuxx;
+                break;
+            case couple_yz:
+                nuyy = nuzz;
+                break;
+            case couple_xyz:
+                nuxx = nuyy = nuzz;
+                break;
+            default:
+                m_exec_conf->msg->error() << "integrate.npt: Invalid coupling mode." << std::endl << std::endl;
+                throw std::runtime_error("Error in NPT integration");
             }
         }
 
@@ -1136,7 +1124,7 @@ void export_TwoStepNPTMTK(py::module& m)
                        const string&,
                        const std::vector<bool>&,
                        const bool>())
-        .def_property("T", &TwoStepNPTMTK::getT, &TwoStepNPTMTK::setT)
+        .def_property("kT", &TwoStepNPTMTK::getT, &TwoStepNPTMTK::setT)
         .def_property("S", &TwoStepNPTMTK::getS, &TwoStepNPTMTK::setS)
         .def_property("tau", &TwoStepNPTMTK::getTau, &TwoStepNPTMTK::setTau)
         .def_property("tauS", &TwoStepNPTMTK::getTauS, &TwoStepNPTMTK::setTauS)

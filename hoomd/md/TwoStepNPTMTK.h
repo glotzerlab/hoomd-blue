@@ -66,8 +66,8 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
         //! Constructs the integration method and associates it with the system
         TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
                    std::shared_ptr<ParticleGroup> group,
-                   std::shared_ptr<ComputeThermo> thermo_group,
-                   std::shared_ptr<ComputeThermo> thermo_group_t,
+                   std::shared_ptr<ComputeThermo> thermo_half_step,
+                   std::shared_ptr<ComputeThermo> thermo_full_step,
                    Scalar tau,
                    Scalar tauS,
                    std::shared_ptr<Variant> T,
@@ -89,7 +89,7 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
         //! Update the stress components
         /*! \param S list of stress components: [xx, yy, zz, yz, xz, xy]
          */
-        virtual void setS(const std::vector<std::shared_ptr<Variant>> S)
+        virtual void setS(const std::vector<std::shared_ptr<Variant>>& S)
             {
              m_S = S;
             }
@@ -215,8 +215,8 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
         virtual void randomizeVelocities(unsigned int timestep);
 
     protected:
-        std::shared_ptr<ComputeThermo> m_thermo_group;   //!< ComputeThermo operating on the integrated group at t+dt/2
-        std::shared_ptr<ComputeThermo> m_thermo_group_t; //!< ComputeThermo operating on the integrated group at t
+        std::shared_ptr<ComputeThermo> m_thermo_half_step;   //!< ComputeThermo operating on the integrated group at t+dt/2
+        std::shared_ptr<ComputeThermo> m_thermo_full_step; //!< ComputeThermo operating on the integrated group at t
         unsigned int m_ndof;            //!< Number of degrees of freedom from ComputeThermo
 
         Scalar m_tau;                   //!< tau value for Nose-Hoover
