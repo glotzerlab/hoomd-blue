@@ -158,7 +158,7 @@ class EvaluatorPairMoliere
     protected:
         Scalar rsq;     //!< Stored rsq from the constructor
         Scalar rcutsq;  //!< Stored rcutsq from the constructor
-        Scalar Zsq;     //!< Zsi parameter computed from the params passed to the constructor
+        Scalar Zsq;     //!< Zsq parameter extracted from the params passed to the constructor
         Scalar aF;      //!< aF parameter extracted from the params passed to the constructor
 };
 
