@@ -19,15 +19,6 @@ from hoomd.typeconverter import OnlyFrom
 import copy
 from collections.abc import Sequence
 
-def preprocess_stress(value):
-    if isinstance(value, Sequence):
-        if len(value) != 6:
-            raise ValueError(
-                "Expected a single hoomd.variant.Variant / float or six.")
-        return tuple(value)
-    else:
-        return (value,value,value,0,0,0)
-        
 def none_or(type_):
     def None_or_type(value):
         if None or isinstance(value, type_):
@@ -239,7 +230,7 @@ class NPT(_Method):
             filter=_ParticleFilter,
             kT=Variant,
             tau=float(tau),
-            S=OnlyIf(to_type_converter((Variant,)*6), preprocess=preprocess_stress),
+            S=OnlyIf(to_type_converter((Variant,)*6), preprocess=self.__preprocess_stress),
             tauS=float(tauS),
             couple=str(couple),
             box_dof=(bool,)*6,
@@ -285,41 +276,18 @@ class NPT(_Method):
                                  self.couple,
                                  self.box_dof,
                                  False)
-                                 #self.rescale_all,
-                                 #self.gamma,
-                                 #"")
 
         # Attach param_dict and typeparam_dict
         super().attach(simulation)
 
-    def randomize_velocities(self, seed):
-        R""" Assign random velocities and angular momenta to particles in the
-        group, sampling from the Maxwell-Boltzmann distribution. This method
-        considers the dimensionality of the system and particle anisotropy, and
-        removes drift (the center of mass velocity).
-
-        .. versionadded:: 2.3
-
-        Starting in version 2.5, `randomize_velocities` also chooses random values
-        for the internal integrator variables.
-
-        Args:
-            seed (int): Random number seed
-
-        Note:
-            Randomization is applied at the start of the next call to ```hoomd.run```.
-
-        Example::
-
-            integrator = md.integrate.npt(group=group.all(), kT=1.0, tau=0.5, tauP=1.0, P=2.0)
-            integrator.randomize_velocities(seed=42)
-            run(100)
-
-        """
-        timestep = hoomd.get_step()
-        kT = self.kT.cpp_variant.getValue(timestep)
-        self._cpp_obj.setRandomizeVelocitiesParams(kT, seed)
-
+    def __preprocess_stress(self,value):
+        if isinstance(value, Sequence):
+            if len(value) != 6:
+                raise ValueError(
+                    "Expected a single hoomd.variant.Variant / float or six.")
+            return tuple(value)
+        else:
+            return (value,value,value,0,0,0)
 
 class nph(NPT):
     R""" NPH Integration via MTK barostat-thermostat..

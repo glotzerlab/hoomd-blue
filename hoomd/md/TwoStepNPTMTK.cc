@@ -846,8 +846,6 @@ void TwoStepNPTMTK::advanceThermostat(unsigned int timestep)
     Scalar curr_T_trans = m_thermo_half_step->getTranslationalTemperature();
     Scalar T = (*m_T)(timestep);
 
-    if(timestep % 1000 == 0) std::cerr << timestep << " " <<  m_thermo_half_step->getTemperature() << std::endl;
-
     // update the state variables Xi and eta
     Scalar xi_prime = xi + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*(curr_T_trans/T - Scalar(1.0));
     xi = xi_prime + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*(curr_T_trans/T - Scalar(1.0));
