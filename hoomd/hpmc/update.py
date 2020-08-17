@@ -741,9 +741,9 @@ class remove_drift(_updater):
 
 class shape_update(_updater):
     R"""
-    Apply shape updates to the shape definitions defined in the integrator. This class should not be instaianted directly
-    but the alchemy and elastic_shapes classes can be. Each updater defines a specific statistical ensemble. See the different
-    updaters for documentaion on the specific acceptance criteria and examples.
+    Apply shape updates to the shape definitions defined in the integrator. This class should not be instantiated directly
+    but the alchemy and elastic_shape classes can be. Each updater defines a specific statistical ensemble. See the different
+    updaters for documentation on the specific acceptance criteria and examples.
 
     Right now the shape move will update the shape definitions for every type.
 
@@ -757,7 +757,7 @@ class shape_update(_updater):
                         the acceptance statistics will be updated correctly
         pos (:py:mod:`hoomd.deprecated.dump.pos`): HOOMD POS analyzer object used to update the shape definitions on the fly
         setup_pos (bool): When True the updater will automatically update the POS analyzer if it is provided
-        setup_callback (callable): will override the default pos callback. will be called everytime the pos file is written
+        setup_callback (callable): will override the default pos callback. will be called every time the pos file is written
         nselect (int): number of types to change every time the updater is called.
         nsweeps (int): number of times to change nselect types every time the updater is called.
         multi_phase (bool): when True MPI is enforced and shapes are updated together for two boxes.
@@ -858,7 +858,7 @@ class shape_update(_updater):
             param_ratio (float): average fraction of parameters to change each update
 
         Note:
-            Parameters must be given for every particle type. Shape move should rescale the particle to have constnt
+            Parameters must be given for every particle type. Callback should rescale the particle to have constant
             volume if necessary/desired.
 
         Example::
@@ -943,9 +943,9 @@ are only enabled for polyhedral and spherical particles.")
         corresponds to the convex hull of the vertices.
 
         Args:
-            volume (float): volume of the particles to hold constant
             stepsize (float): stepsize for each
             param_ratio (float): average fraction of vertices to change each update
+            volume (float, **default:** 1.0): volume of the particles to hold constant
 
         Example::
 
@@ -999,7 +999,7 @@ are only enabled for polyhedral and spherical particles.")
         a spcific transition probability and derived thermodynamic quantities.
 
         Args:
-            shape_parameters: arguments required to define the reference shape. Depends on the
+            shape_params: arguments required to define the reference shape. Depends on the
             integrator.
 
         Example::
@@ -1058,11 +1058,11 @@ are only enabled for polyhedral and spherical particles.")
 
         Args:
             stepsize (float): largest scaling/shearing factor used.
-            move_ratio (float): fraction of scale to shear moves.
+            param_ratio (float, **default:** 0.5): fraction of scale to shear moves.
 
         Example::
 
-            shape_up = hpmc.update.alchemy(mc, move_ratio=0.25, seed=9876)
+            shape_up = hpmc.update.alchemy(mc, param_ratio=0.25, seed=9876)
             shape_up.elastic_shape_move(stepsize=0.01)
 
         """
@@ -1090,12 +1090,12 @@ are only enabled for polyhedral and spherical particles.")
     def get_tuner(self, average = False, **kwargs):
         R""" Get a :py:mod:`hoomd.hpmc.util.tune` object set to tune the step size of the shape move.
         Args:
-            average (bool): If set to true will set up the tuner to set all types together using averaged statistics.
+            average (bool, **default:** False): If set to true will set up the tuner to set all types together using averaged statistics.
             kwargs: keyword argments that will be passed to :py:mod:`hoomd.hpmc.util.tune`
 
         Example::
 
-            shape_up = hpmc.update.elastic_shape(mc=mc, move_ratio=0.1, seed=3832765, stiffness=100.0, reference=dict(vertices=v), nselect=3)
+            shape_up = hpmc.update.elastic_shape(mc=mc, param_ratio=0.1, seed=3832765, stiffness=100.0, reference=dict(vertices=v), nselect=3)
             shape_up.elastic_shape_move(stepsize=0.1);
             tuner = shape_up.get_tuner(average=True); # average stats over all particle types.
             for _ in range(100):
@@ -1132,7 +1132,7 @@ are only enabled for polyhedral and spherical particles.")
     def get_total_count(self, typeid=None):
         R""" Get the total number of moves attempted by the updater
         Args:
-            typeid (int): the typeid of the particle type. If None the sum over all types will be returned.
+            typeid (int, **default:** None): the typeid of the particle type. If None the sum over all types will be returned.
         Returns:
             The total number of moves attempted by the updater
 
@@ -1154,7 +1154,7 @@ are only enabled for polyhedral and spherical particles.")
     def get_accepted_count(self, typeid=None):
         R""" Get the total number of moves accepted by the updater
         Args:
-            typeid (int): the typeid of the particle type. if None then the sum of all counts will be returned.
+            typeid (int, **default:** None): the typeid of the particle type. if None then the sum of all counts will be returned.
         Returns:
             The total number of moves accepted by the updater
 
@@ -1175,7 +1175,7 @@ are only enabled for polyhedral and spherical particles.")
     def get_move_acceptance(self, typeid=0):
         R""" Get the acceptance ratio for a particle type
         Args:
-            typeid (int): the typeid of the particle type
+            typeid (int, **default:** 0): the typeid of the particle type
         Returns:
             The acceptance ratio for a particle type
 
@@ -1198,7 +1198,7 @@ are only enabled for polyhedral and spherical particles.")
         R""" Get the shape move stepsize for a particle type
 
         Args:
-            typeid (int): the typeid of the particle type
+            typeid (int, **default:** 0): the typeid of the particle type
         Returns:
             The shape move stepsize for a particle type
 
@@ -1248,8 +1248,8 @@ are only enabled for polyhedral and spherical particles.")
     def set_params(self, types, stepsize=None):
         R""" Reset the acceptance statistics for the updater
         Args:
-            type (str): Particle type (string) or list of types
-            stepsize (float): Shape move stepsize to set for each type
+            types (str or list): Particle type (string) or list of types
+            stepsize (float, **default:** None): Shape move stepsize to set for each type
 
         Example::
 
@@ -1324,8 +1324,10 @@ class elastic_shape(shape_update):
     R""" Apply shape updates to the shape definitions defined in the integrator.
 
     Args:
-        reference (dict): dictionary of shape parameters. (same as `mc.shape_param.set(....)`)
         stiffness (float): stiffness of the particle spring
+        reference (dict): dictionary of shape parameters. (same as `mc.shape_param.set(....)`)
+        stepsize (float): largest scaling/shearing factor used.
+        param_ratio (float): fraction of scale to shear moves.
         params (dict): any of the other keyword arguments to be passed to :py:mod:`hoomd.hpmc.update.shape_update`
 
     Additional comments here. what enseble are we simulating etc.
