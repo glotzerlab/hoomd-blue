@@ -168,7 +168,10 @@ class _InternalMoveSize(_InternalAction):
     def tuned(self):
         """bool: Whether or not the move sizes are considered tuned.
 
-        Can be set to False.
+        A `MoveSize` object is considered tuned if it the solver tolerance has
+        been met by all tunables for 2 iterations.
+
+        Can be set to False. This will force move sizes to continue to be tuned.
         """
         return self._tuned == 2
 
