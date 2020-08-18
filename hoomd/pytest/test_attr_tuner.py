@@ -17,7 +17,7 @@ def attr_definition(attr_dict):
         set_x=lambda x: attr_dict.__setitem__('x', x),
         target=attr_dict['target'],
         domain=attr_dict['domain']
-    )
+        )
 
 
 @pytest.fixture
@@ -27,7 +27,7 @@ def alternate_definition():
         get_x=lambda: 1293,
         set_x=lambda x: None,
         target='foo',
-    )
+        )
 
 
 class TestManualTuneDefinition:
@@ -54,15 +54,15 @@ class TestManualTuneDefinition:
             attr_definition.y = 43
 
     def test_domain_wrapping(self, attr_definition):
-        domain_wrap_pairs = [
+        domain_clamped_pairs = [
             ((0, None), [(1, 1), (2, 2), (-1, 0), (1000, 1000)]),
             ((None, 5), [(-1, -1), (-1000, -1000), (4.9, 4.9), (5.01, 5)]),
             (None, [(1000, 1000), (-1000, -1000)])
-        ]
-        for domain, value_pairs in domain_wrap_pairs:
+            ]
+        for domain, value_pairs in domain_clamped_pairs:
             attr_definition.domain = domain
-            for x, wrapped_x in value_pairs:
-                assert wrapped_x == attr_definition.wrap_into_domain(x)
+            for x, clamped_x in value_pairs:
+                assert clamped_x == attr_definition.clamp_into_domain(x)
 
     def test_setting_x_with_wrapping(self, attr_definition):
         attr_definition.domain = (-5, 5)
@@ -77,7 +77,7 @@ class TestManualTuneDefinition:
             ((None, 5), [(-1, True), (-1000, True),
                          (4.9, True), (5.01, False)]),
             (None, [(1000, True), (-1000, True)])
-        ]
+            ]
         for domain, check_pairs in domain_check_pairs:
             attr_definition.domain = domain
             for x, in_domain in check_pairs:
@@ -108,7 +108,7 @@ def equation_definition():
         set_x=lambda x: equation.__setitem__('x', x),
         get_y=lambda: equation['y'](),
         target=1
-    )
+        )
 
 
 class TestSolvers:

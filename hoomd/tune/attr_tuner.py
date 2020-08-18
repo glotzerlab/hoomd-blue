@@ -30,7 +30,7 @@ class _TuneDefinition(metaclass=ABCMeta):
             return ((lower_bound is None or lower_bound <= value)
                     and (upper_bound is None or value <= upper_bound))
 
-    def wrap_into_domain(self, value):
+    def clamp_into_domain(self, value):
         """Return the closest value within the domain.
 
         Args:
@@ -59,7 +59,7 @@ class _TuneDefinition(metaclass=ABCMeta):
 
     @x.setter
     def x(self, value):
-        return self._set_x(self.wrap_into_domain(value))
+        return self._set_x(self.clamp_into_domain(value))
 
     @property
     def max_x(self):
@@ -280,7 +280,7 @@ class ScaleSolver(SolverStep):
             scale = self.max_scale
         # Ensures we stay within the tunable's domain (i.e. we don't take on
         # values to high or low).
-        tunable.x = tunable.wrap_into_domain(scale * x)
+        tunable.x = tunable.clamp_into_domain(scale * x)
         return False
 
 
@@ -313,9 +313,9 @@ class SecantSolver(SolverStep):
         if tunable not in self._previous_pair:
             # We must perturb x some to get a second point to find the correct
             # root.
-            new_x = tunable.wrap_into_domain(x * 1.1)
+            new_x = tunable.clamp_into_domain(x * 1.1)
             if new_x == x:
-                new_x = tunable.wrap_into_domain(x * 0.9)
+                new_x = tunable.clamp_into_domain(x * 0.9)
                 if new_x == x:
                     raise RuntimeError("Unable to perturb x for secant solver.")
         else:
