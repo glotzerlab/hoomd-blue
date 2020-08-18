@@ -227,6 +227,10 @@ class SolverStep(metaclass=ABCMeta):
         Args:
             tunables (list[`hoomd.tune.ManualTuneDefinition`]): A list of
                 tunable objects that represent a relationship f(x) = y.
+
+        Returns:
+            bool: Returns whether or not all tunables were considered tuned by
+                the object.
         """
         return all(self._solve_one(tunable) for tunable in tunables)
 
