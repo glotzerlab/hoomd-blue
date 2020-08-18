@@ -159,22 +159,22 @@ class ManualTuneDefinition(_TuneDefinition):
             specified domain when setting x.
     """
     def __init__(self, get_y, target, get_x, set_x, domain=None):
-        self.__get_x = get_x
-        self.__set_x = set_x
-        self.__get_y = get_y
+        self._user_get_x = get_x
+        self._user_set_x = set_x
+        self._user_get_y = get_y
         self._target = target
         if domain is not None and not len(domain) == 2:
             raise ValueError("domain must be a sequence of length two.")
         self._domain = domain
 
     def _get_x(self):
-        return self.__get_x()
+        return self._user_get_x()
 
     def _set_x(self, value):
-        return self.__set_x(value)
+        return self._user_set_x(value)
 
     def _get_y(self):
-        return self.__get_y()
+        return self._user_get_y()
 
     def _get_target(self):
         return self._target
@@ -183,12 +183,15 @@ class ManualTuneDefinition(_TuneDefinition):
         self._target = value
 
     def __hash__(self):
-        return hash((self.__get_x, self.__set_x, self.__get_y, self._target))
+        return hash((self._user_get_x,
+                     self._user_set_x,
+                     self._user_get_y,
+                     self._target))
 
     def __eq__(self, other):
-        return (self.__get_x == other.__get_x
-                and self.__set_x == other.__set_x
-                and self.__get_y == other.__get_y
+        return (self._user_get_x == other._user_get_x
+                and self._user_set_x == other._user_set_x
+                and self._user_get_y == other._user_get_y
                 and self._target == other._target)
 
 
