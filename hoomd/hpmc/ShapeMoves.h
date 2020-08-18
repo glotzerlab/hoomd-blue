@@ -757,7 +757,7 @@ public:
         {
         if(quantity == "shape_move_stiffness")
             {
-            return m_k->getValue(timestep);
+            return (*m_k)(timestep);
             }
         }
 
@@ -787,7 +787,7 @@ public:
 
     Scalar operator()(const unsigned int& timestep, const unsigned int& N, const unsigned int type_id ,const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold)
         {
-        Scalar stiff = this->m_k->getValue(timestep);
+        Scalar stiff = this->m_k->operator()(timestep);
         Eigen::Matrix3d eps = m_shape_move->getEps(type_id);
         Eigen::Matrix3d eps_last = m_shape_move->getEpsLast(type_id);
         AlchemyLogBoltzmannFunction< Shape > fn;
@@ -799,7 +799,7 @@ public:
 
     Scalar computeEnergy(const unsigned int &timestep, const unsigned int& N, const unsigned int type_id, const typename Shape::param_type& shape, const Scalar& inertia)
         {
-        Scalar stiff = this->m_k->getValue(timestep);
+        Scalar stiff = this->m_k->operator()(timestep);
         Eigen::Matrix3d eps = m_shape_move->getEps(type_id);
         Scalar e_ddot_e = (eps*eps.transpose()).trace();
         return N*stiff*e_ddot_e*this->m_volume;
@@ -828,7 +828,7 @@ class ShapeSpring<ShapeEllipsoid> : public ShapeSpringBase<ShapeEllipsoid>
                           const param_type& shape_old,
                           const Scalar& iold)
             {
-            Scalar stiff = this->m_k->getValue(timestep);
+            Scalar stiff = this->m_k->operator()(timestep);
             Scalar x_new = shape_new.x/shape_new.y;
             Scalar x_old = shape_old.x/shape_old.y;
             return stiff*(log(x_old)*log(x_old) - log(x_new)*log(x_new));
@@ -840,7 +840,7 @@ class ShapeSpring<ShapeEllipsoid> : public ShapeSpringBase<ShapeEllipsoid>
                              const param_type& shape,
                              const Scalar& inertia)
             {
-            Scalar stiff = m_k->getValue(timestep);
+            Scalar stiff = (*m_k)(timestep);
             Scalar logx = log(shape.x/shape.y);
             return N*stiff*logx*logx;
             }

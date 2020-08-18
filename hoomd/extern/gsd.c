@@ -1994,7 +1994,7 @@ int gsd_write_chunk(struct gsd_handle* handle,
             if (retval != GSD_SUCCESS)
             {
                 return retval;
-           }
+            }
         }
     }
     else

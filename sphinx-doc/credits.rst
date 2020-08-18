@@ -269,7 +269,7 @@ Peter Schwendeman, Jens Glaser, University of Michigan
 
 Alyssa Travitz, University of Michigan
 
-  * `get_net_force` implementation
+  * ``get_net_force`` implementation
   * bond bug fixes
 
 Mike Henry, Boise State University
@@ -362,8 +362,8 @@ Jens Glaser, University of Michigan
  * Implicit depletants
  * `jit.patch.user_union` user defined patchy interactions with LLVM runtime compiled code
  * Geometric Cluster Algorithm implementation
- * `convex_spheropolyhedron_union` shape class
- * `test_overlap` python API
+ * ``convex_spheropolyhedron_union`` shape class
+ * ``test_overlap`` python API
 
 Eric Harper, University of Michigan
 
@@ -900,7 +900,7 @@ used under the Modified BSD license::
     (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-HOOMD-blue uses headers from `jitify` (https://github.com/NVIDIA/jitify) under the following
+HOOMD-blue uses headers from ``jitify`` (https://github.com/NVIDIA/jitify) under the following
 license:
 
     BSD 3-Clause License

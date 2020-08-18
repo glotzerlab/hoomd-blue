@@ -16,9 +16,8 @@
 #include <string>
 #include "hoomd/extern/gsd.h"
 
-#ifdef __HIPCC__
 #include <pybind11/pybind11.h>
-#endif
+#include <pybind11/numpy.h>
 
 #ifndef __GSD_INITIALIZER_H__
 #define __GSD_INITIALIZER_H__
@@ -107,7 +106,46 @@ class PYBIND11_EXPORT GSDReader
         void checkError(int retval);
     };
 
-//! Exports GSDReader to python
+/** Read state information from a GSD file
+
+    GSDStateReader provides an interface for ``from_state`` methods to discover and read state data
+    from a GSD file.
+*/
+class PYBIND11_EXPORT GSDStateReader
+    {
+    public:
+        /** Open the file
+
+            @param name File name to open.
+            @frame Index of frame to access. Negative values index from the end.
+        */
+        GSDStateReader(const std::string &name, const int64_t frame);
+
+        /// Destructor
+        ~GSDStateReader();
+
+        /// Get a list of chunk names starting with *base*.
+        std::vector<std::string> getAvailableChunks(const std::string& base);
+
+        /// Read a chunk and return as a numpy array
+        pybind11::array readChunk(const std::string& name);
+
+    private:
+        /// Store the filename
+        std::string m_name;
+
+        /// Frame to read from the file
+        uint64_t m_frame;
+
+        /// Handle to the file
+        gsd_handle m_handle;
+
+        /// Check and raise an exception if an error occurs
+        void checkError(int retval);
+    };
+
+
+/// Exports GSDReader and GSDStateReader to python
 void export_GSDReader(pybind11::module& m);
 
 #endif

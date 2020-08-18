@@ -1,25 +1,37 @@
 hoomd.data
--------------
+------------------
 
 .. rubric:: Overview
+
+.. py:currentmodule:: hoomd.data
 
 .. autosummary::
     :nosignatures:
 
-    hoomd.data.SnapshotParticleData
-    hoomd.data.angle_data_proxy
-    hoomd.data.bond_data_proxy
-    hoomd.data.boxdim
-    hoomd.data.constraint_data_proxy
-    hoomd.data.dihedral_data_proxy
-    hoomd.data.force_data_proxy
-    hoomd.data.gsd_snapshot
-    hoomd.data.particle_data_proxy
-    hoomd.data.make_snapshot
-    hoomd.data.system_data
+    LocalSnapshot
+    LocalSnapshotGPU
+    AngleLocalAccessBase
+    BondLocalAccessBase
+    ConstraintLocalAccessBase
+    DihedralLocalAccessBase
+    ImproperLocalAccessBase
+    PairLocalAccessBase
+    ParticleLocalAccessBase
 
 .. rubric:: Details
 
 .. automodule:: hoomd.data
-    :synopsis: Access system configuration data.
-    :members:
+    :synopsis: Provide access in Python to data buffers on CPU or GPU.
+    :members: AngleLocalAccessBase,
+              BondLocalAccessBase,
+              ConstraintLocalAccessBase,
+              DihedralLocalAccessBase,
+              ImproperLocalAccessBase,
+              PairLocalAccessBase,
+              ParticleLocalAccessBase
+    
+    .. autoclass:: LocalSnapshot
+        :inherited-members:
+
+    .. autoclass:: LocalSnapshotGPU
+        :inherited-members:

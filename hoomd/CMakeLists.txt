@@ -50,11 +50,17 @@ set(_hoomd_sources Analyzer.cc
                    ParticleData.cc
                    ParticleGroup.cc
                    Profiler.cc
-                   SFCPackUpdater.cc
+                   PythonLocalDataAccess.cc
+                   PythonAnalyzer.cc
+                   PythonTuner.cc
+                   PythonUpdater.cc
+                   SFCPackTuner.cc
                    SignalHandler.cc
                    SnapshotSystemData.cc
                    System.cc
                    SystemDefinition.cc
+                   Trigger.cc
+                   Tuner.cc
                    Updater.cc
                    Variant.cc
                    extern/BVLSSolver.cc
@@ -63,6 +69,7 @@ set(_hoomd_sources Analyzer.cc
                    extern/kiss_fft.cc
                    extern/kiss_fftnd.cc
                    extern/vmdsock.cc
+                   filter/export_filters.cc
                    )
 
 set(_hoomd_headers
@@ -139,16 +146,21 @@ set(_hoomd_headers
     ParticleGroup.cuh
     ParticleGroup.h
     Profiler.h
+    PythonLocalDataAccess.h
+    PythonUpdater.h
+    PythonAnalyzer.h
     RandomNumbers.h
     RNGIdentifiers.h
-    SFCPackUpdaterGPU.cuh
-    SFCPackUpdaterGPU.h
-    SFCPackUpdater.h
+    SFCPackTunerGPU.cuh
+    SFCPackTunerGPU.h
+    SFCPackTuner.h
     SharedSignal.h
     SignalHandler.h
     SnapshotSystemData.h
     SystemDefinition.h
     System.h
+    Trigger.h
+    Tuner.h
     TextureTools.h
     Updater.h
     Variant.h
@@ -162,7 +174,7 @@ list(APPEND _hoomd_sources CellListGPU.cc
                            ComputeThermoGPU.cc
                            ComputeThermoHMAGPU.cc
                            LoadBalancerGPU.cc
-                           SFCPackUpdaterGPU.cc
+                           SFCPackTunerGPU.cc
                            )
 endif()
 
@@ -175,7 +187,7 @@ set(_hoomd_cu_sources BondedGroupData.cu
                       LoadBalancerGPU.cu
                       ParticleData.cu
                       ParticleGroup.cu
-                      SFCPackUpdaterGPU.cu)
+                      SFCPackTunerGPU.cu)
 
 # include libgetar sources directly into _hoomd.so
 get_property(GETAR_SRCS_REL TARGET getar PROPERTY SOURCES)
@@ -294,56 +306,64 @@ install(TARGETS _hoomd quickhull EXPORT HOOMDTargets
 
 ################ Python only modules
 # copy python modules to the build directory to make it a working python package
-MACRO(copy_file file)
-    add_custom_command (
-        OUTPUT ${file}
-        DEPENDS ${file}
-        POST_BUILD
-        COMMAND    ${CMAKE_COMMAND}
-        ARGS       -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${CMAKE_CURRENT_BINARY_DIR}/${file}
-        COMMENT    "Copy hoomd/${file}"
-    )
-ENDMACRO(copy_file)
-
-set(files analyze.py
-          benchmark.py
+set(files benchmark.py
+          box.py
           cite.py
           comm.py
           compute.py
+          conftest.py
           context.py
-          data.py
           device.py
           dump.py
           group.py
+          array.py
           __init__.py
           init.py
           integrate.py
           meta.py
+          operation.py
+          operations.py
           option.py
-          update.py
           util.py
           variant.py
           lattice.py
           hdf5.py
+          simulation.py
+          smart_default.py
+          state.py
+          syncedlist.py
+          parameterdicts.py
+          trigger.py
+          typeparam.py
+          typeconverter.py
+          snapshot.py
+          logging.py
     )
 
 install(FILES ${files}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}
        )
 
-foreach(file ${files})
-    copy_file(${file})
-endforeach()
-
-add_custom_target(copy_hoomd ALL DEPENDS ${files})
+copy_files_to_build("${files}" "hoomd" "*.py")
 
 # install headers in installation target
 install(FILES ${_hoomd_headers}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include/hoomd
        )
 
+# subdirectories that are not components
+add_subdirectory(analyze)
+add_subdirectory(custom)
+add_subdirectory(data)
+add_subdirectory(filter)
+add_subdirectory(minimize)
+add_subdirectory(output)
+add_subdirectory(pytest)
+add_subdirectory(tune)
+add_subdirectory(update)
+
 if (BUILD_TESTING)
-    add_subdirectory(test-py)
+    # add_subdirectory(test-py)
     add_subdirectory(test)
 endif()
 
@@ -355,19 +375,6 @@ if (BUILD_MD)
         # add the distributed FFT library
         add_subdirectory(${HOOMD_SOURCE_DIR}/hoomd/extern/dfftlib)
     endif()
-
-    if (ENABLE_HIP)
-        # add the neighbor library
-        set(NEIGHBOR_HOOMD_INTERNAL TRUE)
-
-        if (HIP_PLATFORM STREQUAL "hcc")
-            set(NEIGHBOR_DISABLE_MIXED TRUE)
-            target_compile_definitions(_hoomd PUBLIC NEIGHBOR_DISABLE_MIXED)
-        endif()
-
-        add_subdirectory(${HOOMD_SOURCE_DIR}/hoomd/extern/neighbor)
-    endif (ENABLE_HIP)
-
     add_subdirectory(md)
 endif()
 
@@ -393,15 +400,8 @@ if (BUILD_JIT)
     add_subdirectory(jit)
 endif()
 
-file(GLOB _directory_contents RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *)
-
-# explicitly remove packages which are already explicitly dealt with
-list(REMOVE_ITEM _directory_contents test test-py extern md hpmc metal dem mpcd jit)
-
-foreach(entry ${_directory_contents})
-    if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${entry} OR IS_SYMLINK ${CMAKE_CURRENT_SOURCE_DIR}/${entry})
-        if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${entry}/CMakeLists.txt)
-            add_subdirectory(${entry})
-        endif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${entry}/CMakeLists.txt)
-    endif(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${entry} OR IS_SYMLINK ${CMAKE_CURRENT_SOURCE_DIR}/${entry})
+foreach(entry ${PLUGINS})
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${entry}/CMakeLists.txt)
+        add_subdirectory(${entry})
+    endif()
 endforeach()

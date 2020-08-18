@@ -67,7 +67,6 @@ set(_hpmc_headers
     ShapeEllipsoid.h
     ShapeFacetedEllipsoid.h
     ShapePolyhedron.h
-    ShapeProxy.h
     ShapeSimplePolygon.h
     ShapeSphere.h
     ShapeSpheropolygon.h
@@ -125,20 +124,8 @@ install(TARGETS _hpmc EXPORT HOOMDTargets
 
 ################ Python only modules
 # copy python modules to the build directory to make it a working python package
-MACRO(copy_file file)
-    add_custom_command (
-        OUTPUT ${file}
-        DEPENDS ${file}
-        POST_BUILD
-        COMMAND    ${CMAKE_COMMAND}
-        ARGS       -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${CMAKE_CURRENT_BINARY_DIR}/${file}
-        COMMENT    "Copy hoomd/hpmc/${file}"
-    )
-ENDMACRO(copy_file)
-
 set(files   analyze.py
             compute.py
-            data.py
             __init__.py
             integrate.py
             update.py
@@ -150,22 +137,20 @@ install(FILES ${files}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/hpmc
        )
 
-foreach(file ${files})
-    copy_file(${file})
-endforeach()
-
-add_custom_target(copy_hpmc ALL DEPENDS ${files})
+copy_files_to_build("${files}" "hpmc" "*.py")
 
 # install headers in installation target
 install(FILES ${_hpmc_headers}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include/hoomd/hpmc
        )
 
+add_subdirectory(pytest)
+
 if (BUILD_TESTING)
-    add_subdirectory(test-py)
+    # add_subdirectory(test-py)
     add_subdirectory(test)
 endif()
 
 if (BUILD_VALIDATION)
-    add_subdirectory(validation)
+    # add_subdirectory(validation)
 endif()

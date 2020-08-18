@@ -26,6 +26,7 @@ Attributes:
     msg_file (str): The name of the file to write messages. Set this property to None to write to stdout/stderr.
 """
 
+import contextlib
 import os
 import time
 import hoomd
@@ -247,22 +248,46 @@ class GPU(_device):
 
         _device.__init__(self, communicator, notice_level, msg_file, shared_msg_file)
 
-        # convert None options to defaults
         if gpu_ids is None:
-            gpu_id = []
-        else:
-            gpu_id = gpu_ids
+            gpu_ids = []
 
-        gpu_vec = _hoomd.std_vector_int()
-        for gpuid in gpu_id:
-            gpu_vec.append(gpuid)
-
+        # convert None options to defaults
         self.cpp_exec_conf = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.GPU,
-                                                           gpu_vec,
+                                                           gpu_ids,
                                                            False,
                                                            False,
                                                            self.comm.cpp_mpi_conf,
                                                            self.cpp_msg)
+    @staticmethod
+    def is_available():
+        """ Test if the GPU device is available
+
+        Returns: True if this build of HOOMD supports GPUs, False if not.
+        """
+        return _hoomd.isCUDAAvailable();
+
+    @contextlib.contextmanager
+    def enable_profiling(self):
+        """Enable GPU profiling.
+
+        When using GPU profiling tools on HOOMD, select the option to disable
+        profiling on start. Initialize and run a simulation long enough that
+        all autotuners have completed, then open :py:func:`enable_profiling`
+        as a context manager and continue the simulation for a time. Profiling
+        stops when the context manager closes.
+
+        Example::
+
+            with device.enable_profiling():
+                sim.run(1000)
+        """
+
+        try:
+            self.cpp_exec_conf.hipProfileStart()
+            yield None
+        finally:
+            self.cpp_exec_conf.hipProfileStop()
+
 
 class CPU(_device):
     """
@@ -284,11 +309,12 @@ class CPU(_device):
         _init_nthreads(nthreads)
 
         self.cpp_exec_conf = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.CPU,
-                                                           _hoomd.std_vector_int(),
+                                                           [],
                                                            False,
                                                            False,
                                                            self.comm.cpp_mpi_conf,
                                                            self.cpp_msg)
+
 
 class Auto(_device):
     """
@@ -301,6 +327,8 @@ class Auto(_device):
         msg_file (str): Name of file to write messages to
         shared_msg_file (str): (MPI only) Name of shared file to write message to (append partition #)
         notice_level (int): Minimum level of notice messages to print
+
+    TODO: convert this to a function that produces a GPU or CPU device.
     """
 
     def __init__(self, nthreads=None, communicator=None, msg_file=None, shared_msg_file=None, notice_level=2):
@@ -310,7 +338,7 @@ class Auto(_device):
         _init_nthreads(nthreads)
 
         self.cpp_exec_conf = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.AUTO,
-                                                           _hoomd.std_vector_int(),
+                                                           [],
                                                            False,
                                                            False,
                                                            self.comm.cpp_mpi_conf,

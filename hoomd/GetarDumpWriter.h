@@ -1,8 +1,8 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-#ifndef __GETARDUMPER_H_
-#define __GETARDUMPER_H_
+#ifndef __GETAR_DUMPER_H_
+#define __GETAR_DUMPER_H_
 
 #include "hoomd/Analyzer.h"
 #include "hoomd/SnapshotSystemData.h"
@@ -22,8 +22,7 @@
 namespace getardump{
 
     typedef SnapshotSystemData<Scalar> SystemSnapshot;
-    std::shared_ptr<SystemSnapshot> takeSystemSnapshot(
-        std::shared_ptr<SystemDefinition>, bool, bool, bool, bool, bool, bool, bool, bool);
+    std::shared_ptr<SystemSnapshot> takeSystemSnapshot(std::shared_ptr<SystemDefinition>);
 
     /// Known operation modes
     enum GetarDumpMode {
@@ -237,14 +236,12 @@ namespace getardump{
                 {
                 PDataFlags flags;
 
-                for(PeriodMap::iterator iteri(m_periods.begin());
-                    iteri != m_periods.end(); ++iteri)
-                    for(std::vector<GetarDumpDescription>::iterator iterj(iteri->second.begin());
-                        iterj != iteri->second.end(); ++iterj)
+                for(PeriodMap::iterator iter_i(m_periods.begin());
+                    iter_i != m_periods.end(); ++iter_i)
+                    for(std::vector<GetarDumpDescription>::iterator iter_j(iter_i->second.begin());
+                        iter_j != iter_i->second.end(); ++iter_j)
                         {
-                        const Property prop(iterj->m_prop);
-                        flags[pdata_flag::potential_energy] = (flags[pdata_flag::potential_energy] |
-                            (prop == PotentialEnergy));
+                        const Property prop(iter_j->m_prop);
                         flags[pdata_flag::pressure_tensor] = (flags[pdata_flag::pressure_tensor] |
                             (unsigned int)(prop == Virial));
                         }

@@ -4,6 +4,9 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.9 FATAL_ERROR)
 
 project (HOOMD LANGUAGES C CXX)
 
+# enlble compile_commands.json output
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 include(GNUInstallDirs)
 
 # bring in custom modules
@@ -112,6 +115,9 @@ option(BUILD_JIT "Build the jit package" off)
 # Optionally use TBB for threading
 option(ENABLE_TBB "Enable support for Threading Building Blocks (TBB)" off)
 
+# Add list of plugins
+set(PLUGINS "example_plugin;" CACHE STRING "List of plugin directories.")
+
 # this needs to go before CUDA setup
 include (HOOMDHIPSetup)
 
@@ -146,7 +152,8 @@ if (
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/HIP/include/hip/hip_runtime.h OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/quickhull/ConvexHull.hpp OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/random123/include/Random123/philox.h OR
-    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/neighbor/neighbor/LBVH.h
+    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/neighbor/include/neighbor/neighbor.h OR
+    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/hipper/include/hipper/hipper_runtime.h
     )
 
     if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git)

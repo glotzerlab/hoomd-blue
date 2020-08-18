@@ -29,11 +29,14 @@ namespace py = pybind11;
  * \param decomposition Domain decomposition
  */
 LoadBalancer::LoadBalancer(std::shared_ptr<SystemDefinition> sysdef,
-                           std::shared_ptr<DomainDecomposition> decomposition)
-        : Updater(sysdef), m_decomposition(decomposition), m_mpi_comm(m_exec_conf->getMPICommunicator()),
-          m_max_imbalance(Scalar(1.0)), m_recompute_max_imbalance(true), m_needs_migrate(false),
-          m_needs_recount(false), m_tolerance(Scalar(1.05)), m_maxiter(1), m_max_scale(Scalar(0.05)),
-          m_N_own(m_pdata->getN()), m_max_max_imbalance(1.0), m_total_max_imbalance(0.0), m_n_calls(0),
+                           std::shared_ptr<DomainDecomposition> decomposition,
+                           std::shared_ptr<Trigger> trigger)
+        : Tuner(sysdef, trigger), m_decomposition(decomposition),
+          m_mpi_comm(m_exec_conf->getMPICommunicator()), m_max_imbalance(Scalar(1.0)),
+          m_recompute_max_imbalance(true), m_needs_migrate(false),
+          m_needs_recount(false), m_tolerance(Scalar(1.05)), m_maxiter(1),
+          m_max_scale(Scalar(0.05)), m_N_own(m_pdata->getN()),
+          m_max_max_imbalance(1.0), m_total_max_imbalance(0.0), m_n_calls(0),
           m_n_iterations(0), m_n_rebalances(0)
     {
     m_exec_conf->msg->notice(5) << "Constructing LoadBalancer" << endl;
@@ -572,12 +575,16 @@ void LoadBalancer::resetStats()
 void export_LoadBalancer(py::module& m)
     {
     py::class_<LoadBalancer, Updater, std::shared_ptr<LoadBalancer> >(m,"LoadBalancer")
-    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition> >())
-    .def("enableDimension", &LoadBalancer::enableDimension)
-    .def("getTolerance", &LoadBalancer::getTolerance)
-    .def("setTolerance", &LoadBalancer::setTolerance)
-    .def("getMaxIterations", &LoadBalancer::getMaxIterations)
-    .def("setMaxIterations", &LoadBalancer::setMaxIterations)
+    .def(py::init< std::shared_ptr<SystemDefinition>,
+                   std::shared_ptr<DomainDecomposition>,
+                   std::shared_ptr<Trigger> >())
+    .def_property("tolerance", &LoadBalancer::getTolerance,
+                  &LoadBalancer::setTolerance)
+    .def_property("max_iterations", &LoadBalancer::getMaxIterations,
+                  &LoadBalancer::setMaxIterations)
+    .def_property("x", &LoadBalancer::getEnableX, &LoadBalancer::setEnableX)
+    .def_property("y", &LoadBalancer::getEnableY, &LoadBalancer::setEnableY)
+    .def_property("z", &LoadBalancer::getEnableZ, &LoadBalancer::setEnableZ)
     ;
     }
 #endif // ENABLE_MPI

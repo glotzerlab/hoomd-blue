@@ -1,6 +1,8 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
+#pragma once
+
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/BoxDim.h"
 #include "HPMCPrecisionSetup.h"
@@ -13,21 +15,13 @@
 
 #include <stdexcept>
 
-#ifndef __SHAPE_SPHERE_H__
-#define __SHAPE_SPHERE_H__
-
-/*! \file ShapeSphere.h
-    \brief Defines the sphere shape
-*/
-
-// need to declare these class methods with __device__ qualifiers when building in nvcc
-// DEVICE is __device__ when included in nvcc and blank when included into the host compiler
 #ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
 #define DEVICE
 #define HOSTDEVICE
+#include <pybind11/pybind11.h>
 #endif
 
 #define SMALL 1e-5
@@ -35,10 +29,19 @@
 namespace hpmc
 {
 
-//! Base class for parameter structure data types
-struct param_base
+/** HPMC shape parameter base class
+
+    HPMC shape parameters must be aligned on 32-byte boundaries for AVX acceleration. The ShapeParam
+    base class implements the necessary aligned memory allocation operations. It also provides
+    empty load_shared and allocated_shared implementations which enabled caching deep copied managed
+    data arrays in shared memory.
+
+    TODO Move base methods out into their own file. ShapeSphere.h will then no longer need to be
+          included by everything.
+*/
+struct ShapeParams
     {
-    //! Custom new operator
+    /// Custom new operator
     static void* operator new(std::size_t sz)
         {
         void *ret = 0;
@@ -51,7 +54,7 @@ struct param_base
         return ret;
         }
 
-    //! Custom new operator for arrays
+    /// Custom new operator for arrays
     static void* operator new[](std::size_t sz)
         {
         void *ret = 0;
@@ -64,32 +67,34 @@ struct param_base
         return ret;
         }
 
-    //! Custom delete operator
+    /// Custom delete operator
     static void operator delete(void *ptr)
         {
         free(ptr);
         }
 
-    //! Custom delete operator for arrays
+    /// Custom delete operator for arrays
     static void operator delete[](void *ptr)
         {
         free(ptr);
         }
 
-    //! Load dynamic data members into shared memory and increase pointer
-    /*! \param ptr Pointer to load data to (will be incremented)
-        \param available_bytes Size of remaining shared memory allocation
+    /** Load dynamic data members into shared memory and increase pointer
+
+        @param ptr Pointer to load data to (will be incremented)
+        @param available_bytes Size of remaining shared memory allocation
      */
-    DEVICE void load_shared(char *& ptr,unsigned int &available_bytes)
+    DEVICE void load_shared(char *& ptr, unsigned int &available_bytes)
         {
         // default implementation does nothing
         }
 
-    //! Determine size of the shared memory allocation
-    /*! \param ptr Pointer to increment
-        \param available_bytes Size of remaining shared memory allocation
+    /** Determine size of the shared memory allocation
+
+        @param ptr Pointer to increment
+        @param available_bytes Size of remaining shared memory allocation
      */
-    HOSTDEVICE void allocate_shared(char *& ptr,unsigned int &available_bytes) const
+    HOSTDEVICE void allocate_shared(char *& ptr, unsigned int &available_bytes) const
         {
         // default implementation does nothing
         }
@@ -97,85 +102,129 @@ struct param_base
     };
 
 
-//! Sphere shape template
-/*! ShapeSphere implements IntegratorHPMC's shape protocol. It serves at the simplest example of a shape for HPMC
+/** Parameters that define a sphere shape
 
-    The parameter defining a sphere is just a single Scalar, the sphere radius.
-
-    \ingroup shape
+    Spheres in HPMC are defined by their radius. Spheres may or may not be orientable. The
+    orientation of a sphere does not enter into the overlap check, but the particle's orientation
+    may be used by other code paths (e.g. the patch potential).
 */
-struct sph_params : param_base
+struct SphereParams : ShapeParams
     {
-    OverlapReal radius;                 //!< radius of sphere
-    unsigned int ignore;                //!< Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
-                                        //   First bit is ignore overlaps, Second bit is ignore statistics
-    bool isOriented;                    //!< Flag to specify whether a sphere has orientation or not. Intended for
-                                        //!  for use with anisotropic/patchy pair potentials.
+    /// The radius of the sphere
+    OverlapReal radius;
+
+    /// True when move statistics should not be counted
+    bool ignore;
+
+    /// True when the shape may be oriented
+    bool isOriented;
 
     #ifdef ENABLE_HIP
-    //! Set CUDA memory hints
+    /// Set CUDA memory hints
     void set_memory_hint() const
         {
-        // default implementation does nothing
         }
+    #endif
+
+    #ifndef __HIPCC__
+
+    /// Default constructor
+    SphereParams() { }
+
+    /// Construct from a Python dictionary
+    SphereParams(pybind11::dict v, bool managed=false)
+        {
+        ignore = v["ignore_statistics"].cast<bool>();
+        radius = v["diameter"].cast<OverlapReal>() / OverlapReal(2.0);
+        isOriented = v["orientable"].cast<bool>();
+        }
+
+    /// Convert parameters to a python dictionary
+    pybind11::dict asDict()
+        {
+        pybind11::dict v;
+        v["diameter"] =  radius * OverlapReal(2.0);
+        v["orientable"] = isOriented;
+        v["ignore_statistics"] = ignore;
+        return v;
+        }
+
     #endif
     } __attribute__((aligned(32)));
 
+/** Sphere shape
+
+    Shape classes define the interface used by IntegratorHPMCMono, ComputeFreeVolume, and other
+    classes to check for overlaps between shapes, find their extend in space, and other operations.
+    These classes are specified via template parameters to these classes so that the compiler may
+    fully inline all uses of the shape API.
+
+    ShapeSphere defines this API for spheres.
+
+    Some portions of the API (e.g. test_overlap) are implemented as specialized function templates.
+
+    TODO Should we remove orientation as a member variable from the shape API. It should be passed
+          when needed.
+    TODO Don't use specialized templates for things that should be methods (i.e. a.overlapsWith(b))
+    TODO add hpmc::shape namespace
+*/
 struct ShapeSphere
     {
-    //! Define the parameter type
-    typedef sph_params param_type;
+    /// Define the parameter type
+    typedef SphereParams param_type;
 
-    //! Initialize a shape at a given position
+    /// Construct a shape at a given orientation
     DEVICE ShapeSphere(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), params(_params) {}
 
-    //! Does this shape have an orientation
+    /// Check if the shape may be rotated
     DEVICE bool hasOrientation() const
         {
         return params.isOriented;
         }
 
-    //! Ignore flag for acceptance statistics
+    /// Check if this shape should be ignored in the move statistics
     DEVICE bool ignoreStatistics() const { return params.ignore; }
 
-    //! Get the circumsphere diameter
+    /// Get the circumsphere diameter of the shape
     DEVICE OverlapReal getCircumsphereDiameter() const
         {
         return params.radius*OverlapReal(2.0);
         }
 
-    //! Get the in-sphere radius
+    /// Get the in-sphere radius of the shape
     DEVICE OverlapReal getInsphereRadius() const
         {
         return params.radius;
         }
 
-    //! Return the bounding box of the shape in world coordinates
+    /// Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         return detail::AABB(pos, params.radius);
         }
 
-    //! Return a tight fitting OBB
+    /// Return a tight fitting OBB around the shape
     DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
         {
         // just use the AABB for now
         return detail::OBB(getAABB(pos));
         }
 
-    //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
+    /// Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel() { return false; }
 
-    //! Retrns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    /// Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
     HOSTDEVICE static bool supportsSweepRadius()
         {
         return true;
         }
 
-    quat<Scalar> orientation;    //!< Orientation of the sphere (unused)
+    /// Orientation of the sphere
+    quat<Scalar> orientation;
 
-    const sph_params &params;        //!< Sphere and ignore flags
+    /// Sphere parameters
+    const SphereParams &params;
     };
 
 namespace detail
@@ -484,4 +533,3 @@ inline std::string getShapeSpec(const ShapeSphere& sphere)
 
 #undef DEVICE
 #undef HOSTDEVICE
-#endif //__SHAPE_SPHERE_H__

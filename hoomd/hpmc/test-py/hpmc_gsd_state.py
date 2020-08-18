@@ -417,5 +417,6 @@ class hpmc_gsd_check_restore_state(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             self.mc = hpmc.integrate.convex_polyhedron(seed=2234, d=0.3, a=0.4, restore_state=True);
 
+
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

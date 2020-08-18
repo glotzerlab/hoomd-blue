@@ -14,10 +14,10 @@ def series(warmup=100000, repeat=20, steps=10000, limit_hours=None):
     R""" Perform a series of benchmark runs.
 
     Args:
-        warmup (int): Number of time steps to :py:meth:`hoomd.run()` to warm up the benchmark
+        warmup (int): Number of time steps to ```hoomd.run``` to warm up the benchmark
         repeat (int): Number of times to repeat the benchmark *steps*.
-        steps (int): Number of time steps to :py:meth:`hoomd.run()` at each benchmark point.
-        limit_hours (float): Limit each individual :py:meth:`hoomd.run()` length to this time.
+        steps (int): Number of time steps to ```hoomd.run``` at each benchmark point.
+        limit_hours (float): Limit each individual ```hoomd.run``` length to this time.
 
     :py:meth:`series()` executes *warmup* time steps. After that, it
     calls ``run(steps)``, *repeat* times and returns a list containing the average TPS for each of those runs.

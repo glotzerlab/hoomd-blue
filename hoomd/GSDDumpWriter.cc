@@ -47,6 +47,7 @@ GSDDumpWriter::GSDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
                         m_group(group)
     {
     m_exec_conf->msg->notice(5) << "Constructing GSDDumpWriter: " << m_fname << " " << overwrite << " " << truncate << endl;
+    m_log_writer = pybind11::none();
     }
 
 void GSDDumpWriter::checkError(int retval)
@@ -120,7 +121,7 @@ void GSDDumpWriter::initFileIO()
         retval = gsd_create(m_fname.c_str(),
                             o.str().c_str(),
                             "hoomd",
-                            gsd_make_version(1,3));
+                            gsd_make_version(1,4));
         checkError(retval);
         }
 
@@ -251,7 +252,10 @@ void GSDDumpWriter::analyze(unsigned int timestep)
     // emit on all ranks, the slot needs to handle the mpi logic.
     m_write_signal.emit(m_handle);
 
-    writeUser(timestep, root);
+    if (!m_log_writer.is_none())
+        {
+        m_log_writer.attr("_write_frame")(this);
+        }
 
     if (root)
         {
@@ -826,22 +830,23 @@ void GSDDumpWriter::writeTopology(BondData::Snapshot& bond,
         }
     }
 
-/*! Perform the user-provided callbacks and write out the resulting data
-*/
-void GSDDumpWriter::writeUser(unsigned int timestep, bool root)
+void GSDDumpWriter::writeLogQuantities(pybind11::dict dict)
     {
-    for (std::pair<std::string, pybind11::function> item : m_user_log)
+    bool root=true;
+    #ifdef ENABLE_MPI
+    root = m_exec_conf->isRoot();
+    #endif
+
+    // only evaluate the numpy array on the root rank
+    if (root)
         {
-        string name = string("log/") + item.first;
-        m_exec_conf->msg->notice(10) << "dump.gsd: writing " << name << endl;
-
-        // call the callback collectively on all ranks
-        pybind11::object obj = item.second(timestep);
-
-        // only evaluate the numpy array on the root rank
-        if (root)
+        for (auto key_iter = dict.begin(); key_iter != dict.end(); ++key_iter)
             {
-            pybind11::array arr = obj;
+            std::string name = pybind11::cast<std::string>(key_iter->first);
+            m_exec_conf->msg->notice(10) << "dump.gsd: writing " << name << endl;
+
+            pybind11::array arr = pybind11::array::ensure(key_iter->second,
+                                                          pybind11::array::c_style);
             gsd_type type = GSD_TYPE_UINT8;
             auto dtype = arr.dtype();
             if (dtype.kind() == 'u' && dtype.itemsize() == 1)
@@ -884,22 +889,48 @@ void GSDDumpWriter::writeUser(unsigned int timestep, bool root)
                 {
                 type = GSD_TYPE_DOUBLE;
                 }
+            else if (dtype.kind() == 'b' && dtype.itemsize() == 1)
+                {
+                type = GSD_TYPE_UINT8;
+                }
             else
                 {
-                throw runtime_error("Invalid numpy array format in gsd user-defined log data [" + item.first + "]: " + string(pybind11::str(arr.dtype())));
+                throw runtime_error("Invalid numpy array format in gsd log data [" + name + "]: "
+                                    + string(pybind11::str(arr.dtype())));
                 }
 
-            int M = 1;
-            if (arr.ndim() == 2)
+            size_t M = 1;
+            size_t N = 1;
+            auto ndim = arr.ndim();
+            if (ndim == 0)
                 {
+                // numpy converts scalars to arrays with zero dimensions
+                // gsd treats them as 1x1 arrays.
+                M = 1;
+                N = 1;
+                }
+            if (ndim == 1)
+                {
+                N = arr.shape(0);
+                M = 1;
+                }
+            if (ndim == 2)
+                {
+                N = arr.shape(0);
                 M = arr.shape(1);
                 }
-            if (arr.ndim() > 2 || arr.ndim() == 0)
+            if (ndim > 2)
                 {
-                throw runtime_error("Invalid numpy dimension in gsd user-defined log data [" + item.first + "]");
+                throw runtime_error("Invalid numpy dimension in gsd log data [" + name + "]");
                 }
 
-            int retval = gsd_write_chunk(&m_handle, name.c_str(), type, arr.shape(0), M, 0, (void *)arr.data());
+            int retval = gsd_write_chunk(&m_handle,
+                                        name.c_str(),
+                                        type,
+                                        N,
+                                        M,
+                                        0,
+                                        (void *)arr.data());
             checkError(retval);
             }
         }
@@ -989,6 +1020,15 @@ void export_GSDDumpWriter(py::module& m)
         .def("setWriteProperty", &GSDDumpWriter::setWriteProperty)
         .def("setWriteMomentum", &GSDDumpWriter::setWriteMomentum)
         .def("setWriteTopology", &GSDDumpWriter::setWriteTopology)
-        .def_readwrite("user_log", &GSDDumpWriter::m_user_log)
+        .def("writeLogQuantities", &GSDDumpWriter::writeLogQuantities)
+        .def_property("log_writer", &GSDDumpWriter::getLogWriter, &GSDDumpWriter::setLogWriter)
+        .def_property_readonly("filename", &GSDDumpWriter::getFilename)
+        .def_property_readonly("overwrite", &GSDDumpWriter::getOverwrite)
+        .def_property_readonly("dynamic", &GSDDumpWriter::getDynamic)
+        .def_property_readonly("truncate", &GSDDumpWriter::getTruncate)
+        .def_property_readonly("filter", [](const std::shared_ptr<GSDDumpWriter> gsd)
+                                             {
+                                             return gsd->getGroup()->getFilter();
+                                             })
     ;
     }

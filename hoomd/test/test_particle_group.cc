@@ -108,7 +108,7 @@ UP_TEST( ParticleGroup_copy_test )
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // create another particle group of all particles
-    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterAll());
     ParticleGroup tags_all(sysdef, selector_all);
     // verify it
     CHECK_EQUAL_UINT(tags_all.getNumMembers(), pdata->getN());
@@ -152,7 +152,7 @@ UP_TEST( ParticleGroup_sort_test )
     std::shared_ptr<SystemDefinition> sysdef = create_sysdef();
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
-    std::shared_ptr<ParticleSelector> selector04(new ParticleSelectorTag(sysdef, 0, 4));
+    std::shared_ptr<ParticleFilter> selector04(new ParticleFilterTags(std::vector<unsigned int>({0,1,2,3,4})));
     ParticleGroup tags04(sysdef, selector04);
     // verify the initial set
     CHECK_EQUAL_UINT(tags04.getNumMembers(), 5);
@@ -230,7 +230,7 @@ UP_TEST( ParticleGroup_type_test )
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // create a group of type 0 and check it
-    std::shared_ptr<ParticleSelector> selector0(new ParticleSelectorType(sysdef, 0, 0));
+    std::shared_ptr<ParticleFilter> selector0(new ParticleFilterType(0, 0));
     ParticleGroup type0(sysdef, selector0);
     CHECK_EQUAL_UINT(type0.getNumMembers(), 4);
     CHECK_EQUAL_UINT(type0.getIndexArray().getNumElements(), 4);
@@ -241,7 +241,7 @@ UP_TEST( ParticleGroup_type_test )
     CHECK_EQUAL_UINT(type0.getMemberTag(3), 8);
 
     // create a group of type 1 and check it
-    std::shared_ptr<ParticleSelector> selector1(new ParticleSelectorType(sysdef, 1, 1));
+    std::shared_ptr<ParticleFilter> selector1(new ParticleFilterType(1, 1));
     ParticleGroup type1(sysdef, selector1);
     CHECK_EQUAL_UINT(type1.getNumMembers(), 2);
     CHECK_EQUAL_UINT(type1.getIndexArray().getNumElements(), 2);
@@ -249,7 +249,7 @@ UP_TEST( ParticleGroup_type_test )
     CHECK_EQUAL_UINT(type1.getMemberTag(1), 6);
 
     // create a group of type 2 and check it
-    std::shared_ptr<ParticleSelector> selector2(new ParticleSelectorType(sysdef, 2, 2));
+    std::shared_ptr<ParticleFilter> selector2(new ParticleFilterType(2, 2));
     ParticleGroup type2(sysdef, selector2);
     CHECK_EQUAL_UINT(type2.getNumMembers(), 2);
     CHECK_EQUAL_UINT(type2.getIndexArray().getNumElements(), 2);
@@ -257,7 +257,7 @@ UP_TEST( ParticleGroup_type_test )
     CHECK_EQUAL_UINT(type2.getMemberTag(1), 7);
 
     // create a group of type 3 and check it
-    std::shared_ptr<ParticleSelector> selector3(new ParticleSelectorType(sysdef, 3, 3));
+    std::shared_ptr<ParticleFilter> selector3(new ParticleFilterType(3, 3));
     ParticleGroup type3(sysdef, selector3);
     CHECK_EQUAL_UINT(type3.getNumMembers(), 2);
     CHECK_EQUAL_UINT(type3.getIndexArray().getNumElements(), 2);
@@ -265,7 +265,7 @@ UP_TEST( ParticleGroup_type_test )
     CHECK_EQUAL_UINT(type3.getMemberTag(1), 9);
 
     // create a group of all types and check it
-    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorType(sysdef, 0, 3));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterType(0, 3));
     ParticleGroup alltypes(sysdef, selector_all);
     CHECK_EQUAL_UINT(alltypes.getNumMembers(), 10);
     CHECK_EQUAL_UINT(alltypes.getIndexArray().getNumElements(), 10);
@@ -280,7 +280,7 @@ UP_TEST( ParticleGroup_empty_test )
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // create a group of type 100 and check it
-    std::shared_ptr<ParticleSelector> selector100(new ParticleSelectorType(sysdef, 100, 100));
+    std::shared_ptr<ParticleFilter> selector100(new ParticleFilterType(100, 100));
     ParticleGroup empty(sysdef, selector100);
     CHECK_EQUAL_UINT(empty.getNumMembers(), 0);
     CHECK_EQUAL_UINT(empty.getIndexArray().getNumElements(), 0);
@@ -293,7 +293,7 @@ UP_TEST( ParticleGroup_body_test )
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // create a group of rigid bodies and check it
-    std::shared_ptr<ParticleSelector> selector_body_true(new ParticleSelectorRigid(sysdef, true));
+    std::shared_ptr<ParticleFilter> selector_body_true(new ParticleFilterRigid(true));
     ParticleGroup type_true(sysdef, selector_body_true);
     CHECK_EQUAL_UINT(type_true.getNumMembers(), 4);
     CHECK_EQUAL_UINT(type_true.getMemberTag(0), 0);
@@ -302,7 +302,7 @@ UP_TEST( ParticleGroup_body_test )
     CHECK_EQUAL_UINT(type_true.getMemberTag(3), 3);
 
     // create a group of non rigid particles and check it
-    std::shared_ptr<ParticleSelector> selector_body_false(new ParticleSelectorRigid(sysdef, false));
+    std::shared_ptr<ParticleFilter> selector_body_false(new ParticleFilterRigid(false));
     ParticleGroup type_false(sysdef, selector_body_false);
     CHECK_EQUAL_UINT(type_false.getNumMembers(), 6);
     CHECK_EQUAL_UINT(type_false.getMemberTag(0), 4);
@@ -320,7 +320,7 @@ UP_TEST( ParticleGroup_tag_test )
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // create a group of tags 0-4 and check it
-    std::shared_ptr<ParticleSelector> selector04(new ParticleSelectorTag(sysdef, 0, 4));
+    std::shared_ptr<ParticleFilter> selector04(new ParticleFilterTags(std::vector<unsigned int>({0,1,2,3,4})));
     ParticleGroup tags05(sysdef, selector04);
     CHECK_EQUAL_UINT(tags05.getNumMembers(), 5);
     CHECK_EQUAL_UINT(tags05.getIndexArray().getNumElements(), 5);
@@ -331,7 +331,7 @@ UP_TEST( ParticleGroup_tag_test )
     CHECK_EQUAL_UINT(tags05.getMemberTag(4), 4);
 
     // create a group of tags 5-9 and check it
-    std::shared_ptr<ParticleSelector> selector59(new ParticleSelectorTag(sysdef, 5, 9));
+    std::shared_ptr<ParticleFilter> selector59(new ParticleFilterTags(std::vector<unsigned int>({5,6,7,8,9})));
     ParticleGroup tags59(sysdef, selector59);
     CHECK_EQUAL_UINT(tags59.getNumMembers(), 5);
     CHECK_EQUAL_UINT(tags59.getIndexArray().getNumElements(), 5);
@@ -349,18 +349,16 @@ UP_TEST( ParticleGroup_cuboid_test )
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // create a group containing only particle 0
-    std::shared_ptr<ParticleSelector> selector0(new ParticleSelectorCuboid(sysdef,
-                                                                      make_scalar3(-0.5, -0.5, -0.5),
-                                                                      make_scalar3( 0.5,  0.5,  0.5)));
+    std::shared_ptr<ParticleFilter> selector0(new ParticleFilterCuboid(make_scalar3(-0.5, -0.5, -0.5),
+                                                                           make_scalar3( 0.5,  0.5,  0.5)));
     ParticleGroup tags0(sysdef, selector0);
     CHECK_EQUAL_UINT(tags0.getNumMembers(), 1);
     CHECK_EQUAL_UINT(tags0.getIndexArray().getNumElements(), 1);
     CHECK_EQUAL_UINT(tags0.getMemberTag(0), 0);
 
     // create a group containing particles 0 and 1
-    std::shared_ptr<ParticleSelector> selector1(new ParticleSelectorCuboid(sysdef,
-                                                                      make_scalar3(-0.5, -0.5, -0.5),
-                                                                      make_scalar3( 1.5,  2.5,  3.5)));
+    std::shared_ptr<ParticleFilter> selector1(new ParticleFilterCuboid(make_scalar3(-0.5, -0.5, -0.5),
+                                                                           make_scalar3( 1.5,  2.5,  3.5)));
     ParticleGroup tags1(sysdef, selector1);
     CHECK_EQUAL_UINT(tags1.getNumMembers(), 2);
     CHECK_EQUAL_UINT(tags1.getIndexArray().getNumElements(), 2);
@@ -368,9 +366,8 @@ UP_TEST( ParticleGroup_cuboid_test )
     CHECK_EQUAL_UINT(tags1.getMemberTag(1), 1);
 
     // create a group containing particles 0, 1 and 2
-    std::shared_ptr<ParticleSelector> selector2(new ParticleSelectorCuboid(sysdef,
-                                                                      make_scalar3(-1.5, -2.5, -3.5),
-                                                                      make_scalar3( 1.5,  2.5,  3.5)));
+    std::shared_ptr<ParticleFilter> selector2(new ParticleFilterCuboid(make_scalar3(-1.5, -2.5, -3.5),
+                                                                           make_scalar3( 1.5,  2.5,  3.5)));
     ParticleGroup tags2(sysdef, selector2);
     CHECK_EQUAL_UINT(tags2.getNumMembers(), 3);
     CHECK_EQUAL_UINT(tags2.getIndexArray().getNumElements(), 3);
@@ -386,11 +383,11 @@ UP_TEST( ParticleGroup_boolean_tests)
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // create a group of tags 0-4
-    std::shared_ptr<ParticleSelector> selector04(new ParticleSelectorTag(sysdef, 0, 4));
+    std::shared_ptr<ParticleFilter> selector04(new ParticleFilterTags(std::vector<unsigned int>({0,1,2,3,4})));
     std::shared_ptr<ParticleGroup> tags04(new ParticleGroup(sysdef, selector04));
 
     // create a group of type 0
-    std::shared_ptr<ParticleSelector> selector0(new ParticleSelectorType(sysdef, 0, 0));
+    std::shared_ptr<ParticleFilter> selector0(new ParticleFilterType(0, 0));
     std::shared_ptr<ParticleGroup> type0(new ParticleGroup(sysdef, selector0));
 
     // make a union of the two groups and check it
@@ -419,13 +416,13 @@ UP_TEST( ParticleGroup_total_mass_tests)
     std::shared_ptr<SystemDefinition> sysdef = create_sysdef();
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
-    ParticleGroup group1(sysdef, std::shared_ptr<ParticleSelector>(new ParticleSelectorTag(sysdef, 0, 0)));
+    ParticleGroup group1(sysdef, std::shared_ptr<ParticleFilter>(new ParticleFilterTags(std::vector<unsigned int>({0}))));
     MY_CHECK_CLOSE(group1.getTotalMass(), 1.0, tol);
 
-    ParticleGroup group2(sysdef, std::shared_ptr<ParticleSelector>(new ParticleSelectorTag(sysdef, 0, 1)));
+    ParticleGroup group2(sysdef, std::shared_ptr<ParticleFilter>(new ParticleFilterTags(std::vector<unsigned int>({0, 1}))));
     MY_CHECK_CLOSE(group2.getTotalMass(), 3.0, tol);
 
-    ParticleGroup group3(sysdef, std::shared_ptr<ParticleSelector>(new ParticleSelectorTag(sysdef, 0, 2)));
+    ParticleGroup group3(sysdef, std::shared_ptr<ParticleFilter>(new ParticleFilterTags(std::vector<unsigned int>({0,1,2}))));
     MY_CHECK_CLOSE(group3.getTotalMass(), 8.0, tol);
     }
 
@@ -436,19 +433,19 @@ UP_TEST( ParticleGroup_center_of_mass_tests)
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     Scalar3 com;
-    ParticleGroup group1(sysdef, std::shared_ptr<ParticleSelector>(new ParticleSelectorTag(sysdef, 0, 0)));
+    ParticleGroup group1(sysdef, std::shared_ptr<ParticleFilter>(new ParticleFilterTags(std::vector<unsigned int>({0}))));
     com = group1.getCenterOfMass();
     MY_CHECK_SMALL(com.x, tol_small);
     MY_CHECK_SMALL(com.y, tol_small);
     MY_CHECK_SMALL(com.z, tol_small);
 
-    ParticleGroup group2(sysdef, std::shared_ptr<ParticleSelector>(new ParticleSelectorTag(sysdef, 0, 1)));
+    ParticleGroup group2(sysdef, std::shared_ptr<ParticleFilter>(new ParticleFilterTags(std::vector<unsigned int>({0,1}))));
     com = group2.getCenterOfMass();
     MY_CHECK_CLOSE(com.x, 7.3333333333, tol);
     MY_CHECK_CLOSE(com.y, -5.3333333333, tol);
     MY_CHECK_CLOSE(com.z, 15.333333333, tol);
 
-    ParticleGroup group3(sysdef, std::shared_ptr<ParticleSelector>(new ParticleSelectorTag(sysdef, 0, 2)));
+    ParticleGroup group3(sysdef, std::shared_ptr<ParticleFilter>(new ParticleFilterTags(std::vector<unsigned int>({0,1,2}))));
     com = group3.getCenterOfMass();
     MY_CHECK_CLOSE(com.x, 2.125, tol);
     MY_CHECK_CLOSE(com.y, -3.25, tol);

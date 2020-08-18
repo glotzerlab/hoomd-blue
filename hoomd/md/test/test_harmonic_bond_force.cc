@@ -44,7 +44,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, std::shared_ptr<Execut
 
     // create the bond force compute to check
     std::shared_ptr<PotentialBondHarmonic> fc_2 = bf_creator(sysdef_2);
-    fc_2->setParams(0, make_scalar2(1.5, 0.75));
+    fc_2->setParams(0, harmonic_params(1.5, 0.75));
 
     // compute the force and check the results
     fc_2->compute(0);
@@ -160,9 +160,9 @@ void bond_force_basic_tests(bondforce_creator bf_creator, std::shared_ptr<Execut
     pdata_6->setPosition(5, make_scalar3(0.0,0.0,29.6));
 
     std::shared_ptr<PotentialBondHarmonic> fc_6 = bf_creator(sysdef_6);
-    fc_6->setParams(0, make_scalar2( 1.5, 0.75));
-    fc_6->setParams(1, make_scalar2(2.0*1.5, 0.75));
-    fc_6->setParams(2, make_scalar2(1.5, 0.5));
+    fc_6->setParams(0, harmonic_params( 1.5, 0.75));
+    fc_6->setParams(1, harmonic_params(2.0*1.5, 0.75));
+    fc_6->setParams(2, harmonic_params(1.5, 0.5));
 
     sysdef_6->getBondData()->addBondedGroup(Bond(0, 0,1));
     sysdef_6->getBondData()->addBondedGroup(Bond(1, 2,3));
@@ -256,7 +256,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, std::shared_ptr<Execut
 
     // build the bond force compute and try it out
     std::shared_ptr<PotentialBondHarmonic> fc_4 = bf_creator(sysdef_4);
-    fc_4->setParams(0, make_scalar2(1.5, 1.75));
+    fc_4->setParams(0, harmonic_params(1.5, 1.75));
     // only add bonds on the left, top, and bottom of the square
     sysdef_4->getBondData()->addBondedGroup(Bond(0, 2,3));
     sysdef_4->getBondData()->addBondedGroup(Bond(0, 2,0));
@@ -323,8 +323,8 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creato
 
     std::shared_ptr<PotentialBondHarmonic> fc1 = bf_creator1(sysdef);
     std::shared_ptr<PotentialBondHarmonic> fc2 = bf_creator2(sysdef);
-    fc1->setParams(0, make_scalar2(Scalar(300.0), Scalar(1.6)));
-    fc2->setParams(0, make_scalar2(Scalar(300.0), Scalar(1.6)));
+    fc1->setParams(0, harmonic_params(Scalar(300.0), Scalar(1.6)));
+    fc2->setParams(0, harmonic_params(Scalar(300.0), Scalar(1.6)));
 
     // add bonds
     for (unsigned int i = 0; i < N-1; i++)

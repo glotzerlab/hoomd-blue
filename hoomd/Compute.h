@@ -163,6 +163,9 @@ class PYBIND11_EXPORT Compute
          */
         void forceCompute(unsigned int timestep);
 
+        /// Python will notify C++ objects when they are detached from Simulation
+        virtual void notifyDetach() { };
+
 #ifdef ENABLE_MPI
         //! Set communicator this Compute is to use
         /*! \param comm The communicator

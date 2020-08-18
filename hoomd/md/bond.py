@@ -15,351 +15,118 @@ listed particles.
 
 from hoomd import _hoomd
 from hoomd.md import _md
-from hoomd.md import force;
-import hoomd;
+from hoomd.md.force import _Force
+from hoomd.md import force
+from hoomd.typeparam import TypeParameter
+from hoomd.parameterdicts import TypeParameterDict
+import hoomd
 
-import math;
-import sys;
+import math
 
-class coeff:
-    R""" Define bond coefficients.
 
-    The coefficients for all bond potentials are specified using this class. Coefficients are
-    specified per bond type.
+class _Bond(_Force):
+    """Constructs the bond potential.
 
-    There are two ways to set the coefficients for a particular bond potential.
-    The first way is to save the bond potential in a variable and call :py:meth:`set()` directly.
-    See below for an example of this.
-
-    The second method is to build the coeff class first and then assign it to the
-    bond potential. There are some advantages to this method in that you could specify a
-    complicated set of bond potential coefficients in a separate python file and import
-    it into your job script.
-
-    Example::
-
-        my_coeffs = hoomd.md.bond.coeff();
-        my_bond_force.bond_coeff.set('polymer', k=330.0, r=0.84)
-        my_bond_force.bond_coeff.set('backbone', k=330.0, r=0.84)
-
+    A bond in hoomd reflects a PotentialBond in c++. It is responsible for all
+    high-level management that happens behind the scenes for hoomd writers.
+    1) The instance of the c++ bond force itself is tracked and added to the
+    System
+    2) methods are provided for disabling the force from being added to the net
+    force on each particle
     """
+    def attach(self, simulation):
+        """Create the c++ mirror class."""
+        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+            cpp_cls = getattr(_md, self._cpp_class_name)
+        else:
+            cpp_cls = getattr(_md, self._cpp_class_name + "GPU")
 
-    ## \internal
-    # \brief Initializes the class
-    # \details
-    # The main task to be performed during initialization is just to init some variables
-    # \param self Python required class instance variable
-    def __init__(self):
-        self.values = {};
-        self.default_coeff = {}
+        # TODO remove string argument
+        self._cpp_obj = cpp_cls(simulation.state._cpp_sys_def, "")
 
-    ## \var values
-    # \internal
-    # \brief Contains the vector of set values in a dictionary
+        super().attach(simulation)
 
-    ## \var default_coeff
-    # \internal
-    # \brief default_coeff['coeff'] lists the default value for \a coeff, if it is set
 
-    ## \internal
-    # \brief Sets a default value for a given coefficient
-    # \details
-    # \param name Name of the coefficient to for which to set the default
-    # \param value Default value to set
-    #
-    # Some coefficients have reasonable default values and the user should not be burdened with typing them in
-    # all the time. set_default_coeff() sets
-    def set_default_coeff(self, name, value):
-        self.default_coeff[name] = value;
-
-    def set(self, type, **coeffs):
-        R""" Sets parameters for bond types.
-
-        Args:
-            type (str): Type of bond (or a list of type names)
-            coeffs: Named coefficients (see below for examples)
-
-        Calling :py:meth:`set()` results in one or more parameters being set for a bond type. Types are identified
-        by name, and parameters are also added by name. Which parameters you need to specify depends on the bond
-        potential you are setting these coefficients for, see the corresponding documentation.
-
-        All possible bond types as defined in the simulation box must be specified before executing run().
-        You will receive an error if you fail to do so. It is not an error, however, to specify coefficients for
-        bond types that do not exist in the simulation. This can be useful in defining a potential field for many
-        different types of bonds even when some simulations only include a subset.
-
-        Examples::
-
-            my_bond_force.bond_coeff.set('polymer', k=330.0, r0=0.84)
-            my_bond_force.bond_coeff.set('backbone', k=1000.0, r0=1.0)
-            my_bond_force.bond_coeff.set(['bondA','bondB'], k=100, r0=0.0)
-
-        Note:
-            Single parameters can be updated. If both ``k`` and ``r0`` have already been set for a particle type,
-            then executing ``coeff.set('polymer', r0=1.0)`` will update the value of ``r0`` and leave the other
-            parameters as they were previously set.
-
-        """
-
-        # listify the input
-        type = hoomd.util.listify(type)
-
-        for typei in type:
-            self.set_single(typei, coeffs);
-
-    ## \internal
-    # \brief Sets a single parameter
-    def set_single(self, type, coeffs):
-        type = str(type);
-
-        # create the type identifier if it hasn't been created yet
-        if (not type in self.values):
-            self.values[type] = {};
-
-        # update each of the values provided
-        if len(coeffs) == 0:
-            hoomd.context.current.device.cpp_msg.error("No coefficients specified\n");
-        for name, val in coeffs.items():
-            self.values[type][name] = val;
-
-        # set the default values
-        for name, val in self.default_coeff.items():
-            # don't override a coeff if it is already set
-            if not name in self.values[type]:
-                self.values[type][name] = val;
-
-    ## \internal
-    # \brief Verifies that all values are set
-    # \details
-    # \param self Python required self variable
-    # \param required_coeffs list of required variables
-    #
-    # This can only be run after the system has been initialized
-    def verify(self, required_coeffs):
-        # first, check that the system has been initialized
-        if not hoomd.init.is_initialized():
-            raise RuntimeError('Cannot verify bond coefficients before initialization\n');
-
-        # get a list of types from the particle data
-        ntypes = hoomd.context.current.system_definition.getBondData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(hoomd.context.current.system_definition.getBondData().getNameByType(i));
-
-        valid = True;
-        # loop over all possible types and verify that all required variables are set
-        for i in range(0,ntypes):
-            type = type_list[i];
-
-            if type not in self.values.keys():
-                hoomd.context.current.device.cpp_msg.error("Bond type " +str(type) + " not found in bond coeff\n");
-                valid = False;
-                continue;
-
-            # verify that all required values are set by counting the matches
-            count = 0;
-            for coeff_name in self.values[type].keys():
-                if not coeff_name in required_coeffs:
-                    hoomd.context.current.device.cpp_msg.notice(2, "Notice: Possible typo? Force coeff " + str(coeff_name) + " is specified for type " + str(type) + \
-                          ", but is not used by the bond force\n");
-                else:
-                    count += 1;
-
-            if count != len(required_coeffs):
-                hoomd.context.current.device.cpp_msg.error("Bond type " + str(type) + " is missing required coefficients\n");
-                valid = False;
-
-        return valid;
-
-    ## \internal
-    # \brief Gets the value of a single %bond %force coefficient
-    # \detail
-    # \param type Name of bond type
-    # \param coeff_name Coefficient to get
-    def get(self, type, coeff_name):
-        if type not in self.values.keys():
-            hoomd.context.current.device.cpp_msg.error("Bug detected in force.coeff. Please report\n");
-            raise RuntimeError("Error setting bond coeff");
-
-        return self.values[type][coeff_name];
-
-    ## \internal
-    # \brief Return metadata
-    def get_metadata(self):
-        return self.values
-
-## \internal
-# \brief Base class for bond potentials
-#
-# A bond in hoomd reflects a PotentialBond in c++. It is responsible
-# for all high-level management that happens behind the scenes for hoomd
-# writers. 1) The instance of the c++ bond force itself is tracked and added to the
-# System 2) methods are provided for disabling the force from being added to the
-# net force on each particle
-class _bond(force._force):
-    ## \internal
-    # \brief Constructs the bond potential
-    #
-    # \param name name of the bond potential instance
-    #
-    # Initializes the cpp_force to None.
-    # If specified, assigns a name to the instance
-    # Assigns a name to the force in force_name;
-    def __init__(self, name=None):
-        # initialize the base class
-        force._force.__init__(self, name);
-
-        self.cpp_force = None;
-
-        # setup the coefficient vector
-        self.bond_coeff = coeff();
-
-        self.enabled = True;
-
-    def update_coeffs(self):
-        coeff_list = self.required_coeffs;
-        # check that the force coefficients are valid
-        if not self.bond_coeff.verify(coeff_list):
-           hoomd.context.current.device.cpp_msg.error("Not all force coefficients are set\n");
-           raise RuntimeError("Error updating force coefficients");
-
-        # set all the params
-        ntypes = hoomd.context.current.system_definition.getBondData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(hoomd.context.current.system_definition.getBondData().getNameByType(i));
-
-        for i in range(0,ntypes):
-            # build a dict of the coeffs to pass to proces_coeff
-            coeff_dict = {};
-            for name in coeff_list:
-                coeff_dict[name] = self.bond_coeff.get(type_list[i], name);
-
-            param = self.process_coeff(coeff_dict);
-            self.cpp_force.setParams(i, param);
-
-    ## \internal
-    # \brief Get metadata
-    def get_metadata(self):
-        data = force._force.get_metadata(self)
-
-        # make sure coefficients are up-to-date
-        self.update_coeffs()
-
-        data['bond_coeff'] = self.bond_coeff
-        return data
-
-class harmonic(_bond):
+class Harmonic(_Bond):
     R""" Harmonic bond potential.
 
     Args:
         name (str): Name of the bond instance.
 
-    :py:class:`harmonic` specifies a harmonic potential energy between the two particles in each defined bond.
+    :py:class:`Harmonic` specifies a harmonic potential energy between the two
+    particles in each defined bond.
 
     .. math::
 
         V(r) = \frac{1}{2} k \left( r - r_0 \right)^2
 
-    where :math:`\vec{r}` is the vector pointing from one particle to the other in the bond.
+    where :math:`\vec{r}` is the vector pointing from one particle to the other
+    in the bond.
 
     Coefficients:
 
     - :math:`k` - force constant ``k`` (in units of energy/distance^2)
     - :math:`r_0` - bond rest length ``r0`` (in distance units)
-
-    Example::
-
-        harmonic = bond.harmonic(name="mybond")
-        harmonic.bond_coeff.set('polymer', k=330.0, r0=0.84)
-
     """
-    def __init__(self,name=None):
+    _cpp_class_name = "PotentialBondHarmonic"
+    def __init__(self):
+        params = TypeParameter("params", "bond_types",
+                               TypeParameterDict(k=float, r0=float, len_keys=1)
+                               )
+        self._add_typeparam(params)
 
-        # initialize the base class
-        _bond.__init__(self);
 
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PotentialBondHarmonic(hoomd.context.current.system_definition,self.name);
-        else:
-            self.cpp_force = _md.PotentialBondHarmonicGPU(hoomd.context.current.system_definition,self.name);
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-
-        # setup the coefficient options
-        self.required_coeffs = ['k','r0'];
-
-    def process_coeff(self, coeff):
-        k = coeff['k'];
-        r0 = coeff['r0'];
-
-        # set the parameters for the appropriate type
-        return _hoomd.make_scalar2(k, r0);
-
-class fene(_bond):
+class FENE(_Bond):
     R""" FENE bond potential.
 
     Args:
         name (str): Name of the bond instance.
 
-    :py:class:`fene` specifies a FENE potential energy between the two particles in each defined bond.
+    :py:class:`FENE` specifies a FENE potential energy between the two particles
+    in each defined bond.
 
     .. math::
 
-        V(r) = - \frac{1}{2} k r_0^2 \ln \left( 1 - \left( \frac{r - \Delta}{r_0} \right)^2 \right) + V_{\mathrm{WCA}}(r)
+        V(r) = - \frac{1}{2} k r_0^2 \ln \left( 1 - \left( \frac{r -
+               \Delta}{r_0} \right)^2 \right) + V_{\mathrm{WCA}}(r)
 
-    where :math:`\vec{r}` is the vector pointing from one particle to the other in the bond,
-    :math:`\Delta = (d_i + d_j)/2 - 1`, :math:`d_i` is the diameter of particle :math:`i`, and
+    where :math:`\vec{r}` is the vector pointing from one particle to the other
+    in the bond, :math:`\Delta = (d_i + d_j)/2 - 1`, :math:`d_i` is the diameter
+    of particle :math:`i`, and
 
     .. math::
         :nowrap:
 
         \begin{eqnarray*}
-        V_{\mathrm{WCA}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r - \Delta} \right)^{12} - \left( \frac{\sigma}{r - \Delta} \right)^{6} \right]  + \varepsilon & r-\Delta < 2^{\frac{1}{6}}\sigma\\
-                   = & 0          & r-\Delta \ge 2^{\frac{1}{6}}\sigma
+        V_{\mathrm{WCA}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r -
+                                 \Delta} \right)^{12} - \left( \frac{\sigma}{r -
+                                 \Delta} \right)^{6} \right]  + \varepsilon
+                               & r-\Delta < 2^{\frac{1}{6}}\sigma\\
+                             = & 0
+                               & r-\Delta \ge 2^{\frac{1}{6}}\sigma
         \end{eqnarray*}
 
     Coefficients:
 
-    - :math:`k` - attractive force strength ``k`` (in units of energy/distance^2)
+    - :math:`k` - attractive force strength ``k`` (in units of
+        energy/distance^2)
     - :math:`r_0` - size parameter ``r0`` (in distance units)
-    - :math:`\varepsilon` - repulsive force strength ``epsilon`` (in energy units)
-    - :math:`\sigma` - repulsive force interaction distance ``sigma`` (in distance units)
-
-    Examples::
-
-        fene = bond.fene()
-        fene.bond_coeff.set('polymer', k=30.0, r0=1.5, sigma=1.0, epsilon= 2.0)
-        fene.bond_coeff.set('backbone', k=100.0, r0=1.0, sigma=1.0, epsilon= 2.0)
-
+    - :math:`\varepsilon` - repulsive force strength ``epsilon`` (in energy
+        units)
+    - :math:`\sigma` - repulsive force interaction distance ``sigma`` (in
+        distance units)
     """
-    def __init__(self, name=None):
+    _cpp_class_name = "PotentialBondFENE"
 
-
-        # initialize the base class
-        _bond.__init__(self, name);
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PotentialBondFENE(hoomd.context.current.system_definition,self.name);
-        else:
-            self.cpp_force = _md.PotentialBondFENEGPU(hoomd.context.current.system_definition,self.name);
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-
-        # setup the coefficient options
-        self.required_coeffs = ['k','r0','epsilon','sigma'];
-
-    def process_coeff(self, coeff):
-        k = coeff['k'];
-        r0 = coeff['r0'];
-        lj1 = 4.0 * coeff['epsilon'] * math.pow(coeff['sigma'], 12.0);
-        lj2 = 4.0 * coeff['epsilon'] * math.pow(coeff['sigma'], 6.0);
-        return _hoomd.make_scalar4(k, r0, lj1, lj2);
-
-
+    def __init__(self):
+        params = TypeParameter("params", "bond_types",
+                               TypeParameterDict(k=float,
+                                                 r0=float,
+                                                 epsilon=float,
+                                                 sigma=float,
+                                                 len_keys=1)
+                               )
+        self._add_typeparam(params)
 
 
 def _table_eval(r, rmin, rmax, V, F, width):
@@ -403,7 +170,7 @@ class table(force._force):
     The following coefficients must be set for each bond type:
 
     - :math:`F_{\mathrm{user}}(r)` and :math:`V_{\mathrm{user}}(r)` - evaluated by ``func`` (see example)
-    - coefficients passed to `func` - ``coeff`` (see example)
+    - coefficients passed to ``func`` - ``coeff`` (see example)
     - :math:`r_{\mathrm{min}}` - ``rmin`` (in distance units)
     - :math:`r_{\mathrm{max}}` - ``rmax`` (in distance units)
 

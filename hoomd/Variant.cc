@@ -1,106 +1,140 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-// Maintainer: joaander
-
-/*! \file Variant.cc
-    \brief Defines Variant and related classes
-*/
-
 #include "Variant.h"
 
-#include <iostream>
-#include <stdexcept>
-namespace py = pybind11;
-using namespace std;
+// These testVariant{Method} functions allow us to test that Python custom
+// variants work properly in C++. This ensures we can test that the function
+// itself can be called in C++ when defined in Python.
 
-VariantLinear::VariantLinear()
+/// Method to enable unit testing of C++ variant calls from pytest
+Scalar testVariantCall(std::shared_ptr<Variant> t, uint64_t step)
     {
-    // initialize m_a and m_b to the end
-    m_a = m_values.end();
-    m_b = m_values.end();
+    return (*t)(step);
     }
 
-/*! \param timestep Time step to set the value at
-    \param val Value to set at \a timestep
-
-    If a point at \a timestep has already been set, this overwrites it.
-*/
-void VariantLinear::setPoint(unsigned int timestep, double val)
+/// Method to enable unit testing of C++ variant min class from pytest
+Scalar testVariantMin(std::shared_ptr<Variant> t)
     {
-    m_values[timestep] = val;
+    return t->min();
     }
 
-/*! \param timestep Timestep to get the value at
-    \return Interpolated value
-*/
-double VariantLinear::getValue(unsigned int timestep)
+/// Method to enable unit testing of C++ variant max class from pytest
+Scalar testVariantMax(std::shared_ptr<Variant> t)
     {
-    // first transform the timestep by the offset
-    if (timestep < m_offset)
-        timestep = 0;
-    else
-        timestep -= m_offset;
-
-    // handle the degenerate case that the variant is empty
-    if (m_values.empty())
-        {
-        throw runtime_error("Error: No points specified to VariantLinear");
-        }
-
-    // handle the degenerate case that there is only one value in the variant
-    if (m_values.size() == 1)
-        return m_values.begin()->second;
-
-    // handle beginning case
-    if (timestep < m_values.begin()->first)
-        return m_values.begin()->second;
-
-    // handle end case
-    map<unsigned int, double>::iterator last = m_values.end();
-    --last;
-    if (timestep >= last->first)
-        return last->second;
-
-    // handle middle case
-    // check to see if the cache is still correct
-    bool cache_ok = m_a != m_values.end() && m_b != m_values.end() && timestep >= m_a->first && timestep < m_b->first;
-    if (!cache_ok)
-        {
-        // reload the cached iterators
-        m_a = m_values.upper_bound(timestep);
-
-        m_b = m_a;
-        --m_a;
-        assert(m_a != m_values.end());
-        assert(m_b != m_values.end());
-        }
-
-    // interpolate
-    unsigned int ta = m_a->first;
-    unsigned int tb = m_b->first;
-    assert(tb > ta);
-
-    double va = m_a->second;
-    double vb = m_b->second;
-
-    assert(timestep >= ta && timestep < tb);
-    double f = double((timestep - ta)) / double((tb - ta));
-    return (1.0 - f) * va + f * vb;
+    return t->max();
     }
 
-// The PYBIND11_EXPORT is necessary as long as we use C++ constructed Variant python objects in unit tests
-void PYBIND11_EXPORT export_Variant(py::module& m)
+//* Trampoline for classes inherited in python
+class VariantPy : public Variant
     {
-    py::class_<Variant, std::shared_ptr<Variant> >(m,"Variant")
-    .def(py::init< >())
-    .def("getValue", &Variant::getValue)
-    .def("setOffset", &Variant::setOffset);
+    public:
+        // Inherit the constructors
+        using Variant::Variant;
 
-    py::class_<VariantConst, Variant, std::shared_ptr<VariantConst> >(m,"VariantConst")
-    .def(py::init< double >());
+        // trampoline method
+        Scalar operator()(uint64_t timestep) override
+            {
+            PYBIND11_OVERLOAD_NAME(Scalar,       // Return type
+                                   Variant,      // Parent class
+                                   "__call__",   // name of function in python
+                                   operator(),   // Name of function in C++
+                                   timestep      // Argument(s)
+                              );
+            }
 
-    py::class_<VariantLinear, Variant, std::shared_ptr<VariantLinear> >(m,"VariantLinear")
-    .def(py::init< >())
-    .def("setPoint", &VariantLinear::setPoint);
+        Scalar min() override
+            {
+            PYBIND11_OVERLOAD_PURE_NAME(Scalar,  // Return type
+                                        Variant, // Parent class
+                                        "_min",  // name of function in python
+                                        min      // name of function
+                    );
+            }
+
+        Scalar max() override
+            {
+            PYBIND11_OVERLOAD_PURE_NAME(Scalar,  // Return type
+                                        Variant, // Parent class
+                                        "_max",  // name of function in python
+                                        max      // name of function
+                    );
+            }
+    };
+
+void export_Variant(pybind11::module& m)
+    {
+    pybind11::class_<Variant, VariantPy, std::shared_ptr<Variant> >(m,"Variant")
+        .def(pybind11::init<>())
+        .def("__call__", &Variant::operator())
+        .def("_min", &Variant::min)
+        .def("_max", &Variant::max)
+        .def_property_readonly("range", &Variant::range)
+        ;
+
+    pybind11::class_<VariantConstant, Variant, std::shared_ptr<VariantConstant> >(m, "VariantConstant")
+        .def(pybind11::init< Scalar >(), pybind11::arg("value"))
+        .def_property("value", &VariantConstant::getValue, &VariantConstant::setValue)
+        ;
+
+    pybind11::class_<VariantRamp, Variant, std::shared_ptr<VariantRamp> >(m, "VariantRamp")
+        .def(pybind11::init< Scalar, Scalar, uint64_t, uint64_t >(), pybind11::arg("A"),
+                                                                     pybind11::arg("B"),
+                                                                     pybind11::arg("t_start"),
+                                                                     pybind11::arg("t_ramp"))
+        .def_property("A", &VariantRamp::getA, &VariantRamp::setA)
+        .def_property("B", &VariantRamp::getB, &VariantRamp::setB)
+        .def_property("t_start", &VariantRamp::getTStart, &VariantRamp::setTStart)
+        .def_property("t_ramp", &VariantRamp::getTRamp, &VariantRamp::setTRamp)
+        ;
+
+    pybind11::class_<VariantCycle, Variant, std::shared_ptr<VariantCycle> >(m, "VariantCycle")
+        .def(pybind11::init< Scalar,
+                             Scalar,
+                             uint64_t,
+                             uint64_t,
+                             uint64_t,
+                             uint64_t,
+                             uint64_t >(),
+            pybind11::arg("A"),
+            pybind11::arg("B"),
+            pybind11::arg("t_start"),
+            pybind11::arg("t_A"),
+            pybind11::arg("t_AB"),
+            pybind11::arg("t_B"),
+            pybind11::arg("t_BA"))
+
+
+        .def_property("A", &VariantCycle::getA, &VariantCycle::setA)
+        .def_property("B", &VariantCycle::getB, &VariantCycle::setB)
+        .def_property("t_start", &VariantCycle::getTStart, &VariantCycle::setTStart)
+        .def_property("t_A", &VariantCycle::getTA, &VariantCycle::setTA)
+        .def_property("t_AB", &VariantCycle::getTAB, &VariantCycle::setTAB)
+        .def_property("t_B", &VariantCycle::getTB, &VariantCycle::setTB)
+        .def_property("t_BA", &VariantCycle::getTBA, &VariantCycle::setTBA)
+        ;
+
+    pybind11::class_<VariantPower, Variant,
+                     std::shared_ptr<VariantPower> >(m, "VariantPower")
+        .def(pybind11::init<Scalar, Scalar, double,
+                            uint64_t, uint64_t>(),
+             pybind11::arg("A"),
+             pybind11::arg("B"),
+             pybind11::arg("power"),
+             pybind11::arg("t_start"),
+             pybind11::arg("t_ramp")
+             )
+        .def_property("A", &VariantPower::getA, &VariantPower::setA)
+        .def_property("B", &VariantPower::getB, &VariantPower::setB)
+        .def_property("power", &VariantPower::getPower,
+                      &VariantPower::setPower)
+        .def_property("t_start", &VariantPower::getTStart,
+                      &VariantPower::setTStart)
+        .def_property("t_size", &VariantPower::getTSize,
+                      &VariantPower::setTSize)
+        ;
+
+    m.def("_test_variant_call", &testVariantCall);
+    m.def("_test_variant_min", &testVariantMin);
+    m.def("_test_variant_max", &testVariantMax);
     }

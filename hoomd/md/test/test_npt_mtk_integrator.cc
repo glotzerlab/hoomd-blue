@@ -107,12 +107,9 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
     // enable the energy computation
     PDataFlags flags;
     flags[pdata_flag::pressure_tensor] = 1;
-    flags[pdata_flag::isotropic_virial] = 1;
-    // only for output of enthalpy
-    flags[pdata_flag::potential_energy] = 1;
     pdata->setFlags(flags);
 
-    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterTag(sysdef, 0, pdata->getN()-1));
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     std::shared_ptr<NeighborList> nlist;
@@ -388,12 +385,9 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, std::shared_ptr<E
     // enable the energy computation
     PDataFlags flags;
     flags[pdata_flag::pressure_tensor] = 1;
-    flags[pdata_flag::isotropic_virial] = 1;
-    // only for output of enthalpy
-    flags[pdata_flag::potential_energy] = 1;
     pdata->setFlags(flags);
 
-    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterTag(sysdef, 0, pdata->getN()-1));
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     std::shared_ptr<NeighborList> nlist;
@@ -431,10 +425,9 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, std::shared_ptr<E
     fc->setShiftMode(PotentialPairLJ::shift);
 
     std::shared_ptr<ComputeThermo> compute_thermo(new ComputeThermo(sysdef, group_all, "name"));
-    compute_thermo->setNDOF(3*N-3);
+    group_all->setTranslationalDOF(3*N-3);
 
     std::shared_ptr<ComputeThermo> compute_thermo_t(new ComputeThermo(sysdef, group_all, "name"));
-    compute_thermo_t->setNDOF(3*N-3);
 
     // set up integration without thermostat
     args_t args;
@@ -551,12 +544,10 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
     // enable the energy computation
     PDataFlags flags;
     flags[pdata_flag::pressure_tensor] = 1;
-    flags[pdata_flag::isotropic_virial] = 1;
-    flags[pdata_flag::potential_energy] = 1;
     flags[pdata_flag::rotational_kinetic_energy] = 1;
     pdata->setFlags(flags);
 
-    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterTag(sysdef, 0, pdata->getN()-1));
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     std::shared_ptr<NeighborList> nlist;
@@ -640,7 +631,7 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
         npt_mtk->removeAllIntegrationMethods();
         npt_mtk->addIntegrationMethod(two_step_npt_mtk);
 
-        unsigned int ndof_rot = npt_mtk->getRotationalNDOF(group_all);
+        unsigned int ndof_rot = npt_mtk->getRotationalDOF(group_all);
         thermo_group->setRotationalNDOF(ndof_rot);
         thermo_group_t->setRotationalNDOF(ndof_rot);
 

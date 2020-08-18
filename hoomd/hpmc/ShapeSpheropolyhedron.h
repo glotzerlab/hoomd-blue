@@ -54,7 +54,7 @@ namespace hpmc
 struct ShapeSpheropolyhedron
     {
     //! Define the parameter type
-    typedef detail::poly3d_verts param_type;
+    typedef detail::PolyhedronVertices param_type;
 
     //! Initialize a polyhedron
     DEVICE ShapeSpheropolyhedron(const quat<Scalar>& _orientation, const param_type& _params)
@@ -137,7 +137,7 @@ struct ShapeSpheropolyhedron
 
     quat<Scalar> orientation;    //!< Orientation of the polyhedron
 
-    const detail::poly3d_verts& verts;     //!< Vertices
+    const detail::PolyhedronVertices& verts;     //!< Vertices
     };
 
 //! Convex polyhedron overlap test

@@ -147,6 +147,15 @@ class AnisoPotentialPair : public ForceCompute
             m_shift_mode = mode;
             }
 
+        virtual void notifyDetach()
+            {
+            if (m_attached)
+                {
+                m_nlist->removeRCutMatrix(m_r_cut_nlist);
+                }
+            m_attached = false;
+            }
+
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
         virtual CommFlags getRequestedCommFlags(unsigned int timestep);
@@ -168,28 +177,73 @@ class AnisoPotentialPair : public ForceCompute
         std::string m_prof_name;                    //!< Cached profiler name
         std::string m_log_name;                     //!< Cached log name
 
+        /// Track whether we have attached to the Simulation object
+        bool m_attached = true;
+
+        /// r_cut (not squared) given to the neighbor list
+        std::shared_ptr<GlobalArray<Scalar>> m_r_cut_nlist;
+
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
 
         //! Method to be called when number of types changes
         void slotNumTypesChange()
             {
-            // skip the reallocation if the number of types does not change
-            // this keeps old potential coefficients when restoring a snapshot
-            // it will result in invalid coefficients if the snapshot has a different type id -> name mapping
-            if (m_pdata->getNTypes() == m_typpair_idx.getW())
-                return;
-
             // if the number of types is different, build a new indexer and reallocate memory
-            m_typpair_idx = Index2D(m_pdata->getNTypes());
+            Index2D new_type_pair_idx = Index2D(m_pdata->getNTypes());
 
-            // reallocate parameter arrays
-            GlobalArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), m_exec_conf);
-            m_rcutsq.swap(rcutsq);
-            GlobalArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf, "my_params", true);
-            m_params.swap(params);
-            GlobalArray<shape_param_type> shape_params(m_pdata->getNTypes(), m_exec_conf, "shape_params", true);
-            m_shape_params.swap(shape_params);
+            // allocate new parameter arrays
+            GlobalArray<Scalar> new_rcutsq(new_type_pair_idx.getNumElements(), m_exec_conf);
+            GlobalArray<Scalar> new_r_cut_nlist(new_type_pair_idx.getNumElements(), m_exec_conf);
+            GlobalArray<param_type> new_params(new_type_pair_idx.getNumElements(), m_exec_conf);
+
+                {
+                // copy existing data into them
+                ArrayHandle<Scalar> h_new_rcutsq(new_rcutsq,
+                                                 access_location::host,
+                                                 access_mode::overwrite);
+                ArrayHandle<Scalar> h_rcutsq(m_rcutsq,
+                                             access_location::host,
+                                             access_mode::overwrite);
+                ArrayHandle<Scalar> h_new_r_cut_nlist(new_r_cut_nlist,
+                                                      access_location::host,
+                                                      access_mode::overwrite);
+                ArrayHandle<Scalar> h_r_cut_nlist(*m_r_cut_nlist,
+                                                  access_location::host,
+                                                  access_mode::overwrite);
+                ArrayHandle<param_type> h_new_params(new_params,
+                                                     access_location::host,
+                                                     access_mode::overwrite);
+                ArrayHandle<param_type> h_params(m_params,
+                                                 access_location::host,
+                                                 access_mode::overwrite);
+
+                for (unsigned int i = 0; i < new_type_pair_idx.getW(); i++)
+                    {
+                    for (unsigned int j = 0; j < new_type_pair_idx.getH(); j++)
+                        {
+                        h_new_rcutsq.data[new_type_pair_idx(i,j)] =
+                            h_rcutsq.data[m_typpair_idx(i,j)];
+                        h_new_r_cut_nlist.data[new_type_pair_idx(i,j)] =
+                            h_r_cut_nlist.data[m_typpair_idx(i,j)];
+                        h_new_params.data[new_type_pair_idx(i,j)] =
+                            h_params.data[m_typpair_idx(i,j)];
+                        }
+                    }
+                }
+
+            // swap the new arrays in
+            m_rcutsq.swap(new_rcutsq);
+            m_params.swap(new_params);
+
+            // except for the r_cut_nlist which the nlist also refers to, copy the new data over
+            *m_r_cut_nlist = new_r_cut_nlist;
+
+            // set the new type pair indexer
+            m_typpair_idx = new_type_pair_idx;
+
+            // resize the shape params
+            m_shape_params.resize(m_pdata->getNTypes());
 
             #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
             if (m_pdata->getExecConf()->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
@@ -212,6 +266,8 @@ class AnisoPotentialPair : public ForceCompute
                 }
             #endif
 
+            // notify the neighbor list that we have changed r_cut values
+            m_nlist->notifyRCutMatrixChange();
             }
     };
 
@@ -254,6 +310,10 @@ AnisoPotentialPair< aniso_evaluator >::AnisoPotentialPair(std::shared_ptr<System
     GlobalArray<shape_param_type> shape_params(m_pdata->getNTypes(), m_exec_conf, "shape_params", true);
     m_shape_params.swap(shape_params);
 
+    m_r_cut_nlist = std::make_shared<GlobalArray<Scalar>>(m_typpair_idx.getNumElements(),
+                                                          m_exec_conf);
+    nlist->addRCutMatrix(m_r_cut_nlist);
+
     #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
@@ -291,6 +351,11 @@ AnisoPotentialPair<aniso_evaluator>::~AnisoPotentialPair()
     // disconnect from type change signal
     m_pdata->getNumTypesChangeSignal().template disconnect<AnisoPotentialPair<aniso_evaluator>,
                                                            &AnisoPotentialPair<aniso_evaluator>::slotNumTypesChange>(this);
+
+    if (m_attached)
+        {
+        m_nlist->removeRCutMatrix(m_r_cut_nlist);
+        }
     }
 
 /*! \param typ1 First type index in the pair
@@ -348,9 +413,20 @@ void AnisoPotentialPair< aniso_evaluator >::setRcut(unsigned int typ1, unsigned 
         throw std::runtime_error("Error setting parameters in AnisoPotentialPair");
         }
 
-    ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::readwrite);
-    h_rcutsq.data[m_typpair_idx(typ1, typ2)] = rcut * rcut;
-    h_rcutsq.data[m_typpair_idx(typ2, typ1)] = rcut * rcut;
+        {
+        // store r_cut**2 for use internally
+        ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::readwrite);
+        h_rcutsq.data[m_typpair_idx(typ1, typ2)] = rcut * rcut;
+        h_rcutsq.data[m_typpair_idx(typ2, typ1)] = rcut * rcut;
+
+        // store r_cut unmodified for so the neighbor list knows what particles to include
+        ArrayHandle<Scalar> h_r_cut_nlist(*m_r_cut_nlist, access_location::host, access_mode::readwrite);
+        h_r_cut_nlist.data[m_typpair_idx(typ1, typ2)] = rcut;
+        h_r_cut_nlist.data[m_typpair_idx(typ2, typ1)] = rcut;
+        }
+
+    // notify the neighbor list that we have changed r_cut values
+    m_nlist->notifyRCutMatrixChange();
     }
 
 /*! AnisoPotentialPair provides:
@@ -429,7 +505,7 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
     memset(&h_virial.data[0] , 0, sizeof(Scalar)*m_virial.getNumElements());
 
     PDataFlags flags = this->m_pdata->getFlags();
-    bool compute_virial = flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial];
+    bool compute_virial = flags[pdata_flag::pressure_tensor];
 
     // for each particle
     for (int i = 0; i < (int)m_pdata->getN(); i++)

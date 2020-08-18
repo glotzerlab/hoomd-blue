@@ -8,13 +8,13 @@ Defines new ensembles and updaters to HPMC specifc data structures
 
 from . import _hpmc
 from . import integrate
-from . import compute
 from hoomd import _hoomd
-
-import math
-
+from hoomd.logging import log
 from hoomd.update import _updater
+from hoomd.operation import _Updater
+from hoomd.parameterdicts import ParameterDict
 import hoomd
+
 
 class boxmc(_updater):
     R""" Apply box updates to sample isobaric and related ensembles.
@@ -52,6 +52,7 @@ class boxmc(_updater):
         run(30) # perform approximately 10 volume moves and 20 length moves
 
     """
+
     def __init__(self, mc, betaP, seed):
         # initialize base class
         _updater.__init__(self);
@@ -60,7 +61,7 @@ class boxmc(_updater):
         # according to frequency parameter.
         period = 1
 
-        if not isinstance(mc, integrate.mode_hpmc):
+        if not isinstance(mc, integrate._HPMCIntegrator):
             hoomd.context.current.device.cpp_msg.warning("update.boxmc: Must have a handle to an HPMC integrator.\n");
             return;
 
@@ -397,6 +398,7 @@ class boxmc(_updater):
         self.cpp_updater.computeAspectRatios();
         _updater.enable(self);
 
+
 class wall(_updater):
     R""" Apply wall updates with a user-provided python callback.
 
@@ -412,7 +414,7 @@ class wall(_updater):
                Then, update.wall only accepts an update move provided by the python callback if it maintains confinement conditions associated with all walls. Otherwise,
                it reverts back to a non-updated copy of the walls.
 
-    Once initialized, the update provides the following log quantities that can be logged via :py:class:`hoomd.analyze.log`:
+    Once initialized, the update provides the following log quantities that can be logged via ``hoomd.analyze.log``:
 
     * **hpmc_wall_acceptance_ratio** - the acceptance ratio for wall update moves
 
@@ -506,6 +508,7 @@ class wall(_updater):
         """
         return self.cpp_updater.getTotalCount(mode);
 
+
 class muvt(_updater):
     R""" Insert and remove particles in the muVT ensemble.
 
@@ -534,7 +537,7 @@ class muvt(_updater):
     """
     def __init__(self, mc, seed, period=1, transfer_types=None,ngibbs=1):
 
-        if not isinstance(mc, integrate.mode_hpmc):
+        if not isinstance(mc, integrate._HPMCIntegrator):
             hoomd.context.current.device.cpp_msg.warning("update.muvt: Must have a handle to an HPMC integrator.\n");
             return;
 
@@ -679,6 +682,7 @@ class muvt(_updater):
         if n_trial is not None:
             self.cpp_updater.setNTrial(int(n_trial))
 
+
 class remove_drift(_updater):
     R""" Remove the center of mass drift from a system restrained on a lattice.
 
@@ -739,6 +743,7 @@ class remove_drift(_updater):
         self.cpp_updater = cls(hoomd.context.current.system_definition, external_lattice.cpp_compute, mc.cpp_integrator);
         self.setupUpdater(period);
 
+
 class shape_update(_updater):
     R"""
     Apply shape updates to the shape definitions defined in the integrator. This class should not be instantiated directly
@@ -779,7 +784,7 @@ class shape_update(_updater):
                     mc,
                     move_ratio,
                     seed,
-                    period = 1,
+                    period=1,
                     phase=-1,
                     pretend=False,
                     pos=None,
@@ -789,67 +794,67 @@ class shape_update(_updater):
                     nsweeps=1,
                     multi_phase=False,
                     num_phase=2,
-                    gsdid = None):
+                    gsdid=None):
         _updater.__init__(self);
 
-        cls = None;
-        if isinstance(mc, integrate.sphere):
-            cls = _hpmc.UpdaterShapeSphere;
-        elif isinstance(mc, integrate.convex_polygon):
-            cls = _hpmc.UpdaterShapeConvexPolygon;
-        elif isinstance(mc, integrate.simple_polygon):
-            cls = _hpmc.UpdaterShapeSimplePolygon;
-        elif isinstance(mc, integrate.convex_polyhedron):
-            cls = _hpmc.UpdaterShapeConvexPolyhedron;
-        elif isinstance(mc, integrate.convex_spheropolyhedron):
-            cls = _hpmc.UpdaterShapeSpheropolyhedron;
-        elif isinstance(mc, integrate.ellipsoid):
-            cls = _hpmc.UpdaterShapeEllipsoid;
-        elif isinstance(mc, integrate.convex_spheropolygon):
-            cls =_hpmc.UpdaterShapeSpheropolygon;
-        elif isinstance(mc, integrate.patchy_sphere):
-            cls =_hpmc.UpdaterShapePatchySphere;
-        elif isinstance(mc, integrate.polyhedron):
-            cls =_hpmc.UpdaterShapePolyhedron;
-        elif isinstance(mc, integrate.sphinx):
-            cls =_hpmc.UpdaterShapeSphinx;
-        elif isinstance(mc, integrate.sphere_union):
-            cls =_hpmc.UpdaterShapeSphereUnion;
+        cls = None
+        if isinstance(mc, integrate.Sphere):
+            cls = _hpmc.UpdaterShapeSphere
+        elif isinstance(mc, integrate.ConvexPolygon):
+            cls = _hpmc.UpdaterShapeConvexPolygon
+        elif isinstance(mc, integrate.SimplePolygon):
+            cls = _hpmc.UpdaterShapeSimplePolygon
+        elif isinstance(mc, integrate.ConvexPolyhedron):
+            cls = _hpmc.UpdaterShapeConvexPolyhedron
+        elif isinstance(mc, integrate.ConvexSpheropolyhedron):
+            cls = _hpmc.UpdaterShapeSpheropolyhedron
+        elif isinstance(mc, integrate.Ellipsoid):
+            cls = _hpmc.UpdaterShapeEllipsoid
+        elif isinstance(mc, integrate.ConvexSpheropolygon):
+            cls = _hpmc.UpdaterShapeSpheropolygon
+        elif isinstance(mc, integrate.Polyhedron):
+            cls = _hpmc.UpdaterShapePolyhedron
+        elif isinstance(mc, integrate.Sphinx):
+            cls = _hpmc.UpdaterShapeSphinx
+        elif isinstance(mc, integrate.SphereUnion):
+            cls = _hpmc.UpdaterShapeSphereUnion
         else:
-            hoomd.context.current.device.cpp_msg.error("update.shape_update: Unsupported integrator.\n");
-            raise RuntimeError("Error initializing update.shape_update");
+            hoomd.context.current.device.cpp_msg.error("update.shape_update: " /
+                                                       "Unsupported integrator.\n")
+            raise RuntimeError("Error initializing update.shape_update")
         self.cpp_updater = cls(hoomd.context.current.system_definition,
-                                mc.cpp_integrator,
-                                move_ratio,
-                                seed,
-                                nselect,
-                                nsweeps,
-                                pretend,
-                                multi_phase,
-                                num_phase);
-        self.move_cpp = None;
-        self.boltzmann_function = None;
-        self.seed = seed;
-        self.mc = mc;
-        self.pos = pos;
-        self._gsdid = None;
+                               mc.cpp_integrator,
+                               move_ratio,
+                               seed,
+                               nselect,
+                               nsweeps,
+                               pretend,
+                               multi_phase,
+                               num_phase)
+        self.move_cpp = None
+        self.boltzmann_function = None
+        self.seed = seed
+        self.mc = mc
+        self.pos = pos
+        self._gsdid = None
         # if gsdid in shape_update._ids:
         #     raise RuntimeError("gsdid already exists")
         if gsdid is not None:
-            self._gsdid = gsdid;
-            shape_update._ids.append(gsdid);
+            self._gsdid = gsdid
+            shape_update._ids.append(gsdid)
 
         if pos and setup_pos:
             if pos_callback is None:
-                pos.set_info(self.pos_callback);
+                pos.set_info(self.pos_callback)
             else:
-                pos.set_info(pos_callback);
-        self.setupUpdater(period, phase);
+                pos.set_info(pos_callback)
+        self.setupUpdater(period, phase)
 
     def python_shape_move(self, callback, params, stepsize, param_ratio):
-        R"""Enable python shape move and set parameters. All python shape moves must
-        be callable object that take a single list of parameters between 0 and 1 as
-        the call arguments and returns a shape parameter definition.
+        R"""Enable python shape move and set parameters.
+        All python shape moves must be callable object that take a single list
+        of parameters between 0 and 1 as the call arguments and returns a
+        shape parameter definition.
 
         Args:
             callback (callable): The python function that will be called each update.
@@ -880,25 +885,25 @@ class shape_update(_updater):
             hoomd.context.current.device.cpp_msg.error("update.shape_update.python_shape_move: Cannot change the move once initialized.\n");
             raise RuntimeError("Error initializing update.shape_update");
         move_cls = None;
-        if isinstance(self.mc, integrate.sphere):
+        if isinstance(self.mc, integrate.Sphere):
             move_cls = _hpmc.PythonShapeMoveSphere;
-        elif isinstance(self.mc, integrate.convex_polygon):
+        elif isinstance(self.mc, integrate.convexPolygon):
             move_cls = _hpmc.PythonShapeMoveConvexPolygon;
-        elif isinstance(self.mc, integrate.simple_polygon):
+        elif isinstance(self.mc, integrate.SimplePolygon):
             move_cls = _hpmc.PythonShapeMoveSimplePolygon;
-        elif isinstance(self.mc, integrate.convex_polyhedron):
+        elif isinstance(self.mc, integrate.ConvexPolyhedron):
             move_cls = _hpmc.PythonShapeMoveConvexPolyhedron;
-        elif isinstance(self.mc, integrate.convex_spheropolyhedron):
+        elif isinstance(self.mc, integrate.ConvexSpheropolyhedron):
             move_cls = _hpmc.PythonShapeMoveSpheropolyhedron;
-        elif isinstance(self.mc, integrate.ellipsoid):
+        elif isinstance(self.mc, integrate.Ellipsoid):
             move_cls = _hpmc.PythonShapeMoveEllipsoid;
-        elif isinstance(self.mc, integrate.convex_spheropolygon):
+        elif isinstance(self.mc, integrate.ConvexSpheropolygon):
             move_cls = _hpmc.PythonShapeMoveConvexSphereopolygon;
-        elif isinstance(self.mc, integrate.polyhedron):
+        elif isinstance(self.mc, integrate.Polyhedron):
             move_cls = _hpmc.PythonShapeMovePolyhedron;
-        elif isinstance(self.mc, integrate.sphinx):
+        elif isinstance(self.mc, integrate.Sphinx):
             move_cls = _hpmc.PythonShapeMoveSphinx;
-        elif isinstance(self.mc, integrate.sphere_union):
+        elif isinstance(self.mc, integrate.SphereUnion):
             move_cls = _hpmc.PythonShapeMoveSphereUnion;
         else:
             hoomd.context.current.device.cpp_msg.error("update.shape_update.python_shape_move: Unsupported integrator.\n");
@@ -913,7 +918,6 @@ class shape_update(_updater):
         for i in range(ntypes):
             typ = hoomd.context.current.system_definition.getParticleData().getNameByType(i)
             param_list.append(self.mc.shape_class.ensure_list(params[typ]));
-
 
         if isinstance(stepsize, float) or isinstance(stepsize, int):
             stepsize_list = [float(stepsize) for i in range(ntypes) ];
@@ -958,27 +962,25 @@ are only enabled for polyhedral and spherical particles.")
             hoomd.context.current.device.cpp_msg.error("update.shape_update.vertex_shape_move: Cannot change the move once initialized.\n");
             raise RuntimeError("Error initializing update.shape_update");
         move_cls = None;
-        if isinstance(self.mc, integrate.sphere):
+        if isinstance(self.mc, integrate.Sphere):
             pass;
-        elif isinstance(self.mc, integrate.convex_polygon):
+        elif isinstance(self.mc, integrate.ConvexPolygon):
             pass;
-        elif isinstance(self.mc, integrate.simple_polygon):
+        elif isinstance(self.mc, integrate.SimplePolygon):
             pass;
-        elif isinstance(self.mc, integrate.convex_polyhedron):
+        elif isinstance(self.mc, integrate.ConvexPolyhedron):
             move_cls = _hpmc.GeneralizedShapeMoveConvexPolyhedron;
-        elif isinstance(self.mc, integrate.convex_spheropolyhedron):
+        elif isinstance(self.mc, integrate.ConvexSpheropolyhedron):
             pass;
-        elif isinstance(self.mc, integrate.ellipsoid):
+        elif isinstance(self.mc, integrate.Ellipsoid):
             pass;
-        elif isinstance(self.mc, integrate.convex_spheropolygon):
+        elif isinstance(self.mc, integrate.ConvexSpheropolygon):
             pass;
-        elif isinstance(self.mc, integrate.patchy_sphere):
+        elif isinstance(self.mc, integrate.Polyhedron):
             pass;
-        elif isinstance(self.mc, integrate.polyhedron):
+        elif isinstance(self.mc, integrate.Sphinx):
             pass;
-        elif isinstance(self.mc, integrate.sphinx):
-            pass;
-        elif isinstance(self.mc, integrate.sphere_union):
+        elif isinstance(self.mc, integrate.SphereUnion):
             pass;
         else:
             hoomd.context.current.device.cpp_msg.error("update.shape_update.vertex_shape_move: Unsupported integrator.\n");
@@ -1019,25 +1021,25 @@ are only enabled for polyhedral and spherical particles.")
             hoomd.context.current.device.cpp_msg.error("update.shape_update.constant_shape_move: Cannot change the move once initialized.\n");
             raise RuntimeError("Error initializing update.shape_update");
         move_cls = None;
-        if isinstance(self.mc, integrate.sphere):
+        if isinstance(self.mc, integrate.Sphere):
             move_cls = _hpmc.ConstantShapeMoveSphere;
-        elif isinstance(self.mc, integrate.convex_polygon):
+        elif isinstance(self.mc, integrate.ConvexPolygon):
             move_cls = _hpmc.ConstantShapeMoveConvexPolygon;
-        elif isinstance(self.mc, integrate.simple_polygon):
+        elif isinstance(self.mc, integrate.SimplePolygon):
             move_cls = _hpmc.ConstantShapeMoveSimplePolygon;
-        elif isinstance(self.mc, integrate.convex_polyhedron):
+        elif isinstance(self.mc, integrate.ConvexPolyhedron):
             move_cls = _hpmc.ConstantShapeMoveConvexPolyhedron;
-        elif isinstance(self.mc, integrate.convex_spheropolyhedron):
+        elif isinstance(self.mc, integrate.ConvexSpheropolyhedron):
             move_cls = _hpmc.ConstantShapeMoveSpheropolyhedron;
-        elif isinstance(self.mc, integrate.ellipsoid):
+        elif isinstance(self.mc, integrate.Ellipsoid):
             move_cls = _hpmc.ConstantShapeMoveEllipsoid;
-        elif isinstance(self.mc, integrate.convex_spheropolygon):
+        elif isinstance(self.mc, integrate.ConvexSpheropolygon):
             move_cls = _hpmc.ConstantShapeMoveConvexSphereopolygon;
-        elif isinstance(self.mc, integrate.polyhedron):
+        elif isinstance(self.mc, integrate.Polyhedron):
             move_cls = _hpmc.ConstantShapeMovePolyhedron;
-        elif isinstance(self.mc, integrate.sphinx):
+        elif isinstance(self.mc, integrate.Sphinx):
             move_cls = _hpmc.ConstantShapeMoveSphinx;
-        elif isinstance(self.mc, integrate.sphere_union):
+        elif isinstance(self.mc, integrate.SphereUnion):
             move_cls = _hpmc.ConstantShapeMoveSphereUnion;
         else:
             hoomd.context.current.device.cpp_msg.error("update.shape_update.constant_shape_move: Unsupported integrator.\n");
@@ -1071,9 +1073,9 @@ are only enabled for polyhedral and spherical particles.")
             hoomd.context.current.device.cpp_msg.error("update.shape_update.elastic_shape_move: Cannot change the move once initialized.\n");
             raise RuntimeError("Error initializing update.shape_update");
         move_cls = None;
-        if isinstance(self.mc, integrate.convex_polyhedron):
+        if isinstance(self.mc, integrate.ConvexPolyhedron):
             move_cls = _hpmc.ElasticShapeMoveConvexPolyhedron;
-        elif isinstance(self.mc, integrate.ellipsoid):
+        elif isinstance(self.mc, integrate.Ellipsoid):
             move_cls = _hpmc.ElasticShapeMoveEllipsoid;
         else:
             hoomd.context.current.device.cpp_msg.error("update.shape_update.elastic_shape_move: Unsupported integrator.\n");
@@ -1291,27 +1293,25 @@ class alchemy(shape_update):
         # initialize base class
         shape_update.__init__(self, **params);
         boltzmann_cls = None;
-        if isinstance(self.mc, integrate.sphere):
+        if isinstance(self.mc, integrate.Sphere):
             boltzmann_cls = _hpmc.AlchemyLogBoltzmannSphere;
-        elif isinstance(self.mc, integrate.convex_polygon):
+        elif isinstance(self.mc, integrate.ConvexPolygon):
             boltzmann_cls = _hpmc.AlchemyLogBoltzmannConvexPolygon;
-        elif isinstance(self.mc, integrate.simple_polygon):
+        elif isinstance(self.mc, integrate.SimplePolygon):
             boltzmann_cls = _hpmc.AlchemyLogBoltzmannSimplePolygon;
-        elif isinstance(self.mc, integrate.convex_polyhedron):
+        elif isinstance(self.mc, integrate.ConvexPolyhedron):
             boltzmann_cls = _hpmc.AlchemyLogBoltzmannConvexPolyhedron;
-        elif isinstance(self.mc, integrate.convex_spheropolyhedron):
+        elif isinstance(self.mc, integrate.ConvexSpheropolyhedron):
             boltzmann_cls = _hpmc.AlchemyLogBoltzmannSpheropolyhedron;
-        elif isinstance(self.mc, integrate.ellipsoid):
+        elif isinstance(self.mc, integrate.Ellipsoid):
             boltzmann_cls = _hpmc.AlchemyLogBoltzmannEllipsoid;
-        elif isinstance(self.mc, integrate.convex_spheropolygon):
+        elif isinstance(self.mc, integrate.ConvexSpheropolygon):
             boltzmann_cls =_hpmc.AlchemyLogBoltzmannSpheropolygon;
-        elif isinstance(self.mc, integrate.patchy_sphere):
-            boltzmann_cls =_hpmc.AlchemyLogBoltzmannPatchySphere;
-        elif isinstance(self.mc, integrate.polyhedron):
+        elif isinstance(self.mc, integrate.Polyhedron):
             boltzmann_cls =_hpmc.AlchemyLogBoltzmannPolyhedron;
-        elif isinstance(self.mc, integrate.sphinx):
+        elif isinstance(self.mc, integrate.Sphinx):
             boltzmann_cls =_hpmc.AlchemyLogBoltzmannSphinx;
-        elif isinstance(self.mc, integrate.sphere_union):
+        elif isinstance(self.mc, integrate.SphereUnion):
             boltzmann_cls =_hpmc.AlchemyLogBoltzmannSphereUnion;
         else:
             hoomd.context.current.device.cpp_msg.error("update.shape_update: Unsupported integrator.\n");
@@ -1356,9 +1356,9 @@ class elastic_shape(shape_update):
             hoomd.context.current.device.cpp_msg.warning("update.elastic_shape: GPU is not implemented defaulting to CPU implementation.\n");
 
         self.elastic_shape_move(stepsize, param_ratio);
-        if isinstance(self.mc, integrate.convex_polyhedron):
+        if isinstance(self.mc, integrate.ConvexPolyhedron):
             clss = _hpmc.ShapeSpringLogBoltzmannConvexPolyhedron;
-        elif isinstance(self.mc, integrate.ellipsoid):
+        elif isinstance(self.mc, integrate.Ellipsoid):
             for type_shape in self.mc.get_type_shapes():
                 if  not np.isclose(type_shape["a"], type_shape["b"]) or \
                     not np.isclose(type_shape["a"], type_shape["c"]) or \
@@ -1384,144 +1384,171 @@ class elastic_shape(shape_update):
         self.stiffness = hoomd.variant._setup_variant_input(stiffness)
         self.boltzmann_function.setStiffness(self.stiffness.cpp_variant)
 
-class clusters(_updater):
+
+class Clusters(_Updater):
     R""" Equilibrate the system according to the geometric cluster algorithm (GCA).
 
-    The GCA as described in Liu and Lujten (2004), http://doi.org/10.1103/PhysRevLett.92.035504 is used for hard shape,
-    patch interactions and depletants.
+    The GCA as described in Liu and Lujten (2004),
+    http://doi.org/10.1103/PhysRevLett.92.035504 is used for hard shape, patch
+    interactions and depletants.
 
-    With depletants, Clusters are defined by a simple distance cut-off criterion. Two particles belong to the same cluster if
-    the circumspheres of the depletant-excluded volumes overlap.
+    With depletants, Clusters are defined by a simple distance cut-off
+    criterion. Two particles belong to the same cluster if the circumspheres of
+    the depletant-excluded volumes overlap.
 
-    Supported moves include pivot moves (point reflection), line reflections (pi rotation around an axis), and type swaps.
-    Only the pivot move is rejection free. With anisotropic particles, the pivot move cannot be used because it would create a
-    chiral mirror image of the particle, and only line reflections are employed. Line reflections are not rejection free because
-    of periodic boundary conditions, as discussed in Sinkovits et al. (2012), http://doi.org/10.1063/1.3694271 .
+    Supported moves include pivot moves (point reflection), line reflections
+    (pi rotation around an axis), and type swaps.  Only the pivot move is
+    rejection free. With anisotropic particles, the pivot move cannot be used
+    because it would create a chiral mirror image of the particle, and only
+    line reflections are employed. Line reflections are not rejection free
+    because of periodic boundary conditions, as discussed in Sinkovits et al.
+    (2012), http://doi.org/10.1063/1.3694271 .
 
-    The type swap move works between two types of spherical particles and exchanges their identities.
+    The type swap move works between two types of spherical particles and
+    exchanges their identities.
 
-    The :py:class:`clusters` updater support TBB execution on multiple CPU cores. See :doc:`installation` for more information on how
-    to compile HOOMD with TBB support.
+    The :py:class:`Clusters` updater support TBB execution on multiple CPU
+    cores. See :doc:`installation` for more information on how to compile HOOMD
+    with TBB support.
 
     Args:
-        mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
-        seed (int): The seed of the pseudo-random number generator (Needs to be the same across partitions of the same Gibbs ensemble)
-        period (int): Number of timesteps between histogram evaluations.
+        seed (int): Random number seed.
+        swap_types(list): A pair of two types whose identities may be swapped.
+        move_ratio(float): Set the ratio between pivot and reflection moves.
+        flip_probability(float): Set the probability for transforming an
+                                 individual cluster.
+        swap_move_ratio(float): Set the ratio between type swap moves and
+                                geometric moves.
+        delta_mu(float): The chemical potential difference between types to
+                         be swapped.
+        trigger (int): Number of timesteps between histogram evaluations.
 
-    Example::
+    Examples::
 
-        mc = hpmc.integrate.sphere(seed=415236)
-        hpmc.update.clusters(mc=mc, seed=123)
+        TODO: link to example notebooks
 
     """
-    def __init__(self, mc, seed, period=1):
 
-        if not isinstance(mc, integrate.mode_hpmc):
-            hoomd.context.current.device.cpp_msg.warning("update.clusters: Must have a handle to an HPMC integrator.\n");
-            return
+    def __init__(self, seed, swap_types, move_ratio=0.5,
+                 flip_probability=0.5, swap_move_ratio=0.5, trigger=1):
+        super().__init__(trigger)
+        try:
+            if len(swap_types) != 2 and len(swap_types) != 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            raise ValueError("swap_types must be an iterable of length "
+                             "2 or 0.")
 
-        # initialize base class
-        _updater.__init__(self);
+        param_dict = ParameterDict(seed=int(seed),
+                                   swap_types=list(swap_types),
+                                   move_ratio=float(move_ratio),
+                                   flip_probability=float(flip_probability),
+                                   swap_move_ratio=float(swap_move_ratio))
+        self._param_dict.update(param_dict)
 
-        if isinstance(mc, integrate.sphere):
-           cls = _hpmc.UpdaterClustersSphere;
-        elif isinstance(mc, integrate.convex_polygon):
-            cls = _hpmc.UpdaterClustersConvexPolygon;
-        elif isinstance(mc, integrate.simple_polygon):
-            cls = _hpmc.UpdaterClustersSimplePolygon;
-        elif isinstance(mc, integrate.convex_polyhedron):
-            cls = _hpmc.UpdaterClustersConvexPolyhedron;
-        elif isinstance(mc, integrate.convex_spheropolyhedron):
-            cls = _hpmc.UpdaterClustersSpheropolyhedron;
-        elif isinstance(mc, integrate.ellipsoid):
-            cls = _hpmc.UpdaterClustersEllipsoid;
-        elif isinstance(mc, integrate.convex_spheropolygon):
-            cls =_hpmc.UpdaterClustersSpheropolygon;
-        elif isinstance(mc, integrate.faceted_sphere):
-            cls =_hpmc.UpdaterClustersFacetedEllipsoid;
-        elif isinstance(mc, integrate.sphere_union):
-            cls =_hpmc.UpdaterClustersSphereUnion;
-        elif isinstance(mc, integrate.convex_spheropolyhedron_union):
-            cls =_hpmc.UpdaterClustersConvexPolyhedronUnion;
-        elif isinstance(mc, integrate.faceted_ellipsoid_union):
-            cls =_hpmc.UpdaterClustersFacetedEllipsoidUnion;
-        elif isinstance(mc, integrate.polyhedron):
-            cls =_hpmc.UpdaterClustersPolyhedron;
-        elif isinstance(mc, integrate.sphinx):
-            cls =_hpmc.UpdaterClustersSphinx;
+    def attach(self, simulation):
+        integrator = simulation.operations.integrator
+        if not isinstance(integrator, integrate._HPMCIntegrator):
+            raise RuntimeError("The integrator must be a HPMC integrator.")
+
+        integrator_pairs = [
+                (integrate.Sphere,
+                    _hpmc.UpdaterClustersSphere),
+                (integrate.convex_polygon,
+                    _hpmc.UpdaterClustersConvexPolygon),
+                (integrate.simple_polygon,
+                    _hpmc.UpdaterClustersConvexPolygon),
+                (integrate.convex_polyhedron,
+                    _hpmc.UpdaterClustersConvexPolyhedron),
+                (integrate.convex_spheropolyhedron,
+                    _hpmc.UpdaterClustersSpheropolyhedron),
+                (integrate.ellipsoid,
+                    _hpmc.UpdaterClustersEllipsoid),
+                (integrate.convex_spheropolygon,
+                    _hpmc.UpdaterClustersSpheropolygon),
+                (integrate.faceted_sphere,
+                    _hpmc.UpdaterClustersFacetedEllipsoid),
+                (integrate.sphere_union,
+                    _hpmc.UpdaterClustersSphereUnion),
+                (integrate.convex_spheropolyhedron_union,
+                    _hpmc.UpdaterClustersConvexPolyhedronUnion),
+                (integrate.faceted_ellipsoid_union,
+                    _hpmc.UpdaterClustersFacetedEllipsoidUnion),
+                (integrate.polyhedron,
+                    _hpmc.UpdaterClustersPolyhedron),
+                (integrate.sphinx,
+                    _hpmc.UpdaterClustersSphinx)
+                ]
+
+        cpp_cls = None
+        for python_integrator, cpp_updater in integrator_pairs:
+            if isinstance(integrator, python_integrator):
+                cpp_cls = cpp_updater
+        if cpp_cls is None:
+            raise RuntimeError("Unsupported integrator.\n")
+
+        if not integrator.is_attached:
+            raise RuntimeError("Integrator is not attached yet.")
+        self._cpp_obj = cpp_cls(simulation.state._cpp_sys_def,
+                                integrator._cpp_obj,
+                                int(self.seed))
+        super().attach(simulation)
+
+    @property
+    def counter(self):
+        R""" Get the number of accepted and rejected cluster moves.
+
+        Returns:
+            A counter object with pivot, reflection, and swap properties. Each
+            property is a list of accepted moves and rejected moves since the
+            last run.
+
+        Note::
+            if the updater is not attached None will be returned.
+        """
+        if not self.is_attached:
+            return None
         else:
-            raise RuntimeError("Unsupported integrator.\n");
+            return self._cpp_obj.getCounters(1)
 
-        self.cpp_updater = cls(hoomd.context.current.system_definition, mc.cpp_integrator, int(seed))
-
-        # register the clusters updater
-        self.setupUpdater(period)
-
-    def set_params(self, move_ratio=None, flip_probability=None, swap_move_ratio=None, delta_mu=None, swap_types=None):
-        R""" Set options for the clusters moves.
-
-        Args:
-            move_ratio (float): Set the ratio between pivot and reflection moves (default 0.5)
-            flip_probability (float): Set the probability for transforming an individual cluster (default 0.5)
-            swap_move_ratio (float): Set the ratio between type swap moves and geometric moves (default 0.5)
-            delta_mu (float): The chemical potential difference between types to be swapped
-            swap_types (list): A pair of two types whose identities are swapped
-
-        Note:
-            When an argument is None, the value is left unchanged from its current state.
-
-        Example::
-
-            clusters = hpmc.update.clusters(mc, seed=123)
-            clusters.set_params(move_ratio = 1.0)
-            clusters.set_params(swap_types=['A','B'], delta_mu = -0.001)
-        """
-
-
-        if move_ratio is not None:
-            self.cpp_updater.setMoveRatio(float(move_ratio))
-
-        if flip_probability is not None:
-            self.cpp_updater.setFlipProbability(float(flip_probability))
-
-        if swap_move_ratio is not None:
-            self.cpp_updater.setSwapMoveRatio(float(swap_move_ratio))
-
-        if delta_mu is not None:
-            self.cpp_updater.setDeltaMu(float(delta_mu))
-
-        if swap_types is not None:
-            my_swap_types = tuple(swap_types)
-            if len(my_swap_types) != 2:
-                hoomd.context.current.device.cpp_msg.error("update.clusters: Need exactly two types for type swap.\n");
-                raise RuntimeError("Error setting parameters in update.clusters");
-            type_A = hoomd.context.current.system_definition.getParticleData().getTypeByName(my_swap_types[0]);
-            type_B = hoomd.context.current.system_definition.getParticleData().getTypeByName(my_swap_types[1]);
-            self.cpp_updater.setSwapTypePair(type_A, type_B)
-
-    def get_pivot_acceptance(self):
-        R""" Get the average acceptance ratio for pivot moves
+    @log(flag='sequence')
+    def pivot_moves(self):
+        R""" Get a tuple with the accepted and rejected pivot moves.
 
         Returns:
-            The average acceptance rate for pivot moves during the last run
+            A tuple of (accepted moves, rejected moves) since the last run.
+            Returns (0, 0) if not attached.
         """
-        counters = self.cpp_updater.getCounters(1);
-        return counters.getPivotAcceptance();
+        counter = self.counter
+        if counter is None:
+            return (0, 0)
+        else:
+            return counter.pivot
 
-    def get_reflection_acceptance(self):
-        R""" Get the average acceptance ratio for reflection moves
+    @log(flag='sequence')
+    def reflection_moves(self):
+        R""" Get a tuple with the accepted and rejected reflection moves.
 
         Returns:
-            The average acceptance rate for reflection moves during the last run
+            A tuple of (accepted moves, rejected moves) since the last run.
+            Returns (0, 0) if not attached.
         """
-        counters = self.cpp_updater.getCounters(1);
-        return counters.getReflectionAcceptance();
+        counter = self.counter
+        if counter is None:
+            return (0, 0)
+        else:
+            return counter.reflection
 
-    def get_swap_acceptance(self):
-        R""" Get the average acceptance ratio for swap moves
+    @log(flag='sequence')
+    def swap_moves(self):
+        R""" Get a tuple with the accepted and rejected swap moves.
 
         Returns:
-            The average acceptance rate for type swap moves during the last run
+            A tuple of (accepted moves, rejected moves) since the last run.
+            Returns (0, 0) if not attached.
         """
-        counters = self.cpp_updater.getCounters(1);
-        return counters.getSwapAcceptance();
+        counter = self.counter
+        if counter is None:
+            return (0, 0)
+        else:
+            return counter.swap

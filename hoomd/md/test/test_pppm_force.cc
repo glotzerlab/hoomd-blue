@@ -18,6 +18,7 @@
 
 #include "hoomd/md/NeighborListTree.h"
 #include "hoomd/Initializers.h"
+#include "hoomd/filter/ParticleFilterTags.h"
 
 #include <math.h>
 
@@ -55,7 +56,7 @@ void pppm_force_particle_test(pppmforce_creator pppm_creator, std::shared_ptr<Ex
     pdata_2->setFlags(~PDataFlags(0));
 
     std::shared_ptr<NeighborListTree> nlist_2(new NeighborListTree(sysdef_2, Scalar(1.0), Scalar(1.0)));
-    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef_2, 0, 1));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterTags(std::vector<unsigned int>({0, 1})));
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef_2, selector_all));
 
     {
@@ -132,7 +133,7 @@ void pppm_force_particle_test_triclinic(pppmforce_creator pppm_creator, std::sha
     pdata_2->setFlags(~PDataFlags(0));
 
     std::shared_ptr<NeighborListTree> nlist_2(new NeighborListTree(sysdef_2, Scalar(1.0), Scalar(1.0)));
-    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef_2, 0, 1));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterTags(std::vector<unsigned int>({0, 1})));
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef_2, selector_all));
 
     {

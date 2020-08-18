@@ -1,14 +1,6 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
-// Maintainer: joaander
-
-/*! \file IntegratorTwoStep.cc
-    \brief Defines the IntegratorTwoStep class
-*/
-
-
 #include "IntegratorTwoStep.h"
 
 namespace py = pybind11;
@@ -16,6 +8,9 @@ namespace py = pybind11;
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #endif
+
+#include <pybind11/stl_bind.h>
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<IntegrationMethodTwoStep> >);
 
 using namespace std;
 
@@ -45,9 +40,8 @@ void IntegratorTwoStep::setProfiler(std::shared_ptr<Profiler> prof)
     {
     Integrator::setProfiler(prof);
 
-    std::vector< std::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
-    for (method = m_methods.begin(); method != m_methods.end(); ++method)
-        (*method)->setProfiler(prof);
+    for (auto& method : m_methods)
+        method->setProfiler(prof);
     }
 
 /*! Returns a list of log quantities this compute calculates
@@ -62,10 +56,9 @@ std::vector< std::string > IntegratorTwoStep::getProvidedLogQuantities()
     combined_result.insert(combined_result.end(), result.begin(), result.end());
 
     // add integrationmethod quantities
-    std::vector< std::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
-    for (method = m_methods.begin(); method != m_methods.end(); ++method)
+    for (auto& method : m_methods)
         {
-        result = (*method)->getProvidedLogQuantities();
+        result = method->getProvidedLogQuantities();
         combined_result.insert(combined_result.end(), result.begin(), result.end());
         }
     return combined_result;
@@ -79,10 +72,9 @@ Scalar IntegratorTwoStep::getLogValue(const std::string& quantity, unsigned int 
     bool quantity_flag = false;
     Scalar log_value;
 
-    std::vector< std::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
-    for (method = m_methods.begin(); method != m_methods.end(); ++method)
+    for (auto& method : m_methods)
         {
-        log_value = (*method)->getLogValue(quantity,timestep,quantity_flag);
+        log_value = method->getLogValue(quantity,timestep,quantity_flag);
         if (quantity_flag) return log_value;
         }
     return Integrator::getLogValue(quantity, timestep);
@@ -109,9 +101,13 @@ void IntegratorTwoStep::update(unsigned int timestep)
         m_prof->push("Integrate");
 
     // perform the first step of the integration on all groups
-    std::vector< std::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
-    for (method = m_methods.begin(); method != m_methods.end(); ++method)
-        (*method)->integrateStepOne(timestep);
+    for (auto& method : m_methods)
+        {
+        // deltaT should probably be passed as an argument, but that would require modifying many
+        // files. Work around this by calling setDeltaT every timestep.
+        method->setDeltaT(m_deltaT);
+        method->integrateStepOne(timestep);
+        }
 
     if (m_prof)
         m_prof->pop();
@@ -150,8 +146,8 @@ void IntegratorTwoStep::update(unsigned int timestep)
         m_prof->push("Integrate");
 
     // perform the second step of the integration on all groups
-    for (method = m_methods.begin(); method != m_methods.end(); ++method)
-        (*method)->integrateStepTwo(timestep);
+    for (auto& method : m_methods)
+        method->integrateStepTwo(timestep);
 
     /* NOTE: For composite particles, it is assumed that positions and orientations are not updated
        in the second step.
@@ -174,9 +170,8 @@ void IntegratorTwoStep::setDeltaT(Scalar deltaT)
     Integrator::setDeltaT(deltaT);
 
     // set deltaT on all methods already added
-    std::vector< std::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
-    for (method = m_methods.begin(); method != m_methods.end(); ++method)
-        (*method)->setDeltaT(deltaT);
+    for (auto& method : m_methods)
+        method->setDeltaT(deltaT);
     }
 
 /*! \param new_method New integration method to add to the integrator
@@ -192,10 +187,9 @@ void IntegratorTwoStep::addIntegrationMethod(std::shared_ptr<IntegrationMethodTw
     if (new_group->getNumMembersGlobal() == 0)
         m_exec_conf->msg->warning() << "integrate.mode_standard: An integration method has been added that operates on zero particles." << endl;
 
-    std::vector< std::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
-    for (method = m_methods.begin(); method != m_methods.end(); ++method)
+    for (auto& method : m_methods)
         {
-        std::shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
+        std::shared_ptr<ParticleGroup> current_group = method->getGroup();
         std::shared_ptr<ParticleGroup> intersection = ParticleGroup::groupIntersection(new_group, current_group);
 
         if (intersection->getNumMembersGlobal() > 0)
@@ -247,11 +241,10 @@ bool IntegratorTwoStep::isValidRestart()
     bool res = true;
 
     // loop through all methods
-    std::vector< std::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
-    for (method = m_methods.begin(); method != m_methods.end(); ++method)
+    for (auto& method : m_methods)
         {
         // and them all together
-        res = res && (*method)->isValidRestart();
+        res = res && method->isValidRestart();
         }
     return res;
     }
@@ -261,37 +254,52 @@ bool IntegratorTwoStep::isValidRestart()
 void IntegratorTwoStep::initializeIntegrationMethods()
     {
     // loop through all methods
-    for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
+    for (auto& method : m_methods)
         {
         // initialize each of them
-        (*method)->initializeIntegratorVariables();
+        method->initializeIntegratorVariables();
         }
     }
 
 /*! \param group Group over which to count degrees of freedom.
-    IntegratorTwoStep totals up the degrees of freedom that each integration method provide to the group.
-    Three degrees of freedom are subtracted from the total to account for the constrained position of the system center of
-    mass.
-*/
-unsigned int IntegratorTwoStep::getNDOF(std::shared_ptr<ParticleGroup> group)
-    {
-    int res = 0;
 
-    // loop through all methods
-    std::vector< std::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
-    for (method = m_methods.begin(); method != m_methods.end(); ++method)
+    IntegratorTwoStep totals up the degrees of freedom that each integration method provide to the
+    group.
+
+    When the user has only one momentum conserving integration method applied to the all group,
+    getNDOF subtracts n_dimensions degrees of freedom from the system to account for the pinned
+    center of mass. When the query group is not the group of all particles, spread these these
+    removed DOF proportionately so that the results given by one ComputeThermo on the all group are
+    consitent with the average of many ComputeThermo's on disjoint subset groups.
+*/
+Scalar IntegratorTwoStep::getTranslationalDOF(std::shared_ptr<ParticleGroup> group)
+    {
+    // proportionately remove n_dimensions DOF when there is only one momentum conserving
+    // integration method
+    Scalar periodic_dof_removed = 0;
+    if (group->getNumMembersGlobal() == m_pdata->getNGlobal() &&
+        m_methods.size() == 1 &&
+        m_methods[0]->isMomentumConserving())
         {
-        // dd them all together
-        res += (*method)->getNDOF(group);
+        periodic_dof_removed = Scalar(m_sysdef->getNDimensions()) *
+                               (Scalar(group->getNumMembersGlobal())
+                               / Scalar(m_pdata->getNGlobal()));
         }
 
-    return res - m_sysdef->getNDimensions() - getNDOFRemoved();
+    // loop through all methods and add up the number of DOF They apply to the group
+    Scalar total = 0;
+    for (auto& method : m_methods)
+        {
+        total += method->getTranslationalDOF(group);
+        }
+
+    return total - periodic_dof_removed - getNDOFRemoved(group);
     }
 
 /*! \param group Group over which to count degrees of freedom.
     IntegratorTwoStep totals up the rotational degrees of freedom that each integration method provide to the group.
 */
-unsigned int IntegratorTwoStep::getRotationalNDOF(std::shared_ptr<ParticleGroup> group)
+Scalar IntegratorTwoStep::getRotationalDOF(std::shared_ptr<ParticleGroup> group)
     {
     int res = 0;
 
@@ -316,11 +324,10 @@ unsigned int IntegratorTwoStep::getRotationalNDOF(std::shared_ptr<ParticleGroup>
     if (aniso)
         {
         // loop through all methods
-        std::vector< std::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
-        for (method = m_methods.begin(); method != m_methods.end(); ++method)
+        for (auto& method : m_methods)
             {
             // dd them all together
-            res += (*method)->getRotationalNDOF(group);
+            res += method->getRotationalDOF(group);
             }
         }
 
@@ -330,9 +337,44 @@ unsigned int IntegratorTwoStep::getRotationalNDOF(std::shared_ptr<ParticleGroup>
 /*!  \param mode Anisotropic integration mode to set
      Set the anisotropic integration mode
 */
-void IntegratorTwoStep::setAnisotropicMode(AnisotropicMode mode)
+void IntegratorTwoStep::setAnisotropicMode(const std::string& mode)
     {
-    m_aniso_mode = mode;
+    if (mode == "true")
+        {
+        m_aniso_mode = AnisotropicMode::Anisotropic;
+        }
+    else if (mode == "false")
+        {
+        m_aniso_mode = AnisotropicMode::Isotropic;
+        }
+    else if (mode == "auto")
+        {
+        m_aniso_mode = AnisotropicMode::Automatic;
+        }
+    else
+        {
+        throw std::invalid_argument("Invalid mode string");
+        }
+    }
+
+const std::string IntegratorTwoStep::getAnisotropicMode()
+    {
+    if (m_aniso_mode == AnisotropicMode::Anisotropic)
+        {
+        return "true";
+        }
+    else if (m_aniso_mode == AnisotropicMode::Isotropic)
+        {
+        return "false";
+        }
+    else if (m_aniso_mode == AnisotropicMode::Automatic)
+        {
+        return "auto";
+        }
+    else
+        {
+        throw std::runtime_error("Invalid anisotropic mode");
+        }
     }
 
 /*! Compute accelerations if needed for the first step.
@@ -363,9 +405,8 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
             break;
         }
 
-    std::vector< std::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
-    for (method = m_methods.begin(); method != m_methods.end(); ++method)
-        (*method)->setAnisotropic(aniso);
+    for (auto& method : m_methods)
+        method->setAnisotropic(aniso);
 
 #ifdef ENABLE_MPI
     if (m_comm)
@@ -397,8 +438,8 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
         m_pdata->notifyAccelSet();
         }
 
-    for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
-        (*method)->randomizeVelocities(timestep);
+    for (auto& method : m_methods)
+        method->randomizeVelocities(timestep);
 
     m_prepared = true;
     }
@@ -410,11 +451,10 @@ PDataFlags IntegratorTwoStep::getRequestedPDataFlags()
     PDataFlags flags;
 
     // loop through all methods
-    std::vector< std::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
-    for (method = m_methods.begin(); method != m_methods.end(); ++method)
+    for (auto& method : m_methods)
         {
         // or them all together
-        flags |= (*method)->getRequestedPDataFlags();
+        flags |= method->getRequestedPDataFlags();
         }
 
     return flags;
@@ -425,9 +465,8 @@ PDataFlags IntegratorTwoStep::getRequestedPDataFlags()
 void IntegratorTwoStep::setCommunicator(std::shared_ptr<Communicator> comm)
     {
     // set Communicator in all methods
-    std::vector< std::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
-    for (method = m_methods.begin(); method != m_methods.end(); ++method)
-            (*method)->setCommunicator(comm);
+    for (auto& method : m_methods)
+            method->setCommunicator(comm);
 
     if (comm && !m_comm)
         {
@@ -454,28 +493,21 @@ void IntegratorTwoStep::setAutotunerParams(bool enable, unsigned int period)
     {
     Integrator::setAutotunerParams(enable, period);
     // set params in all methods
-    std::vector< std::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
-    for (method = m_methods.begin(); method != m_methods.end(); ++method)
-            (*method)->setAutotunerParams(enable, period);
+    for (auto& method : m_methods)
+            method->setAutotunerParams(enable, period);
     }
 
 void export_IntegratorTwoStep(py::module& m)
     {
+	py::bind_vector<std::vector< std::shared_ptr<IntegrationMethodTwoStep> > >(
+        m, "IntegrationMethodList");
+
     py::class_<IntegratorTwoStep, Integrator, std::shared_ptr<IntegratorTwoStep> >(m, "IntegratorTwoStep")
         .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
-        .def("addIntegrationMethod", &IntegratorTwoStep::addIntegrationMethod)
-        .def("removeAllIntegrationMethods", &IntegratorTwoStep::removeAllIntegrationMethods)
-        .def("setAnisotropicMode", &IntegratorTwoStep::setAnisotropicMode)
-        .def("addForceComposite", &IntegratorTwoStep::addForceComposite)
-        .def("removeForceComputes", &IntegratorTwoStep::removeForceComputes)
-        .def("initializeIntegrationMethods", &IntegratorTwoStep::initializeIntegrationMethods)
-        ;
+        .def_property_readonly("methods", &IntegratorTwoStep::getIntegrationMethods)
+        .def_property("aniso",
+                      &IntegratorTwoStep::getAnisotropicMode,
+                      &IntegratorTwoStep::setAnisotropicMode)
 
-    py::enum_<IntegratorTwoStep::AnisotropicMode>(m,"IntegratorAnisotropicMode")
-        .value("Automatic", IntegratorTwoStep::AnisotropicMode::Automatic)
-        .value("Anisotropic", IntegratorTwoStep::AnisotropicMode::Anisotropic)
-        .value("Isotropic", IntegratorTwoStep::AnisotropicMode::Isotropic)
-        .export_values()
         ;
-
     }

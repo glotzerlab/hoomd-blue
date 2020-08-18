@@ -270,11 +270,11 @@ endif()
 if (CUSOLVER_AVAILABLE)
     # CUDA 8.0 requires that we link in gomp
     target_link_libraries(_md PUBLIC _hoomd CUDA::cusolver CUDA::cusparse gomp)
+else()
+    target_link_libraries(_md PUBLIC _hoomd)
 endif()
-target_link_libraries(_md PUBLIC _hoomd)
-
 if (ENABLE_HIP)
-    target_link_libraries(_md PUBLIC _neighbor)
+    target_link_libraries(_md PRIVATE neighbor)
 endif()
 
 fix_cudart_rpath(_md)
@@ -286,17 +286,6 @@ install(TARGETS _md EXPORT HOOMDTargets
 
 ################ Python only modules
 # copy python modules to the build directory to make it a working python package
-MACRO(copy_file file)
-    add_custom_command (
-        OUTPUT ${file}
-        DEPENDS ${file}
-        POST_BUILD
-        COMMAND    ${CMAKE_COMMAND}
-        ARGS       -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${CMAKE_CURRENT_BINARY_DIR}/${file}
-        COMMENT    "Copy hoomd/md/${file}"
-    )
-ENDMACRO(copy_file)
-
 set(files __init__.py
           angle.py
           bond.py
@@ -307,6 +296,7 @@ set(files __init__.py
           force.py
           improper.py
           integrate.py
+          methods.py
           nlist.py
           pair.py
           update.py
@@ -318,11 +308,7 @@ install(FILES ${files}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/md
        )
 
-foreach(file ${files})
-    copy_file(${file})
-endforeach()
-
-add_custom_target(copy_md ALL DEPENDS ${files})
+copy_files_to_build("${files}" "md" "*.py")
 
 # install headers in installation target
 install(FILES ${_md_headers}
@@ -330,10 +316,12 @@ install(FILES ${_md_headers}
        )
 
 if (BUILD_TESTING)
-    add_subdirectory(test-py)
+    # add_subdirectory(test-py)
     add_subdirectory(test)
 endif()
 
+add_subdirectory(pytest)
+
 if (BUILD_VALIDATION)
-    add_subdirectory(validation)
+    # add_subdirectory(validation)
 endif()

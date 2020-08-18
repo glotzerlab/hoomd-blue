@@ -167,13 +167,6 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
             m_tuner_accept->setEnabled(enable);
             }
 
-        //! Enable deterministic simulations
-        virtual void setDeterministic(bool deterministic)
-            {
-            this->m_exec_conf->msg->notice(2) << "hpmc: Sorting cell list to enable deterministic simulations." << std::endl;
-            m_cl->setSortCellList(deterministic);
-            }
-
         //! Method called when numbe of particle types changes
         virtual void slotNumTypesChange();
 
@@ -1164,6 +1157,11 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
 
     // all particle have been moved, the aabb tree is now invalid
     this->m_aabb_tree_invalid = true;
+
+    // set current MPS value
+    hpmc_counters_t run_counters = this->getCounters(1);
+    double cur_time = double(this->m_clock.getTime()) / Scalar(1e9);
+    this->m_mps = double(run_counters.getNMoves()) / cur_time;
     }
 
 template< class Shape >

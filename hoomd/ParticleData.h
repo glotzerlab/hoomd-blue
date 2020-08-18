@@ -19,6 +19,7 @@
 #include "GlobalArray.h"
 #include "GPUVector.h"
 #include "GlobalArray.h"
+#include "PythonLocalDataAccess.h"
 
 #ifdef ENABLE_HIP
 #include "ParticleData.cuh"
@@ -35,6 +36,7 @@
 
 #ifndef __HIPCC__
 #include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
 #endif
 
 #ifdef ENABLE_MPI
@@ -79,9 +81,7 @@ struct pdata_flag
     //! The enum
     enum Enum
         {
-        isotropic_virial=0,        //!< Bit id in PDataFlags for the isotropic virial
-        potential_energy,          //!< Bit id in PDataFlags for the potential energy
-        pressure_tensor,           //!< Bit id in PDataFlags for the full virial
+        pressure_tensor=0,          //!< Bit id in PDataFlags for the full virial
         rotational_kinetic_energy,  //!< Bit id in PDataFlags for the rotational kinetic energy
         external_field_virial       //!< Bit id in PDataFlags for the external virial contribution of volume change
         };
@@ -164,6 +164,11 @@ struct PYBIND11_EXPORT SnapshotParticleData {
     /*! \param N number of particles in snapshot
      */
     void resize(unsigned int N);
+
+    unsigned int getSize()
+        {
+        return size;
+        }
 
     //! Insert n elements at position i
     void insert(unsigned int i, unsigned int n);
@@ -305,9 +310,6 @@ struct pdata_element
     setPDataFlags so that the computes produce the requested values during that step.
 
     These fields are:
-     - pdata_flag::isotropic_virial - specify that the net_virial should be/is computed (getNetVirial)
-     - pdata_flag::potential_energy - specify that the potential energy .w component stored in the net force array
-       (getNetForce) is valid
      - pdata_flag::pressure_tensor - specify that the full virial tensor is valid
      - pdata_flag::external_field_virial - specify that an external virial contribution is valid
 
@@ -786,6 +788,17 @@ class PYBIND11_EXPORT ParticleData
         //! Gets the name of a given particle type index
         std::string getNameByType(unsigned int type) const;
 
+        //! Get the types for python
+        pybind11::list getTypesPy()
+            {
+            pybind11::list types;
+
+            for (unsigned int i = 0; i < getNTypes(); i++)
+                types.append(pybind11::str(m_type_mapping[i]));
+
+            return types;
+            }
+
         //! Rename a type
         void setTypeName(unsigned int type, const std::string& name);
 
@@ -943,6 +956,12 @@ class PYBIND11_EXPORT ParticleData
             analyzers and updaters to determine the value of the flags for any given time step.
         */
         void setFlags(const PDataFlags& flags) { m_flags = flags; }
+
+        /// Enable pressure computations
+        void setPressureFlag()
+            {
+            m_flags[pdata_flag::pressure_tensor] = 1;
+            }
 
         //! Set the external contribution to the virial
         void setExternalVirial(unsigned int i, Scalar v)
@@ -1223,11 +1242,281 @@ class PYBIND11_EXPORT ParticleData
         void setGPUAdvice();
     };
 
+/// Allow the usage of Particle Data arrays in Python.
+/** Uses the LocalDataAccess templated class to expose particle data arrays to
+ *  Python. For an explanation of the methods and structure see the
+ *  documentation of LocalDataAccess.
+ *
+ *  Template Parameters
+ *  Output: The buffer output type (either HOOMDHostBuffer or HOOMDDeviceBuffer)
+*/
+template<class Output>
+class PYBIND11_EXPORT LocalParticleData :
+        public LocalDataAccess<Output, ParticleData>
+    {
+    public:
+        LocalParticleData(ParticleData& data)
+          : LocalDataAccess<Output, ParticleData>(data),
+            m_position_handle(),
+            m_orientation_handle(),
+            m_velocities_handle(),
+            m_angular_momentum_handle(),
+            m_acceleration_handle(),
+            m_inertia_handle(),
+            m_charge_handle(),
+            m_diameter_handle(),
+            m_image_handle(),
+            m_tag_handle(),
+            m_rtag_handle(),
+            m_rigid_body_ids_handle(),
+            m_net_force_handle(),
+            m_net_virial_handle(),
+            m_net_torque_handle()
+            {}
+
+            virtual ~LocalParticleData() = default;
+
+            Output getPosition(GhostDataFlag flag)
+                {
+                return this->template getBuffer<Scalar4, Scalar>(
+                    m_position_handle,
+                    &ParticleData::getPositions,
+                    flag,
+                    3
+                );
+                }
+
+            Output getTypes(GhostDataFlag flag)
+            {
+                return this->template getBuffer<Scalar4, int>(
+                    m_position_handle,
+                    &ParticleData::getPositions,
+                    flag,
+                    0,
+                    3 * sizeof(Scalar)
+                );
+            }
+
+            Output getVelocities(GhostDataFlag flag)
+            {
+                return this->template getBuffer<Scalar4, Scalar>(
+                    m_velocities_handle,
+                    &ParticleData::getVelocities,
+                    flag,
+                    3
+                );
+            }
+
+            Output getAcceleration(GhostDataFlag flag)
+                {
+                return this->template getBuffer<Scalar3, Scalar>(
+                        m_acceleration_handle,
+                        &ParticleData::getAccelerations,
+                        flag,
+                        3);
+                }
+
+            Output getMasses(GhostDataFlag flag)
+                {
+                return this->template getBuffer<Scalar4, Scalar>(
+                    m_velocities_handle,
+                    &ParticleData::getVelocities,
+                    flag,
+                    0,
+                    3 * sizeof(Scalar)
+                );
+                }
+
+            Output getOrientation(GhostDataFlag flag)
+                {
+                return this->template getBuffer<Scalar4, Scalar>(
+                    m_orientation_handle,
+                    &ParticleData::getOrientationArray,
+                    flag,
+                    4
+                );
+                }
+
+            Output getAngularMomentum(GhostDataFlag flag)
+                {
+                return this->template getBuffer<Scalar4, Scalar>(
+                    m_angular_momentum_handle,
+                    &ParticleData::getAngularMomentumArray,
+                    flag,
+                    4
+                );
+                }
+
+            Output getMomentsOfInertia(GhostDataFlag flag)
+                {
+                return this->template getBuffer<Scalar3, Scalar>(
+                    m_inertia_handle,
+                    &ParticleData::getMomentsOfInertiaArray,
+                    flag,
+                    3
+                );
+                }
+
+            Output getCharge(GhostDataFlag flag)
+                {
+                return this->template getBuffer<Scalar, Scalar>(
+                    m_charge_handle,
+                    &ParticleData::getCharges,
+                    flag
+                );
+                }
+
+            Output getDiameter(GhostDataFlag flag)
+                {
+                return this->template getBuffer<Scalar, Scalar>(
+                    m_diameter_handle,
+                    &ParticleData::getDiameters,
+                    flag
+                );
+                }
+
+            Output getImages(GhostDataFlag flag)
+                {
+                return this->template getBuffer<int3, int>(
+                    m_image_handle,
+                    &ParticleData::getImages,
+                    flag,
+                    3
+                );
+                }
+
+            Output getTags(GhostDataFlag flag)
+                {
+                return this->template getBuffer<unsigned int, unsigned int>(
+                    m_tag_handle,
+                    &ParticleData::getTags,
+                    flag
+                );
+                }
+
+            Output getRTags()
+                {
+                return this->template getGlobalBuffer<unsigned int>(
+                    m_rtag_handle, &ParticleData::getRTags);
+                }
+
+            Output getBodies(GhostDataFlag flag)
+                {
+                return this->template getBuffer<unsigned int, unsigned int>(
+                    m_rigid_body_ids_handle,
+                    &ParticleData::getBodies,
+                    flag
+                );
+                }
+
+            Output getNetForce(GhostDataFlag flag)
+                {
+                return this->template getBuffer<Scalar4, Scalar>(
+                    m_net_force_handle,
+                    &ParticleData::getNetForce,
+                    flag,
+                    4
+                );
+                }
+
+            Output getNetTorque(GhostDataFlag flag)
+                {
+                return this->template getBuffer<Scalar4, Scalar>(
+                    m_net_torque_handle,
+                    &ParticleData::getNetTorqueArray,
+                    flag,
+                    4
+                );
+                }
+
+            Output getNetVirial(GhostDataFlag flag)
+                {
+                return this->template getBuffer<Scalar, Scalar>(
+                    m_net_virial_handle,
+                    &ParticleData::getNetVirial,
+                    flag,
+                    6,
+                    0,
+                    std::vector<ssize_t>({6 * sizeof(Scalar), sizeof(Scalar)})
+                );
+                }
+
+    protected:
+
+        void clear()
+            {
+            m_position_handle.reset(nullptr);
+            m_orientation_handle.reset(nullptr);
+            m_velocities_handle.reset(nullptr);
+            m_angular_momentum_handle.reset(nullptr);
+            m_acceleration_handle.reset(nullptr);
+            m_inertia_handle.reset(nullptr);
+            m_charge_handle.reset(nullptr);
+            m_diameter_handle.reset(nullptr);
+            m_image_handle.reset(nullptr);
+            m_tag_handle.reset(nullptr);
+            m_rtag_handle.reset(nullptr);
+            m_rigid_body_ids_handle.reset(nullptr);
+            m_net_force_handle.reset(nullptr);
+            m_net_virial_handle.reset(nullptr);
+            m_net_torque_handle.reset(nullptr);
+            }
+
+    private:
+        // These members represent the various particle data that are available.
+        // We store them as unique_ptr to prevent the resource from being
+        // dropped prematurely. If a move constructor is created for ArrayHandle
+        // then the implementation can be simplified.
+        std::unique_ptr<ArrayHandle<Scalar4> > m_position_handle;
+        std::unique_ptr<ArrayHandle<Scalar4> > m_orientation_handle;
+        std::unique_ptr<ArrayHandle<Scalar4> > m_velocities_handle;
+        std::unique_ptr<ArrayHandle<Scalar4> > m_angular_momentum_handle;
+        std::unique_ptr<ArrayHandle<Scalar3> > m_acceleration_handle;
+        std::unique_ptr<ArrayHandle<Scalar3> > m_inertia_handle;
+        std::unique_ptr<ArrayHandle<Scalar> > m_charge_handle;
+        std::unique_ptr<ArrayHandle<Scalar> > m_diameter_handle;
+        std::unique_ptr<ArrayHandle<int3> > m_image_handle;
+        std::unique_ptr<ArrayHandle<unsigned int> > m_tag_handle;
+        std::unique_ptr<ArrayHandle<unsigned int> > m_rtag_handle;
+        std::unique_ptr<ArrayHandle<unsigned int> > m_rigid_body_ids_handle;
+        std::unique_ptr<ArrayHandle<Scalar4> > m_net_force_handle;
+        std::unique_ptr<ArrayHandle<Scalar> > m_net_virial_handle;
+        std::unique_ptr<ArrayHandle<Scalar4> > m_net_torque_handle;
+    };
+
+
 #ifndef __HIPCC__
 //! Exports the BoxDim class to python
 void export_BoxDim(pybind11::module& m);
 //! Exports ParticleData to python
 void export_ParticleData(pybind11::module& m);
+/// Export local access to ParticleData
+template<class Output>
+void export_LocalParticleData(pybind11::module& m, std::string name)
+    {
+    pybind11::class_<LocalParticleData<Output>,
+                     std::shared_ptr<LocalParticleData<Output> > >(
+        m, name.c_str())
+    .def(pybind11::init<ParticleData&>())
+    .def("getPosition", &LocalParticleData<Output>::getPosition)
+    .def("getTypes", &LocalParticleData<Output>::getTypes)
+    .def("getVelocities", &LocalParticleData<Output>::getVelocities)
+    .def("getAcceleration", &LocalParticleData<Output>::getAcceleration)
+    .def("getMasses", &LocalParticleData<Output>::getMasses)
+    .def("getOrientation", &LocalParticleData<Output>::getOrientation)
+    .def("getAngularMomentum", &LocalParticleData<Output>::getAngularMomentum)
+    .def("getMomentsOfIntertia",
+         &LocalParticleData<Output>::getMomentsOfInertia)
+    .def("getCharge", &LocalParticleData<Output>::getCharge)
+    .def("getDiameter", &LocalParticleData<Output>::getDiameter)
+    .def("getImages", &LocalParticleData<Output>::getImages)
+    .def("getTags", &LocalParticleData<Output>::getTags)
+    .def("getRTags", &LocalParticleData<Output>::getRTags)
+    .def("getBodies", &LocalParticleData<Output>::getBodies)
+    .def("enter", &LocalParticleData<Output>::enter)
+    .def("exit", &LocalParticleData<Output>::exit)
+    ;
+    }
 //! Export SnapshotParticleData to python
 void export_SnapshotParticleData(pybind11::module& m);
 #endif

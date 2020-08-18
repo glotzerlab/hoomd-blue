@@ -36,8 +36,8 @@ using namespace hoomd;
     \param d_angmom Device array of transformed angular momentum quaternion of each particle (see online documentation)
     \param d_gamma List of per-type gammas
     \param n_types Number of particle types in the simulation
-    \param use_lambda If true, gamma = lambda * diameter
-    \param lambda Scale factor to convert diameter to lambda (when use_lambda is true)
+    \param use_alpha If true, gamma = alpha * diameter
+    \param alpha Scale factor to convert diameter to alpha (when use_alpha is true)
     \param timestep Current timestep of the simulation
     \param seed User chosen random number seed
     \param T Temperature set point
@@ -69,8 +69,8 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                                   Scalar4 *d_angmom,
                                   const Scalar *d_gamma,
                                   const unsigned int n_types,
-                                  const bool use_lambda,
-                                  const Scalar lambda,
+                                  const bool use_alpha,
+                                  const Scalar alpha,
                                   const unsigned int timestep,
                                   const unsigned int seed,
                                   const Scalar T,
@@ -86,7 +86,7 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
     Scalar3 *s_gammas_r = (Scalar3 *)s_data;
     Scalar *s_gammas = (Scalar *)(s_gammas_r + n_types);
 
-    if (!use_lambda)
+    if (!use_alpha)
         {
         // read in the gamma (1 dimensional array), stored in s_gammas[0: n_type] (Pythonic convention)
         for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
@@ -132,10 +132,10 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
 
         // calculate the magnitude of the random force
         Scalar gamma;
-        if (use_lambda)
+        if (use_alpha)
             {
             // determine gamma from diameter
-            gamma = lambda*d_diameter[idx];
+            gamma = alpha*d_diameter[idx];
             }
         else
             {
@@ -326,8 +326,8 @@ hipError_t gpu_brownian_step_one(Scalar4 *d_pos,
                                      d_angmom,
                                      langevin_args.d_gamma,
                                      langevin_args.n_types,
-                                     langevin_args.use_lambda,
-                                     langevin_args.lambda,
+                                     langevin_args.use_alpha,
+                                     langevin_args.alpha,
                                      langevin_args.timestep,
                                      langevin_args.seed,
                                      langevin_args.T,

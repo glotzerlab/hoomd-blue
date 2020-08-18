@@ -65,16 +65,8 @@ class PYBIND11_EXPORT ComputeThermoHMA : public Compute
             #endif
 
             // return NaN if the flags are not valid
-            PDataFlags flags = m_pdata->getFlags();
-            if (flags[pdata_flag::potential_energy])
-                {
-                ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
-                return h_properties.data[thermoHMA_index::potential_energyHMA];
-                }
-            else
-                {
-                return std::numeric_limits<Scalar>::quiet_NaN();
-                }
+            ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
+            return h_properties.data[thermoHMA_index::potential_energyHMA];
             }
 
 
@@ -85,7 +77,7 @@ class PYBIND11_EXPORT ComputeThermoHMA : public Compute
             {
             // return NaN if the flags are not valid
             PDataFlags flags = m_pdata->getFlags();
-            if (flags[pdata_flag::isotropic_virial])
+            if (flags[pdata_flag::pressure_tensor])
                 {
                 // return the pressure
                 #ifdef ENABLE_MPI

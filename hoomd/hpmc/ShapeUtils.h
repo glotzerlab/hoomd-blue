@@ -184,7 +184,7 @@ class ConvexHull
     public:
         ConvexHull() { m_ravg = vec3<Scalar>(0.0,0.0,0.0); }
 
-        ConvexHull(const poly3d_verts& param)
+        ConvexHull(const PolyhedronVertices& param)
             {
             m_points.reserve(param.N);
             m_ravg = vec3<Scalar>(0.0,0.0,0.0);

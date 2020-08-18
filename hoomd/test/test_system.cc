@@ -106,87 +106,27 @@ UP_TEST( getter_setter_tests )
     {
     std::shared_ptr< SystemDefinition > sysdef(new SystemDefinition(10, BoxDim(10)));
 
-    cout << "Running getter_setter_tests, expect error messages to be printed to the screen as this tests error checking in System" << endl;
-
     // create two analyzers to test adding
     std::shared_ptr< Analyzer > analyzer1(new DummyAnalyzer(sysdef, "analyzer1"));
     std::shared_ptr< Analyzer > analyzer2(new DummyAnalyzer(sysdef, "analyzer2"));
 
     // add them both to a System
     System sys(sysdef, 0);
-    sys.addAnalyzer(analyzer1, "analyzer1", 10, -1);
-    sys.addAnalyzer(analyzer2, "analyzer2", 105, -1);
-
-    // test adding another of the same name
-    bool except = false;
-    try
-        {
-        sys.addAnalyzer(analyzer2, "analyzer1", 1, -1);
-        }
-    catch (const std::runtime_error&)
-        {
-        except = true;
-        }
-    UP_ASSERT(except);
+    sys.getAnalyzers().push_back(std::make_pair(analyzer1, std::make_shared<PeriodicTrigger>(10)));
+    sys.getAnalyzers().push_back(std::make_pair(analyzer2, std::make_shared<PeriodicTrigger>(105)));
 
     // check the get method
-    MY_ASSERT_EQUAL(sys.getAnalyzer("analyzer1"), analyzer1);
-    MY_ASSERT_EQUAL(sys.getAnalyzer("analyzer2"), analyzer2);
-    except = false;
-    try
-        {
-        sys.getAnalyzer("analyzer3");
-        }
-    catch (const std::runtime_error&)
-        {
-        except = true;
-        }
-    UP_ASSERT(except);
+    MY_ASSERT_EQUAL(sys.getAnalyzers()[0].first, analyzer1);
+    MY_ASSERT_EQUAL(sys.getAnalyzers()[1].first, analyzer2);
 
     // test the get and set period functions
-    UP_ASSERT_EQUAL(sys.getAnalyzerPeriod("analyzer2"), (unsigned int)105);
-    UP_ASSERT_EQUAL(sys.getAnalyzerPeriod("analyzer1"), (unsigned int)10);
-    except = false;
-    try
-        {
-        sys.getAnalyzerPeriod("analyzer3");
-        }
-    catch (const std::runtime_error&)
-        {
-        except = true;
-        }
-    UP_ASSERT(except);
+    UP_ASSERT_EQUAL(std::dynamic_pointer_cast<PeriodicTrigger>(sys.getAnalyzers()[1].second)->getPeriod(), (uint64_t)105);
+    UP_ASSERT_EQUAL(std::dynamic_pointer_cast<PeriodicTrigger>(sys.getAnalyzers()[0].second)->getPeriod(), (uint64_t)10);
 
-    sys.setAnalyzerPeriod("analyzer1", 15, -1);
-    sys.setAnalyzerPeriod("analyzer2", 8, -1);
-    UP_ASSERT_EQUAL(sys.getAnalyzerPeriod("analyzer2"), (unsigned int)8);
-    UP_ASSERT_EQUAL(sys.getAnalyzerPeriod("analyzer1"), (unsigned int)15);
-
-    // remove the analyzers 1 by one and make sure they don't exist
-    sys.removeAnalyzer("analyzer1");
-    MY_ASSERT_EQUAL(sys.getAnalyzer("analyzer2"), analyzer2);
-    except = false;
-    try
-        {
-        sys.getAnalyzer("analyzer1");
-        }
-    catch (const std::runtime_error&)
-        {
-        except = true;
-        }
-    UP_ASSERT(except);
-
-    sys.removeAnalyzer("analyzer2");
-    except = false;
-    try
-        {
-        sys.getAnalyzer("analyzer2");
-        }
-    catch (const std::runtime_error&)
-        {
-        except = true;
-        }
-    UP_ASSERT(except);
+    std::dynamic_pointer_cast<PeriodicTrigger>(sys.getAnalyzers()[0].second)->setPeriod(15);
+    std::dynamic_pointer_cast<PeriodicTrigger>(sys.getAnalyzers()[1].second)->setPeriod(8);
+    UP_ASSERT_EQUAL(std::dynamic_pointer_cast<PeriodicTrigger>(sys.getAnalyzers()[1].second)->getPeriod(), (uint64_t)8);
+    UP_ASSERT_EQUAL(std::dynamic_pointer_cast<PeriodicTrigger>(sys.getAnalyzers()[0].second)->getPeriod(), (uint64_t)15);
 
     // ************ Updaters
     // create two updaters to test adding
@@ -194,79 +134,21 @@ UP_TEST( getter_setter_tests )
     std::shared_ptr< Updater > updater2(new DummyUpdater(sysdef, "updater2"));
 
     // add them both to a System
-    sys.addUpdater(updater1, "updater1", 10, -1);
-    sys.addUpdater(updater2, "updater2", 105, -1);
-
-    // test adding another of the same name
-    except = false;
-    try
-        {
-        sys.addUpdater(updater2, "updater1", 1, -1);
-        }
-    catch (const std::runtime_error&)
-        {
-        except = true;
-        }
-    UP_ASSERT(except);
+    sys.getUpdaters().push_back(std::make_pair(updater1, std::make_shared<PeriodicTrigger>(10)));
+    sys.getUpdaters().push_back(std::make_pair(updater2, std::make_shared<PeriodicTrigger>(105)));
 
     // check the get method
-    MY_ASSERT_EQUAL(sys.getUpdater("updater1"), updater1);
-    MY_ASSERT_EQUAL(sys.getUpdater("updater2"), updater2);
-    except = false;
-    try
-        {
-        sys.getUpdater("updater3");
-        }
-    catch (const std::runtime_error&)
-        {
-        except = true;
-        }
-    UP_ASSERT(except);
+    MY_ASSERT_EQUAL(sys.getUpdaters()[0].first, updater1);
+    MY_ASSERT_EQUAL(sys.getUpdaters()[1].first, updater2);
 
     // test the get and set period functions
-    UP_ASSERT_EQUAL(sys.getUpdaterPeriod("updater2"), (unsigned int)105);
-    UP_ASSERT_EQUAL(sys.getUpdaterPeriod("updater1"), (unsigned int)10);
-    except = false;
-    try
-        {
-        sys.getUpdaterPeriod("updater3");
-        }
-    catch (const std::runtime_error&)
-        {
-        except = true;
-        }
-    UP_ASSERT(except);
+    UP_ASSERT_EQUAL(std::dynamic_pointer_cast<PeriodicTrigger>(sys.getUpdaters()[1].second)->getPeriod(), (uint64_t)105);
+    UP_ASSERT_EQUAL(std::dynamic_pointer_cast<PeriodicTrigger>(sys.getUpdaters()[0].second)->getPeriod(), (uint64_t)10);
 
-    sys.setUpdaterPeriod("updater1", 15, -1);
-    sys.setUpdaterPeriod("updater2", 8, -1);
-    UP_ASSERT_EQUAL(sys.getUpdaterPeriod("updater2"), (unsigned int)8);
-    UP_ASSERT_EQUAL(sys.getUpdaterPeriod("updater1"), (unsigned int)15);
-
-    // remove the updaters 1 by one and make sure they don't exist
-    sys.removeUpdater("updater1");
-    MY_ASSERT_EQUAL(sys.getUpdater("updater2"), updater2);
-    except = false;
-    try
-        {
-        sys.getUpdater("updater1");
-        }
-    catch (const std::runtime_error&)
-        {
-        except = true;
-        }
-    UP_ASSERT(except);
-
-    sys.removeUpdater("updater2");
-    except = false;
-    try
-        {
-        sys.getUpdater("updater2");
-        }
-    catch (const std::runtime_error&)
-        {
-        except = true;
-        }
-    UP_ASSERT(except);
+    std::dynamic_pointer_cast<PeriodicTrigger>(sys.getUpdaters()[0].second)->setPeriod(15);
+    std::dynamic_pointer_cast<PeriodicTrigger>(sys.getUpdaters()[1].second)->setPeriod(8);
+    UP_ASSERT_EQUAL(std::dynamic_pointer_cast<PeriodicTrigger>(sys.getUpdaters()[1].second)->getPeriod(), (uint64_t)8);
+    UP_ASSERT_EQUAL(std::dynamic_pointer_cast<PeriodicTrigger>(sys.getUpdaters()[0].second)->getPeriod(), (uint64_t)15);
 
     // ********* Computes
     // create two updaters to test adding
@@ -278,7 +160,7 @@ UP_TEST( getter_setter_tests )
     sys.addCompute(compute2, "compute2");
 
     // test adding another of the same name
-    except = false;
+    bool except = false;
     try
         {
         sys.addCompute(compute2, "compute1");

@@ -233,7 +233,7 @@ class UpdaterMuVT : public Updater
          * \param n_insert Number of depletants to insert
          * \param delta Sphere diameter
          * \param pos Position of inserted particle
-         * \param orientation Orientationof inserted particle
+         * \param orientation Orientation of inserted particle
          * \param type Type of inserted particle
          * \param n_trial Number of insertion trials per depletant
          * \param lnboltzmann Log of Boltzmann factor for insertion (return value)
@@ -305,7 +305,7 @@ UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
             bcast(m_seed, 0, this->m_exec_conf->getMPICommunicator());
     #endif
 
-    m_fugacity.resize(m_pdata->getNTypes(), std::shared_ptr<Variant>(new VariantConst(0.0)));
+    m_fugacity.resize(m_pdata->getNTypes(), std::shared_ptr<Variant>(new VariantConstant(0.0)));
     m_type_map.resize(m_pdata->getNTypes());
 
     m_pdata->getNumTypesChangeSignal().template connect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::slotNumTypesChange>(this);
@@ -454,7 +454,7 @@ template<class Shape>
 void UpdaterMuVT<Shape>::slotNumTypesChange()
     {
     // resize parameter list
-    m_fugacity.resize(m_pdata->getNTypes(), std::shared_ptr<Variant>(new VariantConst(0.0)));
+    m_fugacity.resize(m_pdata->getNTypes(), std::shared_ptr<Variant>(new VariantConstant(0.0)));
     m_type_map.resize(m_pdata->getNTypes());
     }
 
@@ -529,7 +529,7 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(unsigned int timestep, const BoxDim o
     m_mc->communicate(false);
 
     // check for overlaps
-    bool overlap = m_mc->countOverlaps(timestep, true);
+    bool overlap = m_mc->countOverlaps(true);
 
     if (!overlap && patch)
         {
@@ -984,7 +984,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                 else
                     {
                     // get fugacity value
-                    Scalar fugacity = m_fugacity[type]->getValue(timestep);
+                    Scalar fugacity = (*m_fugacity[type])(timestep);
 
                     // sanity check
                     if (fugacity <= Scalar(0.0))
@@ -1106,7 +1106,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
             if (!m_gibbs)
                 {
                 // get fugacity value
-                Scalar fugacity = m_fugacity[type]->getValue(timestep);
+                Scalar fugacity = (*m_fugacity[type])(timestep);
 
                 // sanity check
                 if (fugacity <= Scalar(0.0))
@@ -1548,7 +1548,9 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int t
         }
 
     // Depletants
+    #ifdef ENABLE_MPI
     auto& params = this->m_mc->getParams();
+    #endif
 
     if (m_mc->getQuermassMode())
         throw std::runtime_error("update.muvt() doesn't support quermass mode\n");
@@ -1561,6 +1563,7 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int t
         if (m_mc->getDepletantFugacity(type_d) < 0.0)
             throw std::runtime_error("Negative fugacties not supported in update.muvt()\n");
 
+        #ifdef ENABLE_MPI
         // Depletant and colloid diameter
         quat<Scalar> o;
         Scalar d_dep;
@@ -1568,8 +1571,6 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int t
             Shape tmp(o, params[type_d]);
             d_dep = tmp.getCircumsphereDiameter();
             }
-
-        #ifdef ENABLE_MPI
 
         // number of depletants to insert
         unsigned int n_insert = 0;

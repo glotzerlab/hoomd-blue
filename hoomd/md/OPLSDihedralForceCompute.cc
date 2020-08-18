@@ -72,6 +72,34 @@ void OPLSDihedralForceCompute::setParams(unsigned int type, Scalar k1, Scalar k2
     h_params.data[type] = make_scalar4(k1/2.0, k2/2.0, k3/2.0, k4/2.0);
 }
 
+void OPLSDihedralForceCompute::setParamsPython(std::string type,
+                                               pybind11::dict params)
+    {
+    auto typ = m_dihedral_data->getTypeByName(type);
+    dihedral_opls_params _params(params);
+    setParams(typ, _params.k1, _params.k2, _params.k3, _params.k4);
+    }
+
+pybind11::dict OPLSDihedralForceCompute::getParams(std::string type)
+    {
+    auto typ = m_dihedral_data->getTypeByName(type);
+    // make sure the type is valid
+    if (typ >= m_dihedral_data->getNTypes())
+        {
+        m_exec_conf->msg->error() << "dihedral.opls: Invalid dihedral type specified" << endl;
+        throw runtime_error("Error setting parameters in OPLSDihedralForceCompute");
+        }
+    ArrayHandle<Scalar4> h_params(m_params, access_location::host,
+                                  access_mode::read);
+    auto val = h_params.data[typ];
+    pybind11::dict params;
+    params["k1"] = val.x;
+    params["k2"] = val.y;
+    params["k3"] = val.z;
+    params["k4"] = val.w;
+    return params;
+    }
+
 /*! DihedralForceCompute provides
     - \c dihedral_opls_energy
 */
@@ -359,6 +387,7 @@ void export_OPLSDihedralForceCompute(py::module& m)
     {
     py::class_<OPLSDihedralForceCompute, ForceCompute, std::shared_ptr<OPLSDihedralForceCompute> >(m, "OPLSDihedralForceCompute")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
-    .def("setParams", &OPLSDihedralForceCompute::setParams)
+    .def("setParams", &OPLSDihedralForceCompute::setParamsPython)
+    .def("getParams", &OPLSDihedralForceCompute::setParams)
     ;
     }

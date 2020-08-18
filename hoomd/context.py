@@ -176,12 +176,12 @@ def initialize(args=None, device=None):
         args (str): Arguments to parse. When *None*, parse the arguments passed on the command line.
         device (:py:mod:`hoomd.device`): device to use for running the simulations
 
-    :py:func:`hoomd.context.initialize()` parses the command line arguments given, sets the options and initializes MPI and GPU execution
-    (if any). By default, :py:func:`hoomd.context.initialize()` reads arguments given on the command line. Provide a string to :py:func:`hoomd.context.initialize()`
+    ``hoomd.context.initialize`` parses the command line arguments given, sets the options and initializes MPI and GPU execution
+    (if any). By default, ``hoomd.context.initialize``
     to set the launch configuration within the job script.
 
-    :py:func:`hoomd.context.initialize()` can be called more than once in a script. However, the execution parameters are fixed on the first call
-    and *args* is ignored. Subsequent calls to :py:func:`hoomd.context.initialize()` create a new :py:class:`SimulationContext` and set it current. This
+    ``hoomd.context.initialize`` can be called more than once in a script. However, the execution parameters are fixed on the first call
+    and *args* is ignored. Subsequent calls to ``hoomd.context.initialize`` create a new :py:class:`SimulationContext` and set it current. This
     behavior is primarily to support use of hoomd in jupyter notebooks, so that a new clean simulation context is
     set when rerunning the notebook within an existing kernel.
 
@@ -226,10 +226,7 @@ def _create_device():
 ## \internal
 # \brief Throw an error if the context is not initialized
 def _verify_init():
-    global current
-
-    if current is None:
-        raise RuntimeError("Call context.initialize() before any method")
+    pass
 
 ## \internal
 # \brief Gather context about HOOMD

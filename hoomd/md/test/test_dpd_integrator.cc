@@ -44,7 +44,7 @@ void dpd_conservative_force_test(std::shared_ptr<ExecutionConfiguration> exec_co
     {
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(50.0), 1, 0, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterTag(sysdef, 0, pdata->getN()-1));
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     // setup a simple initial system
@@ -90,7 +90,7 @@ void dpd_temperature_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(5.0), 1, 0, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterTag(sysdef, 0, pdata->getN()-1));
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     // setup a simple initial dense state
@@ -112,7 +112,7 @@ void dpd_temperature_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
     std::shared_ptr<TwoStepNVE> two_step_nve(new TwoStepNVE(sysdef,group_all));
     std::shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
-    thermo->setNDOF(3*1000);
+    group_all->setTranslationalDOF(3*1000);
     std::shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));
     nve_up->addIntegrationMethod(two_step_nve);
 

@@ -11,6 +11,7 @@
 
 #include "hoomd/ComputeThermo.h"
 #include "hoomd/md/TempRescaleUpdater.h"
+#include "hoomd/filter/ParticleFilterAll.h"
 
 #ifdef ENABLE_HIP
 #include "hoomd/ComputeThermoGPU.h"
@@ -48,12 +49,12 @@ UP_TEST( ComputeThermo_basic )
     }
 
     // construct a TempCompute and see that everything is set properly
-    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterAll());
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     std::shared_ptr<ComputeThermo> tc(new ComputeThermo(sysdef, group_all));
 
     // check that we can actually compute temperature
-    tc->setNDOF(3*pdata->getN());
+    group_all->setTranslationalDOF(3*pdata->getN());
     tc->compute(0);
     MY_CHECK_CLOSE(tc->getTemperature(), 15.1666666666666666666667, tol);
     }
@@ -77,12 +78,12 @@ UP_TEST( ComputeThermoGPU_basic )
     }
 
     // construct a TempCompute and see that everything is set properly
-    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterAll());
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     std::shared_ptr<ComputeThermoGPU> tc(new ComputeThermoGPU(sysdef, group_all));
 
     // check that we can actually compute temperature
-    tc->setNDOF(3*pdata->getN());
+    group_all->setTranslationalDOF(3*pdata->getN());
     tc->compute(0);
     Scalar cur_T = tc->getTemperature();
     cout << "Testing: T=" << cur_T << endl;
@@ -107,13 +108,14 @@ UP_TEST( TempRescaleUpdater_basic )
     }
 
     // construct a ComputeThermo for the updater
-    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterAll());
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     std::shared_ptr<ComputeThermo> tc(new ComputeThermo(sysdef, group_all));
+    group_all->setTranslationalDOF(3);
 
 
     // variant T for the rescaler
-    std::shared_ptr<VariantConst> T_variant(new VariantConst(1.2));
+    std::shared_ptr<VariantConstant> T_variant(new VariantConstant(1.2));
 
     // construct the updater and make sure everything is set properly
     std::shared_ptr<TempRescaleUpdater> rescaler(new TempRescaleUpdater(sysdef, tc, T_variant));
@@ -124,7 +126,7 @@ UP_TEST( TempRescaleUpdater_basic )
     MY_CHECK_CLOSE(tc->getTemperature(), 1.2, tol);
 
     // check that the setT method works
-    std::shared_ptr<VariantConst> T_variant2(new VariantConst(2.0));
+    std::shared_ptr<VariantConstant> T_variant2(new VariantConstant(2.0));
     rescaler->setT(T_variant2);
     rescaler->update(1);
     tc->compute(2);

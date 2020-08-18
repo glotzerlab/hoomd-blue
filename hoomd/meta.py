@@ -16,7 +16,7 @@ Example::
 
 """
 
-import hoomd;
+import hoomd
 import json
 import time
 import datetime
@@ -25,14 +25,14 @@ import copy
 from collections import OrderedDict
 from collections.abc import Mapping
 
-## \internal
+
 # \brief A Mixin to facilitate storage of simulation metadata
 class _metadata(object):
     def __init__(self):
         # No metadata provided per default
         self.metadata_fields = []
 
-    ## \internal
+    # \internal
     # \brief Return the metadata
     def get_metadata(self):
         data = OrderedDict()

@@ -1,0 +1,11 @@
+# copy python modules to the build directory to make it a working python package
+set(files __init__.py
+          test_shape.py
+          conftest.py
+    )
+
+install(FILES ${files}
+        DESTINATION ${PYTHON_SITE_INSTALL_DIR}/hpmc/pytest
+       )
+
+copy_files_to_build("${files}" "hpmc_pytest" "*.py")

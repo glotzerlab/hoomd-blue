@@ -28,7 +28,7 @@ using namespace std;
 ComputeThermo::ComputeThermo(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<ParticleGroup> group,
                              const std::string& suffix)
-    : Compute(sysdef), m_group(group), m_ndof(1), m_ndof_rot(0), m_logging_enabled(true)
+    : Compute(sysdef), m_group(group), m_logging_enabled(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing ComputeThermo" << endl;
 
@@ -65,6 +65,8 @@ ComputeThermo::ComputeThermo(std::shared_ptr<SystemDefinition> sysdef,
     m_logname_list.push_back(string("pressure_yz") + suffix);
     m_logname_list.push_back(string("pressure_zz") + suffix);
 
+    m_computed_flags.reset();
+
     #ifdef ENABLE_MPI
     m_properties_reduced = true;
     #endif
@@ -75,29 +77,16 @@ ComputeThermo::~ComputeThermo()
     m_exec_conf->msg->notice(5) << "Destroying ComputeThermo" << endl;
     }
 
-/*! \param ndof Number of degrees of freedom to set
-*/
-void ComputeThermo::setNDOF(unsigned int ndof)
-    {
-    if (ndof == 0)
-        {
-        m_exec_conf->msg->warning() << "compute.thermo: given a group with 0 degrees of freedom." << endl
-             << "            overriding ndof=1 to avoid divide by 0 errors" << endl;
-        ndof = 1;
-        }
-
-    m_ndof = ndof;
-    }
-
 /*! Calls computeProperties if the properties need updating
     \param timestep Current time step of the simulation
 */
 void ComputeThermo::compute(unsigned int timestep)
     {
-    if (!shouldCompute(timestep))
-        return;
-
-    computeProperties();
+    if (shouldCompute(timestep))
+        {
+        computeProperties();
+        m_computed_flags = m_pdata->getFlags();
+        }
     }
 
 std::vector< std::string > ComputeThermo::getProvidedLogQuantities()
@@ -145,15 +134,15 @@ Scalar ComputeThermo::getLogValue(const std::string& quantity, unsigned int time
         }
     else if (quantity == m_logname_list[7])
         {
-        return Scalar(m_ndof + m_ndof_rot);
+        return Scalar(m_group->getTranslationalDOF() + m_group->getRotationalDOF());
         }
     else if (quantity == m_logname_list[8])
         {
-        return Scalar(m_ndof);
+        return Scalar(m_group->getTranslationalDOF());
         }
     else if (quantity == m_logname_list[9])
         {
-        return Scalar(m_ndof_rot);
+        return Scalar(m_group->getRotationalDOF());
         }
     else if (quantity == m_logname_list[10])
         {
@@ -207,7 +196,6 @@ void ComputeThermo::computeProperties()
     if (m_prof) m_prof->push("Thermo");
 
     assert(m_pdata);
-    assert(m_ndof != 0);
 
     // access the particle data
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
@@ -313,21 +301,18 @@ void ComputeThermo::computeProperties()
 
     // total potential energy
     double pe_total = 0.0;
-    if (flags[pdata_flag::potential_energy])
+    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
-        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+        unsigned int j = m_group->getMemberIndex(group_idx);
+
+        // ignore rigid body constituent particles in the sum
+        if (h_body.data[j] >= MIN_FLOPPY || h_body.data[j] == h_tag.data[j])
             {
-            unsigned int j = m_group->getMemberIndex(group_idx);
-
-            // ignore rigid body constituent particles in the sum
-            if (h_body.data[j] >= MIN_FLOPPY || h_body.data[j] == h_tag.data[j])
-                {
-                pe_total += (double)h_net_force.data[j].w;
-                }
+            pe_total += (double)h_net_force.data[j].w;
             }
-
-        pe_total += m_pdata->getExternalEnergy();
         }
+
+    pe_total += m_pdata->getExternalEnergy();
 
     double W = 0.0;
     double virial_xx = m_pdata->getExternalVirial(0);
@@ -356,27 +341,8 @@ void ComputeThermo::computeProperties()
                 }
             }
 
-        if (flags[pdata_flag::isotropic_virial])
-            {
-            // isotropic virial = 1/3 trace of virial tensor
-            W = Scalar(1./3.) * (virial_xx + virial_yy + virial_zz);
-            }
-        }
-     else if (flags[pdata_flag::isotropic_virial])
-        {
-        // only sum up isotropic part of virial tensor
-        unsigned int virial_pitch = net_virial.getPitch();
-        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
-            {
-            unsigned int j = m_group->getMemberIndex(group_idx);
-            // ignore rigid body constituent particles in the sum
-            if (h_body.data[j] >= MIN_FLOPPY || h_body.data[j] == h_tag.data[j])
-                {
-                W += Scalar(1./3.)* ((double)h_net_virial.data[j+0*virial_pitch] +
-                                     (double)h_net_virial.data[j+3*virial_pitch] +
-                                     (double)h_net_virial.data[j+5*virial_pitch] );
-                }
-            }
+        // isotropic virial = 1/3 trace of virial tensor
+        W = Scalar(1./3.) * (virial_xx + virial_yy + virial_zz);
         }
 
     // compute the pressure
@@ -448,8 +414,6 @@ void export_ComputeThermo(py::module& m)
     {
     py::class_<ComputeThermo, Compute, std::shared_ptr<ComputeThermo> >(m,"ComputeThermo")
     .def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>,const std::string& >())
-    .def("setNDOF", &ComputeThermo::setNDOF)
-    .def("setRotationalNDOF", &ComputeThermo::setRotationalNDOF)
     .def("getTemperature", &ComputeThermo::getTemperature)
     .def("getPressure", &ComputeThermo::getPressure)
     .def("getKineticEnergy", &ComputeThermo::getKineticEnergy)

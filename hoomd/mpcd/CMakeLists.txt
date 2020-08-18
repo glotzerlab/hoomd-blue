@@ -143,17 +143,6 @@ install(TARGETS _mpcd EXPORT HOOMDTargets
 
 ################ Python only modules
 # copy python modules to the build directory to make it a working python package
-MACRO(copy_file file)
-    add_custom_command (
-        OUTPUT ${file}
-        DEPENDS ${file}
-        POST_BUILD
-        COMMAND    ${CMAKE_COMMAND}
-        ARGS       -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${CMAKE_CURRENT_BINARY_DIR}/${file}
-        COMMENT    "Copy hoomd/mpcd/${file}"
-    )
-ENDMACRO(copy_file)
-
 set(files
     __init__.py
     collide.py
@@ -169,11 +158,7 @@ install(FILES ${files}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/mpcd
        )
 
-foreach(file ${files})
-    copy_file(${file})
-endforeach()
-
-add_custom_target(copy_mpcd ALL DEPENDS ${files})
+copy_files_to_build("${files}" "mpcd" "*.py")
 
 # install headers in installation target
 install(FILES ${_mpcd_headers}
@@ -181,9 +166,9 @@ install(FILES ${_mpcd_headers}
        )
 
 if (BUILD_TESTING)
-    add_subdirectory(test-py)
+    # add_subdirectory(test-py)
 endif()
 add_subdirectory(test)
 if (BUILD_VALIDATION)
-    add_subdirectory(validation)
+    # add_subdirectory(validation)
 endif (BUILD_VALIDATION)

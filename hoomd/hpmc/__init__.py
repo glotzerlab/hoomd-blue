@@ -11,7 +11,7 @@ HPMC implements hard particle Monte Carlo in HOOMD-blue.
 
 .. rubric:: Logging
 
-The following quantities are provided by the integrator for use in HOOMD-blue's :py:class:`hoomd.analyze.log`.
+The following quantities are provided by the integrator for use in HOOMD-blue's ``hoomd.analyze.log``.
 
 - ``hpmc_sweep`` - Number of sweeps completed since the start of the MC integrator
 - ``hpmc_translate_acceptance`` - Fraction of translation moves accepted (averaged only over the last time step)
@@ -48,7 +48,7 @@ With patch energies defined, the following quantities are available:
 - ``hpmc_muvt_remove_acceptance`` - Fraction of particle removals accepted (averaged from start of run)
 - ``hpmc_muvt_volume_acceptance`` - Fraction of particle removals accepted (averaged from start of run)
 
-:py:class:`update.clusters()` provides the following loggable quantities.
+:py:class:`update.Clusters()` provides the following loggable quantities.
 
 - ``hpmc_clusters_moves`` - Fraction of cluster moves divided by the number of particles
 - ``hpmc_clusters_pivot_acceptance`` - Fraction of pivot moves accepted
@@ -95,7 +95,7 @@ Glaser, to be published (2019).
 Since release 3.0 HOOMD-blue supports *quermass integration*, which is a method
 to define the excluded volume of the colloids independently from that of the
 test particles. Every colloid is swept by a sphere of constant radius
-**r_sweep** (see :py:meth:`hoomd.hpmc.integrate.mode_hpmc.set_params`), similar
+**r_sweep** (see ``hoomd.hpmc.integrate.mode_hpmc.set_params``), similar
 to implicit depletants with a spherical depletant. However, the test particle
 (or mixture thereof) now intersects the region of intersection between the
 sphere-swept colloids, as illustrated below. The name 'Quermass integration' of
@@ -105,7 +105,7 @@ surface area, integrated mean and Gaussian curvature -- the four Minkowski measu
 three dimensions) can be used to realize a free energy functional that depends
 on the corresponding measures of the system of particles in a general way. The
 coefficients can have any sign, e.g. negative coefficients are realized
-by negative test particle fugacities (see :py:meth:`hoomd.hpmc.integrate.mode_hpmc.set_fugacity`).
+by negative test particle fugacities (see ``hoomd.hpmc.integrate.mode_hpmc.set_fugacity``).
 
 .. image:: quermass.png
     :width: 450 px

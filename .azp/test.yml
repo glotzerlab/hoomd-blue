@@ -1,5 +1,5 @@
 variables:
-  image_root: glotzerlab/ci:2020.05
+  image_root: glotzerlab/ci:2020.07
 
   # default build parameters, will override as needed with job matrix values
   enable_gpu: off
@@ -13,7 +13,7 @@ variables:
   always_use_managed_memory: off
   ctest_start: 1
   ctest_stride: 1
-  mpiexec_timeout: 300
+  mpiexec_timeout: 1800
   suite_name: $(Agent.JobName)
 
 trigger:
@@ -49,8 +49,8 @@ stages:
           container_image: clang10_py38
           enable_mpi: on
           enable_tbb: on
-          build_jit: off
-          llvm_version: '9'
+          build_jit: on
+          llvm_version: '10'
 
         clang9_py38_mpi_tbb:
           container_image: clang9_py38
@@ -118,7 +118,9 @@ stages:
       options: -u 0
 
     steps:
-    - template: templates/build_test.yml
+    - template: templates/build.yml
+    - template: templates/run_tests.yml
+
 
   - job: mac_cpu
     displayName: macOS
@@ -151,7 +153,8 @@ stages:
     - script: python3 -m pip install pytest numpy gsd
       displayName: Pip install prereqs
 
-    - template: templates/build_test.yml
+    - template: templates/build.yml
+    - template: templates/run_tests.yml
 
 - stage: build_test_nvidia
   displayName: Unit test (NVIDIA GPU)
@@ -190,9 +193,37 @@ stages:
       clean: all
 
     steps:
-    - template: templates/build_test.yml
+    - template: templates/build.yml
+    - template: templates/run_tests.yml
+
+  - job: linux_gpu_buildonly
+    # temporarily disable testing with CUDA11 because the embedded HIP is not compatible
+    condition: false
+    displayName: CUDA 11 build
+    timeoutInMinutes: 75
+
+    strategy:
+      matrix:
+        cuda11_py37_mpi:
+          container_image: cuda11_gcc7_py37
+
+    pool:
+      name: 'GPU'
+      demands: short_jobs
+
+    container:
+       image: $(image_root)-$(container_image)
+       options: -u 0 --cpus=4 --memory=16g -e CUDA_VISIBLE_DEVICES
+
+    workspace:
+      clean: all
+
+    steps:
+    - template: templates/build.yml
 
 - stage: build_test_amd
+  # temporarily disable testing on AMD because the containers are not functional
+  condition: false
   displayName: Unit test (AMD GPU)
   dependsOn: []
   variables:
@@ -221,7 +252,15 @@ stages:
 
     container:
        image: $(image_root)-$(container_image)
-       options: -u 0 --cpus=4 --device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined --group-add video --mount type=bind,source=/etc/group,target=/etc/group_host --memory=16g
+       options: >-
+         -u 0
+         --cpus=4
+         --device=/dev/kfd
+         --device=/dev/dri
+         --security-opt seccomp=unconfined
+         --group-add video
+         --mount type=bind,source=/etc/group,target=/etc/group_host
+         --memory=16g
 
     workspace:
       clean: all
@@ -231,7 +270,8 @@ stages:
       displayName: Add render group
     - script: sudo usermod -G render `whoami`
       displayName: Add user to render group
-    - template: templates/build_test.yml
+    - template: templates/build.yml
+    - template: templates/run_tests.yml
 
 - stage: doc
   displayName: Documentation
@@ -253,9 +293,34 @@ stages:
     steps:
     - checkout: self
       submodules: true
-    - script: sphinx-build -b html -d _build/doctrees -W -n . _build/html
+    - script: sphinx-build -b html -d _build/doctrees -W -T --keep-going -n . _build/html
       displayName: (HTML)
       workingDirectory: sphinx-doc
-    - script: sphinx-build -b latex -d _build/doctrees -W -n . _build/latex
+    - script: sphinx-build -b latex -d _build/doctrees -W -T --keep-going -n . _build/latex
       displayName: (LaTeX)
       workingDirectory: sphinx-doc
+
+- stage: style
+  displayName: Style checks
+  dependsOn: []
+
+  jobs:
+  - job: pydocstyle
+    displayName: pydocstyle
+    pool:
+      vmImage: 'ubuntu-latest'
+
+    container:
+      image: $(image_root)-clang10_py38
+      options: -u 0
+
+    workspace:
+      clean: all
+
+    steps:
+    - checkout: self
+      submodules: true
+    - script: >-
+        pydocstyle -v
+        hoomd/variant.py
+      displayName: Run pydocstyle

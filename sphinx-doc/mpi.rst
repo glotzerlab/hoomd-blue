@@ -128,7 +128,7 @@ The optimum value of the **r_buff** value of the neighbor list
 may be different between single- and multi-GPU runs. In multi-GPU
 runs, the buffering length also determines the width of the ghost layer
 runs and sets the size of messages exchanged between the processors.
-To determine the optimum value, use :py:meth:`hoomd.md.nlist.nlist.tune()`.
+To determine the optimum value, use ``hoomd.md.nlist.nlist.tune()``.
 command with the same number of MPI ranks that will be used for the production simulation.
 
 Running with multiple partitions (--nrank command-line option)
@@ -141,7 +141,7 @@ number of GPUs per replica, invoke HOOMD-blue with the **--nrank=n**
 command line option (see :ref:`command-line-options`).
 
 Inside the command script, the current partition can be queried by accessing the
-:py:attr:`hoomd.comm.Communicator.partition` property from the communicator of the 
+:py:attr:`hoomd.comm.Communicator.partition` property from the communicator of the
 device attached to the current simulation context.
 
 Dynamic load balancing
@@ -152,7 +152,7 @@ on a regular 3d grid but non-uniform widths can be constructed using
 :py:class:`hoomd.comm.decomposition`. Here, either the number of processors in a uniform
 decomposition or the fractional widths of :math:`n-1` domains can be set. Dynamic load balancing can be applied
 to any domain decomposition either one time or periodically throughout the simulation using
-:py:class:`hoomd.update.balance`. The domain boundaries are adjusted to attempt to place an
+``hoomd.tune.LoadBalancer``. The domain boundaries are adjusted to attempt to place an
 equal number of particles on each rank. The overhead from periodically updating the domain boundaries is reasonably
 small, so most simulations with non-uniform particle distributions will benefit from periodic dynamic load balancing.
 
@@ -174,11 +174,11 @@ Troubleshooting
 - **Simulations with large numbers of nodes are slow.**
    In simulations involving many nodes, collective MPI calls can take a significant portion
    of the run time. To find out if these are limiting you, run the simulation with
-   the ``profile=True`` option to the :py:func:`hoomd.run()` command.
+   the ``profile=True`` option to the ```hoomd.run``` command.
    One reason for slow performance can be the distance check, which, by default,
    is applied every step to check if the neighbor list needs to be rebuild. It requires
    synchronization between all MPI ranks and is therefore slow.
-   See :py:meth:`hoomd.md.nlist.nlist.set_params()` to increase the interval (**check_period**)
+   See ``set_params()`` to increase the interval (**check_period**)
    between distance checks, to improve performance.
 
 - **My simulation crashes on multiple GPUs when I set ENABLE_MPI_CUDA=ON**

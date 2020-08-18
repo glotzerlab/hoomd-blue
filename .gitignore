@@ -1,13 +1,11 @@
 *.sublime-workspace
 *.DS_Store
-*.kdev4
 *.dcd
 *.gsd
-build/*
 build
 __pycache__
 *.pyc
 *.swp
-.idea
-*.code-workspace
-.vscode/
+.vscode/launch.json
+.vscode/*.db*
+.vscode/c_cpp_properties.json

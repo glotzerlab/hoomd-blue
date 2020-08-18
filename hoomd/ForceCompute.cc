@@ -17,6 +17,8 @@
 #include <iostream>
 using namespace std;
 
+#include <pybind11/numpy.h>
+
 namespace py = pybind11;
 
 #include <memory>
@@ -85,6 +87,9 @@ ForceCompute::ForceCompute(std::shared_ptr<SystemDefinition> sysdef)
 
     // initialize GPU memory hints
     updateGPUAdvice();
+
+    // start with no flags computed
+    m_computed_flags.reset();
     }
 
 /*! \post m_force, m_virial and m_torque are resized to the current maximum particle number
@@ -263,6 +268,187 @@ std::vector<Scalar> ForceCompute::calcVirialGroup(std::shared_ptr<ParticleGroup>
 
     }
 
+pybind11::object ForceCompute::getEnergiesPython()
+    {
+    bool root = true;
+#ifdef ENABLE_MPI
+    // if we are not the root processor, return None
+    root = m_exec_conf->isRoot();
+#endif
+
+    std::vector<size_t> dims(1);
+    if (root)
+        {
+        dims[0] = m_pdata->getNGlobal();
+        }
+    else
+        {
+        dims[0] = 0;
+        }
+    std::vector<double> energy(dims[0]);
+
+    // This is slow: TODO implement a propert gather operation
+    for (size_t i = 0; i < m_pdata->getNGlobal(); i++)
+        {
+        double e = getEnergy(i);
+        if (root)
+            {
+            energy[i] = e;
+            }
+        }
+
+    if (root)
+        {
+        return pybind11::array(dims, energy.data());
+        }
+    else
+        {
+        return pybind11::none();
+        }
+    }
+
+pybind11::object ForceCompute::getForcesPython()
+    {
+    bool root = true;
+#ifdef ENABLE_MPI
+    // if we are not the root processor, return None
+    root = m_exec_conf->isRoot();
+#endif
+
+    std::vector<size_t> dims(2);
+    if (root)
+        {
+        dims[0] = m_pdata->getNGlobal();
+        dims[1] = 3;
+        }
+    else
+        {
+        dims[0] = 0;
+        dims[1] = 0;
+        }
+    std::vector<vec3<double>> force(dims[0]);
+
+    // This is slow: TODO implement a propert gather operation
+    for (size_t i = 0; i < m_pdata->getNGlobal(); i++)
+        {
+        Scalar3 f = getForce(i);
+        if (root)
+            {
+            force[i].x = f.x;
+            force[i].y = f.y;
+            force[i].z = f.z;
+            }
+        }
+
+    if (root)
+        {
+        return pybind11::array(dims, (double*)force.data());
+        }
+    else
+        {
+        return pybind11::none();
+        }
+    }
+
+pybind11::object ForceCompute::getTorquesPython()
+    {
+    bool root = true;
+#ifdef ENABLE_MPI
+    // if we are not the root processor, return None
+    root = m_exec_conf->isRoot();
+#endif
+
+    std::vector<size_t> dims(2);
+    if (root)
+        {
+        dims[0] = m_pdata->getNGlobal();
+        dims[1] = 3;
+        }
+    else
+        {
+        dims[0] = 0;
+        dims[1] = 0;
+        }
+    std::vector<vec3<double>> torque(dims[0]);
+
+    // This is slow: TODO implement a propert gather operation
+    for (size_t i = 0; i < m_pdata->getNGlobal(); i++)
+        {
+        Scalar4 f = getTorque(i);
+        if (root)
+            {
+            torque[i].x = f.x;
+            torque[i].y = f.y;
+            torque[i].z = f.z;
+            }
+        }
+
+    if (root)
+        {
+        return pybind11::array(dims, (double*)torque.data());
+        }
+    else
+        {
+        return pybind11::none();
+        }
+    }
+
+pybind11::object ForceCompute::getVirialsPython()
+    {
+    if (!m_computed_flags[pdata_flag::pressure_tensor])
+        {
+        return pybind11::none();
+        }
+
+    bool root = true;
+#ifdef ENABLE_MPI
+    // if we are not the root processor, return None
+    root = m_exec_conf->isRoot();
+#endif
+
+    std::vector<size_t> dims(2);
+    if (root)
+        {
+        dims[0] = m_pdata->getNGlobal();
+        dims[1] = 6;
+        }
+    else
+        {
+        dims[0] = 0;
+        dims[1] = 0;
+        }
+    std::vector<double> virial(dims[0]*dims[1]);
+
+    // This is slow: TODO implement a propert gather operation
+    for (size_t i = 0; i < m_pdata->getNGlobal(); i++)
+        {
+        double v0 = getVirial(i, 0);
+        double v1 = getVirial(i, 1);
+        double v2 = getVirial(i, 2);
+        double v3 = getVirial(i, 3);
+        double v4 = getVirial(i, 4);
+        double v5 = getVirial(i, 5);
+
+        if (root)
+            {
+            virial[i * 6 + 0] = v0;
+            virial[i * 6 + 1] = v1;
+            virial[i * 6 + 2] = v2;
+            virial[i * 6 + 3] = v3;
+            virial[i * 6 + 4] = v4;
+            virial[i * 6 + 5] = v5;
+            }
+        }
+
+    if (root)
+        {
+        return pybind11::array(dims, (double*)virial.data());
+        }
+    else
+        {
+        return pybind11::none();
+        }
+    }
 
 /*! Performs the force computation.
     \param timestep Current Timestep
@@ -273,12 +459,17 @@ std::vector<Scalar> ForceCompute::calcVirialGroup(std::shared_ptr<ParticleGroup>
 
 void ForceCompute::compute(unsigned int timestep)
     {
-    // skip if we shouldn't compute this step
-    if (!m_particles_sorted && !shouldCompute(timestep))
-        return;
+    // recompute forces if the particles were sorted, this is a new timestep, or the particle data
+    // flags do not match
+    if (m_particles_sorted ||
+        shouldCompute(timestep) ||
+        m_pdata->getFlags() != m_computed_flags)
+        {
+        computeForces(timestep);
+        }
 
-    computeForces(timestep);
     m_particles_sorted = false;
+    m_computed_flags = m_pdata->getFlags();
     }
 
 /*! \param num_iters Number of iterations to average for the benchmark
@@ -417,8 +608,10 @@ void export_ForceCompute(py::module& m)
     .def("getTorque", &ForceCompute::getTorque)
     .def("getVirial", &ForceCompute::getVirial)
     .def("getEnergy", &ForceCompute::getEnergy)
-    .def("calcEnergyGroup", &ForceCompute::calcEnergyGroup)
-    .def("calcForceGroup", &ForceCompute::calcForceGroup)
-    .def("calcVirialGroup", &ForceCompute::calcVirialGroup)
+    .def("calcEnergySum", &ForceCompute::calcEnergySum)
+    .def("getEnergies", &ForceCompute::getEnergiesPython)
+    .def("getForces", &ForceCompute::getForcesPython)
+    .def("getTorques", &ForceCompute::getTorquesPython)
+    .def("getVirials", &ForceCompute::getVirialsPython)
     ;
     }

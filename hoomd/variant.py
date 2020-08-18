@@ -1,150 +1,155 @@
 # Copyright (c) 2009-2019 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
 
-# Maintainer: joaander / All Developers are free to add commands for new features
+"""Define quantities that vary over the simulation.
 
-R""" Specify values that vary over time.
-
-This package contains various commands for creating quantities that can vary
-smoothly over the course of a simulation. For example, set the temperature in
-a NVT simulation to slowly heat or cool the system over a long simulation.
+A `Variant` object represents a scalar function of the time step. Some
+**Operations** accept `Variant` values for certain parameters, such as the
+``kT`` parameter to `NVT`.
 """
 
-from hoomd import _hoomd;
-import hoomd;
-import sys;
+from hoomd import _hoomd
 
-## \internal
-# \brief Base class for variant type
-#
-# _variant should not be used directly in code, it only serves as a base class
-# for the other variant types.
-class _variant:
-    ## Does common initialization for all variants
-    #
-    def __init__(self):
-        # check if initialization has occurred
-        if not hoomd.init.is_initialized():
-            raise RuntimeError('Cannot create a variant before initialization\n');
 
-        self.cpp_variant = None;
+class Variant(_hoomd.Variant):
+    """Variant base class.
 
-## \internal
-# \brief A constant "variant"
-#
-# This is just a placeholder for a constant value. It does not need to be documented
-# as all hoomd commands that take in variants should use _setup_variant_input()
-# which will allow a simple constant number to be passed in and automatically converted
-# to variant.constant for use in setting up whatever code uses the variant.
-class _constant(_variant):
-    ## Specify a %constant %variant
-    #
-    # \param val Value of the variant
-    #
-    def __init__(self, val):
-        # initialize the base class
-        _variant.__init__(self);
+    Variants define values as a function of the simulation time step. Use one of
+    the built in types or define your own custom function:
 
-        self.val = val
+    .. code:: python
 
-        # create the c++ mirror class
-        self.cpp_variant = _hoomd.VariantConst(val);
-        self.cpp_variant.setOffset(hoomd.context.current.system.getCurrentTimeStep());
+        class CustomVariant(hoomd.variant.Variant):
+            def __init__(self):
+                hoomd.variant.Variant.__init__(self)
 
-    ## \internal
-    # \brief return metadata
-    def get_metadata(self):
-        return self.val
+            def __call__(self, timestep):
+                return (float(timestep)**(1 / 2))
 
-class linear_interp(_variant):
-    R""" Linearly interpolated variant.
+    .. py:method:: __call__(timestep)
+
+        Evaluate the function.
+
+        :param timestep: The time step.
+        :type timestep: int
+        :return: The value of the function at the given time step.
+        :rtype: float
+    """
+
+    @property
+    def min(self):
+        """The minimum value of this variant."""
+        return self._min()
+
+    @property
+    def max(self):
+        """The maximum value of this variant."""
+        return self._max()
+
+
+class Constant(_hoomd.VariantConstant, Variant):
+    """A constant value.
 
     Args:
-        points (list): Set points in the linear interpolation (see below)
-        zero (int): Specify absolute time step number location for 0 in *points*. Use 'now' to indicate the current step.
+        value (float): The value.
 
+    `Constant` returns *value* at all time steps.
 
-    :py:class:`hoomd.variant.linear_interp` creates a time-varying quantity where the
-    value at each time step is determined by linear interpolation between a given set of points.
-
-    At time steps before the initial point, the value is identical to the value at the first
-    given point. At time steps after the final point, the value is identical to the value at
-    the last given point. All points between are determined by linear interpolation.
-
-    Time steps given to :py:class:`hoomd.variant.linear_interp` are relative to the current
-    step of the simulation, and starts counting from 0 at the time of creation. Set
-    *zero* to control the relative starting point.
-
-    *points* is a list of ``(time step, set value)`` tuples. For example, to specify
-    a series of points that goes from 10 at time step 0 to 20 at time step 100 and then
-    back down to 5 at time step 200::
-
-        points = [(0, 10), (100, 20), (200, 5)]
-
-    Any number of points can be specified in any order. However, listing them
-    monotonically increasing in time will result in a much more human readable set
-    of values.
-
-    Examples::
-
-        L = variant.linear_interp(points = [(0, 10), (100, 20), (200, 5)])
-        V = variant.linear_interp(points = [(0, 10), (1e6, 20)], zero=80000)
-        integrate.nvt(group=all, tau = 0.5,
-            T = variant.linear_interp(points = [(0, 1.0), (1e5, 2.0)])
+    Attributes:
+        value (float): The value.
     """
-    def __init__(self, points, zero='now'):
-        # initialize the base class
-        _variant.__init__(self);
 
-        # create the c++ mirror class
-        self.cpp_variant = _hoomd.VariantLinear();
-        if zero == 'now':
-            self.cpp_variant.setOffset(hoomd.context.current.system.getCurrentTimeStep());
-        else:
-            # validate zero
-            if zero < 0:
-                hoomd.context.current.device.cpp_msg.error("Cannot create a linear_interp variant with a negative zero\n");
-                raise RuntimeError('Error creating variant');
-            if zero > hoomd.context.current.system.getCurrentTimeStep():
-                hoomd.context.current.device.cpp_msg.error("Cannot create a linear_interp variant with a zero in the future\n");
-                raise RuntimeError('Error creating variant');
+    def __init__(self, value):
+        _hoomd.VariantConstant.__init__(self, value)
 
-            zero = int(zero)
-            self.cpp_variant.setOffset(zero);
 
-        # set the points
-        if len(points) == 0:
-            hoomd.context.current.device.cpp_msg.error("Cannot create a linear_interp variant with 0 points\n");
-            raise RuntimeError('Error creating variant');
+class Ramp(_hoomd.VariantRamp, Variant):
+    """A linear ramp.
 
-        for (t, v) in points:
-            if t < 0:
-                hoomd.context.current.device.cpp_msg.error("Negative times are not allowed in variant.linear_interp\n");
-                raise RuntimeError('Error creating variant');
+    Args:
+        A (float): The start value.
+        B (float): The end value.
+        t_start (int): The start time step.
+        t_ramp (int): The length of the ramp.
 
-            self.cpp_variant.setPoint(int(t), v);
+    `Ramp` holds the value *A* until time *t_start*. Then it ramps linearly from
+    *A* to *B* over *t_ramp* steps and holds the value *B*.
 
-        # store metadata
-        self.points = points
+    .. image:: variant-ramp.svg
 
-    ## \internal
-    # \brief return metadata
-    def get_metadata(self):
-        return self.points
+    Attributes:
+        A (float): The start value.
+        B (float): The end value.
+        t_start (int): The start time step.
+        t_ramp (int): The length of the ramp.
+    """
 
-## \internal
-# \brief Internal helper function to aid in setting up variants
-#
-# For backwards compatibility and convenience, anything that takes in a Variant should
-# also automatically take in a constant number. This method will take the values passed
-# in by the user and turn it into a variant._constant if it is a number. Otherwise,
-# it will return the variant unchanged.
-def _setup_variant_input(v):
-    if isinstance(v, _variant):
-        return v;
-    else:
-        try:
-            return _constant(float(v));
-        except ValueError:
-            hoomd.context.current.device.cpp_msg.error("Value must either be a scalar value or a the result of a variant command\n");
-            raise RuntimeError('Error creating variant');
+    def __init__(self, A, B, t_start, t_ramp):
+        _hoomd.VariantRamp.__init__(self, A, B, t_start, t_ramp)
+
+
+class Cycle(_hoomd.VariantCycle, Variant):
+    """A cycle of linear ramps.
+
+    Args:
+        A (float): The first value.
+        B (float): The second value.
+        t_start (int): The start time step.
+        t_A (int): The hold time at the first value.
+        t_AB (int): The time spent ramping from A to B.
+        t_B (int): The hold time at the second value.
+        t_BA (int): The time spent ramping from B to A.
+
+    :py:class:`Cycle` holds the value *A* until time *t_start*. It continues
+    holding that value until *t_start + t_A*. Then it ramps linearly from *A* to
+    *B* over *t_AB* steps and holds the value *B* for *t_B* steps. After this,
+    it ramps back from *B* to *A* over *t_BA* steps and repeats the cycle
+    starting with *t_A*. :py:class:`Cycle` repeats this cycle indefinitely.
+
+    .. image:: variant-cycle.svg
+
+    Attributes:
+        A (float): The first value.
+        B (float): The second value.
+        t_start (int): The start time step.
+        t_A (int): The holding time at A.
+        t_AB (int): The time spent ramping from A to B.
+        t_B (int): The holding time at B.
+        t_BA (int): The time spent ramping from B to A.
+    """
+
+    def __init__(self, A, B, t_start, t_A, t_AB, t_B, t_BA):
+        _hoomd.VariantCycle.__init__(self, A, B, t_start, t_A, t_AB, t_B, t_BA)
+
+
+class Power(_hoomd.VariantPower, Variant):
+    """A approach from initial to final value of x ^ (power).
+
+    Args:
+        A (float): The start value.
+        B (float): The end value.
+        power (float): The power of the approach to ``B``.
+        t_start (int): The start time step.
+        t_ramp (int): The length of the ramp.
+
+    :py:class:`Power` holds the value *A* until time *t_start*. Then it
+    progresses at :math:`x^{power}` from *A* to *B* over *t_ramp* steps and
+    holds the value *B* after that.
+
+    .. code-block:: python
+
+        p = Power(2, 8, 1 / 10, 10, 20)
+
+    .. image:: variant-power.svg
+
+    Attributes:
+        A (float): The start value.
+        B (float): The end value.
+        power (float): The power of the approach to ``B``.
+        t_start (int): The start time step.
+        t_ramp (int): The length of the ramp.
+    """
+
+    def __init__(self, A, B, power, t_start, t_ramp):
+        _hoomd.VariantPower.__init__(self, A, B, power, t_start, t_ramp)

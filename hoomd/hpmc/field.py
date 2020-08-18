@@ -284,7 +284,9 @@ class wall(_external):
     * Sphere particles: sphere walls, cylinder walls, plane walls
     * Convex polyhedron particles: sphere walls, cylinder walls, plane walls
     * Convex spheropolyhedron particles: sphere walls
-    Once initialized, the compute provides the following log quantities that can be logged via :py:class:`hoomd.analyze.log`:
+
+    Once initialized, the compute provides the following log quantities that can be logged via ``hoomd.analyze.log``:
+
     * **hpmc_wall_volume** : the volume associated with the intersection of implemented walls. This number is only meaningful
       if the user has initially provided it through :py:meth:`set_volume`. It will subsequently change when
       the box is resized and walls are scaled appropriately.
