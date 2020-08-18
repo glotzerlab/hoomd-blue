@@ -287,7 +287,7 @@ class MoveSize(_InternalCustomTuner):
                 acceptance rate and the target before the move sizes are
                 considered tuned. The tolerance should not be too much lower
                 than the default of 0.01 as acceptance rates can vary
-                appreciable at typical tuning rates.
+                significantly at typical tuning rates.
         """
         solver = ScaleSolver(max_scale, gamma, 'negative', tol)
         return cls(trigger, moves, target, solver, types, max_move_size)
@@ -321,7 +321,7 @@ class MoveSize(_InternalCustomTuner):
                 acceptance rate and the target before the move sizes are
                 considered tuned. The tolerance should not be too much lower
                 than the default of 0.01 as acceptance rates can vary
-                appreciable at typical tuning rates.
+                significantly at typical tuning rates.
 
         Note:
             Increasing ``gamma`` towards 1 does not necessarily speed up
