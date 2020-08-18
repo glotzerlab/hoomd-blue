@@ -293,15 +293,15 @@ class nph(NPT):
     R""" NPH Integration via MTK barostat-thermostat..
 
     Args:
-        params: keyword arguments passed to :py:class:`npt`.
+        params: keyword arguments passed to :py:class:`NPT`.
         gamma: (:py:obj:`float`, units of energy): Damping factor for the box degrees of freedom
 
     :py:class:`nph` performs constant pressure (NPH) simulations using a Martyna-Tobias-Klein barostat, an
     explicitly reversible and measure-preserving integration scheme. It allows for fully deformable simulation
-    cells and uses the same underlying integrator as :py:class:`npt` (with *nph=True*).
+    cells and uses the same underlying integrator as :py:class:`NPT` (with *nph=True*).
 
-    The available options are identical to those of :py:class:`npt`, except that *kT* cannot be specified.
-    For further information, refer to the documentation of :py:class:`npt`.
+    The available options are identical to those of :py:class:`NPT`, except that *kT* cannot be specified.
+    For further information, refer to the documentation of :py:class:`NPT`.
 
     Note:
          A time scale *tauP* for the relaxation of the barostat is required. This is defined as the

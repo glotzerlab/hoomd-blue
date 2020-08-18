@@ -39,7 +39,7 @@ rotational degrees of freedom:
 
   * :py:mod:`hoomd.md.methods.nve`
   * ``hoomd.md.methods.NVT``
-  * ``hoomd.md.methods.npt``
+  * ``hoomd.md.methods.NPT``
   * :py:mod:`hoomd.md.methods.Langevin`
   * :py:mod:`hoomd.md.methods.brownian`
 
