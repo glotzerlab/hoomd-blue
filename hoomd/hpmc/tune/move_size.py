@@ -83,7 +83,7 @@ class _InternalMoveSize(_InternalAction):
 
     def __init__(self, moves, target, solver, types=None, max_move_size=None):
         def target_postprocess(target):
-            def is_fraction(value):
+            def check_fraction(value):
                 if 0 <= value <= 1:
                     return value
                 raise ValueError(
