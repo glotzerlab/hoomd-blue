@@ -161,7 +161,6 @@ class _Operation(_HOOMDGetSetAttrBase, metaclass=Loggable):
                 raise AttributeError("{} cannot be set after cpp"
                                      " initialization".format(attr))
 
-
     def __eq__(self, other):
         other_keys = set(other.__dict__.keys())
         for key in self.__dict__.keys():

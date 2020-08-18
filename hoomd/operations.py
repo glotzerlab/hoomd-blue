@@ -2,11 +2,11 @@ from itertools import chain
 import hoomd.integrate
 from hoomd.syncedlist import SyncedList
 from hoomd.operation import _Analyzer, _Updater, _Tuner
-from hoomd.tuner import ParticleSorter
 from hoomd.typeconverter import OnlyType
+from hoomd.tune import ParticleSorter
 
 
-def triggered_op_conversion(value):
+def _triggered_op_conversion(value):
     return (value._cpp_obj, value.trigger)
 
 
@@ -15,9 +15,10 @@ class Operations:
         self._simulation = simulation
         self._compute = list()
         self._scheduled = False
-        self._updaters = SyncedList(OnlyType(_Updater), triggered_op_conversion)
+        self._updaters = SyncedList(OnlyType(_Updater),
+                                    _triggered_op_conversion)
         self._analyzers = SyncedList(OnlyType(_Analyzer),
-                                     triggered_op_conversion)
+                                     _triggered_op_conversion)
         self._tuners = SyncedList(OnlyType(_Tuner), lambda x: x._cpp_obj)
         self._integrator = None
 
