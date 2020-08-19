@@ -146,6 +146,13 @@ class ManualTuneDefinition(_TuneDefinition):
     of type `float`, but specific `hoomd.tune.SolverStep` subclasses may accept
     other types.
 
+    A special case for the return type of y is ``None``. If the value is
+    currently inaccessible or would be invalid, a `ManualTuneDefinition` object
+    can return a y of ``None`` to indicate this. `SolverStep` objects will
+    handle this automatically. Since we check for ``None`` internally in
+    `SolverStep` objects, a `ManualTuneDefinition` object's `y` property should
+    be consistant when called multiple times within a timestep.
+
     Args:
         get_y (``callable``): A callable that gets the current value for y.
         target (``any``): The target y value to approach.
@@ -198,7 +205,7 @@ class ManualTuneDefinition(_TuneDefinition):
 class SolverStep(metaclass=ABCMeta):
     """Abstract base class for "solving" stepwise equations of f(x) = y.
 
-    Requires a single method `SolverStep._solve_one` that steps forward one
+    Requires a single method `SolverStep.solve_one` that steps forward one
     iteration in solving the given variable relationship. Users can use
     subclasses of this with `hoomd.tune.ManualTuneDefinition` to tune attributes
     with a functional relation.
@@ -212,7 +219,7 @@ class SolverStep(metaclass=ABCMeta):
         updaters.
     """
     @abstractmethod
-    def _solve_one(self, tunable):
+    def solve_one(self, tunable):
         """Takes in a tunable object and attempts to solve x for a specified y.
 
         Args:
@@ -224,8 +231,18 @@ class SolverStep(metaclass=ABCMeta):
         """
         pass
 
+    def _solve_one_internal(self, tunable):
+        if tunable.y is None:
+            return False
+        else:
+            return self.solve_one(tunable)
+
     def solve(self, tunables):
         """Iterates towards a solution for a list of tunables.
+
+        If a y for one of the ``tunables`` is ``None`` then we skip that
+        ``tunable``. Skipping implies that the quantity is not tuned and `solve`
+        will return `False`.
 
         Args:
             tunables (list[`hoomd.tune.ManualTuneDefinition`]): A list of
@@ -235,7 +252,7 @@ class SolverStep(metaclass=ABCMeta):
             bool: Returns whether or not all tunables were considered tuned by
                 the object.
         """
-        return all(self._solve_one(tunable) for tunable in tunables)
+        return all(self._solve_one_internal(tunable) for tunable in tunables)
 
 
 class ScaleSolver(SolverStep):
@@ -266,7 +283,7 @@ class ScaleSolver(SolverStep):
         self.correlation = correlation.lower()
         self.tol = tol
 
-    def _solve_one(self, tunable):
+    def solve_one(self, tunable):
         x, y, target = tunable.x, tunable.y, tunable.target
         if abs(y - target) <= self.tol:
             return True
@@ -312,7 +329,7 @@ class SecantSolver(SolverStep):
         self._previous_pair = dict()
         self.tol = tol
 
-    def _solve_one(self, tunable):
+    def solve_one(self, tunable):
         x, y, target = tunable.x, tunable.y, tunable.target
         if abs(y - target) <= self.tol:
             return True
