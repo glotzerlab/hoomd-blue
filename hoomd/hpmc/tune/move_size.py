@@ -89,7 +89,7 @@ class _InternalMoveSize(_InternalAction):
                 raise ValueError(
                     "Value {} should be between 0 and 1.".format(value))
 
-            self._update_tunables_attr('target', is_fraction(target))
+            self._update_tunables_attr('target', check_fraction(target))
             self._tuned = 0
             return target
 
