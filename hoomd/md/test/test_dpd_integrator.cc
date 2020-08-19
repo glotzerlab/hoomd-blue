@@ -112,7 +112,7 @@ void dpd_temperature_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
     std::shared_ptr<TwoStepNVE> two_step_nve(new TwoStepNVE(sysdef,group_all));
     std::shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
-    thermo->setNDOF(3*1000);
+    group_all->setTranslationalDOF(3*1000);
     std::shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));
     nve_up->addIntegrationMethod(two_step_nve);
 

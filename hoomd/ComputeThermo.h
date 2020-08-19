@@ -68,27 +68,6 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
         //! Compute the temperature
         virtual void compute(unsigned int timestep);
 
-        //! Change the number of degrees of freedom
-        void setNDOF(unsigned int ndof);
-
-        //! Get the number of degrees of freedom
-        unsigned int getNDOF()
-            {
-            return m_ndof;
-            }
-
-        //! Change the number of degrees of freedom
-        void setRotationalNDOF(unsigned int ndof)
-            {
-            m_ndof_rot = ndof;
-            }
-
-        //! Get the number of degrees of freedom
-        unsigned int getRotationalNDOF()
-            {
-            return m_ndof_rot;
-            }
-
         //! Returns the overall temperature last computed by compute()
         /*! \returns Instantaneous overall temperature of the system
          */
@@ -98,7 +77,7 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
             if (!m_properties_reduced) reduceProperties();
             #endif
             ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
-            Scalar prefactor = Scalar(2.0)/(m_ndof + m_ndof_rot);
+            Scalar prefactor = Scalar(2.0)/(m_group->getTranslationalDOF() + m_group->getRotationalDOF());
             return prefactor*(h_properties.data[thermo_index::translational_kinetic_energy] +
                               h_properties.data[thermo_index::rotational_kinetic_energy]);
         }
@@ -112,7 +91,7 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
             if (!m_properties_reduced) reduceProperties();
             #endif
             ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
-            return Scalar(2.0)/m_ndof*h_properties.data[thermo_index::translational_kinetic_energy];
+            return Scalar(2.0)/m_group->getTranslationalDOF()*h_properties.data[thermo_index::translational_kinetic_energy];
             }
 
         //! Returns the rotational temperature last computed by compute()
@@ -124,10 +103,11 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
             if (!m_properties_reduced) reduceProperties();
             #endif
             // return NaN if the flags are not valid or we have no rotational DOF
-            if (m_computed_flags[pdata_flag::rotational_kinetic_energy] && m_ndof_rot)
+            if (m_computed_flags[pdata_flag::rotational_kinetic_energy] &&
+                m_group->getRotationalDOF() > 0)
                 {
                 ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
-                return Scalar(2.0)/m_ndof_rot*h_properties.data[thermo_index::rotational_kinetic_energy];
+                return Scalar(2.0)/m_group->getRotationalDOF()*h_properties.data[thermo_index::rotational_kinetic_energy];
                 }
             else
                 {
@@ -291,8 +271,6 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
     protected:
         std::shared_ptr<ParticleGroup> m_group;     //!< Group to compute properties for
         GlobalArray<Scalar> m_properties;  //!< Stores the computed properties
-        unsigned int m_ndof;            //!< Stores the number of translational degrees of freedom in the system
-        unsigned int m_ndof_rot;        //!< Stores the number of rotational degrees of freedom in the system
         std::vector<std::string> m_logname_list;  //!< Cache all generated logged quantities names
         bool m_logging_enabled;         //!< Set to false to disable communication with the logger
 

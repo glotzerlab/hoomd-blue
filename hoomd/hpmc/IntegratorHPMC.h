@@ -397,7 +397,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
 
             MC does not integrate with the MD computations that use this value.
         */
-        virtual unsigned int getNDOF(std::shared_ptr<ParticleGroup> group)
+        virtual Scalar getTranslationalDOF(std::shared_ptr<ParticleGroup> group)
             {
             return 1;
             }

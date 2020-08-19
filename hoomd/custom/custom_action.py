@@ -102,6 +102,10 @@ class Action(metaclass=_AbstractLoggable):
         """
         self._state = simulation.state
 
+    @property
+    def is_attached(self):
+        return getattr(self, '_state', None) is not None
+
     def detach(self):
         """Detaches the Action from the `hoomd.Simulation`."""
         if hasattr(self, '_state'):
@@ -141,4 +145,9 @@ class _InternalAction(Action, _HOOMDGetSetAttrBase):
     should be specified in the subclass. No other methods or attributes should
     be created.
     """
-    pass
+    def _setattr_param(self, attr, value):
+        """Necessary to prevent errors on setting after attaching.
+
+        See hoomd/operation.py _Operation._setattr_param for details.
+        """
+        self._param_dict[attr] = value

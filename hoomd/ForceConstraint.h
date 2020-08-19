@@ -30,10 +30,11 @@ class PYBIND11_EXPORT ForceConstraint : public ForceCompute
         //! Constructs the compute
         ForceConstraint(std::shared_ptr<SystemDefinition> sysdef);
 
-        //! Return the number of DOF removed by this constraint
+        //! Return the number of DOF removed from a group by this constraint
         /*! The base class ForceConstraint returns 0, derived classes should override
+            @param query The group over which to compute the removed degrees of freedom
         */
-        virtual unsigned int getNDOFRemoved()
+        virtual Scalar getNDOFRemoved(std::shared_ptr<ParticleGroup> query)
             {
             return 0;
             }

@@ -51,5 +51,5 @@
     "cSpell.enableFiletypes": [
         "cuda"
     ],
-    "C_Cpp.default.configurationProvider": "vector-of-bool.cmake-tools",
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
 }

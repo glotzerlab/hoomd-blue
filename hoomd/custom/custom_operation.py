@@ -73,8 +73,6 @@ class _CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
     def attach(self, simulation):
         """Attach to a `hoomd.Simulation`.
 
-        Detaching is implemented by a parent class.
-
         Args:
             simulation (hoomd.Simulation): The simulation the operation operates
                 on.
@@ -84,6 +82,11 @@ class _CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
 
         super().attach(simulation)
         self._action.attach(simulation)
+
+    def detach(self):
+        """Detaching from a `hoomd.Simulation`."""
+        self._action.detach()
+        super().detach()
 
     def act(self, timestep):
         """Perform the action of the custom action if attached.
@@ -102,7 +105,23 @@ class _CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
         return self._action
 
 
-class _InternalCustomOperation(_CustomOperation):
+class _AbstractLoggableWithPassthrough(_AbstractLoggable):
+    def __getattr__(self, attr):
+        try:
+            # This will not work with classmethods that are constructors. We
+            # need a trigger for operations, and the action does not contain a
+            # trigger. This can be made to work for alternate constructors but
+            # would require wrapping the classmethod in question. Since this
+            # should only ever matter for internal actions, putting such
+            # classmethods in the wrapping operation should be fine.
+            return getattr(self._internal_class, attr)
+        except AttributeError:
+            raise AttributeError("{} object {} has no attribute {}".format(
+                type(self), self, attr))
+
+
+class _InternalCustomOperation(
+        _CustomOperation, metaclass=_AbstractLoggableWithPassthrough):
     """Internal class for Python ``Action``s. Offers a streamlined __init__.
 
     Adds a wrapper around an hoomd Python action. This extends the attribute

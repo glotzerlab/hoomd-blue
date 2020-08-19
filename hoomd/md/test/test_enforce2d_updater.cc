@@ -75,7 +75,7 @@ void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionCo
 
     std::shared_ptr<Variant> T(new VariantConstant(1.0));
     std::shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
-    thermo->setNDOF(2*group_all->getNumMembers()-2);
+    group_all->setTranslationalDOF(2*group_all->getNumMembers()-2);
     std::shared_ptr<TwoStepNVTMTK> two_step_nvt(new TwoStepNVTMTK(sysdef, group_all, thermo, 0.5, T));
 
     Scalar deltaT = Scalar(0.005);

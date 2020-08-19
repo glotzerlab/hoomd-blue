@@ -161,7 +161,6 @@ class _Operation(_HOOMDGetSetAttrBase, metaclass=Loggable):
                 raise AttributeError("{} cannot be set after cpp"
                                      " initialization".format(attr))
 
-
     def __eq__(self, other):
         other_keys = set(other.__dict__.keys())
         for key in self.__dict__.keys():
@@ -178,13 +177,14 @@ class _Operation(_HOOMDGetSetAttrBase, metaclass=Loggable):
             self.notify_detach(self._simulation)
 
     def detach(self):
-        self._unapply_typeparam_dict()
-        self._update_param_dict()
-        self._cpp_obj = None
-        if hasattr(self, '_simulation'):
-            self.notify_detach(self._simulation)
-            del self._simulation
-        return self
+        if self.is_attached:
+            self._unapply_typeparam_dict()
+            self._update_param_dict()
+            self._cpp_obj = None
+            if hasattr(self, '_simulation'):
+                self.notify_detach(self._simulation)
+                del self._simulation
+            return self
 
     def add_dependent(self, obj):
         self._dependent_list.append(obj)

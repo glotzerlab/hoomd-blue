@@ -85,7 +85,7 @@ class SyncedList:
                 del self[fixed_index]
             return
         if len(self) <= index or -len(self) > index:
-            raise IndexError("Cannot assign index {} to list of length {}."
+            raise IndexError("Cannot delete index {} to list of length {}."
                              "".format(index, len(self)))
         else:
             # Since delitem may not del the underlying object, we need to
@@ -150,12 +150,13 @@ class SyncedList:
 
     def detach(self):
         """Detach all items, clear _synced_list, and remove cpp references."""
-        for index in range(len(self)):
-            del self._synced_list[0]
-        for item in self:
-            item.detach()
-        del self._simulation
-        del self._synced_list
+        if self.is_attached:
+            for index in range(len(self)):
+                del self._synced_list[0]
+            for item in self:
+                item.detach()
+            del self._simulation
+            del self._synced_list
 
     def append(self, value):
         """Append value to list, handling list syncing."""
