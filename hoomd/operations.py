@@ -1,20 +1,12 @@
+from itertools import chain
 import hoomd.integrate
 from hoomd.syncedlist import SyncedList
 from hoomd.operation import _Analyzer, _Updater, _Tuner
+from hoomd.typeconverter import OnlyType
 from hoomd.tune import ParticleSorter
 
 
-def list_validation(type_):
-    def validate(value):
-        if not isinstance(value, type_):
-            raise ValueError("Value {} is of type {}. Excepted instance of "
-                             "{}".format(value, type(value), type_))
-        else:
-            return True
-    return validate
-
-
-def triggered_op_conversion(value):
+def _triggered_op_conversion(value):
     return (value._cpp_obj, value.trigger)
 
 
@@ -22,14 +14,12 @@ class Operations:
     def __init__(self, simulation=None):
         self._simulation = simulation
         self._compute = list()
-        self._auto_schedule = False
         self._scheduled = False
-        self._updaters = SyncedList(list_validation(_Updater),
-                                    triggered_op_conversion)
-        self._analyzers = SyncedList(list_validation(_Analyzer),
-                                     triggered_op_conversion)
-        self._tuners = SyncedList(list_validation(_Tuner),
-                                  lambda x: x._cpp_obj)
+        self._updaters = SyncedList(OnlyType(_Updater),
+                                    _triggered_op_conversion)
+        self._analyzers = SyncedList(OnlyType(_Analyzer),
+                                     _triggered_op_conversion)
+        self._tuners = SyncedList(OnlyType(_Tuner), lambda x: x._cpp_obj)
         self._integrator = None
 
         self._tuners.append(ParticleSorter())
@@ -51,15 +41,6 @@ class Operations:
                              " Operations.")
 
     @property
-    def _operations(self):
-        op = list()
-        if hasattr(self, '_integrator'):
-            op.append(self._integrator)
-        op.extend(self._updaters)
-        op.extend(self._analyzers)
-        return op
-
-    @property
     def _sys_init(self):
         if self._simulation is None or self._simulation.state is None:
             return False
@@ -70,7 +51,7 @@ class Operations:
         if not self._sys_init:
             raise RuntimeError("System not initialized yet")
         sim = self._simulation
-        if self.integrator is not None and not self.integrator.is_attached:
+        if not (self.integrator is None or self.integrator.is_attached):
             self.integrator.attach(sim)
         if not self.updaters.is_attached:
             self.updaters.attach(sim, sim._cpp_sys.updaters)
@@ -80,12 +61,23 @@ class Operations:
             self.tuners.attach(sim, sim._cpp_sys.tuners)
         self._scheduled = True
 
+    def unschedule(self):
+        self._integrator.detach()
+        self._analyzers.detach()
+        self._updaters.detach()
+        self._tuners.detach()
+        self._scheduled = False
+
     def _store_reader(self, reader):
         # TODO
         pass
 
     def __contains__(self, obj):
-        return any([op is obj for op in self._operations])
+        return any(op is obj for op in self)
+
+    def __iter__(self):
+        yield from chain(
+            (self._integrator,), self._analyzers, self._updaters, self._tuners)
 
     @property
     def scheduled(self):
@@ -97,18 +89,18 @@ class Operations:
 
     @integrator.setter
     def integrator(self, op):
-        if not isinstance(op, hoomd.integrate._BaseIntegrator):
+        if (not isinstance(op, hoomd.integrate._BaseIntegrator)
+                and op is not None):
             raise TypeError("Cannot set integrator to a type not derived "
-                            "from hoomd.integrator._integrator")
+                            "from hoomd.integrate._BaseIntegrator")
         old_ref = self.integrator
         self._integrator = op
-        if self._auto_schedule:
-            new_objs = op.attach(self._simulation)
-            if old_ref is not None:
-                old_ref.notify_detach(self._simulation)
-                old_ref.detach()
-            if new_objs is not None:
-                self._compute.extend(new_objs)
+        if self._scheduled:
+            if op is not None:
+                op.attach(self._simulation)
+        if old_ref is not None:
+            old_ref.notify_detach(self._simulation)
+            old_ref.detach()
 
     @property
     def updaters(self):
@@ -121,3 +113,20 @@ class Operations:
     @property
     def tuners(self):
         return self._tuners
+
+    def __iadd__(self, operation):
+        self.add(operation)
+
+    def remove(self, operation):
+        if isinstance(operation, hoomd.integrate._BaseIntegrator):
+            raise ValueError(
+                "Cannot remove iterator without setting to a new integator.")
+        elif isinstance(operation, _Analyzer):
+            self._analyzers.remove(operation)
+        elif isinstance(operation, _Updater):
+            self._updaters.remove(operation)
+        elif isinstance(operation, _Tuner):
+            self._tuners.remove(operation)
+
+    def __isub__(self, operation):
+        self.remove(operation)
