@@ -1,3 +1,4 @@
+from math import isclose
 import pytest
 
 from hoomd import hpmc
@@ -50,19 +51,20 @@ class Test_MoveSizeTuneDefinition:
         integrator = simulation.operations.integrator
         move_size_definition.integrator = integrator
         simulation.operations.schedule()
-        assert move_size_definition.y == move_size_definition.target
+        # needed to set previous values need to to calculate acceptance rate
+        assert move_size_definition.y is None
         simulation.run(1000)
         accepted, rejected = integrator.translate_moves
         calc_acceptance_rate = (accepted) / (accepted + rejected)
-        assert move_size_definition.y == calc_acceptance_rate
+        assert isclose(move_size_definition.y, calc_acceptance_rate)
         # We do this twice to ensure that when the counter doesn't change our
         # return value does not change either.
-        assert move_size_definition.y == calc_acceptance_rate
+        assert isclose(move_size_definition.y, calc_acceptance_rate)
         simulation.run(10)
-        assert move_size_definition.y != calc_acceptance_rate
+        assert not isclose(move_size_definition.y, calc_acceptance_rate)
         accepted, rejected = integrator.translate_moves
         calc_acceptance_rate = accepted / (accepted + rejected)
-        assert move_size_definition.y == calc_acceptance_rate
+        assert isclose(move_size_definition.y, calc_acceptance_rate)
 
     def test_getting_setting_move_size(self, move_size_definition, simulation):
         integrator = simulation.operations.integrator
@@ -143,7 +145,7 @@ class TestMoveSize:
             tunable.y
         simulation.operations.schedule()
         assert move_size_tuner.is_attached
-        assert tunable.y == tunable.target
+        assert tunable.y == None
         assert tunable.integrator == simulation.operations.integrator
 
     def test_detach(self, move_size_tuner, simulation):

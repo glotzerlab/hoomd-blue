@@ -26,39 +26,48 @@ class _MoveSizeTuneDefinition(_TuneDefinition):
         self.attr = attr
         self.type = type
         self.integrator = None
-        self.previous_ratio = None
+        self.previous_accepted_moves = None
         self.previous_total = None
+        self.previous_acceptance_rate = None
         super().__init__(target, domain)
 
     def _get_y(self):
-        current_ratio = getattr(self.integrator,
-                                self._attr_acceptance[self.attr])
-        current_total = sum(current_ratio)
-        # We return the target when no moves are recorded since we don't want
-        # the move size to be updated. This is "hackish", but there is no right
-        # answer here since there is no concept of an acceptance_rate with no
-        # trial moves. We could error, but I think this make the class easier to
-        # use for users.
-        if current_total == 0:
-            return self._target
-        # If no more trial moves have been recorded return previous
-        # acceptance_rate. In general, this conditional should not be true, if
-        # it is true different solvers may error, but this is the most natural
-        # solution, I could think of.
-        if (self.previous_total is not None
-                and self.previous_total == current_total):
-            return self.previous_ratio[0] / self.previous_total
+        ratio = getattr(self.integrator, self._attr_acceptance[self.attr])
+        accepted_moves = ratio[0]
+        total_moves = sum(ratio)
 
-        if self.previous_ratio is None or self.previous_total > current_total:
-            acceptance_rate = current_ratio[0] / current_total
+        # We return None when no moves are recorded since we don't want
+        # the move size to be updated. Likewise, when we do not have a previous
+        # recorded acceptance rate we return None since what happened previous
+        # timesteps may not be indicative of the current system. None in the
+        # hoomd solver infrastructure means that the value either cannot be
+        # computed or would be inaccurate at the current time. It informs the
+        # `SolverStep` object to skip tuning this attribute for now.
+        if self.previous_total is None or total_moves == 0:
+            self.previous_accepted_moves = accepted_moves
+            self.previous_total = total_moves
+            return None
+
+        # If no more trial moves have been recorded return previous
+        # acceptance_rate.
+        elif self.previous_total == total_moves:
+            return self.previous_acceptance_rate
+
+        # If we have recorded a previous total then this condition implies a new
+        # run call. We should be able to tune here as we have no other
+        # indication the system has changed.
+        elif self.previous_total > total_moves:
+            acceptance_rate = accepted_moves / total_moves
         else:
-            acceptance_rate = ((current_ratio[0] - self.previous_ratio[0])
-                               / (current_total - self.previous_total))
+            acceptance_rate = ((accepted_moves - self.previous_accepted_moves)
+                               / (total_moves - self.previous_total))
+
         # We store the previous information becuase this lets us find the
         # acceptance rate since this has last been called which allows for us to
         # disregard the information before the last tune.
-        self.previous_ratio = current_ratio
-        self.previous_total = current_total
+        self.previous_accepted_moves = accepted_moves
+        self.previous_total = total_moves
+        self.previous_acceptance_rate = acceptance_rate
         return acceptance_rate
 
     def _get_x(self):
