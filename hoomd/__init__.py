@@ -73,7 +73,7 @@ from hoomd.simulation import Simulation
 from hoomd.state import State
 from hoomd.operations import Operations
 from hoomd.snapshot import Snapshot
-from hoomd import tuner
+from hoomd import tune
 from hoomd import output
 from hoomd import logging
 from hoomd import custom
