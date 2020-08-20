@@ -184,6 +184,7 @@ class _Operation(_HOOMDGetSetAttrBase, metaclass=Loggable):
             # bring parameters back to Python
             self._unapply_typeparam_dict()
             self._update_param_dict()
+            self._cpp_obj.notifyDetach()
             self._cpp_obj = None
             if hasattr(self, '_simulation'):
                 self.notify_detach(self._simulation)

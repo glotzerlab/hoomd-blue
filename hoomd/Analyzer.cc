@@ -44,6 +44,7 @@ void export_Analyzer(py::module& m)
         .def("analyze", &Analyzer::analyze)
         .def("setProfiler", &Analyzer::setProfiler)
         .def("isComplete", &Analyzer::isComplete)
+        .def("notifyDetach", &Analyzer::notifyDetach)
     #ifdef ENABLE_MPI
         .def("setCommunicator", &Analyzer::setCommunicator)
     #endif
