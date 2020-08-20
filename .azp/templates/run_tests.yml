@@ -31,7 +31,7 @@ steps:
 - script: >-
     PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
     python3 -m pytest -v -ra -m "cupy_optional"
-    --junit-xml=$(Common.TestResultsDirectory)/pytest-serial.xml
+    --junit-xml=$(Common.TestResultsDirectory)/pytest-serial-cupy-optional.xml
   displayName: Run pytest (gpu without CuPy)
   workingDirectory: $(Pipeline.Workspace)/install
   condition: and(succeeded(), eq(variables['enable_gpu'], 'on'))
@@ -42,7 +42,7 @@ steps:
 - script: >-
     PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
     mpirun -n 2 $(Build.BinariesDirectory)/hoomd/pytest/pytest-openmpi.sh -v -x -ra
-    -m "cupy_optional" --junit-xml=$(Common.TestResultsDirectory)/pytest-mpi.xml
+    -m "cupy_optional" --junit-xml=$(Common.TestResultsDirectory)/pytest-mpi-cupy-optional.xml
   displayName: Run pytest (gpu mpi without CuPy)
   workingDirectory: $(Pipeline.Workspace)/install
   condition: and(succeeded(), eq(variables['enable_mpi'], 'on'), eq(variables['enable_gpu'], 'on'))
@@ -92,8 +92,22 @@ steps:
     testRunTitle: '$(suite_name) [pytest-serial]'
 
 - task: PublishTestResults@2
+  condition: eq(variables['enable_gpu'], 'on'))
+  inputs:
+    testResultsFormat: 'JUnit'
+    testResultsFiles: '$(Common.TestResultsDirectory)/pytest-serial-cupy-optional.xml'
+    testRunTitle: '$(suite_name) [pytest-serial-cupy-optional]'
+
+- task: PublishTestResults@2
   condition: eq(variables['enable_mpi'], 'on')
   inputs:
     testResultsFormat: 'JUnit'
     testResultsFiles: '$(Common.TestResultsDirectory)/pytest-mpi.xml'
     testRunTitle: '$(suite_name) [pytest-mpi]'
+
+- task: PublishTestResults@2
+  condition: and(eq(variables['enable_mpi'], 'on'), eq(variables['enable_gpu'], 'on')))
+  inputs:
+    testResultsFormat: 'JUnit'
+    testResultsFiles: '$(Common.TestResultsDirectory)/pytest-mpi-cupy-optional.xml'
+    testRunTitle: '$(suite_name) [pytest-mpi-cupy-optional]'
