@@ -127,7 +127,7 @@ class NPT(_Method):
         S (:py:class:`list` of :py:mod:`hoomd.variant` or :py:obj:`float`): Stress components set point for the barostat (in pressure units). 
         In Voigt notation: [Sxx, Syy, Szz, Syz, Sxz, Sxy]. In case of isotropic pressure P ( [ P, P, P, 0, 0, 0]), use S = P.
         tauS (float): Coupling constant for the barostat (in time units).
-        couple (str): Couplings of diagonal elements of the stress tensor, can be "none", "xy", "xz","yz", or "xyz" (default).
+        couple (str): Couplings of diagonal elements of the stress tensor, can be "none", "xy", "xz","yz", or "all" (default).
         box_dof(list): Box degrees of freedom with six boolean elements corresponding to x, y, z, xy, xz, yz, each. (default: [True,True,True,False,False,False]) 
                        If turned on to True, rescale corresponding lengths or tilt factors and components of particle coordinates and velocities
         rescale_all (bool): if True, rescale all particles, not only those in the group
@@ -156,9 +156,9 @@ class NPT(_Method):
     - xy (*Lx* and *Ly* are coupled)
     - xz (*Lx* and *Lz* are coupled)
     - yz (*Ly* and *Lz* are coupled)
-    - xyz (*Lx* and *Ly* and *Lz* are coupled)
+    - all (*Lx* and *Ly* (and *Lz* if 3D) are coupled)
 
-    The default coupling is **xyz**, i.e. the ratios between all box lengths stay constant.
+    The default coupling is **all**, i.e. the ratios between all box lengths stay constant.
 
     Degrees of freedom of the box specify which lengths and tilt factors of the box should be updated,
     and how particle coordinates and velocities should be rescaled.
@@ -177,7 +177,7 @@ class NPT(_Method):
 
     For example:
 
-    - Specifying xyz couplings and x, y, and z degrees of freedom amounts to cubic symmetry (default)
+    - Specifying all couplings and x, y, and z degrees of freedom amounts to cubic symmetry (default)
     - Specifying xy couplings and x, y, and z degrees of freedom amounts to tetragonal symmetry.
     - Specifying no couplings and all degrees of freedom amounts to a fully deformable triclinic unit cell
 
@@ -222,7 +222,7 @@ class NPT(_Method):
         # triclinic symmetry
         integrator = integrate.NPT(filter=filter.All(), tau=1.0, kT=0.65, tauS = 1.2, S=2.0, couple="none", rescale_all=True)
     """
-    def __init__(self, filter, kT, tau, S, tauS, couple="xyz", box_dof=[True,True,True,False,False,False], rescale_all=False, gamma=0.0):
+    def __init__(self, filter, kT, tau, S, tauS, couple="all", box_dof=[True,True,True,False,False,False], rescale_all=False, gamma=0.0):
 
 
         # store metadata
