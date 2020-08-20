@@ -249,7 +249,7 @@ class _Operation(_HOOMDGetSetAttrBase, metaclass=Loggable):
     def state(self):
         self._update_param_dict()
         state = self._typeparam_states()
-        state['params'] = dict(self._param_dict)
+        state['__params__'] = dict(self._param_dict)
         return dict_map(state, convert_values_to_log_form)
 
     @classmethod
@@ -320,16 +320,16 @@ class _Operation(_HOOMDGetSetAttrBase, metaclass=Loggable):
     def _from_state_with_state_dict(cls, state, **kwargs):
 
         # Initialize object using params from state and passed arguments
-        params = state['params']
+        params = state['__params__']
         params.update(kwargs)
         obj = cls(**params)
-        del state['params']
+        del state['__params__']
 
         # Add typeparameter information
         for name, tp_dict in state.items():
-            if '__default' in tp_dict.keys():
-                obj._typeparam_dict[name].default = tp_dict['__default']
-                del tp_dict['__default']
+            if '__default__' in tp_dict.keys():
+                obj._typeparam_dict[name].default = tp_dict['__default__']
+                del tp_dict['__default__']
             # Parse the stringified tuple back into tuple
             if obj._typeparam_dict[name]._len_keys > 1:
                 tp_dict = str_to_tuple_keys(tp_dict)
