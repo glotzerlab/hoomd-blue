@@ -106,7 +106,7 @@ steps:
     testRunTitle: '$(suite_name) [pytest-mpi]'
 
 - task: PublishTestResults@2
-  condition: and(eq(variables['enable_mpi'], 'on'), eq(variables['enable_gpu'], 'on')))
+  condition: and(eq(variables['enable_mpi'], 'on'), eq(variables['enable_gpu'], 'on'))
   inputs:
     testResultsFormat: 'JUnit'
     testResultsFiles: '$(Common.TestResultsDirectory)/pytest-mpi-cupy-optional.xml'
