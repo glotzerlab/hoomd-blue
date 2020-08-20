@@ -114,9 +114,45 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
 @pytest.mark.parametrize("phi", [0.2, 0.3, 0.4, 0.5, 0.55, 0.58, 0.6])
 def test_sphere_compression(phi, simulation_factory, lattice_snapshot_factory):
     """Test that QuickCompress can compress (and expand) simulation boxes."""
-    snap = lattice_snapshot_factory(a=1.1)
+    n = 7
+    snap = lattice_snapshot_factory(n=n, a=1.1)
     v_particle = 4 / 3 * math.pi * (0.5)**3
-    target_box = hoomd.Box.cube((snap.particles.N * v_particle / phi)**(1 / 3))
+    target_box = hoomd.Box.cube((n * n * n * v_particle / phi)**(1 / 3))
+
+    qc = hoomd.hpmc.update.QuickCompress(trigger=hoomd.trigger.Periodic(10),
+                                         target_box=target_box,
+                                         seed=1)
+
+    sim = simulation_factory(snap)
+    sim.operations.updaters.append(qc)
+
+    mc = hoomd.hpmc.integrate.Sphere(d=0.05, seed=1)
+    mc.shape['A'] = dict(diameter=1)
+    sim.operations.integrator = mc
+
+    sim.run(1)
+
+    # compression should not be complete yet
+    assert not qc.complete
+
+    # run long enough to compress the box
+    steps = 1e5
+    sim.run(steps - 1)
+
+    # compression should end the run early
+    assert qc.complete
+    assert sim.timestep < steps
+    assert mc.overlaps == 0
+    assert sim.state.box == target_box
+
+
+@pytest.mark.parametrize("phi", [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8])
+def test_disk_compression(phi, simulation_factory, lattice_snapshot_factory):
+    """Test that QuickCompress can compress (and expand) simulation boxes."""
+    n = 7
+    snap = lattice_snapshot_factory(dimensions=2, n=n, a=1.1)
+    v_particle = math.pi * (0.5)**2
+    target_box = hoomd.Box.square((n * n * v_particle / phi)**(1 / 2))
 
     qc = hoomd.hpmc.update.QuickCompress(trigger=hoomd.trigger.Periodic(10),
                                          target_box=target_box,
