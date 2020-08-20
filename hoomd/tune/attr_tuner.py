@@ -37,7 +37,7 @@ class _TuneDefinition(metaclass=ABCMeta):
             value (``any``): A value of the same type as x.
 
         Returns:
-            The value wrapped within the domains of x. Wrapping here refers to
+            The value clamps within the domains of x. Clamping here refers to
             returning the value or minimum or maximum of the domain if value is
             outside the domain.
         """
@@ -54,7 +54,10 @@ class _TuneDefinition(metaclass=ABCMeta):
 
     @property
     def x(self):
-        """The dependent variable."""
+        """The dependent variable.
+
+        Can be set. When set the setting value is clamped within the provided
+        domain. See `clamp_into_domain` for further explanation."""
         return self._get_x()
 
     @x.setter
@@ -111,11 +114,11 @@ class _TuneDefinition(metaclass=ABCMeta):
 
     @property
     def domain(self):
-        """tuple[any, any]: A tuple pair of the minimum and maximum accepted
-            values of x.
+        """tuple[``any``, ``any``]: A tuple pair of the minimum and maximum
+            accepted values of x.
 
-            When, the domain is `None` then any value of x is accepted. Either
-            the minimum or maximum can be set to `None` as well which means
+            When, the domain is ``None`` then any value of x is accepted. Either
+            the minimum or maximum can be set to ``None`` as well which means
             there is no maximum or minimum. The domain is used to wrap values
             within the specified domain when setting x.
         """
@@ -141,17 +144,17 @@ class ManualTuneDefinition(_TuneDefinition):
     """
     Class for defining y = f(x) relationships for tuning x for a set y target.
 
-    This class is made to be used with `hoomd.tune.SolverStep` subclasses.
+    This class is made to be used with `SolverStep` subclasses.
     Here y represents a dependent variable of x. In general, x and y should be
-    of type `float`, but specific `hoomd.tune.SolverStep` subclasses may accept
+    of type `float`, but specific `SolverStep` subclasses may accept
     other types.
 
     A special case for the return type of y is ``None``. If the value is
     currently inaccessible or would be invalid, a `ManualTuneDefinition` object
     can return a y of ``None`` to indicate this. `SolverStep` objects will
     handle this automatically. Since we check for ``None`` internally in
-    `SolverStep` objects, a `ManualTuneDefinition` object's `y` property should
-    be consistant when called multiple times within a timestep.
+    `SolverStep` objects, a `ManualTuneDefinition` object's ``y`` property
+    should be consistant when called multiple times within a timestep.
 
     Args:
         get_y (``callable``): A callable that gets the current value for y.
@@ -249,7 +252,8 @@ class SolverStep(metaclass=ABCMeta):
                 tunable objects that represent a relationship f(x) = y.
 
         Returns:
-            bool: Returns whether or not all tunables were considered tuned by
+            bool:
+                Returns whether or not all tunables were considered tuned by
                 the object.
         """
         return all(self._solve_one_internal(tunable) for tunable in tunables)

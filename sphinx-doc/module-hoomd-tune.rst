@@ -22,10 +22,10 @@ hoomd.tune
     :synopsis: Tuner simulation hyperparameters.
     :members: CustomTuner,
               LoadBalancer,
-              ManualTuneDefinition,
               ParticleSorter,
               ScaleSolver,
               SecantSolver,
+              SolverStep
 
-    .. autoclass:: SolverStep
-       :members: _solve_one, solve
+    .. autoclass:: ManualTuneDefinition
+        :inherited-members:
