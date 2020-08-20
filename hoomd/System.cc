@@ -195,8 +195,9 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     // track if a wall clock timeout ended the run
     unsigned int timeout_end_run = 0;
     char *walltime_stop = getenv("HOOMD_WALLTIME_STOP");
-    // flag if the simulation is complete
-    bool complete = false;
+
+    // starting a new run, we have not completed early
+    m_completed_early = false;
 
     m_start_tstep = m_cur_tstep;
     m_end_tstep = m_cur_tstep + nsteps;
@@ -237,7 +238,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     for ( ; m_cur_tstep < m_end_tstep; m_cur_tstep++)
         {
         // end the loop if one of the updaters flagged that the simulation is complete
-        if (complete)
+        if (m_completed_early)
             break;
 
         // check the clock and output a status line if needed
@@ -339,7 +340,10 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
         for (auto &analyzer_trigger_pair: m_analyzers)
             {
             if ((*analyzer_trigger_pair.second)(m_cur_tstep))
+                {
                 analyzer_trigger_pair.first->analyze(m_cur_tstep);
+                m_completed_early = m_completed_early || analyzer_trigger_pair.first->isComplete();
+                }
             }
 
         // execute updaters
@@ -348,7 +352,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
             if ((*updater_trigger_pair.second)(m_cur_tstep))
                 {
                 updater_trigger_pair.first->update(m_cur_tstep);
-                complete = complete || updater_trigger_pair.first->isComplete();
+                m_completed_early = m_completed_early || updater_trigger_pair.first->isComplete();
                 }
             }
 
@@ -357,7 +361,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
             if ((*tuner->getTrigger())(m_cur_tstep))
                 {
                 tuner->update(m_cur_tstep);
-                complete = complete || tuner->isComplete();
+                m_completed_early = m_completed_early || tuner->isComplete();
                 }
             }
 
@@ -369,7 +373,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
         if (m_integrator)
             {
             m_integrator->update(m_cur_tstep);
-            complete = complete || m_integrator->isComplete();
+            m_completed_early = m_completed_early || m_integrator->isComplete();
             }
 
         // quit if Ctrl-C was pressed
@@ -692,6 +696,7 @@ void export_System(py::module& m)
     .def_property_readonly("analyzers", &System::getAnalyzers)
     .def_property_readonly("updaters", &System::getUpdaters)
     .def_property_readonly("tuners", &System::getTuners)
+    .def_property_readonly("completed_early", &System::getCompletedEarly)
 #ifdef ENABLE_MPI
     .def("setCommunicator", &System::setCommunicator)
     .def("getCommunicator", &System::getCommunicator)

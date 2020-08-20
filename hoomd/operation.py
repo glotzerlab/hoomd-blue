@@ -178,6 +178,10 @@ class _Operation(_HOOMDGetSetAttrBase, metaclass=Loggable):
 
     def detach(self):
         if self.is_attached:
+            # cache completion status for later use
+            self._is_complete = self.complete
+
+            # bring parameters back to Python
             self._unapply_typeparam_dict()
             self._update_param_dict()
             self._cpp_obj = None
@@ -337,6 +341,17 @@ class _Operation(_HOOMDGetSetAttrBase, metaclass=Loggable):
             setattr(obj, name, tp_dict)
         return obj
 
+    @property
+    def complete(self):
+        """True when the operation is complete.
+
+        `Simulation.run` stops the running whenever any operation in the
+        `Simulation` is complete.
+        """
+        if not self.is_attached:
+            return getattr(self, '_is_complete', False)
+
+        return self._cpp_obj.isComplete()
 
 class _TriggeredOperation(_Operation):
     _cpp_list_name = None
@@ -375,20 +390,6 @@ class _TriggeredOperation(_Operation):
 
 class _Updater(_TriggeredOperation):
     _cpp_list_name = 'updaters'
-
-    @property
-    def complete(self):
-        """True when the operation is complete.
-
-        `Simulation.run` stops the running whenever any operation in the
-        `Simulation` is complete.
-        """
-        # TODO: make sure this appears in the user documentation
-        if not self.is_attached:
-            return False
-
-        return self._cpp_obj.isComplete()
-
 
 class _Analyzer(_TriggeredOperation):
     _cpp_list_name = 'analyzers'

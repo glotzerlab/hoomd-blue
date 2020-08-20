@@ -166,6 +166,14 @@ class PYBIND11_EXPORT Compute
         /// Python will notify C++ objects when they are detached from Simulation
         virtual void notifyDetach() { };
 
+        /** Computes do not complete the simulation, but this method is here so that Python can call
+        it
+        */
+        virtual bool isComplete()
+            {
+            return false;
+            }
+
 #ifdef ENABLE_MPI
         //! Set communicator this Compute is to use
         /*! \param comm The communicator
