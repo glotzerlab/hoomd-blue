@@ -167,12 +167,27 @@ BoxDim UpdaterQuickCompress::getNewBox(unsigned int timestep)
     // construct the scaled box
     BoxDim current_box = m_pdata->getGlobalBox();
     Scalar3 new_L;
-    new_L.x = scaleValue(current_box.getL().x, target_box.getL().x, scale);
-    new_L.y = scaleValue(current_box.getL().y, target_box.getL().y, scale);
-    new_L.z = scaleValue(current_box.getL().z, target_box.getL().z, scale);
-    Scalar new_xy = scaleValue(current_box.getTiltFactorXY(), target_box.getTiltFactorXY(), scale);
-    Scalar new_xz = scaleValue(current_box.getTiltFactorXZ(), target_box.getTiltFactorXZ(), scale);
-    Scalar new_yz = scaleValue(current_box.getTiltFactorYZ(), target_box.getTiltFactorYZ(), scale);
+    Scalar new_xy, new_xz, new_yz;
+    if (m_sysdef->getNDimensions() == 3)
+        {
+        new_L.x = scaleValue(current_box.getL().x, target_box.getL().x, scale);
+        new_L.y = scaleValue(current_box.getL().y, target_box.getL().y, scale);
+        new_L.z = scaleValue(current_box.getL().z, target_box.getL().z, scale);
+        new_xy = scaleValue(current_box.getTiltFactorXY(), target_box.getTiltFactorXY(), scale);
+        new_xz = scaleValue(current_box.getTiltFactorXZ(), target_box.getTiltFactorXZ(), scale);
+        new_yz = scaleValue(current_box.getTiltFactorYZ(), target_box.getTiltFactorYZ(), scale);
+        }
+    else
+        {
+        new_L.x = scaleValue(current_box.getL().x, target_box.getL().x, scale);
+        new_L.y = scaleValue(current_box.getL().y, target_box.getL().y, scale);
+        new_xy = scaleValue(current_box.getTiltFactorXY(), target_box.getTiltFactorXY(), scale);
+
+        // assume that the unused fields in the 2D target box are valid
+        new_L.z = target_box.getL().z;
+        new_xz = target_box.getTiltFactorXZ();
+        new_yz = target_box.getTiltFactorYZ();
+        }
 
     BoxDim new_box = current_box;
     new_box.setL(new_L);
