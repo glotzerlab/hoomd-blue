@@ -234,7 +234,6 @@ class NPT(_Method):
             tauS=float(tauS),
             couple=str(couple),
             box_dof=(bool,)*6,
-            nph=bool(False),
             rescale_all=bool(rescale_all),
             gamma=float(gamma)
             )
