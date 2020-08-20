@@ -90,7 +90,7 @@ void UpdaterQuickCompress::performBoxScale(unsigned int timestep)
     m_mc->attemptBoxResize(timestep, new_box);
 
     auto n_overlaps = m_mc->countOverlaps(false);
-    if (n_overlaps > m_max_overlaps_per_particle * m_pdata->getN())
+    if (n_overlaps > m_max_overlaps_per_particle * m_pdata->getNGlobal())
         {
         // the box move generated too many overlaps, undo the move
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
