@@ -9,7 +9,7 @@ _Operation is inherented by almost all other HOOMD objects.
 _TriggeredOperation is _Operation for objects that are triggered.
 """
 
-from hoomd.util import is_iterable, dict_map, str_to_tuple_keys
+from hoomd.util import is_iterable, dict_map, dict_filter, str_to_tuple_keys
 from hoomd.trigger import Trigger
 from hoomd.variant import Variant, Constant
 from hoomd.filter import _ParticleFilter
@@ -29,7 +29,7 @@ class NotAttachedError(RuntimeError):
 
 def convert_values_to_log_form(value):
     if value is RequiredArg:
-        return (None, 'scalar')
+        return RequiredArg
     elif isinstance(value, Variant):
         if isinstance(value, Constant):
             return (value.value, 'scalar')
@@ -251,7 +251,8 @@ class _Operation(_HOOMDGetSetAttrBase, metaclass=Loggable):
         self._update_param_dict()
         state = self._typeparam_states()
         state['__params__'] = dict(self._param_dict)
-        return dict_map(state, convert_values_to_log_form)
+        return dict_filter(dict_map(state, convert_values_to_log_form),
+                           lambda x: x is not RequiredArg)
 
     @classmethod
     def from_state(cls, state, final_namespace=None, **kwargs):
