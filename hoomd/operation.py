@@ -27,7 +27,7 @@ class NotAttachedError(RuntimeError):
     pass
 
 
-def convert_values_to_log_form(value):
+def _convert_values_to_log_form(value):
     if value is RequiredArg:
         return RequiredArg
     elif isinstance(value, Variant):
@@ -251,7 +251,7 @@ class _Operation(_HOOMDGetSetAttrBase, metaclass=Loggable):
         self._update_param_dict()
         state = self._typeparam_states()
         state['__params__'] = dict(self._param_dict)
-        return dict_filter(dict_map(state, convert_values_to_log_form),
+        return dict_filter(dict_map(state, _convert_values_to_log_form),
                            lambda x: x is not RequiredArg)
 
     @classmethod
