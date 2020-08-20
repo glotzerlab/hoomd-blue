@@ -92,7 +92,6 @@ stages:
         cuda10_py37_cuda10_mpi:
           container_image: cuda10_gcc7_py37
           enable_mpi: on
-          ctest_start: 1
           suite_name: GPU cuda10
 
     pool:
