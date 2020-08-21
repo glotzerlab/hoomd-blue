@@ -9,7 +9,7 @@
 from hoomd import _hoomd
 from hoomd.md import _md
 import hoomd
-from hoomd.operation import _Operation, NotAttachedError
+from hoomd.operation import _HOOMDBaseObject, NotAttachedError
 from hoomd.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.filter import _ParticleFilter
 from hoomd.typeparam import TypeParameter
@@ -30,7 +30,7 @@ def none_or(type_):
                                  "{}.".format(value, type(value), type_))
 
 
-class _Method(_Operation):
+class _Method(_HOOMDBaseObject):
     pass
 
 
