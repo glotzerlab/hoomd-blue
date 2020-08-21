@@ -90,7 +90,8 @@ class _InternalMoveSize(_InternalAction):
     """Internal class for the MoveSize tuner."""
     _min_move_size = 1e-7
 
-    def __init__(self, moves, target, solver, types=None, max_move_size=None):
+    def __init__(self, moves, target, solver, types=None,
+                 max_translation_move=None, max_rotation_move=None):
         def target_postprocess(target):
             def check_fraction(value):
                 if 0 <= value <= 1:
@@ -102,10 +103,14 @@ class _InternalMoveSize(_InternalAction):
             self._tuned = 0
             return target
 
-        def max_move_size_postprocess(move_size):
-            self._update_tunables_attr(
-                'domain', (self._min_move_size, move_size))
-            return move_size
+        def move_size_postprocessing(move_type):
+            def reset_tunable_domains(max_size):
+                for tunable in self._tunables:
+                    if tunable.attr == move_type:
+                        tunable.domain = (self._min_move_size, max_size)
+                return max_size
+
+            return reset_tunable_domains
 
         def update_moves(value):
             self._update_tunables(new_moves=value)
@@ -137,19 +142,24 @@ class _InternalMoveSize(_InternalAction):
                          postprocess=update_types,
                          allow_none=True),
             target=OnlyType(float, postprocess=target_postprocess),
-            max_move_size=OnlyType(
+            max_translation_move=OnlyType(
                 float, allow_none=True,
-                postprocess=max_move_size_postprocess
+                postprocess=move_size_postprocessing('d')
+                ),
+            max_rotation_move=OnlyType(
+                float, allow_none=True,
+                postprocess=move_size_postprocessing('a')
                 ),
             solver=SolverStep
             )
 
-        param_dict['moves'] = moves
-        param_dict['types'] = types
-        param_dict['max_move_size'] = max_move_size
-        param_dict['target'] = target
-        param_dict['solver'] = solver
         self._param_dict.update(param_dict)
+        self.max_rotation_move = max_rotation_move
+        self.max_translation_move = max_translation_move
+        self.target = target
+        self.solver = solver
+        self.moves = moves
+        self.types = types
         if types is not None:
             self._update_tunables(new_moves=moves, new_types=types)
 
@@ -225,10 +235,15 @@ class _InternalMoveSize(_InternalAction):
         # Add any move size tune definitions that are required by the new
         # specification.
         for move in new_moves:
+            if move == 'a':
+                max_move_size = self.max_rotation_move
+            else:
+                max_move_size = self.max_translation_move
+
             for new_type in new_types:
                 move_definition = _MoveSizeTuneDefinition(
                     move, new_type, self.target,
-                    (self._min_move_size, self.max_move_size))
+                    (self._min_move_size, max_move_size))
                 if move_definition not in tune_definitions:
                     self._tunables.append(move_definition)
 
@@ -255,7 +270,10 @@ class MoveSize(_InternalCustomTuner):
         types (list[str]): A list of string particle types to tune the move
             size for, defaults to None which upon attaching will tune all types
             in the system currently.
-        max_move_size (float): The max value of move size to attempt.
+        max_translation_move (float): The maximum value of a translational move
+            size to attempt.
+        max_rotation_move (float): The maximum value of a rotational move size
+            to attempt.
 
     Attributes:
         trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to run
@@ -269,14 +287,17 @@ class MoveSize(_InternalCustomTuner):
         types (list[str]): A list of string particle
             types to tune the move size for, defaults to None which upon
             attaching will tune all types in the system currently.
-        max_move_size (float): The max value of move size to
-            attempt.
+        max_translation_move (float): The maximum value of a translational move
+            size to attempt.
+        max_rotation_move (float): The maximum value of a rotational move size
+            to attempt.
     """
     _internal_class = _InternalMoveSize
 
     @classmethod
     def scale_solver(cls, trigger, moves, target,
-                     types=None, max_move_size=None,
+                     types=None, max_translation_move=None,
+                     max_rotation_move=None,
                      max_scale=2., gamma=1., tol=1e-2):
         """Create a `MoveSize` tuner with a `hoomd.tune.ScaleSolver`.
 
@@ -290,7 +311,10 @@ class MoveSize(_InternalCustomTuner):
             types (list[str]): A list of string particle types to tune the
                 move size for, defaults to None which upon attaching will tune
                 all types in the system currently.
-            max_move_size (`float`): The max value of move size to attempt.
+            max_translation_move (float): The maximum value of a translational
+                move size to attempt.
+            max_rotation_move (float): The maximum value of a rotational move
+                size to attempt.
             gamma (float): The value of gamma to pass through to
                 `hoomd.tune.ScaleSolver`. Controls the size of corrections to
                 the move size (larger values increase stability while increasing
@@ -302,11 +326,13 @@ class MoveSize(_InternalCustomTuner):
                 significantly at typical tuning rates.
         """
         solver = ScaleSolver(max_scale, gamma, 'negative', tol)
-        return cls(trigger, moves, target, solver, types, max_move_size)
+        return cls(trigger, moves, target, solver, types,
+                   max_translation_move, max_rotation_move)
 
     @classmethod
     def secant_solver(cls, trigger, moves, target, types=None,
-                      max_move_size=None, gamma=0.8, tol=1e-2):
+                      max_translation_move=None, max_rotation_move=None,
+                      gamma=0.8, tol=1e-2):
         """Create a `MoveSize` tuner with a `hoomd.tune.SecantSolver`.
 
         This solver can be faster than `hoomd.tune.ScaleSolver`, but depending
@@ -323,8 +349,10 @@ class MoveSize(_InternalCustomTuner):
             types (list[str]): A list of string
                 particle types to tune the move size for, defaults to None which
                 upon attaching will tune all types in the system currently.
-            max_move_size (`float`): The max value of move size
-                to attempt, default to no max size.
+            max_translation_move (float): The maximum value of a translational
+                move size to attempt.
+            max_rotation_move (float): The maximum value of a rotational move
+                size to attempt.
             gamma (float): The value of gamma to pass through
                 to `hoomd.tune.SecantSolver`. Controls the size of corrections
                 to the move size (smaller values increase stability). Should be
@@ -342,4 +370,5 @@ class MoveSize(_InternalCustomTuner):
             frequently.
         """
         solver = SecantSolver(gamma, tol)
-        return cls(trigger, moves, target, solver, types, max_move_size)
+        return cls(trigger, moves, target, solver, types, max_translation_move,
+                   max_rotation_move)

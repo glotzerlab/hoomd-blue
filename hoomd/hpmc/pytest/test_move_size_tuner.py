@@ -98,7 +98,8 @@ _move_size_options = [
         moves=['d'],
         target=0.5,
         types=['A'],
-        max_move_size=5,
+        max_translation_move=5,
+        max_rotation_move=3.,
         tol=1e-1
         )),
     (MoveSize.secant_solver, dict(
@@ -167,15 +168,24 @@ class TestMoveSize:
         assert all(target == t.target for t in move_size_tuner._tunables)
         assert target == move_size_tuner.target
 
-        max_move_size = 5
-        move_size_tuner.max_move_size = max_move_size
-        assert all((1e-7, max_move_size) == t.domain
-                   for t in move_size_tuner._tunables)
-        max_move_size *= 1.1
-        move_size_tuner.max_move_size = max_move_size
-        assert all((1e-7, max_move_size) == t.domain
-                   for t in move_size_tuner._tunables)
-        assert max_move_size == move_size_tuner.max_move_size
+        max_translation_move = 4.
+        move_size_tuner.max_translation_move = max_translation_move
+        assert all((1e-7, max_translation_move) == t.domain
+                   for t in move_size_tuner._tunables
+                   if t.attr == 'd')
+        assert not any((1e-7, max_translation_move) == t.domain
+                       for t in move_size_tuner._tunables
+                       if t.attr == 'a')
+
+        max_rotation_move = 3.14
+        move_size_tuner.max_rotation_move = max_rotation_move
+        assert all((1e-7, max_rotation_move) == t.domain
+                   for t in move_size_tuner._tunables
+                   if t.attr == 'a')
+
+        assert not any((1e-7, max_rotation_move) == t.domain
+                       for t in move_size_tuner._tunables
+                       if t.attr == 'd')
 
         with pytest.raises(ValueError):
             move_size_tuner.moves = ['f', 'a']
