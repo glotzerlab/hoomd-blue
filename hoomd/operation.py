@@ -322,10 +322,10 @@ class _Operation(_HOOMDGetSetAttrBase, metaclass=Loggable):
     def _from_state_with_state_dict(cls, state, **kwargs):
 
         # Initialize object using params from state and passed arguments
-        params = state['__params__']
+        params = state.get('__params__', {})
         params.update(kwargs)
         obj = cls(**params)
-        del state['__params__']
+        state.pop('__params__', None)
 
         # Add typeparameter information
         for name, tp_dict in state.items():
