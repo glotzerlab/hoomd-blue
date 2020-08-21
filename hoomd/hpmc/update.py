@@ -933,10 +933,10 @@ class QuickCompress(_Updater):
     systems to near random close packing densities in tens of thousands of time
     steps.
 
-    It operates by making small changes toward the `target_box`: ``L_new = scale * L_current``
-    for each box parameter (where the smallest value of `scale` is
-    `min_scale`) and then scaling the particle positions into the new box.
-    If there are more than ``max_overlaps_per_particle * N_particles`` hard
+    It operates by making small changes toward the `target_box`: ``L_new = scale
+    * L_current`` for each box parameter (where the smallest value of `scale` is
+    `min_scale`) and then scaling the particle positions into the new box. If
+    there are more than ``max_overlaps_per_particle * N_particles`` hard
     particle overlaps in the system, the box move is rejected. Otherwise, the
     small number of overlaps remain. `QuickCompress` then waits until local MC
     trial moves provided by the HPMC integrator remove all overlaps before it
@@ -986,13 +986,20 @@ class QuickCompress(_Updater):
         min_scale (float): The minimum scale factor to apply to box dimensions.
     """
 
-    def __init__(self, trigger, target_box, seed, max_overlaps_per_particle=0.25, min_scale=0.99):
+    def __init__(self,
+                 trigger,
+                 target_box,
+                 seed,
+                 max_overlaps_per_particle=0.25,
+                 min_scale=0.99):
         super().__init__(trigger)
 
-        param_dict = ParameterDict(seed=int,
-                                   max_overlaps_per_particle=float,
-                                   min_scale=float,
-                                   target_box=hoomd.typeconverter.OnlyType(hoomd.Box, preprocess=hoomd.typeconverter.box_preprocessing))
+        param_dict = ParameterDict(
+            seed=int,
+            max_overlaps_per_particle=float,
+            min_scale=float,
+            target_box=hoomd.typeconverter.OnlyType(
+                hoomd.Box, preprocess=hoomd.typeconverter.box_preprocessing))
         param_dict['seed'] = seed
         param_dict['max_overlaps_per_particle'] = max_overlaps_per_particle
         param_dict['min_scale'] = min_scale
@@ -1008,10 +1015,8 @@ class QuickCompress(_Updater):
         if not integrator.is_attached:
             raise RuntimeError("Integrator is not attached yet.")
 
-        self._cpp_obj = _hpmc.UpdaterQuickCompress(simulation.state._cpp_sys_def,
-                                integrator._cpp_obj,
-                                self.max_overlaps_per_particle,
-                                self.min_scale,
-                                self.target_box,
-                                self.seed)
+        self._cpp_obj = _hpmc.UpdaterQuickCompress(
+            simulation.state._cpp_sys_def, integrator._cpp_obj,
+            self.max_overlaps_per_particle, self.min_scale, self.target_box,
+            self.seed)
         super().attach(simulation)
