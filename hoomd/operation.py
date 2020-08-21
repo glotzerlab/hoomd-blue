@@ -179,12 +179,15 @@ class _Operation(_HOOMDGetSetAttrBase, metaclass=Loggable):
     def detach(self):
         if self.is_attached:
             # cache completion status for later use
-            self._is_complete = self.complete
+            self._is_complete = getattr(self, 'complete', False)
 
             # bring parameters back to Python
             self._unapply_typeparam_dict()
             self._update_param_dict()
-            self._cpp_obj.notifyDetach()
+
+            if hasattr(self._cpp_obj, 'notifyDetach'):
+                self._cpp_obj.notifyDetach()
+
             self._cpp_obj = None
             if hasattr(self, '_simulation'):
                 self.notify_detach(self._simulation)
