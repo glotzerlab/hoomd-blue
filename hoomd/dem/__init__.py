@@ -37,7 +37,7 @@ Integration
 To allow particles to rotate, use integrators which can update
 rotational degrees of freedom:
 
-  * :py:mod:`hoomd.md.methods.nve`
+  * ``hoomd.md.methods.NVE``
   * ``hoomd.md.methods.NVT``
   * ``hoomd.md.methods.npt``
   * :py:mod:`hoomd.md.methods.Langevin`

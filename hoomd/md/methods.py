@@ -574,23 +574,23 @@ class NVE(_Method):
           velocity and any net force on them is ignored.
 
 
-    :py:class:`nve` performs constant volume, constant energy simulations using the standard
+    :py:class:`NVE` performs constant volume, constant energy simulations using the standard
     Velocity-Verlet method. For poor initial conditions that include overlapping atoms, a
     limit can be specified to the movement a particle is allowed to make in one time step.
     After a few thousand time steps with the limit set, the system should be in a safe state
     to continue with unconstrained integration.
 
-    Another use-case for :py:class:`nve` is to fix the velocity of a certain group of particles. This can be achieved by
+    Another use-case for :py:class:`NVE` is to fix the velocity of a certain group of particles. This can be achieved by
     setting the velocity of those particles in the initial condition and setting the *zero_force* option to True
-    for that group. A True value for *zero_force* causes integrate.nve to ignore any net force on each particle and
+    for that group. A True value for *zero_force* causes integrate.NVE to ignore any net force on each particle and
     integrate them forward in time with a constant velocity.
 
     Note:
         With an active limit, Newton's third law is effectively **not** obeyed and the system
-        can gain linear momentum. Activate the :py:class:`hoomd.md.update.zero_momentum` updater during the limited nve
+        can gain linear momentum. Activate the :py:class:`hoomd.md.update.zero_momentum` updater during the limited NVE
         run to prevent this.
 
-    :py:class:`nve` is an integration method. It must be used with ``mode_standard``.
+    :py:class:`NVE` is an integration method. It must be used with ``mode_standard``.
 
     A :py:class:`hoomd.compute.thermo` is automatically specified and associated with *group*.
 
@@ -689,7 +689,7 @@ class Langevin(_Method):
     assumption is valid when underdamped: :math:`\frac{m}{\gamma} \gg \delta t`.
     Use :py:class:`brownian` if your system is not underdamped.
 
-    :py:class:`Langevin` uses the same integrator as :py:class:`nve` with the
+    :py:class:`Langevin` uses the same integrator as :py:class:`NVE` with the
     additional force term :math:`- \gamma \cdot \vec{v} + \vec{F}_\mathrm{R}`.
     The random force :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random
     number distribution.
