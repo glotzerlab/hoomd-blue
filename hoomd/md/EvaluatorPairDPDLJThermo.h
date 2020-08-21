@@ -75,7 +75,47 @@ class EvaluatorPairDPDLJThermo
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar4 param_type;
+        struct param_type
+            {
+            Scalar lj1;
+            Scalar lj2;
+            Scalar gamma;
+
+            #ifdef ENABLE_HIP
+            //! Set CUDA memory hints
+            void set_memory_hint() const
+                {
+                // default implementation does nothing
+                }
+            #endif
+
+            #ifndef __HIPCC__
+            param_type() : lj1(0), lj2(0), gamma(0) {}
+
+            param_type(pybind11::dict v)
+                {
+                auto sigma(v["sigma"].cast<Scalar>());
+                auto epsilon(v["epsilon"].cast<Scalar>());
+                lj1 = 4.0 * epsilon * pow(sigma, 12.0);
+                lj2 = 4.0 * epsilon * pow(sigma, 6.0);
+                gamma = v["gamma"].cast<Scalar>();
+                if (gamma == 0)
+                    throw std::invalid_argument("Cannot set gamma to 0, try using DPDConservative instead.");
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+                auto sigma6 = lj1 / lj2;
+                v["sigma"] = pow(sigma6, 1. / 6.);
+                v["epsilon"] = lj2 / (sigma6 * 4);
+                v["gamma"] = gamma;
+                return v;
+                }
+            #endif
+            }
+            __attribute__((aligned(16)));
+
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
@@ -83,7 +123,7 @@ class EvaluatorPairDPDLJThermo
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairDPDLJThermo(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.x), lj2(_params.y), gamma(_params.z)
+            : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.lj1), lj2(_params.lj2), gamma(_params.gamma)
             {
             }
 

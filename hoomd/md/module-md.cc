@@ -137,24 +137,9 @@ void export_revcross_params(py::module& m)
     m.def("make_revcross_params", &make_revcross_params);
 }
 
-//! Function to make the Fourier parameter type
-inline pair_fourier_params make_pair_fourier_params(py::list a, py::list b)
-    {
-    pair_fourier_params retval;
-    for (int i = 0; i < 3; ++i)
-        {
-        retval.a[i] = py::cast<Scalar>(a[i]);
-        retval.b[i] = py::cast<Scalar>(b[i]);
-        }
-    return retval;
-    }
-
 //! Function to export the fourier parameter type to python
 void export_pair_params(py::module& m)
 {
-    py::class_<pair_fourier_params>(m, "pair_fourier_params").def(py::init<>());
-    m.def("make_pair_fourier_params", &make_pair_fourier_params);
-
     py::class_<pair_dipole_params>(m, "pair_dipole_params").def(py::init<>());
     m.def("make_pair_dipole_params", &make_pair_dipole_params);
 

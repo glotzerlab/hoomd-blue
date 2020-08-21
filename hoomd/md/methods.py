@@ -9,25 +9,13 @@
 from hoomd import _hoomd
 from hoomd.md import _md
 import hoomd
-from hoomd.operation import _HOOMDBaseObject, NotAttachedError
+from hoomd.operation import _HOOMDBaseObject
 from hoomd.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.filter import _ParticleFilter
 from hoomd.typeparam import TypeParameter
 from hoomd.typeconverter import OnlyType
 from hoomd.variant import Variant
 import copy
-
-
-def none_or(type_):
-    def None_or_type(value):
-        if None or isinstance(value, type_):
-            return value
-        else:
-            try:
-                return type_(value)
-            except Exception:
-                raise ValueError("Value {} of type {} could not be made type "
-                                 "{}.".format(value, type(value), type_))
 
 
 class _Method(_HOOMDBaseObject):
