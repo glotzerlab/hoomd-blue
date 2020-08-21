@@ -129,14 +129,17 @@ class TestMoveSize:
         for attr in move_size_dict:
             if attr == 'trigger':
                 assert getattr(move_size, attr).period == move_size_dict[attr]
-                continue
-            try:
-                assert getattr(move_size, attr) == move_size_dict[attr]
-            # We catch attribute errors since the solver may be the one to have
-            # an attribute. This allows us to check that all attributes are
-            # getting set correctly.
-            except AttributeError:
-                assert getattr(move_size.solver, attr) == move_size_dict[attr]
+            elif attr in ['max_rotation_move', 'max_translation_move']:
+                assert getattr(move_size, attr).default == move_size_dict[attr]
+            else:
+                try:
+                    assert getattr(move_size, attr) == move_size_dict[attr]
+                # We catch attribute errors since the solver may be the one to
+                # have an attribute. This allows us to check that all attributes
+                # are getting set correctly.
+                except AttributeError:
+                    assert getattr(
+                        move_size.solver, attr) == move_size_dict[attr]
 
     def test_attach(self, move_size_tuner, simulation):
         simulation.operations.tuners.append(move_size_tuner)
@@ -168,24 +171,12 @@ class TestMoveSize:
         assert all(target == t.target for t in move_size_tuner._tunables)
         assert target == move_size_tuner.target
 
-        max_translation_move = 4.
-        move_size_tuner.max_translation_move = max_translation_move
-        assert all((1e-7, max_translation_move) == t.domain
-                   for t in move_size_tuner._tunables
-                   if t.attr == 'd')
-        assert not any((1e-7, max_translation_move) == t.domain
-                       for t in move_size_tuner._tunables
-                       if t.attr == 'a')
+        max_move = 4.
+        move_size_tuner.max_translation_move.default = max_move
+        assert move_size_tuner.max_translation_move.default == max_move
 
-        max_rotation_move = 3.14
-        move_size_tuner.max_rotation_move = max_rotation_move
-        assert all((1e-7, max_rotation_move) == t.domain
-                   for t in move_size_tuner._tunables
-                   if t.attr == 'a')
-
-        assert not any((1e-7, max_rotation_move) == t.domain
-                       for t in move_size_tuner._tunables
-                       if t.attr == 'd')
+        move_size_tuner.max_rotation_move.default = max_move
+        assert move_size_tuner.max_rotation_move.default == max_move
 
         with pytest.raises(ValueError):
             move_size_tuner.moves = ['f', 'a']

@@ -1,5 +1,6 @@
 from hoomd.custom import _InternalAction
-from hoomd.parameterdicts import ParameterDict
+from hoomd.parameterdicts import ParameterDict, TypeParameterDict
+from hoomd.typeparam import TypeParameter
 from hoomd.typeconverter import OnlyFrom, OnlyType, OnlyIf, to_type_converter
 from hoomd.tune import _InternalCustomTuner
 from hoomd.tune.attr_tuner import (
@@ -103,15 +104,6 @@ class _InternalMoveSize(_InternalAction):
             self._tuned = 0
             return target
 
-        def move_size_postprocessing(move_type):
-            def reset_tunable_domains(max_size):
-                for tunable in self._tunables:
-                    if tunable.attr == move_type:
-                        tunable.domain = (self._min_move_size, max_size)
-                return max_size
-
-            return reset_tunable_domains
-
         def update_moves(value):
             self._update_tunables(new_moves=value)
             self._tuned = 0
@@ -121,6 +113,9 @@ class _InternalMoveSize(_InternalAction):
             self._update_tunables(new_types=value)
             self._tuned = 0
             return value
+
+        # A flag for knowing when to update the maximum move sizes
+        self._update_move_sizes = False
 
         self._tunables = []
         # A counter when tuned reaches 1 it means that the tuner has reported
@@ -132,6 +127,29 @@ class _InternalMoveSize(_InternalAction):
         # not a performance problem.
         self._tuned = 0
         self._attached = False
+
+        # set up maximum trial move sizes
+        def flag_move_size_update(value):
+            self._update_move_sizes = True
+            return value
+
+        t_moves = TypeParameter(
+            'max_translation_move', 'particle_type',
+            TypeParameterDict(
+                OnlyType(
+                    float, postprocess=flag_move_size_update, allow_none=True),
+                len_keys=1)
+            )
+        r_moves = TypeParameter(
+            'max_rotation_move', 'particle_type',
+            TypeParameterDict(
+                OnlyType(
+                    float, postprocess=flag_move_size_update, allow_none=True),
+                len_keys=1)
+            )
+        self._typeparam_dict = {'max_translation_move': t_moves,
+                                'max_rotation_move': r_moves}
+
         # This is a bit complicated because we are having to ensure that we keep
         # the list of tunables and the solver updated with the changes to
         # attributes. However, these are simply forwarding a change along.
@@ -142,24 +160,17 @@ class _InternalMoveSize(_InternalAction):
                          postprocess=update_types,
                          allow_none=True),
             target=OnlyType(float, postprocess=target_postprocess),
-            max_translation_move=OnlyType(
-                float, allow_none=True,
-                postprocess=move_size_postprocessing('d')
-                ),
-            max_rotation_move=OnlyType(
-                float, allow_none=True,
-                postprocess=move_size_postprocessing('a')
-                ),
             solver=SolverStep
             )
 
         self._param_dict.update(param_dict)
-        self.max_rotation_move = max_rotation_move
-        self.max_translation_move = max_translation_move
         self.target = target
         self.solver = solver
         self.moves = moves
         self.types = types
+
+        self.max_rotation_move.default = max_rotation_move
+        self.max_translation_move.default = max_translation_move
         if types is not None:
             self._update_tunables(new_moves=moves, new_types=types)
 
@@ -214,6 +225,15 @@ class _InternalMoveSize(_InternalAction):
                 currently ignored.
         """
         if not self.tuned and self.is_attached:
+            # update maximum move sizes
+            if self._update_move_sizes:
+                for tunable in self._tunables:
+                    if tunable.attr == 'a':
+                        max_move_size = self.max_rotation_move[tunable.type]
+                    else:
+                        max_move_size = self.max_translation_move[tunable.type]
+                    tunable.domain = (self._min_move_size, max_move_size)
+
             tuned = self.solver.solve(self._tunables)
             if tuned:
                 self._tuned += 1
@@ -235,12 +255,11 @@ class _InternalMoveSize(_InternalAction):
         # Add any move size tune definitions that are required by the new
         # specification.
         for move in new_moves:
-            if move == 'a':
-                max_move_size = self.max_rotation_move
-            else:
-                max_move_size = self.max_translation_move
-
             for new_type in new_types:
+                if move == 'a':
+                    max_move_size = self.max_rotation_move[new_type]
+                else:
+                    max_move_size = self.max_translation_move[new_type]
                 move_definition = _MoveSizeTuneDefinition(
                     move, new_type, self.target,
                     (self._min_move_size, max_move_size))
