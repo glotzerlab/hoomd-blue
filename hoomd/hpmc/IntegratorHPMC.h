@@ -269,7 +269,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             return maxD;
             }
 
-        //! Get the maximum particle translational move size
+        //! Get the minimum particle translational move size
         virtual Scalar getMinTransMoveSize()
             {
             // access the type parameters

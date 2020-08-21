@@ -922,10 +922,68 @@ class QuickCompress(_Updater):
         target_box (Box): Dimensions of the target box.
 
         max_overlaps_per_particle (float): The maximum number of overlaps to
-            allow per particle (may be less than 1).
+            allow per particle (may be less than 1 - e.g.
+            up to 250 overlaps would be allowed when in a system of 1000
+            particles when max_overlaps_per_particle=0.25).
 
         min_scale (float): The minimum scale factor to apply to box dimensions.
 
+    Use `QuickCompress` in conjunction with an HPMC integrator to scale the
+    system to a target box size. `QuickCompress` can typically compress dilute
+    systems to near random close packing densities in tens of thousands of time
+    steps.
+
+    It operates by making small changes toward the `target_box`: ``L_new = scale * L_current``
+    for each box parameter (where the smallest value of `scale` is
+    `min_scale`) and then scaling the particle positions into the new box.
+    If there are more than ``max_overlaps_per_particle * N_particles`` hard
+    particle overlaps in the system, the box move is rejected. Otherwise, the
+    small number of overlaps remain. `QuickCompress` then waits until local MC
+    trial moves provided by the HPMC integrator remove all overlaps before it
+    makes another box change.
+
+    Note:
+        The target box size may be larger or smaller than the current system
+        box, and also may have different tilt factors. When the target box
+        parameter is larger than the current, it scales by ``L_new = 1/scale *
+        L_current``
+
+    Tip:
+        Use the MoveSizeTuner (TODO: make reference) in conjunction with
+        `QuickCompress` to adjust the move sizes to maintain a constant
+        acceptance ratio as the density of the system increases.
+
+    .. rubric:: Run completion
+
+    When the box reaches the target box size **and** there are no overlaps in
+    the current configuration, `QuickCompress` will flag that it is complete,
+    which will end the `Simulation.run` loop.
+
+    Note:
+
+        When the `Simulation.run` loop ends after the requested number of steps,
+        the final system configuration ay include particle overlaps and the box
+        size will be somewhere between the initial box and `target_box`.
+
+    Warning:
+
+        If the the requested `target_box` is too small to attain,
+        `QuickCompress` will not complete and the `Simulation.run` loop will end
+        after the requested number of time steps.
+
+    Attributes:
+        trigger (Trigger): Update the box dimensions on triggered time steps.
+
+        seed (int): Random number seed.
+
+        target_box (Box): Dimensions of the target box.
+
+        max_overlaps_per_particle (float): The maximum number of overlaps to
+            allow per particle (may be less than 1 - e.g.
+            up to 250 overlaps would be allowed when in a system of 1000
+            particles when max_overlaps_per_particle=0.25).
+
+        min_scale (float): The minimum scale factor to apply to box dimensions.
     """
 
     def __init__(self, trigger, target_box, seed, max_overlaps_per_particle=0.25, min_scale=0.99):
