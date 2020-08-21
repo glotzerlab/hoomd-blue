@@ -57,7 +57,7 @@ class TypeParameter:
         state = self.to_dict()
         if self.param_dict._len_keys > 1:
             state = {str(key): value for key, value in state.items()}
-        state['__default'] = self.default
+        state['__default__'] = self.default
         return state
 
     def __deepcopy__(self, memo):
