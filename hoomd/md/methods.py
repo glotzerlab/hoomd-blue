@@ -692,12 +692,12 @@ class Langevin(_Method):
             simulation (in energy units).
         seed (int): Random seed to use for generating
             :math:`\vec{F}_\mathrm{R}`.
-        alpha (float): (optional) When set, use :math:\alpha d:math: for the
-            drag coefficient.
-        tally_reservoir_energy (bool): (optional) If true, the energy exchange
+        alpha (float): When set, use :math:\alpha d:math: for the
+            drag coefficient. Defaults to None
+        tally_reservoir_energy (bool): If true, the energy exchange
             between the thermal reservoir and the particles is tracked. Total
             energy conservation can then be monitored by adding
-            ``langevin_reservoir_energy_groupname`` to the logged quantities.
+            ``langevin_reservoir_energy_groupname`` to the logged quantities. Defaults to False.
 
     .. rubric:: Translational degrees of freedom
 
@@ -740,7 +740,7 @@ class Langevin(_Method):
     Langevin dynamics includes the acceleration term in the Langevin equation
     and is useful for gently thermalizing systems using a small gamma. This
     assumption is valid when underdamped: :math:`\frac{m}{\gamma} \gg \delta t`.
-    Use :py:class:`Brownian` if your system is not underdamped.
+    Use `Brownian` if your system is not underdamped.
 
     :py:class:`Langevin` uses the same integrator as :py:class:`nve` with the
     additional force term :math:`- \gamma \cdot \vec{v} + \vec{F}_\mathrm{R}`.
@@ -900,6 +900,7 @@ class Brownian(_Method):
             alpha=OnlyType(float, allow_none=True),
             )
         param_dict.update(dict(kT=kT, alpha=alpha, filter=filter))
+
         #set defaults
         self._param_dict.update(param_dict)
 
@@ -917,13 +918,13 @@ class Brownian(_Method):
 
         # initialize the reflected c++ class
         if not simulation.device.cpp_exec_conf.isCUDAEnabled():
-            my_class = _md.TwoStepBD
+            self._cpp_obj = _md.TwoStepBD(simulation.state._cpp_sys_def,
+                                          simulation.state.get_group(self.filter),
+                                          self.kT, self.seed)
         else:
-            my_class = _md.TwoStepBDGPU
-
-        self._cpp_obj = my_class(simulation.state._cpp_sys_def,
-                                 simulation.state.get_group(self.filter),
-                                 self.kT, self.seed)
+            self._cpp_obj = _md.TwoStepBDGPU(simulation.state._cpp_sys_def,
+                                             simulation.state.get_group(self.filter),
+                                             self.kT, self.seed)
 
         # Attach param_dict and typeparam_dict
         super().attach(simulation)

@@ -40,8 +40,8 @@ rotational degrees of freedom:
   * :py:mod:`hoomd.md.methods.nve`
   * ``hoomd.md.methods.NVT``
   * ``hoomd.md.methods.npt``
-  * :py:mod:`hoomd.md.methods.Langevin`
-  * :py:mod:`hoomd.md.methods.Brownian`
+  * ``hoomd.md.methods.Langevin``
+  * ``hoomd.md.methods.Brownian``
 
 Note that the Nosé-Hoover thermostats used in
 ``hoomd.md.methods.nvt`` and ``hoomd.md.methods.nvt``
@@ -50,8 +50,8 @@ instabilities in the start of the simulation if particles are
 initialized with 0 angular momentum and no neighbor interactions. Two
 easy fixes for this problem are to initialize each particle with some
 angular momentum or to first run for a few steps with
-:py:mod:`hoomd.md.methods.Langevin` or
-:py:mod:`hoomd.md.methods.Brownian`.
+``hoomd.md.methods.Langevin` or
+``hoomd.md.methods.Brownian`.
 
 Data Storage
 ------------

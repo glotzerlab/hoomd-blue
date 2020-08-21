@@ -102,8 +102,8 @@ class Integrator(_DynamicIntegrator):
     The following commands can be used to specify the integration methods used
     by integrate.mode_standard.
 
-    - :py:class:`hoomd.md.methods.Brownian`
-    - :py:class:`hoomd.md.methods.Langevin`
+    - ``hoomd.md.methods.Brownian``
+    - ``hoomd.md.methods.Langevin``
     - :py:class:`hoomd.md.methods.nve`
     - :py:class:`hoomd.md.methods.NVT`
     - :py:class:`hoomd.md.methods.npt`
