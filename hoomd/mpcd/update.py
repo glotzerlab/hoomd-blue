@@ -14,7 +14,7 @@ from hoomd.md import _md
 
 from . import _mpcd
 
-class sort(hoomd.meta._metadata):
+class sort():
     R""" Sorts MPCD particles in memory to improve cache coherency.
 
     Args:
@@ -48,9 +48,6 @@ class sort(hoomd.meta._metadata):
     """
 
     def __init__(self, system, period=50):
-
-        # base class initialization
-        hoomd.meta._metadata.__init__(self)
 
         # check for mpcd initialization
         if system.sorter is not None:
