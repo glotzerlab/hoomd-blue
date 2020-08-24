@@ -1770,12 +1770,13 @@ class gb(ai_pair):
         return super(ai_pair, self)._return_type_shapes();
 
 class dipole(ai_pair):
-    R""" Screened dipole-dipole interactions.
+   R""" Screened dipole-dipole interactions.
 
     Args:
-        r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        name (str): Name of the force instance.
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): energy shifting/smoothing mode
 
     :py:class:`dipole` computes the (screened) interaction between pairs of
     particles with dipoles and electrostatic charges. The total energy
@@ -1791,22 +1792,29 @@ class dipole(ai_pair):
 
         U_{ee} = A e^{-\kappa r} \frac{q_i q_j}{r}
 
-    Use ``coeff.set`` to set potential coefficients.
-    :py:class:`dipole` does not implement and energy shift / smoothing modes due to the function of the force.
+    See :py:class:`_Pair` for details on how forces are calculated and the
+    available energy shifting and smoothing modes.  Use ``params`` dictionary
+    to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
     - mu - magnitude of :math:`\vec{\mu} = \mu (1, 0, 0)` in the particle local reference frame
     - A - electrostatic energy scale :math:`A` (default value 1.0)
     - kappa - inverse screening length :math:`\kappa`
+    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
+      - *optional*: defaults to the global r_on specified in the pair command
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in units of distance)
+      - *optional*: defaults to the global r_cut specified in the pair command
 
     Example::
 
-        # A/A interact only with screened electrostatics
-        dipole.pair_coeff.set('A', 'A', mu=0.0, A=1.0, kappa=1.0)
-        dipole.pair_coeff.set('A', 'B', mu=0.5, kappa=1.0)
+        nl = nlist.Cell()
+        dipole = pair.dipole(nl, r_cut=3.0)
+        dipole.params[('A', 'B')] = dict(mu=2.0, A=1.0, kappa=4.0)
+        dipole.params[('A', 'B')] = dict(mu=0.0, A=1.0, kappa=1.0)
 
-    """
+        """
+
     def __init__(self, r_cut, nlist, name=None):
 
         ## tell the base class how we operate
@@ -1995,10 +2003,13 @@ class DLVO(_Pair):
 class square_density(pair):
     R""" Soft potential for simulating a van-der-Waals liquid
 
+    Warning: The code has yet to be updated to the current API.
+
     Args:
-        r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        name (str): Name of the force instance.
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): energy shifting/smoothing mode
 
     :py:class:`square_density` specifies that the three-body potential should be applied to every
     non-bonded particle pair in the simulation, that is harmonic in the local density.
@@ -2023,13 +2034,17 @@ class square_density(pair):
 
     - :math:`A` - *A* (in units of volume^-1) - mean density (*default*: 0)
     - :math:`B` - *B* (in units of energy*volume^2) - coefficient of the harmonic density term
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
 
     Example::
 
-        nl = nlist.cell()
-        sqd = pair.van_der_waals(r_cut=3.0, nlist=nl)
-        sqd.pair_coeff.set('A', 'A', A=0.1)
-        sqd.pair_coeff.set('A', 'A', B=1.0)
+        nl = nlist.Cell()
+        sqd = pair.square_density(nl, r_cut=3.0)
+        sqd.params[('A', 'B')] = dict(A=1.0, B=2.0)
+        sqd.params[('B', 'B')] = dict(A=2.0, B=2.0, r_on=1.0)
 
     For further details regarding this multibody potential, see
 
@@ -2040,9 +2055,9 @@ class square_density(pair):
 
     [1] P. B. Warren, "Vapor-liquid coexistence in many-body dissipative particle dynamics"
     Phys. Rev. E. Stat. Nonlin. Soft Matter Phys., vol. 68, no. 6 Pt 2, p. 066702, 2003.
-    """
 
-    def __init__(self, r_cut, nlist, name=None):
+    """
+     def __init__(self, r_cut, nlist, name=None):
 
         # tell the base class how we operate
 
