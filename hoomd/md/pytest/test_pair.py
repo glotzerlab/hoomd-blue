@@ -426,6 +426,7 @@ def _valid_params(particle_types=['A', 'B']):
                                         {}))
 
     tersoff_arg_dict = {
+            'cutoff_thickness': [0.1, 0.5, 1.0],
             'C1': [1.0, 2.0, 5.0],
             'C2': [0.1, 0.5, 2.0],
             'lambda1': [0.1, 0.5, 2.0],
