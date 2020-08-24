@@ -1848,9 +1848,10 @@ class ReactionField(_Pair):
     R""" Onsager reaction field pair potential.
 
     Args:
-        r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        name (str): Name of the force instance.
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): energy shifting/smoothing mode
 
     :py:class:`ReactionField` specifies that an Onsager reaction field pair potential should be applied between every
     non-excluded particle pair in the simulation.
@@ -1877,8 +1878,9 @@ class ReactionField(_Pair):
 
     where :math:`q_i` and :math:`q_j` are the charges of the particle pair.
 
-    See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use ``coeff.set`` to set potential coefficients.
+    See :py:class:`_Pair` for details on how forces are calculated and the
+    available energy shifting and smoothing modes.  Use ``params`` dictionary
+    to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
@@ -1891,19 +1893,17 @@ class ReactionField(_Pair):
     - *use_charge* (boolean), evaluate potential using particle charges
       - *optional*: defaults to False
 
-    .. versionadded:: 2.1
-
+    .. versionadded:: 2.2
+    .. versionchanged:: 2.2
 
     Example::
 
-        nl = nlist.cell()
-        reaction_field = pair.reaction_field(r_cut=3.0, nlist=nl)
-        reaction_field.pair_coeff.set('A', 'A', epsilon=1.0, eps_rf=1.0)
-        reaction_field.pair_coeff.set('A', 'B', epsilon=-1.0, eps_rf=0.0)
-        reaction_field.pair_coeff.set('B', 'B', epsilon=1.0, eps_rf=0.0)
-        reaction_field.pair_coeff.set(system.particles.types, system.particles.types, epsilon=1.0, eps_rf=0.0, use_charge=True)
+        nl = nlist.Cell()
+        reaction_field = pair.reaction_field(nl, r_cut=3.0)
+        reaction_field.params[('A', 'B')] = dict(epsilon=1.0, eps_rf=1.0)
+        reaction_field.params[('B', 'B')] = dict(epsilon=1.0, eps_rf=0.0, use_charge=True)
 
-    """
+        """
     _cpp_class_name = "PotentialPairReactionField"
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         super().__init__(nlist, r_cut, r_on, mode)
@@ -1993,57 +1993,6 @@ class DLVO(_Pair):
 
 
 class square_density(pair):
-    R""" Soft potential for simulating a van-der-Waals liquid
-
-    Args:
-        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        r_cut (float): Default cutoff radius (in distance units).
-        r_on (float): Default turn-on radius (in distance units).
-        mode (str): energy shifting/smoothing mode
-
-    :py:class:`square_density` specifies that the three-body potential should be applied to every
-    non-bonded particle pair in the simulation, that is harmonic in the local density.
-
-    The self energy per particle takes the form
-
-    .. math:: \Psi^{ex} = B (\rho - A)^2
-
-    which gives a pair-wise additive, three-body force
-
-    .. math:: \vec{f}_{ij} = \left( B (n_i - A) + B (n_j - A) \right) w'_{ij} \vec{e}_{ij}
-
-    Here, :math:`w_{ij}` is a quadratic, normalized weighting function,
-
-    .. math:: w(x) = \frac{15}{2 \pi r_{c,\mathrm{weight}}^3} (1-r/r_{c,\mathrm{weight}})^2
-
-    The local density at the location of particle *i* is defined as
-
-    .. math:: n_i = \sum\limits_{j\neq i} w_{ij}\left(\big| \vec r_i - \vec r_j \big|\right)
-
-    The following coefficients must be set per unique pair of particle types:
-
-    - :math:`A` - *A* (in units of volume^-1) - mean density (*default*: 0)
-    - :math:`B` - *B* (in units of energy*volume^2) - coefficient of the harmonic density term
-    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
-    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
-
-    .. versionadded:: 2.2
-    .. versionchanged:: 2.2
-
-    Example::
-
-        nl = nlist.Cell()
-        buck = pair.Buckingham(nl, r_cut=3.0)
-        buck.params[('A', 'B')] = dict(A=1.0)
-        buck.params[('B', 'B')] = dict(B=2.0)
-
-        """
-
-
-
-
     R""" Soft potential for simulating a van-der-Waals liquid
 
     Args:
