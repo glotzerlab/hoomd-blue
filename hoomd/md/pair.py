@@ -1996,6 +1996,57 @@ class square_density(pair):
     R""" Soft potential for simulating a van-der-Waals liquid
 
     Args:
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): energy shifting/smoothing mode
+
+    :py:class:`square_density` specifies that the three-body potential should be applied to every
+    non-bonded particle pair in the simulation, that is harmonic in the local density.
+
+    The self energy per particle takes the form
+
+    .. math:: \Psi^{ex} = B (\rho - A)^2
+
+    which gives a pair-wise additive, three-body force
+
+    .. math:: \vec{f}_{ij} = \left( B (n_i - A) + B (n_j - A) \right) w'_{ij} \vec{e}_{ij}
+
+    Here, :math:`w_{ij}` is a quadratic, normalized weighting function,
+
+    .. math:: w(x) = \frac{15}{2 \pi r_{c,\mathrm{weight}}^3} (1-r/r_{c,\mathrm{weight}})^2
+
+    The local density at the location of particle *i* is defined as
+
+    .. math:: n_i = \sum\limits_{j\neq i} w_{ij}\left(\big| \vec r_i - \vec r_j \big|\right)
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`A` - *A* (in units of volume^-1) - mean density (*default*: 0)
+    - :math:`B` - *B* (in units of energy*volume^2) - coefficient of the harmonic density term
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+
+    .. versionadded:: 2.2
+    .. versionchanged:: 2.2
+
+    Example::
+
+        nl = nlist.Cell()
+        buck = pair.Buckingham(nl, r_cut=3.0)
+        buck.params[('A', 'B')] = dict(A=1.0)
+        buck.params[('B', 'B')] = dict(B=2.0)
+
+        """
+
+
+
+
+    R""" Soft potential for simulating a van-der-Waals liquid
+
+    Args:
         r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
@@ -2041,6 +2092,7 @@ class square_density(pair):
     [1] P. B. Warren, "Vapor-liquid coexistence in many-body dissipative particle dynamics"
     Phys. Rev. E. Stat. Nonlin. Soft Matter Phys., vol. 68, no. 6 Pt 2, p. 066702, 2003.
     """
+
     def __init__(self, r_cut, nlist, name=None):
 
         # tell the base class how we operate
@@ -2073,12 +2125,13 @@ class Buckingham(_Pair):
     R""" Buckingham pair potential.
 
     Args:
-        r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        name (str): Name of the force instance.
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): energy shifting/smoothing mode
 
-    :py:class:`Buckingham` specifies that a Buckingham pair potential should be applied between every
-    non-excluded particle pair in the simulation.
+    :py:class:`Buckingham` specifies that a Buckingham pair potential should be
+    applied between every non-excluded particle pair in the simulation.
 
     .. math::
         :nowrap:
@@ -2089,8 +2142,9 @@ class Buckingham(_Pair):
                             = & 0 & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
-    See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use ``coeff.set`` to set potential coefficients.
+    See :py:class:`_Pair` for details on how forces are calculated and the
+    available energy shifting and smoothing modes.  Use ``params`` dictionary
+    to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
@@ -2107,14 +2161,14 @@ class Buckingham(_Pair):
 
     Example::
 
-        nl = nlist.cell()
-        buck = pair.buckingham(r_cut=3.0, nlist=nl)
-        buck.pair_coeff.set('A', 'A', A=1.0, rho=1.0, C=1.0)
-        buck.pair_coeff.set('A', 'B', A=2.0, rho=1.0, C=1.0, r_cut=3.0, r_on=2.0);
-        buck.pair_coeff.set('B', 'B', A=1.0, rho=1.0, C=1.0, r_cut=2**(1.0/6.0), r_on=2.0);
-        buck.pair_coeff.set(['A', 'B'], ['C', 'D'], A=1.5, rho=2.0, C=1.0)
+        nl = nlist.Cell()
+        buck = pair.Buckingham(nl, r_cut=3.0)
+        buck.params[('A', 'A')] = {'A': 2.0, 'rho'=0.5, 'C': 1.0}
+        buck.params[('A', 'B')] = dict(A=1.0, rho=1.0, C=1.0)
+        buck.params[('B', 'B')] = dict(A=2.0, rho=2.0, C=2.0)
 
-    """
+        """
+
     _cpp_class_name = "PotentialPairBuckingham"
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         super().__init__(nlist, r_cut, r_on, mode)
@@ -2128,12 +2182,13 @@ class LJ1208(_Pair):
     R""" Lennard-Jones 12-8 pair potential.
 
     Args:
-        r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        name (str): Name of the force instance.
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): energy shifting/smoothing mode
 
-    :py:class:`LJ1208` specifies that a Lennard-Jones pair potential should be applied between every
-    non-excluded particle pair in the simulation.
+    :py:class:`LJ1208` specifies that a Lennard-Jones 12-8 pair potential should be
+    applied between every non-excluded particle pair in the simulation.
 
     .. math::
         :nowrap:
@@ -2144,32 +2199,27 @@ class LJ1208(_Pair):
                             = & 0 & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
-    See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use ``coeff.set`` to set potential coefficients.
+    See :py:class:`_Pair` for details on how forces are calculated and the
+    available energy shifting and smoothing modes.  Use ``params`` dictionary
+    to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
     - :math:`\varepsilon` - *epsilon* (in energy units)
     - :math:`\sigma` - *sigma* (in distance units)
-    - :math:`\alpha` - *alpha* (unitless) - *optional*: defaults to 1.0
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
     - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
-
-    .. versionadded:: 2.2
-    .. versionchanged:: 2.2
+      - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
 
-        nl = nlist.cell()
-        lj1208 = pair.lj1208(r_cut=3.0, nlist=nl)
-        lj1208.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
-        lj1208.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, alpha=0.5, r_cut=3.0, r_on=2.0);
-        lj1208.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, r_cut=2**(1.0/6.0), r_on=2.0);
-        lj1208.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=1.5, sigma=2.0)
+        nl = nlist.Cell()
+        lj1208 = pair.LJ1208(nl, r_cut=3.0)
+        lj1208.params[('A', 'A')] = {'sigma': 1.0, 'epsilon': 1.0}
+        lj1208.params[('A', 'B')] = dict(epsilon=2.0, sigma=1.0, r_cut=3.0, r_on=2.0)
 
-    """
+        """
     _cpp_class_name = "PotentialPairLJ1208"
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         super().__init__(nlist, r_cut, r_on, mode);
@@ -2180,14 +2230,16 @@ class LJ1208(_Pair):
 
 
 class Fourier(_Pair):
-    R""" Fourier pair potential.
+    R""" Yukawa pair potential.
 
     Args:
-        r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        name (str): Name of the force instance.
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): Energy shifting mode.
 
-    :py:class:`Fourier` specifies that a fourier series form potential.
+    :py:class:`Fourier` specifies that a Fourier pair potential should be applied between every
+    non-excluded particle pair in the simulation.
 
     .. math::
         :nowrap:
@@ -2209,7 +2261,7 @@ class Fourier(_Pair):
         is calculated to enforce close to zero value at r_cut.
 
     See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use ``coeff.set`` to set potential coefficients.
+    Use ``params`` dictionary to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
@@ -2222,9 +2274,10 @@ class Fourier(_Pair):
 
     Example::
 
-        nl = nlist.cell()
-        fourier = pair.fourier(r_cut=3.0, nlist=nl)
-        fourier.pair_coeff.set('A', 'A', a=[a2,a3,a4], b=[b2,b3,b4])
+        nl = nlist.Cell()
+        fourier = pair.Fourier(r_cut=3.0, nlist=nl)
+        fourier.params[('A', 'A')] = dict(a=[a2,a3,a4], b=[b2,b3,b4])
+
     """
     _cpp_class_name = "PotentialPairFourier"
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
