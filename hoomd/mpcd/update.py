@@ -61,7 +61,6 @@ class sort():
             cpp_class = _mpcd.SorterGPU
         self._cpp = cpp_class(system.data, hoomd.context.current.system.getCurrentTimeStep(), period)
 
-        self.metadata_fields = ['period','enabled']
         self.period = period
         self.enabled = True
 
