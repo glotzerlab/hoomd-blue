@@ -1,5 +1,14 @@
 # Copyright (c) 2009-2019 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+"""Angle potentials.
+
+Angles add forces between specified triplets of particles and are typically 
+used to model chemical angles between two bonds.
+
+By themselves, angles that have been specified in an initial configuration 
+do nothing. Only when you specify an angle force (i.e. angle.harmonic), are 
+forces actually calculated between the listed particles
+"""
 
 from hoomd import _hoomd
 from hoomd.md import _md
@@ -13,19 +22,19 @@ import math
 
 
 class _Angle(_Force):
-    R"""Base class anglular forces.
+    """Constructs the angular bond potential.
 
     Note:
-        :py:class:`_Angle`is the base class for all angular potentials.
+        :py:class:`_Angle` is the base class for all angular potentials.
         Users should not instantiate this class directly. Angular forces
         documented here are available to all MD integrators.
     
-    Angles add forces between specified triplets of particles and are typically
-    used to model chemical angles between two bonds.
-
-    By themselves, angles that have been specified in an initial configuration
-    do nothing. Only when you specify an angle force (i.e. angle.harmonic), 
-    are forces actually calculated between the listed particles.
+    An angular bond in hoomd reflects a PotentialBond in c++. It is responsible for all
+    high-level management that happens behind the scenes for hoomd writers.
+    1) The instance of the c++ angular bond force itself is tracked and added to the
+    System
+    2) methods are provided for disabling the force from being added to the net
+    force on each particle
     """
     def attach(self, simulation):
         '''initialize the reflected c++ class'''
@@ -68,7 +77,7 @@ class Harmonic(_Angle):
 
     Examples::
 
-        harmonic = angle.harmonic()
+        harmonic = angle.Harmonic()
         harmonic.params['polymer'] = dict(k=3.0, t0=0.7851)
         harmonic.params['backbone'] = dict(k=100.0, t0=1.0)
 

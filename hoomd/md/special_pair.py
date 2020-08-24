@@ -24,7 +24,7 @@ class _SpecialPair(_Force):
     R"""Base class special pair forces.
 
     Note:
-        :py:class:`_SpecialPair`is the base class for all special pair potentials.
+        :py:class:`_SpecialPair` is the base class for all special pair potentials.
         Users should not instantiate this class directly. Special pair forces
         documented here are available to all MD integrators.
     

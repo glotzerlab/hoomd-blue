@@ -27,6 +27,11 @@ import math
 class _Bond(_Force):
     """Constructs the bond potential.
 
+    Note:
+        :py:class:`_Bond` is the base class for all bond potentials.
+        Users should not instantiate this class directly. Bond forces
+        documented here are available to all MD integrators.
+
     A bond in hoomd reflects a PotentialBond in c++. It is responsible for all
     high-level management that happens behind the scenes for hoomd writers.
     1) The instance of the c++ bond force itself is tracked and added to the

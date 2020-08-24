@@ -38,7 +38,7 @@ class _Force(_Operation):
     '''Constructs the force.
 
     Note:
-        :py:class:`_Force`is the base class for all loggable forces.
+        :py:class:`_Force` is the base class for all loggable forces.
         Users should not instantiate this class directly. Forces
         documented here are available to all MD integrators.
 
@@ -52,9 +52,7 @@ class _Force(_Operation):
 
     @log
     def energy(self):
-        """
-        Returns: Sum of the energy of the whole system.
-        """
+        """Sum of the energy of the whole system."""
         if self.is_attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.calcEnergySum()
@@ -63,9 +61,7 @@ class _Force(_Operation):
 
     @log(flag='particle')
     def energies(self):
-        """
-        Returns: The energies for all particles.
-        """
+        """The energies for all particles."""
         if self.is_attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getEnergies()
@@ -74,9 +70,7 @@ class _Force(_Operation):
 
     @log(flag='particle')
     def forces(self):
-        """
-        Returns: The force for all particles.
-        """
+        """The forces for all particles."""
         if self.is_attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getForces()
@@ -85,9 +79,7 @@ class _Force(_Operation):
 
     @log(flag='particle')
     def torques(self):
-        """
-        Returns: The torque for all particles.
-        """
+        """The torque for all particles."""
         if self.is_attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getTorques()
@@ -96,9 +88,7 @@ class _Force(_Operation):
 
     @log(flag='particle')
     def virials(self):
-        R"""
-        Returns: The virial for the members in the group.
-        """
+        """The virial for the members in the group."""
         if self.is_attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getVirials()

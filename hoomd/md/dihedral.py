@@ -39,7 +39,7 @@ class _Dihedral(_Force):
     """Constructs the dihedral bond potential.
 
     Note:
-        :py:class:`_Dihedral`is the base class for all dihedral potentials.
+        :py:class:`_Dihedral` is the base class for all dihedral potentials.
         Users should not instantiate this class directly. Dihedral forces
         documented here are available to all MD integrators.
     
