@@ -136,7 +136,7 @@ class integrator(hoomd.integrate._integrator):
     in order for :py:mod:`~hoomd.mpcd.stream` and :py:mod:`~hoomd.mpcd.collide`
     methods to take effect. Embedded MD particles require the creation of an
     appropriate integration method. Typically, this will just be
-    :py:class:`~hoomd.md.methods.nve`.
+    :py:class:`~hoomd.md.methods.NVE`.
 
     In MPCD simulations, *dt* defines the amount of time that the system is advanced
     forward every time step. MPCD streaming and collision steps can be defined to
