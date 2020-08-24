@@ -345,4 +345,4 @@ def auto(communicator=None, msg_file=None, shared_msg_file=None, notice_level=2)
         self.__class__=GPU
     else:
         self.__class__=CPU
-
+    return self
