@@ -33,7 +33,6 @@ if not ('NOT_HOOMD_PYTHON_SITEDIR' in os.environ):
     sys.setdlopenflags(flags);
 
 from hoomd import meta
-from hoomd import context
 from hoomd import cite
 from hoomd import analyze
 from hoomd import benchmark
@@ -90,3 +89,53 @@ def _hoomd_sys_excepthook(type, value, traceback):
 sys.excepthook = _hoomd_sys_excepthook
 
 __version__ = "2.9.0"
+
+# TODO: Decide how these properties should be exposed.
+## \internal
+# \brief Gather context about HOOMD
+class build_info():
+    ## \internal
+    # \brief Constructs the context object
+    def __init__(self):
+        hoomd.meta._metadata.__init__(self)
+        self.metadata_fields = [
+            'hoomd_version', 'hoomd_git_sha1', 'hoomd_git_refspec',
+            'hoomd_compile_flags', 'cuda_version', 'compiler_version',
+            ]
+
+    # \brief Return the hoomd version.
+    @property
+    def hoomd_version(self):
+        return _hoomd.__version__
+
+    # \brief Return the hoomd git hash
+    @property
+    def hoomd_git_sha1(self):
+        return _hoomd.__git_sha1__
+
+    # \brief Return the hoomd git refspec
+    @property
+    def hoomd_git_refspec(self):
+        return _hoomd.__git_refspec__
+
+    # \brief Return the hoomd compile flags
+    @property
+    def hoomd_compile_flags(self):
+        return _hoomd.hoomd_compile_flags();
+
+    # \brief Return the cuda version
+    @property
+    def cuda_version(self):
+        return _hoomd.__cuda_version__
+
+    # \brief Return the compiler version
+    @property
+    def compiler_version(self):
+        return _hoomd.__compiler_version__
+
+## Global bibliography
+_bib = None
+
+# TODO: orphaned from context.py. Only used in option.py
+## Global options
+_options = None

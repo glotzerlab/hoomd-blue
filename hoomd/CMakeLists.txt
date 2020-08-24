@@ -311,7 +311,6 @@ set(files benchmark.py
           comm.py
           compute.py
           conftest.py
-          context.py
           device.py
           dump.py
           group.py
