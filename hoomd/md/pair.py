@@ -885,10 +885,11 @@ class DPD(_Pair):
     Example::
 
         nl = nlist.Cell()
-        dpd = pair.DPD(nlist=nl, kT=1.0, seed=0,r_cut=1.0)
-        dpd.params[('A', 'A')] = dict(A=25.0, gamma = 4.5)
-        dpd.params[('A', 'B')] = dict(A=40.0, gamma = 4.5)
-        dpd.params[('B', 'B')] = dict(A=25.0, gamma = 4.5)
+        dpd = pair.DPD(nlist=nl, kT=1.0, seed=0, r_cut=1.0)
+        dpd.params[('A', 'A')] = dict(A=25.0, gamma=4.5)
+        dpd.params[('A', 'B')] = dict(A=40.0, gamma=4.5)
+        dpd.params[('B', 'B')] = dict(A=25.0, gamma=4.5)
+        dpd.params[(['A', 'B'], ['C', 'D'])] = dict(A=40.0, gamma=4.5)
         nve = methods.NVE(filter=all)
         integrator = Integrator(dt=0.005, methods=[nve], forces=[dpd])
 
@@ -925,9 +926,9 @@ class DPDConservative(_Pair):
     R""" DPD Conservative pair force.
 
     Args:
-        r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        name (str): Name of the force instance.
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
 
     :py:class:`DPDConservative` specifies the conservative part of the DPD pair potential should be applied between
     every non-excluded particle pair in the simulation. No thermostat (e.g. Drag Force and Random Force) is applied,
@@ -945,7 +946,7 @@ class DPDConservative(_Pair):
 
 
     :py:class:`DPDConservative` does not implement and energy shift / smoothing modes due to the function of the force.
-    Use ``coeff.set`` to set potential coefficients.
+    Use ``params`` dictionary to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
@@ -955,12 +956,11 @@ class DPDConservative(_Pair):
 
     Example::
 
-        nl = nlist.cell()
-        dpdc = pair.dpd_conservative(r_cut=3.0, nlist=nl)
-        dpdc.pair_coeff.set('A', 'A', A=1.0)
-        dpdc.pair_coeff.set('A', 'B', A=2.0, r_cut = 1.0)
-        dpdc.pair_coeff.set('B', 'B', A=1.0)
-        dpdc.pair_coeff.set(['A', 'B'], ['C', 'D'], A=5.0)
+        nl = nlist.Cell()
+        dpdc = pair.DPDConservative(nlist=nl, r_cut=3.0)
+        dpdc.params[('A', 'A')] = dict(A=1.0)
+        dpdc.params[('A', 'B')] = dict(A=2.0, r_cut = 1.0)
+        dpdc.params[(['A', 'B'], ['C', 'D'])] = dict(A=3.0)
 
     """
     _cpp_class_name = "PotentialPairDPD"
@@ -992,11 +992,11 @@ class DPDLJ(_Pair):
     R""" Dissipative Particle Dynamics with a LJ conservative force
 
     Args:
-        r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of thermostat (in energy units).
         seed (int): seed for the PRNG in the DPD thermostat.
-        name (str): Name of the force instance.
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
 
     :py:class:`DPDLJ` specifies that a DPD thermostat and a Lennard-Jones pair potential should be applied between
     every non-excluded particle pair in the simulation.
@@ -1040,7 +1040,7 @@ class DPDLJ(_Pair):
     where :math:`\hat r_{ij}` is a normalized vector from particle i to particle j, :math:`v_{ij} = v_i - v_j`,
     and :math:`\theta_{ij}` is a uniformly distributed random number in the range [-1, 1].
 
-    Use ``coeff.set`` to set potential coefficients.
+    Use ``params`` dictionary to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
@@ -1058,15 +1058,14 @@ class DPDLJ(_Pair):
 
     Example::
 
-        nl = nlist.cell()
-        dpdlj = pair.dpdlj(r_cut=2.5, nlist=nl, kT=1.0, seed=0)
-        dpdlj.pair_coeff.set('A', 'A', epsilon=1.0, sigma = 1.0, gamma = 4.5)
-        dpdlj.pair_coeff.set('A', 'B', epsilon=0.0, sigma = 1.0 gamma = 4.5)
-        dpdlj.pair_coeff.set('B', 'B', epsilon=1.0, sigma = 1.0 gamma = 4.5, r_cut = 2.0**(1.0/6.0))
-        dpdlj.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon = 3.0,sigma=1.0, gamma = 1.2)
-        dpdlj.set_params(T = 1.0)
-        integrate.mode_standard(dt=0.005)
-        integrate.nve(group=group.all())
+        nl = nlist.Cell()
+        dpdlj = pair.DPDLJ(nlist=nl, kT=1.0, seed=0, r_cut=2.5)
+        dpdlj.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0, gamma=4.5)
+        dpdlj.params[('A', 'B')] = dict(epsilon=1.0, sigma=1.0, gamma=4.5)
+        dpdlj.params[('B', 'B')] = dict(epsilon=1.0, sigma=1.0 gamma=4.5, r_cut=2.0**(1.0/6.0))
+        dpdlj.params[(['A', 'B'], ['C', 'D'])] = dict(epsilon=3.0, sigma=1.0, gamma=1.2)
+        nve = methods.NVE(filter=all)
+        integrator = Integrator(dt=0.005, methods=[nve], forces=[dpdlj])
 
     """
     _cpp_class_name = "PotentialPairDPDLJThermoDPD"
