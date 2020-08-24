@@ -44,11 +44,9 @@ from hoomd import compute
 from hoomd import dump
 from hoomd import init
 from hoomd import integrate
-from hoomd import option
 from hoomd import update
 from hoomd import util
 from hoomd import variant
-from hoomd import lattice
 from hoomd import device
 from hoomd import trigger
 try:
