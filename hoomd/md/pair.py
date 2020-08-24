@@ -1372,8 +1372,9 @@ class tersoff(pair):
 
 
 class revcross(pair):
-    # Warning: The code hasn yet to be updated with current API
     R""" Reversible crosslinker three-body potential to model bond swaps.
+
+    Warning: The code hasn yet to be updated with current API
 
     Args:
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
@@ -1671,8 +1672,9 @@ class ai_pair(pair):
         pass
 
 class gb(ai_pair):
-    # Warning: The code hasn yet to be updated with current API
     R""" Gay-Berne anisotropic pair potential.
+
+    Warning: The code has yet to be updated to the current API.
 
     Args:
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
@@ -1775,7 +1777,9 @@ class gb(ai_pair):
         return super(ai_pair, self)._return_type_shapes();
 
 class dipole(ai_pair):
-   R""" Screened dipole-dipole interactions.
+    R""" Screened dipole-dipole interactions.
+
+    Warning: The code has yet to be updated to the current API.
 
     Args:
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
@@ -2062,7 +2066,7 @@ class square_density(pair):
     Phys. Rev. E. Stat. Nonlin. Soft Matter Phys., vol. 68, no. 6 Pt 2, p. 066702, 2003.
 
     """
-     def __init__(self, r_cut, nlist, name=None):
+    def __init__(self, r_cut, nlist, name=None):
 
         # tell the base class how we operate
 
