@@ -326,7 +326,7 @@ class bibliography(object):
                     cite_str += 'Please cite the following:\n'
                     cite_str += log_str
                     cite_str += '-'*5 + '\n'
-                    hoomd.context.current.device.cpp_msg.notice(1, cite_str)
+                    hoomd.context.current.device.cpp_msg.notice(3, cite_str)
 
         # print each feature set together
         for feature in citations:
@@ -334,7 +334,9 @@ class bibliography(object):
             cite_str += 'You are using %s. Please cite the following:\n' % feature
             cite_str += ''.join(citations[feature])
             cite_str += '-'*5 + '\n'
-            hoomd.context.current.device.cpp_msg.notice(1, cite_str)
+            # Set the notice level to the lowest level where users won't see it by
+            # default.
+            hoomd.context.current.device.cpp_msg.notice(3, cite_str)
 
         # after adding, we need to update the file
         self.updated = True
