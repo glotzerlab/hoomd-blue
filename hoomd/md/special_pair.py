@@ -21,7 +21,16 @@ from hoomd.parameterdicts import TypeParameterDict
 
 
 class _SpecialPair(_Force):
+    R"""Base class special pair forces.
+
+    Note:
+        :py:class:`_SpecialPair`is the base class for all special pair potentials.
+        Users should not instantiate this class directly. Special pair forces
+        documented here are available to all MD integrators.
+    
+    """
     def attach(self, simulation):
+        '''initialize the reflected c++ class'''
         # check that some bonds are defined
         if simulation.state._cpp_sys_def.getPairData().getNGlobal() == 0:
             simulation.device.cpp_msg.error("No pairs are defined.\n")
@@ -61,12 +70,25 @@ class LJ(_SpecialPair):
     where :math:`\vec{r}` is the vector pointing from one particle to the other
     in the bond.
 
-    Coefficients:
+    Attributes:
+        params (TypeParameter[``special pair type``, dict]):
+            The parameter of the lj forces for each particle type. 
+            The dictionary has the following keys: 
 
-    - :math:`\varepsilon` - *epsilon* (in energy units)
-    - :math:`\sigma` - *sigma* (in distance units)
-    - :math:`\alpha` - *alpha* (unitless) - *optional*: defaults to 1.0
-    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+            * ``epsilon`` (`float`, **required**) - energy parameter 
+              (in energy unit)
+
+            * ``sigma`` (`float`, **required**) - particle size 
+              (in distance unit)
+
+        r_cut (TypeParameter[``special pair type``, float]):
+            The cut-off distance for special pair potential (in distance unit) 
+
+    Examples::
+
+        lj = special_pair.LJ()
+        lj.params['cluster'] = dict(epsilon=3, sigma=0.5)
+        lj.r_cut['cluster'] = 5
 
     .. versionadded:: 2.1
 
@@ -89,9 +111,6 @@ class LJ(_SpecialPair):
 class Coulomb(_SpecialPair):
     R""" Coulomb special pair potential.
 
-    Args:
-        name (str): Name of the special_pair instance.
-
     :py:class:`Coulomb` specifies a Coulomb potential energy between the two
     particles in each defined pair.
 
@@ -113,17 +132,23 @@ class Coulomb(_SpecialPair):
     where :math:`\vec{r}` is the vector pointing from one particle to the other
     in the bond.
 
-    Coefficients:
+    Attributes:
+        params (TypeParameter[``special pair type``, dict]):
+            The parameter of the Coulomb forces for each particle type. 
+            The dictionary has the following keys: 
 
-    - :math:`\alpha` - Coulomb scaling factor (defaults to 1.0)
-    - :math:`q_{a}` - charge of particle a (in hoomd charge units)
-    - :math:`q_{b}` - charge of particle b (in hoomd charge units)
-    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+            * ``alpha`` (`float`, **required**) - Coulomb scaling factor
+              (in energy unit)
 
-    Example::
+        r_cut (TypeParameter[``special pair type``, float]):
+            The cut-off distance for special pair potential (in distance unit) 
 
-        coul = special_pair.coulomb(name="myOPLS_style")
-        coul.pair_coeff.set('pairtype_1', alpha=0.5, r_cut=1.1)
+
+    Examples::
+
+        coulomb = special_pair.Coulomb()
+        coulomb.params['cluster'] = dict(alpha=1.0)
+        coulomb.r_cut['cluster'] = 2
 
     .. versionadded:: 2.2
     .. versionchanged:: 2.2
