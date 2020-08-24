@@ -53,9 +53,9 @@ from hoomd.logging import log
 
 
 class nlist:
-    R""" Base class Neighbor List
+    R""" 
 
-    Methods provided as a baseclass for some functions that have yet to be migrated from HOOMDV2.
+    Generates a class for other classes that have not been ported.
     """
     pass
 
@@ -126,9 +126,8 @@ class Cell(_NList):
 
     Args:
         buffer (float):  Buffer width.
-        exclusions (tuple): Set the parameter which excluded pairs from the
-            neighbor list, therefore excluding them from the pair potential
-            calculation. 
+        exclusions (tuple): Excludes pairs from the neighbor list, which 
+            excludes them from the pair potential calculation. 
         rebuild_check_delay (int): How often to attempt to rebuild the neighbor
             list.
         diameter_shift (bool): Turns on dynamic shifting for the slj potential
@@ -155,9 +154,10 @@ class Cell(_NList):
 
     Examples::
 
-        nl_c = nlist.cell(rebuild_check_delay = 1)
-        nl_c.buffer = 0.5
-        nl_c.exclusions = tuple();
+        nl_c = nlist.Cell(diameter_shift=True,buffer=0.5)
+        nl_c.max_diameter = 2.0
+        slj = md.pair.SLJ(nl_c)
+
 
     Note:
         *max_diameter* should only be set when slj diameter shifting is required
@@ -195,51 +195,6 @@ class Cell(_NList):
 
 
 class stencil(nlist):
-    R""" Cell list based neighbor list using stencils
-
-    Args:
-        r_buff (float):  Buffer width.
-        check_period (int): How often to attempt to rebuild the neighbor list.
-        d_max (float): The maximum diameter a particle will achieve, only used in conjunction with slj diameter shifting.
-        dist_check (bool): Flag to enable / disable distance checking.
-        cell_width (float): The underlying stencil bin width for the cell list
-        name (str): Optional name for this neighbor list instance.
-        deterministic (bool): When True, enable deterministic runs on the GPU by sorting the cell list.
-
-    :py:class:`stencil` creates a cell list based neighbor list object to which pair potentials can be attached for computing
-    non-bonded pairwise interactions. Cell listing allows for O(N) construction of the neighbor list. Particles are first
-    spatially sorted into cells based on the largest pairwise cutoff radius attached to this instance of the neighbor
-    list.
-
-    `M.P. Howard et al. 2016 <http://dx.doi.org/10.1016/j.cpc.2016.02.003>`_ describes this neighbor list implementation
-    in HOOMD-blue. Cite it if you utilize this neighbor list style in your work.
-
-    This neighbor-list style differs from :py:class:`Cell` based on how the adjacent cells are searched for particles. The cell
-    list *cell_width* is set by default using the shortest active cutoff radius in the system. One *stencil* is computed
-    per particle type based on the largest cutoff radius that type participates in, which defines the bins that the
-    particle must search in. Distances to the bins in the stencil are precomputed so that certain particles can be
-    quickly excluded from the neighbor list, leading to improved performance compared to :py:class:`Cell` when there is size
-    disparity in the cutoff radius. The memory demands of :py:class:`stencil` can also be lower than :py:class:`Cell` if your
-    system is large and has many small cells in it; however, :py:class:`tree` is usually a better choice for these systems.
-
-    The performance of the stencil depends strongly on the choice of *cell_width*. The best performance is obtained
-    when the cutoff radii are multiples of the *cell_width*, and when the *cell_width* covers the simulation box with
-    a roughly integer number of cells. The *cell_width* can be set manually, or be automatically scanning through a range
-    of possible bin widths using :py:meth:`tune_cell_width()`.
-
-    Examples::
-
-        nl_s = nlist.stencil(check_period = 1)
-        nl_s.set_params(r_buff=0.5)
-        nl_s.reset_exclusions([]);
-        nl_s.tune()
-        nl_s.tune_cell_width(min_width=1.5, max_width=3.0)
-
-    Note:
-        *d_max* should only be set when slj diameter shifting is required by a pair potential. Currently, slj
-        is the only pair potential requiring this shifting, and setting *d_max* for other potentials may lead to
-        significantly degraded performance or incorrect results.
-    """
     def __init__(self, r_buff=0.4, check_period=1, d_max=None, dist_check=True, cell_width=None, name=None, deterministic=False):
         # register the citation
         c = hoomd.cite.article(cite_key='howard2016',
@@ -379,40 +334,6 @@ class stencil(nlist):
 stencil.cur_id = 0
 
 class tree(nlist):
-    R""" Bounding volume hierarchy based neighbor list.
-
-    Args:
-        r_buff (float):  Buffer width.
-        check_period (int): How often to attempt to rebuild the neighbor list.
-        d_max (float): The maximum diameter a particle will achieve, only used in conjunction with slj diameter shifting.
-        dist_check (bool): Flag to enable / disable distance checking.
-        name (str): Optional name for this neighbor list instance.
-
-    :py:class:`tree` creates a neighbor list using bounding volume hierarchy (BVH) tree traversal. Pair potentials are attached
-    for computing non-bonded pairwise interactions. A BVH tree of axis-aligned bounding boxes is constructed per particle
-    type, and each particle queries each tree to determine its neighbors. This method of searching leads to significantly
-    improved performance compared to cell lists in systems with moderate size asymmetry, but has slightly poorer performance
-    (10% slower) for monodisperse systems. :py:class:`tree` can also be slower than :py:class:`Cell` if there are multiple
-    types in the system, but the cutoffs between types are identical. (This is because one BVH is created per type.)
-    The user should carefully benchmark neighbor list build times to select the appropriate neighbor list construction type.
-
-    `M.P. Howard et al. 2016 <http://dx.doi.org/10.1016/j.cpc.2016.02.003>`_ describes the original implementation of this
-    algorithm for HOOMD-blue. `M.P. Howard et al. 2019 <https://doi.org/10.1016/j.commatsci.2019.04.004>`_ describes the
-    improved algorithm that is currently implemented. Cite both if you utilize this neighbor list style in your work.
-
-    Examples::
-
-        nl_t = nlist.tree(check_period = 1)
-        nl_t.set_params(r_buff=0.5)
-        nl_t.reset_exclusions([]);
-        nl_t.tune()
-
-    Note:
-        *d_max* should only be set when slj diameter shifting is required by a pair potential. Currently, slj
-        is the only pair potential requiring this shifting, and setting *d_max* for other potentials may lead to
-        significantly degraded performance or incorrect results.
-
-    """
     def __init__(self, r_buff=0.4, check_period=1, d_max=None, dist_check=True, name=None):
 
         # register the citation
