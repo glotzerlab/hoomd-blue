@@ -50,8 +50,8 @@ class EvaluatorTersoff
             #endif
 
             #ifndef __HIPCC__
-            param_type() : cutoff_thickness(0), coeffs(0, 0), exp_consts(0, 0), dimer_r(0), tersoff_n(0), gamman(0),
-                lambda_cube(0), ang_consts(0, 0, 0), alpha(0) {}
+            param_type() : cutoff_thickness(0), coeffs(make_scalar2(0, 0)), exp_consts(make_scalar2(0, 0)), dimer_r(0),
+                tersoff_n(0), gamman(0), lambda_cube(0), ang_consts(make_scalar3(0, 0, 0)), alpha(0) {}
 
             param_type(pybind11::dict v)
                 {
@@ -61,13 +61,13 @@ class EvaluatorTersoff
                 auto lambda1(v["lambda1"].cast<Scalar>());
                 auto lambda2(v["lambda2"].cast<Scalar>());
                 auto lambda3(v["lambda3"].cast<Scalar>());
-                auto dimer_r(v["dimer_r"].cast<Scalar>());
+                dimer_r = v["dimer_r"].cast<Scalar>();
                 auto n(v["n"].cast<Scalar>());
                 auto gamma(v["gamma"].cast<Scalar>());
                 auto c(v["c"].cast<Scalar>());
                 auto d(v["d"].cast<Scalar>());
                 auto m(v["m"].cast<Scalar>());
-                auto alpha(v["alpha"].cast<Scalar>());
+                alpha = v["alpha"].cast<Scalar>();
 
                 cutoff_thickness = cutoff_d;
                 coeffs = make_scalar2(C1, C2);
@@ -75,26 +75,26 @@ class EvaluatorTersoff
                 tersoff_n = n;
                 gamman = pow(gamma, n);
                 lambda_cube = pow(lambda3, 3);
-                c2 = c * c;
-                d2 = d * d;
+                Scalar c2 = c * c;
+                Scalar d2 = d * d;
                 ang_consts = make_scalar3(c2, d2, m);
                 }
 
             pybind11::dict asDict()
                 {
                 pybind11::dict v;
-                v["C1"] = coeffs[0];
-                v["C2"] = coeffs[1];
+                v["C1"] = coeffs.x;
+                v["C2"] = coeffs.y;
                 v["cutoff_d"] = cutoff_thickness;
-                v["lambda1"] = exp_consts[0];
-                v["lambda2"] = exp_consts[1];
+                v["lambda1"] = exp_consts.x;
+                v["lambda2"] = exp_consts.y;
                 v["lambda3"] = pow(lambda_cube, 1./3.);
                 v["dimer_r"] = dimer_r;
                 v["n"] = tersoff_n;
                 v["gamma"] = pow(gamman, 1.0/tersoff_n);
-                v["c"] = fast::sqrt(c2);
-                v["d"] = fast::sqrt(d2);
-                v["m"] = ang_consts[2];
+                v["c"] = fast::sqrt(ang_consts.x);
+                v["d"] = fast::sqrt(ang_consts.y);
+                v["m"] = ang_consts.z;
                 v["alpha"] = alpha;
                 return v;
                 }

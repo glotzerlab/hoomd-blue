@@ -1301,7 +1301,7 @@ class Tersoff(_Pair):
     function provides continuity up (I believe) the second derivative.
 
     """
-    _cpp_class_name = "PotentialPairTersoff"
+    _cpp_class_name = "PotentialTersoff"
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         super().__init__(nlist, r_cut, r_on, mode);
         params = TypeParameter(

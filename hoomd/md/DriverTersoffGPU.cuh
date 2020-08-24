@@ -16,7 +16,7 @@
 
 //! Compute Tersoff forces on the GPU with EvaluatorTersoff
 hipError_t gpu_compute_tersoff_forces(const tersoff_args_t& pair_args,
-                                       const tersoff_params *d_params);
+                                       const EvaluatorTersoff::param_type *d_params);
 
 //! Compute CG vdW liquid forces on the GPU with EvaluatorSquareDensity
 hipError_t gpu_compute_sq_density_forces(const tersoff_args_t& pair_args,

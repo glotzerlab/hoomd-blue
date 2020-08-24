@@ -11,7 +11,7 @@
 #include "EvaluatorRevCross.h"
 
 hipError_t gpu_compute_tersoff_forces(const tersoff_args_t& pair_args,
-                                       const tersoff_params *d_params)
+                                       const EvaluatorTersoff::param_type *d_params)
     {
     return gpu_compute_triplet_forces<EvaluatorTersoff>(pair_args,
                                                         d_params);
