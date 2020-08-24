@@ -4,437 +4,95 @@ Credits
 HOOMD-blue Developers
 ---------------------
 
-The following people contributed to the :py:mod:`hoomd` and :py:mod:`hoomd.md` packages.
-
-Joshua Anderson, University of Michigan - **Lead developer**
-
-Alex Travesset, Iowa State University and Ames Laboratory
-
-Rastko Sknepnek, Northwestern
-
- * integrate.npt
- * pair.morse
-
-Carolyn Phillips, University of Michigan
-
- * dihedral.table
- * angle.table
- * bond.table
- * pair.dpdlj
- * pair.dpd
- * pair.dpd_conservative
- * integrate.langevin
- * bond.fene
- * pair.slj
- * Initial testing and debugging of HOOMD on Mac OS X systems
-
-Aaron Keys, University of Michigan
-
-  * update.enforce2d and other updates enabling to 2D simulations
-  * hoomd c++ compilation helper script
-  * binary restart files
-  * integrate.mode_minimize_fire
-
-Andrew Schultz, University at Buffalo
-
-  * Harmonically Mapped Averaging implementation
-
-Axel Kohlmeyer, David LeBard, Ben Levine, from the ICMS group at Temple University
-
-  * pair.cgcmm
-  * angle.harmonic
-  * angle.cgcmm
-  * dihedral.harmonic
-  * improper.harmonic
-  * numerous other small contributions enhancing the usability of HOOMD
-
-Igor Morozov, Andrey Kazennov, Roman Bystryi, Joint Institute for High Temperatures of RAS (Moscow, Russia)
-
-  * pair.eam (original implementation)
-
-Philipp Mertmann, Ruhr University Bochum
-
- * charge.pppm
- * pair.ewald
-
-Stephen Barr, Princeton University
-
- * charge.pppm
- * pair.ewald
-
-Greg van Anders, Benjamin Schultz, University of Michigan
-
- * refactoring of ForceCompute
-
-Eric Irrgang, University of Michigan
-
- * RPM packaging and daily builds
-
-Ross Smith, University of Michigan
-
- * Deb packaging and daily builds
-
-Peter Palm, Jens Glaser, Leipzig University
-
- * group functionality in force.constant
- * misc bug fixes
- * conversion of bond forces to template evaluator implementation
-
-Jens Glaser, University of Michigan
-
- * integrate.npt anisotropic integration (mkt)
- * pair.force_shifted_lj
- * Dynamic addition/removal of bonds
- * Computation of virial and pressure tensor
- * integrate.nph
- * Framework for external potentials
- * external.periodic
- * ParticleData refactoring
- * MPI communication
- * Optimization of MPI communication for strong scaling
- * Neighborlist and pair force performance improvements (multiple threads per particle)
- * Enable cell based neighbor list on small boxes
- * Testing of angle.table and dihedral.table
- * Replicate command
- * metadata output
- * anisotropic particle integrators
- * Gay-Berne pair potential
- * pair.reaction_field
- * Rewrite of rigid body framework
- * Multi-GPU electrostatics (PPPM)
- * pair.van_der_waals
- * hpmc interaction_matrix
- * special_pair framework
- * TBB support
- * randomize integrator variables
- * GPUArray refactoring
-
-Pavani Medapuram, University of Minnesota
-
- * Framework for external potentials
- * external.periodic
-
-Brandon D. Smith, University of Michigan
-
- * full double precision compile time option
- * integrate.berendsen
- * pair.tersoff
-
-Trung Dac Nguyen, University of Michigan
-
- * integrate.nve_rigid
- * integrate.bdnvt_rigid
- * integrate.nvt_rigid
- * integrate.npt_rigid
- * integrate.mode_minimize_rigid_fire
- * associated rigid body data structures and helper functions
- * integrate.nph_rigid
-
-Ryan Marson, University of Michigan
-
- * unwrap_rigid option to dump.dcd
-
-Kevin Silmore, Princeton University
-
- * OPLS dihedral
-
-David Tarjan, University of Virginia
-
- * performance tweaks to the neighbor list and pair force code
-
-Sumedh R. Risbud, James W. Swan, Massachusetts Institute of Technology
-
- * bug fixes for rigid body virial corrections
-
-Michael P. Howard, Princeton University & University of Texas at Austin
-
- * Automatic citation list generator
- * Neighbor list memory footprint reduction
- * Bounding volume hierarchy (tree) neighbor lists
- * Stenciled cell list (stencil) neighbor lists
- * Per-type MPI ghost layer communication
- * Dynamic load balancing
- * Wall potentials extrapolated mode
- * XML dump by particle group
- * Fix references when disabling/enabling objects
- * Misc. bug fixes
- * CUDA9+V100 compatibility
- * GPU polymorphic object wrapper
- * Performance improvements to tree neighbor lists
-
-James Antonaglia, University of Michigan
-
- * pair.mie
-
-Carl Simon Adorf, University of Michigan
-
- * Analyzer callback
- * metadata output
- * Frenkel-Ladd bug fixes
-
-Paul Dodd, University of Michigan
-
- * pair.compute_energy
-
-Erin Teich, University of Michigan
-
- * addInfo callback to dump.pos
-
-Joseph Berleant, University of Michigan
-
- * fix python 3.4 segfault
-
-Matthew Spellings, University of Michigan
-
- * anisotropic particle integrators
- * Gay-Berne, dipole pair potentials
- * GTAR file format
- * External components in hoomd 2.x
-
-James Proctor, University of Michigan
-
- * Refactor external potential framework
- * Wall potentials
- * boost python to pybind11 conversion
- * boost unit_test to upp11 conversion
- * boost signals to Nano::Signals conversion
- * Removal of misc boost library calls
-
-Chengyu Dai, University of Michigan
-
- * Rewrite integrate.brownian with 3D rotational updates
- * Rewrite integrate.langevin with 3D rotational updates
-
-Isaac Bruss, Chengyu Dai, University of Michigan
-
- * force.active
- * update.constraint_ellipsoid
-
-Vyas Ramasubramani, University of Michigan
-
- * init.read_gsd bug fixes
- * Reverse communication for MPI
- * Enable simulation of floppy bodies that can be integrated separately but are ignored by the NeighborList
- * Enabled use of shared memory for Evaluator structs
- * Added per-type shape information to anisotropic pair potentials
- * Fix cutoff rescaling in Gay-Berne potential
-
-Nathan Horst
-
- * Language and figure clarifying the dihedral angle definition.
-
-Bryan VanSaders, University of Michigan
-
- * constrain.oneD
- * Constant stress mode to integrate.npt.
- * map_overlaps() in hpmc.
- * Torque options to force.constant and force.active
-
-Ludwig Schneider, Georg-August Univeristy Goettingen
-
-  * Constant stress flow: hoomd.md.update.mueller_plathe_flow
-  * Matrix logging and hdf5 logging: hoomd.hdf5.log
-
-Bjørnar Jensen, University of Bergen
-
- * Add Lennard-Jones 12-8 pair potential
- * Add Buckingham/exp-6 pair potential
- * Add special_pair Coulomb 1-4 scaling
-
-Lin Yang, Alex Travesset, Iowa State University
-
-  * metal.pair.eam - reworked implementation
-
-Tim Moore, Vanderbilt University
-
-  * angle.cosinesq
-  * Documentation fixes
-
-Bradley Dice, Avisek Das, University of Michigan
-
-  * integrator.randomize_velocities()
-
-Bradley Dice, Simon Adorf, University of Michigan
-
-  * SSAGES support
-
-Bradley Dice, University of Michigan
-
-  * Documentation improvements
-  * WSL support
-
-Peter Schwendeman, Jens Glaser, University of Michigan
-
-  * NVLINK optimized multi-GPU execution
-
-Alyssa Travitz, University of Michigan
-
-  * ``get_net_force`` implementation
-  * bond bug fixes
-
-Mike Henry, Boise State University
-
-  * Documentation improvements
-
-Pengji Zhou, University of Michigan
-
-  * pair.fourier
-
-Tommy Waltmann, University of Michigan
-  * hoomd.device module
-
-Patrick Lawton, University of Michigan
-
-  * Documentation changes
-
-Luis Rivera-Rivera, University of Michigan
-
-  * ``hoomd.dump.gsd.dump_shape`` implementation
-
-Alex Yang, Vanderbilt University
-
-  * ``hoomd.md.dihedral.harmonic`` update for phase shift
-
-Geert Kapteijns, University of Amsterdam
-
-  * Bug fixes.
-
-Simone Ciarella, Wouter Ellenbroek, Eindhoven University of Technology
-
- * Add RevCross potential
-
-HPMC developers
----------------
-
-The following people contributed to the :py:mod:`hoomd.hpmc` package.
-
-Joshua Anderson, University of Michigan - Lead developer
-
- * Vision
- * Initial design
- * Code review
- * NVT trial move processing (CPU / GPU)
- * Sphere shape
- * Polygon shape
- * Spheropolygon shape
- * Simple polygon shape
- * Ellipsoid shape - adaptation of Michael's Ellipsoid overlap check
- * 2D Xenocollide implementation
- * 2D GJKE implementation
- * MPI parallel domain decomposition
- * Scale distribution function pressure measurement
- * POS writer integration
- * Bounding box tree generation, query, and optimizations
- * BVH implementation of trial move processing
- * SSE and AVX intrinsics
- * `jit.patch.user` user defined patchy interactions with LLVM runtime compiled code
-
-Eric Irrgang, University of Michigan
-
- * NPT updater
- * Convex polyhedron shape
- * Convex spheropolyhedron shape
- * 3D Xenocollide implementation
- * 3D GJKE implementation
- * Move size autotuner (in collaboration with Ben Schultz)
- * Densest packing compressor (in collaboration with Ben Schultz)
- * POS file utilities (in collaboration with Ben Schultz)
- * Shape union low-level implementation
- * Sphere union shape (in collaboration with Khalid Ahmed)
-
-Ben Schultz, University of Michigan
-
- * Frenkel-Ladd free energy determination
- * Move size autotuner (in collaboration with Eric Irrgang)
- * Densest packing compressor (in collaboration with Eric Irrgang)
- * POS file utilities (in collaboration with Eric Irrgang)
- * Assign move size by particle type
- * Ellipsoid overlap check bug fixes
-
-Jens Glaser, University of Michigan
-
- * Patchy sphere shape
- * General polyhedron shape
- * BVH implementation for countOverlaps
- * Hybrid BVH/small box trial move processing
- * Helped port the Sphinx overlap check
- * Dynamic number of particle types support
- * Implicit depletants
- * `jit.patch.user_union` user defined patchy interactions with LLVM runtime compiled code
- * Geometric Cluster Algorithm implementation
- * ``convex_spheropolyhedron_union`` shape class
- * ``test_overlap`` python API
-
-Eric Harper, University of Michigan
-
- * Misc bug fixes to move size by particle type feature
- * Initial code for MPI domain decomposition
-
-Khalid Ahmed, University of Michigan
-
- * Ported the Sphinx overlap check
- * Sphere union shape (in collaboration with Eric Irrgang)
-
-Elizabeth R Chen, University of Michigan
-
- * Developed the Sphinx overlap check
-
-Carl Simon Adorf, University of Michigan
-
- * meta data output
-
-Samanthule Nola, University of Michigan
-
- * Run time determination of max_verts
-
-Paul Dodd, Erin Teich, University of Michigan
-
- * External potential framework
- * Wall overlap checks
- * Lattice external potential
-
- Erin Teich, University of Michigan
-
- * Convex polyhedron union particle type
-
-Vyas Ramasubramani, University of Michigan
-
- * hpmc.util.tune fixes for tuning by type
- * hpmc.update.boxmc fixes for non-orthorhombic box volume moves
- * Fixed various bugs with wall overlap checks
- * `jit.external.user` implementation
- * Refactored depletant integrators
-
-William Zygmunt, Luis Rivera-Rivera, University of Michigan
-
- * Patchy interaction support in HPMC CPU integrators
- * GSD state bug fixes
-
-DEM developers
---------------
-
-The following people contributed to the :py:mod:`hoomd.dem` package.
-
-Matthew Spellings, University of Michigan - Lead developer
-Ryan Marson, University of Michigan
-
-MPCD developers
----------------
-
-The following people contributed to the :py:mod:`hoomd.mpcd` package.
-
-Michael P. Howard, Princeton University & University of Texas at Austin - **Lead developer**
-
- * Design
- * Cell list and properties
- * Particle and cell communication
- * Basic streaming method
- * Slit streaming method
- * Slit pore streaming method
- * SRD and AT collision rules
- * Virtual particle filling framework
- * External force framework and block, constant, and sine forces
- * Bounce-back integrator framework
+The following people have contributed to the to HOOMD-blue:
+
+* Aaron Keys, University of Michigan
+* Alex Travesset, Iowa State University and Ames Laboratory
+* Alex Yang, Vanderbilt University
+* Alexander Hudson
+* Alyssa Travitz, University of Michigan
+* Andrew Schultz, University at Buffalo
+* Andrew Mark, Max Planck Institute
+* Andrey Kazennov, Joint Institute for High Temperatures of RAS
+* Antonio Osorio, University of Michigan
+* Avisek Das, University of Michigan
+* Axel Kohlmeyer, Temple University
+* Ben Levine, Temple University
+* Ben Swerdlow, University of Michgan
+* Benjamin Schultz, University of Michgan
+* Bjørnar Jensen, University of Bergen
+* Bradley Dice, University of Michigan
+* Brandon Butler, University of Michigan
+* Brandon Denis Smith, University of Michigan
+* Bryan VanSaders, University of Michgan
+* Carl Simon Adorf, University of Michigan
+* Carolyn Phillips, University of Michigan
+* Chengyu Dai, University of Michigan
+* Christoph Junghans
+* Christoph Klein, Vanderbilt University
+* Chrisy Du, University of Michigan
+* Cong Qiao, Brandeis University
+* Corwin Kerr, University of Michigan
+* Dan Evans, University of Michigan
+* David LeBard, Temple University
+* Elizabeth R Chen, University of Michigan
+* Eric Harper, University of Michigan
+* Eric Irrgang, University of Michigan
+* Eric Jankowski, Boise State University
+* Erin Teich, University of Michigan
+* Geert Kapteijns, University of Amsterdam
+* Greg van Anders, University of Michigan
+* Grey Garrett, University of Michigan
+* Igor Morozov, Joint Institute for High Temperatures of RAS
+* Isaac Bruss, University of Michigan
+* James Antonaglia, University of Michigan
+* James Proctor, University of Michigan
+* James W. Swan, Massachusetts Institute of Technology
+* Jenny Fothergill, Boise State University
+* Jens Glaser, Oak Ridge National Laboratory
+* Joseph Berleant, University of Michigan
+* Joshua A. Anderson, University of Michigan
+* Kevin Daly, Princeton University
+* Kevin Kohlstedt, University of Michigan
+* Kevin Silmore, Princeton University
+* Khalid Ahmed, University of Michigan
+* Kwanghwi Je, University of Michigan
+* Lin Yang, Iowa State University
+* Ludwig Schneider, Georg-August Univeristy Goettingen
+* Luis Y. Rivera-Rivera, University of Michigan
+* Malcolm Ramsay
+* Matthew Spellings, University of Michgan
+* Michael Howard, University of Texas
+* Mike Henry, Boise State University
+* Nathan Horst
+* Patrick Lawton, University of Michigan
+* Paul Dodd, University of Michigan
+* Pavani Medapuram Lakshmi Narasimha, University of Minnesota
+* Pengji Zhou, University of Michgan
+* Peter Palm, Leipzig University
+* Peter Schwendeman, University of Michigan
+* Philipp Mertmann, Ruhr University Bochum
+* Philipp Schönhöfer, University of Michigan
+* Rastko Sknepnek, Northwestern
+* Richmond Newman, University of Michigan
+* Roman Bystryi, Joint Institute for High Temperatures of RAS
+* Ross Smith, University of Michigan
+* Ryan Marson, University of Michigan
+* Sam Nola, University of Michigan
+* Simone Ciarella, Eindhoven University of Technology
+* Shannon Moran, University of Michigan
+* Sophie Youjung Lee, University of Michigan
+* Stephen Thomas, Boise State University
+* Steve Barr, Princeton University
+* Sumedh R. Risbud, Massachusetts Institute of Technology
+* Tim Moore, University of Michigan
+* Tommy Waltmann, University of Michigan
+* Trung Dac Nguyen, University of Michigan
+* Vyas Ramasubramani, University of Michigan
+* Wenbo Shen, University of Michigan
+* William Zygmunt, University of Michigan
+* Wouter Ellenbroek, Eindhoven University of Technology
+* Åsmund Ervik, SINTEF
 
 Source code
 -----------
