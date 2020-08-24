@@ -37,15 +37,24 @@ class _force(hoomd.meta._metadata):
 class _Force(_Operation):
     '''Constructs the force.
 
+    Note:
+        :py:class:`_Force`is the base class for all loggable forces.
+        Users should not instantiate this class directly. Forces
+        documented here are available to all MD integrators.
+
     Initializes some loggable quantities.
     '''
 
     def attach(self, simulation):
+        '''Attach forces to the simulation'''
         self._simulation = simulation
         super().attach(simulation)
 
     @log
     def energy(self):
+        """
+        Returns: Sum of the energy of the whole system.
+        """
         if self.is_attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.calcEnergySum()
@@ -54,6 +63,9 @@ class _Force(_Operation):
 
     @log(flag='particle')
     def energies(self):
+        """
+        Returns: The energies for all particles.
+        """
         if self.is_attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getEnergies()
