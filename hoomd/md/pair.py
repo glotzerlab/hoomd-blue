@@ -1190,7 +1190,7 @@ class Moliere(_Pair):
     - :math:`a_F` - *aF* - :math:`a_F = \frac{0.8853 a_0}{\left( \sqrt{Z_i} + \sqrt{Z_j} \right)^{2/3}}`, where :math:`a_0` is the Bohr radius (in distance units)
 
     See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use ``params`` property to set potential coefficients.
+    Use ``params`` dictionary to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
@@ -1252,7 +1252,7 @@ class ZBL(_Pair):
     - :math:`a_F` - *aF* - :math:`a_F = \frac{0.8853 a_0}{ Z_i^{0.23} + Z_j^{0.23} }`, where :math:`a_0` is the Bohr radius (in distance units)
 
     See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use ``params`` property to set potential coefficients.
+    Use ``params`` dictionary to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
@@ -1372,12 +1372,14 @@ class tersoff(pair):
 
 
 class revcross(pair):
+    # Warning: The code hasn yet to be updated with current API
     R""" Reversible crosslinker three-body potential to model bond swaps.
 
     Args:
-        r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        name (str): Name of the force instance.
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): energy shifting/smoothing mode.
 
     :py:class:`revcross` specifies that the revcross three-body potential should be applied to every
     non-bonded particle pair in the simulation.  Despite the fact that the revcross potential accounts
@@ -1448,11 +1450,12 @@ class revcross(pair):
 
     Example::
 
-        nl = md.nlist.cell()
-        potBondSwap = md.pair.revcross(r_cut=1.3,nlist=nl)
-        potBondSwap.pair_coeff.set(['A','B'],['A','B'],sigma=0,n=0,epsilon=0,lambda3=0)
+        nl = md.nlist.Cell()
+        potBondSwap = md.pair.revcross(nlist=nl, r_cut=1.3)
+        potBondSwap.params[(['A','B'],['A','B'])] = dict(sigma=0, n=0, epsilon=0, lambda3=0)
 	# a bond can be made only between A-B and not A-A or B-B
-        potBondSwap.pair_coeff.set('A','B',sigma=1,n=100,epsilon=10,lambda3=1)
+        potBondSwap.params[('A','B')] = dict(sigma=1, n=100, epsilon=10, lambda3=1)
+
     """
     def __init__(self, r_cut, nlist, name=None):
 
@@ -1668,13 +1671,15 @@ class ai_pair(pair):
         pass
 
 class gb(ai_pair):
+    # Warning: The code hasn yet to be updated with current API
     R""" Gay-Berne anisotropic pair potential.
 
     Args:
-        r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        name (str): Name of the force instance.
-
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): energy shifting/smoothing mode.
+        
     :py:class:`gb` computes the Gay-Berne potential between anisotropic particles.
 
     This version of the Gay-Berne potential supports identical pairs of uniaxial ellipsoids,
@@ -1710,7 +1715,7 @@ class gb(ai_pair):
     The quantities :math:`\ell_\parallel` and :math:`\ell_\perp` denote the semi-axis lengths parallel
     and perpendicular to particle orientation.
 
-    Use ``coeff.set`` to set potential coefficients.
+    Use ``params`` dictionary to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
@@ -1722,10 +1727,10 @@ class gb(ai_pair):
 
     Example::
 
-        nl = nlist.cell()
-        gb = pair.gb(r_cut=2.5, nlist=nl)
-        gb.pair_coeff.set('A', 'A', epsilon=1.0, lperp=0.45, lpar=0.5)
-        gb.pair_coeff.set('A', 'B', epsilon=2.0, lperp=0.45, lpar=0.5, r_cut=2**(1.0/6.0));
+        nl = nlist.Cell()
+        gb = pair.gb(nlist=nl, r_cut=2.5)
+        gb.params[('A', 'A')] = dict(epsilon=1.0, lperp=0.45, lpar=0.5)
+        gb.params[('A', 'B')] = dict(epsilon=2.0, lperp=0.45, lpar=0.5, r_cut=2**(1.0/6.0))
 
     """
     def __init__(self, r_cut, nlist, name=None):
