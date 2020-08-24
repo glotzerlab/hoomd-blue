@@ -764,6 +764,12 @@ class table(force._force):
 class Morse(_Pair):
     R""" Morse pair potential.
 
+    Args:
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): energy shifting/smoothing mode.
+
     :py:class:`Morse` specifies that a Morse pair potential should be applied between every
     non-excluded particle pair in the simulation.
 
@@ -776,7 +782,7 @@ class Morse(_Pair):
         \end{eqnarray*}
 
     See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use ``coeff.set`` to set potential coefficients.
+    Use ``params`` dictionary to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
@@ -788,15 +794,16 @@ class Morse(_Pair):
     - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
 
+
     Example::
 
-        nl = nlist.cell()
-        morse = pair.morse(r_cut=3.0, nlist=nl)
-        morse.pair_coeff.set('A', 'A', D0=1.0, alpha=3.0, r0=1.0)
-        morse.pair_coeff.set('A', 'B', D0=1.0, alpha=3.0, r0=1.0, r_cut=3.0, r_on=2.0);
-        morse.pair_coeff.set(['A', 'B'], ['C', 'D'], D0=1.0, alpha=3.0)
+        nl = nlist.Cell()
+        morse = pair.Morse(r_cut=3.0, nlist=nl)
+        morse.params[('A', 'A')] = dict(D0=1.0, alpha=3.0, r0=1.0)
+        morse.params[('A', 'B')] = dict(D0=1.0, alpha=3.0, r0=1.0, r_cut=3.0, r_on=2.0)
 
     """
+
     _cpp_class_name = "PotentialPairMorse"
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         super().__init__(nlist, r_cut, r_on, mode)
