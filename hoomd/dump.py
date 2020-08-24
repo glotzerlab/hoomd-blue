@@ -426,7 +426,6 @@ class getar(hoomd.analyze._analyzer):
             dump = hoomd.dump.getar.simple('dump.sqlite', 1e3,
                 static=['viz_static'], dynamic=['viz_dynamic'])
             dump.writeJSON('params.json', dict(temperature=temperature, pressure=pressure))
-            dump.writeJSON('metadata.json', hoomd.meta.dump_metadata())
         """
         if dynamic:
             timestep = hoomd.context.current.system.getCurrentTimeStep()
@@ -453,10 +452,6 @@ class getar(hoomd.analyze._analyzer):
 
         Example::
 
-            # [optionally] dump metadata beforehand with libgetar
-            with gtar.GTAR('dump.sqlite', 'w') as trajectory:
-                metadata = json.dumps(hoomd.meta.dump_metadata())
-                trajectory.writeStr('hoomd_metadata.json', metadata)
             # for later visualization of anisotropic systems
             zip2 = hoomd.dump.getar.simple(
                  'dump.sqlite', 100000, 'a', static=['viz_static'], dynamic=['viz_aniso_dynamic'])
