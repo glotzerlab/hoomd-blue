@@ -1,16 +1,6 @@
 # Copyright (c) 2009-2019 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-R""" Angle potentials.
-
-Angles add forces between specified triplets of particles and are typically used to
-model chemical angles between two bonds.
-
-By themselves, angles that have been specified in an initial configuration do nothing. Only when you
-specify an angle force (i.e. angle.harmonic), are forces actually calculated between the
-listed particles.
-"""
-
 from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.md import force
@@ -23,8 +13,22 @@ import math
 
 
 class _Angle(_Force):
+    R"""Base class anglular forces.
+
+    Note:
+        :py:class:`_Angle`is the base class for all angular potentials.
+        Users should not instantiate this class directly. Angular forces
+        documented here are available to all MD integrators.
+    
+    Angles add forces between specified triplets of particles and are typically
+    used to model chemical angles between two bonds.
+
+    By themselves, angles that have been specified in an initial configuration
+    do nothing. Only when you specify an angle force (i.e. angle.harmonic), 
+    are forces actually calculated between the listed particles.
+    """
     def attach(self, simulation):
-        # check that some angles are defined
+        '''initialize the reflected c++ class'''
         if simulation.state._cpp_sys_def.getAngleData().getNGlobal() == 0:
             simulation.device.cpp_msg.warning("No angles are defined.\n")
 
@@ -51,10 +55,16 @@ class Harmonic(_Angle):
 
     where :math:`\theta` is the angle between the triplet of particles.
 
-    Parameters:
+    Attributes:
+        params (TypeParameter[``angle type``, dict]):
+            The parameter of the harmonic bonds for each particle type. 
+            The dictionary has the following keys: 
 
-    - :math:`\theta_0` - rest angle  ``t0`` (in radians)
-    - :math:`k` - potential constant ``k`` (in units of energy/radians^2)
+            * ``k`` (`float`, **required**) - potential constant 
+              (in units of energy/radians^2)
+
+            * ``t0`` (`float`, **required**) - rest angle 
+              (in units radians)
 
     Examples::
 
@@ -87,10 +97,16 @@ class Cosinesq(_Angle):
     gromos96 force field. These are also the types of angles used with the
     coarse-grained MARTINI force field.
 
-    Params:
+    Attributes:
+        params (TypeParameter[``angle type``, dict]):
+            The parameter of the harmonic bonds for each particle type. 
+            The dictionary has the following keys: 
 
-    - :math:`\theta_0` - rest angle  ``t0`` (in radians)
-    - :math:`k` - potential constant ``k`` (in units of energy)
+            * ``k`` (`float`, **required**) - potential constant 
+              (in units of energy/radians^2)
+
+            * ``t0`` (`float`, **required**) - rest angle :math:`\theta_0`
+              (in units radians)
 
     Parameters :math:`k` and :math:`\theta_0` must be set for each type of
     angle in the simulation.  Note that the value of :math:`k` for this angle
@@ -99,10 +115,9 @@ class Cosinesq(_Angle):
 
     Examples::
 
-        cosinesq = angle.cosinesq()
-        cosinesq.angle_coeff.set('polymer', k=3.0, t0=0.7851)
-        cosinesq.angle_coeff.set('backbone', k=100.0, t0=1.0)
-
+        cosinesq = angle.Cosinesq()
+        cosinesq.params['polymer'] = dict(k=3.0, t0=0.7851)
+        cosinesq.params['backbone'] = dict(k=100.0, t0=1.0)
     """
 
     _cpp_class_name = 'CosineSqAngleForceCompute'
@@ -127,7 +142,7 @@ class table(force._force):
         width (int): Number of points to use to interpolate V and F (see documentation above)
         name (str): Name of the force instance
 
-    :py:class:`table` specifies that a tabulated  angle potential should be added to every bonded triple of particles
+    :py:class:`table` specifies that a tabulated angle potential should be added to every bonded triple of particles
     in the simulation.
 
     The torque :math:`T` is (in units of force * distance) and the potential :math:`V(\theta)` is (in energy units):
