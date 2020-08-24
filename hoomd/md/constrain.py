@@ -35,7 +35,7 @@ import hoomd
 # hoomd writers. 1) The instance of the c++ constraint force itself is tracked
 # and added to the System 2) methods are provided for disabling the force from
 # being added to the net force on each particle
-class _ConstraintForce(hoomd.meta._metadata):
+class _ConstraintForce():
     ## \internal
     # \brief Constructs the constraint force
     #
@@ -63,9 +63,6 @@ class _ConstraintForce(hoomd.meta._metadata):
 
         # create force data iterator
         self.forces = hoomd.data.force_data(self)
-
-        # base class constructor
-        hoomd.meta._metadata.__init__(self)
 
     ## \var enabled
     # \internal
@@ -146,15 +143,6 @@ class _ConstraintForce(hoomd.meta._metadata):
         # does nothing: this is for derived classes to implement
 
 
-    ## \internal
-    # \brief Get metadata
-    def get_metadata(self):
-        data = hoomd.meta._metadata.get_metadata(self)
-        data['enabled'] = self.enabled
-        if self.name != "":
-            data['name'] = self.name
-        return data
-
 # set default counter
 _ConstraintForce.cur_id = 0
 
@@ -192,7 +180,6 @@ class sphere(_ConstraintForce):
         self.group = group
         self.P = P
         self.r = r
-        self.metadata_fields = ['group','P', 'r']
 
 class distance(_ConstraintForce):
     R""" Constrain pairwise particle distances.
@@ -487,4 +474,3 @@ class oneD(_ConstraintForce):
         # store metadata
         self.group = group
         self.constraint_vector = constraint_vector
-        self.metadata_fields = ['group','constraint_vector']
