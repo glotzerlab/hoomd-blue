@@ -1106,9 +1106,10 @@ class ForceShiftedLJ(_Pair):
     R""" Force-shifted Lennard-Jones pair potential.
 
     Args:
-        r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        name (str): Name of the force instance.
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): energy shifting/smoothing mode.
 
     :py:class:`ForceShiftedLJ` specifies that a modified Lennard-Jones pair force should be applied between
     non-excluded particle pair in the simulation. The force differs from the one calculated by  :py:class:`LJ`
@@ -1132,7 +1133,7 @@ class ForceShiftedLJ(_Pair):
         \Delta V(r) = -(r - r_{\mathrm{cut}}) \frac{\partial V_{\mathrm{LJ}}}{\partial r}(r_{\mathrm{cut}})
 
     See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use ``coeff.set`` to set potential coefficients.
+    Use ``params`` dictionary to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
@@ -1146,9 +1147,9 @@ class ForceShiftedLJ(_Pair):
 
     Example::
 
-        nl = nlist.cell()
-        fslj = pair.force_shifted_lj(r_cut=1.5, nlist=nl)
-        fslj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
+        nl = nlist.Cell()
+        fslj = pair.ForceShiftedLJ(nlist=nl, r_cut=1.5)
+        fslj.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0)
 
     """
     _cpp_class_name = "PotentialPairForceShiftedLJ"
