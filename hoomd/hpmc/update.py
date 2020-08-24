@@ -14,7 +14,7 @@ from hoomd.parameterdicts import ParameterDict
 import hoomd
 
 
-class boxmc(_updater):
+class BoxMC(_Updater):
     R""" Apply box updates to sample isobaric and related ensembles.
 
     Args:
@@ -51,56 +51,33 @@ class boxmc(_updater):
 
     """
 
-    def __init__(self, mc, betaP, seed):
-        # initialize base class
-        _updater.__init__(self);
+    def __init__(self, mc, betaP, seed, trigger=1):
+        super().__init__(trigger)
 
-        # Updater gets called at every timestep. Whether to perform a move is determined independently
-        # according to frequency parameter.
-        period = 1
+        _default_dict = dict(weight=float(0), delta=float(0))
+        param_dict = ParameterDict(seed=int(seed),
+                                   betaP=betaP,
+                                   volume=_default_dict,
+                                   ln_volume=_default_dict,
+                                   length=dict(weight=float(0), delta=[float(0)]*3),
+                                   shear=dict(weight=float(0), delta=[float(0)]*3, reduce=float(0)),
+                                   aspect=_default_dict)
 
-        if not isinstance(mc, integrate._HPMCIntegrator):
-            hoomd.context.current.device.cpp_msg.warning("update.boxmc: Must have a handle to an HPMC integrator.\n");
-            return;
+        self._param_dict.update(param_dict)
 
-        self.betaP = hoomd.variant._setup_variant_input(betaP);
+    def attach(self, simulation):
+        integrator = simulation.operations.integrator
+        if not isinstance(integrator, integrate._HPMCIntegrator):
+            raise RuntimeError("The integrator must be a HPMC integrator.")
 
-        self.seed = int(seed)
-
-        # create the c++ mirror class
-        self.cpp_updater = _hpmc.UpdaterBoxMC(hoomd.context.current.system_definition,
-                                               mc.cpp_integrator,
-                                               self.betaP.cpp_variant,
-                                               1,
-                                               self.seed,
-                                               );
-        self.setupUpdater(period);
-
-        self.volume_delta = 0.0;
-        self.volume_weight = 0.0;
-        self.ln_volume_delta = 0.0;
-        self.ln_volume_weight = 0.0;
-        self.length_delta = [0.0, 0.0, 0.0];
-        self.length_weight = 0.0;
-        self.shear_delta = [0.0, 0.0, 0.0];
-        self.shear_weight = 0.0;
-        self.shear_reduce = 0.0;
-        self.aspect_delta = 0.0;
-        self.aspect_weight = 0.0;
-
-        self.metadata_fields = ['betaP',
-                                 'seed',
-                                 'volume_delta',
-                                 'volume_weight',
-                                 'ln_volume_delta',
-                                 'ln_volume_weight',
-                                 'length_delta',
-                                 'length_weight',
-                                 'shear_delta',
-                                 'shear_weight',
-                                 'shear_reduce',
-                                 'aspect_delta',
-                                 'aspect_weight']
+        if not integrator.is_attached:
+            raise RuntimeError("Integrator is not attached yet.")
+        self._cpp_obj = _hpmc.UpdaterBoxMC(simulation.state._cpp_sys_def,
+                                           integrator._cpp_obj,
+                                           self.betaP.cpp_variant,
+                                           trigger ,
+                                           int(self.seed));
+        super().attach(simulation)
 
     def set_betap(self, betaP):
         R""" Update the pressure set point for Metropolis Monte Carlo volume updates.
