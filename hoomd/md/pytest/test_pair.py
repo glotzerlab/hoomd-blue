@@ -445,6 +445,13 @@ def _valid_params(particle_types=['A', 'B']):
                                                  tersoff_valid_param_dicts)),
                                         {}))
 
+    square_density_arg_dict = {'A': [1.0, 2.0, 5.0], 'B': [0.1, 0.5, 2.0]}
+    square_density_valid_param_dicts = _make_valid_param_dicts(
+            square_density_arg_dict)
+    valid_params_list.append(paramtuple(hoomd.md.pair.SquareDensity,
+                                        dict(zip(combos,
+                                                 square_density_valid_param_dicts)),
+                                        {}))
     return valid_params_list
 
 

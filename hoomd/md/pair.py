@@ -1971,7 +1971,7 @@ class DLVO(_Pair):
         self._nlist.diameter_shift = True
 
 
-class square_density(pair):
+class SquareDensity(_Pair):
     R""" Soft potential for simulating a van-der-Waals liquid
 
     Args:
@@ -2020,33 +2020,14 @@ class square_density(pair):
     [1] P. B. Warren, "Vapor-liquid coexistence in many-body dissipative particle dynamics"
     Phys. Rev. E. Stat. Nonlin. Soft Matter Phys., vol. 68, no. 6 Pt 2, p. 066702, 2003.
     """
-    def __init__(self, r_cut, nlist, name=None):
-
-        # tell the base class how we operate
-
-        # initialize the base class
-        pair.__init__(self, r_cut, nlist, name);
-
-        # this potential cannot handle a half neighbor list
-        self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PotentialSquareDensity(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialSquareDensity;
-        else:
-            self.cpp_force = _md.PotentialSquareDensityGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialSquareDensityGPU;
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-
-        # setup the coefficients
-        self.required_coeffs = ['A','B']
-        self.pair_coeff.set_default_coeff('A', 0.0)
-
-    def process_coeff(self, coeff):
-        return _hoomd.make_scalar2(coeff['A'],coeff['B'])
-
+    _cpp_class_name = "PotentialSquareDensity"
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
+        super().__init__(nlist, r_cut, r_on, mode);
+        params = TypeParameter(
+                'params',
+                'particle_types',
+                TypeParameterDict(A=0.0, B=float, len_keys=2))
+        self._add_typeparam(params)
 
 class Buckingham(_Pair):
     R""" Buckingham pair potential.

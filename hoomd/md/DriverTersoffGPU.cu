@@ -8,6 +8,7 @@
 
 #include "DriverTersoffGPU.cuh"
 #include "EvaluatorTersoff.h"
+#include "EvaluatorSquareDensity.h"
 #include "EvaluatorRevCross.h"
 
 hipError_t gpu_compute_tersoff_forces(const tersoff_args_t& pair_args,
@@ -18,10 +19,9 @@ hipError_t gpu_compute_tersoff_forces(const tersoff_args_t& pair_args,
     }
 
 hipError_t gpu_compute_sq_density_forces(const tersoff_args_t& pair_args,
-                                   const Scalar2 *d_params)
+                                   const EvaluatorSquareDensity::param_type *d_params)
     {
-    return gpu_compute_triplet_forces<EvaluatorSquareDensity>(pair_args,
-                                                            d_params);
+    return gpu_compute_triplet_forces<EvaluatorSquareDensity>(pair_args, d_params);
     }
 
 hipError_t gpu_compute_revcross_forces(const tersoff_args_t& pair_args,
