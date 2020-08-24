@@ -26,8 +26,8 @@ class NVT(_Method):
     R""" NVT Integration via the Nosé-Hoover thermostat.
 
     Args:
-        filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply this
-            method.
+        filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply 
+            this method.?leave type for arguments?
         kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set point
             for the Nosé-Hoover thermostat. (in energy units).
         tau (float): Coupling constant for the Nosé-Hoover thermostat. (in time
@@ -39,8 +39,6 @@ class NVT(_Method):
     <http://dx.doi.org/10.1063/1.467468>`_ and `J. Cao, G. J. Martyna 1996
     <http://dx.doi.org/10.1063/1.470959>`_.
 
-    :py:class:`NVT` is an integration method. It must be used in connection with
-    ``mode_standard``.
 
     :py:class:`NVT` uses the proper number of degrees of freedom to compute the
     temperature of the system in both 2 and 3 dimensional systems, as long as
@@ -60,13 +58,22 @@ class NVT(_Method):
     runs.
 
     A :py:class:`hoomd.compute.thermo` is automatically specified and associated
-    with *group*.
+    with *filter*. ?
+
+    Attributes:
+        filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply 
+            this method.
+        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set point
+            for the Nosé-Hoover thermostat. (in energy units).
+        tau (float): Coupling constant for the Nosé-Hoover thermostat. (in time
+            units).
 
     Examples::
 
         all = filter.All()
         nvt=hoomd.md.methods.NVT(filter=all, kT=1.0, tau=0.5)
         integrator = hoomd.md.Integrator(dt=0.005, methods=[nvt], forces=[lj])
+
     """
 
     def __init__(self, filter, kT, tau):
@@ -81,7 +88,7 @@ class NVT(_Method):
         # set defaults
         self._param_dict.update(param_dict)
 
-    def attach(self, simulation):
+    def attach(self, simulation):  # noqa: D102
 
         # initialize the reflected cpp class
         if not simulation.device.cpp_exec_conf.isCUDAEnabled():
@@ -555,39 +562,42 @@ class NVE(_Method):
     R""" NVE Integration via Velocity-Verlet
 
     Args:
-        filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply this
-            method.
-        limit (bool): (optional) Enforce that no particle moves more than a distance of \a limit in a single time step
-        zero_force (bool): When set to true, particles in the \a group are integrated forward in time with constant
-          velocity and any net force on them is ignored.
+        filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply 
+            this method.
+
+        limit (bool): Enforce that no particle moves more than a 
+            distance of a limit in a single time step. Defaults to None
+            ?How args and atttribute are to be different?
 
 
-    :py:class:`NVE` performs constant volume, constant energy simulations using the standard
-    Velocity-Verlet method. For poor initial conditions that include overlapping atoms, a
-    limit can be specified to the movement a particle is allowed to make in one time step.
-    After a few thousand time steps with the limit set, the system should be in a safe state
-    to continue with unconstrained integration.
-
-    Another use-case for :py:class:`NVE` is to fix the velocity of a certain group of particles. This can be achieved by
-    setting the velocity of those particles in the initial condition and setting the *zero_force* option to True
-    for that group. A True value for *zero_force* causes integrate.NVE to ignore any net force on each particle and
-    integrate them forward in time with a constant velocity.
+    :py:class:`NVE` performs constant volume, constant energy simulations using 
+    the standard Velocity-Verlet method. For poor initial conditions that 
+    include overlapping atoms, a limit can be specified to the movement a 
+    particle is allowed to make in one time step. After a few thousand time 
+    steps with the limit set, the system should be in a safe state to continue 
+    with unconstrained integration.
 
     Note:
-        With an active limit, Newton's third law is effectively **not** obeyed and the system
-        can gain linear momentum. Activate the :py:class:`hoomd.md.update.zero_momentum` updater during the limited NVE
+        With an active limit, Newton's third law is effectively **not** obeyed 
+        and the system can gain linear momentum. Activate the 
+        :py:class:`hoomd.md.update.zero_momentum` updater during the limited NVE
         run to prevent this.
 
-    :py:class:`NVE` is an integration method. It must be used with ``mode_standard``.
+    A :py:class:`hoomd.compute.thermo` is automatically specified and associated
+     with *group*. ? compute.thermo still valid? and filter or group?
 
-    A :py:class:`hoomd.compute.thermo` is automatically specified and associated with *group*.
+    Attributes:
+        filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply 
+            this method.
+
+        limit (bool): Enforce that no particle moves more than a 
+            distance of a limit in a single time step. Defaults to None
 
     Examples::
 
         all = hoomd.filter.All()
-        nve = hoomd.md.methods.NVE(filter=all)
+        nve = hoomd.md.methods.NVE(filter=all)?
         nve = hoomd.md.methods.NVE(filter=all, limit=0.01)
-        nve = hoomd.md.methods.NVE(filter=all, zero_force=True)
         integrator = hoomd.md.Integrator(dt=0.005, methods=[nve], forces=[lj])
 
     """
@@ -604,7 +614,7 @@ class NVE(_Method):
         # set defaults
         self._param_dict.update(param_dict)
 
-    def attach(self, simulation):
+    def attach(self, simulation):  # noqa: D102
 
         # initialize the reflected c++ class
         if not simulation.device.cpp_exec_conf.isCUDAEnabled():
@@ -621,18 +631,23 @@ class Langevin(_Method):
     R""" Langevin dynamics.
 
     Args:
-        filter (:py:mod:`hoomd.filter._ParticleFilter`): Group of particles to
+        filter (:py:mod:`hoomd.filter._ParticleFilter`): Subset of particles to
             apply this method to.
+
         kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of the
             simulation (in energy units).
+
         seed (int): Random seed to use for generating
             :math:`\vec{F}_\mathrm{R}`.
+
         alpha (float): When set, use :math:\alpha d:math: for the
             drag coefficient. Defaults to None
+
         tally_reservoir_energy (bool): If true, the energy exchange
             between the thermal reservoir and the particles is tracked. Total
             energy conservation can then be monitored by adding
-            ``langevin_reservoir_energy_groupname`` to the logged quantities. Defaults to False.
+            ``langevin_reservoir_energy_groupname`` to the logged quantities. 
+            Defaults to False.
 
     .. rubric:: Translational degrees of freedom
 
@@ -685,7 +700,7 @@ class Langevin(_Method):
     You can specify :math:`\gamma` in two ways:
 
     1. Use ``set_gamma()`` to specify it directly, with independent
-       values for each particle type in the system.
+       values for each particle type in the system.?
     2. Specify :math:`\alpha` which scales the particle diameter to
        :math:`\gamma = \alpha d_i`. The units of
        :math:`\alpha` are mass / distance / time.
@@ -694,16 +709,35 @@ class Langevin(_Method):
     runs.
 
     A :py:class:`hoomd.compute.thermo` is automatically created and associated
-    with *group*.
+    with *group*.?
 
     Warning:
         When restarting a simulation, the energy of the reservoir will be reset
         to zero.
 
+    Attributes:
+        filter (:py:mod:`hoomd.filter._ParticleFilter`): Subset of particles to
+            apply this method to.
+
+        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of the
+            simulation (in energy units).
+
+        seed (int): Random seed to use for generating
+            :math:`\vec{F}_\mathrm{R}`.
+
+        alpha (float): When set, use :math:\alpha d:math: for the
+            drag coefficient. Defaults to None
+
+        tally_reservoir_energy (bool): If true, the energy exchange
+            between the thermal reservoir and the particles is tracked. Total
+            energy conservation can then be monitored by adding
+            ``langevin_reservoir_energy_groupname`` to the logged quantities. 
+            Defaults to False.
+
     Examples::
 
         all=hoomd.filter.All()
-        langevin = hoomd.md.methods.Langevin(filter=all, kT=0.2, seed=1, alpha=1.0)
+        langevin = hoomd.md.methods.Langevin(filter=all, kT=0.2, seed=1, alpha=1.0)?
         integrator = hoomd.md.Integrator(dt=0.001, methods=[langevin], forces=[lj])
 
     """
@@ -734,7 +768,7 @@ class Langevin(_Method):
 
         self._extend_typeparam([gamma,gamma_r])
 
-    def attach(self, simulation):
+    def attach(self, simulation):  # noqa: D102
 
         # initialize the reflected c++ class
         if not simulation.device.cpp_exec_conf.isCUDAEnabled():
@@ -754,21 +788,25 @@ class Brownian(_Method):
     R""" Brownian dynamics.
 
     Args:
-        filter (:py:mod:`hoomd.filter._ParticleFilter`): Group of particles to
+        filter (:py:mod:`hoomd.filter._ParticleFilter`): Subset of particles to
             apply this method to.
+
         kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of the
             simulation (in energy units).
+
         seed (int): Random seed to use for generating
             :math:`\vec{F}_\mathrm{R}`.
-        alpha (float): (optional) When set, use :math:\alpha d:math: for the
-            drag coefficient.
 
-    :py:class:`Brownian` integrates particles forward in time according to the overdamped Langevin equations of motion,
-    sometimes called Brownian dynamics, or the diffusive limit.
+        alpha (float): When set, use :math:\alpha d:math: for the
+            drag coefficient. Defaults to None.
+
+    :py:class:`Brownian` integrates particles forward in time according to the 
+        overdamped Langevin equations of motion, sometimes called Brownian 
+        dynamics, or the diffusive limit.
 
     .. math::
 
-        \frac{d\vec{x}}{dt} = \frac{\vec{F}_\mathrm{C} + \vec{F}_\mathrm{R}}{\gamma}
+        \frac{d\vec{x}}{dt} = \frac{\vec{F}_\mathrm{C} + \vec{F}_\mathrm{R}}{\gamma}?
 
         \langle \vec{F}_\mathrm{R} \rangle = 0
 
@@ -779,47 +817,73 @@ class Brownian(_Method):
         \langle |\vec{v}(t)|^2 \rangle = d k T / m
 
 
-    where :math:`\vec{F}_\mathrm{C}` is the force on the particle from all potentials and constraint forces,
-    :math:`\gamma` is the drag coefficient, :math:`\vec{F}_\mathrm{R}`
-    is a uniform random force, :math:`\vec{v}` is the particle's velocity, and :math:`d` is the dimensionality
-    of the system. The magnitude of the random force is chosen via the fluctuation-dissipation theorem
-    to be consistent with the specified drag and temperature, :math:`T`.
+    where :math:`\vec{F}_\mathrm{C}` is the force on the particle from all 
+    potentials and constraint forces, :math:`\gamma` is the drag coefficient, 
+    :math:`\vec{F}_\mathrm{R}` is a uniform random force, :math:`\vec{v}` is the
+    particle's velocity, and :math:`d` is the dimensionality of the system. 
+    The magnitude of the random force is chosen via the fluctuation-dissipation 
+    theorem to be consistent with the specified drag and temperature, :math:`T`.
     When :math:`kT=0`, the random force :math:`\vec{F}_\mathrm{R}=0`.
 
-    :py:class:`Brownian` generates random numbers by hashing together the particle tag, user seed, and current
-    time step index. See `C. L. Phillips et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_ for more
-    information.
+    :py:class:`Brownian` generates random numbers by hashing together the 
+    particle tag, user seed, and current time step index. See 
+    `C. L. Phillips et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_
+     for more information.
 
     .. attention::
-        Change the seed if you reset the simulation time step to 0. If you keep the same seed, the simulation
-        will continue with the same sequence of random numbers used previously and may cause unphysical correlations.
+        Change the seed if you reset the simulation time step to 0. If you keep 
+        the same seed, the simulation will continue with the same sequence of 
+        random numbers used previously and may cause unphysical correlations.
 
-        For MPI runs: all ranks other than 0 ignore the seed input and use the value of rank 0.
+        For MPI runs: all ranks other than 0 ignore the seed input and use the 
+        value of rank 0.
 
-    :py:class:`Brownian` uses the integrator from `I. Snook, The Langevin and Generalised Langevin Approach to the Dynamics of
-    Atomic, Polymeric and Colloidal Systems, 2007, section 6.2.5 <http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6>`_,
-    with the exception that :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random number distribution.
+    :py:class:`Brownian` uses the integrator from `I. Snook, The Langevin and 
+    Generalised Langevin Approach to the Dynamics of Atomic, Polymeric and 
+    Colloidal Systems, 2007, section 6.2.5 
+    <http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6>`_, with the exception
+     that :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random number 
+     distribution.
 
-    In Brownian dynamics, particle velocities are completely decoupled from positions. At each time step,
-    :py:class:`Brownian` draws a new velocity distribution consistent with the current set temperature so that
-    :py:class:`hoomd.compute.thermo` will report appropriate temperatures and pressures if logged or needed by other
-    commands.
+    In Brownian dynamics, particle velocities are completely decoupled from 
+    positions. At each time step, :py:class:`Brownian` draws a new velocity 
+    distribution consistent with the current set temperature so that 
+    :py:class:`hoomd.compute.thermo` will report appropriate temperatures and 
+    pressures if logged or needed by other commands.
 
-    Brownian dynamics neglects the acceleration term in the Langevin equation. This assumption is valid when
-    overdamped: :math:`\frac{m}{\gamma} \ll \delta t`. Use :py:class:`Langevin` if your system is not overdamped.
+    Brownian dynamics neglects the acceleration term in the Langevin equation. 
+    This assumption is valid when overdamped: 
+    :math:`\frac{m}{\gamma} \ll \delta t`. Use :py:class:`Langevin` if your 
+    system is not overdamped.
 
     You can specify :math:`\gamma` in two ways:
-
-    1. Use ``set_gamma`` to specify it directly, with independent values for each particle type in the system.
-    2. Specify :math:`\alpha` which scales the particle diameter to :math:`\gamma = \alpha d_i`. The units of
+    ?set_gamma
+    1. Use ``set_gamma`` to specify it directly, with independent values for 
+       each particle type in the system.
+    2. Specify :math:`\alpha` which scales the particle diameter to 
+       :math:`\gamma = \alpha d_i`. The units of
        :math:`\alpha` are mass / distance / time.
-
+    
+    ?should we include still? 
     *kT* can be a variant type, allowing for temperature ramps in simulation runs.
-
+    ? thermo and group or filter.
     A :py:class:`hoomd.compute.thermo` is automatically created and associated with *group*.
 
-    Examples::
+    Attributes:
+        filter (:py:mod:`hoomd.filter._ParticleFilter`): Subset of particles to
+            apply this method to.
 
+        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of the
+            simulation (in energy units).
+
+        seed (int): Random seed to use for generating
+            :math:`\vec{F}_\mathrm{R}`.
+
+        alpha (float): When set, use :math:\alpha d:math: for the
+            drag coefficient. Defaults to None.
+
+    Examples::
+        ?80 characters
         all=hoomd.filter.All()
         brownian = hoomd.md.methods.Brownian(filter=all, kT=0.2, seed=1, alpha=1.0)
         integrator = hoomd.md.Integrator(dt=0.001, methods=[brownian], forces=[lj])
@@ -849,7 +913,7 @@ class Brownian(_Method):
         self._extend_typeparam([gamma,gamma_r])
 
 
-    def attach(self, simulation):
+    def attach(self, simulation):  #noqa: D102
 
         # initialize the reflected c++ class
         if not simulation.device.cpp_exec_conf.isCUDAEnabled():
