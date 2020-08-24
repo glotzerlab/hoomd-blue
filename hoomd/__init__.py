@@ -32,22 +32,16 @@ from hoomd import _hoomd;
 if not ('NOT_HOOMD_PYTHON_SITEDIR' in os.environ):
     sys.setdlopenflags(flags);
 
-from hoomd import meta
-from hoomd import context
 from hoomd import cite
 from hoomd import analyze
 from hoomd import benchmark
 from hoomd import comm
 from hoomd import compute
 from hoomd import dump
-from hoomd import group
-from hoomd import init
 from hoomd import integrate
-from hoomd import option
 from hoomd import update
 from hoomd import util
 from hoomd import variant
-from hoomd import lattice
 from hoomd import device
 from hoomd import trigger
 try:
