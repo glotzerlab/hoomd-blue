@@ -57,7 +57,7 @@ class EvaluatorTersoff
                 {
                 auto C1(v["C1"].cast<Scalar>());
                 auto C2(v["C2"].cast<Scalar>());
-                auto cutoff_d(v["cutoff_d"].cast<Scalar>());
+                cutoff_thickness = v["cutoff_thickness"].cast<Scalar>();
                 auto lambda1(v["lambda1"].cast<Scalar>());
                 auto lambda2(v["lambda2"].cast<Scalar>());
                 auto lambda3(v["lambda3"].cast<Scalar>());
@@ -69,7 +69,6 @@ class EvaluatorTersoff
                 auto m(v["m"].cast<Scalar>());
                 alpha = v["alpha"].cast<Scalar>();
 
-                cutoff_thickness = cutoff_d;
                 coeffs = make_scalar2(C1, C2);
                 exp_consts = make_scalar2(lambda1, lambda2);
                 tersoff_n = n;
@@ -85,7 +84,7 @@ class EvaluatorTersoff
                 pybind11::dict v;
                 v["C1"] = coeffs.x;
                 v["C2"] = coeffs.y;
-                v["cutoff_d"] = cutoff_thickness;
+                v["cutoff_thickness"] = cutoff_thickness;
                 v["lambda1"] = exp_consts.x;
                 v["lambda2"] = exp_consts.y;
                 v["lambda3"] = pow(lambda_cube, 1./3.);
