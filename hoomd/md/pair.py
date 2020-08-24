@@ -176,10 +176,10 @@ class _Pair(force._Force):
         ret = [ json.loads(json_string) for json_string in type_shapes ]
         return ret
 
-    def attach(self, simulation):
+    def _attach(self, simulation):
         # create the c++ mirror class
-        if not self.nlist.is_attached:
-            self.nlist.attach(simulation)
+        if not self.nlist._attached:
+            self.nlist._attach(simulation)
         if not simulation.device.cpp_exec_conf.isCUDAEnabled():
             cls = getattr(_md, self._cpp_class_name)
             self.nlist._cpp_obj.setStorageMode(
@@ -191,7 +191,7 @@ class _Pair(force._Force):
         self._cpp_obj = cls(simulation.state._cpp_sys_def, self.nlist._cpp_obj,
                             '')  # TODO remove name string arg
 
-        super().attach(simulation)
+        super()._attach(simulation)
 
     @property
     def nlist(self):
@@ -199,7 +199,7 @@ class _Pair(force._Force):
 
     @nlist.setter
     def nlist(self, value):
-        if self.is_attached:
+        if self._attached:
             raise RuntimeError("nlist cannot be set after attaching.")
         else:
             self._nlist = validate_nlist(value)

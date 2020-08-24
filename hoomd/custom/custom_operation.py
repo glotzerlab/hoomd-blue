@@ -70,7 +70,7 @@ class _CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
         else:
             object.__setattr__(self, attr, value)
 
-    def attach(self, simulation):
+    def _attach(self, simulation):
         """Attach to a `hoomd.Simulation`.
 
         Args:
@@ -80,7 +80,7 @@ class _CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
         self._cpp_obj = getattr(_hoomd, self._cpp_class_name)(
             simulation.state._cpp_sys_def, self._action)
 
-        super().attach(simulation)
+        super()._attach(simulation)
         self._action.attach(simulation)
 
     def detach(self):
@@ -96,7 +96,7 @@ class _CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
         Args:
             timestep (int): The current timestep of the state.
         """
-        if self.is_attached:
+        if self._attached:
             self._action.act(timestep)
 
     @property

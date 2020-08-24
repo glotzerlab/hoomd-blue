@@ -120,7 +120,7 @@ class _HOOMDGetSetAttrBase:
         old_value = self._param_dict[attr]
         self._param_dict[attr] = value
         new_value = self._param_dict[attr]
-        if self.is_attached:
+        if self._attached:
             try:
                 setattr(self._cpp_obj, attr, new_value)
             except (AttributeError):
@@ -146,14 +146,14 @@ class _Operation(_HOOMDGetSetAttrBase, metaclass=Loggable):
     _skip_for_equality = set(['_cpp_obj', '_dependent_list'])
 
     def _getattr_param(self, attr):
-        if self.is_attached:
+        if self._attached:
             return getattr(self._cpp_obj, attr)
         else:
             return self._param_dict[attr]
 
     def _setattr_param(self, attr, value):
         self._param_dict[attr] = value
-        if self.is_attached:
+        if self._attached:
             new_value = self._param_dict[attr]
             try:
                 setattr(self._cpp_obj, attr, new_value)
@@ -173,11 +173,11 @@ class _Operation(_HOOMDGetSetAttrBase, metaclass=Loggable):
         return True
 
     def __del__(self):
-        if self.is_attached and hasattr(self, '_simulation'):
+        if self._attached and hasattr(self, '_simulation'):
             self.notify_detach(self._simulation)
 
     def detach(self):
-        if self.is_attached:
+        if self._attached:
             self._unapply_typeparam_dict()
             self._update_param_dict()
             self._cpp_obj = None
@@ -197,10 +197,10 @@ class _Operation(_HOOMDGetSetAttrBase, metaclass=Loggable):
 
     def handle_detached_dependency(self, sim, obj):
         self.detach()
-        new_objs = self.attach(sim)
+        new_objs = self._attach(sim)
         return new_objs if new_objs is not None else []
 
-    def attach(self, simulation):
+    def _attach(self, simulation):
         self._apply_param_dict()
         self._apply_typeparam_dict(self._cpp_obj, simulation)
 
@@ -209,7 +209,7 @@ class _Operation(_HOOMDGetSetAttrBase, metaclass=Loggable):
             self._cpp_obj.setCommunicator(simulation._system_communicator)
 
     @property
-    def is_attached(self):
+    def _attached(self):
         return self._cpp_obj is not None
 
     def _apply_param_dict(self):
@@ -222,7 +222,7 @@ class _Operation(_HOOMDGetSetAttrBase, metaclass=Loggable):
     def _apply_typeparam_dict(self, cpp_obj, simulation):
         for typeparam in self._typeparam_dict.values():
             try:
-                typeparam.attach(cpp_obj, simulation)
+                typeparam._attach(cpp_obj, simulation)
             except ValueError as verr:
                 raise ValueError("In TypeParameter {}:"
                                  " ".format(typeparam.name) + verr.args[0])
@@ -359,7 +359,7 @@ class _TriggeredOperation(_Operation):
         old_trigger = self.trigger
         self._param_dict['trigger'] = new_trigger
         new_trigger = self.trigger
-        if self.is_attached:
+        if self._attached:
             sys = self._simulation._cpp_sys
             triggered_ops = getattr(sys, self._cpp_list_name)
             for index in range(len(triggered_ops)):
@@ -369,9 +369,9 @@ class _TriggeredOperation(_Operation):
                 if op is self._cpp_obj and trigger is old_trigger:
                     triggered_ops[index] = (op, new_trigger)
 
-    def attach(self, simulation):
+    def _attach(self, simulation):
         self._simulation = simulation
-        super().attach(simulation)
+        super()._attach(simulation)
 
 
 class _Updater(_TriggeredOperation):

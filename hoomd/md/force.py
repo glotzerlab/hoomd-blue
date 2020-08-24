@@ -40,13 +40,13 @@ class _Force(_Operation):
     Initializes some loggable quantities.
     '''
 
-    def attach(self, simulation):
+    def _attach(self, simulation):
         self._simulation = simulation
-        super().attach(simulation)
+        super()._attach(simulation)
 
     @log
     def energy(self):
-        if self.is_attached:
+        if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.calcEnergySum()
         else:
@@ -54,7 +54,7 @@ class _Force(_Operation):
 
     @log(flag='particle')
     def energies(self):
-        if self.is_attached:
+        if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getEnergies()
         else:
@@ -65,7 +65,7 @@ class _Force(_Operation):
         """
         Returns: The force for all particles.
         """
-        if self.is_attached:
+        if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getForces()
         else:
@@ -76,7 +76,7 @@ class _Force(_Operation):
         """
         Returns: The torque for all particles.
         """
-        if self.is_attached:
+        if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getTorques()
         else:
@@ -87,7 +87,7 @@ class _Force(_Operation):
         R"""
         Returns: The virial for the members in the group.
         """
-        if self.is_attached:
+        if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getVirials()
         else:
@@ -306,7 +306,7 @@ class Active(_Force):
 
         self._extend_typeparam([active_force, active_torque])
 
-    def attach(self, simulation):
+    def _attach(self, simulation):
 
 
         # initialize the reflected c++ class
@@ -320,7 +320,7 @@ class Active(_Force):
                                  self.seed, self.rotation_diff,_hoomd.make_scalar3(0,0,0), 0, 0, 0)
 
         # Attach param_dict and typeparam_dict
-        super().attach(simulation)
+        super()._attach(simulation)
 
 
     # there are no coeffs to update in the active force compute

@@ -36,7 +36,7 @@ class _Angle(_Force):
 
         self._cpp_obj = cpp_cls(simulation.state._cpp_sys_def)
 
-        super().attach(simulation)
+        super()._attach(simulation)
 
 
 class Harmonic(_Angle):

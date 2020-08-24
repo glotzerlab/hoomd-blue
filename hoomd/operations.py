@@ -51,14 +51,14 @@ class Operations:
         if not self._sys_init:
             raise RuntimeError("System not initialized yet")
         sim = self._simulation
-        if not (self.integrator is None or self.integrator.is_attached):
-            self.integrator.attach(sim)
-        if not self.updaters.is_attached:
-            self.updaters.attach(sim, sim._cpp_sys.updaters)
-        if not self.analyzers.is_attached:
-            self.analyzers.attach(sim, sim._cpp_sys.analyzers)
-        if not self.tuners.is_attached:
-            self.tuners.attach(sim, sim._cpp_sys.tuners)
+        if not (self.integrator is None or self.integrator._attached):
+            self.integrator._attach(sim)
+        if not self.updaters._attached:
+            self.updaters._attach(sim, sim._cpp_sys.updaters)
+        if not self.analyzers._attached:
+            self.analyzers._attach(sim, sim._cpp_sys.analyzers)
+        if not self.tuners._attached:
+            self.tuners._attach(sim, sim._cpp_sys.tuners)
         self._scheduled = True
 
     def unschedule(self):
@@ -97,7 +97,7 @@ class Operations:
         self._integrator = op
         if self._scheduled:
             if op is not None:
-                op.attach(self._simulation)
+                op._attach(self._simulation)
         if old_ref is not None:
             old_ref.notify_detach(self._simulation)
             old_ref.detach()

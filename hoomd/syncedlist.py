@@ -62,7 +62,7 @@ class SyncedList:
             value = self._validate_or_error(value)
             # If attached need to change cpp_list and detach operation before
             # changing python list
-            if self.is_attached:
+            if self._attached:
                 self._synced_list[index] = \
                     self._to_synced_list_conversion(value)
                 self._list[index].detach()
@@ -90,13 +90,13 @@ class SyncedList:
         else:
             # Since delitem may not del the underlying object, we need to
             # manually call detach here.
-            if self.is_attached:
+            if self._attached:
                 del self._synced_list[index]
                 self._list[index].detach()
             del self._list[index]
 
     @property
-    def is_attached(self):
+    def _attached(self):
         """Has a cpp_list object means that we are currently syncing."""
         return hasattr(self, "_synced_list")
 
@@ -115,15 +115,15 @@ class SyncedList:
     def synced_iter(self):
         """Iterate over values in the list. Does nothing when not attached.
         """
-        if self.is_attached:
+        if self._attached:
             yield from self._synced_list
 
     def _value_attach(self, value):
         """Attaches value if unattached while raising error if already in list.
         """
-        if self.is_attached:
-            if not value.is_attached:
-                value.attach(self._simulation)
+        if self._attached:
+            if not value._attached:
+                value._attach(self._simulation)
         return value
 
     def _validate_or_error(self, value):
@@ -139,18 +139,18 @@ class SyncedList:
         except ValueError as verr:
             raise ValueError("Validation failed: {}".format(verr.args[0]))
 
-    def attach(self, simulation, synced_list):
+    def _attach(self, simulation, synced_list):
         """Attach all list items and update for automatic attachment."""
         self._simulation = simulation
         self._synced_list = synced_list
         for item in self:
-            if not item.is_attached:
-                item.attach(simulation)
+            if not item._attached:
+                item._attach(simulation)
             self._synced_list.append(self._to_synced_list_conversion(item))
 
     def detach(self):
         """Detach all items, clear _synced_list, and remove cpp references."""
-        if self.is_attached:
+        if self._attached:
             for index in range(len(self)):
                 del self._synced_list[0]
             for item in self:
@@ -161,14 +161,14 @@ class SyncedList:
     def append(self, value):
         """Append value to list, handling list syncing."""
         value = self._validate_or_error(value)
-        if self.is_attached:
+        if self._attached:
             self._synced_list.append(self._to_synced_list_conversion(value))
         self._list.append(value)
 
     def insert(self, pos, value):
         """Insert value to list at pos, handling list syncing."""
         value = self._validate_or_error(value)
-        if self.is_attached:
+        if self._attached:
             self._synced_list.insert(pos,
                                      self._to_synced_list_conversion(value)
                                      )

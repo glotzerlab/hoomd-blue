@@ -803,7 +803,7 @@ class Clusters(_Updater):
                                    swap_move_ratio=float(swap_move_ratio))
         self._param_dict.update(param_dict)
 
-    def attach(self, simulation):
+    def _attach(self, simulation):
         integrator = simulation.operations.integrator
         if not isinstance(integrator, integrate._HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
@@ -844,12 +844,12 @@ class Clusters(_Updater):
         if cpp_cls is None:
             raise RuntimeError("Unsupported integrator.\n")
 
-        if not integrator.is_attached:
+        if not integrator._attached:
             raise RuntimeError("Integrator is not attached yet.")
         self._cpp_obj = cpp_cls(simulation.state._cpp_sys_def,
                                 integrator._cpp_obj,
                                 int(self.seed))
-        super().attach(simulation)
+        super()._attach(simulation)
 
     @property
     def counter(self):
@@ -863,7 +863,7 @@ class Clusters(_Updater):
         Note::
             if the updater is not attached None will be returned.
         """
-        if not self.is_attached:
+        if not self._attached:
             return None
         else:
             return self._cpp_obj.getCounters(1)

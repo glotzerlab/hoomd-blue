@@ -48,7 +48,7 @@ class _Dihedral(_Force):
             cpp_class = getattr(_md, self._cpp_class_name + "GPU")
 
         self._cpp_obj = cpp_class(simulation.state._cpp_sys_def)
-        super().attach(simulation)
+        super()._attach(simulation)
 
 
 class Harmonic(_Dihedral):

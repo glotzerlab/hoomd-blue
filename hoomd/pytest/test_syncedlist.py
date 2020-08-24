@@ -1,5 +1,5 @@
 from pytest import fixture, raises
-from hoomd.pytest.dummy import DummyOperation, DummyTriggeredOp, DummySystem
+from hoomd.pytest.dummy import DummyOperation, DummySimulation
 from hoomd.operation import _Operation
 from hoomd.syncedlist import SyncedList
 
@@ -46,11 +46,11 @@ def slist(slist_empty, op_list):
 
 
 class OpInt(int):
-    def attach(self, simulation):
+    def _attach(self, simulation):
         self._cpp_obj = None
 
     @property
-    def is_attached(self):
+    def _attached(self):
         return hasattr(self, '_cpp_obj')
 
     def detach(self):
@@ -90,18 +90,18 @@ def test_getitem(slist):
     assert slist[1:] == slist._list[1:]
 
 
-def test_is_attached(slist):
-    assert not slist.is_attached
+def test_attached(slist):
+    assert not slist._attached
     slist._synced_list = None
-    assert slist.is_attached
+    assert slist._attached
 
 
 def test_value_attach(slist):
     op = DummyOperation()
-    assert not slist._value_attach(op).is_attached
+    assert not slist._value_attach(op)._attached
     slist._synced_list = []
-    slist._simulation = None
-    assert slist._value_attach(op).is_attached
+    slist._simulation = DummySimulation()
+    assert slist._value_attach(op)._attached
 
 
 def test_validate_or_error(slist):
@@ -114,18 +114,18 @@ def test_validate_or_error(slist):
 
 def test_attaching(slist, op_list):
     sync_list = []
-    slist.attach(None, sync_list)
+    slist._attach(None, sync_list)
     assert len(sync_list) == 3
     assert all([op is op2 for op, op2 in zip(slist, sync_list)])
-    assert all([op.is_attached for op in slist])
+    assert all([op._attached for op in slist])
 
 
 def test_detach(slist, op_list):
     sync_list = []
-    slist.attach(None, sync_list)
+    slist._attach(None, sync_list)
     slist.detach()
     assert len(sync_list) == 0
-    assert all([not op.is_attached for op in slist])
+    assert all([not op._attached for op in slist])
     assert not hasattr(slist, "_synced_list")
 
 
@@ -143,14 +143,14 @@ def test_delitem(slist):
 
     # Tested attached
     sync_list = []
-    slist.attach(None, sync_list)
+    slist._attach(None, sync_list)
     old_op = slist[1]
     del slist[1]
     assert len(slist) == 2
     assert len(sync_list) == 2
     assert old_op not in slist
     assert all([old_op is not op for op in sync_list])
-    assert not old_op.is_attached
+    assert not old_op._attached
     old_ops = slist[1:]
     del slist[1:]
     assert len(slist) == 1
@@ -170,12 +170,12 @@ def test_setitem(slist, op_list):
 
     # Check when attached
     sync_list = []
-    slist.attach(None, sync_list)
+    slist._attach(None, sync_list)
     new_op = DummyOperation()
     old_op = slist[1]
     slist[1] = new_op
-    assert not old_op.is_attached
-    assert new_op.is_attached
+    assert not old_op._attached
+    assert new_op._attached
     assert sync_list[1] is new_op
 
 
@@ -192,7 +192,7 @@ def test_attach(islist):
 
     # Test attached
     sync_list = []
-    islist.attach(None, sync_list)
+    islist._attach(None, sync_list)
     islist.append(OpInt(5))
     assert len(islist) == 5
     assert len(sync_list) == 5
@@ -207,7 +207,7 @@ def test_insert(islist):
 
     # Test attached
     sync_list = []
-    islist.attach(None, sync_list)
+    islist._attach(None, sync_list)
     islist.insert(index, OpInt(5))
     assert len(islist) == 5
     assert len(sync_list) == 5
@@ -223,7 +223,7 @@ def test_extend(islist):
     # Test attached
     oplist = [OpInt(i) for i in range(7, 10)]
     sync_list = []
-    islist.attach(None, sync_list)
+    islist._attach(None, sync_list)
     islist.extend(oplist)
     assert len(islist) == 9
     assert len(sync_list) == 9
@@ -239,11 +239,11 @@ def test_clear(islist):
 
     # Test attached
     sync_list = []
-    islist.attach(None, sync_list)
+    islist._attach(None, sync_list)
     islist.clear()
     assert len(islist) == 0
     assert len(sync_list) == 0
-    assert all([not op.is_attached for op in oplist])
+    assert all([not op._attached for op in oplist])
 
 
 def test_remove(islist):
@@ -256,10 +256,10 @@ def test_remove(islist):
 
     # Test attached
     sync_list = []
-    islist.attach(None, sync_list)
+    islist._attach(None, sync_list)
     islist.remove(oplist[0])
     assert len(islist) == 1
     assert len(sync_list) == 1
-    assert not oplist[0].is_attached
+    assert not oplist[0]._attached
     assert oplist[0] not in islist
     assert oplist[0] not in sync_list
