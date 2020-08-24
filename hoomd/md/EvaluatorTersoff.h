@@ -23,50 +23,84 @@
 #define HOSTDEVICE
 #endif
 
-//! Parameter type for this potential
-struct tersoff_params
-    {
-    Scalar cutoff_thickness; //!< Thickness of the cutoff shell (2D)
-    Scalar2 coeffs; //!< Contains the coefficients for the repulsive (x) and attractive (y) terms
-    Scalar2 exp_consts; //!< Gives the coefficients in the exponential functions for the repulsive (x) and attractive (y) terms
-    Scalar dimer_r; //!< Dimer separation of the type-pair
-    Scalar tersoff_n; //!< \a n in Tersoff potential
-    Scalar gamman; //!< \a gamma raised to the \a n power in the Tersoff potential
-    Scalar lambda_cube; //!< \a lambda^3 in the exponential term of \a chi
-    Scalar3 ang_consts; //!< Constants \a c^2, \a d^2, and \a m in the bond-angle function of the Tersoff potential
-    Scalar alpha; //!< \a alpha in the exponential cutoff-smoothing function
-};
-
-//! Function to make the parameter type
-HOSTDEVICE inline tersoff_params make_tersoff_params(Scalar cutoff_thickness,
-                                                     Scalar2 coeffs,
-                                                     Scalar2 exp_consts,
-                                                     Scalar dimer_r,
-                                                     Scalar tersoff_n,
-                                                     Scalar gamman,
-                                                     Scalar lambda_cube,
-                                                     Scalar3 ang_consts,
-                                                     Scalar alpha)
-    {
-    tersoff_params retval;
-    retval.cutoff_thickness = cutoff_thickness;
-    retval.coeffs = coeffs;
-    retval.exp_consts = exp_consts;
-    retval.dimer_r = dimer_r;
-    retval.tersoff_n = tersoff_n;
-    retval.gamman = gamman;
-    retval.lambda_cube = lambda_cube;
-    retval.ang_consts = ang_consts;
-    retval.alpha = alpha;
-    return retval;
-    }
 
 //! Class for evaluating the Tersoff three-body potential
 class EvaluatorTersoff
     {
     public:
-        //! Define the parameter type used by this evaluator
-        typedef tersoff_params param_type;
+        //! Parameter type for this potential
+        struct param_type
+            {
+            Scalar cutoff_thickness; //!< Thickness of the cutoff shell (2D)
+            Scalar2 coeffs; //!< Contains the coefficients for the repulsive (x) and attractive (y) terms
+            Scalar2 exp_consts; //!< Gives the coefficients in the exponential functions for the repulsive (x) and attractive (y) terms
+            Scalar dimer_r; //!< Dimer separation of the type-pair
+            Scalar tersoff_n; //!< \a n in Tersoff potential
+            Scalar gamman; //!< \a gamma raised to the \a n power in the Tersoff potential
+            Scalar lambda_cube; //!< \a lambda^3 in the exponential term of \a chi
+            Scalar3 ang_consts; //!< Constants \a c^2, \a d^2, and \a m in the bond-angle function of the Tersoff potential
+            Scalar alpha; //!< \a alpha in the exponential cutoff-smoothing function
+
+            #ifdef ENABLE_HIP
+            //! Set CUDA memory hints
+            void set_memory_hint() const
+                {
+                // default implementation does nothing
+                }
+            #endif
+
+            #ifndef __HIPCC__
+            param_type() : cutoff_thickness(0), coeffs(0, 0), exp_consts(0, 0), dimer_r(0), tersoff_n(0), gamman(0),
+                lambda_cube(0), ang_consts(0, 0, 0), alpha(0) {}
+
+            param_type(pybind11::dict v)
+                {
+                auto C1(v["C1"].cast<Scalar>());
+                auto C2(v["C2"].cast<Scalar>());
+                auto cutoff_d(v["cutoff_d"].cast<Scalar>());
+                auto lambda1(v["lambda1"].cast<Scalar>());
+                auto lambda2(v["lambda2"].cast<Scalar>());
+                auto lambda3(v["lambda3"].cast<Scalar>());
+                auto dimer_r(v["dimer_r"].cast<Scalar>());
+                auto n(v["n"].cast<Scalar>());
+                auto gamma(v["gamma"].cast<Scalar>());
+                auto c(v["c"].cast<Scalar>());
+                auto d(v["d"].cast<Scalar>());
+                auto m(v["m"].cast<Scalar>());
+                auto alpha(v["alpha"].cast<Scalar>());
+
+                cutoff_thickness = cutoff_d;
+                coeffs = make_scalar2(C1, C2);
+                exp_consts = make_scalar2(lambda1, lambda2);
+                tersoff_n = n;
+                gamman = pow(gamma, n);
+                lambda_cube = pow(lambda3, 3);
+                c2 = c * c;
+                d2 = d * d;
+                ang_consts = make_scalar3(c2, d2, m);
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+                v["C1"] = coeffs[0];
+                v["C2"] = coeffs[1];
+                v["cutoff_d"] = cutoff_thickness;
+                v["lambda1"] = exp_consts[0];
+                v["lambda2"] = exp_consts[1];
+                v["lambda3"] = pow(lambda_cube, 1./3.);
+                v["dimer_r"] = dimer_r;
+                v["n"] = tersoff_n;
+                v["gamma"] = pow(gamman, 1.0/tersoff_n);
+                v["c"] = fast::sqrt(c2);
+                v["d"] = fast::sqrt(d2);
+                v["m"] = ang_consts[2];
+                v["alpha"] = alpha;
+                return v;
+                }
+            #endif
+
+            };
 
         //! Constructs the evaluator
         /*! \param _rij_sq Squared distance between particles i and j

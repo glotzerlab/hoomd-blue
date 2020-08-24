@@ -1280,7 +1280,7 @@ class ZBL(_Pair):
                                                  len_keys=2))
         self._add_typeparam(params)
 
-class tersoff(pair):
+class Tersoff(_Pair):
     R""" Tersoff Potential.
 
     Args:
@@ -1301,41 +1301,28 @@ class tersoff(pair):
     function provides continuity up (I believe) the second derivative.
 
     """
-    def __init__(self, r_cut, nlist, name=None):
-
-        # tell the base class how we operate
-
-        # initialize the base class
-        pair.__init__(self, r_cut, nlist, name);
-
-        # this potential cannot handle a half neighbor list
-        self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PotentialTersoff(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialTersoff;
-        else:
-            self.cpp_force = _md.PotentialTersoffGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialTersoffGPU;
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-
-        # setup the coefficients
-        self.required_coeffs = ['cutoff_thickness', 'C1', 'C2', 'lambda1', 'lambda2', 'dimer_r', 'n', 'gamma', 'lambda3', 'c', 'd', 'm', 'alpha']
-        self.pair_coeff.set_default_coeff('cutoff_thickness', 0.2);
-        self.pair_coeff.set_default_coeff('dimer_r', 1.5);
-        self.pair_coeff.set_default_coeff('C1', 1.0);
-        self.pair_coeff.set_default_coeff('C2', 1.0);
-        self.pair_coeff.set_default_coeff('lambda1', 2.0);
-        self.pair_coeff.set_default_coeff('lambda2', 1.0);
-        self.pair_coeff.set_default_coeff('lambda3', 0.0);
-        self.pair_coeff.set_default_coeff('n', 0.0);
-        self.pair_coeff.set_default_coeff('m', 0.0);
-        self.pair_coeff.set_default_coeff('c', 0.0);
-        self.pair_coeff.set_default_coeff('d', 1.0);
-        self.pair_coeff.set_default_coeff('gamma', 0.0);
-        self.pair_coeff.set_default_coeff('alpha', 3.0);
+    _cpp_class_name = "PotentialPairTersoff"
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
+        super().__init__(nlist, r_cut, r_on, mode);
+        params = TypeParameter(
+                'params',
+                'particle_types',
+                TypeParameterDict(cutoff_thickness=0.2,
+                    C1=1.0,
+                    C2=1.0,
+                    lambda1=2.0,
+                    lambda2=1.0,
+                    lambda3=0.0,
+                    dimer_r=1.5,
+                    n=0.0,
+                    gamma=0.0,
+                    c=0.0,
+                    d=1.0,
+                    m=0.0,
+                    alpha=3.0,
+                    len_keys=2)
+                )
+        self._add_typeparam(params)
 
     def process_coeff(self, coeff):
         cutoff_d = coeff['cutoff_thickness'];
