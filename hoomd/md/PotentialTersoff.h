@@ -82,13 +82,27 @@ class PotentialTersoff : public ForceCompute
         //! Destructor
         virtual ~PotentialTersoff();
 
-        //! Set the pair parameters for a single type pair
+        //! Set and get the pair parameters for a single type pair
         virtual void setParams(unsigned int typ1, unsigned int typ2, const param_type& param);
+        virtual void setParamsPython(pybind11::tuple typ, pybind11::dict params);
+        /// Get params for a single type pair using a tuple of strings
+        virtual pybind11::dict getParams(pybind11::tuple typ);
         //! Set the rcut for a single type pair
         virtual void setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut);
+        //! Get the rcut for a single type pair
+        Scalar getRCut(pybind11::tuple types);
+        /// Set the rcut for a single type pair using a tuple of strings
+        virtual void setRCutPython(pybind11::tuple types, Scalar r_cut);
         //! Set ron for a single type pair
         virtual void setRon(unsigned int typ1, unsigned int typ2, Scalar ron);
+        /// Get the r_on for a single type pair
+        Scalar getROn(pybind11::tuple types);
+        /// Set the r_on for a single type using a tuple of string
+        virtual void setROnPython(pybind11::tuple types, Scalar r_on);
 
+        /// Validate that types are within Ntypes
+        virtual void validateTypes(unsigned int typ1, unsigned int typ2,
+                                   std::string action);
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
         //! Calculates the requested log value and returns it
@@ -181,14 +195,52 @@ void PotentialTersoff< evaluator >::setParams(unsigned int typ1, unsigned int ty
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
         this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": Trying to set pair params for a non existent type! "
-                  << typ1 << "," << typ2 << std::endl << std::endl;
-        throw std::runtime_error("Error setting parameters in PotentialTersoff");
+                  << typ1 << "," << typ2 << std::endl;
+        throw std::runtime_error("Error setting parameters in PotentialPair");
         }
 
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::readwrite);
     h_params.data[m_typpair_idx(typ1, typ2)] = param;
     h_params.data[m_typpair_idx(typ2, typ1)] = param;
     }
+
+template< class evaluator >
+void PotentialTersoff<evaluator>::setParamsPython(pybind11::tuple typ, pybind11::dict params)
+    {
+    auto typ1 = m_pdata->getTypeByName(typ[0].cast<std::string>());
+    auto typ2 = m_pdata->getTypeByName(typ[1].cast<std::string>());
+    if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
+        {
+        this->m_exec_conf->msg->error() << "pair." << evaluator::getName()
+            << ": Trying to set pair params for a non existent type! "
+            << typ1 << "," << typ2 << std::endl;
+        throw std::runtime_error("Error setting parameters in PotentialPair");
+        }
+
+    ArrayHandle<param_type> h_params(m_params, access_location::host,
+                                     access_mode::readwrite);
+    h_params.data[m_typpair_idx(typ1, typ2)] = param_type(params);
+    h_params.data[m_typpair_idx(typ2, typ1)] = param_type(params);
+    }
+
+template< class evaluator >
+pybind11::dict PotentialTersoff< evaluator >::getParams(pybind11::tuple typ)
+    {
+    auto typ1 = m_pdata->getTypeByName(typ[0].cast<std::string>());
+    auto typ2 = m_pdata->getTypeByName(typ[1].cast<std::string>());
+    if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
+        {
+        this->m_exec_conf->msg->error() << "pair." << evaluator::getName()
+            << ": Trying to set pair params for a non existent type! "
+            << typ1 << "," << typ2 << std::endl;
+        throw std::runtime_error("Error setting parameters in PotentialPair");
+        }
+
+    ArrayHandle<param_type> h_params(m_params, access_location::host,
+                                     access_mode::read);
+    return h_params.data[m_typpair_idx(typ1, typ2)].asDict();
+        }
+
 
 /*! \param typ1 First type index in the pair
     \param typ2 Second type index in the pair
@@ -211,6 +263,42 @@ void PotentialTersoff< evaluator >::setRcut(unsigned int typ1, unsigned int typ2
     h_rcutsq.data[m_typpair_idx(typ2, typ1)] = rcut * rcut;
     }
 
+template< class evaluator >
+void PotentialTersoff< evaluator >::setRCutPython(pybind11::tuple types,
+                                               Scalar r_cut)
+    {
+    auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
+    auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
+    setRcut(typ1, typ2, r_cut);
+    }
+
+template<class evaluator>
+void PotentialTersoff< evaluator >::validateTypes(unsigned int typ1,
+                                               unsigned int typ2,
+                                               std::string action)
+{
+    // TODO change logic to just throw an exception
+    auto n_types = this->m_pdata->getNTypes();
+    if (typ1 >= n_types || typ2 >= n_types)
+        {
+        this->m_exec_conf->msg->error() << "pair." << evaluator::getName()
+            << ": Trying to " << action << " for a non existent type! "
+            << typ1 << "," << typ2 << std::endl;
+        throw std::runtime_error("Error setting parameters in PotentialPair");
+        }
+}
+
+template< class evaluator >
+Scalar PotentialTersoff< evaluator >::getRCut(pybind11::tuple types)
+    {
+    auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
+    auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
+    validateTypes(typ1, typ2, "get rcut.");
+    ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host,
+                                 access_mode::read);
+    return sqrt(h_rcutsq.data[m_typpair_idx(typ1, typ2)]);
+    }
+
 /*! \param typ1 First type index in the pair
     \param typ2 Second type index in the pair
     \param ron XPLOR r_on radius to set
@@ -230,6 +318,26 @@ void PotentialTersoff< evaluator >::setRon(unsigned int typ1, unsigned int typ2,
     ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::readwrite);
     h_ronsq.data[m_typpair_idx(typ1, typ2)] = ron * ron;
     h_ronsq.data[m_typpair_idx(typ2, typ1)] = ron * ron;
+    }
+
+template< class evaluator >
+Scalar PotentialTersoff< evaluator >::getROn(pybind11::tuple types)
+    {
+    auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
+    auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
+    validateTypes(typ1, typ2, "get ron");
+    ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host,
+                                 access_mode::read);
+    return sqrt(h_ronsq.data[m_typpair_idx(typ1, typ2)]);
+    }
+
+template< class evaluator >
+void PotentialTersoff< evaluator >::setROnPython(pybind11::tuple types,
+                                              Scalar r_on)
+    {
+    auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
+    auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
+    setRon(typ1, typ2, r_on);
     }
 
 /*! PotentialTersoff provides:
@@ -940,9 +1048,12 @@ template < class T > void export_PotentialTersoff(pybind11::module& m, const std
     {
         pybind11::class_<T, ForceCompute, std::shared_ptr<T> >(m, name.c_str())
             .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
-            .def("setParams", &T::setParams)
-            .def("setRcut", &T::setRcut)
-            .def("setRon", &T::setRon)
+            .def("setParams", &T::setParamsPython)
+            .def("getParams", &T::getParams)
+            .def("setRCut", &T::setRCutPython)
+            .def("getRCut", &T::getRCut)
+            .def("setROn", &T::setROnPython)
+            .def("getROn", &T::getROn)
         ;
     }
 
