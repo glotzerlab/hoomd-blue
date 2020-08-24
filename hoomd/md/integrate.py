@@ -18,7 +18,7 @@ from hoomd.md.force import _Force
 from hoomd.md.constrain import _ConstraintForce
 
 
-def preprocess_aniso(value):
+def preprocess_aniso(value):  # noqa: D103
     if value is True:
         return "true"
     elif value is False:
@@ -27,7 +27,7 @@ def preprocess_aniso(value):
         return value
 
 
-def set_synced_list(old_list, new_list):
+def set_synced_list(old_list, new_list):  # noqa: D103
     old_list.clear()
     old_list.extend(new_list)
 
@@ -50,7 +50,7 @@ class _DynamicIntegrator(_BaseIntegrator):
                                    to_synced_list=lambda x: x._cpp_obj,
                                    iterable=methods)
 
-    def attach(self, simulation):
+    def attach(self, simulation):  # noqa: D102
         self.forces.attach(simulation, self._cpp_obj.forces)
         self.constraints.attach(simulation, self._cpp_obj.constraints)
         self.methods.attach(simulation, self._cpp_obj.methods)
@@ -84,23 +84,22 @@ class _DynamicIntegrator(_BaseIntegrator):
 class Integrator(_DynamicIntegrator):
     R""" Enables a variety of standard integration methods.
 
-    Args: dt (float): Each time step of the simulation ```hoomd.run```
-    will advance the real time of the system forward by *dt* (in time units).
-    aniso (bool): Whether to integrate rotational degrees of freedom (bool),
-    default None (autodetect).
-
-    ``mode_standard`` performs a standard time step integration
-    technique to move the system forward. At each time step, all of the
-    specified forces are evaluated and used in moving the system forward to the
-    next step.
-
-    By itself, ``mode_standard`` does nothing. You must specify one or
-    more integration methods to apply to the system. Each integration method can
-    be applied to only a specific group of particles enabling advanced
-    simulation techniques.
+    Args: 
+        dt (float): Each time step of the simulation `hoomd.Simulation.run`?
+            will advance the real time of the system forward by *dt* (in time units).
+        methods (list of `hoomd.md.methods`?): Integration method `hoomd.md.methods`. It performs a time step integration ?line-breaking
+            technique to move the system forward. At each time step, all of the specified forces are evaluated and used in moving the system forward to the next step.
+            Each integration method can be applied to only a specific group of particles enabling advanced simulation techniques.?how method argument works, multiple component or not
+            ,default None ?what if no methods
+        forces (list?): Forces that be applied to the particles in the system. `hoomd.md.pair`, `hoomd.md.force`, `hoomd.md.dihedral`, `hoomd.md.angle`, `hoomd.md.bond`
+            ,default None ?what if no forces
+        aniso (bool): Whether to integrate rotational degrees of freedom (bool),
+            default None (autodetect).
+        constraints (list?): Constrains a given set of particles to a given surface, to have some relative orientation, or impose some other type of constraint from `hoomd.md.constrain`, default None. 
+    
 
     The following commands can be used to specify the integration methods used
-    by integrate.mode_standard.
+    by ``methods`` argument.
 
     - `hoomd.md.methods.Brownian`
     - `hoomd.md.methods.Langevin`
@@ -109,14 +108,17 @@ class Integrator(_DynamicIntegrator):
     - `hoomd.md.methods.npt`
     - `hoomd.md.methods.nph`
 
-    There can only be one integration mode active at a time. If there are more
-    than one ``integrate.mode_*`` commands in a hoomd script, only the most
+    There can only be one integration method active at a time. 
+    ?If there are more than one ``integrate.mode_*`` commands in a hoomd script, only the most
     recent before a given ```hoomd.run``` will take effect.
 
     Examples::
-
-        integrate.mode_standard(dt=0.005) integrator_mode =
-        integrate.mode_standard(dt=0.001)
+        nlist = hoomd.md.nlist.Cell()
+        lj = hoomd.md.pair.LJ(nlist=nlist)
+        lj.params.default = dict(epsilon=1.0, sigma=1.0)
+        lj.r_cut[('A', 'A')] = 2**(1/6)
+        nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
+        integrator = hoomd.md.Integrator(dt=0.001, methods=[nve], forces=[lj])
     """
 
     def __init__(self, dt, aniso=None, forces=None, constraints=None,
