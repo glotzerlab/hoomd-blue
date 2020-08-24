@@ -316,12 +316,11 @@ class CPU(_device):
                                                            self.cpp_msg)
 
 
-def auto(nthreads=None, communicator=None, msg_file=None, shared_msg_file=None, notice_level=2):
+def auto(communicator=None, msg_file=None, shared_msg_file=None, notice_level=2):
     """
     Allow simulation hardware to be chosen automatically by HOOMD-blue
 
     Args:
-        nthreads (int): number of TBB threads
         communicator (:py:mod:`hoomd.comm.Communicator`): MPI communicator object. Can be left None if using a
             default MPI communicator
         msg_file (str): Name of file to write messages to
@@ -330,14 +329,20 @@ def auto(nthreads=None, communicator=None, msg_file=None, shared_msg_file=None, 
 
 
     Returns:
-        a GPU or CPU device, depending on availability
+        a GPU or CPU device, depending on availability, GPU is preferred
     """
 
-    # Copying the logic found in ExecutionConfiguration.cc
-    if _hoomd.ExecutionConfiguration.getNumCapableGPUs() > 0:
-        # use GPU
-        return GPU(None, communicator, notice_level, msg_file, shared_msg_file)
+    self=_device(communicator, notice_level, msg_file, shared_msg_file)
+    self.cpp_exec_conf = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.AUTO,
+                                                           [],
+                                                           False,
+                                                           False,
+                                                           self.comm.cpp_mpi_conf,
+                                                           self.cpp_msg)
+    
+    # Set class according to C++ object
+    if self.cpp_exec_conf.isCUDAEnabled():
+        self.__class__=GPU
     else:
-        # use CPU
-        return CPU(nthreads, communicator, notice_level, msg_file, shared_msg_file)
+        self.__class__=CPU
 
