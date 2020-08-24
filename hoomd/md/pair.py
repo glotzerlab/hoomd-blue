@@ -1671,6 +1671,7 @@ class ai_pair(pair):
         pass
 
 class gb(ai_pair):
+    # Warning: The code hasn yet to be updated with current API
     R""" Gay-Berne anisotropic pair potential.
 
     Args:
