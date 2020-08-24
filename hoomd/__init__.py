@@ -91,12 +91,10 @@ sys.excepthook = _hoomd_sys_excepthook
 __version__ = "2.9.0"
 
 # TODO: Decide how these properties should be exposed.
-## \internal
-# \brief Gather context about HOOMD
 class build_info():
-    ## \internal
-    # \brief Constructs the context object
+    """Gather context about HOOMD build settings"""
     def __init__(self):
+        """Constructs the build_info object"""
         hoomd.meta._metadata.__init__(self)
         self.metadata_fields = [
             'hoomd_version', 'hoomd_git_sha1', 'hoomd_git_refspec',
