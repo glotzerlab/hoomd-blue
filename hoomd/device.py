@@ -352,28 +352,33 @@ class CPU(_Device):
         else:
             self.cpp_exec_conf.setNumThreads(int(num_threads))
 
-class Auto(_Device):
+def auto(communicator=None, msg_file=None, shared_msg_file=None, notice_level=2):
     """
     Allow simulation hardware to be chosen automatically by HOOMD-blue
 
     Args:
-        nthreads (int): number of TBB threads
         communicator (:py:mod:`hoomd.comm.Communicator`): MPI communicator object. Can be left None if using a
             default MPI communicator
         msg_file (str): Name of file to write messages to.
         shared_msg_file (str): (MPI only) Name of shared file to write message to (append partition #)
         notice_level (int): Minimum level of notice messages to print
 
-    TODO: convert this to a function that produces a GPU or CPU device.
+
+    Returns:
+        a GPU or CPU device, depending on availability, GPU is preferred
     """
 
-    def __init__(self, nthreads=None, communicator=None, msg_file=None, shared_msg_file=None, notice_level=2):
-
-        _device.__init__(self, communicator, notice_level, msg_file, shared_msg_file)
-
-        _init_nthreads(nthreads)
-
-        self.cpp_exec_conf = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.AUTO,
+    device=_device(communicator, notice_level, msg_file, shared_msg_file)
+    device.cpp_exec_conf = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.AUTO,
                                                            [],
-                                                           self.comm.cpp_mpi_conf,
-                                                           self.cpp_msg)
+                                                           False,
+                                                           False,
+                                                           device.comm.cpp_mpi_conf,
+                                                           device.cpp_msg)
+    
+    # Set class according to C++ object
+    if device.cpp_exec_conf.isCUDAEnabled():
+        device.__class__=GPU
+    else:
+        device.__class__=CPU
+    return device
