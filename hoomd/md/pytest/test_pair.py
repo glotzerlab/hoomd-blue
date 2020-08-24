@@ -424,6 +424,27 @@ def _valid_params(particle_types=['A', 'B']):
                                         dict(zip(combos,
                                                  dlvo_valid_param_dicts)),
                                         {}))
+
+    tersoff_arg_dict = {
+            'C1': [1.0, 2.0, 5.0],
+            'C2': [0.1, 0.5, 2.0],
+            'lambda1': [0.1, 0.5, 2.0],
+            'lambda2': [0.1, 0.5, 2.0],
+            'lambda3': [0.0, 0.5, 2.0],
+            'dimer_r': [1.0, 2.0, 2.5],
+            'n': [0.0, 0.5, 2.0],
+            'gamma': [0.1, 0.5, 2.0],
+            'c': [0.1, 0.5, 2.0],
+            'd': [0.1, 0.5, 2.0],
+            'm': [0.1, 0.5, 2.0],
+            'alpha': [0.1, 0.5, 2.0],
+            }
+    tersoff_valid_param_dicts = _make_valid_param_dicts(tersoff_arg_dict)
+    valid_params_list.append(paramtuple(hoomd.md.pair.Tersoff,
+                                        dict(zip(combos,
+                                                 tersoff_valid_param_dicts)),
+                                        {}))
+
     return valid_params_list
 
 
