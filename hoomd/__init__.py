@@ -90,7 +90,6 @@ sys.excepthook = _hoomd_sys_excepthook
 
 __version__ = "2.9.0"
 
-# TODO: Decide how these properties should be exposed.
 class build_info():
     """Gather context about HOOMD build settings"""
     def __init__(self):
