@@ -627,12 +627,12 @@ class Langevin(_Method):
             simulation (in energy units).
         seed (int): Random seed to use for generating
             :math:`\vec{F}_\mathrm{R}`.
-        lambda (float): (optional) When set, use :math:\lambda d:math: for the
-            drag coefficient.
-        tally_reservoir_energy (bool): (optional) If true, the energy exchange
+        alpha (float): When set, use :math:\alpha d:math: for the
+            drag coefficient. Defaults to None
+        tally_reservoir_energy (bool): If true, the energy exchange
             between the thermal reservoir and the particles is tracked. Total
             energy conservation can then be monitored by adding
-            ``langevin_reservoir_energy_groupname`` to the logged quantities.
+            ``langevin_reservoir_energy_groupname`` to the logged quantities. Defaults to False.
 
     .. rubric:: Translational degrees of freedom
 
@@ -675,7 +675,7 @@ class Langevin(_Method):
     Langevin dynamics includes the acceleration term in the Langevin equation
     and is useful for gently thermalizing systems using a small gamma. This
     assumption is valid when underdamped: :math:`\frac{m}{\gamma} \gg \delta t`.
-    Use :py:class:`brownian` if your system is not underdamped.
+    Use `Brownian` if your system is not underdamped.
 
     :py:class:`Langevin` uses the same integrator as :py:class:`NVE` with the
     additional force term :math:`- \gamma \cdot \vec{v} + \vec{F}_\mathrm{R}`.
@@ -686,11 +686,9 @@ class Langevin(_Method):
 
     1. Use ``set_gamma()`` to specify it directly, with independent
        values for each particle type in the system.
-    2. Specify :math:`\lambda` which scales the particle diameter to
-       :math:`\gamma = \lambda d_i`. The units of
-       :math:`\lambda` are mass / distance / time.
-
-    :py:class:`Langevin` must be used with ``mode_standard``.
+    2. Specify :math:`\alpha` which scales the particle diameter to
+       :math:`\gamma = \alpha d_i`. The units of
+       :math:`\alpha` are mass / distance / time.
 
     *kT* can be a variant type, allowing for temperature ramps in simulation
     runs.
@@ -704,11 +702,9 @@ class Langevin(_Method):
 
     Examples::
 
-        all = group.all()
-        integrator = integrate.langevin(group=all, kT=1.0, seed=5)
-        integrator = integrate.langevin(group=all, kT=1.0, dscale=1.5, tally=True)
-        typeA = group.type('A')
-        integrator = integrate.langevin(group=typeA, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]), seed=10)
+        all=hoomd.filter.All()
+        langevin = hoomd.md.methods.Langevin(filter=all, kT=0.2, seed=1, alpha=1.0)
+        integrator = hoomd.md.Integrator(dt=0.001, methods=[langevin], forces=[lj])
 
     """
 
@@ -754,18 +750,20 @@ class Langevin(_Method):
         super().attach(simulation)
 
 
-class brownian(_Method):
+class Brownian(_Method):
     R""" Brownian dynamics.
 
     Args:
-        group (``hoomd.group``): Group of particles to apply this method to.
-        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of the simulation (in energy units).
-        seed (int): Random seed to use for generating :math:`\vec{F}_\mathrm{R}`.
-        dscale (bool): Control :math:`\lambda` options. If 0 or False, use :math:`\gamma` values set per type. If non-zero, :math:`\gamma = \lambda d_i`.
-        noiseless_t (bool): If set true, there will be no translational noise (random force)
-        noiseless_r (bool): If set true, there will be no rotational noise (random torque)
+        filter (:py:mod:`hoomd.filter._ParticleFilter`): Group of particles to
+            apply this method to.
+        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of the
+            simulation (in energy units).
+        seed (int): Random seed to use for generating
+            :math:`\vec{F}_\mathrm{R}`.
+        alpha (float): (optional) When set, use :math:\alpha d:math: for the
+            drag coefficient.
 
-    :py:class:`brownian` integrates particles forward in time according to the overdamped Langevin equations of motion,
+    :py:class:`Brownian` integrates particles forward in time according to the overdamped Langevin equations of motion,
     sometimes called Brownian dynamics, or the diffusive limit.
 
     .. math::
@@ -788,7 +786,7 @@ class brownian(_Method):
     to be consistent with the specified drag and temperature, :math:`T`.
     When :math:`kT=0`, the random force :math:`\vec{F}_\mathrm{R}=0`.
 
-    :py:class:`brownian` generates random numbers by hashing together the particle tag, user seed, and current
+    :py:class:`Brownian` generates random numbers by hashing together the particle tag, user seed, and current
     time step index. See `C. L. Phillips et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_ for more
     information.
 
@@ -798,12 +796,12 @@ class brownian(_Method):
 
         For MPI runs: all ranks other than 0 ignore the seed input and use the value of rank 0.
 
-    :py:class:`brownian` uses the integrator from `I. Snook, The Langevin and Generalised Langevin Approach to the Dynamics of
+    :py:class:`Brownian` uses the integrator from `I. Snook, The Langevin and Generalised Langevin Approach to the Dynamics of
     Atomic, Polymeric and Colloidal Systems, 2007, section 6.2.5 <http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6>`_,
     with the exception that :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random number distribution.
 
     In Brownian dynamics, particle velocities are completely decoupled from positions. At each time step,
-    :py:class:`brownian` draws a new velocity distribution consistent with the current set temperature so that
+    :py:class:`Brownian` draws a new velocity distribution consistent with the current set temperature so that
     :py:class:`hoomd.compute.thermo` will report appropriate temperatures and pressures if logged or needed by other
     commands.
 
@@ -812,11 +810,9 @@ class brownian(_Method):
 
     You can specify :math:`\gamma` in two ways:
 
-    1. Use :py:class:`set_gamma()` to specify it directly, with independent values for each particle type in the system.
-    2. Specify :math:`\lambda` which scales the particle diameter to :math:`\gamma = \lambda d_i`. The units of
-       :math:`\lambda` are mass / distance / time.
-
-    :py:class:`brownian` must be used with integrate.mode_standard.
+    1. Use ``set_gamma`` to specify it directly, with independent values for each particle type in the system.
+    2. Specify :math:`\alpha` which scales the particle diameter to :math:`\gamma = \alpha d_i`. The units of
+       :math:`\alpha` are mass / distance / time.
 
     *kT* can be a variant type, allowing for temperature ramps in simulation runs.
 
@@ -824,142 +820,49 @@ class brownian(_Method):
 
     Examples::
 
-        all = group.all()
-        integrator = integrate.brownian(group=all, kT=1.0, seed=5)
-        integrator = integrate.brownian(group=all, kT=1.0, dscale=1.5)
-        typeA = group.type('A')
-        integrator = integrate.brownian(group=typeA, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]), seed=10)
+        all=hoomd.filter.All()
+        brownian = hoomd.md.methods.Brownian(filter=all, kT=0.2, seed=1, alpha=1.0)
+        integrator = hoomd.md.Integrator(dt=0.001, methods=[brownian], forces=[lj])
 
     """
-    def __init__(self, group, kT, seed, dscale=False, noiseless_t=False, noiseless_r=False):
-
-        # initialize base class
-        _Method.__init__(self)
-
-        # setup the variant inputs
-        kT = hoomd.variant._setup_variant_input(kT)
-
-        # create the compute thermo
-        hoomd.compute._get_unique_thermo(group=group)
-
-        if dscale is False or dscale == 0:
-            use_lambda = False
-        else:
-            use_lambda = True
-
-        # initialize the reflected c++ class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            my_class = _md.TwoStepBD
-        else:
-            my_class = _md.TwoStepBDGPU
-
-        self.cpp_method = my_class(hoomd.context.current.system_definition,
-                                   group.cpp_group,
-                                   kT.cpp_variant,
-                                   seed,
-                                   use_lambda,
-                                   float(dscale),
-                                   noiseless_t,
-                                   noiseless_r)
-
-        self.cpp_method.validateGroup()
+    def __init__(self, filter, kT, seed, alpha=None):
 
         # store metadata
-        self.group = group
-        self.kT = kT
-        self.seed = seed
-        self.dscale = dscale
-        self.noiseless_t = noiseless_t
-        self.noiseless_r = noiseless_r
-        self.metadata_fields = ['group', 'kT', 'seed', 'dscale','noiseless_t','noiseless_r']
+        param_dict = ParameterDict(
+            filter=_ParticleFilter,
+            kT=Variant,
+            seed=int(seed),
+            alpha=OnlyType(float, allow_none=True),
+            )
+        param_dict.update(dict(kT=kT, alpha=alpha, filter=filter))
 
-    def set_params(self, kT=None):
-        R""" Change langevin integrator parameters.
+        #set defaults
+        self._param_dict.update(param_dict)
 
-        Args:
-            kT (:py:mod:`hoomd.variant` or :py:obj:`float`): New temperature (if set) (in energy units).
+        gamma = TypeParameter('gamma', type_kind='particle_types',
+                              param_dict=TypeParameterDict(1., len_keys=1)
+                              )
 
-        Examples::
+        gamma_r = TypeParameter('gamma_r', type_kind='particle_types',
+                                param_dict=TypeParameterDict((1., 1., 1.), len_keys=1)
+                                )
+        self._extend_typeparam([gamma,gamma_r])
 
-            integrator.set_params(kT=2.0)
 
-        """
-        self.check_initialization()
+    def attach(self, simulation):
 
-        # change the parameters
-        if kT is not None:
-            # setup the variant inputs
-            kT = hoomd.variant._setup_variant_input(kT)
-            self.cpp_method.setT(kT.cpp_variant)
-            self.kT = kT
+        # initialize the reflected c++ class
+        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+            self._cpp_obj = _md.TwoStepBD(simulation.state._cpp_sys_def,
+                                          simulation.state.get_group(self.filter),
+                                          self.kT, self.seed)
+        else:
+            self._cpp_obj = _md.TwoStepBDGPU(simulation.state._cpp_sys_def,
+                                             simulation.state.get_group(self.filter),
+                                             self.kT, self.seed)
 
-    def set_gamma(self, a, gamma):
-        R""" Set gamma for a particle type.
-
-        Args:
-            a (str): Particle type name
-            gamma (float): :math:`\gamma` for particle type a (in units of force/velocity)
-
-        :py:meth:`set_gamma()` sets the coefficient :math:`\gamma` for a single particle type, identified
-        by name. The default is 1.0 if not specified for a type.
-
-        It is not an error to specify gammas for particle types that do not exist in the simulation.
-        This can be useful in defining a single simulation script for many different types of particles
-        even when some simulations only include a subset.
-
-        Examples::
-
-            bd.set_gamma('A', gamma=2.0)
-
-        """
-        self.check_initialization()
-        a = str(a)
-
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes()
-        type_list = []
-        for i in range(0,ntypes):
-            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i))
-
-        # change the parameters
-        for i in range(0,ntypes):
-            if a == type_list[i]:
-                self.cpp_method.setGamma(i,gamma)
-
-    def set_gamma_r(self, a, gamma_r):
-        R""" Set gamma_r for a particle type.
-
-        Args:
-            a (str):  Particle type name
-            gamma_r (float or tuple): :math:`\gamma_r` for particle type a (in units of force/velocity), optionally for all body frame directions
-
-        :py:meth:`set_gamma_r()` sets the coefficient :math:`\gamma_r` for a single particle type, identified
-        by name. The default is 1.0 if not specified for a type. It must be positive or zero, if set
-        zero, it will have no rotational damping or random torque, but still with updates from normal net torque.
-
-        Examples::
-
-            bd.set_gamma_r('A', gamma_r=2.0)
-            bd.set_gamma_r('A', gamma_r=(1,2,3))
-
-        """
-
-        self.check_initialization()
-
-        if not isinstance(gamma_r,tuple):
-            gamma_r = (gamma_r, gamma_r, gamma_r)
-
-        if (gamma_r[0] < 0 or gamma_r[1] < 0 or gamma_r[2] < 0):
-            raise ValueError("The gamma_r must be positive or zero (represent no rotational damping or random torque, but with updates)")
-
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes()
-        type_list = []
-        for i in range(0,ntypes):
-            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i))
-
-        # change the parameters
-        for i in range(0,ntypes):
-            if a == type_list[i]:
-                self.cpp_method.setGamma_r(i,_hoomd.make_scalar3(*gamma_r))
+        # Attach param_dict and typeparam_dict
+        super().attach(simulation)
 
 
 class berendsen(_Method):
