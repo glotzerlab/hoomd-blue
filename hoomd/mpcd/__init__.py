@@ -117,10 +117,10 @@ _citation = hoomd.cite.article(cite_key='howard2018',
                                year='2018',
                                doi='10.1016/j.cpc.2018.04.009',
                                feature='MPCD')
-if hoomd.context.bib is None:
+if hoomd._bib is None:
     hoomd.cite._extra_default_entries.append(_citation)
 else:
-    hoomd.context.bib.add(_citation)
+    hoomd._bib.add(_citation)
 
 class integrator(hoomd.integrate._integrator):
     """ MPCD integrator

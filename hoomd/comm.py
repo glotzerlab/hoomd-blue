@@ -113,18 +113,18 @@ class decomposition(object):
 
             """
             # do a one time update of the cuts to the global values if a global is set
-            if not self.x and self.nx == 0 and hoomd.context.options.nx is not None:
-                self.nx = hoomd.context.options.nx
+            if not self.x and self.nx == 0 and hoomd._options.nx is not None:
+                self.nx = hoomd._options.nx
                 self.uniform_x = True
-            if not self.y and self.ny == 0 and hoomd.context.options.ny is not None:
-                self.ny = hoomd.context.options.ny
+            if not self.y and self.ny == 0 and hoomd._options.ny is not None:
+                self.ny = hoomd._options.ny
                 self.uniform_y = True
             if not self.z and self.nz == 0:
                 if linear:
                     self.nz = hoomd.context.current.device.cpp_mpi_conf.getNRanks()
                     self.uniform_z = True
-                elif hoomd.context.options.nz is not None:
-                    self.nz = hoomd.context.options.nz
+                elif hoomd._options.nz is not None:
+                    self.nz = hoomd._options.nz
                     self.uniform_z = True
             """
 
