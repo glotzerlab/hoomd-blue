@@ -316,7 +316,7 @@ class CPU(_device):
                                                            self.cpp_msg)
 
 
-class Auto(_device):
+def auto(nthreads=None, communicator=None, msg_file=None, shared_msg_file=None, notice_level=2):
     """
     Allow simulation hardware to be chosen automatically by HOOMD-blue
 
@@ -328,18 +328,16 @@ class Auto(_device):
         shared_msg_file (str): (MPI only) Name of shared file to write message to (append partition #)
         notice_level (int): Minimum level of notice messages to print
 
-    TODO: convert this to a function that produces a GPU or CPU device.
+
+    Returns:
+        a GPU or CPU device, depending on availability
     """
 
-    def __init__(self, nthreads=None, communicator=None, msg_file=None, shared_msg_file=None, notice_level=2):
+    # Copying the logic found in ExecutionConfiguration.cc
+    if _hoomd.ExecutionConfiguration.getNumCapableGPUs() > 0:
+        # use GPU
+        return GPU(None, communicator, notice_level, msg_file, shared_msg_file)
+    else:
+        # use CPU
+        return CPU(nthreads, communicator, notice_level, msg_file, shared_msg_file)
 
-        _device.__init__(self, communicator, notice_level, msg_file, shared_msg_file)
-
-        _init_nthreads(nthreads)
-
-        self.cpp_exec_conf = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.AUTO,
-                                                           [],
-                                                           False,
-                                                           False,
-                                                           self.comm.cpp_mpi_conf,
-                                                           self.cpp_msg)
