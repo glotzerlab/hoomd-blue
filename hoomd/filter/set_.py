@@ -3,6 +3,26 @@ from hoomd import _hoomd
 
 
 class _ParticleFilterSetOperations(_ParticleFilter):
+    """An abstract class for `ParticleFilters` with set operations.
+
+    Should not be instantiated directly."""
+
+    @property
+    def _cpp_cls_name(self):
+        """The name of the C++ class in the `_hoomd` module.
+
+        Used for Python class's inheritance.
+        """
+        raise NotImplementedError
+
+    @property
+    def _symmetric(self):
+        """Whether the class implements a symmetric set operation.
+
+        Determines behavior of __eq__.
+        """
+        raise NotImplementedError
+
     def __init__(self, f, g):
         if f == g:
             raise ValueError("Cannot use same filter for {}"

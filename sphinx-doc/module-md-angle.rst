@@ -3,14 +3,14 @@ md.angle
 
 .. rubric:: Overview
 
-.. py:currentmodule:: hoomd
+.. py:currentmodule:: hoomd.md.angle
 
 .. autosummary::
     :nosignatures:
 
-    md.angle.harmonic
-    md.angle.cosinesq
-    md.angle.table
+    Harmonic
+    Cosinesq
+    table
 
 .. rubric:: Details
 

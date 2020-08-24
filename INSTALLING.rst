@@ -30,6 +30,11 @@ from the ``conda-forge`` channel::
 
     ▶ conda install -c conda-forge hoomd
 
+A build of HOOMD with support for NVIDIA GPUs is also available from the
+``conda-forge`` channel::
+
+    $ conda install -c conda-forge hoomd=*=*gpu*
+
 Compiling from source
 =====================
 
@@ -41,7 +46,7 @@ https://glotzerlab.engin.umich.edu/Downloads/hoomd
 
 .. code-block:: bash
 
-   ▶ curl -O https://glotzerlab.engin.umich.edu/Downloads/hoomd/hoomd-v2.9.0.tar.gz
+   ▶ curl -O https://glotzerlab.engin.umich.edu/Downloads/hoomd/hoomd-v2.9.2.tar.gz
 
 Or clone using Git:
 
@@ -102,7 +107,7 @@ Install prerequisites
     - `AMD ROCm >= 2.9 <https://rocm.github.io/ROCmInstall.html>`_
 
       Additional dependencies:
-        - HIP [with `hipcc` and `hcc` as backend]
+        - HIP [with ``hipcc`` and ``hcc`` as backend]
         - rocFFT
         - rocPRIM
         - rocThrust
@@ -115,7 +120,7 @@ Install prerequisites
 
       1. Certain HOOMD-blue kernels trigger a `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
          A `temporary bugfix branch of HIP <https://github.com/glotzerlab/HIP/tree/hipfuncgetattributes_revertvectortypes>`_
-         addresses these problems. When using a custom HIP version, other libraries used by HOOMD-blue (`rocfft`) need
+         addresses these problems. When using a custom HIP version, other libraries used by HOOMD-blue (``rocfft``) need
          to be compiled against that same HIP version.
 
       2. The `mpcd` component is disabled on AMD GPUs.

@@ -75,7 +75,7 @@ void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionCo
 
     std::shared_ptr<Variant> T(new VariantConstant(1.0));
     std::shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
-    thermo->setNDOF(2*group_all->getNumMembers()-2);
+    group_all->setTranslationalDOF(2*group_all->getNumMembers()-2);
     std::shared_ptr<TwoStepNVTMTK> two_step_nvt(new TwoStepNVTMTK(sysdef, group_all, thermo, 0.5, T));
 
     Scalar deltaT = Scalar(0.005);
@@ -90,11 +90,9 @@ void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionCo
     // setup some values for alpha and sigma
     Scalar epsilon = Scalar(1.0);
     Scalar sigma = Scalar(1.0);
-    Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
-    Scalar lj2 =  Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
 
     // specify the force parameters
-    fc->setParamsLJ(0,0,make_scalar2(lj1,lj2));
+    fc->setParams(0,0,EvaluatorPairLJ::param_type(sigma, epsilon));
     fc->setRcut(0,0,Scalar(2.5));
     fc->setShiftMode(PotentialPairLJ::shift);
 

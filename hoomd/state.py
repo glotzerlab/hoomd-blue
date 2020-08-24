@@ -1,8 +1,10 @@
+from copy import copy
 from collections import defaultdict
 
 from . import _hoomd
-from .data import boxdim
+from hoomd.box import Box
 from hoomd.snapshot import Snapshot
+from hoomd.data import LocalSnapshot, LocalSnapshotGPU
 
 
 def _create_domain_decomposition(device, box):
@@ -34,15 +36,13 @@ def _create_domain_decomposition(device, box):
 class State:
     R""" Simulation state.
 
-    Parameters:
-        simulation
+    Args:
         snapshot
-
-    Attributes:
     """
 
     def __init__(self, simulation, snapshot):
         self._simulation = simulation
+        self._in_context_manager = False
         snapshot._broadcast_box()
         domain_decomp = _create_domain_decomposition(
             simulation.device,
@@ -157,21 +157,33 @@ class State:
 
     @property
     def box(self):
-        b = self._cpp_sys_def.getParticleData().getGlobalBox()
-        L = b.getL()
-        return boxdim(Lx=L.x, Ly=L.y, Lz=L.z,
-                      xy=b.getTiltFactorXY(),
-                      xz=b.getTiltFactorXZ(),
-                      yz=b.getTiltFactorYZ(),
-                      dimensions=self._cpp_sys_def.getNDimensions())
+        """The state's box (a :py:class:`hoomd.Box` object).
 
-    # Set the system box
-    # \param value The new boundaries (a data.boxdim object)
+        Ediing the box directly is not allowed.  For example
+        ``state.box.scale(1.1)`` would not scale the state's box. To set the
+        state's box to a new box ``state.box = new_box`` must be used.
+        """
+        b = Box._from_cpp(self._cpp_sys_def.getParticleData().getGlobalBox())
+        return Box.from_box(b)
+
     @box.setter
     def box(self, value):
-        if not isinstance(value, boxdim):
-            raise TypeError('box must be a data.boxdim object')
-        self._cpp_sys_def.getParticleData().setGlobalBox(value._getBoxDim())
+        if self._in_context_manager:
+            raise RuntimeError(
+                "Cannot set system box within local snapshot context manager.")
+        try:
+            value = Box.from_box(value)
+        except Exception:
+            raise ValueError('{} is not convertable to hoomd.Box using '
+                             'hoomd.Box.from_box'.format(value))
+
+        if value.dimensions != self._cpp_sys_def.getNDimensions():
+            self._simulation.device.cpp_msg.warning(
+                "Box changing dimensions from {} to {}."
+                "".format(self._cpp_sys_def.getNDimensions(),
+                          value.dimensions))
+            self._cpp_sys_def.setNDimensions(value.dimensions)
+        self._cpp_sys_def.getParticleData().setGlobalBox(value._cpp_obj)
 
     def replicate(self):
         raise NotImplementedError
@@ -187,3 +199,106 @@ class State:
             group = _hoomd.ParticleGroup(self._cpp_sys_def, filter_)
             self._groups[cls][filter_] = group
             return group
+
+    def update_group_dof(self):
+        """Update the number of degrees of freedom in each group.
+
+        The groups of particles selected by filters each need to know the number
+        of degrees of freedom given to that group by the simulation's
+        Integrator. This method is called automatically when:
+
+        * The Integrator is attached to the simulation
+
+        Call it manually to force an update.
+        """
+        integrator = self._simulation.operations.integrator
+
+        for groups in self._groups.values():
+            for group in groups.values():
+                if integrator is not None:
+                    if not integrator.is_attached:
+                        raise RuntimeError(
+                            "Call update_group_dof after attaching")
+
+                    integrator._cpp_obj.updateGroupDOF(group)
+                else:
+                    group.setTranslationalDOF(0)
+                    group.setRotationalDOF(0)
+
+    @property
+    def cpu_local_snapshot(self):
+        """hoomd.data.LocalSnapshot: Directly expose HOOMD data buffers
+        on the CPU.
+
+        Provides access directly to the system state's particle, bond, angle,
+        dihedral, improper, constaint, and pair data through a context manager.
+        The `hoomd.data.LocalSnapshot` object is only usable within a
+        context manager (i.e. ``with sim.state.cpu_local_snapshot as data:``)
+        The interface is similar to that of the `hoomd.Snapshot`. Data is local
+        to a given MPI rank. The returned arrays are `hoomd.array.HOOMDArray`
+        objects. Through this interface zero-copy access is available (access is
+        guarenteed to be zero-copy when running on CPU, may be zero copy if
+        running on GPU).
+
+        Changing the data in the buffers exposed by the local snapshot will
+        change the data across the HOOMD-blue simulation. For a trivial example,
+        this example would set all particle z-axis positions to 0.
+
+        .. code-block:: python
+
+            with sim.state.cpu_local_snapshot as data:
+                data.particles.position[:, 2] = 0
+
+        Note:
+            The state's box and the number of particles, bonds, angles,
+            dihedrals, impropers, constaints, and pairs cannot change within the
+            context manager.
+        """
+        if self._in_context_manager:
+            raise RuntimeError(
+                "Cannot enter cpu_local_snapshot context manager inside "
+                "another local_snapshot context manager.")
+        return LocalSnapshot(self)
+
+    @property
+    def gpu_local_snapshot(self):
+        """hoomd.data.LocalSnapshotGPU: Directly expose HOOMD data
+        buffers on the GPU.
+
+        Provides access directly to the system state's particle, bond, angle,
+        dihedral, improper, constaint, and pair data through a context manager.
+        The `hoomd.data.LocalSnapshotGPU` object is only usable
+        within a context manager (i.e. ``with sim.state.gpu_local_snapshot as
+        data:``) The interface is similar to that of the `hoomd.Snapshot`. Data
+        is local to a given MPI rank. The returned arrays are
+        `hoomd.array.HOOMDGPUArray` objects. Through this interface potential
+        zero-copy access is available (access cannot be guarenteed to be
+        zero-copy, but will be if the most recent copy of the data is on the
+        GPU).
+
+        Changing the data in the buffers exposed by the local snapshot will
+        change the data across the HOOMD-blue simulation. For a trivial example,
+        this example would set all particle z-axis positions to 0.
+
+        .. code-block:: python
+
+            with sim.state.gpu_local_snapshot as data:
+                data.particles.position[:, 2] = 0
+
+        Note:
+            The state's box and the number of particles, bonds, angles,
+            dihedrals, impropers, constaints, and pairs cannot change within the
+            context manager.
+
+        Note:
+            This property is only available when running on a GPU(s).
+        """
+        if self._simulation.device.mode != 'gpu':
+            raise RuntimeError(
+                "Cannot access gpu_snapshot with a non GPU device.")
+        elif self._in_context_manager:
+            raise RuntimeError(
+                "Cannot enter gpu_local_snapshot context manager inside "
+                "another local_snapshot context manager.")
+        else:
+            return LocalSnapshotGPU(self)

@@ -145,8 +145,8 @@ class table(force._force):
 
     Parameters:
 
-    - :math:`T_{\mathrm{user}}(\theta)` and :math:`V_{\mathrm{user}}(\theta)` - evaluated by `func` (see example)
-    - coefficients passed to `func` - `coeff` (see example)
+    - :math:`T_{\mathrm{user}}(\theta)` and :math:`V_{\mathrm{user}}(\theta)` - evaluated by ``func`` (see example)
+    - coefficients passed to ``func`` - ``angle_coeff`` (see example)
 
     The table *width* is set once when :py:class:`table` is specified. There are two ways to specify the other
     parameters.

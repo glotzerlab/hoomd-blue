@@ -12,6 +12,7 @@
 #endif
 
 #include "hoomd/HOOMDMath.h"
+#include "EvaluatorPairLJ.h"
 
 /*! \file EvaluatorPairSLJ.h
     \brief Defines the pair evaluator class for shifted Lennard-Jones potentials
@@ -53,7 +54,7 @@ class EvaluatorPairSLJ
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar2 param_type;
+        typedef EvaluatorPairLJ::param_type param_type;
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
@@ -61,7 +62,7 @@ class EvaluatorPairSLJ
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairSLJ(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.x), lj2(_params.y)
+            : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.lj1), lj2(_params.lj2)
             {
             }
 

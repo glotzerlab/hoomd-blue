@@ -8,7 +8,7 @@
 #include "EvaluatorPairSLJ.h"
 #include "AllDriverPotentialPairGPU.cuh"
 hipError_t gpu_compute_slj_forces(const pair_args_t& pair_args,
-                                   const Scalar2 *d_params)
+                                   const EvaluatorPairSLJ::param_type *d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairSLJ>(pair_args,
                                                      d_params);

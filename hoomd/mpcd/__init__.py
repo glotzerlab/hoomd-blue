@@ -50,7 +50,7 @@ in `M. P. Howard et al. (2018) <https://doi.org/10.1016/j.cpc.2018.04.009>`_.
 MPCD is intended to be used as an add-on to the standard MD methods in
 :py:mod:`hoomd.md`. To get started, take the following steps:
 
-    1. Initialize any solute particles using standard methods (:py:mod:`hoomd.init`).
+    1. Initialize any solute particles using standard methods (`Simulation`).
     2. Initialize the MPCD solvent particles using one of the methods in
        :py:mod:`.mpcd.init`. Additional details on how to manipulate the solvent
        particle data can be found in :py:mod:`.mpcd.data`.
@@ -126,17 +126,17 @@ class integrator(hoomd.integrate._integrator):
     """ MPCD integrator
 
     Args:
-        dt (float): Each time step of the simulation :py:func:`hoomd.run()` will
+        dt (float): Each time step of the simulation ```hoomd.run``` will
                     advance the real time of the system forward by *dt* (in time units).
         aniso (bool): Whether to integrate rotational degrees of freedom (bool),
                       default None (autodetect).
 
     The MPCD integrator enables the MPCD algorithm concurrently with standard
-    MD :py:mod:`~hoomd.md.integrate` methods. An integrator must be created
+    MD :py:mod:`~hoomd.md.methods` methods. An integrator must be created
     in order for :py:mod:`~hoomd.mpcd.stream` and :py:mod:`~hoomd.mpcd.collide`
     methods to take effect. Embedded MD particles require the creation of an
     appropriate integration method. Typically, this will just be
-    :py:class:`~hoomd.md.integrate.nve`.
+    :py:class:`~hoomd.md.methods.NVE`.
 
     In MPCD simulations, *dt* defines the amount of time that the system is advanced
     forward every time step. MPCD streaming and collision steps can be defined to

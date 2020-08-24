@@ -171,7 +171,7 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
         bool isValidRestart() { return m_valid_restart; }
 
         //! Get the number of degrees of freedom granted to a given group
-        virtual unsigned int getNDOF(std::shared_ptr<ParticleGroup> query_group);
+        virtual Scalar getTranslationalDOF(std::shared_ptr<ParticleGroup> query_group);
 
         //! Get needed pdata flags
         /*! Not all fields in ParticleData are computed by default. When derived classes need one of these optional
@@ -203,7 +203,7 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
             {
             // warn if we are moving isotropic->anisotropic and we
             // find no rotational degrees of freedom
-            if (!m_aniso && aniso && !this->getRotationalNDOF(m_group))
+            if (!m_aniso && aniso && this->getRotationalDOF(m_group) == Scalar(0))
                 {
                     m_exec_conf->msg->warning() << "Integrator #"<<  m_integrator_id <<
                         ": Anisotropic integration requested, but no rotational "
@@ -219,7 +219,7 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
         //! Compute rotational degrees of freedom
         /*! \param query_group The group of particles to compute rotational DOF for
          */
-        virtual unsigned int getRotationalNDOF(std::shared_ptr<ParticleGroup> query_group);
+        virtual Scalar getRotationalDOF(std::shared_ptr<ParticleGroup> query_group);
 
         void setRandomizeVelocitiesParams(Scalar T_randomize, unsigned int seed_randomize)
             {
@@ -232,6 +232,12 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
 
         //! Reinitialize the integration variables if needed (implemented in the actual subclasses)
         virtual void initializeIntegratorVariables() {}
+
+        //! Return true if the method is momentum conserving
+        virtual bool isMomentumConserving() const
+            {
+            return true;
+            }
 
     protected:
         const std::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this method is associated with

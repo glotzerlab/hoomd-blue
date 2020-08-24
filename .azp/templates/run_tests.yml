@@ -1,0 +1,99 @@
+steps:
+- script: >-
+    PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
+    python3 -m pytest -v -ra
+    --junit-xml=$(Common.TestResultsDirectory)/pytest-serial.xml
+  displayName: Run pytest (serial)
+  workingDirectory: $(Pipeline.Workspace)/install
+
+- script: >-
+    PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
+    mpirun -n 2 $(Build.BinariesDirectory)/hoomd/pytest/pytest-openmpi.sh -v -x -ra
+    --junit-xml=$(Common.TestResultsDirectory)/pytest-mpi.xml
+  displayName: Run pytest (mpi)
+  workingDirectory: $(Pipeline.Workspace)/install
+  condition: and(succeeded(), eq(variables['enable_mpi'], 'on'))
+  env:
+    # allow openmpi to oversubscribe cores
+    OMPI_MCA_rmaps_base_oversubscribe: 1
+    # prevent errors from mis-configured openib systems
+    OMPI_MCA_btl: "vader,self"
+    # prevent deadlocked MPI tests from causing the job to cancel
+    MPIEXEC_TIMEOUT: $(mpiexec_timeout)
+    # workaround issues on Mac
+    TMPDIR: /tmp
+
+- script: cat pytest.out.1
+  displayName: Display rank 1 output
+  workingDirectory: $(Pipeline.Workspace)/install
+  condition: and(or(succeeded(), failed()), eq(variables['enable_mpi'], 'on'))
+
+- script: >-
+    PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
+    python3 -m pytest -v -ra -m "cupy_optional"
+    --junit-xml=$(Common.TestResultsDirectory)/pytest-serial.xml
+  displayName: Run pytest (gpu without CuPy)
+  workingDirectory: $(Pipeline.Workspace)/install
+  condition: and(succeeded(), eq(variables['enable_gpu'], 'on'))
+  env:
+    # disallow use of cupy
+    _HOOMD_DISALLOW_CUPY_: 1
+
+- script: >-
+    PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
+    mpirun -n 2 $(Build.BinariesDirectory)/hoomd/pytest/pytest-openmpi.sh -v -x -ra
+    -m "cupy_optional" --junit-xml=$(Common.TestResultsDirectory)/pytest-mpi.xml
+  displayName: Run pytest (gpu mpi without CuPy)
+  workingDirectory: $(Pipeline.Workspace)/install
+  condition: and(succeeded(), eq(variables['enable_mpi'], 'on'), eq(variables['enable_gpu'], 'on'))
+  env:
+    # disallow use of cupy
+    _HOOMD_DISALLOW_CUPY_: 1
+
+- script: cat pytest.out.1
+  displayName: Display rank 1 output
+  workingDirectory: $(Pipeline.Workspace)/install
+  condition: and(or(succeeded(), failed()), eq(variables['enable_mpi'], 'on'),
+                 eq(variables['enable_gpu'], 'on'))
+
+- script: >-
+    PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
+    ctest
+    -I $(ctest_start),,$(ctest_stride)
+    --no-compress-output
+    -T test
+    --output-on-failure
+    --test-output-size-failed 1048576
+    --test-output-size-passed 1048576
+  displayName: Run ctest
+  workingDirectory: $(Build.BinariesDirectory)
+  env:
+    # allow openmpi to oversubscribe cores
+    OMPI_MCA_rmaps_base_oversubscribe: 1
+    # prevent errors from mis-configured openib systems
+    OMPI_MCA_btl: "vader,self"
+    # prevent deadlocked MPI tests from causing the job to cancel
+    MPIEXEC_TIMEOUT: $(mpiexec_timeout)
+    # workaround issues on Mac
+    TMPDIR: /tmp
+
+- task: PublishTestResults@2
+  condition: or(succeeded(), failed())
+  inputs:
+    testResultsFormat: 'cTest'
+    testResultsFiles: '$(Build.BinariesDirectory)/Testing/**/Test.xml'
+    testRunTitle: '$(suite_name) [ctest]'
+
+- task: PublishTestResults@2
+  condition: or(succeeded(), failed())
+  inputs:
+    testResultsFormat: 'JUnit'
+    testResultsFiles: '$(Common.TestResultsDirectory)/pytest-serial.xml'
+    testRunTitle: '$(suite_name) [pytest-serial]'
+
+- task: PublishTestResults@2
+  condition: eq(variables['enable_mpi'], 'on')
+  inputs:
+    testResultsFormat: 'JUnit'
+    testResultsFiles: '$(Common.TestResultsDirectory)/pytest-mpi.xml'
+    testRunTitle: '$(suite_name) [pytest-mpi]'

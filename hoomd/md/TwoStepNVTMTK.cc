@@ -78,7 +78,7 @@ Scalar TwoStepNVTMTK::getLogValue(const std::string& quantity, unsigned int time
     if (quantity == m_log_name)
         {
         my_quantity_flag = true;
-        Scalar g = m_thermo->getNDOF();
+        Scalar g = m_group->getTranslationalDOF();
         IntegratorVariables v = getIntegratorVariables();
         Scalar& xi = v.variable[0];
         Scalar& eta = v.variable[1];
@@ -88,7 +88,7 @@ Scalar TwoStepNVTMTK::getLogValue(const std::string& quantity, unsigned int time
             {
             Scalar& xi_rot = v.variable[2];
             Scalar& eta_rot = v.variable[3];
-            thermostat_energy += (Scalar)m_thermo->getRotationalNDOF()* (*m_T)(timestep)
+            thermostat_energy += (Scalar)m_group->getRotationalDOF()* (*m_T)(timestep)
                                    *(eta_rot + m_tau*m_tau*xi_rot*xi_rot/Scalar(2.0));
             }
 
@@ -418,7 +418,7 @@ void TwoStepNVTMTK::advanceThermostat(unsigned int timestep, bool broadcast)
         Scalar &eta_rot = v.variable[3];
 
         Scalar curr_ke_rot = m_thermo->getRotationalKineticEnergy();
-        unsigned int ndof_rot = m_thermo->getRotationalNDOF();
+        unsigned int ndof_rot = m_group->getRotationalDOF();
 
         Scalar xi_prime_rot = xi_rot + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*
             (Scalar(2.0)*curr_ke_rot/ndof_rot/(*m_T)(timestep) - Scalar(1.0));
@@ -452,7 +452,7 @@ void TwoStepNVTMTK::randomizeVelocities(unsigned int timestep)
     IntegratorVariables v = getIntegratorVariables();
     Scalar& xi = v.variable[0];
 
-    unsigned int g = m_thermo->getNDOF();
+    unsigned int g = m_group->getTranslationalDOF();
     Scalar sigmasq_t = Scalar(1.0)/((Scalar) g*m_tau*m_tau);
 
     bool master = m_exec_conf->getRank() == 0;
@@ -476,7 +476,7 @@ void TwoStepNVTMTK::randomizeVelocities(unsigned int timestep)
         {
         // update thermostat for rotational DOF
         Scalar &xi_rot = v.variable[2];
-        Scalar sigmasq_r = Scalar(1.0)/((Scalar)m_thermo->getRotationalNDOF()*m_tau*m_tau);
+        Scalar sigmasq_r = Scalar(1.0)/((Scalar)m_group->getRotationalDOF()*m_tau*m_tau);
 
         if (master)
             {
@@ -510,5 +510,7 @@ void export_TwoStepNVTMTK(py::module& m)
                        >())
         .def("setT", &TwoStepNVTMTK::setT)
         .def("setTau", &TwoStepNVTMTK::setTau)
+        .def_property("kT", &TwoStepNVTMTK::getT, &TwoStepNVTMTK::setT)
+        .def_property("tau", &TwoStepNVTMTK::getTau, &TwoStepNVTMTK::setTau)
         ;
     }

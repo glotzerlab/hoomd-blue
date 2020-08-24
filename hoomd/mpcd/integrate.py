@@ -24,7 +24,7 @@ Similar caveats apply to these methods as for the :py:mod:`.mpcd.stream` methods
        to achieve the right boundary conditions and reduce density fluctuations.
 
 The integration methods defined here are not restricted to only MPCD simulations: they can be
-used with both :py:class:`.md.integrate.mode_standard` and :py:class:`.mpcd.integrator`. For
+used with both ``md.integrate.mode_standard`` and :py:class:`.mpcd.integrator`. For
 example, the same integration methods might be used to run DPD simulations with surfaces.
 
 These bounce-back methods do not support anisotropic integration because torques are currently
@@ -44,10 +44,10 @@ class _bounce_back(hoomd.integrate._integration_method):
     """ NVE integration with bounce-back rules.
 
     Args:
-        group (:py:mod:`hoomd.group`): Group of particles on which to apply this method.
+        group (``hoomd.group``): Group of particles on which to apply this method.
 
     :py:class:`_bounce_back` is a base class integration method. It must be used with
-    :py:class:`.md.integrate.mode_standard` or :py:class:`.mpcd.integrator`.
+    ``md.integrate.mode_standard`` or :py:class:`.mpcd.integrator`.
     Deriving classes implement the specific geometry and valid parameters for those geometries.
     Currently, there is no mechanism to share geometries between multiple instances of the same
     integration method.
@@ -94,7 +94,7 @@ class slit(_bounce_back):
     """ NVE integration with bounce-back rules in a slit channel.
 
     Args:
-        group (:py:mod:`hoomd.group`): Group of particles on which to apply this method.
+        group (``hoomd.group``): Group of particles on which to apply this method.
         H (float): channel half-width
         V (float): wall speed (default: 0)
         boundary : 'slip' or 'no_slip' boundary condition at wall (default: 'no_slip')
@@ -168,7 +168,7 @@ class slit_pore(_bounce_back):
     """ NVE integration with bounce-back rules in a slit pore channel.
 
     Args:
-        group (:py:mod:`hoomd.group`): Group of particles on which to apply this method.
+        group (``hoomd.group``): Group of particles on which to apply this method.
         H (float): channel half-width.
         L (float): pore half-length.
         boundary : 'slip' or 'no_slip' boundary condition at wall (default: 'no_slip')

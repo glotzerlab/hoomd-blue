@@ -2,14 +2,21 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
+"""Define quantities that vary over the simulation.
+
+A `Variant` object represents a scalar function of the time step. Some
+**Operations** accept `Variant` values for certain parameters, such as the
+``kT`` parameter to `NVT`.
+"""
+
 from hoomd import _hoomd
 
 
 class Variant(_hoomd.Variant):
-    """ Variant base class.
+    """Variant base class.
 
-    Variantsdefine values as a function of the simulation time step. Use one of
-    the existing Variant types or define your own custom function:
+    Variants define values as a function of the simulation time step. Use one of
+    the built in types or define your own custom function:
 
     .. code:: python
 
@@ -29,26 +36,36 @@ class Variant(_hoomd.Variant):
         :return: The value of the function at the given time step.
         :rtype: float
     """
-    pass
+
+    @property
+    def min(self):
+        """The minimum value of this variant."""
+        return self._min()
+
+    @property
+    def max(self):
+        """The maximum value of this variant."""
+        return self._max()
 
 
 class Constant(_hoomd.VariantConstant, Variant):
-    """ A constant value.
+    """A constant value.
 
     Args:
         value (float): The value.
 
-    :py:class:`Constant` returns *value* at all time steps.
+    `Constant` returns *value* at all time steps.
 
     Attributes:
         value (float): The value.
     """
+
     def __init__(self, value):
         _hoomd.VariantConstant.__init__(self, value)
 
 
 class Ramp(_hoomd.VariantRamp, Variant):
-    """ A linear ramp.
+    """A linear ramp.
 
     Args:
         A (float): The start value.
@@ -56,9 +73,8 @@ class Ramp(_hoomd.VariantRamp, Variant):
         t_start (int): The start time step.
         t_ramp (int): The length of the ramp.
 
-    :py:class:`Ramp` holds the value *A* until time *t_start*. Then it
-    ramps linearly from *A* to *B* over *t_ramp* steps and holds the value
-    *B* after that.
+    `Ramp` holds the value *A* until time *t_start*. Then it ramps linearly from
+    *A* to *B* over *t_ramp* steps and holds the value *B*.
 
     .. image:: variant-ramp.svg
 
@@ -68,11 +84,13 @@ class Ramp(_hoomd.VariantRamp, Variant):
         t_start (int): The start time step.
         t_ramp (int): The length of the ramp.
     """
+
     def __init__(self, A, B, t_start, t_ramp):
         _hoomd.VariantRamp.__init__(self, A, B, t_start, t_ramp)
 
+
 class Cycle(_hoomd.VariantCycle, Variant):
-    """ A cycle of linear ramps.
+    """A cycle of linear ramps.
 
     Args:
         A (float): The first value.
@@ -100,5 +118,38 @@ class Cycle(_hoomd.VariantCycle, Variant):
         t_B (int): The holding time at B.
         t_BA (int): The time spent ramping from B to A.
     """
+
     def __init__(self, A, B, t_start, t_A, t_AB, t_B, t_BA):
         _hoomd.VariantCycle.__init__(self, A, B, t_start, t_A, t_AB, t_B, t_BA)
+
+
+class Power(_hoomd.VariantPower, Variant):
+    """A approach from initial to final value of x ^ (power).
+
+    Args:
+        A (float): The start value.
+        B (float): The end value.
+        power (float): The power of the approach to ``B``.
+        t_start (int): The start time step.
+        t_ramp (int): The length of the ramp.
+
+    :py:class:`Power` holds the value *A* until time *t_start*. Then it
+    progresses at :math:`x^{power}` from *A* to *B* over *t_ramp* steps and
+    holds the value *B* after that.
+
+    .. code-block:: python
+
+        p = Power(2, 8, 1 / 10, 10, 20)
+
+    .. image:: variant-power.svg
+
+    Attributes:
+        A (float): The start value.
+        B (float): The end value.
+        power (float): The power of the approach to ``B``.
+        t_start (int): The start time step.
+        t_ramp (int): The length of the ramp.
+    """
+
+    def __init__(self, A, B, power, t_start, t_ramp):
+        _hoomd.VariantPower.__init__(self, A, B, power, t_start, t_ramp)

@@ -934,7 +934,6 @@ template<class T> void GPUArray<T>::allocate()
     h_data = std::unique_ptr<T, hoomd::detail::host_deleter<T> >(reinterpret_cast<T *>(host_ptr), host_deleter);
 
 #if defined (ENABLE_HIP)
-    assert(!d_data);
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
         // allocate and/or map host memory
@@ -1071,8 +1070,10 @@ ArrayHandleDispatch<T> GPUArray<T>::acquire(const access_location::Enum location
 #endif
                                         ) const
     {
-    // sanity check
-    assert(!m_acquired);
+    if (m_acquired)
+        {
+        throw std::runtime_error("Cannot acquire access to array in use.");
+        }
     m_acquired = true;
 
     // base case - handle acquiring a NULL GPUArray by simply returning NULL to prevent any memcpys from being attempted

@@ -7,16 +7,9 @@ R""" Utilities.
 """
 
 from numpy import ndarray
-from inspect import isclass
+from collections.abc import Iterable, Mapping
 from copy import deepcopy
-from hoomd.trigger import Periodic
 
-## \internal
-# \brief Compatibility definition of a basestring for python 2/3
-try:
-    _basestring = basestring
-except NameError:
-    _basestring = str
 
 ## \internal
 # \brief Checks if a variable is an instance of a string and always returns a list.
@@ -39,13 +32,7 @@ def to_camel_case(string):
 
 def is_iterable(obj):
     '''Returns True if object is iterable and not a str or dict.'''
-    return not isclass(obj) and hasattr(obj, '__iter__') \
-        and not bad_iterable_type(obj)
-
-
-def is_mapping(obj):
-    return not isclass(obj) \
-        and all([hasattr(obj, attr) for attr in ('keys', 'values', 'items')])
+    return isinstance(obj, Iterable) and not bad_iterable_type(obj)
 
 
 def bad_iterable_type(obj):
@@ -56,7 +43,7 @@ def bad_iterable_type(obj):
 def dict_map(dict_, func):
     new_dict = dict()
     for key, value in dict_.items():
-        if isinstance(value, dict):
+        if isinstance(value, Mapping):
             new_dict[key] = dict_map(value, func)
         else:
             new_dict[key] = func(value)
@@ -95,6 +82,19 @@ def _dict_flatten(value, key):
         return new_dict
 
 
+def dict_filter(dict_, filter_):
+    new_dict = dict()
+    for key in dict_:
+        if not isinstance(dict_[key], Mapping):
+            if filter_(dict_[key]):
+                new_dict[key] = dict_[key]
+        else:
+            sub_dict = dict_filter(dict_[key], filter_)
+            if sub_dict:
+                new_dict[key] = sub_dict
+    return new_dict
+
+
 class NamespaceDict:
     def __init__(self, dict_=None):
         self._dict = dict() if dict_ is None else dict_
@@ -111,7 +111,7 @@ class NamespaceDict:
         # traverse through dictionary hierarchy
         for name in namespace:
             try:
-                if name in current_dict.keys():
+                if name in current_dict:
                     current_dict = current_dict[name]
                     continue
                 else:
@@ -250,45 +250,11 @@ def array_to_strings(value):
         return value
 
 
-def trigger_preprocessing(trigger):
-    if isinstance(trigger, int):
-        return Periodic(period=int(trigger), phase=0)
-    else:
-        return trigger
-
-
-class RequiredArg:
+class GPUNotAvailableError(NotImplementedError):
     pass
 
 
-def check_for_required(value, previous=None):
-    if is_mapping(value):
-        for k, v in value.items():
-            if previous is None:
-                check_for_required(v, [k])
-            else:
-                check_for_required(v, previous + [k])
-    elif is_iterable(value):
-        for i, v in enumerate(value):
-            if previous is None:
-                check_for_required(v, [i])
-            else:
-                check_for_required(v, previous + [i])
-    else:
-        if value is RequiredArg:
-            raise_from_previous(previous)
-        else:
-            pass
-
-
-def raise_from_previous(previous):
-    prv_str = ""
-    if previous is None:
-        pass
-    else:
-        for s in previous:
-            if isinstance(s, int):
-                prv_str += "in list item {} ".format(s)
-            else:
-                prv_str += "in key {} ".format(s)
-    raise ValueError("Expected a value, {}. Found RequiredArg.".format(prv_str))
+class NoGPU:
+    def __init__(self, *args, **kwargs):
+        raise GPUNotAvailableError(
+            "This build of HOOMD-blue does not support GPUs.")

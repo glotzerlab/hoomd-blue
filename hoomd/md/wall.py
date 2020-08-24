@@ -21,7 +21,7 @@ information on how the concept of half-spaces are used in implementing wall forc
 
 Wall groups (:py:class:`group`) are used to pass wall geometries to wall forces.
 By themselves, wall groups do nothing. Only when you specify a wall force
-(i.e. :py:class:`lj`),  are forces actually applied between the wall and the
+(i.e. :py:class:`hoomd.md.wall.lj`),  are forces actually applied between the wall and the
 """
 
 from hoomd import _hoomd
@@ -40,7 +40,7 @@ class group(object):
 
     All wall forces use a wall group as an input so it is necessary to create a
     wall group object before any wall force can be created. Modifications
-    of the created wall group may occur at any time before :py:func:`hoomd.run`
+    of the created wall group may occur at any time before ```hoomd.run```
     is invoked. Current supported geometries are spheres, cylinder, and planes. The
     maximum number of each type of wall is 20, 20, and 60 respectively.
 
@@ -64,7 +64,7 @@ class group(object):
         must have a nonzero magnitude.
 
     Note:
-        Wall structure modifications between :py:func:`hoomd.run`
+        Wall structure modifications between ```hoomd.run```
         calls will be implemented in the next run. However, modifications must be done
         carefully since moving the wall can result in particles moving to a relative
         position which causes exceptionally high forces resulting in particles moving
@@ -553,7 +553,7 @@ class wallpotential(external._external_force):
 
     Note that the walls object below must be created before it is given as an
     argument to the force object. However, walls can be modified at any time before
-    :py:func:`hoomd.run()` is called and it will update itself appropriately. See
+    ```hoomd.run``` is called and it will update itself appropriately. See
     :py:class:`group` for more details about specifying the walls to be used::
 
         walls=wall.group()
@@ -569,7 +569,7 @@ class wallpotential(external._external_force):
         The current wall force implementation does not support NPT integrators.
 
     Note:
-        The virial due to walls is computed, but the pressure and reported by :py:class:`hoomd.analyze.log`
+        The virial due to walls is computed, but the pressure and reported by ``hoomd.analyze.log``
         is not well defined. The volume (area) of the box enters into the pressure computation, which is
         not correct in a confined system. It may not even be possible to define an appropriate volume with
         soft walls.
@@ -642,7 +642,7 @@ class lj(wallpotential):
         name (str): The force name which will be used in the metadata and log files.
 
     Wall force evaluated using the Lennard-Jones potential.
-    See :py:class:`hoomd.md.pair.lj` for force details and base parameters and
+    See :py:class:`hoomd.md.pair.LJ` for force details and base parameters and
     :py:class:`wallpotential` for generalized wall potential implementation
 
     Standard mode::
@@ -705,7 +705,7 @@ class gauss(wallpotential):
         name (str): The force name which will be used in the metadata and log files.
 
     Wall force evaluated using the Gaussian potential.
-    See :py:class:`hoomd.md.pair.gauss` for force details and base parameters and :py:class:`wallpotential` for
+    See :py:class:`hoomd.md.pair.Gauss` for force details and base parameters and :py:class:`wallpotential` for
     generalized wall potential implementation
 
     Example::
@@ -753,10 +753,10 @@ class slj(wallpotential):
 
     Wall force evaluated using the Shifted Lennard-Jones potential.
     Note that because slj is dependent upon particle diameters the following
-    correction is necessary to the force details in the :py:class:`hoomd.md.pair.slj` description.
+    correction is necessary to the force details in the :py:class:`hoomd.md.pair.SLJ` description.
 
     :math:`\Delta = d_i/2 - 1` where :math:`d_i` is the diameter of particle :math:`i`.
-    See :py:class:`hoomd.md.pair.slj` for force details and base parameters and :py:class:`wallpotential` for
+    See :py:class:`hoomd.md.pair.SLJ` for force details and base parameters and :py:class:`wallpotential` for
     generalized wall potential implementation
 
     Example::
@@ -815,7 +815,7 @@ class yukawa(wallpotential):
         name (str): The force name which will be used in the metadata and log files.
 
     Wall force evaluated using the Yukawa potential.
-    See :py:class:`hoomd.md.pair.yukawa` for force details and base parameters and :py:class:`wallpotential` for
+    See :py:class:`hoomd.md.pair.Yukawa` for force details and base parameters and :py:class:`wallpotential` for
     generalized wall potential implementation
 
     Example::
@@ -862,7 +862,7 @@ class morse(wallpotential):
         name (str): The force name which will be used in the metadata and log files.
 
     Wall force evaluated using the Morse potential.
-    See :py:class:`hoomd.md.pair.morse` for force details and base parameters and :py:class:`wallpotential` for
+    See :py:class:`hoomd.md.pair.Morse` for force details and base parameters and :py:class:`wallpotential` for
     generalized wall potential implementation
 
     Example::
@@ -912,7 +912,7 @@ class force_shifted_lj(wallpotential):
         name (str): The force name which will be used in the metadata and log files.
 
     Wall force evaluated using the Force-shifted Lennard-Jones potential.
-    See :py:class:`hoomd.md.pair.force_shifted_lj` for force details and base parameters and :py:class:`wallpotential`
+    See :py:class:`hoomd.md.pair.ForceShiftedLJ` for force details and base parameters and :py:class:`wallpotential`
     for generalized wall potential implementation.
 
     Example::
@@ -965,7 +965,7 @@ class mie(wallpotential):
         name (str): The force name which will be used in the metadata and log files.
 
     Wall force evaluated using the Mie potential.
-    See :py:class:`hoomd.md.pair.mie` for force details and base parameters and :py:class:`wallpotential` for
+    See :py:class:`hoomd.md.pair.Mie` for force details and base parameters and :py:class:`wallpotential` for
     generalized wall potential implementation
 
     Example::

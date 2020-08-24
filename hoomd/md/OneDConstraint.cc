@@ -108,11 +108,10 @@ void OneDConstraint::computeForces(unsigned int timestep)
         m_prof->pop();
     }
 
-/*! OneDConstraint removes 2 degrees of freedom per particle in the group
-*/
-unsigned int OneDConstraint::getNDOFRemoved()
+Scalar OneDConstraint::getNDOFRemoved(std::shared_ptr<ParticleGroup> query)
     {
-    return m_group->getNumMembersGlobal();
+    // OneDConstraint removes 2 degrees of freedom per particle in the group
+    return m_group->intersectionSize(query)*2;
     }
 
 void export_OneDConstraint(py::module& m)

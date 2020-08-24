@@ -10,6 +10,7 @@
 #endif
 
 #include "hoomd/HOOMDMath.h"
+#include "EvaluatorPairMoliere.h"
 
 /*! \file EvaluatorPairZBL.h
     \brief Defines the pair evaluator class for ZBL potentials
@@ -40,7 +41,7 @@ class EvaluatorPairZBL
 {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar2 param_type;
+        typedef EvaluatorPairMoliere::param_type param_type;
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles.
@@ -48,7 +49,7 @@ class EvaluatorPairZBL
             \param _params Per type-pair parameters of this potential
         */
         DEVICE EvaluatorPairZBL(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), Zsq(_params.x), aF(_params.y)
+            : rsq(_rsq), rcutsq(_rcutsq), Zsq(_params.qi * _params.qj), aF(_params.aF)
             {
             }
 

@@ -1,4 +1,11 @@
-class _ParticleFilter:
+from hoomd._hoomd import ParticleFilter
+
+
+class _ParticleFilter(ParticleFilter):
+    """Base class for all particle filters.
+
+    Should not be instantiated or subclassed by users.
+    """
     def __hash__(self):
         return NotImplementedError("Must implement hash for ParticleFilters.")
 
@@ -11,4 +18,4 @@ class _ParticleFilter:
 
     def __call__(self, state):
         """Needs to interact with state to get particles across MPI rank."""
-        raise NotImplementedError
+        return self._get_selected_tags(state._cpp_sys_def)

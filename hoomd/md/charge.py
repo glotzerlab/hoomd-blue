@@ -30,7 +30,7 @@ class pppm(force._force):
     R""" Long-range electrostatics computed with the PPPM method.
 
     Args:
-        group (:py:mod:`hoomd.group`): Group on which to apply long range PPPM forces. The short range part is always applied between
+        group (``hoomd.group``): Group on which to apply long range PPPM forces. The short range part is always applied between
                                        all particles.
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
 
@@ -40,13 +40,13 @@ class pppm(force._force):
 
     :py:class:`pppm` specifies **both** the long-ranged **and** short range parts of the electrostatic
     force should be computed between all charged particles in the simulation. In other words, :py:class:`pppm`
-    initializes and sets all parameters for its own :py:class:`hoomd.md.pair.ewald`, so do not specify an additional one.
+    initializes and sets all parameters for its own :py:class:`hoomd.md.pair.Ewald`, so do not specify an additional one.
 
     The command supports additional screening of interactions, according to the Ewald summation for Yukawa potentials.
     This is useful if one wants to compute a screened interaction (i.e. a solution to the linearized Poisson-Boltzmann
     equation), yet the cut-off radius is so large that the computation with a purely short-ranged potential would become
     inefficient. In that case, the inverse Debye screening length can be supplied using :py:meth:`set_params()`.
-    Also see `Salin, G and Caillol, J. 2000, <http://dx.doi.org/10.1063/1.1326477>`.
+    Also see `Salin, G and Caillol, J. 2000, <http://dx.doi.org/10.1063/1.1326477>`_.
 
     Parameters:
 
@@ -57,13 +57,13 @@ class pppm(force._force):
     - :math:`r_{\mathrm{cut}}` - Cutoff for the short-ranged part of the electrostatics calculation
 
     Parameters Nx, Ny, Nz, order, :math:`r_{\mathrm{cut}}` must be set using
-    :py:meth:`set_params()` before any :py:func:`hoomd.run()` can take place.
+    ```hoomd.run``` can take place.
 
     See :ref:`page-units` for information on the units assigned to charges in hoomd.
 
     Note:
           :py:class:`pppm` takes a particle group as an option. This should be the group of all charged particles
-          (:py:func:`hoomd.group.charged`). However, note that this group is static and determined at the time
+          (``hoomd.group.charged``). However, note that this group is static and determined at the time
           :py:class:`pppm` is specified. If you are going to add charged particles at a later point in the simulation
           with the data access API, ensure that this group includes those particles as well.
 

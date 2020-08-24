@@ -100,7 +100,7 @@ class _ConstraintForce(hoomd.meta._metadata):
 
 
         Executing the disable command removes the force from the simulation.
-        Any :py:func:`hoomd.run()` command executed after disabling a force will not calculate or
+        Any ```hoomd.run``` command executed after disabling a force will not calculate or
         use the force during the simulation. A disabled force can be re-enabled
         with :py:meth:`enable()`
         """
@@ -124,7 +124,7 @@ class _ConstraintForce(hoomd.meta._metadata):
 
             force.enable()
 
-        See :py:meth:`disable()`.
+        See ``disable``.
         """
         self.check_initialization()
 
@@ -162,13 +162,12 @@ class sphere(_ConstraintForce):
     R""" Constrain particles to the surface of a sphere.
 
     Args:
-        group (:py:mod:`hoomd.group`): Group on which to apply the constraint.
+        group (``hoomd.group``): Group on which to apply the constraint.
         P (tuple): (x,y,z) tuple indicating the position of the center of the sphere (in distance units).
         r (float): Radius of the sphere (in distance units).
 
     :py:class:`sphere` specifies that forces will be applied to all particles in the given group to constrain
-    them to a sphere. Currently does not work with Brownian or Langevin dynamics (:py:class:`hoomd.md.integrate.brownian`
-    and :py:class:`hoomd.md.integrate.langevin`).
+    them to a sphere. Currently does not work with Brownian or Langevin dynamics.
 
     Example::
 
@@ -322,7 +321,7 @@ class rigid(_ConstraintForce):
     and prepare the constraint.
 
     You must call either :py:meth:`create_bodies` or :py:meth:`validate_bodies` prior to starting a simulation
-    :py:func:`hoomd.run`.
+    ```hoomd.run```.
 
     .. rubric:: Integrating bodies
 
@@ -339,7 +338,7 @@ class rigid(_ConstraintForce):
 
     HOOMD computes thermodynamic quantities (temperature, kinetic energy, etc...) appropriately when there are rigid
     bodies present in the system. When it does so, it ignores all constituent particles and computes the translational
-    and rotational energies of the central particles, which represent the whole body. :py:class:`hoomd.analyze.log`
+    and rotational energies of the central particles, which represent the whole body. ``hoomd.analyze.log``
     can log the translational and rotational energy terms separately.
 
     .. rubric:: Restarting simulations with rigid bodies.
@@ -379,7 +378,7 @@ class rigid(_ConstraintForce):
         .. caution::
             The constituent particle type must be exist.
             If it does not exist, it can be created on the fly using
-            ``system.particles.types.add('A_const')`` (see :py:mod:`hoomd.data`).
+            ``system.particles.types.add('A_const')``.
 
         Example::
 
@@ -479,7 +478,7 @@ class oneD(_ConstraintForce):
     R""" Constrain particles to move along a specific direction only
 
     Args:
-        group (:py:mod:`hoomd.group`): Group on which to apply the constraint.
+        group (``hoomd.group``): Group on which to apply the constraint.
         constraint_vector (list): [x,y,z] list indicating the direction that the particles are restricted to
 
     :py:class:`oneD` specifies that forces will be applied to all particles in the given group to constrain

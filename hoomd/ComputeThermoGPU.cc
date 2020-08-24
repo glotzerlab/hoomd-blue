@@ -139,7 +139,7 @@ void ComputeThermoGPU::computeProperties()
     args.d_angmom = d_angmom.data;
     args.d_inertia = d_inertia.data;
     args.virial_pitch = net_virial.getPitch();
-    args.ndof = m_ndof;
+    args.ndof = m_group->getTranslationalDOF();
     args.D = m_sysdef->getNDimensions();
     args.d_scratch = d_scratch.data;
     args.d_scratch_pressure_tensor = d_scratch_pressure_tensor.data;
@@ -195,22 +195,6 @@ void ComputeThermoGPU::computeProperties()
 
     if (m_prof) m_prof->pop(m_exec_conf);
     }
-
-#ifdef ENABLE_MPI
-void ComputeThermoGPU::reduceProperties()
-    {
-    if (m_properties_reduced) return;
-
-    ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::readwrite);
-
-    // reduce properties
-    MPI_Allreduce(MPI_IN_PLACE, h_properties.data, thermo_index::num_quantities, MPI_HOOMD_SCALAR,
-            MPI_SUM, m_exec_conf->getMPICommunicator());
-
-    m_properties_reduced = true;
-    }
-#endif
-
 
 void export_ComputeThermoGPU(py::module& m)
     {

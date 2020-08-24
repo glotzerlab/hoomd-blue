@@ -1,19 +1,15 @@
 import hoomd._hoomd as _hoomd
+from hoomd.logging import log, Loggable
 from hoomd.state import State
 from hoomd.snapshot import Snapshot
 from hoomd.operations import Operations
 
 
-class Simulation:
-    R""" Simulation.
+class Simulation(metaclass=Loggable):
+    r""" Simulation.
 
-    Parameters:
+    Args:
         device (:py:mod:`hoomd.device`): Device to execute the simulation.
-
-    Attributes:
-        device
-        state
-        operations
     """
 
     def __init__(self, device):
@@ -21,6 +17,7 @@ class Simulation:
         self._state = None
         self._operations = Operations(self)
         self._verbose = False
+        self._timestep = None
 
     @property
     def device(self):
@@ -31,10 +28,10 @@ class Simulation:
         raise ValueError("Device cannot be removed or replaced once in "
                          "Simulation object.")
 
-    @property
+    @log
     def timestep(self):
         if not hasattr(self, '_cpp_sys'):
-            return None
+            return self._timestep
         else:
             return self._cpp_sys.getCurrentTimeStep()
 
@@ -150,7 +147,7 @@ class Simulation:
         log data to a file or when using an NPT integrator). Set
         ``always_compute_pressure`` to True to make the per particle virial,
         net virial, and system pressure available to query any time by property
-        or through the :py:class:`hoomd.Logger` interface.
+        or through the :py:class:`hoomd.logging.Logger` interface.
 
         Note:
             Enabling this flag will result in a moderate performance penalty
@@ -181,8 +178,9 @@ class Simulation:
         if not hasattr(self, '_cpp_sys'):
             raise RuntimeError('Cannot run before state is set.')
         if not self.operations.scheduled:
-            raise RuntimeError('Cannot run before operations are scheduled.')
+            self.operations.schedule()
 
+        # TODO either remove or refactor this code
         # if context.current.integrator is None:
         #     context.current.device.cpp_msg.warning("Starting a run without an integrator set")
         # else:

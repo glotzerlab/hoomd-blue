@@ -1,0 +1,14 @@
+{
+    "recommendations": [
+        "ms-vscode.cpptools",
+        "twxs.cmake",
+        "ms-vscode.cmake-tools",
+        "streetsidesoftware.code-spell-checker",
+        "lak132.indent-to-bracket",
+        "ms-python.python",
+        "i80and.snooty",
+        "ms-azure-devops.azure-pipelines",
+        "stkb.rewrap",
+        "kriegalex.vscode-cudacpp"
+    ]
+}

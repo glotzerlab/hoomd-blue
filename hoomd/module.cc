@@ -8,6 +8,7 @@
 #include "ClockSource.h"
 #include "Profiler.h"
 #include "ParticleData.h"
+#include "PythonLocalDataAccess.h"
 #include "SystemDefinition.h"
 #include "BondedGroupData.h"
 #include "Initializers.h"
@@ -15,12 +16,14 @@
 #include "GSDReader.h"
 #include "Compute.h"
 #include "ComputeThermo.h"
+#include "ComputeThermoHMA.h"
 #include "CellList.h"
 #include "CellListStencil.h"
 #include "ForceCompute.h"
 #include "ForceConstraint.h"
 #include "ConstForceCompute.h"
 #include "Analyzer.h"
+#include "PythonAnalyzer.h"
 #include "IMDInterface.h"
 #include "DCDDumpWriter.h"
 #include "GetarDumpWriter.h"
@@ -31,12 +34,14 @@
 #include "LogHDF5.h"
 #include "CallbackAnalyzer.h"
 #include "Updater.h"
+#include "PythonUpdater.h"
 #include "Integrator.h"
 #include "SFCPackTuner.h"
 #include "BoxResizeUpdater.h"
 #include "System.h"
 #include "Trigger.h"
 #include "Tuner.h"
+#include "PythonTuner.h"
 #include "Variant.h"
 #include "Messenger.h"
 #include "SnapshotSystemData.h"
@@ -50,6 +55,7 @@
 #include "CellListGPU.h"
 #include "ComputeThermoGPU.h"
 #include "SFCPackTunerGPU.h"
+#include "ComputeThermoHMAGPU.h"
 #endif
 
 // include MPI classes
@@ -334,9 +340,18 @@ PYBIND11_MODULE(_hoomd, m)
     export_Profiler(m);
 
     // data structures
+    export_HOOMDHostBuffer(m);
+    export_GhostDataFlag(m);
+    # if ENABLE_HIP
+    export_HOOMDDeviceBuffer(m);
+    # endif
     export_BoxDim(m);
     export_ParticleData(m);
     export_SnapshotParticleData(m);
+    export_LocalParticleData<HOOMDHostBuffer>(m, "LocalParticleDataHost");
+    #if ENABLE_HIP
+    export_LocalParticleData<HOOMDDeviceBuffer>(m, "LocalParticleDataDevice");
+    #endif
     export_MPIConfiguration(m);
     export_ExecutionConfiguration(m);
     export_SystemDefinition(m);
@@ -348,6 +363,30 @@ PYBIND11_MODULE(_hoomd, m)
     export_BondedGroupData<ConstraintData,Constraint>(m,"ConstraintData","ConstraintDataSnapshot");
     export_BondedGroupData<PairData,Bond>(m,"PairData","PairDataSnapshot",false);
 
+    export_LocalGroupData<HOOMDHostBuffer, BondData>(m, "LocalBondDataHost");
+    export_LocalGroupData<HOOMDHostBuffer, AngleData>(m, "LocalAngleDataHost");
+    export_LocalGroupData<HOOMDHostBuffer, DihedralData>(
+        m, "LocalDihedralDataHost");
+    export_LocalGroupData<HOOMDHostBuffer, ImproperData>(
+        m, "LocalImproperDataHost");
+    export_LocalGroupData<HOOMDHostBuffer, ConstraintData>(
+        m, "LocalConstraintDataHost");
+    export_LocalGroupData<HOOMDHostBuffer, PairData>(m, "LocalPairDataHost");
+    #if ENABLE_HIP
+    export_LocalGroupData<HOOMDDeviceBuffer, BondData>(
+        m, "LocalBondDataDevice");
+    export_LocalGroupData<HOOMDDeviceBuffer, AngleData>(
+        m, "LocalAngleDataDevice");
+    export_LocalGroupData<HOOMDDeviceBuffer, DihedralData>(
+        m, "LocalDihedralDataDevice");
+    export_LocalGroupData<HOOMDDeviceBuffer, ImproperData>(
+        m, "LocalImproperDataDevice");
+    export_LocalGroupData<HOOMDDeviceBuffer, ConstraintData>(
+        m, "LocalConstraintDataDevice");
+    export_LocalGroupData<HOOMDDeviceBuffer, PairData>(
+        m, "LocalPairDataDevice");
+    #endif
+
     // initializers
     export_GSDReader(m);
     getardump::export_GetarInitializer(m);
@@ -355,6 +394,7 @@ PYBIND11_MODULE(_hoomd, m)
     // computes
     export_Compute(m);
     export_ComputeThermo(m);
+    export_ComputeThermoHMA(m);
     export_CellList(m);
     export_CellListStencil(m);
     export_ForceCompute(m);
@@ -364,10 +404,12 @@ PYBIND11_MODULE(_hoomd, m)
 #ifdef ENABLE_HIP
     export_CellListGPU(m);
     export_ComputeThermoGPU(m);
+    export_ComputeThermoHMAGPU(m);
 #endif
 
     // analyzers
     export_Analyzer(m);
+    export_PythonAnalyzer(m);
     export_IMDInterface(m);
     export_DCDDumpWriter(m);
     getardump::export_GetarDumpWriter(m);
@@ -380,11 +422,13 @@ PYBIND11_MODULE(_hoomd, m)
 
     // updaters
     export_Updater(m);
+    export_PythonUpdater(m);
     export_Integrator(m);
     export_BoxResizeUpdater(m);
 
     // tuners
     export_Tuner(m);
+    export_PythonTuner(m);
     export_SFCPackTuner(m);
 #ifdef ENABLE_HIP
     export_SFCPackTunerGPU(m);

@@ -1,5 +1,5 @@
 variables:
-  image_root: glotzerlab/ci:2019.12
+  image_root: glotzerlab/ci:2020.07
 
   # default build parameters, will override as needed with job matrix values
   enable_gpu: off
@@ -13,8 +13,14 @@ variables:
   always_use_managed_memory: off
   ctest_start: 1
   ctest_stride: 1
-  mpiexec_timeout: 300
+  mpiexec_timeout: 1800
   suite_name: $(Agent.JobName)
+
+trigger:
+  batch: true
+  branches:
+    include:
+    - '*'
 
 stages:
 - stage: build_test_cpu
@@ -27,11 +33,24 @@ stages:
     timeoutInMinutes: 75
 
     strategy:
+      maxParallel: 5
       matrix:
+        gcc10_py38_mpi_tbb:
+          container_image: gcc10_py38
+          enable_mpi: on
+          enable_tbb: on
+
         gcc9_py38_mpi_tbb:
           container_image: gcc9_py38
           enable_mpi: on
           enable_tbb: on
+
+        clang10_py38_mpi_tbb:
+          container_image: clang10_py38
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '10'
 
         clang9_py38_mpi_tbb:
           container_image: clang9_py38
@@ -92,14 +111,16 @@ stages:
           container_image: gcc7_py36
 
     pool:
-      vmImage: 'ubuntu-16.04'
+      vmImage: 'ubuntu-latest'
 
     container:
       image: $(image_root)-$(container_image)
       options: -u 0
 
     steps:
-    - template: templates/build_test.yml
+    - template: templates/build.yml
+    - template: templates/run_tests.yml
+
 
   - job: mac_cpu
     displayName: macOS
@@ -118,7 +139,7 @@ stages:
       vmImage: '$(mac_image)'
 
     steps:
-    - script: brew install cereal cmake eigen ninja open-mpi python numpy pybind11
+    - script: brew install cereal cmake eigen ninja open-mpi python pybind11
       displayName: Brew install prereqs
     # Install Intel's provided TBB builds, homebrew's tbb does not support exception translation
     - script: |
@@ -129,10 +150,11 @@ stages:
       displayName: Install TBB
       workingDirectory: $(Pipeline.Workspace)
 
-    - script: python3 -m pip install pytest
+    - script: python3 -m pip install pytest numpy gsd
       displayName: Pip install prereqs
 
-    - template: templates/build_test.yml
+    - template: templates/build.yml
+    - template: templates/run_tests.yml
 
 - stage: build_test_nvidia
   displayName: Unit test (NVIDIA GPU)
@@ -147,6 +169,9 @@ stages:
 
     strategy:
       matrix:
+        cuda11_py37_mpi:
+          container_image: cuda11_gcc7_py37
+
         cuda10_py37_mng_mpi:
           container_image: cuda10_gcc7_py37
           always_use_managed_memory: on
@@ -171,9 +196,12 @@ stages:
       clean: all
 
     steps:
-    - template: templates/build_test.yml
+    - template: templates/build.yml
+    - template: templates/run_tests.yml
 
 - stage: build_test_amd
+  # temporarily disable testing on AMD because the containers are not functional
+  condition: false
   displayName: Unit test (AMD GPU)
   dependsOn: []
   variables:
@@ -220,31 +248,57 @@ stages:
       displayName: Add render group
     - script: sudo usermod -G render `whoami`
       displayName: Add user to render group
-    - template: templates/build_test.yml
+    - template: templates/build.yml
+    - template: templates/run_tests.yml
 
-# - stage: doc
-#   displayName: Documentation
-#   dependsOn: []
+- stage: doc
+  displayName: Documentation
+  dependsOn: []
 
-#   jobs:
-#   - job: sphinx_doc
-#     displayName: Sphinx
-#     pool:
-#       vmImage: 'ubuntu-16.04'
+  jobs:
+  - job: sphinx_doc
+    displayName: Sphinx
+    pool:
+      vmImage: 'ubuntu-latest'
 
-#     container:
-#       image: $(image_root)-gcc7_py37
-#       options: -u 0
+    container:
+      image: $(image_root)-clang10_py38
+      options: -u 0
 
-#     workspace:
-#       clean: all
+    workspace:
+      clean: all
 
-#     steps:
-#     - checkout: self
-#       submodules: true
-#     - script: sphinx-build -b html -d _build/doctrees -W --keep-going -n . _build/html
-#       displayName: (HTML)
-#       workingDirectory: sphinx-doc
-#     - script: sphinx-build -b latex -d _build/doctrees -W --keep-going -n . _build/latex
-#       displayName: (LaTeX)
-#       workingDirectory: sphinx-doc
+    steps:
+    - checkout: self
+      submodules: true
+    - script: sphinx-build -b html -d _build/doctrees -W -T --keep-going -n . _build/html
+      displayName: (HTML)
+      workingDirectory: sphinx-doc
+    - script: sphinx-build -b latex -d _build/doctrees -W -T --keep-going -n . _build/latex
+      displayName: (LaTeX)
+      workingDirectory: sphinx-doc
+
+- stage: style
+  displayName: Style checks
+  dependsOn: []
+
+  jobs:
+  - job: pydocstyle
+    displayName: pydocstyle
+    pool:
+      vmImage: 'ubuntu-latest'
+
+    container:
+      image: $(image_root)-clang10_py38
+      options: -u 0
+
+    workspace:
+      clean: all
+
+    steps:
+    - checkout: self
+      submodules: true
+    - script: >-
+        pydocstyle -v
+        hoomd/variant.py
+      displayName: Run pydocstyle

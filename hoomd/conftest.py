@@ -71,7 +71,7 @@ def simulation_factory(device):
 
         # reduce sorter grid to avoid Hilbert curve overhead in unit tests
         for tuner in sim.operations.tuners:
-            if isinstance(tuner, hoomd.tuner.ParticleSorter):
+            if isinstance(tuner, hoomd.tune.ParticleSorter):
                 tuner.grid = 8
 
         sim.create_state_from_snapshot(snapshot)
@@ -105,9 +105,9 @@ def two_particle_snapshot_factory(device):
                 box[2] = 1
             s.configuration.box = box
             s.configuration.dimensions = dimensions
-
             s.particles.N = N
-            s.particles.position[:] = [[-d / 2, 0, 0], [d / 2, 0, 0]]
+            # shift particle positions slightly in z so MPI tests pass
+            s.particles.position[:] = [[-d / 2, 0, .1], [d / 2, 0, .1]]
             s.particles.types = particle_types
 
         return s
@@ -183,6 +183,16 @@ def skip_mpi(request):
             raise ValueError('skip_mpi requires the *device* fixture')
 
 
+@pytest.fixture(autouse=True)
+def only_gpu(request):
+    if request.node.get_closest_marker('gpu'):
+        if 'device' in request.fixturenames:
+            if request.getfixturevalue('device').mode != 'gpu':
+                pytest.skip('Test is run on GPU(s).')
+        else:
+            raise ValueError('only_gpu requires the *device* fixture')
+
+
 @pytest.fixture(scope='function', autouse=True)
 def numpy_random_seed():
     """Seed the numpy random number generator.
@@ -200,6 +210,12 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers",
         "validation: Long running tests that validate simulation output")
+    config.addinivalue_line(
+        "markers",
+        "gpu: Tests that should only run on the gpu.")
+    config.addinivalue_line(
+        "markers",
+        "cupy_optional: tests that should pass with and without CuPy.")
 
 
 def abort(exitstatus):
