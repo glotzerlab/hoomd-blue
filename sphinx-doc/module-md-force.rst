@@ -16,4 +16,8 @@ md.force
 
 .. automodule:: hoomd.md.force
     :synopsis: Apply forces to particles.
-    :members:
+    :undoc-members:
+    :members: _Force,
+    		  Active,
+    		  constant,
+    		  dipole

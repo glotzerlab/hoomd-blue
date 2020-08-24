@@ -21,4 +21,12 @@ md.integrate
 
 .. automodule:: hoomd.md.methods
     :synopsis: Integration methods.
-    :members:
+    :undoc-members:
+    :members: _Method,
+              berendsen,
+              Brownian,
+              Langevin,
+              npt,
+              nph,
+              NVE,
+              NVT

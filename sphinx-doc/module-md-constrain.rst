@@ -17,4 +17,9 @@ md.constrain
 
 .. automodule:: hoomd.md.constrain
     :synopsis: Constraints.
-    :members:
+    :undoc-members:
+    :members: _ConstraintForce,
+    		  distance,
+    		  rigid,
+    		  sphere,
+    		  oneD
