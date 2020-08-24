@@ -1495,9 +1495,10 @@ class Mie(_Pair):
     R""" Mie pair potential.
 
     Args:
-        r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        name (str): Name of the force instance.
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): energy shifting/smoothing mode.
 
     :py:class:`Mie` specifies that a Mie pair potential should be applied between every
     non-excluded particle pair in the simulation.
@@ -1512,7 +1513,7 @@ class Mie(_Pair):
         \end{eqnarray*}
 
     See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use ``coeff.set`` to set potential coefficients.
+    Use ``params`` dictionary to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
@@ -1527,13 +1528,13 @@ class Mie(_Pair):
 
     Example::
 
-        nl = nlist.cell()
-        mie = pair.mie(r_cut=3.0, nlist=nl)
-        mie.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, n=12, m=6)
-        mie.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, n=14, m=7, r_cut=3.0, r_on=2.0);
-        mie.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, n=15.1, m=6.5, r_cut=2**(1.0/6.0), r_on=2.0);
-        mie.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=1.5, sigma=2.0)
-
+        nl = nlist.Cell()
+        mie = pair.Mie(nlist=nl, r_cut=3.0)
+        mie.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0, n=12, m=6)
+        mie.params[('A', 'B')] = dict(epsilon=2.0, sigma=1.0, n=14, m=7, r_cut=3.0, r_on=2.0)
+        mie.params[('B', 'B')] = dict(epsilon=1.0, sigma=1.0, n=15.1, m=6.5, r_cut=2**(1.0/6.0), r_on=2.0)
+        mie.params[(['A', 'B'], ['C', 'D'])] = dict(epsilon=1.5, sigma=2.0)
+     
     """
     _cpp_class_name = "PotentialPairMie"
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
