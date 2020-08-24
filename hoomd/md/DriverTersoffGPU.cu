@@ -25,7 +25,7 @@ hipError_t gpu_compute_sq_density_forces(const tersoff_args_t& pair_args,
     }
 
 hipError_t gpu_compute_revcross_forces(const tersoff_args_t& pair_args,
-                                       const revcross_params *d_params)
+                                       const EvaluatorRevCross::param_type *d_params)
     {
     return gpu_compute_triplet_forces<EvaluatorRevCross>(pair_args,
                                                            d_params);

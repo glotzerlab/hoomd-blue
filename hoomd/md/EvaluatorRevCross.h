@@ -54,8 +54,43 @@ HOSTDEVICE inline revcross_params make_revcross_params(Scalar sigma,
 class EvaluatorRevCross
     {
     public:
-        //! Define the parameter type used by this evaluator
-        typedef revcross_params param_type;
+        struct param_type
+            {
+            Scalar sigma;
+            Scalar n;
+            Scalar epsilon;
+            Scalar lambda3;
+
+            #ifdef ENABLE_HIP
+            //! Set CUDA memory hints
+            void set_memory_hint() const
+                {
+                // default implementation does nothing
+                }
+            #endif
+
+            #ifndef __HIPCC__
+            param_type() : sigma(0), n(0), epsilon(0), lambda3(0) {}
+
+            param_type(pybind11::dict v)
+                {
+                sigma = v["sigma"].cast<Scalar>();
+                n = v["n"].cast<Scalar>();
+                epsilon = v["epsilon"].cast<Scalar>();
+                lambda3 = v["lambda3"].cast<Scalar>();
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+                v["sigma"] = sigma;
+                v["n"] = n;
+                v["epsilon"] = epsilon;
+                v["lambda3"] = lambda3;
+                return v;
+                }
+            #endif
+            };
 
         //! Constructs the evaluator
         /*! \param _rij_sq Squared distance between particles i and j

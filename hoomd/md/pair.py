@@ -1351,7 +1351,7 @@ class Tersoff(_Pair):
         return _md.make_tersoff_params(cutoff_d, tersoff_coeffs, exp_consts, dimer_r, n, gamman, lambda3_cube, ang_consts, alpha);
 
 
-class revcross(pair):
+class RevCross(_Pair):
     R""" Reversible crosslinker three-body potential to model bond swaps.
 
     Args:
@@ -1434,41 +1434,13 @@ class revcross(pair):
 	# a bond can be made only between A-B and not A-A or B-B
         potBondSwap.pair_coeff.set('A','B',sigma=1,n=100,epsilon=10,lambda3=1)
     """
-    def __init__(self, r_cut, nlist, name=None):
-
-        # tell the base class how we operate
-
-        # initialize the base class
-        pair.__init__(self, r_cut, nlist, name);
-
-        # this potential cannot handle a half neighbor list
-        self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PotentialRevCross(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialRevCross;
-        else:
-            self.cpp_force = _md.PotentialRevCrossGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
-            self.cpp_class = _md.PotentialRevCrossGPU;
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-
-        # setup the coefficients
-        self.required_coeffs = ['sigma', 'n', 'epsilon', 'lambda3']
-        self.pair_coeff.set_default_coeff('sigma', 2.);
-        self.pair_coeff.set_default_coeff('n', 1.0);
-        self.pair_coeff.set_default_coeff('epsilon', 1.0);
-        self.pair_coeff.set_default_coeff('lambda3', 1.0);
-
-    def process_coeff(self, coeff):
-        sigma = coeff['sigma'];
-        n = coeff['n'];
-        epsilon = coeff['epsilon'];
-        lambda3 = coeff['lambda3'];
-
-        return _md.make_revcross_params(sigma, n, epsilon, lambda3);
-
+    _cpp_class_name = "PotentialRevCross"
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
+        super().__init__(nlist, r_cut, r_on, mode);
+        params = TypeParameter('params', 'particle_types',
+                               TypeParameterDict(sigma=2.0, n=1.0, epsilon=1.0,
+                                   lambda3=1.0, len_keys=2))
+        self._add_typeparam(params)
 
 
 class Mie(_Pair):

@@ -452,6 +452,18 @@ def _valid_params(particle_types=['A', 'B']):
                                         dict(zip(combos,
                                                  square_density_valid_param_dicts)),
                                         {}))
+
+    revcross_arg_dict = {
+            'sigma': [1.0, 2.0, 5.0],
+            'n': [0.1, 0.5, 2.0],
+            'epsilon': [0.1, 0.5, 2.0],
+            'lambda3': [0.1, 0.5, 2.0],
+            }
+    revcross_valid_param_dicts = _make_valid_param_dicts(revcross_arg_dict)
+    valid_params_list.append(paramtuple(hoomd.md.pair.RevCross,
+                                        dict(zip(combos,
+                                                 revcross_valid_param_dicts)),
+                                        {}))
     return valid_params_list
 
 

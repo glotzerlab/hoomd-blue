@@ -24,6 +24,6 @@ hipError_t gpu_compute_sq_density_forces(const tersoff_args_t& pair_args,
 
 //! Compute RevCross forces on the GPU with EvaluatorRevCross
 hipError_t gpu_compute_revcross_forces(const tersoff_args_t& pair_args,
-                                       const revcross_params *d_params);
+                                       const EvaluatorRevCross::param_type *d_params);
 
 #endif
