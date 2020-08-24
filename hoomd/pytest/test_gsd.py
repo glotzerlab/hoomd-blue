@@ -24,12 +24,10 @@ def gsd_snapshot(lattice_snapshot_factory):
     snap = lattice_snapshot_factory(particle_types=particle_types,
                                     n=10, a=2.0, r=0.01)
     gsd_snap = _make_gsd_snapshot(snap)
-    max_val, min_val = 1, -1
-    range_size = (max_val - min_val)  # 2
-    positions = np.random.rand(len(gsd_snap.particles), 3) * range_size + min_val
+    positions = np.random.rand(len(gsd_snap.particles), 3) * 2 - 1
     positions *= 20
-    velocities = np.random.rand(len(gsd_snap.particles), 3) * range_size + min_val
-    accelerations = np.random.rand(len(gsd_snap.particles), 3) * range_size + min_val
+    velocities = np.random.rand(len(gsd_snap.particles), 3) * 2 - 1
+    accelerations = np.random.rand(len(gsd_snap.particles), 3) * 2 - 1
 
     gsd_snap.particles.position[:] = positions
     gsd_snap.particles.velocities[:] = velocities
@@ -37,7 +35,8 @@ def gsd_snapshot(lattice_snapshot_factory):
     gsd_snap.particles.mass[:] = np.random.rand(len(gsd_snap.particles))
     gsd_snap.particles.charge[:] = np.random.rand(len(gsd_snap.particles))
     gsd_snap.particles.diameter[:] = np.random.rand(len(gsd_snap.particles))
-    gsd_snap.particles.image[:] = np.random.randint(1, 100, (len(gsd_snap.particles), 3))
+    gsd_snap.particles.image[:] = np.random.randint(1, 100,
+                                                    (len(gsd_snap.particles), 3))
     gsd_snap.particles.types = ['p1', 'p2']
     gsd_snap.particles.typeid = np.random.randint(0, 2, len(gsd_snap.particles))
 
@@ -87,7 +86,8 @@ def test_dump(simulation_factory, lattice_snapshot_factory, tmp_path):
     d = tmp_path / "sub"
     d.mkdir()
     filename = d / "temporary_test_file.gsd"
-    gsd_dump = hoomd.dump(filename, hoomd.PeriodicTrigger(1))
-    sim.operations += gsd_dump
+    trigger = hoomd.trigger.Periodic(1)
+    gsd_dump = hoomd.dump.GSD(filename, trigger)
+    sim.operations.add(gsd_dump)
     sim.operations.schedule()
     sim.run(1)
