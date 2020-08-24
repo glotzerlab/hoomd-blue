@@ -32,15 +32,9 @@ import time
 import hoomd
 from hoomd import _hoomd
 
-class _device(hoomd.meta._metadata):
+class _device():
 
     def __init__(self, communicator, notice_level, msg_file, shared_msg_file):
-
-        # metadata stuff
-        hoomd.meta._metadata.__init__(self)
-        self.metadata_fields = ['gpu_ids', 'mode', 'num_ranks']
-        if _hoomd.is_TBB_available():
-            self.metadata_fields.append('num_threads')
 
         # check shared_msg_file
         if shared_msg_file is not None:
