@@ -1190,7 +1190,7 @@ class Moliere(_Pair):
     - :math:`a_F` - *aF* - :math:`a_F = \frac{0.8853 a_0}{\left( \sqrt{Z_i} + \sqrt{Z_j} \right)^{2/3}}`, where :math:`a_0` is the Bohr radius (in distance units)
 
     See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use ``params`` property to set potential coefficients.
+    Use ``params`` dictionary to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
@@ -1252,7 +1252,7 @@ class ZBL(_Pair):
     - :math:`a_F` - *aF* - :math:`a_F = \frac{0.8853 a_0}{ Z_i^{0.23} + Z_j^{0.23} }`, where :math:`a_0` is the Bohr radius (in distance units)
 
     See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use ``params`` property to set potential coefficients.
+    Use ``params`` dictionary to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
