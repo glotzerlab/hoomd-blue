@@ -167,4 +167,3 @@ def test_gsd_snapshot(hoomd_snapshot, device, tmp_path):
                     att2 = getattr(snap2, inner_attr)
                     np.testing.assert_allclose(att1,
                                                att2)
-    assert False
