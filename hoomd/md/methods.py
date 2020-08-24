@@ -65,10 +65,8 @@ class NVT(_Method):
     Examples::
 
         all = filter.All()
-        integrate.NVT(filter=all, kT=1.0, tau=0.5)
-        integrator = integrate.NVT(filter=all, tau=1.0, kT=0.65)
-        typeA = filter.Type('A')
-        integrator = integrate.NVT(filter=typeA, tau=1.0, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
+        nvt=hoomd.md.methods.NVT(filter=all, kT=1.0, tau=0.5)
+        integrator = hoomd.md.Integrator(dt=0.005, methods=[nvt], forces=[lj])
     """
 
     def __init__(self, filter, kT, tau):
@@ -553,122 +551,71 @@ class nph(npt):
         self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
 
 
-class nve(_Method):
+class NVE(_Method):
     R""" NVE Integration via Velocity-Verlet
 
     Args:
-        group (``hoomd.group``): Group of particles on which to apply this method.
+        filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply this
+            method.
         limit (bool): (optional) Enforce that no particle moves more than a distance of \a limit in a single time step
         zero_force (bool): When set to true, particles in the \a group are integrated forward in time with constant
           velocity and any net force on them is ignored.
 
 
-    :py:class:`nve` performs constant volume, constant energy simulations using the standard
+    :py:class:`NVE` performs constant volume, constant energy simulations using the standard
     Velocity-Verlet method. For poor initial conditions that include overlapping atoms, a
     limit can be specified to the movement a particle is allowed to make in one time step.
     After a few thousand time steps with the limit set, the system should be in a safe state
     to continue with unconstrained integration.
 
-    Another use-case for :py:class:`nve` is to fix the velocity of a certain group of particles. This can be achieved by
+    Another use-case for :py:class:`NVE` is to fix the velocity of a certain group of particles. This can be achieved by
     setting the velocity of those particles in the initial condition and setting the *zero_force* option to True
-    for that group. A True value for *zero_force* causes integrate.nve to ignore any net force on each particle and
+    for that group. A True value for *zero_force* causes integrate.NVE to ignore any net force on each particle and
     integrate them forward in time with a constant velocity.
 
     Note:
         With an active limit, Newton's third law is effectively **not** obeyed and the system
-        can gain linear momentum. Activate the :py:class:`hoomd.md.update.zero_momentum` updater during the limited nve
+        can gain linear momentum. Activate the :py:class:`hoomd.md.update.zero_momentum` updater during the limited NVE
         run to prevent this.
 
-    :py:class:`nve` is an integration method. It must be used with ``mode_standard``.
+    :py:class:`NVE` is an integration method. It must be used with ``mode_standard``.
 
     A :py:class:`hoomd.compute.thermo` is automatically specified and associated with *group*.
 
     Examples::
 
-        all = group.all()
-        integrate.nve(group=all)
-        integrator = integrate.nve(group=all)
-        typeA = group.type('A')
-        integrate.nve(group=typeA, limit=0.01)
-        integrate.nve(group=typeA, zero_force=True)
+        all = hoomd.filter.All()
+        nve = hoomd.md.methods.NVE(filter=all)
+        nve = hoomd.md.methods.NVE(filter=all, limit=0.01)
+        nve = hoomd.md.methods.NVE(filter=all, zero_force=True)
+        integrator = hoomd.md.Integrator(dt=0.005, methods=[nve], forces=[lj])
 
     """
-    def __init__(self, group, limit=None, zero_force=False):
-
-        # initialize base class
-        _Method.__init__(self)
-
-        # create the compute thermo
-        hoomd.compute._get_unique_thermo(group=group)
-
-        # initialize the reflected c++ class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_method = _md.TwoStepNVE(hoomd.context.current.system_definition, group.cpp_group, False)
-        else:
-            self.cpp_method = _md.TwoStepNVEGPU(hoomd.context.current.system_definition, group.cpp_group)
-
-        # set the limit
-        if limit is not None:
-            self.cpp_method.setLimit(limit)
-
-        self.cpp_method.setZeroForce(zero_force)
-
-        self.cpp_method.validateGroup()
+    def __init__(self, filter, limit=None):
 
         # store metadata
-        self.group = group
-        self.limit = limit
-        self.metadata_fields = ['group', 'limit']
+        param_dict = ParameterDict(
+            filter=_ParticleFilter,
+            limit=OnlyType(float, allow_none=True),
+            zero_force=OnlyType(bool, allow_none=False),
+        )
+        param_dict.update(dict(filter=filter, limit=limit, zero_force=False))
 
-    def set_params(self, limit=None, zero_force=None):
-        R""" Changes parameters of an existing integrator.
+        # set defaults
+        self._param_dict.update(param_dict)
 
-        Args:
-            limit (bool): (if set) New limit value to set. Removes the limit if limit is False
-            zero_force (bool): (if set) New value for the zero force option
+    def attach(self, simulation):
 
-        Examples::
+        # initialize the reflected c++ class
+        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+            self._cpp_obj = _md.TwoStepNVE(simulation.state._cpp_sys_def,
+                                        simulation.state.get_group(self.filter), False)
+        else:
+            self._cpp_obj = _md.TwoStepNVEGPU(simulation.state._cpp_sys_def, 
+                                 simulation.state.get_group(self.filter))
 
-            integrator.set_params(limit=0.01)
-            integrator.set_params(limit=False)
-        """
-        self.check_initialization()
-
-        # change the parameters
-        if limit is not None:
-            if limit == False:
-                self.cpp_method.removeLimit()
-            else:
-                self.cpp_method.setLimit(limit)
-            self.limit = limit
-
-        if zero_force is not None:
-            self.cpp_method.setZeroForce(zero_force)
-
-    def randomize_velocities(self, kT, seed):
-        R""" Assign random velocities and angular momenta to particles in the
-        group, sampling from the Maxwell-Boltzmann distribution. This method
-        considers the dimensionality of the system and particle anisotropy, and
-        removes drift (the center of mass velocity).
-
-        .. versionadded:: 2.3
-
-        Args:
-            kT (float): Temperature (in energy units)
-            seed (int): Random number seed
-
-        Note:
-            Randomization is applied at the start of the next call to ```hoomd.run```.
-
-        Example::
-
-            integrator = md.integrate.nve(group=group.all())
-            integrator.randomize_velocities(kT=1.0, seed=42)
-            run(100)
-
-        """
-        self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
-
+        # Attach param_dict and typeparam_dict
+        super().attach(simulation)
 
 class Langevin(_Method):
     R""" Langevin dynamics.
@@ -730,7 +677,7 @@ class Langevin(_Method):
     assumption is valid when underdamped: :math:`\frac{m}{\gamma} \gg \delta t`.
     Use :py:class:`brownian` if your system is not underdamped.
 
-    :py:class:`Langevin` uses the same integrator as :py:class:`nve` with the
+    :py:class:`Langevin` uses the same integrator as :py:class:`NVE` with the
     additional force term :math:`- \gamma \cdot \vec{v} + \vec{F}_\mathrm{R}`.
     The random force :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random
     number distribution.

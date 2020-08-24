@@ -869,7 +869,7 @@ class DPD(_Pair):
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
 
-    To use the DPD thermostat, an :py:class:`hoomd.md.methods.nve` integrator must be applied to the system and
+    To use the DPD thermostat, an :py:class:`hoomd.md.methods.NVE` integrator must be applied to the system and
     the user must specify a temperature.  Use of the dpd thermostat pair force with other integrators will result
     in unphysical behavior. To use pair.dpd with a different conservative potential than :math:`F_C`,
     set A to zero and define the conservative pair potential separately.  Note that DPD thermostats
@@ -1047,7 +1047,7 @@ class DPDLJ(_Pair):
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
 
-    To use the DPD thermostat, an :py:class:`hoomd.md.methods.nve` integrator must be applied to the system and
+    To use the DPD thermostat, an :py:class:`hoomd.md.methods.NVE` integrator must be applied to the system and
     the user must specify a temperature.  Use of the dpd thermostat pair force with other integrators will result
     in unphysical behavior.
 

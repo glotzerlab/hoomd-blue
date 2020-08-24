@@ -104,7 +104,7 @@ class Integrator(_DynamicIntegrator):
 
     - :py:class:`hoomd.md.methods.brownian`
     - :py:class:`hoomd.md.methods.Langevin`
-    - :py:class:`hoomd.md.methods.nve`
+    - ``hoomd.md.methods.NVE``
     - :py:class:`hoomd.md.methods.NVT`
     - :py:class:`hoomd.md.methods.npt`
     - :py:class:`hoomd.md.methods.nph`
