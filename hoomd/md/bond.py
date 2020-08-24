@@ -50,9 +50,6 @@ class _Bond(_Force):
 class Harmonic(_Bond):
     R""" Harmonic bond potential.
 
-    Args:
-        name (str): Name of the bond instance.
-
     :py:class:`Harmonic` specifies a harmonic potential energy between the two
     particles in each defined bond.
 
@@ -63,10 +60,22 @@ class Harmonic(_Bond):
     where :math:`\vec{r}` is the vector pointing from one particle to the other
     in the bond.
 
-    Coefficients:
+    Attributes:
+        params (TypeParameter[``bond type``, dict]):
+            The parameter of the harmonic bonds for each particle type. 
+            The dictionary has the following keys: 
 
-    - :math:`k` - force constant ``k`` (in units of energy/distance^2)
-    - :math:`r_0` - bond rest length ``r0`` (in distance units)
+            * ``k`` (`float`, **required**) - potential constant 
+              (in units of energy/distance^2)
+
+            * ``r0`` (`float`, **required**) - rest length 
+              (in units distance)
+
+    Examples::
+
+        harmonic = bond.Harmonic()
+        harmonic.params['polymer'] = dict(k=3.0, r0=2.38)
+        harmonic.params['backbone'] = dict(k=10.0, r0=1.0)
     """
     _cpp_class_name = "PotentialBondHarmonic"
     def __init__(self):
@@ -78,9 +87,6 @@ class Harmonic(_Bond):
 
 class FENE(_Bond):
     R""" FENE bond potential.
-
-    Args:
-        name (str): Name of the bond instance.
 
     :py:class:`FENE` specifies a FENE potential energy between the two particles
     in each defined bond.
@@ -106,15 +112,29 @@ class FENE(_Bond):
                                & r-\Delta \ge 2^{\frac{1}{6}}\sigma
         \end{eqnarray*}
 
-    Coefficients:
+    Attributes:
+        params (TypeParameter[``bond type``, dict]):
+            The parameter of the FENE potential bonds. 
+            The dictionary has the following keys: 
 
-    - :math:`k` - attractive force strength ``k`` (in units of
-        energy/distance^2)
-    - :math:`r_0` - size parameter ``r0`` (in distance units)
-    - :math:`\varepsilon` - repulsive force strength ``epsilon`` (in energy
-        units)
-    - :math:`\sigma` - repulsive force interaction distance ``sigma`` (in
-        distance units)
+            * ``k`` (`float`, **required**) - attractive force strength
+              (in units of energy/distance^2)
+
+            * ``r0`` (`float`, **required**) - size parameter
+              (in units distance)
+
+            * ``epsilon`` (`float`, **required**) - repulsive force strength
+              (in units of energy)
+
+            * ``sigma`` (`float`, **required**) - repulsive force interaction distance
+              (in units of distance)
+
+    Examples::
+
+        bond_potential = bond.FENE()
+        bond_potential.params['molecule'] = dict(k=3.0, r0=2.38, epsilon=1.0, sigma=1.0)
+        bond_potential.params['backbone'] = dict(k=10.0, r0=1.0, epsilon=0.8, sigma=1.2)
+
     """
     _cpp_class_name = "PotentialBondFENE"
 
