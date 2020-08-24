@@ -281,31 +281,6 @@ class rigid(_ConstraintForce):
 
     Example that creates rigid rods::
 
-        # Place the type R central particles
-        uc = hoomd.lattice.unitcell(N = 1,
-                                    a1 = [10.8, 0,   0],
-                                    a2 = [0,    1.2, 0],
-                                    a3 = [0,    0,   1.2],
-                                    dimensions = 3,
-                                    position = [[0,0,0]],
-                                    type_name = ['R'],
-                                    mass = [1.0],
-                                    moment_inertia = [[0,
-                                                       1/12*1.0*8**2,
-                                                       1/12*1.0*8**2]],
-                                    orientation = [[1, 0, 0, 0]])
-        system = hoomd.init.create_lattice(unitcell=uc, n=[2,18,18])
-
-        # Add constituent particles of type A and create the rods
-        system.particles.types.add('A')
-        rigid = hoomd.md.constrain.rigid()
-        rigid.set_param('R',
-                        types=['A']*8,
-                        positions=[(-4,0,0),(-3,0,0),(-2,0,0),(-1,0,0),
-                                   (1,0,0),(2,0,0),(3,0,0),(4,0,0)])
-
-        rigid.create_bodies()
-
     .. danger:: Automatic creation of constituent particles can change particle tags. If bonds have been defined between
         particles in the initial configuration, or bonds connect to constituent particles, rigid bodies should be
         created manually.
