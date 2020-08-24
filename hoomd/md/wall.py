@@ -705,7 +705,7 @@ class gauss(wallpotential):
         name (str): The force name which will be used in the metadata and log files.
 
     Wall force evaluated using the Gaussian potential.
-    See :py:class:`hoomd.md.pair.gauss` for force details and base parameters and :py:class:`wallpotential` for
+    See :py:class:`hoomd.md.pair.Gauss` for force details and base parameters and :py:class:`wallpotential` for
     generalized wall potential implementation
 
     Example::
@@ -753,10 +753,10 @@ class slj(wallpotential):
 
     Wall force evaluated using the Shifted Lennard-Jones potential.
     Note that because slj is dependent upon particle diameters the following
-    correction is necessary to the force details in the :py:class:`hoomd.md.pair.slj` description.
+    correction is necessary to the force details in the :py:class:`hoomd.md.pair.SLJ` description.
 
     :math:`\Delta = d_i/2 - 1` where :math:`d_i` is the diameter of particle :math:`i`.
-    See :py:class:`hoomd.md.pair.slj` for force details and base parameters and :py:class:`wallpotential` for
+    See :py:class:`hoomd.md.pair.SLJ` for force details and base parameters and :py:class:`wallpotential` for
     generalized wall potential implementation
 
     Example::
@@ -815,7 +815,7 @@ class yukawa(wallpotential):
         name (str): The force name which will be used in the metadata and log files.
 
     Wall force evaluated using the Yukawa potential.
-    See :py:class:`hoomd.md.pair.yukawa` for force details and base parameters and :py:class:`wallpotential` for
+    See :py:class:`hoomd.md.pair.Yukawa` for force details and base parameters and :py:class:`wallpotential` for
     generalized wall potential implementation
 
     Example::
@@ -862,7 +862,7 @@ class morse(wallpotential):
         name (str): The force name which will be used in the metadata and log files.
 
     Wall force evaluated using the Morse potential.
-    See :py:class:`hoomd.md.pair.morse` for force details and base parameters and :py:class:`wallpotential` for
+    See :py:class:`hoomd.md.pair.Morse` for force details and base parameters and :py:class:`wallpotential` for
     generalized wall potential implementation
 
     Example::
@@ -912,7 +912,7 @@ class force_shifted_lj(wallpotential):
         name (str): The force name which will be used in the metadata and log files.
 
     Wall force evaluated using the Force-shifted Lennard-Jones potential.
-    See :py:class:`hoomd.md.pair.force_shifted_lj` for force details and base parameters and :py:class:`wallpotential`
+    See :py:class:`hoomd.md.pair.ForceShiftedLJ` for force details and base parameters and :py:class:`wallpotential`
     for generalized wall potential implementation.
 
     Example::
@@ -965,7 +965,7 @@ class mie(wallpotential):
         name (str): The force name which will be used in the metadata and log files.
 
     Wall force evaluated using the Mie potential.
-    See :py:class:`hoomd.md.pair.mie` for force details and base parameters and :py:class:`wallpotential` for
+    See :py:class:`hoomd.md.pair.Mie` for force details and base parameters and :py:class:`wallpotential` for
     generalized wall potential implementation
 
     Example::

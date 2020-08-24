@@ -47,7 +47,39 @@ class EvaluatorPairReactionField
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar3 param_type;
+        struct param_type
+            {
+            // potential parameters
+            Scalar eps, eps_rf;
+            bool use_charge;
+
+            #ifdef ENABLE_HIP
+            // set CUDA memory hints
+            void set_memory_hint() const {}
+            #endif
+
+            #ifndef __HIPCC__
+            param_type() : eps(0), eps_rf(0), use_charge(false) {}
+
+            param_type(pybind11::dict v)
+                {
+                eps = v["epsilon"].cast<Scalar>();
+                eps_rf = v["eps_rf"].cast<Scalar>();
+                use_charge = v["use_charge"].cast<bool>();
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+                v["epsilon"] = eps;
+                v["eps_rf"] = eps_rf;
+                v["use_charge"] = use_charge;
+
+                return v;
+                }
+            #endif
+            }
+            __attribute((aligned(16)));
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
@@ -55,7 +87,7 @@ class EvaluatorPairReactionField
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairReactionField(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), epsilon(_params.x), epsrf(_params.y), use_charge(__scalar_as_int(_params.z)), qiqj(1.0)
+            : rsq(_rsq), rcutsq(_rcutsq), epsilon(_params.eps), epsrf(_params.eps_rf), use_charge(_params.use_charge), qiqj(1.0)
             {
             }
 

@@ -40,7 +40,7 @@ class pppm(force._force):
 
     :py:class:`pppm` specifies **both** the long-ranged **and** short range parts of the electrostatic
     force should be computed between all charged particles in the simulation. In other words, :py:class:`pppm`
-    initializes and sets all parameters for its own :py:class:`hoomd.md.pair.ewald`, so do not specify an additional one.
+    initializes and sets all parameters for its own :py:class:`hoomd.md.pair.Ewald`, so do not specify an additional one.
 
     The command supports additional screening of interactions, according to the Ewald summation for Yukawa potentials.
     This is useful if one wants to compute a screened interaction (i.e. a solution to the linearized Poisson-Boltzmann

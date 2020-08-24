@@ -13,7 +13,7 @@ md.integrate
     Langevin
     npt
     nph
-    nve
+    NVE
     NVT
 
 

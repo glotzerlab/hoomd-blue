@@ -9,7 +9,7 @@ _Operation is inherented by almost all other HOOMD objects.
 _TriggeredOperation is _Operation for objects that are triggered.
 """
 
-from hoomd.util import is_iterable, dict_map, str_to_tuple_keys
+from hoomd.util import is_iterable, dict_map, dict_filter, str_to_tuple_keys
 from hoomd.trigger import Trigger
 from hoomd.variant import Variant, Constant
 from hoomd.filter import _ParticleFilter
@@ -27,9 +27,9 @@ class NotAttachedError(RuntimeError):
     pass
 
 
-def convert_values_to_log_form(value):
+def _convert_values_to_log_form(value):
     if value is RequiredArg:
-        return (None, 'scalar')
+        return RequiredArg
     elif isinstance(value, Variant):
         if isinstance(value, Constant):
             return (value.value, 'scalar')
@@ -161,7 +161,6 @@ class _Operation(_HOOMDGetSetAttrBase, metaclass=Loggable):
                 raise AttributeError("{} cannot be set after cpp"
                                      " initialization".format(attr))
 
-
     def __eq__(self, other):
         other_keys = set(other.__dict__.keys())
         for key in self.__dict__.keys():
@@ -178,13 +177,14 @@ class _Operation(_HOOMDGetSetAttrBase, metaclass=Loggable):
             self.notify_detach(self._simulation)
 
     def detach(self):
-        self._unapply_typeparam_dict()
-        self._update_param_dict()
-        self._cpp_obj = None
-        if hasattr(self, '_simulation'):
-            self.notify_detach(self._simulation)
-            del self._simulation
-        return self
+        if self.is_attached:
+            self._unapply_typeparam_dict()
+            self._update_param_dict()
+            self._cpp_obj = None
+            if hasattr(self, '_simulation'):
+                self.notify_detach(self._simulation)
+                del self._simulation
+            return self
 
     def add_dependent(self, obj):
         self._dependent_list.append(obj)
@@ -250,8 +250,9 @@ class _Operation(_HOOMDGetSetAttrBase, metaclass=Loggable):
     def state(self):
         self._update_param_dict()
         state = self._typeparam_states()
-        state['params'] = dict(self._param_dict)
-        return dict_map(state, convert_values_to_log_form)
+        state['__params__'] = dict(self._param_dict)
+        return dict_filter(dict_map(state, _convert_values_to_log_form),
+                           lambda x: x is not RequiredArg)
 
     @classmethod
     def from_state(cls, state, final_namespace=None, **kwargs):
@@ -321,16 +322,16 @@ class _Operation(_HOOMDGetSetAttrBase, metaclass=Loggable):
     def _from_state_with_state_dict(cls, state, **kwargs):
 
         # Initialize object using params from state and passed arguments
-        params = state['params']
+        params = state.get('__params__', {})
         params.update(kwargs)
         obj = cls(**params)
-        del state['params']
+        state.pop('__params__', None)
 
         # Add typeparameter information
         for name, tp_dict in state.items():
-            if '__default' in tp_dict.keys():
-                obj._typeparam_dict[name].default = tp_dict['__default']
-                del tp_dict['__default']
+            if '__default__' in tp_dict.keys():
+                obj._typeparam_dict[name].default = tp_dict['__default__']
+                del tp_dict['__default__']
             # Parse the stringified tuple back into tuple
             if obj._typeparam_dict[name]._len_keys > 1:
                 tp_dict = str_to_tuple_keys(tp_dict)

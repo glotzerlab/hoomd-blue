@@ -934,7 +934,6 @@ template<class T> void GPUArray<T>::allocate()
     h_data = std::unique_ptr<T, hoomd::detail::host_deleter<T> >(reinterpret_cast<T *>(host_ptr), host_deleter);
 
 #if defined (ENABLE_HIP)
-    assert(!d_data);
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
         // allocate and/or map host memory

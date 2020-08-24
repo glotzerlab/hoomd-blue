@@ -2,7 +2,9 @@
 set(files __init__.py
     test_active.py
     test_flags.py
+    test_pair.py
     test_methods.py
+    forces_and_energies.json
     )
 
 install(FILES ${files}

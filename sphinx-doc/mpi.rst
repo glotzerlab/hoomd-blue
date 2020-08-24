@@ -152,7 +152,7 @@ on a regular 3d grid but non-uniform widths can be constructed using
 :py:class:`hoomd.comm.decomposition`. Here, either the number of processors in a uniform
 decomposition or the fractional widths of :math:`n-1` domains can be set. Dynamic load balancing can be applied
 to any domain decomposition either one time or periodically throughout the simulation using
-``hoomd.tuner.LoadBalancer``. The domain boundaries are adjusted to attempt to place an
+``hoomd.tune.LoadBalancer``. The domain boundaries are adjusted to attempt to place an
 equal number of particles on each rank. The overhead from periodically updating the domain boundaries is reasonably
 small, so most simulations with non-uniform particle distributions will benefit from periodic dynamic load balancing.
 
