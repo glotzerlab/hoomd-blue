@@ -82,7 +82,19 @@ class BoxMC(_Updater):
                                            int(self.seed));
         super().attach(simulation)
 
-    def get_volume_acceptance(self):
+
+    @property
+    def counter(self):
+        R"""
+
+        """
+        if not self.is_attached:
+            return None
+        else:
+            return self._cpp_obj.getCounters(1)
+
+    @log(flag="sequence")
+    def volume_moves(self):
         R""" Get the average acceptance ratio for volume changing moves.
 
         Returns:
@@ -97,10 +109,14 @@ class BoxMC(_Updater):
             v_accept = box_update.get_volume_acceptance()
 
         """
-        counters = self.cpp_updater.getCounters(1);
-        return counters.getVolumeAcceptance();
+        counter = self.counter
+        if counter is None:
+            return (0.0, 0.0)
+        else:
+            return counter.volume
 
-    def get_ln_volume_acceptance(self):
+    @log(flag="sequence")
+    def ln_volume_moves(self):
         R""" Get the average acceptance ratio for log(V) changing moves.
 
         Returns:
@@ -115,10 +131,14 @@ class BoxMC(_Updater):
             v_accept = box_update.get_ln_volume_acceptance()
 
         """
-        counters = self.cpp_updater.getCounters(1);
-        return counters.getLogVolumeAcceptance();
+        counter = self.counter
+        if counter is None:
+            return (0.0, 0.0)
+        else:
+            return counter.ln_volume
 
-    def get_shear_acceptance(self):
+    @log(flag="sequence")
+    def shear_moves(self):
         R"""  Get the average acceptance ratio for shear changing moves.
 
         Returns:
@@ -133,12 +153,14 @@ class BoxMC(_Updater):
             s_accept = box_update.get_shear_acceptance()
 
         """
-        counters = self.cpp_updater.getCounters(1);
-        return counters.getShearAcceptance();
-        counters = self.cpp_updater.getCounters(1);
-        return counters.getShearAcceptance();
+        counter = self.counter
+        if counter is None:
+            return (0.0, 0.0)
+        else:
+            return counter.shear
 
-    def get_aspect_acceptance(self):
+    @log(flag="sequence")
+    def aspect_moves(self):
         R"""  Get the average acceptance ratio for aspect changing moves.
 
         Returns:
@@ -153,28 +175,11 @@ class BoxMC(_Updater):
             a_accept = box_update.get_aspect_acceptance()
 
         """
-        counters = self.cpp_updater.getCounters(1);
-        return counters.getAspectAcceptance();
-        counters = self.cpp_updater.getCounters(1);
-        return counters.getAspectAcceptance();
-
-    def enable(self):
-        R""" Enables the updater.
-
-        Example::
-
-            box_updater.set_params(isotropic=True)
-            run(1e5)
-            box_updater.disable()
-            update.box_resize(dLy = 10)
-            box_updater.enable()
-            run(1e5)
-
-        See updater base class documentation for more information
-        """
-        self.cpp_updater.computeAspectRatios();
-        _updater.enable(self);
-
+        counter = self.counter
+        if counter is None:
+            return (0.0, 0.0)
+        else:
+            return counter.aspect
 
 class wall(_updater):
     R""" Apply wall updates with a user-provided python callback.
