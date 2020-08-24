@@ -1166,9 +1166,10 @@ class Moliere(_Pair):
     R""" Moliere pair potential.
 
     Args:
-        r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        name (str): Name of the force instance.
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): energy shifting/smoothing mode.
 
     :py:class:`Moliere` specifies that a Moliere type pair potential should be applied between every
     non-excluded particle pair in the simulation.
@@ -1227,9 +1228,10 @@ class ZBL(_Pair):
     R""" ZBL pair potential.
 
     Args:
-        r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        name (str): Name of the force instance.
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): energy shifting/smoothing mode.
 
     :py:class:`ZBL` specifies that a Ziegler-Biersack-Littmark pair potential should be applied between every
     non-excluded particle pair in the simulation.
