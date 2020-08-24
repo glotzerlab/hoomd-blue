@@ -816,11 +816,11 @@ class DPD(_Pair):
     R""" Dissipative Particle Dynamics.
 
     Args:
-        r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of thermostat (in energy units).
         seed (int): seed for the PRNG in the DPD thermostat.
-        name (str): Name of the force instance.
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
 
     :py:class:`DPD` specifies that a DPD pair force should be applied between every
     non-excluded particle pair in the simulation, including an interaction potential,
@@ -867,7 +867,7 @@ class DPD(_Pair):
     details in HOOMD-blue. Cite it if you utilize the DPD functionality in your work.
 
     :py:class:`DPD` does not implement and energy shift / smoothing modes due to the function of the force.
-    Use ``coeff.set`` to set potential coefficients.
+    Use ``params`` dictionary to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
@@ -884,15 +884,13 @@ class DPD(_Pair):
 
     Example::
 
-        nl = nlist.cell()
-        dpd = pair.dpd(r_cut=1.0, nlist=nl, kT=1.0, seed=0)
-        dpd.pair_coeff.set('A', 'A', A=25.0, gamma = 4.5)
-        dpd.pair_coeff.set('A', 'B', A=40.0, gamma = 4.5)
-        dpd.pair_coeff.set('B', 'B', A=25.0, gamma = 4.5)
-        dpd.pair_coeff.set(['A', 'B'], ['C', 'D'], A=12.0, gamma = 1.2)
-        dpd.set_params(kT = 1.0)
-        integrate.mode_standard(dt=0.02)
-        integrate.nve(group=group.all())
+        nl = nlist.Cell()
+        dpd = pair.DPD(nlist=nl, kT=1.0, seed=0,r_cut=1.0)
+        dpd.params[('A', 'A')] = dict(A=25.0, gamma = 4.5)
+        dpd.params[('A', 'B')] = dict(A=40.0, gamma = 4.5)
+        dpd.params[('B', 'B')] = dict(A=25.0, gamma = 4.5)
+        nve = methods.NVE(filter=all)
+        integrator = Integrator(dt=0.005, methods=[nve], forces=[dpd])
 
     """
     _cpp_class_name = "PotentialPairDPDThermoDPD"
