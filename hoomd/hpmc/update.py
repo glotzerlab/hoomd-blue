@@ -962,7 +962,7 @@ class QuickCompress(_Updater):
     Note:
 
         When the `Simulation.run` loop ends after the requested number of steps,
-        the final system configuration ay include particle overlaps and the box
+        the final system configuration may include particle overlaps and the box
         size will be somewhere between the initial box and `target_box`.
 
     Warning:
