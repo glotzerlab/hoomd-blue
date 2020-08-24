@@ -264,17 +264,6 @@ You can group multiple MPI ranks into partitions, to simulate independent replic
 This sub-divides the total of 12 MPI ranks into four independent partitions, with
 to which 3 GPUs each are assigned.
 
-User options
-^^^^^^^^^^^^
-
-User defined options may be passed to a job script via ``--user`` and retrieved by calling ``hoomd.option.get_user()``. For example,
-if hoomd is executed with::
-
-    python script.py --gpu=2 --ignore-display-gpu --user="--N=5 --rho=0.5"
-
-then ``hoomd.option.get_user()`` will return ``['--N=5', '--rho=0.5']``, which is a format suitable for processing by standard
-tools such as :py:obj:`optparse`.
-
 Execution with CPU threads (Intel TBB support)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
