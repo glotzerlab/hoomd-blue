@@ -885,20 +885,15 @@ void export_UpdaterBoxMC(py::module& m)
                          std::shared_ptr<Variant>,
                          Scalar,
                          const unsigned int >())
-    .def("volume", &UpdaterBoxMC::volume)
-    .def("ln_volume", &UpdaterBoxMC::ln_volume)
-    .def("length", &UpdaterBoxMC::length)
-    .def("shear", &UpdaterBoxMC::shear)
-    .def("aspect", &UpdaterBoxMC::aspect)
+    .def_property("volume", &UpdaterBoxMC::getVolumeParams, &UpdaterBoxMC::setVolumeParams)
+    .def_property("ln_volume", &UpdaterBoxMC::getLogVolumeParams, &UpdaterBoxMC::setLogVolumeParams)
+    .def_property("length", &UpdaterBoxMC::getLengthParams, &UpdaterBoxMC::setLengthParams)
+    .def_property("shear", &UpdaterBoxMC::getShearParams, &UpdaterBoxMC::setShearParams)
+    .def_property("aspect", &UpdaterBoxMC::getAspectParams, &UpdaterBoxMC::setAspectParams)
     .def("printStats", &UpdaterBoxMC::printStats)
     .def("resetStats", &UpdaterBoxMC::resetStats)
     .def("getP", &UpdaterBoxMC::getP)
     .def("setP", &UpdaterBoxMC::setP)
-    .def("get_volume_delta", &UpdaterBoxMC::get_volume_delta)
-    .def("get_ln_volume_delta", &UpdaterBoxMC::get_ln_volume_delta)
-    .def("get_length_delta", &UpdaterBoxMC::get_length_delta)
-    .def("get_shear_delta", &UpdaterBoxMC::get_shear_delta)
-    .def("get_aspect_delta", &UpdaterBoxMC::get_aspect_delta)
 //    .def("getMoveRatio", &UpdaterBoxMC::getMoveRatio)
 //    .def("getReduce", &UpdaterBoxMC::getReduce)
 //    .def("getIsotropic", &UpdaterBoxMC::getIsotropic)
@@ -921,6 +916,43 @@ void export_UpdaterBoxMC(py::module& m)
     .def("getAspectAcceptance", &hpmc_boxmc_counters_t::getAspectAcceptance)
     .def("getNMoves", &hpmc_boxmc_counters_t::getNMoves)
     ;
+    }
+
+inline void export_hpmc_boxmc_counters(pybind11::module &m)
+    {
+    pybind11::class_< hpmc_boxmc_counters_t >(m, "hpmc_boxmc_counters_t")
+        .def_property_readonly("volume", [](const hpmc_boxmc_counters_t &a)
+                                              {
+                                              pybind11::list result;
+                                              result.append(a.volume_accept_count);
+                                              result.append(a.volume_reject_count);
+                                              return result;
+                                              }
+                              )
+        .def_property_readonly("ln_volume", [](const hpmc_boxmc_counters_t &a)
+                                                   {
+                                                   pybind11::list result;
+                                                   result.append(a.ln_volume_accept_count);
+                                                   result.append(a.ln_volume_reject_count);
+                                                   return result;
+                                                   }
+                              )
+        .def_property_readonly("aspect", [](const hpmc_boxmc_counters_t &a)
+                                            {
+                                            pybind11::list result;
+                                            result.append(a.aspect_accept_count);
+                                            result.append(a.aspect_reject_count);
+                                            return result;
+                                            }
+                              )
+        .def_property_readonly("shear", [](const hpmc_boxmc_counters_t &a)
+                                          {
+                                          pybind11::list result;
+                                          result.append(a.shear_accept_count);
+                                          result.append(a.shear_reject_count);
+                                          return result;
+                                          }
+        ;
     }
 
 } // end namespace hpmc

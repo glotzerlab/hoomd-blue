@@ -62,6 +62,21 @@ class UpdaterBoxMC : public Updater
             computeAspectRatios();
             };
 
+
+        pybind11::dict getVolumeParams()
+            {
+            pybind11::dict d;
+            d["weight"] = m_Volume_weight;
+            d["delta"] = m_Volume_delta;
+            return d;
+            }
+
+        void setVolumeParams(pybind11::dict d)
+            {
+            m_Volume_weight = d["weight"];
+            m_Volume_delta = d["delta"];
+            }
+
         //! Sets parameters for box volume moves
         /*! \param delta_lnV log of maximum relative size of volume change
             \param weight relative likelihood of volume move
@@ -75,6 +90,19 @@ class UpdaterBoxMC : public Updater
             computeAspectRatios();
             };
 
+        pybind11::dict getLogVolumeParams()
+            {
+            pybind11::dict d;
+            d["weight"] = m_lnVolume_weight;
+            d["delta"] = m_lnVolume_delta;
+            return d;
+            }
+
+        void setLogVolumeParams(pybind11::dict d)
+            {
+            m_lnVolume_weight = d["weight"];
+            m_lnVolume_delta = d["delta"];
+            }
 
         //! Sets parameters for box length moves
         /*! \param dLx Extent of length change distribution in first lattice vector for box resize moves
@@ -93,6 +121,25 @@ class UpdaterBoxMC : public Updater
             m_Length_weight = weight;
             };
 
+        pybind11::dict getLengthParams()
+            {
+            pybind11::dict d;
+            d["weight"] = m_Length_weight;
+            pybind11::list l;
+            l.append(m_Length_delta[0]);
+            l.append(m_Length_delta[1]);
+            l.append(m_Length_delta[2]);
+            d["delta"] = l;
+            return d;
+            }
+
+        void setLengthParams(pybind11::dict d)
+            {
+            m_Length_weight = d["weight"];
+            m_Length_delta[0] = d["delta"][0];
+            m_Length_delta[1] = d["delta"][1];
+            m_Length_delta[2] = d["delta"][2];
+            }
 
         //! Sets parameters for box shear moves
         /*! \param dxy Extent of shear parameter distribution for shear moves in x,y plane
@@ -117,6 +164,29 @@ class UpdaterBoxMC : public Updater
             m_Shear_weight = weight;
             };
 
+
+        pybind11::dict getShearParams()
+            {
+            pybind11::dict d;
+            d["weight"] = m_Shear_weight;
+            pybind11::list l;
+            l.append(m_Shear_delta[0]);
+            l.append(m_Shear_delta[1]);
+            l.append(m_Shear_delta[2]);
+            d["delta"] = l;
+            d["reduce"] = m_Shear_reduce;
+            return d;
+            }
+
+        void setShearParams(pybind11::dict d)
+            {
+            m_Shear_weight = d["weight"];
+            m_Shear_delta[0] = d["delta"][0];
+            m_Shear_delta[1] = d["delta"][1];
+            m_Shear_delta[2] = d["delta"][2];
+            m_Shear_reduce = d["reduce"];
+            }
+
         //! Sets parameters for box aspect moves
         /*! \param dA maximum relative aspect ratio change.
             \param weight relative likelihood of aspect move.
@@ -127,6 +197,20 @@ class UpdaterBoxMC : public Updater
             m_Aspect_delta = dA;
             m_Aspect_weight = weight;
             };
+
+        pybind11::dict getAspectParams()
+            {
+            pybind11::dict d;
+            d["weight"] = m_Aspect_weight;
+            d["delta"] = m_Aspect_delta;
+            return d;
+            }
+
+        void setAspectParams(pybind11::dict d)
+            {
+            m_Aspect_weight = d["weight"];
+            m_Aspect_delta = d["delta"];
+            }
 
         //! Calculate aspect ratios for use in isotropic volume changes
         void computeAspectRatios()
