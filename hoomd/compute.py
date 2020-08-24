@@ -29,9 +29,6 @@ class _compute:
     # Initializes the cpp_compute to None.
     # Assigns a name to the compute in compute_name
     def __init__(self):
-        # check if initialization has occurred
-        if not hoomd.init.is_initialized():
-            raise RuntimeError('Cannot create compute before initialization\n');
 
         self.cpp_compute = None;
 
