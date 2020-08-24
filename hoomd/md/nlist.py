@@ -53,13 +53,20 @@ from hoomd.logging import log
 
 
 class nlist:
+    R""" Base class Neighbor List
+
+    Methods provided as a baseclass for some functions that have yet to be migrated from HOOMDV2.
+    """
     pass
 
+# To Do: Migrate all hoomdv2 codes still using nlist to _NList
 
 class _NList(_Operation):
     R""" Base class neighbor list.
 
     Methods provided by this base class are available to all subclasses.
+
+
     """
 
     def __init__(self, buffer, exclusions, rebuild_check_delay,
@@ -119,10 +126,13 @@ class Cell(_NList):
 
     Args:
         buffer (float):  Buffer width.
-        exclusions (tuple): ...
+        exclusions (tuple): Set the parameter which excluded pairs from the
+            neighbor list, therefore excluding them from the pair potential
+            calculation. 
         rebuild_check_delay (int): How often to attempt to rebuild the neighbor
             list.
-        diameter_shift (bool): ...
+        diameter_shift (bool): Turns on dynamic shifting for the slj potential
+         otherwise it is turned off. 
         check_dist (bool): Flag to enable / disable distance checking.
         max_diameter (float): The maximum diameter a particle will achieve, only
             used in conjunction with slj diameter shifting.
