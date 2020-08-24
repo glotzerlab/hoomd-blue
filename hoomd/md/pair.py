@@ -1324,6 +1324,11 @@ class Tersoff(_Pair):
                 )
         self._add_typeparam(params)
 
+    def attach(self, sim):
+        super().attach(sim)
+        self.nlist._cpp_obj.setStorageMode(
+            _md.NeighborList.storageMode.full)
+
     def process_coeff(self, coeff):
         cutoff_d = coeff['cutoff_thickness'];
         C1 = coeff['C1'];
@@ -1442,6 +1447,10 @@ class RevCross(_Pair):
                                    lambda3=1.0, len_keys=2))
         self._add_typeparam(params)
 
+    def attach(self, sim):
+        super().attach(sim)
+        self.nlist._cpp_obj.setStorageMode(
+            _md.NeighborList.storageMode.full)
 
 class Mie(_Pair):
     R""" Mie pair potential.
@@ -2000,6 +2009,11 @@ class SquareDensity(_Pair):
                 'particle_types',
                 TypeParameterDict(A=0.0, B=float, len_keys=2))
         self._add_typeparam(params)
+
+    def attach(self, sim):
+        super().attach(sim)
+        self.nlist._cpp_obj.setStorageMode(
+            _md.NeighborList.storageMode.full)
 
 class Buckingham(_Pair):
     R""" Buckingham pair potential.
