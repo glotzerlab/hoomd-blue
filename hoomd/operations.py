@@ -99,7 +99,7 @@ class Operations:
             if op is not None:
                 op.attach(self._simulation)
         if old_ref is not None:
-            old_ref.notify_detach(self._simulation)
+            old_ref.notify_removal(self._simulation)
             old_ref.detach()
 
     @property
