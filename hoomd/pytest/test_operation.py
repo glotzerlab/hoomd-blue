@@ -120,7 +120,7 @@ def test_attached(full_op, attached):
 
 
 def test_detach(attached):
-    detached = attached.detach()
+    detached = attached._detach()
     assert detached.type_param['A'] == dict(foo=1, bar='world')
     assert detached.type_param['B'] == dict(foo=1, bar='hello')
     assert detached.param1 == 1

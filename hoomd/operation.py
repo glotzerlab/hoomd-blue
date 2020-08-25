@@ -404,7 +404,7 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
         else:
             self.notify_removal()
 
-    def detach(self):
+    def _detach(self):
         if self._attached:
             self._unapply_typeparam_dict()
             self._update_param_dict()
@@ -452,7 +452,7 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
 
     def _unapply_typeparam_dict(self):
         for typeparam in self._typeparam_dict.values():
-            typeparam.detach()
+            typeparam._detach()
 
     def _add_typeparam(self, typeparam):
         self._typeparam_dict[typeparam.name] = typeparam

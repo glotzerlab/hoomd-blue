@@ -31,7 +31,7 @@ def attached(typeparam):
 
 
 def test_detaching(attached):
-    return attached.detach()
+    return attached._detach()
 
 
 @fixture(scope='function')

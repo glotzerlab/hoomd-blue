@@ -65,7 +65,7 @@ class SyncedList:
             if self._attached:
                 self._synced_list[index] = \
                     self._to_synced_list_conversion(value)
-                self._list[index].detach()
+                self._list[index]._detach()
             self._list[index] = value
 
     def __getitem__(self, index):
@@ -92,7 +92,7 @@ class SyncedList:
             # manually call detach here.
             if self._attached:
                 del self._synced_list[index]
-                self._list[index].detach()
+                self._list[index]._detach()
             del self._list[index]
 
     @property
@@ -148,13 +148,13 @@ class SyncedList:
                 item._attach(simulation)
             self._synced_list.append(self._to_synced_list_conversion(item))
 
-    def detach(self):
+    def _detach(self):
         """Detach all items, clear _synced_list, and remove cpp references."""
         if self._attached:
             for index in range(len(self)):
                 del self._synced_list[0]
             for item in self:
-                item.detach()
+                item._detach()
             del self._simulation
             del self._synced_list
 

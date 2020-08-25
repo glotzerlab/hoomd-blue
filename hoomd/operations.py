@@ -62,10 +62,10 @@ class Operations:
         self._scheduled = True
 
     def unschedule(self):
-        self._integrator.detach()
-        self._analyzers.detach()
-        self._updaters.detach()
-        self._tuners.detach()
+        self._integrator._detach()
+        self._analyzers._detach()
+        self._updaters._detach()
+        self._tuners._detach()
         self._scheduled = False
 
     def _store_reader(self, reader):
@@ -100,7 +100,7 @@ class Operations:
                 op._attach(self._simulation)
         if old_ref is not None:
             old_ref.notify_removal(self._simulation)
-            old_ref.detach()
+            old_ref._detach()
 
     @property
     def updaters(self):

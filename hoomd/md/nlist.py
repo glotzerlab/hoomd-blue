@@ -179,9 +179,9 @@ class Cell(_NList):
                                   self.buffer, self._cpp_cell)
         super()._attach(simulation)
 
-    def detach(self):
+    def _detach(self):
         del self._cpp_cell
-        super().detach()
+        super()._detach()
 
 
 class stencil(nlist):

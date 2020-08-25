@@ -83,10 +83,10 @@ class _CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
         super()._attach(simulation)
         self._action.attach(simulation)
 
-    def detach(self):
+    def _detach(self):
         """Detaching from a `hoomd.Simulation`."""
         self._action.detach()
-        super().detach()
+        super()._detach()
 
     def act(self, timestep):
         """Perform the action of the custom action if attached.
@@ -130,6 +130,18 @@ class _InternalCustomOperation(
     attempted to be accessed directly.
     """
 
+    # These attributes are not accessible or able to be passed through to
+    # prevent leaky abstractions and help promote the illusion of a single
+    # object for cases of internal custom actions.
+    _disallowed_attrs = {'detach', 'attach', 'action'}
+
+    def __getattr__(self, attr):
+        if attr in self._disallowed_attrs:
+            raise AttributeError("{} object {} has not attribute {}.".format(
+                type(self), self, attr))
+        else:
+            return super().__getattr__(attr)
+
     @property
     @abstractmethod
     def _internal_class(self):
@@ -140,8 +152,3 @@ class _InternalCustomOperation(
         super().__init__(self._internal_class(*args, **kwargs), trigger)
         self._export_dict = {key: value.update_cls(self.__class__)
                              for key, value in self._export_dict.items()}
-
-    @property
-    def action(self):
-        """Prevents the access of action in public API."""
-        raise AttributeError

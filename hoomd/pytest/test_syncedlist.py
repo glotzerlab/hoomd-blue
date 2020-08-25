@@ -53,7 +53,7 @@ class OpInt(int):
     def _attached(self):
         return hasattr(self, '_cpp_obj')
 
-    def detach(self):
+    def _detach(self):
         del self._cpp_obj
 
 
@@ -123,7 +123,7 @@ def test_attaching(slist, op_list):
 def test_detach(slist, op_list):
     sync_list = []
     slist._attach(None, sync_list)
-    slist.detach()
+    slist._detach()
     assert len(sync_list) == 0
     assert all([not op._attached for op in slist])
     assert not hasattr(slist, "_synced_list")
