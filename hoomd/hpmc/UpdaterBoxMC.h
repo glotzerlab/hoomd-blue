@@ -229,13 +229,13 @@ class UpdaterBoxMC : public Updater
         //! Get pressure parameter
         /*! \returns pressure variant object
         */
-        std::shared_ptr<Variant> getP()
+        std::shared_ptr<Variant> getBetaP()
             {
             return m_P;
             }
 
         //! Set pressure parameter
-        void setP(const std::shared_ptr<Variant>& betaP)
+        void setBetaP(const std::shared_ptr<Variant>& betaP)
             {
             m_P = betaP;
             }
