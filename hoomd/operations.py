@@ -25,8 +25,11 @@ class Operations:
         self._tuners.append(ParticleSorter())
 
     def add(self, op):
-        if op in self:
-            return None
+        # calling _add is handled by the synced lists and integrator property.
+        # we raise this error here to provide a more clear error message.
+        if op._added:
+            raise RuntimeError(
+                "Operation cannot be added to twice to operation lists.")
         if isinstance(op, hoomd.integrate._BaseIntegrator):
             self.integrator = op
             return None
@@ -89,6 +92,9 @@ class Operations:
 
     @integrator.setter
     def integrator(self, op):
+        if op._added:
+            raise RuntimeError(
+                "Integrator cannot be added to twice to Operations objects.")
         if (not isinstance(op, hoomd.integrate._BaseIntegrator)
                 and op is not None):
             raise TypeError("Cannot set integrator to a type not derived "
@@ -97,10 +103,12 @@ class Operations:
         self._integrator = op
         if self._scheduled:
             if op is not None:
+                op._add(self._simulation)
                 op._attach(self._simulation)
         if old_ref is not None:
             old_ref._notify_disconnect(self._simulation)
             old_ref._detach()
+            old_ref._remove()
 
     @property
     def updaters(self):

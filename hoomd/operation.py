@@ -360,9 +360,10 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
     infrastructure for HOOMD-blue objects.
 
     This class's main features are handling attaching and detaching from
-    simulations. Attaching is the idea of creating a C++ object that is tied to
-    a given simulation while detaching is removing an object from its
-    simulation.
+    simulations and adding and removing from containing object such as methods
+    for MD integrators and updaters for the operations list. Attaching is the
+    idea of creating a C++ object that is tied to a given simulation while
+    detaching is removing an object from its simulation.
     """
     _reserved_default_attrs = {**_HOOMDGetSetAttrBase._reserved_default_attrs,
                                '_cpp_obj': lambda: None,
@@ -409,9 +410,7 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
             self._unapply_typeparam_dict()
             self._update_param_dict()
             self._cpp_obj = None
-            if hasattr(self, '_simulation'):
-                self._notify_disconnect(self._simulation)
-                del self._simulation
+            self._notify_disconnect(self._simulation)
             return self
 
     def _attach(self, simulation):
@@ -425,6 +424,17 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
     @property
     def _attached(self):
         return self._cpp_obj is not None
+
+    def _add(self, simulation):
+        print("calling add")
+        self._simulation = simulation
+
+    def _remove(self):
+        del self._simulation
+
+    @property
+    def _added(self):
+        return hasattr(self, '_simulation')
 
     def _apply_param_dict(self):
         for attr, value in self._param_dict.items():

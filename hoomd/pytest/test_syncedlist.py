@@ -4,7 +4,12 @@ from hoomd.operation import _Operation
 from hoomd.syncedlist import SyncedList
 
 
-def test_init():
+@fixture
+def op_list():
+    return [DummyOperation(), DummyOperation(), DummyOperation()]
+
+
+def test_init(op_list):
     def validate(x):
         return isinstance(x, DummyOperation)
 
@@ -25,18 +30,14 @@ def test_init():
 
     # Test full initialziation
     slist = SyncedList(validation_func=validate, to_synced_list=cpp_identity,
-                       iterable=[DummyOperation()] * 3)
+                       iterable=op_list)
     assert len(slist._list) == 3
+    assert all(op._added for op in slist)
 
 
 @fixture
 def slist_empty():
     return SyncedList(lambda x: isinstance(x, _Operation))
-
-
-@fixture
-def op_list():
-    return [DummyOperation(), DummyOperation(), DummyOperation()]
 
 
 @fixture
@@ -55,6 +56,16 @@ class OpInt(int):
 
     def _detach(self):
         del self._cpp_obj
+
+    def _add(self, simulation):
+        self._simulation = simulation
+
+    def _remove(self):
+        del self._simulation
+
+    @property
+    def _added(self):
+        return hasattr(self, '_simulation')
 
 
 @fixture
@@ -96,12 +107,15 @@ def test_attached(slist):
     assert slist._attached
 
 
-def test_value_attach(slist):
+def test_value_add_and_attach(slist):
     op = DummyOperation()
-    assert not slist._value_attach(op)._attached
+    assert not slist._value_add_and_attach(op)._attached
+    assert op._added
     slist._synced_list = []
     slist._simulation = DummySimulation()
-    assert slist._value_attach(op)._attached
+    op = DummyOperation()
+    assert slist._value_add_and_attach(op)._attached
+    assert op._added
 
 
 def test_validate_or_error(slist):
@@ -134,12 +148,14 @@ def test_delitem(slist):
     del slist[2]
     assert len(slist) == 2
     assert old_op not in slist
-    slist._list.append(old_op)
+    assert not old_op._added
+    slist.append(old_op)
     old_ops = slist[1:]
     del slist[1:]
     assert len(slist) == 1
-    assert all([old_op not in slist for old_op in old_ops])
-    slist._list.extend(old_ops)
+    assert all(old_op not in slist for old_op in old_ops)
+    assert all(not old_op._added for old_op in old_ops)
+    slist.extend(old_ops)
 
     # Tested attached
     sync_list = []
@@ -149,14 +165,14 @@ def test_delitem(slist):
     assert len(slist) == 2
     assert len(sync_list) == 2
     assert old_op not in slist
-    assert all([old_op is not op for op in sync_list])
+    assert all(old_op is not op for op in sync_list)
     assert not old_op._attached
+    assert not old_op._added
     old_ops = slist[1:]
     del slist[1:]
     assert len(slist) == 1
-    assert all([old_op not in slist for old_op in old_ops])
-    assert len(sync_list) == 1
-    assert all([old_op is not op for op in sync_list for old_op in old_ops])
+    assert all(old_op not in slist for old_op in old_ops)
+    assert all(not (old_op._added or old_op._attached) for old_op in old_ops)
 
 
 def test_setitem(slist, op_list):
@@ -167,6 +183,7 @@ def test_setitem(slist, op_list):
     new_op = DummyOperation()
     slist[1] = new_op
     assert new_op is slist[1]
+    assert new_op._added
 
     # Check when attached
     sync_list = []
@@ -174,8 +191,8 @@ def test_setitem(slist, op_list):
     new_op = DummyOperation()
     old_op = slist[1]
     slist[1] = new_op
-    assert not old_op._attached
-    assert new_op._attached
+    assert not (old_op._attached or old_op._added)
+    assert new_op._attached and new_op._added
     assert sync_list[1] is new_op
 
 

@@ -28,6 +28,7 @@ class SyncedList:
             to_synced_list = identity
         self._validate = validation_func
         self._to_synced_list_conversion = to_synced_list
+        self._simulation = None
         self._list = []
         if iterable is not None:
             for it in iterable:
@@ -66,6 +67,7 @@ class SyncedList:
                 self._synced_list[index] = \
                     self._to_synced_list_conversion(value)
                 self._list[index]._detach()
+            self._list[index]._remove()
             self._list[index] = value
 
     def __getitem__(self, index):
@@ -93,6 +95,7 @@ class SyncedList:
             if self._attached:
                 del self._synced_list[index]
                 self._list[index]._detach()
+            self._list[index]._remove()
             del self._list[index]
 
     @property
@@ -118,12 +121,15 @@ class SyncedList:
         if self._attached:
             yield from self._synced_list
 
-    def _value_attach(self, value):
+    def _value_add_and_attach(self, value):
         """Attaches value if unattached while raising error if already in list.
         """
+        if value._added:
+            raise RuntimeError("Object cannot be added to two lists.")
+        else:
+            value._add(self._simulation)
         if self._attached:
-            if not value._attached:
-                value._attach(self._simulation)
+            value._attach(self._simulation)
         return value
 
     def _validate_or_error(self, value):
@@ -132,7 +138,7 @@ class SyncedList:
         """
         try:
             if self._validate(value):
-                return self._value_attach(value)
+                return self._value_add_and_attach(value)
             else:
                 raise ValueError("Value {} could not be validated."
                                  "".format(value))
@@ -144,8 +150,8 @@ class SyncedList:
         self._simulation = simulation
         self._synced_list = synced_list
         for item in self:
-            if not item._attached:
-                item._attach(simulation)
+            item._add(simulation)
+            item._attach(simulation)
             self._synced_list.append(self._to_synced_list_conversion(item))
 
     def _detach(self):
