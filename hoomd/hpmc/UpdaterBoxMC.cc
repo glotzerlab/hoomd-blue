@@ -908,50 +908,44 @@ void export_UpdaterBoxMC(py::module& m)
     .def_readwrite("shear_reject_count", &hpmc_boxmc_counters_t::shear_reject_count)
     .def_readwrite("aspect_accept_count", &hpmc_boxmc_counters_t::aspect_accept_count)
     .def_readwrite("aspect_reject_count", &hpmc_boxmc_counters_t::aspect_reject_count)
+    .def_property_readonly("volume", [](const hpmc_boxmc_counters_t &a)
+                                          {
+                                          pybind11::list result;
+                                          result.append(a.volume_accept_count);
+                                          result.append(a.volume_reject_count);
+                                          return result;
+                                          }
+                          )
+    .def_property_readonly("ln_volume", [](const hpmc_boxmc_counters_t &a)
+                                               {
+                                               pybind11::list result;
+                                               result.append(a.ln_volume_accept_count);
+                                               result.append(a.ln_volume_reject_count);
+                                               return result;
+                                               }
+                          )
+    .def_property_readonly("aspect", [](const hpmc_boxmc_counters_t &a)
+                                        {
+                                        pybind11::list result;
+                                        result.append(a.aspect_accept_count);
+                                        result.append(a.aspect_reject_count);
+                                        return result;
+                                        }
+                          )
+    .def_property_readonly("shear", [](const hpmc_boxmc_counters_t &a)
+                                      {
+                                      pybind11::list result;
+                                      result.append(a.shear_accept_count);
+                                      result.append(a.shear_reject_count);
+                                      return result;
+                                      }
+                          )
     .def("getVolumeAcceptance", &hpmc_boxmc_counters_t::getVolumeAcceptance)
     .def("getLogVolumeAcceptance", &hpmc_boxmc_counters_t::getLogVolumeAcceptance)
     .def("getShearAcceptance", &hpmc_boxmc_counters_t::getShearAcceptance)
     .def("getAspectAcceptance", &hpmc_boxmc_counters_t::getAspectAcceptance)
     .def("getNMoves", &hpmc_boxmc_counters_t::getNMoves)
     ;
-    }
-
-inline void export_hpmc_boxmc_counters(pybind11::module &m)
-    {
-    pybind11::class_< hpmc_boxmc_counters_t >(m, "hpmc_boxmc_counters_t")
-        .def_property_readonly("volume", [](const hpmc_boxmc_counters_t &a)
-                                              {
-                                              pybind11::list result;
-                                              result.append(a.volume_accept_count);
-                                              result.append(a.volume_reject_count);
-                                              return result;
-                                              }
-                              )
-        .def_property_readonly("ln_volume", [](const hpmc_boxmc_counters_t &a)
-                                                   {
-                                                   pybind11::list result;
-                                                   result.append(a.ln_volume_accept_count);
-                                                   result.append(a.ln_volume_reject_count);
-                                                   return result;
-                                                   }
-                              )
-        .def_property_readonly("aspect", [](const hpmc_boxmc_counters_t &a)
-                                            {
-                                            pybind11::list result;
-                                            result.append(a.aspect_accept_count);
-                                            result.append(a.aspect_reject_count);
-                                            return result;
-                                            }
-                              )
-        .def_property_readonly("shear", [](const hpmc_boxmc_counters_t &a)
-                                          {
-                                          pybind11::list result;
-                                          result.append(a.shear_accept_count);
-                                          result.append(a.shear_reject_count);
-                                          return result;
-                                          }
-                              )
-        ;
     }
 
 } // end namespace hpmc
