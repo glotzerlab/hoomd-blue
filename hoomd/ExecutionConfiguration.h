@@ -78,11 +78,10 @@ struct PYBIND11_EXPORT ExecutionConfiguration
         {
         GPU,    //!< Execute on the GPU
         CPU,    //!< Execute on the CPU
-        AUTO,   //!< Auto select between GPU and CPU
         };
 
     //! Constructor
-    ExecutionConfiguration(executionMode mode=AUTO,
+    ExecutionConfiguration(executionMode mode=CPU,
                            std::vector<int> gpu_id = std::vector<int>(),
                            bool min_cpu=false,
                            bool ignore_display=false,

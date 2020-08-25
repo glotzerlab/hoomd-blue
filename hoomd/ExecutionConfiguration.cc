@@ -80,16 +80,6 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     scanGPUs(ignore_display);
     int dev_count = getNumCapableGPUs();
 
-    // auto select a mode
-    if (exec_mode == AUTO)
-        {
-        // if there are available GPUs, initialize them. Otherwise, default to running on the CPU
-        if (dev_count > 0)
-            exec_mode = GPU;
-        else
-            exec_mode = CPU;
-        }
-
     #ifdef __HIP_PLATFORM_NVCC__
     m_concurrent = exec_mode==GPU;
     #else
@@ -97,8 +87,6 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     #endif
 
     m_in_multigpu_block = false;
-
-    // now, exec_mode should be either CPU or GPU - proceed with initialization
 
     // initialize the GPU if that mode was requested
     if (exec_mode == GPU)
@@ -883,7 +871,6 @@ void export_ExecutionConfiguration(py::module& m)
     py::enum_<ExecutionConfiguration::executionMode>(executionconfiguration,"executionMode")
         .value("GPU", ExecutionConfiguration::executionMode::GPU)
         .value("CPU", ExecutionConfiguration::executionMode::CPU)
-        .value("AUTO", ExecutionConfiguration::executionMode::AUTO)
         .export_values()
     ;
     }
