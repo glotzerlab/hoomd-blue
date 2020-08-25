@@ -332,38 +332,6 @@ class UpdaterBoxMC : public Updater
         */
         void update_aspect(unsigned int timestep, hoomd::RandomGenerator& rng);
 
-        //! Get volume change parameter
-        const Scalar get_volume_delta() const
-            {
-            return m_volume_delta;
-            }
-
-        //! Get delta_lnV
-        const Scalar get_ln_volume_delta() const
-            {
-            return m_ln_volume_delta;
-            }
-
-
-        //! Get aspect ratio trial parameter
-        const Scalar get_aspect_delta() const
-            {
-            return m_aspect_delta;
-            }
-
-        //! Get box length trial parameters
-        pybind11::tuple get_length_delta() const
-            {
-            return pybind11::make_tuple(m_length_delta[0], m_length_delta[1], m_length_delta[2]);
-            }
-
-        //! Get box shear trial parameters
-        pybind11::tuple get_shear_delta() const
-            {
-            return pybind11::make_tuple(m_shear_delta[0], m_shear_delta[1], m_shear_delta[2]);
-            }
-
-
     private:
         std::shared_ptr<IntegratorHPMC> m_mc;     //!< HPMC integrator object
         std::shared_ptr<Variant> m_P;             //!< Reduced pressure in isobaric ensembles
