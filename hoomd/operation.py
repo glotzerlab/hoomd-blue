@@ -309,7 +309,7 @@ class _DependencyRelation:
             self._dependents.append(obj)
             obj._dependencies.append(self)
 
-    def _notify_removal(self, *args, **kwargs):
+    def _notify_disconnect(self, *args, **kwargs):
         """Notify that an object is being removed from all relationships.
 
         Notifies dependent object that it is being removed, and removes itself
@@ -400,9 +400,9 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
 
     def __del__(self):
         if self._attached and hasattr(self, '_simulation'):
-            self._notify_removal(self._simulation)
+            self._notify_disconnect(self._simulation)
         else:
-            self._notify_removal()
+            self._notify_disconnect()
 
     def _detach(self):
         if self._attached:
@@ -410,7 +410,7 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
             self._update_param_dict()
             self._cpp_obj = None
             if hasattr(self, '_simulation'):
-                self._notify_removal(self._simulation)
+                self._notify_disconnect(self._simulation)
                 del self._simulation
             return self
 
