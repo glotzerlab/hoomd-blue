@@ -75,7 +75,6 @@ class BoxMC(_Updater):
         self._cpp_obj = _hpmc.UpdaterBoxMC(simulation.state._cpp_sys_def,
                                            integrator._cpp_obj,
                                            self.betaP.cpp_variant,
-                                           trigger ,
                                            int(self.seed));
         super().attach(simulation)
 

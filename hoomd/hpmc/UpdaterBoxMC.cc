@@ -16,12 +16,10 @@ namespace hpmc
 UpdaterBoxMC::UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<IntegratorHPMC> mc,
                              std::shared_ptr<Variant> P,
-                             const Scalar frequency,
                              const unsigned int seed)
         : Updater(sysdef),
           m_mc(mc),
           m_P(P),
-          m_frequency(frequency),
           m_volume_delta(0.0),
           m_volume_weight(0.0),
           m_ln_volume_delta(0.0),

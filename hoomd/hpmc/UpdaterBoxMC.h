@@ -35,7 +35,6 @@ class UpdaterBoxMC : public Updater
         /*! \param sysdef System definition
             \param mc HPMC integrator object
             \param P Pressure times thermodynamic beta to apply in isobaric ensembles
-            \param frequency average number of box updates per particle super-move
             \param seed PRNG seed
 
             Variant parameters are possible, but changing MC parameters violates detailed balance.
@@ -43,7 +42,6 @@ class UpdaterBoxMC : public Updater
         UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
                       std::shared_ptr<IntegratorHPMC> mc,
                       std::shared_ptr<Variant> P,
-                      const Scalar frequency,
                       const unsigned int seed);
 
         //! Destructor
@@ -335,7 +333,6 @@ class UpdaterBoxMC : public Updater
     private:
         std::shared_ptr<IntegratorHPMC> m_mc;     //!< HPMC integrator object
         std::shared_ptr<Variant> m_P;             //!< Reduced pressure in isobaric ensembles
-        Scalar m_frequency;                         //!< Frequency of BoxMC moves versus HPMC integrator moves
 
         Scalar m_volume_delta;                      //!< Amount by which to change parameter during box-change
         float m_volume_weight;                     //!< relative weight of volume moves
