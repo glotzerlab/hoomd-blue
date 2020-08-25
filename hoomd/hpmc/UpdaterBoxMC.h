@@ -56,8 +56,8 @@ class UpdaterBoxMC : public Updater
         void volume(const Scalar delta,
                            const float weight)
             {
-            m_Volume_delta = delta;
-            m_Volume_weight = weight;
+            m_volume_delta = delta;
+            m_volume_weight = weight;
             // Calculate aspect ratio
             computeAspectRatios();
             };
@@ -66,15 +66,15 @@ class UpdaterBoxMC : public Updater
         pybind11::dict getVolumeParams()
             {
             pybind11::dict d;
-            d["weight"] = m_Volume_weight;
-            d["delta"] = m_Volume_delta;
+            d["weight"] = m_volume_weight;
+            d["delta"] = m_volume_delta;
             return d;
             }
 
         void setVolumeParams(pybind11::dict d)
             {
-            m_Volume_weight = d["weight"].cast<Scalar>();
-            m_Volume_delta = d["delta"].cast<Scalar>();
+            m_volume_weight = d["weight"].cast<Scalar>();
+            m_volume_delta = d["delta"].cast<Scalar>();
             }
 
         //! Sets parameters for box volume moves
@@ -84,8 +84,8 @@ class UpdaterBoxMC : public Updater
         void ln_volume(const Scalar delta_lnV,
                        const float weight)
             {
-            m_lnVolume_delta = delta_lnV;
-            m_lnVolume_weight = weight;
+            m_ln_volume_delta = delta_lnV;
+            m_ln_volume_weight = weight;
             // Calculate aspect ratio
             computeAspectRatios();
             };
@@ -93,15 +93,15 @@ class UpdaterBoxMC : public Updater
         pybind11::dict getLogVolumeParams()
             {
             pybind11::dict d;
-            d["weight"] = m_lnVolume_weight;
-            d["delta"] = m_lnVolume_delta;
+            d["weight"] = m_ln_volume_weight;
+            d["delta"] = m_ln_volume_delta;
             return d;
             }
 
         void setLogVolumeParams(pybind11::dict d)
             {
-            m_lnVolume_weight = d["weight"].cast<Scalar>();
-            m_lnVolume_delta = d["delta"].cast<Scalar>();
+            m_ln_volume_weight = d["weight"].cast<Scalar>();
+            m_ln_volume_delta = d["delta"].cast<Scalar>();
             }
 
         //! Sets parameters for box length moves
@@ -115,31 +115,31 @@ class UpdaterBoxMC : public Updater
                            const Scalar dLz,
                            const float weight)
             {
-            m_Length_delta[0] = dLx;
-            m_Length_delta[1] = dLy;
-            m_Length_delta[2] = dLz;
-            m_Length_weight = weight;
+            m_length_delta[0] = dLx;
+            m_length_delta[1] = dLy;
+            m_length_delta[2] = dLz;
+            m_length_weight = weight;
             };
 
         pybind11::dict getLengthParams()
             {
             pybind11::dict d;
-            d["weight"] = m_Length_weight;
+            d["weight"] = m_length_weight;
             pybind11::list l;
-            l.append(m_Length_delta[0]);
-            l.append(m_Length_delta[1]);
-            l.append(m_Length_delta[2]);
+            l.append(m_length_delta[0]);
+            l.append(m_length_delta[1]);
+            l.append(m_length_delta[2]);
             d["delta"] = l;
             return d;
             }
 
         void setLengthParams(pybind11::dict d)
             {
-            m_Length_weight = d["weight"].cast<Scalar>();
+            m_length_weight = d["weight"].cast<Scalar>();
             pybind11::list l = d["delta"];
-            m_Length_delta[0] = l[0].cast<Scalar>();
-            m_Length_delta[1] = l[1].cast<Scalar>();
-            m_Length_delta[2] = l[2].cast<Scalar>();
+            m_length_delta[0] = l[0].cast<Scalar>();
+            m_length_delta[1] = l[1].cast<Scalar>();
+            m_length_delta[2] = l[2].cast<Scalar>();
             }
 
         //! Sets parameters for box shear moves
@@ -158,35 +158,35 @@ class UpdaterBoxMC : public Updater
                           const Scalar reduce,
                           const float weight)
             {
-            m_Shear_delta[0] = dxy;
-            m_Shear_delta[1] = dxz;
-            m_Shear_delta[2] = dyz;
-            m_Shear_reduce = reduce;
-            m_Shear_weight = weight;
+            m_shear_delta[0] = dxy;
+            m_shear_delta[1] = dxz;
+            m_shear_delta[2] = dyz;
+            m_shear_reduce = reduce;
+            m_shear_weight = weight;
             };
 
 
         pybind11::dict getShearParams()
             {
             pybind11::dict d;
-            d["weight"] = m_Shear_weight;
+            d["weight"] = m_shear_weight;
             pybind11::list l;
-            l.append(m_Shear_delta[0]);
-            l.append(m_Shear_delta[1]);
-            l.append(m_Shear_delta[2]);
+            l.append(m_shear_delta[0]);
+            l.append(m_shear_delta[1]);
+            l.append(m_shear_delta[2]);
             d["delta"] = l;
-            d["reduce"] = m_Shear_reduce;
+            d["reduce"] = m_shear_reduce;
             return d;
             }
 
         void setShearParams(pybind11::dict d)
             {
-            m_Shear_weight = d["weight"].cast<Scalar>();
+            m_shear_weight = d["weight"].cast<Scalar>();
             pybind11::list l = d["delta"];
-            m_Shear_delta[0] = l[0].cast<Scalar>();
-            m_Shear_delta[1] = l[1].cast<Scalar>();
-            m_Shear_delta[2] = l[2].cast<Scalar>();
-            m_Shear_reduce = d["reduce"].cast<Scalar>();
+            m_shear_delta[0] = l[0].cast<Scalar>();
+            m_shear_delta[1] = l[1].cast<Scalar>();
+            m_shear_delta[2] = l[2].cast<Scalar>();
+            m_shear_reduce = d["reduce"].cast<Scalar>();
             }
 
         //! Sets parameters for box aspect moves
@@ -196,22 +196,22 @@ class UpdaterBoxMC : public Updater
         void aspect(const Scalar dA,
                            const float weight)
             {
-            m_Aspect_delta = dA;
-            m_Aspect_weight = weight;
+            m_aspect_delta = dA;
+            m_aspect_weight = weight;
             };
 
         pybind11::dict getAspectParams()
             {
             pybind11::dict d;
-            d["weight"] = m_Aspect_weight;
-            d["delta"] = m_Aspect_delta;
+            d["weight"] = m_aspect_weight;
+            d["delta"] = m_aspect_delta;
             return d;
             }
 
         void setAspectParams(pybind11::dict d)
             {
-            m_Aspect_weight = d["weight"].cast<Scalar>();
-            m_Aspect_delta = d["delta"].cast<Scalar>();
+            m_aspect_weight = d["weight"].cast<Scalar>();
+            m_aspect_delta = d["delta"].cast<Scalar>();
             }
 
         //! Calculate aspect ratios for use in isotropic volume changes
@@ -222,8 +222,8 @@ class UpdaterBoxMC : public Updater
             Scalar Lx = curBox.getLatticeVector(0).x;
             Scalar Ly = curBox.getLatticeVector(1).y;
             Scalar Lz = curBox.getLatticeVector(2).z;
-            m_Volume_A1 = Lx / Ly;
-            m_Volume_A2 = Lx / Lz;
+            m_volume_A1 = Lx / Ly;
+            m_volume_A2 = Lx / Lz;
             }
 
         //! Get pressure parameter
@@ -329,32 +329,32 @@ class UpdaterBoxMC : public Updater
         //! Get volume change parameter
         const Scalar get_volume_delta() const
             {
-            return m_Volume_delta;
+            return m_volume_delta;
             }
 
         //! Get delta_lnV
         const Scalar get_ln_volume_delta() const
             {
-            return m_lnVolume_delta;
+            return m_ln_volume_delta;
             }
 
 
         //! Get aspect ratio trial parameter
         const Scalar get_aspect_delta() const
             {
-            return m_Aspect_delta;
+            return m_aspect_delta;
             }
 
         //! Get box length trial parameters
         pybind11::tuple get_length_delta() const
             {
-            return pybind11::make_tuple(m_Length_delta[0], m_Length_delta[1], m_Length_delta[2]);
+            return pybind11::make_tuple(m_length_delta[0], m_length_delta[1], m_length_delta[2]);
             }
 
         //! Get box shear trial parameters
         pybind11::tuple get_shear_delta() const
             {
-            return pybind11::make_tuple(m_Shear_delta[0], m_Shear_delta[1], m_Shear_delta[2]);
+            return pybind11::make_tuple(m_shear_delta[0], m_shear_delta[1], m_shear_delta[2]);
             }
 
 
@@ -363,22 +363,22 @@ class UpdaterBoxMC : public Updater
         std::shared_ptr<Variant> m_P;             //!< Reduced pressure in isobaric ensembles
         Scalar m_frequency;                         //!< Frequency of BoxMC moves versus HPMC integrator moves
 
-        Scalar m_Volume_delta;                      //!< Amount by which to change parameter during box-change
-        float m_Volume_weight;                     //!< relative weight of volume moves
-        Scalar m_lnVolume_delta;                      //!< Amount by which to change parameter during box-change
-        float m_lnVolume_weight;                   //!< relative weight of volume moves
-        Scalar m_Volume_A1;                         //!< Ratio of Lx to Ly to use in isotropic volume changes
-        Scalar m_Volume_A2;                         //!< Ratio of Lx to Lz to use in isotropic volume changes
+        Scalar m_volume_delta;                      //!< Amount by which to change parameter during box-change
+        float m_volume_weight;                     //!< relative weight of volume moves
+        Scalar m_ln_volume_delta;                      //!< Amount by which to change parameter during box-change
+        float m_ln_volume_weight;                   //!< relative weight of volume moves
+        Scalar m_volume_A1;                         //!< Ratio of Lx to Ly to use in isotropic volume changes
+        Scalar m_volume_A2;                         //!< Ratio of Lx to Lz to use in isotropic volume changes
 
-        Scalar m_Length_delta[3];                   //!< Max length change in each dimension
-        float m_Length_weight;                     //!< relative weight of length change moves
+        Scalar m_length_delta[3];                   //!< Max length change in each dimension
+        float m_length_weight;                     //!< relative weight of length change moves
 
-        Scalar m_Shear_delta[3];                    //!< Max tilt factor change in each dimension
-        float m_Shear_weight;                      //!< relative weight of shear moves
-        Scalar m_Shear_reduce;                      //!< Tolerance for automatic box lattice reduction
+        Scalar m_shear_delta[3];                    //!< Max tilt factor change in each dimension
+        float m_shear_weight;                      //!< relative weight of shear moves
+        Scalar m_shear_reduce;                      //!< Tolerance for automatic box lattice reduction
 
-        Scalar m_Aspect_delta;                      //!< Maximum relative aspect ratio change in randomly selected dimension
-        float m_Aspect_weight;                     //!< relative weight of aspect ratio moves
+        Scalar m_aspect_delta;                      //!< Maximum relative aspect ratio change in randomly selected dimension
+        float m_aspect_weight;                     //!< relative weight of aspect ratio moves
 
         GPUArray<Scalar4> m_pos_backup;             //!< hold backup copy of particle positions
 

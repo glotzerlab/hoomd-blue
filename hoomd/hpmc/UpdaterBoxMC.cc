@@ -22,19 +22,19 @@ UpdaterBoxMC::UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
           m_mc(mc),
           m_P(P),
           m_frequency(frequency),
-          m_Volume_delta(0.0),
-          m_Volume_weight(0.0),
-          m_lnVolume_delta(0.0),
-          m_lnVolume_weight(0.0),
-          m_Volume_A1(0.0),
-          m_Volume_A2(0.0),
-          m_Length_delta {0.0, 0.0, 0.0},
-          m_Length_weight(0.0),
-          m_Shear_delta {0.0, 0.0, 0.0},
-          m_Shear_weight(0.0),
-          m_Shear_reduce(0.0),
-          m_Aspect_delta(0.0),
-          m_Aspect_weight(0.0),
+          m_volume_delta(0.0),
+          m_volume_weight(0.0),
+          m_ln_volume_delta(0.0),
+          m_ln_volume_weight(0.0),
+          m_volume_A1(0.0),
+          m_volume_A2(0.0),
+          m_length_delta {0.0, 0.0, 0.0},
+          m_length_weight(0.0),
+          m_shear_delta {0.0, 0.0, 0.0},
+          m_shear_weight(0.0),
+          m_shear_reduce(0.0),
+          m_aspect_delta(0.0),
+          m_aspect_weight(0.0),
           m_seed(seed)
     {
     m_exec_conf->msg->notice(5) << "Constructing UpdaterBoxMC" << std::endl;
@@ -157,7 +157,7 @@ Scalar UpdaterBoxMC::getLogValue(const std::string& quantity, unsigned int times
 */
 inline bool UpdaterBoxMC::is_oversheared()
     {
-    if (m_Shear_reduce <= 0.5) return false;
+    if (m_shear_reduce <= 0.5) return false;
 
     const BoxDim curBox = m_pdata->getGlobalBox();
     const Scalar3 x = curBox.getLatticeVector(0);
@@ -165,13 +165,13 @@ inline bool UpdaterBoxMC::is_oversheared()
     const Scalar3 z = curBox.getLatticeVector(2);
 
     const Scalar y_x = y.x; // x component of y vector
-    const Scalar max_y_x = x.x * m_Shear_reduce;
+    const Scalar max_y_x = x.x * m_shear_reduce;
     const Scalar z_x = z.x; // x component of z vector
-    const Scalar max_z_x = x.x * m_Shear_reduce;
+    const Scalar max_z_x = x.x * m_shear_reduce;
     // z_y \left| y \right|
     const Scalar z_yy = dot(z,y);
     // MAX_SHEAR * left| y \right| ^2
-    const Scalar max_z_y_2 = dot(y,y) * m_Shear_reduce;
+    const Scalar max_z_y_2 = dot(y,y) * m_shear_reduce;
 
     if (fabs(y_x) > max_y_x || fabs(z_x) > max_z_x || fabs(z_yy) > max_z_y_2)
         return true;
@@ -415,7 +415,7 @@ void UpdaterBoxMC::update(unsigned int timestep)
     // Choose a move type
     // This seems messy and can hopefully be simplified and generalized.
     // This line will need to be rewritten or updated when move types are added to the updater.
-    float range = m_Volume_weight + m_lnVolume_weight + m_Length_weight + m_Shear_weight + m_Aspect_weight;
+    float range = m_volume_weight + m_ln_volume_weight + m_length_weight + m_shear_weight + m_aspect_weight;
     if (range == 0.0)
         {
         // Attempt to execute with no move types set.
@@ -427,31 +427,31 @@ void UpdaterBoxMC::update(unsigned int timestep)
 
     // Attempt and evaluate a move
     // This section will need to be updated when move types are added.
-    if (move_type_select < m_Volume_weight)
+    if (move_type_select < m_volume_weight)
         {
         // Isotropic volume change
         m_exec_conf->msg->notice(8) << "Volume move performed at step " << timestep << std::endl;
         update_V(timestep, rng);
         }
-    else if (move_type_select < m_Volume_weight + m_lnVolume_weight)
+    else if (move_type_select < m_volume_weight + m_ln_volume_weight)
         {
         // Isotropic volume change in logarithmic steps
         m_exec_conf->msg->notice(8) << "lnV move performed at step " << timestep << std::endl;
         update_lnV(timestep, rng);
         }
-    else if (move_type_select < m_Volume_weight + m_lnVolume_weight + m_Length_weight)
+    else if (move_type_select < m_volume_weight + m_ln_volume_weight + m_length_weight)
         {
         // Volume change in distribution of box lengths
         m_exec_conf->msg->notice(8) << "Box length move performed at step " << timestep << std::endl;
         update_L(timestep, rng);
         }
-    else if (move_type_select < m_Volume_weight + m_lnVolume_weight + m_Length_weight + m_Shear_weight)
+    else if (move_type_select < m_volume_weight + m_ln_volume_weight + m_length_weight + m_shear_weight)
         {
         // Shear change
         m_exec_conf->msg->notice(8) << "Box shear move performed at step " << timestep << std::endl;
         update_shear(timestep, rng);
         }
-    else if (move_type_select <= m_Volume_weight + m_lnVolume_weight + m_Length_weight + m_Shear_weight + m_Aspect_weight)
+    else if (move_type_select <= m_volume_weight + m_ln_volume_weight + m_length_weight + m_shear_weight + m_aspect_weight)
         {
         // Volume conserving aspect change
         m_exec_conf->msg->notice(8) << "Box aspect move performed at step " << timestep << std::endl;
@@ -502,12 +502,12 @@ void UpdaterBoxMC::update_L(unsigned int timestep, hoomd::RandomGenerator& rng)
     // Choose a lattice vector if non-isotropic volume changes
     unsigned int nonzero_dim = 0;
     for (unsigned int i = 0; i < Ndim; ++i)
-        if (m_Length_delta[i] != 0.0)
+        if (m_length_delta[i] != 0.0)
             nonzero_dim++;
 
     unsigned int i = hoomd::UniformIntDistribution(nonzero_dim-1)(rng);
     for (unsigned int j = 0; j < Ndim; ++j)
-        if (m_Length_delta[j] == 0.0 && i == j)
+        if (m_length_delta[j] == 0.0 && i == j)
             ++i;
 
     if (i == Ndim)
@@ -517,7 +517,7 @@ void UpdaterBoxMC::update_L(unsigned int timestep, hoomd::RandomGenerator& rng)
         return;
         }
 
-    Scalar dL_max(m_Length_delta[i]);
+    Scalar dL_max(m_length_delta[i]);
 
     // Choose a length change
     Scalar dL = hoomd::UniformDistribution<Scalar>(-dL_max, dL_max)(rng);
@@ -594,11 +594,11 @@ void UpdaterBoxMC::update_lnV(unsigned int timestep, hoomd::RandomGenerator& rng
         V *= curL[2];
         }
     // Aspect ratios
-    Scalar A1 = m_Volume_A1;
-    Scalar A2 = m_Volume_A2;
+    Scalar A1 = m_volume_A1;
+    Scalar A2 = m_volume_A2;
 
     // Volume change
-    Scalar dlnV_max(m_lnVolume_delta);
+    Scalar dlnV_max(m_ln_volume_delta);
 
     // Choose a volume change
     Scalar dlnV = hoomd::UniformDistribution<Scalar>(-dlnV_max, dlnV_max)(rng);
@@ -678,11 +678,11 @@ void UpdaterBoxMC::update_V(unsigned int timestep, hoomd::RandomGenerator& rng)
         V *= curL[2];
         }
     // Aspect ratios
-    Scalar A1 = m_Volume_A1;
-    Scalar A2 = m_Volume_A2;
+    Scalar A1 = m_volume_A1;
+    Scalar A2 = m_volume_A2;
 
     // Volume change
-    Scalar dV_max(m_Volume_delta);
+    Scalar dV_max(m_volume_delta);
 
     // Choose a volume change
     Scalar dV = hoomd::UniformDistribution<Scalar>(-dV_max, dV_max)(rng);
@@ -765,7 +765,7 @@ void UpdaterBoxMC::update_shear(unsigned int timestep, hoomd::RandomGenerator& r
         {
         i = hoomd::UniformIntDistribution(2)(rng);
         }
-    dA_max = m_Shear_delta[i];
+    dA_max = m_shear_delta[i];
     dA = hoomd::UniformDistribution<Scalar>(-dA_max, dA_max)(rng);
     newShear[i] += dA;
 
@@ -814,7 +814,7 @@ void UpdaterBoxMC::update_aspect(unsigned int timestep, hoomd::RandomGenerator& 
 
     // Choose an aspect ratio and randomly perturb it
     unsigned int i = hoomd::UniformIntDistribution(Ndim - 1)(rng);
-    Scalar dA = Scalar(1.0) + hoomd::UniformDistribution<Scalar>(Scalar(0.0), m_Aspect_delta)(rng);
+    Scalar dA = Scalar(1.0) + hoomd::UniformDistribution<Scalar>(Scalar(0.0), m_aspect_delta)(rng);
     if (hoomd::UniformIntDistribution(1)(rng))
         {
         dA = Scalar(1.0)/dA;
