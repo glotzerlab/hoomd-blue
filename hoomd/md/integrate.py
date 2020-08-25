@@ -84,17 +84,24 @@ class _DynamicIntegrator(_BaseIntegrator):
 class Integrator(_DynamicIntegrator):
     R""" Enables a variety of standard integration methods.
 
-    Args: 
+    Args:
         dt (float): Integrator time step size (in time units).
 
-        methods: Initial value to `methods`. 
+        methods (Sequence[hoomd.md.methods._Method]): Sequence of integration
+            methods. Each integration method can be applied to only a specific
+            subset of particles, default [].
 
-        forces: Initial value to `forces`.
+        forces (Sequence[hoomd.md.force._Force]): Sequence of forces applied to the
+            particles in the system. All the forces are summed together,
+            default [].
 
-        aniso (str): Whether to integrate rotational degrees of freedom (bool),
+        aniso (str or bool): Whether to integrate rotational degrees of freedom (bool),
             default 'auto' (autodetect).
 
-        constraints: Initial value to `constraints`.
+        constraints (Sequence[hoomd.md.constrain._ConstraintForce]): Sequence of
+            constraint forces applied to the particles in the system,
+            default [].
+
 
     The following classes can be used as elements in `methods`
 
@@ -120,7 +127,7 @@ class Integrator(_DynamicIntegrator):
     - `hoomd.dem.pair`
 
     The classes of the following module can be used as elements in `constraints`
-    
+
     - `hoomd.md.constrain`
 
     Examples::
@@ -129,23 +136,20 @@ class Integrator(_DynamicIntegrator):
         sim.operations.integrator = integrator
 
 
-    Attributes: 
+    Attributes:
         dt (float): Integrator time step size (in time units).
 
         methods (List[hoomd.md.methods._Method]): List of integration methods.
-            Each integration method can be applied to only a specific subset of 
+            Each integration method can be applied to only a specific subset of
             particles.
-            
-        forces (List[hoomd.md.force._Force]): List of forces applied to the 
-            particles in the system. All the forces are summed together.
 
-        aniso (str): Whether to integrate rotational degrees of freedom (bool),
-            default 'auto' (autodetect).
+        forces (List[hoomd.md.force._Force]): List of forces applied to
+            the particles in the system. All the forces are summed together.
 
-        constraints (List[hoomd.md.constrain._ConstraintForce]): List of 
+        aniso (str): Whether rotational degrees of freedom are integrated.
+
+        constraints (List[hoomd.md.constrain._ConstraintForce]): List of
             constraint forces applied to the particles in the system.
-
-
     """
 
     def __init__(self, dt, aniso='auto', forces=[], constraints=[],
