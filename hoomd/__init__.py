@@ -91,45 +91,15 @@ def _hoomd_sys_excepthook(type, value, traceback):
 
 sys.excepthook = _hoomd_sys_excepthook
 
-__version__ = "2.9.0"
+__version__ = _hoomd.__version__
 
-class build_info():
-    """Gather context about HOOMD build settings"""
-    def __init__(self):
-        """Constructs the build_info object"""
-        hoomd.meta._metadata.__init__(self)
-        self.metadata_fields = [
-            'hoomd_version', 'hoomd_git_sha1', 'hoomd_git_refspec',
-            'hoomd_compile_flags', 'cuda_version', 'compiler_version',
-            ]
+__git_sha1__ = _hoomd.__git_sha1__
 
-    # \brief Return the hoomd version.
-    @property
-    def hoomd_version(self):
-        return _hoomd.__version__
+__git_refspec__ = _hoomd.__git_refspec__
 
-    # \brief Return the hoomd git hash
-    @property
-    def hoomd_git_sha1(self):
-        return _hoomd.__git_sha1__
+__compile_flags__ = _hoomd.hoomd_compile_flags()
 
-    # \brief Return the hoomd git refspec
-    @property
-    def hoomd_git_refspec(self):
-        return _hoomd.__git_refspec__
+__cuda_version__ = _hoomd.__cuda_version__
 
-    # \brief Return the hoomd compile flags
-    @property
-    def hoomd_compile_flags(self):
-        return _hoomd.hoomd_compile_flags();
-
-    # \brief Return the cuda version
-    @property
-    def cuda_version(self):
-        return _hoomd.__cuda_version__
-
-    # \brief Return the compiler version
-    @property
-    def compiler_version(self):
-        return _hoomd.__compiler_version__
+__compiler_version__ = _hoomd.__compiler_version__
 
