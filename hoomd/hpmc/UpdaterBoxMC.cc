@@ -952,6 +952,7 @@ inline void export_hpmc_boxmc_counters(pybind11::module &m)
                                           result.append(a.shear_reject_count);
                                           return result;
                                           }
+                              )
         ;
     }
 

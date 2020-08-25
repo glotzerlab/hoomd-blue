@@ -73,8 +73,8 @@ class UpdaterBoxMC : public Updater
 
         void setVolumeParams(pybind11::dict d)
             {
-            m_Volume_weight = d["weight"];
-            m_Volume_delta = d["delta"];
+            m_Volume_weight = d["weight"].cast<Scalar>();
+            m_Volume_delta = d["delta"].cast<Scalar>();
             }
 
         //! Sets parameters for box volume moves
@@ -100,8 +100,8 @@ class UpdaterBoxMC : public Updater
 
         void setLogVolumeParams(pybind11::dict d)
             {
-            m_lnVolume_weight = d["weight"];
-            m_lnVolume_delta = d["delta"];
+            m_lnVolume_weight = d["weight"].cast<Scalar>();
+            m_lnVolume_delta = d["delta"].cast<Scalar>();
             }
 
         //! Sets parameters for box length moves
@@ -135,10 +135,11 @@ class UpdaterBoxMC : public Updater
 
         void setLengthParams(pybind11::dict d)
             {
-            m_Length_weight = d["weight"];
-            m_Length_delta[0] = d["delta"][0];
-            m_Length_delta[1] = d["delta"][1];
-            m_Length_delta[2] = d["delta"][2];
+            m_Length_weight = d["weight"].cast<Scalar>();
+            pybind11::list l = d["delta"];
+            m_Length_delta[0] = l[0].cast<Scalar>();
+            m_Length_delta[1] = l[1].cast<Scalar>();
+            m_Length_delta[2] = l[2].cast<Scalar>();
             }
 
         //! Sets parameters for box shear moves
@@ -180,11 +181,12 @@ class UpdaterBoxMC : public Updater
 
         void setShearParams(pybind11::dict d)
             {
-            m_Shear_weight = d["weight"];
-            m_Shear_delta[0] = d["delta"][0];
-            m_Shear_delta[1] = d["delta"][1];
-            m_Shear_delta[2] = d["delta"][2];
-            m_Shear_reduce = d["reduce"];
+            m_Shear_weight = d["weight"].cast<Scalar>();
+            pybind11::list l = d["delta"];
+            m_Shear_delta[0] = l[0].cast<Scalar>();
+            m_Shear_delta[1] = l[1].cast<Scalar>();
+            m_Shear_delta[2] = l[2].cast<Scalar>();
+            m_Shear_reduce = d["reduce"].cast<Scalar>();
             }
 
         //! Sets parameters for box aspect moves
@@ -208,8 +210,8 @@ class UpdaterBoxMC : public Updater
 
         void setAspectParams(pybind11::dict d)
             {
-            m_Aspect_weight = d["weight"];
-            m_Aspect_delta = d["delta"];
+            m_Aspect_weight = d["weight"].cast<Scalar>();
+            m_Aspect_delta = d["delta"].cast<Scalar>();
             }
 
         //! Calculate aspect ratios for use in isotropic volume changes
