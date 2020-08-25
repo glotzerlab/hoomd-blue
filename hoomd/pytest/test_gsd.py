@@ -5,6 +5,8 @@ import pytest
 import os
 import tempfile
 import gsd.hoomd
+from copy import deepcopy
+from itertools import combinations
 
 
 def _make_gsd_snapshot(snap):
@@ -101,7 +103,6 @@ def hoomd_snapshot(lattice_snapshot_factory):
     return snap
 
 
-# tests basic creation of the dump
 def test_dump(simulation_factory, lattice_snapshot_factory, tmp_path):
     sim = simulation_factory(lattice_snapshot_factory())
     d = tmp_path / "sub"
@@ -114,7 +115,6 @@ def test_dump(simulation_factory, lattice_snapshot_factory, tmp_path):
     sim.run(1)
 
 
-# tests data.gsd_snapshot
 def test_gsd_snapshot(hoomd_snapshot, device, tmp_path):
     sim = hoomd.Simulation(device)
     snap = hoomd_snapshot
@@ -167,3 +167,104 @@ def test_gsd_snapshot(hoomd_snapshot, device, tmp_path):
                     att2 = getattr(snap2, inner_attr)
                     np.testing.assert_allclose(att1,
                                                att2)
+
+defaults = {}
+non_defaults = {}
+
+defaults['angmom'] = [[0, 0, 0, 0]] * 8
+non_defaults['angmom'] = np.random.randint(0, 5, (8, 4)).tolist()
+
+defaults['charge'] = [0] * 8
+non_defaults['charge'] = np.random.randint(-3, 3, 8).tolist()
+
+defaults['diameter'] = [1] * 8
+non_defaults['diameter'] = np.random.randint(0, 4, 8).tolist()
+
+defaults['image'] = [[0, 0, 0]] * 8
+non_defaults['image'] = np.random.randint(0, 5, (8, 3)).tolist()
+
+defaults['mass'] = [1] * 8
+non_defaults['mass'] = np.random.randint(1, 4, 8).tolist()
+
+defaults['moment_inertia'] = [[0, 0, 0]] * 8
+non_defaults['moment_inertia'] = np.random.randint(0, 5, (8, 3)).tolist()
+
+defaults['orientation'] = [[1, 0, 0, 0]] * 8
+non_defaults['orientation'] = np.random.randint(0, 4, (8, 4)).tolist()
+non_defaults['orientation'] /= np.linalg.norm(non_defaults['orientation'],
+                                              axis=1).reshape(8, 1)
+
+defaults['typeid'] = [0] * 8
+non_defaults['typeid'] = np.random.randint(0, 3, 8).tolist()
+
+defaults['velocity'] = [[0, 0, 0]] * 8
+non_defaults['velocity'] = np.random.randint(0, 4, (8, 3)).tolist()
+
+_default_properties = []
+for key in defaults.keys():
+    _default_properties.append((key, defaults[key], non_defaults[key]))
+
+
+@pytest.fixture(scope="function",
+                params=_default_properties,
+                ids=(lambda x: x[0]))
+def default_properties(request):
+    return deepcopy(request.param)
+
+
+def test_default_vals(default_properties, lattice_snapshot_factory,
+                      simulation_factory, tmp_path):
+    prop, defaults, non_defaults = default_properties
+    particle_types = ['A', 'B', 'C']
+    snap = lattice_snapshot_factory(particle_types=particle_types,
+                                    n=2, a=4.0, r=0.01)
+    sim = simulation_factory(snap)
+
+    d = tmp_path / "sub"
+    d.mkdir()
+    filename = d / "temporary_test_file.gsd"
+    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
+    lj_args = {'sigma': 1, 'epsilon': 5e-200}
+    for t in particle_types:
+        lj.params[(t, t)] = lj_args
+    for combo in combinations(particle_types, 2):
+        lj.params[combo] = lj_args
+    integrator = hoomd.md.Integrator(dt=0.005)
+    integrator.forces.append(lj)
+    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
+                                                        kT=1, seed=1))
+    sim.operations.integrator = integrator
+    trigger = hoomd.trigger.Periodic(1)
+    gsd_dump = hoomd.dump.GSD(filename, trigger, overwrite=True)
+    sim.operations.add(gsd_dump)
+    sim.operations.schedule()
+    sim.run(1)
+    with gsd.hoomd.open(name=filename, mode='rb') as file:
+        gsd_snap = file[0]
+    np.testing.assert_allclose(getattr(gsd_snap.particles, prop), defaults)
+
+    sim = hoomd.Simulation(device)
+    particle_types = ['A', 'B', 'C']
+    snap = lattice_snapshot_factory(particle_types=particle_types,
+                                    n=2, a=4.0, r=0.01)
+    getattr(snap.particles, prop)[:] = non_defaults
+    sim = simulation_factory(snap)
+    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
+    lj_args = {'sigma': 1, 'epsilon': 5e-200}
+    for t in particle_types:
+        lj.params[(t, t)] = lj_args
+    for combo in combinations(particle_types, 2):
+        lj.params[combo] = lj_args
+    integrator = hoomd.md.Integrator(dt=0.005)
+    integrator.forces.append(lj)
+    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
+                                                        kT=1, seed=1))
+    sim.operations.integrator = integrator
+    trigger = hoomd.trigger.Periodic(1)
+    gsd_dump = hoomd.dump.GSD(filename, trigger, overwrite=True)
+    sim.operations.add(gsd_dump)
+    sim.operations.schedule()
+    sim.run(1)
+    with gsd.hoomd.open(name=filename, mode='rb') as file:
+        gsd_snap = file[0]
+    np.testing.assert_allclose(getattr(gsd_snap.particles, prop), non_defaults)
