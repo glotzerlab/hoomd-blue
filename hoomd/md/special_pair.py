@@ -21,19 +21,19 @@ from hoomd.parameterdicts import TypeParameterDict
 
 
 class _SpecialPair(_Force):
-    def _attach(self, simulation):
+    def _attach(self):
         # check that some bonds are defined
-        if simulation.state._cpp_sys_def.getPairData().getNGlobal() == 0:
-            simulation.device.cpp_msg.error("No pairs are defined.\n")
+        if self._simulation.state._cpp_sys_def.getPairData().getNGlobal() == 0:
+            self._simulation.device.cpp_msg.error("No pairs are defined.\n")
 
         # create the c++ mirror class
-        if not simulation.device.mode == "gpu":
+        if not self._simulation.device.mode == "gpu":
             cpp_cls = getattr(_md, self._cpp_class_name)
         else:
             cpp_cls = getattr(_md, self._cpp_class_name + "GPU")
         # TODO remove string name argument
-        self._cpp_obj = cpp_cls(simulation.state._cpp_sys_def, '')
-        super()._attach(simulation)
+        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def, '')
+        super()._attach()
 
 
 class LJ(_SpecialPair):

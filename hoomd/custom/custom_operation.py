@@ -70,7 +70,7 @@ class _CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
         else:
             object.__setattr__(self, attr, value)
 
-    def _attach(self, simulation):
+    def _attach(self):
         """Attach to a `hoomd.Simulation`.
 
         Args:
@@ -78,10 +78,10 @@ class _CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
                 on.
         """
         self._cpp_obj = getattr(_hoomd, self._cpp_class_name)(
-            simulation.state._cpp_sys_def, self._action)
+            self._simulation.state._cpp_sys_def, self._action)
 
-        super()._attach(simulation)
-        self._action.attach(simulation)
+        super()._attach()
+        self._action.attach(self._simulation)
 
     def _detach(self):
         """Detaching from a `hoomd.Simulation`."""

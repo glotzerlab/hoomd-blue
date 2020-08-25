@@ -32,10 +32,11 @@ class ParticleSorter(_Tuner):
         self.trigger = trigger
         self.grid = grid
 
-    def _attach(self, simulation):
-        if simulation.device.mode == 'gpu':
+    def _attach(self):
+        if self._simulation.device.mode == 'gpu':
             cpp_cls = getattr(_hoomd, 'SFCPackTunerGPU')
         else:
             cpp_cls = getattr(_hoomd, 'SFCPackTuner')
-        self._cpp_obj = cpp_cls(simulation.state._cpp_sys_def, self.trigger)
-        super()._attach(simulation)
+        self._cpp_obj = cpp_cls(
+            self._simulation.state._cpp_sys_def, self.trigger)
+        super()._attach()

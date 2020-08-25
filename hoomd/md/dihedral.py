@@ -36,19 +36,20 @@ import math
 
 
 class _Dihedral(_Force):
-    def attach(self, simulation):
+    def _attach(self):
         # check that some dihedrals are defined
-        if simulation.state._cpp_sys_def.getDihedralData().getNGlobal() == 0:
-            simulation.device.cpp_msg.warning("No dihedrals are defined.\n")
+        sim = self.simulation
+        if sim.state._cpp_sys_def.getDihedralData().getNGlobal() == 0:
+            sim.device.cpp_msg.warning("No dihedrals are defined.\n")
 
         # create the c++ mirror class
-        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+        if not sim.device.cpp_exec_conf.isCUDAEnabled():
             cpp_class = getattr(_md, self._cpp_class_name)
         else:
             cpp_class = getattr(_md, self._cpp_class_name + "GPU")
 
-        self._cpp_obj = cpp_class(simulation.state._cpp_sys_def)
-        super()._attach(simulation)
+        self._cpp_obj = cpp_class(sim.state._cpp_sys_def)
+        super()._attach()
 
 
 class Harmonic(_Dihedral):

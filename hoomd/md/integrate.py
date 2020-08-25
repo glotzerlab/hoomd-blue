@@ -50,11 +50,11 @@ class _DynamicIntegrator(_BaseIntegrator):
                                    to_synced_list=lambda x: x._cpp_obj,
                                    iterable=methods)
 
-    def _attach(self, simulation):
-        self.forces._attach(simulation, self._cpp_obj.forces)
-        self.constraints._attach(simulation, self._cpp_obj.constraints)
-        self.methods._attach(simulation, self._cpp_obj.methods)
-        super()._attach(simulation)
+    def _attach(self):
+        self.forces._attach(self._simulation, self._cpp_obj.forces)
+        self.constraints._attach(self._simulation, self._cpp_obj.constraints)
+        self.methods._attach(self._simulation, self._cpp_obj.methods)
+        super()._attach()
 
     @property
     def forces(self):
@@ -133,10 +133,10 @@ class Integrator(_DynamicIntegrator):
         if aniso is not None:
             self.aniso = aniso
 
-    def _attach(self, simulation):
+    def _attach(self):
         # initialize the reflected c++ class
-        self._cpp_obj = _md.IntegratorTwoStep(simulation.state._cpp_sys_def,
-                                              self.dt)
+        self._cpp_obj = _md.IntegratorTwoStep(
+            self._simulation.state._cpp_sys_def, self.dt)
         # Call attach from DynamicIntegrator which attaches forces,
         # constraint_forces, and methods, and calls super()._attach() itself.
-        super()._attach(simulation)
+        super()._attach()

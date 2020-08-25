@@ -55,7 +55,7 @@ class Operations:
             raise RuntimeError("System not initialized yet")
         sim = self._simulation
         if not (self.integrator is None or self.integrator._attached):
-            self.integrator._attach(sim)
+            self.integrator._attach()
         if not self.updaters._attached:
             self.updaters._attach(sim, sim._cpp_sys.updaters)
         if not self.analyzers._attached:
@@ -95,6 +95,9 @@ class Operations:
         if op._added:
             raise RuntimeError(
                 "Integrator cannot be added to twice to Operations objects.")
+        else:
+            op._add(self._simulation)
+
         if (not isinstance(op, hoomd.integrate._BaseIntegrator)
                 and op is not None):
             raise TypeError("Cannot set integrator to a type not derived "
@@ -103,8 +106,7 @@ class Operations:
         self._integrator = op
         if self._scheduled:
             if op is not None:
-                op._add(self._simulation)
-                op._attach(self._simulation)
+                op._attach()
         if old_ref is not None:
             old_ref._notify_disconnect(self._simulation)
             old_ref._detach()

@@ -166,18 +166,18 @@ class Cell(_NList):
         self._param_dict.update(
             ParameterDict(deterministic=bool(deterministic)))
 
-    def _attach(self, simulation):
-        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+    def _attach(self):
+        if not self._simulation.device.cpp_exec_conf.isCUDAEnabled():
             cell_cls = _hoomd.CellList
             nlist_cls = _md.NeighborListBinned
         else:
             cell_cls = _hoomd.CellListGPU
             nlist_cls = _md.NeighborListGPUBinned
-        self._cpp_cell = cell_cls(simulation.state._cpp_sys_def)
+        self._cpp_cell = cell_cls(self._simulation.state._cpp_sys_def)
         # TODO remove 0.0 (r_cut) from constructor
-        self._cpp_obj = nlist_cls(simulation.state._cpp_sys_def, 0.0,
+        self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def, 0.0,
                                   self.buffer, self._cpp_cell)
-        super()._attach(simulation)
+        super()._attach()
 
     def _detach(self):
         del self._cpp_cell

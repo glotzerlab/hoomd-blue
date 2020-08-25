@@ -413,13 +413,13 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
             self._notify_disconnect(self._simulation)
             return self
 
-    def _attach(self, simulation):
+    def _attach(self):
         self._apply_param_dict()
-        self._apply_typeparam_dict(self._cpp_obj, simulation)
+        self._apply_typeparam_dict(self._cpp_obj, self._simulation)
 
         # pass the system communicator to the object
-        if simulation._system_communicator is not None:
-            self._cpp_obj.setCommunicator(simulation._system_communicator)
+        if self._simulation._system_communicator is not None:
+            self._cpp_obj.setCommunicator(self._simulation._system_communicator)
 
     @property
     def _attached(self):
@@ -507,9 +507,8 @@ class _TriggeredOperation(_Operation):
                 if op is self._cpp_obj and trigger is old_trigger:
                     triggered_ops[index] = (op, new_trigger)
 
-    def _attach(self, simulation):
-        self._simulation = simulation
-        super()._attach(simulation)
+    def _attach(self):
+        super()._attach()
 
 
 class _Updater(_TriggeredOperation):

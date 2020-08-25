@@ -23,20 +23,20 @@ import math
 
 
 class _Angle(_Force):
-    def attach(self, simulation):
+    def attach(self):
         # check that some angles are defined
-        if simulation.state._cpp_sys_def.getAngleData().getNGlobal() == 0:
-            simulation.device.cpp_msg.warning("No angles are defined.\n")
+        if self._simulation.state._cpp_sys_def.getAngleData().getNGlobal() == 0:
+            self._simulation.device.cpp_msg.warning("No angles are defined.\n")
 
         # create the c++ mirror class
-        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+        if not self._simulation.device.cpp_exec_conf.isCUDAEnabled():
             cpp_cls = getattr(_md, self._cpp_class_name)
         else:
             cpp_cls = getattr(_md, self._cpp_class_name + "GPU")
 
-        self._cpp_obj = cpp_cls(simulation.state._cpp_sys_def)
+        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def)
 
-        super()._attach(simulation)
+        super()._attach()
 
 
 class Harmonic(_Angle):

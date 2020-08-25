@@ -47,7 +47,7 @@ def slist(slist_empty, op_list):
 
 
 class OpInt(int):
-    def _attach(self, simulation):
+    def _attach(self):
         self._cpp_obj = None
 
     @property

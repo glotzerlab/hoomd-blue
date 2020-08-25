@@ -63,16 +63,16 @@ class DummyOperation(_Operation):
 
     This is for testing purposes.
     '''
-    def _attach(self, simulation):
+    def _attach(self):
         self._cpp_obj = "cpp obj"
 
 
 class DummyTriggeredOp(_TriggeredOperation):
     _cpp_list_name = 'dummy_list'
 
-    def _attach(self, simulation):
+    def _attach(self):
         self._cpp_obj = DummyCppObj()
-        super()._attach(simulation)
+        super()._attach()
 
 
 class DummyTrigger(Trigger):

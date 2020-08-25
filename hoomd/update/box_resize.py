@@ -74,12 +74,13 @@ class BoxResize(_Updater):
         self._param_dict.update(params)
         super().__init__(trigger)
 
-    def _attach(self, simulation):
-        self._cpp_obj = _hoomd.BoxResizeUpdater(simulation.state._cpp_sys_def,
-                                                self.box1,
-                                                self.box2,
-                                                self.variant)
-        super()._attach(simulation)
+    def _attach(self):
+        self._cpp_obj = _hoomd.BoxResizeUpdater(
+            self._simulation.state._cpp_sys_def,
+            self.box1,
+            self.box2,
+            self.variant)
+        super()._attach()
 
     def get_box(self, timestep):
         """Get the box for a given timestep.
