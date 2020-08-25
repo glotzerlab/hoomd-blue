@@ -49,6 +49,12 @@ class UpdaterBoxMC : public Updater
         //! Destructor
         virtual ~UpdaterBoxMC();
 
+        //! Get the seed
+        unsigned int getSeed()
+            {
+            return m_seed;
+            }
+
         //! Sets parameters for box volume moves
         /*! \param delta maximum size of volume change
             \param weight relative likelihood of volume move
