@@ -36,7 +36,7 @@ import math
 
 
 class _Dihedral(_Force):
-    def attach(self, simulation):
+    def _attach(self, simulation):
         # check that some dihedrals are defined
         if simulation.state._cpp_sys_def.getDihedralData().getNGlobal() == 0:
             simulation.device.cpp_msg.warning("No dihedrals are defined.\n")
