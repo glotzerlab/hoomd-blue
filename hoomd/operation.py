@@ -303,13 +303,13 @@ class _DependencyRelation:
         self._dependents = []
         self._dependencies = []
 
-    def add_dependent(self, obj):
+    def _add_dependent(self, obj):
         """Adds a dependent to the object's dependent list."""
         if obj not in self._dependencies:
             self._dependents.append(obj)
             obj._dependencies.append(self)
 
-    def notify_removal(self, *args, **kwargs):
+    def _notify_removal(self, *args, **kwargs):
         """Notify that an object is being removed from all relationships.
 
         Notifies dependent object that it is being removed, and removes itself
@@ -400,9 +400,9 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
 
     def __del__(self):
         if self._attached and hasattr(self, '_simulation'):
-            self.notify_removal(self._simulation)
+            self._notify_removal(self._simulation)
         else:
-            self.notify_removal()
+            self._notify_removal()
 
     def _detach(self):
         if self._attached:
@@ -410,7 +410,7 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
             self._update_param_dict()
             self._cpp_obj = None
             if hasattr(self, '_simulation'):
-                self.notify_removal(self._simulation)
+                self._notify_removal(self._simulation)
                 del self._simulation
             return self
 
