@@ -26,24 +26,20 @@ class NVT(_Method):
     R""" NVT Integration via the Nosé-Hoover thermostat.
 
     Args:
-        filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply 
-            this method.?leave type for arguments?
-        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set point
-            for the Nosé-Hoover thermostat. (in energy units).
-        tau (float): Coupling constant for the Nosé-Hoover thermostat. (in time
-            units).
+        filter (`hoomd.filter._ParticleFilter`): Subset of particles on which to 
+            apply this method.
 
-    :py:class:`NVT` performs constant volume, constant temperature simulations
+        kT (`hoomd.variant.Variant` or `float`): Temperature set point
+            for the Nosé-Hoover thermostat. (in energy units).
+
+        tau (`float`): Coupling constant for the Nosé-Hoover thermostat. 
+            (in time units).
+
+    `NVT` performs constant volume, constant temperature simulations
     using the Nosé-Hoover thermostat, using the MTK equations described in Refs.
     `G. J. Martyna, D. J. Tobias, M. L. Klein  1994
     <http://dx.doi.org/10.1063/1.467468>`_ and `J. Cao, G. J. Martyna 1996
     <http://dx.doi.org/10.1063/1.470959>`_.
-
-
-    :py:class:`NVT` uses the proper number of degrees of freedom to compute the
-    temperature of the system in both 2 and 3 dimensional systems, as long as
-    the number of dimensions is set before the integrate.NVT command is
-    specified.
 
     :math:`\tau` is related to the Nosé mass :math:`Q` by
 
@@ -54,17 +50,18 @@ class NVT(_Method):
     where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is
     the set point (*kT* above).
 
-    *kT* can be a variant type, allowing for temperature ramps in simulation
-    runs.
+    .. rubric:: Rotational degrees of freedom
 
-    A :py:class:`hoomd.compute.thermo` is automatically specified and associated
-    with *filter*. ?
+    NVT integrates rotational degrees of freedom. #TODO
+
 
     Attributes:
-        filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply 
-            this method.
-        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set point
+        filter (hoomd.filter._ParticleFilter): Subset of particles on which to 
+        apply this method.
+
+        kT (hoomd.variant.Variant): Temperature set point
             for the Nosé-Hoover thermostat. (in energy units).
+
         tau (float): Coupling constant for the Nosé-Hoover thermostat. (in time
             units).
 
@@ -562,15 +559,13 @@ class NVE(_Method):
     R""" NVE Integration via Velocity-Verlet
 
     Args:
-        filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply 
-            this method.
+        filter (`hoomd.filter._ParticleFilter`): Subset of particles on which to
+         apply this method.
 
-        limit (bool): Enforce that no particle moves more than a 
+        limit (None or `float`): Enforce that no particle moves more than a 
             distance of a limit in a single time step. Defaults to None
-            ?How args and atttribute are to be different?
 
-
-    :py:class:`NVE` performs constant volume, constant energy simulations using 
+    `NVE` performs constant volume, constant energy simulations using 
     the standard Velocity-Verlet method. For poor initial conditions that 
     include overlapping atoms, a limit can be specified to the movement a 
     particle is allowed to make in one time step. After a few thousand time 
@@ -583,21 +578,17 @@ class NVE(_Method):
         :py:class:`hoomd.md.update.zero_momentum` updater during the limited NVE
         run to prevent this.
 
-    A :py:class:`hoomd.compute.thermo` is automatically specified and associated
-     with *group*. ? compute.thermo still valid? and filter or group?
 
     Attributes:
-        filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply 
+        filter (hoomd.filter._ParticleFilter): Subset of particles on which to apply 
             this method.
 
-        limit (bool): Enforce that no particle moves more than a 
+        limit (None or float): Enforce that no particle moves more than a 
             distance of a limit in a single time step. Defaults to None
 
     Examples::
 
-        all = hoomd.filter.All()
-        nve = hoomd.md.methods.NVE(filter=all)?
-        nve = hoomd.md.methods.NVE(filter=all, limit=0.01)
+        nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
         integrator = hoomd.md.Integrator(dt=0.005, methods=[nve], forces=[lj])
 
     """
@@ -631,19 +622,19 @@ class Langevin(_Method):
     R""" Langevin dynamics.
 
     Args:
-        filter (:py:mod:`hoomd.filter._ParticleFilter`): Subset of particles to
+        filter (`hoomd.filter._ParticleFilter`): Subset of particles to
             apply this method to.
 
-        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of the
+        kT (`hoomd.variant.Variant` or `float`): Temperature of the
             simulation (in energy units).
 
-        seed (int): Random seed to use for generating
+        seed (`int`): Random seed to use for generating
             :math:`\vec{F}_\mathrm{R}`.
 
-        alpha (float): When set, use :math:\alpha d:math: for the
-            drag coefficient. Defaults to None
+        alpha (`float`): When set, use :math:\alpha d:math: for the
+            drag coefficient. Defaults to None.
 
-        tally_reservoir_energy (bool): If true, the energy exchange
+        tally_reservoir_energy (`bool`): If true, the energy exchange
             between the thermal reservoir and the particles is tracked. Total
             energy conservation can then be monitored by adding
             ``langevin_reservoir_energy_groupname`` to the logged quantities. 
@@ -651,7 +642,7 @@ class Langevin(_Method):
 
     .. rubric:: Translational degrees of freedom
 
-    :py:class:`Langevin` integrates particles forward in time according to the
+    `Langevin` integrates particles forward in time according to the
     Langevin equations of motion:
 
     .. math::
@@ -672,7 +663,7 @@ class Langevin(_Method):
     temperature, :math:`T`.  When :math:`kT=0`, the random force
     :math:`\vec{F}_\mathrm{R}=0`.
 
-    :py:class:`Langevin` generates random numbers by hashing together the
+    `Langevin` generates random numbers by hashing together the
     particle tag, user seed, and current time step index. See `C. L. Phillips
     et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_ for more
     information.
@@ -692,34 +683,28 @@ class Langevin(_Method):
     assumption is valid when underdamped: :math:`\frac{m}{\gamma} \gg \delta t`.
     Use `Brownian` if your system is not underdamped.
 
-    :py:class:`Langevin` uses the same integrator as :py:class:`NVE` with the
-    additional force term :math:`- \gamma \cdot \vec{v} + \vec{F}_\mathrm{R}`.
+    `Langevin` uses the same integrator as `NVE` with the additional force term
+     :math:`- \gamma \cdot \vec{v} + \vec{F}_\mathrm{R}`.
     The random force :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random
     number distribution.
 
     You can specify :math:`\gamma` in two ways:
 
-    1. Use ``set_gamma()`` to specify it directly, with independent
+    1. Use ``langevein.gamma=`` to specify it directly, with independent
        values for each particle type in the system.?
     2. Specify :math:`\alpha` which scales the particle diameter to
        :math:`\gamma = \alpha d_i`. The units of
        :math:`\alpha` are mass / distance / time.
-
-    *kT* can be a variant type, allowing for temperature ramps in simulation
-    runs.
-
-    A :py:class:`hoomd.compute.thermo` is automatically created and associated
-    with *group*.?
 
     Warning:
         When restarting a simulation, the energy of the reservoir will be reset
         to zero.
 
     Attributes:
-        filter (:py:mod:`hoomd.filter._ParticleFilter`): Subset of particles to
+        filter (hoomd.filter._ParticleFilter): Subset of particles to
             apply this method to.
 
-        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of the
+        kT (hoomd.variant.Variabt): Temperature of the
             simulation (in energy units).
 
         seed (int): Random seed to use for generating
@@ -727,6 +712,11 @@ class Langevin(_Method):
 
         alpha (float): When set, use :math:\alpha d:math: for the
             drag coefficient. Defaults to None
+
+        gamma (TypeParameter[``particle type``, float]):
+
+        gamma_r (TypeParameter[``particle type``, [float,float,float]]):
+
 
         tally_reservoir_energy (bool): If true, the energy exchange
             between the thermal reservoir and the particles is tracked. Total
@@ -736,8 +726,7 @@ class Langevin(_Method):
 
     Examples::
 
-        all=hoomd.filter.All()
-        langevin = hoomd.md.methods.Langevin(filter=all, kT=0.2, seed=1, alpha=1.0)?
+        langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=0.2, seed=1, alpha=1.0)
         integrator = hoomd.md.Integrator(dt=0.001, methods=[langevin], forces=[lj])
 
     """
@@ -788,21 +777,21 @@ class Brownian(_Method):
     R""" Brownian dynamics.
 
     Args:
-        filter (:py:mod:`hoomd.filter._ParticleFilter`): Subset of particles to
+        filter (`hoomd.filter._ParticleFilter`): Subset of particles to
             apply this method to.
 
-        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of the
+        kT (`hoomd.variant.Variant` or `float`): Temperature of the
             simulation (in energy units).
 
-        seed (int): Random seed to use for generating
+        seed (`int`): Random seed to use for generating
             :math:`\vec{F}_\mathrm{R}`.
 
-        alpha (float): When set, use :math:\alpha d:math: for the
+        alpha (`float`): When set, use :math:\alpha d:math: for the
             drag coefficient. Defaults to None.
 
-    :py:class:`Brownian` integrates particles forward in time according to the 
-        overdamped Langevin equations of motion, sometimes called Brownian 
-        dynamics, or the diffusive limit.
+    `Brownian` integrates particles forward in time according to the overdamped 
+    Langevin equations of motion, sometimes called Brownian dynamics, or the 
+    diffusive limit.
 
     .. math::
 
@@ -825,7 +814,7 @@ class Brownian(_Method):
     theorem to be consistent with the specified drag and temperature, :math:`T`.
     When :math:`kT=0`, the random force :math:`\vec{F}_\mathrm{R}=0`.
 
-    :py:class:`Brownian` generates random numbers by hashing together the 
+    `Brownian` generates random numbers by hashing together the 
     particle tag, user seed, and current time step index. See 
     `C. L. Phillips et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_
      for more information.
@@ -838,7 +827,7 @@ class Brownian(_Method):
         For MPI runs: all ranks other than 0 ignore the seed input and use the 
         value of rank 0.
 
-    :py:class:`Brownian` uses the integrator from `I. Snook, The Langevin and 
+    `Brownian` uses the integrator from `I. Snook, The Langevin and 
     Generalised Langevin Approach to the Dynamics of Atomic, Polymeric and 
     Colloidal Systems, 2007, section 6.2.5 
     <http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6>`_, with the exception
@@ -846,14 +835,14 @@ class Brownian(_Method):
      distribution.
 
     In Brownian dynamics, particle velocities are completely decoupled from 
-    positions. At each time step, :py:class:`Brownian` draws a new velocity 
+    positions. At each time step, `Brownian` draws a new velocity 
     distribution consistent with the current set temperature so that 
-    :py:class:`hoomd.compute.thermo` will report appropriate temperatures and 
+    `hoomd.compute.thermo` will report appropriate temperatures and 
     pressures if logged or needed by other commands.
 
     Brownian dynamics neglects the acceleration term in the Langevin equation. 
     This assumption is valid when overdamped: 
-    :math:`\frac{m}{\gamma} \ll \delta t`. Use :py:class:`Langevin` if your 
+    :math:`\frac{m}{\gamma} \ll \delta t`. Use `Langevin` if your 
     system is not overdamped.
 
     You can specify :math:`\gamma` in two ways:
@@ -864,16 +853,12 @@ class Brownian(_Method):
        :math:`\gamma = \alpha d_i`. The units of
        :math:`\alpha` are mass / distance / time.
     
-    ?should we include still? 
-    *kT* can be a variant type, allowing for temperature ramps in simulation runs.
-    ? thermo and group or filter.
-    A :py:class:`hoomd.compute.thermo` is automatically created and associated with *group*.
 
     Attributes:
-        filter (:py:mod:`hoomd.filter._ParticleFilter`): Subset of particles to
+        filter (hoomd.filter._ParticleFilter): Subset of particles to
             apply this method to.
 
-        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of the
+        kT (hoomd.variant.Variant): Temperature of the
             simulation (in energy units).
 
         seed (int): Random seed to use for generating
@@ -882,10 +867,13 @@ class Brownian(_Method):
         alpha (float): When set, use :math:\alpha d:math: for the
             drag coefficient. Defaults to None.
 
+        gamma (TypeParameter[``particle type``, float]):
+
+        gamma_r (TypeParameter[``particle type``, [float,float,float]]):
+
     Examples::
-        ?80 characters
-        all=hoomd.filter.All()
-        brownian = hoomd.md.methods.Brownian(filter=all, kT=0.2, seed=1, alpha=1.0)
+
+        brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2, seed=1, alpha=1.0)
         integrator = hoomd.md.Integrator(dt=0.001, methods=[brownian], forces=[lj])
 
     """

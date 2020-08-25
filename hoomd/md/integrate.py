@@ -87,14 +87,14 @@ class Integrator(_DynamicIntegrator):
     Args: 
         dt (float): Integrator time step size (in time units).
 
-        methods: default value to `methods`. 
+        methods: Initial value to `methods`. 
 
-        forces: default value to `forces`.
+        forces: Initial value to `forces`.
 
         aniso (str): Whether to integrate rotational degrees of freedom (bool),
             default 'auto' (autodetect).
 
-        constraints: default value to `constraints`.
+        constraints: Initial value to `constraints`.
 
     The following classes can be used as elements in `methods`
 
