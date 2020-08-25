@@ -93,7 +93,7 @@ def dump_metadata(filename=None,user=None,indent=4):
     st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
     metadata['timestamp'] = st
     metadata['device'] = hoomd.context.current.device
-    metadata['hoomd'] = hoomd.build_info()
+    metadata['hoomd'] = hoomd.context.HOOMDContext()
 
     global_objs = [hoomd.data.system_data(hoomd.context.current.system_definition)];
     global_objs += [hoomd.context.current.integrator];

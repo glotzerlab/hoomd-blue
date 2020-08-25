@@ -55,11 +55,11 @@ def _parse_command_line(arg_string=None):
     (cmd_options, args) = parser.parse_args(args=input_args);
 
     if cmd_options.user is not None:
-        hoomd._options.user = shlex.split(cmd_options.user);
+        hoomd.context.options.user = shlex.split(cmd_options.user);
 
     # copy band aid options to the global options variable
-    hoomd._options.mode = cmd_options.mode
-    hoomd._options.gpu_error_checking = cmd_options.gpu_error_checking
+    hoomd.context.options.mode = cmd_options.mode
+    hoomd.context.options.gpu_error_checking = cmd_options.gpu_error_checking
 
 def get_user():
     R""" Get user options.
@@ -68,7 +68,7 @@ def get_user():
         List of user options passed in via --user="arg1 arg2 ..."
     """
     _verify_init();
-    return hoomd._options.user;
+    return hoomd.context.options.user;
 
 
 def set_autotuner_params(enable=True, period=100000):
@@ -83,8 +83,8 @@ def set_autotuner_params(enable=True, period=100000):
     """
     _verify_init();
 
-    hoomd._options.autotuner_period = period;
-    hoomd._options.autotuner_enable = enable;
+    hoomd.context.options.autotuner_period = period;
+    hoomd.context.options.autotuner_enable = enable;
 
 
 ## \internal

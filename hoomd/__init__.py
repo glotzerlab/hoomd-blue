@@ -32,6 +32,9 @@ from hoomd import _hoomd;
 if not ('NOT_HOOMD_PYTHON_SITEDIR' in os.environ):
     sys.setdlopenflags(flags);
 
+## Global bibliography
+_bib = None
+
 from hoomd import meta
 from hoomd import cite
 from hoomd import analyze
@@ -130,9 +133,3 @@ class build_info():
     def compiler_version(self):
         return _hoomd.__compiler_version__
 
-## Global bibliography
-_bib = None
-
-# TODO: orphaned from context.py. Only used in option.py
-## Global options
-_options = None
