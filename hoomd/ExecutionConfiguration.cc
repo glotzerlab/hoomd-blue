@@ -648,6 +648,13 @@ int ExecutionConfiguration::getNumCapableGPUs()
         }
     return count;
     }
+#else
+/*! \return The count of available GPUs as 0, not compiled with GPU support
+*/
+int ExecutionConfiguration::getNumCapableGPUs()
+    {
+    return 0;
+    }
 #endif
 
 /*! Print out GPU stats if running on the GPU, otherwise determine and print out the CPU stats
@@ -851,6 +858,7 @@ void export_ExecutionConfiguration(py::module& m)
         .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
         .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
         .def("getNumActiveGPUs", &ExecutionConfiguration::getNumActiveGPUs)
+        .def("getNumCapableGPUs", &ExecutionConfiguration::getNumCapableGPUs)
 #if defined(ENABLE_HIP)
         .def("hipProfileStart", &ExecutionConfiguration::hipProfileStart)
         .def("hipProfileStop", &ExecutionConfiguration::hipProfileStop)

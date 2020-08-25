@@ -332,17 +332,7 @@ def auto(communicator=None, msg_file=None, shared_msg_file=None, notice_level=2)
         a GPU or CPU device, depending on availability, GPU is preferred
     """
 
-    device=_device(communicator, notice_level, msg_file, shared_msg_file)
-    device.cpp_exec_conf = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.AUTO,
-                                                           [],
-                                                           False,
-                                                           False,
-                                                           device.comm.cpp_mpi_conf,
-                                                           device.cpp_msg)
-    
-    # Set class according to C++ object
-    if device.cpp_exec_conf.isCUDAEnabled():
-        device.__class__=GPU
+    if _hoomd.ExecutionConfiguration.getNumCapableGPUs()>0:
+        return GPU(None, communicator, msg_file, shared_msg_file, notice_level)
     else:
-        device.__class__=CPU
-    return device
+        return CPU(None, communicator, msg_file, shared_msg_file, notice_level)

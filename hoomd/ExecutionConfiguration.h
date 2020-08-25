@@ -211,6 +211,9 @@ struct PYBIND11_EXPORT ExecutionConfiguration
     //! Get the name of the executing GPU (or the empty string)
     std::string getGPUName(unsigned int idev=0) const;
 
+    //! Returns the count of capable GPUs
+    static int getNumCapableGPUs();
+
 #if defined(ENABLE_HIP)
     //! Get the device properties of a logical GPU
     hipDeviceProp_t getDeviceProperties(unsigned int idev) const
@@ -357,9 +360,6 @@ private:
 
     //! Returns true if the given GPU is available for computation
     bool isGPUAvailable(int gpu_id);
-
-    //! Returns the count of capable GPUs
-    int getNumCapableGPUs();
 
     //! Return the number of GPUs that can be checked for availability
     unsigned int getNumTotalGPUs()
