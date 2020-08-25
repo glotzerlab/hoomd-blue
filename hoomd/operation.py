@@ -414,14 +414,6 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
                 del self._simulation
             return self
 
-    def _handle_removed_dependency(self, sim, obj):
-        self.detach()
-        new_objs = self._attach(sim)
-        return new_objs if new_objs is not None else []
-            else:
-                self.notify_removal()
-        return self
-
     def _attach(self, simulation):
         self._apply_param_dict()
         self._apply_typeparam_dict(self._cpp_obj, simulation)
