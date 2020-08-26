@@ -51,10 +51,6 @@
 class CachedAllocator;
 #endif
 
-// values used in measuring hoomd launch timing
-extern unsigned int hoomd_launch_time, hoomd_start_time, hoomd_mpi_init_time;
-extern bool hoomd_launch_timing;
-
 //! Defines the execution configuration for the simulation
 /*! \ingroup data_structs
     ExecutionConfiguration is a data structure needed to support the hybrid CPU/GPU code. It initializes the CUDA GPU
@@ -116,7 +112,6 @@ struct PYBIND11_EXPORT ExecutionConfiguration
 #endif
 
     executionMode exec_mode;    //!< Execution mode specified in the constructor
-    unsigned int n_cpu;         //!< Number of CPUS hoomd is executing on
     bool m_hip_error_checking;                //!< Set to true if GPU error checking is enabled
 
     std::shared_ptr<MPIConfiguration> m_mpi_config; //!< The MPI object holding the MPI communicator

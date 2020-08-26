@@ -204,33 +204,6 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
             throw runtime_error("Error initializing execution configuration");
             }
         }
-
-    if (hoomd_launch_timing && m_mpi_config->getNRanksGlobal() > 1)
-        {
-        // compute the number of seconds to get an exec conf
-        timeval t;
-        gettimeofday(&t, NULL);
-        unsigned int conf_time = t.tv_sec - hoomd_launch_time;
-
-        // get the min and max times
-        unsigned int start_time_min, start_time_max, mpi_init_time_min, mpi_init_time_max, conf_time_min, conf_time_max;
-        MPI_Reduce(&hoomd_start_time, &start_time_min, 1, MPI_UNSIGNED, MPI_MIN, 0, m_mpi_config->getHOOMDWorldCommunicator());
-        MPI_Reduce(&hoomd_start_time, &start_time_max, 1, MPI_UNSIGNED, MPI_MAX, 0, m_mpi_config->getHOOMDWorldCommunicator());
-
-        MPI_Reduce(&hoomd_mpi_init_time, &mpi_init_time_min, 1, MPI_UNSIGNED, MPI_MIN, 0, m_mpi_config->getHOOMDWorldCommunicator());
-        MPI_Reduce(&hoomd_mpi_init_time, &mpi_init_time_max, 1, MPI_UNSIGNED, MPI_MAX, 0, m_mpi_config->getHOOMDWorldCommunicator());
-
-        MPI_Reduce(&conf_time, &conf_time_min, 1, MPI_UNSIGNED, MPI_MIN, 0, m_mpi_config->getHOOMDWorldCommunicator());
-        MPI_Reduce(&conf_time, &conf_time_max, 1, MPI_UNSIGNED, MPI_MAX, 0, m_mpi_config->getHOOMDWorldCommunicator());
-
-        // write them out to a file
-        if (m_mpi_config->getRankGlobal() == 0)
-            {
-            msg->notice(2) << "start_time:    [" << start_time_min << ", " << start_time_max << "]" << std::endl;
-            msg->notice(2) << "mpi_init_time: [" << mpi_init_time_min << ", " << mpi_init_time_max << "]" << std::endl;
-            msg->notice(2) << "conf_time:     [" << conf_time_min << ", " << conf_time_max << "]" << std::endl;
-            }
-        }
     #endif
 
     #ifdef ENABLE_TBB
