@@ -7,8 +7,6 @@ namespace hpmc{
 
 namespace detail{
 
-const unsigned int ConvexHull::INVALID_INDEX = -1;
-const Scalar ConvexHull::epsilon = Scalar(1e-7);
 
 }
 
