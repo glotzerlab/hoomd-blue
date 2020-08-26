@@ -257,19 +257,19 @@ def _invalid_params():
             }
     tersoff_invalid_dicts = _make_invalid_param_dict(tersoff_valid_dict)
     invalid_params_list.extend(_make_invalid_params(tersoff_invalid_dicts,
-                                                    hoomd.md.pair.Tersoff,
+                                                    hoomd.md.many_body.Tersoff,
                                                     {}))
 
     square_density_valid_dict = {'A': 5.0, 'B': 2.0}
     sq_dens_invalid_dicts = _make_invalid_param_dict(square_density_valid_dict)
     invalid_params_list.extend(_make_invalid_params(sq_dens_invalid_dicts,
-                                                    hoomd.md.pair.SquareDensity,
+                                                    hoomd.md.many_body.SquareDensity,
                                                     {}))
 
     revcross_valid_dict = {'sigma': 5.0, 'n': 2.0, 'epsilon': 2.0, 'lambda3': 2.0}
     revcross_invalid_dicts = _make_invalid_param_dict(revcross_valid_dict)
     invalid_params_list.extend(_make_invalid_params(revcross_invalid_dicts,
-                                                    hoomd.md.pair.RevCross,
+                                                    hoomd.md.many_body.RevCross,
                                                     {}))
 
     return invalid_params_list
@@ -476,7 +476,7 @@ def _valid_params(particle_types=['A', 'B']):
             'alpha': [0.1, 0.5, 2.0],
             }
     tersoff_valid_param_dicts = _make_valid_param_dicts(tersoff_arg_dict)
-    valid_params_list.append(paramtuple(hoomd.md.pair.Tersoff,
+    valid_params_list.append(paramtuple(hoomd.md.many_body.Tersoff,
                                         dict(zip(combos,
                                                  tersoff_valid_param_dicts)),
                                         {}))
@@ -484,7 +484,7 @@ def _valid_params(particle_types=['A', 'B']):
     square_density_arg_dict = {'A': [1.0, 2.0, 5.0], 'B': [0.1, 0.5, 2.0]}
     square_density_valid_param_dicts = _make_valid_param_dicts(
             square_density_arg_dict)
-    valid_params_list.append(paramtuple(hoomd.md.pair.SquareDensity,
+    valid_params_list.append(paramtuple(hoomd.md.many_body.SquareDensity,
                                         dict(zip(combos,
                                                  square_density_valid_param_dicts)),
                                         {}))
@@ -496,7 +496,7 @@ def _valid_params(particle_types=['A', 'B']):
             'lambda3': [0.1, 0.5, 2.0],
             }
     revcross_valid_param_dicts = _make_valid_param_dicts(revcross_arg_dict)
-    valid_params_list.append(paramtuple(hoomd.md.pair.RevCross,
+    valid_params_list.append(paramtuple(hoomd.md.many_body.RevCross,
                                         dict(zip(combos,
                                                  revcross_valid_param_dicts)),
                                         {}))

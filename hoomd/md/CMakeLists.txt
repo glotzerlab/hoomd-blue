@@ -296,6 +296,7 @@ set(files __init__.py
           force.py
           improper.py
           integrate.py
+          many_body.py
           methods.py
           nlist.py
           pair.py
