@@ -615,8 +615,6 @@ int ExecutionConfiguration::getNumCapableGPUs()
 */
 void ExecutionConfiguration::setupStats()
     {
-    n_cpu = 1;
-
     #if defined(ENABLE_HIP)
     if (exec_mode == GPU)
         {
@@ -632,9 +630,6 @@ void ExecutionConfiguration::setupStats()
         dev_prop = m_dev_prop[0];
 
         printGPUStats();
-
-        // GPU runs only use 1 CPU core
-        n_cpu = 1;
         }
     #endif
 
@@ -817,7 +812,6 @@ void export_ExecutionConfiguration(py::module& m)
         .def("hipProfileStop", &ExecutionConfiguration::hipProfileStop)
 #endif
         .def("getGPUName", &ExecutionConfiguration::getGPUName)
-        .def_readonly("n_cpu", &ExecutionConfiguration::n_cpu)
         .def_readonly("msg", &ExecutionConfiguration::msg)
 #if defined(ENABLE_HIP)
         .def("getComputeCapability", &ExecutionConfiguration::getComputeCapabilityAsString)
