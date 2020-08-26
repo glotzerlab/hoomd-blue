@@ -34,7 +34,7 @@ void export_MassProperties(pybind11::module& m, std::string name)
     pybind11::class_<MassProperties<Shape>, std::shared_ptr< MassProperties<Shape> >, MassPropertiesBase<Shape> >
     ( m, name.c_str())
     .def(pybind11::init<const typename Shape::param_type&>())
-    .def("index", &MassProperties<Shape>::getFaceIndex)
+    .def("vertices", &MassProperties<Shape>::getFaceVertices)
     .def("num_faces", &MassProperties<Shape>::getNumFaces)
     ;
     }

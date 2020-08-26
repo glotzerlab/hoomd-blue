@@ -239,7 +239,7 @@ class MassProperties< ShapeConvexPolyhedron > : public MassPropertiesBase< Shape
             return std::make_pair(v, faces);
             }
 
-        pybind11::list getFaceIndex(unsigned int i, unsigned int j)
+        pybind11::list getFaceVertices(unsigned int i, unsigned int j)
             {
             vec3<double> pt = points[faces[i][j]];
             pybind11::list l;
