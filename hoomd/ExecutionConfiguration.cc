@@ -454,7 +454,7 @@ void ExecutionConfiguration::setupStats()
             if (error != cudaSuccess)
                 {
                 msg->errorAllRanks() << "" << endl;
-                throw runtime_error("Failed to get device properties: " + string(hipGetErrorString(error)));
+                throw runtime_error("Failed to get device properties: " + string(cudaGetErrorString(error)));
                 }
 
             if (cuda_prop.concurrentManagedAccess)
@@ -467,6 +467,8 @@ void ExecutionConfiguration::setupStats()
                 // AMD does not support concurrent access
                 m_concurrent = false;
                 }
+
+            m_active_device_descriptions.push_back(describeGPU(idev, m_dev_prop[idev]));
             }
 
         // initialize dev_prop with device properties of first device for now
@@ -476,10 +478,7 @@ void ExecutionConfiguration::setupStats()
 
     if (exec_mode == CPU)
         {
-        ostringstream s;
-
-        s << "HOOMD-blue is running on the CPU" << endl;
-        msg->collectiveNoticeStr(1,s.str());
+        m_active_device_descriptions.push_back("CPU");
         }
     }
 
@@ -663,6 +662,8 @@ void export_ExecutionConfiguration(py::module& m)
         .def("setMemoryTracing", &ExecutionConfiguration::setMemoryTracing)
         .def("getMemoryTracer", &ExecutionConfiguration::getMemoryTracer)
         .def_static("getCapableDevices", &ExecutionConfiguration::getCapableDevices)
+        .def_static("getScanMessages", &ExecutionConfiguration::getScanMessages)
+        .def("getActiveDevices", &ExecutionConfiguration::getActiveDevices)
     ;
 
     py::enum_<ExecutionConfiguration::executionMode>(executionconfiguration,"executionMode")

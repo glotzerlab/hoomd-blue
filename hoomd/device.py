@@ -183,6 +183,15 @@ class _device(hoomd.meta._metadata):
             self.cpp_msg.openStd()
 
 
+    @property
+    def devices(self):
+        """Descriptions of the active CPU or GPU devices.
+
+        Returns:
+            List[str]: Descriptions of the active hardware devices.
+        """
+        return self.cpp_exec_conf.getActiveDevices()
+
 ## Initializes the Messenger
 # \internal
 def _create_messenger(mpi_config, notice_level, msg_file, shared_msg_file):
@@ -267,6 +276,16 @@ class GPU(_device):
             List[str]: Descriptions of the available devices (if any).
         """
         return list(_hoomd.ExecutionConfiguration.getCapableDevices())
+
+    @staticmethod
+    def get_unavailable_device_reasons():
+        """Get messages describing the reasons why devices are unavailable.
+
+        Returns:
+            List[str]: Messages indicating why some devices are unavailable
+                (if any).
+        """
+        return list(_hoomd.ExecutionConfiguration.getScanMessages())
 
     @staticmethod
 

@@ -320,6 +320,18 @@ class PYBIND11_EXPORT ExecutionConfiguration
         return s_capable_gpu_descriptions;
         }
 
+    /// Get a list of the capable devices
+    static std::vector<std::string> getScanMessages()
+        {
+        scanGPUs();
+        return s_gpu_scan_messages;
+        }
+
+    /// Get the active devices
+    std::vector<std::string> getActiveDevices()
+        {
+        return m_active_device_descriptions;
+        }
 private:
     //! Guess local rank of this processor, used for GPU initialization
     /*! \returns Local rank guessed from common environment variables
@@ -373,6 +385,9 @@ private:
 
     /// Description of the GPU devices
     static std::vector<std::string> s_capable_gpu_descriptions;
+
+    /// Descriptions of the active devices
+    std::vector<std::string> m_active_device_descriptions;
 
     bool m_concurrent;                      //!< True if all GPUs have concurrentManagedAccess flag
 
