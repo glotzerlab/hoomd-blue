@@ -19,19 +19,23 @@ def test_serial(device):
     """
     assert True
 
-def test_cpu_only(device_cpu):
-    """ Some tests need a device but only operate correctly on the CPU. Use the ``device_cpu`` fixture to get only
-    CPU devices.
+@pytest.mark.cpu
+def test_cpu_only(device):
+    """ Some tests need a device but only operate correctly on the CPU.
+
+    Use the ``cpu`` mark to skip these tests on the GPU.
     """
 
-    assert device_cpu.mode == 'cpu'
+    assert device.mode == 'cpu'
 
-def test_gpu_only(device_gpu):
-    """ Some tests need a device but only operate correctly on the GPU. Use the ``device_gpu`` fixture to get only
-    GPU devices.
+@pytest.mark.gpu
+def test_gpu_only(device):
+    """ Some tests need a device but only operate correctly on the GPU.
+
+    Use the ``gpu`` mark to skip these tests on the GPU.
     """
 
-    assert device_gpu.mode == 'gpu'
+    assert device.mode == 'gpu'
 
 def test_python_only():
     """ Python only tests operate in pure python without a device or simulation context

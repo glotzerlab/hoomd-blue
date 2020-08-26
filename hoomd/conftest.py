@@ -38,26 +38,6 @@ def device_class(request):
     return request.param
 
 
-@pytest.fixture(scope='session')
-def device_cpu():
-    """CPU only device fixture.
-
-    Use this fixture when a test only executes on the CPU.
-
-    TODO: This might be better implemented as a skip on the GPU fixture, like
-    skip_mpi... Then the device fixture would work well with the factories
-    below even for CPU only tests. Same goes for device_gpu.
-    """
-    return hoomd.device.CPU()
-
-
-@pytest.fixture(scope='session')
-def device_gpu():
-    if hoomd.device.GPU.is_available():
-        return hoomd.device.GPU()
-    else:
-        pytest.skip("GPU support not available")
-
 
 @pytest.fixture(scope='session')
 def simulation_factory(device):
@@ -188,10 +168,19 @@ def only_gpu(request):
     if request.node.get_closest_marker('gpu'):
         if 'device' in request.fixturenames:
             if request.getfixturevalue('device').mode != 'gpu':
-                pytest.skip('Test is run on GPU(s).')
+                pytest.skip('Test is run only on GPU(s).')
         else:
             raise ValueError('only_gpu requires the *device* fixture')
 
+
+@pytest.fixture(autouse=True)
+def only_cpu(request):
+    if request.node.get_closest_marker('cpu'):
+        if 'device' in request.fixturenames:
+            if request.getfixturevalue('device').mode != 'cpu':
+                pytest.skip('Test is run only on CPU(s).')
+        else:
+            raise ValueError('only_gpu requires the *device* fixture')
 
 @pytest.fixture(scope='function', autouse=True)
 def numpy_random_seed():
@@ -216,7 +205,12 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers",
         "cupy_optional: tests that should pass with and without CuPy.")
-
+    config.addinivalue_line(
+        "markers",
+        "cpu: Tests that only run on the CPU.")
+    config.addinivalue_line(
+        "markers",
+        "gpu: Tests that only run on the GPU.")
 
 def abort(exitstatus):
     # get a default mpi communicator

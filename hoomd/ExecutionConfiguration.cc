@@ -43,8 +43,6 @@ std::vector<std::string> ExecutionConfiguration::s_capable_gpu_descriptions;
 
 /*! \param mode Execution mode to set (cpu or gpu)
     \param gpu_id List of GPU IDs on which to run, or empty for automatic selection
-    \param min_cpu If set to true, hipDeviceBlockingSync is set to keep the CPU usage of HOOMD to a minimum
-    \param ignore_display If set to true, try to ignore GPUs attached to the display
     \param mpi_config MPI configuration object
     \param _msg Messenger to use for status message printing
 
@@ -53,8 +51,6 @@ std::vector<std::string> ExecutionConfiguration::s_capable_gpu_descriptions;
 */
 ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
                                                std::vector<int> gpu_id,
-                                               bool min_cpu,
-                                               bool ignore_display,
                                                std::shared_ptr<MPIConfiguration> mpi_config,
                                                std::shared_ptr<Messenger> _msg
                                                )
@@ -78,7 +74,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         s << *it << " ";
         }
 
-    msg->notice(5) << "Constructing ExecutionConfiguration: ( " << s.str() << ") " <<  min_cpu << " " << ignore_display << endl;
+    msg->notice(5) << "Constructing ExecutionConfiguration: ( " << s.str() << ") " << endl;
     exec_mode = mode;
 
 #if defined(ENABLE_HIP)
@@ -641,7 +637,7 @@ int ExecutionConfiguration::guessLocalRank(bool &found)
 void export_ExecutionConfiguration(py::module& m)
     {
     py::class_<ExecutionConfiguration, std::shared_ptr<ExecutionConfiguration> > executionconfiguration(m,"ExecutionConfiguration");
-    executionconfiguration.def(py::init< ExecutionConfiguration::executionMode, std::vector<int>, bool, bool,
+    executionconfiguration.def(py::init< ExecutionConfiguration::executionMode, std::vector<int>,
         std::shared_ptr<MPIConfiguration>, std::shared_ptr<Messenger> >())
         .def("getMPIConfig", &ExecutionConfiguration::getMPIConfig)
         .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)

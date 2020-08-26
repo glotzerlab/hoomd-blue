@@ -467,14 +467,15 @@ class _TestLocalSnapshots:
                 property_check(hoomd_buffer, property_dict, tags)
 
 
+@pytest.mark.cpu
 class TestLocalSnapshotCPUDevice(_TestLocalSnapshots):
     _lcl_snapshot_attrs = ['cpu_local_snapshot']
 
     @pytest.fixture
-    def simulation_factory(self, device_cpu, base_snapshot):
+    def simulation_factory(self, device, base_snapshot):
         """Creates the simulation from the base_snapshot."""
         def factory():
-            sim = hoomd.Simulation(device_cpu)
+            sim = hoomd.Simulation(device)
 
             # reduce sorter grid to avoid Hilbert curve overhead in unit tests
             for tuner in sim.operations.tuners:
@@ -485,15 +486,18 @@ class TestLocalSnapshotCPUDevice(_TestLocalSnapshots):
             return sim
         return factory
 
-
+@pytest.mark.gpu
 class TestLocalSnapshotGPUDevice(_TestLocalSnapshots):
     _lcl_snapshot_attrs = ['cpu_local_snapshot', 'gpu_local_snapshot']
 
+    #TODO: see if this could work with the global simulation_factory to avoid
+    # code duplication
+
     @pytest.fixture
-    def simulation_factory(self, device_gpu, base_snapshot):
+    def simulation_factory(self, device, base_snapshot):
         """Creates the simulation from the base_snapshot."""
         def factory():
-            sim = hoomd.Simulation(device_gpu)
+            sim = hoomd.Simulation(device)
 
             # reduce sorter grid to avoid Hilbert curve overhead in unit tests
             for tuner in sim.operations.tuners:

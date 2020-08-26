@@ -1,9 +1,8 @@
 # Copyright (c) 2009-2019 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
 
-# Maintainer: tommy-waltmann / All Developers are free to add commands for new features
-
-r""" Devices available to run simulations
+"""Devices available to run simulations
 
 A device object represents the hardware (whether CPU, GPU, or Auto) the simulation will run on. Creating a device
 object will automatically add it to the simulation context. A device in mode Auto is chosen by default for the user,
@@ -256,8 +255,6 @@ class GPU(_device):
         # convert None options to defaults
         self.cpp_exec_conf = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.GPU,
                                                            gpu_ids,
-                                                           False,
-                                                           False,
                                                            self.comm.cpp_mpi_conf,
                                                            self.cpp_msg)
     @staticmethod
@@ -286,8 +283,6 @@ class GPU(_device):
                 (if any).
         """
         return list(_hoomd.ExecutionConfiguration.getScanMessages())
-
-    @staticmethod
 
     @contextlib.contextmanager
     def enable_profiling(self):
@@ -333,8 +328,6 @@ class CPU(_device):
 
         self.cpp_exec_conf = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.CPU,
                                                            [],
-                                                           False,
-                                                           False,
                                                            self.comm.cpp_mpi_conf,
                                                            self.cpp_msg)
 
@@ -362,7 +355,5 @@ class Auto(_device):
 
         self.cpp_exec_conf = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.AUTO,
                                                            [],
-                                                           False,
-                                                           False,
                                                            self.comm.cpp_mpi_conf,
                                                            self.cpp_msg)

@@ -81,8 +81,6 @@ class PYBIND11_EXPORT ExecutionConfiguration
     //! Constructor
     ExecutionConfiguration(executionMode mode=AUTO,
                            std::vector<int> gpu_id = std::vector<int>(),
-                           bool min_cpu=false,
-                           bool ignore_display=false,
                            std::shared_ptr<MPIConfiguration> mpi_config=std::shared_ptr<MPIConfiguration>(),
                            std::shared_ptr<Messenger> _msg=std::shared_ptr<Messenger>()
                            );
