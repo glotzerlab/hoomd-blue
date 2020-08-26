@@ -313,6 +313,13 @@ class PYBIND11_EXPORT ExecutionConfiguration
         return m_in_multigpu_block;
         }
 
+    /// Get a list of the capable devices
+    static std::vector<std::string> getCapableDevices()
+        {
+        scanGPUs();
+        return s_capable_gpu_descriptions;
+        }
+
 private:
     //! Guess local rank of this processor, used for GPU initialization
     /*! \returns Local rank guessed from common environment variables
@@ -328,14 +335,12 @@ private:
     /// Provide a string that describes a GPU device
     static std::string describeGPU(int id, hipDeviceProp_t prop);
 
-    /// Print out stats on the chosen GPUs
-    void printGPUStats();
-
     /** Scans through all GPUs reported by CUDA and marks if they are available
 
         Determine which GPUs are available for use by HOOMD.
 
-        \post Populate s_gpu_scan_complete, s_gpu_scan_messages, s_gpu_list, and s_gpu_descriptions.
+        @post Populate s_gpu_scan_complete, s_gpu_scan_messages, s_gpu_list, and
+        s_capable_gpu_descriptions.
     */
     static void scanGPUs();
 
@@ -367,7 +372,7 @@ private:
     static std::vector< int > s_capable_gpu_ids;
 
     /// Description of the GPU devices
-    static std::vector<std::string> s_gpu_descriptions;
+    static std::vector<std::string> s_capable_gpu_descriptions;
 
     bool m_concurrent;                      //!< True if all GPUs have concurrentManagedAccess flag
 

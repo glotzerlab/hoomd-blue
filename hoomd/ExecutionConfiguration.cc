@@ -39,7 +39,7 @@ using namespace std;
 bool ExecutionConfiguration::s_gpu_scan_complete = false;
 std::vector<std::string> ExecutionConfiguration::s_gpu_scan_messages;
 std::vector<int> ExecutionConfiguration::s_capable_gpu_ids;
-std::vector<std::string> ExecutionConfiguration::s_gpu_descriptions;
+std::vector<std::string> ExecutionConfiguration::s_capable_gpu_descriptions;
 
 /*! \param mode Execution mode to set (cpu or gpu)
     \param gpu_id List of GPU IDs on which to run, or empty for automatic selection
@@ -314,8 +314,8 @@ void ExecutionConfiguration::initializeGPU(int gpu_id)
     if (gpu_id >= (int)s_capable_gpu_ids.size())
         {
         std::ostringstream s;
-        s << "Invalid device ID " << gpu_id << " - select a valid device:" << std::endl;
-        for (const auto& desc : s_gpu_descriptions)
+        s << "Invalid device ID " << gpu_id << " - select a valid device from:" << std::endl;
+        for (const auto& desc : s_capable_gpu_descriptions)
             s << desc << std::endl;
         for (const auto& msg : s_gpu_scan_messages)
             s << msg << std::endl;
@@ -348,7 +348,7 @@ void ExecutionConfiguration::initializeGPU(int gpu_id)
 std::string ExecutionConfiguration::describeGPU(int id, hipDeviceProp_t prop)
     {
     ostringstream s;
-    s << " [" << id << "]";
+    s << "[" << id << "]";
     s << setw(22) << prop.name;
 
     // then print the SM count and version
@@ -366,67 +366,6 @@ std::string ExecutionConfiguration::describeGPU(int id, hipDeviceProp_t prop)
     s << ", " << setw(4) << mib << " MiB DRAM";
     return s.str();
     }
-
-void ExecutionConfiguration::printGPUStats()
-    {
-    msg->notice(1) << "HOOMD-blue is running on the following GPU(s):" << endl;
-
-    // build a status line
-    ostringstream s;
-
-    for (unsigned int idev = 0; idev < m_gpu_id.size(); ++idev)
-        {
-        // start with the device ID and name
-        unsigned int dev = m_gpu_id[idev];
-
-        s << " [" << dev << "]";
-        s << setw(22) << m_dev_prop[idev].name;
-
-        // then print the SM count and version
-        s << setw(4) << m_dev_prop[idev].multiProcessorCount << " SM_" << m_dev_prop[idev].major << "." << m_dev_prop[idev].minor;
-
-        // and the clock rate
-        float ghz = float(m_dev_prop[idev].clockRate)/1e6;
-        s.precision(3);
-        s.fill('0');
-        s << " @ " << setw(4) << ghz << " GHz";
-        s.fill(' ');
-
-        // and the total amount of memory
-        int mib = int(float(m_dev_prop[idev].totalGlobalMem) / float(1024*1024));
-        s << ", " << setw(4) << mib << " MiB DRAM";
-
-        #if defined(__HIP_PLATFORM_NVCC__)
-        // hip doesn't currently have the concurrentManagedAccess property, so resort to the CUDA API
-        cudaDeviceProp cuda_prop;
-        cudaError_t error = cudaGetDeviceProperties(&cuda_prop, dev);
-        if (error != cudaSuccess)
-            {
-            msg->errorAllRanks() << "Error calling cudaGetDeviceProperties()" << endl;
-            throw runtime_error("Error initializing execution configuration");
-            }
-
-        // follow up with some flags to signify device features
-        if (cuda_prop.kernelExecTimeoutEnabled)
-            s << ", DIS";
-
-        if (cuda_prop.concurrentManagedAccess)
-            {
-            s << ", MNG";
-            }
-        else
-        #endif
-            {
-            m_concurrent = false;
-            }
-
-        s << std::endl;
-        }
-
-    // We print this information in rank order
-    msg->collectiveNoticeStr(1,s.str());
-    }
-
 
 void ExecutionConfiguration::scanGPUs()
     {
@@ -461,7 +400,7 @@ void ExecutionConfiguration::scanGPUs()
 
         if (error != hipSuccess)
             {
-            s_gpu_scan_messages.push_back("Failed to get device properties: " string(hipGetErrorString(error)));
+            s_gpu_scan_messages.push_back("Failed to get device properties: " + string(hipGetErrorString(error)));
             continue;
             }
 
@@ -487,7 +426,7 @@ void ExecutionConfiguration::scanGPUs()
             continue;
             }
 
-        s_gpu_descriptions.push_back(describeGPU(s_capable_gpu_ids.size(), prop));
+        s_capable_gpu_descriptions.push_back(describeGPU(s_capable_gpu_ids.size(), prop));
         s_capable_gpu_ids.push_back(dev);
         }
     }
@@ -507,12 +446,31 @@ void ExecutionConfiguration::setupStats()
             {
             hipSetDevice(m_gpu_id[idev]);
             hipGetDeviceProperties(&m_dev_prop[idev], m_gpu_id[idev]);
+
+            #if defined(__HIP_PLATFORM_NVCC__)
+            // hip doesn't currently have the concurrentManagedAccess property, so resort to the CUDA API
+            cudaDeviceProp cuda_prop;
+            cudaError_t error = cudaGetDeviceProperties(&cuda_prop, m_gpu_id[idev]);
+            if (error != cudaSuccess)
+                {
+                msg->errorAllRanks() << "" << endl;
+                throw runtime_error("Failed to get device properties: " + string(hipGetErrorString(error)));
+                }
+
+            if (cuda_prop.concurrentManagedAccess)
+                {
+                // leave m_concurrent unmodified
+                }
+            else
+            #endif
+                {
+                // AMD does not support concurrent access
+                m_concurrent = false;
+                }
             }
 
         // initialize dev_prop with device properties of first device for now
         dev_prop = m_dev_prop[0];
-
-        printGPUStats();
         }
     #endif
 
@@ -703,7 +661,8 @@ void export_ExecutionConfiguration(py::module& m)
 #endif
         .def("getNumThreads", &ExecutionConfiguration::getNumThreads)
         .def("setMemoryTracing", &ExecutionConfiguration::setMemoryTracing)
-        .def("getMemoryTracer", &ExecutionConfiguration::getMemoryTracer);
+        .def("getMemoryTracer", &ExecutionConfiguration::getMemoryTracer)
+        .def_static("getCapableDevices", &ExecutionConfiguration::getCapableDevices)
     ;
 
     py::enum_<ExecutionConfiguration::executionMode>(executionconfiguration,"executionMode")

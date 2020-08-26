@@ -259,6 +259,17 @@ class GPU(_device):
         """
         return _hoomd.isCUDAAvailable();
 
+    @staticmethod
+    def get_available_devices():
+        """Get the available GPU devices.
+
+        Returns:
+            List[str]: Descriptions of the available devices (if any).
+        """
+        return list(_hoomd.ExecutionConfiguration.getCapableDevices())
+
+    @staticmethod
+
     @contextlib.contextmanager
     def enable_profiling(self):
         """Enable GPU profiling.
