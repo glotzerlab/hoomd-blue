@@ -39,8 +39,8 @@ void export_ShapeMoveInterface(pybind11::module& m, const std::string& name)
 template<class Shape>
 void export_ElasticShapeMove(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_< ElasticShapeMove<Shape>, std::shared_ptr< ElasticShapeMove<Shape> > >
-    (m, name.c_str(), pybind11::base< ShapeMoveBase<Shape> >() )
+    pybind11::class_< ElasticShapeMove<Shape>, std::shared_ptr< ElasticShapeMove<Shape> >, ShapeMoveBase<Shape> >
+    (m, name.c_str())
     .def(pybind11::init< unsigned int, const Scalar&, Scalar>())
     ;
     }
@@ -57,13 +57,13 @@ void export_ShapeLogBoltzmann(pybind11::module& m, const std::string& name)
 template<class Shape>
 void export_ShapeSpringLogBoltzmannFunction(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_< ShapeSpringBase<Shape>, std::shared_ptr< ShapeSpringBase<Shape> > >
-    (m, (name+"Base").c_str(), pybind11::base< ShapeLogBoltzmannFunction<Shape> >())
+    pybind11::class_< ShapeSpringBase<Shape>, std::shared_ptr< ShapeSpringBase<Shape> >, ShapeLogBoltzmannFunction<Shape> >
+    (m, (name+"Base").c_str())
     .def(pybind11::init< std::shared_ptr<Variant>, typename Shape::param_type >())
     ;
 
-    pybind11::class_< ShapeSpring<Shape>, std::shared_ptr< ShapeSpring<Shape> > >
-    (m, name.c_str(), pybind11::base< ShapeSpringBase<Shape> >())
+    pybind11::class_< ShapeSpring<Shape>, std::shared_ptr< ShapeSpring<Shape> >, ShapeSpringBase<Shape> >
+    (m, name.c_str())
     .def( pybind11::init<   std::shared_ptr<Variant>,
                             typename Shape::param_type,
                             std::shared_ptr<ElasticShapeMove<Shape> > >())
@@ -75,8 +75,8 @@ void export_ShapeSpringLogBoltzmannFunction(pybind11::module& m, const std::stri
 template<class Shape>
 void export_AlchemyLogBoltzmannFunction(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_< AlchemyLogBoltzmannFunction<Shape>, std::shared_ptr< AlchemyLogBoltzmannFunction<Shape> > >
-    (m, name.c_str(), pybind11::base< ShapeLogBoltzmannFunction<Shape> >())
+    pybind11::class_< AlchemyLogBoltzmannFunction<Shape>, std::shared_ptr< AlchemyLogBoltzmannFunction<Shape> >, ShapeLogBoltzmannFunction<Shape> >
+    (m, name.c_str())
     .def(pybind11::init< >())
     ;
     }
@@ -84,8 +84,8 @@ void export_AlchemyLogBoltzmannFunction(pybind11::module& m, const std::string& 
 template<class Shape>
 void export_ConvexPolyhedronGeneralizedShapeMove(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_< ConvexPolyhedronVertexShapeMove, std::shared_ptr< ConvexPolyhedronVertexShapeMove > >
-    (m, name.c_str(), pybind11::base< ShapeMoveBase<Shape> >())
+    pybind11::class_< ConvexPolyhedronVertexShapeMove, std::shared_ptr< ConvexPolyhedronVertexShapeMove >, ShapeMoveBase<Shape> >
+    (m, name.c_str())
     .def(pybind11::init< unsigned int, Scalar, Scalar, Scalar >())
     ;
     }
@@ -93,8 +93,8 @@ void export_ConvexPolyhedronGeneralizedShapeMove(pybind11::module& m, const std:
 template<class Shape>
 void export_PythonShapeMove(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_< PythonShapeMove<Shape>, std::shared_ptr< PythonShapeMove<Shape> > >
-    (m, name.c_str(), pybind11::base< ShapeMoveBase<Shape> >())
+    pybind11::class_< PythonShapeMove<Shape>, std::shared_ptr< PythonShapeMove<Shape> >, ShapeMoveBase<Shape> >
+    (m, name.c_str())
     .def(pybind11::init<unsigned int,
                         pybind11::object,
                         std::vector< std::vector<Scalar> >,
@@ -105,8 +105,8 @@ void export_PythonShapeMove(pybind11::module& m, const std::string& name)
 template<class Shape>
 void export_ConstantShapeMove(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_< ConstantShapeMove<Shape>, std::shared_ptr< ConstantShapeMove<Shape> > >
-    (m, name.c_str(), pybind11::base< ShapeMoveBase<Shape> >())
+    pybind11::class_< ConstantShapeMove<Shape>, std::shared_ptr< ConstantShapeMove<Shape> >, ShapeMoveBase<Shape> >
+    (m, name.c_str())
     .def(pybind11::init<unsigned int,
                         const std::vector< typename Shape::param_type >& >())
     ;

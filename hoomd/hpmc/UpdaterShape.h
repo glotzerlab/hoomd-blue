@@ -662,7 +662,7 @@ bool UpdaterShape<Shape>::restoreStateGSD(std::shared_ptr<GSDReader> reader, std
 template< typename Shape >
 void export_UpdaterShape(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_< UpdaterShape<Shape>, std::shared_ptr< UpdaterShape<Shape> > >(m, name.c_str(), pybind11::base<Updater>())
+    pybind11::class_< UpdaterShape<Shape>, std::shared_ptr< UpdaterShape<Shape> >, Updater >(m, name.c_str())
     .def( pybind11::init<   std::shared_ptr<SystemDefinition>,
                             std::shared_ptr< IntegratorHPMCMono<Shape> >,
                             Scalar,

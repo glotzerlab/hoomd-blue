@@ -834,7 +834,6 @@ class MassProperties< ShapeConvexPolyhedron > : public MassPropertiesBase< Shape
                 v.push_back(vert);
                 }
             auto face_inds = hull.getIndexBuffer();
-            using HalfEdge = quickhull::HalfEdgeMesh<float, unsigned long>::HalfEdge;
             std::vector<std::vector<unsigned int>> faces;
             for (size_t i = 0; i < face_inds.size(); i += 3)
                 {

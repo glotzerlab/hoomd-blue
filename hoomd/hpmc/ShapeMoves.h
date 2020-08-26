@@ -249,6 +249,7 @@ public:
                 return getParam(i);
                 }
             }
+        return 0.0;
         }
 
 private:
@@ -626,7 +627,7 @@ class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEllipsoid>
                          Scalar stepsize,
                          Scalar move_ratio)
                          : ShapeMoveBase<ShapeEllipsoid>(ntypes),
-                         m_mass_props(ntypes), m_move_ratio(move_ratio)
+                         m_mass_props(ntypes)
             {
             this->m_step_size.resize(ntypes, stepsize);
             std::fill(m_step_size.begin(), m_step_size.end(), stepsize);
@@ -657,7 +658,6 @@ class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEllipsoid>
 
     private:
         std::vector< detail::MassProperties<ShapeEllipsoid> > m_mass_props;
-        Scalar m_move_ratio;
     };
 
 template<class Shape>
@@ -759,6 +759,7 @@ public:
             {
             return m_k->getValue(timestep);
             }
+        else {return 0.0;}
         }
 
     //! Checks if the requested log value is provided

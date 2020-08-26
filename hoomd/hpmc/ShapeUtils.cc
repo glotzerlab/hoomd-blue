@@ -33,7 +33,8 @@ void export_MassProperties(pybind11::module& m, std::string name)
     // export the base class.
     using detail::MassProperties;
     using detail::MassPropertiesBase;
-    pybind11::class_<MassProperties<Shape>, std::shared_ptr< MassProperties<Shape> > >( m, name.c_str(), pybind11::base< MassPropertiesBase<Shape> >())
+    pybind11::class_<MassProperties<Shape>, std::shared_ptr< MassProperties<Shape> >, MassPropertiesBase<Shape> >
+    ( m, name.c_str())
     .def(pybind11::init<const typename Shape::param_type&>())
     .def("index", &MassProperties<Shape>::getFaceIndex)
     .def("num_faces", &MassProperties<Shape>::getNumFaces)
