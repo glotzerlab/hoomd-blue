@@ -104,27 +104,6 @@ namespace py = pybind11;
     \brief Brings all of the export_* functions together to export the hoomd python module
 */
 
-//! Function to export the tersoff parameter type to python
-/*
-void export_tersoff_params(py::module& m)
-{
-    py::class_<EvaluatorTersoff::param_type>(m, "tersoff_params")
-        .def(py::init<>())
-        .def_readwrite("cutoff_thickness", &EvaluatorTersoff::param_type::cutoff_thickness)
-        .def_readwrite("coeffs", &EvaluatorTersoff::param_type::coeffs)
-        .def_readwrite("exp_consts", &EvaluatorTersoff::param_type::exp_consts)
-        .def_readwrite("dimer_r", &EvaluatorTersoff::param_type::dimer_r)
-        .def_readwrite("tersoff_n", &EvaluatorTersoff::param_type::tersoff_n)
-        .def_readwrite("gamman", &EvaluatorTersoff::param_type::gamman)
-        .def_readwrite("lambda_cube", &EvaluatorTersoff::param_type::lambda_cube)
-        .def_readwrite("ang_consts", &EvaluatorTersoff::param_type::ang_consts)
-        .def_readwrite("alpha", &EvaluatorTersoff::param_type::alpha)
-        ;
-
-    m.def("make_tersoff_params", &make_tersoff_params);
-}
-*/
-
 //! Function to export the revcross parameter type to python
 void export_revcross_params(py::module& m)
 {
@@ -251,7 +230,6 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairReactionField>(m, "PotentialPairReactionField");
     export_PotentialPair<PotentialPairDLVO>(m, "PotentialPairDLVO");
     export_PotentialPair<PotentialPairFourier>(m, "PotentialPairFourier");
-    //export_tersoff_params(m);
     export_revcross_params(m);
     export_pair_params(m);
     export_AnisoPotentialPair<AnisoPotentialPairGB>(m, "AnisoPotentialPairGB");
