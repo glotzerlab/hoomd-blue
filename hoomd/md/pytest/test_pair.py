@@ -20,6 +20,9 @@ def _assert_equivalent_type_params(type_param1, type_param2):
     for pair in type_param1:
         if isinstance(type_param1[pair], dict):
             for key in type_param1[pair]:
+                print(key)
+                print(type_param1[pair][key])
+                print(type_param2[pair][key])
                 np.testing.assert_allclose(type_param1[pair][key],
                                            type_param2[pair][key])
         else:
@@ -237,6 +240,38 @@ def _invalid_params():
     invalid_params_list.extend(_make_invalid_params(dlvo_invalid_dicts,
                                                     hoomd.md.pair.DLVO,
                                                     {}))
+    tersoff_valid_dict = {
+            'cutoff_thickness': 1.0,
+            'C1': 5.0,
+            'C2': 2.0,
+            'lambda1': 2.0,
+            'lambda2': 2.0,
+            'lambda3': 2.0,
+            'dimer_r': 2.5,
+            'n': 2.0,
+            'gamma': 2.0,
+            'c': 2.0,
+            'd': 2.0,
+            'm': 2.0,
+            'alpha': 2.0,
+            }
+    tersoff_invalid_dicts = _make_invalid_param_dict(tersoff_valid_dict)
+    invalid_params_list.extend(_make_invalid_params(tersoff_invalid_dicts,
+                                                    hoomd.md.pair.Tersoff,
+                                                    {}))
+
+    square_density_valid_dict = {'A': 5.0, 'B': 2.0}
+    sq_dens_invalid_dicts = _make_invalid_param_dict(square_density_valid_dict)
+    invalid_params_list.extend(_make_invalid_params(sq_dens_invalid_dicts,
+                                                    hoomd.md.pair.SquareDensity,
+                                                    {}))
+
+    revcross_valid_dict = {'sigma': 5.0, 'n': 2.0, 'epsilon': 2.0, 'lambda3': 2.0}
+    revcross_invalid_dicts = _make_invalid_param_dict(revcross_valid_dict)
+    invalid_params_list.extend(_make_invalid_params(revcross_invalid_dicts,
+                                                    hoomd.md.pair.RevCross,
+                                                    {}))
+
     return invalid_params_list
 
 
@@ -433,7 +468,7 @@ def _valid_params(particle_types=['A', 'B']):
             'lambda2': [0.1, 0.5, 2.0],
             'lambda3': [0.0, 0.5, 2.0],
             'dimer_r': [1.0, 2.0, 2.5],
-            'n': [0.0, 0.5, 2.0],
+            'n': [0.3, 0.5, 2.0],
             'gamma': [0.1, 0.5, 2.0],
             'c': [0.1, 0.5, 2.0],
             'd': [0.1, 0.5, 2.0],
