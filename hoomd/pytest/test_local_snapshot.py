@@ -374,7 +374,7 @@ class _TestLocalSnapshots:
         sim = simulation_factory()
         for lcl_snapshot_attr in self._lcl_snapshot_attrs:
             with getattr(sim.state, lcl_snapshot_attr) as data:
-                self.check_box(data, sim.state.box, sim.device.num_ranks)
+                self.check_box(data, sim.state.box, sim.device.comm.num_ranks)
 
     @staticmethod
     def check_tag_shape(base_snapshot, local_snapshot, group, ranks):
@@ -411,7 +411,7 @@ class _TestLocalSnapshots:
         for lcl_snapshot_attr in self._lcl_snapshot_attrs:
             with getattr(sim.state, lcl_snapshot_attr) as data:
                 self.check_tag_shape(
-                    base_snapshot, data, snapshot_section, sim.device.num_ranks)
+                    base_snapshot, data, snapshot_section, sim.device.comm.num_ranks)
 
     @staticmethod
     def check_global_properties(prop, global_property_dict, N):
