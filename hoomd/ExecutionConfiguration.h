@@ -67,8 +67,9 @@ class CachedAllocator;
     GPU context and will error out on machines that do not have GPUs. isCUDAEnabled() is a convenience function to
     interpret the exec_mode and test if CUDA calls can be made or not.
 */
-struct PYBIND11_EXPORT ExecutionConfiguration
+class PYBIND11_EXPORT ExecutionConfiguration
     {
+    public:
     //! Simple enum for the execution modes
     enum executionMode
         {
@@ -111,10 +112,6 @@ struct PYBIND11_EXPORT ExecutionConfiguration
         }
 #endif
 
-    executionMode exec_mode;    //!< Execution mode specified in the constructor
-    bool m_hip_error_checking;                //!< Set to true if GPU error checking is enabled
-
-    std::shared_ptr<MPIConfiguration> m_mpi_config; //!< The MPI object holding the MPI communicator
     std::shared_ptr<Messenger> msg;          //!< Messenger for use in printing messages to the screen / log file
 
     //! Returns true if CUDA is enabled
@@ -203,17 +200,6 @@ struct PYBIND11_EXPORT ExecutionConfiguration
     //! End a multi-GPU section
     void endMultiGPU() const;
 
-    //! Get the name of the executing GPU (or the empty string)
-    std::string getGPUName(unsigned int idev=0) const;
-
-#if defined(ENABLE_HIP)
-    //! Get the device properties of a logical GPU
-    hipDeviceProp_t getDeviceProperties(unsigned int idev) const
-        {
-        return m_dev_prop[idev];
-        }
-#endif
-
     bool allConcurrentManagedAccess() const
         {
         // return cached value
@@ -222,8 +208,6 @@ struct PYBIND11_EXPORT ExecutionConfiguration
 
 #ifdef ENABLE_HIP
     hipDeviceProp_t dev_prop;              //!< Cached device properties of the first GPU
-    std::vector<unsigned int> m_gpu_id;   //!< IDs of active GPUs
-    std::vector<hipDeviceProp_t> m_dev_prop; //!< Device configuration of active GPUs
 
     //! Get the compute capability of the GPU that we are running on
     std::string getComputeCapabilityAsString(unsigned int igpu = 0) const;
@@ -362,11 +346,27 @@ private:
         return (unsigned int)m_gpu_available.size();
         }
 
-    std::vector< bool > m_gpu_available;    //!< true if the GPU is available for computation, false if it is not
-    bool m_system_compute_exclusive;        //!< true if every GPU in the system is marked compute-exclusive
-    std::vector< int > m_gpu_list;          //!< A list of capable GPUs listed in priority order
     std::vector< hipEvent_t > m_events;      //!< A list of events to synchronize between GPUs
+
+    /// IDs of active GPUs
+    std::vector<unsigned int> m_gpu_id;
+
+    /// Device configuration of active GPUs
+    std::vector<hipDeviceProp_t> m_dev_prop;
 #endif
+
+    /// Execution mode
+    executionMode exec_mode;
+
+    /// True when GPU error checking is enabled
+    bool m_hip_error_checking;
+
+    /// The MPI configuration
+    std::shared_ptr<MPIConfiguration> m_mpi_config;
+
+    std::vector< bool > m_gpu_available;    //!< true if the GPU is available for computation, false if it is not
+    std::vector< int > m_gpu_list;          //!< A list of capable GPUs listed in priority order
+
     bool m_concurrent;                      //!< True if all GPUs have concurrentManagedAccess flag
 
     mutable bool m_in_multigpu_block;       //!< Tracks whether we are in a multi-GPU block

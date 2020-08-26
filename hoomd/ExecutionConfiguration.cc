@@ -52,7 +52,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
                                                std::shared_ptr<MPIConfiguration> mpi_config,
                                                std::shared_ptr<Messenger> _msg
                                                )
-    : m_hip_error_checking(false), m_mpi_config(mpi_config), msg(_msg)
+    : msg(_msg), m_hip_error_checking(false), m_mpi_config(mpi_config)
     {
     if (! m_mpi_config)
         {
@@ -247,19 +247,6 @@ ExecutionConfiguration::~ExecutionConfiguration()
     #endif
     }
 
-std::string ExecutionConfiguration::getGPUName(unsigned int idev) const
-    {
-    #if defined(ENABLE_HIP)
-    if (exec_mode == GPU)
-        return string(m_dev_prop[idev].name);
-    else
-        return string();
-    #else
-    return string();
-    #endif
-    }
-
-
 #if defined(ENABLE_HIP)
 /*! \returns Compute capability of GPU 0 as a string
     \note Silently returns an empty string if no GPUs are specified
@@ -435,7 +422,7 @@ void ExecutionConfiguration::printGPUStats()
     Each GPU that CUDA reports to exist is scrutinized to determine if it is actually capable of running HOOMD
     When one is found to be lacking, it is marked as unavailable and a short notice is printed as to why.
 
-    \post m_gpu_list, m_gpu_available and m_system_compute_exclusive are all filled out
+    \post m_gpu_list, m_gpu_available
 */
 void ExecutionConfiguration::scanGPUs(bool ignore_display)
     {
@@ -542,12 +529,6 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
             m_gpu_list.push_back(dev);
             }
         }
-
-    // the system is fully compute-exclusive if all capable GPUs are compute-exclusive
-    if (n_exclusive_gpus == getNumCapableGPUs())
-        m_system_compute_exclusive = true;
-    else
-        m_system_compute_exclusive = false;
     }
 
 
@@ -780,13 +761,10 @@ void export_ExecutionConfiguration(py::module& m)
         .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
         .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
         .def("getNumActiveGPUs", &ExecutionConfiguration::getNumActiveGPUs)
+        .def_readonly("msg", &ExecutionConfiguration::msg)
 #if defined(ENABLE_HIP)
         .def("hipProfileStart", &ExecutionConfiguration::hipProfileStart)
         .def("hipProfileStop", &ExecutionConfiguration::hipProfileStop)
-#endif
-        .def("getGPUName", &ExecutionConfiguration::getGPUName)
-        .def_readonly("msg", &ExecutionConfiguration::msg)
-#if defined(ENABLE_HIP)
         .def("getComputeCapability", &ExecutionConfiguration::getComputeCapabilityAsString)
 #endif
         .def("getPartition", &ExecutionConfiguration::getPartition)

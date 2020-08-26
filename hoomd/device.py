@@ -73,13 +73,6 @@ class _device(hoomd.meta._metadata):
 
         return self._comm
 
-    # \brief Return the name of the GPU used in GPU mode.
-    @property
-    def gpu_ids(self):
-
-        n_gpu = self.cpp_exec_conf.getNumActiveGPUs()
-        return [self.cpp_exec_conf.getGPUName(i) for i in range(n_gpu)]
-
     # \brief Return the execution mode
     @property
     def mode(self):
