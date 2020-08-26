@@ -104,20 +104,6 @@ namespace py = pybind11;
     \brief Brings all of the export_* functions together to export the hoomd python module
 */
 
-//! Function to export the revcross parameter type to python
-void export_revcross_params(py::module& m)
-{
-    py::class_<revcross_params>(m, "revcross_params")
-        .def(py::init<>())
-        .def_readwrite("sigma", &revcross_params::sigma)
-        .def_readwrite("n", &revcross_params::n)
-        .def_readwrite("epsilon", &revcross_params::epsilon)
-        .def_readwrite("lambda3", &revcross_params::lambda3)
-        ;
-
-    m.def("make_revcross_params", &make_revcross_params);
-}
-
 //! Function to export the fourier parameter type to python
 void export_pair_params(py::module& m)
 {
@@ -230,7 +216,6 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairReactionField>(m, "PotentialPairReactionField");
     export_PotentialPair<PotentialPairDLVO>(m, "PotentialPairDLVO");
     export_PotentialPair<PotentialPairFourier>(m, "PotentialPairFourier");
-    export_revcross_params(m);
     export_pair_params(m);
     export_AnisoPotentialPair<AnisoPotentialPairGB>(m, "AnisoPotentialPairGB");
     export_AnisoPotentialPair<AnisoPotentialPairDipole>(m, "AnisoPotentialPairDipole");
