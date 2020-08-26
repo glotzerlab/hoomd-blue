@@ -357,28 +357,24 @@ def auto(communicator=None, msg_file=None, shared_msg_file=None, notice_level=2)
     Allow simulation hardware to be chosen automatically by HOOMD-blue
 
     Args:
-        communicator (:py:mod:`hoomd.comm.Communicator`): MPI communicator object. Can be left None if using a
-            default MPI communicator
-        msg_file (str): Name of file to write messages to.
-        shared_msg_file (str): (MPI only) Name of shared file to write message to (append partition #)
-        notice_level (int): Minimum level of notice messages to print
+    
+        communicator (`hoomd.comm.Communicator`): MPI communicator object.
+            When `None`, create a default communicator that uses all MPI ranks.
 
+        msg_file (str): Filename to write messages to. When `None` use
+            `sys.stdout` and `sys.stderr`.
+
+        shared_msg_file (str): Prefix of filename to write message to (HOOMD
+            will append the MPI partition #). When `None`, messages
+            from all partitions are merged.
+
+        notice_level (int): Minimum level of messages to print.
 
     Returns:
-        a GPU or CPU device, depending on availability, GPU is preferred
+        Instance of `GPU` if availabile, otherwise `CPU`.
     """
-
-    device=_device(communicator, notice_level, msg_file, shared_msg_file)
-    device.cpp_exec_conf = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.AUTO,
-                                                           [],
-                                                           False,
-                                                           False,
-                                                           device.comm.cpp_mpi_conf,
-                                                           device.cpp_msg)
-    
     # Set class according to C++ object
-    if device.cpp_exec_conf.isCUDAEnabled():
-        device.__class__=GPU
+    if len(GPU.get_available_devices())>0:
+        return GPU(None,communicator, msg_file, shared_msg_file, notice_level)
     else:
-        device.__class__=CPU
-    return device
+        return CPU(None,communicator, msg_file, shared_msg_file, notice_level)
