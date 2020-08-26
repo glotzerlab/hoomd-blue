@@ -8,14 +8,15 @@ class Tersoff(_NBody):
     R""" Tersoff Potential.
 
     Args:
-        r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        name (str): Name of the force instance.
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): Energy shifting mode.
 
-    :py:class:`tersoff` specifies that the Tersoff three-body potential should be applied to every
+    :py:class:`Tersoff` specifies that the Tersoff three-body potential should be applied to every
     non-bonded particle pair in the simulation.  Despite the fact that the Tersoff potential accounts
-    for the effects of third bodies, it is included in the pair potentials because the species of the
-    third body is irrelevant. It can thus use type-pair parameters similar to those of the pair potentials.
+    for the effects of third bodies, the species of the third body is irrelevant. It can thus use
+    type-pair parameters similar to those of the pair potentials.
 
     The Tersoff potential is a bond-order potential based on the Morse potential that accounts for the weakening of
     individual bonds with increasing coordination number. It does this by computing a modifier to the
@@ -84,16 +85,17 @@ class RevCross(_NBody):
     R""" Reversible crosslinker three-body potential to model bond swaps.
 
     Args:
-        r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        name (str): Name of the force instance.
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): Energy shifting mode.
 
-    :py:class:`revcross` specifies that the revcross three-body potential should be applied to every
+    :py:class:`RevCross` specifies that the revcross three-body potential should be applied to every
     non-bonded particle pair in the simulation.  Despite the fact that the revcross potential accounts
-    for the effects of third bodies, it is included in the pair potentials because its is actually just a
-    combination of two body potential terms. It can thus use type-pair parameters similar to those of the pair potentials.
+    for the effects of third bodies, it is actually just a combination of two body potential terms.
+    It can thus use type-pair parameters similar to those of the pair potentials.
 
-    The revcross potential has been described in detail in `S. Ciarella and W.G. Ellenbroek 2019 <https://arxiv.org/abs/1912.08569>`_. It is based on a generalized-Lennard-Jones pairwise
+    The RevCross potential has been described in detail in `S. Ciarella and W.G. Ellenbroek 2019 <https://arxiv.org/abs/1912.08569>`_. It is based on a generalized-Lennard-Jones pairwise
     attraction to form bonds between interacting particless:
 
     .. math::
@@ -136,12 +138,12 @@ class RevCross(_NBody):
 
     .. attention::
 
-        The revcross potential models an asymmetric interaction between two different chemical moieties that can form a reversible bond.
-	This requires the definition of (at least) two different types of particles.
-	A reversible bond is only possible between two different species, otherwise :math:`v^{\left( 3b \right)}_{ijk}`, would prevent any bond.
-	In our example we then set the interactions for types A and B with ``potRevC.pair_coeff.set(['A','B'],['A','B'],sigma=0.0,n=0,epsilon=0,lambda3=0)``
-        and the only non-zero energy only between the different types ``potRevC.pair_coeff.set('A','B',sigma=1,n=100,epsilon=100,lambda3=1)``.
-	Notice that the number of the minoritary species corresponds to the maximum number of bonds.
+        The RevCross potential models an asymmetric interaction between two different chemical moieties that can form a reversible bond.
+        This requires the definition of (at least) two different types of particles.
+        A reversible bond is only possible between two different species, otherwise :math:`v^{\left( 3b \right)}_{ijk}`, would prevent any bond.
+        In our example we then set the interactions for types A and B with ``potRevC.params[(['A','B'],['A','B'])] = dict(sigma=0.0,n=0,epsilon=0,lambda3=0)``
+        and the only non-zero energy only between the different types ``potRevC.params[('A','B')] = dict(sigma=1,n=100,epsilon=100,lambda3=1)``.
+        Notice that the number of the minoritary species corresponds to the maximum number of bonds.
 
 
     This three-body term also tunes the energy required for a bond swap through the coefficient:
@@ -157,11 +159,11 @@ class RevCross(_NBody):
 
     Example::
 
-        nl = md.nlist.cell()
-        potBondSwap = md.pair.revcross(r_cut=1.3,nlist=nl)
-        potBondSwap.pair_coeff.set(['A','B'],['A','B'],sigma=0,n=0,epsilon=0,lambda3=0)
-	# a bond can be made only between A-B and not A-A or B-B
-        potBondSwap.pair_coeff.set('A','B',sigma=1,n=100,epsilon=10,lambda3=1)
+        nl = md.nlist.Cell()
+        potBondSwap = md.many_body.RevCross(r_cut=1.3,nlist=nl)
+        potBondSwap.params[(['A','B'],['A','B'])] = dict(sigma=0,n=0,epsilon=0,lambda3=0)
+        # a bond can be made only between A-B and not A-A or B-B
+        potBondSwap.params[('A','B')] = dict(sigma=1,n=100,epsilon=10,lambda3=1)
     """
     _cpp_class_name = "PotentialRevCross"
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
@@ -180,11 +182,12 @@ class SquareDensity(_NBody):
     R""" Soft potential for simulating a van-der-Waals liquid
 
     Args:
-        r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        name (str): Name of the force instance.
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): Energy shifting mode.
 
-    :py:class:`square_density` specifies that the three-body potential should be applied to every
+    :py:class:`SquareDensity` specifies that the three-body potential should be applied to every
     non-bonded particle pair in the simulation, that is harmonic in the local density.
 
     The self energy per particle takes the form
@@ -210,10 +213,9 @@ class SquareDensity(_NBody):
 
     Example::
 
-        nl = nlist.cell()
-        sqd = pair.van_der_waals(r_cut=3.0, nlist=nl)
-        sqd.pair_coeff.set('A', 'A', A=0.1)
-        sqd.pair_coeff.set('A', 'A', B=1.0)
+        nl = nlist.Cell()
+        sqd = md.many_body.SquareDensity(r_cut=3.0, nlist=nl)
+        sqd.params[('A', 'A')] = dict(A=0.1, B=1.0)
 
     For further details regarding this multibody potential, see
 
