@@ -458,27 +458,6 @@ void ExecutionConfiguration::printGPUStats()
     msg->collectiveNoticeStr(1,s.str());
     }
 
-//! Element in a priority sort of GPUs
-struct gpu_elem
-    {
-    //! Constructor
-    gpu_elem(float p=0.0f, int g=0) : priority(p), gpu_id(g) {}
-    float priority;    //!< determined priority of the GPU
-    int gpu_id;        //!< ID of the GPU
-    };
-
-//! less than operator for sorting gpu_elem
-/*! \param a first element in the comparison
-    \param b second element in the comparison
-*/
-bool operator<(const gpu_elem& a, const gpu_elem& b)
-    {
-    if (a.priority == b.priority)
-        return a.gpu_id < b.gpu_id;
-    else
-        return a.priority > b.priority;
-    }
-
 /*! \param ignore_display If set to true, try to ignore GPUs attached to the display
     Each GPU that CUDA reports to exist is scrutinized to determine if it is actually capable of running HOOMD
     When one is found to be lacking, it is marked as unavailable and a short notice is printed as to why.
@@ -575,7 +554,6 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
             n_exclusive_gpus++;
         }
 
-    std::vector<gpu_elem> gpu_priorities;
     for (int dev = 0; dev < dev_count; dev++)
         {
         if (m_gpu_available[dev])
@@ -588,25 +566,8 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
                 throw runtime_error("Error initializing execution configuration");
                 }
 
-            // calculate a simple priority: prefer the newest GPUs first, then those with more multiprocessors,
-            // then subtract a bit if the device is attached to a display
-            float priority = float(prop.major*1000000 + prop.minor*10000 + prop.multiProcessorCount);
-
-            #ifdef __HIP_PLATFORM_NVCC__
-            if (prop.kernelExecTimeoutEnabled)
-                priority -= 0.1f;
-            #endif
-
-            gpu_priorities.push_back(gpu_elem(priority, dev));
+            m_gpu_list.push_back(dev);
             }
-        }
-
-    // sort the GPUs based on priority
-    sort(gpu_priorities.begin(), gpu_priorities.end());
-    // add the prioritized GPUs to the list
-    for (unsigned int i = 0; i < gpu_priorities.size(); i++)
-        {
-        m_gpu_list.push_back(gpu_priorities[i].gpu_id);
         }
 
     // the system is fully compute-exclusive if all capable GPUs are compute-exclusive
@@ -656,7 +617,7 @@ void ExecutionConfiguration::setupStats()
     {
     n_cpu = 1;
 
-    #if defined(ENABLE_HIP) 
+    #if defined(ENABLE_HIP)
     if (exec_mode == GPU)
         {
         m_dev_prop.resize(m_gpu_id.size());
