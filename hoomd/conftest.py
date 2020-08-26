@@ -180,7 +180,7 @@ def only_cpu(request):
             if request.getfixturevalue('device').mode != 'cpu':
                 pytest.skip('Test is run only on CPU(s).')
         else:
-            raise ValueError('only_gpu requires the *device* fixture')
+            raise ValueError('only_cpu requires the *device* fixture')
 
 @pytest.fixture(scope='function', autouse=True)
 def numpy_random_seed():
