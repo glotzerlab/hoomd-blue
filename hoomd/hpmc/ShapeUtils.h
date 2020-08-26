@@ -786,15 +786,10 @@ class MassProperties< ShapeConvexPolyhedron > : public MassPropertiesBase< Shape
         MassProperties(const typename ShapeConvexPolyhedron::param_type& param,
                        bool do_compute=true) : MassPropertiesBase()
             {
-            // ConvexHull hull(param);
-            // hull.compute();
             std::pair<std::vector<vec3<Scalar>>, std::vector<std::vector<unsigned int>>> p;
             p = getQuickHullVertsAndFaces(param);
             points = p.first;
-            // points = std::move(points);
             faces = p.second;
-            // faces = std::move(faces);
-            // hull.moveData(faces, points);
             if (do_compute)
                 {
                 compute();
@@ -861,15 +856,10 @@ class MassProperties< ShapeConvexPolyhedron > : public MassPropertiesBase< Shape
             {
             if(force || param.N != points.size())
                 {
-                // ConvexHull hull(param);
-                // hull.compute();
-                // hull.moveData(faces, points);
                 std::pair<std::vector<vec3<Scalar>>, std::vector<std::vector<unsigned int>>> p;
                 p = getQuickHullVertsAndFaces(param);
                 points = p.first;
-                // points = std::move(points);
                 faces = p.second;
-                // faces = std::move(faces);
                 sortFaces(points, faces);
                 }
             else
