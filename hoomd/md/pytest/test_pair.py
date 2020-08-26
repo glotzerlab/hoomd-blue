@@ -20,9 +20,6 @@ def _assert_equivalent_type_params(type_param1, type_param2):
     for pair in type_param1:
         if isinstance(type_param1[pair], dict):
             for key in type_param1[pair]:
-                print(key)
-                print(type_param1[pair][key])
-                print(type_param2[pair][key])
                 np.testing.assert_allclose(type_param1[pair][key],
                                            type_param2[pair][key])
         else:
