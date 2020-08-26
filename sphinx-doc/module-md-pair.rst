@@ -8,7 +8,7 @@ md.pair
 .. autosummary::
     :nosignatures:
 
-    _Pair
+    _NBody
     Buckingham
     dipole
     DLVO
@@ -26,11 +26,8 @@ md.pair
     Morse
     Moliere
     ReactionField
-    revcross
     SLJ
-    square_density
     table
-    tersoff
     Yukawa
     ZBL
 
@@ -38,7 +35,7 @@ md.pair
 
 .. automodule:: hoomd.md.pair
     :synopsis: Pair potentials.
-    :members: _Pair,
+    :members: _NBody,
         Buckingham,
         dipole,
         DLVO,
@@ -56,10 +53,7 @@ md.pair
         Morse,
         Moliere,
         ReactionField,
-        revcross,
         SLJ,
-        square_density,
         table,
-        tersoff,
         Yukawa,
         ZBL

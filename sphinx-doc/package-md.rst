@@ -20,6 +20,7 @@ md
     module-md-external
     module-md-force
     module-md-improper
+    module-md-many_body
     module-md-methods
     module-md-nlist
     module-md-pair
