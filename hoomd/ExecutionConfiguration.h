@@ -209,9 +209,6 @@ class PYBIND11_EXPORT ExecutionConfiguration
 #ifdef ENABLE_HIP
     hipDeviceProp_t dev_prop;              //!< Cached device properties of the first GPU
 
-    //! Get the compute capability of the GPU that we are running on
-    std::string getComputeCapabilityAsString(unsigned int igpu = 0) const;
-
     //! Get the compute capability of the GPU
     unsigned int getComputeCapability(unsigned int igpu = 0) const;
 
@@ -325,26 +322,22 @@ private:
     int guessLocalRank(bool &found);
 
 #if defined(ENABLE_HIP)
-    //! Initialize the GPU with the given id
-    void initializeGPU(int gpu_id, bool min_cpu);
+    //! Initialize the GPU with the given id (where gpu_id is an index into s_capable_gpu_ids)
+    void initializeGPU(int gpu_id);
 
-    //! Print out stats on the chosen GPUs
+    /// Provide a string that describes a GPU device
+    static std::string describeGPU(int id, hipDeviceProp_t prop);
+
+    /// Print out stats on the chosen GPUs
     void printGPUStats();
 
-    //! Scans through all GPUs reported by CUDA and marks if they are available
-    void scanGPUs(bool ignore_display);
+    /** Scans through all GPUs reported by CUDA and marks if they are available
 
-    //! Returns true if the given GPU is available for computation
-    bool isGPUAvailable(int gpu_id);
+        Determine which GPUs are available for use by HOOMD.
 
-    //! Returns the count of capable GPUs
-    int getNumCapableGPUs();
-
-    //! Return the number of GPUs that can be checked for availability
-    unsigned int getNumTotalGPUs()
-        {
-        return (unsigned int)m_gpu_available.size();
-        }
+        \post Populate s_gpu_scan_complete, s_gpu_scan_messages, s_gpu_list, and s_gpu_descriptions.
+    */
+    static void scanGPUs();
 
     std::vector< hipEvent_t > m_events;      //!< A list of events to synchronize between GPUs
 
@@ -364,8 +357,17 @@ private:
     /// The MPI configuration
     std::shared_ptr<MPIConfiguration> m_mpi_config;
 
-    std::vector< bool > m_gpu_available;    //!< true if the GPU is available for computation, false if it is not
-    std::vector< int > m_gpu_list;          //!< A list of capable GPUs listed in priority order
+    /// Set to true
+    static bool s_gpu_scan_complete;
+
+    /// Status messages generated during the device scan
+    static std::vector<std::string> s_gpu_scan_messages;
+
+    /// List of the capable device IDs
+    static std::vector< int > s_capable_gpu_ids;
+
+    /// Description of the GPU devices
+    static std::vector<std::string> s_gpu_descriptions;
 
     bool m_concurrent;                      //!< True if all GPUs have concurrentManagedAccess flag
 

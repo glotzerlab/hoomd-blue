@@ -35,6 +35,12 @@ using namespace std;
     \brief Defines ExecutionConfiguration and related classes
 */
 
+// initialize static variables
+bool ExecutionConfiguration::s_gpu_scan_complete = false;
+std::vector<std::string> ExecutionConfiguration::s_gpu_scan_messages;
+std::vector<int> ExecutionConfiguration::s_capable_gpu_ids;
+std::vector<std::string> ExecutionConfiguration::s_gpu_descriptions;
+
 /*! \param mode Execution mode to set (cpu or gpu)
     \param gpu_id List of GPU IDs on which to run, or empty for automatic selection
     \param min_cpu If set to true, hipDeviceBlockingSync is set to keep the CPU usage of HOOMD to a minimum
@@ -77,8 +83,8 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 
 #if defined(ENABLE_HIP)
     // scan the available GPUs
-    scanGPUs(ignore_display);
-    int dev_count = getNumCapableGPUs();
+    scanGPUs();
+    size_t dev_count = s_capable_gpu_ids.size();
 
     // auto select a mode
     if (exec_mode == AUTO)
@@ -112,28 +118,27 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
             }
 
         #ifdef __HIP_PLATFORM_NVCC__
-        cudaSetValidDevices(&m_gpu_list[0], (int)m_gpu_list.size());
+        cudaSetValidDevices(&s_capable_gpu_ids[0], (int)s_capable_gpu_ids.size());
         #endif
 
         if (! gpu_id.size())
             {
             // auto-detect a single GPU
-            initializeGPU(-1, min_cpu);
+            initializeGPU(-1);
             }
         else
             {
             // initialize all requested GPUs
             for (auto it = gpu_id.begin(); it != gpu_id.end(); ++it)
-                initializeGPU(*it, min_cpu);
+                initializeGPU(*it);
             }
         }
 #else
     if (exec_mode == GPU)
         {
-        msg->error() << "GPU execution requested, but this hoomd was built without GPU support" << endl;
-        throw runtime_error("Error initializing execution configuration");
+        throw runtime_error("This build of HOOMD does not include GPU support.");
         }
-    // "auto-select" the CPU
+
     exec_mode = CPU;
     m_concurrent = false;
 #endif
@@ -200,8 +205,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 
         if (errors != 0)
             {
-            msg->error() << "Not all ranks have the same execution context (some are CPU and some are GPU)" << endl;
-            throw runtime_error("Error initializing execution configuration");
+            throw runtime_error("Ranks have different execution configurations.");
             }
         }
     #endif
@@ -248,20 +252,6 @@ ExecutionConfiguration::~ExecutionConfiguration()
     }
 
 #if defined(ENABLE_HIP)
-/*! \returns Compute capability of GPU 0 as a string
-    \note Silently returns an empty string if no GPUs are specified
-*/
-std::string ExecutionConfiguration::getComputeCapabilityAsString(unsigned int idev) const
-    {
-    ostringstream s;
-
-    if (exec_mode == GPU)
-        {
-        s << m_dev_prop[idev].major << "." << m_dev_prop[idev].minor;
-        }
-
-    return s.str();
-    }
 
 /*! \returns Compute capability of the GPU formatted as 210 (for compute 2.1 as an example)
     \note Silently returns 0 if no GPU is being used
@@ -297,40 +287,39 @@ void ExecutionConfiguration::handleHIPError(hipError_t err, const char *file, un
     }
 
 /*! \param gpu_id Index for the GPU to initialize, set to -1 for automatic selection
-    \param min_cpu If set to true, the hipDeviceBlockingSync device flag is set
-
-    \pre scanGPUs has been called
 
     initializeGPU will loop through the specified list of GPUs, validate that each one is available for CUDA use
     and then setup CUDA to use the given GPU. After initializeGPU completes, hip calls can be made by the main
     application.
 */
-void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
+void ExecutionConfiguration::initializeGPU(int gpu_id)
     {
-    int capable_count = getNumCapableGPUs();
+    int capable_count = s_capable_gpu_ids.size();
     if (capable_count == 0)
         {
-        msg->errorAllRanks() << "No capable GPUs were found!" << endl;
-        throw runtime_error("Error initializing execution configuration");
+        std::ostringstream s;
+        s << "No supported GPUs are present on this system." << std::endl;
+        for (const auto& msg : s_gpu_scan_messages)
+            s << msg << std::endl;
+        throw runtime_error(s.str());
         }
 
     if (gpu_id < -1)
         {
-        msg->errorAllRanks() << "The specified GPU id (" << gpu_id << ") is invalid." << endl;
-        throw runtime_error("Error initializing execution configuration");
+        std::ostringstream s;
+        s << "Invalid device ID " << gpu_id << " (Use -1 to autoselect a GPU).";
+        throw runtime_error(s.str());
         }
 
-    if (gpu_id >= (int)getNumTotalGPUs())
+    if (gpu_id >= (int)s_capable_gpu_ids.size())
         {
-        msg->errorAllRanks() << "The specified GPU id (" << gpu_id << ") is not present in the system." << endl;
-        msg->errorAllRanks() << "CUDA reports only " << getNumTotalGPUs() << endl;
-        throw runtime_error("Error initializing execution configuration");
-        }
-
-    if (!isGPUAvailable(gpu_id))
-        {
-        msg->errorAllRanks() << "The specified GPU id (" << gpu_id << ") is not available for executing HOOMD." << endl;
-        throw runtime_error("Error initializing execution configuration");
+        std::ostringstream s;
+        s << "Invalid device ID " << gpu_id << " - select a valid device:" << std::endl;
+        for (const auto& desc : s_gpu_descriptions)
+            s << desc << std::endl;
+        for (const auto& msg : s_gpu_scan_messages)
+            s << msg << std::endl;
+        throw runtime_error(s.str());
         }
 
     // setup the flags
@@ -338,7 +327,7 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
 
     if (gpu_id != -1)
         {
-        hipSetDevice(m_gpu_list[gpu_id]);
+        hipSetDevice(s_capable_gpu_ids[gpu_id]);
         }
     else
         {
@@ -356,8 +345,28 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
     handleHIPError(err_sync, __FILE__, __LINE__);
     }
 
-/*! Prints out a status line for the selected GPU
-*/
+std::string ExecutionConfiguration::describeGPU(int id, hipDeviceProp_t prop)
+    {
+    ostringstream s;
+    s << " [" << id << "]";
+    s << setw(22) << prop.name;
+
+    // then print the SM count and version
+    s << setw(4) << prop.multiProcessorCount << " SM_" << prop.major << "." << prop.minor;
+
+    // and the clock rate
+    float ghz = float(prop.clockRate)/1e6;
+    s.precision(3);
+    s.fill('0');
+    s << " @ " << setw(4) << ghz << " GHz";
+    s.fill(' ');
+
+    // and the total amount of memory
+    int mib = int(float(prop.totalGlobalMem) / float(1024*1024));
+    s << ", " << setw(4) << mib << " MiB DRAM";
+    return s.str();
+    }
+
 void ExecutionConfiguration::printGPUStats()
     {
     msg->notice(1) << "HOOMD-blue is running on the following GPU(s):" << endl;
@@ -418,36 +427,30 @@ void ExecutionConfiguration::printGPUStats()
     msg->collectiveNoticeStr(1,s.str());
     }
 
-/*! \param ignore_display If set to true, try to ignore GPUs attached to the display
-    Each GPU that CUDA reports to exist is scrutinized to determine if it is actually capable of running HOOMD
-    When one is found to be lacking, it is marked as unavailable and a short notice is printed as to why.
 
-    \post m_gpu_list, m_gpu_available
-*/
-void ExecutionConfiguration::scanGPUs(bool ignore_display)
+void ExecutionConfiguration::scanGPUs()
     {
-    // check the CUDA driver version
-    int driverVersion = 0;
-    hipError_t error = hipDriverGetVersion(&driverVersion);
-
-    if (error != hipSuccess)
+    if (s_gpu_scan_complete)
         {
-        msg->notice(1) << string(hipGetErrorString(error)) << endl;
+        // the scan has already been completed
         return;
         }
+
+    s_gpu_scan_complete = true;
 
     // determine the number of GPUs that CUDA thinks there is
     int dev_count;
-    error = hipGetDeviceCount(&dev_count);
+    hipError_t error = hipGetDeviceCount(&dev_count);
     if (error != hipSuccess)
         {
-        msg->notice(1) << string(hipGetErrorString(error)) << endl;
+        s_gpu_scan_messages.push_back("Failed to get GPU device count: " + string(hipGetErrorString(error)));
         return;
         }
 
-    // initialize variables
-    int n_exclusive_gpus = 0;
-    m_gpu_available.resize(dev_count);
+    if (dev_count == 0)
+        {
+        s_gpu_scan_messages.push_back("The GPU runtime reports there are 0 devices.");
+        }
 
     // loop through each GPU and check it's properties
     for (int dev = 0; dev < dev_count; dev++)
@@ -458,111 +461,37 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
 
         if (error != hipSuccess)
             {
-            msg->errorAllRanks() << "Error calling hipGetDeviceProperties()" << endl;
-            throw runtime_error("Error initializing execution configuration");
-            }
-
-        // start by assuming that the device is available, it will be excluded later if it is not
-        m_gpu_available[dev] = true;
-
-        // exclude the device emulation device
-        if (prop.major == 9999 && prop.minor == 9999)
-            {
-            m_gpu_available[dev] = false;
-            msg->notice(2) << "GPU id " << dev << " is not available for computation because "
-                           << "it is an emulated device" << endl;
+            s_gpu_scan_messages.push_back("Failed to get device properties: " string(hipGetErrorString(error)));
+            continue;
             }
 
         // exclude a GPU if it's compute version is not high enough
         int compoundComputeVer = prop.minor + prop.major * 10;
         #ifdef __HIP_PLATFORM_NVCC__
-        if (m_gpu_available[dev] && compoundComputeVer < CUDA_ARCH)
+        if (compoundComputeVer < CUDA_ARCH)
             {
-            m_gpu_available[dev] = false;
-            msg->notice(2) << "Notice: GPU id " << dev << " is not available for computation because "
-                           << "it's compute capability is not high enough" << endl;
-
-            int min_major = CUDA_ARCH/10;
-            int min_minor = CUDA_ARCH - min_major*10;
-
-            msg->notice(2) << "This build of hoomd was compiled for a minimum capability of of " << min_major << "."
-                           << min_minor << " but the GPU is only " << prop.major << "." << prop.minor << endl;
-            }
-        #endif
-
-        #ifdef __HIP_PLATFORM_NVCC__
-        // ignore the display gpu if that was requested
-        if (m_gpu_available[dev] && ignore_display && prop.kernelExecTimeoutEnabled)
-            {
-            m_gpu_available[dev] = false;
-            msg->notice(2) << "Notice: GPU id " << dev << " is not available for computation because "
-                           << "it appears to be attached to a display" << endl;
+            ostringstream s;
+            s << "The device " << prop.name << " with computed capability " << prop.major << "."
+              << prop.minor << " does not support HOOMD-blue.";
+            s_gpu_scan_messages.push_back(s.str());
+            continue;
             }
         #endif
 
         // exclude a gpu if it is compute-prohibited
-        if (m_gpu_available[dev] && prop.computeMode == hipComputeModeProhibited)
+        if (prop.computeMode == hipComputeModeProhibited)
             {
-            m_gpu_available[dev] = false;
-            msg->notice(2) << "Notice: GPU id " << dev << " is not available for computation because "
-                           << "it is set in the compute-prohibited mode" << endl;
+            ostringstream s;
+            s << "The device " << prop.name << " is in a compute prohibited mode.";
+            s_gpu_scan_messages.push_back(s.str());
+            continue;
             }
 
-        // count the number of compute-exclusive gpus
-        if (m_gpu_available[dev] &&
-            (prop.computeMode == hipComputeModeExclusive || prop.computeMode == hipComputeModeExclusiveProcess))
-            n_exclusive_gpus++;
-        }
-
-    for (int dev = 0; dev < dev_count; dev++)
-        {
-        if (m_gpu_available[dev])
-            {
-            hipDeviceProp_t prop;
-            hipError_t error = hipGetDeviceProperties(&prop, dev);
-            if (error != hipSuccess)
-                {
-                msg->errorAllRanks() << "Error calling hipGetDeviceProperties()" << endl;
-                throw runtime_error("Error initializing execution configuration");
-                }
-
-            m_gpu_list.push_back(dev);
-            }
+        s_gpu_descriptions.push_back(describeGPU(s_capable_gpu_ids.size(), prop));
+        s_capable_gpu_ids.push_back(dev);
         }
     }
 
-
-/*! \param gpu_id ID of the GPU to check for availability
-    \pre scanGPUs() has been called
-
-    \return The availability statis of GPU \a gpu_id as determined by scanGPU()
-*/
-bool ExecutionConfiguration::isGPUAvailable(int gpu_id)
-    {
-    if (gpu_id < -1)
-        return false;
-    if (gpu_id == -1)
-        return true;
-    if ((unsigned int)gpu_id >= m_gpu_available.size())
-        return false;
-
-    return m_gpu_available[gpu_id];
-    }
-
-
-/*! \pre scanGPUs() has been called
-    \return The count of available GPUs determined by scanGPUs
-*/
-int ExecutionConfiguration::getNumCapableGPUs()
-    {
-    int count = 0;
-    for (unsigned int i = 0; i < m_gpu_available.size(); i++)
-        {
-        if (m_gpu_available[i])
-            count++;
-        }
-    return count;
-    }
 #endif
 
 /*! Print out GPU stats if running on the GPU, otherwise determine and print out the CPU stats
@@ -765,7 +694,6 @@ void export_ExecutionConfiguration(py::module& m)
 #if defined(ENABLE_HIP)
         .def("hipProfileStart", &ExecutionConfiguration::hipProfileStart)
         .def("hipProfileStop", &ExecutionConfiguration::hipProfileStop)
-        .def("getComputeCapability", &ExecutionConfiguration::getComputeCapabilityAsString)
 #endif
         .def("getPartition", &ExecutionConfiguration::getPartition)
         .def("getNRanks", &ExecutionConfiguration::getNRanks)
