@@ -314,14 +314,18 @@ class PYBIND11_EXPORT ExecutionConfiguration
     /// Get a list of the capable devices
     static std::vector<std::string> getCapableDevices()
         {
+        #ifdef ENABLE_HIP
         scanGPUs();
+        #endif
         return s_capable_gpu_descriptions;
         }
 
     /// Get a list of the capable devices
     static std::vector<std::string> getScanMessages()
         {
+        #ifdef ENABLE_HIP
         scanGPUs();
+        #endif
         return s_gpu_scan_messages;
         }
 
