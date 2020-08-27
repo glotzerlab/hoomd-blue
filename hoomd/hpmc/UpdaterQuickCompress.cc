@@ -206,6 +206,7 @@ void export_UpdaterQuickCompress(pybind11::module& m)
                             double,
                             pybind11::object,
                             const unsigned int>())
+        .def("isComplete", &UpdaterQuickCompress::isComplete)
         .def_property("max_overlaps_per_particle",
                       &UpdaterQuickCompress::getMaxOverlapsPerParticle,
                       &UpdaterQuickCompress::setMaxOverlapsPerParticle)

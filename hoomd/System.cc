@@ -196,9 +196,6 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     unsigned int timeout_end_run = 0;
     char *walltime_stop = getenv("HOOMD_WALLTIME_STOP");
 
-    // starting a new run, we have not completed early
-    m_completed_early = false;
-
     m_start_tstep = m_cur_tstep;
     m_end_tstep = m_cur_tstep + nsteps;
 
@@ -237,10 +234,6 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     // handle time steps
     for ( ; m_cur_tstep < m_end_tstep; m_cur_tstep++)
         {
-        // end the loop if one of the updaters flagged that the simulation is complete
-        if (m_completed_early)
-            break;
-
         // check the clock and output a status line if needed
         uint64_t cur_time = m_clk.getTime();
 
@@ -340,29 +333,20 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
         for (auto &analyzer_trigger_pair: m_analyzers)
             {
             if ((*analyzer_trigger_pair.second)(m_cur_tstep))
-                {
                 analyzer_trigger_pair.first->analyze(m_cur_tstep);
-                m_completed_early = m_completed_early || analyzer_trigger_pair.first->isComplete();
-                }
             }
 
         // execute updaters
         for (auto &updater_trigger_pair: m_updaters)
             {
             if ((*updater_trigger_pair.second)(m_cur_tstep))
-                {
                 updater_trigger_pair.first->update(m_cur_tstep);
-                m_completed_early = m_completed_early || updater_trigger_pair.first->isComplete();
-                }
             }
 
         for (auto &tuner: m_tuners)
             {
             if ((*tuner->getTrigger())(m_cur_tstep))
-                {
                 tuner->update(m_cur_tstep);
-                m_completed_early = m_completed_early || tuner->isComplete();
-                }
             }
 
         // look ahead to the next time step and see which analyzers and updaters will be executed
@@ -371,10 +355,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
 
         // execute the integrator
         if (m_integrator)
-            {
             m_integrator->update(m_cur_tstep);
-            m_completed_early = m_completed_early || m_integrator->isComplete();
-            }
 
         // quit if Ctrl-C was pressed
         if (g_sigint_recvd)
@@ -696,7 +677,6 @@ void export_System(py::module& m)
     .def_property_readonly("analyzers", &System::getAnalyzers)
     .def_property_readonly("updaters", &System::getUpdaters)
     .def_property_readonly("tuners", &System::getTuners)
-    .def_property_readonly("completed_early", &System::getCompletedEarly)
 #ifdef ENABLE_MPI
     .def("setCommunicator", &System::setCommunicator)
     .def("getCommunicator", &System::getCommunicator)

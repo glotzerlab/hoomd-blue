@@ -202,12 +202,6 @@ class PYBIND11_EXPORT Updater
         /// Python will notify C++ objects when they are detached from Simulation
         virtual void notifyDetach() { };
 
-        /// Return true if the updater is complete and the simulation should end.
-        virtual bool isComplete()
-            {
-            return false;
-            }
-
     protected:
         const std::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this compute is associated with
         const std::shared_ptr<ParticleData> m_pdata;      //!< The particle data this compute is associated with

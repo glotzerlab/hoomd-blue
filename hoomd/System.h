@@ -174,12 +174,6 @@ class PYBIND11_EXPORT System
             return m_default_flags[pdata_flag::pressure_tensor];
             }
 
-        /// Query whether the run completed early
-        bool getCompletedEarly()
-            {
-            return m_completed_early;
-            }
-
     private:
         std::vector<std::pair<std::shared_ptr<Analyzer>,
                     std::shared_ptr<Trigger> > > m_analyzers; //!< List of analyzers belonging to this System
@@ -212,9 +206,6 @@ class PYBIND11_EXPORT System
         bool m_quiet_run;       //!< True to suppress the status line and TPS from being printed to stdout for each run
         bool m_profile;         //!< True if runs should be profiled
         unsigned int m_stats_period; //!< Number of seconds between statistics output lines
-
-        /// Flag to record whether this run completed early
-        bool m_completed_early = false;
 
         /// Particle data flags to always set
         PDataFlags m_default_flags;

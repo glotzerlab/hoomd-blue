@@ -3,7 +3,6 @@ from hoomd.logging import log, Loggable
 from hoomd.state import State
 from hoomd.snapshot import Snapshot
 from hoomd.operations import Operations
-import itertools
 
 
 class Simulation(metaclass=Loggable):
@@ -196,16 +195,3 @@ class Simulation(metaclass=Loggable):
 
         # detect 0 hours remaining properly
         self._cpp_sys.run(int(tsteps), 0, None, 0, 0)
-
-        # if the run completed early, remove the operation(s) that completed
-        # the integrator will not be removed
-        if self._cpp_sys.completed_early:
-            ops_to_remove = []
-            for op in itertools.chain(self.operations._analyzers,
-                                      self.operations._updaters,
-                                      self.operations._tuners):
-                if op.complete:
-                    ops_to_remove.append(op)
-
-            for op in ops_to_remove:
-                self.operations.remove(op)

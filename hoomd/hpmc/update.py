@@ -1020,3 +1020,15 @@ class QuickCompress(_Updater):
             self.max_overlaps_per_particle, self.min_scale, self.target_box,
             self.seed)
         super().attach(simulation)
+
+    @property
+    def complete(self):
+        """True when the operation is complete.
+
+        `Simulation.run` stops the running whenever any operation in the
+        `Simulation` is complete.
+        """
+        if not self.is_attached:
+            return getattr(self, '_is_complete', False)
+
+        return self._cpp_obj.isComplete()

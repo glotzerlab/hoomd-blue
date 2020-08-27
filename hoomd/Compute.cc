@@ -128,7 +128,6 @@ void export_Compute(py::module& m)
     .def("printStats", &Compute::printStats)
     .def("setProfiler", &Compute::setProfiler)
     .def("notifyDetach", &Compute::notifyDetach)
-    .def("isComplete", &Compute::isComplete)
     #ifdef ENABLE_MPI
     .def("setCommunicator", &Compute::setCommunicator)
     #endif
