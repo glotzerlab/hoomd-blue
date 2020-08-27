@@ -1,82 +1,110 @@
 from math import isclose
 import numpy as np
+import numpy.testing as npt
 import pytest
 import hoomd
 
 
-class SimulationSetup:
-    def __init__(self, box1_dim, box2_dim, n_particles=10,
-                 t_start=5, t_ramp=10):
-        self.n_particles = int(n_particles)
-        self.t_start = int(t_start)
-        self.t_ramp = int(t_ramp)
+@pytest.fixture(scope="module")
+def fractional_coordinates(n=10):
+    """
+    TODO: Does `numpy_random_seed()` in conftest.py run for this function?
+    Args:
+        n: number of particles
 
-        self.box1 = hoomd.Box.from_box(box1_dim)
-        self.box2 = hoomd.Box.from_box(box2_dim)
+    Returns: absolute fractional coordinates
 
-        points = np.random.uniform(-0.5, 0.5, size=(self.n_particles, 3))
-        self.points1 = points @ self.box1.matrix.T
-        self.points2 = points @ self.box2.matrix.T
-
-    def get_snapshot(self):
-        snap = hoomd.Snapshot()
-        snap.configuration.box = self.box1
-        snap.particles.N = self.n_particles
-        snap.particles.typeid[:] = [0] * self.n_particles
-        snap.particles.types = ['A']
-        snap.particles.position[:] = self.points1
-        return snap
-
-    def variant_ramp(self, scale_particles=True):
-        sim = hoomd.Simulation(device)
-        sim.create_state_from_snapshot(self.get_snapshot())
-
-        variant = hoomd.variant.Ramp(A=0., B=1., t_start=self.t_start, t_ramp=self.t_ramp)
-        trigger = hoomd.trigger.On(self.t_start)
-        box_resize = hoomd.update.BoxResize(
-            box1=self.box1, box2=self.box2,
-            variant=variant, trigger=trigger, scale_particles=scale_particles)
-        sim.operations.updaters.append(box_resize)
-        sim.run(self.t_start + self.t_ramp + 1)
-        return box_resize, sim.state.snapshot
-
-    def variant_linear(self, scale_particles=True):
-        sim = hoomd.Simulation(device)
-        sim.create_state_from_snapshot(self.get_snapshot())
-
-        trigger = hoomd.trigger.On(self.t_start)
-        box_resize = hoomd.update.BoxResize.linear_volume(
-            box1=self.box1, box2=self.box2,
-            t_start=self.t_start, t_size=self.t_ramp,
-            trigger=trigger, scale_particles=scale_particles)
-        sim.operations.updaters.append(box_resize)
-        sim.run(self.t_start + self.t_ramp + 1)
-        return box_resize, sim.state.snapshot
+    """
+    return np.random.uniform(-0.5, 0.5, size=(n, 3))
 
 
-@pytest.mark.parametrize("box1_dim, box2_dim", 
-  [([1., 2., 3., 1., 2., 3.], [0.5, 2., 3., 1., 2., 3.]),
-   ([1., 2., 3., 1., 2., 3.], [1., 2., 3., 0., 2., 3.]),
-   ([1., 2., 3., 1., 2., 3.], [10, 2., 3., 0, 2., 3.]),
-   ([1., 2., 3., 1., 2., 3.], [10., 1., 6., 0., 5., 7.]),])
-def test_variant_ramp(box1_dim, box2_dim):
-    ss = SimulationSetup(box1_dim=box1_dim, box2_dim=box2_dim)
-    box_resize, snap = ss.variant_ramp()
+@pytest.fixture(scope="module")
+def sys1(fractional_coordinates):
+    """Initial system box size and particle positions.
+    Args:
+        fractional_coordinates: Array of fractional coordinates
 
-    assert np.all(box_resize.get_box(0).matrix == ss.box1.matrix)
-    assert np.all(box_resize.get_box(ss.t_start + ss.t_ramp).matrix == ss.box2.matrix)
-    # assert np.all(np.isclose(snap.particles.position[:], ss.points2))
+    Returns: hoomd box object and points for the initial system
+
+    """
+    hoomd_box = hoomd.Box.from_box([1., 2., 3., 1., 2., 3.])
+    points = fractional_coordinates @ hoomd_box.matrix.T
+    return hoomd_box, points
 
 
-@pytest.mark.parametrize("box1_dim, box2_dim", 
-  [([1., 2., 3., 1., 2., 3.], [0.5, 2., 3., 1., 2., 3.]),
-   ([1., 2., 3., 1., 2., 3.], [1., 2., 3., 0., 2., 3.]),
-   ([1., 2., 3., 1., 2., 3.], [10, 2., 3., 0, 2., 3.]),
-   ([1., 2., 3., 1., 2., 3.], [10., 1., 6., 0., 5., 7.]),])
-def test_variant_linear(box1_dim, box2_dim):
-    ss = SimulationSetup(box1_dim=box1_dim, box2_dim=box2_dim)
-    box_resize, snap = ss.variant_linear()
+_box2 = [[0.5, 2., 3., 1., 2., 3.],  # Only change Lx
+         [1., 2., 3., 0., 2., 3.],   # Only change xy
+         [10, 2., 3., 0., 2., 3.],   # Change Lx and xy
+         [10., 1., 6., 0., 5., 7.]]  # Change all
 
-    assert np.all(box_resize.get_box(0).matrix == ss.box1.matrix)
-    assert np.all(box_resize.get_box(ss.t_start + ss.t_ramp).matrix == ss.box2.matrix)
-    # assert np.all(np.isclose(snap.particles.position[:], ss.points2))
+
+@pytest.fixture(scope='module', params=_box2)
+def sys2(request, fractional_coordinates):
+    hoomd_box = hoomd.Box.from_box(request.param)
+    points = fractional_coordinates @ hoomd_box.matrix.T
+    return hoomd_box, points
+
+
+@pytest.fixture(scope='function')
+def get_snapshot(sys1, device):
+    def make_shapshot():
+        box1, points1 = sys1
+        s = hoomd.Snapshot()
+        s.configuration.box = box1
+        s.particles.N = points1.shape[0]
+        s.particles.typeid[:] = [0] * points1.shape[0]
+        s.particles.types = ['A']
+        s.particles.position[:] = points1
+        return s
+    return make_shapshot
+
+
+_t_start = 2
+_variants = [
+    hoomd.variant.Power(0., 1., 0.1, _t_start, _t_start*2),
+    hoomd.variant.Ramp(0., 1., _t_start, _t_start*2)
+             ]
+
+
+@pytest.fixture(scope='function', params=_variants)
+def variant(request):
+    return request.param
+
+
+def test_user_specified_variant(device, simulation_factory, get_snapshot,
+                                variant, sys1, sys2, scale_particles=True):
+    sim = hoomd.Simulation(device)
+    sim.create_state_from_snapshot(get_snapshot())
+
+    trigger = hoomd.trigger.After(variant.t_start)
+
+    box_resize = hoomd.update.BoxResize(
+        box1=sys1[0], box2=sys2[0],
+        variant=variant, trigger=trigger, scale_particles=scale_particles)
+    sim.operations.updaters.append(box_resize)
+    sim.run(variant.t_start*3 + 1)
+
+    assert box_resize.get_box(0) == sys1[0]
+    assert box_resize.get_box(variant.t_start*3) == sys2[0]
+    assert sim.state.box == sys2[0]
+    npt.assert_allclose(sys2[1], sim.state.snapshot.particles.position)
+
+
+def test_variant_linear(device, simulation_factory, get_snapshot,
+                         sys1, sys2, scale_particles=True):
+    t_start = 2
+    sim = hoomd.Simulation(device)
+    sim.create_state_from_snapshot(get_snapshot())
+
+    trigger = hoomd.trigger.After(t_start)
+
+    box_resize = hoomd.update.BoxResize.linear_volume(
+        box1=sys1[0], box2=sys2[0], t_start=t_start, t_size=t_start*2,
+        trigger=trigger, scale_particles=scale_particles)
+    sim.operations.updaters.append(box_resize)
+    sim.run(t_start*3 + 1)
+
+    assert box_resize.get_box(0) == sys1[0]
+    assert box_resize.get_box(t_start*3) == sys2[0]
+    assert sim.state.box == sys2[0]
+    npt.assert_allclose(sys2[1], sim.state.snapshot.particles.position)
