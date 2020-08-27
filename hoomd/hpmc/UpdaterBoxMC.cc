@@ -896,14 +896,6 @@ void export_UpdaterBoxMC(py::module& m)
     ;
 
    py::class_< hpmc_boxmc_counters_t >(m, "hpmc_boxmc_counters_t")
-    .def_readwrite("volume_accept_count", &hpmc_boxmc_counters_t::volume_accept_count)
-    .def_readwrite("volume_reject_count", &hpmc_boxmc_counters_t::volume_reject_count)
-    .def_readwrite("ln_volume_accept_count", &hpmc_boxmc_counters_t::ln_volume_accept_count)
-    .def_readwrite("ln_volume_reject_count", &hpmc_boxmc_counters_t::ln_volume_reject_count)
-    .def_readwrite("shear_accept_count", &hpmc_boxmc_counters_t::shear_accept_count)
-    .def_readwrite("shear_reject_count", &hpmc_boxmc_counters_t::shear_reject_count)
-    .def_readwrite("aspect_accept_count", &hpmc_boxmc_counters_t::aspect_accept_count)
-    .def_readwrite("aspect_reject_count", &hpmc_boxmc_counters_t::aspect_reject_count)
     .def_property_readonly("volume", [](const hpmc_boxmc_counters_t &a)
                                           {
                                           pybind11::list result;
@@ -936,11 +928,6 @@ void export_UpdaterBoxMC(py::module& m)
                                       return result;
                                       }
                           )
-    .def("getVolumeAcceptance", &hpmc_boxmc_counters_t::getVolumeAcceptance)
-    .def("getLogVolumeAcceptance", &hpmc_boxmc_counters_t::getLogVolumeAcceptance)
-    .def("getShearAcceptance", &hpmc_boxmc_counters_t::getShearAcceptance)
-    .def("getAspectAcceptance", &hpmc_boxmc_counters_t::getAspectAcceptance)
-    .def("getNMoves", &hpmc_boxmc_counters_t::getNMoves)
     ;
     }
 
