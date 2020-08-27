@@ -349,8 +349,7 @@ class CPU(_Device):
                  shared_msg_file=None,
                  notice_level=2):
 
-        super().__init__(communicator, notice_level, msg_file, shared_msg_file,
-                         num_cpu_threads)
+        super().__init__(communicator, notice_level, msg_file, shared_msg_file)
 
         self.cpp_exec_conf = _hoomd.ExecutionConfiguration(
             _hoomd.ExecutionConfiguration.executionMode.CPU, [],
