@@ -889,9 +889,6 @@ void export_UpdaterBoxMC(py::module& m)
     .def_property("aspect", &UpdaterBoxMC::getAspectParams, &UpdaterBoxMC::setAspectParams)
     .def_property("betaP", &UpdaterBoxMC::getBetaP, &UpdaterBoxMC::setBetaP)
     .def_property_readonly("seed", &UpdaterBoxMC::getSeed)
-    .def("printStats", &UpdaterBoxMC::printStats)
-    .def("resetStats", &UpdaterBoxMC::resetStats)
-    .def("computeAspectRatios", &UpdaterBoxMC::computeAspectRatios)
     .def("getCounters", &UpdaterBoxMC::getCounters)
     ;
 
