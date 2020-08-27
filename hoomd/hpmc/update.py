@@ -74,7 +74,7 @@ class BoxMC(_Updater):
             raise RuntimeError("Integrator is not attached yet.")
         self._cpp_obj = _hpmc.UpdaterBoxMC(simulation.state._cpp_sys_def,
                                            integrator._cpp_obj,
-                                           self.betaP.cpp_variant,
+                                           self.betaP,
                                            int(self.seed));
         super().attach(simulation)
 
