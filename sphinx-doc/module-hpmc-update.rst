@@ -8,7 +8,7 @@ hpmc.update
 .. autosummary::
     :nosignatures:
 
-    hpmc.update.boxmc
+    hpmc.update.BoxMC
     hpmc.update.Clusters
     hpmc.update.muvt
     hpmc.update.remove_drift
