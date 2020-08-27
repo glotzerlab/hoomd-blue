@@ -79,6 +79,7 @@ class UpdaterBoxMC : public Updater
             {
             m_volume_weight = d["weight"].cast<Scalar>();
             m_volume_delta = d["delta"].cast<Scalar>();
+            computeAspectRatios();
             }
 
         //! Sets parameters for box volume moves
@@ -106,6 +107,7 @@ class UpdaterBoxMC : public Updater
             {
             m_ln_volume_weight = d["weight"].cast<Scalar>();
             m_ln_volume_delta = d["delta"].cast<Scalar>();
+            computeAspectRatios();
             }
 
         //! Sets parameters for box length moves
