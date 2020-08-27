@@ -426,7 +426,6 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
         return self._cpp_obj is not None
 
     def _add(self, simulation):
-        print("calling add")
         self._simulation = simulation
 
     def _remove(self):
