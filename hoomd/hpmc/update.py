@@ -19,35 +19,63 @@ class BoxMC(_Updater):
 
     Args:
 
-        mc (:py:mod:`hoomd.hpmc.integrate`): HPMC integrator object for system on which to apply box updates
-        betaP (:py:class:`float` or :py:mod:`hoomd.variant`): :math:`\frac{p}{k_{\mathrm{B}}T}`. (units of inverse area in 2D or
-                                                    inverse volume in 3D) Apply your chosen reduced pressure convention
-                                                    externally.
         seed (int): random number seed for MC box changes
+        betaP (float or :py:mod:`hoomd.variant`): :math:`\frac{p}{k_{\mathrm{B}}T}`. (units of inverse area in 2D or
+                                                    inverse volume in 3D) Apply your chosen reduced pressure convention externally.
+        trigger (int): Number of timesteps between histogram evaluations.
 
-    One or more Monte Carlo move types are applied to evolve the simulation box. By default, no moves are applied.
-    Activate desired move types using the following methods with a non-zero weight:
+    Attributes:
+        volume (dict):
+            Enable/disable isobaric volume moves and set parameters (scale the box lengths uniformly).
+            The dictionary has the following keys:
 
-    - :py:meth:`aspect` - box aspect ratio moves
-    - :py:meth:`length` - change box lengths independently
-    - :py:meth:`shear` - shear the box
-    - :py:meth:`volume` - scale the box lengths uniformly
-    - :py:meth:`ln_volume` - scale the box lengths uniformly with logarithmic increments
+            * ``weight`` (float) - relative weight of volume box moves relative to other box move types.
+            * ``delta`` (float) - maximum change of the box area (2D) or volume (3D).
 
-    Pressure inputs to update.boxmc are defined as :math:`\beta P`. Conversions from a specific definition of reduced
-    pressure :math:`P^*` are left for the user to perform.
+        ln_volume (dict):
+            Enable/disable isobaric volume moves and set parameters (scale the box lengths uniformly with logarithmic increments).
+            The dictionary has the following keys:
+
+            * ``weight`` (float) - relative weight of log(V) box moves relative to other box move types.
+            * ``delta`` (float) - maximum change of **ln(V)** (where V is box area (2D) or volume (3D)).
+
+        aspect (dict):
+            Enable/disable isobaric aspect ratio moves and set parameters. The dictionary
+            has the following keys:
+
+            * ``weight`` (float) - relative weight of aspect box moves relative to other box move types.
+            * ``delta`` (float) - maximum relative change of box aspect ratio.
+
+        length (dict):
+            Enable/disable isobaric box length moves and set parameters (change box lengths independently).
+            The dictionary has the following keys:
+
+            * ``weight`` (float) - maximum change of the box thickness for each pair of parallel planes
+                     connected by the corresponding box edges. I.e. maximum change of HOOMD-blue box parameters Lx, Ly, Lz.
+            * ``delta`` (list or tuple) -  maximum change of the box tilt factor xy, xz, yz.
+
+        shear (dict):
+            Enable/disable isobaric box shear moves and set parameters. The dictionary
+            has the following keys:
+
+            * ``weight`` (float) - relative weight of shear box moves relative to other box move types.
+            * ``delta`` (list or tuple) -  maximum change of the box tilt factor xy, xz, yz.
+            * ``reduce`` (float) - Maximum number of lattice vectors of shear to allow before applying lattice reduction.
+                     Shear of +/- 0.5 cannot be lattice reduced, so set to a value < 0.5 to disable (default 0)
+                     Note that due to precision errors, lattice reduction may introduce small overlaps which can be
+                     resolved, but which temporarily break detailed balance.
 
     Note:
-        All *delta* and *weight* values for all move types default to 0.
 
-    Example::
+        One or more Monte Carlo move types may be applied to evolve the simulation box. By default,
+        no moves are applied (all *delta* and *weight* values for all move types default to 0).
 
-        mc = hpmc.integrate.sphere(seed=415236, d=0.3)
-        boxMC = hpmc.update.boxmc(mc, betaP=1.0, seed=9876)
-        boxMC.set_betap(2.0)
-        boxMC.ln_volume(delta=0.01, weight=2.0)
-        boxMC.length(delta=(0.1,0.1,0.1), weight=4.0)
-        run(30) # perform approximately 10 volume moves and 20 length moves
+        Pressure inputs to update.BoxMC are defined as :math:`\beta P`. Conversions from a specific definition of reduced
+        pressure :math:`P^*` are left for the user to perform.
+
+    Examples::
+
+        TODO: link to example notebooks
 
     """
 
@@ -81,8 +109,15 @@ class BoxMC(_Updater):
 
     @property
     def counter(self):
-        R"""
+        R""" Get the number of accepted and rejected box moves.
 
+        Returns:
+            A counter object with volume, aspect, ln_volume and shear properties.
+            Each property is a list of accepted moves and rejected moves since the
+            last run.
+
+        Note::
+            if the updater is not attached None will be returned.
         """
         if not self.is_attached:
             return None
@@ -91,19 +126,11 @@ class BoxMC(_Updater):
 
     @log(flag="sequence")
     def volume_moves(self):
-        R""" Get the average acceptance ratio for volume changing moves.
+        R""" Get a tuple with the accepted and rejected volume moves.
 
         Returns:
-            The average volume change acceptance for the last run
-
-        Example::
-
-            mc = hpmc.integrate.shape(..);
-            mc.shape_param[name].set(....);
-            box_update = hpmc.update.boxmc(mc, betaP=10, seed=1)
-            run(100)
-            v_accept = box_update.get_volume_acceptance()
-
+            A tuple of (accepted moves, rejected moves) since the last run.
+            Returns (0, 0) if not attached.
         """
         counter = self.counter
         if counter is None:
@@ -113,19 +140,11 @@ class BoxMC(_Updater):
 
     @log(flag="sequence")
     def ln_volume_moves(self):
-        R""" Get the average acceptance ratio for log(V) changing moves.
+        R""" Get a tuple with the accepted and rejected log(V) moves.
 
         Returns:
-            The average volume change acceptance for the last run
-
-        Example::
-
-            mc = hpmc.integrate.shape(..);
-            mc.shape_param[name].set(....);
-            box_update = hpmc.update.boxmc(mc, betaP=10, seed=1)
-            run(100)
-            v_accept = box_update.get_ln_volume_acceptance()
-
+            A tuple of (accepted moves, rejected moves) since the last run.
+            Returns (0, 0) if not attached.
         """
         counter = self.counter
         if counter is None:
@@ -135,19 +154,11 @@ class BoxMC(_Updater):
 
     @log(flag="sequence")
     def shear_moves(self):
-        R"""  Get the average acceptance ratio for shear changing moves.
+        R""" Get a tuple with the accepted and rejected shear moves.
 
         Returns:
-           The average shear change acceptance for the last run
-
-        Example::
-
-            mc = hpmc.integrate.shape(..);
-            mc.shape_param[name].set(....);
-            box_update = hpmc.update.boxmc(mc, betaP=10, seed=1)
-            run(100)
-            s_accept = box_update.get_shear_acceptance()
-
+            A tuple of (accepted moves, rejected moves) since the last run.
+            Returns (0, 0) if not attached.
         """
         counter = self.counter
         if counter is None:
@@ -157,19 +168,11 @@ class BoxMC(_Updater):
 
     @log(flag="sequence")
     def aspect_moves(self):
-        R"""  Get the average acceptance ratio for aspect changing moves.
+        R""" Get a tuple with the accepted and rejected aspect moves.
 
         Returns:
-            The average aspect change acceptance for the last run
-
-        Example::
-
-            mc = hpmc.integrate.shape(..);
-            mc_shape_param[name].set(....);
-            box_update = hpmc.update.boxmc(mc, betaP=10, seed=1)
-            run(100)
-            a_accept = box_update.get_aspect_acceptance()
-
+            A tuple of (accepted moves, rejected moves) since the last run.
+            Returns (0, 0) if not attached.
         """
         counter = self.counter
         if counter is None:
