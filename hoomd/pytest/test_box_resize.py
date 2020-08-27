@@ -1,7 +1,6 @@
 from math import isclose
 import numpy as np
-from pytest import fixture
-
+import pytest
 import hoomd
 
 
@@ -28,7 +27,7 @@ class SimulationSetup:
         snap.particles.position[:] = self.points1
         return snap
 
-    def variant_ramp(self, device, scale_particles=True):
+    def variant_ramp(self, scale_particles=True):
         sim = hoomd.Simulation(device)
         sim.create_state_from_snapshot(self.get_snapshot())
 
@@ -41,7 +40,7 @@ class SimulationSetup:
         sim.run(self.t_start + self.t_ramp + 1)
         return box_resize, sim.state.snapshot
 
-    def variant_linear(self, device, scale_particles=True):
+    def variant_linear(self, scale_particles=True):
         sim = hoomd.Simulation(device)
         sim.create_state_from_snapshot(self.get_snapshot())
 
@@ -55,71 +54,28 @@ class SimulationSetup:
         return box_resize, sim.state.snapshot
 
 
-def test_resize_Lx(device):
-    box1_dim = np.array([1., 2., 3., 1., 2., 3.])
-    box2_dim = np.array([0.5, 2., 3., 1., 2., 3.])
+@pytest.mark.parametrize("box1_dim, box2_dim", 
+  [([1., 2., 3., 1., 2., 3.], [0.5, 2., 3., 1., 2., 3.]),
+   ([1., 2., 3., 1., 2., 3.], [1., 2., 3., 0., 2., 3.]),
+   ([1., 2., 3., 1., 2., 3.], [10, 2., 3., 0, 2., 3.]),
+   ([1., 2., 3., 1., 2., 3.], [10., 1., 6., 0., 5., 7.]),])
+def test_variant_ramp(box1_dim, box2_dim):
     ss = SimulationSetup(box1_dim=box1_dim, box2_dim=box2_dim)
-    box_resize, snap = ss.variant_ramp(device)
-
-    assert np.all(box_resize.get_box(0).matrix == ss.box1.matrix)
-    assert np.all(box_resize.get_box(ss.t_start + ss.t_ramp).matrix == ss.box2.matrix)
-    # assert np.all(np.isclose(snap.particles.position[:], ss.points2))
-
-    box_resize, snap = ss.variant_linear(device)
-
-    assert np.all(box_resize.get_box(0).matrix == ss.box1.matrix)
-    assert np.all(box_resize.get_box(ss.t_start + ss.t_ramp).matrix == ss.box2.matrix)
-    # assert np.all(np.isclose(snap.particles.position[:], ss.points2))
-
-
-def test_resize_xy(device):
-    box1_dim = np.array([1., 2., 3., 1., 2., 3.])
-    box2_dim = np.array([1., 2., 3., 0., 2., 3.])
-    ss = SimulationSetup(box1_dim=box1_dim, box2_dim=box2_dim)
-    box_resize, snap = ss.variant_ramp(device)
-
-    assert np.all(box_resize.get_box(0).matrix == ss.box1.matrix)
-    assert np.all(box_resize.get_box(ss.t_start + ss.t_ramp).matrix == ss.box2.matrix)
-    # assert np.all(np.isclose(snap.particles.position[:], ss.points2))
-
-    ss = SimulationSetup(box1_dim=box1_dim, box2_dim=box2_dim)
-    box_resize, snap = ss.variant_linear(device)
-
-    # Box size isn't changing
-    # assert np.all(box_resize.get_box(0).matrix == ss.box1.matrix)
-    assert np.all(box_resize.get_box(ss.t_start + ss.t_ramp).matrix == ss.box2.matrix)
-    # assert np.all(np.isclose(snap.particles.position[:], ss.points2))
-
-def test_resize_multi(device):
-    box1_dim = np.array([1., 2., 3., 1., 2., 3.])
-    box2_dim = np.array([10., 2., 3., 0., 2., 3.])
-    ss = SimulationSetup(box1_dim=box1_dim, box2_dim=box2_dim)
-    box_resize, snap = ss.variant_ramp(device)
-
-    assert np.all(box_resize.get_box(0).matrix == ss.box1.matrix)
-    assert np.all(box_resize.get_box(ss.t_start + ss.t_ramp).matrix == ss.box2.matrix)
-    # assert np.all(np.isclose(snap.particles.position[:], ss.points2))
-
-    ss = SimulationSetup(box1_dim=box1_dim, box2_dim=box2_dim)
-    box_resize, snap = ss.variant_linear(device)
+    box_resize, snap = ss.variant_ramp()
 
     assert np.all(box_resize.get_box(0).matrix == ss.box1.matrix)
     assert np.all(box_resize.get_box(ss.t_start + ss.t_ramp).matrix == ss.box2.matrix)
     # assert np.all(np.isclose(snap.particles.position[:], ss.points2))
 
 
-def test_resize_all(device):
-    box1_dim = np.array([1., 2., 3., 1., 2., 3.])
-    box2_dim = np.array([10., 1., 6., 0., 5., 7.])
+@pytest.mark.parametrize("box1_dim, box2_dim", 
+  [([1., 2., 3., 1., 2., 3.], [0.5, 2., 3., 1., 2., 3.]),
+   ([1., 2., 3., 1., 2., 3.], [1., 2., 3., 0., 2., 3.]),
+   ([1., 2., 3., 1., 2., 3.], [10, 2., 3., 0, 2., 3.]),
+   ([1., 2., 3., 1., 2., 3.], [10., 1., 6., 0., 5., 7.]),])
+def test_variant_linear(box1_dim, box2_dim):
     ss = SimulationSetup(box1_dim=box1_dim, box2_dim=box2_dim)
-    box_resize, snap = ss.variant_ramp(device)
-
-    assert np.all(box_resize.get_box(0).matrix == ss.box1.matrix)
-    assert np.all(box_resize.get_box(ss.t_start + ss.t_ramp).matrix == ss.box2.matrix)
-    # assert np.all(np.isclose(snap.particles.position[:], ss.points2))
-
-    ss = SimulationSetup(box1_dim=box1_dim, box2_dim=box2_dim)
-    box_resize, snap = ss.variant_linear(device)
+    box_resize, snap = ss.variant_linear()
 
     assert np.all(box_resize.get_box(0).matrix == ss.box1.matrix)
     assert np.all(box_resize.get_box(ss.t_start + ss.t_ramp).matrix == ss.box2.matrix)
