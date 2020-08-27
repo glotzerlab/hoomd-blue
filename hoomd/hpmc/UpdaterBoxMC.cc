@@ -881,7 +881,6 @@ void export_UpdaterBoxMC(py::module& m)
     .def(py::init< std::shared_ptr<SystemDefinition>,
                          std::shared_ptr<IntegratorHPMC>,
                          std::shared_ptr<Variant>,
-                         Scalar,
                          const unsigned int >())
     .def_property("volume", &UpdaterBoxMC::getVolumeParams, &UpdaterBoxMC::setVolumeParams)
     .def_property("ln_volume", &UpdaterBoxMC::getLogVolumeParams, &UpdaterBoxMC::setLogVolumeParams)
