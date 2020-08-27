@@ -544,12 +544,19 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
                                                      len(snap.particles.types),
                                                      snap.particles.N)
     sim = simulation_factory(snap)
+    _check_for_skip(sim, valid_params.pair_potential)
     sim.operations.integrator = hoomd.md.Integrator(dt=0.005)
     sim.operations.integrator.forces.append(pot)
     sim.run(1)
     _assert_equivalent_type_params(pot.params.to_dict(),
                                    valid_params.pair_potential_params)
 
+def _check_for_skip(sim, pair_potential):
+    """ Determines if the simulation is able to run this pair potential """
+
+    if sim.device.mode == 'gpu' and sim.device.num_ranks > 1 and \
+            str(pair_potential).startswith('<class \'hoomd.md.many_body'):
+        pytest.skip("Cannot run triplet potentials with GPU+MPI enabled")
 
 def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
     pair_keys = valid_params.pair_potential_params.keys()
@@ -566,6 +573,8 @@ def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
                                                      len(snap.particles.types),
                                                      snap.particles.N)
     sim = simulation_factory(snap)
+    _check_for_skip(sim, valid_params.pair_potential)
+
     integrator = hoomd.md.Integrator(dt=0.005)
     integrator.forces.append(pot)
     integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
