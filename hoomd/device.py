@@ -167,7 +167,7 @@ class GPU(_Device):
 
     Args:
         gpu_ids (List[int]): List of GPU ids to use. Set to `None` to let the
-        driver auto-select a GPU.
+            driver auto-select a GPU.
 
         num_cpu_threads (int): Number of TBB threads. Set to `None` to
             auto-select.
@@ -323,7 +323,7 @@ class CPU(_Device):
 
     Args:
         num_cpu_threads (int): Number of TBB threads. Set to `None` to
-        auto-select.
+            auto-select.
 
         communicator (`hoomd.comm.Communicator`): MPI communicator object.
             When `None`, create a default communicator that uses all MPI ranks.
