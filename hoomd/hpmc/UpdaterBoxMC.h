@@ -66,7 +66,11 @@ class UpdaterBoxMC : public Updater
             computeAspectRatios();
             };
 
-
+        //! Get parameters for box volume moves as a dictionary
+        /*! dict keys:
+             delta - maximum size of volume change
+             weight - relative likelihood of volume move.
+        */
         pybind11::dict getVolumeParams()
             {
             pybind11::dict d;
@@ -75,10 +79,16 @@ class UpdaterBoxMC : public Updater
             return d;
             }
 
+        //! Set parameters for box volume moves from a dictionary
+        /*! dict keys:
+             delta - maximum size of volume change
+             weight - relative likelihood of volume move.
+        */
         void setVolumeParams(pybind11::dict d)
             {
             m_volume_weight = d["weight"].cast<Scalar>();
             m_volume_delta = d["delta"].cast<Scalar>();
+            // Calculate aspect ratio
             computeAspectRatios();
             }
 
@@ -95,6 +105,11 @@ class UpdaterBoxMC : public Updater
             computeAspectRatios();
             };
 
+        //! Get parameters for box volume moves as a dictionary
+        /*! dict keys:
+             delta - log of maximum relative size of volume change
+             weight - relative likelihood of volume move
+        */
         pybind11::dict getLogVolumeParams()
             {
             pybind11::dict d;
@@ -103,10 +118,16 @@ class UpdaterBoxMC : public Updater
             return d;
             }
 
+        //! Set parameters for box volume moves from a dictionary
+        /*! dict keys:
+             delta - log of maximum relative size of volume change
+             weight - relative likelihood of volume move
+        */
         void setLogVolumeParams(pybind11::dict d)
             {
             m_ln_volume_weight = d["weight"].cast<Scalar>();
             m_ln_volume_delta = d["delta"].cast<Scalar>();
+            // Calculate aspect ratio
             computeAspectRatios();
             }
 
@@ -127,6 +148,12 @@ class UpdaterBoxMC : public Updater
             m_length_weight = weight;
             };
 
+        //! Gets parameters for box length moves as a dictionary
+        /*! dict keys:
+             delta - list ([dLx, dLy, dLz]) containing the extent of the length change
+                     distribution in the first, second and third lattice vector respectively
+             weight - relative likelihood of length moves
+        */
         pybind11::dict getLengthParams()
             {
             pybind11::dict d;
@@ -139,6 +166,12 @@ class UpdaterBoxMC : public Updater
             return d;
             }
 
+        //! Sets parameters for box length moves from a dictionary
+        /*! dict keys:
+             delta - list ([dLx, dLy, dLz]) containing the extent of the length change
+                     distribution in the first, second and third lattice vector respectively
+             weight - relative likelihood of length moves
+        */
         void setLengthParams(pybind11::dict d)
             {
             m_length_weight = d["weight"].cast<Scalar>();
@@ -171,7 +204,16 @@ class UpdaterBoxMC : public Updater
             m_shear_weight = weight;
             };
 
-
+        //! Gets parameters for box shear moves as a dictionary
+        /*! dict keys:
+             delta - list ([dxy, dxz, dyz]) containing extent of shear parameter
+                     distribution for shear moves in xy, xz and yz planes respectively
+             weight - relative likelihood of shear move
+             reduce - maximum number of lattice vectors of shear to allow before applying lattice reduction.
+                     Shear of +/- 0.5 cannot be lattice reduced, so set to a value < 0.5 to disable (default 0)
+                     Note that due to precision errors, lattice reduction may introduce small overlaps which can be resolved,
+                     but which temporarily break detailed balance.
+        */
         pybind11::dict getShearParams()
             {
             pybind11::dict d;
@@ -185,6 +227,16 @@ class UpdaterBoxMC : public Updater
             return d;
             }
 
+        //! Gets parameters for box shear moves as a dictionary
+        /*! dict keys:
+             delta - list ([dxy, dxz, dyz]) containing extent of shear parameter
+                     distribution for shear moves in xy, xz and yz planes respectively
+             weight - relative likelihood of shear move
+             reduce - maximum number of lattice vectors of shear to allow before applying lattice reduction.
+                     Shear of +/- 0.5 cannot be lattice reduced, so set to a value < 0.5 to disable (default 0)
+                     Note that due to precision errors, lattice reduction may introduce small overlaps which can be resolved,
+                     but which temporarily break detailed balance.
+        */
         void setShearParams(pybind11::dict d)
             {
             m_shear_weight = d["weight"].cast<Scalar>();
@@ -206,6 +258,11 @@ class UpdaterBoxMC : public Updater
             m_aspect_weight = weight;
             };
 
+        //! Get parameters for box aspect moves as a dictionary
+        /*! dict keys:
+             delta - maximum relative aspect ratio change.
+             weight - relative likelihood of aspect move.
+        */
         pybind11::dict getAspectParams()
             {
             pybind11::dict d;
@@ -214,6 +271,11 @@ class UpdaterBoxMC : public Updater
             return d;
             }
 
+        //! Set parameters for box aspect moves from a dictionary
+        /*! dict keys:
+             delta - maximum relative aspect ratio change.
+             weight - relative likelihood of aspect move.
+        */
         void setAspectParams(pybind11::dict d)
             {
             m_aspect_weight = d["weight"].cast<Scalar>();
