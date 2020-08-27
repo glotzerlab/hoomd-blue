@@ -359,9 +359,8 @@ class CPU(_Device):
             self.num_cpu_threads = num_cpu_threads
 
 
-def auto(communicator=None, msg_file=None, shared_msg_file=None, notice_level=2):
-    """
-    Allow simulation hardware to be chosen automatically by HOOMD-blue
+def auto_select(communicator=None, msg_file=None, shared_msg_file=None, notice_level=2):
+    """Allow simulation hardware to be chosen automatically by HOOMD-blue.
 
     Args:
     
