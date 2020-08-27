@@ -51,16 +51,16 @@ class BoxMC(_Updater):
 
     """
 
-    def __init__(self, mc, betaP, seed, trigger=1):
+    def __init__(self, seed, betaP, trigger=1):
         super().__init__(trigger)
 
         _default_dict = dict(weight=float(0), delta=float(0))
         param_dict = ParameterDict(seed=int(seed),
                                    volume=_default_dict,
                                    ln_volume=_default_dict,
+                                   aspect=_default_dict,
                                    length=dict(weight=float(0), delta=[float(0)]*3),
                                    shear=dict(weight=float(0), delta=[float(0)]*3, reduce=float(0)),
-                                   aspect=_default_dict,
                                    betaP=hoomd.variant.Variant)
         self._param_dict.update(param_dict)
         self.betaP = betaP
