@@ -15,7 +15,7 @@ def fractional_coordinates(n=10):
     Returns: absolute fractional coordinates
 
     """
-    return np.random.uniform(-0.5, 0.5, size=(n, 3))
+    return np.random.uniform(-0.25, 0.25, size=(n, 3))
 
 
 @pytest.fixture(scope="module")
@@ -32,10 +32,10 @@ def sys1(fractional_coordinates):
     return hoomd_box, points
 
 
-_box2 = [[0.5, 2., 3., 1., 2., 3.],  # Only change Lx
-         [1., 2., 3., 0., 2., 3.],   # Only change xy
-         [10, 2., 3., 0., 2., 3.],   # Change Lx and xy
-         [10., 1., 6., 0., 5., 7.]]  # Change all
+_box2 = [[50, 2., 3., 1., 2., 3.],  # Only change Lx
+         [1., 2., 3., 2, 2., 3.],   # Only change xy
+         [50., 2., 3., 0.9, 2., 3.],   # Change Lx and xy
+         [100., 200., 600., 0.9, 5., 7.]]  # Change all
 
 
 @pytest.fixture(scope='module', params=_box2)
@@ -71,8 +71,16 @@ def variant(request):
     return request.param
 
 
+_scale_particles = [True,False]
+
+
+@pytest.fixture(scope='function', params=_scale_particles)
+def scale_particles(request):
+    return request.param
+
+
 def test_user_specified_variant(device, simulation_factory, get_snapshot,
-                                variant, sys1, sys2, scale_particles=True):
+                                variant, sys1, sys2, scale_particles):
     sim = hoomd.Simulation(device)
     sim.create_state_from_snapshot(get_snapshot())
 
@@ -87,7 +95,10 @@ def test_user_specified_variant(device, simulation_factory, get_snapshot,
     assert box_resize.get_box(0) == sys1[0]
     assert box_resize.get_box(variant.t_start*3) == sys2[0]
     assert sim.state.box == sys2[0]
-    npt.assert_allclose(sys2[1], sim.state.snapshot.particles.position)
+    if scale_particles:
+        npt.assert_allclose(sys2[1], sim.state.snapshot.particles.position)
+    else:
+        npt.assert_allclose(sys1[1], sim.state.snapshot.particles.position)
 
 
 def test_variant_linear(device, simulation_factory, get_snapshot,
