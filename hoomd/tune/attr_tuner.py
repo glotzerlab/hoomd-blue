@@ -169,6 +169,12 @@ class ManualTuneDefinition(_TuneDefinition):
             minimum or maximum can be set to `None` as well which means there is
             no maximum or minimum. The domain is used to wrap values within the
             specified domain when setting x.
+
+    Note:
+        Placing domain restrictions on x can lead to the target y value being
+        impossible to converge to. This will lead to the `SolverStep` object
+        passed this tunable to never finish solving regardless if all other
+        `ManualTuneDefinition` objects are converged.
     """
 
     def __init__(self, get_y, target, get_x, set_x, domain=None):
