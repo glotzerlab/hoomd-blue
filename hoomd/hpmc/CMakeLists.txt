@@ -21,6 +21,7 @@ set(_hpmc_sources   module.cc
                     module_convex_polyhedron.cc
                     module_convex_spheropolyhedron.cc
                     UpdaterBoxMC.cc
+                    UpdaterQuickCompress.cc
                     IntegratorHPMC.cc
                     )
 
@@ -65,6 +66,7 @@ set(_hpmc_headers
     UpdaterClusters.h
     UpdaterExternalFieldWall.h
     UpdaterMuVT.h
+    UpdaterQuickCompress.h
     UpdaterRemoveDrift.h
     XenoCollide2D.h
     XenoCollide3D.h

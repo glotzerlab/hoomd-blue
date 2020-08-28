@@ -169,6 +169,9 @@ stages:
 
     strategy:
       matrix:
+        cuda11_py37_mpi:
+          container_image: cuda11_gcc7_py37
+
         cuda10_py37_mng_mpi:
           container_image: cuda10_gcc7_py37
           always_use_managed_memory: on
@@ -195,31 +198,6 @@ stages:
     steps:
     - template: templates/build.yml
     - template: templates/run_tests.yml
-
-  - job: linux_gpu_buildonly
-    # temporarily disable testing with CUDA11 because the embedded HIP is not compatible
-    condition: false
-    displayName: CUDA 11 build
-    timeoutInMinutes: 75
-
-    strategy:
-      matrix:
-        cuda11_py37_mpi:
-          container_image: cuda11_gcc7_py37
-
-    pool:
-      name: 'GPU'
-      demands: short_jobs
-
-    container:
-       image: $(image_root)-$(container_image)
-       options: -u 0 --cpus=4 --memory=16g -e CUDA_VISIBLE_DEVICES
-
-    workspace:
-      clean: all
-
-    steps:
-    - template: templates/build.yml
 
 - stage: build_test_amd
   # temporarily disable testing on AMD because the containers are not functional

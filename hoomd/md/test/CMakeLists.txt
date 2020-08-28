@@ -9,28 +9,21 @@ set(TEST_LIST
     test_external_periodic
     test_fenebond_force
     test_fire_energy_minimizer
-    test_force_shifted_lj
-    test_gaussian_force
     test_gayberne_force
     test_cosinesq_angle_force
     test_harmonic_angle_force
     test_harmonic_bond_force
     test_harmonic_dihedral_force
     test_harmonic_improper_force
-    test_lj_force
-    test_mie_force
-    test_morse_force
     test_MolecularForceCompute
     test_neighborlist
     test_opls_dihedral_force
     test_pppm_force
-    test_slj_force
     test_table_angle_force
     test_table_dihedral_force
     test_table_potential
     test_temp_rescale_updater
     test_walldata
-    test_yukawa_force
     test_zero_momentum_updater
     )
 

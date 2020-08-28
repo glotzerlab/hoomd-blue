@@ -48,7 +48,7 @@ from hoomd.md import _md
 import hoomd
 from hoomd.typeconverter import OnlyFrom
 from hoomd.parameterdicts import ParameterDict
-from hoomd.operation import _Operation
+from hoomd.operation import _HOOMDBaseObject
 from hoomd.logging import log
 
 
@@ -56,7 +56,7 @@ class nlist:
     pass
 
 
-class _NList(_Operation):
+class _NList(_HOOMDBaseObject):
     R""" Base class neighbor list.
 
     Methods provided by this base class are available to all subclasses.

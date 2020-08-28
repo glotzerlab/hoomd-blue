@@ -315,7 +315,6 @@ set(files benchmark.py
           context.py
           device.py
           dump.py
-          group.py
           array.py
           __init__.py
           init.py

@@ -2,6 +2,7 @@
 set(files __init__.py
           test_shape.py
           test_move_size_tuner.py
+          test_quick_compress.py
           conftest.py
     )
 
