@@ -256,7 +256,9 @@ class SolverStep(metaclass=ABCMeta):
                 Returns whether or not all tunables were considered tuned by
                 the object.
         """
-        return all(self._solve_one_internal(tunable) for tunable in tunables)
+        # Need to convert tuning results to a list first to ensure we don't
+        # short circuit in all.
+        return all([self._solve_one_internal(tunable) for tunable in tunables])
 
 
 class ScaleSolver(SolverStep):
