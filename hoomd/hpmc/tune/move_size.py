@@ -242,7 +242,6 @@ class _InternalMoveSize(_InternalAction):
 
     def _update_tunables(self, *, new_moves=tuple(), new_types=tuple()):
         tunables = self._tunables
-        tune_definitions = set(self._tunables)
 
         # First filter out any move size tune definitions that don't match
         # the new specification.
@@ -251,6 +250,7 @@ class _InternalMoveSize(_InternalAction):
                     (new_types is None or tunable.type in new_types))
 
         self._tunables = list(filter(filter_tunables, tunables))
+        tune_definitions = set(self._tunables)
 
         # Add any move size tune definitions that are required by the new
         # specification.
