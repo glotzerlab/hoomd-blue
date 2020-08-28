@@ -312,13 +312,13 @@ class MoveSize(_InternalCustomTuner):
             to attempt.
 
     Note:
-        That limiting the maximum move sizes can lead to the inability to
-        converge to the desired acceptance rate. Also, not limiting the move
-        size can lead to move sizes that require the use of multiple periodic
-        images to check for overlaps, especially in low density systems since
-        the acceptance rate tends towards 1. Therefore, it is recommended to
-        pick a moderate maximum move size for at least the translational moves
-        to prevent requiring checking periodic images.
+        Limiting the maximum move sizes can lead to the inability to converge to
+        the desired acceptance rate. Also, not limiting the move size can lead
+        to move sizes that require the use of multiple periodic images to check
+        for overlaps, especially in low density systems since the acceptance
+        rate tends towards 1. Therefore, it is recommended to pick a moderate
+        maximum move size for at least the translational moves to prevent
+        requiring checking periodic images.
     """
     _internal_class = _InternalMoveSize
 
