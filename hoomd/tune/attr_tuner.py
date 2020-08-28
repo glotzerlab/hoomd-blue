@@ -1,3 +1,4 @@
+from math import isclose
 from abc import ABCMeta, abstractmethod
 
 
@@ -9,6 +10,7 @@ class _TuneDefinition(metaclass=ABCMeta):
     y. The class also provides helper functions for ensuring x is always set to
     a value within the specified domain.
     """
+
     def __init__(self, target, domain=None):
         self.domain = domain
         self._target = target
@@ -168,6 +170,7 @@ class ManualTuneDefinition(_TuneDefinition):
             no maximum or minimum. The domain is used to wrap values within the
             specified domain when setting x.
     """
+
     def __init__(self, get_y, target, get_x, set_x, domain=None):
         self._user_get_x = get_x
         self._user_set_x = set_x
@@ -282,6 +285,7 @@ class ScaleSolver(SolverStep):
     Note:
         This solver is only usable when quantities are strictly positive.
     """
+
     def __init__(self, max_scale=2.0, gamma=2.0,
                  correlation='positive', tol=1e-5):
         self.max_scale = max_scale
@@ -330,33 +334,84 @@ class SecantSolver(SolverStep):
         for numeric stability. If instability is found, then lowering ``gamma``
         accordingly should help.
     """
+
+    _max_allowable_counter = 3
+
     def __init__(self, gamma=0.9, tol=1e-5):
         self.gamma = gamma
         self._previous_pair = dict()
         self.tol = tol
+        self._counters = dict()
 
     def solve_one(self, tunable):
+        # start tuning new tunable
+        if tunable not in self._previous_pair:
+            self._initialize_tuning(tunable)
+            return False
+
         x, y, target = tunable.x, tunable.y, tunable.target
+        # check for convergence
         if abs(y - target) <= self.tol:
             return True
 
-        if tunable not in self._previous_pair:
-            # We must perturb x some to get a second point to find the correct
-            # root.
-            new_x = tunable.clamp_into_domain(x * 1.1)
-            if new_x == x:
-                new_x = tunable.clamp_into_domain(x * 0.9)
-                if new_x == x:
-                    raise RuntimeError("Unable to perturb x for secant solver.")
-        else:
-            # standard secant formula. A brief note, we use f(x) = y - target
-            # since this is the root we are searching for.
-            old_x, old_f_x = self._previous_pair[tunable]
-            self._previous_pair[tunable] = (x, y - target)
-            f_x = y - target
+        old_x, old_f_x = self._previous_pair[tunable]
+
+        # Attempt to find the new value of x using the standard secant formula.
+        # We use f(x) = y - target since this is the root we are searching for.
+        f_x = y - target
+        try:
             dxdf = (x - old_x) / (f_x - old_f_x)
+        except ZeroDivisionError:  # Implies that y has not changed
+            # Given the likelihood for use cases in HOOMD that this implies
+            # a lack of equilibriation of y or too small of a change.
+            new_x = self._handle_static_y(tunable, x, old_x)
+        else:
+            # We can use the secant formula
+            self._counters[tunable] = 0
             new_x = x - (self.gamma * f_x * dxdf)
 
-        self._previous_pair[tunable] = (x, y - target)
-        tunable.x = new_x
+        # We need to check if the new x is essentially the same as the previous.
+        # If this is the case we should not update the entry in
+        # `self._previous_pair` as this would prevent all future tunings. To
+        # compare we must first clamp the value of the new x appropriately.
+        new_x = tunable.clamp_into_domain(new_x)
+        if not isclose(new_x, x):
+            # We only only update x and the previous tunable information when x
+            # changes. This is to allow for us gracefully handling when y is the
+            # same multiple times.
+            tunable.x = new_x
+            self._previous_pair[tunable] = (x, y - target)
         return False
+
+    def _initialize_tuning(self, tunable):
+        """Called when a tunable is passed for the first time to solver.
+
+        Perturbs x to allow for the calculation of df/dx.
+        """
+        x = tunable.x
+        new_x = tunable.clamp_into_domain(x * 1.1)
+        if new_x == x:
+            new_x = tunable.clamp_into_domain(x * 0.9)
+            if new_x == x:
+                raise RuntimeError("Unable to perturb x for secant solver.")
+        tunable.x = new_x
+
+    def _handle_static_y(self, tunable, x, old_x):
+        """Handles when y is constant for multiple calls to solve_one.
+
+        We do nothing for the first SecantSolver._max_allowable_counter
+        consequetive times, but afterwards we attempt to perturb x in the
+        direction of last change, and reset the counter.
+
+        This method is useful to handle y that vary slowly with x (such as move
+        sizes and acceptance rates for low density HPMC simulations), or cases
+        where y takes a while to equilibriate.
+        """
+        counter = self._counters.get(tunable, 0) + 1
+        if counter > self._max_allowable_counter:
+            # We nudge x in the direction of previous change.
+            self._counters[tunable] = 0
+            return tunable.clamp_into_domain(x + ((x - old_x) * 0.5))
+        else:
+            self._counters[tunable] = counter
+            return x
