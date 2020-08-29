@@ -11,11 +11,11 @@ hoomd.device
     _Device 
     CPU
     GPU
-    auto
+    auto_select
 
 .. rubric:: Details
 
 .. automodule:: hoomd.device
     :synopsis: Devices used for simulation runs
-    :members: _Device, CPU, GPU, auto
+    :members: _Device, CPU, GPU, auto_select
     :show-inheritance:
