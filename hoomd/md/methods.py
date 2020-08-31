@@ -576,6 +576,7 @@ class NVE(_Method):
         :py:class:`hoomd.md.update.zero_momentum` updater during the limited NVE
         run to prevent this.
 
+
     Examples::
 
         nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
@@ -584,12 +585,13 @@ class NVE(_Method):
 
     Attributes:
         filter (hoomd.filter._ParticleFilter): Subset of particles on which to 
-        apply this method.
+            apply this method.
 
         limit (None or float): Enforce that no particle moves more than a 
             distance of a limit in a single time step. Defaults to None
 
     """
+
     def __init__(self, filter, limit=None):
 
         # store metadata
@@ -683,18 +685,20 @@ class Langevin(_Method):
     Use `Brownian` if your system is not underdamped.
 
     `Langevin` uses the same integrator as `NVE` with the additional force term
-     :math:`- \gamma \cdot \vec{v} + \vec{F}_\mathrm{R}`.
-    The random force :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random
-    number distribution.
+     :math:`- \gamma \cdot \vec{v} + \vec{F}_\mathrm{R}`. The random force 
+     :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random number 
+     distribution.
 
     You can specify :math:`\gamma` in two ways:
 
     1. Specify :math:`\alpha` which scales the particle diameter to 
        :math:`\gamma = \alpha d_i`. The units of :math:`\alpha` are 
        mass / distance / time.
+
     2. After the method object is created, specify the attribute `gamma` and 
-        `gamma_r` (in case of anisotropic particles) to assign it directly, 
-        with independent values for each particle type in the system.
+        `gamma_r` for rotational damping or random torque to assign them 
+        directly, with independent values for each particle type in the system.
+
 
     Warning:
         When restarting a simulation, the energy of the reservoir will be reset
@@ -708,18 +712,20 @@ class Langevin(_Method):
         integrator = hoomd.md.Integrator(dt=0.001, methods=[langevin], 
         forces=[lj])
 
-    Examples of using ``gamma`` on drag coefficient::
+
+    Examples of using ``gamma`` or ``gamma_r`` on drag coefficient::
 
         langevin = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2,
         seed=1)
-        langevin.gamma = 0.3
+        langevin.gamma = 2.0
+        langevin.gamma_r = [1.0,2.0,3.0]
 
 
     Attributes:
         filter (hoomd.filter._ParticleFilter): Subset of particles to
             apply this method to.
 
-        kT (hoomd.variant.Variabt): Temperature of the
+        kT (hoomd.variant.Variant): Temperature of the
             simulation (in energy units).
 
         seed (int): Random seed to use for generating
@@ -731,16 +737,20 @@ class Langevin(_Method):
 
         gamma (TypeParameter[``particle type``, float]): The drag coefficient 
             can be directly set instead of the ratio of particle diameter 
-            (:math:`\gamma = \alpha d_i`). The type of gamma parameter is float.
+            (:math:`\gamma = \alpha d_i`). The type of ``gamma`` parameter is 
+            either positive float or zero.
 
-        gamma_r (TypeParameter[``particle type``, [float,float,float]]):
-
+        gamma_r (TypeParameter[``particle type``, [float,float,float]]): The 
+            rotational drag coefficient can be set. The type of ``gamma_r ``
+            parameter is a tuple of three float. The type of each element of 
+            tuple is either positive float or zero.
 
         tally_reservoir_energy (bool): If true, the energy exchange
             between the thermal reservoir and the particles is tracked. Total
-            energy conservation can then be monitored by adding
+            energy conservation can then be monitored by adding 
             ``langevin_reservoir_energy_groupname`` to the logged quantities. 
             Defaults to False.
+
     """
 
     def __init__(self, filter, kT, seed, alpha=None,
@@ -828,10 +838,10 @@ class Brownian(_Method):
     theorem to be consistent with the specified drag and temperature, :math:`T`.
     When :math:`kT=0`, the random force :math:`\vec{F}_\mathrm{R}=0`.
 
-    `Brownian` generates random numbers by hashing together the 
-    particle tag, user seed, and current time step index. See 
+    `Brownian` generates random numbers by hashing together the particle tag, 
+    user seed, and current time step index. See 
     `C. L. Phillips et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_
-     for more information.
+    for more information.
 
     .. attention::
         Change the seed if you reset the simulation time step to 0. If you keep 
@@ -845,8 +855,8 @@ class Brownian(_Method):
     Generalised Langevin Approach to the Dynamics of Atomic, Polymeric and 
     Colloidal Systems, 2007, section 6.2.5 
     <http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6>`_, with the exception
-     that :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random number 
-     distribution.
+    that :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random number 
+    distribution.
 
     In Brownian dynamics, particle velocities are completely decoupled from 
     positions. At each time step, `Brownian` draws a new velocity 
@@ -862,11 +872,13 @@ class Brownian(_Method):
     You can specify :math:`\gamma` in two ways:
 
     1. Specify :math:`\alpha` which scales the particle diameter to 
-       :math:`\gamma = \alpha d_i`. The units of :math:`\alpha` are 
-       mass / distance / time.
-    2. After the method object is created, specify the attribute `gamma` and 
-        `gamma_r` (in case of anisotropic particles) to assign it directly, 
-        with independent values for each particle type in the system.
+       :math:`\gamma = \alpha d_i`. The units of :math:`\alpha` are mass / 
+       distance / time.
+
+    2. After the method object is created, specify the attribute ``gamma`` 
+        and ``gamma_r`` for rotational damping or random torque to assign 
+        them directly, with independent values for each particle type in the 
+        system.
 
 
     Examples::
@@ -876,11 +888,13 @@ class Brownian(_Method):
         integrator = hoomd.md.Integrator(dt=0.001, methods=[brownian], 
         forces=[lj])
 
-    Examples of using ``gamma`` on drag coefficient::
+
+    Examples of using ``gamma`` pr ``gamma_r`` on drag coefficient::
 
         brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2,
         seed=1)
-        brownian.gamma = 0.3
+        brownian.gamma = 2.0
+        brownian.gamma_r = [1.0, 2.0, 3.0]
 
 
     Attributes:
@@ -899,11 +913,16 @@ class Brownian(_Method):
 
         gamma (TypeParameter[``particle type``, float]): The drag coefficient 
             can be directly set instead of the ratio of particle diameter 
-            (:math:`\gamma = \alpha d_i`). The type of gamma parameter is float.
+            (:math:`\gamma = \alpha d_i`). The type of ``gamma`` parameter is 
+            either positive float or zero.
 
-        gamma_r (TypeParameter[``particle type``, [float,float,float]]):
+        gamma_r (TypeParameter[``particle type``, [float,float,float]]): The 
+            rotational drag coefficient can be set. The type of ``gamma_r ``
+            parameter is a tuple of three float. The type of each element of 
+            tuple is either positive float or zero.
 
     """
+
     def __init__(self, filter, kT, seed, alpha=None):
 
         # store metadata
