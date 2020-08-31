@@ -201,18 +201,8 @@ class _InternalMoveSize(_InternalAction):
 
         A `MoveSize` object is considered tuned if it the solver tolerance has
         been met by all tunables for 2 iterations.
-
-        Can be set to False. This will force move sizes to continue to be tuned.
         """
-        return self._tuned == 2
-
-    @tuned.setter
-    def tuned(self, value):
-        if not value:
-            self._tuned = 0
-        else:
-            raise ValueError("Cannot attempt to set tuned to True. "
-                             "Detach operation instead.")
+        return self._tuned >= 2
 
     def detach(self):
         self._update_tunables_attr('integrator', None)
@@ -225,7 +215,7 @@ class _InternalMoveSize(_InternalAction):
             timestep (:obj:`int`, optional): Current simulation timestep. Is
                 currently ignored.
         """
-        if not self.tuned and self.is_attached:
+        if self.is_attached:
             # update maximum move sizes
             if self._update_move_sizes:
                 for tunable in self._tunables:
@@ -236,10 +226,7 @@ class _InternalMoveSize(_InternalAction):
                     tunable.domain = (self._min_move_size, max_move_size)
 
             tuned = self.solver.solve(self._tunables)
-            if tuned:
-                self._tuned += 1
-            else:
-                self._tuned = 0
+            self._tuned = self._tuned + 1 if tuned else 0
 
     def _update_tunables(self, *, new_moves=tuple(), new_types=tuple()):
         tunables = self._tunables
