@@ -115,14 +115,16 @@ pybind11::object get_hoomd_version_tuple()
     }
 
 //! Get the CUDA version as a tuple
-pybind11::object get_cuda_version_tuple()
+pybind11::object get_cuda_version_str()
     {
     #ifdef ENABLE_HIP
-    int major = HIP_VERSION_MAJOR / 1000;
-    int minor = HIP_VERSION_MINOR / 10 % 100;
-    return pybind11::make_tuple(major, minor);
+    int major = HIP_VERSION_MAJOR;
+    int minor = HIP_VERSION_MINOR;
+    ostringstream s;
+    s << major << "." << minor;
+    return pybind11::str(s.str());
     #else
-    return pybind11::make_tuple(0,0);
+    return pybind11::str("0.0");
     #endif
     }
 
@@ -315,7 +317,7 @@ PYBIND11_MODULE(_hoomd, m)
     m.attr("__version__") = get_hoomd_version_tuple();
     m.attr("__git_sha1__") = pybind11::str(HOOMD_GIT_SHA1);
     m.attr("__git_refspec__") = pybind11::str(HOOMD_GIT_REFSPEC);
-    m.attr("__cuda_version__") = get_cuda_version_tuple();
+    m.attr("__cuda_version__") = get_cuda_version_str();
     m.attr("__compiler_version__") = pybind11::str(get_compiler_version());
     m.attr("__hoomd_source_dir__") = pybind11::str(HOOMD_SOURCE_DIR);
 
