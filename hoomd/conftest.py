@@ -28,17 +28,6 @@ def device(request):
     return d
 
 
-@pytest.fixture(scope='session', params=devices)
-def device_class(request):
-    """Parameterized Device class fixture.
-
-    Use the `device_class` fixture in tests that need to pass parameters to the
-    device creation.
-    """
-    return request.param
-
-
-
 @pytest.fixture(scope='session')
 def simulation_factory(device):
     """Make a Simulation object from a snapshot.

@@ -59,17 +59,6 @@ class _Device:
         return self._comm
 
     @property
-    def mode(self):
-        """str: The execution mode [read only].
-
-        `mode` is either ``cpu`` or ``gpu`` depending on the type of the device.
-        """
-        if self.cpp_exec_conf.isCUDAEnabled():
-            return 'gpu'
-        else:
-            return 'cpu'
-
-    @property
     def notice_level(self):
         """int: Minimum level of messages to print.
 

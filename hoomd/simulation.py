@@ -53,7 +53,7 @@ class Simulation(metaclass=Loggable):
             decomposition = pdata.getDomainDecomposition()
             if decomposition is not None:
                 # create the c++ Communicator
-                if self.device.mode == 'cpu':
+                if isinstance(self.device, hoomd.device.CPU):
                     cpp_communicator = _hoomd.Communicator(
                         self.state._cpp_sys_def, decomposition)
                 else:

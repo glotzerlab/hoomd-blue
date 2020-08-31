@@ -50,11 +50,11 @@ class State:
 
         if domain_decomp is not None:
             self._cpp_sys_def = _hoomd.SystemDefinition(
-                snapshot._cpp_obj, simulation.device.cpp_exec_conf,
+                snapshot._cpp_obj, simulation.device._cpp_exec_conf,
                 domain_decomp)
         else:
             self._cpp_sys_def = _hoomd.SystemDefinition(
-                snapshot._cpp_obj, simulation.device.cpp_exec_conf)
+                snapshot._cpp_obj, simulation.device._cpp_exec_conf)
         self._groups = defaultdict(dict)
 
     @property
