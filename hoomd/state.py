@@ -19,7 +19,7 @@ def _create_domain_decomposition(device, box):
 
     # if we are only running on one processor, we use optimized code paths
     # for single-GPU execution
-    if device.comm.num_ranks == 1:
+    if device.communicator.num_ranks == 1:
         return None
 
     # create a default domain decomposition
@@ -61,7 +61,7 @@ class State:
     def snapshot(self):
         cpp_snapshot = self._cpp_sys_def.takeSnapshot_double()
         return Snapshot._from_cpp_snapshot(cpp_snapshot,
-                                           self._simulation.device.comm)
+                                           self._simulation.device.communicator)
 
     @snapshot.setter
     def snapshot(self, snapshot):
@@ -101,7 +101,7 @@ class State:
 
         """
 
-        if self._simulation.device.comm.rank == 0:
+        if self._simulation.device.communicator.rank == 0:
             if len(snapshot.particles.types) != len(self.particle_types):
                 raise RuntimeError(
                     "Number of particle types must remain the same")

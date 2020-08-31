@@ -76,7 +76,7 @@ def two_particle_snapshot_factory(device):
     """
 
     def make_snapshot(particle_types=['A'], dimensions=3, d=1, L=20):
-        s = Snapshot(device.comm)
+        s = Snapshot(device.communicator)
         N = 2
 
         if s.exists:
@@ -115,7 +115,7 @@ def lattice_snapshot_factory(device):
     """
 
     def make_snapshot(particle_types=['A'], dimensions=3, a=1, n=7, r=0):
-        s = Snapshot(device.comm)
+        s = Snapshot(device.communicator)
 
         if s.exists:
             box = [n * a, n * a, n * a, 0, 0, 0]
@@ -157,7 +157,7 @@ def lattice_snapshot_factory(device):
 def skip_mpi(request):
     if request.node.get_closest_marker('serial'):
         if 'device' in request.fixturenames:
-            if request.getfixturevalue('device').comm.num_ranks > 1:
+            if request.getfixturevalue('device').communicator.num_ranks > 1:
                 pytest.skip('Test does not support MPI execution')
         else:
             raise ValueError('skip_mpi requires the *device* fixture')

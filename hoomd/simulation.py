@@ -79,7 +79,7 @@ class Simulation(metaclass=Loggable):
         reader = _hoomd.GSDReader(self.device.cpp_exec_conf,
                                   filename, abs(frame), frame < 0)
         snapshot = Snapshot._from_cpp_snapshot(reader.getSnapshot(),
-                                               self.device.comm)
+                                               self.device.communicator)
 
         step = reader.getTimeStep() if self.timestep is None else self.timestep
         self._state = State(self, snapshot)

@@ -5,7 +5,6 @@
 
 import contextlib
 import os
-import warnings
 import hoomd
 from hoomd import _hoomd
 
@@ -44,19 +43,15 @@ class _Device:
             self._comm = communicator
 
         # c++ messenger object
-        self._cpp_msg = _create_messenger(self.comm.cpp_mpi_conf, notice_level,
-                                          msg_file, shared_msg_file)
+        self._cpp_msg = _create_messenger(self.communicator.cpp_mpi_conf,
+                                          notice_level, msg_file,
+                                          shared_msg_file)
 
         # c++ execution configuration mirror class
         self.cpp_exec_conf = None
 
         # name of the message file
         self._msg_file = msg_file
-
-    @property
-    def comm(self):
-        warnings.warn("Use communicator.", DeprecationWarning)
-        return self._comm
 
     @property
     def communicator(self):
@@ -237,7 +232,7 @@ class GPU(_Device):
         # convert None options to defaults
         self.cpp_exec_conf = _hoomd.ExecutionConfiguration(
             _hoomd.ExecutionConfiguration.executionMode.GPU, gpu_ids,
-            self.comm.cpp_mpi_conf, self._cpp_msg)
+            self.communicator.cpp_mpi_conf, self._cpp_msg)
 
         if num_cpu_threads is not None:
             self.num_cpu_threads = num_cpu_threads
@@ -354,7 +349,7 @@ class CPU(_Device):
 
         self.cpp_exec_conf = _hoomd.ExecutionConfiguration(
             _hoomd.ExecutionConfiguration.executionMode.CPU, [],
-            self.comm.cpp_mpi_conf, self._cpp_msg)
+            self.communicator.cpp_mpi_conf, self._cpp_msg)
 
         if num_cpu_threads is not None:
             self.num_cpu_threads = num_cpu_threads
@@ -383,5 +378,5 @@ class Auto(_Device):
 
         self.cpp_exec_conf = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.AUTO,
                                                            [],
-                                                           self.comm.cpp_mpi_conf,
+                                                           self.communicator.cpp_mpi_conf,
                                                            self._cpp_msg)
