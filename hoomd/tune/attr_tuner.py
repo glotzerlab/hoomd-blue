@@ -401,6 +401,7 @@ class SecantSolver(SolverStep):
             if new_x == x:
                 raise RuntimeError("Unable to perturb x for secant solver.")
         tunable.x = new_x
+        self._previous_pair[tunable] = (x, tunable.y - tunable.target)
 
     def _handle_static_y(self, tunable, x, old_x):
         """Handles when y is constant for multiple calls to solve_one.
