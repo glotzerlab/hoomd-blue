@@ -57,7 +57,8 @@ class _MoveSizeTuneDefinition(_TuneDefinition):
         # If we have recorded a previous total then this condition implies a new
         # run call. We should be able to tune here as we have no other
         # indication the system has changed.
-        elif self.previous_total > total_moves:
+        elif (self.previous_total > total_moves
+              or self.previous_accepted_moves > accepted_moves):
             acceptance_rate = accepted_moves / total_moves
         else:
             acceptance_rate = ((accepted_moves - self.previous_accepted_moves)
