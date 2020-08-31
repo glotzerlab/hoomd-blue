@@ -52,7 +52,7 @@ class NVT(_Method):
 
     .. rubric:: Rotational degrees of freedom
 
-    NVT integrates rotational degrees of freedom. #TODO
+    `NVT` integrates rotational degrees of freedom. #TODO
 
 
     Attributes:
@@ -67,8 +67,7 @@ class NVT(_Method):
 
     Examples::
 
-        all = filter.All()
-        nvt=hoomd.md.methods.NVT(filter=all, kT=1.0, tau=0.5)
+        nvt=hoomd.md.methods.NVT(filter=filter.All(), kT=1.0, tau=0.5)
         integrator = hoomd.md.Integrator(dt=0.005, methods=[nvt], forces=[lj])
 
     """
@@ -580,8 +579,8 @@ class NVE(_Method):
 
 
     Attributes:
-        filter (hoomd.filter._ParticleFilter): Subset of particles on which to apply 
-            this method.
+        filter (hoomd.filter._ParticleFilter): Subset of particles on which to 
+        apply this method.
 
         limit (None or float): Enforce that no particle moves more than a 
             distance of a limit in a single time step. Defaults to None
@@ -631,8 +630,9 @@ class Langevin(_Method):
         seed (`int`): Random seed to use for generating
             :math:`\vec{F}_\mathrm{R}`.
 
-        alpha (`float`): When set, use :math:\alpha d:math: for the
-            drag coefficient. Defaults to None.
+        alpha (`float`): When set, use :math:`\alpha d_i` for the drag 
+            coefficient where :math:`d_i` is particle diameter. 
+            Defaults to None.
 
         tally_reservoir_energy (`bool`): If true, the energy exchange
             between the thermal reservoir and the particles is tracked. Total
@@ -690,11 +690,12 @@ class Langevin(_Method):
 
     You can specify :math:`\gamma` in two ways:
 
-    1. Use ``langevein.gamma=`` to specify it directly, with independent
-       values for each particle type in the system.?
-    2. Specify :math:`\alpha` which scales the particle diameter to
-       :math:`\gamma = \alpha d_i`. The units of
-       :math:`\alpha` are mass / distance / time.
+    1. Specify :math:`\alpha` which scales the particle diameter to 
+       :math:`\gamma = \alpha d_i`. The units of :math:`\alpha` are 
+       mass / distance / time.
+    2. After the method object is created, specify the attribute `gamma` and 
+        `gamma_r` (in case of anisotropic particles) to assign it directly, 
+        with independent values for each particle type in the system.
 
     Warning:
         When restarting a simulation, the energy of the reservoir will be reset
@@ -710,10 +711,13 @@ class Langevin(_Method):
         seed (int): Random seed to use for generating
             :math:`\vec{F}_\mathrm{R}`.
 
-        alpha (float): When set, use :math:\alpha d:math: for the
-            drag coefficient. Defaults to None
+        alpha (float): When set, use :math:`\alpha d_i` for the drag 
+            coefficient where :math:`d_i` is particle diameter. 
+            Defaults to None.
 
-        gamma (TypeParameter[``particle type``, float]):
+        gamma (TypeParameter[``particle type``, float]): The drag coefficient 
+            can be directly set instead of the ratio of particle diameter 
+            (:math:`\gamma = \alpha d_i`). The type of gamma parameter is float.
 
         gamma_r (TypeParameter[``particle type``, [float,float,float]]):
 
@@ -726,8 +730,16 @@ class Langevin(_Method):
 
     Examples::
 
-        langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=0.2, seed=1, alpha=1.0)
-        integrator = hoomd.md.Integrator(dt=0.001, methods=[langevin], forces=[lj])
+        langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=0.2, 
+        seed=1, alpha=1.0)
+        integrator = hoomd.md.Integrator(dt=0.001, methods=[langevin], 
+        forces=[lj])
+
+    Examples of using ``gamma`` on drag coefficient::
+
+        langevin = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2,
+        seed=1)
+        langevin.gamma = 0.3
 
     """
 
@@ -787,7 +799,8 @@ class Brownian(_Method):
             :math:`\vec{F}_\mathrm{R}`.
 
         alpha (`float`): When set, use :math:`\alpha d_i` for the
-            drag coefficient. Defaults to None.
+            drag coefficient where :math:`d_i` is particle diameter. 
+            Defaults to None.
 
     `Brownian` integrates particles forward in time according to the overdamped 
     Langevin equations of motion, sometimes called Brownian dynamics, or the 
@@ -795,7 +808,8 @@ class Brownian(_Method):
 
     .. math::
 
-        \frac{d\vec{x}}{dt} = \frac{\vec{F}_\mathrm{C} + \vec{F}_\mathrm{R}}{\gamma}?
+        \frac{d\vec{x}}{dt} = \frac{\vec{F}_\mathrm{C} + 
+        \vec{F}_\mathrm{R}}{\gamma}
 
         \langle \vec{F}_\mathrm{R} \rangle = 0
 
@@ -848,11 +862,11 @@ class Brownian(_Method):
     You can specify :math:`\gamma` in two ways:
 
     1. Specify :math:`\alpha` which scales the particle diameter to 
-       :math:`\gamma = \alpha d_i`. The units of
-       :math:`\alpha` are mass / distance / time.
-    2. After the method object is created, specify the attribute either `gamma` 
-        or `gamma_r` to assign it directly, with independent values for each 
-        particle type in the system.
+       :math:`\gamma = \alpha d_i`. The units of :math:`\alpha` are 
+       mass / distance / time.
+    2. After the method object is created, specify the attribute `gamma` and 
+        `gamma_r` (in case of anisotropic particles) to assign it directly, 
+        with independent values for each particle type in the system.
     
 
     Attributes:
@@ -866,13 +880,12 @@ class Brownian(_Method):
             :math:`\vec{F}_\mathrm{R}`.
 
         alpha (float): When set, use :math:`\alpha d_i` for the drag 
-            coefficient. Defaults to None.
+            coefficient where :math:`d_i` is particle diameter. 
+            Defaults to None.
 
         gamma (TypeParameter[``particle type``, float]): The drag coefficient 
             can be directly set instead of the ratio of particle diameter 
             (:math:`\gamma = \alpha d_i`). The type of gamma parameter is float.
-
-
 
         gamma_r (TypeParameter[``particle type``, [float,float,float]]):
 
@@ -883,7 +896,7 @@ class Brownian(_Method):
         integrator = hoomd.md.Integrator(dt=0.001, methods=[brownian], 
         forces=[lj])
 
-    Examples of adjustment on drag coefficient::
+    Examples of using ``gamma`` on drag coefficient::
 
         brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2,
         seed=1)

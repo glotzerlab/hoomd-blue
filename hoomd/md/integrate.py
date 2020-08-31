@@ -91,12 +91,12 @@ class Integrator(_DynamicIntegrator):
             methods. Each integration method can be applied to only a specific
             subset of particles, default [].
 
-        forces (Sequence[hoomd.md.force._Force]): Sequence of forces applied to the
-            particles in the system. All the forces are summed together,
+        forces (Sequence[hoomd.md.force._Force]): Sequence of forces applied to 
+            the particles in the system. All the forces are summed together, 
             default [].
 
-        aniso (str or bool): Whether to integrate rotational degrees of freedom (bool),
-            default 'auto' (autodetect).
+        aniso (str or bool): Whether to integrate rotational degrees of freedom 
+            (bool), default 'auto' (autodetect).
 
         constraints (Sequence[hoomd.md.constrain._ConstraintForce]): Sequence of
             constraint forces applied to the particles in the system,
