@@ -54,6 +54,11 @@ class NVT(_Method):
 
     `NVT` integrates rotational degrees of freedom. #TODO
 
+    Examples::
+
+        nvt=hoomd.md.methods.NVT(filter=filter.All(), kT=1.0, tau=0.5)
+        integrator = hoomd.md.Integrator(dt=0.005, methods=[nvt], forces=[lj])
+
 
     Attributes:
         filter (hoomd.filter._ParticleFilter): Subset of particles on which to 
@@ -64,12 +69,6 @@ class NVT(_Method):
 
         tau (float): Coupling constant for the Nosé-Hoover thermostat. (in time
             units).
-
-    Examples::
-
-        nvt=hoomd.md.methods.NVT(filter=filter.All(), kT=1.0, tau=0.5)
-        integrator = hoomd.md.Integrator(dt=0.005, methods=[nvt], forces=[lj])
-
     """
 
     def __init__(self, filter, kT, tau):
@@ -577,6 +576,11 @@ class NVE(_Method):
         :py:class:`hoomd.md.update.zero_momentum` updater during the limited NVE
         run to prevent this.
 
+    Examples::
+
+        nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
+        integrator = hoomd.md.Integrator(dt=0.005, methods=[nve], forces=[lj])
+
 
     Attributes:
         filter (hoomd.filter._ParticleFilter): Subset of particles on which to 
@@ -584,11 +588,6 @@ class NVE(_Method):
 
         limit (None or float): Enforce that no particle moves more than a 
             distance of a limit in a single time step. Defaults to None
-
-    Examples::
-
-        nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
-        integrator = hoomd.md.Integrator(dt=0.005, methods=[nve], forces=[lj])
 
     """
     def __init__(self, filter, limit=None):
@@ -701,6 +700,21 @@ class Langevin(_Method):
         When restarting a simulation, the energy of the reservoir will be reset
         to zero.
 
+
+    Examples::
+
+        langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=0.2, 
+        seed=1, alpha=1.0)
+        integrator = hoomd.md.Integrator(dt=0.001, methods=[langevin], 
+        forces=[lj])
+
+    Examples of using ``gamma`` on drag coefficient::
+
+        langevin = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2,
+        seed=1)
+        langevin.gamma = 0.3
+
+
     Attributes:
         filter (hoomd.filter._ParticleFilter): Subset of particles to
             apply this method to.
@@ -727,20 +741,6 @@ class Langevin(_Method):
             energy conservation can then be monitored by adding
             ``langevin_reservoir_energy_groupname`` to the logged quantities. 
             Defaults to False.
-
-    Examples::
-
-        langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=0.2, 
-        seed=1, alpha=1.0)
-        integrator = hoomd.md.Integrator(dt=0.001, methods=[langevin], 
-        forces=[lj])
-
-    Examples of using ``gamma`` on drag coefficient::
-
-        langevin = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2,
-        seed=1)
-        langevin.gamma = 0.3
-
     """
 
     def __init__(self, filter, kT, seed, alpha=None,
@@ -867,7 +867,21 @@ class Brownian(_Method):
     2. After the method object is created, specify the attribute `gamma` and 
         `gamma_r` (in case of anisotropic particles) to assign it directly, 
         with independent values for each particle type in the system.
-    
+
+
+    Examples::
+
+        brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2, 
+        seed=1, alpha=1.0)
+        integrator = hoomd.md.Integrator(dt=0.001, methods=[brownian], 
+        forces=[lj])
+
+    Examples of using ``gamma`` on drag coefficient::
+
+        brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2,
+        seed=1)
+        brownian.gamma = 0.3
+
 
     Attributes:
         filter (hoomd.filter._ParticleFilter): Subset of particles to
@@ -888,19 +902,6 @@ class Brownian(_Method):
             (:math:`\gamma = \alpha d_i`). The type of gamma parameter is float.
 
         gamma_r (TypeParameter[``particle type``, [float,float,float]]):
-
-    Examples::
-
-        brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2, 
-        seed=1, alpha=1.0)
-        integrator = hoomd.md.Integrator(dt=0.001, methods=[brownian], 
-        forces=[lj])
-
-    Examples of using ``gamma`` on drag coefficient::
-
-        brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2,
-        seed=1)
-        brownian.gamma = 0.3
 
     """
     def __init__(self, filter, kT, seed, alpha=None):
