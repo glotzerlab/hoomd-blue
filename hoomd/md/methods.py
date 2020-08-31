@@ -786,7 +786,7 @@ class Brownian(_Method):
         seed (`int`): Random seed to use for generating
             :math:`\vec{F}_\mathrm{R}`.
 
-        alpha (`float`): When set, use :math:\alpha d:math: for the
+        alpha (`float`): When set, use :math:`\alpha d_i` for the
             drag coefficient. Defaults to None.
 
     `Brownian` integrates particles forward in time according to the overdamped 
@@ -846,12 +846,13 @@ class Brownian(_Method):
     system is not overdamped.
 
     You can specify :math:`\gamma` in two ways:
-    ?set_gamma
-    1. Use ``set_gamma`` to specify it directly, with independent values for 
-       each particle type in the system.
-    2. Specify :math:`\alpha` which scales the particle diameter to 
+
+    1. Specify :math:`\alpha` which scales the particle diameter to 
        :math:`\gamma = \alpha d_i`. The units of
        :math:`\alpha` are mass / distance / time.
+    2. After the method object is created, specify the attribute either `gamma` 
+        or `gamma_r` to assign it directly, with independent values for each 
+        particle type in the system.
     
 
     Attributes:
@@ -864,17 +865,29 @@ class Brownian(_Method):
         seed (int): Random seed to use for generating
             :math:`\vec{F}_\mathrm{R}`.
 
-        alpha (float): When set, use :math:\alpha d:math: for the
-            drag coefficient. Defaults to None.
+        alpha (float): When set, use :math:`\alpha d_i` for the drag 
+            coefficient. Defaults to None.
 
-        gamma (TypeParameter[``particle type``, float]):
+        gamma (TypeParameter[``particle type``, float]): The drag coefficient 
+            can be directly set instead of the ratio of particle diameter 
+            (:math:`\gamma = \alpha d_i`). The type of gamma parameter is float.
+
+
 
         gamma_r (TypeParameter[``particle type``, [float,float,float]]):
 
     Examples::
 
-        brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2, seed=1, alpha=1.0)
-        integrator = hoomd.md.Integrator(dt=0.001, methods=[brownian], forces=[lj])
+        brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2, 
+        seed=1, alpha=1.0)
+        integrator = hoomd.md.Integrator(dt=0.001, methods=[brownian], 
+        forces=[lj])
+
+    Examples of adjustment on drag coefficient::
+
+        brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2,
+        seed=1)
+        brownian.gamma = 0.3
 
     """
     def __init__(self, filter, kT, seed, alpha=None):
