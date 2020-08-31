@@ -178,7 +178,7 @@ class State:
                              'hoomd.Box.from_box'.format(value))
 
         if value.dimensions != self._cpp_sys_def.getNDimensions():
-            self._simulation.device.cpp_msg.warning(
+            self._simulation.device._cpp_msg.warning(
                 "Box changing dimensions from {} to {}."
                 "".format(self._cpp_sys_def.getNDimensions(),
                           value.dimensions))

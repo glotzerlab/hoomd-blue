@@ -26,7 +26,7 @@ class _Angle(_Force):
     def attach(self, simulation):
         # check that some angles are defined
         if simulation.state._cpp_sys_def.getAngleData().getNGlobal() == 0:
-            simulation.device.cpp_msg.warning("No angles are defined.\n")
+            simulation.device._cpp_msg.warning("No angles are defined.\n")
 
         # create the c++ mirror class
         if not simulation.device.cpp_exec_conf.isCUDAEnabled():

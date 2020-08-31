@@ -24,7 +24,7 @@ class _SpecialPair(_Force):
     def attach(self, simulation):
         # check that some bonds are defined
         if simulation.state._cpp_sys_def.getPairData().getNGlobal() == 0:
-            simulation.device.cpp_msg.error("No pairs are defined.\n")
+            simulation.device._cpp_msg.error("No pairs are defined.\n")
 
         # create the c++ mirror class
         if not simulation.device.mode == "gpu":

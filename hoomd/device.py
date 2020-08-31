@@ -15,6 +15,10 @@ class _Device:
 
     Provides methods and properties common to `CPU` and `GPU`.
 
+    Warning:
+
+        `_Device` cannot be used directly. Instantate a `CPU` or `GPU` object.
+
     .. rubric:: TBB threads
 
     Set `num_cpu_threads` to `None` and TBB will auto-select the number of CPU
@@ -40,11 +44,8 @@ class _Device:
             self._comm = communicator
 
         # c++ messenger object
-        self.cpp_msg = _create_messenger(self.comm.cpp_mpi_conf, notice_level,
-                                         msg_file, shared_msg_file)
-
-        # output the version info on initialization
-        self.cpp_msg.notice(1, _hoomd.output_version_info())
+        self._cpp_msg = _create_messenger(self.comm.cpp_mpi_conf, notice_level,
+                                          msg_file, shared_msg_file)
 
         # c++ execution configuration mirror class
         self.cpp_exec_conf = None
@@ -82,11 +83,11 @@ class _Device:
         will want to see. Set the level lower to reduce verbosity or as high as
         10 to get extremely verbose debugging messages.
         """
-        return self.cpp_msg.getNoticeLevel()
+        return self._cpp_msg.getNoticeLevel()
 
     @notice_level.setter
     def notice_level(self, notice_level):
-        self.cpp_msg.setNoticeLevel(notice_level)
+        self._cpp_msg.setNoticeLevel(notice_level)
 
     @property
     def msg_file(self):
@@ -106,9 +107,9 @@ class _Device:
     def msg_file(self, fname):
         self._msg_file = fname
         if fname is not None:
-            self.cpp_msg.openFile(fname)
+            self._cpp_msg.openFile(fname)
         else:
-            self.cpp_msg.openStd()
+            self._cpp_msg.openStd()
 
     @property
     def devices(self):
@@ -126,7 +127,7 @@ class _Device:
     @num_cpu_threads.setter
     def num_cpu_threads(self, num_cpu_threads):
         if not _hoomd.is_TBB_available():
-            self.cpp_msg.warning(
+            self._cpp_msg.warning(
                 "HOOMD was compiled without thread support, ignoring request "
                 "to set number of threads.\n")
         else:
@@ -236,7 +237,7 @@ class GPU(_Device):
         # convert None options to defaults
         self.cpp_exec_conf = _hoomd.ExecutionConfiguration(
             _hoomd.ExecutionConfiguration.executionMode.GPU, gpu_ids,
-            self.comm.cpp_mpi_conf, self.cpp_msg)
+            self.comm.cpp_mpi_conf, self._cpp_msg)
 
         if num_cpu_threads is not None:
             self.num_cpu_threads = num_cpu_threads
@@ -353,7 +354,7 @@ class CPU(_Device):
 
         self.cpp_exec_conf = _hoomd.ExecutionConfiguration(
             _hoomd.ExecutionConfiguration.executionMode.CPU, [],
-            self.comm.cpp_mpi_conf, self.cpp_msg)
+            self.comm.cpp_mpi_conf, self._cpp_msg)
 
         if num_cpu_threads is not None:
             self.num_cpu_threads = num_cpu_threads
@@ -383,4 +384,4 @@ class Auto(_Device):
         self.cpp_exec_conf = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.AUTO,
                                                            [],
                                                            self.comm.cpp_mpi_conf,
-                                                           self.cpp_msg)
+                                                           self._cpp_msg)

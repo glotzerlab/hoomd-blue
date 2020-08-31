@@ -157,7 +157,7 @@ class _HPMCIntegrator(_BaseIntegrator):
                                                            self.seed)
         else:
             if simulation.device.mode == 'gpu':
-                simulation.device.cpp_msg.warning(
+                simulation.device._cpp_msg.warning(
                     "Falling back on CPU. No GPU implementation for shape.\n")
             self._cpp_obj = getattr(_hpmc, self._cpp_cls)(sys_def, self.seed)
             self._cpp_cell = None
