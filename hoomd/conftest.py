@@ -156,7 +156,8 @@ def skip_mpi(request):
 def only_gpu(request):
     if request.node.get_closest_marker('gpu'):
         if 'device' in request.fixturenames:
-            if request.getfixturevalue('device').mode != 'gpu':
+            if not isinstance(request.getfixturevalue('device'),
+                              hoomd.device.GPU):
                 pytest.skip('Test is run only on GPU(s).')
         else:
             raise ValueError('only_gpu requires the *device* fixture')
@@ -166,10 +167,12 @@ def only_gpu(request):
 def only_cpu(request):
     if request.node.get_closest_marker('cpu'):
         if 'device' in request.fixturenames:
-            if request.getfixturevalue('device').mode != 'cpu':
+            if not isinstance(request.getfixturevalue('device'),
+                              hoomd.device.CPU):
                 pytest.skip('Test is run only on CPU(s).')
         else:
             raise ValueError('only_cpu requires the *device* fixture')
+
 
 @pytest.fixture(scope='function', autouse=True)
 def numpy_random_seed():
@@ -188,18 +191,14 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers",
         "validation: Long running tests that validate simulation output")
-    config.addinivalue_line(
-        "markers",
-        "gpu: Tests that should only run on the gpu.")
+    config.addinivalue_line("markers",
+                            "gpu: Tests that should only run on the gpu.")
     config.addinivalue_line(
         "markers",
         "cupy_optional: tests that should pass with and without CuPy.")
-    config.addinivalue_line(
-        "markers",
-        "cpu: Tests that only run on the CPU.")
-    config.addinivalue_line(
-        "markers",
-        "gpu: Tests that only run on the GPU.")
+    config.addinivalue_line("markers", "cpu: Tests that only run on the CPU.")
+    config.addinivalue_line("markers", "gpu: Tests that only run on the GPU.")
+
 
 def abort(exitstatus):
     # get a default mpi communicator

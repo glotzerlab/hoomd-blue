@@ -48,7 +48,7 @@ class _Device:
                                           shared_msg_file)
 
         # c++ execution configuration mirror class
-        self.cpp_exec_conf = None
+        self._cpp_exec_conf = None
 
         # name of the message file
         self._msg_file = msg_file
@@ -98,7 +98,7 @@ class _Device:
     @property
     def devices(self):
         """List[str]: Descriptions of the active hardware devices."""
-        return self.cpp_exec_conf.getActiveDevices()
+        return self._cpp_exec_conf.getActiveDevices()
 
     @property
     def num_cpu_threads(self):
@@ -106,7 +106,7 @@ class _Device:
         if not _hoomd.is_TBB_available():
             return 1
         else:
-            return self.cpp_exec_conf.getNumThreads()
+            return self._cpp_exec_conf.getNumThreads()
 
     @num_cpu_threads.setter
     def num_cpu_threads(self, num_cpu_threads):
@@ -115,7 +115,7 @@ class _Device:
                 "HOOMD was compiled without thread support, ignoring request "
                 "to set number of threads.\n")
         else:
-            self.cpp_exec_conf.setNumThreads(int(num_cpu_threads))
+            self._cpp_exec_conf.setNumThreads(int(num_cpu_threads))
 
 
 def _create_messenger(mpi_config, notice_level, msg_file, shared_msg_file):
@@ -219,7 +219,7 @@ class GPU(_Device):
             gpu_ids = []
 
         # convert None options to defaults
-        self.cpp_exec_conf = _hoomd.ExecutionConfiguration(
+        self._cpp_exec_conf = _hoomd.ExecutionConfiguration(
             _hoomd.ExecutionConfiguration.executionMode.GPU, gpu_ids,
             self.communicator.cpp_mpi_conf, self._cpp_msg)
 
@@ -232,12 +232,12 @@ class GPU(_Device):
 
         Memory tracebacks are useful for developers when debugging GPU code.
         """
-        return self.cpp_exec_conf.getMemoryTracer() is not None
+        return self._cpp_exec_conf.getMemoryTracer() is not None
 
     @memory_traceback.setter
     def memory_traceback(self, mem_traceback):
 
-        self.cpp_exec_conf.setMemoryTracing(mem_traceback)
+        self._cpp_exec_conf.setMemoryTracing(mem_traceback)
 
     @property
     def gpu_error_checking(self):
@@ -247,11 +247,11 @@ class GPU(_Device):
         noticed immediately. Set to `True` to increase the accuracy of the GPU
         error messages at the cost of significantly reduced performance.
         """
-        return self.cpp_exec_conf.isCUDAErrorCheckingEnabled()
+        return self._cpp_exec_conf.isCUDAErrorCheckingEnabled()
 
     @gpu_error_checking.setter
     def gpu_error_checking(self, new_bool):
-        self.cpp_exec_conf.setCUDAErrorChecking(new_bool)
+        self._cpp_exec_conf.setCUDAErrorChecking(new_bool)
 
     @staticmethod
     def is_available():
@@ -297,10 +297,10 @@ class GPU(_Device):
                 sim.run(1000)
         """
         try:
-            self.cpp_exec_conf.hipProfileStart()
+            self._cpp_exec_conf.hipProfileStart()
             yield None
         finally:
-            self.cpp_exec_conf.hipProfileStop()
+            self._cpp_exec_conf.hipProfileStop()
 
 
 class CPU(_Device):
@@ -336,7 +336,7 @@ class CPU(_Device):
 
         super().__init__(communicator, notice_level, msg_file, shared_msg_file)
 
-        self.cpp_exec_conf = _hoomd.ExecutionConfiguration(
+        self._cpp_exec_conf = _hoomd.ExecutionConfiguration(
             _hoomd.ExecutionConfiguration.executionMode.CPU, [],
             self.communicator.cpp_mpi_conf, self._cpp_msg)
 
@@ -365,7 +365,7 @@ class Auto(_Device):
 
         _init_nthreads(nthreads)
 
-        self.cpp_exec_conf = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.AUTO,
+        self._cpp_exec_conf = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.AUTO,
                                                            [],
                                                            self.communicator.cpp_mpi_conf,
                                                            self._cpp_msg)

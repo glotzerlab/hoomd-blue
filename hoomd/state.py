@@ -1,10 +1,10 @@
-from copy import copy
 from collections import defaultdict
 
 from . import _hoomd
 from hoomd.box import Box
 from hoomd.snapshot import Snapshot
 from hoomd.data import LocalSnapshot, LocalSnapshotGPU
+import hoomd
 
 
 def _create_domain_decomposition(device, box):
@@ -23,7 +23,7 @@ def _create_domain_decomposition(device, box):
         return None
 
     # create a default domain decomposition
-    result = _hoomd.DomainDecomposition(device.cpp_exec_conf,
+    result = _hoomd.DomainDecomposition(device._cpp_exec_conf,
                                         box.getL(),
                                         0,
                                         0,
@@ -293,7 +293,7 @@ class State:
         Note:
             This property is only available when running on a GPU(s).
         """
-        if self._simulation.device.mode != 'gpu':
+        if not isinstance(self._simulation.device, hoomd.device.GPU):
             raise RuntimeError(
                 "Cannot access gpu_snapshot with a non GPU device.")
         elif self._in_context_manager:

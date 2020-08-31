@@ -3,6 +3,7 @@ from hoomd.logging import log, Loggable
 from hoomd.state import State
 from hoomd.snapshot import Snapshot
 from hoomd.operations import Operations
+import hoomd
 
 
 class Simulation(metaclass=Loggable):
@@ -74,9 +75,9 @@ class Simulation(metaclass=Loggable):
         if self.state is not None:
             raise RuntimeError("Cannot initialize more than once\n")
         filename = _hoomd.mpi_bcast_str(filename,
-                                        self.device.cpp_exec_conf)
+                                        self.device._cpp_exec_conf)
         # Grab snapshot and timestep
-        reader = _hoomd.GSDReader(self.device.cpp_exec_conf,
+        reader = _hoomd.GSDReader(self.device._cpp_exec_conf,
                                   filename, abs(frame), frame < 0)
         snapshot = Snapshot._from_cpp_snapshot(reader.getSnapshot(),
                                                self.device.communicator)

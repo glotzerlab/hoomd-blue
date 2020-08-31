@@ -10,7 +10,6 @@ def test_typical(device):
     objects are re-used across all tests for efficiency, do not modify them.
     """
 
-    print(device.mode)
     assert True
 
 @pytest.mark.serial
