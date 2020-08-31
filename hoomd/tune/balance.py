@@ -10,16 +10,19 @@ class LoadBalancer(_Tuner):
 
     Args:
         trigger (hoomd.trigger.Trigger): A ``Trigger`` object to activate the
-            ``LoadBalancer``. If passed an integer, a
+            `LoadBalancer`. If passed an integer, a
             :py:class:`hoomd.trigger.Periodic` trigger will be used with the
             integer as its period.
-        x (bool, optional): If True, balance in x dimension, defaults to True.
-        y (bool, optional): If True, balance in y dimension, defaults to True.
-        z (bool, optional): If True, balance in z dimension, defaults to True.
-        tolerance (float, optional): Load imbalance tolerance (if <= 1.0,
+        x (:obj:`bool`, optional): If True, balance in x dimension, defaults to
+            True.
+        y (:obj:`bool`, optional): If True, balance in y dimension, defaults to
+            True.
+        z (:obj:`bool`, optional): If True, balance in z dimension, defaults to
+            True.
+        tolerance (:obj:`float`, optional): Load imbalance tolerance (if <= 1.0,
             balance every step), defaults to 1.02.
-        max_iterations (int, optional): Maximum number of iterations to attempt
-            in a single step, defaults to 1.
+        max_iterations (:obj:`int`, optional): Maximum number of iterations to
+            attempt in a single step, defaults to 1.
 
     Every ``trigger`` activation, the boundaries of the processor domains are
     adjusted to distribute the particle load close to evenly between them. The

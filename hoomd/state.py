@@ -132,6 +132,36 @@ class State:
                     )
 
     @property
+    def N_particles(self):
+        """int: The number of particles in the simulation."""
+        return self._cpp_sys_def.getParticleData().getNGlobal()
+
+    @property
+    def N_bonds(self):
+        """int: The number of bonds in the simulation."""
+        return self._cpp_sys_def.getBondData().getNGlobal()
+
+    @property
+    def N_angles(self):
+        """int: The number of angles in the simulation."""
+        return self._cpp_sys_def.getAngleData().getNGlobal()
+
+    @property
+    def N_impropers(self):
+        """int: The number of impropers in the simulation."""
+        return self._cpp_sys_def.getImproperData().getNGlobal()
+
+    @property
+    def N_special_pairs(self):
+        """int: The number of special pairs in the simulation."""
+        return self._cpp_sys_def.getPairData().getNGlobal()
+
+    @property
+    def N_dihedrals(self):
+        """int: The number of dihedrals in the simulation."""
+        return self._cpp_sys_def.getDihedralData().getNGlobal()
+
+    @property
     def particle_types(self):
         return self._cpp_sys_def.getParticleData().getTypes()
 

@@ -74,7 +74,7 @@ Here is a simple example:
 
    # Integrate at constant temperature
    md.integrate.mode_standard(dt=0.005)
-   hoomd.md.integrate.langevin(group=hoomd.group.all(), kT=1.2, seed=4)
+   hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=1.2, seed=4)
 
    # Run for 10,000 time steps
    hoomd.run(10e3)

@@ -9,7 +9,7 @@
 #include "AllDriverPotentialPairGPU.cuh"
 
 hipError_t gpu_compute_mie_forces(const pair_args_t & args,
-                                                const Scalar4 *d_params)
+                                                const EvaluatorPairMie::param_type *d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairMie>(args,
                                                      d_params);

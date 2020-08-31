@@ -51,8 +51,9 @@ set(_hoomd_sources Analyzer.cc
                    ParticleGroup.cc
                    Profiler.cc
                    PythonLocalDataAccess.cc
-                   PythonUpdater.cc
                    PythonAnalyzer.cc
+                   PythonTuner.cc
+                   PythonUpdater.cc
                    SFCPackTuner.cc
                    SignalHandler.cc
                    SnapshotSystemData.cc
@@ -313,7 +314,6 @@ set(files benchmark.py
           conftest.py
           device.py
           dump.py
-          group.py
           array.py
           __init__.py
           init.py
@@ -357,7 +357,7 @@ add_subdirectory(filter)
 add_subdirectory(minimize)
 add_subdirectory(output)
 add_subdirectory(pytest)
-add_subdirectory(tuner)
+add_subdirectory(tune)
 add_subdirectory(update)
 
 if (BUILD_TESTING)

@@ -136,6 +136,10 @@ class PYBIND11_EXPORT Analyzer
                     }
                 }
             }
+
+        /// Python will notify C++ objects when they are detached from Simulation
+        virtual void notifyDetach() { };
+
     protected:
         const std::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this analyzer is associated with
         const std::shared_ptr<ParticleData> m_pdata;      //!< The particle data this analyzer is associated with

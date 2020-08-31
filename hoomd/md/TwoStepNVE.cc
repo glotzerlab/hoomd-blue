@@ -56,18 +56,48 @@ TwoStepNVE::~TwoStepNVE()
     Once the limit is set, future calls to update() will never move a particle
     a distance larger than the limit in a single time step
 */
-void TwoStepNVE::setLimit(Scalar limit)
+
+pybind11::object TwoStepNVE::getLimit()
     {
-    m_limit = true;
-    m_limit_val = limit;
+    pybind11::object result;
+    if (m_limit)
+        {
+        result = pybind11::cast(m_limit_val);
+        }
+    else
+    {
+    result = pybind11::none();
+    }
+    return result;
     }
 
-/*! Disables the limit, allowing particles to move normally
-*/
-void TwoStepNVE::removeLimit()
+void TwoStepNVE::setLimit(pybind11::object limit)
     {
-    m_limit = false;
+    if (limit.is_none())
+        {
+        m_limit = false;
+        }
+    else
+        {
+        m_limit=true;
+        m_limit_val=pybind11::cast<Scalar>(limit);
+        }
     }
+
+
+pybind11::object TwoStepNVE::getZeroForce()
+    {
+    pybind11::object result;
+    result = pybind11::cast(m_zero_force);
+
+    return result;
+    }
+
+void TwoStepNVE::setZeroForce(pybind11::object zero_force)
+    {
+    m_zero_force=pybind11::cast<bool>(zero_force);
+    }
+
 
 /*! \param timestep Current time step
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the velocity verlet
@@ -341,9 +371,12 @@ void TwoStepNVE::integrateStepTwo(unsigned int timestep)
 void export_TwoStepNVE(py::module& m)
     {
     py::class_<TwoStepNVE, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNVE> >(m, "TwoStepNVE")
-        .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, bool >())
-        .def("setLimit", &TwoStepNVE::setLimit)
-        .def("removeLimit", &TwoStepNVE::removeLimit)
-        .def("setZeroForce", &TwoStepNVE::setZeroForce)
+        .def(py::init< std::shared_ptr<SystemDefinition>, 
+                       std::shared_ptr<ParticleGroup>, 
+                       bool >())
+        .def_property("limit", &TwoStepNVE::getLimit,
+                               &TwoStepNVE::setLimit)
+        .def_property("zero_force", &TwoStepNVE::getZeroForce,
+                                   &TwoStepNVE::setZeroForce)
         ;
     }
