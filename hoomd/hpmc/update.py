@@ -1007,19 +1007,19 @@ class QuickCompress(_Updater):
 
         self._param_dict.update(param_dict)
 
-    def attach(self, simulation):
+    def _attach(self, simulation):
         integrator = simulation.operations.integrator
         if not isinstance(integrator, integrate._HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
 
-        if not integrator.is_attached:
+        if not integrator._attached:
             raise RuntimeError("Integrator is not attached yet.")
 
         self._cpp_obj = _hpmc.UpdaterQuickCompress(
             simulation.state._cpp_sys_def, integrator._cpp_obj,
             self.max_overlaps_per_particle, self.min_scale, self.target_box,
             self.seed)
-        super().attach(simulation)
+        super()._attach(simulation)
 
     @property
     def complete(self):
@@ -1028,7 +1028,7 @@ class QuickCompress(_Updater):
         `Simulation.run` stops the running whenever any operation in the
         `Simulation` is complete.
         """
-        if not self.is_attached:
-            return getattr(self, '_is_complete', False)
+        if not self._attached:
+            return False
 
         return self._cpp_obj.isComplete()
