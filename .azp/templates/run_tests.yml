@@ -92,7 +92,7 @@ steps:
     testRunTitle: '$(suite_name) [pytest-serial]'
 
 - task: PublishTestResults@2
-  condition: eq(variables['enable_gpu'], 'on'))
+  condition: eq(variables['enable_gpu'], 'on')
   inputs:
     testResultsFormat: 'JUnit'
     testResultsFiles: '$(Common.TestResultsDirectory)/pytest-serial-cupy-optional.xml'
