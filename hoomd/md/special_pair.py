@@ -18,16 +18,17 @@ from hoomd.md import _md
 from hoomd.md.force import _Force
 from hoomd.typeparam import TypeParameter
 from hoomd.parameterdicts import TypeParameterDict
+import hoomd
 
 
 class _SpecialPair(_Force):
     def _attach(self, simulation):
         # check that some bonds are defined
         if simulation.state._cpp_sys_def.getPairData().getNGlobal() == 0:
-            simulation.device.cpp_msg.error("No pairs are defined.\n")
+            simulation.device._cpp_msg.error("No pairs are defined.\n")
 
         # create the c++ mirror class
-        if not simulation.device.mode == "gpu":
+        if isinstance(simulation.device, hoomd.device.CPU):
             cpp_cls = getattr(_md, self._cpp_class_name)
         else:
             cpp_cls = getattr(_md, self._cpp_class_name + "GPU")

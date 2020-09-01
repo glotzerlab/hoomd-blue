@@ -84,7 +84,7 @@ class NVT(_Method):
     def _attach(self, simulation):
 
         # initialize the reflected cpp class
-        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+        if isinstance(simulation.device, hoomd.device.CPU):
             my_class = _md.TwoStepNVTMTK
             thermo_cls = _hoomd.ComputeThermo
         else:
@@ -607,11 +607,11 @@ class NVE(_Method):
     def _attach(self, simulation):
 
         # initialize the reflected c++ class
-        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+        if isinstance(simulation.device, hoomd.device.CPU):
             self._cpp_obj = _md.TwoStepNVE(simulation.state._cpp_sys_def,
                                         simulation.state.get_group(self.filter), False)
         else:
-            self._cpp_obj = _md.TwoStepNVEGPU(simulation.state._cpp_sys_def, 
+            self._cpp_obj = _md.TwoStepNVEGPU(simulation.state._cpp_sys_def,
                                  simulation.state.get_group(self.filter))
 
         # Attach param_dict and typeparam_dict
@@ -737,7 +737,7 @@ class Langevin(_Method):
     def _attach(self, simulation):
 
         # initialize the reflected c++ class
-        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+        if isinstance(simulation.device, hoomd.device.CPU):
             my_class = _md.TwoStepLangevin
         else:
             my_class = _md.TwoStepLangevinGPU
@@ -852,7 +852,7 @@ class Brownian(_Method):
     def _attach(self, simulation):
 
         # initialize the reflected c++ class
-        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+        if isinstance(simulation.device, hoomd.device.CPU):
             self._cpp_obj = _md.TwoStepBD(simulation.state._cpp_sys_def,
                                           simulation.state.get_group(self.filter),
                                           self.kT, self.seed)

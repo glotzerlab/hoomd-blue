@@ -180,7 +180,7 @@ class _Pair(force._Force):
         # create the c++ mirror class
         if not self.nlist._attached:
             self.nlist._attach(simulation)
-        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+        if isinstance(simulation.device, hoomd.device.CPU):
             cls = getattr(_md, self._cpp_class_name)
             self.nlist._cpp_obj.setStorageMode(
                 _md.NeighborList.storageMode.half)

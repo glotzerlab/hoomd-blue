@@ -36,7 +36,7 @@ class _Bond(_Force):
     """
     def _attach(self, simulation):
         """Create the c++ mirror class."""
-        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+        if isinstance(simulation.device, hoomd.device.CPU):
             cpp_cls = getattr(_md, self._cpp_class_name)
         else:
             cpp_cls = getattr(_md, self._cpp_class_name + "GPU")

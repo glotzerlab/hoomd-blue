@@ -91,7 +91,7 @@ class LoadBalancer(_Tuner):
         self._param_dict.update(defaults)
 
     def _attach(self, simulation):
-        if simulation.device.mode == 'gpu':
+        if isinstance(self._simulation.device, hoomd.device.GPU):
             cpp_cls = getattr(_hoomd, 'LoadBalancerGPU')
         else:
             cpp_cls = getattr(_hoomd, 'LoadBalancer')

@@ -3,6 +3,7 @@ from hoomd.parameterdicts import ParameterDict
 from hoomd.typeconverter import OnlyType
 from hoomd.trigger import Trigger
 from hoomd import _hoomd
+import hoomd
 from math import log2, ceil
 
 
@@ -33,7 +34,7 @@ class ParticleSorter(_Tuner):
         self.grid = grid
 
     def _attach(self, simulation):
-        if simulation.device.mode == 'gpu':
+        if isinstance(simulation.device, hoomd.device.GPU):
             cpp_cls = getattr(_hoomd, 'SFCPackTunerGPU')
         else:
             cpp_cls = getattr(_hoomd, 'SFCPackTuner')

@@ -310,7 +310,7 @@ class Active(_Force):
 
 
         # initialize the reflected c++ class
-        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+        if isinstance(simulation.device, hoomd.device.CPU):
             my_class = _md.ActiveForceCompute
         else:
             my_class = _md.ActiveForceComputeGPU
