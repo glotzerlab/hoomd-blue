@@ -92,7 +92,7 @@ class _HOOMDGetSetAttrBase:
             return self._getattr_typeparam(attr)
         else:
             raise AttributeError("Object {} has no attribute {}".format(
-                self, attr))
+                type(self), attr))
 
     def _getattr_param(self, attr):
         """Hook for getting an attribute from `_param_dict`."""
