@@ -115,14 +115,16 @@ pybind11::object get_hoomd_version_tuple()
     }
 
 //! Get the CUDA version as a tuple
-pybind11::object get_cuda_version_tuple()
+pybind11::object get_cuda_version_str()
     {
     #ifdef ENABLE_HIP
-    int major = HIP_VERSION_MAJOR / 1000;
-    int minor = HIP_VERSION_MINOR / 10 % 100;
-    return pybind11::make_tuple(major, minor);
+    int major = HIP_VERSION_MAJOR;
+    int minor = HIP_VERSION_MINOR;
+    ostringstream s;
+    s << major << "." << minor;
+    return pybind11::str(s.str());
     #else
-    return pybind11::make_tuple(0,0);
+    return pybind11::str("0.0");
     #endif
     }
 
@@ -191,10 +193,6 @@ bool is_TBB_available()
     }
 
 
-// values used in measuring hoomd launch timing
-unsigned int hoomd_launch_time, hoomd_start_time, hoomd_mpi_init_time;
-bool hoomd_launch_timing=false;
-
 #ifdef ENABLE_MPI
 //! Environment variables needed for setting up MPI
 char env_enable_mpi_cuda[] = "MV2_USE_CUDA=1";
@@ -208,33 +206,12 @@ int initialize_mpi()
     putenv(env_enable_mpi_cuda);
     #endif
 
-    // benchmark hoomd launch times
-    if (getenv("HOOMD_LAUNCH_TIME"))
-        {
-        // get the time that mpirun was called
-        hoomd_launch_time = atoi(getenv("HOOMD_LAUNCH_TIME"));
-
-        // compute the number of seconds to get here
-        timeval t;
-        gettimeofday(&t, NULL);
-        hoomd_start_time = t.tv_sec - hoomd_launch_time;
-        hoomd_launch_timing = true;
-        }
-
     // initialize MPI if it has not been initialized by another program
     int external_init = 0;
     MPI_Initialized(&external_init);
     if (!external_init)
         {
         MPI_Init(0, (char ***) NULL);
-        }
-
-    if (hoomd_launch_timing)
-        {
-        // compute the number of seconds to get past mpi_init
-        timeval t;
-        gettimeofday(&t, NULL);
-        hoomd_mpi_init_time = t.tv_sec - hoomd_launch_time;
         }
 
     return external_init;
@@ -315,7 +292,7 @@ PYBIND11_MODULE(_hoomd, m)
     m.attr("__version__") = get_hoomd_version_tuple();
     m.attr("__git_sha1__") = pybind11::str(HOOMD_GIT_SHA1);
     m.attr("__git_refspec__") = pybind11::str(HOOMD_GIT_REFSPEC);
-    m.attr("__cuda_version__") = get_cuda_version_tuple();
+    m.attr("__cuda_version__") = get_cuda_version_str();
     m.attr("__compiler_version__") = pybind11::str(get_compiler_version());
     m.attr("__hoomd_source_dir__") = pybind11::str(HOOMD_SOURCE_DIR);
 

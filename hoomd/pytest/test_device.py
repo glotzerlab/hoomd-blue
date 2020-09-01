@@ -1,7 +1,9 @@
-def test_device():
-    assert True
+import pytest
 
+@pytest.mark.gpu
+def test_gpu_profile(device):
 
-def test_gpu_profile(device_gpu):
-    with device_gpu.enable_profiling():
+    print(device)
+
+    with device.enable_profiling():
         pass

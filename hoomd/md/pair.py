@@ -186,7 +186,7 @@ class _Pair(force._Force):
                                    "different simulation.".format(type(self)))
         if not self.nlist._attached:
             self.nlist._attach()
-        if not self._simulation.device.cpp_exec_conf.isCUDAEnabled():
+        if isinstance(self._simulation.device, hoomd.device.CPU):
             cls = getattr(_md, self._cpp_class_name)
             self.nlist._cpp_obj.setStorageMode(
                 _md.NeighborList.storageMode.half)

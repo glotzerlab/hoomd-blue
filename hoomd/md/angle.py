@@ -23,13 +23,13 @@ import math
 
 
 class _Angle(_Force):
-    def attach(self):
+    def _attach(self):
         # check that some angles are defined
         if self._simulation.state._cpp_sys_def.getAngleData().getNGlobal() == 0:
-            self._simulation.device.cpp_msg.warning("No angles are defined.\n")
+            self._simulation.device._cpp_msg.warning("No angles are defined.\n")
 
         # create the c++ mirror class
-        if not self._simulation.device.cpp_exec_conf.isCUDAEnabled():
+        if isinstance(self._simulation.device, hoomd.device.CPU):
             cpp_cls = getattr(_md, self._cpp_class_name)
         else:
             cpp_cls = getattr(_md, self._cpp_class_name + "GPU")

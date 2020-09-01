@@ -1,21 +1,9 @@
 from hoomd.operation import _Updater
 from hoomd.box import Box
 from hoomd.parameterdicts import ParameterDict
-from hoomd.typeconverter import OnlyType
+from hoomd.typeconverter import OnlyType, box_preprocessing
 from hoomd.variant import Variant, Power, Constant
 from hoomd import _hoomd
-
-
-def box_preprocessing(box):
-    if isinstance(box, Box):
-        return box
-    else:
-        try:
-            return Box.from_box(box)
-        except Exception:
-            raise ValueError(
-                "{} is not convertible into a hoomd.Box object. "
-                "using hoomd.Box.from_box".format(box))
 
 
 class BoxResize(_Updater):

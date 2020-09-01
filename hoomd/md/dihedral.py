@@ -38,12 +38,11 @@ import math
 class _Dihedral(_Force):
     def _attach(self):
         # check that some dihedrals are defined
-        sim = self.simulation
-        if sim.state._cpp_sys_def.getDihedralData().getNGlobal() == 0:
-            sim.device.cpp_msg.warning("No dihedrals are defined.\n")
+        if self._simulation.state._cpp_sys_def.getDihedralData().getNGlobal() == 0:
+            self._simulation.device._cpp_msg.warning("No dihedrals are defined.\n")
 
         # create the c++ mirror class
-        if not sim.device.cpp_exec_conf.isCUDAEnabled():
+        if isinstance(self._simulation.device, hoomd.device.CPU):
             cpp_class = getattr(_md, self._cpp_class_name)
         else:
             cpp_class = getattr(_md, self._cpp_class_name + "GPU")

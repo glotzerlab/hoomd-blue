@@ -167,7 +167,7 @@ class Cell(_NList):
             ParameterDict(deterministic=bool(deterministic)))
 
     def _attach(self):
-        if not self._simulation.device.cpp_exec_conf.isCUDAEnabled():
+        if isinstance(self._simulation.device, hoomd.device.CPU):
             cell_cls = _hoomd.CellList
             nlist_cls = _md.NeighborListBinned
         else:

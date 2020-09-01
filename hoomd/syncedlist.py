@@ -129,7 +129,7 @@ class SyncedList:
         else:
             value._add(self._simulation)
         if self._attached:
-            value._attach(self._simulation)
+            value._attach()
         return value
 
     def _validate_or_error(self, value):
@@ -151,7 +151,7 @@ class SyncedList:
         self._synced_list = synced_list
         for item in self:
             item._add(simulation)
-            item._attach(simulation)
+            item._attach()
             self._synced_list.append(self._to_synced_list_conversion(item))
 
     def _detach(self):

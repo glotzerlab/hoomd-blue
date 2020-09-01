@@ -310,7 +310,7 @@ class Active(_Force):
 
     def _attach(self):
         # initialize the reflected c++ class
-        if not self._simulation.device.cpp_exec_conf.isCUDAEnabled():
+        if isinstance(self._simulation.device, hoomd.device.CPU):
             my_class = _md.ActiveForceCompute
         else:
             my_class = _md.ActiveForceComputeGPU

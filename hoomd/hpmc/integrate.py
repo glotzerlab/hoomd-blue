@@ -146,7 +146,7 @@ class _HPMCIntegrator(_BaseIntegrator):
     def _attach(self):
         '''initialize the reflected c++ class'''
         sys_def = self._simulation.state._cpp_sys_def
-        if (self._simulation.device.mode == 'gpu'
+        if (isinstance(self._simulation.device, hoomd.device.GPU)
                 and (self._cpp_cls + 'GPU') in _hpmc.__dict__):
             self._cpp_cell = _hoomd.CellListGPU(sys_def)
             if self._simulation._system_communicator is not None:
@@ -157,8 +157,8 @@ class _HPMCIntegrator(_BaseIntegrator):
                                                            self._cpp_cell,
                                                            self.seed)
         else:
-            if self._simulation.device.mode == 'gpu':
-                self._simulation.device.cpp_msg.warning(
+            if isinstance(self._simulation.device, hoomd.device.GPU):
+                self._simulation.device._cpp_msg.warning(
                     "Falling back on CPU. No GPU implementation for shape.\n")
             self._cpp_obj = getattr(_hpmc, self._cpp_cls)(sys_def, self.seed)
             self._cpp_cell = None

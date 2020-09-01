@@ -84,7 +84,7 @@ class NVT(_Method):
     def _attach(self):
 
         # initialize the reflected cpp class
-        if not self._simulation.device.cpp_exec_conf.isCUDAEnabled():
+        if isinstance(self._simulation.device, hoomd.device.CPU):
             my_class = _md.TwoStepNVTMTK
             thermo_cls = _hoomd.ComputeThermo
         else:
@@ -607,13 +607,12 @@ class NVE(_Method):
     def _attach(self):
 
         # initialize the reflected c++ class
-        sim = self._simulation
-        if not sim.device.cpp_exec_conf.isCUDAEnabled():
-            self._cpp_obj = _md.TwoStepNVE(sim.state._cpp_sys_def,
-                                        sim.state.get_group(self.filter), False)
+        if isinstance(self._simulation.device, hoomd.device.CPU):
+            self._cpp_obj = _md.TwoStepNVE(self._simulation.state._cpp_sys_def,
+                                        self._simulation.state.get_group(self.filter), False)
         else:
-            self._cpp_obj = _md.TwoStepNVEGPU(
-                sim.state._cpp_sys_def, sim.state.get_group(self.filter))
+            self._cpp_obj = _md.TwoStepNVEGPU(self._simulation.state._cpp_sys_def,
+                                 self._simulation.state.get_group(self.filter))
 
         # Attach param_dict and typeparam_dict
         super()._attach()
@@ -738,7 +737,7 @@ class Langevin(_Method):
     def _attach(self):
 
         # initialize the reflected c++ class
-        if not self._simulation.device.cpp_exec_conf.isCUDAEnabled():
+        if isinstance(self._simulation.device, hoomd.device.CPU):
             my_class = _md.TwoStepLangevin
         else:
             my_class = _md.TwoStepLangevinGPU
@@ -854,7 +853,7 @@ class Brownian(_Method):
 
         # initialize the reflected c++ class
         sim = self._simulation
-        if not sim.device.cpp_exec_conf.isCUDAEnabled():
+        if isinstance(sim.device, hoomd.device.CPU):
             self._cpp_obj = _md.TwoStepBD(sim.state._cpp_sys_def,
                                           sim.state.get_group(self.filter),
                                           self.kT, self.seed)

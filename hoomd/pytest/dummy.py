@@ -57,6 +57,8 @@ class DummyCppObj:
     def setCommunicator(self, communicator):
         pass
 
+    def notifyDetach(self):
+        pass
 
 class DummyOperation(_Operation):
     '''Requires that user manually add param_dict and typeparam_dict items.
@@ -64,7 +66,7 @@ class DummyOperation(_Operation):
     This is for testing purposes.
     '''
     def _attach(self):
-        self._cpp_obj = "cpp obj"
+        self._cpp_obj = DummyCppObj()
 
 
 class DummyTriggeredOp(_TriggeredOperation):
