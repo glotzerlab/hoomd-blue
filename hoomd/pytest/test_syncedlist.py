@@ -101,10 +101,10 @@ def test_getitem(slist):
     assert slist[1:] == slist._list[1:]
 
 
-def test_attached(slist):
-    assert not slist._attached
+def test_synced(slist):
+    assert not slist._synced
     slist._synced_list = None
-    assert slist._attached
+    assert slist._synced
 
 
 def test_value_add_and_attach(slist):
@@ -126,18 +126,18 @@ def test_validate_or_error(slist):
     assert slist._validate_or_error(DummyOperation())
 
 
-def test_attaching(slist, op_list):
+def test_syncing(slist, op_list):
     sync_list = []
-    slist._attach(None, sync_list)
+    slist._sync(None, sync_list)
     assert len(sync_list) == 3
     assert all([op is op2 for op, op2 in zip(slist, sync_list)])
     assert all([op._attached for op in slist])
 
 
-def test_detach(slist, op_list):
+def test_unsync(slist, op_list):
     sync_list = []
-    slist._attach(None, sync_list)
-    slist._detach()
+    slist._sync(None, sync_list)
+    slist._unsync()
     assert len(sync_list) == 0
     assert all([not op._attached for op in slist])
     assert not hasattr(slist, "_synced_list")
@@ -159,7 +159,7 @@ def test_delitem(slist):
 
     # Tested attached
     sync_list = []
-    slist._attach(None, sync_list)
+    slist._sync(None, sync_list)
     old_op = slist[1]
     del slist[1]
     assert len(slist) == 2
@@ -187,7 +187,7 @@ def test_setitem(slist, op_list):
 
     # Check when attached
     sync_list = []
-    slist._attach(None, sync_list)
+    slist._sync(None, sync_list)
     new_op = DummyOperation()
     old_op = slist[1]
     slist[1] = new_op
@@ -202,14 +202,14 @@ def test_synced_iter(slist):
     assert all([i == j for i, j in zip(range(1, 4), slist.synced_iter())])
 
 
-def test_attach(islist):
+def test_sync(islist):
     islist.append(OpInt(4))
     assert len(islist) == 4
     assert islist[-1] == 4
 
     # Test attached
     sync_list = []
-    islist._attach(None, sync_list)
+    islist._sync(None, sync_list)
     islist.append(OpInt(5))
     assert len(islist) == 5
     assert len(sync_list) == 5
@@ -224,7 +224,7 @@ def test_insert(islist):
 
     # Test attached
     sync_list = []
-    islist._attach(None, sync_list)
+    islist._sync(None, sync_list)
     islist.insert(index, OpInt(5))
     assert len(islist) == 5
     assert len(sync_list) == 5
@@ -240,7 +240,7 @@ def test_extend(islist):
     # Test attached
     oplist = [OpInt(i) for i in range(7, 10)]
     sync_list = []
-    islist._attach(None, sync_list)
+    islist._sync(None, sync_list)
     islist.extend(oplist)
     assert len(islist) == 9
     assert len(sync_list) == 9
@@ -256,7 +256,7 @@ def test_clear(islist):
 
     # Test attached
     sync_list = []
-    islist._attach(None, sync_list)
+    islist._sync(None, sync_list)
     islist.clear()
     assert len(islist) == 0
     assert len(sync_list) == 0
@@ -273,7 +273,7 @@ def test_remove(islist):
 
     # Test attached
     sync_list = []
-    islist._attach(None, sync_list)
+    islist._sync(None, sync_list)
     islist.remove(oplist[0])
     assert len(islist) == 1
     assert len(sync_list) == 1

@@ -56,19 +56,19 @@ class Operations:
         sim = self._simulation
         if not (self.integrator is None or self.integrator._attached):
             self.integrator._attach()
-        if not self.updaters._attached:
-            self.updaters._attach(sim, sim._cpp_sys.updaters)
-        if not self.analyzers._attached:
-            self.analyzers._attach(sim, sim._cpp_sys.analyzers)
-        if not self.tuners._attached:
-            self.tuners._attach(sim, sim._cpp_sys.tuners)
+        if not self.updaters._synced:
+            self.updaters._sync(sim, sim._cpp_sys.updaters)
+        if not self.analyzers._synced:
+            self.analyzers._sync(sim, sim._cpp_sys.analyzers)
+        if not self.tuners._synced:
+            self.tuners._sync(sim, sim._cpp_sys.tuners)
         self._scheduled = True
 
     def unschedule(self):
         self._integrator._detach()
-        self._analyzers._detach()
-        self._updaters._detach()
-        self._tuners._detach()
+        self._analyzers._unsync()
+        self._updaters._unsync()
+        self._tuners._unsync()
         self._scheduled = False
 
     def _store_reader(self, reader):

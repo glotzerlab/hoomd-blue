@@ -51,9 +51,9 @@ class _DynamicIntegrator(_BaseIntegrator):
                                    iterable=methods)
 
     def _attach(self):
-        self.forces._attach(self._simulation, self._cpp_obj.forces)
-        self.constraints._attach(self._simulation, self._cpp_obj.constraints)
-        self.methods._attach(self._simulation, self._cpp_obj.methods)
+        self.forces._sync(self._simulation, self._cpp_obj.forces)
+        self.constraints._sync(self._simulation, self._cpp_obj.constraints)
+        self.methods._sync(self._simulation, self._cpp_obj.methods)
         super()._attach()
 
     @property
@@ -129,7 +129,7 @@ class Integrator(_DynamicIntegrator):
             aniso=OnlyFrom(['true', 'false', 'auto'],
                            preprocess=preprocess_aniso),
             _defaults=dict(aniso="auto")
-        )
+            )
         if aniso is not None:
             self.aniso = aniso
 
