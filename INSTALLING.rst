@@ -13,7 +13,7 @@ information and cluster specific instructions.
 
 Docker::
 
-    ▶ docker pull glotzerlab/software
+    $ docker pull glotzerlab/software
 
 .. note::
 
@@ -28,7 +28,7 @@ install, first download and install `miniconda
 <https://docs.conda.io/en/latest/miniconda.html>`_. Then install ``hoomd``
 from the ``conda-forge`` channel::
 
-    ▶ conda install -c conda-forge hoomd
+    $ conda install -c conda-forge hoomd
 
 A build of HOOMD with support for NVIDIA GPUs is also available from the
 ``conda-forge`` channel::
@@ -46,13 +46,13 @@ https://glotzerlab.engin.umich.edu/Downloads/hoomd
 
 .. code-block:: bash
 
-   ▶ curl -O https://glotzerlab.engin.umich.edu/Downloads/hoomd/hoomd-v2.9.2.tar.gz
+   $ curl -O https://glotzerlab.engin.umich.edu/Downloads/hoomd/hoomd-v2.9.2.tar.gz
 
 Or clone using Git:
 
 .. code-block:: bash
 
-   ▶ git clone --recursive https://github.com/glotzerlab/hoomd-blue
+   $ git clone --recursive https://github.com/glotzerlab/hoomd-blue
 
 **HOOMD-blue** uses Git submodules. Either clone with the ``--recursive``
 option, or execute ``git submodule update --init`` to fetch the submodules.
@@ -64,16 +64,16 @@ When using a shared Python installation, create a `virtual environment
 <https://docs.python.org/3/library/venv.html>`_ where you can install
 **HOOMD-blue**::
 
-    ▶ python3 -m venv /path/to/environment --system-site-packages
+    $ python3 -m venv /path/to/environment --system-site-packages
 
 Activate the environment before configuring and before executing
 **HOOMD-blue** scripts::
 
-   ▶ source /path/to/environment/bin/activate
+   $ source /path/to/environment/bin/activate
 
 Tell CMake to search for packages in the virtual environment first::
 
-    ▶ export CMAKE_PREFIX_PATH=/path/to/environment
+    $ export CMAKE_PREFIX_PATH=/path/to/environment
 
 .. note::
 
@@ -144,11 +144,11 @@ Install these tools with your system or virtual environment package manager. HOO
 ``pacman`` (`arch linux <https://www.archlinux.org/>`_), ``apt-get`` (`ubuntu <https://ubuntu.com/>`_), `Homebrew
 <https://brew.sh/>`_ (macOS), and `MacPorts <https://www.macports.org/>`_ (macOS)::
 
-    ▶ your-package-manager install python python-numpy pybind11 eigen cmake openmpi cereal cuda
+    $ your-package-manager install python python-numpy pybind11 eigen cmake openmpi cereal cuda
 
 Typical HPC cluster environments provide python, numpy, cmake, cuda, and mpi, via a module system::
 
-    ▶ module load gcc python cuda cmake
+    $ module load gcc python cuda cmake
 
 .. note::
 
@@ -163,8 +163,8 @@ Typical HPC cluster environments provide python, numpy, cmake, cuda, and mpi, vi
 Some package managers (such as *pip*) and most clusters are missing some or all of pybind11, eigen, and cereal.
 ``install-prereq-headers.py`` will install the missing packages into your virtual environment::
 
-    ▶ cd /path/to/hoomd-blue
-    ▶ python3 install-prereq-headers.py
+    $ cd /path/to/hoomd-blue
+    $ python3 install-prereq-headers.py
 
 Run ``python3 install-prereq-headers.py -h`` to see a list of the command line options.
 
@@ -173,16 +173,16 @@ Compile HOOMD-blue
 
 Configure::
 
-    ▶ cd /path/to/hoomd-blue
-    ▶ cmake -B build
-    ▶ cd build
+    $ cd /path/to/hoomd-blue
+    $ cmake -B build
+    $ cd build
 
 .. warning::
 
     Make certain you point ``CMAKE_PREFIX_PATH`` at your virtual environment so that CMake can find
     packages there and correctly determine the installation location.::
 
-        ▶ export CMAKE_PREFIX_PATH=/path/to/environment
+        $ export CMAKE_PREFIX_PATH=/path/to/environment
 
 By default, **HOOMD-blue** configures a *Release* optimized build type for a
 generic CPU architecture and with no optional libraries. Pass these options to cmake
@@ -195,33 +195,44 @@ See the build options section below for a full list of options.
 
 Compile::
 
-    ▶ make -j4
+    $ make -j4
 
-Test your build (requires a GPU to pass if **HOOMD-blue** was built with HIP support)::
+Test your build::
 
-    ▶ ctest
+    $ ctest
+    $ pytest hoomd
+
+Test your build with mpi (example, use the appropriate MPI launcher for your
+system)::
+
+    $  mpirun -n 2 hoomd/pytest/pytest-openmpi.sh hoomd -v -x -ra
+
+Execute longer running validation tests::
+
+    $ pytest hoomd --validate -m validate
+    $ mpirun -n 2 hoomd/pytest/pytest-openmpi.sh hoomd -v -x -ra --validate -m validate
 
 .. attention::
 
-    On a cluster, run ``ctest`` within a job on a GPU compute node.
+    On a cluster, run tests within a job on a GPU compute node.
 
 To install **HOOMD-blue** into your Python environment, run::
 
-    ▶ make install
+    $ make install
 
 Build options
 -------------
 
 To change HOOMD build options, navigate to the ``build`` directory and run::
 
-    ▶ ccmake .
+    $ ccmake .
 
 After changing an option, press ``c`` to configure, then press ``g`` to
 generate. The ``Makefile`` is now updated with the newly selected
 options. You can also set these parameters on the command line with
 ``cmake``::
 
-    ▶ cmake . -DENABLE_GPU=ON
+    $ cmake . -DENABLE_GPU=ON
 
 Options that specify library versions only take effect on a clean invocation of
 CMake. To set these options, first remove ``CMakeCache.txt`` and then run ``cmake``
