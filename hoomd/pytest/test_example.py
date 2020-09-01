@@ -10,7 +10,6 @@ def test_typical(device):
     objects are re-used across all tests for efficiency, do not modify them.
     """
 
-    print(device.mode)
     assert True
 
 @pytest.mark.serial
@@ -26,7 +25,7 @@ def test_cpu_only(device):
     Use the ``cpu`` mark to skip these tests on the GPU.
     """
 
-    assert device.mode == 'cpu'
+    assert isinstance(device, hoomd.device.CPU)
 
 @pytest.mark.gpu
 def test_gpu_only(device):
@@ -35,20 +34,10 @@ def test_gpu_only(device):
     Use the ``gpu`` mark to skip these tests on the GPU.
     """
 
-    assert device.mode == 'gpu'
+    assert isinstance(device, hoomd.device.GPU)
 
 def test_python_only():
     """ Python only tests operate in pure python without a device or simulation context
     """
 
     assert 2*2 == 4
-
-def test_create_own_device(device_class):
-    """ Some tests require that they instantiate their own device (i.e. need to specify MPI nrank options). Use the
-    ``device_class`` fixture to run these on both the CPU and GPU. Use this fixture only when necessary due to the
-    overhead of device creation.
-    """
-
-    device = device_class(notice_level = 1)
-    assert device.mode == 'gpu' or device.mode == 'cpu'
-

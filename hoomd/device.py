@@ -5,7 +5,6 @@
 
 import contextlib
 import os
-import warnings
 import hoomd
 from hoomd import _hoomd
 
@@ -14,6 +13,10 @@ class _Device:
     """Base class device object.
 
     Provides methods and properties common to `CPU` and `GPU`.
+
+    Warning:
+
+        `_Device` cannot be used directly. Instantate a `CPU` or `GPU` object.
 
     .. rubric:: TBB threads
 
@@ -40,38 +43,20 @@ class _Device:
             self._comm = communicator
 
         # c++ messenger object
-        self.cpp_msg = _create_messenger(self.comm.cpp_mpi_conf, notice_level,
-                                         msg_file, shared_msg_file)
-
-        # output the version info on initialization
-        self.cpp_msg.notice(1, _hoomd.output_version_info())
+        self._cpp_msg = _create_messenger(self.communicator.cpp_mpi_conf,
+                                          notice_level, msg_file,
+                                          shared_msg_file)
 
         # c++ execution configuration mirror class
-        self.cpp_exec_conf = None
+        self._cpp_exec_conf = None
 
         # name of the message file
         self._msg_file = msg_file
 
     @property
-    def comm(self):
-        warnings.warn("Use communicator.", DeprecationWarning)
-        return self._comm
-
-    @property
     def communicator(self):
         """comm.Communicator: The MPI Communicator [read only]."""
         return self._comm
-
-    @property
-    def mode(self):
-        """str: The execution mode [read only].
-
-        `mode` is either ``cpu`` or ``gpu`` depending on the type of the device.
-        """
-        if self.cpp_exec_conf.isCUDAEnabled():
-            return 'gpu'
-        else:
-            return 'cpu'
 
     @property
     def notice_level(self):
@@ -82,11 +67,11 @@ class _Device:
         will want to see. Set the level lower to reduce verbosity or as high as
         10 to get extremely verbose debugging messages.
         """
-        return self.cpp_msg.getNoticeLevel()
+        return self._cpp_msg.getNoticeLevel()
 
     @notice_level.setter
     def notice_level(self, notice_level):
-        self.cpp_msg.setNoticeLevel(notice_level)
+        self._cpp_msg.setNoticeLevel(notice_level)
 
     @property
     def msg_file(self):
@@ -106,14 +91,14 @@ class _Device:
     def msg_file(self, fname):
         self._msg_file = fname
         if fname is not None:
-            self.cpp_msg.openFile(fname)
+            self._cpp_msg.openFile(fname)
         else:
-            self.cpp_msg.openStd()
+            self._cpp_msg.openStd()
 
     @property
     def devices(self):
         """List[str]: Descriptions of the active hardware devices."""
-        return self.cpp_exec_conf.getActiveDevices()
+        return self._cpp_exec_conf.getActiveDevices()
 
     @property
     def num_cpu_threads(self):
@@ -121,16 +106,16 @@ class _Device:
         if not _hoomd.is_TBB_available():
             return 1
         else:
-            return self.cpp_exec_conf.getNumThreads()
+            return self._cpp_exec_conf.getNumThreads()
 
     @num_cpu_threads.setter
     def num_cpu_threads(self, num_cpu_threads):
         if not _hoomd.is_TBB_available():
-            self.cpp_msg.warning(
+            self._cpp_msg.warning(
                 "HOOMD was compiled without thread support, ignoring request "
                 "to set number of threads.\n")
         else:
-            self.cpp_exec_conf.setNumThreads(int(num_cpu_threads))
+            self._cpp_exec_conf.setNumThreads(int(num_cpu_threads))
 
 
 def _create_messenger(mpi_config, notice_level, msg_file, shared_msg_file):
@@ -234,9 +219,9 @@ class GPU(_Device):
             gpu_ids = []
 
         # convert None options to defaults
-        self.cpp_exec_conf = _hoomd.ExecutionConfiguration(
+        self._cpp_exec_conf = _hoomd.ExecutionConfiguration(
             _hoomd.ExecutionConfiguration.executionMode.GPU, gpu_ids,
-            self.comm.cpp_mpi_conf, self.cpp_msg)
+            self.communicator.cpp_mpi_conf, self._cpp_msg)
 
         if num_cpu_threads is not None:
             self.num_cpu_threads = num_cpu_threads
@@ -247,12 +232,12 @@ class GPU(_Device):
 
         Memory tracebacks are useful for developers when debugging GPU code.
         """
-        return self.cpp_exec_conf.getMemoryTracer() is not None
+        return self._cpp_exec_conf.getMemoryTracer() is not None
 
     @memory_traceback.setter
     def memory_traceback(self, mem_traceback):
 
-        self.cpp_exec_conf.setMemoryTracing(mem_traceback)
+        self._cpp_exec_conf.setMemoryTracing(mem_traceback)
 
     @property
     def gpu_error_checking(self):
@@ -262,11 +247,11 @@ class GPU(_Device):
         noticed immediately. Set to `True` to increase the accuracy of the GPU
         error messages at the cost of significantly reduced performance.
         """
-        return self.cpp_exec_conf.isCUDAErrorCheckingEnabled()
+        return self._cpp_exec_conf.isCUDAErrorCheckingEnabled()
 
     @gpu_error_checking.setter
     def gpu_error_checking(self, new_bool):
-        self.cpp_exec_conf.setCUDAErrorChecking(new_bool)
+        self._cpp_exec_conf.setCUDAErrorChecking(new_bool)
 
     @staticmethod
     def is_available():
@@ -312,10 +297,10 @@ class GPU(_Device):
                 sim.run(1000)
         """
         try:
-            self.cpp_exec_conf.hipProfileStart()
+            self._cpp_exec_conf.hipProfileStart()
             yield None
         finally:
-            self.cpp_exec_conf.hipProfileStop()
+            self._cpp_exec_conf.hipProfileStop()
 
 
 class CPU(_Device):
@@ -351,19 +336,22 @@ class CPU(_Device):
 
         super().__init__(communicator, notice_level, msg_file, shared_msg_file)
 
-        self.cpp_exec_conf = _hoomd.ExecutionConfiguration(
+        self._cpp_exec_conf = _hoomd.ExecutionConfiguration(
             _hoomd.ExecutionConfiguration.executionMode.CPU, [],
-            self.comm.cpp_mpi_conf, self.cpp_msg)
+            self.communicator.cpp_mpi_conf, self._cpp_msg)
 
         if num_cpu_threads is not None:
             self.num_cpu_threads = num_cpu_threads
 
 
-def auto_select(communicator=None, msg_file=None, shared_msg_file=None, notice_level=2):
-    """Allow simulation hardware to be chosen automatically by HOOMD-blue.
+def auto_select(communicator=None,
+                msg_file=None,
+                shared_msg_file=None,
+                notice_level=2):
+    """Automatically select the hardware device.
 
     Args:
-    
+
         communicator (`hoomd.comm.Communicator`): MPI communicator object.
             When `None`, create a default communicator that uses all MPI ranks.
 
@@ -380,7 +368,7 @@ def auto_select(communicator=None, msg_file=None, shared_msg_file=None, notice_l
         Instance of `GPU` if availabile, otherwise `CPU`.
     """
     # Set class according to C++ object
-    if len(GPU.get_available_devices())>0:
-        return GPU(None,communicator, msg_file, shared_msg_file, notice_level)
+    if len(GPU.get_available_devices()) > 0:
+        return GPU(None, communicator, msg_file, shared_msg_file, notice_level)
     else:
-        return CPU(None,communicator, msg_file, shared_msg_file, notice_level)
+        return CPU(None, communicator, msg_file, shared_msg_file, notice_level)

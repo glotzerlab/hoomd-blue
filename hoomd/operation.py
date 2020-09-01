@@ -92,7 +92,7 @@ class _HOOMDGetSetAttrBase:
             return self._getattr_typeparam(attr)
         else:
             raise AttributeError("Object {} has no attribute {}".format(
-                self, attr))
+                type(self), attr))
 
     def _getattr_param(self, attr):
         """Hook for getting an attribute from `_param_dict`."""
@@ -408,6 +408,8 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
         if self.is_attached:
             self._unapply_typeparam_dict()
             self._update_param_dict()
+            self._cpp_obj.notifyDetach()
+
             self._cpp_obj = None
             if hasattr(self, '_simulation'):
                 self.notify_removal(self._simulation)
@@ -506,7 +508,6 @@ class _TriggeredOperation(_Operation):
 
 class _Updater(_TriggeredOperation):
     _cpp_list_name = 'updaters'
-
 
 class _Analyzer(_TriggeredOperation):
     _cpp_list_name = 'analyzers'
