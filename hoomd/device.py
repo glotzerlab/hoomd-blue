@@ -15,7 +15,6 @@ class _Device:
     Provides methods and properties common to `CPU` and `GPU`.
 
     Warning:
-
         `_Device` cannot be used directly. Instantate a `CPU` or `GPU` object.
 
     .. rubric:: TBB threads
