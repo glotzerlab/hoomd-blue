@@ -90,7 +90,7 @@ class LoadBalancer(_Tuner):
             trigger=Trigger)
         self._param_dict.update(defaults)
 
-    def attach(self, simulation):
+    def _attach(self, simulation):
         if isinstance(self._simulation.device, hoomd.device.GPU):
             cpp_cls = getattr(_hoomd, 'LoadBalancerGPU')
         else:
@@ -100,4 +100,4 @@ class LoadBalancer(_Tuner):
             simulation._cpp_sys.getCommunicator().getDomainDecomposition(),
             self.trigger)
 
-        super().attach(simulation)
+        super()._attach(simulation)

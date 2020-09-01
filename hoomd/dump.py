@@ -623,7 +623,7 @@ class GSD(_Analyzer):
 
         self._log = None if log is None else _GSDLogWriter(log)
 
-    def attach(self, simulation):
+    def _attach(self, simulation):
         # validate dynamic property
         categories = ['attribute', 'property', 'momentum', 'topology']
         dynamic_quantities = ['property']
@@ -647,7 +647,7 @@ class GSD(_Analyzer):
         self._cpp_obj.setWriteMomentum('momentum' in dynamic_quantities)
         self._cpp_obj.setWriteTopology('topology' in dynamic_quantities)
         self._cpp_obj.log_writer = self.log
-        super().attach(simulation)
+        super()._attach(simulation)
 
     @staticmethod
     def write(state, filename, filter=All(), log=None):
@@ -682,7 +682,7 @@ class GSD(_Analyzer):
             log = _GSDLogWriter(log)
         else:
             raise ValueError("GSD.log can only be set with a Logger.")
-        if self.is_attached:
+        if self._attached:
             self._cpp_obj.log_writer = log
         self._log = log
 

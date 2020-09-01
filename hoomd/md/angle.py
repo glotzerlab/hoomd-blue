@@ -23,7 +23,7 @@ import math
 
 
 class _Angle(_Force):
-    def attach(self, simulation):
+    def _attach(self, simulation):
         # check that some angles are defined
         if simulation.state._cpp_sys_def.getAngleData().getNGlobal() == 0:
             simulation.device._cpp_msg.warning("No angles are defined.\n")
@@ -36,7 +36,7 @@ class _Angle(_Force):
 
         self._cpp_obj = cpp_cls(simulation.state._cpp_sys_def)
 
-        super().attach(simulation)
+        super()._attach(simulation)
 
 
 class Harmonic(_Angle):

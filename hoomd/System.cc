@@ -491,7 +491,11 @@ void System::setupProfiling()
 
     // updaters
 	for (auto &updater_trigger_pair: m_updaters)
-		updater_trigger_pair.first->setProfiler(m_profiler);
+        {
+        if (!updater_trigger_pair.first)
+            throw runtime_error("Invalid updater_trigger_pair");
+        updater_trigger_pair.first->setProfiler(m_profiler);
+        }
 
     // computes
     map< string, std::shared_ptr<Compute> >::iterator compute;

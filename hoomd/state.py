@@ -246,7 +246,7 @@ class State:
         for groups in self._groups.values():
             for group in groups.values():
                 if integrator is not None:
-                    if not integrator.is_attached:
+                    if not integrator._attached:
                         raise RuntimeError(
                             "Call update_group_dof after attaching")
 

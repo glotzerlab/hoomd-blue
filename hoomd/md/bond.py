@@ -34,7 +34,7 @@ class _Bond(_Force):
     2) methods are provided for disabling the force from being added to the net
     force on each particle
     """
-    def attach(self, simulation):
+    def _attach(self, simulation):
         """Create the c++ mirror class."""
         if isinstance(simulation.device, hoomd.device.CPU):
             cpp_cls = getattr(_md, self._cpp_class_name)
@@ -44,7 +44,7 @@ class _Bond(_Force):
         # TODO remove string argument
         self._cpp_obj = cpp_cls(simulation.state._cpp_sys_def, "")
 
-        super().attach(simulation)
+        super()._attach(simulation)
 
 
 class Harmonic(_Bond):

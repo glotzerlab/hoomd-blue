@@ -143,7 +143,7 @@ class _HPMCIntegrator(_BaseIntegrator):
             typeparam_d, typeparam_a, typeparam_fugacity, typeparam_inter_matrix
         ])
 
-    def attach(self, simulation):
+    def _attach(self, simulation):
         '''initialize the reflected c++ class'''
         sys_def = simulation.state._cpp_sys_def
         if (isinstance(simulation.device, hoomd.device.GPU)
@@ -162,7 +162,7 @@ class _HPMCIntegrator(_BaseIntegrator):
             self._cpp_obj = getattr(_hpmc, self._cpp_cls)(sys_def, self.seed)
             self._cpp_cell = None
 
-        super().attach(simulation)
+        super()._attach(simulation)
 
     # Set the external field
     def set_external(self, ext):
@@ -186,7 +186,7 @@ class _HPMCIntegrator(_BaseIntegrator):
             "hoomd.hpmc.integrate._HPMCIntegrator.get_type_shapes function.")
 
     def _return_type_shapes(self):
-        if not self.is_attached:
+        if not self._attached:
             return None
         type_shapes = self._cpp_obj.getTypeShapesPy()
         ret = [json.loads(json_string) for json_string in type_shapes]
@@ -204,7 +204,7 @@ class _HPMCIntegrator(_BaseIntegrator):
             `map_overlaps` does not support MPI parallel simulations.
         """
 
-        if not self.is_attached:
+        if not self._attached:
             return None
         return self._cpp_obj.mapOverlaps()
 
@@ -236,7 +236,7 @@ class _HPMCIntegrator(_BaseIntegrator):
     def overlaps(self):
         """int: Number of overlapping particle pairs.
         """
-        if not self.is_attached:
+        if not self._attached:
             return None
         self._cpp_obj.communicate(True)
         return self._cpp_obj.countOverlaps(False)

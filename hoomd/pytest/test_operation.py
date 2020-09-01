@@ -114,13 +114,13 @@ def test_attached_setattr(attached):
     assert attached._cpp_obj.param1 == 4
 
 
-def test_is_attached(full_op, attached):
-    assert not full_op.is_attached
-    assert attached.is_attached
+def test_attached(full_op, attached):
+    assert not full_op._attached
+    assert attached._attached
 
 
 def test_detach(attached):
-    detached = attached.detach()
+    detached = attached._detach()
     assert detached.type_param['A'] == dict(foo=1, bar='world')
     assert detached.type_param['B'] == dict(foo=1, bar='hello')
     assert detached.param1 == 1

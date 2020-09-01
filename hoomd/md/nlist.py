@@ -98,7 +98,7 @@ class _NList(_HOOMDBaseObject):
             set check_period for additional safety.
 
         """
-        if not self.is_attached():
+        if not self._attached():
             return None
         else:
             return self._cpp_obj.getSmallestRebuild() - 1
@@ -166,7 +166,7 @@ class Cell(_NList):
         self._param_dict.update(
             ParameterDict(deterministic=bool(deterministic)))
 
-    def attach(self, simulation):
+    def _attach(self, simulation):
         if isinstance(simulation.device, hoomd.device.CPU):
             cell_cls = _hoomd.CellList
             nlist_cls = _md.NeighborListBinned
@@ -177,11 +177,11 @@ class Cell(_NList):
         # TODO remove 0.0 (r_cut) from constructor
         self._cpp_obj = nlist_cls(simulation.state._cpp_sys_def, 0.0,
                                   self.buffer, self._cpp_cell)
-        super().attach(simulation)
+        super()._attach(simulation)
 
-    def detach(self):
+    def _detach(self):
         del self._cpp_cell
-        super().detach()
+        super()._detach()
 
 
 class stencil(nlist):

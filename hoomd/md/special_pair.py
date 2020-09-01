@@ -22,7 +22,7 @@ import hoomd
 
 
 class _SpecialPair(_Force):
-    def attach(self, simulation):
+    def _attach(self, simulation):
         # check that some bonds are defined
         if simulation.state._cpp_sys_def.getPairData().getNGlobal() == 0:
             simulation.device._cpp_msg.error("No pairs are defined.\n")
@@ -34,7 +34,7 @@ class _SpecialPair(_Force):
             cpp_cls = getattr(_md, self._cpp_class_name + "GPU")
         # TODO remove string name argument
         self._cpp_obj = cpp_cls(simulation.state._cpp_sys_def, '')
-        super().attach(simulation)
+        super()._attach(simulation)
 
 
 class LJ(_SpecialPair):
