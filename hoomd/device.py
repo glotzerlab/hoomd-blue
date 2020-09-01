@@ -15,7 +15,6 @@ class _Device:
     Provides methods and properties common to `CPU` and `GPU`.
 
     Warning:
-
         `_Device` cannot be used directly. Instantate a `CPU` or `GPU` object.
 
     .. rubric:: TBB threads
@@ -344,28 +343,31 @@ class CPU(_Device):
             self.num_cpu_threads = num_cpu_threads
 
 
-class Auto(_Device):
-    """
-    Allow simulation hardware to be chosen automatically by HOOMD-blue
+def auto_select(communicator=None,
+                msg_file=None,
+                shared_msg_file=None,
+                notice_level=2):
+    """Automatically select the hardware device.
 
     Args:
-        nthreads (int): number of TBB threads
-        communicator (:py:mod:`hoomd.comm.Communicator`): MPI communicator object. Can be left None if using a
-            default MPI communicator
-        msg_file (str): Name of file to write messages to.
-        shared_msg_file (str): (MPI only) Name of shared file to write message to (append partition #)
-        notice_level (int): Minimum level of notice messages to print
 
-    TODO: convert this to a function that produces a GPU or CPU device.
+        communicator (`hoomd.comm.Communicator`): MPI communicator object.
+            When `None`, create a default communicator that uses all MPI ranks.
+
+        msg_file (str): Filename to write messages to. When `None` use
+            `sys.stdout` and `sys.stderr`.
+
+        shared_msg_file (str): Prefix of filename to write message to (HOOMD
+            will append the MPI partition #). When `None`, messages
+            from all partitions are merged.
+
+        notice_level (int): Minimum level of messages to print.
+
+    Returns:
+        Instance of `GPU` if availabile, otherwise `CPU`.
     """
-
-    def __init__(self, nthreads=None, communicator=None, msg_file=None, shared_msg_file=None, notice_level=2):
-
-        _device.__init__(self, communicator, notice_level, msg_file, shared_msg_file)
-
-        _init_nthreads(nthreads)
-
-        self._cpp_exec_conf = _hoomd.ExecutionConfiguration(_hoomd.ExecutionConfiguration.executionMode.AUTO,
-                                                           [],
-                                                           self.communicator.cpp_mpi_conf,
-                                                           self._cpp_msg)
+    # Set class according to C++ object
+    if len(GPU.get_available_devices()) > 0:
+        return GPU(None, communicator, msg_file, shared_msg_file, notice_level)
+    else:
+        return CPU(None, communicator, msg_file, shared_msg_file, notice_level)
