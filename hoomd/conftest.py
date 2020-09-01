@@ -222,7 +222,7 @@ def pytest_configure(config):
         "cupy_optional: tests that should pass with and without CuPy.")
     config.addinivalue_line(
         "markers",
-        "validate: Tests that perform longer validation tests.")
+        "validate: Tests that perform long-running validations.")
     config.addinivalue_line("markers", "cpu: Tests that only run on the CPU.")
     config.addinivalue_line("markers", "gpu: Tests that only run on the GPU.")
 
