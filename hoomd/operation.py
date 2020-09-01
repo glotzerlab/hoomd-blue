@@ -399,12 +399,6 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
                     return False
         return True
 
-    def __del__(self):
-        if self._attached and hasattr(self, '_simulation'):
-            self._notify_disconnect(self._simulation)
-        else:
-            self._notify_disconnect()
-
     def _detach(self):
         if self._attached:
             self._unapply_typeparam_dict()
