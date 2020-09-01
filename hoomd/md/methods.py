@@ -741,7 +741,7 @@ class Langevin(_Method):
             either positive float or zero.
 
         gamma_r (TypeParameter[``particle type``, [float,float,float]]): The 
-            rotational drag coefficient can be set. The type of ``gamma_r ``
+            rotational drag coefficient can be set. The type of ``gamma_r``
             parameter is a tuple of three float. The type of each element of 
             tuple is either positive float or zero.
 
@@ -851,12 +851,11 @@ class Brownian(_Method):
         For MPI runs: all ranks other than 0 ignore the seed input and use the 
         value of rank 0.
 
-    `Brownian` uses the integrator from `I. Snook, The Langevin and 
-    Generalised Langevin Approach to the Dynamics of Atomic, Polymeric and 
-    Colloidal Systems, 2007, section 6.2.5 
-    <http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6>`_, with the exception
-    that :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random number 
-    distribution.
+    `Brownian` uses the integrator from `I. Snook, The Langevin and Generalised 
+    Langevin Approach to the Dynamics of Atomic, Polymeric and Colloidal Systems
+    , 2007, section 6.2.5 <http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6>`_, 
+    with the exception that :math:`\vec{F}_\mathrm{R}` is drawn from a 
+    uniform random number distribution.
 
     In Brownian dynamics, particle velocities are completely decoupled from 
     positions. At each time step, `Brownian` draws a new velocity 
@@ -876,8 +875,8 @@ class Brownian(_Method):
        distance / time.
 
     2. After the method object is created, specify the attribute ``gamma`` 
-        and ``gamma_r`` for rotational damping or random torque to assign 
-        them directly, with independent values for each particle type in the 
+        and ``gamma_r`` for rotational damping or random torque to assign them 
+        directly, with independent values for each particle type in the 
         system.
 
 
@@ -916,8 +915,8 @@ class Brownian(_Method):
             (:math:`\gamma = \alpha d_i`). The type of ``gamma`` parameter is 
             either positive float or zero.
 
-        gamma_r (TypeParameter[``particle type``, [float,float,float]]): The 
-            rotational drag coefficient can be set. The type of ``gamma_r ``
+        gamma_r (TypeParameter[``particle type``, [float,float,float] ]): 
+            The rotational drag coefficient can be set. The type of ``gamma_r``
             parameter is a tuple of three float. The type of each element of 
             tuple is either positive float or zero.
 
