@@ -392,15 +392,15 @@ _extra_default_entries = []
 #
 # Citations generated in HOOMD should always attach to a single global bibliography. This makes %bibliography
 # generation invisible to the HOOMD users (that is, they should never actually instantiate a bibliography themselves).
-# This function provides a convenient way to get the global bibliography while ensuring that it exists: if hoomd.context.bib
-# already exists, it returns it. Otherwise, hoomd.context.bib is first created and then returned. Any %bibliography in HOOMD
+# This function provides a convenient way to get the global bibliography while ensuring that it exists: if hoomd._bib
+# already exists, it returns it. Otherwise, hoomd._bib is first created and then returned. Any %bibliography in HOOMD
 # always includes two references: (1) the original HOOMD paper and (2) the HOOMD-blue website, which are automatically
 # put into the global bibliography. Subsequent citations are then added to these citations.
 def _ensure_global_bib():
     global _extra_default_entries;
 
-    if hoomd.context.bib is None:
-        hoomd.context.bib = bibliography()
+    if hoomd._bib is None:
+        hoomd._bib = bibliography()
         # the hoomd bibliography always includes the following citations
         hoomd_base = article(cite_key = 'Anderson2020',
                         author = ['J A Anderson','J Glaser','S C Glotzer'],
@@ -413,10 +413,10 @@ def _ensure_global_bib():
                         doi = '10.1016/j.commatsci.2019.109363',
                         feature = 'HOOMD-blue')
 
-        hoomd.context.bib.add([hoomd_base])
-        hoomd.context.bib.add(_extra_default_entries)
+        hoomd._bib.add([hoomd_base])
+        hoomd._bib.add(_extra_default_entries)
 
-    return hoomd.context.bib
+    return hoomd._bib
 
 def save(file='hoomd.bib'):
     """ Saves the automatically generated bibliography to a BibTeX file

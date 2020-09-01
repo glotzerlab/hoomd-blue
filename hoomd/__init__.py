@@ -32,8 +32,10 @@ from hoomd import _hoomd;
 if not ('NOT_HOOMD_PYTHON_SITEDIR' in os.environ):
     sys.setdlopenflags(flags);
 
+## Global bibliography
+_bib = None
+
 from hoomd import meta
-from hoomd import context
 from hoomd import cite
 from hoomd import analyze
 from hoomd import benchmark
@@ -89,3 +91,14 @@ def _hoomd_sys_excepthook(type, value, traceback):
 sys.excepthook = _hoomd_sys_excepthook
 
 __version__ = "2.9.0"
+
+__git_sha1__ = _hoomd.__git_sha1__
+
+__git_refspec__ = _hoomd.__git_refspec__
+
+__compile_flags__ = _hoomd.hoomd_compile_flags()
+
+__cuda_version__ = _hoomd.__cuda_version__
+
+__compiler_version__ = _hoomd.__compiler_version__
+
