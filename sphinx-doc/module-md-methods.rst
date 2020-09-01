@@ -9,11 +9,11 @@ md.integrate
     :nosignatures:
 
     berendsen
-    brownian
+    Brownian
     Langevin
     npt
     nph
-    nve
+    NVE
     NVT
 
 

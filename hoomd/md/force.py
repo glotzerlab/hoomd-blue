@@ -11,7 +11,7 @@ R""" Apply forces to particles.
 import hoomd
 from hoomd import _hoomd
 from hoomd.md import _md
-from hoomd.operation import _Operation
+from hoomd.operation import _HOOMDBaseObject
 from hoomd.logging import log
 from hoomd.typeparam import TypeParameter
 from hoomd.typeconverter import OnlyType
@@ -34,7 +34,7 @@ class _force(hoomd.meta._metadata):
     pass
 
 
-class _Force(_Operation):
+class _Force(_HOOMDBaseObject):
     '''Constructs the force.
 
     Initializes some loggable quantities.
@@ -310,7 +310,7 @@ class Active(_Force):
 
 
         # initialize the reflected c++ class
-        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+        if isinstance(simulation.device, hoomd.device.CPU):
             my_class = _md.ActiveForceCompute
         else:
             my_class = _md.ActiveForceComputeGPU

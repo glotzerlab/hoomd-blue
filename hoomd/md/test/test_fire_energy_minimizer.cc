@@ -406,20 +406,13 @@ void fire_smallsystem_test(fire_creator fire_creator1, nve_creator nve_creator1,
     Scalar sigma01 = Scalar(0.8);
     Scalar epsilon11 = Scalar(0.5);
     Scalar sigma11 = Scalar(0.88);
-    Scalar alpha = Scalar(1.0);
-    Scalar lj001 = Scalar(4.0) * epsilon00 * pow(sigma00,Scalar(12.0));
-    Scalar lj002 = alpha * Scalar(4.0) * epsilon00 * pow(sigma00,Scalar(6.0));
-    Scalar lj011 = Scalar(4.0) * epsilon01 * pow(sigma01,Scalar(12.0));
-    Scalar lj012 = alpha * Scalar(4.0) * epsilon01 * pow(sigma01,Scalar(6.0));
-    Scalar lj111 = Scalar(4.0) * epsilon11 * pow(sigma11,Scalar(12.0));
-    Scalar lj112 = alpha * Scalar(4.0) * epsilon11 * pow(sigma11,Scalar(6.0));
 
     // specify the force parameters
-    fc->setParamsLJ(0,0,make_scalar2(lj001,lj002));
+    fc->setParams(0,0,EvaluatorPairLJ::param_type(sigma00,epsilon00));
     fc->setRcut(0,0,2.5);
-    fc->setParamsLJ(0,1,make_scalar2(lj011,lj012));
+    fc->setParams(0,1,EvaluatorPairLJ::param_type(sigma01,epsilon01));
     fc->setRcut(0,1,2.5);
-    fc->setParamsLJ(1,1,make_scalar2(lj111,lj112));
+    fc->setParams(1,1,EvaluatorPairLJ::param_type(sigma11,epsilon11));
     fc->setRcut(1,1,2.5);
     fc->setShiftMode(PotentialPairLJ::shift);
 
@@ -483,12 +476,9 @@ void fire_twoparticle_test(fire_creator fire_creator1, nve_creator nve_creator1,
    // setup some values for alpha and sigma
     Scalar epsilon00 = Scalar(1.0);
     Scalar sigma00 = Scalar(1.0);
-    Scalar alpha = Scalar(1.0);
-    Scalar lj001 = Scalar(4.0) * epsilon00 * pow(sigma00,Scalar(12.0));
-    Scalar lj002 = alpha * Scalar(4.0) * epsilon00 * pow(sigma00,Scalar(6.0));
 
     // specify the force parameters
-    fc->setParamsLJ(0,0,make_scalar2(lj001,lj002));
+    fc->setParams(0,0,EvaluatorPairLJ::param_type(sigma00,epsilon00));
     fc->setRcut(0,0,3.0);
     fc->setShiftMode(PotentialPairLJ::shift);
 

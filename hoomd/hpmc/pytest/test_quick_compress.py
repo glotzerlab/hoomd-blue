@@ -137,12 +137,11 @@ def test_sphere_compression(phi, simulation_factory, lattice_snapshot_factory):
     assert not qc.complete
 
     # run long enough to compress the box
-    steps = 1e5
-    sim.run(steps - 1)
+    while not qc.complete and sim.timestep < 1e5:
+        sim.run(100)
 
     # compression should end the run early
     assert qc.complete
-    assert sim.timestep < steps
     assert mc.overlaps == 0
     assert sim.state.box == target_box
 
@@ -172,12 +171,10 @@ def test_disk_compression(phi, simulation_factory, lattice_snapshot_factory):
     # compression should not be complete yet
     assert not qc.complete
 
-    # run long enough to compress the box
-    steps = 1e5
-    sim.run(steps - 1)
+    while not qc.complete and sim.timestep < 1e5:
+        sim.run(100)
 
     # compression should end the run early
     assert qc.complete
-    assert sim.timestep < steps
     assert mc.overlaps == 0
     assert sim.state.box == target_box

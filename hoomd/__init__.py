@@ -40,7 +40,6 @@ from hoomd import benchmark
 from hoomd import comm
 from hoomd import compute
 from hoomd import dump
-from hoomd import group
 from hoomd import init
 from hoomd import integrate
 from hoomd import option

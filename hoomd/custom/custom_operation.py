@@ -58,6 +58,9 @@ class _CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
             return super().__getattr__(attr)
         except AttributeError:
             try:
+                if not hasattr(self, '_action'):
+                    raise RuntimeError(
+                        "{} object has no attribute _action".format(type(self)))
                 return getattr(self._action, attr)
             except AttributeError:
                 raise AttributeError(
