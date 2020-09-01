@@ -685,19 +685,19 @@ class Langevin(_Method):
     Use `Brownian` if your system is not underdamped.
 
     `Langevin` uses the same integrator as `NVE` with the additional force term
-     :math:`- \gamma \cdot \vec{v} + \vec{F}_\mathrm{R}`. The random force 
-     :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random number 
-     distribution.
+    :math:`- \gamma \cdot \vec{v} + \vec{F}_\mathrm{R}`. The random force 
+    :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random number 
+    distribution.
 
     You can specify :math:`\gamma` in two ways:
 
     1. Specify :math:`\alpha` which scales the particle diameter to 
        :math:`\gamma = \alpha d_i`. The units of :math:`\alpha` are 
        mass / distance / time.
-
-    2. After the method object is created, specify the attribute `gamma` and 
-        `gamma_r` for rotational damping or random torque to assign them 
-        directly, with independent values for each particle type in the system.
+    2. After the method object is created, specify the 
+       attribute ``gamma`` and ``gamma_r`` for rotational damping or random 
+       torque to assign them directly, with independent values for each 
+       particle type in the system.
 
 
     Warning:
@@ -873,11 +873,10 @@ class Brownian(_Method):
     1. Specify :math:`\alpha` which scales the particle diameter to 
        :math:`\gamma = \alpha d_i`. The units of :math:`\alpha` are mass / 
        distance / time.
-
     2. After the method object is created, specify the attribute ``gamma`` 
-        and ``gamma_r`` for rotational damping or random torque to assign them 
-        directly, with independent values for each particle type in the 
-        system.
+       and ``gamma_r`` for rotational damping or random torque to assign them 
+       directly, with independent values for each particle type in the 
+       system.
 
 
     Examples::
