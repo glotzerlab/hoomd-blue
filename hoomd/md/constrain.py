@@ -266,8 +266,6 @@ class rigid(_ConstraintForce):
     When you call :py:meth:`create_bodies()`, it will create all constituent particles that do not exist. (those
     that already exist e.g. in a restart file are left unchanged).
 
-    Example that creates rigid rods::
-
     .. danger:: Automatic creation of constituent particles can change particle tags. If bonds have been defined between
         particles in the initial configuration, or bonds connect to constituent particles, rigid bodies should be
         created manually.
