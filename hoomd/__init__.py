@@ -35,14 +35,12 @@ if not ('NOT_HOOMD_PYTHON_SITEDIR' in os.environ):
 ## Global bibliography
 _bib = None
 
-from hoomd import meta
 from hoomd import cite
 from hoomd import analyze
 from hoomd import benchmark
 from hoomd import comm
 from hoomd import compute
 from hoomd import dump
-from hoomd import init
 from hoomd import integrate
 from hoomd import update
 from hoomd import util
