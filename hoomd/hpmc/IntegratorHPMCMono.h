@@ -23,6 +23,7 @@
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/managed_allocator.h"
 #include "hoomd/GSDShapeSpecWriter.h"
+#include "ShapeSpheropolyhedron.h"
 
 #ifdef ENABLE_TBB
 #include <thread>
@@ -40,7 +41,6 @@
 #ifndef __HIPCC__
 #include <pybind11/pybind11.h>
 #endif
-
 
 namespace hpmc
 {
@@ -1670,23 +1670,9 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
     if (ndim == 3)
         e3 = vec3<Scalar>(box.getLatticeVector(2));
 
-    // The maximum interaction range is the sum of the max particle circumsphere diameter and move
-    // distance
-    Scalar range = 0.0;
-    // Try four linearly independent body diagonals and find the longest
-    vec3<Scalar> body_diagonal;
-    body_diagonal = e1 - e2 - e3;
-    range = detail::max(range, dot(body_diagonal, body_diagonal));
-    body_diagonal = e1 - e2 + e3;
-    range = detail::max(range, dot(body_diagonal, body_diagonal));
-    body_diagonal = e1 + e2 - e3;
-    range = detail::max(range, dot(body_diagonal, body_diagonal));
-    body_diagonal = e1 + e2 + e3;
-    range = detail::max(range, dot(body_diagonal, body_diagonal));
-    range = fast::sqrt(range);
-
-    m_exec_conf->msg->notice(6) << "Image list: max_body_diagonal = " << range << std::endl;
-
+    // The maximum interaction range is the sum of the max particle circumsphere diameter
+    // (accounting for non-additive interactions), the patch interaction and interaction with
+    // any depletants in the system
     Scalar max_trans_d_and_diam(0.0);
         {
         // access the type parameters
@@ -1724,7 +1710,7 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
 
     m_exec_conf->msg->notice(6) << "Image list: max_trans_d_and_diam = " << max_trans_d_and_diam << std::endl;
 
-    range += max_trans_d_and_diam;
+    Scalar range = max_trans_d_and_diam;
 
     m_exec_conf->msg->notice(6) << "Image list: extra_image_width = " << m_extra_image_width << std::endl;
 
@@ -1734,6 +1720,8 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
     m_exec_conf->msg->notice(6) << "Image list: range = " << range << std::endl;
 
     // initialize loop
+    // start in the middle and add image boxes going out, one index at a time until no more
+    // images are added to the list
     int3 hkl;
     bool added_images = true;
     int hkl_max = 0;
@@ -1758,23 +1746,54 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
             }
         #endif
 
-        // for h in -hkl_max..hkl_max
-        //  for k in -hkl_max..hkl_max
-        //   for l in -hkl_max..hkl_max
-        //    check if exterior to box of images: if abs(h) == hkl_max || abs(k) == hkl_max || abs(l) == hkl_max
-        //     if abs(h*e1 + k*e2 + l*e3) <= range; then image_list.push_back(hkl) && added_cells = true;
+        // for every possible image, check to see if the primary image box swept out by the
+        // interaction range overlaps with the current image box. If there are any overlaps, there
+        // is the possibility of a particle pair in the primary image interacting with a particle in
+        // the candidate image - add it to the image list.
+
+        // construct the box shapes
+        std::vector<vec3<OverlapReal>> box_verts;
+        if (ndim == 3)
+            {
+            box_verts.push_back((-e1 + -e2 + -e3) * 0.5);
+            box_verts.push_back((-e1 + e2 + -e3) * 0.5);
+            box_verts.push_back((e1 + e2 + -e3) * 0.5);
+            box_verts.push_back((e1 + -e2 + -e3) * 0.5);
+            box_verts.push_back((-e1 + -e2 + e3) * 0.5);
+            box_verts.push_back((-e1 + e2 + e3) * 0.5);
+            box_verts.push_back((e1 + e2 + e3) * 0.5);
+            box_verts.push_back((e1 + -e2 + e3) * 0.5);
+            }
+        else
+            {
+            box_verts.push_back((-e1 + -e2) * 0.5);
+            box_verts.push_back((-e1 + e2) * 0.5);
+            box_verts.push_back((e1 + e2) * 0.5);
+            box_verts.push_back((e1 + -e2) * 0.5);
+            }
+
+        detail::PolyhedronVertices central_box_params(box_verts, range, 0);
+        ShapeSpheropolyhedron central_box(quat<Scalar>(), central_box_params);
+        detail::PolyhedronVertices image_box_params(box_verts, 0, 0);
+        ShapeSpheropolyhedron image_box(quat<Scalar>(),  image_box_params);
+
+
+        // for each potential image
         for (hkl.x = -x_max; hkl.x <= x_max; hkl.x++)
             {
             for (hkl.y = -y_max; hkl.y <= y_max; hkl.y++)
                 {
                 for (hkl.z = -z_max; hkl.z <= z_max; hkl.z++)
                     {
-                    // Note that the logic of the following line needs to work in 2 and 3 dimensions
+                    // only add images on the outer boundary
                     if (abs(hkl.x) == hkl_max || abs(hkl.y) == hkl_max || abs(hkl.z) == hkl_max)
                         {
-                        vec3<Scalar> r = Scalar(hkl.x) * e1 + Scalar(hkl.y) * e2 + Scalar(hkl.z) * e3;
-                        // include primary image so we can do checks in in one loop
-                        if (dot(r,r) <= range_sq)
+                        // find the center of the image
+                        vec3<Scalar> r_image = Scalar(hkl.x) * e1 + Scalar(hkl.y) * e2 + Scalar(hkl.z) * e3;
+
+                        // check to see if the image box overlaps with the central box
+                        unsigned int err = 0;
+                        if (test_overlap(r_image, central_box, image_box, err))
                             {
                             vec3<Scalar> img = (Scalar)hkl.x*e1+(Scalar)hkl.y*e2+(Scalar)hkl.z*e3;
                             m_image_list.push_back(img);
