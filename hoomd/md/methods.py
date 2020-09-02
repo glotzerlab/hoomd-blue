@@ -102,7 +102,7 @@ class NVT(_Method):
                                  self.tau,
                                  self.kT,
                                  "")
-        super().attach()
+        super()._attach()
 
 
 class npt(_Method):
@@ -616,7 +616,7 @@ class NVE(_Method):
                                  simulation.state.get_group(self.filter))
 
         # Attach param_dict and typeparam_dict
-        super().attach()
+        super()._attach()
 
 class Langevin(_Method):
     R""" Langevin dynamics.
@@ -792,7 +792,7 @@ class Langevin(_Method):
                                  self.kT, self.seed)
 
         # Attach param_dict and typeparam_dict
-        super().attach()
+        super()._attach()
 
 
 class Brownian(_Method):
@@ -958,7 +958,7 @@ class Brownian(_Method):
                                              self.kT, self.seed)
 
         # Attach param_dict and typeparam_dict
-        super().attach()
+        super()._attach()
 
 
 class berendsen(_Method):
