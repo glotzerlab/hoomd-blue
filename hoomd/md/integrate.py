@@ -171,5 +171,5 @@ class Integrator(_DynamicIntegrator):
         self._cpp_obj = _md.IntegratorTwoStep(
             self._simulation.state._cpp_sys_def, self.dt)
         # Call attach from DynamicIntegrator which attaches forces,
-        # constraint_forces, and methods, and calls super().attach() itself.
+        # constraint_forces, and methods, and calls super()._attach() itself.
         super()._attach()
