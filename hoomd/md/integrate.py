@@ -51,9 +51,9 @@ class _DynamicIntegrator(_BaseIntegrator):
                                    iterable=methods)
 
     def _attach(self):
-        self.forces.attach(simulation, self._cpp_obj.forces)
-        self.constraints.attach(simulation, self._cpp_obj.constraints)
-        self.methods.attach(simulation, self._cpp_obj.methods)
+        self.forces.attach(self._simulation, self._cpp_obj.forces)
+        self.constraints.attach(self._simulation, self._cpp_obj.constraints)
+        self.methods.attach(self._simulation, self._cpp_obj.methods)
         super()._attach()
 
     @property
