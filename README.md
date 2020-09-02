@@ -42,11 +42,6 @@ HOOMD-blue job scripts are Python scripts.  You can control system
 initialization, run protocols, analyze simulation data, or develop complex
 workflows all with Python code in your job.
 
-Here is a simple example:
-
-Save this script as `lj.py` and run it with `python lj.py` (or `singularity
-exec software.simg python3 lj.py` if using Singularity containers).
-
 ## Change log
 
 See [CHANGELOG.rst](CHANGELOG.rst).
