@@ -83,7 +83,7 @@ class NVT(_Method):
         # set defaults
         self._param_dict.update(param_dict)
 
-    def attach(self, simulation):  # noqa: D102
+    def _attach(self, simulation):
 
         # initialize the reflected cpp class
         if not simulation.device.cpp_exec_conf.isCUDAEnabled():
@@ -605,7 +605,7 @@ class NVE(_Method):
         # set defaults
         self._param_dict.update(param_dict)
 
-    def attach(self, simulation):  # noqa: D102
+    def _attach(self, simulation):
 
         # initialize the reflected c++ class
         if not simulation.device.cpp_exec_conf.isCUDAEnabled():
@@ -779,7 +779,7 @@ class Langevin(_Method):
 
         self._extend_typeparam([gamma,gamma_r])
 
-    def attach(self, simulation):  # noqa: D102
+    def _attach(self, simulation):
 
         # initialize the reflected c++ class
         if not simulation.device.cpp_exec_conf.isCUDAEnabled():
@@ -945,7 +945,7 @@ class Brownian(_Method):
         self._extend_typeparam([gamma,gamma_r])
 
 
-    def attach(self, simulation):  #noqa: D102
+    def _attach(self, simulation):
 
         # initialize the reflected c++ class
         if not simulation.device.cpp_exec_conf.isCUDAEnabled():
