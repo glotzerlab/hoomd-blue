@@ -804,8 +804,8 @@ class Clusters(_Updater):
                                    swap_move_ratio=float(swap_move_ratio))
         self._param_dict.update(param_dict)
 
-    def _attach(self, simulation):
-        integrator = simulation.operations.integrator
+    def _attach(self):
+        integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate._HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
 
@@ -847,10 +847,10 @@ class Clusters(_Updater):
 
         if not integrator._attached:
             raise RuntimeError("Integrator is not attached yet.")
-        self._cpp_obj = cpp_cls(simulation.state._cpp_sys_def,
+        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                 integrator._cpp_obj,
                                 int(self.seed))
-        super()._attach(simulation)
+        super()._attach()
 
     @property
     def counter(self):
@@ -1007,8 +1007,8 @@ class QuickCompress(_Updater):
 
         self._param_dict.update(param_dict)
 
-    def _attach(self, simulation):
-        integrator = simulation.operations.integrator
+    def _attach(self):
+        integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate._HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
 
@@ -1016,10 +1016,10 @@ class QuickCompress(_Updater):
             raise RuntimeError("Integrator is not attached yet.")
 
         self._cpp_obj = _hpmc.UpdaterQuickCompress(
-            simulation.state._cpp_sys_def, integrator._cpp_obj,
+            self._simulation.state._cpp_sys_def, integrator._cpp_obj,
             self.max_overlaps_per_particle, self.min_scale, self.target_box,
             self.seed)
-        super()._attach(simulation)
+        super()._attach()
 
     @property
     def complete(self):

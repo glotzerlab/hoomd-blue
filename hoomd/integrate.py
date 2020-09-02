@@ -19,9 +19,9 @@ class _integrator:
 
 
 class _BaseIntegrator(_Operation):
-    def _attach(self, simulation):
-        simulation._cpp_sys.setIntegrator(self._cpp_obj)
-        super()._attach(simulation)
+    def _attach(self):
+        self._simulation._cpp_sys.setIntegrator(self._cpp_obj)
+        super()._attach()
 
         # The integrator has changed, update the number of DOF in all groups
-        simulation.state.update_group_dof()
+        self._simulation.state.update_group_dof()

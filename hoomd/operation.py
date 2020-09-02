@@ -309,7 +309,7 @@ class _DependencyRelation:
             self._dependents.append(obj)
             obj._dependencies.append(self)
 
-    def _notify_removal(self, *args, **kwargs):
+    def _notify_disconnect(self, *args, **kwargs):
         """Notify that an object is being removed from all relationships.
 
         Notifies dependent object that it is being removed, and removes itself
@@ -360,9 +360,10 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
     infrastructure for HOOMD-blue objects.
 
     This class's main features are handling attaching and detaching from
-    simulations. Attaching is the idea of creating a C++ object that is tied to
-    a given simulation while detaching is removing an object from its
-    simulation.
+    simulations and adding and removing from containing object such as methods
+    for MD integrators and updaters for the operations list. Attaching is the
+    idea of creating a C++ object that is tied to a given simulation while
+    detaching is removing an object from its simulation.
     """
     _reserved_default_attrs = {**_HOOMDGetSetAttrBase._reserved_default_attrs,
                                '_cpp_obj': lambda: None,
@@ -398,12 +399,6 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
                     return False
         return True
 
-    def __del__(self):
-        if self._attached and hasattr(self, '_simulation'):
-            self._notify_removal(self._simulation)
-        else:
-            self._notify_removal()
-
     def _detach(self):
         if self._attached:
             self._unapply_typeparam_dict()
@@ -411,22 +406,30 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
             self._cpp_obj.notifyDetach()
 
             self._cpp_obj = None
-            if hasattr(self, '_simulation'):
-                self._notify_removal(self._simulation)
-                del self._simulation
+            self._notify_disconnect(self._simulation)
             return self
 
-    def _attach(self, simulation):
+    def _attach(self):
         self._apply_param_dict()
-        self._apply_typeparam_dict(self._cpp_obj, simulation)
+        self._apply_typeparam_dict(self._cpp_obj, self._simulation)
 
         # pass the system communicator to the object
-        if simulation._system_communicator is not None:
-            self._cpp_obj.setCommunicator(simulation._system_communicator)
+        if self._simulation._system_communicator is not None:
+            self._cpp_obj.setCommunicator(self._simulation._system_communicator)
 
     @property
     def _attached(self):
         return self._cpp_obj is not None
+
+    def _add(self, simulation):
+        self._simulation = simulation
+
+    def _remove(self):
+        del self._simulation
+
+    @property
+    def _added(self):
+        return hasattr(self, '_simulation')
 
     def _apply_param_dict(self):
         for attr, value in self._param_dict.items():
@@ -499,9 +502,8 @@ class _TriggeredOperation(_Operation):
                 if op is self._cpp_obj and trigger is old_trigger:
                     triggered_ops[index] = (op, new_trigger)
 
-    def _attach(self, simulation):
-        self._simulation = simulation
-        super()._attach(simulation)
+    def _attach(self):
+        super()._attach()
 
 
 class _Updater(_TriggeredOperation):
