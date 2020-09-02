@@ -1670,8 +1670,9 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
     if (ndim == 3)
         e3 = vec3<Scalar>(box.getLatticeVector(2));
 
-    // Maximum interaction range is the sum of the system box circumsphere diameter and the max particle circumsphere diameter and move distance
-    Scalar range = 0.0f;
+    // The maximum interaction range is the sum of the max particle circumsphere diameter and move
+    // distance
+    Scalar range = 0.0;
     // Try four linearly independent body diagonals and find the longest
     vec3<Scalar> body_diagonal;
     body_diagonal = e1 - e2 - e3;
@@ -1683,6 +1684,8 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
     body_diagonal = e1 + e2 + e3;
     range = detail::max(range, dot(body_diagonal, body_diagonal));
     range = fast::sqrt(range);
+
+    m_exec_conf->msg->notice(6) << "Image list: max_body_diagonal = " << range << std::endl;
 
     Scalar max_trans_d_and_diam(0.0);
         {
@@ -1719,12 +1722,16 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
             }
         }
 
+    m_exec_conf->msg->notice(6) << "Image list: max_trans_d_and_diam = " << max_trans_d_and_diam << std::endl;
+
     range += max_trans_d_and_diam;
+
+    m_exec_conf->msg->notice(6) << "Image list: extra_image_width = " << m_extra_image_width << std::endl;
 
     // add any extra requested width
     range += m_extra_image_width;
 
-    Scalar range_sq = range*range;
+    m_exec_conf->msg->notice(6) << "Image list: range = " << range << std::endl;
 
     // initialize loop
     int3 hkl;
@@ -1791,10 +1798,9 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
         hkl_max++;
         }
 
-    // cout << "built image list" << std::endl;
-    // for (unsigned int i = 0; i < m_image_list.size(); i++)
-    //     cout << m_image_list[i].x << " " << m_image_list[i].y << " " << m_image_list[i].z << std::endl;
-    // cout << std::endl;
+    m_exec_conf->msg->notice(6) << "Image list:" << std::endl;
+    for (unsigned int i = 0; i < m_image_list.size(); i++)
+        m_exec_conf->msg->notice(6) << m_image_list[i].x << " " << m_image_list[i].y << " " << m_image_list[i].z << std::endl;
 
     // warn the user if more than one image in each direction is activated
     unsigned int img_warning = 9;
@@ -1810,7 +1816,7 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
                                     << "This message will not be repeated." << std::endl;
         }
 
-    m_exec_conf->msg->notice(8) << "Updated image list: " << m_image_list.size() << " images" << std::endl;
+    m_exec_conf->msg->notice(6) << "Updated image list: " << m_image_list.size() << " images" << std::endl;
     if (m_prof) m_prof->pop();
 
     return m_image_list;
