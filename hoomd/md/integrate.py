@@ -50,11 +50,11 @@ class _DynamicIntegrator(_BaseIntegrator):
                                    to_synced_list=lambda x: x._cpp_obj,
                                    iterable=methods)
 
-    def attach(self, simulation):  # noqa: D102
+    def _attach(self):
         self.forces.attach(simulation, self._cpp_obj.forces)
         self.constraints.attach(simulation, self._cpp_obj.constraints)
         self.methods.attach(simulation, self._cpp_obj.methods)
-        super().attach(simulation)
+        super().attach()
 
     @property
     def forces(self):

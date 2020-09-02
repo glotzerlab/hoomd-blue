@@ -83,7 +83,7 @@ class NVT(_Method):
         # set defaults
         self._param_dict.update(param_dict)
 
-    def _attach(self, simulation):
+    def _attach(self):
 
         # initialize the reflected cpp class
         if not simulation.device.cpp_exec_conf.isCUDAEnabled():
@@ -102,7 +102,7 @@ class NVT(_Method):
                                  self.tau,
                                  self.kT,
                                  "")
-        super().attach(simulation)
+        super().attach()
 
 
 class npt(_Method):
@@ -605,7 +605,7 @@ class NVE(_Method):
         # set defaults
         self._param_dict.update(param_dict)
 
-    def _attach(self, simulation):
+    def _attach(self):
 
         # initialize the reflected c++ class
         if not simulation.device.cpp_exec_conf.isCUDAEnabled():
@@ -616,7 +616,7 @@ class NVE(_Method):
                                  simulation.state.get_group(self.filter))
 
         # Attach param_dict and typeparam_dict
-        super().attach(simulation)
+        super().attach()
 
 class Langevin(_Method):
     R""" Langevin dynamics.
@@ -779,7 +779,7 @@ class Langevin(_Method):
 
         self._extend_typeparam([gamma,gamma_r])
 
-    def _attach(self, simulation):
+    def _attach(self):
 
         # initialize the reflected c++ class
         if not simulation.device.cpp_exec_conf.isCUDAEnabled():
@@ -792,7 +792,7 @@ class Langevin(_Method):
                                  self.kT, self.seed)
 
         # Attach param_dict and typeparam_dict
-        super().attach(simulation)
+        super().attach()
 
 
 class Brownian(_Method):
@@ -945,7 +945,7 @@ class Brownian(_Method):
         self._extend_typeparam([gamma,gamma_r])
 
 
-    def _attach(self, simulation):
+    def _attach(self):
 
         # initialize the reflected c++ class
         if not simulation.device.cpp_exec_conf.isCUDAEnabled():
@@ -958,7 +958,7 @@ class Brownian(_Method):
                                              self.kT, self.seed)
 
         # Attach param_dict and typeparam_dict
-        super().attach(simulation)
+        super().attach()
 
 
 class berendsen(_Method):
