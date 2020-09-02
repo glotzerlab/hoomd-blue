@@ -909,12 +909,12 @@ class Brownian(_Method):
             coefficient where :math:`d_i` is particle diameter. 
             Defaults to None.
 
-        gamma (TypeParameter[``particle type``, float]): The drag coefficient 
+        gamma (TypeParameter[``particle type``, `float`]): The drag coefficient 
             can be directly set instead of the ratio of particle diameter 
             (:math:`\gamma = \alpha d_i`). The type of ``gamma`` parameter is 
             either positive float or zero.
 
-        gamma_r (TypeParameter[``particle type``, [float,float,float] ]): 
+        gamma_r (TypeParameter[``particle type``, [`float`, `float`, `float`] ]): 
             The rotational drag coefficient can be set. The type of ``gamma_r``
             parameter is a tuple of three float. The type of each element of 
             tuple is either positive float or zero.
