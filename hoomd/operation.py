@@ -512,6 +512,8 @@ class _Updater(_TriggeredOperation):
 class _Analyzer(_TriggeredOperation):
     _cpp_list_name = 'analyzers'
 
+class _Compute(_Operation):
+    pass
 
 class _Tuner(_Operation):
     pass
