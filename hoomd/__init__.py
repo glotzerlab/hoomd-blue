@@ -99,4 +99,3 @@ __compile_flags__ = _hoomd.hoomd_compile_flags()
 __cuda_version__ = _hoomd.__cuda_version__
 
 __compiler_version__ = _hoomd.__compiler_version__
-
