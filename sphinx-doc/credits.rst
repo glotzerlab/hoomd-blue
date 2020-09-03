@@ -24,6 +24,7 @@ The following people have contributed to the to HOOMD-blue:
 * Bryan VanSaders, University of Michgan
 * Carl Simon Adorf, University of Michigan
 * Carolyn Phillips, University of Michigan
+* Charlie Slominski, Caltech
 * Chengyu Dai, University of Michigan
 * Christoph Junghans
 * Christoph Klein, Vanderbilt University
