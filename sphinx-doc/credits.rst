@@ -303,6 +303,10 @@ Simone Ciarella, Wouter Ellenbroek, Eindhoven University of Technology
 
  * Add RevCross potential
 
+Charlie Slominski, Caltech
+
+  * HOOMD-blue as a submodule
+
 HPMC developers
 ---------------
 
