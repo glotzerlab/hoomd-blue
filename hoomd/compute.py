@@ -15,123 +15,13 @@ from hoomd import _hoomd;
 import hoomd;
 import sys;
 
-## \internal
-# \brief Base class for computes
-#
-# A compute in hoomd reflects a Compute in c++. It is responsible
-# for all high-level management that happens behind the scenes for hoomd
-# writers. 1) The instance of the c++ compute itself is tracked and added to the
-# System 2) methods are provided for disabling the compute
-class _compute:
-    ## \internal
-    # \brief Constructs the compute
-    #
-    # Initializes the cpp_compute to None.
-    # Assigns a name to the compute in compute_name
-    def __init__(self):
-        # check if initialization has occurred
-        if not hoomd.init.is_initialized():
-            raise RuntimeError('Cannot create compute before initialization\n');
+class _Thermo(_Compute):
 
-        self.cpp_compute = None;
-
-        # increment the id counter
-        id = _compute.cur_id;
-        _compute.cur_id += 1;
-
-        self.compute_name = "compute%d" % (id);
-        self.enabled = True;
-
-    ## \var enabled
-    # \internal
-    # \brief True if the compute is enabled
-
-    ## \var cpp_compute
-    # \internal
-    # \brief Stores the C++ side Compute managed by this class
-
-    ## \var compute_name
-    # \internal
-    # \brief The Compute's name as it is assigned to the System
-
-    ## \internal
-    # \brief Checks that proper initialization has completed
-    def check_initialization(self):
-        # check that we have been initialized properly
-        if self.cpp_compute is None:
-            hoomd.context.current.device.cpp_msg.error('Bug in hoomd: cpp_compute not set, please report\n');
-            raise RuntimeError();
-
-    def disable(self):
-        r""" Disables the compute.
-
-        Examples::
-
-            c.disable()
-
-        Executing the disable command will remove the compute from the system. Any ```hoomd.run``` command
-        executed after disabling a compute will not be able to log computed values with ``hoomd.analyze.log``.
-
-        A disabled compute can be re-enabled with :py:meth:`enable()`.
-        """
-
-        self.check_initialization();
-
-        # check if we are already disabled
-        if not self.enabled:
-            hoomd.context.current.device.cpp_msg.warning("Ignoring command to disable a compute that is already disabled");
-            return;
-
-        hoomd.context.current.system.removeCompute(self.compute_name);
-        self.enabled = False;
-
-    def enable(self):
-        r""" Enables the compute.
-
-        Examples::
-
-            c.enable()
-
-        See ``disable``.
-        """
-        self.check_initialization();
-
-        # check if we are already disabled
-        if self.enabled:
-            hoomd.context.current.device.cpp_msg.warning("Ignoring command to enable a compute that is already enabled");
-            return;
-
-        hoomd.context.current.system.addCompute(self.cpp_compute, self.compute_name);
-        self.enabled = True;
-
-    @classmethod
-    def _gsd_state_name(cls):
-        raise NotImplementedError("GSD Schema is not implemented for {}".format(cls.__name__));
-
-    def _connect_gsd(self, gsd):
-        # This is an internal method, and should not be called directly. See gsd.dump_state() instead
-        if isinstance(gsd, hoomd.dump.gsd) and hasattr(self.cpp_compute, "connectGSDStateSignal"):
-            self.cpp_compute.connectGSDStateSignal(gsd.cpp_analyzer, self._gsd_state_name());
-        else:
-            raise NotImplementedError("GSD Schema is not implemented for {}".format(self.__class__.__name__));
-
-    def restore_state(self):
-        """ Restore the state information from the file used to initialize the simulations
-        """
-        if isinstance(hoomd.context.current.state_reader, _hoomd.GSDReader) and hasattr(self.cpp_compute, "restoreStateGSD"):
-            self.cpp_compute.restoreStateGSD(hoomd.context.current.state_reader, self._gsd_state_name());
-        else:
-            if hoomd.context.current.state_reader is None:
-                hoomd.context.current.device.cpp_msg.error("Can only restore after the state reader has been initialized.\n");
-            else:
-                hoomd.context.current.device.cpp_msg.error("Restoring state from {reader_name} is not currently supported for {name}\n".format(reader_name=hoomd.context.current.state_reader.__name__, name=self.__class__.__name__));
-            raise RuntimeError("Can not restore state information!");
+    def __init__(self, group):
+        self._group = group
 
 
-# set default counter
-_compute.cur_id = 0;
-
-class thermo(_compute):
+class ThermoQuantites(_Thermo):
     R""" Compute thermodynamic properties of a group of particles.
 
     Args:
@@ -196,64 +86,138 @@ class thermo(_compute):
     """
 
     def __init__(self, group):
+        super().__init__(group)
 
-        # initialize base class
-        _compute.__init__(self);
+    def _attach(self):
+        self._cpp_obj = _hoomd.ComputeThermo(
+            self._simulation.state._cpp_sys_def,
+            self._group,
+            "")
+        super()._attach()
 
-        suffix = '';
-        if group.name != 'all':
-            suffix = '_' + group.name;
-
-        # warn user if an existing compute thermo already uses this group or name
-        for t in hoomd.context.current.thermos:
-            if t.group is group:
-                hoomd.context.current.device.cpp_msg.warning("compute.thermo already specified for this group");
-            elif t.group.name == group.name:
-                hoomd.context.current.device.cpp_msg.warning("compute.thermo already specified for a group with name " + str(group.name) + "\n");
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_compute = _hoomd.ComputeThermo(hoomd.context.current.system_definition, group.cpp_group, suffix);
+    @log
+    def temperature(self):
+        if self._attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.getTemperature()
         else:
-            self.cpp_compute = _hoomd.ComputeThermoGPU(hoomd.context.current.system_definition, group.cpp_group, suffix);
+            return None
 
-        hoomd.context.current.system.addCompute(self.cpp_compute, self.compute_name);
+    @log
+    def pressure(self):
+        if self._attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.getPressure()
+        else:
+            return None
 
-        # save the group for later referencing
-        self.group = group;
-        # add ourselves to the list of compute thermos specified so far
-        hoomd.context.current.thermos.append(self);
+    @log
+    def pressureXX(self):
+        if self._attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.getPressureXX()
+        else:
+            return None
 
-    def disable(self):
-        R""" Disables the thermo.
+    @log
+    def pressureXY(self):
+        if self._attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.getPressureXY()
+        else:
+            return None
 
-        Examples::
+    @log
+    def pressureXZ(self):
+        if self._attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.getPressureXZ()
+        else:
+            return None
 
-            my_thermo.disable()
+    @log
+    def pressureYY(self):
+        if self._attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.getPressureYY()
+        else:
+            return None
 
-        Executing the disable command will remove the thermo compute from the system. Any ```hoomd.run``` command
-        executed after disabling a thermo compute will not be able to log computed values with ``hoomd.analyze.log``.
+    @log
+    def pressureYZ(self):
+        if self._attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.getPressureYZ()
+        else:
+            return None
 
-        A disabled thermo compute can be re-enabled with :py:meth:`enable()`.
-        """
+    @log
+    def pressureZZ(self):
+        if self._attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.getPressureZZ()
+        else:
+            return None
 
-        _compute.disable(self)
+    @log
+    def kineticEnergy(self):
+        if self._attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.getKineticEnergy()
+        else:
+            return None
 
-        hoomd.context.current.thermos.remove(self)
+    @log
+    def translationalKineticEnergy(self):
+        if self._attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.getTranslationalKineticEnergy()
+        else:
+            return None
 
-    def enable(self):
-        R""" Enables the thermo compute.
+    @log
+    def rotationalKineticEnergy(self):
+        if self._attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.getRotationalKineticEnergy()
+        else:
+            return None
 
-        Examples::
+    @log
+    def potentialEnergy(self):
+        if self._attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.getPotentialEnergy()
+        else:
+            return None
 
-            my_thermo.enable()
+    @log
+    def NDOF(self):
+        if self._attached:
+            return self._cpp_obj.getNDOF()
+        else:
+            return None
 
-        See ``disable``.
-        """
+    @log
+    def translationalNDOF(self):
+        if self._attached:
+            return self._cpp_obj.getTranslationalNDOF()
+        else:
+            return None
 
-        _compute.enable(self)
+    @log
+    def rotationalNDOF(self):
+        if self._attached:
+            return self._cpp_obj.getRotationalNDOF()
+        else:
+            return None
 
-        hoomd.context.current.thermo.append(self)
+    @log
+    def numParticles(self):
+        if self._attached:
+            return self._cpp_obj.getNumParticles()
+        else:
+            return None
 
 class thermoHMA(_compute):
     R""" Compute HMA thermodynamic properties of a group of particles.

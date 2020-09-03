@@ -206,6 +206,93 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
             return h_properties.data[thermo_index::potential_energy];
             }
 
+
+        // <----------------- Components of the pressure tensor --------------
+
+        Scalar getPressureXX()
+            {
+            if (m_computed_flags[pdata_flag::pressure_tensor])
+                {
+                #ifdef ENABLE_MPI
+                if (!m_properties_reduced) reduceProperties();
+                #endif
+                ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
+                return h_properties.data[thermo_index::pressure_xx];
+                }
+            else
+                return std::numeric_limits<Scalar>::quiet_NaN();
+            }
+
+        Scalar getPressureXY()
+            {
+            if (m_computed_flags[pdata_flag::pressure_tensor])
+                {
+                #ifdef ENABLE_MPI
+                if (!m_properties_reduced) reduceProperties();
+                #endif
+                ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
+                return h_properties.data[thermo_index::pressure_xy];
+                }
+            else
+                return std::numeric_limits<Scalar>::quiet_NaN();
+            }
+
+        Scalar getPressureXZ()
+            {
+            if (m_computed_flags[pdata_flag::pressure_tensor])
+                {
+                #ifdef ENABLE_MPI
+                if (!m_properties_reduced) reduceProperties();
+                #endif
+                ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
+                return h_properties.data[thermo_index::pressure_xz];
+                }
+            else
+                return std::numeric_limits<Scalar>::quiet_NaN();
+            }
+
+        Scalar getPressureYY()
+            {
+            if (m_computed_flags[pdata_flag::pressure_tensor])
+                {
+                #ifdef ENABLE_MPI
+                if (!m_properties_reduced) reduceProperties();
+                #endif
+                ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
+                return h_properties.data[thermo_index::pressure_yy];
+                }
+            else
+                return std::numeric_limits<Scalar>::quiet_NaN();
+            }
+
+        Scalar getPressureYZ()
+            {
+            if (m_computed_flags[pdata_flag::pressure_tensor])
+                {
+                #ifdef ENABLE_MPI
+                if (!m_properties_reduced) reduceProperties();
+                #endif
+                ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
+                return h_properties.data[thermo_index::pressure_yz];
+                }
+            else
+                return std::numeric_limits<Scalar>::quiet_NaN();
+            }
+
+        Scalar getPressureZZ()
+            {
+            if (m_computed_flags[pdata_flag::pressure_tensor])
+                {
+                #ifdef ENABLE_MPI
+                if (!m_properties_reduced) reduceProperties();
+                #endif
+                ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
+                return h_properties.data[thermo_index::pressure_zz];
+                }
+            else
+                return std::numeric_limits<Scalar>::quiet_NaN();
+            }
+
         //! Returns the upper triangular virial tensor last computed by compute()
         /*! \returns Instantaneous virial tensor, or virial tensor containing NaN entries if it is
             not available
@@ -239,6 +326,28 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
                 p.zz = std::numeric_limits<Scalar>::quiet_NaN();
                 }
             return p;
+            }
+
+        // <--------------- Degree of Freedom Data
+
+        Scalar getNDOF()
+            {
+            return Scalar(m_group->getTranslationalDOF() + m_group->getRotationalDOF());
+            }
+
+        Scalar getTranslationalDOF()
+            {
+            return Scalar(m_group->getTranslationalDOF());
+            }
+
+        Scalar getRotationalDOF()
+            {
+            return Scalar(m_group->getRotationalDOF());
+            }
+
+        Scalar getNumParticles()
+            {
+            return Scalar(m_group->getNumMembersGlobal());
             }
 
         //! Get the gpu array of properties
