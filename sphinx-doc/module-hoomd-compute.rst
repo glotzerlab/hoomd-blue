@@ -6,7 +6,7 @@ hoomd.compute
 .. autosummary::
     :nosignatures:
 
-    hoomd.compute.thermo
+    hoomd.compute.ThermoQuantities
 
 .. rubric:: Details
 

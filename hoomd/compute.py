@@ -17,6 +17,9 @@ from hoomd.logging import log
 import hoomd;
 import sys;
 
+class _compute:
+    pass
+
 class _Thermo(_Compute):
 
     def __init__(self, filter):
@@ -27,16 +30,16 @@ class ThermoQuantities(_Thermo):
     R""" Compute thermodynamic properties of a group of particles.
 
     Args:
-        group (``hoomd.group``): Group to compute thermodynamic properties for.
+        filter (``hoomd.filter``): Particle filter to compute thermodynamic properties for.
 
-    :py:class:`hoomd.compute.thermo` acts on a given group of particles and calculates thermodynamic properties of those particles when
-    requested. A default :py:class:`hoomd.compute.thermo` is created that operates on the group of all particles. Integration methods
-    such as ``hoomd.md.integrate.nvt`` automatically create an internal :py:class:`hoomd.compute.thermo` for the group that they operate on.
-    If thermodynamic properties are needed on additional groups, a user can specify additional :py:class:`hoomd.compute.thermo` commands.
+    :py:class:`hoomd.compute.ThermoQuantities` acts on a given group of particles and calculates thermodynamic properties of those particles when
+    requested. A default :py:class:`hoomd.compute.ThermoQuantities` is created that operates on the group of all particles. Integration methods
+    such as ``hoomd.md.integrate.NVT`` automatically create an internal :py:class:`hoomd.compute.ThermoQuantities` for the group that they operate on.
+    If thermodynamic properties are needed on additional groups, a user can specify additional :py:class:`hoomd.compute.ThermoQuantities` commands.
 
     Whether they are automatically created or created by a user, all specified thermos are available for logging via
     the ``hoomd.analyze.log`` command. Each one provides a set of quantities for logging, suffixed with *_groupname*, so that
-    values for different groups are differentiated in the log file. The default :py:class:`hoomd.compute.thermo` specified on the group
+    values for different groups are differentiated in the log file. The default :py:class:`hoomd.compute.ThermoQuantities` specified on the group
     of all particles has no suffix placed on its quantity names.
 
     The quantities provided are (where **groupname** is replaced with the name of the group):
@@ -83,8 +86,8 @@ class ThermoQuantities(_Thermo):
 
     Examples::
 
-        g = group.type(name='typeA', type='A')
-        compute.thermo(group=g)
+        f = filter.Type('A')
+        compute.ThermoQuantities(filter=f)
     """
 
     def __init__(self, filter):
