@@ -199,16 +199,16 @@ class ThermoQuantites(_Thermo):
             return None
 
     @log
-    def translationalNDOF(self):
+    def translationalDOF(self):
         if self._attached:
-            return self._cpp_obj.getTranslationalNDOF()
+            return self._cpp_obj.getTranslationalDOF()
         else:
             return None
 
     @log
-    def rotationalNDOF(self):
+    def rotationalDOF(self):
         if self._attached:
-            return self._cpp_obj.getRotationalNDOF()
+            return self._cpp_obj.getRotationalDOF()
         else:
             return None
 
