@@ -56,7 +56,7 @@ def test_self_interaction_no_overlap(one_square_simulation):
 @pytest.mark.serial
 @pytest.mark.cpu
 def test_self_interaction_overlap(one_square_simulation):
-    """Check that a properly aligned square overlaps with itself.
+    """Check that a rotated square overlaps with itself.
 
     When aligned 45 degrees to the box, it overlaps with its own images.
     """
