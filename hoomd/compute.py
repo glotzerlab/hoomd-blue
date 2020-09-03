@@ -12,16 +12,18 @@ user) can be logged with analyze.log.
 """
 
 from hoomd import _hoomd;
+from hoomd.operation import _Compute
+from hoomd.logging import log
 import hoomd;
 import sys;
 
 class _Thermo(_Compute):
 
-    def __init__(self, group):
-        self._group = group
+    def __init__(self, filter):
+        self._filter = filter
 
 
-class ThermoQuantites(_Thermo):
+class ThermoQuantities(_Thermo):
     R""" Compute thermodynamic properties of a group of particles.
 
     Args:
@@ -85,14 +87,16 @@ class ThermoQuantites(_Thermo):
         compute.thermo(group=g)
     """
 
-    def __init__(self, group):
-        super().__init__(group)
+    def __init__(self, filter):
+        super().__init__(filter)
 
     def _attach(self):
-        self._cpp_obj = _hoomd.ComputeThermo(
-            self._simulation.state._cpp_sys_def,
-            self._group,
-            "")
+        if isinstance(self._simulation.device, hoomd.device.CPU):
+            thermo_cls = _hoomd.ComputeThermo
+        else:
+            thermo_cls = _hoomd.ComputeThermoGPU
+        group = self._simulation.state.get_group(self._filter)
+        self._cpp_obj = thermo_cls(self._simulation.state._cpp_sys_def, group, "")
         super()._attach()
 
     @log
@@ -219,7 +223,8 @@ class ThermoQuantites(_Thermo):
         else:
             return None
 
-class thermoHMA(_compute):
+
+class thermoHMA(_Compute):
     R""" Compute HMA thermodynamic properties of a group of particles.
 
     Args:
