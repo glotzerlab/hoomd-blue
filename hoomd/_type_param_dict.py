@@ -199,8 +199,21 @@ class TypeParameterDict(_ValidatedDefaultDict, MutableMapping):
     def __len__(self):
         return len(self._dict)
 
-    def to_dict(self):
-        return self._dict
+    def to_base(self):
+        rtn_dict = {}
+        for key, value in self.items():
+            if isinstance(value, _HOOMDDataStructures):
+                rtn_dict[key] = value.to_base()
+            else:
+                try:
+                    new_value = deepcopy(value)
+                except Exception:
+                    new_value = value
+                rtn_dict[key] = new_value
+        return rtn_dict
+
+    def _handle_update(self, label=None):
+        pass
 
 
 class AttachedTypeParameterDict(_ValidatedDefaultDict, MutableMapping):
@@ -293,8 +306,8 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict, MutableMapping):
     def _getter(self):
         return 'get' + to_camel_case(self._param_name)
 
-    def to_dict(self):
-        rtn_dict = dict()
-        for key in self.keys():
+    def to_base(self):
+        rtn_dict = {}
+        for key in self:
             rtn_dict[key] = getattr(self._cpp_obj, self._getter)(key)
         return rtn_dict

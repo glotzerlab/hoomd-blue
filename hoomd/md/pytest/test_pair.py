@@ -14,7 +14,7 @@ def _assert_equivalent_type_params(type_param1, type_param2):
 
     type_param1 is the dictionary used to set the potential
     arguments, whereas type_param2 is the dictionary returned
-    from the potential's to_dict method. This means type_param2
+    from the potential's to_base method. This means type_param2
     includes default arguments in addition to all keys in type_param1
     """
     for pair in type_param1:
@@ -46,9 +46,9 @@ def test_rcut(simulation_factory, two_particle_snapshot_factory):
                                                         kT=1, seed=1))
     sim.operations.integrator = integrator
 
-    _assert_equivalent_type_params(lj.r_cut.to_dict(), {('A', 'A'): 2.5})
+    _assert_equivalent_type_params(lj.r_cut.to_base(), {('A', 'A'): 2.5})
     sim.run(1)
-    _assert_equivalent_type_params(lj.r_cut.to_dict(), {('A', 'A'): 2.5})
+    _assert_equivalent_type_params(lj.r_cut.to_base(), {('A', 'A'): 2.5})
 
 
 def test_invalid_mode():
@@ -87,15 +87,15 @@ def test_ron(simulation_factory, two_particle_snapshot_factory):
     integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
                                                         kT=1, seed=1))
     sim.operations.integrator = integrator
-    assert lj.r_on.to_dict() == {}
+    assert lj.r_on.to_base() == {}
 
     lj.r_on[('A', 'A')] = 1.5
-    _assert_equivalent_type_params(lj.r_on.to_dict(), {('A', 'A'): 1.5})
+    _assert_equivalent_type_params(lj.r_on.to_base(), {('A', 'A'): 1.5})
     sim.operations.schedule()
-    _assert_equivalent_type_params(lj.r_on.to_dict(), {('A', 'A'): 1.5})
+    _assert_equivalent_type_params(lj.r_on.to_base(), {('A', 'A'): 1.5})
 
     lj.r_on[('A', 'A')] = 1.0
-    _assert_equivalent_type_params(lj.r_on.to_dict(), {('A', 'A'): 1.0})
+    _assert_equivalent_type_params(lj.r_on.to_base(), {('A', 'A'): 1.0})
 
 
 def _make_invalid_param_dict(valid_dict):
@@ -439,7 +439,7 @@ def test_valid_params(valid_params):
     for pair in valid_params.pair_potential_params:
         pot.params[pair] = valid_params.pair_potential_params[pair]
     _assert_equivalent_type_params(valid_params.pair_potential_params,
-                                   pot.params.to_dict())
+                                   pot.params.to_base())
 
 
 def _update_snap(pair_potential, snap):
@@ -474,7 +474,7 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
     sim.operations.integrator = hoomd.md.Integrator(dt=0.005)
     sim.operations.integrator.forces.append(pot)
     sim.run(1)
-    _assert_equivalent_type_params(pot.params.to_dict(),
+    _assert_equivalent_type_params(pot.params.to_base(),
                                    valid_params.pair_potential_params)
 
 

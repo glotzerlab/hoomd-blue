@@ -46,15 +46,15 @@ class TypeParameter:
         self.param_dict = self.param_dict.to_dettached()
         return self
 
-    def to_dict(self):
-        return self.param_dict.to_dict()
+    def to_base(self):
+        return self.param_dict.to_base()
 
     def keys(self):
         yield from self.param_dict.keys()
 
     @property
     def state(self):
-        state = self.to_dict()
+        state = self.to_base()
         if self.param_dict._len_keys > 1:
             state = {str(key): value for key, value in state.items()}
         state['__default__'] = self.default
