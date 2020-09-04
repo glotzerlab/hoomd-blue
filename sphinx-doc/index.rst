@@ -91,6 +91,7 @@ containers).
     migrating
     changelog
     command-line-options
+    citing
 
 .. toctree::
     :maxdepth: 2
