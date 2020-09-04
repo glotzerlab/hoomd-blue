@@ -316,16 +316,11 @@ set(files benchmark.py
           dump.py
           array.py
           __init__.py
-          init.py
           integrate.py
-          meta.py
           operation.py
           operations.py
-          option.py
           util.py
           variant.py
-          lattice.py
-          hdf5.py
           simulation.py
           smart_default.py
           state.py
