@@ -13,7 +13,7 @@ from hoomd import _hoomd
 from hoomd.util import dict_flatten, array_to_strings
 from hoomd.typeconverter import OnlyFrom
 from hoomd.filter import _ParticleFilter, All
-from hoomd.parameterdicts import ParameterDict
+from hoomd._param_dict import ParameterDict
 from hoomd.logging import Logger, TypeFlags
 from hoomd.operation import _Analyzer
 import numpy as np

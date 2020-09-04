@@ -16,7 +16,7 @@ from hoomd.md import _md
 from hoomd.md import force
 from hoomd.md.force import _Force
 from hoomd.typeparam import TypeParameter
-from hoomd.parameterdicts import TypeParameterDict
+from hoomd._type_param_dict import TypeParameterDict
 import hoomd
 
 import math

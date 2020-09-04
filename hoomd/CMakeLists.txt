@@ -325,7 +325,6 @@ set(files benchmark.py
           smart_default.py
           state.py
           syncedlist.py
-          parameterdicts.py
           trigger.py
           typeparam.py
           typeconverter.py

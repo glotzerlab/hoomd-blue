@@ -1,5 +1,4 @@
-from hoomd.parameterdicts import TypeParameterDict
-from hoomd.parameterdicts import AttachedTypeParameterDict
+from hoomd._type_param_dict import TypeParameterDict, AttachedTypeParameterDict
 from hoomd.pytest.dummy import DummyCppObj, DummySimulation
 from hoomd.typeconverter import TypeConversionError, RequiredArg
 from pytest import fixture, raises

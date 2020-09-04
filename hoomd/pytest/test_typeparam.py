@@ -1,5 +1,5 @@
 from hoomd.typeparam import TypeParameter
-from hoomd.parameterdicts import TypeParameterDict
+from hoomd._type_param_dict import TypeParameterDict
 from hoomd.pytest.dummy import DummyCppObj, DummySimulation
 from pytest import fixture, raises
 

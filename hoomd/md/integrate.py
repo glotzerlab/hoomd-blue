@@ -9,7 +9,7 @@
 
 
 from hoomd.md import _md
-from hoomd.parameterdicts import ParameterDict
+from hoomd._param_dict import ParameterDict
 from hoomd.typeconverter import OnlyFrom
 from hoomd.integrate import _BaseIntegrator
 from hoomd.syncedlist import SyncedList

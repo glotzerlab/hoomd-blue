@@ -1,6 +1,5 @@
 from hoomd.operation import _Tuner
-from hoomd.parameterdicts import ParameterDict
-from hoomd.typeconverter import OnlyType
+from hoomd._param_dict import ParameterDict
 from hoomd.trigger import Trigger
 from hoomd import _hoomd
 

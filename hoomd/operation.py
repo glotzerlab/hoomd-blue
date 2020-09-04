@@ -17,7 +17,7 @@ from hoomd.logging import Loggable, log
 from hoomd.typeconverter import RequiredArg
 from hoomd.util import NamespaceDict
 from hoomd._hoomd import GSDStateReader
-from hoomd.parameterdicts import ParameterDict
+from hoomd._param_dict import ParameterDict
 
 from collections.abc import Mapping
 from copy import deepcopy

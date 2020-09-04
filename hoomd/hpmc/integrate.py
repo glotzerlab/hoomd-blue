@@ -3,7 +3,8 @@
 # License.
 
 from hoomd import _hoomd
-from hoomd.parameterdicts import TypeParameterDict, ParameterDict
+from hoomd._type_param_dict import TypeParameterDict
+from hoomd._param_dict import ParameterDict
 from hoomd.typeconverter import OnlyIf, to_type_converter
 from hoomd.typeparam import TypeParameter
 from hoomd.hpmc import _hpmc
