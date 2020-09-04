@@ -60,6 +60,7 @@ def box_preprocessing(box):
                 "{} is not convertible into a hoomd.Box object. "
                 "using hoomd.Box.from_box".format(box))
 
+
 class _HelpValidate(ABC):
     """Base class for classes that perform validation on an inputed value.
 
@@ -351,6 +352,12 @@ class TypeConverterSequence(TypeConverter):
             yield from repeat(self.converter[0])
         else:
             yield from cycle(self.converter)
+
+    def __len__(self):
+        return len(self.converter)
+
+    def __getitem__(self, index):
+        return self.converter[index]
 
 
 class TypeConverterFixedLengthSequence(TypeConverter):
