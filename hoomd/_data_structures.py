@@ -161,13 +161,15 @@ class _HOOMDList(MutableSequence, _HOOMDDataStructures):
 
 
 class _HOOMDDict(MutableMapping, _HOOMDDataStructures):
+    _dict = {}
+
     def __init__(self, type_def, initial_value=None,
                  parent=None, callback=None, label=None):
+        self._dict = {}
         self._type_definition = type_def
         self._parent = parent
         self._callback = callback
         self._buffered = False
-        self._dict = {}
         self._label = label
         if initial_value is not None:
             for key, val in initial_value.items():
@@ -176,6 +178,15 @@ class _HOOMDDict(MutableMapping, _HOOMDDataStructures):
 
     def __getitem__(self, item):
         return self._dict[item]
+
+    def __getattr__(self, attr):
+        return self[attr]
+
+    def __setattr__(self, attr, value):
+        if attr in self._dict:
+            self[attr] = value
+        else:
+            super().__setattr__(attr, value)
 
     def __setitem__(self, key, item):
         if key not in self._type_definition:
