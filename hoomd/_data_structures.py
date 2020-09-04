@@ -1,0 +1,302 @@
+from abc import ABCMeta, abstractmethod
+from collections.abc import MutableMapping, MutableSequence, MutableSet
+from contextlib import contextmanager
+from copy import deepcopy
+
+from hoomd.typeconverter import TypeConversionError
+
+
+class _HOOMDDataStructures(metaclass=ABCMeta):
+    @abstractmethod
+    def to_base(self):
+        pass
+
+    @abstractmethod
+    def _handle_update(self, label=None):
+        pass
+
+    @contextmanager
+    def _buffer(self):
+        self._buffered = True
+        yield None
+        self._buffered = False
+
+    def _update(self):
+        if self._buffered:
+            return
+        elif self._parent is not None:
+            self._parent._handle_update(self._label)
+        else:
+            self._handle_update()
+
+
+def _to_hoomd_data_structure(data, type_def,
+                             parent=None, label=None, callback=None):
+    if isinstance(data, MutableMapping):
+        return _HOOMDDict(type_def, data, parent, callback, label)
+    elif isinstance(data, MutableSequence):
+        return _HOOMDList(type_def, data, parent, callback, label)
+    elif isinstance(data, MutableSet):
+        return _HOOMDSet(type_def, data, parent, callback, label)
+    else:
+        return data
+
+
+class _HOOMDList(MutableSequence, _HOOMDDataStructures):
+    def __init__(self, type_definition, initial_value=None,
+                 parent=None, callback=None, label=None):
+        self._type_definition = type_definition
+        self._parent = parent
+        self._callback = callback
+        self._list = []
+        self._label = label
+        self._buffered = False
+        if initial_value is not None:
+            self.extend(initial_value)
+
+    def __getitem__(self, index):
+        return self._list[index]
+
+    def __setitem__(self, index, value):
+        if isinstance(index, slice):
+            with self._buffer():
+                for i, v in zip(self._slice_to_iterable(index), value):
+                    self[i] = v
+        else:
+            type_def = self._get_type_def(index)
+            try:
+                validated_value = type_def(value)
+            except TypeConversionError as err:
+                raise TypeConversionError(
+                    "Error in setting item {} in list.".format(index)) from err
+            else:
+                self._list[i] = _to_hoomd_data_structure(
+                    validated_value, type_def, self)
+        self._update()
+
+    def _slice_to_iterable(self, slice_):
+        start, end, step = slice_.start, slice_.end, slice_.step
+        if start is None:
+            if step is not None and step < 0:
+                iterable_start = len(self) - 1
+            else:
+                iterable_start = 0
+        if end is None:
+            if step is not None and step < 0:
+                iterable_end = -1
+            else:
+                iterable_end = len(self)
+        step = 1 if step is None else step
+        return range(iterable_start, iterable_end, step)
+
+    def _get_type_def(self, index):
+        entry_index = index % len(self._type_definition)
+        return self._type_definition[entry_index]
+
+    def __delitem__(self, index):
+        del self._list[index]
+        if len(self._type_definition) > 1:
+            try:
+                _ = self._type_definition(self._list)
+            except TypeConversionError as err:
+                raise RuntimeError("Deleting items from list has caused an "
+                                   "invalid state.") from err
+        self._update()
+
+    def __len__(self):
+        return len(self._list)
+
+    def insert(self, index, value):
+        if index >= len(self):
+            index = len(self)
+
+        type_def = self._get_type_def(index)
+        try:
+            validated_value = type_def(value)
+        except TypeConversionError as err:
+            raise TypeConversionError(
+                "Error inserting {} into list.".format(value)) from err
+        else:
+            self._list.insert(index,
+                              _to_hoomd_data_structure(validated_value,
+                                                       type_def, self))
+            if index != len(self) and len(self._type_definition) > 1:
+                try:
+                    _ = self._type_definition(self._list)
+                except TypeConversionError as err:
+                    raise TypeConversionError(
+                        "List insertion invalidated list.") from err
+        self._update()
+
+    def extend(self, other):
+        with self._buffer():
+            super().extend(other)
+        self._update()
+
+    def clear(self):
+        with self._buffer():
+            super().clear()
+        self._update()
+
+    def to_base(self):
+        return_list = []
+        for entry in self:
+            if isinstance(entry, _HOOMDDataStructures):
+                return_list.append(entry.to_base())
+            else:
+                try:
+                    use_entry = deepcopy(entry)
+                except Exception:
+                    use_entry = entry
+                return_list.append(use_entry)
+        return return_list
+
+    def _handle_update(self, label=None):
+        if self._parent is not None:
+            self._update()
+        elif self._callback is not None:
+            self._callback(self)
+
+
+class _HOOMDDict(MutableMapping, _HOOMDDataStructures):
+    def __init__(self, type_def, initial_value=None,
+                 parent=None, callback=None, label=None):
+        self._type_definition = type_def
+        self._parent = parent
+        self._callback = callback
+        self._buffered = False
+        self._dict = {}
+        self._label = label
+        if initial_value is not None:
+            self.update(initial_value)
+
+    def __getitem__(self, item):
+        return self._dict[item]
+
+    def __setitem__(self, key, item):
+        if key not in self._type_definition:
+            raise KeyError(
+                "Cannot set value for non-existent key {}.".format(key))
+        type_def = self._type_definition[key]
+        try:
+            validated_value = type_def(item)
+        except TypeConversionError as err:
+            raise TypeConversionError(
+                "Error setting key {}.".format(key)) from err
+        else:
+            self._dict[key] = _to_hoomd_data_structure(
+                validated_value, type_def, self, key)
+        self._update()
+
+    def __delitem__(self, key):
+        raise RuntimeError("mapping does not support deleting keys.")
+
+    def __iter__(self):
+        yield from self._dict.keys()
+
+    def __len__(self):
+        return len(self._dict)
+
+    def update(self, other):
+        with self._buffer():
+            super().update(other)
+        self._update()
+
+    def to_base(self):
+        return_dict = {}
+        for key, entry in self.items():
+            if isinstance(entry, _HOOMDDataStructures):
+                return_dict[key] = entry.to_base()
+            else:
+                try:
+                    use_entry = deepcopy(entry)
+                except Exception:
+                    use_entry = entry
+                return_dict[key] = use_entry
+        return return_dict
+
+    def _handle_update(self, label=None):
+        if self._parent is not None:
+            self._update()
+        elif self._callback is not None:
+            self._callback(self)
+
+
+class _HOOMDSet(MutableSet, _HOOMDDataStructures):
+    def __init__(self, type_def, initial_value=None,
+                 parent=None, callback=None, label=None):
+        self._type_definition = type_def
+        self._parent = parent
+        self._callback = callback
+        self._buffered = False
+        self._label = label
+        self._set = set()
+        if initial_value is not None:
+            self &= initial_value
+
+    def __contains__(self, item):
+        return item in self._set
+
+    def __iter__(self):
+        yield from self._set
+
+    def __len__(self):
+        return len(self._set)
+
+    def add(self, item):
+        if item not in self:
+            try:
+                validated_value = self._type_definition(item)
+            except TypeConversionError as err:
+                raise TypeConversionError(
+                    "Error adding item {} to set.".format(item)) from err
+            else:
+                self._set.add(_to_hoomd_data_structure(
+                    validated_value, self._type_definition, self))
+        self._update()
+
+    def discard(self, item):
+        self._set.discard(item)
+
+    def to_base(self):
+        return_set = set()
+        for item in self:
+            if isinstance(item, _HOOMDDataStructures):
+                return_set.add(item.to_base())
+            else:
+                try:
+                    use_item = deepcopy(item)
+                except Exception:
+                    use_item = item
+                return_set.add(use_item)
+        return return_set
+
+    def _handle_update(self, label=None):
+        if self._parent is not None:
+            self._update()
+        elif self._callback is not None:
+            self._callback(self)
+
+    def __ior__(self, other):
+        with self._buffer():
+            super().__ior__(other)
+        self._update()
+        return self
+
+    def __iand__(self, other):
+        with self._buffer():
+            super().__iand__(other)
+        self._update()
+        return self
+
+    def __ixor__(self, other):
+        with self._buffer():
+            super().__ixor__(other)
+        self._update()
+        return self
+
+    def __isub__(self, other):
+        with self._buffer():
+            super().__isub__(other)
+        self._update()
+        return self
