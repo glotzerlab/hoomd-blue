@@ -2,6 +2,7 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import MutableMapping, MutableSequence, MutableSet
 from contextlib import contextmanager
 from copy import deepcopy
+from itertools import cycle
 
 from hoomd.typeconverter import TypeConversionError
 
@@ -52,7 +53,8 @@ class _HOOMDList(MutableSequence, _HOOMDDataStructures):
         self._label = label
         self._buffered = False
         if initial_value is not None:
-            self.extend(initial_value)
+            for type_def, val in zip(cycle(type_definition), initial_value):
+                self._list.append(_to_hoomd_data_structure(val, type_def, self))
 
     def __getitem__(self, index):
         return self._list[index]
@@ -168,7 +170,9 @@ class _HOOMDDict(MutableMapping, _HOOMDDataStructures):
         self._dict = {}
         self._label = label
         if initial_value is not None:
-            self.update(initial_value)
+            for key, val in initial_value.items():
+                self._dict[key] = _to_hoomd_data_structure(
+                    val, type_def[key], self, key)
 
     def __getitem__(self, item):
         return self._dict[item]
@@ -232,7 +236,8 @@ class _HOOMDSet(MutableSet, _HOOMDDataStructures):
         self._label = label
         self._set = set()
         if initial_value is not None:
-            self &= initial_value
+            for val in initial_value:
+                self._set.add(_to_hoomd_data_structure(val, type_def, self))
 
     def __contains__(self, item):
         return item in self._set

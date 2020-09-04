@@ -18,6 +18,7 @@ from hoomd.typeconverter import RequiredArg
 from hoomd.util import NamespaceDict
 from hoomd._hoomd import GSDStateReader
 from hoomd._param_dict import ParameterDict
+from hoomd._data_structures import _HOOMDDataStructures
 
 from collections.abc import Mapping
 from copy import deepcopy
@@ -164,7 +165,7 @@ class _StatefulAttrBase(_HOOMDGetSetAttrBase, metaclass=Loggable):
     def _get_state(self):
         """Hook to allow subclasses to overwrite state property."""
         state = self._typeparam_states()
-        state['__params__'] = dict(self._param_dict)
+        state['__params__'] = self._param_dict.to_base()
         return dict_filter(dict_map(state, _convert_values_to_log_form),
                            lambda x: x is not RequiredArg)
 
@@ -374,14 +375,16 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
 
     def _getattr_param(self, attr):
         if self._attached:
-            return getattr(self._cpp_obj, attr)
-        else:
-            return self._param_dict[attr]
+            cpp_val = getattr(self._cpp_obj, attr)
+            self._param_dict[attr] = cpp_val
+        return self._param_dict[attr]
 
     def _setattr_param(self, attr, value):
         self._param_dict[attr] = value
         if self._attached:
             new_value = self._param_dict[attr]
+            if isinstance(new_value, _HOOMDDataStructures):
+                new_value = new_value.to_base()
             try:
                 setattr(self._cpp_obj, attr, new_value)
             except (AttributeError):
@@ -447,8 +450,9 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
                                  " ".format(typeparam.name) + verr.args[0])
 
     def _update_param_dict(self):
-        for key in self._param_dict.keys():
-            self._param_dict[key] = getattr(self, key)
+        if self._attached:
+            for key in self._param_dict.keys():
+                self._param_dict[key] = getattr(self._cpp_obj, key)
 
     @log(flag='state')
     def state(self):
