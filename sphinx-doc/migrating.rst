@@ -1,17 +1,67 @@
 Migrating to HOOMD v3
 =====================
 
-HOOMD v3 introduces a number of breaking changes for both users and developers
+HOOMD v3 introduces many breaking changes for both users and developers
 in order to provide a cleaner python interface, enable new functionalities, and
 move away from unsupported tools. This guide highlights those changes.
-
-
 
 Removed functionality
 ---------------------
 
 HOOMD v3 removes old APIs and unused functionality. See :doc:`deprecated` for a
 full list.
+
+Overview of API changes
+-----------------------
+
+HOOMD v3 introduces a completely new API. All classes have been renamed to match
+PEP8 naming guidelines and have new or renamed parameters, methods, and
+properties. See the tutorials and the Python module documentation for full
+class-level details.
+
+Here is a module level overview of features that have been moved or removed:
+
+.. list-table::
+   :header-rows: 1
+
+   * - v2 module, class, or method
+     - Replaced with
+   * - ``hoomd.analyze.log``
+     - `hoomd.logging`
+   * - ``hoomd.benchmark``
+     - *Removed.* Use Python standard libraries for timing.
+   * - ``hoomd.cite``
+     - *Removed.* See `citing`.
+   * - ``hoomd.compute.thermo``
+     - ``hoomd.md.compute.ThermodynamicQuantities``
+   * - ``hoomd.context.initialize``
+     - `hoomd.device.CPU` and `hoomd.device.GPU`
+   * - ``hoomd.data``
+     - `hoomd.State`
+   * - ``hoomd.group``
+     - `hoomd.filter`
+   * - ``hoomd.init``
+     - `hoomd.State` ``create_from_`` factory methods
+   * - ``hoomd.lattice``
+     - *Removed.* Use an external tool.
+   * - ``hoomd.meta``
+     - `hoomd.logging.Logger` logs operation's ``state`` dictionaries.
+   * - ``hoomd.option``
+     - *Removed.* Use Python standard libraries for option parsing.
+   * - ``hoomd.update``
+     - Some classes have been moved to `hoomd.tune`.
+   * - ``hoomd.util``
+     -  Enable GPU profiling with `hoomd.device.GPU.enable_profiling`.
+   * - ``hoomd.hdf5``
+     - *Removed.* A future release may re-implement HDF5 logging.
+   * - ``hoomd.hpmc.analyze.sdf``
+     - ``hoomd.hpmc.compute.SDF``
+   * - ``hoomd.hpmc.data``
+     - HPMC integrator properties.
+   * - ``hoomd.hpmc.util``
+     - ``hoomd.hpmc.tune``
+   * - ``hoomd.md.integrate.mode_standard``
+     - `hoomd.md.Integrator`
 
 Compiling
 ---------
