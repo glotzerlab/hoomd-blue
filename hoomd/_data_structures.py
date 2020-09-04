@@ -12,10 +12,6 @@ class _HOOMDDataStructures(metaclass=ABCMeta):
     def to_base(self):
         pass
 
-    @abstractmethod
-    def _handle_update(self, obj, label=None):
-        pass
-
     @contextmanager
     def _buffer(self):
         self._buffered = True
@@ -25,10 +21,8 @@ class _HOOMDDataStructures(metaclass=ABCMeta):
     def _update(self):
         if self._buffered:
             return
-        elif self._parent is not None:
-            self._parent._handle_update(self, self._label)
         else:
-            self._handle_update(self)
+            self._parent._handle_update(self, self._label)
 
 
 def _to_hoomd_data_structure(data, type_def,
@@ -44,11 +38,10 @@ def _to_hoomd_data_structure(data, type_def,
 
 
 class _HOOMDList(MutableSequence, _HOOMDDataStructures):
-    def __init__(self, type_definition, initial_value=None,
-                 parent=None, callback=None, label=None):
+    def __init__(self, type_definition, parent, initial_value=None,
+                 label=None):
         self._type_definition = type_definition
         self._parent = parent
-        self._callback = callback
         self._list = []
         self._label = label
         self._buffered = False
@@ -153,12 +146,6 @@ class _HOOMDList(MutableSequence, _HOOMDDataStructures):
                 return_list.append(use_entry)
         return return_list
 
-    def _handle_update(self, obj, label=None):
-        if self._parent is not None:
-            self._update()
-        elif self._callback is not None:
-            self._callback(self)
-
     def __str__(self):
         return str(self._list)
 
@@ -169,12 +156,10 @@ class _HOOMDList(MutableSequence, _HOOMDDataStructures):
 class _HOOMDDict(MutableMapping, _HOOMDDataStructures):
     _dict = {}
 
-    def __init__(self, type_def, initial_value=None,
-                 parent=None, callback=None, label=None):
+    def __init__(self, type_def, parent, initial_value=None, label=None):
         self._dict = {}
         self._type_definition = type_def
         self._parent = parent
-        self._callback = callback
         self._buffered = False
         self._label = label
         if initial_value is not None:
@@ -236,12 +221,6 @@ class _HOOMDDict(MutableMapping, _HOOMDDataStructures):
                 return_dict[key] = use_entry
         return return_dict
 
-    def _handle_update(self, obj, label=None):
-        if self._parent is not None:
-            self._update()
-        elif self._callback is not None:
-            self._callback(self)
-
     def __str__(self):
         return str(self._dict)
 
@@ -250,11 +229,9 @@ class _HOOMDDict(MutableMapping, _HOOMDDataStructures):
 
 
 class _HOOMDSet(MutableSet, _HOOMDDataStructures):
-    def __init__(self, type_def, initial_value=None,
-                 parent=None, callback=None, label=None):
+    def __init__(self, type_def, parent, initial_value=None, label=None):
         self._type_definition = type_def
         self._parent = parent
-        self._callback = callback
         self._buffered = False
         self._label = label
         self._set = set()
@@ -298,12 +275,6 @@ class _HOOMDSet(MutableSet, _HOOMDDataStructures):
                     use_item = item
                 return_set.add(use_item)
         return return_set
-
-    def _handle_update(self, obj, label=None):
-        if self._parent is not None:
-            self._update()
-        elif self._callback is not None:
-            self._callback(self)
 
     def __ior__(self, other):
         with self._buffer():
