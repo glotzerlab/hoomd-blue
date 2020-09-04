@@ -13,7 +13,7 @@ class _HOOMDDataStructures(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def _handle_update(self, label=None):
+    def _handle_update(self, obj, label=None):
         pass
 
     @contextmanager
@@ -26,9 +26,9 @@ class _HOOMDDataStructures(metaclass=ABCMeta):
         if self._buffered:
             return
         elif self._parent is not None:
-            self._parent._handle_update(self._label)
+            self._parent._handle_update(self, self._label)
         else:
-            self._handle_update()
+            self._handle_update(self)
 
 
 def _to_hoomd_data_structure(data, type_def,
@@ -153,7 +153,7 @@ class _HOOMDList(MutableSequence, _HOOMDDataStructures):
                 return_list.append(use_entry)
         return return_list
 
-    def _handle_update(self, label=None):
+    def _handle_update(self, obj, label=None):
         if self._parent is not None:
             self._update()
         elif self._callback is not None:
@@ -219,7 +219,7 @@ class _HOOMDDict(MutableMapping, _HOOMDDataStructures):
                 return_dict[key] = use_entry
         return return_dict
 
-    def _handle_update(self, label=None):
+    def _handle_update(self, obj, label=None):
         if self._parent is not None:
             self._update()
         elif self._callback is not None:
@@ -276,7 +276,7 @@ class _HOOMDSet(MutableSet, _HOOMDDataStructures):
                 return_set.add(use_item)
         return return_set
 
-    def _handle_update(self, label=None):
+    def _handle_update(self, obj, label=None):
         if self._parent is not None:
             self._update()
         elif self._callback is not None:
