@@ -1,10 +1,12 @@
 from itertools import product, combinations_with_replacement
-from copy import copy
+from copy import copy, deepcopy
 from collections.abc import MutableMapping
 from hoomd.util import to_camel_case, is_iterable
 from hoomd.typeconverter import (
     to_type_converter, TypeConversionError, RequiredArg)
 from hoomd.smart_default import toDefault, SmartDefault, NoDefault
+from hoomd._data_structures import (
+    _to_hoomd_data_structure, _HOOMDDataStructures, _HOOMDDict)
 
 
 def has_str_elems(obj):
@@ -172,7 +174,8 @@ class TypeParameterDict(_ValidatedDefaultDict, MutableMapping):
             try:
                 vals[key] = self._dict[key]
             except KeyError:
-                vals[key] = self.default
+                vals[key] = _to_hoomd_data_structure(
+                    self.default, self._type_converter, self, key)
         return proper_type_return(vals)
 
     def __setitem__(self, key, val):
@@ -183,7 +186,8 @@ class TypeParameterDict(_ValidatedDefaultDict, MutableMapping):
             raise TypeConversionError(
                 "For types {}, error {}.".format(list(keys), str(err)))
         for key in keys:
-            self._dict[key] = val
+            self._dict[key] = _to_hoomd_data_structure(
+                val, self._type_converter, self, key)
 
     def __delitem__(self, key):
         for key in self._yield_keys(key):
@@ -212,7 +216,7 @@ class TypeParameterDict(_ValidatedDefaultDict, MutableMapping):
                 rtn_dict[key] = new_value
         return rtn_dict
 
-    def _handle_update(self, label=None):
+    def _handle_update(self, obj, label=None):
         pass
 
 
@@ -248,7 +252,9 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict, MutableMapping):
     def __getitem__(self, key):
         vals = dict()
         for key in self._yield_keys(key):
-            vals[key] = getattr(self._cpp_obj, self._getter)(key)
+            cpp_val = getattr(self._cpp_obj, self._getter)(key)
+            vals[key] = _to_hoomd_data_structure(
+                cpp_val, self._type_converter, self, key)
         return proper_type_return(vals)
 
     def __setitem__(self, key, val):
@@ -311,3 +317,6 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict, MutableMapping):
         for key in self:
             rtn_dict[key] = getattr(self._cpp_obj, self._getter)(key)
         return rtn_dict
+
+    def _handle_update(self, obj, label=None):
+        self[label] = obj
