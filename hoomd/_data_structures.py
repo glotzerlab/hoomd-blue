@@ -4,7 +4,9 @@ from contextlib import contextmanager
 from copy import deepcopy
 from itertools import cycle
 
-from hoomd.typeconverter import TypeConversionError
+from hoomd.typeconverter import (
+    TypeConversionError, TypeConverterValue, OnlyIf, Either,
+    TypeConverterMapping, TypeConverterSequence, TypeConverter)
 
 
 class _HOOMDDataStructures(metaclass=ABCMeta):
@@ -25,14 +27,40 @@ class _HOOMDDataStructures(metaclass=ABCMeta):
             self._parent._handle_update(self, self._label)
 
 
+def _get_inner_typeconverter(type_def, desired_type):
+    rtn_type_def = None
+    if isinstance(type_def, TypeConverterValue):
+        if isinstance(type_def.converter, OnlyIf):
+            if isinstance(type_def.converter.cond, desired_type):
+                rtn_type_def = type_def.converter.cond
+        elif isinstance(type_def.converter, Either):
+            for spec in type_def.converter.specs:
+                matches = []
+                if isinstance(spec, desired_type):
+                    matches.append(spec)
+                if len(matches) > 1:
+                    raise ValueError(
+                        "Parameter defined with multiple valid definitions of "
+                        "the same type.")
+                elif len(matches) == 1:
+                    rtn_type_def = matches[0]
+    elif isinstance(type_def, desired_type):
+        rtn_type_def = type_def
+    if rtn_type_def is None:
+        raise RuntimeError("Unable to find type definition for attribute.")
+    return rtn_type_def
+
+
 def _to_hoomd_data_structure(data, type_def,
                              parent=None, label=None, callback=None):
     if isinstance(data, MutableMapping):
-        return _HOOMDDict(type_def, data, parent, callback, label)
+        typing = _get_inner_typeconverter(type_def, TypeConverterMapping)
+        return _HOOMDDict(typing, parent, data, label)
     elif isinstance(data, MutableSequence):
-        return _HOOMDList(type_def, data, parent, callback, label)
+        typing = _get_inner_typeconverter(type_def, TypeConverterSequence)
+        return _HOOMDList(typing, parent, data, label)
     elif isinstance(data, MutableSet):
-        return _HOOMDSet(type_def, data, parent, callback, label)
+        return _HOOMDSet(typing, parent, data, label, TypeConverterValue)
     else:
         return data
 
