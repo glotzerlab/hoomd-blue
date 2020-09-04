@@ -159,6 +159,12 @@ class _HOOMDList(MutableSequence, _HOOMDDataStructures):
         elif self._callback is not None:
             self._callback(self)
 
+    def __str__(self):
+        return str(self._list)
+
+    def __repr__(self):
+        return repr(self._list)
+
 
 class _HOOMDDict(MutableMapping, _HOOMDDataStructures):
     _dict = {}
@@ -235,6 +241,12 @@ class _HOOMDDict(MutableMapping, _HOOMDDataStructures):
             self._update()
         elif self._callback is not None:
             self._callback(self)
+
+    def __str__(self):
+        return str(self._dict)
+
+    def __repr__(self):
+        return repr(self._dict)
 
 
 class _HOOMDSet(MutableSet, _HOOMDDataStructures):
@@ -316,3 +328,9 @@ class _HOOMDSet(MutableSet, _HOOMDDataStructures):
             super().__isub__(other)
         self._update()
         return self
+
+    def __str__(self):
+        return str(self._set)
+
+    def __repr__(self):
+        return repr(self._set)
