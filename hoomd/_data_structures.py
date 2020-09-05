@@ -199,7 +199,11 @@ class _HOOMDDict(MutableMapping, _HOOMDDataStructures):
         return self._dict[item]
 
     def __getattr__(self, attr):
-        return self[attr]
+        try:
+            return self[attr]
+        except KeyError:
+            raise AttributeError("{} object has not attribute {}.".format(
+                self, attr))
 
     def __setattr__(self, attr, value):
         if attr in self._dict:
