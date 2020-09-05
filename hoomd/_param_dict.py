@@ -17,12 +17,14 @@ class ParameterDict(MutableMapping):
                 default_val[key], type_def[key], self, key)
 
     def __setitem__(self, key, value):
-        if key not in self._type_converter.keys():
+        if key not in self:
             type_def = to_type_converter(value)
             self._type_converter[key] = type_def
             self._dict[key] = _to_hoomd_data_structure(
                 value, type_def, self, key)
         else:
+            if isinstance(self._dict[key], _HOOMDDataStructures):
+                self._dict[key]._parent = None
             type_def = self._type_converter[key]
             self._dict[key] = _to_hoomd_data_structure(
                 type_def(value), type_def, self, key)
@@ -65,6 +67,8 @@ class ParameterDict(MutableMapping):
             super().update(dict_)
 
     def setitem_with_validation_function(self, key, value, converter):
+        if key in self and isinstance(self[key], _HOOMDDataStructures):
+            self[key]._parent = None
         self._type_converter[key] = converter
         self._dict[key] = value
 

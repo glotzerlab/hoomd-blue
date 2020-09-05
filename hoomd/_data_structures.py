@@ -23,7 +23,7 @@ class _HOOMDDataStructures(metaclass=ABCMeta):
     def _update(self):
         if self._buffered:
             return
-        else:
+        elif parent is not None:
             self._parent._handle_update(self, self._label)
 
 
@@ -93,6 +93,8 @@ class _HOOMDList(MutableSequence, _HOOMDDataStructures):
                 raise TypeConversionError(
                     "Error in setting item {} in list.".format(index)) from err
             else:
+                if isinstance(self._list[i], _HOOMDDataStructures):
+                    self._list[i]._parent = None
                 self._list[i] = _to_hoomd_data_structure(
                     validated_value, type_def, self)
         self._update()
@@ -222,6 +224,8 @@ class _HOOMDDict(MutableMapping, _HOOMDDataStructures):
             raise TypeConversionError(
                 "Error setting key {}.".format(key)) from err
         else:
+            if isinstance(self._dict[key], _HOOMDDataStructures):
+                self._dict[key]._parent = None
             self._dict[key] = _to_hoomd_data_structure(
                 validated_value, type_def, self, key)
         self._update()

@@ -174,8 +174,10 @@ class TypeParameterDict(_ValidatedDefaultDict, MutableMapping):
             try:
                 vals[key] = self._dict[key]
             except KeyError:
-                vals[key] = _to_hoomd_data_structure(
+                data_struct = _to_hoomd_data_structure(
                     self.default, self._type_converter, self, key)
+                self._dict[key] = data_struct
+                vals[key] = data_struct
         return proper_type_return(vals)
 
     def __setitem__(self, key, val):
@@ -186,6 +188,8 @@ class TypeParameterDict(_ValidatedDefaultDict, MutableMapping):
             raise TypeConversionError(
                 "For types {}, error {}.".format(list(keys), str(err)))
         for key in keys:
+            if key in self and isinstance(self[key], _HOOMDDataStructures):
+                self[key]._parent = None
             self._dict[key] = _to_hoomd_data_structure(
                 val, self._type_converter, self, key)
 
@@ -233,6 +237,12 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict, MutableMapping):
         # Get default data
         self._default = type_param_dict._default
         self._type_converter = type_param_dict._type_converter
+
+        # Change parent of data classes
+        for value in type_param_dict.values():
+            if isinstance(value, _HOOMDDataStructures):
+                value._parent = self
+        self._dict = type_param_dict._dict
         # add all types to c++
         for key in self:
             self[key] = type_param_dict[key]
@@ -253,8 +263,13 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict, MutableMapping):
         vals = dict()
         for key in self._yield_keys(key):
             cpp_val = getattr(self._cpp_obj, self._getter)(key)
-            vals[key] = _to_hoomd_data_structure(
+            if (key in self._dict
+                    and isinstance(self._dict[key], _HOOMDDataStructures)):
+                self._dict[key]._parent = None
+            data_struct = _to_hoomd_data_structure(
                 cpp_val, self._type_converter, self, key)
+            self._dict[key] = data_struct
+            vals[key] = data_struct
         return proper_type_return(vals)
 
     def __setitem__(self, key, val):
@@ -264,9 +279,15 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict, MutableMapping):
         except TypeConversionError as err:
             raise TypeConversionError(
                 "For types {}, error {}.".format(list(keys), str(err)))
-
         for key in keys:
             getattr(self._cpp_obj, self._setter)(key, val)
+            data_struct = _to_hoomd_data_structure(
+                val, self._type_converter, self, key)
+            if isinstance(data_struct, _HOOMDDataStructures):
+                if (key in self._dict
+                        and isinstance(self._dict[key], _HOOMDDataStructures)):
+                    self._dict[key]._parent = None
+                self._dict[key] = data_struct
 
     def __iter__(self):
         single_keys = getattr(self._sim.state, self._type_kind)
@@ -319,4 +340,4 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict, MutableMapping):
         return rtn_dict
 
     def _handle_update(self, obj, label=None):
-        self[label] = obj
+        getattr(self._cpp_obj, self._setter)(label, obj.to_base())
