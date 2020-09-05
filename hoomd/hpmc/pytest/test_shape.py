@@ -19,6 +19,10 @@ def check_dict(shape_dict, args):
     Useful for more complex nested dictionaries (like the shape key in unions)
     Used to test that the dictionary passed in is what gets passed out
     """
+    try:
+        shape_dict = shape_dict.to_base()
+    except AttributeError:
+        pass
     for key, val in args.items():
         if isinstance(shape_dict[key], list) and len(shape_dict[key]) > 0 \
            and key != 'shapes':
@@ -27,6 +31,10 @@ def check_dict(shape_dict, args):
             for i in range(len(shape_dict[key])):
                 shape_args = shape_dict[key][i]
                 val_args = val[i]
+                try:
+                    val_args = val_args.to_base()
+                except AttributeError:
+                    pass
                 for shape_key in shape_args:
                     if isinstance(shape_args[shape_key], list) \
                        and len(shape_args[shape_key]) > 0:
@@ -41,7 +49,7 @@ def check_dict(shape_dict, args):
 def test_dict_conversion(cpp_args):
     shape_params = cpp_args[0]
     args = cpp_args[1]
-    test_shape = shape_params(args)
+    test_shape = shape_params(args.to_base())
     test_dict = test_shape.asDict()
     check_dict(test_dict, args)
 
