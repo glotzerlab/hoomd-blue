@@ -81,18 +81,18 @@ class NVT(_Method):
         # set defaults
         self._param_dict.update(param_dict)
 
-    def attach(self, simulation):
+    def _attach(self):
 
         # initialize the reflected cpp class
-        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+        if isinstance(self._simulation.device, hoomd.device.CPU):
             my_class = _md.TwoStepNVTMTK
             thermo_cls = _hoomd.ComputeThermo
         else:
             my_class = _md.TwoStepNVTMTKGPU
             thermo_cls = _hoomd.ComputeThermoGPU
 
-        group = simulation.state.get_group(self.filter)
-        cpp_sys_def = simulation.state._cpp_sys_def
+        group = self._simulation.state.get_group(self.filter)
+        cpp_sys_def = self._simulation.state._cpp_sys_def
         thermo = thermo_cls(cpp_sys_def, group, "")
         self._cpp_obj = my_class(cpp_sys_def,
                                  group,
@@ -100,7 +100,7 @@ class NVT(_Method):
                                  self.tau,
                                  self.kT,
                                  "")
-        super().attach(simulation)
+        super()._attach()
 
 
 class npt(_Method):
@@ -604,18 +604,18 @@ class NVE(_Method):
         # set defaults
         self._param_dict.update(param_dict)
 
-    def attach(self, simulation):
+    def _attach(self):
 
         # initialize the reflected c++ class
-        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
-            self._cpp_obj = _md.TwoStepNVE(simulation.state._cpp_sys_def,
-                                        simulation.state.get_group(self.filter), False)
+        if isinstance(self._simulation.device, hoomd.device.CPU):
+            self._cpp_obj = _md.TwoStepNVE(self._simulation.state._cpp_sys_def,
+                                        self._simulation.state.get_group(self.filter), False)
         else:
-            self._cpp_obj = _md.TwoStepNVEGPU(simulation.state._cpp_sys_def, 
-                                 simulation.state.get_group(self.filter))
+            self._cpp_obj = _md.TwoStepNVEGPU(self._simulation.state._cpp_sys_def,
+                                 self._simulation.state.get_group(self.filter))
 
         # Attach param_dict and typeparam_dict
-        super().attach(simulation)
+        super()._attach()
 
 class Langevin(_Method):
     R""" Langevin dynamics.
@@ -734,20 +734,20 @@ class Langevin(_Method):
 
         self._extend_typeparam([gamma,gamma_r])
 
-    def attach(self, simulation):
+    def _attach(self):
 
         # initialize the reflected c++ class
-        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+        if isinstance(self._simulation.device, hoomd.device.CPU):
             my_class = _md.TwoStepLangevin
         else:
             my_class = _md.TwoStepLangevinGPU
 
-        self._cpp_obj = my_class(simulation.state._cpp_sys_def,
-                                 simulation.state.get_group(self.filter),
+        self._cpp_obj = my_class(self._simulation.state._cpp_sys_def,
+                                 self._simulation.state.get_group(self.filter),
                                  self.kT, self.seed)
 
         # Attach param_dict and typeparam_dict
-        super().attach(simulation)
+        super()._attach()
 
 
 class Brownian(_Method):
@@ -849,20 +849,21 @@ class Brownian(_Method):
         self._extend_typeparam([gamma,gamma_r])
 
 
-    def attach(self, simulation):
+    def _attach(self):
 
         # initialize the reflected c++ class
-        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
-            self._cpp_obj = _md.TwoStepBD(simulation.state._cpp_sys_def,
-                                          simulation.state.get_group(self.filter),
+        sim = self._simulation
+        if isinstance(sim.device, hoomd.device.CPU):
+            self._cpp_obj = _md.TwoStepBD(sim.state._cpp_sys_def,
+                                          sim.state.get_group(self.filter),
                                           self.kT, self.seed)
         else:
-            self._cpp_obj = _md.TwoStepBDGPU(simulation.state._cpp_sys_def,
-                                             simulation.state.get_group(self.filter),
+            self._cpp_obj = _md.TwoStepBDGPU(sim.state._cpp_sys_def,
+                                             sim.state.get_group(self.filter),
                                              self.kT, self.seed)
 
         # Attach param_dict and typeparam_dict
-        super().attach(simulation)
+        super()._attach()
 
 
 class berendsen(_Method):

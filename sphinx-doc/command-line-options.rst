@@ -264,17 +264,6 @@ You can group multiple MPI ranks into partitions, to simulate independent replic
 This sub-divides the total of 12 MPI ranks into four independent partitions, with
 to which 3 GPUs each are assigned.
 
-User options
-^^^^^^^^^^^^
-
-User defined options may be passed to a job script via ``--user`` and retrieved by calling ``hoomd.option.get_user()``. For example,
-if hoomd is executed with::
-
-    python script.py --gpu=2 --ignore-display-gpu --user="--N=5 --rho=0.5"
-
-then ``hoomd.option.get_user()`` will return ``['--N=5', '--rho=0.5']``, which is a format suitable for processing by standard
-tools such as :py:obj:`optparse`.
-
 Execution with CPU threads (Intel TBB support)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -285,5 +274,5 @@ the number of threads can be set. On the command line, this is done using::
     python script.py --mode=cpu --nthreads=20
 
 Alternatively, the same option can be passed to ``hoomd.context.initialize``, and the number of threads can be updated any time
-by using the property :py:attr:`hoomd.device.num_threads`. If no number of threads is specified, TBB by default uses
+by using the property ``hoomd.device.num_threads``. If no number of threads is specified, TBB by default uses
 all CPUs  in the system. For compatibility with OpenMP, HOOMD also honors a value set in the environment variable **OMP_NUM_THREADS**.

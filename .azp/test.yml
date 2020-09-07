@@ -301,4 +301,5 @@ stages:
     - script: >-
         pydocstyle -v
         hoomd/variant.py
+        hoomd/device.py
       displayName: Run pydocstyle

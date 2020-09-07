@@ -24,6 +24,7 @@ The following people have contributed to the to HOOMD-blue:
 * Bryan VanSaders, University of Michgan
 * Carl Simon Adorf, University of Michigan
 * Carolyn Phillips, University of Michigan
+* Charlie Slominski, Caltech
 * Chengyu Dai, University of Michigan
 * Christoph Junghans
 * Christoph Klein, Vanderbilt University
@@ -78,7 +79,7 @@ The following people have contributed to the to HOOMD-blue:
 * Sam Nola, University of Michigan
 * Simone Ciarella, Eindhoven University of Technology
 * Shannon Moran, University of Michigan
-* Sophie Youjung Lee, University of Michigan
+* Sophie YouJung Lee, University of Michigan
 * Stephen Thomas, Boise State University
 * Steve Barr, Princeton University
 * Sumedh R. Risbud, Massachusetts Institute of Technology

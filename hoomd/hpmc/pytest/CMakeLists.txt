@@ -3,6 +3,8 @@ set(files __init__.py
           test_shape.py
           test_move_size_tuner.py
           test_quick_compress.py
+          test_small_box_2d.py
+          test_small_box_3d.py
           conftest.py
     )
 

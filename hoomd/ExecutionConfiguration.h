@@ -51,10 +51,6 @@
 class CachedAllocator;
 #endif
 
-// values used in measuring hoomd launch timing
-extern unsigned int hoomd_launch_time, hoomd_start_time, hoomd_mpi_init_time;
-extern bool hoomd_launch_timing;
-
 //! Defines the execution configuration for the simulation
 /*! \ingroup data_structs
     ExecutionConfiguration is a data structure needed to support the hybrid CPU/GPU code. It initializes the CUDA GPU
@@ -71,8 +67,9 @@ extern bool hoomd_launch_timing;
     GPU context and will error out on machines that do not have GPUs. isCUDAEnabled() is a convenience function to
     interpret the exec_mode and test if CUDA calls can be made or not.
 */
-struct PYBIND11_EXPORT ExecutionConfiguration
+class PYBIND11_EXPORT ExecutionConfiguration
     {
+    public:
     //! Simple enum for the execution modes
     enum executionMode
         {
@@ -84,8 +81,6 @@ struct PYBIND11_EXPORT ExecutionConfiguration
     //! Constructor
     ExecutionConfiguration(executionMode mode=AUTO,
                            std::vector<int> gpu_id = std::vector<int>(),
-                           bool min_cpu=false,
-                           bool ignore_display=false,
                            std::shared_ptr<MPIConfiguration> mpi_config=std::shared_ptr<MPIConfiguration>(),
                            std::shared_ptr<Messenger> _msg=std::shared_ptr<Messenger>()
                            );
@@ -115,11 +110,6 @@ struct PYBIND11_EXPORT ExecutionConfiguration
         }
 #endif
 
-    executionMode exec_mode;    //!< Execution mode specified in the constructor
-    unsigned int n_cpu;         //!< Number of CPUS hoomd is executing on
-    bool m_hip_error_checking;                //!< Set to true if GPU error checking is enabled
-
-    std::shared_ptr<MPIConfiguration> m_mpi_config; //!< The MPI object holding the MPI communicator
     std::shared_ptr<Messenger> msg;          //!< Messenger for use in printing messages to the screen / log file
 
     //! Returns true if CUDA is enabled
@@ -208,17 +198,6 @@ struct PYBIND11_EXPORT ExecutionConfiguration
     //! End a multi-GPU section
     void endMultiGPU() const;
 
-    //! Get the name of the executing GPU (or the empty string)
-    std::string getGPUName(unsigned int idev=0) const;
-
-#if defined(ENABLE_HIP)
-    //! Get the device properties of a logical GPU
-    hipDeviceProp_t getDeviceProperties(unsigned int idev) const
-        {
-        return m_dev_prop[idev];
-        }
-#endif
-
     bool allConcurrentManagedAccess() const
         {
         // return cached value
@@ -227,11 +206,6 @@ struct PYBIND11_EXPORT ExecutionConfiguration
 
 #ifdef ENABLE_HIP
     hipDeviceProp_t dev_prop;              //!< Cached device properties of the first GPU
-    std::vector<unsigned int> m_gpu_id;   //!< IDs of active GPUs
-    std::vector<hipDeviceProp_t> m_dev_prop; //!< Device configuration of active GPUs
-
-    //! Get the compute capability of the GPU that we are running on
-    std::string getComputeCapabilityAsString(unsigned int igpu = 0) const;
 
     //! Get the compute capability of the GPU
     unsigned int getComputeCapability(unsigned int igpu = 0) const;
@@ -337,6 +311,29 @@ struct PYBIND11_EXPORT ExecutionConfiguration
         return m_in_multigpu_block;
         }
 
+    /// Get a list of the capable devices
+    static std::vector<std::string> getCapableDevices()
+        {
+        #ifdef ENABLE_HIP
+        scanGPUs();
+        #endif
+        return s_capable_gpu_descriptions;
+        }
+
+    /// Get a list of the capable devices
+    static std::vector<std::string> getScanMessages()
+        {
+        #ifdef ENABLE_HIP
+        scanGPUs();
+        #endif
+        return s_gpu_scan_messages;
+        }
+
+    /// Get the active devices
+    std::vector<std::string> getActiveDevices()
+        {
+        return m_active_device_descriptions;
+        }
 private:
     //! Guess local rank of this processor, used for GPU initialization
     /*! \returns Local rank guessed from common environment variables
@@ -346,32 +343,54 @@ private:
     int guessLocalRank(bool &found);
 
 #if defined(ENABLE_HIP)
-    //! Initialize the GPU with the given id
-    void initializeGPU(int gpu_id, bool min_cpu);
+    //! Initialize the GPU with the given id (where gpu_id is an index into s_capable_gpu_ids)
+    void initializeGPU(int gpu_id);
 
-    //! Print out stats on the chosen GPUs
-    void printGPUStats();
+    /// Provide a string that describes a GPU device
+    static std::string describeGPU(int id, hipDeviceProp_t prop);
 
-    //! Scans through all GPUs reported by CUDA and marks if they are available
-    void scanGPUs(bool ignore_display);
+    /** Scans through all GPUs reported by CUDA and marks if they are available
 
-    //! Returns true if the given GPU is available for computation
-    bool isGPUAvailable(int gpu_id);
+        Determine which GPUs are available for use by HOOMD.
 
-    //! Returns the count of capable GPUs
-    int getNumCapableGPUs();
+        @post Populate s_gpu_scan_complete, s_gpu_scan_messages, s_gpu_list, and
+        s_capable_gpu_descriptions.
+    */
+    static void scanGPUs();
 
-    //! Return the number of GPUs that can be checked for availability
-    unsigned int getNumTotalGPUs()
-        {
-        return (unsigned int)m_gpu_available.size();
-        }
-
-    std::vector< bool > m_gpu_available;    //!< true if the GPU is available for computation, false if it is not
-    bool m_system_compute_exclusive;        //!< true if every GPU in the system is marked compute-exclusive
-    std::vector< int > m_gpu_list;          //!< A list of capable GPUs listed in priority order
     std::vector< hipEvent_t > m_events;      //!< A list of events to synchronize between GPUs
+
+    /// IDs of active GPUs
+    std::vector<unsigned int> m_gpu_id;
+
+    /// Device configuration of active GPUs
+    std::vector<hipDeviceProp_t> m_dev_prop;
 #endif
+
+    /// Execution mode
+    executionMode exec_mode;
+
+    /// True when GPU error checking is enabled
+    bool m_hip_error_checking;
+
+    /// The MPI configuration
+    std::shared_ptr<MPIConfiguration> m_mpi_config;
+
+    /// Set to true
+    static bool s_gpu_scan_complete;
+
+    /// Status messages generated during the device scan
+    static std::vector<std::string> s_gpu_scan_messages;
+
+    /// List of the capable device IDs
+    static std::vector< int > s_capable_gpu_ids;
+
+    /// Description of the GPU devices
+    static std::vector<std::string> s_capable_gpu_descriptions;
+
+    /// Descriptions of the active devices
+    std::vector<std::string> m_active_device_descriptions;
+
     bool m_concurrent;                      //!< True if all GPUs have concurrentManagedAccess flag
 
     mutable bool m_in_multigpu_block;       //!< Tracks whether we are in a multi-GPU block

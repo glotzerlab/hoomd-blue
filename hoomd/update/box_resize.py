@@ -62,12 +62,13 @@ class BoxResize(_Updater):
         self._param_dict.update(params)
         super().__init__(trigger)
 
-    def attach(self, simulation):
-        self._cpp_obj = _hoomd.BoxResizeUpdater(simulation.state._cpp_sys_def,
-                                                self.box1,
-                                                self.box2,
-                                                self.variant)
-        super().attach(simulation)
+    def _attach(self):
+        self._cpp_obj = _hoomd.BoxResizeUpdater(
+            self._simulation.state._cpp_sys_def,
+            self.box1,
+            self.box2,
+            self.variant)
+        super()._attach()
 
     def get_box(self, timestep):
         """Get the box for a given timestep.
@@ -79,7 +80,7 @@ class BoxResize(_Updater):
         Returns:
             Box: The box used at the given timestep.
         """
-        if self.is_attached:
+        if self._attached:
             timestep = int(timestep)
             if timestep < 0:
                 raise ValueError("Timestep must be a non-negative integer.")

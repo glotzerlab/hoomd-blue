@@ -6,7 +6,7 @@ import pytest
 
 @pytest.fixture(scope='function')
 def snap(device):
-    s = Snapshot(device.comm)
+    s = Snapshot(device.communicator)
     N = 1000
 
     if s.exists:

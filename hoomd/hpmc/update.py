@@ -804,8 +804,8 @@ class Clusters(_Updater):
                                    swap_move_ratio=float(swap_move_ratio))
         self._param_dict.update(param_dict)
 
-    def attach(self, simulation):
-        integrator = simulation.operations.integrator
+    def _attach(self):
+        integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate._HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
 
@@ -845,12 +845,12 @@ class Clusters(_Updater):
         if cpp_cls is None:
             raise RuntimeError("Unsupported integrator.\n")
 
-        if not integrator.is_attached:
+        if not integrator._attached:
             raise RuntimeError("Integrator is not attached yet.")
-        self._cpp_obj = cpp_cls(simulation.state._cpp_sys_def,
+        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                 integrator._cpp_obj,
                                 int(self.seed))
-        super().attach(simulation)
+        super()._attach()
 
     @property
     def counter(self):
@@ -864,7 +864,7 @@ class Clusters(_Updater):
         Note::
             if the updater is not attached None will be returned.
         """
-        if not self.is_attached:
+        if not self._attached:
             return None
         else:
             return self._cpp_obj.getCounters(1)
@@ -1007,19 +1007,19 @@ class QuickCompress(_Updater):
 
         self._param_dict.update(param_dict)
 
-    def attach(self, simulation):
-        integrator = simulation.operations.integrator
+    def _attach(self):
+        integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate._HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
 
-        if not integrator.is_attached:
+        if not integrator._attached:
             raise RuntimeError("Integrator is not attached yet.")
 
         self._cpp_obj = _hpmc.UpdaterQuickCompress(
-            simulation.state._cpp_sys_def, integrator._cpp_obj,
+            self._simulation.state._cpp_sys_def, integrator._cpp_obj,
             self.max_overlaps_per_particle, self.min_scale, self.target_box,
             self.seed)
-        super().attach(simulation)
+        super()._attach()
 
     @property
     def complete(self):
@@ -1028,7 +1028,7 @@ class QuickCompress(_Updater):
         `Simulation.run` stops the running whenever any operation in the
         `Simulation` is complete.
         """
-        if not self.is_attached:
-            return getattr(self, '_is_complete', False)
+        if not self._attached:
+            return False
 
         return self._cpp_obj.isComplete()

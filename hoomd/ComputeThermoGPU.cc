@@ -63,7 +63,6 @@ void ComputeThermoGPU::computeProperties()
     if (m_prof) m_prof->push(m_exec_conf,"Thermo");
 
     assert(m_pdata);
-    assert(m_ndof != 0);
 
     // number of blocks in reduction (round up for every GPU)
     unsigned int num_blocks = m_group->getNumMembers() / m_block_size + m_exec_conf->getNumActiveGPUs();
