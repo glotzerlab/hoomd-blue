@@ -148,17 +148,17 @@ class TestMoveSize:
         with pytest.raises(Exception):
             tunable.y
         simulation.operations.schedule()
-        assert move_size_tuner.is_attached
-        assert tunable.y == None
+        assert move_size_tuner._attached
+        assert tunable.y is None
         assert tunable.integrator == simulation.operations.integrator
 
     def test_detach(self, move_size_tuner, simulation):
         simulation.operations.tuners.append(move_size_tuner)
         simulation.operations.schedule()
-        assert move_size_tuner.is_attached
-        move_size_tuner.detach()
+        assert move_size_tuner._attached
+        move_size_tuner._detach()
         tunable = move_size_tuner._tunables[0]
-        assert not move_size_tuner.is_attached
+        assert not move_size_tuner._attached
         assert tunable.integrator is None
         with pytest.raises(Exception):
             tunable.y

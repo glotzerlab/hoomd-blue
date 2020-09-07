@@ -127,7 +127,7 @@ class _InternalMoveSize(_InternalAction):
         # solvers do not do much if any work on already tuned tunables, this is
         # not a performance problem.
         self._tuned = 0
-        self._attached = False
+        self._is_attached = False
 
         # set up maximum trial move sizes
         def flag_move_size_update(value):
@@ -188,12 +188,12 @@ class _InternalMoveSize(_InternalAction):
         self._update_tunables(new_moves=self.moves, new_types=self.types)
         self._update_tunables_attr(
             'integrator', simulation.operations.integrator)
-        self._attached = True
+        self._is_attached = True
 
     @property
-    def is_attached(self):
+    def _attached(self):
         """bool: Whether or not the tuner is attached to a simulation."""
-        return self._attached
+        return self._is_attached
 
     @property
     def tuned(self):
@@ -206,7 +206,7 @@ class _InternalMoveSize(_InternalAction):
 
     def detach(self):
         self._update_tunables_attr('integrator', None)
-        self._attached = False
+        self._is_attached = False
 
     def act(self, timestep=None):
         """Tune move sizes.
@@ -215,7 +215,7 @@ class _InternalMoveSize(_InternalAction):
             timestep (:obj:`int`, optional): Current simulation timestep. Is
                 currently ignored.
         """
-        if self.is_attached:
+        if self._is_attached:
             # update maximum move sizes
             if self._update_move_sizes:
                 for tunable in self._tunables:
