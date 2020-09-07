@@ -23,7 +23,7 @@ def move_size_definition(move_definition_dict):
 
 @pytest.fixture
 def simulation(simulation_factory, lattice_snapshot_factory):
-    snap = lattice_snapshot_factory(dimensions=2, r=1e-3)
+    snap = lattice_snapshot_factory(dimensions=2, r=1e-3, n=20)  # 400 particles
     sim = simulation_factory(snap)
     integrator = hpmc.integrate.Sphere(seed=43, d=0.01)
     integrator.shape['A'] = dict(diameter=0.9)
@@ -186,6 +186,9 @@ class TestMoveSize:
         with pytest.raises(ValueError):
             move_size_tuner.types = 'foo'
 
+    # All tests (using differnt fixtures) combined take about 17 seconds, so
+    # only test during validation
+    @pytest.mark.validate
     def test_act(self, move_size_tuner, simulation):
         simulation.operations.tuners.append(move_size_tuner)
         cnt = 0
