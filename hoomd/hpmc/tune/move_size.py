@@ -366,9 +366,11 @@ class MoveSize(_InternalCustomTuner):
                 particle types to tune the move size for, defaults to None which
                 upon attaching will tune all types in the system currently.
             max_translation_move (float): The maximum value of a translational
-                move size to attempt.
+                move size to attempt, defaults to ``None`` which represents no
+                maximum move size.
             max_rotation_move (float): The maximum value of a rotational move
-                size to attempt.
+                size to attempt, defaults to ``None`` which represents no
+                maximum move size.
             gamma (float): The value of gamma to pass through
                 to `hoomd.tune.SecantSolver`. Controls the size of corrections
                 to the move size (smaller values increase stability). Should be
