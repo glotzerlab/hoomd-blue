@@ -59,9 +59,6 @@ class NVT(_Method):
     *kT* can be a variant type, allowing for temperature ramps in simulation
     runs.
 
-    A :py:class:`hoomd.compute.thermo` is automatically specified and associated
-    with *group*.
-
     Examples::
 
         all = filter.All()
@@ -207,8 +204,6 @@ class npt(_Method):
         \tau = \sqrt{\frac{Q}{g k_B T_0}}
 
     where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is the set point (*kT* above).
-
-    A :py:class:`hoomd.compute.thermo` is automatically specified and associated with *group*.
 
     Examples::
 
@@ -580,8 +575,6 @@ class NVE(_Method):
 
     :py:class:`NVE` is an integration method. It must be used with ``mode_standard``.
 
-    A :py:class:`hoomd.compute.thermo` is automatically specified and associated with *group*.
-
     Examples::
 
         all = hoomd.filter.All()
@@ -693,9 +686,6 @@ class Langevin(_Method):
     *kT* can be a variant type, allowing for temperature ramps in simulation
     runs.
 
-    A :py:class:`hoomd.compute.thermo` is automatically created and associated
-    with *group*.
-
     Warning:
         When restarting a simulation, the energy of the reservoir will be reset
         to zero.
@@ -802,7 +792,7 @@ class Brownian(_Method):
 
     In Brownian dynamics, particle velocities are completely decoupled from positions. At each time step,
     :py:class:`Brownian` draws a new velocity distribution consistent with the current set temperature so that
-    :py:class:`hoomd.compute.thermo` will report appropriate temperatures and pressures if logged or needed by other
+    :py:class:`hoomd.md.compute.ThermodynamicQuantities` will report appropriate temperatures and pressures if logged or needed by other
     commands.
 
     Brownian dynamics neglects the acceleration term in the Langevin equation. This assumption is valid when
@@ -815,8 +805,6 @@ class Brownian(_Method):
        :math:`\alpha` are mass / distance / time.
 
     *kT* can be a variant type, allowing for temperature ramps in simulation runs.
-
-    A :py:class:`hoomd.compute.thermo` is automatically created and associated with *group*.
 
     Examples::
 
