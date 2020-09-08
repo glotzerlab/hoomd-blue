@@ -118,7 +118,7 @@ class ThermodynamicQuantities(_Thermo):
         else:
             return None
 
-    @log
+    @log(flag='sequence')
     def pressure_tensor(self):
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
