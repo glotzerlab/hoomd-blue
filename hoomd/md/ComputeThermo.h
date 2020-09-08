@@ -4,10 +4,10 @@
 
 // Maintainer: joaander
 
-#include "Compute.h"
-#include "GlobalArray.h"
+#include "hoomd/Compute.h"
+#include "hoomd/GlobalArray.h"
 #include "ComputeThermoTypes.h"
-#include "ParticleGroup.h"
+#include "hoomd/ParticleGroup.h"
 
 #include <memory>
 #include <limits>

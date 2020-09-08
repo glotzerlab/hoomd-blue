@@ -12,6 +12,7 @@ user) can be logged with analyze.log.
 """
 
 from hoomd import _hoomd;
+from hoomd.md import _md
 from hoomd.operation import _Compute
 from hoomd.logging import log
 import hoomd;
@@ -92,9 +93,9 @@ class ThermodynamicQuantities(_Thermo):
 
     def _attach(self):
         if isinstance(self._simulation.device, hoomd.device.CPU):
-            thermo_cls = _hoomd.ComputeThermo
+            thermo_cls = _md.ComputeThermo
         else:
-            thermo_cls = _hoomd.ComputeThermoGPU
+            thermo_cls = _md.ComputeThermoGPU
         group = self._simulation.state.get_group(self._filter)
         self._cpp_obj = thermo_cls(self._simulation.state._cpp_sys_def, group, "")
         super()._attach()

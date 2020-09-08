@@ -86,10 +86,10 @@ class NVT(_Method):
         # initialize the reflected cpp class
         if isinstance(self._simulation.device, hoomd.device.CPU):
             my_class = _md.TwoStepNVTMTK
-            thermo_cls = _hoomd.ComputeThermo
+            thermo_cls = _md.ComputeThermo
         else:
             my_class = _md.TwoStepNVTMTKGPU
-            thermo_cls = _hoomd.ComputeThermoGPU
+            thermo_cls = _md.ComputeThermoGPU
 
         group = self._simulation.state.get_group(self.filter)
         cpp_sys_def = self._simulation.state._cpp_sys_def

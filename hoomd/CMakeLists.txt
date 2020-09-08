@@ -21,8 +21,6 @@ set(_hoomd_sources Analyzer.cc
                    Communicator.cc
                    CommunicatorGPU.cc
                    Compute.cc
-                   ComputeThermo.cc
-                   ComputeThermoHMA.cc
                    ConstForceCompute.cc
                    DCDDumpWriter.cc
                    DomainDecomposition.cc
@@ -92,14 +90,6 @@ set(_hoomd_headers
     CommunicatorGPU.h
     Communicator.h
     Compute.h
-    ComputeThermoGPU.cuh
-    ComputeThermoGPU.h
-    ComputeThermoHMAGPU.cuh
-    ComputeThermoHMAGPU.h
-    ComputeThermo.h
-    ComputeThermoHMA.h
-    ComputeThermoTypes.h
-    ComputeThermoHMATypes.h
     ConstForceCompute.h
     DCDDumpWriter.h
     DomainDecomposition.h
@@ -171,8 +161,6 @@ set(_hoomd_headers
 if (ENABLE_HIP)
 list(APPEND _hoomd_sources CellListGPU.cc
                            CommunicatorGPU.cc
-                           ComputeThermoGPU.cc
-                           ComputeThermoHMAGPU.cc
                            LoadBalancerGPU.cc
                            SFCPackTunerGPU.cc
                            )
@@ -181,8 +169,6 @@ endif()
 set(_hoomd_cu_sources BondedGroupData.cu
                       CellListGPU.cu
                       CommunicatorGPU.cu
-                      ComputeThermoGPU.cu
-                      ComputeThermoHMAGPU.cu
                       Integrator.cu
                       LoadBalancerGPU.cu
                       ParticleData.cu
@@ -310,7 +296,6 @@ set(files benchmark.py
           box.py
           cite.py
           comm.py
-          compute.py
           conftest.py
           device.py
           dump.py

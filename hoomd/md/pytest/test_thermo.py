@@ -18,7 +18,7 @@ _thermo_qtys = [
 def test_attach_detach(simulation_factory, two_particle_snapshot_factory):
     # test before attaching to simulation
     group = hoomd.filter.All()
-    thermo = hoomd.compute.ThermodynamicQuantities(group)
+    thermo = hoomd.md.compute.ThermodynamicQuantities(group)
     for qty, typ in _thermo_qtys:
         assert getattr(thermo, qty) == None
 
