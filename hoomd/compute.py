@@ -106,7 +106,7 @@ class ThermodynamicQuantities(_Thermo):
     def kinetic_temperature(self):
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.getTemperature()
+            return self._cpp_obj.kinetic_temperature
         else:
             return None
 
@@ -114,7 +114,7 @@ class ThermodynamicQuantities(_Thermo):
     def pressure(self):
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.getPressure()
+            return self._cpp_obj.pressure
         else:
             return None
 
@@ -122,7 +122,7 @@ class ThermodynamicQuantities(_Thermo):
     def pressure_tensor(self):
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.getPressureTensor()
+            return self._cpp_obj.pressure_tensor
         else:
             return None
 
@@ -130,7 +130,7 @@ class ThermodynamicQuantities(_Thermo):
     def kinetic_energy(self):
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.getKineticEnergy()
+            return self._cpp_obj.kinetic_energy
         else:
             return None
 
@@ -138,7 +138,7 @@ class ThermodynamicQuantities(_Thermo):
     def translational_kinetic_energy(self):
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.getTranslationalKineticEnergy()
+            return self._cpp_obj.translational_kinetic_energy
         else:
             return None
 
@@ -146,7 +146,7 @@ class ThermodynamicQuantities(_Thermo):
     def rotational_kinetic_energy(self):
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.getRotationalKineticEnergy()
+            return self._cpp_obj.rotational_kinetic_energy
         else:
             return None
 
@@ -154,35 +154,35 @@ class ThermodynamicQuantities(_Thermo):
     def potential_energy(self):
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.getPotentialEnergy()
+            return self._cpp_obj.potential_energy
         else:
             return None
 
     @log
     def degrees_of_freedom(self):
         if self._attached:
-            return self._cpp_obj.getNDOF()
+            return self._cpp_obj.degrees_of_freedom
         else:
             return None
 
     @log
     def translational_degrees_of_freedom(self):
         if self._attached:
-            return self._cpp_obj.getTranslationalDOF()
+            return self._cpp_obj.translational_degrees_of_freedom
         else:
             return None
 
     @log
     def rotational_degrees_of_freedom(self):
         if self._attached:
-            return self._cpp_obj.getRotationalDOF()
+            return self._cpp_obj.rotational_degrees_of_freedom
         else:
             return None
 
     @log
     def num_particles(self):
         if self._attached:
-            return self._cpp_obj.getNumParticles()
+            return self._cpp_obj.num_particles
         else:
             return None
 
