@@ -26,7 +26,7 @@ class _Thermo(_Compute):
         self._filter = filter
 
 
-class ThermoQuantities(_Thermo):
+class ThermodynamicQuantities(_Thermo):
     R""" Compute thermodynamic properties of a group of particles.
 
     Args:
