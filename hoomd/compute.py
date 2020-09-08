@@ -17,9 +17,6 @@ from hoomd.logging import log
 import hoomd;
 import sys;
 
-class _compute:
-    pass
-
 class _Thermo(_Compute):
 
     def __init__(self, filter):

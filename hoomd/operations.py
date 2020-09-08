@@ -13,13 +13,13 @@ def _triggered_op_conversion(value):
 class Operations:
     def __init__(self, simulation=None):
         self._simulation = simulation
-        self._computes = SyncedList(OnlyType(_Compute), lambda x: x._cpp_obj)
         self._scheduled = False
         self._updaters = SyncedList(OnlyType(_Updater),
                                     _triggered_op_conversion)
         self._analyzers = SyncedList(OnlyType(_Analyzer),
                                      _triggered_op_conversion)
         self._tuners = SyncedList(OnlyType(_Tuner), lambda x: x._cpp_obj)
+        self._computes = SyncedList(OnlyType(_Compute), lambda x: x._cpp_obj)
         self._integrator = None
 
         self._tuners.append(ParticleSorter())
