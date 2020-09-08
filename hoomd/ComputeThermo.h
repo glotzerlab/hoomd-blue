@@ -259,24 +259,24 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
 
         // <--------------- Degree of Freedom Data
 
-        Scalar getNDOF()
+        unsigned int getNDOF()
             {
-            return Scalar(m_group->getTranslationalDOF() + m_group->getRotationalDOF());
+            return m_group->getTranslationalDOF() + m_group->getRotationalDOF();
             }
 
-        Scalar getTranslationalDOF()
+        unsigned int getTranslationalDOF()
             {
-            return Scalar(m_group->getTranslationalDOF());
+            return m_group->getTranslationalDOF();
             }
 
-        Scalar getRotationalDOF()
+        unsigned int getRotationalDOF()
             {
-            return Scalar(m_group->getRotationalDOF());
+            return m_group->getRotationalDOF();
             }
 
-        Scalar getNumParticles()
+        unsigned int getNumParticles()
             {
-            return Scalar(m_group->getNumMembersGlobal());
+            return m_group->getNumMembersGlobal();
             }
 
         //! Get the gpu array of properties
