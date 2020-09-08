@@ -103,7 +103,7 @@ class ThermoQuantities(_Thermo):
         super()._attach()
 
     @log
-    def temperature(self):
+    def kinetic_temperature(self):
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getTemperature()
@@ -127,7 +127,7 @@ class ThermoQuantities(_Thermo):
             return None
 
     @log
-    def kineticEnergy(self):
+    def kinetic_energy(self):
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getKineticEnergy()
@@ -135,7 +135,7 @@ class ThermoQuantities(_Thermo):
             return None
 
     @log
-    def translationalKineticEnergy(self):
+    def translational_kinetic_energy(self):
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getTranslationalKineticEnergy()
@@ -143,7 +143,7 @@ class ThermoQuantities(_Thermo):
             return None
 
     @log
-    def rotationalKineticEnergy(self):
+    def rotational_kinetic_energy(self):
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getRotationalKineticEnergy()
@@ -151,7 +151,7 @@ class ThermoQuantities(_Thermo):
             return None
 
     @log
-    def potentialEnergy(self):
+    def potential_energy(self):
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getPotentialEnergy()
@@ -159,28 +159,28 @@ class ThermoQuantities(_Thermo):
             return None
 
     @log
-    def NDOF(self):
+    def degrees_of_freedom(self):
         if self._attached:
             return self._cpp_obj.getNDOF()
         else:
             return None
 
     @log
-    def translationalDOF(self):
+    def translational_degrees_of_freedom(self):
         if self._attached:
             return self._cpp_obj.getTranslationalDOF()
         else:
             return None
 
     @log
-    def rotationalDOF(self):
+    def rotational_degrees_of_freedom(self):
         if self._attached:
             return self._cpp_obj.getRotationalDOF()
         else:
             return None
 
     @log
-    def numParticles(self):
+    def num_particles(self):
         if self._attached:
             return self._cpp_obj.getNumParticles()
         else:

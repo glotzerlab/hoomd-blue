@@ -1,17 +1,17 @@
 import hoomd
 
 _thermo_qtys = [
-    'temperature',
+    'kinetic_temperature',
     'pressure',
     'pressure_tensor',
-    'kineticEnergy',
-    'translationalKineticEnergy',
-    'rotationalKineticEnergy',
-    'potentialEnergy',
-    'NDOF',
-    'translationalDOF',
-    'rotationalDOF',
-    'numParticles',
+    'kinetic_energy',
+    'translational_kinetic_energy',
+    'rotational_kinetic_energy',
+    'potential_energy',
+    'degrees_of_freedom',
+    'translational_degrees_of_freedom',
+    'rotational_degrees_of_freedom',
+    'num_particles',
 ]
 
 def test_attach_detach(simulation_factory, two_particle_snapshot_factory):
