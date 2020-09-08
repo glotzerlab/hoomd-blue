@@ -3,12 +3,7 @@ import hoomd
 _thermo_qtys = [
     'temperature',
     'pressure',
-    'pressureXX',
-    'pressureXY',
-    'pressureXZ',
-    'pressureYY',
-    'pressureYZ',
-    'pressureZZ',
+    'pressure_tensor',
     'kineticEnergy',
     'translationalKineticEnergy',
     'rotationalKineticEnergy',
@@ -35,7 +30,7 @@ def test_attach_detach(simulation_factory, two_particle_snapshot_factory):
     # make sure quantities are computable without failure
     for qty in _thermo_qtys:
         calc_qty = getattr(thermo, qty)
-        assert type(calc_qty) == float
+        assert type(calc_qty) != None
 
     # detach from simulation and test properties again
     sim.operations.remove(thermo)

@@ -119,50 +119,10 @@ class ThermoQuantities(_Thermo):
             return None
 
     @log
-    def pressureXX(self):
+    def pressure_tensor(self):
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.getPressureXX()
-        else:
-            return None
-
-    @log
-    def pressureXY(self):
-        if self._attached:
-            self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.getPressureXY()
-        else:
-            return None
-
-    @log
-    def pressureXZ(self):
-        if self._attached:
-            self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.getPressureXZ()
-        else:
-            return None
-
-    @log
-    def pressureYY(self):
-        if self._attached:
-            self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.getPressureYY()
-        else:
-            return None
-
-    @log
-    def pressureYZ(self):
-        if self._attached:
-            self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.getPressureYZ()
-        else:
-            return None
-
-    @log
-    def pressureZZ(self):
-        if self._attached:
-            self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.getPressureZZ()
+            return self._cpp_obj.getPressureTensor()
         else:
             return None
 
