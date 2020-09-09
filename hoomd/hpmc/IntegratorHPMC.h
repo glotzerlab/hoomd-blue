@@ -294,19 +294,19 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             return m_a;
             }
 
-        //! Change move ratio
-        /*! \param move_ratio new move_ratio to set
+        //! Change translation move probability.
+        /*! \param translation_move_probability new translation_move_probability to set
         */
-        void setMoveRatio(Scalar move_ratio)
+        void setTranslationMoveProbability(Scalar translation_move_probability)
             {
-            m_move_ratio = unsigned(move_ratio*65536);
+            m_translation_move_probability = unsigned(translation_move_probability*65536);
             }
 
-        //! Get move ratio
-        //! \returns ratio of translation versus rotation move attempts
-        inline double getMoveRatio()
+        //! Get translation move probability.
+        //! \returns Fraction of moves that are translation moves.
+        inline double getTranslationMoveProbability()
             {
-            return m_move_ratio/65536.0;
+            return m_translation_move_probability/65536.0;
             }
 
         //! Set nselect
@@ -506,7 +506,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
 
     protected:
         unsigned int m_seed;                        //!< Random number seed
-        unsigned int m_move_ratio;                  //!< Ratio of translation to rotation move attempts (*65535)
+        unsigned int m_translation_move_probability;     //!< Fraction of moves that are translation moves.
         unsigned int m_nselect;                     //!< Number of particles to select for trial moves
 
         GPUVector<Scalar> m_d;                      //!< Maximum move displacement by type
