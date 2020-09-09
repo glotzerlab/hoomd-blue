@@ -649,12 +649,13 @@ class muvt(_updater):
         fugacity_variant = hoomd.variant._setup_variant_input(fugacity);
         self.cpp_updater.setFugacity(type_id, fugacity_variant.cpp_variant);
 
-    def set_params(self, dV=None, move_ratio=None, n_trial=None):
+    def set_params(self, dV=None, volume_move_probability=None, n_trial=None):
         R""" Set muVT parameters.
 
         Args:
             dV (float): (if set) Set volume rescaling factor (dimensionless)
-            move_ratio (float): (if set) Set the ratio between volume and exchange/transfer moves (applies to Gibbs ensemble)
+            volume_move_probability (float): (if set) In the Gibbs ensemble, set the
+                probability of volume moves (other moves are exchange/transfer moves).
             n_trial (int): (if set) Number of re-insertion attempts per depletant
 
         Example::
@@ -662,15 +663,15 @@ class muvt(_updater):
             muvt = hpmc.update.muvt(mc, period = 10)
             muvt.set_params(dV=0.1)
             muvt.set_params(n_trial=2)
-            muvt.set_params(move_ratio=0.05)
+            muvt.set_params(volume_move_probability=0.05)
 
         """
         self.check_initialization();
 
-        if move_ratio is not None:
+        if volume_move_probability is not None:
             if not self.gibbs:
                 hoomd.context.current.device.cpp_msg.warning("Move ratio only used in Gibbs ensemble.\n");
-            self.cpp_updater.setMoveRatio(float(move_ratio))
+            self.cpp_updater.setVolumeMoveProbability(float(volume_move_probability))
 
         if dV is not None:
             if not self.gibbs:
