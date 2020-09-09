@@ -64,6 +64,7 @@ workflows all with Python code in your job.
     migrating
     changelog
     command-line-options
+    citing
 
 .. toctree::
     :maxdepth: 2
