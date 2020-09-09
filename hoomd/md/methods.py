@@ -108,15 +108,23 @@ class NPT(_Method):
 
     Args:
         filter (:py:mod:`hoomd.filter._ParticleFilter`): Subset of particles on which to apply this method.
+
         kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set point for the thermostat, not needed if *nph=True* (in energy units).
+
         tau (float): Coupling constant for the thermostat, not needed if *nph=True* (in time units).
+
         S (:py:class:`list` of :py:mod:`hoomd.variant` or :py:obj:`float`): Stress components set point for the barostat (in pressure units).
-        In Voigt notation: [Sxx, Syy, Szz, Syz, Sxz, Sxy]. In case of isotropic pressure P ( [ P, P, P, 0, 0, 0]), use S = P.
+            In Voigt notation: [Sxx, Syy, Szz, Syz, Sxz, Sxy]. In case of isotropic pressure P ( [ P, P, P, 0, 0, 0]), use S = P.
+
         tauS (float): Coupling constant for the barostat (in time units).
+
         couple (str): Couplings of diagonal elements of the stress tensor, can be "none", "xy", "xz","yz", or "all" (default).
+
         box_dof(list): Box degrees of freedom with six boolean elements corresponding to x, y, z, xy, xz, yz, each. (default: [True,True,True,False,False,False])
                        If turned on to True, rescale corresponding lengths or tilt factors and components of particle coordinates and velocities
+
         rescale_all (bool): if True, rescale all particles, not only those in the group
+
         gamma: (:py:obj:`float`): Dimensionless damping factor for the box degrees of freedom (default: 0)
 
     :py:class:`NPT` performs constant pressure, constant temperature simulations, allowing for a fully deformable
@@ -151,7 +159,7 @@ class NPT(_Method):
 
     Valid form for elements of box_dof(box degrees of freedom) is :
 
-    The `box_dof` tuple controls the way the box is rescaled and updated. The first three elements ``box_dof[:2]``
+    The ``box_dof`` tuple controls the way the box is rescaled and updated. The first three elements ``box_dof[:2]``
     controls whether the x, y, and z box lengths are rescaled and updated, respectively. The last three entries
     control the rescaling or the tilt factors xy, xz, and yz. All options also appropriately rescale particle coordinates and velocities.
 
