@@ -319,7 +319,6 @@ class Communicator(object):
             Returns 1 in non-mpi builds.
         """
 
-        hoomd.context._verify_init();
         if _hoomd.is_MPI_available():
             return self.cpp_mpi_conf.getNRanks();
         else:
@@ -336,7 +335,6 @@ class Communicator(object):
             Always returns 0 in non-mpi builds.
         """
 
-        hoomd.context._verify_init();
 
         if _hoomd.is_MPI_available():
             return self.cpp_mpi_conf.getRank()
@@ -353,7 +351,6 @@ class Communicator(object):
         Note:
             Always returns 0 in non-mpi builds.
         """
-        hoomd.context._verify_init();
 
         if _hoomd.is_MPI_available():
             return self.cpp_mpi_conf.getPartition()
@@ -375,7 +372,6 @@ class Communicator(object):
         Note:
             Does nothing in in non-MPI builds.
         """
-        hoomd.context._verify_init();
 
         if _hoomd.is_MPI_available():
             self.cpp_mpi_conf.barrier()

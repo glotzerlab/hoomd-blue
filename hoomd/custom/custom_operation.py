@@ -58,6 +58,9 @@ class _CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
             return super().__getattr__(attr)
         except AttributeError:
             try:
+                if not hasattr(self, '_action'):
+                    raise RuntimeError(
+                        "{} object has no attribute _action".format(type(self)))
                 return getattr(self._action, attr)
             except AttributeError:
                 raise AttributeError(
@@ -70,20 +73,23 @@ class _CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
         else:
             object.__setattr__(self, attr, value)
 
-    def attach(self, simulation):
+    def _attach(self):
         """Attach to a `hoomd.Simulation`.
-
-        Detaching is implemented by a parent class.
 
         Args:
             simulation (hoomd.Simulation): The simulation the operation operates
                 on.
         """
         self._cpp_obj = getattr(_hoomd, self._cpp_class_name)(
-            simulation.state._cpp_sys_def, self._action)
+            self._simulation.state._cpp_sys_def, self._action)
 
-        super().attach(simulation)
-        self._action.attach(simulation)
+        super()._attach()
+        self._action.attach(self._simulation)
+
+    def _detach(self):
+        """Detaching from a `hoomd.Simulation`."""
+        self._action.detach()
+        super()._detach()
 
     def act(self, timestep):
         """Perform the action of the custom action if attached.
@@ -93,7 +99,7 @@ class _CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
         Args:
             timestep (int): The current timestep of the state.
         """
-        if self.is_attached:
+        if self._attached:
             self._action.act(timestep)
 
     @property
@@ -102,7 +108,23 @@ class _CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
         return self._action
 
 
-class _InternalCustomOperation(_CustomOperation):
+class _AbstractLoggableWithPassthrough(_AbstractLoggable):
+    def __getattr__(self, attr):
+        try:
+            # This will not work with classmethods that are constructors. We
+            # need a trigger for operations, and the action does not contain a
+            # trigger. This can be made to work for alternate constructors but
+            # would require wrapping the classmethod in question. Since this
+            # should only ever matter for internal actions, putting such
+            # classmethods in the wrapping operation should be fine.
+            return getattr(self._internal_class, attr)
+        except AttributeError:
+            raise AttributeError("{} object {} has no attribute {}".format(
+                type(self), self, attr))
+
+
+class _InternalCustomOperation(
+        _CustomOperation, metaclass=_AbstractLoggableWithPassthrough):
     """Internal class for Python ``Action``s. Offers a streamlined __init__.
 
     Adds a wrapper around an hoomd Python action. This extends the attribute
@@ -110,6 +132,18 @@ class _InternalCustomOperation(_CustomOperation):
     the `__init__` method as well as a error raised if the ``action`` is
     attempted to be accessed directly.
     """
+
+    # These attributes are not accessible or able to be passed through to
+    # prevent leaky abstractions and help promote the illusion of a single
+    # object for cases of internal custom actions.
+    _disallowed_attrs = {'detach', 'attach', 'action'}
+
+    def __getattr__(self, attr):
+        if attr in self._disallowed_attrs:
+            raise AttributeError("{} object {} has not attribute {}.".format(
+                type(self), self, attr))
+        else:
+            return super().__getattr__(attr)
 
     @property
     @abstractmethod
@@ -121,8 +155,3 @@ class _InternalCustomOperation(_CustomOperation):
         super().__init__(self._internal_class(*args, **kwargs), trigger)
         self._export_dict = {key: value.update_cls(self.__class__)
                              for key, value in self._export_dict.items()}
-
-    @property
-    def action(self):
-        """Prevents the access of action in public API."""
-        raise AttributeError

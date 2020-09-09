@@ -1,17 +1,21 @@
 hoomd.device
 ------------
 
+.. py:currentmodule:: hoomd.device
+
 .. rubric:: Overview
 
 .. autosummary::
     :nosignatures:
 
-    hoomd.device.CPU
-    hoomd.device.GPU
-    hoomd.device.Auto
+    _Device 
+    CPU
+    GPU
+    auto_select
 
 .. rubric:: Details
 
 .. automodule:: hoomd.device
     :synopsis: Devices used for simulation runs
-    :members:
+    :members: _Device, CPU, GPU, auto_select
+    :show-inheritance:

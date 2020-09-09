@@ -17,6 +17,7 @@
 #if __HIP_PLATFORM_NVCC__
 #include <cuda.h>
 #include <nvrtc.h>
+#endif
 
 void GPUEvalFactory::compileGPU(
     const std::string& code,
@@ -25,6 +26,7 @@ void GPUEvalFactory::compileGPU(
     const std::string& cuda_devrt_library_path,
     const unsigned int compute_arch)
     {
+    #if __HIP_PLATFORM_NVCC__
     std::vector<std::string> compile_options = {
         "--gpu-architecture=compute_"+std::to_string(compute_arch),
         "--relocatable-device-code=true",
@@ -67,6 +69,6 @@ void GPUEvalFactory::compileGPU(
         {
         m_exec_conf->msg->notice(3) << " " << compileParams[i] << std::endl;
         }
+    #endif
     }
-#endif
 #endif

@@ -126,6 +126,7 @@ from hoomd.hpmc import analyze
 from hoomd.hpmc import compute
 from hoomd.hpmc import util
 from hoomd.hpmc import field
+from hoomd.hpmc import tune
 
 # add HPMC article citation notice
 import hoomd
@@ -140,7 +141,7 @@ _citation = hoomd.cite.article(cite_key='anderson2016',
                                doi='10.1016/j.cpc.2016.02.024',
                                feature='HPMC')
 
-if hoomd.context.bib is None:
+if hoomd._bib is None:
     hoomd.cite._extra_default_entries.append(_citation)
 else:
-    hoomd.context.bib.add(_citation)
+    hoomd._bib.add(_citation)

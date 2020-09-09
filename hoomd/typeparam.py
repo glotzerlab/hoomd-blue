@@ -34,7 +34,7 @@ class TypeParameter:
     def default(self, value):
         self.param_dict.default = value
 
-    def attach(self, cpp_obj, sim):
+    def _attach(self, cpp_obj, sim):
         self.param_dict = AttachedTypeParameterDict(cpp_obj,
                                                     self.name,
                                                     self.type_kind,
@@ -42,7 +42,7 @@ class TypeParameter:
                                                     sim)
         return self
 
-    def detach(self):
+    def _detach(self):
         self.param_dict = self.param_dict.to_dettached()
         return self
 
@@ -57,7 +57,7 @@ class TypeParameter:
         state = self.to_dict()
         if self.param_dict._len_keys > 1:
             state = {str(key): value for key, value in state.items()}
-        state['__default'] = self.default
+        state['__default__'] = self.default
         return state
 
     def __deepcopy__(self, memo):

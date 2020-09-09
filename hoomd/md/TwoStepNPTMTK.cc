@@ -48,7 +48,7 @@ TwoStepNPTMTK::TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
                        const std::vector<bool>& flags,
                        const bool nph)
     : IntegrationMethodTwoStep(sysdef, group),
-                            m_thermo_half_step(thermo_half_step), 
+                            m_thermo_half_step(thermo_half_step),
                             m_thermo_full_step(thermo_full_step),
                             m_ndof(0),
                             m_tau(tau),
@@ -686,7 +686,7 @@ void TwoStepNPTMTK::updatePropagator(Scalar nuxx, Scalar nuxy, Scalar nuxz, Scal
     m_mat_exp_r_int[5] = m_deltaT*exp_r_fac.z*f_r.z;                                   // zz
     }
 
-// Set Flags from 6 element boolean tuple named box_df to integer flag 
+// Set Flags from 6 element boolean tuple named box_df to integer flag
 void TwoStepNPTMTK::setFlags(const std::vector<bool>& value)
     {
     bool is_three_dimensions = m_sysdef->getNDimensions()==3;
@@ -701,7 +701,7 @@ void TwoStepNPTMTK::setFlags(const std::vector<bool>& value)
         flags |= int(baroFlags::baro_xy);
     if (value[4] && is_three_dimensions)
         flags |= int(baroFlags::baro_xz);
-    if (value[5] && is_three_dimensions) 
+    if (value[5] && is_three_dimensions)
         flags |= int(baroFlags::baro_yz);
     m_flags = flags;
     }
@@ -918,7 +918,7 @@ void TwoStepNPTMTK::setCouple(const std::string& value)
             }
         }
     }
- 
+
 std::string TwoStepNPTMTK::getCouple()
     {
     std::string couple;

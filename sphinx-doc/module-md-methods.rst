@@ -9,11 +9,11 @@ md.methods
     :nosignatures:
 
     berendsen
-    brownian
+    Brownian
     Langevin
     NPT
     nph
-    nve
+    NVE
     NVT
 
 

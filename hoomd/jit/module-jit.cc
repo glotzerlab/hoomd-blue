@@ -54,7 +54,7 @@ PYBIND11_MODULE(_jit, m)
     export_ExternalFieldJIT<ShapeFacetedEllipsoid>(m, "ExternalFieldJITFacetedEllipsoid");
     export_ExternalFieldJIT<ShapeSphinx>(m, "ExternalFieldJITSphinx");
 
-    #ifdef ENABLE_HIP
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     m.attr("__cuda_devrt_library_path__") = std::string(CUDA_DEVRT_LIBRARY_PATH);
     m.attr("__cuda_include_path__") = std::string(CUDA_INCLUDE_PATH);
     m.attr("__cuda_compute_archs__") = std::string(CUDA_COMPUTE_ARCHS);

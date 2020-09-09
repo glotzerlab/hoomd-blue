@@ -22,7 +22,7 @@ from hoomd.md import _md
 from . import _mpcd
 import numpy as np
 
-class _collision_method(hoomd.meta._metadata):
+class _collision_method():
     """ Base collision method
 
     Args:
@@ -49,9 +49,6 @@ class _collision_method(hoomd.meta._metadata):
             hoomd.context.current.device.cpp_msg.error('mpcd.collide: only one collision method can be created.\n')
             raise RuntimeError('Multiple initialization of collision method')
 
-        hoomd.meta._metadata.__init__(self)
-        self.metadata_fields = ['period','seed','group','shift','enabled']
-
         self.period = period
         self.seed = seed
         self.group = None
@@ -74,7 +71,7 @@ class _collision_method(hoomd.meta._metadata):
 
         No integrator is generated for *group*. Usually, you will need to create
         a separate method to integrate the embedded particles. The recommended
-        (and most common) integrator to use is :py:class:`~hoomd.md.methods.nve`.
+        (and most common) integrator to use is :py:class:`~hoomd.md.methods.NVE`.
         It is generally **not** a good idea to use a thermostatting integrator for
         the embedded particles, since the MPCD particles themselves already act
         as a heat bath that will thermalize the embedded particles.
@@ -190,7 +187,7 @@ class at(_collision_method):
     HOOMD particles in *group* can be embedded into the collision step (see
     ``embed``). A separate integration method (:py:mod:`~hoomd.md.methods`)
     must be specified in order to integrate the positions of particles in *group*.
-    The recommended integrator is :py:class:`~hoomd.md.methods.nve`.
+    The recommended integrator is :py:class:`~hoomd.md.methods.NVE`.
 
     Examples::
 
@@ -201,7 +198,6 @@ class at(_collision_method):
     def __init__(self, seed, period, kT, group=None):
 
         _collision_method.__init__(self, seed, period)
-        self.metadata_fields += ['kT']
         self.kT = hoomd.variant._setup_variant_input(kT)
 
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -289,7 +285,7 @@ class srd(_collision_method):
     HOOMD particles in *group* can be embedded into the collision step (see
     ``embed()``). A separate integration method (:py:mod:`~hoomd.md.methods`)
     must be specified in order to integrate the positions of particles in *group*.
-    The recommended integrator is :py:class:`~hoomd.md.methods.nve`.
+    The recommended integrator is :py:class:`~hoomd.md.methods.NVE`.
 
     The SRD method naturally imparts the NVE ensemble to the system comprising
     the MPCD particles and *group*. Accordingly, the system must be properly
@@ -312,7 +308,6 @@ class srd(_collision_method):
     def __init__(self, seed, period, angle, kT=False, group=None):
 
         _collision_method.__init__(self, seed, period)
-        self.metadata_fields += ['angle','kT']
 
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             collide_class = _mpcd.SRDCollisionMethod

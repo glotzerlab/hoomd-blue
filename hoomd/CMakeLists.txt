@@ -51,8 +51,9 @@ set(_hoomd_sources Analyzer.cc
                    ParticleGroup.cc
                    Profiler.cc
                    PythonLocalDataAccess.cc
-                   PythonUpdater.cc
                    PythonAnalyzer.cc
+                   PythonTuner.cc
+                   PythonUpdater.cc
                    SFCPackTuner.cc
                    SignalHandler.cc
                    SnapshotSystemData.cc
@@ -233,7 +234,7 @@ endif(SINGLE_PRECISION)
 
 # Libraries and compile definitions for CUDA enabled builds
 if (ENABLE_HIP)
-    if (HIP_PLATFORM STREQUAL "hcc")
+    if (HIP_PLATFORM STREQUAL "hcc" OR HIP_PLATFORM STREQUAL "hip-clang")
         target_link_libraries(_hoomd PUBLIC HIP::hipfft HIP::hiprt)
     elseif(HIP_PLATFORM STREQUAL "nvcc")
         target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
@@ -311,22 +312,15 @@ set(files benchmark.py
           comm.py
           compute.py
           conftest.py
-          context.py
           device.py
           dump.py
-          group.py
           array.py
           __init__.py
-          init.py
           integrate.py
-          meta.py
           operation.py
           operations.py
-          option.py
           util.py
           variant.py
-          lattice.py
-          hdf5.py
           simulation.py
           smart_default.py
           state.py
@@ -358,7 +352,7 @@ add_subdirectory(filter)
 add_subdirectory(minimize)
 add_subdirectory(output)
 add_subdirectory(pytest)
-add_subdirectory(tuner)
+add_subdirectory(tune)
 add_subdirectory(update)
 
 if (BUILD_TESTING)

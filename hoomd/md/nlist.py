@@ -48,7 +48,7 @@ from hoomd.md import _md
 import hoomd
 from hoomd.typeconverter import OnlyFrom
 from hoomd.parameterdicts import ParameterDict
-from hoomd.operation import _Operation
+from hoomd.operation import _HOOMDBaseObject
 from hoomd.logging import log
 
 
@@ -56,7 +56,7 @@ class nlist:
     pass
 
 
-class _NList(_Operation):
+class _NList(_HOOMDBaseObject):
     R""" Base class neighbor list.
 
     Methods provided by this base class are available to all subclasses.
@@ -98,7 +98,7 @@ class _NList(_Operation):
             set check_period for additional safety.
 
         """
-        if not self.is_attached():
+        if not self._attached():
             return None
         else:
             return self._cpp_obj.getSmallestRebuild() - 1
@@ -166,22 +166,22 @@ class Cell(_NList):
         self._param_dict.update(
             ParameterDict(deterministic=bool(deterministic)))
 
-    def attach(self, simulation):
-        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+    def _attach(self):
+        if isinstance(self._simulation.device, hoomd.device.CPU):
             cell_cls = _hoomd.CellList
             nlist_cls = _md.NeighborListBinned
         else:
             cell_cls = _hoomd.CellListGPU
             nlist_cls = _md.NeighborListGPUBinned
-        self._cpp_cell = cell_cls(simulation.state._cpp_sys_def)
+        self._cpp_cell = cell_cls(self._simulation.state._cpp_sys_def)
         # TODO remove 0.0 (r_cut) from constructor
-        self._cpp_obj = nlist_cls(simulation.state._cpp_sys_def, 0.0,
+        self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def, 0.0,
                                   self.buffer, self._cpp_cell)
-        super().attach(simulation)
+        super()._attach()
 
-    def detach(self):
+    def _detach(self):
         del self._cpp_cell
-        super().detach()
+        super()._detach()
 
 
 class stencil(nlist):

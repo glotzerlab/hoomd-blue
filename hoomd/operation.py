@@ -9,7 +9,7 @@ _Operation is inherented by almost all other HOOMD objects.
 _TriggeredOperation is _Operation for objects that are triggered.
 """
 
-from hoomd.util import is_iterable, dict_map, str_to_tuple_keys
+from hoomd.util import is_iterable, dict_map, dict_filter, str_to_tuple_keys
 from hoomd.trigger import Trigger
 from hoomd.variant import Variant, Constant
 from hoomd.filter import _ParticleFilter
@@ -19,6 +19,7 @@ from hoomd.util import NamespaceDict
 from hoomd._hoomd import GSDStateReader
 from hoomd.parameterdicts import ParameterDict
 
+from collections.abc import Mapping
 from copy import deepcopy
 
 
@@ -27,9 +28,9 @@ class NotAttachedError(RuntimeError):
     pass
 
 
-def convert_values_to_log_form(value):
+def _convert_values_to_log_form(value):
     if value is RequiredArg:
-        return (None, 'scalar')
+        return RequiredArg
     elif isinstance(value, Variant):
         if isinstance(value, Constant):
             return (value.value, 'scalar')
@@ -91,7 +92,7 @@ class _HOOMDGetSetAttrBase:
             return self._getattr_typeparam(attr)
         else:
             raise AttributeError("Object {} has no attribute {}".format(
-                self, attr))
+                type(self), attr))
 
     def _getattr_param(self, attr):
         """Hook for getting an attribute from `_param_dict`."""
@@ -120,7 +121,7 @@ class _HOOMDGetSetAttrBase:
         old_value = self._param_dict[attr]
         self._param_dict[attr] = value
         new_value = self._param_dict[attr]
-        if self.is_attached:
+        if self._attached:
             try:
                 setattr(self._cpp_obj, attr, new_value)
             except (AttributeError):
@@ -138,143 +139,91 @@ class _HOOMDGetSetAttrBase:
                              "with types as keys.".format(attr))
 
 
-class _Operation(_HOOMDGetSetAttrBase, metaclass=Loggable):
-    _reserved_default_attrs = {**_HOOMDGetSetAttrBase._reserved_default_attrs,
-                               '_cpp_obj': lambda: None,
-                               '_dependent_list': lambda: []}
+class _StatefulAttrBase(_HOOMDGetSetAttrBase, metaclass=Loggable):
+    """Extends parent class to provide a mechanism for exporting object state.
 
-    _skip_for_equality = set(['_cpp_obj', '_dependent_list'])
+    Provides a means for getting object state, the ``state`` property and
+    ``_get_state`` method (the method exists as a hook for later subclasses to
+    export their state). Also, provides a means for creating new objects from
+    another object's state, ``from_state``. The ``from_state`` method has a few
+    caveats. One of the largest is that any variable found in the
+    ``self._param_dict`` and is placed in ``__params__`` is expected to be
+    accepted in the constructor. Another is that any parameters that are needed
+    at construction but are not in the objects ``_param_dict`` or
+    must be passed as a keyword argument to the method.
 
-    def _getattr_param(self, attr):
-        if self.is_attached:
-            return getattr(self._cpp_obj, attr)
-        else:
-            return self._param_dict[attr]
-
-    def _setattr_param(self, attr, value):
-        self._param_dict[attr] = value
-        if self.is_attached:
-            new_value = self._param_dict[attr]
-            try:
-                setattr(self._cpp_obj, attr, new_value)
-            except (AttributeError):
-                raise AttributeError("{} cannot be set after cpp"
-                                     " initialization".format(attr))
-
-
-    def __eq__(self, other):
-        other_keys = set(other.__dict__.keys())
-        for key in self.__dict__.keys():
-            if key in self._skip_for_equality:
-                continue
-            else:
-                if key not in other_keys \
-                        or self.__dict__[key] != other.__dict__[key]:
-                    return False
-        return True
-
-    def __del__(self):
-        if self.is_attached and hasattr(self, '_simulation'):
-            self.notify_detach(self._simulation)
-
-    def detach(self):
-        self._unapply_typeparam_dict()
-        self._update_param_dict()
-        self._cpp_obj = None
-        if hasattr(self, '_simulation'):
-            self.notify_detach(self._simulation)
-            del self._simulation
-        return self
-
-    def add_dependent(self, obj):
-        self._dependent_list.append(obj)
-
-    def notify_detach(self, sim):
-        new_objs = []
-        for dependent in self._dependent_list:
-            new_objs.extend(dependent.handle_detached_dependency(sim, self))
-        return new_objs
-
-    def handle_detached_dependency(self, sim, obj):
-        self.detach()
-        new_objs = self.attach(sim)
-        return new_objs if new_objs is not None else []
-
-    def attach(self, simulation):
-        self._apply_param_dict()
-        self._apply_typeparam_dict(self._cpp_obj, simulation)
-
-        # pass the system communicator to the object
-        if simulation._system_communicator is not None:
-            self._cpp_obj.setCommunicator(simulation._system_communicator)
-
-    @property
-    def is_attached(self):
-        return self._cpp_obj is not None
-
-    def _apply_param_dict(self):
-        for attr, value in self._param_dict.items():
-            try:
-                setattr(self, attr, value)
-            except AttributeError:
-                pass
-
-    def _apply_typeparam_dict(self, cpp_obj, simulation):
-        for typeparam in self._typeparam_dict.values():
-            try:
-                typeparam.attach(cpp_obj, simulation)
-            except ValueError as verr:
-                raise ValueError("In TypeParameter {}:"
-                                 " ".format(typeparam.name) + verr.args[0])
-
-    def _update_param_dict(self):
-        for key in self._param_dict.keys():
-            self._param_dict[key] = getattr(self, key)
-
-    def _unapply_typeparam_dict(self):
-        for typeparam in self._typeparam_dict.values():
-            typeparam.detach()
-
-    def _add_typeparam(self, typeparam):
-        self._typeparam_dict[typeparam.name] = typeparam
-
-    def _extend_typeparam(self, typeparams):
-        for typeparam in typeparams:
-            self._add_typeparam(typeparam)
-
+    Currently ``from_state`` supports getting the state from a GSD file and a
+    Python ``dict``.
+    """
     def _typeparam_states(self):
+        """Converts all typeparameters into a standard Python ``dict`` object.
+        """
         state = {name: tp.state for name, tp in self._typeparam_dict.items()}
         return deepcopy(state)
 
+    def _get_state(self):
+        """Hook to allow subclasses to overwrite state property."""
+        state = self._typeparam_states()
+        state['__params__'] = dict(self._param_dict)
+        return dict_filter(dict_map(state, _convert_values_to_log_form),
+                           lambda x: x is not RequiredArg)
+
     @log(flag='state')
     def state(self):
-        self._update_param_dict()
-        state = self._typeparam_states()
-        state['params'] = dict(self._param_dict)
-        return dict_map(state, convert_values_to_log_form)
+        """The state of the object.
+
+        The state counts as anything stored in the ``_param_dict`` and
+        ``_typeparam_dict``.
+        """
+        return self._get_state()
 
     @classmethod
     def from_state(cls, state, final_namespace=None, **kwargs):
-        state_dict, unused_args = cls._get_state_dict(state,
-                                                      final_namespace,
-                                                      **kwargs)
-        return cls._from_state_with_state_dict(state_dict, **unused_args)
+        """Creates a new object from another object's state.
 
-    @classmethod
-    def _get_state_dict(cls, data, final_namespace, **kwargs):
-
+        Args:
+            state (str or dict): A state dictionary for an object of this
+                type, a gsd file name, or a dictionary outputted by
+                `hoomd.logging.Logger`.
+            final_namespace (str): The name for the key of the parent dictionary
+                from where the state is stored. This is to allow for users to
+                specify the property state information in the case where
+                multiple of the same object have their state information stored
+                in the same location. As an example if two LJ pair potentials
+                are stored, the final namespaces would be ``LJ`` and ``LJ_1``.
+            frame (int): Only accepted when a gsd file name is passed for
+                ``state``. The frame to access the state information. Is keyword
+                only.
+        """
         # resolve the namespace
         namespace = list(cls._export_dict.values())[0].namespace
         if final_namespace is not None:
             namespace = namespace[:-1] + (final_namespace,)
+
         namespace = namespace + ('state',)
+
+        # recover state dictionary
+        state_dict, unused_args = cls._get_state_dict(state,
+                                                      namespace,
+                                                      **kwargs)
+        return cls._from_state_with_state_dict(state_dict, **unused_args)
+
+    @classmethod
+    def _get_state_dict(cls, data, namespace, **kwargs):
+        """Get the state dictionary from the accepted outputs of from_state.
+
+        Deals with GSD files, namespace dicts (the output of hoomd loggers), and
+        state dictionaries.
+        """
         # Filenames
         if isinstance(data, str):
             if data.endswith('gsd'):
                 state, kwargs = cls._state_from_gsd(data, namespace, **kwargs)
 
         # Dictionaries and like objects
-        elif isinstance(data, dict):
+        elif isinstance(data, NamespaceDict):
+            state = deepcopy(data[namespace])
+        elif isinstance(data, Mapping):
             try:
                 # try to grab the namespace
                 state = deepcopy(NamespaceDict(data)[namespace])
@@ -285,10 +234,11 @@ class _Operation(_HOOMDGetSetAttrBase, metaclass=Loggable):
                 try:
                     state = dict_map(data, lambda x: x[0])
                 except TypeError:
+                    # if the map fails, we then assume that the dictionary is
+                    # one without the flag information on the data. This could
+                    # be the case if a logger backend stores the data and that
+                    # returned data is fed in.
                     state = deepcopy(data)
-
-        elif isinstance(data, NamespaceDict):
-            state = deepcopy(data[namespace])
 
         # Data is of an unusable type
         else:
@@ -299,11 +249,11 @@ class _Operation(_HOOMDGetSetAttrBase, metaclass=Loggable):
 
     @classmethod
     def _state_from_gsd(cls, filename, namespace, **kwargs):
+        """Get state dictionary from GSD file."""
         if 'frame' not in kwargs.keys():
             frame = -1
         else:
-            frame = kwargs['frame']
-            del kwargs['frame']
+            frame = kwargs.pop('frame')
         # Grab state keys from gsd
         reader = GSDStateReader(filename, frame)
         namespace_str = 'log/' + '/'.join(namespace)
@@ -319,23 +269,207 @@ class _Operation(_HOOMDGetSetAttrBase, metaclass=Loggable):
 
     @classmethod
     def _from_state_with_state_dict(cls, state, **kwargs):
-
+        """Using the state dictionary create a new object."""
         # Initialize object using params from state and passed arguments
-        params = state['params']
+        params = state.get('__params__', {})
         params.update(kwargs)
         obj = cls(**params)
-        del state['params']
+        state.pop('__params__', None)
 
         # Add typeparameter information
         for name, tp_dict in state.items():
-            if '__default' in tp_dict.keys():
-                obj._typeparam_dict[name].default = tp_dict['__default']
-                del tp_dict['__default']
+            if '__default__' in tp_dict.keys():
+                obj._typeparam_dict[name].default = tp_dict['__default__']
+                del tp_dict['__default__']
             # Parse the stringified tuple back into tuple
             if obj._typeparam_dict[name]._len_keys > 1:
                 tp_dict = str_to_tuple_keys(tp_dict)
             setattr(obj, name, tp_dict)
         return obj
+
+
+class _DependencyRelation:
+    """Defines a dependency relationship between Python objects.
+
+    For the class to work all dependencies must occur between objects of
+    subclasses of this class. This is not an abstract base class since many
+    object that use this class may not deal directly with dependencies.
+
+    Note:
+        We could be more specific in the inheritance of this class to only use
+        it when the class needs to deal with a dependency.
+    """
+    def __init__(self):
+        self._dependents = []
+        self._dependencies = []
+
+    def _add_dependent(self, obj):
+        """Adds a dependent to the object's dependent list."""
+        if obj not in self._dependencies:
+            self._dependents.append(obj)
+            obj._dependencies.append(self)
+
+    def _notify_disconnect(self, *args, **kwargs):
+        """Notify that an object is being removed from all relationships.
+
+        Notifies dependent object that it is being removed, and removes itself
+        from its dependencies' list of dependents. Uses ``args`` and
+        ``kwargs`` to allow flexibility in what information is given to
+        dependents from dependencies.
+
+        Note:
+            This implementation does require that all dependents take in the
+            same information, or at least that the passed ``args`` and
+            ``kwargs`` can be used for all dependents'
+            ``_handle_removed_dependency`` method.
+        """
+        for dependent in self._dependents:
+            dependent.handle_detached_dependency(self, *args, **kwargs)
+        self._dependents = []
+        for dependency in self._dependencies:
+            dependency._remove_dependent(self)
+        self._dependencies = []
+
+    def _handle_removed_dependency(self, obj, *args, **kwargs):
+        """Handles having a dependency removed.
+
+        Must be implemented by objects that have dependencies. Uses ``args`` and
+        ``kwargs`` to allow flexibility in what information is given to
+        dependents from dependencies.
+        """
+        pass
+
+    def _remove_dependent(self, obj):
+        """Removes a dependent from the list of dependencies."""
+        self._dependencies.remove(obj)
+
+
+class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
+    """Handles attaching/detaching to a simulation.
+
+    ``_StatefulAttrBase`` handles getting and setting attributes as well as
+    providing an API for getting object state and creating new objects from that
+    state information. We overwrite ``_getattr_param`` and ``_setattr_param``
+    hooks to handle internal C++ objects. For a similar reason, we overwrite the
+    ``state`` property.
+
+    ``_DependencyRelation`` handles dealing with dependency relationships
+    between objects.
+
+    The class's metaclass `hoomd.logging.Loggable` handles the logging
+    infrastructure for HOOMD-blue objects.
+
+    This class's main features are handling attaching and detaching from
+    simulations and adding and removing from containing object such as methods
+    for MD integrators and updaters for the operations list. Attaching is the
+    idea of creating a C++ object that is tied to a given simulation while
+    detaching is removing an object from its simulation.
+    """
+    _reserved_default_attrs = {**_HOOMDGetSetAttrBase._reserved_default_attrs,
+                               '_cpp_obj': lambda: None,
+                               '_dependents': lambda: [],
+                               '_dependencies': lambda: []}
+
+    _skip_for_equality = set(['_cpp_obj', '_dependent_list'])
+
+    def _getattr_param(self, attr):
+        if self._attached:
+            return getattr(self._cpp_obj, attr)
+        else:
+            return self._param_dict[attr]
+
+    def _setattr_param(self, attr, value):
+        self._param_dict[attr] = value
+        if self._attached:
+            new_value = self._param_dict[attr]
+            try:
+                setattr(self._cpp_obj, attr, new_value)
+            except (AttributeError):
+                raise AttributeError("{} cannot be set after cpp"
+                                     " initialization".format(attr))
+
+    def __eq__(self, other):
+        other_keys = set(other.__dict__.keys())
+        for key in self.__dict__.keys():
+            if key in self._skip_for_equality:
+                continue
+            else:
+                if key not in other_keys \
+                        or self.__dict__[key] != other.__dict__[key]:
+                    return False
+        return True
+
+    def _detach(self):
+        if self._attached:
+            self._unapply_typeparam_dict()
+            self._update_param_dict()
+            self._cpp_obj.notifyDetach()
+
+            self._cpp_obj = None
+            self._notify_disconnect(self._simulation)
+            return self
+
+    def _attach(self):
+        self._apply_param_dict()
+        self._apply_typeparam_dict(self._cpp_obj, self._simulation)
+
+        # pass the system communicator to the object
+        if self._simulation._system_communicator is not None:
+            self._cpp_obj.setCommunicator(self._simulation._system_communicator)
+
+    @property
+    def _attached(self):
+        return self._cpp_obj is not None
+
+    def _add(self, simulation):
+        self._simulation = simulation
+
+    def _remove(self):
+        del self._simulation
+
+    @property
+    def _added(self):
+        return hasattr(self, '_simulation')
+
+    def _apply_param_dict(self):
+        for attr, value in self._param_dict.items():
+            try:
+                setattr(self, attr, value)
+            except AttributeError:
+                pass
+
+    def _apply_typeparam_dict(self, cpp_obj, simulation):
+        for typeparam in self._typeparam_dict.values():
+            try:
+                typeparam._attach(cpp_obj, simulation)
+            except ValueError as verr:
+                raise ValueError("In TypeParameter {}:"
+                                 " ".format(typeparam.name) + verr.args[0])
+
+    def _update_param_dict(self):
+        for key in self._param_dict.keys():
+            self._param_dict[key] = getattr(self, key)
+
+    @log(flag='state')
+    def state(self):
+        self._update_param_dict()
+        return super()._get_state()
+
+    def _unapply_typeparam_dict(self):
+        for typeparam in self._typeparam_dict.values():
+            typeparam._detach()
+
+    def _add_typeparam(self, typeparam):
+        self._typeparam_dict[typeparam.name] = typeparam
+
+    def _extend_typeparam(self, typeparams):
+        for typeparam in typeparams:
+            self._add_typeparam(typeparam)
+
+
+class _Operation(_HOOMDBaseObject):
+    """Defines operations that are added to an `hoomd.Operations` object."""
+    pass
 
 
 class _TriggeredOperation(_Operation):
@@ -358,7 +492,7 @@ class _TriggeredOperation(_Operation):
         old_trigger = self.trigger
         self._param_dict['trigger'] = new_trigger
         new_trigger = self.trigger
-        if self.is_attached:
+        if self._attached:
             sys = self._simulation._cpp_sys
             triggered_ops = getattr(sys, self._cpp_list_name)
             for index in range(len(triggered_ops)):
@@ -368,14 +502,12 @@ class _TriggeredOperation(_Operation):
                 if op is self._cpp_obj and trigger is old_trigger:
                     triggered_ops[index] = (op, new_trigger)
 
-    def attach(self, simulation):
-        self._simulation = simulation
-        super().attach(simulation)
+    def _attach(self):
+        super()._attach()
 
 
 class _Updater(_TriggeredOperation):
     _cpp_list_name = 'updaters'
-
 
 class _Analyzer(_TriggeredOperation):
     _cpp_list_name = 'analyzers'

@@ -261,12 +261,6 @@ class group(object):
                     raise RuntimeError("del_plane failed")
 
     ## \internal
-    # \brief Return metadata for this wall structure
-    def get_metadata(self):
-        data = hoomd.meta._metadata_from_dict(eval(str(self.__dict__)));
-        return data;
-
-    ## \internal
     # \brief Returns output for print
     def __str__(self):
         output="Wall_Data_Structure:\nspheres:%s{"%(len(self.spheres));
@@ -613,13 +607,6 @@ class wallpotential(external._external_force):
         return _md.make_wall_field_params(coeff, hoomd.context.current.device.cpp_exec_conf);
 
     ## \internal
-    # \brief Return metadata for this wall potential
-    def get_metadata(self):
-        data=external._external_force.get_metadata(self);
-        data['walls_struct'] = self.field_coeff.get_metadata();
-        return data
-
-    ## \internal
     # \brief Fixes negative values to zero before squaring
     def update_coeffs(self):
         if not self.force_coeff.verify(self.required_coeffs):
@@ -639,7 +626,7 @@ class lj(wallpotential):
     Args:
         walls (:py:class:`group`): Wall group containing half-space geometries for the force to act in.
         r_cut (float): The global r_cut value for the force. Defaults to False or 0 if not specified.
-        name (str): The force name which will be used in the metadata and log files.
+        name (str): The force name which will be used in the log files.
 
     Wall force evaluated using the Lennard-Jones potential.
     See :py:class:`hoomd.md.pair.LJ` for force details and base parameters and
@@ -702,10 +689,10 @@ class gauss(wallpotential):
     Args:
         walls (:py:class:`group`): Wall group containing half-space geometries for the force to act in.
         r_cut (float): The global r_cut value for the force. Defaults to False or 0 if not specified.
-        name (str): The force name which will be used in the metadata and log files.
+        name (str): The force name which will be used in the log files.
 
     Wall force evaluated using the Gaussian potential.
-    See :py:class:`hoomd.md.pair.gauss` for force details and base parameters and :py:class:`wallpotential` for
+    See :py:class:`hoomd.md.pair.Gauss` for force details and base parameters and :py:class:`wallpotential` for
     generalized wall potential implementation
 
     Example::
@@ -749,14 +736,14 @@ class slj(wallpotential):
     Args:
         walls (:py:class:`group`): Wall group containing half-space geometries for the force to act in.
         r_cut (float): The global r_cut value for the force. Defaults to False or 0 if not specified.
-        name (str): The force name which will be used in the metadata and log files.
+        name (str): The force name which will be used in the log files.
 
     Wall force evaluated using the Shifted Lennard-Jones potential.
     Note that because slj is dependent upon particle diameters the following
-    correction is necessary to the force details in the :py:class:`hoomd.md.pair.slj` description.
+    correction is necessary to the force details in the :py:class:`hoomd.md.pair.SLJ` description.
 
     :math:`\Delta = d_i/2 - 1` where :math:`d_i` is the diameter of particle :math:`i`.
-    See :py:class:`hoomd.md.pair.slj` for force details and base parameters and :py:class:`wallpotential` for
+    See :py:class:`hoomd.md.pair.SLJ` for force details and base parameters and :py:class:`wallpotential` for
     generalized wall potential implementation
 
     Example::
@@ -812,10 +799,10 @@ class yukawa(wallpotential):
     Args:
         walls (:py:class:`group`): Wall group containing half-space geometries for the force to act in.
         r_cut (float): The global r_cut value for the force. Defaults to False or 0 if not specified.
-        name (str): The force name which will be used in the metadata and log files.
+        name (str): The force name which will be used in the log files.
 
     Wall force evaluated using the Yukawa potential.
-    See :py:class:`hoomd.md.pair.yukawa` for force details and base parameters and :py:class:`wallpotential` for
+    See :py:class:`hoomd.md.pair.Yukawa` for force details and base parameters and :py:class:`wallpotential` for
     generalized wall potential implementation
 
     Example::
@@ -859,10 +846,10 @@ class morse(wallpotential):
     Args:
         walls (:py:class:`group`): Wall group containing half-space geometries for the force to act in.
         r_cut (float): The global r_cut value for the force. Defaults to False or 0 if not specified.
-        name (str): The force name which will be used in the metadata and log files.
+        name (str): The force name which will be used in the log files.
 
     Wall force evaluated using the Morse potential.
-    See :py:class:`hoomd.md.pair.morse` for force details and base parameters and :py:class:`wallpotential` for
+    See :py:class:`hoomd.md.pair.Morse` for force details and base parameters and :py:class:`wallpotential` for
     generalized wall potential implementation
 
     Example::
@@ -909,10 +896,10 @@ class force_shifted_lj(wallpotential):
     Args:
         walls (:py:class:`group`): Wall group containing half-space geometries for the force to act in.
         r_cut (float): The global r_cut value for the force. Defaults to False or 0 if not specified.
-        name (str): The force name which will be used in the metadata and log files.
+        name (str): The force name which will be used in the log files.
 
     Wall force evaluated using the Force-shifted Lennard-Jones potential.
-    See :py:class:`hoomd.md.pair.force_shifted_lj` for force details and base parameters and :py:class:`wallpotential`
+    See :py:class:`hoomd.md.pair.ForceShiftedLJ` for force details and base parameters and :py:class:`wallpotential`
     for generalized wall potential implementation.
 
     Example::
@@ -962,10 +949,10 @@ class mie(wallpotential):
     Args:
         walls (:py:class:`group`): Wall group containing half-space geometries for the force to act in.
         r_cut (float): The global r_cut value for the force. Defaults to False or 0 if not specified.
-        name (str): The force name which will be used in the metadata and log files.
+        name (str): The force name which will be used in the log files.
 
     Wall force evaluated using the Mie potential.
-    See :py:class:`hoomd.md.pair.mie` for force details and base parameters and :py:class:`wallpotential` for
+    See :py:class:`hoomd.md.pair.Mie` for force details and base parameters and :py:class:`wallpotential` for
     generalized wall potential implementation
 
     Example::

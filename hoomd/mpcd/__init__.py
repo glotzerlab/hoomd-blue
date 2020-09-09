@@ -117,10 +117,10 @@ _citation = hoomd.cite.article(cite_key='howard2018',
                                year='2018',
                                doi='10.1016/j.cpc.2018.04.009',
                                feature='MPCD')
-if hoomd.context.bib is None:
+if hoomd._bib is None:
     hoomd.cite._extra_default_entries.append(_citation)
 else:
-    hoomd.context.bib.add(_citation)
+    hoomd._bib.add(_citation)
 
 class integrator(hoomd.integrate._integrator):
     """ MPCD integrator
@@ -136,7 +136,7 @@ class integrator(hoomd.integrate._integrator):
     in order for :py:mod:`~hoomd.mpcd.stream` and :py:mod:`~hoomd.mpcd.collide`
     methods to take effect. Embedded MD particles require the creation of an
     appropriate integration method. Typically, this will just be
-    :py:class:`~hoomd.md.methods.nve`.
+    :py:class:`~hoomd.md.methods.NVE`.
 
     In MPCD simulations, *dt* defines the amount of time that the system is advanced
     forward every time step. MPCD streaming and collision steps can be defined to

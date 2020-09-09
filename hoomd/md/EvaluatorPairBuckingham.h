@@ -58,7 +58,38 @@ class EvaluatorPairBuckingham
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar4 param_type;
+        struct param_type
+            {
+            Scalar A;
+            Scalar rho;
+            Scalar C;
+
+            #ifdef ENABLE_HIP
+            //! set CUDA memory hint
+            void set_memory_hint() const {}
+            #endif
+
+            #ifndef __HIPCC__
+            param_type() : A(0), rho(0), C(0) {}
+
+            param_type(pybind11::dict v)
+                {
+                A = v["A"].cast<Scalar>();
+                rho = v["rho"].cast<Scalar>();
+                C = v["C"].cast<Scalar>();
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+                v["A"] = A;
+                v["rho"] = rho;
+                v["C"] = C;
+                return v;
+                }
+            #endif
+            }
+            __attribute__((aligned(16)));
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
@@ -66,8 +97,8 @@ class EvaluatorPairBuckingham
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairBuckingham(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), A(_params.x), rho(_params.y),
-                C(_params.z)
+            : rsq(_rsq), rcutsq(_rcutsq), A(_params.A), rho(_params.rho),
+                C(_params.C)
             {
             }
 

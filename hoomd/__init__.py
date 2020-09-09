@@ -32,22 +32,19 @@ from hoomd import _hoomd;
 if not ('NOT_HOOMD_PYTHON_SITEDIR' in os.environ):
     sys.setdlopenflags(flags);
 
-from hoomd import meta
-from hoomd import context
+## Global bibliography
+_bib = None
+
 from hoomd import cite
 from hoomd import analyze
 from hoomd import benchmark
 from hoomd import comm
 from hoomd import compute
 from hoomd import dump
-from hoomd import group
-from hoomd import init
 from hoomd import integrate
-from hoomd import option
 from hoomd import update
 from hoomd import util
 from hoomd import variant
-from hoomd import lattice
 from hoomd import device
 from hoomd import trigger
 try:
@@ -73,7 +70,7 @@ from hoomd.simulation import Simulation
 from hoomd.state import State
 from hoomd.operations import Operations
 from hoomd.snapshot import Snapshot
-from hoomd import tuner
+from hoomd import tune
 from hoomd import output
 from hoomd import logging
 from hoomd import custom
@@ -90,3 +87,13 @@ def _hoomd_sys_excepthook(type, value, traceback):
 sys.excepthook = _hoomd_sys_excepthook
 
 __version__ = "2.9.0"
+
+__git_sha1__ = _hoomd.__git_sha1__
+
+__git_refspec__ = _hoomd.__git_refspec__
+
+__compile_flags__ = _hoomd.hoomd_compile_flags()
+
+__cuda_version__ = _hoomd.__cuda_version__
+
+__compiler_version__ = _hoomd.__compiler_version__

@@ -192,7 +192,7 @@ def base_snapshot(device):
             except TypeError:
                 setattr(snap_section, k, data[k]['value'])
 
-    snapshot = hoomd.Snapshot(device.comm)
+    snapshot = hoomd.Snapshot(device.communicator)
 
     if snapshot.exists:
         snapshot.configuration.box = [2.1, 2.1, 2.1, 0, 0, 0]
@@ -215,7 +215,7 @@ def gpu_simulation_factory(device_gpu):
 
         # reduce sorter grid to avoid Hilbert curve overhead in unit tests
         for tuner in sim.operations.tuners:
-            if isinstance(tuner, hoomd.tuner.ParticleSorter):
+            if isinstance(tuner, hoomd.tune.ParticleSorter):
                 tuner.grid = 8
 
         sim.create_state_from_snapshot(snapshot)
@@ -374,7 +374,7 @@ class _TestLocalSnapshots:
         sim = simulation_factory()
         for lcl_snapshot_attr in self._lcl_snapshot_attrs:
             with getattr(sim.state, lcl_snapshot_attr) as data:
-                self.check_box(data, sim.state.box, sim.device.num_ranks)
+                self.check_box(data, sim.state.box, sim.device.communicator.num_ranks)
 
     @staticmethod
     def check_tag_shape(base_snapshot, local_snapshot, group, ranks):
@@ -411,7 +411,7 @@ class _TestLocalSnapshots:
         for lcl_snapshot_attr in self._lcl_snapshot_attrs:
             with getattr(sim.state, lcl_snapshot_attr) as data:
                 self.check_tag_shape(
-                    base_snapshot, data, snapshot_section, sim.device.num_ranks)
+                    base_snapshot, data, snapshot_section, sim.device.communicator.num_ranks)
 
     @staticmethod
     def check_global_properties(prop, global_property_dict, N):
@@ -467,37 +467,41 @@ class _TestLocalSnapshots:
                 property_check(hoomd_buffer, property_dict, tags)
 
 
+@pytest.mark.cpu
 class TestLocalSnapshotCPUDevice(_TestLocalSnapshots):
     _lcl_snapshot_attrs = ['cpu_local_snapshot']
 
     @pytest.fixture
-    def simulation_factory(self, device_cpu, base_snapshot):
+    def simulation_factory(self, device, base_snapshot):
         """Creates the simulation from the base_snapshot."""
         def factory():
-            sim = hoomd.Simulation(device_cpu)
+            sim = hoomd.Simulation(device)
 
             # reduce sorter grid to avoid Hilbert curve overhead in unit tests
             for tuner in sim.operations.tuners:
-                if isinstance(tuner, hoomd.tuner.ParticleSorter):
+                if isinstance(tuner, hoomd.tune.ParticleSorter):
                     tuner.grid = 8
 
             sim.create_state_from_snapshot(base_snapshot)
             return sim
         return factory
 
-
+@pytest.mark.gpu
 class TestLocalSnapshotGPUDevice(_TestLocalSnapshots):
     _lcl_snapshot_attrs = ['cpu_local_snapshot', 'gpu_local_snapshot']
 
+    #TODO: see if this could work with the global simulation_factory to avoid
+    # code duplication
+
     @pytest.fixture
-    def simulation_factory(self, device_gpu, base_snapshot):
+    def simulation_factory(self, device, base_snapshot):
         """Creates the simulation from the base_snapshot."""
         def factory():
-            sim = hoomd.Simulation(device_gpu)
+            sim = hoomd.Simulation(device)
 
             # reduce sorter grid to avoid Hilbert curve overhead in unit tests
             for tuner in sim.operations.tuners:
-                if isinstance(tuner, hoomd.tuner.ParticleSorter):
+                if isinstance(tuner, hoomd.tune.ParticleSorter):
                     tuner.grid = 8
 
             sim.create_state_from_snapshot(base_snapshot)

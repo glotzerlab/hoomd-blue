@@ -262,7 +262,7 @@ class SWCA(hoomd.md.force._force, _DEMBase):
 
     The SWCA potential enables simulation of particles with
     heterogeneous rounding radii. The effect is as if a
-    :py:class:`hoomd.md.pair.slj` interaction with
+    :py:class:`hoomd.md.pair.SLJ` interaction with
     :math:`r_{cut}=2^{1/6}\sigma` and :math:`\sigma=2\cdot r` were
     applied between the contact points of each pair of particles.
 

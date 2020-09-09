@@ -45,7 +45,45 @@ class EvaluatorPairMorse
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar4 param_type;
+        struct param_type
+            {
+            Scalar D0;
+            Scalar alpha;
+            Scalar r0;
+
+            #ifdef ENABLE_HIP
+            // CUDA memory hints
+            void set_memory_hints() const {}
+            #endif
+
+            #ifndef __HIPCC__
+            param_type() : D0(0), alpha(0), r0(0) {}
+
+            param_type(pybind11::dict v)
+                {
+                D0 = v["D0"].cast<Scalar>();
+                alpha = v["alpha"].cast<Scalar>();
+                r0 = v["r0"].cast<Scalar>();
+                }
+
+            param_type(Scalar d, Scalar a, Scalar r)
+                {
+                D0 = d;
+                alpha = a;
+                r0 = r;
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+                v["D0"] = D0;
+                v["alpha"] = alpha;
+                v["r0"] = r0;
+                return v;
+                }
+            #endif
+            }
+            __attribute__((aligned(16)));
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
@@ -53,7 +91,7 @@ class EvaluatorPairMorse
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairMorse(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), D0(_params.x), alpha(_params.y), r0(_params.z)
+            : rsq(_rsq), rcutsq(_rcutsq), D0(_params.D0), alpha(_params.alpha), r0(_params.r0)
             {
             }
 
