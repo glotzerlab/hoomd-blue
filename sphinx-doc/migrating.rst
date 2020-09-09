@@ -41,7 +41,7 @@ Here is a module level overview of features that have been moved or removed:
    * - ``hoomd.group``
      - `hoomd.filter`
    * - ``hoomd.init``
-     - `hoomd.State` ``create_from_`` factory methods
+     - `hoomd.Simulation` ``create_state_from_`` factory methods
    * - ``hoomd.lattice``
      - *Removed.* Use an external tool.
    * - ``hoomd.meta``
@@ -53,7 +53,7 @@ Here is a module level overview of features that have been moved or removed:
    * - ``hoomd.util``
      -  Enable GPU profiling with `hoomd.device.GPU.enable_profiling`.
    * - ``hoomd.hdf5``
-     - *Removed.* A future release may re-implement HDF5 logging.
+     - *Not yet implemented for v3*.
    * - ``hoomd.hpmc.analyze.sdf``
      - ``hoomd.hpmc.compute.SDF``
    * - ``hoomd.hpmc.data``
