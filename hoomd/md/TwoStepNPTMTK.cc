@@ -774,7 +774,7 @@ void TwoStepNPTMTK::advanceBarostat(unsigned int timestep)
         P_diag.y = Scalar(1.0/2.0)*(P.yy + P.zz);
         P_diag.z = Scalar(1.0/2.0)*(P.yy + P.zz);
         }
-    else if (couple == couple_all)
+    else if (couple == couple_xyz)
         {
         Scalar P_iso = Scalar(1.0/3.0)*(P.xx + P.yy + P.zz);
         P_diag.x = P_diag.y = P_diag.z = P_iso;
@@ -872,21 +872,20 @@ void TwoStepNPTMTK::advanceThermostat(unsigned int timestep)
 void TwoStepNPTMTK::setCouple(const std::string& value)
     {
     bool is_two_dimensions = m_sysdef->getNDimensions()==2;
-    // if sys_def is 2D, silently ignore any couplings that involve z
+
     if (is_two_dimensions)
         {
         if(value == "none")
             {
             m_couple = couple_none;
             }
-        else if ( value == "all")
+        else if ( value == "xy")
             {
             m_couple = couple_xy;
             }
         else
             {
-            m_exec_conf->msg->warning() << "Specific x-y-z coupling is ignored, since system is two dimensional. Coupling either none or all (latter couples x and y)." << endl;
-            throw std::runtime_error("Error in NPT integration");
+            throw std::invalid_argument("Invalid coupling mode " + value + " for 2D simulations.");
             }
         }
     else
@@ -907,14 +906,13 @@ void TwoStepNPTMTK::setCouple(const std::string& value)
             {
             m_couple = couple_yz;
             }
-        else if ( value == "all")
+        else if ( value == "xyz")
             {
-            m_couple = couple_all;
+            m_couple = couple_xyz;
             }
         else
             {
-            m_exec_conf->msg->warning() << "Coupling mode not recognised." << endl;
-            throw std::runtime_error("Error in NPT integration");
+            throw std::invalid_argument("Invalid coupling mode " + value);
             }
         }
     }
@@ -929,10 +927,7 @@ std::string TwoStepNPTMTK::getCouple()
             couple = "none";
             break;
         case couple_xy :
-            if(m_sysdef->getNDimensions()==3)
-                couple = "xy";
-            else
-                couple = "all";
+            couple = "xy";
             break;
         case couple_xz :
             couple = "xz";
@@ -940,8 +935,8 @@ std::string TwoStepNPTMTK::getCouple()
         case couple_yz :
             couple = "yz";
             break;
-        case couple_all :
-            couple = "all";
+        case couple_xyz :
+            couple = "xyz";
         }
     return couple;
     }
@@ -952,7 +947,7 @@ TwoStepNPTMTK::couplingMode TwoStepNPTMTK::getRelevantCouplings()
     // disable irrelevant couplings
     if (! (m_flags & baro_x))
         {
-        if (couple == couple_all)
+        if (couple == couple_xyz)
             {
             couple = couple_yz;
             }
@@ -963,7 +958,7 @@ TwoStepNPTMTK::couplingMode TwoStepNPTMTK::getRelevantCouplings()
         }
     if (! (m_flags & baro_y))
         {
-        if (couple == couple_all)
+        if (couple == couple_xyz)
             {
             couple = couple_xz;
             }
@@ -974,7 +969,7 @@ TwoStepNPTMTK::couplingMode TwoStepNPTMTK::getRelevantCouplings()
         }
     if (! (m_flags & baro_z))
         {
-        if (couple == couple_all)
+        if (couple == couple_xyz)
             {
             couple = couple_xy;
             }
@@ -1087,7 +1082,7 @@ void TwoStepNPTMTK::randomizeVelocities(unsigned int timestep)
             case couple_yz:
                 nuyy = nuzz;
                 break;
-            case couple_all:
+            case couple_xyz:
                 nuxx = nuyy = nuzz;
                 break;
             default:

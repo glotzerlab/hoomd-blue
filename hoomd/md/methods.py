@@ -110,11 +110,11 @@ class NPT(_Method):
         filter (:py:mod:`hoomd.filter._ParticleFilter`): Subset of particles on which to apply this method.
         kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set point for the thermostat, not needed if *nph=True* (in energy units).
         tau (float): Coupling constant for the thermostat, not needed if *nph=True* (in time units).
-        S (:py:class:`list` of :py:mod:`hoomd.variant` or :py:obj:`float`): Stress components set point for the barostat (in pressure units). 
+        S (:py:class:`list` of :py:mod:`hoomd.variant` or :py:obj:`float`): Stress components set point for the barostat (in pressure units).
         In Voigt notation: [Sxx, Syy, Szz, Syz, Sxz, Sxy]. In case of isotropic pressure P ( [ P, P, P, 0, 0, 0]), use S = P.
         tauS (float): Coupling constant for the barostat (in time units).
         couple (str): Couplings of diagonal elements of the stress tensor, can be "none", "xy", "xz","yz", or "all" (default).
-        box_dof(list): Box degrees of freedom with six boolean elements corresponding to x, y, z, xy, xz, yz, each. (default: [True,True,True,False,False,False]) 
+        box_dof(list): Box degrees of freedom with six boolean elements corresponding to x, y, z, xy, xz, yz, each. (default: [True,True,True,False,False,False])
                        If turned on to True, rescale corresponding lengths or tilt factors and components of particle coordinates and velocities
         rescale_all (bool): if True, rescale all particles, not only those in the group
         gamma: (:py:obj:`float`): Dimensionless damping factor for the box degrees of freedom (default: 0)
@@ -152,7 +152,7 @@ class NPT(_Method):
     Valid form for elements of box_dof(box degrees of freedom) is :
 
     The `box_dof` tuple controls the way the box is rescaled and updated. The first three elements ``box_dof[:2]``
-    controls whether the x, y, and z box lengths are rescaled and updated, respectively. The last three entries 
+    controls whether the x, y, and z box lengths are rescaled and updated, respectively. The last three entries
     control the rescaling or the tilt factors xy, xz, and yz. All options also appropriately rescale particle coordinates and velocities.
 
     By default, the x, y, and z degrees of freedom are updated. [True,True,True,False,False,False]
@@ -208,7 +208,7 @@ class NPT(_Method):
         # triclinic symmetry
         integrator = integrate.NPT(filter=filter.All(), tau=1.0, kT=0.65, tauS = 1.2, S=2.0, couple="none", rescale_all=True)
     """
-    def __init__(self, filter, kT, tau, S, tauS, couple="all", box_dof=[True,True,True,False,False,False], rescale_all=False, gamma=0.0):
+    def __init__(self, filter, kT, tau, S, tauS, couple, box_dof=[True,True,True,False,False,False], rescale_all=False, gamma=0.0):
 
 
         # store metadata
@@ -223,31 +223,31 @@ class NPT(_Method):
             rescale_all=bool(rescale_all),
             gamma=float(gamma)
             )
-        param_dict.update(dict(filter=filter, kT=kT, S=S, 
+        param_dict.update(dict(filter=filter, kT=kT, S=S,
                                  couple=couple, box_dof=box_dof))
 
         # set defaults
         self._param_dict.update(param_dict)
 
 
-    def attach(self, simulation):
+    def _attach(self):
         # initialize the reflected c++ class
-        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+        if isinstance(self._simulation.device, hoomd.device.CPU):
             cpp_cls = _md.TwoStepNPTMTK
             thermo_cls = _hoomd.ComputeThermo
         else:
             cpp_cls = _md.TwoStepNPTMTKGPU
             thermo_cls = _hoomd.ComputeThermoGPU
 
-        cpp_sys_def = simulation.state._cpp_sys_def
-        thermo_group = simulation.state.get_group(self.filter)
+        cpp_sys_def = self._simulation.state._cpp_sys_def
+        thermo_group = self._simulation.state.get_group(self.filter)
 
-        thermo_half_step = thermo_cls(cpp_sys_def, 
+        thermo_half_step = thermo_cls(cpp_sys_def,
                             thermo_group,
                             "")
 
-        thermo_full_step = thermo_cls(cpp_sys_def, 
-                              thermo_group, 
+        thermo_full_step = thermo_cls(cpp_sys_def,
+                              thermo_group,
                               "")
 
         self._cpp_obj = cpp_cls(cpp_sys_def,
@@ -263,7 +263,7 @@ class NPT(_Method):
                                  False)
 
         # Attach param_dict and typeparam_dict
-        super().attach(simulation)
+        super()._attach()
 
     def __preprocess_stress(self,value):
         if isinstance(value, Sequence):

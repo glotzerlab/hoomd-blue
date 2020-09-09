@@ -48,7 +48,7 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
             couple_xy,
             couple_xz,
             couple_yz,
-            couple_all};
+            couple_xyz};
 
         /*! Flags to indicate which degrees of freedom of the simulation box should be put under
             barostat control
