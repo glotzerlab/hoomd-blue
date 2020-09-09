@@ -917,7 +917,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             int typ_i = __scalar_as_int(postype_i.w);
             Shape shape_i(quat<Scalar>(orientation_i), m_params[typ_i]);
             unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng_i);
-            bool move_type_translate = !shape_i.hasOrientation() || (move_type_select < m_move_ratio);
+            bool move_type_translate = !shape_i.hasOrientation() || (move_type_select < m_translation_move_probability);
 
             Shape shape_old(quat<Scalar>(orientation_i), m_params[typ_i]);
             vec3<Scalar> pos_old = pos_i;
