@@ -120,7 +120,7 @@ def test_large_moves(simulation_factory, lattice_snapshot_factory):
 
     sim = simulation_factory(snap)
     mc = hoomd.hpmc.integrate.ConvexPolygon(seed=1,
-                                            move_ratio=1.0,
+                                            translation_move_probability=1.0,
                                             nselect=4,
                                             d=100)
     mc = hoomd.hpmc.integrate.ConvexPolyhedron(seed=1)
