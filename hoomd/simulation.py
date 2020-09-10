@@ -89,7 +89,6 @@ class Simulation(metaclass=Loggable):
         # Store System and Reader for Operations
         self._cpp_sys = _hoomd.System(self.state._cpp_sys_def, step)
         self._init_communicator()
-        self._cpp_sys.enableQuietRun(not self.verbose_run)
         self.operations._store_reader(reader)
 
     def create_state_from_snapshot(self, snapshot):
@@ -107,7 +106,6 @@ class Simulation(metaclass=Loggable):
         # Store System and Reader for Operations
         self._cpp_sys = _hoomd.System(self.state._cpp_sys_def, step)
         self._init_communicator()
-        self._cpp_sys.enableQuietRun(not self.verbose_run)
 
     @property
     def state(self):
@@ -129,15 +127,6 @@ class Simulation(metaclass=Loggable):
     @property
     def tps(self):
         raise NotImplementedError
-
-    @property
-    def verbose_run(self):
-        return self._verbose
-
-    @verbose_run.setter
-    def verbose_run(self, value):
-        self._verbose = bool(value)
-        self._cpp_sys.enableQuietRun(not self.verbose_run)
 
     @property
     def always_compute_pressure(self):
@@ -172,27 +161,13 @@ class Simulation(metaclass=Loggable):
             if value:
                 self._state._cpp_sys_def.getParticleData().setPressureFlag()
 
-
-    def run(self, tsteps):
-        """Run the simulation forward tsteps."""
+    def run(self, steps):
+        """Run the simulation forward a given number of steps.
+        """
         # check if initialization has occurred
         if not hasattr(self, '_cpp_sys'):
             raise RuntimeError('Cannot run before state is set.')
         if not self.operations.scheduled:
             self.operations.schedule()
 
-        # TODO either remove or refactor this code
-        # if context.current.integrator is None:
-        #     context.current.device.cpp_msg.warning("Starting a run without an integrator set")
-        # else:
-        #     context.current.integrator.update_forces()
-        #     context.current.integrator.update_methods()
-        #     context.current.integrator.update_thermos()
-
-        # update all user-defined neighbor lists
-        # for nl in context.current.neighbor_lists:
-        #     nl.update_rcut()
-        #     nl.update_exclusions_defaults()
-
-        # detect 0 hours remaining properly
-        self._cpp_sys.run(int(tsteps), 0, None, 0, 0)
+        self._cpp_sys.run(int(steps))
