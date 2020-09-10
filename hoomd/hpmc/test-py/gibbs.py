@@ -44,7 +44,7 @@ class gibbs_ensemble_test(unittest.TestCase):
 
         muvt.set_params(n_trial=20)
         muvt.set_params(dV=0.01)
-        muvt.set_params(move_ratio=.01)
+        muvt.set_params(translation_move_probability=.01)
 
         run(100)
 

@@ -120,7 +120,7 @@ class pair_smallbox2d_test3 (unittest.TestCase):
         self.mc = hpmc.integrate.convex_polygon(seed=10);
         self.mc.set_params(deterministic=True)
         self.mc.shape_param.set("A", vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]);
-        self.mc.set_params(move_ratio=1.0)
+        self.mc.set_params(translation_move_probability=1.0)
 
         for i in range(0,l):
             for j in range(0,l):
