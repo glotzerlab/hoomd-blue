@@ -14,7 +14,7 @@ from hoomd.md import _md
 
 from . import _mpcd
 
-class sort(hoomd.meta._metadata):
+class sort():
     R""" Sorts MPCD particles in memory to improve cache coherency.
 
     Args:
@@ -49,9 +49,6 @@ class sort(hoomd.meta._metadata):
 
     def __init__(self, system, period=50):
 
-        # base class initialization
-        hoomd.meta._metadata.__init__(self)
-
         # check for mpcd initialization
         if system.sorter is not None:
             hoomd.context.current.device.cpp_msg.error('mpcd.update: system already has a sorter created!\n')
@@ -64,7 +61,6 @@ class sort(hoomd.meta._metadata):
             cpp_class = _mpcd.SorterGPU
         self._cpp = cpp_class(system.data, hoomd.context.current.system.getCurrentTimeStep(), period)
 
-        self.metadata_fields = ['period','enabled']
         self.period = period
         self.enabled = True
 

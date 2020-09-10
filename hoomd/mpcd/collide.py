@@ -22,7 +22,7 @@ from hoomd.md import _md
 from . import _mpcd
 import numpy as np
 
-class _collision_method(hoomd.meta._metadata):
+class _collision_method():
     """ Base collision method
 
     Args:
@@ -48,9 +48,6 @@ class _collision_method(hoomd.meta._metadata):
         if hoomd.context.current.mpcd._collide is not None:
             hoomd.context.current.device.cpp_msg.error('mpcd.collide: only one collision method can be created.\n')
             raise RuntimeError('Multiple initialization of collision method')
-
-        hoomd.meta._metadata.__init__(self)
-        self.metadata_fields = ['period','seed','group','shift','enabled']
 
         self.period = period
         self.seed = seed
@@ -201,7 +198,6 @@ class at(_collision_method):
     def __init__(self, seed, period, kT, group=None):
 
         _collision_method.__init__(self, seed, period)
-        self.metadata_fields += ['kT']
         self.kT = hoomd.variant._setup_variant_input(kT)
 
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -312,7 +308,6 @@ class srd(_collision_method):
     def __init__(self, seed, period, angle, kT=False, group=None):
 
         _collision_method.__init__(self, seed, period)
-        self.metadata_fields += ['angle','kT']
 
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             collide_class = _mpcd.SRDCollisionMethod

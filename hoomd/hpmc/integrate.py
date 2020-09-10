@@ -145,26 +145,27 @@ class _HPMCIntegrator(_BaseIntegrator):
             typeparam_d, typeparam_a, typeparam_fugacity, typeparam_inter_matrix
         ])
 
-    def attach(self, simulation):
+    def _attach(self):
         '''initialize the reflected c++ class'''
-        sys_def = simulation.state._cpp_sys_def
-        if (simulation.device.mode == 'gpu'
+        sys_def = self._simulation.state._cpp_sys_def
+        if (isinstance(self._simulation.device, hoomd.device.GPU)
                 and (self._cpp_cls + 'GPU') in _hpmc.__dict__):
             self._cpp_cell = _hoomd.CellListGPU(sys_def)
-            if simulation._system_communicator is not None:
-                self._cpp_cell.setCommunicator(simulation._system_communicator)
+            if self._simulation._system_communicator is not None:
+                self._cpp_cell.setCommunicator(
+                    self._simulation._system_communicator)
             self._cpp_obj = getattr(_hpmc,
                                     self._cpp_cls + 'GPU')(sys_def,
                                                            self._cpp_cell,
                                                            self.seed)
         else:
-            if simulation.device.mode == 'gpu':
-                simulation.device.cpp_msg.warning(
+            if isinstance(self._simulation.device, hoomd.device.GPU):
+                self._simulation.device._cpp_msg.warning(
                     "Falling back on CPU. No GPU implementation for shape.\n")
             self._cpp_obj = getattr(_hpmc, self._cpp_cls)(sys_def, self.seed)
             self._cpp_cell = None
 
-        super().attach(simulation)
+        super()._attach()
 
     # Set the external field
     def set_external(self, ext):
@@ -188,7 +189,7 @@ class _HPMCIntegrator(_BaseIntegrator):
             "hoomd.hpmc.integrate._HPMCIntegrator.get_type_shapes function.")
 
     def _return_type_shapes(self):
-        if not self.is_attached:
+        if not self._attached:
             return None
         type_shapes = self._cpp_obj.getTypeShapesPy()
         ret = [json.loads(json_string) for json_string in type_shapes]
@@ -206,7 +207,7 @@ class _HPMCIntegrator(_BaseIntegrator):
             `map_overlaps` does not support MPI parallel simulations.
         """
 
-        if not self.is_attached:
+        if not self._attached:
             return None
         return self._cpp_obj.mapOverlaps()
 
@@ -238,7 +239,7 @@ class _HPMCIntegrator(_BaseIntegrator):
     def overlaps(self):
         """int: Number of overlapping particle pairs.
         """
-        if not self.is_attached:
+        if not self._attached:
             return None
         self._cpp_obj.communicate(True)
         return self._cpp_obj.countOverlaps(False)

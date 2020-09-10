@@ -176,11 +176,17 @@ class _Pair(force._Force):
         ret = [ json.loads(json_string) for json_string in type_shapes ]
         return ret
 
-    def attach(self, simulation):
+    def _attach(self):
         # create the c++ mirror class
-        if not self.nlist.is_attached:
-            self.nlist.attach(simulation)
-        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+        if not self._nlist._added:
+            self._nlist._add(self._simulation)
+        else:
+            if self._simulation != self._nlist._simulation:
+                raise RuntimeError("{} object's neighbor list is used in a "
+                                   "different simulation.".format(type(self)))
+        if not self.nlist._attached:
+            self.nlist._attach()
+        if isinstance(self._simulation.device, hoomd.device.CPU):
             cls = getattr(_md, self._cpp_class_name)
             self.nlist._cpp_obj.setStorageMode(
                 _md.NeighborList.storageMode.half)
@@ -188,10 +194,11 @@ class _Pair(force._Force):
             cls = getattr(_md, self._cpp_class_name + "GPU")
             self.nlist._cpp_obj.setStorageMode(
                 _md.NeighborList.storageMode.full)
-        self._cpp_obj = cls(simulation.state._cpp_sys_def, self.nlist._cpp_obj,
-                            '')  # TODO remove name string arg
+        self._cpp_obj = cls(
+            self._simulation.state._cpp_sys_def, self.nlist._cpp_obj,
+            '')  # TODO remove name string arg
 
-        super().attach(simulation)
+        super()._attach()
 
     @property
     def nlist(self):
@@ -199,8 +206,8 @@ class _Pair(force._Force):
 
     @nlist.setter
     def nlist(self, value):
-        if self.is_attached:
-            raise RuntimeError("nlist cannot be set after attaching.")
+        if self._attached:
+            raise RuntimeError("nlist cannot be set after scheduling.")
         else:
             self._nlist = validate_nlist(value)
 

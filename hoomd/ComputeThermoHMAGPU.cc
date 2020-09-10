@@ -44,6 +44,7 @@ ComputeThermoHMAGPU::ComputeThermoHMAGPU(std::shared_ptr<SystemDefinition> sysde
 
     m_block_size = 512;
 
+    #ifdef __HIP_PLATFORM_NVCC__
     if (m_exec_conf->allConcurrentManagedAccess())
         {
         auto gpu_map = m_exec_conf->getGPUIds();
@@ -58,14 +59,15 @@ ComputeThermoHMAGPU::ComputeThermoHMAGPU(std::shared_ptr<SystemDefinition> sysde
             }
         CHECK_CUDA_ERROR();
         }
+    #endif
 
-    cudaEventCreate(&m_event, cudaEventDisableTiming);
+    hipEventCreateWithFlags(&m_event, hipEventDisableTiming);
     }
 
 //! Destructor
 ComputeThermoHMAGPU::~ComputeThermoHMAGPU()
     {
-    cudaEventDestroy(m_event);
+    hipEventDestroy(m_event);
     }
 
 /*! Computes all thermodynamic properties of the system in one fell swoop, on the GPU.
@@ -92,6 +94,7 @@ void ComputeThermoHMAGPU::computeProperties()
 
     if (m_scratch.size() != old_size)
         {
+        #ifdef __HIP_PLATFORM_NVCC__
         if (m_exec_conf->allConcurrentManagedAccess())
             {
             auto& gpu_map  = m_exec_conf->getGPUIds();
@@ -104,11 +107,12 @@ void ComputeThermoHMAGPU::computeProperties()
                 }
             CHECK_CUDA_ERROR();
             }
+        #endif
 
         // reset to zero, to be on the safe side
         ArrayHandle<Scalar3> d_scratch(m_scratch, access_location::device, access_mode::overwrite);
 
-        cudaMemset(d_scratch.data, 0, sizeof(Scalar3)*m_scratch.size());
+        hipMemset(d_scratch.data, 0, sizeof(Scalar3)*m_scratch.size());
         }
 
     // access the particle data
