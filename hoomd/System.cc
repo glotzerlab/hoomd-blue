@@ -360,31 +360,6 @@ void System::setupProfiling()
 #endif
     }
 
-void System::printStats()
-    {
-    m_exec_conf->msg->notice(1) << "---------" << endl;
-    // print the stats for everything
-    if (m_integrator)
-        m_integrator->printStats();
-
-    // analyzers
-	for (auto &analyzer_trigger_pair: m_analyzers)
-		analyzer_trigger_pair.first->printStats();
-
-    // updaters
-    for (auto &updater_trigger_pair: m_updaters)
-        updater_trigger_pair.first->printStats();
-
-    // computes
-    map< string, std::shared_ptr<Compute> >::iterator compute;
-    for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
-        compute->second->printStats();
-
-    // output memory trace information
-    if (m_exec_conf->getMemoryTracer())
-        m_exec_conf->getMemoryTracer()->outputTraces(m_exec_conf->msg);
-    }
-
 void System::resetStats()
     {
     if (m_integrator)

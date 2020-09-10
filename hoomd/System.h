@@ -196,9 +196,6 @@ class PYBIND11_EXPORT System
         //! Sets up m_profiler and attaches/detaches to/from all computes, updaters, and analyzers
         void setupProfiling();
 
-        //! Prints detailed statistics for all attached computes, updaters, and integrators
-        void printStats();
-
         //! Resets stats for all contained classes
         void resetStats();
 

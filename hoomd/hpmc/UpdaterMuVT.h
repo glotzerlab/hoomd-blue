@@ -77,31 +77,6 @@ class UpdaterMuVT : public Updater
             }
 
 
-        //! Print statistics about the muVT ensemble
-        void printStats()
-            {
-            hpmc_muvt_counters_t counters = getCounters(1);
-            m_exec_conf->msg->notice(2) << "-- HPMC muVT stats:" << std::endl;
-            if (counters.insert_accept_count + counters.insert_reject_count > 0)
-                {
-                m_exec_conf->msg->notice(2) << "Average insert acceptance: " << counters.getInsertAcceptance() << std::endl;
-                }
-            if (counters.remove_accept_count + counters.remove_reject_count > 0)
-                {
-                m_exec_conf->msg->notice(2) << "Average remove acceptance: " << counters.getRemoveAcceptance() << "\n";
-                }
-            if (counters.exchange_accept_count + counters.exchange_reject_count > 0)
-                {
-                m_exec_conf->msg->notice(2) << "Average exchange acceptance: " << counters.getExchangeAcceptance() << "\n";
-                }
-            m_exec_conf->msg->notice(2) << "Total transfer/exchange moves attempted: " << counters.getNExchangeMoves() << std::endl;
-            if (counters.volume_accept_count + counters.volume_reject_count > 0)
-                {
-                m_exec_conf->msg->notice(2) << "Average volume acceptance: " << counters.getVolumeAcceptance() << "\n";
-                }
-            m_exec_conf->msg->notice(2) << "Total volume moves attempted: " << counters.getNVolumeMoves() << std::endl;
-            }
-
         //! Get a list of logged quantities
         virtual std::vector< std::string > getProvidedLogQuantities()
             {

@@ -337,9 +337,6 @@ class PYBIND11_EXPORT CellList : public Compute
         //! Benchmark the computation
         double benchmark(unsigned int num_iters);
 
-        //! Print statistics on the cell list
-        virtual void printStats();
-
         // @}
 
         /*! \param func Function to call when the cell width changes
