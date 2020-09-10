@@ -67,6 +67,12 @@ workflows all with Python code in your job.
     citing
 
 .. toctree::
+    :maxdepth: 1
+    :caption: Tutorials
+
+    tutorial/00-Introducing-HOOMD-blue/00-index
+
+.. toctree::
     :maxdepth: 2
     :caption: Concepts
 
