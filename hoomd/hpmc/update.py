@@ -192,7 +192,7 @@ class boxmc(_updater):
                             move type.
 
         Sample the isobaric distribution of box dimensions by rescaling the plane-to-plane distance of box faces,
-        Lx, Ly, Lz (see :ref:`boxdim`).
+        Lx, Ly, Lz.
 
         Note:
             When an argument is None, the value is left unchanged from its current state.
@@ -236,7 +236,6 @@ class boxmc(_updater):
                             move type.
 
         Sample the distribution of box shear by adjusting the HOOMD-blue tilt factor parameters xy, xz, and yz.
-        (see :ref:`boxdim`).
 
         Note:
             When an argument is None, the value is left unchanged from its current state.
