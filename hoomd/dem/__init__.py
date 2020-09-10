@@ -39,12 +39,12 @@ rotational degrees of freedom:
 
   * `hoomd.md.methods.NVE`
   * `hoomd.md.methods.NVT`
-  * `hoomd.md.methods.npt`
+  * `hoomd.md.methods.NPT`
   * `hoomd.md.methods.Langevin`
   * `hoomd.md.methods.Brownian`
 
 Note that the Nosé-Hoover thermostats used in
-`hoomd.md.methods.NVT` and `hoomd.md.methods.npt`
+`hoomd.md.methods.NVT` and `hoomd.md.methods.NPT`
 work by rescaling momenta and angular momenta. This can lead to
 instabilities in the start of the simulation if particles are
 initialized with 0 angular momentum and no neighbor interactions. Two
