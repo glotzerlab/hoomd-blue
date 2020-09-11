@@ -4,6 +4,7 @@ from hoomd.state import State
 from hoomd.snapshot import Snapshot
 from hoomd.operations import Operations
 import hoomd
+import json
 
 
 class Simulation(metaclass=Loggable):
@@ -17,7 +18,6 @@ class Simulation(metaclass=Loggable):
         self._device = device
         self._state = None
         self._operations = Operations(self)
-        self._verbose = False
         self._timestep = None
 
     @property
@@ -171,3 +171,76 @@ class Simulation(metaclass=Loggable):
             self.operations.schedule()
 
         self._cpp_sys.run(int(steps))
+
+    def write_debug_data(self, filename):
+        """Write debug data to a JSON file.
+
+        Args:
+            filename (str): Name of file to write.
+
+        The debug data file contains useful information for others to help you
+        troubleshoot issues.
+
+        Note:
+            The file format and particular data written to this file may change
+            from version to version.
+
+        Warning:
+            The specified file name will be overwritten.
+        """
+        debug_data = {}
+        debug_data['hoomd_module'] = str(hoomd)
+        debug_data['version'] = dict(
+            compile_date=hoomd.version.compile_date,
+            compile_flags=hoomd.version.compile_flags,
+            cxx_compiler=hoomd.version.cxx_compiler,
+            enable_gpu=hoomd.version.enable_gpu,
+            enable_mpi=hoomd.version.enable_mpi,
+            enable_tbb=hoomd.version.enable_tbb,
+            git_branch=hoomd.version.git_branch,
+            git_sha1=hoomd.version.git_sha1,
+            gpu_api_version=hoomd.version.gpu_api_version,
+            gpu_platform=hoomd.version.gpu_platform,
+            install_dir=hoomd.version.install_dir,
+            source_dir=hoomd.version.source_dir)
+
+        reasons = hoomd.device.GPU.get_unavailable_device_reasons()
+
+        debug_data['device'] = dict(
+            msg_file=self.device.msg_file,
+            notice_level=self.device.notice_level,
+            devices=self.device.devices,
+            num_cpu_threads=self.device.num_cpu_threads,
+            gpu_available_devices=hoomd.device.GPU.get_available_devices(),
+            gpu_unavailable_device_reasons=reasons)
+
+        debug_data['communicator'] = dict(
+            num_ranks=self.device.communicator.num_ranks)
+
+        # TODO: Domain decomposition
+
+        if self.state is not None:
+            debug_data['state'] = dict(
+                types=self.state.types,
+                N_particles=self.state.N_particles,
+                N_bonds=self.state.N_bonds,
+                N_angles=self.state.N_angles,
+                N_impropers=self.state.N_impropers,
+                N_special_pairs=self.state.N_special_pairs,
+                N_dihedrals=self.state.N_dihedrals,
+                box=repr(self.state.box))
+
+        # save all loggable quantities from operations
+        logger = hoomd.logging.Logger(only_default=False)
+        logger += self
+        for op in self.operations:
+            if op is not None:
+                logger += op
+
+        log = logger.log()
+        log_values = hoomd.util.dict_map(log, lambda v: v[0])
+        debug_data['operations'] = log_values
+
+        if self.device.communicator.rank == 0:
+            with open(filename, 'w') as f:
+                json.dump(debug_data, f, default=lambda v: str(v), indent=4)

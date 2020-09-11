@@ -125,7 +125,7 @@ class State:
     def types(self):
         return dict(particle_types=self.particle_types,
                     bond_types=self.bond_types,
-                    angle_types=self.angles_types,
+                    angle_types=self.angle_types,
                     dihedral_types=self.dihedral_types,
                     improper_types=self.improper_types,
                     special_pair_types=self.special_pair_types
