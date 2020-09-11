@@ -23,6 +23,11 @@ sphinx_ver = tuple(map(int, sphinx.__version__.split('.')))
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.insert(0, os.path.abspath('..'))
 
+### TEMPORARY ####
+# TODO: remove this when 3.0 is closer to completion
+# stop warning about invalid references
+suppress_warnings = ['ref.any']
+
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.

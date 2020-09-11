@@ -30,7 +30,7 @@ def ellip_preprocessing(constraint):
         return None
 
 
-class _force(hoomd.meta._metadata):
+class _force():
     pass
 
 
@@ -169,12 +169,6 @@ class constant(_Force):
 
         if callback is not None:
             self.cppForce.setCallback(callback)
-
-        # store metadata
-        self.metadata_fields = ['fvec', 'tvec']
-        if group is not None:
-            self.metadata_fields.append('group')
-            self.group = group
 
         hoomd.context.current.system.addCompute(self.cppForce, self.force_name)
 
@@ -350,7 +344,6 @@ class dipole(_Force):
         hoomd.context.current.system.addCompute(self.cppForce, self.force_name)
 
         # store metadata
-        self.metadata_fields = ['field_x', 'field_y', 'field_z']
         self.field_x = field_x
         self.field_y = field_y
         self.field_z = field_z

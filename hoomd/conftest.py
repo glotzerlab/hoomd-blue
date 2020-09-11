@@ -212,9 +212,6 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers",
         "serial: Tests that will not execute with more than 1 MPI process")
-    config.addinivalue_line(
-        "markers",
-        "validation: Long running tests that validate simulation output")
     config.addinivalue_line("markers",
                             "gpu: Tests that should only run on the gpu.")
     config.addinivalue_line(

@@ -36,7 +36,7 @@ are:
   occur, but it will still use the found optimal values. If disabled during the warm up period, a warning is issued
   and the system will use non-optimal values.
 
-The defaults are ``period=100000``, and ``enabled=True``. Other parameters can be set by calling
-``hoomd.option.set_autotuner_params()``. This period is short enough to
-pick up changes after just a few hundred thousand time steps, but long enough so that the performance loss of occasionally
-running at nonoptimal parameters is small (most per time step calls can complete tuning in less than 200 time steps).
+The defaults are ``period=100000``, and ``enabled=True``. 
+This period is short enough to pick up changes after just a few hundred thousand time steps, but long enough so that 
+the performance loss of occasionally running at nonoptimal parameters is small (most per time step calls can complete 
+tuning in less than 200 time steps).

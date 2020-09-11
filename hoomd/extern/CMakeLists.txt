@@ -13,7 +13,7 @@ add_library(hipper INTERFACE)
 add_library(HOOMD::hipper ALIAS hipper)
 target_include_directories(hipper INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/hipper/include>
                                             $<INSTALL_INTERFACE:${PYTHON_SITE_INSTALL_DIR}/include/hoomd/extern/hipper/include>)
-if (HIP_PLATFORM STREQUAL "hcc")
+if (HIP_PLATFORM STREQUAL "hcc" OR HIP_PLATFORM STREQUAL "hip-clang")
     target_compile_definitions(hipper INTERFACE HIPPER_HIP)
 elseif(HIP_PLATFORM STREQUAL "nvcc")
     target_compile_definitions(hipper INTERFACE HIPPER_CUDA)

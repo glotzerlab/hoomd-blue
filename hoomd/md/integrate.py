@@ -106,7 +106,7 @@ class Integrator(_DynamicIntegrator):
     - `hoomd.md.methods.Langevin`
     - `hoomd.md.methods.NVE`
     - `hoomd.md.methods.NVT`
-    - `hoomd.md.methods.npt`
+    - `hoomd.md.methods.NPT`
     - `hoomd.md.methods.nph`
 
     There can only be one integration mode active at a time. If there are more

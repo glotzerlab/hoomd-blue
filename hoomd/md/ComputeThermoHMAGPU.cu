@@ -244,7 +244,7 @@ __global__ void gpu_compute_thermo_hma_final_sums(Scalar *d_properties,
     This function drives gpu_compute_thermo_partial_sums and gpu_compute_thermo_final_sums, see them for details.
 */
 
-cudaError_t gpu_compute_thermo_hma_partial( Scalar4 *d_pos,
+hipError_t gpu_compute_thermo_hma_partial( Scalar4 *d_pos,
                                Scalar3 *d_lattice_site,
                                int3 *d_image,
                                unsigned int *d_body,
@@ -297,7 +297,7 @@ cudaError_t gpu_compute_thermo_hma_partial( Scalar4 *d_pos,
 
     assert(block_offset <= args.n_blocks);
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 //! Compute thermodynamic properties of a group on the GPU
@@ -313,7 +313,7 @@ cudaError_t gpu_compute_thermo_hma_partial( Scalar4 *d_pos,
     This function drives gpu_compute_thermo_partial_sums and gpu_compute_thermo_final_sums, see them for details.
 */
 
-cudaError_t gpu_compute_thermo_hma_final(Scalar *d_properties,
+hipError_t gpu_compute_thermo_hma_final(Scalar *d_properties,
                                unsigned int *d_body,
                                unsigned int *d_tag,
                                unsigned int *d_group_members,
@@ -352,5 +352,5 @@ cudaError_t gpu_compute_thermo_hma_final(Scalar *d_properties,
                                                                    external_virial,
                                                                    args.external_energy);
 
-    return cudaSuccess;
+    return hipSuccess;
     }

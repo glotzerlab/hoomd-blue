@@ -135,6 +135,7 @@ install(FILES ${_hpmc_headers}
        )
 
 add_subdirectory(pytest)
+add_subdirectory(tune)
 
 if (BUILD_TESTING)
     # add_subdirectory(test-py)

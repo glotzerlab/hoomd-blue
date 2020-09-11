@@ -804,11 +804,13 @@ class frenkel_ladd_energy(_Compute):
     R""" Compute the Frenkel-Ladd Energy of a crystal.
 
     Args:
+        mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
         ln_gamma (float): log of the translational spring constant
         q_factor (float): scale factor between the translational spring constant and rotational spring constant
         r0 (list): reference lattice positions
         q0 (list): reference lattice orientations
         drift_period (int): period call the remove drift updater
+        symmetry (list): list of equivalent quaternions for the shape.
 
     :py:class:`frenkel_ladd_energy` interacts with :py:class:`.lattice_field`
     and :py:class:`hoomd.hpmc.update.remove_drift`.
