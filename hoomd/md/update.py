@@ -170,7 +170,7 @@ class constraint_ellipsoid(_updater):
         period = 1;
 
         # Error out in MPI simulations
-        if (_hoomd.is_MPI_available()):
+        if (hoomd.version.enable_mpi):
             if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
                 hoomd.context.current.device.cpp_msg.error("constrain.ellipsoid is not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error initializing updater.")

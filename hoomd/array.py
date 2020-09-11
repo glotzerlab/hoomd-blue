@@ -4,7 +4,7 @@ from collections.abc import Iterable
 
 import numpy as np
 
-from hoomd._hoomd import isCUDAAvailable
+import hoomd
 
 
 class HOOMDArrayError(RuntimeError):
@@ -462,7 +462,7 @@ class HOOMDArray(metaclass=_WrapClassFactory(_wrap_list)):
                 + "(<strong>INVALID</strong>)"
 
 
-if isCUDAAvailable():
+if hoomd.version.enable_gpu:
     import os
 
     class _HOOMDGPUArrayBase:

@@ -49,7 +49,7 @@ class Simulation(metaclass=Loggable):
         """ Initialize the Communicator
         """
         # initialize communicator
-        if _hoomd.is_MPI_available():
+        if hoomd.version.enable_mpi:
             pdata = self.state._cpp_sys_def.getParticleData()
             decomposition = pdata.getDomainDecomposition()
             if decomposition is not None:

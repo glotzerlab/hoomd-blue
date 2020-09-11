@@ -331,6 +331,7 @@ set(files benchmark.py
           typeconverter.py
           snapshot.py
           logging.py
+          version.py
     )
 
 install(FILES ${files}

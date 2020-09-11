@@ -14,7 +14,7 @@ add_subdirectory (CMake)
 
 ################################
 ## Version information
-set(HOOMD_VERSION_RAW "2.9.1")
+set(HOOMD_VERSION_RAW "2.9.2")
 string(REGEX MATCH "(.*)\\.(.*)\\.(.*)$" _hoomd_version_match ${HOOMD_VERSION_RAW})
 set(HOOMD_VERSION_MAJOR ${CMAKE_MATCH_1})
 set(HOOMD_VERSION_MINOR ${CMAKE_MATCH_2})
@@ -182,7 +182,7 @@ endif (libgetar_DIR)
 
 #######################
 ## Get the compile date
-exec_program("date +%x" OUTPUT_VARIABLE COMPILE_DATE)
+exec_program("date -I" OUTPUT_VARIABLE COMPILE_DATE)
 
 ################################
 # set up unit tests

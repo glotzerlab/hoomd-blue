@@ -411,27 +411,8 @@ PDataFlags System::determineFlags(unsigned int tstep)
     return flags;
     }
 
-//! Create a custom exception
-PyObject* createExceptionClass(py::module& m, const char* name, PyObject* baseTypeObj = PyExc_Exception)
-    {
-    // http://stackoverflow.com/questions/9620268/boost-python-custom-exception-class, modified by jproc for pybind11
-
-    using std::string;
-
-    string scopeName = py::cast<string>(m.attr("__name__"));
-    string qualifiedName0 = scopeName + "." + name;
-    char* qualifiedName1 = const_cast<char*>(qualifiedName0.c_str());
-
-    PyObject* typeObj = PyErr_NewException(qualifiedName1, baseTypeObj, 0);
-    if(!typeObj) throw py::error_already_set();
-    m.attr(name) = py::reinterpret_borrow<py::object>(typeObj);
-    return typeObj;
-    }
-
 void export_System(py::module& m)
     {
-    walltimeLimitExceptionTypeObj = createExceptionClass(m,"WalltimeLimitReached");
-
     py::bind_vector<std::vector<std::pair<std::shared_ptr<Analyzer>,
                     std::shared_ptr<Trigger> > > >(m, "AnalyzerTriggerList");
     py::bind_vector<std::vector<std::pair<std::shared_ptr<Updater>,

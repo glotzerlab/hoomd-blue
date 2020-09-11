@@ -299,7 +299,7 @@ class SWCA(hoomd.md.force._force, _DEMBase):
         self.dimensions = hoomd.context.current.system_definition.getNDimensions();
 
         # Error out in MPI simulations
-        if (hoomd._hoomd.is_MPI_available()):
+        if (hoomd.hoomd.version.enable_mpi):
             if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
                 hoomd.context.current.device.cpp_msg.error("pair.SWCA is not supported in multi-processor simulations.\n\n");
                 raise RuntimeError("Error setting up pair potential.");

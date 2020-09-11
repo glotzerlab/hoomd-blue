@@ -1,8 +1,9 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-#ifndef __HOOMD_VERSION_H__
-#define __HOOMD_VERSION_H__
+#pragma once
+
+#include <string>
 
 // Full text HOOMD version string
 #define HOOMD_VERSION "${HOOMD_VERSION}"
@@ -16,10 +17,14 @@
 #define HOOMD_BINARY_DIR "${HOOMD_BINARY_DIR}"
 // Set the installation directory as a hint for locating libraries
 #define HOOMD_INSTALL_PREFIX "${HOOMD_INSTALL_PREFIX}"
+// The python site directory
+#define PYTHON_SITE_INSTALL_DIR "${PYTHON_SITE_INSTALL_DIR}"
 // Current git refspec checked out
 #define HOOMD_GIT_REFSPEC "${HOOMD_GIT_REFSPEC}"
 // Current git hash
 #define HOOMD_GIT_SHA1 "${HOOMD_GIT_SHA1}"
+
+// clang-format off
 
 // hoomd major version
 #define HOOMD_VERSION_MAJOR ${HOOMD_VERSION_MAJOR}
@@ -28,20 +33,56 @@
 // hoomd patch version
 #define HOOMD_VERSION_PATCH ${HOOMD_VERSION_PATCH}
 
-#include <string>
+// clang-format on
 
 /*! \file HOOMDVersion.h.in
-	\brief Functions and variables for printing compile time build information of HOOMD
-	\details This file is configured to HOOMDVersion.h by CMake, that is the file that should
-		be included in any code needing it.
+    \brief Functions and variables for printing compile time build information of HOOMD
+    \details This file is configured to HOOMDVersion.h by CMake, that is the file that should
+        be included in any code needing it.
 
-	\ingroup utils
+    \ingroup utils
 */
 
-//! Formats the HOOMD compile flags as a strong
-std::string hoomd_compile_flags();
+namespace hoomd
+    {
+/// Collect all build information together in one class
+class BuildInfo
+    {
+    public:
+    /// Format the HOOMD compilation options as a string
+    static std::string getCompileFlags();
 
-//! Formats the HOOMD version info header as string
-std::string output_version_info();
+    /// Determine if ENABLE_GPU is set
+    static bool getEnableGPU();
 
-#endif
+    /// Format the cuda API version as a string
+    static std::string getGPUAPIVersion();
+
+    /// Get the GPU platform
+    static std::string getGPUPlatform();
+
+    /// Get the c++ compiler description
+    static std::string getCXXCompiler();
+
+    /// Determine if ENABLE_TBB is set
+    static bool getEnableTBB();
+
+    /// Determine if ENABLE_MPI is set
+    static bool getEnableMPI();
+
+    /// Get the compile date
+    static std::string getCompileDate();
+
+    /// Get the source directory
+    static std::string getSourceDir();
+
+    /// Get the installation directory
+    static std::string getInstallDir();
+
+    /// Get the git branch
+    static std::string getGitBranch();
+
+    /// Get the git sha
+    static std::string getGitSHA1();
+    };
+    } // namespace hoomd

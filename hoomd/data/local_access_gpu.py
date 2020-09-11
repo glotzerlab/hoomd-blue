@@ -5,8 +5,9 @@ from hoomd.data.local_access import (
     PairLocalAccessBase, _LocalSnapshot)
 
 from hoomd.array import HOOMDGPUArray
+import hoomd
 
-if _hoomd.isCUDAAvailable():
+if hoomd.version.enable_gpu:
     class ParticleLocalAccessGPU(ParticleLocalAccessBase):
         _cpp_cls = _hoomd.LocalParticleDataDevice
         _array_cls = HOOMDGPUArray
