@@ -182,7 +182,7 @@ endif (libgetar_DIR)
 
 #######################
 ## Get the compile date
-exec_program("date -I" OUTPUT_VARIABLE COMPILE_DATE)
+exec_program("date +%Y-%m-%d" OUTPUT_VARIABLE COMPILE_DATE)
 
 ################################
 # set up unit tests
