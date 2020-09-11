@@ -77,21 +77,3 @@ will not require any modifications. **Maintainer:** Matthew Spellings.
 from hoomd.dem import pair
 from hoomd.dem import params
 from hoomd.dem import utils
-
-# add DEM article citation notice
-import hoomd
-_citation = hoomd.cite.article(cite_key='spellings2016',
-                               author=['M Spellings', 'R L Marson', 'J A Anderson', 'S C Glotzer'],
-                               title='GPU accelerated Discrete Element Method (DEM) molecular dynamics for conservative, faceted particle simulations',
-                               journal=' Journal of Computational Physics',
-                               volume=334,
-                               pages='460--467',
-                               month='apr',
-                               year='2017',
-                               doi='10.1016/j.jcp.2017.01.014',
-                               feature='DEM')
-
-if hoomd._bib is None:
-    hoomd.cite._extra_default_entries.append(_citation)
-else:
-    hoomd._bib.add(_citation)

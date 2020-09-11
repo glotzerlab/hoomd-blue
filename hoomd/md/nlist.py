@@ -231,19 +231,6 @@ class stencil(nlist):
         significantly degraded performance or incorrect results.
     """
     def __init__(self, r_buff=0.4, check_period=1, d_max=None, dist_check=True, cell_width=None, name=None, deterministic=False):
-        # register the citation
-        c = hoomd.cite.article(cite_key='howard2016',
-                         author=['M P Howard', 'J A Anderson', 'A Nikoubashman', 'S C Glotzer', 'A Z Panagiotopoulos'],
-                         title='Efficient neighbor list calculation for molecular simulation of colloidal systems using graphics processing units',
-                         journal='Computer Physics Communications',
-                         volume=203,
-                         pages='45--52',
-                         month='Mar',
-                         year='2016',
-                         doi='10.1016/j.cpc.2016.02.003',
-                         feature='stenciled neighbor lists')
-        hoomd.cite._ensure_global_bib().add(c)
-
         nlist.__init__(self)
 
         if name is None:
@@ -404,30 +391,6 @@ class tree(nlist):
 
     """
     def __init__(self, r_buff=0.4, check_period=1, d_max=None, dist_check=True, name=None):
-
-        # register the citation
-        c1 = hoomd.cite.article(cite_key='howard2016',
-                         author=['M P Howard', 'J A Anderson', 'A Nikoubashman', 'S C Glotzer', 'A Z Panagiotopoulos'],
-                         title='Efficient neighbor list calculation for molecular simulation of colloidal systems using graphics processing units',
-                         journal='Computer Physics Communications',
-                         volume=203,
-                         pages='45--52',
-                         month='Mar',
-                         year='2016',
-                         doi='10.1016/j.cpc.2016.02.003',
-                         feature='tree neighbor lists')
-        c2 = hoomd.cite.article(cite_key='howard2019',
-                         author=['M P Howard', 'A Statt', 'F Madutsa', 'T M Truskett', 'A Z Panagiotopoulos'],
-                         title='Quantized bounding volume hierarchies for neighbor search in molecular simulations on graphics processing units',
-                         journal='Computational Materials Science',
-                         volume=164,
-                         pages='139--146',
-                         month='Jun',
-                         year='2019',
-                         doi='10.1016/j.commatsci.2019.04.004',
-                         feature='tree neighbor lists')
-        hoomd.cite._ensure_global_bib().add((c1,c2))
-
         nlist.__init__(self)
 
         # create the C++ mirror class

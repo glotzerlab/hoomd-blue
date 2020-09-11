@@ -81,20 +81,6 @@ class pppm(force._force):
         # initialize the base class
         force._force.__init__(self);
 
-        # register the citation
-        c = hoomd.cite.article(cite_key='dnlebard2012',
-                         author=['D N LeBard', 'B G Levine', 'S A Barr', 'A Jusufi', 'S Sanders', 'M L Klein', 'A Z Panagiotopoulos'],
-                         title='Self-assembly of coarse-grained ionic surfactants accelerated by graphics processing units',
-                         journal='Journal of Computational Physics',
-                         volume=8,
-                         number=8,
-                         pages='2385-2397',
-                         month='',
-                         year='2012',
-                         doi='10.1039/c1sm06787g',
-                         feature='PPPM')
-        hoomd.cite._ensure_global_bib().add(c)
-
         # create the c++ mirror class
 
         # PPPM itself doesn't really need a neighbor list, so subscribe call back as None

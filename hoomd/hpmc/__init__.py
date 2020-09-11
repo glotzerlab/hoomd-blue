@@ -127,21 +127,3 @@ from hoomd.hpmc import compute
 from hoomd.hpmc import util
 from hoomd.hpmc import field
 from hoomd.hpmc import tune
-
-# add HPMC article citation notice
-import hoomd
-_citation = hoomd.cite.article(cite_key='anderson2016',
-                               author=['J A Anderson', 'M E Irrgang', 'S C Glotzer'],
-                               title='Scalable Metropolis Monte Carlo for simulation of hard shapes',
-                               journal='Computer Physics Communications',
-                               volume=204,
-                               pages='21--30',
-                               month='July',
-                               year='2016',
-                               doi='10.1016/j.cpc.2016.02.024',
-                               feature='HPMC')
-
-if hoomd._bib is None:
-    hoomd.cite._extra_default_entries.append(_citation)
-else:
-    hoomd._bib.add(_citation)

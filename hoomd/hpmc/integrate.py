@@ -13,22 +13,6 @@ import hoomd
 import json
 
 
-# Helper method to inform about implicit depletants citation
-# TODO: figure out where to call this
-def cite_depletants():
-    _citation = hoomd.cite.article(
-        cite_key='glaser2015',
-        author=['J Glaser', 'A S Karas', 'S C Glotzer'],
-        title='A parallel algorithm for implicit depletant simulations',
-        journal='The Journal of Chemical Physics',
-        volume=143,
-        pages='184110',
-        year='2015',
-        doi='10.1063/1.4935175',
-        feature='implicit depletants')
-    hoomd.cite._ensure_global_bib().add(_citation)
-
-
 class _HPMCIntegrator(_BaseIntegrator):
     """Base class hard particle Monte Carlo integrator.
 

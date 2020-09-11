@@ -15,14 +15,10 @@ classes will not require any modifications.
 
 **Maintainer:** Joshua A. Anderson
 """
-import sys;
-import os;
-
-## Global bibliography
-_bib = None
+import sys
+import os
 
 from hoomd import version
-from hoomd import cite
 from hoomd import analyze
 from hoomd import benchmark
 from hoomd import comm
