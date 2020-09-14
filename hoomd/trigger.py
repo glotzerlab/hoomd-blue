@@ -14,6 +14,10 @@ class Periodic(_hoomd.PeriodicTrigger, Trigger):
     def __init__(self, period, phase=0):
         _hoomd.PeriodicTrigger.__init__(self, period, phase)
 
+    def __str__(self):
+        return f"hoomd.trigger.Periodic(period={self.period}, " \
+               f"phase={self.phase}"
+
 
 class Before(_hoomd.BeforeTrigger, Trigger):
     def __init__(self, timestep):
@@ -22,6 +26,8 @@ class Before(_hoomd.BeforeTrigger, Trigger):
         else:
             _hoomd.BeforeTrigger.__init__(self, timestep)
 
+    def __str__(self):
+        return f"hoomd.trigger.Before(timestep={self.timestep}"
 
 class On(_hoomd.OnTrigger, Trigger):
     def __init__(self, timestep):
@@ -30,6 +36,8 @@ class On(_hoomd.OnTrigger, Trigger):
         else:
             _hoomd.OnTrigger.__init__(self, timestep)
 
+    def __str__(self):
+        return f"hoomd.trigger.On(timestep={self.timestep}"
 
 class After(_hoomd.AfterTrigger, Trigger):
     def __init__(self, timestep):
@@ -38,11 +46,15 @@ class After(_hoomd.AfterTrigger, Trigger):
         else:
             _hoomd.AfterTrigger.__init__(self, timestep)
 
+    def __str__(self):
+        return f"hoomd.trigger.After(timestep={self.timestep}"
 
 class Not(_hoomd.NotTrigger, Trigger):
     def __init__(self, trigger):
         _hoomd.NotTrigger.__init__(self, trigger)
 
+    def __str__(self):
+        return f"hoomd.trigger.Not(timestep={self.timestep}"
 
 class And(_hoomd.AndTrigger, Trigger):
     def __init__(self, triggers):
