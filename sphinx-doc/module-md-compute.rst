@@ -1,15 +1,17 @@
-hoomd.compute
--------------
+md.compute
+----------
 
 .. rubric:: Overview
+
+.. py:currentmodule:: hoomd.md.compute
 
 .. autosummary::
     :nosignatures:
 
-    hoomd.compute.ThermoQuantities
+    ThermodynamicQuantities
 
 .. rubric:: Details
 
-.. automodule:: hoomd.compute
+.. automodule:: hoomd.md.compute
     :synopsis: Compute system properties.
     :members:
