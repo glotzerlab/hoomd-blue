@@ -566,7 +566,7 @@ class tune(object):
     Example::
 
         mc = hpmc.integrate.convex_polyhedron()
-        mc.set_params(d=0.01, a=0.01, move_ratio=0.5)
+        mc.set_params(d=0.01, a=0.01, translation_move_probability=0.5)
         tuner = hpmc.util.tune(mc, tunables=['d', 'a'], target=0.2, gamma=0.5)
         for i in range(10):
             run(1e4)
@@ -740,7 +740,7 @@ class tune_npt(tune):
     Example::
 
         mc = hpmc.integrate.convex_polyhedron()
-        mc.set_params(d=0.01, a=0.01, move_ratio=0.5)
+        mc.set_params(d=0.01, a=0.01, translation_move_probability=0.5)
         updater = hpmc.update.boxmc(mc, betaP=10)
         updater.length(0.1, weight=1)
         tuner = hpmc.util.tune_npt(updater, tunables=['dLx', 'dLy', 'dLz'], target=0.3, gamma=1.0)

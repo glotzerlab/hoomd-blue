@@ -405,10 +405,10 @@ class wall(_updater):
         walls (:py:class:`hoomd.hpmc.field.wall`): the wall class instance to be updated
         py_updater (`callable`): the python callback that performs the update moves. This must be a python method that is a function of the timestep of the simulation.
                It must actually update the :py:class:`hoomd.hpmc.field.wall`) managed object.
-        move_ratio (float): the probability with which an update move is attempted
+        move_probability (float): the probability with which an update move is attempted
         seed (int): the seed of the pseudo-random number generator that determines whether or not an update move is attempted
         period (int): the number of timesteps between update move attempt attempts
-               Every *period* steps, a walls update move is tried with probability *move_ratio*. This update move is provided by the *py_updater* callback.
+               Every *period* steps, a walls update move is tried with probability *move_probability*. This update move is provided by the *py_updater* callback.
                Then, update.wall only accepts an update move provided by the python callback if it maintains confinement conditions associated with all walls. Otherwise,
                it reverts back to a non-updated copy of the walls.
 
@@ -424,7 +424,7 @@ class wall(_updater):
         def perturb(timestep):
           r = np.sqrt(ext_wall.get_sphere_wall_param(index = 0, param = "rsq"));
           ext_wall.set_sphere_wall(index = 0, radius = 1.5*r, origin = [0, 0, 0], inside = True);
-        wall_updater = hpmc.update.wall(mc, ext_wall, perturb, move_ratio = 0.5, seed = 27, period = 50);
+        wall_updater = hpmc.update.wall(mc, ext_wall, perturb, move_probability = 0.5, seed = 27, period = 50);
         log = analyze.log(quantities=['hpmc_wall_acceptance_ratio'], period=100, filename='log.dat', overwrite=True);
 
     Example::
@@ -435,10 +435,10 @@ class wall(_updater):
         def perturb(timestep):
           r = np.sqrt(ext_wall.get_sphere_wall_param(index = 0, param = "rsq"));
           ext_wall.set_sphere_wall(index = 0, radius = 1.5*r, origin = [0, 0, 0], inside = True);
-        wall_updater = hpmc.update.wall(mc, ext_wall, perturb, move_ratio = 0.5, seed = 27, period = 50);
+        wall_updater = hpmc.update.wall(mc, ext_wall, perturb, move_probability = 0.5, seed = 27, period = 50);
 
     """
-    def __init__(self, mc, walls, py_updater, move_ratio, seed, period=1):
+    def __init__(self, mc, walls, py_updater, move_probability, seed, period=1):
 
         # initialize base class
         _updater.__init__(self);
@@ -454,7 +454,7 @@ class wall(_updater):
             hoomd.context.current.device.cpp_msg.error("update.wall: Unsupported integrator.\n");
             raise RuntimeError("Error initializing update.wall");
 
-        self.cpp_updater = cls(hoomd.context.current.system_definition, mc.cpp_integrator, walls.cpp_compute, py_updater, move_ratio, seed);
+        self.cpp_updater = cls(hoomd.context.current.system_definition, mc.cpp_integrator, walls.cpp_compute, py_updater, move_probability, seed);
         self.setupUpdater(period);
 
     def get_accepted_count(self, mode=0):
@@ -475,7 +475,7 @@ class wall(_updater):
             def perturb(timestep):
               r = np.sqrt(ext_wall.get_sphere_wall_param(index = 0, param = "rsq"));
               ext_wall.set_sphere_wall(index = 0, radius = 1.5*r, origin = [0, 0, 0], inside = True);
-            wall_updater = hpmc.update.wall(mc, ext_wall, perturb, move_ratio = 0.5, seed = 27, period = 50);
+            wall_updater = hpmc.update.wall(mc, ext_wall, perturb, move_probability = 0.5, seed = 27, period = 50);
             run(100);
             acc_count = wall_updater.get_accepted_count(mode = 0);
         """
@@ -499,7 +499,7 @@ class wall(_updater):
             def perturb(timestep):
               r = np.sqrt(ext_wall.get_sphere_wall_param(index = 0, param = "rsq"));
               ext_wall.set_sphere_wall(index = 0, radius = 1.5*r, origin = [0, 0, 0], inside = True);
-            wall_updater = hpmc.update.wall(mc, ext_wall, perturb, move_ratio = 0.5, seed = 27, period = 50);
+            wall_updater = hpmc.update.wall(mc, ext_wall, perturb, move_probability = 0.5, seed = 27, period = 50);
             run(100);
             tot_count = wall_updater.get_total_count(mode = 0);
 
@@ -649,12 +649,13 @@ class muvt(_updater):
         fugacity_variant = hoomd.variant._setup_variant_input(fugacity);
         self.cpp_updater.setFugacity(type_id, fugacity_variant.cpp_variant);
 
-    def set_params(self, dV=None, move_ratio=None, n_trial=None):
+    def set_params(self, dV=None, volume_move_probability=None, n_trial=None):
         R""" Set muVT parameters.
 
         Args:
             dV (float): (if set) Set volume rescaling factor (dimensionless)
-            move_ratio (float): (if set) Set the ratio between volume and exchange/transfer moves (applies to Gibbs ensemble)
+            volume_move_probability (float): (if set) In the Gibbs ensemble, set the
+                probability of volume moves (other moves are exchange/transfer moves).
             n_trial (int): (if set) Number of re-insertion attempts per depletant
 
         Example::
@@ -662,15 +663,15 @@ class muvt(_updater):
             muvt = hpmc.update.muvt(mc, period = 10)
             muvt.set_params(dV=0.1)
             muvt.set_params(n_trial=2)
-            muvt.set_params(move_ratio=0.05)
+            muvt.set_params(volume_move_probability=0.05)
 
         """
         self.check_initialization();
 
-        if move_ratio is not None:
+        if volume_move_probability is not None:
             if not self.gibbs:
                 hoomd.context.current.device.cpp_msg.warning("Move ratio only used in Gibbs ensemble.\n");
-            self.cpp_updater.setMoveRatio(float(move_ratio))
+            self.cpp_updater.setVolumeMoveProbability(float(volume_move_probability))
 
         if dV is not None:
             if not self.gibbs:
