@@ -452,7 +452,13 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
 
     @log(flag='state')
     def state(self):
-        self._update_param_dict()
+        try:
+            self._update_param_dict()
+        except AttributeError:
+            # attribute errors in _update_param_dict should not result in
+            # class has no attribute `state`
+            raise RuntimeError("Failed to update param dict")
+
         return super()._get_state()
 
     def _unapply_typeparam_dict(self):
@@ -465,6 +471,15 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
     def _extend_typeparam(self, typeparams):
         for typeparam in typeparams:
             self._add_typeparam(typeparam)
+
+    @property
+    def _children(self):
+        """A set of child objects.
+
+        These objects do not appear directly in any of the operations lists but
+        are owned in lists or members of those operations.
+        """
+        return set()
 
 
 class _Operation(_HOOMDBaseObject):

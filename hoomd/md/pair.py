@@ -211,6 +211,10 @@ class _Pair(force._Force):
         else:
             self._nlist = validate_nlist(value)
 
+    @property
+    def _children(self):
+        return [self.nlist]
+
 
 class LJ(_Pair):
     R""" Lennard-Jones pair potential.

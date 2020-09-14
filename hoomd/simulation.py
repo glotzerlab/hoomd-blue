@@ -230,12 +230,22 @@ class Simulation(metaclass=Loggable):
                 N_dihedrals=self.state.N_dihedrals,
                 box=repr(self.state.box))
 
-        # save all loggable quantities from operations
+        # save all loggable quantities from operations and their child computes
         logger = hoomd.logging.Logger(only_default=False)
         logger += self
+
+        # children may appear several times, identify them uniquely
+        children = list()
         for op in self.operations:
             if op is not None:
-                logger += op
+                logger.add(op)
+
+                for child in op._children:
+                    if child not in children:
+                        children.append(child)
+
+        for child in children:
+            logger.add(child)
 
         log = logger.log()
         log_values = hoomd.util.dict_map(log, lambda v: v[0])

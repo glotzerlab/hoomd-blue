@@ -98,7 +98,7 @@ class _NList(_HOOMDBaseObject):
             set check_period for additional safety.
 
         """
-        if not self._attached():
+        if not self._attached:
             return None
         else:
             return self._cpp_obj.getSmallestRebuild() - 1

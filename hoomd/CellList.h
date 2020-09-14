@@ -200,6 +200,12 @@ class PYBIND11_EXPORT CellList : public Compute
             m_params_changed = true;
             }
 
+        /// Get whether the cell list is sorted
+        bool getSortCellList()
+            {
+            return m_sort_cell_list;
+            }
+
         //! Set the flag to compute the cell adjacency list
         void setComputeAdjList(bool compute_adj_list)
             {
