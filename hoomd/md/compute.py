@@ -187,15 +187,15 @@ class thermoHMA(_Compute):
         harmonicPressure (float): Harmonic contribution to the pressure.  If ommitted, the HMA pressure can still be
             computed, but will be similar in precision to the conventional pressure.
 
-    :py:class:`hoomd.compute.thermoHMA` acts on a given group of particles and calculates HMA (harmonically mapped
+    :py:class:`thermoHMA` acts on a given group of particles and calculates HMA (harmonically mapped
     averaging) properties of those particles when requested.  HMA computes properties more precisely (with less
     variance) for atomic crystals in NVT simulations.  The presence of diffusion (vanacy hopping, etc.) will prevent
     HMA from providing improvement.  HMA tracks displacements from the lattice positions, which are saved when the
-    :py:class:`hoomd.compute.thermoHMA` is instantiated.
+    :py:class:`thermoHMA` is instantiated.
 
     The specified properties are available for logging via the ``hoomd.analyze.log`` command. Each one provides
     a set of quantities for logging, suffixed with *_groupname*, so that values for different groups are differentiated
-    in the log file. The default :py:class:`hoomd.compute.thermoHMA` specified on the group of all particles has no suffix
+    in the log file. The default :py:class:`thermoHMA` specified on the group of all particles has no suffix
     placed on its quantity names.
 
     The quantities provided are (where **groupname** is replaced with the name of the group):
