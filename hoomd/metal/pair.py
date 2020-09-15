@@ -49,7 +49,7 @@ class eam(force._force):
     """
     def __init__(self, file, type, nlist):
         # Error out in MPI simulations
-        if (hoomd.version.enable_mpi):
+        if (hoomd.version.mpi_enabled):
             if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
                 hoomd.context.current.device.cpp_msg.error("pair.eam is not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error setting up pair potential.")

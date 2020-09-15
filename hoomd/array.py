@@ -462,7 +462,7 @@ class HOOMDArray(metaclass=_WrapClassFactory(_wrap_list)):
                 + "(<strong>INVALID</strong>)"
 
 
-if hoomd.version.enable_gpu:
+if hoomd.version.gpu_enabled:
     import os
 
     class _HOOMDGPUArrayBase:

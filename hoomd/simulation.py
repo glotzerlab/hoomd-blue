@@ -49,7 +49,7 @@ class Simulation(metaclass=Loggable):
         """ Initialize the Communicator
         """
         # initialize communicator
-        if hoomd.version.enable_mpi:
+        if hoomd.version.mpi_enabled:
             pdata = self.state._cpp_sys_def.getParticleData()
             decomposition = pdata.getDomainDecomposition()
             if decomposition is not None:
@@ -194,9 +194,9 @@ class Simulation(metaclass=Loggable):
             compile_date=hoomd.version.compile_date,
             compile_flags=hoomd.version.compile_flags,
             cxx_compiler=hoomd.version.cxx_compiler,
-            enable_gpu=hoomd.version.enable_gpu,
-            enable_mpi=hoomd.version.enable_mpi,
-            enable_tbb=hoomd.version.enable_tbb,
+            enable_gpu=hoomd.version.gpu_enabled,
+            enable_mpi=hoomd.version.mpi_enabled,
+            enable_tbb=hoomd.version.tbb_enabled,
             git_branch=hoomd.version.git_branch,
             git_sha1=hoomd.version.git_sha1,
             gpu_api_version=hoomd.version.gpu_api_version,

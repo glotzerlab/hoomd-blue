@@ -31,7 +31,7 @@ class _Device:
     def __init__(self, communicator, notice_level, msg_file, shared_msg_file):
         # check shared_msg_file
         if shared_msg_file is not None:
-            if not hoomd.version.enable_mpi:
+            if not hoomd.version.mpi_enabled:
                 raise RuntimeError(
                     "Shared log files are only available in MPI builds.")
 
@@ -102,14 +102,14 @@ class _Device:
     @property
     def num_cpu_threads(self):
         """int: Number of TBB threads to use."""
-        if not hoomd.version.enable_tbb:
+        if not hoomd.version.tbb_enabled:
             return 1
         else:
             return self._cpp_exec_conf.getNumThreads()
 
     @num_cpu_threads.setter
     def num_cpu_threads(self, num_cpu_threads):
-        if not hoomd.version.enable_tbb:
+        if not hoomd.version.tbb_enabled:
             self._cpp_msg.warning(
                 "HOOMD was compiled without thread support, ignoring request "
                 "to set number of threads.\n")
@@ -138,7 +138,7 @@ def _create_messenger(mpi_config, notice_level, msg_file, shared_msg_file):
         msg.openFile(msg_file)
 
     if shared_msg_file is not None:
-        if not hoomd.version.enable_mpi:
+        if not hoomd.version.mpi_enabled:
             raise RuntimeError(
                 'Shared log files are only available in MPI builds.')
         msg.setSharedFile(shared_msg_file)
@@ -259,7 +259,7 @@ class GPU(_Device):
         Returns:
             bool: `True` if this build of HOOMD supports GPUs, `False` if not.
         """
-        return hoomd.version.enable_gpu
+        return hoomd.version.gpu_enabled
 
     @staticmethod
     def get_available_devices():

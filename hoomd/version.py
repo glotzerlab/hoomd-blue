@@ -12,24 +12,24 @@ Attributes:
     cxx_compiler (str): Name and version of the C++ compiler used to build
         HOOMD.
 
-    enable_gpu (bool): ``True`` when this build supports GPUs.
-
-    enable_mpi (bool): ``True`` when this build supports MPI parallel runs.
-
-    enable_tbb (bool): ``True`` when this build supports TBB threads.
-
     git_branch (str):  Name of the git branch used when compiling this build.
 
     git_sha1 (str):  SHA1 of the git commit used when compiling this build.
 
     gpu_api_version (str): The GPU API version this build was compiled against.
 
+    gpu_enabled (bool): ``True`` when this build supports GPUs.
+
     gpu_platform (str): Name of the GPU platform this build was compiled
         against.
 
     install_dir (str): The installation directory.
 
+    mpi_enabled (bool): ``True`` when this build supports MPI parallel runs.
+
     source_dir (str): The source directory.
+
+    tbb_enabled (bool): ``True`` when this build supports TBB threads.
 """
 from hoomd import _hoomd
 
@@ -37,7 +37,7 @@ version = "2.9.2"
 
 compile_flags = _hoomd.BuildInfo.getCompileFlags()
 
-enable_gpu = _hoomd.BuildInfo.getEnableGPU()
+gpu_enabled = _hoomd.BuildInfo.getEnableGPU()
 
 gpu_api_version = _hoomd.BuildInfo.getGPUAPIVersion()
 
@@ -45,9 +45,9 @@ gpu_platform = _hoomd.BuildInfo.getGPUPlatform()
 
 cxx_compiler = _hoomd.BuildInfo.getCXXCompiler()
 
-enable_tbb = _hoomd.BuildInfo.getEnableTBB()
+tbb_enabled = _hoomd.BuildInfo.getEnableTBB()
 
-enable_mpi = _hoomd.BuildInfo.getEnableMPI()
+mpi_enabled = _hoomd.BuildInfo.getEnableMPI()
 
 compile_date = _hoomd.BuildInfo.getCompileDate()
 

@@ -14,7 +14,7 @@ def _create_domain_decomposition(device, box):
     the new API. We will need to consider designing an appropriate user-facing
     API to set the domain decomposition.
     """
-    if not hoomd.version.enable_mpi:
+    if not hoomd.version.mpi_enabled:
         return None
 
     # if we are only running on one processor, we use optimized code paths

@@ -7,7 +7,7 @@ from hoomd.data.local_access import (
 from hoomd.array import HOOMDGPUArray
 import hoomd
 
-if hoomd.version.enable_gpu:
+if hoomd.version.gpu_enabled:
     class ParticleLocalAccessGPU(ParticleLocalAccessBase):
         _cpp_cls = _hoomd.LocalParticleDataDevice
         _array_cls = HOOMDGPUArray
