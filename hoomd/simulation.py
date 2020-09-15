@@ -194,15 +194,15 @@ class Simulation(metaclass=Loggable):
             compile_date=hoomd.version.compile_date,
             compile_flags=hoomd.version.compile_flags,
             cxx_compiler=hoomd.version.cxx_compiler,
-            enable_gpu=hoomd.version.gpu_enabled,
-            enable_mpi=hoomd.version.mpi_enabled,
-            enable_tbb=hoomd.version.tbb_enabled,
             git_branch=hoomd.version.git_branch,
             git_sha1=hoomd.version.git_sha1,
             gpu_api_version=hoomd.version.gpu_api_version,
+            gpu_enabled=hoomd.version.gpu_enabled,
             gpu_platform=hoomd.version.gpu_platform,
             install_dir=hoomd.version.install_dir,
-            source_dir=hoomd.version.source_dir)
+            mpi_enabled=hoomd.version.mpi_enabled,
+            source_dir=hoomd.version.source_dir,
+            tbb_enabled=hoomd.version.tbb_enabled,)
 
         reasons = hoomd.device.GPU.get_unavailable_device_reasons()
 
