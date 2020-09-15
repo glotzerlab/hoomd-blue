@@ -454,12 +454,12 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
     def state(self):
         try:
             self._update_param_dict()
+            return super()._get_state()
         except AttributeError:
             # attribute errors in _update_param_dict should not result in
             # class has no attribute `state`
-            raise RuntimeError("Failed to update param dict")
-
-        return super()._get_state()
+            raise RuntimeError("Encountered AttributeError while accessing "
+                               "state (see above).")
 
     def _unapply_typeparam_dict(self):
         for typeparam in self._typeparam_dict.values():

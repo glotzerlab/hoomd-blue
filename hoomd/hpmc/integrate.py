@@ -274,7 +274,10 @@ class _HPMCIntegrator(_BaseIntegrator):
         Note:
             The count is reset to 0 at the start of each `hoomd.Simulation.run`.
         """
-        return self._cpp_obj.getCounters(1).translate
+        if self._attached:
+            return self._cpp_obj.getCounters(1).translate
+        else:
+            return None
 
     @log(flag='sequence')
     def rotate_moves(self):
@@ -283,7 +286,10 @@ class _HPMCIntegrator(_BaseIntegrator):
         Note:
             The count is reset to 0 at the start of each `hoomd.Simulation.run`.
         """
-        return self._cpp_obj.getCounters(1).rotate
+        if self._attached:
+            return self._cpp_obj.getCounters(1).rotate
+        else:
+            return None
 
     @log
     def mps(self):
@@ -293,7 +299,10 @@ class _HPMCIntegrator(_BaseIntegrator):
             The count of trial moves is reset at the start of each
             `hoomd.Simulation.run`.
         """
-        return self._cpp_obj.getMPS()
+        if self._attached:
+            return self._cpp_obj.getMPS()
+        else:
+            return None
 
     @property
     def counters(self):
@@ -312,7 +321,10 @@ class _HPMCIntegrator(_BaseIntegrator):
         Note:
             The counts are reset to 0 at the start of each
             `hoomd.Simulation.run`.  """
-        return self._cpp_obj.getCounters(1)
+        if self._attached:
+            return self._cpp_obj.getCounters(1)
+        else:
+            return None
 
 
 class Sphere(_HPMCIntegrator):
