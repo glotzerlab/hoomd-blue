@@ -240,5 +240,5 @@ def pytest_sessionfinish(session, exitstatus):
     it exits on the first error.
     """
 
-    if exitstatus != 0 and hoomd.hoomd.version.enable_mpi:
+    if exitstatus != 0 and hoomd.version.enable_mpi:
         atexit.register(abort, exitstatus)

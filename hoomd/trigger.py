@@ -16,7 +16,7 @@ class Periodic(_hoomd.PeriodicTrigger, Trigger):
 
     def __str__(self):
         return f"hoomd.trigger.Periodic(period={self.period}, " \
-               f"phase={self.phase}"
+               f"phase={self.phase})"
 
 
 class Before(_hoomd.BeforeTrigger, Trigger):
@@ -27,7 +27,7 @@ class Before(_hoomd.BeforeTrigger, Trigger):
             _hoomd.BeforeTrigger.__init__(self, timestep)
 
     def __str__(self):
-        return f"hoomd.trigger.Before(timestep={self.timestep}"
+        return f"hoomd.trigger.Before(timestep={self.timestep})"
 
 class On(_hoomd.OnTrigger, Trigger):
     def __init__(self, timestep):
@@ -37,7 +37,7 @@ class On(_hoomd.OnTrigger, Trigger):
             _hoomd.OnTrigger.__init__(self, timestep)
 
     def __str__(self):
-        return f"hoomd.trigger.On(timestep={self.timestep}"
+        return f"hoomd.trigger.On(timestep={self.timestep})"
 
 class After(_hoomd.AfterTrigger, Trigger):
     def __init__(self, timestep):
@@ -47,14 +47,14 @@ class After(_hoomd.AfterTrigger, Trigger):
             _hoomd.AfterTrigger.__init__(self, timestep)
 
     def __str__(self):
-        return f"hoomd.trigger.After(timestep={self.timestep}"
+        return f"hoomd.trigger.After(timestep={self.timestep})"
 
 class Not(_hoomd.NotTrigger, Trigger):
     def __init__(self, trigger):
         _hoomd.NotTrigger.__init__(self, trigger)
 
     def __str__(self):
-        return f"hoomd.trigger.Not(timestep={self.timestep}"
+        return f"hoomd.trigger.Not(trigger={self.trigger})"
 
 class And(_hoomd.AndTrigger, Trigger):
     def __init__(self, triggers):
@@ -63,6 +63,11 @@ class And(_hoomd.AndTrigger, Trigger):
             raise ValueError("triggers must an iterable of Triggers.")
         _hoomd.AndTrigger.__init__(self, triggers)
 
+    def __str__(self):
+        result = "hoomd.trigger.And(["
+        result += ", ".join(str(trigger) for trigger in self.triggers)
+        result += "])"
+        return result
 
 class Or(_hoomd.OrTrigger, Trigger):
     def __init__(self, triggers):
@@ -70,3 +75,9 @@ class Or(_hoomd.OrTrigger, Trigger):
         if not all(isinstance(t, Trigger) for t in triggers):
             raise ValueError("triggers must an iterable of Triggers.")
         _hoomd.OrTrigger.__init__(self, triggers)
+
+    def __str__(self):
+        result = "hoomd.trigger.Or(["
+        result += ", ".join(str(trigger) for trigger in self.triggers)
+        result += "])"
+        return result

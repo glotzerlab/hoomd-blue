@@ -479,7 +479,7 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
         These objects do not appear directly in any of the operations lists but
         are owned in lists or members of those operations.
         """
-        return set()
+        return []
 
 
 class _Operation(_HOOMDBaseObject):
