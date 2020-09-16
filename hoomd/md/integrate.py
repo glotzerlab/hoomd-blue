@@ -18,7 +18,7 @@ from hoomd.md.force import _Force
 from hoomd.md.constrain import _ConstraintForce
 
 
-def preprocess_aniso(value):  # noqa: D103
+def _preprocess_aniso(value):
     if value is True:
         return "true"
     elif value is False:
@@ -27,7 +27,7 @@ def preprocess_aniso(value):  # noqa: D103
         return value
 
 
-def set_synced_list(old_list, new_list):  # noqa: D103
+def _set_synced_list(old_list, new_list):
     old_list.clear()
     old_list.extend(new_list)
 
@@ -89,7 +89,9 @@ class Integrator(_DynamicIntegrator):
 
         methods (Sequence[hoomd.md.methods._Method]): Sequence of integration
             methods. Each integration method can be applied to only a specific
-            subset of particles, default [].
+            subset of particles. The intersection of the subsets must be null, 
+            and the union of the subsets must come to all the particles, 
+            default []. 
 
         forces (Sequence[hoomd.md.force._Force]): Sequence of forces applied to 
             the particles in the system. All the forces are summed together, 
@@ -124,14 +126,18 @@ class Integrator(_DynamicIntegrator):
     - `hoomd.md.pair`
     - `hoomd.md.wall`
     - `hoomd.md.special_pair`
-    - `hoomd.dem.pair`
 
     The classes of the following module can be used as elements in `constraints`
 
     - `hoomd.md.constrain`
 
     Examples::
-
+    
+        nlist = hoomd.md.nlist.Cell()
+        lj = hoomd.md.pair.LJ(nlist=nlist)
+        lj.params.default = dict(epsilon=1.0, sigma=1.0)
+        lj.r_cut[('A', 'A')] = 2**(1/6)
+        nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
         integrator = hoomd.md.Integrator(dt=0.001, methods=[nve], forces=[lj])
         sim.operations.integrator = integrator
 
