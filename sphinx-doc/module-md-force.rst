@@ -9,8 +9,6 @@ md.force
     :nosignatures:
 
     md.force.Active
-    md.force.constant
-    md.force.dipole
 
 .. rubric:: Details
 
@@ -19,5 +17,3 @@ md.force
     :undoc-members:
     :members: _Force,
     		  Active,
-    		  constant,
-    		  dipole

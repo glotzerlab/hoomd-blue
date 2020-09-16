@@ -89,20 +89,20 @@ class Integrator(_DynamicIntegrator):
 
         methods (Sequence[hoomd.md.methods._Method]): Sequence of integration
             methods. Each integration method can be applied to only a specific
-            subset of particles. The intersection of the subsets must be null, 
-            and the union of the subsets must come to all the particles, 
-            default []. 
+            subset of particles. The intersection of the subsets must be null,  
+            default to None. 
 
         forces (Sequence[hoomd.md.force._Force]): Sequence of forces applied to 
             the particles in the system. All the forces are summed together, 
-            default [].
+            default to None.
 
         aniso (str or bool): Whether to integrate rotational degrees of freedom 
-            (bool), default 'auto' (autodetect).
+            (bool), default 'auto' (autodetect if there is anisotropic factor
+            from any defined active or constraint forces).
 
         constraints (Sequence[hoomd.md.constrain._ConstraintForce]): Sequence of
             constraint forces applied to the particles in the system,
-            default [].
+            default to None.
 
 
     The following classes can be used as elements in `methods`
@@ -158,8 +158,8 @@ class Integrator(_DynamicIntegrator):
             constraint forces applied to the particles in the system.
     """
 
-    def __init__(self, dt, aniso='auto', forces=[], constraints=[],
-                 methods=[]):
+    def __init__(self, dt, aniso='auto', forces=None, constraints=None,
+                 methods=None):
 
         super().__init__(forces, constraints, methods)
 

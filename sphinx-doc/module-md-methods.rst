@@ -8,11 +8,9 @@ md.methods
 .. autosummary::
     :nosignatures:
 
-    berendsen
     Brownian
     Langevin
     NPT
-    nph
     NVE
     NVT
 
@@ -23,10 +21,8 @@ md.methods
     :synopsis: Integration methods.
     :undoc-members:
     :members: _Method,
-              berendsen,
               Brownian,
               Langevin,
               NPT,
-              nph,
               NVE,
               NVT

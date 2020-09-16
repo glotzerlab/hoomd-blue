@@ -57,7 +57,7 @@ class NVT(_Method):
 
     Examples::
 
-        nvt=hoomd.md.methods.NVT(filter=filter.All(), kT=1.0, tau=0.5)
+        nvt=hoomd.md.methods.NVT(filter=hoomd.filter.All(), kT=1.0, tau=0.5)
         integrator = hoomd.md.Integrator(dt=0.005, methods=[nvt], forces=[lj])
 
 
@@ -109,42 +109,54 @@ class NPT(_Method):
     R""" NPT Integration via MTK barostat-thermostat.
 
     Args:
-        filter (:py:mod:`hoomd.filter._ParticleFilter`): Subset of particles on which to apply this method.
+        filter (`hoomd.filter._ParticleFilter`): Subset of particles on which to
+            apply this method.
 
-        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set point for the thermostat, not needed if *nph=True* (in energy units).
+        kT (`hoomd.variant.Variant` or `float`): Temperature set point for the 
+            thermostat. (in energy units).
 
-        tau (float): Coupling constant for the thermostat, not needed if *nph=True* (in time units).
+        tau (`float`): Coupling constant for the thermostat (in time units).
 
-        S (:py:class:`list` of :py:mod:`hoomd.variant` or :py:obj:`float`): Stress components set point for the barostat (in pressure units).
-            In Voigt notation: [Sxx, Syy, Szz, Syz, Sxz, Sxy]. In case of isotropic pressure P ( [ P, P, P, 0, 0, 0]), use S = P.
+        S (`list` of `hoomd.variant.Variant` or `float`): Stress components set 
+            point for the barostat (in pressure units).
+            In Voigt notation: [Sxx, Syy, Szz, Syz, Sxz, Sxy]. 
+            In case of isotropic pressure P ( [ p, p, p, 0, 0, 0]), use S = p.
 
-        tauS (float): Coupling constant for the barostat (in time units).
+        tauS (`float`): Coupling constant for the barostat (in time units).
 
-        couple (str): Couplings of diagonal elements of the stress tensor, can be "none", "xy", "xz","yz", or "all" (default).
+        couple (`str`): Couplings of diagonal elements of the stress tensor, 
+            can be "none", "xy", "xz","yz", or "all", default to "all".
 
-        box_dof(list): Box degrees of freedom with six boolean elements corresponding to x, y, z, xy, xz, yz, each. (default: [True,True,True,False,False,False])
-                       If turned on to True, rescale corresponding lengths or tilt factors and components of particle coordinates and velocities
+        box_dof(`list`): Box degrees of freedom with six boolean elements 
+            corresponding to x, y, z, xy, xz, yz, each. Default to 
+            [True,True,True,False,False,False]). If turned on to True, 
+            rescale corresponding lengths or tilt factors and components of 
+            particle coordinates and velocities.
 
-        rescale_all (bool): if True, rescale all particles, not only those in the group
+        rescale_all (`bool`): if True, rescale all particles, not only those in 
+            the group, Default to False.
 
-        gamma: (:py:obj:`float`): Dimensionless damping factor for the box degrees of freedom (default: 0)
+        gamma: (`float`): Dimensionless damping factor for the box degrees of 
+            freedom, Default to 0.
 
-    :py:class:`NPT` performs constant pressure, constant temperature simulations, allowing for a fully deformable
+    `NPT` performs constant pressure, constant temperature simulations, allowing 
+    for a fully deformable simulation box.
+
+    The integration method is based on the rigorous Martyna-Tobias-Klein 
+    equations of motion for NPT. For optimal stability, the update equations 
+    leave the phase-space measure invariant and are manifestly time-reversible.
+
+    By default, `NPT` performs integration in a cubic box under hydrostatic 
+    pressure by simultaneously rescaling the lengths *Lx*, *Ly* and *Lz* of the 
     simulation box.
 
-    The integration method is based on the rigorous Martyna-Tobias-Klein equations of motion for NPT.
-    For optimal stability, the update equations leave the phase-space measure invariant and are manifestly
-    time-reversible.
+    `NPT` can also perform more advanced integration modes. The integration mode
+    is specified by a set of couplings and by specifying the box degrees of 
+    freedom that are put under barostat control.
 
-    By default, :py:class:`NPT` performs integration in a cubic box under hydrostatic pressure by simultaneously
-    rescaling the lengths *Lx*, *Ly* and *Lz* of the simulation box.
-
-    :py:class:`NPT` can also perform more advanced integration modes. The integration mode
-    is specified by a set of couplings and by specifying the box degrees of freedom that are put under
-    barostat control.
-
-    Couplings define which diagonal elements of the pressure tensor :math:`P_{\alpha,\beta}`
-    should be averaged over, so that the corresponding box lengths are rescaled by the same amount.
+    Couplings define which diagonal elements of the pressure tensor 
+    :math:`P_{\alpha,\beta}` should be averaged over, so that the corresponding 
+    box lengths are rescaled by the same amount.
 
     Valid couplings are:
 
@@ -154,41 +166,50 @@ class NPT(_Method):
     - yz (*Ly* and *Lz* are coupled)
     - all (*Lx* and *Ly* (and *Lz* if 3D) are coupled)
 
-    The default coupling is **all**, i.e. the ratios between all box lengths stay constant.
+    The default coupling is **all**, i.e. the ratios between all box lengths 
+    stay constant.
 
-    Degrees of freedom of the box specify which lengths and tilt factors of the box should be updated,
-    and how particle coordinates and velocities should be rescaled.
+    Degrees of freedom of the box specify which lengths and tilt factors of the 
+    box should be updated, and how particle coordinates and velocities should be
+    rescaled.
 
     Valid form for elements of box_dof(box degrees of freedom) is :
 
-    The ``box_dof`` tuple controls the way the box is rescaled and updated. The first three elements ``box_dof[:2]``
-    controls whether the x, y, and z box lengths are rescaled and updated, respectively. The last three entries
-    control the rescaling or the tilt factors xy, xz, and yz. All options also appropriately rescale particle coordinates and velocities.
+    The ``box_dof`` tuple controls the way the box is rescaled and updated. 
+    The first three elements ``box_dof[:3]`` controls whether the x, y, and z 
+    box lengths are rescaled and updated, respectively. The last three entries
+    ``box_dof[3:]`` control the rescaling or the tilt factors xy, xz, and yz. 
+    All options also appropriately rescale particle coordinates and velocities.
 
-    By default, the x, y, and z degrees of freedom are updated. [True,True,True,False,False,False]
+    By default, the x, y, and z degrees of freedom are updated. 
+    [True,True,True,False,False,False]
 
     Note:
-        If any of the diagonal x, y, z degrees of freedom is not being integrated, pressure tensor components
-        along that direction are not considered for the remaining degrees of freedom.
+        If any of the diagonal x, y, z degrees of freedom is not being 
+        integrated, pressure tensor components along that direction are not 
+        considered for the remaining degrees of freedom.
 
     For example:
 
-    - Specifying all couplings and x, y, and z degrees of freedom amounts to cubic symmetry (default)
-    - Specifying xy couplings and x, y, and z degrees of freedom amounts to tetragonal symmetry.
-    - Specifying no couplings and all degrees of freedom amounts to a fully deformable triclinic unit cell
+    - Specifying all couplings and x, y, and z degrees of freedom amounts to 
+      cubic symmetry (default)
+    - Specifying xy couplings and x, y, and z degrees of freedom amounts to 
+      tetragonal symmetry.
+    - Specifying no couplings and all degrees of freedom amounts to a fully 
+      deformable triclinic unit cell
 
-    :py:class:`NPT` Can also apply a constant stress to the simulation box. To do so, specify the symmetric
-    stress tensor *S* instead of an isotropic pressure *P*.
+    `NPT` Can also apply a constant stress to the simulation box. To do so, 
+    specify the symmetric stress tensor *S* .
 
     Note:
-        :py:class:`NPT` assumes that isotropic pressures are positive. Conventions for the stress tensor sometimes
-        assume negative values on the diagonal. You need to set these values negative manually in HOOMD.
+        `NPT` assumes that isotropic pressures are positive. Conventions for 
+        the stress tensor sometimes assume negative values on the diagonal. 
+        You need to set these values negative manually in HOOMD.
 
-    :py:class:`NPT` is an integration method.
-
-    :py:class:`NPT` uses the proper number of degrees of freedom to compute the temperature and pressure of the system in
-    both 2 and 3 dimensional systems, as long as the number of dimensions is set before the :py:class:`NPT` command
-    is specified.
+    `NPT` uses the proper number of degrees of freedom to compute the 
+    temperature and pressure of the system in both 2 and 3 dimensional systems, 
+    as long as the number of dimensions is set before the `NPT` command is 
+    specified.
 
     For the MTK equations of motion, see:
 
@@ -197,7 +218,8 @@ class NPT(_Method):
     * `T. Yu et. al. 2010 <http://dx.doi.org/10.1016/j.chemphys.2010.02.014>`_
     * Glaser et. al (2013), to be published
 
-    Both *kT* and *P* can be variant types, allowing for temperature/pressure ramps in simulation runs.
+    Both *kT* and *P* can be variant types, allowing for temperature/pressure 
+    ramps in simulation runs.
 
     :math:`\tau` is related to the Nosé mass :math:`Q` by
 
@@ -205,18 +227,52 @@ class NPT(_Method):
 
         \tau = \sqrt{\frac{Q}{g k_B T_0}}
 
-    where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is the set point (*kT* above).
+    where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is 
+    the set point (*kT* above).
 
-    A :py:class:`hoomd.compute.thermo` is automatically specified and associated with *group*.
 
     Examples::
-        integrator = integrate.NPT(filter=filter.All(), tau=1.0, kT=0.65, tauS = 1.2, S=2.0)
+
+        npt = hoomd.md.methods.NPT(filter=hoomd.filter.All(), tau=1.0, kT=0.65, 
+        tauS = 1.2, S=2.0)
         # orthorhombic symmetry
-        integrator = integrate.NPT(filter=filter.All(), tau=1.0, kT=0.65, tauS = 1.2, S=2.0, couple="none")
+        npt = hoomd.md.methods.NPT(filter=hoomd.filter.All(), tau=1.0, kT=0.65, 
+        tauS = 1.2, S=2.0, couple="none")
         # tetragonal symmetry
-        integrator = integrate.NPT(filter=filter.All(), tau=1.0, kT=0.65, tauS = 1.2, S=2.0, couple="xy")
+        npt = hoomd.md.methods.NPT(filter=hoomd.filter.All(), tau=1.0, kT=0.65, 
+        tauS = 1.2, S=2.0, couple="xy")
         # triclinic symmetry
-        integrator = integrate.NPT(filter=filter.All(), tau=1.0, kT=0.65, tauS = 1.2, S=2.0, couple="none", rescale_all=True)
+        npt = hoomd.md.methods.NPT(filter=hoomd.filter.All(), tau=1.0, kT=0.65, 
+        tauS = 1.2, S=2.0, couple="none", rescale_all=True)
+        integrator = hoomd.md.Integrator(dt=0.005, methods=[npt], forces=[lj])
+
+    Attributes:
+        filter (hoomd.filter._ParticleFilter): Subset of particles on which to
+            apply this method.
+
+        kT (hoomd.variant.Variant or float): Temperature set point for the 
+            thermostat. (in energy units).
+
+        tau (float): Coupling constant for the thermostat (in time units).
+
+        S (list of `hoomd.variant.Variant` or float): Stress components set 
+            point for the barostat (in pressure units).
+            In Voigt notation: [Sxx, Syy, Szz, Syz, Sxz, Sxy].
+
+        tauS (float): Coupling constant for the barostat (in time units).
+
+        couple (str): Couplings of diagonal elements of the stress tensor, 
+            can be "none", "xy", "xz","yz", or "all".
+
+        box_dof(list): Box degrees of freedom with six boolean elements 
+            corresponding to x, y, z, xy, xz, yz, each. 
+
+        rescale_all (bool): if True, rescale all particles, not only those in 
+            the group.
+
+        gamma: (float): Dimensionless damping factor for the box degrees of 
+            freedom.
+
     """
     def __init__(self, filter, kT, tau, S, tauS, couple, box_dof=[True,True,True,False,False,False], rescale_all=False, gamma=0.0):
 
@@ -511,10 +567,10 @@ class Langevin(_Method):
 
     Examples of using ``gamma`` or ``gamma_r`` on drag coefficient::
 
-        langevin = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2,
+        langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=0.2,
         seed=1)
-        langevin.gamma = 2.0
-        langevin.gamma_r = [1.0,2.0,3.0]
+        langevin.gamma.default = 2.0
+        langevin.gamma_r.default = [1.0,2.0,3.0]
 
 
     Attributes:
@@ -687,8 +743,8 @@ class Brownian(_Method):
 
         brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2,
         seed=1)
-        brownian.gamma = 2.0
-        brownian.gamma_r = [1.0, 2.0, 3.0]
+        brownian.gamma.default = 2.0
+        brownian.gamma_r.default = [1.0, 2.0, 3.0]
 
 
     Attributes:
