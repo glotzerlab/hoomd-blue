@@ -34,7 +34,7 @@ def test_periodic_properties():
 def test_periodic_str():
     """Test the Periodic __str__ method."""
     b = hoomd.trigger.Periodic(phase=456, period=3)
-    assert str(b) == "hoomd.trigger.Periodic(period=456, phase=3)"
+    assert str(b) == "hoomd.trigger.Periodic(period=3, phase=456)"
 
 
 def test_periodic_eval():
