@@ -168,7 +168,7 @@ class Integrator(_DynamicIntegrator):
             aniso=OnlyFrom(['true', 'false', 'auto'],
                            preprocess=preprocess_aniso),
             _defaults=dict(aniso="auto")
-        )
+            )
         if aniso is not None:
             self.aniso = aniso
 

@@ -619,11 +619,11 @@ class GSD(_Analyzer):
                           dynamic=[dynamic_validation],
                           _defaults=dict(filter=filter, dynamic=dynamic)
                           )
-                )
+            )
 
         self._log = None if log is None else _GSDLogWriter(log)
 
-    def attach(self, simulation):
+    def _attach(self):
         # validate dynamic property
         categories = ['attribute', 'property', 'momentum', 'topology']
         dynamic_quantities = ['property']
@@ -636,18 +636,19 @@ class GSD(_Analyzer):
 
             dynamic_quantities = ['property'] + self.dynamic
 
-        self._cpp_obj = _hoomd.GSDDumpWriter(simulation.state._cpp_sys_def,
-                                             self.filename,
-                                             simulation.state.get_group(self.filter),
-                                             self.overwrite,
-                                             self.truncate)
+        self._cpp_obj = _hoomd.GSDDumpWriter(
+            self._simulation.state._cpp_sys_def,
+            self.filename,
+            self._simulation.state.get_group(self.filter),
+            self.overwrite,
+            self.truncate)
 
         self._cpp_obj.setWriteAttribute('attribute' in dynamic_quantities)
         self._cpp_obj.setWriteProperty('property' in dynamic_quantities)
         self._cpp_obj.setWriteMomentum('momentum' in dynamic_quantities)
         self._cpp_obj.setWriteTopology('topology' in dynamic_quantities)
         self._cpp_obj.log_writer = self.log
-        super().attach(simulation)
+        super()._attach()
 
     @staticmethod
     def write(state, filename, filter=All(), log=None):
@@ -682,7 +683,7 @@ class GSD(_Analyzer):
             log = _GSDLogWriter(log)
         else:
             raise ValueError("GSD.log can only be set with a Logger.")
-        if self.is_attached:
+        if self._attached:
             self._cpp_obj.log_writer = log
         self._log = log
 
@@ -704,7 +705,7 @@ class _GSDLogWriter:
             of each logged quantity.
     """
     _per_flags = TypeFlags.any(['angle', 'bond', 'constraint', 'dihedral',
-                               'improper', 'pair', 'particle'])
+                                'improper', 'pair', 'particle'])
     _convert_flags = TypeFlags.any(['string', 'strings'])
     _skip_flags = TypeFlags['object']
     _special_keys = ['type_shapes']

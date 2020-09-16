@@ -80,6 +80,15 @@ def test_setattr(full_op):
     assert full_op.param1 == 4.
 
 
+def test_adding(full_op):
+    assert not full_op._added
+    full_op._add(None)
+    assert full_op._added
+    assert full_op._simulation is None
+    full_op._remove()
+    assert not hasattr(full_op, '_simulation')
+
+
 def test_apply_typeparam_dict(full_op):
     '''Tests _apply_typeparam_dict and by necessity getattr.'''
     full_op.type_param['A'] = dict(bar='world')
@@ -104,7 +113,9 @@ def test_apply_param_dict(full_op):
 @fixture(scope='function')
 def attached(full_op):
     cp = deepcopy(full_op)
-    return test_apply_param_dict(test_apply_typeparam_dict(cp))
+    op = test_apply_param_dict(test_apply_typeparam_dict(cp))
+    op._add(None)
+    return op
 
 
 def test_attached_setattr(attached):
@@ -114,13 +125,13 @@ def test_attached_setattr(attached):
     assert attached._cpp_obj.param1 == 4
 
 
-def test_is_attached(full_op, attached):
-    assert not full_op.is_attached
-    assert attached.is_attached
+def test_attached(full_op, attached):
+    assert not full_op._attached
+    assert attached._attached
 
 
 def test_detach(attached):
-    detached = attached.detach()
+    detached = attached._detach()
     assert detached.type_param['A'] == dict(foo=1, bar='world')
     assert detached.type_param['B'] == dict(foo=1, bar='hello')
     assert detached.param1 == 1

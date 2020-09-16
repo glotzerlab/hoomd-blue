@@ -170,7 +170,7 @@ class _CSVInternal(_InternalAction):
         """Makes self._param_dict attributes read only."""
         raise ValueError("Attribute {} is read-only.".format(attr))
 
-    def attach(self, simulation):
+    def _attach(self, simulation):
         self._comm = simulation.device._comm
 
     def detach(self):

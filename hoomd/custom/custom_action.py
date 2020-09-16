@@ -103,7 +103,7 @@ class Action(metaclass=_AbstractLoggable):
         self._state = simulation.state
 
     @property
-    def is_attached(self):
+    def _attached(self):
         return getattr(self, '_state', None) is not None
 
     def detach(self):

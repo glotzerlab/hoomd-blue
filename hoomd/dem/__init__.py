@@ -91,7 +91,7 @@ _citation = hoomd.cite.article(cite_key='spellings2016',
                                doi='10.1016/j.jcp.2017.01.014',
                                feature='DEM')
 
-if hoomd.context.bib is None:
+if hoomd._bib is None:
     hoomd.cite._extra_default_entries.append(_citation)
 else:
-    hoomd.context.bib.add(_citation)
+    hoomd._bib.add(_citation)
