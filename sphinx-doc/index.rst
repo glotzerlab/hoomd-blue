@@ -44,10 +44,8 @@ Resources
   Instructions for installing and compiling **HOOMD-blue**.
 - `hoomd-users Google Group <https://groups.google.com/d/forum/hoomd-users>`_:
   Ask questions to the **HOOMD-blue** community.
-- `HOOMD-blue Tutorial <https://nbviewer.jupyter.org/github/glotzerlab/hoomd-examples/blob/master/index.ipynb>`_:
-  Beginner's guide, code examples, and sample scripts.
 - `HOOMD-blue website <https://glotzerlab.engin.umich.edu/hoomd-blue/>`_:
-  Additional information, benchmarks, and publications.
+  Additional information and publications.
 
 Job scripts
 ===========
@@ -56,33 +54,6 @@ HOOMD-blue job scripts are Python scripts. You can control system
 initialization, run protocols, analyze simulation data, or develop complex
 workflows all with Python code in your job.
 
-Here is a simple example:
-
-.. code-block:: python
-
-   import hoomd
-   from hoomd import md
-   hoomd.context.initialize()
-
-   # Create a 10x10x10 simple cubic lattice of particles with type name A
-   hoomd.init.create_lattice(unitcell=hoomd.lattice.sc(a=2.0, type_name='A'), n=10)
-
-   # Specify Lennard-Jones interactions between particle pairs
-   nl = md.nlist.cell()
-   lj = md.pair.lj(r_cut=3.0, nlist=nl)
-   lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
-
-   # Integrate at constant temperature
-   md.integrate.mode_standard(dt=0.005)
-   hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=1.2, seed=4)
-
-   # Run for 10,000 time steps
-   hoomd.run(10e3)
-
-Save this script as ``lj.py`` and run it with ``python lj.py`` (or
-``singularity exec software.simg python3 lj.py`` if using Singularity
-containers).
-
 .. toctree::
     :maxdepth: 1
     :caption: Getting started
@@ -90,21 +61,13 @@ containers).
     installation
     migrating
     changelog
-    command-line-options
+    citing
 
 .. toctree::
-    :maxdepth: 2
-    :caption: Concepts
+    :maxdepth: 1
+    :caption: Tutorials
 
-    units
-    box
-    aniso
-    nlist
-    mpi
-    autotuner
-    restartable-jobs
-    varperiod
-    developer
+    tutorial/00-Introducing-HOOMD-blue/00-index
 
 .. toctree::
    :maxdepth: 3
@@ -124,14 +87,15 @@ containers).
    package-metal
 
 .. toctree::
-    :maxdepth: 3
+    :maxdepth: 1
     :caption: Developer guide
 
     style
     testing
+    components
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 1
    :caption: Reference
 
    deprecated

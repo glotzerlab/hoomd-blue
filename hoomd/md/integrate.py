@@ -111,7 +111,7 @@ class Integrator(_DynamicIntegrator):
     - `hoomd.md.methods.Langevin`
     - `hoomd.md.methods.NVE`
     - `hoomd.md.methods.NVT`
-    - `hoomd.md.methods.npt`
+    - `hoomd.md.methods.NPT`
     - `hoomd.md.methods.nph`
 
     The classes of following modules can be used as elements in `forces`

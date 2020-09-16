@@ -11,7 +11,7 @@ md.methods
     berendsen
     Brownian
     Langevin
-    npt
+    NPT
     nph
     NVE
     NVT
@@ -26,7 +26,7 @@ md.methods
               berendsen,
               Brownian,
               Langevin,
-              npt,
+              NPT,
               nph,
               NVE,
               NVT

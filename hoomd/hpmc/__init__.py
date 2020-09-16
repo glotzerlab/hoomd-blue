@@ -18,7 +18,7 @@ The following quantities are provided by the integrator for use in HOOMD-blue's 
 - ``hpmc_rotate_acceptance`` - Fraction of rotation moves accepted (averaged only over the last time step)
 - ``hpmc_d`` - Maximum move displacement
 - ``hpmc_a`` - Maximum rotation move
-- ``hpmc_move_ratio`` - Probability of making a translation move (1- P(rotate move))
+- ``hpmc_translation_move_probability`` - Probability of making a translation move (1- P(rotate move))
 - ``hpmc_overlap_count`` - Count of the number of particle-particle overlaps in the current system configuration
 
 With non-interacting depletants, the following log quantities are available:
@@ -126,6 +126,7 @@ from hoomd.hpmc import analyze
 from hoomd.hpmc import compute
 from hoomd.hpmc import util
 from hoomd.hpmc import field
+from hoomd.hpmc import tune
 
 # add HPMC article citation notice
 import hoomd

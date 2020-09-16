@@ -59,8 +59,6 @@ class pppm(force._force):
     Parameters Nx, Ny, Nz, order, :math:`r_{\mathrm{cut}}` must be set using
     ```hoomd.run``` can take place.
 
-    See :ref:`page-units` for information on the units assigned to charges in hoomd.
-
     Note:
           :py:class:`pppm` takes a particle group as an option. This should be the group of all charged particles
           (``hoomd.group.charged``). However, note that this group is static and determined at the time
