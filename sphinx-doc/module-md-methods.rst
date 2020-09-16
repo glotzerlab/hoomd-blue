@@ -1,4 +1,4 @@
-md.integrate
+md.methods
 --------------
 
 .. rubric:: Overview
