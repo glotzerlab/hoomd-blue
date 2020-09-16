@@ -33,28 +33,25 @@ Attributes:
 """
 from hoomd import _hoomd
 
+try:
+    import hoomd.version_config
+
+    compile_date = hoomd.version_config.compile_date
+    git_branch = hoomd.version_config.git_branch
+    git_sha1 = hoomd.version_config.git_sha1
+except ImportError:
+    # Allow sphinx docs to build when missing CMake generated python files
+    compile_date = "n/a"
+    git_branch = "n/a"
+    git_sha1 = "n/a"
+
 version = _hoomd.BuildInfo.getVersion()
-
 compile_flags = _hoomd.BuildInfo.getCompileFlags()
-
 gpu_enabled = _hoomd.BuildInfo.getEnableGPU()
-
 gpu_api_version = _hoomd.BuildInfo.getGPUAPIVersion()
-
 gpu_platform = _hoomd.BuildInfo.getGPUPlatform()
-
 cxx_compiler = _hoomd.BuildInfo.getCXXCompiler()
-
 tbb_enabled = _hoomd.BuildInfo.getEnableTBB()
-
 mpi_enabled = _hoomd.BuildInfo.getEnableMPI()
-
-compile_date = "${COMPILE_DATE}"
-
 source_dir = _hoomd.BuildInfo.getSourceDir()
-
 install_dir = _hoomd.BuildInfo.getInstallDir()
-
-git_branch = "${HOOMD_GIT_REFSPEC}"
-
-git_sha1 = "${HOOMD_GIT_SHA1}"

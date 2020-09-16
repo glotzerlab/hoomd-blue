@@ -1,0 +1,9 @@
+# Copyright (c) 2009-2019 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+compile_date = "${COMPILE_DATE}"
+
+git_branch = "${HOOMD_GIT_REFSPEC}"
+
+git_sha1 = "${HOOMD_GIT_SHA1}"
