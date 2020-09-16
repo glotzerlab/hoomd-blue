@@ -10,7 +10,7 @@ import hoomd
 def test_write_debug_data(simulation_factory, lattice_snapshot_factory,
                           tmp_path):
     """Test write_debug_data for MD simulations."""
-    sim = simulation_factory(lattice_snapshot_factory())
+    sim = simulation_factory(lattice_snapshot_factory(n=10, a=2.0))
     md = hoomd.md.Integrator(dt=0.005)
 
     cell = hoomd.md.nlist.Cell()
@@ -28,11 +28,6 @@ def test_write_debug_data(simulation_factory, lattice_snapshot_factory,
     ]
 
     sim.operations.integrator = md
-
-    snap = sim.state.snapshot
-    snap.particles.types = ['A']
-    snap.replicate(2, 2, 2)
-    sim.state.snapshot = snap
 
     sim.write_debug_data(tmp_path / 'test_unscheduled.json')
 
