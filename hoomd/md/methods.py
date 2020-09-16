@@ -136,7 +136,7 @@ class NPT(_Method):
         rescale_all (`bool`): if True, rescale all particles, not only those in 
             the group, Default to False.
 
-        gamma: (`float`): Dimensionless damping factor for the box degrees of 
+        gamma (`float`): Dimensionless damping factor for the box degrees of 
             freedom, Default to 0.
 
     `NPT` performs constant pressure, constant temperature simulations, allowing 
@@ -270,7 +270,7 @@ class NPT(_Method):
         rescale_all (bool): if True, rescale all particles, not only those in 
             the group.
 
-        gamma: (float): Dimensionless damping factor for the box degrees of 
+        gamma (float): Dimensionless damping factor for the box degrees of 
             freedom.
 
     """
