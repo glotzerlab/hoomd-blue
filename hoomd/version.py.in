@@ -33,7 +33,7 @@ Attributes:
 """
 from hoomd import _hoomd
 
-version = "2.9.2"
+version = _hoomd.BuildInfo.getVersion()
 
 compile_flags = _hoomd.BuildInfo.getCompileFlags()
 
@@ -49,12 +49,12 @@ tbb_enabled = _hoomd.BuildInfo.getEnableTBB()
 
 mpi_enabled = _hoomd.BuildInfo.getEnableMPI()
 
-compile_date = _hoomd.BuildInfo.getCompileDate()
+compile_date = "${COMPILE_DATE}"
 
 source_dir = _hoomd.BuildInfo.getSourceDir()
 
 install_dir = _hoomd.BuildInfo.getInstallDir()
 
-git_branch = _hoomd.BuildInfo.getGitBranch()
+git_branch = "${HOOMD_GIT_REFSPEC}"
 
-git_sha1 = _hoomd.BuildInfo.getGitSHA1()
+git_sha1 = "${HOOMD_GIT_SHA1}"

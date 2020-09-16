@@ -187,6 +187,7 @@ PYBIND11_MODULE(_hoomd, m)
     m.def("mpi_bcast_str", mpi_bcast_str);
 
     pybind11::class_<BuildInfo>(m, "BuildInfo")
+        .def_static("getVersion", BuildInfo::getVersion)
         .def_static("getCompileFlags", BuildInfo::getCompileFlags)
         .def_static("getEnableGPU", BuildInfo::getEnableGPU)
         .def_static("getGPUAPIVersion", BuildInfo::getGPUAPIVersion)
@@ -194,11 +195,8 @@ PYBIND11_MODULE(_hoomd, m)
         .def_static("getCXXCompiler", BuildInfo::getCXXCompiler)
         .def_static("getEnableTBB", BuildInfo::getEnableTBB)
         .def_static("getEnableMPI", BuildInfo::getEnableMPI)
-        .def_static("getCompileDate", BuildInfo::getCompileDate)
         .def_static("getSourceDir", BuildInfo::getSourceDir)
         .def_static("getInstallDir", BuildInfo::getInstallDir)
-        .def_static("getGitBranch", BuildInfo::getGitBranch)
-        .def_static("getGitSHA1", BuildInfo::getGitSHA1)
         ;
 
     pybind11::bind_vector< std::vector<Scalar> >(m,"std_vector_scalar");

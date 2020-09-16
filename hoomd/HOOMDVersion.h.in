@@ -7,10 +7,6 @@
 
 // Full text HOOMD version string
 #define HOOMD_VERSION "${HOOMD_VERSION}"
-// Full text HOOMD version string
-#define HOOMD_VERSION_LONG "${HOOMD_VERSION_LONG}"
-// Text string containing the date this build was configured
-#define COMPILE_DATE "${COMPILE_DATE}"
 // Set to the src dir to be used as the root to read data files from
 #define HOOMD_SOURCE_DIR "${HOOMD_SOURCE_DIR}"
 // Set to the binary dir
@@ -19,10 +15,6 @@
 #define HOOMD_INSTALL_PREFIX "${HOOMD_INSTALL_PREFIX}"
 // The python site directory
 #define PYTHON_SITE_INSTALL_DIR "${PYTHON_SITE_INSTALL_DIR}"
-// Current git refspec checked out
-#define HOOMD_GIT_REFSPEC "${HOOMD_GIT_REFSPEC}"
-// Current git hash
-#define HOOMD_GIT_SHA1 "${HOOMD_GIT_SHA1}"
 
 // clang-format off
 
@@ -49,6 +41,10 @@ namespace hoomd
 class BuildInfo
     {
     public:
+
+    /// Return the version as a string
+    static std::string getVersion();
+
     /// Format the HOOMD compilation options as a string
     static std::string getCompileFlags();
 
@@ -70,19 +66,10 @@ class BuildInfo
     /// Determine if ENABLE_MPI is set
     static bool getEnableMPI();
 
-    /// Get the compile date
-    static std::string getCompileDate();
-
     /// Get the source directory
     static std::string getSourceDir();
 
     /// Get the installation directory
     static std::string getInstallDir();
-
-    /// Get the git branch
-    static std::string getGitBranch();
-
-    /// Get the git sha
-    static std::string getGitSHA1();
     };
     } // namespace hoomd

@@ -85,6 +85,11 @@ std::string BuildInfo::getCompileFlags()
     return o.str();
     }
 
+std::string BuildInfo::getVersion()
+    {
+    return std::string(HOOMD_VERSION);
+    }
+
 bool BuildInfo::getEnableGPU()
     {
 #ifdef ENABLE_HIP
@@ -158,11 +163,6 @@ bool BuildInfo::getEnableMPI()
 #endif
     }
 
-std::string BuildInfo::getCompileDate()
-    {
-    return std::string(COMPILE_DATE);
-    }
-
 std::string BuildInfo::getSourceDir()
     {
     return std::string(HOOMD_SOURCE_DIR);
@@ -173,13 +173,4 @@ std::string BuildInfo::getInstallDir()
     return std::string(HOOMD_INSTALL_PREFIX) + "/" + std::string(PYTHON_SITE_INSTALL_DIR);
     }
 
-std::string BuildInfo::getGitBranch()
-    {
-    return std::string(HOOMD_GIT_REFSPEC);
-    }
-
-std::string BuildInfo::getGitSHA1()
-    {
-    return std::string(HOOMD_GIT_SHA1);
-    }
     } // namespace hoomd
