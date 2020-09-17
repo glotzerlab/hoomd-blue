@@ -103,8 +103,6 @@ class slit(_bounce_back):
     This method is the MD analog of :py:class:`.stream.slit`, which documents additional details
     about the geometry.
 
-    A :py:class:`hoomd.md.compute.ThermodynamicQuantities` is automatically specified and associated with *group*.
-
     Examples::
 
         all = group.all()
@@ -176,8 +174,6 @@ class slit_pore(_bounce_back):
     This integration method applies to particles in *group* in the parallel-plate (slit) pore geometry.
     This method is the MD analog of :py:class:`.stream.slit_pore`, which documents additional details
     about the geometry.
-
-    A :py:class:`hoomd.md.compute.ThermodynamicQuantities` is automatically specified and associated with *group*.
 
     Examples::
 
