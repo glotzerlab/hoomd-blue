@@ -33,7 +33,6 @@ hoomd
 
    module-hoomd-analyze
    module-hoomd-array
-   module-hoomd-cite
    module-hoomd-comm
    module-hoomd-custom
    module-hoomd-data
@@ -47,5 +46,6 @@ hoomd
    module-hoomd-update
    module-hoomd-util
    module-hoomd-variant
+   module-hoomd-version
    module-hoomd-write
    hoomd-misc

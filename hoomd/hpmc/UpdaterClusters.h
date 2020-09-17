@@ -438,30 +438,6 @@ class UpdaterClusters : public Updater
             m_count_run_start = m_count_total;
             }
 
-        //! Print statistics about the cluster move updates
-        /* We only print the statistics about accepted and rejected moves.
-         */
-        void printStats()
-            {
-            hpmc_clusters_counters_t counters = getCounters(1);
-            m_exec_conf->msg->notice(2) << "-- HPMC cluster move stats:" << std::endl;
-            if (counters.pivot_accept_count + counters.pivot_reject_count != 0)
-                {
-                m_exec_conf->msg->notice(2) << "Average pivot acceptance:      " << counters.getPivotAcceptance() << std::endl;
-                }
-            if (counters.reflection_accept_count + counters.reflection_reject_count != 0)
-                {
-                m_exec_conf->msg->notice(2) << "Average reflection acceptance: " << counters.getReflectionAcceptance() << std::endl;
-                }
-            if (counters.swap_accept_count + counters.swap_reject_count != 0)
-                {
-                m_exec_conf->msg->notice(2) << "Average swap acceptance:       " << counters.getSwapAcceptance() << std::endl;
-                }
-            m_exec_conf->msg->notice(2) <<     "Total particles in clusters:   " << counters.getNParticlesInClusters() << std::endl;
-            m_exec_conf->msg->notice(2) <<     "Total particles moved:         " << counters.getNParticlesMoved() << std::endl;
-            m_exec_conf->msg->notice(2) <<     "Average cluster size:          " << counters.getAverageClusterSize() << std::endl;
-            }
-
             /*! \param mode 0 -> Absolute count, 1 -> relative to the start of the run, 2 -> relative to the last executed step
                 \return The current state of the acceptance counters
             */

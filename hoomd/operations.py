@@ -84,8 +84,12 @@ class Operations:
         return any(op is obj for op in self)
 
     def __iter__(self):
-        yield from chain(
-            (self._integrator,), self._analyzers, self._updaters, self._tuners, self._computes)
+        if self._integrator is not None:
+            yield from chain((self._integrator,), self._analyzers,
+                             self._updaters, self._tuners, self._computes)
+        else:
+            yield from chain(
+                (self._analyzers, self._updaters, self._tuners, self._computes))
 
     @property
     def scheduled(self):

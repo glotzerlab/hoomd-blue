@@ -675,7 +675,7 @@ class berendsen(_Method):
     def __init__(self, group, kT, tau):
 
         # Error out in MPI simulations
-        if (_hoomd.is_MPI_available()):
+        if (hoomd.version.mpi_enabled):
             if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
                 hoomd.context.current.device.cpp_msg.error("integrate.berendsen is not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error setting up integration method.")

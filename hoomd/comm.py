@@ -89,7 +89,7 @@ class decomposition(object):
             raise RuntimeError("Cannot create decomposition after system is initialized. Call before init.*")
 
         # make sure MPI is enabled if any arguments are not None
-        if (x or y or z or nx or ny or nz) and (not _hoomd.is_MPI_available()):
+        if (x or y or z or nx or ny or nz) and (not hoomd.version.mpi_enabled):
             raise RuntimeError("the x, y, z, nx, ny, nz options are only available in MPI builds")
 
         self._onelevel = onelevel  # cache this for later when we can make the cpp object
@@ -265,10 +265,10 @@ class Communicator(object):
 
         # check nrank
         if nrank is not None:
-            if not _hoomd.is_MPI_available():
+            if not hoomd.version.mpi_enabled:
                 raise RuntimeError("The nrank option is only available in MPI builds.\n")
 
-        mpi_available = _hoomd.is_MPI_available();
+        mpi_available = hoomd.version.mpi_enabled;
 
         self.cpp_mpi_conf = None
 
@@ -319,7 +319,7 @@ class Communicator(object):
             Returns 1 in non-mpi builds.
         """
 
-        if _hoomd.is_MPI_available():
+        if hoomd.version.mpi_enabled:
             return self.cpp_mpi_conf.getNRanks();
         else:
             return 1;
@@ -336,7 +336,7 @@ class Communicator(object):
         """
 
 
-        if _hoomd.is_MPI_available():
+        if hoomd.version.mpi_enabled:
             return self.cpp_mpi_conf.getRank()
         else:
             return 0;
@@ -352,7 +352,7 @@ class Communicator(object):
             Always returns 0 in non-mpi builds.
         """
 
-        if _hoomd.is_MPI_available():
+        if hoomd.version.mpi_enabled:
             return self.cpp_mpi_conf.getPartition()
         else:
             return 0;
@@ -363,7 +363,7 @@ class Communicator(object):
         Note:
             Does nothing in in non-MPI builds.
         """
-        if _hoomd.is_MPI_available():
+        if hoomd.version.mpi_enabled:
             _hoomd.mpi_barrier_world();
 
     def barrier(self):
@@ -373,7 +373,7 @@ class Communicator(object):
             Does nothing in in non-MPI builds.
         """
 
-        if _hoomd.is_MPI_available():
+        if hoomd.version.mpi_enabled:
             self.cpp_mpi_conf.barrier()
 
     @contextlib.contextmanager

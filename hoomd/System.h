@@ -91,24 +91,13 @@ class PYBIND11_EXPORT System
         // -------------- Methods for running the simulation
 
         //! Runs the simulation for a number of time steps
-        void run(unsigned int nsteps, unsigned int cb_frequency,
-                 pybind11::object callback, double limit_hours=0.0f,
-                 unsigned int limit_multiple=1);
+        void run(unsigned int nsteps);
 
         //! Configures profiling of runs
         void enableProfiler(bool enable);
 
-        //! Toggle whether or not to print the status line and TPS for each run
-        void enableQuietRun(bool enable)
-            {
-            m_quiet_run = enable;
-            }
-
         //! Register logger
         void registerLogger(std::shared_ptr<Logger> logger);
-
-        //! Sets the statistics period
-        void setStatsPeriod(unsigned int seconds);
 
         //! Get the average TPS from the last run
         Scalar getLastTPS() const
@@ -186,17 +175,10 @@ class PYBIND11_EXPORT System
         unsigned int m_start_tstep;     //!< Initial time step of the current run
         unsigned int m_end_tstep;       //!< Final time step of the current run
         unsigned int m_cur_tstep;       //!< Current time step
-        Scalar m_cur_tps;               //!< Current average TPS
-        Scalar m_med_tps;               //!< Current median TPS
-        std::vector<Scalar> m_tps_list; //!< vector containing the last 10 tps
 
         ClockSource m_clk;              //!< A clock counting time from the beginning of the run
-        uint64_t m_last_status_time;    //!< Time (measured by m_clk) of the last time generateStatusLine() was called
-        unsigned int m_last_status_tstep;   //!< Time step last time generateStatusLine() was called
 
-        bool m_quiet_run;       //!< True to suppress the status line and TPS from being printed to stdout for each run
         bool m_profile;         //!< True if runs should be profiled
-        unsigned int m_stats_period; //!< Number of seconds between statistics output lines
 
         /// Particle data flags to always set
         PDataFlags m_default_flags;
@@ -205,14 +187,8 @@ class PYBIND11_EXPORT System
         //! Sets up m_profiler and attaches/detaches to/from all computes, updaters, and analyzers
         void setupProfiling();
 
-        //! Prints detailed statistics for all attached computes, updaters, and integrators
-        void printStats();
-
         //! Resets stats for all contained classes
         void resetStats();
-
-        //! Prints out a formatted status line
-        void generateStatusLine();
 
         //! Get the flags needed for a particular step
         PDataFlags determineFlags(unsigned int tstep);

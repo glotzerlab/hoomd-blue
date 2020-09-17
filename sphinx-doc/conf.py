@@ -37,11 +37,13 @@ suppress_warnings = ['ref.any']
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'nbsphinx',
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
-    'sphinx.ext.mathjax'
+    'sphinx.ext.mathjax',
+    'IPython.sphinxext.ipython_console_highlighting'
 ]
 
 napoleon_include_special_with_doc = True
@@ -70,7 +72,8 @@ autodoc_mock_imports = ['hoomd._hoomd',
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
-exclude_patterns = ['_build', '_templates']
+exclude_patterns = ['_build',
+                    'figures']
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
@@ -109,10 +112,6 @@ language = None
 #today = ''
 # Else, today_fmt is used as the format for a strftime call.
 #today_fmt = '%B %d, %Y'
-
-# List of patterns, relative to source directory, that match files and
-# directories to ignore when looking for source files.
-exclude_patterns = ['_build']
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.

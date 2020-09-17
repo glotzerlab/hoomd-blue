@@ -466,6 +466,15 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
         for typeparam in typeparams:
             self._add_typeparam(typeparam)
 
+    @property
+    def _children(self):
+        """A set of child objects.
+
+        These objects do not appear directly in any of the operations lists but
+        are owned in lists or members of those operations.
+        """
+        return []
+
 
 class _Operation(_HOOMDBaseObject):
     """Defines operations that are added to an `hoomd.Operations` object."""
