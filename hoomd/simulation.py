@@ -1,3 +1,9 @@
+# Copyright (c) 2009-2019 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Define the Simulation class."""
+
 import hoomd._hoomd as _hoomd
 from hoomd.logging import log, Loggable
 from hoomd.state import State
@@ -8,10 +14,15 @@ import json
 
 
 class Simulation(metaclass=Loggable):
-    r""" Simulation.
+    """Simulation description.
 
     Args:
-        device (:py:mod:`hoomd.device`): Device to execute the simulation.
+        device (`hoomd.device.Device`): Device to execute the simulation.
+
+    `Simulation` is the central class in HOOMD-blue that defines a simulation,
+    including the `state` of the system, the `operations` that apply to the
+    state during a simulation `run`, and the `device` to use when executing
+    the simulation.
     """
 
     def __init__(self, device):
@@ -22,6 +33,7 @@ class Simulation(metaclass=Loggable):
 
     @property
     def device(self):
+        """hoomd.device._Device: Device used to execute the simulation."""
         return self._device
 
     @device.setter
@@ -31,6 +43,17 @@ class Simulation(metaclass=Loggable):
 
     @log
     def timestep(self):
+        """int: Current time step of the simulation.
+
+        Note:
+            Functions like `create_state_from_gsd` will set the initial timestep
+            from the input. Set `timestep` before creating the simulation state
+            to set the initial timestep of the simulation::
+
+                sim.timestep = 5000
+                sim.create_state_from_gsd('gsd_at_step_10000000.gsd')
+                assert sim.timestep == 5000
+        """
         if not hasattr(self, '_cpp_sys'):
             return self._timestep
         else:
@@ -46,8 +69,7 @@ class Simulation(metaclass=Loggable):
             raise RuntimeError("State must not be set to change timestep.")
 
     def _init_communicator(self):
-        """ Initialize the Communicator
-        """
+        """Initialize the Communicator."""
         # initialize communicator
         if hoomd.version.mpi_enabled:
             pdata = self.state._cpp_sys_def.getParticleData()
@@ -70,8 +92,14 @@ class Simulation(metaclass=Loggable):
             self._system_communicator = None
 
     def create_state_from_gsd(self, filename, frame=-1):
-        # initialize the system
-        # Error checking
+        """Create the simulation state from a GSD file.
+
+        Args:
+            filename (str): GSD file to read
+
+            frame (int): Index of the frame to read from the file. Negative
+                values index back from the last frame in the file.
+        """
         if self.state is not None:
             raise RuntimeError("Cannot initialize more than once\n")
         filename = _hoomd.mpi_bcast_str(filename,
@@ -92,8 +120,19 @@ class Simulation(metaclass=Loggable):
         self.operations._store_reader(reader)
 
     def create_state_from_snapshot(self, snapshot):
-        # initialize the system
-        # Error checking
+        """Create the simulations state from a `Snapshot`.
+
+        Args:
+            snapshot (Snapshot): Snapshot to initialize the state from.
+
+        When no timestep is provided, `create_state_from_snapshot` sets
+        `timestep` to 0.
+
+        Warning:
+            *snapshot* must be a `hoomd.Snapshot`. `create_state_from_snapshot`
+            does not support `gsd.hoomd.Snapshot` objects from the ``gsd``
+            Python package - use `create_state_from_gsd` to read GSD files.
+        """
         if self.state is not None:
             raise RuntimeError("Cannot initialize more than once\n")
 
@@ -109,33 +148,35 @@ class Simulation(metaclass=Loggable):
 
     @property
     def state(self):
+        """State: The current simulation state."""
         return self._state
 
     @property
     def operations(self):
+        """Operations: The operations that apply to the state."""
         return self._operations
-
-    def sanity_check(self):
-        raise NotImplementedError
-
-    def advance(self, runsteps):
-        raise NotImplementedError
-
-    def apply_operations(self, operations):
-        raise NotImplementedError
 
     @property
     def tps(self):
-        raise NotImplementedError
+        """float: The average number of time steps per second.
+
+        `tps` resets at the start of each call to `run`. During and after the
+        call `tps` is the number of steps executed divided by the elapsed
+        walltime in seconds.
+        """
+        if self.state is None:
+            return None
+        else:
+            return self._cpp_sys.getLastTPS()
 
     @property
     def always_compute_pressure(self):
-        """Always compute the virial and pressure.
+        """bool: Always compute the virial and pressure (defaults to ``False``).
 
         By default, HOOMD only computes the virial and pressure on timesteps
         where it is needed (when :py:class:`hoomd.dump.GSD` writes
         log data to a file or when using an NPT integrator). Set
-        ``always_compute_pressure`` to True to make the per particle virial,
+        `always_compute_pressure` to True to make the per particle virial,
         net virial, and system pressure available to query any time by property
         or through the :py:class:`hoomd.logging.Logger` interface.
 
@@ -161,8 +202,57 @@ class Simulation(metaclass=Loggable):
             if value:
                 self._state._cpp_sys_def.getParticleData().setPressureFlag()
 
-    def run(self, steps):
-        """Run the simulation forward a given number of steps.
+    def run(self, steps, check_writer_triggers_on_initial_step=False):
+        """Advance the simulation a number of steps.
+
+        Args:
+            steps (int): Number of steps to advance the simulation.
+
+            check_writer_triggers_on_initial_step (bool): When True, writers
+               with triggers that evaluate True for the initial step will be
+               exected before the time step loop.
+
+        Note:
+            Initialize the simulation's state before calling `run`.
+
+        During each step `run`, `Simulation` applies its `operations` to the
+        state in the order: Tuners, Updaters, Integrator, then Writers following
+        the logic in this pseudocode::
+
+            if check_writer_triggers_on_initial_step:
+                for writer in operations.writers:
+                    if writer.trigger(timestep):
+                        writer.write(timestep)
+
+            end_step = timestep + steps
+            while timestep < end_step:
+                for tuner in operations.tuners:
+                    if tuner.trigger(timestep):
+                        tuner.tune(timestep)
+
+                for updater in operations.updaters:
+                    if updater.trigger(timestep):
+                        updater.update(timestep)
+
+                if operations.integrator is not None:
+                    operations.integrator(timestep)
+
+                timestep += 1
+
+                for writer in operations.writers:
+                    if writer.trigger(timestep):
+                        writer.write(timestep)
+
+        This order of operations ensures that writers (such as `hoomd.dump.GSD`)
+        capture the final output of the last step of the run loop. For example,
+        a writer with a trigger ``hoomd.trigger.Periodic(period=100, phase=0)``
+        active during a ``run(500)`` would write on steps 100, 200, 300, 400,
+        and 500. Set ``check_writer_triggers_on_initial_step=True`` on the first
+        call to `run` to also obtain output at step 0.
+
+        Warning:
+            Using ``check_writer_triggers_on_initial_step=True`` in subsequent
+            calls to `run` will result in duplicate output frames.
         """
         # check if initialization has occurred
         if not hasattr(self, '_cpp_sys'):
@@ -170,7 +260,7 @@ class Simulation(metaclass=Loggable):
         if not self.operations.scheduled:
             self.operations.schedule()
 
-        self._cpp_sys.run(int(steps))
+        self._cpp_sys.run(int(steps), check_writer_triggers_on_initial_step)
 
     def write_debug_data(self, filename):
         """Write debug data to a JSON file.

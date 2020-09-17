@@ -302,4 +302,5 @@ stages:
         pydocstyle -v
         hoomd/variant.py
         hoomd/device.py
+        hoomd/simulation.py
       displayName: Run pydocstyle
