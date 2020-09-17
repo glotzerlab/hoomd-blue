@@ -85,20 +85,13 @@ void System::setCommunicator(std::shared_ptr<Communicator> comm)
 
 // -------------- Methods for running the simulation
 
-/*! \param nsteps Number of simulation steps to run
-
-    During each simulation step, all added Analyzers and
-    Updaters are called, then the Integrator to move the system
-    forward one step in time. This is repeated \a nsteps times.
-*/
-
-void System::run(unsigned int nsteps)
+void System::run(unsigned int nsteps, bool check_writer_triggers_on_initial_step)
     {
     m_start_tstep = m_cur_tstep;
     m_end_tstep = m_cur_tstep + nsteps;
 
     // initialize the last status time
-    int64_t initial_time = m_clk.getTime();
+    m_initial_time = m_clk.getTime();
     setupProfiling();
 
     // preset the flags before the run loop so that any analyzers/updaters run on step 0 have the info they need
@@ -119,23 +112,28 @@ void System::run(unsigned int nsteps)
     #endif
 
     // Prepare the run
-    if (!m_integrator)
-        {
-        m_exec_conf->msg->warning() << "You are running without an integrator" << endl;
-        }
-    else
+    if (m_integrator)
         {
         m_integrator->prepRun(m_cur_tstep);
         }
 
-    // handle time steps
-    for ( ; m_cur_tstep < m_end_tstep; m_cur_tstep++)
+    // execute analyzers on initial step if requested
+    if (check_writer_triggers_on_initial_step)
         {
-        // execute analyzers
         for (auto &analyzer_trigger_pair: m_analyzers)
             {
             if ((*analyzer_trigger_pair.second)(m_cur_tstep))
                 analyzer_trigger_pair.first->analyze(m_cur_tstep);
+            }
+        }
+
+    // run the steps
+    for ( ; m_cur_tstep < m_end_tstep; m_cur_tstep++)
+        {
+        for (auto &tuner: m_tuners)
+            {
+            if ((*tuner->getTrigger())(m_cur_tstep))
+                tuner->update(m_cur_tstep);
             }
 
         // execute updaters
@@ -143,12 +141,6 @@ void System::run(unsigned int nsteps)
             {
             if ((*updater_trigger_pair.second)(m_cur_tstep))
                 updater_trigger_pair.first->update(m_cur_tstep);
-            }
-
-        for (auto &tuner: m_tuners)
-            {
-            if ((*tuner->getTrigger())(m_cur_tstep))
-                tuner->update(m_cur_tstep);
             }
 
         // look ahead to the next time step and see which analyzers and updaters will be executed
@@ -159,6 +151,15 @@ void System::run(unsigned int nsteps)
         if (m_integrator)
             m_integrator->update(m_cur_tstep);
 
+        // execute analyzers for cur_tstep+1
+        for (auto &analyzer_trigger_pair: m_analyzers)
+            {
+            if ((*analyzer_trigger_pair.second)(m_cur_tstep+1))
+                analyzer_trigger_pair.first->analyze(m_cur_tstep+1);
+            }
+
+        updateTPS();
+
         // quit if Ctrl-C was pressed
         if (g_sigint_recvd)
             {
@@ -167,16 +168,18 @@ void System::run(unsigned int nsteps)
             }
         }
 
-    // calculate average TPS
-    Scalar TPS = Scalar(m_cur_tstep - m_start_tstep) / Scalar(m_clk.getTime() - initial_time) * Scalar(1e9);
-
-    m_last_TPS = TPS;
-
     #ifdef ENABLE_MPI
-    // make sure all ranks return the same TPS
+    // make sure all ranks return the same TPS after the run completes
     if (m_comm)
         bcast(m_last_TPS, 0, m_exec_conf->getMPICommunicator());
     #endif
+    }
+
+void System::updateTPS()
+    {
+    // calculate average TPS
+    m_last_TPS = double(m_cur_tstep - m_start_tstep) / double(m_clk.getTime() - m_initial_time)
+                    * double(1e9);
     }
 
 /*! \param enable Set to true to enable profiling during calls to run()

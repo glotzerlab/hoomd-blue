@@ -90,8 +90,16 @@ class PYBIND11_EXPORT System
 
         // -------------- Methods for running the simulation
 
-        //! Runs the simulation for a number of time steps
-        void run(unsigned int nsteps);
+        /** Run the simulation for a number of time steps.
+
+            During the run, Simulation applies all of the Tuners, Updaters, the integrator,
+            and Analyzers who's triggers evaluate true.
+
+            @param nsteps Number of steps to advance the simulation
+            @param check_writer_triggers_on_initial_step Set to true to evaluate writers before the
+                loop
+        */
+        void run(unsigned int nsteps, bool check_writer_triggers_on_initial_step=false);
 
         //! Configures profiling of runs
         void enableProfiler(bool enable);
@@ -193,7 +201,15 @@ class PYBIND11_EXPORT System
         //! Get the flags needed for a particular step
         PDataFlags determineFlags(unsigned int tstep);
 
-        Scalar m_last_TPS;  //!< Stores the average TPS from the last run
+        /// Record the initial time of the last run
+        int64_t m_initial_time=0;
+
+        /// Store the last recorded tPS
+        Scalar m_last_TPS=0;
+
+        /// Update the TPS average
+        void updateTPS();
+
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
     };
 
