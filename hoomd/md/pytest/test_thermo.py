@@ -21,7 +21,7 @@ def test_attach_detach(simulation_factory, two_particle_snapshot_factory):
     group = hoomd.filter.All()
     thermo = hoomd.md.compute.ThermodynamicQuantities(group)
     for qty, typ in _thermo_qtys:
-        assert getattr(thermo, qty) == None
+        assert getattr(thermo, qty) is None
 
     # make simulation and test state of operations
     sim = simulation_factory(two_particle_snapshot_factory())
@@ -38,7 +38,7 @@ def test_attach_detach(simulation_factory, two_particle_snapshot_factory):
     sim.operations.remove(thermo)
     assert len(sim.operations.computes) == 0
     for qty, typ in _thermo_qtys:
-        assert getattr(thermo, qty) == None
+        assert getattr(thermo, qty) is None
 
 def test_basic_system_3d(simulation_factory, two_particle_snapshot_factory):
     group = hoomd.filter.All()
@@ -125,4 +125,3 @@ def test_basic_system_2d(simulation_factory, lattice_snapshot_factory):
     np.testing.assert_allclose(thermoB.kinetic_temperature, 2*thermoB.kinetic_energy/thermoB.degrees_of_freedom, rtol=1e-3)
     np.testing.assert_allclose(thermoB.pressure, thermoB.kinetic_energy/2.0**2, rtol=1e-3)
     np.testing.assert_allclose(thermoB.pressure_tensor, (8.0/2.0**2, 0., 0., 0., 0., 0.), rtol=1e-3, atol=1e-1)
-
