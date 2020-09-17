@@ -324,7 +324,6 @@ class Simulation(metaclass=Loggable):
         logger = hoomd.logging.Logger(only_default=False)
         logger += self
 
-        # children may appear several times, identify them uniquely
         for op in self.operations:
             logger.add(op)
 
