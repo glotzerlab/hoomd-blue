@@ -111,13 +111,7 @@ def test_basic_system_2d(simulation_factory, lattice_snapshot_factory):
     np.testing.assert_allclose(thermo.kinetic_energy, 1.0, rtol=1e-5)
     np.testing.assert_allclose(thermo.kinetic_temperature, 2*thermo.kinetic_energy/thermo.degrees_of_freedom, rtol=1e-5)
     np.testing.assert_allclose(thermo.pressure, thermo.kinetic_energy/2.0**2, rtol=1e-5)
-    (pxx, pxy, pxz, pyy, pyz, pzz) = thermo.pressure_tensor
-    np.testing.assert_allclose(pxx, 2.0/2.0**2, rtol=1e-5)
-    np.testing.assert_allclose(pxy, 0.0, rtol=1e-5)
-    np.testing.assert_allclose(pxz, 0.0, rtol=1e-5)
-    np.testing.assert_allclose(pyy, 0.0, rtol=1e-5)
-    np.testing.assert_allclose(pyz, 0.0, rtol=1e-5)
-    np.testing.assert_allclose(pzz, 0.0, rtol=1e-5)
+    np.testing.assert_allclose(thermo.pressure_tensor, (2.0/2.0**2, 0., 0., 0., 0., 0.), rtol=1e-5)
 
     # tests for group B
     assert thermoB.num_particles == 2
@@ -130,11 +124,5 @@ def test_basic_system_2d(simulation_factory, lattice_snapshot_factory):
     np.testing.assert_allclose(thermoB.kinetic_energy, 4.0, rtol=1e-3)
     np.testing.assert_allclose(thermoB.kinetic_temperature, 2*thermoB.kinetic_energy/thermoB.degrees_of_freedom, rtol=1e-3)
     np.testing.assert_allclose(thermoB.pressure, thermoB.kinetic_energy/2.0**2, rtol=1e-3)
-    (pxx, pxy, pxz, pyy, pyz, pzz) = thermoB.pressure_tensor
-    np.testing.assert_allclose(pxx, 8.0/2.0**2, rtol=1e-3)
-    np.testing.assert_allclose(pxy, 0.0, atol=1e-1)
-    np.testing.assert_allclose(pxz, 0.0, atol=1e-1)
-    np.testing.assert_allclose(pyy, 0.0, atol=1e-1)
-    np.testing.assert_allclose(pyz, 0.0, atol=1e-1)
-    np.testing.assert_allclose(pzz, 0.0, atol=1e-1)
+    np.testing.assert_allclose(thermoB.pressure_tensor, (8.0/2.0**2, 0., 0., 0., 0., 0.), rtol=1e-3, atol=1e-1)
 
