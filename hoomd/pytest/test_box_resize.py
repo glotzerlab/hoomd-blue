@@ -33,7 +33,7 @@ def sys1(fractional_coordinates):
 
 
 _box2 = [[50, 2., 3., 1., 2., 3.],  # Only change Lx
-         [1., 2., 3., 2, 2., 3.],   # Only change xy
+         [1., 2., 3., 0.9, 2., 3.],   # Only change xy
          [50., 2., 3., 0.9, 2., 3.],   # Change Lx and xy
          [100., 200., 600., 0.9, 5., 7.]]  # Change all
 
@@ -60,9 +60,14 @@ def get_snapshot(sys1, device):
 
 
 _t_start = 2
+_t_a = 1
+_t_b = 1
+_t_ab = 2
+_t_ba = 1
 _variants = [
     hoomd.variant.Power(0., 1., 0.1, _t_start, _t_start*2),
-    hoomd.variant.Ramp(0., 1., _t_start, _t_start*2)
+    hoomd.variant.Ramp(0., 1., _t_start, _t_start*2),
+    hoomd.variant.Cycle(0., 1., _t_start, _t_a, _t_ab, _t_b, _t_ba)
              ]
 
 
@@ -99,7 +104,8 @@ def test_user_specified_variant(device, simulation_factory, get_snapshot,
         npt.assert_allclose(sys2[1], sim.state.snapshot.particles.position)
     else:
         npt.assert_allclose(sys1[1], sim.state.snapshot.particles.position)
-
+    if variant == _variants[2]:
+       assert box_resize.get_box(variant.t_start*3+1) == sys1[0]
 
 def test_variant_linear(device, simulation_factory, get_snapshot,
                          sys1, sys2, scale_particles=True):
@@ -119,3 +125,4 @@ def test_variant_linear(device, simulation_factory, get_snapshot,
     assert box_resize.get_box(t_start*3) == sys2[0]
     assert sim.state.box == sys2[0]
     npt.assert_allclose(sys2[1], sim.state.snapshot.particles.position)
+
