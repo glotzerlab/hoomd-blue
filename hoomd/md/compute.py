@@ -110,7 +110,14 @@ class ThermodynamicQuantities(_Thermo):
 
     @log
     def kinetic_energy(self):
-        """ :math:`K`, total kinetic energy of all particles in the group (in energy units). """
+        """
+        :math:`K`, total kinetic energy of all particles in the group (in energy units).
+
+        .. math::
+
+            K = K_{\\mathrm{rot}} + K_{\\mathrm{trans}}
+
+        """
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.kinetic_energy
@@ -119,7 +126,14 @@ class ThermodynamicQuantities(_Thermo):
 
     @log
     def translational_kinetic_energy(self):
-        """ :math:`K_{\\mathrm{trans}}`, translational kinetic energy of all particles in the group (in energy units). """
+        """
+        :math:`K_{\\mathrm{trans}}`, translational kinetic energy of all particles in the group (in energy units).
+
+        .. math::
+
+            K_{\\mathrm{trans}} = \\frac{1}{2}\\sum_i m_i|\\vec{v}_i|^2
+
+        """
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.translational_kinetic_energy
