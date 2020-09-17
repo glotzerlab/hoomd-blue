@@ -3,13 +3,7 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-""" Compute system properties
-
-A compute calculates properties of the system on demand. Most computes are automatically created by the object
-that needs them (e.g. methods.NVT creates a compute.ThermodynamicQuantities for temperature calculations). User-specified
-computes can be used when more flexibility is needed. Properties calculated by specified computes (automatically, or by the
-user) can be logged using hoomd.logging.Logger.
-"""
+""" Compute system properties """
 
 from hoomd import _hoomd;
 from hoomd.md import _md
@@ -57,7 +51,7 @@ class ThermodynamicQuantities(_Thermo):
         """
         :math:`kT`, instantaneous thermal energy of the group (in energy units).
 
-        Calculated as
+        Calculated as:
 
           .. math::
 
@@ -74,16 +68,19 @@ class ThermodynamicQuantities(_Thermo):
         """
         :math:`P`, instantaneous pressure of the group (in pressure units).
 
-        Calculated as
+        Calculated as:
 
-          .. math::
+        .. math::
 
-              W = \\frac{1}{2} \\sum_{i}\\sum_{j \\ne i} \\vec{F}_{ij} \\cdot \\vec{r_{ij}} + \\sum_{k} \\vec{F}_{k} \\cdot \\vec{r_{k}}
+            P = \\left(\\frac{2}{D} \\cdot K_{\\mathrm{trans}} + \\frac{1}{2} \\cdot W \\right) / V,
 
-          where :math:`\\vec{F}_{ij}` are pairwise forces between particles and :math:`\\vec{F}_k` are forces due to explicit constraints, implicit rigid
-          body constraints, external walls, and fields. In 2D simulations,
-          :math:`P = (K + \\frac{1}{2}\\cdot W)/A` where :math:`A` is the area of the simulation box.
-          of the simulation box.
+        where :math:`D` is the dimensionality of the system, :math:`V` is the total volume of the simulation box (or area in 2D), and :math:`W` is calculated as:
+
+        .. math::
+
+            W = \\frac{1}{2} \\sum_{i}\\sum_{j \\ne i} \\vec{F}_{ij} \\cdot \\vec{r_{ij}} + \\sum_{k} \\vec{F}_{k} \\cdot \\vec{r_{k}},
+
+        where :math:`\\vec{F}_{ij}` are pairwise forces between particles and :math:`\\vec{F}_k` are forces due to explicit constraints, implicit rigid body constraints, external walls, and fields.
         """
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
@@ -96,12 +93,14 @@ class ThermodynamicQuantities(_Thermo):
         """
         (:math:`P_{xx}`, :math:`P_{xy}`, :math:`P_{xz}`, :math:`P_{yy}`, :math:`P_{yz}`, :math:`P_{zz}`).
 
-        Instantaneous pressure tensor of the group (in pressure units).
+        Instantaneous pressure tensor of the group (in pressure units), calculated as:
 
           .. math::
 
               P_{ij} = \\left[  \\sum_{k\\in[0..N)} m_k v_{k,i} v_{k,j} +
                                \\sum_{k\\in[0..N)} \\sum_{l > k} \\frac{1}{2} \\left(\\vec{r}_{kl,i} \\vec{F}_{kl,j} + \\vec{r}_{kl,j} \\vec{F}_{kl, i} \\right) \\right]/V
+
+        where :math:`V` is the total simulation box volume (or area in 2D).
         """
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
@@ -147,7 +146,12 @@ class ThermodynamicQuantities(_Thermo):
 
     @log
     def degrees_of_freedom(self):
-        """ :math:`N_{\\mathrm{dof}}`, number of degrees of freedom given to the group by its integration method. """
+        """
+        :math:`N_{\\mathrm{dof}}`, number of degrees of freedom given to the group by its integration method.
+
+        Note:
+            This is the sum of the translational and rotational degrees of freedom.
+        """
         if self._attached:
             return self._cpp_obj.degrees_of_freedom
         else:
@@ -155,7 +159,14 @@ class ThermodynamicQuantities(_Thermo):
 
     @log
     def translational_degrees_of_freedom(self):
-        """ :math:`N_{\\mathrm{dof, trans}}`, number of translational degrees of freedom given to the group by its integration method. """
+        """
+        :math:`N_{\\mathrm{dof, trans}}`, number of translational degrees of freedom given to the group by its integration method.
+
+        When using a single integration method that is momentum conserving and operates on all particles, :math:`N_{\\mathrm{dof, trans}} = DN - D - N_{constraints}`, where :math:`D` is the dimensionality of the system.
+
+        Note:
+            The removal of :math:`D` degrees of freedom accounts for the fixed center of mass in using periodic boundary conditions. When the *filter* in :py:class:`ThermodynamicQuantities` selects a subset of all particles, the removed degrees of freedom are spread proportionately.
+        """
         if self._attached:
             return self._cpp_obj.translational_degrees_of_freedom
         else:
