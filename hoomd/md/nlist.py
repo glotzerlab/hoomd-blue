@@ -154,7 +154,7 @@ class Cell(_NList):
 
     Examples::
 
-        nl_c = nlist.Cell(diameter_shift=True,buffer=0.5)
+        nl_c = nlist.Cell(diameter_shift=True, nbuffer=0.5)
         nl_c.max_diameter = 2.0
         slj = md.pair.SLJ(nl_c)
 
