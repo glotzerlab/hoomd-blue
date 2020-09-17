@@ -14,7 +14,7 @@ def _create_domain_decomposition(device, box):
     the new API. We will need to consider designing an appropriate user-facing
     API to set the domain decomposition.
     """
-    if not _hoomd.is_MPI_available():
+    if not hoomd.version.mpi_enabled:
         return None
 
     # if we are only running on one processor, we use optimized code paths
@@ -125,7 +125,7 @@ class State:
     def types(self):
         return dict(particle_types=self.particle_types,
                     bond_types=self.bond_types,
-                    angle_types=self.angles_types,
+                    angle_types=self.angle_types,
                     dihedral_types=self.dihedral_types,
                     improper_types=self.improper_types,
                     special_pair_types=self.special_pair_types

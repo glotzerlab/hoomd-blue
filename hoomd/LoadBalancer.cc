@@ -548,21 +548,6 @@ void LoadBalancer::computeOwnedParticles()
     }
 
 /*!
- * Print statistics on the maximum and average load imbalance, and the number of times
- * load balancing was performed.
- */
-void LoadBalancer::printStats()
-    {
-    if (m_exec_conf->msg->getNoticeLevel() < 1)
-        return;
-
-    double avg_imb = m_total_max_imbalance / ((double)m_n_calls);
-    m_exec_conf->msg->notice(1) << "-- Load imbalance stats:" << endl;
-    m_exec_conf->msg->notice(1) << "max imbalance: " << m_max_max_imbalance << " / avg. imbalance: " << avg_imb << endl;
-    m_exec_conf->msg->notice(1) << "iterations: " << m_n_iterations << " / rebalances: " << m_n_rebalances << endl;
-    }
-
-/*!
  * Zero the counters.
  */
 void LoadBalancer::resetStats()

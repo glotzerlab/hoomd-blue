@@ -79,7 +79,9 @@
             "typeinfo": "cpp",
             "valarray": "cpp",
             "variant": "cpp",
-            "*.cuh": "cpp"
+            "*.cuh": "cpp",
+            "*.in": "cpp",
+            "cfenv": "cpp"
         },
         "cSpell.words": [
             "GPUs",

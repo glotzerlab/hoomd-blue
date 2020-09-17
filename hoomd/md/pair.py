@@ -211,6 +211,10 @@ class _Pair(force._Force):
         else:
             self._nlist = validate_nlist(value)
 
+    @property
+    def _children(self):
+        return [self.nlist]
+
 
 class LJ(_Pair):
     R""" Lennard-Jones pair potential.
@@ -897,21 +901,6 @@ class DPD(_Pair):
     """
     _cpp_class_name = "PotentialPairDPDThermoDPD"
     def __init__(self, nlist, kT, seed=3, r_cut=None, r_on=0., mode='none'):
-        """
-        # register the citation
-        c = hoomd.cite.article(cite_key='phillips2011',
-                         author=['C L Phillips', 'J A Anderson', 'S C Glotzer'],
-                         title='Pseudo-random number generation for Brownian Dynamics and Dissipative Particle Dynamics simulations on GPU devices',
-                         journal='Journal of Computational Physics',
-                         volume=230,
-                         number=19,
-                         pages='7191--7201',
-                         month='Aug',
-                         year='2011',
-                         doi='10.1016/j.jcp.2011.05.021',
-                         feature='DPD')
-        hoomd.cite._ensure_global_bib().add(c)
-        """
         super().__init__(nlist, r_cut, r_on, mode)
         params = TypeParameter('params', 'particle_types',
                                TypeParameterDict(A=float, gamma=float, len_keys=2))
@@ -967,22 +956,6 @@ class DPDConservative(_Pair):
     """
     _cpp_class_name = "PotentialPairDPD"
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
-        # add this back in once we redo the cite module
-        """
-        # register the citation
-        c = hoomd.cite.article(cite_key='phillips2011',
-                         author=['C L Phillips', 'J A Anderson', 'S C Glotzer'],
-                         title='Pseudo-random number generation for Brownian Dynamics and Dissipative Particle Dynamics simulations on GPU devices',
-                         journal='Journal of Computational Physics',
-                         volume=230,
-                         number=19,
-                         pages='7191--7201',
-                         month='Aug',
-                         year='2011',
-                         doi='10.1016/j.jcp.2011.05.021',
-                         feature='DPD')
-        hoomd.cite._ensure_global_bib().add(c)
-        """
         # initialize the base class
         super().__init__(nlist, r_cut, r_on, mode)
         params =  TypeParameter('params', 'particle_types',
@@ -1073,21 +1046,6 @@ class DPDLJ(_Pair):
     """
     _cpp_class_name = "PotentialPairDPDLJThermoDPD"
     def __init__(self, nlist, kT, seed=3, r_cut=None, r_on=0., mode='none'):
-        """
-        # register the citation
-        c = hoomd.cite.article(cite_key='phillips2011',
-                         author=['C L Phillips', 'J A Anderson', 'S C Glotzer'],
-                         title='Pseudo-random number generation for Brownian Dynamics and Dissipative Particle Dynamics simulations on GPU devices',
-                         journal='Journal of Computational Physics',
-                         volume=230,
-                         number=19,
-                         pages='7191--7201',
-                         month='Aug',
-                         year='2011',
-                         doi='10.1016/j.jcp.2011.05.021',
-                         feature='DPD')
-        hoomd.cite._ensure_global_bib().add(c)
-        """
         if mode == 'xplor':
             raise ValueError("xplor smoothing is not supported with pair.DPDLJ")
 

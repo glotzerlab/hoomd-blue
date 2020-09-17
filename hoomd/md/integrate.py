@@ -16,6 +16,7 @@ from hoomd.syncedlist import SyncedList
 from hoomd.md.methods import _Method
 from hoomd.md.force import _Force
 from hoomd.md.constrain import _ConstraintForce
+import itertools
 
 
 def preprocess_aniso(value):
@@ -80,6 +81,17 @@ class _DynamicIntegrator(_BaseIntegrator):
     def methods(self, value):
         set_synced_list(self._methods, value)
 
+    @property
+    def _children(self):
+        children = list(self.forces)
+        children.extend(self.constraints)
+        children.extend(self.methods)
+
+        for child in itertools.chain(self.forces, self.constraints,
+                                     self.methods):
+            children.extend(child._children)
+
+        return children
 
 class Integrator(_DynamicIntegrator):
     R""" Enables a variety of standard integration methods.
