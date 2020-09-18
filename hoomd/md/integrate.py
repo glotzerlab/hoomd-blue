@@ -62,7 +62,7 @@ class _DynamicIntegrator(_BaseIntegrator):
 
     @forces.setter
     def forces(self, value):
-        set_synced_list(self._forces, value)
+        _set_synced_list(self._forces, value)
 
     @property
     def constraints(self):
@@ -70,7 +70,7 @@ class _DynamicIntegrator(_BaseIntegrator):
 
     @constraints.setter
     def constraints(self, value):
-        set_synced_list(self._constraints, value)
+        _set_synced_list(self._constraints, value)
 
     @property
     def methods(self):
@@ -78,7 +78,7 @@ class _DynamicIntegrator(_BaseIntegrator):
 
     @methods.setter
     def methods(self, value):
-        set_synced_list(self._methods, value)
+        _set_synced_list(self._methods, value)
 
 
 class Integrator(_DynamicIntegrator):
@@ -89,20 +89,20 @@ class Integrator(_DynamicIntegrator):
 
         methods (Sequence[hoomd.md.methods._Method]): Sequence of integration
             methods. Each integration method can be applied to only a specific
-            subset of particles. The intersection of the subsets must be null,  
-            default to None. 
+            subset of particles. The intersection of the subsets must be null.  
+            The default value of ``None`` initializes an empty list. 
 
         forces (Sequence[hoomd.md.force._Force]): Sequence of forces applied to 
-            the particles in the system. All the forces are summed together, 
-            default to None.
+            the particles in the system. All the forces are summed together. 
+            The default value of ``None`` initializes an empty list.
 
         aniso (str or bool): Whether to integrate rotational degrees of freedom 
             (bool), default 'auto' (autodetect if there is anisotropic factor
             from any defined active or constraint forces).
 
         constraints (Sequence[hoomd.md.constrain._ConstraintForce]): Sequence of
-            constraint forces applied to the particles in the system,
-            default to None.
+            constraint forces applied to the particles in the system.
+            The default value of ``None`` initializes an empty list.
 
 
     The following classes can be used as elements in `methods`
@@ -166,7 +166,7 @@ class Integrator(_DynamicIntegrator):
         self._param_dict = ParameterDict(
             dt=float(dt),
             aniso=OnlyFrom(['true', 'false', 'auto'],
-                           preprocess=preprocess_aniso),
+                           preprocess=_preprocess_aniso),
             _defaults=dict(aniso="auto")
             )
         if aniso is not None:

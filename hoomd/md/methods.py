@@ -171,15 +171,12 @@ class NPT(_Method):
 
     Degrees of freedom of the box specify which lengths and tilt factors of the 
     box should be updated, and how particle coordinates and velocities should be
-    rescaled.
-
-    Valid form for elements of box_dof(box degrees of freedom) is :
-
-    The ``box_dof`` tuple controls the way the box is rescaled and updated. 
-    The first three elements ``box_dof[:3]`` controls whether the x, y, and z 
-    box lengths are rescaled and updated, respectively. The last three entries
-    ``box_dof[3:]`` control the rescaling or the tilt factors xy, xz, and yz. 
-    All options also appropriately rescale particle coordinates and velocities.
+    rescaled. The ``box_dof`` tuple controls the way the box is rescaled and 
+    updated. The first three elements ``box_dof[:3]`` controls whether the x, y,
+    and z box lengths are rescaled and updated, respectively. The last three 
+    entries ``box_dof[3:]`` control the rescaling or the tilt factors xy, xz, 
+    and yz. All options also appropriately rescale particle coordinates and 
+    velocities.
 
     By default, the x, y, and z degrees of freedom are updated. 
     [True,True,True,False,False,False]
@@ -198,28 +195,14 @@ class NPT(_Method):
     - Specifying no couplings and all degrees of freedom amounts to a fully 
       deformable triclinic unit cell
 
-    `NPT` Can also apply a constant stress to the simulation box. To do so, 
-    specify the symmetric stress tensor *S* .
-
-    Note:
-        `NPT` assumes that isotropic pressures are positive. Conventions for 
-        the stress tensor sometimes assume negative values on the diagonal. 
-        You need to set these values negative manually in HOOMD.
-
-    `NPT` uses the proper number of degrees of freedom to compute the 
-    temperature and pressure of the system in both 2 and 3 dimensional systems, 
-    as long as the number of dimensions is set before the `NPT` command is 
-    specified.
 
     For the MTK equations of motion, see:
 
     * `G. J. Martyna, D. J. Tobias, M. L. Klein  1994 <http://dx.doi.org/10.1063/1.467468>`_
     * `M. E. Tuckerman et. al. 2006 <http://dx.doi.org/10.1088/0305-4470/39/19/S18>`_
     * `T. Yu et. al. 2010 <http://dx.doi.org/10.1016/j.chemphys.2010.02.014>`_
-    * Glaser et. al (2013), to be published
+    *  Glaser et. al (2013), unpublished
 
-    Both *kT* and *P* can be variant types, allowing for temperature/pressure 
-    ramps in simulation runs.
 
     :math:`\tau` is related to the Nosé mass :math:`Q` by
 
@@ -250,12 +233,12 @@ class NPT(_Method):
         filter (hoomd.filter._ParticleFilter): Subset of particles on which to
             apply this method.
 
-        kT (hoomd.variant.Variant or float): Temperature set point for the 
+        kT (hoomd.variant.Variant): Temperature set point for the 
             thermostat. (in energy units).
 
         tau (float): Coupling constant for the thermostat (in time units).
 
-        S (list of `hoomd.variant.Variant` or float): Stress components set 
+        S (List[hoomd.variant.Variant]): Stress components set 
             point for the barostat (in pressure units).
             In Voigt notation: [Sxx, Syy, Szz, Syz, Sxz, Sxy].
 
@@ -264,7 +247,7 @@ class NPT(_Method):
         couple (str): Couplings of diagonal elements of the stress tensor, 
             can be "none", "xy", "xz","yz", or "all".
 
-        box_dof(list): Box degrees of freedom with six boolean elements 
+        box_dof(List[bool]): Box degrees of freedom with six boolean elements 
             corresponding to x, y, z, xy, xz, yz, each. 
 
         rescale_all (bool): if True, rescale all particles, not only those in 
