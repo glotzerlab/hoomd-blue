@@ -114,7 +114,7 @@ class State:
         Note:
             For performance critical usecases that don't benefit from having the
             full aggregated data, the local snapshot API
-            (`State.cpu_local_snapshot` and `State.gpu_local_snapshot`) are
+            (`State.cpu_local_snapshot` and `State.gpu_local_snapshot`) is
             recommended.
         """
         cpp_snapshot = self._cpp_sys_def.takeSnapshot_double()
