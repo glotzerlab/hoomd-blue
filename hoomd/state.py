@@ -63,7 +63,6 @@ class State:
 
     def __init__(self, simulation, snapshot):
         self._simulation = simulation
-        self._in_context_manager = False
         snapshot._broadcast_box()
         domain_decomp = _create_domain_decomposition(
             simulation.device,
@@ -76,6 +75,15 @@ class State:
         else:
             self._cpp_sys_def = _hoomd.SystemDefinition(
                 snapshot._cpp_obj, simulation.device._cpp_exec_conf)
+
+        # Necessary for local snapshot API. This is used to ensure two local
+        # snapshots are not contexted at once.
+        self._in_context_manager = False
+
+        # provides a cache of C++ group objects of the form {type(filter):
+        # {filter: C++ group}}. The first layer is to prevent user created
+        # filters with poorly implemented __hash__ and __eq__ from causing cache
+        # errors.
         self._groups = defaultdict(dict)
 
     @property
