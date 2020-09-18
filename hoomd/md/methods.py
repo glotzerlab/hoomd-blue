@@ -91,7 +91,7 @@ class NVT(_Method):
             my_class = _md.TwoStepNVTMTKGPU
             thermo_cls = _hoomd.ComputeThermoGPU
 
-        group = self._simulation.state.get_group(self.filter)
+        group = self._simulation.state._get_group(self.filter)
         cpp_sys_def = self._simulation.state._cpp_sys_def
         thermo = thermo_cls(cpp_sys_def, group, "")
         self._cpp_obj = my_class(cpp_sys_def,
@@ -609,10 +609,10 @@ class NVE(_Method):
         # initialize the reflected c++ class
         if isinstance(self._simulation.device, hoomd.device.CPU):
             self._cpp_obj = _md.TwoStepNVE(self._simulation.state._cpp_sys_def,
-                                        self._simulation.state.get_group(self.filter), False)
+                                        self._simulation.state._get_group(self.filter), False)
         else:
             self._cpp_obj = _md.TwoStepNVEGPU(self._simulation.state._cpp_sys_def,
-                                 self._simulation.state.get_group(self.filter))
+                                 self._simulation.state._get_group(self.filter))
 
         # Attach param_dict and typeparam_dict
         super()._attach()
@@ -743,7 +743,7 @@ class Langevin(_Method):
             my_class = _md.TwoStepLangevinGPU
 
         self._cpp_obj = my_class(self._simulation.state._cpp_sys_def,
-                                 self._simulation.state.get_group(self.filter),
+                                 self._simulation.state._get_group(self.filter),
                                  self.kT, self.seed)
 
         # Attach param_dict and typeparam_dict
@@ -855,11 +855,11 @@ class Brownian(_Method):
         sim = self._simulation
         if isinstance(sim.device, hoomd.device.CPU):
             self._cpp_obj = _md.TwoStepBD(sim.state._cpp_sys_def,
-                                          sim.state.get_group(self.filter),
+                                          sim.state._get_group(self.filter),
                                           self.kT, self.seed)
         else:
             self._cpp_obj = _md.TwoStepBDGPU(sim.state._cpp_sys_def,
-                                             sim.state.get_group(self.filter),
+                                             sim.state._get_group(self.filter),
                                              self.kT, self.seed)
 
         # Attach param_dict and typeparam_dict
