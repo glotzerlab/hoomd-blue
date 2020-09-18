@@ -28,6 +28,11 @@ class ThermodynamicQuantities(_Thermo):
     those particles when requested. All specified :py:class:`ThermodynamicQuantities` objects can be added to a logger
     for logging during a simulation, see :py:class:`hoomd.logging.Logger` for more details.
 
+    Note:
+        For pairwise terms :math:`U_{ij}` and :math:`F_{ij} \\cdot r_{ij}`, HOOMD-blue assigns half of each term to a
+        per-particle quantity. When filter selects a subset of the particles in the system, :py:class:`ThermodynamicQuantities`
+        sums these per-particle quantities over only particles selected by the filter.
+
     Examples::
 
         f = filter.Type('A')
@@ -78,9 +83,9 @@ class ThermodynamicQuantities(_Thermo):
 
         .. math::
 
-            W = \\frac{1}{2} \\sum_{i}\\sum_{j \\ne i} \\vec{F}_{ij} \\cdot \\vec{r_{ij}} + \\sum_{k} \\vec{F}_{k} \\cdot \\vec{r_{k}},
+            W = \\frac{1}{2} \\sum_{i} \\sum_{j \\ne i} \\vec{F}_{ij} \\cdot \\vec{r_{ij}} + \\sum_{k} \\vec{F}_{k} \\cdot \\vec{r_{k}},
 
-        where :math:`\\vec{F}_{ij}` are pairwise forces between particles and :math:`\\vec{F}_k` are forces due to explicit constraints, implicit rigid body constraints, external walls, and fields.
+        where :math:`i` and :math:`j` are particle tags, :math:`\\vec{F}_{ij}` are pairwise forces between particles and :math:`\\vec{F}_k` are forces due to explicit constraints, implicit rigid body constraints, external walls, and fields.
         """
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
@@ -142,7 +147,18 @@ class ThermodynamicQuantities(_Thermo):
 
     @log
     def rotational_kinetic_energy(self):
-        """ :math:`K_{\\mathrm{rot}}`, rotational kinetic energy of all particles in the group (in energy units). """
+        """
+        :math:`K_{\\mathrm{rot}}`, rotational kinetic energy of all particles in the group (in energy units).
+
+        Calculated as:
+
+        .. math::
+
+            K_{\\mathrm{rot}} = \\frac{1}{2} \\sum_i \\frac{L_i^2}{I_i},
+
+        where :math:`I` is the moment of inertia and :math:`L` is the angular momentum in the (diagonal) reference frame of the particle.
+
+        """
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.rotational_kinetic_energy
@@ -151,7 +167,34 @@ class ThermodynamicQuantities(_Thermo):
 
     @log
     def potential_energy(self):
-        """ :math:`U`, potential energy that the group contributes to the entire system (in energy units). """
+        """
+        :math:`U`, potential energy that the group contributes to the entire system (in energy units).
+
+        Calculated as:
+
+        .. math::
+
+            U = U_{\\mathrm{pair}} + U_{\\mathrm{bond}} + U_{\\mathrm{angle}} + U_{\\mathrm{dihedral}} + U_{\\mathrm{improper}},
+
+        where the pair term is calculated by summing the per-particle quantity :math:`U_{\\mathrm{pair}, i}` as
+
+        .. math::
+
+            U_{\\mathrm{pair}} = \\sum_{i \\in \\mathrm{filter}} U_{\\mathrm{pair, i}}
+
+            U_{\\mathrm{pair}, i} = \\frac{1}{2} \\sum_{j \\in \\mathrm{filter}} V_{\\mathrm{pair}, ij}.
+
+        The other terms are calculated as:
+
+        .. math::
+
+            U_{\\mathrm{bond}} = \\sum_{(i,j) \\in \\mathrm{bonds}} V_{\\mathrm{bond}, ij}
+
+            U_{\\mathrm{angle}} = \\sum_{(i,j,k) \\in \\mathrm{angles}} V_{\\mathrm{angle}, ijk},
+
+        with the rest calculated similarly.
+
+        """
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.potential_energy
