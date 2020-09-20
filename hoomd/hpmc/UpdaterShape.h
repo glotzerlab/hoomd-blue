@@ -428,26 +428,26 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
                             for (unsigned int cur_p = 0; cur_p < aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
                                 {
                                 // read in its position and orientation
-                                unsigned int j = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
+                                unsigned int k = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
 
                                 // skip i==j in the 0 image
-                                if (cur_image == 0 && i == j)
+                                if (cur_image == 0 && i == k)
                                     continue;
 
-                                Scalar4 postype_j = h_postype.data[j];
-                                Scalar4 orientation_j = h_orientation.data[j];
+                                Scalar4 postype_k = h_postype.data[k];
+                                Scalar4 orientation_k = h_orientation.data[k];
 
                                 // put particles in coordinate system of particle i
-                                vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
+                                vec3<Scalar> r_ik = vec3<Scalar>(postype_k) - pos_i_image;
 
-                                unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                Shape shape_j(quat<Scalar>(orientation_j), m_mc->getParams()[typ_j]);
+                                unsigned int typ_k = __scalar_as_int(postype_k.w);
+                                Shape shape_k(quat<Scalar>(orientation_k), m_mc->getParams()[typ_k]);
 
                                 if (h_tag.data[i] <= h_tag.data[j]
-                                    && h_overlaps.data[overlap_idx(typ_i,typ_j)]
-                                    && check_circumsphere_overlap(r_ij, shape_i, shape_j)
-                                    && test_overlap(r_ij, shape_i, shape_j, err_count)
-                                    && test_overlap(-r_ij, shape_j, shape_i, err_count))
+                                    && h_overlaps.data[overlap_idx(typ_i,typ_k)]
+                                    && check_circumsphere_overlap(r_ik, shape_i, shape_k)
+                                    && test_overlap(r_ik, shape_i, shape_k, err_count)
+                                    && test_overlap(-r_ik, shape_k, shape_i, err_count))
                                     {
                                     overlap_count++;
                                     if (early_exit)
