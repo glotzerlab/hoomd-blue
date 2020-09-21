@@ -230,6 +230,7 @@ class Operations:
                 tuner, or integrator to add to the object.
         """
         self.add(operation)
+        return self
 
     def remove(self, operation):
         """Remove an operation from the `Operations` object.
@@ -258,3 +259,4 @@ class Operations:
                 tuner, or integrator to remove from the object.
         """
         self.remove(operation)
+        return self
