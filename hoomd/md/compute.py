@@ -331,17 +331,3 @@ class thermoHMA(_Compute):
         """
         _compute.enable(self)
 
-## \internal
-# \brief Returns the previously created compute.thermo with the same group, if created. Otherwise, creates a new
-# compute.thermo
-def _get_unique_thermo(group):
-
-    # first check the context for an existing compute.thermo
-    for t in hoomd.context.current.thermos:
-        # if we find a match, return it
-        if t.group is group:
-            return t;
-
-    # if we get here, there were no matches: create a new one
-    res = thermo(group);
-    return res;
