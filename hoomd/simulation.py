@@ -17,7 +17,8 @@ class Simulation(metaclass=Loggable):
     def __init__(self, device):
         self._device = device
         self._state = None
-        self._operations = Operations(self)
+        self._operations = Operations()
+        self._operations._simulation = self
         self._timestep = None
 
     @property

@@ -46,15 +46,8 @@ class Operations:
     Note:
         An `Operations` object is created by default when a new simulation is
         created.
-
-    Args:
-        simulation (hoomd.Simulation):
-            The simulation to associate with the `Operations` object, defaults
-            to `None`. When `None`, the object can be added to any simulation
-            through the ``operations`` property.
     """
-    def __init__(self, simulation=None):
-        self._simulation = simulation
+    def __init__(self):
         self._compute = list()
         self._scheduled = False
         self._updaters = SyncedList(OnlyType(_Updater),
@@ -118,6 +111,10 @@ class Operations:
         The function creates many C++ objects in the background to prepare for
         running a simulation. Before this all operations exist purely as Python
         objects.
+
+        Note:
+            This function will raise a `RuntimeError` when not associated with a
+            `hoomd.Simulation` object.
         """
         if not self._sys_init:
             raise RuntimeError("System not initialized yet")
