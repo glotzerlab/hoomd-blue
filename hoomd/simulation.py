@@ -116,6 +116,30 @@ class Simulation(metaclass=Loggable):
     def operations(self):
         return self._operations
 
+    @operations.setter
+    def operations(self, operations):
+        # This condition is necessary to allow for += and -= operators to work
+        # correctly with simulation.operations (+=/-=).
+        if operations is self._operations:
+            self._operations = operations
+        else:
+            # Handle error cases first
+            if operations.scheduled:
+                raise RuntimeError(
+                    "Cannot add scheduled `hoomd.Operations` object to "
+                    "`hoomd.Simulation` object.")
+            elif operations._simulation is not None:
+                raise RuntimeError(
+                    "Cannot add `hoomd.Operations` object that belongs to "
+                    "another `hoomd.Simulation` object.")
+            # Switch out `hoomd.Operations` objects.
+            elif self._operations.scheduled:
+                self._operations.unschedule()
+                self._operations._simulation = None
+                operations._simulation = self
+                operations.schedule()
+                self._operations = operations
+
     def sanity_check(self):
         raise NotImplementedError
 
