@@ -72,13 +72,13 @@ class ThermodynamicQuantities(_Thermo):
 
         .. math::
 
-            P = \\left(\\frac{2}{D} \\cdot K_{\\mathrm{trans}} + \\frac{1}{2} \\cdot W \\right) / V,
+            P = \\frac{ 2 \\cdot K_{\\mathrm{trans}} + W }{D \\cdot V},
 
         where :math:`D` is the dimensionality of the system, :math:`V` is the total volume of the simulation box (or area in 2D), and :math:`W` is calculated as:
 
         .. math::
 
-            W = \\frac{1}{2} \\sum_{i} \\sum_{j \\ne i} \\vec{F}_{ij} \\cdot \\vec{r_{ij}} + \\sum_{k} \\vec{F}_{k} \\cdot \\vec{r_{k}},
+            W = \\frac{1}{2} \\sum_{i \\in \\mathrm{filter}} \\sum_{j} \\vec{F}_{ij} \\cdot \\vec{r_{ij}} + \\sum_{k} \\vec{F}_{k} \\cdot \\vec{r_{k}},
 
         where :math:`i` and :math:`j` are particle tags, :math:`\\vec{F}_{ij}` are pairwise forces between particles and :math:`\\vec{F}_k` are forces due to explicit constraints, implicit rigid body constraints, external walls, and fields.
         """
@@ -97,8 +97,8 @@ class ThermodynamicQuantities(_Thermo):
 
           .. math::
 
-              P_{ij} = \\left[  \\sum_{k\\in[0..N)} m_k v_{k,i} v_{k,j} +
-                               \\sum_{k\\in[0..N)} \\sum_{l > k} \\frac{1}{2} \\left(\\vec{r}_{kl,i} \\vec{F}_{kl,j} + \\vec{r}_{kl,j} \\vec{F}_{kl, i} \\right) \\right]/V
+              P_{ij} = \\left[  \\sum_{k \\in \\mathrm{filter}} m_k v_{k,i} v_{k,j} +
+                               \\sum_{k \\in \\mathrm{filter}} \\sum_{l} \\frac{1}{2} \\left(\\vec{r}_{kl,i} \\vec{F}_{kl,j} + \\vec{r}_{kl,j} \\vec{F}_{kl, i} \\right) \\right]/V
 
         where :math:`V` is the total simulation box volume (or area in 2D).
         """
@@ -131,7 +131,7 @@ class ThermodynamicQuantities(_Thermo):
 
         .. math::
 
-            K_{\\mathrm{trans}} = \\frac{1}{2}\\sum_i m_i|\\vec{v}_i|^2
+            K_{\\mathrm{trans}} = \\frac{1}{2}\\sum_{i \\in \\mathrm{filter}} m_i|\\vec{v}_i|^2
 
         """
         if self._attached:
@@ -149,7 +149,7 @@ class ThermodynamicQuantities(_Thermo):
 
         .. math::
 
-            K_{\\mathrm{rot}} = \\frac{1}{2} \\sum_i \\frac{L_i^2}{I_i},
+            K_{\\mathrm{rot}} = \\frac{1}{2} \\sum_{i \\in \\mathrm{filter}} \\frac{L_{x,i}^2}{I_{x,i}} + \\frac{L_{y,i}^2}{I_{y,i}} + \\frac{L_{z,i}^2}{I_{z,i}},
 
         where :math:`I` is the moment of inertia and :math:`L` is the angular momentum in the (diagonal) reference frame of the particle.
 
@@ -205,8 +205,12 @@ class ThermodynamicQuantities(_Thermo):
         """
         :math:`N_{\\mathrm{dof}}`, number of degrees of freedom given to the group by its integration method.
 
-        Note:
-            This is the sum of the translational and rotational degrees of freedom.
+        Calculated as:
+
+        .. math::
+
+            N_{\\mathrm{dof}} = N_{\\mathrm{dof, trans}} + N_{\\mathrm{dof, rot}}
+
         """
         if self._attached:
             return self._cpp_obj.degrees_of_freedom
