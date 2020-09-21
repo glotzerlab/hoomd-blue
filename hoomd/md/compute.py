@@ -28,11 +28,6 @@ class ThermodynamicQuantities(_Thermo):
     those particles when requested. All specified :py:class:`ThermodynamicQuantities` objects can be added to a logger
     for logging during a simulation, see :py:class:`hoomd.logging.Logger` for more details.
 
-    Note:
-        For pairwise terms :math:`U_{ij}` and :math:`F_{ij} \\cdot r_{ij}`, HOOMD-blue assigns half of each term to a
-        per-particle quantity. When filter selects a subset of the particles in the system, :py:class:`ThermodynamicQuantities`
-        sums these per-particle quantities over only particles selected by the filter.
-
     Examples::
 
         f = filter.Type('A')
@@ -170,30 +165,34 @@ class ThermodynamicQuantities(_Thermo):
         """
         :math:`U`, potential energy that the group contributes to the entire system (in energy units).
 
-        Calculated as:
+        The potential energy is calculated as a sum of per-particle energy contributions:
 
         .. math::
 
-            U = U_{\\mathrm{pair}} + U_{\\mathrm{bond}} + U_{\\mathrm{angle}} + U_{\\mathrm{dihedral}} + U_{\\mathrm{improper}},
+            U = \\sum_{i \\in \\mathrm{filter}} U_i,
 
-        where the pair term is calculated by summing the per-particle quantity :math:`U_{\\mathrm{pair}, i}` as
-
-        .. math::
-
-            U_{\\mathrm{pair}} = \\sum_{i \\in \\mathrm{filter}} U_{\\mathrm{pair, i}}
-
-            U_{\\mathrm{pair}, i} = \\frac{1}{2} \\sum_{j \\in \\mathrm{filter}} V_{\\mathrm{pair}, ij}.
-
-        The other terms are calculated as:
+        where :math:`U_i` is defined as:
 
         .. math::
 
-            U_{\\mathrm{bond}} = \\sum_{(i,j) \\in \\mathrm{bonds}} V_{\\mathrm{bond}, ij}
+            U_i = U_{\\mathrm{pair}, i} + U_{\\mathrm{bond}, i} + U_{\\mathrm{angle}, i} + U_{\\mathrm{dihedral}, i} + U_{\\mathrm{improper}, i} + U_{\\mathrm{external}, i} + U_{\\mathrm{other}, i}
 
-            U_{\\mathrm{angle}} = \\sum_{(i,j,k) \\in \\mathrm{angles}} V_{\\mathrm{angle}, ijk},
+        and each term on the RHS is calculated as:
 
-        with the rest calculated similarly.
+        .. math::
 
+            U_{\\mathrm{pair}, i} &= \\frac{1}{2} \\sum_j V_{\\mathrm{pair}, ij}
+
+            U_{\\mathrm{bond}, i} &= \\frac{1}{2} \\sum_{(j, k) \\in \\mathrm{bonds}} V_{\\mathrm{bond}, jk}
+
+            U_{\\mathrm{angle}, i} &= \\frac{1}{3} \\sum_{(j, k, l) \\in \\mathrm{angles}} V_{\\mathrm{angle}, jkl}
+
+            U_{\\mathrm{dihedral}, i} &= \\frac{1}{4} \\sum_{(j, k, l, m) \\in \\mathrm{dihedrals}} V_{\\mathrm{dihedral}, jklm}
+
+            U_{\\mathrm{improper}, i} &= \\frac{1}{4} \\sum_{(j, k, l, m) \\in \\mathrm{impropers}} V_{\\mathrm{improper}, jklm}
+
+        In each summation above, the indices go over all particles and we only use terms where one of the summation indices (:math:`j`, :math:`k`, :math:`l`, or :math:`m`)
+        is equal to :math:`i`. External and other potentials are summed similar to the other terms using per-particle contributions.
         """
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
