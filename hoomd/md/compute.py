@@ -49,7 +49,7 @@ class ThermodynamicQuantities(_Thermo):
     @log
     def kinetic_temperature(self):
         """
-        :math:`kT`, instantaneous thermal energy of the group (in energy units).
+        :math:`kT_k`, instantaneous thermal energy of the group (in energy units).
 
         Calculated as:
 
@@ -330,4 +330,3 @@ class thermoHMA(_Compute):
         See ``disable``.
         """
         _compute.enable(self)
-
