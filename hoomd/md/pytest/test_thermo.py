@@ -63,19 +63,12 @@ def test_basic_system_3d(simulation_factory, two_particle_snapshot_factory):
     assert thermo.degrees_of_freedom == 3
 
     np.testing.assert_allclose(thermo.potential_energy, 0.0)
-    #np.testing.assert_allclose(thermo.rotational_kinetic_energy, 0.0, rtol=1e-5)
+    np.testing.assert_allclose(thermo.rotational_kinetic_energy, 0.0, rtol=1e-5)
     np.testing.assert_allclose(thermo.translational_kinetic_energy, 4.0, rtol=1e-5)
     np.testing.assert_allclose(thermo.kinetic_energy, 4.0, rtol=1e-5)
     np.testing.assert_allclose(thermo.kinetic_temperature, 2*thermo.kinetic_energy/thermo.degrees_of_freedom, rtol=1e-5)
     np.testing.assert_allclose(thermo.pressure, 2.0/3*thermo.kinetic_energy/20**3, rtol=1e-5)
-    (pxx, pxy, pxz, pyy, pyz, pzz) = thermo.pressure_tensor
-    np.testing.assert_allclose(pxx, 8.0/20.0**3, rtol=1e-5)
-    np.testing.assert_allclose(pxy, 0.0, rtol=1e-5)
-    np.testing.assert_allclose(pxz, 0.0, rtol=1e-5)
-    np.testing.assert_allclose(pyy, 0.0, rtol=1e-5)
-    np.testing.assert_allclose(pyz, 0.0, rtol=1e-5)
-    np.testing.assert_allclose(pzz, 0.0, rtol=1e-5)
-
+    np.testing.assert_allclose(thermo.pressure_tensor, [8.0/20.0**3, 0., 0., 0., 0., 0.], rtol=1e-5)
 
 
 def test_basic_system_2d(simulation_factory, lattice_snapshot_factory):
@@ -106,7 +99,7 @@ def test_basic_system_2d(simulation_factory, lattice_snapshot_factory):
     assert thermo.translational_degrees_of_freedom == 4
     assert thermo.degrees_of_freedom == 4
     np.testing.assert_allclose(thermo.potential_energy, 0.0)
-    #np.testing.assert_allclose(thermo.rotational_kinetic_energy, 0.0, rtol=1e-5)
+    np.testing.assert_allclose(thermo.rotational_kinetic_energy, 0.0, rtol=1e-5)
     np.testing.assert_allclose(thermo.translational_kinetic_energy, 1.0, rtol=1e-5)
     np.testing.assert_allclose(thermo.kinetic_energy, 1.0, rtol=1e-5)
     np.testing.assert_allclose(thermo.kinetic_temperature, 2*thermo.kinetic_energy/thermo.degrees_of_freedom, rtol=1e-5)
@@ -119,7 +112,7 @@ def test_basic_system_2d(simulation_factory, lattice_snapshot_factory):
     assert thermoB.translational_degrees_of_freedom == 4
     assert thermoB.degrees_of_freedom == 4
     np.testing.assert_allclose(thermoB.potential_energy, 0.0)
-    #np.testing.assert_allclose(thermoB.rotational_kinetic_energy, 0.0, rtol=1e-5)
+    np.testing.assert_allclose(thermoB.rotational_kinetic_energy, 0.0, rtol=1e-5)
     np.testing.assert_allclose(thermoB.translational_kinetic_energy, 4.0, rtol=1e-3)
     np.testing.assert_allclose(thermoB.kinetic_energy, 4.0, rtol=1e-3)
     np.testing.assert_allclose(thermoB.kinetic_temperature, 2*thermoB.kinetic_energy/thermoB.degrees_of_freedom, rtol=1e-3)

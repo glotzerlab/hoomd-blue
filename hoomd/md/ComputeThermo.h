@@ -102,7 +102,7 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
             #ifdef ENABLE_MPI
             if (!m_properties_reduced) reduceProperties();
             #endif
-            // return NaN if the flags are not valid or we have no rotational DOF
+            // return 0.0 if the flags are not valid or we have no rotational DOF
             if (m_computed_flags[pdata_flag::rotational_kinetic_energy] &&
                 m_group->getRotationalDOF() > 0)
                 {
@@ -111,7 +111,7 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
                 }
             else
                 {
-                return std::numeric_limits<Scalar>::quiet_NaN();
+                return 0.0;
                 }
             }
 
@@ -159,7 +159,7 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
             if (!m_properties_reduced) reduceProperties();
             #endif
 
-            // return NaN if the flags are not valid
+            // return 0.0 if the flags are not valid
             if (m_computed_flags[pdata_flag::rotational_kinetic_energy])
                 {
                 ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
@@ -167,7 +167,7 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
                 }
             else
                 {
-                return std::numeric_limits<Scalar>::quiet_NaN();
+                return 0.0;
                 }
             }
 
