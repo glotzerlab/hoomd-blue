@@ -22,4 +22,4 @@ assignees: ''
 
 ## Developer
 
-<!-- Are you able to implement this feature for the benefit of the HOOMD-blue user community? -->
+<!-- Who should implement the new functionality? We would welcome your contribution! -->
