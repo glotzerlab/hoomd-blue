@@ -1,9 +1,12 @@
-"""Impliment a storage and management class for HOOMD-blue operations.
+"""Implement a storage and management class for HOOMD-blue operations.
 
 Defines the `Operations` class which serves as the main class for storing and
-organizing the many parts of a simulation in a way that allows parts to be added
-and removed before and after _attaching_ C++ objects.
+organizing the many parts of a simulation in a way that allows operations to be
+added and removed from a `hoomd.Simulation`.
 """
+
+# Operations also automatically handles attaching and detaching (creating and
+# destroying C++ objects) for all hoomd operations.
 
 from itertools import chain
 import hoomd.integrate
