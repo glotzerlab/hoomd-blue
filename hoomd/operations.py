@@ -69,20 +69,24 @@ class Operations(Collection):
         self._tuners.append(ParticleSorter())
 
     def add(self, operation):
-        """Add operation to object.
+        """Add operation to this container.
 
-        Automatically handles adding said operation to the correct collection.
-        If the operation has already been added to another `Operations` object
-        including this one, then this call raises an `RuntimeError`.
+        Adds the provide operation to the appropriate attribute of the
+        `Operations` instance.
 
         Args:
             operation (``operation``): A HOOMD-blue updater, analyzers, compute,
-                tuner, or integrator to add to the object.
+                tuner, or integrator to add to the collection.
+
+        Raises:
+            RuntimeError: raised when an operation belonging to to this or
+                another `Operations` instance is passed.
+            TypeError: raised when the passed operation is not of a valid type.
 
         Note:
             Since only one integrator can be associated with an `Operations`
-            object at a time, this automatically removes the current integrator
-            when called with an integrator operation.
+            object at a time, this removes the current integrator when called
+            with an integrator operation.
         """
         # calling _add is handled by the synced lists and integrator property.
         # we raise this error here to provide a more clear error message.
@@ -99,8 +103,8 @@ class Operations(Collection):
         elif isinstance(operation, _Analyzer):
             self._analyzers.append(operation)
         else:
-            raise ValueError("Operation is not of the correct type to add to"
-                             " Operations.")
+            raise TypeError(
+                "Operation is not of the correct type to add to Operations.")
 
     @property
     def _sys_init(self):
@@ -110,20 +114,16 @@ class Operations(Collection):
             return True
 
     def schedule(self):
-        """Prepares the object to be used for a `hoomd.Simulation.run` call.
+        """Prepares all operations for a `hoomd.Simulation.run` call.
 
-        This is provided in the public-API to allow users to get quantities that
-        otherwise would not be available until after a call to
+        This is provided in the public API to allow users to access quantities
+        that otherwise would not be available until after a call to
         `hoomd.Simulation.run`. This does not have to be called before a ``run``
-        call as this will be called automatically if necessary.
+        call as this will be called by ``run`` if necessary.
 
-        The function creates many C++ objects in the background to prepare for
-        running a simulation. Before this all operations exist purely as Python
-        objects.
-
-        Note:
-            This function will raise a `RuntimeError` when not associated with a
-            `hoomd.Simulation` object.
+        Raises:
+            RuntimeError: raises when not associated with a `hoomd.Simulation`
+                object.
         """
         if not self._sys_init:
             raise RuntimeError("System not initialized yet")
@@ -150,14 +150,14 @@ class Operations(Collection):
         # TODO
         pass
 
-    def __contains__(self, obj):
-        """Whether an operation is contained in the object.
+    def __contains__(self, operation):
+        """Whether an operation is contained in this container.
 
         Args:
-            obj (``any``): Returns whether this exact operation is contained in
-                the object.
+            operation (``any``): Returns whether this exact operation is
+                contained in the collection.
         """
-        return any(op is obj for op in self)
+        return any(op is operation for op in self)
 
     def __iter__(self):
         """Iterates through all contained operations."""
@@ -174,7 +174,7 @@ class Operations(Collection):
 
     @property
     def integrator(self):
-        """``Integrator``: A MD or HPMC integrator object.
+        """``Integrator``: An MD or HPMC integrator object.
 
         `Operations` objects have an initial ``integrator`` property of
         ``None``. Can be set to MD or HPMC integrators. The property can also be
@@ -186,7 +186,7 @@ class Operations(Collection):
     def integrator(self, op):
         if op._added:
             raise RuntimeError(
-                "Integrator cannot be added to twice to Operations objects.")
+                "Integrator cannot be added to twice to Operations collection.")
         else:
             op._add(self._simulation)
 
@@ -208,8 +208,8 @@ class Operations(Collection):
     def updaters(self):
         """list[``Updater``]: A list of updater operations.
 
-        Holds the list of updaters associated with this object. The list can be
-        motified as a standard Python list.
+        Holds the list of updaters associated with this collection. The list can
+        be modified as a standard Python list.
         """
         return self._updaters
 
@@ -217,8 +217,8 @@ class Operations(Collection):
     def analyzers(self):
         """list[``Analzyer``]: A list of updater operations.
 
-        Holds the list of updaters associated with this object. The list can be
-        motified as a standard Python list.
+        Holds the list of analyzers associated with this collection. The list
+        can be modified as a standard Python list.
         """
         return self._analyzers
 
@@ -226,8 +226,8 @@ class Operations(Collection):
     def tuners(self):
         """list[``Tuner``]: A list of updater operations.
 
-        Holds the list of updaters associated with this object. The list can be
-        motified as a standard Python list.
+        Holds the list of tuners associated with this collection. The list can be
+        modified as a standard Python list.
         """
         return self._tuners
 
@@ -247,25 +247,33 @@ class Operations(Collection):
         Checks for removal according to object id.
 
         Args:
-            operation (``operation``): A HOOMD-blue updater, analyzers, compute,
-                tuner, or integrator to remove from the object.
+            operation (``operation``): A HOOMD-blue integrator, updater,
+                analyzer, tuner, or compute, to remove from the container.
+
+        Raises:
+            ValueError: raises if operation is not found in this container.
+            TypeError: raises if operation is not of a valid type for this
+                container.
         """
         if isinstance(operation, hoomd.integrate._BaseIntegrator):
             raise ValueError(
-                "Cannot remove iterator without setting to a new integator.")
+                "Integrators cannot be removed, only replaced.")
         elif isinstance(operation, _Analyzer):
             self._analyzers.remove(operation)
         elif isinstance(operation, _Updater):
             self._updaters.remove(operation)
         elif isinstance(operation, _Tuner):
             self._tuners.remove(operation)
+        else:
+            raise TypeError(
+                "operation is not a valid type for an Operations container.")
 
     def __isub__(self, operation):
         """Works the same as `Operations.remove`.
 
         Args:
-            operation (``operation``): A HOOMD-blue updater, analyzers, compute,
-                tuner, or integrator to remove from the object.
+            operation (``operation``): A HOOMD-blue integrator, updater,
+                analyzer, tuner, or compute to remove from the collection.
         """
         self.remove(operation)
         return self
