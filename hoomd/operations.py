@@ -8,6 +8,7 @@ added and removed from a `hoomd.Simulation`.
 # Operations also automatically handles attaching and detaching (creating and
 # destroying C++ objects) for all hoomd operations.
 
+from collections.abc import Collection
 from itertools import chain
 import hoomd.integrate
 from hoomd.syncedlist import SyncedList
@@ -24,7 +25,7 @@ def _triggered_op_conversion(value):
     return (value._cpp_obj, value.trigger)
 
 
-class Operations:
+class Operations(Collection):
     """A mutable collection of operations which act on a `hoomd.Simulation`.
 
     The `Operations` class serves as a holder for all the components acting on a
