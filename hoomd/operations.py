@@ -33,7 +33,7 @@ class Operations(Collection):
     `hoomd.Simulation`. Operations can be added and removed at any point from an
     `hoomd.Operations` instance. The class provides the interface define by
     `collections.abc.Collection`. Other methods for manipulating instances
-    attempt to mimic Python collections where possible, but the class is not
+    attempt to mimic Python objects where possible, but the class is not
     simply a mutable list or set. Since there are multiple types of operations
     in HOOMD-blue,  `Operations` objects manage multiple independent
     sequences described below.
@@ -167,7 +167,9 @@ class Operations(Collection):
 
     @property
     def scheduled(self):
-        """Whether `Operations.schedule` has been called and is in effect."""
+        """bool: Whether `Operations.schedule` has been called and is in
+        effect.
+        """
         return self._scheduled
 
     @property
