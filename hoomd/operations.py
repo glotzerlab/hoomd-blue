@@ -28,29 +28,34 @@ def _triggered_op_conversion(value):
 class Operations(Collection):
     """A mutable collection of operations which act on a `hoomd.Simulation`.
 
-    The `Operations` class serves as a holder for all the components acting on a
-    simulation. These *operations* can be added and removed at any point. The
-    class provides a similar interface to other Python collections where
-    possible, but the class is not simply a list or set. Since there are
-    multiple types of operations which HOOMD-blue has `Operations` objects
-    contain multiple independent sequences.
+    The `Operations` class contains all the operations acting on a
+    simulation. These operations are classes that perform various actions on a
+    `hoomd.Simulation`. Operations can be added and removed at any point from an
+    `hoomd.Operations` instance. The class provides the interface define by
+    `collections.abc.Collection`. Other methods for manipulating instances
+    attempt to mimic Python collections where possible, but the class is not
+    simply a mutable list or set. Since there are multiple types of operations
+    in HOOMD-blue,  `Operations` objects manage multiple independent
+    sequences described below.
 
     The types of operations which can be added to an `Operations` object are
     integrators, updaters, analyzers, tuners, and computes. An `Operations` can
-    only every hold one integrator at a time. On the other hand, an `Operations`
+    only ever hold one integrator at a time. On the other hand, an `Operations`
     object can hold any number of updaters, analyzers, tuners, or computes. To
-    see examples of these types of operations see (`hoomd.update`, `hoomd.tune`,
-    `hoomd.dump`, and `hoomd.md.thermo`).
+    see examples of these types of operations see `hoomd.hpmc.integrate`
+    or `hoomd.md.integrate` (integrators), `hoomd.update` (updaters) ,
+    `hoomd.tune` (tuners), `hoomd.dump` (analyzers), and `hoomd.md.thermo`
+    (computes).
 
-    Operations can only be added once to an `Operations` object. This includes
-    the same object. That means to have multiple of the same operation in an
-    `Operations` object, multiple instances of the operation class would need to
-    be instantiated.
+    A given instance of an operation class can only be added to a single
+    `Operations` container. Likewise, a single instance cannot be added to the
+    same `Operations` container more than once.
 
     Note:
         An `Operations` object is created by default when a new simulation is
         created.
     """
+
     def __init__(self):
         self._compute = list()
         self._scheduled = False
