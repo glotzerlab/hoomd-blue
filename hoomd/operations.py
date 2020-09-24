@@ -215,7 +215,7 @@ class Operations(Collection):
 
     @property
     def analyzers(self):
-        """list[``Analzyer``]: A list of updater operations.
+        """list[``Analzyer``]: A list of analyzer operations.
 
         Holds the list of analyzers associated with this collection. The list
         can be modified as a standard Python list.
@@ -224,7 +224,7 @@ class Operations(Collection):
 
     @property
     def tuners(self):
-        """list[``Tuner``]: A list of updater operations.
+        """list[``Tuner``]: A list of tuner operations.
 
         Holds the list of tuners associated with this collection. The list can be
         modified as a standard Python list.
