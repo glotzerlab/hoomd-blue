@@ -10,7 +10,6 @@ md.pair
 
     _NBody
     Buckingham
-    dipole
     DLVO
     DPD
     DPDLJ
@@ -19,7 +18,6 @@ md.pair
     ForceShiftedLJ
     Fourier
     Gauss
-    gb
     LJ
     LJ1208
     Mie
@@ -27,7 +25,6 @@ md.pair
     Moliere
     ReactionField
     SLJ
-    table
     Yukawa
     ZBL
 
@@ -37,7 +34,6 @@ md.pair
     :synopsis: Pair potentials.
     :members: _NBody,
         Buckingham,
-        dipole,
         DLVO,
         DPD,
         DPDLJ,
@@ -46,7 +42,6 @@ md.pair
         ForceShiftedLJ,
         Fourier,
         Gauss,
-        gb,
         LJ,
         LJ1208,
         Mie,
@@ -54,6 +49,5 @@ md.pair
         Moliere,
         ReactionField,
         SLJ,
-        table,
         Yukawa,
         ZBL
