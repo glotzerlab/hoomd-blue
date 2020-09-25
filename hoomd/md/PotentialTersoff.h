@@ -192,13 +192,7 @@ PotentialTersoff< evaluator >::~PotentialTersoff()
 template< class evaluator >
 void PotentialTersoff< evaluator >::setParams(unsigned int typ1, unsigned int typ2, const param_type& param)
     {
-    if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
-        {
-        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": Trying to set pair params for a non existent type! "
-                  << typ1 << "," << typ2 << std::endl;
-        throw std::runtime_error("Error setting parameters in PotentialPair");
-        }
-
+    validateTypes(typ1, typ2, "set params");
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::readwrite);
     h_params.data[m_typpair_idx(typ1, typ2)] = param;
     h_params.data[m_typpair_idx(typ2, typ1)] = param;
@@ -209,14 +203,7 @@ void PotentialTersoff<evaluator>::setParamsPython(pybind11::tuple typ, pybind11:
     {
     auto typ1 = m_pdata->getTypeByName(typ[0].cast<std::string>());
     auto typ2 = m_pdata->getTypeByName(typ[1].cast<std::string>());
-    if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
-        {
-        this->m_exec_conf->msg->error() << "pair." << evaluator::getName()
-            << ": Trying to set pair params for a non existent type! "
-            << typ1 << "," << typ2 << std::endl;
-        throw std::runtime_error("Error setting parameters in PotentialPair");
-        }
-
+    validateTypes(typ1, typ2, "set params");
     ArrayHandle<param_type> h_params(m_params, access_location::host,
                                      access_mode::readwrite);
     h_params.data[m_typpair_idx(typ1, typ2)] = param_type(params);
@@ -228,14 +215,7 @@ pybind11::dict PotentialTersoff< evaluator >::getParams(pybind11::tuple typ)
     {
     auto typ1 = m_pdata->getTypeByName(typ[0].cast<std::string>());
     auto typ2 = m_pdata->getTypeByName(typ[1].cast<std::string>());
-    if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
-        {
-        this->m_exec_conf->msg->error() << "pair." << evaluator::getName()
-            << ": Trying to set pair params for a non existent type! "
-            << typ1 << "," << typ2 << std::endl;
-        throw std::runtime_error("Error setting parameters in PotentialPair");
-        }
-
+    validateTypes(typ1, typ2, "get params");
     ArrayHandle<param_type> h_params(m_params, access_location::host,
                                      access_mode::read);
     return h_params.data[m_typpair_idx(typ1, typ2)].asDict();
@@ -251,13 +231,7 @@ pybind11::dict PotentialTersoff< evaluator >::getParams(pybind11::tuple typ)
 template< class evaluator >
 void PotentialTersoff< evaluator >::setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut)
     {
-    if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
-        {
-        m_exec_conf->msg->error() << std::endl << "Trying to set rcut for a non existent type! "
-                                  << typ1 << "," << typ2 << std::endl;
-        throw std::runtime_error("Error setting parameters in PotentialTersoff");
-        }
-
+    validateTypes(typ1, typ2, "set r_cut");
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::readwrite);
     h_rcutsq.data[m_typpair_idx(typ1, typ2)] = rcut * rcut;
     h_rcutsq.data[m_typpair_idx(typ2, typ1)] = rcut * rcut;
@@ -269,6 +243,7 @@ void PotentialTersoff< evaluator >::setRCutPython(pybind11::tuple types,
     {
     auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
     auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
+    validateTypes(typ1, typ2, "set r_cut");
     setRcut(typ1, typ2, r_cut);
     }
 
@@ -284,7 +259,7 @@ void PotentialTersoff< evaluator >::validateTypes(unsigned int typ1,
         this->m_exec_conf->msg->error() << "pair." << evaluator::getName()
             << ": Trying to " << action << " for a non existent type! "
             << typ1 << "," << typ2 << std::endl;
-        throw std::runtime_error("Error setting parameters in PotentialPair");
+        throw std::runtime_error("Error setting parameters in PotentialTersoff");
         }
 }
 
@@ -308,13 +283,7 @@ Scalar PotentialTersoff< evaluator >::getRCut(pybind11::tuple types)
 template< class evaluator >
 void PotentialTersoff< evaluator >::setRon(unsigned int typ1, unsigned int typ2, Scalar ron)
     {
-    if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
-        {
-        m_exec_conf->msg->error() << std::endl << "Trying to set ron for a non existent type! "
-                                  << typ1 << "," << typ2 << std::endl;
-        throw std::runtime_error("Error setting parameters in PotentialTersoff");
-        }
-
+    validateTypes(typ1, typ2, "set r_on");
     ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::readwrite);
     h_ronsq.data[m_typpair_idx(typ1, typ2)] = ron * ron;
     h_ronsq.data[m_typpair_idx(typ2, typ1)] = ron * ron;
@@ -337,6 +306,7 @@ void PotentialTersoff< evaluator >::setROnPython(pybind11::tuple types,
     {
     auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
     auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
+    validateTypes(typ1, typ2, "set r_on");
     setRon(typ1, typ2, r_on);
     }
 
@@ -381,8 +351,8 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
     {
     // *****  check if we need the structure of the Tersoff or the RevCross potential for evaluation
     if (evaluator::flag_for_RevCross )
-	{
-	// ***** RevCross potential
+        {
+        // ***** RevCross potential
         // start by updating the neighborlist
         m_nlist->compute(timestep);
 
@@ -484,7 +454,7 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
                 // (since nl are type-wise I can not even merge them because i, j and k could be different types)
                 if (evaluated)
                     {
-            	//printf("\nEvaluating the pair (i,j)=(%d, %d)  from inside HOOMD CPU",i,jj);
+                    //printf("\nEvaluating the pair (i,j)=(%d, %d)  from inside HOOMD CPU",i,jj);
                     // evaluate the force and energy from the ij interaction
                     Scalar force_divr = Scalar(0.0);
                     Scalar potential_eng = Scalar(0.0);
@@ -500,15 +470,15 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
                     pej += potential_eng ;
 
                     //vir contribute for i j direct interaction on particle i and j
-            	if (compute_virial)
-            	    {
-                	    virialixx += force_divr*dxij.x*dxij.x;
-                	    virialixy += force_divr*dxij.x*dxij.y;
-                	    virialixz += force_divr*dxij.x*dxij.z;
-                	    virialiyy += force_divr*dxij.y*dxij.y;
-                	    virialiyz += force_divr*dxij.y*dxij.z;
-            	    	    virializz += force_divr*dxij.z*dxij.z;
-            	    }
+                if (compute_virial)
+                    {
+                            virialixx += force_divr*dxij.x*dxij.x;
+                            virialixy += force_divr*dxij.x*dxij.y;
+                            virialixz += force_divr*dxij.x*dxij.z;
+                            virialiyy += force_divr*dxij.y*dxij.y;
+                            virialiyz += force_divr*dxij.y*dxij.z;
+                            virializz += force_divr*dxij.z*dxij.z;
+                    }
 
                     // evaluate the force from the ik interactions
                     for (unsigned int k = j+1; k < size; k++)                    //I want to account only a single time for each triplets
@@ -538,50 +508,50 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
                         temp_eval.setRik(rik_sq);
                         bool temp_evaluated = temp_eval.areInteractive();
 
-            	    // 3 Body interaction ******
+                    // 3 Body interaction ******
                         if (temp_evaluated)
                             {
-            		eval.setRik(rik_sq);
+                            eval.setRik(rik_sq);
                             // compute the total force and energy
                             Scalar3 fk = make_scalar3(0.0, 0.0, 0.0);
                             Scalar3 force_divr_ij_vec = make_scalar3(0.0, 0.0, 0.0);
                             Scalar3 force_divr_ik_vec = make_scalar3(0.0, 0.0, 0.0);
                             bool evaluatedk = eval.evalForceik(invratio,invratio2, Scalar(0.0), Scalar(0.0), force_divr_ij_vec, force_divr_ik_vec);
-            	            // k interacts with the i-j as an additional third body
+                            // k interacts with the i-j as an additional third body
                             if(evaluatedk)
-                            	{
-				// I stored the modulus of the force in the first component
-				Scalar force_divr_ij=force_divr_ij_vec.x;
-				Scalar force_divr_ik=force_divr_ik_vec.x;
+                                {
+                                // I stored the modulus of the force in the first component
+                                Scalar force_divr_ij=force_divr_ij_vec.x;
+                                Scalar force_divr_ik=force_divr_ik_vec.x;
 
-                            	// add the force to particle i
-                            	fi += force_divr_ij * dxij + force_divr_ik * dxik;
+                                // add the force to particle i
+                                fi += force_divr_ij * dxij + force_divr_ik * dxik;
 
-                            	// add the force to particle j (FLOPS: 17)
-                            	fj += force_divr_ij * dxij * Scalar(-1.0);
+                                // add the force to particle j (FLOPS: 17)
+                                fj += force_divr_ij * dxij * Scalar(-1.0);
 
-                            	// add the force to particle k
-                            	fk += force_divr_ik * dxik * Scalar(-1.0);
+                                // add the force to particle k
+                                fk += force_divr_ik * dxik * Scalar(-1.0);
 
-                            	if (compute_virial)
-                               	{
-                            		//***look at 3 body pressure notes
-                            		//i just need a single term to account for all of the 3 body virial that i decide to store in the i particle's data
-                            		//and i just defined the diagonal component of pressure tensor, I don't know how the off diagonal terms can be included
-                            		virialixx += (force_divr_ij*dxij.x*dxij.x + force_divr_ik*dxik.x*dxik.x);
-                            		virialiyy += (force_divr_ij*dxij.y*dxij.y + force_divr_ik*dxik.y*dxik.y);
-                            		virializz += (force_divr_ij*dxij.z*dxij.z + force_divr_ik*dxik.z*dxik.z);
-                            		virialixy += (force_divr_ij*dxij.x*dxij.y + force_divr_ik*dxik.x*dxik.y);
-                              			virialixz += (force_divr_ij*dxij.x*dxij.z + force_divr_ik*dxik.x*dxik.z);
-                            			virialiyz += (force_divr_ij*dxij.y*dxij.z + force_divr_ik*dxik.y*dxik.z);
-                                   	}
+                                if (compute_virial)
+                                    {
+                                    //***look at 3 body pressure notes
+                                    //i just need a single term to account for all of the 3 body virial that i decide to store in the i particle's data
+                                    //and i just defined the diagonal component of pressure tensor, I don't know how the off diagonal terms can be included
+                                    virialixx += (force_divr_ij*dxij.x*dxij.x + force_divr_ik*dxik.x*dxik.x);
+                                    virialiyy += (force_divr_ij*dxij.y*dxij.y + force_divr_ik*dxik.y*dxik.y);
+                                    virializz += (force_divr_ij*dxij.z*dxij.z + force_divr_ik*dxik.z*dxik.z);
+                                    virialixy += (force_divr_ij*dxij.x*dxij.y + force_divr_ik*dxik.x*dxik.y);
+                                    virialixz += (force_divr_ij*dxij.x*dxij.z + force_divr_ik*dxik.x*dxik.z);
+                                    virialiyz += (force_divr_ij*dxij.y*dxij.z + force_divr_ik*dxik.y*dxik.z);
+                                    }
 
 
-                            	// increment the force for particle k
-                            	unsigned int mem_idx = kk;
-                            	h_force.data[mem_idx].x += fk.x;
-                            	h_force.data[mem_idx].y += fk.y;
-                            	h_force.data[mem_idx].z += fk.z;
+                                // increment the force for particle k
+                                unsigned int mem_idx = kk;
+                                h_force.data[mem_idx].x += fk.x;
+                                h_force.data[mem_idx].y += fk.y;
+                                h_force.data[mem_idx].z += fk.z;
                                 }
                             }
                         }
@@ -615,7 +585,7 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
                 }
 
             }
-	}
+        }
     else
         {
         // ****** Tersoff or SquareDensity potential
