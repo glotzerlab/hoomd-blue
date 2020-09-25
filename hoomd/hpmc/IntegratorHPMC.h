@@ -341,26 +341,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             return m_nselect;
             }
 
-        //! Print statistics about the hmc steps taken
-        virtual void printStats()
-            {
-            hpmc_counters_t counters = getCounters(1);
-            m_exec_conf->msg->notice(2) << "-- HPMC stats:" << "\n";
-            /* m_exec_conf->msg->notice(2) << "Average translate acceptance: " << counters.getTranslateCounts() << "\n"; */
-            if (counters.rotate_accept_count + counters.rotate_reject_count != 0)
-                {
-                /* m_exec_conf->msg->notice(2) << "Average rotate acceptance:    " << counters.getRotateCounts() << "\n"; */
-                }
-
-            // elapsed time
-            double cur_time = double(m_clock.getTime()) / Scalar(1e9);
-            uint64_t total_moves = counters.getNMoves();
-            m_exec_conf->msg->notice(2) << "Trial moves per second:        " << double(total_moves) / cur_time << std::endl;
-            m_exec_conf->msg->notice(2) << "Overlap checks per second:     " << double(counters.overlap_checks) / cur_time << std::endl;
-            m_exec_conf->msg->notice(2) << "Overlap checks per trial move: " << double(counters.overlap_checks) / double(total_moves) << std::endl;
-            m_exec_conf->msg->notice(2) << "Number of overlap errors:      " << double(counters.overlap_err_count) << std::endl;
-            }
-
         //! Get performance in moves per second
         virtual double getMPS()
             {

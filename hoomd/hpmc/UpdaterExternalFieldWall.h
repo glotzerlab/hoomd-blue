@@ -78,11 +78,6 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
             return m_move_probability;
             }
 
-        //! Print statistics
-        void printStats()
-            {
-            }
-
         //! Get a list of logged quantities
         virtual std::vector< std::string > getProvidedLogQuantities()
             {

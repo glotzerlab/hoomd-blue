@@ -107,10 +107,8 @@ def test_moves(device, simulation_factory, lattice_snapshot_factory,
 
     sim = simulation_factory(lattice_snapshot_factory(dimensions=dims))
     sim.operations.add(mc)
-    with pytest.raises(AttributeError):
-        sim.operations.integrator.translate_moves
-    with pytest.raises(AttributeError):
-        sim.operations.integrator.rotate_moves
+    assert sim.operations.integrator.translate_moves is None
+    assert sim.operations.integrator.rotate_moves is None
     sim.operations.schedule()
 
     assert sum(sim.operations.integrator.translate_moves) == 0

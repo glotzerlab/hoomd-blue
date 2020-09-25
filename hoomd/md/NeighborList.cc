@@ -1361,47 +1361,6 @@ bool NeighborList::needsUpdating(unsigned int timestep)
     return result;
     }
 
-/*! Generic statistics that apply to any neighbor list, like the number of updates,
-    average number of neighbors, etc... are printed to stdout. Derived classes should
-    print any pertinent information they see fit to.
-
-    \todo fix these statistics to work correctly for MPI runs
- */
-void NeighborList::printStats()
-    {
-    // return early if the notice level is less than 1
-    if (m_exec_conf->msg->getNoticeLevel() < 1)
-        return;
-
-    m_exec_conf->msg->notice(1) << "-- Neighborlist stats:" << endl;
-    m_exec_conf->msg->notice(1) << m_updates << " normal updates / " << m_forced_updates << " forced updates / " << m_dangerous_updates << " dangerous updates" << endl;
-
-    // access the number of neighbors to generate stats
-    ArrayHandle<unsigned int> h_n_neigh(m_n_neigh, access_location::host, access_mode::read);
-
-    // build some simple statistics of the number of neighbors
-    unsigned int n_neigh_min = m_pdata->getN();
-    unsigned int n_neigh_max = 0;
-    Scalar n_neigh_avg = 0.0;
-
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
-        {
-        unsigned int n_neigh = (unsigned int)h_n_neigh.data[i];
-        if (n_neigh < n_neigh_min)
-            n_neigh_min = n_neigh;
-        if (n_neigh > n_neigh_max)
-            n_neigh_max = n_neigh;
-
-        n_neigh_avg += Scalar(n_neigh);
-        }
-
-    // divide to get the average
-    n_neigh_avg /= Scalar(m_pdata->getN());
-    m_exec_conf->msg->notice(1) << "n_neigh_min: " << n_neigh_min << " / n_neigh_max: " << n_neigh_max << " / n_neigh_avg: " << n_neigh_avg << endl;
-
-    m_exec_conf->msg->notice(1) << "shortest rebuild period: " << getSmallestRebuild() << endl;
-    }
-
 void NeighborList::resetStats()
     {
     m_updates = m_forced_updates = m_dangerous_updates = 0;

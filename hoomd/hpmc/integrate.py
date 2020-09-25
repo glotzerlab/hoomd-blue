@@ -13,22 +13,6 @@ import hoomd
 import json
 
 
-# Helper method to inform about implicit depletants citation
-# TODO: figure out where to call this
-def cite_depletants():
-    _citation = hoomd.cite.article(
-        cite_key='glaser2015',
-        author=['J Glaser', 'A S Karas', 'S C Glotzer'],
-        title='A parallel algorithm for implicit depletant simulations',
-        journal='The Journal of Chemical Physics',
-        volume=143,
-        pages='184110',
-        year='2015',
-        doi='10.1063/1.4935175',
-        feature='implicit depletants')
-    hoomd.cite._ensure_global_bib().add(_citation)
-
-
 class _HPMCIntegrator(_BaseIntegrator):
     """Base class hard particle Monte Carlo integrator.
 
@@ -207,7 +191,8 @@ class _HPMCIntegrator(_BaseIntegrator):
             `map_overlaps` does not support MPI parallel simulations.
         """
 
-        if not self._attached:
+        if (not self._attached
+                or self._simulation.device.communicator.num_ranks > 1):
             return None
         return self._cpp_obj.mapOverlaps()
 
@@ -292,7 +277,10 @@ class _HPMCIntegrator(_BaseIntegrator):
         Note:
             The count is reset to 0 at the start of each `hoomd.Simulation.run`.
         """
-        return self._cpp_obj.getCounters(1).translate
+        if self._attached:
+            return self._cpp_obj.getCounters(1).translate
+        else:
+            return None
 
     @log(flag='sequence')
     def rotate_moves(self):
@@ -301,7 +289,10 @@ class _HPMCIntegrator(_BaseIntegrator):
         Note:
             The count is reset to 0 at the start of each `hoomd.Simulation.run`.
         """
-        return self._cpp_obj.getCounters(1).rotate
+        if self._attached:
+            return self._cpp_obj.getCounters(1).rotate
+        else:
+            return None
 
     @log
     def mps(self):
@@ -311,7 +302,10 @@ class _HPMCIntegrator(_BaseIntegrator):
             The count of trial moves is reset at the start of each
             `hoomd.Simulation.run`.
         """
-        return self._cpp_obj.getMPS()
+        if self._attached:
+            return self._cpp_obj.getMPS()
+        else:
+            return None
 
     @property
     def counters(self):
@@ -330,7 +324,10 @@ class _HPMCIntegrator(_BaseIntegrator):
         Note:
             The counts are reset to 0 at the start of each
             `hoomd.Simulation.run`.  """
-        return self._cpp_obj.getCounters(1)
+        if self._attached:
+            return self._cpp_obj.getCounters(1)
+        else:
+            return None
 
 
 class Sphere(_HPMCIntegrator):
