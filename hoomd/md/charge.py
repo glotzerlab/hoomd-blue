@@ -59,8 +59,6 @@ class pppm(force._force):
     Parameters Nx, Ny, Nz, order, :math:`r_{\mathrm{cut}}` must be set using
     ```hoomd.run``` can take place.
 
-    See :ref:`page-units` for information on the units assigned to charges in hoomd.
-
     Note:
           :py:class:`pppm` takes a particle group as an option. This should be the group of all charged particles
           (``hoomd.group.charged``). However, note that this group is static and determined at the time
@@ -80,20 +78,6 @@ class pppm(force._force):
 
         # initialize the base class
         force._force.__init__(self);
-
-        # register the citation
-        c = hoomd.cite.article(cite_key='dnlebard2012',
-                         author=['D N LeBard', 'B G Levine', 'S A Barr', 'A Jusufi', 'S Sanders', 'M L Klein', 'A Z Panagiotopoulos'],
-                         title='Self-assembly of coarse-grained ionic surfactants accelerated by graphics processing units',
-                         journal='Journal of Computational Physics',
-                         volume=8,
-                         number=8,
-                         pages='2385-2397',
-                         month='',
-                         year='2012',
-                         doi='10.1039/c1sm06787g',
-                         feature='PPPM')
-        hoomd.cite._ensure_global_bib().add(c)
 
         # create the c++ mirror class
 

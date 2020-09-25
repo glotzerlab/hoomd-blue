@@ -29,7 +29,7 @@ Running tests
 Execute the following commands to run the tests:
 
 * ``ctest`` - Executes C++ tests
-* ``python3 -m pytest --pyargs hoomd``
+* ``python3 -m pytest hoomd``
 
 **ctest** must be run in the **build** directory. When you run **pytest**
 outside of the **build** directory, it will test the HOOMD installed by ``make
@@ -50,7 +50,7 @@ interactive cluster job) is correctly configured before running ``ctest``.
 natively support MPI. Execute it with the provided wrapper script. In the
 **build** directory::
 
-    mpirun -n 2 hoomd/pytest/pytest-openmpi.sh -v -x --pyargs hoomd
+    mpirun -n 2 hoomd/pytest/pytest-openmpi.sh -v -x hoomd
 
 The wrapper script displays the outout of rank 0 and redirects rank 1's output
 to a file. Inspect this file when a test fails on rank 1. This will result in an
@@ -66,6 +66,19 @@ to a file. Inspect this file when a test fails on rank 1. This will result in an
 
     The provided wrapper script supports **OpenMPI**. It will require
     modifications to work with other MPI stacks.
+
+Running validation tests
+------------------------
+
+Longer running validation tests do not execute by default. Opt-in to run these
+with the ``--validate`` command line option to pytest::
+
+    $ python3 -m pytest hoomd --validate -m validate
+    $ mpirun -n 2 hoomd/pytest/pytest-openmpi.sh hoomd -v -x -ra --validate -m validate
+
+.. note::
+
+    The ``-m validate`` option selects *only* the validation tests.
 
 Implementing tests
 ------------------

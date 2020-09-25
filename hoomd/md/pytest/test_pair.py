@@ -634,7 +634,7 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
                                 mode='shifted', r_cut=r_cut)
     lj_shift.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
     integrator = hoomd.md.Integrator(dt=0.005)
-    integrator.forces.append(lj)
+    integrator.forces.append(lj_shift)
     integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
                                                         kT=1, seed=1))
     sim.operations.integrator = integrator
@@ -655,7 +655,7 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     lj_xplor.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
     lj_xplor.r_on[('A', 'A')] = 0.5
     integrator = hoomd.md.Integrator(dt=0.005)
-    integrator.forces.append(lj)
+    integrator.forces.append(lj_xplor)
     integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
                                                         kT=1, seed=1))
 

@@ -1,10 +1,10 @@
-from copy import copy
 from collections import defaultdict
 
 from . import _hoomd
 from hoomd.box import Box
 from hoomd.snapshot import Snapshot
 from hoomd.data import LocalSnapshot, LocalSnapshotGPU
+import hoomd
 
 
 def _create_domain_decomposition(device, box):
@@ -14,16 +14,16 @@ def _create_domain_decomposition(device, box):
     the new API. We will need to consider designing an appropriate user-facing
     API to set the domain decomposition.
     """
-    if not _hoomd.is_MPI_available():
+    if not hoomd.version.mpi_enabled:
         return None
 
     # if we are only running on one processor, we use optimized code paths
     # for single-GPU execution
-    if device.comm.num_ranks == 1:
+    if device.communicator.num_ranks == 1:
         return None
 
     # create a default domain decomposition
-    result = _hoomd.DomainDecomposition(device.cpp_exec_conf,
+    result = _hoomd.DomainDecomposition(device._cpp_exec_conf,
                                         box.getL(),
                                         0,
                                         0,
@@ -50,18 +50,18 @@ class State:
 
         if domain_decomp is not None:
             self._cpp_sys_def = _hoomd.SystemDefinition(
-                snapshot._cpp_obj, simulation.device.cpp_exec_conf,
+                snapshot._cpp_obj, simulation.device._cpp_exec_conf,
                 domain_decomp)
         else:
             self._cpp_sys_def = _hoomd.SystemDefinition(
-                snapshot._cpp_obj, simulation.device.cpp_exec_conf)
+                snapshot._cpp_obj, simulation.device._cpp_exec_conf)
         self._groups = defaultdict(dict)
 
     @property
     def snapshot(self):
         cpp_snapshot = self._cpp_sys_def.takeSnapshot_double()
         return Snapshot._from_cpp_snapshot(cpp_snapshot,
-                                           self._simulation.device.comm)
+                                           self._simulation.device.communicator)
 
     @snapshot.setter
     def snapshot(self, snapshot):
@@ -101,7 +101,7 @@ class State:
 
         """
 
-        if self._simulation.device.comm.rank == 0:
+        if self._simulation.device.communicator.rank == 0:
             if len(snapshot.particles.types) != len(self.particle_types):
                 raise RuntimeError(
                     "Number of particle types must remain the same")
@@ -125,11 +125,41 @@ class State:
     def types(self):
         return dict(particle_types=self.particle_types,
                     bond_types=self.bond_types,
-                    angle_types=self.angles_types,
+                    angle_types=self.angle_types,
                     dihedral_types=self.dihedral_types,
                     improper_types=self.improper_types,
                     special_pair_types=self.special_pair_types
                     )
+
+    @property
+    def N_particles(self):
+        """int: The number of particles in the simulation."""
+        return self._cpp_sys_def.getParticleData().getNGlobal()
+
+    @property
+    def N_bonds(self):
+        """int: The number of bonds in the simulation."""
+        return self._cpp_sys_def.getBondData().getNGlobal()
+
+    @property
+    def N_angles(self):
+        """int: The number of angles in the simulation."""
+        return self._cpp_sys_def.getAngleData().getNGlobal()
+
+    @property
+    def N_impropers(self):
+        """int: The number of impropers in the simulation."""
+        return self._cpp_sys_def.getImproperData().getNGlobal()
+
+    @property
+    def N_special_pairs(self):
+        """int: The number of special pairs in the simulation."""
+        return self._cpp_sys_def.getPairData().getNGlobal()
+
+    @property
+    def N_dihedrals(self):
+        """int: The number of dihedrals in the simulation."""
+        return self._cpp_sys_def.getDihedralData().getNGlobal()
 
     @property
     def particle_types(self):
@@ -178,7 +208,7 @@ class State:
                              'hoomd.Box.from_box'.format(value))
 
         if value.dimensions != self._cpp_sys_def.getNDimensions():
-            self._simulation.device.cpp_msg.warning(
+            self._simulation.device._cpp_msg.warning(
                 "Box changing dimensions from {} to {}."
                 "".format(self._cpp_sys_def.getNDimensions(),
                           value.dimensions))
@@ -216,7 +246,7 @@ class State:
         for groups in self._groups.values():
             for group in groups.values():
                 if integrator is not None:
-                    if not integrator.is_attached:
+                    if not integrator._attached:
                         raise RuntimeError(
                             "Call update_group_dof after attaching")
 
@@ -293,7 +323,7 @@ class State:
         Note:
             This property is only available when running on a GPU(s).
         """
-        if self._simulation.device.mode != 'gpu':
+        if not isinstance(self._simulation.device, hoomd.device.GPU):
             raise RuntimeError(
                 "Cannot access gpu_snapshot with a non GPU device.")
         elif self._in_context_manager:

@@ -176,11 +176,17 @@ class _NBody(force._Force):
         ret = [ json.loads(json_string) for json_string in type_shapes ]
         return ret
 
-    def attach(self, simulation):
+    def _attach(self):
         # create the c++ mirror class
-        if not self.nlist.is_attached:
-            self.nlist.attach(simulation)
-        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+        if not self._nlist._added:
+            self._nlist._add(self._simulation)
+        else:
+            if self._simulation != self._nlist._simulation:
+                raise RuntimeError("{} object's neighbor list is used in a "
+                                   "different simulation.".format(type(self)))
+        if not self.nlist._attached:
+            self.nlist._attach()
+        if isinstance(self._simulation.device, hoomd.device.CPU):
             cls = getattr(_md, self._cpp_class_name)
             self.nlist._cpp_obj.setStorageMode(
                 _md.NeighborList.storageMode.half)
@@ -188,10 +194,11 @@ class _NBody(force._Force):
             cls = getattr(_md, self._cpp_class_name + "GPU")
             self.nlist._cpp_obj.setStorageMode(
                 _md.NeighborList.storageMode.full)
-        self._cpp_obj = cls(simulation.state._cpp_sys_def, self.nlist._cpp_obj,
-                            '')  # TODO remove name string arg
+        self._cpp_obj = cls(
+            self._simulation.state._cpp_sys_def, self.nlist._cpp_obj,
+            '')  # TODO remove name string arg
 
-        super().attach(simulation)
+        super()._attach()
 
     @property
     def nlist(self):
@@ -199,10 +206,14 @@ class _NBody(force._Force):
 
     @nlist.setter
     def nlist(self, value):
-        if self.is_attached:
-            raise RuntimeError("nlist cannot be set after attaching.")
+        if self._attached:
+            raise RuntimeError("nlist cannot be set after scheduling.")
         else:
             self._nlist = validate_nlist(value)
+
+    @property
+    def _children(self):
+        return [self.nlist]
 
 
 class LJ(_NBody):
@@ -890,21 +901,6 @@ class DPD(_NBody):
     """
     _cpp_class_name = "PotentialPairDPDThermoDPD"
     def __init__(self, nlist, kT, seed=3, r_cut=None, r_on=0., mode='none'):
-        """
-        # register the citation
-        c = hoomd.cite.article(cite_key='phillips2011',
-                         author=['C L Phillips', 'J A Anderson', 'S C Glotzer'],
-                         title='Pseudo-random number generation for Brownian Dynamics and Dissipative Particle Dynamics simulations on GPU devices',
-                         journal='Journal of Computational Physics',
-                         volume=230,
-                         number=19,
-                         pages='7191--7201',
-                         month='Aug',
-                         year='2011',
-                         doi='10.1016/j.jcp.2011.05.021',
-                         feature='DPD')
-        hoomd.cite._ensure_global_bib().add(c)
-        """
         super().__init__(nlist, r_cut, r_on, mode)
         params = TypeParameter('params', 'particle_types',
                                TypeParameterDict(A=float, gamma=float, len_keys=2))
@@ -960,22 +956,6 @@ class DPDConservative(_NBody):
     """
     _cpp_class_name = "PotentialPairDPD"
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
-        # add this back in once we redo the cite module
-        """
-        # register the citation
-        c = hoomd.cite.article(cite_key='phillips2011',
-                         author=['C L Phillips', 'J A Anderson', 'S C Glotzer'],
-                         title='Pseudo-random number generation for Brownian Dynamics and Dissipative Particle Dynamics simulations on GPU devices',
-                         journal='Journal of Computational Physics',
-                         volume=230,
-                         number=19,
-                         pages='7191--7201',
-                         month='Aug',
-                         year='2011',
-                         doi='10.1016/j.jcp.2011.05.021',
-                         feature='DPD')
-        hoomd.cite._ensure_global_bib().add(c)
-        """
         # initialize the base class
         super().__init__(nlist, r_cut, r_on, mode)
         params =  TypeParameter('params', 'particle_types',
@@ -1066,21 +1046,6 @@ class DPDLJ(_NBody):
     """
     _cpp_class_name = "PotentialPairDPDLJThermoDPD"
     def __init__(self, nlist, kT, seed=3, r_cut=None, r_on=0., mode='none'):
-        """
-        # register the citation
-        c = hoomd.cite.article(cite_key='phillips2011',
-                         author=['C L Phillips', 'J A Anderson', 'S C Glotzer'],
-                         title='Pseudo-random number generation for Brownian Dynamics and Dissipative Particle Dynamics simulations on GPU devices',
-                         journal='Journal of Computational Physics',
-                         volume=230,
-                         number=19,
-                         pages='7191--7201',
-                         month='Aug',
-                         year='2011',
-                         doi='10.1016/j.jcp.2011.05.021',
-                         feature='DPD')
-        hoomd.cite._ensure_global_bib().add(c)
-        """
         if mode == 'xplor':
             raise ValueError("xplor smoothing is not supported with pair.DPDLJ")
 

@@ -40,7 +40,7 @@ namespace detail
 struct FacetedEllipsoidParams : ShapeParams
     {
     /// Empty constructor
-    FacetedEllipsoidParams()
+    DEVICE FacetedEllipsoidParams()
         : verts(),
           additional_verts(),
           n(),

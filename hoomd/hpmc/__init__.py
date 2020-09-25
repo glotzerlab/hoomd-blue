@@ -18,7 +18,7 @@ The following quantities are provided by the integrator for use in HOOMD-blue's 
 - ``hpmc_rotate_acceptance`` - Fraction of rotation moves accepted (averaged only over the last time step)
 - ``hpmc_d`` - Maximum move displacement
 - ``hpmc_a`` - Maximum rotation move
-- ``hpmc_move_ratio`` - Probability of making a translation move (1- P(rotate move))
+- ``hpmc_translation_move_probability`` - Probability of making a translation move (1- P(rotate move))
 - ``hpmc_overlap_count`` - Count of the number of particle-particle overlaps in the current system configuration
 
 With non-interacting depletants, the following log quantities are available:
@@ -126,21 +126,4 @@ from hoomd.hpmc import analyze
 from hoomd.hpmc import compute
 from hoomd.hpmc import util
 from hoomd.hpmc import field
-
-# add HPMC article citation notice
-import hoomd
-_citation = hoomd.cite.article(cite_key='anderson2016',
-                               author=['J A Anderson', 'M E Irrgang', 'S C Glotzer'],
-                               title='Scalable Metropolis Monte Carlo for simulation of hard shapes',
-                               journal='Computer Physics Communications',
-                               volume=204,
-                               pages='21--30',
-                               month='July',
-                               year='2016',
-                               doi='10.1016/j.cpc.2016.02.024',
-                               feature='HPMC')
-
-if hoomd.context.bib is None:
-    hoomd.cite._extra_default_entries.append(_citation)
-else:
-    hoomd.context.bib.add(_citation)
+from hoomd.hpmc import tune

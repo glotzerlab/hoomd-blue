@@ -19,6 +19,7 @@
 #include "AnalyzerSDF.h"
 #include "UpdaterBoxMC.h"
 #include "UpdaterClusters.h"
+#include "UpdaterQuickCompress.h"
 
 #include "GPUTree.h"
 
@@ -59,6 +60,7 @@ PYBIND11_MODULE(_hpmc, m)
     export_IntegratorHPMC(m);
 
     export_UpdaterBoxMC(m);
+    export_UpdaterQuickCompress(m);
     export_external_fields(m);
 
     export_sphere(m);
