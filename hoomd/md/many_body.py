@@ -4,7 +4,21 @@ from hoomd.md.pair import _NBody
 from hoomd.parameterdicts import TypeParameterDict
 from hoomd.typeparam import TypeParameter
 
-class Tersoff(_NBody):
+
+class _ThreeBody(_NBody):
+    """Superclass for 3-body potentials. Each requires a full neighborlist."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def _attach(self):
+        super()._attach()
+        self.nlist._cpp_obj.setStorageMode(
+            _md.NeighborList.storageMode.full)
+
+
+
+class Tersoff(_ThreeBody):
     R""" Tersoff Potential.
 
     Args:
@@ -49,39 +63,8 @@ class Tersoff(_NBody):
                 )
         self._add_typeparam(params)
 
-    def _attach(self):
-        super()._attach()
-        self.nlist._cpp_obj.setStorageMode(
-            _md.NeighborList.storageMode.full)
 
-    def process_coeff(self, coeff):
-        cutoff_d = coeff['cutoff_thickness'];
-        C1 = coeff['C1'];
-        C2 = coeff['C2'];
-        lambda1 = coeff['lambda1'];
-        lambda2 = coeff['lambda2'];
-        dimer_r = coeff['dimer_r'];
-        n = coeff['n'];
-        gamma = coeff['gamma'];
-        lambda3 = coeff['lambda3'];
-        c = coeff['c'];
-        d = coeff['d'];
-        m = coeff['m'];
-        alpha = coeff['alpha'];
-
-        gamman = math.pow(gamma, n);
-        c2 = c * c;
-        d2 = d * d;
-        lambda3_cube = lambda3 * lambda3 * lambda3;
-
-        tersoff_coeffs = _hoomd.make_scalar2(C1, C2);
-        exp_consts = _hoomd.make_scalar2(lambda1, lambda2);
-        ang_consts = _hoomd.make_scalar3(c2, d2, m);
-
-        return _md.make_tersoff_params(cutoff_d, tersoff_coeffs, exp_consts, dimer_r, n, gamman, lambda3_cube, ang_consts, alpha);
-
-
-class RevCross(_NBody):
+class RevCross(_ThreeBody):
     R""" Reversible crosslinker three-body potential to model bond swaps.
 
     Args:
@@ -173,12 +156,8 @@ class RevCross(_NBody):
                                    lambda3=1.0, len_keys=2))
         self._add_typeparam(params)
 
-    def _attach(self):
-        super()._attach()
-        self.nlist._cpp_obj.setStorageMode(
-            _md.NeighborList.storageMode.full)
 
-class SquareDensity(_NBody):
+class SquareDensity(_ThreeBody):
     R""" Soft potential for simulating a van-der-Waals liquid
 
     Args:
@@ -236,9 +215,5 @@ class SquareDensity(_NBody):
                 TypeParameterDict(A=0.0, B=float, len_keys=2))
         self._add_typeparam(params)
 
-    def _attach(self):
-        super()._attach()
-        self.nlist._cpp_obj.setStorageMode(
-            _md.NeighborList.storageMode.full)
 
 
