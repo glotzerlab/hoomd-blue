@@ -17,7 +17,6 @@ class _ThreeBody(_NBody):
             _md.NeighborList.storageMode.full)
 
 
-
 class Tersoff(_ThreeBody):
     R""" Tersoff Potential.
 
@@ -214,6 +213,4 @@ class SquareDensity(_ThreeBody):
                 'particle_types',
                 TypeParameterDict(A=0.0, B=float, len_keys=2))
         self._add_typeparam(params)
-
-
 

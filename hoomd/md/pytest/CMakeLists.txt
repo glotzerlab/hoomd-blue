@@ -2,7 +2,7 @@
 set(files __init__.py
     test_active.py
     test_flags.py
-    test_pair.py
+    test_potential.py
     test_methods.py
     forces_and_energies.json
     test_write_debug_data_md.py
