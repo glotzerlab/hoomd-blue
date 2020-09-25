@@ -3,7 +3,7 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-""" Compute system properties """
+"""Compute system properties."""
 
 from hoomd import _hoomd;
 from hoomd.md import _md
@@ -19,7 +19,7 @@ class _Thermo(_Compute):
 
 
 class ThermodynamicQuantities(_Thermo):
-    """ Compute thermodynamic properties of a group of particles.
+    """Compute thermodynamic properties of a group of particles.
 
     Args:
         filter (``hoomd.filter``): Particle filter to compute thermodynamic properties for.
@@ -48,8 +48,7 @@ class ThermodynamicQuantities(_Thermo):
 
     @log
     def kinetic_temperature(self):
-        """
-        :math:`kT_k`, instantaneous thermal energy of the group (in energy units).
+        """:math:`kT_k`, instantaneous thermal energy of the group (in energy units).
 
         Calculated as:
 
@@ -65,8 +64,7 @@ class ThermodynamicQuantities(_Thermo):
 
     @log
     def pressure(self):
-        """
-        :math:`P`, instantaneous pressure of the group (in pressure units).
+        """:math:`P`, instantaneous pressure of the group (in pressure units).
 
         Calculated as:
 
@@ -90,8 +88,7 @@ class ThermodynamicQuantities(_Thermo):
 
     @log(flag='sequence')
     def pressure_tensor(self):
-        """
-        (:math:`P_{xx}`, :math:`P_{xy}`, :math:`P_{xz}`, :math:`P_{yy}`, :math:`P_{yz}`, :math:`P_{zz}`).
+        """(:math:`P_{xx}`, :math:`P_{xy}`, :math:`P_{xz}`, :math:`P_{yy}`, :math:`P_{yz}`, :math:`P_{zz}`).
 
         Instantaneous pressure tensor of the group (in pressure units), calculated as:
 
@@ -110,8 +107,7 @@ class ThermodynamicQuantities(_Thermo):
 
     @log
     def kinetic_energy(self):
-        """
-        :math:`K`, total kinetic energy of all particles in the group (in energy units).
+        """:math:`K`, total kinetic energy of all particles in the group (in energy units).
 
         .. math::
 
@@ -126,8 +122,7 @@ class ThermodynamicQuantities(_Thermo):
 
     @log
     def translational_kinetic_energy(self):
-        """
-        :math:`K_{\\mathrm{trans}}`, translational kinetic energy of all particles in the group (in energy units).
+        """:math:`K_{\\mathrm{trans}}`, translational kinetic energy of all particles in the group (in energy units).
 
         .. math::
 
@@ -142,8 +137,7 @@ class ThermodynamicQuantities(_Thermo):
 
     @log
     def rotational_kinetic_energy(self):
-        """
-        :math:`K_{\\mathrm{rot}}`, rotational kinetic energy of all particles in the group (in energy units).
+        """:math:`K_{\\mathrm{rot}}`, rotational kinetic energy of all particles in the group (in energy units).
 
         Calculated as:
 
@@ -152,7 +146,6 @@ class ThermodynamicQuantities(_Thermo):
             K_{\\mathrm{rot}} = \\frac{1}{2} \\sum_{i \\in \\mathrm{filter}} \\frac{L_{x,i}^2}{I_{x,i}} + \\frac{L_{y,i}^2}{I_{y,i}} + \\frac{L_{z,i}^2}{I_{z,i}},
 
         where :math:`I` is the moment of inertia and :math:`L` is the angular momentum in the (diagonal) reference frame of the particle.
-
         """
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
@@ -162,8 +155,7 @@ class ThermodynamicQuantities(_Thermo):
 
     @log
     def potential_energy(self):
-        """
-        :math:`U`, potential energy that the group contributes to the entire system (in energy units).
+        """:math:`U`, potential energy that the group contributes to the entire system (in energy units).
 
         The potential energy is calculated as a sum of per-particle energy contributions:
 
@@ -202,15 +194,13 @@ class ThermodynamicQuantities(_Thermo):
 
     @log
     def degrees_of_freedom(self):
-        """
-        :math:`N_{\\mathrm{dof}}`, number of degrees of freedom given to the group by its integration method.
+        """:math:`N_{\\mathrm{dof}}`, number of degrees of freedom given to the group by its integration method.
 
         Calculated as:
 
         .. math::
 
             N_{\\mathrm{dof}} = N_{\\mathrm{dof, trans}} + N_{\\mathrm{dof, rot}}
-
         """
         if self._attached:
             return self._cpp_obj.degrees_of_freedom
@@ -219,8 +209,7 @@ class ThermodynamicQuantities(_Thermo):
 
     @log
     def translational_degrees_of_freedom(self):
-        """
-        :math:`N_{\\mathrm{dof, trans}}`, number of translational degrees of freedom given to the group by its integration method.
+        """:math:`N_{\\mathrm{dof, trans}}`, number of translational degrees of freedom given to the group by its integration method.
 
         When using a single integration method that is momentum conserving and operates on all particles, :math:`N_{\\mathrm{dof, trans}} = DN - D - N_{constraints}`, where :math:`D` is the dimensionality of the system.
 
@@ -234,7 +223,7 @@ class ThermodynamicQuantities(_Thermo):
 
     @log
     def rotational_degrees_of_freedom(self):
-        """ :math:`N_{\\mathrm{dof, rot}}`, number of rotational degrees of freedom given to the group by its integration method. """
+        """:math:`N_{\\mathrm{dof, rot}}`, number of rotational degrees of freedom given to the group by its integration method. """
         if self._attached:
             return self._cpp_obj.rotational_degrees_of_freedom
         else:
@@ -242,7 +231,7 @@ class ThermodynamicQuantities(_Thermo):
 
     @log
     def num_particles(self):
-        """ :math:`N`, number of particles in the group. """
+        """:math:`N`, number of particles in the group. """
         if self._attached:
             return self._cpp_obj.num_particles
         else:
