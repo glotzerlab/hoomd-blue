@@ -62,7 +62,7 @@ class EvaluatorTersoff
                 auto lambda2(v["lambda2"].cast<Scalar>());
                 auto lambda3(v["lambda3"].cast<Scalar>());
                 dimer_r = v["dimer_r"].cast<Scalar>();
-                auto n(v["n"].cast<Scalar>());
+                tersoff_n = v["n"].cast<Scalar>();
                 auto gamma(v["gamma"].cast<Scalar>());
                 auto c(v["c"].cast<Scalar>());
                 auto d(v["d"].cast<Scalar>());
@@ -71,8 +71,7 @@ class EvaluatorTersoff
 
                 coeffs = make_scalar2(C1, C2);
                 exp_consts = make_scalar2(lambda1, lambda2);
-                tersoff_n = n;
-                gamman = pow(gamma, n);
+                gamman = pow(gamma, tersoff_n);
                 lambda_cube = pow(lambda3, 3);
                 Scalar c2 = c * c;
                 Scalar d2 = d * d;

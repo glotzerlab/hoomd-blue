@@ -49,8 +49,8 @@ class Tersoff(_NBody):
                 )
         self._add_typeparam(params)
 
-    def attach(self, sim):
-        super().attach(sim)
+    def _attach(self):
+        super()._attach()
         self.nlist._cpp_obj.setStorageMode(
             _md.NeighborList.storageMode.full)
 
@@ -173,8 +173,8 @@ class RevCross(_NBody):
                                    lambda3=1.0, len_keys=2))
         self._add_typeparam(params)
 
-    def attach(self, sim):
-        super().attach(sim)
+    def _attach(self):
+        super()._attach()
         self.nlist._cpp_obj.setStorageMode(
             _md.NeighborList.storageMode.full)
 
@@ -236,8 +236,8 @@ class SquareDensity(_NBody):
                 TypeParameterDict(A=0.0, B=float, len_keys=2))
         self._add_typeparam(params)
 
-    def attach(self, sim):
-        super().attach(sim)
+    def _attach(self):
+        super()._attach()
         self.nlist._cpp_obj.setStorageMode(
             _md.NeighborList.storageMode.full)
 
