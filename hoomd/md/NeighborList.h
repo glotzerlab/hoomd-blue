@@ -265,9 +265,6 @@ class PYBIND11_EXPORT NeighborList : public Compute
         //! \name Statistics
         // @{
 
-        //! Print statistics on the neighborlist
-        virtual void printStats();
-
         //! Clear the count of updates the neighborlist has performed
         virtual void resetStats();
 

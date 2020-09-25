@@ -22,7 +22,7 @@ def typeparam(typedict):
 
 
 def test_attach(typeparam):
-    return typeparam.attach(DummyCppObj(), DummySimulation())
+    return typeparam._attach(DummyCppObj(), DummySimulation())
 
 
 @fixture(scope='function')
@@ -31,7 +31,7 @@ def attached(typeparam):
 
 
 def test_detaching(attached):
-    return attached.detach()
+    return attached._detach()
 
 
 @fixture(scope='function')

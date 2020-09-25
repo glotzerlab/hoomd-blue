@@ -45,7 +45,7 @@ struct hpmc_args_t
                 const Scalar* _a,
                 const unsigned int *_check_overlaps,
                 const Index2D& _overlap_idx,
-                const unsigned int _move_ratio,
+                const unsigned int _translation_move_probability,
                 const unsigned int _timestep,
                 const unsigned int _dim,
                 const BoxDim& _box,
@@ -84,7 +84,7 @@ struct hpmc_args_t
                   d_a(_a),
                   d_check_overlaps(_check_overlaps),
                   overlap_idx(_overlap_idx),
-                  move_ratio(_move_ratio),
+                  translation_move_probability(_translation_move_probability),
                   timestep(_timestep),
                   dim(_dim),
                   box(_box),
@@ -126,7 +126,7 @@ struct hpmc_args_t
     const Scalar* d_a;                //!< Maximum move angular displacement
     const unsigned int *d_check_overlaps; //!< Interaction matrix
     const Index2D& overlap_idx;       //!< Indexer into interaction matrix
-    const unsigned int move_ratio;    //!< Ratio of translation to rotation moves
+    const unsigned int translation_move_probability;    //!< Fraction of moves that are translation moves.
     const unsigned int timestep;      //!< Current time step
     const unsigned int dim;           //!< Number of dimensions
     const BoxDim& box;                //!< Current simulation box
@@ -353,7 +353,7 @@ __global__ void hpmc_gen_moves(Scalar4 *d_postype,
                            const unsigned int seed,
                            const Scalar* d_d,
                            const Scalar* d_a,
-                           const unsigned int move_ratio,
+                           const unsigned int translation_move_probability,
                            const unsigned int timestep,
                            const BoxDim box,
                            const unsigned int select,
@@ -433,7 +433,7 @@ __global__ void hpmc_gen_moves(Scalar4 *d_postype,
     unsigned int reject = 0;
 
     unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng);
-    bool move_type_translate = !shape_i.hasOrientation() || (move_type_select < move_ratio);
+    bool move_type_translate = !shape_i.hasOrientation() || (move_type_select < translation_move_probability);
 
     if (move_active)
         {
@@ -1435,7 +1435,7 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type *p
                                                                      args.seed,
                                                                      args.d_d,
                                                                      args.d_a,
-                                                                     args.move_ratio,
+                                                                     args.translation_move_probability,
                                                                      args.timestep,
                                                                      args.box,
                                                                      args.select,
@@ -1484,7 +1484,7 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type *p
                                                                      args.seed,
                                                                      args.d_d,
                                                                      args.d_a,
-                                                                     args.move_ratio,
+                                                                     args.translation_move_probability,
                                                                      args.timestep,
                                                                      args.box,
                                                                      args.select,

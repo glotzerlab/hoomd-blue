@@ -42,7 +42,7 @@ class _Dihedral(_Force):
         :py:class:`_Dihedral` is the base class for all dihedral potentials.
         Users should not instantiate this class directly. Dihedral forces
         documented here are available to all MD integrators.
-    
+
     A dihedral bond in hoomd reflects a PotentialBond in c++. It is responsible for all
     high-level management that happens behind the scenes for hoomd writers.
     1) The instance of the c++ dihedral bond force itself is tracked and added to the
@@ -50,19 +50,19 @@ class _Dihedral(_Force):
     2) methods are provided for disabling the force from being added to the net
     force on each particle
     """
-    def attach(self, simulation):
-        '''initialize the reflected c++ class'''
-        if simulation.state._cpp_sys_def.getDihedralData().getNGlobal() == 0:
-            simulation.device.cpp_msg.warning("No dihedrals are defined.\n")
+    def _attach(self):
+        # check that some dihedrals are defined
+        if self._simulation.state._cpp_sys_def.getDihedralData().getNGlobal() == 0:
+            self._simulation.device._cpp_msg.warning("No dihedrals are defined.\n")
 
         # create the c++ mirror class
-        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+        if isinstance(self._simulation.device, hoomd.device.CPU):
             cpp_class = getattr(_md, self._cpp_class_name)
         else:
             cpp_class = getattr(_md, self._cpp_class_name + "GPU")
 
-        self._cpp_obj = cpp_class(simulation.state._cpp_sys_def)
-        super().attach(simulation)
+        self._cpp_obj = cpp_class(sim.state._cpp_sys_def)
+        super()._attach()
 
 
 class Harmonic(_Dihedral):
@@ -80,19 +80,19 @@ class Harmonic(_Dihedral):
 
     Attributes:
         params (TypeParameter[``dihedral type``, dict]):
-            The parameter of the harmonic bonds for each particle type. 
-            The dictionary has the following keys: 
+            The parameter of the harmonic bonds for each particle type.
+            The dictionary has the following keys:
 
-            * ``k`` (`float`, **required**) - potential constant 
+            * ``k`` (`float`, **required**) - potential constant
               (in units of energy)
 
-            * ``d`` (`float`, **required**) - sign factor 
+            * ``d`` (`float`, **required**) - sign factor
               (unitless)
 
-            * ``n`` (`float`, **required**) - angle scalinf factor 
+            * ``n`` (`float`, **required**) - angle scalinf factor
               (unitless)
 
-            * ``phi0`` (`float`, **required**) - phase shift 
+            * ``phi0`` (`float`, **required**) - phase shift
               (in units of radians)
 
     Examples::
@@ -324,8 +324,8 @@ class OPLS(_Dihedral):
 
     Attributes:
         params (TypeParameter[``dihedral type``, dict]):
-            The parameter of the OPLS bonds for each particle type. 
-            The dictionary has the following keys: 
+            The parameter of the OPLS bonds for each particle type.
+            The dictionary has the following keys:
 
             * ``k1`` (`float`, **required**) -  force constant of the first term
               (in units of energy)

@@ -2,11 +2,11 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 """Angle potentials.
 
-Angles add forces between specified triplets of particles and are typically 
+Angles add forces between specified triplets of particles and are typically
 used to model chemical angles between two bonds.
 
-By themselves, angles that have been specified in an initial configuration 
-do nothing. Only when you specify an angle force (i.e. angle.harmonic), are 
+By themselves, angles that have been specified in an initial configuration
+do nothing. Only when you specify an angle force (i.e. angle.harmonic), are
 forces actually calculated between the listed particles
 """
 
@@ -28,7 +28,7 @@ class _Angle(_Force):
         :py:class:`_Angle` is the base class for all angular potentials.
         Users should not instantiate this class directly. Angular forces
         documented here are available to all MD integrators.
-    
+
     An angular bond in hoomd reflects a PotentialBond in c++. It is responsible for all
     high-level management that happens behind the scenes for hoomd writers.
     1) The instance of the c++ angular bond force itself is tracked and added to the
@@ -36,20 +36,20 @@ class _Angle(_Force):
     2) methods are provided for disabling the force from being added to the net
     force on each particle
     """
-    def attach(self, simulation):
-        '''initialize the reflected c++ class'''
-        if simulation.state._cpp_sys_def.getAngleData().getNGlobal() == 0:
-            simulation.device.cpp_msg.warning("No angles are defined.\n")
+    def _attach(self):
+        # check that some angles are defined
+        if self._simulation.state._cpp_sys_def.getAngleData().getNGlobal() == 0:
+            self._simulation.device._cpp_msg.warning("No angles are defined.\n")
 
         # create the c++ mirror class
-        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+        if isinstance(self._simulation.device, hoomd.device.CPU):
             cpp_cls = getattr(_md, self._cpp_class_name)
         else:
             cpp_cls = getattr(_md, self._cpp_class_name + "GPU")
 
-        self._cpp_obj = cpp_cls(simulation.state._cpp_sys_def)
+        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def)
 
-        super().attach(simulation)
+        super()._attach()
 
 
 class Harmonic(_Angle):
@@ -66,13 +66,13 @@ class Harmonic(_Angle):
 
     Attributes:
         params (TypeParameter[``angle type``, dict]):
-            The parameter of the harmonic bonds for each particle type. 
-            The dictionary has the following keys: 
+            The parameter of the harmonic bonds for each particle type.
+            The dictionary has the following keys:
 
-            * ``k`` (`float`, **required**) - potential constant 
+            * ``k`` (`float`, **required**) - potential constant
               (in units of energy/radians^2)
 
-            * ``t0`` (`float`, **required**) - rest angle 
+            * ``t0`` (`float`, **required**) - rest angle
               (in units radians)
 
     Examples::
@@ -108,10 +108,10 @@ class Cosinesq(_Angle):
 
     Attributes:
         params (TypeParameter[``angle type``, dict]):
-            The parameter of the harmonic bonds for each particle type. 
-            The dictionary has the following keys: 
+            The parameter of the harmonic bonds for each particle type.
+            The dictionary has the following keys:
 
-            * ``k`` (`float`, **required**) - potential constant 
+            * ``k`` (`float`, **required**) - potential constant
               (in units of energy/radians^2)
 
             * ``t0`` (`float`, **required**) - rest angle :math:`\theta_0`

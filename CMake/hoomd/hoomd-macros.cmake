@@ -16,7 +16,10 @@ endmacro(fix_cudart_rpath)
 # @param target: name of copy target
 # @param validate_pattern: Check ${CMAKE_CURRENT_BINARY_DIR}/${validate_pattern} for files
 #                          that are not in ${files} and issue a warning.
+# @param Additional parameters: List of files to ignore
 macro(copy_files_to_build files target validate_pattern)
+    set(ignore_files ${ARGN})
+
     file(RELATIVE_PATH relative_dir ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
     foreach(file ${files})
@@ -36,7 +39,7 @@ macro(copy_files_to_build files target validate_pattern)
     foreach(file ${_matching_files})
         file(RELATIVE_PATH relative_file ${CMAKE_CURRENT_BINARY_DIR} ${file})
         list(FIND files ${relative_file} found)
-        if (found EQUAL -1)
+        if (found EQUAL -1 AND NOT ${relative_file} IN_LIST ignore_files)
             message(WARNING "${file} exists but is not provided by the source. "
                             "Remove this file to prevent unexpected errors.")
         endif()

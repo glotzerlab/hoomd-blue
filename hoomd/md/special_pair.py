@@ -18,31 +18,31 @@ from hoomd.md import _md
 from hoomd.md.force import _Force
 from hoomd.typeparam import TypeParameter
 from hoomd.parameterdicts import TypeParameterDict
+import hoomd
 
 
 class _SpecialPair(_Force):
-    R"""Base class special pair forces.
+    """Base class special pair forces.
 
     Note:
         :py:class:`_SpecialPair` is the base class for all special pair potentials.
         Users should not instantiate this class directly. Special pair forces
         documented here are available to all MD integrators.
-    
+
     """
-    def attach(self, simulation):
-        '''initialize the reflected c++ class'''
+    def _attach(self):
         # check that some bonds are defined
-        if simulation.state._cpp_sys_def.getPairData().getNGlobal() == 0:
-            simulation.device.cpp_msg.error("No pairs are defined.\n")
+        if self._simulation.state._cpp_sys_def.getPairData().getNGlobal() == 0:
+            self._simulation.device._cpp_msg.error("No pairs are defined.\n")
 
         # create the c++ mirror class
-        if not simulation.device.mode == "gpu":
+        if isinstance(self._simulation.device, hoomd.device.CPU):
             cpp_cls = getattr(_md, self._cpp_class_name)
         else:
             cpp_cls = getattr(_md, self._cpp_class_name + "GPU")
         # TODO remove string name argument
-        self._cpp_obj = cpp_cls(simulation.state._cpp_sys_def, '')
-        super().attach(simulation)
+        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def, '')
+        super()._attach()
 
 
 class LJ(_SpecialPair):
@@ -72,17 +72,17 @@ class LJ(_SpecialPair):
 
     Attributes:
         params (TypeParameter[``special pair type``, dict]):
-            The parameter of the lj forces for each particle type. 
-            The dictionary has the following keys: 
+            The parameter of the lj forces for each particle type.
+            The dictionary has the following keys:
 
-            * ``epsilon`` (`float`, **required**) - energy parameter 
+            * ``epsilon`` (`float`, **required**) - energy parameter
               (in energy unit)
 
-            * ``sigma`` (`float`, **required**) - particle size 
+            * ``sigma`` (`float`, **required**) - particle size
               (in distance unit)
 
         r_cut (TypeParameter[``special pair type``, float]):
-            The cut-off distance for special pair potential (in distance unit) 
+            The cut-off distance for special pair potential (in distance unit)
 
     Examples::
 
@@ -134,14 +134,14 @@ class Coulomb(_SpecialPair):
 
     Attributes:
         params (TypeParameter[``special pair type``, dict]):
-            The parameter of the Coulomb forces for each particle type. 
-            The dictionary has the following keys: 
+            The parameter of the Coulomb forces for each particle type.
+            The dictionary has the following keys:
 
             * ``alpha`` (`float`, **required**) - Coulomb scaling factor
               (in energy unit)
 
         r_cut (TypeParameter[``special pair type``, float]):
-            The cut-off distance for special pair potential (in distance unit) 
+            The cut-off distance for special pair potential (in distance unit)
 
 
     Examples::
