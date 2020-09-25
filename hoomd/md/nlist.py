@@ -29,7 +29,7 @@ Particles can be excluded from the neighbor list based on certain criteria. Sett
 will exclude this cross interaction from the neighbor list on build time. Particles can also be excluded by topology
 or for belonging to the same rigid body (see ``nlist.reset_exclusions``). To support molecular structures,
 the body flag can also be used to exclude particles that are not part of a rigid structure. All particles with
-positive values of the body flag are considered part of a rigid body (see :py:class:`hoomd.md.constrain.rigid`),
+positive values of the body flag are considered part of a rigid body (see `hoomd.md.constrain.rigid`),
 while the default value of -1 indicates that a particle is free. Any other negative value of the body flag indicates
 that the particles are part of a floppy body; such particles are integrated
 separately, but are automatically excluded from the neighbor list as well.

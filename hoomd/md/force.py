@@ -62,7 +62,7 @@ class _Force(_HOOMDBaseObject):
     @log(flag='particle')
     def forces(self):
         """
-        Returns: The force for all particles.
+        The force for all particles.
         """
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
@@ -73,7 +73,7 @@ class _Force(_HOOMDBaseObject):
     @log(flag='particle')
     def torques(self):
         """
-        Returns: The torque for all particles.
+        The torque for all particles.
         """
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
@@ -84,7 +84,7 @@ class _Force(_HOOMDBaseObject):
     @log(flag='particle')
     def virials(self):
         R"""
-        Returns: The virial for the members in the group.
+        The virial for the members in the group.
         """
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
