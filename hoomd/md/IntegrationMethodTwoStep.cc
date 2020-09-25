@@ -11,9 +11,6 @@
 #include "QuaternionMath.h"
 #include "hoomd/HOOMDMath.h"
 
-#include "hoomd/RandomNumbers.h"
-#include "hoomd/RNGIdentifiers.h"
-
 namespace py = pybind11;
 
 #ifdef ENABLE_MPI
@@ -181,135 +178,11 @@ void IntegrationMethodTwoStep::validateGroup()
 
     }
 
-/*!
-   Randomizes linear velocities and angular momenta by sampling the
-   Maxwell-Boltzmann (MB) distribution.
-   The user provides three arguments:
-   - The particle group
-   - Temperature
-   - Seed for initializing the random number generator used for this purpose
-   These variables are member variables of the class.
-*/
-void IntegrationMethodTwoStep::randomizeVelocities(unsigned int timestep)
-    {
-    if (m_shouldRandomize == false)
-        {
-        return;
-        }
-
-    /* Get the number of particles in the group */
-    unsigned int group_size = m_group->getNumMembers();
-
-    /* Grab some variables */
-    const unsigned int D = Scalar(m_sysdef->getNDimensions());
-
-    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
-                               access_location::host,
-                               access_mode::readwrite);
-
-    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
-                                       access_location::host,
-                                       access_mode::read);
-
-    ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(),
-                                  access_location::host,
-                                  access_mode::readwrite);
-
-    ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(),
-                                   access_location::host,
-                                   access_mode::read);
-
-    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(),
-                                    access_location::host,
-                                    access_mode::read);
-
-    /* Total momentum */
-    vec3<Scalar> tot_momentum(0, 0, 0);
-
-    /* Loop over all the particles in the group */
-    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
-        {
-        unsigned int j = m_group->getMemberIndex(group_idx);
-        unsigned int ptag = h_tag.data[j];
-
-        /* Initialize the random number generator */
-        hoomd::RandomGenerator rng(hoomd::RNGIdentifier::IntegrationMethodTwoStep, m_seed_randomize, ptag, timestep);
-
-        /* Generate a new random linear velocity for particle j */
-        Scalar mass =  h_vel.data[j].w;
-        Scalar sigma = fast::sqrt(m_T_randomize / mass);
-        hoomd::NormalDistribution<Scalar> normal(sigma);
-        h_vel.data[j].x = normal(rng);
-        h_vel.data[j].y = normal(rng);
-        if (D > 2)
-            h_vel.data[j].z = normal(rng);
-        else
-            h_vel.data[j].z = 0; // For 2D systems
-
-        tot_momentum += mass * vec3<Scalar>(h_vel.data[j]);
-
-        /* Generate a new random angular momentum if the particle is a rigid
-         * body and anisotropy flag gets set.
-         * There may be some issues for 2D systems */
-        if (m_aniso)
-            {
-            vec3<Scalar> p_vec(0,0,0);
-            quat<Scalar> q(h_orientation.data[j]);
-            vec3<Scalar> I(h_inertia.data[j]);
-
-            /* Generate a new random angular momentum for particle j in
-             * body frame */
-            if (I.x >= EPSILON)
-                p_vec.x = hoomd::NormalDistribution<Scalar>(fast::sqrt(m_T_randomize * I.x))(rng);
-            if (I.y >= EPSILON)
-                p_vec.y = hoomd::NormalDistribution<Scalar>(fast::sqrt(m_T_randomize * I.y))(rng);
-            if (I.z >= EPSILON)
-                p_vec.z = hoomd::NormalDistribution<Scalar>(fast::sqrt(m_T_randomize * I.z))(rng);
-
-            /* Store the angular momentum quaternion */
-            quat<Scalar> p = Scalar(2.0) * q * p_vec;
-            h_angmom.data[j] = quat_to_scalar4(p);
-            }
-        }
-
-    /* Remove the drift i.e. remove the center of mass velocity */
-
-    #ifdef ENABLE_MPI
-    // Reduce the total momentum from all MPI ranks
-    if (m_comm)
-       {
-       MPI_Allreduce(MPI_IN_PLACE, &tot_momentum, 3, MPI_HOOMD_SCALAR,
-                     MPI_SUM, m_exec_conf->getMPICommunicator());
-       }
-    #endif
-
-    vec3<Scalar> com_momentum(tot_momentum /
-                              Scalar(m_group->getNumMembersGlobal()));
-
-    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
-        {
-        unsigned int j = m_group->getMemberIndex(group_idx);
-        Scalar mass =  h_vel.data[j].w;
-        h_vel.data[j].x = h_vel.data[j].x - com_momentum.x / mass;
-        h_vel.data[j].y = h_vel.data[j].y - com_momentum.y / mass;
-        if (D > 2)
-            h_vel.data[j].z = h_vel.data[j].z - com_momentum.z / mass;
-        else
-            h_vel.data[j].z = 0; // For 2D systems
-        }
-
-    /* Done randomizing velocities */
-
-    /* Reset the flag */
-    m_shouldRandomize = false;
-    }
-
 void export_IntegrationMethodTwoStep(py::module& m)
     {
     py::class_<IntegrationMethodTwoStep, std::shared_ptr<IntegrationMethodTwoStep> >(m, "IntegrationMethodTwoStep")
         .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup> >())
         .def("validateGroup", &IntegrationMethodTwoStep::validateGroup)
-        .def("setRandomizeVelocitiesParams", &IntegrationMethodTwoStep::setRandomizeVelocitiesParams)
         .def_property_readonly("filter", [](const std::shared_ptr<IntegrationMethodTwoStep> method)
                                              {
                                              return method->getGroup()->getFilter();
@@ -317,5 +190,6 @@ void export_IntegrationMethodTwoStep(py::module& m)
         #ifdef ENABLE_MPI
         .def("setCommunicator", &IntegrationMethodTwoStep::setCommunicator)
         #endif
+        .def("thermalizeExtraDOF", &IntegrationMethodTwoStep::thermalizeExtraDOF)
         ;
     }

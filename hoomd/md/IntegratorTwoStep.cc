@@ -438,9 +438,6 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
         m_pdata->notifyAccelSet();
         }
 
-    for (auto& method : m_methods)
-        method->randomizeVelocities(timestep);
-
     m_prepared = true;
     }
 

@@ -981,18 +981,13 @@ TwoStepNPTMTK::couplingMode TwoStepNPTMTK::getRelevantCouplings()
     return couple;
     }
 
-void TwoStepNPTMTK::randomizeVelocities(unsigned int timestep)
+void TwoStepNPTMTK::thermalizeExtraDOF(Scalar kT, unsigned int seed, unsigned int timestep)
     {
-    if (m_shouldRandomize == false)
-        {
-        return;
-        }
-
-    m_exec_conf->msg->notice(6) << "TwoStepNPTMTK randomizing velocities" << std::endl;
+    m_exec_conf->msg->notice(6) << "TwoStepNPTMTK randomizing extra DOF" << std::endl;
 
     IntegratorVariables v = getIntegratorVariables();
 
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::TwoStepNPTMTK, m_seed_randomize, timestep);
+    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::TwoStepNPTMTK, seed, timestep);
 
     bool master = m_exec_conf->getRank() == 0;
 
@@ -1100,9 +1095,6 @@ void TwoStepNPTMTK::randomizeVelocities(unsigned int timestep)
     #endif
 
     setIntegratorVariables(v);
-
-    // call base class method
-    IntegrationMethodTwoStep::randomizeVelocities(timestep);
     }
 
 void export_TwoStepNPTMTK(py::module& m)

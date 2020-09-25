@@ -211,8 +211,8 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
             setIntegratorVariables(v);
             }
 
-        //! Randomize the barostat variables
-        virtual void randomizeVelocities(unsigned int timestep);
+        /// Randomize the thermostat and barostat variables
+        void thermalizeExtraDOF(Scalar kT, unsigned int seed, unsigned int timestep);
 
     protected:
         std::shared_ptr<ComputeThermo> m_thermo_half_step;   //!< ComputeThermo operating on the integrated group at t+dt/2

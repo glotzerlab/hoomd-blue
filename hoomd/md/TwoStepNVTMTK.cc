@@ -440,14 +440,9 @@ void TwoStepNVTMTK::advanceThermostat(unsigned int timestep, bool broadcast)
     setIntegratorVariables(v);
     }
 
-void TwoStepNVTMTK::randomizeVelocities(unsigned int timestep)
+void TwoStepNVTMTK::thermalizeExtraDOF(Scalar kT, unsigned int seed, unsigned int timestep)
     {
-    if (m_shouldRandomize == false)
-        {
-        return;
-        }
-
-    m_exec_conf->msg->notice(6) << "TwoStepNVTMTK randomizing velocities" << std::endl;
+    m_exec_conf->msg->notice(6) << "TwoStepNVTMTK randomizing extra DOF" << std::endl;
 
     IntegratorVariables v = getIntegratorVariables();
     Scalar& xi = v.variable[0];
@@ -456,7 +451,7 @@ void TwoStepNVTMTK::randomizeVelocities(unsigned int timestep)
     Scalar sigmasq_t = Scalar(1.0)/((Scalar) g*m_tau*m_tau);
 
     bool master = m_exec_conf->getRank() == 0;
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::TwoStepNVTMTK, m_seed_randomize, timestep);
+    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::TwoStepNVTMTK, seed, timestep);
 
     if (master)
         {
@@ -493,9 +488,6 @@ void TwoStepNVTMTK::randomizeVelocities(unsigned int timestep)
         }
 
     setIntegratorVariables(v);
-
-    // call base class method
-    IntegrationMethodTwoStep::randomizeVelocities(timestep);
     }
 
 void export_TwoStepNVTMTK(py::module& m)

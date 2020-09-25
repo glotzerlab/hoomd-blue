@@ -315,6 +315,16 @@ class PYBIND11_EXPORT ParticleGroup
         */
         unsigned int intersectionSize(std::shared_ptr<ParticleGroup> other);
 
+        /** Thermalize the particle momenta
+
+            Draw gaussian random momenta for all particles in the group.
+
+            @param kT Thermal energy
+            @param seed Random number seed
+            @param timestep The current simulation timestep
+        */
+        void thermalizeParticleMomenta(Scalar kT, unsigned int seed, unsigned int timestep);
+
     private:
         std::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition this group is associated with
         std::shared_ptr<ParticleData> m_pdata;        //!< The particle data this group is associated with

@@ -221,15 +221,6 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
          */
         virtual Scalar getRotationalDOF(std::shared_ptr<ParticleGroup> query_group);
 
-        void setRandomizeVelocitiesParams(Scalar T_randomize, unsigned int seed_randomize)
-            {
-            m_T_randomize = T_randomize;
-            m_seed_randomize = seed_randomize;
-            m_shouldRandomize = true;
-            }
-
-        virtual void randomizeVelocities(unsigned int timestep);
-
         //! Reinitialize the integration variables if needed (implemented in the actual subclasses)
         virtual void initializeIntegratorVariables() {}
 
@@ -239,6 +230,18 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
             return true;
             }
 
+        /** Thermalize the extra degrees of freedom in the method
+
+            Draw gaussian random momenta for all particles in the group.
+
+            @param kT Thermal energy
+            @param seed Random number seed
+            @param timestep The current simulation timestep
+        */
+        virtual void thermalizeExtraDOF(Scalar kT, unsigned int seed, unsigned int timestep)
+            {
+            }
+
     protected:
         const std::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this method is associated with
         const std::shared_ptr<ParticleGroup> m_group;     //!< The group of particles this method works on
@@ -246,11 +249,6 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
         std::shared_ptr<Profiler> m_prof;                 //!< The profiler this method is to use
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
         bool m_aniso;                                       //!< True if anisotropic integration is requested
-
-        /*! Member variables for randomizeVelocities(). */
-        Scalar m_T_randomize = 0;
-        unsigned int m_seed_randomize = 0;
-        bool m_shouldRandomize = false;
 
         Scalar m_deltaT;                                    //!< The time step
 

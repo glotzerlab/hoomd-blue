@@ -332,3 +332,36 @@ class State:
                 "another local_snapshot context manager.")
         else:
             return LocalSnapshotGPU(self)
+
+    def thermalize_particle_momenta(self, filter, kT, seed):
+        """Assign random values to particle momenta.
+
+        Args:
+            filter (hoomd.filter._ParticleFilter): Particles to modify
+            kT (float): Thermal energy to set (in energy units)
+            seed (int): Random number seed
+
+        `thermalize_particle_momenta` assigns the selected particle's velocities
+        and angular momentum to random values drawn from a Gaussian distribution
+        consistent with the given thermal energy *kT*.
+
+        .. rubric:: Velocity
+
+        `thermalize_particle_momenta` assigns random velocities to the *x* and
+        *y* components of each particle's velocity. When the simulation box is
+        3D, it also assigns a random velocity to the *z* component. When the
+        simulation box is 2D, it sets the *z* component to 0. Finally,
+        sets the center of mass velocity of the selected particles to 0.
+
+        .. rubric:: Angular momentum
+
+        `thermalize_particle_momenta` assigns random angular momenta to each
+        rotational degree of freedom that has a non-zero moment of intertia.
+        Each particle can have 0, 1, 2, or 3 rotational degrees of freedom.
+
+        Note:
+            The seed for the pseudorandom number stream includes the
+            simulation timestep and the provided *seed*.
+        """
+        group = self.get_group(filter)
+        group.thermalizeParticleMomenta(kT, seed, self._simulation.timestep)
