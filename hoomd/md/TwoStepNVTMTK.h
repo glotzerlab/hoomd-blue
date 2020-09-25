@@ -122,7 +122,7 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
             }
 
         /// Randomize the thermostat variables
-        void thermalizeExtraDOF(Scalar kT, unsigned int seed, unsigned int timestep);
+        void thermalizeExtraDOF(unsigned int seed, unsigned int timestep);
 
     protected:
         std::shared_ptr<ComputeThermo> m_thermo;    //!< compute for thermodynamic quantities

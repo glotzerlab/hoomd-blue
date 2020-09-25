@@ -19,8 +19,37 @@ from hoomd.typeconverter import OnlyFrom
 import copy
 from collections.abc import Sequence
 
+
 class _Method(_HOOMDBaseObject):
-    pass
+    """Base class integration method.
+
+    Provides common methods for all subclasses.
+
+    Note:
+        Users should use the subclasses and not instantiate `_Method` directly.
+    """
+
+    def thermalize_extra_dof(self, seed):
+        """Set the extra degrees of freedom to random values.
+
+        Args:
+            seed (int): Random number seed
+
+        Some integration methods, such as `NVT` and `NPT` employ extra degrees
+        of freedom for the thermostat and/or barostat. `thermalize_extra_dof`
+        sets these to random values. This method performs no operation for
+        integration methods that lack internal degrees of freedom.
+
+        Note:
+            The seed for the pseudorandom number stream includes the
+            simulation timestep and the provided *seed*.
+        """
+
+        if not self._attached:
+            raise RuntimeError(
+                "Call Simulation.schedule before thermalize_extra_dof")
+
+        self._cpp_obj.thermalizeExtraDOF(seed, self._simulation.timestep)
 
 
 class NVT(_Method):

@@ -981,7 +981,7 @@ TwoStepNPTMTK::couplingMode TwoStepNPTMTK::getRelevantCouplings()
     return couple;
     }
 
-void TwoStepNPTMTK::thermalizeExtraDOF(Scalar kT, unsigned int seed, unsigned int timestep)
+void TwoStepNPTMTK::thermalizeExtraDOF(unsigned int seed, unsigned int timestep)
     {
     m_exec_conf->msg->notice(6) << "TwoStepNPTMTK randomizing extra DOF" << std::endl;
 

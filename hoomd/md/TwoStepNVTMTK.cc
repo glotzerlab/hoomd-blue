@@ -440,7 +440,7 @@ void TwoStepNVTMTK::advanceThermostat(unsigned int timestep, bool broadcast)
     setIntegratorVariables(v);
     }
 
-void TwoStepNVTMTK::thermalizeExtraDOF(Scalar kT, unsigned int seed, unsigned int timestep)
+void TwoStepNVTMTK::thermalizeExtraDOF(unsigned int seed, unsigned int timestep)
     {
     m_exec_conf->msg->notice(6) << "TwoStepNVTMTK randomizing extra DOF" << std::endl;
 

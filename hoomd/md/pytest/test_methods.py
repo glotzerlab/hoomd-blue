@@ -274,6 +274,33 @@ def test_npt_attributes_attached_3d(simulation_factory,
     assert npt.gamma == 2.0
 
 
+def test_npt_thermalize_extra_dof(simulation_factory,
+                                  two_particle_snapshot_factory):
+    """Tests that NPT.thermalize_extra_dof can be called."""
+    all_ = hoomd.filter.All()
+    constant_t = hoomd.variant.Constant(2.0)
+    constant_s = [
+        hoomd.variant.Constant(1.0),
+        hoomd.variant.Constant(2.0),
+        hoomd.variant.Constant(3.0),
+        hoomd.variant.Constant(0.125),
+        hoomd.variant.Constant(.25),
+        hoomd.variant.Constant(.5),
+    ]
+    npt = hoomd.md.methods.NPT(filter=all_,
+                               kT=constant_t,
+                               tau=2.0,
+                               S=constant_s,
+                               tauS=2.0,
+                               couple='xyz')
+
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[npt])
+    sim.operations.schedule()
+
+    npt.thermalize_extra_dof(100)
+
+
 def test_npt_attributes_attached_2d(simulation_factory,
                                       two_particle_snapshot_factory):
     """Test attributes of the NPT integrator specific to 2D simulations."""
@@ -391,3 +418,17 @@ def test_nvt_attributes_attached(simulation_factory,
 
     nvt.tau = 10.0
     assert nvt.tau == 10.0
+
+
+def test_nvt_thermalize_extra_dof(simulation_factory,
+                                  two_particle_snapshot_factory):
+    """Tests that NVT.thermalize_extra_dof can be called."""
+    all_ = hoomd.filter.All()
+    constant = hoomd.variant.Constant(2.0)
+    nvt = hoomd.md.methods.NVT(filter=all_, kT=constant, tau=2.0)
+
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nvt])
+    sim.operations.schedule()
+
+    nvt.thermalize_extra_dof(100)

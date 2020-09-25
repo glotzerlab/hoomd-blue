@@ -1,5 +1,6 @@
 from hoomd.snapshot import Snapshot
 from hoomd.simulation import Simulation
+import hoomd
 import numpy
 import pytest
 
@@ -158,3 +159,56 @@ def test_modify_snapshot(device, snap):
 
     snap2 = sim.state.snapshot
     assert_snapshots_equal(snap, snap2)
+
+
+def test_thermalize_particle_velocity(simulation_factory,
+                                      lattice_snapshot_factory):
+    snap = lattice_snapshot_factory()
+    sim = simulation_factory(snap)
+    sim.state.thermalize_particle_momenta(filter=hoomd.filter.All(),
+                                          kT=1.5,
+                                          seed=1)
+
+    snapshot = sim.state.snapshot
+    if snapshot.exists:
+        v = snapshot.particles.velocity[:]
+        m = snapshot.particles.mass[:]
+        p = m * v.T
+        p_com = numpy.mean(p, axis=1)
+
+        numpy.testing.assert_allclose(p_com, [0, 0, 0], atol=1e-14)
+
+        K = numpy.sum(1 / 2 * m * (v[:, 0]**2 + v[:, 1]**2 + v[:, 2]**2))
+        # check that K is somewhat close to the target - the fluctuations are
+        # too large for an allclose check.
+        expected_K = (3 * snap.particles.N - 3) / 2 * 1.5
+        assert K > expected_K * 3 / 4 and K < expected_K * 4 / 3
+
+
+
+def test_thermalize_angular_momentum(simulation_factory,
+                                     lattice_snapshot_factory):
+    snap = lattice_snapshot_factory()
+    I = [1, 2, 3]
+
+    if snap.exists:
+        snap.particles.moment_inertia[:] = I
+
+    sim = simulation_factory(snap)
+    sim.state.thermalize_particle_momenta(filter=hoomd.filter.All(),
+                                          kT=1.5,
+                                          seed=1)
+
+    snapshot = sim.state.snapshot
+    if snapshot.exists:
+        L = snapshot.particles.angmom[:, 1:4]
+
+        print(L)
+        print(I)
+
+        K = numpy.sum(
+            1 / 2 * (L[:, 0]**2 / I[0] + L[:, 1]**2 / I[1] + L[:, 2]**2 / I[2]))
+        # check that K is somewhat close to the target - the fluctuations are
+        # too large for an allclose check.
+        expected_K = (3 * snap.particles.N) / 2 * 1.5
+        assert K > expected_K * 3 / 4 and K < expected_K * 4 / 3

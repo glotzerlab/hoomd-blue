@@ -230,15 +230,12 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
             return true;
             }
 
-        /** Thermalize the extra degrees of freedom in the method
+        /** Thermalize the extra degrees of freedom in the method.
 
-            Draw gaussian random momenta for all particles in the group.
-
-            @param kT Thermal energy
             @param seed Random number seed
             @param timestep The current simulation timestep
         */
-        virtual void thermalizeExtraDOF(Scalar kT, unsigned int seed, unsigned int timestep)
+        virtual void thermalizeExtraDOF(unsigned int seed, unsigned int timestep)
             {
             }
 
