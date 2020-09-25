@@ -201,10 +201,9 @@ def test_thermalize_angular_momentum(simulation_factory,
 
     snapshot = sim.state.snapshot
     if snapshot.exists:
-        L = snapshot.particles.angmom[:, 1:4]
-
-        print(L)
-        print(I)
+        # Note: this conversion assumes that all particles have (1, 0, 0, 0)
+        # orientations.
+        L = snapshot.particles.angmom[:, 1:4] / 2
 
         K = numpy.sum(
             1 / 2 * (L[:, 0]**2 / I[0] + L[:, 1]**2 / I[1] + L[:, 2]**2 / I[2]))
