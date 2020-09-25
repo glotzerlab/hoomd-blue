@@ -118,3 +118,49 @@ def test_basic_system_2d(simulation_factory, lattice_snapshot_factory):
     np.testing.assert_allclose(thermoB.kinetic_temperature, 2*thermoB.kinetic_energy/thermoB.degrees_of_freedom, rtol=1e-3)
     np.testing.assert_allclose(thermoB.pressure, thermoB.kinetic_energy/2.0**2, rtol=1e-3)
     np.testing.assert_allclose(thermoB.pressure_tensor, (8.0/2.0**2, 0., 0., 0., 0., 0.), rtol=1e-3, atol=1e-1)
+
+
+def test_system_rotational_dof(simulation_factory, device):
+
+    snap = hoomd.Snapshot(device.communicator)
+    if snap.exists:
+        box= [10, 10, 10, 0, 0, 0]
+        snap.configuration.box = box
+        snap.configuration.dimensions = 3
+        snap.particles.N = 3
+        snap.particles.position[:] = [[0, 1, 0], [-1, 1, 0], [1, 1, 0]]
+        snap.particles.velocity[:] = [[0, 0, 0], [0, -1, 0], [0, 1, 0]]
+        snap.particles.moment_inertia[:] = [[2.0, 0, 0], [1, 1, 1], [1, 1, 1]]
+        snap.particles.angmom[:] = [[0, 2, 4, 6]] * 3
+        snap.particles.types = ['A']
+
+    group = hoomd.filter.All()
+    thermo = hoomd.md.compute.ThermodynamicQuantities(filter=group)
+    sim = simulation_factory(snap)
+    sim.always_compute_pressure = True
+    sim.operations.add(thermo)
+
+    integrator = hoomd.md.Integrator(dt=0.0001)
+    integrator.aniso = True
+    integrator.methods.append(hoomd.md.methods.NVT(group, tau=1, kT=1))
+    sim.operations.integrator = integrator
+
+    sim.operations.schedule()
+    sim.run(1)
+
+    np.testing.assert_allclose(thermo.rotational_degrees_of_freedom, 7)
+    np.testing.assert_allclose(thermo.rotational_kinetic_energy, 57./4)
+
+    assert thermo.num_particles == 3
+    assert thermo.rotational_degrees_of_freedom == 7
+    assert thermo.translational_degrees_of_freedom == 6
+    assert thermo.degrees_of_freedom == 13
+
+    np.testing.assert_allclose(thermo.potential_energy, 0.0)
+    np.testing.assert_allclose(thermo.rotational_kinetic_energy, 57/4., rtol=1e-5)
+    np.testing.assert_allclose(thermo.translational_kinetic_energy, 1.0, rtol=1e-5)
+    np.testing.assert_allclose(thermo.kinetic_energy, 61/4., rtol=1e-5)
+    np.testing.assert_allclose(thermo.kinetic_temperature, 2*thermo.kinetic_energy/thermo.degrees_of_freedom, rtol=1e-5)
+    np.testing.assert_allclose(thermo.pressure, 2.0/3*thermo.translational_kinetic_energy/10**3, rtol=1e-5)
+    np.testing.assert_allclose(thermo.pressure_tensor, [0., 0., 0., 2./10**3, 0., 0.], rtol=1e-5)
+

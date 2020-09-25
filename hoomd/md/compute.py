@@ -55,7 +55,7 @@ class ThermodynamicQuantities(_Thermo):
 
           .. math::
 
-            kT = 2 \\cdot \\frac{K}{N_{\\mathrm{dof}}}
+            kT_k = 2 \\cdot \\frac{K}{N_{\\mathrm{dof}}}
         """
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
