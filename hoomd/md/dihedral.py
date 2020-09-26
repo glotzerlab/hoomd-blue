@@ -40,15 +40,7 @@ class _Dihedral(_Force):
 
     Note:
         :py:class:`_Dihedral` is the base class for all dihedral potentials.
-        Users should not instantiate this class directly. Dihedral forces
-        documented here are available to all MD integrators.
-
-    A dihedral bond in hoomd reflects a PotentialBond in c++. It is responsible for all
-    high-level management that happens behind the scenes for hoomd writers.
-    1) The instance of the c++ dihedral bond force itself is tracked and added to the
-    System
-    2) methods are provided for disabling the force from being added to the net
-    force on each particle
+        Users should not instantiate this class directly.
     """
     def _attach(self):
         # check that some dihedrals are defined

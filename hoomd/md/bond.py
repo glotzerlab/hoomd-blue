@@ -3,15 +3,7 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-R""" Bond potentials.
-
-Bonds add forces between specified pairs of particles and are typically used to
-model chemical bonds between two particles.
-
-By themselves, bonds that have been specified in an initial configuration do nothing. Only when you
-specify an bond force (i.e. bond.harmonic), are forces actually calculated between the
-listed particles.
-"""
+R""" Bond potentials."""
 
 from hoomd import _hoomd
 from hoomd.md import _md
@@ -29,15 +21,7 @@ class _Bond(_Force):
 
     Note:
         :py:class:`_Bond` is the base class for all bond potentials.
-        Users should not instantiate this class directly. Bond forces
-        documented here are available to all MD integrators.
-
-    A bond in hoomd reflects a PotentialBond in c++. It is responsible for all
-    high-level management that happens behind the scenes for hoomd writers.
-    1) The instance of the c++ bond force itself is tracked and added to the
-    System
-    2) methods are provided for disabling the force from being added to the net
-    force on each particle
+        Users should not instantiate this class directly.
     """
     def _attach(self):
         """Create the c++ mirror class."""
@@ -50,7 +34,6 @@ class _Bond(_Force):
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def, "")
 
         super()._attach()
-
 
 class Harmonic(_Bond):
     R""" Harmonic bond potential.

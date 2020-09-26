@@ -50,7 +50,7 @@ class _Force(_HOOMDBaseObject):
 
     @log
     def energy(self):
-        """Sum of the energy of the whole system."""
+        """float: Sum of the energy of the whole system."""
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.calcEnergySum()
@@ -59,7 +59,7 @@ class _Force(_HOOMDBaseObject):
 
     @log(flag='particle')
     def energies(self):
-        """The energies for all particles."""
+        """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The energies for all particles."""
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getEnergies()
@@ -68,7 +68,7 @@ class _Force(_HOOMDBaseObject):
 
     @log(flag='particle')
     def forces(self):
-        """The forces for all particles."""
+        """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The forces for all particles."""
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getForces()
@@ -77,7 +77,7 @@ class _Force(_HOOMDBaseObject):
 
     @log(flag='particle')
     def torques(self):
-        """The torque for all particles."""
+        """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The torque for all particles."""
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getTorques()
@@ -86,7 +86,7 @@ class _Force(_HOOMDBaseObject):
 
     @log(flag='particle')
     def virials(self):
-        """The virial for the members in the group."""
+        """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The virial for all particles."""
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getVirials()
