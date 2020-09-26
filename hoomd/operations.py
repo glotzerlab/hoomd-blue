@@ -247,7 +247,10 @@ class Operations(Collection):
     def remove(self, operation):
         """Remove an operation from the `Operations` object.
 
-        Checks for removal according to object id.
+        Remove the item from the collection whose id is the same as
+        ``operation``. See
+        `<https://docs.python.org/3/library/functions.html#id>`_ for the concept
+        of a Python object id.
 
         Args:
             operation (``operation``): A HOOMD-blue integrator, updater,
