@@ -86,7 +86,9 @@ class Operations(Collection):
         Note:
             Since only one integrator can be associated with an `Operations`
             object at a time, this removes the current integrator when called
-            with an integrator operation.
+            with an integrator operation. Also, the ``integrator`` property
+            cannot be set to ``None`` using this function. Use
+            ``operations.integrator = None`` explicitly for this.
         """
         # calling _add is handled by the synced lists and integrator property.
         # we raise this error here to provide a more clear error message.
@@ -178,24 +180,25 @@ class Operations(Collection):
 
         `Operations` objects have an initial ``integrator`` property of
         ``None``. Can be set to MD or HPMC integrators. The property can also be
-        set to ``None``, though this will raise errors when scheduled.
+        set to ``None``.
         """
         return self._integrator
 
     @integrator.setter
     def integrator(self, op):
-        if op._added:
-            raise RuntimeError(
-                "Integrator cannot be added to twice to Operations collection.")
-        else:
-            op._add(self._simulation)
+        if op is not None:
+            if not isinstance(op, hoomd.integrate._BaseIntegrator):
+                raise TypeError("Cannot set integrator to a type not derived "
+                                "from hoomd.integrate._BaseIntegrator")
+            if op._added:
+                raise RuntimeError("Integrator cannot be added to twice to "
+                                   "Operations collection.")
+            else:
+                op._add(self._simulation)
 
-        if (not isinstance(op, hoomd.integrate._BaseIntegrator)
-                and op is not None):
-            raise TypeError("Cannot set integrator to a type not derived "
-                            "from hoomd.integrate._BaseIntegrator")
         old_ref = self.integrator
         self._integrator = op
+        # Handle attaching and detaching integrators dealing with None values
         if self._scheduled:
             if op is not None:
                 op._attach()
@@ -256,8 +259,7 @@ class Operations(Collection):
                 container.
         """
         if isinstance(operation, hoomd.integrate._BaseIntegrator):
-            raise ValueError(
-                "Integrators cannot be removed, only replaced.")
+            self.integrator = None
         elif isinstance(operation, _Analyzer):
             self._analyzers.remove(operation)
         elif isinstance(operation, _Updater):
