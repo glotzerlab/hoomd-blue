@@ -3,11 +3,11 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-R""" Classes for (all/most) HOOMD objects.
+"""Base classes for all HOOMD-blue operations."""
 
-_Operation is inherented by almost all other HOOMD objects.
-_TriggeredOperation is _Operation for objects that are triggered.
-"""
+# _Operation is inherented by almost all other HOOMD objects.
+# _TriggeredOperation is _Operation for objects that are triggered.
+
 
 from hoomd.util import is_iterable, dict_map, dict_filter, str_to_tuple_keys
 from hoomd.trigger import Trigger
