@@ -1,4 +1,4 @@
-from hoomd.operation import _Tuner
+from hoomd.operation import Tuner
 from hoomd.parameterdicts import ParameterDict
 from hoomd.typeconverter import OnlyType
 from hoomd.trigger import Trigger
@@ -21,7 +21,7 @@ def natural_number(value):
         raise ValueError("Expected positive integer.")
 
 
-class ParticleSorter(_Tuner):
+class ParticleSorter(Tuner):
     def __init__(self, trigger=200, grid=None):
         self._param_dict = ParameterDict(
             trigger=Trigger,

@@ -1,11 +1,11 @@
-from hoomd.operation import _Tuner
+from hoomd.operation import Tuner
 from hoomd.parameterdicts import ParameterDict
 from hoomd.typeconverter import OnlyType
 from hoomd.trigger import Trigger
 from hoomd import _hoomd
 
 
-class LoadBalancer(_Tuner):
+class LoadBalancer(Tuner):
     R""" Adjusts the boundaries of a domain decomposition on a regular 3D grid.
 
     Args:

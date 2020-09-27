@@ -515,12 +515,39 @@ class _TriggeredOperation(_Operation):
         super()._attach()
 
 
-class _Updater(_TriggeredOperation):
+class Updater(_TriggeredOperation):
+    """Base class for all HOOMD updaters.
+
+    An updater is an operation which modifies a simulation's state.
+
+    Note:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
+    """
     _cpp_list_name = 'updaters'
 
-class _Analyzer(_TriggeredOperation):
+
+class Analyzer(_TriggeredOperation):
+    """Base class for all HOOMD analyzers.
+
+    An analyzer is an operation which writes out a simulation's state.
+
+    Note:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
+    """
     _cpp_list_name = 'analyzers'
 
 
-class _Tuner(_Operation):
+class Tuner(_Operation):
+    """Base class for all HOOMD tuners.
+
+    A tuner is an operation which tunes the parameters of another operation for
+    performance or other reasons. A tuner does not properly modify the
+    simulation state (e.g. move particles or change bonds).
+
+    Note:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
+    """
     pass

@@ -9,7 +9,7 @@ from . import integrate
 from hoomd import _hoomd
 from hoomd.logging import log
 from hoomd.update import _updater
-from hoomd.operation import _Updater
+from hoomd.operation import Updater
 from hoomd.parameterdicts import ParameterDict
 import hoomd
 import hoomd.typeconverter
@@ -743,7 +743,7 @@ class remove_drift(_updater):
         self.setupUpdater(period);
 
 
-class Clusters(_Updater):
+class Clusters(Updater):
     R""" Equilibrate the system according to the geometric cluster algorithm (GCA).
 
     The GCA as described in Liu and Lujten (2004),
@@ -911,7 +911,7 @@ class Clusters(_Updater):
         else:
             return counter.swap
 
-class QuickCompress(_Updater):
+class QuickCompress(Updater):
     """Quickly compress a hard particle system to a target box.
 
     Args:

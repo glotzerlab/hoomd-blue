@@ -12,7 +12,7 @@ from collections.abc import Collection
 from itertools import chain
 import hoomd.integrate
 from hoomd.syncedlist import SyncedList
-from hoomd.operation import _Analyzer, _Updater, _Tuner
+from hoomd.operation import Analyzer, Updater, Tuner
 from hoomd.typeconverter import OnlyType
 from hoomd.tune import ParticleSorter
 
@@ -59,11 +59,11 @@ class Operations(Collection):
     def __init__(self):
         self._compute = list()
         self._scheduled = False
-        self._updaters = SyncedList(OnlyType(_Updater),
+        self._updaters = SyncedList(OnlyType(Updater),
                                     _triggered_op_conversion)
-        self._analyzers = SyncedList(OnlyType(_Analyzer),
+        self._analyzers = SyncedList(OnlyType(Analyzer),
                                      _triggered_op_conversion)
-        self._tuners = SyncedList(OnlyType(_Tuner), lambda x: x._cpp_obj)
+        self._tuners = SyncedList(OnlyType(Tuner), lambda x: x._cpp_obj)
         self._integrator = None
 
         self._tuners.append(ParticleSorter())
@@ -98,11 +98,11 @@ class Operations(Collection):
         if isinstance(operation, hoomd.integrate._BaseIntegrator):
             self.integrator = operation
             return None
-        elif isinstance(operation, _Tuner):
+        elif isinstance(operation, Tuner):
             self._tuners.append(operation)
-        elif isinstance(operation, _Updater):
+        elif isinstance(operation, Updater):
             self._updaters.append(operation)
-        elif isinstance(operation, _Analyzer):
+        elif isinstance(operation, Analyzer):
             self._analyzers.append(operation)
         else:
             raise TypeError(
@@ -209,7 +209,7 @@ class Operations(Collection):
 
     @property
     def updaters(self):
-        """list[``Updater``]: A list of updater operations.
+        """list[`hoomd.operation.Updater`]: A list of updater operations.
 
         Holds the list of updaters associated with this collection. The list can
         be modified as a standard Python list.
@@ -218,7 +218,7 @@ class Operations(Collection):
 
     @property
     def analyzers(self):
-        """list[``Analzyer``]: A list of analyzer operations.
+        """list[`hoomd.operation.Analzyer`]: A list of analyzer operations.
 
         Holds the list of analyzers associated with this collection. The list
         can be modified as a standard Python list.
@@ -227,7 +227,7 @@ class Operations(Collection):
 
     @property
     def tuners(self):
-        """list[``Tuner``]: A list of tuner operations.
+        """list[`hoomd.operation.Tuner`]: A list of tuner operations.
 
         Holds the list of tuners associated with this collection. The list can be
         modified as a standard Python list.
@@ -263,11 +263,11 @@ class Operations(Collection):
         """
         if isinstance(operation, hoomd.integrate._BaseIntegrator):
             self.integrator = None
-        elif isinstance(operation, _Analyzer):
+        elif isinstance(operation, Analyzer):
             self._analyzers.remove(operation)
-        elif isinstance(operation, _Updater):
+        elif isinstance(operation, Updater):
             self._updaters.remove(operation)
-        elif isinstance(operation, _Tuner):
+        elif isinstance(operation, Tuner):
             self._tuners.remove(operation)
         else:
             raise TypeError(
