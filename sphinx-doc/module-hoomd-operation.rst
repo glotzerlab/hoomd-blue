@@ -1,5 +1,5 @@
 hoomd.operation
-------------
+---------------
 
 .. rubric:: Overview
 
