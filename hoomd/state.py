@@ -40,7 +40,7 @@ def _create_domain_decomposition(device, box):
 
 
 class State:
-    R"""The state of a `hoomd.Simulation` object.
+    """The state of a `hoomd.Simulation` object.
 
     Provides access (read/write) to a `hoomd.Simulation` object's particle,
     bond, angle, etc. data. Data access is facilitated through two complementary
@@ -98,13 +98,11 @@ class State:
         on a non-root rank.
 
         This property can be set to the state using an entirely new
-        `hoomd.Snapshot` object. If only changing a few properties of the
-        existing state, the local snapshot API is recommended.
-
-        Example use cases in which a simulation's state may be reset from a
-        snapshot include python-script-level Monte-Carlo schemes, where the
-        current snapshot is passed to the Monte-Carlo simulation before being
-        passed back after running some Monte-Carlo steps.
+        `hoomd.Snapshot` object.  Example use cases in which a simulation's
+        state may be reset from a snapshot include python-script-level
+        Monte-Carlo schemes, where the current snapshot is passed to the
+        Monte-Carlo simulation before being passed back after running some
+        Monte-Carlo steps.
 
         Warning:
             Using `State.snapshot` multiple times will gather data across MPI
@@ -112,10 +110,16 @@ class State:
             one use case store it in a variable.
 
         Note:
-            For performance critical usecases that don't benefit from having the
-            full aggregated data, the local snapshot API
+            For performance critical use cases that don't benefit from having
+            the full aggregated data, the local snapshot API
             (`State.cpu_local_snapshot` and `State.gpu_local_snapshot`) is
-            recommended.
+            recommended. This is most often the case when frequently accessing
+            and modifying the simulation data in Python in a
+            `hoomd.custom.Action`. In such scenarios, the local snapshot would
+            likely perform much better with the local snapshot API. Only a few
+            accesses or single extensive modifications would still be faster
+            using the local snapshot, but is likely not to matter given the time
+            of a typical simulation.
         """
         cpp_snapshot = self._cpp_sys_def.takeSnapshot_double()
         return Snapshot._from_cpp_snapshot(cpp_snapshot,
