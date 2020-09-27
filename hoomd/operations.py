@@ -167,6 +167,10 @@ class Operations(Collection):
         yield from chain(
             integrator, self._analyzers, self._updaters, self._tuners)
 
+    def __len__(self):
+        """Return the number of operations contained in this collection."""
+        return len(list(self))
+
     @property
     def scheduled(self):
         """bool: Whether `Operations.schedule` has been called and is in
