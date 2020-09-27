@@ -316,7 +316,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             ArrayHandle<Scalar> h_det_backup(determinant_backup, access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
 
-            hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::UpdaterShapeConstruct, m_seed, timestep, typ_i, n_type_select);
+            hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::UpdaterShapeConstruct, m_seed, timestep, typ_i, sweep);
             m_move_function->construct(timestep, typ_i, param, rng_i);
             h_det.data[typ_i] = m_move_function->getDeterminant(); // new determinant
             m_exec_conf->msg->notice(5) << " UpdaterShape I=" << h_det.data[typ_i] << ", " << h_det_backup.data[typ_i] << std::endl;
