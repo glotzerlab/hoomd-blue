@@ -163,7 +163,7 @@ class Operations(Collection):
 
     def __iter__(self):
         """Iterates through all contained operations."""
-        integrator = (self._integrator) if self._integrator else []
+        integrator = (self._integrator,) if self._integrator else []
         yield from chain(
             integrator, self._analyzers, self._updaters, self._tuners)
 
