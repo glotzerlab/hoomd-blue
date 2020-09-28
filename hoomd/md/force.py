@@ -39,8 +39,7 @@ class _Force(_HOOMDBaseObject):
 
     Note:
         :py:class:`_Force` is the base class for all loggable forces.
-        Users should not instantiate this class directly. Forces
-        documented here are available to all MD integrators.
+        Users should not instantiate this class directly.
 
     Initializes some loggable quantities.
     '''
