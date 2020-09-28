@@ -121,60 +121,6 @@ class MassProperties : public MassPropertiesBase<Shape>
             }
     };
 
-inline void normalizeInplace(vec3<Scalar>& v) { v /= sqrt(dot(v,v)); }
-
-inline vec3<Scalar> normalize(const vec3<Scalar>& v) { return v / sqrt(dot(v,v)); }
-// face is assumed to be an array of indices of triangular face of a convex body.
-// points may contain points inside or outside the body defined by faces.
-// faces may include faces that contain vertices that are inside the body.
-inline vec3<Scalar> getOutwardNormal(const std::vector< vec3<Scalar> >& points,
-                                     const vec3<Scalar>& inside_point,
-                                     const std::vector< std::vector<unsigned int> >& faces,
-                                     const unsigned int& faceid,
-                                     Scalar thresh = 0.0001)
-    {
-    const std::vector<unsigned int>& face = faces[faceid];
-    vec3<Scalar> a = points[face[0]], b = points[face[1]], c = points[face[2]];
-    vec3<Scalar> di = (inside_point - a), n;
-    n = cross((b - a),(c - a));
-    normalizeInplace(n);
-    Scalar d = dot(n, di);
-    if(fabs(d) < thresh)
-        throw(ShapeUtilError("ShapeUtils.h::getOutwardNormal -- inner point is in the plane"));
-    return (d > 0) ? -n : n;
-    }
-
-inline void sortFace(const std::vector< vec3<Scalar> >& points,
-                     const vec3<Scalar>& inside_point,
-                     std::vector< std::vector<unsigned int> >& faces,
-                     const unsigned int& faceid,
-                     Scalar thresh = 0.0001)
-    {
-    assert(faces[faceid].size() == 3);
-    vec3<Scalar> a = points[faces[faceid][0]],
-                 b = points[faces[faceid][1]],
-                 c = points[faces[faceid][2]],
-                 n = cross((b - a),(c - a)),
-                 nout = getOutwardNormal(points, inside_point, faces, faceid, thresh);
-    if (dot(nout, n) < 0)
-        std::reverse(faces[faceid].begin(), faces[faceid].end());
-    }
-
-inline void sortFaces(const std::vector< vec3<Scalar> >& points,
-                      std::vector< std::vector<unsigned int> >& faces,
-                      Scalar thresh = 0.0001)
-    {
-    vec3<Scalar> inside_point(0.0,0.0,0.0);
-    for(size_t i = 0; i < points.size(); i++)
-        {
-        inside_point += points[i];
-        }
-    inside_point /= Scalar(points.size());
-
-    for(unsigned int f = 0; f < faces.size(); f++ )
-        sortFace(points, inside_point, faces, f, thresh);
-    }
-
 
 template< >
 class MassProperties< ShapeConvexPolyhedron > : public MassPropertiesBase< ShapeConvexPolyhedron >
@@ -259,7 +205,6 @@ class MassProperties< ShapeConvexPolyhedron > : public MassPropertiesBase< Shape
                 p = getQuickHullVertsAndFaces(param);
                 points = p.first;
                 faces = p.second;
-                sortFaces(points, faces);
                 }
             else
                 {

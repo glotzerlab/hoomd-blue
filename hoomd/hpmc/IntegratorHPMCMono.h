@@ -241,7 +241,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
             return m_overlap_idx;
             }
 
-        //! Count overlaps with the option to exit early at the first detected overlap
+      //! Count overlaps with the option to exit early at the first detected overlap
         virtual unsigned int countOverlaps(unsigned int timestep, bool early_exit);
 
         //! Return a vector that is an unwrapped overlap map

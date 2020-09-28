@@ -8,8 +8,6 @@
 #include "hoomd/HOOMDMPI.h"
 #include "ShapeUtils.h"
 #include "ShapeMoves.h"
-
-// #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <pybind11/pybind11.h>
 
 namespace hpmc {
@@ -360,12 +358,6 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
 
         m_exec_conf->msg->notice(10) << "HPMCMono count overlaps: " << timestep << std::endl;
 
-        // if (!m_past_first_run)
-        //     {
-        //     m_exec_conf->msg->error() << "count_overlaps only works after a run() command" << std::endl;
-        //     throw std::runtime_error("Error communicating in count_overlaps");
-        //     }
-
         // build an up to date AABB tree
         const detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
         // update the image list
@@ -382,105 +374,95 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         // access parameters and interaction matrix
         ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
 
-        // Find indices of particles corresponding to n_types_select
-        std::vector<unsigned int> pindices;
+        // Loop over particles corresponding to n_type_select
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
             {
             Scalar4 postype_i = h_postype.data[i];
             int typ_i = __scalar_as_int(postype_i.w);
             for (unsigned int cur_type = 0; cur_type < n_type_select; cur_type++)
                 {
+                // Only check overlaps for particles of types specified by n_type_select
                 if (typ_i == m_update_order[cur_type])
                     {
-                    pindices.push_back(i);
-                    }
-                }
-            }
+                    // read in the current position and orientation
+                    Scalar4 orientation_i = h_orientation.data[i];
+                    Shape shape_i(quat<Scalar>(orientation_i), m_mc->getParams()[typ_i]);
+                    vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
+                    // Check particle against AABB tree for neighbors
+                    detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
 
-        // Loop over particles corresponding to n_types_select
-        for (unsigned int j = 0; j < pindices.size(); j++)
-            {
-            unsigned int i = pindices[j];
-            // read in the current position and orientation
-            Scalar4 postype_i = h_postype.data[i];
-            Scalar4 orientation_i = h_orientation.data[i];
-            unsigned int typ_i = __scalar_as_int(postype_i.w);
-            Shape shape_i(quat<Scalar>(orientation_i), m_mc->getParams()[typ_i]);
-            vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
-
-            // Check particle against AABB tree for neighbors
-            detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
-
-            const unsigned int n_images = image_list.size();
-            for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
-                {
-                vec3<Scalar> pos_i_image = pos_i + image_list[cur_image];
-                detail::AABB aabb = aabb_i_local;
-                aabb.translate(pos_i_image);
-
-                // stackless search
-                for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes(); cur_node_idx++)
-                    {
-                    if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                    const unsigned int n_images = image_list.size();
+                    for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                         {
-                        if (aabb_tree.isNodeLeaf(cur_node_idx))
+                        vec3<Scalar> pos_i_image = pos_i + image_list[cur_image];
+                        detail::AABB aabb = aabb_i_local;
+                        aabb.translate(pos_i_image);
+
+                        // stackless search
+                        for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes(); cur_node_idx++)
                             {
-                            for (unsigned int cur_p = 0; cur_p < aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
+                            if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb))
                                 {
-                                // read in its position and orientation
-                                unsigned int k = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
-
-                                // skip i==j in the 0 image
-                                if (cur_image == 0 && i == k)
-                                    continue;
-
-                                Scalar4 postype_k = h_postype.data[k];
-                                Scalar4 orientation_k = h_orientation.data[k];
-
-                                // put particles in coordinate system of particle i
-                                vec3<Scalar> r_ik = vec3<Scalar>(postype_k) - pos_i_image;
-
-                                unsigned int typ_k = __scalar_as_int(postype_k.w);
-                                Shape shape_k(quat<Scalar>(orientation_k), m_mc->getParams()[typ_k]);
-
-                                if (h_tag.data[i] <= h_tag.data[j]
-                                    && h_overlaps.data[overlap_idx(typ_i,typ_k)]
-                                    && check_circumsphere_overlap(r_ik, shape_i, shape_k)
-                                    && test_overlap(r_ik, shape_i, shape_k, err_count)
-                                    && test_overlap(-r_ik, shape_k, shape_i, err_count))
+                                if (aabb_tree.isNodeLeaf(cur_node_idx))
                                     {
-                                    overlap_count++;
-                                    if (early_exit)
+                                    for (unsigned int cur_p = 0; cur_p < aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
                                         {
-                                        // exit early from loop over neighbor particles
-                                        break;
+                                        // read in its position and orientation
+                                        unsigned int k = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
+
+                                        // skip i==j in the 0 image
+                                        if (cur_image == 0 && i == k)
+                                            continue;
+
+                                        Scalar4 postype_k = h_postype.data[k];
+                                        Scalar4 orientation_k = h_orientation.data[k];
+
+                                        // put particles in coordinate system of particle i
+                                        vec3<Scalar> r_ik = vec3<Scalar>(postype_k) - pos_i_image;
+
+                                        unsigned int typ_k = __scalar_as_int(postype_k.w);
+                                        Shape shape_k(quat<Scalar>(orientation_k), m_mc->getParams()[typ_k]);
+
+                                        if (h_overlaps.data[overlap_idx(typ_i,typ_k)]
+                                            && check_circumsphere_overlap(r_ik, shape_i, shape_k)
+                                            && test_overlap(r_ik, shape_i, shape_k, err_count)
+                                            && test_overlap(-r_ik, shape_k, shape_i, err_count))
+                                            {
+                                            overlap_count++;
+                                            if (early_exit)
+                                                {
+                                                // exit early from loop over neighbor particles
+                                                break;
+                                                }
+                                            }
                                         }
                                     }
                                 }
+                            else
+                                {
+                                // skip ahead
+                                cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
+                                }
+
+                            if (overlap_count && early_exit)
+                                {
+                                break;
+                                }
+                            } // end loop over AABB nodes
+
+                        if (overlap_count && early_exit)
+                            {
+                            break;
                             }
-                        }
-                    else
-                        {
-                        // skip ahead
-                        cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
-                        }
+                        } // end loop over images
 
                     if (overlap_count && early_exit)
                         {
                         break;
                         }
-                    } // end loop over AABB nodes
-
-                if (overlap_count && early_exit)
-                    {
-                    break;
                     }
-                } // end loop over images
-
-            if (overlap_count && early_exit)
-                {
-                break;
                 }
+
             } // end loop over particles
 
         if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
