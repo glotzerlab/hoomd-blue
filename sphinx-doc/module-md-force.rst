@@ -10,8 +10,6 @@ md.force
 
     _Force
     Active
-    constant
-    dipole
 
 .. rubric:: Details
 
