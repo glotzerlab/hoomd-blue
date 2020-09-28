@@ -55,7 +55,7 @@ from hoomd.logging import log
 class nlist:
     R""" 
 
-    Generates a class for other classes that have not been ported.
+    Obsolete parent class for neighbor list objects.
     """
     pass
 
@@ -124,7 +124,7 @@ class Cell(_NList):
 
     Args:
         buffer (float):  Buffer width.
-        exclusions (tuple): Excludes pairs from the neighbor list, which 
+        exclusions (tuple[str]): Excludes pairs from the neighbor list, which 
             excludes them from the pair potential calculation. 
         rebuild_check_delay (int): How often to attempt to rebuild the neighbor
             list.
@@ -152,7 +152,7 @@ class Cell(_NList):
 
     Examples::
 
-        nl_c = nlist.Cell(diameter_shift=True, nbuffer=0.5)
+        nl_c = nlist.Cell(diameter_shift=True, buffer=0.5)
         nl_c.max_diameter = 2.0
         slj = md.pair.SLJ(nl_c)
 
