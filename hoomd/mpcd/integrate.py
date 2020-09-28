@@ -52,7 +52,7 @@ class _bounce_back(hoomd.integrate._integration_method):
     Currently, there is no mechanism to share geometries between multiple instances of the same
     integration method.
 
-    A :py:class:`hoomd.compute.thermo` is automatically specified and associated with *group*.
+    A :py:class:`hoomd.md.compute.ThermodynamicQuantities` is automatically specified and associated with *group*.
 
     """
     def __init__(self, group):
