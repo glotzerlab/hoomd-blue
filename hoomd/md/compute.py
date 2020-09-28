@@ -23,7 +23,7 @@ class ThermodynamicQuantities(_Thermo):
 
     Args:
         filter (``hoomd.filter``): Particle filter to compute thermodynamic
-        properties for.
+            properties for.
 
     :py:class:`ThermodynamicQuantities` acts on a given group of particles and
     calculates thermodynamic properties of those particles when requested. All
