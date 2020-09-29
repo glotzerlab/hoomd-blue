@@ -1097,6 +1097,96 @@ void TwoStepNPTMTK::thermalizeExtraDOF(unsigned int seed, unsigned int timestep)
     setIntegratorVariables(v);
     }
 
+pybind11::tuple TwoStepNPTMTK::getTranslationalThermostatDOF()
+    {
+    pybind11::list result;
+    IntegratorVariables v = getIntegratorVariables();
+
+    for (size_t i = 0; i < 2; i++)
+        {
+        result.append(v.variable[i]);
+        }
+
+    return pybind11::tuple(result);
+    }
+
+void TwoStepNPTMTK::setTranslationalThermostatDOF(pybind11::tuple v)
+    {
+    if (pybind11::len(v) != 2)
+        {
+        throw std::length_error("translational_thermostat_dof must have length 2");
+        }
+
+    IntegratorVariables vars = getIntegratorVariables();
+
+    for (size_t i = 0; i < 2; i++)
+        {
+        vars.variable[i] = pybind11::cast<Scalar>(v[i]);
+        }
+
+    setIntegratorVariables(vars);
+    }
+
+pybind11::tuple TwoStepNPTMTK::getRotationalThermostatDOF()
+    {
+    pybind11::list result;
+    IntegratorVariables v = getIntegratorVariables();
+
+    for (size_t i = 0; i < 2; i++)
+        {
+        result.append(v.variable[i+8]);
+        }
+
+    return pybind11::tuple(result);
+    }
+
+void TwoStepNPTMTK::setRotationalThermostatDOF(pybind11::tuple v)
+    {
+    if (pybind11::len(v) != 2)
+        {
+        throw std::length_error("rotational_thermostat_dof must have length 2");
+        }
+
+    IntegratorVariables vars = getIntegratorVariables();
+
+    for (size_t i = 0; i < 2; i++)
+        {
+        vars.variable[i+8] = pybind11::cast<Scalar>(v[i]);
+        }
+
+    setIntegratorVariables(vars);
+    }
+
+pybind11::tuple TwoStepNPTMTK::getBarostatDOF()
+    {
+    pybind11::list result;
+    IntegratorVariables v = getIntegratorVariables();
+
+    for (size_t i = 0; i < 6; i++)
+        {
+        result.append(v.variable[i+2]);
+        }
+
+    return pybind11::tuple(result);
+    }
+
+void TwoStepNPTMTK::setBarostatDOF(pybind11::tuple v)
+    {
+    if (pybind11::len(v) != 6)
+        {
+        throw std::length_error("barostat_dof must have length 6");
+        }
+
+    IntegratorVariables vars = getIntegratorVariables();
+
+    for (size_t i = 0; i < 6; i++)
+        {
+        vars.variable[i+2] = pybind11::cast<Scalar>(v[i]);
+        }
+
+    setIntegratorVariables(vars);
+    }
+
 void export_TwoStepNPTMTK(py::module& m)
     {
     py::class_<TwoStepNPTMTK, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNPTMTK> > twostepnptmtk(m, "TwoStepNPTMTK");
@@ -1120,5 +1210,14 @@ void export_TwoStepNPTMTK(py::module& m)
         .def_property("rescale_all", &TwoStepNPTMTK::getRescaleAll, &TwoStepNPTMTK::setRescaleAll)
         .def_property("gamma", &TwoStepNPTMTK::getGamma, &TwoStepNPTMTK::setGamma)
         .def("thermalizeExtraDOF", &TwoStepNPTMTK::thermalizeExtraDOF)
+        .def_property("translational_thermostat_dof",
+                      &TwoStepNPTMTK::getTranslationalThermostatDOF,
+                      &TwoStepNPTMTK::setTranslationalThermostatDOF)
+        .def_property("rotational_thermostat_dof",
+                      &TwoStepNPTMTK::getRotationalThermostatDOF,
+                      &TwoStepNPTMTK::setRotationalThermostatDOF)
+        .def_property("barostat_dof",
+                      &TwoStepNPTMTK::getBarostatDOF,
+                      &TwoStepNPTMTK::setBarostatDOF)
         ;
     }

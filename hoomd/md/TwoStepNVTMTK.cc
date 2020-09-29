@@ -490,6 +490,66 @@ void TwoStepNVTMTK::thermalizeExtraDOF(unsigned int seed, unsigned int timestep)
     setIntegratorVariables(v);
     }
 
+pybind11::tuple TwoStepNVTMTK::getTranslationalThermostatDOF()
+    {
+    pybind11::list result;
+    IntegratorVariables v = getIntegratorVariables();
+
+    for (size_t i = 0; i < 2; i++)
+        {
+        result.append(v.variable[i]);
+        }
+
+    return pybind11::tuple(result);
+    }
+
+void TwoStepNVTMTK::setTranslationalThermostatDOF(pybind11::tuple v)
+    {
+    if (pybind11::len(v) != 2)
+        {
+        throw std::length_error("translational_thermostat_dof must have length 2");
+        }
+
+    IntegratorVariables vars = getIntegratorVariables();
+
+    for (size_t i = 0; i < 2; i++)
+        {
+        vars.variable[i] = pybind11::cast<Scalar>(v[i]);
+        }
+
+    setIntegratorVariables(vars);
+    }
+
+pybind11::tuple TwoStepNVTMTK::getRotationalThermostatDOF()
+    {
+    pybind11::list result;
+    IntegratorVariables v = getIntegratorVariables();
+
+    for (size_t i = 0; i < 2; i++)
+        {
+        result.append(v.variable[i+2]);
+        }
+
+    return pybind11::tuple(result);
+    }
+
+void TwoStepNVTMTK::setRotationalThermostatDOF(pybind11::tuple v)
+    {
+    if (pybind11::len(v) != 2)
+        {
+        throw std::length_error("rotational_thermostat_dof must have length 2");
+        }
+
+    IntegratorVariables vars = getIntegratorVariables();
+
+    for (size_t i = 0; i < 2; i++)
+        {
+        vars.variable[i+2] = pybind11::cast<Scalar>(v[i]);
+        }
+
+    setIntegratorVariables(vars);
+    }
+
 void export_TwoStepNVTMTK(py::module& m)
     {
     py::class_<TwoStepNVTMTK, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNVTMTK> >(m, "TwoStepNVTMTK")
@@ -505,5 +565,11 @@ void export_TwoStepNVTMTK(py::module& m)
         .def_property("kT", &TwoStepNVTMTK::getT, &TwoStepNVTMTK::setT)
         .def_property("tau", &TwoStepNVTMTK::getTau, &TwoStepNVTMTK::setTau)
         .def("thermalizeExtraDOF", &TwoStepNVTMTK::thermalizeExtraDOF)
+        .def_property("translational_thermostat_dof",
+                      &TwoStepNVTMTK::getTranslationalThermostatDOF,
+                      &TwoStepNVTMTK::setTranslationalThermostatDOF)
+        .def_property("rotational_thermostat_dof",
+                      &TwoStepNVTMTK::getRotationalThermostatDOF,
+                      &TwoStepNVTMTK::setRotationalThermostatDOF)
         ;
     }

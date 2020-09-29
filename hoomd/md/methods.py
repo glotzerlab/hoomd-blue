@@ -83,8 +83,14 @@ class NVT(_Method):
             filter=_ParticleFilter,
             kT=Variant,
             tau=float(tau),
+            translational_thermostat_dof=(float, float),
+            rotational_thermostat_dof=(float, float)
         )
-        param_dict.update(dict(kT=kT, filter=filter))
+        param_dict.update(
+            dict(kT=kT,
+                 filter=filter,
+                 translational_thermostat_dof=(0, 0),
+                 rotational_thermostat_dof=(0, 0)))
         # set defaults
         self._param_dict.update(param_dict)
 
@@ -260,10 +266,20 @@ class NPT(_Method):
             couple=str(couple),
             box_dof=(bool,)*6,
             rescale_all=bool(rescale_all),
-            gamma=float(gamma)
+            gamma=float(gamma),
+            translational_thermostat_dof=(float, float),
+            rotational_thermostat_dof=(float, float),
+            barostat_dof=(float, float, float, float, float, float)
             )
-        param_dict.update(dict(filter=filter, kT=kT, S=S,
-                                 couple=couple, box_dof=box_dof))
+        param_dict.update(
+            dict(filter=filter,
+                 kT=kT,
+                 S=S,
+                 couple=couple,
+                 box_dof=box_dof,
+                 translational_thermostat_dof=(0, 0),
+                 rotational_thermostat_dof=(0, 0),
+                 barostat_dof=(0, 0, 0, 0, 0, 0)))
 
         # set defaults
         self._param_dict.update(param_dict)

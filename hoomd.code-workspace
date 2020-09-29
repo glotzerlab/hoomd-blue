@@ -81,7 +81,8 @@
             "variant": "cpp",
             "*.cuh": "cpp",
             "*.in": "cpp",
-            "cfenv": "cpp"
+            "cfenv": "cpp",
+            "fft": "cpp"
         },
         "cSpell.words": [
             "GPUs",
