@@ -190,6 +190,5 @@ void export_IntegrationMethodTwoStep(py::module& m)
         #ifdef ENABLE_MPI
         .def("setCommunicator", &IntegrationMethodTwoStep::setCommunicator)
         #endif
-        .def("thermalizeExtraDOF", &IntegrationMethodTwoStep::thermalizeExtraDOF)
         ;
     }

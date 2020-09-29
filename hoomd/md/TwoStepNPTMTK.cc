@@ -1119,5 +1119,6 @@ void export_TwoStepNPTMTK(py::module& m)
         .def_property("box_dof", &TwoStepNPTMTK::getFlags, &TwoStepNPTMTK::setFlags)
         .def_property("rescale_all", &TwoStepNPTMTK::getRescaleAll, &TwoStepNPTMTK::setRescaleAll)
         .def_property("gamma", &TwoStepNPTMTK::getGamma, &TwoStepNPTMTK::setGamma)
+        .def("thermalizeExtraDOF", &TwoStepNPTMTK::thermalizeExtraDOF)
         ;
     }

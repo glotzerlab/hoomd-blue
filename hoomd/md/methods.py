@@ -29,29 +29,6 @@ class _Method(_HOOMDBaseObject):
         Users should use the subclasses and not instantiate `_Method` directly.
     """
 
-    def thermalize_extra_dof(self, seed):
-        """Set the extra degrees of freedom to random values.
-
-        Args:
-            seed (int): Random number seed
-
-        Some integration methods, such as `NVT` and `NPT` employ extra degrees
-        of freedom for the thermostat and/or barostat. `thermalize_extra_dof`
-        sets these to random values. This method performs no operation for
-        integration methods that lack internal degrees of freedom.
-
-        Note:
-            The seed for the pseudorandom number stream includes the
-            simulation timestep and the provided *seed*.
-        """
-
-        if not self._attached:
-            raise RuntimeError(
-                "Call Simulation.schedule before thermalize_extra_dof")
-
-        self._cpp_obj.thermalizeExtraDOF(seed, self._simulation.timestep)
-
-
 class NVT(_Method):
     R""" NVT Integration via the Nosé-Hoover thermostat.
 
@@ -131,6 +108,31 @@ class NVT(_Method):
                                  self.kT,
                                  "")
         super()._attach()
+
+
+    def thermalize_extra_dof(self, seed):
+        """Set the extra degrees of freedom to random values.
+
+        Args:
+            seed (int): Random number seed
+
+        Some integration methods, such as `NVT` and `NPT` employ extra degrees
+        of freedom for the thermostat and/or barostat. `thermalize_extra_dof`
+        sets these to random values. This method performs no operation for
+        integration methods that lack internal degrees of freedom.
+
+        Note:
+            The seed for the pseudorandom number stream includes the
+            simulation timestep and the provided *seed*.
+        """
+
+        if not self._attached:
+            raise RuntimeError(
+                "Call Simulation.operations.schedule before thermalize_extra_dof")
+
+        self._cpp_obj.thermalizeExtraDOF(seed, self._simulation.timestep)
+
+
 
 class NPT(_Method):
     R""" NPT Integration via MTK barostat-thermostat.
@@ -310,6 +312,31 @@ class NPT(_Method):
             return tuple(value)
         else:
             return (value,value,value,0,0,0)
+
+
+    def thermalize_extra_dof(self, seed):
+        """Set the extra degrees of freedom to random values.
+
+        Args:
+            seed (int): Random number seed
+
+        Some integration methods, such as `NVT` and `NPT` employ extra degrees
+        of freedom for the thermostat and/or barostat. `thermalize_extra_dof`
+        sets these to random values. This method performs no operation for
+        integration methods that lack internal degrees of freedom.
+
+        Note:
+            The seed for the pseudorandom number stream includes the
+            simulation timestep and the provided *seed*.
+        """
+
+        if not self._attached:
+            raise RuntimeError(
+                "Call Simulation.operations.schedule before thermalize_extra_dof")
+
+        self._cpp_obj.thermalizeExtraDOF(seed, self._simulation.timestep)
+
+
 
 class nph(NPT):
     R""" NPH Integration via MTK barostat-thermostat..

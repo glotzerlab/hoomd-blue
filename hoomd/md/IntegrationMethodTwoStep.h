@@ -230,15 +230,6 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
             return true;
             }
 
-        /** Thermalize the extra degrees of freedom in the method.
-
-            @param seed Random number seed
-            @param timestep The current simulation timestep
-        */
-        virtual void thermalizeExtraDOF(unsigned int seed, unsigned int timestep)
-            {
-            }
-
     protected:
         const std::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this method is associated with
         const std::shared_ptr<ParticleGroup> m_group;     //!< The group of particles this method works on
