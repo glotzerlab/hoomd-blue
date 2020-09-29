@@ -241,9 +241,9 @@ def test_writer_order_initial(simulation_factory,
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.analyzers.append(analyzer)
 
-    sim.run(500, check_writer_triggers_on_initial_step=True)
+    sim.run(500, write_at_start=True)
     assert record.steps == [0, 100, 200, 300, 400, 500]
-    sim.run(500, check_writer_triggers_on_initial_step=True)
+    sim.run(500, write_at_start=True)
     assert record.steps == [
         0,
         100,

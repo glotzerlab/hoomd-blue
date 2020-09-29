@@ -85,7 +85,7 @@ void System::setCommunicator(std::shared_ptr<Communicator> comm)
 
 // -------------- Methods for running the simulation
 
-void System::run(unsigned int nsteps, bool check_writer_triggers_on_initial_step)
+void System::run(unsigned int nsteps, bool write_at_start)
     {
     m_start_tstep = m_cur_tstep;
     m_end_tstep = m_cur_tstep + nsteps;
@@ -118,7 +118,7 @@ void System::run(unsigned int nsteps, bool check_writer_triggers_on_initial_step
         }
 
     // execute analyzers on initial step if requested
-    if (check_writer_triggers_on_initial_step)
+    if (write_at_start)
         {
         for (auto &analyzer_trigger_pair: m_analyzers)
             {

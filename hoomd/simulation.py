@@ -202,13 +202,13 @@ class Simulation(metaclass=Loggable):
             if value:
                 self._state._cpp_sys_def.getParticleData().setPressureFlag()
 
-    def run(self, steps, check_writer_triggers_on_initial_step=False):
+    def run(self, steps, write_at_start=False):
         """Advance the simulation a number of steps.
 
         Args:
             steps (int): Number of steps to advance the simulation.
 
-            check_writer_triggers_on_initial_step (bool): When True, writers
+            write_at_start (bool): When True, writers
                with triggers that evaluate True for the initial step will be
                exected before the time step loop.
 
@@ -219,7 +219,7 @@ class Simulation(metaclass=Loggable):
         state in the order: Tuners, Updaters, Integrator, then Writers following
         the logic in this pseudocode::
 
-            if check_writer_triggers_on_initial_step:
+            if write_at_start:
                 for writer in operations.writers:
                     if writer.trigger(timestep):
                         writer.write(timestep)
@@ -247,11 +247,11 @@ class Simulation(metaclass=Loggable):
         capture the final output of the last step of the run loop. For example,
         a writer with a trigger ``hoomd.trigger.Periodic(period=100, phase=0)``
         active during a ``run(500)`` would write on steps 100, 200, 300, 400,
-        and 500. Set ``check_writer_triggers_on_initial_step=True`` on the first
+        and 500. Set ``write_at_start=True`` on the first
         call to `run` to also obtain output at step 0.
 
         Warning:
-            Using ``check_writer_triggers_on_initial_step=True`` in subsequent
+            Using ``write_at_start=True`` in subsequent
             calls to `run` will result in duplicate output frames.
         """
         # check if initialization has occurred
@@ -260,7 +260,7 @@ class Simulation(metaclass=Loggable):
         if not self.operations.scheduled:
             self.operations.schedule()
 
-        self._cpp_sys.run(int(steps), check_writer_triggers_on_initial_step)
+        self._cpp_sys.run(int(steps), write_at_start)
 
     def write_debug_data(self, filename):
         """Write debug data to a JSON file.

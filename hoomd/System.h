@@ -96,10 +96,10 @@ class PYBIND11_EXPORT System
             and Analyzers who's triggers evaluate true.
 
             @param nsteps Number of steps to advance the simulation
-            @param check_writer_triggers_on_initial_step Set to true to evaluate writers before the
+            @param write_at_start Set to true to evaluate writers before the
                 loop
         */
-        void run(unsigned int nsteps, bool check_writer_triggers_on_initial_step=false);
+        void run(unsigned int nsteps, bool write_at_start=false);
 
         //! Configures profiling of runs
         void enableProfiler(bool enable);
