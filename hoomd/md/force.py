@@ -37,6 +37,10 @@ class _force():
 class _Force(_HOOMDBaseObject):
     '''Constructs the force.
 
+    Note:
+        :py:class:`_Force` is the base class for all loggable forces.
+        Users should not instantiate this class directly.
+
     Initializes some loggable quantities.
     '''
 
@@ -45,6 +49,7 @@ class _Force(_HOOMDBaseObject):
 
     @log
     def energy(self):
+        """float: Sum of the energy of the whole system."""
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.calcEnergySum()
@@ -53,6 +58,7 @@ class _Force(_HOOMDBaseObject):
 
     @log(flag='particle')
     def energies(self):
+        """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The energies for all particles."""
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getEnergies()
@@ -61,9 +67,7 @@ class _Force(_HOOMDBaseObject):
 
     @log(flag='particle')
     def forces(self):
-        """
-        The force for all particles.
-        """
+        """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The forces for all particles."""
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getForces()
@@ -72,9 +76,7 @@ class _Force(_HOOMDBaseObject):
 
     @log(flag='particle')
     def torques(self):
-        """
-        The torque for all particles.
-        """
+        """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The torque for all particles."""
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getTorques()
@@ -83,9 +85,7 @@ class _Force(_HOOMDBaseObject):
 
     @log(flag='particle')
     def virials(self):
-        R"""
-        The virial for the members in the group.
-        """
+        """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The virial for all particles."""
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getVirials()
