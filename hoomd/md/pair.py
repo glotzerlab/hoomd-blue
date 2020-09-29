@@ -890,8 +890,6 @@ class DPD(_Pair):
         dpd.params[('A', 'B')] = dict(A=40.0, gamma=4.5)
         dpd.params[('B', 'B')] = dict(A=25.0, gamma=4.5)
         dpd.params[(['A', 'B'], ['C', 'D'])] = dict(A=40.0, gamma=4.5)
-        nve = methods.NVE(filter=all)
-        integrator = Integrator(dt=0.005, methods=[nve], forces=[dpd])
 
     """
     _cpp_class_name = "PotentialPairDPDThermoDPD"
@@ -1064,8 +1062,6 @@ class DPDLJ(_Pair):
         dpdlj.params[('A', 'B')] = dict(epsilon=1.0, sigma=1.0, gamma=4.5)
         dpdlj.params[('B', 'B')] = dict(epsilon=1.0, sigma=1.0 gamma=4.5, r_cut=2.0**(1.0/6.0))
         dpdlj.params[(['A', 'B'], ['C', 'D'])] = dict(epsilon=3.0, sigma=1.0, gamma=1.2)
-        nve = methods.NVE(filter=all)
-        integrator = Integrator(dt=0.005, methods=[nve], forces=[dpdlj])
 
     """
     _cpp_class_name = "PotentialPairDPDLJThermoDPD"
