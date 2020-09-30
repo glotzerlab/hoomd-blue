@@ -1168,17 +1168,23 @@ class ForceShiftedLJ(_Pair):
         \Delta V(r) = -(r - r_{\mathrm{cut}}) \frac{\partial V_{\mathrm{LJ}}}{\partial r}(r_{\mathrm{cut}})
 
     See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use ``params`` dictionary to set potential coefficients.
+    Use `params` dictionary to set potential coefficients. The coefficients must be set per unique pair of particle types.
+      
+    Attributes:
+        params (TypeParameter[``particle_types``, dict]):
+            The ForceShiftedLJ potential parameters. The dictionary has the following keys:
 
-    The following coefficients must be set per unique pair of particle types:
+            * ``epsilon`` (``float``, **required**) - :math:`\varepsilon` (in energy units)
 
-    - :math:`\varepsilon` - *epsilon* (in energy units)
-    - :math:`\sigma` - *sigma* (in distance units)
-    - :math:`\alpha` - *alpha* (unitless) - *optional*: defaults to 1.0
-    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
-    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
+            * ``sigma`` (``float``, **required**) - :math:`\sigma` (in distance units)
+
+            * ``alpha`` (``float``, **optional**, defaults to 1.0) - :math:`\alpha` (unitless)
+
+            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+              - *optional*: defaults to the global r_cut specified in the pair command
+              
+            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+              - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
 
@@ -1225,17 +1231,23 @@ class Moliere(_Pair):
     - :math:`a_F` - *aF* - :math:`a_F = \frac{0.8853 a_0}{\left( \sqrt{Z_i} + \sqrt{Z_j} \right)^{2/3}}`, where :math:`a_0` is the Bohr radius (in distance units)
 
     See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use ``params`` dictionary to set potential coefficients.
+    Use `params` dictionary to set potential coefficients. The coefficients must be set per unique pair of particle types.
+      
+    Attributes:
+        params (TypeParameter[``particle_types``, dict]):
+            The Moliere potential parameters. The dictionary has the following keys:
 
-    The following coefficients must be set per unique pair of particle types:
+            * ``qi`` (``float``, **required**) - :math:`q_i = Z_i \frac{e}{\sqrt{4 \pi \epsilon_0}}` (in charge units)
 
-    - :math:`q_i` - *qi* - :math:`q_i = Z_i \frac{e}{\sqrt{4 \pi \epsilon_0}}` (in charge units)
-    - :math:`q_j` - *qj* - :math:`q_j = Z_j \frac{e}{\sqrt{4 \pi \epsilon_0}}` (in charge units)
-    - :math:`a_F` - *aF* - :math:`a_F = \frac{0.8853 a_0}{\left( \sqrt{Z_i} + \sqrt{Z_j} \right)^{2/3}}`
-    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
-    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
+            * ``qj`` (``float``, **required**) - :math:`q_j = Z_j \frac{e}{\sqrt{4 \pi \epsilon_0}}` (in charge units)
+
+            * ``aF`` (``float``, **required**) - :math:`a_F = \frac{0.8853 a_0}{\left( \sqrt{Z_i} + \sqrt{Z_j} \right)^{2/3}}`
+
+            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+              - *optional*: defaults to the global r_cut specified in the pair command
+              
+            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+              - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
 
