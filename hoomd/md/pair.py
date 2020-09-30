@@ -804,18 +804,23 @@ class Morse(_Pair):
         \end{eqnarray*}
 
     See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use ``params`` dictionary to set potential coefficients.
+    Use `params` dictionary to set potential coefficients. The coefficients must be set per unique pair of particle types.
 
-    The following coefficients must be set per unique pair of particle types:
+    Attributes:
+        params (TypeParameter[``particle_types``, dict]):
+            The Morse potential parameters. The dictionary has the following keys:
 
-    - :math:`D_0` - *D0*, depth of the potential at its minimum (in energy units)
-    - :math:`\alpha` - *alpha*, controls the width of the potential well (in units of 1/distance)
-    - :math:`r_0` - *r0*, position of the minimum (in distance units)
-    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
-    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
+            * ``D0`` (``float``, **required**) - depth of the potential at its minimum (in energy units)
 
+            * ``alpha`` (``float``, **required**) - controls the width of the potential well (in units of 1/distance)
+            
+            * ``r0`` (``float``, **required**) - position of the minimum (in distance units)
+
+            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+              - *optional*: defaults to the global r_cut specified in the pair command
+
+            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+              - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
 
@@ -889,20 +894,27 @@ class DPD(_Pair):
     details in HOOMD-blue. Cite it if you utilize the DPD functionality in your work.
 
     :py:class:`DPD` does not implement and energy shift / smoothing modes due to the function of the force.
-    Use ``params`` dictionary to set potential coefficients.
-
-    The following coefficients must be set per unique pair of particle types:
-
-    - :math:`A` - *A* (in force units)
-    - :math:`\gamma` - *gamma* (in units of force/velocity)
-    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
+    Use `params` dictionary to set potential coefficients. The coefficients must be set per unique pair of particle types.
 
     To use the DPD thermostat, an :py:class:`hoomd.md.methods.nve` integrator must be applied to the system and
     the user must specify a temperature.  Use of the dpd thermostat pair force with other integrators will result
     in unphysical behavior. To use pair.dpd with a different conservative potential than :math:`F_C`,
     set A to zero and define the conservative pair potential separately.  Note that DPD thermostats
     are often defined in terms of :math:`\sigma` where :math:`\sigma = \sqrt{2k_b\gamma T}`.
+    
+    Attributes:
+        params (TypeParameter[``particle_types``, dict]):
+            The DPD potential parameters. The dictionary has the following keys:
+
+            * ``A`` (``float``, **required**) - A (in force units)
+
+            * ``gamma`` (``float``, **required**) - :math:`\gamma` (in units of force/velocity)
+            
+            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+              - *optional*: defaults to the global r_cut specified in the pair command
+
+            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+              - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
 
