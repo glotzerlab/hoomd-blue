@@ -361,16 +361,16 @@ class SLJ(_Pair):
     same way it was set via the *max_diameter* property of the ``hoomd.md.nlist`` objects.
     
     Attributes:
-    params (TypeParameter[``particle_types``, dict]):
-        The SLJ potential parameters. The dictionary has the following keys:
+        params (TypeParameter[``particle_types``, dict]):
+            The SLJ potential parameters. The dictionary has the following keys:
 
-        * ``epsilon`` (``float``, **required**) - energy parameter (in energy units)
+            * ``epsilon`` (``float``, **required**) - energy parameter (in energy units)
 
-        * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
-          - *optional*: defaults to the global r_cut specified in the pair command
+            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+              - *optional*: defaults to the global r_cut specified in the pair command
 
-        * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
-          - *optional*: defaults to the global r_on specified in the pair command
+            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+              - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
 
@@ -428,18 +428,18 @@ class Yukawa(_Pair):
     Use `params` dictionary to set potential coefficients. The coefficients must be set per unique pair of particle types.
 
     Attributes:
-    params (TypeParameter[``particle_types``, dict]):
-        The Yukawa potential parameters. The dictionary has the following keys:
+        params (TypeParameter[``particle_types``, dict]):
+            The Yukawa potential parameters. The dictionary has the following keys:
 
-        * ``epsilon`` (``float``, **required**) - energy parameter (in energy units)
-        
-        * ``kappa`` (``float``, **required**) - scaling parameter (in units of 1/distance)
+            * ``epsilon`` (``float``, **required**) - energy parameter (in energy units)
 
-        * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
-          - *optional*: defaults to the global r_cut specified in the pair command
+            * ``kappa`` (``float``, **required**) - scaling parameter (in units of 1/distance)
 
-        * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
-          - *optional*: defaults to the global r_on specified in the pair command
+            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+              - *optional*: defaults to the global r_cut specified in the pair command
+
+            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+              - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
 
@@ -481,18 +481,21 @@ class Ewald(_Pair):
     The Ewald potential is designed to be used in conjunction with :py:class:`hoomd.md.charge.pppm`.
 
     See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use ``params`` dictionary to set potential coefficients.
+    Use `params` dictionary to set potential coefficients. The coefficients must be set per unique pair of particle types.
 
-    The following coefficients must be set per unique pair of particle types:
+    Attributes:
+        params (TypeParameter[``particle_types``, dict]):
+            The Ewald potential parameters. The dictionary has the following keys:
 
-    - :math:`\kappa` - *kappa* (Splitting parameter, in 1/distance units)
-    - :math:`\alpha` - *alpha* (Debye screening length, in 1/distance units)
-        .. versionadded:: 2.1
-    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
-    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
-      - *optional*: defaults to the global r_on specified in the pair command
+            * ``kappa`` (``float``, **required**) - Splitting parameter (in units of 1/distance)
 
+            * ``alpha`` (``float``, **required**) - Debye screening length (in units of 1/distance)
+
+            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+              - *optional*: defaults to the global r_cut specified in the pair command
+
+            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+              - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
 
