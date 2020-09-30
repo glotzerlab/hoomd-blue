@@ -913,9 +913,6 @@ class DPD(_Pair):
             * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
               - *optional*: defaults to the global r_cut specified in the pair command
 
-            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
-              - *optional*: defaults to the global r_on specified in the pair command
-
     Example::
 
         nl = nlist.Cell()
@@ -978,13 +975,16 @@ class DPDConservative(_Pair):
 
 
     :py:class:`DPDConservative` does not implement and energy shift / smoothing modes due to the function of the force.
-    Use ``params`` dictionary to set potential coefficients.
+    Use `params` dictionary to set potential coefficients. The coefficients must be set per unique pair of particle types.
+      
+    Attributes:
+        params (TypeParameter[``particle_types``, dict]):
+            The DPDConservative potential parameters. The dictionary has the following keys:
 
-    The following coefficients must be set per unique pair of particle types:
-
-    - :math:`A` - *A* (in force units)
-    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
+            * ``A`` (``float``, **required**) - A (in force units)
+            
+            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+              - *optional*: defaults to the global r_cut specified in the pair command
 
     Example::
 
@@ -1072,21 +1072,26 @@ class DPDLJ(_Pair):
     where :math:`\hat r_{ij}` is a normalized vector from particle i to particle j, :math:`v_{ij} = v_i - v_j`,
     and :math:`\theta_{ij}` is a uniformly distributed random number in the range [-1, 1].
 
-    Use ``params`` dictionary to set potential coefficients.
-
-    The following coefficients must be set per unique pair of particle types:
-
-    - :math:`\varepsilon` - *epsilon* (in energy units)
-    - :math:`\sigma` - *sigma* (in distance units)
-    - :math:`\alpha` - *alpha* (unitless)
-      - *optional*: defaults to 1.0
-    - :math:`\gamma` - *gamma* (in units of force/velocity)
-    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
+    Use `params` dictionary to set potential coefficients. The coefficients must be set per unique pair of particle types.
 
     To use the DPD thermostat, an :py:class:`hoomd.md.methods.nve` integrator must be applied to the system and
     the user must specify a temperature.  Use of the dpd thermostat pair force with other integrators will result
     in unphysical behavior.
+    
+    Attributes:
+        params (TypeParameter[``particle_types``, dict]):
+            The DPDLJ potential parameters. The dictionary has the following keys:
+
+            * ``epsilon`` (``float``, **required**) - :math:`\varepsilon` (in energy units)
+            
+            * ``sigma`` (``float``, **required**) - :math:`\sigma` (in distance units)
+            
+            * ``alpha`` (``float``, **optional**, defaults to 1.0) - :math:`\alpha` (unitless)
+            
+            * ``gamma`` (``float``, **required**) - :math:`\gamma` (in units of force/velocity)
+
+            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+              - *optional*: defaults to the global r_cut specified in the pair command
 
     Example::
 
