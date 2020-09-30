@@ -1102,10 +1102,11 @@ pybind11::tuple TwoStepNPTMTK::getTranslationalThermostatDOF()
     pybind11::list result;
     IntegratorVariables v = getIntegratorVariables();
 
-    for (size_t i = 0; i < 2; i++)
-        {
-        result.append(v.variable[i]);
-        }
+    Scalar &eta = v.variable[0];
+    Scalar &xi = v.variable[1];
+
+    result.append(xi);
+    result.append(eta);
 
     return pybind11::tuple(result);
     }
@@ -1119,10 +1120,11 @@ void TwoStepNPTMTK::setTranslationalThermostatDOF(pybind11::tuple v)
 
     IntegratorVariables vars = getIntegratorVariables();
 
-    for (size_t i = 0; i < 2; i++)
-        {
-        vars.variable[i] = pybind11::cast<Scalar>(v[i]);
-        }
+    Scalar &eta = vars.variable[0];
+    Scalar &xi = vars.variable[1];
+
+    xi = pybind11::cast<Scalar>(v[0]);
+    eta = pybind11::cast<Scalar>(v[1]);
 
     setIntegratorVariables(vars);
     }
@@ -1132,10 +1134,11 @@ pybind11::tuple TwoStepNPTMTK::getRotationalThermostatDOF()
     pybind11::list result;
     IntegratorVariables v = getIntegratorVariables();
 
-    for (size_t i = 0; i < 2; i++)
-        {
-        result.append(v.variable[i+8]);
-        }
+    Scalar &xi_rot = v.variable[8];
+    Scalar &eta_rot = v.variable[9];
+
+    result.append(xi_rot);
+    result.append(eta_rot);
 
     return pybind11::tuple(result);
     }
@@ -1149,10 +1152,11 @@ void TwoStepNPTMTK::setRotationalThermostatDOF(pybind11::tuple v)
 
     IntegratorVariables vars = getIntegratorVariables();
 
-    for (size_t i = 0; i < 2; i++)
-        {
-        vars.variable[i+8] = pybind11::cast<Scalar>(v[i]);
-        }
+    Scalar &xi_rot = vars.variable[8];
+    Scalar &eta_rot = vars.variable[9];
+
+    xi_rot = pybind11::cast<Scalar>(v[0]);
+    eta_rot = pybind11::cast<Scalar>(v[1]);
 
     setIntegratorVariables(vars);
     }
