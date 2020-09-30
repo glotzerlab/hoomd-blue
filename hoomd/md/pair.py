@@ -227,17 +227,23 @@ class LJ(_Pair):
         \end{eqnarray*}
 
     See :py:class:`_Pair` for details on how forces are calculated and the
-    available energy shifting and smoothing modes.  Use ``params`` dictionary
-    to set potential coefficients.
+    available energy shifting and smoothing modes.  Use `params` dictionary
+    to set potential coefficients. The coefficients must be set per 
+    unique pair of particle types.
+    
+    Attributes:
+        params (TypeParameter[``particle_types``, dict]):
+            The LJ potential parameters. The dictionary has the following keys:
 
-    The following coefficients must be set per unique pair of particle types:
-
-    - :math:`\varepsilon` - *epsilon* (in energy units)
-    - :math:`\sigma` - *sigma* (in distance units)
-    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
-    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
-      - *optional*: defaults to the global r_on specified in the pair command
+            * ``epsilon`` (``float``, **required**) - energy parameter (in energy units)
+            
+            * ``sigma`` (``float``, **required**) - particle size (in distance units)
+            
+            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+              - *optional*: defaults to the global r_cut specified in the pair command
+              
+            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+              - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
 
@@ -245,6 +251,7 @@ class LJ(_Pair):
         lj = pair.LJ(nl, r_cut=3.0)
         lj.params[('A', 'A')] = {'sigma': 1.0, 'epsilon': 1.0}
         lj.params[('A', 'B')] = dict(epsilon=2.0, sigma=1.0, r_cut=3.0, r_on=2.0)
+    
     """
     _cpp_class_name = "PotentialPairLJ"
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
@@ -277,17 +284,22 @@ class Gauss(_Pair):
         \end{eqnarray*}
 
     See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use ``params`` dictionary to set potential coefficients.
+    Use `params` dictionary to set potential coefficients. The coefficients must be set per unique pair of particle types.
 
-    The following coefficients must be set per unique pair of particle types:
+    Attributes:
+        params (TypeParameter[``particle_types``, dict]):
+            The Gauss potential parameters. The dictionary has the following keys:
 
-    - :math:`\varepsilon` - *epsilon* (in energy units)
-    - :math:`\sigma` - *sigma* (in distance units)
-    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
-    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
-      - *optional*: defaults to the global r_on specified in the pair command
-
+            * ``epsilon`` (``float``, **required**) - energy parameter (in energy units)
+            
+            * ``sigma`` (``float``, **required**) - particle size (in distance units)
+            
+            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+              - *optional*: defaults to the global r_cut specified in the pair command
+              
+            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+              - *optional*: defaults to the global r_on specified in the pair command
+              
     Example::
 
         nl = nlist.Cell()
@@ -328,17 +340,7 @@ class SLJ(_Pair):
     where :math:`\Delta = (d_i + d_j)/2 - 1` and :math:`d_i` is the diameter of particle :math:`i`.
 
     See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use ``params`` dictionary to set potential coefficients.
-
-    The following coefficients must be set per unique pair of particle types:
-
-    - :math:`\varepsilon` - *epsilon* (in energy units)
-    - :math:`\sigma` - *sigma* (in distance units)
-      - *optional*: defaults to 1.0
-    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
-    - :math:`r_{\mathrm{on}}` - *r_on* (in distance units)
-      - *optional*: defaults to the global r_on specified in the pair command
+    Use `params` dictionary to set potential coefficients. The coefficients must be set per unique pair of particle types.
 
     .. attention::
         Due to the way that pair.SLJ modifies the cutoff criteria, a shift_mode of *xplor* is not supported.
@@ -357,6 +359,18 @@ class SLJ(_Pair):
     If *max_diameter* is smaller than it should be, some particles will effectively have a smaller value of *r_cut*
     than was set and the simulation will be incorrect. *max_diameter* can be changed between runs in the
     same way it was set via the *max_diameter* property of the ``hoomd.md.nlist`` objects.
+    
+    Attributes:
+    params (TypeParameter[``particle_types``, dict]):
+        The SLJ potential parameters. The dictionary has the following keys:
+
+        * ``epsilon`` (``float``, **required**) - energy parameter (in energy units)
+
+        * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+          - *optional*: defaults to the global r_cut specified in the pair command
+
+        * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+          - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
 
@@ -411,16 +425,21 @@ class Yukawa(_Pair):
         \end{eqnarray*}
 
     See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use ``params`` dictionary to set potential coefficients.
+    Use `params` dictionary to set potential coefficients. The coefficients must be set per unique pair of particle types.
 
-    The following coefficients must be set per unique pair of particle types:
+    Attributes:
+    params (TypeParameter[``particle_types``, dict]):
+        The Yukawa potential parameters. The dictionary has the following keys:
 
-    - :math:`\varepsilon` - *epsilon* (in energy units)
-    - :math:`\kappa` - *kappa* (in units of 1/distance)
-    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
-    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
-      - *optional*: defaults to the global r_on specified in the pair command
+        * ``epsilon`` (``float``, **required**) - energy parameter (in energy units)
+        
+        * ``kappa`` (``float``, **required**) - scaling parameter (in units of 1/distance)
+
+        * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+          - *optional*: defaults to the global r_cut specified in the pair command
+
+        * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+          - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
 
