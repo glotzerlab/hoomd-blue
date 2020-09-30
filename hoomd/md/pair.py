@@ -1272,17 +1272,26 @@ class ZBL(_Pair):
     See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
     Use ``params`` dictionary to set potential coefficients.
 
-    The following coefficients must be set per unique pair of particle types:
+    Use ``params`` dictionary to set potential coefficients. The coefficients must be set per unique pair of particle types.
 
-    - :math:`q_i` - *qi* - :math:`q_i=Z_i \frac{e}{\sqrt{4 \pi \epsilon_0}}` (in charge units)
-    - :math:`q_j` - *qj* - :math:`q_j=Z_j \frac{e}{\sqrt{4 \pi \epsilon_0}}` (in charge units)
-    - :math:`a_F` - *aF* - :math:`a_F = \frac{0.8853 a_0}{ Z_i^{0.23} + Z_j^{0.23} }`
-    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
-    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
+    Attributes:
+        params (TypeParameter[``particle_types``, dict]):
+            The ZBL potential parameters. The dictionary has the following keys:
 
-    Example::
+            * ``q_i`` (``float``, **required**) - :math:`q_i=Z_i \frac{e}{\sqrt{4 \pi \epsilon_0}}` (in charge units)
+            
+            * ``q_j`` (``float``, **required**) - :math:`q_j=Z_j \frac{e}{\sqrt{4 \pi \epsilon_0}}` (in charge units)
+
+
+            * ``a_F`` (``float``, **required**) - :math:`a_F = \frac{0.8853 a_0}{ Z_i^{0.23} + Z_j^{0.23} }`
+
+            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+              - *optional*: defaults to the global r_cut specified in the pair command
+              
+            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+              - *optional*: defaults to the global r_on specified in the pair command
+
+        Example::
 
         nl = nlist.Cell()
         zbl = pair.ZBL(r_cut = 3.0, nlist=nl)
@@ -1466,6 +1475,25 @@ class revcross(pair):
         Choosing :math:`\lambda=1` pushes the system towards clusterization because the three-body term is not enough to
         compensate the energy of multiple bonds, so it may cause unphysical situations.
 
+    Use ``params`` dictionary to set potential coefficients. The coefficients must be set per unique pair of particle types.
+
+    Attributes:
+        params (TypeParameter[``particle_types``, dict]):
+            The revcross potential parameters. The dictionary has the following keys:
+
+            * ``epsilon`` (``float``, **required**) - (in units of energy)
+            
+            * ``sigma`` (``float``, **required**) - (in distance units)
+
+            * ``n`` (``float``, **required**) - (unitless)
+
+            * ``lambda3`` (``float``, **required**) - (unitless)
+
+            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+              - *optional*: defaults to the global r_cut specified in the pair command
+              
+            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+              - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
 
@@ -1535,18 +1563,26 @@ class Mie(_Pair):
         \end{eqnarray*}
 
     See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use ``params`` dictionary to set potential coefficients.
+    
+    Use ``params`` dictionary to set potential coefficients. The coefficients must be set per unique pair of particle types.
 
-    The following coefficients must be set per unique pair of particle types:
+    Attributes:
+        params (TypeParameter[``particle_types``, dict]):
+            The ReactionField potential parameters. The dictionary has the following keys:
 
-    - :math:`\varepsilon` - *epsilon* (in energy units)
-    - :math:`\sigma` - *sigma* (in distance units)
-    - :math:`n` - *n* (unitless)
-    - :math:`m` - *m* (unitless)
-    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
-    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
+            * ``epsilon`` (``float``, **required**) - (in units of energy)
+            
+            * ``sigma`` (``float``, **required**) - (in distance units)
+
+            * ``n`` (``float``, **required**) - (unitless)
+
+            * ``m`` (``float``, **required**) - (unitless)
+
+            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+              - *optional*: defaults to the global r_cut specified in the pair command
+              
+            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+              - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
 
@@ -1735,15 +1771,23 @@ class gb(ai_pair):
     The quantities :math:`\ell_\parallel` and :math:`\ell_\perp` denote the semi-axis lengths parallel
     and perpendicular to particle orientation.
 
-    Use ``params`` dictionary to set potential coefficients.
+    Use ``params`` dictionary to set potential coefficients. The coefficients must be set per unique pair of particle types.
 
-    The following coefficients must be set per unique pair of particle types:
+    Attributes:
+        params (TypeParameter[``particle_types``, dict]):
+            The Gay-Berne potential parameters. The dictionary has the following keys:
 
-    - :math:`\varepsilon` - *epsilon* (in energy units)
-    - :math:`\ell_\perp` - *lperp* (in distance units)
-    - :math:`\ell_\parallel` - *lpar* (in distance units)
-    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
+            * ``epsilon`` (``float``, **required**) - (in units of energy)
+            
+            * ``lperp`` (``float``, **required**) - (in distance units)
+
+            * ``lpar`` (``float``, **required**) - (in distance units)
+
+            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+              - *optional*: defaults to the global r_cut specified in the pair command
+              
+            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+              - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
 
@@ -1821,17 +1865,23 @@ class dipole(ai_pair):
 
     See :py:class:`_Pair` for details on how forces are calculated and the
     available energy shifting and smoothing modes.  Use ``params`` dictionary
-    to set potential coefficients.
+    to set potential coefficients. The coefficients must be set per unique pair of particle types.
 
-    The following coefficients must be set per unique pair of particle types:
+    Attributes:
+        params (TypeParameter[``particle_types``, dict]):
+            The dipole potential parameters. The dictionary has the following keys:
 
-    - mu - magnitude of :math:`\vec{\mu} = \mu (1, 0, 0)` in the particle local reference frame
-    - A - electrostatic energy scale :math:`A` (default value 1.0)
-    - kappa - inverse screening length :math:`\kappa`
-    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
-      - *optional*: defaults to the global r_on specified in the pair command
-    - :math:`r_{\mathrm{cut}}` - *r_cut* (in units of distance)
-      - *optional*: defaults to the global r_cut specified in the pair command
+            * ``A`` (``float``, **optional**) - electrostatic energy scale (*default*: 1.0)
+            
+            * ``mu`` (``float``, **required**) - magnitude of :math:`\vec{\mu} = \mu (1, 0, 0)` in the particle local reference frame
+
+            * ``kappa`` (``float``, **required**) - inverse screening length
+
+            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+              - *optional*: defaults to the global r_cut specified in the pair command
+              
+            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+              - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
 
@@ -1915,18 +1965,23 @@ class ReactionField(_Pair):
 
     See :py:class:`_Pair` for details on how forces are calculated and the
     available energy shifting and smoothing modes.  Use ``params`` dictionary
-    to set potential coefficients.
+    to set potential coefficients. The coefficients must be set per unique pair of particle types.
 
-    The following coefficients must be set per unique pair of particle types:
+    Attributes:
+        params (TypeParameter[``particle_types``, dict]):
+            The ReactionField potential parameters. The dictionary has the following keys:
 
-    - :math:`\varepsilon` - *epsilon* (in units of energy*distance)
-    - :math:`\epsilon_{RF}` - *eps_rf* (dimensionless)
-    - :math:`r_{\mathrm{cut}}` - *r_cut* (in units of distance)
-      - *optional*: defaults to the global r_cut specified in the pair command
-    - :math:`r_{\mathrm{on}}` - *r_on* (in units of distance)
-      - *optional*: defaults to the global r_cut specified in the pair command
-    - *use_charge* (boolean), evaluate potential using particle charges
-      - *optional*: defaults to False
+            * ``epsilon`` (``float``, **required**) - (in units of energy*distance)
+            
+            * ``eps_rf`` (``float``, **required**) - (dimensionless)
+
+            * ``use_charge`` (``boolean``, **optional**) - evaluate pair potntial using particle charges (*default*: False)
+
+            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+              - *optional*: defaults to the global r_cut specified in the pair command
+              
+            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+              - *optional*: defaults to the global r_on specified in the pair command
 
     .. versionadded:: 2.2
     .. versionchanged:: 2.2
@@ -2057,14 +2112,21 @@ class square_density(pair):
 
     .. math:: n_i = \sum\limits_{j\neq i} w_{ij}\left(\big| \vec r_i - \vec r_j \big|\right)
 
-    The following coefficients must be set per unique pair of particle types:
+    Use `params` dictionary to set potential coefficients. The coefficients must be set per unique pair of particle types.
 
-    - :math:`A` - *A* (in units of volume^-1) - mean density (*default*: 0)
-    - :math:`B` - *B* (in units of energy*volume^2) - coefficient of the harmonic density term
-    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
-    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
+    Attributes:
+        params (TypeParameter[``particle_types``, dict]):
+            The square_density potential parameters. The dictionary has the following keys:
+
+            * ``A`` (``float``, **required**) - mean density (in units of volume^-1, *default*:0)
+            
+            * ``B`` (``float``, **required**) - coefficient of the harmonic density term (in units of energy*volume^2)
+            
+            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+              - *optional*: defaults to the global r_cut specified in the pair command
+              
+            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+              - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
 
@@ -2137,15 +2199,23 @@ class Buckingham(_Pair):
     available energy shifting and smoothing modes.  Use ``params`` dictionary
     to set potential coefficients.
 
-    The following coefficients must be set per unique pair of particle types:
+    Use `params` dictionary to set potential coefficients. The coefficients must be set per unique pair of particle types.
 
-    - :math:`A` - *A* (in energy units)
-    - :math:`\rho` - *rho* (in distance units)
-    - :math:`C` - *C* (in energy * distance**6 units )
-    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
-    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
+    Attributes:
+        params (TypeParameter[``particle_types``, dict]):
+            The Buckingham potential parameters. The dictionary has the following keys:
+
+            * ``A`` (``float``, **required**) - (in energy units)
+            
+            * ``rho`` (``float``, **required**) - (in distance units)
+
+            * ``C`` (``float``, **required**) - (in energy units)
+            
+            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+              - *optional*: defaults to the global r_cut specified in the pair command
+              
+            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+              - *optional*: defaults to the global r_on specified in the pair command
 
     .. versionadded:: 2.2
     .. versionchanged:: 2.2
@@ -2194,14 +2264,21 @@ class LJ1208(_Pair):
     available energy shifting and smoothing modes.  Use ``params`` dictionary
     to set potential coefficients.
 
-    The following coefficients must be set per unique pair of particle types:
+    Use `params` dictionary to set potential coefficients. The coefficients must be set per unique pair of particle types.
 
-    - :math:`\varepsilon` - *epsilon* (in energy units)
-    - :math:`\sigma` - *sigma* (in distance units)
-    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
-    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
-      - *optional*: defaults to the global r_on specified in the pair command
+    Attributes:
+        params (TypeParameter[``particle_types``, dict]):
+            The LJ1208 potential parameters. The dictionary has the following keys:
+
+            * ``epsilon`` (``float``, **required**) - energy parameter (in energy units)
+            
+            * ``sigma`` (``float``, **required**) - particle size (in distance units)
+            
+            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+              - *optional*: defaults to the global r_cut specified in the pair command
+              
+            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+              - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
 
@@ -2252,16 +2329,19 @@ class Fourier(_Pair):
         is calculated to enforce close to zero value at r_cut.
 
     See :py:class:`_Pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use ``params`` dictionary to set potential coefficients.
+    Use `params` dictionary to set potential coefficients. The coefficients must be set per unique pair of particle types.
 
-    The following coefficients must be set per unique pair of particle types:
+    Attributes:
+        params (TypeParameter[``particle_types``, dict]):
+            The Fourier potential parameters. The dictionary has the following keys:
 
-    - :math:`a` - *a* (array of 3 values corresponding to a2, a3 and a4 in the Fourier series, unitless)
-    - :math:`a` - *b* (array of 3 values corresponding to b2, b3 and b4 in the Fourier series, unitless)
-    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
-    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
+            * ``a`` (``float``, **required**) - array of 3 values corresponding to a2, a3 and a4 in the Fourier series, unitless)            
+            * ``b`` (``float``, **required**) - array of 3 values corresponding to b2, b3 and b4 in the Fourier series, unitless)            
+            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+              - *optional*: defaults to the global r_cut specified in the pair command
+              
+            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+              - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
 
