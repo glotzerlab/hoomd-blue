@@ -51,9 +51,9 @@ class NVT(_Method):
     where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is
     the set point (*kT* above).
 
-    .. rubric:: Rotational degrees of freedom
+    .. todo:: Rotational degrees of freedom
 
-    `NVT` integrates rotational degrees of freedom. #TODO
+        `NVT` integrates rotational degrees of freedom. 
 
     Examples::
 
@@ -117,7 +117,7 @@ class NPT(_Method):
 
         tau (`float`): Coupling constant for the thermostat (in time units).
 
-        S (`list` of `hoomd.variant.Variant` or `float`): Stress components set 
+        S (`list` [`hoomd.variant.Variant`] or `float`): Stress components set 
             point for the barostat (in pressure units).
             In Voigt notation: [Sxx, Syy, Szz, Syz, Sxz, Sxy]. 
             In case of isotropic pressure P ( [ p, p, p, 0, 0, 0]), use S = p.
@@ -127,7 +127,7 @@ class NPT(_Method):
         couple (`str`): Couplings of diagonal elements of the stress tensor, 
             can be "none", "xy", "xz","yz", or "all", default to "all".
 
-        box_dof(`list`): Box degrees of freedom with six boolean elements 
+        box_dof(`list` ['bool']): Box degrees of freedom with six boolean elements 
             corresponding to x, y, z, xy, xz, yz, each. Default to 
             [True,True,True,False,False,False]). If turned on to True, 
             rescale corresponding lengths or tilt factors and components of 
@@ -179,7 +179,7 @@ class NPT(_Method):
     velocities.
 
     By default, the x, y, and z degrees of freedom are updated. 
-    [True,True,True,False,False,False]
+    ``[True,True,True,False,False,False]``
 
     Note:
         If any of the diagonal x, y, z degrees of freedom is not being 
@@ -240,7 +240,10 @@ class NPT(_Method):
 
         S (List[hoomd.variant.Variant]): Stress components set 
             point for the barostat (in pressure units).
-            In Voigt notation: [Sxx, Syy, Szz, Syz, Sxz, Sxy].
+            In Voigt notation: [Sxx, Syy, Szz, Syz, Sxz, Sxy]. Stress can be 
+            reset after method object is created. For example, An isoropic 
+            pressure can be set after method object is created, such as 
+            ``npt.S = 4.``
 
         tauS (float): Coupling constant for the barostat (in time units).
 
@@ -579,12 +582,6 @@ class Langevin(_Method):
             rotational drag coefficient can be set. The type of ``gamma_r``
             parameter is a tuple of three float. The type of each element of 
             tuple is either positive float or zero.
-
-        tally_reservoir_energy (bool): If true, the energy exchange
-            between the thermal reservoir and the particles is tracked. Total
-            energy conservation can then be monitored by adding 
-            ``langevin_reservoir_energy_groupname`` to the logged quantities. 
-            Defaults to False.
 
     """
 
