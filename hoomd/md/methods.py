@@ -56,8 +56,8 @@ class NVT(_Method):
         Coupling constant `tau` in Nosé-Hoover thermostat should be set within 
         reasonable range to avoid abrupt fluctuation in temperature in case of 
         small `tau` , also to avoid long time to equilibrate in case of large 
-        `tau`. Recommended value for most of systems is 100 time steps. In time 
-        units, 100 * ``dt``, where ``dt`` is the length of the time step.
+        `tau`. Recommended value for most of systems is ``100 * dt``, where 
+        ``dt`` is the length of the time step.
 
     .. todo:: Rotational degrees of freedom
 
@@ -71,7 +71,7 @@ class NVT(_Method):
 
     Attributes:
         filter (hoomd.filter._ParticleFilter): Subset of particles on which to 
-        apply this method.
+            apply this method.
 
         kT (hoomd.variant.Variant): Temperature set point
             for the Nosé-Hoover thermostat. (in energy units).
@@ -125,18 +125,19 @@ class NPT(_Method):
 
         tau (`float`): Coupling constant for the thermostat (in time units).
 
-        S (`list` [`hoomd.variant.Variant`] or `float`): Stress components set 
+        S (`list` [ `hoomd.variant.Variant` ] or `float`): Stress components set 
             point for the barostat (in pressure units).
-            In Voigt notation: [Sxx, Syy, Szz, Syz, Sxz, Sxy]. 
-            In case of isotropic pressure P ( [ p, p, p, 0, 0, 0]), use S = p.
+            In Voigt notation: 
+            :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`. 
+            In case of isotropic pressure P ([p, p, p, 0, 0, 0]), use S = p.
 
         tauS (`float`): Coupling constant for the barostat (in time units).
 
         couple (`str`): Couplings of diagonal elements of the stress tensor, 
             can be "none", "xy", "xz","yz", or "all", default to "all".
 
-        box_dof(`list` ['bool']): Box degrees of freedom with six boolean elements 
-            corresponding to x, y, z, xy, xz, yz, each. Default to 
+        box_dof(`list` [ `bool` ]): Box degrees of freedom with six boolean 
+            elements corresponding to x, y, z, xy, xz, yz, each. Default to 
             [True,True,True,False,False,False]). If turned on to True, 
             rescale corresponding lengths or tilt factors and components of 
             particle coordinates and velocities.
@@ -227,8 +228,8 @@ class NPT(_Method):
         range for pressure and volume to fluctuate in reasonable rate and 
         equilibrate. Too small `tauS` can cause abrupt fluctuation, whereas too 
         large `tauS` would take long time to equilibrate. In most of systems, 
-        recommended value for `tauS` is around 1000 timesteps. In time units,
-        1000 * ``dt``, where ``dt`` is the length of the time step.
+        recommended value for `tauS` is ``1000 * dt``, where ``dt`` is the 
+        length of the time step.
 
     Examples::
 
@@ -256,10 +257,10 @@ class NPT(_Method):
 
         S (List[hoomd.variant.Variant]): Stress components set 
             point for the barostat (in pressure units).
-            In Voigt notation: [Sxx, Syy, Szz, Syz, Sxz, Sxy]. Stress can be 
-            reset after method object is created. For example, An isoropic 
-            pressure can be set after method object is created, such as 
-            ``npt.S = 4.``
+            In Voigt notation, 
+            :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`. Stress can
+            be reset after method object is created. For example, An isoropic 
+            pressure can be set by ``npt.S = 4.``
 
         tauS (float): Coupling constant for the barostat (in time units).
 
