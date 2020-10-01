@@ -80,11 +80,13 @@ class Operations(Collection):
         `Operations` instance.
 
         Args:
-            operation (``operation``): A HOOMD-blue updater, analyzer, compute,
-                tuner, or integrator to add to the collection.
+            operation (`hoomd.operation._Operation`): A HOOMD-blue updater,
+                analyzer, compute, tuner, or integrator to add to the
+                collection.
 
         Raises:
-            ValueError: If ``operation`` already belongs to this or another `Operations` instance.
+            ValueError: If ``operation`` already belongs to this or another
+                `Operations` instance.
             TypeError: If ``operation`` is not of a valid type.
 
         Note:
@@ -177,7 +179,7 @@ class Operations(Collection):
 
     @property
     def integrator(self):
-        """``Integrator``: An MD or HPMC integrator object.
+        """`hoomd.integrate._BaseIntegrator`: An MD or HPMC integrator object.
 
         `Operations` objects have an initial ``integrator`` property of
         ``None``. Can be set to MD or HPMC integrators. The property can also be
@@ -239,8 +241,8 @@ class Operations(Collection):
         """Works the same as `Operations.add`.
 
         Args:
-            operation (``operation``): A HOOMD-blue updater, analyzer, compute,
-                tuner, or integrator to add to the object.
+            operation (`hoomd.operation._Operation`): A HOOMD-blue updater,
+                analyzer, compute, tuner, or integrator to add to the object.
         """
         self.add(operation)
         return self
@@ -254,8 +256,9 @@ class Operations(Collection):
         of a Python object id.
 
         Args:
-            operation (``operation``): A HOOMD-blue integrator, updater,
-                analyzer, tuner, or compute, to remove from the container.
+            operation (`hoomd.operation._Operation`): A HOOMD-blue integrator,
+                updater, analyzer, tuner, or compute, to remove from the
+                container.
 
         Raises:
             ValueError: If ``operation`` is not found in this container.
@@ -277,8 +280,9 @@ class Operations(Collection):
         """Works the same as `Operations.remove`.
 
         Args:
-            operation (``operation``): A HOOMD-blue integrator, updater,
-                analyzer, tuner, or compute to remove from the collection.
+            operation (`hoomd.operation._Operation`): A HOOMD-blue integrator,
+                updater, analyzer, tuner, or compute to remove from the
+                collection.
         """
         self.remove(operation)
         return self
