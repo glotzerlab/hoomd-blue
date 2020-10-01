@@ -235,14 +235,14 @@ class LJ(_Pair):
         params (TypeParameter[``particle_types``, dict]):
             The LJ potential parameters. The dictionary has the following keys:
 
-            * ``epsilon`` (``float``, **required**) - :math:`\varepsilon` - energy parameter (in energy units)
+            * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` - energy parameter (in energy units)
             
-            * ``sigma`` (``float``, **required**) - :math:`\sigma` - particle size (in distance units)
+            * ``sigma`` (`float`, **required**) - :math:`\sigma` - particle size (in distance units)
             
-            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+            * ``r_cut`` (`float`, **optional**) - *r_cut* (in distance units) 
               - *optional*: defaults to the global r_cut specified in the pair command
               
-            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+            * ``r_on`` (`float`, **optional**) - *r_on* (in distance units) 
               - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
@@ -251,7 +251,7 @@ class LJ(_Pair):
         lj = pair.LJ(nl, r_cut=3.0)
         lj.params[('A', 'A')] = {'sigma': 1.0, 'epsilon': 1.0}
         lj.params[('A', 'B')] = dict(epsilon=2.0, sigma=1.0, r_cut=3.0, r_on=2.0)
-    
+
     """
     _cpp_class_name = "PotentialPairLJ"
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
@@ -290,14 +290,14 @@ class Gauss(_Pair):
         params (TypeParameter[``particle_types``, dict]):
             The Gauss potential parameters. The dictionary has the following keys:
 
-            * ``epsilon`` (``float``, **required**) - :math:`\varepsilon` - energy parameter (in energy units)
+            * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` - energy parameter (in energy units)
             
-            * ``sigma`` (``float``, **required**) - :math:`\sigma` - particle size (in distance units)
+            * ``sigma`` (`float`, **required**) - :math:`\sigma` - particle size (in distance units)
             
-            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+            * ``r_cut`` (`float`, **optional**) - *r_cut* (in distance units) 
               - *optional*: defaults to the global r_cut specified in the pair command
               
-            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+            * ``r_on`` (`float`, **optional**) - *r_on* (in distance units) 
               - *optional*: defaults to the global r_on specified in the pair command
               
     Example::
@@ -364,14 +364,14 @@ class SLJ(_Pair):
         params (TypeParameter[``particle_types``, dict]):
             The SLJ potential parameters. The dictionary has the following keys:
 
-            * ``epsilon`` (``float``, **required**) - :math:`\varepsilon` - energy parameter (in energy units)
+            * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` - energy parameter (in energy units)
 
-            * ``sigma`` (``float``, **required**) - :math:`\sigma` - particle size (in distance units)
+            * ``sigma`` (`float`, **required**) - :math:`\sigma` - particle size (in distance units)
  
-            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+            * ``r_cut`` (`float`, **optional**) - *r_cut* (in distance units) 
               - *optional*: defaults to the global r_cut specified in the pair command
 
-            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+            * ``r_on`` (`float`, **optional**) - *r_on* (in distance units) 
               - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
@@ -433,14 +433,14 @@ class Yukawa(_Pair):
         params (TypeParameter[``particle_types``, dict]):
             The Yukawa potential parameters. The dictionary has the following keys:
 
-            * ``epsilon`` (``float``, **required**) - :math:`\varepsilon` - energy parameter (in energy units)
+            * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` - energy parameter (in energy units)
 
-            * ``kappa`` (``float``, **required**) - :math:`\kappa` - scaling parameter (in units of 1/distance)
+            * ``kappa`` (`float`, **required**) - :math:`\kappa` - scaling parameter (in units of 1/distance)
 
-            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+            * ``r_cut`` (`float`, **optional**) - *r_cut* (in distance units) 
               - *optional*: defaults to the global r_cut specified in the pair command
 
-            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+            * ``r_on`` (`float`, **optional**) - *r_on* (in distance units) 
               - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
@@ -489,14 +489,14 @@ class Ewald(_Pair):
         params (TypeParameter[``particle_types``, dict]):
             The Ewald potential parameters. The dictionary has the following keys:
 
-            * ``kappa`` (``float``, **required**) - :math:`\kappa` - Splitting parameter (in units of 1/distance)
+            * ``kappa`` (`float`, **required**) - :math:`\kappa` - Splitting parameter (in units of 1/distance)
 
-            * ``alpha`` (``float``, **required**) - :math:`\alpha` - Debye screening length (in units of 1/distance)
+            * ``alpha`` (`float`, **required**) - :math:`\alpha` - Debye screening length (in units of 1/distance)
 
-            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+            * ``r_cut`` (`float`, **optional**) - *r_cut* (in distance units) 
               - *optional*: defaults to the global r_cut specified in the pair command
 
-            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+            * ``r_on`` (`float`, **optional**) - *r_on* (in distance units) 
               - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
@@ -812,16 +812,16 @@ class Morse(_Pair):
         params (TypeParameter[``particle_types``, dict]):
             The Morse potential parameters. The dictionary has the following keys:
 
-            * ``D0`` (``float``, **required**) - :math:`D_0` - depth of the potential at its minimum (in energy units)
+            * ``D0`` (`float`, **required**) - :math:`D_0` - depth of the potential at its minimum (in energy units)
 
-            * ``alpha`` (``float``, **required**) - :math:`\alpha` - controls the width of the potential well (in units of 1/distance)
+            * ``alpha`` (`float`, **required**) - :math:`\alpha` - controls the width of the potential well (in units of 1/distance)
             
-            * ``r0`` (``float``, **required**) - :math:`r_0` - position of the minimum (in distance units)
+            * ``r0`` (`float`, **required**) - :math:`r_0` - position of the minimum (in distance units)
 
-            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+            * ``r_cut`` (`float`, **optional**) - *r_cut* (in distance units) 
               - *optional*: defaults to the global r_cut specified in the pair command
 
-            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+            * ``r_on`` (`float`, **optional**) - *r_on* (in distance units) 
               - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
@@ -908,11 +908,11 @@ class DPD(_Pair):
         params (TypeParameter[``particle_types``, dict]):
             The DPD potential parameters. The dictionary has the following keys:
 
-            * ``A`` (``float``, **required**) - A (in force units)
+            * ``A`` (`float`, **required**) - A (in force units)
 
-            * ``gamma`` (``float``, **required**) - :math:`\gamma` (in units of force/velocity)
+            * ``gamma`` (`float`, **required**) - :math:`\gamma` (in units of force/velocity)
             
-            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+            * ``r_cut`` (`float`, **optional**) - *r_cut* (in distance units) 
               - *optional*: defaults to the global r_cut specified in the pair command
 
     Example::
@@ -983,9 +983,9 @@ class DPDConservative(_Pair):
         params (TypeParameter[``particle_types``, dict]):
             The DPDConservative potential parameters. The dictionary has the following keys:
 
-            * ``A`` (``float``, **required**) - A (in force units)
+            * ``A`` (`float`, **required**) - A (in force units)
             
-            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+            * ``r_cut`` (`float` **optional**) - *r_cut* (in distance units) 
               - *optional*: defaults to the global r_cut specified in the pair command
 
     Example::
@@ -1084,15 +1084,15 @@ class DPDLJ(_Pair):
         params (TypeParameter[``particle_types``, dict]):
             The DPDLJ potential parameters. The dictionary has the following keys:
 
-            * ``epsilon`` (``float``, **required**) - :math:`\varepsilon` (in energy units)
+            * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (in energy units)
             
-            * ``sigma`` (``float``, **required**) - :math:`\sigma` (in distance units)
+            * ``sigma`` (`float`, **required**) - :math:`\sigma` (in distance units)
             
-            * ``alpha`` (``float``, **optional**, defaults to 1.0) - :math:`\alpha` (unitless)
+            * ``alpha`` (`float`, **optional**, defaults to 1.0) - :math:`\alpha` (unitless)
             
-            * ``gamma`` (``float``, **required**) - :math:`\gamma` (in units of force/velocity)
+            * ``gamma`` (`float`, **required**) - :math:`\gamma` (in units of force/velocity)
 
-            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+            * ``r_cut`` (`float`, **optional**) - *r_cut* (in distance units) 
               - *optional*: defaults to the global r_cut specified in the pair command
 
     Example::
@@ -1176,16 +1176,16 @@ class ForceShiftedLJ(_Pair):
         params (TypeParameter[``particle_types``, dict]):
             The ForceShiftedLJ potential parameters. The dictionary has the following keys:
 
-            * ``epsilon`` (``float``, **required**) - :math:`\varepsilon` (in energy units)
+            * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (in energy units)
 
-            * ``sigma`` (``float``, **required**) - :math:`\sigma` (in distance units)
+            * ``sigma`` (`float`, **required**) - :math:`\sigma` (in distance units)
 
-            * ``alpha`` (``float``, **optional**, defaults to 1.0) - :math:`\alpha` (unitless)
+            * ``alpha`` (`float`, **optional**, defaults to 1.0) - :math:`\alpha` (unitless)
 
-            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+            * ``r_cut`` (`float`, **optional**) - *r_cut* (in distance units) 
               - *optional*: defaults to the global r_cut specified in the pair command
-              
-            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+  
+            * ``r_on`` (`float`, **optional**) - *r_on* (in distance units) 
               - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
@@ -1239,16 +1239,16 @@ class Moliere(_Pair):
         params (TypeParameter[``particle_types``, dict]):
             The Moliere potential parameters. The dictionary has the following keys:
 
-            * ``qi`` (``float``, **required**) - :math:`q_i = Z_i \frac{e}{\sqrt{4 \pi \epsilon_0}}` (in charge units)
+            * ``qi`` (`float`, **required**) - :math:`q_i = Z_i \frac{e}{\sqrt{4 \pi \epsilon_0}}` (in charge units)
 
-            * ``qj`` (``float``, **required**) - :math:`q_j = Z_j \frac{e}{\sqrt{4 \pi \epsilon_0}}` (in charge units)
+            * ``qj`` (`float`, **required**) - :math:`q_j = Z_j \frac{e}{\sqrt{4 \pi \epsilon_0}}` (in charge units)
 
-            * ``aF`` (``float``, **required**) - :math:`a_F = \frac{0.8853 a_0}{\left( \sqrt{Z_i} + \sqrt{Z_j} \right)^{2/3}}`
+            * ``aF`` (`float`, **required**) - :math:`a_F = \frac{0.8853 a_0}{\left( \sqrt{Z_i} + \sqrt{Z_j} \right)^{2/3}}`
 
-            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+            * ``r_cut`` (`float`, **optional**) - *r_cut* (in distance units) 
               - *optional*: defaults to the global r_cut specified in the pair command
               
-            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+            * ``r_on`` (`float`, **optional**) - *r_on* (in distance units) 
               - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
@@ -1309,20 +1309,20 @@ class ZBL(_Pair):
         params (TypeParameter[``particle_types``, dict]):
             The ZBL potential parameters. The dictionary has the following keys:
 
-            * ``q_i`` (``float``, **required**) - :math:`q_i=Z_i \frac{e}{\sqrt{4 \pi \epsilon_0}}` (in charge units)
+            * ``q_i`` (`float`, **required**) - :math:`q_i=Z_i \frac{e}{\sqrt{4 \pi \epsilon_0}}` (in charge units)
             
-            * ``q_j`` (``float``, **required**) - :math:`q_j=Z_j \frac{e}{\sqrt{4 \pi \epsilon_0}}` (in charge units)
+            * ``q_j`` (`float`, **required**) - :math:`q_j=Z_j \frac{e}{\sqrt{4 \pi \epsilon_0}}` (in charge units)
 
 
-            * ``a_F`` (``float``, **required**) - :math:`a_F = \frac{0.8853 a_0}{ Z_i^{0.23} + Z_j^{0.23} }`
+            * ``a_F`` (`float`, **required**) - :math:`a_F = \frac{0.8853 a_0}{ Z_i^{0.23} + Z_j^{0.23} }`
 
-            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+            * ``r_cut`` (`float`, **optional**) - *r_cut* (in distance units) 
               - *optional*: defaults to the global r_cut specified in the pair command
-              
-            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+
+            * ``r_on`` (`float`, **optional**) - *r_on* (in distance units) 
               - *optional*: defaults to the global r_on specified in the pair command
 
-        Example::
+    Example::
 
         nl = nlist.Cell()
         zbl = pair.ZBL(r_cut = 3.0, nlist=nl)
@@ -1512,18 +1512,18 @@ class revcross(pair):
         params (TypeParameter[``particle_types``, dict]):
             The revcross potential parameters. The dictionary has the following keys:
 
-            * ``epsilon`` (``float``, **required**) - :math:`\varepsilon` (in units of energy)
+            * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (in units of energy)
             
-            * ``sigma`` (``float``, **required**) - :math:`\sigma` - (in distance units)
+            * ``sigma`` (`float`, **required**) - :math:`\sigma` - (in distance units)
 
-            * ``n`` (``float``, **required**) - *n* - (unitless)
+            * ``n`` (`float`, **required**) - *n* - (unitless)
 
-            * ``lambda3`` (``float``, **required**) - *lambda3`* - (unitless)
+            * ``lambda3`` (`float`, **required**) - *lambda3`* - (unitless)
 
-            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+            * ``r_cut`` (`float`, **optional**) - *r_cut* (in distance units) 
               - *optional*: defaults to the global r_cut specified in the pair command
               
-            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+            * ``r_on`` (`float`, **optional**) - *r_on* (in distance units) 
               - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
@@ -1601,18 +1601,18 @@ class Mie(_Pair):
         params (TypeParameter[``particle_types``, dict]):
             The ReactionField potential parameters. The dictionary has the following keys:
 
-            * ``epsilon`` (``float``, **required**) - :math:`\varepsilon` (in units of energy)
+            * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (in units of energy)
             
-            * ``sigma`` (``float``, **required**) - :math:`\sigma` (in distance units)
+            * ``sigma`` (`float`, **required**) - :math:`\sigma` (in distance units)
 
-            * ``n`` (``float``, **required**) - :math:`n` (unitless)
+            * ``n`` (`float`, **required**) - :math:`n` (unitless)
 
-            * ``m`` (``float``, **required**) - :math:`m` (unitless)
+            * ``m`` (`float`, **required**) - :math:`m` (unitless)
 
-            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+            * ``r_cut`` (`float`, **optional**) - *r_cut* (in distance units) 
               - *optional*: defaults to the global r_cut specified in the pair command
               
-            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+            * ``r_on`` (`float`, **optional**) - *r_on* (in distance units) 
               - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
@@ -1808,16 +1808,16 @@ class gb(ai_pair):
         params (TypeParameter[``particle_types``, dict]):
             The Gay-Berne potential parameters. The dictionary has the following keys:
 
-            * ``epsilon`` (``float``, **required**) - :math:`\varepsilon` (in units of energy)
+            * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (in units of energy)
             
-            * ``lperp`` (``float``, **required**) - :math:`\ell_\perp` (in distance units)
+            * ``lperp`` (`float`, **required**) - :math:`\ell_\perp` (in distance units)
 
-            * ``lpar`` (``float``, **required**) -  :math:`\ell_\parallel` (in distance units)
+            * ``lpar`` (`float`, **required**) -  :math:`\ell_\parallel` (in distance units)
 
-            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+            * ``r_cut`` (`float`, **optional**) - *r_cut* (in distance units) 
               - *optional*: defaults to the global r_cut specified in the pair command
               
-            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+            * ``r_on`` (`float`, **optional**) - *r_on* (in distance units) 
               - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
@@ -1902,16 +1902,16 @@ class dipole(ai_pair):
         params (TypeParameter[``particle_types``, dict]):
             The dipole potential parameters. The dictionary has the following keys:
 
-            * ``A`` (``float``, **optional**) - :math:`A` - electrostatic energy scale (*default*: 1.0)
+            * ``A`` (`float`, **optional**) - :math:`A` - electrostatic energy scale (*default*: 1.0)
             
-            * ``mu`` (``float``, **required**) - :math:`\mu` - emagnitude of :math:`\vec{\mu} = \mu (1, 0, 0)` in the particle local reference frame
+            * ``mu`` (`float`, **required**) - :math:`\mu` - emagnitude of :math:`\vec{\mu} = \mu (1, 0, 0)` in the particle local reference frame
 
-            * ``kappa`` (``float``, **required**) - :math:`\kappa` - inverse screening length
+            * ``kappa`` (`float`, **required**) - :math:`\kappa` - inverse screening length
 
-            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+            * ``r_cut`` (`float`, **optional**) - *r_cut* (in distance units) 
               - *optional*: defaults to the global r_cut specified in the pair command
               
-            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+            * ``r_on`` (`float`, **optional**) - *r_on* (in distance units) 
               - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
@@ -2003,16 +2003,16 @@ class ReactionField(_Pair):
         params (TypeParameter[``particle_types``, dict]):
             The ReactionField potential parameters. The dictionary has the following keys:
 
-            * ``epsilon`` (``float``, **required**) - :math:`\varepsilon` (in units of energy*distance)
+            * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (in units of energy*distance)
             
-            * ``eps_rf`` (``float``, **required**) - :math:`\epsilon_{RF}` (dimensionless)
+            * ``eps_rf`` (`float`, **required**) - :math:`\epsilon_{RF}` (dimensionless)
 
-            * ``use_charge`` (``boolean``, **optional**) - evaluate pair potntial using particle charges (*default*: False)
+            * ``use_charge`` (`boolean`, **optional**) - evaluate pair potntial using particle charges (*default*: False)
 
-            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+            * ``r_cut`` (`float`, **optional**) - *r_cut* (in distance units) 
               - *optional*: defaults to the global r_cut specified in the pair command
               
-            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+            * ``r_on`` (`float`, **optional**) - *r_on* (in distance units) 
               - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
@@ -2147,14 +2147,14 @@ class square_density(pair):
         params (TypeParameter[``particle_types``, dict]):
             The square_density potential parameters. The dictionary has the following keys:
 
-            * ``A`` (``float``, **required**) - :math:`A` - mean density (in units of volume^-1, *default*:0)
+            * ``A`` (`float`, **required**) - :math:`A` - mean density (in units of volume^-1, *default*:0)
             
-            * ``B`` (``float``, **required**) - :math:`B` - mcoefficient of the harmonic density term (in units of energy*volume^2)
+            * ``B`` (`float`, **required**) - :math:`B` - mcoefficient of the harmonic density term (in units of energy*volume^2)
             
-            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+            * ``r_cut`` (`float`, **optional**) - *r_cut* (in distance units) 
               - *optional*: defaults to the global r_cut specified in the pair command
               
-            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+            * ``r_on`` (`float`, **optional**) - *r_on* (in distance units) 
               - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
@@ -2234,16 +2234,16 @@ class Buckingham(_Pair):
         params (TypeParameter[``particle_types``, dict]):
             The Buckingham potential parameters. The dictionary has the following keys:
 
-            * ``A`` (``float``, **required**) - :math:`A` (in energy units)
+            * ``A`` (`float`, **required**) - :math:`A` (in energy units)
             
-            * ``rho`` (``float``, **required**) - :math:`\rho` ((in distance units)
+            * ``rho`` (`float`, **required**) - :math:`\rho` ((in distance units)
 
-            * ``C`` (``float``, **required**) - :math:`C` (in energy units)
+            * ``C`` (`float`, **required**) - :math:`C` (in energy units)
             
-            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+            * ``r_cut`` (`float`, **optional**) - *r_cut* (in distance units) 
               - *optional*: defaults to the global r_cut specified in the pair command
               
-            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+            * ``r_on`` (`float`, **optional**) - *r_on* (in distance units) 
               - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
@@ -2296,14 +2296,14 @@ class LJ1208(_Pair):
         params (TypeParameter[``particle_types``, dict]):
             The LJ1208 potential parameters. The dictionary has the following keys:
 
-            * ``epsilon`` (``float``, **required**) - :math:`\varepsilon` - energy parameter (in energy units)
+            * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` - energy parameter (in energy units)
             
-            * ``sigma`` (``float``, **required**) - :math:`\sigma` - particle size (in distance units)
+            * ``sigma`` (`float`, **required**) - :math:`\sigma` - particle size (in distance units)
             
-            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+            * ``r_cut`` (`float`, **optional**) - *r_cut* (in distance units) 
               - *optional*: defaults to the global r_cut specified in the pair command
               
-            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+            * ``r_on`` (`float`, **optional**) - *r_on* (in distance units) 
               - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
@@ -2361,12 +2361,12 @@ class Fourier(_Pair):
         params (TypeParameter[``particle_types``, dict]):
             The Fourier potential parameters. The dictionary has the following keys:
 
-            * ``a`` (``float``, **required**) - array of 3 values corresponding to a2, a3 and a4 in the Fourier series, unitless)            
-            * ``b`` (``float``, **required**) - array of 3 values corresponding to b2, b3 and b4 in the Fourier series, unitless)            
-            * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
+            * ``a`` (`float`, **required**) - array of 3 values corresponding to a2, a3 and a4 in the Fourier series, unitless)            
+            * ``b`` (`float`, **required**) - array of 3 values corresponding to b2, b3 and b4 in the Fourier series, unitless)            
+            * ``r_cut`` (`float`, **optional**) - *r_cut* (in distance units) 
               - *optional*: defaults to the global r_cut specified in the pair command
               
-            * ``r_on`` (``float``, **optional**) - *r_on* (in distance units) 
+            * ``r_on`` (`float`, **optional**) - *r_on* (in distance units) 
               - *optional*: defaults to the global r_on specified in the pair command
 
     Example::
