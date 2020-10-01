@@ -51,6 +51,11 @@ class Operations(Collection):
     `Operations` container. Likewise, a single instance cannot be added to the
     same `Operations` container more than once.
 
+    All `Operations` instances start with a `hoomd.tune.ParticleSorter` instance
+    in their ``tuners`` attribute. This is vital for increasing simulation
+    performance. However, users can choose to modify or remove this tuner if
+    desired.
+
     Note:
         An `Operations` object is created by default when a new simulation is
         created.
