@@ -5,8 +5,8 @@
 
 """Base classes for all HOOMD-blue operations."""
 
-# _Operation is inherented by almost all other HOOMD objects.
-# _TriggeredOperation is _Operation for objects that are triggered.
+# _Operation is a parent class of almost all other HOOMD objects.
+# Triggered objects should inherit from _TriggeredOperation.
 
 
 from hoomd.util import is_iterable, dict_map, dict_filter, str_to_tuple_keys

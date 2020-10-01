@@ -18,7 +18,7 @@ from hoomd.tune import ParticleSorter
 
 
 def _triggered_op_conversion(value):
-    """Handle converting _TriggeredOperation to a operation, trigger pair.
+    """Convert _TriggeredOperation to a operation, trigger pair.
 
     Necessary since in C++ operations do not own their trigger.
     """
@@ -30,12 +30,12 @@ class Operations(Collection):
 
     The `Operations` class contains all the operations acting on a
     simulation. These operations are classes that perform various actions on a
-    `hoomd.Simulation`. Operations can be added and removed at any point from an
-    `hoomd.Operations` instance. The class provides the interface define by
+    `hoomd.Simulation`. Operations can be added and removed at any point from a
+    `hoomd.Operations` instance. The class provides the interface defined by
     `collections.abc.Collection`. Other methods for manipulating instances
     attempt to mimic Python objects where possible, but the class is not
     simply a mutable list or set. Since there are multiple types of operations
-    in HOOMD-blue,  `Operations` objects manage multiple independent
+    in HOOMD-blue, `Operations` objects manage multiple independent
     sequences described below.
 
     The types of operations which can be added to an `Operations` object are
@@ -43,7 +43,7 @@ class Operations(Collection):
     only ever hold one integrator at a time. On the other hand, an `Operations`
     object can hold any number of updaters, analyzers, tuners, or computes. To
     see examples of these types of operations see `hoomd.hpmc.integrate`
-    or `hoomd.md.integrate` (integrators), `hoomd.update` (updaters) ,
+    or `hoomd.md.integrate` (integrators), `hoomd.update` (updaters),
     `hoomd.tune` (tuners), `hoomd.dump` (analyzers), and `hoomd.md.thermo`
     (computes).
 
@@ -75,13 +75,12 @@ class Operations(Collection):
         `Operations` instance.
 
         Args:
-            operation (``operation``): A HOOMD-blue updater, analyzers, compute,
+            operation (``operation``): A HOOMD-blue updater, analyzer, compute,
                 tuner, or integrator to add to the collection.
 
         Raises:
-            RuntimeError: raised when an operation belonging to to this or
-                another `Operations` instance is passed.
-            TypeError: raised when the passed operation is not of a valid type.
+            ValueError: If ``operation`` already belongs to this or another `Operations` instance.
+            TypeError: If ``operation`` is not of a valid type.
 
         Note:
             Since only one integrator can be associated with an `Operations`
@@ -93,8 +92,8 @@ class Operations(Collection):
         # calling _add is handled by the synced lists and integrator property.
         # we raise this error here to provide a more clear error message.
         if operation._added:
-            raise RuntimeError(
-                "Operation cannot be added to twice to operation lists.")
+            raise ValueError(
+                "The provided operation has already been added to an Operations instance.")
         if isinstance(operation, hoomd.integrate._BaseIntegrator):
             self.integrator = operation
             return None
@@ -106,7 +105,7 @@ class Operations(Collection):
             self._analyzers.append(operation)
         else:
             raise TypeError(
-                "Operation is not of the correct type to add to Operations.")
+                f"Type {type(operation)} is not a valid type to add to Operations.")
 
     @property
     def _sys_init(self):
@@ -222,7 +221,7 @@ class Operations(Collection):
 
     @property
     def analyzers(self):
-        """list[`hoomd.operation.Analzyer`]: A list of analyzer operations.
+        """list[`hoomd.operation.Analyzer`]: A list of analyzer operations.
 
         Holds the list of analyzers associated with this collection. The list
         can be modified as a standard Python list.
@@ -242,7 +241,7 @@ class Operations(Collection):
         """Works the same as `Operations.add`.
 
         Args:
-            operation (``operation``): A HOOMD-blue updater, analyzers, compute,
+            operation (``operation``): A HOOMD-blue updater, analyzer, compute,
                 tuner, or integrator to add to the object.
         """
         self.add(operation)
@@ -261,9 +260,8 @@ class Operations(Collection):
                 analyzer, tuner, or compute, to remove from the container.
 
         Raises:
-            ValueError: raises if operation is not found in this container.
-            TypeError: raises if operation is not of a valid type for this
-                container.
+            ValueError: If ``operation`` is not found in this container.
+            TypeError: If ``operation`` is not of a valid type.
         """
         if isinstance(operation, hoomd.integrate._BaseIntegrator):
             self.integrator = None
@@ -275,7 +273,7 @@ class Operations(Collection):
             self._tuners.remove(operation)
         else:
             raise TypeError(
-                "operation is not a valid type for an Operations container.")
+                f"Type {type(operation)} is not a valid type to remove from Operations.")
 
     def __isub__(self, operation):
         """Works the same as `Operations.remove`.
