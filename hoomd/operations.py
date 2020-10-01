@@ -122,6 +122,54 @@ class Operations(Collection):
                                 f"type to add to Operations.")
             container.append(operation)
 
+    def __iadd__(self, operation):
+        """Works the same as `Operations.add`.
+
+        Args:
+            operation (`hoomd.operation._Operation`): A HOOMD-blue updater,
+                analyzer, compute, tuner, or integrator to add to the object.
+        """
+        self.add(operation)
+        return self
+
+    def remove(self, operation):
+        """Remove an operation from the `Operations` object.
+
+        Remove the item from the collection whose id is the same as
+        ``operation``. See
+        `<https://docs.python.org/3/library/functions.html#id>`_ for the concept
+        of a Python object id.
+
+        Args:
+            operation (`hoomd.operation._Operation`): A HOOMD-blue integrator,
+                updater, analyzer, tuner, or compute, to remove from the
+                container.
+
+        Raises:
+            ValueError: If ``operation`` is not found in this container.
+            TypeError: If ``operation`` is not of a valid type.
+        """
+        if isinstance(operation, hoomd.integrate._BaseIntegrator):
+            self.integrator = None
+        else:
+            try:
+                container = self._get_proper_container(operation)
+            except TypeError:
+                raise TypeError(f"Type {type(operation)} is not a valid "
+                                f"type to remove from Operations.")
+            container.remove(operation)
+
+    def __isub__(self, operation):
+        """Works the same as `Operations.remove`.
+
+        Args:
+            operation (`hoomd.operation._Operation`): A HOOMD-blue integrator,
+                updater, analyzer, tuner, or compute to remove from the
+                collection.
+        """
+        self.remove(operation)
+        return self
+
     @property
     def _sys_init(self):
         if self._simulation is None or self._simulation.state is None:
@@ -244,51 +292,3 @@ class Operations(Collection):
         modified as a standard Python list.
         """
         return self._tuners
-
-    def __iadd__(self, operation):
-        """Works the same as `Operations.add`.
-
-        Args:
-            operation (`hoomd.operation._Operation`): A HOOMD-blue updater,
-                analyzer, compute, tuner, or integrator to add to the object.
-        """
-        self.add(operation)
-        return self
-
-    def remove(self, operation):
-        """Remove an operation from the `Operations` object.
-
-        Remove the item from the collection whose id is the same as
-        ``operation``. See
-        `<https://docs.python.org/3/library/functions.html#id>`_ for the concept
-        of a Python object id.
-
-        Args:
-            operation (`hoomd.operation._Operation`): A HOOMD-blue integrator,
-                updater, analyzer, tuner, or compute, to remove from the
-                container.
-
-        Raises:
-            ValueError: If ``operation`` is not found in this container.
-            TypeError: If ``operation`` is not of a valid type.
-        """
-        if isinstance(operation, hoomd.integrate._BaseIntegrator):
-            self.integrator = None
-        else:
-            try:
-                container = self._get_proper_container(operation)
-            except TypeError:
-                raise TypeError(f"Type {type(operation)} is not a valid "
-                                f"type to remove from Operations.")
-            container.remove(operation)
-
-    def __isub__(self, operation):
-        """Works the same as `Operations.remove`.
-
-        Args:
-            operation (`hoomd.operation._Operation`): A HOOMD-blue integrator,
-                updater, analyzer, tuner, or compute to remove from the
-                collection.
-        """
-        self.remove(operation)
-        return self
