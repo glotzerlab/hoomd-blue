@@ -2,6 +2,14 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
+""" :py:class:`hoomd.trigger` enables users to design time points to dump file 
+    writer or logger output. :py:class:`And`, :py:class:`Or` are the operators
+    which take :py:class:`After` ,:py:class:`Before`, :py:class:`On`, 
+    :py:class:`Periodic` as input arguments, and process the operation 
+    accordingly. 
+
+
+"""
 from hoomd import _hoomd
 from inspect import isclass
 
