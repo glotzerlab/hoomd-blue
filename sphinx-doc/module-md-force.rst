@@ -10,7 +10,6 @@ md.force
 
     _Force
     Active
->>>>>>> feature/new-object-API
 
 .. rubric:: Details
 

@@ -51,6 +51,14 @@ class NVT(_Method):
     where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is
     the set point (*kT* above).
 
+    .. note::
+
+        Coupling constant `tau` in Nosé-Hoover thermostat should be set within 
+        reasonable range to avoid abrupt fluctuation in temperature in case of 
+        small `tau` , also to avoid long time to equilibrate in case of large 
+        `tau`. Recommended value for most of systems is 100 time steps. In time 
+        units, 100 * ``dt``, where ``dt`` is the length of the time step.
+
     .. todo:: Rotational degrees of freedom
 
         `NVT` integrates rotational degrees of freedom. 
@@ -213,6 +221,14 @@ class NPT(_Method):
     where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is 
     the set point (*kT* above).
 
+    .. note::
+
+        Coupling constant for barostat `tauS` should be set within appropriate 
+        range for pressure and volume to fluctuate in reasonable rate and 
+        equilibrate. Too small `tauS` can cause abrupt fluctuation, whereas too 
+        large `tauS` would take long time to equilibrate. In most of systems, 
+        recommended value for `tauS` is around 1000 timesteps. In time units,
+        1000 * ``dt``, where ``dt`` is the length of the time step.
 
     Examples::
 
