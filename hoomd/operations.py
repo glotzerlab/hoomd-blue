@@ -73,6 +73,17 @@ class Operations(Collection):
 
         self._tuners.append(ParticleSorter())
 
+    def _get_proper_container(self, operation):
+        if isinstance(operation, Updater):
+            return self.updaters
+        elif isinstance(operation, Analyzer):
+            return self.analyzers
+        elif isinstance(operation, Tuner):
+            return self.tuners
+        else:
+            raise TypeError(
+                f"{type(operation)} is not a valid operation type.")
+
     def add(self, operation):
         """Add operation to this container.
 
@@ -99,20 +110,17 @@ class Operations(Collection):
         # calling _add is handled by the synced lists and integrator property.
         # we raise this error here to provide a more clear error message.
         if operation._added:
-            raise ValueError(
-                "The provided operation has already been added to an Operations instance.")
+            raise ValueError("The provided operation has already been added "
+                             "to an Operations instance.")
         if isinstance(operation, hoomd.integrate._BaseIntegrator):
             self.integrator = operation
-            return None
-        elif isinstance(operation, Tuner):
-            self._tuners.append(operation)
-        elif isinstance(operation, Updater):
-            self._updaters.append(operation)
-        elif isinstance(operation, Analyzer):
-            self._analyzers.append(operation)
         else:
-            raise TypeError(
-                f"Type {type(operation)} is not a valid type to add to Operations.")
+            try:
+                container = self._get_proper_container(operation)
+            except TypeError:
+                raise TypeError(f"Type {type(operation)} is not a valid "
+                                f"type to add to Operations.")
+            container.append(operation)
 
     @property
     def _sys_init(self):
@@ -266,15 +274,13 @@ class Operations(Collection):
         """
         if isinstance(operation, hoomd.integrate._BaseIntegrator):
             self.integrator = None
-        elif isinstance(operation, Analyzer):
-            self._analyzers.remove(operation)
-        elif isinstance(operation, Updater):
-            self._updaters.remove(operation)
-        elif isinstance(operation, Tuner):
-            self._tuners.remove(operation)
         else:
-            raise TypeError(
-                f"Type {type(operation)} is not a valid type to remove from Operations.")
+            try:
+                container = self._get_proper_container(operation)
+            except TypeError:
+                raise TypeError(f"Type {type(operation)} is not a valid "
+                                f"type to remove from Operations.")
+            container.remove(operation)
 
     def __isub__(self, operation):
         """Works the same as `Operations.remove`.
