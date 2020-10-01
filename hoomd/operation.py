@@ -543,8 +543,9 @@ class Tuner(_Operation):
     """Base class for all HOOMD tuners.
 
     A tuner is an operation which tunes the parameters of another operation for
-    performance or other reasons. A tuner does not properly modify the
-    simulation state (e.g. move particles or change bonds).
+    performance or other reasons. A tuner does not modify the current microstate
+    of the simulation. That is a tuner does not change quantities like
+    temperature, particle position, or the number of bonds in a simulation.
 
     Note:
         This class should not be instantiated by users. The class can be used
