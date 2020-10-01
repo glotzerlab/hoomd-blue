@@ -55,7 +55,7 @@ class State:
         This object should never be directly instantiated by users. There is no
         way to set a state created outside of a `hoomd.Simulation` object to a
         simulation. Use `hoomd.Simulation.create_state_from_gsd` and
-        `hoomd.Simulation.create_state_from_snapshot` to instantiate a 
+        `hoomd.Simulation.create_state_from_snapshot` to instantiate a
         `State` object.
     """
 
@@ -86,7 +86,7 @@ class State:
 
     @property
     def snapshot(self):
-        """hoomd.Snapshot: All data of a simulation's current microstate.
+        r"""hoomd.Snapshot: All data of a simulation's current microstate.
 
         `State.snapshot` should be used when all of a simulation's state
         information is desired in a single object. When accessed, data across
@@ -108,16 +108,8 @@ class State:
             one use, it is recommended to store it in a variable.
 
         Note:
-            For performance critical use cases that don't benefit from having
-            the full aggregated data, the local snapshot API
-            (`State.cpu_local_snapshot` and `State.gpu_local_snapshot`) is
-            recommended. This is most often the case when frequently accessing
-            and modifying the simulation data in Python in a
-            `hoomd.custom.Action`. In such scenarios, the local snapshot would
-            likely perform much better with the local snapshot API. Only a few
-            accesses or single extensive modifications would still be faster
-            using the local snapshot, but is likely not to matter given the time
-            of a typical simulation.
+            Setting or getting a snapshot is an order :math:`O(N_{particles}
+            + N_{bonds} + \ldots)` operation.
         """
         cpp_snapshot = self._cpp_sys_def.takeSnapshot_double()
         return Snapshot._from_cpp_snapshot(cpp_snapshot,
@@ -320,6 +312,10 @@ class State:
             The state's box and the number of particles, bonds, angles,
             dihedrals, impropers, constaints, and pairs cannot change within the
             context manager.
+
+        Note:
+            Getting a local snapshot object is order :math:`O(1)` and setting a
+            single value is of order :math:`O(1)`.
         """
         if self._in_context_manager:
             raise RuntimeError(
@@ -354,13 +350,17 @@ class State:
             with sim.state.gpu_local_snapshot as data:
                 data.particles.position[:, 2] = 0
 
+        Warning:
+            This property is only available when running on a GPU(s).
+
         Note:
             The state's box and the number of particles, bonds, angles,
             dihedrals, impropers, constaints, and pairs cannot change within the
             context manager.
 
         Note:
-            This property is only available when running on a GPU(s).
+            Getting a local snapshot object is order :math:`O(1)` and setting a
+            single value is of order :math:`O(1)`.
         """
         if not isinstance(self._simulation.device, hoomd.device.GPU):
             raise RuntimeError(
