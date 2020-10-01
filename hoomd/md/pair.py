@@ -489,7 +489,7 @@ class Ewald(_Pair):
         params (TypeParameter[``particle_types``, dict]):
             The Ewald potential parameters. The dictionary has the following keys:
 
-            * ``kappa`` (``float``, **required**) - :math:`\kappa` - DSplitting parameter (in units of 1/distance)
+            * ``kappa`` (``float``, **required**) - :math:`\kappa` - Splitting parameter (in units of 1/distance)
 
             * ``alpha`` (``float``, **required**) - :math:`\alpha` - Debye screening length (in units of 1/distance)
 
@@ -814,9 +814,9 @@ class Morse(_Pair):
 
             * ``D0`` (``float``, **required**) - :math:`D_0` - depth of the potential at its minimum (in energy units)
 
-            * ``alpha`` (``float``, **required**) - :math:`\alpha` - Dcontrols the width of the potential well (in units of 1/distance)
+            * ``alpha`` (``float``, **required**) - :math:`\alpha` - controls the width of the potential well (in units of 1/distance)
             
-            * ``r0`` (``float``, **required**) - :math:`r_0` - Dposition of the minimum (in distance units)
+            * ``r0`` (``float``, **required**) - :math:`r_0` - position of the minimum (in distance units)
 
             * ``r_cut`` (``float``, **optional**) - *r_cut* (in distance units) 
               - *optional*: defaults to the global r_cut specified in the pair command
@@ -1512,7 +1512,7 @@ class revcross(pair):
         params (TypeParameter[``particle_types``, dict]):
             The revcross potential parameters. The dictionary has the following keys:
 
-            * ``epsilon`` (``float``, **required**) - :math:`\varepsilon` - D(in units of energy)
+            * ``epsilon`` (``float``, **required**) - :math:`\varepsilon` (in units of energy)
             
             * ``sigma`` (``float``, **required**) - :math:`\sigma` - (in distance units)
 
