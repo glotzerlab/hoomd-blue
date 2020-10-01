@@ -1,4 +1,4 @@
-"""Module implments the `State` class.
+"""Module implements the `State` class.
 
 `State` stores and exposes a parent `hoomd.Simulation` object's data (e.g.
 particle positions, system bonds).
@@ -47,18 +47,16 @@ class State:
     APIs: *global* and *local* snapshots (note that global does not refer to
     variable scope here). See `State.snapshot`, `State.cpu_local_snapshot`, and
     `State.gpu_local_snapshot` for information about these data access patterns.
-    In addition, many commonly used smaller quantites such as the number of
+    In addition, many commonly used smaller quantities such as the number of
     particles in a simulation are available directly through `State` object
-    properties. Accessing these quantities through a `State` object directly is
-    a bit faster than accessing them through a local snapshot and much faster
-    than accessing them through `State.snapshot`.
+    properties.
 
     Note:
         This object should never be directly instantiated by users. There is no
         way to set a state created outside of a `hoomd.Simulation` object to a
-        simulation. See `hoomd.Simulation.create_state_from_gsd` and
-        `hoomd.Simulation.create_state_from_snapshot` for information about
-        instantiating `State` objects.
+        simulation. Use `hoomd.Simulation.create_state_from_gsd` and
+        `hoomd.Simulation.create_state_from_snapshot` to instantiate a 
+        `State` object.
     """
 
     def __init__(self, simulation, snapshot):
@@ -80,10 +78,10 @@ class State:
         # snapshots are not contexted at once.
         self._in_context_manager = False
 
-        # provides a cache of C++ group objects of the form {type(filter):
-        # {filter: C++ group}}. The first layer is to prevent user created
-        # filters with poorly implemented __hash__ and __eq__ from causing cache
-        # errors.
+        # self._groups provides a cache of C++ group objects of the form:
+        # {type(filter): {filter: C++ group}}
+        # The first layer is to prevent user created filters with poorly implemented
+        # __hash__ and __eq__ from causing cache errors.
         self._groups = defaultdict(dict)
 
     @property
@@ -93,21 +91,21 @@ class State:
         `State.snapshot` should be used when all of a simulation's state
         information is desired in a single object. When accessed, data across
         all MPI ranks and from GPUs is gathered on the root MPI rank's memory.
-        When accessing data in MPI simulations then it is recommended to use a
+        When accessing data in MPI simulations, it is recommended to use a
         ``if snapshot.exists:`` conditional to prevent attempting to access data
         on a non-root rank.
 
-        This property can be set to the state using an entirely new
+        This property can be set to replace the system state with the given
         `hoomd.Snapshot` object.  Example use cases in which a simulation's
-        state may be reset from a snapshot include python-script-level
-        Monte-Carlo schemes, where the current snapshot is passed to the
-        Monte-Carlo simulation before being passed back after running some
-        Monte-Carlo steps.
+        state may be reset from a snapshot include Monte Carlo schemes
+        implemented at the Python script level, where the current snapshot is
+        passed to the Monte Carlo simulation before being passed back after
+        running some Monte Carlo steps.
 
         Warning:
             Using `State.snapshot` multiple times will gather data across MPI
             ranks and GPUs every time. If the snapshot is needed for more than
-            one use case store it in a variable.
+            one use, it is recommended to store it in a variable.
 
         Note:
             For performance critical use cases that don't benefit from having
@@ -228,7 +226,7 @@ class State:
     def box(self):
         """hoomd.Box: The current simulation box.
 
-        Ediing the box directly is not allowed.  For example
+        Editing the box directly is not allowed. For example
         ``state.box.scale(1.1)`` would not scale the state's box. To set the
         state's box to a new box ``state.box = new_box`` must be used.
         """
@@ -299,14 +297,14 @@ class State:
         dihedral, improper, constaint, and pair data through a context manager.
         Data in `State.cpu_local_snapshot` is MPI rank local, and the
         `hoomd.data.LocalSnapshot` object is only usable within a context
-        manager (i.e. ``with sim.state.cpu_local_snapshot as data:``).  Attempts
-        to assess data outside the context manager will result in errors.  The
+        manager (i.e. ``with sim.state.cpu_local_snapshot as data:``). Attempts
+        to assess data outside the context manager will result in errors. The
         local snapshot interface is similar to that of `hoomd.Snapshot`.
 
         The `hoomd.data.LocalSnapshot` data access is mediated through
         `hoomd.array.HOOMDArray` objects. This lets us ensure memory safety when
         directly accessing HOOMD-blue's data. The interface provides zero-copy
-        access (zero-copy is guarenteed on CPU, access may be zero copy if
+        access (zero-copy is guarenteed on CPU, access may be zero-copy if
         running on GPU).
 
         Changing the data in the buffers exposed by the local snapshot will
@@ -337,8 +335,8 @@ class State:
         dihedral, improper, constaint, and pair data through a context manager.
         Data in `State.gpu_local_snapshot` is GPU local, and the
         `hoomd.data.LocalSnapshotGPU` object is only usable within a context
-        manager (i.e. ``with sim.state.gpu_local_snapshot as data:``).  Attempts
-        to assess data outside the context manager will result in errors.  The
+        manager (i.e. ``with sim.state.gpu_local_snapshot as data:``). Attempts
+        to assess data outside the context manager will result in errors. The
         local snapshot interface is similar to that of `hoomd.Snapshot`.
 
         The `hoomd.data.LocalSnapshotGPU` data access is mediated through
