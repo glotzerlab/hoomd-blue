@@ -40,7 +40,7 @@ def test_brownian_attributes_attached(simulation_factory,
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[brownian])
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     assert brownian.filter is all_
     assert brownian.kT is constant
@@ -107,7 +107,7 @@ def test_langevin_attributes_attached(simulation_factory,
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[langevin])
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     assert langevin.filter is all_
     assert langevin.kT is constant
@@ -222,7 +222,7 @@ def test_npt_attributes_attached_3d(simulation_factory,
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[npt])
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     assert npt.filter is all_
     assert npt.kT is constant_t
@@ -289,7 +289,7 @@ def test_npt_attributes_attached_2d(simulation_factory,
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=2))
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[npt])
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     # after attaching in 2d, only some coupling modes and box dof are valid
     assert tuple(npt.box_dof) == (True,True,False,False,False,False)
@@ -329,7 +329,7 @@ def test_nve_attributes_attached(simulation_factory,
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nve])
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     assert nve.filter is all_
 
@@ -372,7 +372,7 @@ def test_nvt_attributes_attached(simulation_factory,
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nvt])
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     assert nvt.filter is all_
     assert nvt.kT is constant

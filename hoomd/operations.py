@@ -119,7 +119,7 @@ class Operations(Collection):
         else:
             return True
 
-    def schedule(self):
+    def _schedule(self):
         """Prepares all operations for a `hoomd.Simulation.run` call.
 
         This is provided in the public API to allow users to access quantities
@@ -144,8 +144,8 @@ class Operations(Collection):
             self.tuners._sync(sim, sim._cpp_sys.tuners)
         self._scheduled = True
 
-    def unschedule(self):
-        """Undo the effects of `Operations.schedule`."""
+    def _unschedule(self):
+        """Undo the effects of `Operations._schedule`."""
         self._integrator._detach()
         self._analyzers._unsync()
         self._updaters._unsync()
@@ -174,13 +174,6 @@ class Operations(Collection):
     def __len__(self):
         """Return the number of operations contained in this collection."""
         return len(list(self))
-
-    @property
-    def scheduled(self):
-        """bool: Whether `Operations.schedule` has been called and is in
-        effect.
-        """
-        return self._scheduled
 
     @property
     def integrator(self):

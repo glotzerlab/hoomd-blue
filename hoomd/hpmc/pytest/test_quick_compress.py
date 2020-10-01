@@ -69,7 +69,7 @@ def test_valid_construction_and_attach(simulation_factory,
     mc.shape['A'] = dict(diameter=1)
     sim.operations.integrator = mc
 
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     # validate the params were set properly
     for attr, value in constructor_args.items():
@@ -105,7 +105,7 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
     mc.shape['A'] = dict(diameter=1)
     sim.operations.integrator = mc
 
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     setattr(qc, attr, value)
     assert getattr(qc, attr) == value

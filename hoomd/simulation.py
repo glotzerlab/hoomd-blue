@@ -124,20 +124,16 @@ class Simulation(metaclass=Loggable):
             self._operations = operations
         else:
             # Handle error cases first
-            if operations.scheduled:
-                raise RuntimeError(
-                    "Cannot add scheduled `hoomd.Operations` object to "
-                    "`hoomd.Simulation` object.")
-            elif operations._simulation is not None:
+            if operations._scheduled or operations._simulation is not None:
                 raise RuntimeError(
                     "Cannot add `hoomd.Operations` object that belongs to "
                     "another `hoomd.Simulation` object.")
             # Switch out `hoomd.Operations` objects.
-            elif self._operations.scheduled:
-                self._operations.unschedule()
+            elif self._operations._scheduled:
+                self._operations._unschedule()
                 self._operations._simulation = None
                 operations._simulation = self
-                operations.schedule()
+                operations._schedule()
                 self._operations = operations
 
     def sanity_check(self):
@@ -192,8 +188,8 @@ class Simulation(metaclass=Loggable):
         # check if initialization has occurred
         if not hasattr(self, '_cpp_sys'):
             raise RuntimeError('Cannot run before state is set.')
-        if not self.operations.scheduled:
-            self.operations.schedule()
+        if not self.operations._scheduled:
+            self.operations._schedule()
 
         self._cpp_sys.run(int(steps))
 
