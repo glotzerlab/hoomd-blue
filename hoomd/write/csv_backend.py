@@ -270,7 +270,7 @@ class CSV(_InternalCustomAnalyzer):
             header would be ``md.pair.LJ.energy`` (assuming that
             ``max_header_len`` is not set).
         delimiter (:obj:`str`, optional): String used to separate elements in
-            the CSV file, defaults to ' '.
+            the space delimitated file, defaults to ' '.
         pretty (:obj:`bool`, optional): Flags whether to attempt to make output
             prettier and easier to read, defaults to True. To make the ouput
             easier to read, the output will compromise on outputted precision

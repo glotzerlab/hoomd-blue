@@ -379,7 +379,7 @@ class Logger(SafeNamespaceDict):
     '''Logs HOOMD-blue operation data and custom quantities.
 
     The `Logger` class provides an intermediatary between a back end such as the
-    `hoomd.output.CSV` and many of HOOMD-blue's object (as most objects are
+    `hoomd.write.CSV` and many of HOOMD-blue's object (as most objects are
     loggable). The `Logger` class makes use of *namespaces* which denote where a
     logged quantity fits in. For example internally all loggable quantities are
     ordered by the module and class them come from. For instance, the

@@ -1,9 +1,9 @@
-hoomd.output
+hoomd.write
 ------------
 
 .. rubric:: Overview
 
-.. py:currentmodule:: hoomd.output
+.. py:currentmodule:: hoomd.write
 
 .. autosummary::
     :nosignatures:
@@ -12,7 +12,7 @@ hoomd.output
 
 .. rubric:: Details
 
-.. automodule:: hoomd.output
+.. automodule:: hoomd.write
     :synopsis: Write data out.
     :members:
 
