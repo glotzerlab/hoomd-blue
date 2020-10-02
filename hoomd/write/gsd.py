@@ -9,12 +9,12 @@ from hoomd.data.typeconverter import OnlyFrom
 from hoomd.filter import _ParticleFilter, All
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.logging import Logger, TypeFlags
-from hoomd.operation import _Analyzer
+from hoomd.operation import Analyzer
 import numpy as np
 import json
 
 
-class GSD(_Analyzer):
+class GSD(Analyzer):
     R""" Write simulation trajectories in the GSD format.
 
     Args:
