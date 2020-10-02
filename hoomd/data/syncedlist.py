@@ -196,5 +196,7 @@ class SyncedList:
         for index in range(len(self)):
             if self[index] is value:
                 removal_list.append(index - len(removal_list))
+        if len(removal_list) == 0:
+            raise ValueError(f"{value} is not in list.")
         for index in removal_list:
             del self[index]

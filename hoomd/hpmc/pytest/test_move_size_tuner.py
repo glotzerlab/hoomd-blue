@@ -50,7 +50,7 @@ class Test_MoveSizeTuneDefinition:
     def test_getting_acceptance_rate(self, move_size_definition, simulation):
         integrator = simulation.operations.integrator
         move_size_definition.integrator = integrator
-        simulation.operations.schedule()
+        simulation.operations._schedule()
         # needed to set previous values need to to calculate acceptance rate
         assert move_size_definition.y is None
         simulation.run(1000)
@@ -147,14 +147,14 @@ class TestMoveSize:
         # check that we cannot get the current acceptance when not attached
         with pytest.raises(Exception):
             tunable.y
-        simulation.operations.schedule()
+        simulation.operations._schedule()
         assert move_size_tuner._attached
         assert tunable.y is None
         assert tunable.integrator == simulation.operations.integrator
 
     def test_detach(self, move_size_tuner, simulation):
         simulation.operations.tuners.append(move_size_tuner)
-        simulation.operations.schedule()
+        simulation.operations._schedule()
         assert move_size_tuner._attached
         move_size_tuner._detach()
         tunable = move_size_tuner._tunables[0]

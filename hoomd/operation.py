@@ -3,11 +3,11 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-R""" Classes for (all/most) HOOMD objects.
+"""Base classes for all HOOMD-blue operations."""
 
-_Operation is inherented by almost all other HOOMD objects.
-_TriggeredOperation is _Operation for objects that are triggered.
-"""
+# _Operation is a parent class of almost all other HOOMD objects.
+# Triggered objects should inherit from _TriggeredOperation.
+
 
 from hoomd.util import is_iterable, dict_map, dict_filter, str_to_tuple_keys
 from hoomd.trigger import Trigger
@@ -515,14 +515,42 @@ class _TriggeredOperation(_Operation):
         super()._attach()
 
 
-class _Updater(_TriggeredOperation):
+class Updater(_TriggeredOperation):
+    """Base class for all HOOMD updaters.
+
+    An updater is an operation which modifies a simulation's state.
+
+    Note:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
+    """
     _cpp_list_name = 'updaters'
 
-class _Analyzer(_TriggeredOperation):
+
+class Analyzer(_TriggeredOperation):
+    """Base class for all HOOMD analyzers.
+
+    An analyzer is an operation which writes out a simulation's state.
+
+    Note:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
+    """
     _cpp_list_name = 'analyzers'
 
-class _Compute(_Operation):
+class Compute(_Operation):
     pass
 
-class _Tuner(_Operation):
+class Tuner(_Operation):
+    """Base class for all HOOMD tuners.
+
+    A tuner is an operation which tunes the parameters of another operation for
+    performance or other reasons. A tuner does not modify the current microstate
+    of the simulation. That is a tuner does not change quantities like
+    temperature, particle position, or the number of bonds in a simulation.
+
+    Note:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
+    """
     pass

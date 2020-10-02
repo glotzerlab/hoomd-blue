@@ -5,14 +5,14 @@
 
 """Compute system properties."""
 
-from hoomd import _hoomd;
+from hoomd import _hoomd
 from hoomd.md import _md
-from hoomd.operation import _Compute
+from hoomd.operation import Compute
 from hoomd.logging import log
-import hoomd;
-import sys;
+import hoomd
 
-class _Thermo(_Compute):
+
+class _Thermo(Compute):
 
     def __init__(self, filter):
         self._filter = filter
@@ -282,7 +282,7 @@ class ThermodynamicQuantities(_Thermo):
             return None
 
 
-class thermoHMA(_Compute):
+class thermoHMA(Compute):
     R""" Compute HMA thermodynamic properties of a group of particles.
 
     Args:

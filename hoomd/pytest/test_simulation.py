@@ -123,7 +123,7 @@ def test_run(simulation_factory, get_snapshot, device):
     sim = simulation_factory(get_snapshot())
     sim.run(1)
 
-    assert sim.operations.scheduled
+    assert sim.operations._scheduled
 
 
 def test_timestep(simulation_factory, get_snapshot, device):
@@ -143,7 +143,7 @@ def test_timestep(simulation_factory, get_snapshot, device):
 def test_run_with_timestep(simulation_factory, get_snapshot, device):
     sim = hoomd.Simulation(device)
     sim.create_state_from_snapshot(get_snapshot())
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     steps = 0
     n_step_list = [1, 10, 100]

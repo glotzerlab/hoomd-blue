@@ -22,7 +22,7 @@ def test_per_particle_virial(simulation_factory, lattice_snapshot_factory):
     sim.operations.integrator = hoomd.md.Integrator(dt=0.005)
     sim.operations.integrator.forces.append(lj)
 
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     assert sim.always_compute_pressure == False
 

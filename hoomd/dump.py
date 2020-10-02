@@ -15,7 +15,7 @@ from hoomd.typeconverter import OnlyFrom
 from hoomd.filter import _ParticleFilter, All
 from hoomd.parameterdicts import ParameterDict
 from hoomd.logging import Logger, TypeFlags
-from hoomd.operation import _Analyzer
+from hoomd.operation import Analyzer
 import numpy as np
 import hoomd
 import json
