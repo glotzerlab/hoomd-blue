@@ -5,8 +5,9 @@ system for use by various operations throughout HOOMD. To maintain high
 performance, filters are **not** re-evaluated on every use. Instead, each unique
 particular filter (defined by the class name and hash) is mapped to a **group**,
 an internally maintained list of the selected particles. Subsequent uses of the
-same particle filter specification will resolve to the same group *and the
-originally selected particles*, **even if the state of the system has changed.**
+same particle filter specification (in the same `Simulation`) will resolve to
+the same group *and the originally selected particles*, **even if the state of
+the system has changed.**
 
 Groups are not completely static. HOOMD-blue re-evaluates the filter
 specifications and updates the group membership whenever the number of particles
