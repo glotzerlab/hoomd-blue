@@ -250,7 +250,7 @@ class LJ(_Pair):
         nl = nlist.Cell()
         lj = pair.LJ(nl, r_cut=3.0)
         lj.params[('A', 'A')] = {'sigma': 1.0, 'epsilon': 1.0}
-        lj.params[('A', 'B')] = dict(epsilon=2.0, sigma=1.0, r_cut=3.0, r_on=2.0)
+        lj.r_cut[('A', 'B')] = 3.0
 
     """
     _cpp_class_name = "PotentialPairLJ"
@@ -305,7 +305,7 @@ class Gauss(_Pair):
         nl = nlist.Cell()
         gauss = pair.Gauss(r_cut=3.0, nlist=nl)
         gauss.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0)
-        gauss.params[('A', 'B')] = dict(epsilon=2.0, sigma=1.0, r_cut=3.0, r_on=2.0)
+        gauss.r_cut[('A', 'B')] = 3.0
 
     """
     _cpp_class_name = "PotentialPairGauss"
@@ -380,7 +380,7 @@ class SLJ(_Pair):
         nl.max_diameter = 2.0
         slj = pair.SLJ(r_cut=3.0, nlist=nl)
         slj.params[('A', 'B')] = dict(epsilon=2.0, r_cut=3.0)
-        slj.params[('B', 'B')] = {'epsilon': 1.0, 'r_cut': 2**(1.0/6.0)}
+        slj.r_cut[('B', 'B')] = 2**(1.0/6.0)
 
     """
     _cpp_class_name = 'PotentialPairSLJ'
@@ -448,7 +448,7 @@ class Yukawa(_Pair):
         nl = nlist.Cell()
         yukawa = pair.Yukawa(r_cut=3.0, nlist=nl)
         yukawa.params[('A', 'A')] = dict(epsilon=1.0, kappa=1.0)
-        yukawa.params[('A', 'B')] = dict(epsilon=2.0, kappa=0.5, r_cut=3.0, r_on=2.0)
+        yukawa.r_cut[('A', 'B')] = 3.0
 
     """
     _cpp_class_name = "PotentialPairYukawa"
@@ -504,7 +504,7 @@ class Ewald(_Pair):
         nl = nlist.Cell()
         ewald = pair.Ewald(r_cut=3.0, nlist=nl)
         ewald.params[('A', 'A')] = dict(kappa=1.0, alpha=1.5)
-        ewald.params[('A', 'B')] = dict(kappa=1.0, r_cut=3.0, r_on=2.0)
+        ewald.r_cut[('A', 'B')] = 3.0
 
     Warning:
         **DO NOT** use in conjunction with :py:class:`hoomd.md.charge.pppm`. It automatically creates and configures
@@ -829,7 +829,7 @@ class Morse(_Pair):
         nl = nlist.Cell()
         morse = pair.Morse(r_cut=3.0, nlist=nl)
         morse.params[('A', 'A')] = dict(D0=1.0, alpha=3.0, r0=1.0)
-        morse.params[('A', 'B')] = dict(D0=1.0, alpha=3.0, r0=1.0, r_cut=3.0, r_on=2.0)
+        morse.r_cut[('A', 'B')] = 3.0
 
     """
 
@@ -1100,9 +1100,8 @@ class DPDLJ(_Pair):
         nl = nlist.Cell()
         dpdlj = pair.DPDLJ(nlist=nl, kT=1.0, seed=0, r_cut=2.5)
         dpdlj.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0, gamma=4.5)
-        dpdlj.params[('A', 'B')] = dict(epsilon=1.0, sigma=1.0, gamma=4.5)
-        dpdlj.params[('B', 'B')] = dict(epsilon=1.0, sigma=1.0 gamma=4.5, r_cut=2.0**(1.0/6.0))
         dpdlj.params[(['A', 'B'], ['C', 'D'])] = dict(epsilon=3.0, sigma=1.0, gamma=1.2)
+        dpdlj.r_cut[('B', 'B')] = 2.0**(1.0/6.0)
 
     """
     _cpp_class_name = "PotentialPairDPDLJThermoDPD"
@@ -1620,8 +1619,8 @@ class Mie(_Pair):
         nl = nlist.Cell()
         mie = pair.Mie(nlist=nl, r_cut=3.0)
         mie.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0, n=12, m=6)
-        mie.params[('A', 'B')] = dict(epsilon=2.0, sigma=1.0, n=14, m=7, r_cut=3.0, r_on=2.0)
-        mie.params[('B', 'B')] = dict(epsilon=1.0, sigma=1.0, n=15.1, m=6.5, r_cut=2**(1.0/6.0), r_on=2.0)
+        mie.r_cut[('A', 'A')] = 2**(1.0/6.0)
+        mie.r_on[('A', 'A')] = 2.0
         mie.params[(['A', 'B'], ['C', 'D'])] = dict(epsilon=1.5, sigma=2.0)
      
     """
@@ -1825,7 +1824,7 @@ class gb(ai_pair):
         nl = nlist.Cell()
         gb = pair.gb(nlist=nl, r_cut=2.5)
         gb.params[('A', 'A')] = dict(epsilon=1.0, lperp=0.45, lpar=0.5)
-        gb.params[('A', 'B')] = dict(epsilon=2.0, lperp=0.45, lpar=0.5, r_cut=2**(1.0/6.0))
+        gb.r_cut[('A', 'B')] = 2**(1.0/6.0)
 
     """
     def __init__(self, r_cut, nlist, name=None):
@@ -2173,7 +2172,6 @@ class square_density(pair):
 
     [1] P. B. Warren, "Vapor-liquid coexistence in many-body dissipative particle dynamics"
     Phys. Rev. E. Stat. Nonlin. Soft Matter Phys., vol. 68, no. 6 Pt 2, p. 066702, 2003.
-
     """
     def __init__(self, r_cut, nlist, name=None):
 
@@ -2311,7 +2309,7 @@ class LJ1208(_Pair):
         nl = nlist.Cell()
         lj1208 = pair.LJ1208(nl, r_cut=3.0)
         lj1208.params[('A', 'A')] = {'sigma': 1.0, 'epsilon': 1.0}
-        lj1208.params[('A', 'B')] = dict(epsilon=2.0, sigma=1.0, r_cut=3.0, r_on=2.0)
+        lj1208.params[('A', 'B')] = dict(epsilon=2.0, sigma=1.0)
 
         """
     _cpp_class_name = "PotentialPairLJ1208"
@@ -2374,7 +2372,6 @@ class Fourier(_Pair):
         nl = nlist.Cell()
         fourier = pair.Fourier(r_cut=3.0, nlist=nl)
         fourier.params[('A', 'A')] = dict(a=[a2,a3,a4], b=[b2,b3,b4])
-
     """
     _cpp_class_name = "PotentialPairFourier"
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
