@@ -329,7 +329,6 @@ install(FILES ${_hoomd_headers}
        )
 
 # subdirectories that are not components
-add_subdirectory(analyze)
 add_subdirectory(custom)
 add_subdirectory(data)
 add_subdirectory(filter)
