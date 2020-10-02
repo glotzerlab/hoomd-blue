@@ -1,5 +1,6 @@
 set(files __init__.py
           csv_backend.py
+          gsd.py
           )
 
 install(FILES ${files}

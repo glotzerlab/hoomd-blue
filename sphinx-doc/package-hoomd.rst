@@ -37,7 +37,6 @@ hoomd
    module-hoomd-custom
    module-hoomd-data
    module-hoomd-device
-   module-hoomd-dump
    module-hoomd-filter
    module-hoomd-integrate
    module-hoomd-logging

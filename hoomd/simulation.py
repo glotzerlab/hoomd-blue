@@ -133,7 +133,7 @@ class Simulation(metaclass=Loggable):
         """Always compute the virial and pressure.
 
         By default, HOOMD only computes the virial and pressure on timesteps
-        where it is needed (when :py:class:`hoomd.dump.GSD` writes
+        where it is needed (when :py:class:`hoomd.write.GSD` writes
         log data to a file or when using an NPT integrator). Set
         ``always_compute_pressure`` to True to make the per particle virial,
         net virial, and system pressure available to query any time by property

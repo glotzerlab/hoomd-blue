@@ -9,12 +9,13 @@ hoomd.write
     :nosignatures:
 
     CSV
+    GSD
 
 .. rubric:: Details
 
 .. automodule:: hoomd.write
     :synopsis: Write data out.
-    :members:
+    :members: GSD
 
     .. autoclass:: CSV(trigger, logger, output=stdout, header_sep='.', delimiter=' ', pretty=True, max_precision=10, max_header_len=None)
         :members:
