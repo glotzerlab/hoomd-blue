@@ -527,7 +527,7 @@ class Updater(_TriggeredOperation):
     _cpp_list_name = 'updaters'
 
 
-class Analyzer(_TriggeredOperation):
+class Writer(_TriggeredOperation):
     """Base class for all HOOMD analyzers.
 
     An analyzer is an operation which writes out a simulation's state.

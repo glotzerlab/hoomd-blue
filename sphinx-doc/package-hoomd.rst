@@ -31,7 +31,6 @@ hoomd
 .. toctree::
    :maxdepth: 3
 
-   module-hoomd-analyze
    module-hoomd-array
    module-hoomd-comm
    module-hoomd-custom

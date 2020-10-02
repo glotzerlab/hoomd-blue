@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 from math import log10
 from sys import stdout
 
-from hoomd.analyze.custom_analyzer import _InternalCustomAnalyzer
+from hoomd.write.custom_writer import _InternalCustomWriter
 from hoomd.custom.custom_action import _InternalAction
 from hoomd.logging import TypeFlags, Logger
 from hoomd.data.parameterdicts import ParameterDict
@@ -250,7 +250,7 @@ class _TableInternal(_InternalAction):
             self.output.flush()
 
 
-class Table(_InternalCustomAnalyzer):
+class Table(_InternalCustomWriter):
     """A delimiter separated value file backend for a Logger.
 
     This can serve as a way to output scalar simulation data to standard out.

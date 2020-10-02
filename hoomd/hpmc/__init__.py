@@ -122,7 +122,6 @@ will not require any modifications. **Maintainer:** Joshua A. Anderson
 # need to import all submodules defined in this directory
 from hoomd.hpmc import integrate
 from hoomd.hpmc import update
-from hoomd.hpmc import analyze
 from hoomd.hpmc import compute
 from hoomd.hpmc import util
 from hoomd.hpmc import field

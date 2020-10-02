@@ -432,7 +432,7 @@ class Logger(SafeNamespaceDict):
         `hoomd.logging.Logger.log`. To understand the various flags
         available to specify logged quantities, see `hoomd.logging.TypeFlags`. To
         integrate with `hoomd.Operations` the back end should be a subclass of
-        `hoomd.custom.Action` and used with `hoomd.analyze.CustomAnalyzer`.
+        `hoomd.custom.Action` and used with `hoomd.writer.CustomWriter`.
 
     Args:
         flags (`list` of `str`, optional): A list of string flags (list of flags
