@@ -359,6 +359,11 @@ class State:
         rotational degree of freedom that has a non-zero moment of intertia.
         Each particle can have 0, 1, 2, or 3 rotational degrees of freedom.
 
+        .. seealso::
+            `md.methods.NVT.thermalize_extra_dof`
+
+            `md.methods.NPT.thermalize_extra_dof`
+
         Note:
             The seed for the pseudorandom number stream includes the
             simulation timestep and the provided *seed*.

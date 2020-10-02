@@ -117,24 +117,31 @@ class NVT(_Method):
 
 
     def thermalize_extra_dof(self, seed):
-        """Set the extra degrees of freedom to random values.
+        r"""Set the thermostat momenta to random values.
 
         Args:
             seed (int): Random number seed
 
-        Some integration methods, such as `NVT` and `NPT` employ extra degrees
-        of freedom for the thermostat and/or barostat. `thermalize_extra_dof`
-        sets these to random values. This method performs no operation for
-        integration methods that lack internal degrees of freedom.
+        The `NVT` equations of motion include a translational thermostat
+        momentum (:math:`\xi`) and position (:math:`\eta`).
+        `thermalize_extra_dof` sets a random value for the momentum :math:`\xi`.
+        When `Integrator.aniso` is `True`, it also sets a random value for the
+        rotational thermostat momentum :math:`\xi_{\mathrm{rot}}`. Call
+        `thermalize_extra_dof` to set a new random state for the thermostat.
+
+        .. important::
+            You must call `Simulation.run` before `thermalize_extra_dof`.
+            Call ``run(steps=0)`` to prepare a newly created `Simulation`.
+
+        .. seealso:: `State.thermalize_particle_momenta`
 
         Note:
             The seed for the pseudorandom number stream includes the
             simulation timestep and the provided *seed*.
         """
-
         if not self._attached:
             raise RuntimeError(
-                "Call Simulation.operations.schedule before thermalize_extra_dof")
+                "Call Simulation.run(0) before thermalize_extra_dof")
 
         self._cpp_obj.thermalizeExtraDOF(seed, self._simulation.timestep)
 
@@ -331,24 +338,33 @@ class NPT(_Method):
 
 
     def thermalize_extra_dof(self, seed):
-        """Set the extra degrees of freedom to random values.
+        r"""Set the thermostat momenta to random values.
 
         Args:
             seed (int): Random number seed
 
-        Some integration methods, such as `NVT` and `NPT` employ extra degrees
-        of freedom for the thermostat and/or barostat. `thermalize_extra_dof`
-        sets these to random values. This method performs no operation for
-        integration methods that lack internal degrees of freedom.
+        The `NPT` equations of motion include a translational thermostat
+        momentum :math:`\xi`, thermostat position :math:`\eta`, and a barostat
+        tensor :math:`\nu_{\mathrm{ij}}`. `thermalize_extra_dof` sets a random
+        value for the momentum :math:`\xi` and the barostat
+        :math:`\nu_{\mathrm{ij}}`. When `Integrator.aniso` is `True`, it also
+        sets a random value for the rotational thermostat momentum
+        :math:`\xi_{\mathrm{rot}}`. Call `thermalize_extra_dof` to set a new
+        random state for the thermostat and barostat.
+
+        .. important::
+            You must call `Simulation.run` before `thermalize_extra_dof`.
+            Call ``run(steps=0)`` to prepare a newly created `Simulation`.
+
+        .. seealso:: `State.thermalize_particle_momenta`
 
         Note:
             The seed for the pseudorandom number stream includes the
             simulation timestep and the provided *seed*.
         """
-
         if not self._attached:
             raise RuntimeError(
-                "Call Simulation.operations.schedule before thermalize_extra_dof")
+                "Call Simulation.run(0) before thermalize_extra_dof")
 
         self._cpp_obj.thermalizeExtraDOF(seed, self._simulation.timestep)
 
