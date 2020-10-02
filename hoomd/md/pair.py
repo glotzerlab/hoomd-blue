@@ -453,8 +453,10 @@ class Ewald(_Pair):
         :nowrap:
 
         \begin{eqnarray*}
-         V_{\mathrm{ewald}}(r)  = & q_i q_j \left[\mathrm{erfc}\left(\kappa r + \frac{\alpha}{2\kappa}\right) \exp(\alpha r)+
-                                    \mathrm{erfc}\left(\kappa r - \frac{\alpha}{2 \kappa}\right) \exp(-\alpha r)\right] & r < r_{\mathrm{cut}} \\
+         V_{\mathrm{ewald}}(r)  = & q_i q_j \left[\mathrm{erfc}\left(\kappa r +
+                                    \frac{\alpha}{2\kappa}\right) \exp(\alpha r) \\
+                                     + \mathrm{erfc}\left(\kappa r - 
+                                    \frac{\alpha}{2 \kappa}\right) \exp(-\alpha r)\right] & r < r_{\mathrm{cut}} \\
                             = & 0 & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
@@ -1171,7 +1173,8 @@ class Moliere(_Pair):
         :nowrap:
 
         \begin{eqnarray*}
-        V_{\mathrm{Moliere}}(r) = & \frac{Z_i Z_j e^2}{4 \pi \epsilon_0 r_{ij}} \left[ 0.35 \exp \left( -0.3 \frac{r_{ij}}{a_F} \right) + 0.55 \exp \left( -1.2 \frac{r_{ij}}{a_F} \right) + 0.10 \exp \left( -6.0 \frac{r_{ij}}{a_F} \right) \right] & r < r_{\mathrm{cut}} \\
+        V_{\mathrm{Moliere}}(r) = & \frac{Z_i Z_j e^2}{4 \pi \epsilon_0 r_{ij}} \left[ 0.35 \exp \left( -0.3 \frac{r_{ij}}{a_F} \right) + \\
+                                    0.55 \exp \left( -1.2 \frac{r_{ij}}{a_F} \right) + 0.10 \exp \left( -6.0 \frac{r_{ij}}{a_F} \right) \right] & r < r_{\mathrm{cut}} \\
                                 = & 0 & r > r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
@@ -1233,7 +1236,10 @@ class ZBL(_Pair):
         :nowrap:
 
         \begin{eqnarray*}
-        V_{\mathrm{ZBL}}(r) = & \frac{Z_i Z_j e^2}{4 \pi \epsilon_0 r_{ij}} \left[ 0.1818 \exp \left( -3.2 \frac{r_{ij}}{a_F} \right) + 0.5099 \exp \left( -0.9423 \frac{r_{ij}}{a_F} \right) + 0.2802 \exp \left( -0.4029 \frac{r_{ij}}{a_F} \right) + 0.02817 \exp \left( -0.2016 \frac{r_{ij}}{a_F} \right) \right], & r < r_{\mathrm{cut}} \\
+        V_{\mathrm{ZBL}}(r) = & \frac{Z_i Z_j e^2}{4 \pi \epsilon_0 r_{ij}} \left[ 0.1818 \exp \left( -3.2 \frac{r_{ij}}{a_F} \right) \\
+                                + 0.5099 \exp \left( -0.9423 \frac{r_{ij}}{a_F} \right) \\ 
+                                + 0.2802 \exp \left( -0.4029 \frac{r_{ij}}{a_F} \right) \\
+                                + 0.02817 \exp \left( -0.2016 \frac{r_{ij}}{a_F} \right) \right], & r < r_{\mathrm{cut}} \\
                                 = & 0, & r > r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
