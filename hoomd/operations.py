@@ -180,10 +180,7 @@ class Operations(Collection):
     def _schedule(self):
         """Prepares all operations for a `hoomd.Simulation.run` call.
 
-        This is provided in the public API to allow users to access quantities
-        that otherwise would not be available until after a call to
-        `hoomd.Simulation.run`. This does not have to be called before a ``run``
-        call as this will be called by ``run`` if necessary.
+        Creates the internal C++ objects for all operations.
 
         Raises:
             RuntimeError: raises when not associated with a `hoomd.Simulation`
