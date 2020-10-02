@@ -13,7 +13,7 @@
 #endif
 #include <pybind11/pybind11.h>
 #include "hoomd/Updater.h"
-#include "hoomd/ComputeThermo.h"
+#include "ComputeThermo.h"
 #include "hoomd/Variant.h"
 
 #include <memory>

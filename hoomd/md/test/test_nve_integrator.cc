@@ -10,7 +10,7 @@
 #include <memory>
 
 #include "hoomd/ConstForceCompute.h"
-#include "hoomd/ComputeThermo.h"
+#include "hoomd/md/ComputeThermo.h"
 #include "hoomd/md/TwoStepNVE.h"
 #ifdef ENABLE_HIP
 #include "hoomd/md/TwoStepNVEGPU.h"

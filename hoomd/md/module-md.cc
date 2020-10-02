@@ -13,6 +13,8 @@
 #include "AllSpecialPairPotentials.h"
 #include "AnisoPotentialPair.h"
 #include "BondTablePotential.h"
+#include "ComputeThermo.h"
+#include "ComputeThermoHMA.h"
 #include "ConstExternalFieldDipoleForceCompute.h"
 #include "ConstraintEllipsoid.h"
 #include "ConstraintSphere.h"
@@ -63,6 +65,8 @@
 #include "ActiveForceComputeGPU.h"
 #include "AnisoPotentialPairGPU.h"
 #include "BondTablePotentialGPU.h"
+#include "ComputeThermoGPU.h"
+#include "ComputeThermoHMAGPU.h"
 #include "ConstraintEllipsoidGPU.h"
 #include "ConstraintSphereGPU.h"
 #include "OneDConstraintGPU.h"
@@ -222,6 +226,8 @@ PYBIND11_MODULE(_md, m)
     {
     export_ActiveForceCompute(m);
     export_ConstExternalFieldDipoleForceCompute(m);
+    export_ComputeThermo(m);
+    export_ComputeThermoHMA(m);
     export_HarmonicAngleForceCompute(m);
     export_CosineSqAngleForceCompute(m);
     export_TableAngleForceCompute(m);
@@ -332,6 +338,8 @@ PYBIND11_MODULE(_md, m)
     export_OneDConstraintGPU(m);
     export_ForceDistanceConstraintGPU(m);
     // export_ConstExternalFieldDipoleForceComputeGPU(m);
+    export_ComputeThermoGPU(m);
+    export_ComputeThermoHMAGPU(m);
     export_PPPMForceComputeGPU(m);
     export_ActiveForceComputeGPU(m);
     export_PotentialExternalGPU<PotentialExternalPeriodicGPU, PotentialExternalPeriodic>(m, "PotentialExternalPeriodicGPU");

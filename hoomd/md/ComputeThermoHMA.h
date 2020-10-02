@@ -4,10 +4,10 @@
 
 // Maintainer: ajs42
 
-#include "Compute.h"
-#include "GPUArray.h"
+#include "hoomd/Compute.h"
+#include "hoomd/GPUArray.h"
 #include "ComputeThermoHMATypes.h"
-#include "ParticleGroup.h"
+#include "hoomd/ParticleGroup.h"
 
 #include <memory>
 #include <limits>
