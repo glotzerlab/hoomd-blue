@@ -14,10 +14,10 @@ from hoomd.trigger import Trigger
 from hoomd.variant import Variant, Constant
 from hoomd.filter import _ParticleFilter
 from hoomd.logging import Loggable, log
-from hoomd.typeconverter import RequiredArg
+from hoomd.data.typeconverter import RequiredArg
 from hoomd.util import NamespaceDict
 from hoomd._hoomd import GSDStateReader
-from hoomd.parameterdicts import ParameterDict
+from hoomd.data.parameterdicts import ParameterDict
 
 from collections.abc import Mapping
 from copy import deepcopy

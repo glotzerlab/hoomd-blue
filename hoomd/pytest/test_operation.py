@@ -1,6 +1,6 @@
-from hoomd.typeparam import TypeParameter
-from hoomd.parameterdicts import TypeParameterDict
-from hoomd.typeconverter import RequiredArg
+from hoomd.data.typeparam import TypeParameter
+from hoomd.data.parameterdicts import TypeParameterDict
+from hoomd.data.typeconverter import RequiredArg
 from hoomd.pytest.dummy import DummyCppObj, DummySimulation
 from hoomd.pytest.dummy import DummyOperation
 from copy import deepcopy

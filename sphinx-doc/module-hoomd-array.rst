@@ -1,7 +1,7 @@
-hoomd.array
-------------
+hoomd.data.array
+----------------
 
-.. py:currentmodule:: hoomd.array
+.. py:currentmodule:: hoomd.data.array
 
 .. rubric:: Overview
 
@@ -13,7 +13,7 @@ hoomd.array
 
 .. rubric:: Details
 
-.. automodule:: hoomd.array
+.. automodule:: hoomd.data.array
     :synopsis: Array classes that expose internal data buffers through the local snapshot `hoomd.State` API.
     :members: HOOMDGPUArray
 

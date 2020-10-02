@@ -302,8 +302,6 @@ set(files benchmark.py
           comm.py
           conftest.py
           device.py
-          dump.py
-          array.py
           __init__.py
           integrate.py
           operation.py
@@ -311,13 +309,8 @@ set(files benchmark.py
           util.py
           variant.py
           simulation.py
-          smart_default.py
           state.py
-          syncedlist.py
-          parameterdicts.py
           trigger.py
-          typeparam.py
-          typeconverter.py
           snapshot.py
           logging.py
           version.py

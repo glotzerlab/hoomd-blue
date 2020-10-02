@@ -5,8 +5,8 @@ from sys import stdout
 from hoomd.analyze.custom_analyzer import _InternalCustomAnalyzer
 from hoomd.custom.custom_action import _InternalAction
 from hoomd.logging import TypeFlags, Logger
-from hoomd.parameterdicts import ParameterDict
-from hoomd.typeconverter import OnlyType
+from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data.typeconverter import OnlyType
 from hoomd.util import dict_flatten
 
 

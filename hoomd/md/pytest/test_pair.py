@@ -34,9 +34,9 @@ def _assert_equivalent_parameter_dicts(param_dict1, param_dict2):
 def test_rcut(simulation_factory, two_particle_snapshot_factory):
     lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
     lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
-    with pytest.raises(hoomd.typeconverter.TypeConversionError):
+    with pytest.raises(hoomd.data.typeconverter.TypeConversionError):
         lj.r_cut[('A', 'A')] = 'str'
-    with pytest.raises(hoomd.typeconverter.TypeConversionError):
+    with pytest.raises(hoomd.data.typeconverter.TypeConversionError):
         lj.r_cut[('A', 'A')] = [1, 2, 3]
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=.5))
@@ -54,7 +54,7 @@ def test_rcut(simulation_factory, two_particle_snapshot_factory):
 def test_invalid_mode():
     cell = hoomd.md.nlist.Cell()
     for invalid_mode in [1, 'str', [1, 2, 3]]:
-        with pytest.raises(hoomd.typeconverter.TypeConversionError):
+        with pytest.raises(hoomd.data.typeconverter.TypeConversionError):
             lj = hoomd.md.pair.LJ(nlist=cell, r_cut=2.5, mode=invalid_mode)
 
 
@@ -76,9 +76,9 @@ def test_mode(simulation_factory, two_particle_snapshot_factory, mode):
 def test_ron(simulation_factory, two_particle_snapshot_factory):
     lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(), mode='xplor', r_cut=2.5)
     lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
-    with pytest.raises(hoomd.typeconverter.TypeConversionError):
+    with pytest.raises(hoomd.data.typeconverter.TypeConversionError):
         lj.r_on[('A', 'A')] = 'str'
-    with pytest.raises(hoomd.typeconverter.TypeConversionError):
+    with pytest.raises(hoomd.data.typeconverter.TypeConversionError):
         lj.r_on[('A', 'A')] = [1, 2, 3]
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=.5))
@@ -251,7 +251,7 @@ def test_invalid_params(invalid_params):
                                         mode='none')
     for pair in invalid_params.pair_potential_params:
         if isinstance(pair, tuple):
-            with pytest.raises(hoomd.typeconverter.TypeConversionError):
+            with pytest.raises(hoomd.data.typeconverter.TypeConversionError):
                 pot.params[pair] = invalid_params.pair_potential_params[pair]
 
 

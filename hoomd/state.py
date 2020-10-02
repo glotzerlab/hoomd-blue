@@ -265,10 +265,10 @@ class State:
         The `hoomd.data.LocalSnapshot` object is only usable within a
         context manager (i.e. ``with sim.state.cpu_local_snapshot as data:``)
         The interface is similar to that of the `hoomd.Snapshot`. Data is local
-        to a given MPI rank. The returned arrays are `hoomd.array.HOOMDArray`
-        objects. Through this interface zero-copy access is available (access is
-        guarenteed to be zero-copy when running on CPU, may be zero copy if
-        running on GPU).
+        to a given MPI rank. The returned arrays are
+        `hoomd.data.array.HOOMDArray` objects. Through this interface zero-copy
+        access is available (access is guarenteed to be zero-copy when running
+        on CPU, may be zero copy if running on GPU).
 
         Changing the data in the buffers exposed by the local snapshot will
         change the data across the HOOMD-blue simulation. For a trivial example,
@@ -301,9 +301,9 @@ class State:
         within a context manager (i.e. ``with sim.state.gpu_local_snapshot as
         data:``) The interface is similar to that of the `hoomd.Snapshot`. Data
         is local to a given MPI rank. The returned arrays are
-        `hoomd.array.HOOMDGPUArray` objects. Through this interface potential
-        zero-copy access is available (access cannot be guarenteed to be
-        zero-copy, but will be if the most recent copy of the data is on the
+        `hoomd.data.array.HOOMDGPUArray` objects. Through this interface
+        potential zero-copy access is available (access cannot be guarenteed to
+        be zero-copy, but will be if the most recent copy of the data is on the
         GPU).
 
         Changing the data in the buffers exposed by the local snapshot will

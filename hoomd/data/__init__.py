@@ -1,3 +1,4 @@
+from .array import HOOMDArray, HOOMDGPUArray
 from .local_access import (
     AngleLocalAccessBase, BondLocalAccessBase, ConstraintLocalAccessBase,
     DihedralLocalAccessBase, ImproperLocalAccessBase, PairLocalAccessBase,

@@ -4,7 +4,7 @@ from hoomd.data.local_access import (
     DihedralLocalAccessBase, AngleLocalAccessBase, ImproperLocalAccessBase,
     PairLocalAccessBase, _LocalSnapshot)
 
-from hoomd.array import HOOMDGPUArray
+from hoomd.data.array import HOOMDGPUArray
 import hoomd
 
 if hoomd.version.gpu_enabled:

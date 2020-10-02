@@ -13,9 +13,9 @@ from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.logging import log
-from hoomd.typeparam import TypeParameter
-from hoomd.typeconverter import OnlyType
-from hoomd.parameterdicts import ParameterDict, TypeParameterDict
+from hoomd.data.typeparam import TypeParameter
+from hoomd.data.typeconverter import OnlyType
+from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.filter import _ParticleFilter
 from hoomd.md.constrain import _ConstraintForce
 

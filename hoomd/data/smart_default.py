@@ -3,7 +3,7 @@ from collections.abc import Mapping
 from itertools import repeat, cycle
 from inspect import isclass
 from hoomd.util import is_iterable
-from hoomd.typeconverter import RequiredArg
+from hoomd.data.typeconverter import RequiredArg
 
 
 class NoDefault:

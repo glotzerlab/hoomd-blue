@@ -1,7 +1,8 @@
 from hoomd.custom import _InternalAction
-from hoomd.parameterdicts import ParameterDict, TypeParameterDict
-from hoomd.typeparam import TypeParameter
-from hoomd.typeconverter import OnlyFrom, OnlyType, OnlyIf, to_type_converter
+from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
+from hoomd.data.typeparam import TypeParameter
+from hoomd.data.typeconverter import (
+    OnlyFrom, OnlyType, OnlyIf, to_type_converter)
 from hoomd.tune import _InternalCustomTuner
 from hoomd.tune.attr_tuner import (
     _TuneDefinition, SolverStep, ScaleSolver, SecantSolver)

@@ -10,9 +10,9 @@ from hoomd import _hoomd
 from hoomd.logging import log
 from hoomd.update import _updater
 from hoomd.operation import _Updater
-from hoomd.parameterdicts import ParameterDict
+from hoomd.data.parameterdicts import ParameterDict
+import hoomd.data.typeconverter
 import hoomd
-import hoomd.typeconverter
 
 
 class boxmc(_updater):
@@ -998,8 +998,9 @@ class QuickCompress(_Updater):
             seed=int,
             max_overlaps_per_particle=float,
             min_scale=float,
-            target_box=hoomd.typeconverter.OnlyType(
-                hoomd.Box, preprocess=hoomd.typeconverter.box_preprocessing))
+            target_box=hoomd.data.typeconverter.OnlyType(
+                hoomd.Box,
+                preprocess=hoomd.data.typeconverter.box_preprocessing))
         param_dict['seed'] = seed
         param_dict['max_overlaps_per_particle'] = max_overlaps_per_particle
         param_dict['min_scale'] = min_scale

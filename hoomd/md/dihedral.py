@@ -28,8 +28,8 @@ from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.md import force
 from hoomd.md.force import _Force
-from hoomd.parameterdicts import TypeParameterDict
-from hoomd.typeparam import TypeParameter
+from hoomd.data.parameterdicts import TypeParameterDict
+from hoomd.data.typeparam import TypeParameter
 import hoomd
 
 import math

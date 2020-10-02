@@ -1,6 +1,6 @@
 from hoomd.pytest.dummy import DummyCppObj, DummySimulation, DummyTrigger
-from hoomd.pytest.dummy import DummyOperation, DummyTriggeredOp
-from hoomd.syncedlist import SyncedList
+from hoomd.pytest.dummy import DummyTriggeredOp
+from hoomd.data.syncedlist import SyncedList
 from hoomd.trigger import Periodic
 
 

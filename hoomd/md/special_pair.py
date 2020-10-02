@@ -16,8 +16,8 @@ listed particles.
 
 from hoomd.md import _md
 from hoomd.md.force import _Force
-from hoomd.typeparam import TypeParameter
-from hoomd.parameterdicts import TypeParameterDict
+from hoomd.data.typeparam import TypeParameter
+from hoomd.data.parameterdicts import TypeParameterDict
 import hoomd
 
 
