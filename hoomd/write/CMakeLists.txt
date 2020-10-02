@@ -1,5 +1,5 @@
 set(files __init__.py
-          csv_backend.py
+          table.py
           gsd.py
           )
 

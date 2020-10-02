@@ -2,7 +2,6 @@
 set(files __init__.py
           test_attr_tuner.py
           test_box.py
-          test_csv.py
           test_device.py
           test_example.py
           test_trigger.py
@@ -18,6 +17,7 @@ set(files __init__.py
           test_snapshot.py
           test_state.py
           test_simulation.py
+          test_table.py
           test_variant.py
           pytest-openmpi.sh
     )

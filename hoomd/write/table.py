@@ -4,7 +4,7 @@ from sys import stdout
 
 from hoomd.analyze.custom_analyzer import _InternalCustomAnalyzer
 from hoomd.custom.custom_action import _InternalAction
-from hoomd.logging import TypeFlags
+from hoomd.logging import TypeFlags, Logger
 from hoomd.parameterdicts import ParameterDict
 from hoomd.typeconverter import OnlyType
 from hoomd.util import dict_flatten
@@ -13,7 +13,7 @@ from hoomd.util import dict_flatten
 class _OutputWriter(metaclass=ABCMeta):
     """Represents the necessary functions for writing out data.
 
-    We use this to ensure the output object passed to CSV will support the
+    We use this to ensure the output object passed to Table will support the
     necessary functions.
     """
 
@@ -38,14 +38,14 @@ class _OutputWriter(metaclass=ABCMeta):
 
 
 class _Formatter:
-    """Internal class for number and string formatting for CSV object.
+    """Internal class for number and string formatting for Table object.
 
     Main method is ``__call__``. It takes a value with the corresponding column
     width and outputs the string to use for that column. Some of these
-    parameters are not currently used in the _InternalCSV class, but are
+    parameters are not currently used in the _InternalTable class, but are
     available in the _Formatter class, meaning that adding these features later
     would be fairly simple. I (Brandon Butler) did not think they were worth
-    complicating the CSV Logger any more than it currently is though, so they
+    complicating the Table Logger any more than it currently is though, so they
     are not used now.
 
     Args:
@@ -122,7 +122,7 @@ class _Formatter:
             return self._str_format.format(value, width=column_width)
 
 
-class _CSVInternal(_InternalAction):
+class _TableInternal(_InternalAction):
     """Implements the logic for a simple text based logger backend.
 
     This currently has to check the logged quantites every time to ensure it has
@@ -146,12 +146,14 @@ class _CSVInternal(_InternalAction):
             header_sep=str, delimiter=str, min_column_width=int,
             max_header_len=OnlyType(int, allow_none=True), pretty=bool,
             max_precision=int,
-            output=OnlyType(_OutputWriter, postprocess=writable))
+            output=OnlyType(_OutputWriter, postprocess=writable),
+            logger=Logger)
+
         param_dict.update(dict(
             header_sep=header_sep, delimiter=delimiter,
             min_column_width=max(10, max_precision + 6),
             max_header_len=max_header_len, max_precision=max_precision,
-            pretty=pretty, output=output)
+            pretty=pretty, output=output, logger=logger)
         )
         self._param_dict = param_dict
 
@@ -161,7 +163,6 @@ class _CSVInternal(_InternalAction):
                 or logger.flags & self._invalid_logger_flags != TypeFlags.NONE):
             raise ValueError("Given Logger must have the scalar flag set.")
 
-        self._logger = logger
         self._cur_headers_with_width = dict()
         self._fmt = _Formatter(pretty, max_precision)
         self._comm = None
@@ -179,7 +180,7 @@ class _CSVInternal(_InternalAction):
     def _get_log_dict(self):
         """Get a flattened dict for writing to output."""
         return {key: value[0]
-                for key, value in dict_flatten(self._logger.log()).items()
+                for key, value in dict_flatten(self.logger.log()).items()
                 }
 
     def _update_headers(self, new_keys):
@@ -249,15 +250,25 @@ class _CSVInternal(_InternalAction):
             self.output.flush()
 
 
-class CSV(_InternalCustomAnalyzer):
+class Table(_InternalCustomAnalyzer):
     """A delimiter separated value file backend for a Logger.
 
     This can serve as a way to output scalar simulation data to standard out.
     However, this is useable to store simulation scalar data to a file as well.
 
+    Note:
+        This only works with scalar and string quantities. If using string
+        quantities, keep in mind that the default space delimiter will make
+        strings with spaces in them will cause read errors if attempting to read
+        the outputed data with a space delimited file reader.
+
+    Note:
+        All attributes for this class are static. They cannot be set to new
+        values once created.
+
     Args:
         trigger (hoomd.trigger.Trigger): The trigger to determine when to run
-            the CSV logger.
+            the Table back end.
         logger (hoomd.logging.Logger): The logger to query for output. The
             'scalar' flag must be set on the logger, and the 'string' flag is
             optional.
@@ -285,15 +296,43 @@ class CSV(_InternalCustomAnalyzer):
             example, if set to 7 the namespace 'hoomd.md.pair.LJ.energy' would
             be set to 'energy'. Note that at least the most specific part of the
             namespace will be used regardless of this setting (e.g. if set to 5
-            in the previous example, we would still use 'energy' as the header).
+            in the previous example, 'energy' would still be the header).
 
-    Note:
-        This only works with scalar and string quantities. If using string
-        quantities, keep in mind that the default space delimiter will make
-        strings with spaces in them will cause read errors if attempting to read
-        the outputed data with a csv reader.
+    Attributes:
+        trigger (hoomd.trigger.Trigger): The trigger to determine when to run
+            the Table back end.
+        logger (hoomd.logging.Logger): The logger to query for output. The
+            'scalar' flag must be set on the logger, and the 'string' flag is
+            optional.
+        output (``file-like`` object): A file-like object to output
+            the data from. The object must have write and flush methods and a
+            mode attribute.
+        header_sep (str): String to use to separate names in
+            the logger's namespace.'. For example, if logging the total energy
+            of an `hoomd.md.pair.LJ` pair force object, the default header would
+            be ``md.pair.LJ.energy`` (assuming that ``max_header_len`` is not
+            set).
+        delimiter (str): String used to separate elements in the space
+            delimitated file.
+        pretty (bool): Flags whether to attempt to make output
+            prettier and easier to read. To make the ouput easier to read, the
+            output will compromise on outputted precision for improved
+            readability. In many cases, though the precision will still be high
+            with pretty set to ``True``.
+        max_precision (:obj:`int`, optional): If pretty is not set, then this
+            controls the maximum precision to use when outputing numerical
+            values, defaults to 10.
+        max_header_len (int): Limits the outputted header names to length
+            ``max_header_len`` when not ``None``. Names are grabbed from the
+            most specific to the least. For example, if set to 7 the namespace
+            'hoomd.md.pair.LJ.energy' would be set to 'energy'. Note that at
+            least the most specific part of the namespace will be used
+            regardless of this setting (e.g. if set to 5 in the previous
+            example, 'energy' would still be the header).
+        min_column_width (int): The minimum allowed column width.
+
     """
-    _internal_class = _CSVInternal
+    _internal_class = _TableInternal
 
     def write(self):
         """Write out data to ``self.output``.

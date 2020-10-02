@@ -8,7 +8,7 @@ hoomd.write
 .. autosummary::
     :nosignatures:
 
-    CSV
+    Table
     GSD
 
 .. rubric:: Details
@@ -17,5 +17,5 @@ hoomd.write
     :synopsis: Write data out.
     :members: GSD
 
-    .. autoclass:: CSV(trigger, logger, output=stdout, header_sep='.', delimiter=' ', pretty=True, max_precision=10, max_header_len=None)
+    .. autoclass:: Table(trigger, logger, output=stdout, header_sep='.', delimiter=' ', pretty=True, max_precision=10, max_header_len=None)
         :members:
