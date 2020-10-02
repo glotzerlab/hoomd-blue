@@ -6,11 +6,11 @@
 #include <functional>
 #include <memory>
 
-#include "hoomd/ComputeThermo.h"
+#include "hoomd/md/ComputeThermo.h"
 #include "hoomd/md/TwoStepNPTMTK.h"
 #ifdef ENABLE_HIP
 #include "hoomd/md/TwoStepNPTMTKGPU.h"
-#include "hoomd/ComputeThermoGPU.h"
+#include "hoomd/md/ComputeThermoGPU.h"
 #endif
 #include "hoomd/md/IntegratorTwoStep.h"
 

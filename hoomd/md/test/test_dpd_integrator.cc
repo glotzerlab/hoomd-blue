@@ -9,7 +9,7 @@
 
 #include <memory>
 
-#include "hoomd/ComputeThermo.h"
+#include "hoomd/md/ComputeThermo.h"
 #include "hoomd/md/AllPairPotentials.h"
 
 #include "hoomd/md/TwoStepNVE.h"

@@ -5,7 +5,7 @@
 // Maintainer: ajs42
 
 #include "ComputeThermoHMAGPU.cuh"
-#include "VectorMath.h"
+#include "hoomd/VectorMath.h"
 
 #include <assert.h>
 

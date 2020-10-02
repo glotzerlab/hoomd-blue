@@ -12,7 +12,7 @@ from collections.abc import Collection
 from itertools import chain
 import hoomd.integrate
 from hoomd.syncedlist import SyncedList
-from hoomd.operation import Analyzer, Updater, Tuner
+from hoomd.operation import Analyzer, Updater, Tuner, Compute
 from hoomd.typeconverter import OnlyType
 from hoomd.tune import ParticleSorter
 
@@ -69,17 +69,20 @@ class Operations(Collection):
         self._analyzers = SyncedList(OnlyType(Analyzer),
                                      _triggered_op_conversion)
         self._tuners = SyncedList(OnlyType(Tuner), lambda x: x._cpp_obj)
+        self._computes = SyncedList(OnlyType(Compute), lambda x: x._cpp_obj)
         self._integrator = None
 
         self._tuners.append(ParticleSorter())
 
     def _get_proper_container(self, operation):
         if isinstance(operation, Updater):
-            return self.updaters
+            return self._updaters
         elif isinstance(operation, Analyzer):
-            return self.analyzers
+            return self._analyzers
         elif isinstance(operation, Tuner):
-            return self.tuners
+            return self._tuners
+        elif isinstance(operation, Compute):
+            return self._computes
         else:
             raise TypeError(
                 f"{type(operation)} is not a valid operation type.")
@@ -197,6 +200,8 @@ class Operations(Collection):
             self.analyzers._sync(sim, sim._cpp_sys.analyzers)
         if not self.tuners._synced:
             self.tuners._sync(sim, sim._cpp_sys.tuners)
+        if not self.computes._synced:
+            self.computes._sync(sim, sim._cpp_sys.computes)
         self._scheduled = True
 
     def _unschedule(self):
@@ -205,6 +210,7 @@ class Operations(Collection):
         self._analyzers._unsync()
         self._updaters._unsync()
         self._tuners._unsync()
+        self._computes._unsync()
         self._scheduled = False
 
     def _store_reader(self, reader):
@@ -224,7 +230,8 @@ class Operations(Collection):
         """Iterates through all contained operations."""
         integrator = (self._integrator,) if self._integrator else []
         yield from chain(
-            self._tuners, self._updaters, integrator, self._analyzers)
+            self._tuners, self._updaters, integrator, self._analyzers,
+            self._computes)
 
     def __len__(self):
         """Return the number of operations contained in this collection."""
@@ -285,7 +292,16 @@ class Operations(Collection):
     def tuners(self):
         """list[`hoomd.operation.Tuner`]: A list of tuner operations.
 
-        Holds the list of tuners associated with this collection. The list can be
-        modified as a standard Python list.
+        Holds the list of tuners associated with this collection. The list can
+        be modified as a standard Python list.
         """
         return self._tuners
+
+    @property
+    def computes(self):
+        """list[`hoomd.operation.Compute`]: A list of tuner operations.
+
+        Holds the list of tuners associated with this collection. The list can
+        be modified as a standard Python list.
+        """
+        return self._computes
