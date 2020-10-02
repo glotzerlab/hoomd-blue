@@ -52,7 +52,7 @@ class _bounce_back(hoomd.integrate._integration_method):
     Currently, there is no mechanism to share geometries between multiple instances of the same
     integration method.
 
-    A :py:class:`hoomd.compute.thermo` is automatically specified and associated with *group*.
+    A :py:class:`hoomd.md.compute.ThermodynamicQuantities` is automatically specified and associated with *group*.
 
     """
     def __init__(self, group):
@@ -102,8 +102,6 @@ class slit(_bounce_back):
     This integration method applies to particles in *group* in the parallel-plate channel geometry.
     This method is the MD analog of :py:class:`.stream.slit`, which documents additional details
     about the geometry.
-
-    A :py:class:`hoomd.md.compute.ThermodynamicQuantities` is automatically specified and associated with *group*.
 
     Examples::
 
@@ -176,8 +174,6 @@ class slit_pore(_bounce_back):
     This integration method applies to particles in *group* in the parallel-plate (slit) pore geometry.
     This method is the MD analog of :py:class:`.stream.slit_pore`, which documents additional details
     about the geometry.
-
-    A :py:class:`hoomd.md.compute.ThermodynamicQuantities` is automatically specified and associated with *group*.
 
     Examples::
 

@@ -178,7 +178,7 @@ Scalar ComputeThermo::getLogValue(const std::string& quantity, unsigned int time
         }
     else
         {
-        m_exec_conf->msg->error() << "compute.thermo: " << quantity << " is not a valid log quantity" << endl;
+        m_exec_conf->msg->error() << "compute.ThermodynamicQuantities: " << quantity << " is not a valid log quantity" << endl;
         throw runtime_error("Error getting log value");
         }
     }
