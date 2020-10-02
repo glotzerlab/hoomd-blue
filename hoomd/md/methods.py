@@ -248,7 +248,7 @@ class NPT(_Method):
             thermo_cls = _hoomd.ComputeThermoGPU
 
         cpp_sys_def = self._simulation.state._cpp_sys_def
-        thermo_group = self._simulation.state.get_group(self.filter)
+        thermo_group = self._simulation.state._get_group(self.filter)
 
         thermo_half_step = thermo_cls(cpp_sys_def,
                             thermo_group,
