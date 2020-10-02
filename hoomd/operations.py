@@ -39,12 +39,12 @@ class Operations(Collection):
     sequences described below.
 
     The types of operations which can be added to an `Operations` object are
-    integrators, updaters, analyzers, tuners, and computes. An `Operations` can
+    tuners, updaters, integrators, analyzers, and computes. An `Operations` can
     only ever hold one integrator at a time. On the other hand, an `Operations`
-    object can hold any number of updaters, analyzers, tuners, or computes. To
-    see examples of these types of operations see `hoomd.hpmc.integrate`
-    or `hoomd.md.integrate` (integrators), `hoomd.update` (updaters),
-    `hoomd.tune` (tuners), `hoomd.dump` (analyzers), and `hoomd.md.thermo`
+    object can hold any number of tuners, updaters, analyzers, or computes. To
+    see examples of these types of operations see `hoomd.tune` (tuners),
+    `hoomd.update` (updaters), `hoomd.hpmc.integrate` or `hoomd.md.integrate`
+    (integrators), , `hoomd.dump` (analyzers), and `hoomd.md.thermo`
     (computes).
 
     A given instance of an operation class can only be added to a single
@@ -91,8 +91,8 @@ class Operations(Collection):
         `Operations` instance.
 
         Args:
-            operation (`hoomd.operation._Operation`): A HOOMD-blue updater,
-                analyzer, compute, tuner, or integrator to add to the
+            operation (`hoomd.operation._Operation`): A HOOMD-blue tuner,
+                updater, integrator, analyzer, or compute,  to add to the
                 collection.
 
         Raises:
@@ -126,8 +126,8 @@ class Operations(Collection):
         """Works the same as `Operations.add`.
 
         Args:
-            operation (`hoomd.operation._Operation`): A HOOMD-blue updater,
-                analyzer, compute, tuner, or integrator to add to the object.
+            operation (`hoomd.operation._Operation`): A HOOMD-blue tuner,
+                updater, integrator, analyzer, or compute to add to the object.
         """
         self.add(operation)
         return self
@@ -142,7 +142,7 @@ class Operations(Collection):
 
         Args:
             operation (`hoomd.operation._Operation`): A HOOMD-blue integrator,
-                updater, analyzer, tuner, or compute, to remove from the
+                tuner, updater, integrator, or compute to remove from the
                 container.
 
         Raises:
@@ -164,8 +164,8 @@ class Operations(Collection):
 
         Args:
             operation (`hoomd.operation._Operation`): A HOOMD-blue integrator,
-                updater, analyzer, tuner, or compute to remove from the
-                collection.
+                tuner, updater, integrator, analzyer, or compute to remove from
+                the collection.
         """
         self.remove(operation)
         return self
@@ -227,7 +227,7 @@ class Operations(Collection):
         """Iterates through all contained operations."""
         integrator = (self._integrator,) if self._integrator else []
         yield from chain(
-            integrator, self._analyzers, self._updaters, self._tuners)
+            self._tuners, self._updaters, integrator, self._analyzers)
 
     def __len__(self):
         """Return the number of operations contained in this collection."""
