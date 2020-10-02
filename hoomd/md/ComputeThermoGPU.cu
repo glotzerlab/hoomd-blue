@@ -6,8 +6,8 @@
 
 #include <hip/hip_runtime.h>
 #include "ComputeThermoGPU.cuh"
-#include "VectorMath.h"
-#include "HOOMDMath.h"
+#include "hoomd/VectorMath.h"
+#include "hoomd/HOOMDMath.h"
 
 #include <assert.h>
 

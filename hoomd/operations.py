@@ -1,7 +1,7 @@
 from itertools import chain
 import hoomd.integrate
 from hoomd.syncedlist import SyncedList
-from hoomd.operation import _Analyzer, _Updater, _Tuner
+from hoomd.operation import _Analyzer, _Updater, _Tuner, _Compute
 from hoomd.typeconverter import OnlyType
 from hoomd.tune import ParticleSorter
 
@@ -13,13 +13,13 @@ def _triggered_op_conversion(value):
 class Operations:
     def __init__(self, simulation=None):
         self._simulation = simulation
-        self._compute = list()
         self._scheduled = False
         self._updaters = SyncedList(OnlyType(_Updater),
                                     _triggered_op_conversion)
         self._analyzers = SyncedList(OnlyType(_Analyzer),
                                      _triggered_op_conversion)
         self._tuners = SyncedList(OnlyType(_Tuner), lambda x: x._cpp_obj)
+        self._computes = SyncedList(OnlyType(_Compute), lambda x: x._cpp_obj)
         self._integrator = None
 
         self._tuners.append(ParticleSorter())
@@ -39,6 +39,8 @@ class Operations:
             self._updaters.append(op)
         elif isinstance(op, _Analyzer):
             self._analyzers.append(op)
+        elif isinstance(op, _Compute):
+            self._computes.append(op)
         else:
             raise ValueError("Operation is not of the correct type to add to"
                              " Operations.")
@@ -62,6 +64,8 @@ class Operations:
             self.analyzers._sync(sim, sim._cpp_sys.analyzers)
         if not self.tuners._synced:
             self.tuners._sync(sim, sim._cpp_sys.tuners)
+        if not self.computes._synced:
+            self.computes._sync(sim, sim._cpp_sys.computes)
         self._scheduled = True
 
     def unschedule(self):
@@ -69,6 +73,7 @@ class Operations:
         self._analyzers._unsync()
         self._updaters._unsync()
         self._tuners._unsync()
+        self._computes._unsync()
         self._scheduled = False
 
     def _store_reader(self, reader):
@@ -81,9 +86,10 @@ class Operations:
     def __iter__(self):
         if self._integrator is not None:
             yield from chain((self._integrator,), self._analyzers,
-                             self._updaters, self._tuners)
+                             self._updaters, self._tuners, self._computes)
         else:
-            yield from chain((self._analyzers, self._updaters, self._tuners))
+            yield from chain(
+                (self._analyzers, self._updaters, self._tuners, self._computes))
 
     @property
     def scheduled(self):
@@ -127,6 +133,10 @@ class Operations:
     def tuners(self):
         return self._tuners
 
+    @property
+    def computes(self):
+        return self._computes
+
     def __iadd__(self, operation):
         self.add(operation)
 
@@ -140,6 +150,8 @@ class Operations:
             self._updaters.remove(operation)
         elif isinstance(operation, _Tuner):
             self._tuners.remove(operation)
+        elif isinstance(operation, _Compute):
+            self._computes.remove(operation)
 
     def __isub__(self, operation):
         self.remove(operation)

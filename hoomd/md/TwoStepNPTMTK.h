@@ -6,7 +6,7 @@
 
 #include "IntegrationMethodTwoStep.h"
 #include "hoomd/Variant.h"
-#include "hoomd/ComputeThermo.h"
+#include "ComputeThermo.h"
 
 #ifndef __TWO_STEP_NPT_MTK_H__
 #define __TWO_STEP_NPT_MTK_H__

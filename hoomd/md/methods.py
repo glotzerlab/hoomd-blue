@@ -60,9 +60,6 @@ class NVT(_Method):
     *kT* can be a variant type, allowing for temperature ramps in simulation
     runs.
 
-    A :py:class:`hoomd.compute.thermo` is automatically specified and associated
-    with *group*.
-
     Examples::
 
         all = filter.All()
@@ -87,10 +84,10 @@ class NVT(_Method):
         # initialize the reflected cpp class
         if isinstance(self._simulation.device, hoomd.device.CPU):
             my_class = _md.TwoStepNVTMTK
-            thermo_cls = _hoomd.ComputeThermo
+            thermo_cls = _md.ComputeThermo
         else:
             my_class = _md.TwoStepNVTMTKGPU
-            thermo_cls = _hoomd.ComputeThermoGPU
+            thermo_cls = _md.ComputeThermoGPU
 
         group = self._simulation.state.get_group(self.filter)
         cpp_sys_def = self._simulation.state._cpp_sys_def
@@ -205,8 +202,6 @@ class NPT(_Method):
 
     where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is the set point (*kT* above).
 
-    A :py:class:`hoomd.compute.thermo` is automatically specified and associated with *group*.
-
     Examples::
         integrator = integrate.NPT(filter=filter.All(), tau=1.0, kT=0.65, tauS = 1.2, S=2.0)
         # orthorhombic symmetry
@@ -242,10 +237,10 @@ class NPT(_Method):
         # initialize the reflected c++ class
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cpp_cls = _md.TwoStepNPTMTK
-            thermo_cls = _hoomd.ComputeThermo
+            thermo_cls = _md.ComputeThermo
         else:
             cpp_cls = _md.TwoStepNPTMTKGPU
-            thermo_cls = _hoomd.ComputeThermoGPU
+            thermo_cls = _md.ComputeThermoGPU
 
         cpp_sys_def = self._simulation.state._cpp_sys_def
         thermo_group = self._simulation.state.get_group(self.filter)
@@ -376,8 +371,6 @@ class NVE(_Method):
 
     :py:class:`NVE` is an integration method. It must be used with ``mode_standard``.
 
-    A :py:class:`hoomd.compute.thermo` is automatically specified and associated with *group*.
-
     Examples::
 
         all = hoomd.filter.All()
@@ -489,9 +482,6 @@ class Langevin(_Method):
     *kT* can be a variant type, allowing for temperature ramps in simulation
     runs.
 
-    A :py:class:`hoomd.compute.thermo` is automatically created and associated
-    with *group*.
-
     Warning:
         When restarting a simulation, the energy of the reservoir will be reset
         to zero.
@@ -598,7 +588,7 @@ class Brownian(_Method):
 
     In Brownian dynamics, particle velocities are completely decoupled from positions. At each time step,
     :py:class:`Brownian` draws a new velocity distribution consistent with the current set temperature so that
-    :py:class:`hoomd.compute.thermo` will report appropriate temperatures and pressures if logged or needed by other
+    :py:class:`hoomd.md.compute.ThermodynamicQuantities` will report appropriate temperatures and pressures if logged or needed by other
     commands.
 
     Brownian dynamics neglects the acceleration term in the Langevin equation. This assumption is valid when
@@ -611,8 +601,6 @@ class Brownian(_Method):
        :math:`\alpha` are mass / distance / time.
 
     *kT* can be a variant type, allowing for temperature ramps in simulation runs.
-
-    A :py:class:`hoomd.compute.thermo` is automatically created and associated with *group*.
 
     Examples::
 

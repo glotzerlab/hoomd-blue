@@ -6,7 +6,7 @@
 
 #include "IntegrationMethodTwoStep.h"
 #include "hoomd/Variant.h"
-#include "hoomd/ComputeThermo.h"
+#include "ComputeThermo.h"
 
 // inclusion guard
 #ifndef __BERENDSEN_H__

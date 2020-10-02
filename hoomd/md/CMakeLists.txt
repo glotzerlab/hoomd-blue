@@ -4,6 +4,8 @@ set(_md_sources module-md.cc
                    ActiveForceCompute.cc
                    BondTablePotential.cc
                    CommunicatorGrid.cc
+                   ComputeThermo.cc
+                   ComputeThermoHMA.cc
                    ConstExternalFieldDipoleForceCompute.cc
                    ConstraintEllipsoid.cc
                    ConstraintSphere.cc
@@ -55,6 +57,14 @@ set(_md_headers ActiveForceComputeGPU.h
                 BondTablePotential.h
                 CommunicatorGridGPU.h
                 CommunicatorGrid.h
+                ComputeThermoGPU.cuh
+                ComputeThermoGPU.h
+                ComputeThermoHMAGPU.cuh
+                ComputeThermoHMAGPU.h
+                ComputeThermo.h
+                ComputeThermoHMA.h
+                ComputeThermoTypes.h
+                ComputeThermoHMATypes.h
                 ConstExternalFieldDipoleForceCompute.h
                 ConstraintEllipsoidGPU.h
                 ConstraintEllipsoid.h
@@ -166,6 +176,8 @@ if (ENABLE_HIP)
 list(APPEND _md_sources ActiveForceComputeGPU.cc
                            BondTablePotentialGPU.cc
                            CommunicatorGridGPU.cc
+                           ComputeThermoGPU.cc
+                           ComputeThermoHMAGPU.cc
                            ConstraintEllipsoidGPU.cc
                            ConstraintSphereGPU.cc
                            OneDConstraintGPU.cc
@@ -202,6 +214,8 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       AllDriverPotentialBondGPU.cu
                       AllDriverPotentialSpecialPairGPU.cu
                       BuckinghamDriverPotentialPairGPU.cu
+                      ComputeThermoGPU.cu
+                      ComputeThermoHMAGPU.cu
                       DLVODriverPotentialPairGPU.cu
                       DPDLJThermoDriverPotentialPairGPU.cu
                       DPDThermoDriverPotentialPairGPU.cu
@@ -290,6 +304,7 @@ set(files __init__.py
           angle.py
           bond.py
           charge.py
+          compute.py
           constrain.py
           dihedral.py
           external.py
