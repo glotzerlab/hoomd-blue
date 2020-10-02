@@ -215,7 +215,7 @@ class Operations(Collection):
         """Whether an operation is contained in this container.
 
         Args:
-            operation (``any``): Returns whether this exact operation is
+            operation: Returns whether this exact operation is
                 contained in the collection.
         """
         return any(op is operation for op in self)
