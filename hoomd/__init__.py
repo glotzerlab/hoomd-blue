@@ -28,7 +28,7 @@ from hoomd import device
 from hoomd import analyze
 from hoomd import update
 from hoomd import integrate
-from hoomd import comm
+from hoomd import communicator
 from hoomd import util
 from hoomd import write
 try:

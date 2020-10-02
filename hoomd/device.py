@@ -37,7 +37,7 @@ class _Device:
 
         # MPI communicator
         if communicator is None:
-            self._comm = hoomd.comm.Communicator()
+            self._comm = hoomd.communicator.Communicator()
         else:
             self._comm = communicator
 
@@ -54,7 +54,7 @@ class _Device:
 
     @property
     def communicator(self):
-        """comm.Communicator: The MPI Communicator [read only]."""
+        """hoomd.communicator.Communicator: The MPI Communicator [read only]."""
         return self._comm
 
     @property
@@ -156,8 +156,9 @@ class GPU(_Device):
         num_cpu_threads (int): Number of TBB threads. Set to `None` to
             auto-select.
 
-        communicator (`hoomd.comm.Communicator`): MPI communicator object.
-            When `None`, create a default communicator that uses all MPI ranks.
+        communicator (`hoomd.communicator.Communicator`): MPI communicator
+            object.  When `None`, create a default communicator that uses all
+            MPI ranks.
 
         msg_file (str): Filename to write messages to. When `None`, use
             `sys.stdout` and `sys.stderr`.
@@ -309,8 +310,9 @@ class CPU(_Device):
         num_cpu_threads (int): Number of TBB threads. Set to `None` to
             auto-select.
 
-        communicator (`hoomd.comm.Communicator`): MPI communicator object.
-            When `None`, create a default communicator that uses all MPI ranks.
+        communicator (`hoomd.communicator.Communicator`): MPI communicator
+            object.  When `None`, create a default communicator that uses all
+            MPI ranks.
 
         msg_file (str): Filename to write messages to. When `None` use
             `sys.stdout` and `sys.stderr`.
@@ -351,8 +353,9 @@ def auto_select(communicator=None,
 
     Args:
 
-        communicator (`hoomd.comm.Communicator`): MPI communicator object.
-            When `None`, create a default communicator that uses all MPI ranks.
+        communicator (`hoomd.communicator.Communicator`): MPI communicator
+            object.  When `None`, create a default communicator that uses all
+            MPI ranks.
 
         msg_file (str): Filename to write messages to. When `None` use
             `sys.stdout` and `sys.stderr`.
