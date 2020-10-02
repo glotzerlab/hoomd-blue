@@ -8,12 +8,16 @@ md.dihedral
 .. autosummary::
     :nosignatures:
 
+    _Dihedral
     Harmonic
     OPLS
-    table
 
 .. rubric:: Details
 
 .. automodule:: hoomd.md.dihedral
     :synopsis: Dihedral potentials.
-    :members:
+    :members: _Dihedral,
+              Harmonic,
+              OPLS
+    :no-inherited-members:
+    :show-inheritance:
