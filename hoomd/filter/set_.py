@@ -1,11 +1,14 @@
-from hoomd.filter.filter_ import _ParticleFilter
+"""Define particle filter set operations."""
+
+from hoomd.filter.filter_ import ParticleFilter
 from hoomd import _hoomd
 
 
-class _ParticleFilterSetOperations(_ParticleFilter):
-    """An abstract class for `ParticleFilters` with set operations.
+class _ParticleFilterSetOperations(ParticleFilter):
+    """An abstract class for particle filters with set operations.
 
-    Should not be instantiated directly."""
+    Should not be instantiated directly.
+    """
 
     @property
     def _cpp_cls_name(self):
@@ -49,16 +52,49 @@ class _ParticleFilterSetOperations(_ParticleFilter):
 
 class SetDifference(_ParticleFilterSetOperations,
                     _hoomd.ParticleFilterSetDifference):
+    r"""Set difference operation.
+
+    Args:
+        f (ParticleFilter): First set in the difference.
+        g (ParticleFilter): Second set in the difference.
+
+    `SetDifference` is a comosite filter. It selects particles in the set
+    difference :math:`f \setminus g`.
+
+    Base: `ParticleFilter`
+    """
     _cpp_cls_name = 'ParticleFilterSetDifference'
     _symmetric = False
 
 
 class Union(_ParticleFilterSetOperations, _hoomd.ParticleFilterUnion):
+    r"""Set union operation.
+
+    Args:
+        f (ParticleFilter): First set in the union.
+        g (ParticleFilter): Second set in the union.
+
+    `Union` is a comosite filter. It selects particles in the set
+    union :math:`f \cup g`.
+
+    Base: `ParticleFilter`
+    """
     _cpp_cls_name = 'ParticleFilterUnion'
     _symmetric = True
 
 
 class Intersection(_ParticleFilterSetOperations,
                    _hoomd.ParticleFilterIntersection):
+    r"""Set intersection operation.
+
+    Args:
+        f (ParticleFilter): First set in the intersection.
+        g (ParticleFilter): Second set in the intersection.
+
+    `Intersection` is a comosite filter. It selects particles in the set
+    intersection :math:`f \cap g`.
+
+    Base: `ParticleFilter`
+    """
     _cpp_cls_name = 'ParticleFilterIntersection'
     _symmetric = True

@@ -12,7 +12,7 @@ _TriggeredOperation is _Operation for objects that are triggered.
 from hoomd.util import is_iterable, dict_map, dict_filter, str_to_tuple_keys
 from hoomd.trigger import Trigger
 from hoomd.variant import Variant, Constant
-from hoomd.filter import _ParticleFilter
+from hoomd.filter import ParticleFilter
 from hoomd.logging import Loggable, log
 from hoomd.typeconverter import RequiredArg
 from hoomd.util import NamespaceDict
@@ -36,7 +36,7 @@ def _convert_values_to_log_form(value):
             return (value.value, 'scalar')
         else:
             return (value, 'object')
-    elif isinstance(value, Trigger) or isinstance(value, _ParticleFilter):
+    elif isinstance(value, Trigger) or isinstance(value, ParticleFilter):
         return (value, 'object')
     elif isinstance(value, _Operation):
         return (value, 'object')

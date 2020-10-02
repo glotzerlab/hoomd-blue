@@ -16,7 +16,7 @@ from hoomd.logging import log
 from hoomd.typeparam import TypeParameter
 from hoomd.typeconverter import OnlyType
 from hoomd.parameterdicts import ParameterDict, TypeParameterDict
-from hoomd.filter import _ParticleFilter
+from hoomd.filter import ParticleFilter
 from hoomd.md.constrain import _ConstraintForce
 
 
@@ -284,7 +284,7 @@ class Active(_Force):
     def __init__(self, filter, seed, constraint=None, rotation_diff=0.1):
         # store metadata
         param_dict = ParameterDict(
-            filter=_ParticleFilter,
+            filter=ParticleFilter,
             seed=int(seed),
             rotation_diff=float(rotation_diff),
             constraint=OnlyType(_ConstraintForce, allow_none=True,

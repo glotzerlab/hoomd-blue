@@ -302,4 +302,9 @@ stages:
         pydocstyle -v
         hoomd/variant.py
         hoomd/device.py
+        hoomd/filter/filter_.py
+        hoomd/filter/all_.py
+        hoomd/filter/set_.py
+        hoomd/filter/tags.py
+        hoomd/filter/type_.py
       displayName: Run pydocstyle
