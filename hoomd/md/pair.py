@@ -106,14 +106,14 @@ class _Pair(force._Force):
     potential to 0 at the cutoff.
 
     The following coefficients must be set per unique pair of particle types.
-    See :py:mod:`hoomd.md.pair` for information on how to set coefficients:
+    See :py:mod:`hoomd.md.pair` for information on how to set coefficients.
 
     Attributes:
         r_cut (TypeParameter[tuple[``particle_types``, ``particle_types``], float]): - *r_cut* (in distance units)
-            *optional*: defaults to the global r_cut specified in the pair command
+            - *optional*: defaults to the global r_cut specified in the pair command
 
         r_on (TypeParameter[tuple[``particle_types``, ``particle_types``], float]): - *r_on* (in distance units)
-            *optional*: defaults to the global r_on specified in the pair command
+            - *optional*: defaults to the global r_on specified in the pair command
 
     When :math:`r_{\mathrm{cut}} \le 0` or is set to False, the particle type
     pair interaction is excluded from the neighbor list. This mechanism can be
@@ -2075,6 +2075,7 @@ class square_density(pair):
 
     [1] P. B. Warren, "Vapor-liquid coexistence in many-body dissipative particle dynamics"
     Phys. Rev. E. Stat. Nonlin. Soft Matter Phys., vol. 68, no. 6 Pt 2, p. 066702, 2003.
+
     """
     def __init__(self, r_cut, nlist, name=None):
 
@@ -2258,6 +2259,7 @@ class Fourier(_Pair):
         nl = nlist.Cell()
         fourier = pair.Fourier(r_cut=3.0, nlist=nl)
         fourier.params[('A', 'A')] = dict(a=[a2,a3,a4], b=[b2,b3,b4])
+
     """
     _cpp_class_name = "PotentialPairFourier"
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
