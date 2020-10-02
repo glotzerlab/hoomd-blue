@@ -41,8 +41,8 @@ class dcd(hoomd.analyze._analyzer):
         phase (int): When -1, start on the current time step. When >= 0, execute on steps where *(step + phase) % period == 0*.
 
     Every *period* time steps a new simulation snapshot is written to the
-    specified file in the DCD file format. DCD only stores particle positions, in distance
-    units - see :ref:`page-units`.
+    specified file in the DCD file format. DCD only stores particle positions,
+    in distance units.
 
     Due to constraints of the DCD file format, once you stop writing to
     a file via ``disable``, you cannot continue writing to the same file,

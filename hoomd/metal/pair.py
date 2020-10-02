@@ -48,20 +48,8 @@ class eam(force._force):
 
     """
     def __init__(self, file, type, nlist):
-        c = hoomd.cite.article(cite_key = 'lin2017',
-                         author=['L Yang', 'F Zhang', 'K M Ho', 'C Z Wang','A Travesset'],
-                         title = 'Implementation of EAM and FS potentials in HOOMD-blue',
-                         journal = 'Computer Physics Communications',
-                         volume = 0,
-                         number = 0,
-                         pages = '0--0',
-                         year = '2017',
-                         doi = '0',
-                         feature = 'EAM')
-        hoomd.cite._ensure_global_bib().add(c)
-
         # Error out in MPI simulations
-        if (_hoomd.is_MPI_available()):
+        if (hoomd.version.mpi_enabled):
             if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
                 hoomd.context.current.device.cpp_msg.error("pair.eam is not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error setting up pair potential.")

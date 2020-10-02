@@ -1,9 +1,6 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
-// Maintainer: joaander
-
 #include "HOOMDVersion.h"
 #include <iostream>
 #include <sstream>
@@ -13,105 +10,167 @@
 #include <hip/hip_runtime.h>
 #endif
 
-using namespace std;
-
-/*! \file HOOMDVersion.cc
-    \brief Defines functions for formatting compile time version information as a string.
-
-    \ingroup utils
-*/
-
-std::string hoomd_compile_flags()
+namespace hoomd
     {
-    ostringstream o;
+std::string BuildInfo::getCompileFlags()
+    {
+    std::ostringstream o;
 
-    #ifdef ENABLE_HIP
+#ifdef ENABLE_HIP
     int hip_major = HIP_VERSION_MAJOR;
     int hip_minor = HIP_VERSION_MINOR;
 
     o << "GPU [";
-    #if defined(__HIP_PLATFORM_NVCC__)
+#if defined(__HIP_PLATFORM_NVCC__)
     o << "CUDA";
-    #elif defined(__HIP_PLATFORM_HCC__)
+#elif defined(__HIP_PLATFORM_HCC__)
     o << "ROCm";
-    #endif
+#endif
     o << "] (" << hip_major << "." << hip_minor << ") ";
-    #endif
+#endif
 
-    #ifdef SINGLE_PRECISION
+#ifdef SINGLE_PRECISION
     o << "SINGLE ";
-    #else
+#else
     o << "DOUBLE ";
-    #ifdef ENABLE_HPMC_MIXED_PRECISION
+#ifdef ENABLE_HPMC_MIXED_PRECISION
     o << "HPMC_MIXED ";
-    #endif
-    #endif
+#endif
+#endif
 
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     o << "MPI ";
-    #endif
+#endif
 
-    #ifdef ENABLE_MPI_CUDA
+#ifdef ENABLE_MPI_CUDA
     o << "MPI_CUDA ";
-    #endif
+#endif
 
-    #ifdef ENABLE_TBB
+#ifdef ENABLE_TBB
     o << "TBB ";
-    #endif
+#endif
 
-    #ifdef __SSE__
+#ifdef __SSE__
     o << "SSE ";
-    #endif
+#endif
 
-    #ifdef __SSE2__
+#ifdef __SSE2__
     o << "SSE2 ";
-    #endif
+#endif
 
-    #ifdef __SSE3__
+#ifdef __SSE3__
     o << "SSE3 ";
-    #endif
+#endif
 
-    #ifdef __SSE4_1__
+#ifdef __SSE4_1__
     o << "SSE4_1 ";
-    #endif
+#endif
 
-    #ifdef __SSE4_2__
+#ifdef __SSE4_2__
     o << "SSE4_2 ";
-    #endif
+#endif
 
-    #ifdef __AVX__
+#ifdef __AVX__
     o << "AVX ";
-    #endif
+#endif
 
-    #ifdef __AVX2__
+#ifdef __AVX2__
     o << "AVX2 ";
-    #endif
+#endif
 
-    #ifdef ALWAYS_USE_MANAGED_MEMORY
+#ifdef ALWAYS_USE_MANAGED_MEMORY
     o << "ALWAYS_MANAGED ";
-    #endif
-
-    return o.str();
-    }
-
-string output_version_info()
-    {
-    ostringstream o;
-    // output the version info that comes from CMake
-    o << "HOOMD-blue " << HOOMD_VERSION_LONG;
-
-    o << " " << hoomd_compile_flags();
-
-    o << endl;
-
-    // output the compiled date and copyright information
-    o << "Compiled: " << COMPILE_DATE << endl;
-    o << "Copyright (c) 2009-2019 The Regents of the University of Michigan." << endl;
-
-    // warn the user if they are running a debug or GPU emulation build
-#ifndef NDEBUG
-    o << endl << "WARNING: This is a DEBUG build, expect slow performance." << endl;
 #endif
 
     return o.str();
     }
+
+std::string BuildInfo::getVersion()
+    {
+    return std::string(HOOMD_VERSION);
+    }
+
+bool BuildInfo::getEnableGPU()
+    {
+#ifdef ENABLE_HIP
+    return true;
+#else
+    return false;
+#endif
+    }
+
+std::string BuildInfo::getGPUAPIVersion()
+    {
+#ifdef ENABLE_HIP
+    int major = HIP_VERSION_MAJOR;
+    int minor = HIP_VERSION_MINOR;
+    std::ostringstream s;
+    s << major << "." << minor;
+    return s.str();
+#else
+    return "0.0";
+#endif
+    }
+
+std::string BuildInfo::getGPUPlatform()
+    {
+#if defined(__HIP_PLATFORM_NVCC__)
+    return std::string("CUDA");
+#elif defined(__HIP_PLATFORM_HCC__)
+    return std::string("ROCm");
+#else
+    return "";
+#endif
+    }
+
+std::string BuildInfo::getCXXCompiler()
+    {
+#if defined(__GNUC__) && !(defined(__clang__) || defined(__INTEL_COMPILER))
+    std::ostringstream o;
+    o << "gcc " << __GNUC__ << "." << __GNUC_MINOR__ << "." << __GNUC_PATCHLEVEL__;
+    return o.str();
+
+#elif defined(__clang__)
+    std::ostringstream o;
+    o << "clang " << __clang_major__ << "." << __clang_minor__ << "." << __clang_patchlevel__;
+    return o.str();
+
+#elif defined(__INTEL_COMPILER)
+    std::ostringstream o;
+    o << "icc " << __INTEL_COMPILER;
+    return o.str();
+
+#else
+    return string("unknown");
+#endif
+    }
+
+bool BuildInfo::getEnableTBB()
+    {
+#ifdef ENABLE_TBB
+    return true;
+#else
+    return false;
+#endif
+    }
+
+bool BuildInfo::getEnableMPI()
+    {
+#ifdef ENABLE_MPI
+    return true;
+#else
+    return false;
+#endif
+    }
+
+std::string BuildInfo::getSourceDir()
+    {
+    return std::string(HOOMD_SOURCE_DIR);
+    }
+
+std::string BuildInfo::getInstallDir()
+    {
+    return std::string(HOOMD_INSTALL_PREFIX) + "/" + std::string(PYTHON_SITE_INSTALL_DIR);
+    }
+
+    } // namespace hoomd

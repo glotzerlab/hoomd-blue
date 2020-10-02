@@ -73,16 +73,6 @@ class PYBIND11_EXPORT CellListGPU : public CellList
             return m_cell_size_scratch;
             }
 
-        //! Print statistics on the cell list
-        virtual void printStats()
-            {
-            // first reduce the cell size counter per device
-            if (m_per_device)
-                combineCellLists();
-
-            CellList::printStats();
-            }
-
     protected:
         GlobalArray<unsigned int> m_cell_size_scratch;  //!< Number of members in each cell, one list per GPU
         GlobalArray<unsigned int> m_cell_adj_scratch;   //!< Cell adjacency list, one list per GPU

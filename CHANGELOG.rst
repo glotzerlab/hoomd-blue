@@ -34,6 +34,13 @@ functionality.
 - Refactored CMake code.
 - ``git submodule update`` no longer runs when during CMake configuration.
 - Use ``random123`` library for implicit depletants in **hpmc**.
+- HOOMD requires a GPU that supports concurrent managed memory access (Pascal
+  or newer).
+
+*Bug fixes*
+
+- Improved accuracy of DLVO potential on the GPU.
+- Improved performance of HPMC simulations on the CPU in non-cubic boxes.
 
 *Removed*
 

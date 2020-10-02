@@ -154,32 +154,6 @@ class UpdaterBoxMC : public Updater
             m_P = betaP;
             }
 
-        //! Print statistics about the MC box update steps taken
-        void printStats()
-            {
-            hpmc_boxmc_counters_t counters = getCounters(1);
-            m_exec_conf->msg->notice(2) << "-- HPMC box change stats:" << std::endl;
-
-            if (counters.shear_accept_count + counters.shear_reject_count > 0)
-                {
-                m_exec_conf->msg->notice(2) << "Average shear acceptance: " << counters.getShearAcceptance() << "\n";
-                }
-            if (counters.volume_accept_count + counters.volume_reject_count > 0)
-                {
-                m_exec_conf->msg->notice(2) << "Average volume acceptance: " << counters.getVolumeAcceptance() << std::endl;
-                }
-            if (counters.ln_volume_accept_count + counters.ln_volume_reject_count > 0)
-                {
-                m_exec_conf->msg->notice(2) << "Average ln_V acceptance: " << counters.getLogVolumeAcceptance() << std::endl;
-                }
-            if (counters.aspect_accept_count + counters.aspect_reject_count > 0)
-                {
-                m_exec_conf->msg->notice(2) << "Average aspect acceptance: " << counters.getAspectAcceptance() << std::endl;
-                }
-
-            m_exec_conf->msg->notice(2) << "Total box changes:        " << counters.getNMoves() << std::endl;
-            }
-
         //! Get a list of logged quantities
         virtual std::vector< std::string > getProvidedLogQuantities();
 

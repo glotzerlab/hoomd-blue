@@ -17,14 +17,12 @@ website](https://glotzerlab.engin.umich.edu/hoomd-blue/).
 
 ## Resources
 
-- [Reference Documentation](https://hoomd-blue.readthedocs.io/):
-  Full package Python API, usage information, and feature reference.
+- [Documentation](https://hoomd-blue.readthedocs.io/):
+  Tutorial, full package Python API, usage information, and feature reference.
 - [Installation Guide](INSTALLING.rst):
   Instructions for installing and compiling **HOOMD-blue**.
 - [hoomd-users Google Group](https://groups.google.com/d/forum/hoomd-users):
   Ask questions to the **HOOMD-blue** community.
-- [**HOOMD-blue** Tutorial](https://nbviewer.jupyter.org/github/glotzerlab/hoomd-examples/blob/master/index.ipynb):
-  Beginner's guide, code examples, and sample scripts.
 - [**HOOMD-blue** website](https://glotzerlab.engin.umich.edu/hoomd-blue/):
   Additional information, benchmarks, and publications.
 

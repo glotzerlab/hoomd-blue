@@ -143,8 +143,6 @@ class IntegratorHPMCMono : public IntegratorHPMC
             m_pdata->getParticleSortSignal().template disconnect<IntegratorHPMCMono<Shape>, &IntegratorHPMCMono<Shape>::slotSorted>(this);
             }
 
-        virtual void printStats();
-
         virtual void resetStats();
 
         //! Take one timestep forward
@@ -685,61 +683,6 @@ Scalar IntegratorHPMCMono<Shape>::getLogValue(const std::string& quantity, unsig
     }
 
 template <class Shape>
-void IntegratorHPMCMono<Shape>::printStats()
-    {
-    IntegratorHPMC::printStats();
-
-    const std::vector<hpmc_implicit_counters_t>& result = getImplicitCounters(1);
-    hpmc_counters_t counters = getCounters(1);
-
-    // reduce over all types
-    unsigned long long int total_insert_count = 0;
-    for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
-        total_insert_count += result[i].insert_count;
-
-    bool has_depletants = false;
-    for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
-        {
-        if (m_fugacity[i] != 0.0)
-            {
-            has_depletants = true;
-            break;
-            }
-        }
-
-    if (!has_depletants)
-        return;
-
-    this->m_exec_conf->msg->notice(2) << "-- Implicit depletants stats:" << "\n";
-    this->m_exec_conf->msg->notice(2) << "Depletant insertions per trial move:      "
-        << double(total_insert_count)/double(counters.getNMoves()) << "\n";
-
-    // supply additional statistics
-    for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
-        {
-        if (m_fugacity[i] != 0.0)
-            {
-            this->m_exec_conf->msg->notice(3) << "Type '" << this->m_pdata->getNameByType(i) << "': "
-                << double(result[i].insert_count)/double(counters.getNMoves()) << std::endl;
-            }
-        }
-
-    /*unsigned int max_height = 0;
-    unsigned int total_height = 0;
-
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
-        {
-        unsigned int height = m_aabb_tree.height(i);
-        if (height > max_height)
-            max_height = height;
-        total_height += height;
-        }
-
-    m_exec_conf->msg->notice(2) << "Avg AABB tree height: " << total_height / Scalar(m_pdata->getN()) << std::endl;
-    m_exec_conf->msg->notice(2) << "Max AABB tree height: " << max_height << std::endl;*/
-    }
-
-template <class Shape>
 void IntegratorHPMCMono<Shape>::resetStats()
     {
     IntegratorHPMC::resetStats();
@@ -917,7 +860,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             int typ_i = __scalar_as_int(postype_i.w);
             Shape shape_i(quat<Scalar>(orientation_i), m_params[typ_i]);
             unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng_i);
-            bool move_type_translate = !shape_i.hasOrientation() || (move_type_select < m_move_ratio);
+            bool move_type_translate = !shape_i.hasOrientation() || (move_type_select < m_translation_move_probability);
 
             Shape shape_old(quat<Scalar>(orientation_i), m_params[typ_i]);
             vec3<Scalar> pos_old = pos_i;

@@ -200,6 +200,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
 void export_NeighborListBinned(py::module& m)
     {
     py::class_<NeighborListBinned, NeighborList, std::shared_ptr<NeighborListBinned> >(m, "NeighborListBinned")
-    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, std::shared_ptr<CellList> >())
-                     ;
+        .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, std::shared_ptr<CellList> >())
+        .def_property("deterministic", &NeighborListBinned::getDeterministic, &NeighborListBinned::setDeterministic)
+        ;
     }
