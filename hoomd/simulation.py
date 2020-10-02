@@ -14,7 +14,7 @@ import json
 
 
 class Simulation(metaclass=Loggable):
-    """Simulation description.
+    """Define a simulation.
 
     Args:
         device (`hoomd.device.Device`): Device to execute the simulation.
@@ -48,7 +48,7 @@ class Simulation(metaclass=Loggable):
         Note:
             Functions like `create_state_from_gsd` will set the initial timestep
             from the input. Set `timestep` before creating the simulation state
-            to set the initial timestep of the simulation::
+            to override values from ``create_`` methods::
 
                 sim.timestep = 5000
                 sim.create_state_from_gsd('gsd_at_step_10000000.gsd')
@@ -125,13 +125,13 @@ class Simulation(metaclass=Loggable):
         Args:
             snapshot (Snapshot): Snapshot to initialize the state from.
 
-        When no timestep is provided, `create_state_from_snapshot` sets
-        `timestep` to 0.
+        When `timestep` is `None` before calling, `create_state_from_snapshot`
+        sets `timestep` to 0.
 
         Warning:
-            *snapshot* must be a `hoomd.Snapshot`. `create_state_from_snapshot`
-            does not support `gsd.hoomd.Snapshot` objects from the ``gsd``
-            Python package - use `create_state_from_gsd` to read GSD files.
+            *snapshot* must be a `hoomd.Snapshot`. Use `create_state_from_gsd`
+            to read GSD files. `create_state_from_snapshot` does not support
+            ``gsd.hoomd.Snapshot`` objects from the ``gsd`` Python package.
         """
         if self.state is not None:
             raise RuntimeError("Cannot initialize more than once\n")
@@ -160,9 +160,13 @@ class Simulation(metaclass=Loggable):
     def tps(self):
         """float: The average number of time steps per second.
 
-        `tps` resets at the start of each call to `run`. During and after the
-        call `tps` is the number of steps executed divided by the elapsed
-        walltime in seconds.
+        `tps` is the number of steps executed divided by the elapsed
+        walltime in seconds. It is updated during the `run` loop and remains
+        fixed after `run` completes.
+
+        Note:
+            The start time and step are reset at the beginning of each call to
+            `run`.
         """
         if self.state is None:
             return None
@@ -208,8 +212,8 @@ class Simulation(metaclass=Loggable):
         Args:
             steps (int): Number of steps to advance the simulation.
 
-            write_at_start (bool): When True, writers
-               with triggers that evaluate True for the initial step will be
+            write_at_start (bool): When `True`, writers
+               with triggers that evaluate `True` for the initial step will be
                exected before the time step loop.
 
         Note:
