@@ -193,5 +193,6 @@ void export_NeighborListGPUBinned(py::module& m)
     py::class_<NeighborListGPUBinned, NeighborListGPU, std::shared_ptr<NeighborListGPUBinned> >(m, "NeighborListGPUBinned")
                     .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, std::shared_ptr<CellList> >())
                     .def("setTuningParam", &NeighborListGPUBinned::setTuningParam)
+                    .def_property("deterministic", &NeighborListGPUBinned::getDeterministic, &NeighborListGPUBinned::setDeterministic)
                      ;
     }

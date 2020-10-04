@@ -3,6 +3,8 @@ from hoomd.logging import log, Loggable
 from hoomd.state import State
 from hoomd.snapshot import Snapshot
 from hoomd.operations import Operations
+import hoomd
+import json
 
 
 class Simulation(metaclass=Loggable):
@@ -16,7 +18,6 @@ class Simulation(metaclass=Loggable):
         self._device = device
         self._state = None
         self._operations = Operations(self)
-        self._verbose = False
         self._timestep = None
 
     @property
@@ -48,12 +49,12 @@ class Simulation(metaclass=Loggable):
         """ Initialize the Communicator
         """
         # initialize communicator
-        if _hoomd.is_MPI_available():
+        if hoomd.version.mpi_enabled:
             pdata = self.state._cpp_sys_def.getParticleData()
             decomposition = pdata.getDomainDecomposition()
             if decomposition is not None:
                 # create the c++ Communicator
-                if self.device.mode == 'cpu':
+                if isinstance(self.device, hoomd.device.CPU):
                     cpp_communicator = _hoomd.Communicator(
                         self.state._cpp_sys_def, decomposition)
                 else:
@@ -74,12 +75,12 @@ class Simulation(metaclass=Loggable):
         if self.state is not None:
             raise RuntimeError("Cannot initialize more than once\n")
         filename = _hoomd.mpi_bcast_str(filename,
-                                        self.device.cpp_exec_conf)
+                                        self.device._cpp_exec_conf)
         # Grab snapshot and timestep
-        reader = _hoomd.GSDReader(self.device.cpp_exec_conf,
+        reader = _hoomd.GSDReader(self.device._cpp_exec_conf,
                                   filename, abs(frame), frame < 0)
         snapshot = Snapshot._from_cpp_snapshot(reader.getSnapshot(),
-                                               self.device.comm)
+                                               self.device.communicator)
 
         step = reader.getTimeStep() if self.timestep is None else self.timestep
         self._state = State(self, snapshot)
@@ -88,7 +89,6 @@ class Simulation(metaclass=Loggable):
         # Store System and Reader for Operations
         self._cpp_sys = _hoomd.System(self.state._cpp_sys_def, step)
         self._init_communicator()
-        self._cpp_sys.enableQuietRun(not self.verbose_run)
         self.operations._store_reader(reader)
 
     def create_state_from_snapshot(self, snapshot):
@@ -106,7 +106,6 @@ class Simulation(metaclass=Loggable):
         # Store System and Reader for Operations
         self._cpp_sys = _hoomd.System(self.state._cpp_sys_def, step)
         self._init_communicator()
-        self._cpp_sys.enableQuietRun(not self.verbose_run)
 
     @property
     def state(self):
@@ -128,15 +127,6 @@ class Simulation(metaclass=Loggable):
     @property
     def tps(self):
         raise NotImplementedError
-
-    @property
-    def verbose_run(self):
-        return self._verbose
-
-    @verbose_run.setter
-    def verbose_run(self, value):
-        self._verbose = bool(value)
-        self._cpp_sys.enableQuietRun(not self.verbose_run)
 
     @property
     def always_compute_pressure(self):
@@ -171,27 +161,90 @@ class Simulation(metaclass=Loggable):
             if value:
                 self._state._cpp_sys_def.getParticleData().setPressureFlag()
 
-
-    def run(self, tsteps):
-        """Run the simulation forward tsteps."""
+    def run(self, steps):
+        """Run the simulation forward a given number of steps.
+        """
         # check if initialization has occurred
         if not hasattr(self, '_cpp_sys'):
             raise RuntimeError('Cannot run before state is set.')
         if not self.operations.scheduled:
             self.operations.schedule()
 
-        # TODO either remove or refactor this code
-        # if context.current.integrator is None:
-        #     context.current.device.cpp_msg.warning("Starting a run without an integrator set")
-        # else:
-        #     context.current.integrator.update_forces()
-        #     context.current.integrator.update_methods()
-        #     context.current.integrator.update_thermos()
+        self._cpp_sys.run(int(steps))
 
-        # update all user-defined neighbor lists
-        # for nl in context.current.neighbor_lists:
-        #     nl.update_rcut()
-        #     nl.update_exclusions_defaults()
+    def write_debug_data(self, filename):
+        """Write debug data to a JSON file.
 
-        # detect 0 hours remaining properly
-        self._cpp_sys.run(int(tsteps), 0, None, 0, 0)
+        Args:
+            filename (str): Name of file to write.
+
+        The debug data file contains useful information for others to help you
+        troubleshoot issues.
+
+        Note:
+            The file format and particular data written to this file may change
+            from version to version.
+
+        Warning:
+            The specified file name will be overwritten.
+        """
+        debug_data = {}
+        debug_data['hoomd_module'] = str(hoomd)
+        debug_data['version'] = dict(
+            compile_date=hoomd.version.compile_date,
+            compile_flags=hoomd.version.compile_flags,
+            cxx_compiler=hoomd.version.cxx_compiler,
+            git_branch=hoomd.version.git_branch,
+            git_sha1=hoomd.version.git_sha1,
+            gpu_api_version=hoomd.version.gpu_api_version,
+            gpu_enabled=hoomd.version.gpu_enabled,
+            gpu_platform=hoomd.version.gpu_platform,
+            install_dir=hoomd.version.install_dir,
+            mpi_enabled=hoomd.version.mpi_enabled,
+            source_dir=hoomd.version.source_dir,
+            tbb_enabled=hoomd.version.tbb_enabled,)
+
+        reasons = hoomd.device.GPU.get_unavailable_device_reasons()
+
+        debug_data['device'] = dict(
+            msg_file=self.device.msg_file,
+            notice_level=self.device.notice_level,
+            devices=self.device.devices,
+            num_cpu_threads=self.device.num_cpu_threads,
+            gpu_available_devices=hoomd.device.GPU.get_available_devices(),
+            gpu_unavailable_device_reasons=reasons)
+
+        debug_data['communicator'] = dict(
+            num_ranks=self.device.communicator.num_ranks)
+
+        # TODO: Domain decomposition
+
+        if self.state is not None:
+            debug_data['state'] = dict(
+                types=self.state.types,
+                N_particles=self.state.N_particles,
+                N_bonds=self.state.N_bonds,
+                N_angles=self.state.N_angles,
+                N_impropers=self.state.N_impropers,
+                N_special_pairs=self.state.N_special_pairs,
+                N_dihedrals=self.state.N_dihedrals,
+                box=repr(self.state.box))
+
+        # save all loggable quantities from operations and their child computes
+        logger = hoomd.logging.Logger(only_default=False)
+        logger += self
+
+        # children may appear several times, identify them uniquely
+        for op in self.operations:
+            logger.add(op)
+
+            for child in op._children:
+                logger.add(child)
+
+        log = logger.log()
+        log_values = hoomd.util.dict_map(log, lambda v: v[0])
+        debug_data['operations'] = log_values
+
+        if self.device.communicator.rank == 0:
+            with open(filename, 'w') as f:
+                json.dump(debug_data, f, default=lambda v: str(v), indent=4)

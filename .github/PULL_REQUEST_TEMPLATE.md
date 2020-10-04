@@ -6,14 +6,14 @@
 
 <!-- Describe your changes in detail. -->
 
-## Motivation and Context
+## Motivation and context
 
 <!--- Why is this change required? What problem does it solve? -->
 
 <!-- Replace ??? with the issue number that this pull request resolves. -->
 Resolves: #???
 
-## How Has This Been Tested?
+## How has this been tested?
 
 <!--- Please describe in detail how you tested your changes. -->
 
@@ -31,4 +31,4 @@ Resolves: #???
 
 - [ ] I have reviewed the [**Contributor Guidelines**](https://github.com/glotzerlab/hoomd-blue/blob/master/CONTRIBUTING.md).
 - [ ] I agree with the terms of the [**HOOMD-blue Contributor Agreement**](https://github.com/glotzerlab/hoomd-blue/blob/master/ContributorAgreement.md).
-- [ ] My name is on the [list of contributors](https://github.com/glotzerlab/hoomd-blue/blob/master/sphinx-doc/credits.rst).
+- [ ] My name is on the list of contributors (`sphinx-doc/credits.rst`) in the pull request source branch.

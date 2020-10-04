@@ -40,7 +40,7 @@ class pppm(force._force):
 
     :py:class:`pppm` specifies **both** the long-ranged **and** short range parts of the electrostatic
     force should be computed between all charged particles in the simulation. In other words, :py:class:`pppm`
-    initializes and sets all parameters for its own :py:class:`hoomd.md.pair.ewald`, so do not specify an additional one.
+    initializes and sets all parameters for its own :py:class:`hoomd.md.pair.Ewald`, so do not specify an additional one.
 
     The command supports additional screening of interactions, according to the Ewald summation for Yukawa potentials.
     This is useful if one wants to compute a screened interaction (i.e. a solution to the linearized Poisson-Boltzmann
@@ -58,8 +58,6 @@ class pppm(force._force):
 
     Parameters Nx, Ny, Nz, order, :math:`r_{\mathrm{cut}}` must be set using
     ```hoomd.run``` can take place.
-
-    See :ref:`page-units` for information on the units assigned to charges in hoomd.
 
     Note:
           :py:class:`pppm` takes a particle group as an option. This should be the group of all charged particles
@@ -80,20 +78,6 @@ class pppm(force._force):
 
         # initialize the base class
         force._force.__init__(self);
-
-        # register the citation
-        c = hoomd.cite.article(cite_key='dnlebard2012',
-                         author=['D N LeBard', 'B G Levine', 'S A Barr', 'A Jusufi', 'S Sanders', 'M L Klein', 'A Z Panagiotopoulos'],
-                         title='Self-assembly of coarse-grained ionic surfactants accelerated by graphics processing units',
-                         journal='Journal of Computational Physics',
-                         volume=8,
-                         number=8,
-                         pages='2385-2397',
-                         month='',
-                         year='2012',
-                         doi='10.1039/c1sm06787g',
-                         feature='PPPM')
-        hoomd.cite._ensure_global_bib().add(c)
 
         # create the c++ mirror class
 

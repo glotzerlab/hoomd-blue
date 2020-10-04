@@ -57,8 +57,17 @@ class PotentialPairDPDThermo : public PotentialPair<evaluator>
         //! Set the seed
         virtual void setSeed(unsigned int seed);
 
+        //! Get the seed
+        virtual unsigned int getSeed()
+            {
+            return m_seed;
+            }
+
         //! Set the temperature
         virtual void setT(std::shared_ptr<Variant> T);
+
+        //! Get the temperature
+        virtual std::shared_ptr<Variant> getT();
 
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
@@ -110,6 +119,13 @@ template< class evaluator >
 void PotentialPairDPDThermo< evaluator >::setT(std::shared_ptr<Variant> T)
     {
     m_T = T;
+    }
+
+/*! Gets the temperature variant*/
+template< class evaluator >
+std::shared_ptr<Variant> PotentialPairDPDThermo< evaluator >::getT()
+    {
+    return m_T;
     }
 
 /*! \post The pair forces are computed for the given timestep. The neighborlist's compute method is called to ensure
@@ -306,8 +322,8 @@ template < class T, class Base > void export_PotentialPairDPDThermo(pybind11::mo
     {
     pybind11::class_<T, Base, std::shared_ptr<T> >(m, name.c_str())
         .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
-        .def("setSeed", &T::setSeed)
-        .def("setT", &T::setT)
+        .def_property("seed", &T::getSeed, &T::setSeed)
+        .def_property("kT", &T::getT, &T::setT)
               ;
     }
 

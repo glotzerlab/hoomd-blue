@@ -33,6 +33,7 @@ set(_hpmc_sources   module.cc
                     module_updater_shape.cc
                     ShapeUtils.cc
                     UpdaterBoxMC.cc
+                    UpdaterQuickCompress.cc
                     IntegratorHPMC.cc
                     )
 
@@ -77,6 +78,7 @@ set(_hpmc_headers
     UpdaterClusters.h
     UpdaterExternalFieldWall.h
     UpdaterMuVT.h
+    UpdaterQuickCompress.h
     UpdaterRemoveDrift.h
     XenoCollide2D.h
     XenoCollide3D.h
@@ -145,6 +147,7 @@ install(FILES ${_hpmc_headers}
        )
 
 add_subdirectory(pytest)
+add_subdirectory(tune)
 
 if (BUILD_TESTING)
     # add_subdirectory(test-py)

@@ -47,7 +47,50 @@ class EvaluatorPairYukawa
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar2 param_type;
+        struct param_type
+            {
+            Scalar epsilon;
+            Scalar kappa;
+
+            #ifdef ENABLE_HIP
+            //set CUDA memory hints
+            void set_memory_hint() const
+                {
+                //default implementation does nothing
+                }
+            #endif
+
+            #ifndef __HIPCC__
+            param_type() {epsilon = 0; kappa = 0;}
+
+            param_type(pybind11::dict v)
+                {
+                epsilon = v["epsilon"].cast<Scalar>();
+                kappa = v["kappa"].cast<Scalar>();
+                }
+
+            // this constructor facilitates unit testing
+            param_type(Scalar eps, Scalar kap)
+                {
+                epsilon = eps;
+                kappa = kap;
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+                v["epsilon"] = epsilon;
+                v["kappa"] = kappa;
+                return v;
+                }
+            #endif
+            }
+            #ifdef SINGLE_PRECISION
+            __attribute__((aligned(8)));
+            #else
+            __attribute__((aligned(16)));
+            #endif
+
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
@@ -55,7 +98,7 @@ class EvaluatorPairYukawa
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairYukawa(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), epsilon(_params.x), kappa(_params.y)
+            : rsq(_rsq), rcutsq(_rcutsq), epsilon(_params.epsilon), kappa(_params.kappa)
             {
             }
 

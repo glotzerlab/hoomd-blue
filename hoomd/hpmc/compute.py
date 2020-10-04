@@ -9,10 +9,10 @@ from __future__ import print_function
 from hoomd import _hoomd
 from hoomd.hpmc import _hpmc
 from hoomd.hpmc import integrate
-from hoomd.compute import _compute
+from hoomd.operation import _Compute
 import hoomd
 
-class free_volume(_compute):
+class free_volume(_Compute):
     R""" Compute the free volume available to a test particle by stochastic integration.
 
     Args:

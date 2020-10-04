@@ -64,6 +64,18 @@ class PYBIND11_EXPORT NeighborListGPUBinned : public NeighborListGPU
             m_tuner->setEnabled(enable);
             }
 
+        /// Make the neighborlist deterministic
+        void setDeterministic(bool deterministic)
+            {
+            m_cl->setSortCellList(deterministic);
+            }
+
+        /// Get the deterministic flag
+        bool getDeterministic()
+            {
+            return m_cl->getSortCellList();
+            }
+
     protected:
         std::shared_ptr<CellList> m_cl;   //!< The cell list
         unsigned int m_block_size;          //!< Block size to execute on the GPU

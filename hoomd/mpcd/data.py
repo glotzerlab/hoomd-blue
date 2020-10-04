@@ -109,7 +109,7 @@ from hoomd import _hoomd
 from . import _mpcd
 from . import update
 
-class snapshot(hoomd.meta._metadata):
+class snapshot():
     R""" MPCD system snapshot
 
     Args:
@@ -123,7 +123,6 @@ class snapshot(hoomd.meta._metadata):
 
     """
     def __init__(self, sys_snap):
-        hoomd.meta._metadata.__init__(self)
 
         if not hoomd.init.is_initialized():
             raise RuntimeError("mpcd: HOOMD system must be initialized before mpcd\n")
@@ -168,7 +167,7 @@ class snapshot(hoomd.meta._metadata):
 
         self.sys_snap.replicate(nx, ny, nz)
 
-class system(hoomd.meta._metadata):
+class system():
     R""" MPCD system data
 
     Args:
@@ -179,8 +178,6 @@ class system(hoomd.meta._metadata):
 
     """
     def __init__(self, sysdata):
-        hoomd.meta._metadata.__init__(self)
-
         self.data = sysdata
         hoomd.context.current.system.addCompute(self.cell, "mpcd_cl")
 

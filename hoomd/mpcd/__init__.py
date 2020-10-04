@@ -106,21 +106,6 @@ from hoomd.mpcd import integrate
 from hoomd.mpcd import stream
 from hoomd.mpcd import update
 
-# add MPCD article citation notice
-_citation = hoomd.cite.article(cite_key='howard2018',
-                               author=['M P Howard', 'A Z Panagiotopoulos', 'A Nikoubashman'],
-                               title='Efficient mesoscale hydrodynamics: Multiparticle collision dynamics with massively parallel GPU acceleration',
-                               journal='Computer Physics Communications',
-                               volume=230,
-                               pages='10--20',
-                               month='September',
-                               year='2018',
-                               doi='10.1016/j.cpc.2018.04.009',
-                               feature='MPCD')
-if hoomd.context.bib is None:
-    hoomd.cite._extra_default_entries.append(_citation)
-else:
-    hoomd.context.bib.add(_citation)
 
 class integrator(hoomd.integrate._integrator):
     """ MPCD integrator
@@ -136,7 +121,7 @@ class integrator(hoomd.integrate._integrator):
     in order for :py:mod:`~hoomd.mpcd.stream` and :py:mod:`~hoomd.mpcd.collide`
     methods to take effect. Embedded MD particles require the creation of an
     appropriate integration method. Typically, this will just be
-    :py:class:`~hoomd.md.methods.nve`.
+    :py:class:`~hoomd.md.methods.NVE`.
 
     In MPCD simulations, *dt* defines the amount of time that the system is advanced
     forward every time step. MPCD streaming and collision steps can be defined to

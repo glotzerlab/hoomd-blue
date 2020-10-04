@@ -36,19 +36,25 @@ import math
 
 
 class _Dihedral(_Force):
-    def attach(self, simulation):
+    """Constructs the dihedral bond potential.
+
+    Note:
+        :py:class:`_Dihedral` is the base class for all dihedral potentials.
+        Users should not instantiate this class directly.
+    """
+    def _attach(self):
         # check that some dihedrals are defined
-        if simulation.state._cpp_sys_def.getDihedralData().getNGlobal() == 0:
-            simulation.device.cpp_msg.warning("No dihedrals are defined.\n")
+        if self._simulation.state._cpp_sys_def.getDihedralData().getNGlobal() == 0:
+            self._simulation.device._cpp_msg.warning("No dihedrals are defined.\n")
 
         # create the c++ mirror class
-        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+        if isinstance(self._simulation.device, hoomd.device.CPU):
             cpp_class = getattr(_md, self._cpp_class_name)
         else:
             cpp_class = getattr(_md, self._cpp_class_name + "GPU")
 
-        self._cpp_obj = cpp_class(simulation.state._cpp_sys_def)
-        super().attach(simulation)
+        self._cpp_obj = cpp_class(sim.state._cpp_sys_def)
+        super()._attach()
 
 
 class Harmonic(_Dihedral):
@@ -64,21 +70,29 @@ class Harmonic(_Dihedral):
 
     where :math:`\phi` is angle between two sides of the dihedral.
 
-    Coefficients:
+    Attributes:
+        params (TypeParameter[``dihedral type``, dict]):
+            The parameter of the harmonic bonds for each particle type.
+            The dictionary has the following keys:
 
-    - :math:`k` - strength of force (in energy units)
-    - :math:`d` - sign factor (unitless)
-    - :math:`n` - angle scaling factor (unitless)
-    - :math:`\phi_0` - phase shift  ``phi_0`` (in radians) - *optional*:
-      defaults to 0.0
+            * ``k`` (`float`, **required**) - potential constant
+              (in units of energy)
 
-    Coefficients :math:`k`, :math:`d`, :math:`n` must be set for each type of
-    dihedral in the simulation using ``dihedral_coeff``.
+            * ``d`` (`float`, **required**) - sign factor
+              (unitless)
+
+            * ``n`` (`float`, **required**) - angle scalinf factor
+              (unitless)
+
+            * ``phi0`` (`float`, **required**) - phase shift
+              (in units of radians)
 
     Examples::
 
-        harmonic.dihedral_coeff.set('phi-ang', k=30.0, d=-1, n=3)
-        harmonic.dihedral_coeff.set('psi-ang', k=100.0, d=1, n=4, phi_0=math.pi/2)
+        harmonic = dihedral.Harmonic()
+        harmonic.params['polymer'] = dict(k=3.0, d=-1, n=3, phi0=0)
+        harmonic.params['backbone'] = dict(k=100.0, d=1, n=4, phi0=math.pi/2)
+
     """
 
     _cpp_class_name = "HarmonicDihedralForceCompute"
@@ -299,6 +313,28 @@ class OPLS(_Dihedral):
     where :math:`\phi` is the angle between two sides of the dihedral and
     :math:`k_n` are the force coefficients in the Fourier series (in energy
     units).
+
+    Attributes:
+        params (TypeParameter[``dihedral type``, dict]):
+            The parameter of the OPLS bonds for each particle type.
+            The dictionary has the following keys:
+
+            * ``k1`` (`float`, **required**) -  force constant of the first term
+              (in units of energy)
+
+            * ``k2`` (`float`, **required**) -  force constant of the second term
+              (in units of energy)
+
+            * ``k3`` (`float`, **required**) -  force constant of the third term
+              (in units of energy)
+
+            * ``k4`` (`float`, **required**) -  force constant of the fourth term
+              (in units of energy)
+
+    Examples::
+
+        opls = dihedral.OPLS()
+        opls.params['backbone'] = dict(k1=1.0, k2=1.0, k3=1.0, k4=1.0)
 
     """
 

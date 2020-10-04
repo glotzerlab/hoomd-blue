@@ -1,5 +1,5 @@
-md.integrate
---------------
+md.methods
+----------
 
 .. rubric:: Overview
 
@@ -9,11 +9,11 @@ md.integrate
     :nosignatures:
 
     berendsen
-    brownian
+    Brownian
     Langevin
-    npt
+    NPT
     nph
-    nve
+    NVE
     NVT
 
 

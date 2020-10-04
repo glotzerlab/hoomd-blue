@@ -1,42 +1,35 @@
+from itertools import chain
 import hoomd.integrate
 from hoomd.syncedlist import SyncedList
-from hoomd.operation import _Analyzer, _Updater, _Tuner
+from hoomd.operation import _Analyzer, _Updater, _Tuner, _Compute
+from hoomd.typeconverter import OnlyType
 from hoomd.tune import ParticleSorter
 
 
-def list_validation(type_):
-    def validate(value):
-        if not isinstance(value, type_):
-            raise ValueError("Value {} is of type {}. Excepted instance of "
-                             "{}".format(value, type(value), type_))
-        else:
-            return True
-    return validate
-
-
-def triggered_op_conversion(value):
+def _triggered_op_conversion(value):
     return (value._cpp_obj, value.trigger)
 
 
 class Operations:
     def __init__(self, simulation=None):
         self._simulation = simulation
-        self._compute = list()
-        self._auto_schedule = False
         self._scheduled = False
-        self._updaters = SyncedList(list_validation(_Updater),
-                                    triggered_op_conversion)
-        self._analyzers = SyncedList(list_validation(_Analyzer),
-                                     triggered_op_conversion)
-        self._tuners = SyncedList(list_validation(_Tuner),
-                                  lambda x: x._cpp_obj)
+        self._updaters = SyncedList(OnlyType(_Updater),
+                                    _triggered_op_conversion)
+        self._analyzers = SyncedList(OnlyType(_Analyzer),
+                                     _triggered_op_conversion)
+        self._tuners = SyncedList(OnlyType(_Tuner), lambda x: x._cpp_obj)
+        self._computes = SyncedList(OnlyType(_Compute), lambda x: x._cpp_obj)
         self._integrator = None
 
         self._tuners.append(ParticleSorter())
 
     def add(self, op):
-        if op in self:
-            return None
+        # calling _add is handled by the synced lists and integrator property.
+        # we raise this error here to provide a more clear error message.
+        if op._added:
+            raise RuntimeError(
+                "Operation cannot be added to twice to operation lists.")
         if isinstance(op, hoomd.integrate._BaseIntegrator):
             self.integrator = op
             return None
@@ -46,18 +39,11 @@ class Operations:
             self._updaters.append(op)
         elif isinstance(op, _Analyzer):
             self._analyzers.append(op)
+        elif isinstance(op, _Compute):
+            self._computes.append(op)
         else:
             raise ValueError("Operation is not of the correct type to add to"
                              " Operations.")
-
-    @property
-    def _operations(self):
-        op = list()
-        if hasattr(self, '_integrator'):
-            op.append(self._integrator)
-        op.extend(self._updaters)
-        op.extend(self._analyzers)
-        return op
 
     @property
     def _sys_init(self):
@@ -70,22 +56,40 @@ class Operations:
         if not self._sys_init:
             raise RuntimeError("System not initialized yet")
         sim = self._simulation
-        if self.integrator is not None and not self.integrator.is_attached:
-            self.integrator.attach(sim)
-        if not self.updaters.is_attached:
-            self.updaters.attach(sim, sim._cpp_sys.updaters)
-        if not self.analyzers.is_attached:
-            self.analyzers.attach(sim, sim._cpp_sys.analyzers)
-        if not self.tuners.is_attached:
-            self.tuners.attach(sim, sim._cpp_sys.tuners)
+        if not (self.integrator is None or self.integrator._attached):
+            self.integrator._attach()
+        if not self.updaters._synced:
+            self.updaters._sync(sim, sim._cpp_sys.updaters)
+        if not self.analyzers._synced:
+            self.analyzers._sync(sim, sim._cpp_sys.analyzers)
+        if not self.tuners._synced:
+            self.tuners._sync(sim, sim._cpp_sys.tuners)
+        if not self.computes._synced:
+            self.computes._sync(sim, sim._cpp_sys.computes)
         self._scheduled = True
+
+    def unschedule(self):
+        self._integrator._detach()
+        self._analyzers._unsync()
+        self._updaters._unsync()
+        self._tuners._unsync()
+        self._computes._unsync()
+        self._scheduled = False
 
     def _store_reader(self, reader):
         # TODO
         pass
 
     def __contains__(self, obj):
-        return any([op is obj for op in self._operations])
+        return any(op is obj for op in self)
+
+    def __iter__(self):
+        if self._integrator is not None:
+            yield from chain((self._integrator,), self._analyzers,
+                             self._updaters, self._tuners, self._computes)
+        else:
+            yield from chain(
+                (self._analyzers, self._updaters, self._tuners, self._computes))
 
     @property
     def scheduled(self):
@@ -97,18 +101,25 @@ class Operations:
 
     @integrator.setter
     def integrator(self, op):
-        if not isinstance(op, hoomd.integrate._BaseIntegrator):
+        if op._added:
+            raise RuntimeError(
+                "Integrator cannot be added to twice to Operations objects.")
+        else:
+            op._add(self._simulation)
+
+        if (not isinstance(op, hoomd.integrate._BaseIntegrator)
+                and op is not None):
             raise TypeError("Cannot set integrator to a type not derived "
-                            "from hoomd.integrator._integrator")
+                            "from hoomd.integrate._BaseIntegrator")
         old_ref = self.integrator
         self._integrator = op
-        if self._auto_schedule:
-            new_objs = op.attach(self._simulation)
-            if old_ref is not None:
-                old_ref.notify_detach(self._simulation)
-                old_ref.detach()
-            if new_objs is not None:
-                self._compute.extend(new_objs)
+        if self._scheduled:
+            if op is not None:
+                op._attach()
+        if old_ref is not None:
+            old_ref._notify_disconnect(self._simulation)
+            old_ref._detach()
+            old_ref._remove()
 
     @property
     def updaters(self):
@@ -121,3 +132,26 @@ class Operations:
     @property
     def tuners(self):
         return self._tuners
+
+    @property
+    def computes(self):
+        return self._computes
+
+    def __iadd__(self, operation):
+        self.add(operation)
+
+    def remove(self, operation):
+        if isinstance(operation, hoomd.integrate._BaseIntegrator):
+            raise ValueError(
+                "Cannot remove iterator without setting to a new integator.")
+        elif isinstance(operation, _Analyzer):
+            self._analyzers.remove(operation)
+        elif isinstance(operation, _Updater):
+            self._updaters.remove(operation)
+        elif isinstance(operation, _Tuner):
+            self._tuners.remove(operation)
+        elif isinstance(operation, _Compute):
+            self._computes.remove(operation)
+
+    def __isub__(self, operation):
+        self.remove(operation)

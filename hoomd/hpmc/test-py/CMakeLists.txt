@@ -92,22 +92,8 @@ set(TEST_LIST_GPU
     )
 
 set(EXCLUDE_FROM_MPI
-    small-box-2d.py
-    small-box-3d.py
-    test_hpmc_util.py
-    ignore_flag.py
-    test_boxMC.py
-    image-list.py
-    hoomd.util.py
-    create_shapes.py
-    test_sdf.py
     test_shape_utils.py
     shape_updater.py
-    map_overlap.py
-    shape_union.py
-    enthalpic_interaction.py
-    test_general_polyhedron.py
-    test_overlap.py
    )
 
 set(MPI_ONLY

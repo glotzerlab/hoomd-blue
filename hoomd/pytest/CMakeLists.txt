@@ -1,5 +1,6 @@
 # copy python modules to the build directory to make it a working python package
 set(files __init__.py
+          test_attr_tuner.py
           test_box.py
           test_csv.py
           test_device.py
