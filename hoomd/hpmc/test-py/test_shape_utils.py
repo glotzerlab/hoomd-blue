@@ -94,7 +94,7 @@ class mass_properties_convex_polyhedron_test(unittest.TestCase):
             cpp_verts = [] # the actual points in the convex_hull
             for f in range(mp.num_faces()):
                 for i in range(3):
-                    cpp_verts.append(mp.index(f, i))
+                    cpp_verts.append(mp.vertices(f, i))
                 # cpp_ids.update([mp.index(f, i) for i in range(3)]);
 
             # faces my be differnt because triangulation is not unique but there should be
