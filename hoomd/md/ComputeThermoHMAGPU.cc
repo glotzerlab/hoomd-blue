@@ -11,13 +11,13 @@
 
 #include "ComputeThermoHMAGPU.h"
 #include "ComputeThermoHMAGPU.cuh"
-#include "GPUPartition.cuh"
+#include "hoomd/GPUPartition.cuh"
 
 namespace py = pybind11;
 
 #ifdef ENABLE_MPI
-#include "Communicator.h"
-#include "HOOMDMPI.h"
+#include "hoomd/Communicator.h"
+#include "hoomd/HOOMDMPI.h"
 #endif
 
 #include <iostream>

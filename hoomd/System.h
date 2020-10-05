@@ -67,20 +67,6 @@ class PYBIND11_EXPORT System
         //! Constructor
         System(std::shared_ptr<SystemDefinition> sysdef, unsigned int initial_tstep);
 
-        // -------------- Compute get/set methods
-
-        //! Adds a Compute
-        void addCompute(std::shared_ptr<Compute> compute, const std::string& name);
-
-        //! Overwrites a Compute
-        void overwriteCompute(std::shared_ptr<Compute> compute, const std::string& name);
-
-        //! Removes a Compute
-        void removeCompute(const std::string& name);
-
-        //! Access a stored Compute by name
-        std::shared_ptr<Compute> getCompute(const std::string& name);
-
         // -------------- Integrator methods
 
         //! Sets the current Integrator
@@ -151,6 +137,11 @@ class PYBIND11_EXPORT System
             return m_tuners;
             }
 
+        std::vector<std::shared_ptr<Compute>>& getComputes()
+            {
+            return m_computes;
+            }
+
         /// Set pressure computation particle data flag
         void setPressureFlag(bool flag)
             {
@@ -172,7 +163,7 @@ class PYBIND11_EXPORT System
 
         std::vector<std::shared_ptr<Tuner>> m_tuners; //!< List of tuners belonging to the System
 
-        std::map< std::string, std::shared_ptr<Compute> > m_computes; //!< Named list of Computes belonging to this System
+        std::vector<std::shared_ptr<Compute>> m_computes; //!< list of Computes belonging to this System
 
         std::shared_ptr<Integrator> m_integrator;     //!< Integrator that advances time in this System
         std::shared_ptr<SystemDefinition> m_sysdef;   //!< SystemDefinition for this System
