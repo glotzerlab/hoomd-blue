@@ -125,18 +125,18 @@ class NPT(_Method):
 
         tau (`float`): Coupling constant for the thermostat (in time units).
 
-        S (`list` [ `hoomd.variant.Variant` ] or `float`): Stress components set 
+        S (`list`[`hoomd.variant.Variant`] or `float`): Stress components set 
             point for the barostat (in pressure units).
             In Voigt notation: 
             :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`. 
-            In case of isotropic pressure P ([p, p, p, 0, 0, 0]), use S = p.
+            In case of isotropic pressure P (:math:`[p, p, p, 0, 0, 0]`), use ``S = p``.
 
         tauS (`float`): Coupling constant for the barostat (in time units).
 
         couple (`str`): Couplings of diagonal elements of the stress tensor, 
             can be "none", "xy", "xz","yz", or "all", default to "all".
 
-        box_dof(`list` [ `bool` ]): Box degrees of freedom with six boolean 
+        box_dof(`list`[`bool`]): Box degrees of freedom with six boolean 
             elements corresponding to x, y, z, xy, xz, yz, each. Default to 
             [True,True,True,False,False,False]). If turned on to True, 
             rescale corresponding lengths or tilt factors and components of 
