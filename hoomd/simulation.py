@@ -148,12 +148,12 @@ class Simulation(metaclass=Loggable):
 
     @property
     def state(self):
-        """State: The current simulation state."""
+        """hoomd.State: The current simulation state."""
         return self._state
 
     @property
     def operations(self):
-        """Operations: The operations that apply to the state."""
+        """hoomd.Operations: The operations that apply to the state."""
         return self._operations
 
     @property
