@@ -307,4 +307,5 @@ stages:
         hoomd/filter/set_.py
         hoomd/filter/tags.py
         hoomd/filter/type_.py
+        hoomd/simulation.py
       displayName: Run pydocstyle
