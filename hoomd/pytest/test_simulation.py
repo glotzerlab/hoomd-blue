@@ -15,7 +15,7 @@ skip_gsd = pytest.mark.skipif(
 @pytest.fixture(scope="function")
 def get_snapshot(device):
     def make_snapshot(n=10, particle_types=['A']):
-        s = hoomd.snapshot.Snapshot(device.comm)
+        s = hoomd.snapshot.Snapshot(device.communicator)
         if s.exists:
             s.configuration.box = [20, 20, 20, 0, 0, 0]
             s.particles.N = n

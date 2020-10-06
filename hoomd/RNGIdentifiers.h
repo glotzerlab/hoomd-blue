@@ -57,6 +57,7 @@ struct RNGIdentifier
     static const uint32_t SRDCollisionMethod = 0x7b61fda0;
     static const uint32_t SlitGeometryFiller = 0xdb68c12c;
     static const uint32_t SlitPoreGeometryFiller = 0xc7af9094;
+    static const uint32_t UpdaterQuickCompress = 0x00981234;
     };
 
 }

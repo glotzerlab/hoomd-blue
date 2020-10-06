@@ -29,7 +29,7 @@ def test_per_particle_virial(simulation_factory, lattice_snapshot_factory):
     # virials should be None at first
     virials = lj.virials
 
-    if sim.device.comm.rank == 0:
+    if sim.device.communicator.rank == 0:
         assert virials is None
 
     # virials should be non-zero after setting flags
@@ -37,7 +37,7 @@ def test_per_particle_virial(simulation_factory, lattice_snapshot_factory):
 
     virials = lj.virials
 
-    if sim.device.comm.rank == 0:
+    if sim.device.communicator.rank == 0:
         assert numpy.sum(virials * virials) > 0.0
 
 

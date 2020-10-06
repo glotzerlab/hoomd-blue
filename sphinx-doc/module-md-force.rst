@@ -3,17 +3,19 @@ md.force
 
 .. rubric:: Overview
 
-.. py:currentmodule:: hoomd
+.. py:currentmodule:: hoomd.md.force
 
 .. autosummary::
     :nosignatures:
 
-    md.force.Active
-    md.force.constant
-    md.force.dipole
+    _Force
+    Active
 
 .. rubric:: Details
 
 .. automodule:: hoomd.md.force
     :synopsis: Apply forces to particles.
-    :members:
+    :members: _Force,
+              Active
+    :no-inherited-members:
+    :show-inheritance:

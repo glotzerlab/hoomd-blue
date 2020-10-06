@@ -13,22 +13,6 @@ import hoomd
 import json
 
 
-# Helper method to inform about implicit depletants citation
-# TODO: figure out where to call this
-def cite_depletants():
-    _citation = hoomd.cite.article(
-        cite_key='glaser2015',
-        author=['J Glaser', 'A S Karas', 'S C Glotzer'],
-        title='A parallel algorithm for implicit depletant simulations',
-        journal='The Journal of Chemical Physics',
-        volume=143,
-        pages='184110',
-        year='2015',
-        doi='10.1063/1.4935175',
-        feature='implicit depletants')
-    hoomd.cite._ensure_global_bib().add(_citation)
-
-
 class _HPMCIntegrator(_BaseIntegrator):
     """Base class hard particle Monte Carlo integrator.
 
@@ -45,14 +29,14 @@ class _HPMCIntegrator(_BaseIntegrator):
     trial moves are attempted for each particle in the system.
 
     A trial move may be a rotation or a translation move, selected randomly
-    according to the `move_ratio`. Translation trial moves are selected randomly
-    from a sphere of radius `d`, where `d` is set independently for each
-    particle type. Rotational trial moves are selected with a maximum move size
-    of `a`, where `a` is set independently for each particle type. In 2D
-    simulations, `a` is the maximum angle (in radians) by which a particle will
-    be rotated. In 3D, `a` is the magnitude of the random rotation quaternion as
-    defined in Frenkel and Smit. `move_ratio` can be set to 0 or 1 to enable
-    only rotation or translation moves, respectively.
+    according to the `translation_move_probability`. Translation trial moves are
+    selected randomly from a sphere of radius `d`, where `d` is set independently for
+    each particle type. Rotational trial moves are selected with a maximum move size of
+    `a`, where `a` is set independently for each particle type. In 2D simulations, `a`
+    is the maximum angle (in radians) by which a particle will be rotated. In 3D, `a` is
+    the magnitude of the random rotation quaternion as defined in Frenkel and Smit.
+    `translation_move_probability` can be set to 0 or 1 to enable only rotation or
+    translation moves, respectively.
 
     The `seed` parameter sets the seed for the random number generator.
     Simulations with the same initial condition and same seed will follow
@@ -98,7 +82,8 @@ class _HPMCIntegrator(_BaseIntegrator):
             overlap checks between particles of those types (**default:**
             ``True``).
 
-        move_ratio (float): Ratio of translation moves to rotation moves.
+        translation_move_probability (float): Fraction of moves that are translation
+            moves.
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
@@ -110,13 +95,14 @@ class _HPMCIntegrator(_BaseIntegrator):
 
     _cpp_cls = None
 
-    def __init__(self, seed, d, a, move_ratio, nselect):
+    def __init__(self, seed, d, a, translation_move_probability, nselect):
         super().__init__()
 
         # Set base parameter dict for hpmc integrators
-        param_dict = ParameterDict(seed=int(seed),
-                                   move_ratio=float(move_ratio),
-                                   nselect=int(nselect))
+        param_dict = ParameterDict(
+            seed=int(seed),
+            translation_move_probability=float(translation_move_probability),
+            nselect=int(nselect))
         self._param_dict.update(param_dict)
 
         # Set standard typeparameters for hpmc integrators
@@ -143,26 +129,27 @@ class _HPMCIntegrator(_BaseIntegrator):
             typeparam_d, typeparam_a, typeparam_fugacity, typeparam_inter_matrix
         ])
 
-    def attach(self, simulation):
+    def _attach(self):
         '''initialize the reflected c++ class'''
-        sys_def = simulation.state._cpp_sys_def
-        if (simulation.device.mode == 'gpu'
+        sys_def = self._simulation.state._cpp_sys_def
+        if (isinstance(self._simulation.device, hoomd.device.GPU)
                 and (self._cpp_cls + 'GPU') in _hpmc.__dict__):
             self._cpp_cell = _hoomd.CellListGPU(sys_def)
-            if simulation._system_communicator is not None:
-                self._cpp_cell.setCommunicator(simulation._system_communicator)
+            if self._simulation._system_communicator is not None:
+                self._cpp_cell.setCommunicator(
+                    self._simulation._system_communicator)
             self._cpp_obj = getattr(_hpmc,
                                     self._cpp_cls + 'GPU')(sys_def,
                                                            self._cpp_cell,
                                                            self.seed)
         else:
-            if simulation.device.mode == 'gpu':
-                simulation.device.cpp_msg.warning(
+            if isinstance(self._simulation.device, hoomd.device.GPU):
+                self._simulation.device._cpp_msg.warning(
                     "Falling back on CPU. No GPU implementation for shape.\n")
             self._cpp_obj = getattr(_hpmc, self._cpp_cls)(sys_def, self.seed)
             self._cpp_cell = None
 
-        super().attach(simulation)
+        super()._attach()
 
     # Set the external field
     def set_external(self, ext):
@@ -186,7 +173,7 @@ class _HPMCIntegrator(_BaseIntegrator):
             "hoomd.hpmc.integrate._HPMCIntegrator.get_type_shapes function.")
 
     def _return_type_shapes(self):
-        if not self.is_attached:
+        if not self._attached:
             return None
         type_shapes = self._cpp_obj.getTypeShapesPy()
         ret = [json.loads(json_string) for json_string in type_shapes]
@@ -204,7 +191,8 @@ class _HPMCIntegrator(_BaseIntegrator):
             `map_overlaps` does not support MPI parallel simulations.
         """
 
-        if not self.is_attached:
+        if (not self._attached
+                or self._simulation.device.communicator.num_ranks > 1):
             return None
         return self._cpp_obj.mapOverlaps()
 
@@ -236,7 +224,7 @@ class _HPMCIntegrator(_BaseIntegrator):
     def overlaps(self):
         """int: Number of overlapping particle pairs.
         """
-        if not self.is_attached:
+        if not self._attached:
             return None
         self._cpp_obj.communicate(True)
         return self._cpp_obj.countOverlaps(False)
@@ -289,7 +277,10 @@ class _HPMCIntegrator(_BaseIntegrator):
         Note:
             The count is reset to 0 at the start of each `hoomd.Simulation.run`.
         """
-        return self._cpp_obj.getCounters(1).translate
+        if self._attached:
+            return self._cpp_obj.getCounters(1).translate
+        else:
+            return None
 
     @log(flag='sequence')
     def rotate_moves(self):
@@ -298,7 +289,10 @@ class _HPMCIntegrator(_BaseIntegrator):
         Note:
             The count is reset to 0 at the start of each `hoomd.Simulation.run`.
         """
-        return self._cpp_obj.getCounters(1).rotate
+        if self._attached:
+            return self._cpp_obj.getCounters(1).rotate
+        else:
+            return None
 
     @log
     def mps(self):
@@ -308,7 +302,10 @@ class _HPMCIntegrator(_BaseIntegrator):
             The count of trial moves is reset at the start of each
             `hoomd.Simulation.run`.
         """
-        return self._cpp_obj.getMPS()
+        if self._attached:
+            return self._cpp_obj.getMPS()
+        else:
+            return None
 
     @property
     def counters(self):
@@ -327,7 +324,10 @@ class _HPMCIntegrator(_BaseIntegrator):
         Note:
             The counts are reset to 0 at the start of each
             `hoomd.Simulation.run`.  """
-        return self._cpp_obj.getCounters(1)
+        if self._attached:
+            return self._cpp_obj.getCounters(1)
+        else:
+            return None
 
 
 class Sphere(_HPMCIntegrator):
@@ -336,7 +336,7 @@ class Sphere(_HPMCIntegrator):
     Perform hard particle Monte Carlo of spheres defined by their diameter
     (see `shape`). When the shape parameter ``orientable`` is False (the
     default), `Sphere` only applies translation trial moves and ignores
-    ``move_ratio``.
+    ``translation_move_probability``.
 
     Tip:
         Use spheres with ``diameter=0`` in conjunction with `jit` potentials
@@ -354,7 +354,8 @@ class Sphere(_HPMCIntegrator):
 
         a (float): Default maximum size of rotation trial moves.
 
-        move_ratio (float): Ratio of translation moves to rotation moves.
+        translation_move_probability (float): Fraction of moves that are translation
+            moves.
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
@@ -396,11 +397,11 @@ class Sphere(_HPMCIntegrator):
                  seed,
                  d=0.1,
                  a=0.1,
-                 move_ratio=0.5,
+                 translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect)
+        super().__init__(seed, d, a, translation_move_probability, nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -445,7 +446,8 @@ class ConvexPolygon(_HPMCIntegrator):
 
         a (float): Default maximum size of rotation trial moves.
 
-        move_ratio (float): Ratio of translation moves to rotation moves.
+        translation_move_probability (float): Fraction of moves that are translation
+            moves.
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
@@ -494,11 +496,11 @@ class ConvexPolygon(_HPMCIntegrator):
                  seed,
                  d=0.1,
                  a=0.1,
-                 move_ratio=0.5,
+                 translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect)
+        super().__init__(seed, d, a, translation_move_probability, nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -545,7 +547,8 @@ class ConvexSpheropolygon(_HPMCIntegrator):
 
         a (float): Default maximum size of rotation trial moves.
 
-        move_ratio (float): Ratio of translation moves to rotation moves.
+        translation_move_probability (float): Fraction of moves that are translation
+            moves.
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
@@ -599,11 +602,11 @@ class ConvexSpheropolygon(_HPMCIntegrator):
                  seed,
                  d=0.1,
                  a=0.1,
-                 move_ratio=0.5,
+                 translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect)
+        super().__init__(seed, d, a, translation_move_probability, nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -647,7 +650,8 @@ class SimplePolygon(_HPMCIntegrator):
 
         a (float): Default maximum size of rotation trial moves.
 
-        move_ratio (float): Ratio of translation moves to rotation moves.
+        translation_move_probability (float): Fraction of moves that are translation
+            moves.
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
@@ -698,11 +702,11 @@ class SimplePolygon(_HPMCIntegrator):
                  seed,
                  d=0.1,
                  a=0.1,
-                 move_ratio=0.5,
+                 translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect)
+        super().__init__(seed, d, a, translation_move_probability, nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -744,7 +748,8 @@ class Polyhedron(_HPMCIntegrator):
 
         a (float): Default maximum size of rotation trial moves.
 
-        move_ratio (float): Ratio of translation moves to rotation moves.
+        translation_move_probability (float): Fraction of moves that are translation
+            moves.
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
@@ -869,11 +874,11 @@ class Polyhedron(_HPMCIntegrator):
                  seed,
                  d=0.1,
                  a=0.1,
-                 move_ratio=0.5,
+                 translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect)
+        super().__init__(seed, d, a, translation_move_probability, nselect)
 
         typeparam_shape = TypeParameter(
             'shape',
@@ -922,7 +927,8 @@ class ConvexPolyhedron(_HPMCIntegrator):
 
         a (float): Default maximum size of rotation trial moves.
 
-        move_ratio (float): Ratio of translation moves to rotation moves.
+        translation_move_probability (float): Fraction of moves that are translation
+            moves.
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
@@ -986,11 +992,11 @@ class ConvexPolyhedron(_HPMCIntegrator):
                  seed,
                  d=0.1,
                  a=0.1,
-                 move_ratio=0.5,
+                 translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect)
+        super().__init__(seed, d, a, translation_move_probability, nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -1034,7 +1040,8 @@ class FacetedEllipsoid(_HPMCIntegrator):
 
         a (float): Default maximum size of rotation trial moves.
 
-        move_ratio (float): Ratio of translation moves to rotation moves.
+        translation_move_probability (float): Fraction of moves that are translation
+            moves.
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
@@ -1129,11 +1136,11 @@ class FacetedEllipsoid(_HPMCIntegrator):
                  seed,
                  d=0.1,
                  a=0.1,
-                 move_ratio=0.5,
+                 translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect)
+        super().__init__(seed, d, a, translation_move_probability, nselect)
 
         typeparam_shape = TypeParameter(
             'shape',
@@ -1168,7 +1175,8 @@ class Sphinx(_HPMCIntegrator):
 
         a (float): Default maximum size of rotation trial moves.
 
-        move_ratio (float): Ratio of translation moves to rotation moves.
+        translation_move_probability (float): Fraction of moves that are translation
+            moves.
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
@@ -1210,11 +1218,11 @@ class Sphinx(_HPMCIntegrator):
                  seed,
                  d=0.1,
                  a=0.1,
-                 move_ratio=0.5,
+                 translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect)
+        super().__init__(seed, d, a, translation_move_probability, nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -1244,7 +1252,8 @@ class ConvexSpheropolyhedron(_HPMCIntegrator):
 
         a (float): Default maximum size of rotation trial moves.
 
-        move_ratio (float): Ratio of translation moves to rotation moves.
+        translation_move_probability (float): Fraction of moves that are translation
+            moves.
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
@@ -1305,11 +1314,11 @@ class ConvexSpheropolyhedron(_HPMCIntegrator):
                  seed,
                  d=0.1,
                  a=0.1,
-                 move_ratio=0.5,
+                 translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect)
+        super().__init__(seed, d, a, translation_move_probability, nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -1347,7 +1356,8 @@ class Ellipsoid(_HPMCIntegrator):
 
         a (float): Default maximum size of rotation trial moves.
 
-        move_ratio (float): Ratio of translation moves to rotation moves.
+        translation_move_probability (float): Fraction of moves that are translation
+            moves.
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
@@ -1393,11 +1403,11 @@ class Ellipsoid(_HPMCIntegrator):
                  seed,
                  d=0.1,
                  a=0.1,
-                 move_ratio=0.5,
+                 translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect)
+        super().__init__(seed, d, a, translation_move_probability, nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -1434,7 +1444,8 @@ class SphereUnion(_HPMCIntegrator):
 
         a (float): Default maximum size of rotation trial moves.
 
-        move_ratio (float): Ratio of translation moves to rotation moves.
+        translation_move_probability (float): Fraction of moves that are translation
+            moves.
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
@@ -1505,11 +1516,11 @@ class SphereUnion(_HPMCIntegrator):
                  seed,
                  d=0.1,
                  a=0.1,
-                 move_ratio=0.5,
+                 translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect)
+        super().__init__(seed, d, a, translation_move_probability, nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -1568,7 +1579,8 @@ class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
 
         a (float): Default maximum size of rotation trial moves.
 
-        move_ratio (float): Ratio of translation moves to rotation moves.
+        translation_move_probability (float): Fraction of moves that are translation
+            moves.
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
@@ -1640,11 +1652,11 @@ class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
                  seed,
                  d=0.1,
                  a=0.1,
-                 move_ratio=0.5,
+                 translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect)
+        super().__init__(seed, d, a, translation_move_probability, nselect)
 
         typeparam_shape = TypeParameter(
             'shape',
@@ -1685,7 +1697,8 @@ class FacetedEllipsoidUnion(_HPMCIntegrator):
 
         a (float): Default maximum size of rotation trial moves.
 
-        move_ratio (float): Ratio of translation moves to rotation moves.
+        translation_move_probability (float): Fraction of moves that are translation
+            moves.
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
@@ -1780,11 +1793,11 @@ class FacetedEllipsoidUnion(_HPMCIntegrator):
                  seed,
                  d=0.1,
                  a=0.1,
-                 move_ratio=0.5,
+                 translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect)
+        super().__init__(seed, d, a, translation_move_probability, nselect)
 
         typeparam_shape = TypeParameter(
             'shape',

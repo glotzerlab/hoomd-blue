@@ -44,6 +44,18 @@ class PYBIND11_EXPORT NeighborListBinned : public NeighborList
             NeighborList::notifyRCutMatrixChange();
             }
 
+        /// Make the neighborlist deterministic
+        void setDeterministic(bool deterministic)
+            {
+            m_cl->setSortCellList(deterministic);
+            }
+
+        /// Get the deterministic flag
+        bool getDeterministic()
+            {
+            return m_cl->getSortCellList();
+            }
+
     protected:
         std::shared_ptr<CellList> m_cl;   //!< The cell list
 

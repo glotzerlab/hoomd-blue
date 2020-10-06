@@ -39,7 +39,7 @@ class GPUTree
     {
     public:
         //! Empty constructor
-        GPUTree()
+        DEVICE GPUTree()
             : m_num_nodes(0), m_num_leaves(0), m_leaf_capacity(0)
             { }
 

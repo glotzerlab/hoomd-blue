@@ -31,7 +31,7 @@ def test_attach():
                        lambda x: (x._cpp_obj, x.trigger))
     slist.append(triggered_op)
     triggered_op._cpp_obj = DummyCppObj()
-    slist.attach(sim, sim._cpp_sys.dummy_list)
+    slist._sync(sim, sim._cpp_sys.dummy_list)
     assert len(sim._cpp_sys.dummy_list) == 1
     assert len(sim._cpp_sys.dummy_list[0]) == 2
     assert triggered_op._cpp_obj == sim._cpp_sys.dummy_list[0][0]
@@ -44,7 +44,7 @@ def test_attach_trigger_resetting():
     slist = SyncedList(lambda x: isinstance(x, DummyTriggeredOp),
                        lambda x: (x._cpp_obj, x.trigger))
     slist.append(triggered_op)
-    slist.attach(sim, sim._cpp_sys.dummy_list)
+    slist._sync(sim, sim._cpp_sys.dummy_list)
     triggered_op.trigger = DummyTrigger()
     assert len(sim._cpp_sys.dummy_list) == 1
     assert len(sim._cpp_sys.dummy_list[0]) == 2

@@ -11,7 +11,7 @@ R""" Apply forces to particles.
 import hoomd
 from hoomd import _hoomd
 from hoomd.md import _md
-from hoomd.operation import _Operation
+from hoomd.operation import _HOOMDBaseObject
 from hoomd.logging import log
 from hoomd.typeparam import TypeParameter
 from hoomd.typeconverter import OnlyType
@@ -30,23 +30,27 @@ def ellip_preprocessing(constraint):
         return None
 
 
-class _force(hoomd.meta._metadata):
+class _force():
     pass
 
 
-class _Force(_Operation):
+class _Force(_HOOMDBaseObject):
     '''Constructs the force.
+
+    Note:
+        :py:class:`_Force` is the base class for all loggable forces.
+        Users should not instantiate this class directly.
 
     Initializes some loggable quantities.
     '''
 
-    def attach(self, simulation):
-        self._simulation = simulation
-        super().attach(simulation)
+    def _attach(self):
+        super()._attach()
 
     @log
     def energy(self):
-        if self.is_attached:
+        """float: Sum of the energy of the whole system."""
+        if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.calcEnergySum()
         else:
@@ -54,7 +58,8 @@ class _Force(_Operation):
 
     @log(flag='particle')
     def energies(self):
-        if self.is_attached:
+        """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The energies for all particles."""
+        if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getEnergies()
         else:
@@ -62,10 +67,8 @@ class _Force(_Operation):
 
     @log(flag='particle')
     def forces(self):
-        """
-        Returns: The force for all particles.
-        """
-        if self.is_attached:
+        """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The forces for all particles."""
+        if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getForces()
         else:
@@ -73,10 +76,8 @@ class _Force(_Operation):
 
     @log(flag='particle')
     def torques(self):
-        """
-        Returns: The torque for all particles.
-        """
-        if self.is_attached:
+        """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The torque for all particles."""
+        if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getTorques()
         else:
@@ -84,10 +85,8 @@ class _Force(_Operation):
 
     @log(flag='particle')
     def virials(self):
-        R"""
-        Returns: The virial for the members in the group.
-        """
-        if self.is_attached:
+        """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The virial for all particles."""
+        if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getVirials()
         else:
@@ -170,12 +169,6 @@ class constant(_Force):
 
         if callback is not None:
             self.cppForce.setCallback(callback)
-
-        # store metadata
-        self.metadata_fields = ['fvec', 'tvec']
-        if group is not None:
-            self.metadata_fields.append('group')
-            self.group = group
 
         hoomd.context.current.system.addCompute(self.cppForce, self.force_name)
 
@@ -287,45 +280,43 @@ class Active(_Force):
         active.active_force['A','B'] = (1,0,0)
         active.active_torque['A','B'] = (0,0,0)
     """
-    def __init__(self, filter, seed,constraint=None,rotation_diff=0.1):
 
+    def __init__(self, filter, seed, constraint=None, rotation_diff=0.1):
         # store metadata
         param_dict = ParameterDict(
             filter=_ParticleFilter,
             seed=int(seed),
             rotation_diff=float(rotation_diff),
-            constraint=OnlyType(_ConstraintForce,allow_none=True,preprocess=ellip_preprocessing),
-        )
-        param_dict.update(dict(constraint=constraint,rotation_diff=rotation_diff,seed=seed, filter=filter))
+            constraint=OnlyType(_ConstraintForce, allow_none=True,
+                                preprocess=ellip_preprocessing),
+            )
+        param_dict.update(dict(constraint=constraint,
+                               rotation_diff=rotation_diff, seed=seed, filter=filter))
         # set defaults
         self._param_dict.update(param_dict)
 
-        active_force =  TypeParameter('active_force', type_kind='particle_types', param_dict=TypeParameterDict( (1,0,0), len_keys=1) )
-        active_torque =  TypeParameter('active_torque', type_kind='particle_types',  param_dict=TypeParameterDict( (0,0,0), len_keys=1) )
-
+        active_force = TypeParameter(
+            'active_force', type_kind='particle_types', param_dict=TypeParameterDict((1, 0, 0), len_keys=1))
+        active_torque = TypeParameter(
+            'active_torque', type_kind='particle_types', param_dict=TypeParameterDict((0, 0, 0), len_keys=1))
 
         self._extend_typeparam([active_force, active_torque])
 
-    def attach(self, simulation):
-
-
+    def _attach(self):
         # initialize the reflected c++ class
-        if not simulation.device.cpp_exec_conf.isCUDAEnabled():
+        if isinstance(self._simulation.device, hoomd.device.CPU):
             my_class = _md.ActiveForceCompute
         else:
             my_class = _md.ActiveForceComputeGPU
 
-        self._cpp_obj = my_class(simulation.state._cpp_sys_def,
-                                 simulation.state.get_group(self.filter),
-                                 self.seed, self.rotation_diff,_hoomd.make_scalar3(0,0,0), 0, 0, 0)
+        self._cpp_obj = my_class(
+            self._simulation.state._cpp_sys_def,
+            self._simulation.state.get_group(self.filter),
+            self.seed, self.rotation_diff,
+            _hoomd.make_scalar3(0, 0, 0), 0, 0, 0)
 
         # Attach param_dict and typeparam_dict
-        super().attach(simulation)
-
-
-    # there are no coeffs to update in the active force compute
-    def update_coeffs(self):
-        pass
+        super()._attach()
 
 
 class dipole(_Force):
@@ -353,7 +344,6 @@ class dipole(_Force):
         hoomd.context.current.system.addCompute(self.cppForce, self.force_name)
 
         # store metadata
-        self.metadata_fields = ['field_x', 'field_y', 'field_z']
         self.field_x = field_x
         self.field_y = field_y
         self.field_z = field_z

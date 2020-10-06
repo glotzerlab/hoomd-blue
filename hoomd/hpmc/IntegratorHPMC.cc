@@ -19,7 +19,7 @@ namespace hpmc
 
 IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef,
                                unsigned int seed)
-    : Integrator(sysdef, 0.005), m_seed(seed),  m_move_ratio(32768), m_nselect(4),
+    : Integrator(sysdef, 0.005), m_seed(seed),  m_translation_move_probability(32768), m_nselect(4),
       m_nominal_width(1.0), m_extra_ghost_width(0), m_external_base(NULL), m_patch_log(false),
       m_past_first_run(false)
       #ifdef ENABLE_MPI
@@ -102,7 +102,7 @@ void IntegratorHPMC::slotNumTypesChange()
     - hpmc_a (maximum rotation move)
     - hpmc_d_<typename> (maximum move displacement by type)
     - hpmc_a_<typename> (maximum rotation move by type)
-    - hpmc_move_ratio (ratio of translation moves to rotate moves)
+    - hpmc_translation_move_probability (fraction of moves that are translation moves)
     - hpmc_overlap_count (count of the number of particle-particle overlaps)
 
     \returns a list of provided quantities
@@ -117,7 +117,7 @@ std::vector< std::string > IntegratorHPMC::getProvidedLogQuantities()
     result.push_back("hpmc_rotate_acceptance");
     result.push_back("hpmc_d");
     result.push_back("hpmc_a");
-    result.push_back("hpmc_move_ratio");
+    result.push_back("hpmc_translation_move_probability");
     result.push_back("hpmc_overlap_count");
     for (unsigned int typ=0; typ<m_pdata->getNTypes();typ++)
       {
@@ -163,9 +163,9 @@ Scalar IntegratorHPMC::getLogValue(const std::string& quantity, unsigned int tim
         ArrayHandle<Scalar> h_a(m_a, access_location::host, access_mode::read);
         return h_a.data[0];
         }
-    else if (quantity == "hpmc_move_ratio")
+    else if (quantity == "hpmc_translation_move_probability")
         {
-        return getMoveRatio();
+        return getTranslationMoveProbability();
         }
     else if (quantity == "hpmc_overlap_count")
         {
@@ -316,11 +316,11 @@ void export_IntegratorHPMC(py::module& m)
         .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int >())
         .def("setD", &IntegratorHPMC::setD)
         .def("setA", &IntegratorHPMC::setA)
-        .def("setMoveRatio", &IntegratorHPMC::setMoveRatio)
+        .def("setTranslationMoveProbability", &IntegratorHPMC::setTranslationMoveProbability)
         .def("setNSelect", &IntegratorHPMC::setNSelect)
         .def("getD", &IntegratorHPMC::getD)
         .def("getA", &IntegratorHPMC::getA)
-        .def("getMoveRatio", &IntegratorHPMC::getMoveRatio)
+        .def("getTranslationMoveProbability", &IntegratorHPMC::getTranslationMoveProbability)
         .def("getNSelect", &IntegratorHPMC::getNSelect)
         .def("getMaxCoreDiameter", &IntegratorHPMC::getMaxCoreDiameter)
         .def("countOverlaps", &IntegratorHPMC::countOverlaps)
@@ -335,7 +335,7 @@ void export_IntegratorHPMC(py::module& m)
         #endif
         .def_property_readonly("seed", &IntegratorHPMC::getSeed)
         .def_property("nselect", &IntegratorHPMC::getNSelect, &IntegratorHPMC::setNSelect)
-        .def_property("move_ratio", &IntegratorHPMC::getMoveRatio, &IntegratorHPMC::setMoveRatio)
+        .def_property("translation_move_probability", &IntegratorHPMC::getTranslationMoveProbability, &IntegratorHPMC::setTranslationMoveProbability)
         ;
 
     py::class_< hpmc_counters_t >(m, "hpmc_counters_t")

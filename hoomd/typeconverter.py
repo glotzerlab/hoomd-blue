@@ -7,6 +7,7 @@ from hoomd.util import is_iterable
 from hoomd.variant import Variant, Constant
 from hoomd.trigger import Trigger, Periodic
 from hoomd.filter import _ParticleFilter
+import hoomd
 
 
 class RequiredArg:
@@ -47,6 +48,17 @@ def variant_preprocessing(variant):
             raise ValueError(
                 "Expected a hoomd.variant.Variant or float object.")
 
+
+def box_preprocessing(box):
+    if isinstance(box, hoomd.Box):
+        return box
+    else:
+        try:
+            return hoomd.Box.from_box(box)
+        except Exception:
+            raise ValueError(
+                "{} is not convertible into a hoomd.Box object. "
+                "using hoomd.Box.from_box".format(box))
 
 class _HelpValidate(ABC):
     """Base class for classes that perform validation on an inputed value.

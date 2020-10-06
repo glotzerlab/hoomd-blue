@@ -11,6 +11,7 @@ hpmc.update
     hpmc.update.boxmc
     hpmc.update.Clusters
     hpmc.update.muvt
+    hpmc.update.QuickCompress
     hpmc.update.remove_drift
     hpmc.update.wall
 
