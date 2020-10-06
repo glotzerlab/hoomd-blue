@@ -749,7 +749,7 @@ class Clusters(_Updater):
     Args:
         seed (int): Random number seed.
         swap_types (list[tuple[str, str]]): A pair of two types whose identities may be swapped.
-        move_ratio(float): Set the ratio between pivot and reflection moves.
+        move_ratio (float): Set the ratio between pivot and reflection moves.
         flip_probability(float): Set the probability for transforming an
                                  individual cluster.
         swap_move_ratio(float): Set the ratio between type swap moves and
