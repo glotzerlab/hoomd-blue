@@ -91,7 +91,7 @@ class Intersection(_ParticleFilterSetOperations,
         f (ParticleFilter): First set in the intersection.
         g (ParticleFilter): Second set in the intersection.
 
-    `Intersection` is a comosite filter. It selects particles in the set
+    `Intersection` is a composite filter. It selects particles in the set
     intersection :math:`f \cap g`.
 
     Base: `ParticleFilter`
