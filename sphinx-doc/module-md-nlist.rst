@@ -14,6 +14,6 @@ md.nlist
 
 .. automodule:: hoomd.md.nlist
     :synopsis: Neighbor list acceleration structures.
-    :members: _Nlist, Cell
+    :members: _NList, Cell
     :no-inherited-members:
     :show-inheritance:
