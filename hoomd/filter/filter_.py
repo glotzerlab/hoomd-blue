@@ -4,7 +4,14 @@ from hoomd import _hoomd
 
 
 class ParticleFilter(_hoomd.ParticleFilter):
-    """Base class for all particle filters."""
+    """Base class for all particle filters.
+
+    This class provides methods common to all particle filters.
+
+    Attention:
+        Users should instantiate one of the subclasses. Calling `ParticleFilter`
+        directly may result in an error.
+    """
     def __hash__(self):
         """Return a hash of the filter parameters."""
         return NotImplementedError("Must implement hash for ParticleFilters.")
