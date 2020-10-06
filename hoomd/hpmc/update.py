@@ -752,7 +752,7 @@ class Clusters(_Updater):
         move_ratio (float): Set the ratio between pivot and reflection moves.
         flip_probability (float): Set the probability for transforming an
                                  individual cluster.
-        swap_move_ratio(float): Set the ratio between type swap moves and
+        swap_move_ratio (float): Set the ratio between type swap moves and
                                 geometric moves.
         trigger (Trigger): Select the timesteps on which to perform cluster
             moves.
