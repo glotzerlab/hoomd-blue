@@ -82,7 +82,7 @@ class _HPMCIntegrator(_BaseIntegrator):
         interaction_matrix (`TypeParameter` [\
                             `tuple` [``particle type``, ``particle type``],\
                             `bool`]):
-            Set to `False` for a pair of particle types to allow disable
+            Set to `False` for a pair of particle types to disable
             overlap checks between particles of those types (**default:**
             `True`).
 
