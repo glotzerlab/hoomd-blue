@@ -952,9 +952,9 @@ class QuickCompress(_Updater):
         L_current``
 
     Tip:
-        Use the `MoveSizeTuner` in conjunction with `QuickCompress` to adjust
-        the move sizes to maintain a constant acceptance ratio as the density of
-        the system increases.
+        Use the `hoomd.hpmc.tune.MoveSizeTuner` in conjunction with
+        `QuickCompress` to adjust the move sizes to maintain a constant
+        acceptance ratio as the density of the system increases.
 
     .. rubric:: Run completion
 
