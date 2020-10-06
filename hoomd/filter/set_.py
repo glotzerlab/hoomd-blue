@@ -58,7 +58,7 @@ class SetDifference(_ParticleFilterSetOperations,
         f (ParticleFilter): First set in the difference.
         g (ParticleFilter): Second set in the difference.
 
-    `SetDifference` is a comosite filter. It selects particles in the set
+    `SetDifference` is a composite filter. It selects particles in the set
     difference :math:`f \setminus g`.
 
     Base: `ParticleFilter`
