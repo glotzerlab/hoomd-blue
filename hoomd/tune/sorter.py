@@ -25,7 +25,7 @@ class ParticleSorter(_Tuner):
     cache hits when computing pair potentials.
 
     Note:
-        New `Simulation` and `Operations` instances include a `ParticleSorter`
+        New `Operations` instances include a `ParticleSorter`
         constructed with default parameters.
 
     Attributes:
