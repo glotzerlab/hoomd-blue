@@ -74,7 +74,7 @@ class Union(_ParticleFilterSetOperations, _hoomd.ParticleFilterUnion):
         f (ParticleFilter): First set in the union.
         g (ParticleFilter): Second set in the union.
 
-    `Union` is a comosite filter. It selects particles in the set
+    `Union` is a composite filter. It selects particles in the set
     union :math:`f \cup g`.
 
     Base: `ParticleFilter`
