@@ -22,3 +22,5 @@ some user facing aspects.
     :members: default, keys
     :undoc-members:
 
+.. autoclass:: hoomd.operation._HOOMDBaseObject
+

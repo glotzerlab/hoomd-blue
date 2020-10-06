@@ -18,7 +18,7 @@
 
 #include "hoomd/md/AllPairPotentials.h"
 #include "hoomd/md/NeighborListTree.h"
-#include "hoomd/ComputeThermo.h"
+#include "hoomd/md/ComputeThermo.h"
 #include "hoomd/md/TwoStepNVE.h"
 #include "hoomd/filter/ParticleFilterAll.h"
 #include "hoomd/filter/ParticleFilterTags.h"

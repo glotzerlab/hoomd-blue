@@ -130,7 +130,7 @@ void IntegratorTwoStep::update(unsigned int timestep)
 
     // compute the net force on all particles
 #ifdef ENABLE_HIP
-    if (m_exec_conf->exec_mode == ExecutionConfiguration::GPU)
+    if (m_exec_conf->isCUDAEnabled())
         computeNetForceGPU(timestep+1);
     else
 #endif
@@ -425,7 +425,7 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
 
         // compute the net force on all particles
 #ifdef ENABLE_HIP
-    if (m_exec_conf->exec_mode == ExecutionConfiguration::GPU)
+    if (m_exec_conf->isCUDAEnabled())
         computeNetForceGPU(timestep);
     else
 #endif

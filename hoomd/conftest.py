@@ -28,37 +28,6 @@ def device(request):
     return d
 
 
-@pytest.fixture(scope='session', params=devices)
-def device_class(request):
-    """Parameterized Device class fixture.
-
-    Use the `device_class` fixture in tests that need to pass parameters to the
-    device creation.
-    """
-    return request.param
-
-
-@pytest.fixture(scope='session')
-def device_cpu():
-    """CPU only device fixture.
-
-    Use this fixture when a test only executes on the CPU.
-
-    TODO: This might be better implemented as a skip on the GPU fixture, like
-    skip_mpi... Then the device fixture would work well with the factories
-    below even for CPU only tests. Same goes for device_gpu.
-    """
-    return hoomd.device.CPU()
-
-
-@pytest.fixture(scope='session')
-def device_gpu():
-    if hoomd.device.GPU.is_available():
-        return hoomd.device.GPU()
-    else:
-        pytest.skip("GPU support not available")
-
-
 @pytest.fixture(scope='session')
 def simulation_factory(device):
     """Make a Simulation object from a snapshot.
@@ -96,7 +65,7 @@ def two_particle_snapshot_factory(device):
     """
 
     def make_snapshot(particle_types=['A'], dimensions=3, d=1, L=20):
-        s = Snapshot(device.comm)
+        s = Snapshot(device.communicator)
         N = 2
 
         if s.exists:
@@ -135,7 +104,7 @@ def lattice_snapshot_factory(device):
     """
 
     def make_snapshot(particle_types=['A'], dimensions=3, a=1, n=7, r=0):
-        s = Snapshot(device.comm)
+        s = Snapshot(device.communicator)
 
         if s.exists:
             box = [n * a, n * a, n * a, 0, 0, 0]
@@ -177,7 +146,7 @@ def lattice_snapshot_factory(device):
 def skip_mpi(request):
     if request.node.get_closest_marker('serial'):
         if 'device' in request.fixturenames:
-            if request.getfixturevalue('device').comm.num_ranks > 1:
+            if request.getfixturevalue('device').communicator.num_ranks > 1:
                 pytest.skip('Test does not support MPI execution')
         else:
             raise ValueError('skip_mpi requires the *device* fixture')
@@ -187,10 +156,22 @@ def skip_mpi(request):
 def only_gpu(request):
     if request.node.get_closest_marker('gpu'):
         if 'device' in request.fixturenames:
-            if request.getfixturevalue('device').mode != 'gpu':
-                pytest.skip('Test is run on GPU(s).')
+            if not isinstance(request.getfixturevalue('device'),
+                              hoomd.device.GPU):
+                pytest.skip('Test is run only on GPU(s).')
         else:
             raise ValueError('only_gpu requires the *device* fixture')
+
+
+@pytest.fixture(autouse=True)
+def only_cpu(request):
+    if request.node.get_closest_marker('cpu'):
+        if 'device' in request.fixturenames:
+            if not isinstance(request.getfixturevalue('device'),
+                              hoomd.device.CPU):
+                pytest.skip('Test is run only on CPU(s).')
+        else:
+            raise ValueError('only_cpu requires the *device* fixture')
 
 
 @pytest.fixture(scope='function', autouse=True)
@@ -203,19 +184,44 @@ def numpy_random_seed():
     numpy.random.seed(42)
 
 
+def pytest_addoption(parser):
+    """Add HOOMD specific options to the pytest command line.
+
+    * validate - run validation tests
+    """
+    parser.addoption(
+        "--validate",
+        action="store_true",
+        default=False,
+        help="Enable long running validation tests.",
+    )
+
+
+@pytest.fixture(autouse=True)
+def skip_validate(request):
+    """Skip validation tests by default.
+
+    Pass the command line option --validate to enable these tests.
+    """
+    if request.node.get_closest_marker('validate'):
+        if not request.config.getoption("validate"):
+            pytest.skip('Validation tests not requested.')
+
+
 def pytest_configure(config):
     config.addinivalue_line(
         "markers",
         "serial: Tests that will not execute with more than 1 MPI process")
-    config.addinivalue_line(
-        "markers",
-        "validation: Long running tests that validate simulation output")
-    config.addinivalue_line(
-        "markers",
-        "gpu: Tests that should only run on the gpu.")
+    config.addinivalue_line("markers",
+                            "gpu: Tests that should only run on the gpu.")
     config.addinivalue_line(
         "markers",
         "cupy_optional: tests that should pass with and without CuPy.")
+    config.addinivalue_line(
+        "markers",
+        "validate: Tests that perform long-running validations.")
+    config.addinivalue_line("markers", "cpu: Tests that only run on the CPU.")
+    config.addinivalue_line("markers", "gpu: Tests that only run on the GPU.")
 
 
 def abort(exitstatus):
@@ -234,5 +240,5 @@ def pytest_sessionfinish(session, exitstatus):
     it exits on the first error.
     """
 
-    if exitstatus != 0 and hoomd._hoomd.is_MPI_available():
+    if exitstatus != 0 and hoomd.version.mpi_enabled:
         atexit.register(abort, exitstatus)

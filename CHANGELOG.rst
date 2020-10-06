@@ -4,8 +4,16 @@ Change Log
 v3.x
 ----
 
-v3.0.0 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^
+v3.0-beta.1 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Overview*
+
+v3 has a completely new Python API. See the tutorials, migration guide and new
+API documentation learn about it. The API documentation serves as the complete
+list of all features currently implemented in v3.0-beta.1. Not all features in
+v2 have been ported in v3.0-beta.1. Future beta releases will add additional
+functionality.
 
 *Added*
 
@@ -26,8 +34,13 @@ v3.0.0 (not yet released)
 - Refactored CMake code.
 - ``git submodule update`` no longer runs when during CMake configuration.
 - Use ``random123`` library for implicit depletants in **hpmc**.
+- HOOMD requires a GPU that supports concurrent managed memory access (Pascal
+  or newer).
 
-*Deprecated*
+*Bug fixes*
+
+- Improved accuracy of DLVO potential on the GPU.
+- Improved performance of HPMC simulations on the CPU in non-cubic boxes.
 
 *Removed*
 
@@ -56,8 +69,8 @@ v3.0.0 (not yet released)
 - ``cgcmm.angle.cgcmm``
 - ``cgcmm.pair.cgcmm``
 - ``COPY_HEADERS`` *CMake* option.
-
-*Fixed*
+- Many other python modules have been removed or re-implemented with new names.
+  See the migration guide and new API documentation for a complete list.
 
 v2.x
 ----

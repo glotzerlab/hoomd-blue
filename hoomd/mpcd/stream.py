@@ -53,7 +53,7 @@ from hoomd import _hoomd
 
 from . import _mpcd
 
-class _streaming_method(hoomd.meta._metadata):
+class _streaming_method():
     """ Base streaming method
 
     Args:
@@ -78,9 +78,6 @@ class _streaming_method(hoomd.meta._metadata):
         if hoomd.context.current.mpcd._stream is not None:
             hoomd.context.current.device.cpp_msg.error('mpcd.stream: only one streaming method can be created.\n')
             raise RuntimeError('Multiple initialization of streaming method')
-
-        hoomd.meta._metadata.__init__(self)
-        self.metadata_fields = ['period','enabled']
 
         self.period = period
         self.enabled = True
@@ -294,7 +291,6 @@ class slit(_streaming_method):
 
         _streaming_method.__init__(self, period)
 
-        self.metadata_fields += ['H','V','boundary']
         self.H = H
         self.V = V
         self.boundary = boundary
@@ -443,7 +439,6 @@ class slit_pore(_streaming_method):
     def __init__(self, H, L, boundary="no_slip", period=1):
         _streaming_method.__init__(self, period)
 
-        self.metadata_fields += ['H','L','boundary']
         self.H = H
         self.L = L
         self.boundary = boundary

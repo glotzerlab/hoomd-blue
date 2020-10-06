@@ -325,8 +325,9 @@ void hpmc_excell(unsigned int *d_excell_idx,
         }
 
     // setup the grid to run the kernel
-    dim3 threads(min(block_size, (unsigned int)max_block_size), 1, 1);
-    dim3 grid(ci.getNumElements() / block_size + 1, 1, 1);
+    unsigned int run_block_size = min(block_size, (unsigned int)max_block_size);
+    dim3 threads(run_block_size, 1, 1);
+    dim3 grid(ci.getNumElements() / run_block_size + 1, 1, 1);
 
     hipLaunchKernelGGL(kernel::hpmc_excell, dim3(grid), dim3(threads), 0, 0, d_excell_idx,
                                            d_excell_size,

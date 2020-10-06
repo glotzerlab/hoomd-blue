@@ -35,7 +35,7 @@ import hoomd
 # hoomd writers. 1) The instance of the c++ constraint force itself is tracked
 # and added to the System 2) methods are provided for disabling the force from
 # being added to the net force on each particle
-class _ConstraintForce(hoomd.meta._metadata):
+class _ConstraintForce():
     ## \internal
     # \brief Constructs the constraint force
     #
@@ -63,9 +63,6 @@ class _ConstraintForce(hoomd.meta._metadata):
 
         # create force data iterator
         self.forces = hoomd.data.force_data(self)
-
-        # base class constructor
-        hoomd.meta._metadata.__init__(self)
 
     ## \var enabled
     # \internal
@@ -146,15 +143,6 @@ class _ConstraintForce(hoomd.meta._metadata):
         # does nothing: this is for derived classes to implement
 
 
-    ## \internal
-    # \brief Get metadata
-    def get_metadata(self):
-        data = hoomd.meta._metadata.get_metadata(self)
-        data['enabled'] = self.enabled
-        if self.name != "":
-            data['name'] = self.name
-        return data
-
 # set default counter
 _ConstraintForce.cur_id = 0
 
@@ -192,7 +180,6 @@ class sphere(_ConstraintForce):
         self.group = group
         self.P = P
         self.r = r
-        self.metadata_fields = ['group','P', 'r']
 
 class distance(_ConstraintForce):
     R""" Constrain pairwise particle distances.
@@ -278,33 +265,6 @@ class rigid(_ConstraintForce):
     initial configuration. You only need to specify the positions and orientations of all the central particles.
     When you call :py:meth:`create_bodies()`, it will create all constituent particles that do not exist. (those
     that already exist e.g. in a restart file are left unchanged).
-
-    Example that creates rigid rods::
-
-        # Place the type R central particles
-        uc = hoomd.lattice.unitcell(N = 1,
-                                    a1 = [10.8, 0,   0],
-                                    a2 = [0,    1.2, 0],
-                                    a3 = [0,    0,   1.2],
-                                    dimensions = 3,
-                                    position = [[0,0,0]],
-                                    type_name = ['R'],
-                                    mass = [1.0],
-                                    moment_inertia = [[0,
-                                                       1/12*1.0*8**2,
-                                                       1/12*1.0*8**2]],
-                                    orientation = [[1, 0, 0, 0]])
-        system = hoomd.init.create_lattice(unitcell=uc, n=[2,18,18])
-
-        # Add constituent particles of type A and create the rods
-        system.particles.types.add('A')
-        rigid = hoomd.md.constrain.rigid()
-        rigid.set_param('R',
-                        types=['A']*8,
-                        positions=[(-4,0,0),(-3,0,0),(-2,0,0),(-1,0,0),
-                                   (1,0,0),(2,0,0),(3,0,0),(4,0,0)])
-
-        rigid.create_bodies()
 
     .. danger:: Automatic creation of constituent particles can change particle tags. If bonds have been defined between
         particles in the initial configuration, or bonds connect to constituent particles, rigid bodies should be
@@ -512,4 +472,3 @@ class oneD(_ConstraintForce):
         # store metadata
         self.group = group
         self.constraint_vector = constraint_vector
-        self.metadata_fields = ['group','constraint_vector']

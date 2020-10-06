@@ -1,5 +1,5 @@
-md.integrate
---------------
+md.methods
+----------
 
 .. rubric:: Overview
 
@@ -11,7 +11,7 @@ md.integrate
     berendsen
     Brownian
     Langevin
-    npt
+    NPT
     nph
     NVE
     NVT

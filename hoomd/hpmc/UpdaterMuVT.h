@@ -55,14 +55,14 @@ class UpdaterMuVT : public Updater
             m_max_vol_rescale = fac;
             }
 
-        //! Set ratio of volume moves to exchange/transfer moves (Gibbs ensemble only)
-        void setMoveRatio(Scalar move_ratio)
+        //! In the Gibbs ensemble, set fraction of moves that are volume moves (remainder are exchange/transfer moves) 
+        void setVolumeMoveProbability(Scalar volume_move_probability)
             {
-            if (move_ratio < Scalar(0.0) || move_ratio > Scalar(1.0))
+            if (volume_move_probability < Scalar(0.0) || volume_move_probability > Scalar(1.0))
                 {
                 throw std::runtime_error("Move ratio has to be between 0 and 1.\n");
                 }
-            m_move_ratio = move_ratio;
+            m_volume_move_probability = volume_move_probability;
             }
 
         //! List of types that are inserted/removed/transferred
@@ -76,31 +76,6 @@ class UpdaterMuVT : public Updater
             m_transfer_types = transfer_types;
             }
 
-
-        //! Print statistics about the muVT ensemble
-        void printStats()
-            {
-            hpmc_muvt_counters_t counters = getCounters(1);
-            m_exec_conf->msg->notice(2) << "-- HPMC muVT stats:" << std::endl;
-            if (counters.insert_accept_count + counters.insert_reject_count > 0)
-                {
-                m_exec_conf->msg->notice(2) << "Average insert acceptance: " << counters.getInsertAcceptance() << std::endl;
-                }
-            if (counters.remove_accept_count + counters.remove_reject_count > 0)
-                {
-                m_exec_conf->msg->notice(2) << "Average remove acceptance: " << counters.getRemoveAcceptance() << "\n";
-                }
-            if (counters.exchange_accept_count + counters.exchange_reject_count > 0)
-                {
-                m_exec_conf->msg->notice(2) << "Average exchange acceptance: " << counters.getExchangeAcceptance() << "\n";
-                }
-            m_exec_conf->msg->notice(2) << "Total transfer/exchange moves attempted: " << counters.getNExchangeMoves() << std::endl;
-            if (counters.volume_accept_count + counters.volume_reject_count > 0)
-                {
-                m_exec_conf->msg->notice(2) << "Average volume acceptance: " << counters.getVolumeAcceptance() << "\n";
-                }
-            m_exec_conf->msg->notice(2) << "Total volume moves attempted: " << counters.getNVolumeMoves() << std::endl;
-            }
 
         //! Get a list of logged quantities
         virtual std::vector< std::string > getProvidedLogQuantities()
@@ -147,7 +122,7 @@ class UpdaterMuVT : public Updater
         GPUVector<Scalar4> m_postype_backup;                  //!< Backup of postype array
 
         Scalar m_max_vol_rescale;                             //!< Maximum volume ratio rescaling factor
-        Scalar m_move_ratio;                                  //!< Ratio between exchange/transfer and volume moves
+        Scalar m_volume_move_probability;                                  //!< Ratio between exchange/transfer and volume moves
 
         unsigned int m_gibbs_other;                           //!< The root-rank of the other partition
 
@@ -296,7 +271,7 @@ UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
     unsigned int seed,
     unsigned int npartition)
     : Updater(sysdef), m_mc(mc), m_seed(seed), m_npartition(npartition), m_gibbs(false),
-      m_max_vol_rescale(0.1), m_move_ratio(0.5), m_gibbs_other(0),
+      m_max_vol_rescale(0.1), m_volume_move_probability(0.5), m_gibbs_other(0),
       m_n_trial(1)
     {
     // broadcast the seed from rank 0 to all other ranks.
@@ -861,7 +836,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
             }
 
         // order the expanded ensembles
-        volume_move = hoomd::detail::generate_canonical<Scalar>(rng) < m_move_ratio;
+        volume_move = hoomd::detail::generate_canonical<Scalar>(rng) < m_volume_move_probability;
 
         if (active && m_exec_conf->getRank() == 0)
             {
@@ -2657,7 +2632,7 @@ template < class Shape > void export_UpdaterMuVT(pybind11::module& m, const std:
           .def( pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr< IntegratorHPMCMono<Shape> >, unsigned int, unsigned int>())
           .def("setFugacity", &UpdaterMuVT<Shape>::setFugacity)
           .def("setMaxVolumeRescale", &UpdaterMuVT<Shape>::setMaxVolumeRescale)
-          .def("setMoveRatio", &UpdaterMuVT<Shape>::setMoveRatio)
+          .def("setVolumeMoveProbability", &UpdaterMuVT<Shape>::setVolumeMoveProbability)
           .def("setTransferTypes", &UpdaterMuVT<Shape>::setTransferTypes)
           .def("setNTrial",&hpmc::UpdaterMuVT<Shape>::setNTrial)
           ;

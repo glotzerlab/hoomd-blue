@@ -31,15 +31,15 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
         /*! \param sysdef System definition
             \param mc HPMC integrator object
             \param py_updater Python call back for wall update. Actually UPDATES the wall.
-            \param move_ratio Probability of attempting wall update move
+            \param move_probability Probability of attempting wall update move
             \param seed PRNG seed
         */
         UpdaterExternalFieldWall( std::shared_ptr<SystemDefinition> sysdef,
                       std::shared_ptr< IntegratorHPMCMono<Shape> > mc,
                       std::shared_ptr< ExternalFieldWall<Shape> > external,
                       pybind11::object py_updater,
-                      Scalar move_ratio,
-                      unsigned int seed) : Updater(sysdef), m_mc(mc), m_external(external), m_py_updater(py_updater), m_move_ratio(move_ratio), m_seed(seed)
+                      Scalar move_probability,
+                      unsigned int seed) : Updater(sysdef), m_mc(mc), m_external(external), m_py_updater(py_updater), m_move_probability(move_probability), m_seed(seed)
                       {
                       // broadcast the seed from rank 0 to all other ranks.
                       #ifdef ENABLE_MPI
@@ -63,24 +63,19 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
         virtual ~UpdaterExternalFieldWall(){}
 
         //! Sets parameters
-        /*! \param move_ratio Probability of attempting external field update move
+        /*! \param move_probability Probability of attempting external field update move
         */
-        void setMoveRatio(Scalar move_ratio)
+        void setMoveRatio(Scalar move_probability)
             {
-            m_move_ratio = move_ratio;
+            m_move_probability = move_probability;
             };
 
-        //! Get move_ratio parameter
-        /*! \returns move_ratio parameter
+        //! Get move_probability parameter
+        /*! \returns move_probability parameter
         */
         Scalar getMoveRatio()
             {
-            return m_move_ratio;
-            }
-
-        //! Print statistics
-        void printStats()
-            {
+            return m_move_probability;
             }
 
         //! Get a list of logged quantities
@@ -139,9 +134,9 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
             // Choose whether or not to update the external field
             hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterExternalFieldWall, m_seed, timestep);
             unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng);
-            unsigned int move_ratio = m_move_ratio * 65536;
+            unsigned int move_probability = m_move_probability * 65536;
             // Attempt and evaluate a move
-            if (move_type_select < move_ratio)
+            if (move_type_select < move_probability)
                 {
                 m_count_total_rel++;
                 m_count_total_tot++;
@@ -178,7 +173,7 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
         std::shared_ptr< IntegratorHPMCMono<Shape> > m_mc;      //!< Integrator
         std::shared_ptr< ExternalFieldWall<Shape> > m_external; //!< External field wall object
         pybind11::object m_py_updater;                       //!< Python call back for external field update
-        Scalar m_move_ratio;                                      //!< Ratio of lattice vector length versus shearing move
+        Scalar m_move_probability;                                      //!< Ratio of lattice vector length versus shearing move
         unsigned int m_count_accepted_rel;                        //!< Accepted moves count, relative to start of run
         unsigned int m_count_total_rel;                           //!< Accept/reject total count, relative to start of run
         unsigned int m_count_accepted_tot;                        //!< Accepted moves count, TOTAL
