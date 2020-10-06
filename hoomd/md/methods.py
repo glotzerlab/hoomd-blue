@@ -27,13 +27,13 @@ class NVT(_Method):
     R""" NVT Integration via the Nosé-Hoover thermostat.
 
     Args:
-        filter (`hoomd.filter._ParticleFilter`): Subset of particles on which to 
+        filter (`hoomd.filter._ParticleFilter`): Subset of particles on which to
             apply this method.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature set point
             for the Nosé-Hoover thermostat. (in energy units).
 
-        tau (`float`): Coupling constant for the Nosé-Hoover thermostat. 
+        tau (`float`): Coupling constant for the Nosé-Hoover thermostat.
             (in time units).
 
     `NVT` performs constant volume, constant temperature simulations
@@ -51,17 +51,16 @@ class NVT(_Method):
     where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is
     the set point (*kT* above).
 
-    .. note::
-
-        Coupling constant `tau` in Nosé-Hoover thermostat should be set within 
-        reasonable range to avoid abrupt fluctuation in temperature in case of 
-        small `tau` , also to avoid long time to equilibrate in case of large 
-        `tau`. Recommended value for most of systems is ``100 * dt``, where 
+    Note:
+        Coupling constant `tau` in Nosé-Hoover thermostat should be set within
+        reasonable range to avoid abrupt fluctuation in temperature in case of
+        small `tau` , also to avoid long time to equilibrate in case of large
+        `tau`. Recommended value for most of systems is ``100 * dt``, where
         ``dt`` is the length of the time step.
 
     .. todo:: Rotational degrees of freedom
 
-        `NVT` integrates rotational degrees of freedom. 
+        `NVT` integrates rotational degrees of freedom.
 
     Examples::
 
@@ -70,7 +69,7 @@ class NVT(_Method):
 
 
     Attributes:
-        filter (hoomd.filter._ParticleFilter): Subset of particles on which to 
+        filter (hoomd.filter._ParticleFilter): Subset of particles on which to
             apply this method.
 
         kT (hoomd.variant.Variant): Temperature set point
@@ -97,10 +96,10 @@ class NVT(_Method):
         # initialize the reflected cpp class
         if isinstance(self._simulation.device, hoomd.device.CPU):
             my_class = _md.TwoStepNVTMTK
-            thermo_cls = _hoomd.ComputeThermo
+            thermo_cls = _md.ComputeThermo
         else:
             my_class = _md.TwoStepNVTMTKGPU
-            thermo_cls = _hoomd.ComputeThermoGPU
+            thermo_cls = _md.ComputeThermoGPU
 
         group = self._simulation.state.get_group(self.filter)
         cpp_sys_def = self._simulation.state._cpp_sys_def
@@ -120,51 +119,51 @@ class NPT(_Method):
         filter (`hoomd.filter._ParticleFilter`): Subset of particles on which to
             apply this method.
 
-        kT (`hoomd.variant.Variant` or `float`): Temperature set point for the 
+        kT (`hoomd.variant.Variant` or `float`): Temperature set point for the
             thermostat. (in energy units).
 
         tau (`float`): Coupling constant for the thermostat (in time units).
 
-        S (`list`[`hoomd.variant.Variant`] or `float`): Stress components set 
+        S (`list`[`hoomd.variant.Variant`] or `float`): Stress components set
             point for the barostat (in pressure units).
-            In Voigt notation: 
-            :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`. 
+            In Voigt notation:
+            :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`.
             In case of isotropic pressure P (:math:`[p, p, p, 0, 0, 0]`), use ``S = p``.
 
         tauS (`float`): Coupling constant for the barostat (in time units).
 
-        couple (`str`): Couplings of diagonal elements of the stress tensor, 
+        couple (`str`): Couplings of diagonal elements of the stress tensor,
             can be "none", "xy", "xz","yz", or "all", default to "all".
 
-        box_dof(`list`[`bool`]): Box degrees of freedom with six boolean 
-            elements corresponding to x, y, z, xy, xz, yz, each. Default to 
-            [True,True,True,False,False,False]). If turned on to True, 
-            rescale corresponding lengths or tilt factors and components of 
+        box_dof(`list`[`bool`]): Box degrees of freedom with six boolean
+            elements corresponding to x, y, z, xy, xz, yz, each. Default to
+            [True,True,True,False,False,False]). If turned on to True,
+            rescale corresponding lengths or tilt factors and components of
             particle coordinates and velocities.
 
-        rescale_all (`bool`): if True, rescale all particles, not only those in 
+        rescale_all (`bool`): if True, rescale all particles, not only those in
             the group, Default to False.
 
-        gamma (`float`): Dimensionless damping factor for the box degrees of 
+        gamma (`float`): Dimensionless damping factor for the box degrees of
             freedom, Default to 0.
 
-    `NPT` performs constant pressure, constant temperature simulations, allowing 
+    `NPT` performs constant pressure, constant temperature simulations, allowing
     for a fully deformable simulation box.
 
-    The integration method is based on the rigorous Martyna-Tobias-Klein 
-    equations of motion for NPT. For optimal stability, the update equations 
+    The integration method is based on the rigorous Martyna-Tobias-Klein
+    equations of motion for NPT. For optimal stability, the update equations
     leave the phase-space measure invariant and are manifestly time-reversible.
 
-    By default, `NPT` performs integration in a cubic box under hydrostatic 
-    pressure by simultaneously rescaling the lengths *Lx*, *Ly* and *Lz* of the 
+    By default, `NPT` performs integration in a cubic box under hydrostatic
+    pressure by simultaneously rescaling the lengths *Lx*, *Ly* and *Lz* of the
     simulation box.
 
     `NPT` can also perform more advanced integration modes. The integration mode
-    is specified by a set of couplings and by specifying the box degrees of 
+    is specified by a set of couplings and by specifying the box degrees of
     freedom that are put under barostat control.
 
-    Couplings define which diagonal elements of the pressure tensor 
-    :math:`P_{\alpha,\beta}` should be averaged over, so that the corresponding 
+    Couplings define which diagonal elements of the pressure tensor
+    :math:`P_{\alpha,\beta}` should be averaged over, so that the corresponding
     box lengths are rescaled by the same amount.
 
     Valid couplings are:
@@ -175,33 +174,33 @@ class NPT(_Method):
     - yz (*Ly* and *Lz* are coupled)
     - all (*Lx* and *Ly* (and *Lz* if 3D) are coupled)
 
-    The default coupling is **all**, i.e. the ratios between all box lengths 
+    The default coupling is **all**, i.e. the ratios between all box lengths
     stay constant.
 
-    Degrees of freedom of the box specify which lengths and tilt factors of the 
+    Degrees of freedom of the box specify which lengths and tilt factors of the
     box should be updated, and how particle coordinates and velocities should be
-    rescaled. The ``box_dof`` tuple controls the way the box is rescaled and 
+    rescaled. The ``box_dof`` tuple controls the way the box is rescaled and
     updated. The first three elements ``box_dof[:3]`` controls whether the x, y,
-    and z box lengths are rescaled and updated, respectively. The last three 
-    entries ``box_dof[3:]`` control the rescaling or the tilt factors xy, xz, 
-    and yz. All options also appropriately rescale particle coordinates and 
+    and z box lengths are rescaled and updated, respectively. The last three
+    entries ``box_dof[3:]`` control the rescaling or the tilt factors xy, xz,
+    and yz. All options also appropriately rescale particle coordinates and
     velocities.
 
-    By default, the x, y, and z degrees of freedom are updated. 
+    By default, the x, y, and z degrees of freedom are updated.
     ``[True,True,True,False,False,False]``
 
     Note:
-        If any of the diagonal x, y, z degrees of freedom is not being 
-        integrated, pressure tensor components along that direction are not 
+        If any of the diagonal x, y, z degrees of freedom is not being
+        integrated, pressure tensor components along that direction are not
         considered for the remaining degrees of freedom.
 
     For example:
 
-    - Specifying all couplings and x, y, and z degrees of freedom amounts to 
+    - Specifying all couplings and x, y, and z degrees of freedom amounts to
       cubic symmetry (default)
-    - Specifying xy couplings and x, y, and z degrees of freedom amounts to 
+    - Specifying xy couplings and x, y, and z degrees of freedom amounts to
       tetragonal symmetry.
-    - Specifying no couplings and all degrees of freedom amounts to a fully 
+    - Specifying no couplings and all degrees of freedom amounts to a fully
       deformable triclinic unit cell
 
 
@@ -219,30 +218,29 @@ class NPT(_Method):
 
         \tau = \sqrt{\frac{Q}{g k_B T_0}}
 
-    where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is 
+    where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is
     the set point (*kT* above).
 
-    .. note::
-
-        Coupling constant for barostat `tauS` should be set within appropriate 
-        range for pressure and volume to fluctuate in reasonable rate and 
-        equilibrate. Too small `tauS` can cause abrupt fluctuation, whereas too 
-        large `tauS` would take long time to equilibrate. In most of systems, 
-        recommended value for `tauS` is ``1000 * dt``, where ``dt`` is the 
+    Note:
+        Coupling constant for barostat `tauS` should be set within appropriate
+        range for pressure and volume to fluctuate in reasonable rate and
+        equilibrate. Too small `tauS` can cause abrupt fluctuation, whereas too
+        large `tauS` would take long time to equilibrate. In most of systems,
+        recommended value for `tauS` is ``1000 * dt``, where ``dt`` is the
         length of the time step.
 
     Examples::
 
-        npt = hoomd.md.methods.NPT(filter=hoomd.filter.All(), tau=1.0, kT=0.65, 
+        npt = hoomd.md.methods.NPT(filter=hoomd.filter.All(), tau=1.0, kT=0.65,
         tauS = 1.2, S=2.0)
         # orthorhombic symmetry
-        npt = hoomd.md.methods.NPT(filter=hoomd.filter.All(), tau=1.0, kT=0.65, 
+        npt = hoomd.md.methods.NPT(filter=hoomd.filter.All(), tau=1.0, kT=0.65,
         tauS = 1.2, S=2.0, couple="none")
         # tetragonal symmetry
-        npt = hoomd.md.methods.NPT(filter=hoomd.filter.All(), tau=1.0, kT=0.65, 
+        npt = hoomd.md.methods.NPT(filter=hoomd.filter.All(), tau=1.0, kT=0.65,
         tauS = 1.2, S=2.0, couple="xy")
         # triclinic symmetry
-        npt = hoomd.md.methods.NPT(filter=hoomd.filter.All(), tau=1.0, kT=0.65, 
+        npt = hoomd.md.methods.NPT(filter=hoomd.filter.All(), tau=1.0, kT=0.65,
         tauS = 1.2, S=2.0, couple="none", rescale_all=True)
         integrator = hoomd.md.Integrator(dt=0.005, methods=[npt], forces=[lj])
 
@@ -250,30 +248,30 @@ class NPT(_Method):
         filter (hoomd.filter._ParticleFilter): Subset of particles on which to
             apply this method.
 
-        kT (hoomd.variant.Variant): Temperature set point for the 
+        kT (hoomd.variant.Variant): Temperature set point for the
             thermostat. (in energy units).
 
         tau (float): Coupling constant for the thermostat (in time units).
 
-        S (List[hoomd.variant.Variant]): Stress components set 
+        S (List[hoomd.variant.Variant]): Stress components set
             point for the barostat (in pressure units).
-            In Voigt notation, 
+            In Voigt notation,
             :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`. Stress can
-            be reset after method object is created. For example, An isoropic 
+            be reset after method object is created. For example, An isoropic
             pressure can be set by ``npt.S = 4.``
 
         tauS (float): Coupling constant for the barostat (in time units).
 
-        couple (str): Couplings of diagonal elements of the stress tensor, 
+        couple (str): Couplings of diagonal elements of the stress tensor,
             can be "none", "xy", "xz","yz", or "all".
 
-        box_dof(List[bool]): Box degrees of freedom with six boolean elements 
-            corresponding to x, y, z, xy, xz, yz, each. 
+        box_dof(List[bool]): Box degrees of freedom with six boolean elements
+            corresponding to x, y, z, xy, xz, yz, each.
 
-        rescale_all (bool): if True, rescale all particles, not only those in 
+        rescale_all (bool): if True, rescale all particles, not only those in
             the group.
 
-        gamma (float): Dimensionless damping factor for the box degrees of 
+        gamma (float): Dimensionless damping factor for the box degrees of
             freedom.
 
     """
@@ -303,10 +301,10 @@ class NPT(_Method):
         # initialize the reflected c++ class
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cpp_cls = _md.TwoStepNPTMTK
-            thermo_cls = _hoomd.ComputeThermo
+            thermo_cls = _md.ComputeThermo
         else:
             cpp_cls = _md.TwoStepNPTMTKGPU
-            thermo_cls = _hoomd.ComputeThermoGPU
+            thermo_cls = _md.ComputeThermoGPU
 
         cpp_sys_def = self._simulation.state._cpp_sys_def
         thermo_group = self._simulation.state.get_group(self.filter)
@@ -415,22 +413,26 @@ class NVE(_Method):
         filter (`hoomd.filter._ParticleFilter`): Subset of particles on which to
          apply this method.
 
-        limit (None or `float`): Enforce that no particle moves more than a 
+        limit (None or `float`): Enforce that no particle moves more than a
             distance of a limit in a single time step. Defaults to None
 
-    `NVE` performs constant volume, constant energy simulations using 
-    the standard Velocity-Verlet method. For poor initial conditions that 
-    include overlapping atoms, a limit can be specified to the movement a 
-    particle is allowed to make in one time step. After a few thousand time 
-    steps with the limit set, the system should be in a safe state to continue 
+    `NVE` performs constant volume, constant energy simulations using
+    the standard Velocity-Verlet method. For poor initial conditions that
+    include overlapping atoms, a limit can be specified to the movement a
+    particle is allowed to make in one time step. After a few thousand time
+    steps with the limit set, the system should be in a safe state to continue
     with unconstrained integration.
 
     Note:
-        With an active limit, Newton's third law is effectively **not** obeyed 
-        and the system can gain linear momentum. Activate the 
+        With an active limit, Newton's third law is effectively **not** obeyed
+        and the system can gain linear momentum. Activate the
         :py:class:`hoomd.md.update.zero_momentum` updater during the limited NVE
         run to prevent this.
 
+<<<<<<< HEAD
+=======
+    :py:class:`NVE` is an integration method. It must be used with ``mode_standard``.
+>>>>>>> feature/new-object-API
 
     Examples::
 
@@ -439,10 +441,10 @@ class NVE(_Method):
 
 
     Attributes:
-        filter (hoomd.filter._ParticleFilter): Subset of particles on which to 
+        filter (hoomd.filter._ParticleFilter): Subset of particles on which to
             apply this method.
 
-        limit (None or float): Enforce that no particle moves more than a 
+        limit (None or float): Enforce that no particle moves more than a
             distance of a limit in a single time step. Defaults to None
 
     """
@@ -486,14 +488,14 @@ class Langevin(_Method):
         seed (`int`): Random seed to use for generating
             :math:`\vec{F}_\mathrm{R}`.
 
-        alpha (`float`): When set, use :math:`\alpha d_i` for the drag 
-            coefficient where :math:`d_i` is particle diameter. 
+        alpha (`float`): When set, use :math:`\alpha d_i` for the drag
+            coefficient where :math:`d_i` is particle diameter.
             Defaults to None.
 
         tally_reservoir_energy (`bool`): If true, the energy exchange
             between the thermal reservoir and the particles is tracked. Total
             energy conservation can then be monitored by adding
-            ``langevin_reservoir_energy_groupname`` to the logged quantities. 
+            ``langevin_reservoir_energy_groupname`` to the logged quantities.
             Defaults to False.
 
     .. rubric:: Translational degrees of freedom
@@ -540,21 +542,24 @@ class Langevin(_Method):
     Use `Brownian` if your system is not underdamped.
 
     `Langevin` uses the same integrator as `NVE` with the additional force term
-    :math:`- \gamma \cdot \vec{v} + \vec{F}_\mathrm{R}`. The random force 
-    :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random number 
+    :math:`- \gamma \cdot \vec{v} + \vec{F}_\mathrm{R}`. The random force
+    :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random number
     distribution.
 
     You can specify :math:`\gamma` in two ways:
 
-    1. Specify :math:`\alpha` which scales the particle diameter to 
-       :math:`\gamma = \alpha d_i`. The units of :math:`\alpha` are 
+    1. Specify :math:`\alpha` which scales the particle diameter to
+       :math:`\gamma = \alpha d_i`. The units of :math:`\alpha` are
        mass / distance / time.
-    2. After the method object is created, specify the 
-       attribute ``gamma`` and ``gamma_r`` for rotational damping or random 
-       torque to assign them directly, with independent values for each 
+    2. After the method object is created, specify the
+       attribute ``gamma`` and ``gamma_r`` for rotational damping or random
+       torque to assign them directly, with independent values for each
        particle type in the system.
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> feature/new-object-API
     Warning:
         When restarting a simulation, the energy of the reservoir will be reset
         to zero.
@@ -562,9 +567,9 @@ class Langevin(_Method):
 
     Examples::
 
-        langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=0.2, 
+        langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=0.2,
         seed=1, alpha=1.0)
-        integrator = hoomd.md.Integrator(dt=0.001, methods=[langevin], 
+        integrator = hoomd.md.Integrator(dt=0.001, methods=[langevin],
         forces=[lj])
 
 
@@ -586,18 +591,18 @@ class Langevin(_Method):
         seed (int): Random seed to use for generating
             :math:`\vec{F}_\mathrm{R}`.
 
-        alpha (float): When set, use :math:`\alpha d_i` for the drag 
-            coefficient where :math:`d_i` is particle diameter. 
+        alpha (float): When set, use :math:`\alpha d_i` for the drag
+            coefficient where :math:`d_i` is particle diameter.
             Defaults to None.
 
-        gamma (TypeParameter[``particle type``, `float`]): The drag coefficient 
-            can be directly set instead of the ratio of particle diameter 
-            (:math:`\gamma = \alpha d_i`). The type of ``gamma`` parameter is 
+        gamma (TypeParameter[``particle type``, `float`]): The drag coefficient
+            can be directly set instead of the ratio of particle diameter
+            (:math:`\gamma = \alpha d_i`). The type of ``gamma`` parameter is
             either positive float or zero.
 
-        gamma_r (TypeParameter[``particle type``, [`float`, `float` , `float` ]]): 
+        gamma_r (TypeParameter[``particle type``, [`float`, `float` , `float` ]]):
             The rotational drag coefficient can be set. The type of ``gamma_r``
-            parameter is a tuple of three float. The type of each element of 
+            parameter is a tuple of three float. The type of each element of
             tuple is either positive float or zero.
 
     """
@@ -658,16 +663,16 @@ class Brownian(_Method):
             :math:`\vec{F}_\mathrm{R}`.
 
         alpha (`float`): When set, use :math:`\alpha d_i` for the
-            drag coefficient where :math:`d_i` is particle diameter. 
+            drag coefficient where :math:`d_i` is particle diameter.
             Defaults to None.
 
-    `Brownian` integrates particles forward in time according to the overdamped 
-    Langevin equations of motion, sometimes called Brownian dynamics, or the 
+    `Brownian` integrates particles forward in time according to the overdamped
+    Langevin equations of motion, sometimes called Brownian dynamics, or the
     diffusive limit.
 
     .. math::
 
-        \frac{d\vec{x}}{dt} = \frac{\vec{F}_\mathrm{C} + 
+        \frac{d\vec{x}}{dt} = \frac{\vec{F}_\mathrm{C} +
         \vec{F}_\mathrm{R}}{\gamma}
 
         \langle \vec{F}_\mathrm{R} \rangle = 0
@@ -679,60 +684,70 @@ class Brownian(_Method):
         \langle |\vec{v}(t)|^2 \rangle = d k T / m
 
 
-    where :math:`\vec{F}_\mathrm{C}` is the force on the particle from all 
-    potentials and constraint forces, :math:`\gamma` is the drag coefficient, 
+    where :math:`\vec{F}_\mathrm{C}` is the force on the particle from all
+    potentials and constraint forces, :math:`\gamma` is the drag coefficient,
     :math:`\vec{F}_\mathrm{R}` is a uniform random force, :math:`\vec{v}` is the
-    particle's velocity, and :math:`d` is the dimensionality of the system. 
-    The magnitude of the random force is chosen via the fluctuation-dissipation 
+    particle's velocity, and :math:`d` is the dimensionality of the system.
+    The magnitude of the random force is chosen via the fluctuation-dissipation
     theorem to be consistent with the specified drag and temperature, :math:`T`.
     When :math:`kT=0`, the random force :math:`\vec{F}_\mathrm{R}=0`.
 
-    `Brownian` generates random numbers by hashing together the particle tag, 
-    user seed, and current time step index. See 
+    `Brownian` generates random numbers by hashing together the particle tag,
+    user seed, and current time step index. See
     `C. L. Phillips et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_
     for more information.
 
     .. attention::
-        Change the seed if you reset the simulation time step to 0. If you keep 
-        the same seed, the simulation will continue with the same sequence of 
+        Change the seed if you reset the simulation time step to 0. If you keep
+        the same seed, the simulation will continue with the same sequence of
         random numbers used previously and may cause unphysical correlations.
 
-        For MPI runs: all ranks other than 0 ignore the seed input and use the 
+        For MPI runs: all ranks other than 0 ignore the seed input and use the
         value of rank 0.
 
-    `Brownian` uses the integrator from `I. Snook, The Langevin and Generalised 
+    `Brownian` uses the integrator from `I. Snook, The Langevin and Generalised
     Langevin Approach to the Dynamics of Atomic, Polymeric and Colloidal Systems
-    , 2007, section 6.2.5 <http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6>`_, 
-    with the exception that :math:`\vec{F}_\mathrm{R}` is drawn from a 
+    , 2007, section 6.2.5 <http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6>`_,
+    with the exception that :math:`\vec{F}_\mathrm{R}` is drawn from a
     uniform random number distribution.
 
-    In Brownian dynamics, particle velocities are completely decoupled from 
-    positions. At each time step, `Brownian` draws a new velocity 
-    distribution consistent with the current set temperature so that 
-    `hoomd.compute.thermo` will report appropriate temperatures and 
+<<<<<<< HEAD
+    In Brownian dynamics, particle velocities are completely decoupled from
+    positions. At each time step, `Brownian` draws a new velocity
+    distribution consistent with the current set temperature so that
+    `hoomd.compute.thermo` will report appropriate temperatures and
     pressures if logged or needed by other commands.
+=======
+    In Brownian dynamics, particle velocities are completely decoupled from positions. At each time step,
+    :py:class:`Brownian` draws a new velocity distribution consistent with the current set temperature so that
+    :py:class:`hoomd.md.compute.ThermodynamicQuantities` will report appropriate temperatures and pressures if logged or needed by other
+    commands.
+>>>>>>> feature/new-object-API
 
-    Brownian dynamics neglects the acceleration term in the Langevin equation. 
-    This assumption is valid when overdamped: 
-    :math:`\frac{m}{\gamma} \ll \delta t`. Use `Langevin` if your 
+    Brownian dynamics neglects the acceleration term in the Langevin equation.
+    This assumption is valid when overdamped:
+    :math:`\frac{m}{\gamma} \ll \delta t`. Use `Langevin` if your
     system is not overdamped.
 
     You can specify :math:`\gamma` in two ways:
 
-    1. Specify :math:`\alpha` which scales the particle diameter to 
-       :math:`\gamma = \alpha d_i`. The units of :math:`\alpha` are mass / 
+    1. Specify :math:`\alpha` which scales the particle diameter to
+       :math:`\gamma = \alpha d_i`. The units of :math:`\alpha` are mass /
        distance / time.
-    2. After the method object is created, specify the attribute ``gamma`` 
-       and ``gamma_r`` for rotational damping or random torque to assign them 
-       directly, with independent values for each particle type in the 
+    2. After the method object is created, specify the attribute ``gamma``
+       and ``gamma_r`` for rotational damping or random torque to assign them
+       directly, with independent values for each particle type in the
        system.
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> feature/new-object-API
     Examples::
 
-        brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2, 
+        brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2,
         seed=1, alpha=1.0)
-        integrator = hoomd.md.Integrator(dt=0.001, methods=[brownian], 
+        integrator = hoomd.md.Integrator(dt=0.001, methods=[brownian],
         forces=[lj])
 
 
@@ -754,18 +769,18 @@ class Brownian(_Method):
         seed (int): Random seed to use for generating
             :math:`\vec{F}_\mathrm{R}`.
 
-        alpha (float): When set, use :math:`\alpha d_i` for the drag 
-            coefficient where :math:`d_i` is particle diameter. 
+        alpha (float): When set, use :math:`\alpha d_i` for the drag
+            coefficient where :math:`d_i` is particle diameter.
             Defaults to None.
 
-        gamma (TypeParameter[``particle type``, `float`]): The drag coefficient 
-            can be directly set instead of the ratio of particle diameter 
-            (:math:`\gamma = \alpha d_i`). The type of ``gamma`` parameter is 
+        gamma (TypeParameter[``particle type``, `float`]): The drag coefficient
+            can be directly set instead of the ratio of particle diameter
+            (:math:`\gamma = \alpha d_i`). The type of ``gamma`` parameter is
             either positive float or zero.
 
-        gamma_r (TypeParameter[``particle type``, [`float`, `float`, `float`] ]): 
+        gamma_r (TypeParameter[``particle type``, [`float`, `float`, `float`] ]):
             The rotational drag coefficient can be set. The type of ``gamma_r``
-            parameter is a tuple of three float. The type of each element of 
+            parameter is a tuple of three float. The type of each element of
             tuple is either positive float or zero.
 
     """

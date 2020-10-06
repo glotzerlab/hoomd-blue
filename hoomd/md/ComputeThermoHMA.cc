@@ -9,11 +9,11 @@
 */
 
 #include "ComputeThermoHMA.h"
-#include "VectorMath.h"
+#include "hoomd/VectorMath.h"
 
 #ifdef ENABLE_MPI
-#include "Communicator.h"
-#include "HOOMDMPI.h"
+#include "hoomd/Communicator.h"
+#include "hoomd/HOOMDMPI.h"
 #endif
 
 namespace py = pybind11;
