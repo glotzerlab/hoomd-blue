@@ -84,7 +84,7 @@ class _NList(_HOOMDBaseObject):
     def shortest_rebuild(self):
         R""" Query the maximum possible check_period.
 
-        :py:meth:`query_update_period` examines the counts of nlist rebuilds
+        `query_update_period` examines the counts of nlist rebuilds
         during the previous ```hoomd.run```.  It returns ``s-1``, where
         *s* is the smallest update period experienced during that time.  Use it
         after a medium-length warm up run with *check_period=1* to determine
