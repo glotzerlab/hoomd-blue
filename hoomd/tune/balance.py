@@ -8,7 +8,7 @@ import hoomd
 
 
 class LoadBalancer(_Tuner):
-    R""" Adjusts the boundaries of the domain decomposition.
+    r""" Adjusts the boundaries of the domain decomposition.
 
     Args:
         trigger (hoomd.trigger.Trigger): Select the timesteps on which to
