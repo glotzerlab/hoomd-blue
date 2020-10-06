@@ -214,6 +214,8 @@ class _HPMCIntegrator(_BaseIntegrator):
             mc.shape_param.set(...)
             energy_map = np.asarray(mc.map_energies())
         """
+        raise NotImplementedError("map_energies will be implemented in a future"
+                                  "release.")
         # TODO: update map_energies to new API
 
         self.update_forces()
@@ -261,6 +263,8 @@ class _HPMCIntegrator(_BaseIntegrator):
         Returns:
             True if the particles overlap.
         """
+        raise NotImplementedError("map_energies will be implemented in a future"
+                                  "release.")
         self.update_forces()
 
         ti = hoomd.context.current.system_definition.getParticleData(
