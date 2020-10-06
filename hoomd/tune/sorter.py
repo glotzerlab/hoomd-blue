@@ -21,7 +21,7 @@ class ParticleSorter(_Tuner):
 
     `ParticleSorter` improves simulation performance by sorting the particles in
     memory along a space-filling curve. This takes particles that are close in
-    space and places them close in memory, leading to better a higher rate of
+    space and places them close in memory, leading to a higher rate of
     cache hits when computing pair potentials.
 
     Note:
