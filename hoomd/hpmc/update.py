@@ -867,7 +867,7 @@ class Clusters(_Updater):
             last run.
 
         Note:
-            `None` when the simulation run has not stated.
+            `None` when the simulation run has not started.
         """
         if not self._attached:
             return None
