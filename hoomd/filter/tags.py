@@ -11,6 +11,10 @@ class Tags(ParticleFilter, ParticleFilterTags):
     Args:
         tags (list[int]): List of particle tags to select.
 
+    A particle tag is a unique identifier assigned to each particle in the
+    simulation state. When the state is first initialized, it assigns tags
+    0 through `N_particles` to the particles in the order provided.
+
     Base: `ParticleFilter`
     """
 
