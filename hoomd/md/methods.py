@@ -429,10 +429,6 @@ class NVE(_Method):
         :py:class:`hoomd.md.update.zero_momentum` updater during the limited NVE
         run to prevent this.
 
-<<<<<<< HEAD
-=======
-    :py:class:`NVE` is an integration method. It must be used with ``mode_standard``.
->>>>>>> feature/new-object-API
 
     Examples::
 
@@ -556,14 +552,9 @@ class Langevin(_Method):
        torque to assign them directly, with independent values for each
        particle type in the system.
 
-<<<<<<< HEAD
-
-=======
->>>>>>> feature/new-object-API
     Warning:
         When restarting a simulation, the energy of the reservoir will be reset
         to zero.
-
 
     Examples::
 
@@ -572,14 +563,12 @@ class Langevin(_Method):
         integrator = hoomd.md.Integrator(dt=0.001, methods=[langevin],
         forces=[lj])
 
-
     Examples of using ``gamma`` or ``gamma_r`` on drag coefficient::
 
         langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=0.2,
         seed=1)
         langevin.gamma.default = 2.0
         langevin.gamma_r.default = [1.0,2.0,3.0]
-
 
     Attributes:
         filter (hoomd.filter._ParticleFilter): Subset of particles to
@@ -711,18 +700,11 @@ class Brownian(_Method):
     with the exception that :math:`\vec{F}_\mathrm{R}` is drawn from a
     uniform random number distribution.
 
-<<<<<<< HEAD
     In Brownian dynamics, particle velocities are completely decoupled from
     positions. At each time step, `Brownian` draws a new velocity
     distribution consistent with the current set temperature so that
     `hoomd.compute.thermo` will report appropriate temperatures and
     pressures if logged or needed by other commands.
-=======
-    In Brownian dynamics, particle velocities are completely decoupled from positions. At each time step,
-    :py:class:`Brownian` draws a new velocity distribution consistent with the current set temperature so that
-    :py:class:`hoomd.md.compute.ThermodynamicQuantities` will report appropriate temperatures and pressures if logged or needed by other
-    commands.
->>>>>>> feature/new-object-API
 
     Brownian dynamics neglects the acceleration term in the Langevin equation.
     This assumption is valid when overdamped:
@@ -739,10 +721,6 @@ class Brownian(_Method):
        directly, with independent values for each particle type in the
        system.
 
-<<<<<<< HEAD
-
-=======
->>>>>>> feature/new-object-API
     Examples::
 
         brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2,
