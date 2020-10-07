@@ -39,6 +39,7 @@ stages:
     timeoutInMinutes: 75
 
     strategy:
+      maxParallel: 5
       matrix:
         gcc10_py38_mpi_tbb:
           container_image: gcc10_py38
