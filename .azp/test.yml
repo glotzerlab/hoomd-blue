@@ -1,15 +1,17 @@
-trigger:
-  batch: true
-  branches:
-    include:
-    - maint
-    - master
-    - feature/new-object-API
+trigger: none
 
 pr:
   - maint
   - master
   - feature/new-object-API
+
+schedules:
+- cron: "0 4 * * *"
+  displayName: Daily midnight build
+  # 4am UTC is midnight eastern time
+  branches:
+    include:
+    - "*"
 
 variables:
   image_root: glotzerlab/ci:2020.07
