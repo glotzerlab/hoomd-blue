@@ -311,7 +311,7 @@ class Active(_Force):
 
         self._cpp_obj = my_class(
             self._simulation.state._cpp_sys_def,
-            self._simulation.state.get_group(self.filter),
+            self._simulation.state._get_group(self.filter),
             self.seed, self.rotation_diff,
             _hoomd.make_scalar3(0, 0, 0), 0, 0, 0)
 
