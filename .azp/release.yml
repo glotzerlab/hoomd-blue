@@ -1,17 +1,22 @@
-variables:
-  image_root: glotzerlab/ci:2020.07
-  name: hoomd
-
 trigger:
   batch: true
   branches:
     include:
-    - '*'
+    - maint
+    - master
+    - feature/new-object-API
   tags:
     include:
     - 'v*'
 
-pr: none
+pr:
+  - maint
+  - master
+  - feature/new-object-API
+
+variables:
+  image_root: glotzerlab/ci:2020.07
+  name: hoomd
 
 jobs:
 - job: release

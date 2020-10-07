@@ -1,4 +1,12 @@
-trigger: none
+trigger:
+  batch: true
+  branches:
+    include:
+    - maint
+    - master
+    - feature/new-object-API
+
+pr: none
 
 variables:
   image_root: glotzerlab/ci:2020.07

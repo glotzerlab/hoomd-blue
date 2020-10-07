@@ -1,3 +1,16 @@
+trigger:
+  batch: true
+  branches:
+    include:
+    - maint
+    - master
+    - feature/new-object-API
+
+pr:
+  - maint
+  - master
+  - feature/new-object-API
+
 variables:
   image_root: glotzerlab/ci:2020.07
 
@@ -15,12 +28,6 @@ variables:
   ctest_stride: 1
   mpiexec_timeout: 3000
   suite_name: $(Agent.JobName)
-
-trigger:
-  batch: true
-  branches:
-    include:
-    - '*'
 
 stages:
 - stage: build_test_cpu
