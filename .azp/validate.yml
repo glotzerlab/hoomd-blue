@@ -8,7 +8,7 @@ schedules:
   # 4am UTC is midnight eastern time
   branches:
     include:
-    - "+"
+    - "*"
 
 variables:
   image_root: glotzerlab/ci:2020.07
