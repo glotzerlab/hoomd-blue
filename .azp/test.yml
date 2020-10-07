@@ -70,6 +70,7 @@ jobs:
       # other platform and compiler tests are in validate.yml
       cuda11_py37_mpi:
         container_image: cuda11_gcc7_py37
+        enable_mpi: on
 
   pool:
     name: 'GPU'
