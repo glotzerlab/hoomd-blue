@@ -27,7 +27,7 @@ class NVT(_Method):
     R""" NVT Integration via the Nosé-Hoover thermostat.
 
     Args:
-        filter (`hoomd.filter._ParticleFilter`): Subset of particles on which to
+        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
             apply this method.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature set point
@@ -69,7 +69,7 @@ class NVT(_Method):
 
 
     Attributes:
-        filter (hoomd.filter._ParticleFilter): Subset of particles on which to
+        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this method.
 
         kT (hoomd.variant.Variant): Temperature set point
@@ -245,7 +245,7 @@ class NPT(_Method):
         integrator = hoomd.md.Integrator(dt=0.005, methods=[npt], forces=[lj])
 
     Attributes:
-        filter (hoomd.filter._ParticleFilter): Subset of particles on which to
+        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this method.
 
         kT (hoomd.variant.Variant): Temperature set point for the
@@ -410,7 +410,7 @@ class NVE(_Method):
     R""" NVE Integration via Velocity-Verlet
 
     Args:
-        filter (`hoomd.filter._ParticleFilter`): Subset of particles on which to
+        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
          apply this method.
 
         limit (None or `float`): Enforce that no particle moves more than a
@@ -437,7 +437,7 @@ class NVE(_Method):
 
 
     Attributes:
-        filter (hoomd.filter._ParticleFilter): Subset of particles on which to
+        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this method.
 
         limit (None or float): Enforce that no particle moves more than a
@@ -571,7 +571,7 @@ class Langevin(_Method):
         langevin.gamma_r.default = [1.0,2.0,3.0]
 
     Attributes:
-        filter (hoomd.filter._ParticleFilter): Subset of particles to
+        filter (hoomd.filter.ParticleFilter): Subset of particles to
             apply this method to.
 
         kT (hoomd.variant.Variant): Temperature of the
@@ -738,7 +738,7 @@ class Brownian(_Method):
 
 
     Attributes:
-        filter (hoomd.filter._ParticleFilter): Subset of particles to
+        filter (hoomd.filter.ParticleFilter): Subset of particles to
             apply this method to.
 
         kT (hoomd.variant.Variant): Temperature of the
