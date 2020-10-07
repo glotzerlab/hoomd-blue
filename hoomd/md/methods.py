@@ -19,6 +19,7 @@ from hoomd.typeconverter import OnlyFrom
 import copy
 from collections.abc import Sequence
 
+
 class _Method(_HOOMDBaseObject):
     pass
 
@@ -111,6 +112,7 @@ class NVT(_Method):
                                  self.kT,
                                  "")
         super()._attach()
+
 
 class NPT(_Method):
     R""" NPT Integration via MTK barostat-thermostat.
@@ -340,6 +342,7 @@ class NPT(_Method):
         else:
             return (value,value,value,0,0,0)
 
+
 class nph(NPT):
     R""" NPH Integration via MTK barostat-thermostat..
 
@@ -470,6 +473,7 @@ class NVE(_Method):
         # Attach param_dict and typeparam_dict
         super()._attach()
 
+
 class Langevin(_Method):
     R""" Langevin dynamics.
 
@@ -583,10 +587,10 @@ class Langevin(_Method):
             coefficient where :math:`d_i` is particle diameter.
             Defaults to None.
 
-        gamma (TypeParameter[ ``particle type``, `float` ]): The drag coefficient
-            can be directly set instead of the ratio of particle diameter
-            (:math:`\gamma = \alpha d_i`). The type of ``gamma`` parameter is
-            either positive float or zero.
+        gamma (TypeParameter[ ``particle type``, `float` ]): The drag
+            coefficient can be directly set instead of the ratio of particle
+            diameter (:math:`\gamma = \alpha d_i`). The type of ``gamma``
+            parameter is either positive float or zero.
 
         gamma_r (TypeParameter[ ``particle type``, [ `float`, `float` , `float` ]]):
             The rotational drag coefficient can be set. The type of ``gamma_r``
@@ -751,15 +755,14 @@ class Brownian(_Method):
             Defaults to None.
 
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
-        coefficient can be directly set instead of the ratio of particle
-        diameter (:math:`\gamma = \alpha d_i`). The type of ``gamma`` parameter
-        is either positive float or zero.
+            coefficient can be directly set instead of the ratio of particle
+            diameter (:math:`\gamma = \alpha d_i`). The type of ``gamma``
+            parameter is either positive float or zero.
 
         gamma_r (TypeParameter[ ``particle type``, [ `float`, `float`, `float` ] ]):
             The rotational drag coefficient can be set. The type of ``gamma_r``
             parameter is a tuple of three float. The type of each element of
             tuple is either positive float or zero.
-
     """
 
     def __init__(self, filter, kT, seed, alpha=None):
