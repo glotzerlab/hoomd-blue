@@ -29,171 +29,101 @@ variables:
   mpiexec_timeout: 3000
   suite_name: $(Agent.JobName)
 
-stages:
-- stage: build_test_cpu
-  displayName: Unit test (CPU)
-  dependsOn: []
+jobs:
+- job: linux_cpu
+  displayName: Linux
+  timeoutInMinutes: 75
 
-  jobs:
-  - job: linux_cpu
-    displayName: Linux
-    timeoutInMinutes: 75
+  strategy:
+    matrix:
+      # test the most recent platform and compiler combo here
+      # other platform and compiler tests are in validate.yml
+      clang10_py38_mpi_tbb:
+        container_image: clang10_py38
+        enable_mpi: on
+        enable_tbb: on
+        build_jit: on
+        llvm_version: '10'
 
-    strategy:
-      matrix:
-        # test the most recent platform and compiler combo here
-        # other platform and compiler tests are in validate.yml
-        gcc10_py38_mpi_tbb:
-          container_image: gcc10_py38
-          enable_mpi: on
-          enable_tbb: on
+  pool:
+    vmImage: 'ubuntu-latest'
 
-    pool:
-      vmImage: 'ubuntu-latest'
+  container:
+    image: $(image_root)-$(container_image)
+    options: -u 0
 
-    container:
+  steps:
+  - template: templates/build.yml
+  - template: templates/run_tests.yml
+
+- job: linux_gpu
+  displayName: Linux
+  timeoutInMinutes: 75
+  variables:
+    enable_gpu: on
+
+  strategy:
+    matrix:
+      # test the most recent platform and compiler combo here
+      # other platform and compiler tests are in validate.yml
+      cuda11_py37_mpi:
+        container_image: cuda11_gcc7_py37
+
+  pool:
+    name: 'GPU'
+    demands: short_jobs
+
+  container:
       image: $(image_root)-$(container_image)
-      options: -u 0
+      options: -u 0 --gpus=all --cpus=4 --memory=16g -e CUDA_VISIBLE_DEVICES
 
-    steps:
-    - template: templates/build.yml
-    - template: templates/run_tests.yml
+  workspace:
+    clean: all
 
-- stage: build_test_nvidia
-  displayName: Unit test (NVIDIA GPU)
-  dependsOn: []
-  variables:
-    enable_gpu: on
+  steps:
+  - template: templates/build.yml
+  - template: templates/run_tests.yml
 
-  jobs:
-  - job: linux_gpu
-    displayName: Linux
-    timeoutInMinutes: 75
+- job: sphinx_doc
+  displayName: Sphinx
+  pool:
+    vmImage: 'ubuntu-latest'
 
-    strategy:
-      matrix:
-        # test the most recent platform and compiler combo here
-        # other platform and compiler tests are in validate.yml
-        cuda11_py37_mpi:
-          container_image: cuda11_gcc7_py37
+  container:
+    image: $(image_root)-clang10_py38
+    options: -u 0
 
-    pool:
-      name: 'GPU'
-      demands: short_jobs
+  workspace:
+    clean: all
 
-    container:
-       image: $(image_root)-$(container_image)
-       options: -u 0 --gpus=all --cpus=4 --memory=16g -e CUDA_VISIBLE_DEVICES
+  steps:
+  - checkout: self
+    submodules: true
+  - script: sphinx-build -b html -d _build/doctrees -W -T --keep-going -n . _build/html
+    displayName: (HTML)
+    workingDirectory: sphinx-doc
+  - script: sphinx-build -b latex -d _build/doctrees -W -T --keep-going -n . _build/latex
+    displayName: (LaTeX)
+    workingDirectory: sphinx-doc
 
-    workspace:
-      clean: all
+- job: pydocstyle
+  displayName: pydocstyle
+  pool:
+    vmImage: 'ubuntu-latest'
 
-    steps:
-    - template: templates/build.yml
-    - template: templates/run_tests.yml
+  container:
+    image: $(image_root)-clang10_py38
+    options: -u 0
 
-- stage: build_test_amd
-  # temporarily disable testing on AMD because the containers are not functional
-  condition: false
-  displayName: Unit test (AMD GPU)
-  dependsOn: []
-  variables:
-    enable_gpu: on
+  workspace:
+    clean: all
 
-  jobs:
-  - job: linux_gpu
-    displayName: Linux
-    timeoutInMinutes: 150
-
-    strategy:
-      matrix:
-        rocm210_custom_gcc9_py38_mpi:
-          container_image: rocm2.10_custom_gcc9_py38
-          enable_mpi: on
-
-        rocm210_custom_gcc9_py38:
-          container_image: rocm2.10_custom_gcc9_py38
-
-        rocm210_custom_clang9_py38:
-          container_image: rocm2.10_custom_clang9_py38
-
-    pool:
-      name: 'AMDGPU'
-      demands: short_jobs
-
-    container:
-       image: $(image_root)-$(container_image)
-       options: >-
-         -u 0
-         --cpus=4
-         --device=/dev/kfd
-         --device=/dev/dri
-         --security-opt seccomp=unconfined
-         --group-add video
-         --mount type=bind,source=/etc/group,target=/etc/group_host
-         --memory=16g
-
-    workspace:
-      clean: all
-
-    steps:
-    - script: "sudo addgroup render --gid `grep render /etc/group_host | awk -F: '{printf $3}'`"
-      displayName: Add render group
-    - script: sudo usermod -G render `whoami`
-      displayName: Add user to render group
-    - template: templates/build.yml
-    - template: templates/run_tests.yml
-
-- stage: doc
-  displayName: Documentation
-  dependsOn: []
-
-  jobs:
-  - job: sphinx_doc
-    displayName: Sphinx
-    pool:
-      vmImage: 'ubuntu-latest'
-
-    container:
-      image: $(image_root)-clang10_py38
-      options: -u 0
-
-    workspace:
-      clean: all
-
-    steps:
-    - checkout: self
-      submodules: true
-    - script: sphinx-build -b html -d _build/doctrees -W -T --keep-going -n . _build/html
-      displayName: (HTML)
-      workingDirectory: sphinx-doc
-    - script: sphinx-build -b latex -d _build/doctrees -W -T --keep-going -n . _build/latex
-      displayName: (LaTeX)
-      workingDirectory: sphinx-doc
-
-- stage: style
-  displayName: Style checks
-  dependsOn: []
-
-  jobs:
-  - job: pydocstyle
-    displayName: pydocstyle
-    pool:
-      vmImage: 'ubuntu-latest'
-
-    container:
-      image: $(image_root)-clang10_py38
-      options: -u 0
-
-    workspace:
-      clean: all
-
-    steps:
-    - checkout: self
-      submodules: true
-    - script: >-
-        pydocstyle -v
-        hoomd/variant.py
-        hoomd/device.py
-        hoomd/simulation.py
-      displayName: Run pydocstyle
+  steps:
+  - checkout: self
+    submodules: true
+  - script: >-
+      pydocstyle -v
+      hoomd/variant.py
+      hoomd/device.py
+      hoomd/simulation.py
+    displayName: Run pydocstyle
