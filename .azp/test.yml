@@ -6,9 +6,9 @@ pr:
   - feature/new-object-API
 
 schedules:
-- cron: "0 4 * * *"
-  displayName: Daily midnight build
-  # 4am UTC is midnight eastern time
+- cron: "0 2 * * *"
+  displayName: Daily 10PM build
+  # 2am UTC is 10PM eastern time
   branches:
     include:
     - "*"
