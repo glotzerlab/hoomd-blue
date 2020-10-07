@@ -7,6 +7,7 @@ The following people have contributed to the to HOOMD-blue:
 * Alex Travesset, Iowa State University and Ames Laboratory
 * Alex Yang, Vanderbilt University
 * Alexander Hudson
+* Allen LaCour, University of Michigan
 * Alyssa Travitz, University of Michigan
 * Andrew Schultz, University at Buffalo
 * Andrew Mark, Max Planck Institute
@@ -38,6 +39,7 @@ The following people have contributed to the to HOOMD-blue:
 * Eric Irrgang, University of Michigan
 * Eric Jankowski, Boise State University
 * Erin Teich, University of Michigan
+* Fengyi Gao, University of Michigan
 * Geert Kapteijns, University of Amsterdam
 * Greg van Anders, University of Michigan
 * Grey Garrett, University of Michigan
