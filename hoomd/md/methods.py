@@ -6,7 +6,6 @@
 # Maintainer: joaander / All Developers are free to add commands for new features
 
 
-from hoomd import _hoomd
 from hoomd.md import _md
 import hoomd
 from hoomd.operation import _HOOMDBaseObject
@@ -15,8 +14,6 @@ from hoomd.filter import _ParticleFilter
 from hoomd.typeparam import TypeParameter
 from hoomd.typeconverter import OnlyType, OnlyIf, to_type_converter
 from hoomd.variant import Variant
-from hoomd.typeconverter import OnlyFrom
-import copy
 from collections.abc import Sequence
 
 
