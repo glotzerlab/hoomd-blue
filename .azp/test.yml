@@ -40,82 +40,13 @@ stages:
     timeoutInMinutes: 75
 
     strategy:
-      maxParallel: 5
       matrix:
+        # test the most recent platform and compiler combo here
+        # other platform and compiler tests are in validate.yml
         gcc10_py38_mpi_tbb:
           container_image: gcc10_py38
           enable_mpi: on
           enable_tbb: on
-
-        gcc9_py38_mpi_tbb:
-          container_image: gcc9_py38
-          enable_mpi: on
-          enable_tbb: on
-
-        clang10_py38_mpi_tbb:
-          container_image: clang10_py38
-          enable_mpi: on
-          enable_tbb: on
-          build_jit: on
-          llvm_version: '10'
-
-        clang9_py38_mpi_tbb:
-          container_image: clang9_py38
-          enable_mpi: on
-          enable_tbb: on
-          build_jit: on
-          llvm_version: '9'
-
-        clang8_py38_mpi_tbb:
-          container_image: clang8_py38
-          enable_mpi: on
-          enable_tbb: on
-          build_jit: on
-          llvm_version: '8'
-
-        clang7_py38_mpi_tbb:
-          container_image: clang7_py38
-          enable_mpi: on
-          enable_tbb: on
-          build_jit: on
-          llvm_version: '7'
-
-        gcc8_py37_mpi_tbb:
-          container_image: gcc8_py37
-          enable_mpi: on
-          enable_tbb: on
-
-        gcc7_py37_tbb:
-          container_image: gcc7_py37
-          enable_tbb: on
-
-        gcc6_py37_mpi:
-          container_image: gcc6_py37
-          enable_mpi: on
-
-        gcc5_py37:
-          container_image: gcc5_py37
-
-        gcc48_py37_mpi_tbb:
-          container_image: gcc48_py37
-          enable_mpi: on
-          enable_tbb: on
-
-        clang6_py37_mpi_tbb:
-          container_image: clang6_py37
-          enable_mpi: on
-          enable_tbb: on
-          build_jit: on
-          llvm_version: '6.0'
-
-        clang5_py37_tbb_llvm5:
-          container_image: clang5_py37
-          enable_tbb: on
-          build_jit: on
-          llvm_version: '5.0'
-
-        gcc7_py36:
-          container_image: gcc7_py36
 
     pool:
       vmImage: 'ubuntu-latest'
@@ -125,41 +56,6 @@ stages:
       options: -u 0
 
     steps:
-    - template: templates/build.yml
-    - template: templates/run_tests.yml
-
-
-  - job: mac_cpu
-    displayName: macOS
-    timeoutInMinutes: 75
-
-    strategy:
-      matrix:
-        10_14:
-          mac_image: macOS-10.14
-        10_15_mpi_tbb:
-          mac_image: macOS-10.15
-          enable_mpi: on
-          enable_tbb: on
-
-    pool:
-      vmImage: '$(mac_image)'
-
-    steps:
-    - script: brew install cereal cmake eigen ninja open-mpi python pybind11
-      displayName: Brew install prereqs
-    # Install Intel's provided TBB builds, homebrew's tbb does not support exception translation
-    - script: |
-        curl -sLO https://github.com/intel/tbb/releases/download/2019_U8/tbb2019_20190605oss_mac.tgz &&
-        tar -xzf tbb2019_20190605oss_mac.tgz &&
-        cp -R tbb2019_20190605oss/include/tbb /usr/local/include &&
-        cp -a tbb2019_20190605oss/lib/*.dylib /usr/local/lib
-      displayName: Install TBB
-      workingDirectory: $(Pipeline.Workspace)
-
-    - script: python3 -m pip install pytest numpy gsd
-      displayName: Pip install prereqs
-
     - template: templates/build.yml
     - template: templates/run_tests.yml
 
@@ -176,20 +72,10 @@ stages:
 
     strategy:
       matrix:
+        # test the most recent platform and compiler combo here
+        # other platform and compiler tests are in validate.yml
         cuda11_py37_mpi:
           container_image: cuda11_gcc7_py37
-
-        cuda10_py37_mng_mpi:
-          container_image: cuda10_gcc7_py37
-          always_use_managed_memory: on
-          enable_mpi: on
-
-        cuda9_py37_mpi:
-          container_image: cuda9_gcc7_py37
-          enable_mpi: on
-
-        cuda9_py37:
-          container_image: cuda9_gcc7_py37
 
     pool:
       name: 'GPU'
