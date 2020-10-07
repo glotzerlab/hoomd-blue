@@ -133,6 +133,18 @@ class rcut:
 class Cell(_NList):
     r"""Cell list based neighbor list
 
+    Args:
+        buffer (float): Buffer width.
+        check_dist (bool): Flag to enable / disable distance checking.
+        deterministic (bool): When `True`, sort neighbors to help provide
+            deterministic simulation runs.
+        diameter_shift (bool): Flag to enable / disable diameter shifting.
+        exclusions (tuple[str]): Excludes pairs from the neighbor list, which
+            excludes them from the pair potential calculation.
+        max_diameter (float): The maximum diameter a particle will achieve.
+        rebuild_check_delay (int): How often to attempt to rebuild the neighbor
+            list.
+
     `Cell` finds neighboring particles using a fixed width cell list, allowing
     for *O(kN)* construction of the neighbor list where *k* is the number of
     particles per cell. Cells are sized to the largest :math:`r_\mathrm{cut}`.
