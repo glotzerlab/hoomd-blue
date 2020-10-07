@@ -7,7 +7,7 @@
 from hoomd import _hoomd
 from hoomd.hpmc import _hpmc
 from hoomd.hpmc import integrate
-from hoomd.compute import _compute
+from hoomd.operation import _Compute
 import hoomd
 
 ## \internal
@@ -20,7 +20,7 @@ import hoomd
 # to the System they will not be enforced unless they are added to the integrator.
 # Only one external field can be held by the integrator so if multiple fields are
 # required use the external_field_composite class to manage them.
-class _external(_compute):
+class _external(_Compute):
     ## \internal
     # \brief Initialize an empty external.
     #
@@ -800,7 +800,7 @@ class wall(_external):
 
         self.cpp_compute.SetCurrBox(Lx, Ly, Lz, xy, xz, yz);
 
-class frenkel_ladd_energy(_compute):
+class frenkel_ladd_energy(_Compute):
     R""" Compute the Frenkel-Ladd Energy of a crystal.
 
     Args:

@@ -4,10 +4,10 @@
 
 // Maintainer: joaander
 
-#include "Compute.h"
-#include "GlobalArray.h"
+#include "hoomd/Compute.h"
+#include "hoomd/GlobalArray.h"
 #include "ComputeThermoTypes.h"
-#include "ParticleGroup.h"
+#include "hoomd/ParticleGroup.h"
 
 #include <memory>
 #include <limits>
@@ -102,7 +102,7 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
             #ifdef ENABLE_MPI
             if (!m_properties_reduced) reduceProperties();
             #endif
-            // return NaN if the flags are not valid or we have no rotational DOF
+            // return 0.0 if the flags are not valid or we have no rotational DOF
             if (m_computed_flags[pdata_flag::rotational_kinetic_energy] &&
                 m_group->getRotationalDOF() > 0)
                 {
@@ -111,7 +111,7 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
                 }
             else
                 {
-                return std::numeric_limits<Scalar>::quiet_NaN();
+                return 0.0;
                 }
             }
 
@@ -159,7 +159,7 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
             if (!m_properties_reduced) reduceProperties();
             #endif
 
-            // return NaN if the flags are not valid
+            // return 0.0 if the flags are not valid
             if (m_computed_flags[pdata_flag::rotational_kinetic_energy])
                 {
                 ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
@@ -167,7 +167,7 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
                 }
             else
                 {
-                return std::numeric_limits<Scalar>::quiet_NaN();
+                return 0.0;
                 }
             }
 
@@ -239,6 +239,44 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
                 p.zz = std::numeric_limits<Scalar>::quiet_NaN();
                 }
             return p;
+            }
+
+    //! Returns the pressure tensor as a python list to be used for logging
+    /*! \returns the pressure tensor as a python list
+    */
+    pybind11::list getPressureTensorPython()
+        {
+        pybind11::list toReturn;
+        PressureTensor p = getPressureTensor();
+        toReturn.append(p.xx);
+        toReturn.append(p.xy);
+        toReturn.append(p.xz);
+        toReturn.append(p.yy);
+        toReturn.append(p.yz);
+        toReturn.append(p.zz);
+        return toReturn;
+        }
+
+        // <--------------- Degree of Freedom Data
+
+        unsigned int getNDOF()
+            {
+            return m_group->getTranslationalDOF() + m_group->getRotationalDOF();
+            }
+
+        unsigned int getTranslationalDOF()
+            {
+            return m_group->getTranslationalDOF();
+            }
+
+        unsigned int getRotationalDOF()
+            {
+            return m_group->getRotationalDOF();
+            }
+
+        unsigned int getNumParticles()
+            {
+            return m_group->getNumMembersGlobal();
             }
 
         //! Get the gpu array of properties

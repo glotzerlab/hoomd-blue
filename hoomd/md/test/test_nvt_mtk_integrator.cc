@@ -9,7 +9,7 @@
 
 #include "hoomd/ConstForceCompute.h"
 #include "hoomd/md/TwoStepNVTMTK.h"
-#include "hoomd/ComputeThermo.h"
+#include "hoomd/md/ComputeThermo.h"
 #ifdef ENABLE_HIP
 #include "hoomd/md/TwoStepNVTMTKGPU.h"
 #endif

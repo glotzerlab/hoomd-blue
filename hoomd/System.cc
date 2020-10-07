@@ -59,89 +59,6 @@ System::System(std::shared_ptr<SystemDefinition> sysdef, unsigned int initial_ts
     #endif
     }
 
-/*! \param analyzer Shared pointer to the Analyzer to add
-    \param name A unique name to identify the Analyzer by
-    \param period Analyzer::analyze() will be called for every time step that is a multiple
-    of \a period.
-    \param phase Phase offset. A value of -1 sets no phase, updates start on the current step. A value of 0 or greater
-                 sets the analyzer to run at steps where (step % (period + phase)) == 0.
-
-    All Analyzers will be called, in the order that they are added, and with the specified
-    \a period during time step calculations performed when run() is called. An analyzer
-    can be prevented from running in future runs by removing it (removeAnalyzer()) before
-    calling run()
-*/
-/*! \param compute Shared pointer to the Compute to add
-    \param name Unique name to assign to this Compute
-
-    Computes are added to the System only as a convenience for naming,
-    saving to restart files, and to activate profiling. They are never
-    directly called by the system.
-*/
-void System::addCompute(std::shared_ptr<Compute> compute, const std::string& name)
-    {
-    // sanity check
-    assert(compute);
-
-    // check if the name is unique
-    map< string, std::shared_ptr<Compute> >::iterator i = m_computes.find(name);
-    if (i == m_computes.end())
-        m_computes[name] = compute;
-    else
-        {
-        m_exec_conf->msg->error() << "Compute " << name << " already exists" << endl;
-        throw runtime_error("System: cannot add compute");
-        }
-    }
-
-/*! \param compute Shared pointer to the Compute to add
-    \param name Unique name to assign to this Compute
-
-    Computes are added to the System only as a convenience for naming,
-    saving to restart files, and to activate profiling. They are never
-    directly called by the system. This method adds a compute, overwriting
-    any existing compute by the same name.
-*/
-void System::overwriteCompute(std::shared_ptr<Compute> compute, const std::string& name)
-    {
-    // sanity check
-    assert(compute);
-
-    m_computes[name] = compute;
-    }
-
-/*! \param name Name of the Compute to remove
-*/
-void System::removeCompute(const std::string& name)
-    {
-    // see if the compute exists to be removed
-    map< string, std::shared_ptr<Compute> >::iterator i = m_computes.find(name);
-    if (i == m_computes.end())
-        {
-        m_exec_conf->msg->error() << "Compute " << name << " not found" << endl;
-        throw runtime_error("System: cannot remove compute");
-        }
-    else
-        m_computes.erase(i);
-    }
-
-/*! \param name Name of the compute to access
-    \returns A shared pointer to the Compute as provided previously by addCompute()
-*/
-std::shared_ptr<Compute> System::getCompute(const std::string& name)
-    {
-    // see if the compute even exists first
-    map< string, std::shared_ptr<Compute> >::iterator i = m_computes.find(name);
-    if (i == m_computes.end())
-        {
-        m_exec_conf->msg->error() << "Compute " << name << " not found" << endl;
-        throw runtime_error("System: cannot retrieve compute");
-        return std::shared_ptr<Compute>();
-        }
-    else
-        return m_computes[name];
-    }
-
 // -------------- Integrator methods
 
 /*! \param integrator Updater to set as the Integrator for this System
@@ -168,20 +85,13 @@ void System::setCommunicator(std::shared_ptr<Communicator> comm)
 
 // -------------- Methods for running the simulation
 
-/*! \param nsteps Number of simulation steps to run
-
-    During each simulation step, all added Analyzers and
-    Updaters are called, then the Integrator to move the system
-    forward one step in time. This is repeated \a nsteps times.
-*/
-
-void System::run(unsigned int nsteps)
+void System::run(unsigned int nsteps, bool write_at_start)
     {
     m_start_tstep = m_cur_tstep;
     m_end_tstep = m_cur_tstep + nsteps;
 
     // initialize the last status time
-    int64_t initial_time = m_clk.getTime();
+    m_initial_time = m_clk.getTime();
     setupProfiling();
 
     // preset the flags before the run loop so that any analyzers/updaters run on step 0 have the info they need
@@ -202,23 +112,28 @@ void System::run(unsigned int nsteps)
     #endif
 
     // Prepare the run
-    if (!m_integrator)
-        {
-        m_exec_conf->msg->warning() << "You are running without an integrator" << endl;
-        }
-    else
+    if (m_integrator)
         {
         m_integrator->prepRun(m_cur_tstep);
         }
 
-    // handle time steps
-    for ( ; m_cur_tstep < m_end_tstep; m_cur_tstep++)
+    // execute analyzers on initial step if requested
+    if (write_at_start)
         {
-        // execute analyzers
         for (auto &analyzer_trigger_pair: m_analyzers)
             {
             if ((*analyzer_trigger_pair.second)(m_cur_tstep))
                 analyzer_trigger_pair.first->analyze(m_cur_tstep);
+            }
+        }
+
+    // run the steps
+    for ( ; m_cur_tstep < m_end_tstep; m_cur_tstep++)
+        {
+        for (auto &tuner: m_tuners)
+            {
+            if ((*tuner->getTrigger())(m_cur_tstep))
+                tuner->update(m_cur_tstep);
             }
 
         // execute updaters
@@ -226,12 +141,6 @@ void System::run(unsigned int nsteps)
             {
             if ((*updater_trigger_pair.second)(m_cur_tstep))
                 updater_trigger_pair.first->update(m_cur_tstep);
-            }
-
-        for (auto &tuner: m_tuners)
-            {
-            if ((*tuner->getTrigger())(m_cur_tstep))
-                tuner->update(m_cur_tstep);
             }
 
         // look ahead to the next time step and see which analyzers and updaters will be executed
@@ -242,6 +151,15 @@ void System::run(unsigned int nsteps)
         if (m_integrator)
             m_integrator->update(m_cur_tstep);
 
+        // execute analyzers for cur_tstep+1
+        for (auto &analyzer_trigger_pair: m_analyzers)
+            {
+            if ((*analyzer_trigger_pair.second)(m_cur_tstep+1))
+                analyzer_trigger_pair.first->analyze(m_cur_tstep+1);
+            }
+
+        updateTPS();
+
         // quit if Ctrl-C was pressed
         if (g_sigint_recvd)
             {
@@ -250,16 +168,18 @@ void System::run(unsigned int nsteps)
             }
         }
 
-    // calculate average TPS
-    Scalar TPS = Scalar(m_cur_tstep - m_start_tstep) / Scalar(m_clk.getTime() - initial_time) * Scalar(1e9);
-
-    m_last_TPS = TPS;
-
     #ifdef ENABLE_MPI
-    // make sure all ranks return the same TPS
+    // make sure all ranks return the same TPS after the run completes
     if (m_comm)
         bcast(m_last_TPS, 0, m_exec_conf->getMPICommunicator());
     #endif
+    }
+
+void System::updateTPS()
+    {
+    // calculate average TPS
+    m_last_TPS = double(m_cur_tstep - m_start_tstep) / double(m_clk.getTime() - m_initial_time)
+                    * double(1e9);
     }
 
 /*! \param enable Set to true to enable profiling during calls to run()
@@ -279,13 +199,12 @@ void System::registerLogger(std::shared_ptr<Logger> logger)
         logger->registerUpdater(m_integrator);
 
     // updaters
-	for (auto &updater_trigger_pair: m_updaters)
-		logger->registerUpdater(updater_trigger_pair.first);
+    for (auto &updater_trigger_pair: m_updaters)
+        logger->registerUpdater(updater_trigger_pair.first);
 
     // computes
-    map< string, std::shared_ptr<Compute> >::iterator compute;
-    for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
-        logger->registerCompute(compute->second);
+    for (auto compute: m_computes)
+        logger->registerCompute(compute);
     }
 
 /*! \param enable Enable/disable autotuning
@@ -298,17 +217,16 @@ void System::setAutotunerParams(bool enabled, unsigned int period)
         m_integrator->setAutotunerParams(enabled, period);
 
     // analyzers
-	for (auto &analyzer_trigger_pair: m_analyzers)
-		analyzer_trigger_pair.first->setAutotunerParams(enabled, period);
+    for (auto &analyzer_trigger_pair: m_analyzers)
+        analyzer_trigger_pair.first->setAutotunerParams(enabled, period);
 
     // updaters
-	for (auto &updater_trigger_pair: m_updaters)
-		updater_trigger_pair.first->setAutotunerParams(enabled, period);
+    for (auto &updater_trigger_pair: m_updaters)
+        updater_trigger_pair.first->setAutotunerParams(enabled, period);
 
     // computes
-    map< string, std::shared_ptr<Compute> >::iterator compute;
-    for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
-        compute->second->setAutotunerParams(enabled, period);
+    for (auto compute: m_computes)
+        compute->setAutotunerParams(enabled, period);
 
     #ifdef ENABLE_MPI
     if (m_comm)
@@ -349,9 +267,8 @@ void System::setupProfiling()
         }
 
     // computes
-    map< string, std::shared_ptr<Compute> >::iterator compute;
-    for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
-        compute->second->setProfiler(m_profiler);
+    for (auto compute: m_computes)
+        compute->setProfiler(m_profiler);
 
 #ifdef ENABLE_MPI
     // communicator
@@ -374,9 +291,8 @@ void System::resetStats()
         updater_trigger_pair.first->resetStats();
 
     // computes
-    map< string, std::shared_ptr<Compute> >::iterator compute;
-    for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
-        compute->second->resetStats();
+    for (auto compute: m_computes)
+        compute->resetStats();
     }
 
 /*! \param tstep Time step for which to determine the flags
@@ -418,13 +334,10 @@ void export_System(py::module& m)
     py::bind_vector<std::vector<std::pair<std::shared_ptr<Updater>,
                     std::shared_ptr<Trigger> > > >(m, "UpdaterTriggerList");
     py::bind_vector<std::vector<std::shared_ptr<Tuner> > > (m, "TunerList");
+    py::bind_vector<std::vector<std::shared_ptr<Compute> > > (m, "ComputeList");
 
     py::class_< System, std::shared_ptr<System> > (m,"System")
     .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int >())
-    .def("addCompute", &System::addCompute)
-    .def("overwriteCompute", &System::overwriteCompute)
-    .def("removeCompute", &System::removeCompute)
-    .def("getCompute", &System::getCompute)
 
     .def("setIntegrator", &System::setIntegrator)
     .def("getIntegrator", &System::getIntegrator)
@@ -441,6 +354,7 @@ void export_System(py::module& m)
     .def_property_readonly("analyzers", &System::getAnalyzers)
     .def_property_readonly("updaters", &System::getUpdaters)
     .def_property_readonly("tuners", &System::getTuners)
+    .def_property_readonly("computes", &System::getComputes)
 #ifdef ENABLE_MPI
     .def("setCommunicator", &System::setCommunicator)
     .def("getCommunicator", &System::getCommunicator)
