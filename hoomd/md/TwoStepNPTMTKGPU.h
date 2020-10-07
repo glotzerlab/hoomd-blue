@@ -6,7 +6,7 @@
 
 #include "TwoStepNPTMTK.h"
 #include "hoomd/Variant.h"
-#include "hoomd/ComputeThermo.h"
+#include "ComputeThermo.h"
 #include "hoomd/Autotuner.h"
 
 #include <memory>

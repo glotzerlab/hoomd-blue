@@ -34,7 +34,6 @@ hoomd
    module-hoomd-analyze
    module-hoomd-array
    module-hoomd-comm
-   module-hoomd-compute
    module-hoomd-custom
    module-hoomd-data
    module-hoomd-device

@@ -67,20 +67,6 @@ class PYBIND11_EXPORT System
         //! Constructor
         System(std::shared_ptr<SystemDefinition> sysdef, unsigned int initial_tstep);
 
-        // -------------- Compute get/set methods
-
-        //! Adds a Compute
-        void addCompute(std::shared_ptr<Compute> compute, const std::string& name);
-
-        //! Overwrites a Compute
-        void overwriteCompute(std::shared_ptr<Compute> compute, const std::string& name);
-
-        //! Removes a Compute
-        void removeCompute(const std::string& name);
-
-        //! Access a stored Compute by name
-        std::shared_ptr<Compute> getCompute(const std::string& name);
-
         // -------------- Integrator methods
 
         //! Sets the current Integrator
@@ -104,8 +90,16 @@ class PYBIND11_EXPORT System
 
         // -------------- Methods for running the simulation
 
-        //! Runs the simulation for a number of time steps
-        void run(unsigned int nsteps);
+        /** Run the simulation for a number of time steps.
+
+            During the run, Simulation applies all of the Tuners, Updaters, the integrator,
+            and Analyzers who's triggers evaluate true.
+
+            @param nsteps Number of steps to advance the simulation
+            @param write_at_start Set to true to evaluate writers before the
+                loop
+        */
+        void run(unsigned int nsteps, bool write_at_start=false);
 
         //! Configures profiling of runs
         void enableProfiler(bool enable);
@@ -151,6 +145,11 @@ class PYBIND11_EXPORT System
             return m_tuners;
             }
 
+        std::vector<std::shared_ptr<Compute>>& getComputes()
+            {
+            return m_computes;
+            }
+
         /// Set pressure computation particle data flag
         void setPressureFlag(bool flag)
             {
@@ -172,7 +171,7 @@ class PYBIND11_EXPORT System
 
         std::vector<std::shared_ptr<Tuner>> m_tuners; //!< List of tuners belonging to the System
 
-        std::map< std::string, std::shared_ptr<Compute> > m_computes; //!< Named list of Computes belonging to this System
+        std::vector<std::shared_ptr<Compute>> m_computes; //!< list of Computes belonging to this System
 
         std::shared_ptr<Integrator> m_integrator;     //!< Integrator that advances time in this System
         std::shared_ptr<SystemDefinition> m_sysdef;   //!< SystemDefinition for this System
@@ -202,7 +201,15 @@ class PYBIND11_EXPORT System
         //! Get the flags needed for a particular step
         PDataFlags determineFlags(unsigned int tstep);
 
-        Scalar m_last_TPS;  //!< Stores the average TPS from the last run
+        /// Record the initial time of the last run
+        int64_t m_initial_time=0;
+
+        /// Store the last recorded tPS
+        Scalar m_last_TPS=0;
+
+        /// Update the TPS average
+        void updateTPS();
+
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
     };
 

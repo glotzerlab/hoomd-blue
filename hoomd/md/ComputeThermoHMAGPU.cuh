@@ -9,10 +9,10 @@
 
 #include <hip/hip_runtime.h>
 
-#include "ParticleData.cuh"
+#include "hoomd/ParticleData.cuh"
 #include "ComputeThermoHMATypes.h"
-#include "HOOMDMath.h"
-#include "GPUPartition.cuh"
+#include "hoomd/HOOMDMath.h"
+#include "hoomd/GPUPartition.cuh"
 
 /*! \file ComputeThermoHMAGPU.cuh
     \brief Kernel driver function declarations for ComputeThermoHMAGPU

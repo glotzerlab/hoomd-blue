@@ -9,11 +9,11 @@
 */
 
 #include "ComputeThermo.h"
-#include "VectorMath.h"
+#include "hoomd/VectorMath.h"
 
 #ifdef ENABLE_MPI
-#include "Communicator.h"
-#include "HOOMDMPI.h"
+#include "hoomd/Communicator.h"
+#include "hoomd/HOOMDMPI.h"
 #endif
 
 namespace py = pybind11;
@@ -178,7 +178,7 @@ Scalar ComputeThermo::getLogValue(const std::string& quantity, unsigned int time
         }
     else
         {
-        m_exec_conf->msg->error() << "compute.thermo: " << quantity << " is not a valid log quantity" << endl;
+        m_exec_conf->msg->error() << "compute.ThermodynamicQuantities: " << quantity << " is not a valid log quantity" << endl;
         throw runtime_error("Error getting log value");
         }
     }
@@ -414,12 +414,17 @@ void export_ComputeThermo(py::module& m)
     {
     py::class_<ComputeThermo, Compute, std::shared_ptr<ComputeThermo> >(m,"ComputeThermo")
     .def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>,const std::string& >())
-    .def("getTemperature", &ComputeThermo::getTemperature)
-    .def("getPressure", &ComputeThermo::getPressure)
-    .def("getKineticEnergy", &ComputeThermo::getKineticEnergy)
-    .def("getTranslationalKineticEnergy", &ComputeThermo::getTranslationalKineticEnergy)
-    .def("getRotationalKineticEnergy", &ComputeThermo::getRotationalKineticEnergy)
-    .def("getPotentialEnergy", &ComputeThermo::getPotentialEnergy)
+    .def_property_readonly("kinetic_temperature", &ComputeThermo::getTemperature)
+    .def_property_readonly("pressure", &ComputeThermo::getPressure)
+    .def_property_readonly("pressure_tensor", &ComputeThermo::getPressureTensorPython)
+    .def_property_readonly("degrees_of_freedom", &ComputeThermo::getNDOF)
+    .def_property_readonly("translational_degrees_of_freedom", &ComputeThermo::getTranslationalDOF)
+    .def_property_readonly("rotational_degrees_of_freedom", &ComputeThermo::getRotationalDOF)
+    .def_property_readonly("num_particles", &ComputeThermo::getNumParticles)
+    .def_property_readonly("kinetic_energy", &ComputeThermo::getKineticEnergy)
+    .def_property_readonly("translational_kinetic_energy", &ComputeThermo::getTranslationalKineticEnergy)
+    .def_property_readonly("rotational_kinetic_energy", &ComputeThermo::getRotationalKineticEnergy)
+    .def_property_readonly("potential_energy", &ComputeThermo::getPotentialEnergy)
     .def("setLoggingEnabled", &ComputeThermo::setLoggingEnabled)
     ;
     }

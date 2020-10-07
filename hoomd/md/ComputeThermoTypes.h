@@ -7,7 +7,7 @@
 #ifndef _COMPUTE_THERMO_TYPES_H_
 #define _COMPUTE_THERMO_TYPES_H_
 
-#include "HOOMDMath.h"
+#include "hoomd/HOOMDMath.h"
 /*! \file ComputeThermoTypes.h
     \brief Data structures common to both CPU and GPU implementations of ComputeThermo
     */

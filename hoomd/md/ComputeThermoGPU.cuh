@@ -7,10 +7,10 @@
 #ifndef _COMPUTE_THERMO_GPU_CUH_
 #define _COMPUTE_THERMO_GPU_CUH_
 
-#include "ParticleData.cuh"
+#include "hoomd/ParticleData.cuh"
 #include "ComputeThermoTypes.h"
-#include "HOOMDMath.h"
-#include "GPUPartition.cuh"
+#include "hoomd/HOOMDMath.h"
+#include "hoomd/GPUPartition.cuh"
 
 /*! \file ComputeThermoGPU.cuh
     \brief Kernel driver function declarations for ComputeThermoGPU
