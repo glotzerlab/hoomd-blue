@@ -8,7 +8,6 @@
     :py:class:`Periodic` as input arguments, and process the operation 
     accordingly. 
 
-
 """
 from hoomd import _hoomd
 from inspect import isclass
@@ -19,6 +18,21 @@ class Trigger(_hoomd.Trigger):
 
 
 class Periodic(_hoomd.PeriodicTrigger, Trigger):
+    R""" Set periodicity of trigger.
+
+    Args:
+        timesteps: timesteps to set periodicity of trigger.
+    
+    Example::
+
+            trig = hoomd.trigger.Periodic(100)
+            traj_writer = hoomd.dump.GSD('simulate.gsd', 
+                                        trigger=trig, 
+                                        filter = hoomd.filter.All())
+            csv = hoomd.output.CSV(trig, logger)
+
+    """
+
     def __init__(self, period, phase=0):
         _hoomd.PeriodicTrigger.__init__(self, period, phase)
 
@@ -28,6 +42,23 @@ class Periodic(_hoomd.PeriodicTrigger, Trigger):
 
 
 class Before(_hoomd.BeforeTrigger, Trigger):
+    R""" Set the timepoint for trigger to be applied until.
+
+    Args:
+        timesteps: timesteps to set the timepoint for trigger to stop working.
+    
+    Example::
+            
+            # trigger every 100 time steps until at time step of 1000.
+            trig = hoomd.trigger.And([
+                    hoomd.trigger.Before(1000),
+                    hoomd.trigger.Periodic(100)])
+            traj_writer = hoomd.dump.GSD('simulate.gsd', 
+                                        trigger=trig, 
+                                        filter = hoomd.filter.All())
+            csv = hoomd.output.CSV(trig, logger)
+
+    """
     def __init__(self, timestep):
         if timestep < 0:
             raise ValueError("timestep must be greater than or equal to 0.")
@@ -48,6 +79,23 @@ class On(_hoomd.OnTrigger, Trigger):
         return f"hoomd.trigger.On(timestep={self.timestep})"
 
 class After(_hoomd.AfterTrigger, Trigger):
+    R""" Set the timepoint for trigger to start working.
+
+    Args:
+        timesteps: timesteps to set the timepoint for trigger to start working.
+    
+    Example::
+            
+            # trigger every 100 time steps after at time step of 1000.
+            trig = hoomd.trigger.And([
+                    hoomd.trigger.After(1000),
+                    hoomd.trigger.Periodic(100)])
+            traj_writer = hoomd.dump.GSD('simulate.gsd', 
+                                        trigger=trig, 
+                                        filter = hoomd.filter.All())
+            csv = hoomd.output.CSV(trig, logger)
+
+    """
     def __init__(self, timestep):
         if timestep < 0:
             raise ValueError("timestep must be positive.")
@@ -65,6 +113,28 @@ class Not(_hoomd.NotTrigger, Trigger):
         return f"hoomd.trigger.Not(trigger={self.trigger})"
 
 class And(_hoomd.AndTrigger, Trigger):
+    R""" And operator for trigger
+
+    Args:
+        :py:mod:`hoomd.trigger.Periodic`
+        :py:mod:`hoomd.trigger.After`
+        :py:mod:`hoomd.trigger.Before`
+        :py:mod:`hoomd.trigger.On`
+        :py:mod:`hoomd.trigger.Not`
+    
+    Example::
+            
+            # trigger every 100 time steps and after at time step of 1000.
+            trig = hoomd.trigger.And([
+                    hoomd.trigger.After(1000),
+                    hoomd.trigger.Periodic(100)])
+            traj_writer = hoomd.dump.GSD('simulate.gsd', 
+                                        trigger=trig, 
+                                        filter = hoomd.filter.All())
+            csv = hoomd.output.CSV(trig, logger)
+
+    """
+
     def __init__(self, triggers):
         triggers = list(triggers)
         if not all(isinstance(t, Trigger) for t in triggers):
@@ -78,6 +148,32 @@ class And(_hoomd.AndTrigger, Trigger):
         return result
 
 class Or(_hoomd.OrTrigger, Trigger):
+    R""" Or operator for trigger
+
+    Args:
+        :py:mod:`hoomd.trigger.Periodic`
+        :py:mod:`hoomd.trigger.After`
+        :py:mod:`hoomd.trigger.Before`
+        :py:mod:`hoomd.trigger.On`
+        :py:mod:`hoomd.trigger.Not`
+    
+    Example::
+            
+            # trigger every 100 time steps before at time step of 1000.
+            #         every 10  time steps after  at time step of 1000.
+            trig = hoomd.trigger.Or([hoomd.trigger.And([
+                                        hoomd.trigger.Before(1000), 
+                                        hoomd.trigger.Periodic(100)]),
+                                    [hoomd.trigger.And([
+                                        hoomd.trigger.After(1000),
+                                        hoomd.trigger.Periodic(10)])
+                                    ])
+            traj_writer = hoomd.dump.GSD('simulate.gsd', 
+                                        trigger=trig, 
+                                        filter = hoomd.filter.All())
+            csv = hoomd.output.CSV(trig, logger)
+
+    """
     def __init__(self, triggers):
         triggers = list(triggers)
         if not all(isinstance(t, Trigger) for t in triggers):
