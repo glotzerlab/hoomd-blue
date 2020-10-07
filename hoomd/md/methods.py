@@ -124,18 +124,17 @@ class NPT(_Method):
 
         tau (`float`): Coupling constant for the thermostat (in time units).
 
-        S (`list`[`hoomd.variant.Variant`] or `float`): Stress components set
-            point for the barostat (in pressure units).
-            In Voigt notation:
-            :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`.
-            In case of isotropic pressure P (:math:`[p, p, p, 0, 0, 0]`), use ``S = p``.
+        S (`list` [ `hoomd.variant.Variant` ] or `float`): Stress components set
+            point for the barostat (in pressure units).  In Voigt notation:
+            :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`.  In case
+            of isotropic pressure P (:math:`[p, p, p, 0, 0, 0]`), use ``S = p``.
 
         tauS (`float`): Coupling constant for the barostat (in time units).
 
         couple (`str`): Couplings of diagonal elements of the stress tensor,
             can be "none", "xy", "xz","yz", or "all", default to "all".
 
-        box_dof(`list`[`bool`]): Box degrees of freedom with six boolean
+        box_dof(`list` [ `bool` ]): Box degrees of freedom with six boolean
             elements corresponding to x, y, z, xy, xz, yz, each. Default to
             [True,True,True,False,False,False]). If turned on to True,
             rescale corresponding lengths or tilt factors and components of
@@ -584,12 +583,12 @@ class Langevin(_Method):
             coefficient where :math:`d_i` is particle diameter.
             Defaults to None.
 
-        gamma (TypeParameter[``particle type``, `float`]): The drag coefficient
+        gamma (TypeParameter[ ``particle type``, `float` ]): The drag coefficient
             can be directly set instead of the ratio of particle diameter
             (:math:`\gamma = \alpha d_i`). The type of ``gamma`` parameter is
             either positive float or zero.
 
-        gamma_r (TypeParameter[``particle type``, [`float`, `float` , `float` ]]):
+        gamma_r (TypeParameter[ ``particle type``, [ `float`, `float` , `float` ]]):
             The rotational drag coefficient can be set. The type of ``gamma_r``
             parameter is a tuple of three float. The type of each element of
             tuple is either positive float or zero.
@@ -751,12 +750,12 @@ class Brownian(_Method):
             coefficient where :math:`d_i` is particle diameter.
             Defaults to None.
 
-        gamma (TypeParameter[``particle type``, `float`]): The drag coefficient
-            can be directly set instead of the ratio of particle diameter
-            (:math:`\gamma = \alpha d_i`). The type of ``gamma`` parameter is
-            either positive float or zero.
+        gamma (TypeParameter[ ``particle type``, `float` ]): The drag
+        coefficient can be directly set instead of the ratio of particle
+        diameter (:math:`\gamma = \alpha d_i`). The type of ``gamma`` parameter
+        is either positive float or zero.
 
-        gamma_r (TypeParameter[``particle type``, [`float`, `float`, `float`] ]):
+        gamma_r (TypeParameter[ ``particle type``, [ `float`, `float`, `float` ] ]):
             The rotational drag coefficient can be set. The type of ``gamma_r``
             parameter is a tuple of three float. The type of each element of
             tuple is either positive float or zero.
