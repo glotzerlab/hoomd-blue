@@ -2,13 +2,12 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
-""" :py:class:`hoomd.trigger` enables users to design time points to dump file 
-    writer or logger output. :py:class:`And`, :py:class:`Or` are the operators
-    which take :py:class:`After` ,:py:class:`Before`, :py:class:`On`, 
-    :py:class:`Periodic` as input arguments, and process the operation 
-    accordingly. 
+""" :py:class:`hoomd.trigger` enables users to design time points when and while
+    :py:class:`hoomd.Operations` operates. The composite of triggers takes 
+    time steps and returns `true` or `false`. 
 
 """
+
 from hoomd import _hoomd
 from inspect import isclass
 
@@ -21,8 +20,11 @@ class Periodic(_hoomd.PeriodicTrigger, Trigger):
     R""" Set periodicity of trigger.
 
     Args:
-        timesteps: timesteps to set periodicity of trigger.
+        period (float): timesteps for periodicity
+        phase (float): timesteps for phase
     
+    :py:class:`hoomd.Operations` will operate when (timestep - phase)/period = 0
+
     Example::
 
             trig = hoomd.trigger.Periodic(100)
@@ -30,6 +32,10 @@ class Periodic(_hoomd.PeriodicTrigger, Trigger):
                                         trigger=trig, 
                                         filter = hoomd.filter.All())
             csv = hoomd.output.CSV(trig, logger)
+
+    Attributes:
+        period (float): periodicity in time step.
+        phase (float): phase in time step.
 
     """
 
@@ -45,11 +51,13 @@ class Before(_hoomd.BeforeTrigger, Trigger):
     R""" Set the timepoint for trigger to be applied until.
 
     Args:
-        timesteps: timesteps to set the timepoint for trigger to stop working.
+        timestep (float): time step for the operation to stop working.
+
+    :py:class:`hoomd.Operations` will operate less than `timestep`.
     
     Example::
             
-            # trigger every 100 time steps until at time step of 1000.
+            # trigger every 100 time steps less than at time step of 1000.
             trig = hoomd.trigger.And([
                     hoomd.trigger.Before(1000),
                     hoomd.trigger.Periodic(100)])
@@ -57,6 +65,9 @@ class Before(_hoomd.BeforeTrigger, Trigger):
                                         trigger=trig, 
                                         filter = hoomd.filter.All())
             csv = hoomd.output.CSV(trig, logger)
+
+    Attributes:
+        timestep (float): The time step for operation to stop working. 
 
     """
     def __init__(self, timestep):
@@ -82,8 +93,10 @@ class After(_hoomd.AfterTrigger, Trigger):
     R""" Set the timepoint for trigger to start working.
 
     Args:
-        timesteps: timesteps to set the timepoint for trigger to start working.
-    
+        timestep (float): time step for the operation to start working.
+
+    :py:class:`hoomd.Operations` will operate greater than `timestep`.
+
     Example::
             
             # trigger every 100 time steps after at time step of 1000.
@@ -94,6 +107,9 @@ class After(_hoomd.AfterTrigger, Trigger):
                                         trigger=trig, 
                                         filter = hoomd.filter.All())
             csv = hoomd.output.CSV(trig, logger)
+
+    Attributes:
+        timestep (float): The time step for operation to start working. 
 
     """
     def __init__(self, timestep):
@@ -106,6 +122,27 @@ class After(_hoomd.AfterTrigger, Trigger):
         return f"hoomd.trigger.After(timestep={self.timestep})"
 
 class Not(_hoomd.NotTrigger, Trigger):
+    R""" Not operator for trigger
+
+    Args:
+        trigger (hoomd.Trigger): The trigger object to reverse.
+
+    :py:class:`hoomd.Operations` will operate on reversed time window of `trigger`.
+
+    Example::
+            
+            trig = hoomd.trigger.And([
+                    hoomd.trigger.After(1000),
+                    hoomd.trigger.Periodic(100)])
+            traj_writer = hoomd.dump.GSD('simulate.gsd', 
+                                        trigger=trig, 
+                                        filter = hoomd.filter.All())
+            csv = hoomd.output.CSV(trig, logger)
+
+    Attributes:
+        trigger (hoomd.Trigger): The trigger object to reverse. 
+
+    """
     def __init__(self, trigger):
         _hoomd.NotTrigger.__init__(self, trigger)
 
@@ -116,11 +153,7 @@ class And(_hoomd.AndTrigger, Trigger):
     R""" And operator for trigger
 
     Args:
-        :py:mod:`hoomd.trigger.Periodic`
-        :py:mod:`hoomd.trigger.After`
-        :py:mod:`hoomd.trigger.Before`
-        :py:mod:`hoomd.trigger.On`
-        :py:mod:`hoomd.trigger.Not`
+        triggers (`list`[`hoomd.Trigger`]): List of triggers to combine
     
     Example::
             
@@ -132,6 +165,9 @@ class And(_hoomd.AndTrigger, Trigger):
                                         trigger=trig, 
                                         filter = hoomd.filter.All())
             csv = hoomd.output.CSV(trig, logger)
+
+    Attributes:
+        triggers (List[hoomd.Trigger]): List of triggers combined
 
     """
 
@@ -151,16 +187,12 @@ class Or(_hoomd.OrTrigger, Trigger):
     R""" Or operator for trigger
 
     Args:
-        :py:mod:`hoomd.trigger.Periodic`
-        :py:mod:`hoomd.trigger.After`
-        :py:mod:`hoomd.trigger.Before`
-        :py:mod:`hoomd.trigger.On`
-        :py:mod:`hoomd.trigger.Not`
+        triggers (`list`[`hoomd.Trigger`]): List of triggers to combine
     
     Example::
             
             # trigger every 100 time steps before at time step of 1000.
-            #         every 10  time steps after  at time step of 1000.
+            # or      every 10  time steps after  at time step of 1000.
             trig = hoomd.trigger.Or([hoomd.trigger.And([
                                         hoomd.trigger.Before(1000), 
                                         hoomd.trigger.Periodic(100)]),
@@ -172,6 +204,9 @@ class Or(_hoomd.OrTrigger, Trigger):
                                         trigger=trig, 
                                         filter = hoomd.filter.All())
             csv = hoomd.output.CSV(trig, logger)
+
+    Attributes:
+        triggers (List[hoomd.Trigger]): List of triggers combined
 
     """
     def __init__(self, triggers):
