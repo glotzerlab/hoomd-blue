@@ -9,7 +9,7 @@ R""" Constraints.
 Constraint forces constrain a given set of particle to a given surface, to have
 some relative orientation, or impose some other type of constraint. For example,
 a group of particles can be constrained to the surface of a sphere with
-:py:class:`sphere`.
+`sphere`.
 
 As with other force commands in hoomd, multiple constrain commands can be issued
 to specify multiple constraints, which are additively applied.
@@ -154,7 +154,7 @@ class sphere(_ConstraintForce):
         P (tuple): (x,y,z) tuple indicating the position of the center of the sphere (in distance units).
         r (float): Radius of the sphere (in distance units).
 
-    :py:class:`sphere` specifies that forces will be applied to all particles in the given group to constrain
+    `sphere` specifies that forces will be applied to all particles in the given group to constrain
     them to a sphere. Currently does not work with Brownian or Langevin dynamics.
 
     Example::
