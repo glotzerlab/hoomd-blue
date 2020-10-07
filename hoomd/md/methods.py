@@ -30,7 +30,7 @@ class _Method(_HOOMDBaseObject):
     """
 
 class NVT(_Method):
-    R""" NVT Integration via the Nosé-Hoover thermostat.
+    r"""NVT Integration via the Nosé-Hoover thermostat.
 
     Args:
         filter (`hoomd.filter._ParticleFilter`): Subset of particles on which to
@@ -83,6 +83,14 @@ class NVT(_Method):
 
         tau (float): Coupling constant for the Nosé-Hoover thermostat. (in time
             units).
+
+        translational_thermostat_dof (tuple[float, float]): Additional degrees
+            of freedom for the translational thermostat (:math:`\xi`,
+            :math:`\eta`)
+
+        rotational_thermostat_dof (tuple[float, float]): Additional degrees
+            of freedom for the rotational thermostat (:math:`\xi_\mathrm{rot}`,
+            :math:`\eta_\mathrm{rot}`)
     """
 
     def __init__(self, filter, kT, tau):
@@ -318,6 +326,18 @@ class NPT(_Method):
         gamma (float): Dimensionless damping factor for the box degrees of
             freedom.
 
+        translational_thermostat_dof (tuple[float, float]): Additional degrees
+            of freedom for the translational thermostat (:math:`\xi`,
+            :math:`\eta`)
+
+        rotational_thermostat_dof (tuple[float, float]): Additional degrees
+            of freedom for the rotational thermostat (:math:`\xi_\mathrm{rot}`,
+            :math:`\eta_\mathrm{rot}`)
+
+        barostat_dof (tuple[float, float, float, float, float, float]):
+            Additional degrees of freedom for the barostat (:math:`\nu_{xx}`,
+            :math:`\nu_{xy}`, :math:`\nu_{xz}`, :math:`\nu_{yy}`,
+            :math:`\nu_{yz}`, :math:`\nu_{zz}`)
     """
     def __init__(self, filter, kT, tau, S, tauS, couple, box_dof=[True,True,True,False,False,False], rescale_all=False, gamma=0.0):
 
