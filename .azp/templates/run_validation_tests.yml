@@ -7,7 +7,6 @@ steps:
     -ra
     -m validate
     --validate
-    --junit-xml=$(Common.TestResultsDirectory)/pytest-serial.xml
   displayName: Run pytest (serial)
   workingDirectory: $(Pipeline.Workspace)/install
   condition: and(succeeded(), eq(variables['enable_mpi'], 'off'))
@@ -21,7 +20,6 @@ steps:
     -ra
     -m validate
     --validate
-    --junit-xml=$(Common.TestResultsDirectory)/pytest-mpi.xml
   displayName: Run pytest (mpi)
   workingDirectory: $(Pipeline.Workspace)/install
   condition: and(succeeded(), eq(variables['enable_mpi'], 'on'))
@@ -39,17 +37,3 @@ steps:
   displayName: Display rank 1 output
   workingDirectory: $(Pipeline.Workspace)/install
   condition: and(or(succeeded(), failed()), eq(variables['enable_mpi'], 'on'))
-
-- task: PublishTestResults@2
-  condition: eq(variables['enable_mpi'], 'off')
-  inputs:
-    testResultsFormat: 'JUnit'
-    testResultsFiles: '$(Common.TestResultsDirectory)/pytest-serial.xml'
-    testRunTitle: '$(suite_name) [pytest-serial]'
-
-- task: PublishTestResults@2
-  condition: eq(variables['enable_mpi'], 'on')
-  inputs:
-    testResultsFormat: 'JUnit'
-    testResultsFiles: '$(Common.TestResultsDirectory)/pytest-mpi.xml'
-    testRunTitle: '$(suite_name) [pytest-mpi]'
