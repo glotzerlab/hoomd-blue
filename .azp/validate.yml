@@ -8,10 +8,7 @@ schedules:
   # 4am UTC is midnight eastern time
   branches:
     include:
-    - maint
-    - master
-    - feature/new-object-API
-    - refs/pull/*
+    - "+"
 
 variables:
   image_root: glotzerlab/ci:2020.07
