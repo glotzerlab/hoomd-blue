@@ -8,13 +8,10 @@ md.constrain
 .. autosummary::
     :nosignatures:
 
-    md.constrain.distance
-    md.constrain.rigid
-    md.constrain.sphere
-    md.constrain.oneD
 
 .. rubric:: Details
 
 .. automodule:: hoomd.md.constrain
     :synopsis: Constraints.
-    :members:
+    :undoc-members:
+    :members: _ConstraintForce,
