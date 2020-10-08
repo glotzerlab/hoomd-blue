@@ -57,7 +57,7 @@ class NVT(_Method):
     The `NVT` equations of motion include a translational thermostat (with
     momentum :math:`\xi` and position :math:`\eta`) and a rotational thermostat
     (with momentum :math:`\xi_{\mathrm{rot}}` and position
-    :math:`\eta\mathrm{rot}`). Access these quantities using
+    :math:`\eta_\mathrm{rot}`). Access these quantities using
     `translational_thermostat_dof` and `rotational_thermostat_dof`.
 
     Note:
@@ -266,15 +266,15 @@ class NPT(_Method):
 
     .. math::
 
-        \tau = \sqrt{\frac{Q}{g k_B T_0}}
+        \tau = \sqrt{\frac{Q}{g k T_0}}
 
-    where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is
+    where :math:`g` is the number of degrees of freedom, and :math:`k T_0` is
     the set point (*kT* above).
 
     The `NPT` equations of motion include a translational thermostat (with
     momentum :math:`\xi` and position :math:`\eta`), a rotational thermostat
     (with momentum :math:`\xi_{\mathrm{rot}}` and position
-    :math:`\eta\mathrm{rot}`), and a barostat tensor :math:`\nu_{\mathrm{ij}}`.
+    :math:`\eta_\mathrm{rot}`), and a barostat tensor :math:`\nu_{\mathrm{ij}}`.
     Access these quantities using `translational_thermostat_dof`,
     `rotational_thermostat_dof`, and `barostat_dof`.
 
