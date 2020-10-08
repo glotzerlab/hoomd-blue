@@ -10,7 +10,7 @@ from hoomd.md import _md
 import hoomd
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.parameterdicts import ParameterDict, TypeParameterDict
-from hoomd.filter import _ParticleFilter
+from hoomd.filter import ParticleFilter
 from hoomd.typeparam import TypeParameter
 from hoomd.typeconverter import OnlyType, OnlyIf, to_type_converter
 from hoomd.variant import Variant
@@ -25,7 +25,7 @@ class NVT(_Method):
     R""" NVT Integration via the Nosé-Hoover thermostat.
 
     Args:
-        filter (`hoomd.filter._ParticleFilter`): Subset of particles on which to
+        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
             apply this method.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature set point
@@ -67,7 +67,7 @@ class NVT(_Method):
 
 
     Attributes:
-        filter (hoomd.filter._ParticleFilter): Subset of particles on which to
+        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this method.
 
         kT (hoomd.variant.Variant): Temperature set point
@@ -81,7 +81,7 @@ class NVT(_Method):
 
         # store metadata
         param_dict = ParameterDict(
-            filter=_ParticleFilter,
+            filter=ParticleFilter,
             kT=Variant,
             tau=float(tau),
         )
@@ -115,7 +115,7 @@ class NPT(_Method):
     R""" NPT Integration via MTK barostat-thermostat.
 
     Args:
-        filter (`hoomd.filter._ParticleFilter`): Subset of particles on which to
+        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
             apply this method.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature set point for the
@@ -243,7 +243,7 @@ class NPT(_Method):
         integrator = hoomd.md.Integrator(dt=0.005, methods=[npt], forces=[lj])
 
     Attributes:
-        filter (hoomd.filter._ParticleFilter): Subset of particles on which to
+        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this method.
 
         kT (hoomd.variant.Variant): Temperature set point for the
@@ -278,7 +278,7 @@ class NPT(_Method):
 
         # store metadata
         param_dict = ParameterDict(
-            filter=_ParticleFilter,
+            filter=ParticleFilter,
             kT=Variant,
             tau=float(tau),
             S=OnlyIf(to_type_converter((Variant,)*6), preprocess=self.__preprocess_stress),
@@ -409,7 +409,7 @@ class NVE(_Method):
     R""" NVE Integration via Velocity-Verlet
 
     Args:
-        filter (`hoomd.filter._ParticleFilter`): Subset of particles on which to
+        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
          apply this method.
 
         limit (None or `float`): Enforce that no particle moves more than a
@@ -436,7 +436,7 @@ class NVE(_Method):
 
 
     Attributes:
-        filter (hoomd.filter._ParticleFilter): Subset of particles on which to
+        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this method.
 
         limit (None or float): Enforce that no particle moves more than a
@@ -448,7 +448,7 @@ class NVE(_Method):
 
         # store metadata
         param_dict = ParameterDict(
-            filter=_ParticleFilter,
+            filter=ParticleFilter,
             limit=OnlyType(float, allow_none=True),
             zero_force=OnlyType(bool, allow_none=False),
         )
@@ -475,7 +475,7 @@ class Langevin(_Method):
     R""" Langevin dynamics.
 
     Args:
-        filter (`hoomd.filter._ParticleFilter`): Subset of particles to
+        filter (`hoomd.filter.ParticleFilter`): Subset of particles to
             apply this method to.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature of the
@@ -571,7 +571,7 @@ class Langevin(_Method):
         langevin.gamma_r.default = [1.0,2.0,3.0]
 
     Attributes:
-        filter (hoomd.filter._ParticleFilter): Subset of particles to
+        filter (hoomd.filter.ParticleFilter): Subset of particles to
             apply this method to.
 
         kT (hoomd.variant.Variant): Temperature of the
@@ -601,7 +601,7 @@ class Langevin(_Method):
 
         # store metadata
         param_dict = ParameterDict(
-            filter=_ParticleFilter,
+            filter=ParticleFilter,
             kT=Variant,
             seed=int(seed),
             alpha=OnlyType(float, allow_none=True),
@@ -642,7 +642,7 @@ class Brownian(_Method):
     R""" Brownian dynamics.
 
     Args:
-        filter (`hoomd.filter._ParticleFilter`): Subset of particles to
+        filter (`hoomd.filter.ParticleFilter`): Subset of particles to
             apply this method to.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature of the
@@ -738,7 +738,7 @@ class Brownian(_Method):
 
 
     Attributes:
-        filter (hoomd.filter._ParticleFilter): Subset of particles to
+        filter (hoomd.filter.ParticleFilter): Subset of particles to
             apply this method to.
 
         kT (hoomd.variant.Variant): Temperature of the
@@ -766,7 +766,7 @@ class Brownian(_Method):
 
         # store metadata
         param_dict = ParameterDict(
-            filter=_ParticleFilter,
+            filter=ParticleFilter,
             kT=Variant,
             seed=int(seed),
             alpha=OnlyType(float, allow_none=True),

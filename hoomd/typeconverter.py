@@ -6,7 +6,7 @@ from inspect import isclass
 from hoomd.util import is_iterable
 from hoomd.variant import Variant, Constant
 from hoomd.trigger import Trigger, Periodic
-from hoomd.filter import _ParticleFilter
+from hoomd.filter import ParticleFilter
 import hoomd
 
 
@@ -269,7 +269,7 @@ class TypeConverterValue(TypeConverter):
         str: OnlyType(str, strict=True),
         Variant: OnlyType(Variant, preprocess=variant_preprocessing),
         Trigger: OnlyType(Trigger, preprocess=trigger_preprocessing),
-        _ParticleFilter: OnlyType(_ParticleFilter, strict=True)
+        ParticleFilter: OnlyType(ParticleFilter, strict=True)
     }
 
     def __init__(self, value):
