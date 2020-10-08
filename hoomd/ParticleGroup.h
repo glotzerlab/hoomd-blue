@@ -317,7 +317,7 @@ class PYBIND11_EXPORT ParticleGroup
 
         /** Thermalize the particle momenta
 
-            Draw gaussian random momenta for all particles in the group.
+            Draw Gaussian random momenta for all particles in the group.
 
             @param kT Thermal energy
             @param seed Random number seed
