@@ -981,9 +981,10 @@ TwoStepNPTMTK::couplingMode TwoStepNPTMTK::getRelevantCouplings()
     return couple;
     }
 
-void TwoStepNPTMTK::thermalizeExtraDOF(unsigned int seed, unsigned int timestep)
+void TwoStepNPTMTK::thermalizeThermostatAndBarostatDOF(unsigned int seed, unsigned int timestep)
     {
-    m_exec_conf->msg->notice(6) << "TwoStepNPTMTK randomizing extra DOF" << std::endl;
+    m_exec_conf->msg->notice(6) << "TwoStepNPTMTK randomizing thermostat and barostat DOF"
+        << std::endl;
 
     IntegratorVariables v = getIntegratorVariables();
 
@@ -1213,7 +1214,7 @@ void export_TwoStepNPTMTK(py::module& m)
         .def_property("box_dof", &TwoStepNPTMTK::getFlags, &TwoStepNPTMTK::setFlags)
         .def_property("rescale_all", &TwoStepNPTMTK::getRescaleAll, &TwoStepNPTMTK::setRescaleAll)
         .def_property("gamma", &TwoStepNPTMTK::getGamma, &TwoStepNPTMTK::setGamma)
-        .def("thermalizeExtraDOF", &TwoStepNPTMTK::thermalizeExtraDOF)
+        .def("thermalizeThermostatAndBarostatDOF", &TwoStepNPTMTK::thermalizeThermostatAndBarostatDOF)
         .def_property("translational_thermostat_dof",
                       &TwoStepNPTMTK::getTranslationalThermostatDOF,
                       &TwoStepNPTMTK::setTranslationalThermostatDOF)

@@ -298,9 +298,9 @@ def test_npt_attributes_attached_3d(simulation_factory,
     assert npt.barostat_dof == (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)
 
 
-def test_npt_thermalize_thermostat_dof(simulation_factory,
-                                       two_particle_snapshot_factory):
-    """Tests that NPT.thermalize_thermostat_dof can be called."""
+def test_npt_thermalize_thermostat_and_barostat_dof(
+    simulation_factory, two_particle_snapshot_factory):
+    """Tests that NPT.thermalize_thermostat_and_barostat_dof can be called."""
     all_ = hoomd.filter.All()
     constant_t = hoomd.variant.Constant(2.0)
     constant_s = [1, 2, 3, 0.125, 0.25, 0.5]
@@ -316,7 +316,7 @@ def test_npt_thermalize_thermostat_dof(simulation_factory,
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[npt])
     sim.operations.schedule()
 
-    npt.thermalize_thermostat_dof(100)
+    npt.thermalize_thermostat_and_barostat_dof(100)
     xi, eta = npt.translational_thermostat_dof
     assert xi != 0.0
     assert eta == 0.0
@@ -329,9 +329,9 @@ def test_npt_thermalize_thermostat_dof(simulation_factory,
         assert v != 0.0
 
 
-def test_npt_thermalize_extra_aniso_dof(simulation_factory,
-                                        two_particle_snapshot_factory):
-    """Tests that NPT.thermalize_extra_dof can be called."""
+def test_npt_thermalize_thermostat_and_barostat_aniso_dof(
+    simulation_factory, two_particle_snapshot_factory):
+    """Tests that NPT.thermalize_thermostat_and_barostat_dof can be called."""
     all_ = hoomd.filter.All()
     constant_t = hoomd.variant.Constant(2.0)
     constant_s = [1, 2, 3, 0.125, 0.25, 0.5]
@@ -354,7 +354,7 @@ def test_npt_thermalize_extra_aniso_dof(simulation_factory,
                                                     aniso=True)
     sim.run(0)
 
-    npt.thermalize_extra_dof(100)
+    npt.thermalize_thermostat_and_barostat_dof(100)
     xi, eta = npt.translational_thermostat_dof
     assert xi != 0.0
     assert eta == 0.0
@@ -501,9 +501,9 @@ def test_nvt_attributes_attached(simulation_factory,
     assert nvt.rotational_thermostat_dof == (0.5, 0.25)
 
 
-def test_nvt_thermalize_extra_dof(simulation_factory,
-                                  two_particle_snapshot_factory):
-    """Tests that NVT.thermalize_extra_dof can be called."""
+def test_nvt_thermalize_thermostat_dof(simulation_factory,
+                                       two_particle_snapshot_factory):
+    """Tests that NVT.thermalize_thermostat_dof can be called."""
     all_ = hoomd.filter.All()
     constant = hoomd.variant.Constant(2.0)
     nvt = hoomd.md.methods.NVT(filter=all_, kT=constant, tau=2.0)
@@ -512,7 +512,7 @@ def test_nvt_thermalize_extra_dof(simulation_factory,
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nvt])
     sim.operations.schedule()
 
-    nvt.thermalize_extra_dof(100)
+    nvt.thermalize_thermostat_dof(100)
     xi, eta = nvt.translational_thermostat_dof
     assert xi != 0.0
     assert eta == 0.0
@@ -522,9 +522,9 @@ def test_nvt_thermalize_extra_dof(simulation_factory,
     assert eta_rot == 0.0
 
 
-def test_nvt_thermalize_extra_aniso_dof(simulation_factory,
-                                        two_particle_snapshot_factory):
-    """Tests that NVT.thermalize_extra_dof can be called."""
+def test_nvt_thermalize_thermostat_aniso_dof(simulation_factory,
+                                             two_particle_snapshot_factory):
+    """Tests that NVT.thermalize_thermostat_dof can be called."""
     all_ = hoomd.filter.All()
     constant = hoomd.variant.Constant(2.0)
     nvt = hoomd.md.methods.NVT(filter=all_, kT=constant, tau=2.0)
@@ -539,7 +539,7 @@ def test_nvt_thermalize_extra_aniso_dof(simulation_factory,
                                                     aniso=True)
     sim.run(0)
 
-    nvt.thermalize_extra_dof(100)
+    nvt.thermalize_thermostat_dof(100)
     xi, eta = nvt.translational_thermostat_dof
     assert xi != 0.0
     assert eta == 0.0

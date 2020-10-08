@@ -54,11 +54,11 @@ class NVT(_Method):
     where :math:`g` is the number of degrees of freedom, and :math:`k T_0` is
     the set point (*kT* above).
 
-    The `NVT` equations of motion include a translational thermostat
-    momentum (:math:`\xi`) and position (:math:`\eta`) along with a
-    rotational thermostat momentum (:math:`\xi_{\mathrm{rot}}`) and position
-    (:math:`\eta`). Access these quantities using `translational_thermostat_dof`
-    and `rotational_thermostat_dof`.
+    The `NVT` equations of motion include a translational thermostat (with
+    momentum :math:`\xi` and position :math:`\eta`) and a rotational thermostat
+    (with momentum :math:`\xi_{\mathrm{rot}}` and position
+    :math:`\eta\mathrm{rot}`). Access these quantities using
+    `translational_thermostat_dof` and `rotational_thermostat_dof`.
 
     Note:
         Coupling constant `tau` in Nosé-Hoover thermostat should be set within
@@ -271,6 +271,13 @@ class NPT(_Method):
     where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is
     the set point (*kT* above).
 
+    The `NPT` equations of motion include a translational thermostat (with
+    momentum :math:`\xi` and position :math:`\eta`), a rotational thermostat
+    (with momentum :math:`\xi_{\mathrm{rot}}` and position
+    :math:`\eta\mathrm{rot}`), and a barostat tensor :math:`\nu_{\mathrm{ij}}`.
+    Access these quantities using `translational_thermostat_dof`,
+    `rotational_thermostat_dof`, and `barostat_dof`.
+
     Note:
         Coupling constant for barostat `tauS` should be set within appropriate
         range for pressure and volume to fluctuate in reasonable rate and
@@ -413,24 +420,23 @@ class NPT(_Method):
         else:
             return (value,value,value,0,0,0)
 
-    def thermalize_extra_dof(self, seed):
-        r"""Set the thermostat momenta to random values.
+    def thermalize_thermostat_and_barostat_dof(self, seed):
+        r"""Set the thermostat and barostat momenta to random values.
 
         Args:
             seed (int): Random number seed
 
-        The `NPT` equations of motion include a translational thermostat
-        momentum :math:`\xi`, thermostat position :math:`\eta`, and a barostat
-        tensor :math:`\nu_{\mathrm{ij}}`. `thermalize_extra_dof` sets a random
-        value for the momentum :math:`\xi` and the barostat
-        :math:`\nu_{\mathrm{ij}}`. When `Integrator.aniso` is `True`, it also
-        sets a random value for the rotational thermostat momentum
-        :math:`\xi_{\mathrm{rot}}`. Call `thermalize_extra_dof` to set a new
-        random state for the thermostat and barostat.
+        `thermalize_thermostat_and_barostat_dof` sets a random value for the
+        momentum :math:`\xi` and the barostat :math:`\nu_{\mathrm{ij}}`. When
+        `Integrator.aniso` is `True`, it also sets a random value for the
+        rotational thermostat momentum :math:`\xi_{\mathrm{rot}}`. Call
+        `thermalize_thermostat_and_barostat_dof` to set a new random state for
+        the thermostat and barostat.
 
         .. important::
-            You must call `Simulation.run` before `thermalize_extra_dof`.
-            Call ``run(steps=0)`` to prepare a newly created `Simulation`.
+            You must call `Simulation.run` before
+            `thermalize_thermostat_and_barostat_dof`. Call ``run(steps=0)`` to
+            prepare a newly created `Simulation`.
 
         .. seealso:: `State.thermalize_particle_momenta`
 
@@ -440,9 +446,11 @@ class NPT(_Method):
         """
         if not self._attached:
             raise RuntimeError(
-                "Call Simulation.run(0) before thermalize_extra_dof")
+                "Call Simulation.run(0) before"
+                "thermalize_thermostat_and_barostat_dof")
 
-        self._cpp_obj.thermalizeExtraDOF(seed, self._simulation.timestep)
+        self._cpp_obj.thermalizeThermostatAndBarostatDOF(
+            seed, self._simulation.timestep)
 
 
 class nph(NPT):
