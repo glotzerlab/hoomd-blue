@@ -84,10 +84,12 @@ The following people have contributed to the to HOOMD-blue:
 * Steve Barr, Princeton University
 * Sumedh R. Risbud, Massachusetts Institute of Technology
 * Tim Moore, University of Michigan
+* Tobias Dwyer, University of Michigan
 * Tommy Waltmann, University of Michigan
 * Trung Dac Nguyen, University of Michigan
 * Vyas Ramasubramani, University of Michigan
 * Wenbo Shen, University of Michigan
 * William Zygmunt, University of Michigan
 * Wouter Ellenbroek, Eindhoven University of Technology
+* Yuan Zhou, University of Michigan
 * Åsmund Ervik, SINTEF

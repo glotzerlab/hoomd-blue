@@ -9,12 +9,11 @@ md.nlist
     :nosignatures:
 
     md.nlist.Cell
-    md.nlist.stencil
-    md.nlist.tree
 
 .. rubric:: Details
 
 .. automodule:: hoomd.md.nlist
     :synopsis: Neighbor list acceleration structures.
-    :members:
+    :members: _NList, Cell
     :no-inherited-members:
+    :show-inheritance:
