@@ -8,6 +8,7 @@ md.nlist
 .. autosummary::
     :nosignatures:
 
+    md.nlist._NList
     md.nlist.Cell
 
 .. rubric:: Details
