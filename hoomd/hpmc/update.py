@@ -744,7 +744,19 @@ class remove_drift(_updater):
 
 
 class Clusters(_Updater):
-    R""" Equilibrate the system according to the geometric cluster algorithm (GCA).
+    """Apply geometric cluster algorithm (GCA) moves.
+
+    Args:
+        seed (int): Random number seed.
+        swap_types (list[tuple[str, str]]): A pair of two types whose identities
+            may be swapped.
+        move_ratio (float): Set the ratio between pivot and reflection moves.
+        flip_probability (float): Set the probability for transforming an
+                                 individual cluster.
+        swap_move_ratio (float): Set the ratio between type swap moves and
+                                geometric moves.
+        trigger (Trigger): Select the timesteps on which to perform cluster
+            moves.
 
     The GCA as described in Liu and Lujten (2004),
     http://doi.org/10.1103/PhysRevLett.92.035504 is used for hard shape, patch
@@ -760,31 +772,25 @@ class Clusters(_Updater):
     because it would create a chiral mirror image of the particle, and only
     line reflections are employed. Line reflections are not rejection free
     because of periodic boundary conditions, as discussed in Sinkovits et al.
-    (2012), http://doi.org/10.1063/1.3694271 .
+    (2012), http://doi.org/10.1063/1.3694271.
 
     The type swap move works between two types of spherical particles and
     exchanges their identities.
 
-    The :py:class:`Clusters` updater support TBB execution on multiple CPU
-    cores. See :doc:`installation` for more information on how to compile HOOMD
-    with TBB support.
+    .. rubric:: Threading
 
-    Args:
+    The `Clusters` updater support threaded execution on multiple CPU cores.
+
+    Attributes:
         seed (int): Random number seed.
-        swap_types(list): A pair of two types whose identities may be swapped.
-        move_ratio(float): Set the ratio between pivot and reflection moves.
-        flip_probability(float): Set the probability for transforming an
+        swap_types (list): A pair of two types whose identities may be swapped.
+        move_ratio (float): Set the ratio between pivot and reflection moves.
+        flip_probability (float): Set the probability for transforming an
                                  individual cluster.
-        swap_move_ratio(float): Set the ratio between type swap moves and
+        swap_move_ratio (float): Set the ratio between type swap moves and
                                 geometric moves.
-        delta_mu(float): The chemical potential difference between types to
-                         be swapped.
-        trigger (int): Number of timesteps between histogram evaluations.
-
-    Examples::
-
-        TODO: link to example notebooks
-
+        trigger (Trigger): Select the timesteps on which to perform cluster
+            moves.
     """
 
     def __init__(self, seed, swap_types, move_ratio=0.5,
@@ -854,15 +860,15 @@ class Clusters(_Updater):
 
     @property
     def counter(self):
-        R""" Get the number of accepted and rejected cluster moves.
+        """Get the number of accepted and rejected cluster moves.
 
         Returns:
             A counter object with pivot, reflection, and swap properties. Each
             property is a list of accepted moves and rejected moves since the
             last run.
 
-        Note::
-            if the updater is not attached None will be returned.
+        Note:
+            `None` when the simulation run has not started.
         """
         if not self._attached:
             return None
@@ -871,11 +877,10 @@ class Clusters(_Updater):
 
     @log(flag='sequence')
     def pivot_moves(self):
-        R""" Get a tuple with the accepted and rejected pivot moves.
+        """tuple[int, int]: Number of accepted and rejected pivot moves.
 
         Returns:
             A tuple of (accepted moves, rejected moves) since the last run.
-            Returns (0, 0) if not attached.
         """
         counter = self.counter
         if counter is None:
@@ -885,11 +890,10 @@ class Clusters(_Updater):
 
     @log(flag='sequence')
     def reflection_moves(self):
-        R""" Get a tuple with the accepted and rejected reflection moves.
+        """tuple[int, int]: Number of accepted and rejected reflection moves.
 
         Returns:
             A tuple of (accepted moves, rejected moves) since the last run.
-            Returns (0, 0) if not attached.
         """
         counter = self.counter
         if counter is None:
@@ -899,11 +903,10 @@ class Clusters(_Updater):
 
     @log(flag='sequence')
     def swap_moves(self):
-        R""" Get a tuple with the accepted and rejected swap moves.
+        """tuple[int, int]: Number of accepted and rejected swap moves.
 
         Returns:
             A tuple of (accepted moves, rejected moves) since the last run.
-            Returns (0, 0) if not attached.
         """
         counter = self.counter
         if counter is None:
@@ -949,7 +952,7 @@ class QuickCompress(_Updater):
         L_current``
 
     Tip:
-        Use the MoveSizeTuner (TODO: make reference) in conjunction with
+        Use the `hoomd.hpmc.tune.MoveSizeTuner` in conjunction with
         `QuickCompress` to adjust the move sizes to maintain a constant
         acceptance ratio as the density of the system increases.
 
