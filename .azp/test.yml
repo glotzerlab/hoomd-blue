@@ -123,6 +123,7 @@ jobs:
     submodules: true
   - script: >-
       pydocstyle -v
+      hoomd/tune/sorter.py
       hoomd/variant.py
       hoomd/device.py
       hoomd/simulation.py
