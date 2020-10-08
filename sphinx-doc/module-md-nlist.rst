@@ -17,3 +17,4 @@ md.nlist
     :synopsis: Neighbor list acceleration structures.
     :members: _NList, Cell
     :no-inherited-members:
+    :show-inheritance:
