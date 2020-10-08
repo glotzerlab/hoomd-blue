@@ -366,8 +366,6 @@ def test_npt_thermalize_extra_aniso_dof(simulation_factory,
     xi_rot, eta_rot = npt.rotational_thermostat_dof
     assert xi_rot != 0.0
     assert eta_rot == 0.0
-
-    print(npt.barostat_dof)
     for v in npt.barostat_dof:
         assert v != 0.0
 
