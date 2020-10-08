@@ -2,11 +2,10 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
-""" :py:class:`hoomd.trigger` enables users to design time points when and while
-    :py:class:`hoomd.Operations` operates. The composite of triggers takes 
-    time steps and returns `True` or `False`. The operation will perform when 
-    Triger returns `True`.
-
+""" Triggers enable users to design time points when and while 
+    `hoomd.Operations` operates. The composite of triggers takes time steps and 
+    returns `True` or `False`. The operation will perform when Trigger returns 
+    `True`.
 """
 
 from hoomd import _hoomd
@@ -14,18 +13,26 @@ from inspect import isclass
 
 
 class Trigger(_hoomd.Trigger):  # noqa: D101
+    """ Base class trigger.
+
+    Provides methods common to all triggers.
+
+    Attention:
+        Users should instantiate the subclasses, using `Trigger` directly
+        will result in an error.
+    """
     pass
 
 
 class Periodic(_hoomd.PeriodicTrigger, Trigger):
-    R""" Set periodicity of trigger.
+    """ Set periodicity of trigger.
 
     Args:
         period (float): timesteps for periodicity
         phase (float): timesteps for phase
     
-    :py:class:`hoomd.Operations` will operate when the Periodic trigger returns
-    `True` every `period` steps ((timestep - phase)/period = 0)
+    `hoomd.Operations` will operate when the Periodic trigger returns `True` 
+    every `period` steps ``((t - phase)%period = 0)``
 
     Example::
 
@@ -38,7 +45,6 @@ class Periodic(_hoomd.PeriodicTrigger, Trigger):
     Attributes:
         period (float): periodicity in time step.
         phase (float): phase in time step.
-
     """
 
     def __init__(self, period, phase=0):
@@ -50,7 +56,7 @@ class Periodic(_hoomd.PeriodicTrigger, Trigger):
 
 
 class Before(_hoomd.BeforeTrigger, Trigger):
-    R""" Set the timepoint to finish triger.
+    """ Set the timepoint to finish triger.
 
     Args:
         timestep (float): time step for the operation to stop working.
@@ -71,7 +77,6 @@ class Before(_hoomd.BeforeTrigger, Trigger):
 
     Attributes:
         timestep (float): The time step for operation to stop working. 
-
     """
     def __init__(self, timestep):
         if timestep < 0:
@@ -83,7 +88,7 @@ class Before(_hoomd.BeforeTrigger, Trigger):
         return f"hoomd.trigger.Before(timestep={self.timestep})"
 
 class On(_hoomd.OnTrigger, Trigger):
-    R""" Set the timepoint to trigger.
+    """ Set the timepoint to trigger.
 
     Args:
         timestep (float): time step to trigger.
@@ -101,7 +106,6 @@ class On(_hoomd.OnTrigger, Trigger):
 
     Attributes:
         timestep (float): time step to trigger. 
-
     """
 
     def __init__(self, timestep):
@@ -114,7 +118,7 @@ class On(_hoomd.OnTrigger, Trigger):
         return f"hoomd.trigger.On(timestep={self.timestep})"
 
 class After(_hoomd.AfterTrigger, Trigger):
-    R""" Set the timepoint to start trigger.
+    """ Set the timepoint to start trigger.
 
     Args:
         timestep (float): time step for the operation to start working.
@@ -133,7 +137,6 @@ class After(_hoomd.AfterTrigger, Trigger):
 
     Attributes:
         timestep (float): The time step for operation to start working. 
-
     """
     def __init__(self, timestep):
         if timestep < 0:
@@ -145,8 +148,7 @@ class After(_hoomd.AfterTrigger, Trigger):
         return f"hoomd.trigger.After(timestep={self.timestep})"
 
 class Not(_hoomd.NotTrigger, Trigger):
-    R""" Not operator for trigger
-
+    """ Not operator for trigger
     Args:
         trigger (hoomd.Trigger): The trigger object to reverse.
 
@@ -159,7 +161,6 @@ class Not(_hoomd.NotTrigger, Trigger):
 
     Attributes:
         trigger (hoomd.Trigger): The trigger object to reverse. 
-
     """
     def __init__(self, trigger):
         _hoomd.NotTrigger.__init__(self, trigger)
@@ -168,7 +169,7 @@ class Not(_hoomd.NotTrigger, Trigger):
         return f"hoomd.trigger.Not(trigger={self.trigger})"
 
 class And(_hoomd.AndTrigger, Trigger):
-    R""" And operator for triggers
+    """ And operator for triggers
 
     Args:
         triggers (`list`[`hoomd.Trigger`]): List of triggers to combine
@@ -185,7 +186,6 @@ class And(_hoomd.AndTrigger, Trigger):
 
     Attributes:
         triggers (List[hoomd.Trigger]): List of triggers combined
-
     """
 
     def __init__(self, triggers):
@@ -201,7 +201,7 @@ class And(_hoomd.AndTrigger, Trigger):
         return result
 
 class Or(_hoomd.OrTrigger, Trigger):
-    R""" Or operator for triggers
+    """ Or operator for triggers
 
     Args:
         triggers (`list`[`hoomd.Trigger`]): List of triggers to combine
@@ -226,7 +226,6 @@ class Or(_hoomd.OrTrigger, Trigger):
 
     Attributes:
         triggers (List[hoomd.Trigger]): List of triggers combined
-
     """
     def __init__(self, triggers):
         triggers = list(triggers)
