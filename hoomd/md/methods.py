@@ -6,17 +6,14 @@
 # Maintainer: joaander / All Developers are free to add commands for new features
 
 
-from hoomd import _hoomd
 from hoomd.md import _md
 import hoomd
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.parameterdicts import ParameterDict, TypeParameterDict
-from hoomd.filter import _ParticleFilter
+from hoomd.filter import ParticleFilter
 from hoomd.typeparam import TypeParameter
 from hoomd.typeconverter import OnlyType, OnlyIf, to_type_converter
 from hoomd.variant import Variant
-from hoomd.typeconverter import OnlyFrom
-import copy
 from collections.abc import Sequence
 
 
@@ -33,7 +30,7 @@ class NVT(_Method):
     r"""NVT Integration via the Nosé-Hoover thermostat.
 
     Args:
-        filter (`hoomd.filter._ParticleFilter`): Subset of particles on which to
+        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
             apply this method.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature set point
@@ -75,7 +72,7 @@ class NVT(_Method):
 
 
     Attributes:
-        filter (hoomd.filter._ParticleFilter): Subset of particles on which to
+        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this method.
 
         kT (hoomd.variant.Variant): Temperature set point
@@ -97,7 +94,7 @@ class NVT(_Method):
 
         # store metadata
         param_dict = ParameterDict(
-            filter=_ParticleFilter,
+            filter=ParticleFilter,
             kT=Variant,
             tau=float(tau),
             translational_thermostat_dof=(float, float),
@@ -121,7 +118,7 @@ class NVT(_Method):
             my_class = _md.TwoStepNVTMTKGPU
             thermo_cls = _md.ComputeThermoGPU
 
-        group = self._simulation.state.get_group(self.filter)
+        group = self._simulation.state._get_group(self.filter)
         cpp_sys_def = self._simulation.state._cpp_sys_def
         thermo = thermo_cls(cpp_sys_def, group, "")
         self._cpp_obj = my_class(cpp_sys_def,
@@ -131,7 +128,6 @@ class NVT(_Method):
                                  self.kT,
                                  "")
         super()._attach()
-
 
     def thermalize_extra_dof(self, seed):
         r"""Set the thermostat momenta to random values.
@@ -163,12 +159,11 @@ class NVT(_Method):
         self._cpp_obj.thermalizeExtraDOF(seed, self._simulation.timestep)
 
 
-
 class NPT(_Method):
     R""" NPT Integration via MTK barostat-thermostat.
 
     Args:
-        filter (`hoomd.filter._ParticleFilter`): Subset of particles on which to
+        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
             apply this method.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature set point for the
@@ -176,18 +171,17 @@ class NPT(_Method):
 
         tau (`float`): Coupling constant for the thermostat (in time units).
 
-        S (`list`[`hoomd.variant.Variant`] or `float`): Stress components set
-            point for the barostat (in pressure units).
-            In Voigt notation:
-            :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`.
-            In case of isotropic pressure P (:math:`[p, p, p, 0, 0, 0]`), use ``S = p``.
+        S (`list` [ `hoomd.variant.Variant` ] or `float`): Stress components set
+            point for the barostat (in pressure units).  In Voigt notation:
+            :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`.  In case
+            of isotropic pressure P (:math:`[p, p, p, 0, 0, 0]`), use ``S = p``.
 
         tauS (`float`): Coupling constant for the barostat (in time units).
 
         couple (`str`): Couplings of diagonal elements of the stress tensor,
             can be "none", "xy", "xz","yz", or "all", default to "all".
 
-        box_dof(`list`[`bool`]): Box degrees of freedom with six boolean
+        box_dof(`list` [ `bool` ]): Box degrees of freedom with six boolean
             elements corresponding to x, y, z, xy, xz, yz, each. Default to
             [True,True,True,False,False,False]). If turned on to True,
             rescale corresponding lengths or tilt factors and components of
@@ -297,7 +291,7 @@ class NPT(_Method):
         integrator = hoomd.md.Integrator(dt=0.005, methods=[npt], forces=[lj])
 
     Attributes:
-        filter (hoomd.filter._ParticleFilter): Subset of particles on which to
+        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this method.
 
         kT (hoomd.variant.Variant): Temperature set point for the
@@ -344,7 +338,7 @@ class NPT(_Method):
 
         # store metadata
         param_dict = ParameterDict(
-            filter=_ParticleFilter,
+            filter=ParticleFilter,
             kT=Variant,
             tau=float(tau),
             S=OnlyIf(to_type_converter((Variant,)*6), preprocess=self.__preprocess_stress),
@@ -381,7 +375,7 @@ class NPT(_Method):
             thermo_cls = _md.ComputeThermoGPU
 
         cpp_sys_def = self._simulation.state._cpp_sys_def
-        thermo_group = self._simulation.state.get_group(self.filter)
+        thermo_group = self._simulation.state._get_group(self.filter)
 
         thermo_half_step = thermo_cls(cpp_sys_def,
                             thermo_group,
@@ -415,7 +409,6 @@ class NPT(_Method):
         else:
             return (value,value,value,0,0,0)
 
-
     def thermalize_extra_dof(self, seed):
         r"""Set the thermostat momenta to random values.
 
@@ -446,7 +439,6 @@ class NPT(_Method):
                 "Call Simulation.run(0) before thermalize_extra_dof")
 
         self._cpp_obj.thermalizeExtraDOF(seed, self._simulation.timestep)
-
 
 
 class nph(NPT):
@@ -518,7 +510,7 @@ class NVE(_Method):
     R""" NVE Integration via Velocity-Verlet
 
     Args:
-        filter (`hoomd.filter._ParticleFilter`): Subset of particles on which to
+        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
          apply this method.
 
         limit (None or `float`): Enforce that no particle moves more than a
@@ -545,7 +537,7 @@ class NVE(_Method):
 
 
     Attributes:
-        filter (hoomd.filter._ParticleFilter): Subset of particles on which to
+        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this method.
 
         limit (None or float): Enforce that no particle moves more than a
@@ -557,7 +549,7 @@ class NVE(_Method):
 
         # store metadata
         param_dict = ParameterDict(
-            filter=_ParticleFilter,
+            filter=ParticleFilter,
             limit=OnlyType(float, allow_none=True),
             zero_force=OnlyType(bool, allow_none=False),
         )
@@ -571,19 +563,20 @@ class NVE(_Method):
         # initialize the reflected c++ class
         if isinstance(self._simulation.device, hoomd.device.CPU):
             self._cpp_obj = _md.TwoStepNVE(self._simulation.state._cpp_sys_def,
-                                        self._simulation.state.get_group(self.filter), False)
+                                        self._simulation.state._get_group(self.filter), False)
         else:
             self._cpp_obj = _md.TwoStepNVEGPU(self._simulation.state._cpp_sys_def,
-                                 self._simulation.state.get_group(self.filter))
+                                 self._simulation.state._get_group(self.filter))
 
         # Attach param_dict and typeparam_dict
         super()._attach()
+
 
 class Langevin(_Method):
     R""" Langevin dynamics.
 
     Args:
-        filter (`hoomd.filter._ParticleFilter`): Subset of particles to
+        filter (`hoomd.filter.ParticleFilter`): Subset of particles to
             apply this method to.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature of the
@@ -679,7 +672,7 @@ class Langevin(_Method):
         langevin.gamma_r.default = [1.0,2.0,3.0]
 
     Attributes:
-        filter (hoomd.filter._ParticleFilter): Subset of particles to
+        filter (hoomd.filter.ParticleFilter): Subset of particles to
             apply this method to.
 
         kT (hoomd.variant.Variant): Temperature of the
@@ -692,12 +685,12 @@ class Langevin(_Method):
             coefficient where :math:`d_i` is particle diameter.
             Defaults to None.
 
-        gamma (TypeParameter[``particle type``, `float`]): The drag coefficient
-            can be directly set instead of the ratio of particle diameter
-            (:math:`\gamma = \alpha d_i`). The type of ``gamma`` parameter is
-            either positive float or zero.
+        gamma (TypeParameter[ ``particle type``, `float` ]): The drag
+            coefficient can be directly set instead of the ratio of particle
+            diameter (:math:`\gamma = \alpha d_i`). The type of ``gamma``
+            parameter is either positive float or zero.
 
-        gamma_r (TypeParameter[``particle type``, [`float`, `float` , `float` ]]):
+        gamma_r (TypeParameter[ ``particle type``, [ `float`, `float` , `float` ]]):
             The rotational drag coefficient can be set. The type of ``gamma_r``
             parameter is a tuple of three float. The type of each element of
             tuple is either positive float or zero.
@@ -709,7 +702,7 @@ class Langevin(_Method):
 
         # store metadata
         param_dict = ParameterDict(
-            filter=_ParticleFilter,
+            filter=ParticleFilter,
             kT=Variant,
             seed=int(seed),
             alpha=OnlyType(float, allow_none=True),
@@ -739,7 +732,7 @@ class Langevin(_Method):
             my_class = _md.TwoStepLangevinGPU
 
         self._cpp_obj = my_class(self._simulation.state._cpp_sys_def,
-                                 self._simulation.state.get_group(self.filter),
+                                 self._simulation.state._get_group(self.filter),
                                  self.kT, self.seed)
 
         # Attach param_dict and typeparam_dict
@@ -750,7 +743,7 @@ class Brownian(_Method):
     R""" Brownian dynamics.
 
     Args:
-        filter (`hoomd.filter._ParticleFilter`): Subset of particles to
+        filter (`hoomd.filter.ParticleFilter`): Subset of particles to
             apply this method to.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature of the
@@ -846,7 +839,7 @@ class Brownian(_Method):
 
 
     Attributes:
-        filter (hoomd.filter._ParticleFilter): Subset of particles to
+        filter (hoomd.filter.ParticleFilter): Subset of particles to
             apply this method to.
 
         kT (hoomd.variant.Variant): Temperature of the
@@ -859,23 +852,22 @@ class Brownian(_Method):
             coefficient where :math:`d_i` is particle diameter.
             Defaults to None.
 
-        gamma (TypeParameter[``particle type``, `float`]): The drag coefficient
-            can be directly set instead of the ratio of particle diameter
-            (:math:`\gamma = \alpha d_i`). The type of ``gamma`` parameter is
-            either positive float or zero.
+        gamma (TypeParameter[ ``particle type``, `float` ]): The drag
+            coefficient can be directly set instead of the ratio of particle
+            diameter (:math:`\gamma = \alpha d_i`). The type of ``gamma``
+            parameter is either positive float or zero.
 
-        gamma_r (TypeParameter[``particle type``, [`float`, `float`, `float`] ]):
+        gamma_r (TypeParameter[ ``particle type``, [ `float`, `float`, `float` ] ]):
             The rotational drag coefficient can be set. The type of ``gamma_r``
             parameter is a tuple of three float. The type of each element of
             tuple is either positive float or zero.
-
     """
 
     def __init__(self, filter, kT, seed, alpha=None):
 
         # store metadata
         param_dict = ParameterDict(
-            filter=_ParticleFilter,
+            filter=ParticleFilter,
             kT=Variant,
             seed=int(seed),
             alpha=OnlyType(float, allow_none=True),
@@ -901,11 +893,11 @@ class Brownian(_Method):
         sim = self._simulation
         if isinstance(sim.device, hoomd.device.CPU):
             self._cpp_obj = _md.TwoStepBD(sim.state._cpp_sys_def,
-                                          sim.state.get_group(self.filter),
+                                          sim.state._get_group(self.filter),
                                           self.kT, self.seed)
         else:
             self._cpp_obj = _md.TwoStepBDGPU(sim.state._cpp_sys_def,
-                                             sim.state.get_group(self.filter),
+                                             sim.state._get_group(self.filter),
                                              self.kT, self.seed)
 
         # Attach param_dict and typeparam_dict
