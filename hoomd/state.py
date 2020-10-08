@@ -376,7 +376,7 @@ class State:
         """Assign random values to particle momenta.
 
         Args:
-            filter (hoomd.filter._ParticleFilter): Particles to modify
+            filter (hoomd.filter.ParticleFilter): Particles to modify
             kT (float): Thermal energy to set (in energy units)
             seed (int): Random number seed
 
@@ -407,5 +407,5 @@ class State:
             The seed for the pseudorandom number stream includes the
             simulation timestep and the provided *seed*.
         """
-        group = self.get_group(filter)
+        group = self._get_group(filter)
         group.thermalizeParticleMomenta(kT, seed, self._simulation.timestep)
