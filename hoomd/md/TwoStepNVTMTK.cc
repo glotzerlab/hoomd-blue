@@ -440,9 +440,9 @@ void TwoStepNVTMTK::advanceThermostat(unsigned int timestep, bool broadcast)
     setIntegratorVariables(v);
     }
 
-void TwoStepNVTMTK::thermalizeExtraDOF(unsigned int seed, unsigned int timestep)
+void TwoStepNVTMTK::thermalizeThermostatDOF(unsigned int seed, unsigned int timestep)
     {
-    m_exec_conf->msg->notice(6) << "TwoStepNVTMTK randomizing extra DOF" << std::endl;
+    m_exec_conf->msg->notice(6) << "TwoStepNVTMTK randomizing thermostat DOF" << std::endl;
 
     IntegratorVariables v = getIntegratorVariables();
     Scalar& xi = v.variable[0];
@@ -568,7 +568,7 @@ void export_TwoStepNVTMTK(py::module& m)
         .def("setTau", &TwoStepNVTMTK::setTau)
         .def_property("kT", &TwoStepNVTMTK::getT, &TwoStepNVTMTK::setT)
         .def_property("tau", &TwoStepNVTMTK::getTau, &TwoStepNVTMTK::setTau)
-        .def("thermalizeExtraDOF", &TwoStepNVTMTK::thermalizeExtraDOF)
+        .def("thermalizeThermostatDOF", &TwoStepNVTMTK::thermalizeThermostatDOF)
         .def_property("translational_thermostat_dof",
                       &TwoStepNVTMTK::getTranslationalThermostatDOF,
                       &TwoStepNVTMTK::setTranslationalThermostatDOF)

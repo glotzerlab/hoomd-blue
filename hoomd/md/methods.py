@@ -49,10 +49,16 @@ class NVT(_Method):
 
     .. math::
 
-        \tau = \sqrt{\frac{Q}{g k_B T_0}}
+        \tau = \sqrt{\frac{Q}{g k T_0}}
 
-    where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is
+    where :math:`g` is the number of degrees of freedom, and :math:`k T_0` is
     the set point (*kT* above).
+
+    The `NVT` equations of motion include a translational thermostat
+    momentum (:math:`\xi`) and position (:math:`\eta`) along with a
+    rotational thermostat momentum (:math:`\xi_{\mathrm{rot}}`) and position
+    (:math:`\eta`). Access these quantities using `translational_thermostat_dof`
+    and `rotational_thermostat_dof`.
 
     Note:
         Coupling constant `tau` in Nosé-Hoover thermostat should be set within
@@ -129,14 +135,12 @@ class NVT(_Method):
                                  "")
         super()._attach()
 
-    def thermalize_extra_dof(self, seed):
+    def thermalize_thermostat_dof(self, seed):
         r"""Set the thermostat momenta to random values.
 
         Args:
             seed (int): Random number seed
 
-        The `NVT` equations of motion include a translational thermostat
-        momentum (:math:`\xi`) and position (:math:`\eta`).
         `thermalize_extra_dof` sets a random value for the momentum :math:`\xi`.
         When `Integrator.aniso` is `True`, it also sets a random value for the
         rotational thermostat momentum :math:`\xi_{\mathrm{rot}}`. Call
@@ -154,9 +158,9 @@ class NVT(_Method):
         """
         if not self._attached:
             raise RuntimeError(
-                "Call Simulation.run(0) before thermalize_extra_dof")
+                "Call Simulation.run(0) before thermalize_thermostat_dof")
 
-        self._cpp_obj.thermalizeExtraDOF(seed, self._simulation.timestep)
+        self._cpp_obj.thermalizeThermostatDOF(seed, self._simulation.timestep)
 
 
 class NPT(_Method):
