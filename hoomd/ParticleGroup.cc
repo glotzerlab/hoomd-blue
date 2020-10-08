@@ -796,7 +796,7 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, unsigned int seed, unsi
     {
     unsigned int group_size = this->getNumMembers();
 
-    const unsigned int D = Scalar(m_sysdef->getNDimensions());
+    const unsigned int n_dimensions = Scalar(m_sysdef->getNDimensions());
 
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
                                access_location::host,
@@ -832,11 +832,11 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, unsigned int seed, unsi
 
         // Generate a random velocity
         Scalar mass =  h_vel.data[j].w;
-        Scalar sigma = fast::sqrt(kT / mass);
+        Scalar sigma = slow::sqrt(kT / mass);
         hoomd::NormalDistribution<Scalar> normal(sigma);
         h_vel.data[j].x = normal(rng);
         h_vel.data[j].y = normal(rng);
-        if (D > 2)
+        if (n_dimensions > 2)
             h_vel.data[j].z = normal(rng);
         else
             h_vel.data[j].z = 0; // For 2D systems
@@ -849,11 +849,11 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, unsigned int seed, unsi
         vec3<Scalar> I(h_inertia.data[j]);
 
         if (I.x > 0)
-            p_vec.x = hoomd::NormalDistribution<Scalar>(fast::sqrt(kT * I.x))(rng);
+            p_vec.x = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.x))(rng);
         if (I.y > 0)
-            p_vec.y = hoomd::NormalDistribution<Scalar>(fast::sqrt(kT * I.y))(rng);
+            p_vec.y = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.y))(rng);
         if (I.z > 0)
-            p_vec.z = hoomd::NormalDistribution<Scalar>(fast::sqrt(kT * I.z))(rng);
+            p_vec.z = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.z))(rng);
 
         // Store the angular momentum quaternion
         quat<Scalar> p = Scalar(2.0) * q * p_vec;
@@ -880,7 +880,7 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, unsigned int seed, unsi
         Scalar mass =  h_vel.data[j].w;
         h_vel.data[j].x = h_vel.data[j].x - com_momentum.x / mass;
         h_vel.data[j].y = h_vel.data[j].y - com_momentum.y / mass;
-        if (D > 2)
+        if (n_dimensions > 2)
             h_vel.data[j].z = h_vel.data[j].z - com_momentum.z / mass;
         else
             h_vel.data[j].z = 0; // For 2D systems
