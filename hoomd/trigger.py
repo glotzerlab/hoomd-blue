@@ -150,7 +150,7 @@ class After(_hoomd.AfterTrigger, Trigger):
 class Not(_hoomd.NotTrigger, Trigger):
     """ Not operator for trigger
     Args:
-        trigger (hoomd.Trigger): The trigger object to reverse.
+        trigger (hoomd.trigger.Trigger): The trigger object to reverse.
 
     :py:class:`hoomd.Operations` will operate on reversed time window of `trigger`.
 
@@ -160,7 +160,7 @@ class Not(_hoomd.NotTrigger, Trigger):
             hoomd.output.CSV(trig, logger)
 
     Attributes:
-        trigger (hoomd.Trigger): The trigger object to reverse. 
+        trigger (hoomd.trigger.Trigger): The trigger object to reverse. 
     """
     def __init__(self, trigger):
         _hoomd.NotTrigger.__init__(self, trigger)
@@ -172,7 +172,7 @@ class And(_hoomd.AndTrigger, Trigger):
     """ And operator for triggers
 
     Args:
-        triggers (`list`[`hoomd.Trigger`]): List of triggers to combine
+        triggers (`list`[`hoomd.trigger.Trigger`]): List of triggers to combine
 
     `hoomd.trigger.And` returns `True` when all of input triggers returns `True`.
     
@@ -185,7 +185,7 @@ class And(_hoomd.AndTrigger, Trigger):
             hoomd.update.BoxResize(box1,box2,variant,trig)
 
     Attributes:
-        triggers (List[hoomd.Trigger]): List of triggers combined
+        triggers (List[hoomd.trigger.Trigger]): List of triggers combined
     """
 
     def __init__(self, triggers):
@@ -204,7 +204,7 @@ class Or(_hoomd.OrTrigger, Trigger):
     """ Or operator for triggers
 
     Args:
-        triggers (`list`[`hoomd.Trigger`]): List of triggers to combine
+        triggers (`list`[`hoomd.trigger.Trigger`]): List of triggers to combine
 
     `hoomd.trigger.Or` returns `True` when any of input triggers returns `True`.
     
@@ -225,7 +225,7 @@ class Or(_hoomd.OrTrigger, Trigger):
             hoomd.output.CSV(trig, logger)
 
     Attributes:
-        triggers (List[hoomd.Trigger]): List of triggers combined
+        triggers (List[hoomd.trigger.Trigger]): List of triggers combined
     """
     def __init__(self, triggers):
         triggers = list(triggers)
