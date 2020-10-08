@@ -352,10 +352,6 @@ def test_npt_thermalize_extra_aniso_dof(simulation_factory,
     sim.operations.integrator = hoomd.md.Integrator(0.005,
                                                     methods=[npt],
                                                     aniso=True)
-    sim.operations.schedule()
-
-    # This is currently necessary to propagate the aniso flag from
-    # the integrator to the integration method.
     sim.run(0)
 
     npt.thermalize_extra_dof(100)
@@ -540,11 +536,7 @@ def test_nvt_thermalize_extra_aniso_dof(simulation_factory,
     sim = simulation_factory(snap)
     sim.operations.integrator = hoomd.md.Integrator(0.005,
                                                     methods=[nvt],
-                                                    aniso='true')
-    sim.operations.schedule()
-
-    # This is currently necessary to propagate the aniso flag from
-    # the integrator to the integration method.
+                                                    aniso=True)
     sim.run(0)
 
     nvt.thermalize_extra_dof(100)
