@@ -45,7 +45,7 @@ def _convert_values_to_log_form(value):
         return (value, 'multi')
 
 
-def handle_gsd_arrays(arr):
+def _handle_gsd_arrays(arr):
     if arr.size == 1:
         return arr[0]
     if arr.ndim == 1:
@@ -151,8 +151,7 @@ class _StatefulAttrBase(_HOOMDGetSetAttrBase, metaclass=Loggable):
     Python ``dict``.
     """
     def _typeparam_states(self):
-        """Converts all typeparameters into a standard Python ``dict`` object.
-        """
+        """Converts all typeparameters into a standard Python ``ict`` object."""
         state = {name: tp.state for name, tp in self._typeparam_dict.items()}
         return deepcopy(state)
 
@@ -259,7 +258,7 @@ class _StatefulAttrBase(_HOOMDGetSetAttrBase, metaclass=Loggable):
         for state_chunk in state_chunks:
             state_dict_key = tuple(state_chunk[chunk_slice].split('/'))
             state_dict[state_dict_key] = \
-                handle_gsd_arrays(reader.readChunk(state_chunk))
+                _handle_gsd_arrays(reader.readChunk(state_chunk))
         return (state_dict._dict, kwargs)
 
     @classmethod
@@ -535,6 +534,15 @@ class Analyzer(_TriggeredOperation):
 
 
 class Compute(_Operation):
+    """Base class for all HOOMD computes.
+
+    A compute is an operation which computes some property for another operation
+    or use by a user.
+
+    Note:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
+    """
     pass
 
 
