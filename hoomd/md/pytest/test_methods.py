@@ -314,7 +314,7 @@ def test_npt_thermalize_thermostat_and_barostat_dof(
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[npt])
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     npt.thermalize_thermostat_and_barostat_dof(100)
     xi, eta = npt.translational_thermostat_dof
@@ -510,7 +510,7 @@ def test_nvt_thermalize_thermostat_dof(simulation_factory,
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nvt])
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     nvt.thermalize_thermostat_dof(100)
     xi, eta = nvt.translational_thermostat_dof
