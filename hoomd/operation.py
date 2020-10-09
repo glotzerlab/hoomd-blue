@@ -538,8 +538,10 @@ class Analyzer(_TriggeredOperation):
     """
     _cpp_list_name = 'analyzers'
 
+
 class Compute(_Operation):
     pass
+
 
 class Tuner(_Operation):
     """Base class for all HOOMD tuners.
