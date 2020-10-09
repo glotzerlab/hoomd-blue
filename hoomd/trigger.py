@@ -2,9 +2,9 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
-""" Triggers enable users to design time points when and while 
-    `hoomd.Operations` operates. The composite of triggers takes time steps and 
-    returns `True` or `False`. The operation will perform when Trigger returns 
+""" Triggers enable users to design time points when and while
+    `hoomd.Operations` operates. The composite of triggers takes time steps and
+    returns `True` or `False`. The operation will perform when Trigger returns
     `True`.
 """
 
@@ -12,14 +12,55 @@ from hoomd import _hoomd
 from inspect import isclass
 
 
-class Trigger(_hoomd.Trigger):  # noqa: D101
-    """ Base class trigger.
+class Trigger(_hoomd.Trigger):
+    """Base class trigger.
 
     Provides methods common to all triggers.
 
     Attention:
         Users should instantiate the subclasses, using `Trigger` directly
         will result in an error.
+
+    .. rubric:: User defined triggers
+
+    You can define your own triggers by subclassing `Trigger` in Python.
+    When you do so, override the `compute` method and explicitly call the
+    base class constructor in `__init__`.
+
+    Example:
+        Define a custom trigger::
+
+            class CustomTrigger(hoomd.trigger.Trigger):
+
+                def __init__(self):
+                    hoomd.trigger.Trigger.__init__(self)
+
+                def compute(self, timestep):
+                    return (timestep**(1 / 2)).is_integer()
+
+    Methods:
+        __call__(self, timestep):
+            Evaluate the trigger.
+
+            Args:
+                timestep (int): The timestep.
+
+            Note:
+                When called several times with the same *timestep*, `__call__`
+                calls `compute` on the first invocation, caches the value,
+                and returns that cached value in subsequent calls.
+
+            Returns:
+                bool: `True` when the trigger is active, `False` when it is not.
+
+        compute(self, timestep):
+            Evaluate the trigger.
+
+            Args:
+                timestep (int): The timestep.
+
+            Returns:
+                bool: `True` when the trigger is active, `False` when it is not.
     """
     pass
 
@@ -30,15 +71,15 @@ class Periodic(_hoomd.PeriodicTrigger, Trigger):
     Args:
         period (float): timesteps for periodicity
         phase (float): timesteps for phase
-    
-    `hoomd.Operations` will operate when the Periodic trigger returns `True` 
+
+    `hoomd.Operations` will operate when the Periodic trigger returns `True`
     every `period` steps ``((t - phase)%period = 0)``
 
     Example::
 
             trig = hoomd.trigger.Periodic(100)
-            traj_writer = hoomd.dump.GSD('simulate.gsd', 
-                                        trigger=trig, 
+            traj_writer = hoomd.dump.GSD('simulate.gsd',
+                                        trigger=trig,
                                         filter = hoomd.filter.All())
             csv = hoomd.output.CSV(trig, logger)
 
@@ -62,11 +103,11 @@ class Before(_hoomd.BeforeTrigger, Trigger):
         timestep (float): time step for the operation to stop working.
 
     `hoomd.trigger.Before` returns `True` for all time steps t < `timestep`.
-    In other words, :py:class:`hoomd.Operations` will operate at less than 
+    In other words, :py:class:`hoomd.Operations` will operate at less than
     `timestep`.
-    
+
     Example::
-            
+
             # trigger every 100 time steps at less than first 5000 steps.
             trig = hoomd.trigger.And(
                 [hoomd.trigger.Periodic(100),
@@ -76,7 +117,7 @@ class Before(_hoomd.BeforeTrigger, Trigger):
                                                         trigger=trig)
 
     Attributes:
-        timestep (float): The time step for operation to stop working. 
+        timestep (float): The time step for operation to stop working.
     """
     def __init__(self, timestep):
         if timestep < 0:
@@ -95,9 +136,9 @@ class On(_hoomd.OnTrigger, Trigger):
 
     `hoomd.trigger.On` returns `True` for time steps t = `timestep`.
     In other words, :py:class:`hoomd.Operations` will operate at `timestep`.
-    
+
     Example::
-            
+
             # trigger at 1000 time steps
             trig = hoomd.trigger.On(1000)
             hoomd.hpmc.tune.MoveSize.scale_solver(moves=['a','d'],
@@ -105,7 +146,7 @@ class On(_hoomd.OnTrigger, Trigger):
                                                 trigger=trig)
 
     Attributes:
-        timestep (float): time step to trigger. 
+        timestep (float): time step to trigger.
     """
 
     def __init__(self, timestep):
@@ -124,11 +165,11 @@ class After(_hoomd.AfterTrigger, Trigger):
         timestep (float): time step for the operation to start working.
 
     `hoomd.trigger.After` returns `True` for all time steps t > `timestep`.
-    In other words, :py:class:`hoomd.Operations` will operate at greater than 
+    In other words, :py:class:`hoomd.Operations` will operate at greater than
     `timestep`.
 
     Example::
-            
+
             # trigger every 100 time steps after 1000 time steps.
             trig = hoomd.trigger.And([
                     hoomd.trigger.After(1000),
@@ -136,7 +177,7 @@ class After(_hoomd.AfterTrigger, Trigger):
             hoomd.update.BoxResize(box1,box2,variant,trig)
 
     Attributes:
-        timestep (float): The time step for operation to start working. 
+        timestep (float): The time step for operation to start working.
     """
     def __init__(self, timestep):
         if timestep < 0:
@@ -155,12 +196,12 @@ class Not(_hoomd.NotTrigger, Trigger):
     :py:class:`hoomd.Operations` will operate on reversed time window of `trigger`.
 
     Example::
-            
+
             trig = hoomd.trigger.Not(hoomd.trigger.After(1000))
             hoomd.output.CSV(trig, logger)
 
     Attributes:
-        trigger (hoomd.trigger.Trigger): The trigger object to reverse. 
+        trigger (hoomd.trigger.Trigger): The trigger object to reverse.
     """
     def __init__(self, trigger):
         _hoomd.NotTrigger.__init__(self, trigger)
@@ -175,9 +216,9 @@ class And(_hoomd.AndTrigger, Trigger):
         triggers (`list`[`hoomd.trigger.Trigger`]): List of triggers to combine
 
     `hoomd.trigger.And` returns `True` when all of input triggers returns `True`.
-    
+
     Example::
-            
+
             # trigger every 100 time steps after 1000 time steps.
             trig = hoomd.trigger.And([
                     hoomd.trigger.After(1000),
@@ -207,20 +248,20 @@ class Or(_hoomd.OrTrigger, Trigger):
         triggers (`list`[`hoomd.trigger.Trigger`]): List of triggers to combine
 
     `hoomd.trigger.Or` returns `True` when any of input triggers returns `True`.
-    
+
     Example::
-            
+
             # trigger every 100 time steps before at time step of 1000.
             # or      every 10  time steps after  at time step of 1000.
             trig = hoomd.trigger.Or([hoomd.trigger.And([
-                                        hoomd.trigger.Before(1000), 
+                                        hoomd.trigger.Before(1000),
                                         hoomd.trigger.Periodic(100)]),
                                     [hoomd.trigger.And([
                                         hoomd.trigger.After(1000),
                                         hoomd.trigger.Periodic(10)])
                                     ])
-            hoomd.dump.GSD('simulate.gsd', 
-                           trigger=trig, 
+            hoomd.dump.GSD('simulate.gsd',
+                           trigger=trig,
                            filter = hoomd.filter.All())
             hoomd.output.CSV(trig, logger)
 
