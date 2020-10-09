@@ -45,7 +45,7 @@ class ThermodynamicQuantities(_Thermo):
             thermo_cls = _md.ComputeThermo
         else:
             thermo_cls = _md.ComputeThermoGPU
-        group = self._simulation.state.get_group(self._filter)
+        group = self._simulation.state._get_group(self._filter)
         self._cpp_obj = thermo_cls(self._simulation.state._cpp_sys_def, group, "")
         super()._attach()
 

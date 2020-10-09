@@ -19,6 +19,7 @@ set(files __init__.py
           test_state.py
           test_simulation.py
           test_variant.py
+          test_sorter.py
           pytest-openmpi.sh
     )
 

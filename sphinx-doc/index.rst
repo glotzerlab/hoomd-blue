@@ -68,6 +68,7 @@ workflows all with Python code in your job.
     :caption: Tutorials
 
     tutorial/00-Introducing-HOOMD-blue/00-index
+    tutorial/01-Introducing-Molecular-Dynamics/00-index
 
 .. toctree::
    :maxdepth: 3
