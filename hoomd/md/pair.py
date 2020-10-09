@@ -1143,12 +1143,13 @@ class ForceShiftedLJ(_Pair):
     `ForceShiftedLJ` specifies that a modified Lennard-Jones pair force should
     be applied between non-excluded particle pair in the simulation. The force
     differs from the one calculated by  :py:class:`LJ` by the subtraction of the
-    value of the force at :math:`r_{\mathrm{cut}}`, such that the force smoothly
-    goes to zero at the cut-off. The potential is modified by a linear function.
-    This potential can be used as a substitute for :py:class:`LJ`, when the
-    exact analytical form of the latter is not required but a smaller cut-off
-    radius is desired for computational efficiency. See `Toxvaerd et. al. 2011
-    <http://dx.doi.org/10.1063/1.3558787>`_ for a discussion of this potential.
+    value of the force at :math:`r_{\\mathrm{cut}}`, such that the force
+    smoothly goes to zero at the cut-off. The potential is modified by a linear
+    function. This potential can be used as a substitute for :py:class:`LJ`,
+    when the exact analytical form of the latter is not required but a smaller
+    cut-off radius is desired for computational efficiency. See `Toxvaerd et.
+    al. 2011 <http://dx.doi.org/10.1063/1.3558787>`_ for a discussion of this
+    potential.
 
     .. math::
         :nowrap:

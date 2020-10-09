@@ -18,11 +18,16 @@ from collections.abc import Sequence
 
 
 class _Method(_HOOMDBaseObject):
-    pass
+    """Base class integration method.
 
+    Provides common methods for all subclasses.
+
+    Note:
+        Users should use the subclasses and not instantiate `_Method` directly.
+    """
 
 class NVT(_Method):
-    R""" NVT Integration via the Nosé-Hoover thermostat.
+    r"""NVT Integration via the Nosé-Hoover thermostat.
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
@@ -44,10 +49,16 @@ class NVT(_Method):
 
     .. math::
 
-        \tau = \sqrt{\frac{Q}{g k_B T_0}}
+        \tau = \sqrt{\frac{Q}{g k T_0}}
 
-    where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is
+    where :math:`g` is the number of degrees of freedom, and :math:`k T_0` is
     the set point (*kT* above).
+
+    The `NVT` equations of motion include a translational thermostat (with
+    momentum :math:`\xi` and position :math:`\eta`) and a rotational thermostat
+    (with momentum :math:`\xi_{\mathrm{rot}}` and position
+    :math:`\eta_\mathrm{rot}`). Access these quantities using
+    `translational_thermostat_dof` and `rotational_thermostat_dof`.
 
     Note:
         Coupling constant `tau` in Nosé-Hoover thermostat should be set within
@@ -75,6 +86,14 @@ class NVT(_Method):
 
         tau (float): Coupling constant for the Nosé-Hoover thermostat. (in time
             units).
+
+        translational_thermostat_dof (tuple[float, float]): Additional degrees
+            of freedom for the translational thermostat (:math:`\xi`,
+            :math:`\eta`)
+
+        rotational_thermostat_dof (tuple[float, float]): Additional degrees
+            of freedom for the rotational thermostat (:math:`\xi_\mathrm{rot}`,
+            :math:`\eta_\mathrm{rot}`)
     """
 
     def __init__(self, filter, kT, tau):
@@ -84,8 +103,14 @@ class NVT(_Method):
             filter=ParticleFilter,
             kT=Variant,
             tau=float(tau),
+            translational_thermostat_dof=(float, float),
+            rotational_thermostat_dof=(float, float)
         )
-        param_dict.update(dict(kT=kT, filter=filter))
+        param_dict.update(
+            dict(kT=kT,
+                 filter=filter,
+                 translational_thermostat_dof=(0, 0),
+                 rotational_thermostat_dof=(0, 0)))
         # set defaults
         self._param_dict.update(param_dict)
 
@@ -109,6 +134,33 @@ class NVT(_Method):
                                  self.kT,
                                  "")
         super()._attach()
+
+    def thermalize_thermostat_dof(self, seed):
+        r"""Set the thermostat momenta to random values.
+
+        Args:
+            seed (int): Random number seed
+
+        `thermalize_extra_dof` sets a random value for the momentum :math:`\xi`.
+        When `Integrator.aniso` is `True`, it also sets a random value for the
+        rotational thermostat momentum :math:`\xi_{\mathrm{rot}}`. Call
+        `thermalize_extra_dof` to set a new random state for the thermostat.
+
+        .. important::
+            You must call `Simulation.run` before `thermalize_extra_dof`.
+            Call ``run(steps=0)`` to prepare a newly created `Simulation`.
+
+        .. seealso:: `State.thermalize_particle_momenta`
+
+        Note:
+            The seed for the pseudorandom number stream includes the
+            simulation timestep and the provided *seed*.
+        """
+        if not self._attached:
+            raise RuntimeError(
+                "Call Simulation.run(0) before thermalize_thermostat_dof")
+
+        self._cpp_obj.thermalizeThermostatDOF(seed, self._simulation.timestep)
 
 
 class NPT(_Method):
@@ -214,10 +266,17 @@ class NPT(_Method):
 
     .. math::
 
-        \tau = \sqrt{\frac{Q}{g k_B T_0}}
+        \tau = \sqrt{\frac{Q}{g k T_0}}
 
-    where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is
+    where :math:`g` is the number of degrees of freedom, and :math:`k T_0` is
     the set point (*kT* above).
+
+    The `NPT` equations of motion include a translational thermostat (with
+    momentum :math:`\xi` and position :math:`\eta`), a rotational thermostat
+    (with momentum :math:`\xi_{\mathrm{rot}}` and position
+    :math:`\eta_\mathrm{rot}`), and a barostat tensor :math:`\nu_{\mathrm{ij}}`.
+    Access these quantities using `translational_thermostat_dof`,
+    `rotational_thermostat_dof`, and `barostat_dof`.
 
     Note:
         Coupling constant for barostat `tauS` should be set within appropriate
@@ -272,6 +331,18 @@ class NPT(_Method):
         gamma (float): Dimensionless damping factor for the box degrees of
             freedom.
 
+        translational_thermostat_dof (tuple[float, float]): Additional degrees
+            of freedom for the translational thermostat (:math:`\xi`,
+            :math:`\eta`)
+
+        rotational_thermostat_dof (tuple[float, float]): Additional degrees
+            of freedom for the rotational thermostat (:math:`\xi_\mathrm{rot}`,
+            :math:`\eta_\mathrm{rot}`)
+
+        barostat_dof (tuple[float, float, float, float, float, float]):
+            Additional degrees of freedom for the barostat (:math:`\nu_{xx}`,
+            :math:`\nu_{xy}`, :math:`\nu_{xz}`, :math:`\nu_{yy}`,
+            :math:`\nu_{yz}`, :math:`\nu_{zz}`)
     """
     def __init__(self, filter, kT, tau, S, tauS, couple, box_dof=[True,True,True,False,False,False], rescale_all=False, gamma=0.0):
 
@@ -286,10 +357,20 @@ class NPT(_Method):
             couple=str(couple),
             box_dof=(bool,)*6,
             rescale_all=bool(rescale_all),
-            gamma=float(gamma)
+            gamma=float(gamma),
+            translational_thermostat_dof=(float, float),
+            rotational_thermostat_dof=(float, float),
+            barostat_dof=(float, float, float, float, float, float)
             )
-        param_dict.update(dict(filter=filter, kT=kT, S=S,
-                                 couple=couple, box_dof=box_dof))
+        param_dict.update(
+            dict(filter=filter,
+                 kT=kT,
+                 S=S,
+                 couple=couple,
+                 box_dof=box_dof,
+                 translational_thermostat_dof=(0, 0),
+                 rotational_thermostat_dof=(0, 0),
+                 barostat_dof=(0, 0, 0, 0, 0, 0)))
 
         # set defaults
         self._param_dict.update(param_dict)
@@ -338,6 +419,38 @@ class NPT(_Method):
             return tuple(value)
         else:
             return (value,value,value,0,0,0)
+
+    def thermalize_thermostat_and_barostat_dof(self, seed):
+        r"""Set the thermostat and barostat momenta to random values.
+
+        Args:
+            seed (int): Random number seed
+
+        `thermalize_thermostat_and_barostat_dof` sets a random value for the
+        momentum :math:`\xi` and the barostat :math:`\nu_{\mathrm{ij}}`. When
+        `Integrator.aniso` is `True`, it also sets a random value for the
+        rotational thermostat momentum :math:`\xi_{\mathrm{rot}}`. Call
+        `thermalize_thermostat_and_barostat_dof` to set a new random state for
+        the thermostat and barostat.
+
+        .. important::
+            You must call `Simulation.run` before
+            `thermalize_thermostat_and_barostat_dof`. Call ``run(steps=0)`` to
+            prepare a newly created `Simulation`.
+
+        .. seealso:: `State.thermalize_particle_momenta`
+
+        Note:
+            The seed for the pseudorandom number stream includes the
+            simulation timestep and the provided *seed*.
+        """
+        if not self._attached:
+            raise RuntimeError(
+                "Call Simulation.run(0) before"
+                "thermalize_thermostat_and_barostat_dof")
+
+        self._cpp_obj.thermalizeThermostatAndBarostatDOF(
+            seed, self._simulation.timestep)
 
 
 class nph(NPT):

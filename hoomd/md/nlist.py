@@ -29,7 +29,7 @@ class nlist:
 # To Do: Migrate all hoomdv2 codes still using nlist to _NList
 
 class _NList(_HOOMDBaseObject):
-    """Base class neighbor list.
+    r"""Base class neighbor list.
 
     Methods and attributes provided by this base class are available to all
     subclasses.
