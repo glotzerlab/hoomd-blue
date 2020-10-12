@@ -90,7 +90,7 @@ def test_shape_attached(simulation_factory, two_particle_snapshot_factory,
     sim = simulation_factory(two_particle_snapshot_factory())
     assert sim.operations.integrator is None
     sim.operations.add(mc)
-    sim.operations.schedule()
+    sim.operations._schedule()
     check_dict(mc.shape["A"], args)
 
 
@@ -109,7 +109,7 @@ def test_moves(device, simulation_factory, lattice_snapshot_factory,
     sim.operations.add(mc)
     assert sim.operations.integrator.translate_moves is None
     assert sim.operations.integrator.rotate_moves is None
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     assert sum(sim.operations.integrator.translate_moves) == 0
     assert sum(sim.operations.integrator.rotate_moves) == 0
@@ -161,7 +161,7 @@ def test_overlaps_sphere(device, sphere_overlap_args, simulation_factory,
     sim = simulation_factory(
         two_particle_snapshot_factory(dimensions=3, d=diameter * 0.9))
     sim.operations.add(mc)
-    sim.operations.schedule()
+    sim.operations._schedule()
     assert mc.overlaps > 0
 
     # Should not overlap when spheres are larger than one diameter apart
@@ -191,7 +191,7 @@ def test_overlaps_ellipsoid(device, simulation_factory,
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=2))
     sim.operations.add(mc)
-    sim.operations.schedule()
+    sim.operations._schedule()
     assert mc.overlaps == 0
 
     abc_list = [(0, 0, c), (0, b, 0), (a, 0, 0)]
@@ -255,7 +255,7 @@ def test_overlaps_polygons(device, polygon_overlap_args, simulation_factory,
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=2))
     sim.operations.add(mc)
-    sim.operations.schedule()
+    sim.operations._schedule()
     assert mc.overlaps == 0
 
     # Place center of shape 2 on each of shape 1's vertices
@@ -332,7 +332,7 @@ def test_overlaps_polyhedra(device, polyhedron_overlap_args, simulation_factory,
     mc.shape['A'] = integrator_args
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=2))
     sim.operations.add(mc)
-    sim.operations.schedule()
+    sim.operations._schedule()
     assert mc.overlaps == 0
 
     # Place center of shape 2 on each of shape 1's vertices
@@ -388,7 +388,7 @@ def test_overlaps_spheropolygon(device, spheropolygon_overlap_args,
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=2, d=2))
     sim.operations.add(mc)
-    sim.operations.schedule()
+    sim.operations._schedule()
     assert mc.overlaps == 0
 
     # Place center of shape 2 on each of shape 1's vertices
@@ -446,7 +446,7 @@ def test_overlaps_spheropolyhedron(device, spheropolyhedron_overlap_args,
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=2))
     sim.operations.add(mc)
-    sim.operations.schedule()
+    sim.operations._schedule()
     assert mc.overlaps == 0
 
     # Place center of shape 2 on each of shape 1's vertices
@@ -516,7 +516,7 @@ def test_overlaps_union(device, union_overlap_args, simulation_factory,
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=2))
     sim.operations.add(mc)
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     assert mc.overlaps == 0
     test_positions = [(1.1, 0, 0), (0, 1.1, 0)]
@@ -568,7 +568,7 @@ def test_overlaps_faceted_ellipsoid(device, simulation_factory,
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=2))
     sim.operations.add(mc)
-    sim.operations.schedule()
+    sim.operations._schedule()
     assert mc.overlaps == 0
 
     abc_list = [(0, 0, c / 2), (0, b, 0), (a, 0, 0)]
@@ -612,7 +612,7 @@ def test_overlaps_sphinx(device, simulation_factory,
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=2))
     sim.operations.add(mc)
-    sim.operations.schedule()
+    sim.operations._schedule()
     assert mc.overlaps == 0
 
     s = sim.state.snapshot

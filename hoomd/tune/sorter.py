@@ -1,6 +1,6 @@
 """Define the ParticleSorter class."""
 
-from hoomd.operation import _Tuner
+from hoomd.operation import Tuner
 from hoomd.parameterdicts import ParameterDict
 from hoomd.typeconverter import OnlyType
 from hoomd.trigger import Trigger
@@ -9,7 +9,7 @@ import hoomd
 from math import log2, ceil
 
 
-class ParticleSorter(_Tuner):
+class ParticleSorter(Tuner):
     """Order particles in memory to improve performance.
 
     Args:

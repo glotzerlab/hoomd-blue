@@ -1,13 +1,13 @@
 """Define LoadBalancer."""
 
-from hoomd.operation import _Tuner
+from hoomd.operation import Tuner
 from hoomd.parameterdicts import ParameterDict
 from hoomd.trigger import Trigger
 from hoomd import _hoomd
 import hoomd
 
 
-class LoadBalancer(_Tuner):
+class LoadBalancer(Tuner):
     r""" Adjusts the boundaries of the domain decomposition.
 
     Args:

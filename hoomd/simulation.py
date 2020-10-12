@@ -28,7 +28,8 @@ class Simulation(metaclass=Loggable):
     def __init__(self, device):
         self._device = device
         self._state = None
-        self._operations = Operations(self)
+        self._operations = Operations()
+        self._operations._simulation = self
         self._timestep = None
 
     @property
@@ -156,6 +157,26 @@ class Simulation(metaclass=Loggable):
         """hoomd.Operations: The operations that apply to the state."""
         return self._operations
 
+    @operations.setter
+    def operations(self, operations):
+        # This condition is necessary to allow for += and -= operators to work
+        # correctly with simulation.operations (+=/-=).
+        if operations is self._operations:
+            self._operations = operations
+        else:
+            # Handle error cases first
+            if operations._scheduled or operations._simulation is not None:
+                raise RuntimeError(
+                    "Cannot add `hoomd.Operations` object that belongs to "
+                    "another `hoomd.Simulation` object.")
+            # Switch out `hoomd.Operations` objects.
+            elif self._operations._scheduled:
+                self._operations._unschedule()
+                self._operations._simulation = None
+                operations._simulation = self
+                operations._schedule()
+                self._operations = operations
+
     @property
     def tps(self):
         """float: The average number of time steps per second.
@@ -261,8 +282,8 @@ class Simulation(metaclass=Loggable):
         # check if initialization has occurred
         if not hasattr(self, '_cpp_sys'):
             raise RuntimeError('Cannot run before state is set.')
-        if not self.operations.scheduled:
-            self.operations.schedule()
+        if not self.operations._scheduled:
+            self.operations._schedule()
 
         self._cpp_sys.run(int(steps), write_at_start)
 
