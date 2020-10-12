@@ -368,6 +368,6 @@ def auto_select(communicator=None,
     """
     # Set class according to C++ object
     if len(GPU.get_available_devices()) > 0:
-        return GPU(None, communicator, msg_file, shared_msg_file, notice_level)
+        return GPU(None, None, communicator, msg_file, shared_msg_file, notice_level)
     else:
         return CPU(None, communicator, msg_file, shared_msg_file, notice_level)

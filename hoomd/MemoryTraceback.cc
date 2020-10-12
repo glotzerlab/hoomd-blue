@@ -8,6 +8,7 @@
 */
 
 #include "MemoryTraceback.h"
+namespace py = pybind11;
 
 #include <string>
 #include <sstream>
@@ -140,4 +141,9 @@ void MemoryTraceback::outputTraces(std::shared_ptr<Messenger> msg) const
             }
         free(symbols);
         }
+    }
+
+void export_MemoryTraceback(py::module& m)
+    {
+    py::class_<MemoryTraceback, std::unique_ptr<MemoryTraceback> > memorytraceback(m, "MemoryTraceback");
     }
