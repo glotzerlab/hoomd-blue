@@ -559,14 +559,60 @@ DEVICE inline bool test_overlap_hypersphere(const ShapeConvexPolyhedron& a,
     {
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
 
+    quat<OverlapReal> ql = conj(a.quat_l)*b.quat_l;
+    quat<OverlapReal> qr = b.quat_r*conj(a.quat_r);;
 
-    return detail::xenocollide_hypersphere(a.verts,
+    bool aaa =  detail::xenocollide_hypersphere(a.verts,
                                   b.verts,
-                                  conj(a.quat_l)*b.quat_l,
-                                  b.quat_r*conj(a.quat_r),
+                                  ql,
+                                  qr,
                                   hypersphere,
                                   DaDb/2.0,
                                   err);
+
+
+    //ql = conj(b.quat_l)*a.quat_l;
+    //qr = a.quat_r*conj(b.quat_r);;
+
+    //bool bbb =  detail::xenocollide_hypersphere(b.verts,
+    //                              a.verts,
+    //                              ql,
+    //                              qr,
+    //                              hypersphere,
+    //                              DaDb/2.0,
+    //                              err);
+   
+    //if ( aaa != bbb ){ 
+
+    // ql = conj(a.quat_l)*b.quat_l;
+    // qr = b.quat_r*conj(a.quat_r);;
+
+    // aaa =  detail::xenocollide_hypersphere2(a.verts,
+    //                               b.verts,
+    //                               ql,
+    //                               qr,
+    //                               hypersphere,
+    //                               DaDb/2.0,
+    //                               err);
+
+    // std::cout << std::endl;
+ 
+
+    // ql = conj(b.quat_l)*a.quat_l;
+    // qr = a.quat_r*conj(b.quat_r);;
+
+    // bbb =  detail::xenocollide_hypersphere2(b.verts,
+    //                               a.verts,
+    //                               ql,
+    //                               qr,
+    //                               hypersphere,
+    //                               DaDb/2.0,
+    //                               err);
+
+    //     exit(0);
+    //}
+
+   return aaa;
    }
 
 }; // end namespace hpmc

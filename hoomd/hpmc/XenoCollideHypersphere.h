@@ -71,7 +71,7 @@ const unsigned int XENOCOLLIDE_HYPERSPHERE_MAX_ITERATIONS = 1024;
     \ingroup minkowski
 */
 template<class SupportFuncA, class SupportFuncB>
-DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,const SupportFuncB& b,const quat<OverlapReal>& quat_l,const quat<OverlapReal>& quat_r,const Hypersphere& hypersphere,const OverlapReal Ra,unsigned int& err_count)
+DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,const SupportFuncB& b,quat<OverlapReal>& quat_l,quat<OverlapReal>& quat_r,const Hypersphere& hypersphere,const OverlapReal Ra,unsigned int& err_count)
     {
     // This implementation of XenoCollide is hand-written from the description of the algorithm on page 171 of _Games
     // Programming Gems 7_
@@ -83,6 +83,7 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,const SupportFu
     vec3<OverlapReal> n1;
     std::vector<bool> side_used (b.N,false);
     std::vector<std::vector<bool> > side;
+    bool nearlyoverlap= false;
 
     for ( int i = 0; i < a.N; i++) a_p.push_back( hypersphere.cartesianToHyperspherical(vec3<OverlapReal>(a.x[i],a.y[i],a.z[i])) );
 
@@ -119,7 +120,7 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,const SupportFu
             current_vertex = vertex;
 
             pos_u = hypersphere.hypersphericalToCartesian(conj(a_p[vertex]),conj(a_p[vertex]));
-            for( int i = vertex+1; i < a.N; i++){
+            for( int i = 0; i < a.N; i++){
                 pos_a[i] = hypersphere.hypersphericalToCartesian(conj(a_p[vertex])*a_p[i],a_p[i]*conj(a_p[vertex]));
             }
 
@@ -215,7 +216,9 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,const SupportFu
                 vec3<OverlapReal> n = cross(pm[i],pos_a[vertex1].v);
                 if(dot(n,pos_u.v)>0) n = -n;
                 for (int j =0; j < mp.size() && separate; j++){
-                    if(dot(n,mp[j]) < 0 ){ 
+                    OverlapReal dnmp = dot(n,mp[j]);
+                    if(fabs(dnmp) < 1e-6) nearlyoverlap = true;
+                    if(dnmp < 0 ){ 
                         separate = false;
                     }
                 }
@@ -224,32 +227,514 @@ DEVICE inline bool xenocollide_hypersphere(const SupportFuncA& a,const SupportFu
             if(separate) return false;
         }
     }
-   
+
+    quat_l = conj(quat_l);
+    quat_r = conj(quat_r);
+
     current_vertex = 100000;
-    for ( int fi = 0; fi < Nf; fi++){
-        unsigned int vertex = faces[fi][0];
-        unsigned int vertex1 = faces[fi][1];
-        unsigned int vertex2 = faces[fi][2];
+
+    for( int i = 0; i < side_used.size(); i++) side_used[i] =false;
+
+    for( int i = 0; i < side.size(); i++) 
+        	for( int j = 0; j < side[i].size(); j++) side[i][j] =false;
+
+
+    if(nearlyoverlap){
+        all_faces = 0;
+
+        for ( int ei = 0; ei < b.Ne; ei++){
+            unsigned int vertex = b.edges[ei].x;
+            unsigned int vertex1 = b.edges[ei].y;
+
+            if( vertex != current_vertex){
+                current_vertex = vertex;
+
+                pos_u = hypersphere.hypersphericalToCartesian(conj(b_p[vertex]),conj(b_p[vertex]));
+                for( int i = 0; i < b.N; i++){
+                    pos_b[i] = hypersphere.hypersphericalToCartesian(conj(b_p[vertex])*b_p[i],b_p[i]*conj(b_p[vertex]));
+                }
+
+                for( int i = 0; i < a.N; i++){
+                    pos_a[i] = hypersphere.hypersphericalToCartesian(conj(b_p[vertex])*quat_l*a_p[i],a_p[i]*quat_r*conj(b_p[vertex]));
+                }
+            }
+
+
+            // Face of A 
+            unsigned int face1 = b.boundary_edges[ei].x;
+            if(!side_used[face1]){
+            	side_used[face1] = true;
+                    separate = true;
+            	unsigned int vertex2=vertex1;
+                    int vi = 0;
+            	while (vertex2 == vertex1 || vertex2 == vertex) {
+                        vertex2 = faces[face1][vi];
+                        vi++;
+            	}
+            	
+            	n1 = cross(pos_b[vertex1].v, pos_b[vertex2].v);
+                    if(dot(n1,pos_u.v) > 0) n1 = -n1;
+
+                    for( int i = 0; i < a.N; i++){
+                        if(dot(n1,pos_a[i].v) > 0) side[face1][i] = true;
+                        else separate = false;
+                    }
+                    if(separate) return false;
+
+            	all_faces++;
+            	if(all_faces == Nf){
+             	    for( int i = 0; i < a.N && !separate; i++){
+             		separate = true;
+             		for( int j = 0; j < Nf && separate; j++)
+             		    if(side[j][i]) separate = false;
+             	    }
+             	    if(separate) return true;
+            	}
+            }
+
+
+            unsigned int face2 = b.boundary_edges[ei].y;
+            if(!side_used[face2]){
+            	side_used[face2] = true;
+                    separate = true;
+            	unsigned int vertex2=vertex1;
+                    int vi = 0;
+            	while (vertex2 == vertex1 || vertex2 == vertex) {
+                        vertex2 = faces[face2][vi];
+                        vi++;
+            	}
+            	
+            	n1 = cross(pos_b[vertex1].v, pos_b[vertex2].v);
+                    if(dot(n1,pos_u.v) > 0) n1 = -n1;
+
+                    for( int i = 0; i < a.N; i++){
+                        if(dot(n1,pos_a[i].v) > 0) side[face2][i] = true;
+                        else separate = false;
+                    }
+                    if(separate) return false;
+
+            	all_faces++;
+            	if(all_faces == Nf){
+             	    for( int i = 0; i < a.N && !separate; i++){
+             		separate = true;
+             		for( int j = 0; j < Nf && separate; j++)
+             		    if(side[j][i]) separate = false;
+             	    }
+             	    if(separate) return true;
+                    }
+            }
+
+            // Edge of A 
+            separate = true;
+            std::vector< vec3<OverlapReal> > pm;
+            std::vector< vec3<OverlapReal> > mp;
+
+            for( int i = 0; i < a.N; i++){
+                if(!side[face1][i] && !side[face2][i] ){ 
+                    separate=false;
+                    break;
+                }
+                if(side[face1][i] && !side[face2][i] ) pm.push_back(pos_a[i].v);
+                else if(!side[face1][i] && side[face2][i]) mp.push_back(pos_a[i].v) ;
+            }
+
+
+            // See if edge of B goes through A 
+            if(separate){
+                for (int i =0; i < pm.size() && separate; i++){
+                    vec3<OverlapReal> n = cross(pm[i],pos_b[vertex1].v);
+                    if(dot(n,pos_u.v)>0) n = -n;
+                    for (int j =0; j < mp.size() && separate; j++){
+                        if(dot(n,mp[j]) < 0 ){ 
+                            separate = false;
+                        }
+                    }
+                }
+
+                if(separate) return false;
+            }
+        }
+    }else{
+        for ( int ei = 0; ei < b.Ne; ei++){
+            unsigned int vertex = b.edges[ei].x;
+            unsigned int vertex1 = b.edges[ei].y;
+
+            if( vertex != current_vertex){
+                current_vertex = vertex;
+
+                pos_u = hypersphere.hypersphericalToCartesian(conj(b_p[vertex]),conj(b_p[vertex]));
+                for( int i = 0; i < b.N; i++){
+                    pos_b[i] = hypersphere.hypersphericalToCartesian(conj(b_p[vertex])*b_p[i],b_p[i]*conj(b_p[vertex]));
+                }
+
+                for( int i = 0; i < a.N; i++){
+                    pos_a[i] = hypersphere.hypersphericalToCartesian(conj(b_p[vertex])*quat_l*a_p[i],a_p[i]*quat_r*conj(b_p[vertex]));
+                }
+            }
+
+
+            // Face of A 
+            unsigned int face1 = b.boundary_edges[ei].x;
+            if(!side_used[face1]){
+            	side_used[face1] = true;
+                separate = true;
+            	unsigned int vertex2=vertex1;
+                int vi = 0;
+            	while (vertex2 == vertex1 || vertex2 == vertex) {
+                        vertex2 = faces[face1][vi];
+                        vi++;
+            	}
+            	
+            	n1 = cross(pos_b[vertex1].v, pos_b[vertex2].v);
+                if(dot(n1,pos_u.v) > 0) n1 = -n1;
+
+                for( int i = 0; i < a.N && separate; i++){
+                    if(dot(n1,pos_a[i].v) < 0) separate = false;
+                }
+                if(separate) return false;
+
+           }
+
+
+            unsigned int face2 = b.boundary_edges[ei].y;
+            if(!side_used[face2]){
+            	side_used[face2] = true;
+                separate = true;
+            	unsigned int vertex2=vertex1;
+                int vi = 0;
+            	while (vertex2 == vertex1 || vertex2 == vertex) {
+                        vertex2 = faces[face2][vi];
+                        vi++;
+            	}
+            	
+            	n1 = cross(pos_b[vertex1].v, pos_b[vertex2].v);
+                if(dot(n1,pos_u.v) > 0) n1 = -n1;
+
+                for( int i = 0; i < a.N && separate; i++){
+                    if(dot(n1,pos_a[i].v) < 0) separate = false;
+                }
+                if(separate) return false;
+            }
+
+        }
+    }
+    return true;
+
+    }
+
+
+
+
+
+
+
+
+
+
+template<class SupportFuncA, class SupportFuncB>
+DEVICE inline bool xenocollide_hypersphere2(const SupportFuncA& a,const SupportFuncB& b,quat<OverlapReal>& quat_l,quat<OverlapReal>& quat_r,const Hypersphere& hypersphere,const OverlapReal Ra,unsigned int& err_count)
+    {
+    // This implementation of XenoCollide is hand-written from the description of the algorithm on page 171 of _Games
+    // Programming Gems 7_
+
+
+    std::vector<quat<OverlapReal> > a_p, b_p, pos_a, pos_b;
+    std::vector<std::vector<unsigned int> > faces;
+    quat<OverlapReal> pos_u;
+    vec3<OverlapReal> n1;
+    std::vector<bool> side_used (b.N,false);
+    std::vector<std::vector<bool> > side;
+
+    for ( int i = 0; i < a.N; i++) a_p.push_back( hypersphere.cartesianToHyperspherical(vec3<OverlapReal>(a.x[i],a.y[i],a.z[i])) );
+
+    for ( int i = 0; i < b.N; i++) b_p.push_back( hypersphere.cartesianToHyperspherical(vec3<OverlapReal>(b.x[i],b.y[i],b.z[i])) );
+
+
+    int j = 0;
+    while (j < a.Nf){
+        int jj = a.faces[j];
+        std::vector<unsigned int> face;
+        for (int i=1; i <= jj; i++)
+    		face.push_back(a.faces[j+i]);
+        faces.push_back(face);
+        side.push_back(side_used);
+        j = j + jj + 1;
+    }
+   
+
+    unsigned int Nf = faces.size();
+    side_used.resize(Nf, false);
+
+    unsigned int all_faces = 0;
+
+    pos_a.resize(a.N);
+    pos_b.resize(b.N);
+
+    unsigned int current_vertex = 100000;
+    bool separate = false;
+    for ( int ei = 0; ei < a.Ne; ei++){
+        unsigned int vertex = a.edges[ei].x;
+        unsigned int vertex1 = a.edges[ei].y;
+
+        if( vertex != current_vertex){
+            current_vertex = vertex;
+
+            pos_u = hypersphere.hypersphericalToCartesian(conj(a_p[vertex]),conj(a_p[vertex]));
+            std::cout << "posu " << pos_u.s << " " << pos_u.v.x << " " << pos_u.v.y << " " << pos_u.v.z << std::endl;
+            for( int i = 0; i < a.N; i++){
+                pos_a[i] = hypersphere.hypersphericalToCartesian(conj(a_p[vertex])*a_p[i],a_p[i]*conj(a_p[vertex]));
+                std::cout << "pos_a" << i << " " << pos_a[i].s << " " << pos_a[i].v.x << " " << pos_a[i].v.y << " " << pos_a[i].v.z << std::endl;
+            }
+
+            for( int i = 0; i < b.N; i++){
+                pos_b[i] = hypersphere.hypersphericalToCartesian(conj(a_p[vertex])*quat_l*b_p[i],b_p[i]*quat_r*conj(a_p[vertex]));
+                std::cout << "pos_b" << i << " " << pos_b[i].s << " " << pos_b[i].v.x << " " << pos_b[i].v.y << " " << pos_b[i].v.z << std::endl;
+            }
+        }
+
+
+        // Face of A 
+        unsigned int face1 = a.boundary_edges[ei].x;
+        if(!side_used[face1]){
+        	side_used[face1] = true;
+                separate = true;
+        	unsigned int vertex2=vertex1;
+                int vi = 0;
+        	while (vertex2 == vertex1 || vertex2 == vertex) {
+                    vertex2 = faces[face1][vi];
+                    vi++;
+        	}
+                std::cout << "FACE " <<  vertex << " " << vertex1 << " " << vertex2 << std::endl;
+        	
+        	n1 = cross(pos_a[vertex1].v, pos_a[vertex2].v);
+                if(dot(n1,pos_u.v) > 0) n1 = -n1;
+
+                for( int i = 0; i < b.N; i++){
+		    std::cout << i << ": " << dot(n1,pos_b[i].v) << std::endl;
+                    if(dot(n1,pos_b[i].v) > 0) side[face1][i] = true;
+                    else separate = false;
+                }
+                //if(separate) return false;
+
+        	all_faces++;
+        	if(all_faces == Nf){
+                    std::cout << "VOLUME" << std::endl;
+         	    for( int i = 0; i < b.N && !separate; i++){
+         		separate = true;
+         		for( int j = 0; j < Nf && separate; j++)
+         		    if(side[j][i]) separate = false;
+         	    }
+         	    //if(separate) return true;
+        	}
+        }
+
+
+        unsigned int face2 = a.boundary_edges[ei].y;
+        if(!side_used[face2]){
+        	side_used[face2] = true;
+                separate = true;
+        	unsigned int vertex2=vertex1;
+                int vi = 0;
+        	while (vertex2 == vertex1 || vertex2 == vertex) {
+                    vertex2 = faces[face2][vi];
+                    vi++;
+        	}
+                std::cout << "FACE " <<  vertex << " " << vertex1 << " " << vertex2 << std::endl;
+        	
+        	n1 = cross(pos_a[vertex1].v, pos_a[vertex2].v);
+                if(dot(n1,pos_u.v) > 0) n1 = -n1;
+
+                for( int i = 0; i < b.N; i++){
+		    std::cout << i << ": " << dot(n1,pos_b[i].v) << std::endl;
+                    if(dot(n1,pos_b[i].v) > 0) side[face2][i] = true;
+                    else separate = false;
+                }
+                //if(separate) return false;
+
+        	all_faces++;
+        	if(all_faces == Nf){
+                    std::cout << "VOLUME" << std::endl;
+         	    for( int i = 0; i < b.N && !separate; i++){
+         		separate = true;
+         		for( int j = 0; j < Nf && separate; j++)
+         		    if(side[j][i]) separate = false;
+         	    }
+         	    //if(separate) return true;
+                }
+        }
+
+
+        // Edge of A 
+        separate = true;
+        std::vector< vec3<OverlapReal> > pm;
+        std::vector< vec3<OverlapReal> > mp;
+
+        std::cout << "EDGE " <<  vertex << " " << vertex1 << std::endl;
+
+        for( int i = 0; i < b.N; i++){
+            std::cout << side[face1][i] << " " << side[face2][i] << std::endl;
+            if(!side[face1][i] && !side[face2][i] ){ 
+                separate=false;
+                break;
+            }
+            if(side[face1][i] && !side[face2][i] ) pm.push_back(pos_b[i].v);
+            else if(!side[face1][i] && side[face2][i]) mp.push_back(pos_b[i].v) ;
+        }
+
+
+        // See if edge of B goes through A 
+        if(separate){
+            for (int i =0; i < pm.size(); i++){
+                vec3<OverlapReal> n = cross(pm[i],pos_a[vertex1].v);
+                if(dot(n,pos_u.v)>0) n = -n;
+                for (int j =0; j < mp.size(); j++){
+                    std::cout << dot(n,mp[j]) << std::endl;
+                    if(dot(n,mp[j]) < 0 ){ 
+                        separate = false;
+                    }
+                }
+            }
+
+            //if(separate) return false;
+        }
+    }
+
+    quat_l = conj(quat_l);
+    quat_r = conj(quat_r);
+   
+    for( int i = 0; i < side_used.size(); i++) side_used[i] =false;
+
+    for( int i = 0; i < side.size(); i++) 
+        	for( int j = 0; j < side[i].size(); j++) side[i][j] =false;
+
+    all_faces = 0;
+
+    current_vertex = 100000;
+    for ( int ei = 0; ei < b.Ne; ei++){
+        unsigned int vertex = b.edges[ei].x;
+        unsigned int vertex1 = b.edges[ei].y;
+
         if( vertex != current_vertex){
             current_vertex = vertex;
 
             pos_u = hypersphere.hypersphericalToCartesian(conj(b_p[vertex]),conj(b_p[vertex]));
-            for( int i = 0; i < a.N; i++)
-                pos_a[i] = hypersphere.hypersphericalToCartesian(conj(quat_l*b_p[vertex])*a_p[i],a_p[i]*conj(b_p[vertex]*quat_r));
-
-            for( int i = 0; i < b.N; i++)
+            std::cout << "posu " << pos_u.s << " " << pos_u.v.x << " " << pos_u.v.y << " " << pos_u.v.z << std::endl;
+            for( int i = 0; i < b.N; i++){
                 pos_b[i] = hypersphere.hypersphericalToCartesian(conj(b_p[vertex])*b_p[i],b_p[i]*conj(b_p[vertex]));
+                std::cout << "pos_b" << i << " " << pos_b[i].s << " " << pos_b[i].v.x << " " << pos_b[i].v.y << " " << pos_b[i].v.z << std::endl;
+            }
+
+            for( int i = 0; i < a.N; i++){
+                pos_a[i] = hypersphere.hypersphericalToCartesian(conj(b_p[vertex])*quat_l*a_p[i],a_p[i]*quat_r*conj(b_p[vertex]));
+                std::cout << "pos_a" << i << " " << pos_a[i].s << " " << pos_a[i].v.x << " " << pos_a[i].v.y << " " << pos_a[i].v.z << std::endl;
+            }
         }
 
+
+        // Face of A 
+        unsigned int face1 = b.boundary_edges[ei].x;
+        if(!side_used[face1]){
+        	side_used[face1] = true;
+                separate = true;
+        	unsigned int vertex2=vertex1;
+                int vi = 0;
+        	while (vertex2 == vertex1 || vertex2 == vertex) {
+                    vertex2 = faces[face1][vi];
+                    vi++;
+        	}
+                std::cout << "FACEB " <<  vertex << " " << vertex1 << " " << vertex2 << std::endl;
+        	
+        	n1 = cross(pos_b[vertex1].v, pos_b[vertex2].v);
+                if(dot(n1,pos_u.v) > 0) n1 = -n1;
+
+                for( int i = 0; i < a.N; i++){
+        	    std::cout << i << ": " << dot(n1,pos_a[i].v) << std::endl;
+                    if(dot(n1,pos_a[i].v) > 0) side[face1][i] = true;
+                    else separate = false;
+                }
+                //if(separate) return false;
+
+        	all_faces++;
+        	if(all_faces == Nf){
+                    std::cout << "VOLUME" << std::endl;
+         	    for( int i = 0; i < a.N && !separate; i++){
+         		separate = true;
+         		for( int j = 0; j < Nf && separate; j++)
+         		    if(side[j][i]) separate = false;
+         	    }
+         	    //if(separate) return true;
+        	}
+        }
+
+
+        unsigned int face2 = b.boundary_edges[ei].y;
+        if(!side_used[face2]){
+        	side_used[face2] = true;
+                separate = true;
+        	unsigned int vertex2=vertex1;
+                int vi = 0;
+        	while (vertex2 == vertex1 || vertex2 == vertex) {
+                    vertex2 = faces[face2][vi];
+                    vi++;
+        	}
+                std::cout << "FACEB " <<  vertex << " " << vertex1 << " " << vertex2 << std::endl;
+        	
+        	n1 = cross(pos_b[vertex1].v, pos_b[vertex2].v);
+                if(dot(n1,pos_u.v) > 0) n1 = -n1;
+
+                for( int i = 0; i < a.N; i++){
+        	    std::cout << i << ": " << dot(n1,pos_a[i].v) << std::endl;
+                    if(dot(n1,pos_a[i].v) > 0) side[face2][i] = true;
+                    else separate = false;
+                }
+                //if(separate) return false;
+
+        	all_faces++;
+        	if(all_faces == Nf){
+                    std::cout << "VOLUME" << std::endl;
+         	    for( int i = 0; i < a.N && !separate; i++){
+         		separate = true;
+         		for( int j = 0; j < Nf && separate; j++)
+         		    if(side[j][i]) separate = false;
+         	    }
+         	    //if(separate) return true;
+                }
+        }
+
+
+        // Edge of A 
         separate = true;
-        
-        n1 = cross(pos_b[vertex1].v, pos_b[vertex2].v);
-        if(dot(n1,pos_u.v) > 0) n1 = -n1;
+        std::vector< vec3<OverlapReal> > pm;
+        std::vector< vec3<OverlapReal> > mp;
 
-        for( int i = 0; i < a.N && separate; i++){
-            if(dot(n1,pos_a[i].v) < 0) separate=false;
+        std::cout << "EDGEB " <<  vertex << " " << vertex1 <<  std::endl;
+
+        for( int i = 0; i < a.N; i++){
+            std::cout << side[face1][i] << " " << side[face2][i] << std::endl;
+            if(!side[face1][i] && !side[face2][i] ){ 
+                separate=false;
+                break;
+            }
+            if(side[face1][i] && !side[face2][i] ) pm.push_back(pos_a[i].v);
+            else if(!side[face1][i] && side[face2][i]) mp.push_back(pos_a[i].v) ;
         }
-        if(separate) return false;
+
+
+        // See if edge of B goes through A 
+        if(separate){
+            for (int i =0; i < pm.size() && separate; i++){
+                vec3<OverlapReal> n = cross(pm[i],pos_b[vertex1].v);
+                if(dot(n,pos_u.v)>0) n = -n;
+                for (int j =0; j < mp.size() && separate; j++){
+                    std::cout << dot(n,mp[j]) << std::endl;
+                    if(dot(n,mp[j]) < 0 ){ 
+                        separate = false;
+                    }
+                }
+            }
+
+            //if(separate) return false;
+        }
     }
 
     return true;
