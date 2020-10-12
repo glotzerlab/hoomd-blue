@@ -12,7 +12,7 @@ from collections import namedtuple
 from hoomd import _hoomd
 from hoomd.util import dict_flatten, array_to_strings
 from hoomd.typeconverter import OnlyFrom
-from hoomd.filter import _ParticleFilter, All
+from hoomd.filter import ParticleFilter, All
 from hoomd.parameterdicts import ParameterDict
 from hoomd.logging import Logger, TypeFlags
 from hoomd.operation import Analyzer

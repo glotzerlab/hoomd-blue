@@ -43,8 +43,13 @@ class Operations(Collection):
     only ever hold one integrator at a time. On the other hand, an `Operations`
     object can hold any number of tuners, updaters, writers, or computes. To
     see examples of these types of operations see `hoomd.tune` (tuners),
+<<<<<<< HEAD
     `hoomd.update` (updaters), `hoomd.hpmc.integrate` or `hoomd.md.integrate`
     (integrators), , `hoomd.write` (writers), and `hoomd.md.thermo`
+=======
+    `hoomd.update` (updaters), `hoomd.hpmc.integrate` or `hoomd.md.Integrator`
+    (integrators), , `hoomd.dump` (analyzers), and `hoomd.md.thermo`
+>>>>>>> feature/new-object-API
     (computes).
 
     A given instance of an operation class can only be added to a single
@@ -52,7 +57,7 @@ class Operations(Collection):
     same `Operations` container more than once.
 
     All `Operations` instances start with a `hoomd.tune.ParticleSorter` instance
-    in their ``tuners`` attribute. This is vital for increasing simulation
+    in their ``tuners`` attribute. This increases simulation
     performance. However, users can choose to modify or remove this tuner if
     desired.
 
@@ -88,9 +93,9 @@ class Operations(Collection):
                 f"{type(operation)} is not a valid operation type.")
 
     def add(self, operation):
-        """Add operation to this container.
+        """Add an operation to this container.
 
-        Adds the provide operation to the appropriate attribute of the
+        Adds the provided operation to the appropriate attribute of the
         `Operations` instance.
 
         Args:

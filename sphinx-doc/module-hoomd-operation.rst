@@ -8,13 +8,13 @@ hoomd.operation
 .. autosummary::
     :nosignatures:
 
-    Writer
-    Updater
-    Tuner
     Compute
+    Tuner
+    Updater
+    Writer
 
 .. rubric:: Details
 
 .. automodule:: hoomd.operation
     :synopsis: Classes define the interfaces and types for HOOMD-blue operations.
-    :members: Writer, Updater, Tuner, Compute
+    :members: Compute, Updater, Tuner, Writer

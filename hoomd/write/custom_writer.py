@@ -23,7 +23,7 @@ class CustomWriter(_CustomOperation, _WriterProperty, Writer):
     For usage see `hoomd.custom._CustomOperation`.
     """
     _cpp_list_name = 'analyzers'
-    _cpp_class_name = 'PythonWriter'
+    _cpp_class_name = 'PythonAnalyzer'
 
 
 class _InternalCustomWriter(

@@ -12,7 +12,7 @@
 from hoomd.util import is_iterable, dict_map, dict_filter, str_to_tuple_keys
 from hoomd.trigger import Trigger
 from hoomd.variant import Variant, Constant
-from hoomd.filter import _ParticleFilter
+from hoomd.filter import ParticleFilter
 from hoomd.logging import Loggable, log
 from hoomd.data.typeconverter import RequiredArg
 from hoomd.util import NamespaceDict
@@ -23,11 +23,6 @@ from collections.abc import Mapping
 from copy import deepcopy
 
 
-class NotAttachedError(RuntimeError):
-    """ Raised when something that requires attachment happens before attaching """
-    pass
-
-
 def _convert_values_to_log_form(value):
     if value is RequiredArg:
         return RequiredArg
@@ -36,7 +31,7 @@ def _convert_values_to_log_form(value):
             return (value.value, 'scalar')
         else:
             return (value, 'object')
-    elif isinstance(value, Trigger) or isinstance(value, _ParticleFilter):
+    elif isinstance(value, Trigger) or isinstance(value, ParticleFilter):
         return (value, 'object')
     elif isinstance(value, _Operation):
         return (value, 'object')
@@ -50,7 +45,7 @@ def _convert_values_to_log_form(value):
         return (value, 'multi')
 
 
-def handle_gsd_arrays(arr):
+def _handle_gsd_arrays(arr):
     if arr.size == 1:
         return arr[0]
     if arr.ndim == 1:
@@ -156,8 +151,7 @@ class _StatefulAttrBase(_HOOMDGetSetAttrBase, metaclass=Loggable):
     Python ``dict``.
     """
     def _typeparam_states(self):
-        """Converts all typeparameters into a standard Python ``dict`` object.
-        """
+        """Converts all typeparameters into a standard Python ``ict`` object."""
         state = {name: tp.state for name, tp in self._typeparam_dict.items()}
         return deepcopy(state)
 
@@ -264,7 +258,7 @@ class _StatefulAttrBase(_HOOMDGetSetAttrBase, metaclass=Loggable):
         for state_chunk in state_chunks:
             state_dict_key = tuple(state_chunk[chunk_slice].split('/'))
             state_dict[state_dict_key] = \
-                handle_gsd_arrays(reader.readChunk(state_chunk))
+                _handle_gsd_arrays(reader.readChunk(state_chunk))
         return (state_dict._dict, kwargs)
 
     @classmethod
@@ -538,8 +532,19 @@ class Writer(_TriggeredOperation):
     """
     _cpp_list_name = 'analyzers'
 
+
 class Compute(_Operation):
+    """Base class for all HOOMD computes.
+
+    A compute is an operation which computes some property for another operation
+    or use by a user.
+
+    Note:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
+    """
     pass
+
 
 class Tuner(_Operation):
     """Base class for all HOOMD tuners.
