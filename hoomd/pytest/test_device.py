@@ -61,6 +61,11 @@ def test_gpu_specific_properties(device):
     device.memory_traceback
     #_assert_gpu_properties(device, True, False)
 
+    # make sure GPU is available, auto-select gives a GPU, and we can still make a CPU
+    assert hoomd.device.GPU.is_available()
+    assert type(hoomd.device.auto_select()) == hoomd.device.GPU
+    hoomd.device.CPU()
+
 
 def test_cpu_build_specifics():
     if hoomd.version.gpu_enabled == True:
