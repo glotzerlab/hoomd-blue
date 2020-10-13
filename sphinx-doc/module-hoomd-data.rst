@@ -17,6 +17,7 @@ hoomd.data
     ImproperLocalAccessBase
     PairLocalAccessBase
     ParticleLocalAccessBase
+    hoomd.data.typeparam.TypeParameter
 
 .. rubric:: Details
 
@@ -35,3 +36,7 @@ hoomd.data
 
     .. autoclass:: LocalSnapshotGPU
         :inherited-members:
+
+    .. autoclass:: hoomd.data.typeparam.TypeParameter
+        :members: default, keys
+        :undoc-members:
