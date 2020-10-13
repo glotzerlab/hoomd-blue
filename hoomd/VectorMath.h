@@ -52,7 +52,7 @@ struct vec3
     /*! \param a Scalar3 to copy
         This is a convenience function for easy initialization of vec3s from hoomd memory data structures
     */
-    DEVICE explicit vec3(const Scalar3& a) : x(a.x), y(a.y), z(a.z)
+    DEVICE explicit vec3(const Scalar3& a) : x(Real(a.x)), y(Real(a.y)), z(Real(a.z))
         {
         }
 
@@ -66,7 +66,7 @@ struct vec3
         }
 
     //! Implicit cast from vec3<double> to the current Real
-    DEVICE vec3(const vec3<double>& a) : x(a.x), y(a.y), z(a.z)
+    DEVICE vec3(const vec3<double>& a) : x(Real(a.x)), y(Real(a.y)), z(Real(a.z))
         {
         }
 
@@ -406,7 +406,7 @@ struct vec2
         }
 
     //! Implicit cast from vec2<double> to the current Real
-    DEVICE vec2(const vec2<double>& a) : x(a.x), y(a.y)
+    DEVICE vec2(const vec2<double>& a) : x(Real(a.x)), y(Real(a.y))
         {
         }
 
@@ -741,17 +741,17 @@ struct quat
         \note For some unfathomable reason, hoomd stores a quaternion as (x, (y,z,w)). Be aware of this when using the
               data elsewhere.
     */
-    DEVICE explicit quat(const Scalar4& a) : s(a.x), v(vec3<Real>((Real) a.y, (Real) a.z, (Real) a.w))
+    DEVICE explicit quat(const Scalar4& a) : s((Real)a.x), v(vec3<Real>((Real)a.y, (Real)a.z, (Real)a.w))
         {
         }
 
     //! Implicit cast from quat<double> to the current Real
-    DEVICE quat(const quat<double>& a) : s(a.s), v(a.v)
+    DEVICE quat(const quat<double>& a) : s(Real(a.s)), v(a.v)
         {
         }
 
     //! Implicit cast from quat<float> to the current Real
-    DEVICE quat(const quat<float>& a) : s(a.s), v(a.v)
+    DEVICE quat(const quat<float>& a) : s(Real(a.s)), v(a.v)
         {
         }
 
@@ -772,7 +772,7 @@ struct quat
     */
     DEVICE static quat fromAxisAngle(const vec3<Real>& axis, const Real& theta)
         {
-        quat<Real> q(fast::cos(theta/2.0), (Real)fast::sin(theta/2.0) * axis);
+        quat<Real> q(fast::cos(theta/Real(2.0)), fast::sin(theta/Real(2.0)) * axis);
         return q;
         }
 

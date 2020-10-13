@@ -341,7 +341,7 @@ void Integrator::computeNetForce(unsigned int timestep)
         // now, add up the net forces
         // also sum up forces for ghosts, in case they are needed by the communicator
         unsigned int nparticles = m_pdata->getN()+m_pdata->getNGhosts();
-        unsigned int net_virial_pitch = net_virial.getPitch();
+        size_t net_virial_pitch = net_virial.getPitch();
 
         assert(nparticles <= net_force.getNumElements());
         assert(6*nparticles <= net_virial.getNumElements());
@@ -361,7 +361,7 @@ void Integrator::computeNetForce(unsigned int timestep)
             ArrayHandle<Scalar> h_virial(h_virial_array,access_location::host,access_mode::read);
             ArrayHandle<Scalar4> h_torque(h_torque_array,access_location::host,access_mode::read);
 
-            unsigned int virial_pitch = h_virial_array.getPitch();
+            size_t virial_pitch = h_virial_array.getPitch();
             for (unsigned int j = 0; j < nparticles; j++)
                 {
                 h_net_force.data[j].x += h_force.data[j].x;
@@ -430,7 +430,7 @@ void Integrator::computeNetForce(unsigned int timestep)
         ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_net_torque(net_torque, access_location::host, access_mode::readwrite);
-        unsigned int net_virial_pitch = net_virial.getPitch();
+        size_t net_virial_pitch = net_virial.getPitch();
 
         // now, add up the net forces
         unsigned int nparticles = m_pdata->getN();
@@ -444,7 +444,7 @@ void Integrator::computeNetForce(unsigned int timestep)
             ArrayHandle<Scalar4> h_force(h_force_array,access_location::host,access_mode::read);
             ArrayHandle<Scalar> h_virial(h_virial_array,access_location::host,access_mode::read);
             ArrayHandle<Scalar4> h_torque(h_torque_array,access_location::host,access_mode::read);
-            unsigned int virial_pitch = h_virial_array.getPitch();
+            size_t virial_pitch = h_virial_array.getPitch();
 
             assert(nparticles <= h_force_array.getNumElements());
             assert(6*nparticles <= h_virial_array.getNumElements());

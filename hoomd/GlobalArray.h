@@ -164,7 +164,7 @@ class managed_deleter
     private:
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
         bool m_use_device;     //!< Whether to use hipMallocManaged
-        unsigned int m_N;      //!< Number of elements in array
+        size_t m_N;      //!< Number of elements in array
         void *m_allocation_ptr;  //!< Start of unaligned allocation
         size_t m_allocation_bytes; //!< Size of actual allocation
         std::string m_tag;     //!< Name of the array
@@ -225,7 +225,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
             \param num_elements Number of elements in array
             \param exec_conf The current execution configuration
          */
-        GlobalArray(unsigned int num_elements, std::shared_ptr<const ExecutionConfiguration> exec_conf,
+        GlobalArray(size_t num_elements, std::shared_ptr<const ExecutionConfiguration> exec_conf,
             const std::string& tag = std::string(), bool force_managed=false)
             : m_exec_conf(exec_conf),
             #ifndef ALWAYS_USE_MANAGED_MEMORY
@@ -388,7 +388,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
             \param height Number of rows to allocate in the 2D array
             \param exec_conf Shared pointer to the execution configuration for managing CUDA initialization and shutdown
          */
-        GlobalArray(unsigned int width, unsigned int height, std::shared_ptr<const ExecutionConfiguration> exec_conf, bool force_managed=false)
+        GlobalArray(size_t width, size_t height, std::shared_ptr<const ExecutionConfiguration> exec_conf, bool force_managed=false)
             : m_exec_conf(exec_conf),
             #ifndef ALWAYS_USE_MANAGED_MEMORY
             // explicit copy should be elided
@@ -464,7 +464,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
          - For 1-D allocated GPUArrays, this is the number of elements allocated.
          - For 2-D allocated GPUArrays, this is the \b total number of elements (\a pitch * \a height) allocated
         */
-        inline unsigned int getNumElements() const
+        inline size_t getNumElements() const
             {
             #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (!this->m_exec_conf || !m_is_managed)
@@ -490,7 +490,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
          - For 2-D allocated GPUArrays, this is the total width of a row in memory (including the padding added for coalescing)
          - For 1-D allocated GPUArrays, this is the simply the number of elements allocated.
         */
-        inline unsigned int getPitch() const
+        inline size_t getPitch() const
             {
             #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (!this->m_exec_conf || ! m_is_managed)
@@ -505,7 +505,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
          - For 2-D allocated GPUArrays, this is the height given to the constructor
          - For 1-D allocated GPUArrays, this is the simply 1.
         */
-        inline unsigned int getHeight() const
+        inline size_t getHeight() const
             {
             #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (!this->m_exec_conf || ! m_is_managed)
@@ -519,7 +519,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
         /*! This method resizes the array by allocating a new array and copying over the elements
             from the old array. Resizing is a slow operation.
         */
-        inline void resize(unsigned int num_elements)
+        inline void resize(size_t num_elements)
             {
             #ifndef ALWAYS_USE_MANAGED_MEMORY
             if (! this->m_exec_conf || ! m_is_managed)
@@ -551,7 +551,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
             std::vector<T> old(m_num_elements);
             std::copy(m_data.get(), m_data.get()+m_num_elements, old.begin());
 
-            unsigned int num_copy_elements = m_num_elements > num_elements ? num_elements : m_num_elements;
+            size_t num_copy_elements = m_num_elements > num_elements ? num_elements : m_num_elements;
 
             m_num_elements = num_elements;
 
@@ -566,7 +566,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
             }
 
         //! Resize a 2D GlobalArray
-        inline void resize(unsigned int width, unsigned int height)
+        inline void resize(size_t width, size_t height)
             {
             assert(this->m_exec_conf);
 
@@ -584,7 +584,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
                 }
 
             // make m_pitch the next multiple of 16 larger or equal to the given width
-            unsigned int pitch = (width + (16 - (width & 15)));
+            size_t pitch = (width + (16 - (width & 15)));
 
             #ifdef ENABLE_HIP
             if (this->m_exec_conf->isCUDAEnabled())
@@ -611,9 +611,9 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
 
             // copy over data
             // every column is copied separately such as to align with the new pitch
-            unsigned int num_copy_rows = m_height > height ? height : m_height;
-            unsigned int num_copy_columns = m_pitch > pitch ? pitch : m_pitch;
-            for (unsigned int i = 0; i < num_copy_rows; i++)
+            size_t num_copy_rows = m_height > height ? height : m_height;
+            size_t num_copy_columns = m_pitch > pitch ? pitch : m_pitch;
+            for (size_t i = 0; i < num_copy_rows; i++)
                 std::copy(old.begin() + i*m_pitch, old.begin() + i*m_pitch + num_copy_columns, m_data.get() + i * pitch);
 
             m_height = height;
@@ -673,15 +673,15 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
 
         std::unique_ptr<T, hoomd::detail::managed_deleter<T> > m_data; //!< Smart ptr to managed or host memory, with custom deleter
 
-        unsigned int m_num_elements; //!< Number of elements in array
-        unsigned int m_pitch;  //!< Pitch of 2D array
-        unsigned int m_height; //!< Height of 2D array
+        size_t m_num_elements; //!< Number of elements in array
+        size_t m_pitch;  //!< Pitch of 2D array
+        size_t m_height; //!< Height of 2D array
 
         mutable bool m_acquired;       //!< Tracks if the array is already acquired
 
         std::string m_tag;     //!< Name tag of this buffer (optional)
 
-        unsigned int m_align_bytes; //!< Size of alignment in bytes
+        size_t m_align_bytes; //!< Size of alignment in bytes
         bool m_is_managed;  //!< Whether or not this array is stored using managed memory.
 
         #ifdef ENABLE_HIP

@@ -338,13 +338,13 @@ BoxDim
                 {
                 if (w.y >= m_hi.y)
                     {
-                    int i = (w.y*m_Linv.y+Scalar(0.5));
+                    int i = int(w.y*m_Linv.y+Scalar(0.5));
                     w.y -= (Scalar)i*L.y;
                     w.x -= (Scalar)i*L.y * m_xy;
                     }
                 else if (w.y < m_lo.y)
                     {
-                    int i = (-w.y*m_Linv.y+Scalar(0.5));
+                    int i = int(-w.y*m_Linv.y+Scalar(0.5));
                     w.y += (Scalar)i*L.y;
                     w.x += (Scalar)i*L.y * m_xy;
                     }
@@ -354,12 +354,12 @@ BoxDim
                 {
                 if (w.x >= m_hi.x)
                     {
-                    int i = (w.x*m_Linv.x+Scalar(0.5));
+                    int i = int(w.x*m_Linv.x+Scalar(0.5));
                     w.x -= (Scalar)i*L.x;
                     }
                 else if (w.x < m_lo.x)
                     {
-                    int i = (-w.x*m_Linv.x+Scalar(0.5));
+                    int i = int(-w.x*m_Linv.x+Scalar(0.5));
                     w.x += (Scalar)i*L.x;
                     }
                 }

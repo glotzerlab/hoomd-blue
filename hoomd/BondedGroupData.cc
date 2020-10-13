@@ -64,12 +64,7 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
         // offer a default type mapping
         for (unsigned int i = 0; i < n_group_types; i++)
             {
-            char suffix[2];
-            suffix[0] = 'A' + i;
-            suffix[1] = '\0';
-
-            std::string type_name = std::string(name) + std::string(suffix);
-            m_type_mapping.push_back(type_name);
+            m_type_mapping.push_back(getDefaultTypeName(i));
             }
         }
 

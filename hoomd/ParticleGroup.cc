@@ -650,8 +650,8 @@ void ParticleGroup::buildTagHash() const
     // reset member ship flags
     memset(h_is_member_tag.data, 0, sizeof(unsigned int)*(m_pdata->getRTags().size()));
 
-    unsigned int num_members = m_member_tags.getNumElements();
-    for (unsigned int member = 0; member < num_members; member++)
+    size_t num_members = m_member_tags.getNumElements();
+    for (size_t member = 0; member < num_members; member++)
         {
         h_is_member_tag.data[h_member_tags.data[member]] = 1;
         }
@@ -796,7 +796,7 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, unsigned int seed, unsi
     {
     unsigned int group_size = this->getNumMembers();
 
-    const unsigned int n_dimensions = Scalar(m_sysdef->getNDimensions());
+    const unsigned int n_dimensions = m_sysdef->getNDimensions();
 
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
                                access_location::host,

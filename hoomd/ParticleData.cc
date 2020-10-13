@@ -34,6 +34,21 @@ using namespace std;
 
 namespace py = pybind11;
 
+std::string getDefaultTypeName(unsigned int id)
+    {
+    const char default_name[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    unsigned n = (unsigned int)(sizeof(default_name) / sizeof(char) - 1);
+    std::string result(1, default_name[id % n]);
+
+    while (id >= n)
+        {
+        id = id / n - 1;
+        result = std::string(1, default_name[id % n]) + result;
+        }
+
+    return result;
+    }
+
 ////////////////////////////////////////////////////////////////////////////
 // ParticleData members
 
@@ -83,10 +98,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
     // setup the type mappings
     for (unsigned int i = 0; i < n_types; i++)
         {
-        char name[2];
-        name[0] = 'A' + i;
-        name[1] = '\0';
-        snap.type_mapping.push_back(string(name));
+        snap.type_mapping.push_back(getDefaultTypeName(i));
         }
 
     #ifdef ENABLE_MPI
@@ -1387,9 +1399,9 @@ std::map<unsigned int, unsigned int> ParticleData::takeSnapshot(SnapshotParticle
             snapshot.vel[snap_id] = vec3<Real>(make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z));
             snapshot.accel[snap_id] = vec3<Real>(h_accel.data[idx]);
             snapshot.type[snap_id] = __scalar_as_int(h_pos.data[idx].w);
-            snapshot.mass[snap_id] = h_vel.data[idx].w;
-            snapshot.charge[snap_id] = h_charge.data[idx];
-            snapshot.diameter[snap_id] = h_diameter.data[idx];
+            snapshot.mass[snap_id] = Real(h_vel.data[idx].w);
+            snapshot.charge[snap_id] = Real(h_charge.data[idx]);
+            snapshot.diameter[snap_id] = Real(h_diameter.data[idx]);
             snapshot.image[snap_id] = h_image.data[idx];
             snapshot.image[snap_id].x -= m_o_image.x;
             snapshot.image[snap_id].y -= m_o_image.y;
@@ -3233,7 +3245,7 @@ unsigned int ParticleData::addType(const std::string& type_name)
     m_num_types_signal.emit();
 
     // return id of newly added type
-    return m_type_mapping.size() - 1;
+    return (unsigned int)(m_type_mapping.size() - 1);
     }
 
 template <class Real>
