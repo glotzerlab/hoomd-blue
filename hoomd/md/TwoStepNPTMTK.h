@@ -211,8 +211,26 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
             setIntegratorVariables(v);
             }
 
-        //! Randomize the barostat variables
-        virtual void randomizeVelocities(unsigned int timestep);
+        /// Randomize the thermostat and barostat variables
+        void thermalizeThermostatAndBarostatDOF(unsigned int seed, unsigned int timestep);
+
+        /// Get the translational thermostat degrees of freedom
+        pybind11::tuple getTranslationalThermostatDOF();
+
+        /// Set the translational thermostat degrees of freedom
+        void setTranslationalThermostatDOF(pybind11::tuple v);
+
+        /// Get the rotational thermostat degrees of freedom
+        pybind11::tuple getRotationalThermostatDOF();
+
+        /// Set the rotational thermostat degrees of freedom
+        void setRotationalThermostatDOF(pybind11::tuple v);
+
+        /// Get the barostat degrees of freedom
+        pybind11::tuple getBarostatDOF();
+
+        /// Set the barostat degrees of freedom
+        void setBarostatDOF(pybind11::tuple v);
 
     protected:
         std::shared_ptr<ComputeThermo> m_thermo_half_step;   //!< ComputeThermo operating on the integrated group at t+dt/2

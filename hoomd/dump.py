@@ -12,10 +12,10 @@ from collections import namedtuple
 from hoomd import _hoomd
 from hoomd.util import dict_flatten, array_to_strings
 from hoomd.typeconverter import OnlyFrom
-from hoomd.filter import _ParticleFilter, All
+from hoomd.filter import ParticleFilter, All
 from hoomd.parameterdicts import ParameterDict
 from hoomd.logging import Logger, TypeFlags
-from hoomd.operation import _Analyzer
+from hoomd.operation import Analyzer
 import numpy as np
 import hoomd
 import json
@@ -485,13 +485,13 @@ class getar(hoomd.analyze._analyzer):
         self.cpp_analyzer.close();
 
 
-class GSD(_Analyzer):
+class GSD(Analyzer):
     R""" Write simulation trajectories in the GSD format.
 
     Args:
         filename (str): File name to write.
         trigger (hoomd.trigger.Trigger): Select the timesteps to write.
-        filter_ (hoomd.filter._ParticleFilter): Select the particles
+        filter_ (hoomd.filter.ParticleFilter): Select the particles
             to write, defaults to `hoomd.filter.All`.
         overwrite (bool): When ``True``, overwite the file. When
             ``False`` append frames to ``filename`` if it exists and create the
@@ -609,7 +609,7 @@ class GSD(_Analyzer):
         dynamic = ['property'] if dynamic is None else dynamic
         self._param_dict.update(
             ParameterDict(filename=str(filename),
-                          filter=_ParticleFilter,
+                          filter=ParticleFilter,
                           overwrite=bool(overwrite), truncate=bool(truncate),
                           dynamic=[dynamic_validation],
                           _defaults=dict(filter=filter, dynamic=dynamic)
@@ -652,7 +652,7 @@ class GSD(_Analyzer):
         Args:
             state (State): Simulation state.
             filename (str): File name to write.
-            filter_ (``hoomd._ParticleFilter``): Select the particles to write.
+            filter_ (`hoomd.filter.ParticleFilter`): Select the particles to write.
             log (``hoomd.logger.Logger``): A ``Logger`` object for GSD logging.
 
         Note:
