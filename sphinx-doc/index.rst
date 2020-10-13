@@ -77,15 +77,6 @@ workflows all with Python code in your job.
    package-hoomd
    package-hpmc
    package-md
-   package-mpcd
-   package-dem
-
-.. toctree::
-   :maxdepth: 3
-   :caption: Additional Python packages
-
-   package-jit
-   package-metal
 
 .. toctree::
     :maxdepth: 1
