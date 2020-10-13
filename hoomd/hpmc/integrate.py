@@ -9,13 +9,13 @@ from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeconverter import OnlyIf, to_type_converter
 from hoomd.data.typeparam import TypeParameter
 from hoomd.hpmc import _hpmc
-from hoomd.integrate import _BaseIntegrator
+from hoomd.integrate import BaseIntegrator
 from hoomd.logging import log
 import hoomd
 import json
 
 
-class _HPMCIntegrator(_BaseIntegrator):
+class _HPMCIntegrator(BaseIntegrator):
     """Base class hard particle Monte Carlo integrator.
 
     Note:

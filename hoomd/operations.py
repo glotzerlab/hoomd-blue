@@ -94,7 +94,7 @@ class Operations(Collection):
         `Operations` instance.
 
         Args:
-            operation (`hoomd.operation._Operation`): A HOOMD-blue tuner,
+            operation (`hoomd.operation.Operation`): A HOOMD-blue tuner,
                 updater, integrator, writer, or compute,  to add to the
                 collection.
 
@@ -115,7 +115,7 @@ class Operations(Collection):
         if operation._added:
             raise ValueError("The provided operation has already been added "
                              "to an Operations instance.")
-        if isinstance(operation, hoomd.integrate._BaseIntegrator):
+        if isinstance(operation, hoomd.integrate.BaseIntegrator):
             self.integrator = operation
         else:
             try:
@@ -129,7 +129,7 @@ class Operations(Collection):
         """Works the same as `Operations.add`.
 
         Args:
-            operation (`hoomd.operation._Operation`): A HOOMD-blue tuner,
+            operation (`hoomd.operation.Operation`): A HOOMD-blue tuner,
                 updater, integrator, writer, or compute to add to the object.
         """
         self.add(operation)
@@ -144,7 +144,7 @@ class Operations(Collection):
         of a Python object id.
 
         Args:
-            operation (`hoomd.operation._Operation`): A HOOMD-blue integrator,
+            operation (`hoomd.operation.Operation`): A HOOMD-blue integrator,
                 tuner, updater, integrator, or compute to remove from the
                 container.
 
@@ -152,7 +152,7 @@ class Operations(Collection):
             ValueError: If ``operation`` is not found in this container.
             TypeError: If ``operation`` is not of a valid type.
         """
-        if isinstance(operation, hoomd.integrate._BaseIntegrator):
+        if isinstance(operation, hoomd.integrate.BaseIntegrator):
             self.integrator = None
         else:
             try:
@@ -166,7 +166,7 @@ class Operations(Collection):
         """Works the same as `Operations.remove`.
 
         Args:
-            operation (`hoomd.operation._Operation`): A HOOMD-blue integrator,
+            operation (`hoomd.operation.Operation`): A HOOMD-blue integrator,
                 tuner, updater, integrator, analzyer, or compute to remove from
                 the collection.
         """
@@ -239,7 +239,7 @@ class Operations(Collection):
 
     @property
     def integrator(self):
-        """`hoomd.integrate._BaseIntegrator`: An MD or HPMC integrator object.
+        """`hoomd.integrate.BaseIntegrator`: An MD or HPMC integrator object.
 
         `Operations` objects have an initial ``integrator`` property of
         ``None``. Can be set to MD or HPMC integrators. The property can also be
@@ -250,9 +250,9 @@ class Operations(Collection):
     @integrator.setter
     def integrator(self, op):
         if op is not None:
-            if not isinstance(op, hoomd.integrate._BaseIntegrator):
+            if not isinstance(op, hoomd.integrate.BaseIntegrator):
                 raise TypeError("Cannot set integrator to a type not derived "
-                                "from hoomd.integrate._BaseIntegrator")
+                                "from hoomd.integrate.BaseIntegrator")
             if op._added:
                 raise RuntimeError("Integrator cannot be added to twice to "
                                    "Operations collection.")

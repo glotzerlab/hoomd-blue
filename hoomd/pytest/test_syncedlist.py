@@ -1,6 +1,6 @@
 from pytest import fixture, raises
 from hoomd.pytest.dummy import DummyOperation, DummySimulation
-from hoomd.operation import _Operation
+from hoomd.operation import Operation
 from hoomd.data.syncedlist import SyncedList
 
 
@@ -37,7 +37,7 @@ def test_init(op_list):
 
 @fixture
 def slist_empty():
-    return SyncedList(lambda x: isinstance(x, _Operation))
+    return SyncedList(lambda x: isinstance(x, Operation))
 
 
 @fixture

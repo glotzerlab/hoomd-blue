@@ -11,7 +11,7 @@
 from hoomd.md import _md
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyFrom
-from hoomd.integrate import _BaseIntegrator
+from hoomd.integrate import BaseIntegrator
 from hoomd.data.syncedlist import SyncedList
 from hoomd.md.methods import _Method
 from hoomd.md.force import _Force
@@ -33,7 +33,7 @@ def _set_synced_list(old_list, new_list):
     old_list.extend(new_list)
 
 
-class _DynamicIntegrator(_BaseIntegrator):
+class _DynamicIntegrator(BaseIntegrator):
     def __init__(self, forces, constraints, methods):
         forces = [] if forces is None else forces
         constraints = [] if constraints is None else constraints
