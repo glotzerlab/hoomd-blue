@@ -36,8 +36,12 @@ def test_common_properties(device):
     dev = device_type(msg_file="example2.txt", notice_level=10)
     _assert_common_properties(dev, notice_level=10, msg_file="example2.txt", num_cpu_threads=10)
 
-    # shared_msg_file_stuff
+    # MPI conditional stuff
     if hoomd.version.mpi_enabled:
+        # make sure we can pass a non-default communciator
+        com = hoomd.comm.Communicator(nranks=2)
+        assert device_type(com).communicator.nranks == 2
+        # make sure we can pass a shared_msg_file
         dev2 = device_type(shared_msg_file="shared.txt")
     else:
         with pytest.raises(RuntimeError):
