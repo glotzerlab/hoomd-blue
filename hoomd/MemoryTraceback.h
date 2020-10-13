@@ -45,4 +45,3 @@ class PYBIND11_EXPORT MemoryTraceback
         mutable std::map<std::pair<const void *,unsigned int>, std::string > m_type_hints;      //!< Types of memory allocations
         mutable std::map<std::pair<const void *,unsigned int>, std::string > m_tags;            //!< Tags of memory allocations
     };
-

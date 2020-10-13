@@ -141,4 +141,3 @@ void MemoryTraceback::outputTraces(std::shared_ptr<Messenger> msg) const
         free(symbols);
         }
     }
-
