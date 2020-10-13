@@ -828,7 +828,9 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, unsigned int seed, unsi
         unsigned int ptag = h_tag.data[j];
 
         // Seed the RNG
-        hoomd::RandomGenerator rng(hoomd::RNGIdentifier::ParticleGroupThermalize, seed, ptag, timestep);
+        hoomd::RandomGenerator rng(
+            hoomd::Seed(hoomd::RNGIdentifier::ParticleGroupThermalize, timestep, seed),
+            hoomd::Counter::fromUInt32(ptag));
 
         // Generate a random velocity
         Scalar mass =  h_vel.data[j].w;

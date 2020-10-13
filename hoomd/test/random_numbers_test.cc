@@ -421,6 +421,15 @@ UP_TEST( poisson_large_float_test )
     check_moments(gen, 4000000, mean, var, skew, exkurtosis, 0.03, false);
     }
 
+//! Test that Seed initializes correctly
+UP_TEST( seed_fromIDStepSeed )
+    {
+    auto s = hoomd::Seed(0xfa, 0xabcdef1234567890, 0x5eed);
+
+    UP_ASSERT_EQUAL(s.getKey()[0], 0xfa5eed12);
+    UP_ASSERT_EQUAL(s.getKey()[1], 0x34567890);
+    }
+
 // //! Find performance crossover
 // /*! Note: this code was written for a one time use to find the empirical crossover. It requires that the private:
 //     be commented out in PoissonDistribution.

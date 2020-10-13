@@ -117,6 +117,83 @@ R123_CUDA_DEVICE R123_STATIC_INLINE Ftype uneg11(Itype in)
 
 namespace hoomd
 {
+/** RNG seed
+
+    RandomGenerator initializes with a 64-bit seed and a 128-bit counter. Seed and Counter provide
+    interfaces for common seeding patterns used across HOOMD to prevent code duplication and help
+    ensure that seeds are initialized correctly.
+
+    Seed provides one constructor as we expect this to be used everywhere in HOOMD. The constructor
+    is a function of the class id, the current timestep and the user seed.
+*/
+class Seed
+    {
+    public:
+    /** Construct a Seed from a class ID, timestep and user seed.
+
+        The seed is 8 bytes. Construct this from an 1 byte class id, 2 byte seed, and the lower
+        5 bytes of the timestep.
+
+        id seed1 seed0 timestep4 | timestep3 timestep2 timestep1 timestep0
+    */
+    Seed(uint8_t id, uint64_t timestep, uint16_t seed)
+        {
+        m_key = {{uint32_t(id) << 24 | uint32_t(seed) << 8
+                      | uint32_t((timestep & 0x000000ff00000000) >> 32),
+                  uint32_t(timestep & 0x00000000ffffffff)}};
+        }
+
+    /// Get the key
+    const r123::Philox4x32::key_type& getKey() const
+        {
+        return m_key;
+        }
+
+    private:
+    r123::Philox4x32::key_type m_key;
+    };
+
+/** RNG Counter
+
+    RandomGenerator initializes with a 64-bit seed and a 128-bit counter. Seed and Counter provide
+    interfaces for common seeding patterns used across HOOMD to prevent code duplication and help
+    ensure that seeds are initialized correctly.
+
+    Counter provides explicitly named static methods to construct seeds in order to avoid confusion
+    with multiple constructors that accept different sized integer inputs.
+*/
+class Counter
+    {
+    public:
+    /** Default constructor.
+
+    Constructs a 0 valued counter.
+    */
+    Counter() : m_ctr({{0, 0, 0, 0}})
+        {
+        }
+
+    /// Construct a counter from up to 3 32-bit unsigned integers
+    static Counter fromUInt32(uint32_t a=0, uint32_t b=0, uint32_t c=0)
+        {
+        r123::Philox4x32::ctr_type ctr = {{0, c, b, a}};
+        return Counter(ctr);
+        }
+
+    /// Get the counter
+    const r123::Philox4x32::ctr_type& getCounter() const
+        {
+        return m_ctr;
+        }
+
+    private:
+    Counter(r123::Philox4x32::ctr_type ctr) : m_ctr(ctr)
+        {
+        }
+
+    const r123::Philox4x32::ctr_type m_ctr;
+    };
+
 //! Philox random number generator
 /*! random123 is a counter based random number generator. Given an input seed vector,
      it produces a random output. Outputs from one seed to the next are not correlated.
@@ -154,6 +231,13 @@ class RandomGenerator
                                       uint32_t counter2=0,
                                       uint32_t counter3=0);
 
+        /** Construct a random generator from a Seed and a Counter
+
+            @param seed RNG seed.
+            @param counter Initial value of the RNG counter.
+        */
+        DEVICE inline RandomGenerator(const Seed& seed, const Counter& counter);
+
         //! Generate uniformly distributed 32-bit values
         DEVICE inline r123::Philox4x32::ctr_type operator()();
 
@@ -180,6 +264,12 @@ DEVICE inline RandomGenerator::RandomGenerator(uint32_t seed1,
     {
     m_key = {{seed1, seed2}};
     m_ctr = {{0, counter3, counter2, counter1}};
+    }
+
+DEVICE inline RandomGenerator::RandomGenerator(const Seed& seed, const Counter& counter)
+    {
+    m_key = seed.getKey();
+    m_ctr = counter.getCounter();
     }
 
 /*! \returns A random uniform 32-bit unsigned integer.
