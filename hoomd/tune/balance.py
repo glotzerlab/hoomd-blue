@@ -2,8 +2,6 @@
 
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.operation import Tuner
-from hoomd.operation import Tuner
-from hoomd.parameterdicts import ParameterDict
 from hoomd.trigger import Trigger
 from hoomd import _hoomd
 import hoomd

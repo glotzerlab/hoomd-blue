@@ -43,13 +43,8 @@ class Operations(Collection):
     only ever hold one integrator at a time. On the other hand, an `Operations`
     object can hold any number of tuners, updaters, writers, or computes. To
     see examples of these types of operations see `hoomd.tune` (tuners),
-<<<<<<< HEAD
     `hoomd.update` (updaters), `hoomd.hpmc.integrate` or `hoomd.md.integrate`
     (integrators), , `hoomd.write` (writers), and `hoomd.md.thermo`
-=======
-    `hoomd.update` (updaters), `hoomd.hpmc.integrate` or `hoomd.md.Integrator`
-    (integrators), , `hoomd.dump` (analyzers), and `hoomd.md.thermo`
->>>>>>> feature/new-object-API
     (computes).
 
     A given instance of an operation class can only be added to a single
