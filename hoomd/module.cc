@@ -5,7 +5,6 @@
 // Maintainer: joaander All developers are free to add the calls needed to export their modules
 #include "HOOMDMath.h"
 #include "ExecutionConfiguration.h"
-#include "MemoryTraceback.h"
 #include "ClockSource.h"
 #include "Profiler.h"
 #include "ParticleData.h"
