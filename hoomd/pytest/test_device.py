@@ -21,27 +21,27 @@ def _assert_common_properties(dev, notice_level, msg_file, num_cpu_threads):
     assert type(dev.communicator) == hoomd.comm.Communicator
 
 
-def test_common_properties():
+def test_common_properties(device):
     # test default params
-    dev = hoomd.device.auto_select()
-    _assert_common_properties(dev, 2, None, 1)
+    _assert_common_properties(device, 2, None, 1)
 
     # make sure we can set those properties
-    dev.notice_level = 3
-    dev.msg_file = "example.txt"
-    dev.num_cpu_threads = 5
-    _assert_common_properties(dev, 3, "example.txt", 5)
+    device.notice_level = 3
+    device.msg_file = "example.txt"
+    device.num_cpu_threads = 5
+    _assert_common_properties(device, 3, "example.txt", 5)
 
     # now make a device with non-default arguments
-    dev = hoomd.device.auto_select(msg_file="example2.txt", notice_level=10)
+    device_type = type(device)
+    dev = device_type(msg_file="example2.txt", notice_level=10)
     _assert_common_properties(dev, notice_level=10, msg_file="example2.txt", num_cpu_threads=10)
 
     # shared_msg_file_stuff
     if hoomd.version.mpi_enabled:
-        dev2 = hoomd.device.auto_select(shared_msg_file="shared.txt")
+        dev2 = device_type(shared_msg_file="shared.txt")
     else:
         with pytest.raises(RuntimeError):
-            dev2 = hoomd.device.auto_select(shared_msg_file="shared.txt")
+            dev2 = device_type(shared_msg_file="shared.txt")
 
 
 def _assert_gpu_properties(dev, mem_traceback, gpu_error_checking):
@@ -58,13 +58,35 @@ def test_gpu_specific_properties(device):
     # make sure we can set the properties
     device.memory_traceback = True
     device.gpu_error_checking = False
-    device.memory_traceback
-    #_assert_gpu_properties(device, True, False)
+    _assert_gpu_properties(device, True, False)
 
-    # make sure GPU is available, auto-select gives a GPU, and we can still make a CPU
+    # make sure we can give a list of GPU ids to the constructor
+    hoomd.device.GPU(gpu_ids=[0])
+
+@pytest.mark.gpu
+def test_other_gpu_specifics(device):
+    # make sure GPU is available and auto-select gives a GPU
     assert hoomd.device.GPU.is_available()
     assert type(hoomd.device.auto_select()) == hoomd.device.GPU
+
+    # make sure we can still make a CPU
     hoomd.device.CPU()
+
+
+def _assert_list_str(values):
+    """Asserts the input is a list of strings."""
+    assert type(values) == list
+    if len(values) > 0:
+        assert type(values[0]) == str
+
+
+@pytest.mark.gpu
+def test_query_hardware_info(device):
+    reasons = device.get_unavailable_device_reasons()
+    _assert_list_str(reasons)
+
+    devices = device.get_available_devices()
+    _assert_list_str(devices)
 
 
 def test_cpu_build_specifics():
@@ -72,3 +94,4 @@ def test_cpu_build_specifics():
         pytest.skip("Don't run CPU-build specific tests when GPU is available")
     assert hoomd.device.GPU.is_available() == False
     assert type(hoomd.device.auto_select()) == hoomd.device.CPU
+
