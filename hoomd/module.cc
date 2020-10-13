@@ -227,7 +227,6 @@ PYBIND11_MODULE(_hoomd, m)
     #endif
     export_MPIConfiguration(m);
     export_ExecutionConfiguration(m);
-    export_MemoryTraceback(m);
     export_SystemDefinition(m);
     export_SnapshotSystemData(m);
     export_BondedGroupData<BondData,Bond>(m,"BondData","BondDataSnapshot");

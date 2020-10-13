@@ -46,6 +46,3 @@ class PYBIND11_EXPORT MemoryTraceback
         mutable std::map<std::pair<const void *,unsigned int>, std::string > m_tags;            //!< Tags of memory allocations
     };
 
-#ifndef __HIPCC__
-void export_MemoryTraceback(pybind11::module& m);
-#endif
