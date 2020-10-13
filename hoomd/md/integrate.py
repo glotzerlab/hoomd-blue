@@ -14,7 +14,7 @@ from hoomd.data.typeconverter import OnlyFrom
 from hoomd.integrate import BaseIntegrator
 from hoomd.data.syncedlist import SyncedList
 from hoomd.md.methods import _Method
-from hoomd.md.force import _Force
+from hoomd.md.force import Force
 from hoomd.md.constrain import _ConstraintForce
 import itertools
 
@@ -38,7 +38,7 @@ class _DynamicIntegrator(BaseIntegrator):
         forces = [] if forces is None else forces
         constraints = [] if constraints is None else constraints
         methods = [] if methods is None else methods
-        self._forces = SyncedList(lambda x: isinstance(x, _Force),
+        self._forces = SyncedList(lambda x: isinstance(x, Force),
                                   to_synced_list=lambda x: x._cpp_obj,
                                   iterable=forces)
 
@@ -105,7 +105,7 @@ class Integrator(_DynamicIntegrator):
             subset of particles. The intersection of the subsets must be null.  
             The default value of ``None`` initializes an empty list. 
 
-        forces (Sequence[hoomd.md.force._Force]): Sequence of forces applied to 
+        forces (Sequence[hoomd.md.force.Force]): Sequence of forces applied to 
             the particles in the system. All the forces are summed together. 
             The default value of ``None`` initializes an empty list.
 
@@ -161,7 +161,7 @@ class Integrator(_DynamicIntegrator):
             Each integration method can be applied to only a specific subset of
             particles.
 
-        forces (List[hoomd.md.force._Force]): List of forces applied to
+        forces (List[hoomd.md.force.Force]): List of forces applied to
             the particles in the system. All the forces are summed together.
 
         aniso (str): Whether rotational degrees of freedom are integrated.

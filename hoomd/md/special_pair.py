@@ -15,17 +15,17 @@ listed particles.
 """
 
 from hoomd.md import _md
-from hoomd.md.force import _Force
+from hoomd.md.force import Force
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.parameterdicts import TypeParameterDict
 import hoomd
 
 
-class _SpecialPair(_Force):
+class SpecialPair(Force):
     """Base class special pair forces.
 
     Note:
-        :py:class:`_SpecialPair` is the base class for all special pair potentials.
+        :py:class:`SpecialPair` is the base class for all special pair potentials.
         Users should not instantiate this class directly.
 
     """
@@ -44,7 +44,7 @@ class _SpecialPair(_Force):
         super()._attach()
 
 
-class LJ(_SpecialPair):
+class LJ(SpecialPair):
     R""" LJ special pair potential.
 
     :py:class:`LJ` specifies a Lennard-Jones potential energy between the two
@@ -107,7 +107,7 @@ class LJ(_SpecialPair):
         self._extend_typeparam([params, r_cut])
 
 
-class Coulomb(_SpecialPair):
+class Coulomb(SpecialPair):
     R""" Coulomb special pair potential.
 
     :py:class:`Coulomb` specifies a Coulomb potential energy between the two

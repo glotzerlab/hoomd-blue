@@ -34,11 +34,13 @@ class _force():
     pass
 
 
-class _Force(_HOOMDBaseObject):
-    '''Constructs the force.
+class Force(_HOOMDBaseObject):
+    '''Defines a force in HOOMD-blue.
+
+    Pair, angle, bond, and other forces are subclasses of this class.
 
     Note:
-        :py:class:`_Force` is the base class for all loggable forces.
+        :py:class:`Force` is the base class for all loggable forces.
         Users should not instantiate this class directly.
 
     Initializes some loggable quantities.
@@ -93,7 +95,7 @@ class _Force(_HOOMDBaseObject):
             return None
 
 
-class constant(_Force):
+class constant(Force):
     R""" Constant force.
 
     Args:
@@ -246,7 +248,7 @@ class constant(_Force):
         pass
 
 
-class Active(_Force):
+class Active(Force):
     R""" Active force.
 
     Attributes:
@@ -319,7 +321,7 @@ class Active(_Force):
         super()._attach()
 
 
-class dipole(_Force):
+class dipole(Force):
     R""" Treat particles as dipoles in an electric field.
 
     Args:

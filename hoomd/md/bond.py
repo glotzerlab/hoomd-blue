@@ -7,7 +7,7 @@ R""" Bond potentials."""
 
 from hoomd import _hoomd
 from hoomd.md import _md
-from hoomd.md.force import _Force
+from hoomd.md.force import Force
 from hoomd.md import force
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.parameterdicts import TypeParameterDict
@@ -16,11 +16,11 @@ import hoomd
 import math
 
 
-class _Bond(_Force):
+class Bond(Force):
     """Constructs the bond potential.
 
     Note:
-        :py:class:`_Bond` is the base class for all bond potentials.
+        :py:class:`Bond` is the base class for all bond potentials.
         Users should not instantiate this class directly.
     """
     def _attach(self):
@@ -35,7 +35,7 @@ class _Bond(_Force):
 
         super()._attach()
 
-class Harmonic(_Bond):
+class Harmonic(Bond):
     R""" Harmonic bond potential.
 
     :py:class:`Harmonic` specifies a harmonic potential energy between the two
@@ -73,7 +73,7 @@ class Harmonic(_Bond):
         self._add_typeparam(params)
 
 
-class FENE(_Bond):
+class FENE(Bond):
     R""" FENE bond potential.
 
     :py:class:`FENE` specifies a FENE potential energy between the two particles
