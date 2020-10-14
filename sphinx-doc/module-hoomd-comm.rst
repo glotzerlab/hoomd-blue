@@ -1,16 +1,17 @@
-hoomd.comm
-----------
+hoomd.communicator
+------------------
 
 .. rubric:: Overview
+
+.. py:currentmodule:: hoomd.communicator
 
 .. autosummary::
     :nosignatures:
 
-    hoomd.comm.Communicator
-    hoomd.comm.decomposition
+    Communicator
 
 .. rubric:: Details
 
-.. automodule:: hoomd.comm
+.. automodule:: hoomd.communicator
     :synopsis: MPI run interface.
-    :members:
+    :members: Communicator

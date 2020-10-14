@@ -226,7 +226,7 @@ def pytest_configure(config):
 
 def abort(exitstatus):
     # get a default mpi communicator
-    communicator = hoomd.comm.Communicator()
+    communicator = hoomd.communicator.Communicator()
     # abort the deadlocked ranks
     hoomd._hoomd.abort_mpi(communicator.cpp_mpi_conf, exitstatus)
 

@@ -9,10 +9,10 @@
 
 
 from hoomd.md import _md
-from hoomd.parameterdicts import ParameterDict
-from hoomd.typeconverter import OnlyFrom
+from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data.typeconverter import OnlyFrom
 from hoomd.integrate import _BaseIntegrator
-from hoomd.syncedlist import SyncedList
+from hoomd.data.syncedlist import SyncedList
 from hoomd.md.methods import _Method
 from hoomd.md.force import _Force
 from hoomd.md.constrain import _ConstraintForce
@@ -92,6 +92,7 @@ class _DynamicIntegrator(_BaseIntegrator):
             children.extend(child._children)
 
         return children
+
 
 class Integrator(_DynamicIntegrator):
     R""" Enables a variety of standard integration methods.

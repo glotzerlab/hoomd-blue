@@ -12,7 +12,6 @@ hpmc
 .. toctree::
     :maxdepth: 3
 
-    module-hpmc-analyze
     module-hpmc-compute
     module-hpmc-field
     module-hpmc-integrate

@@ -9,10 +9,10 @@
 from hoomd.md import _md
 import hoomd
 from hoomd.operation import _HOOMDBaseObject
-from hoomd.parameterdicts import ParameterDict, TypeParameterDict
+from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.filter import ParticleFilter
-from hoomd.typeparam import TypeParameter
-from hoomd.typeconverter import OnlyType, OnlyIf, to_type_converter
+from hoomd.data.typeparam import TypeParameter
+from hoomd.data.typeconverter import OnlyType, OnlyIf, to_type_converter
 from hoomd.variant import Variant
 from collections.abc import Sequence
 

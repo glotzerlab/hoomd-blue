@@ -1,7 +1,7 @@
 from pytest import fixture, raises
 from hoomd.pytest.dummy import DummyOperation, DummySimulation
 from hoomd.operation import _Operation
-from hoomd.syncedlist import SyncedList
+from hoomd.data.syncedlist import SyncedList
 
 
 @fixture

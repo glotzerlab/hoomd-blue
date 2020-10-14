@@ -211,10 +211,10 @@ def test_writer_order(simulation_factory, two_particle_snapshot_factory):
 
     record = StepRecorder()
     periodic = hoomd.trigger.Periodic(period=100, phase=0)
-    analyzer = hoomd.analyze.CustomAnalyzer(action=record, trigger=periodic)
+    writer = hoomd.write.CustomWriter(action=record, trigger=periodic)
 
     sim = simulation_factory(two_particle_snapshot_factory())
-    sim.operations.analyzers.append(analyzer)
+    sim.operations.writers.append(writer)
 
     sim.run(500)
     assert record.steps == [100, 200, 300, 400, 500]
@@ -236,10 +236,10 @@ def test_writer_order_initial(simulation_factory,
 
     record = StepRecorder()
     periodic = hoomd.trigger.Periodic(period=100, phase=0)
-    analyzer = hoomd.analyze.CustomAnalyzer(action=record, trigger=periodic)
+    writer = hoomd.write.CustomWriter(action=record, trigger=periodic)
 
     sim = simulation_factory(two_particle_snapshot_factory())
-    sim.operations.analyzers.append(analyzer)
+    sim.operations.writers.append(writer)
 
     sim.run(500, write_at_start=True)
     assert record.steps == [0, 100, 200, 300, 400, 500]

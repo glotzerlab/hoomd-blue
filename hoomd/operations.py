@@ -11,9 +11,9 @@ added and removed from a `hoomd.Simulation`.
 from collections.abc import Collection
 from itertools import chain
 import hoomd.integrate
-from hoomd.syncedlist import SyncedList
-from hoomd.operation import Analyzer, Updater, Tuner, Compute
-from hoomd.typeconverter import OnlyType
+from hoomd.data.syncedlist import SyncedList
+from hoomd.data.typeconverter import OnlyType
+from hoomd.operation import Writer, Updater, Tuner, Compute
 from hoomd.tune import ParticleSorter
 
 
@@ -39,12 +39,12 @@ class Operations(Collection):
     sequences described below.
 
     The types of operations which can be added to an `Operations` object are
-    tuners, updaters, integrators, analyzers, and computes. An `Operations` can
+    tuners, updaters, integrators, writers, and computes. An `Operations` can
     only ever hold one integrator at a time. On the other hand, an `Operations`
-    object can hold any number of tuners, updaters, analyzers, or computes. To
+    object can hold any number of tuners, updaters, writers, or computes. To
     see examples of these types of operations see `hoomd.tune` (tuners),
-    `hoomd.update` (updaters), `hoomd.hpmc.integrate` or `hoomd.md.Integrator`
-    (integrators), , `hoomd.dump` (analyzers), and `hoomd.md.thermo`
+    `hoomd.update` (updaters), `hoomd.hpmc.integrate` or `hoomd.md.integrate`
+    (integrators), , `hoomd.write` (writers), and `hoomd.md.thermo`
     (computes).
 
     A given instance of an operation class can only be added to a single
@@ -66,7 +66,7 @@ class Operations(Collection):
         self._scheduled = False
         self._updaters = SyncedList(OnlyType(Updater),
                                     _triggered_op_conversion)
-        self._analyzers = SyncedList(OnlyType(Analyzer),
+        self._writers = SyncedList(OnlyType(Writer),
                                      _triggered_op_conversion)
         self._tuners = SyncedList(OnlyType(Tuner), lambda x: x._cpp_obj)
         self._computes = SyncedList(OnlyType(Compute), lambda x: x._cpp_obj)
@@ -77,8 +77,8 @@ class Operations(Collection):
     def _get_proper_container(self, operation):
         if isinstance(operation, Updater):
             return self._updaters
-        elif isinstance(operation, Analyzer):
-            return self._analyzers
+        elif isinstance(operation, Writer):
+            return self._writers
         elif isinstance(operation, Tuner):
             return self._tuners
         elif isinstance(operation, Compute):
@@ -95,7 +95,7 @@ class Operations(Collection):
 
         Args:
             operation (`hoomd.operation._Operation`): A HOOMD-blue tuner,
-                updater, integrator, analyzer, or compute,  to add to the
+                updater, integrator, writer, or compute,  to add to the
                 collection.
 
         Raises:
@@ -130,7 +130,7 @@ class Operations(Collection):
 
         Args:
             operation (`hoomd.operation._Operation`): A HOOMD-blue tuner,
-                updater, integrator, analyzer, or compute to add to the object.
+                updater, integrator, writer, or compute to add to the object.
         """
         self.add(operation)
         return self
@@ -196,8 +196,8 @@ class Operations(Collection):
             self.integrator._attach()
         if not self.updaters._synced:
             self.updaters._sync(sim, sim._cpp_sys.updaters)
-        if not self.analyzers._synced:
-            self.analyzers._sync(sim, sim._cpp_sys.analyzers)
+        if not self.writers._synced:
+            self.writers._sync(sim, sim._cpp_sys.analyzers)
         if not self.tuners._synced:
             self.tuners._sync(sim, sim._cpp_sys.tuners)
         if not self.computes._synced:
@@ -207,7 +207,7 @@ class Operations(Collection):
     def _unschedule(self):
         """Undo the effects of `Operations._schedule`."""
         self._integrator._detach()
-        self._analyzers._unsync()
+        self._writers._unsync()
         self._updaters._unsync()
         self._tuners._unsync()
         self._computes._unsync()
@@ -230,7 +230,7 @@ class Operations(Collection):
         """Iterates through all contained operations."""
         integrator = (self._integrator,) if self._integrator else []
         yield from chain(
-            self._tuners, self._updaters, integrator, self._analyzers,
+            self._tuners, self._updaters, integrator, self._writers,
             self._computes)
 
     def __len__(self):
@@ -280,13 +280,13 @@ class Operations(Collection):
         return self._updaters
 
     @property
-    def analyzers(self):
-        """list[`hoomd.operation.Analyzer`]: A list of analyzer operations.
+    def writers(self):
+        """list[`hoomd.operation.Writer`]: A list of writer operations.
 
-        Holds the list of analyzers associated with this collection. The list
+        Holds the list of writers associated with this collection. The list
         can be modified as a standard Python list.
         """
-        return self._analyzers
+        return self._writers
 
     @property
     def tuners(self):

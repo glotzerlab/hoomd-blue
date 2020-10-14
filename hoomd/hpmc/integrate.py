@@ -5,9 +5,9 @@
 """Hard particle Monte Carlo integrators."""
 
 from hoomd import _hoomd
-from hoomd.parameterdicts import TypeParameterDict, ParameterDict
-from hoomd.typeconverter import OnlyIf, to_type_converter
-from hoomd.typeparam import TypeParameter
+from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
+from hoomd.data.typeconverter import OnlyIf, to_type_converter
+from hoomd.data.typeparam import TypeParameter
 from hoomd.hpmc import _hpmc
 from hoomd.integrate import _BaseIntegrator
 from hoomd.logging import log

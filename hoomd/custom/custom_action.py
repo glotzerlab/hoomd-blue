@@ -20,7 +20,8 @@ class Action(metaclass=_AbstractLoggable):
     writing output, or analyzing some property of the system.
 
     To use subclasses of this class, the object must be passed as an argument
-    to a `hoomd.update.CustomUpdater` or `hoomd.analyze.CustomAnalyzer`
+    to a `hoomd.update.CustomUpdater`, `hoomd.write.CustomWriter`, or
+    `hoomd.tune.CustomTuner`.
     constructor.
 
     If the pressure, rotational kinetic energy, or external field virial is

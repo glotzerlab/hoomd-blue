@@ -7,9 +7,9 @@ from hoomd.md import _md
 from hoomd.md import force
 from hoomd.md import nlist as nl
 from hoomd.md.nlist import _NList
-from hoomd.parameterdicts import ParameterDict, TypeParameterDict
-from hoomd.typeparam import TypeParameter
-from hoomd.typeconverter import OnlyFrom, OnlyType
+from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
+from hoomd.data.typeparam import TypeParameter
+from hoomd.data.typeconverter import OnlyFrom, OnlyType
 
 import math
 import json

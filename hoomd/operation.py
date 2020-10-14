@@ -14,10 +14,10 @@ from hoomd.trigger import Trigger
 from hoomd.variant import Variant, Constant
 from hoomd.filter import ParticleFilter
 from hoomd.logging import Loggable, log
-from hoomd.typeconverter import RequiredArg
+from hoomd.data.typeconverter import RequiredArg
 from hoomd.util import NamespaceDict
 from hoomd._hoomd import GSDStateReader
-from hoomd.parameterdicts import ParameterDict
+from hoomd.data.parameterdicts import ParameterDict
 
 from collections.abc import Mapping
 from copy import deepcopy
@@ -521,7 +521,7 @@ class Updater(_TriggeredOperation):
     _cpp_list_name = 'updaters'
 
 
-class Analyzer(_TriggeredOperation):
+class Writer(_TriggeredOperation):
     """Base class for all HOOMD analyzers.
 
     An analyzer is an operation which writes out a simulation's state.

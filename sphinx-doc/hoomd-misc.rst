@@ -11,16 +11,11 @@ some user facing aspects.
 .. autosummary::
     :nosignatures:
 
-    typeparam.TypeParameter
+    hoomd.operation._HOOMDBaseObject
 
 .. rubric:: Details
 
 .. TODO: Remove undoc-members and document only members that users interface
 .. with directly - after writing docstrings for TypeParameter
 
-.. autoclass:: hoomd.typeparam.TypeParameter
-    :members: default, keys
-    :undoc-members:
-
 .. autoclass:: hoomd.operation._HOOMDBaseObject
-
