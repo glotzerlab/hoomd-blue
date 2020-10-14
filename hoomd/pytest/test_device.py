@@ -10,20 +10,21 @@ def test_gpu_profile(device):
         pass
 
 
-def _assert_common_properties(dev, notice_level, msg_file, num_cpu_threads):
+def _assert_common_properties(dev, notice_level, msg_file, num_cpu_threads=None):
     """Assert the properties common to all devices are correct."""
     assert dev.notice_level == notice_level
     assert dev.msg_file == msg_file
-    if hoomd.version.tbb_enabled:
-        assert dev.num_cpu_threads == num_cpu_threads
-    else:
-        assert dev.num_cpu_threads == 1
+    if num_cpu_threads is not None:
+        if hoomd.version.tbb_enabled:
+            assert dev.num_cpu_threads == num_cpu_threads
+        else:
+            assert dev.num_cpu_threads == 1
     assert type(dev.communicator) == hoomd.comm.Communicator
 
 
 def test_common_properties(device):
-    # test default params
-    _assert_common_properties(device, 2, None, 1)
+    # test default params, don't assert default tbb threads b/c it depends on hardware
+    _assert_common_properties(device, 2, None)
 
     # make sure we can set those properties
     device.notice_level = 3
@@ -33,14 +34,14 @@ def test_common_properties(device):
 
     # now make a device with non-default arguments
     device_type = type(device)
-    dev = device_type(msg_file="example2.txt", notice_level=10)
+    dev = device_type(msg_file="example2.txt", notice_level=10, num_cpu_threads=10)
     _assert_common_properties(dev, notice_level=10, msg_file="example2.txt", num_cpu_threads=10)
 
     # MPI conditional stuff
     if hoomd.version.mpi_enabled:
-        # make sure we can pass a non-default communciator
-        com = hoomd.comm.Communicator(nrank=2)
-        assert device_type(communicator=com).communicator.num_ranks == 2
+        # make sure we can pass a communciator
+        com = hoomd.comm.Communicator(nrank=1)
+        assert device_type(communicator=com).communicator.num_ranks == 1
         # make sure we can pass a shared_msg_file
         dev2 = device_type(shared_msg_file="shared.txt")
     else:
