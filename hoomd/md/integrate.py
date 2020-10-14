@@ -15,7 +15,7 @@ from hoomd.integrate import BaseIntegrator
 from hoomd.data.syncedlist import SyncedList
 from hoomd.md.methods import _Method
 from hoomd.md.force import Force
-from hoomd.md.constrain import _ConstraintForce
+from hoomd.md.constrain import ConstraintForce
 import itertools
 
 
@@ -43,7 +43,7 @@ class _DynamicIntegrator(BaseIntegrator):
                                   iterable=forces)
 
         self._constraints = SyncedList(lambda x: isinstance(x,
-                                                            _ConstraintForce),
+                                                            ConstraintForce),
                                        to_synced_list=lambda x: x._cpp_obj,
                                        iterable=constraints)
 
@@ -113,7 +113,7 @@ class Integrator(_DynamicIntegrator):
             (bool), default 'auto' (autodetect if there is anisotropic factor
             from any defined active or constraint forces).
 
-        constraints (Sequence[hoomd.md.constrain._ConstraintForce]): Sequence of
+        constraints (Sequence[hoomd.md.constrain.ConstraintForce]): Sequence of
             constraint forces applied to the particles in the system.
             The default value of ``None`` initializes an empty list.
 
@@ -166,7 +166,7 @@ class Integrator(_DynamicIntegrator):
 
         aniso (str): Whether rotational degrees of freedom are integrated.
 
-        constraints (List[hoomd.md.constrain._ConstraintForce]): List of
+        constraints (List[hoomd.md.constrain.ConstraintForce]): List of
             constraint forces applied to the particles in the system.
     """
 

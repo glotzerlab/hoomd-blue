@@ -15,7 +15,9 @@ md.force
 
 .. automodule:: hoomd.md.force
     :synopsis: Apply forces to particles.
-    :members: Force,
-              Active
-    :no-inherited-members:
-    :show-inheritance:
+
+    .. autoclass:: Force
+
+    .. autoclass:: Active
+        :show-inheritance:
+        :no-inherited-members:
