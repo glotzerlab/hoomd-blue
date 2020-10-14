@@ -521,7 +521,7 @@ class muvt(_updater):
 
     Gibbs ensemble simulations are also supported, where particles and volume are swapped between two or more
     boxes.  Every box correspond to one MPI partition, and can therefore run on multiple ranks.
-    See :py:mod:`hoomd.comm` and the --nrank command line option for how to split a MPI task into partitions.
+    See ``hoomd.comm`` and the --nrank command line option for how to split a MPI task into partitions.
 
     Note:
         Multiple Gibbs ensembles are also supported in a single parallel job, with the ngibbs option
