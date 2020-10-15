@@ -8,14 +8,16 @@ md.force
 .. autosummary::
     :nosignatures:
 
-    _Force
+    Force
     Active
 
 .. rubric:: Details
 
 .. automodule:: hoomd.md.force
     :synopsis: Apply forces to particles.
-    :members: _Force,
-              Active
-    :no-inherited-members:
-    :show-inheritance:
+
+    .. autoclass:: Force
+
+    .. autoclass:: Active
+        :show-inheritance:
+        :no-inherited-members:

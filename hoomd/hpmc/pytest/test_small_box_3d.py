@@ -52,7 +52,7 @@ def test_self_interaction_no_overlap(one_cube_simulation):
     with sim.state.cpu_local_snapshot as data:
         data.particles.orientation[0, :] = [1, 0, 0, 0]
 
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     assert mc.overlaps == 0
 
@@ -72,7 +72,7 @@ def test_self_interaction_overlap(one_cube_simulation):
             0.9238795325112867, 0, 0, 0.3826834323650898
         ]
 
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     assert mc.overlaps > 0
 

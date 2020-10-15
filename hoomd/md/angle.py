@@ -5,19 +5,19 @@
 from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.md import force
-from hoomd.md.force import _Force
-from hoomd.typeparam import TypeParameter
-from hoomd.parameterdicts import TypeParameterDict
+from hoomd.md.force import Force
+from hoomd.data.typeparam import TypeParameter
+from hoomd.data.parameterdicts import TypeParameterDict
 import hoomd
 
 import math
 
 
-class _Angle(_Force):
+class Angle(Force):
     """Constructs the angular bond potential.
 
     Note:
-        :py:class:`_Angle` is the base class for all angular potentials.
+        :py:class:`Angle` is the base class for all angular potentials.
         Users should not instantiate this class directly.
     """
     def _attach(self):
@@ -35,7 +35,7 @@ class _Angle(_Force):
 
         super()._attach()
 
-class Harmonic(_Angle):
+class Harmonic(Angle):
     R""" Harmonic angle potential.
 
     The command angle.harmonic specifies a harmonic potential energy between
@@ -74,7 +74,7 @@ class Harmonic(_Angle):
         self._add_typeparam(params)
 
 
-class Cosinesq(_Angle):
+class Cosinesq(Angle):
     R""" Cosine squared angle potential.
 
     The command angle.cosinesq specifies a cosine squared potential energy

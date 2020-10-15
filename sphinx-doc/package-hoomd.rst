@@ -31,16 +31,15 @@ hoomd
 .. toctree::
    :maxdepth: 3
 
-   module-hoomd-analyze
    module-hoomd-array
    module-hoomd-comm
    module-hoomd-custom
    module-hoomd-data
    module-hoomd-device
-   module-hoomd-dump
    module-hoomd-filter
    module-hoomd-integrate
    module-hoomd-logging
+   module-hoomd-operation
    module-hoomd-triggers
    module-hoomd-tune
    module-hoomd-update
@@ -48,4 +47,3 @@ hoomd
    module-hoomd-variant
    module-hoomd-version
    module-hoomd-write
-   hoomd-misc

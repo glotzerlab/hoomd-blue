@@ -1,8 +1,8 @@
 import hoomd
 from hoomd.md import _md
 from hoomd.md.pair import _NBody
-from hoomd.parameterdicts import TypeParameterDict
-from hoomd.typeparam import TypeParameter
+from hoomd.data.parameterdicts import TypeParameterDict
+from hoomd.data.typeparam import TypeParameter
 
 
 class _ThreeBody(_NBody):
@@ -143,6 +143,19 @@ class RevCross(_ThreeBody):
         Choosing :math:`\lambda=1` pushes the system towards clusterization because the three-body term is not enough to
         compensate the energy of multiple bonds, so it may cause unphysical situations.
 
+    Use ``params`` dictionary to set potential coefficients. The coefficients must be set per unique pair of particle types.
+
+    Attributes:
+        params (TypeParameter[tuple[``particle_type``, ``particle_type``], dict]):
+            The revcross potential parameters. The dictionary has the following keys:
+
+            * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (in units of energy)
+
+            * ``sigma`` (`float`, **required**) - :math:`\sigma` - (in distance units)
+
+            * ``n`` (`float`, **required**) - *n* - (unitless)
+
+            * ``lambda3`` (`float`, **required**) - *lambda3`* - (unitless)
 
     Example::
 

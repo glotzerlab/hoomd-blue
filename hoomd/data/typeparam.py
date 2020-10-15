@@ -1,4 +1,4 @@
-from hoomd.parameterdicts import AttachedTypeParameterDict
+from hoomd.data.parameterdicts import AttachedTypeParameterDict
 from copy import deepcopy
 
 

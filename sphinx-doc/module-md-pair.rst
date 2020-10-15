@@ -8,7 +8,7 @@ md.pair
 .. autosummary::
     :nosignatures:
 
-    _NBody
+    Pair
     Buckingham
     DLVO
     DPD
@@ -32,7 +32,7 @@ md.pair
 
 .. automodule:: hoomd.md.pair
     :synopsis: Pair potentials.
-    :members: _NBody,
+    :members: Pair,
         Buckingham,
         DLVO,
         DPD,

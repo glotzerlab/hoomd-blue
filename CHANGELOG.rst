@@ -364,11 +364,7 @@ v2.4.2 (2018-12-20)
    returned from ``ParticleData`` and other classes (replace by
    ``GlobalArray``)
 
-<<<<<<< HEAD
-v2.4.1 (2018/11/27)
-=======
 v2.4.1 (2018-11-27)
->>>>>>> master
 ^^^^^^^^^^^^^^^^^^^
 
 *Bug fixes*

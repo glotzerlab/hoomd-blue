@@ -9,7 +9,7 @@ R""" Constraints.
 Constraint forces constrain a given set of particle to a given surface, to have
 some relative orientation, or impose some other type of constraint. For example,
 a group of particles can be constrained to the surface of a sphere with
-:py:class:`sphere`.
+`sphere`.
 
 As with other force commands in hoomd, multiple constrain commands can be issued
 to specify multiple constraints, which are additively applied.
@@ -35,7 +35,7 @@ import hoomd
 # hoomd writers. 1) The instance of the c++ constraint force itself is tracked
 # and added to the System 2) methods are provided for disabling the force from
 # being added to the net force on each particle
-class _ConstraintForce():
+class ConstraintForce():
     ## \internal
     # \brief Constructs the constraint force
     #
@@ -52,8 +52,8 @@ class _ConstraintForce():
         self.cpp_force = None
 
         # increment the id counter
-        id = _ConstraintForce.cur_id
-        _ConstraintForce.cur_id += 1
+        id = ConstraintForce.cur_id
+        ConstraintForce.cur_id += 1
 
         self.force_name = "constraint_force%d" % (id)
         self.enabled = True
@@ -144,9 +144,9 @@ class _ConstraintForce():
 
 
 # set default counter
-_ConstraintForce.cur_id = 0
+ConstraintForce.cur_id = 0
 
-class sphere(_ConstraintForce):
+class sphere(ConstraintForce):
     R""" Constrain particles to the surface of a sphere.
 
     Args:
@@ -154,7 +154,7 @@ class sphere(_ConstraintForce):
         P (tuple): (x,y,z) tuple indicating the position of the center of the sphere (in distance units).
         r (float): Radius of the sphere (in distance units).
 
-    :py:class:`sphere` specifies that forces will be applied to all particles in the given group to constrain
+    `sphere` specifies that forces will be applied to all particles in the given group to constrain
     them to a sphere. Currently does not work with Brownian or Langevin dynamics.
 
     Example::
@@ -165,7 +165,7 @@ class sphere(_ConstraintForce):
     def __init__(self, group, P, r):
 
         # initialize the base class
-        _ConstraintForce.__init__(self)
+        ConstraintForce.__init__(self)
 
         # create the c++ mirror class
         P = _hoomd.make_scalar3(P[0], P[1], P[2])
@@ -181,7 +181,7 @@ class sphere(_ConstraintForce):
         self.P = P
         self.r = r
 
-class distance(_ConstraintForce):
+class distance(ConstraintForce):
     R""" Constrain pairwise particle distances.
 
     :py:class:`distance` specifies that forces will be applied to all particles pairs for
@@ -212,7 +212,7 @@ class distance(_ConstraintForce):
     def __init__(self):
 
         # initialize the base class
-        _ConstraintForce.__init__(self)
+        ConstraintForce.__init__(self)
 
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -236,7 +236,7 @@ class distance(_ConstraintForce):
         if rel_tol is not None:
             self.cpp_force.setRelativeTolerance(float(rel_tol))
 
-class rigid(_ConstraintForce):
+class rigid(ConstraintForce):
     R""" Constrain particles in rigid bodies.
 
     .. rubric:: Overview
@@ -312,7 +312,7 @@ class rigid(_ConstraintForce):
     def __init__(self):
 
         # initialize the base class
-        _ConstraintForce.__init__(self)
+        ConstraintForce.__init__(self)
 
         self.composite = True
 
@@ -434,7 +434,7 @@ class rigid(_ConstraintForce):
         # validate copies of rigid bodies
         self.create_bodies(False)
 
-class oneD(_ConstraintForce):
+class oneD(ConstraintForce):
     R""" Constrain particles to move along a specific direction only
 
     Args:
@@ -459,7 +459,7 @@ class oneD(_ConstraintForce):
 
 
         # initialize the base class
-        _ConstraintForce.__init__(self)
+        ConstraintForce.__init__(self)
 
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():

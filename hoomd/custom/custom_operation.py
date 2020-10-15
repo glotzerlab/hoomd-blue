@@ -1,7 +1,7 @@
 from abc import abstractmethod
 
 from hoomd.operation import _TriggeredOperation
-from hoomd.parameterdicts import ParameterDict
+from hoomd.data.parameterdicts import ParameterDict
 from hoomd.custom.custom_action import Action, _AbstractLoggable
 from hoomd.trigger import Trigger
 from hoomd import _hoomd
@@ -11,7 +11,7 @@ class _CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
     """Wrapper for user created `hoomd.custom.Action` objects.
 
     This is the parent class for `hoomd.update.CustomUpdater` and
-    `hoomd.analyze.CustomAnalyzer`.  A basic wrapper that allows for Python
+    `hoomd.analyze.CustomWriter`.  A basic wrapper that allows for Python
     object inheriting from `hoomd.custom.Action` to be attached to
     a simulation.  To see how to implement a custom Python action, look at the
     documentation for `hoomd.custom.Action`.

@@ -299,11 +299,9 @@ install(TARGETS _hoomd quickhull EXPORT HOOMDTargets
 # copy python modules to the build directory to make it a working python package
 set(files benchmark.py
           box.py
-          comm.py
+          communicator.py
           conftest.py
           device.py
-          dump.py
-          array.py
           __init__.py
           integrate.py
           operation.py
@@ -311,13 +309,8 @@ set(files benchmark.py
           util.py
           variant.py
           simulation.py
-          smart_default.py
           state.py
-          syncedlist.py
-          parameterdicts.py
           trigger.py
-          typeparam.py
-          typeconverter.py
           snapshot.py
           logging.py
           version.py
@@ -336,12 +329,11 @@ install(FILES ${_hoomd_headers}
        )
 
 # subdirectories that are not components
-add_subdirectory(analyze)
 add_subdirectory(custom)
 add_subdirectory(data)
 add_subdirectory(filter)
 add_subdirectory(minimize)
-add_subdirectory(output)
+add_subdirectory(write)
 add_subdirectory(pytest)
 add_subdirectory(tune)
 add_subdirectory(update)

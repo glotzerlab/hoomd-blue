@@ -2,7 +2,7 @@ from hoomd.data.local_access import (
         ParticleLocalAccessBase, BondLocalAccessBase, AngleLocalAccessBase,
         DihedralLocalAccessBase, ImproperLocalAccessBase,
         ConstraintLocalAccessBase, PairLocalAccessBase, _LocalSnapshot)
-from hoomd.array import HOOMDArray
+from hoomd.data.array import HOOMDArray
 from hoomd import _hoomd
 
 
