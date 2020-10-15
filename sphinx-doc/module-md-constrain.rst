@@ -3,7 +3,7 @@ md.constrain
 
 .. rubric:: Overview
 
-.. py:currentmodule:: hoomd
+.. py:currentmodule:: hoomd.md.constrain
 
 .. autosummary::
     :nosignatures:
