@@ -31,7 +31,7 @@ functionality.
 
 *Changed*
 
-- The `run` method has minimal overhead
+- The ``run`` method has minimal overhead
 - All loggable quantities are directly accessible as object properties.
 - Operation parameters are always synchronized.
 - Operations can be instantiated without a device or MPI communicator.
