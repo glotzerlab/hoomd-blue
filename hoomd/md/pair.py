@@ -14,6 +14,7 @@ from hoomd.data.typeconverter import OnlyFrom, OnlyType
 import math
 import json
 
+
 class pair(force.Force):
     pass
 

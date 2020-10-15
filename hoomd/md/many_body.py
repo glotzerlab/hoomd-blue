@@ -240,17 +240,24 @@ class SquareDensity(Triplet):
 
         n_i = \\sum\\limits_{j\\neq i} w_{ij}\\left(\\big| \\vec r_i - \\vec r_j \\big|\\right)
 
-    The following coefficients must be set per unique pair of particle types:
+    Use `params` dictionary to set potential coefficients. The coefficients must be set per unique pair of particle types.
 
-    - :math:`A` - *A* (in units of volume^-1) - mean density (*default*: 0)
-    - :math:`B` - *B* (in units of energy*volume^2) - coefficient of the
-        harmonic density term
+    Attributes:
+        params (TypeParameter[tuple[``particle_type``, ``particle_type``], dict]):
+            The SquareDensity potential parameters. The dictionary has the
+            following keys:
+
+            *``A`` (`float`, **required**) - :math:`A` - mean density (in units
+                of volume^-1, *default*:0)
+            *``B`` (`float`, **required**) - :math:`B` - coefficient of the
+                harmonic density term (in units of energy*volumne^2)
 
     Example::
 
         nl = nlist.Cell()
-        sqd = md.many_body.SquareDensity(r_cut=3.0, nlist=nl)
-        sqd.params[('A', 'A')] = dict(A=0.1, B=1.0)
+        sqd = md.many_body.SquareDensity(nl, r_cut=3.0)
+        sqd.params[('A', 'B')] = dict(A=1.0, B=2.0)
+        sqd.params[('B', 'B')] = dict(A=2.0, B=2.0, r_on=1.0)
 
     For further details regarding this multibody potential, see
 
