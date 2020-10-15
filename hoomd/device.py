@@ -232,7 +232,7 @@ class GPU(_Device):
 
         Memory tracebacks are useful for developers when debugging GPU code.
         """
-        return self._cpp_exec_conf.getMemoryTracer() is not None
+        return self._cpp_exec_conf.memoryTracingEnabled()
 
     @memory_traceback.setter
     def memory_traceback(self, mem_traceback):
@@ -371,6 +371,6 @@ def auto_select(communicator=None,
     """
     # Set class according to C++ object
     if len(GPU.get_available_devices()) > 0:
-        return GPU(None, communicator, msg_file, shared_msg_file, notice_level)
+        return GPU(None, None, communicator, msg_file, shared_msg_file, notice_level)
     else:
         return CPU(None, communicator, msg_file, shared_msg_file, notice_level)
