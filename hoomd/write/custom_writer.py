@@ -1,5 +1,5 @@
 from hoomd.custom import (
-    _CustomOperation, _InternalCustomOperation, Action)
+    CustomOperation, _InternalCustomOperation, Action)
 from hoomd.operation import Writer
 
 
@@ -17,10 +17,10 @@ class _WriterProperty:
                 "analyzer must be an instance of hoomd.custom.Action")
 
 
-class CustomWriter(_CustomOperation, _WriterProperty, Writer):
+class CustomWriter(CustomOperation, _WriterProperty, Writer):
     """Writer wrapper for `hoomd.custom.Action` objects.
 
-    For usage see `hoomd.custom._CustomOperation`.
+    For usage see `hoomd.custom.CustomOperation`.
     """
     _cpp_list_name = 'analyzers'
     _cpp_class_name = 'PythonAnalyzer'

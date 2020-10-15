@@ -285,11 +285,12 @@ def coerce_mock_to_array(val):
 class HOOMDArray(metaclass=_WrapClassFactory(_wrap_list)):
     """A NumPy like interface to internal HOOMD-blue data.
 
-    These objects are returned by HOOMD-blue's zero copy access to system data.
+    These objects are returned by HOOMD-blue's zero copy local snapshot API
+    (`hoomd.State.cpu_local_snapshot`).
     This class acts like a `numpy.ndarray` object through NumPy's provided
     `interface <https://numpy.org/doc/stable/reference/arrays.classes.html>`_.
-    Some excepts are the ``view``, ``resize``, ``flat`` and ``flatiter`` methods
-    and the ``data`` and ``base`` properties.  For typical use cases,
+    Some exceptions are the ``view``, ``resize``, ``flat`` and ``flatiter``
+    methods and the ``data`` and ``base`` properties.  For typical use cases,
     understanding this class is not necessary. Treat it as a ``numpy.ndarray``.
 
     In general, whenever possible (when an array pointing to a new buffer is
@@ -673,7 +674,7 @@ data buffer. This can be done when necessary, but care must be taken not to use
 references to the data outside the context manager.
 
 The full functionality of this class depends on whether, HOOMD-blue can import
-CuPy.  If CuPy can be installed then, we wrap much of the ``cupy.ndarray``
+CuPy.  If CuPy can be imported then, we wrap much of the ``cupy.ndarray``
 class's functionality. Otherwise, we just expose the buffer and provide a few
 basic properties.
 
@@ -689,6 +690,14 @@ operators like (``+``, ``-``, ``*``) direct addition, subtraction, and
 multiplication cannot be performed between `HOOMDGPUArray` and ``cupy.ndarray``
 objects.  However, ``cupy.add`` can be directly used and is recommended for
 memory safety.
+
+Note:
+    Packages like Numba and PyTorch can use `HOOMDGPUArray` without CuPy
+    installed. Any package that supports version 2 of the
+    `__cuda_array_interface__
+    <https://numba.pydata.org/numba-doc/latest/cuda/cuda_array_interface.html>`_
+    should support the direct use of `HOOMDGPUArray` objects.
+
 """
 
 HOOMDGPUArray.__doc__ = _gpu_array_docs

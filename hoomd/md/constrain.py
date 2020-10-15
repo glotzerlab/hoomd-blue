@@ -7,9 +7,7 @@
 R""" Constraints.
 
 Constraint forces constrain a given set of particle to a given surface, to have
-some relative orientation, or impose some other type of constraint. For example,
-a group of particles can be constrained to the surface of a sphere with
-`sphere`.
+some relative orientation, or impose some other type of constraint.
 
 As with other force commands in hoomd, multiple constrain commands can be issued
 to specify multiple constraints, which are additively applied.
@@ -18,8 +16,7 @@ Warning: Constraints will be invalidated if two separate constraint commands
 apply to the same particle.
 
 The degrees of freedom removed from the system by constraints are correctly
-taken into account when computing the temperature for thermostatting and
-logging.
+taken into account when computing the temperature.
 """
 
 from hoomd import _hoomd
