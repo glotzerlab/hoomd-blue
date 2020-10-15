@@ -19,7 +19,7 @@ def _assert_common_properties(dev, notice_level, msg_file, num_cpu_threads=None)
             assert dev.num_cpu_threads == num_cpu_threads
         else:
             assert dev.num_cpu_threads == 1
-    assert type(dev.communicator) == hoomd.comm.Communicator
+    assert type(dev.communicator) == hoomd.communicator.Communicator
 
 
 def test_common_properties(device):
@@ -40,7 +40,7 @@ def test_common_properties(device):
     # MPI conditional stuff
     if hoomd.version.mpi_enabled:
         # make sure we can pass a communciator
-        com = hoomd.comm.Communicator(nrank=1)
+        com = hoomd.communicator.Communicator(nrank=1)
         assert device_type(communicator=com).communicator.num_ranks == 1
         # make sure we can pass a shared_msg_file
         dev2 = device_type(shared_msg_file="shared.txt")

@@ -9,17 +9,17 @@ from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeconverter import OnlyIf, to_type_converter
 from hoomd.data.typeparam import TypeParameter
 from hoomd.hpmc import _hpmc
-from hoomd.integrate import _BaseIntegrator
+from hoomd.integrate import BaseIntegrator
 from hoomd.logging import log
 import hoomd
 import json
 
 
-class _HPMCIntegrator(_BaseIntegrator):
+class HPMCIntegrator(BaseIntegrator):
     """Base class hard particle Monte Carlo integrator.
 
     Note:
-        :py:class:`_HPMCIntegrator` is the base class for all HPMC integrators.
+        :py:class:`HPMCIntegrator` is the base class for all HPMC integrators.
         Users should not instantiate this class directly. The attributes
         documented here are available to all HPMC integrators.
 
@@ -171,7 +171,7 @@ class _HPMCIntegrator(_BaseIntegrator):
         raise NotImplementedError(
             "You are using a shape type that is not implemented! "
             "If you want it, please modify the "
-            "hoomd.hpmc.integrate._HPMCIntegrator.get_type_shapes function.")
+            "hoomd.hpmc.integrate.HPMCIntegrator.get_type_shapes function.")
 
     def _return_type_shapes(self):
         if not self._attached:
@@ -340,7 +340,7 @@ class _HPMCIntegrator(_BaseIntegrator):
             return None
 
 
-class Sphere(_HPMCIntegrator):
+class Sphere(HPMCIntegrator):
     """Hard sphere Monte Carlo.
 
     Args:
@@ -436,7 +436,7 @@ class Sphere(_HPMCIntegrator):
         return super()._return_type_shapes()
 
 
-class ConvexPolygon(_HPMCIntegrator):
+class ConvexPolygon(HPMCIntegrator):
     """Hard convex polygon Monte Carlo.
 
     Args:
@@ -535,7 +535,7 @@ class ConvexPolygon(_HPMCIntegrator):
         return super(ConvexPolygon, self)._return_type_shapes()
 
 
-class ConvexSpheropolygon(_HPMCIntegrator):
+class ConvexSpheropolygon(HPMCIntegrator):
     """Hard convex spheropolygon Monte Carlo.
 
     Args:
@@ -640,7 +640,7 @@ class ConvexSpheropolygon(_HPMCIntegrator):
         return super(ConvexSpheropolygon, self)._return_type_shapes()
 
 
-class SimplePolygon(_HPMCIntegrator):
+class SimplePolygon(HPMCIntegrator):
     """Hard simple polygon Monte Carlo.
 
     Args:
@@ -740,7 +740,7 @@ class SimplePolygon(_HPMCIntegrator):
         return super(SimplePolygon, self)._return_type_shapes()
 
 
-class Polyhedron(_HPMCIntegrator):
+class Polyhedron(HPMCIntegrator):
     """Hard polyhedra Monte Carlo.
 
     Args:
@@ -919,7 +919,7 @@ class Polyhedron(_HPMCIntegrator):
         return super(Polyhedron, self)._return_type_shapes()
 
 
-class ConvexPolyhedron(_HPMCIntegrator):
+class ConvexPolyhedron(HPMCIntegrator):
     """Hard convex polyhedron Monte Carlo.
 
     Args:
@@ -1028,7 +1028,7 @@ class ConvexPolyhedron(_HPMCIntegrator):
         return super(ConvexPolyhedron, self)._return_type_shapes()
 
 
-class FacetedEllipsoid(_HPMCIntegrator):
+class FacetedEllipsoid(HPMCIntegrator):
     r"""Hard faceted ellipsoid Monte Carlo.
 
     Args:
@@ -1170,7 +1170,7 @@ class FacetedEllipsoid(_HPMCIntegrator):
         self._add_typeparam(typeparam_shape)
 
 
-class Sphinx(_HPMCIntegrator):
+class Sphinx(HPMCIntegrator):
     """Hard sphinx particle Monte Carlo.
 
     Args:
@@ -1244,7 +1244,7 @@ class Sphinx(_HPMCIntegrator):
         self._add_typeparam(typeparam_shape)
 
 
-class ConvexSpheropolyhedron(_HPMCIntegrator):
+class ConvexSpheropolyhedron(HPMCIntegrator):
     """Hard convex spheropolyhedron Monte Carlo.
 
     Args:
@@ -1352,7 +1352,7 @@ class ConvexSpheropolyhedron(_HPMCIntegrator):
         return super(ConvexSpheropolyhedron, self)._return_type_shapes()
 
 
-class Ellipsoid(_HPMCIntegrator):
+class Ellipsoid(HPMCIntegrator):
     """Hard ellipsoid Monte Carlo.
 
     Args:
@@ -1441,7 +1441,7 @@ class Ellipsoid(_HPMCIntegrator):
         return super()._return_type_shapes()
 
 
-class SphereUnion(_HPMCIntegrator):
+class SphereUnion(HPMCIntegrator):
     """Hard sphere union Monte Carlo.
 
     Args:
@@ -1575,7 +1575,7 @@ class SphereUnion(_HPMCIntegrator):
         return super()._return_type_shapes()
 
 
-class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
+class ConvexSpheropolyhedronUnion(HPMCIntegrator):
     """Hard convex spheropolyhedron union Monte Carlo.
 
     Args:
@@ -1693,7 +1693,7 @@ class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
         self.metadata_fields = ['capacity']
 
 
-class FacetedEllipsoidUnion(_HPMCIntegrator):
+class FacetedEllipsoidUnion(HPMCIntegrator):
     """Hard convex spheropolyhedron union Monte Carlo.
 
     Args:

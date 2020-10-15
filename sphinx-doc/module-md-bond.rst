@@ -8,7 +8,7 @@ md.bond
 .. autosummary::
     :nosignatures:
 
-    _Bond
+    Bond
     FENE
     Harmonic
 
@@ -16,7 +16,7 @@ md.bond
 
 .. automodule:: hoomd.md.bond
     :synopsis: Bond potentials.
-    :members: _Bond,
+    :members: Bond,
               FENE,
               Harmonic
     :no-inherited-members:

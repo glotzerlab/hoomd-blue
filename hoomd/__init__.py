@@ -63,7 +63,7 @@ def _hoomd_sys_excepthook(type, value, traceback):
     """Override Python's excepthook to abort MPI runs."""
     _default_excepthook(type, value, traceback)
     sys.stderr.flush()
-    _hoomd.abort_mpi(comm._current_communicator.cpp_mpi_conf, 1)
+    _hoomd.abort_mpi(communicator._current_communicator.cpp_mpi_conf, 1)
 
 
 sys.excepthook = _hoomd_sys_excepthook

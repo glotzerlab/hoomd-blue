@@ -149,6 +149,6 @@ class _InternalAction(Action, _HOOMDGetSetAttrBase):
     def _setattr_param(self, attr, value):
         """Necessary to prevent errors on setting after attaching.
 
-        See hoomd/operation.py _Operation._setattr_param for details.
+        See hoomd/operation.py BaseHOOMDObject._setattr_param for details.
         """
         self._param_dict[attr] = value

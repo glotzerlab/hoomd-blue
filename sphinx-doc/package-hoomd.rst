@@ -47,4 +47,3 @@ hoomd
    module-hoomd-variant
    module-hoomd-version
    module-hoomd-write
-   hoomd-misc

@@ -27,7 +27,7 @@ when they are anti-parallel and a compact state (phi=0 deg) when they are parall
 from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.md import force
-from hoomd.md.force import _Force
+from hoomd.md.force import Force
 from hoomd.data.parameterdicts import TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 import hoomd
@@ -35,11 +35,11 @@ import hoomd
 import math
 
 
-class _Dihedral(_Force):
+class Dihedral(Force):
     """Constructs the dihedral bond potential.
 
     Note:
-        :py:class:`_Dihedral` is the base class for all dihedral potentials.
+        :py:class:`Dihedral` is the base class for all dihedral potentials.
         Users should not instantiate this class directly.
     """
     def _attach(self):
@@ -57,7 +57,7 @@ class _Dihedral(_Force):
         super()._attach()
 
 
-class Harmonic(_Dihedral):
+class Harmonic(Dihedral):
     R""" Harmonic dihedral potential.
 
     :py:class:`Harmonic` specifies a harmonic dihedral potential energy between
@@ -297,7 +297,7 @@ class table(force._force):
         return data
 
 
-class OPLS(_Dihedral):
+class OPLS(Dihedral):
     R""" OPLS dihedral force
 
     :py:class:`OPLS` specifies an OPLS-style dihedral potential energy between

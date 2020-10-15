@@ -30,10 +30,10 @@ def validate_mode(value):
         raise ValueError("{} not found in {}".format(value, acceptable))
 
 
-class _Pair(force._Force):
+class Pair(force.Force):
     """Common pair potential documentation.
 
-    Users should not invoke :py:class:`_Pair` directly. It is a base command
+    Users should not invoke :py:class:`Pair` directly. It is a base command
     that provides common features to all standard pair forces. Common
     documentation for all pair potentials is documented here.
 
@@ -216,7 +216,7 @@ class _Pair(force._Force):
         return [self.nlist]
 
 
-class LJ(_Pair):
+class LJ(Pair):
     """ Lennard-Jones pair potential.
 
     Args:
@@ -238,7 +238,7 @@ class LJ(_Pair):
         = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
         \\end{eqnarray*}
 
-    See :py:class:`_Pair` for details on how forces are calculated and the
+    See :py:class:`Pair` for details on how forces are calculated and the
     available energy shifting and smoothing modes.  Use `params` dictionary
     to set potential coefficients. The coefficients must be set per
     unique pair of particle types.
@@ -271,7 +271,7 @@ class LJ(_Pair):
                                )
         self._add_typeparam(params)
 
-class Gauss(_Pair):
+class Gauss(Pair):
     """ Gaussian pair potential.
 
     Args:
@@ -293,7 +293,7 @@ class Gauss(_Pair):
                                  = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
         \\end{eqnarray*}
 
-    See :py:class:`_Pair` for details on how forces are calculated and the
+    See :py:class:`Pair` for details on how forces are calculated and the
     available energy shifting and smoothing modes. Use `params` dictionary to
     set potential coefficients. The coefficients must be set per unique pair of
     particle types.
@@ -326,7 +326,7 @@ class Gauss(_Pair):
                                                  len_keys=2))
         self._add_typeparam(params)
 
-class SLJ(_Pair):
+class SLJ(Pair):
     """Shifted Lennard-Jones pair potential.
 
     Args:
@@ -354,7 +354,7 @@ class SLJ(_Pair):
     where :math:`\\Delta = (d_i + d_j)/2 - 1` and :math:`d_i` is the diameter of
     particle :math:`i`.
 
-    See :py:class:`_Pair` for details on how forces are calculated and the
+    See :py:class:`Pair` for details on how forces are calculated and the
     available energy shifting and smoothing modes. Use `params` dictionary to
     set potential coefficients. The coefficients must be set per unique pair of
     particle types.
@@ -414,7 +414,7 @@ class SLJ(_Pair):
         # NOTE do we need something to automatically set the max_diameter correctly?
 
 
-class Yukawa(_Pair):
+class Yukawa(Pair):
     """Yukawa pair potential.
 
     Args:
@@ -435,7 +435,7 @@ class Yukawa(_Pair):
                                   = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
         \\end{eqnarray*}
 
-    See `_Pair` for details on how forces are calculated and the available
+    See `Pair` for details on how forces are calculated and the available
     energy shifting and smoothing modes. Use `params` dictionary to set
     potential coefficients. The coefficients must be set per unique pair of
     particle types.
@@ -468,7 +468,7 @@ class Yukawa(_Pair):
                                                  len_keys=2))
         self._add_typeparam(params)
 
-class Ewald(_Pair):
+class Ewald(Pair):
     """Ewald pair potential.
 
     Args:
@@ -496,7 +496,7 @@ class Ewald(_Pair):
 
     The Ewald potential is designed to be used in conjunction with PPPM.
 
-    See `_Pair` for details on how forces are calculated and the available
+    See `Pair` for details on how forces are calculated and the available
     energy shifting and smoothing modes. Use the `params` dictionary to set
     potential coefficients. The coefficients must be set per unique pair of
     particle types.
@@ -794,7 +794,7 @@ class table(force._force):
 
         self.pair_coeff.set(a, b, func=_table_eval, rmin=rmin_table, rmax=rmax_table, coeff=dict(V=V_table, F=F_table, width=self.width))
 
-class Morse(_Pair):
+class Morse(Pair):
     """Morse pair potential.
 
     Args:
@@ -816,7 +816,7 @@ class Morse(_Pair):
             = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
         \\end{eqnarray*}
 
-    See `_Pair` for details on how forces are calculated and the available
+    See `Pair` for details on how forces are calculated and the available
     energy shifting and smoothing modes. Use `params` dictionary to set
     potential coefficients. The coefficients must be set per unique pair of
     particle types.
@@ -852,7 +852,7 @@ class Morse(_Pair):
                                              len_keys=2))
         self._add_typeparam(params)
 
-class DPD(_Pair):
+class DPD(Pair):
     """Dissipative Particle Dynamics.
 
     Args:
@@ -961,7 +961,7 @@ class DPD(_Pair):
         self.kT = kT
         self.seed = seed
 
-class DPDConservative(_Pair):
+class DPDConservative(Pair):
     """DPD Conservative pair force.
 
     Args:
@@ -1016,7 +1016,7 @@ class DPDConservative(_Pair):
         self._add_typeparam(params)
 
 
-class DPDLJ(_Pair):
+class DPDLJ(Pair):
     """Dissipative Particle Dynamics with a LJ conservative force.
 
     Args:
@@ -1131,7 +1131,7 @@ class DPDLJ(_Pair):
         self.seed = seed
         self.mode = mode
 
-class ForceShiftedLJ(_Pair):
+class ForceShiftedLJ(Pair):
     """Force-shifted Lennard-Jones pair potential.
 
     Args:
@@ -1166,7 +1166,7 @@ class ForceShiftedLJ(_Pair):
         \\Delta V(r) = -(r - r_{\\mathrm{cut}}) \\frac{\\partial
           V_{\\mathrm{LJ}}}{\\partial r}(r_{\\mathrm{cut}})
 
-    See :py:class:`_Pair` for details on how forces are calculated and the
+    See :py:class:`Pair` for details on how forces are calculated and the
     available energy shifting and smoothing modes. Use `params` dictionary to
     set potential coefficients. The coefficients must be set per unique pair of
     particle types.
@@ -1202,7 +1202,7 @@ class ForceShiftedLJ(_Pair):
                                                  len_keys=2))
         self._add_typeparam(params)
 
-class Moliere(_Pair):
+class Moliere(Pair):
     """Moliere pair potential.
 
     Args:
@@ -1235,7 +1235,7 @@ class Moliere(_Pair):
     - :math:`a_F = \\frac{0.8853 a_0}{\\left( \\sqrt{Z_i} + \\sqrt{Z_j}
       \\right)^{2/3}}`, where :math:`a_0` is the Bohr radius (in distance units)
 
-    See `_Pair` for details on how forces are calculated and the available
+    See `Pair` for details on how forces are calculated and the available
     energy shifting and smoothing modes. Use `params` dictionary to set
     potential coefficients. The coefficients must be set per unique pair of
     particle types.
@@ -1279,7 +1279,7 @@ class Moliere(_Pair):
                                                  len_keys=2))
         self._add_typeparam(params)
 
-class ZBL(_Pair):
+class ZBL(Pair):
     """ZBL pair potential.
 
     Args:
@@ -1314,7 +1314,7 @@ class ZBL(_Pair):
     - :math:`a_F = \\frac{0.8853 a_0}{ Z_i^{0.23} + Z_j^{0.23} }`, where
       :math:`a_0` is the Bohr radius (in distance units)
 
-    See `_Pair` for details on how forces are calculated and the available
+    See `Pair` for details on how forces are calculated and the available
     energy shifting and smoothing modes. Use `params` dictionary to set
     potential coefficients.
 
@@ -1576,7 +1576,7 @@ class revcross(pair):
 
 
 
-class Mie(_Pair):
+class Mie(Pair):
     """Mie pair potential.
 
     Args:
@@ -1600,7 +1600,7 @@ class Mie(_Pair):
           = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
         \\end{eqnarray*}
 
-    `_Pair` for details on how forces are calculated and the available energy
+    `Pair` for details on how forces are calculated and the available energy
     shifting and smoothing modes. Use the `params` dictionary to set potential
     coefficients. The coefficients must be set per unique pair of particle
     types.
@@ -1893,7 +1893,7 @@ class dipole(ai_pair):
 
         U_{ee} = A e^{-\kappa r} \frac{q_i q_j}{r}
 
-    See :py:class:`_Pair` for details on how forces are calculated and the
+    See :py:class:`Pair` for details on how forces are calculated and the
     available energy shifting and smoothing modes.  Use ``params`` dictionary
     to set potential coefficients. The coefficients must be set per unique pair of particle types.
 
@@ -1953,7 +1953,7 @@ class dipole(ai_pair):
         return;
 
 
-class ReactionField(_Pair):
+class ReactionField(Pair):
     """Onsager reaction field pair potential.
 
     Args:
@@ -1991,7 +1991,7 @@ class ReactionField(_Pair):
 
     where :math:`q_i` and :math:`q_j` are the charges of the particle pair.
 
-    See `_Pair` for details on how forces are calculated and the available
+    See `Pair` for details on how forces are calculated and the available
     energy shifting and smoothing modes.  Use the `params` dictionary to set
     potential coefficients. The coefficients must be set per unique pair of
     particle types.
@@ -2028,7 +2028,7 @@ class ReactionField(_Pair):
         self._add_typeparam(params)
 
 
-class DLVO(_Pair):
+class DLVO(Pair):
     """DLVO colloidal interaction
 
     Args:
@@ -2069,7 +2069,7 @@ class DLVO(_Pair):
     neighbor lists.
 
     Due to the way that DLVO modifies the cutoff condition, it will not function
-    properly with the xplor shifting mode. See :py:class:`_Pair` for details on
+    properly with the xplor shifting mode. See :py:class:`Pair` for details on
     how forces are calculated and the available energy shifting and smoothing
     modes.
 
@@ -2203,7 +2203,7 @@ class square_density(pair):
         return _hoomd.make_scalar2(coeff['A'],coeff['B'])
 
 
-class Buckingham(_Pair):
+class Buckingham(Pair):
     """Buckingham pair potential.
 
     Args:
@@ -2224,7 +2224,7 @@ class Buckingham(_Pair):
           = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
         \\end{eqnarray*}
 
-    See `_Pair` for details on how forces are calculated and the available
+    See `Pair` for details on how forces are calculated and the available
     energy shifting and smoothing modes.  Use the `params` dictionary to set
     potential coefficients.
 
@@ -2258,7 +2258,7 @@ class Buckingham(_Pair):
         self._add_typeparam(params)
 
 
-class LJ1208(_Pair):
+class LJ1208(Pair):
     """Lennard-Jones 12-8 pair potential.
 
     Args:
@@ -2281,7 +2281,7 @@ class LJ1208(_Pair):
           = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
         \\end{eqnarray*}
 
-    See `_Pair` for details on how forces are calculated and the available
+    See `Pair` for details on how forces are calculated and the available
     energy shifting and smoothing modes.  Use the `params` dictionary to set
     potential coefficients.
 
@@ -2313,7 +2313,7 @@ class LJ1208(_Pair):
         self._add_typeparam(params)
 
 
-class Fourier(_Pair):
+class Fourier(Pair):
     """Fourier pair potential.
 
     Args:
@@ -2348,7 +2348,7 @@ class Fourier(_Pair):
 
         is calculated to enforce close to zero value at r_cut.
 
-    See `_Pair` for details on how forces are calculated and the available
+    See `Pair` for details on how forces are calculated and the available
     energy shifting and smoothing modes. Use `params` dictionary to set
     potential coefficients. The coefficients must be set per unique pair of
     particle types.

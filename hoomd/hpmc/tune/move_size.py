@@ -6,7 +6,7 @@ from hoomd.data.typeconverter import (
 from hoomd.tune import _InternalCustomTuner
 from hoomd.tune.attr_tuner import (
     _TuneDefinition, SolverStep, ScaleSolver, SecantSolver)
-from hoomd.hpmc.integrate import _HPMCIntegrator
+from hoomd.hpmc.integrate import HPMCIntegrator
 
 
 class _MoveSizeTuneDefinition(_TuneDefinition):
@@ -177,7 +177,7 @@ class _InternalMoveSize(_InternalAction):
             self._update_tunables(new_moves=moves, new_types=types)
 
     def attach(self, simulation):
-        if not isinstance(simulation.operations.integrator, _HPMCIntegrator):
+        if not isinstance(simulation.operations.integrator, HPMCIntegrator):
             raise RuntimeError(
                 "MoveSizeTuner can only be used in HPMC simulations.")
         particle_types = simulation.state.particle_types

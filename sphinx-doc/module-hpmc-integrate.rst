@@ -8,7 +8,7 @@ hpmc.integrate
 .. autosummary::
     :nosignatures:
 
-    _HPMCIntegrator
+    HPMCIntegrator
     ConvexPolygon
     ConvexPolyhedron
     ConvexSpheropolygon
@@ -28,7 +28,7 @@ hpmc.integrate
 .. automodule:: hoomd.hpmc.integrate
     :synopsis: HPMC integrators.
 
-    .. autoclass:: _HPMCIntegrator
+    .. autoclass:: HPMCIntegrator
         :inherited-members:
     .. autoclass:: ConvexPolygon
         :show-inheritance:

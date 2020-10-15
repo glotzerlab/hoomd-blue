@@ -26,6 +26,7 @@ class _Method(_HOOMDBaseObject):
         Users should use the subclasses and not instantiate `_Method` directly.
     """
 
+
 class NVT(_Method):
     r"""NVT Integration via the Nosé-Hoover thermostat.
 
@@ -535,12 +536,8 @@ class NVE(_Method):
     steps with the limit set, the system should be in a safe state to continue
     with unconstrained integration.
 
-    Note:
-        With an active limit, Newton's third law is effectively **not** obeyed
-        and the system can gain linear momentum. Activate the
-        :py:class:`hoomd.md.update.zero_momentum` updater during the limited NVE
-        run to prevent this.
-
+    .. todo::
+        Update when zero momentum updater is added.
 
     Examples::
 
