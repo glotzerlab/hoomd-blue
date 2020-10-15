@@ -12,7 +12,7 @@ class _AbstractLoggable(Loggable, ABCMeta):
 
 
 class Action(metaclass=_AbstractLoggable):
-    """Base class for all Python Action's.
+    """Base class for all Python Actions.
 
     This class is the parent class for all Python `Action` subclasses. This
     class requires all subclasses to implement the :meth:`~.act` method which

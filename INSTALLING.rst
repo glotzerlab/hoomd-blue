@@ -20,6 +20,11 @@ Docker::
     See the `glotzerlab-software documentation <https://glotzerlab-software.readthedocs.io/>`_ for cluster specific
     instructions.
 
+.. note::
+
+    Containers that include HOOMD-blue v3.0.0-beta releases have `beta` in their
+    tags.
+
 Installing with conda
 ---------------------
 
@@ -29,6 +34,10 @@ install, first download and install `miniconda
 from the ``conda-forge`` channel::
 
     $ conda install -c conda-forge hoomd
+
+Install the v3.0.0-beta release with::
+
+    $ conda install -c conda-forge/label/hoomd_dev hoomd
 
 A build of HOOMD with support for NVIDIA GPUs is also available from the
 ``conda-forge`` channel::
