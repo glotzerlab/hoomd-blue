@@ -8,6 +8,7 @@ md.many_body
 .. autosummary::
     :nosignatures:
 
+    Triplet
     RevCross
     SquareDensity
     Tersoff
@@ -16,6 +17,7 @@ md.many_body
 
 .. automodule:: hoomd.md.many_body
     :synopsis: Many-body potentials.
-    :members: RevCross,
+    :members: Triplet,
+        RevCross,
         SquareDensity,
         Tersoff
