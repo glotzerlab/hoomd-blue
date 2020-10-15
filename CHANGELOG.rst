@@ -26,7 +26,8 @@ functionality.
 - Enable implicit depletants for two-dimensional shapes in **hpmc**.
 - ``jit.patch.user()`` and ``jit.patch.user_union()`` now support GPUs via
   NVRTC.
-  - Add harmonically mapped averaging.
+- Add harmonically mapped averaging.
+- Add Visual Studio Code workspace
 
 *Changed*
 

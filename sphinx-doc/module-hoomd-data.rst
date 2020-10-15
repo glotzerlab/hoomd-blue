@@ -30,7 +30,7 @@ hoomd.data
               ImproperLocalAccessBase,
               PairLocalAccessBase,
               ParticleLocalAccessBase
-    
+
     .. autoclass:: LocalSnapshot
         :inherited-members:
 
@@ -40,3 +40,10 @@ hoomd.data
     .. autoclass:: hoomd.data.typeparam.TypeParameter
         :members: default, keys
         :undoc-members:
+
+.. rubric:: Modules
+
+.. toctree::
+   :maxdepth: 3
+
+   module-hoomd-array

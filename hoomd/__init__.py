@@ -6,14 +6,6 @@
 
 :py:mod:`hoomd` provides a high level user interface for defining and executing
 simulations using HOOMD.
-
-.. rubric:: API stability
-
-:py:mod:`hoomd` is **stable**. When upgrading from version 3.x to 3.y (y > x),
-existing job scripts that follow *documented* interfaces for functions and
-classes will not require any modifications.
-
-**Maintainer:** Joshua A. Anderson
 """
 import sys
 import os
