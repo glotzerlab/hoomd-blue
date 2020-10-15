@@ -69,7 +69,18 @@ def test_elastic_moves(device, simulation_factory, two_particle_snapshot_factory
     mc.shape['A'] = {'vertices': ConvexPolyhedron(ttf(0.0).vertices / (ttf(0.0).volume**(1/3))).vertices}
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=2))
     sim.operations.add(mc)
-    updater = hoomd.hpmc.update.elastic_shape(mc=mc, trigger=hoomd.trigger.Periodic(1), stepsize=0.001, move_ratio=1.0, seed=3832765, stiffness=1.0, reference=dict(vertices=ConvexPolyhedron(ttf(1.0).vertices / (ttf(1.0).volume**(1/3))).vertices, ignore_statistics=0, sweep_radius=0.0), nselect=3, nsweeps=2, param_ratio=0.5)
+    updater = hoomd.hpmc.update.elastic_shape(mc=mc, trigger=hoomd.trigger.Periodic(1), stepsize=0.001, move_ratio=1.0, seed=3832765, stiffness=hoomd.variant.Ramp(1.0, 10.0, 0, 20), reference=dict(vertices=ConvexPolyhedron(ttf(1.0).vertices / (ttf(1.0).volume**(1/3))).vertices, ignore_statistics=0, sweep_radius=0.0), nselect=3, nsweeps=2, param_ratio=0.5)
     sim.operations.add(updater)
+    # logger = hoomd.analyze.log(filename="shape_updater.log", period=10, overwrite=True, quantities=['shape_move_energy', 'shape_move_stiffness', 'shape_move_acceptance_ratio', 'shape_move_particle_volume'])
+    logger = hoomd.logging.Logger()
+    logger += updater
     sim.operations.schedule()
+    print(updater.shape_move_energy())
+    # lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell())
+    # lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
+    # logger += lj
+    # sim.operations.add(logger)
+    # sim.operations.schedule()
     sim.run(10)
+    print(updater.shape_move_energy())
+    assert False

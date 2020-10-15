@@ -1134,19 +1134,19 @@ are only enabled for polyhedral and spherical particles.")
         from . import util
         import numpy as np
         if not average:
-            ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
+            ntypes = self._simulation.state._cpp_sys_def.getParticleData().getNTypes();
             tunables = ["stepsize-{}".format(i) for i in range(ntypes)];
             tunable_map = {};
             for i in range(ntypes):
                 tunable_map.update({'stepsize-{}'.format(i) : {
                                         'get': lambda typeid=i: getattr(self, 'get_step_size')(typeid),
                                         'acceptance': lambda typeid=i: getattr(self, 'get_move_acceptance')(typeid),
-                                        'set': lambda x, name=hoomd.context.current.system_definition.getParticleData().getNameByType(i): getattr(self, 'set_params')(types=name, stepsize=x),
+                                        'set': lambda x, name=self._simulation.state._cpp_sys_def.getParticleData().getNameByType(i): getattr(self, 'set_params')(types=name, stepsize=x),
                                         'maximum': 0.5
                                         }})
         else:
-            ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-            type_list = [hoomd.context.current.system_definition.getParticleData().getNameByType(i) for i in range(ntypes)]
+            ntypes = self._simulation.state._cpp_sys_def.getParticleData().getNTypes();
+            type_list = [self._simulation.state._cpp_sys_def.getParticleData().getNameByType(i) for i in range(ntypes)]
             tunables=["stepsize"]
             tunable_map = {'stepsize' : {
                                     'get': lambda : getattr(self, 'get_step_size')(0),
@@ -1156,7 +1156,8 @@ are only enabled for polyhedral and spherical particles.")
                                     }};
         return util.tune(self, tunables=tunables, tunable_map=tunable_map, **kwargs);
 
-    def get_total_count(self, typeid=None):
+    @property
+    def total_count(self):
         R""" Get the total number of moves attempted by the updater
         Args:
             typeid (int, **default:** None): the typeid of the particle type. If None the sum over all types will be returned.
@@ -1172,12 +1173,9 @@ are only enabled for polyhedral and spherical particles.")
             total = shape_updater.get_total_count(0)
 
         """
+        return sum([self._cpp_obj.getTotalCount(i) for i in range(self._simulation.state._cpp_sys_def.getParticleData().getNTypes())])
 
-        if typeid is None:
-            return sum([self.cpp_updater.getTotalCount(i) for i in range(hoomd.context.current.system_definition.getParticleData().getNTypes())])
-        else:
-            return self.cpp_updater.getTotalCount(typeid);
-
+    @property
     def get_accepted_count(self, typeid=None):
         R""" Get the total number of moves accepted by the updater
         Args:
@@ -1193,13 +1191,10 @@ are only enabled for polyhedral and spherical particles.")
             run(100)
             accepted = shape_updater.get_accepted_count(0)
         """
+        return sum([self._cpp_obj.getAcceptedCount(i) for i in range(self._simulation.state._cpp_sys_def.getParticleData().getNTypes())])
 
-        if typeid is None:
-            return sum([self.cpp_updater.getAcceptedCount(i) for i in range(hoomd.context.current.system_definition.getParticleData().getNTypes())])
-        else:
-            return self.cpp_updater.getAcceptedCount(typeid);
-
-    def get_move_acceptance(self, typeid=0):
+    @log(flag='scalar')
+    def shape_move_acceptance_ratio(self):
         R""" Get the acceptance ratio for a particle type
         Args:
             typeid (int, **default:** 0): the typeid of the particle type
@@ -1216,10 +1211,14 @@ are only enabled for polyhedral and spherical particles.")
 
         """
 
-        acc = 0.0;
-        if self.get_total_count(typeid):
-            acc = float(self.get_accepted_count(typeid))/float(self.get_total_count(typeid));
-        return acc;
+        acc = 0.0
+        if self.get_total_count(None):
+            acc = float(self.get_accepted_count(None)) / float(self.get_total_count(None))
+        return acc
+
+    @log(flag='scalar')
+    def shape_move_particle_volume(self):
+        return sum([self._cpp_obj.getParticleVolume(i) for i in range(self._simulation.state._cpp_sys_def.getParticleData().getNTypes())])
 
     def get_step_size(self, typeid=0):
         R""" Get the shape move stepsize for a particle type
@@ -1238,8 +1237,7 @@ are only enabled for polyhedral and spherical particles.")
             stepsize = shape_updater.get_step_size(0)
 
         """
-
-        return self.cpp_updater.getStepSize(typeid);
+        return self._cpp_obj.getStepSize(typeid)
 
     def reset_statistics(self):
         R""" Reset the acceptance statistics for the updater
@@ -1254,7 +1252,7 @@ are only enabled for polyhedral and spherical particles.")
 
         """
 
-        self.cpp_updater.resetStatistics();
+        self._cpp_obj.resetStatistics()
 
 
 class alchemy(shape_update):
@@ -1368,6 +1366,7 @@ class elastic_shape(shape_update):
 
         if type(stiffness) in [int, float]:
             stiffness = hoomd.variant.Constant(stiffness)
+        # if isinstance(stiffness, hoomd.variant.Variant):
         param_dict['stiffness'] = stiffness
 
         self._param_dict.update(param_dict)
@@ -1427,8 +1426,18 @@ class elastic_shape(shape_update):
         Args:
             stiffness (float) or (:py:mod:`hoomd.variant`): :math:`\frac{k}/{k_{\mathrm{B}}T}`.
         """
-        self.stiffness = hoomd.variant._setup_variant_input(stiffness)
-        self.boltzmann_function.setStiffness(self.stiffness.cpp_variant)
+        if type(stiffness) in [int, float]:
+            stiffness = hoomd.variant.Constant(stiffness)
+        self.stiffness = stiffness
+        self.boltzmann_function.setStiffness(self.stiffness)
+
+    @log(flag="scalar")
+    def shape_move_stiffness(self):
+        return self._param_dict["stiffness"](self._simulation.timestep)
+
+    @log(flag="scalar")
+    def shape_move_energy(self):
+        return sum([self._cpp_obj.getShapeMoveEnergy(i, self._simulation.timestep) for i in range(self._simulation.state._cpp_sys_def.getParticleData().getNTypes())])
 
 
 class Clusters(_Updater):

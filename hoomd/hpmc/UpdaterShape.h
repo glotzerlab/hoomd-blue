@@ -38,6 +38,20 @@ public:
 
     void initialize();
 
+    float getParticleVolume(unsigned int ndx)
+        {
+        ArrayHandle< unsigned int > h_ntypes(m_ntypes, access_location::host, access_mode::read);
+        detail::MassProperties<Shape> mp(m_mc->getParams()[ndx]);
+        return mp.getVolume()*Scalar(h_ntypes.data[ndx]);
+        }
+
+    float getShapeMoveEnergy(unsigned int ndx, unsigned int timestep)
+        {
+        ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
+        return m_log_boltz_function->computeEnergy(timestep, h_ntypes.data[ndx], ndx, m_mc->getParams()[ndx], h_det.data[ndx]);
+        }
+
     unsigned int getAcceptedCount(unsigned int ndx) { return m_count_accepted[ndx]; }
 
     unsigned int getTotalCount(unsigned int ndx) { return m_count_total[ndx]; }
@@ -656,6 +670,8 @@ void export_UpdaterShape(pybind11::module& m, const std::string& name)
                             unsigned int>())
     .def("getAcceptedCount", &UpdaterShape<Shape>::getAcceptedCount)
     .def("getTotalCount", &UpdaterShape<Shape>::getTotalCount)
+    .def("getParticleVolume", &UpdaterShape<Shape>::getParticleVolume)
+    .def("getShapeMoveEnergy", &UpdaterShape<Shape>::getShapeMoveEnergy)
     .def("registerShapeMove", &UpdaterShape<Shape>::registerShapeMove)
     .def("registerLogBoltzmannFunction", &UpdaterShape<Shape>::registerLogBoltzmannFunction)
     .def("resetStatistics", &UpdaterShape<Shape>::resetStatistics)
