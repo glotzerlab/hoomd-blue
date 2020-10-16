@@ -59,7 +59,7 @@ __device__ void add_force_total(Scalar4& net_force, Scalar *net_virial, Scalar4&
 template< unsigned int compute_virial >
 __global__ void gpu_integrator_sum_net_force_kernel(Scalar4 *d_net_force,
                                                     Scalar *d_net_virial,
-                                                    const unsigned int net_virial_pitch,
+                                                    const size_t net_virial_pitch,
                                                     Scalar4 *d_net_torque,
                                                     const gpu_force_list force_list,
                                                     unsigned int nwork,
@@ -120,7 +120,7 @@ __global__ void gpu_integrator_sum_net_force_kernel(Scalar4 *d_net_force,
 
 hipError_t gpu_integrator_sum_net_force(Scalar4 *d_net_force,
                                          Scalar *d_net_virial,
-                                         const unsigned int net_virial_pitch,
+                                         size_t net_virial_pitch,
                                          Scalar4 *d_net_torque,
                                          const gpu_force_list& force_list,
                                          unsigned int nparticles,

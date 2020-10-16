@@ -518,7 +518,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         const GlobalArray< Scalar4 >& net_force  = m_pdata->getNetForce();
         const GlobalArray< Scalar4 >& net_torque = m_pdata->getNetTorqueArray();
         const GlobalArray< Scalar >&  net_virial = m_pdata->getNetVirial();
-        unsigned int net_virial_pitch = net_virial.getPitch();
+        size_t net_virial_pitch = net_virial.getPitch();
 
         ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar>  d_net_virial(net_virial, access_location::device, access_mode::overwrite);

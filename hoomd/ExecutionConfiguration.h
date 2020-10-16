@@ -138,7 +138,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
     unsigned int getNumActiveGPUs() const
         {
         #if defined(ENABLE_HIP)
-        return m_gpu_id.size();
+        return (unsigned int)m_gpu_id.size();
         #else
         return 0;
         #endif
@@ -153,7 +153,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
 
     void hipProfileStart() const
         {
-        for (int idev = m_gpu_id.size()-1; idev >= 0; idev--)
+        for (int idev = (unsigned int)(m_gpu_id.size()-1); idev >= 0; idev--)
             {
             hipSetDevice(m_gpu_id[idev]);
             hipDeviceSynchronize();
@@ -172,7 +172,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
 
     void hipProfileStop() const
         {
-        for (int idev = m_gpu_id.size()-1; idev >= 0; idev--)
+        for (int idev = (unsigned int)(m_gpu_id.size()-1); idev >= 0; idev--)
             {
             hipSetDevice(m_gpu_id[idev]);
             hipDeviceSynchronize();

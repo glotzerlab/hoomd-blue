@@ -849,7 +849,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
 
             // allocate scratch buffers
             CachedAllocator& alloc = m_exec_conf->getCachedAllocator();
-            unsigned int tmp_size = m_groups.size()*group_size;
+            size_t tmp_size = m_groups.size()*group_size;
             unsigned int nptl = m_pdata->getN()+m_pdata->getNGhosts();
             ScopedAllocation<unsigned int> d_scratch_g(alloc, tmp_size);
             ScopedAllocation<unsigned int> d_scratch_idx(alloc, tmp_size);
