@@ -3,7 +3,6 @@ trigger: none
 pr:
   - maint
   - master
-  - feature/new-object-API
 
 schedules:
 - cron: "0 2 * * *"

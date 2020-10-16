@@ -1,6 +1,8 @@
 trigger: none
 
-pr: none
+pr:
+  - maint
+  - master
 
 schedules:
 - cron: "0 2 * * *"
