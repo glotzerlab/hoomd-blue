@@ -61,12 +61,6 @@ list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 include(AddLLVM)
 llvm_update_compile_flags(_${PACKAGE_NAME}_llvm)
 
-# bug: llvm_update_compile_flags removes the c++11 compile flag that hoomd sets for old cmake versions
-# cmake 3.1 and newer are not affected becuase we use CMAKE_CXX_STANDARD
-if (CMAKE_VERSION VERSION_LESS 3.1.0)
-    message(FATAL_ERROR "CMake 3.1.0 or newer is required to buid the JIT module")
-endif()
-
 # work around missing LLVM link information
 if(LLVM_ENABLE_TERMINFO)
     find_library(TERMINFO NAMES tinfo ncurses)
