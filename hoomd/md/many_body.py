@@ -15,7 +15,7 @@ class Triplet(Pair):
     Triplet potentials work similar to pair potentials in that they utilize
     turn-on and cutoff distances :math:`r_{\\mathrm{on}}` and :math:`r_{\\mathrm{cut}}`,
     respectively, along with energy shifting and smoothing modes. The detailed
-    documentation for this is located in :py:class:`hoomd.md.Pair`.
+    documentation for this is located in :py:class:`hoomd.md.pair.Pair`.
 
     Warning:
         Currently HOOMD does not support reverse force communication between MPI
