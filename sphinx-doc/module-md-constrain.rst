@@ -3,10 +3,12 @@ md.constrain
 
 .. rubric:: Overview
 
-.. py:currentmodule:: hoomd
+.. py:currentmodule:: hoomd.md.constrain
 
 .. autosummary::
     :nosignatures:
+
+    ConstraintForce
 
 
 .. rubric:: Details
@@ -14,4 +16,4 @@ md.constrain
 .. automodule:: hoomd.md.constrain
     :synopsis: Constraints.
     :undoc-members:
-    :members: _ConstraintForce,
+    :members: ConstraintForce,

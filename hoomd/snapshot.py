@@ -37,7 +37,7 @@ class _ConfigurationData:
 class Snapshot:
     def __init__(self, communicator=None):
         if communicator is None:
-            self._comm = hoomd.comm.Communicator()
+            self._comm = hoomd.communicator.Communicator()
         else:
             self._comm = communicator
 
@@ -101,9 +101,9 @@ class Snapshot:
             return None
 
     @classmethod
-    def _from_cpp_snapshot(cls, snapshot, comm):
+    def _from_cpp_snapshot(cls, snapshot, communicator):
         sp = cls()
-        sp._comm = comm
+        sp._comm = communicator
         sp._cpp_obj = snapshot
         return sp
 

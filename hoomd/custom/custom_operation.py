@@ -1,17 +1,17 @@
 from abc import abstractmethod
 
 from hoomd.operation import _TriggeredOperation
-from hoomd.parameterdicts import ParameterDict
+from hoomd.data.parameterdicts import ParameterDict
 from hoomd.custom.custom_action import Action, _AbstractLoggable
 from hoomd.trigger import Trigger
 from hoomd import _hoomd
 
 
-class _CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
+class CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
     """Wrapper for user created `hoomd.custom.Action` objects.
 
     This is the parent class for `hoomd.update.CustomUpdater` and
-    `hoomd.analyze.CustomAnalyzer`.  A basic wrapper that allows for Python
+    `hoomd.analyze.CustomWriter`.  A basic wrapper that allows for Python
     object inheriting from `hoomd.custom.Action` to be attached to
     a simulation.  To see how to implement a custom Python action, look at the
     documentation for `hoomd.custom.Action`.
@@ -23,7 +23,7 @@ class _CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
 
     Note:
         Due to the pass through no attribute should exist both in
-        `hoomd.custom._CustomOperation` and the `hoomd.custom.Action`.
+        `hoomd.custom.CustomOperation` and the `hoomd.custom.Action`.
 
     Note:
         This object should not be instantiated or subclassed by an user.
@@ -124,11 +124,11 @@ class _AbstractLoggableWithPassthrough(_AbstractLoggable):
 
 
 class _InternalCustomOperation(
-        _CustomOperation, metaclass=_AbstractLoggableWithPassthrough):
+        CustomOperation, metaclass=_AbstractLoggableWithPassthrough):
     """Internal class for Python ``Action``s. Offers a streamlined __init__.
 
     Adds a wrapper around an hoomd Python action. This extends the attribute
-    getting and setting wrapper of `hoomd._CustomOperation` with a wrapping of
+    getting and setting wrapper of `hoomd.CustomOperation` with a wrapping of
     the `__init__` method as well as a error raised if the ``action`` is
     attempted to be accessed directly.
     """

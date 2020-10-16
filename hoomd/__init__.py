@@ -6,29 +6,22 @@
 
 :py:mod:`hoomd` provides a high level user interface for defining and executing
 simulations using HOOMD.
-
-.. rubric:: API stability
-
-:py:mod:`hoomd` is **stable**. When upgrading from version 3.x to 3.y (y > x),
-existing job scripts that follow *documented* interfaces for functions and
-classes will not require any modifications.
-
-**Maintainer:** Joshua A. Anderson
 """
 import sys
 import os
 
 from hoomd import version
-from hoomd import analyze
-from hoomd import benchmark
-from hoomd import comm
-from hoomd import dump
-from hoomd import integrate
-from hoomd import update
-from hoomd import util
-from hoomd import variant
-from hoomd import device
 from hoomd import trigger
+from hoomd import variant
+from hoomd.box import Box
+from hoomd import data
+from hoomd import filter
+from hoomd import device
+from hoomd import update
+from hoomd import integrate
+from hoomd import communicator
+from hoomd import util
+from hoomd import write
 try:
     from hoomd import md
 except ImportError:
@@ -47,13 +40,11 @@ except ImportError:
 # except ImportError:
 #     pass
 
-from hoomd.box import Box
 from hoomd.simulation import Simulation
 from hoomd.state import State
 from hoomd.operations import Operations
 from hoomd.snapshot import Snapshot
 from hoomd import tune
-from hoomd import output
 from hoomd import logging
 from hoomd import custom
 
@@ -64,7 +55,7 @@ def _hoomd_sys_excepthook(type, value, traceback):
     """Override Python's excepthook to abort MPI runs."""
     _default_excepthook(type, value, traceback)
     sys.stderr.flush()
-    _hoomd.abort_mpi(comm._current_communicator.cpp_mpi_conf, 1)
+    _hoomd.abort_mpi(communicator._current_communicator.cpp_mpi_conf, 1)
 
 
 sys.excepthook = _hoomd_sys_excepthook

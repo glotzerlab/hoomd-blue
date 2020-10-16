@@ -305,6 +305,11 @@ class PYBIND11_EXPORT ExecutionConfiguration
         return m_memory_traceback.get();
         }
 
+    bool memoryTracingEnabled() const
+        {
+        return m_memory_traceback.get() != nullptr;
+        }
+
     //! Returns true if we are in a multi-GPU block
     bool inMultiGPUBlock() const
         {

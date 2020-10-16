@@ -6,10 +6,10 @@ from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.md import force
 from hoomd.md import nlist as nl
-from hoomd.md.nlist import _NList
-from hoomd.parameterdicts import ParameterDict, TypeParameterDict
-from hoomd.typeparam import TypeParameter
-from hoomd.typeconverter import OnlyFrom, OnlyType
+from hoomd.md.nlist import NList
+from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
+from hoomd.data.typeparam import TypeParameter
+from hoomd.data.typeconverter import OnlyFrom, OnlyType
 
 import math
 import json
@@ -19,7 +19,7 @@ class pair(force._force):
     pass
 
 
-validate_nlist = OnlyType(_NList)
+validate_nlist = OnlyType(NList)
 
 
 def validate_mode(value):
@@ -30,10 +30,10 @@ def validate_mode(value):
         raise ValueError("{} not found in {}".format(value, acceptable))
 
 
-class _Pair(force._Force):
+class Pair(force.Force):
     """Common pair potential documentation.
 
-    Users should not invoke :py:class:`_Pair` directly. It is a base command
+    Users should not invoke :py:class:`Pair` directly. It is a base command
     that provides common features to all standard pair forces. Common
     documentation for all pair potentials is documented here.
 
@@ -216,11 +216,11 @@ class _Pair(force._Force):
         return [self.nlist]
 
 
-class LJ(_Pair):
+class LJ(Pair):
     """ Lennard-Jones pair potential.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mode
@@ -238,7 +238,7 @@ class LJ(_Pair):
         = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
         \\end{eqnarray*}
 
-    See :py:class:`_Pair` for details on how forces are calculated and the
+    See :py:class:`Pair` for details on how forces are calculated and the
     available energy shifting and smoothing modes.  Use `params` dictionary
     to set potential coefficients. The coefficients must be set per
     unique pair of particle types.
@@ -271,11 +271,11 @@ class LJ(_Pair):
                                )
         self._add_typeparam(params)
 
-class Gauss(_Pair):
+class Gauss(Pair):
     """ Gaussian pair potential.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mode.
@@ -293,7 +293,7 @@ class Gauss(_Pair):
                                  = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
         \\end{eqnarray*}
 
-    See :py:class:`_Pair` for details on how forces are calculated and the
+    See :py:class:`Pair` for details on how forces are calculated and the
     available energy shifting and smoothing modes. Use `params` dictionary to
     set potential coefficients. The coefficients must be set per unique pair of
     particle types.
@@ -326,11 +326,11 @@ class Gauss(_Pair):
                                                  len_keys=2))
         self._add_typeparam(params)
 
-class SLJ(_Pair):
+class SLJ(Pair):
     """Shifted Lennard-Jones pair potential.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): Energy shifting/smoothing mode
@@ -354,7 +354,7 @@ class SLJ(_Pair):
     where :math:`\\Delta = (d_i + d_j)/2 - 1` and :math:`d_i` is the diameter of
     particle :math:`i`.
 
-    See :py:class:`_Pair` for details on how forces are calculated and the
+    See :py:class:`Pair` for details on how forces are calculated and the
     available energy shifting and smoothing modes. Use `params` dictionary to
     set potential coefficients. The coefficients must be set per unique pair of
     particle types.
@@ -414,11 +414,11 @@ class SLJ(_Pair):
         # NOTE do we need something to automatically set the max_diameter correctly?
 
 
-class Yukawa(_Pair):
+class Yukawa(Pair):
     """Yukawa pair potential.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): Energy shifting mode.
@@ -435,7 +435,7 @@ class Yukawa(_Pair):
                                   = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
         \\end{eqnarray*}
 
-    See `_Pair` for details on how forces are calculated and the available
+    See `Pair` for details on how forces are calculated and the available
     energy shifting and smoothing modes. Use `params` dictionary to set
     potential coefficients. The coefficients must be set per unique pair of
     particle types.
@@ -468,11 +468,11 @@ class Yukawa(_Pair):
                                                  len_keys=2))
         self._add_typeparam(params)
 
-class Ewald(_Pair):
+class Ewald(Pair):
     """Ewald pair potential.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): Energy shifting mode.
@@ -496,7 +496,7 @@ class Ewald(_Pair):
 
     The Ewald potential is designed to be used in conjunction with PPPM.
 
-    See `_Pair` for details on how forces are calculated and the available
+    See `Pair` for details on how forces are calculated and the available
     energy shifting and smoothing modes. Use the `params` dictionary to set
     potential coefficients. The coefficients must be set per unique pair of
     particle types.
@@ -539,7 +539,7 @@ class table(force._force):
 
     Args:
         width (int): Number of points to use to interpolate V and F.
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list (default of None automatically creates a global cell-list based neighbor list)
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list (default of None automatically creates a global cell-list based neighbor list)
         name (str): Name of the force instance
 
     :py:class:`table` specifies that a tabulated pair potential should be applied between every
@@ -794,11 +794,11 @@ class table(force._force):
 
         self.pair_coeff.set(a, b, func=_table_eval, rmin=rmin_table, rmax=rmax_table, coeff=dict(V=V_table, F=F_table, width=self.width))
 
-class Morse(_Pair):
+class Morse(Pair):
     """Morse pair potential.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mode.
@@ -816,7 +816,7 @@ class Morse(_Pair):
             = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
         \\end{eqnarray*}
 
-    See `_Pair` for details on how forces are calculated and the available
+    See `Pair` for details on how forces are calculated and the available
     energy shifting and smoothing modes. Use `params` dictionary to set
     potential coefficients. The coefficients must be set per unique pair of
     particle types.
@@ -852,11 +852,11 @@ class Morse(_Pair):
                                              len_keys=2))
         self._add_typeparam(params)
 
-class DPD(_Pair):
+class DPD(Pair):
     """Dissipative Particle Dynamics.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of
           thermostat (in energy units).
         seed (int): seed for the PRNG in the DPD thermostat.
@@ -961,11 +961,11 @@ class DPD(_Pair):
         self.kT = kT
         self.seed = seed
 
-class DPDConservative(_Pair):
+class DPDConservative(Pair):
     """DPD Conservative pair force.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
 
@@ -1016,11 +1016,11 @@ class DPDConservative(_Pair):
         self._add_typeparam(params)
 
 
-class DPDLJ(_Pair):
+class DPDLJ(Pair):
     """Dissipative Particle Dynamics with a LJ conservative force.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of
             thermostat (in energy units).
         seed (int): seed for the PRNG in the DPD thermostat.
@@ -1131,11 +1131,11 @@ class DPDLJ(_Pair):
         self.seed = seed
         self.mode = mode
 
-class ForceShiftedLJ(_Pair):
+class ForceShiftedLJ(Pair):
     """Force-shifted Lennard-Jones pair potential.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mode.
@@ -1166,7 +1166,7 @@ class ForceShiftedLJ(_Pair):
         \\Delta V(r) = -(r - r_{\\mathrm{cut}}) \\frac{\\partial
           V_{\\mathrm{LJ}}}{\\partial r}(r_{\\mathrm{cut}})
 
-    See :py:class:`_Pair` for details on how forces are calculated and the
+    See :py:class:`Pair` for details on how forces are calculated and the
     available energy shifting and smoothing modes. Use `params` dictionary to
     set potential coefficients. The coefficients must be set per unique pair of
     particle types.
@@ -1202,11 +1202,11 @@ class ForceShiftedLJ(_Pair):
                                                  len_keys=2))
         self._add_typeparam(params)
 
-class Moliere(_Pair):
+class Moliere(Pair):
     """Moliere pair potential.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mode.
@@ -1235,7 +1235,7 @@ class Moliere(_Pair):
     - :math:`a_F = \\frac{0.8853 a_0}{\\left( \\sqrt{Z_i} + \\sqrt{Z_j}
       \\right)^{2/3}}`, where :math:`a_0` is the Bohr radius (in distance units)
 
-    See `_Pair` for details on how forces are calculated and the available
+    See `Pair` for details on how forces are calculated and the available
     energy shifting and smoothing modes. Use `params` dictionary to set
     potential coefficients. The coefficients must be set per unique pair of
     particle types.
@@ -1279,11 +1279,11 @@ class Moliere(_Pair):
                                                  len_keys=2))
         self._add_typeparam(params)
 
-class ZBL(_Pair):
+class ZBL(Pair):
     """ZBL pair potential.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mode.
@@ -1314,7 +1314,7 @@ class ZBL(_Pair):
     - :math:`a_F = \\frac{0.8853 a_0}{ Z_i^{0.23} + Z_j^{0.23} }`, where
       :math:`a_0` is the Bohr radius (in distance units)
 
-    See `_Pair` for details on how forces are calculated and the available
+    See `Pair` for details on how forces are calculated and the available
     energy shifting and smoothing modes. Use `params` dictionary to set
     potential coefficients.
 
@@ -1360,7 +1360,7 @@ class tersoff(pair):
 
     Args:
         r_cut (float): Default cutoff radius (in distance units).
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         name (str): Name of the force instance.
 
     :py:class:`tersoff` specifies that the Tersoff three-body potential should be applied to every
@@ -1445,7 +1445,7 @@ class revcross(pair):
     Warning: The code hasn yet to be updated with current API
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mode.
@@ -1576,11 +1576,11 @@ class revcross(pair):
 
 
 
-class Mie(_Pair):
+class Mie(Pair):
     """Mie pair potential.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mode.
@@ -1600,7 +1600,7 @@ class Mie(_Pair):
           = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
         \\end{eqnarray*}
 
-    `_Pair` for details on how forces are calculated and the available energy
+    `Pair` for details on how forces are calculated and the available energy
     shifting and smoothing modes. Use the `params` dictionary to set potential
     coefficients. The coefficients must be set per unique pair of particle
     types.
@@ -1767,7 +1767,7 @@ class gb(ai_pair):
     Warning: The code has yet to be updated to the current API.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mode.
@@ -1874,7 +1874,7 @@ class dipole(ai_pair):
     Warning: The code has yet to be updated to the current API.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mode
@@ -1893,7 +1893,7 @@ class dipole(ai_pair):
 
         U_{ee} = A e^{-\kappa r} \frac{q_i q_j}{r}
 
-    See :py:class:`_Pair` for details on how forces are calculated and the
+    See :py:class:`Pair` for details on how forces are calculated and the
     available energy shifting and smoothing modes.  Use ``params`` dictionary
     to set potential coefficients. The coefficients must be set per unique pair of particle types.
 
@@ -1953,11 +1953,11 @@ class dipole(ai_pair):
         return;
 
 
-class ReactionField(_Pair):
+class ReactionField(Pair):
     """Onsager reaction field pair potential.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mode
@@ -1991,7 +1991,7 @@ class ReactionField(_Pair):
 
     where :math:`q_i` and :math:`q_j` are the charges of the particle pair.
 
-    See `_Pair` for details on how forces are calculated and the available
+    See `Pair` for details on how forces are calculated and the available
     energy shifting and smoothing modes.  Use the `params` dictionary to set
     potential coefficients. The coefficients must be set per unique pair of
     particle types.
@@ -2028,12 +2028,12 @@ class ReactionField(_Pair):
         self._add_typeparam(params)
 
 
-class DLVO(_Pair):
+class DLVO(Pair):
     """DLVO colloidal interaction
 
     Args:
         r_cut (float): Default cutoff radius (in distance units).
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         name (str): Name of the force instance.
         d_max (float): Maximum diameter particles in the simulation will have
           (in distance units)
@@ -2069,7 +2069,7 @@ class DLVO(_Pair):
     neighbor lists.
 
     Due to the way that DLVO modifies the cutoff condition, it will not function
-    properly with the xplor shifting mode. See :py:class:`_Pair` for details on
+    properly with the xplor shifting mode. See :py:class:`Pair` for details on
     how forces are calculated and the available energy shifting and smoothing
     modes.
 
@@ -2123,7 +2123,7 @@ class square_density(pair):
     Warning: The code has yet to be updated to the current API.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mode
@@ -2203,11 +2203,11 @@ class square_density(pair):
         return _hoomd.make_scalar2(coeff['A'],coeff['B'])
 
 
-class Buckingham(_Pair):
+class Buckingham(Pair):
     """Buckingham pair potential.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mode
@@ -2224,7 +2224,7 @@ class Buckingham(_Pair):
           = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
         \\end{eqnarray*}
 
-    See `_Pair` for details on how forces are calculated and the available
+    See `Pair` for details on how forces are calculated and the available
     energy shifting and smoothing modes.  Use the `params` dictionary to set
     potential coefficients.
 
@@ -2258,11 +2258,11 @@ class Buckingham(_Pair):
         self._add_typeparam(params)
 
 
-class LJ1208(_Pair):
+class LJ1208(Pair):
     """Lennard-Jones 12-8 pair potential.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mode
@@ -2281,7 +2281,7 @@ class LJ1208(_Pair):
           = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
         \\end{eqnarray*}
 
-    See `_Pair` for details on how forces are calculated and the available
+    See `Pair` for details on how forces are calculated and the available
     energy shifting and smoothing modes.  Use the `params` dictionary to set
     potential coefficients.
 
@@ -2313,11 +2313,11 @@ class LJ1208(_Pair):
         self._add_typeparam(params)
 
 
-class Fourier(_Pair):
+class Fourier(Pair):
     """Fourier pair potential.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): Energy shifting mode.
@@ -2348,7 +2348,7 @@ class Fourier(_Pair):
 
         is calculated to enforce close to zero value at r_cut.
 
-    See `_Pair` for details on how forces are calculated and the available
+    See `Pair` for details on how forces are calculated and the available
     energy shifting and smoothing modes. Use `params` dictionary to set
     potential coefficients. The coefficients must be set per unique pair of
     particle types.
