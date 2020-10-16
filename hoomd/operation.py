@@ -5,7 +5,7 @@
 
 """Base classes for all HOOMD-blue operations."""
 
-# _Operation is a parent class of almost all other HOOMD objects.
+# Operation is a parent class of almost all other HOOMD objects.
 # Triggered objects should inherit from _TriggeredOperation.
 
 
@@ -14,10 +14,10 @@ from hoomd.trigger import Trigger
 from hoomd.variant import Variant, Constant
 from hoomd.filter import ParticleFilter
 from hoomd.logging import Loggable, log
-from hoomd.typeconverter import RequiredArg
+from hoomd.data.typeconverter import RequiredArg
 from hoomd.util import NamespaceDict
 from hoomd._hoomd import GSDStateReader
-from hoomd.parameterdicts import ParameterDict
+from hoomd.data.parameterdicts import ParameterDict
 
 from collections.abc import Mapping
 from copy import deepcopy
@@ -33,7 +33,7 @@ def _convert_values_to_log_form(value):
             return (value, 'object')
     elif isinstance(value, Trigger) or isinstance(value, ParticleFilter):
         return (value, 'object')
-    elif isinstance(value, _Operation):
+    elif isinstance(value, Operation):
         return (value, 'object')
     elif isinstance(value, str):
         return (value, 'string')
@@ -470,12 +470,19 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
         return []
 
 
-class _Operation(_HOOMDBaseObject):
-    """Defines operations that are added to an `hoomd.Operations` object."""
+class Operation(_HOOMDBaseObject):
+    """Represents operations that are added to an `hoomd.Operations` object.
+
+    Operations in the HOOMD-blue data scheme are objects that *operate* on a
+    `hoomd.Simulation` object. They broadly consist of 5 subclasses: `Updater`,
+    `Writer`, `Compute`, `Tuner`, and `hoomd.integrate.BaseIntegrator`. All
+    HOOMD-blue operations inherit from one of these five base classes. To find
+    the purpose of each class see its documentation.
+    """
     pass
 
 
-class _TriggeredOperation(_Operation):
+class _TriggeredOperation(Operation):
     _cpp_list_name = None
 
     _override_setattr = {'trigger'}
@@ -521,7 +528,7 @@ class Updater(_TriggeredOperation):
     _cpp_list_name = 'updaters'
 
 
-class Analyzer(_TriggeredOperation):
+class Writer(_TriggeredOperation):
     """Base class for all HOOMD analyzers.
 
     An analyzer is an operation which writes out a simulation's state.
@@ -533,7 +540,7 @@ class Analyzer(_TriggeredOperation):
     _cpp_list_name = 'analyzers'
 
 
-class Compute(_Operation):
+class Compute(Operation):
     """Base class for all HOOMD computes.
 
     A compute is an operation which computes some property for another operation
@@ -546,7 +553,7 @@ class Compute(_Operation):
     pass
 
 
-class Tuner(_Operation):
+class Tuner(Operation):
     """Base class for all HOOMD tuners.
 
     A tuner is an operation which tunes the parameters of another operation for

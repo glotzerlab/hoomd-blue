@@ -9,13 +9,13 @@
 
 
 from hoomd.md import _md
-from hoomd.parameterdicts import ParameterDict
-from hoomd.typeconverter import OnlyFrom
-from hoomd.integrate import _BaseIntegrator
-from hoomd.syncedlist import SyncedList
+from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data.typeconverter import OnlyFrom
+from hoomd.integrate import BaseIntegrator
+from hoomd.data.syncedlist import SyncedList
 from hoomd.md.methods import _Method
-from hoomd.md.force import _Force
-from hoomd.md.constrain import _ConstraintForce
+from hoomd.md.force import Force
+from hoomd.md.constrain import ConstraintForce
 import itertools
 
 
@@ -33,17 +33,17 @@ def _set_synced_list(old_list, new_list):
     old_list.extend(new_list)
 
 
-class _DynamicIntegrator(_BaseIntegrator):
+class _DynamicIntegrator(BaseIntegrator):
     def __init__(self, forces, constraints, methods):
         forces = [] if forces is None else forces
         constraints = [] if constraints is None else constraints
         methods = [] if methods is None else methods
-        self._forces = SyncedList(lambda x: isinstance(x, _Force),
+        self._forces = SyncedList(lambda x: isinstance(x, Force),
                                   to_synced_list=lambda x: x._cpp_obj,
                                   iterable=forces)
 
         self._constraints = SyncedList(lambda x: isinstance(x,
-                                                            _ConstraintForce),
+                                                            ConstraintForce),
                                        to_synced_list=lambda x: x._cpp_obj,
                                        iterable=constraints)
 
@@ -93,6 +93,7 @@ class _DynamicIntegrator(_BaseIntegrator):
 
         return children
 
+
 class Integrator(_DynamicIntegrator):
     R""" Enables a variety of standard integration methods.
 
@@ -104,7 +105,7 @@ class Integrator(_DynamicIntegrator):
             subset of particles. The intersection of the subsets must be null.  
             The default value of ``None`` initializes an empty list. 
 
-        forces (Sequence[hoomd.md.force._Force]): Sequence of forces applied to 
+        forces (Sequence[hoomd.md.force.Force]): Sequence of forces applied to 
             the particles in the system. All the forces are summed together. 
             The default value of ``None`` initializes an empty list.
 
@@ -112,7 +113,7 @@ class Integrator(_DynamicIntegrator):
             (bool), default 'auto' (autodetect if there is anisotropic factor
             from any defined active or constraint forces).
 
-        constraints (Sequence[hoomd.md.constrain._ConstraintForce]): Sequence of
+        constraints (Sequence[hoomd.md.constrain.ConstraintForce]): Sequence of
             constraint forces applied to the particles in the system.
             The default value of ``None`` initializes an empty list.
 
@@ -160,12 +161,12 @@ class Integrator(_DynamicIntegrator):
             Each integration method can be applied to only a specific subset of
             particles.
 
-        forces (List[hoomd.md.force._Force]): List of forces applied to
+        forces (List[hoomd.md.force.Force]): List of forces applied to
             the particles in the system. All the forces are summed together.
 
         aniso (str): Whether rotational degrees of freedom are integrated.
 
-        constraints (List[hoomd.md.constrain._ConstraintForce]): List of
+        constraints (List[hoomd.md.constrain.ConstraintForce]): List of
             constraint forces applied to the particles in the system.
     """
 

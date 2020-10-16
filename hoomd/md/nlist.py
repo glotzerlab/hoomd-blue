@@ -15,8 +15,8 @@ neighbor lists are shared, they find neighbors within the the maximum
 from hoomd import _hoomd
 from hoomd.md import _md
 import hoomd
-from hoomd.typeconverter import OnlyFrom
-from hoomd.parameterdicts import ParameterDict
+from hoomd.data.typeconverter import OnlyFrom
+from hoomd.data.parameterdicts import ParameterDict
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.logging import log
 
@@ -26,16 +26,16 @@ class nlist:
     """
     pass
 
-# To Do: Migrate all hoomdv2 codes still using nlist to _NList
+# To Do: Migrate all hoomdv2 codes still using nlist to NList
 
-class _NList(_HOOMDBaseObject):
+class NList(_HOOMDBaseObject):
     r"""Base class neighbor list.
 
     Methods and attributes provided by this base class are available to all
     subclasses.
 
     Attention:
-        Users should instantiate the subclasses, using `_Nlist` directly
+        Users should instantiate the subclasses, using `NList` directly
         will result in an error.
 
     .. rubric:: Buffer distance
@@ -43,10 +43,10 @@ class _NList(_HOOMDBaseObject):
     Set the `buffer` distance to amortize the cost of the neighbor list build.
     When ``buffer > 0``, a neighbor list computed on one step can be reused on
     subsequent steps until a particle moves a distance ``buffer/2``. When
-    `check_dist` is `True`, `_Nlist` starts checking how far particles have
+    `check_dist` is `True`, `NList` starts checking how far particles have
     moved `rebuild_check_delay` time steps after the last build and performs a
     rebuild when any particle has moved a distance ``buffer/2``. When
-    `check_dist` is `False`, `_Nlist` always rebuilds after
+    `check_dist` is `False`, `NList` always rebuilds after
     `rebuild_check_delay` time steps.
 
     .. rubric:: Exclusions
@@ -130,7 +130,7 @@ class rcut:
     pass
 
 
-class Cell(_NList):
+class Cell(NList):
     r"""Cell list based neighbor list
 
     Args:

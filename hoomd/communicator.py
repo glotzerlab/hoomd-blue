@@ -12,7 +12,6 @@ from hoomd import _hoomd
 import hoomd
 
 import contextlib
-import sys
 
 
 class decomposition(object):
@@ -250,6 +249,7 @@ class decomposition(object):
         except TypeError as te:
             hoomd.context.current.device.cpp_msg.error("Fractional cuts must be iterable (list, tuple, etc.)\n")
             raise te
+
 
 class Communicator(object):
     """

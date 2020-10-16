@@ -9,10 +9,10 @@ from . import integrate
 from hoomd import _hoomd
 from hoomd.logging import log
 from hoomd.update import _updater
+from hoomd.data.parameterdicts import ParameterDict
+import hoomd.data.typeconverter
 from hoomd.operation import Updater
-from hoomd.parameterdicts import ParameterDict
 import hoomd
-import hoomd.typeconverter
 
 
 class boxmc(_updater):
@@ -60,7 +60,7 @@ class boxmc(_updater):
         # according to frequency parameter.
         period = 1
 
-        if not isinstance(mc, integrate._HPMCIntegrator):
+        if not isinstance(mc, integrate.HPMCIntegrator):
             hoomd.context.current.device.cpp_msg.warning("update.boxmc: Must have a handle to an HPMC integrator.\n");
             return;
 
@@ -521,7 +521,7 @@ class muvt(_updater):
 
     Gibbs ensemble simulations are also supported, where particles and volume are swapped between two or more
     boxes.  Every box correspond to one MPI partition, and can therefore run on multiple ranks.
-    See :py:mod:`hoomd.comm` and the --nrank command line option for how to split a MPI task into partitions.
+    See ``hoomd.comm`` and the --nrank command line option for how to split a MPI task into partitions.
 
     Note:
         Multiple Gibbs ensembles are also supported in a single parallel job, with the ngibbs option
@@ -535,7 +535,7 @@ class muvt(_updater):
     """
     def __init__(self, mc, seed, period=1, transfer_types=None,ngibbs=1):
 
-        if not isinstance(mc, integrate._HPMCIntegrator):
+        if not isinstance(mc, integrate.HPMCIntegrator):
             hoomd.context.current.device.cpp_msg.warning("update.muvt: Must have a handle to an HPMC integrator.\n");
             return;
 
@@ -812,7 +812,7 @@ class Clusters(Updater):
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
-        if not isinstance(integrator, integrate._HPMCIntegrator):
+        if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
 
         integrator_pairs = [
@@ -1001,8 +1001,9 @@ class QuickCompress(Updater):
             seed=int,
             max_overlaps_per_particle=float,
             min_scale=float,
-            target_box=hoomd.typeconverter.OnlyType(
-                hoomd.Box, preprocess=hoomd.typeconverter.box_preprocessing))
+            target_box=hoomd.data.typeconverter.OnlyType(
+                hoomd.Box,
+                preprocess=hoomd.data.typeconverter.box_preprocessing))
         param_dict['seed'] = seed
         param_dict['max_overlaps_per_particle'] = max_overlaps_per_particle
         param_dict['min_scale'] = min_scale
@@ -1012,7 +1013,7 @@ class QuickCompress(Updater):
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
-        if not isinstance(integrator, integrate._HPMCIntegrator):
+        if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
 
         if not integrator._attached:

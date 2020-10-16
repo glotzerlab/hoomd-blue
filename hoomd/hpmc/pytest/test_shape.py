@@ -69,7 +69,7 @@ def test_invalid_shape_params(invalid_args):
         integrator = integrator[1]
     args = invalid_args[1]
     mc = integrator(23456)
-    with pytest.raises(hoomd.typeconverter.TypeConversionError):
+    with pytest.raises(hoomd.data.typeconverter.TypeConversionError):
         mc.shape["A"] = args
 
 
