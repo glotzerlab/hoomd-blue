@@ -126,7 +126,7 @@ class BoxMC(_Updater):
 
     @log(flag="sequence")
     def volume_moves(self):
-        R""" Get a tuple with the accepted and rejected volume moves.
+        R""" Get a tuple with the accepted and rejected volume and length moves.
 
         Returns:
             A tuple of (accepted moves, rejected moves) since the last run.
