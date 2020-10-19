@@ -182,8 +182,8 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     // reset exclusions
     clearExclusions();
 
-    m_ex_list_indexer = Index2D(m_ex_list_idx.getPitch(), 1);
-    m_ex_list_indexer_tag = Index2D(m_ex_list_tag.getPitch(), 1);
+    m_ex_list_indexer = Index2D((unsigned int)m_ex_list_idx.getPitch(), 1);
+    m_ex_list_indexer_tag = Index2D((unsigned int)m_ex_list_tag.getPitch(), 1);
 
     // connect to particle sort to force rebuild
     m_pdata->getParticleSortSignal().connect<NeighborList, &NeighborList::forceUpdate>(this);
@@ -214,7 +214,7 @@ void NeighborList::reallocate()
     {
     // resize the exclusions
     m_last_pos.resize(m_pdata->getMaxN());
-    unsigned int old_n_ex = m_n_ex_idx.getNumElements();
+    size_t old_n_ex = m_n_ex_idx.getNumElements();
     m_n_ex_idx.resize(m_pdata->getMaxN());
 
         {
@@ -224,7 +224,7 @@ void NeighborList::reallocate()
 
     unsigned int ex_list_height = m_ex_list_indexer.getH();
     m_ex_list_idx.resize(m_pdata->getMaxN(), ex_list_height );
-    m_ex_list_indexer = Index2D(m_ex_list_idx.getPitch(), ex_list_height);
+    m_ex_list_indexer = Index2D((unsigned int)m_ex_list_idx.getPitch(), ex_list_height);
 
     // resize the head list and number of neighbors per particle
     m_head_list.resize(m_pdata->getMaxN());
@@ -259,7 +259,7 @@ void NeighborList::reallocateTypes()
     #endif
 
     m_r_listsq.resize(m_typpair_idx.getNumElements());
-    unsigned int old_ntypes = m_Nmax.getNumElements();
+    unsigned int old_ntypes = (unsigned int)m_Nmax.getNumElements();
     m_Nmax.resize(m_pdata->getNTypes());
 
     // flood Nmax with 4s initially
@@ -633,7 +633,8 @@ void NeighborList::clearExclusions()
         if (m_ex_list_tag.getPitch() != m_n_ex_tag.getNumElements())
             {
             m_ex_list_tag.resize(m_n_ex_tag.getNumElements(), m_ex_list_tag.getHeight());
-            m_ex_list_indexer_tag = Index2D(m_ex_list_tag.getPitch(), m_ex_list_tag.getHeight());
+            m_ex_list_indexer_tag = Index2D((unsigned int)m_ex_list_tag.getPitch(),
+                                            (unsigned int)m_ex_list_tag.getHeight());
             }
 
         m_need_reallocate_exlist = false;
@@ -655,7 +656,7 @@ unsigned int NeighborList::getNumExclusions(unsigned int size)
     {
     ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::read);
     unsigned int count = 0;
-    unsigned int ntags = m_pdata->getRTags().size();
+    unsigned int ntags = (unsigned int)m_pdata->getRTags().size();
     for (unsigned int tag = 0; tag <= ntags; tag++)
         {
         if (! m_pdata->isTagActive(tag))
@@ -751,7 +752,7 @@ void NeighborList::countExclusions()
     for (unsigned int c=0; c <= MAX_COUNT_EXCLUDED+1; ++c)
         excluded_count[c] = 0;
 
-    unsigned int max_tag = m_pdata->getRTags().size();
+    unsigned int max_tag = (unsigned int)m_pdata->getRTags().size();
     for (unsigned int i = 0; i < max_tag; i++)
         {
         num_excluded = h_n_ex_tag.data[i];
@@ -998,7 +999,7 @@ bool NeighborList::isExcluded(unsigned int tag1, unsigned int tag2)
 void NeighborList::addOneThreeExclusionsFromTopology()
     {
     std::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
-    const unsigned int myNAtoms = m_pdata->getRTags().size();
+    const unsigned int myNAtoms = (unsigned int)m_pdata->getRTags().size();
     const unsigned int MAXNBONDS = 7+1; //! assumed maximum number of bonds per atom plus one entry for the number of bonds.
     const unsigned int nBonds = bond_data->getNGlobal();
 
@@ -1077,7 +1078,7 @@ void NeighborList::addOneThreeExclusionsFromTopology()
 void NeighborList::addOneFourExclusionsFromTopology()
     {
     std::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
-    const unsigned int myNAtoms = m_pdata->getRTags().size();
+    const unsigned int myNAtoms = (unsigned int)m_pdata->getRTags().size();
     const unsigned int MAXNBONDS = 7+1; //! assumed maximum number of bonds per atom plus one entry for the number of bonds.
     const unsigned int nBonds = bond_data->getNGlobal();
 
@@ -1341,7 +1342,7 @@ bool NeighborList::needsUpdating(unsigned int timestep)
                 {
                 unsigned int period = timestep - m_last_updated_tstep;
                 if (period >= m_update_periods.size())
-                    period = m_update_periods.size()-1;
+                    period = (unsigned int)(m_update_periods.size()-1);
                 m_update_periods[period]++;
                 }
 
@@ -1376,7 +1377,7 @@ unsigned int NeighborList::getSmallestRebuild()
         if (m_update_periods[i] != 0)
             return i;
         }
-    return m_update_periods.size();
+    return (unsigned int)m_update_periods.size();
     }
 
 /*! This method is now deprecated, and deriving classes must supply it.
@@ -1522,17 +1523,17 @@ void NeighborList::buildHeadList()
  * Increases the size of the neighbor list memory using amortized resizing (growth factor: 9/8)
  * only when needed.
  */
-void NeighborList::resizeNlist(unsigned int size)
+void NeighborList::resizeNlist(size_t size)
     {
     if (size > m_nlist.getNumElements())
         {
         m_exec_conf->msg->notice(6) << "nlist: (Re-)allocating neighbor list, new size " << size << " uints " << endl;
 
-        unsigned int alloc_size = m_nlist.getNumElements() ? m_nlist.getNumElements() : 1;
+        size_t alloc_size = m_nlist.getNumElements() ? m_nlist.getNumElements() : 1;
 
         while (size > alloc_size)
             {
-            alloc_size = ((unsigned int) (((float) alloc_size) * 1.125f)) + 1 ;
+            alloc_size = ((size_t) (((float) alloc_size) * 1.125f)) + 1 ;
             }
 
         // round up to nearest multiple of 4
@@ -1581,8 +1582,8 @@ void NeighborList::growExclusionList()
     m_ex_list_idx.resize(m_pdata->getMaxN(), new_height);
 
     // update the indexers
-    m_ex_list_indexer = Index2D(m_ex_list_idx.getPitch(), new_height);
-    m_ex_list_indexer_tag = Index2D(m_ex_list_tag.getPitch(), new_height);
+    m_ex_list_indexer = Index2D((unsigned int)m_ex_list_idx.getPitch(), new_height);
+    m_ex_list_indexer_tag = Index2D((unsigned int)m_ex_list_tag.getPitch(), new_height);
 
     // we didn't copy data for the new idx list, force an update so it will be correct
     forceUpdate();

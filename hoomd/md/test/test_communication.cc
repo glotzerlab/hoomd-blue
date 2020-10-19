@@ -2683,7 +2683,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator,
         ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::read);
 
         UP_ASSERT_EQUAL(h_n_bonds.data[0],3);
-        unsigned int pitch = bdata->getGPUTableIndexer().getW();
+        size_t pitch = bdata->getGPUTableIndexer().getW();
 
         unsigned int sorted_tags[3];
         sorted_tags[0] = h_tag.data[h_gpu_bondlist.data[0].idx[0]];

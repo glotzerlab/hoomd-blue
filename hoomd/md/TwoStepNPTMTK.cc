@@ -858,7 +858,7 @@ void TwoStepNPTMTK::advanceThermostat(unsigned int timestep)
         Scalar &eta_rot = v.variable[9];
 
         Scalar curr_ke_rot = m_thermo_half_step->getRotationalKineticEnergy();
-        unsigned int ndof_rot = m_group->getRotationalDOF();
+        Scalar ndof_rot = m_group->getRotationalDOF();
 
         Scalar xi_prime_rot = xi_rot + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*(Scalar(2.0)*curr_ke_rot/ndof_rot/T - Scalar(1.0));
         xi_rot = xi_prime_rot + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*(Scalar(2.0)*curr_ke_rot/ndof_rot/T - Scalar(1.0));
@@ -997,8 +997,8 @@ void TwoStepNPTMTK::thermalizeThermostatAndBarostatDOF(unsigned int seed, unsign
         // randomize thermostat variables
         Scalar& xi = v.variable[1];
 
-        unsigned int g = m_group->getTranslationalDOF();
-        Scalar sigmasq_t = Scalar(1.0)/((Scalar) g*m_tau*m_tau);
+        Scalar g = m_group->getTranslationalDOF();
+        Scalar sigmasq_t = Scalar(1.0)/(g*m_tau*m_tau);
 
         if (master)
             {

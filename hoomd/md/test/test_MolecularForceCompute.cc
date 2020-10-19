@@ -169,8 +169,8 @@ void comparison_test(std::shared_ptr<ExecutionConfiguration> exec_conf_cpu, std:
             if (*it != NO_MOLECULE) unique_tags.insert(*it);
             }
 
-        mfc_cpu.setNMolecules(unique_tags.size());
-        mfc_gpu.setNMolecules(unique_tags.size());
+        mfc_cpu.setNMolecules((unsigned int)unique_tags.size());
+        mfc_gpu.setNMolecules((unsigned int)unique_tags.size());
 
         mfc_cpu.setMoleculeTags(molecule_tags);
         mfc_gpu.setMoleculeTags(molecule_tags);

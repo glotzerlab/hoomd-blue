@@ -200,7 +200,7 @@ hipError_t gpu_fill_matrix_vector(unsigned int n_constraint,
     unsigned int n_blocks = nptl_local/run_block_size + 1;
 
     // run GPU kernel
-    hipLaunchKernelGGL((gpu_fill_matrix_vector_kernel), dim3(n_blocks), dim3(run_block_size), 0, 0, 
+    hipLaunchKernelGGL((gpu_fill_matrix_vector_kernel), dim3(n_blocks), dim3(run_block_size), 0, 0,
         n_constraint,
         nptl_local,
         d_matrix,
@@ -362,7 +362,7 @@ hipError_t gpu_compute_constraint_forces(const Scalar4 *d_pos,
                                    const unsigned int *d_gpu_cpos,
                                    Scalar4 *d_force,
                                    Scalar *d_virial,
-                                   unsigned int virial_pitch,
+                                   size_t virial_pitch,
                                    const BoxDim box,
                                    unsigned int nptl_local,
                                    unsigned int block_size,

@@ -235,7 +235,7 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
     protected:
         std::shared_ptr<ComputeThermo> m_thermo_half_step;   //!< ComputeThermo operating on the integrated group at t+dt/2
         std::shared_ptr<ComputeThermo> m_thermo_full_step; //!< ComputeThermo operating on the integrated group at t
-        unsigned int m_ndof;            //!< Number of degrees of freedom from ComputeThermo
+        Scalar m_ndof;            //!< Number of degrees of freedom from ComputeThermo
 
         Scalar m_tau;                   //!< tau value for Nose-Hoover
         Scalar m_tauS;                  //!< tauS value for the barostat

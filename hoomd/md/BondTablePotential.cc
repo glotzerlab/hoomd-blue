@@ -50,7 +50,7 @@ BondTablePotential::BondTablePotential(std::shared_ptr<SystemDefinition> sysdef,
     assert(!m_tables.isNull());
 
     // helper to compute indices
-    Index2D table_value(m_tables.getPitch(),m_bond_data->getNTypes());
+    Index2D table_value((unsigned int)m_tables.getPitch(), m_bond_data->getNTypes());
     m_table_value = table_value;
 
 

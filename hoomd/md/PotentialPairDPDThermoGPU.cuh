@@ -34,7 +34,7 @@ struct dpd_pair_args_t
     //! Construct a dpd_pair_args_t
     dpd_pair_args_t(Scalar4 *_d_force,
                     Scalar *_d_virial,
-                    const unsigned int _virial_pitch,
+                    const size_t _virial_pitch,
                     const unsigned int _N,
                     const unsigned int _n_max,
                     const Scalar4 *_d_pos,
@@ -45,7 +45,7 @@ struct dpd_pair_args_t
                     const unsigned int *_d_nlist,
                     const unsigned int *_d_head_list,
                     const Scalar *_d_rcutsq,
-                    const unsigned int _size_nlist,
+                    const size_t _size_nlist,
                     const unsigned int _ntypes,
                     const unsigned int _block_size,
                     const unsigned int _seed,
@@ -83,7 +83,7 @@ struct dpd_pair_args_t
 
     Scalar4 *d_force;                //!< Force to write out
     Scalar *d_virial;                //!< Virial to write out
-    const unsigned int virial_pitch; //!< Pitch of 2D virial array
+    const size_t virial_pitch; //!< Pitch of 2D virial array
     const unsigned int N;           //!< number of particles
     const unsigned int n_max;       //!< Maximum size of particle data arrays
     const Scalar4 *d_pos;           //!< particle positions
@@ -94,7 +94,7 @@ struct dpd_pair_args_t
     const unsigned int *d_nlist;    //!< Device array listing the neighbors of each particle
     const unsigned int *d_head_list;//!< Indexes for accessing d_nlist
     const Scalar *d_rcutsq;          //!< Device array listing r_cut squared per particle type pair
-    const unsigned int size_nlist;  //!< Total length of the neighbor list
+    const size_t size_nlist;  //!< Total length of the neighbor list
     const unsigned int ntypes;      //!< Number of particle types in the simulation
     const unsigned int block_size;  //!< Block size to execute
     const unsigned int seed;        //!< user provided seed for PRNG

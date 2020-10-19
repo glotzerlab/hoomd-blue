@@ -78,7 +78,7 @@ void TwoStepLangevinBase::slotNumTypesChange()
         return;
 
     // re-allocate memory for the per-type gamma storage and initialize them to 1.0
-    unsigned int old_ntypes = m_gamma.size();
+    unsigned int old_ntypes = (unsigned int)m_gamma.size();
     m_gamma.resize(m_pdata->getNTypes());
     m_gamma_r.resize(m_pdata->getNTypes());
 

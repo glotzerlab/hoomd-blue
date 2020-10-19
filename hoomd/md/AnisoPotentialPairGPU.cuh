@@ -37,7 +37,7 @@ struct a_pair_args_t
     a_pair_args_t(Scalar4 *_d_force,
               Scalar4 *_d_torque,
               Scalar *_d_virial,
-              const unsigned int _virial_pitch,
+              size_t _virial_pitch,
               const unsigned int _N,
               const unsigned int _n_max,
               const Scalar4 *_d_pos,
@@ -89,7 +89,7 @@ struct a_pair_args_t
     Scalar4 *d_force;                //!< Force to write out
     Scalar4 *d_torque;               //!< Torque to write out
     Scalar *d_virial;                //!< Virial to write out
-    const unsigned int virial_pitch; //!< The pitch of the 2D array of virial matrix elements
+    const size_t virial_pitch; //!< The pitch of the 2D array of virial matrix elements
     const unsigned int N;           //!< number of particles
     const unsigned int n_max;       //!< maximum size of particle data arrays
     const Scalar4 *d_pos;           //!< particle positions

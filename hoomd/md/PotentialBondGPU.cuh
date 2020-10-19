@@ -27,7 +27,7 @@ struct bond_args_t
     //! Construct a bond_args_t
     bond_args_t(Scalar4 *_d_force,
               Scalar *_d_virial,
-              const unsigned int _virial_pitch,
+              const size_t _virial_pitch,
               const unsigned int _N,
               const unsigned int _n_max,
               const Scalar4 *_d_pos,
@@ -58,7 +58,7 @@ struct bond_args_t
 
     Scalar4 *d_force;                   //!< Force to write out
     Scalar *d_virial;                   //!< Virial to write out
-    const unsigned int virial_pitch;   //!< pitch of 2D array of virial matrix elements
+    const size_t virial_pitch;   //!< pitch of 2D array of virial matrix elements
     unsigned int N;                    //!< number of particles
     unsigned int n_max;                //!< Size of local pdata arrays
     const Scalar4 *d_pos;              //!< particle positions
