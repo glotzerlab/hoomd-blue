@@ -378,7 +378,7 @@ class _LoggerEntry:
 class Logger(SafeNamespaceDict):
     '''Logs HOOMD-blue operation data and custom quantities.
 
-    The `Logger` class provides an intermediatary between a back end such as the
+    The `Logger` class provides an intermediary between a back end such as the
     `hoomd.write.Table` and many of HOOMD-blue's object (as most objects are
     loggable). The `Logger` class makes use of *namespaces* which denote where a
     logged quantity fits in. For example internally all loggable quantities are
