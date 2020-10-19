@@ -299,13 +299,13 @@ class UpdaterBoxMC : public Updater
         */
         std::shared_ptr<Variant> getBetaP()
             {
-            return m_P;
+            return m_beta_P;
             }
 
         //! Set pressure parameter
         void setBetaP(const std::shared_ptr<Variant>& betaP)
             {
-            m_P = betaP;
+            m_beta_P = betaP;
             }
 
         //! Print statistics about the MC box update steps taken
@@ -396,7 +396,7 @@ class UpdaterBoxMC : public Updater
 
     private:
         std::shared_ptr<IntegratorHPMC> m_mc;     //!< HPMC integrator object
-        std::shared_ptr<Variant> m_P;             //!< Reduced pressure in isobaric ensembles
+        std::shared_ptr<Variant> m_beta_P;             //!< Reduced pressure in isobaric ensembles
 
         Scalar m_volume_delta;                      //!< Amount by which to change parameter during box-change
         float m_volume_weight;                     //!< relative weight of volume moves
