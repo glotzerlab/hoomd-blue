@@ -36,7 +36,7 @@ class BoxMC(_Updater):
             Enable/disable isobaric volume moves and set parameters (scale the box lengths uniformly with logarithmic increments).
             The dictionary has the following keys:
 
-            * ``weight`` (float) - relative weight of log(V) box moves relative to other box move types.
+            * ``weight`` (float) - relative weight of **ln(V)** box moves relative to other box move types.
             * ``delta`` (float) - maximum change of **ln(V)** (where V is box area (2D) or volume (3D)).
 
         aspect (dict):
@@ -140,7 +140,7 @@ class BoxMC(_Updater):
 
     @log(flag="sequence")
     def ln_volume_moves(self):
-        R""" Get a tuple with the accepted and rejected log(V) moves.
+        R""" Get a tuple with the accepted and rejected ln(V) moves.
 
         Returns:
             A tuple of (accepted moves, rejected moves) since the last run.
