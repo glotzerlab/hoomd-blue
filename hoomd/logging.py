@@ -414,7 +414,7 @@ class Logger(SafeNamespaceDict):
 
     `Logger` objects support two ways of discriminating what loggable quantities
     they will accept: ``flags`` and ``only_default`` (the constructor
-    arguements). Both of these are static meaning that once instantiated a
+    arguments). Both of these are static meaning that once instantiated a
     `Logger` object will not change the values of these two properties.
     ``flags`` determines what if any types of loggable quantities (see
     `hoomd.logging.TypeFlags`) are appropriate for a given `Logger` object. This
