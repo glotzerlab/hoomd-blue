@@ -52,7 +52,7 @@ class BoxMC(_Updater):
 
             * ``weight`` (float) - maximum change of the box thickness for each pair of parallel planes
                      connected by the corresponding box edges. I.e. maximum change of HOOMD-blue box parameters Lx, Ly, Lz.
-            * ``delta`` (list or tuple) -  maximum change of the box tilt factor xy, xz, yz.
+            * ``delta`` (list or tuple) -  maximum change of the box lengths Lx, Ly, Lz.
 
         shear (dict):
             Enable/disable isobaric box shear moves and set parameters. The dictionary
