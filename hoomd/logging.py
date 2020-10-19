@@ -13,7 +13,7 @@ class TypeFlags(Flag):
     from strings to the enum wherever necessary in the API. This class is
     documented to show users what types of quantities can be logged, and what
     flags to use for limiting what data is logged, user specified logged
-    quantites, and custom actions (`hoomd.custom.Action`).
+    quantities, and custom actions (`hoomd.custom.Action`).
 
     Flags:
         scalar: `float` or `int` objects (i.e. numbers)
@@ -182,7 +182,7 @@ class Loggable(type):
     _meta_export_dict = dict()
 
     def __init__(cls, name, bases, dct):
-        """Adds marked quantites for logging in new class.
+        """Adds marked quantities for logging in new class.
 
         Also adds a loggables property that returns a mapping of loggable
         quantity names with the string flag. We overwrite __init__ instead of
@@ -252,7 +252,7 @@ class Loggable(type):
 
 
 def log(func=None, *, is_property=True, flag='scalar', default=True):
-    """Creates loggable quantites for classes of type Loggable.
+    """Creates loggable quantities for classes of type Loggable.
 
     For users this should be used with `hoomd.custom.Action` for exposing
     loggable quantities from a custom action.
@@ -394,10 +394,10 @@ class Logger(SafeNamespaceDict):
 
             logger = hoomd.logging.Logger()
             lj = md.pair.lj(nlist)
-            # Log all default quantites of the lj object
+            # Log all default quantities of the lj object
             logger += lj
             logger = hoomd.logging.Logger(flags=['scalar'])
-            # Log all default scalar quantites of the lj object
+            # Log all default scalar quantities of the lj object
             logger += lj
 
     The `Logger` class also supports user specified quantities using namespaces
@@ -430,9 +430,9 @@ class Logger(SafeNamespaceDict):
         if they wish. In making a custom logger back end, understanding the
         intermediate representation is key. To get an introduction see
         `hoomd.logging.Logger.log`. To understand the various flags
-        available to specify logged quantities, see `hoomd.logging.TypeFlags`. To
-        integrate with `hoomd.Operations` the back end should be a subclass of
-        `hoomd.custom.Action` and used with `hoomd.writer.CustomWriter`.
+        available to specify logged quantities, see `hoomd.logging.TypeFlags`.
+        To integrate with `hoomd.Operations` the back end should be a subclass
+        of `hoomd.custom.Action` and used with `hoomd.writer.CustomWriter`.
 
     Args:
         flags (`list` of `str`, optional): A list of string flags (list of flags
@@ -467,7 +467,7 @@ class Logger(SafeNamespaceDict):
     @property
     def only_default(self):
         """`bool`: Whether the logger object should only grab default loggable
-        quantites.
+        quantities.
         """
         return self._only_default
 
