@@ -4,6 +4,19 @@ Change Log
 v3.x
 ----
 
+v3.0.0-beta.2 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+*Changed*
+
+- Building from source requires a C++14 compatible compiler.
+- Improved documentation.
+
+*Fixed*
+
+
 v3.0.0-beta.1 (2020-10-15)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
