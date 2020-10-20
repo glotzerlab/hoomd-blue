@@ -40,7 +40,6 @@ ScopedSignalHandler::ScopedSignalHandler()
     if (retval != 0)
         {
         cerr << "Error setting signal handler: " << strerror(errno) << endl;
-        return;
         }
     }
 
