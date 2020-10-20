@@ -25,4 +25,7 @@ extern volatile sig_atomic_t g_sigint_recvd;
 //! Installs the signal handler
 void InstallSIGINTHandler();
 
+/// Removes the signal handler
+void RemoveSIGINTHandler();
+
 #endif
