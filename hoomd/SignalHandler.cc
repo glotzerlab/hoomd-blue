@@ -7,7 +7,7 @@
 #include <signal.h>
 #include "SignalHandler.h"
 #include <iostream>
-#include "string.h"
+#include <cstring>
 
 using namespace std;
 
