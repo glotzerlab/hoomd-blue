@@ -15,9 +15,6 @@ using namespace std;
     \brief Defines variables and functions related to handling signals
 */
 
-//! Tracks the previous signal handler
-static struct sigaction g_oldact;
-
 volatile sig_atomic_t g_sigint_recvd = 0;
 
 //! The actual signal handler
@@ -33,16 +30,14 @@ extern "C" void sigint_handler(int sig)
     g_sigint_recvd = 1;
     }
 
-/*! This method installs a signal handler for SIGINT that will set \c g_sigint_recvd to 1.
-*/
-void InstallSIGINTHandler()
+ScopedSignalHandler::ScopedSignalHandler()
     {
     struct sigaction newact;
     newact.sa_handler = sigint_handler;
     sigemptyset(&newact.sa_mask);
     newact.sa_flags = 0;
 
-    int retval = sigaction(SIGINT, &newact, &g_oldact);
+    int retval = sigaction(SIGINT, &newact, &m_old_action);
 
     if (retval != 0)
         {
@@ -51,10 +46,10 @@ void InstallSIGINTHandler()
         }
     }
 
-void RemoveSIGINTHandler()
+ScopedSignalHandler::~ScopedSignalHandler()
     {
     struct sigaction dummy_action;
-    int retval = sigaction(SIGINT, &g_oldact, &dummy_action);
+    int retval = sigaction(SIGINT, &m_old_action, &dummy_action);
 
     if (retval != 0)
         {
