@@ -24,8 +24,8 @@ extern volatile sig_atomic_t g_sigint_recvd;
 
 /** Manage the signal handler within a scope
 
-    This allows System::run to install the signal handler and have in removed when it returns
-    or an excpetion is thrown.
+    This allows System::run to install the signal handler and have it removed when it returns
+    or an exception is thrown.
 */
 class ScopedSignalHandler
     {
