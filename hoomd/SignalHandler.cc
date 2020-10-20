@@ -24,8 +24,6 @@ extern "C" void sigint_handler(int sig)
     if (sig != SIGINT)
         return;
 
-    std::cout << "HOOMD caught SIGINT" << std::endl;
-
     // set the global
     g_sigint_recvd = 1;
     }
