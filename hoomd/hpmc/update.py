@@ -956,24 +956,6 @@ class QuickCompress(Updater):
         `QuickCompress` to adjust the move sizes to maintain a constant
         acceptance ratio as the density of the system increases.
 
-    .. rubric:: Run completion
-
-    When the box reaches the target box size **and** there are no overlaps in
-    the current configuration, `QuickCompress` will flag that it is complete,
-    which will end the `Simulation.run` loop.
-
-    Note:
-
-        When the `Simulation.run` loop ends after the requested number of steps,
-        the final system configuration may include particle overlaps and the box
-        size will be somewhere between the initial box and `target_box`.
-
-    Warning:
-
-        If the the requested `target_box` is too small to attain,
-        `QuickCompress` will not complete and the `Simulation.run` loop will end
-        after the requested number of time steps.
-
     Attributes:
         trigger (Trigger): Update the box dimensions on triggered time steps.
 
