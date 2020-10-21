@@ -101,8 +101,8 @@ class GSD(Writer):
         * pairs/
 
     See Also:
-        See the `GSD documentation <http://gsd.readthedocs.io/>`_ and `GitHub
-        project <https://github.com/glotzerlab/gsd>`_ for more information on
+        See the `GSD documentation <http://gsd.readthedocs.io/>`__ and `GitHub
+        project <https://github.com/glotzerlab/gsd>`__ for more information on
         GSD files.
 
     Note:
