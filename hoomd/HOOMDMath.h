@@ -775,6 +775,18 @@ inline HOSTDEVICE float tanh(float x)
     {
     return ::tanhf(x);
     }
+
+/// Compute the rint of x
+inline HOSTDEVICE double rint(double x)
+    {
+    return ::rint(x);
+    }
+
+/// Compute the rint of x
+inline HOSTDEVICE float rint(float x)
+    {
+    return ::rintf(x);
+    }
 }
 
 // undefine HOSTDEVICE so we don't interfere with other headers
