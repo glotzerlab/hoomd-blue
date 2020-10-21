@@ -26,7 +26,7 @@
     every time analyze() is called. When a group is specified, only write out the
     particles in the group.
 
-    The file is not openend until the first call to
+    The file is not opened until the first call to analyze().
 
     \ingroup analyzers
 */
