@@ -1,7 +1,7 @@
 # Copyright (c) 2009-2020 The Regents of the University of Michigan This file is
 # part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-""" Write GSD files storing simulation trajectories and logging data."""
+"""Write GSD files storing simulation trajectories and logging data."""
 
 from hoomd import _hoomd
 from hoomd.util import dict_flatten, array_to_strings
@@ -15,28 +15,22 @@ import json
 
 
 class GSD(Writer):
-    R""" Write simulation trajectories in the GSD format.
+    """Write simulation trajectories in the GSD format.
 
     Args:
         filename (str): File name to write.
         trigger (hoomd.trigger.Trigger): Select the timesteps to write.
-        filter_ (hoomd.filter.ParticleFilter): Select the particles
-            to write, defaults to `hoomd.filter.All`.
-        overwrite (bool): When ``True``, overwite the file. When
-            ``False`` append frames to ``filename`` if it exists and create the
-            file if it does not, defaults to ``False``.
-        truncate (bool): When ``True``, truncate the file and write a
-            new frame 0 each time this operation triggers, defaults to
-            ``False``.
-        dynamic (list[str]): Quantity categories to save in every
-            frame, defaults to property.
-        log (hoomd.logging.Logger): A ``Logger`` object for GSD
-            logging, defaults to ``None``.
-
-    .. note::
-
-        All parameters are also available as instance attributes. Only
-        *trigger* and *log* may be modified after construction.
+        filter (hoomd.filter.ParticleFilter): Select the particles to write.
+            Defaults to `hoomd.filter.All`.
+        overwrite (bool): When `True`, overwite the file. When `False` append
+            frames to ``filename`` if it exists and create the file if it does
+            not. Defaults to `False`.
+        truncate (bool): When `True`, truncate the file and write a new frame 0
+            each time this operation triggers. Defaults to `False`.
+        dynamic (list[str]): Quantity categories to save in every frame.
+            Defaults to ``['property']``.
+        log (hoomd.logging.Logger): Provide log quantities to write. Defaults to
+            `None`.
 
     `GSD` writes a simulation snapshot to the specified file each time it
     triggers. `GSD` can store all particle, bond, angle, dihedral, improper,
@@ -53,8 +47,10 @@ class GSD(Writer):
     writes non-dynamic quantities only the first frame. When reading a GSD file,
     the data in frame 0 is read when a quantity is missing in frame *i*,
     supplying data that is static over the entire trajectory.  Set the *dynamic*
-    parameter to specify dynamic attributes by category.  **property** is always
-    dynamic:
+    parameter to specify dynamic attributes by category.
+
+    Specify the one or more of the following strings in **dynamic** to make the
+    corresponding quantities dynamic (**property** is always dynamic):
 
     * **property**
 
@@ -90,36 +86,34 @@ class GSD(Writer):
         * constraints/
         * pairs/
 
+    .. rubric:: type_shapes
 
-    .. seealso::
+    TODO
 
+    See Also:
         See the `GSD documentation <http://gsd.readthedocs.io/>`_ and `GitHub
         project <https://github.com/glotzerlab/gsd>`_ for more information on
         GSD files.
 
-    .. note::
+    Note:
+        When you use ``filter`` to select a subset of the whole system, `GSD`
+        will write out all of the selected particles in ascending tag order and
+        will **not** write out **topology**.
 
-        When you use *filter_* to select a subset of the whole system,
-        :py:class:`GSD` will write out all of the selected particles in
-        ascending tag order and will **not** write out **topology**.
-
-    .. note::
-
+    Tip:
         All logged data chunks must be present in the first frame in the gsd
         file to provide the default value. Some (or all) chunks may be omitted
         on later frames.
 
-    .. note::
-
-        In MPI parallel simulations, the callback will be called on all ranks.
-        :py:class:`GSD` will write the data returned by the root rank. Return
-        values from all other ranks are ignored (and may be None).
-
-    .. rubric:: Examples:
-
-    .. todo::
-
-        link to example notebooks
+    Attributes:
+        filename (str): File name to write.
+        trigger (hoomd.trigger.Trigger): Select the timesteps to write.
+        filter (hoomd.filter.ParticleFilter): Select the particles to write.
+        overwrite (bool): When `True`, overwite the file. When `False` append
+            frames.
+        truncate (bool): When `True`, truncate the file and write a new frame 0
+            each time this operation triggers.
+        dynamic (list[str]): Quantity categories to save in every frame.
     """
 
     def __init__(self,
@@ -183,8 +177,8 @@ class GSD(Writer):
         Args:
             state (State): Simulation state.
             filename (str): File name to write.
-            filter_ (``hoomd.ParticleFilter``): Select the particles to write.
-            log (``hoomd.logger.Logger``): A ``Logger`` object for GSD logging.
+            filter (`hoomd.ParticleFilter`): Select the particles to write.
+            log (`hoomd.logger.Logger`): Provide log quantities to write.
 
         Note:
             The file is always overwritten.
@@ -196,11 +190,15 @@ class GSD(Writer):
                                       False)
 
         if log is not None:
-            writer.log_writer = GSDLogWriter(log)
+            writer.log_writer = _GSDLogWriter(log)
         writer.analyze(state._simulation.timestep)
 
     @property
     def log(self):
+        """hoomd.logging.Logger: Provide log quantities to write.
+
+        May be `None`.
+        """
         return self._log
 
     @log.setter
