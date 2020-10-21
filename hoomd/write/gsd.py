@@ -209,7 +209,7 @@ class GSD(Writer):
 
     @log.setter
     def log(self, log):
-        if isinstance(log, Logger):
+        if (log is not None) and isinstance(log, Logger):
             log = _GSDLogWriter(log)
         else:
             raise ValueError("GSD.log can only be set with a Logger.")
