@@ -7,15 +7,13 @@
 #include <signal.h>
 #include "SignalHandler.h"
 #include <iostream>
+#include <cstring>
 
 using namespace std;
 
 /*! \file SignalHandler.cc
     \brief Defines variables and functions related to handling signals
 */
-
-//! Tracks the previous signal handler that was set to make a chain
-void (*prev_sigint_handler)(int) = NULL;
 
 volatile sig_atomic_t g_sigint_recvd = 0;
 
@@ -26,33 +24,32 @@ extern "C" void sigint_handler(int sig)
     if (sig != SIGINT)
         return;
 
-    // call the previous signal handler, but only if it is well defined
-    if (prev_sigint_handler && prev_sigint_handler != SIG_ERR && prev_sigint_handler != SIG_DFL && prev_sigint_handler != SIG_IGN)
-        prev_sigint_handler(sig);
-
     // set the global
     g_sigint_recvd = 1;
     }
 
-/*! Call only once at the start of program execution. This method
-    installs a signal handler for SIGINT that will set \c g_sigint_recvd
-    to 1. It will also call the previously set signal handler.
-*/
-void InstallSIGINTHandler()
+ScopedSignalHandler::ScopedSignalHandler()
     {
-    void (*retval)(int) = NULL;
-    retval = signal(SIGINT, sigint_handler);
+    struct sigaction newact;
+    newact.sa_handler = sigint_handler;
+    sigemptyset(&newact.sa_mask);
+    newact.sa_flags = 0;
 
-    if (retval == SIG_ERR)
+    int retval = sigaction(SIGINT, &newact, &m_old_action);
+
+    if (retval != 0)
         {
-        cerr << "Error setting signal handler" << endl;
-        return;
+        cerr << "Error setting signal handler: " << strerror(errno) << endl;
         }
+    }
 
-    // set the previous signal handler, but only if it is not the same as the
-    // one we just set. That would make for a fun infinite loop!
-    if (retval != sigint_handler)
-        prev_sigint_handler = retval;
-    else
-        prev_sigint_handler = NULL;
+ScopedSignalHandler::~ScopedSignalHandler()
+    {
+    struct sigaction dummy_action;
+    int retval = sigaction(SIGINT, &m_old_action, &dummy_action);
+
+    if (retval != 0)
+        {
+        cerr << "Error setting signal handler: " << strerror(errno) << endl;
+        }
     }
