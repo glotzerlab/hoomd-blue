@@ -66,6 +66,16 @@ class HPMCIntegrator(BaseIntegrator):
     TODO: Describe implicit depletants algorithm. No need to write this now,
     as Jens is rewriting the implementation.
 
+    .. rubric:: Writing type_shapes to GSD files.
+
+    Use a Logger in combination with a HPMC integrator and a GSD writer to write
+    ``type_shapes`` to the GSD file for use with OVITO::
+
+        mc = hoomd.hpmc.integrate.<Shape>(...)
+        log = hoomd.logging.Logger()
+        log.add(mc, quantities=['type_shapes'])
+        gsd = hoomd.write.GSD(..., log=log)
+
     .. rubric:: Parameters
 
     Attributes:
