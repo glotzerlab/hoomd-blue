@@ -43,15 +43,14 @@ class GSD(Writer):
     +------------------+---------------------------------------------+
     | mode             | description                                 |
     +==================+=============================================+
-    | ``'wb'``         | Open the file for writing. Creates the file |
-    |                  | if needed, or overwrites an existing file.  |
+    | ``'wb'``         | Open the file for writing. Create the file  |
+    |                  | if needed, or overwrite an existing file.   |
     +------------------+---------------------------------------------+
-    | ``'xb'``         | Create a GSD file exclusively and opens it  |
-    |                  | for writing.                                |
-    |                  | Raise an exception when it already exists.  |
+    | ``'xb'``         | Create a GSD file exclusively.              |
+    |                  | Raise an exception when the file exists.    |
     +------------------+---------------------------------------------+
-    | ``'ab'``         | Appends to the file when it already exists. |
-    |                  | Creates the file when it does not exist.    |
+    | ``'ab'``         | Create the file if needed, or append to an  |
+    |                  | existing file.                              |
     +------------------+---------------------------------------------+
 
     To reduce file size, `GSD` does not write properties that are set to
@@ -112,8 +111,13 @@ class GSD(Writer):
 
     Tip:
         All logged data chunks must be present in the first frame in the gsd
-        file to provide the default value. Some (or all) chunks may be omitted
-        on later frames.
+        file to provide the default value. To achieve this, set the `log`
+        attribute before the operation is triggered to write the first frame
+        in the file.
+
+        Some (or all) chunks may be omitted on later frames. You can set `log`
+        to `None` or remove specific quantities from the logger, but do not
+        add additional quantities after the first frame.
 
     Attributes:
         filename (str): File name to write.
