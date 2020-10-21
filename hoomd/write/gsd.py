@@ -22,9 +22,7 @@ class GSD(Writer):
         trigger (hoomd.trigger.Trigger): Select the timesteps to write.
         filter (hoomd.filter.ParticleFilter): Select the particles to write.
             Defaults to `hoomd.filter.All`.
-        overwrite (bool): When `True`, overwite the file. When `False` append
-            frames to ``filename`` if it exists and create the file if it does
-            not. Defaults to `False`.
+        mode (str): The file open mode. Defaults to `ab`.
         truncate (bool): When `True`, truncate the file and write a new frame 0
             each time this operation triggers. Defaults to `False`.
         dynamic (list[str]): Quantity categories to save in every frame.
@@ -39,6 +37,22 @@ class GSD(Writer):
     types, particle types, diameter, mass, charge, or other quantities change
     over time. `GSD` can also store operation-specific state information
     necessary for restarting simulations and user-defined log quantities.
+
+    Valid file open modes:
+
+    +------------------+---------------------------------------------+
+    | mode             | description                                 |
+    +==================+=============================================+
+    | ``'wb'``         | Open the file for writing. Creates the file |
+    |                  | if needed, or overwrites an existing file.  |
+    +------------------+---------------------------------------------+
+    | ``'xb'``         | Create a GSD file exclusively and opens it  |
+    |                  | for writing.                                |
+    |                  | Raise an exception when it already exists.  |
+    +------------------+---------------------------------------------+
+    | ``'ab'``         | Appends to the file when it already exists. |
+    |                  | Creates the file when it does not exist.    |
+    +------------------+---------------------------------------------+
 
     To reduce file size, `GSD` does not write properties that are set to
     defaults. When masses, orientations, angular momenta, etc... are left
@@ -86,10 +100,6 @@ class GSD(Writer):
         * constraints/
         * pairs/
 
-    .. rubric:: type_shapes
-
-    TODO
-
     See Also:
         See the `GSD documentation <http://gsd.readthedocs.io/>`_ and `GitHub
         project <https://github.com/glotzerlab/gsd>`_ for more information on
@@ -109,8 +119,7 @@ class GSD(Writer):
         filename (str): File name to write.
         trigger (hoomd.trigger.Trigger): Select the timesteps to write.
         filter (hoomd.filter.ParticleFilter): Select the particles to write.
-        overwrite (bool): When `True`, overwite the file. When `False` append
-            frames.
+        mode (str): The file open mode.
         truncate (bool): When `True`, truncate the file and write a new frame 0
             each time this operation triggers.
         dynamic (list[str]): Quantity categories to save in every frame.
@@ -120,7 +129,7 @@ class GSD(Writer):
                  filename,
                  trigger,
                  filter=All(),
-                 overwrite=False,
+                 mode='ab',
                  truncate=False,
                  dynamic=None,
                  log=None):
@@ -135,7 +144,7 @@ class GSD(Writer):
         self._param_dict.update(
             ParameterDict(filename=str(filename),
                           filter=ParticleFilter,
-                          overwrite=bool(overwrite), truncate=bool(truncate),
+                          overwrite=str(mode), truncate=bool(truncate),
                           dynamic=[dynamic_validation],
                           _defaults=dict(filter=filter, dynamic=dynamic)
                           )
@@ -160,7 +169,7 @@ class GSD(Writer):
             self._simulation.state._cpp_sys_def,
             self.filename,
             self._simulation.state._get_group(self.filter),
-            self.overwrite,
+            self.mode,
             self.truncate)
 
         self._cpp_obj.setWriteAttribute('attribute' in dynamic_quantities)
@@ -171,22 +180,25 @@ class GSD(Writer):
         super()._attach()
 
     @staticmethod
-    def write(state, filename, filter=All(), log=None):
+    def write(state, filename, filter=All(), mode='wb', log=None):
         """Write the given simulation state out to a GSD file.
 
         Args:
             state (State): Simulation state.
             filename (str): File name to write.
             filter (`hoomd.ParticleFilter`): Select the particles to write.
+            mode (str): The file open mode. Defaults to `wb`.
             log (`hoomd.logger.Logger`): Provide log quantities to write.
 
-        Note:
-            The file is always overwritten.
+        The valid file modes for `write` are ``'wb'`` and ``'xb'``.
         """
+        if mode != 'wb' and mode != 'xb':
+            raise ValueError(f"Invalid GSD.write file mode: {mode}")
+
         writer = _hoomd.GSDDumpWriter(state._cpp_sys_def,
                                       filename,
                                       state._get_group(filter),
-                                      True,
+                                      mode,
                                       False)
 
         if log is not None:
