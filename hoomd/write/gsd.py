@@ -22,7 +22,7 @@ class GSD(Writer):
         trigger (hoomd.trigger.Trigger): Select the timesteps to write.
         filter (hoomd.filter.ParticleFilter): Select the particles to write.
             Defaults to `hoomd.filter.All`.
-        mode (str): The file open mode. Defaults to `ab`.
+        mode (str): The file open mode. Defaults to ``'ab'``.
         truncate (bool): When `True`, truncate the file and write a new frame 0
             each time this operation triggers. Defaults to `False`.
         dynamic (list[str]): Quantity categories to save in every frame.
