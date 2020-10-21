@@ -52,6 +52,8 @@ public:
         return m_log_boltz_function->computeEnergy(timestep, h_ntypes.data[ndx], ndx, m_mc->getParams()[ndx], h_det.data[ndx]);
         }
 
+    float getShapeParam(unsigned int param_index) {return m_move_function->getParam(param_index);}
+
     unsigned int getAcceptedCount(unsigned int ndx) { return m_count_accepted[ndx]; }
 
     unsigned int getTotalCount(unsigned int ndx) { return m_count_total[ndx]; }
@@ -672,6 +674,7 @@ void export_UpdaterShape(pybind11::module& m, const std::string& name)
     .def("getTotalCount", &UpdaterShape<Shape>::getTotalCount)
     .def("getParticleVolume", &UpdaterShape<Shape>::getParticleVolume)
     .def("getShapeMoveEnergy", &UpdaterShape<Shape>::getShapeMoveEnergy)
+    .def("getShapeParam", &UpdaterShape<Shape>::getShapeParam)
     .def("registerShapeMove", &UpdaterShape<Shape>::registerShapeMove)
     .def("registerLogBoltzmannFunction", &UpdaterShape<Shape>::registerLogBoltzmannFunction)
     .def("resetStatistics", &UpdaterShape<Shape>::resetStatistics)

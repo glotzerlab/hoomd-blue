@@ -1176,7 +1176,7 @@ are only enabled for polyhedral and spherical particles.")
         return sum([self._cpp_obj.getTotalCount(i) for i in range(self._simulation.state._cpp_sys_def.getParticleData().getNTypes())])
 
     @property
-    def get_accepted_count(self, typeid=None):
+    def accepted_count(self):
         R""" Get the total number of moves accepted by the updater
         Args:
             typeid (int, **default:** None): the typeid of the particle type. if None then the sum of all counts will be returned.
@@ -1219,6 +1219,12 @@ are only enabled for polyhedral and spherical particles.")
     @log(flag='scalar')
     def shape_move_particle_volume(self):
         return sum([self._cpp_obj.getParticleVolume(i) for i in range(self._simulation.state._cpp_sys_def.getParticleData().getNTypes())])
+
+    @log(flag='scalar')
+    def shape_param(self):
+        if 'Python' in str(self.move_cpp):
+            return self._cpp_obj.getShapeParam(0)
+        return 0.0
 
     def get_step_size(self, typeid=0):
         R""" Get the shape move stepsize for a particle type
