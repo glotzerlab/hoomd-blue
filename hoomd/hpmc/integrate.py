@@ -69,12 +69,13 @@ class HPMCIntegrator(BaseIntegrator):
     .. rubric:: Writing type_shapes to GSD files.
 
     Use a Logger in combination with a HPMC integrator and a GSD writer to write
-    ``type_shapes`` to the GSD file for use with OVITO::
+    ``type_shapes`` to the GSD file for use with OVITO. For example::
 
-        mc = hoomd.hpmc.integrate.<Shape>(...)
+        mc = hoomd.hpmc.integrate.Sphere(seed=123)
         log = hoomd.logging.Logger()
         log.add(mc, quantities=['type_shapes'])
-        gsd = hoomd.write.GSD(..., log=log)
+        gsd = hoomd.write.GSD(
+            'trajectory.gsd', hoomd.trigger.Periodic(1000), log=log)
 
     .. rubric:: Parameters
 
