@@ -16,6 +16,8 @@ v3.0.0-beta.2 (not yet released)
 
 *Fixed*
 
+- ``Simulation.run`` now ends with a ``KeyboardInterrupt`` exception when
+  Jupyter interrupts the kernel.
 
 v3.0.0-beta.1 (2020-10-15)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
