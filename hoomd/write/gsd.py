@@ -144,11 +144,10 @@ class GSD(Writer):
         self._param_dict.update(
             ParameterDict(filename=str(filename),
                           filter=ParticleFilter,
-                          mode=str(mode), truncate=bool(truncate),
+                          mode=str(mode),
+                          truncate=bool(truncate),
                           dynamic=[dynamic_validation],
-                          _defaults=dict(filter=filter, dynamic=dynamic)
-                          )
-            )
+                          _defaults=dict(filter=filter, dynamic=dynamic)))
 
         self._log = None if log is None else _GSDLogWriter(log)
 
@@ -160,16 +159,14 @@ class GSD(Writer):
         if self.dynamic is not None:
             for v in self.dynamic:
                 if v not in categories:
-                    raise RuntimeError("GSD: dynamic quantity " + v +
-                                       " is not valid")
+                    raise RuntimeError("GSD: dynamic quantity " + v
+                                       + " is not valid")
 
             dynamic_quantities = ['property'] + self.dynamic
 
         self._cpp_obj = _hoomd.GSDDumpWriter(
-            self._simulation.state._cpp_sys_def,
-            self.filename,
-            self._simulation.state._get_group(self.filter),
-            self.mode,
+            self._simulation.state._cpp_sys_def, self.filename,
+            self._simulation.state._get_group(self.filter), self.mode,
             self.truncate)
 
         self._cpp_obj.setWriteAttribute('attribute' in dynamic_quantities)
@@ -195,11 +192,8 @@ class GSD(Writer):
         if mode != 'wb' and mode != 'xb':
             raise ValueError(f"Invalid GSD.write file mode: {mode}")
 
-        writer = _hoomd.GSDDumpWriter(state._cpp_sys_def,
-                                      filename,
-                                      state._get_group(filter),
-                                      mode,
-                                      False)
+        writer = _hoomd.GSDDumpWriter(state._cpp_sys_def, filename,
+                                      state._get_group(filter), mode, False)
 
         if log is not None:
             writer.log_writer = _GSDLogWriter(log)
@@ -240,8 +234,10 @@ class _GSDLogWriter:
         _global_prepend (`str`): a str that gets prepending into the namespace
             of each logged quantity.
     """
-    _per_flags = TypeFlags.any(['angle', 'bond', 'constraint', 'dihedral',
-                                'improper', 'pair', 'particle'])
+    _per_flags = TypeFlags.any([
+        'angle', 'bond', 'constraint', 'dihedral', 'improper', 'pair',
+        'particle'
+    ])
     _convert_flags = TypeFlags.any(['string', 'strings'])
     _skip_flags = TypeFlags['object']
     _special_keys = ['type_shapes']
@@ -294,8 +290,10 @@ class _GSDLogWriter:
         special cases like this should be avoided if possible.
         """
         if key == 'type_shapes':
-            shape_list = [bytes(json.dumps(type_shape) + '\0', 'UTF-8')
-                          for type_shape in value]
+            shape_list = [
+                bytes(json.dumps(type_shape) + '\0', 'UTF-8')
+                for type_shape in value
+            ]
             max_len = np.max([len(shape) for shape in shape_list])
             num_shapes = len(shape_list)
             str_array = np.array(shape_list)
