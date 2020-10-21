@@ -144,7 +144,7 @@ class GSD(Writer):
         self._param_dict.update(
             ParameterDict(filename=str(filename),
                           filter=ParticleFilter,
-                          overwrite=str(mode), truncate=bool(truncate),
+                          mode=str(mode), truncate=bool(truncate),
                           dynamic=[dynamic_validation],
                           _defaults=dict(filter=filter, dynamic=dynamic)
                           )
