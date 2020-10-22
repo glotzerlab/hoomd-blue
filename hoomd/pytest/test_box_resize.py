@@ -5,7 +5,12 @@ import pytest
 import hoomd
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
+def rng():
+    return np.random.default_rng(42)
+
+
+@pytest.fixture(scope="function")
 def fractional_coordinates(n=10):
     """
     TODO: Does `numpy_random_seed()` in conftest.py run for this function?
@@ -15,10 +20,10 @@ def fractional_coordinates(n=10):
     Returns: absolute fractional coordinates
 
     """
-    return np.random.uniform(-0.25, 0.25, size=(n, 3))
+    return np.random.uniform(-0.5, 0.5, size=(n, 3))
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def sys1(fractional_coordinates):
     """Initial system box size and particle positions.
     Args:
@@ -32,15 +37,16 @@ def sys1(fractional_coordinates):
     return hoomd_box, points
 
 
-_box2 = [[50, 2., 3., 1., 2., 3.],  # Only change Lx
-         [1., 2., 3., 0.9, 2., 3.],   # Only change xy
-         [50., 2., 3., 0.9, 2., 3.],   # Change Lx and xy
-         [100., 200., 600., 0.9, 5., 7.]]  # Change all
+@pytest.fixture(scope='function')
+def sys2(fractional_coordinates):
+    """Final system box size and particle positions.
+    Args:
+        fractional_coordinates: Array of fractional coordinates
 
+    Returns: hoomd box object and points for the final system
 
-@pytest.fixture(scope='module', params=_box2)
-def sys2(request, fractional_coordinates):
-    hoomd_box = hoomd.Box.from_box(request.param)
+    """
+    hoomd_box = hoomd.Box.from_box([10., 1., 6., 0., 5., 7.])
     points = fractional_coordinates @ hoomd_box.matrix.T
     return hoomd_box, points
 
@@ -60,14 +66,9 @@ def get_snapshot(sys1, device):
 
 
 _t_start = 2
-_t_a = 1
-_t_b = 1
-_t_ab = 2
-_t_ba = 1
 _variants = [
     hoomd.variant.Power(0., 1., 0.1, _t_start, _t_start*2),
-    hoomd.variant.Ramp(0., 1., _t_start, _t_start*2),
-    hoomd.variant.Cycle(0., 1., _t_start, _t_a, _t_ab, _t_b, _t_ba)
+    hoomd.variant.Ramp(0., 1., _t_start, _t_start*2)
              ]
 
 
@@ -76,16 +77,8 @@ def variant(request):
     return request.param
 
 
-_scale_particles = [True,False]
-
-
-@pytest.fixture(scope='function', params=_scale_particles)
-def scale_particles(request):
-    return request.param
-
-
 def test_user_specified_variant(device, simulation_factory, get_snapshot,
-                                variant, sys1, sys2, scale_particles):
+                                variant, sys1, sys2, scale_particles=True):
     sim = hoomd.Simulation(device)
     sim.create_state_from_snapshot(get_snapshot())
 
@@ -100,29 +93,23 @@ def test_user_specified_variant(device, simulation_factory, get_snapshot,
     assert box_resize.get_box(0) == sys1[0]
     assert box_resize.get_box(variant.t_start*3) == sys2[0]
     assert sim.state.box == sys2[0]
-    if scale_particles:
-        npt.assert_allclose(sys2[1], sim.state.snapshot.particles.position)
-    else:
-        npt.assert_allclose(sys1[1], sim.state.snapshot.particles.position)
-    if variant == _variants[2]:
-       assert box_resize.get_box(variant.t_start*3+1) == sys1[0]
+    npt.assert_allclose(sys2[1], sim.state.snapshot.particles.position)
+
 
 def test_variant_linear(device, simulation_factory, get_snapshot,
-                         sys1, sys2, scale_particles=True):
-    t_start = 2
+                        variant, sys1, sys2, scale_particles=True):
     sim = hoomd.Simulation(device)
     sim.create_state_from_snapshot(get_snapshot())
 
-    trigger = hoomd.trigger.After(t_start)
+    trigger = hoomd.trigger.After(variant.t_start)
 
     box_resize = hoomd.update.BoxResize.linear_volume(
-        box1=sys1[0], box2=sys2[0], t_start=t_start, t_size=t_start*2,
+        box1=sys1[0], box2=sys2[0], t_start=variant.t_start, t_size=variant.t_start*2,
         trigger=trigger, scale_particles=scale_particles)
     sim.operations.updaters.append(box_resize)
-    sim.run(t_start*3 + 1)
+    sim.run(variant.t_start*3 + 1)
 
     assert box_resize.get_box(0) == sys1[0]
-    assert box_resize.get_box(t_start*3) == sys2[0]
+    assert box_resize.get_box(variant.t_start*3) == sys2[0]
     assert sim.state.box == sys2[0]
     npt.assert_allclose(sys2[1], sim.state.snapshot.particles.position)
-
