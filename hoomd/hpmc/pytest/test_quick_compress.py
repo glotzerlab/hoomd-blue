@@ -69,7 +69,7 @@ def test_valid_construction_and_attach(simulation_factory,
     mc.shape['A'] = dict(diameter=1)
     sim.operations.integrator = mc
 
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     # validate the params were set properly
     for attr, value in constructor_args.items():
@@ -105,13 +105,14 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
     mc.shape['A'] = dict(diameter=1)
     sim.operations.integrator = mc
 
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     setattr(qc, attr, value)
     assert getattr(qc, attr) == value
 
 
 @pytest.mark.parametrize("phi", [0.2, 0.3, 0.4, 0.5, 0.55, 0.58, 0.6])
+@pytest.mark.validate
 def test_sphere_compression(phi, simulation_factory, lattice_snapshot_factory):
     """Test that QuickCompress can compress (and expand) simulation boxes."""
     n = 7
@@ -146,6 +147,7 @@ def test_sphere_compression(phi, simulation_factory, lattice_snapshot_factory):
 
 
 @pytest.mark.parametrize("phi", [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8])
+@pytest.mark.validate
 def test_disk_compression(phi, simulation_factory, lattice_snapshot_factory):
     """Test that QuickCompress can compress (and expand) simulation boxes."""
     n = 7

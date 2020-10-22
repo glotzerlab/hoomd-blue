@@ -12,7 +12,7 @@ import numpy
 @pytest.fixture(scope="function")
 def make_filter_snapshot(device):
     def filter_snapshot(n=10, particle_types=['A']):
-        s = Snapshot(device.comm)
+        s = Snapshot(device.communicator)
         if s.exists:
             s.configuration.box = [20, 20, 20, 0, 0, 0]
             s.particles.N = n

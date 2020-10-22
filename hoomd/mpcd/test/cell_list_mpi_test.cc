@@ -1363,9 +1363,7 @@ UP_TEST( mpcd_cell_list_dimensions )
     // mpi in 1d
         {
         std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU,
-                                                                                     std::vector<int>(),
-                                                                                     false,
-                                                                                     false));
+                                                                                     std::vector<int>()));
         exec_conf->getMPIConfig()->splitPartitions(2);
         celllist_dimension_test<mpcd::CellList>(exec_conf, true, false, false);
         celllist_dimension_test<mpcd::CellList>(exec_conf, false, true, false);
@@ -1374,9 +1372,7 @@ UP_TEST( mpcd_cell_list_dimensions )
     // mpi in 2d
         {
         std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU,
-                                                                                     std::vector<int>(),
-                                                                                     false,
-                                                                                     false));
+                                                                                     std::vector<int>()));
         exec_conf->getMPIConfig()->splitPartitions(4);
         celllist_dimension_test<mpcd::CellList>(exec_conf, true, true, false);
         celllist_dimension_test<mpcd::CellList>(exec_conf, true, false, true);
@@ -1385,9 +1381,7 @@ UP_TEST( mpcd_cell_list_dimensions )
     // mpi in 3d
         {
         std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU,
-                                                                                     std::vector<int>(),
-                                                                                     false,
-                                                                                     false));
+                                                                                     std::vector<int>()));
         exec_conf->getMPIConfig()->splitPartitions(8);
         celllist_dimension_test<mpcd::CellList>(exec_conf, true, true, true);
         }
@@ -1412,9 +1406,7 @@ UP_TEST( mpcd_cell_list_gpu_dimensions )
     // mpi in 1d
         {
         std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU,
-                                                                                     std::vector<int>(),
-                                                                                     false,
-                                                                                     false));
+                                                                                     std::vector<int>()));
         exec_conf->getMPIConfig()->splitPartitions(2);
         celllist_dimension_test<mpcd::CellListGPU>(exec_conf, true, false, false);
         celllist_dimension_test<mpcd::CellListGPU>(exec_conf, false, true, false);
@@ -1423,9 +1415,7 @@ UP_TEST( mpcd_cell_list_gpu_dimensions )
     // mpi in 2d
         {
         std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU,
-                                                                                     std::vector<int>(),
-                                                                                     false,
-                                                                                     false));
+                                                                                     std::vector<int>()));
         exec_conf->getMPIConfig()->splitPartitions(4);
         celllist_dimension_test<mpcd::CellListGPU>(exec_conf, true, true, false);
         celllist_dimension_test<mpcd::CellListGPU>(exec_conf, true, false, true);
@@ -1434,9 +1424,7 @@ UP_TEST( mpcd_cell_list_gpu_dimensions )
     // mpi in 3d
         {
         std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU,
-                                                                                     std::vector<int>(),
-                                                                                     false,
-                                                                                     false));
+                                                                                     std::vector<int>()));
         exec_conf->getMPIConfig()->splitPartitions(8);
         celllist_dimension_test<mpcd::CellListGPU>(exec_conf, true, true, true);
         }

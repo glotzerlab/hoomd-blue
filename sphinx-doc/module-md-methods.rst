@@ -1,4 +1,4 @@
-md.integrate
+md.methods
 --------------
 
 .. rubric:: Overview
@@ -8,11 +8,9 @@ md.integrate
 .. autosummary::
     :nosignatures:
 
-    berendsen
     Brownian
     Langevin
-    npt
-    nph
+    NPT
     NVE
     NVT
 
@@ -21,4 +19,10 @@ md.integrate
 
 .. automodule:: hoomd.md.methods
     :synopsis: Integration methods.
-    :members:
+    :undoc-members:
+    :members: _Method,
+              Brownian,
+              Langevin,
+              NPT,
+              NVE,
+              NVT

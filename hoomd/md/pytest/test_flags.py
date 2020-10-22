@@ -22,14 +22,14 @@ def test_per_particle_virial(simulation_factory, lattice_snapshot_factory):
     sim.operations.integrator = hoomd.md.Integrator(dt=0.005)
     sim.operations.integrator.forces.append(lj)
 
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     assert sim.always_compute_pressure == False
 
     # virials should be None at first
     virials = lj.virials
 
-    if sim.device.comm.rank == 0:
+    if sim.device.communicator.rank == 0:
         assert virials is None
 
     # virials should be non-zero after setting flags
@@ -37,7 +37,7 @@ def test_per_particle_virial(simulation_factory, lattice_snapshot_factory):
 
     virials = lj.virials
 
-    if sim.device.comm.rank == 0:
+    if sim.device.communicator.rank == 0:
         assert numpy.sum(virials * virials) > 0.0
 
 

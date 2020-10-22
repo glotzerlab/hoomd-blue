@@ -3,20 +3,16 @@ hpmc.update
 
 .. rubric:: Overview
 
-.. py:currentmodule:: hoomd
+.. py:currentmodule:: hoomd.hpmc.update
 
 .. autosummary::
     :nosignatures:
 
-    hpmc.update.boxmc
-    hpmc.update.Clusters
-    hpmc.update.muvt
-    hpmc.update.QuickCompress
-    hpmc.update.remove_drift
-    hpmc.update.wall
+    Clusters
+    QuickCompress
 
 .. rubric:: Details
 
 .. automodule:: hoomd.hpmc.update
     :synopsis: HPMC updaters.
-    :members:
+    :members: Clusters, QuickCompress

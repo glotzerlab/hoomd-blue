@@ -3,29 +3,24 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-R""" Classes for (all/most) HOOMD objects.
+"""Base classes for all HOOMD-blue operations."""
 
-_Operation is inherented by almost all other HOOMD objects.
-_TriggeredOperation is _Operation for objects that are triggered.
-"""
+# Operation is a parent class of almost all other HOOMD objects.
+# Triggered objects should inherit from _TriggeredOperation.
+
 
 from hoomd.util import is_iterable, dict_map, dict_filter, str_to_tuple_keys
 from hoomd.trigger import Trigger
 from hoomd.variant import Variant, Constant
-from hoomd.filter import _ParticleFilter
+from hoomd.filter import ParticleFilter
 from hoomd.logging import Loggable, log
-from hoomd.typeconverter import RequiredArg
+from hoomd.data.typeconverter import RequiredArg
 from hoomd.util import NamespaceDict
 from hoomd._hoomd import GSDStateReader
-from hoomd.parameterdicts import ParameterDict
+from hoomd.data.parameterdicts import ParameterDict
 
 from collections.abc import Mapping
 from copy import deepcopy
-
-
-class NotAttachedError(RuntimeError):
-    """ Raised when something that requires attachment happens before attaching """
-    pass
 
 
 def _convert_values_to_log_form(value):
@@ -36,9 +31,9 @@ def _convert_values_to_log_form(value):
             return (value.value, 'scalar')
         else:
             return (value, 'object')
-    elif isinstance(value, Trigger) or isinstance(value, _ParticleFilter):
+    elif isinstance(value, Trigger) or isinstance(value, ParticleFilter):
         return (value, 'object')
-    elif isinstance(value, _Operation):
+    elif isinstance(value, Operation):
         return (value, 'object')
     elif isinstance(value, str):
         return (value, 'string')
@@ -50,7 +45,7 @@ def _convert_values_to_log_form(value):
         return (value, 'multi')
 
 
-def handle_gsd_arrays(arr):
+def _handle_gsd_arrays(arr):
     if arr.size == 1:
         return arr[0]
     if arr.ndim == 1:
@@ -92,7 +87,7 @@ class _HOOMDGetSetAttrBase:
             return self._getattr_typeparam(attr)
         else:
             raise AttributeError("Object {} has no attribute {}".format(
-                self, attr))
+                type(self), attr))
 
     def _getattr_param(self, attr):
         """Hook for getting an attribute from `_param_dict`."""
@@ -121,7 +116,7 @@ class _HOOMDGetSetAttrBase:
         old_value = self._param_dict[attr]
         self._param_dict[attr] = value
         new_value = self._param_dict[attr]
-        if self.is_attached:
+        if self._attached:
             try:
                 setattr(self._cpp_obj, attr, new_value)
             except (AttributeError):
@@ -156,8 +151,7 @@ class _StatefulAttrBase(_HOOMDGetSetAttrBase, metaclass=Loggable):
     Python ``dict``.
     """
     def _typeparam_states(self):
-        """Converts all typeparameters into a standard Python ``dict`` object.
-        """
+        """Converts all typeparameters into a standard Python ``ict`` object."""
         state = {name: tp.state for name, tp in self._typeparam_dict.items()}
         return deepcopy(state)
 
@@ -264,7 +258,7 @@ class _StatefulAttrBase(_HOOMDGetSetAttrBase, metaclass=Loggable):
         for state_chunk in state_chunks:
             state_dict_key = tuple(state_chunk[chunk_slice].split('/'))
             state_dict[state_dict_key] = \
-                handle_gsd_arrays(reader.readChunk(state_chunk))
+                _handle_gsd_arrays(reader.readChunk(state_chunk))
         return (state_dict._dict, kwargs)
 
     @classmethod
@@ -303,13 +297,13 @@ class _DependencyRelation:
         self._dependents = []
         self._dependencies = []
 
-    def add_dependent(self, obj):
+    def _add_dependent(self, obj):
         """Adds a dependent to the object's dependent list."""
         if obj not in self._dependencies:
             self._dependents.append(obj)
             obj._dependencies.append(self)
 
-    def notify_removal(self, *args, **kwargs):
+    def _notify_disconnect(self, *args, **kwargs):
         """Notify that an object is being removed from all relationships.
 
         Notifies dependent object that it is being removed, and removes itself
@@ -321,7 +315,7 @@ class _DependencyRelation:
             This implementation does require that all dependents take in the
             same information, or at least that the passed ``args`` and
             ``kwargs`` can be used for all dependents'
-            ``handle_removed_dependency`` method.
+            ``_handle_removed_dependency`` method.
         """
         for dependent in self._dependents:
             dependent.handle_detached_dependency(self, *args, **kwargs)
@@ -330,7 +324,7 @@ class _DependencyRelation:
             dependency._remove_dependent(self)
         self._dependencies = []
 
-    def handle_removed_dependency(self, obj, *args, **kwargs):
+    def _handle_removed_dependency(self, obj, *args, **kwargs):
         """Handles having a dependency removed.
 
         Must be implemented by objects that have dependencies. Uses ``args`` and
@@ -360,9 +354,10 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
     infrastructure for HOOMD-blue objects.
 
     This class's main features are handling attaching and detaching from
-    simulations. Attaching is the idea of creating a C++ object that is tied to
-    a given simulation while detaching is removing an object from its
-    simulation.
+    simulations and adding and removing from containing object such as methods
+    for MD integrators and updaters for the operations list. Attaching is the
+    idea of creating a C++ object that is tied to a given simulation while
+    detaching is removing an object from its simulation.
     """
     _reserved_default_attrs = {**_HOOMDGetSetAttrBase._reserved_default_attrs,
                                '_cpp_obj': lambda: None,
@@ -372,14 +367,14 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
     _skip_for_equality = set(['_cpp_obj', '_dependent_list'])
 
     def _getattr_param(self, attr):
-        if self.is_attached:
+        if self._attached:
             return getattr(self._cpp_obj, attr)
         else:
             return self._param_dict[attr]
 
     def _setattr_param(self, attr, value):
         self._param_dict[attr] = value
-        if self.is_attached:
+        if self._attached:
             new_value = self._param_dict[attr]
             try:
                 setattr(self._cpp_obj, attr, new_value)
@@ -398,37 +393,37 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
                     return False
         return True
 
-    def __del__(self):
-        if self.is_attached and hasattr(self, '_simulation'):
-            self.notify_removal(self._simulation)
-        else:
-            self.notify_removal()
-
-    def detach(self):
-        if self.is_attached:
+    def _detach(self):
+        if self._attached:
             self._unapply_typeparam_dict()
             self._update_param_dict()
             self._cpp_obj.notifyDetach()
 
             self._cpp_obj = None
-            if hasattr(self, '_simulation'):
-                self.notify_removal(self._simulation)
-                del self._simulation
-            else:
-                self.notify_removal()
-        return self
+            self._notify_disconnect(self._simulation)
+            return self
 
-    def attach(self, simulation):
+    def _attach(self):
         self._apply_param_dict()
-        self._apply_typeparam_dict(self._cpp_obj, simulation)
+        self._apply_typeparam_dict(self._cpp_obj, self._simulation)
 
         # pass the system communicator to the object
-        if simulation._system_communicator is not None:
-            self._cpp_obj.setCommunicator(simulation._system_communicator)
+        if self._simulation._system_communicator is not None:
+            self._cpp_obj.setCommunicator(self._simulation._system_communicator)
 
     @property
-    def is_attached(self):
+    def _attached(self):
         return self._cpp_obj is not None
+
+    def _add(self, simulation):
+        self._simulation = simulation
+
+    def _remove(self):
+        del self._simulation
+
+    @property
+    def _added(self):
+        return hasattr(self, '_simulation')
 
     def _apply_param_dict(self):
         for attr, value in self._param_dict.items():
@@ -440,7 +435,7 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
     def _apply_typeparam_dict(self, cpp_obj, simulation):
         for typeparam in self._typeparam_dict.values():
             try:
-                typeparam.attach(cpp_obj, simulation)
+                typeparam._attach(cpp_obj, simulation)
             except ValueError as verr:
                 raise ValueError("In TypeParameter {}:"
                                  " ".format(typeparam.name) + verr.args[0])
@@ -456,7 +451,7 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
 
     def _unapply_typeparam_dict(self):
         for typeparam in self._typeparam_dict.values():
-            typeparam.detach()
+            typeparam._detach()
 
     def _add_typeparam(self, typeparam):
         self._typeparam_dict[typeparam.name] = typeparam
@@ -465,13 +460,29 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
         for typeparam in typeparams:
             self._add_typeparam(typeparam)
 
+    @property
+    def _children(self):
+        """A set of child objects.
 
-class _Operation(_HOOMDBaseObject):
-    """Defines operations that are added to an `hoomd.Operations` object."""
+        These objects do not appear directly in any of the operations lists but
+        are owned in lists or members of those operations.
+        """
+        return []
+
+
+class Operation(_HOOMDBaseObject):
+    """Represents operations that are added to an `hoomd.Operations` object.
+
+    Operations in the HOOMD-blue data scheme are objects that *operate* on a
+    `hoomd.Simulation` object. They broadly consist of 5 subclasses: `Updater`,
+    `Writer`, `Compute`, `Tuner`, and `hoomd.integrate.BaseIntegrator`. All
+    HOOMD-blue operations inherit from one of these five base classes. To find
+    the purpose of each class see its documentation.
+    """
     pass
 
 
-class _TriggeredOperation(_Operation):
+class _TriggeredOperation(Operation):
     _cpp_list_name = None
 
     _override_setattr = {'trigger'}
@@ -491,7 +502,7 @@ class _TriggeredOperation(_Operation):
         old_trigger = self.trigger
         self._param_dict['trigger'] = new_trigger
         new_trigger = self.trigger
-        if self.is_attached:
+        if self._attached:
             sys = self._simulation._cpp_sys
             triggered_ops = getattr(sys, self._cpp_list_name)
             for index in range(len(triggered_ops)):
@@ -501,17 +512,57 @@ class _TriggeredOperation(_Operation):
                 if op is self._cpp_obj and trigger is old_trigger:
                     triggered_ops[index] = (op, new_trigger)
 
-    def attach(self, simulation):
-        self._simulation = simulation
-        super().attach(simulation)
+    def _attach(self):
+        super()._attach()
 
 
-class _Updater(_TriggeredOperation):
+class Updater(_TriggeredOperation):
+    """Base class for all HOOMD updaters.
+
+    An updater is an operation which modifies a simulation's state.
+
+    Note:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
+    """
     _cpp_list_name = 'updaters'
 
-class _Analyzer(_TriggeredOperation):
+
+class Writer(_TriggeredOperation):
+    """Base class for all HOOMD analyzers.
+
+    An analyzer is an operation which writes out a simulation's state.
+
+    Note:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
+    """
     _cpp_list_name = 'analyzers'
 
 
-class _Tuner(_Operation):
+class Compute(Operation):
+    """Base class for all HOOMD computes.
+
+    A compute is an operation which computes some property for another operation
+    or use by a user.
+
+    Note:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
+    """
+    pass
+
+
+class Tuner(Operation):
+    """Base class for all HOOMD tuners.
+
+    A tuner is an operation which tunes the parameters of another operation for
+    performance or other reasons. A tuner does not modify the current microstate
+    of the simulation. That is a tuner does not change quantities like
+    temperature, particle position, or the number of bonds in a simulation.
+
+    Note:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
+    """
     pass

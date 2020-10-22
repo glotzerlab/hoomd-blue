@@ -123,9 +123,6 @@ class PYBIND11_EXPORT LoadBalancer : public Tuner
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
 
-        //! Print load balancer counters
-        virtual void printStats();
-
         //! Reset the counters for the run
         virtual void resetStats();
 
