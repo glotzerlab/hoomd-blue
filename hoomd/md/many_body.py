@@ -48,6 +48,71 @@ class Tersoff(Triplet):
     the species of the third body is irrelevant. It can thus use type-pair
     parameters similar to those of the pair potentials.
 
+    .. math::
+
+        V_{ij}(r) = \\frac{1}{2} f_C(r_{ij})\\left[f_R(r_{ij}) + b_{ij}f_A(r_{ij})\\right]
+
+    where
+
+    .. math::
+
+        f_R(r) = C_1e^{\\lambda_1(r_D-r)}
+
+        f_A(r) = C_2e^{\\lambda_2(r_D-r)}
+
+    .. math::
+        :nowrap:
+
+        \\begin{eqnarray*}
+        f_C(r) = & 1 & r < r_{\\mathrm{cut}} - r_{CT} \\\\
+               = & exp\\left[ \\alpha\\frac{x(r)^3}{x(r)^3 - 1} \\right] & r_{\\mathrm{cut}} - r_{CT} < r < r_{\\mathrm{cut}} \\\\
+               = & 0 & r > r_{\\mathrm{cut}} \\\\
+        \\end{eqnarray*}
+
+    .. math::
+
+        b_{ij} = (1 + \\gamma^n\\chi_{ij}^n)^{\\frac{-1}{2n}}
+
+    In the definition of :math:`f_C(r)`, there is a quantity :math:`x(r)`, which
+    is defined as
+
+    .. math::
+
+        x(r) = \\frac{r - (r_{\\mathrm{cut}} - r_{CT})}{r_{CT}}
+
+    which ensures continuity between the different regions of the potential. In
+    the definition of :math:`b_{ij}`, there is a quantity :math:`\\chi_{ij}`
+    which is defined as
+
+    .. math::
+
+        \\chi_{ij} = \\sum_{k \\neq i,j} f_C(r_{ik}) \\cdot e^{\\lambda_3^3 |r_{ij} - r_{ik}|^3}
+        \\cdot g(\\theta_{ijk})
+
+        g(\\theta_{ijk}) = 1 + \\frac{c^2}{d^2} - \\frac{c^2}{d^2 + |m - \\cos(\\theta_{ijk})|^2}
+
+    The parameters of this potential are set via the ``params`` dictionary, they
+    must be set for each unique pair of particle types.
+
+    Attributes:
+        params (TypeParameter[tuple[``particle_type``, ``particle_type``], dict]):
+            The Tersoff potential parameters. The dictionary has the following
+            keys:
+
+            * ``C1`` (`float`) - :math:`C_1` -  Magnitude of the repulsive term (dimensionless, *default*: 1.0)
+            * ``C2`` (`float`) - :math:`C_2` -  Magnitude of the attractive term (dimensionless, *default*: 1.0)
+            * ``lambda_1`` (`float`) - :math:`\\lambda_1` - exponential factor of the repulsive term (in units of 1/length, *default*: 2.0)
+            * ``lambda_2`` (`float`) - :math:`\\lambda_2` - exponential factor of the attractive term (in units of 1/length, *default*: 1.0)
+            * ``lambda_3`` (`float`) - :math:`\\lambda_3` - exponential factor in :math:`\\chi_{ij}` (in units of 1/length, *default*: 0.0)
+            * ``dimer_r`` (`float`) - :math:`r_D` - length shift in attractive and repulsive terms (in units of length, *default*: 1.5)
+            * ``cutoff_thickness`` (`float`) - :math:`r_{CT}` - distance which defines the different regions of the potential (in units of length, *default*: 0.2)
+            * ``alpha`` (`float`) - :math:`\\alpha` - decay rate of the cutoff term :math:`f_C(r)` (dimensionless, *default*: 3.0)
+            * ``n`` (`float`) - :math:`n` - power in :math:`b_{ij}` (dimensionless, *default*: 0.0)
+            * ``gamma`` (`float`) - :math:`\\gamma` - coefficient in :math:`b_{ij}` (dimensionless, *default*: 0.0)
+            * ``c`` (`float`) - :math:`c` - coefficient in :math:`g(\\theta)` (dimensionless, *default*: 0.0)
+            * ``d`` (`float`) - :math:`d` - coefficient in :math:`g(\\theta)` (dimensionless, *default*: 1.0)
+            * ``m`` (`float`) - :math:`m` - coefficient in :math:`g(\\theta)` (dimensionless, *default*: 0.0)
+
     The Tersoff potential is a bond-order potential based on the Morse potential
     that accounts for the weakening of individual bonds with increasing
     coordination number. It does this by computing a modifier to the attractive
