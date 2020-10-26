@@ -1,7 +1,13 @@
 set(files __init__.py
+          array.py
           local_access.py
           local_access_cpu.py
           local_access_gpu.py
+          parameterdicts.py
+          smart_default.py
+          syncedlist.py
+          typeconverter.py
+          typeparam.py
     )
 
 install(FILES ${files}

@@ -10,7 +10,11 @@ sphinx:
   configuration: sphinx-doc/conf.py
   fail_on_warning: true
 
-formats: all
+formats:
+  - htmlzip
 
 build:
   image: stable
+
+submodules:
+  include: all

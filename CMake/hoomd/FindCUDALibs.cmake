@@ -91,22 +91,25 @@ else()
     add_library(CUDA::nvrtc UNKNOWN IMPORTED)
 endif()
 
-if (HIP_PLATFORM STREQUAL "nvcc")
-    # find libraries that go with this compiler
-    find_library(CUDA_cuda_LIBRARY cuda HINTS ${CUDA_LIB_PATH})
-    mark_as_advanced(CUDA_cuda_LIBRARY)
-    if(CUDA_cuda_LIBRARY AND NOT TARGET CUDA::cuda)
-      add_library(CUDA::cuda UNKNOWN IMPORTED)
-      set_target_properties(CUDA::cuda PROPERTIES
-        IMPORTED_LOCATION "${CUDA_cuda_LIBRARY}"
-        INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}"
-      )
-    endif()
-    list(APPEND REQUIRED_CUDA_LIB_VARS "CUDA_cuda_LIBRARY")
-else()
-    # define empty target
-    add_library(CUDA::cuda UNKNOWN IMPORTED)
-endif()
+# Temporarily remove, this is only used in JIT which doesn't build now
+# We should evaluate if it is necessary. Some OS installations store
+# libcuda.so in different locations as it installs with the driver, not the runtime
+# if (HIP_PLATFORM STREQUAL "nvcc")
+#     # find libraries that go with this compiler
+#     find_library(CUDA_cuda_LIBRARY cuda HINTS ${CUDA_LIB_PATH})
+#     mark_as_advanced(CUDA_cuda_LIBRARY)
+#     if(CUDA_cuda_LIBRARY AND NOT TARGET CUDA::cuda)
+#       add_library(CUDA::cuda UNKNOWN IMPORTED)
+#       set_target_properties(CUDA::cuda PROPERTIES
+#         IMPORTED_LOCATION "${CUDA_cuda_LIBRARY}"
+#         INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}"
+#       )
+#     endif()
+#     list(APPEND REQUIRED_CUDA_LIB_VARS "CUDA_cuda_LIBRARY")
+# else()
+#     # define empty target
+#     add_library(CUDA::cuda UNKNOWN IMPORTED)
+# endif()
 
 endif()
 
@@ -190,7 +193,7 @@ if (HIP_PLATFORM STREQUAL "hip-clang" OR HIP_PLATFORM STREQUAL "hcc")
     find_library(HIP_rocfft_LIBRARY rocfft
         PATHS
         "${HIP_ROOT_DIR}"
-        ENV ROCM_PATH
+        $ENV{ROCM_PATH}/rocfft
         ENV HIP_PATH
         /opt/rocm
         /opt/rocm/rocfft

@@ -115,7 +115,7 @@ void GSDDumpWriter::initFileIO()
     if (m_overwrite || !filesystem::exists(m_fname))
         {
         ostringstream o;
-        o << "HOOMD-blue " << HOOMD_VERSION_LONG;
+        o << "HOOMD-blue " << HOOMD_VERSION;
 
         m_exec_conf->msg->notice(3) << "dump.gsd: create gsd file " << m_fname << endl;
         retval = gsd_create(m_fname.c_str(),

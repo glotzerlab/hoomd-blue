@@ -7,7 +7,7 @@ message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 message(STATUS "LLVM Definitions: ${LLVM_DEFINITIONS}")
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
-llvm_map_components_to_libnames(llvm_libs executionengine support core irreader native runtimedyld orcjit object transformutils lto)
+llvm_map_components_to_libnames(llvm_libs executionengine support core irreader native runtimedyld orcjit object support transformutils lto)
 
 # set files to compile
 set(_${PACKAGE_NAME}_sources
@@ -42,19 +42,15 @@ pybind11_add_module(_${PACKAGE_NAME} SHARED ${_${PACKAGE_NAME}_sources} ${_${PAC
 add_library(HOOMD::_${PACKAGE_NAME} ALIAS _${PACKAGE_NAME})
 
 add_library (_${PACKAGE_NAME}_llvm SHARED ${_${PACKAGE_NAME}_llvm_sources})
-if (CMAKE_CXX_STANDARD LESS 14)
-    set_property(TARGET _${PACKAGE_NAME}_llvm PROPERTY CXX_STANDARD 14)
-    set_property(TARGET _${PACKAGE_NAME} PROPERTY CXX_STANDARD 14)
-endif()
 
-if (ENABLE_HIP)
+if (ENABLE_HIP AND HIP_PLATFORM STREQUAL "nvcc")
     # no device linking
     target_compile_definitions(_${PACKAGE_NAME} PUBLIC CUDA_DEVRT_LIBRARY_PATH=\"${CUDA_cudadevrt_LIBRARY}\")
     target_compile_definitions(_${PACKAGE_NAME} PUBLIC CUDA_INCLUDE_PATH=\"${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}\")
     string(REPLACE ";" "_" CUDA_COMPUTE_ARCHS "${CUDA_ARCH_LIST}")
     target_compile_definitions(_${PACKAGE_NAME} PUBLIC CUDA_COMPUTE_ARCHS=\"${CUDA_COMPUTE_ARCHS}\")
     target_link_libraries(_${PACKAGE_NAME} PUBLIC CUDA::cuda CUDA::nvrtc)
-endif (ENABLE_HIP)
+endif ()
 
 target_include_directories(_${PACKAGE_NAME}_llvm PUBLIC
                            $<BUILD_INTERFACE:${HOOMD_SOURCE_DIR}>
@@ -64,12 +60,6 @@ target_include_directories(_${PACKAGE_NAME}_llvm PUBLIC
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 include(AddLLVM)
 llvm_update_compile_flags(_${PACKAGE_NAME}_llvm)
-
-# bug: llvm_update_compile_flags removes the c++11 compile flag that hoomd sets for old cmake versions
-# cmake 3.1 and newer are not affected becuase we use CMAKE_CXX_STANDARD
-if (CMAKE_VERSION VERSION_LESS 3.1.0)
-    message(FATAL_ERROR "CMake 3.1.0 or newer is required to buid the JIT module")
-endif()
 
 # work around missing LLVM link information
 if(LLVM_ENABLE_TERMINFO)
