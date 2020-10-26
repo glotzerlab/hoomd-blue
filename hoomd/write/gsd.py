@@ -117,7 +117,9 @@ class GSD(Writer):
 
     .. rubric:: Examples:
 
-    TODO: link to example notebooks
+    .. todo::
+
+        link to example notebooks
     """
 
     def __init__(self,

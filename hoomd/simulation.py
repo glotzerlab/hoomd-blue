@@ -34,7 +34,7 @@ class Simulation(metaclass=Loggable):
 
     @property
     def device(self):
-        """hoomd.device._Device: Device used to execute the simulation."""
+        """hoomd.device.Device: Device used to execute the simulation."""
         return self._device
 
     @device.setter

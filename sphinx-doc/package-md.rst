@@ -18,7 +18,6 @@ md
     module-md-compute
     module-md-dihedral
     module-md-force
-    module-md-improper
     module-md-many_body
     module-md-methods
     module-md-nlist

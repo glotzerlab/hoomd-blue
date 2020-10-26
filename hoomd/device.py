@@ -9,13 +9,13 @@ import hoomd
 from hoomd import _hoomd
 
 
-class _Device:
+class Device:
     """Base class device object.
 
     Provides methods and properties common to `CPU` and `GPU`.
 
     Warning:
-        `_Device` cannot be used directly. Instantate a `CPU` or `GPU` object.
+        `Device` cannot be used directly. Instantate a `CPU` or `GPU` object.
 
     .. rubric:: TBB threads
 
@@ -146,7 +146,7 @@ def _create_messenger(mpi_config, notice_level, msg_file, shared_msg_file):
     return msg
 
 
-class GPU(_Device):
+class GPU(Device):
     """Select a GPU or GPU(s) to execute simulations.
 
     Args:
@@ -303,7 +303,7 @@ class GPU(_Device):
             self._cpp_exec_conf.hipProfileStop()
 
 
-class CPU(_Device):
+class CPU(Device):
     """Select the CPU to execute simulations.
 
     Args:

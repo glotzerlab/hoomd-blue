@@ -8,7 +8,7 @@ hoomd.device
 .. autosummary::
     :nosignatures:
 
-    _Device 
+    Device 
     CPU
     GPU
     auto_select
@@ -17,5 +17,5 @@ hoomd.device
 
 .. automodule:: hoomd.device
     :synopsis: Devices used for simulation runs
-    :members: _Device, CPU, GPU, auto_select
+    :members: Device, CPU, GPU, auto_select
     :show-inheritance:

@@ -31,8 +31,7 @@ hoomd
 .. toctree::
    :maxdepth: 3
 
-   module-hoomd-array
-   module-hoomd-comm
+   module-hoomd-communicator
    module-hoomd-custom
    module-hoomd-data
    module-hoomd-device
@@ -43,7 +42,6 @@ hoomd
    module-hoomd-triggers
    module-hoomd-tune
    module-hoomd-update
-   module-hoomd-util
    module-hoomd-variant
    module-hoomd-version
    module-hoomd-write

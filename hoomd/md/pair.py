@@ -6,7 +6,7 @@ from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.md import force
 from hoomd.md import nlist as nl
-from hoomd.md.nlist import _NList
+from hoomd.md.nlist import NList
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyFrom, OnlyType
@@ -18,7 +18,7 @@ import json
 class pair(force.Force):
     pass
 
-validate_nlist = OnlyType(_NList)
+validate_nlist = OnlyType(NList)
 
 
 def validate_mode(value):
@@ -219,7 +219,7 @@ class LJ(Pair):
     """ Lennard-Jones pair potential.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mode
@@ -274,7 +274,7 @@ class Gauss(Pair):
     """ Gaussian pair potential.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mode.
@@ -329,7 +329,7 @@ class SLJ(Pair):
     """Shifted Lennard-Jones pair potential.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): Energy shifting/smoothing mode
@@ -417,7 +417,7 @@ class Yukawa(Pair):
     """Yukawa pair potential.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): Energy shifting mode.
@@ -471,7 +471,7 @@ class Ewald(Pair):
     """Ewald pair potential.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): Energy shifting mode.
@@ -538,7 +538,7 @@ class table(force._force):
 
     Args:
         width (int): Number of points to use to interpolate V and F.
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list (default of None automatically creates a global cell-list based neighbor list)
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list (default of None automatically creates a global cell-list based neighbor list)
         name (str): Name of the force instance
 
     :py:class:`table` specifies that a tabulated pair potential should be applied between every
@@ -797,7 +797,7 @@ class Morse(Pair):
     """Morse pair potential.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mode.
@@ -855,7 +855,7 @@ class DPD(Pair):
     """Dissipative Particle Dynamics.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of
           thermostat (in energy units).
         seed (int): seed for the PRNG in the DPD thermostat.
@@ -964,7 +964,7 @@ class DPDConservative(Pair):
     """DPD Conservative pair force.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
 
@@ -1019,7 +1019,7 @@ class DPDLJ(Pair):
     """Dissipative Particle Dynamics with a LJ conservative force.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of
             thermostat (in energy units).
         seed (int): seed for the PRNG in the DPD thermostat.
@@ -1134,7 +1134,7 @@ class ForceShiftedLJ(Pair):
     """Force-shifted Lennard-Jones pair potential.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mode.
@@ -1205,7 +1205,7 @@ class Moliere(Pair):
     """Moliere pair potential.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mode.
@@ -1282,7 +1282,7 @@ class ZBL(Pair):
     """ZBL pair potential.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mode.
@@ -1359,7 +1359,7 @@ class Mie(Pair):
     """Mie pair potential.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mode.
@@ -1546,7 +1546,7 @@ class gb(ai_pair):
     Warning: The code has yet to be updated to the current API.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mode.
@@ -1653,7 +1653,7 @@ class dipole(ai_pair):
     Warning: The code has yet to be updated to the current API.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mode
@@ -1736,7 +1736,7 @@ class ReactionField(Pair):
     """Onsager reaction field pair potential.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mode
@@ -1812,7 +1812,7 @@ class DLVO(Pair):
 
     Args:
         r_cut (float): Default cutoff radius (in distance units).
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         name (str): Name of the force instance.
         d_max (float): Maximum diameter particles in the simulation will have
           (in distance units)
@@ -1900,7 +1900,7 @@ class Buckingham(Pair):
     """Buckingham pair potential.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mode
@@ -1955,7 +1955,7 @@ class LJ1208(Pair):
     """Lennard-Jones 12-8 pair potential.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mode
@@ -2010,7 +2010,7 @@ class Fourier(Pair):
     """Fourier pair potential.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): Energy shifting mode.
