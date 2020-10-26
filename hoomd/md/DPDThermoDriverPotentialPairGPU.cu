@@ -9,16 +9,16 @@
 #include "EvaluatorPairDPDThermo.h"
 #include "AllDriverPotentialPairGPU.cuh"
 
-cudaError_t gpu_compute_dpdthermodpd_forces(const dpd_pair_args_t& args,
-                                            const Scalar2 *d_params)
+hipError_t gpu_compute_dpdthermodpd_forces(const dpd_pair_args_t& args,
+                                            const EvaluatorPairDPDThermo::param_type *d_params)
     {
     return gpu_compute_dpd_forces<EvaluatorPairDPDThermo>(args,
                                                           d_params);
     }
 
 
-cudaError_t gpu_compute_dpdthermo_forces(const pair_args_t& pair_args,
-                                         const Scalar2 *d_params)
+hipError_t gpu_compute_dpdthermo_forces(const pair_args_t& pair_args,
+                                         const EvaluatorPairDPDThermo::param_type *d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairDPDThermo>(pair_args,
                                                            d_params);

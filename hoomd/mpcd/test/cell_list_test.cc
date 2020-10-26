@@ -4,11 +4,13 @@
 // Maintainer: mphoward
 
 #include "hoomd/mpcd/CellList.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/mpcd/CellListGPU.h"
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 
 #include "hoomd/SnapshotSystemData.h"
+#include "hoomd/filter/ParticleFilterAll.h"
+#include "hoomd/filter/ParticleFilterType.h"
 #include "hoomd/test/upp11_config.h"
 
 HOOMD_UP_MAIN()
@@ -419,7 +421,7 @@ void celllist_embed_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
     // now we include the half embedded group
     std::shared_ptr<ParticleData> embed_pdata = sysdef->getParticleData();
-    std::shared_ptr<ParticleSelector> selector_B(new ParticleSelectorType(sysdef, 1,1));
+    std::shared_ptr<ParticleFilter> selector_B(new ParticleFilterType({"B"}));
     std::shared_ptr<ParticleGroup> group_B(new ParticleGroup(sysdef, selector_B));
 
     cl->setEmbeddedGroup(group_B);
@@ -616,7 +618,7 @@ UP_TEST( mpcd_cell_list_embed_test )
     celllist_embed_test<mpcd::CellList>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! dimension test case for MPCD CellListGPU class
 UP_TEST( mpcd_cell_list_gpu_dimensions )
     {
@@ -640,4 +642,4 @@ UP_TEST( mpcd_cell_list_gpu_embed_test )
     {
     celllist_embed_test<mpcd::CellListGPU>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP

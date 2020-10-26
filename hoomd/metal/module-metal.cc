@@ -4,11 +4,11 @@
 #include "EAMForceCompute.h"
 
 // include GPU classes
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "EAMForceComputeGPU.h"
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
@@ -19,7 +19,7 @@ PYBIND11_MODULE(_metal, m)
     {
     export_EAMForceCompute(m);
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     export_EAMForceComputeGPU(m);
 #endif
     }

@@ -19,11 +19,11 @@
     \note This header cannot be compiled by nvcc
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 
 namespace hpmc
@@ -136,6 +136,7 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(unsigned int timestep)
     {
     unsigned int overlap_count = 0;
     unsigned int err_count = 0;
+    unsigned int ndim = this->m_sysdef->getNDimensions();
 
     this->m_exec_conf->msg->notice(5) << "HPMC computing free volume " << timestep << std::endl;
 
@@ -183,7 +184,7 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(unsigned int timestep)
             Shape shape_i(quat<Scalar>(), params[m_type]);
             if (shape_i.hasOrientation())
                 {
-                shape_i.orientation = generateRandomOrientation(rng_i);
+                shape_i.orientation = generateRandomOrientation(rng_i, ndim);
                 }
 
             // check for overlaps with neighboring particle's positions
@@ -308,7 +309,7 @@ Scalar ComputeFreeVolume<Shape>::getLogValue(const std::string& quantity, unsign
 */
 template < class Shape > void export_ComputeFreeVolume(pybind11::module& m, const std::string& name)
     {
-     pybind11::class_<ComputeFreeVolume<Shape>, std::shared_ptr< ComputeFreeVolume<Shape> > >(m, name.c_str(), pybind11::base< Compute >())
+     pybind11::class_<ComputeFreeVolume<Shape>, Compute, std::shared_ptr< ComputeFreeVolume<Shape> > >(m, name.c_str())
               .def(pybind11::init< std::shared_ptr<SystemDefinition>,
                 std::shared_ptr<IntegratorHPMCMono<Shape> >,
                 std::shared_ptr<CellList>,

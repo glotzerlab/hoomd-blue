@@ -1282,14 +1282,11 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
     updateMeshes();
 
     PDataFlags flags = this->m_pdata->getFlags();
-    if (flags[pdata_flag::potential_energy])
-        {
-        computePE();
-        }
+    computePE();
 
     interpolateForces();
 
-    if (flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial])
+    if (flags[pdata_flag::pressure_tensor])
         {
         computeVirial();
         }
@@ -1669,7 +1666,7 @@ Scalar PPPMForceCompute::getQ2Sum()
 
 void export_PPPMForceCompute(py::module& m)
     {
-    py::class_<PPPMForceCompute, std::shared_ptr<PPPMForceCompute> >(m, "PPPMForceCompute", py::base<ForceCompute>())
+    py::class_<PPPMForceCompute, ForceCompute, std::shared_ptr<PPPMForceCompute> >(m, "PPPMForceCompute")
         .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, std::shared_ptr<ParticleGroup> >())
         .def("setParams", &PPPMForceCompute::setParams)
         .def("getQSum", &PPPMForceCompute::getQSum)

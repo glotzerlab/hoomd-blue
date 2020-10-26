@@ -1,8 +1,8 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-#ifndef __GETARINITIALIZER_H_
-#define __GETARINITIALIZER_H_
+#ifndef __GETAR_INITIALIZER_H_
+#define __GETAR_INITIALIZER_H_
 
 #include "SnapshotSystemData.h"
 #include "hoomd/extern/libgetar/src/GTAR.hpp"
@@ -15,8 +15,8 @@
 #include <string>
 #include <vector>
 
-#ifndef NVCC
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#ifndef __HIPCC__
+#include <pybind11/pybind11.h>
 #endif
 
 namespace getardump{
@@ -87,14 +87,14 @@ namespace getardump{
             /// Saved execution configuration
             std::shared_ptr<const ExecutionConfiguration> m_exec_conf;
             /// Saved trajectory archive object
-            std::auto_ptr<gtar::GTAR> m_traj;
+            std::shared_ptr<gtar::GTAR> m_traj;
             /// Set of known records we found in the current trajectory archive
             std::vector<gtar::Record> m_knownRecords;
             /// Cached timestep
             unsigned int m_timestep;
         };
 
-#ifndef NVCC
+#ifndef __HIPCC__
 void export_GetarInitializer(pybind11::module& m);
 #endif
 

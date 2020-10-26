@@ -200,10 +200,10 @@ double CellList::benchmark(unsigned int num_iters)
     // warm up run
     computeCellList();
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     if(m_exec_conf->isCUDAEnabled())
         {
-        cudaThreadSynchronize();
+        hipDeviceSynchronize();
         CHECK_CUDA_ERROR();
         }
 #endif
@@ -213,9 +213,9 @@ double CellList::benchmark(unsigned int num_iters)
     for (unsigned int i = 0; i < num_iters; i++)
         computeCellList();
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     if(m_exec_conf->isCUDAEnabled())
-        cudaThreadSynchronize();
+        hipDeviceSynchronize();
 #endif
     uint64_t total_time_ns = t.getTime() - start_time;
 
@@ -286,9 +286,9 @@ void CellList::initializeMemory()
         {
         // if we have less than radius*2+1 cells in a direction, restrict to unique neighbors
         uint3 n_unique_neighbors = m_dim;
-        n_unique_neighbors.x = n_unique_neighbors.x > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.x;
-        n_unique_neighbors.y = n_unique_neighbors.y > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.y;
-        n_unique_neighbors.z = n_unique_neighbors.z > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.z;
+        n_unique_neighbors.x = n_unique_neighbors.x > m_radius*2+1 ? m_radius*2+1 : (unsigned int) n_unique_neighbors.x;
+        n_unique_neighbors.y = n_unique_neighbors.y > m_radius*2+1 ? m_radius*2+1 : (unsigned int) n_unique_neighbors.y;
+        n_unique_neighbors.z = n_unique_neighbors.z > m_radius*2+1 ? m_radius*2+1 : (unsigned int) n_unique_neighbors.z;
 
         unsigned int n_adj;
         if (m_sysdef->getNDimensions() == 2)
@@ -562,7 +562,7 @@ void CellList::computeCellList()
             }
         else
             {
-            conditions.x = max(conditions.x, offset+1);
+            conditions.x = max((unsigned int)conditions.x, offset+1);
             }
 
         // increment the cell occupancy counter
@@ -642,47 +642,9 @@ uint3 CellList::readConditions()
     return *h_conditions.data;
     }
 
-/*! Generic statistics that apply to any cell list, Derived classes should
-    print any pertinent information they see fit to.
- */
-void CellList::printStats()
-    {
-    // return early if the notice level is less than 1
-    if (m_exec_conf->msg->getNoticeLevel() < 1)
-        return;
-
-    m_exec_conf->msg->notice(1) << "-- Cell list stats:" << endl;
-    m_exec_conf->msg->notice(1) << "Dimension: " << m_dim.x << ", " << m_dim.y << ", " << m_dim.z << "" << endl;
-
-    // access the number of cell members to generate stats
-    ArrayHandle<unsigned int> h_cell_size(m_cell_size, access_location::host, access_mode::read);
-
-    // handle the rare case where printStats is called before the cell list is initialized
-    if (h_cell_size.data != NULL)
-        {
-        // build some simple statistics of the number of neighbors
-        unsigned int n_min = h_cell_size.data[0];
-        unsigned int n_max = h_cell_size.data[0];
-
-        for (unsigned int i = 0; i < m_cell_indexer.getNumElements(); i++)
-            {
-            unsigned int n = (unsigned int)h_cell_size.data[i];
-            if (n < n_min)
-                n_min = n;
-            if (n > n_max)
-                n_max = n;
-            }
-
-        // divide to get the average
-        Scalar n_avg = Scalar(m_pdata->getN() + m_pdata->getNGhosts()) / Scalar(m_cell_indexer.getNumElements());
-        m_exec_conf->msg->notice(1) << "n_min    : " << n_min << " / n_max: " << n_max << " / n_avg: " << n_avg << endl;
-        }
-    }
-
-
 void export_CellList(py::module& m)
     {
-    py::class_<CellList, std::shared_ptr<CellList> >(m,"CellList",py::base<Compute>())
+    py::class_<CellList, Compute, std::shared_ptr<CellList> >(m,"CellList")
         .def(py::init< std::shared_ptr<SystemDefinition> >())
         .def("setNominalWidth", &CellList::setNominalWidth)
         .def("setRadius", &CellList::setRadius)

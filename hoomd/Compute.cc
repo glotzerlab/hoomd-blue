@@ -4,9 +4,8 @@
 
 // Maintainer: joaander
 
-
-
 #include "Compute.h"
+#include "Communicator.h"
 
 namespace py = pybind11;
 
@@ -126,7 +125,10 @@ void export_Compute(py::module& m)
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     .def("compute", &Compute::compute)
     .def("benchmark", &Compute::benchmark)
-    .def("printStats", &Compute::printStats)
     .def("setProfiler", &Compute::setProfiler)
+    .def("notifyDetach", &Compute::notifyDetach)
+    #ifdef ENABLE_MPI
+    .def("setCommunicator", &Compute::setCommunicator)
+    #endif
     ;
     }

@@ -8,7 +8,7 @@
     \brief Defines the SystemDefinition class
  */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -17,7 +17,7 @@
 #include "BondedGroupData.h"
 
 #include <memory>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 
 #ifndef __SYSTEM_DEFINITION_H__
@@ -145,14 +145,7 @@ class PYBIND11_EXPORT SystemDefinition
 
         //! Return a snapshot of the current system data
         template <class Real>
-        std::shared_ptr< SnapshotSystemData<Real> > takeSnapshot(bool particles= true,
-                                                           bool bonds = false,
-                                                           bool angles = false,
-                                                           bool dihedrals = false,
-                                                           bool impropers = false,
-                                                           bool constraints = false,
-                                                           bool integrators = false,
-                                                           bool pairs = false);
+        std::shared_ptr< SnapshotSystemData<Real> > takeSnapshot();
 
         //! Re-initialize the system from a snapshot
         template <class Real>

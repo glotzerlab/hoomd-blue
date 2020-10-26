@@ -11,11 +11,11 @@
     \brief Declares a class for computing sphere constraint forces on the GPU
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __ONE_D_CONSTRAINT_GPU_H__
 #define __ONE_D_CONSTRAINT_GPU_H__

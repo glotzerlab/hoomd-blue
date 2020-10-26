@@ -13,15 +13,27 @@
  \brief Defines GPU kernel code for calculating the EAM forces. Used by EAMForceComputeGPU.
  */
 
-//! Storage space for EAM parameters on the GPU
-__constant__ EAMTexInterData eam_data_ti;
-
 //! Kernel for computing EAM forces on the GPU
 __global__ void gpu_kernel_1(Scalar4 *d_force, Scalar *d_virial, const unsigned int virial_pitch, const unsigned int N,
         const Scalar4 *d_pos, BoxDim box, const unsigned int *d_n_neigh, const unsigned int *d_nlist,
         const unsigned int *d_head_list, const Scalar4 *d_F, const Scalar4 *d_rho, const Scalar4 *d_rphi,
-        const Scalar4 *d_dF, const Scalar4 *d_drho, const Scalar4 *d_drphi, Scalar *d_dFdP)
+        const Scalar4 *d_dF, const Scalar4 *d_drho, const Scalar4 *d_drphi, Scalar *d_dFdP, const EAMTexInterData *d_eam_data)
     {
+    __shared__ EAMTexInterData eam_data_ti;
+
+    // copy over parameters one int per thread
+    unsigned int tidx = threadIdx.x;
+    unsigned int block_size = blockDim.x;
+    unsigned int param_size = sizeof(EAMTexInterData) / sizeof(int);
+
+    for (unsigned int cur_offset = 0; cur_offset < param_size; cur_offset += block_size)
+        {
+        if (cur_offset + tidx < param_size)
+            {
+            ((int *)&eam_data_ti)[cur_offset + tidx] = ((int *)d_eam_data)[cur_offset + tidx];
+            }
+        }
+
 
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -120,8 +132,22 @@ __global__ void gpu_kernel_1(Scalar4 *d_force, Scalar *d_virial, const unsigned 
 __global__ void gpu_kernel_2(Scalar4 *d_force, Scalar *d_virial, const unsigned int virial_pitch, const unsigned int N,
         const Scalar4 *d_pos, BoxDim box, const unsigned int *d_n_neigh, const unsigned int *d_nlist,
         const unsigned int *d_head_list, const Scalar4 *d_F, const Scalar4 *d_rho, const Scalar4 *d_rphi,
-        const Scalar4 *d_dF, const Scalar4 *d_drho, const Scalar4 *d_drphi, Scalar *d_dFdP)
+        const Scalar4 *d_dF, const Scalar4 *d_drho, const Scalar4 *d_drphi, Scalar *d_dFdP, const EAMTexInterData *d_eam_data)
     {
+    __shared__ EAMTexInterData eam_data_ti;
+
+    // copy over parameters one int per thread
+    unsigned int tidx = threadIdx.x;
+    unsigned int block_size = blockDim.x;
+    unsigned int param_size = sizeof(EAMTexInterData) / sizeof(int);
+
+    for (unsigned int cur_offset = 0; cur_offset < param_size; cur_offset += block_size)
+        {
+        if (cur_offset + tidx < param_size)
+            {
+            ((int *)&eam_data_ti)[cur_offset + tidx] = ((int *)d_eam_data)[cur_offset + tidx];
+            }
+        }
 
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -255,30 +281,27 @@ __global__ void gpu_kernel_2(Scalar4 *d_force, Scalar *d_virial, const unsigned 
     }
 
 //! compute forces on GPU
-cudaError_t gpu_compute_eam_tex_inter_forces(Scalar4 *d_force, Scalar *d_virial, const unsigned int virial_pitch,
+hipError_t gpu_compute_eam_tex_inter_forces(Scalar4 *d_force, Scalar *d_virial, const unsigned int virial_pitch,
         const unsigned int N, const Scalar4 *d_pos, const BoxDim &box, const unsigned int *d_n_neigh,
         const unsigned int *d_nlist, const unsigned int *d_head_list, const unsigned int size_nlist,
-        const EAMTexInterData &eam_data, Scalar *d_dFdP, const Scalar4 *d_F, const Scalar4 *d_rho,
-        const Scalar4 *d_rphi, const Scalar4 *d_dF, const Scalar4 *d_drho, const Scalar4 *d_drphi)
+        const EAMTexInterData *d_eam_data, Scalar *d_dFdP, const Scalar4 *d_F, const Scalar4 *d_rho,
+        const Scalar4 *d_rphi, const Scalar4 *d_dF, const Scalar4 *d_drho, const Scalar4 *d_drphi,
+        const unsigned int block_size)
     {
-
-    // run the kernel
-    cudaMemcpyToSymbol(eam_data_ti, &eam_data, sizeof(EAMTexInterData));
-
     static unsigned int max_block_size_1 = UINT_MAX;
     static unsigned int max_block_size_2 = UINT_MAX;
 
-    cudaFuncAttributes attr1;
-    cudaFuncGetAttributes(&attr1, gpu_kernel_1);
+    hipFuncAttributes attr1;
+    hipFuncGetAttributes(&attr1, reinterpret_cast<const void*>(gpu_kernel_1));
 
-    cudaFuncAttributes attr2;
-    cudaFuncGetAttributes(&attr2, gpu_kernel_2);
+    hipFuncAttributes attr2;
+    hipFuncGetAttributes(&attr2, reinterpret_cast<const void*>(gpu_kernel_2));
 
     max_block_size_1 = attr1.maxThreadsPerBlock;
     max_block_size_2 = attr2.maxThreadsPerBlock;
 
-    unsigned int run_block_size_1 = min(eam_data.block_size, max_block_size_1);
-    unsigned int run_block_size_2 = min(eam_data.block_size, max_block_size_2);
+    unsigned int run_block_size_1 = min(block_size, max_block_size_1);
+    unsigned int run_block_size_2 = min(block_size, max_block_size_2);
 
     // setup the grid to run the kernel
 
@@ -288,10 +311,10 @@ cudaError_t gpu_compute_eam_tex_inter_forces(Scalar4 *d_force, Scalar *d_virial,
     dim3 grid_2((int) ceil((double) N / (double) run_block_size_2), 1, 1);
     dim3 threads_2(run_block_size_2, 1, 1);
 
-    gpu_kernel_1<<<grid_1, threads_1>>>(d_force, d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist,
-            d_head_list, d_F, d_rho, d_rphi, d_dF, d_drho, d_drphi, d_dFdP);
-    gpu_kernel_2<<<grid_2, threads_2>>>(d_force, d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist,
-            d_head_list, d_F, d_rho, d_rphi, d_dF, d_drho, d_drphi, d_dFdP);
+    hipLaunchKernelGGL(gpu_kernel_1, dim3(grid_1), dim3(threads_1), 0, 0, d_force, d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist,
+            d_head_list, d_F, d_rho, d_rphi, d_dF, d_drho, d_drphi, d_dFdP, d_eam_data);
+    hipLaunchKernelGGL(gpu_kernel_2, dim3(grid_2), dim3(threads_2), 0, 0, d_force, d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist,
+            d_head_list, d_F, d_rho, d_rphi, d_dF, d_drho, d_drphi, d_dFdP, d_eam_data);
 
-    return cudaSuccess;
+    return hipSuccess;
     }

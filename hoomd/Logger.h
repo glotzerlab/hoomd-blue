@@ -8,7 +8,7 @@
     \brief Declares the Logger class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -21,7 +21,7 @@
 #include <vector>
 #include <map>
 #include <fstream>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 #include <memory>
 
 #ifndef __LOGGER_H__
@@ -84,8 +84,6 @@ class __attribute__((visibility("default"))) Logger : public Analyzer
         virtual PDataFlags getRequestedPDataFlags()
             {
             PDataFlags flags;
-            flags[pdata_flag::isotropic_virial] = 1;
-            flags[pdata_flag::potential_energy] = 1;
             flags[pdata_flag::pressure_tensor] = 1;
             flags[pdata_flag::rotational_kinetic_energy] = 1;
             return flags;

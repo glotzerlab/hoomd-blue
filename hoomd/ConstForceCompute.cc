@@ -4,7 +4,6 @@
 
 // Maintainer: joaander
 
-
 #include "ConstForceCompute.h"
 
 namespace py = pybind11;
@@ -230,7 +229,7 @@ void ConstForceCompute::computeForces(unsigned int timestep)
         rearrangeForces();
 
     // execute python callback to update the forces, if present
-    if (m_callback && m_callback != py::none())
+    if (m_callback && !m_callback.is(py::none()))
         {
         m_callback(timestep);
         }
@@ -239,7 +238,7 @@ void ConstForceCompute::computeForces(unsigned int timestep)
 
 void export_ConstForceCompute(py::module& m)
     {
-    py::class_< ConstForceCompute, std::shared_ptr<ConstForceCompute> >(m,"ConstForceCompute",py::base<ForceCompute>())
+    py::class_< ConstForceCompute, ForceCompute, std::shared_ptr<ConstForceCompute> >(m,"ConstForceCompute")
     .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, Scalar, Scalar, Scalar, Scalar >())
     .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar, Scalar, Scalar, Scalar, Scalar, Scalar >())
     .def("setForce", &ConstForceCompute::setForce)

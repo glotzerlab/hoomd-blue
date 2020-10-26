@@ -28,11 +28,21 @@ struct RNGIdentifier
     static const uint32_t HPMCMonoTrialMove = 0x754dea60;
     static const uint32_t HPMCMonoChainMove = 0x56fdde59;
     static const uint32_t HPMCMonoShift = 0xf4a3210e;
+    static const uint32_t HPMCDepletants = 0x6b71abc8;
+    static const uint32_t HPMCDepletantNum = 0x89effeba;
+    static const uint32_t HPMCMonoAccept = 0xbfabfabf;
     static const uint32_t UpdaterBoxMC= 0xf6a510ab;
     static const uint32_t UpdaterClusters =  0x09365bf5;
     static const uint32_t UpdaterClustersPairwise = 0x50060112;
     static const uint32_t UpdaterExternalFieldWall = 0xba015a6f;
     static const uint32_t UpdaterMuVT = 0x186df7ba;
+    static const uint32_t UpdaterMuVTDepletants1 = 0xbbaa6272;
+    static const uint32_t UpdaterMuVTDepletants2 = 0x27568efe;
+    static const uint32_t UpdaterMuVTDepletants3 = 0x97bafe02;
+    static const uint32_t UpdaterMuVTDepletants4 = 0xb8b8b8b8;
+    static const uint32_t UpdaterMuVTDepletants5 = 0x81bcbde0;
+    static const uint32_t UpdaterMuVTDepletants6 = 0x9123abef;
+    static const uint32_t UpdaterMuVTPoisson = 0x7377befa;
     static const uint32_t UpdaterMuVTBox1 = 0x05d4a502;
     static const uint32_t UpdaterMuVTBox2 = 0xa74201bd;
     static const uint32_t ActiveForceCompute = 0x7edf0a42;
@@ -48,6 +58,8 @@ struct RNGIdentifier
     static const uint32_t SRDCollisionMethod = 0x7b61fda0;
     static const uint32_t SlitGeometryFiller = 0xdb68c12c;
     static const uint32_t SlitPoreGeometryFiller = 0xc7af9094;
+    static const uint32_t UpdaterQuickCompress = 0x00981234;
+    static const uint32_t ParticleGroupThermalize = 1;
     };
 
 }

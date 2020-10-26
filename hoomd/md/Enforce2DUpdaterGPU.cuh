@@ -16,7 +16,7 @@
 #include "hoomd/HOOMDMath.h"
 
 //! Kernel driver for the enforce 2D update called by Enforce2DUpdaterGPU
-cudaError_t gpu_enforce2d(const unsigned int N,
+hipError_t gpu_enforce2d(const unsigned int N,
                           Scalar4 *d_vel,
                           Scalar3 *d_accel);
 

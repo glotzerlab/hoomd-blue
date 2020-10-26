@@ -4,7 +4,7 @@ if (DOXYGEN)
 
 # policy change: always build all documentation even on platforms that don't
 # have CUDA
-set(DOXYGEN_PREDEFINED ${DOXYGEN_PREDEFINED} " \"ENABLE_CUDA=1\" \\
+set(DOXYGEN_PREDEFINED ${DOXYGEN_PREDEFINED} " \"ENABLE_HIP=1\" \\
     \"NVCC=1\" \\")
 
 # build MPI documentation

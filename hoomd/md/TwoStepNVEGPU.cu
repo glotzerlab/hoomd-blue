@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -119,7 +120,7 @@ void gpu_nve_step_one_kernel(Scalar4 *d_pos,
 
     See gpu_nve_step_one_kernel() for full documentation, this function is just a driver.
 */
-cudaError_t gpu_nve_step_one(Scalar4 *d_pos,
+hipError_t gpu_nve_step_one(Scalar4 *d_pos,
                              Scalar4 *d_vel,
                              const Scalar3 *d_accel,
                              int3 *d_image,
@@ -135,8 +136,8 @@ cudaError_t gpu_nve_step_one(Scalar4 *d_pos,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)gpu_nve_step_one_kernel);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void*)gpu_nve_step_one_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
@@ -154,10 +155,10 @@ cudaError_t gpu_nve_step_one(Scalar4 *d_pos,
         dim3 threads(run_block_size, 1, 1);
 
         // run the kernel
-        gpu_nve_step_one_kernel<<< grid, threads >>>(d_pos, d_vel, d_accel, d_image, d_group_members, nwork, range.first, box, deltaT, limit, limit_val, zero_force);
+        hipLaunchKernelGGL((gpu_nve_step_one_kernel), dim3(grid), dim3(threads ), 0, 0, d_pos, d_vel, d_accel, d_image, d_group_members, nwork, range.first, box, deltaT, limit, limit_val, zero_force);
         }
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 //! NO_SQUISH angular part of the first half step
@@ -292,7 +293,7 @@ __global__ void gpu_nve_angular_step_one_kernel(Scalar4 *d_orientation,
     \param group_size Number of members in the group
     \param deltaT timestep
 */
-cudaError_t gpu_nve_angular_step_one(Scalar4 *d_orientation,
+hipError_t gpu_nve_angular_step_one(Scalar4 *d_orientation,
                              Scalar4 *d_angmom,
                              const Scalar3 *d_inertia,
                              const Scalar4 *d_net_torque,
@@ -305,8 +306,8 @@ cudaError_t gpu_nve_angular_step_one(Scalar4 *d_orientation,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void *)gpu_nve_angular_step_one_kernel);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void *)gpu_nve_angular_step_one_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
@@ -324,10 +325,10 @@ cudaError_t gpu_nve_angular_step_one(Scalar4 *d_orientation,
         dim3 threads(run_block_size, 1, 1);
 
         // run the kernel
-        gpu_nve_angular_step_one_kernel<<< grid, threads >>>(d_orientation, d_angmom, d_inertia, d_net_torque, d_group_members, nwork, range.first, deltaT, scale);
+        hipLaunchKernelGGL((gpu_nve_angular_step_one_kernel), dim3(grid), dim3(threads ), 0, 0, d_orientation, d_angmom, d_inertia, d_net_torque, d_group_members, nwork, range.first, deltaT, scale);
         }
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 
@@ -421,7 +422,7 @@ void gpu_nve_step_two_kernel(
 
     This is just a driver for gpu_nve_step_two_kernel(), see it for details.
 */
-cudaError_t gpu_nve_step_two(Scalar4 *d_vel,
+hipError_t gpu_nve_step_two(Scalar4 *d_vel,
                              Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              const GPUPartition& gpu_partition,
@@ -435,8 +436,8 @@ cudaError_t gpu_nve_step_two(Scalar4 *d_vel,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void *)gpu_nve_step_two_kernel);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void *)gpu_nve_step_two_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
@@ -454,7 +455,7 @@ cudaError_t gpu_nve_step_two(Scalar4 *d_vel,
         dim3 threads(run_block_size, 1, 1);
 
         // run the kernel
-        gpu_nve_step_two_kernel<<< grid, threads >>>(d_vel,
+        hipLaunchKernelGGL((gpu_nve_step_two_kernel), dim3(grid), dim3(threads ), 0, 0, d_vel,
                                                      d_accel,
                                                      d_group_members,
                                                      nwork,
@@ -465,7 +466,7 @@ cudaError_t gpu_nve_step_two(Scalar4 *d_vel,
                                                      limit_val,
                                                      zero_force);
         }
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 //! NO_SQUISH angular part of the second half step
@@ -531,7 +532,7 @@ __global__ void gpu_nve_angular_step_two_kernel(const Scalar4 *d_orientation,
     \param group_size Number of members in the group
     \param deltaT timestep
 */
-cudaError_t gpu_nve_angular_step_two(const Scalar4 *d_orientation,
+hipError_t gpu_nve_angular_step_two(const Scalar4 *d_orientation,
                              Scalar4 *d_angmom,
                              const Scalar3 *d_inertia,
                              const Scalar4 *d_net_torque,
@@ -544,8 +545,8 @@ cudaError_t gpu_nve_angular_step_two(const Scalar4 *d_orientation,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void *)gpu_nve_angular_step_two_kernel);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void *)gpu_nve_angular_step_two_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
@@ -563,8 +564,8 @@ cudaError_t gpu_nve_angular_step_two(const Scalar4 *d_orientation,
         dim3 threads(run_block_size, 1, 1);
 
         // run the kernel
-        gpu_nve_angular_step_two_kernel<<< grid, threads >>>(d_orientation, d_angmom, d_inertia, d_net_torque, d_group_members, nwork, range.first, deltaT, scale);
+        hipLaunchKernelGGL((gpu_nve_angular_step_two_kernel), dim3(grid), dim3(threads ), 0, 0, d_orientation, d_angmom, d_inertia, d_net_torque, d_group_members, nwork, range.first, deltaT, scale);
         }
 
-    return cudaSuccess;
+    return hipSuccess;
     }

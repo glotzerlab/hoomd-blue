@@ -119,7 +119,7 @@ std::shared_ptr<AnisoPotentialPairGB> base_class_gb_creator(std::shared_ptr<Syst
     return std::shared_ptr<AnisoPotentialPairGB>(new AnisoPotentialPairGB(sysdef, nlist));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! LJForceComputeGPU creator for unit tests
 std::shared_ptr<AnisoPotentialPairGBGPU> gpu_gb_creator(std::shared_ptr<SystemDefinition> sysdef,
                                           std::shared_ptr<NeighborList> nlist)
@@ -136,7 +136,7 @@ UP_TEST( AnisoPotentialPairGB_particle )
     gb_force_particle_test(gb_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! test case for particle test on GPU
 UP_TEST( LJForceGPU_particle )
     {

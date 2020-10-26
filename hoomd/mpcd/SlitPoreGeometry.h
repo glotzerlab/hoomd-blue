@@ -16,12 +16,12 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/BoxDim.h"
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #define HOSTDEVICE __host__ __device__ inline
 #else
 #define HOSTDEVICE inline __attribute__((always_inline))
 #include <string>
-#endif // NVCC
+#endif // __HIPCC__
 
 namespace mpcd
 {
@@ -215,13 +215,13 @@ class __attribute__((visibility("default"))) SlitPoreGeometry
             return m_bc;
             }
 
-        #ifndef NVCC
+        #ifndef __HIPCC__
         //! Get the unique name of this geometry
         static std::string getName()
             {
             return std::string("SlitPore");
             }
-        #endif // NVCC
+        #endif // __HIPCC__
 
     private:
         const Scalar m_H;       //!< Half of the channel width

@@ -5,7 +5,7 @@
 // Maintainer: joaander
 
 #include "TwoStepBerendsen.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "TwoStepBerendsenGPU.cuh"
 #endif
 
@@ -67,7 +67,7 @@ void TwoStepBerendsen::integrateStepOne(unsigned int timestep)
     Scalar curr_T = m_thermo->getTranslationalTemperature();
 
     // compute the value of lambda for the current timestep
-    Scalar lambda = sqrt(Scalar(1.0) + m_deltaT / m_tau * (m_T->getValue(timestep) / curr_T - Scalar(1.0)));
+    Scalar lambda = sqrt(Scalar(1.0) + m_deltaT / m_tau * ((*m_T)(timestep) / curr_T - Scalar(1.0)));
 
     // access the particle data for writing on the CPU
     assert(m_pdata);
@@ -148,7 +148,7 @@ void TwoStepBerendsen::integrateStepTwo(unsigned int timestep)
 
 void export_Berendsen(py::module& m)
     {
-    py::class_<TwoStepBerendsen, std::shared_ptr<TwoStepBerendsen> >(m, "TwoStepBerendsen", py::base<IntegrationMethodTwoStep>())
+    py::class_<TwoStepBerendsen, IntegrationMethodTwoStep, std::shared_ptr<TwoStepBerendsen> >(m, "TwoStepBerendsen")
         .def(py::init< std::shared_ptr<SystemDefinition>,
                          std::shared_ptr<ParticleGroup>,
                          std::shared_ptr<ComputeThermo>,

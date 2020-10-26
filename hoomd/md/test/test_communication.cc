@@ -19,8 +19,9 @@ HOOMD_UP_MAIN()
 #include "hoomd/ConstForceCompute.h"
 #include "hoomd/md/TwoStepNVE.h"
 #include "hoomd/md/IntegratorTwoStep.h"
+#include "hoomd/filter/ParticleFilterAll.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/CommunicatorGPU.h"
 #endif
 
@@ -40,7 +41,7 @@ typedef std::function<std::shared_ptr<Communicator> (std::shared_ptr<SystemDefin
 std::shared_ptr<Communicator> base_class_communicator_creator(std::shared_ptr<SystemDefinition> sysdef,
                                                          std::shared_ptr<DomainDecomposition> decomposition);
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 std::shared_ptr<Communicator> gpu_communicator_creator(std::shared_ptr<SystemDefinition> sysdef,
                                                   std::shared_ptr<DomainDecomposition> decomposition);
 #endif
@@ -110,9 +111,9 @@ void test_domain_decomposition(std::shared_ptr<ExecutionConfiguration> exec_conf
     pdata->setDomainDecomposition(decomposition);
 
     // check that periodic flags are correctly set on the box
-    UP_ASSERT_EQUAL(pdata->getBox().getPeriodic().x, 0);
-    UP_ASSERT_EQUAL(pdata->getBox().getPeriodic().y, 0);
-    UP_ASSERT_EQUAL(pdata->getBox().getPeriodic().z, 0);
+    MY_ASSERT_EQUAL(pdata->getBox().getPeriodic().x, 0);
+    MY_ASSERT_EQUAL(pdata->getBox().getPeriodic().y, 0);
+    MY_ASSERT_EQUAL(pdata->getBox().getPeriodic().z, 0);
 
     pdata->initializeFromSnapshot(snap);
 
@@ -256,9 +257,9 @@ void test_balanced_domain_decomposition(std::shared_ptr<ExecutionConfiguration> 
     pdata->setDomainDecomposition(decomposition);
 
     // check that periodic flags are correctly set on the box
-    UP_ASSERT_EQUAL(pdata->getBox().getPeriodic().x, 0);
-    UP_ASSERT_EQUAL(pdata->getBox().getPeriodic().y, 0);
-    UP_ASSERT_EQUAL(pdata->getBox().getPeriodic().z, 0);
+    MY_ASSERT_EQUAL(pdata->getBox().getPeriodic().x, 0);
+    MY_ASSERT_EQUAL(pdata->getBox().getPeriodic().y, 0);
+    MY_ASSERT_EQUAL(pdata->getBox().getPeriodic().z, 0);
 
     pdata->initializeFromSnapshot(snap);
 
@@ -2585,7 +2586,6 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
             break;
         }
 
-
     }
 
 //! Test particle communication for covalently bonded ghosts
@@ -2823,10 +2823,10 @@ void test_communicator_compare(communicator_creator comm_creator_1,
 //    std::shared_ptr<ConstForceCompute> fc_1(new ConstForceCompute(sysdef_1, Scalar(-0.3), Scalar(0.2), Scalar(-0.123)));
 //    std::shared_ptr<ConstForceCompute> fc_2(new ConstForceCompute(sysdef_2, Scalar(-0.3), Scalar(0.2), Scalar(-0.123)));
 
-    std::shared_ptr<ParticleSelector> selector_all_1(new ParticleSelectorTag(sysdef_1, 0, pdata_1->getNGlobal()-1));
+    std::shared_ptr<ParticleFilter> selector_all_1(new ParticleFilterAll());
     std::shared_ptr<ParticleGroup> group_all_1(new ParticleGroup(sysdef_1, selector_all_1));
 
-    std::shared_ptr<ParticleSelector> selector_all_2(new ParticleSelectorTag(sysdef_2, 0, pdata_2->getNGlobal()-1));
+    std::shared_ptr<ParticleFilter> selector_all_2(new ParticleFilterAll());
     std::shared_ptr<ParticleGroup> group_all_2(new ParticleGroup(sysdef_2, selector_all_2));
 
     std::shared_ptr<TwoStepNVE> two_step_nve_1(new TwoStepNVE(sysdef_1, group_all_1));
@@ -3450,7 +3450,7 @@ std::shared_ptr<Communicator> base_class_communicator_creator(std::shared_ptr<Sy
     return std::shared_ptr<Communicator>(new Communicator(sysdef, decomposition) );
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 std::shared_ptr<Communicator> gpu_communicator_creator(std::shared_ptr<SystemDefinition> sysdef,
                                                   std::shared_ptr<DomainDecomposition> decomposition)
     {
@@ -3668,7 +3668,7 @@ UP_TEST( communicator_ghost_layer_per_type_test)
 
 UP_SUITE_END();
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 UP_SUITE_BEGIN(gpu_tests);
 

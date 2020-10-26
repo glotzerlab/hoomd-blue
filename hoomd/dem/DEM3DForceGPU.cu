@@ -73,7 +73,7 @@ __global__ void gpu_compute_dem3d_forces_kernel(
     const unsigned int *d_numTypeEdges, const unsigned int *d_numTypeFaces,
     const unsigned int *d_vertexConnectivity, const unsigned int *d_edges)
     {
-    extern __shared__ int sh[];
+    HIP_DYNAMIC_SHARED( int, sh)
 
     // part{ForceTorques, Virials} are the forces and torques
     // (force.x, force.y, torque.z, potentialEnergy), and virials for
@@ -428,14 +428,14 @@ __global__ void gpu_compute_dem3d_forces_kernel(
     // particle we calculate for in the block.
     if(partIdx < N)
         {
-        genAtomicAdd(&partForces[threadIdx.x].x, localForce.x);
-        genAtomicAdd(&partForces[threadIdx.x].y, localForce.y);
-        genAtomicAdd(&partForces[threadIdx.x].z, localForce.z);
-        genAtomicAdd(&partForces[threadIdx.x].w, localForce.w);
+        genAtomicAdd((Real *) &partForces[threadIdx.x].x, (Real) localForce.x);
+        genAtomicAdd((Real *) &partForces[threadIdx.x].y, (Real) localForce.y);
+        genAtomicAdd((Real *) &partForces[threadIdx.x].z, (Real) localForce.z);
+        genAtomicAdd((Real *) &partForces[threadIdx.x].w, (Real) localForce.w);
 
-        genAtomicAdd(&partTorques[threadIdx.x].x, localTorque.x);
-        genAtomicAdd(&partTorques[threadIdx.x].y, localTorque.y);
-        genAtomicAdd(&partTorques[threadIdx.x].z, localTorque.z);
+        genAtomicAdd((Real *) &partTorques[threadIdx.x].x, (Real) localTorque.x);
+        genAtomicAdd((Real *) &partTorques[threadIdx.x].y, (Real) localTorque.y);
+        genAtomicAdd((Real *) &partTorques[threadIdx.x].z, (Real) localTorque.z);
 
         for(size_t i(0); i < 6; ++i)
             genAtomicAdd(partVirials + 6*threadIdx.x + i, localVirial[i]);
@@ -480,7 +480,7 @@ __global__ void gpu_compute_dem3d_forces_kernel(
   This is just a driver for gpu_compute_dem3d_forces_kernel, see the documentation for it for more information.
 */
 template<typename Real, typename Real4, typename Evaluator>
-cudaError_t gpu_compute_dem3d_forces(
+hipError_t gpu_compute_dem3d_forces(
     Scalar4* d_force, Scalar4* d_torque, Scalar* d_virial,
     const unsigned int virial_pitch, const unsigned int N, const unsigned int n_ghosts,
     const Scalar4 *d_pos, const Scalar4 *d_quat, const unsigned int *d_nextFaces,
@@ -502,8 +502,8 @@ cudaError_t gpu_compute_dem3d_forces(
     // setup the grid to run the kernel
     dim3 grid((int)ceil((double)N / (double)particlesPerBlock), 1, 1);
 
-    cudaFuncAttributes attr;
-    cudaFuncGetAttributes(&attr, gpu_compute_dem3d_forces_kernel<Real, Real4, Evaluator>);
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(gpu_compute_dem3d_forces_kernel<Real, Real4, Evaluator>));
     const unsigned int numFeatures(min(maxFeatures, attr.maxThreadsPerBlock/particlesPerBlock));
     assert(numFeatures);
 
@@ -517,8 +517,7 @@ cudaError_t gpu_compute_dem3d_forces(
         5*numTypes*sizeof(unsigned int) + numVerts*sizeof(unsigned int)); // per-type counts and per-vertex connectivity
 
     // run the kernel
-    gpu_compute_dem3d_forces_kernel<Real, Real4, Evaluator> <<< grid, threads,shmSize>>>
-        (d_pos, d_quat, d_force, d_torque, d_virial, virial_pitch, N,
+    hipLaunchKernelGGL((gpu_compute_dem3d_forces_kernel<Real, Real4, Evaluator>), dim3(grid), dim3(threads), shmSize, 0, d_pos, d_quat, d_force, d_torque, d_virial, virial_pitch, N,
         d_nextFaces, d_firstFaceVertices, d_nextVertices,
         d_realVertices, d_vertices, d_diam, d_velocity, maxFeatures,
         maxVertices, numFaces, numDegenerateVerts, numVerts,
@@ -527,7 +526,7 @@ cudaError_t gpu_compute_dem3d_forces(
         d_numTypeEdges, d_numTypeFaces, d_vertexConnectivity,
         d_edges);
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 // vim:syntax=cpp

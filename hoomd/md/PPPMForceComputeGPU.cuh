@@ -7,7 +7,16 @@
 
 #include "hoomd/GPUPartition.cuh"
 
+#include "hip/hip_runtime.h"
+
+#if defined(ENABLE_HIP)
+#ifdef __HIP_PLATFORM_HCC__
+#include <hipfft.h>
+#else
 #include <cufft.h>
+typedef cufftComplex hipfftComplex;
+#endif
+#endif
 
 void gpu_assign_particles(const uint3 mesh_dim,
                          const uint3 n_ghost_bins,
@@ -16,23 +25,24 @@ void gpu_assign_particles(const uint3 mesh_dim,
                          const unsigned int *d_index_array,
                          const Scalar4 *d_postype,
                          const Scalar *d_charge,
-                         cufftComplex *d_mesh,
-                         cufftComplex *d_mesh_scratch,
+                         hipfftComplex *d_mesh,
+                         hipfftComplex *d_mesh_scratch,
                          const unsigned int mesh_elements,
                          int order,
                          const BoxDim& box,
                          unsigned int block_size,
-                         const cudaDeviceProp& dev_prop,
+                         const Scalar *d_rho_coeff,
+                         const hipDeviceProp_t& dev_prop,
                          const GPUPartition& gpu_partition);
 
 void gpu_reduce_meshes(const unsigned int mesh_elements,
-    const cufftComplex *d_mesh_scratch,
-    cufftComplex *d_mesh,
+    const hipfftComplex *d_mesh_scratch,
+    hipfftComplex *d_mesh,
     const unsigned int ngpu,
     const unsigned int block_size);
 
 void gpu_compute_mesh_virial(const unsigned int n_wave_vectors,
-                             cufftComplex *d_fourier_mesh,
+                             hipfftComplex *d_fourier_mesh,
                              Scalar *d_inf_f,
                              Scalar *d_virial_mesh,
                              const Scalar3 *d_k,
@@ -40,10 +50,10 @@ void gpu_compute_mesh_virial(const unsigned int n_wave_vectors,
                              Scalar kappa);
 
 void gpu_update_meshes(const unsigned int n_wave_vectors,
-                         cufftComplex *d_fourier_mesh,
-                         cufftComplex *d_fourier_mesh_G_x,
-                         cufftComplex *d_fourier_mesh_G_y,
-                         cufftComplex *d_fourier_mesh_G_z,
+                         hipfftComplex *d_fourier_mesh,
+                         hipfftComplex *d_fourier_mesh_G_x,
+                         hipfftComplex *d_fourier_mesh_G_y,
+                         hipfftComplex *d_fourier_mesh_G_z,
                          const Scalar *d_inf_f,
                          const Scalar3 *d_k,
                          unsigned int NNN,
@@ -52,9 +62,9 @@ void gpu_update_meshes(const unsigned int n_wave_vectors,
 void gpu_compute_forces(const unsigned int N,
                         const Scalar4 *d_postype,
                         Scalar4 *d_force,
-                        const cufftComplex *d_inv_fourier_mesh_x,
-                        const cufftComplex *d_inv_fourier_mesh_y,
-                        const cufftComplex *d_inv_fourier_mesh_z,
+                        const hipfftComplex *d_inv_fourier_mesh_x,
+                        const hipfftComplex *d_inv_fourier_mesh_y,
+                        const hipfftComplex *d_inv_fourier_mesh_z,
                         const uint3 grid_dim,
                         const uint3 n_ghost_cells,
                         const Scalar *d_charge,
@@ -63,6 +73,7 @@ void gpu_compute_forces(const unsigned int N,
                         const unsigned int *d_index_array,
                         const GPUPartition& gpu_partition,
                         const GPUPartition& all_gpu_partition,
+                        const Scalar *d_rho_coeff,
                         unsigned int block_size,
                         bool local_fft,
                         unsigned int inv_mesh_elements);
@@ -70,7 +81,7 @@ void gpu_compute_forces(const unsigned int N,
 void gpu_compute_pe(unsigned int n_wave_vectors,
                    Scalar *d_sum_partial,
                    Scalar *d_sum,
-                   const cufftComplex *d_fourier_mesh,
+                   const hipfftComplex *d_fourier_mesh,
                    const Scalar *d_inf_f,
                    const unsigned int block_size,
                    const uint3 mesh_dim,
@@ -97,7 +108,7 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
                                     int order,
                                     unsigned int block_size);
 
-cudaError_t gpu_fix_exclusions(Scalar4 *d_force,
+hipError_t gpu_fix_exclusions(Scalar4 *d_force,
                            Scalar *d_virial,
                            const unsigned int virial_pitch,
                            const unsigned int N,

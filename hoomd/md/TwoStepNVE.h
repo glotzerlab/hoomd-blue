@@ -13,11 +13,11 @@
     \brief Declares the TwoStepNVE class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Integrates part of the system forward in two steps in the NVE ensemble
 /*! Implements velocity-verlet NVE integration through the IntegrationMethodTwoStep interface
@@ -33,20 +33,21 @@ class PYBIND11_EXPORT TwoStepNVE : public IntegrationMethodTwoStep
                    bool skip_restart=false);
         virtual ~TwoStepNVE();
 
-        //! Sets the movement limit
-        void setLimit(Scalar limit);
+        /// Get the movement limit
+        pybind11::object getLimit();
 
-        //! Removes the limit
-        void removeLimit();
+        //! Sets the movement limit
+        void setLimit(pybind11::object limit);
+
+        /// Get zero force
+        pybind11::object getZeroForce();
 
         //! Sets the zero force option
         /*! \param zero_force Set to true to specify that the integration with a zero net force on each of the particles
                               in the group
         */
-        void setZeroForce(bool zero_force)
-            {
-            m_zero_force = zero_force;
-            }
+        void setZeroForce(pybind11::object zero_force);
+
 
         //! Performs the first step of the integration
         virtual void integrateStepOne(unsigned int timestep);

@@ -32,7 +32,8 @@ HarmonicAngleForceComputeGPU::HarmonicAngleForceComputeGPU(std::shared_ptr<Syste
     GPUArray<Scalar2> params(m_angle_data->getNTypes(), m_exec_conf);
     m_params.swap(params);
 
-    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "harmonic_angle", this->m_exec_conf));
+    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    m_tuner.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "harmonic_angle", this->m_exec_conf));
     }
 
 HarmonicAngleForceComputeGPU::~HarmonicAngleForceComputeGPU()
@@ -105,7 +106,7 @@ void HarmonicAngleForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_HarmonicAngleForceComputeGPU(py::module& m)
     {
-    py::class_<HarmonicAngleForceComputeGPU, std::shared_ptr<HarmonicAngleForceComputeGPU> >(m, "HarmonicAngleForceComputeGPU", py::base<HarmonicAngleForceCompute>())
+    py::class_<HarmonicAngleForceComputeGPU, HarmonicAngleForceCompute, std::shared_ptr<HarmonicAngleForceComputeGPU> >(m, "HarmonicAngleForceComputeGPU")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

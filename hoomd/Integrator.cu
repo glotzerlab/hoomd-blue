@@ -4,6 +4,8 @@
 
 // Maintainer: joaander
 
+
+#include <hip/hip_runtime.h>
 #include "Integrator.cuh"
 
 #include <assert.h>
@@ -116,7 +118,7 @@ __global__ void gpu_integrator_sum_net_force_kernel(Scalar4 *d_net_force,
         }
     }
 
-cudaError_t gpu_integrator_sum_net_force(Scalar4 *d_net_force,
+hipError_t gpu_integrator_sum_net_force(Scalar4 *d_net_force,
                                          Scalar *d_net_virial,
                                          const unsigned int net_virial_pitch,
                                          Scalar4 *d_net_torque,
@@ -142,7 +144,7 @@ cudaError_t gpu_integrator_sum_net_force(Scalar4 *d_net_force,
 
         if (compute_virial)
             {
-            gpu_integrator_sum_net_force_kernel<1><<< nwork/block_size+1, block_size >>>(d_net_force,
+            hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_integrator_sum_net_force_kernel<1>), dim3(nwork/block_size+1), dim3(block_size), 0, 0, d_net_force,
                                                                                               d_net_virial,
                                                                                               net_virial_pitch,
                                                                                               d_net_torque,
@@ -153,7 +155,7 @@ cudaError_t gpu_integrator_sum_net_force(Scalar4 *d_net_force,
             }
         else
             {
-            gpu_integrator_sum_net_force_kernel<0><<< nwork/block_size+1, block_size >>>(d_net_force,
+            hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_integrator_sum_net_force_kernel<0>), dim3(nwork/block_size+1), dim3(block_size), 0, 0, d_net_force,
                                                                                               d_net_virial,
                                                                                               net_virial_pitch,
                                                                                               d_net_torque,
@@ -164,5 +166,5 @@ cudaError_t gpu_integrator_sum_net_force(Scalar4 *d_net_force,
             }
         }
 
-    return cudaSuccess;
+    return hipSuccess;
     }

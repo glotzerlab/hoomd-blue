@@ -8,8 +8,8 @@
 #include "EvaluatorPairForceShiftedLJ.h"
 #include "AllDriverPotentialPairGPU.cuh"
 
-cudaError_t gpu_compute_force_shifted_lj_forces(const pair_args_t & args,
-                                                const Scalar2 *d_params)
+hipError_t gpu_compute_force_shifted_lj_forces(const pair_args_t & args,
+                                                const EvaluatorPairForceShiftedLJ::param_type *d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairForceShiftedLJ>(args,
                                                                 d_params);

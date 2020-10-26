@@ -24,7 +24,7 @@ Similar caveats apply to these methods as for the :py:mod:`.mpcd.stream` methods
        to achieve the right boundary conditions and reduce density fluctuations.
 
 The integration methods defined here are not restricted to only MPCD simulations: they can be
-used with both :py:class:`.md.integrate.mode_standard` and :py:class:`.mpcd.integrator`. For
+used with both ``md.integrate.mode_standard`` and :py:class:`.mpcd.integrator`. For
 example, the same integration methods might be used to run DPD simulations with surfaces.
 
 These bounce-back methods do not support anisotropic integration because torques are currently
@@ -44,15 +44,15 @@ class _bounce_back(hoomd.integrate._integration_method):
     """ NVE integration with bounce-back rules.
 
     Args:
-        group (:py:mod:`hoomd.group`): Group of particles on which to apply this method.
+        group (``hoomd.group``): Group of particles on which to apply this method.
 
     :py:class:`_bounce_back` is a base class integration method. It must be used with
-    :py:class:`.md.integrate.mode_standard` or :py:class:`.mpcd.integrator`.
+    ``md.integrate.mode_standard`` or :py:class:`.mpcd.integrator`.
     Deriving classes implement the specific geometry and valid parameters for those geometries.
     Currently, there is no mechanism to share geometries between multiple instances of the same
     integration method.
 
-    A :py:class:`hoomd.compute.thermo` is automatically specified and associated with *group*.
+    A :py:class:`hoomd.md.compute.ThermodynamicQuantities` is automatically specified and associated with *group*.
 
     """
     def __init__(self, group):
@@ -86,7 +86,7 @@ class _bounce_back(hoomd.integrate._integration_method):
         elif bc == "slip":
             return _mpcd.boundary.slip
         else:
-            hoomd.context.msg.error("mpcd.integrate: boundary condition " + bc + " not recognized.\n")
+            hoomd.context.current.device.cpp_msg.error("mpcd.integrate: boundary condition " + bc + " not recognized.\n")
             raise ValueError("Unrecognized streaming boundary condition")
             return None
 
@@ -94,7 +94,7 @@ class slit(_bounce_back):
     """ NVE integration with bounce-back rules in a slit channel.
 
     Args:
-        group (:py:mod:`hoomd.group`): Group of particles on which to apply this method.
+        group (``hoomd.group``): Group of particles on which to apply this method.
         H (float): channel half-width
         V (float): wall speed (default: 0)
         boundary : 'slip' or 'no_slip' boundary condition at wall (default: 'no_slip')
@@ -102,8 +102,6 @@ class slit(_bounce_back):
     This integration method applies to particles in *group* in the parallel-plate channel geometry.
     This method is the MD analog of :py:class:`.stream.slit`, which documents additional details
     about the geometry.
-
-    A :py:class:`hoomd.compute.thermo` is automatically specified and associated with *group*.
 
     Examples::
 
@@ -115,14 +113,12 @@ class slit(_bounce_back):
 
     """
     def __init__(self, group, H, V=0.0, boundary="no_slip"):
-        hoomd.util.print_status_line()
-
         # initialize base class
         _bounce_back.__init__(self,group)
         self.metadata_fields += ['H','V']
 
         # initialize the c++ class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.mode == 'gpu':
             cpp_class = _mpcd.BounceBackNVESlit
         else:
             cpp_class = _mpcd.BounceBackNVESlitGPU
@@ -153,7 +149,6 @@ class slit(_bounce_back):
             slit.set_params(H=5, V=0., boundary='no_slip')
 
         """
-        hoomd.util.print_status_line()
 
         if H is not None:
             self.H = H
@@ -171,7 +166,7 @@ class slit_pore(_bounce_back):
     """ NVE integration with bounce-back rules in a slit pore channel.
 
     Args:
-        group (:py:mod:`hoomd.group`): Group of particles on which to apply this method.
+        group (``hoomd.group``): Group of particles on which to apply this method.
         H (float): channel half-width.
         L (float): pore half-length.
         boundary : 'slip' or 'no_slip' boundary condition at wall (default: 'no_slip')
@@ -179,8 +174,6 @@ class slit_pore(_bounce_back):
     This integration method applies to particles in *group* in the parallel-plate (slit) pore geometry.
     This method is the MD analog of :py:class:`.stream.slit_pore`, which documents additional details
     about the geometry.
-
-    A :py:class:`hoomd.compute.thermo` is automatically specified and associated with *group*.
 
     Examples::
 
@@ -191,14 +184,12 @@ class slit_pore(_bounce_back):
 
     """
     def __init__(self, group, H, L, boundary="no_slip"):
-        hoomd.util.print_status_line()
-
         # initialize base class
         _bounce_back.__init__(self,group)
         self.metadata_fields += ['H','L']
 
         # initialize the c++ class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.mode == 'gpu':
             cpp_class = _mpcd.BounceBackNVESlitPore
         else:
             cpp_class = _mpcd.BounceBackNVESlitPoreGPU
@@ -229,8 +220,6 @@ class slit_pore(_bounce_back):
             slit_pore.set_params(H=5, L=4., boundary='no_slip')
 
         """
-        hoomd.util.print_status_line()
-
         if H is not None:
             self.H = H
 

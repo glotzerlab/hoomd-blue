@@ -21,17 +21,16 @@ import itertools
 params = []
 params = list(itertools.product(seed_list, phi_c_list, eta_p_r_list))
 
-context.msg.notice(1,"{} parameters\n".format(len(params)))
+context.current.device.cpp_msg.notice(1,"{} parameters\n".format(len(params)))
 
 # choose a random state point
-import random
 p = int(option.get_user()[0])
 (seed, phi_c, eta_p_r) = params[p % len(params)]
 
 # are we using update.cluster?
 use_clusters = p//len(params)
 
-context.msg.notice(1,"parameter {} seed {} phi_c {:.3f} eta_p_r {:.3f}\n".format(p,seed, phi_c, eta_p_r))
+context.current.device.cpp_msg.notice(1,"parameter {} seed {} phi_c {:.3f} eta_p_r {:.3f}\n".format(p,seed, phi_c, eta_p_r))
 # test the equation of state of spheres with penetrable depletant spheres
 # see M. Dijkstra et al. Phys. Rev. E 73, p. 41404, 2006, Fig. 2 and
 # J. Glaser et al., JCP 143 18, p. 184110, 2015.
@@ -115,14 +114,10 @@ class implicit_test (unittest.TestCase):
         self.system.particles.types.add('B')
 
     def test_measure_etap_new(self):
-        self.mc = hpmc.integrate.sphere(seed=seed,implicit=True, depletant_mode='overlap_regions')
+        self.mc = hpmc.integrate.sphere(seed=seed)
         self.mc.set_params(d=0.1,a=0.1)
-        self.mc.set_params(depletant_type='B')
         self.mc.shape_param.set('A', diameter=d_sphere)
         self.mc.shape_param.set('B', diameter=d_sphere*q)
-
-        # no depletants during tuning
-        self.mc.set_params(nR=0)
 
         self.mc_tune = hpmc.util.tune(self.mc, tunables=['d'],max_val=[d_sphere],gamma=1,target=0.2)
         for i in range(10):
@@ -133,19 +128,19 @@ class implicit_test (unittest.TestCase):
 
         # set depletant fugacity
         nR = eta_p_r/(math.pi/6.0*math.pow(d_sphere*q,3.0))
-        self.mc.set_params(nR=nR)
+        self.mc.set_fugacity('B',nR)
 
         free_volume = hpmc.compute.free_volume(mc=self.mc, seed=seed, nsample=10000, test_type='B')
-        log=analyze.log(filename=None, quantities=['hpmc_overlap_count','volume','hpmc_free_volume','hpmc_fugacity'], overwrite=True,period=1000)
+        log=analyze.log(filename=None, quantities=['hpmc_overlap_count','volume','hpmc_free_volume','hpmc_fugacity_B'], overwrite=True,period=100)
 
         eta_p_measure = []
         def log_callback(timestep):
-            v = math.pi/6.0*log.query('hpmc_free_volume')/log.query('volume')*log.query('hpmc_fugacity')
+            v = math.pi/6.0*log.query('hpmc_free_volume')/log.query('volume')*log.query('hpmc_fugacity_B')
             eta_p_measure.append(v)
             self.assertEqual(log.query('hpmc_overlap_count'),0)
 
-            # if comm.get_rank() == 0:
-            #    print('eta_p =', v);
+            if context.current.device.comm.rank == 0:
+               print('eta_p =', v);
 
         if use_clusters:
             hpmc.update.clusters(self.mc,period=1,seed=seed+1)
@@ -157,7 +152,7 @@ class implicit_test (unittest.TestCase):
         eta_p_avg = np.mean(np.array(eta_p_measure))
         i, eta_p_err = block.get_error_estimate()
 
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             print(i)
             (n, num, err, err_err) = block.get_hierarchical_errors()
 
@@ -165,7 +160,7 @@ class implicit_test (unittest.TestCase):
             for (i, num_samples, e, ee) in zip(n, num, err, err_err):
                 print('{0} {1} {2} {3}'.format(i,num_samples,e,ee))
 
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             print('avg: {:.6f} +- {:.6f}'.format(eta_p_avg, eta_p_err))
             print('tgt: {:.6f} +- {:.6f}'.format(eta_p_ref[(phi_c,eta_p_r)][0], eta_p_ref[(phi_c,eta_p_r)][1]))
 
@@ -177,9 +172,9 @@ class implicit_test (unittest.TestCase):
 
         # check against reference value within reference error + measurement error
         self.assertLessEqual(math.fabs(eta_p_avg-eta_p_ref[(phi_c,eta_p_r)][0]),ci*(eta_p_ref[(phi_c,eta_p_r)][1]+eta_p_err))
+        del self.mc
 
     def tearDown(self):
-        del self.mc
         del self.system
         context.initialize();
 

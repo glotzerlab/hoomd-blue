@@ -184,6 +184,6 @@ bool CellListStencil::shouldCompute(unsigned int timestep)
 
 void export_CellListStencil(py::module& m)
     {
-    py::class_<CellListStencil, std::shared_ptr<CellListStencil> >(m,"CellListStencil", py::base<Compute>())
+    py::class_<CellListStencil, Compute, std::shared_ptr<CellListStencil> >(m,"CellListStencil")
     .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<CellList> >());
     }

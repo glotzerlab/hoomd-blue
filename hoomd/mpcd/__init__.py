@@ -50,7 +50,7 @@ in `M. P. Howard et al. (2018) <https://doi.org/10.1016/j.cpc.2018.04.009>`_.
 MPCD is intended to be used as an add-on to the standard MD methods in
 :py:mod:`hoomd.md`. To get started, take the following steps:
 
-    1. Initialize any solute particles using standard methods (:py:mod:`hoomd.init`).
+    1. Initialize any solute particles using standard methods (`Simulation`).
     2. Initialize the MPCD solvent particles using one of the methods in
        :py:mod:`.mpcd.init`. Additional details on how to manipulate the solvent
        particle data can be found in :py:mod:`.mpcd.data`.
@@ -106,37 +106,22 @@ from hoomd.mpcd import integrate
 from hoomd.mpcd import stream
 from hoomd.mpcd import update
 
-# add MPCD article citation notice
-_citation = hoomd.cite.article(cite_key='howard2018',
-                               author=['M P Howard', 'A Z Panagiotopoulos', 'A Nikoubashman'],
-                               title='Efficient mesoscale hydrodynamics: Multiparticle collision dynamics with massively parallel GPU acceleration',
-                               journal='Computer Physics Communications',
-                               volume=230,
-                               pages='10--20',
-                               month='September',
-                               year='2018',
-                               doi='10.1016/j.cpc.2018.04.009',
-                               feature='MPCD')
-if hoomd.context.bib is None:
-    hoomd.cite._extra_default_entries.append(_citation)
-else:
-    hoomd.context.bib.add(_citation)
 
 class integrator(hoomd.integrate._integrator):
     """ MPCD integrator
 
     Args:
-        dt (float): Each time step of the simulation :py:func:`hoomd.run()` will
+        dt (float): Each time step of the simulation ```hoomd.run``` will
                     advance the real time of the system forward by *dt* (in time units).
         aniso (bool): Whether to integrate rotational degrees of freedom (bool),
                       default None (autodetect).
 
     The MPCD integrator enables the MPCD algorithm concurrently with standard
-    MD :py:mod:`~hoomd.md.integrate` methods. An integrator must be created
+    MD :py:mod:`~hoomd.md.methods` methods. An integrator must be created
     in order for :py:mod:`~hoomd.mpcd.stream` and :py:mod:`~hoomd.mpcd.collide`
     methods to take effect. Embedded MD particles require the creation of an
     appropriate integration method. Typically, this will just be
-    :py:class:`~hoomd.md.integrate.nve`.
+    :py:class:`~hoomd.md.methods.NVE`.
 
     In MPCD simulations, *dt* defines the amount of time that the system is advanced
     forward every time step. MPCD streaming and collision steps can be defined to
@@ -163,7 +148,7 @@ class integrator(hoomd.integrate._integrator):
     def __init__(self, dt, aniso=None):
         # check system is initialized
         if hoomd.context.current.mpcd is None:
-            hoomd.context.msg.error('mpcd.integrate: an MPCD system must be initialized before the integrator\n')
+            hoomd.context.current.device.cpp_msg.error('mpcd.integrate: an MPCD system must be initialized before the integrator\n')
             raise RuntimeError('MPCD system not initialized')
 
         hoomd.integrate._integrator.__init__(self)
@@ -180,9 +165,7 @@ class integrator(hoomd.integrate._integrator):
         hoomd.context.current.system.setIntegrator(self.cpp_integrator)
 
         if self.aniso is not None:
-            hoomd.util.quiet_status()
             self.set_params(aniso=aniso)
-            hoomd.util.unquiet_status()
 
     _aniso_modes = {
         None: _md.IntegratorAnisotropicMode.Automatic,
@@ -202,7 +185,6 @@ class integrator(hoomd.integrate._integrator):
             integrator.set_params(dt=0.005, aniso=False)
 
         """
-        hoomd.util.print_status_line()
         self.check_initialization()
 
         # change the parameters
@@ -214,7 +196,7 @@ class integrator(hoomd.integrate._integrator):
             if aniso in self._aniso_modes:
                 anisoMode = self._aniso_modes[aniso]
             else:
-                hoomd.context.msg.error("mpcd.integrate: unknown anisotropic mode {}.\n".format(aniso))
+                hoomd.context.current.device.cpp_msg.error("mpcd.integrate: unknown anisotropic mode {}.\n".format(aniso))
                 raise RuntimeError("Error setting anisotropic integration mode.")
             self.aniso = aniso
             self.cpp_integrator.setAnisotropicMode(anisoMode)
@@ -237,24 +219,24 @@ class integrator(hoomd.integrate._integrator):
             if stream._filler is not None:
                 self.cpp_integrator.addFiller(stream._filler)
         else:
-            hoomd.context.msg.warning("Running mpcd without a streaming method!\n")
+            hoomd.context.current.device.cpp_msg.warning("Running mpcd without a streaming method!\n")
             self.cpp_integrator.removeStreamingMethod()
 
         collide = hoomd.context.current.mpcd._collide
         if collide is not None:
             if stream is not None and (collide.period < stream.period or collide.period % stream.period != 0):
-                hoomd.context.msg.error('mpcd.integrate: collision period must be multiple of integration period\n')
+                hoomd.context.current.device.cpp_msg.error('mpcd.integrate: collision period must be multiple of integration period\n')
                 raise ValueError('Collision period must be multiple of integration period')
 
             self.cpp_integrator.setCollisionMethod(collide._cpp)
         else:
-            hoomd.context.msg.warning("Running mpcd without a collision method!\n")
+            hoomd.context.current.device.cpp_msg.warning("Running mpcd without a collision method!\n")
             self.cpp_integrator.removeCollisionMethod()
 
         sorter = hoomd.context.current.mpcd.sorter
         if sorter is not None and sorter.enabled:
             if collide is not None and (sorter.period < collide.period or sorter.period % collide.period != 0):
-                hoomd.context.msg.error('mpcd.integrate: sorting period should be a multiple of collision period\n')
+                hoomd.context.current.device.cpp_msg.error('mpcd.integrate: sorting period should be a multiple of collision period\n')
                 raise ValueError('Sorting period must be multiple of collision period')
             self.cpp_integrator.setSorter(sorter._cpp)
         else:

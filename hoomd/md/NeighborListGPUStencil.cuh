@@ -7,7 +7,7 @@
 #ifndef __NEIGHBORLOSTGPUSTENCIL_CUH__
 #define __NEIGHBORLOSTGPUSTENCIL_CUH__
 
-#include <cuda_runtime.h>
+#include <hip/hip_runtime.h>
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
@@ -17,12 +17,17 @@
     \brief Declares GPU kernel code for neighbor list generation on the GPU
 */
 
+#if defined(__HIP_PLATFORM_NVCC__)
 #define WARP_SIZE 32
+#elif defined(__HIP_PLATFORM_HCC__)
+#define WARP_SIZE 64
+#endif
+
 const unsigned int min_threads_per_particle=1;
 const unsigned int max_threads_per_particle=WARP_SIZE;
 
 //! Kernel driver for gpu_compute_nlist_multi_binned_kernel()
-cudaError_t gpu_compute_nlist_stencil(unsigned int *d_nlist,
+hipError_t gpu_compute_nlist_stencil(unsigned int *d_nlist,
                                       unsigned int *d_n_neigh,
                                       Scalar4 *d_last_updated_pos,
                                       unsigned int *d_conditions,
@@ -52,7 +57,7 @@ cudaError_t gpu_compute_nlist_stencil(unsigned int *d_nlist,
                                       const unsigned int block_size);
 
 //! Kernel driver for filling the particle types for sorting
-cudaError_t gpu_compute_nlist_stencil_fill_types(unsigned int *d_pids,
+hipError_t gpu_compute_nlist_stencil_fill_types(unsigned int *d_pids,
                                                  unsigned int *d_types,
                                                  const Scalar4 *d_pos,
                                                  const unsigned int N);

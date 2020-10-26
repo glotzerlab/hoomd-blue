@@ -42,7 +42,7 @@ void mpcd::SRDCollisionMethodGPU::drawRotationVectors(unsigned int timestep)
                                     m_cl->getGlobalCellIndexer(),
                                     timestep,
                                     m_seed,
-                                    m_T->getValue(timestep),
+                                    (*m_T)(timestep),
                                     m_sysdef->getNDimensions(),
                                     m_tuner_rotvec->getParam());
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
@@ -134,8 +134,8 @@ void mpcd::SRDCollisionMethodGPU::rotate(unsigned int timestep)
 void mpcd::detail::export_SRDCollisionMethodGPU(pybind11::module& m)
     {
     namespace py = pybind11;
-    py::class_<mpcd::SRDCollisionMethodGPU, std::shared_ptr<mpcd::SRDCollisionMethodGPU> >
-        (m, "SRDCollisionMethodGPU", py::base<mpcd::SRDCollisionMethod>())
+    py::class_<mpcd::SRDCollisionMethodGPU, mpcd::SRDCollisionMethod, std::shared_ptr<mpcd::SRDCollisionMethodGPU> >
+        (m, "SRDCollisionMethodGPU")
         .def(py::init<std::shared_ptr<mpcd::SystemData>,
                       unsigned int,
                       unsigned int,

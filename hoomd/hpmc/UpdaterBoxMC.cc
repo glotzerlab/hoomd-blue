@@ -132,7 +132,7 @@ Scalar UpdaterBoxMC::getLogValue(const std::string& quantity, unsigned int times
         }
     else if (quantity == "hpmc_boxmc_betaP")
         {
-        return m_P->getValue(timestep);
+        return (*m_P)(timestep);
         }
     else
         {
@@ -480,7 +480,7 @@ void UpdaterBoxMC::update_L(unsigned int timestep, hoomd::RandomGenerator& rng)
     {
     if (m_prof) m_prof->push("UpdaterBoxMC: update_L");
     // Get updater parameters for current timestep
-    Scalar P = m_P->getValue(timestep);
+    Scalar P = (*m_P)(timestep);
 
     // Get current particle data and box lattice parameters
     assert(m_pdata);
@@ -570,7 +570,7 @@ void UpdaterBoxMC::update_lnV(unsigned int timestep, hoomd::RandomGenerator& rng
     {
     if (m_prof) m_prof->push("UpdaterBoxMC: update_lnV");
     // Get updater parameters for current timestep
-    Scalar P = m_P->getValue(timestep);
+    Scalar P = (*m_P)(timestep);
 
     // Get current particle data and box lattice parameters
     assert(m_pdata);
@@ -654,7 +654,7 @@ void UpdaterBoxMC::update_V(unsigned int timestep, hoomd::RandomGenerator& rng)
     {
     if (m_prof) m_prof->push("UpdaterBoxMC: update_V");
     // Get updater parameters for current timestep
-    Scalar P = m_P->getValue(timestep);
+    Scalar P = (*m_P)(timestep);
 
     // Get current particle data and box lattice parameters
     assert(m_pdata);
@@ -879,7 +879,7 @@ hpmc_boxmc_counters_t UpdaterBoxMC::getCounters(unsigned int mode)
 
 void export_UpdaterBoxMC(py::module& m)
     {
-   py::class_< UpdaterBoxMC, std::shared_ptr< UpdaterBoxMC > >(m, "UpdaterBoxMC", py::base<Updater>())
+   py::class_< UpdaterBoxMC, Updater, std::shared_ptr< UpdaterBoxMC > >(m, "UpdaterBoxMC")
     .def(py::init< std::shared_ptr<SystemDefinition>,
                          std::shared_ptr<IntegratorHPMC>,
                          std::shared_ptr<Variant>,
@@ -890,7 +890,6 @@ void export_UpdaterBoxMC(py::module& m)
     .def("length", &UpdaterBoxMC::length)
     .def("shear", &UpdaterBoxMC::shear)
     .def("aspect", &UpdaterBoxMC::aspect)
-    .def("printStats", &UpdaterBoxMC::printStats)
     .def("resetStats", &UpdaterBoxMC::resetStats)
     .def("getP", &UpdaterBoxMC::getP)
     .def("setP", &UpdaterBoxMC::setP)

@@ -7,7 +7,7 @@
 #ifndef __POTENTIAL_SPECIAL_PAIR_GPU_H__
 #define __POTENTIAL_SPECIAL_PAIR_GPU_H__
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #include "PotentialSpecialPair.h"
 //! Use GPU functions for bonds
@@ -19,7 +19,7 @@
     \note This header cannot be compiled by nvcc
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -31,7 +31,7 @@
 
     \sa export_PotentialSpecialPairGPU()
 */
-template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
+template< class evaluator, hipError_t gpu_cgbf(const bond_args_t& bond_args,
                                                 const typename evaluator::param_type *d_params,
                                                 unsigned int *d_flags) >
 class PotentialSpecialPairGPU : public PotentialSpecialPair<evaluator>
@@ -62,7 +62,7 @@ class PotentialSpecialPairGPU : public PotentialSpecialPair<evaluator>
         virtual void computeForces(unsigned int timestep);
     };
 
-template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
+template< class evaluator, hipError_t gpu_cgbf(const bond_args_t& bond_args,
                                                 const typename evaluator::param_type *d_params,
                                                 unsigned int *d_flags) >
 PotentialSpecialPairGPU< evaluator, gpu_cgbf >::PotentialSpecialPairGPU(std::shared_ptr<SystemDefinition> sysdef,
@@ -88,10 +88,11 @@ PotentialSpecialPairGPU< evaluator, gpu_cgbf >::PotentialSpecialPairGPU(std::sha
     ArrayHandle<unsigned int> h_flags(m_flags,access_location::host, access_mode::overwrite);
     h_flags.data[0] = 0;
 
-    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "special_pair_"+evaluator::getName(), this->m_exec_conf));
+    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
+    m_tuner.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "special_pair_"+evaluator::getName(), this->m_exec_conf));
     }
 
-template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
+template< class evaluator, hipError_t gpu_cgbf(const bond_args_t& bond_args,
                                                 const typename evaluator::param_type *d_params,
                                                 unsigned int *d_flags) >
 void PotentialSpecialPairGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timestep)
@@ -170,10 +171,10 @@ void PotentialSpecialPairGPU< evaluator, gpu_cgbf >::computeForces(unsigned int 
 */
 template < class T, class Base > void export_PotentialSpecialPairGPU(pybind11::module& m, const std::string& name)
     {
-     pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base<Base>())
+     pybind11::class_<T, Base, std::shared_ptr<T> >(m, name.c_str())
             .def(pybind11::init< std::shared_ptr<SystemDefinition>, const std::string& >())
             ;
     }
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // __POTENTIAL_SPECIAL_PAIR_GPU_H__

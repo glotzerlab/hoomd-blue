@@ -11,7 +11,7 @@
 #ifndef __EVALUATOR_WALLS_H__
 #define __EVALUATOR_WALLS_H__
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <string>
 #endif
 
@@ -21,7 +21,7 @@
 #include "WallData.h"
 
 #undef DEVICE
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -116,7 +116,7 @@ class EvaluatorWalls
             if (evaluated)
                 {
                 // correctly result in a 0 force in this case
-                #ifdef NVCC
+                #ifdef __HIPCC__
                 if (!isfinite(force_divr))
                 #else
                 if (!std::isfinite(force_divr))
@@ -152,7 +152,7 @@ class EvaluatorWalls
                 pair_eng = pair_eng + force_divr * m_params.rextrap * r; // removing half since the other "particle" won't be represented * Scalar(0.5);
                 force_divr *= m_params.rextrap / r;
                 // correctly result in a 0 force in this case
-                #ifdef NVCC
+                #ifdef __HIPCC__
                 if (!isfinite(force_divr))
                 #else
                 if (!std::isfinite(force_divr))
@@ -301,7 +301,7 @@ class EvaluatorWalls
             virial[5] = F.z*m_pos.z;
             }
 
-        #ifndef NVCC
+        #ifndef __HIPCC__
         //! Get the name of this potential
         /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
             via analyze.log.

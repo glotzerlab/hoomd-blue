@@ -4,7 +4,7 @@
 #ifndef __PAIR_EVALUATOR_MOLIERE__
 #define __PAIR_EVALUATOR_MOLIERE__
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <string>
 #endif
 
@@ -15,7 +15,7 @@
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -38,7 +38,38 @@ class EvaluatorPairMoliere
 {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar2 param_type;
+        struct param_type
+            {
+            Scalar qi;
+            Scalar qj;
+            Scalar aF;
+
+            #ifdef ENABLE_HIP
+            // set CUDA memory hints
+            void set_memory_hint() const {}
+            #endif
+
+            #ifndef __HIPCC__
+            param_type() : qi(0), qj(0), aF(0) {}
+
+            param_type(pybind11::dict v)
+                {
+                qi = v["qi"].cast<Scalar>();
+                qj = v["qj"].cast<Scalar>();
+                aF = v["aF"].cast<Scalar>();
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+                v["qi"] = qi;
+                v["qj"] = qj;
+                v["aF"] = aF;
+                return v;
+                }
+            #endif
+            }
+            __attribute__((aligned(16)));
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles.
@@ -46,7 +77,7 @@ class EvaluatorPairMoliere
             \param _params Per type-pair parameters of this potential
         */
         DEVICE EvaluatorPairMoliere(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), Zsq(_params.x), aF(_params.y)
+            : rsq(_rsq), rcutsq(_rcutsq), Zsq(_params.qi * _params.qj), aF(_params.aF)
             {
             }
 
@@ -110,7 +141,7 @@ class EvaluatorPairMoliere
                 return false;
         }
 
-        #ifndef NVCC
+        #ifndef __HIPCC__
         //! Get the name of this potential
         /*! \returns The potential name.  Must be short and all lowercase, as this is the name
             energies will be logged as via analyze.log.

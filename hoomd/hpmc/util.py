@@ -14,7 +14,6 @@ except ImportError:
 
 import hoomd
 import sys
-import colorsys as cs
 import re
 
 #replace range with xrange for python3 compatibility
@@ -52,17 +51,6 @@ def quatRot(q, v):
     vnew = np.empty((3,), dtype=v.dtype)
     vnew = v + 2*np.cross(r, np.cross(r,v) + w*v)
     return vnew
-
-# Construct a box matrix from a hoomd data.boxdim object
-# (requires numpy)
-# \param box hoomd boxdim object
-# \returns numpy matrix that transforms lattice coordinates to Cartesian coordinates
-def matFromBox(box):
-    Lx, Ly, Lz = box.Lx, box.Ly, box.Lz
-    xy = box.xy
-    xz = box.xz
-    yz = box.yz
-    return np.matrix([[Lx, xy*Ly, xz*Lz], [0, Ly, yz*Lz], [0, 0, Lz]])
 
 # Given a set of lattice vectors, rotate to produce an upper triangular right-handed box
 # as a hoomd boxdim object and a rotation quaternion that brings particles in the original coordinate system to the new one.
@@ -420,12 +408,12 @@ class compress:
         #calculate initial packing fraction
         volume = Lx*Ly if dim==2 else Lx*Ly*Lz
         last_eta = tot_pvol / volume
-        hoomd.context.msg.notice(5,'Starting eta = {}. '.format(last_eta))
-        hoomd.context.msg.notice(5,'Starting volume = {}. '.format(volume))
-        hoomd.context.msg.notice(5,'overlaps={}.\n'.format(self.mc.count_overlaps()))
+        hoomd.context.current.device.cpp_msg.notice(5,'Starting eta = {}. '.format(last_eta))
+        hoomd.context.current.device.cpp_msg.notice(5,'Starting volume = {}. '.format(volume))
+        hoomd.context.current.device.cpp_msg.notice(5,'overlaps={}.\n'.format(self.mc.count_overlaps()))
 
         for i in range(num_comp_cycles):
-            hoomd.context.msg.notice(5,'Compressor sweep {}. '.format(i))
+            hoomd.context.current.device.cpp_msg.notice(5,'Compressor sweep {}. '.format(i))
 
             # if not first sweep, relax the system
             if i != 0:
@@ -440,16 +428,14 @@ class compress:
 
             noverlaps = self.mc.count_overlaps()
             if noverlaps != 0:
-                hoomd.util.quiet_status()
-                hoomd.context.msg.warning("Tuner cannot run properly if overlaps exist in the system. Expanding box...\n")
+                hoomd.context.current.device.cpp_msg.warning("Tuner cannot run properly if overlaps exist in the system. Expanding box...\n")
                 while noverlaps != 0:
-                    hoomd.context.msg.notice(5,"{} overlaps at step {}... ".format(noverlaps, hoomd.get_step()))
+                    hoomd.context.current.device.cpp_msg.notice(5,"{} overlaps at step {}... ".format(noverlaps, hoomd.get_step()))
                     Lx *= 1.0+Lscale
                     Ly *= 1.0+Lscale
                     Lz *= 1.0+Lscale
                     hoomd.update.box_resize(Lx = Lx, Ly = Ly, Lz = Lz, period=None)
                     noverlaps = self.mc.count_overlaps()
-                hoomd.util.unquiet_status()
 
             #randomize the initial configuration
             #initial box, no shear
@@ -474,12 +460,12 @@ class compress:
                     tuner.update()
 
             #calculate packing fraction for zeroth iteration
-            hoomd.context.msg.notice(5,"Checking eta at step {0}. ".format(hoomd.get_step()))
+            hoomd.context.current.device.cpp_msg.notice(5,"Checking eta at step {0}. ".format(hoomd.get_step()))
             L = hoomd.context.current.system_definition.getParticleData().getGlobalBox().getL()
             volume = L.x * L.y if dim==2 else L.x*L.y*L.z
             eta = tot_pvol / volume
-            hoomd.context.msg.notice(5,'eta = {}, '.format(eta))
-            hoomd.context.msg.notice(5,"volume: {0}\n".format(volume))
+            hoomd.context.current.device.cpp_msg.notice(5,'eta = {}, '.format(eta))
+            hoomd.context.current.device.cpp_msg.notice(5,"volume: {0}\n".format(volume))
 
             step = hoomd.get_step()
             last_step = step
@@ -490,28 +476,27 @@ class compress:
             while (eta - last_eta) > pf_tol:
                 hoomd.run(refine_steps, quiet=quiet)
                 # check eta
-                hoomd.context.msg.notice(5,"Checking eta at step {0}. ".format(hoomd.get_step()))
+                hoomd.context.current.device.cpp_msg.notice(5,"Checking eta at step {0}. ".format(hoomd.get_step()))
                 #calculate the new packing fraction
                 L = hoomd.context.current.system_definition.getParticleData().getGlobalBox().getL()
                 volume = L.x * L.y if dim==2 else L.x*L.y*L.z
                 last_eta = eta
                 eta = tot_pvol / volume
-                hoomd.context.msg.notice(5,"eta: {0}, ".format(eta))
-                hoomd.context.msg.notice(5,"volume: {0}\n".format(volume))
+                hoomd.context.current.device.cpp_msg.notice(5,"eta: {0}, ".format(eta))
+                hoomd.context.current.device.cpp_msg.notice(5,"volume: {0}\n".format(volume))
                 last_step = step
                 step = hoomd.get_step()
                 # Check if we've gone too far
                 if j == max_eta_checks:
-                    hoomd.context.msg.notice(5,"Eta did not converge in {0} iterations. Continuing to next cycle anyway.\n".format(max_eta_checks))
+                    hoomd.context.current.device.cpp_msg.notice(5,"Eta did not converge in {0} iterations. Continuing to next cycle anyway.\n".format(max_eta_checks))
                 j += 1
 
-            hoomd.context.msg.notice(5,"Step: {step}, Packing fraction: {eta}, ".format(step=last_step, eta=last_eta))
-            hoomd.context.msg.notice(5,'overlaps={}\n'.format(self.mc.count_overlaps()))
+            hoomd.context.current.device.cpp_msg.notice(5,"Step: {step}, Packing fraction: {eta}, ".format(step=last_step, eta=last_eta))
+            hoomd.context.current.device.cpp_msg.notice(5,'overlaps={}\n'.format(self.mc.count_overlaps()))
             self.eta_list.append(last_eta)
 
             #take a snapshot of the system
             snap = snapshot()
-            self.mc.setup_pos_writer(snap)
             self.snap_list.append(snap)
 
         self.mclog.disable()
@@ -519,10 +504,7 @@ class compress:
 
 
 ## snapshot is a python struct for now, will eventually be replaced with by the hoomd snapshot
-# For now, this will be used by the compressor. snapshots can be written to file to_pos method
-# In order to write out, the snapshot must be given particle data via the integrator's
-# setup_pos_writer() method or all particles will be output as spheres.
-# (requires numpy)
+# For now, this will be used by the compressor.
 #
 # \par Quick Example
 # \code
@@ -531,8 +513,6 @@ class compress:
 # mc.shape_param[name].set(...);
 # run(...);
 # mysnap = hpmc.util.snapshot();
-# mc.setup_pos_writer(mysnap, colors=dict(A='ff5984ff'));
-# mysnap.to_pos(filename);
 # \endcode
 class snapshot:
     ## constructor
@@ -557,50 +537,6 @@ class snapshot:
         self.type_list = []
         for i in range(0,self.ntypes):
             self.type_list.append(system.sysdef.getParticleData().getNameByType(i));
-
-        # set up default shape definitions in case set_def is not called
-        self.tdef = dict()
-        colors=[ 'ff'+''.join([str(c) for c in (256*np.array(cs.hsv_to_rgb(h,0.7,0.7)))]) for h in np.linspace(0.0,0.8,self.ntypes)]
-        for i in range(len(self.type_list)):
-            t = self.type_list[i]
-            # to avoid injavis errors due to presence of orientations, use spoly3d instead of sphere
-            self.tdef[t] = 'spoly3d 1 1 0 0 0 {}'.format(colors[i])
-
-    ## \internal Set up particle type definition strings for pos file output
-    # This method is intended only to be called by an integrator instance as a result of
-    # a call to the integrator's mc.setup_pos_writer() method.
-    # \param ptype particle type name (string)
-    # \param shapedef pos file particle macro for shape parameters through color
-    # \returns None
-    def set_def(self, ptype, shapedef):
-        self.tdef[ptype] = shapedef
-
-    ## write to a pos file
-    # \param filename string name of output file in injavis/incsim pos format
-    # \returns None
-    def to_pos(self,filename):
-        ofile = open(filename, 'w')
-        Lx, Ly, Lz, xy, xz, yz = self.Lx, self.Ly, self.Lz, self.xy, self.xz, self.yz
-        bmatrix = [Lx, Ly*xy, Lz*xz, 0.0, Ly, Lz*yz, 0.0, 0.0, Lz]
-        bmstring = ('boxMatrix ' + 9*'{} ' + '\n').format(*bmatrix)
-        ofile.write(bmstring)
-
-        for p in self.tdef:
-            ofile.write('def ' + p + ' "' + self.tdef[p] + '"\n')
-
-        for r,q,t in zip(self.positions, self.orientations, self.ptypes):
-            outline = t + (3*' {}').format(*r) + (4*' {}').format(*q) + '\n'
-            ofile.write(outline)
-
-        ofile.write('eof\n')
-        ofile.close()
-
-    ## write to a zip file
-    # Not yet implemented
-    # \param filename string name of output file in injavis/incsim pos format
-    # \returns None
-    def to_zip(self,filename):
-        raise NotImplementedError("snapshot.to_zip not yet implemented.")
 
 class tune(object):
     R""" Tune mc parameters.
@@ -630,7 +566,7 @@ class tune(object):
     Example::
 
         mc = hpmc.integrate.convex_polyhedron()
-        mc.set_params(d=0.01, a=0.01, move_ratio=0.5)
+        mc.set_params(d=0.01, a=0.01, translation_move_probability=0.5)
         tuner = hpmc.util.tune(mc, tunables=['d', 'a'], target=0.2, gamma=0.5)
         for i in range(10):
             run(1e4)
@@ -673,14 +609,12 @@ class tune(object):
     * maximum (:py:class:`float`): maximum value the tuner may set for the tunable parameter
 
     The default ``tunable_map`` defines the :py:obj:`callable` for 'set' to call
-    :py:meth:`hoomd.hpmc.integrate.mode_hpmc.set_params` with ``tunable={type: newval}``
+    ``hoomd.hpmc.integrate.mode_hpmc.set_params`` with ``tunable={type: newval}``
     instead of ``tunable=newval`` if the ``type`` argument is given when creating
     the ``tune`` object.
 
     """
     def __init__(self, obj=None, tunables=[], max_val=[], target=0.2, max_scale=2.0, gamma=2.0, type=None, tunable_map=None, *args, **kwargs):
-        hoomd.util.quiet_status()
-
         # The *args and **kwargs parameters allow derived tuners to be sloppy
         # with forwarding initialization, but that is not a good excuse and
         # makes it harder to catch usage errors. They should probably be deprecated...
@@ -745,13 +679,9 @@ class tune(object):
             else:
                 raise ValueError( "Unknown tunable {0}".format(item))
 
-        hoomd.util.unquiet_status()
-
     def update(self):
         R""" Calculate and set tunable parameters using statistics from the run just completed.
         """
-        hoomd.util.quiet_status()
-
         # Note: we are not doing any checking on the quality of our retrieved statistics
         newquantities = dict()
         # For each of the tunables we are watching, compute the new value we're setting that tunable to
@@ -770,7 +700,7 @@ class tune(object):
             # find new value
             if (oldval == 0):
                 newval = 1e-5
-                hoomd.context.msg.warning("Oops. Somehow {0} went to zero at previous update. Resetting to {1}.\n".format(tunable, newval))
+                hoomd.context.current.device.cpp_msg.warning("Oops. Somehow {0} went to zero at previous update. Resetting to {1}.\n".format(tunable, newval))
             else:
                 newval = float(scale * oldval)
                 # perform sanity checking on newval
@@ -780,7 +710,6 @@ class tune(object):
                     newval = max_val
 
             self.tunables[tunable]['set'](float(newval))
-        hoomd.util.unquiet_status();
 
 class tune_npt(tune):
     R""" Tune the HPMC :py:class:`hoomd.hpmc.update.boxmc` using :py:class:`.tune`.
@@ -811,7 +740,7 @@ class tune_npt(tune):
     Example::
 
         mc = hpmc.integrate.convex_polyhedron()
-        mc.set_params(d=0.01, a=0.01, move_ratio=0.5)
+        mc.set_params(d=0.01, a=0.01, translation_move_probability=0.5)
         updater = hpmc.update.boxmc(mc, betaP=10)
         updater.length(0.1, weight=1)
         tuner = hpmc.util.tune_npt(updater, tunables=['dLx', 'dLy', 'dLz'], target=0.3, gamma=1.0)
@@ -821,7 +750,6 @@ class tune_npt(tune):
 
     """
     def __init__(self, obj=None, tunables=[], max_val=[], target=0.2, max_scale=2.0, gamma=2.0, type=None, tunable_map=None, *args, **kwargs):
-        hoomd.util.quiet_status()
         tunable_map = {
                     'dLx': {
                           'get': lambda: obj.length()['delta'][0],
@@ -872,5 +800,4 @@ class tune_npt(tune):
                           'set': lambda x: obj.shear(delta=(obj.shear()['delta'][0], obj.shear()['delta'][1], x))
                           },
                     }
-        hoomd.util.unquiet_status()
         super(tune_npt,self).__init__(obj, tunables, max_val, target, max_scale, gamma, type, tunable_map, *args, **kwargs)

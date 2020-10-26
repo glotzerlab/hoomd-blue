@@ -90,12 +90,12 @@ EvalFactory::EvalFactory(const std::string& llvm_ir)
 
     #if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR >= 5
     m_eval = (EvalFnPtr)(long unsigned int)(cantFail(eval.getAddress()));
-    m_alpha = (float *)(cantFail(alpha.getAddress()));
-    m_alpha_union = (float *)(cantFail(alpha_union.getAddress()));
+    m_alpha = (float **)(cantFail(alpha.getAddress()));
+    m_alpha_union = (float **)(cantFail(alpha_union.getAddress()));
     #else
     m_eval = (EvalFnPtr) eval.getAddress();
-    m_alpha = (float *) alpha.getAddress();
-    m_alpha_union = (float *) alpha_union.getAddress();
+    m_alpha = (float **) alpha.getAddress();
+    m_alpha_union = (float **) alpha_union.getAddress();
     #endif
 
     llvm_err.flush();

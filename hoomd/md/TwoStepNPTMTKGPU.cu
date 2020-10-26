@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -105,7 +106,7 @@ __global__ void gpu_npt_mtk_step_one_kernel(Scalar4 *d_pos,
 
     This is just a kernel driver for gpu_npt_mtk_step_one_kernel(). See it for more details.
 */
-cudaError_t gpu_npt_mtk_step_one(Scalar4 *d_pos,
+hipError_t gpu_npt_mtk_step_one(Scalar4 *d_pos,
                              Scalar4 *d_vel,
                              const Scalar3 *d_accel,
                              unsigned int *d_group_members,
@@ -121,8 +122,8 @@ cudaError_t gpu_npt_mtk_step_one(Scalar4 *d_pos,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void *)gpu_npt_mtk_step_one_kernel);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void *)gpu_npt_mtk_step_one_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
@@ -140,7 +141,7 @@ cudaError_t gpu_npt_mtk_step_one(Scalar4 *d_pos,
         dim3 threads(run_block_size, 1, 1);
 
         // run the kernel
-        gpu_npt_mtk_step_one_kernel<<< grid, threads >>>(d_pos,
+        hipLaunchKernelGGL((gpu_npt_mtk_step_one_kernel), dim3(grid), dim3(threads ), 0, 0, d_pos,
                                                      d_vel,
                                                      d_accel,
                                                      d_group_members,
@@ -169,7 +170,7 @@ cudaError_t gpu_npt_mtk_step_one(Scalar4 *d_pos,
                                                      rescale_all);
         }
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 /*! \param N number of particles in the system
@@ -217,7 +218,7 @@ void gpu_npt_mtk_wrap_kernel(const unsigned int nwork,
 
     This is just a kernel driver for gpu_npt_mtk_wrap_kernel(). See it for more details.
 */
-cudaError_t gpu_npt_mtk_wrap(const GPUPartition& gpu_partition,
+hipError_t gpu_npt_mtk_wrap(const GPUPartition& gpu_partition,
                              Scalar4 *d_pos,
                              int3 *d_image,
                              const BoxDim& box,
@@ -226,8 +227,8 @@ cudaError_t gpu_npt_mtk_wrap(const GPUPartition& gpu_partition,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void *)gpu_npt_mtk_wrap_kernel);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void *)gpu_npt_mtk_wrap_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
@@ -245,10 +246,10 @@ cudaError_t gpu_npt_mtk_wrap(const GPUPartition& gpu_partition,
         dim3 threads(run_block_size, 1, 1);
 
         // run the kernel
-        gpu_npt_mtk_wrap_kernel<<< grid, threads >>>(nwork, range.first, d_pos, d_image, box);
+        hipLaunchKernelGGL((gpu_npt_mtk_wrap_kernel), dim3(grid), dim3(threads ), 0, 0, nwork, range.first, d_pos, d_image, box);
         }
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 //! Kernel to propagate the positions and velocities, second half of NPT update
@@ -316,7 +317,7 @@ __global__ void gpu_npt_mtk_step_two_kernel(Scalar4 *d_vel,
 
     This is just a kernel driver for gpu_npt_mtk_step_kernel(). See it for more details.
 */
-cudaError_t gpu_npt_mtk_step_two(Scalar4 *d_vel,
+hipError_t gpu_npt_mtk_step_two(Scalar4 *d_vel,
                              Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              const GPUPartition& gpu_partition,
@@ -329,8 +330,8 @@ cudaError_t gpu_npt_mtk_step_two(Scalar4 *d_vel,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void *)gpu_npt_mtk_step_two_kernel);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void *)gpu_npt_mtk_step_two_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
@@ -348,7 +349,7 @@ cudaError_t gpu_npt_mtk_step_two(Scalar4 *d_vel,
         dim3 threads(run_block_size, 1, 1);
 
         // run the kernel
-        gpu_npt_mtk_step_two_kernel<<< grid, threads >>>(d_vel,
+        hipLaunchKernelGGL((gpu_npt_mtk_step_two_kernel), dim3(grid), dim3(threads ), 0, 0, d_vel,
                                                          d_accel,
                                                          d_net_force,
                                                          d_group_members,
@@ -364,7 +365,7 @@ cudaError_t gpu_npt_mtk_step_two(Scalar4 *d_vel,
                                                          exp_thermo_fac);
         }
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 __global__ void gpu_npt_mtk_rescale_kernel(const unsigned int nwork,
@@ -406,8 +407,8 @@ void gpu_npt_mtk_rescale(const GPUPartition& gpu_partition,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void *)gpu_npt_mtk_rescale_kernel);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void *)gpu_npt_mtk_rescale_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
@@ -424,7 +425,7 @@ void gpu_npt_mtk_rescale(const GPUPartition& gpu_partition,
         dim3 grid( (nwork/run_block_size) + 1, 1, 1);
         dim3 threads(run_block_size, 1, 1);
 
-        gpu_npt_mtk_rescale_kernel<<<grid, threads>>> (nwork,
+        hipLaunchKernelGGL((gpu_npt_mtk_rescale_kernel), dim3(grid), dim3(threads), 0, 0, nwork,
             range.first,
             d_postype,
             mat_exp_r_xx,

@@ -83,7 +83,7 @@ void mpcd::ATCollisionMethod::drawVelocities(unsigned int timestep)
         }
 
     // random velocities are drawn for each particle and stored into the "alternate" arrays
-    const Scalar T = m_T->getValue(timestep);
+    const Scalar T = (*m_T)(timestep);
     for (unsigned int idx=0; idx < N_tot; ++idx)
         {
         unsigned int pidx;
@@ -189,8 +189,8 @@ void mpcd::ATCollisionMethod::applyVelocities()
 void mpcd::detail::export_ATCollisionMethod(pybind11::module& m)
     {
     namespace py = pybind11;
-    py::class_<mpcd::ATCollisionMethod, std::shared_ptr<mpcd::ATCollisionMethod> >
-        (m, "ATCollisionMethod", py::base<mpcd::CollisionMethod>())
+    py::class_<mpcd::ATCollisionMethod, mpcd::CollisionMethod, std::shared_ptr<mpcd::ATCollisionMethod> >
+        (m, "ATCollisionMethod")
         .def(py::init<std::shared_ptr<mpcd::SystemData>,
                       unsigned int,
                       unsigned int,

@@ -85,7 +85,7 @@ void mpcd::SlitGeometryFiller::drawParticles(unsigned int timestep)
     Scalar3 lo = box.getLo();
     Scalar3 hi = box.getHi();
 
-    const Scalar vel_factor = fast::sqrt(m_T->getValue(timestep) / m_mpcd_pdata->getMass());
+    const Scalar vel_factor = fast::sqrt((*m_T)(timestep) / m_mpcd_pdata->getMass());
 
     // index to start filling from
     const unsigned int first_idx = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual() - m_N_fill;
@@ -128,8 +128,8 @@ void mpcd::SlitGeometryFiller::drawParticles(unsigned int timestep)
 void mpcd::detail::export_SlitGeometryFiller(pybind11::module& m)
     {
     namespace py = pybind11;
-    py::class_<mpcd::SlitGeometryFiller, std::shared_ptr<mpcd::SlitGeometryFiller>>
-        (m, "SlitGeometryFiller", py::base<mpcd::VirtualParticleFiller>())
+    py::class_<mpcd::SlitGeometryFiller, mpcd::VirtualParticleFiller, std::shared_ptr<mpcd::SlitGeometryFiller>>
+        (m, "SlitGeometryFiller")
         .def(py::init<std::shared_ptr<mpcd::SystemData>,
                       Scalar,
                       unsigned int,

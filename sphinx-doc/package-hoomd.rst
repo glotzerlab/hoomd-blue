@@ -3,38 +3,45 @@ hoomd
 
 .. rubric:: Overview
 
+.. py:currentmodule:: hoomd
+
 .. autosummary::
     :nosignatures:
 
-    hoomd.get_step
-    hoomd.run
-    hoomd.run_upto
+    Box
+    Operations
+    Simulation
+    Snapshot
+    State
 
 .. rubric:: Details
 
 .. automodule:: hoomd
     :synopsis: HOOMD-blue main package.
-    :members:
+    :undoc-members:
+    :imported-members:
+    :members: Simulation,
+              State,
+              Snapshot,
+              Operations,
+              Box
 
 .. rubric:: Modules
 
 .. toctree::
    :maxdepth: 3
 
-   module-hoomd-analyze
-   module-hoomd-benchmark
-   module-hoomd-cite
-   module-hoomd-comm
-   module-hoomd-compute
-   module-hoomd-context
+   module-hoomd-communicator
+   module-hoomd-custom
    module-hoomd-data
-   module-hoomd-dump
-   module-hoomd-group
-   module-hoomd-init
-   module-hoomd-lattice
-   module-hoomd-meta
-   module-hoomd-option
+   module-hoomd-device
+   module-hoomd-filter
+   module-hoomd-integrate
+   module-hoomd-logging
+   module-hoomd-operation
+   module-hoomd-triggers
+   module-hoomd-tune
    module-hoomd-update
-   module-hoomd-util
    module-hoomd-variant
-   module-hoomd-hdf5
+   module-hoomd-version
+   module-hoomd-write

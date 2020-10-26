@@ -3,8 +3,6 @@
 
 #include "ComputeFreeVolumeGPU.cuh"
 #include "IntegratorHPMCMonoGPU.cuh"
-#include "IntegratorHPMCMonoImplicitGPU.cuh"
-#include "IntegratorHPMCMonoImplicitNewGPU.cuh"
 
 #include "ShapeFacetedEllipsoid.h"
 
@@ -13,21 +11,21 @@ namespace hpmc
 
 namespace detail
 {
-
 //! HPMC kernels for ShapeFacetedEllipsoid
-template cudaError_t gpu_hpmc_free_volume<ShapeFacetedEllipsoid>(const hpmc_free_volume_args_t &args,
+template hipError_t gpu_hpmc_free_volume<ShapeFacetedEllipsoid>(const hpmc_free_volume_args_t &args,
                                                        const typename ShapeFacetedEllipsoid::param_type *d_params);
-template cudaError_t gpu_hpmc_update<ShapeFacetedEllipsoid>(const hpmc_args_t& args,
-                                                  const typename ShapeFacetedEllipsoid::param_type *d_params);
-template cudaError_t gpu_hpmc_implicit_count_overlaps<ShapeFacetedEllipsoid>(const hpmc_implicit_args_t& args,
-                                                  const typename ShapeFacetedEllipsoid::param_type *d_params);
-template cudaError_t gpu_hpmc_implicit_accept_reject<ShapeFacetedEllipsoid>(const hpmc_implicit_args_t& args,
-                                                  const typename ShapeFacetedEllipsoid::param_type *d_params);
-template cudaError_t gpu_hpmc_insert_depletants_queue<ShapeFacetedEllipsoid>(const hpmc_implicit_args_new_t& args,
-                                                  const typename ShapeFacetedEllipsoid::param_type *d_params);
-template cudaError_t gpu_hpmc_implicit_accept_reject_new<ShapeFacetedEllipsoid>(const hpmc_implicit_args_new_t& args,
-                                                  const typename ShapeFacetedEllipsoid::param_type *d_params);
+}
 
-}; // end namespace detail
+namespace gpu
+{
+//! Driver for kernel::hpmc_gen_moves()
+template void hpmc_gen_moves<ShapeFacetedEllipsoid>(const hpmc_args_t& args, const ShapeFacetedEllipsoid::param_type *params);
+//! Driver for kernel::hpmc_narrow_phase()
+template void hpmc_narrow_phase<ShapeFacetedEllipsoid>(const hpmc_args_t& args, const ShapeFacetedEllipsoid::param_type *params);
+//! Driver for kernel::hpmc_insert_depletants()
+template void hpmc_insert_depletants<ShapeFacetedEllipsoid>(const hpmc_args_t& args, const hpmc_implicit_args_t& implicit_args, const ShapeFacetedEllipsoid::param_type *params);
+//! Driver for kernel::hpmc_update_pdata()
+template void hpmc_update_pdata<ShapeFacetedEllipsoid>(const hpmc_update_args_t& args, const ShapeFacetedEllipsoid::param_type *params);
+}
 
 } // end namespace hpmc

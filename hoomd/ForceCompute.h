@@ -3,6 +3,7 @@
 
 
 // Maintainer: joaander
+
 #include "Compute.h"
 #include "Index1D.h"
 #include "ParticleGroup.h"
@@ -10,7 +11,7 @@
 #include "GlobalArray.h"
 #include "GlobalArray.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "ParticleData.cuh"
 #endif
 
@@ -25,11 +26,11 @@
     \brief Declares the ForceCompute class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __FORCECOMPUTE_H__
 #define __FORCECOMPUTE_H__
@@ -88,6 +89,30 @@ class PYBIND11_EXPORT ForceCompute : public Compute
 
         //! Sum all virial terms for a group
         std::vector<Scalar> calcVirialGroup(std::shared_ptr<ParticleGroup> group);
+
+        /** Get per particle energies
+
+            @returns a Numpy array with per particle energies in increasing tag order.
+        */
+        pybind11::object getEnergiesPython();
+
+        /** Get per particle forces
+
+            @returns a Numpy array with per particle forces in increasing tag order.
+        */
+        pybind11::object getForcesPython();
+
+        /** Get per particle torques
+
+            @returns a Numpy array with per particle torques in increasing tag order.
+        */
+        pybind11::object getTorquesPython();
+
+        /** Get per particle virials
+
+            @returns a Numpy array with per particle virials in increasing tag order.
+        */
+        pybind11::object getVirialsPython();
 
         //! Easy access to the torque on a single particle
         Scalar4 getTorque(unsigned int tag);
@@ -189,6 +214,9 @@ class PYBIND11_EXPORT ForceCompute : public Compute
         Scalar m_external_virial[6]; //!< Stores external contribution to virial
         Scalar m_external_energy;    //!< Stores external contribution to potential energy
 
+        /// Store the particle data flags used during the last computation
+        PDataFlags m_computed_flags;
+
         //! Actually perform the computation of the forces
         /*! This is pure virtual here. Sub-classes must implement this function. It will be called by
             the base class compute() when the forces need to be computed.
@@ -198,7 +226,7 @@ class PYBIND11_EXPORT ForceCompute : public Compute
     };
 
 //! Exports the ForceCompute class to python
-#ifndef NVCC
+#ifndef __HIPCC__
 void export_ForceCompute(pybind11::module& m);
 #endif
 

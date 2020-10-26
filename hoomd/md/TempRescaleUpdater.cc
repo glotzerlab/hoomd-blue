@@ -60,7 +60,7 @@ void TempRescaleUpdater::update(unsigned int timestep)
     else
         {
         // calculate a fraction to scale the momenta by
-        Scalar fraction = sqrt(m_tset->getValue(timestep) / cur_temp);
+        Scalar fraction = sqrt((*m_tset)(timestep) / cur_temp);
 
         // scale the free particle velocities
         assert(m_pdata);
@@ -88,7 +88,7 @@ void TempRescaleUpdater::update(unsigned int timestep)
         else
             {
             // calculate a fraction to scale the momenta by
-            Scalar fraction = sqrt(m_tset->getValue(timestep) / cur_temp);
+            Scalar fraction = sqrt((*m_tset)(timestep) / cur_temp);
 
             // scale the free particle velocities
             assert(m_pdata);
@@ -119,7 +119,7 @@ void TempRescaleUpdater::setT(std::shared_ptr<Variant> tset)
 
 void export_TempRescaleUpdater(py::module& m)
     {
-    py::class_<TempRescaleUpdater, std::shared_ptr<TempRescaleUpdater> >(m, "TempRescaleUpdater", py::base<Updater>())
+    py::class_<TempRescaleUpdater, Updater, std::shared_ptr<TempRescaleUpdater> >(m, "TempRescaleUpdater")
     .def(py::init< std::shared_ptr<SystemDefinition>,
                                  std::shared_ptr<ComputeThermo>,
                                  std::shared_ptr<Variant> >())

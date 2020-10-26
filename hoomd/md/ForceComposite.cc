@@ -738,7 +738,7 @@ CommFlags ForceComposite::getRequestedCommFlags(unsigned int timestep)
 
     // only communicate net virial if needed
     PDataFlags pdata_flags = this->m_pdata->getFlags();
-    if (pdata_flags[pdata_flag::isotropic_virial] || pdata_flags[pdata_flag::pressure_tensor])
+    if (pdata_flags[pdata_flag::pressure_tensor])
         {
         flags[comm_flag::net_virial] = 1;
         }
@@ -797,7 +797,7 @@ void ForceComposite::computeForces(unsigned int timestep)
 
     PDataFlags flags = m_pdata->getFlags();
     bool compute_virial = false;
-    if (flags[pdata_flag::isotropic_virial] || flags[pdata_flag::pressure_tensor])
+    if (flags[pdata_flag::pressure_tensor])
         {
         compute_virial = true;
         }
@@ -1033,7 +1033,7 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep)
 
 void export_ForceComposite(py::module& m)
     {
-    py::class_< ForceComposite, std::shared_ptr<ForceComposite> >(m, "ForceComposite", py::base<MolecularForceCompute>())
+    py::class_< ForceComposite, MolecularForceCompute, std::shared_ptr<ForceComposite> >(m, "ForceComposite")
         .def(py::init< std::shared_ptr<SystemDefinition> >())
         .def("setParam", &ForceComposite::setParam)
         .def("validateRigidBodies", &ForceComposite::validateRigidBodies)

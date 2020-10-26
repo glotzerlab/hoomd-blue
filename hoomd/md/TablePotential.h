@@ -15,11 +15,11 @@
     \brief Declares the TablePotential class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __TABLEPOTENTIAL_H__
 #define __TABLEPOTENTIAL_H__
@@ -84,6 +84,15 @@ class PYBIND11_EXPORT TablePotential : public ForceCompute
         //! Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
+        virtual void notifyDetach()
+            {
+            if (m_attached)
+                {
+                m_nlist->removeRCutMatrix(m_r_cut_nlist);
+                }
+            m_attached = false;
+            }
+
     protected:
         std::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
         unsigned int m_table_width;                 //!< Width of the tables in memory
@@ -91,6 +100,15 @@ class PYBIND11_EXPORT TablePotential : public ForceCompute
         GlobalArray<Scalar2> m_tables;                  //!< Stored V and F tables
         GlobalArray<Scalar4> m_params;                 //!< Parameters stored for each table
         std::string m_log_name;                     //!< Cached log name
+
+        /// Indexer into the tables
+        Index2DUpperTriangular m_type_pair_idx;
+
+        /// Track whether we have attached to the Simulation object
+        bool m_attached = true;
+
+        /// r_cut (not squared) given to the neighbor list
+        std::shared_ptr<GlobalArray<Scalar>> m_r_cut_nlist;
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);

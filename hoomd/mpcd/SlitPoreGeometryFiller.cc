@@ -145,7 +145,7 @@ void mpcd::SlitPoreGeometryFiller::drawParticles(unsigned int timestep)
     ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_vel(m_mpcd_pdata->getVelocities(), access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_tag(m_mpcd_pdata->getTags(), access_location::host, access_mode::readwrite);
-    const Scalar vel_factor = fast::sqrt(m_T->getValue(timestep) / m_mpcd_pdata->getMass());
+    const Scalar vel_factor = fast::sqrt((*m_T)(timestep) / m_mpcd_pdata->getMass());
 
     const BoxDim& box = m_pdata->getBox();
     Scalar3 lo = box.getLo();
@@ -202,8 +202,8 @@ void mpcd::SlitPoreGeometryFiller::drawParticles(unsigned int timestep)
 void mpcd::detail::export_SlitPoreGeometryFiller(pybind11::module& m)
     {
     namespace py = pybind11;
-    py::class_<mpcd::SlitPoreGeometryFiller, std::shared_ptr<mpcd::SlitPoreGeometryFiller>>
-        (m, "SlitPoreGeometryFiller", py::base<mpcd::VirtualParticleFiller>())
+    py::class_<mpcd::SlitPoreGeometryFiller, mpcd::VirtualParticleFiller, std::shared_ptr<mpcd::SlitPoreGeometryFiller>>
+        (m, "SlitPoreGeometryFiller")
         .def(py::init<std::shared_ptr<mpcd::SystemData>,
                       Scalar,
                       unsigned int,

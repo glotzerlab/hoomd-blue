@@ -54,7 +54,7 @@ void TwoStepBerendsenGPU::integrateStepOne(unsigned int timestep)
     Scalar curr_T = m_thermo->getTranslationalTemperature();
 
     // compute the value of lambda for the current timestep
-    Scalar lambda = sqrt(Scalar(1.0) + m_deltaT / m_tau * (m_T->getValue(timestep) / curr_T - Scalar(1.0)));
+    Scalar lambda = sqrt(Scalar(1.0) + m_deltaT / m_tau * ((*m_T)(timestep) / curr_T - Scalar(1.0)));
 
     // access the particle data arrays for writing on the GPU
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
@@ -120,7 +120,7 @@ void TwoStepBerendsenGPU::integrateStepTwo(unsigned int timestep)
 
 void export_BerendsenGPU(py::module& m)
     {
-    py::class_<TwoStepBerendsenGPU, std::shared_ptr<TwoStepBerendsenGPU> >(m, "TwoStepBerendsenGPU", py::base<TwoStepBerendsen>())
+    py::class_<TwoStepBerendsenGPU, TwoStepBerendsen, std::shared_ptr<TwoStepBerendsenGPU> >(m, "TwoStepBerendsenGPU")
       .def(py::init< std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
                             std::shared_ptr<ComputeThermo>,

@@ -7,6 +7,8 @@
 #include "bare_fft.h"
 #include <stdlib.h>
 
+#pragma GCC visibility push(default)
+
 typedef cpxfloat cpx_t;
 typedef bare_fft_plan plan_t;
 
@@ -49,4 +51,7 @@ void dfft_local_1dfft(
     cpx_t *out,
     plan_t p,
     int dir);
+
+#pragma GCC visibility pop
+
 #endif

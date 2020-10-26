@@ -24,11 +24,9 @@ namespace getardump{
 
     // Wrapper function
     shared_ptr<SystemSnapshot> takeSystemSnapshot(
-        shared_ptr<SystemDefinition> sysdef, bool particles, bool bonds,
-        bool angles, bool dihedrals, bool impropers, bool pairs, bool rigid, bool integrator)
+        shared_ptr<SystemDefinition> sysdef)
         {
-        return sysdef->takeSnapshot<Scalar>(particles, bonds, angles, dihedrals,
-            impropers, rigid, integrator, pairs);
+        return sysdef->takeSnapshot<Scalar>();
         }
 
 // greatest common denominator, using Euclid's algorithm
@@ -327,7 +325,7 @@ namespace getardump{
                 m_archive.reset(new GTAR(filename, openMode));
             }
 
-        m_systemSnap = takeSystemSnapshot(m_sysdef, true, true, true, true, true, true, true, true);
+        m_systemSnap = takeSystemSnapshot(m_sysdef);
         }
 
     GetarDumpWriter::~GetarDumpWriter()
@@ -357,11 +355,7 @@ namespace getardump{
             }
 
         if(neededSnapshots[NeedSystem])
-            m_systemSnap = takeSystemSnapshot(m_sysdef,
-                neededSnapshots[NeedPData], neededSnapshots[NeedBond],
-                neededSnapshots[NeedAngle], neededSnapshots[NeedDihedral],
-                neededSnapshots[NeedImproper], neededSnapshots[NeedPair], neededSnapshots[NeedRigid],
-                neededSnapshots[NeedIntegrator]);
+            m_systemSnap = takeSystemSnapshot(m_sysdef);
 
 #ifdef ENABLE_MPI
         // only open archive on root processor
@@ -901,7 +895,7 @@ namespace getardump{
 
     void export_GetarDumpWriter(py::module& m)
         {
-        py::class_<GetarDumpWriter, std::shared_ptr<GetarDumpWriter> >(m,"GetarDumpWriter", py::base<Analyzer>())
+        py::class_<GetarDumpWriter, Analyzer, std::shared_ptr<GetarDumpWriter> >(m,"GetarDumpWriter")
             .def(py::init< std::shared_ptr<SystemDefinition>, std::string, getardump::GetarDumpMode, unsigned int>())
             .def("close", &GetarDumpWriter::close)
             .def("getPeriod", &GetarDumpWriter::getPeriod)

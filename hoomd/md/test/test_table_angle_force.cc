@@ -11,7 +11,7 @@
 
 #include "hoomd/md/TableAngleForceCompute.h"
 #include "hoomd/ConstForceCompute.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/TableAngleForceComputeGPU.h"
 #endif
 
@@ -262,7 +262,7 @@ std::shared_ptr<TableAngleForceCompute> base_class_tf_creator(std::shared_ptr<Sy
     return std::shared_ptr<TableAngleForceCompute>(new TableAngleForceCompute(sysdef,width));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! AngleForceCompute creator for bond_force_basic_tests()
 std::shared_ptr<TableAngleForceCompute> gpu_tf_creator(std::shared_ptr<SystemDefinition> sysdef,unsigned int width)
     {
@@ -278,7 +278,7 @@ UP_TEST( TableAngleForceCompute_basic )
     angle_force_basic_tests(tf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! test case for angle forces on the GPU
 UP_TEST( TableAngleForceComputeGPU_basic )
     {

@@ -1,22 +1,15 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
+#pragma once
+
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/BoxDim.h"
 #include "HPMCPrecisionSetup.h"
 #include "hoomd/VectorMath.h"
 #include "ShapeSphere.h"    //< For the base template of test_overlap
 
-#ifndef __SHAPE_ELLIPSOID_H__
-#define __SHAPE_ELLIPSOID_H__
-
-/*! \file ShapeEllipsoid.h
-    \brief Defines the ellipsoid shape
-*/
-
-// need to declare these class methods with __device__ qualifiers when building in nvcc
-// DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -39,77 +32,95 @@
 namespace hpmc
 {
 
-//! Ellipsoid shape template
-/*! ShapeEllipsoid implements IntegratorHPMC's shape protocol.
+/** Ellipsoid parameters
 
-    The parameter defining an ellipsoid is a OverlapReal4. First three components list the major axis in that direction.
-    The last component (w) is a ignore flag for overlaps. If w!=0, for both particles in overlap check, then overlaps
-    between those particles will be ignored.
-
-    \ingroup shape
+    Define an ellipsoid shape by the three principal semi-axes.
 */
-struct ell_params : param_base
+struct EllipsoidParams : ShapeParams
     {
-    OverlapReal x;                      //!< x semiaxis of the ellipsoid
-    OverlapReal y;                      //!< y semiaxis of the ellipsoid
-    OverlapReal z;                      //!< z semiaxis of the ellipsoid
-    unsigned int ignore;                //!< Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
-                                        //   First bit is ignore overlaps, Second bit is ignore statistics
+    /// Principle semi-axis of the ellipsoid in the x-direction
+    OverlapReal x;
 
-    #ifdef ENABLE_CUDA
-    //! Attach managed memory to CUDA stream
-    void attach_to_stream(cudaStream_t stream) const
+    /// Principle semi-axis of the ellipsoid in the y-direction
+    OverlapReal y;
+
+    /// Principle semi-axis of the ellipsoid in the z-direction
+    OverlapReal z;
+
+    /// True when move statistics should not be counted
+    unsigned int ignore;
+
+    #ifdef ENABLE_HIP
+    /// Set CUDA memory hints
+    void set_memory_hint() const
         {
-        // default implementation does nothing
+        }
+    #endif
+
+    #ifndef __HIPCC__
+    /// Default constructor
+    EllipsoidParams() { }
+
+    /// Construct from a Python dictionary
+    EllipsoidParams(pybind11::dict v, bool managed=false)
+        {
+        ignore = v["ignore_statistics"].cast<unsigned int>();
+        x = v["a"].cast<OverlapReal>();
+        y = v["b"].cast<OverlapReal>();
+        z = v["c"].cast<OverlapReal>();
+        }
+
+    /// Convert parameters to a python dictionary
+    pybind11::dict asDict()
+        {
+        pybind11::dict v;
+        v["a"] = x;
+        v["b"] = y;
+        v["c"] = z;
+        v["ignore_statistics"] = ignore;
+        return v;
         }
     #endif
     } __attribute__((aligned(32)));
 
+
+/** Ellipsoid Polygon shape
+
+    Implement the HPMC shape interface for ellipsoids.
+*/
 struct ShapeEllipsoid
     {
-    //! Define the parameter type
-    typedef ell_params param_type;
+    /// Define the parameter type
+    typedef EllipsoidParams param_type;
 
-    //! Initialize a polygon
+    /// Construct a shape at a given orientation
     DEVICE ShapeEllipsoid(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), axes(_params)
         {
         }
 
-    //! Does this shape have an orientation
-    DEVICE bool hasOrientation() const { return !(axes.x==axes.y&&axes.x==axes.z); }
+    /// Check if the shape may be rotated
+    DEVICE bool hasOrientation() const { return !(axes.x == axes.y && axes.x == axes.z); }
 
-    //!Ignore flag for acceptance statistics
+    /// Check if this shape should be ignored in the move statistics
     DEVICE bool ignoreStatistics() const { return axes.ignore; }
 
-    //! Get the circumsphere diameter
+    /// Get the circumsphere diameter of the shape
     DEVICE OverlapReal getCircumsphereDiameter() const
         {
         // return the maximum of the 3 axes
         return OverlapReal(2)*detail::max(axes.x, detail::max(axes.y, axes.z));
         }
 
-    //! Get the in-sphere radius
+    /// Get the in-sphere radius of the shape
     DEVICE OverlapReal getInsphereRadius() const
         {
         // not implemented
         return OverlapReal(0.0);
         }
 
-    #ifndef NVCC
-    std::string getShapeSpec() const
-        {
-        std::ostringstream shapedef;
-        shapedef << "{\"type\": \"Ellipsoid\", \"a\": " << axes.x <<
-                    ", \"b\": " << axes.y <<
-                    ", \"c\": " << axes.z <<
-                    "}";
-        return shapedef.str();
-        }
-    #endif
-
-    //! Support function of the shape (in local coordinates), used in getAABB
-    /*! \param n Vector to query support function (must be normalized)
+    /** Support function of the shape (in local coordinates), used in getAABB
+        @param n Vector to query support function (must be normalized)
     */
     DEVICE vec3<Scalar> sfunc(vec3<Scalar> n) const
         {
@@ -118,7 +129,14 @@ struct ShapeEllipsoid
         return numerator / fast::sqrt(dot(dvec, dvec));
         }
 
-    //! Return the bounding box of the shape in world coordinates
+    /// Return a tight fitting OBB around the shape
+    DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
+        {
+        // just use the AABB for now
+        return detail::OBB(getAABB(pos));
+        }
+
+    /// Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         OverlapReal max_axis = detail::max(axes.x, detail::max(axes.y, axes.z));
@@ -144,35 +162,40 @@ struct ShapeEllipsoid
         return detail::AABB(pos, max_axis);
         }
 
-    //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
+    /** Returns true if this shape splits the overlap check over several threads of a warp using
+        threadIdx.x
+    */
     HOSTDEVICE static bool isParallel() { return false; }
 
-    quat<Scalar> orientation;    //!< Orientation of the polygon
+    /// Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    HOSTDEVICE static bool supportsSweepRadius()
+        {
+        return false;
+        }
 
-    ell_params axes;     //!< Radii of major axesI
+    /// Orientation of the shape
+    quat<Scalar> orientation;
+
+    /// Shape parameters
+    const EllipsoidParams& axes;
     };
 
 namespace detail
 {
 
-//! Compute a matrix representation of the ellipsoid
-/*! \param M output matrix
-    \param pos Position of the ellipsoid
-    \param orientation Orientation of the ellipsoid
-    \param axes Major axes of the ellipsoid
+/** Compute a matrix representation of the ellipsoid
+    @param M output matrix
+    @param pos Position of the ellipsoid
+    @param orientation Orientation of the ellipsoid
+    @param axes Major axes of the ellipsoid
 
-    \pre M has 10 elements
-
-    \ingroup overlap
+    @pre M has 10 elements
 */
 DEVICE inline void compute_ellipsoid_matrix(OverlapReal *M,
                                             const vec3<OverlapReal>& pos,
                                             const quat<OverlapReal>& orientation,
-                                            const ell_params& axes)
+                                            const EllipsoidParams& axes)
     {
-    // This code is copied from incsim. TODO there may be licensing issues with including this, but since we aren't
-    // planning on releasing hpmc any time soon it doesn't matter
-
     // calculate rotation matrix
     rotmat3<OverlapReal> R(orientation);
 
@@ -214,17 +237,13 @@ DEVICE inline void compute_ellipsoid_matrix(OverlapReal *M,
                                pos.z * (M5x2 + OverlapReal(2.0) * M3x0);
     }
 
-//! Checks for overlap between two ellipsoids
-/*! \param M1 Matrix representing ellipsoid 1 in the check
-    \param M2 Matrix representing ellipsoid 2 in the check
-    \returns true when the two ellipsoids overlap
+/** Checks for overlap between two ellipsoids
 
-    \pre Both M1 and M2 are 10 elements
+    @param M1 Matrix representing ellipsoid 1 in the check
+    @param M2 Matrix representing ellipsoid 2 in the check
+    @returns true when the two ellipsoids overlap
 
-    This code is copied from incsim. TODO there may be licensing issues with including this, but since we aren't
-    planning on releasing hpmc any time soon it doesn't matter
-
-    \ingroup overlap
+    @pre Both M1 and M2 are 10 elements
 */
 DEVICE inline int test_overlap_ellipsoids(OverlapReal *M1, OverlapReal *M2)
     {
@@ -402,40 +421,22 @@ DEVICE inline int test_overlap_ellipsoids(OverlapReal *M1, OverlapReal *M2)
 
 }; // end namespace detail
 
-//! Check if circumspheres overlap
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shape
-    \param b second shape
-    \returns true if the circumspheres of both shapes overlap
+/** Ellipsoid overlap test
 
-    \ingroup shape
-*/
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeEllipsoid& a,
-    const ShapeEllipsoid &b)
-    {
-    //otherwise actually check circumspheres for earl exit
-    vec3<OverlapReal> dr(r_ab);
-
-    OverlapReal rsq = dot(dr,dr);
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    return (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-    }
-
-//! Ellipsoid overlap test
-/*!
-    \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a Shape a
-    \param b Shape b
-    \param err in/out variable incremented when error conditions occur in the overlap test
-    \returns true if the two particles overlap
-
-    \ingroup shape
+    @param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
+    @param a Shape a
+    @param b Shape b
+    @param err in/out variable incremented when error conditions occur in the overlap test
+    @param sweep_radius Additional sphere radius to sweep the shapes with
+    @returns true if the two particles overlap
 */
 template <>
 DEVICE inline bool test_overlap<ShapeEllipsoid,ShapeEllipsoid>(const vec3<Scalar>& r_ab,
                                                                const ShapeEllipsoid& a,
                                                                const ShapeEllipsoid& b,
-                                                               unsigned int& err)
+                                                               unsigned int& err,
+                                                               Scalar sweep_radius_a,
+                                                               Scalar sweep_radius_b)
     {
 
     // matrix representations of the two ellipsoids
@@ -461,8 +462,20 @@ DEVICE inline bool test_overlap<ShapeEllipsoid,ShapeEllipsoid>(const vec3<Scalar
     return ret_val == ELLIPSOID_OVERLAP_TRUE;
     }
 
+#ifndef __HIPCC__
+template<>
+inline std::string getShapeSpec(const ShapeEllipsoid& ellipsoid)
+    {
+    std::ostringstream shapedef;
+    shapedef << "{\"type\": \"Ellipsoid\", \"a\": " << ellipsoid.axes.x <<
+                ", \"b\": " << ellipsoid.axes.y <<
+                ", \"c\": " << ellipsoid.axes.z <<
+                "}";
+    return shapedef.str();
+    }
+#endif
+
 }; // end namespace hpmc
 
 #undef DEVICE
 #undef HOSTDEVICE
-#endif //__SHAPE_ELLIPSOID_H__

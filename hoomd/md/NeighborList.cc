@@ -49,7 +49,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     m_last_updated_tstep = 0;
     m_last_checked_tstep = 0;
     m_last_check_result = false;
-    m_every = 0;
+    m_rebuild_check_delay = 0;
     m_exclusions_set = false;
 
     m_need_reallocate_exlist = false;
@@ -63,7 +63,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     m_r_cut.swap(r_cut);
     TAG_ALLOCATION(m_r_cut);
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         cudaMemAdvise(m_r_cut.get(), m_r_cut.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
@@ -76,7 +76,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     m_rcut_max.swap(rcut_max);
     TAG_ALLOCATION(m_rcut_max);
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         // store in host memory for faster access from CPU
@@ -90,16 +90,13 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     m_r_listsq.swap(r_listsq);
     TAG_ALLOCATION(m_r_listsq);
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         cudaMemAdvise(m_r_listsq.get(), m_r_listsq.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
         CHECK_CUDA_ERROR();
         }
     #endif
-
-    // default initialization of the rcut for all pairs
-    setRCut(_r_cut, r_buff);
 
     // allocate the number of neighbors (per particle)
     GlobalArray<unsigned int> n_neigh(m_pdata->getMaxN(), m_exec_conf);
@@ -130,7 +127,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
             }
         }
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         cudaMemAdvise(m_Nmax.get(), m_Nmax.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetReadMostly, 0);
@@ -143,7 +140,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     m_conditions.swap(conditions);
     TAG_ALLOCATION(m_conditions);
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         // store in host memory for faster access from CPU
@@ -207,7 +204,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     for (unsigned int i = 0; i < m_update_periods.size(); i++)
         m_update_periods[i] = 0;
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         m_last_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
     #endif
@@ -242,7 +239,7 @@ void NeighborList::reallocateTypes()
     m_typpair_idx = Index2D(m_pdata->getNTypes());
     m_r_cut.resize(m_typpair_idx.getNumElements());
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         cudaMemAdvise(m_r_cut.get(), m_r_cut.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
@@ -252,7 +249,7 @@ void NeighborList::reallocateTypes()
 
     m_rcut_max.resize(m_pdata->getNTypes());
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         // store in host memory for faster access from CPU
@@ -276,7 +273,7 @@ void NeighborList::reallocateTypes()
 
     m_conditions.resize(m_pdata->getNTypes());
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         // store in host memory for faster access from CPU
@@ -287,7 +284,7 @@ void NeighborList::reallocateTypes()
 
     resetConditions();
 
-    m_rcut_signal.emit();
+    notifyRCutMatrixChange();
     forceUpdate();
     }
 
@@ -385,10 +382,10 @@ double NeighborList::benchmark(unsigned int num_iters)
     compute(0);
     buildNlist(0);
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     if(m_exec_conf->isCUDAEnabled())
         {
-        cudaThreadSynchronize();
+        hipDeviceSynchronize();
         CHECK_CUDA_ERROR();
         }
 #endif
@@ -398,61 +395,14 @@ double NeighborList::benchmark(unsigned int num_iters)
     for (unsigned int i = 0; i < num_iters; i++)
         buildNlist(0);
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     if(m_exec_conf->isCUDAEnabled())
-        cudaThreadSynchronize();
+        hipDeviceSynchronize();
 #endif
     uint64_t total_time_ns = t.getTime() - start_time;
 
     // convert the run time to milliseconds
     return double(total_time_ns) / 1e6 / double(num_iters);
-    }
-
-/*!
- * \param r_cut The global cutoff for all pairs
- * \param r_buff The buffer distance for all pairs
- * \note Changing the cutoff radius does NOT immediately update the neighborlist.
- *       These changes will take effect before a compute is called.
- */
-void NeighborList::setRCut(Scalar r_cut, Scalar r_buff)
-    {
-
-    // loop on all pairs to set the same r_cut
-    for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
-        {
-        for (unsigned int j=i; j < m_pdata->getNTypes(); ++j)
-            {
-            setRCutPair(i,j,r_cut);
-            }
-        }
-
-    setRBuff(r_buff);
-    }
-
-/*!
- * \param typ1 Particle type 1
- * \param typ2 Particle type 2
- * \param r_cut Cutoff radius between particles of types 1 and 2
- * \note Changing the cutoff radius does NOT immediately update the neighborlist.
-         The new cutoff will take effect when compute is called for the next timestep.
-*/
-void NeighborList::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut)
-    {
-    if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
-        {
-        this->m_exec_conf->msg->error() << "nlist: Trying to set rcut for a non existent type! "
-                  << typ1 << "," << typ2 << std::endl;
-        throw std::runtime_error("Error changing NeighborList parameters");
-        }
-
-    // stash the potential rcuts, r_list will be computed on next forced update
-    ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::readwrite);
-    h_r_cut.data[m_typpair_idx(typ1, typ2)] = r_cut;
-    h_r_cut.data[m_typpair_idx(typ2, typ1)] = r_cut;
-
-    // signal the change in rcut
-    m_rcut_signal.emit();
-    forceUpdate();
     }
 
 /*! \param r_buff New buffer radius to set
@@ -467,20 +417,53 @@ void NeighborList::setRBuff(Scalar r_buff)
         m_exec_conf->msg->error() << "nlist: Requested buffer radius is less than zero" << endl;
         throw runtime_error("Error changing NeighborList parameters");
         }
-    m_rcut_signal.emit();
+    notifyRCutMatrixChange();
     forceUpdate();
     }
 
 void NeighborList::updateRList()
     {
-    // only need a read on the real cutoff
-    ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::read);
+    // overwrite the new r_cut matrix
+    ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::overwrite);
 
-    // now we need to read and write on the r_list
+    // first: loop over the consumer r_cut matrices and take their max in h_r_cut
+    for (unsigned int matrix = 0; matrix < m_consumer_r_cut.size(); matrix++)
+        {
+        ArrayHandle<Scalar> h_consumer_r_cut(*m_consumer_r_cut[matrix],
+                                             access_location::host,
+                                             access_mode::read);
+
+        if (m_consumer_r_cut[matrix]->getNumElements() != m_r_cut.getNumElements())
+            {
+            throw std::invalid_argument("given r_cut_matrix is not the right size");
+            }
+
+        if (matrix == 0)
+            {
+            // copy the first matrix as a starting point
+            memcpy(h_r_cut.data, h_consumer_r_cut.data, sizeof(Scalar)*m_r_cut.getNumElements());
+            }
+        else
+            {
+            // take the maximum
+            for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
+                {
+                for (unsigned int j=0; i < m_pdata->getNTypes(); ++i)
+                    {
+                    h_r_cut.data[m_typpair_idx(i,j)] = std::max(
+                        h_r_cut.data[m_typpair_idx(i,j)],
+                        h_consumer_r_cut.data[m_typpair_idx(i,j)]);
+                    }
+                }
+            }
+        }
+
+    // now, update the r_list which includes r_buff we need to read and write on the r_list
     ArrayHandle<Scalar> h_r_listsq(m_r_listsq, access_location::host, access_mode::overwrite);
 
     // update the maximum cutoff of all those set so far
     ArrayHandle<Scalar> h_rcut_max(m_rcut_max, access_location::host, access_mode::readwrite);
+
     Scalar r_cut_max = 0.0f;
     for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
         {
@@ -687,6 +670,71 @@ unsigned int NeighborList::getNumExclusions(unsigned int size)
     return count;
     }
 
+void NeighborList::setExclusions(pybind11::list exclusions)
+    {
+    clearExclusions();
+    setFilterBody(false);
+    m_exclusions = set<std::string>();
+    for (auto exclusion : exclusions)
+        {
+        setSingleExclusion(exclusion.cast<std::string>());
+        }
+    }
+
+void NeighborList::setSingleExclusion(std::string exclusion)
+    {
+    if (exclusion == "bond")
+        {
+        addExclusionsFromBonds();
+        m_exclusions.insert("bond");
+        }
+    else if (exclusion == "special_pair")
+        {
+        addExclusionsFromPairs();
+        m_exclusions.insert("special_pair");
+        }
+    else if (exclusion == "constraint")
+        {
+        addExclusionsFromConstraints();
+        m_exclusions.insert("constraint");
+        }
+    else if (exclusion == "angle")
+        {
+        addExclusionsFromAngles();
+        m_exclusions.insert("angle");
+        }
+    else if (exclusion == "dihedral")
+        {
+        addExclusionsFromDihedrals();
+        m_exclusions.insert("dihedral");
+        }
+    else if (exclusion == "body")
+        {
+        setFilterBody(true);
+        m_exclusions.insert("body");
+        }
+    else if (exclusion == "1-3")
+        {
+        addOneThreeExclusionsFromTopology();
+        m_exclusions.insert("1-3");
+        }
+    else if (exclusion == "1-4")
+        {
+        addOneFourExclusionsFromTopology();
+        m_exclusions.insert("1-4");
+        }
+    }
+
+pybind11::tuple NeighborList::getExclusions()
+    {
+    auto exclusions = pybind11::list();
+    for (auto exclusion : m_exclusions)
+        {
+        exclusions.append(exclusion);
+        }
+    return (pybind11::tuple)exclusions;
+    }
+
 /*! \post Gather some statistics about exclusions usage.
 */
 void NeighborList::countExclusions()
@@ -748,7 +796,7 @@ void NeighborList::countExclusions()
         }
     }
 
-/*! After calling addExclusionFromBonds() all bonds specified in the attached ParticleData will be
+/*! After calling addExclusionsFromBonds() all bonds specified in the attached ParticleData will be
     added as exclusions. Any additional bonds added after this will not be automatically added as exclusions.
 */
 void NeighborList::addExclusionsFromBonds()
@@ -1134,7 +1182,7 @@ bool NeighborList::distanceCheck(unsigned int timestep)
     // Find direction of maximum box length contraction (smallest eigenvalue of deformation tensor)
     Scalar3 lambda = L_g / m_last_L;
     Scalar lambda_min = (lambda.x < lambda.y) ? lambda.x : lambda.y;
-    lambda_min = (lambda_min < lambda.z) ? lambda_min : lambda.z;
+    lambda_min = (lambda_min < lambda.z) ? lambda_min : (Scalar) lambda.z;
 
     ArrayHandle<Scalar4> h_last_pos(m_last_pos, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_rcut_max(m_rcut_max, access_location::host, access_mode::read);
@@ -1218,7 +1266,7 @@ void NeighborList::setLastUpdatedPos()
 
 bool NeighborList::shouldCheckDistance(unsigned int timestep)
     {
-    return !m_force_update && !(timestep < (m_last_updated_tstep + m_every));
+    return !m_force_update && !(timestep < (m_last_updated_tstep + m_rebuild_check_delay));
     }
 
 /*! \returns true If the neighbor list needs to be updated
@@ -1253,10 +1301,10 @@ bool NeighborList::needsUpdating(unsigned int timestep)
     bool result = false;
 
     // check if this is a dangerous time
-    // we are dangerous if m_every is greater than 1 and this is the first check after the
+    // we are dangerous if m_rebuild_check_delay is greater than 1 and this is the first check after the
     // last build
     bool dangerous = false;
-    if (m_dist_check && (m_every > 1 && timestep == (m_last_updated_tstep + m_every)))
+    if (m_dist_check && (m_rebuild_check_delay > 1 && timestep == (m_last_updated_tstep + m_rebuild_check_delay)))
         dangerous = true;
 
     // if the update has been forced, the result defaults to true
@@ -1275,9 +1323,9 @@ bool NeighborList::needsUpdating(unsigned int timestep)
         {
         // not a forced update, perform the distance check to determine
         // if the list needs to be updated - no dist check needed if r_buff is tiny
-        // it also needs to be updated if m_every is 0, or the check period is hit when distance checks are disabled
+        // it also needs to be updated if m_rebuild_check_delay is 0, or the check period is hit when distance checks are disabled
         if (m_r_buff < 1e-6 ||
-            (!m_dist_check && (m_every == 0 || (m_every > 1 && timestep == (m_last_updated_tstep + m_every)))))
+            (!m_dist_check && (m_rebuild_check_delay == 0 || (m_rebuild_check_delay > 1 && timestep == (m_last_updated_tstep + m_rebuild_check_delay)))))
             {
             result = true;
             }
@@ -1311,47 +1359,6 @@ bool NeighborList::needsUpdating(unsigned int timestep)
 
     m_last_check_result = result;
     return result;
-    }
-
-/*! Generic statistics that apply to any neighbor list, like the number of updates,
-    average number of neighbors, etc... are printed to stdout. Derived classes should
-    print any pertinent information they see fit to.
-
-    \todo fix these statistics to work correctly for MPI runs
- */
-void NeighborList::printStats()
-    {
-    // return early if the notice level is less than 1
-    if (m_exec_conf->msg->getNoticeLevel() < 1)
-        return;
-
-    m_exec_conf->msg->notice(1) << "-- Neighborlist stats:" << endl;
-    m_exec_conf->msg->notice(1) << m_updates << " normal updates / " << m_forced_updates << " forced updates / " << m_dangerous_updates << " dangerous updates" << endl;
-
-    // access the number of neighbors to generate stats
-    ArrayHandle<unsigned int> h_n_neigh(m_n_neigh, access_location::host, access_mode::read);
-
-    // build some simple statistics of the number of neighbors
-    unsigned int n_neigh_min = m_pdata->getN();
-    unsigned int n_neigh_max = 0;
-    Scalar n_neigh_avg = 0.0;
-
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
-        {
-        unsigned int n_neigh = (unsigned int)h_n_neigh.data[i];
-        if (n_neigh < n_neigh_min)
-            n_neigh_min = n_neigh;
-        if (n_neigh > n_neigh_max)
-            n_neigh_max = n_neigh;
-
-        n_neigh_avg += Scalar(n_neigh);
-        }
-
-    // divide to get the average
-    n_neigh_avg /= Scalar(m_pdata->getN());
-    m_exec_conf->msg->notice(1) << "n_neigh_min: " << n_neigh_min << " / n_neigh_max: " << n_neigh_max << " / n_neigh_avg: " << n_neigh_avg << endl;
-
-    m_exec_conf->msg->notice(1) << "shortest rebuild period: " << getSmallestRebuild() << endl;
     }
 
 void NeighborList::resetStats()
@@ -1613,10 +1620,11 @@ bool NeighborList::peekUpdate(unsigned int timestep)
     }
 #endif
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! Update GPU memory locality
 void NeighborList::updateMemoryMapping()
     {
+    #ifdef _HIP_PLATFORM_NVCC__
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         auto gpu_map = m_exec_conf->getGPUIds();
@@ -1665,35 +1673,30 @@ void NeighborList::updateMemoryMapping()
             }
         CHECK_CUDA_ERROR();
         }
+    #endif // __HIP_PLATFORM_NVCC__
     }
 #endif
 
 
 void export_NeighborList(py::module& m)
     {
-    py::class_<NeighborList, std::shared_ptr<NeighborList> > nlist(m, "NeighborList", py::base<Compute>());
+    py::class_<NeighborList, Compute, std::shared_ptr<NeighborList> > nlist(m, "NeighborList");
     nlist.def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
-        .def("setRCut", &NeighborList::setRCut)
-        .def("setRCutPair", &NeighborList::setRCutPair)
-        .def("setRBuff", &NeighborList::setRBuff)
-        .def("setEvery", &NeighborList::setEvery)
+        .def_property("buffer", &NeighborList::getRBuff,
+                      &NeighborList::setRBuff)
+        .def_property("rebuild_check_delay",
+                      &NeighborList::getRebuildCheckDelay,
+                      &NeighborList::setRebuildCheckDelay)
+        .def_property("check_dist",
+                      &NeighborList::getDistCheck,
+                      &NeighborList::setDistCheck)
         .def("setStorageMode", &NeighborList::setStorageMode)
-        .def("addExclusion", &NeighborList::addExclusion)
-        .def("clearExclusions", &NeighborList::clearExclusions)
-        .def("countExclusions", &NeighborList::countExclusions)
-        .def("addExclusionsFromBonds", &NeighborList::addExclusionsFromBonds)
-        .def("addExclusionsFromAngles", &NeighborList::addExclusionsFromAngles)
-        .def("addExclusionsFromDihedrals", &NeighborList::addExclusionsFromDihedrals)
-        .def("addExclusionsFromConstraints", &NeighborList::addExclusionsFromConstraints)
-        .def("addExclusionsFromPairs", &NeighborList::addExclusionsFromPairs)
-        .def("addOneThreeExclusionsFromTopology", &NeighborList::addOneThreeExclusionsFromTopology)
-        .def("addOneFourExclusionsFromTopology", &NeighborList::addOneFourExclusionsFromTopology)
-        .def("setFilterBody", &NeighborList::setFilterBody)
-        .def("getFilterBody", &NeighborList::getFilterBody)
-        .def("setDiameterShift", &NeighborList::setDiameterShift)
-        .def("getDiameterShift", &NeighborList::getDiameterShift)
-        .def("setMaximumDiameter", &NeighborList::setMaximumDiameter)
-        .def("getMaximumDiameter", &NeighborList::getMaximumDiameter)
+        .def_property("exclusions", &NeighborList::getExclusions,
+                      &NeighborList::setExclusions)
+        .def_property("diameter_shift", &NeighborList::getDiameterShift,
+                      &NeighborList::setDiameterShift)
+        .def_property("max_diameter", &NeighborList::getMaximumDiameter,
+                      &NeighborList::setMaximumDiameter)
         .def("getMaxRCut", &NeighborList::getMaxRCut)
         .def("getMinRCut", &NeighborList::getMinRCut)
         .def("getMaxRList", &NeighborList::getMaxRList)

@@ -6,7 +6,7 @@
 
 #include "IntegrationMethodTwoStep.h"
 #include "hoomd/Variant.h"
-#include "hoomd/ComputeThermo.h"
+#include "ComputeThermo.h"
 
 #ifndef __TWO_STEP_NVT_MTK_H__
 #define __TWO_STEP_NVT_MTK_H__
@@ -15,11 +15,11 @@
     \brief Declares the TwoStepNVTMTK class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Integrates part of the system forward in two steps in the NVT ensemble
 /*! Implements Martyna-Tobias-Klein (MTK) NVT integration through the IntegrationMethodTwoStep interface
@@ -56,12 +56,24 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
             m_T = T;
             }
 
+        /// Get the current temperature variant
+        std::shared_ptr<Variant> getT()
+            {
+            return m_T;
+            }
+
         //! Update the tau value
         /*! \param tau New time constant to set
         */
         virtual void setTau(Scalar tau)
             {
             m_tau = tau;
+            }
+
+        /// get the tau value
+        Scalar getTau()
+            {
+            return m_tau;
             }
 
         //! Set the value of xi (for unit tests)
@@ -109,8 +121,20 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
             setIntegratorVariables(v);
             }
 
-        //! Randomize the thermostat variable
-        virtual void randomizeVelocities(unsigned int timestep);
+        /// Randomize the thermostat variables
+        void thermalizeThermostatDOF(unsigned int seed, unsigned int timestep);
+
+        /// Get the translational thermostat degrees of freedom
+        pybind11::tuple getTranslationalThermostatDOF();
+
+        /// Set the translational thermostat degrees of freedom
+        void setTranslationalThermostatDOF(pybind11::tuple v);
+
+        /// Get the rotational thermostat degrees of freedom
+        pybind11::tuple getRotationalThermostatDOF();
+
+        /// Set the rotational thermostat degrees of freedom
+        void setRotationalThermostatDOF(pybind11::tuple v);
 
     protected:
         std::shared_ptr<ComputeThermo> m_thermo;    //!< compute for thermodynamic quantities

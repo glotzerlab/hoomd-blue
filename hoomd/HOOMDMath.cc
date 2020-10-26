@@ -8,118 +8,121 @@
     \brief Defines code needed for common math operations
  */
 
-
 #include "HOOMDMath.h"
 #include "VectorMath.h"
 
 namespace py = pybind11;
 
-
 void export_hoomd_math_functions(py::module& m)
     {
     // The use of shared_ptr's for exporting CUDA vector types is a workaround
     // see http://stackoverflow.com/questions/13177573/how-to-expose-aligned-class-with-boost-python
+
+    // these clumsy property lambdas are necessary to make pybind11 interoperate with HIP vector types
     #ifdef SINGLE_PRECISION
     py::class_<double2, std::shared_ptr<double2> >(m,"double2")
         .def(py::init<>())
-        .def_readwrite("x", &double2::x)
-        .def_readwrite("y", &double2::y)
+        .def_property("x", [](const double2& s) { return (double) s.x; }, [](double2 & s, double v) { s.x = v; })
+        .def_property("y", [](const double2& s) { return (double) s.y; }, [](double2 & s, double v) { s.y = v; })
         ;
     py::class_<double3, std::shared_ptr<double3> >(m,"double3")
         .def(py::init<>())
-        .def_readwrite("x", &double3::x)
-        .def_readwrite("y", &double3::y)
-        .def_readwrite("z", &double3::z)
+        .def_property("x", [](const double3& s) { return (double) s.x; }, [](double3 & s, double v) { s.x = v; })
+        .def_property("y", [](const double3& s) { return (double) s.y; }, [](double3 & s, double v) { s.y = v; })
+        .def_property("z", [](const double3& s) { return (double) s.z; }, [](double3 & s, double v) { s.z = v; })
         ;
     py::class_<double4, std::shared_ptr<double4> >(m,"double4")
         .def(py::init<>())
-        .def_readwrite("x", &double4::x)
-        .def_readwrite("y", &double4::y)
-        .def_readwrite("z", &double4::z)
-        .def_readwrite("w", &double4::w)
+        .def_property("x", [](const double4& s) { return (double) s.x; }, [](double4 & s, double v) { s.x = v; })
+        .def_property("y", [](const double4& s) { return (double) s.y; }, [](double4 & s, double v) { s.y = v; })
+        .def_property("z", [](const double4& s) { return (double) s.z; }, [](double4 & s, double v) { s.z = v; })
+        .def_property("w", [](const double4& s) { return (double) s.w; }, [](double4 & s, double v) { s.w = v; })
         ;
     #else
     py::class_<float2, std::shared_ptr<float2> >(m,"float2")
         .def(py::init<>())
-        .def_readwrite("x", &float2::x)
-        .def_readwrite("y", &float2::y)
+        .def_property("x", [](const float2& s) { return (float) s.x; }, [](float2 & s, float v) { s.x = v; })
+        .def_property("y", [](const float2& s) { return (float) s.y; }, [](float2 & s, float v) { s.y = v; })
         ;
     py::class_<float3, std::shared_ptr<float3> >(m,"float3")
         .def(py::init<>())
-        .def_readwrite("x", &float3::x)
-        .def_readwrite("y", &float3::y)
-        .def_readwrite("z", &float3::z)
+        .def_property("x", [](const float3& s) { return (float) s.x; }, [](float3 & s, float v) { s.x = v; })
+        .def_property("y", [](const float3& s) { return (float) s.y; }, [](float3 & s, float v) { s.y = v; })
+        .def_property("z", [](const float3& s) { return (float) s.z; }, [](float3 & s, float v) { s.z = v; })
         ;
     py::class_<float4, std::shared_ptr<float4> >(m,"float4")
         .def(py::init<>())
-        .def_readwrite("x", &float4::x)
-        .def_readwrite("y", &float4::y)
-        .def_readwrite("z", &float4::z)
-        .def_readwrite("w", &float4::w)
+        .def_property("x", [](const float4& s) { return (float) s.x; }, [](float4 & s, float v) { s.x = v; })
+        .def_property("y", [](const float4& s) { return (float) s.y; }, [](float4 & s, float v) { s.y = v; })
+        .def_property("z", [](const float4& s) { return (float) s.z; }, [](float4 & s, float v) { s.z = v; })
+        .def_property("w", [](const float4& s) { return (float) s.w; }, [](float4 & s, float v) { s.w = v; })
         ;
     #endif
 
     py::class_<Scalar2, std::shared_ptr<Scalar2> >(m,"Scalar2")
         .def(py::init<>())
-        .def_readwrite("x", &Scalar2::x)
-        .def_readwrite("y", &Scalar2::y)
+        .def_property("x", [](const Scalar2& s) { return (Scalar) s.x; }, [](Scalar2 & s, Scalar v) { s.x = v; })
+        .def_property("y", [](const Scalar2& s) { return (Scalar) s.y; }, [](Scalar2 & s, Scalar v) { s.y = v; })
         ;
     py::class_<Scalar3, std::shared_ptr<Scalar3> >(m,"Scalar3")
         .def(py::init<>())
-        .def_readwrite("x", &Scalar3::x)
-        .def_readwrite("y", &Scalar3::y)
-        .def_readwrite("z", &Scalar3::z)
+        .def_property("x", [](const Scalar3& s) { return (Scalar) s.x; }, [](Scalar3 & s, Scalar v) { s.x = v; })
+        .def_property("y", [](const Scalar3& s) { return (Scalar) s.y; }, [](Scalar3 & s, Scalar v) { s.y = v; })
+        .def_property("z", [](const Scalar3& s) { return (Scalar) s.z; }, [](Scalar3 & s, Scalar v) { s.z = v; })
         ;
     py::class_<Scalar4, std::shared_ptr<Scalar4> >(m,"Scalar4")
         .def(py::init<>())
-        .def_readwrite("x", &Scalar4::x)
-        .def_readwrite("y", &Scalar4::y)
-        .def_readwrite("z", &Scalar4::z)
-        .def_readwrite("w", &Scalar4::w)
+        .def_property("x", [](const Scalar4& s) { return (Scalar) s.x; }, [](Scalar4 & s, Scalar v) { s.x = v; })
+        .def_property("y", [](const Scalar4& s) { return (Scalar) s.y; }, [](Scalar4 & s, Scalar v) { s.y = v; })
+        .def_property("z", [](const Scalar4& s) { return (Scalar) s.z; }, [](Scalar4 & s, Scalar v) { s.z = v; })
+        .def_property("w", [](const Scalar4& s) { return (Scalar) s.w; }, [](Scalar4 & s, Scalar v) { s.w = v; })
         ;
+
     py::class_<uint2, std::shared_ptr<uint2> >(m,"uint2")
         .def(py::init<>())
-        .def_readwrite("x", &uint2::x)
-        .def_readwrite("y", &uint2::y)
+        .def_property("x", [](const uint2& s) { return (unsigned int) s.x; }, [](uint2 & s, unsigned int v) { s.x = v; })
+        .def_property("y", [](const uint2& s) { return (unsigned int) s.y; }, [](uint2 & s, unsigned int v) { s.y = v; })
         ;
     py::class_<uint3, std::shared_ptr<uint3> >(m,"uint3")
         .def(py::init<>())
-        .def_readwrite("x", &uint3::x)
-        .def_readwrite("y", &uint3::y)
-        .def_readwrite("z", &uint3::z)
+        .def_property("x", [](const uint3& s) { return (unsigned int) s.x; }, [](uint3 & s, unsigned int v) { s.x = v; })
+        .def_property("y", [](const uint3& s) { return (unsigned int) s.y; }, [](uint3 & s, unsigned int v) { s.y = v; })
+        .def_property("z", [](const uint3& s) { return (unsigned int) s.z; }, [](uint3 & s, unsigned int v) { s.z = v; })
         ;
     py::class_<uint4, std::shared_ptr<uint4> >(m,"uint4")
         .def(py::init<>())
-        .def_readwrite("x", &uint4::x)
-        .def_readwrite("y", &uint4::y)
-        .def_readwrite("z", &uint4::z)
-        .def_readwrite("z", &uint4::w)
+        .def_property("x", [](const uint4& s) { return (unsigned int) s.x; }, [](uint4 & s, unsigned int v) { s.x = v; })
+        .def_property("y", [](const uint4& s) { return (unsigned int) s.y; }, [](uint4 & s, unsigned int v) { s.y = v; })
+        .def_property("z", [](const uint4& s) { return (unsigned int) s.z; }, [](uint4 & s, unsigned int v) { s.z = v; })
+        .def_property("w", [](const uint4& s) { return (unsigned int) s.w; }, [](uint4 & s, unsigned int v) { s.w = v; })
         ;
+
     py::class_<int2, std::shared_ptr<int2> >(m,"int2")
         .def(py::init<>())
-        .def_readwrite("x", &int2::x)
-        .def_readwrite("y", &int2::y)
+        .def_property("x", [](const int2& s) { return (int) s.x; }, [](int2 & s, int v) { s.x = v; })
+        .def_property("y", [](const int2& s) { return (int) s.y; }, [](int2 & s, int v) { s.y = v; })
         ;
     py::class_<int3, std::shared_ptr<int3> >(m,"int3")
         .def(py::init<>())
-        .def_readwrite("x", &int3::x)
-        .def_readwrite("y", &int3::y)
-        .def_readwrite("z", &int3::z)
+        .def_property("x", [](const int3& s) { return (int) s.x; }, [](int3 & s, int v) { s.x = v; })
+        .def_property("y", [](const int3& s) { return (int) s.y; }, [](int3 & s, int v) { s.y = v; })
+        .def_property("z", [](const int3& s) { return (int) s.z; }, [](int3 & s, int v) { s.z = v; })
         ;
     py::class_<int4, std::shared_ptr<int4> >(m,"int4")
         .def(py::init<>())
-        .def_readwrite("x", &int4::x)
-        .def_readwrite("y", &int4::y)
-        .def_readwrite("z", &int4::z)
-        .def_readwrite("z", &int4::w)
-        ;
-    py::class_<char3, std::shared_ptr<char3> >(m,"char3")
-        .def(py::init<>())
-        .def_readwrite("x", &char3::x)
-        .def_readwrite("y", &char3::y)
-        .def_readwrite("z", &char3::z)
+        .def_property("x", [](const int4& s) { return (int) s.x; }, [](int4 & s, int v) { s.x = v; })
+        .def_property("y", [](const int4& s) { return (int) s.y; }, [](int4 & s, int v) { s.y = v; })
+        .def_property("z", [](const int4& s) { return (int) s.z; }, [](int4 & s, int v) { s.z = v; })
+        .def_property("w", [](const int4& s) { return (int) s.w; }, [](int4 & s, int v) { s.w = v; })
         ;
 
+    py::class_<char3, std::shared_ptr<char3> >(m,"char3")
+        .def(py::init<>())
+        .def_property("x", [](const char3& s) { return (char) s.x; }, [](char3 & s, char v) { s.x = v; })
+        .def_property("y", [](const char3& s) { return (char) s.y; }, [](char3 & s, char v) { s.y = v; })
+        .def_property("z", [](const char3& s) { return (char) s.z; }, [](char3 & s, char v) { s.z = v; })
+        ;
+ 
     m.def("make_scalar2", &make_scalar2);
     m.def("make_scalar3", &make_scalar3);
     m.def("make_scalar4", &make_scalar4);

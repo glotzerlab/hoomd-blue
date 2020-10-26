@@ -25,11 +25,15 @@ namespace gpu
 {
 
 //! Template instantiation of bulk geometry streaming
-template cudaError_t confined_stream<mpcd::detail::BulkGeometry>
+template cudaError_t
+__attribute__((visibility("default")))
+confined_stream<mpcd::detail::BulkGeometry>
     (const stream_args_t& args, const mpcd::detail::BulkGeometry& geom);
 
 //! Template instantiation of slit geometry streaming
-template cudaError_t confined_stream<mpcd::detail::SlitGeometry>
+template cudaError_t
+__attribute__((visibility("default")))
+confined_stream<mpcd::detail::SlitGeometry>
     (const stream_args_t& args, const mpcd::detail::SlitGeometry& geom);
 
 //! Template instantiation of slit geometry streaming

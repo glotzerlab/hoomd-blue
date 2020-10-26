@@ -29,7 +29,7 @@
 #ifndef BVLS_SRC_BVLS_SOLVER_H_
 #define BVLS_SRC_BVLS_SOLVER_H_
 
-#include "Eigen/Eigen/Dense"
+#include <Eigen/Dense>
 #include <vector>
 #include <stdexcept>
 
@@ -189,13 +189,13 @@ class BVLSSolver
 
         unsigned int m_n_bound;     //!< Number of bound variables
         std::vector<int> m_bound;   //!< Indexes of all bound variables (offset by one and signed to indicate upper or lower set)
-        
+
         //! Initializes memory and variables for solving the problem
         void initialize();
-        
+
         //! Finds the next variable to free
         bool findNextFree();
-        
+
         //! Frees the next bound variable marked for freeing
         /*!
          * Fills in the hole in the bound variables by popping off the end
@@ -208,16 +208,16 @@ class BVLSSolver
             m_bound.pop_back(); --m_n_bound;
             m_free.push_back(j);
             ++m_n_free;
-            
+
             m_b_prime += m_A.col(j) * m_x(j);
             }
-        
+
         //! Solves the least squares minimization for the free variables
         bool solveFreeLeastSquares();
-        
+
         //! Applies interpolation to the bound variables
         void interpolateConstraints(const std::vector<int>::iterator& first_out_of_bounds);
-        
+
         //! Performs common wrap-up routines to finish the solver
         /*!
          * \param n_iter Number of iterations required to converge solution

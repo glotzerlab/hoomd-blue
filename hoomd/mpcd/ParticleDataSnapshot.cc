@@ -9,7 +9,7 @@
  */
 
 #include "ParticleDataSnapshot.h"
-#include "hoomd/extern/pybind/include/pybind11/numpy.h"
+#include <pybind11/numpy.h>
 
 mpcd::ParticleDataSnapshot::ParticleDataSnapshot()
     : size(0), mass(1.0)

@@ -7,8 +7,12 @@
 #ifndef __EVALUATOR_PAIR_GB_H__
 #define __EVALUATOR_PAIR_GB_H__
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <string>
+#endif
+
+#ifdef ENABLE_HIP
+#include <hip/hip_runtime.h>
 #endif
 
 #define HOOMD_GB_MIN(i,j) ((i > j) ? j : i)
@@ -22,7 +26,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 //! HOSTDEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define HOSTDEVICE __host__ __device__
 #else
 #define HOSTDEVICE
@@ -56,9 +60,9 @@ struct gb_shape_params
      */
     HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const {}
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     //! Attach managed memory to CUDA stream
-    void attach_to_stream(cudaStream_t stream) const {}
+    void attach_to_stream(hipStream_t stream) const {}
     #endif
     };
 
@@ -224,7 +228,7 @@ class EvaluatorPairGB
             return true;
             }
 
-        #ifndef NVCC
+        #ifndef __HIPCC__
         //! Get the name of the potential
         /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
             via analyze.log.
@@ -253,6 +257,15 @@ class EvaluatorPairGB
         const param_type &params;  //!< The pair potential parameters
     };
 
+//! Function to make the Gay-Berne parameter type
+inline pair_gb_params make_pair_gb_params(Scalar epsilon, Scalar lperp, Scalar lpar)
+    {
+    pair_gb_params retval;
+    retval.epsilon = epsilon;
+    retval.lperp = lperp;
+    retval.lpar = lpar;
+    return retval;
+    }
 
 #undef HOOMD_GB_MIN
 #undef HOOMD_GB_MAX

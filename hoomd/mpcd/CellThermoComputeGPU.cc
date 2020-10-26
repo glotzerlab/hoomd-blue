@@ -329,8 +329,8 @@ void mpcd::detail::export_CellThermoComputeGPU(pybind11::module& m)
     {
     namespace py = pybind11;
 
-    py::class_<mpcd::CellThermoComputeGPU, std::shared_ptr<mpcd::CellThermoComputeGPU> >
-        (m, "CellThermoComputeGPU", py::base<mpcd::CellThermoCompute>())
+    py::class_<mpcd::CellThermoComputeGPU, mpcd::CellThermoCompute, std::shared_ptr<mpcd::CellThermoComputeGPU> >
+        (m, "CellThermoComputeGPU")
         .def(py::init< std::shared_ptr<mpcd::SystemData> >())
         .def(py::init< std::shared_ptr<mpcd::SystemData>, const std::string& >());
     }

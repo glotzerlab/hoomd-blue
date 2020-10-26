@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -78,7 +79,7 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
     const unsigned int num_typ_parameters = typpair_idx.getNumElements();
 
     // shared data for per type pair parameters
-    extern __shared__ unsigned char s_data[];
+    HIP_DYNAMIC_SHARED( unsigned char, s_data)
 
     // pointer for the r_listsq data
     Scalar *s_r_list = (Scalar *)(&s_data[0]);
@@ -289,8 +290,8 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
 template<typename T>
 int get_max_block_size(T func)
     {
-    cudaFuncAttributes attr;
-    cudaFuncGetAttributes(&attr, (const void*)func);
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)func);
     int max_threads = attr.maxThreadsPerBlock;
     // number of threads has to be multiple of warp size
     max_threads -= max_threads % max_threads_per_particle;
@@ -352,7 +353,7 @@ inline void launcher(unsigned int *d_nlist,
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size/tpp) + 1);
 
-                gpu_compute_nlist_binned_kernel<0,0,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
+                hipLaunchKernelGGL((gpu_compute_nlist_binned_kernel<0,0,cur_tpp>), dim3(grid), dim3(block_size), shared_size, 0, d_nlist,
                                                                                              d_n_neigh,
                                                                                              d_last_updated_pos,
                                                                                              d_conditions,
@@ -388,7 +389,7 @@ inline void launcher(unsigned int *d_nlist,
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size/tpp) + 1);
 
-                gpu_compute_nlist_binned_kernel<1,0,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
+                hipLaunchKernelGGL((gpu_compute_nlist_binned_kernel<1,0,cur_tpp>), dim3(grid), dim3(block_size), shared_size, 0, d_nlist,
                                                                                              d_n_neigh,
                                                                                              d_last_updated_pos,
                                                                                              d_conditions,
@@ -424,7 +425,7 @@ inline void launcher(unsigned int *d_nlist,
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size/tpp) + 1);
 
-                gpu_compute_nlist_binned_kernel<2,0,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
+                hipLaunchKernelGGL((gpu_compute_nlist_binned_kernel<2,0,cur_tpp>), dim3(grid), dim3(block_size), shared_size, 0, d_nlist,
                                                                                              d_n_neigh,
                                                                                              d_last_updated_pos,
                                                                                              d_conditions,
@@ -460,7 +461,7 @@ inline void launcher(unsigned int *d_nlist,
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size/tpp) + 1);
 
-                gpu_compute_nlist_binned_kernel<3,0,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
+                hipLaunchKernelGGL((gpu_compute_nlist_binned_kernel<3,0,cur_tpp>), dim3(grid), dim3(block_size), shared_size, 0, d_nlist,
                                                                                              d_n_neigh,
                                                                                              d_last_updated_pos,
                                                                                              d_conditions,
@@ -499,7 +500,7 @@ inline void launcher(unsigned int *d_nlist,
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size/tpp) + 1);
 
-                gpu_compute_nlist_binned_kernel<0,1,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
+                hipLaunchKernelGGL((gpu_compute_nlist_binned_kernel<0,1,cur_tpp>), dim3(grid), dim3(block_size), shared_size, 0, d_nlist,
                                                                                              d_n_neigh,
                                                                                              d_last_updated_pos,
                                                                                              d_conditions,
@@ -535,7 +536,7 @@ inline void launcher(unsigned int *d_nlist,
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size/tpp) + 1);
 
-                gpu_compute_nlist_binned_kernel<1,1,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
+                hipLaunchKernelGGL((gpu_compute_nlist_binned_kernel<1,1,cur_tpp>), dim3(grid), dim3(block_size), shared_size, 0, d_nlist,
                                                                                              d_n_neigh,
                                                                                              d_last_updated_pos,
                                                                                              d_conditions,
@@ -571,7 +572,7 @@ inline void launcher(unsigned int *d_nlist,
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size/tpp) + 1);
 
-                gpu_compute_nlist_binned_kernel<2,1,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
+                hipLaunchKernelGGL((gpu_compute_nlist_binned_kernel<2,1,cur_tpp>), dim3(grid), dim3(block_size), shared_size, 0, d_nlist,
                                                                                              d_n_neigh,
                                                                                              d_last_updated_pos,
                                                                                              d_conditions,
@@ -607,7 +608,7 @@ inline void launcher(unsigned int *d_nlist,
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(nwork / (block_size/tpp) + 1);
 
-                gpu_compute_nlist_binned_kernel<3,1,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
+                hipLaunchKernelGGL((gpu_compute_nlist_binned_kernel<3,1,cur_tpp>), dim3(grid), dim3(block_size), shared_size, 0, d_nlist,
                                                                                              d_n_neigh,
                                                                                              d_last_updated_pos,
                                                                                              d_conditions,
@@ -708,7 +709,7 @@ inline void launcher<min_threads_per_particle/2>(unsigned int *d_nlist,
               const unsigned int ngpu)
     { }
 
-cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
+hipError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      unsigned int *d_n_neigh,
                                      Scalar4 *d_last_updated_pos,
                                      unsigned int *d_conditions,
@@ -779,5 +780,5 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                        ngpu
                                        );
         }
-    return cudaSuccess;
+    return hipSuccess;
     }

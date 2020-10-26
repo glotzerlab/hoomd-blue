@@ -211,7 +211,7 @@ UP_TEST( MolecularForceCompute_basic )
     basic_molecule_test(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-# ifdef ENABLE_CUDA
+# ifdef ENABLE_HIP
 //! test case for particle test on GPU
 UP_TEST( MolecularForceCompute_basic_GPU)
     {

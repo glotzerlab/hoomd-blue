@@ -14,7 +14,7 @@ HOOMD_UP_MAIN()
 
 #include "hoomd/md/CommunicatorGrid.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/CommunicatorGridGPU.h"
 #endif
 
@@ -333,7 +333,7 @@ UP_TEST( CommunicateGrid_test_positions)
     }
 
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! Basic ghost grid exchange test on GPU
 UP_TEST( CommunicateGrid_test_basic_GPU)
     {

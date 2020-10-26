@@ -8,8 +8,8 @@
 #include "EvaluatorPairLJ1208.h"
 #include "AllDriverPotentialPairGPU.cuh"
 
-cudaError_t gpu_compute_lj1208_forces(const pair_args_t& pair_args,
-                                      const Scalar2 *d_params)
+hipError_t gpu_compute_lj1208_forces(const pair_args_t& pair_args,
+                                      const EvaluatorPairLJ1208::param_type *d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairLJ1208>(pair_args,
                                                     d_params);
