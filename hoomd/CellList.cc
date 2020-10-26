@@ -80,10 +80,6 @@ uint3 CellList::computeDimensions()
 
     Scalar3 L = box.getNearestPlaneDistance();
 
-    dim.x = roundDown((unsigned int)((L.x) / (m_nominal_width)), m_multiple);
-    dim.y = roundDown((unsigned int)((L.y) / (m_nominal_width)), m_multiple);
-    dim.z = (m_sysdef->getNDimensions() == 3) ? roundDown((unsigned int)((L.z) / (m_nominal_width)), m_multiple) : 1;
-
     // size the ghost layer width
     m_ghost_width = make_scalar3(0.0, 0.0, 0.0);
 #ifdef ENABLE_MPI
@@ -104,24 +100,9 @@ uint3 CellList::computeDimensions()
         }
 #endif
 
-    // expand for ghost width if communicating ghosts
-#ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        const Scalar3 cell_size = make_scalar3(L.x / Scalar(dim.x), L.y / Scalar(dim.y), L.z / Scalar(dim.z));
-
-        // add cells up to the next integer to cover the whole ghost width on both sides
-        if (!box.getPeriodic().x)
-            dim.x += 2*static_cast<int>(ceil(m_ghost_width.x/cell_size.x));
-
-        if (!box.getPeriodic().y)
-            dim.y += 2*static_cast<int>(ceil(m_ghost_width.y/cell_size.y));
-
-        if (m_sysdef->getNDimensions() == 3 && !box.getPeriodic().z)
-            dim.z += 2*static_cast<int>(ceil(m_ghost_width.z/cell_size.z));
-        }
-#endif
-
+    dim.x = roundDown((unsigned int)((L.x + 2.0*m_ghost_width.x) / (m_nominal_width)), m_multiple);
+    dim.y = roundDown((unsigned int)((L.y + 2.0*m_ghost_width.y) / (m_nominal_width)), m_multiple);
+    dim.z = (m_sysdef->getNDimensions() == 3) ? roundDown((unsigned int)((L.z + 2.0*m_ghost_width.z) / (m_nominal_width)), m_multiple) : 1;
 
     // In extremely small boxes, the calculated dimensions could go to zero, but need at least one cell in each dimension
     // for particles to be in a cell and to pass the checkCondition tests.
@@ -617,7 +598,8 @@ bool CellList::checkConditions()
         {
         unsigned int n = conditions.y - 1;
         ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-        m_exec_conf->msg->error() << "Particle with unique tag " << h_tag.data[n] << " has NaN for its position." << endl;
+        m_exec_conf->msg->errorAllRanks() << "Particle with unique tag " << h_tag.data[n]
+                                          << " has NaN for its position." << endl;
         throw runtime_error("Error computing cell list");
         }
 
@@ -628,18 +610,19 @@ bool CellList::checkConditions()
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
-        m_exec_conf->msg->error() <<"Particle with unique tag " << h_tag.data[n] << " is no longer in the simulation box."
-                                  << endl << endl;
-
-        m_exec_conf->msg->error() << "Cartesian coordinates: " << std::endl;
-        m_exec_conf->msg->error() << "x: " << h_pos.data[n].x << " y: " << h_pos.data[n].y << " z: " << h_pos.data[n].z << std::endl;
-        m_exec_conf->msg->error() << "Fractional coordinates: " << std::endl;
         Scalar3 f = m_pdata->getBox().makeFraction(make_scalar3(h_pos.data[n].x, h_pos.data[n].y, h_pos.data[n].z));
-        m_exec_conf->msg->error() << "f.x: " << f.x << " f.y: " << f.y << " f.z: " << f.z << std::endl;
         Scalar3 lo = m_pdata->getBox().getLo();
         Scalar3 hi = m_pdata->getBox().getHi();
-        m_exec_conf->msg->error() << "Local box lo: (" << lo.x << ", " << lo.y << ", " << lo.z << ")" << std::endl;
-        m_exec_conf->msg->error() << "          hi: (" << hi.x << ", " << hi.y << ", " << hi.z << ")" << std::endl;
+
+        m_exec_conf->msg->errorAllRanks()
+           << "Particle with unique tag " << h_tag.data[n]
+           << " is no longer in the simulation box." << std::endl << std::endl
+           << "Cartesian coordinates: " << std::endl
+           << "x: " << h_pos.data[n].x << " y: " << h_pos.data[n].y << " z: " << h_pos.data[n].z << std::endl
+           << "Fractional coordinates: " << std::endl
+           << "f.x: " << f.x << " f.y: " << f.y << " f.z: " << f.z << std::endl
+           << "Local box lo: (" << lo.x << ", " << lo.y << ", " << lo.z << ")" << std::endl
+           << "          hi: (" << hi.x << ", " << hi.y << ", " << hi.z << ")" << std::endl;
         throw runtime_error("Error computing cell list");
         }
 

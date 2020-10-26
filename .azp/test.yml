@@ -1,0 +1,201 @@
+variables:
+  image_root: glotzerlab/ci:2019.11
+
+  # default build parameters, will override as needed with job matrix values
+  enable_cuda: off
+  enable_mpi: off
+  enable_tbb: off
+  build_validation: off
+  build_jit: off
+  omp_num_threads: '2'
+  llvm_version: '6.0'
+  build_testing: on
+  always_use_managed_memory: off
+  ctest_start: 1
+  ctest_stride: 1
+  mpiexec_timeout: 300
+  suite_name: $(Agent.JobName)
+
+stages:
+- stage: build_test_cpu
+  displayName: Unit test (CPU)
+  dependsOn: []
+
+  jobs:
+  - job: linux_cpu
+    displayName: Linux
+    timeoutInMinutes: 75
+
+    strategy:
+      matrix:
+        gcc9_py38_mpi_tbb:
+          container_image: gcc9_py38
+          enable_mpi: on
+          enable_tbb: on
+
+        clang9_py38_mpi_tbb:
+          container_image: clang9_py38
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '9'
+
+        clang8_py38_mpi_tbb:
+          container_image: clang8_py38
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '8'
+
+        clang7_py38_mpi_tbb:
+          container_image: clang7_py38
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '7'
+
+        gcc8_py37_mpi_tbb:
+          container_image: gcc8_py37
+          enable_mpi: on
+          enable_tbb: on
+
+        gcc7_py37_tbb:
+          container_image: gcc7_py37
+          enable_tbb: on
+
+        gcc6_py37_mpi:
+          container_image: gcc6_py37
+          enable_mpi: on
+
+        gcc5_py37:
+          container_image: gcc5_py37
+
+        gcc48_py37_mpi_tbb:
+          container_image: gcc48_py37
+          enable_mpi: on
+          enable_tbb: on
+
+        clang6_py37_mpi_tbb:
+          container_image: clang6_py37
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '6.0'
+
+        clang5_py37_tbb_llvm5:
+          container_image: clang5_py37
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '5.0'
+
+        gcc7_py36:
+          container_image: gcc7_py36
+
+    pool:
+      vmImage: 'ubuntu-16.04'
+
+    container:
+      image: $(image_root)-$(container_image)
+      options: -u 0
+
+    steps:
+    - template: templates/build_test.yml
+
+  - job: mac_cpu
+    displayName: macOS
+    timeoutInMinutes: 75
+
+    strategy:
+      matrix:
+        10_14:
+          mac_image: macOS-10.14
+        10_15_mpi_tbb:
+          mac_image: macOS-10.15
+          enable_mpi: on
+          enable_tbb: on
+
+    pool:
+      vmImage: '$(mac_image)'
+
+    steps:
+    - script: brew install cereal cmake eigen ninja open-mpi python numpy pybind11
+      displayName: Brew install prereqs
+    # Install Intel's provided TBB builds, homebrew's tbb does not support exception translation
+    - script: |
+        curl -sLO https://github.com/intel/tbb/releases/download/2019_U8/tbb2019_20190605oss_mac.tgz &&
+        tar -xzf tbb2019_20190605oss_mac.tgz &&
+        cp -R tbb2019_20190605oss/include/tbb /usr/local/include &&
+        cp -a tbb2019_20190605oss/lib/*.dylib /usr/local/lib
+      displayName: Install TBB
+      workingDirectory: $(Pipeline.Workspace)
+
+    - script: python3 -m pip install pytest
+      displayName: Pip install prereqs
+
+    - template: templates/build_test.yml
+
+- stage: build_test_gpu
+  displayName: Unit test (GPU)
+  dependsOn: []
+  variables:
+    enable_cuda: on
+
+  jobs:
+  - job: linux_gpu
+    displayName: Linux
+    timeoutInMinutes: 75
+
+    strategy:
+      matrix:
+        cuda10_py37_mng_mpi:
+          container_image: cuda10_py37
+          always_use_managed_memory: on
+          enable_mpi: on
+
+        cuda9_py37_mpi:
+          container_image: cuda9_py37
+          enable_mpi: on
+
+        cuda9_py37:
+          container_image: cuda9_py37
+
+    pool:
+      name: 'GPU'
+      demands: short_jobs
+
+    container:
+       image: $(image_root)-$(container_image)
+       options: -u 0 --gpus=all --cpus=4 --memory=8g -e CUDA_VISIBLE_DEVICES
+
+    workspace:
+      clean: all
+
+    steps:
+    - template: templates/build_test.yml
+
+- stage: doc
+  displayName: Documentation
+  dependsOn: []
+
+  jobs:
+  - job: sphinx_doc
+    displayName: Sphinx
+    pool:
+      vmImage: 'ubuntu-16.04'
+
+    container:
+      image: $(image_root)-gcc7_py37
+      options: -u 0
+
+    workspace:
+      clean: all
+
+    steps:
+    - checkout: self
+      submodules: true
+    - script: sphinx-build -b html -d _build/doctrees -W -n . _build/html
+      displayName: (HTML)
+      workingDirectory: sphinx-doc
+    - script: sphinx-build -b latex -d _build/doctrees -W -n . _build/latex
+      displayName: (LaTeX)
+      workingDirectory: sphinx-doc

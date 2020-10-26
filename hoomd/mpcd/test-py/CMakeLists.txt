@@ -10,8 +10,11 @@ set(TEST_LIST
     force_sine
     init_make_random
     integrate_integrator
+    integrate_slit
+    integrate_slit_pore
     stream_bulk
     stream_slit
+    stream_slit_pore
     update_sort
     )
 SET(EXCLUDE_FROM_MPI

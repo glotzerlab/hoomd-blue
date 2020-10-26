@@ -20,7 +20,7 @@ import platform
 # The following global variables keep track of the walltime and processing time since the import of hoomd
 import time
 TIME_START = time.time()
-CLOCK_START = time.clock()
+CLOCK_START = time.perf_counter()
 
 ## Global Messenger
 msg = None;
@@ -172,6 +172,7 @@ class SimulationContext(object):
 
         self.prev = current;
         current = self;
+        return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         global current
@@ -455,7 +456,7 @@ class ExecutionContext(hoomd.meta._metadata):
     # \brief Return the CPU clock time since the import of hoomd
     @property
     def cputime(self):
-        return time.clock() - CLOCK_START
+        return time.perf_counter() - CLOCK_START
 
     # \brief Return the job id
     @property

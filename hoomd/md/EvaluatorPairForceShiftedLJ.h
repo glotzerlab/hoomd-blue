@@ -122,6 +122,11 @@ class EvaluatorPairForceShiftedLJ
             {
             return std::string("force_shift_lj");
             }
+
+        std::string getShapeSpec() const
+            {
+            throw std::runtime_error("Shape definition not supported for this pair potential.");
+            }
         #endif
 
     protected:

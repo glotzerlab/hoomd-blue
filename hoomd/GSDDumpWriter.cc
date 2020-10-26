@@ -16,6 +16,9 @@
 #include "Communicator.h"
 #endif
 
+#include "hoomd/extern/pybind/include/pybind11/stl_bind.h"
+#include "hoomd/extern/pybind/include/pybind11/numpy.h"
+
 #include <string.h>
 #include <stdexcept>
 #include <list>
@@ -49,14 +52,55 @@ GSDDumpWriter::GSDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
 void GSDDumpWriter::checkError(int retval)
     {
     // checkError prints errors and then throws exceptions for common gsd error codes
-    if (retval == -1)
+    if (retval == GSD_ERROR_IO)
         {
         m_exec_conf->msg->error() << "dump.gsd: " << strerror(errno) << " - " << m_fname << endl;
         throw runtime_error("Error writing GSD file");
         }
-    else if (retval != 0)
+    else if (retval == GSD_ERROR_INVALID_ARGUMENT)
         {
-        m_exec_conf->msg->error() << "dump.gsd: " << "Unknown error " << retval << " writing: " << m_fname << endl;
+        m_exec_conf->msg->error() << "dump.gsd: Invalid argument" " - " << m_fname << endl;
+        throw runtime_error("Error writing GSD file");
+        }
+    else if (retval == GSD_ERROR_NOT_A_GSD_FILE)
+        {
+        m_exec_conf->msg->error() << "dump.gsd: Not a GSD file" " - " << m_fname << endl;
+        throw runtime_error("Error writing GSD file");
+        }
+    else if (retval == GSD_ERROR_INVALID_GSD_FILE_VERSION)
+        {
+        m_exec_conf->msg->error() << "dump.gsd: Invalid GSD file version" " - " << m_fname << endl;
+        throw runtime_error("Error writing GSD file");
+        }
+    else if (retval == GSD_ERROR_FILE_CORRUPT)
+        {
+        m_exec_conf->msg->error() << "dump.gsd: File corrupt" " - " << m_fname << endl;
+        throw runtime_error("Error writing GSD file");
+        }
+    else if (retval == GSD_ERROR_MEMORY_ALLOCATION_FAILED)
+        {
+        m_exec_conf->msg->error() << "dump.gsd: Memory allocation failed" " - " << m_fname << endl;
+        throw runtime_error("Error writing GSD file");
+        }
+    else if (retval == GSD_ERROR_NAMELIST_FULL)
+        {
+        m_exec_conf->msg->error() << "dump.gsd: Namelist full" " - " << m_fname << endl;
+        throw runtime_error("Error writing GSD file");
+        }
+    else if (retval == GSD_ERROR_FILE_MUST_BE_WRITABLE)
+        {
+        m_exec_conf->msg->error() << "dump.gsd: File must be writeable" " - " << m_fname << endl;
+        throw runtime_error("Error writing GSD file");
+        }
+    else if (retval == GSD_ERROR_FILE_MUST_BE_READABLE)
+        {
+        m_exec_conf->msg->error() << "dump.gsd: File must be readable" " - " << m_fname << endl;
+        throw runtime_error("Error writing GSD file");
+        }
+    else if (retval != GSD_SUCCESS)
+        {
+        m_exec_conf->msg->error() << "dump.gsd: " << "Unknown error " << retval << " writing: "
+                                  << m_fname << endl;
         throw runtime_error("Error writing GSD file");
         }
     }
@@ -77,11 +121,7 @@ void GSDDumpWriter::initFileIO()
                             o.str().c_str(),
                             "hoomd",
                             gsd_make_version(1,3));
-        if (retval != 0)
-            {
-            m_exec_conf->msg->error() << "dump.gsd: " << strerror(errno) << " - " << m_fname << endl;
-            throw runtime_error("Error creating GSD file");
-            }
+        checkError(retval);
         }
 
     // populate the non-default map
@@ -90,36 +130,7 @@ void GSDDumpWriter::initFileIO()
     // open the file in append mode
     m_exec_conf->msg->notice(3) << "dump.gsd: open gsd file " << m_fname << endl;
     retval = gsd_open(&m_handle, m_fname.c_str(), GSD_OPEN_APPEND);
-    if (retval == -1)
-        {
-        m_exec_conf->msg->error() << "dump.gsd: " << strerror(errno) << " - " << m_fname << endl;
-        throw runtime_error("Error opening GSD file");
-        }
-    else if (retval == -2)
-        {
-        m_exec_conf->msg->error() << "dump.gsd: " << m_fname << " is not a valid GSD file" << endl;
-        throw runtime_error("Error opening GSD file");
-        }
-    else if (retval == -3)
-        {
-        m_exec_conf->msg->error() << "dump.gsd: " << "Invalid GSD file version in " << m_fname << endl;
-        throw runtime_error("Error opening GSD file");
-        }
-    else if (retval == -4)
-        {
-        m_exec_conf->msg->error() << "dump.gsd: " << "Corrupt GSD file: " << m_fname << endl;
-        throw runtime_error("Error opening GSD file");
-        }
-    else if (retval == -5)
-        {
-        m_exec_conf->msg->error() << "dump.gsd: " << "Out of memory opening: " << m_fname << endl;
-        throw runtime_error("Error opening GSD file");
-        }
-    else if (retval != 0)
-        {
-        m_exec_conf->msg->error() << "dump.gsd: " << "Unknown error opening: " << m_fname << endl;
-        throw runtime_error("Error opening GSD file");
-        }
+    checkError(retval);
 
     // validate schema
     if (string(m_handle.header.schema) != string("hoomd"))
@@ -184,36 +195,7 @@ void GSDDumpWriter::analyze(unsigned int timestep)
         {
         m_exec_conf->msg->notice(10) << "dump.gsd: truncating file" << endl;
         retval = gsd_truncate(&m_handle);
-        if (retval == -1)
-            {
-            m_exec_conf->msg->error() << "dump.gsd: " << strerror(errno) << " - " << m_fname << endl;
-            throw runtime_error("Error opening GSD file");
-            }
-        else if (retval == -2)
-            {
-            m_exec_conf->msg->error() << "dump.gsd: " << m_fname << " is not a valid GSD file" << endl;
-            throw runtime_error("Error opening GSD file");
-            }
-        else if (retval == -3)
-            {
-            m_exec_conf->msg->error() << "dump.gsd: " << "Invalid GSD file version in " << m_fname << endl;
-            throw runtime_error("Error opening GSD file");
-            }
-        else if (retval == -4)
-            {
-            m_exec_conf->msg->error() << "dump.gsd: " << "Corrupt GSD file: " << m_fname << endl;
-            throw runtime_error("Error opening GSD file");
-            }
-        else if (retval == -5)
-            {
-            m_exec_conf->msg->error() << "dump.gsd: " << "Out of memory opening: " << m_fname << endl;
-            throw runtime_error("Error opening GSD file");
-            }
-        else if (retval != 0)
-            {
-            m_exec_conf->msg->error() << "dump.gsd: " << "Unknown error opening: " << m_fname << endl;
-            throw runtime_error("Error opening GSD file");
-            }
+        checkError(retval);
         }
 
     uint64_t nframes = 0;
@@ -268,6 +250,8 @@ void GSDDumpWriter::analyze(unsigned int timestep)
 
     // emit on all ranks, the slot needs to handle the mpi logic.
     m_write_signal.emit(m_handle);
+
+    writeUser(timestep, root);
 
     if (root)
         {
@@ -492,7 +476,7 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot,
         }
 
         {
-        std::vector<float> data(N*3);
+        std::vector<float> data(uint64_t(N)*3);
         data.reserve(1); //! make sure we allocate
         bool all_default = true;
 
@@ -538,7 +522,7 @@ void GSDDumpWriter::writeProperties(const SnapshotParticleData<float>& snapshot,
     uint64_t nframes = gsd_get_nframes(&m_handle);
 
         {
-        std::vector<float> data(N*3);
+        std::vector<float> data(uint64_t(N)*3);
         data.reserve(1); //! make sure we allocate
 
         for (unsigned int group_idx = 0; group_idx < N; group_idx++)
@@ -560,7 +544,7 @@ void GSDDumpWriter::writeProperties(const SnapshotParticleData<float>& snapshot,
         }
 
         {
-        std::vector<float> data(N*4);
+        std::vector<float> data(uint64_t(N)*4);
         data.reserve(1); //! make sure we allocate
         bool all_default = true;
 
@@ -608,7 +592,7 @@ void GSDDumpWriter::writeMomenta(const SnapshotParticleData<float>& snapshot, co
     uint64_t nframes = gsd_get_nframes(&m_handle);
 
         {
-        std::vector<float> data(N*3);
+        std::vector<float> data(uint64_t(N)*3);
         data.reserve(1); //! make sure we allocate
         bool all_default = true;
 
@@ -643,7 +627,7 @@ void GSDDumpWriter::writeMomenta(const SnapshotParticleData<float>& snapshot, co
         }
 
         {
-        std::vector<float> data(N*4);
+        std::vector<float> data(uint64_t(N)*4);
         data.reserve(1); //! make sure we allocate
         bool all_default = true;
 
@@ -680,7 +664,7 @@ void GSDDumpWriter::writeMomenta(const SnapshotParticleData<float>& snapshot, co
         }
 
         {
-        std::vector<int32_t> data(N*3);
+        std::vector<int32_t> data(uint64_t(N)*3);
         data.reserve(1); //! make sure we allocate
         bool all_default = true;
 
@@ -842,6 +826,85 @@ void GSDDumpWriter::writeTopology(BondData::Snapshot& bond,
         }
     }
 
+/*! Perform the user-provided callbacks and write out the resulting data
+*/
+void GSDDumpWriter::writeUser(unsigned int timestep, bool root)
+    {
+    for (std::pair<std::string, pybind11::function> item : m_user_log)
+        {
+        string name = string("log/") + item.first;
+        m_exec_conf->msg->notice(10) << "dump.gsd: writing " << name << endl;
+
+        // call the callback collectively on all ranks
+        pybind11::object obj = item.second(timestep);
+
+        // only evaluate the numpy array on the root rank
+        if (root)
+            {
+            pybind11::array arr = obj;
+            gsd_type type = GSD_TYPE_UINT8;
+            auto dtype = arr.dtype();
+            if (dtype.kind() == 'u' && dtype.itemsize() == 1)
+                {
+                type = GSD_TYPE_UINT8;
+                }
+            else if (dtype.kind() == 'u' && dtype.itemsize() == 2)
+                {
+                type = GSD_TYPE_UINT16;
+                }
+            else if (dtype.kind() == 'u' && dtype.itemsize() == 4)
+                {
+                type = GSD_TYPE_UINT32;
+                }
+            else if (dtype.kind() == 'u' && dtype.itemsize() == 8)
+                {
+                type = GSD_TYPE_UINT64;
+                }
+            else if (dtype.kind() == 'i' && dtype.itemsize() == 1)
+                {
+                type = GSD_TYPE_INT8;
+                }
+            else if (dtype.kind() == 'i' && dtype.itemsize() == 2)
+                {
+                type = GSD_TYPE_INT16;
+                }
+            else if (dtype.kind() == 'i' && dtype.itemsize() == 4)
+                {
+                type = GSD_TYPE_INT32;
+                }
+            else if (dtype.kind() == 'i' && dtype.itemsize() == 8)
+                {
+                type = GSD_TYPE_INT64;
+                }
+            else if (dtype.kind() == 'f' && dtype.itemsize() == 4)
+                {
+                type = GSD_TYPE_FLOAT;
+                }
+            else if (dtype.kind() == 'f' && dtype.itemsize() == 8)
+                {
+                type = GSD_TYPE_DOUBLE;
+                }
+            else
+                {
+                throw runtime_error("Invalid numpy array format in gsd user-defined log data [" + item.first + "]: " + string(pybind11::str(arr.dtype())));
+                }
+
+            int M = 1;
+            if (arr.ndim() == 2)
+                {
+                M = arr.shape(1);
+                }
+            if (arr.ndim() > 2 || arr.ndim() == 0)
+                {
+                throw runtime_error("Invalid numpy dimension in gsd user-defined log data [" + item.first + "]");
+                }
+
+            int retval = gsd_write_chunk(&m_handle, name.c_str(), type, arr.shape(0), M, 0, (void *)arr.data());
+            checkError(retval);
+            }
+        }
+    }
+
 /*! Populate the m_nondefault map.
     Set entries to true when they exist in frame 0 of the file, otherwise, set them to false.
 */
@@ -918,11 +981,14 @@ void GSDDumpWriter::populateNonDefault()
 
 void export_GSDDumpWriter(py::module& m)
     {
+    py::bind_map<std::map<std::string, pybind11::function>>(m, "MapStringFunction");
+
     py::class_<GSDDumpWriter, std::shared_ptr<GSDDumpWriter> >(m,"GSDDumpWriter",py::base<Analyzer>())
         .def(py::init< std::shared_ptr<SystemDefinition>, std::string, std::shared_ptr<ParticleGroup>, bool, bool>())
         .def("setWriteAttribute", &GSDDumpWriter::setWriteAttribute)
         .def("setWriteProperty", &GSDDumpWriter::setWriteProperty)
         .def("setWriteMomentum", &GSDDumpWriter::setWriteMomentum)
         .def("setWriteTopology", &GSDDumpWriter::setWriteTopology)
+        .def_readwrite("user_log", &GSDDumpWriter::m_user_log)
     ;
     }

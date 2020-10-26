@@ -181,8 +181,8 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
 
     if (flag.x)
         {
-        m_exec_conf->msg->error() << "constrain.rigid(): Composite particle with body tag " << flag.x-1 << " incomplete"
-            << std::endl << std::endl;
+        m_exec_conf->msg->errorAllRanks() << "constrain.rigid(): Composite particle with body tag " << flag.x-1
+                                          << " incomplete" << std::endl << std::endl;
         throw std::runtime_error("Error computing composite particle forces.\n");
         }
 
@@ -331,8 +331,8 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
         unsigned int body_id = h_body.data[idx];
         unsigned int tag = h_tag.data[idx];
 
-        m_exec_conf->msg->error() << "constrain.rigid(): Particle " << tag << " part of composite body " << body_id << " is missing central particle"
-            << std::endl << std::endl;
+        m_exec_conf->msg->errorAllRanks() << "constrain.rigid(): Particle " << tag << " part of composite body "
+                                          << body_id << " is missing central particle" << std::endl << std::endl;
         throw std::runtime_error("Error while updating constituent particles");
         }
 
@@ -343,8 +343,8 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
         unsigned int idx = flag.y - 1;
         unsigned int body_id = h_body.data[idx];
 
-        m_exec_conf->msg->error() << "constrain.rigid(): Composite particle with body id " << body_id << " incomplete"
-            << std::endl << std::endl;
+        m_exec_conf->msg->errorAllRanks() << "constrain.rigid(): Composite particle with body id " << body_id
+                                          << " incomplete" << std::endl << std::endl;
         throw std::runtime_error("Error while updating constituent particles");
         }
 

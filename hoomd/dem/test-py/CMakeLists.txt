@@ -45,6 +45,7 @@ set(TEST_LIST_CPU
     test_basic.py
     test_potentials.py
     test_utils.py
+    test_dem_shape_spec.py
     )
 
 set(TEST_LIST_GPU

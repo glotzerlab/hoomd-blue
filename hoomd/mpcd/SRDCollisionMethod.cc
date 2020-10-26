@@ -110,7 +110,7 @@ void mpcd::SRDCollisionMethod::drawRotationVectors(unsigned int timestep)
                         // (don't use the kinetic energy of this cell, since this
                         // is total not relative to COM)
                         const double cur_ke = alpha * cell_energy.y;
-                        factor = fast::sqrt(rand_ke/cur_ke);
+                        factor = (cur_ke > 0.) ? fast::sqrt(rand_ke/cur_ke) : 1.;
                         }
                     h_factors->data[idx] = factor;
                     }

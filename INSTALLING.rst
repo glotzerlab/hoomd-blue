@@ -1,23 +1,18 @@
 Installing binaries
 ===================
 
-**HOOMD-blue** binaries are available as containers (`Docker Hub
-<https://hub.docker.com/r/glotzerlab/software>`_, `Singularity Hub
-<https://singularity-hub.org/collections/1663>`_) and for Linux and macOS via
-the `hoomd package on conda-forge <https://anaconda.org/conda-forge/hoomd>`_.
+**HOOMD-blue** binaries are available in the `glotzerlab-software <https://glotzerlab-software.readthedocs.io>`_
+`Docker <https://hub.docker.com/>`_/`Singularity <https://www.sylabs.io/>`_ images and for Linux and macOS via the
+`hoomd package on conda-forge <https://anaconda.org/conda-forge/hoomd>`_.
 
-Using Singularity / Docker containers
--------------------------------------
+Singularity / Docker images
+---------------------------
 
-Singularity::
+See the `glotzerlab-software documentation <https://glotzerlab-software.readthedocs.io/>`_ for container usage
+information and cluster specific instructions.
 
-    $ singularity pull --name "software.simg" shub://glotzerlab/software
 
-Docker::
-
-    $ docker pull glotzerlab/software
-
-Installing with conda
+Conda package
 ---------------------
 
 **HOOMD-blue** is available on `conda-forge <https://conda-forge.org>`_. To
@@ -27,9 +22,10 @@ from the ``conda-forge`` channel::
 
     $ conda install -c conda-forge hoomd
 
-If ``hoomd`` has already been installed, you can upgrade to the latest version::
+A build of HOOMD with support for NVIDIA GPUs is also available from the
+``conda-forge`` channel::
 
-    $ conda update hoomd
+    $ conda install -c conda-forge hoomd=*=*gpu*
 
 Compiling from source
 =====================
@@ -118,7 +114,7 @@ https://glotzerlab.engin.umich.edu/Downloads/hoomd
 
 .. code-block:: bash
 
-   $ curl -O https://glotzerlab.engin.umich.edu/Downloads/hoomd/hoomd-v2.6.0.tar.gz
+   $ curl -O https://glotzerlab.engin.umich.edu/Downloads/hoomd/hoomd-v2.9.2.tar.gz
 
 Or, clone using Git:
 

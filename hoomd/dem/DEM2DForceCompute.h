@@ -11,6 +11,7 @@
 #include <memory>
 
 #include "DEMEvaluator.h"
+#include "hoomd/GSDShapeSpecWriter.h"
 
 /*! \file DEM2DForceCompute.h
   \brief Declares the DEM2DForceCompute class
@@ -60,6 +61,18 @@ class DEM2DForceCompute : public ForceCompute
 
         //! Calculates the requested log value and returns it
         virtual Real getLogValue(const std::string& quantity, unsigned int timestep);
+
+        void connectDEMGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer);
+
+        int slotWriteDEMGSDShapeSpec(gsd_handle& handle) const;
+
+        std::string getTypeShape(const std::vector<vec2<Real>> &verts, const Real &radius) const;
+
+        std::string encodeVertices(const std::vector<vec2<Real>> &verts) const;
+
+        std::vector<std::string> getTypeShapeMapping(const std::vector<std::vector<vec2<Real>>> &verts, const Real &radius) const;
+
+        pybind11::list getTypeShapesPy();
 
     #ifdef ENABLE_MPI
         //! Get requested ghost communication flags

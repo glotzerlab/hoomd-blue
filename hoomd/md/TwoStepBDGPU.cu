@@ -18,12 +18,6 @@ using namespace hoomd;
     \brief Defines GPU kernel code for Brownian integration on the GPU. Used by TwoStepBDGPU.
 */
 
-//! Shared memory array for gpu_brownian_step_one_kernel()
-extern __shared__ Scalar s_gammas[];
-
-//! Shared memory array for gpu_brownian_step_one_kernel()
-extern __shared__ Scalar3 s_gammas_r[];
-
 //! Takes the second half-step forward in the Langevin integration on a group of particles with
 /*! \param d_pos array of particle positions and types
     \param d_vel array of particle positions and masses
@@ -86,6 +80,11 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                                   const bool d_noiseless_r,
                                   const unsigned int offset)
     {
+    extern __shared__ char s_data[];
+
+    Scalar3 *s_gammas_r = (Scalar3 *)s_data;
+    Scalar *s_gammas = (Scalar *)(s_gammas_r + n_types);
+
     if (!use_lambda)
         {
         // read in the gamma (1 dimensional array), stored in s_gammas[0: n_type] (Pythonic convention)

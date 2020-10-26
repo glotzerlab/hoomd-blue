@@ -159,6 +159,11 @@ class EvaluatorSquareDensity
             {
             return std::string("squared_density");
             }
+
+        std::string getShapeSpec() const
+            {
+            throw std::runtime_error("Shape definition not supported for this pair potential.");
+            }
         #endif
 
     protected:

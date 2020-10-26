@@ -519,17 +519,17 @@ class boxdim(hoomd.meta._metadata):
         volume (float): Scale the given box dimensions up to the this volume (area if dimensions=2)
 
     Simulation boxes in hoomd are specified by six parameters, *Lx*, *Ly*, *Lz*, *xy*, *xz* and *yz*. For full details,
-    see TODO: ref page. A boxdim provides a way to specify all six parameters for a given box and perform some common
+    see :ref:`boxdim`. A boxdim provides a way to specify all six parameters for a given box and perform some common
     operations with them. Modifying a boxdim does not modify the underlying simulation box in hoomd. A boxdim can be passed
-    to an initialization method or to assigned to a saved sysdef variable (`system.box = new_box`) to set the simulation
+    to an initialization method or to assigned to a saved sysdef variable (``system.box = new_box``) to set the simulation
     box.
 
     Access attributes directly::
 
-        b = data.boxdim(L=20);
-        b.xy = 1.0;
-        b.yz = 0.5;
-        b.Lz = 40;
+        b = data.boxdim(L=20)
+        b.xy = 1.0
+        b.yz = 0.5
+        b.Lz = 40
 
 
     .. rubric:: Two dimensional systems
@@ -543,18 +543,17 @@ class boxdim(hoomd.meta._metadata):
 
     .. rubric:: Shorthand notation
 
-    data.boxdim accepts the keyword argument *L=x* as shorthand notation for `Lx=x, Ly=x, Lz=x` in 3D
-    and `Lx=x, Ly=z, Lz=1` in 2D. If you specify both `L=` and `Lx,Ly, or Lz`, then the value for `L` will override
+    data.boxdim accepts the keyword argument ``L=x`` as shorthand notation for ``Lx=x, Ly=x, Lz=x`` in 3D
+    and ``Lx=x, Ly=x, Lz=1`` in 2D. If you specify both ``L`` and ``Lx``, ``Ly``, or ``Lz``, then the value for ``L`` will override
     the others.
 
     Examples:
 
-    * Cubic box with given volume: `data.boxdim(volume=V)`
-    * Triclinic box in 2D with given area: `data.boxdim(xy=1.0, dimensions=2, volume=A)`
-    * Rectangular box in 2D with given area and aspect ratio: `data.boxdim(Lx=1, Ly=aspect, dimensions=2, volume=A)`
-    * Cubic box with given length: `data.boxdim(L=10)`
-    * Fully define all box parameters: `data.boxdim(Lx=10, Ly=20, Lz=30, xy=1.0, xz=0.5, yz=0.1)`
-
+    * Cubic box with given volume: ``data.boxdim(volume=V)``
+    * Triclinic box in 2D with given area: ``data.boxdim(xy=1.0, dimensions=2, volume=A)``
+    * Rectangular box in 2D with given area and aspect ratio: ``data.boxdim(Lx=1, Ly=aspect, dimensions=2, volume=A)``
+    * Cubic box with given length: ``data.boxdim(L=10)``
+    * Fully define all box parameters: ``data.boxdim(Lx=10, Ly=20, Lz=30, xy=1.0, xz=0.5, yz=0.1)``
     """
     def __init__(self, Lx=1.0, Ly=1.0, Lz=1.0, xy=0.0, xz=0.0, yz=0.0, dimensions=3, L=None, volume=None):
         if L is not None:

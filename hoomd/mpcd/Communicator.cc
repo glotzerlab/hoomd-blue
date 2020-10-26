@@ -62,6 +62,23 @@ mpcd::Communicator::Communicator(std::shared_ptr<mpcd::SystemData> system_data)
     // attach decomposition check to the box change signal
     m_mpcd_sys->getCellList()->getSizeChangeSignal().connect<mpcd::Communicator, &mpcd::Communicator::slotBoxChanged>(this);
 
+    // create new data type for the pdata_element
+    const int nitems = 4;
+    int blocklengths[nitems] = {4,4,1,1};
+    MPI_Datatype types[nitems] = {MPI_HOOMD_SCALAR, MPI_HOOMD_SCALAR, MPI_UNSIGNED, MPI_UNSIGNED};
+    MPI_Aint offsets[nitems];
+    offsets[0] = offsetof(mpcd::detail::pdata_element, pos);
+    offsets[1] = offsetof(mpcd::detail::pdata_element, vel);
+    offsets[2] = offsetof(mpcd::detail::pdata_element, tag);
+    offsets[3] = offsetof(mpcd::detail::pdata_element, comm_flag);
+    // this needs to be made via the resize method to get its upper bound correctly
+    MPI_Datatype tmp;
+    MPI_Type_create_struct(nitems, blocklengths, offsets, types, &tmp);
+    MPI_Type_commit(&tmp);
+    MPI_Type_create_resized(tmp, 0, sizeof(mpcd::detail::pdata_element), &m_pdata_element);
+    MPI_Type_commit(&m_pdata_element);
+    MPI_Type_free(&tmp);
+
     initializeNeighborArrays();
     }
 
@@ -69,6 +86,7 @@ mpcd::Communicator::~Communicator()
     {
     m_exec_conf->msg->notice(5) << "Destroying MPCD Communicator" << std::endl;
     m_mpcd_sys->getCellList()->getSizeChangeSignal().disconnect<mpcd::Communicator, &mpcd::Communicator::slotBoxChanged>(this);
+    MPI_Type_free(&m_pdata_element);
     }
 
 void mpcd::Communicator::initializeNeighborArrays()
@@ -328,19 +346,19 @@ void mpcd::Communicator::migrateParticles(unsigned int timestep)
             int nreq = 0;
             if (n_send_right != 0)
                 {
-                MPI_Isend(h_sendbuf.data + n_keep, n_send_right*sizeof(mpcd::detail::pdata_element), MPI_BYTE, right_neigh, 1, m_mpi_comm, &m_reqs[nreq++]);
+                MPI_Isend(h_sendbuf.data + n_keep, n_send_right, m_pdata_element, right_neigh, 1, m_mpi_comm, &m_reqs[nreq++]);
                 }
             if (n_send_left != 0)
                 {
-                MPI_Isend(h_sendbuf.data + n_keep + n_send_right, n_send_left*sizeof(mpcd::detail::pdata_element), MPI_BYTE, left_neigh, 1, m_mpi_comm, &m_reqs[nreq++]);
+                MPI_Isend(h_sendbuf.data + n_keep + n_send_right, n_send_left, m_pdata_element, left_neigh, 1, m_mpi_comm, &m_reqs[nreq++]);
                 }
             if (n_recv_right != 0)
                 {
-                MPI_Irecv(h_recvbuf.data + n_recv, n_recv_right*sizeof(mpcd::detail::pdata_element), MPI_BYTE, right_neigh, 1, m_mpi_comm, &m_reqs[nreq++]);
+                MPI_Irecv(h_recvbuf.data + n_recv, n_recv_right, m_pdata_element, right_neigh, 1, m_mpi_comm, &m_reqs[nreq++]);
                 }
             if (n_recv_left != 0)
                 {
-                MPI_Irecv(h_recvbuf.data + n_recv + n_recv_right, n_recv_left*sizeof(mpcd::detail::pdata_element), MPI_BYTE, left_neigh, 1, m_mpi_comm, &m_reqs[nreq++]);
+                MPI_Irecv(h_recvbuf.data + n_recv + n_recv_right, n_recv_left, m_pdata_element, left_neigh, 1, m_mpi_comm, &m_reqs[nreq++]);
                 }
             MPI_Waitall(nreq, m_reqs.data(), MPI_STATUSES_IGNORE);
             if (m_prof) m_prof->pop(0, (n_send_left+n_send_right+n_recv_left+n_recv_right)*sizeof(mpcd::detail::pdata_element));

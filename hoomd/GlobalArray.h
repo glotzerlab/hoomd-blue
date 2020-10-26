@@ -131,6 +131,12 @@ class managed_deleter
                 }
             #endif
 
+            // we used placement new in the allocation, so call destructors explicitly
+            for (std::size_t i = 0; i < m_N; ++i)
+                {
+                ptr[i].~T();
+                }
+
             #ifdef ENABLE_CUDA
             if (m_use_device)
                 {
@@ -214,7 +220,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
     public:
         //! Empty constructor
         GlobalArray()
-            : m_num_elements(0), m_pitch(0), m_height(0), m_acquired(false), m_align_bytes(0)
+            : m_num_elements(0), m_pitch(0), m_height(0), m_acquired(false), m_align_bytes(0), m_is_managed(false)
             { }
 
         /*! Allocate a 1D array in managed memory
@@ -222,18 +228,19 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
             \param exec_conf The current execution configuration
          */
         GlobalArray(unsigned int num_elements, std::shared_ptr<const ExecutionConfiguration> exec_conf,
-            const std::string& tag = std::string() )
+            const std::string& tag = std::string(), bool force_managed=false)
             : m_exec_conf(exec_conf),
             #ifndef ALWAYS_USE_MANAGED_MEMORY
             // explicit copy should be elided
-            m_fallback(exec_conf->allConcurrentManagedAccess() ?
+            m_fallback((exec_conf->allConcurrentManagedAccess() || (force_managed && exec_conf->isCUDAEnabled())) ?
                 GPUArray<T>() : GPUArray<T>(num_elements, exec_conf)),
             #endif
             m_num_elements(num_elements), m_pitch(num_elements), m_height(1), m_acquired(false), m_tag(tag),
-            m_align_bytes(0)
+            m_align_bytes(0),
+            m_is_managed(exec_conf->allConcurrentManagedAccess() || (force_managed && exec_conf->isCUDAEnabled()))
             {
             #ifndef ALWAYS_USE_MANAGED_MEMORY
-            if (!this->m_exec_conf->allConcurrentManagedAccess())
+            if (!(m_is_managed))
                 return;
             #endif
 
@@ -263,7 +270,8 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
               #endif
               m_num_elements(from.m_num_elements),
               m_pitch(from.m_pitch), m_height(from.m_height), m_acquired(false),
-              m_tag(from.m_tag), m_align_bytes(from.m_align_bytes)
+              m_tag(from.m_tag), m_align_bytes(from.m_align_bytes),
+              m_is_managed(false)
             {
             if (from.m_data.get())
                 {
@@ -343,7 +351,8 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
               m_height(std::move(other.m_height)),
               m_acquired(std::move(other.m_acquired)),
               m_tag(std::move(other.m_tag)),
-              m_align_bytes(std::move(other.m_align_bytes))
+              m_align_bytes(std::move(other.m_align_bytes)),
+              m_is_managed(std::move(other.m_is_managed))
               #ifdef ENABLE_CUDA
               , m_event(std::move(other.m_event))
               #endif
@@ -367,6 +376,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
                 m_acquired = std::move(other.m_acquired);
                 m_tag = std::move(other.m_tag);
                 m_align_bytes = std::move(other.m_align_bytes);
+                m_is_managed = std::move(other.m_is_managed);
                 #ifdef ENABLE_CUDA
                 m_event = std::move(other.m_event);
                 #endif
@@ -380,17 +390,18 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
             \param height Number of rows to allocate in the 2D array
             \param exec_conf Shared pointer to the execution configuration for managing CUDA initialization and shutdown
          */
-        GlobalArray(unsigned int width, unsigned int height, std::shared_ptr<const ExecutionConfiguration> exec_conf)
+        GlobalArray(unsigned int width, unsigned int height, std::shared_ptr<const ExecutionConfiguration> exec_conf, bool force_managed=false)
             : m_exec_conf(exec_conf),
             #ifndef ALWAYS_USE_MANAGED_MEMORY
             // explicit copy should be elided
-            m_fallback(exec_conf->allConcurrentManagedAccess() ?
+            m_fallback((exec_conf->allConcurrentManagedAccess() || (force_managed && exec_conf->isCUDAEnabled())) ?
                 GPUArray<T>() : GPUArray<T>(width, height, exec_conf)),
             #endif
-            m_height(height), m_acquired(false), m_align_bytes(0)
+            m_height(height), m_acquired(false), m_align_bytes(0),
+            m_is_managed(exec_conf->allConcurrentManagedAccess() || (force_managed && exec_conf->isCUDAEnabled()))
             {
             #ifndef ALWAYS_USE_MANAGED_MEMORY
-            if (!this->m_exec_conf->allConcurrentManagedAccess())
+            if (!m_is_managed)
                 return;
             #endif
 
@@ -425,6 +436,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
             std::swap(m_height,from.m_height);
             std::swap(m_tag, from.m_tag);
             std::swap(m_align_bytes, from.m_align_bytes);
+            std::swap(m_is_managed, from.m_is_managed);
             #ifdef ENABLE_CUDA
             std::swap(m_event, from.m_event);
             #endif
@@ -455,7 +467,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
         inline unsigned int getNumElements() const
             {
             #ifndef ALWAYS_USE_MANAGED_MEMORY
-            if (!this->m_exec_conf || !this->m_exec_conf->allConcurrentManagedAccess())
+            if (!this->m_exec_conf || !m_is_managed)
                 return m_fallback.getNumElements();
             #endif
 
@@ -466,7 +478,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
         inline bool isNull() const
             {
             #ifndef ALWAYS_USE_MANAGED_MEMORY
-            if (!this->m_exec_conf || ! this->m_exec_conf->allConcurrentManagedAccess())
+            if (!this->m_exec_conf || ! m_is_managed)
                 return m_fallback.isNull();
             #endif
 
@@ -481,7 +493,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
         inline unsigned int getPitch() const
             {
             #ifndef ALWAYS_USE_MANAGED_MEMORY
-            if (!this->m_exec_conf || ! this->m_exec_conf->allConcurrentManagedAccess())
+            if (!this->m_exec_conf || ! m_is_managed)
                 return m_fallback.getPitch();
             #endif
 
@@ -496,7 +508,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
         inline unsigned int getHeight() const
             {
             #ifndef ALWAYS_USE_MANAGED_MEMORY
-            if (!this->m_exec_conf || ! this->m_exec_conf->allConcurrentManagedAccess())
+            if (!this->m_exec_conf || ! m_is_managed)
                 return m_fallback.getHeight();
             #endif
 
@@ -510,7 +522,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
         inline void resize(unsigned int num_elements)
             {
             #ifndef ALWAYS_USE_MANAGED_MEMORY
-            if (! this->m_exec_conf || ! this->m_exec_conf->allConcurrentManagedAccess())
+            if (! this->m_exec_conf || ! m_is_managed)
                 {
                 m_fallback.resize(num_elements);
                 return;
@@ -556,7 +568,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
             assert(this->m_exec_conf);
 
             #ifndef ALWAYS_USE_MANAGED_MEMORY
-            if (! this->m_exec_conf->allConcurrentManagedAccess())
+            if (! m_is_managed)
                 {
                 m_fallback.resize(width, height);
                 return;
@@ -645,7 +657,6 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
 
         friend class GlobalArrayDispatch<T>;
 
-    protected:
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf;    //!< execution configuration for working with CUDA
 
     private:
@@ -665,6 +676,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
         std::string m_tag;     //!< Name tag of this buffer (optional)
 
         unsigned int m_align_bytes; //!< Size of alignment in bytes
+        bool m_is_managed;  //!< Whether or not this array is stored using managed memory.
 
         #ifdef ENABLE_CUDA
         std::unique_ptr<cudaEvent_t, hoomd::detail::event_deleter> m_event;   //! CUDA event for synchronization
@@ -745,6 +757,9 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
             deleter.setTag(m_tag);
             m_data = std::unique_ptr<T, decltype(deleter)>(reinterpret_cast<T *>(ptr), deleter);
 
+            // construct objects explicitly using placement new
+            for (std::size_t i = 0; i < m_num_elements; ++i) ::new ((void **) &((T *)ptr)[i]) T;
+
             // register new allocation
             if (this->m_exec_conf && this->m_exec_conf->getMemoryTracer())
                 this->m_exec_conf->getMemoryTracer()->registerAllocation(reinterpret_cast<const void *>(m_data.get()),
@@ -787,7 +802,7 @@ inline ArrayHandleDispatch<T> GlobalArray<T>::acquire(const access_location::Enu
 
     {
     #ifndef ALWAYS_USE_MANAGED_MEMORY
-    if (!this->m_exec_conf || ! this->m_exec_conf->allConcurrentManagedAccess())
+    if (!this->m_exec_conf || ! m_is_managed)
         return m_fallback.acquire(location, mode
             #ifdef ENABLE_CUDA
                              , async
@@ -795,11 +810,12 @@ inline ArrayHandleDispatch<T> GlobalArray<T>::acquire(const access_location::Enu
             );
     #endif
 
+    checkAcquired(*this);
+    m_acquired = true;
+
     // make sure a null array can be acquired
     if (!this->m_exec_conf || isNull() )
         return GlobalArrayDispatch<T>(nullptr, *this);
-
-    checkAcquired(*this);
 
     if (this->m_exec_conf && this->m_exec_conf->inMultiGPUBlock())
         {
@@ -818,8 +834,6 @@ inline ArrayHandleDispatch<T> GlobalArray<T>::acquire(const access_location::Enu
             CHECK_CUDA_ERROR();
         }
     #endif
-
-    m_acquired = true;
 
     return GlobalArrayDispatch<T>(m_data.get(), *this);
     }

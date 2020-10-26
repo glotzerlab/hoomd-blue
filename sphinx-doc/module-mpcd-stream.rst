@@ -10,6 +10,7 @@ mpcd.stream
 
     bulk
     slit
+    slit_pore
 
 .. rubric:: Details
 

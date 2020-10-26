@@ -119,6 +119,11 @@ class EvaluatorPairYukawa
             {
             return std::string("yukawa");
             }
+
+        std::string getShapeSpec() const
+            {
+            throw std::runtime_error("Shape definition not supported for this pair potential.");
+            }
         #endif
 
     protected:

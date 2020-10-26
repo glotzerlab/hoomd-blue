@@ -14,6 +14,12 @@ the force field does not cause the system to net accelerate (i.e., it must maint
 required to maintain temperature control in the driven system (see
 :py:mod:`.mpcd.collide`).
 
+.. note::
+
+    The external force **must** be attached to a streaming method
+    (see :py:mod:`.mpcd.stream`) using `set_force` to take effect.
+    On its own, the force object will not affect the system.
+
 """
 
 import hoomd
@@ -86,6 +92,12 @@ class block(_force):
         # default blocks to full box
         force.block(F=0.5)
 
+    .. note::
+
+        The external force **must** be attached to a streaming method
+        (see :py:mod:`.mpcd.stream`) using `set_force` to take effect.
+        On its own, the force object will not affect the system.
+
     .. versionadded:: 2.6
 
     """
@@ -156,6 +168,12 @@ class constant(_force):
         g = np.array([0.,0.,-1.])
         force.constant(g)
 
+    .. note::
+
+        The external force **must** be attached to a streaming method
+        (see :py:mod:`.mpcd.stream`) using `set_force` to take effect.
+        On its own, the force object will not affect the system.
+
     .. versionadded:: 2.6
 
     """
@@ -211,6 +229,12 @@ class sine(_force):
     The user will need to determine what value of *k* makes sense for their
     problem, as it is too difficult to validate all values of *k* for all
     streaming geometries.
+
+    .. note::
+
+        The external force **must** be attached to a streaming method
+        (see :py:mod:`.mpcd.stream`) using `set_force` to take effect.
+        On its own, the force object will not affect the system.
 
     .. versionadded:: 2.6
 

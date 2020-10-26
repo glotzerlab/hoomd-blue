@@ -60,11 +60,14 @@ class lattice_field(_external):
     Once initialized, the compute provides the following log quantities that can be logged via analyze.log:
 
     * **lattice_energy** -- total lattice energy
-    * **lattice_energy_pp_avg** -- average lattice energy per particle
-    * **lattice_energy_pp_sigma** -- standard deviation of the lattice energy per particle
+    * **lattice_energy_pp_avg** -- average lattice energy per particle multiplied by the spring constant
+    * **lattice_energy_pp_sigma** -- standard deviation of the lattice energy per particle multiplied by the spring constant
     * **lattice_translational_spring_constant** -- translational spring constant
     * **lattice_rotational_spring_constant** -- rotational spring constant
     * **lattice_num_samples** -- number of samples used to compute the average and standard deviation
+
+    .. warning::
+        The lattice energies and standard deviations logged by this class are multiplied by the spring constant.
 
     Example::
 
@@ -829,16 +832,25 @@ class frenkel_ladd_energy(_compute):
     R""" Compute the Frenkel-Ladd Energy of a crystal.
 
     Args:
+        mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
         ln_gamma (float): log of the translational spring constant
         q_factor (float): scale factor between the translational spring constant and rotational spring constant
         r0 (list): reference lattice positions
         q0 (list): reference lattice orientations
         drift_period (int): period call the remove drift updater
+        symmetry (list): list of equivalent quaternions for the shape.
 
     :py:class:`frenkel_ladd_energy` interacts with :py:class:`.lattice_field`
     and :py:class:`hoomd.hpmc.update.remove_drift`.
 
     Once initialized, the compute provides the log quantities from the :py:class:`lattice_field`.
+
+    .. warning::
+        The lattice energies and standard deviations logged by
+        :py:class:`lattice_field` are multiplied by the spring constant. As a result,
+        when computing the free energies from :py:class:`frenkel_ladd_energy` class,
+        instead of integrating the free energy over the spring constants, you should
+        integrate over the natural log of the spring constants.
 
     Example::
 

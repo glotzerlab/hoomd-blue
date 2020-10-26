@@ -911,7 +911,7 @@ template<class T> void GPUArray<T>::allocate()
     if (retval != 0)
         {
         if (m_exec_conf)
-            m_exec_conf->msg->error() << "Error allocating aligned memory" << std::endl;
+            m_exec_conf->msg->errorAllRanks() << "Error allocating aligned memory" << std::endl;
         throw std::runtime_error("Error allocating GPUArray.");
         }
 
@@ -1231,7 +1231,7 @@ template<class T> T* GPUArray<T>::resizeHostArray(unsigned int num_elements)
     if (retval != 0)
         {
         if (m_exec_conf)
-            m_exec_conf->msg->error() << "Error allocating aligned memory" << std::endl;
+            m_exec_conf->msg->errorAllRanks() << "Error allocating aligned memory" << std::endl;
         throw std::runtime_error("Error allocating GPUArray.");
         }
 
@@ -1286,7 +1286,7 @@ template<class T> T* GPUArray<T>::resize2DHostArray(unsigned int pitch, unsigned
     if (retval != 0)
         {
         if (m_exec_conf)
-            m_exec_conf->msg->error() << "Error allocating aligned memory" << std::endl;
+            m_exec_conf->msg->errorAllRanks() << "Error allocating aligned memory" << std::endl;
         throw std::runtime_error("Error allocating GPUArray.");
         }
 

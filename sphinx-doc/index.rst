@@ -7,7 +7,7 @@ HOOMD-blue
     |Citing-HOOMD|
     |conda-forge|
     |conda-forge-Downloads|
-    |CircleCI|
+    |Azure Pipelines|
     |Read-the-Docs|
     |Contributors|
     |License|
@@ -19,8 +19,8 @@ HOOMD-blue
         :target: https://anaconda.org/conda-forge/hoomd
     .. |conda-forge-Downloads| image:: https://img.shields.io/conda/dn/conda-forge/hoomd.svg?style=flat
         :target: https://anaconda.org/conda-forge/hoomd
-    .. |CircleCI| image:: https://img.shields.io/circleci/project/github/glotzerlab/hoomd-blue/maint.svg
-        :target: https://circleci.com/gh/glotzerlab/hoomd-blue
+    .. |Azure Pipelines| image:: https://dev.azure.com/glotzerlab/hoomd-blue/_apis/build/status/test?branchName=master
+        :target: https://dev.azure.com/glotzerlab/hoomd-blue/_build
     .. |Read-the-Docs| image:: https://img.shields.io/readthedocs/hoomd-blue/stable.svg
         :target: https://hoomd-blue.readthedocs.io/en/stable/?badge=stable
     .. |Contributors| image:: https://img.shields.io/github/contributors-anon/glotzerlab/hoomd-blue.svg?style=flat

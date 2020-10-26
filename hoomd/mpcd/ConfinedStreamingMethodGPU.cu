@@ -32,5 +32,9 @@ template cudaError_t confined_stream<mpcd::detail::BulkGeometry>
 template cudaError_t confined_stream<mpcd::detail::SlitGeometry>
     (const stream_args_t& args, const mpcd::detail::SlitGeometry& geom);
 
+//! Template instantiation of slit geometry streaming
+template cudaError_t confined_stream<mpcd::detail::SlitPoreGeometry>
+    (const stream_args_t& args, const mpcd::detail::SlitPoreGeometry& geom);
+
 } // end namespace gpu
 } // end namespace mpcd

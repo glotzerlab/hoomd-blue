@@ -128,6 +128,11 @@ class EvaluatorPairLJ1208
             {
             return std::string("lj1208");
             }
+
+        std::string getShapeSpec() const
+            {
+            throw std::runtime_error("Shape definition not supported for this pair potential.");
+            }
         #endif
 
     protected:

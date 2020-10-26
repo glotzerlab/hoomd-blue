@@ -82,7 +82,7 @@ __global__ void srd_draw_vectors(double3 *d_rotvec,
             // (don't use the kinetic energy of this cell, since this
             // is total not relative to COM)
             const double cur_ke = alpha * cell_energy.y;
-            factor = fast::sqrt(rand_ke/cur_ke);
+            factor = (cur_ke > 0.) ? fast::sqrt(rand_ke/cur_ke) : 1.;
             }
         d_factors[idx] = factor;
         }

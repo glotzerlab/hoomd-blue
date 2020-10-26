@@ -64,18 +64,20 @@ void mpcd::ATCollisionMethod::drawVelocities(unsigned int timestep)
     {
     // mpcd particle data
     ArrayHandle<unsigned int> h_tag(m_mpcd_pdata->getTags(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_vel(m_mpcd_pdata->getAltVelocities(), access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar4> h_alt_vel(m_mpcd_pdata->getAltVelocities(), access_location::host, access_mode::overwrite);
     const unsigned int N_mpcd = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual();
     unsigned int N_tot = N_mpcd;
 
     // embedded particle data
     std::unique_ptr< ArrayHandle<unsigned int> > h_embed_idx;
     std::unique_ptr< ArrayHandle<Scalar4> > h_vel_embed;
+    std::unique_ptr< ArrayHandle<Scalar4> > h_alt_vel_embed;
     std::unique_ptr< ArrayHandle<unsigned int> > h_tag_embed;
     if (m_embed_group)
         {
         h_embed_idx.reset(new ArrayHandle<unsigned int>(m_embed_group->getIndexArray(), access_location::host, access_mode::read));
-        h_vel_embed.reset(new ArrayHandle<Scalar4>(m_pdata->getAltVelocities(), access_location::host, access_mode::overwrite));
+        h_vel_embed.reset(new ArrayHandle<Scalar4>(m_pdata->getVelocities(), access_location::host, access_mode::read));
+        h_alt_vel_embed.reset(new ArrayHandle<Scalar4>(m_pdata->getAltVelocities(), access_location::host, access_mode::overwrite));
         h_tag_embed.reset(new ArrayHandle<unsigned int>(m_pdata->getTags(), access_location::host, access_mode::read));
         N_tot += m_embed_group->getNumMembers();
         }
@@ -95,8 +97,7 @@ void mpcd::ATCollisionMethod::drawVelocities(unsigned int timestep)
         else
             {
             pidx = h_embed_idx->data[idx-N_mpcd];
-            const Scalar4 vel_mass = h_vel_embed->data[pidx];
-            mass = vel_mass.w;
+            mass = h_vel_embed->data[pidx].w;
             tag = h_tag_embed->data[pidx];
             }
 
@@ -110,11 +111,11 @@ void mpcd::ATCollisionMethod::drawVelocities(unsigned int timestep)
         // save out velocities
         if (idx < N_mpcd)
             {
-            h_vel.data[pidx] = make_scalar4(vel.x, vel.y, vel.z, __int_as_scalar(mpcd::detail::NO_CELL));
+            h_alt_vel.data[pidx] = make_scalar4(vel.x, vel.y, vel.z, __int_as_scalar(mpcd::detail::NO_CELL));
             }
         else
             {
-            h_vel_embed->data[pidx] = make_scalar4(vel.x, vel.y, vel.z, mass);
+            h_alt_vel_embed->data[pidx] = make_scalar4(vel.x, vel.y, vel.z, mass);
             }
         }
     }

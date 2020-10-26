@@ -187,10 +187,10 @@ class _analyzer(hoomd.meta._metadata):
 
     def _connect_gsd(self, gsd):
         # This is an internal method, and should not be called directly. See gsd.dump_state() instead
-        if isinstance(gsd, hoomd.dump.gsd) and hasattr(self.cpp_analyzer, "connectGSDSignal"):
-            self.cpp_analyzer.connectGSDSignal(gsd.cpp_analyzer, self._gsd_state_name());
+        if isinstance(gsd, hoomd.dump.gsd) and hasattr(self.cpp_analyzer, "connectGSDStateSignal"):
+            self.cpp_analyzer.connectGSDStateSignal(gsd.cpp_analyzer, self._gsd_state_name());
         else:
-            raise NotImplementedError("GSD Schema is not implemented for {}".format(cls.__name__));
+            raise NotImplementedError("GSD Schema is not implemented for {}".format(self.__class__.__name__));
 
     def restore_state(self):
         """ Restore the state information from the file used to initialize the simulations
@@ -357,7 +357,6 @@ class log(_analyzer):
     - Integrators
 
       - **langevin_reservoir_energy_groupname** (:py:class:`hoomd.md.integrate.langevin`) - Energy reservoir for the Langevin integrator (in energy units)
-      - **nvt_reservoir_energy_groupname** (:py:class:`hoomd.md.integrate.nvt`) - Energy reservoir for the NVT thermostat (in energy units)
       - **nvt_mtk_reservoir_energy_groupname** (:py:class:`hoomd.md.integrate.nvt`) - Energy reservoir for the NVT MTK thermostat (in energy units)
       - **npt_thermostat_energy** (:py:class:`hoomd.md.integrate.npt`) - Energy of the NPT thermostat
       - **npt_barostat_energy** (:py:class:`hoomd.md.integrate.npt` & :py:class:`hoomd.md.integrate.nph`) - Energy of the NPT (or NPH) barostat

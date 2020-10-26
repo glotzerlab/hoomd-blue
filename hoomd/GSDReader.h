@@ -85,6 +85,8 @@ class PYBIND11_EXPORT GSDReader
             return m_handle;
             }
 
+        pybind11::list readTypeShapesPy(uint64_t frame);
+
     private:
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
         uint64_t m_timestep;                                         //!< Timestep at the selected frame
@@ -100,6 +102,9 @@ class PYBIND11_EXPORT GSDReader
         void readHeader();
         void readParticles();
         void readTopology();
+
+        /// Check and raise an exception if an error occurs
+        void checkError(int retval);
     };
 
 //! Exports GSDReader to python

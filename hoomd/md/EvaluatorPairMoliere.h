@@ -116,9 +116,14 @@ class EvaluatorPairMoliere
             energies will be logged as via analyze.log.
         */
         static std::string getName()
-        {
+            {
             return std::string("moliere");
-        }
+            }
+
+        std::string getShapeSpec() const
+            {
+            throw std::runtime_error("Shape definition not supported for this pair potential.");
+            }
         #endif
 
     protected:

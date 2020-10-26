@@ -110,6 +110,6 @@ namespace detail
 void export_SRDCollisionMethod(pybind11::module& m);
 } // end namespace detail
 
-} // end namespace azplugins
+} // end namespace mpcd
 
 #endif // MPCD_SRD_COLLISION_METHOD_H_

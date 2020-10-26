@@ -16,15 +16,6 @@ using namespace hoomd;
     \brief Defines GPU kernel code for Langevin integration on the GPU. Used by TwoStepLangevinGPU.
 */
 
-//! Shared memory array for gpu_langevin_step_two_kernel()
-extern __shared__ Scalar s_gammas[];
-
-//! Shared memory array for gpu_langevin_angular_step_two_kernel()
-extern __shared__ Scalar3 s_gammas_r[];
-
-//! Shared memory used in reducing sums for bd energy tally
-extern __shared__ Scalar bdtally_sdata[];
-
 //! Takes the second half-step forward in the Langevin integration on a group of particles with
 /*! \param d_pos array of particle positions and types
     \param d_vel array of particle positions and masses
@@ -52,8 +43,7 @@ extern __shared__ Scalar bdtally_sdata[];
 
     This kernel must be launched with enough dynamic shared memory per block to read in d_gamma
 */
-extern "C" __global__
-void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
+__global__ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
                                  Scalar4 *d_vel,
                                  Scalar3 *d_accel,
                                  const Scalar *d_diameter,
@@ -74,6 +64,9 @@ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
                                  bool tally,
                                  Scalar *d_partial_sum_bdenergy)
     {
+    extern __shared__ char s_data[];
+    Scalar *s_gammas = (Scalar *)s_data;
+
     if (!use_lambda)
         {
         // read in the gammas (1 dimensional array)
@@ -161,6 +154,7 @@ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
 
         }
 
+    Scalar *bdtally_sdata = (Scalar *)&s_data[0];
     if (tally)
         {
         // don't overwrite values in the s_gammas array with bd_energy transfer
@@ -193,12 +187,13 @@ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
     \param d_partial_sum Array containing the partial sum
     \param num_blocks Number of blocks to execute
 */
-extern "C" __global__
-    void gpu_bdtally_reduce_partial_sum_kernel(Scalar *d_sum,
+__global__ void gpu_bdtally_reduce_partial_sum_kernel(Scalar *d_sum,
                                             Scalar* d_partial_sum,
                                             unsigned int num_blocks)
     {
     Scalar sum = Scalar(0.0);
+    extern __shared__ char s_data[];
+    Scalar *bdtally_sdata = (Scalar *)&s_data[0];
 
     // sum up the values in the partial sum via a sliding window
     for (int start = 0; start < num_blocks; start += blockDim.x)
@@ -268,6 +263,9 @@ __global__ void gpu_langevin_angular_step_two_kernel(
                              Scalar scale
                             )
     {
+    extern __shared__ char s_data[];
+    Scalar3 *s_gammas_r = (Scalar3 *)s_data;
+
     // read in the gamma_r, stored in s_gammas_r[0: n_type] (Pythonic convention)
     for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
         {
@@ -402,8 +400,8 @@ cudaError_t gpu_langevin_angular_step_two(const Scalar4 *d_pos,
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    gpu_langevin_angular_step_two_kernel<<< grid, threads, max( (unsigned int)(sizeof(Scalar)*langevin_args.n_types),
-                                                                (unsigned int)(langevin_args.block_size*sizeof(Scalar3))
+    gpu_langevin_angular_step_two_kernel<<< grid, threads, max( (unsigned int)(sizeof(Scalar3)*langevin_args.n_types),
+                                                                (unsigned int)(langevin_args.block_size*sizeof(Scalar))
                                                               ) >>>
                                        (d_pos,
                                         d_orientation,

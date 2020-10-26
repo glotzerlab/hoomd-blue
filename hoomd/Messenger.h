@@ -117,6 +117,9 @@ class PYBIND11_EXPORT Messenger
         //! Get the error stream
         std::ostream& error();
 
+        //! Get the error stream on all ranks
+        std::ostream& errorAllRanks();
+
         //! Alternate method to print error strings
         void errorStr(const std::string& msg);
 
@@ -255,22 +258,6 @@ class PYBIND11_EXPORT Messenger
 
             openSharedFile();
             }
-
-        //! Returns true if this if this rank has exclusive stdout access for error messages
-        bool hasLock() const
-            {
-            return m_has_lock;
-            }
-
-        //! Returns true if any process has locked the output
-        bool isLocked() const
-            {
-            int flag;
-            MPI_Win_lock(MPI_LOCK_EXCLUSIVE, 0,0, m_mpi_win);
-            MPI_Get(&flag, 1, MPI_INT, 0, 0, 1, MPI_INT, m_mpi_win);
-            MPI_Win_unlock(0, m_mpi_win);
-            return flag;
-            }
 #endif
 
         //! Open stdout and stderr again, closing any open file
@@ -302,18 +289,9 @@ class PYBIND11_EXPORT Messenger
 
 #ifdef ENABLE_MPI
         std::string m_shared_filename;  //!< Filename of shared log file
-        MPI_Win m_mpi_win;              //!< MPI Window for atomic printing of error messages
-        int *m_error_flag;              //!< Flag on (on processor 0) to lock stdout
-        mutable bool m_has_lock;        //!< True if this rank has exclusive access to stdout
 
         //! Open a shared file for error, warning, and notice streams
         void openSharedFile();
-
-        //! Initialize RMA
-        void initializeSharedMem();
-
-        //! Free RMA
-        void releaseSharedMem();
 #endif
     };
 

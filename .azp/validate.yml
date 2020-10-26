@@ -1,0 +1,194 @@
+# developers must opt in to the long validation test runs
+# on a branch: manually trigger the build at: https://dev.azure.com/glotzerlab/hoomd-blue/_build?definitionId=3&_a=summary
+# on a PR: add a comment to the PR on GitHub '/azp run validate'
+
+trigger: none
+
+variables:
+  image_root: glotzerlab/ci:2019.11
+
+  # default build parameters, will override as needed with job matrix values
+  enable_cuda: off
+  enable_mpi: off
+  enable_tbb: off
+  build_jit: off
+  omp_num_threads: '2'
+  llvm_version: '6.0'
+  always_use_managed_memory: off
+  # enable only validation testing
+  build_validation: on
+  build_testing: off
+  # split long tests into 4 groups
+  ctest_stride: 4
+  mpiexec_timeout: 21600
+
+stages:
+- stage: build_validate_cpu
+  displayName: Validate (CPU)
+
+  jobs:
+  - job: vld_linux_cpu
+    displayName: Linux
+    timeoutInMinutes: 350
+
+    strategy:
+      matrix:
+        clang9_py38_mpi_tbb2_llvm6_1:
+          container_image: clang9_py38
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '9.0'
+          ctest_start: 1
+          suite_name: CPU tbb2
+        clang9_py38_mpi_tbb2_llvm6_2:
+          container_image: clang9_py38
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '9.0'
+          ctest_start: 2
+          suite_name: CPU tbb2
+        clang9_py38_mpi_tbb2_llvm6_3:
+          container_image: clang9_py38
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '9.0'
+          ctest_start: 3
+          suite_name: CPU tbb2
+        clang9_py38_mpi_tbb2_llvm6_4:
+          container_image: clang9_py38
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '9.0'
+          ctest_start: 4
+          suite_name: CPU tbb2
+
+        clang9_py38_mpi_tbb1_llvm6_1:
+          container_image: clang9_py38
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '9.0'
+          omp_num_threads: '1'
+          ctest_start: 1
+          suite_name: CPU tbb1
+        clang9_py38_mpi_tbb1_llvm6_2:
+          container_image: clang9_py38
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '9.0'
+          omp_num_threads: '1'
+          ctest_start: 2
+          suite_name: CPU tbb1
+        clang9_py38_mpi_tbb1_llvm6_3:
+          container_image: clang9_py38
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '9.0'
+          omp_num_threads: '1'
+          ctest_start: 3
+          suite_name: CPU tbb1
+        clang9_py38_mpi_tbb1_llvm6_4:
+          container_image: clang9_py38
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '9.0'
+          omp_num_threads: '1'
+          ctest_start: 4
+          suite_name: CPU tbb1
+
+        clang9_py38_mpi_llvm6_1:
+          container_image: clang9_py38
+          enable_mpi: on
+          build_jit: on
+          llvm_version: '9.0'
+          ctest_start: 1
+          suite_name: CPU no-tbb
+        clang9_py38_mpi_llvm6_2:
+          container_image: clang9_py38
+          enable_mpi: on
+          build_jit: on
+          llvm_version: '9.0'
+          ctest_start: 2
+          suite_name: CPU no-tbb
+        clang9_py38_mpi_llvm6_3:
+          container_image: clang9_py38
+          enable_mpi: on
+          build_jit: on
+          llvm_version: '9.0'
+          ctest_start: 3
+          suite_name: CPU no-tbb
+        clang9_py38_mpi_llvm6_4:
+          container_image: clang9_py38
+          enable_mpi: on
+          build_jit: on
+          llvm_version: '9.0'
+          ctest_start: 4
+          suite_name: CPU no-tbb
+
+    pool:
+      vmImage: 'ubuntu-16.04'
+
+    container:
+      image: $(image_root)-$(container_image)
+      options: -u 0
+
+    steps:
+    - template: templates/build_test.yml
+
+- stage: build_validate_gpu
+  displayName: Validate (GPU)
+  dependsOn: []
+  variables:
+    enable_cuda: on
+
+  jobs:
+  - job: vld_linux_gpu
+    displayName: Linux
+    timeoutInMinutes: 360
+
+    strategy:
+      matrix:
+        cuda10_py37_cuda10_mpi_1:
+          container_image: cuda10_py37
+          enable_mpi: on
+          ctest_start: 1
+          suite_name: GPU cuda10
+
+        cuda10_py37_cuda10_mpi_2:
+          container_image: cuda10_py37
+          enable_mpi: on
+          ctest_start: 2
+          suite_name: GPU cuda10
+
+        cuda10_py37_cuda10_mpi_3:
+          container_image: cuda10_py37
+          enable_mpi: on
+          ctest_start: 3
+          suite_name: GPU cuda10
+
+        cuda10_py37_cuda10_mpi_4:
+          container_image: cuda10_py37
+          enable_mpi: on
+          ctest_start: 4
+          suite_name: GPU cuda10
+
+    pool:
+      name: 'GPU'
+      demands: dual_gpu
+
+    container:
+       image: $(image_root)-$(container_image)
+       options: -u 0 --gpus=all --cpus=4 --memory=8g -e CUDA_VISIBLE_DEVICES
+
+    workspace:
+      clean: all
+
+    steps:
+    - template: templates/build_test.yml

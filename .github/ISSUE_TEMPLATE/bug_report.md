@@ -53,4 +53,4 @@ Versions:
 
 ## Developer
 
-<!-- Are you able to fix this bug for the benefit of the HOOMD-blue user community? -->
+<!-- Who should implement the fix? We would welcome your contribution! -->

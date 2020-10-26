@@ -211,7 +211,7 @@ class harmonic(force._force):
 
     .. math::
 
-        V(r) = \frac{1}{2}k \left( 1 + d \cos\left(n * \phi(r) \right) \right)
+        V(r) = \frac{1}{2}k \left( 1 + d \cos\left(n * \phi(r) - \phi_0 \right) \right)
 
     where :math:`\phi` is angle between two sides of the dihedral.
 
@@ -220,6 +220,7 @@ class harmonic(force._force):
     - :math:`k` - strength of force (in energy units)
     - :math:`d` - sign factor (unitless)
     - :math:`n` - angle scaling factor (unitless)
+    - :math:`\phi_0` - phase shift  ``phi_0`` (in radians) - *optional*: defaults to 0.0
 
     Coefficients :math:`k`, :math:`d`, :math:`n` must be set for each type of dihedral in the simulation using
     :py:meth:`dihedral_coeff.set() <coeff.set()>`.
@@ -227,7 +228,7 @@ class harmonic(force._force):
     Examples::
 
         harmonic.dihedral_coeff.set('phi-ang', k=30.0, d=-1, n=3)
-        harmonic.dihedral_coeff.set('psi-ang', k=100.0, d=1, n=4)
+        harmonic.dihedral_coeff.set('psi-ang', k=100.0, d=1, n=4, phi_0=math.pi/2)
     """
     def __init__(self):
         hoomd.util.print_status_line();
@@ -249,7 +250,8 @@ class harmonic(force._force):
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
-        self.required_coeffs = ['k', 'd', 'n'];
+        self.required_coeffs = ['k', 'd', 'n', 'phi_0'];
+        self.dihedral_coeff.set_default_coeff('phi_0', 0.0);
 
     ## \internal
     # \brief Update coefficients in C++
@@ -272,7 +274,7 @@ class harmonic(force._force):
             for name in coeff_list:
                 coeff_dict[name] = self.dihedral_coeff.get(type_list[i], name);
 
-            self.cpp_force.setParams(i, coeff_dict['k'], coeff_dict['d'], coeff_dict['n']);
+            self.cpp_force.setParams(i, coeff_dict['k'], coeff_dict['d'], coeff_dict['n'], coeff_dict['phi_0']);
 
     ## \internal
     # \brief Get metadata

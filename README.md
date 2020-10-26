@@ -3,7 +3,7 @@
 [![Citing HOOMD](https://img.shields.io/badge/cite-hoomd-blue.svg)](https://glotzerlab.engin.umich.edu/hoomd-blue/citing.html)
 [![conda-forge](https://img.shields.io/conda/vn/conda-forge/hoomd.svg?style=flat)](https://anaconda.org/conda-forge/hoomd)
 [![conda-forge Downloads](https://img.shields.io/conda/dn/conda-forge/hoomd.svg?style=flat)](https://anaconda.org/conda-forge/hoomd)
-[![CircleCI](https://img.shields.io/circleci/project/github/glotzerlab/hoomd-blue/maint.svg)](https://circleci.com/gh/glotzerlab/hoomd-blue)
+[![Azure Pipelines](https://dev.azure.com/glotzerlab/hoomd-blue/_apis/build/status/test?branchName=master)](https://dev.azure.com/glotzerlab/hoomd-blue/_build)
 [![Read the Docs](https://img.shields.io/readthedocs/hoomd-blue/stable.svg)](https://hoomd-blue.readthedocs.io/en/stable/?badge=stable)
 [![Contributors](https://img.shields.io/github/contributors-anon/glotzerlab/hoomd-blue.svg?style=flat)](https://hoomd-blue.readthedocs.io/en/stable/credits.html)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-green.svg)](LICENSE)
@@ -30,10 +30,8 @@ website](https://glotzerlab.engin.umich.edu/hoomd-blue/).
 
 ## Installation
 
-**HOOMD-blue** binaries are available as containers
-([Docker Hub](https://hub.docker.com/r/glotzerlab/software),
-[Singularity Hub](https://singularity-hub.org/collections/1663))
-and for Linux and macOS via the
+**HOOMD-blue** binaries are available in the [glotzerlab-software](https://glotzerlab-software.readthedocs.io)
+[Docker](https://hub.docker.com/)/[Singularity](https://www.sylabs.io/) images and for Linux and macOS via the
 [hoomd package on conda-forge](https://anaconda.org/conda-forge/hoomd).
 See the [Installation Guide](INSTALLING.rst) for instructions on installing
 **HOOMD-blue** or compiling from source.

@@ -67,6 +67,6 @@ namespace detail
 void export_ATCollisionMethod(pybind11::module& m);
 } // end namespace detail
 
-} // end namespace azplugins
+} // end namespace mpcd
 
 #endif // MPCD_AT_COLLISION_METHOD_H_

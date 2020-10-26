@@ -1375,9 +1375,6 @@ class mode_minimize_fire(_integrator):
         aggressive a first step, but also from quitting before having found a good search direction. The minimum number of
         attempts can be set by the user.
 
-    .. attention::
-        :py:class:`mode_minimize_fire` does not function with MPI parallel simulations.
-
     """
     def __init__(self, dt, Nmin=5, finc=1.1, fdec=0.5, alpha_start=0.1, falpha=0.99, ftol = 1e-1, wtol=1e-1, Etol= 1e-5, min_steps=10, group=None, aniso=None):
         hoomd.util.print_status_line();
