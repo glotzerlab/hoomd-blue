@@ -63,11 +63,14 @@ class Tersoff(Triplet):
     .. math::
         :nowrap:
 
-        \\begin{eqnarray*}
-        f_C(r) = & 1 & r < r_{\\mathrm{cut}} - r_{CT} \\\\
-               = & exp\\left[ \\alpha\\frac{x(r)^3}{x(r)^3 - 1} \\right] & r_{\\mathrm{cut}} - r_{CT} < r < r_{\\mathrm{cut}} \\\\
-               = & 0 & r > r_{\\mathrm{cut}} \\\\
-        \\end{eqnarray*}
+        \\begin{equation}
+            f_C(r) =
+            \\begin{cases}
+                1 & r < r_{\\mathrm{cut}} - r_{CT} \\\\
+                exp\\left[-\\alpha\\frac{x(r)^3}{x(r)^3 - 1} \\right] & r_{\\mathrm{cut}} - r_{CT} < r < r_{\\mathrm{cut}} \\\\
+                0 & r > r_{\\mathrm{cut}}
+            \\end{cases}
+        \\end{equation}
 
     .. math::
 
@@ -101,9 +104,9 @@ class Tersoff(Triplet):
 
             * ``C1`` (`float`) - :math:`C_1` -  Magnitude of the repulsive term (dimensionless, *default*: 1.0)
             * ``C2`` (`float`) - :math:`C_2` -  Magnitude of the attractive term (dimensionless, *default*: 1.0)
-            * ``lambda_1`` (`float`) - :math:`\\lambda_1` - exponential factor of the repulsive term (in units of 1/length, *default*: 2.0)
-            * ``lambda_2`` (`float`) - :math:`\\lambda_2` - exponential factor of the attractive term (in units of 1/length, *default*: 1.0)
-            * ``lambda_3`` (`float`) - :math:`\\lambda_3` - exponential factor in :math:`\\chi_{ij}` (in units of 1/length, *default*: 0.0)
+            * ``lambda1`` (`float`) - :math:`\\lambda_1` - exponential factor of the repulsive term (in units of 1/length, *default*: 2.0)
+            * ``lambda2`` (`float`) - :math:`\\lambda_2` - exponential factor of the attractive term (in units of 1/length, *default*: 1.0)
+            * ``lambda3`` (`float`) - :math:`\\lambda_3` - exponential factor in :math:`\\chi_{ij}` (in units of 1/length, *default*: 0.0)
             * ``dimer_r`` (`float`) - :math:`r_D` - length shift in attractive and repulsive terms (in units of length, *default*: 1.5)
             * ``cutoff_thickness`` (`float`) - :math:`r_{CT}` - distance which defines the different regions of the potential (in units of length, *default*: 0.2)
             * ``alpha`` (`float`) - :math:`\\alpha` - decay rate of the cutoff term :math:`f_C(r)` (dimensionless, *default*: 3.0)
@@ -119,8 +122,8 @@ class Tersoff(Triplet):
     term of the potential. The modifier contains the effects of third-bodies on
     the bond energies. The potential also includes a smoothing function around
     the cutoff. The smoothing function used in this work is exponential in
-    nature as opposed to the sinusoid used by Tersoff. The exponential function
-    provides continuity up (I believe) the second derivative.
+    nature as opposed to the sinusoid used by
+    `J. Tersoff 1988 <https://journals.aps.org/prb/abstract/10.1103/PhysRevB.38.9902>`_.
     """
     _cpp_class_name = "PotentialTersoff"
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
@@ -271,7 +274,7 @@ class SquareDensity(Triplet):
     """Soft potential for simulating a van der Waals liquid.
 
     Args:
-        nlist (:py:mod:`hoomd.md._NList`): Neighbor list
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
         mode (str): Energy shifting mode.

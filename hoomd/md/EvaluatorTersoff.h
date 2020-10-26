@@ -67,7 +67,7 @@ class EvaluatorTersoff
                 auto c(v["c"].cast<Scalar>());
                 auto d(v["d"].cast<Scalar>());
                 auto m(v["m"].cast<Scalar>());
-                alpha = v["alpha"].cast<Scalar>();
+                alpha = -1 * v["alpha"].cast<Scalar>();
 
                 coeffs = make_scalar2(C1, C2);
                 exp_consts = make_scalar2(lambda1, lambda2);
@@ -93,7 +93,7 @@ class EvaluatorTersoff
                 v["c"] = fast::sqrt(ang_consts.x);
                 v["d"] = fast::sqrt(ang_consts.y);
                 v["m"] = ang_consts.z;
-                v["alpha"] = alpha;
+                v["alpha"] = -1 * alpha;
                 return v;
                 }
             #endif
