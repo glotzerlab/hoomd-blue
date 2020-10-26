@@ -208,8 +208,8 @@ class RevCross(Triplet):
             \\begin{eqnarray*}
             \\hat{v}^{ \\left( 2b \\right)}_{ij}\\left(\\vec{r}_{ij}\\right) =
             \\begin{cases}
-            & 1 \\qquad \\qquad \\; \\; \\qquad r\\le r_{min}\\
-            & - \\dfrac{v_{ij}\\left(\\vec{r}_{ij}\\right)}{\\epsilon} \\qquad r > r_{min}~.\\
+            1 & r \\le r_{min} \\\\
+            - \\dfrac{v_{ij}\\left(\\vec{r}_{ij}\\right)}{\\epsilon} & r > r_{min} \\\\
             \\end{cases}
             \\end{eqnarray*}
 
