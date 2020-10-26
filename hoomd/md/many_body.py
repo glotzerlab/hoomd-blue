@@ -56,9 +56,9 @@ class Tersoff(Triplet):
 
     .. math::
 
-        f_R(r) = C_1e^{\\lambda_1(r_D-r)}
+        f_R(r) = A_1e^{\\lambda_1(r_D-r)}
 
-        f_A(r) = C_2e^{\\lambda_2(r_D-r)}
+        f_A(r) = A_2e^{\\lambda_2(r_D-r)}
 
     .. math::
         :nowrap:
@@ -102,10 +102,8 @@ class Tersoff(Triplet):
             The Tersoff potential parameters. The dictionary has the following
             keys:
 
-            * ``C1`` (`float`) - :math:`C_1` -  Magnitude of the repulsive term (dimensionless, *default*: 1.0)
-            * ``C2`` (`float`) - :math:`C_2` -  Magnitude of the attractive term (dimensionless, *default*: 1.0)
-            * ``lambda1`` (`float`) - :math:`\\lambda_1` - exponential factor of the repulsive term (in units of 1/length, *default*: 2.0)
-            * ``lambda2`` (`float`) - :math:`\\lambda_2` - exponential factor of the attractive term (in units of 1/length, *default*: 1.0)
+            * ``magnitudes`` (tuple[`float`, `float`]) - :math:`(A_1, A_2)` -  Magnitudes of the repulsive and attractive terms (dimensionless, *default*: (1.0, 1.0))
+            * ``exp_factors`` (tuple[`float`, `float`]) - :math:`(\\lambda_1, \\lambda_2)` - exponential factors of the repulsive and attractive terms (in units of 1/length, *default*: 2.0)
             * ``lambda3`` (`float`) - :math:`\\lambda_3` - exponential factor in :math:`\\chi_{ij}` (in units of 1/length, *default*: 0.0)
             * ``dimer_r`` (`float`) - :math:`r_D` - length shift in attractive and repulsive terms (in units of length, *default*: 1.5)
             * ``cutoff_thickness`` (`float`) - :math:`r_{CT}` - distance which defines the different regions of the potential (in units of length, *default*: 0.2)
@@ -124,6 +122,12 @@ class Tersoff(Triplet):
     the cutoff. The smoothing function used in this work is exponential in
     nature as opposed to the sinusoid used by
     `J. Tersoff 1988 <https://journals.aps.org/prb/abstract/10.1103/PhysRevB.38.9902>`_.
+
+    Example::
+
+        nl = md.nlist.Cell()
+        tersoff = md.many_body.Tersoff(r_cut=1.3,nlist=nl)
+        tersoff.params[('A','B')] = dict(magnitudes=(2.0, 1.0), lambda3=5.0)
     """
     _cpp_class_name = "PotentialTersoff"
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
@@ -132,10 +136,8 @@ class Tersoff(Triplet):
                 'params',
                 'particle_types',
                 TypeParameterDict(cutoff_thickness=0.2,
-                    C1=1.0,
-                    C2=1.0,
-                    lambda1=2.0,
-                    lambda2=1.0,
+                    magnitudes=(1.0, 1.0),
+                    exp_factors=(2.0, 1.0),
                     lambda3=0.0,
                     dimer_r=1.5,
                     n=0.0,
@@ -315,10 +317,8 @@ class SquareDensity(Triplet):
             The SquareDensity potential parameters. The dictionary has the
             following keys:
 
-            *``A`` (`float`, **required**) - :math:`A` - mean density (in units
-                of volume^-1, *default*:0)
-            *``B`` (`float`, **required**) - :math:`B` - coefficient of the
-                harmonic density term (in units of energy*volumne^2)
+            *``A`` (`float`, **required**) - :math:`A` - mean density (in units of volume^-1, *default*:0)
+            *``B`` (`float`, **required**) - :math:`B` - coefficient of the harmonic density term (in units of energy*volumne^2)
 
     Example::
 

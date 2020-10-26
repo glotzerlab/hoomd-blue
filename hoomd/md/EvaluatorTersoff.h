@@ -55,11 +55,9 @@ class EvaluatorTersoff
 
             param_type(pybind11::dict v)
                 {
-                auto C1(v["C1"].cast<Scalar>());
-                auto C2(v["C2"].cast<Scalar>());
+                auto mags(v["magnitudes"].cast<pybind11::tuple>());
                 cutoff_thickness = v["cutoff_thickness"].cast<Scalar>();
-                auto lambda1(v["lambda1"].cast<Scalar>());
-                auto lambda2(v["lambda2"].cast<Scalar>());
+                auto exp_factors(v["exp_factors"].cast<pybind11::tuple>());
                 auto lambda3(v["lambda3"].cast<Scalar>());
                 dimer_r = v["dimer_r"].cast<Scalar>();
                 tersoff_n = v["n"].cast<Scalar>();
@@ -69,8 +67,10 @@ class EvaluatorTersoff
                 auto m(v["m"].cast<Scalar>());
                 alpha = -1 * v["alpha"].cast<Scalar>();
 
-                coeffs = make_scalar2(C1, C2);
-                exp_consts = make_scalar2(lambda1, lambda2);
+                coeffs = make_scalar2(pybind11::cast<Scalar>(mags[0]),
+                                      pybind11::cast<Scalar>(mags[1]));
+                exp_consts = make_scalar2(pybind11::cast<Scalar>(exp_factors[0]),
+                                          pybind11::cast<Scalar>(exp_factors[1]));
                 gamman = pow(gamma, tersoff_n);
                 lambda_cube = pow(lambda3, 3);
                 Scalar c2 = c * c;
@@ -81,11 +81,19 @@ class EvaluatorTersoff
             pybind11::dict asDict()
                 {
                 pybind11::dict v;
-                v["C1"] = coeffs.x;
-                v["C2"] = coeffs.y;
+
+                pybind11::list mags;
+                mags.append(coeffs.x);
+                mags.append(coeffs.y);
+                v["magnitudes"] = pybind11::tuple(mags);
+
                 v["cutoff_thickness"] = cutoff_thickness;
-                v["lambda1"] = exp_consts.x;
-                v["lambda2"] = exp_consts.y;
+
+                pybind11::list exp_factors;
+                exp_factors.append(exp_consts.x);
+                exp_factors.append(exp_consts.y);
+                v["exp_factors"] = pybind11::tuple(exp_factors);
+
                 v["lambda3"] = pow(lambda_cube, 1./3.);
                 v["dimer_r"] = dimer_r;
                 v["n"] = tersoff_n;
