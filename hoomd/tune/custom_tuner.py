@@ -1,8 +1,8 @@
 from hoomd import _hoomd
-from hoomd.operation import _Operation
+from hoomd.operation import Operation
 from hoomd.custom import (
-    _CustomOperation, _InternalCustomOperation, Action)
-from hoomd.operation import _Tuner
+    CustomOperation, _InternalCustomOperation, Action)
+from hoomd.operation import Tuner
 
 
 class _TunerProperty:
@@ -19,10 +19,10 @@ class _TunerProperty:
                 "updater must be an instance of hoomd.custom.Action")
 
 
-class CustomTuner(_CustomOperation, _TunerProperty, _Tuner):
+class CustomTuner(CustomOperation, _TunerProperty, Tuner):
     """Tuner wrapper for `hoomd.custom.Action` objects.
 
-    For usage see `hoomd.custom._CustomOperation`.
+    For usage see `hoomd.custom.CustomOperation`.
     """
     _cpp_list_name = 'tuners'
     _cpp_class_name = 'PythonTuner'
@@ -31,11 +31,11 @@ class CustomTuner(_CustomOperation, _TunerProperty, _Tuner):
         self._cpp_obj = getattr(_hoomd, self._cpp_class_name)(
             self._simulation.state._cpp_sys_def, self.trigger, self._action)
         self._action.attach(self._simulation)
-        _Operation._attach(self)
+        Operation._attach(self)
 
 
 class _InternalCustomTuner(
-        _InternalCustomOperation, _TunerProperty, _Tuner):
+        _InternalCustomOperation, _TunerProperty, Tuner):
     _cpp_list_name = 'tuners'
     _cpp_class_name = 'PythonTuner'
 
@@ -43,4 +43,4 @@ class _InternalCustomTuner(
         self._cpp_obj = getattr(_hoomd, self._cpp_class_name)(
             self._simulation.state._cpp_sys_def, self.trigger, self._action)
         self._action.attach(self._simulation)
-        _Operation._attach(self)
+        Operation._attach(self)

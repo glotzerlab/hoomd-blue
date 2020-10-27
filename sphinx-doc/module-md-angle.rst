@@ -8,7 +8,7 @@ md.angle
 .. autosummary::
     :nosignatures:
 
-    _Angle
+    Angle
     Harmonic
     Cosinesq
 
@@ -16,7 +16,7 @@ md.angle
 
 .. automodule:: hoomd.md.angle
     :synopsis: Angle potentials.
-    :members: _Angle,
+    :members: Angle,
               Harmonic,
               Cosinesq
     :no-inherited-members:

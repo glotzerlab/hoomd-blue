@@ -8,7 +8,7 @@ md.dihedral
 .. autosummary::
     :nosignatures:
 
-    _Dihedral
+    Dihedral
     Harmonic
     OPLS
 
@@ -16,7 +16,7 @@ md.dihedral
 
 .. automodule:: hoomd.md.dihedral
     :synopsis: Dihedral potentials.
-    :members: _Dihedral,
+    :members: Dihedral,
               Harmonic,
               OPLS
     :no-inherited-members:

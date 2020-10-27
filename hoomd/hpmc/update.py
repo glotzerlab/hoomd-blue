@@ -11,11 +11,10 @@ from . import integrate
 from hoomd import _hoomd
 from hoomd.logging import log
 from hoomd.update import _updater
-from hoomd.operation import _Updater
-from hoomd.parameterdicts import ParameterDict
+from hoomd.data.parameterdicts import ParameterDict
+import hoomd.data.typeconverter
+from hoomd.operation import Updater
 import hoomd
-import hoomd.typeconverter
-from hoomd.custom.custom_action import Action
 
 
 class boxmc(_updater):
@@ -63,7 +62,7 @@ class boxmc(_updater):
         # according to frequency parameter.
         period = 1
 
-        if not isinstance(mc, integrate._HPMCIntegrator):
+        if not isinstance(mc, integrate.HPMCIntegrator):
             hoomd.context.current.device.cpp_msg.warning("update.boxmc: Must have a handle to an HPMC integrator.\n");
             return;
 
@@ -524,7 +523,7 @@ class muvt(_updater):
 
     Gibbs ensemble simulations are also supported, where particles and volume are swapped between two or more
     boxes.  Every box correspond to one MPI partition, and can therefore run on multiple ranks.
-    See :py:mod:`hoomd.comm` and the --nrank command line option for how to split a MPI task into partitions.
+    See ``hoomd.comm`` and the --nrank command line option for how to split a MPI task into partitions.
 
     Note:
         Multiple Gibbs ensembles are also supported in a single parallel job, with the ngibbs option
@@ -538,7 +537,7 @@ class muvt(_updater):
     """
     def __init__(self, mc, seed, period=1, transfer_types=None,ngibbs=1):
 
-        if not isinstance(mc, integrate._HPMCIntegrator):
+        if not isinstance(mc, integrate.HPMCIntegrator):
             hoomd.context.current.device.cpp_msg.warning("update.muvt: Must have a handle to an HPMC integrator.\n");
             return;
 
@@ -1449,8 +1448,20 @@ class elastic_shape(shape_update):
         return sum([self._cpp_obj.getShapeMoveEnergy(i, self._simulation.timestep) for i in range(self._simulation.state._cpp_sys_def.getParticleData().getNTypes())])
 
 
-class Clusters(_Updater):
-    R""" Equilibrate the system according to the geometric cluster algorithm (GCA).
+class Clusters(Updater):
+    """Apply geometric cluster algorithm (GCA) moves.
+
+    Args:
+        seed (int): Random number seed.
+        swap_types (list[tuple[str, str]]): A pair of two types whose identities
+            may be swapped.
+        move_ratio (float): Set the ratio between pivot and reflection moves.
+        flip_probability (float): Set the probability for transforming an
+                                 individual cluster.
+        swap_move_ratio (float): Set the ratio between type swap moves and
+                                geometric moves.
+        trigger (Trigger): Select the timesteps on which to perform cluster
+            moves.
 
     The GCA as described in Liu and Lujten (2004),
     http://doi.org/10.1103/PhysRevLett.92.035504 is used for hard shape, patch
@@ -1466,31 +1477,25 @@ class Clusters(_Updater):
     because it would create a chiral mirror image of the particle, and only
     line reflections are employed. Line reflections are not rejection free
     because of periodic boundary conditions, as discussed in Sinkovits et al.
-    (2012), http://doi.org/10.1063/1.3694271 .
+    (2012), http://doi.org/10.1063/1.3694271.
 
     The type swap move works between two types of spherical particles and
     exchanges their identities.
 
-    The :py:class:`Clusters` updater support TBB execution on multiple CPU
-    cores. See :doc:`installation` for more information on how to compile HOOMD
-    with TBB support.
+    .. rubric:: Threading
 
-    Args:
+    The `Clusters` updater support threaded execution on multiple CPU cores.
+
+    Attributes:
         seed (int): Random number seed.
-        swap_types(list): A pair of two types whose identities may be swapped.
-        move_ratio(float): Set the ratio between pivot and reflection moves.
-        flip_probability(float): Set the probability for transforming an
+        swap_types (list): A pair of two types whose identities may be swapped.
+        move_ratio (float): Set the ratio between pivot and reflection moves.
+        flip_probability (float): Set the probability for transforming an
                                  individual cluster.
-        swap_move_ratio(float): Set the ratio between type swap moves and
+        swap_move_ratio (float): Set the ratio between type swap moves and
                                 geometric moves.
-        delta_mu(float): The chemical potential difference between types to
-                         be swapped.
-        trigger (int): Number of timesteps between histogram evaluations.
-
-    Examples::
-
-        TODO: link to example notebooks
-
+        trigger (Trigger): Select the timesteps on which to perform cluster
+            moves.
     """
 
     def __init__(self, seed, swap_types, move_ratio=0.5,
@@ -1512,7 +1517,7 @@ class Clusters(_Updater):
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
-        if not isinstance(integrator, integrate._HPMCIntegrator):
+        if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
 
         integrator_pairs = [
@@ -1560,15 +1565,15 @@ class Clusters(_Updater):
 
     @property
     def counter(self):
-        R""" Get the number of accepted and rejected cluster moves.
+        """Get the number of accepted and rejected cluster moves.
 
         Returns:
             A counter object with pivot, reflection, and swap properties. Each
             property is a list of accepted moves and rejected moves since the
             last run.
 
-        Note::
-            if the updater is not attached None will be returned.
+        Note:
+            `None` when the simulation run has not started.
         """
         if not self._attached:
             return None
@@ -1577,11 +1582,10 @@ class Clusters(_Updater):
 
     @log(flag='sequence')
     def pivot_moves(self):
-        R""" Get a tuple with the accepted and rejected pivot moves.
+        """tuple[int, int]: Number of accepted and rejected pivot moves.
 
         Returns:
             A tuple of (accepted moves, rejected moves) since the last run.
-            Returns (0, 0) if not attached.
         """
         counter = self.counter
         if counter is None:
@@ -1591,11 +1595,10 @@ class Clusters(_Updater):
 
     @log(flag='sequence')
     def reflection_moves(self):
-        R""" Get a tuple with the accepted and rejected reflection moves.
+        """tuple[int, int]: Number of accepted and rejected reflection moves.
 
         Returns:
             A tuple of (accepted moves, rejected moves) since the last run.
-            Returns (0, 0) if not attached.
         """
         counter = self.counter
         if counter is None:
@@ -1605,11 +1608,10 @@ class Clusters(_Updater):
 
     @log(flag='sequence')
     def swap_moves(self):
-        R""" Get a tuple with the accepted and rejected swap moves.
+        """tuple[int, int]: Number of accepted and rejected swap moves.
 
         Returns:
             A tuple of (accepted moves, rejected moves) since the last run.
-            Returns (0, 0) if not attached.
         """
         counter = self.counter
         if counter is None:
@@ -1617,7 +1619,7 @@ class Clusters(_Updater):
         else:
             return counter.swap
 
-class QuickCompress(_Updater):
+class QuickCompress(Updater):
     """Quickly compress a hard particle system to a target box.
 
     Args:
@@ -1655,7 +1657,7 @@ class QuickCompress(_Updater):
         L_current``
 
     Tip:
-        Use the MoveSizeTuner (TODO: make reference) in conjunction with
+        Use the `hoomd.hpmc.tune.MoveSizeTuner` in conjunction with
         `QuickCompress` to adjust the move sizes to maintain a constant
         acceptance ratio as the density of the system increases.
 
@@ -1704,8 +1706,9 @@ class QuickCompress(_Updater):
             seed=int,
             max_overlaps_per_particle=float,
             min_scale=float,
-            target_box=hoomd.typeconverter.OnlyType(
-                hoomd.Box, preprocess=hoomd.typeconverter.box_preprocessing))
+            target_box=hoomd.data.typeconverter.OnlyType(
+                hoomd.Box,
+                preprocess=hoomd.data.typeconverter.box_preprocessing))
         param_dict['seed'] = seed
         param_dict['max_overlaps_per_particle'] = max_overlaps_per_particle
         param_dict['min_scale'] = min_scale
@@ -1715,7 +1718,7 @@ class QuickCompress(_Updater):
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
-        if not isinstance(integrator, integrate._HPMCIntegrator):
+        if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
 
         if not integrator._attached:

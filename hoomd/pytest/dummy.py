@@ -1,5 +1,5 @@
 from hoomd.trigger import Trigger
-from hoomd.operation import _Operation, _TriggeredOperation
+from hoomd.operation import Operation, _TriggeredOperation
 
 
 class DummySimulation:
@@ -60,7 +60,7 @@ class DummyCppObj:
     def notifyDetach(self):
         pass
 
-class DummyOperation(_Operation):
+class DummyOperation(Operation):
     '''Requires that user manually add param_dict and typeparam_dict items.
 
     This is for testing purposes.

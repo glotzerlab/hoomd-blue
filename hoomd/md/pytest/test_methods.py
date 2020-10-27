@@ -40,7 +40,7 @@ def test_brownian_attributes_attached(simulation_factory,
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[brownian])
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     assert brownian.filter is all_
     assert brownian.kT is constant
@@ -107,7 +107,7 @@ def test_langevin_attributes_attached(simulation_factory,
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[langevin])
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     assert langevin.filter is all_
     assert langevin.kT is constant
@@ -203,6 +203,18 @@ def test_npt_attributes():
     npt.gamma = 2.0
     assert npt.gamma == 2.0
 
+    assert npt.translational_thermostat_dof == (0.0, 0.0)
+    npt.translational_thermostat_dof = (0.125, 0.5)
+    assert npt.translational_thermostat_dof == (0.125, 0.5)
+
+    assert npt.rotational_thermostat_dof == (0.0, 0.0)
+    npt.rotational_thermostat_dof = (0.5, 0.25)
+    assert npt.rotational_thermostat_dof == (0.5, 0.25)
+
+    assert npt.barostat_dof == (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+    npt.barostat_dof = (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)
+    assert npt.barostat_dof == (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)
+
 
 def test_npt_attributes_attached_3d(simulation_factory,
                                       two_particle_snapshot_factory):
@@ -222,7 +234,7 @@ def test_npt_attributes_attached_3d(simulation_factory,
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[npt])
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     assert npt.filter is all_
     assert npt.kT is constant_t
@@ -273,6 +285,86 @@ def test_npt_attributes_attached_3d(simulation_factory,
     npt.gamma = 2.0
     assert npt.gamma == 2.0
 
+    assert npt.translational_thermostat_dof == (0.0, 0.0)
+    npt.translational_thermostat_dof = (0.125, 0.5)
+    assert npt.translational_thermostat_dof == (0.125, 0.5)
+
+    assert npt.rotational_thermostat_dof == (0.0, 0.0)
+    npt.rotational_thermostat_dof = (0.5, 0.25)
+    assert npt.rotational_thermostat_dof == (0.5, 0.25)
+
+    assert npt.barostat_dof == (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+    npt.barostat_dof = (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)
+    assert npt.barostat_dof == (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)
+
+
+def test_npt_thermalize_thermostat_and_barostat_dof(
+    simulation_factory, two_particle_snapshot_factory):
+    """Tests that NPT.thermalize_thermostat_and_barostat_dof can be called."""
+    all_ = hoomd.filter.All()
+    constant_t = hoomd.variant.Constant(2.0)
+    constant_s = [1, 2, 3, 0.125, 0.25, 0.5]
+    npt = hoomd.md.methods.NPT(filter=all_,
+                               kT=constant_t,
+                               tau=2.0,
+                               S=constant_s,
+                               tauS=2.0,
+                               box_dof=[True, True, True, True, True, True],
+                               couple='xyz')
+
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[npt])
+    sim.operations._schedule()
+
+    npt.thermalize_thermostat_and_barostat_dof(100)
+    xi, eta = npt.translational_thermostat_dof
+    assert xi != 0.0
+    assert eta == 0.0
+
+    xi_rot, eta_rot = npt.rotational_thermostat_dof
+    assert xi_rot == 0.0
+    assert eta_rot == 0.0
+
+    for v in npt.barostat_dof:
+        assert v != 0.0
+
+
+def test_npt_thermalize_thermostat_and_barostat_aniso_dof(
+    simulation_factory, two_particle_snapshot_factory):
+    """Tests that NPT.thermalize_thermostat_and_barostat_dof can be called."""
+    all_ = hoomd.filter.All()
+    constant_t = hoomd.variant.Constant(2.0)
+    constant_s = [1, 2, 3, 0.125, 0.25, 0.5]
+    npt = hoomd.md.methods.NPT(filter=all_,
+                               kT=constant_t,
+                               tau=2.0,
+                               S=constant_s,
+                               tauS=2.0,
+                               box_dof=[True, True, True, True, True, True],
+                               couple='xyz')
+
+    snap = two_particle_snapshot_factory()
+    if snap.exists:
+        snap.particles.moment_inertia[:] = [[1, 1, 1], [2, 0, 0]]
+
+    sim = simulation_factory(snap)
+
+    sim.operations.integrator = hoomd.md.Integrator(0.005,
+                                                    methods=[npt],
+                                                    aniso=True)
+    sim.run(0)
+
+    npt.thermalize_thermostat_and_barostat_dof(100)
+    xi, eta = npt.translational_thermostat_dof
+    assert xi != 0.0
+    assert eta == 0.0
+
+    xi_rot, eta_rot = npt.rotational_thermostat_dof
+    assert xi_rot != 0.0
+    assert eta_rot == 0.0
+    for v in npt.barostat_dof:
+        assert v != 0.0
+
 
 def test_npt_attributes_attached_2d(simulation_factory,
                                       two_particle_snapshot_factory):
@@ -289,7 +381,7 @@ def test_npt_attributes_attached_2d(simulation_factory,
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=2))
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[npt])
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     # after attaching in 2d, only some coupling modes and box dof are valid
     assert tuple(npt.box_dof) == (True,True,False,False,False,False)
@@ -329,7 +421,7 @@ def test_nve_attributes_attached(simulation_factory,
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nve])
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     assert nve.filter is all_
 
@@ -362,6 +454,14 @@ def test_nvt_attributes():
     nvt.tau = 10.0
     assert nvt.tau == 10.0
 
+    assert nvt.translational_thermostat_dof == (0.0, 0.0)
+    nvt.translational_thermostat_dof = (0.125, 0.5)
+    assert nvt.translational_thermostat_dof == (0.125, 0.5)
+
+    assert nvt.rotational_thermostat_dof == (0.0, 0.0)
+    nvt.rotational_thermostat_dof = (0.5, 0.25)
+    assert nvt.rotational_thermostat_dof == (0.5, 0.25)
+
 
 def test_nvt_attributes_attached(simulation_factory,
                                       two_particle_snapshot_factory):
@@ -372,7 +472,7 @@ def test_nvt_attributes_attached(simulation_factory,
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nvt])
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     assert nvt.filter is all_
     assert nvt.kT is constant
@@ -391,3 +491,59 @@ def test_nvt_attributes_attached(simulation_factory,
 
     nvt.tau = 10.0
     assert nvt.tau == 10.0
+
+    assert nvt.translational_thermostat_dof == (0.0, 0.0)
+    nvt.translational_thermostat_dof = (0.125, 0.5)
+    assert nvt.translational_thermostat_dof == (0.125, 0.5)
+
+    assert nvt.rotational_thermostat_dof == (0.0, 0.0)
+    nvt.rotational_thermostat_dof = (0.5, 0.25)
+    assert nvt.rotational_thermostat_dof == (0.5, 0.25)
+
+
+def test_nvt_thermalize_thermostat_dof(simulation_factory,
+                                       two_particle_snapshot_factory):
+    """Tests that NVT.thermalize_thermostat_dof can be called."""
+    all_ = hoomd.filter.All()
+    constant = hoomd.variant.Constant(2.0)
+    nvt = hoomd.md.methods.NVT(filter=all_, kT=constant, tau=2.0)
+
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nvt])
+    sim.operations._schedule()
+
+    nvt.thermalize_thermostat_dof(100)
+    xi, eta = nvt.translational_thermostat_dof
+    assert xi != 0.0
+    assert eta == 0.0
+
+    xi_rot, eta_rot = nvt.rotational_thermostat_dof
+    assert xi_rot == 0.0
+    assert eta_rot == 0.0
+
+
+def test_nvt_thermalize_thermostat_aniso_dof(simulation_factory,
+                                             two_particle_snapshot_factory):
+    """Tests that NVT.thermalize_thermostat_dof can be called."""
+    all_ = hoomd.filter.All()
+    constant = hoomd.variant.Constant(2.0)
+    nvt = hoomd.md.methods.NVT(filter=all_, kT=constant, tau=2.0)
+
+    snap = two_particle_snapshot_factory()
+    if snap.exists:
+        snap.particles.moment_inertia[:] = [[1, 1, 1], [2, 0, 0]]
+
+    sim = simulation_factory(snap)
+    sim.operations.integrator = hoomd.md.Integrator(0.005,
+                                                    methods=[nvt],
+                                                    aniso=True)
+    sim.run(0)
+
+    nvt.thermalize_thermostat_dof(100)
+    xi, eta = nvt.translational_thermostat_dof
+    assert xi != 0.0
+    assert eta == 0.0
+
+    xi_rot, eta_rot = nvt.rotational_thermostat_dof
+    assert xi_rot != 0.0
+    assert eta_rot == 0.0

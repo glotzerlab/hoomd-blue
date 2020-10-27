@@ -2,7 +2,7 @@
 """
 from copy import deepcopy
 import hoomd
-from hoomd.array import HOOMDGPUArray
+from hoomd.data.array import HOOMDGPUArray
 import numpy as np
 import pytest
 try:

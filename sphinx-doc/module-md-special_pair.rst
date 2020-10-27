@@ -8,7 +8,7 @@ md.special_pair
 .. autosummary::
     :nosignatures:
 
-    _SpecialPair
+    SpecialPair
     LJ
     Coulomb
 
@@ -16,7 +16,7 @@ md.special_pair
 
 .. automodule:: hoomd.md.special_pair
     :synopsis: Pair potentials between special pairs of particles
-    :members: _SpecialPair,
+    :members: SpecialPair,
               LJ,
               Coulomb
     :no-inherited-members:

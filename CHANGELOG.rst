@@ -4,8 +4,8 @@ Change Log
 v3.x
 ----
 
-v3.0-beta.1 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+v3.0-beta.1 (2020-10-15)
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Overview*
 
@@ -17,15 +17,26 @@ functionality.
 
 *Added*
 
+- Zero-copy data access through numpy (CPU) and cupy (GPU).
+- User-defined operations in Python.
+- User-defined triggers determine what time steps operations execute on.
+- New logging subsystem supports array quantities and binary log files.
 - Implicit depletants are now supported by any **hpmc** integrator through
   ``mc.set_fugacity('type', fugacity)``.
 - Enable implicit depletants for two-dimensional shapes in **hpmc**.
 - ``jit.patch.user()`` and ``jit.patch.user_union()`` now support GPUs via
   NVRTC.
-  - Add harmonically mapped averaging.
+- Add harmonically mapped averaging.
+- Add Visual Studio Code workspace
 
 *Changed*
 
+- The `run` method has minimal overhead
+- All loggable quantities are directly accessible as object properties.
+- Operation parameters are always synchronized.
+- Operations can be instantiated without a device or MPI communicator.
+- Writers write output for ``step+1`` at the bottom of the ``run`` loop.
+- HOOMD writes minimal output to stdout/stderr by default.
 - *CMake* >=3.9, *cereal*, *eigen*, and *pybind11* are required to compile
   HOOMD.
 - Plugins must be updated to build against v3.
@@ -44,6 +55,7 @@ functionality.
 
 *Removed*
 
+- HOOMD-blue no longer parses command line options.
 - Type swap moves in ``hpmc.update.muvt()`` are no longer supported
   (``transfer_ratio`` option to ``muvt.set_params()``)
 - The option ``implicit=True`` to ``hpmc.integrate.*`` is no longer available
@@ -364,11 +376,7 @@ v2.4.2 (2018-12-20)
    returned from ``ParticleData`` and other classes (replace by
    ``GlobalArray``)
 
-<<<<<<< HEAD
-v2.4.1 (2018/11/27)
-=======
 v2.4.1 (2018-11-27)
->>>>>>> master
 ^^^^^^^^^^^^^^^^^^^
 
 *Bug fixes*

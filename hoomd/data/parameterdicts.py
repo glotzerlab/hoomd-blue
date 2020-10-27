@@ -1,9 +1,9 @@
 from itertools import product, combinations_with_replacement
 from copy import copy, deepcopy
 from hoomd.util import to_camel_case, is_iterable
-from hoomd.typeconverter import (
+from hoomd.data.typeconverter import (
     to_type_converter, TypeConversionError, RequiredArg)
-from hoomd.smart_default import (
+from hoomd.data.smart_default import (
     to_base_defaults, toDefault, SmartDefault, NoDefault)
 
 

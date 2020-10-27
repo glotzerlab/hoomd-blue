@@ -27,7 +27,7 @@ def test_attach_detach(simulation_factory, two_particle_snapshot_factory):
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.add(thermo)
     assert len(sim.operations.computes) == 1
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     # make sure quantities are computable without failure
     for qty, typ in _thermo_qtys:
