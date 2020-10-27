@@ -77,6 +77,23 @@ def variant(request):
     return request.param
 
 
+def test_get_box(device, simulation_factory, get_snapshot,
+                 variant, sys1, sys2):
+    sim = hoomd.Simulation(device)
+    sim.create_state_from_snapshot(get_snapshot())
+
+    trigger = hoomd.trigger.After(variant.t_start)
+
+    box_resize = hoomd.update.BoxResize(
+        box1=sys1[0], box2=sys2[0],
+        variant=variant, trigger=trigger)
+    sim.operations.updaters.append(box_resize)
+    sim.run(variant.t_start*3 + 1)
+
+    assert box_resize.get_box(0) == sys1[0]
+    assert box_resize.get_box(variant.t_start*3 + 1) == sys2[0]
+
+
 def test_user_specified_variant(device, simulation_factory, get_snapshot,
                                 variant, sys1, sys2, scale_particles=True):
     sim = hoomd.Simulation(device)
@@ -90,8 +107,6 @@ def test_user_specified_variant(device, simulation_factory, get_snapshot,
     sim.operations.updaters.append(box_resize)
     sim.run(variant.t_start*3 + 1)
 
-    assert box_resize.get_box(0) == sys1[0]
-    assert box_resize.get_box(variant.t_start*3) == sys2[0]
     assert sim.state.box == sys2[0]
     npt.assert_allclose(sys2[1], sim.state.snapshot.particles.position)
 
@@ -109,7 +124,5 @@ def test_variant_linear(device, simulation_factory, get_snapshot,
     sim.operations.updaters.append(box_resize)
     sim.run(variant.t_start*3 + 1)
 
-    assert box_resize.get_box(0) == sys1[0]
-    assert box_resize.get_box(variant.t_start*3) == sys2[0]
     assert sim.state.box == sys2[0]
     npt.assert_allclose(sys2[1], sim.state.snapshot.particles.position)
