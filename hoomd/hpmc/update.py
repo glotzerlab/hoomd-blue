@@ -15,6 +15,7 @@ from hoomd.data.parameterdicts import ParameterDict
 import hoomd.data.typeconverter
 from hoomd.operation import Updater
 import hoomd
+from hoomd.custom import Action
 
 
 class boxmc(_updater):
@@ -745,7 +746,7 @@ class remove_drift(_updater):
         self.setupUpdater(period);
 
 
-class shape_update(_Updater):
+class shape_update(Updater):
     R"""
     Apply shape updates to the shape definitions defined in the integrator. This class should not be instantiated directly
     but the alchemy and elastic_shape classes can be. Each updater defines a specific statistical ensemble. See the different
@@ -793,7 +794,7 @@ class shape_update(_Updater):
 
         super().__init__(trigger)
 
-        param_dict = ParameterDict(mc=hoomd.hpmc.integrate._HPMCIntegrator,
+        param_dict = ParameterDict(mc=hoomd.hpmc.integrate.HPMCIntegrator,
                                    move_ratio=float,
                                    seed=int,
                                    pretend=bool,
@@ -816,7 +817,7 @@ class shape_update(_Updater):
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
-        if not isinstance(integrator, integrate._HPMCIntegrator):
+        if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
 
         if not integrator._attached:
@@ -1348,7 +1349,7 @@ class elastic_shape(shape_update):
                  num_phase=1):
         # initialize base class
         super().__init__(mc, move_ratio, seed, trigger, pretend, nselect, nsweeps, multi_phase, num_phase)  # mc, move_ratio, seed,
-        param_dict = ParameterDict(mc=hoomd.hpmc.integrate._HPMCIntegrator,
+        param_dict = ParameterDict(mc=hoomd.hpmc.integrate.HPMCIntegrator,
                                    move_ratio=float,
                                    seed=int,
                                    pretend=bool,
