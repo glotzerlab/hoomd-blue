@@ -187,9 +187,9 @@ class GSD(Writer):
         Args:
             state (State): Simulation state.
             filename (str): File name to write.
-            filter (`hoomd.ParticleFilter`): Select the particles to write.
+            filter (`hoomd.filter.ParticleFilter`): Select the particles to write.
             mode (str): The file open mode. Defaults to ``'wb'``.
-            log (`hoomd.logger.Logger`): Provide log quantities to write.
+            log (`hoomd.logging.Logger`): Provide log quantities to write.
 
         The valid file modes for `write` are ``'wb'`` and ``'xb'``.
         """
@@ -213,7 +213,7 @@ class GSD(Writer):
 
     @log.setter
     def log(self, log):
-        if (log is not None) and isinstance(log, Logger):
+        if log is not None and isinstance(log, Logger):
             log = _GSDLogWriter(log)
         else:
             raise ValueError("GSD.log can only be set with a Logger.")
