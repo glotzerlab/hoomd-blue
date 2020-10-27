@@ -15,6 +15,7 @@ from hoomd.operation import _Updater
 from hoomd.parameterdicts import ParameterDict
 import hoomd
 import hoomd.typeconverter
+from hoomd.custom.custom_action import Action
 
 
 class boxmc(_updater):
@@ -1114,7 +1115,7 @@ are only enabled for polyhedral and spherical particles.")
         self.move_cpp = move_cls(ntypes, stepsize, param_ratio)
         self._cpp_obj.registerShapeMove(self.move_cpp)
 
-    def get_tuner(self, average=False, **kwargs):
+    def get_tuner(self, trigger, target, max_scale=2., gamma=1., tol=1e-2):
         R""" Get a :py:mod:`hoomd.hpmc.util.tune` object set to tune the step size of the shape move.
         Args:
             average (bool, **default:** False): If set to true will set up the tuner to set all types together using averaged statistics.
@@ -1131,30 +1132,32 @@ are only enabled for polyhedral and spherical particles.")
                 shape_up.reset_statistics(); # reset the shape stats
 
         """
-        from . import util
-        import numpy as np
-        if not average:
-            ntypes = self._simulation.state._cpp_sys_def.getParticleData().getNTypes();
-            tunables = ["stepsize-{}".format(i) for i in range(ntypes)];
-            tunable_map = {};
-            for i in range(ntypes):
-                tunable_map.update({'stepsize-{}'.format(i) : {
-                                        'get': lambda typeid=i: getattr(self, 'get_step_size')(typeid),
-                                        'acceptance': lambda typeid=i: getattr(self, 'get_move_acceptance')(typeid),
-                                        'set': lambda x, name=self._simulation.state._cpp_sys_def.getParticleData().getNameByType(i): getattr(self, 'set_params')(types=name, stepsize=x),
-                                        'maximum': 0.5
-                                        }})
-        else:
-            ntypes = self._simulation.state._cpp_sys_def.getParticleData().getNTypes();
-            type_list = [self._simulation.state._cpp_sys_def.getParticleData().getNameByType(i) for i in range(ntypes)]
-            tunables=["stepsize"]
-            tunable_map = {'stepsize' : {
-                                    'get': lambda : getattr(self, 'get_step_size')(0),
-                                    'acceptance': lambda : float(getattr(self, 'get_move_acceptance')(None)),
-                                    'set': lambda x, name=type_list: getattr(self, 'set_params')(types=name, stepsize=x),
-                                    'maximum': 0.5
-                                    }};
-        return util.tune(self, tunables=tunables, tunable_map=tunable_map, **kwargs);
+        # hoomd.tune.CustomTuner(action, trigger)
+
+        def get_y():
+            acc = 0.0
+            if self.total_count > 0:
+                acc = float(self.accepted_count) / float(self.total_count)
+            return acc
+
+        def get_x():
+            return self._cpp_obj.getStepSize(0)
+
+        def set_x(stepsize):
+            return self._cpp_obj.setStepSize(0, stepsize)
+
+        tuneables = [hoomd.tune.ManualTuneDefinition(get_y, target, get_x, set_x)]
+        tuneables[0].domain = (0.0, 0.5)
+        solver = hoomd.tune.attr_tuner.ScaleSolver(max_scale, gamma, 'negative', tol)
+
+        class TuneAction(Action):
+            def __init__(cls, tuneables):
+                cls.tuneables = tuneables
+                cls.tuned = None
+            def act(cls, timestep):
+                cls.tuned = solver.solve(cls.tuneables)
+        tuner = hoomd.tune.CustomTuner(TuneAction(tuneables), trigger)
+        return tuner
 
     @property
     def total_count(self):
@@ -1212,8 +1215,8 @@ are only enabled for polyhedral and spherical particles.")
         """
 
         acc = 0.0
-        if self.get_total_count(None):
-            acc = float(self.get_accepted_count(None)) / float(self.get_total_count(None))
+        if self.total_count > 0:
+            acc = float(self.accepted_count) / float(self.total_count)
         return acc
 
     @log(flag='scalar')
@@ -1223,7 +1226,7 @@ are only enabled for polyhedral and spherical particles.")
     @log(flag='scalar')
     def shape_param(self):
         if 'Python' in str(self.move_cpp):
-            return self._cpp_obj.getShapeParam(0)
+            return self._cpp_obj.getShapeParam("shape_param_0")
         return 0.0
 
     def get_step_size(self, typeid=0):

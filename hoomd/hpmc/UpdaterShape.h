@@ -52,7 +52,7 @@ public:
         return m_log_boltz_function->computeEnergy(timestep, h_ntypes.data[ndx], ndx, m_mc->getParams()[ndx], h_det.data[ndx]);
         }
 
-    float getShapeParam(unsigned int param_index) {return m_move_function->getParam(param_index);}
+    float getShapeParam(std::string quantity, unsigned int timestep) {return m_move_function->getLogValue(quantity, timestep);}
 
     unsigned int getAcceptedCount(unsigned int ndx) { return m_count_accepted[ndx]; }
 
