@@ -115,8 +115,7 @@ class BoxResize(Updater):
             t_start (int): The timestep to start the volume ramp.
             t_size (int): The length of the volume ramp
             trigger (hoomd.trigger.Trigger): The trigger to activate this
-                updater.  scale_particles (bool): Whether to scale particles to
-                the new box dimensions when the box is resized.
+                updater.
             scale_particles (bool): Whether to scale particles to the new box
                 dimensions when the box is resized.
 
