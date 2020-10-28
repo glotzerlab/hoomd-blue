@@ -23,65 +23,44 @@ def fractional_coordinates(n=10):
     return np.random.uniform(-0.5, 0.5, size=(n, 3))
 
 
-BOX1 = np.array([1., 2., 3., 1., 2., 3.])
+_box = ([[1., 2., 3., 1., 2., 3.],    # Initial box, 3D
+         [10., 1., 6., 0., 5., 7.]],  # Final box, 3D
+        [[1., 2., 0., 1., 0., 0.],    # Initial box, 2D
+         [10., 1., 0., 0., 0., 0.]])  # Final box, 2D
 
 
-@pytest.fixture(scope="function")
-def sys1(fractional_coordinates):
-    """Initial system box size and particle positions.
+@pytest.fixture(scope="function", params=_box)
+def sys(request, fractional_coordinates):
+    """Initial, halfway, and final system box size and particle positions.
+    Halfway system box size and points are not applicable for linear volume resizing
     Args:
         fractional_coordinates: Array of fractional coordinates
 
-    Returns: hoomd box object and points for the initial system
+    Returns: hoomd box object and points for the initial, halfway, and final system
 
     """
-    hoomd_box = hoomd.Box.from_box(BOX1)
+    box_start = np.array(request.param[0])
+    box_end = np.array(request.param[1])
+    box_half = box_start + (box_end - box_start) * 0.5 ** _power
+
+    return (make_system(fractional_coordinates, box_start),
+            make_system(fractional_coordinates, box_half),
+            make_system(fractional_coordinates, box_end))
+
+
+def make_system(fractional_coordinates, box):
+    hoomd_box = hoomd.Box.from_box(box)
     points = fractional_coordinates @ hoomd_box.matrix.T
-    return hoomd_box, points
+    return (hoomd_box, points)
 
 
-BOX2 = np.array([10., 1., 6., 0., 5., 7.])
+_power = 0.2
 
 
 @pytest.fixture(scope='function')
-def sys2(fractional_coordinates):
-    """Final system box size and particle positions.
-    Args:
-        fractional_coordinates: Array of fractional coordinates
-
-    Returns: hoomd box object and points for the final system
-
-    """
-    hoomd_box = hoomd.Box.from_box(BOX2)
-    points = fractional_coordinates @ hoomd_box.matrix.T
-    return hoomd_box, points
-
-
-# BOX_HALF = BOX1 + (BOX2 - BOX1)/2
-# BOX_HALF = BOX1 + (BOX2 - BOX1)/2
-POWER = 0.2
-# POWER = 1/(19**(1/3))
-
-
-@pytest.fixture(scope='function')
-def sys_halfway(fractional_coordinates):
-    """Intermediate system box size and particle positions.
-    Args:
-        fractional_coordinates: Array of fractional coordinates
-
-    Returns: hoomd box object and points for the final system
-
-    """
-    box_half = BOX1 + (BOX2 - BOX1) * 0.5 ** POWER
-    hoomd_box = hoomd.Box.from_box(box_half)
-    points = fractional_coordinates @ hoomd_box.matrix.T
-    return hoomd_box, points
-
-
-@pytest.fixture(scope='function')
-def get_snapshot(sys1, device):
+def get_snapshot(sys, device):
     def make_shapshot():
-        box1, points1 = sys1
+        box1, points1 = sys[0]
         s = hoomd.Snapshot()
         s.configuration.box = box1
         s.particles.N = points1.shape[0]
@@ -94,7 +73,7 @@ def get_snapshot(sys1, device):
 
 _t_start = 2
 _variants = [
-    hoomd.variant.Power(0., 1., POWER, _t_start, _t_start * 2)
+    hoomd.variant.Power(0., 1., _power, _t_start, _t_start * 2)
 ]
 
 
@@ -104,7 +83,9 @@ def variant(request):
 
 
 def test_get_box(device, simulation_factory, get_snapshot,
-                 variant, sys1, sys2, sys_halfway):
+                 variant, sys):
+    sys1, sys_halfway, sys2 = sys
+
     sim = hoomd.Simulation(device)
     sim.create_state_from_snapshot(get_snapshot())
 
@@ -121,9 +102,15 @@ def test_get_box(device, simulation_factory, get_snapshot,
     assert box_resize.get_box(variant.t_start*3 + 1) == sys2[0]
 
 
+# class TestBase:
+#
+#     def test_get_box(self):
+#
+
 def test_user_specified_variant(device, simulation_factory, get_snapshot,
-                                variant, sys1, sys2, sys_halfway,
-                                scale_particles=True):
+                                variant, sys, scale_particles=True):
+    sys1, sys_halfway, sys2 = sys
+
     sim = hoomd.Simulation(device)
     sim.create_state_from_snapshot(get_snapshot())
 
@@ -154,8 +141,10 @@ def test_user_specified_variant(device, simulation_factory, get_snapshot,
 
 
 def test_linear_volume(device, simulation_factory, get_snapshot,
-                       variant, sys1, sys2,
+                       variant, sys,
                        scale_particles=True):
+    sys1, _, sys2 = sys
+
     sim = hoomd.Simulation(device)
     sim.create_state_from_snapshot(get_snapshot())
 
