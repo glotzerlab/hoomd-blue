@@ -6,6 +6,7 @@
 #include "hoomd/extern/gsd.h"
 #include <string>
 #include <sstream>
+#include <stdexcept>
 
 namespace hoomd
     {
