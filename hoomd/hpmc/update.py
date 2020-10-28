@@ -868,6 +868,7 @@ are only enabled for polyhedral and spherical particles.")
                             self.multi_phase,
                             self.num_phase)
         self._cpp_obj.registerLogBoltzmannFunction(self.boltzmann_function)
+        self._cpp_obj.registerShapeMove(self.move_cpp)
         super()._attach()
 
     def python_shape_move(self, callback, params, stepsize, param_ratio):
@@ -901,32 +902,29 @@ are only enabled for polyhedral and spherical particles.")
             shape_up.python_shape_move( callback=convex_polyhedron_callback(mc), params={'A': [0.5, 0.5]}, stepsize=0.001, param_ratio=0.5)
 
         """
-        if self._cpp_obj is None:
-            raise RuntimeError("Updater not attached")
         if self.move_cpp is not None:
             # hoomd.context.current.device.cpp_msg.error("update.shape_update.python_shape_move: Cannot change the move once initialized.\n")
             raise RuntimeError("Error initializing update.shape_update")
         move_cls = None
-        integrator = self._simulation.operations.integrator
-        if isinstance(integrator, integrate.Sphere):
+        if isinstance(self.mc, integrate.Sphere):
             move_cls = _hpmc.PythonShapeMoveSphere
-        elif isinstance(integrator, integrate.ConvexPolygon):
+        elif isinstance(self.mc, integrate.ConvexPolygon):
             move_cls = _hpmc.PythonShapeMoveConvexPolygon
-        elif isinstance(integrator, integrate.SimplePolygon):
+        elif isinstance(self.mc, integrate.SimplePolygon):
             move_cls = _hpmc.PythonShapeMoveSimplePolygon
-        elif isinstance(integrator, integrate.ConvexPolyhedron):
+        elif isinstance(self.mc, integrate.ConvexPolyhedron):
             move_cls = _hpmc.PythonShapeMoveConvexPolyhedron
-        elif isinstance(integrator, integrate.ConvexSpheropolyhedron):
+        elif isinstance(self.mc, integrate.ConvexSpheropolyhedron):
             move_cls = _hpmc.PythonShapeMoveSpheropolyhedron
-        elif isinstance(integrator, integrate.Ellipsoid):
+        elif isinstance(self.mc, integrate.Ellipsoid):
             move_cls = _hpmc.PythonShapeMoveEllipsoid
-        elif isinstance(integrator, integrate.ConvexSpheropolygon):
+        elif isinstance(self.mc, integrate.ConvexSpheropolygon):
             move_cls = _hpmc.PythonShapeMoveConvexSphereopolygon
-        elif isinstance(integrator, integrate.Polyhedron):
+        elif isinstance(self.mc, integrate.Polyhedron):
             move_cls = _hpmc.PythonShapeMovePolyhedron
-        elif isinstance(integrator, integrate.Sphinx):
+        elif isinstance(self.mc, integrate.Sphinx):
             move_cls = _hpmc.PythonShapeMoveSphinx
-        elif isinstance(integrator, integrate.SphereUnion):
+        elif isinstance(self.mc, integrate.SphereUnion):
             move_cls = _hpmc.PythonShapeMoveSphereUnion
         else:
             # hoomd.context.current.device.cpp_msg.error("update.shape_update.python_shape_move: Unsupported integrator.\n")
@@ -936,20 +934,20 @@ are only enabled for polyhedral and spherical particles.")
             # hoomd.context.current.device.cpp_msg.error("update.shape_update.python_shape_move: Unsupported integrator.\n")
             raise RuntimeError("Error initializing update.shape_update")
 
-        ntypes = self._simulation.state._cpp_sys_def.getParticleData().getNTypes()
         param_list = []
+        types = list(self.mc.state["shape"].keys())
+        print(types)
+        ntypes = len(types) - 1
         for i in range(ntypes):
-            typ = self._simulation.state._cpp_sys_def.getParticleData().getNameByType(i)
-            # param_list.append(self.mc.shape_class.ensure_list(params[typ]))
-            param_list.append(params[typ])
+            if types[i] != '__default__':
+                # param_list.append(self.mc.shape_class.ensure_list(params[typ]))
+                param_list.append(params[types[i]])
 
         if isinstance(stepsize, float) or isinstance(stepsize, int):
             stepsize_list = [float(stepsize) for i in range(ntypes)]
         else:
             stepsize_list = self.mc.shape_class.ensure_list(stepsize)
-
         self.move_cpp = move_cls(ntypes, callback, param_list, stepsize_list, float(param_ratio))
-        self._cpp_obj.registerShapeMove(self.move_cpp)
 
     def vertex_shape_move(self, stepsize, param_ratio, volume=1.0):
         R"""
@@ -968,32 +966,29 @@ are only enabled for polyhedral and spherical particles.")
             shape_up.vertex_shape_move( stepsize=0.001, param_ratio=0.25, volume=1.0)
 
         """
-        if self._cpp_obj is None:
-            raise RuntimeError("Updater not attached")
         if self.move_cpp is not None:
             hoomd.context.current.device.cpp_msg.error("update.shape_update.vertex_shape_move: Cannot change the move once initialized.\n")
             raise RuntimeError("Error initializing update.shape_update")
         move_cls = None
-        integrator = self._simulation.operations.integrator
-        if isinstance(integrator, integrate.Sphere):
+        if isinstance(self.mc, integrate.Sphere):
             pass
-        elif isinstance(integrator, integrate.ConvexPolygon):
+        elif isinstance(self.mc, integrate.ConvexPolygon):
             pass
-        elif isinstance(integrator, integrate.SimplePolygon):
+        elif isinstance(self.mc, integrate.SimplePolygon):
             pass
-        elif isinstance(integrator, integrate.ConvexPolyhedron):
+        elif isinstance(self.mc, integrate.ConvexPolyhedron):
             move_cls = _hpmc.GeneralizedShapeMoveConvexPolyhedron
-        elif isinstance(integrator, integrate.ConvexSpheropolyhedron):
+        elif isinstance(self.mc, integrate.ConvexSpheropolyhedron):
             pass
-        elif isinstance(integrator, integrate.Ellipsoid):
+        elif isinstance(self.mc, integrate.Ellipsoid):
             pass
-        elif isinstance(integrator, integrate.ConvexSpheropolygon):
+        elif isinstance(self.mc, integrate.ConvexSpheropolygon):
             pass
-        elif isinstance(integrator, integrate.Polyhedron):
+        elif isinstance(self.mc, integrate.Polyhedron):
             pass
-        elif isinstance(integrator, integrate.Sphinx):
+        elif isinstance(self.mc, integrate.Sphinx):
             pass
-        elif isinstance(integrator, integrate.SphereUnion):
+        elif isinstance(self.mc, integrate.SphereUnion):
             pass
         else:
             hoomd.context.current.device.cpp_msg.error("update.shape_update.vertex_shape_move: Unsupported integrator.\n")
@@ -1003,9 +998,8 @@ are only enabled for polyhedral and spherical particles.")
             hoomd.context.current.device.cpp_msg.error("update.shape_update: Unsupported integrator.\n")
             raise RuntimeError("Error initializing update.shape_update")
 
-        ntypes = self._simulation.state._cpp_sys_def.getParticleData().getNTypes()
+        ntypes = len(self.mc.state["shape"].keys()) - 1
         self.move_cpp = move_cls(ntypes, stepsize, param_ratio, volume)
-        self._cpp_obj.registerShapeMove(self.move_cpp)
 
     def constant_shape_move(self, **shape_params):
         R"""
@@ -1029,42 +1023,39 @@ are only enabled for polyhedral and spherical particles.")
             :py:mod:`hoomd.hpmc.data` for required shape parameters.
 
         """
-        if self._cpp_obj is None:
-            raise RuntimeError("Updater not attached")
         if self.move_cpp is not None:
             hoomd.context.current.device.cpp_msg.error("update.shape_update.constant_shape_move: Cannot change the move once initialized.\n")
             raise RuntimeError("Error initializing update.shape_update")
         move_cls = None
-        integrator = self._simulation.operations.integrator
         shape_cls = None
-        if isinstance(integrator, integrate.Sphere):
+        if isinstance(self.mc, integrate.Sphere):
             move_cls = _hpmc.ConstantShapeMoveSphere
             shape_cls = hoomd.hpmc._hpmc.SphereParams
-        elif isinstance(integrator, integrate.ConvexPolygon):
+        elif isinstance(self.mc, integrate.ConvexPolygon):
             move_cls = _hpmc.ConstantShapeMoveConvexPolygon
             shape_cls = hoomd.hpmc._hpmc.PolygonVertices
-        elif isinstance(integrator, integrate.SimplePolygon):
+        elif isinstance(self.mc, integrate.SimplePolygon):
             move_cls = _hpmc.ConstantShapeMoveSimplePolygon
             shape_cls = hoomd.hpmc._hpmc.PolygonVertices
-        elif isinstance(integrator, integrate.ConvexPolyhedron):
+        elif isinstance(self.mc, integrate.ConvexPolyhedron):
             move_cls = _hpmc.ConstantShapeMoveConvexPolyhedron
             shape_cls = hoomd.hpmc._hpmc.PolyhedronVertices
-        elif isinstance(integrator, integrate.ConvexSpheropolyhedron):
+        elif isinstance(self.mc, integrate.ConvexSpheropolyhedron):
             move_cls = _hpmc.ConstantShapeMoveSpheropolyhedron
             shape_cls = hoomd.hpmc._hpmc.PolyhedronVertices
-        elif isinstance(integrator, integrate.Ellipsoid):
+        elif isinstance(self.mc, integrate.Ellipsoid):
             move_cls = _hpmc.ConstantShapeMoveEllipsoid
             shape_cls = hoomd.hpmc._hpmc.EllipsoidParams
-        elif isinstance(integrator, integrate.ConvexSpheropolygon):
+        elif isinstance(self.mc, integrate.ConvexSpheropolygon):
             move_cls = _hpmc.ConstantShapeMoveConvexSphereopolygon
             shape_cls = hoomd.hpmc._hpmc.PolygonVertices
-        elif isinstance(integrator, integrate.Polyhedron):
+        elif isinstance(self.mc, integrate.Polyhedron):
             move_cls = _hpmc.ConstantShapeMovePolyhedron
             shape_cls = hoomd.hpmc._hpmc.PolyhedronVertices
-        elif isinstance(integrator, integrate.Sphinx):
+        elif isinstance(self.mc, integrate.Sphinx):
             move_cls = _hpmc.ConstantShapeMoveSphinx
             shape_cls = hoomd.hpmc._hpmc.SphinxParams
-        elif isinstance(integrator, integrate.SphereUnion):
+        elif isinstance(self.mc, integrate.SphereUnion):
             move_cls = _hpmc.ConstantShapeMoveSphereUnion
             shape_cls = hoomd.hpmc._hpmc.SphereUnionParams
         else:
@@ -1075,9 +1066,8 @@ are only enabled for polyhedral and spherical particles.")
             hoomd.context.current.device.cpp_msg.error("update.shape_update.constant_shape_move: Unsupported integrator.\n")
             raise RuntimeError("Error initializing update.shape_update")
 
-        ntypes = self._simulation.state._cpp_sys_def.getParticleData().getNTypes()
-        self.move_cpp = move_cls(ntypes, [shape_cls(shape_params)])
-        self._cpp_obj.registerShapeMove(self.move_cpp)
+        ntypes = len(self.mc.state["shape"].keys()) - 1
+        self.move_cpp = move_cls(ntypes, [shape_cls(shape_params)] * ntypes)
 
     def elastic_shape_move(self, stepsize, param_ratio=0.5):
         R"""
@@ -1094,14 +1084,13 @@ are only enabled for polyhedral and spherical particles.")
             shape_up.elastic_shape_move(stepsize=0.01)
 
         """
-        integrator = self._simulation.operations.integrator
         if self.move_cpp is not None:
             hoomd.context.current.device.cpp_msg.error("update.shape_update.elastic_shape_move: Cannot change the move once initialized.\n")
             raise RuntimeError("Error initializing update.shape_update")
         move_cls = None
-        if isinstance(integrator, integrate.ConvexPolyhedron):
+        if isinstance(self.mc, integrate.ConvexPolyhedron):
             move_cls = _hpmc.ElasticShapeMoveConvexPolyhedron
-        elif isinstance(integrator, integrate.Ellipsoid):
+        elif isinstance(self.mc, integrate.Ellipsoid):
             move_cls = _hpmc.ElasticShapeMoveEllipsoid
         else:
             hoomd.context.current.device.cpp_msg.error("update.shape_update.elastic_shape_move: Unsupported integrator.\n")
@@ -1111,9 +1100,8 @@ are only enabled for polyhedral and spherical particles.")
             hoomd.context.current.device.cpp_msg.error("update.shape_update.elastic_shape_move: Unsupported integrator.\n")
             raise RuntimeError("Error initializing update.shape_update")
 
-        ntypes = self._simulation.state._cpp_sys_def.getParticleData().getNTypes()
+        ntypes = len(self.mc.state["shape"].keys()) - 1
         self.move_cpp = move_cls(ntypes, stepsize, param_ratio)
-        self._cpp_obj.registerShapeMove(self.move_cpp)
 
     def get_tuner(self, trigger, target, max_scale=2., gamma=1., tol=1e-2):
         R""" Get a :py:mod:`hoomd.hpmc.util.tune` object set to tune the step size of the shape move.
@@ -1226,7 +1214,7 @@ are only enabled for polyhedral and spherical particles.")
     @log(flag='scalar')
     def shape_param(self):
         if 'Python' in str(self.move_cpp):
-            return self._cpp_obj.getShapeParam("shape_param_0")
+            return self._cpp_obj.getShapeParam("shape_param-0", self._simulation.timestep)
         return 0.0
 
     def get_step_size(self, typeid=0):
@@ -1380,26 +1368,7 @@ class elastic_shape(shape_update):
 
         self._param_dict.update(param_dict)
 
-        integrator = self.mc
-        if self.move_cpp is not None:
-            hoomd.context.current.device.cpp_msg.error("update.shape_update.elastic_shape_move: Cannot change the move once initialized.\n")
-            raise RuntimeError("Error initializing update.shape_update")
-        move_cls = None
-        if isinstance(integrator, integrate.ConvexPolyhedron):
-            move_cls = _hpmc.ElasticShapeMoveConvexPolyhedron
-        elif isinstance(integrator, integrate.Ellipsoid):
-            move_cls = _hpmc.ElasticShapeMoveEllipsoid
-        else:
-            hoomd.context.current.device.cpp_msg.error("update.shape_update.elastic_shape_move: Unsupported integrator.\n")
-            raise RuntimeError("Error initializing update.shape_update")
-
-        if not move_cls:
-            hoomd.context.current.device.cpp_msg.error("update.shape_update.elastic_shape_move: Unsupported integrator.\n")
-            raise RuntimeError("Error initializing update.shape_update")
-
-        # ntypes = self._simulation.state._cpp_sys_def.getParticleData().getNTypes()
-        ntypes = len(self.mc.state["shape"].keys())
-        self.move_cpp = move_cls(ntypes, stepsize, param_ratio)
+        self.elastic_shape_move(stepsize, param_ratio)
 
         # if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
         #     hoomd.context.current.device.cpp_msg.warning("update.elastic_shape: GPU is not implemented defaulting to CPU implementation.\n")
@@ -1421,13 +1390,6 @@ class elastic_shape(shape_update):
 
         ref_shape = shape_cls(reference)
         self.boltzmann_function = clss(self.stiffness, ref_shape, self.move_cpp)
-
-    def _attach(self):
-        super()._attach()
-        self._cpp_obj.registerShapeMove(self.move_cpp)
-        # self.elastic_shape_move(self._param_dict["stepsize"], self._param_dict["param_ratio"])
-        # self.elastic_shape_move(self.stepsize, self.param_ratio)
-        # self.boltzmann_function = clss(self.stiffness, ref_shape, self.move_cpp)
 
     def set_stiffness(self, stiffness):
         R""" Update the stiffness set point for Metropolis Monte Carlo elastic shape updates.

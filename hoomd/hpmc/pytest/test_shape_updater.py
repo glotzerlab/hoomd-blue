@@ -17,9 +17,8 @@ def test_vertex_moves(device, simulation_factory, lattice_snapshot_factory):
     sim = simulation_factory(lattice_snapshot_factory(dimensions=3, a=2.0, n=4))
     sim.operations.add(mc)
     updater = hoomd.hpmc.update.alchemy(mc=mc, move_ratio=1.0, seed=3832765, trigger=hoomd.trigger.Periodic(1), nselect=1)
-    sim.operations.add(updater)
-    sim.operations._schedule()
     updater.vertex_shape_move(stepsize=0.01, param_ratio=0.2, volume=1.0)
+    sim.operations.add(updater)
     sim.operations._schedule()
     sim.run(10)
 
@@ -41,16 +40,21 @@ class TruncatedTetrahedron:
 
 def test_python(device, simulation_factory, lattice_snapshot_factory):
     mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
-    mc.shape['A'] = {'vertices': ConvexPolyhedron(ttf(0.0).vertices / (ttf(0.0).volume**(1/3))).vertices}
+    initial_value = 1.0
+    mc.shape['A'] = {'vertices': ConvexPolyhedron(ttf(initial_value).vertices / (ttf(initial_value).volume**(1/3))).vertices}
     sim = simulation_factory(lattice_snapshot_factory(dimensions=3, a=2.0, n=4))
     sim.operations.add(mc)
     updater = hoomd.hpmc.update.alchemy(mc=mc, move_ratio=1.0, seed=3832765, trigger=hoomd.trigger.Periodic(1), nselect=1)
+    shape_gen_fn = TruncatedTetrahedron(mc=mc)
+    updater.python_shape_move(shape_gen_fn, {'A': [initial_value]}, stepsize=0.05, param_ratio=1.0)
     sim.operations.add(updater)
     sim.operations._schedule()
-    shape_gen_fn = TruncatedTetrahedron(mc=mc)
-    updater.python_shape_move(shape_gen_fn, {'A': [0]}, stepsize=0.5, param_ratio=0.5)
-    sim.operations._schedule()
-    sim.run(10)
+    shape_param_changing = False
+    for _ in range(10):
+        sim.run(1)
+        if updater.shape_param != initial_value:
+            shape_param_changing = True
+    assert shape_param_changing
 
 
 def test_constant_moves(device, simulation_factory, lattice_snapshot_factory):
@@ -59,9 +63,8 @@ def test_constant_moves(device, simulation_factory, lattice_snapshot_factory):
     sim = simulation_factory(lattice_snapshot_factory(dimensions=3, a=2.0, n=4))
     sim.operations.add(mc)
     updater = hoomd.hpmc.update.alchemy(mc=mc, move_ratio=1.0, seed=3832765, trigger=hoomd.trigger.Periodic(1), nselect=1)
-    sim.operations.add(updater)
-    sim.operations._schedule()
     updater.constant_shape_move(vertices=ConvexPolyhedron(ttf(1.0).vertices / (ttf(1.0).volume**(1/3))).vertices, ignore_statistics=0, sweep_radius=0.0)
+    sim.operations.add(updater)
     sim.operations._schedule()
     sim.run(10)
 
@@ -85,11 +88,10 @@ def test_tuner(device, simulation_factory, lattice_snapshot_factory):
     sim = simulation_factory(lattice_snapshot_factory(dimensions=3, a=2.0, n=4))
     sim.operations.add(mc)
     updater = hoomd.hpmc.update.alchemy(mc=mc, move_ratio=1.0, seed=3832765, trigger=hoomd.trigger.Periodic(1), nselect=1)
+    updater.vertex_shape_move(stepsize=0.01, param_ratio=0.2, volume=1.0)
     sim.operations.add(updater)
     tuner = updater.get_tuner(hoomd.trigger.Periodic(1), 0.2)
     sim.operations.add(tuner)
-    sim.operations._schedule()
-    updater.vertex_shape_move(stepsize=0.01, param_ratio=0.2, volume=1.0)
     sim.operations._schedule()
     sim.run(10)
     acceptance1 = float(updater.accepted_count) / float(updater.total_count)
