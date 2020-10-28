@@ -77,7 +77,7 @@ class GSDUtils
         else if (retval == GSD_ERROR_FILE_MUST_BE_WRITABLE)
             {
             std::ostringstream s;
-            s << "GSD: File must be writeable"
+            s << "GSD: File must be writable"
                  " - "
               << fname;
             throw std::runtime_error(s.str());

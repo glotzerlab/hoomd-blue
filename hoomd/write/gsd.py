@@ -163,8 +163,8 @@ class GSD(Writer):
         if self.dynamic is not None:
             for v in self.dynamic:
                 if v not in categories:
-                    raise RuntimeError("GSD: dynamic quantity " + v
-                                       + " is not valid")
+                    raise RuntimeError(
+                        f"GSD: dynamic quantity {v} is not valid")
 
             dynamic_quantities = ['property'] + self.dynamic
 
