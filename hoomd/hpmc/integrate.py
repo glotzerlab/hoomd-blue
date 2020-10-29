@@ -1163,7 +1163,7 @@ class FacetedEllipsoid(HPMCIntegrator):
                                              to_type_converter(
                                                  [(float, float, float)]),
                                              allow_none=True),
-                                         origin=(float, float, float),
+                                         origin=(0.0, 0.0, 0.0),
                                          ignore_statistics=False,
                                          len_keys=1,
                                          _defaults={'vertices': None}))
