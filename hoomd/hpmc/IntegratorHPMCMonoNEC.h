@@ -9,7 +9,7 @@
 #include "hoomd/Autotuner.h"
 
 //#include <random>
-#include <cfloat>
+//#include <cfloat>
 
 /*! \file IntegratorHPMCMonoNEC.h
     \brief Defines the template class for HPMC with Newtonian event chains
@@ -20,7 +20,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+// use PYBIND11 included from integrator !!
+// #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 namespace hpmc
 {
@@ -35,25 +36,29 @@ template< class Shape >
 class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
     {
     protected:
-        Scalar m_chain_time;       //!< the length of a chain, given in units of time
-        Scalar m_update_fraction;  //!< if we perform chains we update several particles as one 
-        unsigned int m_seed;                       //!< Random number seed
+        Scalar m_chain_time;        //!< the length of a chain, given in units of time
+        unsigned int m_chain_probability; //!< how often we do a chain. Replaces translation_move_probability
+        Scalar m_update_fraction;   //!< if we perform chains we update several particles as one 
+        
+        // GlobalArray< hpmc_counters_t >     m_count_total;      // Inherited from base class
+        GlobalArray< hpmc_nec_counters_t > m_nec_count_total;  //!< counters for chain statistics
 
-        // statistics - event chain
-        // These are used to evaluate how well the chain/the simulation is tuned to the system under investigation.
-        unsigned long int count_moved_particles; // Counts translations that result in a collision (including the last particle)
-        unsigned long int count_moved_again;     // Counts translations that do not result in a collision (or end of chain)
-        unsigned long int count_move_attempts;   // Counts chains
-        unsigned long int count_events;          // Counts everything (translations, repeated translations, and rotations [if applicable])
-        
-        unsigned long int count_tuner_chains;  
-        unsigned long int count_tuner_collisions;  
-        
+//         unsigned long int count_moved_particles; // Counts translations that result in a collision (including the last particle)
+//         unsigned long int count_moved_again;     // Counts translations that do not result in a collision (or end of chain)
+//         unsigned long int count_move_attempts;   // Counts chains
+//         unsigned long int count_events;          // Counts everything (translations, repeated translations, and rotations [if applicable])
+//         
+//         unsigned long int count_tuner_chains;  
+//         unsigned long int count_tuner_collisions;  
         
         // statistics - pressure
         // We follow the equations of Isobe and Krauth, Journal of Chemical Physics 143, 084509 (2015)
         Scalar count_pressurevarial; 
         Scalar count_movelength;     
+
+    private: // in line with IntegratorHPMC
+        hpmc_nec_counters_t m_nec_count_run_start;             //!< Count saved at run() start
+        hpmc_nec_counters_t m_nec_count_step_start;            //!< Count saved at the start of the last step
 
     public:
         //! Construct the integrator
@@ -66,26 +71,14 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
         virtual void resetStats()
             {
             IntegratorHPMCMono<Shape>::resetStats();
-            
-            // WARN Reset stats happens BEFORE logging them!
-            }
 
-        //! Print statistics about the hpmc steps taken
-        virtual void printStats()
-            {
-            IntegratorHPMCMono<Shape>::printStats();
-
-            this->m_exec_conf->msg->notice(2) << "-- sphere chain stats:" << "\n";
-            this->m_exec_conf->msg->notice(2) << "Moved Particles      "
-                << count_moved_particles << "\n";
-            this->m_exec_conf->msg->notice(2) << "Move Attempts        "
-                << count_move_attempts << "\n";
-            this->m_exec_conf->msg->notice(2) << "Average Ptcl per Try "
-                << count_moved_particles * 1.0 / count_move_attempts << "\n";
+            // Taking IntegratorHPMC.h as reference
+            ArrayHandle<hpmc_nec_counters_t> h_nec_counters(m_nec_count_total, access_location::host, access_mode::read);
+            m_nec_count_run_start = h_nec_counters.data[0];
             }
 
         //! Change move ratio
-        /*! \param move_multiplier new move_ratio to set
+        /*! \param m_chain_time set duration of a chain
         */
         void setChainTime(Scalar chain_time)
             {
@@ -97,6 +90,21 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
         inline Scalar getChainTime()
             {
             return m_chain_time;
+            }            
+
+        //! Change move ratio
+        /*! \param m_chain_time set duration of a chain
+        */
+        void setChainProbability(Scalar chain_probability)
+            {
+            m_chain_probability = chain_probability * 65536.0;
+            }
+
+        //! Get move ratio
+        //! \returns ratio of translation versus rotation move attempts
+        inline Scalar getChainProbability()
+            {
+            return m_chain_probability / 65536.0;
             }            
 
         //! Change update_fraction
@@ -118,7 +126,7 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
             }            
             
             
-        /* \returns a list of provided quantities
+        /** \returns a list of provided quantities
         */
         std::vector< std::string > getProvidedLogQuantities()
             {
@@ -127,23 +135,37 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
 
             // then add ours
             result.push_back("hpmc_chain_time");
-            result.push_back("hpmc_ec_move_size");
-            result.push_back("hpmc_ec_sweepequivalent");
-            result.push_back("hpmc_ec_raw_events");
-            result.push_back("hpmc_ec_raw_mvd_ptcl");
-            result.push_back("hpmc_ec_raw_mvd_agin");
-            result.push_back("hpmc_ec_raw_mv_atmpt");
+//             result.push_back("hpmc_ec_move_size");
+//             result.push_back("hpmc_ec_sweepequivalent");
+//             result.push_back("hpmc_ec_raw_events");
+//             result.push_back("hpmc_ec_raw_mvd_ptcl");
+//             result.push_back("hpmc_ec_raw_mvd_agin");
+//             result.push_back("hpmc_ec_raw_mv_atmpt");
             result.push_back("hpmc_ec_pressure");
             return result;
             }
+            
+        //! Get pressure from virial expression
+        //! We follow the equations of Isobe and Krauth, Journal of Chemical Physics 143, 084509 (2015)
+        //! \returns pressure
+        inline double getPressure()
+            {
+            return (1+count_pressurevarial/count_movelength)*this->m_pdata->getN()/this->m_pdata->getBox().getVolume();
+            }  
+            
+             
 
         //! Get the value of a logged quantity
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
         
         Scalar getTunerParticlesPerChain()
         {
-            return count_tuner_collisions*Scalar(1.0)/count_tuner_chains;
+            hpmc_nec_counters_t nec_counters = getNECCounters(2);
+            return nec_counters.chain_at_collision_count*Scalar(1.0)/nec_counters.chain_start_count;
         }
+        
+        //! Get the current counter values for NEC
+        hpmc_nec_counters_t getNECCounters(unsigned int mode=0);
         
     private:
         /*!
@@ -208,7 +230,7 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
                              ArrayHandle<unsigned int>& h_overlaps,
                              ArrayHandle<Scalar4>& h_postype,
                              ArrayHandle<Scalar4>& h_orientation,
-                             hpmc_counters_t& counters,
+                             hpmc_nec_counters_t& nec_counters,
                              vec3<Scalar>& collisionPlaneVector
                             );
         /*!
@@ -246,7 +268,7 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
                              ArrayHandle<unsigned int>& h_overlaps,
                              ArrayHandle<Scalar4>& h_postype,
                              ArrayHandle<Scalar4>& h_orientation,
-                             hpmc_counters_t& counters,
+                             hpmc_nec_counters_t& nec_counters,
                              vec3<Scalar>& collisionPlaneVector
                             );
 
@@ -269,16 +291,13 @@ IntegratorHPMCMonoNEC< Shape >::IntegratorHPMCMonoNEC(std::shared_ptr<SystemDefi
                                                                    unsigned int seed)
     : IntegratorHPMCMono<Shape>(sysdef, seed)
     {
-    this->m_exec_conf->msg->notice(5) << "Constructing IntegratorHPMCMonoSphereChain" << std::endl;
-    count_moved_particles =   0;
-    count_moved_again     =   0;
-    count_move_attempts   =   0;
+    this->m_exec_conf->msg->notice(5) << "Constructing IntegratorHPMCMonoNEC" << std::endl;
     count_pressurevarial  = 0.0;
     count_movelength      = 0.0;
     
-    count_events          =   0;
-    m_update_fraction         = 1.0;
-	m_seed = seed;
+    m_update_fraction     = 1.0;
+    m_chain_probability   = 0.01;
+    m_chain_time          = 1.0;
     }
 
 //! Destructor
@@ -287,6 +306,40 @@ IntegratorHPMCMonoNEC< Shape >::~IntegratorHPMCMonoNEC()
     {
     }
 
+/*! \param mode 0 -> Absolute count, 1 -> relative to the start of the run, 2 -> relative to the last executed step
+    \return The current state of the acceptance counters
+
+    IntegratorHPMC maintains a count of the number of accepted and rejected moves since instantiation. getCounters()
+    provides the current value. The parameter *mode* controls whether the returned counts are absolute, relative
+    to the start of the run, or relative to the start of the last executed step.
+*/
+template< class Shape >
+hpmc_nec_counters_t IntegratorHPMCMonoNEC< Shape >::getNECCounters(unsigned int mode)
+    {
+    ArrayHandle<hpmc_nec_counters_t> h_nec_counters(m_nec_count_total, access_location::host, access_mode::read);
+    hpmc_nec_counters_t result;
+
+    if (mode == 0)
+        result = h_nec_counters.data[0];
+    else if (mode == 1)
+        result = h_nec_counters.data[0] - m_nec_count_run_start;
+    else
+        result = h_nec_counters.data[0] - m_nec_count_step_start;
+
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // MPI Reduction to total result values on all nodes.
+        MPI_Allreduce(MPI_IN_PLACE, &result.chain_start_count,        1, MPI_LONG_LONG_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &result.chain_at_collision_count, 1, MPI_LONG_LONG_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &result.chain_no_collision_count, 1, MPI_LONG_LONG_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &result.distance_queries,         1, MPI_LONG_LONG_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &result.overlap_err_count,        1, MPI_UNSIGNED, MPI_SUM, m_exec_conf->getMPICommunicator());
+        }
+#endif
+    return result;
+    }
+    
     
 template< class Shape >
 void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
@@ -297,6 +350,13 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
     // get needed vars
     ArrayHandle<hpmc_counters_t> h_counters(this->m_count_total, access_location::host, access_mode::readwrite);
     hpmc_counters_t& counters = h_counters.data[0];
+    // m_count_step_start = h_counters.data[0]; // in IntegratorHPMC
+    
+    ArrayHandle<hpmc_nec_counters_t> h_nec_counters(m_nec_count_total, access_location::host, access_mode::readwrite);
+    hpmc_nec_counters_t& nec_counters = h_nec_counters.data[0];
+    m_nec_count_step_start = h_nec_counters.data[0];
+
+
     const BoxDim& box = this->m_pdata->getBox();
     unsigned int ndim = this->m_sysdef->getNDimensions();
 
@@ -327,15 +387,8 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
     count_pressurevarial = 0.0;
     count_movelength = 0.0;
 
-    count_tuner_chains = 0;
-    count_tuner_collisions = 0;
-    
-    // update the AABB Tree
-    this->buildAABBTree();
-    // limit m_d entries so that particles cannot possibly wander more than one box image in one time step
-    this->limitMoveDistances();
-    // update the image list
-    this->updateImageList();
+//     count_tuner_chains = 0;
+//     count_tuner_collisions = 0;
 
     if (this->m_prof) this->m_prof->push(this->m_exec_conf, "HPMC EC update");
 
@@ -361,11 +414,21 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
     for (unsigned int i_nselect = 0; i_nselect < this->m_nselect; i_nselect++)
         {
 
+        // With chains particles move way more, so we need to update the AABB-Tree more often.
+        // Previously n_select = 1 was fine. To avoid confusion
+    
+        // update the AABB Tree
+        this->buildAABBTree();
+        // limit m_d entries so that particles cannot possibly wander more than one box image in one time step
+        this->limitMoveDistances();
+        // update the image list
+        this->updateImageList();
+
         // loop through N particles in a shuffled order
         for (unsigned int cur_chain = 0; cur_chain < this->m_pdata->getN() * m_update_fraction; cur_chain++)
             {
             // Get the RNG for chain cur_chain.
-            hoomd::RandomGenerator rng_chain_i(hoomd::RNGIdentifier::HPMCMonoChainMove, m_seed, cur_chain, this->m_exec_conf->getRank()*this->m_nselect + i_nselect, timestep);
+            hoomd::RandomGenerator rng_chain_i(hoomd::RNGIdentifier::HPMCMonoChainMove, this->m_seed, cur_chain, this->m_exec_conf->getRank()*this->m_nselect + i_nselect, timestep);
 
             // this->m_update_order.shuffle(...) wants to update the particles in forward or reverse order.
             // For chains this is an invalid behavior. Instead we have to pick a starting particle randomly.
@@ -387,14 +450,14 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
             #endif
 
             unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng_chain_i);
-            bool move_type_translate = !shape_i.hasOrientation() || (move_type_select < this->m_move_ratio);
+            bool move_type_translate = !shape_i.hasOrientation() || (move_type_select < m_chain_probability);
 
             if (move_type_translate)
                 {
                 // start a chain
                 // -> increment chain counter
-                count_move_attempts++;
-                count_tuner_chains++;
+                nec_counters.chain_start_count++;
+                //count_tuner_chains++;
             
                 // take the particle's velocity as direction and normalize the direction vector
                 vec3<Scalar> direction = vec3<Scalar>(velocity_i);
@@ -422,18 +485,13 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                     {
                     
                     count_chain++;
-                
                     if( count_chain == debug_max_chain )
                     {
                         this->m_exec_conf->msg->error() << "The number of chain elements exceeded safe-guard limit of "<<debug_max_chain<<".\n";
                         this->m_exec_conf->msg->error() << "Shorten chain_time if this message appears regularly.\n";
-                        this->m_exec_conf->msg->error() << "Hints: "<<prev<<" - "<<next<<"\n";
                         break;
                     }
                         
-                    // statistics - we will update a particle
-                    count_events++;
-                
                     // k is the current particle, which is to be moved
                     int k = next;
                     
@@ -479,7 +537,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                                         h_overlaps,
                                         h_postype,
                                         h_orientation,
-                                        counters,
+                                        nec_counters,
                                         collisionPlaneVector
                                         );
 
@@ -584,15 +642,15 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                     if (!shape_i.ignoreStatistics())
                         {
                     
-                        if( next != k )
+                        if( next != k and next > -1)
                             {
-                            count_moved_particles++;
-                            counters.translate_reject_count++;
+                            //counters.translate_reject_count++;
+                            nec_counters.chain_at_collision_count++;
                             }
                             else
                             {
-                            counters.translate_accept_count++;
-                            count_moved_again++;
+                            //counters.translate_accept_count++;
+                            nec_counters.chain_no_collision_count++;
                             }
                         }
                     
@@ -639,7 +697,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                         
                         //statistics for pressure  -2-
                         count_pressurevarial   += dot(delta_pos, direction);
-                        count_tuner_collisions++;
+                        //count_tuner_collisions++;
 
                         #ifdef ENABLE_MPI
                         if (! this->m_comm || isActive( vec_to_scalar3(pos_n),box,ghost_fraction) )
@@ -696,19 +754,22 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
             else
                 {
                 // Get the RNG for current particle
-                hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::HPMCMonoTrialMove, m_seed, i, this->m_exec_conf->getRank()*this->m_nselect + i_nselect, timestep);
+                hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::HPMCMonoTrialMove, this->m_seed, i, this->m_exec_conf->getRank()*this->m_nselect + i_nselect, timestep);
 
                 bool overlap = false;
-                count_events++;
-
                 Scalar4 postype_i     = h_postype.data[i];
                 Scalar4 orientation_i = h_orientation.data[i];
                 vec3<Scalar> pos_i    = vec3<Scalar>(postype_i);
                 Shape shape_old(quat<Scalar>(orientation_i), this->m_params[typ_i]);
 
             
-                move_rotate(shape_i.orientation, rng_i, h_a.data[typ_i], ndim);
-            
+                //move_rotate(shape_i.orientation, rng_i, h_a.data[typ_i], ndim);
+                if (ndim == 2)
+                    move_rotate<2>(shape_i.orientation, rng_i, h_a.data[typ_i]);
+                else
+                    move_rotate<3>(shape_i.orientation, rng_i, h_a.data[typ_i]);
+                
+                
                 detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
 
                 overlap = checkForOverlap(timestep,
@@ -925,7 +986,7 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
                                                     ArrayHandle<unsigned int>& h_overlaps,
                                                     ArrayHandle<Scalar4>& h_postype,
                                                     ArrayHandle<Scalar4>& h_orientation,
-                                                    hpmc_counters_t& counters,
+                                                    hpmc_nec_counters_t& nec_counters, 
                                                     vec3<Scalar>& collisionPlaneVector
                                                    )
     {
@@ -991,7 +1052,7 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
                         unsigned int typ_j = __scalar_as_int(postype_j.w);
                         Shape shape_j(quat<Scalar>(orientation_j), this->m_params[typ_j]);
 
-                        counters.overlap_checks++;
+                        nec_counters.distance_queries++;
                         
                         
                         if ( h_overlaps.data[this->m_overlap_idx(typ_i, typ_j)])
@@ -1076,7 +1137,7 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
                                                     ArrayHandle<unsigned int>& h_overlaps,
                                                     ArrayHandle<Scalar4>& h_postype,
                                                     ArrayHandle<Scalar4>& h_orientation,
-                                                    hpmc_counters_t& counters,
+                                                    hpmc_nec_counters_t& nec_counters,
                                                     vec3<Scalar>& collisionPlaneVector
                                                    )
     {
@@ -1142,7 +1203,7 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
                         unsigned int typ_j = __scalar_as_int(postype_j.w);
                         Shape shape_j(quat<Scalar>(orientation_j), this->m_params[typ_j]);
 
-                        counters.overlap_checks++;
+                        nec_counters.distance_queries++;
                         
                         
                         if ( h_overlaps.data[this->m_overlap_idx(typ_i, typ_j)])
@@ -1154,7 +1215,7 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
                         
                             if( dot(r_ij,r_ij) < maxR*maxR )
                                 {
-                                double newDist = sweep_distance(r_ij, shape_i, shape_j, direction, counters.overlap_err_count, newCollisionPlaneVector);
+                                double newDist = sweep_distance(r_ij, shape_i, shape_j, direction, nec_counters.overlap_err_count, newCollisionPlaneVector);
                             
                                 if( newDist >= 0 and newDist < sweepableDistance )
                                     {
@@ -1210,31 +1271,31 @@ Scalar IntegratorHPMCMonoNEC<Shape>::getLogValue(const std::string& quantity, un
         {
         return m_chain_time;
         }
-    if (quantity == "hpmc_ec_move_size")
-        {
-        if( count_move_attempts == 0 ) return 0;
-        return (Scalar)count_moved_particles / (Scalar)count_move_attempts;
-        }
-    if (quantity == "hpmc_ec_sweepequivalent")
-        {
-        return (Scalar)count_events / (Scalar)this->m_pdata->getN();
-        }
-    if (quantity == "hpmc_ec_raw_events")
-        {
-        return (Scalar)count_events;
-        }
-    if (quantity == "hpmc_ec_raw_mvd_ptcl")
-        {
-        return (Scalar)count_moved_particles;
-        }
-    if (quantity == "hpmc_ec_raw_mvd_agin")
-        {
-        return (Scalar)count_moved_again;
-        }
-    if (quantity == "hpmc_ec_raw_mv_atmpt")
-        {
-        return (Scalar)count_move_attempts;
-        }
+//     if (quantity == "hpmc_ec_move_size")
+//         {
+//         if( count_move_attempts == 0 ) return 0;
+//         return (Scalar)count_moved_particles / (Scalar)count_move_attempts;
+//         }
+//     if (quantity == "hpmc_ec_sweepequivalent")
+//         {
+//         return (Scalar)count_events / (Scalar)this->m_pdata->getN();
+//         }
+//     if (quantity == "hpmc_ec_raw_events")
+//         {
+//         return (Scalar)count_events;
+//         }
+//     if (quantity == "hpmc_ec_raw_mvd_ptcl")
+//         {
+//         return (Scalar)count_moved_particles;
+//         }
+//     if (quantity == "hpmc_ec_raw_mvd_agin")
+//         {
+//         return (Scalar)count_moved_again;
+//         }
+//     if (quantity == "hpmc_ec_raw_mv_atmpt")
+//         {
+//         return (Scalar)count_move_attempts;
+//         }
     if (quantity == "hpmc_ec_pressure")
         {
         return (1+count_pressurevarial/count_movelength)*this->m_pdata->getN()/this->m_pdata->getBox().getVolume();
@@ -1257,12 +1318,28 @@ template < class Shape > void export_IntegratorHPMCMonoNEC(pybind11::module& m, 
         .def(pybind11::init< std::shared_ptr<SystemDefinition>, unsigned int >())
         .def("setChainTime", &IntegratorHPMCMonoNEC<Shape>::setChainTime)
         .def("getChainTime", &IntegratorHPMCMonoNEC<Shape>::getChainTime)
-        .def("getTunerParticlesPerChain", &IntegratorHPMCMonoNEC<Shape>::getTunerParticlesPerChain)
+        .def_property("chain_time", &IntegratorHPMCMonoNEC<Shape>::getChainTime, &IntegratorHPMCMonoNEC<Shape>::setChainTime)
+        .def("setChainProbability", &IntegratorHPMCMonoNEC<Shape>::setChainProbability)
+        .def("getChainProbability", &IntegratorHPMCMonoNEC<Shape>::getChainProbability)
+        .def_property("chain_probability", &IntegratorHPMCMonoNEC<Shape>::getChainProbability, &IntegratorHPMCMonoNEC<Shape>::setChainProbability)
         .def("setUpdateFraction", &IntegratorHPMCMonoNEC<Shape>::setUpdateFraction)
+        .def("getUpdateFraction", &IntegratorHPMCMonoNEC<Shape>::getUpdateFraction)
+        .def_property("update_fraction", &IntegratorHPMCMonoNEC<Shape>::getUpdateFraction, &IntegratorHPMCMonoNEC<Shape>::setUpdateFraction)
+        .def("getTunerParticlesPerChain", &IntegratorHPMCMonoNEC<Shape>::getTunerParticlesPerChain)
         ;
 
     }
-
+    
+inline void export_hpmc_nec_counters(pybind11::module& m)
+    {
+    pybind11::class_< hpmc_nec_counters_t >(m, "hpmc_nec_counters_t")
+    .def_readonly("chain_start_count",        &hpmc_nec_counters_t::chain_start_count)
+    .def_readonly("chain_at_collision_count", &hpmc_nec_counters_t::chain_at_collision_count)
+    .def_readonly("chain_no_collision_count", &hpmc_nec_counters_t::chain_no_collision_count)
+    .def_readonly("distance_queries",         &hpmc_nec_counters_t::distance_queries)
+    .def_readonly("overlap_errors",           &hpmc_nec_counters_t::overlap_err_count)
+    ;
+    }
 } // end namespace hpmc
 
 #endif // __HPMC_MONO_EC__H__
