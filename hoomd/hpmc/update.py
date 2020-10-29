@@ -1120,7 +1120,6 @@ are only enabled for polyhedral and spherical particles.")
                 shape_up.reset_statistics(); # reset the shape stats
 
         """
-        # hoomd.tune.CustomTuner(action, trigger)
 
         def get_y():
             acc = 0.0

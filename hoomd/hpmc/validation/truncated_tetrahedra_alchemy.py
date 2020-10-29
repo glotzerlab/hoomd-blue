@@ -55,13 +55,13 @@ n = 3
 
 cpu = hoomd.device.CPU()
 
-s = hoomd.Snapshot(device=cpu)
+s = hoomd.Snapshot()
 
 if s.exists:
     s.configuration.box = [initial_box.Lx * 2, initial_box.Ly * 2, initial_box.Lz * 2, initial_box.xy, initial_box.xz, initial_box.yz]
     s.configuration.dimensions = dim
 
-    s.particles.N = len(pos)
+    s.particles.N = len(initial_pos)
     s.particles.types = ['A']
 
     s.particles.position[:] = initial_pos
@@ -74,10 +74,10 @@ mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
 mc.shape['A'] = {'vertices': initial_shape.vertices}
 tune = hoomd.hpmc.tune.MoveSize.scale_solver(moves=['a', 'd'],
                                              target=0.2,
-                                             trigger=hoomd.trigger.Periodic(1),
-                                             max_translation_move=0.2,
-                                             max_rotation_move=0.2)
-sim.operations.tuners.append(tune)
+                                             trigger=hoomd.trigger.Periodic(1000))
+sim.operations.add(tune)
+sim.operations._schedule()
+sim.run(10e3)
 # hoomd.update.box_resize.BoxResize.linear_volume(hoomd.Box(initial_box.Lx, initial_box.Ly, Lz=initial_box.Lz),
 #                                                 hoomd.Box(final_box.Lx, final_box.Ly, Lz=final_box.Lz),
 #                                                 0, 1e6,
@@ -86,59 +86,35 @@ compress = hoomd.hpmc.update.QuickCompress(trigger=hoomd.trigger.Periodic(1), se
 sim.operations.add(mc)
 updater = hoomd.hpmc.update.alchemy(mc=mc, move_ratio=1.0, seed=3832765, trigger=hoomd.trigger.Periodic(1), nselect=1)
 sim.operations.add(updater)
-sim.operations.schedule()
 shape_gen_fn = TruncatedTetrahedron(mc=mc)
-updater.python_shape_move(shape_gen_fn, {'A': [0]}, stepsize=0.1, param_ratio=0.5)
-logger = hoomd.logging.Logger()
+updater.python_shape_move(shape_gen_fn, {'A': [init_trunc]}, stepsize=0.1, param_ratio=0.5)
+tuner = updater.get_tuner(hoomd.trigger.Periodic(1000), 0.5, gamma=0.5)
+sim.operations.add(tuner)
+log_file = open("truncations.txt", "w+")
+logger = hoomd.logging.Logger(flags=['scalar'])
 logger += updater
-sim.operations.schedule()
-
-# mc = hoomd.hpmc.integrate.convex_polyhedron(1, d=0.1, a=0.1, move_ratio=0.5)
-# mc.shape_param.set('A', vertices=initial_shape.vertices)
-# mc_tuner = hpmc.util.tune(mc, tunables=['d', 'a'], target=0.2, gamma=0.5)
-# snap = system.take_snapshot()
+writer = hoomd.write.Table(hoomd.trigger.Periodic(1), logger, log_file, max_header_len=1)
+sim.operations.add(writer)
+sim.operations._schedule()
 
 # field = hpmc.field.lattice_field(mc=mc,
 #                                  position=[list(pos) for pos in snap.particles.position],
 #                                  orientation=[[1, 0, 0, 0]] * len(snap.particles.position),
 #                                  k=10.0, q=0.0)
-# box_L_points = [(0, system.box.Lx * 2),
-#                 (5e3, system.box.Lx),
-#                 (1e6, system.box.Lx)]
-# box_updater = hoomd.update.box_resize(L=hoomd.variant.linear_interp(box_L_points))
-
-# for i in range(10):
-#     hoomd.run(1e3)
-#     mc_tuner.update()
-
-# shape_gen_fn = TruncatedTetrahedron(trunc=init_trunc);
-# shape_updater = hoomd.hpmc.update.alchemy(
-#                 mc=mc,
-#                 move_ratio=1.0,
-#                 period=1,
-#                 seed=1)
-# shape_updater.python_shape_move(shape_gen_fn, {'A': [init_trunc]}, stepsize=0.1, param_ratio=0.5)
-# shape_tuner = shape_updater.get_tuner(target=0.5, gamma=0.5)
-
-# log = hoomd.analyze.log(filename=None, quantities=['shape_param-0'], period=10, overwrite=True);
-
-trunc_list = [];
-def accumulate_truncation(timestep):
-    trunc_list.append(log.query('shape_param-0'))
-
-field.set_params(5.0, 0.0)
-for i in range(20):
-    print("truncation: " + str(round(log.query('shape_param-0'), 5)))
-    hoomd.run(1e3, callback=accumulate_truncation, callback_period=10)
-    # shape_tuner.update()
-    # mc_tuner.update()
 
 
-block = BlockAverage.BlockAverage(trunc_list)
-mean_trunc = np.mean(trunc_list)
+# field.set_params(5.0, 0.0)
+for _ in range(20):
+    sim.run(1e3)
+    print(updater.shape_param)
+
+truncations = np.hsplit(np.loadtxt("truncations.txt", skiprows=1), 3)[2]
+block = BlockAverage.BlockAverage(truncations)
+mean_trunc = np.mean(truncations)
 i, sigma_trunc = block.get_error_estimate()
 n, num_samples, err_est, err_err = block.get_hierarchical_errors()
-mean_trunc = np.mean(trunc_list[-num_samples[-1]:])
+mean_trunc = np.mean(truncations[-num_samples[-1]:])
+print(mean_trunc)
 
 # max error 0.5%
 assert sigma_trunc / mean_trunc <= 0.005
