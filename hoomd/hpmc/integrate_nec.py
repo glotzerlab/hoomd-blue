@@ -9,9 +9,7 @@ from hoomd.integrate import _integrator
 import hoomd
 import sys
 
-from hoomd.hpmc.integrate import mode_hpmc, setD, setA
-from hoomd.hpmc.integrate import sphere as hpmc_sphere
-from hoomd.hpmc.integrate import convex_polyhedron as hpmc_convex_polyhedron
+from hoomd.hpmc.integrate import HPMCIntegrator
 
 
 # add HPMC-NEC article citation notice
@@ -34,11 +32,120 @@ else:
 
 
 
-class sphere(hpmc_sphere):
+class HPMCNECIntegrator(HPMCIntegrator):
+	""" HPMC Chain Integrator Meta Class
+	
+	Insert Doc-string here.
+	"""
+    _cpp_cls = None
+
+    def __init__(self,
+                 seed,
+                 d=0.1,
+                 a=0.1,
+                 chain_probability=0.5,
+                 chain_time=0.5,
+                 update_fraction=0.5,
+                 nselect=1):
+
+        # initialize base class
+        super().__init__(seed, d, a, translation_move_probability, nselect)
+
+
+        # Set base parameter dict for hpmc chain integrators
+        param_dict = ParameterDict(
+            chain_probability=float(chain_probability),
+            chain_time=float(chain_time),
+            update_fraction=float(update_fraction))
+        self._param_dict.update(param_dict)
+
+    @property
+    def nec_counters(self):
+        """Trial move counters.
+
+        The counter object has the following attributes:
+
+        * ``chain_start_count``:        `int` Number of chains
+        * ``chain_at_collision_count``: `int` Number of collisions
+        * ``chain_no_collision_count``: `int` Number of chain events that are
+          no collision (i.e. no collision partner found or end of chain)
+        * ``distance_queries``:         `int` Number of sweep distances
+          calculated
+        * ``overlap_err_count``:        `int` Number of errors during sweep
+          calculations
+
+        Note:
+            The counts are reset to 0 at the start of each
+            `hoomd.Simulation.run`.
+        """
+        if self._attached:
+            return self._cpp_obj.getNECCounters(1)
+        else:
+            return None
+
+    @log
+    def virial_pressure(self):
+        """float: virial pressure
+
+        Note:
+            The statistics are reset at every timestep.
+        """
+        if self._attached:
+            return self._cpp_obj.getPressure()
+        else:
+            return None
+
+    @log
+    def particles_per_chain(self):
+        """float: particles per chain
+
+        Note:
+            The statistics are reset at every `hoomd.Simulation.run`.
+        """
+        if self._attached:
+            necCounts = self._cpp_obj.getNECCounters(1)
+            return necCounts.chain_at_collision_count * 1.0 / necCounts.chain_start_count
+        else:
+            return None
+
+    @log
+    def chains_in_space(self):
+        """float: rate of chain events that did neither collide nor end.
+
+        Note:
+            The statistics are reset at every `hoomd.Simulation.run`.
+        """
+        if self._attached:
+            necCounts = self._cpp_obj.getNECCounters(1)
+            return (necCounts.chain_no_collision_count - necCounts.chain_start_count) / ( necCounts.chain_at_collision_count + necCounts.chain_no_collision_count )
+        else:
+            return None
+
+    # Tuners... (this probably is different now as well?)
+    def get_particles_per_chain(self):
+        R"""
+        Returns the average number of particles in a chain for the last update step. (For use in a tuner.)
+        """
+        return self._cpp_obj.getTunerParticlesPerChain()
+
+    def get_chain_time(self):
+        R"""
+        Get the current chain_time value. (For use in a tuner.)
+        """
+        return self._cpp_obj.getChainTime()
+    
+    def set_chain_time(self,chain_time):
+        R"""
+        Set the chain_time parameter to a new value. (For use in a tuner.)
+        """
+        self._cpp_obj.setChainTime(chain_time)
+        
+
+
+class Sphere(HPMCNECIntegrator):
     R""" HPMC chain integration for spheres (2D/3D).
 
     Args:
-        seed (int): Random number seed
         d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
         chain_time (float): length of a chain in units of time.
         update_fraction (float): number of chains to be done as fraction of N.
@@ -72,60 +179,50 @@ class sphere(hpmc_sphere):
 
     """
 
-    def __init__(self, seed, d=0.1, chain_time=1, update_fraction=0.1, nselect=1, restore_state=False):
-        hoomd.util.print_status_line();
+    _cpp_cls = 'IntegratorHPMCMonoNECSphere'
 
-        # These have no impact but are used as arguments...
-        implicit=False
-        depletant_mode='circumsphere'
-
+    def __init__(self,
+                 seed,
+                 d=0.1,
+                 a=0.1,
+                 chain_probability=0.5,
+                 chain_time=0.5,
+                 update_fraction=0.5,
+                 nselect=1):
         # initialize base class
-        mode_hpmc.__init__(self,implicit, depletant_mode);
-
-        # initialize the reflected c++ class
-        if hoomd.context.exec_conf.isCUDAEnabled() or implicit:
-            raise NotImplementedError("HPMC-SphereNEC is not implemented for implicit mode or use with CUDA.")
-
-        self.cpp_integrator = _hpmc.IntegratorHPMCMonoNECSphere(hoomd.context.current.system_definition, seed);
-
-        # set the default parameters
-        setD(self.cpp_integrator,d);
-        self.cpp_integrator.setMoveRatio(1.0)
-        self.cpp_integrator.setNSelect(nselect);
-        self.cpp_integrator.setChainTime(chain_time);
-        self.cpp_integrator.setUpdateFraction(update_fraction);
-
-        hoomd.context.current.system.setIntegrator(self.cpp_integrator);
-
-        self.initialize_shape_params();
-
-        if implicit:
-            self.implicit_required_params=['nR', 'depletant_type']
-
-        if restore_state:
-            self.restore_state()
-            
-    def get_particles_per_chain(self):
-        R"""
-        Returns the average number of particles in a chain for the last update step. (For use in a tuner.)
-        """
-        return self.cpp_integrator.getTunerParticlesPerChain()
-
-    def get_chain_time(self):
-        R"""
-        Get the current chain_time value. (For use in a tuner.)
-        """
-        return self.cpp_integrator.getChainTime()
-    
-    def set_chain_time(self,chain_time):
-        R"""
-        Set the chain_time parameter to a new value. (For use in a tuner.)
-        """
-        self.cpp_integrator.setChainTime(chain_time)
+        super().__init__(
+                 seed=seed,
+                 d=d,
+                 a=0.1,
+                 chain_probability=1.0,
+                 chain_time=chain_time,
+                 update_fraction=update_fraction,
+                 nselect=nselect)
         
+        typeparam_shape = TypeParameter('shape',
+                                type_kind='particle_types',
+                                param_dict=TypeParameterDict(
+                                    diameter=float,
+                                    ignore_statistics=False,
+                                    orientable=False,
+                                    len_keys=1))
+        self._add_typeparam(typeparam_shape)
+
+    @log(flag='object')
+    def type_shapes(self):
+        """list[dict]: Description of shapes in ``type_shapes`` format.
+
+        Examples:
+            The types will be 'Sphere' regardless of dimensionality.
+
+            >>> mc.type_shapes
+            [{'type': 'Sphere', 'diameter': 1},
+             {'type': 'Sphere', 'diameter': 2}]
+        """
+        return super()._return_type_shapes()
 
 
-class convex_polyhedron(hpmc_convex_polyhedron):
+class ConvexPolyhedron(HPMCNECIntegrator):
     R""" HPMC integration for convex polyhedra (3D) with nec.
 
     Args:
@@ -173,66 +270,50 @@ class convex_polyhedron(hpmc_convex_polyhedron):
 
         
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.1, chain_time=10, update_fraction=0.5, nselect=4, restore_state=False):
-        hoomd.util.print_status_line();
-        
-        # These have no impact but are used as arguments...
-        implicit=False
-        depletant_mode='circumsphere'
-        max_verts=None
+    _cpp_cls = 'IntegratorHPMCMonoNECConvexPolyhedron'
 
-        if max_verts is not None:
-            hoomd.context.msg.warning("max_verts is deprecated. Ignoring.\n")
 
-        # initialize base class
-        mode_hpmc.__init__(self,implicit, depletant_mode);
+    def __init__(self,
+                 seed,
+                 d=0.1,
+                 a=0.1,
+                 chain_probability=0.5,
+                 chain_time=0.5,
+                 update_fraction=0.5,
+                 nselect=1):
 
-        # initialize the reflected c++ class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
-            if(implicit):
-                raise NotImplementedError("HPMC-EventChain is not implemented for implicit mode.")
-            else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoNECConvexPolyhedron(hoomd.context.current.system_definition, seed);
-        else:
-            raise NotImplementedError("HPMC-EventChain is not implemented for use with cuda.")
-        
+        super().__init__(
+                 seed=seed,
+                 d=d,
+                 a=a,
+                 chain_probability=chain_probability,
+                 chain_time=chain_time,
+                 update_fraction=update_fraction,
+                 nselect=nselect):
 
-        # set default parameters
-        setD(self.cpp_integrator,d);
-        setA(self.cpp_integrator,a);
-        self.cpp_integrator.setMoveRatio(move_ratio)
-        self.cpp_integrator.setChainTime(chain_time)
-        self.cpp_integrator.setUpdateFraction(update_fraction)
-        if nselect is not None:
-            self.cpp_integrator.setNSelect(nselect);
 
-        hoomd.context.current.system.setIntegrator(self.cpp_integrator);
-        self.initialize_shape_params();
+        typeparam_shape = TypeParameter('shape',
+                                        type_kind='particle_types',
+                                        param_dict=TypeParameterDict(
+                                            vertices=[(float, float, float)],
+                                            sweep_radius=0.0,
+                                            ignore_statistics=False,
+                                            len_keys=1))
+        self._add_typeparam(typeparam_shape)
 
-        if implicit:
-            self.implicit_required_params=['nR', 'depletant_type']
+    @log(flag='object')
+    def type_shapes(self):
+        """list[dict]: Description of shapes in ``type_shapes`` format.
 
-        if restore_state:
-            self.restore_state()
-            
-    def get_particles_per_chain(self):
-        R"""
-        Returns the average number of particles in a chain for the last update step. (For use in a tuner.)
+        Example:
+            >>> mc.type_shapes()
+            [{'type': 'ConvexPolyhedron', 'sweep_radius': 0,
+              'vertices': [[0.5, 0.5, 0.5], [0.5, -0.5, -0.5],
+                           [-0.5, 0.5, -0.5], [-0.5, -0.5, 0.5]]}]
         """
-        return self.cpp_integrator.getTunerParticlesPerChain()
-
-    def get_chain_time(self):
-        R"""
-        Get the current chain_time value. (For use in a tuner.)
-        """
-        return self.cpp_integrator.getChainTime()
+        return super(ConvexPolyhedron, self)._return_type_shapes()
     
-    def set_chain_time(self,chain_time):
-        R"""
-        Set the chain_time parameter to a new value. (For use in a tuner.)
-        """
-        self.cpp_integrator.setChainTime(chain_time)
-        
+    
 def make_tunable_map(obj=None):
     R"""
     Creates a tunable map for hpmc.tune and NEC.
