@@ -247,8 +247,30 @@ class Loggable(type):
     @classmethod
     def _get_current_cls_loggables(cls, new_cls):
         """Gets the current class's new loggables (not inherited)."""
-        return {name: _LoggerQuantity(name, new_cls, entry.flag, entry.default)
-                for name, entry in cls._meta_export_dict.items()}
+        current_loggables = {}
+        for name, entry in cls._meta_export_dict.items():
+            current_loggables[name] = _LoggerQuantity(
+                name, new_cls, entry.flag, entry.default)
+            cls._add_loggable_docstring_info(
+                new_cls, name, entry.flag, entry.default)
+        return current_loggables
+
+    @classmethod
+    def _add_loggable_docstring_info(cls, new_cls, attr, flag, default):
+        doc = getattr(new_cls, attr).__doc__
+        str_msg = '\n\n{}(**Loggable**: '
+        str_msg += f'type "{str(flag)[10:]}", default {default})'
+        if doc is None:
+            getattr(new_cls, attr).__doc__ = str_msg.format('')
+        else:
+            indent = 0
+            lines = doc.split('\n')
+            if len(lines) >= 3:
+                cnt = 2
+                while lines[cnt] == '':
+                    cnt += 1
+                indent = len(lines[cnt]) - len(lines[cnt].lstrip())
+            getattr(new_cls, attr).__doc__ += str_msg.format(' ' * indent)
 
 
 def log(func=None, *, is_property=True, flag='scalar', default=True):
