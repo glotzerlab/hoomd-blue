@@ -875,11 +875,11 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
     // all particle have been moved, the aabb tree is now invalid
     this->m_aabb_tree_invalid = true;
     
-    hpmc_counters_t     run_counters     = getCounters(1);
+    hpmc_counters_t     run_counters     = this->getCounters(1);
     hpmc_nec_counters_t run_nec_counters = getNECCounters(1);
-    double cur_time = double(m_clock.getTime()) / Scalar(1e9);
+    double cur_time = double(this->m_clock.getTime()) / Scalar(1e9);
     unsigned long long sum_of_moves = run_counters.rotate_accept_count + run_counters.rotate_reject_count + run_nec_counters.chain_at_collision_count + run_nec_counters.chain_no_collision_count;
-    m_mps = double(sum_of_moves) / cur_time;
+    this->m_mps = double(sum_of_moves) / cur_time;
     }
 
     
