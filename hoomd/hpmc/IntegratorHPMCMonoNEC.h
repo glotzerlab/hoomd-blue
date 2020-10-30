@@ -53,7 +53,7 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
         
         // statistics - pressure
         // We follow the equations of Isobe and Krauth, Journal of Chemical Physics 143, 084509 (2015)
-        Scalar count_pressurevarial; 
+        Scalar count_pressurevirial; 
         Scalar count_movelength;     
 
     private: // in line with IntegratorHPMC
@@ -70,6 +70,8 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
         //! Reset statistics counters
         virtual void resetStats()
             {
+            this->m_exec_conf->msg->notice(10) << "IntegratorHPMCMonoNEC<Shape>::resetStats" << std::endl;
+
             IntegratorHPMCMono<Shape>::resetStats();
 
             // Taking IntegratorHPMC.h as reference
@@ -82,6 +84,7 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
         */
         void setChainTime(Scalar chain_time)
             {
+            this->m_exec_conf->msg->notice(10) << "IntegratorHPMCMonoNEC<Shape>::setChainTime(" << chain_time << ")" << std::endl;
             m_chain_time = chain_time;
             }
 
@@ -97,6 +100,7 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
         */
         void setChainProbability(Scalar chain_probability)
             {
+            this->m_exec_conf->msg->notice(10) << "IntegratorHPMCMonoNEC<Shape>::setChainProbability(" << chain_probability << ")" << std::endl;
             m_chain_probability = chain_probability * 65536.0;
             }
 
@@ -114,6 +118,7 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
             {
             if ( update_fraction > 0 and update_fraction <= 1.0 )
                 {
+                this->m_exec_conf->msg->notice(10) << "IntegratorHPMCMonoNEC<Shape>::setUpdateFraction(" << update_fraction << ")" << std::endl;
                 m_update_fraction = update_fraction;
                 }
             }
@@ -150,7 +155,7 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
         //! \returns pressure
         inline double getPressure()
             {
-            return (1+count_pressurevarial/count_movelength)*this->m_pdata->getN()/this->m_pdata->getBox().getVolume();
+            return (1+count_pressurevirial/count_movelength)*this->m_pdata->getN()/this->m_pdata->getBox().getVolume();
             }  
             
              
@@ -292,12 +297,15 @@ IntegratorHPMCMonoNEC< Shape >::IntegratorHPMCMonoNEC(std::shared_ptr<SystemDefi
     : IntegratorHPMCMono<Shape>(sysdef, seed)
     {
     this->m_exec_conf->msg->notice(5) << "Constructing IntegratorHPMCMonoNEC" << std::endl;
-    count_pressurevarial  = 0.0;
+    count_pressurevirial  = 0.0;
     count_movelength      = 0.0;
     
     m_update_fraction     = 1.0;
     m_chain_probability   = 0.01;
     m_chain_time          = 1.0;
+    
+    GlobalArray<hpmc_nec_counters_t> nec_counters(1, this->m_exec_conf);
+    m_nec_count_total.swap(nec_counters);
     }
 
 //! Destructor
@@ -384,7 +392,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
     #endif
 
     // reset pressure statistics
-    count_pressurevarial = 0.0;
+    count_pressurevirial = 0.0;
     count_movelength = 0.0;
 
 //     count_tuner_chains = 0;
@@ -696,7 +704,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                         box.wrap(delta_pos, null_image );
                         
                         //statistics for pressure  -2-
-                        count_pressurevarial   += dot(delta_pos, direction);
+                        count_pressurevirial   += dot(delta_pos, direction);
                         //count_tuner_collisions++;
 
                         #ifdef ENABLE_MPI
@@ -1304,7 +1312,7 @@ Scalar IntegratorHPMCMonoNEC<Shape>::getLogValue(const std::string& quantity, un
 //         }
     if (quantity == "hpmc_ec_pressure")
         {
-        return (1+count_pressurevarial/count_movelength)*this->m_pdata->getN()/this->m_pdata->getBox().getVolume();
+        return (1+count_pressurevirial/count_movelength)*this->m_pdata->getN()/this->m_pdata->getBox().getVolume();
         }
 
 
@@ -1332,6 +1340,8 @@ template < class Shape > void export_IntegratorHPMCMonoNEC(pybind11::module& m, 
         .def("getUpdateFraction", &IntegratorHPMCMonoNEC<Shape>::getUpdateFraction)
         .def_property("update_fraction", &IntegratorHPMCMonoNEC<Shape>::getUpdateFraction, &IntegratorHPMCMonoNEC<Shape>::setUpdateFraction)
         .def("getTunerParticlesPerChain", &IntegratorHPMCMonoNEC<Shape>::getTunerParticlesPerChain)
+        .def("getPressure", &IntegratorHPMCMonoNEC<Shape>::getPressure)
+        .def("getNECCounters", &IntegratorHPMCMonoNEC<Shape>::getNECCounters)
         ;
 
     }

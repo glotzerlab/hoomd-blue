@@ -2,41 +2,41 @@
 #                    2019 Marco Klement and Michael Engel
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-from hoomd import _hoomd
-from hoomd.hpmc import _hpmc
-from hoomd.hpmc import data
-from hoomd.integrate import _integrator
 import hoomd
 import sys
 
 from hoomd.hpmc.integrate import HPMCIntegrator
+from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
+from hoomd.data.typeparam import TypeParameter
+
+from hoomd.logging import log
 
 
 # add HPMC-NEC article citation notice
-import hoomd
-_citation_nec = hoomd.cite.article(cite_key='klement2019',
-                               author=['M Klement', 'M Engel'],
-                               title='Efficient equilibration of hard spheres with Newtonian event chains',
-                               journal='The Journal of Chemical Physics',
-                               volume=150,
-                               pages='174108',
-                               month='May',
-                               year='2019',
-                               doi='10.1063/1.5090882',
-                               feature='HPMC-NEC')
+#import hoomd
+#_citation_nec = hoomd.cite.article(cite_key='klement2019',
+                               #author=['M Klement', 'M Engel'],
+                               #title='Efficient equilibration of hard spheres with Newtonian event chains',
+                               #journal='The Journal of Chemical Physics',
+                               #volume=150,
+                               #pages='174108',
+                               #month='May',
+                               #year='2019',
+                               #doi='10.1063/1.5090882',
+                               #feature='HPMC-NEC')
 
-if hoomd.context.bib is None:
-    hoomd.cite._extra_default_entries.append(_citation_nec)
-else:
-    hoomd.context.bib.add(_citation_nec)
+#if hoomd.context.bib is None:
+    #hoomd.cite._extra_default_entries.append(_citation_nec)
+#else:
+    #hoomd.context.bib.add(_citation_nec)
 
 
 
 class HPMCNECIntegrator(HPMCIntegrator):
-	""" HPMC Chain Integrator Meta Class
-	
-	Insert Doc-string here.
-	"""
+    """ HPMC Chain Integrator Meta Class
+
+    Insert Doc-string here.
+    """
     _cpp_cls = None
 
     def __init__(self,
@@ -47,10 +47,8 @@ class HPMCNECIntegrator(HPMCIntegrator):
                  chain_time=0.5,
                  update_fraction=0.5,
                  nselect=1):
-
         # initialize base class
-        super().__init__(seed, d, a, translation_move_probability, nselect)
-
+        super().__init__(seed, d, a, 0.5, nselect)
 
         # Set base parameter dict for hpmc chain integrators
         param_dict = ParameterDict(
@@ -58,6 +56,9 @@ class HPMCNECIntegrator(HPMCIntegrator):
             chain_time=float(chain_time),
             update_fraction=float(update_fraction))
         self._param_dict.update(param_dict)
+
+    def _attach(self):
+        super()._attach()
 
     @property
     def nec_counters(self):
@@ -83,7 +84,7 @@ class HPMCNECIntegrator(HPMCIntegrator):
         else:
             return None
 
-    @log
+    @log(is_property=False)
     def virial_pressure(self):
         """float: virial pressure
 
@@ -95,7 +96,7 @@ class HPMCNECIntegrator(HPMCIntegrator):
         else:
             return None
 
-    @log
+    @log(is_property=False)
     def particles_per_chain(self):
         """float: particles per chain
 
@@ -108,7 +109,7 @@ class HPMCNECIntegrator(HPMCIntegrator):
         else:
             return None
 
-    @log
+    @log(is_property=False)
     def chains_in_space(self):
         """float: rate of chain events that did neither collide nor end.
 
@@ -122,23 +123,23 @@ class HPMCNECIntegrator(HPMCIntegrator):
             return None
 
     # Tuners... (this probably is different now as well?)
-    def get_particles_per_chain(self):
-        R"""
-        Returns the average number of particles in a chain for the last update step. (For use in a tuner.)
-        """
-        return self._cpp_obj.getTunerParticlesPerChain()
+    #def get_particles_per_chain(self):
+        #R"""
+        #Returns the average number of particles in a chain for the last update step. (For use in a tuner.)
+        #"""
+        #return self._cpp_obj.getTunerParticlesPerChain()
 
-    def get_chain_time(self):
-        R"""
-        Get the current chain_time value. (For use in a tuner.)
-        """
-        return self._cpp_obj.getChainTime()
+    #def get_chain_time(self):
+        #R"""
+        #Get the current chain_time value. (For use in a tuner.)
+        #"""
+        #return self._cpp_obj.getChainTime()
     
-    def set_chain_time(self,chain_time):
-        R"""
-        Set the chain_time parameter to a new value. (For use in a tuner.)
-        """
-        self._cpp_obj.setChainTime(chain_time)
+    #def set_chain_time(self,chain_time):
+        #R"""
+        #Set the chain_time parameter to a new value. (For use in a tuner.)
+        #"""
+        #self._cpp_obj.setChainTime(chain_time)
         
 
 
@@ -281,7 +282,7 @@ class ConvexPolyhedron(HPMCNECIntegrator):
                  chain_time=0.5,
                  update_fraction=0.5,
                  nselect=1):
-
+        
         super().__init__(
                  seed=seed,
                  d=d,
@@ -289,8 +290,7 @@ class ConvexPolyhedron(HPMCNECIntegrator):
                  chain_probability=chain_probability,
                  chain_time=chain_time,
                  update_fraction=update_fraction,
-                 nselect=nselect):
-
+                 nselect=nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -312,8 +312,8 @@ class ConvexPolyhedron(HPMCNECIntegrator):
                            [-0.5, 0.5, -0.5], [-0.5, -0.5, 0.5]]}]
         """
         return super(ConvexPolyhedron, self)._return_type_shapes()
-    
-    
+
+
 def make_tunable_map(obj=None):
     R"""
     Creates a tunable map for hpmc.tune and NEC.
