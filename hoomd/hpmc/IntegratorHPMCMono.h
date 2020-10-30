@@ -2168,10 +2168,9 @@ pybind11::list IntegratorHPMCMono<Shape>::PyMapEnergies()
     {
     std::vector<float> v = IntegratorHPMCMono<Shape>::mapEnergies();
     pybind11::list energy_map;
-    // for( unsigned int i = 0; i < sizeof(v)/sizeof(v[0]); i++ )
     for (auto i: v)
         {
-        energy_map.append(pybind11::cast<float>(i));
+        energy_map.append(i);
         }
     return energy_map;
     }
