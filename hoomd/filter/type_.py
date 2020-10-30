@@ -14,6 +14,7 @@ class Type(ParticleFilter, ParticleFilterType):
     """
 
     def __init__(self, types):
+        ParticleFilter.__init__(self)
         types = set(types)
         self._types = frozenset(types)
         ParticleFilterType.__init__(self, types)
