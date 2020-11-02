@@ -313,7 +313,7 @@ class ConvexPolyhedron(HPMCNECIntegrator):
         """
         return super(ConvexPolyhedron, self)._return_type_shapes()
 
-from hoomd.util import tune
+from hoomd.hpmc.util import tune
 
 class tune_nec(tune):
     """tune_nec docstring :TODO:
