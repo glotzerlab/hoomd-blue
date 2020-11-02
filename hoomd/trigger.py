@@ -87,6 +87,7 @@ class Periodic(_hoomd.PeriodicTrigger, Trigger):
     """
 
     def __init__(self, period, phase=0):
+        Trigger.__init__(self)
         _hoomd.PeriodicTrigger.__init__(self, period, phase)
 
     def __str__(self):
@@ -117,6 +118,7 @@ class Before(_hoomd.BeforeTrigger, Trigger):
         timestep (int): The step after the trigger ends.
     """
     def __init__(self, timestep):
+        Trigger.__init__(self)
         if timestep < 0:
             raise ValueError("timestep must be greater than or equal to 0.")
         else:
@@ -147,6 +149,7 @@ class On(_hoomd.OnTrigger, Trigger):
     """
 
     def __init__(self, timestep):
+        Trigger.__init__(self)
         if timestep < 0:
             raise ValueError("timestep must be positive.")
         else:
@@ -179,6 +182,7 @@ class After(_hoomd.AfterTrigger, Trigger):
         timestep (int): The step before the trigger will start.
     """
     def __init__(self, timestep):
+        Trigger.__init__(self)
         if timestep < 0:
             raise ValueError("timestep must be positive.")
         else:
@@ -207,6 +211,7 @@ class Not(_hoomd.NotTrigger, Trigger):
         trigger (hoomd.trigger.Trigger): The trigger object to negate.
     """
     def __init__(self, trigger):
+        Trigger.__init__(self)
         _hoomd.NotTrigger.__init__(self, trigger)
 
     def __str__(self):
@@ -237,6 +242,7 @@ class And(_hoomd.AndTrigger, Trigger):
     """
 
     def __init__(self, triggers):
+        Trigger.__init__(self)
         triggers = list(triggers)
         if not all(isinstance(t, Trigger) for t in triggers):
             raise ValueError("triggers must an iterable of Triggers.")
@@ -277,6 +283,7 @@ class Or(_hoomd.OrTrigger, Trigger):
         triggers (`list` [`hoomd.trigger.Trigger`]): List of triggers.
     """
     def __init__(self, triggers):
+        Trigger.__init__(self)
         triggers = list(triggers)
         if not all(isinstance(t, Trigger) for t in triggers):
             raise ValueError("triggers must an iterable of Triggers.")
