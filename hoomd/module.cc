@@ -66,8 +66,6 @@
 #endif // ENABLE_HIP
 #endif // ENABLE_MPI
 
-#include "SignalHandler.h"
-
 #include "HOOMDVersion.h"
 
 #include <pybind11/pybind11.h>
@@ -203,8 +201,6 @@ PYBIND11_MODULE(_hoomd, m)
     pybind11::bind_vector< std::vector<int> >(m,"std_vector_int");
     pybind11::bind_vector< std::vector<Scalar3> >(m,"std_vector_scalar3");
     pybind11::bind_vector< std::vector<Scalar4> >(m,"std_vector_scalar4");
-
-    InstallSIGINTHandler();
 
     // utils
     export_hoomd_math_functions(m);

@@ -4,15 +4,34 @@ Change Log
 v3.x
 ----
 
-v3.0-beta.1 (2020-10-15)
-^^^^^^^^^^^^^^^^^^^^^^^^
+v3.0.0-beta.2 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- Support pybind11 2.6.0
+- Exclusive creation file mode for ``write.GSD``.
+
+*Changed*
+
+- Building from source requires a C++14 compatible compiler.
+- Improved documentation.
+- [breaking] Replace ``write.GSD`` argument ``overwrite`` with ``mode``.
+
+*Fixed*
+
+- ``Simulation.run`` now ends with a ``KeyboardInterrupt`` exception when
+  Jupyter interrupts the kernel.
+
+v3.0.0-beta.1 (2020-10-15)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Overview*
 
 v3 has a completely new Python API. See the tutorials, migration guide and new
 API documentation learn about it. The API documentation serves as the complete
-list of all features currently implemented in v3.0-beta.1. Not all features in
-v2 have been ported in v3.0-beta.1. Future beta releases will add additional
+list of all features currently implemented in v3.0.0-beta.1. Not all features in
+v2 have been ported in v3.0.0-beta.1. Future beta releases will add additional
 functionality.
 
 *Added*
@@ -31,7 +50,7 @@ functionality.
 
 *Changed*
 
-- The `run` method has minimal overhead
+- The ``run`` method has minimal overhead
 - All loggable quantities are directly accessible as object properties.
 - Operation parameters are always synchronized.
 - Operations can be instantiated without a device or MPI communicator.

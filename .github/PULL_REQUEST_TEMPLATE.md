@@ -11,7 +11,7 @@
 <!--- Why is this change required? What problem does it solve? -->
 
 <!-- Replace ??? with the issue number that this pull request resolves. -->
-Resolves: #???
+Resolves #???
 
 ## How has this been tested?
 

@@ -3,7 +3,6 @@ trigger: none
 pr:
   - maint
   - master
-  - feature/new-object-API
 
 schedules:
 - cron: "0 2 * * *"
@@ -135,4 +134,5 @@ jobs:
       hoomd/filter/set_.py
       hoomd/filter/tags.py
       hoomd/filter/type_.py
+      hoomd/write/gsd.py
     displayName: Run pydocstyle

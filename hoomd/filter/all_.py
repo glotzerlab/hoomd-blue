@@ -11,6 +11,7 @@ class All(ParticleFilter, ParticleFilterAll):
     """
 
     def __init__(self):
+        ParticleFilter.__init__(self)
         ParticleFilterAll.__init__(self)
 
     def __hash__(self):
