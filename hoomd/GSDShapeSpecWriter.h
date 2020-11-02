@@ -4,10 +4,13 @@
 #ifndef __GSDSHAPESPECWRITER_H__
 #define __GSDSHAPESPECWRITER_H__
 
+#include "GSD.h"
 #include "extern/gsd.h"
 #include "GSDDumpWriter.h"
 #include <sstream>
 #include <iostream>
+
+using namespace hoomd::detail;
 
 class GSDShapeSpecWriter
     {
@@ -22,12 +25,12 @@ class GSDShapeSpecWriter
             if(!m_exec_conf->isRoot())
                 return 0;
             int max_len = getMaxLen(type_shape_mapping);
-            m_exec_conf->msg->notice(10) << "dump.gsd: writing " << m_field_name << std::endl;
+            m_exec_conf->msg->notice(10) << "GSD: writing " << m_field_name << std::endl;
             std::vector<char> types(max_len * type_shape_mapping.size());
             for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
                 strncpy(&types[max_len*i], type_shape_mapping[i].c_str(), max_len);
             int retval = gsd_write_chunk(&handle, m_field_name.c_str(), GSD_TYPE_UINT8, type_shape_mapping.size(), max_len, 0, (void *)&types[0]);
-            checkError(retval);
+            GSDUtils::checkError(retval, "");
             return retval;
             }
 
@@ -43,12 +46,12 @@ class GSDShapeSpecWriter
             {
             if (number == -1)
                 {
-                this->m_exec_conf->msg->error() << "dump.gsd: " << strerror(errno) << std::endl;
+                this->m_exec_conf->msg->error() << "GSD: " << strerror(errno) << std::endl;
                 throw std::runtime_error("Error writing GSD file");
                 }
             else if (number != 0)
                 {
-                this->m_exec_conf->msg->error() << "dump.gsd: " << "Unknown error " << number << std::endl;
+                this->m_exec_conf->msg->error() << "GSD: " << "Unknown error " << number << std::endl;
                 throw std::runtime_error("Error writing GSD file");
                 }
             }

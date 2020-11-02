@@ -27,6 +27,8 @@ class _ParticleFilterSetOperations(ParticleFilter):
         raise NotImplementedError
 
     def __init__(self, f, g):
+        ParticleFilter.__init__(self)
+
         if f == g:
             raise ValueError("Cannot use same filter for {}"
                              "".format(self.__class__.__name__))
