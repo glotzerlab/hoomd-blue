@@ -71,7 +71,10 @@ def install_cmake_package(url, cmake_options):
         tmp_path = pathlib.Path(tmpdirname);
 
         log.info(f"Fetching {url}")
-        filename, headers = urllib.request.urlretrieve(url, tmp_path / 'file.tar.gz');
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with open(tmp_path / 'file.tar.gz', 'wb') as f:
+            f.write(urllib.request.urlopen(req).read())
+
         with tarfile.open(tmp_path / 'file.tar.gz') as tar:
             tar.extractall(path=tmp_path)
             root = tar.getnames()[0]
@@ -160,15 +163,15 @@ if __name__ == "__main__":
             log.info(f"Installing packages in: {sys.prefix}")
 
             if not pybind:
-                install_cmake_package('https://github.com/pybind/pybind11/archive/v2.3.0.tar.gz',
+                install_cmake_package('https://github.com/pybind/pybind11/archive/v2.6.0.tar.gz',
                                        cmake_options=['-DPYBIND11_INSTALL=on', '-DPYBIND11_TEST=off'])
 
             if not cereal:
-                install_cmake_package('https://github.com/USCiLab/cereal/archive/v1.2.2.tar.gz',
+                install_cmake_package('https://github.com/USCiLab/cereal/archive/v1.3.0.tar.gz',
                                        cmake_options=['-DJUST_INSTALL_CEREAL=on'])
 
             if not eigen:
-                install_cmake_package('http://bitbucket.org/eigen/eigen/get/3.3.7.tar.gz',
+                install_cmake_package('https://gitlab.com/libeigen/eigen/-/archive/3.3.8/eigen-3.3.8.tar.gz',
                                        cmake_options=['-DBUILD_TESTING=off', '-DEIGEN_TEST_NOQT=on'])
             log.info('Done.')
         else:
