@@ -1,17 +1,19 @@
+import math
+import random
+import itertools
+import numpy as np
+
 from hoomd import *
 from hoomd import hpmc
 
+import gsd.hoomd
+
 import hoomd.hpmc.integrate_nec
-import random
 random.seed(123456123)
-
-import math
-
-import numpy as np
 
 import unittest
 
-context.initialize()
+
 
 V = math.pi/6
 #P_list = [0.29054,0.91912,2.2768,5.29102,8.06553,9.98979]
@@ -23,10 +25,7 @@ npt_list = [2]
 phi_p_ref = {0.29054: 0.1, 0.91912: 0.2, 2.2768: 0.3, 5.29102: 0.4, 8.06553: 0.45, 9.98979: 0.475}
 rel_err_cs = 0.0015 # see for example Guang-Wen Wu and Richard J. Sadus, doi:10.1002.aic10233
 
-import itertools
 params = list(P_list)
-
-context.msg.notice(1,"{} parameters\n".format(len(params)))
 
 p = int(option.get_user()[0])
 P = params[p]
@@ -34,25 +33,34 @@ P = params[p]
 class sphereEOS_nec_test(unittest.TestCase):
     n = 7
     def setUp(self):
-        context.initialize()
         n = self.n
         a = (math.pi / (6*phi_p_ref[P]))**(1.0/3.0);
 
-        self.system = init.create_lattice(unitcell=lattice.sc(a=a), n=n);
+        cpu = hoomd.device.CPU()
+        sim = hoomd.Simulation(device=cpu)
 
-        snapshot = self.system.take_snapshot(all=True)
-        for i in range(snapshot.particles.N):
-            snapshot.particles.velocity[i] = [ random.uniform(-1,1) for d in range(3) ]
-        self.system.restore_snapshot(snapshot)
+        #self.system = init.create_lattice(unitcell=lattice.sc(a=a), n=n);
 
-        self.mc = hpmc.integrate_nec.sphere(seed=p)
+        x = numpy.linspace(-a*n/2, a*n/2, n, endpoint=False)
+        position = list(itertools.product(x, repeat=3))
 
-        self.mc.shape_param.set('A',diameter=1.0)
-        self.mc.set_params(d=0.1,a=0.5)
+        
+        snapshot = gsd.hoomd.Snapshot()
+        snapshot.particles.N = n**3
+        snapshot.particles.position = position
+        snapshot.particles.typeid = [0]* n**3
+        snapshot.particles.types = ['sphere']
 
-        #mc_tune = hpmc.util.tune(self.mc, tunables=['d','a'],max_val=[4,0.5],gamma=1,target=0.3)
+        sim.create_state_from_snapshot(snapshot)
+        sim.state.thermalize_particle_momenta(hoomd.filter.All(), kT=1, seed=1)
+
+        self.mc = hpmc.integrate_nec.Sphere()
+
+        self.mc.shape['sphere'] = dict( diameter=1.0 )
+        
+        tune_nec_a  = hpmc.util.tune(self.mc, tunables=['a'],         max_val=[1],   gamma=1, target=0.25)
         tune_nec_d  = hpmc.util.tune(self.mc, tunables=['d'],         max_val=[4],   gamma=1, target=0.03)
-        tune_nec_ct = hpmc.util.tune(self.mc, tunables=['chain_time'], max_val=[500], gamma=1, target=1.0/100, tunable_map=hoomd.hpmc.integrate_nec.make_tunable_map(self.mc) )
+        tune_nec_ct = hpmc.integrate_nec.tune_nec(self.mc, target=100 )
 
         self.log = analyze.log(filename=None, quantities = ['hpmc_overlap_count','volume','phi_p', 'hpmc_d','hpmc_a','hpmc_chain_time','time'], overwrite=True, period=100)
         self.log.register_callback('phi_p', lambda timestep: len(self.system.particles)*V/self.system.box.get_volume())

@@ -313,21 +313,25 @@ class ConvexPolyhedron(HPMCNECIntegrator):
         """
         return super(ConvexPolyhedron, self)._return_type_shapes()
 
+from hoomd.util import tune
 
-def make_tunable_map(obj=None):
-    R"""
-    Creates a tunable map for hpmc.tune and NEC.
-    
-    By updating the chain time the number of chains per particle is pushed towards the target.
-    We used chains-per-particle = 1.0 / particles-per-chain as that value is treated like an
-    acceptance rate for 'a' and 'd'.
-    
-    See the examples in integrate_nec.sphere and integrate_nec.convex_polyhedron for how it is used.
+class tune_nec(tune):
+    """tune_nec docstring :TODO:
     """
-    return {'chain_time': {
-                    'get': lambda: getattr(obj, 'get_chain_time')(),
-                    'acceptance': lambda: 1.0/getattr(obj, 'get_particles_per_chain')(),
-                    'set': lambda x: getattr(obj, 'set_chain_time')(x),
+    def __init__(self, obj=None, tunables=[], max_val=[], target=100, max_scale=2.0, gamma=2.0, type=None, tunable_map=None, *args, **kwargs):
+        tunable_map = {
+            #'chain_time': {
+                    #'get': lambda: getattr(obj, 'get_chain_time')(),
+                    #'acceptance': lambda: 1.0/getattr(obj, 'get_particles_per_chain')(),
+                    #'set': lambda x: getattr(obj, 'set_chain_time')(x),
+                    #'maximum': 100.0
+                    #},
+            'chain_time': {
+                    'get': lambda: 1/getattr(obj, 'get_chain_time')(),
+                    'acceptance': lambda: getattr(obj, 'get_particles_per_chain')(),
+                    'set': lambda x: getattr(obj, 'set_chain_time')(1/x),
                     'maximum': 100.0
-                    }
+                    },
               }
+        super(tune_nec,self).__init__(obj, tunables, max_val, target, max_scale, gamma, type, tunable_map, *args, **kwargs)
+
