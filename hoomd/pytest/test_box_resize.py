@@ -57,6 +57,7 @@ _t_start = 1
 _t_ramp = 4
 _t_mid = _t_start + _t_ramp // 2
 
+
 @pytest.fixture(scope='function')
 def trigger():
     return hoomd.trigger.After(_t_mid - 1)
@@ -105,13 +106,8 @@ class TestBoxResize:
     def test_trigger(self, box_resize, trigger):
         assert trigger.timestep == box_resize.trigger.timestep
         for timestep in range(_t_start + _t_ramp):
-            assert trigger.compute(timestep) == box_resize.trigger.compute(timestep)
-    """
-    For linear_volume:
-    trigger.timestep = box_resize.trigger.timestep + 1 
-    
-    Passes otherwise
-    """
+            assert trigger.compute(timestep) == box_resize.trigger.compute(
+                timestep)
 
     def test_variant(self, box_resize, variant):
         for timestep in range(_t_start + _t_ramp):
