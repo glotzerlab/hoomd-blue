@@ -53,18 +53,6 @@ class UpdaterBoxMC : public Updater
             return m_seed;
             }
 
-        //! Sets parameters for box volume moves
-        /*! \param delta maximum size of volume change
-            \param weight relative likelihood of volume move
-        */
-        void volume(const Scalar delta,
-                           const float weight)
-            {
-            m_volume_delta = delta;
-            m_volume_weight = weight;
-            // Calculate aspect ratio
-            computeAspectRatios();
-            };
 
         //! Get parameters for box volume moves as a dictionary
         /*! dict keys:
@@ -92,19 +80,6 @@ class UpdaterBoxMC : public Updater
             computeAspectRatios();
             }
 
-        //! Sets parameters for box volume moves
-        /*! \param delta_lnV log of maximum relative size of volume change
-            \param weight relative likelihood of volume move
-        */
-        void ln_volume(const Scalar delta_lnV,
-                       const float weight)
-            {
-            m_ln_volume_delta = delta_lnV;
-            m_ln_volume_weight = weight;
-            // Calculate aspect ratio
-            computeAspectRatios();
-            };
-
         //! Get parameters for box volume moves as a dictionary
         /*! dict keys:
              delta - log of maximum relative size of volume change
@@ -130,23 +105,6 @@ class UpdaterBoxMC : public Updater
             // Calculate aspect ratio
             computeAspectRatios();
             }
-
-        //! Sets parameters for box length moves
-        /*! \param dLx Extent of length change distribution in first lattice vector for box resize moves
-            \param dLy Extent of length change distribution in second lattice vector for box resize moves
-            \param dLz Extent of length change distribution in third lattice vector for box resize moves
-            \param weight relative likelihood of volume move
-        */
-        void length(const Scalar dLx,
-                           const Scalar dLy,
-                           const Scalar dLz,
-                           const float weight)
-            {
-            m_length_delta[0] = dLx;
-            m_length_delta[1] = dLy;
-            m_length_delta[2] = dLz;
-            m_length_weight = weight;
-            };
 
         //! Gets parameters for box length moves as a dictionary
         /*! dict keys:
@@ -180,29 +138,6 @@ class UpdaterBoxMC : public Updater
             m_length_delta[1] = l[1].cast<Scalar>();
             m_length_delta[2] = l[2].cast<Scalar>();
             }
-
-        //! Sets parameters for box shear moves
-        /*! \param dxy Extent of shear parameter distribution for shear moves in x,y plane
-            \param dxz Extent of shear parameter distribution for shear moves in x,z plane
-            \param dyz Extent of shear parameter distribution for shear moves in y,z plane
-            \param reduce Maximum number of lattice vectors of shear to allow before applying lattice reduction.
-                Shear of +/- 0.5 cannot be lattice reduced, so set to a value < 0.5 to disable (default 0)
-                Note that due to precision errors, lattice reduction may introduce small overlaps which can be resolved,
-                but which temporarily break detailed balance.
-            \param weight relative likelihood of shear move
-        */
-        void shear(const Scalar dxy,
-                          const Scalar dxz,
-                          const Scalar dyz,
-                          const Scalar reduce,
-                          const float weight)
-            {
-            m_shear_delta[0] = dxy;
-            m_shear_delta[1] = dxz;
-            m_shear_delta[2] = dyz;
-            m_shear_reduce = reduce;
-            m_shear_weight = weight;
-            };
 
         //! Gets parameters for box shear moves as a dictionary
         /*! dict keys:
@@ -246,17 +181,6 @@ class UpdaterBoxMC : public Updater
             m_shear_delta[2] = l[2].cast<Scalar>();
             m_shear_reduce = d["reduce"].cast<Scalar>();
             }
-
-        //! Sets parameters for box aspect moves
-        /*! \param dA maximum relative aspect ratio change.
-            \param weight relative likelihood of aspect move.
-        */
-        void aspect(const Scalar dA,
-                           const float weight)
-            {
-            m_aspect_delta = dA;
-            m_aspect_weight = weight;
-            };
 
         //! Get parameters for box aspect moves as a dictionary
         /*! dict keys:
