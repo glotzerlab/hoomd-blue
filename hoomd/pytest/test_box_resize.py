@@ -1,4 +1,3 @@
-from math import isclose
 import numpy as np
 import numpy.testing as npt
 import pytest
@@ -57,16 +56,16 @@ def make_system(fractional_coordinates, box):
 _t_start = 2
 _t_trigger = 3
 _t_ramp = 4
-_t_mid = _t_start + _t_ramp//2
+_t_mid = _t_start + _t_ramp // 2
 
 
 def make_sys_halfway(fractional_coordinates, box_start, box_end, power):
     box_start = np.array(box_start)
     box_end = np.array(box_end)
 
-    intermediate_t = (_t_mid - _t_start)/_t_ramp  # set to halfway, 0.5
+    intermediate_t = (_t_mid - _t_start) / _t_ramp  # set to halfway, 0.5
     box_mid = hoomd.Box.from_box(
-        box_start + (box_end - box_start)*intermediate_t**power
+        box_start + (box_end - box_start) * intermediate_t**power
     )
     return make_system(fractional_coordinates, box_mid)
 
@@ -124,7 +123,6 @@ class TestBoxResize:
         for timestep in range(_t_start + _t_ramp):
             assert variant(timestep) == box_resize.variant(timestep)
 
-
     def test_get_box(self, device, simulation_factory,
                      get_snapshot, sys, box_resize):
         sys1, make_sys_halfway, sys2 = sys
@@ -142,7 +140,7 @@ class TestBoxResize:
 
     def test_update(self, device, simulation_factory,
                     get_snapshot, sys, box_resize):
-        sys1, _ , sys2 = sys
+        sys1, _, sys2 = sys
 
         sim = hoomd.Simulation(device)
         sim.create_state_from_snapshot(get_snapshot())
@@ -182,14 +180,16 @@ class TestBoxResize:
 
         # Run up to halfway point
         sim.run(_t_mid + 1)
-        npt.assert_allclose(sim.state.snapshot.particles.position, sys_halfway[1])
+        npt.assert_allclose(
+            sim.state.snapshot.particles.position, sys_halfway[1])
 
         # Finish run
         sim.run(_t_mid)
-        npt.assert_allclose(sim.state.snapshot.particles.position, sys2[1])
+        npt.assert_allclose(
+            sim.state.snapshot.particles.position, sys2[1])
 
-
-    def test_no_position_scale(self, device, simulation_factory, get_snapshot, sys):
+    def test_no_position_scale(self, device, simulation_factory,
+                               get_snapshot, sys):
         sys1, _, sys2 = sys
 
         variant = hoomd.variant.Power(0., 1., self._power, _t_start, _t_ramp)
@@ -213,7 +213,7 @@ class TestBoxResize:
 
 
 class TestLinearVolume(TestBoxResize):
-    _power = 1/3
+    _power = 1 / 3
 
     @pytest.fixture(scope='function')
     def box_resize(self, sys):
