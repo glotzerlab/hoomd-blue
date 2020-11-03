@@ -106,15 +106,18 @@ class BoxMC(Updater):
 
     @property
     def counter(self):
-        """dict: The number of accepted and rejected box moves.
+        """Trial move counters.
 
-        Returns:
-            A counter object with volume, aspect, ln_volume and shear properties.
-            Each property is a list of accepted moves and rejected moves since the
-            last run.
+        The counter object has the following attributes:
 
-        Note::
-            if the updater is not attached None will be returned.
+        * ``volume``: `tuple` [`int`, `int`] - Number of accepted and rejected volume and length moves.
+        * ``ln_volume``: `tuple` [`int`, `int`] - Number of accepted and rejected ln(V) moves.
+        * ``shear``: `tuple` [`int`, `int`] - Number of accepted and rejected shear moves.
+        * ``aspect``: `tuple` [`int`, `int`] - Number of accepted and rejected aspect moves.
+
+        Note:
+            The counts are reset to 0 at the start of each
+            `hoomd.Simulation.run`.
         """
         if not self.is_attached:
             return None
