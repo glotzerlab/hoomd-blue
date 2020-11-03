@@ -15,7 +15,7 @@ from hoomd.operation import Updater
 import hoomd
 
 
-class BoxMC(_Updater):
+class BoxMC(Updater):
     R""" Apply box updates to sample isobaric and related ensembles.
 
     Args:
