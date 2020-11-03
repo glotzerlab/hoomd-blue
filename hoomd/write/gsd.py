@@ -15,7 +15,7 @@ import json
 
 
 class GSD(Writer):
-    """Write simulation trajectories in the GSD format.
+    r"""Write simulation trajectories in the GSD format.
 
     Args:
         filename (str): File name to write.
@@ -92,12 +92,12 @@ class GSD(Writer):
 
     * **topology**
 
-        * bonds/\*
-        * angles/\*
-        * dihedrals/\*
-        * impropers/\*
-        * constraints/\*
-        * pairs/\*
+        * bonds/*
+        * angles/*
+        * dihedrals/*
+        * impropers/*
+        * constraints/*
+        * pairs/*
 
     See Also:
         See the `GSD documentation <https://gsd.readthedocs.io/>`__, `GSD HOOMD
