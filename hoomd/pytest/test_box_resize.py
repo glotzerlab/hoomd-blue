@@ -10,7 +10,7 @@ def rng():
 
 
 @pytest.fixture(scope="function")
-def fractional_coordinates(n=10):
+def fractional_coordinates(n=3):
     """
     Args:
         n: number of particles
@@ -53,10 +53,13 @@ def make_system(fractional_coordinates, box):
     return (hoomd_box, points)
 
 
-_t_start = 2
-_t_trigger = 3
+_t_start = 1
 _t_ramp = 4
 _t_mid = _t_start + _t_ramp // 2
+
+@pytest.fixture(scope='function')
+def trigger():
+    return hoomd.trigger.After(_t_mid - 1)
 
 
 def make_sys_halfway(fractional_coordinates, box_start, box_end, power):
@@ -89,37 +92,28 @@ class TestBoxResize:
     _power = 2
 
     @pytest.fixture(scope='function')
-    def box_resize(self, sys):
+    def variant(self):
+        return hoomd.variant.Power(0., 1., self._power, _t_start, _t_ramp)
+
+    @pytest.fixture(scope='function')
+    def box_resize(self, sys, trigger, variant):
         sys1, _, sys2 = sys
-        variant = hoomd.variant.Power(0., 1., self._power, _t_start, _t_ramp)
-        trigger = hoomd.trigger.After(_t_trigger)
         return hoomd.update.BoxResize(
             box1=sys1[0], box2=sys2[0],
             variant=variant, trigger=trigger)
 
-    # def test_trigger_properties(self, box_resize):
-    #     trigger = hoomd.trigger.After(_t_trigger)
-    #     assert trigger.timestep == box_resize.trigger.timestep
-    #
-    # def test_trigger(self, box_resize):
-    #     trigger = hoomd.trigger.After(_t_trigger)
-    #     for timestep in range(_t_start + _t_ramp):
-    #         assert trigger.compute(timestep) == box_resize.trigger.compute(timestep)
-    #
+    def test_trigger(self, box_resize, trigger):
+        assert trigger.timestep == box_resize.trigger.timestep
+        for timestep in range(_t_start + _t_ramp):
+            assert trigger.compute(timestep) == box_resize.trigger.compute(timestep)
     """
-    Trigger tests pass for box resize when the Power variant is specified by the user, but when linear_volume is used.
-    When linear_volume is used, box_resize.trigger.timestep + 1 = trigger.timestep
+    For linear_volume:
+    trigger.timestep = box_resize.trigger.timestep + 1 
+    
+    Passes otherwise
     """
 
-    def test_variant_properties(self, box_resize):
-        variant = hoomd.variant.Power(0., 1., self._power, _t_start, _t_ramp)
-
-        assert variant.A == box_resize.variant.A
-        assert variant.B == box_resize.variant.B
-        assert variant.power == box_resize.variant.power
-        assert variant.t_start == box_resize.variant.t_start
-        assert variant.t_size == box_resize.variant.t_size
-
+    def test_variant(self, box_resize, variant):
         for timestep in range(_t_start + _t_ramp):
             assert variant(timestep) == box_resize.variant(timestep)
 
@@ -152,23 +146,6 @@ class TestBoxResize:
         npt.assert_allclose(
             sim.state.snapshot.particles.position, sys2[1])
 
-    def test_box_dimensions(self, device, simulation_factory,
-                            get_snapshot, sys, box_resize):
-        sys1, make_sys_halfway, sys2 = sys
-        sys_halfway = make_sys_halfway(self._power)
-
-        sim = hoomd.Simulation(device)
-        sim.create_state_from_snapshot(get_snapshot())
-        sim.operations.updaters.append(box_resize)
-
-        # Run up to halfway point
-        sim.run(_t_mid + 1)
-        assert sim.state.box == sys_halfway[0]
-
-        # Finish run
-        sim.run(_t_mid)
-        assert sim.state.box == sys2[0]
-
     def test_position_scale(self, device, simulation_factory,
                             get_snapshot, sys, box_resize):
         sys1, make_sys_halfway, sys2 = sys
@@ -180,17 +157,20 @@ class TestBoxResize:
 
         # Run up to halfway point
         sim.run(_t_mid + 1)
+        assert sim.state.box == sys_halfway[0]
         npt.assert_allclose(
             sim.state.snapshot.particles.position, sys_halfway[1])
 
         # Finish run
         sim.run(_t_mid)
+        assert sim.state.box == sys2[0]
         npt.assert_allclose(
             sim.state.snapshot.particles.position, sys2[1])
 
     def test_no_position_scale(self, device, simulation_factory,
                                get_snapshot, sys):
-        sys1, _, sys2 = sys
+        sys1, make_sys_halfway, sys2 = sys
+        sys_halfway = make_sys_halfway(self._power)
 
         variant = hoomd.variant.Power(0., 1., self._power, _t_start, _t_ramp)
         trigger = hoomd.trigger.After(variant.t_start)
@@ -205,10 +185,12 @@ class TestBoxResize:
 
         # Run up to halfway point
         sim.run(_t_mid + 1)
+        assert sim.state.box == sys_halfway[0]
         npt.assert_allclose(sim.state.snapshot.particles.position, sys1[1])
 
         # Finish run
         sim.run(_t_mid)
+        assert sim.state.box == sys2[0]
         npt.assert_allclose(sim.state.snapshot.particles.position, sys1[1])
 
 
