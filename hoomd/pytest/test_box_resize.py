@@ -204,7 +204,6 @@ class TestLinearVolume(TestBoxResize):
     @pytest.fixture(scope='function')
     def box_resize(self, sys, trigger, variant):
         sys1, _, sys2 = sys
-        variant = hoomd.variant.Power(0., 1., self._power, _t_start, _t_ramp)
         return hoomd.update.BoxResize(
             box1=sys1[0], box2=sys2[0],
             variant=variant, trigger=trigger)
