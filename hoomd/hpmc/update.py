@@ -110,7 +110,7 @@ class BoxMC(_Updater):
 
     @property
     def counter(self):
-        R""" Get the number of accepted and rejected box moves.
+        """dict: The number of accepted and rejected box moves.
 
         Returns:
             A counter object with volume, aspect, ln_volume and shear properties.
