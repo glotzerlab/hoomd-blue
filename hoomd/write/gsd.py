@@ -92,12 +92,12 @@ class GSD(Writer):
 
     * **topology**
 
-        * bonds/
-        * angles/
-        * dihedrals/
-        * impropers/
-        * constraints/
-        * pairs/
+        * bonds/\*
+        * angles/\*
+        * dihedrals/\*
+        * impropers/\*
+        * constraints/\*
+        * pairs/\*
 
     See Also:
         See the `GSD documentation <http://gsd.readthedocs.io/>`__ and `GitHub
