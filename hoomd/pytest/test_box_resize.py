@@ -55,6 +55,7 @@ def make_system(fractional_coordinates, box):
 
 
 _t_start = 2
+_t_trigger = 3
 _t_ramp = 4
 _t_mid = _t_start + _t_ramp//2
 
@@ -92,10 +93,36 @@ class TestBoxResize:
     def box_resize(self, sys):
         sys1, _, sys2 = sys
         variant = hoomd.variant.Power(0., 1., self._power, _t_start, _t_ramp)
-        trigger = hoomd.trigger.After(variant.t_start)
+        trigger = hoomd.trigger.After(_t_trigger)
         return hoomd.update.BoxResize(
             box1=sys1[0], box2=sys2[0],
             variant=variant, trigger=trigger)
+
+    # def test_trigger_properties(self, box_resize):
+    #     trigger = hoomd.trigger.After(_t_trigger)
+    #     assert trigger.timestep == box_resize.trigger.timestep
+    #
+    # def test_trigger(self, box_resize):
+    #     trigger = hoomd.trigger.After(_t_trigger)
+    #     for timestep in range(_t_start + _t_ramp):
+    #         assert trigger.compute(timestep) == box_resize.trigger.compute(timestep)
+    #
+    """
+    Trigger tests pass for box resize when the Power variant is specified by the user, but when linear_volume is used.
+    When linear_volume is used, box_resize.trigger.timestep + 1 = trigger.timestep
+    """
+
+    def test_variant_properties(self, box_resize):
+        variant = hoomd.variant.Power(0., 1., self._power, _t_start, _t_ramp)
+
+        assert variant.A == box_resize.variant.A
+        assert variant.B == box_resize.variant.B
+        assert variant.power == box_resize.variant.power
+        assert variant.t_start == box_resize.variant.t_start
+        assert variant.t_size == box_resize.variant.t_size
+
+        for timestep in range(_t_start + _t_ramp):
+            assert variant(timestep) == box_resize.variant(timestep)
 
 
     def test_get_box(self, device, simulation_factory,
