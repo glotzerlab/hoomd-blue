@@ -74,10 +74,6 @@ class BoxMC(_Updater):
         Pressure inputs to update.BoxMC are defined as :math:`\beta P`. Conversions from a specific definition of reduced
         pressure :math:`P^*` are left for the user to perform.
 
-    Examples::
-
-        TODO: link to example notebooks
-
     """
 
     def __init__(self, seed, betaP, trigger=1):
