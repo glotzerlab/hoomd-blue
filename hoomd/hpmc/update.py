@@ -23,7 +23,7 @@ class BoxMC(_Updater):
         seed (int): random number seed for MC box changes
         betaP (float or :py:mod:`hoomd.variant`): :math:`\frac{p}{k_{\mathrm{B}}T}`. (units of inverse area in 2D or
                                                     inverse volume in 3D) Apply your chosen reduced pressure convention externally.
-        trigger (int): Number of timesteps between box moves attempts.
+        trigger (hoomd.trigger.Trigger): Select the timesteps to perform box trial moves.
 
     Attributes:
         volume (dict):
