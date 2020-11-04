@@ -258,8 +258,12 @@ class Loggable(type):
     @classmethod
     def _add_loggable_docstring_info(cls, new_cls, attr, flag, default):
         doc = getattr(new_cls, attr).__doc__
-        str_msg = '\n\n{}(**Loggable**: '
-        str_msg += f'type "{str(flag)[10:]}", default {default})'
+        str_msg = '\n\n{}(`Loggable <hoomd.logging.Logger>`: '
+        str_msg += f'type="{str(flag)[10:]}"'
+        if default:
+            str_msg += ')'
+        else:
+            str_msg += ', default=False)'
         if doc is None:
             getattr(new_cls, attr).__doc__ = str_msg.format('')
         else:
