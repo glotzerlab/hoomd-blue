@@ -33,7 +33,6 @@ def _convert_values_to_log_form(value):
     detect different flags for the same attribute. In general this shouldn't
     be a concern, though.
     """
-
     if value is RequiredArg:
         return RequiredArg
     elif isinstance(value, Variant):
