@@ -9,10 +9,14 @@ v3.0.0-beta.2 (not yet released)
 
 *Added*
 
+- Support pybind11 2.6.0
+- Exclusive creation file mode for ``write.GSD``.
+
 *Changed*
 
 - Building from source requires a C++14 compatible compiler.
 - Improved documentation.
+- [breaking] Replace ``write.GSD`` argument ``overwrite`` with ``mode``.
 
 *Fixed*
 
