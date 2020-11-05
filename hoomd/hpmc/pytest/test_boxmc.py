@@ -28,7 +28,7 @@ valid_constructor_args = [
 ]
 
 valid_attrs = [
-    ('betaP', hoomd.variant.Constant(10),
+    ('betaP', hoomd.variant.Constant(10)),
     ('betaP', hoomd.variant.Ramp(1, 5, 0, 100)),
     ('betaP', hoomd.variant.Cycle(1, 5, 0, 10, 20, 10, 15)),
     ('betaP', hoomd.variant.Power(1, 5, 3, 0, 100)),
