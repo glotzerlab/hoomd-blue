@@ -64,7 +64,7 @@ def test_valid_construction_and_attach(simulation_factory,
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.updaters.append(boxmc)
 
-    # QuickCompress requires an HPMC integrator
+    # BoxMC requires an HPMC integrator
     mc = hoomd.hpmc.integrate.Sphere(seed=1)
     mc.shape['A'] = dict(diameter=1)
     sim.operations.integrator = mc
