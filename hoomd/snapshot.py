@@ -10,10 +10,6 @@ class _ConfigurationData:
     def dimensions(self):
         return self._cpp_obj._dimensions
 
-    @dimensions.setter
-    def dimensions(self, d):
-        self._cpp_obj._dimensions = d
-
     @property
     def box(self):
         b = self._cpp_obj._global_box
@@ -31,6 +27,7 @@ class _ConfigurationData:
             raise ValueError(
                 "{} is not convertible to a hoomd.Box object. "
                 "using hoomd.Box.from_box".format(box))
+        self._cpp_obj._dimensions = new_box.dimensions
         self._cpp_obj._global_box = new_box._cpp_obj
 
 
