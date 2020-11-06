@@ -15,7 +15,7 @@ import json
 
 
 class GSD(Writer):
-    """Write simulation trajectories in the GSD format.
+    r"""Write simulation trajectories in the GSD format.
 
     Args:
         filename (str): File name to write.
@@ -92,17 +92,18 @@ class GSD(Writer):
 
     * **topology**
 
-        * bonds/
-        * angles/
-        * dihedrals/
-        * impropers/
-        * constraints/
-        * pairs/
+        * bonds/*
+        * angles/*
+        * dihedrals/*
+        * impropers/*
+        * constraints/*
+        * pairs/*
 
     See Also:
-        See the `GSD documentation <http://gsd.readthedocs.io/>`__ and `GitHub
-        project <https://github.com/glotzerlab/gsd>`__ for more information on
-        GSD files.
+        See the `GSD documentation <https://gsd.readthedocs.io/>`__, `GSD HOOMD
+        Schema <https://gsd.readthedocs.io/en/stable/schema-hoomd.html>`__, and
+        `GSD GitHub project <https://github.com/glotzerlab/gsd>`__ for more
+        information on GSD files.
 
     Note:
         When you use ``filter`` to select a subset of the whole system, `GSD`
