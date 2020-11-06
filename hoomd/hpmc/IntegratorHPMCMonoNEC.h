@@ -473,7 +473,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
             
                 if( velocity == 0.0 )
                     {
-                    this->m_exec_conf->msg->error() << "Trying to start a chain with exactly zero velocity. Were velocities initialized propperly?\n";
+                    this->m_exec_conf->msg->error() << "Trying to start a chain with exactly zero velocity. Were velocities initialized propperly?" << std::endl;
                     break;
                     }
                     
@@ -487,7 +487,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                 
                 // perform the chain in a loop.
                 // next denotes the next particle, where -1 means there is no further particle.
-                int prev = -1;
+                //int prev = -1;
                 int next = i;
                 while( next > -1 )
                     {
@@ -496,7 +496,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                     if( count_chain == debug_max_chain )
                     {
                         this->m_exec_conf->msg->error() << "The number of chain elements exceeded safe-guard limit of "<<debug_max_chain<<".\n";
-                        this->m_exec_conf->msg->error() << "Shorten chain_time if this message appears regularly.\n";
+                        this->m_exec_conf->msg->error() << "Shorten chain_time if this message appears regularly." << std::endl;
                         break;
                     }
                         
@@ -650,26 +650,37 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                     if (!shape_i.ignoreStatistics())
                         {
                     
+                        // Note:
+                        // counters.translate_* can still be used by tuners. i.e. MoveSize
+                        // we want a very low "acceptance" like 3% though, to avoid too many
+                        // updates to be calculated twice, yet not much lower, as considering
+                        // possible neighbors in a far range costs time itself.
                         if( next != k and next > -1)
                             {
-                            //counters.translate_reject_count++;
+                            counters.translate_reject_count++;
                             nec_counters.chain_at_collision_count++;
                             }
                             else
                             {
-                            //counters.translate_accept_count++;
+                            if( next != -1 )
+                                {
+                                counters.translate_accept_count++;
+                                }
                             nec_counters.chain_no_collision_count++;
                             }
                         }
+
+                    // update position of particle
+                    h_postype.data[k] = make_scalar4(pos_k.x,pos_k.y,pos_k.z,postype_k.w);
+                    box.wrap(h_postype.data[k], h_image.data[k]);
                     
                     // update the position of the particle in the tree for future updates
                     detail::AABB aabb_k_local = shape_k.getAABB(vec3<Scalar>(0,0,0));
                     detail::AABB aabb = aabb_k_local;
-                    aabb.translate(pos_k);
+                    //aabb.translate(pos_k);
+                    aabb.translate( vec3<Scalar>(h_postype.data[k]));
                     this->m_aabb_tree.update(k, aabb);
 
-                    // update position of particle
-                    h_postype.data[k] = make_scalar4(pos_k.x,pos_k.y,pos_k.z,postype_k.w);
 
                     
                     #ifdef ENABLE_MPI
@@ -752,7 +763,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                             }
 
                             // store previous particle.
-                        prev = k;
+                            //prev = k;
                         }
                     } // end loop over totalDist.
 
@@ -1103,14 +1114,14 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
                                         {
                                         if( newDist == sweepableDistance )
                                             {
-                                            this->m_exec_conf->msg->error() << "Two particles with the same distance\n";
+                                            this->m_exec_conf->msg->error() << "Two particles with the same distance" << std::endl;
                                             }
                                         }
                                     }
                                 else
                                     {
-                                    this->m_exec_conf->msg->error() << "Two particles overlapping [with negative sweepable distance]." << i << " and " << j << "\n";
-                                    this->m_exec_conf->msg->error() << "Proceeding with the new particle without moving the initial one\n";
+                                    this->m_exec_conf->msg->error() << "Two particles overlapping [with negative sweepable distance]." << i << " and " << j  << std::endl;
+                                    this->m_exec_conf->msg->error() << "Proceeding with the new particle without moving the initial one" << std::endl;
                                 
                                     sweepableDistance = 0.0;
                                     next = j;
@@ -1328,7 +1339,8 @@ Scalar IntegratorHPMCMonoNEC<Shape>::getLogValue(const std::string& quantity, un
 */
 template < class Shape > void export_IntegratorHPMCMonoNEC(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<IntegratorHPMCMonoNEC<Shape>, std::shared_ptr< IntegratorHPMCMonoNEC<Shape> > >(m, name.c_str(),  pybind11::base< IntegratorHPMCMono<Shape> >())
+    pybind11::class_< IntegratorHPMCMonoNEC<Shape>, IntegratorHPMCMono<Shape>, IntegratorHPMC,
+            std::shared_ptr< IntegratorHPMCMonoNEC<Shape> > >(m, name.c_str())
         .def(pybind11::init< std::shared_ptr<SystemDefinition>, unsigned int >())
         .def("setChainTime", &IntegratorHPMCMonoNEC<Shape>::setChainTime)
         .def("getChainTime", &IntegratorHPMCMonoNEC<Shape>::getChainTime)

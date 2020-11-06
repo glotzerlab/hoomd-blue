@@ -27,7 +27,7 @@ rel_err_cs = 0.0015 # see for example Guang-Wen Wu and Richard J. Sadus, doi:10.
 
 params = list(P_list)
 
-p = int(option.get_user()[0])
+p = 0
 P = params[p]
 
 class sphereEOS_nec_test(unittest.TestCase):
@@ -41,20 +41,25 @@ class sphereEOS_nec_test(unittest.TestCase):
 
         #self.system = init.create_lattice(unitcell=lattice.sc(a=a), n=n);
 
-        x = numpy.linspace(-a*n/2, a*n/2, n, endpoint=False)
+        boxLen = a*n
+        x = np.linspace(-boxLen/2, boxLen/2, n, endpoint=False)
         position = list(itertools.product(x, repeat=3))
 
         
         snapshot = gsd.hoomd.Snapshot()
+        snapshot.configuration.box = [boxLen,boxLen,boxLen,0,0,0]
         snapshot.particles.N = n**3
         snapshot.particles.position = position
         snapshot.particles.typeid = [0]* n**3
         snapshot.particles.types = ['sphere']
 
-        sim.create_state_from_snapshot(snapshot)
+        with gsd.hoomd.open(name='sphere-eos-nec-lattice.gsd', mode='wb') as f:
+            f.append(snapshot)
+
+        sim.create_state_from_gsd('sphere-eos-nec-lattice.gsd')
         sim.state.thermalize_particle_momenta(hoomd.filter.All(), kT=1, seed=1)
 
-        self.mc = hpmc.integrate_nec.Sphere()
+        self.mc = hpmc.integrate_nec.Sphere(seed=1337)
 
         self.mc.shape['sphere'] = dict( diameter=1.0 )
         
@@ -62,8 +67,8 @@ class sphereEOS_nec_test(unittest.TestCase):
         tune_nec_d  = hpmc.util.tune(self.mc, tunables=['d'],         max_val=[4],   gamma=1, target=0.03)
         tune_nec_ct = hpmc.integrate_nec.tune_nec(self.mc, target=100 )
 
-        self.log = analyze.log(filename=None, quantities = ['hpmc_overlap_count','volume','phi_p', 'hpmc_d','hpmc_a','hpmc_chain_time','time'], overwrite=True, period=100)
-        self.log.register_callback('phi_p', lambda timestep: len(self.system.particles)*V/self.system.box.get_volume())
+        #self.log = analyze.log(filename=None, quantities = ['hpmc_overlap_count','volume','phi_p', 'hpmc_d','hpmc_a','hpmc_chain_time','time'], overwrite=True, period=100)
+        #self.log.register_callback('phi_p', lambda timestep: len(self.system.particles)*V/self.system.box.get_volume())
 
         tunables = []
         boxmc = hpmc.update.boxmc(self.mc,betaP=P,seed=123)
