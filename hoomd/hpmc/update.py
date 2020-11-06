@@ -90,19 +90,19 @@ class BoxMC(Updater):
         self._param_dict.update(param_dict)
         self.betaP = betaP
 
-    def attach(self, simulation):
-        integrator = simulation.operations.integrator
-        if not isinstance(integrator, integrate._HPMCIntegrator):
+    def _attach(self):
+        integrator = self._simulation.operations.integrator
+        if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
 
-        if not integrator.is_attached:
+        if not integrator._attached:
             raise RuntimeError("Integrator is not attached yet.")
+
         self._cpp_obj = _hpmc.UpdaterBoxMC(simulation.state._cpp_sys_def,
                                            integrator._cpp_obj,
                                            self.betaP,
                                            int(self.seed));
-        super().attach(simulation)
-
+        super()._attach()
 
     @property
     def counter(self):
