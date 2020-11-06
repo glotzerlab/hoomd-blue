@@ -53,7 +53,6 @@ disks_implicit.py 0 0
 spheres_implicit.py 0 1
 spheres_implicit_repulsive.py 0 0
 sphere_eos.py 0 0
-sphere_eos_nec.py 0 0
 disk_eos.py 0 0
 )
 
@@ -72,7 +71,6 @@ set(TEST_LIST_GPU ${TEST_LIST_GPU}
 disks_implicit.py 0 0
 spheres_implicit.py 0 1
 sphere_eos.py 0 0
-sphere_eos_nec.py 0 0
 disk_eos.py 0 0
 )
 
