@@ -1,5 +1,5 @@
 # Copyright (c) 2009-2019 The Regents of the University of Michigan
-#                    2019 Marco Klement and Michael Engel
+#               2019-2020 Marco Klement and Michael Engel
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 import hoomd
@@ -10,27 +10,6 @@ from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeparam import TypeParameter
 
 from hoomd.logging import log
-
-
-# add HPMC-NEC article citation notice
-#import hoomd
-#_citation_nec = hoomd.cite.article(cite_key='klement2019',
-                               #author=['M Klement', 'M Engel'],
-                               #title='Efficient equilibration of hard spheres with Newtonian event chains',
-                               #journal='The Journal of Chemical Physics',
-                               #volume=150,
-                               #pages='174108',
-                               #month='May',
-                               #year='2019',
-                               #doi='10.1063/1.5090882',
-                               #feature='HPMC-NEC')
-
-#if hoomd.context.bib is None:
-    #hoomd.cite._extra_default_entries.append(_citation_nec)
-#else:
-    #hoomd.context.bib.add(_citation_nec)
-
-
 
 class HPMCNECIntegrator(HPMCIntegrator):
     """ HPMC Chain Integrator Meta Class
@@ -72,7 +51,7 @@ class HPMCNECIntegrator(HPMCIntegrator):
           no collision (i.e. no collision partner found or end of chain)
         * ``distance_queries``:         `int` Number of sweep distances
           calculated
-        * ``overlap_err_count``:        `int` Number of errors during sweep
+        * ``overlap_errors``:           `int` Number of errors during sweep
           calculations
 
         Note:
@@ -150,9 +129,7 @@ class Sphere(HPMCNECIntegrator):
         d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
         chain_time (float): length of a chain in units of time.
         update_fraction (float): number of chains to be done as fraction of N.
-        nselect (int): The number of trial moves to perform in each cell.
-        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
-                             for a description of what state data restored. (added in version 2.2)
+        nselect (int): The number of repeated updates to perform in each cell.
 
     Hard particle Monte Carlo integration method for spheres.
 
@@ -160,24 +137,26 @@ class Sphere(HPMCNECIntegrator):
 
     Example:
 
-        system = hoomd.init.read_gsd( "initialFile.gsd" )
-        snapshot = system.take_snapshot(all=True)
-        for i in range(snapshot.particles.N):
-            snapshot.particles.velocity[i] = [ random.uniform(-1,1) for d in range(3) ]
-        system.restore_snapshot(snapshot)
+        cpu = hoomd.device.CPU()
+        sim = hoomd.Simulation(device=cpu)
+        sim.create_state_from_gsd(filename='start.gsd')
+        
+        sim.state.thermalize_particle_momenta(hoomd.filter.All(), kT=1, seed=1)
+        
+        mc            = hoomd.hpmc.integrate_nec.Sphere(d=0.05, seed=1, update_fraction=0.05)
+        mc.shape['A'] = dict(diameter=1)
+        mc.chain_time = 0.05
+        sim.operations.integrator = mc
 
-        target_nc = 100
-
-        mc = hoomd.hpmc.integrate_nec.sphere(
-                    d=0.5,
-                    chain_time=10.0,
-                    update_fraction=1.0/target_nc,
-                    seed=1354765,
-                    );
-                    
-        tune_nec_d  = hpmc.util.tune(self.mc, tunables=['d'],         max_val=[4],   gamma=1, target=0.03)
-        tune_nec_ct = hpmc.util.tune(self.mc, tunables=['chain_time'], max_val=[100], gamma=1, target=1.0/target_nc, tunable_map=hoomd.hpmc.integrate_nec.make_tunable_map(mc))
-
+        triggerTune = hoomd.trigger.Periodic(50,0)
+        tune_nec_d  = hoomd.hpmc.tune.MoveSize.scale_solver(triggerTune, moves=['d'], target=0.10, tol=0.001, max_translation_move=0.15)
+        sim.operations.tuners.append(tune_nec_d)
+        
+        import hoomd.hpmc.tune.nec_chain_time
+        tune_nec_ct = hoomd.hpmc.tune.nec_chain_time.ChainTime.scale_solver(triggerTune, target=20, tol=1, gamma=20 )
+        sim.operations.tuners.append(tune_nec_ct)
+        
+        sim.run(1000)
     """
 
     _cpp_cls = 'IntegratorHPMCMonoNECSphere'
@@ -185,8 +164,6 @@ class Sphere(HPMCNECIntegrator):
     def __init__(self,
                  seed,
                  d=0.1,
-                 a=0.1,
-                 chain_probability=0.5,
                  chain_time=0.5,
                  update_fraction=0.5,
                  nselect=1):
@@ -230,13 +207,13 @@ class ConvexPolyhedron(HPMCNECIntegrator):
         seed (int): Random number seed.
         d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
-        move_ratio (float): Ratio of chains to rotation moves. As there should be several particles in a chain it will be small. See example.
-        nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
-        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
-                             for a description of what state data restored. (added in version 2.2)
-
+        chain_probability (float): Ratio of chains to rotation moves. As there should be several particles in a chain it will be small. See example.
+        chain_time (float):
+        update_fraction (float):
+        nselect (int): Number of repeated updates for the cell/system.
+        
     Convex polyhedron parameters:
-        -- as convex_polyhedron --
+        see ``ConvexPolyhedron``
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior will result if they are
@@ -244,30 +221,28 @@ class ConvexPolyhedron(HPMCNECIntegrator):
 
     Example:
 
-        system = hoomd.init.read_gsd( "initialFile.gsd" )
-        snapshot = system.take_snapshot(all=True)
-        for i in range(snapshot.particles.N):
-            snapshot.particles.velocity[i] = [ random.uniform(-1,1) for d in range(3) ]
-        system.restore_snapshot(snapshot)
+        cpu = hoomd.device.CPU()
+        sim = hoomd.Simulation(device=cpu)
+        sim.create_state_from_gsd(filename='start.gsd')
         
-        target_nc = 100
-        target_mr = 0.5
+        sim.state.thermalize_particle_momenta(hoomd.filter.All(), kT=1, seed=1)
         
-        param_mr = target_mr/(1+target_nc*(1-target_mr))
+        mc            = hoomd.hpmc.integrate_nec.Sphere(d=0.05, seed=1, update_fraction=0.05)
+        mc.shape['A'] = dict(diameter=1)
+        mc.chain_time = 0.05
+        sim.operations.integrator = mc
+
+        triggerTune = hoomd.trigger.Periodic(50,0)
+        tune_nec_d  = hoomd.hpmc.tune.MoveSize.scale_solver(triggerTune, moves=['d'], target=0.10, max_translation_move=0.15)
+        sim.operations.tuners.append(tune_nec_d)
+        tune_nec_a  = hoomd.hpmc.tune.MoveSize.scale_solver(triggerTune, moves=['a'], target=0.30)
+        sim.operations.tuners.append(tune_nec_a)
         
-        mc = hoomd.hpmc.integrate_nec.convex_polyhedron(
-                    d=0.5,
-                    a=0.2,
-                    move_ratio=param_mr,
-                    chain_time=10.0,
-                    update_fraction=0.5,
-                    seed=1354765,
-                    );
-        mc.shape_param.set('A', vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
+        import hoomd.hpmc.tune.nec_chain_time
+        tune_nec_ct = hoomd.hpmc.tune.nec_chain_time.ChainTime.scale_solver(triggerTune, target=20, tol=1, gamma=20 )
+        sim.operations.tuners.append(tune_nec_ct)
         
-        tune_mc_a   = hpmc.util.tune(self.mc, tunables=['a'],         max_val=[0.5], gamma=1, target=0.3)
-        tune_nec_d  = hpmc.util.tune(self.mc, tunables=['d'],         max_val=[4],   gamma=1, target=0.03)
-        tune_nec_ct = hpmc.util.tune(self.mc, tunables=['chain_time'],max_val=[100], gamma=1, target=1.0/target_nc,  tunable_map=hoomd.hpmc.integrate_nec.make_tunable_map(mc) )
+        sim.run(1000)
 
         
     """
@@ -312,26 +287,4 @@ class ConvexPolyhedron(HPMCNECIntegrator):
                            [-0.5, 0.5, -0.5], [-0.5, -0.5, 0.5]]}]
         """
         return super(ConvexPolyhedron, self)._return_type_shapes()
-
-from hoomd.hpmc.util import tune
-
-class tune_nec(tune):
-    """tune_nec docstring :TODO:
-    """
-    def __init__(self, obj=None, tunables=[], max_val=[], target=100, max_scale=2.0, gamma=2.0, type=None, tunable_map=None, *args, **kwargs):
-        tunable_map = {
-            #'chain_time': {
-                    #'get': lambda: getattr(obj, 'get_chain_time')(),
-                    #'acceptance': lambda: 1.0/getattr(obj, 'get_particles_per_chain')(),
-                    #'set': lambda x: getattr(obj, 'set_chain_time')(x),
-                    #'maximum': 100.0
-                    #},
-            'chain_time': {
-                    'get': lambda: 1/getattr(obj, 'get_chain_time')(),
-                    'acceptance': lambda: getattr(obj, 'get_particles_per_chain')(),
-                    'set': lambda x: getattr(obj, 'set_chain_time')(1/x),
-                    'maximum': 100.0
-                    },
-              }
-        super(tune_nec,self).__init__(obj, tunables, max_val, target, max_scale, gamma, type, tunable_map, *args, **kwargs)
 
