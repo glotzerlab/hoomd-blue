@@ -11,9 +11,6 @@ from itertools import product
 
 valid_constructor_args = [
     dict(trigger=hoomd.trigger.Periodic(10),
-         betaP=10,
-         seed=1),
-    dict(trigger=hoomd.trigger.Periodic(10),
          betaP=hoomd.variant.Constant(10),
          seed=1),
     dict(trigger=hoomd.trigger.After(100),
