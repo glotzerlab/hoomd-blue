@@ -8,6 +8,7 @@ import hoomd
 import pytest
 import math
 from itertools import product
+import numpy as np
 
 valid_constructor_args = [
     dict(trigger=hoomd.trigger.Periodic(10),
