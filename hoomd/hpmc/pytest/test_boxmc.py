@@ -81,7 +81,13 @@ def test_valid_setattr(attr, value):
                                     seed=1)
 
     setattr(boxmc, attr, value)
-    assert getattr(boxmc, attr) == value
+    if isinstance(value, dict):
+        # check if we have the same keys
+        assert value.keys() == getattr(boxmc, attr).keys()
+        for k in value.keys():
+            assert np.allclose(value[k], getattr(boxmc, attr)[k])
+    else:
+        assert getattr(boxmc, attr) == value
 
 
 @pytest.mark.parametrize("attr,value", valid_attrs)
@@ -103,7 +109,13 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
     sim.operations._schedule()
 
     setattr(boxmc, attr, value)
-    assert getattr(boxmc, attr) == value
+    if isinstance(value, dict):
+        # check if we have the same keys
+        assert value.keys() == getattr(boxmc, attr).keys()
+        for k in value.keys():
+            assert np.allclose(value[k], getattr(boxmc, attr)[k])
+    else:
+        assert getattr(boxmc, attr) == value
 
 
 @pytest.mark.parametrize("betaP,box_move", betaP_boxmoves)
