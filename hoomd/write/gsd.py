@@ -3,9 +3,10 @@
 
 """Write GSD files storing simulation trajectories and logging data."""
 
+from collections.abc import Mapping, Collection
 from hoomd import _hoomd
 from hoomd.util import dict_flatten, array_to_strings
-from hoomd.data.typeconverter import OnlyFrom
+from hoomd.data.typeconverter import OnlyFrom, RequiredArg
 from hoomd.filter import ParticleFilter, All
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.logging import Logger, TypeFlags
@@ -223,6 +224,32 @@ class GSD(Writer):
         self._log = log
 
 
+def _iterable_is_incomplete(iterable):
+    """Checks that any nested attribute has no instances of RequiredArg.
+
+    Given the arbitrary nesting of container types in HOOMD-blue's data
+    model, we need to ensure that no RequiredArg values exist at any depth
+    in a state loggable key. Otherwise, the gsd backend will fail in its
+    conversion to NumPy arrays.
+    """
+    if (not isinstance(iterable, Collection)
+            or isinstance(iterable, str)
+            or len(iterable) == 0):
+        return False
+    incomplete = False
+
+    if isinstance(iterable, Mapping):
+        iter_ = iterable.keys()
+    else:
+        iter_ = iterable
+    for v in iter_:
+        if isinstance(v, Collection):
+            incomplete |= _iterable_is_incomplete(v)
+        else:
+            incomplete |= v is RequiredArg
+    return incomplete
+
+
 class _GSDLogWriter:
     """Helper class to store `hoomd.logging.Logger` log data to GSD file.
 
@@ -255,6 +282,8 @@ class _GSDLogWriter:
         """Get the flattened dictionary for consumption by GSD object."""
         log = dict()
         for key, value in dict_flatten(self.logger.log()).items():
+            if 'state' in key and _iterable_is_incomplete(value[0]):
+                pass
             log_value, type_flag = value
             type_flag = TypeFlags[type_flag]
             # This has to be checked first since type_shapes has a flag
@@ -311,7 +340,7 @@ class _GSDLogWriter:
             value = bytes(value, 'UTF-8')
             value = np.array([value], dtype=np.dtype((bytes, len(value) + 1)))
             value = value.view(dtype=np.int8)
-        if flag == TypeFlags.strings:
+        elif flag == TypeFlags.strings:
             value = [bytes(v + '\0', 'UTF-8') for v in value]
             max_len = np.max([len(string) for string in value])
             num_strings = len(value)

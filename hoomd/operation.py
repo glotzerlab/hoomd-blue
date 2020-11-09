@@ -24,6 +24,15 @@ from copy import deepcopy
 
 
 def _convert_values_to_log_form(value):
+    """Function for making state loggable quantity conform to spec.
+
+    Since the state dictionary is composed of properties for a given class
+    instance that does not have flags associated with it, we need to add the
+    flags when querying for the state. This does makes state logger type flag
+    generation dynamic meaning that we must be careful that we won't wrongly
+    detect different flags for the same attribute. In general this shouldn't
+    be a concern, though.
+    """
     if value is RequiredArg:
         return RequiredArg
     elif isinstance(value, Variant):
@@ -37,12 +46,14 @@ def _convert_values_to_log_form(value):
         return (value, 'object')
     elif isinstance(value, str):
         return (value, 'string')
-    elif is_iterable(value) and all([isinstance(v, str) for v in value]):
+    elif (is_iterable(value)
+            and len(value) != 0
+            and all([isinstance(v, str) for v in value])):
         return (value, 'strings')
     elif not is_iterable(value):
         return (value, 'scalar')
     else:
-        return (value, 'multi')
+        return (value, 'sequence')
 
 
 def _handle_gsd_arrays(arr):
