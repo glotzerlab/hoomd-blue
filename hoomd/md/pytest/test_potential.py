@@ -550,7 +550,7 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
                                    valid_params.pair_potential_params)
 
 def _check_for_skip(sim, pair_potential):
-    """ Determines if the simulation is able to run this pair potential """
+    """Determines if the simulation is able to run this pair potential."""
 
     if isinstance(sim.device, hoomd.device.GPU) and sim.device.communicator.num_ranks > 1 and \
             str(pair_potential).startswith('<class \'hoomd.md.many_body'):

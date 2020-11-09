@@ -110,10 +110,7 @@ class EvaluatorRevCross
         //! Check whether a pair of particles is interactive
         DEVICE bool areInteractive()
             {
-            if ((rik_sq < rcutsq )&&(epsilon_dev!=Scalar(0.0)))
-            //if rik_sq < rcutsq
-                return true;
-            else return false;
+            return (rik_sq < rcutsq) && (epsilon_dev != Scalar(0.0));
             }
 
         //! Evaluate the repulsive and attractive terms of the force
