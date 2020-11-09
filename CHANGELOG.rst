@@ -17,11 +17,14 @@ v3.0.0-beta.2 (not yet released)
 - Building from source requires a C++14 compatible compiler.
 - Improved documentation.
 - [breaking] Replace ``write.GSD`` argument ``overwrite`` with ``mode``.
+- ``hpmc.integrate.FacetedEllipsoid``'s shape specification now has a default
+  origin of (0, 0, 0).
 
 *Fixed*
 
 - ``Simulation.run`` now ends with a ``KeyboardInterrupt`` exception when
   Jupyter interrupts the kernel.
+- Logging the state of specific objects with nested attributes.
 
 v3.0.0-beta.1 (2020-10-15)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
