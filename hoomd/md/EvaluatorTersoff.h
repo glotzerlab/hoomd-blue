@@ -202,11 +202,11 @@ class EvaluatorTersoff
 
                     fcut_ik = fast::exp( cutoff_alpha * cutoff_x3 * inv_denom);
 
-//                    Scalar r_shell_mid = rcut - Scalar(0.5) * cutoff_shell_thickness;
-//                    Scalar cutoff_x = Scalar(M_PI) * (rik - r_shell_mid)
-//                        / cutoff_shell_thickness;
-//
-//                    fcut_ik = Scalar(0.5) - Scalar(0.5) * fast::sin(cutoff_x);
+                    //Scalar r_shell_mid = rcut - Scalar(0.5) * cutoff_shell_thickness;
+                    //Scalar cutoff_x = Scalar(M_PI) * (rik - r_shell_mid)
+                    //    / cutoff_shell_thickness;
+
+                    //fcut_ik = Scalar(0.5) - Scalar(0.5) * fast::sin(cutoff_x);
                     }
 
                 // compute the h function
@@ -255,12 +255,12 @@ class EvaluatorTersoff
                 dfcut_ij = Scalar(-3.0) * cutoff_alpha * cutoff_x2 * inv_denom * inv_denom
                     / cutoff_shell_thickness * fcut_ij;
 
-//                Scalar cutoff_x = Scalar(M_PI) * (rij - r_shell_mid)
-//                    / cutoff_shell_thickness;
-//
-//                fcut_ij = Scalar(0.5) - Scalar(0.5) * fast::sin(cutoff_x);
-//                dfcut_ij = Scalar(-M_PI / 2.0) / cutoff_shell_thickness
-//                    * fast::cos(cutoff_x);
+                //Scalar cutoff_x = Scalar(M_PI) * (rij - r_shell_mid)
+                //    / cutoff_shell_thickness;
+
+                //fcut_ij = Scalar(0.5) - Scalar(0.5) * fast::sin(cutoff_x);
+                //dfcut_ij = Scalar(-M_PI / 2.0) / cutoff_shell_thickness
+                //    * fast::cos(cutoff_x);
                 }
 
             // compute the derivative of the base repulsive and attractive terms
@@ -301,7 +301,7 @@ class EvaluatorTersoff
                 Scalar rcut = fast::sqrt(rcutsq);
                 Scalar r_shell_inner = rcut - cutoff_shell_thickness;
                 // compute the dot product of rij and rik
-//                Scalar rdot = cos_th * rij * rik;
+                //Scalar rdot = cos_th * rij * rik;
 
                 // compute the ij cutoff function
                 Scalar fcut_ij = Scalar(1.0);
@@ -314,11 +314,11 @@ class EvaluatorTersoff
 
                     fcut_ij = fast::exp( cutoff_alpha * cutoff_x3 * inv_denom );
 
-//                    Scalar r_shell_mid = rcut - Scalar(0.5) * cutoff_shell_thickness;
-//                    Scalar cutoff_x = Scalar(M_PI) * (rij - r_shell_mid)
-//                        / cutoff_shell_thickness;
-//
-//                    fcut_ij = Scalar(0.5) - Scalar(0.5) * fast::sin(cutoff_x);
+                    //Scalar r_shell_mid = rcut - Scalar(0.5) * cutoff_shell_thickness;
+                    //Scalar cutoff_x = Scalar(M_PI) * (rij - r_shell_mid)
+                    //    / cutoff_shell_thickness;
+
+                    //fcut_ij = Scalar(0.5) - Scalar(0.5) * fast::sin(cutoff_x);
                     }
 
                 // compute the ik cutoff function and its derivative
@@ -335,13 +335,13 @@ class EvaluatorTersoff
                     dfcut_ik = Scalar(-3.0) * cutoff_alpha * cutoff_x2 * inv_denom * inv_denom
                         / cutoff_shell_thickness * fcut_ik;
 
-//                    Scalar r_shell_mid = rcut - Scalar(0.5) * cutoff_shell_thickness;
-//                    Scalar cutoff_x = Scalar(M_PI) * (rik - r_shell_mid)
-//                        / cutoff_shell_thickness;
-//
-//                    fcut_ik = Scalar(0.5) - Scalar(0.5) * fast::sin(cutoff_x);
-//                    dfcut_ik = Scalar(-M_PI) / (Scalar(2.0) * cutoff_shell_thickness)
-//                        * fast::cos(cutoff_x);
+                    //Scalar r_shell_mid = rcut - Scalar(0.5) * cutoff_shell_thickness;
+                    //Scalar cutoff_x = Scalar(M_PI) * (rik - r_shell_mid)
+                    //    / cutoff_shell_thickness;
+
+                    //fcut_ik = Scalar(0.5) - Scalar(0.5) * fast::sin(cutoff_x);
+                    //dfcut_ik = Scalar(-M_PI) / (Scalar(2.0) * cutoff_shell_thickness)
+                    //    * fast::cos(cutoff_x);
                     }
 
                 // h function and its derivatives
@@ -412,7 +412,7 @@ class EvaluatorTersoff
             }
         #endif
 
-	static const bool flag_for_RevCross=false;
+        static const bool flag_for_RevCross=false;
 
     protected:
         Scalar rij_sq; //!< Stored rij_sq from the constructor

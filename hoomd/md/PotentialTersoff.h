@@ -472,16 +472,16 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
                     //vir contribute for i j direct interaction on particle i and j
                 if (compute_virial)
                     {
-                            virialixx += force_divr*dxij.x*dxij.x;
-                            virialixy += force_divr*dxij.x*dxij.y;
-                            virialixz += force_divr*dxij.x*dxij.z;
-                            virialiyy += force_divr*dxij.y*dxij.y;
-                            virialiyz += force_divr*dxij.y*dxij.z;
-                            virializz += force_divr*dxij.z*dxij.z;
+                    virialixx += force_divr*dxij.x*dxij.x;
+                    virialixy += force_divr*dxij.x*dxij.y;
+                    virialixz += force_divr*dxij.x*dxij.z;
+                    virialiyy += force_divr*dxij.y*dxij.y;
+                    virialiyz += force_divr*dxij.y*dxij.z;
+                    virializz += force_divr*dxij.z*dxij.z;
                     }
 
                     // evaluate the force from the ik interactions
-                    for (unsigned int k = j+1; k < size; k++)                    //I want to account only a single time for each triplets
+                    for (unsigned int k = j+1; k < size; k++)  // I want to account only a single time for each triplets
                         {
                         // access the index of neighbor k
                         unsigned int kk = h_nlist.data[head_i + k];
@@ -494,7 +494,7 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
 
                         // access the type pair parameters for i and k
                         typpair_idx = m_typpair_idx(typei, typek);
-                        param_type temp_param = h_params.data[typpair_idx];             // use this to control the species wich have to interact
+                        param_type temp_param = h_params.data[typpair_idx];  // use this to control the species wich have to interact
 
                         // compute dr_ik
                         Scalar3 dxik = posi - posk;
@@ -508,7 +508,7 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
                         temp_eval.setRik(rik_sq);
                         bool temp_evaluated = temp_eval.areInteractive();
 
-                    // 3 Body interaction ******
+                        // 3 Body interaction ******
                         if (temp_evaluated)
                             {
                             eval.setRik(rik_sq);
@@ -563,7 +563,6 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
                 h_force.data[mem_idx].y += fj.y;
                 h_force.data[mem_idx].z += fj.z;
                 h_force.data[mem_idx].w += pej;
-
                 }
 
             // finally, increment the force and potential energy for particle i
@@ -1016,15 +1015,15 @@ CommFlags PotentialTersoff< evaluator >::getRequestedCommFlags(unsigned int time
 */
 template < class T > void export_PotentialTersoff(pybind11::module& m, const std::string& name)
     {
-        pybind11::class_<T, ForceCompute, std::shared_ptr<T> >(m, name.c_str())
-            .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
-            .def("setParams", &T::setParamsPython)
-            .def("getParams", &T::getParams)
-            .def("setRCut", &T::setRCutPython)
-            .def("getRCut", &T::getRCut)
-            .def("setROn", &T::setROnPython)
-            .def("getROn", &T::getROn)
-        ;
+    pybind11::class_<T, ForceCompute, std::shared_ptr<T> >(m, name.c_str())
+    .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
+    .def("setParams", &T::setParamsPython)
+    .def("getParams", &T::getParams)
+    .def("setRCut", &T::setRCutPython)
+    .def("getRCut", &T::getRCut)
+    .def("setROn", &T::setROnPython)
+    .def("getROn", &T::getROn)
+    ;
     }
 
 

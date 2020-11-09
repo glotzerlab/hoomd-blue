@@ -141,36 +141,36 @@ class EvaluatorRevCross
         //! Evaluate the force and potential energy due to ij interactions
         DEVICE void evalForceij(Scalar invratio,
                                 Scalar invratio2,
-				Scalar chi, // not used
-				Scalar phi, // not used
-				Scalar& bij, // not used
+                                Scalar chi, // not used
+                                Scalar phi, // not used
+                                Scalar& bij, // not used
                                 Scalar& force_divr,
                                 Scalar& potential_eng)
             {
             // compute the ij force
-	    // the force term includes rij_sq^-1 from the derivative over the distance and a factor 0.5 to compensate for double countings
+            // the force term includes rij_sq^-1 from the derivative over the distance and a factor 0.5 to compensate for double countings
             force_divr = Scalar(2.0) *epsilon_dev * n_dev * (Scalar(2.0)*invratio2-invratio) / rij_sq;
 
-	    // compute the potential energy
+            // compute the potential energy
             potential_eng = epsilon_dev*( invratio2 - invratio);
             }
 
-	DEVICE void evalSelfEnergy(Scalar& energy, Scalar phi)
+        DEVICE void evalSelfEnergy(Scalar& energy, Scalar phi)
             { }
 
         //! Evaluate the forces due to ijk interactions
         DEVICE bool evalForceik(Scalar ijinvratio,
                                 Scalar ijinvratio2,
-				Scalar chi, // not used
-				Scalar bij, // not used
+                                Scalar chi, // not used
+                                Scalar bij, // not used
                                 Scalar3& IN_force_divr_ij,
                                 Scalar3& IN_force_divr_ik)
             {
             if (rik_sq < rcutsq)
                 {
-		// For compatibility with Tersoff I get 3d vectors in, but I need only to calculate their modulus and I store it in the x component
-		Scalar force_divr_ij=IN_force_divr_ij.x;
-		Scalar force_divr_ik=IN_force_divr_ik.x;
+                // For compatibility with Tersoff I get 3d vectors in, but I need only to calculate their modulus and I store it in the x component
+                Scalar force_divr_ij=IN_force_divr_ij.x;
+                Scalar force_divr_ik=IN_force_divr_ik.x;
 
 
                 // compute rij, rik, rcut
@@ -180,40 +180,42 @@ class EvaluatorRevCross
                 Scalar ikinvratio = fast::pow(sigma_dev/rik, n_dev);
                 Scalar ikinvratio2 = ikinvratio*ikinvratio;
 
-		//In this case the three particles interact and we have to find which one of the three scenarios is realized:
-		// (1) both k and j closer than rm ----> no forces from the three body term
-		// (2) only one closer than rm ----> two body interaction compensated by the three body for i and the closer
-		// (3) both farther than rm ----> complete avaluation of the forces
+                //In this case the three particles interact and we have to find which one of the three scenarios is realized:
+                // (1) both k and j closer than rm ----> no forces from the three body term
+                // (2) only one closer than rm ----> two body interaction compensated by the three body for i and the closer
+                // (3) both farther than rm ----> complete avaluation of the forces
 
-		//case (1) is trivial. The following are the two realization of case (2)
-		if ((rij > rm) && (rik <= rm) ){
+                //case (1) is trivial. The following are the two realization of case (2)
+                if ((rij > rm) && (rik <= rm) )
+                    {
 
-		       force_divr_ij = Scalar(-4.0) * epsilon_dev * n_dev * lambda3_dev * (Scalar(2.0)*ijinvratio2-ijinvratio) / rij_sq;
-		       force_divr_ik = 0;
+                       force_divr_ij = Scalar(-4.0) * epsilon_dev * n_dev * lambda3_dev * (Scalar(2.0)*ijinvratio2-ijinvratio) / rij_sq;
+                       force_divr_ik = 0;
 
-		}
-		else if ((rij <= rm ) && (rik > rm) ){
+                    }
+                else if ((rij <= rm ) && (rik > rm) )
+                    {
 
-		       force_divr_ij = 0;
-		       //each triplets is evaluated only once
-		       force_divr_ik = Scalar(-4.0) * epsilon_dev * n_dev * lambda3_dev * (Scalar(2.0)*ikinvratio2-ikinvratio) / rik_sq;
+                       force_divr_ij = 0;
+                       //each triplets is evaluated only once
+                       force_divr_ik = Scalar(-4.0) * epsilon_dev * n_dev * lambda3_dev * (Scalar(2.0)*ikinvratio2-ikinvratio) / rik_sq;
 
-		}
+                    }
+                //~~~~~~~~~~~~~~~~then case (3), look at S. Ciarella and W.G. Ellenbroek 2019 https://arxiv.org/abs/1912.08569 for details
+                else if ((rij > rm) && (rik > rm) )
+                    {
 
-		//~~~~~~~~~~~~~~~~then case (3), look at S. Ciarella and W.G. Ellenbroek 2019 https://arxiv.org/abs/1912.08569 for details
-		else if ((rij > rm) && (rik > rm) ){
+                       //starting with the contribute of the particle j in the 3B term
+                       force_divr_ij = lambda3_dev * Scalar(16.0) * epsilon_dev * n_dev * ( Scalar(2.0)*ijinvratio2 - ijinvratio )*( ikinvratio2 - ikinvratio ) / rij_sq ;
 
-		       //starting with the contribute of the particle j in the 3B term
-		       force_divr_ij = lambda3_dev * Scalar(16.0) * epsilon_dev * n_dev * ( Scalar(2.0)*ijinvratio2 - ijinvratio )*( ikinvratio2 - ikinvratio ) / rij_sq ;
+                       //then the contribute of the particle k in the 3B term
+                       force_divr_ik = lambda3_dev * Scalar(16.0) * epsilon_dev * n_dev * ( Scalar(2.0)*ikinvratio2 - ikinvratio )*( ijinvratio2 - ijinvratio ) / rik_sq ;
 
-		       //then the contribute of the particle k in the 3B term
-		       force_divr_ik = lambda3_dev * Scalar(16.0) * epsilon_dev * n_dev * ( Scalar(2.0)*ikinvratio2 - ikinvratio )*( ijinvratio2 - ijinvratio ) / rik_sq ;
+                    }
 
-		}
-
-		// Return the forces
-		IN_force_divr_ij.x=force_divr_ij;
-		IN_force_divr_ik.x=force_divr_ik;
+                // Return the forces
+                IN_force_divr_ij.x=force_divr_ij;
+                IN_force_divr_ik.x=force_divr_ik;
 
                 return true;
                 }
@@ -231,7 +233,7 @@ class EvaluatorRevCross
             }
         #endif
 
-	static const bool flag_for_RevCross=true;
+        static const bool flag_for_RevCross=true;
 
     protected:
         Scalar rij_sq; //!< Stored rij_sq from the constructor
