@@ -553,7 +553,7 @@ def _check_for_skip(sim, pair_potential):
     """Determines if the simulation is able to run this pair potential."""
 
     if isinstance(sim.device, hoomd.device.GPU) and sim.device.communicator.num_ranks > 1 and \
-            str(pair_potential).startswith('<class \'hoomd.md.many_body'):
+            isinstance(pair_potential, Triplet):
         pytest.skip("Cannot run triplet potentials with GPU+MPI enabled")
 
 def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
