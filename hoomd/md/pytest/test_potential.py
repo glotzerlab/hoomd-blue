@@ -239,10 +239,8 @@ def _invalid_params():
                                                     {}))
     tersoff_valid_dict = {
             'cutoff_thickness': 1.0,
-            'C1': 5.0,
-            'C2': 2.0,
-            'lambda1': 2.0,
-            'lambda2': 2.0,
+            'magnitudes': (5.0, 2.0),
+            'exp_factors': (2.0, 2.0),
             'lambda3': 2.0,
             'dimer_r': 2.5,
             'n': 2.0,
@@ -553,7 +551,7 @@ def _check_for_skip(sim, pair_potential):
     """Determines if the simulation is able to run this pair potential."""
 
     if isinstance(sim.device, hoomd.device.GPU) and sim.device.communicator.num_ranks > 1 and \
-            isinstance(pair_potential, Triplet):
+            issubclass(pair_potential, hoomd.md.many_body.Triplet):
         pytest.skip("Cannot run triplet potentials with GPU+MPI enabled")
 
 def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
