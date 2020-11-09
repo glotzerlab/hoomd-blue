@@ -122,7 +122,7 @@ class TestBoxResize:
         sim.create_state_from_snapshot(get_snapshot())
 
         sim.operations.updaters.append(box_resize)
-        sim.run(_t_start + _t_ramp)
+        sim.run(0)
 
         assert box_resize.get_box(0) == sys1[0]
         assert box_resize.get_box(_t_mid) == sys_halfway[0]
