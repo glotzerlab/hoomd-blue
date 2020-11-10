@@ -23,8 +23,8 @@ using namespace std;
     \param group The group of particles this integration method is to work on
     \param T Temperature set point as a function of time
     \param seed Random seed to use in generating random numbers
-    \param use_lambda If true, gamma=lambda*diameter, otherwise use a per-type gamma via setGamma()
-    \param lambda Scale factor to convert diameter to gamma
+    \param use_alpha If true, gamma=alpha*diameter, otherwise use a per-type gamma via setGamma()
+    \param alpha Scale factor to convert diameter to gamma
     \param suffix Suffix to attach to the end of log quantity names
 */
 TwoStepRATTLELangevinGPU::TwoStepRATTLELangevinGPU(std::shared_ptr<SystemDefinition> sysdef,
@@ -32,13 +32,9 @@ TwoStepRATTLELangevinGPU::TwoStepRATTLELangevinGPU(std::shared_ptr<SystemDefinit
                        		           std::shared_ptr<Manifold> manifold,
                                        std::shared_ptr<Variant> T,
                                        unsigned int seed,
-                                       bool use_lambda,
-                                       Scalar lambda,
-                                       bool noiseless_t,
-                                       bool noiseless_r,
                            	           Scalar eta,
                                        const std::string& suffix)
-    : TwoStepRATTLELangevin(sysdef, group, manifold, T, seed, use_lambda, lambda, noiseless_t, noiseless_r, eta, suffix), m_manifoldGPU( manifold->returnL(), manifold->returnR(), manifold->returnSurf() )
+    : TwoStepRATTLELangevin(sysdef, group, manifold, T, seed, eta, suffix), m_manifoldGPU( manifold->returnL(), manifold->returnR(), manifold->returnSurf() )
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
@@ -171,8 +167,8 @@ void TwoStepRATTLELangevinGPU::integrateStepTwo(unsigned int timestep)
         rattle_langevin_step_two_args args;
         args.d_gamma = d_gamma.data;
         args.n_types = m_gamma.getNumElements();
-        args.use_lambda = m_use_lambda;
-        args.lambda = m_lambda;
+        args.use_alpha = m_use_alpha;
+        args.alpha = m_alpha;
         args.T = m_T->getValue(timestep);
         args.eta = m_eta;
         args.timestep = timestep;
@@ -300,10 +296,6 @@ void export_TwoStepRATTLELangevinGPU(py::module& m)
                                std::shared_ptr<Manifold>,
                                std::shared_ptr<Variant>,
                                unsigned int,
-                               bool,
-                               Scalar,
-                               bool,
-                               bool,
                                Scalar,
                                const std::string&
                                >())

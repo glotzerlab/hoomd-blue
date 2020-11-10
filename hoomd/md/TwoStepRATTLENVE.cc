@@ -497,7 +497,7 @@ void TwoStepRATTLENVE::IncludeRATTLEForce(unsigned int timestep)
     group assigned to the method. Hence, the base class IntegrationMethodTwoStep will implement that counting.
     Derived classes can override if needed.
 */
-unsigned int TwoStepRATTLENVE::getNDOF(std::shared_ptr<ParticleGroup> query_group)
+Scalar TwoStepRATTLENVE::getTranslationalDOF(std::shared_ptr<ParticleGroup> query_group)
     {
     // get the size of the intersection between query_group and m_group
     unsigned int intersect_size = ParticleGroup::groupIntersection(query_group, m_group)->getNumMembersGlobal();

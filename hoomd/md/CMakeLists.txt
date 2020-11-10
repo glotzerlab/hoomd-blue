@@ -37,9 +37,11 @@ set(_md_sources module-md.cc
                    TablePotential.cc
                    TempRescaleUpdater.cc
                    TwoStepBD.cc
+                   TwoStepRATTLEBD.cc
                    TwoStepBerendsen.cc
                    TwoStepLangevinBase.cc
                    TwoStepLangevin.cc
+                   TwoStepRATTLELangevin.cc
                    TwoStepNPTMTK.cc
                    TwoStepNVE.cc
                    TwoStepRATTLENVE.cc
@@ -167,12 +169,16 @@ set(_md_headers ActiveForceComputeGPU.h
                 TablePotential.h
                 TempRescaleUpdater.h
                 TwoStepBDGPU.h
+                TwoStepRATTLEBDGPU.h
                 TwoStepBD.h
+                TwoStepRATTLEBD.h
                 TwoStepBerendsenGPU.h
                 TwoStepBerendsen.h
                 TwoStepLangevinBase.h
                 TwoStepLangevinGPU.h
+                TwoStepRATTLELangevinGPU.h
                 TwoStepLangevin.h
+                TwoStepRATTLELangevin.h
                 TwoStepNPTMTKGPU.h
                 TwoStepNPTMTK.h
                 TwoStepNVEGPU.h
@@ -212,8 +218,10 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            TableDihedralForceComputeGPU.cc
                            TablePotentialGPU.cc
                            TwoStepBDGPU.cc
+                           TwoStepRATTLEBDGPU.cc
                            TwoStepBerendsenGPU.cc
                            TwoStepLangevinGPU.cc
+                           TwoStepRATTLELangevinGPU.cc
                            TwoStepNPTMTKGPU.cc
                            TwoStepNVEGPU.cc
                            TwoStepRATTLENVEGPU.cc
@@ -271,8 +279,10 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       TableDihedralForceGPU.cu
                       TablePotentialGPU.cu
                       TwoStepBDGPU.cu
+                      TwoStepRATTLEBDGPU.cu
                       TwoStepBerendsenGPU.cu
                       TwoStepLangevinGPU.cu
+                      TwoStepRATTLELangevinGPU.cu
                       TwoStepNPTMTKGPU.cu
                       TwoStepNVEGPU.cu
                       TwoStepRATTLENVEGPU.cu

@@ -147,7 +147,10 @@ void IntegratorTwoStep::update(unsigned int timestep)
 
     // perform the second step of the integration on all groups
     for (auto& method : m_methods)
+    {
         method->integrateStepTwo(timestep);
+        method->IncludeRATTLEForce(timestep);
+    }
 
     /* NOTE: For composite particles, it is assumed that positions and orientations are not updated
        in the second step.
@@ -437,6 +440,9 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
         computeAccelerations(timestep);
         m_pdata->notifyAccelSet();
         }
+
+    for (auto& method : m_methods)
+        method->IncludeRATTLEForce(timestep);
 
     m_prepared = true;
     }

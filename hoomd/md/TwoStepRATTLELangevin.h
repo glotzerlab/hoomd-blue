@@ -18,7 +18,7 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Integrates part of the system forward in two steps with Langevin dynamics
 /*! Implements Langevin dynamics.
@@ -38,10 +38,6 @@ class PYBIND11_EXPORT TwoStepRATTLELangevin : public TwoStepLangevinBase
                      std::shared_ptr<Manifold> manifold,
                      std::shared_ptr<Variant> T,
                      unsigned int seed,
-                     bool use_lambda,
-                     Scalar lambda,
-                     bool noiseless_t,
-                     bool noiseless_r,
                      Scalar eta = 0.000001,
                      const std::string& suffix = std::string(""));
         virtual ~TwoStepRATTLELangevin();
@@ -69,7 +65,7 @@ class PYBIND11_EXPORT TwoStepRATTLELangevin : public TwoStepLangevinBase
         virtual void IncludeRATTLEForce(unsigned int timestep);
 
         //! Get the number of degrees of freedom granted to a given group
-        virtual unsigned int getNDOF(std::shared_ptr<ParticleGroup> group);
+        virtual Scalar getTranslationalDOF(std::shared_ptr<ParticleGroup> group);
 
     protected:
         std::shared_ptr<Manifold> m_manifold;  //!< The manifold used for the RATTLE constraint

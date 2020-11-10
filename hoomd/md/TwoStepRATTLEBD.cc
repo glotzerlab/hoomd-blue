@@ -38,8 +38,8 @@ using namespace std;
     \param manifold The manifold describing the constraint during the RATTLE integration method
     \param T Temperature set point as a function of time
     \param seed Random seed to use in generating random numbers
-    \param use_lambda If true, gamma=lambda*diameter, otherwise use a per-type gamma via setGamma()
-    \param lambda Scale factor to convert diameter to gamma
+    \param use_alpha If true, gamma=alpha*diameter, otherwise use a per-type gamma via setGamma()
+    \param alpha Scale factor to convert diameter to gamma
     \param noiseless_t If set true, there will be no translational noise (random force)
     \param noiseless_r If set true, there will be no rotational noise (random torque)
     \param eta Tolerance for the RATTLE iteration algorithm
@@ -49,14 +49,10 @@ TwoStepRATTLEBD::TwoStepRATTLEBD(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<Manifold> manifold,
                            std::shared_ptr<Variant> T,
                            unsigned int seed,
-                           bool use_lambda,
-                           Scalar lambda,
-                           bool noiseless_t,
-                           bool noiseless_r,
                            Scalar eta
                            )
-  : TwoStepLangevinBase(sysdef, group, T, seed, use_lambda, lambda), m_manifold(manifold),
-    m_noiseless_t(noiseless_t), m_noiseless_r(noiseless_r), m_eta(eta)
+  : TwoStepLangevinBase(sysdef, group, T, seed), m_manifold(manifold),
+    m_noiseless_t(false), m_noiseless_r(false), m_eta(eta)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLEBD" << endl;
 
@@ -91,7 +87,7 @@ void TwoStepRATTLEBD::integrateStepOne(unsigned int timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
-    const Scalar currentTemp = m_T->getValue(timestep);
+    const Scalar currentTemp = (*m_T)(timestep);
 
     // profile this step
     if (m_prof)
@@ -130,8 +126,8 @@ void TwoStepRATTLEBD::integrateStepOne(unsigned int timestep)
         RandomGenerator rng(RNGIdentifier::TwoStepBD, m_seed, ptag, timestep);
 
         Scalar gamma;
-        if (m_use_lambda)
-            gamma = m_lambda*h_diameter.data[j];
+        if (m_use_alpha)
+            gamma = m_alpha*h_diameter.data[j];
         else
             {
             unsigned int type = __scalar_as_int(h_pos.data[j].w);
@@ -229,7 +225,7 @@ void TwoStepRATTLEBD::IncludeRATTLEForce(unsigned int timestep)
 
     unsigned int group_size = m_group->getNumMembers();
 
-    const Scalar currentTemp = m_T->getValue(timestep);
+    const Scalar currentTemp = (*m_T)(timestep);
 
     const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
     const GlobalArray<Scalar>&  net_virial = m_pdata->getNetVirial();
@@ -260,8 +256,8 @@ void TwoStepRATTLEBD::IncludeRATTLEForce(unsigned int timestep)
         RandomGenerator rng(RNGIdentifier::TwoStepBD, m_seed, ptag, timestep);
 
         Scalar gamma;
-        if (m_use_lambda)
-            gamma = m_lambda*h_diameter.data[j];
+        if (m_use_alpha)
+            gamma = m_alpha*h_diameter.data[j];
         else
             {
             unsigned int type = __scalar_as_int(h_pos.data[j].w);
@@ -398,7 +394,7 @@ void TwoStepRATTLEBD::IncludeRATTLEForce(unsigned int timestep)
     group assigned to the method. Hence, the base class IntegrationMethodTwoStep will implement that counting.
     Derived classes can override if needed.
 */
-unsigned int TwoStepRATTLEBD::getNDOF(std::shared_ptr<ParticleGroup> query_group)
+Scalar TwoStepRATTLEBD::getTranslationalDOF(std::shared_ptr<ParticleGroup> query_group)
     {
     // get the size of the intersection between query_group and m_group
     unsigned int intersect_size = ParticleGroup::groupIntersection(query_group, m_group)->getNumMembersGlobal();
@@ -408,16 +404,12 @@ unsigned int TwoStepRATTLEBD::getNDOF(std::shared_ptr<ParticleGroup> query_group
 
 void export_TwoStepRATTLEBD(py::module& m)
     {
-    py::class_<TwoStepRATTLEBD, std::shared_ptr<TwoStepRATTLEBD> >(m, "TwoStepRATTLEBD", py::base<TwoStepLangevinBase>())
+    py::class_<TwoStepRATTLEBD, TwoStepLangevinBase, std::shared_ptr<TwoStepRATTLEBD> >(m, "TwoStepRATTLEBD")
     .def(py::init< std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
-			    std::shared_ptr<Manifold>,
+			                std::shared_ptr<Manifold>,
                             std::shared_ptr<Variant>,
                             unsigned int,
-                            bool,
-                            Scalar,
-                            bool,
-                            bool,
-			    Scalar>())
+			                Scalar>())
         ;
     }

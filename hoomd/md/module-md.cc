@@ -50,9 +50,11 @@
 #include "TablePotential.h"
 #include "TempRescaleUpdater.h"
 #include "TwoStepBD.h"
+#include "TwoStepRATTLEBD.h"
 #include "TwoStepBerendsen.h"
 #include "TwoStepLangevinBase.h"
 #include "TwoStepLangevin.h"
+#include "TwoStepRATTLELangevin.h"
 #include "TwoStepNPTMTK.h"
 #include "TwoStepNVE.h"
 #include "TwoStepRATTLENVE.h"
@@ -99,8 +101,10 @@
 #include "TableDihedralForceComputeGPU.h"
 #include "TablePotentialGPU.h"
 #include "TwoStepBDGPU.h"
+#include "TwoStepRATTLEBDGPU.h"
 #include "TwoStepBerendsenGPU.h"
 #include "TwoStepLangevinGPU.h"
+#include "TwoStepRATTLELangevinGPU.h"
 #include "TwoStepNPTMTKGPU.h"
 #include "TwoStepNVEGPU.h"
 #include "TwoStepRATTLENVEGPU.h"
@@ -370,7 +374,9 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepNVTMTK(m);
     export_TwoStepLangevinBase(m);
     export_TwoStepLangevin(m);
+    export_TwoStepRATTLELangevin(m);
     export_TwoStepBD(m);
+    export_TwoStepRATTLEBD(m);
     export_TwoStepNPTMTK(m);
     export_Berendsen(m);
     export_Enforce2DUpdater(m);
@@ -383,7 +389,9 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepRATTLENVEGPU(m);
     export_TwoStepNVTMTKGPU(m);
     export_TwoStepLangevinGPU(m);
+    export_TwoStepRATTLELangevinGPU(m);
     export_TwoStepBDGPU(m);
+    export_TwoStepRATTLEBDGPU(m);
     export_TwoStepNPTMTKGPU(m);
     export_BerendsenGPU(m);
     export_Enforce2DUpdaterGPU(m);

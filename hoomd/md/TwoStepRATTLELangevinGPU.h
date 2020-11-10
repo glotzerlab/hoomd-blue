@@ -35,10 +35,6 @@ class PYBIND11_EXPORT TwoStepRATTLELangevinGPU : public TwoStepRATTLELangevin
                      	   std::shared_ptr<Manifold> manifold,
                            std::shared_ptr<Variant> T,
                            unsigned int seed,
-                           bool use_lambda,
-                           Scalar lambda,
-                           bool noiseless_t,
-                           bool noiseless_r,
                            Scalar eta = 0.000001,
                            const std::string& suffix = std::string(""));
         virtual ~TwoStepRATTLELangevinGPU() {};
