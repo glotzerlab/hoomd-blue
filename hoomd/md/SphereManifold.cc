@@ -61,8 +61,9 @@ void SphereManifold::validate()
         m_P.y + m_r > hi.y || m_P.y - m_r < lo.y ||
         m_P.z + m_r > hi.z || m_P.z - m_r < lo.z)
         {
-        m_exec_conf->msg->warning() << "constrain.sphere_manifold: Sphere manifold is outside of the box. Constrained particle positions may be incorrect"
+        m_exec_conf->msg->error() << "manifold.Sphere: Sphere manifold is outside of the box. Constrained particle positions may be incorrect "
              << endl;
+        throw std::runtime_error("Error during Sphere manifold.");
         }
     }
 

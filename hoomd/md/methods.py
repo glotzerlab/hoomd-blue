@@ -8,6 +8,7 @@
 
 from hoomd.md import _md
 import hoomd
+from hoomd.manifold import _Manifold
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.filter import ParticleFilter
@@ -16,6 +17,8 @@ from hoomd.data.typeconverter import OnlyType, OnlyIf, to_type_converter
 from hoomd.variant import Variant
 from collections.abc import Sequence
 
+
+validate_manifold = OnlyType(_Manifold)
 
 class _Method(_HOOMDBaseObject):
     """Base class integration method.
@@ -579,6 +582,94 @@ class NVE(_Method):
 
         # Attach param_dict and typeparam_dict
         super()._attach()
+
+class NVE_RATTLE(_Method):
+    R""" NVE Integration via Velocity-Verlet
+
+    Args:
+        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
+         apply this method.
+
+        limit (None or `float`): Enforce that no particle moves more than a
+            distance of a limit in a single time step. Defaults to None
+
+    `NVE` performs constant volume, constant energy simulations using
+    the standard Velocity-Verlet method. For poor initial conditions that
+    include overlapping atoms, a limit can be specified to the movement a
+    particle is allowed to make in one time step. After a few thousand time
+    steps with the limit set, the system should be in a safe state to continue
+    with unconstrained integration.
+
+    .. todo::
+        Update when zero momentum updater is added.
+
+    Examples::
+
+        nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
+        integrator = hoomd.md.Integrator(dt=0.005, methods=[nve], forces=[lj])
+
+
+    Attributes:
+        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
+            apply this method.
+
+        limit (None or float): Enforce that no particle moves more than a
+            distance of a limit in a single time step. Defaults to None
+
+    """
+
+    def __init__(self, filter, manifold, limit=None, eta=0.000001):
+
+        self._manifold = validate_manifold(manifold)
+        # store metadata
+        param_dict = ParameterDict(
+            filter=ParticleFilter,
+            limit=OnlyType(float, allow_none=True),
+            zero_force=OnlyType(bool, allow_none=False),
+            eta=float(eta)
+        )
+        param_dict.update(dict(filter=filter, limit=limit, zero_force=False))
+
+        # set defaults
+        self._param_dict.update(param_dict)
+
+    def _attach(self):
+        if not self._manifold._added:
+            self._manifold._add(self._simulation)
+        else:
+            if self._simulation != self._manifold._simulation:
+                raise RuntimeError("{} object's manifold is used in a "
+                                   "different simulation.".format(type(self)))
+        if not self.manifold._attached:
+            self.manifold._attach()
+
+        # initialize the reflected c++ class
+        if isinstance(self._simulation.device, hoomd.device.CPU):
+            self._cpp_obj = _md.TwoStepRATTLENVE(self._simulation.state._cpp_sys_def,
+                                        self._simulation.state._get_group(self.filter), 
+                                        self.manifold._cpp_obj, False, self.eta)
+        else:
+            self._cpp_obj = _md.TwoStepRATTLENVEGPU(self._simulation.state._cpp_sys_def,
+                                 self._simulation.state._get_group(self.filter),
+                                 self.manifold._cpp_obj)
+
+        # Attach param_dict and typeparam_dict
+        super()._attach()
+
+    @property
+    def manifold(self):
+        return self._manifold
+
+    @manifold.setter
+    def manifold(self, value):
+        if self._attached:
+            raise RuntimeError("nlist cannot be set after scheduling.")
+        else:
+            self._manifold = validate_manifold(value)
+
+    @property
+    def _children(self):
+        return [self.manifold]
 
 
 class Langevin(_Method):

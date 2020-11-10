@@ -15,10 +15,13 @@ The degrees of freedom removed from the system by constraints are correctly take
 temperature for thermostatting and logging.
 """
 
-from hoomd.md import _md
 import hoomd;
+from hoomd.md import _md
+from hoomd import _hoomd
 from hoomd.manifold import _Manifold
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
+from hoomd.data.typeconverter import OnlyIf, to_type_converter
+from collections.abc import Sequence
 
 class Cylinder(_Manifold):
     def __init__(self,r, P=(0,0,0) ):
@@ -49,10 +52,10 @@ class Diamond(_Manifold):
         super().__init__();
         # store metadata
         param_dict = ParameterDict(
-            N=(int, int, int),
+            N=OnlyIf(to_type_converter((int,)*3), preprocess=self.__preprocess_unitcell),
         )
         param_dict.update(
-            dict(N=(Nx, Ny, Nz)))
+            dict(N=N))
         self._param_dict.update(param_dict)
 
     def _attach(self):
@@ -60,6 +63,15 @@ class Diamond(_Manifold):
         self._cpp_manifold = _md.TPMSManifold(cpp_sys_def, 'D', self.N[0], self.N[1], self.N[2] );
 
         super()._attach()
+
+    def __preprocess_unitcell(self,value):
+        if isinstance(value, Sequence):
+            if len(value) != 3:
+                raise ValueError(
+                    "Expected a single int or six.")
+            return tuple(value)
+        else:
+            return (value,value,value)
 
 class Ellipsoid(_Manifold):
     def __init__(self,a,b,c, P=(0,0,0) ):
@@ -92,10 +104,10 @@ class Gyroid(_Manifold):
         super().__init__();
         # store metadata
         param_dict = ParameterDict(
-            N=(int, int, int),
+            N=OnlyIf(to_type_converter((int,)*3), preprocess=self.__preprocess_unitcell),
         )
         param_dict.update(
-            dict(N=(Nx, Ny, Nz)))
+            dict(N=N))
         self._param_dict.update(param_dict)
 
     def _attach(self):
@@ -103,6 +115,15 @@ class Gyroid(_Manifold):
         self._cpp_manifold = _md.TPMSManifold(cpp_sys_def, 'G', self.N[0], self.N[1], self.N[2] );
 
         super()._attach()
+
+    def __preprocess_unitcell(self,value):
+        if isinstance(value, Sequence):
+            if len(value) != 3:
+                raise ValueError(
+                    "Expected a single int or six.")
+            return tuple(value)
+        else:
+            return (value,value,value)
 
 
 class Plane(_Manifold):
@@ -130,10 +151,10 @@ class Primitive(_Manifold):
         super().__init__();
         # store metadata
         param_dict = ParameterDict(
-            N=(int, int, int),
+            N=OnlyIf(to_type_converter((int,)*3), preprocess=self.__preprocess_unitcell),
         )
         param_dict.update(
-            dict(N=(Nx, Ny, Nz)))
+            dict(N=N))
         self._param_dict.update(param_dict)
 
     def _attach(self):

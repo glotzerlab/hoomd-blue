@@ -61,8 +61,9 @@ void CylinderManifold::validate()
     if (m_P.x + m_r > hi.x || m_P.x - m_r < lo.x ||
         m_P.y + m_r > hi.y || m_P.y - m_r < lo.y)
         {
-        m_exec_conf->msg->warning() << "constrain.cylinder_manifold: Cylinder manifold is outside of the box. Constrained particle positions may be incorrect"
+        m_exec_conf->msg->error() << "manifold.Cylinder: Cylinder manifold is outside of the box. Constrained particle positions may be incorrect"
              << endl;
+        throw std::runtime_error("Error during Cylinder manifold.");
         }
     }
 

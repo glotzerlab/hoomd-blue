@@ -55,10 +55,16 @@
 #include "TwoStepLangevin.h"
 #include "TwoStepNPTMTK.h"
 #include "TwoStepNVE.h"
+#include "TwoStepRATTLENVE.h"
 #include "TwoStepNVTMTK.h"
 #include "WallData.h"
 #include "ZeroMomentumUpdater.h"
 #include "MuellerPlatheFlow.h"
+#include "SphereManifold.h"
+#include "EllipsoidManifold.h"
+#include "TPMSManifold.h"
+#include "FlatManifold.h"
+#include "CylinderManifold.h"
 
 // include GPU classes
 #ifdef ENABLE_HIP
@@ -97,6 +103,7 @@
 #include "TwoStepLangevinGPU.h"
 #include "TwoStepNPTMTKGPU.h"
 #include "TwoStepNVEGPU.h"
+#include "TwoStepRATTLENVEGPU.h"
 #include "TwoStepNVTMTKGPU.h"
 #include "MuellerPlatheFlowGPU.h"
 #endif
@@ -359,6 +366,7 @@ PYBIND11_MODULE(_md, m)
     export_TempRescaleUpdater(m);
     export_ZeroMomentumUpdater(m);
     export_TwoStepNVE(m);
+    export_TwoStepRATTLENVE(m);
     export_TwoStepNVTMTK(m);
     export_TwoStepLangevinBase(m);
     export_TwoStepLangevin(m);
@@ -372,6 +380,7 @@ PYBIND11_MODULE(_md, m)
 
 #ifdef ENABLE_HIP
     export_TwoStepNVEGPU(m);
+    export_TwoStepRATTLENVEGPU(m);
     export_TwoStepNVTMTKGPU(m);
     export_TwoStepLangevinGPU(m);
     export_TwoStepBDGPU(m);
@@ -382,4 +391,11 @@ PYBIND11_MODULE(_md, m)
     export_ConstraintEllipsoidGPU(m);
     export_MuellerPlatheFlowGPU(m);
 #endif
+
+    // manifolds 
+    export_SphereManifold(m);
+    export_EllipsoidManifold(m);
+    export_CylinderManifold(m);
+    export_FlatManifold(m);
+    export_TPMSManifold(m);
     }

@@ -69,8 +69,9 @@ void EllipsoidManifold::validate()
         m_P.y + b > hi.y || m_P.y - b < lo.y ||
         m_P.z + c > hi.z || m_P.z - c < lo.z)
         {
-        m_exec_conf->msg->warning() << "constrain.sphere_manifold: Ellipsoid manifold is outside of the box. Constrained particle positions may be incorrect"
+        m_exec_conf->msg->error() << "manifold.Ellipsoid: Ellipsoid manifold is outside of the box. Constrained particle positions may be incorrect"
              << endl;
+        throw std::runtime_error("Error during Ellipsoid manifold.");
         }
     }
 
