@@ -27,6 +27,11 @@ set(_md_sources module-md.cc
                    NeighborListTree.cc
                    OPLSDihedralForceCompute.cc
                    PPPMForceCompute.cc
+                   CylinderManifold.cc
+                   EllipsoidManifold.cc
+                   FlatManifold.cc
+                   SphereManifold.cc
+                   TPMSManifold.cc
                    TableAngleForceCompute.cc
                    TableDihedralForceCompute.cc
                    TablePotential.cc
@@ -147,6 +152,11 @@ set(_md_headers ActiveForceComputeGPU.h
                 PotentialTersoff.h
                 PPPMForceComputeGPU.h
                 PPPMForceCompute.h
+                CylinderManifold.h
+                EllipsoidManifold.h
+                FlatManifold.h
+                SphereManifold.h
+                TPMSManifold.h
                 QuaternionMath.h
                 TableAngleForceComputeGPU.h
                 TableAngleForceCompute.h
@@ -311,6 +321,7 @@ set(files __init__.py
           force.py
           improper.py
           integrate.py
+          manifold.py
           methods.py
           nlist.py
           pair.py

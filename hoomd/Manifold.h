@@ -17,8 +17,7 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-//#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-
+#include <pybind11/pybind11.h>
 
 #ifndef __MANIFOLD_H__
 #define __MANIFOLD_H__
@@ -47,8 +46,8 @@ class PYBIND11_EXPORT Manifold
 	virtual Scalar3 returnL() {return make_scalar3(0, 0, 0);}
 
 	virtual Scalar3 returnR() {return make_scalar3(0, 0, 0);}
-	virtual manifold_enum::surf returnSurf() {return m_surf;}
 
+	virtual manifold_enum::surf returnSurf() {return m_surf;}
 
 #ifdef ENABLE_MPI
         //! Set the communicator to use
@@ -66,7 +65,7 @@ class PYBIND11_EXPORT Manifold
         std::shared_ptr<Profiler> m_prof;                 //!< The profiler this method is to use
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
 
-        manifold_enum::surf m_surf;
+        manifold_enum::surf m_surf; //! determines the specific manifold
 
 #ifdef ENABLE_MPI
         std::shared_ptr<Communicator> m_comm;             //!< The communicator to use for MPI

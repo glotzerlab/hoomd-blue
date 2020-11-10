@@ -26,9 +26,7 @@ struct manifold_enum
             gyroid,
             diamond,
             primitive,
-            xy,
-            xz,
-            yz,
+            plane,
             cylinder
             };
     };

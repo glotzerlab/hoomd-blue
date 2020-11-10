@@ -17,13 +17,14 @@ temperature for thermostatting and logging.
 
 import hoomd;
 from hoomd import _hoomd
+from hoomd.operation import _HOOMDBaseObject
 
 ## \internal
 # \brief Base class for manifold
 #
 # A manifold in hoomd reflects a Manifold in c++. It is respnsible to define the manifold 
 # used for RATTLE intergrators and the active force constraints.
-class _Manifold():
+class _Manifold(_HOOMDBaseObject):
     """Base class manifold object.
 
     Manifold defining a positional constraint to a given set of particles. The set manifold can 
@@ -40,9 +41,7 @@ class _Manifold():
     """
     def __init__(self):
 
-        self.cpp_manifold = None;
-
-        hoomd.context.current.manifold = self;
+        self._cpp_manifold = None;
 
     ## \var cpp_manifold
     # \internal
@@ -53,11 +52,11 @@ class _Manifold():
 
         Args:
             position (np.array): The position to evaluate."""
-        return self.cpp_manifold.implicit_function(_hoomd.make_scalar3(position[0], position[1], position[2]))
+        return self._cpp_manifold.implicit_function(_hoomd.make_scalar3(position[0], position[1], position[2]))
 
     def derivative(self, position):
         """Evaluate the derivative of the implicit function.
 
         Args:
             position (np.array): The position to evaluate at."""
-        return self.cpp_manifold.derivative(_hoomd.make_scalar3(position[0], position[1], position[2]))
+        return self._cpp_manifold.derivative(_hoomd.make_scalar3(position[0], position[1], position[2]))
