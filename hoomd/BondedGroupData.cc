@@ -559,7 +559,7 @@ const typename BondedGroupData<group_size, Group, name, has_type_mapping>::membe
 /*! \param tag Tag of bonded group to remove
  */
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
-void BondedGroupData<group_size, Group, name, has_type_mapping>::removeBondedGroup(unsigned int tag)
+void BondedGroupData<group_size, Group, name, has_type_mapping>::removeBondedGroup(unsigned int tag, bool safe)
     {
     // we are changing the local particle number, remove ghost groups
     removeAllGhostGroups();
@@ -577,31 +577,35 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::removeBondedGro
     bool is_local = id < getN();
     assert(is_local || id == GROUP_NOT_LOCAL);
 
-    bool is_available = is_local;
 
-    #ifdef ENABLE_MPI
-    if (m_pdata->getDomainDecomposition())
+
+    if (safe)
         {
-        int res = is_local ? 1 : 0;
+        bool is_available = is_local;
+#ifdef ENABLE_MPI
+        if (m_pdata->getDomainDecomposition())
+            {
+            int res = is_local ? 1 : 0;
 
-        // check that group is local on some processors
-        MPI_Allreduce(MPI_IN_PLACE,
-                      &res,
-                      1,
-                      MPI_INT,
-                      MPI_SUM,
-                      m_exec_conf->getMPICommunicator());
+            // check that group is local on some processors
+            MPI_Allreduce(MPI_IN_PLACE,
+                          &res,
+                          1,
+                          MPI_INT,
+                          MPI_SUM,
+                          m_exec_conf->getMPICommunicator());
 
-        assert((unsigned int) res <= group_size);
-        is_available = res;
-        }
-    #endif
+            assert((unsigned int) res <= group_size);
+            is_available = res;
+            }
+#endif
 
-    if (! is_available)
-        {
-        m_exec_conf->msg->error() << "Trying to remove " << name << " " << tag
-             << " which has been previously removed!" << endl;
-        throw runtime_error(std::string("Error removing ") + name);
+        if (! is_available)
+            {
+            m_exec_conf->msg->error() << "Trying to remove " << name << " " << tag
+                                      << " which has been previously removed!" << endl;
+            throw runtime_error(std::string("Error removing ") + name);
+            }
         }
 
     // delete from map
@@ -616,10 +620,10 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::removeBondedGro
             {
             m_groups[id] = (members_t) m_groups[size-1];
             m_group_typeval[id] = (typeval_t) m_group_typeval[size-1];
-            #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
             if (m_pdata->getDomainDecomposition())
                 m_group_ranks[id] = (ranks_t) m_group_ranks[size-1];
-            #endif
+#endif
             unsigned int last_tag = m_group_tag[size-1];
             m_group_rtag[last_tag] = id;
             m_group_tag[id] = last_tag;
@@ -629,10 +633,10 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::removeBondedGro
         m_groups.pop_back();
         m_group_typeval.pop_back();
         m_group_tag.pop_back();
-        #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
         if (m_pdata->getDomainDecomposition())
             m_group_ranks.pop_back();
-        #endif
+#endif
         m_n_groups--;
         }
 

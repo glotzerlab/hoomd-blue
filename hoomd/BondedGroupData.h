@@ -559,7 +559,7 @@ class BondedGroupData
         //! Remove a single bonded group from all processors
         /*! \param tag Tag of bonded group to remove
          */
-        void removeBondedGroup(unsigned int group_tag);
+        void removeBondedGroup(unsigned int group_tag, bool safe=true);
 
         //! Set the profiler
         /*! \param prof The profiler
