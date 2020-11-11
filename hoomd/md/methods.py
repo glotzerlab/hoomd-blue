@@ -668,11 +668,11 @@ class NVE_Rattle(_Method):
         if isinstance(self._simulation.device, hoomd.device.CPU):
             self._cpp_obj = _md.TwoStepRATTLENVE(self._simulation.state._cpp_sys_def,
                                         self._simulation.state._get_group(self.filter), 
-                                        self.manifold._cpp_obj, False, self.eta)
+                                        self.manifold._cpp_manifold, False, self.eta)
         else:
             self._cpp_obj = _md.TwoStepRATTLENVEGPU(self._simulation.state._cpp_sys_def,
                                  self._simulation.state._get_group(self.filter),
-                                 self.manifold._cpp_obj)
+                                 self.manifold._cpp_manifold)
 
         # Attach param_dict and typeparam_dict
         super()._attach()
@@ -984,12 +984,12 @@ class Langevin_Rattle(_Method):
         if isinstance(sim.device, hoomd.device.CPU):
             self._cpp_obj = _md.TwoStepRATTLELangevin(sim.state._cpp_sys_def,
                                           sim.state._get_group(self.filter),
-                                          self.manifold._cpp_obj,
+                                          self.manifold._cpp_manifold,
                                           self.kT, self.seed, self.eta);
         else:
-            self._cpp_obj = _md.TwoStepRATTLELangevinGPU(sim.state._cpp_sys_def,
+            self._cpp_manifold = _md.TwoStepRATTLELangevinGPU(sim.state._cpp_sys_def,
                                              sim.state._get_group(self.filter),
-                                             self.manifold._cpp_obj,
+                                             self.manifold._cpp_manifold,
                                              self.kT, self.seed, self.eta);
 
         # Attach param_dict and typeparam_dict
@@ -1291,12 +1291,12 @@ class Brownian_Rattle(_Method):
         if isinstance(sim.device, hoomd.device.CPU):
             self._cpp_obj = _md.TwoStepRATTLEBD(sim.state._cpp_sys_def,
                                           sim.state._get_group(self.filter),
-                                          self.manifold._cpp_obj,
+                                          self.manifold._cpp_manifold,
                                           self.kT, self.seed, self.eta);
         else:
             self._cpp_obj = _md.TwoStepRATTLEBDGPU(sim.state._cpp_sys_def,
                                              sim.state._get_group(self.filter),
-                                             self.manifold._cpp_obj,
+                                             self.manifold._cpp_manifold,
                                              self.kT, self.seed, self.eta);
 
         # Attach param_dict and typeparam_dict

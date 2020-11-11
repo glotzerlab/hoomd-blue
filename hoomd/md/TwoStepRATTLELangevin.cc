@@ -55,6 +55,7 @@ TwoStepRATTLELangevin::TwoStepRATTLELangevin(std::shared_ptr<SystemDefinition> s
     m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLELangevin" << endl;
 
     m_log_name = string("langevin_reservoir_energy");
+
     }
 
 TwoStepRATTLELangevin::~TwoStepRATTLELangevin()
@@ -534,12 +535,15 @@ void TwoStepRATTLELangevin::IncludeRATTLEForce(unsigned int timestep)
 	    next_pos.y = h_pos.data[j].y;
 	    next_pos.z = h_pos.data[j].z;
 
+
 	    Scalar3 normal = m_manifold->derivative(next_pos);
+        
 
 	    Scalar inv_mass = Scalar(1.0)/h_vel.data[j].w;
 	    Scalar deltaT_half = Scalar(1.0/2.0)*m_deltaT;
 	    Scalar inv_alpha = -deltaT_half*m_deltaT*inv_mass;
 	    inv_alpha = Scalar(1.0)/inv_alpha;
+
 
 	    Scalar3 residual;
 	    Scalar resid;
