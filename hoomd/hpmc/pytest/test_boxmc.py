@@ -34,7 +34,7 @@ valid_attrs = [
     ('ln_volume', {'weight': 0.1, 'delta': 1.2}),
     ('aspect', {'weight': 0.3, 'delta': 0.1}),
     ('length', {'weight': 0.5, 'delta': [0.8]*3}),
-    ('shear', {'weight': 0.7, 'delta': [0.3]*3, "reduce": 0.1})
+    ('shear', {'weight': 0.7, 'delta': [0.3]*3, 'reduce': 0.1})
 ]
 
 betaP_boxmoves = list(product([1, 3, 5, 7, 10, 20],
