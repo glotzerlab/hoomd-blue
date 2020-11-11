@@ -258,6 +258,11 @@ class Loggable(type):
     @classmethod
     def _add_loggable_docstring_info(cls, new_cls, attr, flag, default):
         doc = getattr(new_cls, attr).__doc__
+        # Don't add documentation to empty docstrings. This means that the
+        # quantity is not documented would needs to be fixed, but this prevents
+        # the rendering of invalid docs since we need a non-empty docstring.
+        if __doc__ == "":
+            return
         str_msg = '\n\n{}(`Loggable <hoomd.logging.Logger>`: '
         str_msg += f'type="{str(flag)[10:]}"'
         if default:
