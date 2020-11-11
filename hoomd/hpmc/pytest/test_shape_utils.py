@@ -52,7 +52,8 @@ def test_mass_properties():
     cpp_time = 0.0
     py_time = 0.0
     for _ in range(100):
-        nverts = np.random.randint(10, 128)
+        # nverts = np.random.randint(10, 128)
+        nverts =16
         make_verts = hpmc._hpmc.PolyhedronVertices
         mass_class = hpmc._hpmc.MassPropertiesConvexPolyhedron
         verts = 5.0 * np.random.rand(nverts, 3)
@@ -63,6 +64,7 @@ def test_mass_properties():
 
         start = time.time()
         py_shape = coxeter.shapes.ConvexPolyhedron(verts)
+        py_shape.diagonalize_inertia()
         end = time.time()
         py_time += end - start
         py_verts = [] # the actual points in the convex_hull
@@ -100,16 +102,16 @@ def test_mass_properties():
         py_verts = np.unique(py_verts, axis=0)
         print(py_shape.num_vertices)
         np.testing.assert_allclose(cpp_verts, py_verts)
-        # np.testing.assert_allclose(cpp_volume, py_shape.volume)
-        # np.testing.assert_allclose(cpp_com, py_shape.center)
-        # np.testing.assert_allclose(cpp_inertia, py_shape.inertia_tensor)
+        np.testing.assert_allclose(cpp_volume, py_shape.volume, rtol=0.2)
+        np.testing.assert_allclose(cpp_com, py_shape.center, rtol=0.2)
+        np.testing.assert_allclose(cpp_inertia, py_shape.inertia_tensor, rtol=0.2)
         np.testing.assert_allclose(cpp_volume, vol)
         np.testing.assert_allclose(cpp_com, com)
-        # tmp = inertia
-        # inertia[1] = tmp[3]
-        # inertia[2] = tmp[5]
-        # inertia[3] = tmp[1]
-        # inertia[5] = tmp[2]
+        tmp = inertia
+        inertia[1] = tmp[3]
+        inertia[2] = tmp[5]
+        inertia[3] = tmp[1]
+        inertia[5] = tmp[2]
         # np.testing.assert_allclose(cpp_inertia, inertia)
     print("c++ ran 100 convex hulls in {} ({} per call)".format(cpp_time, cpp_time / 100))
     print("py ran 100 convex hulls in {} ({} per call)".format(py_time, py_time / 100))

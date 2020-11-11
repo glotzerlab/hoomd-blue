@@ -2,19 +2,19 @@ import hoomd
 from hoomd import hpmc
 import numpy as np
 import coxeter
-from coxeter.shape_classes import ConvexPolyhedron
+from coxeter.shapes import ConvexPolyhedron
 import BlockAverage
 import freud
 
-ttf = coxeter.shape_families.TruncatedTetrahedronFamily()
+ttf = coxeter.families.TruncatedTetrahedronFamily()
 
 class TruncatedTetrahedron:
     def __init__(self, trunc=1.0):
         self.shape_params = [trunc]
-        self.exec_conf = hoomd.context.current.system_definition.getParticleData().getExecConf()
 
     def __call__(self, trunc_attempt):
-        shape = ttf(1 - trunc_attempt[0])
+        shape = ttf.get_shape(1 - trunc_attempt[0])
+        self.shape_params.append(trunc_attempt[0])
         args = {'vertices': (shape.vertices / (shape.volume**(1 / 3))).tolist(), 'sweep_radius': 0.0, 'ignore_statistics': 0}
         return hoomd.hpmc._hpmc.PolyhedronVertices(args)
 
@@ -27,9 +27,10 @@ class TruncatedTetrahedron:
 mean_trunc_ref = 0.3736
 sigma_trunc_ref = 0.0001
 
-init_trunc = 0.3736
-phi_final = 0.6
-initial_shape = ConvexPolyhedron(ttf(1 - init_trunc).vertices / (ttf(1 - init_trunc).volume**(1 / 3)))
+# init_trunc = 0.3736
+init_trunc = 0.39
+phi_final = 0.4
+initial_shape = ConvexPolyhedron(ttf.get_shape(1 - init_trunc).vertices / (ttf.get_shape(1 - init_trunc).volume**(1 / 3)))
 a = (8 * initial_shape.volume / phi_final)**(1.0 / 3.0)  # lattice constant
 dim = 3
 
@@ -75,19 +76,21 @@ mc.shape['A'] = {'vertices': initial_shape.vertices}
 tune = hoomd.hpmc.tune.MoveSize.scale_solver(moves=['a', 'd'],
                                              target=0.2,
                                              trigger=hoomd.trigger.Periodic(1000))
-sim.operations.add(tune)
+# sim.operations.add(tune)
+sim.operations.add(mc)
+sim.operations.tuners.append(tune)
 sim.operations._schedule()
-sim.run(10e3)
 # hoomd.update.box_resize.BoxResize.linear_volume(hoomd.Box(initial_box.Lx, initial_box.Ly, Lz=initial_box.Lz),
 #                                                 hoomd.Box(final_box.Lx, final_box.Ly, Lz=final_box.Lz),
 #                                                 0, 1e6,
 #                                                 hoomd.trigger.Periodic(1), scale_particles=False)
 compress = hoomd.hpmc.update.QuickCompress(trigger=hoomd.trigger.Periodic(1), seed=10, target_box=hoomd.Box(final_box.Lx, final_box.Ly, Lz=final_box.Lz))
-sim.operations.add(mc)
+sim.operations.add(compress)
+sim.run(10e3)
+shape_gen_fn = TruncatedTetrahedron()
 updater = hoomd.hpmc.update.alchemy(mc=mc, move_ratio=1.0, seed=3832765, trigger=hoomd.trigger.Periodic(1), nselect=1)
-sim.operations.add(updater)
-shape_gen_fn = TruncatedTetrahedron(mc=mc)
 updater.python_shape_move(shape_gen_fn, {'A': [init_trunc]}, stepsize=0.1, param_ratio=0.5)
+sim.operations.add(updater)
 tuner = updater.get_tuner(hoomd.trigger.Periodic(1000), 0.5, gamma=0.5)
 sim.operations.add(tuner)
 log_file = open("truncations.txt", "w+")
@@ -123,5 +126,5 @@ assert sigma_trunc / mean_trunc <= 0.005
 ci = 2.576
 
 # compare if 0 is within the confidence interval around the difference of the means
-sigma_diff = (sigma_trunc**2 + sigma_trunc_ref**2)**(1.0 / 2.0);
+sigma_diff = (sigma_trunc**2 + sigma_trunc_ref**2)**(1.0 / 2.0)
 assert abs(mean_trunc - mean_trunc_ref) <= ci * sigma_diff
