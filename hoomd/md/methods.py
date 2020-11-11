@@ -583,7 +583,7 @@ class NVE(_Method):
         # Attach param_dict and typeparam_dict
         super()._attach()
 
-class NVE_RATTLE(_Method):
+class NVE_Rattle(_Method):
     R""" NVE Integration via Velocity-Verlet
 
     Args:
@@ -670,7 +670,6 @@ class NVE_RATTLE(_Method):
     @property
     def _children(self):
         return [self.manifold]
-
 
 class Langevin(_Method):
     R""" Langevin dynamics.
@@ -839,6 +838,202 @@ class Langevin(_Method):
         super()._attach()
 
 
+class Langevin_Rattle(_Method):
+    R""" Langevin dynamics.
+
+    Args:
+        filter (`hoomd.filter.ParticleFilter`): Subset of particles to
+            apply this method to.
+
+        kT (`hoomd.variant.Variant` or `float`): Temperature of the
+            simulation (in energy units).
+
+        seed (`int`): Random seed to use for generating
+            :math:`\vec{F}_\mathrm{R}`.
+
+        alpha (`float`): When set, use :math:`\alpha d_i` for the drag
+            coefficient where :math:`d_i` is particle diameter.
+            Defaults to None.
+
+        tally_reservoir_energy (`bool`): If true, the energy exchange
+            between the thermal reservoir and the particles is tracked. Total
+            energy conservation can then be monitored by adding
+            ``langevin_reservoir_energy_groupname`` to the logged quantities.
+            Defaults to False.
+
+    .. rubric:: Translational degrees of freedom
+
+    `Langevin` integrates particles forward in time according to the
+    Langevin equations of motion:
+
+    .. math::
+
+        m \frac{d\vec{v}}{dt} = \vec{F}_\mathrm{C} - \gamma \cdot \vec{v} +
+        \vec{F}_\mathrm{R}
+
+        \langle \vec{F}_\mathrm{R} \rangle = 0
+
+        \langle |\vec{F}_\mathrm{R}|^2 \rangle = 2 d kT \gamma / \delta t
+
+    where :math:`\vec{F}_\mathrm{C}` is the force on the particle from all
+    potentials and constraint forces, :math:`\gamma` is the drag coefficient,
+    :math:`\vec{v}` is the particle's velocity, :math:`\vec{F}_\mathrm{R}` is a
+    uniform random force, and :math:`d` is the dimensionality of the system (2
+    or 3).  The magnitude of the random force is chosen via the
+    fluctuation-dissipation theorem to be consistent with the specified drag and
+    temperature, :math:`T`.  When :math:`kT=0`, the random force
+    :math:`\vec{F}_\mathrm{R}=0`.
+
+    `Langevin` generates random numbers by hashing together the
+    particle tag, user seed, and current time step index. See `C. L. Phillips
+    et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_ for more
+    information.
+
+    .. attention::
+
+        Change the seed if you reset the simulation time step to 0.
+        If you keep the same seed, the simulation will continue with the same
+        sequence of random numbers used previously and may cause unphysical
+        correlations.
+
+        For MPI runs: all ranks other than 0 ignore the seed input and use the
+        value of rank 0.
+
+    Langevin dynamics includes the acceleration term in the Langevin equation
+    and is useful for gently thermalizing systems using a small gamma. This
+    assumption is valid when underdamped: :math:`\frac{m}{\gamma} \gg \delta t`.
+    Use `Brownian` if your system is not underdamped.
+
+    `Langevin` uses the same integrator as `NVE` with the additional force term
+    :math:`- \gamma \cdot \vec{v} + \vec{F}_\mathrm{R}`. The random force
+    :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random number
+    distribution.
+
+    You can specify :math:`\gamma` in two ways:
+
+    1. Specify :math:`\alpha` which scales the particle diameter to
+       :math:`\gamma = \alpha d_i`. The units of :math:`\alpha` are
+       mass / distance / time.
+    2. After the method object is created, specify the
+       attribute ``gamma`` and ``gamma_r`` for rotational damping or random
+       torque to assign them directly, with independent values for each
+       particle type in the system.
+
+    Warning:
+        When restarting a simulation, the energy of the reservoir will be reset
+        to zero.
+
+    Examples::
+
+        langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=0.2,
+        seed=1, alpha=1.0)
+        integrator = hoomd.md.Integrator(dt=0.001, methods=[langevin],
+        forces=[lj])
+
+    Examples of using ``gamma`` or ``gamma_r`` on drag coefficient::
+
+        langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=0.2,
+        seed=1)
+        langevin.gamma.default = 2.0
+        langevin.gamma_r.default = [1.0,2.0,3.0]
+
+    Attributes:
+        filter (hoomd.filter.ParticleFilter): Subset of particles to
+            apply this method to.
+
+        kT (hoomd.variant.Variant): Temperature of the
+            simulation (in energy units).
+
+        seed (int): Random seed to use for generating
+            :math:`\vec{F}_\mathrm{R}`.
+
+        alpha (float): When set, use :math:`\alpha d_i` for the drag
+            coefficient where :math:`d_i` is particle diameter.
+            Defaults to None.
+
+        gamma (TypeParameter[ ``particle type``, `float` ]): The drag
+            coefficient can be directly set instead of the ratio of particle
+            diameter (:math:`\gamma = \alpha d_i`). The type of ``gamma``
+            parameter is either positive float or zero.
+
+        gamma_r (TypeParameter[ ``particle type``, [ `float`, `float` , `float` ]]):
+            The rotational drag coefficient can be set. The type of ``gamma_r``
+            parameter is a tuple of three float. The type of each element of
+            tuple is either positive float or zero.
+
+    """
+
+    def __init__(self, filter, kT, seed, manifold, alpha=None,
+                 tally_reservoir_energy=False, eta=0.000001):
+
+        self._manifold = validate_manifold(manifold)
+        # store metadata
+        param_dict = ParameterDict(
+            filter=ParticleFilter,
+            kT=Variant,
+            seed=int(seed),
+            alpha=OnlyType(float, allow_none=True),
+            tally_reservoir_energy=bool(tally_reservoir_energy),
+            eta=float(eta)
+            )
+        param_dict.update(dict(kT=kT, alpha=alpha, filter=filter))
+        # set defaults
+        self._param_dict.update(param_dict)
+
+        gamma = TypeParameter('gamma', type_kind='particle_types',
+                              param_dict=TypeParameterDict(1., len_keys=1)
+                              )
+
+        gamma_r = TypeParameter('gamma_r', type_kind='particle_types',
+                                param_dict=TypeParameterDict((1., 1., 1.),
+                                                             len_keys=1)
+                                )
+
+        self._extend_typeparam([gamma,gamma_r])
+
+    def _attach(self):
+
+        # initialize the reflected c++ class
+        sim = self._simulation
+        if not self._manifold._added:
+            self._manifold._add(sim)
+        else:
+            if sim != self._manifold._simulation:
+                raise RuntimeError("{} object's manifold is used in a "
+                                   "different simulation.".format(type(self)))
+        if not self.manifold._attached:
+            self.manifold._attach()
+
+        if isinstance(sim.device, hoomd.device.CPU):
+            self._cpp_obj = _md.TwoStepRATTLELangevin(sim.state._cpp_sys_def,
+                                          sim.state._get_group(self.filter),
+                                          self.manifold._cpp_obj,
+                                          self.kT, self.seed, self.eta);
+        else:
+            self._cpp_obj = _md.TwoStepRATTLELangevinGPU(sim.state._cpp_sys_def,
+                                             sim.state._get_group(self.filter),
+                                             self.manifold._cpp_obj,
+                                             self.kT, self.seed, self.eta);
+
+        # Attach param_dict and typeparam_dict
+        super()._attach()
+
+    @property
+    def manifold(self):
+        return self._manifold
+
+    @manifold.setter
+    def manifold(self, value):
+        if self._attached:
+            raise RuntimeError("nlist cannot be set after scheduling.")
+        else:
+            self._manifold = validate_manifold(value)
+
+    @property
+    def _children(self):
+        return [self.manifold]
+
+
 class Brownian(_Method):
     R""" Brownian dynamics.
 
@@ -1003,6 +1198,197 @@ class Brownian(_Method):
         # Attach param_dict and typeparam_dict
         super()._attach()
 
+class Brownian_Rattle(_Method):
+    R""" Brownian dynamics.
+
+    Args:
+        filter (`hoomd.filter.ParticleFilter`): Subset of particles to
+            apply this method to.
+
+        kT (`hoomd.variant.Variant` or `float`): Temperature of the
+            simulation (in energy units).
+
+        seed (`int`): Random seed to use for generating
+            :math:`\vec{F}_\mathrm{R}`.
+
+        alpha (`float`): When set, use :math:`\alpha d_i` for the
+            drag coefficient where :math:`d_i` is particle diameter.
+            Defaults to None.
+
+    `Brownian` integrates particles forward in time according to the overdamped
+    Langevin equations of motion, sometimes called Brownian dynamics, or the
+    diffusive limit.
+
+    .. math::
+
+        \frac{d\vec{x}}{dt} = \frac{\vec{F}_\mathrm{C} +
+        \vec{F}_\mathrm{R}}{\gamma}
+
+        \langle \vec{F}_\mathrm{R} \rangle = 0
+
+        \langle |\vec{F}_\mathrm{R}|^2 \rangle = 2 d k T \gamma / \delta t
+
+        \langle \vec{v}(t) \rangle = 0
+
+        \langle |\vec{v}(t)|^2 \rangle = d k T / m
+
+
+    where :math:`\vec{F}_\mathrm{C}` is the force on the particle from all
+    potentials and constraint forces, :math:`\gamma` is the drag coefficient,
+    :math:`\vec{F}_\mathrm{R}` is a uniform random force, :math:`\vec{v}` is the
+    particle's velocity, and :math:`d` is the dimensionality of the system.
+    The magnitude of the random force is chosen via the fluctuation-dissipation
+    theorem to be consistent with the specified drag and temperature, :math:`T`.
+    When :math:`kT=0`, the random force :math:`\vec{F}_\mathrm{R}=0`.
+
+    `Brownian` generates random numbers by hashing together the particle tag,
+    user seed, and current time step index. See
+    `C. L. Phillips et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_
+    for more information.
+
+    .. attention::
+        Change the seed if you reset the simulation time step to 0. If you keep
+        the same seed, the simulation will continue with the same sequence of
+        random numbers used previously and may cause unphysical correlations.
+
+        For MPI runs: all ranks other than 0 ignore the seed input and use the
+        value of rank 0.
+
+    `Brownian` uses the integrator from `I. Snook, The Langevin and Generalised
+    Langevin Approach to the Dynamics of Atomic, Polymeric and Colloidal Systems
+    , 2007, section 6.2.5 <http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6>`_,
+    with the exception that :math:`\vec{F}_\mathrm{R}` is drawn from a
+    uniform random number distribution.
+
+    In Brownian dynamics, particle velocities are completely decoupled from
+    positions. At each time step, `Brownian` draws a new velocity
+    distribution consistent with the current set temperature so that
+    `hoomd.compute.thermo` will report appropriate temperatures and
+    pressures if logged or needed by other commands.
+
+    Brownian dynamics neglects the acceleration term in the Langevin equation.
+    This assumption is valid when overdamped:
+    :math:`\frac{m}{\gamma} \ll \delta t`. Use `Langevin` if your
+    system is not overdamped.
+
+    You can specify :math:`\gamma` in two ways:
+
+    1. Specify :math:`\alpha` which scales the particle diameter to
+       :math:`\gamma = \alpha d_i`. The units of :math:`\alpha` are mass /
+       distance / time.
+    2. After the method object is created, specify the attribute ``gamma``
+       and ``gamma_r`` for rotational damping or random torque to assign them
+       directly, with independent values for each particle type in the
+       system.
+
+    Examples::
+
+        brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2,
+        seed=1, alpha=1.0)
+        integrator = hoomd.md.Integrator(dt=0.001, methods=[brownian],
+        forces=[lj])
+
+
+    Examples of using ``gamma`` pr ``gamma_r`` on drag coefficient::
+
+        brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2,
+        seed=1)
+        brownian.gamma.default = 2.0
+        brownian.gamma_r.default = [1.0, 2.0, 3.0]
+
+
+    Attributes:
+        filter (hoomd.filter.ParticleFilter): Subset of particles to
+            apply this method to.
+
+        kT (hoomd.variant.Variant): Temperature of the
+            simulation (in energy units).
+
+        seed (int): Random seed to use for generating
+            :math:`\vec{F}_\mathrm{R}`.
+
+        alpha (float): When set, use :math:`\alpha d_i` for the drag
+            coefficient where :math:`d_i` is particle diameter.
+            Defaults to None.
+
+        gamma (TypeParameter[ ``particle type``, `float` ]): The drag
+            coefficient can be directly set instead of the ratio of particle
+            diameter (:math:`\gamma = \alpha d_i`). The type of ``gamma``
+            parameter is either positive float or zero.
+
+        gamma_r (TypeParameter[ ``particle type``, [ `float`, `float`, `float` ] ]):
+            The rotational drag coefficient can be set. The type of ``gamma_r``
+            parameter is a tuple of three float. The type of each element of
+            tuple is either positive float or zero.
+    """
+
+    def __init__(self, filter, kT, seed, manifold, alpha=None, eta=0.000001):
+
+        self._manifold = validate_manifold(manifold)
+        # store metadata
+        param_dict = ParameterDict(
+            filter=ParticleFilter,
+            kT=Variant,
+            seed=int(seed),
+            alpha=OnlyType(float, allow_none=True),
+            eta=float(eta)
+            )
+        param_dict.update(dict(kT=kT, alpha=alpha, filter=filter))
+
+        #set defaults
+        self._param_dict.update(param_dict)
+
+        gamma = TypeParameter('gamma', type_kind='particle_types',
+                              param_dict=TypeParameterDict(1., len_keys=1)
+                              )
+
+        gamma_r = TypeParameter('gamma_r', type_kind='particle_types',
+                                param_dict=TypeParameterDict((1., 1., 1.), len_keys=1)
+                                )
+        self._extend_typeparam([gamma,gamma_r])
+
+
+    def _attach(self):
+
+        # initialize the reflected c++ class
+        sim = self._simulation
+        if not self._manifold._added:
+            self._manifold._add(sim)
+        else:
+            if sim != self._manifold._simulation:
+                raise RuntimeError("{} object's manifold is used in a "
+                                   "different simulation.".format(type(self)))
+        if not self.manifold._attached:
+            self.manifold._attach()
+
+        if isinstance(sim.device, hoomd.device.CPU):
+            self._cpp_obj = _md.TwoStepRATTLEBD(sim.state._cpp_sys_def,
+                                          sim.state._get_group(self.filter),
+                                          self.manifold._cpp_obj,
+                                          self.kT, self.seed, self.eta);
+        else:
+            self._cpp_obj = _md.TwoStepRATTLEBDGPU(sim.state._cpp_sys_def,
+                                             sim.state._get_group(self.filter),
+                                             self.manifold._cpp_obj,
+                                             self.kT, self.seed, self.eta);
+
+        # Attach param_dict and typeparam_dict
+        super()._attach()
+
+    @property
+    def manifold(self):
+        return self._manifold
+
+    @manifold.setter
+    def manifold(self, value):
+        if self._attached:
+            raise RuntimeError("nlist cannot be set after scheduling.")
+        else:
+            self._manifold = validate_manifold(value)
+
+    @property
+    def _children(self):
+        return [self.manifold]
 
 class berendsen(_Method):
     R""" Applies the Berendsen thermostat.

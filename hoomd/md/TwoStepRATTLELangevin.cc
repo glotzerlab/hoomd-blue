@@ -41,7 +41,6 @@ using namespace hoomd;
     \param noiseless_t If set true, there will be no translational noise (random force)
     \param noiseless_r If set true, there will be no rotational noise (random torque)
     \param eta Tolerance for the RATTLE iteration algorithm
-    \param suffix Suffix to attach to the end of log quantity names
 
 */
 TwoStepRATTLELangevin::TwoStepRATTLELangevin(std::shared_ptr<SystemDefinition> sysdef,
@@ -49,14 +48,13 @@ TwoStepRATTLELangevin::TwoStepRATTLELangevin(std::shared_ptr<SystemDefinition> s
                            std::shared_ptr<Manifold> manifold,
                            std::shared_ptr<Variant> T,
                            unsigned int seed,
-                           Scalar eta,
-                           const std::string& suffix)
+                           Scalar eta)
     : TwoStepLangevinBase(sysdef, group, T, seed), m_manifold(manifold), m_reservoir_energy(0),  m_extra_energy_overdeltaT(0),
       m_tally(false), m_noiseless_t(false), m_noiseless_r(false), m_eta(eta)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLELangevin" << endl;
 
-    m_log_name = string("langevin_reservoir_energy") + suffix;
+    m_log_name = string("langevin_reservoir_energy");
     }
 
 TwoStepRATTLELangevin::~TwoStepRATTLELangevin()
@@ -610,8 +608,7 @@ void export_TwoStepRATTLELangevin(py::module& m)
 			                std::shared_ptr<Manifold>,
                             std::shared_ptr<Variant>,
                             unsigned int,
-			                Scalar,
-                            const std::string&>())
+			                Scalar>())
         .def("setTally", &TwoStepRATTLELangevin::setTally)
         ;
     }

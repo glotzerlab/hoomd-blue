@@ -25,16 +25,14 @@ using namespace std;
     \param seed Random seed to use in generating random numbers
     \param use_alpha If true, gamma=alpha*diameter, otherwise use a per-type gamma via setGamma()
     \param alpha Scale factor to convert diameter to gamma
-    \param suffix Suffix to attach to the end of log quantity names
 */
 TwoStepRATTLELangevinGPU::TwoStepRATTLELangevinGPU(std::shared_ptr<SystemDefinition> sysdef,
                                        std::shared_ptr<ParticleGroup> group,
                        		           std::shared_ptr<Manifold> manifold,
                                        std::shared_ptr<Variant> T,
                                        unsigned int seed,
-                           	           Scalar eta,
-                                       const std::string& suffix)
-    : TwoStepRATTLELangevin(sysdef, group, manifold, T, seed, eta, suffix), m_manifoldGPU( manifold->returnL(), manifold->returnR(), manifold->returnSurf() )
+                           	           Scalar eta)
+    : TwoStepRATTLELangevin(sysdef, group, manifold, T, seed, eta), m_manifoldGPU( manifold->returnL(), manifold->returnR(), manifold->returnSurf() )
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
@@ -296,8 +294,7 @@ void export_TwoStepRATTLELangevinGPU(py::module& m)
                                std::shared_ptr<Manifold>,
                                std::shared_ptr<Variant>,
                                unsigned int,
-                               Scalar,
-                               const std::string&
+                               Scalar
                                >())
         ;
     }
