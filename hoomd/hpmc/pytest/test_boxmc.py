@@ -30,16 +30,16 @@ valid_attrs = [
     ('betaP', hoomd.variant.Ramp(1, 5, 0, 100)),
     ('betaP', hoomd.variant.Cycle(1, 5, 0, 10, 20, 10, 15)),
     ('betaP', hoomd.variant.Power(1, 5, 3, 0, 100)),
-    ('volume', {"weight": 0.7, "delta":0.3}),
-    ('ln_volume', {"weight": 0.1, "delta": 1.2}),
-    ('aspect', {"weight": 0.3, "delta": 0.1}),
-    ('length', {"weight": 0.5, "delta": [0.8]*3}),
-    ('shear', {"weight": 0.7, "delta": [0.3]*3, "reduce": 0.1})
+    ('volume', {'weight': 0.7, 'delta':0.3}),
+    ('ln_volume', {'weight': 0.1, 'delta': 1.2}),
+    ('aspect', {'weight': 0.3, 'delta': 0.1}),
+    ('length', {'weight': 0.5, 'delta': [0.8]*3}),
+    ('shear', {'weight': 0.7, 'delta': [0.3]*3, "reduce": 0.1})
 ]
 
 betaP_boxmoves = list(product([1, 3, 5, 7, 10, 20],
-                              ["volume", "ln_volume", "aspect",
-                               "length", "shear"]))
+                              ['volume', 'ln_volume', 'aspect',
+                               'length', 'shear']))
 
 
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
@@ -127,7 +127,7 @@ def test_sphere_compression(betaP, box_move, simulation_factory,
     n = 7
     snap = lattice_snapshot_factory(n=n, a=1.1)
 
-    boxmc = hoomd.hpmc.update.BoxMC(trigger=hoomd.trigger.Periodic(10),
+    boxmc = hoomd.hpmc.update.BoxMC(trigger=hoomd.trigger.Periodic(5),
                                     betaP=hoomd.variant.Constant(betaP),
                                     seed=1)
 
@@ -147,8 +147,8 @@ def test_sphere_compression(betaP, box_move, simulation_factory,
     assert sim.state.box == initial_box
 
     # add a box move
-    delta = [0.2]*3 if box_move in ("shear", "length") else 0.2
-    setattr(boxmc, box_move, {"weight": 1, "delta": delta})
+    delta = [0.1]*3 if box_move in ('shear', 'length') else 0.1
+    setattr(boxmc, box_move, {'weight': 1, 'delta': delta})
     sim.run(100)
 
     # check that box is changed
@@ -164,7 +164,7 @@ def test_disk_compression(betaP, box_move, simulation_factory,
     n = 7
     snap = lattice_snapshot_factory(dimensions=2, n=n, a=1.1)
 
-    boxmc = hoomd.hpmc.update.BoxMC(trigger=hoomd.trigger.Periodic(10),
+    boxmc = hoomd.hpmc.update.BoxMC(trigger=hoomd.trigger.Periodic(5),
                                     betaP=hoomd.variant.Constant(betaP),
                                     seed=1)
 
@@ -184,8 +184,8 @@ def test_disk_compression(betaP, box_move, simulation_factory,
     assert sim.state.box == initial_box
 
     # add a box move
-    delta = [0.2]*3 if box_move in ("shear", "length") else 0.2
-    setattr(boxmc, box_move, {"weight": 1, "delta": delta})
+    delta = [0.1]*3 if box_move in ('shear', 'length') else 0.1
+    setattr(boxmc, box_move, {'weight': 1, 'delta': delta})
     sim.run(100)
 
     # check that box is changed
