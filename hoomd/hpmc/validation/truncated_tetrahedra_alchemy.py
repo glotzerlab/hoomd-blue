@@ -28,7 +28,7 @@ mean_trunc_ref = 0.3736
 sigma_trunc_ref = 0.0001
 
 # init_trunc = 0.3736
-init_trunc = 0.39
+init_trunc = 0.3736
 phi_final = 0.4
 initial_shape = ConvexPolyhedron(ttf.get_shape(1 - init_trunc).vertices / (ttf.get_shape(1 - init_trunc).volume**(1 / 3)))
 a = (8 * initial_shape.volume / phi_final)**(1.0 / 3.0)  # lattice constant
@@ -43,8 +43,8 @@ basis_vectors = [[0.125, 0.125, 0.125],
                  [0.625, 0.625, 0.125],
                  [0.375, 0.375, 0.875],
                  [0.125, 0.625, 0.625]]
-basis_vectors = np.asarray(basis_vectors).dot(2 * np.asarray(lattice_vectors))
-uc = freud.data.UnitCell(freud.box.Box.from_matrix(lattice_vectors), basis_vectors)
+basis_vectors = np.asarray(basis_vectors).dot(10 * np.asarray(lattice_vectors))
+uc = freud.data.UnitCell(freud.box.Box.from_matrix(10 * np.asarray(lattice_vectors)), basis_vectors)
 initial_box, initial_pos = uc.generate_system(num_replicas=3)
 
 basis_vectors = np.asarray(basis_vectors).dot(np.asarray(lattice_vectors))
@@ -59,7 +59,7 @@ cpu = hoomd.device.CPU()
 s = hoomd.Snapshot()
 
 if s.exists:
-    s.configuration.box = [initial_box.Lx * 2, initial_box.Ly * 2, initial_box.Lz * 2, initial_box.xy, initial_box.xz, initial_box.yz]
+    s.configuration.box = [initial_box.Lx, initial_box.Ly, initial_box.Lz, initial_box.xy, initial_box.xz, initial_box.yz]
     s.configuration.dimensions = dim
 
     s.particles.N = len(initial_pos)
@@ -72,23 +72,18 @@ sim = hoomd.Simulation(device=cpu)
 sim.create_state_from_snapshot(s)
 
 mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
-mc.shape['A'] = {'vertices': initial_shape.vertices}
+mc.shape['A'] = {'vertices': initial_shape.vertices.tolist()}
 tune = hoomd.hpmc.tune.MoveSize.scale_solver(moves=['a', 'd'],
                                              target=0.2,
                                              trigger=hoomd.trigger.Periodic(1000))
-# sim.operations.add(tune)
 sim.operations.add(mc)
 sim.operations.tuners.append(tune)
-sim.operations._schedule()
-# hoomd.update.box_resize.BoxResize.linear_volume(hoomd.Box(initial_box.Lx, initial_box.Ly, Lz=initial_box.Lz),
-#                                                 hoomd.Box(final_box.Lx, final_box.Ly, Lz=final_box.Lz),
-#                                                 0, 1e6,
-#                                                 hoomd.trigger.Periodic(1), scale_particles=False)
 compress = hoomd.hpmc.update.QuickCompress(trigger=hoomd.trigger.Periodic(1), seed=10, target_box=hoomd.Box(final_box.Lx, final_box.Ly, Lz=final_box.Lz))
 sim.operations.add(compress)
-sim.run(10e3)
+sim.operations._schedule()
+sim.run(1e3)
 shape_gen_fn = TruncatedTetrahedron()
-updater = hoomd.hpmc.update.alchemy(mc=mc, move_ratio=1.0, seed=3832765, trigger=hoomd.trigger.Periodic(1), nselect=1)
+updater = hoomd.hpmc.update.Alchemy(mc=mc, move_ratio=1.0, seed=3832765, trigger=hoomd.trigger.Periodic(1), nselect=1)
 updater.python_shape_move(shape_gen_fn, {'A': [init_trunc]}, stepsize=0.1, param_ratio=0.5)
 sim.operations.add(updater)
 tuner = updater.get_tuner(hoomd.trigger.Periodic(1000), 0.5, gamma=0.5)
@@ -117,7 +112,6 @@ mean_trunc = np.mean(truncations)
 i, sigma_trunc = block.get_error_estimate()
 n, num_samples, err_est, err_err = block.get_hierarchical_errors()
 mean_trunc = np.mean(truncations[-num_samples[-1]:])
-print(mean_trunc)
 
 # max error 0.5%
 assert sigma_trunc / mean_trunc <= 0.005

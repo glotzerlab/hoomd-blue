@@ -16,7 +16,7 @@ def test_vertex_moves(device, simulation_factory, lattice_snapshot_factory):
                                            (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)])}
     sim = simulation_factory(lattice_snapshot_factory(dimensions=3, a=2.0, n=4))
     sim.operations.add(mc)
-    updater = hoomd.hpmc.update.alchemy(mc=mc, move_ratio=1.0, seed=3832765, trigger=hoomd.trigger.Periodic(1), nselect=1)
+    updater = hoomd.hpmc.update.Alchemy(mc=mc, move_ratio=1.0, seed=3832765, trigger=hoomd.trigger.Periodic(1), nselect=1)
     updater.vertex_shape_move(stepsize=0.01, param_ratio=0.2, volume=1.0)
     sim.operations.add(updater)
     sim.operations._schedule()
@@ -44,7 +44,7 @@ def test_python(device, simulation_factory, lattice_snapshot_factory):
     mc.shape['A'] = {'vertices': ConvexPolyhedron(ttf(initial_value).vertices / (ttf(initial_value).volume**(1/3))).vertices}
     sim = simulation_factory(lattice_snapshot_factory(dimensions=3, a=2.0, n=4))
     sim.operations.add(mc)
-    updater = hoomd.hpmc.update.alchemy(mc=mc, move_ratio=1.0, seed=3832765, trigger=hoomd.trigger.Periodic(1), nselect=1)
+    updater = hoomd.hpmc.update.Alchemy(mc=mc, move_ratio=1.0, seed=3832765, trigger=hoomd.trigger.Periodic(1), nselect=1)
     shape_gen_fn = TruncatedTetrahedron(mc=mc)
     updater.python_shape_move(shape_gen_fn, {'A': [initial_value]}, stepsize=0.05, param_ratio=1.0)
     sim.operations.add(updater)
@@ -62,7 +62,7 @@ def test_constant_moves(device, simulation_factory, lattice_snapshot_factory):
     mc.shape['A'] = {'vertices': ConvexPolyhedron(ttf(0.0).vertices / (ttf(0.0).volume**(1/3))).vertices}
     sim = simulation_factory(lattice_snapshot_factory(dimensions=3, a=2.0, n=4))
     sim.operations.add(mc)
-    updater = hoomd.hpmc.update.alchemy(mc=mc, move_ratio=1.0, seed=3832765, trigger=hoomd.trigger.Periodic(1), nselect=1)
+    updater = hoomd.hpmc.update.Alchemy(mc=mc, move_ratio=1.0, seed=3832765, trigger=hoomd.trigger.Periodic(1), nselect=1)
     updater.constant_shape_move(vertices=ConvexPolyhedron(ttf(1.0).vertices / (ttf(1.0).volume**(1/3))).vertices, ignore_statistics=0, sweep_radius=0.0)
     sim.operations.add(updater)
     sim.operations._schedule()
@@ -74,7 +74,7 @@ def test_elastic_moves(device, simulation_factory, lattice_snapshot_factory):
     mc.shape['A'] = {'vertices': ConvexPolyhedron(ttf(0.0).vertices / (ttf(0.0).volume**(1/3))).vertices}
     sim = simulation_factory(lattice_snapshot_factory(dimensions=3, a=2.0, n=4))
     sim.operations.add(mc)
-    updater = hoomd.hpmc.update.elastic_shape(mc=mc, trigger=hoomd.trigger.Periodic(1), stepsize=0.001, move_ratio=1.0, seed=3832765, stiffness=hoomd.variant.Ramp(1.0, 10.0, 0, 20), reference=dict(vertices=ConvexPolyhedron(ttf(1.0).vertices / (ttf(1.0).volume**(1/3))).vertices, ignore_statistics=0, sweep_radius=0.0), nselect=3, nsweeps=2, param_ratio=0.5)
+    updater = hoomd.hpmc.update.ElasticShape(mc=mc, trigger=hoomd.trigger.Periodic(1), stepsize=0.001, move_ratio=1.0, seed=3832765, stiffness=hoomd.variant.Ramp(1.0, 10.0, 0, 20), reference=dict(vertices=ConvexPolyhedron(ttf(1.0).vertices / (ttf(1.0).volume**(1/3))).vertices, ignore_statistics=0, sweep_radius=0.0), nselect=3, nsweeps=2, param_ratio=0.5)
     sim.operations.add(updater)
     sim.operations._schedule()
     sim.run(10)
@@ -87,7 +87,7 @@ def test_tuner(device, simulation_factory, lattice_snapshot_factory):
                                            (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)])}
     sim = simulation_factory(lattice_snapshot_factory(dimensions=3, a=2.0, n=4))
     sim.operations.add(mc)
-    updater = hoomd.hpmc.update.alchemy(mc=mc, move_ratio=1.0, seed=3832765, trigger=hoomd.trigger.Periodic(1), nselect=1)
+    updater = hoomd.hpmc.update.Alchemy(mc=mc, move_ratio=1.0, seed=3832765, trigger=hoomd.trigger.Periodic(1), nselect=1)
     updater.vertex_shape_move(stepsize=0.01, param_ratio=0.2, volume=1.0)
     sim.operations.add(updater)
     tuner = updater.get_tuner(hoomd.trigger.Periodic(1), 0.2)
@@ -107,7 +107,7 @@ def test_logger(device, simulation_factory, lattice_snapshot_factory, tmpdir):
     sim = simulation_factory(lattice_snapshot_factory(dimensions=3, a=2.0, n=n))
     sim.operations.add(mc)
     stiffness = 10.0
-    updater = hoomd.hpmc.update.elastic_shape(mc=mc, trigger=hoomd.trigger.Periodic(1), stepsize=0.001, move_ratio=1.0, seed=3832765, stiffness=hoomd.variant.Constant(stiffness), reference=dict(vertices=ConvexPolyhedron(ttf(1.0).vertices / (ttf(1.0).volume**(1/3))).vertices, ignore_statistics=0, sweep_radius=0.0), nselect=3, nsweeps=2, param_ratio=0.5)
+    updater = hoomd.hpmc.update.ElasticShape(mc=mc, trigger=hoomd.trigger.Periodic(1), stepsize=0.001, move_ratio=1.0, seed=3832765, stiffness=hoomd.variant.Constant(stiffness), reference=dict(vertices=ConvexPolyhedron(ttf(1.0).vertices / (ttf(1.0).volume**(1/3))).vertices, ignore_statistics=0, sweep_radius=0.0), nselect=3, nsweeps=2, param_ratio=0.5)
     sim.operations.add(updater)
 
     file_name = tmpdir.mkdir("sub").join("tmp_updater.txt")
