@@ -307,7 +307,6 @@ set(files benchmark.py
           device.py
           __init__.py
           integrate.py
-          manifold.py
           operation.py
           operations.py
           util.py

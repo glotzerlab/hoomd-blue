@@ -8,7 +8,7 @@
 
 from hoomd.md import _md
 import hoomd
-from hoomd.manifold import _Manifold
+from hoomd.md.manifold import Manifold
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.filter import ParticleFilter
@@ -18,7 +18,7 @@ from hoomd.variant import Variant
 from collections.abc import Sequence
 
 
-validate_manifold = OnlyType(_Manifold)
+validate_manifold = OnlyType(Manifold)
 
 class _Method(_HOOMDBaseObject):
     """Base class integration method.
@@ -584,37 +584,58 @@ class NVE(_Method):
         super()._attach()
 
 class NVE_Rattle(_Method):
-    R""" NVE Integration via Velocity-Verlet
+    R""" NVE Integration via Velocity-Verlet and RATTLE
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
          apply this method.
 
+        manifold (:py:mod:`hoomd.md.manifold.Manifold`): Manifold constraint
+
         limit (None or `float`): Enforce that no particle moves more than a
             distance of a limit in a single time step. Defaults to None
 
-    `NVE` performs constant volume, constant energy simulations using
-    the standard Velocity-Verlet method. For poor initial conditions that
-    include overlapping atoms, a limit can be specified to the movement a
-    particle is allowed to make in one time step. After a few thousand time
-    steps with the limit set, the system should be in a safe state to continue
-    with unconstrained integration.
+        eta (`float`): Defines the error particles are allowed to deviate
+            from the manifold in terms of the implicit function. Defaults to 1e-5
+
+    :py:class:`NVE_Rattle` performs similar to :py:class:`NVE` constant volume, 
+    constant energy simulations using the standard Velocity-Verlet method. 
+    In addition particles are constrained to a manifold surface using the
+    RATTLE algorithm. For poor initial conditions that include overlapping atoms, 
+    a limit can be specified to the movement a particle is allowed to make in 
+    one time step. After a few thousand time steps with the limit set, the 
+    system should be in a safe state to continue with unconstrained integration.
+
+    Warning:
+        The particles have to be initialised close to the implicit surface of
+        the manifold.
+
+    For the MTK equations of motion, see:
+
+    * `S. Paquay and R. Kusters  2016 <https://doi.org/10.1016/j.bpj.2016.02.017>`_
 
     .. todo::
         Update when zero momentum updater is added.
 
     Examples::
-
-        nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
-        integrator = hoomd.md.Integrator(dt=0.005, methods=[nve], forces=[lj])
+        
+        sphere = hoomd.md.manifold.Sphere(r=10)
+        nve_rattle = hoomd.md.methods.NVE_Rattle(filter=hoomd.filter.All(),maifold=sphere)
+        integrator = hoomd.md.Integrator(dt=0.005, methods=[nve_rattle], forces=[lj])
 
 
     Attributes:
         filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this method.
 
+        manifold (hoomd.md.manifold.Manifold): Manifold constraint which is 
+            used by the RATTLE algorithm of this method.
+
         limit (None or float): Enforce that no particle moves more than a
             distance of a limit in a single time step. Defaults to None
+
+        eta (float): Defines the error particles are allowed to deviate
+            from the manifold in terms of the implicit function. Defaults to 1e-5
 
     """
 
@@ -663,7 +684,7 @@ class NVE_Rattle(_Method):
     @manifold.setter
     def manifold(self, value):
         if self._attached:
-            raise RuntimeError("nlist cannot be set after scheduling.")
+            raise RuntimeError("manifold cannot be set after scheduling.")
         else:
             self._manifold = validate_manifold(value)
 
@@ -839,7 +860,7 @@ class Langevin(_Method):
 
 
 class Langevin_Rattle(_Method):
-    R""" Langevin dynamics.
+    R""" Langevin dynamics with RATTLE.
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles to
@@ -847,6 +868,8 @@ class Langevin_Rattle(_Method):
 
         kT (`hoomd.variant.Variant` or `float`): Temperature of the
             simulation (in energy units).
+
+        manifold (:py:mod:`hoomd.md.manifold.Manifold`): Manifold constraint
 
         seed (`int`): Random seed to use for generating
             :math:`\vec{F}_\mathrm{R}`.
@@ -861,81 +884,29 @@ class Langevin_Rattle(_Method):
             ``langevin_reservoir_energy_groupname`` to the logged quantities.
             Defaults to False.
 
-    .. rubric:: Translational degrees of freedom
+        eta (`float`): Defines the error particles are allowed to deviate
+            from the manifold in terms of the implicit function. Defaults to 1e-5
 
-    `Langevin` integrates particles forward in time according to the
-    Langevin equations of motion:
 
-    .. math::
-
-        m \frac{d\vec{v}}{dt} = \vec{F}_\mathrm{C} - \gamma \cdot \vec{v} +
-        \vec{F}_\mathrm{R}
-
-        \langle \vec{F}_\mathrm{R} \rangle = 0
-
-        \langle |\vec{F}_\mathrm{R}|^2 \rangle = 2 d kT \gamma / \delta t
-
-    where :math:`\vec{F}_\mathrm{C}` is the force on the particle from all
-    potentials and constraint forces, :math:`\gamma` is the drag coefficient,
-    :math:`\vec{v}` is the particle's velocity, :math:`\vec{F}_\mathrm{R}` is a
-    uniform random force, and :math:`d` is the dimensionality of the system (2
-    or 3).  The magnitude of the random force is chosen via the
-    fluctuation-dissipation theorem to be consistent with the specified drag and
-    temperature, :math:`T`.  When :math:`kT=0`, the random force
-    :math:`\vec{F}_\mathrm{R}=0`.
-
-    `Langevin` generates random numbers by hashing together the
-    particle tag, user seed, and current time step index. See `C. L. Phillips
-    et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_ for more
-    information.
-
-    .. attention::
-
-        Change the seed if you reset the simulation time step to 0.
-        If you keep the same seed, the simulation will continue with the same
-        sequence of random numbers used previously and may cause unphysical
-        correlations.
-
-        For MPI runs: all ranks other than 0 ignore the seed input and use the
-        value of rank 0.
-
-    Langevin dynamics includes the acceleration term in the Langevin equation
-    and is useful for gently thermalizing systems using a small gamma. This
-    assumption is valid when underdamped: :math:`\frac{m}{\gamma} \gg \delta t`.
-    Use `Brownian` if your system is not underdamped.
-
-    `Langevin` uses the same integrator as `NVE` with the additional force term
-    :math:`- \gamma \cdot \vec{v} + \vec{F}_\mathrm{R}`. The random force
-    :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random number
-    distribution.
-
-    You can specify :math:`\gamma` in two ways:
-
-    1. Specify :math:`\alpha` which scales the particle diameter to
-       :math:`\gamma = \alpha d_i`. The units of :math:`\alpha` are
-       mass / distance / time.
-    2. After the method object is created, specify the
-       attribute ``gamma`` and ``gamma_r`` for rotational damping or random
-       torque to assign them directly, with independent values for each
-       particle type in the system.
+    :py:class:`Langevin_Rattle` integrates particles forward in time according to the
+    Langevin equations (for details see :py:class:`Langevin`). In addition particles 
+    are constrained to a manifold surface using the RATTLE algorithm.
 
     Warning:
-        When restarting a simulation, the energy of the reservoir will be reset
-        to zero.
+        The particles have to be initialised close to the implicit surface of
+        the manifold.
+
+    For the MTK equations of motion, see:
+
+    * `S. Paquay and R. Kusters  2016 <https://doi.org/10.1016/j.bpj.2016.02.017>`_
 
     Examples::
 
-        langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=0.2,
-        seed=1, alpha=1.0)
-        integrator = hoomd.md.Integrator(dt=0.001, methods=[langevin],
+        sphere = hoomd.md.manifold.Sphere(r=10)
+        langevin_rattle = hoomd.md.methods.Langevin_Rattle(filter=hoomd.filter.All(), 
+        kT=0.2, manifold = sphere, seed=1, alpha=1.0)
+        integrator = hoomd.md.Integrator(dt=0.001, methods=[langevin_rattle],
         forces=[lj])
-
-    Examples of using ``gamma`` or ``gamma_r`` on drag coefficient::
-
-        langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=0.2,
-        seed=1)
-        langevin.gamma.default = 2.0
-        langevin.gamma_r.default = [1.0,2.0,3.0]
 
     Attributes:
         filter (hoomd.filter.ParticleFilter): Subset of particles to
@@ -944,12 +915,18 @@ class Langevin_Rattle(_Method):
         kT (hoomd.variant.Variant): Temperature of the
             simulation (in energy units).
 
+        manifold (hoomd.md.manifold.Manifold): Manifold constraint which is 
+            used by the RATTLE algorithm of this method.
+
         seed (int): Random seed to use for generating
             :math:`\vec{F}_\mathrm{R}`.
 
         alpha (float): When set, use :math:`\alpha d_i` for the drag
             coefficient where :math:`d_i` is particle diameter.
             Defaults to None.
+
+        eta (float): Defines the error particles are allowed to deviate
+            from the manifold in terms of the implicit function. Defaults to 1e-5
 
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
             coefficient can be directly set instead of the ratio of particle
@@ -1025,7 +1002,7 @@ class Langevin_Rattle(_Method):
     @manifold.setter
     def manifold(self, value):
         if self._attached:
-            raise RuntimeError("nlist cannot be set after scheduling.")
+            raise RuntimeError("manifold cannot be set after scheduling.")
         else:
             self._manifold = validate_manifold(value)
 
@@ -1199,7 +1176,7 @@ class Brownian(_Method):
         super()._attach()
 
 class Brownian_Rattle(_Method):
-    R""" Brownian dynamics.
+    R""" Brownian dynamics with RATTLE.
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles to
@@ -1208,6 +1185,8 @@ class Brownian_Rattle(_Method):
         kT (`hoomd.variant.Variant` or `float`): Temperature of the
             simulation (in energy units).
 
+        manifold (:py:mod:`hoomd.md.manifold.Manifold`): Manifold constraint
+
         seed (`int`): Random seed to use for generating
             :math:`\vec{F}_\mathrm{R}`.
 
@@ -1215,87 +1194,29 @@ class Brownian_Rattle(_Method):
             drag coefficient where :math:`d_i` is particle diameter.
             Defaults to None.
 
-    `Brownian` integrates particles forward in time according to the overdamped
-    Langevin equations of motion, sometimes called Brownian dynamics, or the
-    diffusive limit.
+        eta (`float`): Defines the error particles are allowed to deviate
+            from the manifold in terms of the implicit function. Defaults to 1e-5
 
-    .. math::
+    :py:class:`Brownian_Rattle` integrates particles forward in time according to 
+    the overdamped Langevin equations of motion, sometimes called Brownian dynamics, 
+    or the diffusive limit (for details see :py:class:`Brownian`). In addition 
+    particles are constrained to a manifold surface using the RATTLE algorithm.
 
-        \frac{d\vec{x}}{dt} = \frac{\vec{F}_\mathrm{C} +
-        \vec{F}_\mathrm{R}}{\gamma}
+    Warning:
+        The particles have to be initialised close to the implicit surface of
+        the manifold.
 
-        \langle \vec{F}_\mathrm{R} \rangle = 0
+    For the MTK equations of motion, see:
 
-        \langle |\vec{F}_\mathrm{R}|^2 \rangle = 2 d k T \gamma / \delta t
-
-        \langle \vec{v}(t) \rangle = 0
-
-        \langle |\vec{v}(t)|^2 \rangle = d k T / m
-
-
-    where :math:`\vec{F}_\mathrm{C}` is the force on the particle from all
-    potentials and constraint forces, :math:`\gamma` is the drag coefficient,
-    :math:`\vec{F}_\mathrm{R}` is a uniform random force, :math:`\vec{v}` is the
-    particle's velocity, and :math:`d` is the dimensionality of the system.
-    The magnitude of the random force is chosen via the fluctuation-dissipation
-    theorem to be consistent with the specified drag and temperature, :math:`T`.
-    When :math:`kT=0`, the random force :math:`\vec{F}_\mathrm{R}=0`.
-
-    `Brownian` generates random numbers by hashing together the particle tag,
-    user seed, and current time step index. See
-    `C. L. Phillips et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_
-    for more information.
-
-    .. attention::
-        Change the seed if you reset the simulation time step to 0. If you keep
-        the same seed, the simulation will continue with the same sequence of
-        random numbers used previously and may cause unphysical correlations.
-
-        For MPI runs: all ranks other than 0 ignore the seed input and use the
-        value of rank 0.
-
-    `Brownian` uses the integrator from `I. Snook, The Langevin and Generalised
-    Langevin Approach to the Dynamics of Atomic, Polymeric and Colloidal Systems
-    , 2007, section 6.2.5 <http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6>`_,
-    with the exception that :math:`\vec{F}_\mathrm{R}` is drawn from a
-    uniform random number distribution.
-
-    In Brownian dynamics, particle velocities are completely decoupled from
-    positions. At each time step, `Brownian` draws a new velocity
-    distribution consistent with the current set temperature so that
-    `hoomd.compute.thermo` will report appropriate temperatures and
-    pressures if logged or needed by other commands.
-
-    Brownian dynamics neglects the acceleration term in the Langevin equation.
-    This assumption is valid when overdamped:
-    :math:`\frac{m}{\gamma} \ll \delta t`. Use `Langevin` if your
-    system is not overdamped.
-
-    You can specify :math:`\gamma` in two ways:
-
-    1. Specify :math:`\alpha` which scales the particle diameter to
-       :math:`\gamma = \alpha d_i`. The units of :math:`\alpha` are mass /
-       distance / time.
-    2. After the method object is created, specify the attribute ``gamma``
-       and ``gamma_r`` for rotational damping or random torque to assign them
-       directly, with independent values for each particle type in the
-       system.
+    * `S. Paquay and R. Kusters  2016 <https://doi.org/10.1016/j.bpj.2016.02.017>`_
 
     Examples::
 
-        brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2,
-        seed=1, alpha=1.0)
-        integrator = hoomd.md.Integrator(dt=0.001, methods=[brownian],
+        sphere = hoomd.md.manifold.Sphere(r=10)
+        brownian_rattle = hoomd.md.methods.Brownian_Rattle(filter=hoomd.filter.All(), 
+        kT=0.2, manifold=sphere, seed=1, alpha=1.0)
+        integrator = hoomd.md.Integrator(dt=0.001, methods=[brownian_rattle],
         forces=[lj])
-
-
-    Examples of using ``gamma`` pr ``gamma_r`` on drag coefficient::
-
-        brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2,
-        seed=1)
-        brownian.gamma.default = 2.0
-        brownian.gamma_r.default = [1.0, 2.0, 3.0]
-
 
     Attributes:
         filter (hoomd.filter.ParticleFilter): Subset of particles to
@@ -1304,12 +1225,18 @@ class Brownian_Rattle(_Method):
         kT (hoomd.variant.Variant): Temperature of the
             simulation (in energy units).
 
+        manifold (hoomd.md.manifold.Manifold): Manifold constraint which is 
+            used by the RATTLE algorithm of this method.
+
         seed (int): Random seed to use for generating
             :math:`\vec{F}_\mathrm{R}`.
 
         alpha (float): When set, use :math:`\alpha d_i` for the drag
             coefficient where :math:`d_i` is particle diameter.
             Defaults to None.
+
+        eta (float): Defines the error particles are allowed to deviate
+            from the manifold in terms of the implicit function. Defaults to 1e-5
 
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
             coefficient can be directly set instead of the ratio of particle
@@ -1382,7 +1309,7 @@ class Brownian_Rattle(_Method):
     @manifold.setter
     def manifold(self, value):
         if self._attached:
-            raise RuntimeError("nlist cannot be set after scheduling.")
+            raise RuntimeError("manifold cannot be set after scheduling.")
         else:
             self._manifold = validate_manifold(value)
 

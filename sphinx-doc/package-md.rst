@@ -18,7 +18,8 @@ md
     module-md-compute
     module-md-dihedral
     module-md-force
-    module-md-methods
+    module-md-manifold
     module-md-nlist
+    module-md-methods
     module-md-pair
     module-md-special_pair

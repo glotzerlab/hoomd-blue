@@ -9,9 +9,12 @@ md.methods
     :nosignatures:
 
     Brownian
+    Brownian_Rattle
     Langevin
+    Langevin_Rattle
     NPT
     NVE
+    NVE_Rattle
     NVT
 
 
@@ -19,10 +22,12 @@ md.methods
 
 .. automodule:: hoomd.md.methods
     :synopsis: Integration methods.
-    :undoc-members:
     :members: _Method,
               Brownian,
+              Brownian_Rattle,
               Langevin,
+              Langevin_Rattle,
               NPT,
               NVE,
+              NVE_Rattle,
               NVT
