@@ -84,8 +84,8 @@ class BoxMC(Updater):
                                    volume=_default_dict,
                                    ln_volume=_default_dict,
                                    aspect=_default_dict,
-                                   length=dict(weight=float(0), delta=[float(0)]*3),
-                                   shear=dict(weight=float(0), delta=[float(0)]*3, reduce=float(0)),
+                                   length=dict(weight=float(0), delta=(float(0),)*3),
+                                   shear=dict(weight=float(0), delta=(float(0),)*3, reduce=float(0)),
                                    betaP=hoomd.variant.Variant)
         self._param_dict.update(param_dict)
         self.betaP = betaP
