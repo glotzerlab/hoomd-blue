@@ -148,7 +148,7 @@ def test_sphere_compression(betaP, box_move, simulation_factory,
     move_dict = {'weight': 1, 'delta': [0.05]*3 if box_move in ('shear', 'length') else 0.05}
     move_dict = dict({'reduce': 0.2},  **move_dict) if box_move == 'shear' else move_dict
     setattr(boxmc, box_move, move_dict)
-    sim.run(500)
+    sim.run(100)
 
     # check that box is changed
     assert mc.overlaps == 0
@@ -184,7 +184,7 @@ def test_disk_compression(betaP, box_move, simulation_factory,
     move_dict = {'weight': 1, 'delta': [0.05]*3 if box_move in ('shear', 'length') else 0.05}
     move_dict = dict({'reduce': 0.2},  **move_dict) if box_move == 'shear' else move_dict
     setattr(boxmc, box_move, move_dict)
-    sim.run(500)
+    sim.run(100)
 
     # check that box is changed
     assert mc.overlaps == 0
