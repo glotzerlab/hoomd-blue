@@ -37,7 +37,7 @@ valid_attrs = [
     ('shear', {'weight': 0.7, 'delta': [0.3]*3, 'reduce': 0.1})
 ]
 
-betaP_boxmoves = list(product([1, 3, 5, 7, 10, 20],
+betaP_boxmoves = list(product([1, 3, 5, 7, 10],
                               ['volume', 'ln_volume', 'aspect',
                                'length', 'shear']))
 
@@ -123,7 +123,7 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
 def test_sphere_compression(betaP, box_move, simulation_factory,
                             lattice_snapshot_factory):
     """Test that BoxMC can compress (and expand) simulation boxes."""
-    n = 3
+    n = 7
     snap = lattice_snapshot_factory(dimensions=3, n=n, a=1.3)
 
     boxmc = hoomd.hpmc.update.BoxMC(betaP=hoomd.variant.Constant(betaP),
@@ -159,7 +159,7 @@ def test_sphere_compression(betaP, box_move, simulation_factory,
 def test_disk_compression(betaP, box_move, simulation_factory,
                           lattice_snapshot_factory):
     """Test that BoxMC can compress (and expand) simulation boxes."""
-    n = 3
+    n = 7
     snap = lattice_snapshot_factory(dimensions=2, n=n, a=1.3)
 
     boxmc = hoomd.hpmc.update.BoxMC(betaP=hoomd.variant.Constant(betaP),
