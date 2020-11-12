@@ -145,8 +145,9 @@ def test_sphere_compression(betaP, box_move, simulation_factory,
     assert sim.state.box == initial_box
 
     # add a box move
-    delta = [0.05]*3 if box_move in ('shear', 'length') else 0.05
-    setattr(boxmc, box_move, {'weight': 1, 'delta': delta})
+    move_dict = {'weight': 1, 'delta': [0.05]*3 if box_move in ('shear', 'length') else 0.05}
+    move_dict = dict({'reduce': 0.2},  **move_dict) if box_move == 'shear' else move_dict
+    setattr(boxmc, box_move, move_dict)
     sim.run(500)
 
     # check that box is changed
@@ -180,8 +181,9 @@ def test_disk_compression(betaP, box_move, simulation_factory,
     assert sim.state.box == initial_box
 
     # add a box move
-    delta = [0.05]*3 if box_move in ('shear', 'length') else 0.05
-    setattr(boxmc, box_move, {'weight': 1, 'delta': delta})
+    move_dict = {'weight': 1, 'delta': [0.05]*3 if box_move in ('shear', 'length') else 0.05}
+    move_dict = dict({'reduce': 0.2},  **move_dict) if box_move == 'shear' else move_dict
+    setattr(boxmc, box_move, move_dict)
     sim.run(500)
 
     # check that box is changed
