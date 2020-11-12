@@ -123,8 +123,8 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
 def test_sphere_compression(betaP, box_move, simulation_factory,
                             lattice_snapshot_factory):
     """Test that BoxMC can compress (and expand) simulation boxes."""
-    n = 5**3
-    snap = lattice_snapshot_factory(dimensions=2, n=n, a=1.3)
+    n = 3
+    snap = lattice_snapshot_factory(dimensions=3, n=n, a=1.3)
 
     boxmc = hoomd.hpmc.update.BoxMC(betaP=hoomd.variant.Constant(betaP),
                                     seed=1)
@@ -159,7 +159,7 @@ def test_sphere_compression(betaP, box_move, simulation_factory,
 def test_disk_compression(betaP, box_move, simulation_factory,
                           lattice_snapshot_factory):
     """Test that BoxMC can compress (and expand) simulation boxes."""
-    n = 5**3
+    n = 3
     snap = lattice_snapshot_factory(dimensions=2, n=n, a=1.3)
 
     boxmc = hoomd.hpmc.update.BoxMC(betaP=hoomd.variant.Constant(betaP),
