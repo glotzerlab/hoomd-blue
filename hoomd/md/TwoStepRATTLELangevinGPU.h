@@ -8,18 +8,13 @@
 #include "hoomd/Autotuner.h"
 #include "EvaluatorConstraintManifold.h"
 
-#ifndef __TWO_STEP_RATTLE_LANGEVIN_GPU_H__
-#define __TWO_STEP_RATTLE_LANGEVIN_GPU_H__
+#pragma once
 
-/*! \file TwoStepRATTLELangevinGPU.h
-    \brief Declares the TwoStepLangevinGPU class
-*/
-
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Implements Langevin dynamics on the GPU
 /*! GPU accelerated version of TwoStepLangevin
@@ -74,5 +69,3 @@ class PYBIND11_EXPORT TwoStepRATTLELangevinGPU : public TwoStepRATTLELangevin
 
 //! Exports the TwoStepLangevinGPU class to python
 void export_TwoStepRATTLELangevinGPU(pybind11::module& m);
-
-#endif // #ifndef __TWO_STEP_LANGEVIN_GPU_H__

@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -86,7 +87,7 @@ void gpu_rattle_brownian_step_one_kernel(Scalar4 *d_pos,
                                   const bool d_noiseless_r,
                                   const unsigned int offset)
     {
-    extern __shared__ char s_data[];
+    HIP_DYNAMIC_SHARED( char, s_data)
 
     Scalar3 *s_gammas_r = (Scalar3 *)s_data;
     Scalar *s_gammas = (Scalar *)(s_gammas_r + n_types);
@@ -254,7 +255,7 @@ void gpu_rattle_brownian_step_one_kernel(Scalar4 *d_pos,
 
     This is just a driver for gpu_brownian_step_one_kernel(), see it for details.
 */
-cudaError_t gpu_rattle_brownian_step_one(Scalar4 *d_pos,
+hipError_t gpu_rattle_brownian_step_one(Scalar4 *d_pos,
                                   int3 *d_image,
                                   const BoxDim& box,
                                   const Scalar *d_diameter,
@@ -290,8 +291,7 @@ cudaError_t gpu_rattle_brownian_step_one(Scalar4 *d_pos,
         dim3 threads(run_block_size, 1, 1);
 
         // run the kernel
-        gpu_rattle_brownian_step_one_kernel<<< grid, threads, (unsigned int)(sizeof(Scalar)*rattle_bd_args.n_types + sizeof(Scalar3)*rattle_bd_args.n_types)>>>
-                                    (d_pos,
+        hipLaunchKernelGGL((gpu_rattle_brownian_step_one_kernel), dim3(grid), dim3(threads), (unsigned int)(sizeof(Scalar)*rattle_bd_args.n_types + sizeof(Scalar3)*rattle_bd_args.n_types), 0, d_pos,
                                      d_image,
                                      box,
                                      d_diameter,
@@ -319,7 +319,7 @@ cudaError_t gpu_rattle_brownian_step_one(Scalar4 *d_pos,
                                      range.first);
         }
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 extern "C" __global__
@@ -340,13 +340,13 @@ void gpu_include_rattle_force_bd_kernel(const Scalar4 *d_pos,
                                   const unsigned int seed,
                                   const Scalar T,
                                   const Scalar eta,
-				  EvaluatorConstraintManifold manifold,
+				                  EvaluatorConstraintManifold manifold,
                                   unsigned int net_virial_pitch,
                                   const Scalar deltaT,
                                   const bool d_noiseless_t,
                                   const unsigned int offset)
     {
-    extern __shared__ char s_data[];
+    HIP_DYNAMIC_SHARED( char, s_data)
 
     Scalar3 *s_gammas_r = (Scalar3 *)s_data;
     Scalar *s_gammas = (Scalar *)(s_gammas_r + n_types);
@@ -530,7 +530,7 @@ void gpu_include_rattle_force_bd_kernel(const Scalar4 *d_pos,
         }
     }
 
-cudaError_t gpu_include_rattle_force_bd(const Scalar4 *d_pos,
+hipError_t gpu_include_rattle_force_bd(const Scalar4 *d_pos,
                                   Scalar4 *d_vel,
                                   Scalar4 *d_net_force,
                                   Scalar3 *d_f_brownian,
@@ -540,7 +540,7 @@ cudaError_t gpu_include_rattle_force_bd(const Scalar4 *d_pos,
                                   const unsigned int *d_groupTags,
                                   const unsigned int group_size,
                                   const rattle_bd_step_one_args& rattle_bd_args,
-			          EvaluatorConstraintManifold manifold,
+			                      EvaluatorConstraintManifold manifold,
                                   unsigned int net_virial_pitch,
                                   const Scalar deltaT,
                                   const bool d_noiseless_t,
@@ -561,8 +561,7 @@ cudaError_t gpu_include_rattle_force_bd(const Scalar4 *d_pos,
         dim3 threads(run_block_size, 1, 1);
 
         // run the kernel
-        gpu_include_rattle_force_bd_kernel<<< grid, threads, (unsigned int)(sizeof(Scalar)*rattle_bd_args.n_types + sizeof(Scalar3)*rattle_bd_args.n_types)>>>
-                                    (d_pos,
+        hipLaunchKernelGGL((gpu_include_rattle_force_bd_kernel), dim3(grid), dim3(threads), (unsigned int)(sizeof(Scalar)*rattle_bd_args.n_types + sizeof(Scalar3)*rattle_bd_args.n_types), 0, d_pos,
                                      d_vel,
                                      d_net_force,
                                      d_f_brownian,
@@ -579,12 +578,12 @@ cudaError_t gpu_include_rattle_force_bd(const Scalar4 *d_pos,
                                      rattle_bd_args.seed,
                                      rattle_bd_args.T,
                                      rattle_bd_args.eta,
-			             manifold,
+			                         manifold,
                                      net_virial_pitch,
                                      deltaT,
                                      d_noiseless_t,
                                      range.first);
         }
 
-    return cudaSuccess;
+    return hipSuccess;
     }

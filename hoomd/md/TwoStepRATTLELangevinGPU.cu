@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -68,13 +69,13 @@ __global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4 *d_pos,
                                  Scalar T,
                                  Scalar eta,
                                  bool noiseless_t,
-				 EvaluatorConstraintManifold manifold,
+				                 EvaluatorConstraintManifold manifold,
                                  Scalar deltaT,
                                  unsigned int D,
                                  bool tally,
                                  Scalar *d_partial_sum_bdenergy)
     {
-    extern __shared__ char s_data[];
+    HIP_DYNAMIC_SHARED( char, s_data)
     Scalar *s_gammas = (Scalar *)s_data;
 
     if (!use_alpha)
@@ -130,7 +131,7 @@ __global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4 *d_pos,
         RandomGenerator rng(RNGIdentifier::TwoStepLangevin, seed, ptag, timestep);
 
         Scalar3 normal = manifold.evalNormal(pos);
-	Scalar ndotn = dot(normal,normal);
+	    Scalar ndotn = dot(normal,normal);
 
         Scalar randomx, randomy, randomz, coeff;
    
@@ -341,7 +342,7 @@ __global__ void gpu_rattle_langevin_angular_step_two_kernel(
                              Scalar scale
                             )
     {
-    extern __shared__ char s_data[];
+    HIP_DYNAMIC_SHARED( char, s_data)
     Scalar3 *s_gammas_r = (Scalar3 *)s_data;
 
     // read in the gamma_r, stored in s_gammas_r[0: n_type] (Pythonic convention)
@@ -458,7 +459,7 @@ __global__ void gpu_rattle_langevin_angular_step_two_kernel(
     This is just a driver for gpu_rattle_langevin_angular_step_two_kernel(), see it for details.
 
 */
-cudaError_t gpu_rattle_langevin_angular_step_two(const Scalar4 *d_pos,
+hipError_t gpu_rattle_langevin_angular_step_two(const Scalar4 *d_pos,
                              Scalar4 *d_orientation,
                              Scalar4 *d_angmom,
                              const Scalar3 *d_inertia,
@@ -478,10 +479,9 @@ cudaError_t gpu_rattle_langevin_angular_step_two(const Scalar4 *d_pos,
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    gpu_rattle_langevin_angular_step_two_kernel<<< grid, threads, max( (unsigned int)(sizeof(Scalar3)*rattle_langevin_args.n_types),
-                                                                (unsigned int)(rattle_langevin_args.block_size*sizeof(Scalar))
-                                                              ) >>>
-                                       (d_pos,
+    hipLaunchKernelGGL(gpu_rattle_langevin_angular_step_two_kernel, grid, threads, max( (unsigned int)(sizeof(Scalar3)*rattle_langevin_args.n_types),
+                                                                (unsigned int)(rattle_langevin_args.block_size*sizeof(Scalar))), 0,
+                                        d_pos,
                                         d_orientation,
                                         d_angmom,
                                         d_inertia,
@@ -501,7 +501,7 @@ cudaError_t gpu_rattle_langevin_angular_step_two(const Scalar4 *d_pos,
                                         scale
                                         );
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 
@@ -519,7 +519,7 @@ cudaError_t gpu_rattle_langevin_angular_step_two(const Scalar4 *d_pos,
 
     This is just a driver for gpu_rattle_langevin_step_two_kernel(), see it for details.
 */
-cudaError_t gpu_rattle_langevin_step_two(const Scalar4 *d_pos,
+hipError_t gpu_rattle_langevin_step_two(const Scalar4 *d_pos,
                                   Scalar4 *d_vel,
                                   Scalar3 *d_accel,
                                   const Scalar *d_diameter,
@@ -528,7 +528,7 @@ cudaError_t gpu_rattle_langevin_step_two(const Scalar4 *d_pos,
                                   unsigned int group_size,
                                   Scalar4 *d_net_force,
                                   const rattle_langevin_step_two_args& rattle_langevin_args,
-				  EvaluatorConstraintManifold manifold,
+				                  EvaluatorConstraintManifold manifold,
                                   Scalar deltaT,
                                   unsigned int D)
     {
@@ -540,11 +540,8 @@ cudaError_t gpu_rattle_langevin_step_two(const Scalar4 *d_pos,
     dim3 threads1(256, 1, 1);
 
     // run the kernel
-    gpu_rattle_langevin_step_two_kernel<<< grid,
-                                 threads,
-                                 max((unsigned int)(sizeof(Scalar)*rattle_langevin_args.n_types),
-                                     (unsigned int)(rattle_langevin_args.block_size*sizeof(Scalar)))
-                             >>>(d_pos,
+    hipLaunchKernelGGL((gpu_rattle_langevin_step_two_kernel), grid, threads, max((unsigned int)(sizeof(Scalar)*rattle_langevin_args.n_types), (unsigned int)(rattle_langevin_args.block_size*sizeof(Scalar))), 0,
+                                 d_pos,
                                  d_vel,
                                  d_accel,
                                  d_diameter,
@@ -561,7 +558,7 @@ cudaError_t gpu_rattle_langevin_step_two(const Scalar4 *d_pos,
                                  rattle_langevin_args.T,
                                  rattle_langevin_args.eta,
                                  rattle_langevin_args.noiseless_t,
-				 manifold,
+				                 manifold,
                                  deltaT,
                                  D,
                                  rattle_langevin_args.tally,
@@ -569,16 +566,10 @@ cudaError_t gpu_rattle_langevin_step_two(const Scalar4 *d_pos,
 
     // run the summation kernel
     if (rattle_langevin_args.tally)
-        gpu_rattle_bdtally_reduce_partial_sum_kernel<<<grid1,
-                                                threads1,
-                                                rattle_langevin_args.block_size*sizeof(Scalar)
-                                             >>>(&rattle_langevin_args.d_sum_bdenergy[0],
-                                                 rattle_langevin_args.d_partial_sum_bdenergy,
-                                                 rattle_langevin_args.num_blocks);
+        hipLaunchKernelGGL((gpu_rattle_bdtally_reduce_partial_sum_kernel), dim3(grid1), dim3(threads1), rattle_langevin_args.block_size*sizeof(Scalar), 0, &rattle_langevin_args.d_sum_bdenergy[0],
+                                                 rattle_langevin_args.d_partial_sum_bdenergy, rattle_langevin_args.num_blocks);
 
-
-
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 

@@ -7,18 +7,13 @@
 #include "TwoStepRATTLEBD.h"
 #include "EvaluatorConstraintManifold.h"
 
-#ifndef __TWO_STEP_RATTLE_BD_GPU_H__
-#define __TWO_STEP_RATTLE_BD_GPU_H__
+#pragma once
 
-/*! \file TwoStepRATTLEBDGPU.h
-    \brief Declares the TwoStepRATTLEBDGPU class
-*/
+#include <pybind11/pybind11.h>
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
-
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 //! Implements Brownian dynamics on the GPU
 /*! GPU accelerated version of TwoStepBD
@@ -49,11 +44,9 @@ class PYBIND11_EXPORT TwoStepRATTLEBDGPU : public TwoStepRATTLEBD
 
     protected:
         unsigned int m_block_size;               //!< block size
-	EvaluatorConstraintManifold m_manifoldGPU;
+	    EvaluatorConstraintManifold m_manifoldGPU;
         GPUArray<unsigned int>  m_groupTags; //! Stores list converting group index to global tag
     };
 
 //! Exports the TwoStepRATTLEBDGPU class to python
 void export_TwoStepRATTLEBDGPU(pybind11::module& m);
-
-#endif // #ifndef __TWO_STEP_RATTLE_BD_GPU_H__

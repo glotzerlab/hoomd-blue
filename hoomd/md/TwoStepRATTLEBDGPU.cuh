@@ -30,7 +30,7 @@ struct rattle_bd_step_one_args
     };
 
 //! Kernel driver for the first part of the Brownian update called by TwoStepRATTLEBDGPU
-cudaError_t gpu_rattle_brownian_step_one(Scalar4 *d_pos,
+hipError_t gpu_rattle_brownian_step_one(Scalar4 *d_pos,
                                   int3 *d_image,
                                   const BoxDim &box,
                                   const Scalar *d_diameter,
@@ -52,7 +52,7 @@ cudaError_t gpu_rattle_brownian_step_one(Scalar4 *d_pos,
                                   const GPUPartition& gpu_partition);
 
 //! Kernel driver for the first part of the Brownian update called by TwoStepRATTLEBDGPU
-cudaError_t gpu_include_rattle_force_bd(const Scalar4 *d_pos,
+hipError_t gpu_include_rattle_force_bd(const Scalar4 *d_pos,
                                   Scalar4 *d_vel,
                                   Scalar4 *d_net_force,
                                   Scalar3 *d_f_brownian,
@@ -62,7 +62,7 @@ cudaError_t gpu_include_rattle_force_bd(const Scalar4 *d_pos,
                                   const unsigned int *d_groupTags,
                                   const unsigned int group_size,
                                   const rattle_bd_step_one_args& rattle_bd_args,
-			          EvaluatorConstraintManifold manifold,
+			                      EvaluatorConstraintManifold manifold,
                                   unsigned int net_virial_pitch,
                                   const Scalar deltaT,
                                   const bool d_noiseless_t,
