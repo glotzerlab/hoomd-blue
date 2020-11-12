@@ -7,7 +7,8 @@ from hoomd.snapshot import Snapshot
 from hoomd import Simulation
 
 devices = [hoomd.device.CPU]
-if hoomd.device.GPU.is_available():
+if (hoomd.device.GPU.is_available()
+        and len(hoomd.device.gpu.get_available_devices()) > 0):
     devices.append(hoomd.device.GPU)
 
 
