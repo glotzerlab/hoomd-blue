@@ -130,7 +130,7 @@ class BoxMC(Updater):
         """
         counter = self.counter
         if counter is None:
-            return (0.0, 0.0)
+            return (0, 0)
         else:
             return counter.volume
 
@@ -140,7 +140,7 @@ class BoxMC(Updater):
         """
         counter = self.counter
         if counter is None:
-            return (0.0, 0.0)
+            return (0, 0)
         else:
             return counter.ln_volume
 
@@ -150,7 +150,7 @@ class BoxMC(Updater):
         """
         counter = self.counter
         if counter is None:
-            return (0.0, 0.0)
+            return (0, 0)
         else:
             return counter.shear
 
@@ -160,7 +160,7 @@ class BoxMC(Updater):
         """
         counter = self.counter
         if counter is None:
-            return (0.0, 0.0)
+            return (0, 0)
         else:
             return counter.aspect
 
