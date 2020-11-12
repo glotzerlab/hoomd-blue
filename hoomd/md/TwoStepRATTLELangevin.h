@@ -41,11 +41,21 @@ class PYBIND11_EXPORT TwoStepRATTLELangevin : public TwoStepLangevinBase
                      Scalar eta = 0.000001);
         virtual ~TwoStepRATTLELangevin();
 
-        //! Turn on or off Tally
-        /*! \param tally if true, tallies energy exchange from the thermal reservoir */
-        void setTally(bool tally)
+        void setTallyReservoirEnergy(bool tally)
             {
-            m_tally= tally;
+            m_tally = tally;
+            }
+
+        /// Get the tally setting
+        bool getTallyReservoirEnergy()
+            {
+            return m_tally;
+            }
+
+        /// Get the reservoir energy
+        Scalar getReservoirEnergy()
+            {
+            return m_reservoir_energy;
             }
 
         //! Returns a list of log quantities this integrator calculates
@@ -65,6 +75,12 @@ class PYBIND11_EXPORT TwoStepRATTLELangevin : public TwoStepLangevinBase
 
         //! Get the number of degrees of freedom granted to a given group
         virtual Scalar getTranslationalDOF(std::shared_ptr<ParticleGroup> group);
+
+        /// Sets eta
+        void setEta(pybind11::object eta){ m_eta = pybind11::cast<Scalar>(eta); };
+
+        /// Gets alpha
+        pybind11::object getEta(){ return pybind11::cast(m_eta); };
 
     protected:
         std::shared_ptr<Manifold> m_manifold;  //!< The manifold used for the RATTLE constraint

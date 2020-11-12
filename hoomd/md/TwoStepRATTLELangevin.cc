@@ -613,6 +613,9 @@ void export_TwoStepRATTLELangevin(py::module& m)
                             std::shared_ptr<Variant>,
                             unsigned int,
 			                Scalar>())
-        .def("setTally", &TwoStepRATTLELangevin::setTally)
+        .def_property("tally_reservoir_energy", &TwoStepRATTLELangevin::getTallyReservoirEnergy,
+                                                &TwoStepRATTLELangevin::setTallyReservoirEnergy)
+        .def_property("eta", &TwoStepRATTLELangevin::getEta,
+                            &TwoStepRATTLELangevin::setEta)
         ;
     }

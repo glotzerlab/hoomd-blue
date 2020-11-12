@@ -411,5 +411,7 @@ void export_TwoStepRATTLEBD(py::module& m)
                             std::shared_ptr<Variant>,
                             unsigned int,
 			                Scalar>())
+    .def_property("eta", &TwoStepRATTLEBD::getEta,
+                            &TwoStepRATTLEBD::setEta)
         ;
     }

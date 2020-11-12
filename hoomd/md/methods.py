@@ -684,7 +684,7 @@ class NVE_Rattle(_Method):
     @manifold.setter
     def manifold(self, value):
         if self._attached:
-            raise RuntimeError("manifold cannot be set after scheduling.")
+            raise AttributeError("manifold cannot be set after scheduling.")
         else:
             self._manifold = validate_manifold(value)
 
@@ -1002,7 +1002,7 @@ class Langevin_Rattle(_Method):
     @manifold.setter
     def manifold(self, value):
         if self._attached:
-            raise RuntimeError("manifold cannot be set after scheduling.")
+            raise AttributeError("manifold cannot be set after scheduling.")
         else:
             self._manifold = validate_manifold(value)
 
@@ -1236,7 +1236,7 @@ class Brownian_Rattle(_Method):
             Defaults to None.
 
         eta (float): Defines the error particles are allowed to deviate
-            from the manifold in terms of the implicit function. Defaults to 1e-5
+            from the manifold in terms of the implicit function. Defaults to 1e-6
 
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
             coefficient can be directly set instead of the ratio of particle
@@ -1249,7 +1249,7 @@ class Brownian_Rattle(_Method):
             tuple is either positive float or zero.
     """
 
-    def __init__(self, filter, kT, seed, manifold, alpha=None, eta=0.000001):
+    def __init__(self, filter, kT, manifold, seed, eta=0.000001, alpha=None):
 
         self._manifold = validate_manifold(manifold)
         # store metadata
@@ -1257,8 +1257,8 @@ class Brownian_Rattle(_Method):
             filter=ParticleFilter,
             kT=Variant,
             seed=int(seed),
-            alpha=OnlyType(float, allow_none=True),
-            eta=float(eta)
+            eta=float(eta),
+            alpha=OnlyType(float, allow_none=True)
             )
         param_dict.update(dict(kT=kT, alpha=alpha, filter=filter))
 
@@ -1309,7 +1309,7 @@ class Brownian_Rattle(_Method):
     @manifold.setter
     def manifold(self, value):
         if self._attached:
-            raise RuntimeError("manifold cannot be set after scheduling.")
+            raise AttributeError("Manifold cannot be set after scheduling.")
         else:
             self._manifold = validate_manifold(value)
 

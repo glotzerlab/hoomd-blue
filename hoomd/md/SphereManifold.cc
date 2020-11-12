@@ -57,8 +57,6 @@ void SphereManifold::validate()
     Scalar3 lo = box.getLo();
     Scalar3 hi = box.getHi();
 
-    std::cout << m_r << std::endl;
-
     if (m_P.x + m_r > hi.x || m_P.x - m_r < lo.x ||
         m_P.y + m_r > hi.y || m_P.y - m_r < lo.y ||
         m_P.z + m_r > hi.z || m_P.z - m_r < lo.z)

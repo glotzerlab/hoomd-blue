@@ -512,5 +512,7 @@ void export_TwoStepRATTLENVE(py::module& m)
         .def("setLimit", &TwoStepRATTLENVE::setLimit)
         .def("removeLimit", &TwoStepRATTLENVE::removeLimit)
         .def("setZeroForce", &TwoStepRATTLENVE::setZeroForce)
+        .def_property("eta", &TwoStepRATTLENVE::getEta,
+                            &TwoStepRATTLENVE::setEta)
         ;
     }
