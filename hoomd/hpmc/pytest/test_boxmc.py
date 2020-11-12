@@ -120,15 +120,13 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
 
 
 @pytest.mark.parametrize("betaP,box_move", betaP_boxmoves)
-@pytest.mark.validate
 def test_sphere_compression(betaP, box_move, simulation_factory,
                             lattice_snapshot_factory):
     """Test that BoxMC can compress (and expand) simulation boxes."""
-    n = 7
-    snap = lattice_snapshot_factory(n=n, a=1.1)
+    n = 5**3
+    snap = lattice_snapshot_factory(dimensions=2, n=n, a=1.3)
 
-    boxmc = hoomd.hpmc.update.BoxMC(trigger=hoomd.trigger.Periodic(5),
-                                    betaP=hoomd.variant.Constant(betaP),
+    boxmc = hoomd.hpmc.update.BoxMC(betaP=hoomd.variant.Constant(betaP),
                                     seed=1)
 
     sim = simulation_factory(snap)
@@ -147,9 +145,9 @@ def test_sphere_compression(betaP, box_move, simulation_factory,
     assert sim.state.box == initial_box
 
     # add a box move
-    delta = [0.1]*3 if box_move in ('shear', 'length') else 0.1
+    delta = [0.05]*3 if box_move in ('shear', 'length') else 0.05
     setattr(boxmc, box_move, {'weight': 1, 'delta': delta})
-    sim.run(100)
+    sim.run(500)
 
     # check that box is changed
     assert mc.overlaps == 0
@@ -157,15 +155,13 @@ def test_sphere_compression(betaP, box_move, simulation_factory,
 
 
 @pytest.mark.parametrize("betaP,box_move", betaP_boxmoves)
-@pytest.mark.validate
 def test_disk_compression(betaP, box_move, simulation_factory,
                           lattice_snapshot_factory):
     """Test that BoxMC can compress (and expand) simulation boxes."""
-    n = 7
-    snap = lattice_snapshot_factory(dimensions=2, n=n, a=1.1)
+    n = 5**3
+    snap = lattice_snapshot_factory(dimensions=2, n=n, a=1.3)
 
-    boxmc = hoomd.hpmc.update.BoxMC(trigger=hoomd.trigger.Periodic(5),
-                                    betaP=hoomd.variant.Constant(betaP),
+    boxmc = hoomd.hpmc.update.BoxMC(betaP=hoomd.variant.Constant(betaP),
                                     seed=1)
 
     sim = simulation_factory(snap)
@@ -184,9 +180,9 @@ def test_disk_compression(betaP, box_move, simulation_factory,
     assert sim.state.box == initial_box
 
     # add a box move
-    delta = [0.1]*3 if box_move in ('shear', 'length') else 0.1
+    delta = [0.05]*3 if box_move in ('shear', 'length') else 0.05
     setattr(boxmc, box_move, {'weight': 1, 'delta': delta})
-    sim.run(100)
+    sim.run(500)
 
     # check that box is changed
     assert mc.overlaps == 0
