@@ -125,10 +125,10 @@ class _Formatter:
 class _TableInternal(_InternalAction):
     """Implements the logic for a simple text based logger backend.
 
-    This currently has to check the logged quantites every time to ensure it has
-    not changed since the last run of `~.act`. Performance could be improved by
-    allowing for writing of data without checking for a change in logged
-    quantites, but would be more fragile.
+    This currently has to check the logged quantities every time to ensure it
+    has not changed since the last run of `~.act`. Performance could be
+    improved by allowing for writing of data without checking for a change in
+    logged quantities, but would be more fragile.
     """
 
     _invalid_logger_flags = TypeFlags.any(
@@ -232,7 +232,7 @@ class _TableInternal(_InternalAction):
     def act(self, timestep=None):
         """Write row to designated output.
 
-        Will also write header when logged quantites are determined to have
+        Will also write header when logged quantities are determined to have
         changed.
         """
         output_dict = self._get_log_dict()

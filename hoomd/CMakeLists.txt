@@ -113,6 +113,7 @@ set(_hoomd_headers
     GPUPolymorph.h
     GPUPolymorph.cuh
     GPUVector.h
+    GSD.h
     GSDDumpWriter.h
     GSDReader.h
     GSDShapeSpecWriter.h

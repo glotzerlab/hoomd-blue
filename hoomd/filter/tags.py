@@ -19,6 +19,7 @@ class Tags(ParticleFilter, ParticleFilterTags):
     """
 
     def __init__(self, tags):
+        ParticleFilter.__init__(self)
         self._tags = np.ascontiguousarray(np.unique(tags), dtype=np.uint32)
         ParticleFilterTags.__init__(self, tags)
 

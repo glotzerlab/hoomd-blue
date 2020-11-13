@@ -1,11 +1,12 @@
 # Copyright (c) 2009-2020 The Regents of the University of Michigan This file is
 # part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-""" Write GSD files storing simulation trajectories and logging data."""
+"""Write GSD files storing simulation trajectories and logging data."""
 
+from collections.abc import Mapping, Collection
 from hoomd import _hoomd
 from hoomd.util import dict_flatten, array_to_strings
-from hoomd.data.typeconverter import OnlyFrom
+from hoomd.data.typeconverter import OnlyFrom, RequiredArg
 from hoomd.filter import ParticleFilter, All
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.logging import Logger, TypeFlags
@@ -15,28 +16,20 @@ import json
 
 
 class GSD(Writer):
-    R""" Write simulation trajectories in the GSD format.
+    r"""Write simulation trajectories in the GSD format.
 
     Args:
         filename (str): File name to write.
         trigger (hoomd.trigger.Trigger): Select the timesteps to write.
-        filter_ (hoomd.filter.ParticleFilter): Select the particles
-            to write, defaults to `hoomd.filter.All`.
-        overwrite (bool): When ``True``, overwite the file. When
-            ``False`` append frames to ``filename`` if it exists and create the
-            file if it does not, defaults to ``False``.
-        truncate (bool): When ``True``, truncate the file and write a
-            new frame 0 each time this operation triggers, defaults to
-            ``False``.
-        dynamic (list[str]): Quantity categories to save in every
-            frame, defaults to property.
-        log (hoomd.logging.Logger): A ``Logger`` object for GSD
-            logging, defaults to ``None``.
-
-    .. note::
-
-        All parameters are also available as instance attributes. Only
-        *trigger* and *log* may be modified after construction.
+        filter (hoomd.filter.ParticleFilter): Select the particles to write.
+            Defaults to `hoomd.filter.All`.
+        mode (str): The file open mode. Defaults to ``'ab'``.
+        truncate (bool): When `True`, truncate the file and write a new frame 0
+            each time this operation triggers. Defaults to `False`.
+        dynamic (list[str]): Quantity categories to save in every frame.
+            Defaults to ``['property']``.
+        log (hoomd.logging.Logger): Provide log quantities to write. Defaults to
+            `None`.
 
     `GSD` writes a simulation snapshot to the specified file each time it
     triggers. `GSD` can store all particle, bond, angle, dihedral, improper,
@@ -46,6 +39,21 @@ class GSD(Writer):
     over time. `GSD` can also store operation-specific state information
     necessary for restarting simulations and user-defined log quantities.
 
+    Valid file open modes:
+
+    +------------------+---------------------------------------------+
+    | mode             | description                                 |
+    +==================+=============================================+
+    | ``'wb'``         | Open the file for writing. Create the file  |
+    |                  | if needed, or overwrite an existing file.   |
+    +------------------+---------------------------------------------+
+    | ``'xb'``         | Create a GSD file exclusively.              |
+    |                  | Raise an exception when the file exists.    |
+    +------------------+---------------------------------------------+
+    | ``'ab'``         | Create the file if needed, or append to an  |
+    |                  | existing file.                              |
+    +------------------+---------------------------------------------+
+
     To reduce file size, `GSD` does not write properties that are set to
     defaults. When masses, orientations, angular momenta, etc... are left
     default for all particles, these fields will not take up any space in the
@@ -53,8 +61,10 @@ class GSD(Writer):
     writes non-dynamic quantities only the first frame. When reading a GSD file,
     the data in frame 0 is read when a quantity is missing in frame *i*,
     supplying data that is static over the entire trajectory.  Set the *dynamic*
-    parameter to specify dynamic attributes by category.  **property** is always
-    dynamic:
+    parameter to specify dynamic attributes by category.
+
+    Specify the one or more of the following strings in **dynamic** to make the
+    corresponding quantities dynamic (**property** is always dynamic):
 
     * **property**
 
@@ -83,50 +93,49 @@ class GSD(Writer):
 
     * **topology**
 
-        * bonds/
-        * angles/
-        * dihedrals/
-        * impropers/
-        * constraints/
-        * pairs/
+        * bonds/*
+        * angles/*
+        * dihedrals/*
+        * impropers/*
+        * constraints/*
+        * pairs/*
 
+    See Also:
+        See the `GSD documentation <https://gsd.readthedocs.io/>`__, `GSD HOOMD
+        Schema <https://gsd.readthedocs.io/en/stable/schema-hoomd.html>`__, and
+        `GSD GitHub project <https://github.com/glotzerlab/gsd>`__ for more
+        information on GSD files.
 
-    .. seealso::
+    Note:
+        When you use ``filter`` to select a subset of the whole system, `GSD`
+        will write out all of the selected particles in ascending tag order and
+        will **not** write out **topology**.
 
-        See the `GSD documentation <http://gsd.readthedocs.io/>`_ and `GitHub
-        project <https://github.com/glotzerlab/gsd>`_ for more information on
-        GSD files.
-
-    .. note::
-
-        When you use *filter_* to select a subset of the whole system,
-        :py:class:`GSD` will write out all of the selected particles in
-        ascending tag order and will **not** write out **topology**.
-
-    .. note::
-
+    Tip:
         All logged data chunks must be present in the first frame in the gsd
-        file to provide the default value. Some (or all) chunks may be omitted
-        on later frames.
+        file to provide the default value. To achieve this, set the `log`
+        attribute before the operation is triggered to write the first frame
+        in the file.
 
-    .. note::
+        Some (or all) chunks may be omitted on later frames. You can set `log`
+        to `None` or remove specific quantities from the logger, but do not
+        add additional quantities after the first frame.
 
-        In MPI parallel simulations, the callback will be called on all ranks.
-        :py:class:`GSD` will write the data returned by the root rank. Return
-        values from all other ranks are ignored (and may be None).
-
-    .. rubric:: Examples:
-
-    .. todo::
-
-        link to example notebooks
+    Attributes:
+        filename (str): File name to write.
+        trigger (hoomd.trigger.Trigger): Select the timesteps to write.
+        filter (hoomd.filter.ParticleFilter): Select the particles to write.
+        mode (str): The file open mode.
+        truncate (bool): When `True`, truncate the file and write a new frame 0
+            each time this operation triggers.
+        dynamic (list[str]): Quantity categories to save in every frame.
     """
 
     def __init__(self,
                  filename,
                  trigger,
                  filter=All(),
-                 overwrite=False,
+                 mode='ab',
                  truncate=False,
                  dynamic=None,
                  log=None):
@@ -141,11 +150,10 @@ class GSD(Writer):
         self._param_dict.update(
             ParameterDict(filename=str(filename),
                           filter=ParticleFilter,
-                          overwrite=bool(overwrite), truncate=bool(truncate),
+                          mode=str(mode),
+                          truncate=bool(truncate),
                           dynamic=[dynamic_validation],
-                          _defaults=dict(filter=filter, dynamic=dynamic)
-                          )
-            )
+                          _defaults=dict(filter=filter, dynamic=dynamic)))
 
         self._log = None if log is None else _GSDLogWriter(log)
 
@@ -157,16 +165,14 @@ class GSD(Writer):
         if self.dynamic is not None:
             for v in self.dynamic:
                 if v not in categories:
-                    raise RuntimeError("GSD: dynamic quantity " + v +
-                                       " is not valid")
+                    raise RuntimeError(
+                        f"GSD: dynamic quantity {v} is not valid")
 
             dynamic_quantities = ['property'] + self.dynamic
 
         self._cpp_obj = _hoomd.GSDDumpWriter(
-            self._simulation.state._cpp_sys_def,
-            self.filename,
-            self._simulation.state._get_group(self.filter),
-            self.overwrite,
+            self._simulation.state._cpp_sys_def, self.filename,
+            self._simulation.state._get_group(self.filter), self.mode,
             self.truncate)
 
         self._cpp_obj.setWriteAttribute('attribute' in dynamic_quantities)
@@ -177,41 +183,71 @@ class GSD(Writer):
         super()._attach()
 
     @staticmethod
-    def write(state, filename, filter=All(), log=None):
+    def write(state, filename, filter=All(), mode='wb', log=None):
         """Write the given simulation state out to a GSD file.
 
         Args:
             state (State): Simulation state.
             filename (str): File name to write.
-            filter_ (``hoomd.ParticleFilter``): Select the particles to write.
-            log (``hoomd.logger.Logger``): A ``Logger`` object for GSD logging.
+            filter (`hoomd.filter.ParticleFilter`): Select the particles to write.
+            mode (str): The file open mode. Defaults to ``'wb'``.
+            log (`hoomd.logging.Logger`): Provide log quantities to write.
 
-        Note:
-            The file is always overwritten.
+        The valid file modes for `write` are ``'wb'`` and ``'xb'``.
         """
-        writer = _hoomd.GSDDumpWriter(state._cpp_sys_def,
-                                      filename,
-                                      state._get_group(filter),
-                                      True,
-                                      False)
+        if mode != 'wb' and mode != 'xb':
+            raise ValueError(f"Invalid GSD.write file mode: {mode}")
+
+        writer = _hoomd.GSDDumpWriter(state._cpp_sys_def, filename,
+                                      state._get_group(filter), mode, False)
 
         if log is not None:
-            writer.log_writer = GSDLogWriter(log)
+            writer.log_writer = _GSDLogWriter(log)
         writer.analyze(state._simulation.timestep)
 
     @property
     def log(self):
+        """hoomd.logging.Logger: Provide log quantities to write.
+
+        May be `None`.
+        """
         return self._log
 
     @log.setter
     def log(self, log):
-        if isinstance(log, Logger):
+        if log is not None and isinstance(log, Logger):
             log = _GSDLogWriter(log)
         else:
             raise ValueError("GSD.log can only be set with a Logger.")
         if self._attached:
             self._cpp_obj.log_writer = log
         self._log = log
+
+
+def _iterable_is_incomplete(iterable):
+    """Checks that any nested attribute has no instances of RequiredArg.
+
+    Given the arbitrary nesting of container types in HOOMD-blue's data
+    model, we need to ensure that no RequiredArg values exist at any depth
+    in a state loggable key. Otherwise, the gsd backend will fail in its
+    conversion to NumPy arrays.
+    """
+    if (not isinstance(iterable, Collection)
+            or isinstance(iterable, str)
+            or len(iterable) == 0):
+        return False
+    incomplete = False
+
+    if isinstance(iterable, Mapping):
+        iter_ = iterable.keys()
+    else:
+        iter_ = iterable
+    for v in iter_:
+        if isinstance(v, Collection):
+            incomplete |= _iterable_is_incomplete(v)
+        else:
+            incomplete |= v is RequiredArg
+    return incomplete
 
 
 class _GSDLogWriter:
@@ -230,8 +266,10 @@ class _GSDLogWriter:
         _global_prepend (`str`): a str that gets prepending into the namespace
             of each logged quantity.
     """
-    _per_flags = TypeFlags.any(['angle', 'bond', 'constraint', 'dihedral',
-                                'improper', 'pair', 'particle'])
+    _per_flags = TypeFlags.any([
+        'angle', 'bond', 'constraint', 'dihedral', 'improper', 'pair',
+        'particle'
+    ])
     _convert_flags = TypeFlags.any(['string', 'strings'])
     _skip_flags = TypeFlags['object']
     _special_keys = ['type_shapes']
@@ -244,6 +282,8 @@ class _GSDLogWriter:
         """Get the flattened dictionary for consumption by GSD object."""
         log = dict()
         for key, value in dict_flatten(self.logger.log()).items():
+            if 'state' in key and _iterable_is_incomplete(value[0]):
+                pass
             log_value, type_flag = value
             type_flag = TypeFlags[type_flag]
             # This has to be checked first since type_shapes has a flag
@@ -284,8 +324,10 @@ class _GSDLogWriter:
         special cases like this should be avoided if possible.
         """
         if key == 'type_shapes':
-            shape_list = [bytes(json.dumps(type_shape) + '\0', 'UTF-8')
-                          for type_shape in value]
+            shape_list = [
+                bytes(json.dumps(type_shape) + '\0', 'UTF-8')
+                for type_shape in value
+            ]
             max_len = np.max([len(shape) for shape in shape_list])
             num_shapes = len(shape_list)
             str_array = np.array(shape_list)
@@ -298,7 +340,7 @@ class _GSDLogWriter:
             value = bytes(value, 'UTF-8')
             value = np.array([value], dtype=np.dtype((bytes, len(value) + 1)))
             value = value.view(dtype=np.int8)
-        if flag == TypeFlags.strings:
+        elif flag == TypeFlags.strings:
             value = [bytes(v + '\0', 'UTF-8') for v in value]
             max_len = np.max([len(string) for string in value])
             num_strings = len(value)
