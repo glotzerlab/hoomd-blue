@@ -35,6 +35,7 @@ class PYBIND11_EXPORT TwoStepBDGPU : public TwoStepBD
 
     protected:
         unsigned int m_block_size;               //!< block size
+        GPUArray<unsigned int>  m_groupTags; //! Stores list converting group index to global tag
     };
 
 //! Exports the TwoStepBDGPU class to python

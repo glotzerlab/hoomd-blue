@@ -92,7 +92,7 @@ void TwoStepRATTLEBDGPU::integrateStepOne(unsigned int timestep)
     args.n_types = m_gamma.getNumElements();
     args.use_alpha = m_use_alpha;
     args.alpha = m_alpha;
-    args.T = m_T->getValue(timestep);
+    args.T = (*m_T)(timestep);
     args.eta = m_eta;
     args.timestep = timestep;
     args.seed = m_seed;
@@ -186,7 +186,7 @@ void TwoStepRATTLEBDGPU::IncludeRATTLEForce(unsigned int timestep)
     args.n_types = m_gamma.getNumElements();
     args.use_alpha = m_use_alpha;
     args.alpha = m_alpha;
-    args.T = m_T->getValue(timestep);
+    args.T = (*m_T)(timestep);
     args.eta = m_eta;
     args.timestep = timestep;
     args.seed = m_seed;
@@ -236,7 +236,7 @@ void TwoStepRATTLEBDGPU::IncludeRATTLEForce(unsigned int timestep)
 
 void export_TwoStepRATTLEBDGPU(py::module& m)
     {
-    py::class_<TwoStepRATTLEBDGPU, std::shared_ptr<TwoStepRATTLEBDGPU> >(m, "TwoStepRATTLEBDGPU", py::base<TwoStepRATTLEBD>())
+    py::class_<TwoStepRATTLEBDGPU, TwoStepRATTLEBD, std::shared_ptr<TwoStepRATTLEBDGPU> >(m, "TwoStepRATTLEBDGPU")
         .def(py::init< std::shared_ptr<SystemDefinition>,
                                std::shared_ptr<ParticleGroup>,
                                std::shared_ptr<Manifold>,

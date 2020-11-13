@@ -519,7 +519,7 @@ hipError_t gpu_rattle_nve_step_two(Scalar4 *d_pos,
         dim3 threads(run_block_size, 1, 1);
 
         // run the kernel
-        hipLaunchKernelGGL((gpu_rattle_nve_step_two_kernel), dim3(grid), dim3(threads), 0, d_pos,
+        hipLaunchKernelGGL((gpu_rattle_nve_step_two_kernel), dim3(grid), dim3(threads), 0, 0, d_pos,
                                                      d_vel,
                                                      d_accel,
                                                      d_group_members,
@@ -782,7 +782,7 @@ hipError_t gpu_include_rattle_force_nve(const Scalar4 *d_pos,
         dim3 threads(run_block_size, 1, 1);
 
         // run the kernel
-        hipLaunchKernelGGL((gpu_include_rattle_force_nve_kernel), dim3(grid), dim3(threads), 0, d_pos, d_vel, d_accel, d_net_force, d_net_virial, d_group_members, nwork, range.first, net_virial_pitch, manifold, eta, deltaT, zero_force);
+        hipLaunchKernelGGL((gpu_include_rattle_force_nve_kernel), dim3(grid), dim3(threads), 0, 0, d_pos, d_vel, d_accel, d_net_force, d_net_virial, d_group_members, nwork, range.first, net_virial_pitch, manifold, eta, deltaT, zero_force);
         }
 
     return hipSuccess;

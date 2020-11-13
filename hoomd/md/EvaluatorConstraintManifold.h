@@ -17,7 +17,7 @@ using namespace std;
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -53,6 +53,7 @@ class EvaluatorConstraintManifold
 
         DEVICE Scalar implicit_function(const Scalar3& U)
         {
+	    Scalar3 delta;
             switch(surf){
               case manifold_enum::gyroid:
                 return slow::sin(L.x*U.x)*slow::cos(L.y*U.y) + slow::sin(L.y*U.y)*slow::cos(L.z*U.z) + slow::sin(L.z*U.z)*slow::cos(L.x*U.x);	
@@ -67,15 +68,15 @@ class EvaluatorConstraintManifold
                 return U.z;
                 break;
               case manifold_enum::sphere:
-		        Scalar3 delta = U - L;
+		        delta = U - L;
 		        return delta.x*delta.x*R.x + delta.y*delta.y*R.y + delta.z*delta.z*R.z - 1;
                 break;
               case manifold_enum::cylinder:
-		        Scalar3 delta = U - L;
+		        delta = U - L;
 		        return delta.x*delta.x + delta.y*delta.y - R.x*R.x;
                 break;
               default:
-                return 0
+                return 0;
             }
 	}
 

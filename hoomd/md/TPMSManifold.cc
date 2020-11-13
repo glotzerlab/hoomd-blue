@@ -69,6 +69,13 @@ Scalar TPMSManifold::implicit_function(Scalar3 point)
           break;
         case manifold_enum::primitive:
           return  slow::cos(Lx*point.x) + slow::cos(Ly*point.y) + slow::cos(Lz*point.z);
+	  break;
+	default:
+        m_exec_conf->msg->error() << "manifold.TPMS: Used Manifold is not TPMS. "
+             << endl;
+        throw std::runtime_error("Error during TPMS manifold.");
+	return 0;
+
        };
        }
 
@@ -95,6 +102,10 @@ Scalar3 TPMSManifold::derivative(Scalar3 point)
           delta.y = -Ly*slow::sin(Ly*point.y);
           delta.z = -Lz*slow::sin(Lz*point.z);
           break;
+	default:
+           m_exec_conf->msg->error() << "manifold.TPMS: Used Manifold is not TPMS. "
+             << endl;
+          throw std::runtime_error("Error during TPMS manifold.");
        };
        return delta;
        }
