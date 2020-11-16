@@ -24,6 +24,7 @@ UpdaterBoxMC::UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
           m_volume_weight(0.0),
           m_ln_volume_delta(0.0),
           m_ln_volume_weight(0.0),
+          m_volume_mode("standard"),
           m_volume_A1(0.0),
           m_volume_A2(0.0),
           m_length_delta {0.0, 0.0, 0.0},
@@ -883,7 +884,6 @@ void export_UpdaterBoxMC(py::module& m)
                          std::shared_ptr<Variant>,
                          const unsigned int >())
     .def_property("volume", &UpdaterBoxMC::getVolumeParams, &UpdaterBoxMC::setVolumeParams)
-    .def_property("ln_volume", &UpdaterBoxMC::getLogVolumeParams, &UpdaterBoxMC::setLogVolumeParams)
     .def_property("length", &UpdaterBoxMC::getLengthParams, &UpdaterBoxMC::setLengthParams)
     .def_property("shear", &UpdaterBoxMC::getShearParams, &UpdaterBoxMC::setShearParams)
     .def_property("aspect", &UpdaterBoxMC::getAspectParams, &UpdaterBoxMC::setAspectParams)

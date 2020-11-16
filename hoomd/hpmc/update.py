@@ -30,15 +30,10 @@ class BoxMC(Updater):
             Enable/disable isobaric volume moves and set parameters (scale the box lengths uniformly).
             The dictionary has the following keys:
 
+            * ``mode`` (string, **default:** ``standard``) - choose between ``standard`` for conventional volume
+                    increments or ``ln`` for logarithmic volume box moves.
             * ``weight`` (float) - relative weight of volume box moves relative to other box move types.
-            * ``delta`` (float) - maximum change of the box area (2D) or volume (3D).
-
-        ln_volume (dict):
-            Enable/disable isobaric volume moves and set parameters (scale the box lengths uniformly with logarithmic increments).
-            The dictionary has the following keys:
-
-            * ``weight`` (float) - relative weight of **ln(V)** box moves relative to other box move types.
-            * ``delta`` (float) - maximum change of **ln(V)** (where V is box area (2D) or volume (3D)).
+            * ``delta`` (float) - maximum change in V or **ln(V)** where V is box area (2D) or volume (3D).
 
         aspect (dict):
             Enable/disable isobaric aspect ratio moves and set parameters. The dictionary
@@ -52,7 +47,7 @@ class BoxMC(Updater):
             The dictionary has the following keys:
 
             * ``weight`` (float) - maximum change of the box thickness for each pair of parallel planes
-                     connected by the corresponding box edges. I.e. maximum change of HOOMD-blue box parameters Lx, Ly, Lz.
+                    connected by the corresponding box edges. I.e. maximum change of HOOMD-blue box parameters Lx, Ly, Lz.
             * ``delta`` (list or tuple) -  maximum change of the box lengths Lx, Ly, Lz.
 
         shear (dict):
@@ -81,8 +76,7 @@ class BoxMC(Updater):
 
         _default_dict = dict(weight=float(0), delta=float(0))
         param_dict = ParameterDict(seed=int(seed),
-                                   volume=_default_dict,
-                                   ln_volume=_default_dict,
+                                   volume={"mode":"standard", **_default_dict},
                                    aspect=_default_dict,
                                    length=dict(weight=float(0), delta=(float(0),)*3),
                                    shear=dict(weight=float(0), delta=(float(0),)*3, reduce=float(0)),
@@ -111,7 +105,6 @@ class BoxMC(Updater):
         The counter object has the following attributes:
 
         * ``volume``: `tuple` [`int`, `int`] - Number of accepted and rejected volume and length moves.
-        * ``ln_volume``: `tuple` [`int`, `int`] - Number of accepted and rejected ln(V) moves.
         * ``shear``: `tuple` [`int`, `int`] - Number of accepted and rejected shear moves.
         * ``aspect``: `tuple` [`int`, `int`] - Number of accepted and rejected aspect moves.
 
@@ -132,17 +125,8 @@ class BoxMC(Updater):
         if counter is None:
             return (0, 0)
         else:
-            return counter.volume
-
-    @log(flag="sequence")
-    def ln_volume_moves(self):
-        """tuple[int, int]: The accepted and rejected ln(V) moves. Returns (0, 0) if not attached.
-        """
-        counter = self.counter
-        if counter is None:
-            return (0, 0)
-        else:
-            return counter.ln_volume
+            attr = "volume" if self.volume["mode"] == "standard" else "ln_volume"
+            return getattr(counter, attr)
 
     @log(flag="sequence")
     def shear_moves(self):

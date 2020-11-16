@@ -53,7 +53,6 @@ class UpdaterBoxMC : public Updater
             return m_seed;
             }
 
-
         //! Get parameters for box volume moves as a dictionary
         /*! dict keys:
              delta - maximum size of volume change
@@ -62,46 +61,35 @@ class UpdaterBoxMC : public Updater
         pybind11::dict getVolumeParams()
             {
             pybind11::dict d;
-            d["weight"] = m_volume_weight;
-            d["delta"] = m_volume_delta;
+            d["mode"] = m_volume_mode;
+            d["weight"] = d["mode"] == "standard" ? m_volume_weight : m_ln_volume_weight;
+            d["delta"] = d["mode"] == "standard" ? m_volume_delta : m_ln_volume_delta;
             return d;
             }
 
         //! Set parameters for box volume moves from a dictionary
         /*! dict keys:
+             mode - choose betwenn standard and log volume moves
              delta - maximum size of volume change
              weight - relative likelihood of volume move.
         */
         void setVolumeParams(pybind11::dict d)
             {
-            m_volume_weight = d["weight"].cast<Scalar>();
-            m_volume_delta = d["delta"].cast<Scalar>();
-            // Calculate aspect ratio
-            computeAspectRatios();
-            }
-
-        //! Get parameters for box volume moves as a dictionary
-        /*! dict keys:
-             delta - log of maximum relative size of volume change
-             weight - relative likelihood of volume move
-        */
-        pybind11::dict getLogVolumeParams()
-            {
-            pybind11::dict d;
-            d["weight"] = m_ln_volume_weight;
-            d["delta"] = m_ln_volume_delta;
-            return d;
-            }
-
-        //! Set parameters for box volume moves from a dictionary
-        /*! dict keys:
-             delta - log of maximum relative size of volume change
-             weight - relative likelihood of volume move
-        */
-        void setLogVolumeParams(pybind11::dict d)
-            {
-            m_ln_volume_weight = d["weight"].cast<Scalar>();
-            m_ln_volume_delta = d["delta"].cast<Scalar>();
+            m_volume_mode = d["mode"].cast<std::string>();
+            if (m_volume_mode == "standard")
+                {
+                m_volume_weight = d["weight"].cast<Scalar>();
+                m_volume_delta =  d["delta"].cast<Scalar>();
+                }
+            else if (m_volume_mode == "ln")
+                {
+                m_ln_volume_weight = d["weight"].cast<Scalar>();
+                m_ln_volume_delta = d["delta"].cast<Scalar>();
+                }
+            else
+                {
+                throw std::runtime_error("Unknown mode for volume moves");
+                }
             // Calculate aspect ratio
             computeAspectRatios();
             }
@@ -300,6 +288,7 @@ class UpdaterBoxMC : public Updater
         float m_volume_weight;                    //!< relative weight of volume moves
         Scalar m_ln_volume_delta;                 //!< Amount by which to log volume parameter during box-change
         float m_ln_volume_weight;                 //!< relative weight of log volume moves
+        std::string m_volume_mode;                //!< volume moves mode: standard or logarithmic
         Scalar m_volume_A1;                       //!< Ratio of Lx to Ly to use in isotropic volume changes
         Scalar m_volume_A2;                       //!< Ratio of Lx to Lz to use in isotropic volume changes
 
