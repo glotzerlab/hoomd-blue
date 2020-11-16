@@ -62,8 +62,8 @@ class UpdaterBoxMC : public Updater
             {
             pybind11::dict d;
             d["mode"] = m_volume_mode;
-            d["weight"] = d["mode"] == "standard" ? m_volume_weight : m_ln_volume_weight;
-            d["delta"] = d["mode"] == "standard" ? m_volume_delta : m_ln_volume_delta;
+            d["weight"] = m_volume_mode == "standard" ? m_volume_weight : m_ln_volume_weight;
+            d["delta"] = m_volume_mode == "standard" ? m_volume_delta : m_ln_volume_delta;
             return d;
             }
 
