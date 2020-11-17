@@ -30,7 +30,37 @@ def proper_type_return(val):
 
 
 class _ValidatedDefaultDict:
+    """Mappings with key/value validation and more extensive defaults.
 
+    Used for HOOMD's type parameter concept which provides for type dependent
+    attributes to be easily synced between C++/Python and validated in Python.
+
+    Implements hard coded key validation which expects string keys when
+    ``_len_keys == 1`` and tuples of strings when ``_len_keys > 1``. However, we
+    also provide convenience means of specifying multiple keys on a single
+    `__setitem__` or `__getitem__`. Anywhere a string is expected, a list or
+    list-like object containing strings is also accepted. For multiple string
+    keys this will result in the product of the list with the other string
+    values for instance, ``(['a', 'b'], 'a')`` will expand to ``[('a', 'a'),
+    ('a', 'b')]``. Likewise, a list of tuples of the appropriate length can also
+    be passed.
+
+    Note:
+        We treat sequences of the type or subtype `tuple` to be special. These
+        values will be considered to be the final layer. As an example ``(('a',
+        'b'), ('a', 'a'))` could never be a valid key specification, while
+        ``[('a', 'b'), ('a', 'a')]`` for ``_len_keys == 2`` is perfectly valid.
+
+    Value validation allows the definition of general schemas for each type's
+    value. The available infrastructure for this feature can be found in
+    `hoomd.data.typeconverter`
+
+    Default specification is through `hoomd.data.smart_default`. In general,
+    defaults for `_ValidatedDefaultDict` allow for partially specified defaults
+    allowing users to only specify the necessary parts of a schema or to use
+    `self.default` to fully specify a default in lieu of setting each type
+    individually.
+    """
     def __init__(self, *args, **kwargs):
         _defaults = kwargs.pop('_defaults', NoDefault)
         if len(kwargs) != 0 and len(args) != 0:
@@ -60,9 +90,6 @@ class _ValidatedDefaultDict:
         if isinstance(self._default, SmartDefault):
             val = self._default(val)
         return val
-
-    # Add function to validate dictionary keys' value types as well
-    # Could follow current model on the args based type checking
 
     def _validate_and_split_key(self, key):
         '''Validate key given regardless of key length.'''
@@ -120,6 +147,8 @@ class _ValidatedDefaultDict:
         '''
         keys = self._validate_and_split_key(key)
         if self._len_keys > 1:
+            # We always set ('a', 'b') instead of ('b', 'a') to reduce storage
+            # requirements and prevent error.
             for key in keys:
                 yield tuple(sorted(list(key)))
         else:
@@ -158,7 +187,16 @@ class _ValidatedDefaultDict:
 
 
 class TypeParameterDict(_ValidatedDefaultDict, MutableMapping):
+    """Extension of _ValidatedDefaultDict with MutableMapping interface.
 
+    For use when HOOMD objects are not attached (i.e. no C++ object exists).
+    Then we only validation that keys are of the right structure (not that
+    the type exists) and that the values are of the right schema (not that the
+    schema is completely defined for a key, values could still need to be
+    specified).
+
+    Class works with `hoomd.data.data_structures`.
+    """
     def __init__(self, *args, len_keys, **kwargs):
 
         # Validate proper key constraint
@@ -201,6 +239,9 @@ class TypeParameterDict(_ValidatedDefaultDict, MutableMapping):
         if self._len_keys == 1:
             yield from self._dict.keys()
         else:
+            # This is to provide a consistent means of iterating over type keys
+            # that are more than one type. We do this to prevent the need for
+            # storing ('a', 'b') and ('b', 'a') separately.
             for key in self._dict.keys():
                 yield tuple(sorted(list(key)))
 
@@ -225,7 +266,17 @@ class TypeParameterDict(_ValidatedDefaultDict, MutableMapping):
 
 
 class AttachedTypeParameterDict(_ValidatedDefaultDict, MutableMapping):
+    """Type parameters when object is attached to C++.
 
+    Handles syncing to C++ from Python when a key changes. Also validates that
+    keys are of existent types. Incomplete schemas are not allowed as well.
+
+    This class requires knowledge of the C++ object to sync to the name of the
+    parameter it represents, the kind of type it accepts (e.g. particle or bond
+    type), and the simulation to query for types when setting keys.
+
+    Class works with `hoomd.data.data_structures`.
+    """
     def __init__(self, cpp_obj, param_name,
                  type_kind, type_param_dict, sim):
         # store info to communicate with c++
@@ -255,7 +306,7 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict, MutableMapping):
             type_param_dict = TypeParameterDict(self.default,
                                                 len_keys=self._len_keys)
         type_param_dict._type_converter = self._type_converter
-        for key in self.keys():
+        for key in self:
             type_param_dict[key] = self[key]
         return type_param_dict
 
@@ -339,5 +390,6 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict, MutableMapping):
             rtn_dict[key] = getattr(self._cpp_obj, self._getter)(key)
         return rtn_dict
 
-    def _handle_update(self, obj, label=None):
+    def _handle_update(self, obj, label):
+        """Handle updates of child data structures."""
         getattr(self._cpp_obj, self._setter)(label, obj.to_base())

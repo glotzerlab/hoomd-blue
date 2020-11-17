@@ -411,6 +411,7 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
         if self._attached:
             self._unapply_typeparam_dict()
             self._update_param_dict()
+            self._param_dict._parent = None
             self._cpp_obj.notifyDetach()
 
             self._cpp_obj = None
@@ -419,6 +420,9 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
 
     def _attach(self):
         self._apply_param_dict()
+        # link param dict to self to allow for param_dict to inform HOOMD object
+        # that a child member of it has been updated.
+        self._param_dict._parent = self
         self._apply_typeparam_dict(self._cpp_obj, self._simulation)
 
         # pass the system communicator to the object

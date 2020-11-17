@@ -10,17 +10,30 @@ from hoomd.data.typeconverter import (
 
 
 class _HOOMDDataStructures(metaclass=ABCMeta):
+    """Base class for HOOMD's base container classes.
+
+    These child classes exist to enable parameter validation and mantain
+    consistency with C++ after attaching.
+    """
     @abstractmethod
     def to_base(self):
+        """Cast the object into the corresponding native Python container type.
+        """
         pass
 
     @contextmanager
     def _buffer(self):
+        """Allows buffering during modifications to prevent needless updates.
+
+        This is a simple system to prevent unnecessary C++ - Python
+        communication.
+        """
         self._buffered = True
         yield None
         self._buffered = False
 
     def _update(self):
+        """Signal that the object has been updated."""
         if self._buffered:
             return
         elif parent is not None:
@@ -28,8 +41,31 @@ class _HOOMDDataStructures(metaclass=ABCMeta):
 
 
 def _get_inner_typeconverter(type_def, desired_type):
+    """Handles more complicated data structure specification.
+
+    When using nested containers where an entry could be a list or None for
+    instance requires the use of something like typeconverter's OnlyIf or
+    Either. We autdetect the internal type specification for these object and if
+    they are of the correct type use these.
+
+    Args:
+        type_def (`hoomd.data.typeconverter.TypeConverter`):
+            The type converter which is desired to be introspected to find the
+            desired type.
+        desired_type (`hoomd.data.typeconverter.TypeConverter`):
+            A child class of `hoomd.data.typeconverter.TypeConverter` that
+            signals what type converter types is needed.
+    """
     rtn_type_def = None
-    if isinstance(type_def, TypeConverterValue):
+    # Simple case the type_def is already sufficient
+    if isinstance(type_def, desired_type):
+        rtn_type_def = type_def
+    # More complicated cases, deals with nested type definitions where the
+    # nested containers have other requirements such as multiple valid container
+    # representations or entry is allowed to be None. In these cases, we check
+    # the TypeConverterValue instance's converter for the desired container type
+    # converter type.
+    elif isinstance(type_def, TypeConverterValue):
         if isinstance(type_def.converter, OnlyIf):
             if isinstance(type_def.converter.cond, desired_type):
                 rtn_type_def = type_def.converter.cond
@@ -44,15 +80,29 @@ def _get_inner_typeconverter(type_def, desired_type):
                         "the same type.")
                 elif len(matches) == 1:
                     rtn_type_def = matches[0]
-    elif isinstance(type_def, desired_type):
-        rtn_type_def = type_def
+    # When no valid type converter can be found error out.
     if rtn_type_def is None:
-        raise RuntimeError("Unable to find type definition for attribute.")
+        raise ValueError("Unable to find type definition for attribute.")
     return rtn_type_def
 
 
-def _to_hoomd_data_structure(data, type_def,
-                             parent=None, label=None, callback=None):
+def _to_hoomd_data_structure(data, type_def, parent=None, label=None):
+    """Convert raw data to a synced _HOOMDDataStructures object.
+
+    This does nothing if the data is not detected to be a supported HOOMD data
+    structure type. Currently we support mutable sequences, mappings, and sets.
+
+    Args:
+        data:
+            Raw data to be potentially converted to a _HOOMDDataStructures
+            object.
+        parent:
+            The parent container if any for the data.
+        label:
+            Label to indicate to the parent where the child belongs. For
+            instance, if the parent is a mapping the label would be the key for
+            this value.
+    """
     if isinstance(data, MutableMapping):
         typing = _get_inner_typeconverter(type_def, TypeConverterMapping)
         return _HOOMDDict(typing, parent, data, label)
@@ -60,12 +110,19 @@ def _to_hoomd_data_structure(data, type_def,
         typing = _get_inner_typeconverter(type_def, TypeConverterSequence)
         return _HOOMDList(typing, parent, data, label)
     elif isinstance(data, MutableSet):
-        return _HOOMDSet(typing, parent, data, label, TypeConverterValue)
+        return _HOOMDSet(typing, parent, data, label)
     else:
         return data
 
 
 class _HOOMDList(MutableSequence, _HOOMDDataStructures):
+    """List with type validation.
+
+    Use `to_base` to get a plain `list`.
+
+    Warning:
+        Should not be instantiated by users.
+    """
     def __init__(self, type_definition, parent, initial_value=None,
                  label=None):
         self._type_definition = type_definition
@@ -93,8 +150,12 @@ class _HOOMDList(MutableSequence, _HOOMDDataStructures):
                 raise TypeConversionError(
                     "Error in setting item {} in list.".format(index)) from err
             else:
+                # If we override a list item that is itself a
+                # _HOOMDDataStructures we disconnect the old structure to
+                # prevent updates from it to force sync the list.
                 if isinstance(self._list[i], _HOOMDDataStructures):
                     self._list[i]._parent = None
+
                 self._list[i] = _to_hoomd_data_structure(
                     validated_value, type_def, self)
         self._update()
@@ -119,7 +180,13 @@ class _HOOMDList(MutableSequence, _HOOMDDataStructures):
         return self._type_definition[entry_index]
 
     def __delitem__(self, index):
+        val = self._list[index]
+        # Disconnect item from list
+        if isinstance(val, _HOOMDDataStructures):
+            val._parent = None
         del self._list[index]
+        # This is required for list type definitions which have index dependent
+        # validation.
         if len(self._type_definition) > 1:
             try:
                 _ = self._type_definition(self._list)
@@ -140,7 +207,8 @@ class _HOOMDList(MutableSequence, _HOOMDDataStructures):
             validated_value = type_def(value)
         except TypeConversionError as err:
             raise TypeConversionError(
-                "Error inserting {} into list.".format(value)) from err
+                f"Error inserting {value} into list at position {index}."
+                ) from err
         else:
             self._list.insert(index,
                               _to_hoomd_data_structure(validated_value,
@@ -184,6 +252,16 @@ class _HOOMDList(MutableSequence, _HOOMDDataStructures):
 
 
 class _HOOMDDict(MutableMapping, _HOOMDDataStructures):
+    """Mapping with type validation.
+
+    Allows dotted access to key values as well as long as they conform to
+    Python's attribute name requirements.
+
+    Use `to_base` to get a plain `dict`.
+
+    Warning:
+        Should not be instantiated by users.
+    """
     _dict = {}
 
     def __init__(self, type_def, parent, initial_value=None, label=None):
@@ -224,6 +302,7 @@ class _HOOMDDict(MutableMapping, _HOOMDDataStructures):
             raise TypeConversionError(
                 "Error setting key {}.".format(key)) from err
         else:
+            # Disconnect child from parent to prevent child signaling update
             if isinstance(self._dict[key], _HOOMDDataStructures):
                 self._dict[key]._parent = None
             self._dict[key] = _to_hoomd_data_structure(
@@ -265,6 +344,13 @@ class _HOOMDDict(MutableMapping, _HOOMDDataStructures):
 
 
 class _HOOMDSet(MutableSet, _HOOMDDataStructures):
+    """Set with type validation.
+
+    Use `to_base` to get a plain `set`.
+
+    Warning:
+        Should not be instantiated by users.
+    """
     def __init__(self, type_def, parent, initial_value=None, label=None):
         self._type_definition = type_def
         self._parent = parent
@@ -297,6 +383,10 @@ class _HOOMDSet(MutableSet, _HOOMDDataStructures):
         self._update()
 
     def discard(self, item):
+        if isinstance(item, _HOOMDDataStructures):
+            # Disconnect child from parent
+            if item in self:
+                item._parent = None
         self._set.discard(item)
 
     def to_base(self):
