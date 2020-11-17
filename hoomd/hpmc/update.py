@@ -756,18 +756,18 @@ class ShapeUpdater(Updater):
 
         seed (int): Random number seed for shape move generators
 
-        trigger (Trigger, **default:** hoomd.trigger.Periodic(1)): Call the updater on triggered time steps.
+        trigger (Trigger): Call the updater on triggered time steps.
 
-        pretend (bool, **default:** False): When True the updater will not actually make update the shape definitions, instead moves will be proposed and
+        pretend (bool): When True the updater will not actually make update the shape definitions, instead moves will be proposed and
                         the acceptance statistics will be updated correctly
 
-        nselect (int, **default:** 1): Number of types to change every time the updater is called.
+        nselect (int): Number of types to change every time the updater is called.
 
-        nsweeps (int, **default:** 1): Number of times to change nselect types every time the updater is called.
+        nsweeps (int): Number of times to change nselect types every time the updater is called.
 
-        multi_phase (bool, **default:** False): When True MPI is enforced and shapes are updated together for two boxes.
+        multi_phase (bool): When True MPI is enforced and shapes are updated together for two boxes.
 
-        num_phase (int, **default:** 1): How many boxes are simulated at the same time, now support 2 and 3.
+        num_phase (int): How many boxes are simulated at the same time, now support 2 and 3.
 
     This class should not be instantiated directly - instead the Alchemy and ElasticShape 
     classes should be. Each updater defines a specific statistical ensemble. Shape moves 
@@ -786,10 +786,15 @@ class ShapeUpdater(Updater):
         See the documentation for the individual moves for more usage information.
 
     Examples::
+
         mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
         mc.shape["A"] = dict(vertices=[(1, 1, 1), (-1, -1, 1), (1, -1, -1),
                                        (-1, 1, -1)])
-        updater = hoomd.hpmc.update.Alchemy(mc=mc, move_ratio=1.0, seed=3832765, trigger=hoomd.trigger.Periodic(1), nselect=1)
+        updater = hoomd.hpmc.update.Alchemy(mc=mc,
+                                            move_ratio=1.0,
+                                            seed=3832765,
+                                            trigger=hoomd.trigger.Periodic(1),
+                                            nselect=1)
 
     Attributes:
         mc (:py:mod:`hoomd.hpmc.integrate.HPMCIntegrator`): HPMC integrator object for system on which to apply box updates
@@ -909,7 +914,7 @@ are only enabled for polyhedral and spherical particles.")
 
         Args:
             callback (callable): The python function that will be called each update.
-            params (dict): Dictionary of types and the corresponding list parameters ({'A' : [1.0], 'B': [0.0]})
+            params (dict): Dictionary of types and the corresponding list parameters (ex: {'A' : [1.0], 'B': [0.0]})
             stepsize (float): Step size in parameter space.
             param_ratio (float): Average fraction of parameters to change each update
 
@@ -989,7 +994,7 @@ are only enabled for polyhedral and spherical particles.")
         Args:
             stepsize (float): Stepsize for each vertex move
             param_ratio (float): Average fraction of vertices to change each update
-            volume (float, **default:** 1.0): Volume of the particles to hold constant
+            volume (float): Volume of the particles to hold constant
 
         Example::
 
@@ -1042,9 +1047,10 @@ are only enabled for polyhedral and spherical particles.")
         a specific transition probability and derived thermodynamic quantities.
 
         Args:
-            shape_params: Arguments required to define the hoomd.hpmc.integrate reference shape. 
+            shape_params: Arguments required to define the :py:mod:`hoomd.hpmc.integrate' reference shape. 
 
         Example::
+
             mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
             mc.shape["A"] = dict(vertices=[(1, 1, 1), (-1, -1, 1), (1, -1, -1),
                                            (-1, 1, -1)])
@@ -1110,9 +1116,10 @@ are only enabled for polyhedral and spherical particles.")
 
         Args:
             stepsize (float): Largest scaling/shearing factor used.
-            param_ratio (float, **default:** 0.5): Fraction of scale to shear moves.
+            param_ratio (float): Fraction of scale to shear moves.
 
         Example::
+
             mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
             mc.shape["A"] = dict(vertices=[(1, 1, 1), (-1, -1, 1), (1, -1, -1),
                                            (-1, 1, -1)])
@@ -1144,14 +1151,14 @@ are only enabled for polyhedral and spherical particles.")
         Args:
             target (float): Target shape move acceptance ratio
             trigger (Trigger): Call the updater on triggered time steps.
-            max_scale (float, **default:** 2.0): The maximum amount to scale the
+            max_scale (float): The maximum amount to scale the
                 current step size value with
-            gamma (float, **default:** 1.0): nonnegative real number used to dampen
+            gamma (float): nonnegative real number used to dampen
                 or increase the rate of change in step size. ``gamma`` is added to the
                 numerator and denominator of the ``acceptance_ratio / target`` ratio. Larger values
                 of ``gamma`` lead to smaller changes while a ``gamma`` of 0 leads to
                 scaling step size by exactly the ``acceptance_ratio / target`` ratio.
-            tol (float, **default:** 0.01): The absolute tolerance for convergence of acceptance_ratio
+            tol (float): The absolute tolerance for convergence of acceptance_ratio
 
         Example::
 
@@ -1236,7 +1243,7 @@ are only enabled for polyhedral and spherical particles.")
         R""" Get the shape move stepsize for a particle type
 
         Args:
-            typeid (int, **default:** 0): The typeid of the particle type
+            typeid (int): The typeid of the particle type
         Returns:
             The shape move stepsize for a particle type
 
@@ -1253,6 +1260,7 @@ are only enabled for polyhedral and spherical particles.")
 
     def reset_statistics(self):
         R""" Reset the acceptance statistics for the updater
+
         Example::
 
             mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
@@ -1266,10 +1274,10 @@ are only enabled for polyhedral and spherical particles.")
 
 
 class Alchemy(ShapeUpdater):
-    R""" Apply vertex, constant, and python shape moves.
+    R""" Apply vertex, constant, and python shape moves. Inherits from :py:mod:`hoomd.hpmc.update.ShapeUpdater`
 
     Args:
-        params: Arguments required to initialize :py:mod:`hoomd.hpmc.update.shape_update`
+        params: Arguments required to initialize :py:mod:`hoomd.hpmc.update.ShapeUpdater`
 
     Users should instantiate this class before calling one of the :py:mod:`vertex_shape_move`,
     :py:mod:`python_shape_move`, and :py:mod:`constant_shape_move` methods.
