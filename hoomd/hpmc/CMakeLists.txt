@@ -99,7 +99,7 @@ add_library(HOOMD::_hpmc ALIAS _hpmc)
 if (APPLE)
 set_target_properties(_hpmc PROPERTIES INSTALL_RPATH "@loader_path/..;@loader_path")
 else()
-set_target_properties(_hpmc PROPERTIES INSTALL_RPATH "$ORIGIN/..;$ORIGIN")
+set_target_properties(_hpmc PROPERTIES INSTALL_RPATH "\$ORIGIN/..;\$ORIGIN")
 endif()
 
 # link the library to its dependencies

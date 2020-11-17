@@ -18,4 +18,7 @@ hoomd.operation
 
 .. automodule:: hoomd.operation
     :synopsis: Classes define the interfaces and types for HOOMD-blue operations.
-    :members: Compute, Operation, Tuner, Updater, Writer
+    :members: Compute, Tuner, Updater, Writer
+
+    .. autoclass:: Operation
+        :inherited-members:

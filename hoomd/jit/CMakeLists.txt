@@ -81,7 +81,7 @@ target_link_libraries(_${PACKAGE_NAME} PUBLIC _hoomd PRIVATE _${PACKAGE_NAME}_ll
 if(APPLE)
 set_target_properties(_${PACKAGE_NAME} PROPERTIES INSTALL_RPATH "@loader_path/..;@loader_path")
 else()
-set_target_properties(_${PACKAGE_NAME} PROPERTIES INSTALL_RPATH "$ORIGIN/..;$ORIGIN")
+set_target_properties(_${PACKAGE_NAME} PROPERTIES INSTALL_RPATH "\$ORIGIN/..;\$ORIGIN")
 endif()
 
 fix_cudart_rpath(_${PACKAGE_NAME})
