@@ -880,8 +880,6 @@ class ShapeUpdater(Updater):
         elif isinstance(self.mc, integrate.SphereUnion):
             cls = _hpmc.UpdaterShapeSphereUnion
         else:
-            hoomd.context.current.device.cpp_msg.error("update.shape_update: " /
-                                                       "Unsupported integrator.\n")
             raise RuntimeError("Error initializing update.shape_update")
         # TODO: Make this possible
         # Currently computing the moments of inertia for spheropolyhedra is not implemented
@@ -941,7 +939,6 @@ are only enabled for polyhedral and spherical particles.")
 
         """
         if self.move_cpp is not None:
-            # hoomd.context.current.device.cpp_msg.error("update.shape_update.python_shape_move: Cannot change the move once initialized.\n")
             raise RuntimeError("Error initializing update.shape_update")
         move_cls = None
         if isinstance(self.mc, integrate.Sphere):
@@ -965,11 +962,9 @@ are only enabled for polyhedral and spherical particles.")
         elif isinstance(self.mc, integrate.SphereUnion):
             move_cls = _hpmc.PythonShapeMoveSphereUnion
         else:
-            # hoomd.context.current.device.cpp_msg.error("update.shape_update.python_shape_move: Unsupported integrator.\n")
             raise RuntimeError("Error initializing update.shape_update")
 
         if not move_cls:
-            # hoomd.context.current.device.cpp_msg.error("update.shape_update.python_shape_move: Unsupported integrator.\n")
             raise RuntimeError("Error initializing update.shape_update")
 
         param_list = []
@@ -1006,7 +1001,6 @@ are only enabled for polyhedral and spherical particles.")
 
         """
         if self.move_cpp is not None:
-            hoomd.context.current.device.cpp_msg.error("update.shape_update.vertex_shape_move: Cannot change the move once initialized.\n")
             raise RuntimeError("Error initializing update.shape_update")
         move_cls = None
         if isinstance(self.mc, integrate.Sphere):
@@ -1030,11 +1024,9 @@ are only enabled for polyhedral and spherical particles.")
         elif isinstance(self.mc, integrate.SphereUnion):
             pass
         else:
-            hoomd.context.current.device.cpp_msg.error("update.shape_update.vertex_shape_move: Unsupported integrator.\n")
             raise RuntimeError("Error initializing update.shape_update")
 
         if not move_cls:
-            hoomd.context.current.device.cpp_msg.error("update.shape_update: Unsupported integrator.\n")
             raise RuntimeError("Error initializing update.shape_update")
 
         ntypes = len(self.mc.state["shape"].keys()) - 1
@@ -1064,7 +1056,6 @@ are only enabled for polyhedral and spherical particles.")
 
         """
         if self.move_cpp is not None:
-            hoomd.context.current.device.cpp_msg.error("update.shape_update.constant_shape_move: Cannot change the move once initialized.\n")
             raise RuntimeError("Error initializing update.shape_update")
         move_cls = None
         shape_cls = None
@@ -1099,11 +1090,9 @@ are only enabled for polyhedral and spherical particles.")
             move_cls = _hpmc.ConstantShapeMoveSphereUnion
             shape_cls = hoomd.hpmc._hpmc.SphereUnionParams
         else:
-            hoomd.context.current.device.cpp_msg.error("update.shape_update.constant_shape_move: Unsupported integrator.\n")
             raise RuntimeError("Error initializing update.shape_update")
 
         if not move_cls:
-            hoomd.context.current.device.cpp_msg.error("update.shape_update.constant_shape_move: Unsupported integrator.\n")
             raise RuntimeError("Error initializing update.shape_update")
 
         ntypes = len(self.mc.state["shape"].keys()) - 1
@@ -1128,7 +1117,6 @@ are only enabled for polyhedral and spherical particles.")
 
         """
         if self.move_cpp is not None:
-            hoomd.context.current.device.cpp_msg.error("update.shape_update.elastic_shape_move: Cannot change the move once initialized.\n")
             raise RuntimeError("Error initializing update.shape_update")
         move_cls = None
         if isinstance(self.mc, integrate.ConvexPolyhedron):
@@ -1136,11 +1124,9 @@ are only enabled for polyhedral and spherical particles.")
         elif isinstance(self.mc, integrate.Ellipsoid):
             move_cls = _hpmc.ElasticShapeMoveEllipsoid
         else:
-            hoomd.context.current.device.cpp_msg.error("update.shape_update.elastic_shape_move: Unsupported integrator.\n")
             raise RuntimeError("Error initializing update.shape_update")
 
         if not move_cls:
-            hoomd.context.current.device.cpp_msg.error("update.shape_update.elastic_shape_move: Unsupported integrator.\n")
             raise RuntimeError("Error initializing update.shape_update")
 
         ntypes = len(self.mc.state["shape"].keys()) - 1
@@ -1323,7 +1309,7 @@ class Alchemy(ShapeUpdater):
         self.boltzmann_function = boltzmann_cls()
 
 class ElasticShape(ShapeUpdater):
-    R""" Apply elastic shape moves.
+    R""" Apply elastic shape moves. Inherits from :py:mod:`hoomd.hpmc.update.ShapeUpdater`
 
     Args:
         stiffness (float): Stiffness of the particle spring
@@ -1373,7 +1359,6 @@ class ElasticShape(ShapeUpdater):
                          params["nsweeps"],
                          params["multi_phase"],
                          params["num_phase"])
-                          # mc, move_ratio, seed,
         param_dict = ParameterDict(mc=hoomd.hpmc.integrate.HPMCIntegrator,
                                    move_ratio=float,
                                    seed=int,
@@ -1401,8 +1386,6 @@ class ElasticShape(ShapeUpdater):
 
         self.elastic_shape_move(stepsize, param_ratio)
 
-        # if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-        #     hoomd.context.current.device.cpp_msg.warning("update.elastic_shape: GPU is not implemented defaulting to CPU implementation.\n")
         shape_cls = None
         if isinstance(self.mc, integrate.ConvexPolyhedron):
             clss = _hpmc.ShapeSpringLogBoltzmannConvexPolyhedron

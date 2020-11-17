@@ -18,7 +18,6 @@ class TruncatedTetrahedron:
         args = {'vertices': (shape.vertices / (shape.volume**(1 / 3))).tolist(), 'sweep_radius': 0.0, 'ignore_statistics': 0}
         return hoomd.hpmc._hpmc.PolyhedronVertices(args)
 
-# hoomd.context.initialize("--mode=cpu");
 
 # See the following paper for the expected truncation value:
 #   van Anders, G., Klotsa, D., Karas, A. S., Dodd, P. M., & Glotzer, S. C.
@@ -27,9 +26,8 @@ class TruncatedTetrahedron:
 mean_trunc_ref = 0.3736
 sigma_trunc_ref = 0.0001
 
-# init_trunc = 0.3736
 init_trunc = 0.3736
-phi_final = 0.4
+phi_final = 0.6
 initial_shape = ConvexPolyhedron(ttf.get_shape(1 - init_trunc).vertices / (ttf.get_shape(1 - init_trunc).volume**(1 / 3)))
 a = (8 * initial_shape.volume / phi_final)**(1.0 / 3.0)  # lattice constant
 dim = 3
