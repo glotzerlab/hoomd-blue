@@ -15,8 +15,6 @@
 #include "GetarInitializer.h"
 #include "GSDReader.h"
 #include "Compute.h"
-#include "ComputeThermo.h"
-#include "ComputeThermoHMA.h"
 #include "CellList.h"
 #include "CellListStencil.h"
 #include "ForceCompute.h"
@@ -53,9 +51,7 @@
 #ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
 #include "CellListGPU.h"
-#include "ComputeThermoGPU.h"
 #include "SFCPackTunerGPU.h"
-#include "ComputeThermoHMAGPU.h"
 #endif
 
 // include MPI classes
@@ -70,8 +66,6 @@
 #endif // ENABLE_HIP
 #endif // ENABLE_MPI
 
-#include "SignalHandler.h"
-
 #include "HOOMDVersion.h"
 
 #include <pybind11/pybind11.h>
@@ -81,6 +75,7 @@
 #include <sstream>
 #include <fstream>
 using namespace std;
+using namespace hoomd;
 
 #ifdef ENABLE_TBB
 #include "tbb/task_scheduler_init.h"
@@ -90,108 +85,12 @@ using namespace std;
     \brief Brings all of the export_* functions together to export the hoomd python module
 */
 
-//! Method for getting the current version of HOOMD
-/*! \returns Current HOOMD version identification string
-*/
-string get_hoomd_version()
-    {
-    ostringstream ver;
-    // always outputting main version number: #402
-    ver << "HOOMD-blue " << HOOMD_VERSION << endl;
-
-    return ver.str();
-    }
-
-//! Layer for omp_get_num_procs()
-int get_num_procs()
-    {
-    return 1;
-    }
-
-//! Get the hoomd version as a tuple
-pybind11::object get_hoomd_version_tuple()
-    {
-    return pybind11::make_tuple(HOOMD_VERSION_MAJOR, HOOMD_VERSION_MINOR, HOOMD_VERSION_PATCH);
-    }
-
-//! Get the CUDA version as a tuple
-pybind11::object get_cuda_version_str()
-    {
-    #ifdef ENABLE_HIP
-    int major = HIP_VERSION_MAJOR;
-    int minor = HIP_VERSION_MINOR;
-    ostringstream s;
-    s << major << "." << minor;
-    return pybind11::str(s.str());
-    #else
-    return pybind11::str("0.0");
-    #endif
-    }
-
-//! Get the compiler version
-string get_compiler_version()
-    {
-    #if defined(__GNUC__) && !(defined(__clang__) || defined(__INTEL_COMPILER))
-    ostringstream o;
-    o << "gcc " << __GNUC__ << "." << __GNUC_MINOR__ << "." <<  __GNUC_PATCHLEVEL__;
-    return o.str();
-
-    #elif defined(__clang__)
-    ostringstream o;
-    o << "clang " << __clang_major__ << "." << __clang_minor__ << "." <<  __clang_patchlevel__;
-    return o.str();
-
-    #elif defined(__INTEL_COMPILER)
-    ostringstream o;
-    o << "icc " << __INTEL_COMPILER;
-    return o.str();
-
-    #else
-    return string("unknown");
-
-    #endif
-    }
-
-//! Determine availability of MPI support
-bool is_MPI_available()
-   {
-   return
-#ifdef ENABLE_MPI
-       true;
-#else
-       false;
-#endif
-    }
-
-//! Determine availability of CUDA support
-bool isCUDAAvailable()
-   {
-   return
-#ifdef ENABLE_HIP
-       true;
-#else
-       false;
-#endif
-    }
-
 void mpi_barrier_world()
     {
     #ifdef ENABLE_MPI
     MPI_Barrier(MPI_COMM_WORLD);
     #endif
     }
-
-//! Determine availability of TBB support
-bool is_TBB_available()
-   {
-   return
-#ifdef ENABLE_TBB
-       true;
-#else
-       false;
-#endif
-    }
-
 
 #ifdef ENABLE_MPI
 //! Environment variables needed for setting up MPI
@@ -277,28 +176,22 @@ PYBIND11_MODULE(_hoomd, m)
     m.def("get_mpi_proc_name", get_mpi_proc_name);
     #endif
 
-    // setup needed for numpy
-    // my_import_array();
-
     m.def("abort_mpi", abort_mpi);
     m.def("mpi_barrier_world", mpi_barrier_world);
     m.def("mpi_bcast_str", mpi_bcast_str);
 
-    m.def("hoomd_compile_flags", &hoomd_compile_flags);
-    m.def("output_version_info", &output_version_info);
-    m.def("get_hoomd_version", &get_hoomd_version);
-
-    m.def("get_num_procs", &get_num_procs);
-    m.attr("__version__") = get_hoomd_version_tuple();
-    m.attr("__git_sha1__") = pybind11::str(HOOMD_GIT_SHA1);
-    m.attr("__git_refspec__") = pybind11::str(HOOMD_GIT_REFSPEC);
-    m.attr("__cuda_version__") = get_cuda_version_str();
-    m.attr("__compiler_version__") = pybind11::str(get_compiler_version());
-    m.attr("__hoomd_source_dir__") = pybind11::str(HOOMD_SOURCE_DIR);
-
-    m.def("is_MPI_available", &is_MPI_available);
-    m.def("is_TBB_available", &is_TBB_available);
-    m.def("isCUDAAvailable", &isCUDAAvailable);
+    pybind11::class_<BuildInfo>(m, "BuildInfo")
+        .def_static("getVersion", BuildInfo::getVersion)
+        .def_static("getCompileFlags", BuildInfo::getCompileFlags)
+        .def_static("getEnableGPU", BuildInfo::getEnableGPU)
+        .def_static("getGPUAPIVersion", BuildInfo::getGPUAPIVersion)
+        .def_static("getGPUPlatform", BuildInfo::getGPUPlatform)
+        .def_static("getCXXCompiler", BuildInfo::getCXXCompiler)
+        .def_static("getEnableTBB", BuildInfo::getEnableTBB)
+        .def_static("getEnableMPI", BuildInfo::getEnableMPI)
+        .def_static("getSourceDir", BuildInfo::getSourceDir)
+        .def_static("getInstallDir", BuildInfo::getInstallDir)
+        ;
 
     pybind11::bind_vector< std::vector<Scalar> >(m,"std_vector_scalar");
     pybind11::bind_vector< std::vector<string> >(m,"std_vector_string");
@@ -308,8 +201,6 @@ PYBIND11_MODULE(_hoomd, m)
     pybind11::bind_vector< std::vector<int> >(m,"std_vector_int");
     pybind11::bind_vector< std::vector<Scalar3> >(m,"std_vector_scalar3");
     pybind11::bind_vector< std::vector<Scalar4> >(m,"std_vector_scalar4");
-
-    InstallSIGINTHandler();
 
     // utils
     export_hoomd_math_functions(m);
@@ -370,8 +261,6 @@ PYBIND11_MODULE(_hoomd, m)
 
     // computes
     export_Compute(m);
-    export_ComputeThermo(m);
-    export_ComputeThermoHMA(m);
     export_CellList(m);
     export_CellListStencil(m);
     export_ForceCompute(m);
@@ -380,8 +269,6 @@ PYBIND11_MODULE(_hoomd, m)
 
 #ifdef ENABLE_HIP
     export_CellListGPU(m);
-    export_ComputeThermoGPU(m);
-    export_ComputeThermoHMAGPU(m);
 #endif
 
     // analyzers

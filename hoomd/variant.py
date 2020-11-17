@@ -61,6 +61,7 @@ class Constant(_hoomd.VariantConstant, Variant):
     """
 
     def __init__(self, value):
+        Variant.__init__(self)
         _hoomd.VariantConstant.__init__(self, value)
 
 
@@ -86,6 +87,7 @@ class Ramp(_hoomd.VariantRamp, Variant):
     """
 
     def __init__(self, A, B, t_start, t_ramp):
+        Variant.__init__(self)
         _hoomd.VariantRamp.__init__(self, A, B, t_start, t_ramp)
 
 
@@ -120,6 +122,7 @@ class Cycle(_hoomd.VariantCycle, Variant):
     """
 
     def __init__(self, A, B, t_start, t_A, t_AB, t_B, t_BA):
+        Variant.__init__(self)
         _hoomd.VariantCycle.__init__(self, A, B, t_start, t_A, t_AB, t_B, t_BA)
 
 
@@ -152,4 +155,5 @@ class Power(_hoomd.VariantPower, Variant):
     """
 
     def __init__(self, A, B, power, t_start, t_ramp):
+        Variant.__init__(self)
         _hoomd.VariantPower.__init__(self, A, B, power, t_start, t_ramp)

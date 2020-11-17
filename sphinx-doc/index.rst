@@ -44,10 +44,8 @@ Resources
   Instructions for installing and compiling **HOOMD-blue**.
 - `hoomd-users Google Group <https://groups.google.com/d/forum/hoomd-users>`_:
   Ask questions to the **HOOMD-blue** community.
-- `HOOMD-blue Tutorial <https://nbviewer.jupyter.org/github/glotzerlab/hoomd-examples/blob/master/index.ipynb>`_:
-  Beginner's guide, code examples, and sample scripts.
 - `HOOMD-blue website <https://glotzerlab.engin.umich.edu/hoomd-blue/>`_:
-  Additional information, benchmarks, and publications.
+  Additional information and publications.
 
 Job scripts
 ===========
@@ -63,21 +61,14 @@ workflows all with Python code in your job.
     installation
     migrating
     changelog
-    command-line-options
+    citing
 
 .. toctree::
-    :maxdepth: 2
-    :caption: Concepts
+    :maxdepth: 1
+    :caption: Tutorials
 
-    units
-    box
-    aniso
-    nlist
-    mpi
-    autotuner
-    restartable-jobs
-    varperiod
-    developer
+    tutorial/00-Introducing-HOOMD-blue/00-index
+    tutorial/01-Introducing-Molecular-Dynamics/00-index
 
 .. toctree::
    :maxdepth: 3
@@ -86,25 +77,17 @@ workflows all with Python code in your job.
    package-hoomd
    package-hpmc
    package-md
-   package-mpcd
-   package-dem
 
 .. toctree::
-   :maxdepth: 3
-   :caption: Additional Python packages
-
-   package-jit
-   package-metal
-
-.. toctree::
-    :maxdepth: 3
+    :maxdepth: 1
     :caption: Developer guide
 
     style
     testing
+    components
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 1
    :caption: Reference
 
    deprecated

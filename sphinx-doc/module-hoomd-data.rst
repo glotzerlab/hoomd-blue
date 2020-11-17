@@ -17,6 +17,7 @@ hoomd.data
     ImproperLocalAccessBase
     PairLocalAccessBase
     ParticleLocalAccessBase
+    hoomd.data.typeparam.TypeParameter
 
 .. rubric:: Details
 
@@ -29,9 +30,20 @@ hoomd.data
               ImproperLocalAccessBase,
               PairLocalAccessBase,
               ParticleLocalAccessBase
-    
+
     .. autoclass:: LocalSnapshot
         :inherited-members:
 
     .. autoclass:: LocalSnapshotGPU
         :inherited-members:
+
+    .. autoclass:: hoomd.data.typeparam.TypeParameter
+        :members: default, keys
+        :undoc-members:
+
+.. rubric:: Modules
+
+.. toctree::
+   :maxdepth: 3
+
+   module-hoomd-array

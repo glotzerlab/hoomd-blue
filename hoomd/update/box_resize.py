@@ -1,12 +1,12 @@
-from hoomd.operation import _Updater
+from hoomd.operation import Updater
 from hoomd.box import Box
-from hoomd._param_dict import ParameterDict
-from hoomd.typeconverter import OnlyType, box_preprocessing
+from hoomd.data.param_dict import ParameterDict
+from hoomd.data.typeconverter import OnlyType, box_preprocessing
 from hoomd.variant import Variant, Power, Constant
 from hoomd import _hoomd
 
 
-class BoxResize(_Updater):
+class BoxResize(Updater):
     """Resizes the box between an initial and final box.
 
     When part of a `Simulation` ``updater`` list, this object will resize the
@@ -115,8 +115,7 @@ class BoxResize(_Updater):
             t_start (int): The timestep to start the volume ramp.
             t_size (int): The length of the volume ramp
             trigger (hoomd.trigger.Trigger): The trigger to activate this
-                updater.  scale_particles (bool): Whether to scale particles to
-                the new box dimensions when the box is resized.
+                updater.
             scale_particles (bool): Whether to scale particles to the new box
                 dimensions when the box is resized.
 

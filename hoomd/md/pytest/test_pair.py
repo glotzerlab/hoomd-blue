@@ -34,9 +34,9 @@ def _assert_equivalent_parameter_dicts(param_dict1, param_dict2):
 def test_rcut(simulation_factory, two_particle_snapshot_factory):
     lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
     lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
-    with pytest.raises(hoomd.typeconverter.TypeConversionError):
+    with pytest.raises(hoomd.data.typeconverter.TypeConversionError):
         lj.r_cut[('A', 'A')] = 'str'
-    with pytest.raises(hoomd.typeconverter.TypeConversionError):
+    with pytest.raises(hoomd.data.typeconverter.TypeConversionError):
         lj.r_cut[('A', 'A')] = [1, 2, 3]
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=.5))
@@ -54,7 +54,7 @@ def test_rcut(simulation_factory, two_particle_snapshot_factory):
 def test_invalid_mode():
     cell = hoomd.md.nlist.Cell()
     for invalid_mode in [1, 'str', [1, 2, 3]]:
-        with pytest.raises(hoomd.typeconverter.TypeConversionError):
+        with pytest.raises(hoomd.data.typeconverter.TypeConversionError):
             lj = hoomd.md.pair.LJ(nlist=cell, r_cut=2.5, mode=invalid_mode)
 
 
@@ -76,9 +76,9 @@ def test_mode(simulation_factory, two_particle_snapshot_factory, mode):
 def test_ron(simulation_factory, two_particle_snapshot_factory):
     lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(), mode='xplor', r_cut=2.5)
     lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
-    with pytest.raises(hoomd.typeconverter.TypeConversionError):
+    with pytest.raises(hoomd.data.typeconverter.TypeConversionError):
         lj.r_on[('A', 'A')] = 'str'
-    with pytest.raises(hoomd.typeconverter.TypeConversionError):
+    with pytest.raises(hoomd.data.typeconverter.TypeConversionError):
         lj.r_on[('A', 'A')] = [1, 2, 3]
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=.5))
@@ -91,7 +91,7 @@ def test_ron(simulation_factory, two_particle_snapshot_factory):
 
     lj.r_on[('A', 'A')] = 1.5
     _assert_equivalent_type_params(lj.r_on.to_base(), {('A', 'A'): 1.5})
-    sim.operations.schedule()
+    sim.operations._schedule()
     _assert_equivalent_type_params(lj.r_on.to_base(), {('A', 'A'): 1.5})
 
     lj.r_on[('A', 'A')] = 1.0
@@ -251,7 +251,7 @@ def test_invalid_params(invalid_params):
                                         mode='none')
     for pair in invalid_params.pair_potential_params:
         if isinstance(pair, tuple):
-            with pytest.raises(hoomd.typeconverter.TypeConversionError):
+            with pytest.raises(hoomd.data.typeconverter.TypeConversionError):
                 pot.params[pair] = invalid_params.pair_potential_params[pair]
 
 
@@ -498,7 +498,7 @@ def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
     integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
                                                         kT=1, seed=1))
     sim.operations.integrator = integrator
-    sim.operations.schedule()
+    sim.operations._schedule()
     for nsteps in [3, 5, 10]:
         old_snap = sim.state.snapshot
         sim.run(nsteps)
@@ -533,7 +533,7 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
                                                         kT=1, seed=1))
     sim.operations.integrator = integrator
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     energies = sim.operations.integrator.forces[0].energies
     if energies is not None:
@@ -556,7 +556,7 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
                                                         kT=1, seed=1))
     sim.operations.integrator = integrator
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     snap = sim.state.snapshot
     if snap.exists:
@@ -578,7 +578,7 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
                                                         kT=1, seed=1))
 
     sim.operations.integrator = integrator
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     energies = sim.operations.integrator.forces[0].energies
     if energies is not None:
@@ -653,7 +653,7 @@ def test_force_energy_relationship(simulation_factory,
     integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
                                                         kT=1, seed=1))
     sim.operations.integrator = integrator
-    sim.operations.schedule()
+    sim.operations._schedule()
     for pair in valid_params.pair_potential_params:
         snap = sim.state.snapshot
         if snap.exists:
@@ -729,7 +729,7 @@ def test_force_energy_accuracy(simulation_factory,
     integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
                                                         kT=1, seed=1))
     sim.operations.integrator = integrator
-    sim.operations.schedule()
+    sim.operations._schedule()
     particle_distances = [0.75, 1.5]
     for i in range(len(particle_distances)):
         d = particle_distances[i]

@@ -7,7 +7,8 @@ from hoomd.snapshot import Snapshot
 from hoomd import Simulation
 
 devices = [hoomd.device.CPU]
-if hoomd.device.GPU.is_available():
+if (hoomd.device.GPU.is_available()
+        and len(hoomd.device.GPU.get_available_devices()) > 0):
     devices.append(hoomd.device.GPU)
 
 
@@ -212,9 +213,6 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers",
         "serial: Tests that will not execute with more than 1 MPI process")
-    config.addinivalue_line(
-        "markers",
-        "validation: Long running tests that validate simulation output")
     config.addinivalue_line("markers",
                             "gpu: Tests that should only run on the gpu.")
     config.addinivalue_line(
@@ -229,7 +227,7 @@ def pytest_configure(config):
 
 def abort(exitstatus):
     # get a default mpi communicator
-    communicator = hoomd.comm.Communicator()
+    communicator = hoomd.communicator.Communicator()
     # abort the deadlocked ranks
     hoomd._hoomd.abort_mpi(communicator.cpp_mpi_conf, exitstatus)
 
@@ -243,5 +241,5 @@ def pytest_sessionfinish(session, exitstatus):
     it exits on the first error.
     """
 
-    if exitstatus != 0 and hoomd._hoomd.is_MPI_available():
+    if exitstatus != 0 and hoomd.version.mpi_enabled:
         atexit.register(abort, exitstatus)

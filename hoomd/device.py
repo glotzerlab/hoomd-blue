@@ -9,13 +9,13 @@ import hoomd
 from hoomd import _hoomd
 
 
-class _Device:
+class Device:
     """Base class device object.
 
     Provides methods and properties common to `CPU` and `GPU`.
 
     Warning:
-        `_Device` cannot be used directly. Instantate a `CPU` or `GPU` object.
+        `Device` cannot be used directly. Instantate a `CPU` or `GPU` object.
 
     .. rubric:: TBB threads
 
@@ -31,13 +31,13 @@ class _Device:
     def __init__(self, communicator, notice_level, msg_file, shared_msg_file):
         # check shared_msg_file
         if shared_msg_file is not None:
-            if not _hoomd.is_MPI_available():
+            if not hoomd.version.mpi_enabled:
                 raise RuntimeError(
                     "Shared log files are only available in MPI builds.")
 
         # MPI communicator
         if communicator is None:
-            self._comm = hoomd.comm.Communicator()
+            self._comm = hoomd.communicator.Communicator()
         else:
             self._comm = communicator
 
@@ -54,7 +54,7 @@ class _Device:
 
     @property
     def communicator(self):
-        """comm.Communicator: The MPI Communicator [read only]."""
+        """hoomd.communicator.Communicator: The MPI Communicator [read only]."""
         return self._comm
 
     @property
@@ -102,14 +102,14 @@ class _Device:
     @property
     def num_cpu_threads(self):
         """int: Number of TBB threads to use."""
-        if not _hoomd.is_TBB_available():
+        if not hoomd.version.tbb_enabled:
             return 1
         else:
             return self._cpp_exec_conf.getNumThreads()
 
     @num_cpu_threads.setter
     def num_cpu_threads(self, num_cpu_threads):
-        if not _hoomd.is_TBB_available():
+        if not hoomd.version.tbb_enabled:
             self._cpp_msg.warning(
                 "HOOMD was compiled without thread support, ignoring request "
                 "to set number of threads.\n")
@@ -138,7 +138,7 @@ def _create_messenger(mpi_config, notice_level, msg_file, shared_msg_file):
         msg.openFile(msg_file)
 
     if shared_msg_file is not None:
-        if not _hoomd.is_MPI_available():
+        if not hoomd.version.mpi_enabled:
             raise RuntimeError(
                 'Shared log files are only available in MPI builds.')
         msg.setSharedFile(shared_msg_file)
@@ -146,7 +146,7 @@ def _create_messenger(mpi_config, notice_level, msg_file, shared_msg_file):
     return msg
 
 
-class GPU(_Device):
+class GPU(Device):
     """Select a GPU or GPU(s) to execute simulations.
 
     Args:
@@ -156,8 +156,9 @@ class GPU(_Device):
         num_cpu_threads (int): Number of TBB threads. Set to `None` to
             auto-select.
 
-        communicator (`hoomd.comm.Communicator`): MPI communicator object.
-            When `None`, create a default communicator that uses all MPI ranks.
+        communicator (`hoomd.communicator.Communicator`): MPI communicator
+            object.  When `None`, create a default communicator that uses all
+            MPI ranks.
 
         msg_file (str): Filename to write messages to. When `None`, use
             `sys.stdout` and `sys.stderr`.
@@ -231,7 +232,7 @@ class GPU(_Device):
 
         Memory tracebacks are useful for developers when debugging GPU code.
         """
-        return self._cpp_exec_conf.getMemoryTracer() is not None
+        return self._cpp_exec_conf.memoryTracingEnabled()
 
     @memory_traceback.setter
     def memory_traceback(self, mem_traceback):
@@ -259,7 +260,7 @@ class GPU(_Device):
         Returns:
             bool: `True` if this build of HOOMD supports GPUs, `False` if not.
         """
-        return _hoomd.isCUDAAvailable()
+        return hoomd.version.gpu_enabled
 
     @staticmethod
     def get_available_devices():
@@ -302,15 +303,16 @@ class GPU(_Device):
             self._cpp_exec_conf.hipProfileStop()
 
 
-class CPU(_Device):
+class CPU(Device):
     """Select the CPU to execute simulations.
 
     Args:
         num_cpu_threads (int): Number of TBB threads. Set to `None` to
             auto-select.
 
-        communicator (`hoomd.comm.Communicator`): MPI communicator object.
-            When `None`, create a default communicator that uses all MPI ranks.
+        communicator (`hoomd.communicator.Communicator`): MPI communicator
+            object.  When `None`, create a default communicator that uses all
+            MPI ranks.
 
         msg_file (str): Filename to write messages to. When `None` use
             `sys.stdout` and `sys.stderr`.
@@ -351,8 +353,9 @@ def auto_select(communicator=None,
 
     Args:
 
-        communicator (`hoomd.comm.Communicator`): MPI communicator object.
-            When `None`, create a default communicator that uses all MPI ranks.
+        communicator (`hoomd.communicator.Communicator`): MPI communicator
+            object.  When `None`, create a default communicator that uses all
+            MPI ranks.
 
         msg_file (str): Filename to write messages to. When `None` use
             `sys.stdout` and `sys.stderr`.
@@ -368,6 +371,6 @@ def auto_select(communicator=None,
     """
     # Set class according to C++ object
     if len(GPU.get_available_devices()) > 0:
-        return GPU(None, communicator, msg_file, shared_msg_file, notice_level)
+        return GPU(None, None, communicator, msg_file, shared_msg_file, notice_level)
     else:
         return CPU(None, communicator, msg_file, shared_msg_file, notice_level)

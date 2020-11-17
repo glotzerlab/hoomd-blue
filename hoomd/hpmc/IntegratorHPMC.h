@@ -310,19 +310,19 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             return m_a;
             }
 
-        //! Change move ratio
-        /*! \param move_ratio new move_ratio to set
+        //! Change translation move probability.
+        /*! \param translation_move_probability new translation_move_probability to set
         */
-        void setMoveRatio(Scalar move_ratio)
+        void setTranslationMoveProbability(Scalar translation_move_probability)
             {
-            m_move_ratio = unsigned(move_ratio*65536);
+            m_translation_move_probability = unsigned(translation_move_probability*65536);
             }
 
-        //! Get move ratio
-        //! \returns ratio of translation versus rotation move attempts
-        inline double getMoveRatio()
+        //! Get translation move probability.
+        //! \returns Fraction of moves that are translation moves.
+        inline double getTranslationMoveProbability()
             {
-            return m_move_ratio/65536.0;
+            return m_translation_move_probability/65536.0;
             }
 
         //! Set nselect
@@ -339,26 +339,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         inline unsigned int getNSelect()
             {
             return m_nselect;
-            }
-
-        //! Print statistics about the hmc steps taken
-        virtual void printStats()
-            {
-            hpmc_counters_t counters = getCounters(1);
-            m_exec_conf->msg->notice(2) << "-- HPMC stats:" << "\n";
-            /* m_exec_conf->msg->notice(2) << "Average translate acceptance: " << counters.getTranslateCounts() << "\n"; */
-            if (counters.rotate_accept_count + counters.rotate_reject_count != 0)
-                {
-                /* m_exec_conf->msg->notice(2) << "Average rotate acceptance:    " << counters.getRotateCounts() << "\n"; */
-                }
-
-            // elapsed time
-            double cur_time = double(m_clock.getTime()) / Scalar(1e9);
-            uint64_t total_moves = counters.getNMoves();
-            m_exec_conf->msg->notice(2) << "Trial moves per second:        " << double(total_moves) / cur_time << std::endl;
-            m_exec_conf->msg->notice(2) << "Overlap checks per second:     " << double(counters.overlap_checks) / cur_time << std::endl;
-            m_exec_conf->msg->notice(2) << "Overlap checks per trial move: " << double(counters.overlap_checks) / double(total_moves) << std::endl;
-            m_exec_conf->msg->notice(2) << "Number of overlap errors:      " << double(counters.overlap_err_count) << std::endl;
             }
 
         //! Get performance in moves per second
@@ -522,7 +502,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
 
     protected:
         unsigned int m_seed;                        //!< Random number seed
-        unsigned int m_move_ratio;                  //!< Ratio of translation to rotation move attempts (*65535)
+        unsigned int m_translation_move_probability;     //!< Fraction of moves that are translation moves.
         unsigned int m_nselect;                     //!< Number of particles to select for trial moves
 
         GPUVector<Scalar> m_d;                      //!< Maximum move displacement by type

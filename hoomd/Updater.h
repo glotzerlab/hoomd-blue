@@ -136,18 +136,9 @@ class PYBIND11_EXPORT Updater
             return pybind11::array(0,tmp);
             }
 
-        //! Print some basic stats to stdout
-        /*! Derived classes can optionally implement this function. A System will
-            call all of the Updaters' printStats functions at the end of a run
-            so the user can see useful information
-        */
-        virtual void printStats()
-            {
-            }
-
         //! Reset stat counters
-        /*! If derived classes implement printStats, they should also implement resetStats() to clear any running
-            counters printed by printStats. System will reset the stats before any run() so that stats printed
+        /*! If derived classes provide statistics for the last run, they should resetStats() to
+            clear any counters. System will reset the stats before any run() so that stats printed
             at the end of the run only apply to that run() alone.
         */
         virtual void resetStats()
