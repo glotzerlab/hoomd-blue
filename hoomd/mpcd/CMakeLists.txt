@@ -119,7 +119,7 @@ add_library(HOOMD::_mpcd ALIAS _mpcd)
 if (APPLE)
 set_target_properties(_mpcd PROPERTIES INSTALL_RPATH "@loader_path/..;@loader_path/../md;@loader_path")
 else()
-set_target_properties(_mpcd PROPERTIES INSTALL_RPATH "$ORIGIN/..;$ORIGIN/../md;$ORIGIN")
+set_target_properties(_mpcd PROPERTIES INSTALL_RPATH "\$ORIGIN/..;\$ORIGIN/../md;\$ORIGIN")
 endif()
 
 if (ENABLE_HIP)
