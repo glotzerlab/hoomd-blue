@@ -45,6 +45,8 @@ betaP_boxmoves = list(product([1, 3, 5, 7, 10],
                         {'move':'length', "params": {'weight':1, 'delta':(0.05,)*3}}
                        ]))
 
+def _is_close(v1, v2):
+    return v1 == v2 if isinstance(v1, str) else np.allclose(v1, v2)
 
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction(constructor_args):
@@ -90,7 +92,7 @@ def test_valid_setattr(attr, value):
         # check if we have the same keys
         assert value.keys() == getattr(boxmc, attr).keys()
         for k in value.keys():
-            assert np.allclose(value[k], getattr(boxmc, attr)[k])
+            assert _is_close(value[k], getattr(boxmc, attr)[k])
     else:
         assert getattr(boxmc, attr) == value
 
@@ -118,7 +120,7 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
         # check if we have the same keys
         assert value.keys() == getattr(boxmc, attr).keys()
         for k in value.keys():
-            assert np.allclose(value[k], getattr(boxmc, attr)[k])
+            assert _is_close(value[k], getattr(boxmc, attr)[k])
     else:
         assert getattr(boxmc, attr) == value
 
@@ -183,9 +185,7 @@ def test_disk_compression(betaP, box_move, simulation_factory,
     assert sim.state.box == initial_box
 
     # add a box move
-    move_dict = {'weight': 1, 'delta': [0.05]*3 if box_move in ('shear', 'length') else 0.05}
-    move_dict = dict({'reduce': 0.2},  **move_dict) if box_move == 'shear' else move_dict
-    setattr(boxmc, box_move, move_dict)
+    setattr(boxmc, box_move['move'], box_move['params'])
     sim.run(500)
 
     # check that box is changed
