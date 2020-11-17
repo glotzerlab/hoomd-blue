@@ -47,3 +47,4 @@ hoomd.data
    :maxdepth: 3
 
    module-hoomd-array
+   module-hoomd-data-structures

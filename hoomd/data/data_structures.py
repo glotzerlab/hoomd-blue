@@ -105,17 +105,17 @@ def _to_hoomd_data_structure(data, type_def, parent=None, label=None):
     """
     if isinstance(data, MutableMapping):
         typing = _get_inner_typeconverter(type_def, TypeConverterMapping)
-        return _HOOMDDict(typing, parent, data, label)
+        return HOOMDDict(typing, parent, data, label)
     elif isinstance(data, MutableSequence):
         typing = _get_inner_typeconverter(type_def, TypeConverterSequence)
-        return _HOOMDList(typing, parent, data, label)
+        return HOOMDList(typing, parent, data, label)
     elif isinstance(data, MutableSet):
-        return _HOOMDSet(typing, parent, data, label)
+        return HOOMDSet(typing, parent, data, label)
     else:
         return data
 
 
-class _HOOMDList(MutableSequence, _HOOMDDataStructures):
+class HOOMDList(MutableSequence, _HOOMDDataStructures):
     """List with type validation.
 
     Use `to_base` to get a plain `list`.
@@ -251,7 +251,7 @@ class _HOOMDList(MutableSequence, _HOOMDDataStructures):
         return repr(self._list)
 
 
-class _HOOMDDict(MutableMapping, _HOOMDDataStructures):
+class HOOMDDict(MutableMapping, _HOOMDDataStructures):
     """Mapping with type validation.
 
     Allows dotted access to key values as well as long as they conform to
@@ -343,7 +343,7 @@ class _HOOMDDict(MutableMapping, _HOOMDDataStructures):
         return repr(self._dict)
 
 
-class _HOOMDSet(MutableSet, _HOOMDDataStructures):
+class HOOMDSet(MutableSet, _HOOMDDataStructures):
     """Set with type validation.
 
     Use `to_base` to get a plain `set`.
