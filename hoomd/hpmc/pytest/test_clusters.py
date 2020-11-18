@@ -6,9 +6,7 @@
 
 import hoomd
 import pytest
-import math
-import conftest
-from conftest import _valid_args as valid_integrator_param_pairs
+import hoomd.hpmc.pytest.conftest
 
 
 # note: The parameterized tests validate parameters so we can't pass in values
@@ -75,23 +73,32 @@ def test_valid_construction(constructor_args):
         assert getattr(cl, attr) == value
 
 
-@pytest.mark.parametrize("integrator,params", valid_integrator_param_pairs)
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction_and_attach(simulation_factory,
                                        two_particle_snapshot_factory,
                                        constructor_args,
-                                       integrator, params):
+                                       valid_args):
+                                       # integrator, params):
     """Test that Clusters can be attached with valid arguments."""
     cl = hoomd.hpmc.update.Clusters(**constructor_args)
 
     sim = simulation_factory(two_particle_snapshot_factory(particle_types=['A', 'B']))
     sim.operations.updaters.append(cl)
 
-    # Clusters requires an HPMC integrator
-    integrator = integrator[1] if isinstance(integrator, tuple) else integrator
-    mc = integrator(seed=1)
-    mc.shape['A'] = params
-    mc.shape['B'] = params
+    integrator = valid_args[0]
+    args = valid_args[1]
+    # Need to unpack union integrators
+    if isinstance(integrator, tuple):
+        inner_integrator = integrator[0]
+        integrator = integrator[1]
+        inner_mc = inner_integrator(23456)
+        for i in range(len(args["shapes"])):
+            # This will fill in default values for the inner shape objects
+            inner_mc.shape["A"] = args["shapes"][i]
+            args["shapes"][i] = inner_mc.shape["A"]
+    mc = integrator(23456)
+    mc.shape["A"] = args
+    mc.shape["B"] = args
     sim.operations.integrator = mc
 
     sim.operations._schedule()
@@ -112,11 +119,10 @@ def test_valid_setattr(attr, value):
     assert getattr(cl, attr) == value
 
 
-@pytest.mark.parametrize("integrator,params", valid_integrator_param_pairs)
 @pytest.mark.parametrize("attr,value", valid_attrs)
-def test_valid_setattr_attached(attr, value, integrator, params,
-                                simulation_factory,
-                                two_particle_snapshot_factory):
+def test_valid_setattr_attached(attr, value, simulation_factory,
+                                two_particle_snapshot_factory,
+                                valid_args):
     """Test that Clusters can get and set attributes while attached."""
     cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(10),
                                     swap_type_pair=['A', 'B'],
@@ -125,11 +131,20 @@ def test_valid_setattr_attached(attr, value, integrator, params,
     sim = simulation_factory(two_particle_snapshot_factory(particle_types=['A', 'B']))
     sim.operations.updaters.append(cl)
 
-    # Clusters requires an HPMC integrator
-    integrator = integrator[1] if isinstance(integrator, tuple) else integrator
-    mc = integrator(seed=1)
-    mc.shape['A'] = params
-    mc.shape['B'] = params
+    integrator = valid_args[0]
+    args = valid_args[1]
+    # Need to unpack union integrators
+    if isinstance(integrator, tuple):
+        inner_integrator = integrator[0]
+        integrator = integrator[1]
+        inner_mc = inner_integrator(23456)
+        for i in range(len(args["shapes"])):
+            # This will fill in default values for the inner shape objects
+            inner_mc.shape["A"] = args["shapes"][i]
+            args["shapes"][i] = inner_mc.shape["A"]
+    mc = integrator(23456)
+    mc.shape["A"] = args
+    mc.shape["B"] = args
     sim.operations.integrator = mc
 
     sim.operations._schedule()
