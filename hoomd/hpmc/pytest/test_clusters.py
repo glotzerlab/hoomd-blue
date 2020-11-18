@@ -7,62 +7,9 @@
 import hoomd
 import pytest
 import math
-import hoomd.hpmc.pytest.conftest
+import conftest
+from conftest import _valid_args as valid_integrator_param_pairs
 
-_3d_verts = [(0.5, 0.5, 0.5),
-             (0.5, -0.5, -0.5),
-             (-0.5, 0.5, -0.5),
-             (-0.5, -0.5, 0.5)]
-
-_2d_verts = [(-0.5, -0.5),
-             (0.5, -0.5),
-             (0.5, 0.5),
-             (-0.5, 0.5)]
-
-integrators = [
-    ('Sphere', dict(diameter=1)),
-    ('ConvexPolyhedron', dict(vertices=_3d_verts)),
-    ('ConvexSpheropolyhedron', dict(vertices=_3d_verts, sweep_radius=0.1)),
-    ('Ellipsoid', dict(a=0.5, b=0.25, c=0.125))
-]
-
-
-               #
-               # dict(shape='ConvexSpheropolyhedron',
-               #      params=dict(vertices=_3d_verts),
-               #                 sweep_radius=0.1),
-               # dict(shape='ConvexPolygon',
-               #      params=dict(vertices=_2d_verts)),
-               # dict(shape='SimplePolygon',
-               #      params=dict(vertices=_2d_verts)),
-               # dict(shape='ConvexSpheropolygon',
-               #      params=dict(vertices=_2d_verts),
-               #      sweep_radius=0.1)]
-
-# integrators = [dict(shape='Sphere',
-#                     params=dict(diameter=1)),
-#                dict(shape='ConvexPolyhedron',
-#                     params=dict(vertices=_3d_verts)),
-#                dict(shape='ConvexSpheropolyhedron',
-#                     params=dict(vertices=_3d_verts),
-#                                 sweep_radius=0.1),
-#                dict(shape='Ellipsoid',
-#                     params=dict(a=0.5, b=0.25, c=0.125)),
-#                dict(shape='ConvexSpheropolyhedron',
-#                     params=dict(vertices=_3d_verts),
-#                                sweep_radius=0.1),
-#                dict(shape='ConvexPolygon',
-#                     params=dict(vertices=_2d_verts)),
-#                dict(shape='SimplePolygon',
-#                     params=dict(vertices=_2d_verts)),
-#                dict(shape='ConvexSpheropolygon',
-#                     params=dict(vertices=_2d_verts),
-#                     sweep_radius=0.1)]
-
-               # 'FacetedEllipsoid',
-               # 'SphereUnion', 'ConvexPolyhedronUnion',
-               # 'FacetedEllipsoidUnion', 'Polyhedron',
-               # 'Sphinx']
 
 # note: The parameterized tests validate parameters so we can't pass in values
 # here that require preprocessing
@@ -121,7 +68,7 @@ def test_valid_construction(constructor_args):
         assert getattr(cl, attr) == value
 
 
-@pytest.mark.parametrize("integrator,params", integrators)
+@pytest.mark.parametrize("integrator,params", valid_integrator_param_pairs)
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction_and_attach(simulation_factory,
                                        two_particle_snapshot_factory,
@@ -134,7 +81,8 @@ def test_valid_construction_and_attach(simulation_factory,
     sim.operations.updaters.append(cl)
 
     # Clusters requires an HPMC integrator
-    mc = hoomd.hpmc.integrate.__dict__[integrator](seed=1)
+    integrator = integrator[1] if isinstance(integrator, tuple) else integrator
+    mc = integrator(seed=1)
     mc.shape['A'] = params
     mc.shape['B'] = params
     sim.operations.integrator = mc
@@ -157,7 +105,7 @@ def test_valid_setattr(attr, value):
     assert getattr(cl, attr) == value
 
 
-@pytest.mark.parametrize("integrator,params", integrators)
+@pytest.mark.parametrize("integrator,params", valid_integrator_param_pairs)
 @pytest.mark.parametrize("attr,value", valid_attrs)
 def test_valid_setattr_attached(attr, value, integrator, params,
                                 simulation_factory,
@@ -171,7 +119,8 @@ def test_valid_setattr_attached(attr, value, integrator, params,
     sim.operations.updaters.append(cl)
 
     # Clusters requires an HPMC integrator
-    mc = hoomd.hpmc.integrate.__dict__[integrator](seed=1)
+    integrator = integrator[1] if isinstance(integrator, tuple) else integrator
+    mc = integrator(seed=1)
     mc.shape['A'] = params
     mc.shape['B'] = params
     sim.operations.integrator = mc
