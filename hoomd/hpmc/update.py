@@ -784,6 +784,7 @@ class Clusters(Updater):
     Attributes:
         seed (int): Random number seed.
         swap_type_pair (list): A pair of two types whose identities may be swapped.
+        delta_mu (float): The chemical potential difference between types to be swapped
         move_ratio (float): Set the ratio between pivot and reflection moves.
         flip_probability (float): Set the probability for transforming an
                                  individual cluster.
@@ -793,7 +794,7 @@ class Clusters(Updater):
             moves.
     """
 
-    def __init__(self, seed, swap_type_pair, move_ratio=0.5,
+    def __init__(self, seed, swap_type_pair, delta_mu=0, move_ratio=0.5,
                  flip_probability=0.5, swap_move_ratio=0.5, trigger=1):
         super().__init__(trigger)
         try:
@@ -807,7 +808,8 @@ class Clusters(Updater):
                                    swap_type_pair=list(swap_type_pair),
                                    move_ratio=float(move_ratio),
                                    flip_probability=float(flip_probability),
-                                   swap_move_ratio=float(swap_move_ratio))
+                                   swap_move_ratio=float(swap_move_ratio),
+                                   delta_mu=float(delta_mu))
         self._param_dict.update(param_dict)
 
     def _attach(self):

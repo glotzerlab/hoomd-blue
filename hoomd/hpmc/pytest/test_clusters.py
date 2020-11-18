@@ -15,24 +15,28 @@ from conftest import _valid_args as valid_integrator_param_pairs
 # here that require preprocessing
 valid_constructor_args = [
     dict(trigger=hoomd.trigger.Periodic(10),
+         delta_mu = 0,
          swap_type_pair=[],
          move_ratio=0.1,
          flip_probability=0.8,
          swap_move_ratio=0.1,
          seed=1),
     dict(trigger=hoomd.trigger.After(100),
+         delta_mu=-1.5,
          swap_type_pair=['A', 'B'],
          move_ratio=0.7,
          flip_probability=1,
          swap_move_ratio=0.1,
          seed=4),
     dict(trigger=hoomd.trigger.Before(100),
+         delta_mu=2.4,
          swap_type_pair=[],
          move_ratio=0.7,
          flip_probability=1,
          swap_move_ratio=0.1,
          seed=4),
     dict(trigger=hoomd.trigger.Periodic(1000),
+         delta_mu=0,
          swap_type_pair=['A', 'B'],
          move_ratio=0.7,
          flip_probability=1,
@@ -55,6 +59,9 @@ valid_attrs = [
     ('swap_move_ratio', 0.2),
     ('swap_move_ratio', 0.5),
     ('swap_move_ratio', 0.8),
+    ('delta_mu', 1.8),
+    ('delta_mu', -3.1),
+    ('delta_mu', 2.4),
 ]
 
 
