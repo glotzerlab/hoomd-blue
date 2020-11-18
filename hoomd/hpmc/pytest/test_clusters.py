@@ -68,25 +68,25 @@ integrators = [
 # here that require preprocessing
 valid_constructor_args = [
     dict(trigger=hoomd.trigger.Periodic(10),
-         swap_types=[],
+         swap_type_pair=[],
          move_ratio=0.1,
          flip_probability=0.8,
          swap_move_ratio=0.1,
          seed=1),
     dict(trigger=hoomd.trigger.After(100),
-         swap_types=['A', 'B'],
+         swap_type_pair=['A', 'B'],
          move_ratio=0.7,
          flip_probability=1,
          swap_move_ratio=0.1,
          seed=4),
     dict(trigger=hoomd.trigger.Before(100),
-         swap_types=[],
+         swap_type_pair=[],
          move_ratio=0.7,
          flip_probability=1,
          swap_move_ratio=0.1,
          seed=4),
     dict(trigger=hoomd.trigger.Periodic(1000),
-         swap_types=['A', 'B'],
+         swap_type_pair=['A', 'B'],
          move_ratio=0.7,
          flip_probability=1,
          swap_move_ratio=0.1,
@@ -97,8 +97,8 @@ valid_attrs = [
     ('trigger', hoomd.trigger.Periodic(10000)),
     ('trigger', hoomd.trigger.After(100)),
     ('trigger', hoomd.trigger.Before(12345)),
-    ('swap_types', []),
-    ('swap_types', ['A', 'B']),
+    ('swap_type_pair', []),
+    ('swap_type_pair', ['A', 'B']),
     ('flip_probability', 0.2),
     ('flip_probability', 0.5),
     ('flip_probability', 0.8),
@@ -126,16 +126,17 @@ def test_valid_construction(constructor_args):
 def test_valid_construction_and_attach(simulation_factory,
                                        two_particle_snapshot_factory,
                                        constructor_args,
-                                       integrator):
+                                       integrator, params):
     """Test that Clusters can be attached with valid arguments."""
     cl = hoomd.hpmc.update.Clusters(**constructor_args)
 
-    sim = simulation_factory(two_particle_snapshot_factory())
+    sim = simulation_factory(two_particle_snapshot_factory(particle_types=['A', 'B']))
     sim.operations.updaters.append(cl)
 
     # Clusters requires an HPMC integrator
     mc = hoomd.hpmc.integrate.__dict__[integrator](seed=1)
     mc.shape['A'] = params
+    mc.shape['B'] = params
     sim.operations.integrator = mc
 
     sim.operations._schedule()
@@ -149,7 +150,7 @@ def test_valid_construction_and_attach(simulation_factory,
 def test_valid_setattr(attr, value):
     """Test that Clusters can get and set attributes."""
     cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(10),
-                                    swap_types=[],
+                                    swap_type_pair=['A', 'B'],
                                     seed=1)
 
     setattr(cl, attr, value)
@@ -158,91 +159,24 @@ def test_valid_setattr(attr, value):
 
 @pytest.mark.parametrize("integrator,params", integrators)
 @pytest.mark.parametrize("attr,value", valid_attrs)
-def test_valid_setattr_attached(attr, value, integrator, simulation_factory,
+def test_valid_setattr_attached(attr, value, integrator, params,
+                                simulation_factory,
                                 two_particle_snapshot_factory):
     """Test that Clusters can get and set attributes while attached."""
     cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(10),
-                                    swap_types=[],
+                                    swap_type_pair=['A', 'B'],
                                     seed=1)
 
-    sim = simulation_factory(two_particle_snapshot_factory())
+    sim = simulation_factory(two_particle_snapshot_factory(particle_types=['A', 'B']))
     sim.operations.updaters.append(cl)
 
     # Clusters requires an HPMC integrator
     mc = hoomd.hpmc.integrate.__dict__[integrator](seed=1)
     mc.shape['A'] = params
+    mc.shape['B'] = params
     sim.operations.integrator = mc
 
     sim.operations._schedule()
 
     setattr(cl, attr, value)
     assert getattr(cl, attr) == value
-
-
-# @pytest.mark.parametrize("phi", [0.2, 0.3, 0.4, 0.5, 0.55, 0.58, 0.6])
-# @pytest.mark.validate
-# def test_sphere_compression(phi, simulation_factory, lattice_snapshot_factory):
-#     """Test that QuickCompress can compress (and expand) simulation boxes."""
-#     n = 7
-#     snap = lattice_snapshot_factory(n=n, a=1.1)
-#     v_particle = 4 / 3 * math.pi * (0.5)**3
-#     target_box = hoomd.Box.cube((n * n * n * v_particle / phi)**(1 / 3))
-#
-#     qc = hoomd.hpmc.update.QuickCompress(trigger=hoomd.trigger.Periodic(10),
-#                                          target_box=target_box,
-#                                          seed=1)
-#
-#     sim = simulation_factory(snap)
-#     sim.operations.updaters.append(qc)
-#
-#     mc = hoomd.hpmc.integrate.Sphere(d=0.05, seed=1)
-#     mc.shape['A'] = dict(diameter=1)
-#     sim.operations.integrator = mc
-#
-#     sim.run(1)
-#
-#     # compression should not be complete yet
-#     assert not qc.complete
-#
-#     # run long enough to compress the box
-#     while not qc.complete and sim.timestep < 1e5:
-#         sim.run(100)
-#
-#     # compression should end the run early
-#     assert qc.complete
-#     assert mc.overlaps == 0
-#     assert sim.state.box == target_box
-#
-#
-# @pytest.mark.parametrize("phi", [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8])
-# @pytest.mark.validate
-# def test_disk_compression(phi, simulation_factory, lattice_snapshot_factory):
-#     """Test that QuickCompress can compress (and expand) simulation boxes."""
-#     n = 7
-#     snap = lattice_snapshot_factory(dimensions=2, n=n, a=1.1)
-#     v_particle = math.pi * (0.5)**2
-#     target_box = hoomd.Box.square((n * n * v_particle / phi)**(1 / 2))
-#
-#     qc = hoomd.hpmc.update.QuickCompress(trigger=hoomd.trigger.Periodic(10),
-#                                          target_box=target_box,
-#                                          seed=1)
-#
-#     sim = simulation_factory(snap)
-#     sim.operations.updaters.append(qc)
-#
-#     mc = hoomd.hpmc.integrate.Sphere(d=0.05, seed=1)
-#     mc.shape['A'] = dict(diameter=1)
-#     sim.operations.integrator = mc
-#
-#     sim.run(1)
-#
-#     # compression should not be complete yet
-#     assert not qc.complete
-#
-#     while not qc.complete and sim.timestep < 1e5:
-#         sim.run(100)
-#
-#     # compression should end the run early
-#     assert qc.complete
-#     assert mc.overlaps == 0
-#     assert sim.state.box == target_box

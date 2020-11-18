@@ -748,7 +748,7 @@ class Clusters(Updater):
 
     Args:
         seed (int): Random number seed.
-        swap_types (list[tuple[str, str]]): A pair of two types whose identities
+        swap_type_pair (list[tuple[str, str]]): A pair of two types whose identities
             may be swapped.
         move_ratio (float): Set the ratio between pivot and reflection moves.
         flip_probability (float): Set the probability for transforming an
@@ -783,7 +783,7 @@ class Clusters(Updater):
 
     Attributes:
         seed (int): Random number seed.
-        swap_types (list): A pair of two types whose identities may be swapped.
+        swap_type_pair (list): A pair of two types whose identities may be swapped.
         move_ratio (float): Set the ratio between pivot and reflection moves.
         flip_probability (float): Set the probability for transforming an
                                  individual cluster.
@@ -793,18 +793,18 @@ class Clusters(Updater):
             moves.
     """
 
-    def __init__(self, seed, swap_types, move_ratio=0.5,
+    def __init__(self, seed, swap_type_pair, move_ratio=0.5,
                  flip_probability=0.5, swap_move_ratio=0.5, trigger=1):
         super().__init__(trigger)
         try:
-            if len(swap_types) != 2 and len(swap_types) != 0:
+            if len(swap_type_pair) != 2 and len(swap_type_pair) != 0:
                 raise ValueError
         except (TypeError, ValueError):
-            raise ValueError("swap_types must be an iterable of length "
+            raise ValueError("swap_type_pair must be an iterable of length "
                              "2 or 0.")
 
         param_dict = ParameterDict(seed=int(seed),
-                                   swap_types=list(swap_types),
+                                   swap_type_pair=list(swap_type_pair),
                                    move_ratio=float(move_ratio),
                                    flip_probability=float(flip_probability),
                                    swap_move_ratio=float(swap_move_ratio))
@@ -834,7 +834,7 @@ class Clusters(Updater):
                     _hpmc.UpdaterClustersFacetedEllipsoid),
                 (integrate.SphereUnion,
                     _hpmc.UpdaterClustersSphereUnion),
-                (integrate.ConvexPolyhedronUnion,
+                (integrate.ConvexSpheropolyhedronUnion,
                     _hpmc.UpdaterClustersConvexPolyhedronUnion),
                 (integrate.FacetedEllipsoidUnion,
                     _hpmc.UpdaterClustersFacetedEllipsoidUnion),
