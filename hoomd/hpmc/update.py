@@ -774,8 +774,11 @@ class Clusters(Updater):
     because of periodic boundary conditions, as discussed in Sinkovits et al.
     (2012), http://doi.org/10.1063/1.3694271.
 
-    The type swap move works between two types of spherical particles and
-    exchanges their identities.
+
+    Note:
+        The type swap move only works between two types of equal sized,
+        unorientable (``orientable``=``False``) spherical particles and
+        exchanges their identities.
 
     .. rubric:: Threading
 
