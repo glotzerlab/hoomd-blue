@@ -6,6 +6,7 @@
 
 import hoomd
 import pytest
+import numpy as np
 import hoomd.hpmc.pytest.conftest
 
 
@@ -151,3 +152,73 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
 
     setattr(cl, attr, value)
     assert getattr(cl, attr) == value
+
+
+@pytest.mark.parametrize("delta_mu", [-2.0, 0, 2.0])
+def test_swap_moves(delta_mu, simulation_factory,
+                    lattice_snapshot_factory):
+    """Test that Clusters can swap types."""
+
+    sim = simulation_factory(lattice_snapshot_factory(particle_types=['A', 'B'],
+                                                      dimensions=3, a=3, n=5, r=0.1))
+
+
+    mc = hoomd.hpmc.integrate.Sphere(seed=1, d=0.1, a=0.1)
+    mc.shape['A'] = dict(diameter=1)
+    mc.shape['B'] = dict(diameter=1)
+    sim.operations.integrator = mc
+
+    cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(5),
+                                    swap_type_pair=['A', 'B'],
+                                    swap_move_ratio=1,
+                                    delta_mu=delta_mu,
+                                    seed=12)
+    sim.operations.updaters.append(cl)
+
+    # set every other particle to type B (typeid=1)
+    with sim.state.cpu_local_snapshot as data:
+        data.particles.typeid[range(0, sim.state.N_particles, 2)] = 1
+
+    # number of type B particles should change after a run
+    num_type_B = np.sum(sim.state.snapshot.particles.typeid)
+    sim.run(100)
+    assert np.sum(sim.state.snapshot.particles.typeid) != num_type_B
+
+    # ALL swap moves should be accepted when delta_mu = 0
+    acceptance = cl.swap_moves[0]/np.sum(cl.swap_moves)
+    num_type_B = np.sum(sim.state.snapshot.particles.typeid)
+    num_type_A = len(sim.state.snapshot.particles.typeid) - num_type_B
+    if delta_mu<0:
+        assert num_type_B < num_type_A
+        assert acceptance < 1
+    elif delta_mu == 0.0:
+        assert np.isclose(acceptance, 1.0)
+    elif delta_mu>0:
+        assert num_type_A < num_type_B
+        assert acceptance < 1
+
+
+@pytest.mark.parametrize("delta_mu", [-2.0, 0, 2.0])
+def test_pivot_moves(delta_mu, simulation_factory,
+                     lattice_snapshot_factory):
+    """Test that Clusters always accept pivot moves."""
+
+    sim = simulation_factory(lattice_snapshot_factory(particle_types=['A', 'B'],
+                                                      dimensions=3, a=3, n=5, r=0.1))
+
+    mc = hoomd.hpmc.integrate.Sphere(seed=1, d=0.1, a=0.1)
+    mc.shape['A'] = dict(diameter=1.1)
+    mc.shape['B'] = dict(diameter=1.3)
+    sim.operations.integrator = mc
+
+    cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(5),
+                                    swap_type_pair=[],
+                                    move_ratio=0.5,
+                                    delta_mu=delta_mu,
+                                    seed=12)
+    sim.operations.updaters.append(cl)
+
+    sim.run(100)
+
+    acceptance = cl.pivot_moves[0]/np.sum(cl.pivot_moves)
+    assert np.isclose(acceptance, 1.0)
