@@ -175,8 +175,8 @@ def test_swap_moves(delta_mu, simulation_factory,
                                     seed=12)
     sim.operations.updaters.append(cl)
 
-    # set every other particle to type B (typeid=1)
-    if sim.device.communicator.rank == 0:
+    # set every other particle to type B (type=1)
+    if sim.state.snapshot.exists:
         attr = "gpu_local_snapshot" if isinstance(sim.device, hoomd.device.GPU) else "cpu_local_snapshot"
         with getattr(sim.state, attr) as data:
                 data.particles.typeid[range(0, sim.state.N_particles, 2)] = 1
