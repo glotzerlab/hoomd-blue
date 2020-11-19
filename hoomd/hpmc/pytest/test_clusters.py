@@ -176,8 +176,10 @@ def test_swap_moves(delta_mu, simulation_factory,
     sim.operations.updaters.append(cl)
 
     # set every other particle to type B (typeid=1)
-    with sim.state.cpu_local_snapshot as data:
-        data.particles.typeid[range(0, sim.state.N_particles, 2)] = 1
+    if sim.device.communicator.rank == 0:
+        attr = "gpu_local_snapshot" if isinstance(sim.device, hoomd.device.GPU) else "cpu_local_snapshot"
+        with getattr(sim.state, attr) as data:
+                data.particles.typeid[range(0, sim.state.N_particles, 2)] = 1
 
     # number of type B particles should change after a run
     num_type_B = np.sum(sim.state.snapshot.particles.typeid)
