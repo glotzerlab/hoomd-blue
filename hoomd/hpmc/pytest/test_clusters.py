@@ -9,6 +9,15 @@ import pytest
 import numpy as np
 import hoomd.hpmc.pytest.conftest
 
+try:
+    # We use the CUPY_IMPORTED variable to allow for local GPU testing without
+    # CuPy installed. This code could be simplified to only work with CuPy, by
+    # requiring its installation for testing. The CI containers already have
+    # CuPy installed when build for the GPU.
+    import cupy
+    CUPY_IMPORTED = True
+except ImportError:
+    CUPY_IMPORTED = False
 
 # note: The parameterized tests validate parameters so we can't pass in values
 # here that require preprocessing
@@ -176,10 +185,10 @@ def test_swap_moves(delta_mu, simulation_factory,
     sim.operations.updaters.append(cl)
 
     # set every other particle to type B (type=1)
-    if sim.state.snapshot.exists:
-        attr = "gpu_local_snapshot" if isinstance(sim.device, hoomd.device.GPU) else "cpu_local_snapshot"
-        with getattr(sim.state, attr) as data:
-                data.particles.typeid[range(0, sim.state.N_particles, 2)] = 1
+    snap = sim.state.snapshot
+    if snap.exists:
+        snap.particles.typeid[range(0, sim.state.N_particles, 2)] = 1
+    sim.state.snapshot = snap
 
     # number of type B particles should change after a run
     num_type_B = np.sum(sim.state.snapshot.particles.typeid)
