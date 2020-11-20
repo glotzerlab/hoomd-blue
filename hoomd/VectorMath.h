@@ -742,6 +742,11 @@ struct quat
         \note For some unfathomable reason, hoomd stores a quaternion as (x, (y,z,w)). Be aware of this when using the
               data elsewhere.
     */
+
+    DEVICE explicit quat(const Real& _s, const Real& _x, const Real& _y, const Real& _z) : s(_s), v(vec3<Real>(_x, _y, _z))
+        {
+        }
+
     DEVICE explicit quat(const Scalar4& a) : s(a.x), v(vec3<Real>(a.y, a.z, a.w))
         {
         }

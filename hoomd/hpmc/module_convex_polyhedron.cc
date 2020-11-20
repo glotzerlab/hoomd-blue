@@ -56,6 +56,7 @@ void export_convex_polyhedron(py::module& m)
 
     export_ExternalFieldInterface<ShapeConvexPolyhedron >(m, "ExternalFieldConvexPolyhedron");
     export_LatticeField<ShapeConvexPolyhedron >(m, "ExternalFieldLatticeConvexPolyhedron");
+    export_LatticeFieldHypersphere<ShapeConvexPolyhedron >(m, "ExternalFieldLatticeConvexPolyhedronHypersphere");
     export_ExternalFieldComposite<ShapeConvexPolyhedron >(m, "ExternalFieldCompositeConvexPolyhedron");
     export_RemoveDriftUpdater<ShapeConvexPolyhedron >(m, "RemoveDriftUpdaterConvexPolyhedron");
     export_ExternalFieldWall<ShapeConvexPolyhedron >(m, "WallConvexPolyhedron");

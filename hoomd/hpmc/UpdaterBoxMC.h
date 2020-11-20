@@ -199,6 +199,8 @@ class UpdaterBoxMC : public Updater
             {
             unsigned int MaxN = m_pdata->getMaxN();
             m_pos_backup.resize(MaxN);
+            m_quat_l_backup.resize(MaxN);
+            m_quat_r_backup.resize(MaxN);
             }
 
         //! Take one timestep forward
@@ -295,6 +297,9 @@ class UpdaterBoxMC : public Updater
         float m_Aspect_weight;                     //!< relative weight of aspect ratio moves
 
         GPUArray<Scalar4> m_pos_backup;             //!< hold backup copy of particle positions
+
+        GPUArray<Scalar4> m_quat_l_backup;             //!< hold backup copy of particle positions
+        GPUArray<Scalar4> m_quat_r_backup;             //!< hold backup copy of particle positions
 
         hpmc_boxmc_counters_t m_count_total;          //!< Accept/reject total count
         hpmc_boxmc_counters_t m_count_run_start;      //!< Count saved at run() start

@@ -53,6 +53,7 @@ void export_sphere(py::module& m)
 
     export_ExternalFieldInterface<ShapeSphere>(m, "ExternalFieldSphere");
     export_LatticeField<ShapeSphere>(m, "ExternalFieldLatticeSphere");
+    export_LatticeFieldHypersphere<ShapeSphere>(m, "ExternalFieldLatticeSphereHypersphere");
     export_ExternalFieldComposite<ShapeSphere>(m, "ExternalFieldCompositeSphere");
     export_RemoveDriftUpdater<ShapeSphere>(m, "RemoveDriftUpdaterSphere");
     export_ExternalFieldWall<ShapeSphere>(m, "WallSphere");

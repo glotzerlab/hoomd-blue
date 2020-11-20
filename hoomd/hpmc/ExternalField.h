@@ -45,6 +45,11 @@ class ExternalField : public Compute
                                                 const BoxDim * const  box_old
                                             ){return 0;}
 
+        virtual double calculateDeltaEHypersphere(const Scalar4 * const  quat_l_old,
+                                                const Scalar4 * const  quat_r_old,
+                                                const Hypersphere * const  hypersphere_old
+                                            ){return 0;}
+
         virtual bool hasVolume() {return false;}
 
         virtual Scalar getVolume() {return 0;}
@@ -68,6 +73,9 @@ class ExternalFieldMono : public ExternalField
         //! method to calculate the energy difference for the proposed move.
         virtual double energydiff(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new){return 0;}
 
+        //! method to calculate the energy difference for the proposed move.
+        virtual double energydiffHypersphere(const unsigned int& index, const quat<Scalar>& quat_l_old, const quat<Scalar>& quat_r_old, const Shape& shape_old, const quat<Scalar>& quat_l_new, const quat<Scalar>& quat_r_new, const Shape& shape_new){return 0;}
+
         virtual void reset(unsigned int timestep) {}
     };
 
@@ -79,8 +87,10 @@ void export_ExternalFieldInterface(pybind11::module& m, std::string name)
     .def(pybind11::init< std::shared_ptr<SystemDefinition> >())
     .def("compute", &ExternalFieldMono<Shape>::compute)
     .def("energydiff", &ExternalFieldMono<Shape>::energydiff)
+    .def("energydiffHypersphere", &ExternalFieldMono<Shape>::energydiffHypersphere)
     .def("calculateBoltzmannWeight", &ExternalFieldMono<Shape>::calculateBoltzmannWeight)
     .def("calculateDeltaE", &ExternalFieldMono<Shape>::calculateDeltaE)
+    .def("calculateDeltaEHypersphere", &ExternalFieldMono<Shape>::calculateDeltaEHypersphere)
     ;
     }
 

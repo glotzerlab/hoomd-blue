@@ -226,6 +226,181 @@ class lattice_field(_external):
         timestep = hoomd.context.current.system.getCurrentTimeStep();
         return self.cpp_compute.getSigma(timestep);
 
+
+class lattice_field_hypersphere(_external):
+    R""" Restrain particles on a lattice
+
+    Args:
+        mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
+        position (list): list of positions to restrain each particle (distance units).
+        orientation (list): list of orientations to restrain each particle (quaternions).
+        k (float): translational spring constant.
+        q (float): rotational spring constant.
+        symmetry (list): list of equivalent quaternions for the shape.
+        composite (bool): Set this to True when this field is part of a :py:class:`external_field_composite`.
+
+    :py:class:`lattice_field` specifies that a harmonic spring is added to every particle:
+
+    .. math::
+
+        V_{i}(r)  = k_r*(r_i-r_{oi})^2 \\
+        V_{i}(q)  = k_q*(q_i-q_{oi})^2
+
+    Note:
+        1/2 is not included in the formulas, specify your spring constants accordingly.
+
+    * :math:`k_r` - translational spring constant.
+    * :math:`r_{o}` - lattice positions (in distance units).
+    * :math:`k_q` - rotational spring constant.
+    * :math:`q_{o}` - lattice orientations (quaternion)
+
+    Once initialized, the compute provides the following log quantities that can be logged via analyze.log:
+
+    * **lattice_energy** -- total lattice energy
+    * **lattice_energy_pp_avg** -- average lattice energy per particle multiplied by the spring constant
+    * **lattice_energy_pp_sigma** -- standard deviation of the lattice energy per particle multiplied by the spring constant
+    * **lattice_translational_spring_constant** -- translational spring constant
+    * **lattice_rotational_spring_constant** -- rotational spring constant
+    * **lattice_num_samples** -- number of samples used to compute the average and standard deviation
+
+    .. warning::
+        The lattice energies and standard deviations logged by this class are multiplied by the spring constant.
+
+    Example::
+
+        mc = hpmc.integrate.sphere(seed=415236);
+        hpmc.field.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
+        log = analyze.log(quantities=['lattice_energy'], period=100, filename='log.dat', overwrite=True);
+
+    """
+    def __init__(self, mc, quat_l = [], quat_r = [], k = 0.0, q = 0.0, symmetry = [], composite=False):
+        import numpy
+        hoomd.util.print_status_line();
+        _external.__init__(self);
+        cls = None;
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            if isinstance(mc, integrate.sphere):
+                cls = _hpmc.ExternalFieldLatticeSphereHypersphere;
+            elif isinstance(mc, integrate.convex_polyhedron):
+                cls = _hpmc.ExternalFieldLatticeConvexPolyhedronHypersphere;
+            else:
+                hoomd.context.msg.error("compute.position_lattice_field: Unsupported integrator.\n");
+                raise RuntimeError("Error initializing compute.position_lattice_field");
+        else:
+            hoomd.context.msg.error("GPU not supported yet")
+            raise RuntimeError("Error initializing compute.position_lattice_field");
+
+        self.compute_name = "lattice_field_hypersphere"
+        enlist = hoomd.hpmc.data._param.ensure_list;
+        self.cpp_compute = cls(hoomd.context.current.system_definition, enlist(quat_l), float(k), enlist(quat_r), float(q), enlist(symmetry));
+        hoomd.context.current.system.addCompute(self.cpp_compute, self.compute_name)
+        if not composite:
+            mc.set_external(self);
+
+    def set_references(self, quat_l = [], quat_r = []):
+        R""" Reset the reference positions or reference orientations.
+
+        Args:
+            position (list): list of positions to restrain each particle.
+            orientation (list): list of orientations to restrain each particle.
+
+        Example::
+
+            mc = hpmc.integrate.sphere(seed=415236);
+            lattice = hpmc.field.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
+            lattice.set_references(position=bcc_lattice)
+
+        """
+        import numpy
+        hoomd.util.print_status_line();
+        enlist = hoomd.hpmc.data._param.ensure_list;
+        self.cpp_compute.setReferences(enlist(quat_l), enlist(quat_r));
+
+    def set_params(self, k, q):
+        R""" Set the translational and rotational spring constants.
+
+        Args:
+            k (float): translational spring constant.
+            q (float): rotational spring constant.
+
+        Example::
+
+            mc = hpmc.integrate.sphere(seed=415236);
+            lattice = hpmc.field.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
+            ks = np.linspace(1000, 0.01, 100);
+            for k in ks:
+              lattice.set_params(k=k, q=0.0);
+              run(1000)
+
+        """
+        hoomd.util.print_status_line();
+        self.cpp_compute.setParams(float(k), float(q));
+
+    def reset(self, timestep = None):
+        R""" Reset the statistics counters.
+
+        Args:
+            timestep (int): the timestep to pass into the reset function.
+
+        Example::
+
+            mc = hpmc.integrate.sphere(seed=415236);
+            lattice = hpmc.field.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
+            ks = np.linspace(1000, 0.01, 100);
+            for k in ks:
+              lattice.set_params(k=k, q=0.0);
+              lattice.reset();
+              run(1000)
+
+        """
+        hoomd.util.print_status_line();
+        if timestep == None:
+            timestep = hoomd.context.current.system.getCurrentTimeStep();
+        self.cpp_compute.reset(timestep);
+
+    def get_energy(self):
+        R"""    Get the current energy of the lattice field.
+                This is a collective call and must be called on all ranks.
+        Example::
+            mc = hpmc.integrate.sphere(seed=415236);
+            lattice = hpmc.field.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
+            run(20000)
+            eng = lattice.get_energy()
+        """
+        hoomd.util.print_status_line();
+        timestep = hoomd.context.current.system.getCurrentTimeStep();
+        return self.cpp_compute.getEnergy(timestep);
+
+    def get_average_energy(self):
+        R"""    Get the average energy per particle of the lattice field.
+                This is a collective call and must be called on all ranks.
+
+        Example::
+            mc = hpmc.integrate.sphere(seed=415236);
+            lattice = hpmc.field.lattice_field(mc=mc, position=fcc_lattice, k=exp(15));
+            run(20000)
+            avg_eng = lattice.get_average_energy() //  should be about 1.5kT
+
+        """
+        hoomd.util.print_status_line();
+        timestep = hoomd.context.current.system.getCurrentTimeStep();
+        return self.cpp_compute.getAvgEnergy(timestep);
+
+    def get_sigma_energy(self):
+        R"""    Gives the standard deviation of the average energy per particle of the lattice field.
+                This is a collective call and must be called on all ranks.
+
+        Example::
+            mc = hpmc.integrate.sphere(seed=415236);
+            lattice = hpmc.field.lattice_field(mc=mc, position=fcc_lattice, k=exp(15));
+            run(20000)
+            sig_eng = lattice.get_sigma_energy()
+
+        """
+        hoomd.util.print_status_line();
+        timestep = hoomd.context.current.system.getCurrentTimeStep();
+        return self.cpp_compute.getSigma(timestep);
+
 class external_field_composite(_external):
     R""" Manage multiple external fields.
 
@@ -896,6 +1071,122 @@ class frenkel_ladd_energy(_compute):
                                         q = self.rotat_spring_const,
                                         symmetry=symmetry);
         self.remove_drift = hoomd.hpmc.update.remove_drift(self.mc, self.lattice, period=drift_period);
+
+
+    def reset_statistics(self):
+        R""" Reset the statistics counters.
+
+        Example::
+
+            mc = hpmc.integrate.sphere(seed=415236);
+            fl = hpmc.compute.frenkel_ladd_energy(mc=mc, ln_gamma=0.0, q_factor=10.0, r0=rs, q0=qs, drift_period=1000)
+            ks = np.linspace(1000, 0.01, 100);
+            for k in ks:
+              fl.set_params(ln_gamma=math.log(k), q_factor=10.0);
+              fl.reset_statistics();
+              run(1000)
+
+        """
+        hoomd.util.print_status_line();
+        self.lattice.reset(0);
+
+    def set_params(self, ln_gamma = None, q_factor = None):
+        R""" Set the Frenkel-Ladd parameters.
+
+        Args:
+            ln_gamma (float): log of the translational spring constant
+            q_factor (float): scale factor between the translational spring constant and rotational spring constant
+
+        Example::
+
+            mc = hpmc.integrate.sphere(seed=415236);
+            fl = hpmc.compute.frenkel_ladd_energy(mc=mc, ln_gamma=0.0, q_factor=10.0, r0=rs, q0=qs, drift_period=1000)
+            ks = np.linspace(1000, 0.01, 100);
+            for k in ks:
+              fl.set_params(ln_gamma=math.log(k), q_factor=10.0);
+              fl.reset_statistics();
+              run(1000)
+
+        """
+        import math
+        hoomd.util.print_status_line();
+        if not q_factor is None:
+            self.q_factor = q_factor;
+        if not ln_gamma is None:
+            self.trans_spring_const = math.exp(ln_gamma);
+        self.rotat_spring_const = self.q_factor*self.trans_spring_const;
+        self.lattice.set_params(self.trans_spring_const, self.rotat_spring_const);
+
+
+class frenkel_ladd_energy_hypersphere(_compute):
+    R""" Compute the Frenkel-Ladd Energy of a crystal on the hypersphere.
+
+    Args:
+        ln_gamma (float): log of the translational spring constant
+        q_factor (float): scale factor between the translational spring constant and rotational spring constant
+        quat_l (list): reference lattice left quaternions
+        quat_r (list): reference lattice right quaternions
+        drift_period (int): period call the remove drift updater
+
+    :py:class:`frenkel_ladd_energy_hypersphere` interacts with :py:class:`.lattice_field`
+    and :py:class:`hoomd.hpmc.update.remove_drift`.
+
+    Once initialized, the compute provides the log quantities from the :py:class:`lattice_field`.
+
+    .. warning::
+        The lattice energies and standard deviations logged by
+        :py:class:`lattice_field` are multiplied by the spring constant. As a result,
+        when computing the free energies from :py:class:`frenkel_ladd_energy` class,
+        instead of integrating the free energy over the spring constants, you should
+        integrate over the natural log of the spring constants.
+
+    Example::
+
+        mc = hpmc.integrate.convex_polyhedron(seed=seed);
+        mc.shape_param.set("A", vertices=verts)
+        mc.set_params(d=0.005, a=0.005)
+        #set the FL parameters
+        fl = hpmc.compute.frenkel_ladd_energy(mc=mc, ln_gamma=0.0, q_factor=10.0, quat_l=ql, quat_r=qr, drift_period=1000)
+
+    """
+    def __init__(   self,
+                    mc,
+                    ln_gamma,
+                    q_factor,
+                    quat_l,
+                    quat_r,
+                    drift_period,
+                    symmetry = []
+                ):
+        import math
+        import numpy
+        hoomd.util.print_status_line();
+        # initialize base class
+        _compute.__init__(self);
+
+        if type(quat_l) == numpy.ndarray:
+            self.lattice_ql = quat_l.tolist();
+        else:
+            self.lattice_ql = list(quat_l);
+
+        if type(quat_r) == numpy.ndarray:
+            self.lattice_qr = quat_r.tolist();
+        else:
+            self.lattice_qr = list(quat_r);
+
+
+        self.mc = mc;
+        self.q_factor = q_factor;
+        self.trans_spring_const = math.exp(ln_gamma);
+        self.rotat_spring_const = self.q_factor*self.trans_spring_const;
+        self.lattice = lattice_field_hypersphere(   self.mc,
+                                        quat_l = self.lattice_ql,
+                                        quat_r = self.lattice_qr,
+                                        k = self.trans_spring_const,
+                                        q = self.rotat_spring_const,
+                                        symmetry=symmetry);
+        self.remove_drift = hoomd.hpmc.update.remove_drift_hypersphere(self.mc, self.lattice, period=drift_period);
+
 
     def reset_statistics(self):
         R""" Reset the statistics counters.

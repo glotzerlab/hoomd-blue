@@ -51,6 +51,8 @@ UpdaterBoxMC::UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
     // allocate memory for m_pos_backup
     unsigned int MaxN = m_pdata->getMaxN();
     GPUArray<Scalar4>(MaxN, m_exec_conf).swap(m_pos_backup);
+    GPUArray<Scalar4>(MaxN, m_exec_conf).swap(m_quat_l_backup);
+    GPUArray<Scalar4>(MaxN, m_exec_conf).swap(m_quat_r_backup);
 
     // Connect to the MaxParticleNumberChange signal
     m_pdata->getMaxParticleNumberChangeSignal().connect<UpdaterBoxMC, &UpdaterBoxMC::slotMaxNChange>(this);
@@ -398,6 +400,17 @@ inline bool UpdaterBoxMC::hypersphere_resize_trial(Scalar R,
                                           hoomd::RandomGenerator& rng
                                           )
     {
+    unsigned int N_backup = m_pdata->getN();
+        {
+        ArrayHandle<Scalar4> h_quat_l(m_pdata->getLeftQuaternionArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_quat_l_backup(m_quat_l_backup, access_location::host, access_mode::overwrite);
+        memcpy(h_quat_l_backup.data, h_quat_l.data, sizeof(Scalar4) * N_backup);
+
+        ArrayHandle<Scalar4> h_quat_r(m_pdata->getRightQuaternionArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_quat_r_backup(m_quat_r_backup, access_location::host, access_mode::overwrite);
+        memcpy(h_quat_r_backup.data, h_quat_r.data, sizeof(Scalar4) * N_backup);
+        }
+
     Hypersphere curHypersphere = m_pdata->getHypersphere();
 
     if (m_mc->getPatchInteraction())
@@ -420,15 +433,14 @@ inline bool UpdaterBoxMC::hypersphere_resize_trial(Scalar R,
         deltaE += m_mc->computePatchEnergy(timestep);
         }
 
-    #if 0
     if (allowed && m_mc->getExternalField())
         {
-        ArrayHandle<Scalar4> h_pos_backup(m_pos_backup, access_location::host, access_mode::readwrite);
-        Scalar ext_energy = m_mc->getExternalField()->calculateDeltaE(h_pos_backup.data, NULL, &curBox);
+        ArrayHandle<Scalar4> h_quat_l_backup(m_quat_l_backup, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_quat_r_backup(m_quat_r_backup, access_location::host, access_mode::readwrite);
+        Scalar ext_energy = m_mc->getExternalField()->calculateDeltaEHypersphere(h_quat_l_backup.data, h_quat_r_backup.data, &curHypersphere);
         // The exponential is a very fast function and we may do better to add pseudo-Hamiltonians and exponentiate only once...
         deltaE += ext_energy;
         }
-    #endif
 
     double p = hoomd::detail::generate_canonical<double>(rng);
 

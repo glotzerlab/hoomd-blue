@@ -152,6 +152,427 @@ class LatticeReferenceList
 #define LATTICE_NUM_SAMPLES_LOG_NAME            "lattice_num_samples"
 
 template< class Shape>
+class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
+    {
+    using ExternalFieldMono<Shape>::m_pdata;
+    using ExternalFieldMono<Shape>::m_exec_conf;
+    using ExternalFieldMono<Shape>::m_sysdef;
+    public:
+        ExternalFieldLatticeHypersphere(  std::shared_ptr<SystemDefinition> sysdef,
+                                        pybind11::list quat_l,
+                                        Scalar k,
+                                        pybind11::list quat_r,
+                                        Scalar q,
+                                        pybind11::list symRotations
+                                    ) : ExternalFieldMono<Shape>(sysdef), m_k(k), m_q(q), m_Energy(0)
+            {
+            m_ProvidedQuantities.push_back(LATTICE_ENERGY_LOG_NAME);
+            m_ProvidedQuantities.push_back(LATTICE_ENERGY_AVG_LOG_NAME);
+            m_ProvidedQuantities.push_back(LATTICE_ENERGY_SIGMA_LOG_NAME);
+            m_ProvidedQuantities.push_back(LATTICE_TRANS_SPRING_CONSTANT_LOG_NAME);
+            m_ProvidedQuantities.push_back(LATTICE_ROTAT_SPRING_CONSTANT_LOG_NAME);
+            m_ProvidedQuantities.push_back(LATTICE_NUM_SAMPLES_LOG_NAME);
+            // Connect to the BoxChange signal
+            m_hypersphere = m_pdata->getHypersphere();
+            m_pdata->getBoxChangeSignal().template connect<ExternalFieldLatticeHypersphere<Shape>, &ExternalFieldLatticeHypersphere<Shape>::scaleReferencePoints>(this);
+            setReferences(quat_l, quat_r);
+
+            std::vector<Scalar4> rots;
+            python_list_to_vector_scalar4(symRotations, rots);
+            bool identityFound = false;
+            quat<Scalar> identity(1, vec3<Scalar>(0, 0, 0));
+            Scalar tol = 1e-5;
+            for(size_t i = 0; i < rots.size(); i++)
+                {
+                quat<Scalar> qi(rots[i]);
+                identityFound = !identityFound ? norm2(qi-identity) < tol : identityFound;
+                m_symmetry.push_back(qi);
+                }
+            if(!identityFound) // ensure that the identity rotation is provided.
+                {
+                m_symmetry.push_back(identity);
+                }
+            reset(0); // initializes all of the energy logging parameters.
+            }
+
+        ~ExternalFieldLatticeHypersphere()
+        {
+            m_pdata->getBoxChangeSignal().template disconnect<ExternalFieldLatticeHypersphere<Shape>, &ExternalFieldLatticeHypersphere<Shape>::scaleReferencePoints>(this);
+        }
+
+        Scalar calculateBoltzmannWeight(unsigned int timestep) { return 0.0; }
+
+        double calculateDeltaEHypersphere(const Scalar4 * const quat_l_old_arg,
+                                        const Scalar4 * const quat_r_old_arg,
+                                        const Hypersphere * const hypersphere_old_arg
+                                        )
+            {
+            // TODO: rethink the formatting a bit.
+            ArrayHandle<Scalar4> h_quat_l(m_pdata->getLeftQuaternionArray(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_quat_r(m_pdata->getRightQuaternionArray(), access_location::host, access_mode::readwrite);
+            const Scalar4 * const quat_l_new = h_quat_l.data;
+            const Scalar4 * const quat_r_new = h_quat_r.data;
+            const Hypersphere * const hypersphere_new = &m_pdata->getHypersphere();
+            const Scalar4 * quat_l_old=quat_l_old_arg, * quat_r_old=quat_r_old_arg;
+            const Hypersphere * hypersphere_old = hypersphere_old_arg;
+            if( !quat_l_old )
+                quat_l_old = quat_l_new;
+            if( !quat_r_old )
+                quat_r_old = quat_r_new;
+            if( !hypersphere_old )
+                hypersphere_old = hypersphere_new;
+
+            Scalar curVolume = m_hypersphere.getVolume();
+            Scalar newVolume = hypersphere_new->getVolume();
+            Scalar oldVolume = hypersphere_old->getVolume();
+            Scalar scaleOld = pow((oldVolume/curVolume), Scalar(1.0/3.0));
+            Scalar scaleNew = pow((newVolume/curVolume), Scalar(1.0/3.0));
+
+            double dE = 0.0;
+            for(size_t i = 0; i < m_pdata->getN(); i++)
+                {
+                Scalar old_E = calcE(i, quat<Scalar>(*(quat_l_old+i)), quat<Scalar>(*(quat_r_old+i)), scaleOld);
+                Scalar new_E = calcE(i, quat<Scalar>(*(quat_l_new+i)), quat<Scalar>(*(quat_r_new+i)), scaleNew);
+                dE += new_E - old_E;
+                }
+
+            #ifdef ENABLE_MPI
+            if (this->m_pdata->getDomainDecomposition())
+                {
+                MPI_Allreduce(MPI_IN_PLACE, &dE, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+                }
+            #endif
+
+            return dE;
+            }
+
+        void compute(unsigned int timestep)
+            {
+            if(!this->shouldCompute(timestep))
+                {
+                return;
+                }
+            m_Energy = Scalar(0.0);
+            // access particle data and system box
+            ArrayHandle<Scalar4> h_quat_l(m_pdata->getLeftQuaternionArray(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_quat_r(m_pdata->getRightQuaternionArray(), access_location::host, access_mode::read);
+            for(size_t i = 0; i < m_pdata->getN(); i++)
+                {
+                quat<Scalar> quat_l(h_quat_l.data[i]);
+                quat<Scalar> quat_r(h_quat_r.data[i]);
+                m_Energy += calcE(i, quat_l, quat_r);
+                }
+
+            #ifdef ENABLE_MPI
+            if (this->m_pdata->getDomainDecomposition())
+                {
+                MPI_Allreduce(MPI_IN_PLACE, &m_Energy, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+                }
+            #endif
+
+            Scalar energy_per = m_Energy / Scalar(m_pdata->getNGlobal());
+            m_EnergySum_y    = energy_per - m_EnergySum_c;
+            m_EnergySum_t    = m_EnergySum + m_EnergySum_y;
+            m_EnergySum_c    = (m_EnergySum_t-m_EnergySum) - m_EnergySum_y;
+            m_EnergySum      = m_EnergySum_t;
+
+            Scalar energy_sq_per = energy_per*energy_per;
+            m_EnergySqSum_y    = energy_sq_per - m_EnergySqSum_c;
+            m_EnergySqSum_t    = m_EnergySqSum + m_EnergySqSum_y;
+            m_EnergySqSum_c    = (m_EnergySqSum_t-m_EnergySqSum) - m_EnergySqSum_y;
+            m_EnergySqSum      = m_EnergySqSum_t;
+            m_num_samples++;
+            }
+
+        double energydiffHypersphere(const unsigned int& index, const vec3<Scalar>& quat_l_old, const quat<Scalar>& quat_r_old, const Shape& shape_old, const quat<Scalar>& quat_l_new, const vec3<Scalar>& quat_r_new, const Shape& shape_new)
+            {
+            double old_U = calcE(index, quat_l_old, quat_r_old, shape_old), new_U = calcE(index, quat_l_new, quat_r_new, shape_new);
+            return new_U - old_U;
+            }
+
+        void setReferences(const pybind11::list& ql, const pybind11::list& qr)
+            {
+            std::vector<Scalar4> lattice_quat_l;
+            std::vector<Scalar> qlbuffer;
+            std::vector<Scalar4> lattice_quat_r;
+            std::vector<Scalar> qrbuffer;
+            #ifdef ENABLE_MPI
+            unsigned int psz = 0, qsz = 0;
+
+            if ( this->m_exec_conf->isRoot() )
+                {
+                python_list_to_vector_scalar4(ql, lattice_quat_l);
+                python_list_to_vector_scalar4(qr, lattice_quat_r);
+                qlsz = lattice_quat_l.size();
+                qrsz = lattice_quat_r.size();
+                }
+            if( this->m_pdata->getDomainDecomposition())
+                {
+                if(qlsz)
+                    {
+                    qlbuffer.resize(4*qlsz, 0.0);
+                    for(size_t i = 0; i < qlsz; i++)
+                        {
+                        qlbuffer[4*i] = lattice_quat_l[i].x;
+                        qlbuffer[4*i+1] = lattice_quat_l[i].y;
+                        qlbuffer[4*i+2] = lattice_quat_l[i].z;
+                        qlbuffer[4*i+3] = lattice_quat_l[i].w;
+                        }
+                    }
+                if(qrsz)
+                    {
+                    qbuffer.resize(4*qrsz, 0.0);
+                    for(size_t i = 0; i < qrsz; i++)
+                        {
+                        qrbuffer[4*i] = lattice_quat_r[i].x;
+                        qrbuffer[4*i+1] = lattice_quat_r[i].y;
+                        qrbuffer[4*i+2] = lattice_quat_r[i].z;
+                        qrbuffer[4*i+3] = lattice_quat_r[i].w;
+                        }
+                    }
+                MPI_Bcast(&qlsz, 1, MPI_UNSIGNED, 0, m_exec_conf->getMPICommunicator());
+                if(psz)
+                    {
+                    if(!qlbuffer.size())
+                        qlbuffer.resize(3*qlsz, 0.0);
+                    MPI_Bcast(&qlbuffer.front(), 4*qlsz, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+                    if(!lattice_quat_l.size())
+                        {
+                        lattice_quat_l.resize(qlsz, make_scalar4(0.0, 0.0, 0.0, 0.0));
+                        for(size_t i = 0; i < qlsz; i++)
+                            {
+                            lattice_quat_l[i].x = qlbuffer[4*i];
+                            lattice_quat_l[i].y = qlbuffer[4*i+1];
+                            lattice_quat_l[i].z = qlbuffer[4*i+2];
+                            lattice_quat_l[i].w = qlbuffer[4*i+3];
+                            }
+                        }
+                    }
+                MPI_Bcast(&qrsz, 1, MPI_UNSIGNED, 0, m_exec_conf->getMPICommunicator());
+                if(qrsz)
+                    {
+                    if(!qrbuffer.size())
+                        qrbuffer.resize(4*qrsz, 0.0);
+                    MPI_Bcast(&qrbuffer.front(), 4*qrsz, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+                    if(!lattice_quat_r.size())
+                        {
+                        lattice_quat_r.resize(qrsz, make_scalar4(0, 0, 0, 0));
+                        for(size_t i = 0; i < qrsz; i++)
+                            {
+                            lattice_quat_r[i].x = qrbuffer[4*i];
+                            lattice_quat_r[i].y = qrbuffer[4*i+1];
+                            lattice_quat_r[i].z = qrbuffer[4*i+2];
+                            lattice_quat_r[i].w = qrbuffer[4*i+3];
+                            }
+                        }
+                    }
+                }
+
+            #else
+            python_list_to_vector_scalar4(qr, lattice_quat_l);
+            python_list_to_vector_scalar4(ql, lattice_quat_r);
+            #endif
+
+            if( lattice_quat_l.size() )
+                m_latticeQuat_l.setReferences(lattice_quat_l.begin(), lattice_quat_l.end(), m_pdata, m_exec_conf);
+
+            if( lattice_quat_r.size() )
+                m_latticeQuat_r.setReferences(lattice_quat_r.begin(), lattice_quat_r.end(), m_pdata, m_exec_conf);
+            }
+
+        void clearQuat_l() { m_latticeQuat_l.clear(); }
+
+        void clearQuat_r() { m_latticeQuat_r.clear(); }
+
+        void scaleReferencePoints()
+            {
+                Hypersphere newHypersphere = m_pdata->getHypersphere();
+                m_hypersphere = newHypersphere;
+            }
+
+        //! Returns a list of log quantities this compute calculates
+        std::vector< std::string > getProvidedLogQuantities()
+            {
+            return m_ProvidedQuantities;
+            }
+
+        //! Calculates the requested log value and returns it
+        Scalar getLogValue(const std::string& quantity, unsigned int timestep)
+            {
+            compute(timestep);
+
+            if( quantity == LATTICE_ENERGY_LOG_NAME )
+                {
+                return m_Energy;
+                }
+            else if( quantity == LATTICE_ENERGY_AVG_LOG_NAME )
+                {
+                if( !m_num_samples )
+                    return 0.0;
+                return m_EnergySum/double(m_num_samples);
+                }
+            else if ( quantity == LATTICE_ENERGY_SIGMA_LOG_NAME )
+                {
+                if( !m_num_samples )
+                    return 0.0;
+                Scalar first_moment = m_EnergySum/double(m_num_samples);
+                Scalar second_moment = m_EnergySqSum/double(m_num_samples);
+                return sqrt(second_moment - (first_moment*first_moment));
+                }
+            else if ( quantity == LATTICE_TRANS_SPRING_CONSTANT_LOG_NAME )
+                {
+                return m_k;
+                }
+            else if ( quantity == LATTICE_ROTAT_SPRING_CONSTANT_LOG_NAME )
+                {
+                return m_q;
+                }
+            else if ( quantity == LATTICE_NUM_SAMPLES_LOG_NAME )
+                {
+                return m_num_samples;
+                }
+            else
+                {
+                m_exec_conf->msg->error() << "field.lattice_field: " << quantity << " is not a valid log quantity" << std::endl;
+                throw std::runtime_error("Error getting log value");
+                }
+            }
+
+        void setParams(Scalar k, Scalar q)
+            {
+            m_k = k;
+            m_q = q;
+            }
+
+        const GPUArray< Scalar4 >& getReferenceLatticeQuat_l()
+            {
+            return m_latticeQuat_l.getReferenceArray();
+            }
+
+        const GPUArray< Scalar4 >& getReferenceLatticeQuat_r()
+            {
+            return m_latticeQuat_r.getReferenceArray();
+            }
+
+        void reset( unsigned int ) // TODO: remove the timestep
+            {
+            m_EnergySum = m_EnergySum_y = m_EnergySum_t = m_EnergySum_c = Scalar(0.0);
+            m_EnergySqSum = m_EnergySqSum_y = m_EnergySqSum_t = m_EnergySqSum_c = Scalar(0.0);
+            m_num_samples = 0;
+            }
+
+        Scalar getEnergy(unsigned int timestep)
+        {
+            compute(timestep);
+            return m_Energy;
+        }
+        Scalar getAvgEnergy(unsigned int timestep)
+        {
+            compute(timestep);
+            if( !m_num_samples )
+                return 0.0;
+            return m_EnergySum/double(m_num_samples);
+        }
+        Scalar getSigma(unsigned int timestep)
+        {
+            compute(timestep);
+            if( !m_num_samples )
+                return 0.0;
+            Scalar first_moment = m_EnergySum/double(m_num_samples);
+            Scalar second_moment = m_EnergySqSum/double(m_num_samples);
+            return sqrt(second_moment - (first_moment*first_moment));
+        }
+
+
+    protected:
+
+    //HIER
+
+        // These could be a little redundant. think about this more later.
+        Scalar calcE_trans(const unsigned int& index, const quat<Scalar>& quat_l, const quat<Scalar>& quat_r, const Scalar& scale = 1.0)
+            {
+            ArrayHandle<unsigned int> h_tags(m_pdata->getTags(), access_location::host, access_mode::read);
+            const Hypersphere& hypersphere = this->m_pdata->getHypersphere();
+            quat<Scalar> ql(m_latticeQuat_l.getReference(h_tags.data[index]));
+            quat<Scalar> qr(m_latticeQuat_r.getReference(h_tags.data[index]));
+            Scalar dr = detail::get_arclength_hypersphere(quat_l,quat_r,ql,qr, hypersphere);
+            return m_k*dr*dr;
+            }
+
+        Scalar calcE_rot(const unsigned int& index, const quat<Scalar>& quat_l, const quat<Scalar>& quat_r)
+            {
+            assert(m_symmetry.size());
+            ArrayHandle<unsigned int> h_tags(m_pdata->getTags(), access_location::host, access_mode::read);
+            quat<Scalar> ql(m_latticeQuat_l.getReference(h_tags.data[index]));
+            quat<Scalar> qr(m_latticeQuat_r.getReference(h_tags.data[index]));
+            quat<Scalar> ref_orientation1 = ql*quat<Scalar>(0,vec3<Scalar>(1,0,0))*qr;
+            quat<Scalar> ref_orientation2 = ql*quat<Scalar>(0,vec3<Scalar>(0,1,0))*qr;
+            Scalar dqmin = 0.0;
+            for(size_t i = 0; i < m_symmetry.size(); i++)
+                {
+                quat<Scalar> equiv_quat_l = quat_l*m_symmetry[i];
+                quat<Scalar> equiv_quat_r = conj(m_symmetry[i])*quat_r;
+                quat<Scalar> equiv_orientation1 = equiv_quat_l*quat<Scalar>(0,vec3<Scalar>(1,0,0))*equiv_quat_r;
+                quat<Scalar> equiv_orientation2 = equiv_quat_l*quat<Scalar>(0,vec3<Scalar>(0,1,0))*equiv_quat_r;
+                Scalar dq1 = dot(equiv_orientation1,ref_orientation1);
+                Scalar dq2 = dot(equiv_orientation2,ref_orientation2);
+                Scalar dq = 2 - dq1*dq1 - dq2*dq2;
+
+                dqmin = (i == 0) ? dq : fmin(dqmin, dq);
+                }
+            return m_q*dqmin;
+            }
+        Scalar calcE_rot(const unsigned int& index, const Shape& shape)
+            {
+            if(!shape.hasOrientation())
+                return Scalar(0.0);
+
+            return calcE_rot(index, shape.orientation);
+            }
+        Scalar calcE(const unsigned int& index, const quat<Scalar>& quat_l, const quat<Scalar>& quat_r, const Scalar& scale = 1.0)
+            {
+            Scalar energy = 0.0;
+            if(m_latticeQuat_l.isValid() && m_latticeQuat_r.isValid())
+                {
+                energy += calcE_trans(index, quat_l, quat_r, scale);
+                energy += calcE_rot(index, quat_l, quat_r);
+                }
+            return energy;
+            }
+        Scalar calcE(const unsigned int& index, const quat<Scalar>& quat_l, const quat<Scalar>& quat_r, const Shape& shape, const Scalar& scale = 1.0)
+            {
+            return calcE(index, quat_l, quat_r, scale);
+            }
+    private:
+        LatticeReferenceList<Scalar4>   m_latticeQuat_l;         // positions of the lattice.
+        Scalar                          m_k;                        // spring constant
+
+        LatticeReferenceList<Scalar4>   m_latticeQuat_r;      // orientation of the lattice particles.
+        Scalar                          m_q;                        // spring constant
+
+        std::vector< quat<Scalar> >     m_symmetry;       // quaternions in the symmetry group of the shape.
+
+        Scalar                          m_Energy;                   // Store the total energy of the last computed timestep
+
+        // All of these are on a per particle basis
+        Scalar                          m_EnergySum;
+        Scalar                          m_EnergySum_y;
+        Scalar                          m_EnergySum_t;
+        Scalar                          m_EnergySum_c;
+
+        Scalar                          m_EnergySqSum;
+        Scalar                          m_EnergySqSum_y;
+        Scalar                          m_EnergySqSum_t;
+        Scalar                          m_EnergySqSum_c;
+
+        unsigned int                    m_num_samples;
+
+        std::vector<std::string>        m_ProvidedQuantities;
+        Hypersphere                     m_hypersphere;              //!< Save the last known box;
+    };
+
+
+template< class Shape>
 class ExternalFieldLattice : public ExternalFieldMono<Shape>
     {
     using ExternalFieldMono<Shape>::m_pdata;
@@ -592,6 +1013,24 @@ void export_LatticeField(pybind11::module& m, std::string name)
     }
 
 void export_LatticeFields(pybind11::module& m);
+
+template<class Shape>
+void export_LatticeFieldHypersphere(pybind11::module& m, std::string name)
+    {
+   pybind11::class_<ExternalFieldLatticeHypersphere<Shape>, std::shared_ptr< ExternalFieldLatticeHypersphere<Shape> > >(m, name.c_str(), pybind11::base< ExternalFieldMono<Shape> >())
+    .def(pybind11::init< std::shared_ptr<SystemDefinition>, pybind11::list, Scalar, pybind11::list, Scalar, pybind11::list>())
+    .def("setReferences", &ExternalFieldLatticeHypersphere<Shape>::setReferences)
+    .def("setParams", &ExternalFieldLatticeHypersphere<Shape>::setParams)
+    .def("reset", &ExternalFieldLatticeHypersphere<Shape>::reset)
+    .def("clearQuat_l", &ExternalFieldLatticeHypersphere<Shape>::clearQuat_l)
+    .def("clearQuat_r", &ExternalFieldLatticeHypersphere<Shape>::clearQuat_r)
+    .def("getEnergy", &ExternalFieldLatticeHypersphere<Shape>::getEnergy)
+    .def("getAvgEnergy", &ExternalFieldLatticeHypersphere<Shape>::getAvgEnergy)
+    .def("getSigma", &ExternalFieldLatticeHypersphere<Shape>::getSigma)
+    ;
+    }
+
+void export_LatticeFieldsHypersphere(pybind11::module& m);
 
 } // namespace hpmc
 

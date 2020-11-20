@@ -946,6 +946,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                     unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng_i);
                     bool move_type_translate = !shape_i.hasOrientation() || (move_type_select < m_move_ratio);
 
+                    Shape shape_old(quat_l_i, quat_r_i, m_params[typ_i]);
 
                     quat<Scalar> quat_l_i_old = quat_l_i;
                     quat<Scalar> quat_r_i_old = quat_r_i;
@@ -1135,13 +1136,11 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                             }  // end loop over AABB nodes
                         } // end if (m_patch)
 
-                   #if 0
                     // Add external energetic contribution
                     if (m_external)
                         {
-                        patch_field_energy_diff += m_external->energydiff(i, pos_old, shape_old, pos_i, shape_i);
+                        patch_field_energy_diff += m_external->energydiffHypersphere(i, quat_l_i_old, quat_r_i_old, shape_old, quat_l_i, quat_r_i, shape_i);
                         }
-                    #endif
 
                     // If no overlaps and Metropolis criterion is met, accept
                     // trial move and update positions  and/or orientations.
