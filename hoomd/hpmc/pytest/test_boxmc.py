@@ -73,7 +73,8 @@ def test_valid_construction_and_attach(simulation_factory,
     mc.shape['A'] = dict(diameter=1)
     sim.operations.integrator = mc
 
-    sim.operations._schedule()
+    # create C++ mirror classes and set parameters
+    sim.run(0)
 
     # validate the params were set properly
     for attr, value in constructor_args.items():
@@ -113,7 +114,8 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
     mc.shape['A'] = dict(diameter=1)
     sim.operations.integrator = mc
 
-    sim.operations._schedule()
+    # create C++ mirror classes and set parameters
+    sim.run(0)
 
     setattr(boxmc, attr, value)
     if isinstance(value, dict):
