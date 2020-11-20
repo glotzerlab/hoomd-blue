@@ -457,6 +457,14 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
 
     @log(flag='state')
     def state(self):
+        """The state of the object.
+
+        Provides a mapping of attributes to their values for use in storing
+        objects state for later object reinitialization. An object's state can
+        be used to create an identical object using the `from_state` method
+        (some object require other parameters to be passed in `from_state`
+        besides the state mapping).
+        """
         self._update_param_dict()
         return super()._get_state()
 

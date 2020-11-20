@@ -93,6 +93,7 @@ class BoxResize(Updater):
         """Immediately scale the particle in the system state to the given box.
 
         Args:
+            state (State): System state to scale.
             box (Box): New box.
         """
         updater = _hoomd.BoxResizeUpdater(state._cpp_sys_def,
