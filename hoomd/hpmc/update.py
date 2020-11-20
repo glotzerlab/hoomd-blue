@@ -25,6 +25,18 @@ class BoxMC(Updater):
                                                     inverse volume in 3D) Apply your chosen reduced pressure convention externally.
         trigger (hoomd.trigger.Trigger): Select the timesteps to perform box trial moves.
 
+    Use `BoxMC` in conjunction with an HPMC integrator to allow the simulation
+    box to undergo random fluctuations at constant pressure. `BoxMC` supports
+    both isotropic (all box sides changed equally) and anisotripic volume change
+    moves as well as shearing of the simulation box. Multiple types of box moves
+    can be applied simultaneously during a simulation. For this purpose, each
+    type of box move has an associated weight that determines the relative
+    frequency of a box move happening relative to the others. By default, no
+    moves are applied (*weight* values for all move types default to 0). After
+    a box trial move is proposed, all the particle positions are scaled into the
+    new box. Trial moves are then accepted, if they do not produce an overlap,
+    according to standard Metropolis criterion and rejected otherwise.
+
     Attributes:
         volume (dict):
             Enable/disable isobaric volume moves and set parameters (scale the box lengths uniformly).
@@ -60,15 +72,6 @@ class BoxMC(Updater):
                      Shear of +/- 0.5 cannot be lattice reduced, so set to a value < 0.5 to disable (default 0)
                      Note that due to precision errors, lattice reduction may introduce small overlaps which can be
                      resolved, but which temporarily break detailed balance.
-
-    Note:
-
-        One or more Monte Carlo move types may be applied to evolve the simulation box. By default,
-        no moves are applied (all *delta* and *weight* values for all move types default to 0).
-
-        Pressure inputs to update.BoxMC are defined as :math:`\beta P`. Conversions from a specific definition of reduced
-        pressure :math:`P^*` are left for the user to perform.
-
     """
 
     def __init__(self, seed, betaP, trigger=1):
