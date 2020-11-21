@@ -160,7 +160,7 @@ def test_swap_moves(delta_mu, simulation_factory,
     """Test that Clusters can swap types."""
 
     sim = simulation_factory(lattice_snapshot_factory(particle_types=['A', 'B'],
-                                                      dimensions=3, a=3, n=7, r=0.1))
+                                                      dimensions=3, a=4, n=7, r=0.1))
 
 
     mc = hoomd.hpmc.integrate.Sphere(seed=1, d=0.1, a=0.1)
@@ -206,7 +206,7 @@ def test_pivot_moves(delta_mu, simulation_factory,
     """Test that Clusters always accept pivot moves."""
 
     sim = simulation_factory(lattice_snapshot_factory(particle_types=['A', 'B'],
-                                                      dimensions=3, a=3, n=7, r=0.1))
+                                                      dimensions=3, a=4, n=7, r=0.1))
 
     mc = hoomd.hpmc.integrate.Sphere(seed=1, d=0.1, a=0.1)
     mc.shape['A'] = dict(diameter=1.1)
