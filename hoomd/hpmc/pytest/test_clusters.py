@@ -188,17 +188,16 @@ def test_swap_moves(delta_mu, simulation_factory,
     if snap.exists:
         num_type_B = np.sum(snap.particles.typeid)
         num_type_A = len(snap.particles.typeid) - num_type_B
-
-    # ALL swap moves should be accepted when delta_mu = 0
-    acceptance = cl.swap_moves[0]/np.sum(cl.swap_moves)
-    if delta_mu<0:
-        assert num_type_B < num_type_A
-        assert acceptance < 1
-    elif delta_mu == 0.0:
-        assert np.isclose(acceptance, 1.0)
-    elif delta_mu>0:
-        assert num_type_A < num_type_B
-        assert acceptance < 1
+        acceptance = cl.swap_moves[0]/np.sum(cl.swap_moves)
+        if delta_mu<0:
+            assert num_type_B < num_type_A
+            assert acceptance < 1
+        elif delta_mu == 0.0:
+            # ALL swap moves should be accepted when delta_mu = 0
+            assert np.isclose(acceptance, 1.0)
+        elif delta_mu>0:
+            assert num_type_A < num_type_B
+            assert acceptance < 1
 
 
 @pytest.mark.parametrize("delta_mu", [-2.0, 0, 2.0])
