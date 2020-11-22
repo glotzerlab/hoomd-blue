@@ -79,12 +79,7 @@ def test_valid_construction_and_attach(simulation_factory,
                                        two_particle_snapshot_factory,
                                        constructor_args,
                                        valid_args):
-                                       # integrator, params):
     """Test that Clusters can be attached with valid arguments."""
-    cl = hoomd.hpmc.update.Clusters(**constructor_args)
-
-    sim = simulation_factory(two_particle_snapshot_factory(particle_types=['A', 'B']))
-    sim.operations.updaters.append(cl)
 
     integrator = valid_args[0]
     args = valid_args[1]
@@ -100,6 +95,12 @@ def test_valid_construction_and_attach(simulation_factory,
     mc = integrator(23456)
     mc.shape["A"] = args
     mc.shape["B"] = args
+
+    cl = hoomd.hpmc.update.Clusters(**constructor_args)
+    dim = 2 if 'polygon' in integrator.__name__.lower() else 3
+    sim = simulation_factory(two_particle_snapshot_factory(particle_types=['A', 'B'],
+                                                           dimensions=dim, d=2))
+    sim.operations.updaters.append(cl)
     sim.operations.integrator = mc
 
     sim.run(0)
@@ -125,12 +126,6 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
                                 two_particle_snapshot_factory,
                                 valid_args):
     """Test that Clusters can get and set attributes while attached."""
-    cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(10),
-                                    swap_type_pair=['A', 'B'],
-                                    seed=1)
-
-    sim = simulation_factory(two_particle_snapshot_factory(particle_types=['A', 'B']))
-    sim.operations.updaters.append(cl)
 
     integrator = valid_args[0]
     args = valid_args[1]
@@ -146,6 +141,12 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
     mc = integrator(23456)
     mc.shape["A"] = args
     mc.shape["B"] = args
+
+    cl = hoomd.hpmc.update.Clusters(**constructor_args)
+    dim = 2 if 'polygon' in integrator.__name__.lower() else 3
+    sim = simulation_factory(two_particle_snapshot_factory(particle_types=['A', 'B'],
+                                                           dimensions=dim, d=2))
+    sim.operations.updaters.append(cl)
     sim.operations.integrator = mc
 
     sim.run(0)
