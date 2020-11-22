@@ -142,7 +142,8 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
     mc.shape["A"] = args
     mc.shape["B"] = args
 
-    cl = hoomd.hpmc.update.Clusters(**constructor_args)
+    cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(10),
+                                    swap_type_pair=['A', 'B'], seed=1)
     dim = 2 if 'polygon' in integrator.__name__.lower() else 3
     sim = simulation_factory(two_particle_snapshot_factory(particle_types=['A', 'B'],
                                                            dimensions=dim, d=2))
