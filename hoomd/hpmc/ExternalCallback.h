@@ -79,6 +79,32 @@ class __attribute__ ((visibility ("hidden"))) ExternalCallback : public External
             return energy_new-energy_old;
             }
 
+        double calculateDeltaEHypersphere(const Scalar4 * const  quat_l_old_arg,
+                               const Scalar4 * const  quat_r_old_arg,
+                               const Hypersphere * const  hypersphere_old_arg
+                              )
+            {
+            auto snap = takeSnapshot();
+            double energy_new = getEnergy(snap);
+
+            // update snapshot with old configuration
+            // FIXME: this will not work in MPI, we will have to broadcast to root and modify snapshot there
+            snap->hypersphere = *hypersphere_old_arg;
+            unsigned int N = this->m_pdata->getN();
+            ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(), access_location::host, access_mode::read);
+            for (unsigned int i = 0; i < N; ++i)
+                {
+                unsigned int tag = h_tag.data[i];
+                auto snap_it = snap->map.find(tag);
+                assert (snap_it != snap->map.end());
+                unsigned int snap_idx = snap_it->second;
+                snap->particle_data.quat_l[snap_idx] = quat<Scalar>(quat_l_old_arg[i]);
+                snap->particle_data.quat_r[snap_idx] = quat<Scalar>(quat_r_old_arg[i]);
+                }
+            double energy_old = getEnergy(snap);
+            return energy_new-energy_old;
+            }
+
         // does nothing
         void compute(unsigned int timestep) { }
 
@@ -109,6 +135,40 @@ class __attribute__ ((visibility ("hidden"))) ExternalCallback : public External
             // update snapshot with new configuration
             snap->particle_data.pos[snap_idx] = position_new;
             snap->particle_data.orientation[snap_idx] = shape_new.orientation;
+            double energy_new = getEnergy(snap);
+
+            return energy_new-energy_old;
+            }
+
+        // Compute the energy difference for a proposed move on a single particle
+        double energydiffHypersphere(const unsigned int& index,
+                          const quat<Scalar>& quat_l_old,
+                          const quat<Scalar>& quat_r_old,
+                          const Shape& shape_old,
+                          const quat<Scalar>& quat_l_new,
+                          const quat<Scalar>& quat_r_new,
+                          const Shape& shape_new)
+            {
+            // find index in snapshot
+            unsigned int tag;
+                {
+                ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(), access_location::host, access_mode::read);
+                tag = h_tag.data[index];
+                }
+
+            auto snap = takeSnapshot();
+            auto snap_it = snap->map.find(tag);
+            assert (snap_it != snap->map.end());
+            unsigned int snap_idx = snap_it->second;
+
+            // update snapshot with old configuration
+            snap->particle_data.quat_l[snap_idx] = quat_l_old;
+            snap->particle_data.quat_r[snap_idx] = quat_r_old;
+            double energy_old = getEnergy(snap);
+
+            // update snapshot with new configuration
+            snap->particle_data.quat_l[snap_idx] = quat_l_new;
+            snap->particle_data.quat_r[snap_idx] = quat_r_new;
             double energy_new = getEnergy(snap);
 
             return energy_new-energy_old;
