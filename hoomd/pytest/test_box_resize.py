@@ -21,10 +21,15 @@ def fractional_coordinates(n=3):
     return np.random.uniform(-0.5, 0.5, size=(n, 3))
 
 
-_box = ([[1., 2., 1., 1., 0., 3.],    # Initial box, 3D
-         [10., 12., 20., 0., 1., 2.]],  # Final box, 3D
-        [[1., 2., 0., 1., 0., 0.],    # Initial box, 2D
-         [10., 12., 0., 0., 0., 0.]])  # Final box, 2D
+_box = (
+    [
+        [1., 2., 1., 1., 0., 3.],  # Initial box, 3D
+        [10., 12., 20., 0., 1., 2.]
+    ],  # Final box, 3D
+    [
+        [1., 2., 0., 1., 0., 0.],  # Initial box, 2D
+        [10., 12., 0., 0., 0., 0.]
+    ])  # Final box, 2D
 
 
 @pytest.fixture(scope="function", params=_box, ids=['sys_3d', 'sys_2d'])
@@ -41,9 +46,9 @@ def sys(request, fractional_coordinates):
     box_start = request.param[0]
     box_end = request.param[1]
 
-    return (make_system(fractional_coordinates, box_start),
-            lambda power: make_sys_halfway(
-                fractional_coordinates, box_start, box_end, power),
+    return (make_system(fractional_coordinates,
+                        box_start), lambda power: make_sys_halfway(
+                            fractional_coordinates, box_start, box_end, power),
             make_system(fractional_coordinates, box_end))
 
 
@@ -68,14 +73,14 @@ def make_sys_halfway(fractional_coordinates, box_start, box_end, power):
     box_end = np.array(box_end)
 
     intermediate_t = (_t_mid - _t_start) / _t_ramp  # set to halfway, 0.5
-    box_mid = hoomd.Box.from_box(
-        box_start + (box_end - box_start) * intermediate_t**power
-    )
+    box_mid = hoomd.Box.from_box(box_start + (box_end - box_start)
+                                 * intermediate_t**power)
     return make_system(fractional_coordinates, box_mid)
 
 
 @pytest.fixture(scope='function')
 def get_snapshot(sys, device):
+
     def make_shapshot():
         box1, points1 = sys[0]
         s = hoomd.Snapshot()
@@ -100,16 +105,16 @@ def variant():
 @pytest.fixture(scope='function')
 def box_resize(sys, trigger, variant):
     sys1, _, sys2 = sys
-    return hoomd.update.BoxResize(
-        box1=sys1[0], box2=sys2[0],
-        variant=variant, trigger=trigger)
+    return hoomd.update.BoxResize(box1=sys1[0],
+                                  box2=sys2[0],
+                                  variant=variant,
+                                  trigger=trigger)
 
 
 def test_trigger(box_resize, trigger):
     assert trigger.timestep == box_resize.trigger.timestep
     for timestep in range(_t_start + _t_ramp):
-        assert trigger.compute(timestep) == box_resize.trigger.compute(
-            timestep)
+        assert trigger.compute(timestep) == box_resize.trigger.compute(timestep)
 
 
 def test_variant(box_resize, variant):
@@ -142,8 +147,7 @@ def test_update(device, get_snapshot, sys, box_resize):
     box_resize.update(sim.state, sys2[0])
 
     assert sim.state.box == sys2[0]
-    npt.assert_allclose(
-        sim.state.snapshot.particles.position, sys2[1])
+    npt.assert_allclose(sim.state.snapshot.particles.position, sys2[1])
 
 
 def test_position_scale(device, get_snapshot, sys, box_resize):
@@ -157,14 +161,12 @@ def test_position_scale(device, get_snapshot, sys, box_resize):
     # Run up to halfway point
     sim.run(_t_mid + 1)
     assert sim.state.box == sys_halfway[0]
-    npt.assert_allclose(
-        sim.state.snapshot.particles.position, sys_halfway[1])
+    npt.assert_allclose(sim.state.snapshot.particles.position, sys_halfway[1])
 
     # Finish run
     sim.run(_t_mid)
     assert sim.state.box == sys2[0]
-    npt.assert_allclose(
-        sim.state.snapshot.particles.position, sys2[1])
+    npt.assert_allclose(sim.state.snapshot.particles.position, sys2[1])
 
 
 def test_no_position_scale(device, get_snapshot, sys):
@@ -173,10 +175,11 @@ def test_no_position_scale(device, get_snapshot, sys):
 
     variant = hoomd.variant.Power(0., 1., _power, _t_start, _t_ramp)
     trigger = hoomd.trigger.After(variant.t_start)
-    box_resize = hoomd.update.BoxResize(
-        box1=sys1[0], box2=sys2[0],
-        variant=variant, trigger=trigger, scale_particles=False
-    )
+    box_resize = hoomd.update.BoxResize(box1=sys1[0],
+                                        box2=sys2[0],
+                                        variant=variant,
+                                        trigger=trigger,
+                                        scale_particles=False)
 
     sim = hoomd.Simulation(device)
     sim.create_state_from_snapshot(get_snapshot())
