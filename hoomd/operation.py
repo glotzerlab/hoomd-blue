@@ -534,6 +534,13 @@ class _TriggeredOperation(Operation):
     def _attach(self):
         super()._attach()
 
+    def _update_param_dict(self):
+        if self._attached:
+            for key in self._param_dict:
+                if key == 'trigger':
+                    continue
+                self._param_dict[key] = getattr(self._cpp_obj, key)
+
 
 class Updater(_TriggeredOperation):
     """Base class for all HOOMD updaters.
