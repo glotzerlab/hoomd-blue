@@ -99,7 +99,7 @@ def test_valid_construction_and_attach(simulation_factory,
     cl = hoomd.hpmc.update.Clusters(**constructor_args)
     dim = 2 if 'polygon' in integrator.__name__.lower() else 3
     sim = simulation_factory(two_particle_snapshot_factory(particle_types=['A', 'B'],
-                                                           dimensions=dim, d=2))
+                                                           dimensions=dim, d=2, L=40))
     sim.operations.updaters.append(cl)
     sim.operations.integrator = mc
 
@@ -146,7 +146,7 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
                                     swap_type_pair=['A', 'B'], seed=1)
     dim = 2 if 'polygon' in integrator.__name__.lower() else 3
     sim = simulation_factory(two_particle_snapshot_factory(particle_types=['A', 'B'],
-                                                           dimensions=dim, d=2))
+                                                           dimensions=dim, d=2, L=40))
     sim.operations.updaters.append(cl)
     sim.operations.integrator = mc
 
