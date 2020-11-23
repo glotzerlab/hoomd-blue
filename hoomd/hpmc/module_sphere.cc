@@ -19,6 +19,7 @@
 
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterRemoveDrift.h"
+#include "UpdaterRemoveDriftHypersphere.h"
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
 #include "UpdaterClusters.h"
@@ -56,6 +57,7 @@ void export_sphere(py::module& m)
     export_LatticeFieldHypersphere<ShapeSphere>(m, "ExternalFieldLatticeSphereHypersphere");
     export_ExternalFieldComposite<ShapeSphere>(m, "ExternalFieldCompositeSphere");
     export_RemoveDriftUpdater<ShapeSphere>(m, "RemoveDriftUpdaterSphere");
+    export_RemoveDriftUpdaterHypersphere<ShapeSphere>(m, "RemoveDriftUpdaterSphereHypersphere");
     export_ExternalFieldWall<ShapeSphere>(m, "WallSphere");
     export_UpdaterExternalFieldWall<ShapeSphere>(m, "UpdaterExternalFieldWallSphere");
     export_ExternalCallback<ShapeSphere>(m, "ExternalCallbackSphere");

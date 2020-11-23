@@ -19,6 +19,7 @@
 
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterRemoveDrift.h"
+#include "UpdaterRemoveDriftHypersphere.h"
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
 #include "UpdaterClusters.h"
@@ -59,6 +60,7 @@ void export_convex_polyhedron(py::module& m)
     export_LatticeFieldHypersphere<ShapeConvexPolyhedron >(m, "ExternalFieldLatticeConvexPolyhedronHypersphere");
     export_ExternalFieldComposite<ShapeConvexPolyhedron >(m, "ExternalFieldCompositeConvexPolyhedron");
     export_RemoveDriftUpdater<ShapeConvexPolyhedron >(m, "RemoveDriftUpdaterConvexPolyhedron");
+    export_RemoveDriftUpdaterHypersphere<ShapeConvexPolyhedron >(m, "RemoveDriftUpdaterConvexPolyhedronHypersphere");
     export_ExternalFieldWall<ShapeConvexPolyhedron >(m, "WallConvexPolyhedron");
     export_UpdaterExternalFieldWall<ShapeConvexPolyhedron >(m, "UpdaterExternalFieldWallConvexPolyhedron");
     export_ExternalCallback<ShapeConvexPolyhedron>(m, "ExternalCallbackConvexPolyhedron");

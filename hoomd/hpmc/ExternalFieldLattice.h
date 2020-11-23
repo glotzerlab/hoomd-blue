@@ -284,7 +284,7 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
             m_num_samples++;
             }
 
-        double energydiffHypersphere(const unsigned int& index, const vec3<Scalar>& quat_l_old, const quat<Scalar>& quat_r_old, const Shape& shape_old, const quat<Scalar>& quat_l_new, const vec3<Scalar>& quat_r_new, const Shape& shape_new)
+        double energydiffHypersphere(const unsigned int& index, const quat<Scalar>& quat_l_old, const quat<Scalar>& quat_r_old, const Shape& shape_old, const quat<Scalar>& quat_l_new, const quat<Scalar>& quat_r_new, const Shape& shape_new)
             {
             double old_U = calcE(index, quat_l_old, quat_r_old, shape_old), new_U = calcE(index, quat_l_new, quat_r_new, shape_new);
             return new_U - old_U;

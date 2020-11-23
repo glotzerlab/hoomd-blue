@@ -945,6 +945,36 @@ DEVICE inline quat<Real> operator*(const quat<Real>& a, const vec3<Real>& b)
     return a * quat<Real>(0,b);
     }
 
+//! Division of a vec3 by a scalar
+/*! \param a quat
+    \param b scalar
+
+    Division is component wise.
+    \returns The quaternion (a.s/b, a.v.x/b, a.v.y/b, a.v.z/b).
+*/
+template < class Real >
+DEVICE inline quat<Real> operator/(const quat<Real>& a, const Real& b)
+    {
+    Real q = Real(1.0)/b;
+
+    return quat<Real>(a.s * q,a.v * q);
+    }
+
+//! Assignment-division of two vec3s
+/*! \param a quat
+    \param b scalar
+
+    Division is component wise.
+    \returns The quaternion (a.s =/b, a.v.x =/b, a.v.y =/b, a.v.z =/b).
+*/
+template < class Real >
+DEVICE inline quat<Real>& operator /=(quat<Real>& a, const Real& b)
+    {
+    a.s /= b;
+    a.v /= b;
+    return a;
+    }
+
 //! norm squared of a quaternion
 /*! \param a quat
 
@@ -1102,7 +1132,7 @@ DEVICE inline quat<Real> plane_reflection(const quat<Real>& a, const quat<Real>&
     }
 
 //! parallel transport of a quaternion from position i to position j on the hypersphere
-/*! \param a quat which we want to transport
+/*  \param a position to parallel transport
     \param ri original position
     \param rj final position
 */
