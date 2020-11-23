@@ -91,11 +91,11 @@ _valid_args = [
     (Ellipsoid, {
         'a': 4,
         'b': 1,
-        'c': 30,
+        'c': 3,
         'ignore_statistics': 1
     }),
     (Ellipsoid, {
-        'a': 10,
+        'a': 1,
         'b': 5,
         'c': 6,
         'ignore_statistics': 0
