@@ -89,117 +89,105 @@ def get_snapshot(sys, device):
     return make_shapshot
 
 
-class TestBoxResize:
-    _power = 2
-
-    @pytest.fixture(scope='function')
-    def variant(self):
-        return hoomd.variant.Power(0., 1., self._power, _t_start, _t_ramp)
-
-    @pytest.fixture(scope='function')
-    def box_resize(self, sys, trigger, variant):
-        sys1, _, sys2 = sys
-        return hoomd.update.BoxResize(
-            box1=sys1[0], box2=sys2[0],
-            variant=variant, trigger=trigger)
-
-    def test_trigger(self, box_resize, trigger):
-        assert trigger.timestep == box_resize.trigger.timestep
-        for timestep in range(_t_start + _t_ramp):
-            assert trigger.compute(timestep) == box_resize.trigger.compute(
-                timestep)
-
-    def test_variant(self, box_resize, variant):
-        for timestep in range(_t_start + _t_ramp):
-            assert variant(timestep) == box_resize.variant(timestep)
-
-    def test_get_box(self, device, simulation_factory,
-                     get_snapshot, sys, box_resize):
-        sys1, make_sys_halfway, sys2 = sys
-        sys_halfway = make_sys_halfway(self._power)
-
-        sim = hoomd.Simulation(device)
-        sim.create_state_from_snapshot(get_snapshot())
-
-        sim.operations.updaters.append(box_resize)
-        sim.run(0)
-
-        assert box_resize.get_box(0) == sys1[0]
-        assert box_resize.get_box(_t_mid) == sys_halfway[0]
-        assert box_resize.get_box(_t_start + _t_ramp) == sys2[0]
-
-    def test_update(self, device, simulation_factory,
-                    get_snapshot, sys, box_resize):
-        sys1, _, sys2 = sys
-
-        sim = hoomd.Simulation(device)
-        sim.create_state_from_snapshot(get_snapshot())
-        sim.operations.updaters.append(box_resize)
-
-        box_resize.update(sim.state, sys2[0])
-
-        assert sim.state.box == sys2[0]
-        npt.assert_allclose(
-            sim.state.snapshot.particles.position, sys2[1])
-
-    def test_position_scale(self, device, simulation_factory,
-                            get_snapshot, sys, box_resize):
-        sys1, make_sys_halfway, sys2 = sys
-        sys_halfway = make_sys_halfway(self._power)
-
-        sim = hoomd.Simulation(device)
-        sim.create_state_from_snapshot(get_snapshot())
-        sim.operations.updaters.append(box_resize)
-
-        # Run up to halfway point
-        sim.run(_t_mid + 1)
-        assert sim.state.box == sys_halfway[0]
-        npt.assert_allclose(
-            sim.state.snapshot.particles.position, sys_halfway[1])
-
-        # Finish run
-        sim.run(_t_mid)
-        assert sim.state.box == sys2[0]
-        npt.assert_allclose(
-            sim.state.snapshot.particles.position, sys2[1])
-
-    def test_no_position_scale(self, device, simulation_factory,
-                               get_snapshot, sys):
-        sys1, make_sys_halfway, sys2 = sys
-        sys_halfway = make_sys_halfway(self._power)
-
-        variant = hoomd.variant.Power(0., 1., self._power, _t_start, _t_ramp)
-        trigger = hoomd.trigger.After(variant.t_start)
-        box_resize = hoomd.update.BoxResize(
-            box1=sys1[0], box2=sys2[0],
-            variant=variant, trigger=trigger, scale_particles=False
-        )
-
-        sim = hoomd.Simulation(device)
-        sim.create_state_from_snapshot(get_snapshot())
-        sim.operations.updaters.append(box_resize)
-
-        # Run up to halfway point
-        sim.run(_t_mid + 1)
-        assert sim.state.box == sys_halfway[0]
-        npt.assert_allclose(sim.state.snapshot.particles.position, sys1[1])
-
-        # Finish run
-        sim.run(_t_mid)
-        assert sim.state.box == sys2[0]
-        npt.assert_allclose(sim.state.snapshot.particles.position, sys1[1])
+_power = 2
 
 
-class TestLinearVolume(TestBoxResize):
-    _power = 1 / 3
+@pytest.fixture(scope='function')
+def variant():
+    return hoomd.variant.Power(0., 1., _power, _t_start, _t_ramp)
 
-    @pytest.fixture(scope='function')
-    def variant(self):
-        return hoomd.variant.Power(0., 1., self._power, _t_start, _t_ramp)
 
-    @pytest.fixture(scope='function')
-    def box_resize(self, sys, trigger, variant):
-        sys1, _, sys2 = sys
-        return hoomd.update.BoxResize(
-            box1=sys1[0], box2=sys2[0],
-            variant=variant, trigger=trigger)
+@pytest.fixture(scope='function')
+def box_resize(sys, trigger, variant):
+    sys1, _, sys2 = sys
+    return hoomd.update.BoxResize(
+        box1=sys1[0], box2=sys2[0],
+        variant=variant, trigger=trigger)
+
+
+def test_trigger(box_resize, trigger):
+    assert trigger.timestep == box_resize.trigger.timestep
+    for timestep in range(_t_start + _t_ramp):
+        assert trigger.compute(timestep) == box_resize.trigger.compute(
+            timestep)
+
+
+def test_variant(box_resize, variant):
+    for timestep in range(_t_start + _t_ramp):
+        assert variant(timestep) == box_resize.variant(timestep)
+
+
+def test_get_box(device, get_snapshot, sys, box_resize):
+    sys1, make_sys_halfway, sys2 = sys
+    sys_halfway = make_sys_halfway(_power)
+
+    sim = hoomd.Simulation(device)
+    sim.create_state_from_snapshot(get_snapshot())
+
+    sim.operations.updaters.append(box_resize)
+    sim.run(0)
+
+    assert box_resize.get_box(0) == sys1[0]
+    assert box_resize.get_box(_t_mid) == sys_halfway[0]
+    assert box_resize.get_box(_t_start + _t_ramp) == sys2[0]
+
+
+def test_update(device, get_snapshot, sys, box_resize):
+    sys1, _, sys2 = sys
+
+    sim = hoomd.Simulation(device)
+    sim.create_state_from_snapshot(get_snapshot())
+    sim.operations.updaters.append(box_resize)
+
+    box_resize.update(sim.state, sys2[0])
+
+    assert sim.state.box == sys2[0]
+    npt.assert_allclose(
+        sim.state.snapshot.particles.position, sys2[1])
+
+
+def test_position_scale(device, get_snapshot, sys, box_resize):
+    sys1, make_sys_halfway, sys2 = sys
+    sys_halfway = make_sys_halfway(_power)
+
+    sim = hoomd.Simulation(device)
+    sim.create_state_from_snapshot(get_snapshot())
+    sim.operations.updaters.append(box_resize)
+
+    # Run up to halfway point
+    sim.run(_t_mid + 1)
+    assert sim.state.box == sys_halfway[0]
+    npt.assert_allclose(
+        sim.state.snapshot.particles.position, sys_halfway[1])
+
+    # Finish run
+    sim.run(_t_mid)
+    assert sim.state.box == sys2[0]
+    npt.assert_allclose(
+        sim.state.snapshot.particles.position, sys2[1])
+
+
+def test_no_position_scale(device, get_snapshot, sys):
+    sys1, make_sys_halfway, sys2 = sys
+    sys_halfway = make_sys_halfway(_power)
+
+    variant = hoomd.variant.Power(0., 1., _power, _t_start, _t_ramp)
+    trigger = hoomd.trigger.After(variant.t_start)
+    box_resize = hoomd.update.BoxResize(
+        box1=sys1[0], box2=sys2[0],
+        variant=variant, trigger=trigger, scale_particles=False
+    )
+
+    sim = hoomd.Simulation(device)
+    sim.create_state_from_snapshot(get_snapshot())
+    sim.operations.updaters.append(box_resize)
+
+    # Run up to halfway point
+    sim.run(_t_mid + 1)
+    assert sim.state.box == sys_halfway[0]
+    npt.assert_allclose(sim.state.snapshot.particles.position, sys1[1])
+
+    # Finish run
+    sim.run(_t_mid)
+    assert sim.state.box == sys2[0]
+    npt.assert_allclose(sim.state.snapshot.particles.position, sys1[1])
