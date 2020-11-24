@@ -15,7 +15,7 @@ v3.0.0-beta.2 (not yet released)
 *Changed*
 
 - ``hoomd.snapshot.ConfigurationData.dimensions`` is unsettable
-  and depends on the snapshot box. If :math:`box.Lz = 0` then
+  and depends on the snapshot box. If ``box.Lz = 0`` then
   the dimensions are 2 otherwise 3.
 - Building from source requires a C++14 compatible compiler.
 - Improved documentation.
