@@ -292,18 +292,18 @@ def log(func=None, *, is_property=True, flag='scalar', default=True):
         func (`method`): class method to make loggable. If using non-default
             arguments, func should not be set.
         is_property (:obj:`bool`, optional): Whether to make the method a
-            property, defaults to True. Argument position only
+            property, defaults to True. Argument keyword only
         flag (:obj:`str`, optional): The string represention of the type of
             loggable quantity, defaults to 'scalar'. See
             `hoomd.logging.TypeFlags` for available types. Argument
-            position only
+            keyword only
         default (:obj:`bool`, optional): Whether the quantity should be logged
             by default, defaults to True. This is orthogonal to the loggable
             quantity's type. An example would be performance orientated
             loggable quantities.  Many users may not want to log such
             quantities even when logging other quantities of that type. The
             default flag allows for these to be pass over by
-            `hoomd.logging.Logger` objects by default.
+            `hoomd.logging.Logger` objects by default. Argument keyword only.
 
     Note:
         The namespace (where the loggable object is stored in the
