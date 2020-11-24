@@ -224,5 +224,10 @@ def test_pivot_moves(delta_mu, simulation_factory,
 
     sim.run(100)
 
-    acceptance = cl.pivot_moves[0]/np.sum(cl.pivot_moves)
-    assert np.isclose(acceptance, 1.0)
+    acc = cl.pivot_moves[0]/np.sum(cl.pivot_moves)
+    if sim.device.communicator.num_ranks == 1:
+        assert np.isclose(acc, 1.0)
+    else:
+        assert acc > 0
+
+    assert cl.reflection_moves[0]/np.sum(cl.reflection_moves) > 0
