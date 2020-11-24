@@ -129,7 +129,7 @@ void System::run(unsigned int nsteps, bool write_at_start)
         }
 
     // run the steps
-    for ( ; m_cur_tstep < m_end_tstep; m_cur_tstep++)
+    for (unsigned int count = 0; count < nsteps; count++)
         {
         for (auto &tuner: m_tuners)
             {
@@ -152,11 +152,13 @@ void System::run(unsigned int nsteps, bool write_at_start)
         if (m_integrator)
             m_integrator->update(m_cur_tstep);
 
-        // execute analyzers for cur_tstep+1
+        m_cur_tstep++;
+
+        // execute analyzers after incrementing the step counter
         for (auto &analyzer_trigger_pair: m_analyzers)
             {
-            if ((*analyzer_trigger_pair.second)(m_cur_tstep+1))
-                analyzer_trigger_pair.first->analyze(m_cur_tstep+1);
+            if ((*analyzer_trigger_pair.second)(m_cur_tstep))
+                analyzer_trigger_pair.first->analyze(m_cur_tstep);
             }
 
         updateTPS();
