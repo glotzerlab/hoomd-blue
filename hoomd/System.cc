@@ -176,15 +176,19 @@ void System::run(unsigned int nsteps, bool write_at_start)
     #ifdef ENABLE_MPI
     // make sure all ranks return the same TPS after the run completes
     if (m_comm)
+        {
         bcast(m_last_TPS, 0, m_exec_conf->getMPICommunicator());
+        bcast(m_last_walltime, 0, m_exec_conf->getMPICommunicator());
+        }
     #endif
     }
 
 void System::updateTPS()
     {
+    m_last_walltime = double(m_clk.getTime() - m_initial_time) / double(1e9);
+
     // calculate average TPS
-    m_last_TPS = double(m_cur_tstep - m_start_tstep) / double(m_clk.getTime() - m_initial_time)
-                    * double(1e9);
+    m_last_TPS = double(m_cur_tstep - m_start_tstep) / m_last_walltime;
     }
 
 /*! \param enable Set to true to enable profiling during calls to run()
@@ -356,6 +360,8 @@ void export_System(py::module& m)
     .def("getCurrentTimeStep", &System::getCurrentTimeStep)
     .def("setPressureFlag", &System::setPressureFlag)
     .def("getPressureFlag", &System::getPressureFlag)
+    .def_property_readonly("walltime", &System::getCurrentWalltime)
+    .def_property_readonly("final_timestep", &System::getEndStep)
     .def_property_readonly("analyzers", &System::getAnalyzers)
     .def_property_readonly("updaters", &System::getUpdaters)
     .def_property_readonly("tuners", &System::getTuners)
