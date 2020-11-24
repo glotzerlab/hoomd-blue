@@ -6,6 +6,7 @@
 #include "IntegratorHPMCMono.h"
 #include "IntegratorHPMCMonoImplicit.h"
 #include "ComputeFreeVolume.h"
+#include "ComputeFreeVolumeHypersphere.h"
 
 #include "ShapeSphere.h"
 #include "AnalyzerSDF.h"
@@ -46,6 +47,7 @@ void export_sphere(py::module& m)
     export_IntegratorHPMCMono< ShapeSphere >(m, "IntegratorHPMCMonoSphere");
     export_IntegratorHPMCMonoImplicit< ShapeSphere >(m, "IntegratorHPMCMonoImplicitSphere");
     export_ComputeFreeVolume< ShapeSphere >(m, "ComputeFreeVolumeSphere");
+    export_ComputeFreeVolumeHypersphere< ShapeSphere >(m, "ComputeFreeVolumeSphereHypersphere");
     export_AnalyzerSDF< ShapeSphere >(m, "AnalyzerSDFSphere");
     export_UpdaterMuVT< ShapeSphere >(m, "UpdaterMuVTSphere");
     export_UpdaterClusters< ShapeSphere >(m, "UpdaterClustersSphere");

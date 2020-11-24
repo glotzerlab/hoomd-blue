@@ -1139,7 +1139,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                     // Add external energetic contribution
                     if (m_external)
                         {
-                        patch_field_energy_diff += m_external->energydiffHypersphere(i, quat_l_i_old, quat_r_i_old, shape_old, quat_l_i, quat_r_i, shape_i);
+                        patch_field_energy_diff -= m_external->energydiffHypersphere(i, quat_l_i_old, quat_r_i_old, shape_old, shape_i.quat_l, shape_i.quat_r, shape_i);
                         }
 
                     // If no overlaps and Metropolis criterion is met, accept

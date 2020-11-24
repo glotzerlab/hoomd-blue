@@ -283,6 +283,7 @@ class lattice_field_hypersphere(_external):
                 cls = _hpmc.ExternalFieldLatticeSphereHypersphere;
             elif isinstance(mc, integrate.convex_polyhedron):
                 cls = _hpmc.ExternalFieldLatticeConvexPolyhedronHypersphere;
+                print("Convex Polyhedron")
             else:
                 hoomd.context.msg.error("compute.position_lattice_field: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing compute.position_lattice_field");

@@ -6,6 +6,7 @@
 #include "IntegratorHPMCMono.h"
 #include "IntegratorHPMCMonoImplicit.h"
 #include "ComputeFreeVolume.h"
+#include "ComputeFreeVolumeHypersphere.h"
 
 #include "ShapeConvexPolyhedron.h"
 #include "AnalyzerSDF.h"
@@ -49,6 +50,7 @@ void export_convex_polyhedron(py::module& m)
     export_IntegratorHPMCMono< ShapeConvexPolyhedron >(m, "IntegratorHPMCMonoConvexPolyhedron");
     export_IntegratorHPMCMonoImplicit< ShapeConvexPolyhedron >(m, "IntegratorHPMCMonoImplicitConvexPolyhedron");
     export_ComputeFreeVolume< ShapeConvexPolyhedron >(m, "ComputeFreeVolumeConvexPolyhedron");
+    export_ComputeFreeVolumeHypersphere< ShapeConvexPolyhedron >(m, "ComputeFreeVolumeConvexPolyhedronHypersphere");
     export_AnalyzerSDF< ShapeConvexPolyhedron >(m, "AnalyzerSDFConvexPolyhedron");
     export_UpdaterMuVT< ShapeConvexPolyhedron >(m, "UpdaterMuVTConvexPolyhedron");
     export_UpdaterClusters< ShapeConvexPolyhedron >(m, "UpdaterClustersConvexPolyhedron");

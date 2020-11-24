@@ -334,7 +334,7 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
                 if(psz)
                     {
                     if(!qlbuffer.size())
-                        qlbuffer.resize(3*qlsz, 0.0);
+                        qlbuffer.resize(4*qlsz, 0.0);
                     MPI_Bcast(&qlbuffer.front(), 4*qlsz, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
                     if(!lattice_quat_l.size())
                         {
@@ -369,8 +369,8 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
                 }
 
             #else
-            python_list_to_vector_scalar4(qr, lattice_quat_l);
-            python_list_to_vector_scalar4(ql, lattice_quat_r);
+            python_list_to_vector_scalar4(ql, lattice_quat_l);
+            python_list_to_vector_scalar4(qr, lattice_quat_r);
             #endif
 
             if( lattice_quat_l.size() )
@@ -496,6 +496,7 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
             quat<Scalar> ql(m_latticeQuat_l.getReference(h_tags.data[index]));
             quat<Scalar> qr(m_latticeQuat_r.getReference(h_tags.data[index]));
             Scalar dr = detail::get_arclength_hypersphere(quat_l,quat_r,ql,qr, hypersphere);
+
             return m_k*dr*dr;
             }
 
