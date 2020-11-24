@@ -177,7 +177,7 @@ class Simulation(metaclass=Loggable):
                 operations._schedule()
                 self._operations = operations
 
-    @property
+    @log
     def tps(self):
         """float: The average number of time steps per second.
 
