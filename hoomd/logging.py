@@ -219,12 +219,8 @@ class Loggable(type):
         for instance, `Loggable` to be subclassed with metaclasses that use
         __new__ without having to hack the subclass's behavior.
         """
-        # This grabs the metaclass of the newly created class which will be a
-        # subclass of the Loggable metaclass (or the class itself)
-        loggable_cls = type(cls)
-
         # grab loggable quantities through class inheritance.
-        log_dict = loggable_cls._get_inherited_loggables(cls)
+        log_dict = Loggable._get_inherited_loggables(cls)
 
         # Add property to get all available loggable quantities. We ensure that
         # we haven't already added a loggables property first. The empty dict
@@ -238,12 +234,12 @@ class Loggable(type):
         # improper class definitions.
         if log_dict == {} and not any(issubclass(type(c), Loggable)
                                       for c in cls.__mro__[1:]):
-            loggable_cls._add_property_for_displaying_loggables(cls)
+            Loggable._add_property_for_displaying_loggables(cls)
 
         # grab the current class's loggable quantities
-        log_dict.update(loggable_cls._get_current_cls_loggables(cls))
+        log_dict.update(Loggable._get_current_cls_loggables(cls))
         cls._export_dict = log_dict
-        loggable_cls._meta_export_dict = dict()
+        Loggable._meta_export_dict = dict()
 
     @staticmethod
     def _add_property_for_displaying_loggables(new_cls):
