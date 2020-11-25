@@ -84,11 +84,12 @@ def get_snapshot(sys, device):
     def make_shapshot():
         box1, points1 = sys[0]
         s = hoomd.Snapshot()
-        s.configuration.box = box1
-        s.particles.N = points1.shape[0]
-        s.particles.typeid[:] = [0] * points1.shape[0]
-        s.particles.types = ['A']
-        s.particles.position[:] = points1
+        if s.exists:
+            s.configuration.box = box1
+            s.particles.N = points1.shape[0]
+            s.particles.typeid[:] = [0] * points1.shape[0]
+            s.particles.types = ['A']
+            s.particles.position[:] = points1
         return s
 
     return make_shapshot
