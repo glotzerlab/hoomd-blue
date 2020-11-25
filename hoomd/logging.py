@@ -167,15 +167,44 @@ class _LoggerQuantity:
 
     @staticmethod
     def _generate_namespace(cls):
-        """Infite iterator of namespaces for a given class.
-
-        If namespace is taken add a number and increment until unique.
-        """
-        ns = tuple(cls.__module__.split('.') + [cls.__name__])
+        """Generate the namespace of a class given its module hierarchy."""
+        ns = tuple(cls.__module__.split('.'))
         if ns[0] == 'hoomd':
-            return ns[1:]
+
+            def namespace_filter(name):
+                if namespace_filter._drop_name:
+                    namespace_filter._drop_name = False
+                    return False
+                # These namespaces are those that we import directly into the
+                # hoomd namespace. We could add any files that are the same for
+                # md, hpmc, or other submodules.
+                remove_namespace = {'simulation',
+                                    'state',
+                                    'operations',
+                                    'snapshot'}
+                # We assume that these namespaces only have one more level of
+                # depth (e.g. update.box_resize.BoxResize) if this is broken
+                # for example, tune.new_level.nlist.TuneSomething, this will
+                # break.
+                base_namespaces = {'update', 'tune', 'write'}
+                if name in remove_namespace:
+                    return False
+                elif name in base_namespaces:
+                    # We use function attributes to mark that the next name
+                    # should be dropped. This makes the filter stateful which
+                    # should be fine for this limited use, but needs to be kept
+                    # in mind for any future refactoring.
+                    namespace_filter._drop_name = True
+                    return True
+                else:
+                    return True
+
+            namespace_filter._drop_name = False
+
+            cls_ns = tuple(filter(namespace_filter, ns[1:])) + (cls.__name__,)
+            return cls_ns
         else:
-            return ns
+            return ns + (cls.__name__,)
 
 
 class Loggable(type):
