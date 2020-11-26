@@ -297,7 +297,7 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
             std::vector<Scalar4> lattice_quat_r;
             std::vector<Scalar> qrbuffer;
             #ifdef ENABLE_MPI
-            unsigned int psz = 0, qsz = 0;
+            unsigned int qlsz = 0, qrsz = 0;
 
             if ( this->m_exec_conf->isRoot() )
                 {
@@ -331,7 +331,7 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
                         }
                     }
                 MPI_Bcast(&qlsz, 1, MPI_UNSIGNED, 0, m_exec_conf->getMPICommunicator());
-                if(psz)
+                if(qlsz)
                     {
                     if(!qlbuffer.size())
                         qlbuffer.resize(4*qlsz, 0.0);
@@ -525,10 +525,7 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
             }
         Scalar calcE_rot(const unsigned int& index, const Shape& shape)
             {
-            if(!shape.hasOrientation())
-                return Scalar(0.0);
-
-            return calcE_rot(index, shape.orientation);
+            return calcE_rot(index, shape.quat_l,shape.quat_r);
             }
         Scalar calcE(const unsigned int& index, const quat<Scalar>& quat_l, const quat<Scalar>& quat_r, const Scalar& scale = 1.0)
             {

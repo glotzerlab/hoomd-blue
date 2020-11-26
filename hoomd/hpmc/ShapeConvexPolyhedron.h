@@ -562,7 +562,19 @@ DEVICE inline bool test_overlap_hypersphere(const ShapeConvexPolyhedron& a,
     quat<OverlapReal> ql = conj(a.quat_l)*b.quat_l;
     quat<OverlapReal> qr = b.quat_r*conj(a.quat_r);;
 
-    bool aaa =  detail::xenocollide_hypersphere(a.verts,
+    //bool aaa =  detail::xenocollide_hypersphere(a.verts,
+    //                              b.verts,
+    //                              ql,
+    //                              qr,
+    //                              hypersphere,
+    //                              DaDb/2.0,
+    //                              err);
+
+
+    //ql = conj(a.quat_l)*b.quat_l;
+    //qr = b.quat_r*conj(a.quat_r);;
+
+    bool aaa =  detail::xenocollide_hypersphereTetra(a.verts,
                                   b.verts,
                                   ql,
                                   qr,
@@ -570,22 +582,7 @@ DEVICE inline bool test_overlap_hypersphere(const ShapeConvexPolyhedron& a,
                                   DaDb/2.0,
                                   err);
 
-
-    //ql = conj(b.quat_l)*a.quat_l;
-    //qr = a.quat_r*conj(b.quat_r);;
-
-    //bool bbb =  detail::xenocollide_hypersphere(b.verts,
-    //                              a.verts,
-    //                              ql,
-    //                              qr,
-    //                              hypersphere,
-    //                              DaDb/2.0,
-    //                              err);
-   
     //if ( aaa != bbb ){ 
-
-    // ql = conj(a.quat_l)*b.quat_l;
-    // qr = b.quat_r*conj(a.quat_r);;
 
     // aaa =  detail::xenocollide_hypersphere2(a.verts,
     //                               b.verts,
@@ -595,19 +592,28 @@ DEVICE inline bool test_overlap_hypersphere(const ShapeConvexPolyhedron& a,
     //                               DaDb/2.0,
     //                               err);
 
-    // std::cout << std::endl;
+    //std::cout << "Unequal"<< std::endl;
  
 
-    // ql = conj(b.quat_l)*a.quat_l;
-    // qr = a.quat_r*conj(b.quat_r);;
+    //aaa =  detail::xenocollide_hypersphere2(a.verts,
+    //                              b.verts,
+    //                              ql,
+    //                              qr,
+    //                              hypersphere,
+    //                              DaDb/2.0,
+    //                              err);
 
-    // bbb =  detail::xenocollide_hypersphere2(b.verts,
-    //                               a.verts,
-    //                               ql,
-    //                               qr,
-    //                               hypersphere,
-    //                               DaDb/2.0,
-    //                               err);
+    //ql = conj(a.quat_l)*b.quat_l;
+    //qr = b.quat_r*conj(a.quat_r);;
+
+
+    //bbb =  detail::xenocollide_hypersphereTetra2(a.verts,
+    //                              b.verts,
+    //                              ql,
+    //                              qr,
+    //                              hypersphere,
+    //                              DaDb/2.0,
+    //                              err);
 
     //     exit(0);
     //}
