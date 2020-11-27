@@ -25,8 +25,8 @@ class _ConfigurationData:
             new_box = hoomd.Box.from_box(box)
         except Exception:
             raise ValueError(
-                f"{box} is not convertible to a hoomd.Box object. "
-                f"using hoomd.Box.from_box")
+                f"{box} is not convertible to a hoomd.Box object using "
+                "hoomd.Box.from_box.")
         self._cpp_obj._dimensions = new_box.dimensions
         self._cpp_obj._global_box = new_box._cpp_obj
 
