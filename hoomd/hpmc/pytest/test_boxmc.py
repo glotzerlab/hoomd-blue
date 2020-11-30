@@ -152,7 +152,7 @@ def test_sphere_compression(betaP, box_move, simulation_factory,
     assert mc.overlaps == 0
     assert sim.state.box == initial_box
 
-    # # add a box move
+    # add a box move
     setattr(boxmc, box_move['move'], box_move['params'])
     sim.run(500)
 
