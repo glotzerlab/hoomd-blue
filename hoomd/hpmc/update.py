@@ -42,7 +42,7 @@ class BoxMC(Updater):
             Enable/disable isobaric volume moves and set parameters (scale the box lengths uniformly).
             The dictionary has the following keys:
 
-            * ``mode`` (string, **default:** ``standard``) - choose between ``standard`` for conventional volume
+            * ``mode`` (str, **default:** ``standard``) - choose between ``standard`` for conventional volume
                     increments or ``ln`` for logarithmic volume box moves.
             * ``weight`` (float) - relative weight of volume box moves relative to other box move types.
             * ``delta`` (float) - maximum change in V or **ln(V)** where V is box area (2D) or volume (3D).
@@ -60,14 +60,14 @@ class BoxMC(Updater):
 
             * ``weight`` (float) - maximum change of the box thickness for each pair of parallel planes
                     connected by the corresponding box edges. I.e. maximum change of HOOMD-blue box parameters Lx, Ly, Lz.
-            * ``delta`` (list or tuple) -  maximum change of the box lengths Lx, Ly, Lz.
+            * ``delta`` (tuple) -  maximum change of the box lengths Lx, Ly, Lz.
 
         shear (dict):
             Enable/disable isobaric box shear moves and set parameters. The dictionary
             has the following keys:
 
             * ``weight`` (float) - relative weight of shear box moves relative to other box move types.
-            * ``delta`` (list or tuple) -  maximum change of the box tilt factor xy, xz, yz.
+            * ``delta`` (tuple) -  maximum change of the box tilt factor xy, xz, yz.
             * ``reduce`` (float) - Maximum number of lattice vectors of shear to allow before applying lattice reduction.
                      Shear of +/- 0.5 cannot be lattice reduced, so set to a value < 0.5 to disable (default 0)
                      Note that due to precision errors, lattice reduction may introduce small overlaps which can be
