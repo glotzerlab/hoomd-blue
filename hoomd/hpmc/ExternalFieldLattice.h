@@ -93,6 +93,8 @@ class LatticeReferenceList
 
         const GPUArray< ScalarType >& getReferenceArray() { return m_reference; }
 
+        const unsigned int getSize() { return m_N; }
+
         template <class InputIterator>
         void setReferences(InputIterator first, InputIterator last, const std::shared_ptr<ParticleData> pdata, std::shared_ptr<const ExecutionConfiguration> exec_conf)
         {
@@ -321,7 +323,7 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
                     }
                 if(qrsz)
                     {
-                    qbuffer.resize(4*qrsz, 0.0);
+                    qrbuffer.resize(4*qrsz, 0.0);
                     for(size_t i = 0; i < qrsz; i++)
                         {
                         qrbuffer[4*i] = lattice_quat_r[i].x;

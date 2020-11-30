@@ -20,6 +20,7 @@
 #include "UpdaterRemoveDrift.h"
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
+#include "UpdaterChangeSite.h"
 #include "UpdaterClusters.h"
 #include "UpdaterClustersImplicit.h"
 
@@ -50,6 +51,7 @@ void export_faceted_ellipsoid(py::module& m)
     export_AnalyzerSDF< ShapeFacetedEllipsoid >(m, "AnalyzerSDFFacetedEllipsoid");
     export_UpdaterMuVT< ShapeFacetedEllipsoid >(m, "UpdaterMuVTFacetedEllipsoid");
     export_UpdaterClusters< ShapeFacetedEllipsoid >(m, "UpdaterClustersFacetedEllipsoid");
+    export_UpdaterChangeSite< ShapeFacetedEllipsoid >(m, "UpdaterChangeSiteFacetedEllipsoid");
     export_UpdaterClustersImplicit< ShapeFacetedEllipsoid, IntegratorHPMCMonoImplicit<ShapeFacetedEllipsoid> >(m, "UpdaterClustersImplicitFacetedEllipsoid");
     export_UpdaterMuVTImplicit< ShapeFacetedEllipsoid, IntegratorHPMCMonoImplicit<ShapeFacetedEllipsoid> >(m, "UpdaterMuVTImplicitFacetedEllipsoid");
 

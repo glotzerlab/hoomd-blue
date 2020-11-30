@@ -20,6 +20,7 @@
 #include "UpdaterRemoveDrift.h"
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
+#include "UpdaterChangeSite.h"
 #include "UpdaterClusters.h"
 #include "UpdaterClustersImplicit.h"
 
@@ -48,6 +49,7 @@ void export_union_convex_polyhedron(py::module& m)
     // export_AnalyzerSDF< ShapeUnion<ShapeSpheropolyhedron> >(m, "AnalyzerSDFConvexPolyhedronUnion");
     export_UpdaterMuVT< ShapeUnion<ShapeSpheropolyhedron> >(m, "UpdaterMuVTConvexPolyhedronUnion");
     export_UpdaterClusters<ShapeUnion<ShapeSpheropolyhedron> >(m, "UpdaterClustersConvexPolyhedronUnion");
+    export_UpdaterChangeSite<ShapeUnion<ShapeSpheropolyhedron> >(m, "UpdaterChangeSiteConvexPolyhedronUnion");
     export_UpdaterClustersImplicit<ShapeUnion<ShapeSpheropolyhedron>, IntegratorHPMCMonoImplicit<ShapeUnion<ShapeSpheropolyhedron> > >(m, "UpdaterClustersImplicitConvexPolyhedronUnion");
     export_UpdaterMuVTImplicit< ShapeUnion<ShapeSpheropolyhedron>, IntegratorHPMCMonoImplicit<ShapeUnion<ShapeSpheropolyhedron> > >(m, "UpdaterMuVTImplicitConvexPolyhedronUnion");
 

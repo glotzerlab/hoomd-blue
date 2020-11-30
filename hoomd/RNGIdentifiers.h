@@ -28,6 +28,7 @@ struct RNGIdentifier
     static const uint32_t HPMCMonoTrialMove = 0x754dea60;
     static const uint32_t HPMCMonoShift = 0xf4a3210e;
     static const uint32_t UpdaterBoxMC= 0xf6a510ab;
+    static const uint32_t UpdaterChangeSite =  0x27d4eb2b;
     static const uint32_t UpdaterClusters =  0x09365bf5;
     static const uint32_t UpdaterClustersPairwise = 0x50060112;
     static const uint32_t UpdaterExternalFieldWall = 0xba015a6f;

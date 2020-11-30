@@ -23,6 +23,8 @@
 #include "UpdaterRemoveDriftHypersphere.h"
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
+#include "UpdaterChangeSite.h"
+#include "UpdaterChangeSiteHypersphere.h"
 #include "UpdaterClusters.h"
 #include "UpdaterClustersImplicit.h"
 
@@ -54,6 +56,8 @@ void export_convex_polyhedron(py::module& m)
     export_AnalyzerSDF< ShapeConvexPolyhedron >(m, "AnalyzerSDFConvexPolyhedron");
     export_UpdaterMuVT< ShapeConvexPolyhedron >(m, "UpdaterMuVTConvexPolyhedron");
     export_UpdaterClusters< ShapeConvexPolyhedron >(m, "UpdaterClustersConvexPolyhedron");
+    export_UpdaterChangeSite< ShapeConvexPolyhedron >(m, "UpdaterChangeSiteConvexPolyhedron");
+    export_UpdaterChangeSiteHypersphere< ShapeConvexPolyhedron >(m, "UpdaterChangeSiteConvexPolyhedronHypersphere");
     export_UpdaterClustersImplicit< ShapeConvexPolyhedron, IntegratorHPMCMonoImplicit<ShapeConvexPolyhedron> >(m, "UpdaterClustersImplicitConvexPolyhedron");
     export_UpdaterMuVTImplicit< ShapeConvexPolyhedron, IntegratorHPMCMonoImplicit<ShapeConvexPolyhedron> >(m, "UpdaterMuVTImplicitConvexPolyhedron");
 
