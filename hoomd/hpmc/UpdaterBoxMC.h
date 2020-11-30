@@ -108,11 +108,9 @@ class UpdaterBoxMC : public Updater
             {
             pybind11::dict d;
             d["weight"] = m_length_weight;
-            pybind11::list l;
-            l.append(m_length_delta[0]);
-            l.append(m_length_delta[1]);
-            l.append(m_length_delta[2]);
-            d["delta"] = l;
+            d["delta"] = pybind11::make_tuple(m_length_delta[0],
+                                              m_length_delta[1],
+                                              m_length_delta[2]);
             return d;
             }
 
@@ -125,10 +123,10 @@ class UpdaterBoxMC : public Updater
         void setLengthParams(pybind11::dict d)
             {
             m_length_weight = d["weight"].cast<Scalar>();
-            pybind11::list l = d["delta"];
-            m_length_delta[0] = l[0].cast<Scalar>();
-            m_length_delta[1] = l[1].cast<Scalar>();
-            m_length_delta[2] = l[2].cast<Scalar>();
+            pybind11::tuple t = d["delta"];
+            m_length_delta[0] = t[0].cast<Scalar>();
+            m_length_delta[1] = t[1].cast<Scalar>();
+            m_length_delta[2] = t[2].cast<Scalar>();
             }
 
         //! Gets parameters for box shear moves as a dictionary
@@ -145,12 +143,10 @@ class UpdaterBoxMC : public Updater
             {
             pybind11::dict d;
             d["weight"] = m_shear_weight;
-            pybind11::list l;
-            l.append(m_shear_delta[0]);
-            l.append(m_shear_delta[1]);
-            l.append(m_shear_delta[2]);
-            d["delta"] = l;
             d["reduce"] = m_shear_reduce;
+            d["delta"] = pybind11::make_tuple(m_shear_delta[0],
+                                              m_shear_delta[1],
+                                              m_shear_delta[2]);
             return d;
             }
 
@@ -167,10 +163,10 @@ class UpdaterBoxMC : public Updater
         void setShearParams(pybind11::dict d)
             {
             m_shear_weight = d["weight"].cast<Scalar>();
-            pybind11::list l = d["delta"];
-            m_shear_delta[0] = l[0].cast<Scalar>();
-            m_shear_delta[1] = l[1].cast<Scalar>();
-            m_shear_delta[2] = l[2].cast<Scalar>();
+            pybind11::tuple t = d["delta"];
+            m_shear_delta[0] = t[0].cast<Scalar>();
+            m_shear_delta[1] = t[1].cast<Scalar>();
+            m_shear_delta[2] = t[2].cast<Scalar>();
             m_shear_reduce = d["reduce"].cast<Scalar>();
             }
 
