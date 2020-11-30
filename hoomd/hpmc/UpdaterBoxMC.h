@@ -69,7 +69,7 @@ class UpdaterBoxMC : public Updater
 
         //! Set parameters for box volume moves from a dictionary
         /*! dict keys:
-             mode - choose betwenn standard and log volume moves
+             mode - choose between standard and log volume moves
              delta - maximum size of volume change
              weight - relative likelihood of volume move.
         */
