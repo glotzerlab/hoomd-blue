@@ -80,11 +80,15 @@ class UpdaterBoxMC : public Updater
                 {
                 m_volume_weight = d["weight"].cast<Scalar>();
                 m_volume_delta =  d["delta"].cast<Scalar>();
+                m_ln_volume_weight = 0.0;
+                m_ln_volume_delta = 0.0;
                 }
             else if (m_volume_mode == "ln")
                 {
                 m_ln_volume_weight = d["weight"].cast<Scalar>();
                 m_ln_volume_delta = d["delta"].cast<Scalar>();
+                m_volume_weight = 0.0;
+                m_volume_delta = 0.0;
                 }
             else
                 {
