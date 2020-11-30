@@ -14,6 +14,9 @@ v3.0.0-beta.2 (not yet released)
 
 *Changed*
 
+- ``hoomd.snapshot.ConfigurationData.dimensions`` is not settable and is
+  determined by the snapshot box. If ``box.Lz == 0``, the dimensions are 2
+  otherwise 3.
 - Building from source requires a C++14 compatible compiler.
 - Improved documentation.
 - [breaking] Replace ``write.GSD`` argument ``overwrite`` with ``mode``.
@@ -21,10 +24,10 @@ v3.0.0-beta.2 (not yet released)
   origin of (0, 0, 0).
 - Document loggable quantities in property docstrings.
 - Skip GPU tests when no GPU is present.
+- ``hoomd.write.Table`` writes integers with integer formatting.
 
 *Fixed*
 
-- `hoomd.write.Table` objects' formatting of `int` objects.
 - ``Simulation.run`` now ends with a ``KeyboardInterrupt`` exception when
   Jupyter interrupts the kernel.
 - Logging the state of specific objects with nested attributes.
