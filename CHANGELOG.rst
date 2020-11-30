@@ -14,6 +14,9 @@ v3.0.0-beta.2 (not yet released)
 
 *Changed*
 
+- ``hoomd.snapshot.ConfigurationData.dimensions`` is not settable and is
+  determined by the snapshot box. If ``box.Lz == 0``, the dimensions are 2
+  otherwise 3.
 - Building from source requires a C++14 compatible compiler.
 - Improved documentation.
 - [breaking] Replace ``write.GSD`` argument ``overwrite`` with ``mode``.
