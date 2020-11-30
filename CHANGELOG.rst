@@ -24,11 +24,14 @@ v3.0.0-beta.2 (not yet released)
 
 *Fixed*
 
+- `hoomd.write.Table` objects' formatting of `int` objects.
 - ``Simulation.run`` now ends with a ``KeyboardInterrupt`` exception when
   Jupyter interrupts the kernel.
 - Logging the state of specific objects with nested attributes.
 - Broken relative RPATHs.
 - Add missing documenation for ``version.version``
+- Error when removing specific operations from a simulation's operations
+  attribute.
 
 
 v3.0.0-beta.1 (2020-10-15)
