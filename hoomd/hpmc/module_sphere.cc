@@ -24,7 +24,7 @@
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
 #include "UpdaterChangeSite.h"
-#include "UpdaterChangeSiteHypersphere.h"
+//#include "UpdaterChangeSiteHypersphere.h"
 #include "UpdaterClusters.h"
 #include "UpdaterClustersImplicit.h"
 

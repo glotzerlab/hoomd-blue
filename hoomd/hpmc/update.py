@@ -868,50 +868,41 @@ class change_site(_updater):
         remove_drift = update.change_site(mc=mc, external_lattice=lattice, period=1000);
 
     """
-    def __init__(self, mc, external_lattice, lattice_vector=[], seed, period=1, hypersphere = False):
+    def __init__(self, mc, external_lattice, seed, lattice_vector=[], period=1):
         hoomd.util.print_status_line();
         #initialize base class
         _updater.__init__(self);
         cls = None;
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            if hypersphere:
-                if isinstance(mc, integrate.sphere):
-                    cls = _hpmc.ChangeSiteUpdaterSphereHypersphere;
-                elif isinstance(mc, integrate.convex_polyhedron):
-                    cls = _hpmc.ChangeSiteUpdaterConvexPolyhedronHypersphere;
-                else:
-                    hoomd.context.msg.error("update.change_site (hypersphere): Unsupported integrator.\n");
-                    raise RuntimeError("Error initializing update.change_site (hypersphere)");
+            if isinstance(mc, integrate.sphere):
+                cls = _hpmc.UpdaterChangeSiteSphere;
+            elif isinstance(mc, integrate.convex_polygon):
+                cls = _hpmc.UpdaterChangeSiteConvexPolygon;
+            elif isinstance(mc, integrate.simple_polygon):
+                cls = _hpmc.UpdaterChangeSiteSimplePolygon;
+            elif isinstance(mc, integrate.convex_polyhedron):
+                cls = _hpmc.UpdaterChangeSiteConvexPolyhedron;
+            elif isinstance(mc, integrate.convex_spheropolyhedron):
+                cls = _hpmc.UpdaterChangeSiteSpheropolyhedron;
+            elif isinstance(mc, integrate.ellipsoid):
+                cls = _hpmc.UpdaterChangeSiteEllipsoid;
+            elif isinstance(mc, integrate.convex_spheropolygon):
+                cls =_hpmc.UpdaterChangeSiteSpheropolygon;
+            elif isinstance(mc, integrate.faceted_sphere):
+                cls =_hpmc.UpdaterChangeSiteFacetedEllipsoid;
+            elif isinstance(mc, integrate.polyhedron):
+                cls =_hpmc.UpdaterChangeSitePolyhedron;
+            elif isinstance(mc, integrate.sphinx):
+                cls =_hpmc.UpdaterChangeSiteSphinx;
+            elif isinstance(mc, integrate.sphere_union):
+                cls = _hpmc.UpdaterChangeSiteSphereUnion;
+            elif isinstance(mc, integrate.convex_polyhedron_union):
+                cls = _hpmc.UpdaterChangeSiteConvexPolyhedronUnion;
+            elif isinstance(mc, integrate.faceted_ellipsoid_union):
+                cls = _hpmc.UpdaterChangeSiteFacetedEllipsoidUnion;
             else:
-                if isinstance(mc, integrate.sphere):
-                    cls = _hpmc.ChangeSiteUpdaterSphere;
-                elif isinstance(mc, integrate.convex_polygon):
-                    cls = _hpmc.ChangeSiteUpdaterConvexPolygon;
-                elif isinstance(mc, integrate.simple_polygon):
-                    cls = _hpmc.ChangeSiteUpdaterSimplePolygon;
-                elif isinstance(mc, integrate.convex_polyhedron):
-                    cls = _hpmc.ChangeSiteUpdaterConvexPolyhedron;
-                elif isinstance(mc, integrate.convex_spheropolyhedron):
-                    cls = _hpmc.ChangeSiteUpdaterSpheropolyhedron;
-                elif isinstance(mc, integrate.ellipsoid):
-                    cls = _hpmc.ChangeSiteUpdaterEllipsoid;
-                elif isinstance(mc, integrate.convex_spheropolygon):
-                    cls =_hpmc.ChangeSiteUpdaterSpheropolygon;
-                elif isinstance(mc, integrate.faceted_sphere):
-                    cls =_hpmc.ChangeSiteUpdaterFacetedEllipsoid;
-                elif isinstance(mc, integrate.polyhedron):
-                    cls =_hpmc.ChangeSiteUpdaterPolyhedron;
-                elif isinstance(mc, integrate.sphinx):
-                    cls =_hpmc.ChangeSiteUpdaterSphinx;
-                elif isinstance(mc, integrate.sphere_union):
-                    cls = _hpmc.ChangeSiteUpdaterSphereUnion;
-                elif isinstance(mc, integrate.convex_polyhedron_union):
-                    cls = _hpmc.ChangeSiteUpdaterConvexPolyhedronUnion;
-                elif isinstance(mc, integrate.faceted_ellipsoid_union):
-                    cls = _hpmc.ChangeSiteUpdaterFacetedEllipsoidUnion;
-                else:
-                    hoomd.context.msg.error("update.change_site: Unsupported integrator.\n");
-                    raise RuntimeError("Error initializing update.change_site");
+                hoomd.context.msg.error("update.change_site: Unsupported integrator.\n");
+                raise RuntimeError("Error initializing update.change_site");
         else:
             raise RuntimeError("update.change_site: Error! GPU not implemented.");
             # if isinstance(mc, integrate.sphere):
@@ -940,7 +931,73 @@ class change_site(_updater):
             #     hoomd.context.msg.error("update.change_site: Unsupported integrator.\n");
             #     raise RuntimeError("Error initializing update.change_site");
 
+        enlist = hoomd.hpmc.data._param.ensure_list;
         self.cpp_updater = cls(hoomd.context.current.system_definition, external_lattice.cpp_compute, enlist(lattice_vector), mc.cpp_integrator,int(seed));
+        self.setupUpdater(period);
+
+class change_site_hypersphere(_updater):
+    R""" moves particle to neighbouring site iof lattice field (if possible) to study vacancies.
+
+    Args:
+        mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
+        external_lattice (:py:class:`hoomd.hpmc.field.lattice_field`): lattice field where the lattice is defined.
+        period (int): the period to call the updater
+
+    The command hpmc.update.change_site sets up an updater that removes the center of mass
+    drift of a system every period timesteps,
+
+    Example::
+
+        mc = hpmc.integrate.convex_polyhedron(seed=seed);
+        mc.shape_param.set("A", vertices=verts)
+        mc.set_params(d=0.005, a=0.005)
+        lattice = hpmc.compute.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
+        remove_drift = update.change_site(mc=mc, external_lattice=lattice, period=1000);
+
+    """
+    def __init__(self, mc, external_lattice, seed, lattice_quatl=[], lattice_quatr = [], period=1):
+        hoomd.util.print_status_line();
+        #initialize base class
+        _updater.__init__(self);
+        cls = None;
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            if isinstance(mc, integrate.sphere):
+                cls = _hpmc.UpdaterChangeSiteSphereHypersphere;
+            elif isinstance(mc, integrate.convex_polyhedron):
+                cls = _hpmc.UpdaterChangeSiteConvexPolyhedronHypersphere;
+            else:
+                hoomd.context.msg.error("update.change_site (hypersphere): Unsupported integrator.\n");
+                raise RuntimeError("Error initializing update.change_site (hypersphere)");
+        else:
+            raise RuntimeError("update.change_site: Error! GPU not implemented.");
+            # if isinstance(mc, integrate.sphere):
+            #     cls = _hpmc.ChangeSiteUpdaterGPUSphere;
+            # elif isinstance(mc, integrate.convex_polygon):
+            #     cls = _hpmc.ChangeSiteUpdaterGPUConvexPolygon;
+            # elif isinstance(mc, integrate.simple_polygon):
+            #     cls = _hpmc.ChangeSiteUpdaterGPUSimplePolygon;
+            # elif isinstance(mc, integrate.convex_polyhedron):
+            #     cls = integrate._get_sized_entry('ChangeSiteUpdaterGPUConvexPolyhedron', mc.max_verts);
+            # elif isinstance(mc, integrate.convex_spheropolyhedron):
+            #     cls = integrate._get_sized_entry('ChangeSiteUpdaterGPUSpheropolyhedron',mc.max_verts);
+            # elif isinstance(mc, integrate.ellipsoid):
+            #     cls = _hpmc.ChangeSiteUpdaterGPUEllipsoid;
+            # elif isinstance(mc, integrate.convex_spheropolygon):
+            #     cls =_hpmc.ChangeSiteUpdaterGPUSpheropolygon;
+            # elif isinstance(mc, integrate.faceted_sphere):
+            #     cls =_hpmc.ChangeSiteUpdaterGPUFacetedEllipsoid;
+            # elif isinstance(mc, integrate.polyhedron):
+            #     cls =_hpmc.ChangeSiteUpdaterGPUPolyhedron;
+            # elif isinstance(mc, integrate.sphinx):
+            #     cls =_hpmc.ChangeSiteUpdaterGPUSphinx;
+            # elif isinstance(mc, integrate.sphere_union):
+            #     cls =_hpmc.ChangeSiteUpdaterGPUSphereUnion;
+            # else:
+            #     hoomd.context.msg.error("update.change_site: Unsupported integrator.\n");
+            #     raise RuntimeError("Error initializing update.change_site");
+
+        enlist = hoomd.hpmc.data._param.ensure_list;
+        self.cpp_updater = cls(hoomd.context.current.system_definition, external_lattice.cpp_compute, enlist(lattice_quatl), enlist(lattice_quatr), mc.cpp_integrator,int(seed));
         self.setupUpdater(period);
 
 class clusters(_updater):
