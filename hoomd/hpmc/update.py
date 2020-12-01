@@ -115,7 +115,7 @@ class BoxMC(Updater):
             The counts are reset to 0 at the start of each
             `hoomd.Simulation.run`.
         """
-        if not self.is_attached:
+        if not self._attached:
             return None
         else:
             return self._cpp_obj.getCounters(1)

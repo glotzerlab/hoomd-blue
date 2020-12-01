@@ -37,13 +37,20 @@ valid_attrs = [
     ('shear', {'weight': 0.7, 'delta': [0.3]*3, 'reduce': 0.1})
 ]
 
-betaP_boxmoves = list(product([1, 3, 5, 7, 10],
-                      [ {'move':'volume', "params": {'mode':'standard', 'weight':1, 'delta':0.05}},
-                        {'move':'volume', "params": {'mode':'ln', 'weight':1, 'delta':0.05}},
-                        {'move':'aspect', "params": {'weight':1, 'delta':0.05}},
-                        {'move':'shear', "params": {'weight':1, 'delta':(0.05,)*3, 'reduce':0.2}},
-                        {'move':'length', "params": {'weight':1, 'delta':(0.05,)*3}}
-                       ]))
+
+box_moves_attrs = [ {'move':'volume', "params": {'mode':'standard', 'weight':1, 'delta':0.05}},
+                    {'move':'volume', "params": {'mode':'ln', 'weight':1, 'delta':0.05}},
+                    {'move':'aspect', "params": {'weight':1, 'delta':0.05}},
+                    {'move':'shear', "params": {'weight':1, 'delta':(0.05,)*3, 'reduce':0.2}},
+                    {'move':'length', "params": {'weight':1, 'delta':(0.05,)*3}}
+                  ]
+
+
+counter_attrs = dict(volume="volume_moves",
+                     length="volume_moves",
+                     aspect="aspect_moves",
+                     shear="shear_moves")
+
 
 def _is_close(v1, v2):
     return v1 == v2 if isinstance(v1, str) else np.allclose(v1, v2)
@@ -127,7 +134,8 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
         assert getattr(boxmc, attr) == value
 
 
-@pytest.mark.parametrize("betaP,box_move", betaP_boxmoves)
+@pytest.mark.parametrize("betaP", [1, 3, 5, 7, 10])
+@pytest.mark.parametrize("box_move", box_moves_attrs)
 def test_sphere_compression(betaP, box_move, simulation_factory,
                             lattice_snapshot_factory):
     """Test that BoxMC can compress (and expand) simulation boxes."""
@@ -161,7 +169,8 @@ def test_sphere_compression(betaP, box_move, simulation_factory,
     assert sim.state.box != initial_box
 
 
-@pytest.mark.parametrize("betaP,box_move", betaP_boxmoves)
+@pytest.mark.parametrize("betaP", [1, 3, 5, 7, 10])
+@pytest.mark.parametrize("box_move", box_moves_attrs)
 def test_disk_compression(betaP, box_move, simulation_factory,
                           lattice_snapshot_factory):
     """Test that BoxMC can compress (and expand) simulation boxes."""
@@ -193,3 +202,44 @@ def test_disk_compression(betaP, box_move, simulation_factory,
     # check that box is changed
     assert mc.overlaps == 0
     assert sim.state.box != initial_box
+
+
+@pytest.mark.parametrize("box_move", box_moves_attrs)
+def test_counters(box_move, simulation_factory,
+                  lattice_snapshot_factory):
+    """Test that BoxMC counters count corectly."""
+
+    boxmc = hoomd.hpmc.update.BoxMC(betaP=hoomd.variant.Constant(3),
+                                    seed=1)
+    # check result when box object is unattached
+    for v in counter_attrs.values():
+        assert getattr(boxmc, v) == (0, 0)
+
+    n = 7
+    snap = lattice_snapshot_factory(dimensions=2, n=n, a=1.3)
+    sim = simulation_factory(snap)
+    initial_box = sim.state.box
+
+    sim.operations.updaters.append(boxmc)
+    mc = hoomd.hpmc.integrate.Sphere(d=0.05, seed=1)
+    mc.shape['A'] = dict(diameter=1)
+    sim.operations.integrator = mc
+
+    # run w/o setting any of the box moves
+    sim.run(100)
+
+    # check results after attaching but with zero weights and deltas
+    for v in counter_attrs.values():
+        assert getattr(boxmc, v) == (0, 0)
+
+    # add a box move
+    setattr(boxmc, box_move['move'], box_move['params'])
+    # run with box move
+    sim.run(100)
+
+    # check some moves are accepted after properly setting a box move
+    for (k, v) in counter_attrs.items():
+        if k == box_move['move']:
+            ctr = getattr(boxmc, v)
+            assert ctr[0] > 0
+            assert ctr[0]+ctr[1] == 100
