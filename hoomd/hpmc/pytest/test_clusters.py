@@ -187,10 +187,10 @@ def test_swap_moves(delta_mu, simulation_factory,
     sim.run(100)
 
     snap = sim.state.snapshot
+    acceptance = cl.swap_moves[0]/np.sum(cl.swap_moves)
     if snap.exists:
         num_type_B = np.sum(snap.particles.typeid)
         num_type_A = len(snap.particles.typeid) - num_type_B
-        acceptance = cl.swap_moves[0]/np.sum(cl.swap_moves)
         if delta_mu<0:
             assert num_type_B < num_type_A
             assert acceptance < 1
