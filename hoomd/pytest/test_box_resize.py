@@ -83,7 +83,7 @@ def get_snapshot(sys, device):
 
     def make_shapshot():
         box1, points1 = sys[0]
-        s = hoomd.Snapshot()
+        s = hoomd.snapshot.Snapshot(device.communicator)
         if s.exists:
             s.configuration.box = box1
             s.particles.N = points1.shape[0]
@@ -110,6 +110,12 @@ def box_resize(sys, trigger, variant):
                                   box2=sys2[0],
                                   variant=variant,
                                   trigger=trigger)
+
+
+def assert_positions(sim, reference_points):
+    with sim.state.cpu_local_snapshot as data:
+        reference_point = reference_points[data.particles.tag]
+        npt.assert_allclose(data.particles.position, reference_point)
 
 
 def test_trigger(box_resize, trigger):
@@ -140,15 +146,13 @@ def test_get_box(device, get_snapshot, sys, box_resize):
 
 def test_update(device, get_snapshot, sys, box_resize):
     sys1, _, sys2 = sys
-
     sim = hoomd.Simulation(device)
     sim.create_state_from_snapshot(get_snapshot())
     sim.operations.updaters.append(box_resize)
-
     box_resize.update(sim.state, sys2[0])
 
     assert sim.state.box == sys2[0]
-    npt.assert_allclose(sim.state.snapshot.particles.position, sys2[1])
+    assert_positions(sim, sys2[1])
 
 
 def test_position_scale(device, get_snapshot, sys, box_resize):
@@ -157,17 +161,17 @@ def test_position_scale(device, get_snapshot, sys, box_resize):
 
     sim = hoomd.Simulation(device)
     sim.create_state_from_snapshot(get_snapshot())
-    sim.operations.updaters.append(box_resize)
 
+    sim.operations.updaters.append(box_resize)
     # Run up to halfway point
     sim.run(_t_mid + 1)
     assert sim.state.box == sys_halfway[0]
-    npt.assert_allclose(sim.state.snapshot.particles.position, sys_halfway[1])
+    assert_positions(sim, sys_halfway[1])
 
     # Finish run
     sim.run(_t_mid)
     assert sim.state.box == sys2[0]
-    npt.assert_allclose(sim.state.snapshot.particles.position, sys2[1])
+    assert_positions(sim, sys2[1])
 
 
 def test_no_position_scale(device, get_snapshot, sys):
@@ -189,9 +193,9 @@ def test_no_position_scale(device, get_snapshot, sys):
     # Run up to halfway point
     sim.run(_t_mid + 1)
     assert sim.state.box == sys_halfway[0]
-    npt.assert_allclose(sim.state.snapshot.particles.position, sys1[1])
+    assert_positions(sim, sys1[1])
 
     # Finish run
     sim.run(_t_mid)
     assert sim.state.box == sys2[0]
-    npt.assert_allclose(sim.state.snapshot.particles.position, sys1[1])
+    assert_positions(sim, sys1[1])
