@@ -527,14 +527,12 @@ class Logger(SafeNamespaceDict):
         """
         return self._only_default
 
-    def _filter_quantities(self, quantities, overwrite_default=False):
-        if overwrite_default:
-            def filter_func(log_quantity):
-                return log_quantity.flag in self._flags
-        else:
-            def filter_func(log_quantity):
-                return log_quantity.default and log_quantity.flag in self._flags
-        yield from filter(filter_func, quantities)
+    def _filter_quantities(self, quantities):
+        for quantity in quantities:
+            if self._only_default and not quantity.default:
+                continue
+            elif quantity.flag in self._flags:
+                yield quantity
 
     def _get_loggables_by_name(self, obj, quantities):
         if quantities is None:
