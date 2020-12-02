@@ -32,7 +32,7 @@ v3.0.0-beta.2 (not yet released)
   Jupyter interrupts the kernel.
 - Logging the state of specific objects with nested attributes.
 - Broken relative RPATHs.
-- Add missing documenation for ``version.version``
+- Add missing documentation for ``version.version``
 - Error when removing specific operations from a simulation's operations
   attribute.
 - Find CUDA libraries on additional Linux distributions.
