@@ -35,6 +35,7 @@ v3.0.0-beta.2 (not yet released)
 - Add missing documenation for ``version.version``
 - Error when removing specific operations from a simulation's operations
   attribute.
+- Find CUDA libraries on additional Linux distributions.
 
 
 v3.0.0-beta.1 (2020-10-15)
