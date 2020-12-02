@@ -1,8 +1,8 @@
 # Copyright (c) 2009-2019 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
 
-""" HPMC updaters.
-"""
+"""HPMC updaters."""
 
 from . import _hpmc
 from . import integrate
@@ -16,18 +16,19 @@ import hoomd
 
 
 class BoxMC(Updater):
-    R""" Apply box updates to sample isobaric and related ensembles.
+    r"""Apply box updates to sample isobaric and related ensembles.
 
     Args:
-
         seed (int): random number seed for MC box changes
-        betaP (float or :py:mod:`hoomd.variant`): :math:`\frac{p}{k_{\mathrm{B}}T}`. (units of inverse area in 2D or
-                                                    inverse volume in 3D) Apply your chosen reduced pressure convention externally.
-        trigger (hoomd.trigger.Trigger): Select the timesteps to perform box trial moves.
+        betaP (`float` or :py:mod:`hoomd.variant.Variant`):
+            :math:`\frac{p}{k_{\mathrm{B}}T}` (units of inverse area in 2D or
+            inverse volume in 3D).
+        trigger (hoomd.trigger.Trigger): Select the timesteps to perform box
+            trial moves.
 
     Use `BoxMC` in conjunction with an HPMC integrator to allow the simulation
     box to undergo random fluctuations at constant pressure. `BoxMC` supports
-    both isotropic (all box sides changed equally) and anisotripic volume change
+    both isotropic (all box sides changed equally) and anisotropic volume change
     moves as well as shearing of the simulation box. Multiple types of box moves
     can be applied simultaneously during a simulation. For this purpose, each
     type of box move has an associated weight that determines the relative
@@ -39,39 +40,42 @@ class BoxMC(Updater):
 
     Attributes:
         volume (dict):
-            Enable/disable isobaric volume moves and set parameters (scale the box lengths uniformly).
-            The dictionary has the following keys:
+            Parameters for isobaric volume moves that scale the box lengths
+            uniformly. The dictionary has the following keys:
 
-            * ``mode`` (str, **default:** ``standard``) - choose between ``standard`` for conventional volume
-                    increments or ``ln`` for logarithmic volume box moves.
-            * ``weight`` (float) - relative weight of volume box moves relative to other box move types.
-            * ``delta`` (float) - maximum change in V or **ln(V)** where V is box area (2D) or volume (3D).
+            * ``weight`` (float) - Relative weight of volume box moves.
+            * ``mode`` (str, **default:** ``standard``) - ``standard`` proposes
+              changes to the box volume and ``ln`` proposes changes to the
+              logarithm of the volume.
+            * ``delta`` (float) - Maximum change in **V** or **ln(V)** where V
+              is box area (2D) or volume (3D).
 
         aspect (dict):
-            Enable/disable isobaric aspect ratio moves and set parameters. The dictionary
-            has the following keys:
+            Parameters for isovolume aspect ratio moves. The dictionary has the
+            following keys:
 
-            * ``weight`` (float) - relative weight of aspect box moves relative to other box move types.
-            * ``delta`` (float) - maximum relative change of box aspect ratio.
+            * ``weight`` (float) - Relative weight of aspect box moves.
+            * ``delta`` (float) - Maximum relative change of box aspect ratio.
 
         length (dict):
-            Enable/disable isobaric box length moves and set parameters (change box lengths independently).
-            The dictionary has the following keys:
+            Parameters for isobaric box length moves that change box lengths
+            independently. The dictionary has the following keys:
 
-            * ``weight`` (float) - maximum change of the box thickness for each pair of parallel planes
-                    connected by the corresponding box edges. I.e. maximum change of HOOMD-blue box parameters Lx, Ly, Lz.
-            * ``delta`` (tuple) -  maximum change of the box lengths Lx, Ly, Lz.
+            * ``weight`` (float) - Maximum change of HOOMD-blue box parameters
+              Lx, Ly, and Lz.
+            * ``delta`` (tuple[float, float, float]) - Maximum change of the
+              box lengths ``(Lx, Ly, Lz)``.
 
         shear (dict):
-            Enable/disable isobaric box shear moves and set parameters. The dictionary
-            has the following keys:
+            Parameters for isovolume box shear moves. The dictionary has the
+            following keys:
 
-            * ``weight`` (float) - relative weight of shear box moves relative to other box move types.
-            * ``delta`` (tuple) -  maximum change of the box tilt factor xy, xz, yz.
-            * ``reduce`` (float) - Maximum number of lattice vectors of shear to allow before applying lattice reduction.
-                     Shear of +/- 0.5 cannot be lattice reduced, so set to a value < 0.5 to disable (default 0)
-                     Note that due to precision errors, lattice reduction may introduce small overlaps which can be
-                     resolved, but which temporarily break detailed balance.
+            * ``weight`` (float) - Relative weight of shear box moves.
+            * ``delta`` (tuple[float, float, float]) -  maximum change of the
+              box tilt factor ``(xy, xz, yz)``.
+            * ``reduce`` (float) - Maximum number of lattice vectors of shear
+              to allow before applying lattice reduction. Values less than 0.5
+              disable shear reduction.
     """
 
     def __init__(self, seed, betaP, trigger=1):
@@ -107,12 +111,15 @@ class BoxMC(Updater):
 
         The counter object has the following attributes:
 
-        * ``volume``: `tuple` [`int`, `int`] - Number of accepted and rejected volume and length moves.
-        * ``shear``: `tuple` [`int`, `int`] - Number of accepted and rejected shear moves.
-        * ``aspect``: `tuple` [`int`, `int`] - Number of accepted and rejected aspect moves.
+        * ``volume``: `tuple` [`int`, `int`] - Number of accepted and rejected
+          volume and length moves.
+        * ``shear``: `tuple` [`int`, `int`] - Number of accepted and rejected
+          shear moves.
+        * ``aspect``: `tuple` [`int`, `int`] - Number of accepted and rejected
+          aspect moves.
 
         Note:
-            The counts are reset to 0 at the start of each
+            The counts are reset to 0 at the start of each call to
             `hoomd.Simulation.run`.
         """
         if not self._attached:
@@ -122,7 +129,9 @@ class BoxMC(Updater):
 
     @log(flag="sequence")
     def volume_moves(self):
-        """tuple[int, int]: The accepted and rejected volume and length moves. Returns (0, 0) if not attached.
+        """tuple[int, int]: The accepted and rejected volume and length moves.
+
+        (0, 0) when not attached.
         """
         counter = self.counter
         if counter is None:
@@ -133,7 +142,9 @@ class BoxMC(Updater):
 
     @log(flag="sequence")
     def shear_moves(self):
-        """tuple[int, int]: The accepted and rejected shear moves. Returns (0, 0) if not attached.
+        """tuple[int, int]: The accepted and rejected shear moves.
+
+        (0, 0) when not attached.
         """
         counter = self.counter
         if counter is None:
@@ -143,7 +154,9 @@ class BoxMC(Updater):
 
     @log(flag="sequence")
     def aspect_moves(self):
-        """tuple[int, int]: The accepted and rejected aspect moves. Returns (0, 0) if not attached.
+        """tuple[int, int]: The accepted and rejected aspect moves.
+
+        (0, 0) when not attached.
         """
         counter = self.counter
         if counter is None:
