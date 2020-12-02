@@ -21,3 +21,6 @@ class All(ParticleFilter, ParticleFilterAll):
     def __eq__(self, other):
         """Test for equality between two particle filters."""
         return type(self) == type(other)
+
+    def __reduce__(self):
+        return (type(self), tuple())

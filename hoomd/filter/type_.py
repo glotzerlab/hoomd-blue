@@ -31,3 +31,6 @@ class Type(ParticleFilter, ParticleFilterType):
     def types(self):
         """list[str]: List of particle type names to select."""
         return self._types
+
+    def __reduce__(self):
+        return (type(self), (self.types,))

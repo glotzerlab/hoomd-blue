@@ -37,3 +37,6 @@ class Tags(ParticleFilter, ParticleFilterTags):
     def tags(self):
         """list[int]: List of particle tags to select."""
         return self._tags
+
+    def __reduce__(self):
+        return (type(self), (self.tags,))
