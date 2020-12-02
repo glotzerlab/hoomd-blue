@@ -937,13 +937,12 @@ class QuickCompress(Updater):
     steps.
 
     It operates by making small changes toward the `target_box`: ``L_new = scale
-    * L_current`` for each box parameter (where the smallest value of `scale` is
-    `min_scale`) and then scaling the particle positions into the new box. If
-    there are more than ``max_overlaps_per_particle * N_particles`` hard
-    particle overlaps in the system, the box move is rejected. Otherwise, the
-    small number of overlaps remain. `QuickCompress` then waits until local MC
-    trial moves provided by the HPMC integrator remove all overlaps before it
-    makes another box change.
+    * L_current`` for each box parameter and then scaling the particle positions
+    into the new box. If there are more than ``max_overlaps_per_particle *
+    N_particles`` hard particle overlaps in the system, the box move is
+    rejected. Otherwise, the small number of overlaps remain. `QuickCompress`
+    then waits until local MC trial moves provided by the HPMC integrator
+    remove all overlaps before it makes another box change.
 
     Note:
         The target box size may be larger or smaller than the current system
@@ -951,10 +950,22 @@ class QuickCompress(Updater):
         parameter is larger than the current, it scales by ``L_new = 1/scale *
         L_current``
 
+    `QuickCompress` adjusts the value of ``scale`` based on the particle and
+    translational trial move sizes to ensure that the trial moves will be able
+    to remove the overlaps. It chooses a value of ``scale`` randomly between
+    ``max(min_scale, 1.0 - min_move_size / max_diameter)`` and 1.0 where
+    ``min_move_size`` is the smallest MC translational move size adjusted
+    by the acceptance ratio and ``max_diameter`` is the circumsphere diameter
+    of the largest particle type.
+
     Tip:
         Use the `hoomd.hpmc.tune.MoveSizeTuner` in conjunction with
         `QuickCompress` to adjust the move sizes to maintain a constant
         acceptance ratio as the density of the system increases.
+
+    Warning:
+        When the smallest MC translational move size is 0, `QuickCompress`
+        will scale the box by 1.0 and not progress toward the target box.
 
     Attributes:
         trigger (Trigger): Update the box dimensions on triggered time steps.
@@ -1009,11 +1020,7 @@ class QuickCompress(Updater):
 
     @property
     def complete(self):
-        """True when the operation is complete.
-
-        `Simulation.run` stops the running whenever any operation in the
-        `Simulation` is complete.
-        """
+        """True when the box has achieved the target."""
         if not self._attached:
             return False
 
