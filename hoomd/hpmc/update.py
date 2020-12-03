@@ -86,7 +86,8 @@ class BoxMC(Updater):
             seed=int,
             volume={
                 "mode": hoomd.data.typeconverter.OnlyFrom(['standard', 'ln']),
-                **_default_dict},
+                **_default_dict
+            },
             aspect=_default_dict,
             length=dict(weight=0.0, delta=(0.0,) * 3),
             shear=dict(weight=0.0, delta=(0.0,) * 3, reduce=0.0),
@@ -104,9 +105,8 @@ class BoxMC(Updater):
             raise RuntimeError("Integrator is not attached yet.")
 
         self._cpp_obj = _hpmc.UpdaterBoxMC(self._simulation.state._cpp_sys_def,
-                                           integrator._cpp_obj,
-                                           self.betaP,
-                                           int(self.seed));
+                                           integrator._cpp_obj, self.betaP,
+                                           int(self.seed))
         super()._attach()
 
     @property
@@ -685,6 +685,7 @@ class Clusters(Updater):
             return (0, 0)
         else:
             return counter.swap
+
 
 class QuickCompress(Updater):
     """Quickly compress a hard particle system to a target box.
