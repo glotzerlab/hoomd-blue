@@ -81,15 +81,19 @@ class BoxMC(Updater):
     def __init__(self, seed, betaP, trigger=1):
         super().__init__(trigger)
 
-        _default_dict = dict(weight=float(0), delta=float(0))
-        param_dict = ParameterDict(seed=int(seed),
-                                   volume={"mode":"standard", **_default_dict},
-                                   aspect=_default_dict,
-                                   length=dict(weight=float(0), delta=(float(0),)*3),
-                                   shear=dict(weight=float(0), delta=(float(0),)*3, reduce=float(0)),
-                                   betaP=hoomd.variant.Variant)
+        _default_dict = dict(weight=0.0, delta=0.0)
+        param_dict = ParameterDict(
+            seed=int,
+            volume={
+                "mode": hoomd.data.typeconverter.OnlyFrom(['standard', 'ln']),
+                **_default_dict},
+            aspect=_default_dict,
+            length=dict(weight=0.0, delta=(0.0,) * 3),
+            shear=dict(weight=0.0, delta=(0.0,) * 3, reduce=0.0),
+            betaP=hoomd.variant.Variant)
         self._param_dict.update(param_dict)
         self.betaP = betaP
+        self.seed = seed
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
@@ -163,6 +167,7 @@ class BoxMC(Updater):
             return (0, 0)
         else:
             return counter.aspect
+
 
 class wall(_updater):
     R""" Apply wall updates with a user-provided python callback.
