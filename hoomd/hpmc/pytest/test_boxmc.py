@@ -6,8 +6,6 @@
 
 import hoomd
 import pytest
-import math
-from itertools import product
 import numpy as np
 
 valid_constructor_args = [
@@ -46,10 +44,12 @@ box_moves_attrs = [ {'move':'volume', "params": {'mode':'standard', 'weight':1, 
                   ]
 
 
-counter_attrs = dict(volume="volume_moves",
-                     length="volume_moves",
-                     aspect="aspect_moves",
-                     shear="shear_moves")
+@pytest.fixture
+def counter_attrs():
+    return {'volume': "volume_moves",
+            'length': "volume_moves",
+            'aspect': "aspect_moves",
+            'shear': "shear_moves"}
 
 
 def _is_close(v1, v2):
@@ -206,7 +206,7 @@ def test_disk_compression(betaP, box_move, simulation_factory,
 
 @pytest.mark.parametrize("box_move", box_moves_attrs)
 def test_counters(box_move, simulation_factory,
-                  lattice_snapshot_factory):
+                  lattice_snapshot_factory, counter_attrs):
     """Test that BoxMC counters count corectly."""
 
     boxmc = hoomd.hpmc.update.BoxMC(betaP=hoomd.variant.Constant(3),
