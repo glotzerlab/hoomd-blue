@@ -2,7 +2,7 @@ from hoomd.operation import Updater
 from hoomd.box import Box
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyType, box_preprocessing
-from hoomd.variant import Variant, Power, Constant
+from hoomd.variant import Variant, Constant
 from hoomd import _hoomd
 
 
