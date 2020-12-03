@@ -144,12 +144,11 @@ def test_get_box(device, get_snapshot, sys, box_resize):
     assert box_resize.get_box(_t_start + _t_ramp) == sys2[0]
 
 
-def test_update(device, get_snapshot, sys, box_resize):
+def test_update(device, get_snapshot, sys):
     sys1, _, sys2 = sys
     sim = hoomd.Simulation(device)
     sim.create_state_from_snapshot(get_snapshot())
-    sim.operations.updaters.append(box_resize)
-    box_resize.update(sim.state, sys2[0])
+    hoomd.update.BoxResize.update(sim.state, sys2[0])
 
     assert sim.state.box == sys2[0]
     assert_positions(sim, sys2[1])
