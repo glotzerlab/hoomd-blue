@@ -23,4 +23,5 @@ class All(ParticleFilter, ParticleFilterAll):
         return type(self) == type(other)
 
     def __reduce__(self):
+        """Enable (deep)copying and pickling of `All` particle filters."""
         return (type(self), tuple())

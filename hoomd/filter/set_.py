@@ -52,6 +52,7 @@ class _ParticleFilterSetOperations(ParticleFilter):
                 self._f == other._f and self._g == other._g
 
     def __reduce__(self):
+        """Enable (deep)copying and pickling of set based particle filters."""
         return (type(self), (self._f, self._g))
 
 

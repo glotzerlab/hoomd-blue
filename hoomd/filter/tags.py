@@ -39,4 +39,5 @@ class Tags(ParticleFilter, ParticleFilterTags):
         return self._tags
 
     def __reduce__(self):
+        """Enable (deep)copying and pickling of `Tags` particle filters."""
         return (type(self), (self.tags,))

@@ -33,4 +33,5 @@ class Type(ParticleFilter, ParticleFilterType):
         return self._types
 
     def __reduce__(self):
+        """Enable (deep)copying and pickling of `Type` particle filters."""
         return (type(self), (self.types,))
