@@ -23,37 +23,79 @@ valid_constructor_args = [
          seed=4),
 ]
 
-valid_attrs = [
-    ('betaP', hoomd.variant.Constant(10)),
-    ('betaP', hoomd.variant.Ramp(1, 5, 0, 100)),
-    ('betaP', hoomd.variant.Cycle(1, 5, 0, 10, 20, 10, 15)),
-    ('betaP', hoomd.variant.Power(1, 5, 3, 0, 100)),
-    ('volume', {'mode': 'standard', 'weight': 0.7, 'delta':0.3}),
-    ('volume', {'mode': 'ln', 'weight': 0.1, 'delta': 1.2}),
-    ('aspect', {'weight': 0.3, 'delta': 0.1}),
-    ('length', {'weight': 0.5, 'delta': [0.8]*3}),
-    ('shear', {'weight': 0.7, 'delta': [0.3]*3, 'reduce': 0.1})
-]
+valid_attrs = [('betaP', hoomd.variant.Constant(10)),
+               ('betaP', hoomd.variant.Ramp(1, 5, 0, 100)),
+               ('betaP', hoomd.variant.Cycle(1, 5, 0, 10, 20, 10, 15)),
+               ('betaP', hoomd.variant.Power(1, 5, 3, 0, 100)),
+               ('volume', {
+                   'mode': 'standard',
+                   'weight': 0.7,
+                   'delta': 0.3
+               }), ('volume', {
+                   'mode': 'ln',
+                   'weight': 0.1,
+                   'delta': 1.2
+               }), ('aspect', {
+                   'weight': 0.3,
+                   'delta': 0.1
+               }), ('length', {
+                   'weight': 0.5,
+                   'delta': [0.8] * 3
+               }), ('shear', {
+                   'weight': 0.7,
+                   'delta': [0.3] * 3,
+                   'reduce': 0.1
+               })]
 
-
-box_moves_attrs = [ {'move':'volume', "params": {'mode':'standard', 'weight':1, 'delta':0.05}},
-                    {'move':'volume', "params": {'mode':'ln', 'weight':1, 'delta':0.05}},
-                    {'move':'aspect', "params": {'weight':1, 'delta':0.05}},
-                    {'move':'shear', "params": {'weight':1, 'delta':(0.05,)*3, 'reduce':0.2}},
-                    {'move':'length', "params": {'weight':1, 'delta':(0.05,)*3}}
-                  ]
+box_moves_attrs = [{
+    'move': 'volume',
+    "params": {
+        'mode': 'standard',
+        'weight': 1,
+        'delta': 0.05
+    }
+}, {
+    'move': 'volume',
+    "params": {
+        'mode': 'ln',
+        'weight': 1,
+        'delta': 0.05
+    }
+}, {
+    'move': 'aspect',
+    "params": {
+        'weight': 1,
+        'delta': 0.05
+    }
+}, {
+    'move': 'shear',
+    "params": {
+        'weight': 1,
+        'delta': (0.05,) * 3,
+        'reduce': 0.2
+    }
+}, {
+    'move': 'length',
+    "params": {
+        'weight': 1,
+        'delta': (0.05,) * 3
+    }
+}]
 
 
 @pytest.fixture
 def counter_attrs():
-    return {'volume': "volume_moves",
-            'length': "volume_moves",
-            'aspect': "aspect_moves",
-            'shear': "shear_moves"}
+    return {
+        'volume': "volume_moves",
+        'length': "volume_moves",
+        'aspect': "aspect_moves",
+        'shear': "shear_moves"
+    }
 
 
 def _is_close(v1, v2):
     return v1 == v2 if isinstance(v1, str) else np.allclose(v1, v2)
+
 
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction(constructor_args):
@@ -142,8 +184,7 @@ def test_sphere_compression(betaP, box_move, simulation_factory,
     n = 7
     snap = lattice_snapshot_factory(dimensions=3, n=n, a=1.3)
 
-    boxmc = hoomd.hpmc.update.BoxMC(betaP=hoomd.variant.Constant(betaP),
-                                    seed=1)
+    boxmc = hoomd.hpmc.update.BoxMC(betaP=hoomd.variant.Constant(betaP), seed=1)
 
     sim = simulation_factory(snap)
     initial_box = sim.state.box
@@ -177,8 +218,7 @@ def test_disk_compression(betaP, box_move, simulation_factory,
     n = 7
     snap = lattice_snapshot_factory(dimensions=2, n=n, a=1.3)
 
-    boxmc = hoomd.hpmc.update.BoxMC(betaP=hoomd.variant.Constant(betaP),
-                                    seed=1)
+    boxmc = hoomd.hpmc.update.BoxMC(betaP=hoomd.variant.Constant(betaP), seed=1)
 
     sim = simulation_factory(snap)
     initial_box = sim.state.box
@@ -205,12 +245,11 @@ def test_disk_compression(betaP, box_move, simulation_factory,
 
 
 @pytest.mark.parametrize("box_move", box_moves_attrs)
-def test_counters(box_move, simulation_factory,
-                  lattice_snapshot_factory, counter_attrs):
+def test_counters(box_move, simulation_factory, lattice_snapshot_factory,
+                  counter_attrs):
     """Test that BoxMC counters count corectly."""
 
-    boxmc = hoomd.hpmc.update.BoxMC(betaP=hoomd.variant.Constant(3),
-                                    seed=1)
+    boxmc = hoomd.hpmc.update.BoxMC(betaP=hoomd.variant.Constant(3), seed=1)
     # check result when box object is unattached
     for v in counter_attrs.values():
         assert getattr(boxmc, v) == (0, 0)
@@ -218,7 +257,6 @@ def test_counters(box_move, simulation_factory,
     n = 7
     snap = lattice_snapshot_factory(dimensions=2, n=n, a=1.3)
     sim = simulation_factory(snap)
-    initial_box = sim.state.box
 
     sim.operations.updaters.append(boxmc)
     mc = hoomd.hpmc.integrate.Sphere(d=0.05, seed=1)
@@ -242,4 +280,4 @@ def test_counters(box_move, simulation_factory,
         if k == box_move['move']:
             ctr = getattr(boxmc, v)
             assert ctr[0] > 0
-            assert ctr[0]+ctr[1] == 100
+            assert ctr[0] + ctr[1] == 100
