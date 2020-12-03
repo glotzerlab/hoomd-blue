@@ -44,9 +44,9 @@ class BoxMC(Updater):
             uniformly. The dictionary has the following keys:
 
             * ``weight`` (float) - Relative weight of volume box moves.
-            * ``mode`` (str, **default:** ``standard``) - ``standard`` proposes
-              changes to the box volume and ``ln`` proposes changes to the
-              logarithm of the volume.
+            * ``mode`` (str) - ``standard`` proposes changes to the box volume
+              and ``ln`` proposes changes to the logarithm of the volume.
+              Initially starts off in 'standard' mode.
             * ``delta`` (float) - Maximum change in **V** or **ln(V)** where V
               is box area (2D) or volume (3D).
 
@@ -91,7 +91,8 @@ class BoxMC(Updater):
             aspect=_default_dict,
             length=dict(weight=0.0, delta=(0.0,) * 3),
             shear=dict(weight=0.0, delta=(0.0,) * 3, reduce=0.0),
-            betaP=hoomd.variant.Variant)
+            betaP=hoomd.variant.Variant,
+            _defaults={'volume': {'mode': 'standard'}})
         self._param_dict.update(param_dict)
         self.betaP = betaP
         self.seed = seed
