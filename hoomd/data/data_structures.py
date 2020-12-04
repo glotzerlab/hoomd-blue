@@ -135,9 +135,17 @@ class HOOMDList(MutableSequence, _HOOMDDataStructures):
                 self._list.append(_to_hoomd_data_structure(val, type_def, self))
 
     def __getitem__(self, index):
+        """Get the value(s) associated with entry index of the list.
+
+        Supports slicing.
+        """
         return self._list[index]
 
     def __setitem__(self, index, value):
+        """Set an item(s) at index to the given value.
+
+        Support assignment with slices.
+        """
         if isinstance(index, slice):
             with self._buffer():
                 for i, v in zip(self._slice_to_iterable(index), value):
@@ -180,6 +188,10 @@ class HOOMDList(MutableSequence, _HOOMDDataStructures):
         return self._type_definition[entry_index]
 
     def __delitem__(self, index):
+        """Delele the index-th item from the list.
+
+        Supports slice deletion.
+        """
         val = self._list[index]
         # Disconnect item from list
         if isinstance(val, _HOOMDDataStructures):
@@ -196,9 +208,18 @@ class HOOMDList(MutableSequence, _HOOMDDataStructures):
         self._update()
 
     def __len__(self):
+        """Get the length of the list."""
         return len(self._list)
 
     def insert(self, index, value):
+        """Insert a value at the index-th index of the list.
+
+        Args:
+            index : int
+                The index to place the value into
+            value
+                The value to insert into the list.
+        """
         if index >= len(self):
             index = len(self)
 
@@ -222,16 +243,27 @@ class HOOMDList(MutableSequence, _HOOMDDataStructures):
         self._update()
 
     def extend(self, other):
+        """Add a list to the end of this list.
+
+        Args:
+            other : list
+                A list or sequence object to add to the end of this list.
+        """
         with self._buffer():
             super().extend(other)
         self._update()
 
     def clear(self):
+        """Empty the list of all items."""
         with self._buffer():
             super().clear()
         self._update()
 
     def to_base(self):
+        """Cast the object to a `list`.
+
+        Recursively calls `to_base` for nested data structures.
+        """
         return_list = []
         for entry in self:
             if isinstance(entry, _HOOMDDataStructures):
@@ -275,10 +307,12 @@ class HOOMDDict(MutableMapping, _HOOMDDataStructures):
                 self._dict[key] = _to_hoomd_data_structure(
                     val, type_def[key], self, key)
 
-    def __getitem__(self, item):
-        return self._dict[item]
+    def __getitem__(self, key):
+        """Get the item associated with the given key."""
+        return self._dict[key]
 
     def __getattr__(self, attr):
+        """Support dotted access to keys that are valid Python identifiers."""
         try:
             return self[attr]
         except KeyError:
@@ -286,12 +320,14 @@ class HOOMDDict(MutableMapping, _HOOMDDataStructures):
                 self, attr))
 
     def __setattr__(self, attr, value):
+        """Set"""
         if attr in self._dict:
             self[attr] = value
         else:
             super().__setattr__(attr, value)
 
     def __setitem__(self, key, item):
+        """Set the value associated with key to item in the mapping."""
         if key not in self._type_definition:
             raise KeyError(
                 "Cannot set value for non-existent key {}.".format(key))
@@ -310,20 +346,35 @@ class HOOMDDict(MutableMapping, _HOOMDDataStructures):
         self._update()
 
     def __delitem__(self, key):
+        """Delete a key from the mapping."""
         raise RuntimeError("mapping does not support deleting keys.")
 
     def __iter__(self):
+        """Iterate through the mapping keys."""
         yield from self._dict.keys()
 
     def __len__(self):
+        """Get the number of key, value pairs in the mapping."""
         return len(self._dict)
 
     def update(self, other):
+        """Update the mapping with another mapping.
+
+        The other mapping's pairs take priority over this mapping's.
+
+        Args:
+            other : dict
+                A mapping to update key, value pairs in the calling mapping.
+        """
         with self._buffer():
             super().update(other)
         self._update()
 
     def to_base(self):
+        """Cast the object to a `dict`.
+
+        Recursively calls `to_base` for nested data structures.
+        """
         return_dict = {}
         for key, entry in self.items():
             if isinstance(entry, _HOOMDDataStructures):
@@ -362,15 +413,19 @@ class HOOMDSet(MutableSet, _HOOMDDataStructures):
                 self._set.add(_to_hoomd_data_structure(val, type_def, self))
 
     def __contains__(self, item):
+        """Whether an item is found in the set."""
         return item in self._set
 
     def __iter__(self):
+        """Iterate over items in the set."""
         yield from self._set
 
     def __len__(self):
+        """Give the number of items in the set."""
         return len(self._set)
 
     def add(self, item):
+        """Add an item to the set if it is not already contained in the set."""
         if item not in self:
             try:
                 validated_value = self._type_definition(item)
@@ -383,6 +438,7 @@ class HOOMDSet(MutableSet, _HOOMDDataStructures):
         self._update()
 
     def discard(self, item):
+        """Remove an item from the set if it is contained in the set."""
         if isinstance(item, _HOOMDDataStructures):
             # Disconnect child from parent
             if item in self:
@@ -390,6 +446,10 @@ class HOOMDSet(MutableSet, _HOOMDDataStructures):
         self._set.discard(item)
 
     def to_base(self):
+        """Cast the object into a `set`.
+
+        Recursively calls `to_base` for nested data structures.
+        """
         return_set = set()
         for item in self:
             if isinstance(item, _HOOMDDataStructures):
@@ -403,24 +463,28 @@ class HOOMDSet(MutableSet, _HOOMDDataStructures):
         return return_set
 
     def __ior__(self, other):
+        """Perform an inplace union with the other set."""
         with self._buffer():
             super().__ior__(other)
         self._update()
         return self
 
     def __iand__(self, other):
+        """Perform an inplace intersection with the other set."""
         with self._buffer():
             super().__iand__(other)
         self._update()
         return self
 
     def __ixor__(self, other):
+        """The inplace union of the set differences of the two sets."""
         with self._buffer():
             super().__ixor__(other)
         self._update()
         return self
 
     def __isub__(self, other):
+        """The inplace set difference of the two sets."""
         with self._buffer():
             super().__isub__(other)
         self._update()
