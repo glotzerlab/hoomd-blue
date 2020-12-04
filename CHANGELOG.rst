@@ -11,9 +11,13 @@ v3.0.0-beta.2 (not yet released)
 
 - Support pybind11 2.6.0
 - Exclusive creation file mode for ``write.GSD``.
+- ``hpmc.update.BoxMC``.
 
 *Changed*
 
+- ``hoomd.snapshot.ConfigurationData.dimensions`` is not settable and is
+  determined by the snapshot box. If ``box.Lz == 0``, the dimensions are 2
+  otherwise 3.
 - Building from source requires a C++14 compatible compiler.
 - Improved documentation.
 - [breaking] Replace ``write.GSD`` argument ``overwrite`` with ``mode``.
@@ -21,6 +25,7 @@ v3.0.0-beta.2 (not yet released)
   origin of (0, 0, 0).
 - Document loggable quantities in property docstrings.
 - Skip GPU tests when no GPU is present.
+- ``write.Table`` writes integers with integer formatting.
 
 *Fixed*
 
@@ -28,7 +33,10 @@ v3.0.0-beta.2 (not yet released)
   Jupyter interrupts the kernel.
 - Logging the state of specific objects with nested attributes.
 - Broken relative RPATHs.
-- Add missing documenation for ``version.version``
+- Add missing documentation for ``version.version``
+- Error when removing specific operations from a simulation's operations
+  attribute.
+- Find CUDA libraries on additional Linux distributions.
 
 
 v3.0.0-beta.1 (2020-10-15)
