@@ -63,7 +63,7 @@ inline void python_list_to_vector_scalar4(const pybind11::list& r0, std::vector<
                                 pybind11::cast<Scalar>(r0_tuple[3]));
         }
     }
-
+    
 
 template< class ScalarType >
 class LatticeReferenceList
@@ -510,6 +510,9 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
             quat<Scalar> qr(m_latticeQuat_r.getReference(h_tags.data[index]));
             quat<Scalar> ref_orientation1 = ql*quat<Scalar>(0,vec3<Scalar>(1,0,0))*qr;
             quat<Scalar> ref_orientation2 = ql*quat<Scalar>(0,vec3<Scalar>(0,1,0))*qr;
+            quat<Scalar> ref_pos = ql*qr;
+            quat<Scalar> equiv_pos = quat_l*quat_r;
+            Scalar dr = 1/(1+dot(equiv_pos,ref_pos));
             Scalar dqmin = 0.0;
             for(size_t i = 0; i < m_symmetry.size(); i++)
                 {
@@ -517,8 +520,8 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
                 quat<Scalar> equiv_quat_r = conj(m_symmetry[i])*quat_r;
                 quat<Scalar> equiv_orientation1 = equiv_quat_l*quat<Scalar>(0,vec3<Scalar>(1,0,0))*equiv_quat_r;
                 quat<Scalar> equiv_orientation2 = equiv_quat_l*quat<Scalar>(0,vec3<Scalar>(0,1,0))*equiv_quat_r;
-                Scalar dq1 = dot(equiv_orientation1,ref_orientation1);
-                Scalar dq2 = dot(equiv_orientation2,ref_orientation2);
+                Scalar dq1 = dot(equiv_orientation1,ref_orientation1) - dot(equiv_pos,ref_orientation1)*dot(equiv_orientation1,ref_pos)*dr;
+                Scalar dq2 = dot(equiv_orientation2,ref_orientation2) - dot(equiv_pos,ref_orientation2)*dot(equiv_orientation2,ref_pos)*dr;
                 Scalar dq = 2 - dq1*dq1 - dq2*dq2;
 
                 dqmin = (i == 0) ? dq : fmin(dqmin, dq);

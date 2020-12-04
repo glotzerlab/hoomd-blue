@@ -79,7 +79,7 @@ class RemoveDriftUpdaterHypersphere : public Updater
                 quat<Scalar> ref_r(h_quat_r0.data[tag_i]);
                 quat<Scalar> ref = ref_l*ref_r + pos_i;
 
-                ref /= fast::sqrt(norm2(ref));
+                ref *= fast::rsqrt(norm2(ref));
                 pos_i = conj(pos_i);
 
                 rshift_l += ref*pos_i;
@@ -105,8 +105,10 @@ class RemoveDriftUpdaterHypersphere : public Updater
                 }
             #endif
 
-            rshift_l/=Scalar(this->m_pdata->getNGlobal());
-            rshift_r/=Scalar(this->m_pdata->getNGlobal());
+            Scalar norm_l_inv = fast::rsqrt(norm2(rshift_l));
+            rshift_l *= norm_l_inv;
+            Scalar norm_r_inv = fast::rsqrt(norm2(rshift_r));
+            rshift_r *= norm_r_inv;
 
             for (unsigned int i = 0; i < this->m_pdata->getN(); i++)
                 {
@@ -114,8 +116,16 @@ class RemoveDriftUpdaterHypersphere : public Updater
                 quat<Scalar> ql_i(h_quat_l.data[i]);
                 quat<Scalar> qr_i(h_quat_r.data[i]);
 
-                h_quat_l.data[i] = quat_to_scalar4( rshift_l*ql_i);
-                h_quat_r.data[i] = quat_to_scalar4( qr_i*rshift_r);
+                ql_i = rshift_l*ql_i;
+                norm_l_inv = fast::rsqrt(norm2(ql_i));
+                ql_i *= norm_l_inv;
+
+                qr_i = qr_i*rshift_r;
+                Scalar norm_r_inv = fast::rsqrt(norm2(qr_i));
+                qr_i *= norm_r_inv;
+
+                h_quat_l.data[i] = quat_to_scalar4(ql_i);
+                h_quat_r.data[i] = quat_to_scalar4(qr_i);
                 }
 
             m_mc->invalidateAABBTree();

@@ -831,6 +831,21 @@ DEVICE inline quat<Real> operator*(const quat<Real>& a, const Real& b)
                       a.v * b);
     }
 
+//! Assignment-multiplication of two quats
+/*! \param a quat
+    \param b scalar
+
+    Multiplication is component wise.
+    \returns The quaternion (a.s *= b, a.v *= b).
+*/
+template < class Real >
+DEVICE inline quat<Real>& operator *=(quat<Real>& a, const Real& b)
+    {
+    a.s *= b;
+    a.v *= b;
+    return a;
+    }
+
 
 //! Addition of two quats
 /*! \param a First quat
@@ -860,6 +875,7 @@ DEVICE inline quat<Real>& operator +=(quat<Real>& a, const quat<Real>& b)
     a.v += b.v;
     return a;
     }
+
 
 //! Subtraction of two quats
 /*! \param a First quat
