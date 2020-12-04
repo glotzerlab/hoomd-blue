@@ -8,7 +8,7 @@ from hoomd.data.typeparam import TypeParameter
 class Triplet(Pair):
     """Common three body potential documentation.
 
-    Users should not invoke :py:class:`Triplet` directly. It is a base command
+    Users should not invoke :py:class:`Triplet` directly. It is a base class
     that provides common features to all standard triplet forces. Common
     documentation for all three-body potentials is documented here.
 
@@ -126,8 +126,8 @@ class Tersoff(Triplet):
     Example::
 
         nl = md.nlist.Cell()
-        tersoff = md.many_body.Tersoff(r_cut=1.3,nlist=nl)
-        tersoff.params[('A','B')] = dict(magnitudes=(2.0, 1.0), lambda3=5.0)
+        tersoff = md.many_body.Tersoff(r_cut=1.3, nlist=nl)
+        tersoff.params[('A', 'B')] = dict(magnitudes=(2.0, 1.0), lambda3=5.0)
     """
     _cpp_class_name = "PotentialTersoff"
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
@@ -168,8 +168,8 @@ class RevCross(Triplet):
 
     The RevCross potential has been described in detail in
     `S. Ciarella and W.G. Ellenbroek 2019 <https://arxiv.org/abs/1912.08569>`_.
-    It is based on a generalized-Lennard-Jones pairwise attraction to form bonds
-    between interacting particless:
+    It is based on a generalized Lennard-Jones pairwise attraction to form bonds
+    between interacting particles:
 
     .. math::
         :nowrap:
@@ -340,4 +340,3 @@ class SquareDensity(Triplet):
                 'particle_types',
                 TypeParameterDict(A=0.0, B=float, len_keys=2))
         self._add_typeparam(params)
-
