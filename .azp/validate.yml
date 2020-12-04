@@ -13,7 +13,7 @@ schedules:
     - "*"
 
 variables:
-  image_root: glotzerlab/ci:2020.07
+  image_root: glotzerlab/ci:2020.11
 
   # default build parameters, will override as needed with job matrix values
   enable_gpu: off
@@ -43,8 +43,15 @@ stages:
     strategy:
       maxParallel: 5
       matrix:
-        gcc10_py38_mpi_tbb:
-          container_image: gcc10_py38
+        clang10_py38_mpi_tbb:
+          container_image: clang10_py38
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '10'
+
+        gcc10_py39_mpi_tbb:
+          container_image: gcc10_py39
           enable_mpi: on
           enable_tbb: on
 
@@ -210,16 +217,16 @@ stages:
 
     strategy:
       matrix:
-        clang10_py38_mpi_tbb2:
-          container_image: clang10_py38
+        clang11_py39_mpi_tbb2:
+          container_image: clang11_py39
           enable_mpi: on
           enable_tbb: on
           build_jit: on
           llvm_version: '9.0'
           suite_name: CPU tbb2
 
-        clang10_py38_mpi_tbb1:
-          container_image: clang10_py38
+        clang11_py39_mpi_tbb1:
+          container_image: clang11_py39
           enable_mpi: on
           enable_tbb: on
           build_jit: on
@@ -227,15 +234,15 @@ stages:
           omp_num_threads: '1'
           suite_name: CPU tbb1
 
-        clang10_py38_mpi:
-          container_image: clang10_py38
+        clang11_py39_mpi:
+          container_image: clang11_py39
           enable_mpi: on
           build_jit: on
           llvm_version: '9.0'
           suite_name: CPU no-tbb
 
-        clang10_py38:
-          container_image: clang10_py38
+        clang11_py39:
+          container_image: clang11_py39
           enable_mpi: off
           build_jit: on
           llvm_version: '9.0'

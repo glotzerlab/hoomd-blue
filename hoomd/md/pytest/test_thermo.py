@@ -115,9 +115,8 @@ def test_system_rotational_dof(simulation_factory, device):
 
     snap = hoomd.Snapshot(device.communicator)
     if snap.exists:
-        box= [10, 10, 10, 0, 0, 0]
+        box = [10, 10, 10, 0, 0, 0]
         snap.configuration.box = box
-        snap.configuration.dimensions = 3
         snap.particles.N = 3
         snap.particles.position[:] = [[0, 1, 0], [-1, 1, 0], [1, 1, 0]]
         snap.particles.velocity[:] = [[0, 0, 0], [0, -1, 0], [0, 1, 0]]

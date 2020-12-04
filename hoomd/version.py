@@ -30,6 +30,8 @@ Attributes:
     source_dir (str): The source directory.
 
     tbb_enabled (bool): ``True`` when this build supports TBB threads.
+
+    version (str): HOOMD-blue package version, following semantic versioning.
 """
 from hoomd import _hoomd
 

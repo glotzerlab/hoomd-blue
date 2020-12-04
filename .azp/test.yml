@@ -13,7 +13,7 @@ schedules:
     - "*"
 
 variables:
-  image_root: glotzerlab/ci:2020.07
+  image_root: glotzerlab/ci:2020.11
 
   # default build parameters, will override as needed with job matrix values
   enable_gpu: off
@@ -39,12 +39,12 @@ jobs:
     matrix:
       # test the most recent platform and compiler combo here
       # other platform and compiler tests are in validate.yml
-      clang10_py38_mpi_tbb:
-        container_image: clang10_py38
+      clang11_py39_mpi_tbb:
+        container_image: clang11_py39
         enable_mpi: on
         enable_tbb: on
         build_jit: on
-        llvm_version: '10'
+        llvm_version: '11'
 
   pool:
     vmImage: 'ubuntu-latest'
@@ -67,8 +67,8 @@ jobs:
     matrix:
       # test the most recent platform and compiler combo here
       # other platform and compiler tests are in validate.yml
-      cuda11_py37_mpi:
-        container_image: cuda11_gcc7_py37
+      cuda11_py38_mpi:
+        container_image: cuda11_gcc9_py38
         enable_mpi: on
 
   pool:
@@ -92,7 +92,7 @@ jobs:
     vmImage: 'ubuntu-latest'
 
   container:
-    image: $(image_root)-clang10_py38
+    image: $(image_root)-py38
     options: -u 0
 
   workspace:
@@ -111,7 +111,7 @@ jobs:
     vmImage: 'ubuntu-latest'
 
   container:
-    image: $(image_root)-clang10_py38
+    image: $(image_root)-py38
     options: -u 0
 
   workspace:
@@ -134,4 +134,5 @@ jobs:
       hoomd/filter/set_.py
       hoomd/filter/tags.py
       hoomd/filter/type_.py
+      hoomd/write/gsd.py
     displayName: Run pydocstyle

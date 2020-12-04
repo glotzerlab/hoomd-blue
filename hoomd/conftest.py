@@ -7,7 +7,8 @@ from hoomd.snapshot import Snapshot
 from hoomd import Simulation
 
 devices = [hoomd.device.CPU]
-if hoomd.device.GPU.is_available():
+if (hoomd.device.GPU.is_available()
+        and len(hoomd.device.GPU.get_available_devices()) > 0):
     devices.append(hoomd.device.GPU)
 
 
@@ -71,9 +72,8 @@ def two_particle_snapshot_factory(device):
         if s.exists:
             box = [L, L, L, 0, 0, 0]
             if dimensions == 2:
-                box[2] = 1
+                box[2] = 0
             s.configuration.box = box
-            s.configuration.dimensions = dimensions
             s.particles.N = N
             # shift particle positions slightly in z so MPI tests pass
             s.particles.position[:] = [[-d / 2, 0, .1], [d / 2, 0, .1]]
@@ -109,9 +109,8 @@ def lattice_snapshot_factory(device):
         if s.exists:
             box = [n * a, n * a, n * a, 0, 0, 0]
             if dimensions == 2:
-                box[2] = 1
+                box[2] = 0
             s.configuration.box = box
-            s.configuration.dimensions = dimensions
 
             s.particles.N = n**dimensions
             s.particles.types = particle_types

@@ -18,6 +18,7 @@
 
 #include <map>
 #include <cassert>
+#include <stdexcept>
 
 //! Need to define an error checking macro that can be used in .cu files
 #define CHECK_CUDA() \
