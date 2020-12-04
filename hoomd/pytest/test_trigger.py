@@ -141,14 +141,4 @@ def test_custom():
 
     # test that the custom trigger can be called from c++
     assert hoomd._hoomd._test_trigger_call(c, 0)
-    assert hoomd._hoomd._test_trigger_call(c, 1)
-    assert not hoomd._hoomd._test_trigger_call(c, 2)
-    assert not hoomd._hoomd._test_trigger_call(c, 3)
-    assert hoomd._hoomd._test_trigger_call(c, 4)
-    assert not hoomd._hoomd._test_trigger_call(c, 5)
-    assert not hoomd._hoomd._test_trigger_call(c, 6)
-    assert not hoomd._hoomd._test_trigger_call(c, 7)
-    assert not hoomd._hoomd._test_trigger_call(c, 8)
-    assert hoomd._hoomd._test_trigger_call(c, 9)
-    assert hoomd._hoomd._test_trigger_call(c, 250000000000)
     assert not hoomd._hoomd._test_trigger_call(c, 250000000001)
