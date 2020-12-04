@@ -221,9 +221,9 @@ class RevCross(Triplet):
         A reversible bond is only possible between two different species,
         otherwise :math:`v^{\\left( 3b \\right)}_{ijk}`, would prevent any bond.
         In our example we then set the interactions for types A and B with
-        ``rev_c.params[[('A','B'),('A','B')]] = dict(sigma=0.0,n=0,epsilon=0,lambda3=0)``
+        ``rev_c.params[[('A','B'),('A','B')]] =`` ``dict(sigma=0.0,n=0,epsilon=0,lambda3=0)``
         and the only non-zero energy only between the different types
-        ``rev_c.params[('A','B')] = dict(sigma=1,n=100,epsilon=100,lambda3=1)``.
+        ``rev_c.params[('A','B')] =`` ``dict(sigma=1,n=100,epsilon=100,lambda3=1)``.
         Notice that the number of the minority species corresponds to the
         maximum number of bonds.
 
@@ -317,8 +317,8 @@ class SquareDensity(Triplet):
             The SquareDensity potential parameters. The dictionary has the
             following keys:
 
-            *``A`` (`float`, **required**) - :math:`A` - mean density (in units of volume^-1, *default*:0)
-            *``B`` (`float`, **required**) - :math:`B` - coefficient of the harmonic density term (in units of energy*volumne^2)
+            * ``A`` (`float`, **required**) - :math:`A` - mean density (in units of volume^-1, *default*:0)
+            * ``B`` (`float`, **required**) - :math:`B` - coefficient of the harmonic density term (in units of energy*volumne^2)
 
     Example::
 
