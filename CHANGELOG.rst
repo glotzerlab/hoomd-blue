@@ -9,6 +9,7 @@ v3.0.0-beta.2 (not yet released)
 
 *Added*
 
+- ``hoomd.trigger.Trigger`` objects are pickable.
 - Support pybind11 2.6.0
 - Exclusive creation file mode for ``write.GSD``.
 - ``hpmc.update.BoxMC``.
