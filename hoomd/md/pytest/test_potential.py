@@ -521,6 +521,14 @@ def _update_snap(pair_potential, snap):
         snap.particles.diameter[1] = 0.5
 
 
+def _check_for_skip(sim, pair_potential):
+    """Determines if the simulation is able to run this pair potential."""
+
+    if isinstance(sim.device, hoomd.device.GPU) and sim.device.communicator.num_ranks > 1 and \
+            issubclass(pair_potential, hoomd.md.many_body.Triplet):
+        pytest.skip("Cannot run triplet potentials with GPU+MPI enabled")
+
+
 def test_attached_params(simulation_factory, lattice_snapshot_factory,
                          valid_params):
     pair_potential, pair_potential_dict, extra_args = valid_params
@@ -547,12 +555,6 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
     _assert_equivalent_type_params(pot.params.to_dict(),
                                    valid_params.pair_potential_params)
 
-def _check_for_skip(sim, pair_potential):
-    """Determines if the simulation is able to run this pair potential."""
-
-    if isinstance(sim.device, hoomd.device.GPU) and sim.device.communicator.num_ranks > 1 and \
-            issubclass(pair_potential, hoomd.md.many_body.Triplet):
-        pytest.skip("Cannot run triplet potentials with GPU+MPI enabled")
 
 def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
     pair_keys = valid_params.pair_potential_params.keys()

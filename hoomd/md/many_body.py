@@ -97,6 +97,15 @@ class Tersoff(Triplet):
     The parameters of this potential are set via the ``params`` dictionary, they
     must be set for each unique pair of particle types.
 
+    The Tersoff potential is a bond-order potential based on the Morse potential
+    that accounts for the weakening of individual bonds with increasing
+    coordination number. It does this by computing a modifier to the attractive
+    term of the potential. The modifier contains the effects of third-bodies on
+    the bond energies. The potential also includes a smoothing function around
+    the cutoff. The smoothing function used in this work is exponential in
+    nature as opposed to the sinusoid used by
+    `J. Tersoff 1988 <https://journals.aps.org/prb/abstract/10.1103/PhysRevB.38.9902>`_.
+
     Attributes:
         params (TypeParameter[tuple[``particle_type``, ``particle_type``], dict]):
             The Tersoff potential parameters. The dictionary has the following
@@ -113,15 +122,6 @@ class Tersoff(Triplet):
             * ``c`` (`float`) - :math:`c` - coefficient in :math:`g(\\theta)` (dimensionless, *default*: 0.0)
             * ``d`` (`float`) - :math:`d` - coefficient in :math:`g(\\theta)` (dimensionless, *default*: 1.0)
             * ``m`` (`float`) - :math:`m` - coefficient in :math:`g(\\theta)` (dimensionless, *default*: 0.0)
-
-    The Tersoff potential is a bond-order potential based on the Morse potential
-    that accounts for the weakening of individual bonds with increasing
-    coordination number. It does this by computing a modifier to the attractive
-    term of the potential. The modifier contains the effects of third-bodies on
-    the bond energies. The potential also includes a smoothing function around
-    the cutoff. The smoothing function used in this work is exponential in
-    nature as opposed to the sinusoid used by
-    `J. Tersoff 1988 <https://journals.aps.org/prb/abstract/10.1103/PhysRevB.38.9902>`_.
 
     Example::
 
