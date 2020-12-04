@@ -251,9 +251,9 @@ class RevCross(Triplet):
 
             * ``sigma`` (`float`, **required**) - :math:`\\sigma` - (in distance units)
 
-            * ``n`` (`float`, **required**) - *n* - (unitless)
+            * ``n`` (`float`, **required**) - :math:`n` - (unitless)
 
-            * ``lambda3`` (`float`, **required**) - *lambda3`* - (unitless)
+            * ``lambda3`` (`float`, **required**) - :math:`\\lambda_3` - (unitless)
 
     Example::
 
