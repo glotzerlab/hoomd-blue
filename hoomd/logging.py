@@ -247,8 +247,39 @@ class Loggable(type):
     @classmethod
     def _get_current_cls_loggables(cls, new_cls):
         """Gets the current class's new loggables (not inherited)."""
-        return {name: _LoggerQuantity(name, new_cls, entry.flag, entry.default)
-                for name, entry in cls._meta_export_dict.items()}
+        current_loggables = {}
+        for name, entry in cls._meta_export_dict.items():
+            current_loggables[name] = _LoggerQuantity(
+                name, new_cls, entry.flag, entry.default)
+            cls._add_loggable_docstring_info(
+                new_cls, name, entry.flag, entry.default)
+        return current_loggables
+
+    @classmethod
+    def _add_loggable_docstring_info(cls, new_cls, attr, flag, default):
+        doc = getattr(new_cls, attr).__doc__
+        # Don't add documentation to empty docstrings. This means that the
+        # quantity is not documented would needs to be fixed, but this prevents
+        # the rendering of invalid docs since we need a non-empty docstring.
+        if __doc__ == "":
+            return
+        str_msg = '\n\n{}(`Loggable <hoomd.logging.Logger>`: '
+        str_msg += f'type="{str(flag)[10:]}"'
+        if default:
+            str_msg += ')'
+        else:
+            str_msg += ', default=False)'
+        if doc is None:
+            getattr(new_cls, attr).__doc__ = str_msg.format('')
+        else:
+            indent = 0
+            lines = doc.split('\n')
+            if len(lines) >= 3:
+                cnt = 2
+                while lines[cnt] == '':
+                    cnt += 1
+                indent = len(lines[cnt]) - len(lines[cnt].lstrip())
+            getattr(new_cls, attr).__doc__ += str_msg.format(' ' * indent)
 
 
 def log(func=None, *, is_property=True, flag='scalar', default=True):
@@ -261,18 +292,18 @@ def log(func=None, *, is_property=True, flag='scalar', default=True):
         func (`method`): class method to make loggable. If using non-default
             arguments, func should not be set.
         is_property (:obj:`bool`, optional): Whether to make the method a
-            property, defaults to True. Argument position only
+            property, defaults to True. Argument keyword only
         flag (:obj:`str`, optional): The string represention of the type of
             loggable quantity, defaults to 'scalar'. See
             `hoomd.logging.TypeFlags` for available types. Argument
-            position only
+            keyword only
         default (:obj:`bool`, optional): Whether the quantity should be logged
             by default, defaults to True. This is orthogonal to the loggable
             quantity's type. An example would be performance orientated
             loggable quantities.  Many users may not want to log such
             quantities even when logging other quantities of that type. The
             default flag allows for these to be pass over by
-            `hoomd.logging.Logger` objects by default.
+            `hoomd.logging.Logger` objects by default. Argument keyword only.
 
     Note:
         The namespace (where the loggable object is stored in the
