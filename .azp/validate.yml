@@ -148,7 +148,7 @@ stages:
     steps:
     - bash: echo "##vso[task.prependpath]$CONDA/bin"
       displayName: Add conda to PATH
-    - script: conda install --yes --quiet -c conda-forge cereal cmake eigen ninja open-mpi python pybind11 tbb pytest numpy gsd
+    - script: sudo conda install --yes --quiet -c conda-forge cereal cmake eigen ninja open-mpi python pybind11 tbb pytest numpy gsd
       displayName: Conda install prereqs
     - template: templates/build.yml
     - template: templates/run_tests.yml
