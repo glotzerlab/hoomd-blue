@@ -76,7 +76,7 @@ class PYBIND11_EXPORT VariantConstant : public Variant
             }
 
         /// Get the value.
-        Scalar getValue()
+        Scalar getValue() const
             {
             return m_value;
             }
@@ -141,7 +141,7 @@ class PYBIND11_EXPORT VariantRamp : public Variant
             }
 
         /// Get the starting value.
-        Scalar getA()
+        Scalar getA() const
             {
             return m_A;
             }
@@ -153,7 +153,7 @@ class PYBIND11_EXPORT VariantRamp : public Variant
             }
 
         /// Get the ending value.
-        Scalar getB()
+        Scalar getB() const
             {
             return m_B;
             }
@@ -165,7 +165,7 @@ class PYBIND11_EXPORT VariantRamp : public Variant
             }
 
         /// Get the starting time step.
-        uint64_t getTStart()
+        uint64_t getTStart() const
             {
             return m_t_start;
             }
@@ -182,7 +182,7 @@ class PYBIND11_EXPORT VariantRamp : public Variant
             }
 
         /// Get the length of the ramp.
-        uint64_t getTRamp()
+        uint64_t getTRamp() const
             {
             return m_t_ramp;
             }
@@ -288,7 +288,7 @@ class PYBIND11_EXPORT VariantCycle : public Variant
             }
 
         /// Get A.
-        Scalar getA()
+        Scalar getA() const
             {
             return m_A;
             }
@@ -300,7 +300,7 @@ class PYBIND11_EXPORT VariantCycle : public Variant
             }
 
         /// Get B.
-        Scalar getB()
+        Scalar getB() const
             {
             return m_B;
             }
@@ -312,7 +312,7 @@ class PYBIND11_EXPORT VariantCycle : public Variant
             }
 
         /// Get the starting time step.
-        uint64_t getTStart()
+        uint64_t getTStart() const
             {
             return m_t_start;
             }
@@ -324,7 +324,7 @@ class PYBIND11_EXPORT VariantCycle : public Variant
             }
 
         /// Get the holding time at A.
-        uint64_t getTA()
+        uint64_t getTA() const
             {
             return m_t_A;
             }
@@ -341,7 +341,7 @@ class PYBIND11_EXPORT VariantCycle : public Variant
             }
 
         /// Get the length of the AB ramp.
-        uint64_t getTAB()
+        uint64_t getTAB() const
             {
             return m_t_AB;
             }
@@ -353,7 +353,7 @@ class PYBIND11_EXPORT VariantCycle : public Variant
             }
 
         /// Get the holding time at B.
-        uint64_t getTB()
+        uint64_t getTB() const
             {
             return m_t_B;
             }
@@ -370,7 +370,7 @@ class PYBIND11_EXPORT VariantCycle : public Variant
             }
 
         /// Get the length of the BA ramp.
-        uint64_t getTBA()
+        uint64_t getTBA() const
             {
             return m_t_BA;
             }
@@ -460,7 +460,7 @@ class PYBIND11_EXPORT VariantPower : public Variant
             }
 
         /// Get the starting value.
-        Scalar getA()
+        Scalar getA() const
             {
             return m_A;
             }
@@ -473,7 +473,7 @@ class PYBIND11_EXPORT VariantPower : public Variant
             }
 
         /// Get the ending value.
-        Scalar getB()
+        Scalar getB() const
             {
             return m_B;
             }
@@ -486,7 +486,7 @@ class PYBIND11_EXPORT VariantPower : public Variant
             }
 
         /// Get the ending value.
-        Scalar getPower()
+        Scalar getPower() const
             {
             return m_power;
             }
@@ -498,7 +498,7 @@ class PYBIND11_EXPORT VariantPower : public Variant
             }
 
         /// Get the starting time step.
-        uint64_t getTStart()
+        uint64_t getTStart() const
             {
             return m_t_start;
             }
@@ -515,7 +515,7 @@ class PYBIND11_EXPORT VariantPower : public Variant
             }
 
         /// Get the length of the ramp.
-        uint64_t getTSize()
+        uint64_t getTSize() const
             {
             return m_t_size;
             }

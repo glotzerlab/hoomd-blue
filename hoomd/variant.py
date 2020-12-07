@@ -47,6 +47,13 @@ class Variant(_hoomd.Variant):
         """The maximum value of this variant."""
         return self._max()
 
+    def __getstate__(self):
+        return self.__dict__
+
+    def __setstate__(self, state):
+        _hoomd.Variant.__init__(self)
+        self.__dict__ = state
+
 
 class Constant(_hoomd.VariantConstant, Variant):
     """A constant value.
