@@ -146,9 +146,9 @@ void mpcd::CellList::updateGlobalBox()
 
     // box must be evenly divisible by cell size
     const Scalar3 L = global_box.getL();
-    m_global_cell_dim = make_uint3(round(L.x/m_cell_size),
-                                   round(L.y/m_cell_size),
-                                   round(L.z/m_cell_size));
+    m_global_cell_dim = make_uint3((unsigned int)round(L.x/m_cell_size),
+                                   (unsigned int)round(L.y/m_cell_size),
+                                   (unsigned int)round(L.z/m_cell_size));
     if (m_sysdef->getNDimensions() == 2)
         {
         if (m_global_cell_dim.z > 1)
@@ -555,9 +555,9 @@ void mpcd::CellList::buildCellList()
 
         // bin particle assuming orthorhombic box (already validated)
         const Scalar3 delta = (pos_i - m_grid_shift) - global_lo;
-        int3 global_bin = make_int3(std::floor(delta.x / m_cell_size),
-                                    std::floor(delta.y / m_cell_size),
-                                    std::floor(delta.z / m_cell_size));
+        int3 global_bin = make_int3((int)std::floor(delta.x / m_cell_size),
+                                    (int)std::floor(delta.y / m_cell_size),
+                                    (int)std::floor(delta.z / m_cell_size));
 
         // wrap cell back through the boundaries (grid shifting may send +/- 1 outside of range)
         // this is done using periodic from the "local" box, since this will be periodic
