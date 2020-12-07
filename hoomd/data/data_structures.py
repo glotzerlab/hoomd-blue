@@ -1,3 +1,4 @@
+"""Base data classes for HOOMD-blue objects that provide typing support."""
 from abc import ABCMeta, abstractmethod
 from collections.abc import MutableMapping, MutableSequence, MutableSet
 from contextlib import contextmanager
@@ -17,8 +18,7 @@ class _SyncedDataStructure(metaclass=ABCMeta):
     """
     @abstractmethod
     def to_base(self):
-        """Cast the object into the corresponding native Python container type.
-        """
+        """Cast the object into the corresponding native Python container type."""
         pass
 
     @contextmanager
@@ -46,11 +46,11 @@ def _get_inner_typeconverter(type_def, desired_type):
     they are of the correct type use these.
 
     Args:
-        type_def (`hoomd.data.typeconverter.TypeConverter`):
-            Type converter which is introspected to find the desired type.
-        desired_type (`hoomd.data.typeconverter.TypeConverter`):
-            A child class of `hoomd.data.typeconverter.TypeConverter` that
-            signals what type converter types is needed.
+        type_def (`hoomd.data.typeconverter.TypeConverter`): The type converter
+            which is desired to be introspected to find the desired type.
+        desired_type (`hoomd.data.typeconverter.TypeConverter`): A child class
+            of `hoomd.data.typeconverter.TypeConverter` that signals what type
+            converter types is needed.
     """
     # If the type_def is the desired type, return it immediately.
     if isinstance(type_def, desired_type):
@@ -85,13 +85,12 @@ def _to_synced_data_structure(data, type_def, parent=None, label=None):
     This returns ``data`` if the data is not a supported data structure (sequence, mapping, or set).
 
     Args:
-        data:
-            Raw data to be potentially converted to a _HOOMDDataStructures
+        data: Raw data to be potentially converted to a _HOOMDDataStructures
             object.
-        parent:
-            The parent container if any for the data.
-        label:
-            Label to indicate to the parent where the child belongs. For
+        type_def (`hoomd.data.typeconverter.TypeConverter`): The type converter
+            which is desired to be introspected to find the desired type.
+        parent: The parent container if any for the data.
+        label: Label to indicate to the parent where the child belongs. For
             instance, if the parent is a mapping the label would be the key for
             this value.
     """
@@ -112,6 +111,9 @@ class HOOMDList(MutableSequence, _HOOMDDataStructures):
 
     Use `to_base` to get a plain `list`.
 
+    Uses `collections.abc.MutableSequence` as a parent class.
+    See the Python docs on `list` objects for more information.
+
     Warning:
         Users should not need to instantiate this class.
     """
@@ -126,18 +128,10 @@ class HOOMDList(MutableSequence, _HOOMDDataStructures):
             for type_def, val in zip(cycle(type_definition), initial_value):
                 self._list.append(_to_hoomd_data_structure(val, type_def, self))
 
-    def __getitem__(self, index):
-        """Get the value(s) associated with entry index of the list.
-
-        Supports slicing.
-        """
+    def __getitem__(self, index):  # noqa: D105
         return self._list[index]
 
-    def __setitem__(self, index, value):
-        """Set an item(s) at index to the given value.
-
-        Support assignment with slices.
-        """
+    def __setitem__(self, index, value):  # noqa: D105
         if isinstance(index, slice):
             with self._buffer():
                 for i, v in zip(self._slice_to_iterable(index), value):
@@ -167,11 +161,7 @@ class HOOMDList(MutableSequence, _HOOMDDataStructures):
         entry_index = index % len(self._type_definition)
         return self._type_definition[entry_index]
 
-    def __delitem__(self, index):
-        """Delele the index-th item from the list.
-
-        Supports slice deletion.
-        """
+    def __delitem__(self, index):  # noqa: D105
         val = self._list[index]
         # Disconnect item from list
         if isinstance(val, _HOOMDDataStructures):
@@ -187,19 +177,10 @@ class HOOMDList(MutableSequence, _HOOMDDataStructures):
                                    "invalid state.") from err
         self._update()
 
-    def __len__(self):
-        """Get the length of the list."""
+    def __len__(self):  # noqa: D105
         return len(self._list)
 
-    def insert(self, index, value):
-        """Insert a value at the index-th index of the list.
-
-        Args:
-            index : int
-                The index to place the value into
-            value
-                The value to insert into the list.
-        """
+    def insert(self, index, value):  # noqa: D102
         if index >= len(self):
             index = len(self)
 
@@ -222,18 +203,12 @@ class HOOMDList(MutableSequence, _HOOMDDataStructures):
                         "List insertion invalidated list.") from err
         self._update()
 
-    def extend(self, other):
-        """Add a list to the end of this list.
-
-        Args:
-            other : list
-                A list or sequence object to add to the end of this list.
-        """
+    def extend(self, other):  # noqa: D102
         with self._buffer():
             super().extend(other)
         self._update()
 
-    def clear(self):
+    def clear(self):  # noqa: D102
         """Empty the list of all items."""
         with self._buffer():
             super().clear()
@@ -256,10 +231,10 @@ class HOOMDList(MutableSequence, _HOOMDDataStructures):
                 return_list.append(use_entry)
         return return_list
 
-    def __str__(self):
+    def __str__(self):  # noqa: D105
         return str(self._list)
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         return repr(self._list)
 
 
@@ -268,6 +243,9 @@ class HOOMDDict(MutableMapping, _HOOMDDataStructures):
 
     Allows dotted access to key values as well as long as they conform to
     Python's attribute name requirements.
+
+    Uses `collections.abc.MutableMapping` as a parent class. See Python
+    documentation on `dict` for more information.
 
     Use `to_base` to get a plain `dict`.
 
@@ -287,8 +265,7 @@ class HOOMDDict(MutableMapping, _HOOMDDataStructures):
                 self._dict[key] = _to_hoomd_data_structure(
                     val, type_def[key], self, key)
 
-    def __getitem__(self, key):
-        """Get the item associated with the given key."""
+    def __getitem__(self, key):  # noqa: D105
         return self._dict[key]
 
     def __getattr__(self, attr):
@@ -299,15 +276,13 @@ class HOOMDDict(MutableMapping, _HOOMDDataStructures):
             raise AttributeError("{} object has not attribute {}.".format(
                 self, attr))
 
-    def __setattr__(self, attr, value):
-        """Set"""
+    def __setattr__(self, attr, value):  # noqa: D105
         if attr in self._dict:
             self[attr] = value
         else:
             super().__setattr__(attr, value)
 
-    def __setitem__(self, key, item):
-        """Set the value associated with key to item in the mapping."""
+    def __setitem__(self, key, item):  # noqa: D105
         if key not in self._type_definition:
             raise KeyError(
                 "Cannot set value for non-existent key {}.".format(key))
@@ -325,27 +300,16 @@ class HOOMDDict(MutableMapping, _HOOMDDataStructures):
                 validated_value, type_def, self, key)
         self._update()
 
-    def __delitem__(self, key):
-        """Delete a key from the mapping."""
+    def __delitem__(self, key):  # noqa: D105
         raise RuntimeError("mapping does not support deleting keys.")
 
-    def __iter__(self):
-        """Iterate through the mapping keys."""
+    def __iter__(self):  # noqa: D105
         yield from self._dict.keys()
 
-    def __len__(self):
-        """Get the number of key, value pairs in the mapping."""
+    def __len__(self):  # noqa: D105
         return len(self._dict)
 
-    def update(self, other):
-        """Update the mapping with another mapping.
-
-        The other mapping's pairs take priority over this mapping's.
-
-        Args:
-            other : dict
-                A mapping to update key, value pairs in the calling mapping.
-        """
+    def update(self, other):  # noqa: D102
         with self._buffer():
             super().update(other)
         self._update()
@@ -367,10 +331,10 @@ class HOOMDDict(MutableMapping, _HOOMDDataStructures):
                 return_dict[key] = use_entry
         return return_dict
 
-    def __str__(self):
+    def __str__(self):  # noqa: D105
         return str(self._dict)
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         return repr(self._dict)
 
 
@@ -378,6 +342,9 @@ class HOOMDSet(MutableSet, _HOOMDDataStructures):
     """Set with type validation.
 
     Use `to_base` to get a plain `set`.
+
+    Uses `collections.abc.MutableSet` as a parent class. See Python
+    documentation on `set` for more information.
 
     Warning:
         Should not be instantiated by users.
@@ -392,20 +359,16 @@ class HOOMDSet(MutableSet, _HOOMDDataStructures):
             for val in initial_value:
                 self._set.add(_to_hoomd_data_structure(val, type_def, self))
 
-    def __contains__(self, item):
-        """Whether an item is found in the set."""
+    def __contains__(self, item):  # noqa: D105
         return item in self._set
 
-    def __iter__(self):
-        """Iterate over items in the set."""
+    def __iter__(self):  # noqa: D105
         yield from self._set
 
-    def __len__(self):
-        """Give the number of items in the set."""
+    def __len__(self):  # noqa: D105
         return len(self._set)
 
-    def add(self, item):
-        """Add an item to the set if it is not already contained in the set."""
+    def add(self, item):  # noqa: D102
         if item not in self:
             try:
                 validated_value = self._type_definition(item)
@@ -417,7 +380,7 @@ class HOOMDSet(MutableSet, _HOOMDDataStructures):
                     validated_value, self._type_definition, self))
         self._update()
 
-    def discard(self, item):
+    def discard(self, item):  # noqa: D102
         """Remove an item from the set if it is contained in the set."""
         if isinstance(item, _HOOMDDataStructures):
             # Disconnect child from parent
@@ -442,36 +405,32 @@ class HOOMDSet(MutableSet, _HOOMDDataStructures):
                 return_set.add(use_item)
         return return_set
 
-    def __ior__(self, other):
-        """Perform an inplace union with the other set."""
+    def __ior__(self, other):  # noqa: D105
         with self._buffer():
             super().__ior__(other)
         self._update()
         return self
 
-    def __iand__(self, other):
-        """Perform an inplace intersection with the other set."""
+    def __iand__(self, other):  # noqa: D105
         with self._buffer():
             super().__iand__(other)
         self._update()
         return self
 
-    def __ixor__(self, other):
-        """The inplace union of the set differences of the two sets."""
+    def __ixor__(self, other):  # noqa: D105
         with self._buffer():
             super().__ixor__(other)
         self._update()
         return self
 
-    def __isub__(self, other):
-        """The inplace set difference of the two sets."""
+    def __isub__(self, other):  # noqa: D105
         with self._buffer():
             super().__isub__(other)
         self._update()
         return self
 
-    def __str__(self):
+    def __str__(self):  # noqa: D105
         return str(self._set)
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         return repr(self._set)
