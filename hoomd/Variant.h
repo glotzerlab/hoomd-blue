@@ -419,15 +419,15 @@ class PYBIND11_EXPORT VariantPower : public Variant
             @param B the final value
             @param power the power to approach as
             @param t_start the first timestep
-            @param t_size the length of the approach
+            @param t_ramp the length of the approach
         */
         VariantPower(Scalar A, Scalar B, double power,
-                     uint64_t t_start, uint64_t t_size)
+                     uint64_t t_start, uint64_t t_ramp)
             : m_A(A),
               m_B(B),
               m_power(power),
               m_t_start(t_start),
-              m_t_size(t_size)
+              m_t_ramp(t_ramp)
             {
             m_offset = computeOffset(m_A, m_B);
             setStartEnd();
@@ -440,9 +440,9 @@ class PYBIND11_EXPORT VariantPower : public Variant
                 {
                 return m_A;
                 }
-            else if (timestep < m_t_start + m_t_size)
+            else if (timestep < m_t_start + m_t_ramp)
                 {
-                double s = double(timestep - m_t_start) / double(m_t_size);
+                double s = double(timestep - m_t_start) / double(m_t_ramp);
                 double inv_result =  m_inv_end * s + m_inv_start * (1.0 - s);
                 return pow(inv_result, m_power) - m_offset;
                 }
@@ -504,20 +504,20 @@ class PYBIND11_EXPORT VariantPower : public Variant
             }
 
         /// Set the length of the ramp.
-        void setTSize(uint64_t t_size)
+        void setTRamp(uint64_t t_ramp)
             {
             // Doubles can only represent integers accurately up to 2**53.
-            if (t_size >= 9007199254740992ull)
+            if (t_ramp >= 9007199254740992ull)
                 {
-                throw std::invalid_argument("t_size must be less than 2**53");
+                throw std::invalid_argument("t_ramp must be less than 2**53");
                 }
-            m_t_size = t_size;
+            m_t_ramp = t_ramp;
             }
 
         /// Get the length of the ramp.
-        uint64_t getTSize() const
+        uint64_t getTRamp() const
             {
-            return m_t_size;
+            return m_t_ramp;
             }
 
         /// Return min
@@ -570,7 +570,7 @@ class PYBIND11_EXPORT VariantPower : public Variant
         uint64_t m_t_start;
 
         /// length of apporach to m_B
-        uint64_t m_t_size;
+        uint64_t m_t_ramp;
 
         /// offset from given positions allows for negative values
         double m_offset;

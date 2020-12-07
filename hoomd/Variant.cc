@@ -183,8 +183,8 @@ void export_Variant(pybind11::module& m)
                       &VariantPower::setPower)
         .def_property("t_start", &VariantPower::getTStart,
                       &VariantPower::setTStart)
-        .def_property("t_size", &VariantPower::getTSize,
-                      &VariantPower::setTSize)
+        .def_property("t_ramp", &VariantPower::getTRamp,
+                      &VariantPower::setTRamp)
         .def(pybind11::pickle(
             [](const VariantPower& variant)
                 {
@@ -193,7 +193,7 @@ void export_Variant(pybind11::module& m)
                     variant.getB(),
                     variant.getPower(),
                     variant.getTStart(),
-                    variant.getTSize()
+                    variant.getTRamp()
                     );
                 },
             [](pybind11::tuple params)
