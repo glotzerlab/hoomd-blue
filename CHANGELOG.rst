@@ -9,6 +9,7 @@ v3.0.0-beta.2 (not yet released)
 
 *Added*
 
+- ``hoomd.variant.Variant`` subclasses are picklable.
 - Support pybind11 2.6.0
 - Exclusive creation file mode for ``write.GSD``.
 - ``hpmc.update.BoxMC``.
@@ -29,6 +30,7 @@ v3.0.0-beta.2 (not yet released)
 
 *Fixed*
 
+- ``hoomd.variant.Power`` objects now have a ``t_ramp`` attribute as documented.
 - ``Simulation.run`` now ends with a ``KeyboardInterrupt`` exception when
   Jupyter interrupts the kernel.
 - Logging the state of specific objects with nested attributes.
