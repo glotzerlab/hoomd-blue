@@ -9,8 +9,8 @@ from hoomd.data.typeconverter import (
     TypeConverterMapping, TypeConverterSequence)
 
 
-class _HOOMDDataStructures(metaclass=ABCMeta):
-    """Base class for HOOMD's base container classes.
+class _SyncedDataStructure(metaclass=ABCMeta):
+    """Base class for HOOMD's container classes.
 
     These child classes exist to enable parameter validation and mantain
     consistency with C++ after attaching.
@@ -23,10 +23,9 @@ class _HOOMDDataStructures(metaclass=ABCMeta):
 
     @contextmanager
     def _buffer(self):
-        """Allows buffering during modifications to prevent needless updates.
+        """Allows buffering during modifications.
 
-        This is a simple system to prevent unnecessary C++ - Python
-        communication.
+        This prevents unnecessary communication between C++ and Python.
         """
         self._buffered = True
         yield None
@@ -34,9 +33,7 @@ class _HOOMDDataStructures(metaclass=ABCMeta):
 
     def _update(self):
         """Signal that the object has been updated."""
-        if self._buffered:
-            return
-        elif parent is not None:
+        if not self._buffered and self._parent is not None:
             self._parent._handle_update(self, self._label)
 
 
@@ -50,47 +47,42 @@ def _get_inner_typeconverter(type_def, desired_type):
 
     Args:
         type_def (`hoomd.data.typeconverter.TypeConverter`):
-            The type converter which is desired to be introspected to find the
-            desired type.
+            Type converter which is introspected to find the desired type.
         desired_type (`hoomd.data.typeconverter.TypeConverter`):
             A child class of `hoomd.data.typeconverter.TypeConverter` that
             signals what type converter types is needed.
     """
-    rtn_type_def = None
-    # Simple case the type_def is already sufficient
+    # If the type_def is the desired type, return it immediately.
     if isinstance(type_def, desired_type):
-        rtn_type_def = type_def
+        return type_def
     # More complicated cases, deals with nested type definitions where the
     # nested containers have other requirements such as multiple valid container
     # representations or entry is allowed to be None. In these cases, we check
     # the TypeConverterValue instance's converter for the desired container type
     # converter type.
-    elif isinstance(type_def, TypeConverterValue):
+    return_type_def = None
+    if isinstance(type_def, TypeConverterValue):
         if isinstance(type_def.converter, OnlyIf):
             if isinstance(type_def.converter.cond, desired_type):
-                rtn_type_def = type_def.converter.cond
+                return_type_def = type_def.converter.cond  # Can this be None? If not, return here.
         elif isinstance(type_def.converter, Either):
-            for spec in type_def.converter.specs:
-                matches = []
-                if isinstance(spec, desired_type):
-                    matches.append(spec)
-                if len(matches) > 1:
-                    raise ValueError(
-                        "Parameter defined with multiple valid definitions of "
-                        "the same type.")
-                elif len(matches) == 1:
-                    rtn_type_def = matches[0]
+            matches = [spec for spec in type_def.converter.specs if isinstance(spec, desired_type)]
+            if len(matches) > 1:
+                raise ValueError(
+                    "Parameter defined with multiple valid definitions of "
+                    "the same type.")
+            elif len(matches) == 1:
+                return_type_def = matches[0]
     # When no valid type converter can be found error out.
-    if rtn_type_def is None:
+    if return_type_def is None:
         raise ValueError("Unable to find type definition for attribute.")
-    return rtn_type_def
+    return return_type_def
 
 
-def _to_hoomd_data_structure(data, type_def, parent=None, label=None):
+def _to_synced_data_structure(data, type_def, parent=None, label=None):
     """Convert raw data to a synced _HOOMDDataStructures object.
 
-    This does nothing if the data is not detected to be a supported HOOMD data
-    structure type. Currently we support mutable sequences, mappings, and sets.
+    This returns ``data`` if the data is not a supported data structure (sequence, mapping, or set).
 
     Args:
         data:
@@ -121,7 +113,7 @@ class HOOMDList(MutableSequence, _HOOMDDataStructures):
     Use `to_base` to get a plain `list`.
 
     Warning:
-        Should not be instantiated by users.
+        Users should not need to instantiate this class.
     """
     def __init__(self, type_definition, parent, initial_value=None,
                  label=None):
@@ -156,7 +148,7 @@ class HOOMDList(MutableSequence, _HOOMDDataStructures):
                 validated_value = type_def(value)
             except TypeConversionError as err:
                 raise TypeConversionError(
-                    "Error in setting item {} in list.".format(index)) from err
+                    f"Error in setting item {index} in list.") from err
             else:
                 # If we override a list item that is itself a
                 # _HOOMDDataStructures we disconnect the old structure to
@@ -169,19 +161,7 @@ class HOOMDList(MutableSequence, _HOOMDDataStructures):
         self._update()
 
     def _slice_to_iterable(self, slice_):
-        start, end, step = slice_.start, slice_.end, slice_.step
-        if start is None:
-            if step is not None and step < 0:
-                iterable_start = len(self) - 1
-            else:
-                iterable_start = 0
-        if end is None:
-            if step is not None and step < 0:
-                iterable_end = -1
-            else:
-                iterable_end = len(self)
-        step = 1 if step is None else step
-        return range(iterable_start, iterable_end, step)
+        return range(len(self))[slice_]
 
     def _get_type_def(self, index):
         entry_index = index % len(self._type_definition)
