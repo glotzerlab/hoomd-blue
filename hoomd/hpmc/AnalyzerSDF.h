@@ -157,7 +157,7 @@ class AnalyzerSDF : public Analyzer
         void countHistogram(unsigned int timestep);
 
         //! Determine the s bin of a given particle pair
-        int computeBin(const vec3<Scalar>& r_ij,
+        size_t computeBin(const vec3<Scalar>& r_ij,
                        const quat<Scalar>& orientation_i,
                        const quat<Scalar>& orientation_j,
                        const typename Shape::param_type& params_i,
@@ -188,7 +188,7 @@ AnalyzerSDF<Shape>::AnalyzerSDF(std::shared_ptr<SystemDefinition> sysdef,
     {
     m_exec_conf->msg->notice(5) << "Constructing AnalyzerSDF: " << fname << " " << lmax << " " << dl << " " << navg << std::endl;
 
-    m_hist.resize(lmax / dl);
+    m_hist.resize((size_t)(lmax / dl));
     zeroHistogram();
 
     Scalar max_diam = m_mc->getMaxCoreDiameter();
@@ -346,7 +346,7 @@ void AnalyzerSDF<Shape>::countHistogram(unsigned int timestep)
     // loop through N particles
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        int min_bin = m_hist.size();
+        size_t min_bin = m_hist.size();
 
         // read in the current position and orientation
         Scalar4 postype_i = h_postype.data[i];
@@ -358,7 +358,7 @@ void AnalyzerSDF<Shape>::countHistogram(unsigned int timestep)
         // pad with enough extra width so that when scaled by lmax, found particles might touch
         detail::AABB aabb_i_local(vec3<Scalar>(0,0,0), shape_i.getCircumsphereDiameter()/Scalar(2) + extra_width);
 
-        const unsigned int n_images = image_list.size();
+        size_t n_images = image_list.size();
         for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
             {
             vec3<Scalar> pos_i_image = pos_i + image_list[cur_image];
@@ -388,7 +388,7 @@ void AnalyzerSDF<Shape>::countHistogram(unsigned int timestep)
                             vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
 
 
-                            int bin = computeBin(r_ij,
+                            size_t bin = computeBin(r_ij,
                                                  quat<Scalar>(orientation_i),
                                                  quat<Scalar>(orientation_j),
                                                  params[__scalar_as_int(postype_i.w)],
@@ -430,29 +430,29 @@ void AnalyzerSDF<Shape>::countHistogram(unsigned int timestep)
     correct bin has been found.
 */
 template < class Shape >
-int AnalyzerSDF<Shape>:: computeBin(const vec3<Scalar>& r_ij,
+size_t AnalyzerSDF<Shape>:: computeBin(const vec3<Scalar>& r_ij,
                              const quat<Scalar>& orientation_i,
                              const quat<Scalar>& orientation_j,
                              const typename Shape::param_type& params_i,
                              const typename Shape::param_type& params_j)
     {
-    unsigned int L=0;
-    unsigned int R=m_hist.size();
+    size_t L=0;
+    size_t R=m_hist.size();
 
     // if the particles already overlap a the left boundary, return an out of range value
-    if (detail::test_scaled_overlap<Shape>(r_ij, orientation_i, orientation_j, params_i, params_j, L*m_dl))
+    if (detail::test_scaled_overlap<Shape>(r_ij, orientation_i, orientation_j, params_i, params_j, double(L)*m_dl))
         return -1;
 
     // if the particles do not overlap a the right boundary, return an out of range value
-    if (!detail::test_scaled_overlap<Shape>(r_ij, orientation_i, orientation_j, params_i, params_j, R*m_dl))
+    if (!detail::test_scaled_overlap<Shape>(r_ij, orientation_i, orientation_j, params_i, params_j, double(R)*m_dl))
         return m_hist.size();
 
     // progressively narrow the search window by halves
     do
         {
-        unsigned int m = (L+R)/2;
+        size_t m = (L+R)/2;
 
-        if (detail::test_scaled_overlap<Shape>(r_ij, orientation_i, orientation_j, params_i, params_j, m*m_dl))
+        if (detail::test_scaled_overlap<Shape>(r_ij, orientation_i, orientation_j, params_i, params_j, double(m)*m_dl))
             R = m;
         else
             L = m;

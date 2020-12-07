@@ -34,11 +34,11 @@ namespace hpmc
 struct SphereWall
     {
     SphereWall() : rsq(0), inside(false), origin(0,0,0), verts(new detail::PolyhedronVertices(1,false)) {}
-    SphereWall(Scalar r, vec3<Scalar> orig, bool ins = true) : rsq(r*r), inside(ins), origin(orig), verts(new detail::PolyhedronVertices(1,false))
+    SphereWall(Scalar r, vec3<Scalar> orig, bool ins = true) : rsq(OverlapReal(r*r)), inside(ins), origin(orig), verts(new detail::PolyhedronVertices(1,false))
     {
         verts->N = 0; // case for sphere (can be 0 or 1)
-        verts->diameter = r+r;
-        verts->sweep_radius = r;
+        verts->diameter = (OverlapReal)(r+r);
+        verts->sweep_radius = (OverlapReal)r;
         verts->ignore = 0;
     }
     SphereWall(const SphereWall& src) : rsq(src.rsq), inside(src.inside), origin(src.origin), verts(new detail::PolyhedronVertices(*src.verts)) {}
@@ -63,7 +63,7 @@ struct CylinderWall
     CylinderWall(Scalar r, vec3<Scalar> orig, vec3<Scalar> orient, bool ins = true) : rsq(0), inside(false), origin(0,0,0), orientation(origin), verts(new detail::PolyhedronVertices(2,false))
         {
 
-        rsq = r*r;
+        rsq = (OverlapReal)(r*r);
         inside = ins;
         origin = orig;
         orientation = orient;
@@ -73,7 +73,7 @@ struct CylinderWall
 
         // set the position of the vertices and the diameter later
         verts->N = 2;
-        verts->sweep_radius = r;
+        verts->sweep_radius = OverlapReal(r);
         verts->ignore = 0;
 
         }

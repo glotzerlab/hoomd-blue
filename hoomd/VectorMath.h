@@ -943,29 +943,29 @@ DEVICE inline quat<Real> conj(const quat<Real>& a)
 template < class Real >
 DEVICE inline quat<Real>::quat(const rotmat3<Real>& r)
     {
-    Scalar tr = r.row0.x+r.row1.y+r.row2.z;
+    Real tr = r.row0.x+r.row1.y+r.row2.z;
 
     if (tr > Real(0.0))
         {
-        Real S = sqrt(tr+Real(1.0))*Real(2.0);
+        Real S = slow::sqrt(tr+Real(1.0))*Real(2.0);
         s = Real(0.25)*S;
         v = vec3<Real>((r.row2.y-r.row1.z)/S,(r.row0.z-r.row2.x)/S,(r.row1.x-r.row0.y)/S);
         }
     else if ( (r.row0.x > r.row1.y) && (r.row0.x > r.row2.z))
         {
-        Real S = sqrt(Real(1.0)+r.row0.x-r.row1.y-r.row2.z)*Real(2.0);
+        Real S = slow::sqrt(Real(1.0)+r.row0.x-r.row1.y-r.row2.z)*Real(2.0);
         s = (r.row2.y-r.row1.z)/S;
         v = vec3<Real>(Real(0.25)*S, (r.row0.y+r.row1.x)/S, (r.row0.z+r.row2.x)/S);
         }
     else if (r.row1.y > r.row2.z)
         {
-        Real S = sqrt(Real(1.0)+r.row1.y - r.row0.x - r.row2.z)*Real(2.0);
+        Real S = slow::sqrt(Real(1.0)+r.row1.y - r.row0.x - r.row2.z)*Real(2.0);
         s = (r.row0.z-r.row2.x)/S;
         v = vec3<Real>((r.row0.y+r.row1.x)/S,Real(0.25)*S,(r.row1.z+r.row2.y)/S);
         }
     else
         {
-        Real S = sqrt(Real(1.0)+ r.row2.z - r.row0.x - r.row1.y)*Real(2.0);
+        Real S = slow::sqrt(Real(1.0)+ r.row2.z - r.row0.x - r.row1.y)*Real(2.0);
         s = (r.row1.x-r.row0.y)/S;
         v = vec3<Real>((r.row0.z+r.row2.x)/S,(r.row1.z+r.row2.y)/S,Real(0.25)*S);
         }
