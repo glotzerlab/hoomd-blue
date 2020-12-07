@@ -203,7 +203,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
     set_source_files_properties(extern/libgetar/src/ZipArchive.cpp PROPERTIES COMPILE_FLAGS "-Wno-conversion")
     set_source_files_properties(extern/libgetar/src/lz4.c PROPERTIES COMPILE_FLAGS "-Wno-conversion")
     set_source_files_properties(extern/libgetar/miniz/miniz.cpp PROPERTIES COMPILE_FLAGS "-Wno-conversion")
-    set_source_files_properties(extern/libgetar/sqlite3/sqlite3.c PROPERTIES COMPILE_FLAGS "-Wno-implicit-int-float-conversion")
+    set_source_files_properties(extern/libgetar/sqlite3/sqlite3.c PROPERTIES COMPILE_FLAGS "-Wno-converstion -Wno-return-local-addr")
 endif()
 
 if (ENABLE_HIP)
