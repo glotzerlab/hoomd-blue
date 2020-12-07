@@ -1,6 +1,7 @@
 """Base data classes for HOOMD-blue objects that provide typing support."""
 from abc import ABCMeta, abstractmethod
-from collections.abc import MutableMapping, MutableSequence, MutableSet
+from collections.abc import (
+    Mapping, MutableMapping, Sequence, MutableSequence, Set, MutableSet)
 from contextlib import contextmanager
 from copy import deepcopy
 from itertools import cycle
@@ -70,9 +71,10 @@ def _get_inner_typeconverter(type_def, desired_type):
     if isinstance(type_def, TypeConverterValue):
         if isinstance(type_def.converter, OnlyIf):
             if isinstance(type_def.converter.cond, desired_type):
-                return_type_def = type_def.converter.cond  # Can this be None? If not, return here.
+                return type_def.converter.cond
         elif isinstance(type_def.converter, Either):
-            matches = [spec for spec in type_def.converter.specs if isinstance(spec, desired_type)]
+            matches = [spec for spec in type_def.converter.specs if isinstance(
+                spec, desired_type)]
             if len(matches) > 1:
                 raise ValueError(
                     "Parameter defined with multiple valid definitions of "
@@ -86,12 +88,13 @@ def _get_inner_typeconverter(type_def, desired_type):
 
 
 def _to_synced_data_structure(data, type_def, parent=None, label=None):
-    """Convert raw data to a synced _HOOMDDataStructures object.
+    """Convert raw data to a synced _SyncedDataStructure object.
 
-    This returns ``data`` if the data is not a supported data structure (sequence, mapping, or set).
+    This returns ``data`` if the data is not a supported data structure
+    (sequence, mapping, or set).
 
     Args:
-        data: Raw data to be potentially converted to a _HOOMDDataStructures
+        data: Raw data to be potentially converted to a _SyncedDataStructure
             object.
         type_def (`hoomd.data.typeconverter.TypeConverter`): The type converter
             which is desired to be introspected to find the desired type.
@@ -100,19 +103,21 @@ def _to_synced_data_structure(data, type_def, parent=None, label=None):
             instance, if the parent is a mapping the label would be the key for
             this value.
     """
-    if isinstance(data, MutableMapping):
-        typing = _get_inner_typeconverter(type_def, TypeConverterMapping)
-        return HOOMDDict(typing, parent, data, label)
-    elif isinstance(data, MutableSequence):
-        typing = _get_inner_typeconverter(type_def, TypeConverterSequence)
-        return HOOMDList(typing, parent, data, label)
-    elif isinstance(data, MutableSet):
-        return HOOMDSet(typing, parent, data, label)
+    if isinstance(data, Mapping):
+        type_validation = _get_inner_typeconverter(
+            type_def, TypeConverterMapping)
+        return HOOMDDict(type_validation, parent, data, label)
+    elif isinstance(data, Sequence):
+        type_validation = _get_inner_typeconverter(
+            type_def, TypeConverterSequence)
+        return HOOMDList(type_validation, parent, data, label)
+    elif isinstance(data, Set):
+        return HOOMDSet(type_def, parent, data, label)
     else:
         return data
 
 
-class HOOMDList(MutableSequence, _HOOMDDataStructures):
+class HOOMDList(MutableSequence, _SyncedDataStructure):
     """List with type validation.
 
     Use `to_base` to get a plain `list`.
@@ -123,68 +128,67 @@ class HOOMDList(MutableSequence, _HOOMDDataStructures):
     Warning:
         Users should not need to instantiate this class.
     """
+
     def __init__(self, type_definition, parent, initial_value=None,
                  label=None):
         self._type_definition = type_definition
         self._parent = parent
-        self._list = []
         self._label = label
         self._buffered = False
+        self._data = []
         if initial_value is not None:
             for type_def, val in zip(cycle(type_definition), initial_value):
-                self._list.append(_to_hoomd_data_structure(val, type_def, self))
+                self._data.append(
+                    _to_synced_data_structure(val, type_def, self))
 
     def __getitem__(self, index):  # noqa: D105
-        return self._list[index]
+        return self._data[index]
 
     def __setitem__(self, index, value):  # noqa: D105
         if isinstance(index, slice):
             with self._buffer():
-                for i, v in zip(self._slice_to_iterable(index), value):
+                for i, v in zip(range(len(self))[index], value):
                     self[i] = v
         else:
             type_def = self._get_type_def(index)
             try:
                 validated_value = type_def(value)
             except TypeConversionError as err:
-                raise TypeConversionError(
+                raise ValueError(
                     f"Error in setting item {index} in list.") from err
             else:
                 # If we override a list item that is itself a
-                # _HOOMDDataStructures we disconnect the old structure to
+                # _SyncedDataStructure we disconnect the old structure to
                 # prevent updates from it to force sync the list.
-                if isinstance(self._list[i], _HOOMDDataStructures):
-                    self._list[i]._parent = None
+                if isinstance(self._data[i], _SyncedDataStructure):
+                    self._data[i]._parent = None
 
-                self._list[i] = _to_hoomd_data_structure(
+                self._data[i] = _to_synced_data_structure(
                     validated_value, type_def, self)
         self._update()
-
-    def _slice_to_iterable(self, slice_):
-        return range(len(self))[slice_]
 
     def _get_type_def(self, index):
         entry_index = index % len(self._type_definition)
         return self._type_definition[entry_index]
 
     def __delitem__(self, index):  # noqa: D105
-        val = self._list[index]
+        val = self._data[index]
         # Disconnect item from list
-        if isinstance(val, _HOOMDDataStructures):
+        if isinstance(val, _SyncedDataStructure):
             val._parent = None
-        del self._list[index]
+        del self._data[index]
         # This is required for list type definitions which have index dependent
         # validation.
         if len(self._type_definition) > 1:
             try:
-                _ = self._type_definition(self._list)
+                _ = self._type_definition(self._data)
             except TypeConversionError as err:
                 raise RuntimeError("Deleting items from list has caused an "
                                    "invalid state.") from err
         self._update()
 
     def __len__(self):  # noqa: D105
-        return len(self._list)
+        return len(self._data)
 
     def insert(self, index, value):  # noqa: D102
         if index >= len(self):
@@ -198,12 +202,12 @@ class HOOMDList(MutableSequence, _HOOMDDataStructures):
                 f"Error inserting {value} into list at position {index}."
                 ) from err
         else:
-            self._list.insert(index,
-                              _to_hoomd_data_structure(validated_value,
-                                                       type_def, self))
+            self._data.insert(index,
+                              _to_synced_data_structure(validated_value,
+                                                        type_def, self))
             if index != len(self) and len(self._type_definition) > 1:
                 try:
-                    _ = self._type_definition(self._list)
+                    _ = self._type_definition(self._data)
                 except TypeConversionError as err:
                     raise TypeConversionError(
                         "List insertion invalidated list.") from err
@@ -225,26 +229,26 @@ class HOOMDList(MutableSequence, _HOOMDDataStructures):
 
         Recursively calls `to_base` for nested data structures.
         """
-        return_list = []
+        return_data = []
         for entry in self:
-            if isinstance(entry, _HOOMDDataStructures):
-                return_list.append(entry.to_base())
+            if isinstance(entry, _SyncedDataStructure):
+                return_data.append(entry.to_base())
             else:
                 try:
                     use_entry = deepcopy(entry)
                 except Exception:
                     use_entry = entry
-                return_list.append(use_entry)
-        return return_list
+                return_data.append(use_entry)
+        return return_data
 
     def __str__(self):  # noqa: D105
-        return str(self._list)
+        return str(self._data)
 
     def __repr__(self):  # noqa: D105
-        return repr(self._list)
+        return repr(self._data)
 
 
-class HOOMDDict(MutableMapping, _HOOMDDataStructures):
+class HOOMDDict(MutableMapping, _SyncedDataStructure):
     """Mapping with type validation.
 
     Allows dotted access to key values as well as long as they conform to
@@ -258,21 +262,21 @@ class HOOMDDict(MutableMapping, _HOOMDDataStructures):
     Warning:
         Should not be instantiated by users.
     """
-    _dict = {}
+    _data = {}
 
     def __init__(self, type_def, parent, initial_value=None, label=None):
-        self._dict = {}
         self._type_definition = type_def
         self._parent = parent
         self._buffered = False
         self._label = label
+        self._data = {}
         if initial_value is not None:
             for key, val in initial_value.items():
-                self._dict[key] = _to_hoomd_data_structure(
+                self._data[key] = _to_synced_data_structure(
                     val, type_def[key], self, key)
 
     def __getitem__(self, key):  # noqa: D105
-        return self._dict[key]
+        return self._data[key]
 
     def __getattr__(self, attr):
         """Support dotted access to keys that are valid Python identifiers."""
@@ -283,7 +287,7 @@ class HOOMDDict(MutableMapping, _HOOMDDataStructures):
                 self, attr))
 
     def __setattr__(self, attr, value):  # noqa: D105
-        if attr in self._dict:
+        if attr in self._data:
             self[attr] = value
         else:
             super().__setattr__(attr, value)
@@ -300,9 +304,9 @@ class HOOMDDict(MutableMapping, _HOOMDDataStructures):
                 "Error setting key {}.".format(key)) from err
         else:
             # Disconnect child from parent to prevent child signaling update
-            if isinstance(self._dict[key], _HOOMDDataStructures):
-                self._dict[key]._parent = None
-            self._dict[key] = _to_hoomd_data_structure(
+            if isinstance(self._data[key], _SyncedDataStructure):
+                self._data[key]._parent = None
+            self._data[key] = _to_synced_data_structure(
                 validated_value, type_def, self, key)
         self._update()
 
@@ -310,10 +314,10 @@ class HOOMDDict(MutableMapping, _HOOMDDataStructures):
         raise RuntimeError("mapping does not support deleting keys.")
 
     def __iter__(self):  # noqa: D105
-        yield from self._dict.keys()
+        yield from self._data.keys()
 
     def __len__(self):  # noqa: D105
-        return len(self._dict)
+        return len(self._data)
 
     def update(self, other):  # noqa: D102
         with self._buffer():
@@ -325,26 +329,26 @@ class HOOMDDict(MutableMapping, _HOOMDDataStructures):
 
         Recursively calls `to_base` for nested data structures.
         """
-        return_dict = {}
+        return_data = {}
         for key, entry in self.items():
-            if isinstance(entry, _HOOMDDataStructures):
-                return_dict[key] = entry.to_base()
+            if isinstance(entry, _SyncedDataStructure):
+                return_data[key] = entry.to_base()
             else:
                 try:
                     use_entry = deepcopy(entry)
                 except Exception:
                     use_entry = entry
-                return_dict[key] = use_entry
-        return return_dict
+                return_data[key] = use_entry
+        return return_data
 
     def __str__(self):  # noqa: D105
-        return str(self._dict)
+        return str(self._data)
 
     def __repr__(self):  # noqa: D105
-        return repr(self._dict)
+        return repr(self._data)
 
 
-class HOOMDSet(MutableSet, _HOOMDDataStructures):
+class HOOMDSet(MutableSet, _SyncedDataStructure):
     """Set with type validation.
 
     Use `to_base` to get a plain `set`.
@@ -355,24 +359,25 @@ class HOOMDSet(MutableSet, _HOOMDDataStructures):
     Warning:
         Should not be instantiated by users.
     """
+
     def __init__(self, type_def, parent, initial_value=None, label=None):
         self._type_definition = type_def
         self._parent = parent
         self._buffered = False
         self._label = label
-        self._set = set()
+        self._data = set()
         if initial_value is not None:
             for val in initial_value:
-                self._set.add(_to_hoomd_data_structure(val, type_def, self))
+                self._data.add(_to_synced_data_structure(val, type_def, self))
 
     def __contains__(self, item):  # noqa: D105
-        return item in self._set
+        return item in self._data
 
     def __iter__(self):  # noqa: D105
-        yield from self._set
+        yield from self._data
 
     def __len__(self):  # noqa: D105
-        return len(self._set)
+        return len(self._data)
 
     def add(self, item):  # noqa: D102
         if item not in self:
@@ -382,17 +387,17 @@ class HOOMDSet(MutableSet, _HOOMDDataStructures):
                 raise TypeConversionError(
                     "Error adding item {} to set.".format(item)) from err
             else:
-                self._set.add(_to_hoomd_data_structure(
+                self._data.add(_to_synced_data_structure(
                     validated_value, self._type_definition, self))
         self._update()
 
     def discard(self, item):  # noqa: D102
         """Remove an item from the set if it is contained in the set."""
-        if isinstance(item, _HOOMDDataStructures):
+        if isinstance(item, _SyncedDataStructure):
             # Disconnect child from parent
             if item in self:
                 item._parent = None
-        self._set.discard(item)
+        self._data.discard(item)
 
     def to_base(self):
         """Cast the object into a `set`.
@@ -401,7 +406,7 @@ class HOOMDSet(MutableSet, _HOOMDDataStructures):
         """
         return_set = set()
         for item in self:
-            if isinstance(item, _HOOMDDataStructures):
+            if isinstance(item, _SyncedDataStructure):
                 return_set.add(item.to_base())
             else:
                 try:
@@ -436,7 +441,7 @@ class HOOMDSet(MutableSet, _HOOMDDataStructures):
         return self
 
     def __str__(self):  # noqa: D105
-        return str(self._set)
+        return str(self._data)
 
     def __repr__(self):  # noqa: D105
-        return repr(self._set)
+        return repr(self._data)
