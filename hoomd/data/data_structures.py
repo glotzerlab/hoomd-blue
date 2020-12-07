@@ -38,12 +38,18 @@ class _SyncedDataStructure(metaclass=ABCMeta):
 
 
 def _get_inner_typeconverter(type_def, desired_type):
-    """Handles more complicated data structure specification.
+    """Handles more complicated data structure validataion specifications.
 
-    When using nested containers where an entry could be a list or None for
-    instance requires the use of something like typeconverter's OnlyIf or
-    Either. We autdetect the internal type specification for these object and if
-    they are of the correct type use these.
+    When using nested containers, where an entry could be a list or None, for
+    instance the validation specification must the use something like
+    typeconverter's OnlyIf or Either classes. We detect the internal validation
+    present in these objects and if they are of the correct type use them in the
+    data structure.
+
+    An example of this would be a validation specification of ``Either([None,
+    to_type_converter([float]))`` which specifies that we expect either `None`
+    or a list of floats. Here we cannot use the `Either` instance for the type
+    spec since what we want is the inner `float` requirement for the list.
 
     Args:
         type_def (`hoomd.data.typeconverter.TypeConverter`): The type converter
