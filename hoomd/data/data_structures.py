@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import (
     Mapping, MutableMapping, Sequence, MutableSequence, Set, MutableSet)
 from contextlib import contextmanager
-from copy import deepcopy
+import copy
 from itertools import cycle
 
 from hoomd.data.typeconverter import (
@@ -18,7 +18,7 @@ class _SyncedDataStructure(metaclass=ABCMeta):
     consistency with C++ after attaching.
     """
     @abstractmethod
-    def to_base(self):
+    def to_base(self, deepcopy=False):
         """Cast the object into the corresponding native Python container type."""
         pass
 
@@ -36,6 +36,13 @@ class _SyncedDataStructure(metaclass=ABCMeta):
         """Signal that the object has been updated."""
         if not self._buffered and self._parent is not None:
             self._parent._handle_update(self, self._label)
+
+    @staticmethod
+    def _convert_entry(entry, deepcopy=False):
+        if isinstance(entry, _SyncedDataStructure):
+            return entry.to_base
+        elif deepcopy:
+            return copy.deepcopy(entry)
 
 
 def _get_inner_typeconverter(type_def, desired_type):
@@ -119,7 +126,7 @@ def _to_synced_data_structure(data, type_def, parent=None, label=None):
 class HOOMDList(MutableSequence, _SyncedDataStructure):
     """List with type validation.
 
-    Use `to_base` to get a plain `list`.
+    Use `to_base` to convert to a `list`.
 
     Uses `collections.abc.MutableSequence` as a parent class.
     See the Python docs on `list` objects for more information.
@@ -223,22 +230,12 @@ class HOOMDList(MutableSequence, _SyncedDataStructure):
             super().clear()
         self._update()
 
-    def to_base(self):
+    def to_base(self, deepcopy=False):
         """Cast the object to a `list`.
 
         Recursively calls `to_base` for nested data structures.
         """
-        return_data = []
-        for entry in self:
-            if isinstance(entry, _SyncedDataStructure):
-                return_data.append(entry.to_base())
-            else:
-                try:
-                    use_entry = deepcopy(entry)
-                except Exception:
-                    use_entry = entry
-                return_data.append(use_entry)
-        return return_data
+        return [self._convert_entry(entry, deepcopy) for entry in self]
 
     def __str__(self):  # noqa: D105
         return str(self._data)
@@ -256,7 +253,7 @@ class HOOMDDict(MutableMapping, _SyncedDataStructure):
     Uses `collections.abc.MutableMapping` as a parent class. See Python
     documentation on `dict` for more information.
 
-    Use `to_base` to get a plain `dict`.
+    Use `to_base` to convert to a `dict`.
 
     Warning:
         Should not be instantiated by users.
@@ -323,22 +320,13 @@ class HOOMDDict(MutableMapping, _SyncedDataStructure):
             super().update(other)
         self._update()
 
-    def to_base(self):
+    def to_base(self, deepcopy=False):
         """Cast the object to a `dict`.
 
         Recursively calls `to_base` for nested data structures.
         """
-        return_data = {}
-        for key, entry in self.items():
-            if isinstance(entry, _SyncedDataStructure):
-                return_data[key] = entry.to_base()
-            else:
-                try:
-                    use_entry = deepcopy(entry)
-                except Exception:
-                    use_entry = entry
-                return_data[key] = use_entry
-        return return_data
+        return {key: self._convert_entry(entry, deepcopy)
+                for key, entry in self.items()}
 
     def __str__(self):  # noqa: D105
         return str(self._data)
@@ -350,7 +338,7 @@ class HOOMDDict(MutableMapping, _SyncedDataStructure):
 class HOOMDSet(MutableSet, _SyncedDataStructure):
     """Set with type validation.
 
-    Use `to_base` to get a plain `set`.
+    Use `to_base` to convert to a `set`.
 
     Uses `collections.abc.MutableSet` as a parent class. See Python
     documentation on `set` for more information.
@@ -403,17 +391,7 @@ class HOOMDSet(MutableSet, _SyncedDataStructure):
 
         Recursively calls `to_base` for nested data structures.
         """
-        return_set = set()
-        for item in self:
-            if isinstance(item, _SyncedDataStructure):
-                return_set.add(item.to_base())
-            else:
-                try:
-                    use_item = deepcopy(item)
-                except Exception:
-                    use_item = item
-                return_set.add(use_item)
-        return return_set
+        return {self._convert_entry(entry) for entry in self}
 
     def __ior__(self, other):  # noqa: D105
         with self._buffer():
