@@ -18,7 +18,7 @@ from hoomd.data.typeconverter import RequiredArg
 from hoomd.util import NamespaceDict
 from hoomd._hoomd import GSDStateReader
 from hoomd.data.param_dict import ParameterDict
-from hoomd.data.data_structures import _HOOMDDataStructures
+from hoomd.data.data_structures import _SyncedDataStructure
 
 from collections.abc import Mapping
 from copy import deepcopy
@@ -388,7 +388,7 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
         self._param_dict[attr] = value
         if self._attached:
             new_value = self._param_dict[attr]
-            if isinstance(new_value, _HOOMDDataStructures):
+            if isinstance(new_value, _SyncedDataStructure):
                 new_value = new_value.to_base()
             try:
                 setattr(self._cpp_obj, attr, new_value)

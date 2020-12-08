@@ -3,7 +3,7 @@ from collections.abc import MutableMapping
 from hoomd.data.typeconverter import to_type_converter
 from hoomd.data.smart_default import to_base_defaults, NoDefault
 from hoomd.data.data_structures import (
-    _to_hoomd_data_structure, _HOOMDDataStructures)
+    _to_synced_data_structure, _SyncedDataStructure)
 
 
 class ParameterDict(MutableMapping):
@@ -35,7 +35,7 @@ class ParameterDict(MutableMapping):
         default_val = to_base_defaults(kwargs, _defaults)
         self._type_converter = type_def
         for key in default_val:
-            self._dict[key] = _to_hoomd_data_structure(
+            self._dict[key] = _to_synced_data_structure(
                 default_val[key], type_def[key], self, key)
 
     def __setitem__(self, key, value):
@@ -49,13 +49,13 @@ class ParameterDict(MutableMapping):
         if key not in self:
             type_def = to_type_converter(value)
             self._type_converter[key] = type_def
-            self._dict[key] = _to_hoomd_data_structure(
+            self._dict[key] = _to_synced_data_structure(
                 value, type_def, self, key)
         else:
-            if isinstance(self._dict[key], _HOOMDDataStructures):
+            if isinstance(self._dict[key], _SyncedDataStructure):
                 self._dict[key]._parent = None
             type_def = self._type_converter[key]
-            self._dict[key] = _to_hoomd_data_structure(
+            self._dict[key] = _to_synced_data_structure(
                 type_def(value), type_def, self, key)
 
     def __getitem__(self, key):
@@ -66,7 +66,7 @@ class ParameterDict(MutableMapping):
         """
         item = self._dict[key]
         # disconnect child data structure from parent
-        if isinstance(item, _HOOMDDataStructures):
+        if isinstance(item, _SyncedDataStructure):
             item._parent = None
         del self._dict[key]
         del self._type_converter.converter[key]
@@ -119,7 +119,7 @@ class ParameterDict(MutableMapping):
             super().update(dict_)
 
     def setitem_with_validation_function(self, key, value, converter):
-        if key in self and isinstance(self[key], _HOOMDDataStructures):
+        if key in self and isinstance(self[key], _SyncedDataStructure):
             self[key]._parent = None
         self._type_converter[key] = converter
         self._dict[key] = value
@@ -128,7 +128,7 @@ class ParameterDict(MutableMapping):
         """Return a plain Python `dict`."""
         rtn_dict = {}
         for key, value in self.items():
-            if isinstance(value, _HOOMDDataStructures):
+            if isinstance(value, _SyncedDataStructure):
                 rtn_dict[key] = value.to_base()
             else:
                 try:

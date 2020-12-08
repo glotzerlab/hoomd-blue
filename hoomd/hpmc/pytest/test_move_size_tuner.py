@@ -2,7 +2,7 @@ from math import isclose
 import pytest
 
 from hoomd import hpmc
-from hoomd.data.data_structures import _HOOMDDataStructures
+from hoomd.data.data_structures import _SyncedDataStructure
 from hoomd.hpmc.tune.move_size import (
     _MoveSizeTuneDefinition, MoveSize)
 
@@ -135,7 +135,7 @@ class TestMoveSize:
             else:
                 try:
                     obj_attr = getattr(move_size, attr)
-                    if isinstance(obj_attr, _HOOMDDataStructures):
+                    if isinstance(obj_attr, _SyncedDataStructure):
                         obj_attr = obj_attr.to_base()
                     assert obj_attr == move_size_dict[attr]
                 # We catch attribute errors since the solver may be the one to

@@ -107,7 +107,7 @@ def _to_synced_data_structure(data, type_def, parent=None, label=None):
         type_validation = _get_inner_typeconverter(
             type_def, TypeConverterMapping)
         return HOOMDDict(type_validation, parent, data, label)
-    elif isinstance(data, Sequence):
+    elif isinstance(data, Sequence) and not isinstance(data, (str, tuple)):
         type_validation = _get_inner_typeconverter(
             type_def, TypeConverterSequence)
         return HOOMDList(type_validation, parent, data, label)
