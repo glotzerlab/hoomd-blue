@@ -1669,7 +1669,7 @@ class _AnisotropicPair(Pair):
         return ret
 
 
-class GB(_AnisotropicPair):
+class GayBerne(_AnisotropicPair):
     R""" Gay-Berne anisotropic pair potential.
 
     Warning: The code has yet to be updated to the current API.
@@ -1680,7 +1680,8 @@ class GB(_AnisotropicPair):
         r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mode.
 
-    :py:class:`gb` computes the Gay-Berne potential between anisotropic particles.
+    :py:class:`gb` computes the Gay-Berne potential between anisotropic
+    particles.
 
     This version of the Gay-Berne potential supports identical pairs of uniaxial
     ellipsoids, with orientation-independent energy-well depth.
@@ -1692,18 +1693,23 @@ class GB(_AnisotropicPair):
         :nowrap:
 
         \begin{eqnarray*}
-        V_{\mathrm{GB}}(\vec r, \vec e_i, \vec e_j)  = & 4 \varepsilon \left[ \zeta^{-12} -
-                              \zeta^{-6} \right] & \zeta < \zeta_{\mathrm{cut}} \\
-                            = & 0 & \zeta \ge \zeta_{\mathrm{cut}} \\
+        V_{\mathrm{GB}}(\vec r, \vec e_i, \vec e_j)
+            = & 4 \varepsilon \left[ \zeta^{-12} - \zeta^{-6} \right]
+            & \zeta < \zeta_{\mathrm{cut}} \\
+            = & 0 & \zeta \ge \zeta_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     .. math::
 
-        \zeta = \left(\frac{r-\sigma+\sigma_{\mathrm{min}}}{\sigma_{\mathrm{min}}}\right)
+        \zeta = \left(\frac{r-\sigma+\sigma_{\mathrm{min}}}
+                           {\sigma_{\mathrm{min}}}\right)
 
-        \sigma^{-2} = \frac{1}{2} \hat{\vec{r}}\cdot\vec{H^{-1}}\cdot\hat{\vec{r}}
+        \sigma^{-2} = \frac{1}{2} \hat{\vec{r}}
+            \cdot \vec{H^{-1}} \cdot \hat{\vec{r}}
 
-        \vec{H} = 2 \ell_\perp^2 \vec{1} + (\ell_\parallel^2 - \ell_\perp^2) (\vec{e_i} \otimes \vec{e_i} + \vec{e_j} \otimes \vec{e_j})
+        \vec{H} = 2 \ell_\perp^2 \vec{1}
+            + (\ell_\parallel^2 - \ell_\perp^2)
+              (\vec{e_i} \otimes \vec{e_i} + \vec{e_j} \otimes \vec{e_j})
 
     with :math:`\sigma_{\mathrm{min}} = 2 \min(\ell_\perp, \ell_\parallel)`.
 
@@ -1772,8 +1778,6 @@ class GB(_AnisotropicPair):
 class Dipole(_AnisotropicPair):
     R""" Screened dipole-dipole interactions.
 
-    Warning: The code has yet to be updated to the current API.
-
     Args:
         nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
@@ -1788,9 +1792,17 @@ class Dipole(_AnisotropicPair):
 
         U_{dipole} = U_{dd} + U_{de} + U_{ee}
 
-        U_{dd} = A e^{-\kappa r} \left(\frac{\vec{\mu_i}\cdot\vec{\mu_j}}{r^3} - 3\frac{(\vec{\mu_i}\cdot \vec{r_{ji}})(\vec{\mu_j}\cdot \vec{r_{ji}})}{r^5}\right)
+        U_{dd} = A e^{-\kappa r}
+            \left(\frac{\vec{\mu_i}\cdot\vec{\mu_j}}{r^3}
+                  - 3\frac{(\vec{\mu_i}\cdot \vec{r_{ji}})
+                           (\vec{\mu_j}\cdot \vec{r_{ji}})}
+                          {r^5}
+            \right)
 
-        U_{de} = A e^{-\kappa r} \left(\frac{(\vec{\mu_j}\cdot \vec{r_{ji}})q_i}{r^3} - \frac{(\vec{\mu_i}\cdot \vec{r_{ji}})q_j}{r^3}\right)
+        U_{de} = A e^{-\kappa r}
+            \left(\frac{(\vec{\mu_j}\cdot \vec{r_{ji}})q_i}{r^3}
+                - \frac{(\vec{\mu_i}\cdot \vec{r_{ji}})q_j}{r^3}
+            \right)
 
         U_{ee} = A e^{-\kappa r} \frac{q_i q_j}{r}
 
