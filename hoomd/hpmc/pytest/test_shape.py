@@ -1,4 +1,5 @@
 import hoomd
+from hoomd.data.data_structures import HOOMDDict
 import hoomd.hpmc
 import numpy as np
 import pytest
@@ -19,10 +20,8 @@ def check_dict(shape_dict, args):
     Useful for more complex nested dictionaries (like the shape key in unions)
     Used to test that the dictionary passed in is what gets passed out
     """
-    try:
+    if isinstance(shape_dict, HOOMDDict):
         shape_dict = shape_dict.to_base()
-    except AttributeError:
-        pass
     for key, val in args.items():
         if isinstance(shape_dict[key], list) and len(shape_dict[key]) > 0 \
            and key != 'shapes':
