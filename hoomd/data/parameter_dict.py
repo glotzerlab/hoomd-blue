@@ -28,14 +28,15 @@ class ParameterDict(MutableMapping):
             Any number of keyword arguments. Each key supports the full type
             specification allowed by `hoomd.data.typeconverter`.
     """
+
     def __init__(self, _defaults=NoDefault, **kwargs):
-        self._dict = dict()
+        self._data = dict()
         self._parent = None
         type_def = to_type_converter(kwargs)
         default_val = to_base_defaults(kwargs, _defaults)
         self._type_converter = type_def
         for key in default_val:
-            self._dict[key] = _to_synced_data_structure(
+            self._data[key] = _to_synced_data_structure(
                 default_val[key], type_def[key], self, key)
 
     def __setitem__(self, key, value):
@@ -49,94 +50,91 @@ class ParameterDict(MutableMapping):
         if key not in self:
             type_def = to_type_converter(value)
             self._type_converter[key] = type_def
-            self._dict[key] = _to_synced_data_structure(
+            self._data[key] = _to_synced_data_structure(
                 value, type_def, self, key)
         else:
-            if isinstance(self._dict[key], _SyncedDataStructure):
-                self._dict[key]._parent = None
+            if isinstance(self._data[key], _SyncedDataStructure):
+                self._data[key]._parent = None
             type_def = self._type_converter[key]
-            self._dict[key] = _to_synced_data_structure(
+            self._data[key] = _to_synced_data_structure(
                 type_def(value), type_def, self, key)
 
     def __getitem__(self, key):
-        return self._dict[key]
+        return self._data[key]
 
     def __delitem__(self, key):
         """Deleting the key also removes any validation information for the key.
         """
-        item = self._dict[key]
+        item = self._data[key]
         # disconnect child data structure from parent
         if isinstance(item, _SyncedDataStructure):
             item._parent = None
-        del self._dict[key]
+        del self._data[key]
         del self._type_converter.converter[key]
 
     def __iter__(self):
-        yield from self._dict
+        yield from self._data
 
     def __len__(self):
-        return len(self._dict)
+        return len(self._data)
 
     def __deepcopy__(self, memo):
         """Return a deepcopy if possible, else return a shallow copy.
 
         While this breaks assumptions of deepcopy the behavior as it is
-        currently implemented is enough to work for most cases. Because pybind11 C++ objects
-        are not compatible with deepcopy by default, these objects will cause the
-        deepcopy to fail. For now this method ignores those failures and uses the
-        object itself, making the result a shallow copy.
+        currently implemented is enough to work for most cases. Because pybind11
+        C++ objects are not compatible with deepcopy by default, these objects
+        will cause the deepcopy to fail. For now this method ignores those
+        failures and uses the object itself, making the result a shallow copy.
         """
-        new_dict = ParameterDict()
+        new_data = ParameterDict()
         for key, value in self.items():
             try:
-                new_dict[key] = deepcopy(value)
+                new_data[key] = deepcopy(value)
             except TypeError:
-                new_dict[key] = value
+                new_data[key] = value
             try:
-                new_dict._type_converter[key] = deepcopy(
+                new_data._type_converter[key] = deepcopy(
                     self._type_converter[key])
             except TypeError:
-                new_dict._type_converter[key] = self._type_converter[key]
-        return new_dict
+                new_data._type_converter[key] = self._type_converter[key]
+        return new_data
 
-    def update(self, dict_):
+    def update(self, other):
         """Update the mapping with another mapping.
 
         Also updates validation information when other mapping is a
         `ParameterDict`.
 
         Args:
-            dict_: `dict`
+            other: `dict`
                 A mapping to update the current mapping instance with.
         """
-        if isinstance(dict_, ParameterDict):
-            for key, value in dict_.items():
+        if isinstance(other, ParameterDict):
+            for key, value in other.items():
                 self.setitem_with_validation_function(key,
                                                       value,
-                                                      dict_._type_converter[key]
+                                                      other._type_converter[key]
                                                       )
         else:
-            super().update(dict_)
+            super().update(other)
 
     def setitem_with_validation_function(self, key, value, converter):
         if key in self and isinstance(self[key], _SyncedDataStructure):
             self[key]._parent = None
         self._type_converter[key] = converter
-        self._dict[key] = value
+        self._data[key] = value
 
-    def to_base(self):
-        """Return a plain Python `dict`."""
-        rtn_dict = {}
-        for key, value in self.items():
+    def to_base(self, deepcopy=False):
+        """Return a Python `dict`."""
+        def convert_value(value):
             if isinstance(value, _SyncedDataStructure):
-                rtn_dict[key] = value.to_base()
-            else:
-                try:
-                    use_value = deepcopy(value)
-                except Exception:
-                    use_value = value
-                rtn_dict[key] = use_value
-        return rtn_dict
+                return value.to_base()
+            if deepcopy:
+                return deepcopy(value)
+            return value
+
+        return {key: convert_value(value) for key, value in self.items()}
 
     def _handle_update(self, obj, label):
         """Handle updates of child data structure."""
