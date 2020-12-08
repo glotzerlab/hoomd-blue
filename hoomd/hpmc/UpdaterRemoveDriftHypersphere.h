@@ -56,11 +56,11 @@ class RemoveDriftUpdaterHypersphere : public Updater
             ArrayHandle<Scalar4> h_quat_l(m_pdata->getLeftQuaternionArray(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_quat_r(m_pdata->getRightQuaternionArray(), access_location::host, access_mode::readwrite);
 
-            ArrayHandle<Scalar4> h_quat_l0(m_externalLattice->getReferenceLatticeQuat_l(), access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar4> h_quat_r0(m_externalLattice->getReferenceLatticeQuat_r(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_quat_l0(m_externalLattice->getReferenceLatticeQuat_l(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_quat_r0(m_externalLattice->getReferenceLatticeQuat_r(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_index(m_externalLattice->getReferenceLatticeIndex(), access_location::host, access_mode::read);
 
             ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(), access_location::host, access_mode::read);
-            ArrayHandle<int3> h_image(this->m_pdata->getImages(), access_location::host, access_mode::readwrite);
 
             quat<Scalar> rshift_l;
             quat<Scalar> rshift_r;
@@ -69,7 +69,7 @@ class RemoveDriftUpdaterHypersphere : public Updater
 
             for (unsigned int i = 0; i < this->m_pdata->getN(); i++)
                 {
-                unsigned int tag_i = h_tag.data[i];
+                unsigned int tag_i = h_index.data[h_tag.data[i]];
                 // read in the current position and orientation
                 quat<Scalar> ql_i(h_quat_l.data[i]);
                 quat<Scalar> qr_i(h_quat_r.data[i]);

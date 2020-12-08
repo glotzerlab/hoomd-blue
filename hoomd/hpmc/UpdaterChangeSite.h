@@ -386,7 +386,6 @@ class ChangeSiteUpdaterHypersphere : public Updater
                               m_update_order(seed+m_exec_conf->getRank(), m_pdata->getN()), m_seed(seed)
             {
                 setReferences(lattice_quatl, lattice_quatr);
-                m_refdist = detail::get_arclength_hypersphere(quat<Scalar>(1,vec3<Scalar>(0,0,0)), quat<Scalar>(1,vec3<Scalar>(0,0,0)), quat<Scalar>(m_latticeQuat_l.getSite(0)), quat<Scalar>(m_latticeQuat_r.getSite(0)), m_pdata->getHypersphere())/2.0;
             }
 
         //! Take one timestep forward
@@ -490,7 +489,6 @@ class ChangeSiteUpdaterHypersphere : public Updater
                 std::shared_ptr<IntegratorHPMCMono<Shape> > m_mc;
                 detail::UpdateOrder m_update_order;         //!< Update order
                 unsigned int m_seed;         
-                OverlapReal m_refdist;
     };
 
 template <class Shape>
@@ -511,8 +509,9 @@ void ChangeSiteUpdaterHypersphere<Shape>::update(unsigned int timestep)
 	ArrayHandle<Scalar4> h_quat_l(m_pdata->getLeftQuaternionArray(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_quat_r(m_pdata->getRightQuaternionArray(), access_location::host, access_mode::readwrite);
 
-    ArrayHandle<Scalar4> h_ql0(m_externalLattice->getReferenceLatticeQuat_l(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> h_qr0(m_externalLattice->getReferenceLatticeQuat_r(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_ql0(m_externalLattice->getReferenceLatticeQuat_l(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_qr0(m_externalLattice->getReferenceLatticeQuat_r(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_i0(m_externalLattice->getReferenceLatticeIndex(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
@@ -528,48 +527,18 @@ void ChangeSiteUpdaterHypersphere<Shape>::update(unsigned int timestep)
         Scalar4 postype_i = h_postype.data[i];
         quat<Scalar> quat_l_i(h_quat_l.data[i]);
         quat<Scalar> quat_r_i(h_quat_r.data[i]);
-        quat<Scalar> refql_i = quat<Scalar>(h_ql0.data[i]);
-        quat<Scalar> refqr_i = quat<Scalar>(h_qr0.data[i]);
+        unsigned int refindx = h_i0.data[i];
+        quat<Scalar> refql_i = quat<Scalar>(h_ql0.data[refindx]);
+        quat<Scalar> refqr_i = quat<Scalar>(h_qr0.data[refindx]);
 
-        OverlapReal dist = detail::get_arclength_hypersphere(quat_l_i,quat_r_i,refql_i,refqr_i,hypersphere);
+        //OverlapReal dist = detail::get_arclength_hypersphere(quat_l_i,quat_r_i,refql_i,refqr_i,hypersphere);
         
-        quat<Scalar> dql, dqr;
-
-        if( dist > m_refdist)
-            {
-            OverlapReal new_dist;
-            for( unsigned int ne = 0; ne < m_latticeQuat_l.getSize(); ne++)
-                {
-                dql = refql_i*quat<Scalar>( m_latticeQuat_l.getSite(ne));
-                dqr = quat<Scalar>( m_latticeQuat_r.getSite(ne))*refqr_i;
-
-                new_dist = detail::get_arclength_hypersphere(quat_l_i,quat_r_i,dql,dqr,hypersphere);
-
-                if (new_dist < dist)
-                    {
-                    dist = new_dist;
-                    Scalar norm_l_inv = fast::rsqrt(norm2(dql));
-                    dql.s *= norm_l_inv;
-                    dql.v *= norm_l_inv;
-                    Scalar norm_r_inv = fast::rsqrt(norm2(dqr));
-                    dqr.s *= norm_r_inv;
-                    dqr.v *= norm_r_inv;
-                    h_ql0.data[i] = quat_to_scalar4(dql);
-                    h_qr0.data[i] = quat_to_scalar4(dqr);
-                    if(new_dist < m_refdist) break;
-                    }
-                }
-            }
-
-
-
-
         // make a trial move for i
         hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::UpdaterChangeSite, m_seed, i, m_exec_conf->getRank(), timestep);
         unsigned int indx = int(hoomd::UniformDistribution<Scalar>(0,m_latticeQuat_l.getSize())(rng_i)); 
 
-        dql = quat<Scalar>( m_latticeQuat_l.getSite(indx) );
-        dqr = quat<Scalar>( m_latticeQuat_r.getSite(indx) );
+        quat<Scalar> dql = quat<Scalar>( m_latticeQuat_l.getSite(indx) );
+        quat<Scalar> dqr = quat<Scalar>( m_latticeQuat_r.getSite(indx) );
 
         dql = refql_i*dql*conj(refql_i);
         dqr = conj(refqr_i)*dqr*refqr_i;
@@ -652,18 +621,6 @@ void ChangeSiteUpdaterHypersphere<Shape>::update(unsigned int timestep)
             
             h_quat_l.data[i] = quat_to_scalar4(shape_i.quat_l);
             h_quat_r.data[i] = quat_to_scalar4(shape_i.quat_r);
-
-            dql = quat<Scalar>( m_latticeQuat_l.getSite(indx));
-            dqr = quat<Scalar>( m_latticeQuat_r.getSite(indx));
-            dql = refql_i*dql;
-            dqr = dqr*refqr_i;
-            Scalar norm_l_inv = fast::rsqrt(norm2(dql));
-            dql *= norm_l_inv;
-            Scalar norm_r_inv = fast::rsqrt(norm2(dqr));
-            dqr *= norm_r_inv;
-
-            h_ql0.data[i] = quat_to_scalar4(dql);
-            h_qr0.data[i] = quat_to_scalar4(dqr);
             }
         }
     }

@@ -11,6 +11,7 @@
 #include "hoomd/Compute.h"
 #include "hoomd/VectorMath.h"
 #include "hoomd/HOOMDMPI.h"
+#include "hoomd/AABBTree.h"
 
 #include "ExternalField.h"
 
@@ -63,7 +64,20 @@ inline void python_list_to_vector_scalar4(const pybind11::list& r0, std::vector<
                                 pybind11::cast<Scalar>(r0_tuple[3]));
         }
     }
-    
+
+inline void python_list_to_vector_int(const pybind11::list& r0, std::vector<unsigned int>& ret)
+    {
+    // validate input type and rank
+    pybind11::ssize_t n = pybind11::len(r0);
+    ret.resize(n);
+    int zahl = 0;
+    for ( pybind11::ssize_t i=0; i<n; i++)
+        {
+        ret[i] = zahl;
+        zahl++;
+        }
+    }
+
 
 template< class ScalarType >
 class LatticeReferenceList
@@ -77,7 +91,8 @@ class LatticeReferenceList
             initialize(first, last, pdata, exec_conf);
             }
 
-        ~LatticeReferenceList() {}
+        ~LatticeReferenceList() {
+            }
 
         template <class InputIterator>
         void initialize(InputIterator first, InputIterator last, const std::shared_ptr<ParticleData> pdata, std::shared_ptr<const ExecutionConfiguration> exec_conf)
@@ -105,7 +120,7 @@ class LatticeReferenceList
                 return;
                 }
 
-            if(!exec_conf || !pdata || pdata->getNGlobal() != numPoints)
+            if(!exec_conf || !pdata )//|| pdata->getNGlobal() != numPoints)
                 {
                 if(exec_conf) exec_conf->msg->error() << "Check pointers and initialization list" << std::endl;
                 throw std::runtime_error("Error setting LatticeReferenceList");
@@ -119,6 +134,12 @@ class LatticeReferenceList
             }
             m_reference.swap(temp);
         }
+
+        void setReference(unsigned int i, ScalarType a)
+            {
+            ArrayHandle<ScalarType> h_ref(m_reference, access_location::host, access_mode::readwrite);
+            h_ref.data[i] = a;
+            }
 
         void scale(const Scalar& s)
             {
@@ -144,7 +165,7 @@ class LatticeReferenceList
         GPUArray<ScalarType> m_reference;
         unsigned int         m_N;
     };
-
+    
 
 #define LATTICE_ENERGY_LOG_NAME                 "lattice_energy"
 #define LATTICE_ENERGY_AVG_LOG_NAME             "lattice_energy_pp_avg"
@@ -174,10 +195,13 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
             m_ProvidedQuantities.push_back(LATTICE_TRANS_SPRING_CONSTANT_LOG_NAME);
             m_ProvidedQuantities.push_back(LATTICE_ROTAT_SPRING_CONSTANT_LOG_NAME);
             m_ProvidedQuantities.push_back(LATTICE_NUM_SAMPLES_LOG_NAME);
+            m_aabbs=NULL;
             // Connect to the BoxChange signal
             m_hypersphere = m_pdata->getHypersphere();
             m_pdata->getBoxChangeSignal().template connect<ExternalFieldLatticeHypersphere<Shape>, &ExternalFieldLatticeHypersphere<Shape>::scaleReferencePoints>(this);
             setReferences(quat_l, quat_r);
+            setLatticeDist();
+            buildAABBTree();
 
             std::vector<Scalar4> rots;
             python_list_to_vector_scalar4(symRotations, rots);
@@ -199,8 +223,37 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
 
         ~ExternalFieldLatticeHypersphere()
         {
+            if (m_aabbs != NULL)
+                free(m_aabbs);
             m_pdata->getBoxChangeSignal().template disconnect<ExternalFieldLatticeHypersphere<Shape>, &ExternalFieldLatticeHypersphere<Shape>::scaleReferencePoints>(this);
         }
+
+        //! Build the AABB tree (if needed)
+        const detail::AABBTree& buildAABBTree()
+            {
+                // grow the AABB list to the needed size
+                unsigned int n_aabb = m_latticeQuat_l.getSize();
+                if (n_aabb > 0)
+                    {
+                    growAABBList(n_aabb);
+        
+                    const Hypersphere& hypersphere = m_pdata->getHypersphere();
+                    for (unsigned int cur_particle = 0; cur_particle < n_aabb; cur_particle++)
+                        {
+                        unsigned int i = cur_particle;
+        
+                        Scalar radius = m_refdist;
+                        m_aabbs[i] = detail::AABB(hypersphere.hypersphericalToCartesian(quat<Scalar>(m_latticeQuat_l.getReference(i)), quat<Scalar>(m_latticeQuat_r.getReference(i))), radius);
+                        }
+        
+                    // build the tree
+                    m_aabb_tree.buildTree(m_aabbs, n_aabb);
+                    }
+        
+                if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
+
+            return m_aabb_tree;
+            }
 
         Scalar calculateBoltzmannWeight(unsigned int timestep) { return 0.0; }
 
@@ -298,15 +351,18 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
             std::vector<Scalar> qlbuffer;
             std::vector<Scalar4> lattice_quat_r;
             std::vector<Scalar> qrbuffer;
+            std::vector<unsigned int> lattice_index;
             #ifdef ENABLE_MPI
-            unsigned int qlsz = 0, qrsz = 0;
+            unsigned int qlsz = 0, qrsz = 0, isz = 0;
 
             if ( this->m_exec_conf->isRoot() )
                 {
                 python_list_to_vector_scalar4(ql, lattice_quat_l);
                 python_list_to_vector_scalar4(qr, lattice_quat_r);
+                python_list_to_vector_int(ql,lattice_index);
                 qlsz = lattice_quat_l.size();
                 qrsz = lattice_quat_r.size();
+                isz = lattice_index.size();
                 }
             if( this->m_pdata->getDomainDecomposition())
                 {
@@ -373,6 +429,7 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
             #else
             python_list_to_vector_scalar4(ql, lattice_quat_l);
             python_list_to_vector_scalar4(qr, lattice_quat_r);
+            python_list_to_vector_int(qr, lattice_index);
             #endif
 
             if( lattice_quat_l.size() )
@@ -380,11 +437,16 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
 
             if( lattice_quat_r.size() )
                 m_latticeQuat_r.setReferences(lattice_quat_r.begin(), lattice_quat_r.end(), m_pdata, m_exec_conf);
+
+            if( lattice_index.size() )
+                m_latticeIndex.setReferences(lattice_index.begin(), lattice_index.end(), m_pdata, m_exec_conf);
             }
 
         void clearQuat_l() { m_latticeQuat_l.clear(); }
 
         void clearQuat_r() { m_latticeQuat_r.clear(); }
+
+        void clearIndex() { m_latticeIndex.clear(); }
 
         void scaleReferencePoints()
             {
@@ -456,6 +518,11 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
             return m_latticeQuat_r.getReferenceArray();
             }
 
+        const GPUArray< unsigned int >& getReferenceLatticeIndex()
+            {
+            return m_latticeIndex.getReferenceArray();
+            }
+
         void reset( unsigned int ) // TODO: remove the timestep
             {
             m_EnergySum = m_EnergySum_y = m_EnergySum_t = m_EnergySum_c = Scalar(0.0);
@@ -468,6 +535,7 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
             compute(timestep);
             return m_Energy;
         }
+        
         Scalar getAvgEnergy(unsigned int timestep)
         {
             compute(timestep);
@@ -475,6 +543,7 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
                 return 0.0;
             return m_EnergySum/double(m_num_samples);
         }
+
         Scalar getSigma(unsigned int timestep)
         {
             compute(timestep);
@@ -488,31 +557,107 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
 
     protected:
 
-    //HIER
+        void setLatticeDist()
+        {
+
+            const Hypersphere& hypersphere = this->m_pdata->getHypersphere();
+            quat<Scalar> ql(m_latticeQuat_l.getReference(0));
+            quat<Scalar> qr(m_latticeQuat_r.getReference(0));
+
+            Scalar dr = 1000;
+            for( unsigned int i =1; i < m_latticeQuat_l.getSize(); i++){
+                quat<Scalar> ql_ref(m_latticeQuat_l.getReference(i));
+                quat<Scalar> qr_ref(m_latticeQuat_r.getReference(i));
+                
+                OverlapReal arc_length = detail::get_arclength_hypersphere(ql, qr, ql_ref, qr_ref, hypersphere);
+
+                if(arc_length < dr)
+                    dr = arc_length;
+            }
+            m_refdist = dr/2;
+
+        }
+
+        //! Grow the m_aabbs list
+        void growAABBList(unsigned int N)
+        {
+            if (m_aabbs != NULL)
+                free(m_aabbs);
+
+
+            int retval = posix_memalign((void**)&m_aabbs, 32, N*sizeof(detail::AABB));
+            if (retval != 0)
+                {
+                m_exec_conf->msg->errorAllRanks() << "Error allocating aligned memory" << std::endl;
+                throw std::runtime_error("Error allocating AABB memory");
+                }
+        }
 
         // These could be a little redundant. think about this more later.
         Scalar calcE_trans(const unsigned int& index, const quat<Scalar>& quat_l, const quat<Scalar>& quat_r, const Scalar& scale = 1.0)
             {
-            ArrayHandle<unsigned int> h_tags(m_pdata->getTags(), access_location::host, access_mode::read);
             const Hypersphere& hypersphere = this->m_pdata->getHypersphere();
-            quat<Scalar> ql(m_latticeQuat_l.getReference(h_tags.data[index]));
-            quat<Scalar> qr(m_latticeQuat_r.getReference(h_tags.data[index]));
-            Scalar dr = detail::get_arclength_hypersphere(quat_l,quat_r,ql,qr, hypersphere);
+            ArrayHandle<unsigned int> h_tags(m_pdata->getTags(), access_location::host, access_mode::read);
 
-            return m_k*dr*dr;
+            unsigned int k = m_latticeIndex.getReference(h_tags.data[index]);
+
+            quat<Scalar> ql(m_latticeQuat_l.getReference(k));
+            quat<Scalar> qr(m_latticeQuat_r.getReference(k));
+
+            OverlapReal dr = detail::get_arclength_hypersphere(ql, qr, quat_l, quat_r, hypersphere);
+
+
+            if(dr > m_refdist){
+                detail::AABB aabb_i = detail::AABB(hypersphere.hypersphericalToCartesian(quat_l, quat_r),0.5);
+
+                for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree.getNumNodes(); cur_node_idx++)
+                  {
+                  if (detail::overlap(m_aabb_tree.getNodeAABB(cur_node_idx), aabb_i))
+                      {
+                      if (m_aabb_tree.isNodeLeaf(cur_node_idx))
+                          {
+                          for (unsigned int cur_p = 0; cur_p < m_aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
+                              {
+                              // read in its position and orientation
+                              unsigned int j = m_aabb_tree.getNodeParticle(cur_node_idx, cur_p);
+
+                              ql = quat<Scalar>(m_latticeQuat_l.getReference(j));
+                              qr = quat<Scalar>(m_latticeQuat_r.getReference(j));
+
+                              OverlapReal arc_length = detail::get_arclength_hypersphere(ql, qr, quat_l, quat_r, hypersphere);
+
+
+                              if( arc_length < dr){
+                                  dr = arc_length;
+                                  k = j;
+                                  if(dr < m_refdist)
+                                      break;
+                                }
+                            }
+                          }
+                      }
+                  else
+                      {
+                       //skip ahead
+                      cur_node_idx += m_aabb_tree.getNodeSkip(cur_node_idx);
+                      }
+
+                  if(dr < m_refdist)
+                      break;
+
+                  }  // end loop over AABB nodes
+
+                  m_latticeIndex.setReference(h_tags.data[index],k);
+                  ql = quat<Scalar>(m_latticeQuat_l.getReference(k));
+                  qr = quat<Scalar>(m_latticeQuat_r.getReference(k));
             }
 
-        Scalar calcE_rot(const unsigned int& index, const quat<Scalar>& quat_l, const quat<Scalar>& quat_r)
-            {
             assert(m_symmetry.size());
-            ArrayHandle<unsigned int> h_tags(m_pdata->getTags(), access_location::host, access_mode::read);
-            quat<Scalar> ql(m_latticeQuat_l.getReference(h_tags.data[index]));
-            quat<Scalar> qr(m_latticeQuat_r.getReference(h_tags.data[index]));
             quat<Scalar> ref_orientation1 = ql*quat<Scalar>(0,vec3<Scalar>(1,0,0))*qr;
             quat<Scalar> ref_orientation2 = ql*quat<Scalar>(0,vec3<Scalar>(0,1,0))*qr;
             quat<Scalar> ref_pos = ql*qr;
             quat<Scalar> equiv_pos = quat_l*quat_r;
-            Scalar dr = 1/(1+dot(equiv_pos,ref_pos));
+            Scalar dpos = 1/(1+dot(equiv_pos,ref_pos));
             Scalar dqmin = 0.0;
             for(size_t i = 0; i < m_symmetry.size(); i++)
                 {
@@ -520,14 +665,44 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
                 quat<Scalar> equiv_quat_r = conj(m_symmetry[i])*quat_r;
                 quat<Scalar> equiv_orientation1 = equiv_quat_l*quat<Scalar>(0,vec3<Scalar>(1,0,0))*equiv_quat_r;
                 quat<Scalar> equiv_orientation2 = equiv_quat_l*quat<Scalar>(0,vec3<Scalar>(0,1,0))*equiv_quat_r;
-                Scalar dq1 = dot(equiv_orientation1,ref_orientation1) - dot(equiv_pos,ref_orientation1)*dot(equiv_orientation1,ref_pos)*dr;
-                Scalar dq2 = dot(equiv_orientation2,ref_orientation2) - dot(equiv_pos,ref_orientation2)*dot(equiv_orientation2,ref_pos)*dr;
+                Scalar dq1 = dot(equiv_orientation1,ref_orientation1) - dot(equiv_pos,ref_orientation1)*dot(equiv_orientation1,ref_pos)*dpos;
+                Scalar dq2 = dot(equiv_orientation2,ref_orientation2) - dot(equiv_pos,ref_orientation2)*dot(equiv_orientation2,ref_pos)*dpos;
                 Scalar dq = 2 - dq1*dq1 - dq2*dq2;
 
                 dqmin = (i == 0) ? dq : fmin(dqmin, dq);
                 }
-            return m_q*dqmin;
+
+            return m_k*dr*dr + m_q*dqmin;
             }
+
+        Scalar calcE_rot(const unsigned int& index, const quat<Scalar>& quat_l, const quat<Scalar>& quat_r)
+            {
+            //assert(m_symmetry.size());
+            //ArrayHandle<unsigned int> h_tags(m_pdata->getTags(), access_location::host, access_mode::read);
+            //quat<Scalar> ql(m_latticeQuat_l.getReference(h_tags.data[index]));
+            //quat<Scalar> qr(m_latticeQuat_r.getReference(h_tags.data[index]));
+            //quat<Scalar> ref_orientation1 = ql*quat<Scalar>(0,vec3<Scalar>(1,0,0))*qr;
+            //quat<Scalar> ref_orientation2 = ql*quat<Scalar>(0,vec3<Scalar>(0,1,0))*qr;
+            //quat<Scalar> ref_pos = ql*qr;
+            //quat<Scalar> equiv_pos = quat_l*quat_r;
+            //Scalar dr = 1/(1+dot(equiv_pos,ref_pos));
+            //Scalar dqmin = 0.0;
+            //for(size_t i = 0; i < m_symmetry.size(); i++)
+            //    {
+            //    quat<Scalar> equiv_quat_l = quat_l*m_symmetry[i];
+            //    quat<Scalar> equiv_quat_r = conj(m_symmetry[i])*quat_r;
+            //    quat<Scalar> equiv_orientation1 = equiv_quat_l*quat<Scalar>(0,vec3<Scalar>(1,0,0))*equiv_quat_r;
+            //    quat<Scalar> equiv_orientation2 = equiv_quat_l*quat<Scalar>(0,vec3<Scalar>(0,1,0))*equiv_quat_r;
+            //    Scalar dq1 = dot(equiv_orientation1,ref_orientation1) - dot(equiv_pos,ref_orientation1)*dot(equiv_orientation1,ref_pos)*dr;
+            //    Scalar dq2 = dot(equiv_orientation2,ref_orientation2) - dot(equiv_pos,ref_orientation2)*dot(equiv_orientation2,ref_pos)*dr;
+            //    Scalar dq = 2 - dq1*dq1 - dq2*dq2;
+
+            //    dqmin = (i == 0) ? dq : fmin(dqmin, dq);
+            //    }
+            //return m_q*dqmin;
+            return 0;
+            }
+
         Scalar calcE_rot(const unsigned int& index, const Shape& shape)
             {
             return calcE_rot(index, shape.quat_l,shape.quat_r);
@@ -553,6 +728,9 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
         LatticeReferenceList<Scalar4>   m_latticeQuat_r;      // orientation of the lattice particles.
         Scalar                          m_q;                        // spring constant
 
+        LatticeReferenceList<unsigned int>   m_latticeIndex;         // positions of the lattice.
+        Scalar                          m_refdist;
+
         std::vector< quat<Scalar> >     m_symmetry;       // quaternions in the symmetry group of the shape.
 
         Scalar                          m_Energy;                   // Store the total energy of the last computed timestep
@@ -572,6 +750,9 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
 
         std::vector<std::string>        m_ProvidedQuantities;
         Hypersphere                     m_hypersphere;              //!< Save the last known box;
+
+        detail::AABBTree m_aabb_tree;               //!< Bounding volume hierarchy for lattice checks
+        detail::AABB* m_aabbs;                      //!< list of AABBs, one per particle
     };
 
 
