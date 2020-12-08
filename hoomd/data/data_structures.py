@@ -369,15 +369,14 @@ class HOOMDSet(MutableSet, _SyncedDataStructure):
         return len(self._data)
 
     def add(self, item):  # noqa: D102
-        if item not in self:
-            try:
-                validated_value = self._type_definition(item)
-            except TypeConversionError as err:
-                raise TypeConversionError(
-                    "Error adding item {} to set.".format(item)) from err
-            else:
-                self._data.add(_to_synced_data_structure(
-                    validated_value, self._type_definition, self))
+        try:
+            validated_value = self._type_definition(item)
+        except TypeConversionError as err:
+            raise TypeConversionError(
+                f"Error adding item {item} to set.") from err
+        else:
+            self._data.add(_to_synced_data_structure(
+                validated_value, self._type_definition, self))
         self._update()
 
     def discard(self, item):  # noqa: D102
