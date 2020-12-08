@@ -256,7 +256,7 @@ class HOOMDDict(MutableMapping, _SyncedDataStructure):
     Use `to_base` to convert to a `dict`.
 
     Warning:
-        Should not be instantiated by users.
+        Users should not need to instantiate this class.
     """
     _data = {}
 
@@ -279,8 +279,7 @@ class HOOMDDict(MutableMapping, _SyncedDataStructure):
         try:
             return self[attr]
         except KeyError:
-            raise AttributeError("{} object has no attribute {}.".format(
-                self, attr))
+            raise AttributeError(f"{self} object has not attribute {attr}.")
 
     def __setattr__(self, attr, value):  # noqa: D105
         if attr in self._data:
@@ -290,14 +289,12 @@ class HOOMDDict(MutableMapping, _SyncedDataStructure):
 
     def __setitem__(self, key, item):  # noqa: D105
         if key not in self._type_definition:
-            raise KeyError(
-                "Cannot set value for non-existent key {}.".format(key))
+            raise KeyError(f"Cannot set value for non-existent key {key}.")
         type_def = self._type_definition[key]
         try:
             validated_value = type_def(item)
         except TypeConversionError as err:
-            raise TypeConversionError(
-                "Error setting key {}.".format(key)) from err
+            raise TypeConversionError(f"Error setting key {key}.") from err
         else:
             # Disconnect child from parent to prevent child signaling update
             if isinstance(self._data[key], _SyncedDataStructure):
@@ -344,7 +341,7 @@ class HOOMDSet(MutableSet, _SyncedDataStructure):
     documentation on `set` for more information.
 
     Warning:
-        Should not be instantiated by users.
+        Users should not need to instantiate this class.
     """
 
     def __init__(self, type_def, parent, initial_value=None, label=None):
