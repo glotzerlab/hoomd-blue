@@ -36,24 +36,26 @@ class _ValidatedDefaultDict:
     attributes to be easily synced between C++/Python and validated in Python.
 
     Implements hard coded key validation which expects string keys when
-    ``_len_keys == 1`` and tuples of strings when ``_len_keys > 1``. However, we
-    also allow specifying multiple keys in a single call of
-    `__setitem__` or `__getitem__`. Anywhere a string is expected, a list or
-    list-like object containing strings is also accepted. For multiple string
-    keys this will result in the product of the list with the other string
-    values. For instance, ``(['a', 'b'], 'a')`` will expand to ``[('a', 'a'),
-    ('a', 'b')]``. Likewise, a list of tuples of the appropriate length can also
-    be passed.
+    ``_len_keys == 1`` and tuples of strings when ``_len_keys > 1``. However,
+    specifying multiple keys in a single call of `__setitem__` or `__getitem__`
+    is allowed.  Anywhere a string is expected, a list or list-like object
+    containing strings is also accepted. For multiple string keys this will
+    result in the product of the list with the other string values. For
+    instance, ``(['A', 'B'], 'A')`` will expand to ``[('A', 'A'), ('A', 'B')]``.
+    Before storing any data the tuples produced are sorted lexically since the
+    order of the tuple in not important, and this prevents having to check if
+    permutations of a tuple exist in the mapping. This is why the example above
+    uses `('A', 'B')` rather than `('B', 'A')` as might appear intuitive.
+    In addition, a list of tuples of the appropriate length can also be passed.
 
     Note:
-        Instances of `tuple` are handled differently. Tuple
-        values are considered to be the innermost layer. As an example, ``(('a',
-        'b'), ('a', 'a'))` could never be a valid key specification, while
-        ``[('a', 'b'), ('a', 'a')]`` for ``_len_keys == 2`` is perfectly valid.
+        Instances of `tuple` are handled differently. Tuple values are
+        considered to be the innermost layer. As an example, ``(('A', 'B'),
+        ('A', 'A'))` could never be a valid key specification, while ``[('A',
+        'B'), ('A', 'A')]`` for ``_len_keys == 2`` is perfectly valid.
 
     Value validation allows the definition of general schemas for each type's
-    value. These schemas are defined in
-    `hoomd.data.typeconverter`.
+    value. These schemas are defined in `hoomd.data.typeconverter`.
 
     Default specification is through `hoomd.data.smart_default`. In general,
     defaults for `_ValidatedDefaultDict` allow for partially specified defaults
@@ -190,9 +192,10 @@ class _ValidatedDefaultDict:
 class TypeParameterDict(_ValidatedDefaultDict, MutableMapping):
     """Extension of _ValidatedDefaultDict with MutableMapping interface.
 
-    This class is used when HOOMD objects are not attached (i.e. no C++ object exists).
-    Validation only ensures that keys are of the right structure and that the values are of the right schema.
-    It is not possible to enforce that the key's type exists or (whatever the second thing is saying).
+    This class is used when HOOMD objects are not attached (i.e. no C++ object
+    exists).  Validation only ensures that keys are of the right structure and
+    that the values are of the right schema.  It is not possible to enforce that
+    the key's type exists or (whatever the second thing is saying).
 
     Class works with `hoomd.data.data_structures`.
     """
@@ -204,17 +207,23 @@ class TypeParameterDict(_ValidatedDefaultDict, MutableMapping):
             raise ValueError("len_keys must be a positive integer.")
         self._len_keys = len_keys
         super().__init__(*args, **kwargs)
-        self._dict = dict()
+        self._data = dict()
 
     def __getitem__(self, key):
         vals = dict()
         for key in self._yield_keys(key):
-            try:
-                vals[key] = self._dict[key]
-            except KeyError:
+            if key in self._data:
+                vals[key] = self._data[key]
+            # if the key has not be used yet, we still have the default
+            # information to retrieve, this also sets the key to the default
+            # value explicit since not doing so would potentially cause
+            # inconsistent results if users change the value given to them. This
+            # means before returning, we must store the data into the _data
+            # dict.
+            else:
                 data_struct = _to_synced_data_structure(
                     self.default, self._type_converter, self, key)
-                self._dict[key] = data_struct
+                self._data[key] = data_struct
                 vals[key] = data_struct
         return proper_type_return(vals)
 
@@ -226,27 +235,31 @@ class TypeParameterDict(_ValidatedDefaultDict, MutableMapping):
             raise TypeConversionError(
                 "For types {}, error {}.".format(list(keys), str(err)))
         for key in keys:
+            # We need to remove reference to self in all synced data structures
+            # that are being removed from this object.
             if key in self and isinstance(self[key], _SyncedDataStructure):
                 self[key]._parent = None
-            self._dict[key] = _to_synced_data_structure(
+            # Likewise we need to convert to synced data structures for new
+            # values
+            self._data[key] = _to_synced_data_structure(
                 val, self._type_converter, self, key)
 
     def __delitem__(self, key):
         for key in self._yield_keys(key):
-            del self._dict[key]
+            del self._data[key]
 
     def __iter__(self):
         if self._len_keys == 1:
-            yield from self._dict.keys()
+            yield from self._data.keys()
         else:
             # This is to provide a consistent means of iterating over type keys
             # that are more than one type. We do this to prevent the need for
-            # storing ('a', 'b') and ('b', 'a') separately.
-            for key in self._dict.keys():
+            # storing ('A', 'B') and ('B', 'A') separately.
+            for key in self._data.keys():
                 yield tuple(sorted(list(key)))
 
     def __len__(self):
-        return len(self._dict)
+        return len(self._data)
 
     def to_base(self):
         rtn_dict = {}
@@ -294,7 +307,7 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict, MutableMapping):
         for value in type_param_dict.values():
             if isinstance(value, _SyncedDataStructure):
                 value._parent = self
-        self._dict = type_param_dict._dict
+        self._data = type_param_dict._data
         # add all types to c++
         for key in self:
             self[key] = type_param_dict[key]
@@ -317,12 +330,12 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict, MutableMapping):
         vals = dict()
         for key in self._yield_keys(key):
             cpp_val = getattr(self._cpp_obj, self._getter)(key)
-            if (key in self._dict and
-                    isinstance(self._dict[key], _SyncedDataStructure)):
-                self._dict[key]._parent = None
+            if (key in self._data and
+                    isinstance(self._data[key], _SyncedDataStructure)):
+                self._data[key]._parent = None
             data_struct = _to_synced_data_structure(
                 cpp_val, self._type_converter, self, key)
-            self._dict[key] = data_struct
+            self._data[key] = data_struct
             vals[key] = data_struct
         return proper_type_return(vals)
 
@@ -338,10 +351,10 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict, MutableMapping):
             data_struct = _to_synced_data_structure(
                 val, self._type_converter, self, key)
             if isinstance(data_struct, _SyncedDataStructure):
-                if (key in self._dict and
-                        isinstance(self._dict[key], _SyncedDataStructure)):
-                    self._dict[key]._parent = None
-                self._dict[key] = data_struct
+                if (key in self._data and
+                        isinstance(self._data[key], _SyncedDataStructure)):
+                    self._data[key]._parent = None
+                self._data[key] = data_struct
 
     def __iter__(self):
         single_keys = getattr(self._sim.state, self._type_kind)
@@ -353,7 +366,8 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict, MutableMapping):
                 yield tuple(sorted(list(key)))
 
     def __delitem__(self, key):
-        raise RuntimeError("Cannot delete keys from dict.")
+        raise RuntimeError(
+            "Cannot delete keys, available are defined by types in the state.")
 
     def __len__(self):
         return len(list(iter(self)))
