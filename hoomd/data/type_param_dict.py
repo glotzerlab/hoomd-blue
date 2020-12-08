@@ -64,7 +64,11 @@ class _ValidatedDefaultDict:
     individually.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, len_keys, **kwargs):
+        self._len_keys = len_keys
+        if len_keys < 1 or len_keys != int(len_keys):
+            raise ValueError("len_keys must be a positive integer.")
+        self._len_keys = len_keys
         _defaults = kwargs.pop('_defaults', NoDefault)
         if len(kwargs) != 0 and len(args) != 0:
             raise ValueError("An unnamed argument and keyword arguments "
@@ -188,6 +192,14 @@ class _ValidatedDefaultDict:
                 raise ValueError("New default must a subset of current keys.")
         self._default = toDefault(new_default)
 
+    @staticmethod
+    def convert_entry(entry, deepcopy=False):
+        if isinstance(entry, _SyncedDataStructure):
+            return entry.to_base()
+        if deepcopy:
+            return deepcopy(entry)
+        return entry
+
 
 class TypeParameterDict(_ValidatedDefaultDict, MutableMapping):
     """Extension of _ValidatedDefaultDict with MutableMapping interface.
@@ -201,12 +213,7 @@ class TypeParameterDict(_ValidatedDefaultDict, MutableMapping):
     """
 
     def __init__(self, *args, len_keys, **kwargs):
-
-        # Validate proper key constraint
-        if len_keys < 1 or len_keys != int(len_keys):
-            raise ValueError("len_keys must be a positive integer.")
-        self._len_keys = len_keys
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, len_keys=len_keys, **kwargs)
         self._data = dict()
 
     def __getitem__(self, key):
@@ -262,17 +269,7 @@ class TypeParameterDict(_ValidatedDefaultDict, MutableMapping):
         return len(self._data)
 
     def to_base(self):
-        rtn_dict = {}
-        for key, value in self.items():
-            if isinstance(value, _SyncedDataStructure):
-                rtn_dict[key] = value.to_base()
-            else:
-                try:
-                    new_value = deepcopy(value)
-                except Exception:
-                    new_value = value
-                rtn_dict[key] = new_value
-        return rtn_dict
+        return {key: self.convert_entry(value) for key, value in self.items()}
 
     def _handle_update(self, obj, label=None):
         pass
@@ -312,7 +309,7 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict, MutableMapping):
         for key in self:
             self[key] = type_param_dict[key]
 
-    def to_dettached(self):
+    def to_detached(self):
         if isinstance(self.default, dict):
             type_param_dict = TypeParameterDict(**self.default,
                                                 len_keys=self._len_keys)

@@ -42,7 +42,7 @@ class TypeParameter:
         return self
 
     def _detach(self):
-        self.param_dict = self.param_dict.to_dettached()
+        self.param_dict = self.param_dict.to_detached()
         return self
 
     def to_base(self):
