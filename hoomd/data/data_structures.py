@@ -336,6 +336,12 @@ class HOOMDDict(MutableMapping, _SyncedDataStructure):
     def __repr__(self):  # noqa: D105
         return repr(self._data)
 
+    def __getstate__(self):
+        return self.__dict__
+
+    def __setstate__(self, state):
+        self.__dict__ = state
+
 
 class HOOMDSet(MutableSet, _SyncedDataStructure):
     """Set with type validation.

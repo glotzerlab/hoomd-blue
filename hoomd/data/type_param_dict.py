@@ -1,5 +1,5 @@
 from itertools import product, combinations_with_replacement
-from copy import copy, deepcopy
+import copy
 from collections.abc import MutableMapping
 from hoomd.util import to_camel_case, is_iterable
 from hoomd.data.typeconverter import (
@@ -178,7 +178,7 @@ class _ValidatedDefaultDict:
         if isinstance(self._default, SmartDefault):
             return self._default.to_base()
         else:
-            return copy(self._default)
+            return copy.copy(self._default)
 
     @default.setter
     def default(self, new_default):

@@ -45,12 +45,6 @@ class TypeParameter:
         self.param_dict = self.param_dict.to_detached()
         return self
 
-    def to_base(self):
-        return self.param_dict.to_base()
-
-    def keys(self):
-        yield from self.param_dict.keys()
-
     @property
     def state(self):
         state = self.to_base()
@@ -58,3 +52,9 @@ class TypeParameter:
             state = {str(key): value for key, value in state.items()}
         state['__default__'] = self.default
         return state
+
+    def __getstate__(self):
+        return self.__dict__
+
+    def __setstate__(self, state):
+        self.__dict__ = state
