@@ -63,9 +63,9 @@ def _get_inner_typeconverter(type_def, desired_type):
     Args:
         type_def (`hoomd.data.typeconverter.TypeConverter`): The type converter
             which is desired to be introspected to find the desired type.
-        desired_type (`hoomd.data.typeconverter.TypeConverter`): A child class
-            of `hoomd.data.typeconverter.TypeConverter` that signals what type
-            converter types is needed.
+        desired_type (`hoomd.data.typeconverter.TypeConverter`): A subclass
+            of `hoomd.data.typeconverter.TypeConverter` that signals what
+            subclass of `hoomd.data.typeconverter.TypeConverter` that is needed.
     """
     # If the type_def is the desired type, return it immediately.
     if isinstance(type_def, desired_type):
