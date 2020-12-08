@@ -37,23 +37,23 @@ class _ValidatedDefaultDict:
 
     Implements hard coded key validation which expects string keys when
     ``_len_keys == 1`` and tuples of strings when ``_len_keys > 1``. However, we
-    also provide convenience means of specifying multiple keys on a single
+    also allow specifying multiple keys in a single call of
     `__setitem__` or `__getitem__`. Anywhere a string is expected, a list or
     list-like object containing strings is also accepted. For multiple string
     keys this will result in the product of the list with the other string
-    values for instance, ``(['a', 'b'], 'a')`` will expand to ``[('a', 'a'),
+    values. For instance, ``(['a', 'b'], 'a')`` will expand to ``[('a', 'a'),
     ('a', 'b')]``. Likewise, a list of tuples of the appropriate length can also
     be passed.
 
     Note:
-        We treat sequences of the type or subtype `tuple` to be special. These
-        values will be considered to be the final layer. As an example ``(('a',
+        Instances of `tuple` are handled differently. Tuple
+        values are considered to be the innermost layer. As an example, ``(('a',
         'b'), ('a', 'a'))` could never be a valid key specification, while
         ``[('a', 'b'), ('a', 'a')]`` for ``_len_keys == 2`` is perfectly valid.
 
     Value validation allows the definition of general schemas for each type's
-    value. The available infrastructure for this feature can be found in
-    `hoomd.data.typeconverter`
+    value. These schemas are defined in
+    `hoomd.data.typeconverter`.
 
     Default specification is through `hoomd.data.smart_default`. In general,
     defaults for `_ValidatedDefaultDict` allow for partially specified defaults
@@ -149,7 +149,7 @@ class _ValidatedDefaultDict:
         keys = self._validate_and_split_key(key)
         if self._len_keys > 1:
             # We always set ('a', 'b') instead of ('b', 'a') to reduce storage
-            # requirements and prevent error.
+            # requirements and prevent errors.
             for key in keys:
                 yield tuple(sorted(list(key)))
         else:
@@ -190,11 +190,9 @@ class _ValidatedDefaultDict:
 class TypeParameterDict(_ValidatedDefaultDict, MutableMapping):
     """Extension of _ValidatedDefaultDict with MutableMapping interface.
 
-    For use when HOOMD objects are not attached (i.e. no C++ object exists).
-    Then we only validation that keys are of the right structure (not that
-    the type exists) and that the values are of the right schema (not that the
-    schema is completely defined for a key, values could still need to be
-    specified).
+    This class is used when HOOMD objects are not attached (i.e. no C++ object exists).
+    Validation only ensures that keys are of the right structure and that the values are of the right schema.
+    It is not possible to enforce that the key's type exists or (whatever the second thing is saying).
 
     Class works with `hoomd.data.data_structures`.
     """
@@ -390,10 +388,7 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict, MutableMapping):
         return 'get' + to_camel_case(self._param_name)
 
     def to_base(self):
-        rtn_dict = {}
-        for key in self:
-            rtn_dict[key] = getattr(self._cpp_obj, self._getter)(key)
-        return rtn_dict
+        return {key: getattr(self._cpp_obj, self._getter)(key) for key in self}
 
     def _handle_update(self, obj, label):
         """Handle updates of child data structures."""

@@ -20,7 +20,7 @@ class ParameterDict(MutableMapping):
 
     Args:
         _defaults:
-            An optional mapping of defaults values for mapping keys. Defaults to
+            An optional mapping of default values for mapping keys. Defaults to
             `hoomd.data.smart_default.NoDefault` which is required since `None`
             can be a valid default value for the
             `hoomd.data.smart_default.to_base_defaults` function.
@@ -42,7 +42,7 @@ class ParameterDict(MutableMapping):
         """Set key: value pair in mapping.
 
         We choose to allow for keys that are not specified by the schema defined
-        at instantiation. For such keys we grab the value's type and use that
+        at instantiation. For such keys, we grab the value's type and use that
         for future validation. All other keys are validated according to the
         schema.
         """
@@ -78,13 +78,13 @@ class ParameterDict(MutableMapping):
         return len(self._dict)
 
     def __deepcopy__(self, memo):
-        """Return a deepcopy if possible else return a shallow copy.
+        """Return a deepcopy if possible, else return a shallow copy.
 
         While this breaks assumptions of deepcopy the behavior as it is
-        currently implemented is to work for most cases. As C++ objects through
-        pybind11 are not deepcopiable by default these objects will cause the
-        deepcopy to fail. For now this ignores those failures just using the
-        object itself for the copy.
+        currently implemented is enough to work for most cases. Because pybind11 C++ objects
+        are not compatible with deepcopy by default, these objects will cause the
+        deepcopy to fail. For now this method ignores those failures and uses the
+        object itself, making the result a shallow copy.
         """
         new_dict = ParameterDict()
         for key, value in self.items():

@@ -113,8 +113,7 @@ def _to_synced_data_structure(data, type_def, parent=None, label=None):
         return HOOMDList(type_validation, parent, data, label)
     elif isinstance(data, Set):
         return HOOMDSet(type_def, parent, data, label)
-    else:
-        return data
+    return data
 
 
 class HOOMDList(MutableSequence, _SyncedDataStructure):
@@ -283,7 +282,7 @@ class HOOMDDict(MutableMapping, _SyncedDataStructure):
         try:
             return self[attr]
         except KeyError:
-            raise AttributeError("{} object has not attribute {}.".format(
+            raise AttributeError("{} object has no attribute {}.".format(
                 self, attr))
 
     def __setattr__(self, attr, value):  # noqa: D105
@@ -311,10 +310,10 @@ class HOOMDDict(MutableMapping, _SyncedDataStructure):
         self._update()
 
     def __delitem__(self, key):  # noqa: D105
-        raise RuntimeError("mapping does not support deleting keys.")
+        raise RuntimeError("This class does not support deleting keys.")
 
     def __iter__(self):  # noqa: D105
-        yield from self._data.keys()
+        yield from self._data
 
     def __len__(self):  # noqa: D105
         return len(self._data)
