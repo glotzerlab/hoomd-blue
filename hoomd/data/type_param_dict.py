@@ -92,8 +92,8 @@ class _ValidatedDefaultDict:
             dft_keys = set(self.default.keys())
             bad_keys = set(val.keys()) - dft_keys
             if len(bad_keys) != 0:
-                raise ValueError("Keys must be a subset of available keys. "
-                                 "Bad keys are {}".format(bad_keys))
+                raise ValueError(f"Keys must be a subset of available keys. "
+                                 f"Bad keys are {bad_keys}")
         if isinstance(self._default, SmartDefault):
             val = self._default(val)
         return val
@@ -119,7 +119,7 @@ class _ValidatedDefaultDict:
                 keys.extend(self._validate_and_split_len_one(k))
             return keys
         else:
-            raise KeyError("The key {} is not valid.".format(key))
+            raise KeyError(f"The key {key} is not valid.")
 
     def _validate_and_split_len(self, key):
         """Validate all key lengths greater than one, N.
@@ -135,7 +135,7 @@ class _ValidatedDefaultDict:
                     not is_good_iterable(v) and not isinstance(v, str)
                     for v in key
             ]):
-                raise KeyError("The key {} is not valid.".format(key))
+                raise KeyError(f"The key {key} is not valid.")
             key = list(key)
             for ind in range(len(key)):
                 if isinstance(key[ind], str):
@@ -147,7 +147,7 @@ class _ValidatedDefaultDict:
                 keys.extend(self._validate_and_split_len(k))
             return keys
         else:
-            raise KeyError("The key {} is not valid.".format(key))
+            raise KeyError(f"The key {key} is not valid.")
 
     def _yield_keys(self, key):
         """Returns the generated keys in proper sorted order.
@@ -242,8 +242,7 @@ class TypeParameterDict(_ValidatedDefaultDict, MutableMapping):
         try:
             val = self._validate_values(val)
         except TypeConversionError as err:
-            raise TypeConversionError("For types {}, error {}.".format(
-                list(keys), str(err)))
+            raise TypeConversionError(f"For types {keys}, error {err}.")
         for key in keys:
             # We need to remove reference to self in all synced data structures
             # that are being removed from this object.
@@ -345,8 +344,7 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict, MutableMapping):
         try:
             val = self._validate_values(val)
         except TypeConversionError as err:
-            raise TypeConversionError("For types {}, error {}.".format(
-                list(keys), str(err)))
+            raise TypeConversionError(f"For types {keys}, error {err}.")
         for key in keys:
             getattr(self._cpp_obj, self._setter)(key, val)
             data_struct = _to_synced_data_structure(val, self._type_converter,
@@ -378,8 +376,7 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict, MutableMapping):
         curr_keys = set(iter(self))
         for key in super()._yield_keys(key):
             if key not in curr_keys:
-                raise KeyError("Type {} does not exist in the "
-                               "system.".format(key))
+                raise KeyError(f"Type {key} does not exist in the system.")
             else:
                 yield key
 
@@ -391,7 +388,7 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict, MutableMapping):
                 if v is RequiredArg:
                     not_set_keys.append(k)
             if not_set_keys != []:
-                raise ValueError("{} were not set.".format(not_set_keys))
+                raise ValueError(f"{not_set_keys} were not set.")
         return val
 
     @property
