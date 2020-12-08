@@ -2,8 +2,8 @@ import copy
 from collections.abc import MutableMapping
 from hoomd.data.typeconverter import to_type_converter
 from hoomd.data.smart_default import to_base_defaults, NoDefault
-from hoomd.data.data_structures import (
-    _to_synced_data_structure, _SyncedDataStructure)
+from hoomd.data.data_structures import (_to_synced_data_structure,
+                                        _SyncedDataStructure)
 
 
 class ParameterDict(MutableMapping):
@@ -36,8 +36,9 @@ class ParameterDict(MutableMapping):
         default_val = to_base_defaults(kwargs, _defaults)
         self._type_converter = type_def
         for key in default_val:
-            self._data[key] = _to_synced_data_structure(
-                default_val[key], type_def[key], self, key)
+            self._data[key] = _to_synced_data_structure(default_val[key],
+                                                        type_def[key], self,
+                                                        key)
 
     def __setitem__(self, key, value):
         """Set key: value pair in mapping.
@@ -50,14 +51,14 @@ class ParameterDict(MutableMapping):
         if key not in self:
             type_def = to_type_converter(value)
             self._type_converter[key] = type_def
-            self._data[key] = _to_synced_data_structure(
-                value, type_def, self, key)
+            self._data[key] = _to_synced_data_structure(value, type_def, self,
+                                                        key)
         else:
             if isinstance(self._data[key], _SyncedDataStructure):
                 self._data[key]._parent = None
             type_def = self._type_converter[key]
-            self._data[key] = _to_synced_data_structure(
-                type_def(value), type_def, self, key)
+            self._data[key] = _to_synced_data_structure(type_def(value),
+                                                        type_def, self, key)
 
     def __getitem__(self, key):
         return self._data[key]
@@ -90,10 +91,8 @@ class ParameterDict(MutableMapping):
         """
         if isinstance(other, ParameterDict):
             for key, value in other.items():
-                self.setitem_with_validation_function(key,
-                                                      value,
-                                                      other._type_converter[key]
-                                                      )
+                self.setitem_with_validation_function(
+                    key, value, other._type_converter[key])
         else:
             super().update(other)
 
@@ -105,6 +104,7 @@ class ParameterDict(MutableMapping):
 
     def to_base(self, deepcopy=False):
         """Return a Python `dict`."""
+
         def convert_value(value):
             if isinstance(value, _SyncedDataStructure):
                 return value.to_base()

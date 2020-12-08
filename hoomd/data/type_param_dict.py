@@ -2,11 +2,11 @@ from itertools import product, combinations_with_replacement
 import copy
 from collections.abc import MutableMapping
 from hoomd.util import to_camel_case, is_iterable
-from hoomd.data.typeconverter import (
-    to_type_converter, TypeConversionError, RequiredArg)
+from hoomd.data.typeconverter import (to_type_converter, TypeConversionError,
+                                      RequiredArg)
 from hoomd.data.smart_default import toDefault, SmartDefault, NoDefault
-from hoomd.data.data_structures import (
-    _to_synced_data_structure, _SyncedDataStructure)
+from hoomd.data.data_structures import (_to_synced_data_structure,
+                                        _SyncedDataStructure)
 
 
 def has_str_elems(obj):
@@ -131,8 +131,10 @@ class _ValidatedDefaultDict:
         '''
         if isinstance(key, tuple) and len(key) == self._len_keys:
             fst, snd = key
-            if any([not is_good_iterable(v) and not isinstance(v, str)
-                    for v in key]):
+            if any([
+                    not is_good_iterable(v) and not isinstance(v, str)
+                    for v in key
+            ]):
                 raise KeyError("The key {} is not valid.".format(key))
             key = list(key)
             for ind in range(len(key)):
@@ -228,8 +230,9 @@ class TypeParameterDict(_ValidatedDefaultDict, MutableMapping):
             # means before returning, we must store the data into the _data
             # dict.
             else:
-                data_struct = _to_synced_data_structure(
-                    self.default, self._type_converter, self, key)
+                data_struct = _to_synced_data_structure(self.default,
+                                                        self._type_converter,
+                                                        self, key)
                 self._data[key] = data_struct
                 vals[key] = data_struct
         return proper_type_return(vals)
@@ -239,8 +242,8 @@ class TypeParameterDict(_ValidatedDefaultDict, MutableMapping):
         try:
             val = self._validate_values(val)
         except TypeConversionError as err:
-            raise TypeConversionError(
-                "For types {}, error {}.".format(list(keys), str(err)))
+            raise TypeConversionError("For types {}, error {}.".format(
+                list(keys), str(err)))
         for key in keys:
             # We need to remove reference to self in all synced data structures
             # that are being removed from this object.
@@ -248,8 +251,9 @@ class TypeParameterDict(_ValidatedDefaultDict, MutableMapping):
                 self[key]._parent = None
             # Likewise we need to convert to synced data structures for new
             # values
-            self._data[key] = _to_synced_data_structure(
-                val, self._type_converter, self, key)
+            self._data[key] = _to_synced_data_structure(val,
+                                                        self._type_converter,
+                                                        self, key)
 
     def __delitem__(self, key):
         for key in self._yield_keys(key):
@@ -288,8 +292,7 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict, MutableMapping):
     Class works with `hoomd.data.data_structures`.
     """
 
-    def __init__(self, cpp_obj, param_name,
-                 type_kind, type_param_dict, sim):
+    def __init__(self, cpp_obj, param_name, type_kind, type_param_dict, sim):
         # store info to communicate with c++
         self._cpp_obj = cpp_obj
         self._param_name = param_name
@@ -327,11 +330,12 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict, MutableMapping):
         vals = dict()
         for key in self._yield_keys(key):
             cpp_val = getattr(self._cpp_obj, self._getter)(key)
-            if (key in self._data and
-                    isinstance(self._data[key], _SyncedDataStructure)):
+            if (key in self._data
+                    and isinstance(self._data[key], _SyncedDataStructure)):
                 self._data[key]._parent = None
-            data_struct = _to_synced_data_structure(
-                cpp_val, self._type_converter, self, key)
+            data_struct = _to_synced_data_structure(cpp_val,
+                                                    self._type_converter, self,
+                                                    key)
             self._data[key] = data_struct
             vals[key] = data_struct
         return proper_type_return(vals)
@@ -341,15 +345,15 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict, MutableMapping):
         try:
             val = self._validate_values(val)
         except TypeConversionError as err:
-            raise TypeConversionError(
-                "For types {}, error {}.".format(list(keys), str(err)))
+            raise TypeConversionError("For types {}, error {}.".format(
+                list(keys), str(err)))
         for key in keys:
             getattr(self._cpp_obj, self._setter)(key, val)
-            data_struct = _to_synced_data_structure(
-                val, self._type_converter, self, key)
+            data_struct = _to_synced_data_structure(val, self._type_converter,
+                                                    self, key)
             if isinstance(data_struct, _SyncedDataStructure):
-                if (key in self._data and
-                        isinstance(self._data[key], _SyncedDataStructure)):
+                if (key in self._data
+                        and isinstance(self._data[key], _SyncedDataStructure)):
                     self._data[key]._parent = None
                 self._data[key] = data_struct
 

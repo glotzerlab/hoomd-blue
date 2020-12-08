@@ -1,14 +1,14 @@
 """Base data classes for HOOMD-blue objects that provide typing support."""
 from abc import ABCMeta, abstractmethod
-from collections.abc import (
-    Mapping, MutableMapping, Sequence, MutableSequence, Set, MutableSet)
+from collections.abc import (Mapping, MutableMapping, Sequence, MutableSequence,
+                             Set, MutableSet)
 from contextlib import contextmanager
 import copy
 from itertools import cycle
 
-from hoomd.data.typeconverter import (
-    TypeConversionError, TypeConverterValue, OnlyIf, Either,
-    TypeConverterMapping, TypeConverterSequence)
+from hoomd.data.typeconverter import (TypeConversionError, TypeConverterValue,
+                                      OnlyIf, Either, TypeConverterMapping,
+                                      TypeConverterSequence)
 
 
 class _SyncedDataStructure(metaclass=ABCMeta):
@@ -17,6 +17,7 @@ class _SyncedDataStructure(metaclass=ABCMeta):
     These child classes exist to enable parameter validation and mantain
     consistency with C++ after attaching.
     """
+
     @abstractmethod
     def to_base(self, deepcopy=False):
         """Cast the object into the corresponding native Python container type."""
@@ -80,8 +81,10 @@ def _get_inner_typeconverter(type_def, desired_type):
             if isinstance(type_def.converter.cond, desired_type):
                 return type_def.converter.cond
         elif isinstance(type_def.converter, Either):
-            matches = [spec for spec in type_def.converter.specs if isinstance(
-                spec, desired_type)]
+            matches = [
+                spec for spec in type_def.converter.specs
+                if isinstance(spec, desired_type)
+            ]
             if len(matches) > 1:
                 raise ValueError(
                     "Parameter defined with multiple valid definitions of "
@@ -111,12 +114,12 @@ def _to_synced_data_structure(data, type_def, parent=None, label=None):
             this value.
     """
     if isinstance(data, Mapping):
-        type_validation = _get_inner_typeconverter(
-            type_def, TypeConverterMapping)
+        type_validation = _get_inner_typeconverter(type_def,
+                                                   TypeConverterMapping)
         return HOOMDDict(type_validation, parent, data, label)
     elif isinstance(data, Sequence) and not isinstance(data, (str, tuple)):
-        type_validation = _get_inner_typeconverter(
-            type_def, TypeConverterSequence)
+        type_validation = _get_inner_typeconverter(type_def,
+                                                   TypeConverterSequence)
         return HOOMDList(type_validation, parent, data, label)
     elif isinstance(data, Set):
         return HOOMDSet(type_def, parent, data, label)
@@ -135,8 +138,7 @@ class HOOMDList(MutableSequence, _SyncedDataStructure):
         Users should not need to instantiate this class.
     """
 
-    def __init__(self, type_definition, parent, initial_value=None,
-                 label=None):
+    def __init__(self, type_definition, parent, initial_value=None, label=None):
         self._type_definition = type_definition
         self._parent = parent
         self._label = label
@@ -144,8 +146,8 @@ class HOOMDList(MutableSequence, _SyncedDataStructure):
         self._data = []
         if initial_value is not None:
             for type_def, val in zip(cycle(type_definition), initial_value):
-                self._data.append(
-                    _to_synced_data_structure(val, type_def, self))
+                self._data.append(_to_synced_data_structure(
+                    val, type_def, self))
 
     def __getitem__(self, index):  # noqa: D105
         return self._data[index]
@@ -206,11 +208,11 @@ class HOOMDList(MutableSequence, _SyncedDataStructure):
         except TypeConversionError as err:
             raise TypeConversionError(
                 f"Error inserting {value} into list at position {index}."
-                ) from err
+            ) from err
         else:
-            self._data.insert(index,
-                              _to_synced_data_structure(validated_value,
-                                                        type_def, self))
+            self._data.insert(
+                index, _to_synced_data_structure(validated_value, type_def,
+                                                 self))
             if index != len(self) and len(self._type_definition) > 1:
                 try:
                     _ = self._type_definition(self._data)
@@ -304,8 +306,8 @@ class HOOMDDict(MutableMapping, _SyncedDataStructure):
             # Disconnect child from parent to prevent child signaling update
             if isinstance(self._data[key], _SyncedDataStructure):
                 self._data[key]._parent = None
-            self._data[key] = _to_synced_data_structure(
-                validated_value, type_def, self, key)
+            self._data[key] = _to_synced_data_structure(validated_value,
+                                                        type_def, self, key)
         self._update()
 
     def __delitem__(self, key):  # noqa: D105
@@ -327,8 +329,10 @@ class HOOMDDict(MutableMapping, _SyncedDataStructure):
 
         Recursively calls `to_base` for nested data structures.
         """
-        return {key: self._convert_entry(entry, deepcopy)
-                for key, entry in self.items()}
+        return {
+            key: self._convert_entry(entry, deepcopy)
+            for key, entry in self.items()
+        }
 
     def __str__(self):  # noqa: D105
         return str(self._data)
@@ -381,8 +385,9 @@ class HOOMDSet(MutableSet, _SyncedDataStructure):
             raise TypeConversionError(
                 f"Error adding item {item} to set.") from err
         else:
-            self._data.add(_to_synced_data_structure(
-                validated_value, self._type_definition, self))
+            self._data.add(
+                _to_synced_data_structure(validated_value,
+                                          self._type_definition, self))
         self._update()
 
     def discard(self, item):  # noqa: D102
