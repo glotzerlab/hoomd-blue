@@ -2,6 +2,10 @@ from hoomd.data.type_param_dict import AttachedTypeParameterDict
 
 
 class TypeParameter:
+    """Store information that is per-type.
+
+    Provides a `collections.abc.MutableMapping` interface.
+    """
     def __init__(self, name, type_kind, param_dict):
         self.name = name
         self.type_kind = type_kind

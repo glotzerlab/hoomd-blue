@@ -38,8 +38,7 @@ hoomd.data
         :inherited-members:
 
     .. autoclass:: hoomd.data.typeparam.TypeParameter
-        :members: default, keys
-        :undoc-members:
+        :members: default
 
 .. rubric:: Modules
 
