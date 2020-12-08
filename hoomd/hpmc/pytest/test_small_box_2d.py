@@ -21,7 +21,6 @@ def one_square_simulation(simulation_factory):
     snap.particles.types = ['A']
     snap.particles.position[:] = [[0, 0, 0]]
     snap.configuration.box = [1.2, 1.2, 0, 0, 0, 0]
-    snap.configuration.dimensions = 2
 
     sim = simulation_factory(snap)
     mc = hoomd.hpmc.integrate.ConvexPolygon(seed=1)

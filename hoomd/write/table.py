@@ -1,4 +1,5 @@
 from abc import ABCMeta, abstractmethod
+from numbers import Integral
 from math import log10
 from sys import stdout
 
@@ -80,38 +81,45 @@ class _Formatter:
             return self.format_num(value, column_width)
 
     def format_num(self, value, column_width):
-        digit_guess = int(log10(max(abs(value), 1))) + 1
-        if value < 0:
-            digit_guess += 1
-        # Use scientific formatting
-        if not (-5 < digit_guess < 6) or digit_guess > column_width:
-            # Determine the number of decimals to use
-            if self.pretty:
-                decimals = min(max(column_width - 6, 1),
-                               self.max_decimals_pretty)
-            else:
-                decimals = max(self.precision, 0)
-            type_fmt = "." + str(decimals) + "e"
+        # Always output full integer values
+        if isinstance(value, Integral):
             return self._num_format.format(value,
                                            width=column_width,
-                                           type=type_fmt)
-        # Use regular formatting
+                                           type="d")
+        # For floating point numbers
         else:
-            if isinstance(value, int):
-                return self._num_format.format(value,
-                                               width=column_width,
-                                               type="d")
+            # The minimum length representation if greater than one than the
+            # smallest representation is to write the number without any
+            # infomration past the decimal point. For values less than 1 the
+            # smallest is 0.xxx. The plus one is for the decimal point. We
+            # already attempt to print out as many decimal points as possible so
+            # we only need to determine the minumum size to the left of the
+            # decimal point including the decimal point.
+            min_len_repr = int(log10(max(abs(value), 1))) + 1
+            if value < 0:
+                min_len_repr += 1  # add 1 for the negative sign
+            # Use scientific formatting
+            if not min_len_repr < 6 or min_len_repr > column_width:
+                # Determine the number of decimals to use
+                if self.pretty:
+                    decimals = min(max(column_width - 6, 1),
+                                   self.max_decimals_pretty)
+                else:
+                    decimals = max(self.precision, 0)
+                type_fmt = "." + str(decimals) + "e"
+            # Use regular formatting
             else:
                 # Determine the number of decimals to use
                 if self.pretty:
-                    decimals = min(max(column_width - digit_guess - 2, 1),
+                    decimals = min(max(column_width - min_len_repr - 2, 1),
                                    self.max_decimals_pretty)
                 else:
-                    decimals = max(self.precision - digit_guess + 1, 0)
+                    decimals = max(self.precision - min_len_repr + 1, 0)
                 type_fmt = "." + str(decimals) + "f"
-                return self._num_format.format(value,
-                                               width=column_width,
-                                               type=type_fmt)
+
+            return self._num_format.format(value,
+                                           width=column_width,
+                                           type=type_fmt)
 
     def format_str(self, value, column_width):
         if self.pretty and len(value) > column_width:
@@ -154,7 +162,7 @@ class _TableInternal(_InternalAction):
             min_column_width=max(10, max_precision + 6),
             max_header_len=max_header_len, max_precision=max_precision,
             pretty=pretty, output=output, logger=logger)
-        )
+            )
         self._param_dict = param_dict
 
         # internal variables that are not part of the state.
@@ -203,8 +211,8 @@ class _TableInternal(_InternalAction):
         self._cur_headers_with_width = header_dict
         self.output.write(
             self.delimiter.join((self._fmt.format_str(hdr, width)
-                                  for hdr, width in header_output_list))
-        )
+                                 for hdr, width in header_output_list))
+            )
         self.output.write('\n')
 
     @staticmethod
@@ -226,7 +234,7 @@ class _TableInternal(_InternalAction):
         headers = self._cur_headers_with_width
         self.output.write(self.delimiter.join(
             (self._fmt(data[k], headers[k]) for k in headers))
-                           )
+            )
         self.output.write('\n')
 
     def act(self, timestep=None):
