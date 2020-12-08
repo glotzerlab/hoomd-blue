@@ -41,9 +41,10 @@ class _SyncedDataStructure(metaclass=ABCMeta):
     @staticmethod
     def _convert_entry(entry, deepcopy=False):
         if isinstance(entry, _SyncedDataStructure):
-            return entry.to_base
+            return entry.to_base()
         elif deepcopy:
             return copy.deepcopy(entry)
+        return entry
 
 
 def _get_inner_typeconverter(type_def, desired_type):
