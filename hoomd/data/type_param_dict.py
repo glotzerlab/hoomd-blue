@@ -10,17 +10,17 @@ from hoomd.data.data_structures import (_to_synced_data_structure,
 
 
 def has_str_elems(obj):
-    '''Returns True if all elements of iterable are str.'''
+    """Returns True if all elements of iterable are str."""
     return all([isinstance(elem, str) for elem in obj])
 
 
 def is_good_iterable(obj):
-    '''Returns True if object is iterable with respect to types.'''
+    """Returns True if object is iterable with respect to types."""
     return is_iterable(obj) and has_str_elems(obj)
 
 
 def proper_type_return(val):
-    '''Expects and requires a dictionary with type keys.'''
+    """Expects and requires a dictionary with type keys."""
     if len(val) == 0:
         return None
     elif len(val) == 1:
@@ -99,18 +99,18 @@ class _ValidatedDefaultDict:
         return val
 
     def _validate_and_split_key(self, key):
-        '''Validate key given regardless of key length.'''
+        """Validate key given regardless of key length."""
         if self._len_keys == 1:
             return self._validate_and_split_len_one(key)
         else:
             return self._validate_and_split_len(key)
 
     def _validate_and_split_len_one(self, key):
-        '''Validate single type keys.
+        """Validate single type keys.
 
         Accepted input is a type string, and arbitrarily nested interators that
         culminate in str types.
-        '''
+        """
         if isinstance(key, str):
             return [key]
         elif is_iterable(key):
@@ -122,13 +122,13 @@ class _ValidatedDefaultDict:
             raise KeyError("The key {} is not valid.".format(key))
 
     def _validate_and_split_len(self, key):
-        '''Validate all key lengths greater than one, N.
+        """Validate all key lengths greater than one, N.
 
         Valid input is an arbitrarily deep series of iterables that culminate
         in N length tuples, this includes an iterable depth of zero. The N
         length tuples can contain for each member either a type string or an
         iterable of type strings.
-        '''
+        """
         if isinstance(key, tuple) and len(key) == self._len_keys:
             fst, snd = key
             if any([
@@ -150,10 +150,10 @@ class _ValidatedDefaultDict:
             raise KeyError("The key {} is not valid.".format(key))
 
     def _yield_keys(self, key):
-        '''Returns the generated keys in proper sorted order.
+        """Returns the generated keys in proper sorted order.
 
         The order is necessary so ('A', 'B') is equivalent to ('B', A').
-        '''
+        """
         keys = self._validate_and_split_key(key)
         if self._len_keys > 1:
             # We always set ('a', 'b') instead of ('b', 'a') to reduce storage
@@ -374,7 +374,7 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict, MutableMapping):
         return len(list(iter(self)))
 
     def _yield_keys(self, key):
-        '''Includes key check for existing simulation keys.'''
+        """Includes key check for existing simulation keys."""
         curr_keys = set(iter(self))
         for key in super()._yield_keys(key):
             if key not in curr_keys:
