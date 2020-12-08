@@ -258,7 +258,9 @@ class HOOMDDict(MutableMapping, _SyncedDataStructure):
     Warning:
         Users should not need to instantiate this class.
     """
-    _data = {}
+    _PROTECTED_KEYS = {
+        '_data', '_label', '_buffered', '_parent', '_type_definition'
+    }
 
     def __init__(self, type_def, parent, initial_value=None, label=None):
         self._type_definition = type_def
@@ -282,7 +284,10 @@ class HOOMDDict(MutableMapping, _SyncedDataStructure):
             raise AttributeError(f"{self} object has not attribute {attr}.")
 
     def __setattr__(self, attr, value):  # noqa: D105
-        if attr in self._data:
+        if (attr in self.__getattribute__("_PROTECTED_KEYS")
+                or attr.startswith('__')):
+            super().__setattr__(attr, value)
+        elif attr in self._type_definition:
             self[attr] = value
         else:
             super().__setattr__(attr, value)
