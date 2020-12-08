@@ -8,78 +8,94 @@
 R""" Apply forces to particles.
 """
 
+import hoomd
 from hoomd import _hoomd
 from hoomd.md import _md
-from hoomd.operation import _Operation
-from hoomd.logging import Loggable
-import hoomd
+from hoomd.operation import _HOOMDBaseObject
+from hoomd.logging import log
+from hoomd.data.typeparam import TypeParameter
+from hoomd.data.typeconverter import OnlyType
+from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
+from hoomd.filter import ParticleFilter
+from hoomd.md.constrain import ConstraintForce
 
 
-class _force(hoomd.meta._metadata):
+def ellip_preprocessing(constraint):
+    if constraint is not None:
+        if (constraint.__class__.__name__ == "constraint_ellipsoid") :
+            return act_force
+        else:
+            raise RuntimeError("Active force constraint is not accepted (currently only accepts ellipsoids)")
+    else:
+        return None
+
+
+class _force():
     pass
 
 
-class _Force(_Operation):
-    '''Constructs the force.
+class Force(_HOOMDBaseObject):
+    '''Defines a force in HOOMD-blue.
+
+    Pair, angle, bond, and other forces are subclasses of this class.
+
+    Note:
+        :py:class:`Force` is the base class for all loggable forces.
+        Users should not instantiate this class directly.
 
     Initializes some loggable quantities.
     '''
 
-    def attach(self, simulation):
-        self._simulation = simulation
-        super().attach(simulation)
+    def _attach(self):
+        super()._attach()
 
-    @Loggable.log
+    @log
     def energy(self):
-        if self.is_attached:
+        """float: Sum of the energy of the whole system."""
+        if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.calcEnergySum()
         else:
             return None
 
-    @Loggable.log(flag='particles')
+    @log(flag='particle')
     def energies(self):
-        if self.is_attached:
+        """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The energies for all particles."""
+        if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getEnergies()
         else:
             return None
 
-    @Loggable.log(flag='particles')
+    @log(flag='particle')
     def forces(self):
-        """
-        Returns: The force for all particles.
-        """
-        if self.is_attached:
+        """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The forces for all particles."""
+        if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getForces()
         else:
             return None
 
-    @Loggable.log(flag='particles')
+    @log(flag='particle')
     def torques(self):
-        """
-        Returns: The torque for all particles.
-        """
-        if self.is_attached:
+        """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The torque for all particles."""
+        if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getTorques()
         else:
             return None
 
-    @Loggable.log(flag='particles')
+    @log(flag='particle')
     def virials(self):
-        R"""
-        Returns: The virial for the members in the group.
-        """
-        if self.is_attached:
+        """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The virial for all particles."""
+        if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getVirials()
         else:
             return None
 
 
-class constant(_Force):
+class constant(Force):
     R""" Constant force.
 
     Args:
@@ -155,12 +171,6 @@ class constant(_Force):
 
         if callback is not None:
             self.cppForce.setCallback(callback)
-
-        # store metadata
-        self.metadata_fields = ['fvec', 'tvec']
-        if group is not None:
-            self.metadata_fields.append('group')
-            self.group = group
 
         hoomd.context.current.system.addCompute(self.cppForce, self.force_name)
 
@@ -238,113 +248,90 @@ class constant(_Force):
         pass
 
 
-class active(_Force):
+class Active(Force):
     R""" Active force.
 
-    Args:
-        seed (int): required user-specified seed number for random number generator.
-        f_list (list): An array of (x,y,z) tuples for the active force vector for each individual particle.
-        t_list (list): An array of (x,y,z) tuples that indicate active torque vectors for each particle
-        group (``hoomd.group``): Group for which the force will be set
-        orientation_link (bool): if True then forces and torques are applied in the particle's reference frame. If false, then the box
-         reference frame is used. Only relevant for non-point-like anisotropic particles.
-        orientation_reverse_link (bool): When True, the particle's orientation is set to match the active force vector. Useful for
-         for using a particle's orientation to log the active force vector. Not recommended for anisotropic particles. Quaternion rotation
-         assumes base vector of (0,0,1).
-        rotation_diff (float): rotational diffusion constant, :math:`D_r`, for all particles in the group.
-        constraint (:py:class:`hoomd.md.update.constraint_ellipsoid`) specifies a constraint surface, to which particles are confined,
-          such as update.constraint_ellipsoid.
+    Attributes:
+        filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply
+            active forces.
+        seed (int): required user-specified seed number for random number
+            generator.
+        rotation_diff (float): rotational diffusion constant, :math:`D_r`, for
+            all particles in the group.
+        active_force (tuple): active force vector in reference to the
+            orientation of a particle. It is defined per particle type and stays
+            constant during the simulation.
+        active_torque (tuple): active torque vector in reference to the
+            orientation of a particle. It is defined per particle type and stays
+            constant during the simulation.
 
-    :py:class:`active` specifies that an active force should be added to all particles.
-    Obeys :math:`\delta {\bf r}_i = \delta t v_0 \hat{p}_i`, where :math:`v_0` is the active velocity. In 2D
-    :math:`\hat{p}_i = (\cos \theta_i, \sin \theta_i)` is the active force vector for particle :math:`i` and the
-    diffusion of the active force vector follows :math:`\delta \theta / \delta t = \sqrt{2 D_r / \delta t} \Gamma`,
-    where :math:`D_r` is the rotational diffusion constant, and the gamma function is a unit-variance random variable,
-    whose components are uncorrelated in time, space, and between particles.
-    In 3D, :math:`\hat{p}_i` is a unit vector in 3D space, and diffusion follows
-    :math:`\delta \hat{p}_i / \delta t = \sqrt{2 D_r / \delta t} \Gamma (\hat{p}_i (\cos \theta - 1) + \hat{p}_r \sin \theta)`, where
-    :math:`\hat{p}_r` is an uncorrelated random unit vector. The persistence length of an active particle's path is
-    :math:`v_0 / D_r`.
-
-    .. attention::
-        :py:meth:`active` does not support MPI execution.
+    :py:class:`Active` specifies that an active force should be added to all
+    particles.  Obeys :math:`\delta {\bf r}_i = \delta t v_0 \hat{p}_i`, where
+    :math:`v_0` is the active velocity. In 2D :math:`\hat{p}_i = (\cos \theta_i,
+    \sin \theta_i)` is the active force vector for particle :math:`i` and the
+    diffusion of the active force vector follows :math:`\delta \theta / \delta t
+    = \sqrt{2 D_r / \delta t} \Gamma`, where :math:`D_r` is the rotational
+    diffusion constant, and the gamma function is a unit-variance random
+    variable, whose components are uncorrelated in time, space, and between
+    particles.  In 3D, :math:`\hat{p}_i` is a unit vector in 3D space, and
+    diffusion follows :math:`\delta \hat{p}_i / \delta t = \sqrt{2 D_r / \delta
+    t} \Gamma (\hat{p}_i (\cos \theta - 1) + \hat{p}_r \sin \theta)`, where
+    :math:`\hat{p}_r` is an uncorrelated random unit vector. The persistence
+    length of an active particle's path is :math:`v_0 / D_r`.  The rotational
+    diffusion is applied to the orientation vector/quaternion of each particle.
+    This implies that both the active force and the active torque vectors in the
+    particle frame stay constant during the simulation. Hence, the active forces
+    in the system frame are composed of the forces in particle frame and the
+    current orientation of the particle.
 
     Examples::
 
-        force.active( seed=13, f_list=[tuple(3,0,0) for i in range(N)])
 
-        ellipsoid = update.constraint_ellipsoid(group=groupA, P=(0,0,0), rx=3, ry=4, rz=5)
-        force.active( seed=7, f_list=[tuple(1,2,3) for i in range(N)], orientation_link=False, rotation_diff=100, constraint=ellipsoid)
+        all = filter.All()
+        active = hoomd.md.force.Active(filter=hoomd.filter.All(), seed=1,rotation_diff=0.01)
+        active.active_force['A','B'] = (1,0,0)
+        active.active_torque['A','B'] = (0,0,0)
     """
-    def __init__(self, seed, group, f_lst=None, t_lst=None, orientation_link=True, orientation_reverse_link=False, rotation_diff=0, constraint=None):
 
-        # initialize the base class
-        Force.__init__(self)
-
-        if (f_lst is None) and (t_lst is None):
-            raise RuntimeError('No forces or torques are being set')
-
-        # input check
-        if (f_lst is not None):
-            for element in f_lst:
-                if type(element) != tuple or len(element) != 3:
-                    raise RuntimeError("Active force passed in should be a list of 3-tuples (fx, fy, fz)")
-        else:
-            f_lst = []
-            for element in t_lst:
-                f_lst.append((0,0,0))
-
-        if (t_lst is not None):
-            for element in t_lst:
-                if type(element) != tuple or len(element) != 3:
-                    raise RuntimeError("Active torque passed in should be a list of 3-tuples (tx, ty, tz)")
-        else:
-            t_lst = []
-            for element in f_lst:
-                t_lst.append((0,0,0))
-
-        # assign constraints
-        if (constraint is not None):
-            if (constraint.__class__.__name__ == "constraint_ellipsoid"):
-                P = constraint.P
-                rx = constraint.rx
-                ry = constraint.ry
-                rz = constraint.rz
-            else:
-                raise RuntimeError("Active force constraint is not accepted (currently only accepts ellipsoids)")
-        else:
-            P = _hoomd.make_scalar3(0, 0, 0)
-            rx = 0
-            ry = 0
-            rz = 0
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cppForce = _md.ActiveForceCompute(hoomd.context.current.system_definition, group.cpp_group, seed, f_lst, t_lst,
-                                                      orientation_link, orientation_reverse_link, rotation_diff, P, rx, ry, rz)
-
-        else:
-            self.cppForce = _md.ActiveForceComputeGPU(hoomd.context.current.system_definition, group.cpp_group, seed, f_lst, t_lst,
-                                                         orientation_link, orientation_reverse_link, rotation_diff, P, rx, ry, rz)
-
-
+    def __init__(self, filter, seed, rotation_diff=0.1):
         # store metadata
-        self.metadata_fields = ['group', 'seed', 'orientation_link', 'rotation_diff', 'constraint']
-        self.group = group
-        self.seed = seed
-        self.orientation_link = orientation_link
-        self.orientation_reverse_link = orientation_reverse_link
-        self.rotation_diff = rotation_diff
-        self.constraint = constraint
+        param_dict = ParameterDict(
+            filter=ParticleFilter,
+            seed=int(seed),
+            rotation_diff=float(rotation_diff),
+            constraint=OnlyType(ConstraintForce, allow_none=True,
+                                preprocess=ellip_preprocessing),
+            )
+        param_dict.update(dict(constraint=None,
+                               rotation_diff=rotation_diff, seed=seed, filter=filter))
+        # set defaults
+        self._param_dict.update(param_dict)
 
-        hoomd.context.current.system.addCompute(self.cppForce, self.force_name)
+        active_force = TypeParameter(
+            'active_force', type_kind='particle_types', param_dict=TypeParameterDict((1, 0, 0), len_keys=1))
+        active_torque = TypeParameter(
+            'active_torque', type_kind='particle_types', param_dict=TypeParameterDict((0, 0, 0), len_keys=1))
 
-    # there are no coeffs to update in the active force compute
-    def update_coeffs(self):
-        pass
+        self._extend_typeparam([active_force, active_torque])
+
+    def _attach(self):
+        # initialize the reflected c++ class
+        if isinstance(self._simulation.device, hoomd.device.CPU):
+            my_class = _md.ActiveForceCompute
+        else:
+            my_class = _md.ActiveForceComputeGPU
+
+        self._cpp_obj = my_class(
+            self._simulation.state._cpp_sys_def,
+            self._simulation.state._get_group(self.filter),
+            self.seed, self.rotation_diff,
+            _hoomd.make_scalar3(0, 0, 0), 0, 0, 0)
+
+        # Attach param_dict and typeparam_dict
+        super()._attach()
 
 
-class dipole(_Force):
+class dipole(Force):
     R""" Treat particles as dipoles in an electric field.
 
     Args:
@@ -369,7 +356,6 @@ class dipole(_Force):
         hoomd.context.current.system.addCompute(self.cppForce, self.force_name)
 
         # store metadata
-        self.metadata_fields = ['field_x', 'field_y', 'field_z']
         self.field_x = field_x
         self.field_y = field_y
         self.field_z = field_z

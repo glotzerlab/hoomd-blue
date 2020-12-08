@@ -17,100 +17,114 @@
 #include "EvaluatorPairDPDLJThermo.h"
 #include "EvaluatorPairFourier.h"
 #include "EvaluatorPairLJ.h"
+#include "EvaluatorPairGauss.h"
+#include "EvaluatorPairYukawa.h"
+#include "EvaluatorPairEwald.h"
+#include "EvaluatorPairMorse.h"
+#include "EvaluatorPairForceShiftedLJ.h"
+#include "EvaluatorPairMoliere.h"
+#include "EvaluatorPairZBL.h"
+#include "EvaluatorPairMie.h"
+#include "EvaluatorPairReactionField.h"
+#include "EvaluatorPairBuckingham.h"
+#include "EvaluatorPairLJ1208.h"
+#include "EvaluatorPairFourier.h"
+#include "EvaluatorPairSLJ.h"
+#include "EvaluatorPairDLVO.h"
 
 //! Compute lj pair forces on the GPU with PairEvaluatorLJ
 hipError_t __attribute__((visibility("default")))
 gpu_compute_ljtemp_forces(const pair_args_t& pair_args,
-                          const lj_params *d_params);
+                          const EvaluatorPairLJ::param_type *d_params);
 
 //! Compute gauss pair forces on the GPU with PairEvaluatorGauss
 hipError_t __attribute__((visibility("default")))
 gpu_compute_gauss_forces(const pair_args_t& pair_args,
-                         const Scalar2 *d_params);
+                         const EvaluatorPairGauss::param_type *d_params);
 
 //! Compute slj pair forces on the GPU with PairEvaluatorGauss
 hipError_t __attribute__((visibility("default")))
 gpu_compute_slj_forces(const pair_args_t& pair_args,
-                       const Scalar2 *d_params);
+                       const EvaluatorPairSLJ::param_type *d_params);
 
 //! Compute yukawa pair forces on the GPU with PairEvaluatorGauss
 hipError_t __attribute__((visibility("default")))
 gpu_compute_yukawa_forces(const pair_args_t& pair_args,
-                          const Scalar2 *d_params);
+                          const EvaluatorPairYukawa::param_type *d_params);
 
 //! Compute morse pair forces on the GPU with PairEvaluatorMorse
 hipError_t __attribute__((visibility("default")))
 gpu_compute_morse_forces(const pair_args_t& pair_args,
-                          const Scalar4 *d_params);
+                          const EvaluatorPairMorse::param_type *d_params);
 
 //! Compute dpd thermostat on GPU with PairEvaluatorDPDThermo
 hipError_t __attribute__((visibility("default")))
 gpu_compute_dpdthermodpd_forces(const dpd_pair_args_t& args,
-                                const Scalar2 *d_params);
+                                const EvaluatorPairDPDThermo::param_type *d_params);
 
 //! Compute dpd conservative force on GPU with PairEvaluatorDPDThermo
 hipError_t __attribute__((visibility("default")))
 gpu_compute_dpdthermo_forces(const pair_args_t& pair_args,
-                             const Scalar2 *d_params);
+                             const EvaluatorPairDPDThermo::param_type *d_params);
 
 //! Compute ewlad pair forces on the GPU with PairEvaluatorEwald
 hipError_t __attribute__((visibility("default")))
 gpu_compute_ewald_forces(const pair_args_t& pair_args,
-                         const Scalar2 *d_params);
+                         const EvaluatorPairEwald::param_type *d_params);
 
 //! Compute moliere pair forces on the GPU with EvaluatorPairMoliere
 hipError_t __attribute__((visibility("default")))
 gpu_compute_moliere_forces(const pair_args_t& pair_args,
-                           const Scalar2 *d_params);
+                           const EvaluatorPairMoliere::param_type *d_params);
 
 //! Compute zbl pair forces on the GPU with EvaluatorPairZBL
 hipError_t __attribute__((visibility("default")))
 gpu_compute_zbl_forces(const pair_args_t& pair_args,
-                       const Scalar2 *d_params);
+                       const EvaluatorPairZBL::param_type *d_params);
 
 //! Compute dpdlj thermostat on GPU with PairEvaluatorDPDThermo
 hipError_t __attribute__((visibility("default")))
 gpu_compute_dpdljthermodpd_forces(const dpd_pair_args_t& args,
-                                  const Scalar4 *d_params);
+                                  const EvaluatorPairDPDLJThermo::param_type *d_params);
 
 //! Compute dpdlj conservative force on GPU with PairEvaluatorDPDThermo
 hipError_t __attribute__((visibility("default")))
 gpu_compute_dpdljthermo_forces(const pair_args_t& args,
-                               const Scalar4 *d_params);
+                               const EvaluatorPairDPDLJThermo::param_type *d_params);
 
 //! Compute force shifted lj pair forces on the GPU with PairEvaluatorForceShiftedLJ
 hipError_t __attribute__((visibility("default")))
 gpu_compute_force_shifted_lj_forces(const pair_args_t & args,
-                                    const Scalar2 *d_params);
+                                    const EvaluatorPairForceShiftedLJ::param_type *d_params);
 
 //! Compute mie potential pair forces on the GPU with PairEvaluatorMie
 hipError_t __attribute__((visibility("default")))
 gpu_compute_mie_forces(const pair_args_t & args,
-                                    const Scalar4 *d_params);
+                                    const EvaluatorPairMie::param_type *d_params);
 
 //! Compute mie potential pair forces on the GPU with PairEvaluatorReactionField
 hipError_t __attribute__((visibility("default")))
 gpu_compute_reaction_field_forces(const pair_args_t & args,
-                                    const Scalar3 *d_params);
+                                    const EvaluatorPairReactionField::param_type *d_params);
 
 //! Compute buckingham pair forces on the GPU with PairEvaluatorBuckingham
 hipError_t __attribute__((visibility("default")))
 gpu_compute_buckingham_forces(const pair_args_t& pair_args,
-                          const Scalar4 *d_params);
+                          const EvaluatorPairBuckingham::param_type *d_params);
 
 //! Compute lj1208 pair forces on the GPU with PairEvaluatorLJ1208
 hipError_t __attribute__((visibility("default")))
 gpu_compute_lj1208_forces(const pair_args_t& pair_args,
-                          const Scalar2 *d_params);
+                          const EvaluatorPairLJ1208::param_type *d_params);
 
 //! Compute DLVO potential pair forces on the GPU with EvaluatorPairDLVO
 hipError_t __attribute__((visibility("default")))
 gpu_compute_dlvo_forces(const pair_args_t & args,
-                                    const Scalar3 *d_params);
+                                    const EvaluatorPairDLVO::param_type *d_params);
 
 //! Compute Fourier potential pair forces on the GPU with PairEvaluatorFourier
 hipError_t __attribute__((visibility("default")))
 gpu_compute_fourier_forces(const pair_args_t & pair_args,
-                           const typename EvaluatorPairFourier::param_type *d_params);
+                           const EvaluatorPairFourier::param_type *d_params);
 
 #endif

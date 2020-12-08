@@ -73,6 +73,12 @@ class PYBIND11_EXPORT TwoStepLangevinBase : public IntegrationMethodTwoStep
             return m_seed;
             }
 
+        //! Return true if the method is momentum conserving
+        virtual bool isMomentumConserving() const
+            {
+            return false;
+            }
+
     protected:
         /// The Temperature of the Stochastic Bath
         std::shared_ptr<Variant> m_T;

@@ -45,14 +45,6 @@
 #include <vector>
 #include <sstream>
 
-#define checkAcquired(a) { \
-    assert(!(a).m_acquired); \
-    if ((a).m_acquired) \
-        { \
-        throw std::runtime_error("GlobalArray already acquired - ArrayHandle scoping mistake?"); \
-        } \
-    }
-
 #define TAG_ALLOCATION(array) { \
     array.setTag(std::string(#array)); \
     }
@@ -432,8 +424,10 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
         //! Swap the pointers of two GlobalArrays
         inline void swap(GlobalArray &from)
             {
-            checkAcquired(from);
-            checkAcquired(*this);
+            if (from.m_acquired || m_acquired)
+                {
+                throw std::runtime_error("Cannot swap arrays in use.");
+                }
 
             std::swap(m_exec_conf, from.m_exec_conf);
             std::swap(m_num_elements, from.m_num_elements);
@@ -535,7 +529,10 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
                 }
             #endif
 
-            checkAcquired(*this);
+            if (m_acquired)
+                {
+                throw std::runtime_error("Cannot resize array in use.");
+                }
 
             #ifdef ENABLE_HIP
             if (this->m_exec_conf && this->m_exec_conf->isCUDAEnabled())
@@ -581,7 +578,10 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
                 }
             #endif
 
-            checkAcquired(*this);
+            if (m_acquired)
+                {
+                throw std::runtime_error("Cannot resize array in use.");
+                }
 
             // make m_pitch the next multiple of 16 larger or equal to the given width
             unsigned int pitch = (width + (16 - (width & 15)));
@@ -816,7 +816,10 @@ inline ArrayHandleDispatch<T> GlobalArray<T>::acquire(const access_location::Enu
             );
     #endif
 
-    checkAcquired(*this);
+    if (m_acquired)
+        {
+        throw std::runtime_error("Cannot acquire access to array in use.");
+        }
     m_acquired = true;
 
     // make sure a null array can be acquired

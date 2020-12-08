@@ -8,56 +8,46 @@ md.pair
 .. autosummary::
     :nosignatures:
 
-    _Pair
-    buckingham
-    dipole
-    dpd
-    dpdlj
-    dpd_conservative
-    ewald
-    force_shifted_lj
-    fourier
-    gauss
-    gb
+    Pair
+    Buckingham
+    DLVO
+    DPD
+    DPDLJ
+    DPDConservative
+    Ewald
+    ForceShiftedLJ
+    Fourier
+    Gauss
     LJ
-    lj1208
-    mie
-    morse
-    moliere
-    reaction_field
-    revcross
-    slj
-    square_density
-    table
-    tersoff
-    yukawa
-    zbl
+    LJ1208
+    Mie
+    Morse
+    Moliere
+    ReactionField
+    SLJ
+    Yukawa
+    ZBL
 
 .. rubric:: Details
 
 .. automodule:: hoomd.md.pair
     :synopsis: Pair potentials.
-    :members: _Pair,
-        buckingham,
-        dipole,
-        dpd,
-        dpdlj,
-        dpd_conservative,
-        ewald,
-        force_shifted_lj,
-        fourier,
-        gauss,
-        gb,
+    :members: Pair,
+        Buckingham,
+        DLVO,
+        DPD,
+        DPDLJ,
+        DPDConservative,
+        Ewald,
+        ForceShiftedLJ,
+        Fourier,
+        Gauss,
         LJ,
-        lj1208,
-        mie,
-        morse,
-        moliere,
-        reaction_field,
-        revcross,
-        slj,
-        square_density,
-        table,
-        tersoff,
-        yukawa,
-        zbl
+        LJ1208,
+        Mie,
+        Morse,
+        Moliere,
+        ReactionField,
+        SLJ,
+        Yukawa,
+        ZBL

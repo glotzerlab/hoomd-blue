@@ -8,12 +8,16 @@ md.bond
 .. autosummary::
     :nosignatures:
 
+    Bond
     FENE
     Harmonic
-    table
 
 .. rubric:: Details
 
 .. automodule:: hoomd.md.bond
     :synopsis: Bond potentials.
-    :members:
+    :members: Bond,
+              FENE,
+              Harmonic
+    :no-inherited-members:
+    :show-inheritance:

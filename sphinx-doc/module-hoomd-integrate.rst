@@ -8,10 +8,10 @@ hoomd.integrate
 .. autosummary::
     :nosignatures:
 
-    _BaseIntegrator
+    BaseIntegrator
 
 .. rubric:: Details
 
 .. automodule:: hoomd.integrate
     :synopsis: Integrator base class.
-    :members: _BaseIntegrator
+    :members: BaseIntegrator

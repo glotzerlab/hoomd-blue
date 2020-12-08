@@ -28,8 +28,8 @@ class PYBIND11_EXPORT ActiveForceComputeGPU : public ActiveForceCompute
         //! Constructs the compute
         ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<ParticleGroup> group,
-                             int seed, pybind11::list f_lst, pybind11::list t_lst,
-                             bool orientation_link, bool orientation_reverse_link, Scalar rotation_diff,
+                             int seed,
+                             Scalar rotation_diff,
                              Scalar3 P,
                              Scalar rx,
                              Scalar ry,
@@ -46,8 +46,6 @@ class PYBIND11_EXPORT ActiveForceComputeGPU : public ActiveForceCompute
 
         //! Set constraints if particles confined to a surface
         virtual void setConstraint();
-
-        GPUArray<unsigned int>  m_groupTags; //! Stores list converting group index to global tag
     };
 
 //! Exports the ActiveForceComputeGPU Class to python

@@ -248,3 +248,13 @@ def array_to_strings(value):
         return string_list
     else:
         return value
+
+
+class GPUNotAvailableError(NotImplementedError):
+    pass
+
+
+class NoGPU:
+    def __init__(self, *args, **kwargs):
+        raise GPUNotAvailableError(
+            "This build of HOOMD-blue does not support GPUs.")

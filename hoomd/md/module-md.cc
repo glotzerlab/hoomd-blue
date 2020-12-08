@@ -13,6 +13,8 @@
 #include "AllSpecialPairPotentials.h"
 #include "AnisoPotentialPair.h"
 #include "BondTablePotential.h"
+#include "ComputeThermo.h"
+#include "ComputeThermoHMA.h"
 #include "ConstExternalFieldDipoleForceCompute.h"
 #include "ConstraintEllipsoid.h"
 #include "ConstraintSphere.h"
@@ -63,6 +65,8 @@
 #include "ActiveForceComputeGPU.h"
 #include "AnisoPotentialPairGPU.h"
 #include "BondTablePotentialGPU.h"
+#include "ComputeThermoGPU.h"
+#include "ComputeThermoHMAGPU.h"
 #include "ConstraintEllipsoidGPU.h"
 #include "ConstraintSphereGPU.h"
 #include "OneDConstraintGPU.h"
@@ -135,31 +139,6 @@ void export_revcross_params(py::module& m)
         ;
 
     m.def("make_revcross_params", &make_revcross_params);
-}
-
-//! Function to make the Fourier parameter type
-inline pair_fourier_params make_pair_fourier_params(py::list a, py::list b)
-    {
-    pair_fourier_params retval;
-    for (int i = 0; i < 3; ++i)
-        {
-        retval.a[i] = py::cast<Scalar>(a[i]);
-        retval.b[i] = py::cast<Scalar>(b[i]);
-        }
-    return retval;
-    }
-
-//! Function to export the fourier parameter type to python
-void export_pair_params(py::module& m)
-{
-    py::class_<pair_fourier_params>(m, "pair_fourier_params").def(py::init<>());
-    m.def("make_pair_fourier_params", &make_pair_fourier_params);
-
-    //py::class_<pair_dipole_params>(m, "pair_dipole_params").def(py::init<>());
-    //m.def("make_pair_dipole_params", &make_pair_dipole_params);
-
-    //py::class_<pair_gb_params>(m, "pair_gb_params").def(py::init<>());
-    //m.def("make_pair_gb_params", &make_pair_gb_params);
 }
 
 //! Helper function for converting python wall group structure to wall_type
@@ -237,6 +216,8 @@ PYBIND11_MODULE(_md, m)
     {
     export_ActiveForceCompute(m);
     export_ConstExternalFieldDipoleForceCompute(m);
+    export_ComputeThermo(m);
+    export_ComputeThermoHMA(m);
     export_HarmonicAngleForceCompute(m);
     export_CosineSqAngleForceCompute(m);
     export_TableAngleForceCompute(m);
@@ -266,7 +247,6 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairFourier>(m, "PotentialPairFourier");
     export_tersoff_params(m);
     export_revcross_params(m);
-    export_pair_params(m);
     export_AnisoPotentialPair<AnisoPotentialPairGB>(m, "AnisoPotentialPairGB");
     export_AnisoPotentialPair<AnisoPotentialPairDipole>(m, "AnisoPotentialPairDipole");
     export_PotentialPair<PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJ");
@@ -347,6 +327,8 @@ PYBIND11_MODULE(_md, m)
     export_OneDConstraintGPU(m);
     export_ForceDistanceConstraintGPU(m);
     // export_ConstExternalFieldDipoleForceComputeGPU(m);
+    export_ComputeThermoGPU(m);
+    export_ComputeThermoHMAGPU(m);
     export_PPPMForceComputeGPU(m);
     export_ActiveForceComputeGPU(m);
     export_PotentialExternalGPU<PotentialExternalPeriodicGPU, PotentialExternalPeriodic>(m, "PotentialExternalPeriodicGPU");

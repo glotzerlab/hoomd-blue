@@ -33,6 +33,7 @@ const unsigned int GROUP_NOT_LOCAL ((unsigned int) 0xffffffff);
 
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <memory>
+#include <type_traits>
 #ifndef __HIPCC__
 #include <pybind11/pybind11.h>
 #endif
@@ -991,4 +992,103 @@ extern char name_pair_data[];
 //! Definition of PairData
 typedef BondedGroupData<2, Bond, name_pair_data> PairData;
 
+
+/// Allows the usage of group data arrays in Python.
+/** Uses the LocalDataAccess templated class to expose group data arrays to
+ *  Python. For an explanation of the methods and structure see its
+ *  documentation. This exports the data of bonds, angles, dihedrals, special
+ *  pairs, constraints, and impropers to Python.
+ *
+ *  Template Parameters
+ *  Output: The buffer output type (either HOOMDHostBuffer or HOOMDDeviceBuffer)
+ *  GroupData: The realized class from the BondGroupData template.
+*/
+template<class Output, class GroupData>
+class LocalGroupData : public LocalDataAccess<Output, GroupData>
+    {
+    public:
+        LocalGroupData(GroupData& data)
+            : LocalDataAccess<Output, GroupData>(data),
+            m_tags_handle(nullptr),
+            m_rtags_handle(nullptr),
+            m_members_handle(nullptr),
+            m_typeval_handle(nullptr) {}
+
+        virtual ~LocalGroupData() = default;
+
+        Output getTags(GhostDataFlag flag)
+            {
+            return this->template getBuffer<unsigned int, unsigned int, GPUVector>(
+                m_tags_handle,
+                &GroupData::getTags,
+                flag
+                );
+            }
+
+        Output getRTags()
+            {
+            return this->template getGlobalBuffer<unsigned int, GPUVector>(
+                m_rtags_handle,
+                &GroupData::getRTags
+                );
+            }
+
+        Output getTypeVal(GhostDataFlag flag)
+            {
+            // This forces resolution at compile time for the returned types
+            return this->template getBuffer<
+                    typeval_t,
+                    typename std::conditional<
+                        GroupData::typemap_val, unsigned int, Scalar>::type,
+                        GPUVector>(
+                m_typeval_handle,
+                &GroupData::getTypeValArray,
+                flag
+                );
+
+            }
+
+        Output getMembers(GhostDataFlag flag)
+            {
+            return this->template getBuffer<typename GroupData::members_t,
+                                            unsigned int, GPUVector>(
+                m_members_handle,
+                &GroupData::getMembersArray,
+                flag,
+                GroupData::size
+                );
+            }
+
+    protected:
+        void clear()
+            {
+            m_tags_handle.reset(nullptr);
+            m_rtags_handle.reset(nullptr);
+            m_typeval_handle.reset(nullptr);
+            m_members_handle.reset(nullptr);
+            }
+
+        std::unique_ptr<ArrayHandle<unsigned int> > m_tags_handle;
+        std::unique_ptr<ArrayHandle<unsigned int> > m_rtags_handle;
+        std::unique_ptr<ArrayHandle<typename GroupData::members_t>
+                       > m_members_handle;
+        std::unique_ptr<ArrayHandle<typeval_t> > m_typeval_handle;
+
+    };
+
+template<class Output, class Data>
+void export_LocalGroupData(pybind11::module& m, std::string name)
+    {
+    pybind11::class_<LocalGroupData<Output, Data>,
+                     std::shared_ptr<LocalGroupData<Output, Data> > >(
+        m, name.c_str())
+    .def(pybind11::init<Data&>())
+    .def("getTags", &LocalGroupData<Output, Data>::getTags)
+    .def("getRTags", &LocalGroupData<Output, Data>::getRTags)
+    .def("getTypeVal", &LocalGroupData<Output, Data>::getTypeVal)
+    .def("getMembers", &LocalGroupData<Output, Data>::getMembers)
+    .def("enter", &LocalGroupData<Output, Data>::enter)
+    .def("exit", &LocalGroupData<Output, Data>::exit)
+    ;
+    }
 #endif

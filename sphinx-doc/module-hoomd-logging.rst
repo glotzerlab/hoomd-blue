@@ -8,12 +8,13 @@ hoomd.logging
 .. autosummary::
     :nosignatures:
 
+    log
     Logger
-    LoggerQuantity
+    TypeFlags
 
 .. rubric:: Details
 
 .. automodule:: hoomd.logging
     :synopsis: Classes for logging data.
-    :members: Logger, LoggerQuantity
+    :members: log, Logger, TypeFlags
     :undoc-members:

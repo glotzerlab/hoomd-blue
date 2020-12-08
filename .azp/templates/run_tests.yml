@@ -2,14 +2,12 @@ steps:
 - script: >-
     PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
     python3 -m pytest -v -ra
-    --junit-xml=$(Common.TestResultsDirectory)/pytest-serial.xml
   displayName: Run pytest (serial)
   workingDirectory: $(Pipeline.Workspace)/install
 
 - script: >-
     PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
     mpirun -n 2 $(Build.BinariesDirectory)/hoomd/pytest/pytest-openmpi.sh -v -x -ra
-    --junit-xml=$(Common.TestResultsDirectory)/pytest-mpi.xml
   displayName: Run pytest (mpi)
   workingDirectory: $(Pipeline.Workspace)/install
   condition: and(succeeded(), eq(variables['enable_mpi'], 'on'))
@@ -27,6 +25,32 @@ steps:
   displayName: Display rank 1 output
   workingDirectory: $(Pipeline.Workspace)/install
   condition: and(or(succeeded(), failed()), eq(variables['enable_mpi'], 'on'))
+
+- script: >-
+    PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
+    python3 -m pytest -v -ra -m "cupy_optional"
+  displayName: Run pytest (gpu without CuPy)
+  workingDirectory: $(Pipeline.Workspace)/install
+  condition: and(succeeded(), eq(variables['enable_gpu'], 'on'))
+  env:
+    # disallow use of cupy
+    _HOOMD_DISALLOW_CUPY_: 1
+
+- script: >-
+    PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
+    mpirun -n 2 $(Build.BinariesDirectory)/hoomd/pytest/pytest-openmpi.sh -v -x -ra
+  displayName: Run pytest (gpu mpi without CuPy)
+  workingDirectory: $(Pipeline.Workspace)/install
+  condition: and(succeeded(), eq(variables['enable_mpi'], 'on'), eq(variables['enable_gpu'], 'on'))
+  env:
+    # disallow use of cupy
+    _HOOMD_DISALLOW_CUPY_: 1
+
+- script: cat pytest.out.1
+  displayName: Display rank 1 output
+  workingDirectory: $(Pipeline.Workspace)/install
+  condition: and(or(succeeded(), failed()), eq(variables['enable_mpi'], 'on'),
+                 eq(variables['enable_gpu'], 'on'))
 
 - script: >-
     PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH
@@ -48,24 +72,3 @@ steps:
     MPIEXEC_TIMEOUT: $(mpiexec_timeout)
     # workaround issues on Mac
     TMPDIR: /tmp
-
-- task: PublishTestResults@2
-  condition: or(succeeded(), failed())
-  inputs:
-    testResultsFormat: 'cTest'
-    testResultsFiles: '$(Build.BinariesDirectory)/Testing/**/Test.xml'
-    testRunTitle: '$(suite_name) [ctest]'
-
-- task: PublishTestResults@2
-  condition: or(succeeded(), failed())
-  inputs:
-    testResultsFormat: 'JUnit'
-    testResultsFiles: '$(Common.TestResultsDirectory)/pytest-serial.xml'
-    testRunTitle: '$(suite_name) [pytest-serial]'
-
-- task: PublishTestResults@2
-  condition: eq(variables['enable_mpi'], 'on')
-  inputs:
-    testResultsFormat: 'JUnit'
-    testResultsFiles: '$(Common.TestResultsDirectory)/pytest-mpi.xml'
-    testRunTitle: '$(suite_name) [pytest-mpi]'
