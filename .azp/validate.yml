@@ -146,20 +146,10 @@ stages:
       vmImage: '$(mac_image)'
 
     steps:
-    - script: brew install cereal cmake eigen ninja open-mpi python pybind11
-      displayName: Brew install prereqs
-    # Install Intel's provided TBB builds, homebrew's tbb does not support exception translation
-    - script: |
-        curl -sLO https://github.com/intel/tbb/releases/download/2019_U8/tbb2019_20190605oss_mac.tgz &&
-        tar -xzf tbb2019_20190605oss_mac.tgz &&
-        cp -R tbb2019_20190605oss/include/tbb /usr/local/include &&
-        cp -a tbb2019_20190605oss/lib/*.dylib /usr/local/lib
-      displayName: Install TBB
-      workingDirectory: $(Pipeline.Workspace)
-
-    - script: python3 -m pip install pytest numpy gsd
-      displayName: Pip install prereqs
-
+    - bash: echo "##vso[task.prependpath]$CONDA/bin"
+      displayName: Add conda to PATH
+    - script: sudo conda install --yes --quiet -c conda-forge cereal cmake eigen ninja openmpi python pybind11 tbb tbb-devel pytest numpy gsd
+      displayName: Conda install prereqs
     - template: templates/build.yml
     - template: templates/run_tests.yml
 
