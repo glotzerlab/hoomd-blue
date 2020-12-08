@@ -1,4 +1,4 @@
-from copy import deepcopy
+import copy
 from collections.abc import MutableMapping
 from hoomd.data.typeconverter import to_type_converter
 from hoomd.data.smart_default import to_base_defaults, NoDefault
@@ -78,28 +78,6 @@ class ParameterDict(MutableMapping):
     def __len__(self):
         return len(self._data)
 
-    def __deepcopy__(self, memo):
-        """Return a deepcopy if possible, else return a shallow copy.
-
-        While this breaks assumptions of deepcopy the behavior as it is
-        currently implemented is enough to work for most cases. Because pybind11
-        C++ objects are not compatible with deepcopy by default, these objects
-        will cause the deepcopy to fail. For now this method ignores those
-        failures and uses the object itself, making the result a shallow copy.
-        """
-        new_data = ParameterDict()
-        for key, value in self.items():
-            try:
-                new_data[key] = deepcopy(value)
-            except TypeError:
-                new_data[key] = value
-            try:
-                new_data._type_converter[key] = deepcopy(
-                    self._type_converter[key])
-            except TypeError:
-                new_data._type_converter[key] = self._type_converter[key]
-        return new_data
-
     def update(self, other):
         """Update the mapping with another mapping.
 
@@ -131,7 +109,7 @@ class ParameterDict(MutableMapping):
             if isinstance(value, _SyncedDataStructure):
                 return value.to_base()
             if deepcopy:
-                return deepcopy(value)
+                return copy.deepcopy(value)
             return value
 
         return {key: convert_value(value) for key, value in self.items()}
