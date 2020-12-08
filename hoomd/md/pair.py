@@ -1665,7 +1665,7 @@ class _AnisotropicPair(Pair):
 
     def _return_type_shapes(self):
         type_shapes = self.cpp_force.getTypeShapesPy()
-        ret = [ json.loads(json_string) for json_string in type_shapes ]
+        ret = [json.loads(json_string) for json_string in type_shapes]
         return ret
 
 
@@ -1752,12 +1752,10 @@ class GayBerne(_AnisotropicPair):
         super().__init__(nlist, r_cut, r_on, mode)
         params = TypeParameter(
             'params', 'particle_types',
-            TypeParameterDict(
-                epsilon=float,
-                lperp=float,
-                lpar=float,
-                len_keys=2)
-            )
+            TypeParameterDict(epsilon=float,
+                              lperp=float,
+                              lpar=float,
+                              len_keys=2))
         self._add_typeparam(params)
 
     @log
@@ -1837,9 +1835,9 @@ class Dipole(_AnisotropicPair):
 
     def __init__(self, nlist, r_cut=None, r_on=0, mode='none'):
         super().__init__(nlist, r_cut, r_on, mode)
-        params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(mu=float, A=float, kappa=float,
-                                                 len_keys=2))
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(mu=float, A=float, kappa=float, len_keys=2))
         self._add_typeparam(params)
 
 
