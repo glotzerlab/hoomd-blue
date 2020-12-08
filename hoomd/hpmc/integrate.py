@@ -191,7 +191,7 @@ class HPMCIntegrator(BaseIntegrator):
         ret = [json.loads(json_string) for json_string in type_shapes]
         return ret
 
-    @log(flag='sequence', default=False)
+    @log(flag='sequence')
     def map_overlaps(self):
         """list[tuple[int, int]]: List of overlapping particles.
 
