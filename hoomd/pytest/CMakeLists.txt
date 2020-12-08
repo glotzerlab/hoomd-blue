@@ -2,6 +2,7 @@
 set(files __init__.py
           test_attr_tuner.py
           test_box.py
+          test_box_resize.py
           test_device.py
           test_example.py
           test_trigger.py

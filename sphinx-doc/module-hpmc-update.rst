@@ -8,6 +8,7 @@ hpmc.update
 .. autosummary::
     :nosignatures:
 
+    BoxMC
     Clusters
     QuickCompress
 
@@ -15,4 +16,4 @@ hpmc.update
 
 .. automodule:: hoomd.hpmc.update
     :synopsis: HPMC updaters.
-    :members: Clusters, QuickCompress
+    :members: BoxMC, Clusters, QuickCompress

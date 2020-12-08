@@ -8,7 +8,7 @@ pr:
   - master
 
 variables:
-  image_root: glotzerlab/ci:2020.07
+  image_root: glotzerlab/ci:2020.11
   name: hoomd
 
 jobs:

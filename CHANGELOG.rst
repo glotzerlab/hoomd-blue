@@ -11,6 +11,7 @@ v3.0.0-beta.2 (not yet released)
 
 - Support pybind11 2.6.0
 - Exclusive creation file mode for ``write.GSD``.
+- ``hpmc.update.BoxMC``.
 
 *Changed*
 
@@ -24,7 +25,7 @@ v3.0.0-beta.2 (not yet released)
   origin of (0, 0, 0).
 - Document loggable quantities in property docstrings.
 - Skip GPU tests when no GPU is present.
-- ``hoomd.write.Table`` writes integers with integer formatting.
+- ``write.Table`` writes integers with integer formatting.
 
 *Fixed*
 
