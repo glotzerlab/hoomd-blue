@@ -76,9 +76,9 @@ class EvaluatorPairGB
 
             param_type(pybind11::dict v)
                 {
-                auto epsilon(v["epsilon"].cast<Scalar>());
-                auto lperp(v["lperp"].cast<Scalar>());
-                auto lpar(v["lpar"].cast<Scalar>());
+                epsilon = v["epsilon"].cast<Scalar>();
+                lperp = v["lperp"].cast<Scalar>();
+                lpar = v["lpar"].cast<Scalar>();
                 }
 
             pybind11::dict asDict()

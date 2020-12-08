@@ -3,6 +3,7 @@
 
 import hoomd
 from hoomd import _hoomd
+from hoomd.logging import log
 from hoomd.md import _md
 from hoomd.md import force
 from hoomd.md import nlist as nl
@@ -171,11 +172,6 @@ class Pair(force.Force):
         # above and raise an error if they occur.
         return self._cpp_obj.computeEnergyBetweenSets(tags1, tags2)
 
-    def _return_type_shapes(self):
-        type_shapes = self.cpp_force.getTypeShapesPy()
-        ret = [ json.loads(json_string) for json_string in type_shapes ]
-        return ret
-
     def _attach(self):
         # create the c++ mirror class
         if not self._nlist._added:
@@ -271,6 +267,7 @@ class LJ(Pair):
                                )
         self._add_typeparam(params)
 
+
 class Gauss(Pair):
     """ Gaussian pair potential.
 
@@ -325,6 +322,7 @@ class Gauss(Pair):
                                TypeParameterDict(epsilon=float, sigma=float,
                                                  len_keys=2))
         self._add_typeparam(params)
+
 
 class SLJ(Pair):
     """Shifted Lennard-Jones pair potential.
@@ -468,6 +466,7 @@ class Yukawa(Pair):
                                                  len_keys=2))
         self._add_typeparam(params)
 
+
 class Ewald(Pair):
     """Ewald pair potential.
 
@@ -533,6 +532,7 @@ def _table_eval(r, rmin, rmax, V, F, width):
     dr = (rmax - rmin) / float(width-1);
     i = int(round((r - rmin)/dr))
     return (V[i], F[i])
+
 
 class table(force._force):
     R""" Tabulated pair potential.
@@ -794,6 +794,7 @@ class table(force._force):
 
         self.pair_coeff.set(a, b, func=_table_eval, rmin=rmin_table, rmax=rmax_table, coeff=dict(V=V_table, F=F_table, width=self.width))
 
+
 class Morse(Pair):
     """Morse pair potential.
 
@@ -851,6 +852,7 @@ class Morse(Pair):
                                TypeParameterDict(D0=float, alpha=float, r0=float,
                                              len_keys=2))
         self._add_typeparam(params)
+
 
 class DPD(Pair):
     """Dissipative Particle Dynamics.
@@ -960,6 +962,7 @@ class DPD(Pair):
 
         self.kT = kT
         self.seed = seed
+
 
 class DPDConservative(Pair):
     """DPD Conservative pair force.
@@ -1131,6 +1134,7 @@ class DPDLJ(Pair):
         self.seed = seed
         self.mode = mode
 
+
 class ForceShiftedLJ(Pair):
     """Force-shifted Lennard-Jones pair potential.
 
@@ -1201,6 +1205,7 @@ class ForceShiftedLJ(Pair):
                                TypeParameterDict(sigma=float, epsilon=float,
                                                  len_keys=2))
         self._add_typeparam(params)
+
 
 class Moliere(Pair):
     """Moliere pair potential.
@@ -1279,6 +1284,7 @@ class Moliere(Pair):
                                                  len_keys=2))
         self._add_typeparam(params)
 
+
 class ZBL(Pair):
     """ZBL pair potential.
 
@@ -1354,6 +1360,7 @@ class ZBL(Pair):
                                TypeParameterDict(qi=float, qj=float, aF=float,
                                                  len_keys=2))
         self._add_typeparam(params)
+
 
 class tersoff(pair):
     R""" Tersoff Potential.
@@ -1575,7 +1582,6 @@ class revcross(pair):
         return _md.make_revcross_params(sigma, n, epsilon, lambda3);
 
 
-
 class Mie(Pair):
     """Mie pair potential.
 
@@ -1641,77 +1647,26 @@ class Mie(Pair):
         self._add_typeparam(params)
 
 
-class _shape_dict(dict):
-    """Simple dictionary subclass to improve handling of anisotropic potential
-    shape information."""
-    def __getitem__(self, key):
-        try:
-            return super(_shape_dict, self).__getitem__(key)
-        except KeyError as e:
-            raise KeyError("No shape parameters specified for particle type {}!".format(key)) from e
-
-
-class _AnisotropicPair(_Pair):
+class _AnisotropicPair(Pair):
     R"""Generic anisotropic pair potential.
 
-    Users should not instantiate :py:class:`ai_pair` directly. It is a base class that
-    provides common features to all anisotropic pair forces. Rather than repeating all of that documentation in a
-    dozen different places, it is collected here.
+    Users should not instantiate :py:class:`ai_pair` directly. It is a base
+    class that provides common features to all anisotropic pair forces. Rather
+    than repeating all of that documentation in a dozen different places, it is
+    collected here.
 
-    All anisotropic pair potential commands specify that a given potential energy, force and torque be computed
-    on all non-excluded particle pairs in the system within a short range cutoff distance :math:`r_{\mathrm{cut}}`.
-    The interaction energy, forces and torque depend on the inter-particle separation
-    :math:`\vec r` and on the orientations :math:`\vec q_i`, :math:`q_j`, of the particles.
+    All anisotropic pair potential commands specify that a given potential
+    energy, force and torque be computed on all non-excluded particle pairs in
+    the system within a short range cutoff distance :math:`r_{\mathrm{cut}}`.
+    The interaction energy, forces and torque depend on the inter-particle
+    separation :math:`\vec r` and on the orientations :math:`\vec q_i`,
+    :math:`q_j`, of the particles.
     """
 
-    ## \internal
-    # \brief Initialize the pair force
-    # \details
-    # The derived class must set
-    #  - self.cpp_class (the pair class to instantiate)
-    #  - self.required_coeffs (a list of the coeff names the derived class needs)
-    #  - self.process_coeffs() (a method that takes in the coeffs and spits out a param struct to use in
-    #       self.cpp_force.set_params())
-
-    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
-        self._nlist = validate_nlist(nlist)
-        r_cut = float if r_cut is None else float(r_cut)
-        r_cut = TypeParameter('r_cut', 'particle_types',
-                              TypeParameterDict(r_cut, len_keys=2)
-                             )
-        r_on = TypeParameter('r_on', 'particle_types',
-                             TypeParameterDict(float(r_on), len_keys=2)
-                            )
-        self._extend_typeparam([r_cut, r_on])
-        self._param_dict.update(
-            ParameterDict(mode=OnlyFrom(['none', 'shifted', 'xplor']),
-                          explicit_defaults=dict(mode=mode))
-            )
-
-        self._shape = _shape_dict()
-
-    @property
-    def shape(self):
-        R"""Get or set shape parameters per type.
-
-        In addition to any pair-specific parameters required to characterize a
-        pair potential, individual particles that have anisotropic interactions
-        may also have their own shapes that affect the potentials. General
-        anisotropic pair potentials may set per-particle shapes using this
-        method.
-        """
-        return self._shape
-
-    @property
-    def nlist(self):
-        return self._nlist
-
-    @nlist.setter
-    def nlist(self, value):
-        if self.is_attached:
-            raise RuntimeError("nlist cannot be set after attaching.")
-        else:
-            self._nlist = validate_nlist(_NList)(value)
+    def _return_type_shapes(self):
+        type_shapes = self.cpp_force.getTypeShapesPy()
+        ret = [ json.loads(json_string) for json_string in type_shapes ]
+        return ret
 
 
 class GB(_AnisotropicPair):
@@ -1727,8 +1682,8 @@ class GB(_AnisotropicPair):
 
     :py:class:`gb` computes the Gay-Berne potential between anisotropic particles.
 
-    This version of the Gay-Berne potential supports identical pairs of uniaxial ellipsoids,
-    with orientation-independent energy-well depth.
+    This version of the Gay-Berne potential supports identical pairs of uniaxial
+    ellipsoids, with orientation-independent energy-well depth.
 
     The interaction energy for this anisotropic pair potential is
     (`Allen et. al. 2006 <http://dx.doi.org/10.1080/00268970601075238>`_):
@@ -1752,42 +1707,55 @@ class GB(_AnisotropicPair):
 
     with :math:`\sigma_{\mathrm{min}} = 2 \min(\ell_\perp, \ell_\parallel)`.
 
-    The cut-off parameter :math:`r_{\mathrm{cut}}` is defined for two particles oriented parallel along
-    the **long** axis, i.e.
+    The cut-off parameter :math:`r_{\mathrm{cut}}` is defined for two particles
+    oriented parallel along the **long** axis, i.e.
     :math:`\zeta_{\mathrm{cut}} = \left(\frac{r-\sigma_{\mathrm{max}} + \sigma_{\mathrm{min}}}{\sigma_{\mathrm{min}}}\right)`
     where :math:`\sigma_{\mathrm{max}} = 2 \max(\ell_\perp, \ell_\parallel)` .
 
-    The quantities :math:`\ell_\parallel` and :math:`\ell_\perp` denote the semi-axis lengths parallel
-    and perpendicular to particle orientation.
+    The quantities :math:`\ell_\parallel` and :math:`\ell_\perp` denote the
+    semi-axis lengths parallel and perpendicular to particle orientation.
 
-    Use ``params`` dictionary to set potential coefficients. The coefficients must be set per unique pair of particle types.
+    Use ``params`` dictionary to set potential coefficients. The coefficients
+    must be set per unique pair of particle types.
 
     Attributes:
         params (TypeParameter[tuple[``particle_type``, ``particle_type``], dict]):
-            The Gay-Berne potential parameters. The dictionary has the following keys:
+            The Gay-Berne potential parameters. The dictionary has the following
+            keys:
 
-            * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (in units of energy)
+            * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (in
+                units of energy)
 
-            * ``lperp`` (`float`, **required**) - :math:`\ell_\perp` (in distance units)
+            * ``lperp`` (`float`, **required**) - :math:`\ell_\perp` (in
+                distance units)
 
-            * ``lpar`` (`float`, **required**) -  :math:`\ell_\parallel` (in distance units)
+            * ``lpar`` (`float`, **required**) -  :math:`\ell_\parallel` (in
+                distance units)
 
     Example::
 
         nl = nlist.Cell()
-        gb = pair.gb(nlist=nl, r_cut=2.5)
+        gb = md.pair.GB(nlist=nl, r_cut=2.5)
         gb.params[('A', 'A')] = dict(epsilon=1.0, lperp=0.45, lpar=0.5)
-        gb.r_cut[('A', 'B')] = 2**(1.0/6.0)
+        gb.r_cut[('A', 'B')] = 2 ** (1.0 / 6.0)
 
     """
     _cpp_class_name = "AnisoPotentialPairGB"
+
     def __init__(self, nlist, r_cut=None, r_on=0, mode='none'):
         super().__init__(nlist, r_cut, r_on, mode)
-        params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(epsilon=float, lperp=float, lpar=float, len_keys=2))
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(
+                epsilon=float,
+                lperp=float,
+                lpar=float,
+                len_keys=2)
+            )
         self._add_typeparam(params)
 
-    #def get_type_shapes(self):
+    @log
+    def type_shapes(self):
         """Get all the types of shapes in the current simulation.
 
         Example:
@@ -1798,7 +1766,8 @@ class GB(_AnisotropicPair):
         Returns:
             A list of dictionaries, one for each particle type in the system.
         """
-        #return super(ai_pair, self)._return_type_shapes();
+        return super()._return_type_shapes()
+
 
 class Dipole(_AnisotropicPair):
     R""" Screened dipole-dipole interactions.
@@ -1832,7 +1801,8 @@ class Dipole(_AnisotropicPair):
 
     Attributes:
         params (TypeParameter[tuple[``particle_type``, ``particle_type``], dict]):
-            The dipole potential parameters. The dictionary has the following keys:
+            The dipole potential parameters. The dictionary has the following
+            keys:
 
             * ``A`` (`float`, **optional**) - :math:`A` - electrostatic energy
                 scale (*default*: 1.0)
@@ -1859,6 +1829,7 @@ class Dipole(_AnisotropicPair):
                                TypeParameterDict(mu=float, A=float, kappa=float,
                                                  len_keys=2))
         self._add_typeparam(params)
+
 
 class ReactionField(Pair):
     """Onsager reaction field pair potential.

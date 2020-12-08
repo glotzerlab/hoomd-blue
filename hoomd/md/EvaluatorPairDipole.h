@@ -95,19 +95,11 @@ class EvaluatorPairDipole
             #ifndef __HIPCC__
             param_type() {mu = 0; A = 0; kappa = 0;}
 
-            // this constructor facilitates unit testing
-            //param_type(Scalar muu, Scalar Aa, Scalar kappaa)
-            //    {
-            //    mu = muu;
-            //    A = Aa;
-            //    kappa = kappaa;
-            //    }
-
             param_type(pybind11::dict v)
                 {
-                auto mu(v["mu"].cast<Scalar>());
-                auto A(v["A"].cast<Scalar>());
-                auto kappa(v["kappa"].cast<Scalar>());
+                mu = v["mu"].cast<Scalar>();
+                A = v["A"].cast<Scalar>();
+                kappa = v["kappa"].cast<Scalar>();
                 }
 
             pybind11::dict asDict()
