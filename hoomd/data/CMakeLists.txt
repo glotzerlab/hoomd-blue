@@ -4,7 +4,7 @@ set(files __init__.py
           local_access.py
           local_access_cpu.py
           local_access_gpu.py
-          param_dict.py
+          parameter_dict.py
           smart_default.py
           syncedlist.py
           typeconverter.py

@@ -7,7 +7,7 @@ from hoomd.md import _md
 from hoomd.md import force
 from hoomd.md import nlist as nl
 from hoomd.md.nlist import NList
-from hoomd.data.param_dict import ParameterDict
+from hoomd.data.parameter_dict import ParameterDict
 from hoomd.data.type_param_dict import TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyFrom, OnlyType

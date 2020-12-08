@@ -5,7 +5,7 @@
 """Hard particle Monte Carlo integrators."""
 
 from hoomd import _hoomd
-from hoomd.data.param_dict import ParameterDict
+from hoomd.data.parameter_dict import ParameterDict
 from hoomd.data.type_param_dict import TypeParameterDict
 from hoomd.data.typeconverter import OnlyIf, to_type_converter
 from hoomd.data.typeparam import TypeParameter

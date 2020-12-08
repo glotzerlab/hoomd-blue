@@ -5,7 +5,7 @@ from sys import stdout
 from hoomd.write.custom_writer import _InternalCustomWriter
 from hoomd.custom.custom_action import _InternalAction
 from hoomd.logging import TypeFlags, Logger
-from hoomd.data.param_dict import ParameterDict
+from hoomd.data.parameter_dict import ParameterDict
 from hoomd.data.typeconverter import OnlyType
 from hoomd.util import dict_flatten
 

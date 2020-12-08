@@ -9,7 +9,7 @@
 from hoomd.md import _md
 import hoomd
 from hoomd.operation import _HOOMDBaseObject
-from hoomd.data.param_dict import ParameterDict
+from hoomd.data.parameter_dict import ParameterDict
 from hoomd.data.type_param_dict import TypeParameterDict
 from hoomd.filter import ParticleFilter
 from hoomd.data.typeparam import TypeParameter

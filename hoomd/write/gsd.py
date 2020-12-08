@@ -8,7 +8,7 @@ from hoomd import _hoomd
 from hoomd.util import dict_flatten, array_to_strings
 from hoomd.data.typeconverter import OnlyFrom, RequiredArg
 from hoomd.filter import ParticleFilter, All
-from hoomd.data.param_dict import ParameterDict
+from hoomd.data.parameter_dict import ParameterDict
 from hoomd.logging import Logger, TypeFlags
 from hoomd.operation import Writer
 import numpy as np

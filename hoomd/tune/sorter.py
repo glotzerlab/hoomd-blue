@@ -1,6 +1,6 @@
 """Define the ParticleSorter class."""
 
-from hoomd.data.param_dict import ParameterDict
+from hoomd.data.parameter_dict import ParameterDict
 from hoomd.data.typeconverter import OnlyType
 from hoomd.operation import Tuner
 from hoomd.trigger import Trigger

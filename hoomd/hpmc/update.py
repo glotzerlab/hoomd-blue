@@ -9,7 +9,7 @@ from . import integrate
 from hoomd import _hoomd
 from hoomd.logging import log
 from hoomd.update import _updater
-from hoomd.data.param_dict import ParameterDict
+from hoomd.data.parameter_dict import ParameterDict
 import hoomd.data.typeconverter
 from hoomd.operation import Updater
 import hoomd

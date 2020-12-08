@@ -1,6 +1,6 @@
 """Define LoadBalancer."""
 
-from hoomd.data.param_dict import ParameterDict
+from hoomd.data.parameter_dict import ParameterDict
 from hoomd.operation import Tuner
 from hoomd.trigger import Trigger
 from hoomd import _hoomd

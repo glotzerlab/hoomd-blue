@@ -1,6 +1,6 @@
 from hoomd.operation import Updater
 from hoomd.box import Box
-from hoomd.data.param_dict import ParameterDict
+from hoomd.data.parameter_dict import ParameterDict
 from hoomd.data.typeconverter import OnlyType, box_preprocessing
 from hoomd.variant import Variant, Power, Constant
 from hoomd import _hoomd

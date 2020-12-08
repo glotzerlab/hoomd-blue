@@ -17,7 +17,7 @@ from hoomd.logging import Loggable, log
 from hoomd.data.typeconverter import RequiredArg
 from hoomd.util import NamespaceDict
 from hoomd._hoomd import GSDStateReader
-from hoomd.data.param_dict import ParameterDict
+from hoomd.data.parameter_dict import ParameterDict
 from hoomd.data.data_structures import _SyncedDataStructure
 
 from collections.abc import Mapping

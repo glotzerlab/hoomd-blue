@@ -16,7 +16,7 @@ from hoomd.logging import log
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyType
 from hoomd.data.type_param_dict import TypeParameterDict
-from hoomd.data.param_dict import ParameterDict
+from hoomd.data.parameter_dict import ParameterDict
 from hoomd.filter import ParticleFilter
 from hoomd.md.constrain import ConstraintForce
 
