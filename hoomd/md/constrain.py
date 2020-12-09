@@ -34,6 +34,17 @@ import hoomd
 # being added to the net force on each particle
 class ConstraintForce(Force):
     """Constructs the constraint force."""
+    def _attach(self):
+        """Create the c++ mirror class."""
+        if isinstance(self._simulation.device, hoomd.device.CPU):
+            cpp_cls = getattr(_md, self._cpp_class_name)
+        else:
+            cpp_cls = getattr(_md, self._cpp_class_name + "GPU")
+
+        # TODO remove string argument
+        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def, "")
+
+        super()._attach()
 
     def update_coeffs(self):
         pass
@@ -248,26 +259,7 @@ class rigid(ConstraintForce):
     environment to :py:class:`rigid` as you did in the earlier simulation.
 
     """
-
-    def __init__(self):
-
-        # initialize the base class
-        ConstraintForce.__init__(self)
-
-        self.composite = True
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.ForceComposite(
-                hoomd.context.current.system_definition
-            )
-        else:
-            self.cpp_force = _md.ForceCompositeGPU(
-                hoomd.context.current.system_definition
-            )
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
-
+    _cpp_class_name = "ForceComposite"
     def set_param(
         self,
         type_name,
