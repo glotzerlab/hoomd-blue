@@ -67,6 +67,7 @@ class RemoveDriftUpdaterHypersphere : public Updater
             rshift_l.v.x=rshift_l.v.y=rshift_l.v.z=rshift_l.s=0.0f;
             rshift_r.v.x=rshift_r.v.y=rshift_r.v.z=rshift_r.s=0.0f;
 
+
             for (unsigned int i = 0; i < this->m_pdata->getN(); i++)
                 {
                 unsigned int tag_i = h_index.data[h_tag.data[i]];

@@ -621,6 +621,8 @@ void ChangeSiteUpdaterHypersphere<Shape>::update(unsigned int timestep)
             
             h_quat_l.data[i] = quat_to_scalar4(shape_i.quat_l);
             h_quat_r.data[i] = quat_to_scalar4(shape_i.quat_r);
+
+            m_externalLattice->checkIndex(i,shape_i.quat_l,shape_i.quat_r);
             }
         }
     }

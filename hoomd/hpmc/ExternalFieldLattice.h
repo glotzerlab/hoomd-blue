@@ -554,6 +554,57 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
             return sqrt(second_moment - (first_moment*first_moment));
         }
 
+        void checkIndex(const unsigned int& index, const quat<Scalar>& quat_l, const quat<Scalar>& quat_r)
+        {
+            const Hypersphere& hypersphere = this->m_pdata->getHypersphere();
+            ArrayHandle<unsigned int> h_tags(m_pdata->getTags(), access_location::host, access_mode::read);
+
+            detail::AABB aabb_i = detail::AABB(hypersphere.hypersphericalToCartesian(quat_l, quat_r),m_refdist);
+
+            OverlapReal dr = 1000;
+            unsigned int k;
+
+            for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree.getNumNodes(); cur_node_idx++)
+              {
+              if (detail::overlap(m_aabb_tree.getNodeAABB(cur_node_idx), aabb_i))
+                  {
+                  if (m_aabb_tree.isNodeLeaf(cur_node_idx))
+                      {
+                      for (unsigned int cur_p = 0; cur_p < m_aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
+                          {
+                          // read in its position and orientation
+                          unsigned int j = m_aabb_tree.getNodeParticle(cur_node_idx, cur_p);
+
+                          quat<Scalar> ql(m_latticeQuat_l.getReference(j));
+                          quat<Scalar> qr(m_latticeQuat_r.getReference(j));
+
+                          OverlapReal arc_length = detail::get_arclength_hypersphere(ql, qr, quat_l, quat_r, hypersphere);
+
+
+                          if( arc_length < dr){
+                              dr = arc_length;
+                              k = j;
+                              if(dr < m_refdist)
+                                  break;
+                            }
+                        }
+                      }
+                  }
+              else
+                  {
+                   //skip ahead
+                  cur_node_idx += m_aabb_tree.getNodeSkip(cur_node_idx);
+                  }
+
+              if(dr < m_refdist)
+                  break;
+
+              }  // end loop over AABB nodes
+
+              m_latticeIndex.setReference(h_tags.data[index],k);
+
+        }
+
 
     protected:
 
@@ -608,48 +659,13 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
 
 
             if(dr > m_refdist){
-                detail::AABB aabb_i = detail::AABB(hypersphere.hypersphericalToCartesian(quat_l, quat_r),0.5);
+                checkIndex( index, quat_l, quat_r);
 
-                for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree.getNumNodes(); cur_node_idx++)
-                  {
-                  if (detail::overlap(m_aabb_tree.getNodeAABB(cur_node_idx), aabb_i))
-                      {
-                      if (m_aabb_tree.isNodeLeaf(cur_node_idx))
-                          {
-                          for (unsigned int cur_p = 0; cur_p < m_aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
-                              {
-                              // read in its position and orientation
-                              unsigned int j = m_aabb_tree.getNodeParticle(cur_node_idx, cur_p);
+                 k = m_latticeIndex.getReference(h_tags.data[index]);
+                 ql = quat<Scalar>(m_latticeQuat_l.getReference(k));
+                 qr = quat<Scalar>(m_latticeQuat_r.getReference(k));
+                 dr = detail::get_arclength_hypersphere(ql, qr, quat_l, quat_r, hypersphere);
 
-                              ql = quat<Scalar>(m_latticeQuat_l.getReference(j));
-                              qr = quat<Scalar>(m_latticeQuat_r.getReference(j));
-
-                              OverlapReal arc_length = detail::get_arclength_hypersphere(ql, qr, quat_l, quat_r, hypersphere);
-
-
-                              if( arc_length < dr){
-                                  dr = arc_length;
-                                  k = j;
-                                  if(dr < m_refdist)
-                                      break;
-                                }
-                            }
-                          }
-                      }
-                  else
-                      {
-                       //skip ahead
-                      cur_node_idx += m_aabb_tree.getNodeSkip(cur_node_idx);
-                      }
-
-                  if(dr < m_refdist)
-                      break;
-
-                  }  // end loop over AABB nodes
-
-                  m_latticeIndex.setReference(h_tags.data[index],k);
-                  ql = quat<Scalar>(m_latticeQuat_l.getReference(k));
-                  qr = quat<Scalar>(m_latticeQuat_r.getReference(k));
             }
 
             assert(m_symmetry.size());
