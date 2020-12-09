@@ -83,11 +83,11 @@ class sphere(ConstraintForce):
         P = _hoomd.make_scalar3(P[0], P[1], P[2])
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.ConstraintSphere(
-                hoomd.context.current.system_definition, group.cpp_group, P, r
+                self._simulation.state._cpp_sys_def, group.cpp_group, P, r
             )
         else:
             self.cpp_force = _md.ConstraintSphereGPU(
-                hoomd.context.current.system_definition, group.cpp_group, P, r
+                self._simulation.state._cpp_sys_def, group.cpp_group, P, r
             )
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
@@ -144,11 +144,11 @@ class distance(ConstraintForce):
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.ForceDistanceConstraint(
-                hoomd.context.current.system_definition
+                self._simulation.state._cpp_sys_def
             )
         else:
             self.cpp_force = _md.ForceDistanceConstraintGPU(
-                hoomd.context.current.system_definition
+                self._simulation.state._cpp_sys_def
             )
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
@@ -305,12 +305,12 @@ class rigid(ConstraintForce):
         """
         # get a list of types from the particle data
         ntypes = (
-            hoomd.context.current.system_definition.getParticleData().getNTypes()
+            self._simulation.state._cpp_sys_def.getParticleData().getNTypes()
         )
         type_list = []
         for i in range(0, ntypes):
             type_list.append(
-                hoomd.context.current.system_definition.getParticleData().getNameByType(
+                self._simulation.state._cpp_sys_def.getParticleData().getNameByType(
                     i
                 )
             )
@@ -465,13 +465,13 @@ class oneD(ConstraintForce):
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.OneDConstraint(
-                hoomd.context.current.system_definition,
+                self._simulation.state._cpp_sys_def,
                 group.cpp_group,
                 constraint_vector,
             )
         else:
             self.cpp_force = _md.OneDConstraintGPU(
-                hoomd.context.current.system_definition,
+                self._simulation.state._cpp_sys_def,
                 group.cpp_group,
                 constraint_vector,
             )
