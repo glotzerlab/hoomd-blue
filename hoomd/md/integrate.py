@@ -38,7 +38,8 @@ class _DynamicIntegrator(BaseIntegrator):
         forces = [] if forces is None else forces
         constraints = [] if constraints is None else constraints
         methods = [] if methods is None else methods
-        self._forces = SyncedList(lambda x: isinstance(x, Force),
+        self._forces = SyncedList(lambda x: isinstance(x, Force) and
+                                  not isinstance(x, ConstraintForce),
                                   to_synced_list=lambda x: x._cpp_obj,
                                   iterable=forces)
 
@@ -102,14 +103,14 @@ class Integrator(_DynamicIntegrator):
 
         methods (Sequence[hoomd.md.methods._Method]): Sequence of integration
             methods. Each integration method can be applied to only a specific
-            subset of particles. The intersection of the subsets must be null.  
-            The default value of ``None`` initializes an empty list. 
-
-        forces (Sequence[hoomd.md.force.Force]): Sequence of forces applied to 
-            the particles in the system. All the forces are summed together. 
+            subset of particles. The intersection of the subsets must be null.
             The default value of ``None`` initializes an empty list.
 
-        aniso (str or bool): Whether to integrate rotational degrees of freedom 
+        forces (Sequence[hoomd.md.force.Force]): Sequence of forces applied to
+            the particles in the system. All the forces are summed together.
+            The default value of ``None`` initializes an empty list.
+
+        aniso (str or bool): Whether to integrate rotational degrees of freedom
             (bool), default 'auto' (autodetect if there is anisotropic factor
             from any defined active or constraint forces).
 
@@ -144,7 +145,7 @@ class Integrator(_DynamicIntegrator):
     - `hoomd.md.constrain`
 
     Examples::
-    
+
         nlist = hoomd.md.nlist.Cell()
         lj = hoomd.md.pair.LJ(nlist=nlist)
         lj.params.default = dict(epsilon=1.0, sigma=1.0)
