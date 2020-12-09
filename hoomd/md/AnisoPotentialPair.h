@@ -430,13 +430,7 @@ AnisoPotentialPair<aniso_evaluator>::~AnisoPotentialPair()
 template< class aniso_evaluator >
 void AnisoPotentialPair< aniso_evaluator >::setParams(unsigned int typ1, unsigned int typ2, const param_type& param)
     {
-    if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
-        {
-        m_exec_conf->msg->error() << "pair." << aniso_evaluator::getName() << ": Trying to set pair params for a non existent type! "
-                  << typ1 << "," << typ2 << std::endl << std::endl;
-        throw std::runtime_error("Error setting parameters in AnisoPotentialPair");
-        }
-
+    validateTypes(typ1, typ2, "setting params");
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::readwrite);
     h_params.data[m_typpair_idx(typ1, typ2)] = param;
     h_params.data[m_typpair_idx(typ2, typ1)] = param;
@@ -444,13 +438,23 @@ void AnisoPotentialPair< aniso_evaluator >::setParams(unsigned int typ1, unsigne
 
 template< class aniso_evaluator >
 void AnisoPotentialPair< aniso_evaluator >::setParamsPython(pybind11::tuple typ, pybind11::dict params)
-    {}
+    {
+    auto typ1 = m_pdata->getTypeByName(typ[0].cast<std::string>());
+    auto typ2 = m_pdata->getTypeByName(typ[1].cast<std::string>());
+    setParams(typ1, typ2, param_type(params));
+    }
 
 template< class aniso_evaluator >
 pybind11::dict AnisoPotentialPair< aniso_evaluator >::getParams(pybind11::tuple typ)
     {
-    pybind11::dict v;
-    return v;
+    auto typ1 = m_pdata->getTypeByName(typ[0].cast<std::string>());
+    auto typ2 = m_pdata->getTypeByName(typ[1].cast<std::string>());
+    validateTypes(typ1, typ2, "getting params");
+
+    ArrayHandle<param_type> h_params(
+        m_params, access_location::host, access_mode::readwrite);
+
+    return h_params.data[m_typpair_idx(typ1, typ2)].asDict();
     }
 
 template<class aniso_evaluator >
@@ -462,10 +466,8 @@ void AnisoPotentialPair< aniso_evaluator >::validateTypes(unsigned int typ1,
     auto n_types = this->m_pdata->getNTypes();
     if (typ1 >= n_types || typ2 >= n_types)
         {
-        this->m_exec_conf->msg->error() << "pair." << aniso_evaluator::getName()
-            << ": Trying to " << action << " for a non existent type! "
-            << typ1 << "," << typ2 << std::endl;
-        throw std::runtime_error("Error setting parameters in AnisoPotentialPair");
+        throw std::runtime_error(
+            "Error in" + action +" for pair potential. Invalid type");
         }
     }
 
@@ -478,12 +480,12 @@ void AnisoPotentialPair< aniso_evaluator >::setShape(unsigned int typ, const sha
     {
     if (typ >= m_pdata->getNTypes())
         {
-        m_exec_conf->msg->error() << "pair." << aniso_evaluator::getName() << ": Trying to set shape params for a non existent type! "
-                  << typ << std::endl;
-        throw std::runtime_error("Error setting shape parameters in AnisoPotentialPair");
+        throw std::runtime_error(
+            "Error setting shape parameters in AnisoPotentialPair");
         }
 
-    ArrayHandle<shape_param_type> h_shape_params(m_shape_params, access_location::host, access_mode::readwrite);
+    ArrayHandle<shape_param_type> h_shape_params(
+        m_shape_params, access_location::host, access_mode::readwrite);
     h_shape_params.data[typ] = shape_param;
     }
 
@@ -496,13 +498,7 @@ void AnisoPotentialPair< aniso_evaluator >::setShape(unsigned int typ, const sha
 template< class aniso_evaluator >
 void AnisoPotentialPair< aniso_evaluator >::setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut)
     {
-    if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
-        {
-        m_exec_conf->msg->error() << "pair." << aniso_evaluator::getName() << ": Trying to set rcut for a non existent type! "
-                  << typ1 << "," << typ2 << std::endl << std::endl;
-        throw std::runtime_error("Error setting parameters in AnisoPotentialPair");
-        }
-
+        validateTypes(typ1, typ2, "setting r_cut");
         {
         // store r_cut**2 for use internally
         ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::readwrite);
@@ -533,7 +529,7 @@ Scalar AnisoPotentialPair< aniso_evaluator >::getRCut(pybind11::tuple types)
     {
     auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
     auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
-    validateTypes(typ1, typ2, "get rcut.");
+    validateTypes(typ1, typ2, "getting r_cut.");
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host,
                                  access_mode::read);
     return sqrt(h_rcutsq.data[m_typpair_idx(typ1, typ2)]);
@@ -548,7 +544,7 @@ Scalar AnisoPotentialPair< aniso_evaluator >::getRCut(pybind11::tuple types)
 template< class aniso_evaluator >
 void AnisoPotentialPair< aniso_evaluator >::setRon(unsigned int typ1, unsigned int typ2, Scalar ron)
     {
-    validateTypes(typ1, typ2, "set ron");
+    validateTypes(typ1, typ2, "setting r_on");
     ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host,
                                 access_mode::readwrite);
     h_ronsq.data[m_typpair_idx(typ1, typ2)] = ron * ron;
@@ -560,7 +556,7 @@ Scalar AnisoPotentialPair< aniso_evaluator >::getROn(pybind11::tuple types)
     {
     auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
     auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
-    validateTypes(typ1, typ2, "get ron");
+    validateTypes(typ1, typ2, "getting r_on");
     ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host,
                                 access_mode::read);
     return sqrt(h_ronsq.data[m_typpair_idx(typ1, typ2)]);
