@@ -579,13 +579,12 @@ def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
                                                         kT=1, seed=1))
     sim.operations.integrator = integrator
     sim.operations._schedule()
-    for nsteps in [3, 5, 10]:
-        old_snap = sim.state.snapshot
-        sim.run(nsteps)
-        new_snap = sim.state.snapshot
-        if new_snap.exists:
-            assert not np.allclose(new_snap.particles.position,
-                                   old_snap.particles.position)
+    old_snap = sim.state.snapshot
+    sim.run(2)
+    new_snap = sim.state.snapshot
+    if new_snap.exists:
+        assert not np.allclose(new_snap.particles.position,
+                               old_snap.particles.position)
 
 
 def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
