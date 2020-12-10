@@ -55,49 +55,6 @@ class ConstraintForce(Force):
 ConstraintForce.cur_id = 0
 
 
-class sphere(ConstraintForce):
-    R"""Constrain particles to the surface of a sphere.
-
-    Args:
-        group (``hoomd.group``): Group on which to apply the constraint.
-        P (tuple): (x,y,z) tuple indicating the position of the center of the
-            sphere (in distance units).
-        r (float): Radius of the sphere (in distance units).
-
-    `sphere` specifies that forces will be applied to all particles in the given
-    group to constrain them to a sphere. Currently does not work with Brownian
-    or Langevin dynamics.
-
-    Example::
-
-        constrain.sphere(group=groupA, P=(0,10,2), r=10)
-
-    """
-
-    def __init__(self, group, P, r):
-
-        # initialize the base class
-        ConstraintForce.__init__(self)
-
-        # create the c++ mirror class
-        P = _hoomd.make_scalar3(P[0], P[1], P[2])
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.ConstraintSphere(
-                self._simulation.state._cpp_sys_def, group.cpp_group, P, r
-            )
-        else:
-            self.cpp_force = _md.ConstraintSphereGPU(
-                self._simulation.state._cpp_sys_def, group.cpp_group, P, r
-            )
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
-
-        # store metadata
-        self.group = group
-        self.P = P
-        self.r = r
-
-
 class distance(ConstraintForce):
     R"""Constrain pairwise particle distances.
 
@@ -427,57 +384,3 @@ class rigid(ConstraintForce):
         # validate copies of rigid bodies
         self.create_bodies(False)
 
-
-class oneD(ConstraintForce):
-    R"""Constrain particles to move along a specific direction only
-
-    Args:
-        group (``hoomd.group``): Group on which to apply the constraint.
-        constraint_vector (list): [x,y,z] list indicating the direction that
-        the particles are restricted to
-
-    :py:class:`oneD` specifies that forces will be applied to all particles in
-    the given group to constrain them to only move along a given vector.
-
-    Example::
-
-        constrain.oneD(group=groupA, constraint_vector=[1,0,0])
-
-    .. versionadded:: 2.1
-    """
-
-    def __init__(self, group, constraint_vector=[0, 0, 1]):
-
-        if (
-            constraint_vector[0] ** 2
-            + constraint_vector[1] ** 2
-            + constraint_vector[2] ** 2
-        ) < 1e-10:
-            raise RuntimeError("The one dimension constraint vector is zero")
-
-        constraint_vector = _hoomd.make_scalar3(
-            constraint_vector[0], constraint_vector[1], constraint_vector[2]
-        )
-
-        # initialize the base class
-        ConstraintForce.__init__(self)
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.OneDConstraint(
-                self._simulation.state._cpp_sys_def,
-                group.cpp_group,
-                constraint_vector,
-            )
-        else:
-            self.cpp_force = _md.OneDConstraintGPU(
-                self._simulation.state._cpp_sys_def,
-                group.cpp_group,
-                constraint_vector,
-            )
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
-
-        # store metadata
-        self.group = group
-        self.constraint_vector = constraint_vector
