@@ -472,9 +472,9 @@ def _valid_params(particle_types=['A', 'B']):
                                                  dipole_valid_param_dicts)),
                                         {}))
 
-    gay_berne_arg_dict = {'epsilon': [1.0, 0.25, 0.8],
-                          'lperp': [0.8, 0.9, 0.5],
-                          'lpar': [1., 1.1, 0.9]}
+    gay_berne_arg_dict = {'epsilon': [0.5, 0.25, 0.1],
+                          'lperp': [0.5, 0.45, 0.3],
+                          'lpar': [.7, 0.2, 0.375]}
     gay_berne_valid_param_dicts = _make_valid_param_dicts(gay_berne_arg_dict)
 
     valid_params_list.append(paramtuple(md.pair.GayBerne,
