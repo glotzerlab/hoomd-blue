@@ -548,12 +548,12 @@ class distance(ConstraintForce):
         the local domain size.
 
     .. caution::
-        constrain.distance() does not currently interoperate with
+        force.distance() does not currently interoperate with
         integrate.brownian() or integrate.langevin()
 
     Example::
 
-        constrain.distance()
+        force.distance()
 
     """
 
@@ -583,7 +583,7 @@ class distance(ConstraintForce):
 
         Example::
 
-            dist = constrain.distance()
+            dist = force.distance()
             dist.set_params(rel_tol=0.0001)
         """
         if rel_tol is not None:
@@ -711,7 +711,7 @@ class rigid(ConstraintForce):
 
         Example::
 
-            rigid = constrain.rigid()
+            rigid = force.rigid()
             rigid.set_param(
                 'A',
                 types = ['A_const', 'A_const'],
@@ -741,7 +741,7 @@ class rigid(ConstraintForce):
                 "Type " "{}" " not found.\n".format(type_name)
             )
             raise RuntimeError(
-                "Error setting up parameters for constrain.rigid()"
+                "Error setting up parameters for force.rigid()"
             )
 
         type_id = type_list.index(type_name)
@@ -751,7 +751,7 @@ class rigid(ConstraintForce):
                 "Expecting list of particle types.\n"
             )
             raise RuntimeError(
-                "Error setting up parameters for constrain.rigid()"
+                "Error setting up parameters for force.rigid()"
             )
 
         type_vec = _hoomd.std_vector_uint()
@@ -761,7 +761,7 @@ class rigid(ConstraintForce):
                     "Type " "{}" " not found.\n".format(t)
                 )
                 raise RuntimeError(
-                    "Error setting up parameters for constrain.rigid()"
+                    "Error setting up parameters for force.rigid()"
                 )
             constituent_type_id = type_list.index(t)
 
@@ -776,7 +776,7 @@ class rigid(ConstraintForce):
                     "Particle position is not a coordinate triple.\n"
                 )
                 raise RuntimeError(
-                    "Error setting up parameters for constrain.rigid()"
+                    "Error setting up parameters for force.rigid()"
                 )
             pos_vec.append(_hoomd.make_scalar3(p[0], p[1], p[2]))
 
@@ -790,7 +790,7 @@ class rigid(ConstraintForce):
                         "Particle orientation is not a 4-tuple.\n"
                     )
                     raise RuntimeError(
-                        "Error setting up parameters for constrain.rigid()"
+                        "Error setting up parameters for force.rigid()"
                     )
                 orientation_vec.append(
                     _hoomd.make_scalar4(o[0], o[1], o[2], o[3])
