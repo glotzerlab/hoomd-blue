@@ -13,7 +13,7 @@ schedules:
     - "*"
 
 variables:
-  image_root: glotzerlab/ci:2020.07
+  image_root: glotzerlab/ci:2020.11
 
   # default build parameters, will override as needed with job matrix values
   enable_gpu: off
@@ -43,8 +43,15 @@ stages:
     strategy:
       maxParallel: 5
       matrix:
-        gcc10_py38_mpi_tbb:
-          container_image: gcc10_py38
+        clang10_py38_mpi_tbb:
+          container_image: clang10_py38
+          enable_mpi: on
+          enable_tbb: on
+          build_jit: on
+          llvm_version: '10'
+
+        gcc10_py39_mpi_tbb:
+          container_image: gcc10_py39
           enable_mpi: on
           enable_tbb: on
 
@@ -139,20 +146,10 @@ stages:
       vmImage: '$(mac_image)'
 
     steps:
-    - script: brew install cereal cmake eigen ninja open-mpi python pybind11
-      displayName: Brew install prereqs
-    # Install Intel's provided TBB builds, homebrew's tbb does not support exception translation
-    - script: |
-        curl -sLO https://github.com/intel/tbb/releases/download/2019_U8/tbb2019_20190605oss_mac.tgz &&
-        tar -xzf tbb2019_20190605oss_mac.tgz &&
-        cp -R tbb2019_20190605oss/include/tbb /usr/local/include &&
-        cp -a tbb2019_20190605oss/lib/*.dylib /usr/local/lib
-      displayName: Install TBB
-      workingDirectory: $(Pipeline.Workspace)
-
-    - script: python3 -m pip install pytest numpy gsd
-      displayName: Pip install prereqs
-
+    - bash: echo "##vso[task.prependpath]$CONDA/bin"
+      displayName: Add conda to PATH
+    - script: sudo conda install --yes --quiet -c conda-forge cereal cmake eigen ninja openmpi python pybind11 tbb tbb-devel pytest numpy gsd
+      displayName: Conda install prereqs
     - template: templates/build.yml
     - template: templates/run_tests.yml
 
@@ -210,16 +207,16 @@ stages:
 
     strategy:
       matrix:
-        clang10_py38_mpi_tbb2:
-          container_image: clang10_py38
+        clang11_py39_mpi_tbb2:
+          container_image: clang11_py39
           enable_mpi: on
           enable_tbb: on
           build_jit: on
           llvm_version: '9.0'
           suite_name: CPU tbb2
 
-        clang10_py38_mpi_tbb1:
-          container_image: clang10_py38
+        clang11_py39_mpi_tbb1:
+          container_image: clang11_py39
           enable_mpi: on
           enable_tbb: on
           build_jit: on
@@ -227,15 +224,15 @@ stages:
           omp_num_threads: '1'
           suite_name: CPU tbb1
 
-        clang10_py38_mpi:
-          container_image: clang10_py38
+        clang11_py39_mpi:
+          container_image: clang11_py39
           enable_mpi: on
           build_jit: on
           llvm_version: '9.0'
           suite_name: CPU no-tbb
 
-        clang10_py38:
-          container_image: clang10_py38
+        clang11_py39:
+          container_image: clang11_py39
           enable_mpi: off
           build_jit: on
           llvm_version: '9.0'
