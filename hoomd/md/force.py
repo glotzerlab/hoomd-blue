@@ -17,7 +17,6 @@ from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyType
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.filter import ParticleFilter
-from hoomd.md.constrain import ConstraintForce
 
 
 def ellip_preprocessing(constraint):
@@ -357,6 +356,7 @@ class Active(Force):
         active.active_force['A','B'] = (1,0,0)
         active.active_torque['A','B'] = (0,0,0)
     """
+    from hoomd.md.constrain import ConstraintForce
 
     def __init__(self, filter, seed, rotation_diff=0.1):
         # store metadata
