@@ -1,3 +1,6 @@
+from collections.abc import Sequence
+import math
+
 import hoomd
 from hoomd import md
 import pytest
@@ -92,7 +95,7 @@ def test_ron(simulation_factory, two_particle_snapshot_factory):
 
     lj.r_on[('A', 'A')] = 1.5
     _assert_equivalent_type_params(lj.r_on.to_dict(), {('A', 'A'): 1.5})
-    sim.operations._schedule()
+    sim.run(0)
     _assert_equivalent_type_params(lj.r_on.to_dict(), {('A', 'A'): 1.5})
 
     lj.r_on[('A', 'A')] = 1.0
@@ -561,7 +564,7 @@ def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
     integrator.methods.append(md.methods.Langevin(hoomd.filter.All(),
                                                   kT=1, seed=1))
     sim.operations.integrator = integrator
-    sim.operations._schedule()
+    sim.run(0)
     for nsteps in [3, 5, 10]:
         old_snap = sim.state.snapshot
         sim.run(nsteps)
@@ -596,7 +599,7 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     integrator.methods.append(md.methods.Langevin(hoomd.filter.All(),
                                                   kT=1, seed=1))
     sim.operations.integrator = integrator
-    sim.operations._schedule()
+    sim.run(0)
 
     energies = sim.operations.integrator.forces[0].energies
     if energies is not None:
@@ -619,7 +622,7 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     integrator.methods.append(md.methods.Langevin(hoomd.filter.All(),
                                                   kT=1, seed=1))
     sim.operations.integrator = integrator
-    sim.operations._schedule()
+    sim.run(0)
 
     snap = sim.state.snapshot
     if snap.exists:
@@ -641,7 +644,7 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
                                                   kT=1, seed=1))
 
     sim.operations.integrator = integrator
-    sim.operations._schedule()
+    sim.run(0)
 
     energies = sim.operations.integrator.forces[0].energies
     if energies is not None:
@@ -716,7 +719,7 @@ def test_force_energy_relationship(simulation_factory,
     integrator.methods.append(md.methods.Langevin(hoomd.filter.All(),
                                                   kT=1, seed=1))
     sim.operations.integrator = integrator
-    sim.operations._schedule()
+    sim.run(0)
     for pair in valid_params.pair_potential_params:
         snap = sim.state.snapshot
         if snap.exists:
@@ -735,14 +738,6 @@ def test_force_energy_relationship(simulation_factory,
                                        rtol=1e-06)
 
 
-FandEtuple = namedtuple('FandEtuple',
-                        ['pair_potential',
-                         'pair_potential_params',
-                         'extra_args',
-                         'forces',
-                         'energies'])
-
-
 def _forces_and_energies():
     """
     Return reference force and energy values.
@@ -751,33 +746,49 @@ def _forces_and_energies():
     and then stored in the json file below. Values were calculated at
     distances of 0.75 and 1.5 for each argument dictionary
     """
+    # holds the forces and energies associated with an anisotropic pair
+    # potential.
+    FEtuple = namedtuple('FEtuple',
+                         ['pair_potential',
+                          'pair_potential_params',
+                          'extra_args',
+                          'forces',
+                          'energies'])
+
     path = Path(__file__).parent / "forces_and_energies.json"
     with path.open() as f:
         F_and_E = json.load(f)
         param_list = []
         for pot in F_and_E.keys():
             if pot[0].isalpha():
-                kT_dict = {}
-                if pot == "DPD":
-                    kT_dict = {"kT": 2}
-                elif pot == "DPDLJ":
-                    kT_dict = {"kT": 1}
+                kT_dict = {'DPD': {'kT': 2}, 'DPDLJ': {'kT': 1}}.get(pot, {})
                 for i in range(3):
-                    param_list.append(FandEtuple(getattr(md.pair, pot),
-                                                 F_and_E[pot]["params"][i],
-                                                 kT_dict,
-                                                 F_and_E[pot]["forces"][i],
-                                                 F_and_E[pot]["energies"][i]))
+                    param_list.append(FEtuple(getattr(md.pair, pot),
+                                              F_and_E[pot]["params"][i],
+                                              kT_dict,
+                                              F_and_E[pot]["forces"][i],
+                                              F_and_E[pot]["energies"][i]))
     return param_list
 
 
-@pytest.fixture(scope="function",
-                params=_forces_and_energies(),
-                ids=(lambda x: x[0].__name__))
-def forces_and_energies(request):
-    return deepcopy(request.param)
+def isclose(value, reference, rtol=5e-6):
+    """Return if two values are close while automatically managing atol."""
+    if isinstance(reference, (Sequence, np.ndarray)):
+        ref = np.asarray(reference, np.float64)
+        val = np.asarray(reference, np.float64)
+        min_value = np.min(np.abs(reference))
+        atol = 1e-6 if min_value == 0 else min_value / 1e4
+        return np.allclose(val, ref, rtol=rtol, atol=atol)
+    else:
+        atol = 1e-6 if reference == 0 else 0
+        return math.isclose(
+            value, reference, rel_tol=rtol, abs_tol=atol)
 
 
+@pytest.mark.parametrize(
+    "forces_and_energies",
+    _forces_and_energies(),
+    ids=lambda x: x.potential.__name__)
 def test_force_energy_accuracy(simulation_factory,
                                two_particle_snapshot_factory,
                                forces_and_energies):
@@ -793,7 +804,7 @@ def test_force_energy_accuracy(simulation_factory,
     integrator.methods.append(md.methods.Langevin(hoomd.filter.All(),
                                                   kT=1, seed=1))
     sim.operations.integrator = integrator
-    sim.operations._schedule()
+    sim.run(0)
     particle_distances = [0.75, 1.5]
     for i in range(len(particle_distances)):
         d = particle_distances[i]
@@ -805,31 +816,10 @@ def test_force_energy_accuracy(simulation_factory,
         sim.state.snapshot = snap
         sim_energies = sim.operations.integrator.forces[0].energies
         sim_forces = sim.operations.integrator.forces[0].forces
-        atol = 0
         if sim_energies is not None:
-            if forces_and_energies.energies[i] == 0 or sum(sim_energies) == 0:
-                atol = 1e-06
-            np.testing.assert_allclose(forces_and_energies.energies[i],
-                                       sum(sim_energies),
-                                       rtol=5e-06,
-                                       atol=atol)
-        if sim_forces is not None:
-            if forces_and_energies.forces[i] == 0 or sum(sim_forces[0]) == 0:
-                atol = 1e-06
-            np.testing.assert_allclose(forces_and_energies.forces[i] * r,
-                                       sim_forces[0],
-                                       rtol=5e-06,
-                                       atol=atol)
-            np.testing.assert_allclose(forces_and_energies.forces[i] * r * -1,
-                                       sim_forces[1],
-                                       rtol=5e-06,
-                                       atol=atol)
-
-
-FETtuple = namedtuple(
-    'FETtuple',
-    ['pair_potential', 'pair_potential_params', 'forces', 'energies', 'torques']
-)
+            assert isclose(sum(sim_energies), forces_and_energies.energies[i])
+            assert isclose(sim_forces[0], forces_and_energies.forces[i] * r)
+            assert isclose(sim_forces[0], -forces_and_energies.forces[i] * r)
 
 
 def _aniso_forces_and_energies():
@@ -842,33 +832,53 @@ def _aniso_forces_and_energies():
     [0.86615809, 0.4997701, 0, 0] and [0.70738827, 0, 0, 0.70682518]. The first
     particle is always oriented [1, 0, 0, 0].
     """
+    # holds the forces, energies, and torques associated with an anisotropic
+    # pair potential.
+    FETtuple = namedtuple('FETtuple',
+                          ['pair_potential',
+                           'pair_potential_params',
+                           'forces',
+                           'energies',
+                           'torques'])
+
     path = Path(__file__).parent / "aniso_forces_and_energies.json"
     with path.open() as f:
         computations = json.load(f)
-        param_list = []
-        for pot in computations.keys():
-            if pot[0].isalpha():
-                for i in range(3):
-                    param_list.append(FETtuple(
-                        getattr(md.pair, pot),
-                        computations[pot]["params"][i],
-                        computations[pot]["forces"][i],
-                        computations[pot]["energies"][i],
-                        computations[pot]["torques"][i],
-                        )
+        fet_list = []
+        for pot in computations:
+            for i, params in enumerate(computations[pot]["params"]):
+                fet_list.append(FETtuple(
+                    getattr(md.pair, pot),
+                    params,
+                    computations[pot]["forces"][i],
+                    computations[pot]["energies"][i],
+                    computations[pot]["torques"][i],
                     )
-    return param_list
+                )
+    return fet_list
 
 
-@pytest.fixture(scope="function", params=_aniso_forces_and_energies(),
-                ids=(lambda x: x[0].__name__))
-def aniso_forces_and_energies(request):
-    return deepcopy(request.param)
+@pytest.mark.parametrize(
+    "aniso_forces_and_energies",
+    _aniso_forces_and_energies(),
+    ids=lambda x: x.pair_potential.__name__)
+def test_aniso_force_computes(simulation_factory,
+                              two_particle_snapshot_factory,
+                              aniso_forces_and_energies):
+    r"""These are pure regression tests from HOOMD-blue version 3.0 beta 1.
 
+    This tests 2 conditions with three parameter values for each pair potential.
+    The particle distances and orientations are:
 
-def test_torque_energy_accuracy(simulation_factory,
-                                two_particle_snapshot_factory,
-                                aniso_forces_and_energies):
+    .. math::
+
+        r_1 = (0, 0, 0.1) \ r_2 = (0, 0, 0.85) \\
+        \theta_1 = (1, 0, 0, 0) \ \theta_2 = (0.86615809, 0.4997701, 0, 0) \\
+        \\
+        r_1 = (0, 0, 0.1) \ r_2 = (0, 0, 1.6) \\
+        \theta_1 = (1, 0, 0, 0) \ \theta_2 = (0.70738827, 0, 0, 0.70682518) \\
+    """
+
     pot = aniso_forces_and_energies.pair_potential(nlist=md.nlist.Cell(),
                                                    r_cut=2.5, mode='none')
     pot.params[('A', 'A')] = aniso_forces_and_energies.pair_potential_params
@@ -880,50 +890,28 @@ def test_torque_energy_accuracy(simulation_factory,
     integrator.methods.append(md.methods.Langevin(hoomd.filter.All(),
                                                   kT=1, seed=1))
     sim.operations.integrator = integrator
-    sim.operations._schedule()
+    sim.run(0)
     particle_distances = [0.75, 1.5]
-    # Test two orientations
-    second_particle_orientations = [
-        [0.86615809, 0.4997701, 0.0, 0.0],
-        [0.70738827, 0.0, 0.0, 0.70682518]
-        ]
-    for i in range(len(particle_distances)):
-        d = particle_distances[i]
+    orientations = [[0.86615809, 0.4997701, 0.0, 0.0],
+                    [0.70738827, 0.0, 0.0, 0.70682518]
+                    ]
+    for i, (distance, orientation) in enumerate(
+            zip(particle_distances, orientations)):
         snap = sim.state.snapshot
+        # Set up proper distances and orientations
         if snap.exists:
             snap.particles.position[0] = [0, 0, .1]
-            snap.particles.position[1] = [0, 0, d + .1]
-            snap.particles.orientation[1] = second_particle_orientations[i]
+            snap.particles.position[1] = [0, 0, distance + .1]
+            snap.particles.orientation[1] = orientation
         sim.state.snapshot = snap
+
+        # Grab all quantities to test for accuracy
         sim_energies = sim.operations.integrator.forces[0].energies
         sim_forces = sim.operations.integrator.forces[0].forces
         sim_torques = sim.operations.integrator.forces[0].torques
-        atol = 0
         if sim_energies is not None:
-            if aniso_forces_and_energies.energies[i] == 0 or sum(sim_energies) == 0:
-                atol = 1e-06
-            np.testing.assert_allclose(aniso_forces_and_energies.energies[i],
-                                       sim_energies[0],
-                                       rtol=5e-06,
-                                       atol=atol)
-        if sim_forces is not None:
-            if (np.sum(aniso_forces_and_energies.forces[i]) == 0
-                    or sum(sim_forces[0]) == 0):
-                atol = 1e-06
-            np.testing.assert_allclose(aniso_forces_and_energies.forces[i],
-                                       sim_forces,
-                                       rtol=5e-06,
-                                       atol=atol)
-            np.testing.assert_allclose(-sim_forces[0],
-                                       sim_forces[1],
-                                       rtol=5e-06,
-                                       atol=atol)
-
-        if sim_torques is not None:
-            if (np.sum(aniso_forces_and_energies.torques[i]) == 0
-                    or sum(sim_torques[0]) == 0):
-                atol = 1e-06
-            np.testing.assert_allclose(aniso_forces_and_energies.torques[i],
-                                       sim_torques,
-                                       rtol=5e-06,
-                                       atol=atol)
+            assert isclose(sim_energies[0],
+                           aniso_forces_and_energies.energies[i])
+            assert isclose(sim_forces[0], aniso_forces_and_energies.forces[i])
+            assert isclose(-sim_forces[1], aniso_forces_and_energies.forces[i])
+            assert isclose(sim_torques, aniso_forces_and_energies.torques[i])
