@@ -22,6 +22,7 @@ taken into account when computing the temperature.
 from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.md import force
+from hoomd.md.force import Force
 import hoomd
 
 ## \internal
