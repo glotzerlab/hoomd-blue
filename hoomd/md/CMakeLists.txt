@@ -305,7 +305,6 @@ set(files __init__.py
           bond.py
           charge.py
           compute.py
-          constrain.py
           dihedral.py
           external.py
           force.py
