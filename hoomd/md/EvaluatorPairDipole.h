@@ -136,6 +136,11 @@ class EvaluatorPairDipole
             {
             }
 
+        HOSTDEVICE void load_shared(char*& ptr, unsigned int &available_bytes) const
+            {
+            // No-op for this struct since it contains no arrays
+            }
+
         //! uses diameter
         HOSTDEVICE static bool needsDiameter()
             {
