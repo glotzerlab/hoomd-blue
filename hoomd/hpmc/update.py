@@ -521,7 +521,7 @@ class Clusters(Updater):
 
     Args:
         seed (int): Random number seed.
-        swap_types (list[tuple[str, str]]): A pair of two types whose identities
+        swap_type_pair (list[tuple[str, str]]): A pair of two types whose identities
             may be swapped.
         move_ratio (float): Set the ratio between pivot and reflection moves.
         flip_probability (float): Set the probability for transforming an
@@ -547,8 +547,11 @@ class Clusters(Updater):
     because of periodic boundary conditions, as discussed in Sinkovits et al.
     (2012), http://doi.org/10.1063/1.3694271.
 
-    The type swap move works between two types of spherical particles and
-    exchanges their identities.
+
+    Note:
+        The type swap move only works between two types of equal sized,
+        unorientable (``orientable``=``False``) spherical particles and
+        exchanges their identities.
 
     .. rubric:: Threading
 
@@ -556,7 +559,8 @@ class Clusters(Updater):
 
     Attributes:
         seed (int): Random number seed.
-        swap_types (list): A pair of two types whose identities may be swapped.
+        swap_type_pair (list): A pair of two types whose identities may be swapped.
+        delta_mu (float): The chemical potential difference between types to be swapped
         move_ratio (float): Set the ratio between pivot and reflection moves.
         flip_probability (float): Set the probability for transforming an
                                  individual cluster.
@@ -566,21 +570,22 @@ class Clusters(Updater):
             moves.
     """
 
-    def __init__(self, seed, swap_types, move_ratio=0.5,
+    def __init__(self, seed, swap_type_pair, delta_mu=0, move_ratio=0.5,
                  flip_probability=0.5, swap_move_ratio=0.5, trigger=1):
         super().__init__(trigger)
         try:
-            if len(swap_types) != 2 and len(swap_types) != 0:
+            if len(swap_type_pair) != 2 and len(swap_type_pair) != 0:
                 raise ValueError
         except (TypeError, ValueError):
-            raise ValueError("swap_types must be an iterable of length "
+            raise ValueError("swap_type_pair must be an iterable of length "
                              "2 or 0.")
 
         param_dict = ParameterDict(seed=int(seed),
-                                   swap_types=list(swap_types),
+                                   swap_type_pair=list(swap_type_pair),
                                    move_ratio=float(move_ratio),
                                    flip_probability=float(flip_probability),
-                                   swap_move_ratio=float(swap_move_ratio))
+                                   swap_move_ratio=float(swap_move_ratio),
+                                   delta_mu=float(delta_mu))
         self._param_dict.update(param_dict)
 
     def _attach(self):
@@ -591,29 +596,29 @@ class Clusters(Updater):
         integrator_pairs = [
                 (integrate.Sphere,
                     _hpmc.UpdaterClustersSphere),
-                (integrate.convex_polygon,
+                (integrate.ConvexPolygon,
                     _hpmc.UpdaterClustersConvexPolygon),
-                (integrate.simple_polygon,
-                    _hpmc.UpdaterClustersConvexPolygon),
-                (integrate.convex_polyhedron,
+                (integrate.SimplePolygon,
+                    _hpmc.UpdaterClustersSimplePolygon),
+                (integrate.ConvexPolyhedron,
                     _hpmc.UpdaterClustersConvexPolyhedron),
-                (integrate.convex_spheropolyhedron,
+                (integrate.ConvexSpheropolyhedron,
                     _hpmc.UpdaterClustersSpheropolyhedron),
-                (integrate.ellipsoid,
+                (integrate.Ellipsoid,
                     _hpmc.UpdaterClustersEllipsoid),
-                (integrate.convex_spheropolygon,
+                (integrate.ConvexSpheropolygon,
                     _hpmc.UpdaterClustersSpheropolygon),
-                (integrate.faceted_sphere,
+                (integrate.FacetedEllipsoid,
                     _hpmc.UpdaterClustersFacetedEllipsoid),
-                (integrate.sphere_union,
+                (integrate.SphereUnion,
                     _hpmc.UpdaterClustersSphereUnion),
-                (integrate.convex_spheropolyhedron_union,
+                (integrate.ConvexSpheropolyhedronUnion,
                     _hpmc.UpdaterClustersConvexPolyhedronUnion),
-                (integrate.faceted_ellipsoid_union,
+                (integrate.FacetedEllipsoidUnion,
                     _hpmc.UpdaterClustersFacetedEllipsoidUnion),
-                (integrate.polyhedron,
+                (integrate.Polyhedron,
                     _hpmc.UpdaterClustersPolyhedron),
-                (integrate.sphinx,
+                (integrate.Sphinx,
                     _hpmc.UpdaterClustersSphinx)
                 ]
 
