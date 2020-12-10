@@ -788,7 +788,7 @@ def isclose(value, reference, rtol=5e-6):
 @pytest.mark.parametrize(
     "forces_and_energies",
     _forces_and_energies(),
-    ids=lambda x: x.potential.__name__)
+    ids=lambda x: x.pair_potential.__name__)
 def test_force_energy_accuracy(simulation_factory,
                                two_particle_snapshot_factory,
                                forces_and_energies):
