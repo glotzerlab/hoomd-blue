@@ -456,17 +456,17 @@ def _valid_params(particle_types=['A', 'B']):
                                         {}))
 
     tersoff_arg_dict = {
-            'cutoff_thickness': [0.1, 0.5, 1.0],
-            'magnitudes': [(1.0, 0.1), (2.0, 0.5), (5.0, 2.0)],
-            'exp_factors': [(0.1, 0.1), (0.5, 0.5), (2.0, 2.0)],
-            'lambda3': [0.0, 0.5, 2.0],
-            'dimer_r': [1.0, 2.0, 2.5],
-            'n': [0.3, 0.5, 2.0],
-            'gamma': [0.1, 0.5, 2.0],
-            'c': [0.1, 0.5, 2.0],
-            'd': [0.1, 0.5, 2.0],
-            'm': [0.1, 0.5, 2.0],
-            'alpha': [0.1, 0.5, 2.0],
+            'cutoff_thickness': [0.1], #0.5, 1.0],
+            'magnitudes': [(1.0, 0.1)], #(2.0, 0.5), (5.0, 2.0)],
+            'exp_factors': [(0.1, 0.1)], #(0.5, 0.5), (2.0, 2.0)],
+            'lambda3': [0.0], #0.5, 2.0],
+            'dimer_r': [1.0], #2.0, 2.5],
+            'n': [0.3], #0.5, 2.0],
+            'gamma': [0.1], #0.5, 2.0],
+            'c': [0.1], #0.5, 2.0],
+            'd': [0.1], #0.5, 2.0],
+            'm': [0.1], #0.5, 2.0],
+            'alpha': [0.1], #0.5, 2.0],
             }
     tersoff_valid_param_dicts = _make_valid_param_dicts(tersoff_arg_dict)
     valid_params_list.append(paramtuple(hoomd.md.many_body.Tersoff,
