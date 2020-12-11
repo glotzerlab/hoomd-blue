@@ -84,7 +84,7 @@ gpu_cpef(const external_potential_args_t& external_potential_args,
 template< class evaluator >
 __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
                                                Scalar *d_virial,
-                                               const unsigned int virial_pitch,
+                                               const size_t virial_pitch,
                                                const unsigned int N,
                                                const Scalar4 *d_pos,
                                                const Scalar *d_diameter,

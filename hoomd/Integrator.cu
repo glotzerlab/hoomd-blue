@@ -16,7 +16,7 @@
 
 //! helper to add a given force/virial pointer pair
 template< unsigned int compute_virial >
-__device__ void add_force_total(Scalar4& net_force, Scalar *net_virial, Scalar4& net_torque, Scalar4* d_f, Scalar* d_v, const unsigned int virial_pitch, Scalar4* d_t, int idx)
+__device__ void add_force_total(Scalar4& net_force, Scalar *net_virial, Scalar4& net_torque, Scalar4* d_f, Scalar* d_v, const size_t virial_pitch, Scalar4* d_t, int idx)
     {
     if (d_f != NULL && d_v != NULL && d_t != NULL)
         {

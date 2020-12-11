@@ -180,7 +180,7 @@ template< class evaluator, unsigned char compute_virial, int tpp>
 __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                                                   const unsigned int N,
                                                   Scalar *d_virial,
-                                                  unsigned int virial_pitch,
+                                                  size_t virial_pitch,
                                                   const Scalar4 *d_pos,
                                                   const BoxDim box,
                                                   const unsigned int *d_n_neigh,
@@ -829,7 +829,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
 */
 __global__ void gpu_zero_forces_kernel(Scalar4 *d_force,
                                        Scalar *d_virial,
-                                       unsigned int virial_pitch,
+                                       size_t virial_pitch,
                                        const unsigned int N)
     {
     // identify the particle we are supposed to handle

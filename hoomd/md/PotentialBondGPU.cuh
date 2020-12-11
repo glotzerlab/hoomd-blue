@@ -101,7 +101,7 @@ struct bond_args_t
 template< class evaluator >
 __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
                                                Scalar *d_virial,
-                                               const unsigned int virial_pitch,
+                                               const size_t virial_pitch,
                                                const unsigned int N,
                                                const Scalar4 *d_pos,
                                                const Scalar *d_charge,

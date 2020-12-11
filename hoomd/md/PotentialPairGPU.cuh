@@ -150,7 +150,7 @@ struct pair_args_t
 template< class evaluator, unsigned int shift_mode, unsigned int compute_virial, int tpp>
 __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
                                                Scalar *d_virial,
-                                               const unsigned int virial_pitch,
+                                               const size_t virial_pitch,
                                                const unsigned int N,
                                                const Scalar4 *d_pos,
                                                const Scalar *d_diameter,

@@ -233,7 +233,7 @@ __global__ void gpu_fill_constraint_forces_kernel(unsigned int nptl_local,
                                         double *d_lagrange,
                                         Scalar4 *d_force,
                                         Scalar *d_virial,
-                                        unsigned int virial_pitch,
+                                        size_t virial_pitch,
                                         const BoxDim box)
     {
     unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
