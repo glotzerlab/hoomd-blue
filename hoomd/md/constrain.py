@@ -22,38 +22,8 @@ taken into account when computing the temperature.
 from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.md import force
-from hoomd.md.force import Force
+from hoomd.md.force import ConstraintForce
 import hoomd
-
-## \internal
-# \brief Base class for constraint forces
-#
-# A constraint_force in hoomd reflects a ForceConstraint in c++. It is
-# responsible for all high-level management that happens behind the scenes for
-# hoomd writers. 1) The instance of the c++ constraint force itself is tracked
-# and added to the System 2) methods are provided for disabling the force from
-# being added to the net force on each particle
-class ConstraintForce(Force):
-    """Constructs the constraint force."""
-    def _attach(self):
-        """Create the c++ mirror class."""
-        if isinstance(self._simulation.device, hoomd.device.CPU):
-            cpp_cls = getattr(_md, self._cpp_class_name)
-        else:
-            cpp_cls = getattr(_md, self._cpp_class_name + "GPU")
-
-        # TODO remove string argument
-        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def, "")
-
-        super()._attach()
-
-    def update_coeffs(self):
-        pass
-        # does nothing: this is for derived classes to implement
-
-
-# set default counter
-ConstraintForce.cur_id = 0
 
 
 class distance(ConstraintForce):

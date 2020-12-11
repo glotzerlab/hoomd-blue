@@ -433,7 +433,6 @@ class dipole(Force):
             field_x=0.0, field_y=1.0 ,field_z=0.5, p=1.0
             )
     """
-
     def __init__(self, field_x, field_y, field_z, p):
 
         # initialize the base class
@@ -483,3 +482,23 @@ class dipole(Force):
     # ExternalFieldDipoleForceCompute
     def update_coeffs(self):
         pass
+
+
+class ConstraintForce(Force):
+    """Constructs the constraint force."""
+    def _attach(self):
+        """Create the c++ mirror class."""
+        if isinstance(self._simulation.device, hoomd.device.CPU):
+            cpp_cls = getattr(_md, self._cpp_class_name)
+        else:
+            cpp_cls = getattr(_md, self._cpp_class_name + "GPU")
+
+        # TODO remove string argument
+        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def, "")
+
+        super()._attach()
+
+    def update_coeffs(self):
+        pass
+        # does nothing: this is for derived classes to implement
+
