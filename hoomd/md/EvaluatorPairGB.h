@@ -71,6 +71,14 @@ class EvaluatorPairGB
                 }
             #endif
 
+            //! Load dynamic data members into shared memory and increase pointer
+            /*! \param ptr Pointer to load data to (will be incremented)
+                \param available_bytes Size of remaining shared memory
+                allocation
+            */
+            HOSTDEVICE void load_shared(
+                char *& ptr, unsigned int &available_bytes) const {}
+
             #ifndef __HIPCC__
             param_type() {epsilon = 0; lperp = 0; lpar = 0;}
 
@@ -89,6 +97,7 @@ class EvaluatorPairGB
                 v["lpar"] = lpar;
                 return v;
                 }
+
             #endif
             }
             #ifdef SINGLE_PRECISION

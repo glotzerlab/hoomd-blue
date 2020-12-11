@@ -92,6 +92,14 @@ class EvaluatorPairDipole
                 }
             #endif
 
+            //! Load dynamic data members into shared memory and increase pointer
+            /*! \param ptr Pointer to load data to (will be incremented)
+                \param available_bytes Size of remaining shared memory
+                allocation
+            */
+            HOSTDEVICE void load_shared(
+                char *& ptr, unsigned int &available_bytes) const {}
+
             #ifndef __HIPCC__
             param_type() {mu = 0; A = 0; kappa = 0;}
 
@@ -110,6 +118,7 @@ class EvaluatorPairDipole
                 v["kappa"] = kappa;
                 return v;
                 }
+
             #endif
             }
             #ifdef SINGLE_PRECISION
