@@ -12,10 +12,70 @@ class Triplet(Pair):
     that provides common features to all standard triplet forces. Common
     documentation for all three-body potentials is documented here.
 
-    Triplet potentials work similar to pair potentials in that they utilize
-    turn-on and cutoff distances :math:`r_{\\mathrm{on}}` and :math:`r_{\\mathrm{cut}}`,
-    respectively, along with energy shifting and smoothing modes. The detailed
-    documentation for this is located in :py:class:`hoomd.md.pair.Pair`.
+    Triplet potentials apply 3-body interactions to every non-bonded particle
+    pair in the simulation. Thus, the formalism for triplet potentials is still
+    written in terms of pairs of particles.
+
+    Triplet potentials utilize turn-on and cutoff distances
+    :math:`r_{\\mathrm{on}}` and :math:`r_{\\mathrm{cut}}`, respectively, along
+    with energy shifting and smoothing modes.
+
+    The force :math:`\\vec{F}` applied between each pair of particles is:
+
+    .. math::
+        :nowrap:
+
+        \\begin{eqnarray*}
+        \\vec{F}  = & -\\nabla V(r) & r < r_{\\mathrm{cut}} \\\\
+                  = & 0           & r \\ge r_{\\mathrm{cut}} \\\\
+        \\end{eqnarray*}
+
+    where :math:`\\vec{r}` is the vector pointing from one particle to the other
+    in the pair, and :math:`V(r)` is chosen by a mode switch (see
+    ``set_params()``):
+
+    .. math::
+        :nowrap:
+
+        \\begin{eqnarray*}
+        V(r)  = & V_{\\mathrm{pair}}(r) & \\mathrm{mode\\ is\\ no\\_shift} \\\\
+              = & V_{\\mathrm{pair}}(r) - V_{\\mathrm{pair}}(r_{\\mathrm{cut}})
+              & \\mathrm{mode\\ is\\ shift} \\\\
+              = & S(r) \\cdot V_{\\mathrm{pair}}(r) & \\mathrm{mode\\ is\\
+              xplor\\ and\\ } r_{\\mathrm{on}} < r_{\\mathrm{cut}} \\\\
+              = & V_{\\mathrm{pair}}(r) - V_{\\mathrm{pair}}(r_{\\mathrm{cut}})
+              & \\mathrm{mode\\ is\\ xplor\\ and\\ } r_{\\mathrm{on}} \\ge
+              r_{\\mathrm{cut}}
+        \\end{eqnarray*}
+
+    :math:`S(r)` is the XPLOR smoothing function:
+
+    .. math::
+        :nowrap:
+
+        \\begin{eqnarray*}
+        S(r) = & 1 & r < r_{\\mathrm{on}} \\\\
+             = & \\frac{(r_{\\mathrm{cut}}^2 - r^2)^2 \\cdot
+             (r_{\\mathrm{cut}}^2 + 2r^2 -
+             3r_{\\mathrm{on}}^2)}{(r_{\\mathrm{cut}}^2 -
+             r_{\\mathrm{on}}^2)^3}
+               & r_{\\mathrm{on}} \\le r \\le r_{\\mathrm{cut}} \\\\
+             = & 0 & r > r_{\\mathrm{cut}} \\\\
+         \\end{eqnarray*}
+
+    and :math:`V_{\\mathrm{pair}}(r)` is the specific pair potential chosen by
+    the respective command.
+
+    Enabling the XPLOR smoothing function :math:`S(r)` results in both the
+    potential energy and the force going smoothly to 0 at :math:`r =
+    r_{\\mathrm{cut}}`, reducing the rate of energy drift in long simulations.
+    :math:`r_{\\mathrm{on}}` controls the point at which the smoothing starts,
+    so it can be set to only slightly modify the tail of the potential. It is
+    suggested that you plot your potentials with various values of
+    :math:`r_{\\mathrm{on}}` in order to find a good balance between a smooth
+    potential function and minimal modification of the original
+    :math:`V_{\\mathrm{pair}}(r)`. A good value for the LJ potential is
+    :math:`r_{\\mathrm{on}} = 2 \\cdot \\sigma`.
 
     Warning:
         Currently HOOMD does not support reverse force communication between MPI
