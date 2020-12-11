@@ -177,9 +177,9 @@ UP_TEST( overlap_ellipsoid_mystery )
     axes_a.z = 0.25;
     axes_a.ignore=0;
     EllipsoidParams axes_b;
-    axes_b.x = 0.1;
-    axes_b.y = 0.1;
-    axes_b.z = 0.1;
+    axes_b.x = OverlapReal(0.1);
+    axes_b.y = OverlapReal(0.1);
+    axes_b.z = OverlapReal(0.1);
     axes_b.ignore=0;
     ShapeEllipsoid a(o_a, axes_a);
     ShapeEllipsoid b(o_b, axes_b);
@@ -304,12 +304,12 @@ UP_TEST( overlap_ellipsoid_mystery_2 )
 
     axes_a.x = 0.5;
     axes_a.y = 0.25;
-    axes_a.z = 0.15;
+    axes_a.z = OverlapReal(0.15);
     axes_a.ignore=0;
 
     axes_b.x = 0.5;
     axes_b.y = 0.25;
-    axes_b.z = 0.15;
+    axes_b.z = OverlapReal(0.15);
     axes_b.ignore=0;
 
     ShapeEllipsoid c(o_a, axes_a);

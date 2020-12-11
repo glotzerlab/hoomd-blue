@@ -99,7 +99,7 @@ Scalar UpdaterBoxMC::getLogValue(const std::string& quantity, unsigned int times
     // return requested log value
     if (quantity == "hpmc_boxmc_trial_count")
         {
-        return counters.getNMoves();
+        return Scalar(counters.getNMoves());
         }
     else if (quantity == "hpmc_boxmc_volume_acceptance")
         {
@@ -414,7 +414,7 @@ void UpdaterBoxMC::update(unsigned int timestep)
     // Choose a move type
     // This seems messy and can hopefully be simplified and generalized.
     // This line will need to be rewritten or updated when move types are added to the updater.
-    float range = m_volume_weight + m_ln_volume_weight + m_length_weight + m_shear_weight + m_aspect_weight;
+    Scalar range = m_volume_weight + m_ln_volume_weight + m_length_weight + m_shear_weight + m_aspect_weight;
     if (range == 0.0)
         {
         // Attempt to execute with no move types set.
@@ -422,7 +422,7 @@ void UpdaterBoxMC::update(unsigned int timestep)
         if (m_prof) m_prof->pop();
         return;
         }
-    float move_type_select = hoomd::detail::generate_canonical<float>(rng) * range; // generate a number on (0, range]
+    Scalar move_type_select = hoomd::detail::generate_canonical<Scalar>(rng) * range; // generate a number on (0, range]
 
     // Attempt and evaluate a move
     // This section will need to be updated when move types are added.

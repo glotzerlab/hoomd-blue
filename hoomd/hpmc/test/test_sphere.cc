@@ -129,7 +129,7 @@ UP_TEST( overlap_boundaries )
 
     // place three circles with pairwise, but no joint overlap
     SphereParams par2;
-    par2.radius = 0.77;
+    par2.radius = OverlapReal(0.77);
     par2.ignore = 0;
     par2.isOriented = false;
     r_ab = vec3<Scalar>(-.5,-.5,0);
