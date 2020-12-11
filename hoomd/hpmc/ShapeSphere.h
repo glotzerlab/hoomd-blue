@@ -86,6 +86,9 @@ namespace detail
             quat<OverlapReal> pos_a = hypersphere.hypersphericalToCartesian(quat<OverlapReal>(quat_l_a),quat<OverlapReal>(quat_r_a));
             quat<OverlapReal> pos_b = hypersphere.hypersphericalToCartesian(quat<OverlapReal>(quat_l_b),quat<OverlapReal>(quat_r_b));
 
+            //quat<OverlapReal> pos_a = quat<OverlapReal>(quat_l_a)*quat<OverlapReal>(quat_r_a);
+            //quat<OverlapReal> pos_b = quat<OverlapReal>(quat_l_b)*quat<OverlapReal>(quat_r_b);
+
             // normalize
             OverlapReal inv_norm_a = fast::rsqrt(dot(pos_a,pos_a));
             OverlapReal inv_norm_b = fast::rsqrt(dot(pos_b,pos_b));

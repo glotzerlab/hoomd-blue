@@ -580,7 +580,6 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
 
                           OverlapReal arc_length = detail::get_arclength_hypersphere(ql, qr, quat_l, quat_r, hypersphere);
 
-
                           if( arc_length < dr){
                               dr = arc_length;
                               k = j;
@@ -602,7 +601,6 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
               }  // end loop over AABB nodes
 
               m_latticeIndex.setReference(h_tags.data[index],k);
-
         }
 
 
@@ -655,8 +653,7 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
             quat<Scalar> ql(m_latticeQuat_l.getReference(k));
             quat<Scalar> qr(m_latticeQuat_r.getReference(k));
 
-            OverlapReal dr = detail::get_arclength_hypersphere(ql, qr, quat_l, quat_r, hypersphere);
-
+            Scalar dr = detail::get_arclength_hypersphere(ql, qr, quat_l, quat_r, hypersphere);
 
             if(dr > m_refdist){
                 checkIndex( index, quat_l, quat_r);
@@ -665,22 +662,36 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
                  ql = quat<Scalar>(m_latticeQuat_l.getReference(k));
                  qr = quat<Scalar>(m_latticeQuat_r.getReference(k));
                  dr = detail::get_arclength_hypersphere(ql, qr, quat_l, quat_r, hypersphere);
-
             }
 
+            return m_k*dr*dr;
+            }
+
+        Scalar calcE_rot(const unsigned int& index, const quat<Scalar>& quat_l, const quat<Scalar>& quat_r)
+            {
             assert(m_symmetry.size());
-            quat<Scalar> ref_orientation1 = ql*quat<Scalar>(0,vec3<Scalar>(1,0,0))*qr;
-            quat<Scalar> ref_orientation2 = ql*quat<Scalar>(0,vec3<Scalar>(0,1,0))*qr;
+            ArrayHandle<unsigned int> h_tags(m_pdata->getTags(), access_location::host, access_mode::read);
+
+            unsigned int k = m_latticeIndex.getReference(h_tags.data[index]);
+
+            quat<Scalar> ql(m_latticeQuat_l.getReference(k));
+            quat<Scalar> qr(m_latticeQuat_r.getReference(k));
+
+            quat<Scalar> equiv_orientation1 = quat_l*quat<Scalar>(0,vec3<Scalar>(1,0,0))*quat_r;
+            quat<Scalar> equiv_orientation2 = quat_l*quat<Scalar>(0,vec3<Scalar>(0,1,0))*quat_r;
+
             quat<Scalar> ref_pos = ql*qr;
             quat<Scalar> equiv_pos = quat_l*quat_r;
+
             Scalar dpos = 1/(1+dot(equiv_pos,ref_pos));
             Scalar dqmin = 0.0;
             for(size_t i = 0; i < m_symmetry.size(); i++)
                 {
-                quat<Scalar> equiv_quat_l = quat_l*m_symmetry[i];
-                quat<Scalar> equiv_quat_r = conj(m_symmetry[i])*quat_r;
-                quat<Scalar> equiv_orientation1 = equiv_quat_l*quat<Scalar>(0,vec3<Scalar>(1,0,0))*equiv_quat_r;
-                quat<Scalar> equiv_orientation2 = equiv_quat_l*quat<Scalar>(0,vec3<Scalar>(0,1,0))*equiv_quat_r;
+                quat<Scalar> ref_quat_l = ql*m_symmetry[i];
+                quat<Scalar> ref_quat_r = conj(m_symmetry[i])*qr;
+                quat<Scalar> ref_orientation1 = ref_quat_l*quat<Scalar>(0,vec3<Scalar>(1,0,0))*ref_quat_r;
+                quat<Scalar> ref_orientation2 = ref_quat_l*quat<Scalar>(0,vec3<Scalar>(0,1,0))*ref_quat_r;
+
                 Scalar dq1 = dot(equiv_orientation1,ref_orientation1) - dot(equiv_pos,ref_orientation1)*dot(equiv_orientation1,ref_pos)*dpos;
                 Scalar dq2 = dot(equiv_orientation2,ref_orientation2) - dot(equiv_pos,ref_orientation2)*dot(equiv_orientation2,ref_pos)*dpos;
                 Scalar dq = 2 - dq1*dq1 - dq2*dq2;
@@ -688,35 +699,7 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
                 dqmin = (i == 0) ? dq : fmin(dqmin, dq);
                 }
 
-            return m_k*dr*dr + m_q*dqmin;
-            }
-
-        Scalar calcE_rot(const unsigned int& index, const quat<Scalar>& quat_l, const quat<Scalar>& quat_r)
-            {
-            //assert(m_symmetry.size());
-            //ArrayHandle<unsigned int> h_tags(m_pdata->getTags(), access_location::host, access_mode::read);
-            //quat<Scalar> ql(m_latticeQuat_l.getReference(h_tags.data[index]));
-            //quat<Scalar> qr(m_latticeQuat_r.getReference(h_tags.data[index]));
-            //quat<Scalar> ref_orientation1 = ql*quat<Scalar>(0,vec3<Scalar>(1,0,0))*qr;
-            //quat<Scalar> ref_orientation2 = ql*quat<Scalar>(0,vec3<Scalar>(0,1,0))*qr;
-            //quat<Scalar> ref_pos = ql*qr;
-            //quat<Scalar> equiv_pos = quat_l*quat_r;
-            //Scalar dr = 1/(1+dot(equiv_pos,ref_pos));
-            //Scalar dqmin = 0.0;
-            //for(size_t i = 0; i < m_symmetry.size(); i++)
-            //    {
-            //    quat<Scalar> equiv_quat_l = quat_l*m_symmetry[i];
-            //    quat<Scalar> equiv_quat_r = conj(m_symmetry[i])*quat_r;
-            //    quat<Scalar> equiv_orientation1 = equiv_quat_l*quat<Scalar>(0,vec3<Scalar>(1,0,0))*equiv_quat_r;
-            //    quat<Scalar> equiv_orientation2 = equiv_quat_l*quat<Scalar>(0,vec3<Scalar>(0,1,0))*equiv_quat_r;
-            //    Scalar dq1 = dot(equiv_orientation1,ref_orientation1) - dot(equiv_pos,ref_orientation1)*dot(equiv_orientation1,ref_pos)*dr;
-            //    Scalar dq2 = dot(equiv_orientation2,ref_orientation2) - dot(equiv_pos,ref_orientation2)*dot(equiv_orientation2,ref_pos)*dr;
-            //    Scalar dq = 2 - dq1*dq1 - dq2*dq2;
-
-            //    dqmin = (i == 0) ? dq : fmin(dqmin, dq);
-            //    }
-            //return m_q*dqmin;
-            return 0;
+            return m_q*dqmin;
             }
 
         Scalar calcE_rot(const unsigned int& index, const Shape& shape)

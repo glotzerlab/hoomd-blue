@@ -1928,10 +1928,6 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
         hkl_max++;
         }
 
-    // cout << "built image list" << std::endl;
-    // for (unsigned int i = 0; i < m_image_list.size(); i++)
-    //     cout << m_image_list[i].x << " " << m_image_list[i].y << " " << m_image_list[i].z << std::endl;
-    // cout << std::endl;
 
     // warn the user if more than one image in each direction is activated
     unsigned int img_warning = 9;
