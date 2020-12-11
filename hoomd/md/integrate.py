@@ -14,8 +14,7 @@ from hoomd.data.typeconverter import OnlyFrom
 from hoomd.integrate import BaseIntegrator
 from hoomd.data.syncedlist import SyncedList
 from hoomd.md.methods import _Method
-from hoomd.md.force import Force
-from hoomd.md.constrain import ConstraintForce
+from hoomd.md.force import Force, ConstraintForce
 import itertools
 
 
