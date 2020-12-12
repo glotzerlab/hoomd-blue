@@ -69,6 +69,7 @@ jobs:
       # other platform and compiler tests are in validate.yml
       cuda11_py38_mpi:
         container_image: cuda11_gcc9_py38
+        always_use_managed_memory: on
         enable_mpi: on
 
   pool:
