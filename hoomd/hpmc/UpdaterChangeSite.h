@@ -188,7 +188,7 @@ class ChangeSiteUpdater : public Updater
                 ChangeSiteList<Scalar3> m_latticeVector;
                 std::shared_ptr<IntegratorHPMCMono<Shape> > m_mc;
                 detail::UpdateOrder m_update_order;         //!< Update order
-                unsigned int m_seed;         
+                unsigned int m_seed;
     };
 
 template <class Shape>
@@ -381,9 +381,10 @@ class ChangeSiteUpdaterHypersphere : public Updater
                             pybind11::list lattice_quatl,
                             pybind11::list lattice_quatr,
                             std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
+                            unsigned int cycles,
                             unsigned int seed
                           ) : Updater(sysdef), m_externalLattice(externalLattice), m_mc(mc),
-                              m_update_order(seed+m_exec_conf->getRank(), m_pdata->getN()), m_seed(seed)
+                              m_update_order(seed+m_exec_conf->getRank(), m_pdata->getN()), m_cycles(cycles), m_seed(seed)
             {
                 setReferences(lattice_quatl, lattice_quatr);
             }
@@ -488,12 +489,14 @@ class ChangeSiteUpdaterHypersphere : public Updater
                 ChangeSiteList<Scalar4> m_latticeQuat_r;
                 std::shared_ptr<IntegratorHPMCMono<Shape> > m_mc;
                 detail::UpdateOrder m_update_order;         //!< Update order
+                unsigned int m_cycles;
                 unsigned int m_seed;         
     };
 
 template <class Shape>
 void ChangeSiteUpdaterHypersphere<Shape>::update(unsigned int timestep)
     {
+
 
     const Hypersphere& hypersphere = m_pdata->getHypersphere();
 
@@ -511,7 +514,7 @@ void ChangeSiteUpdaterHypersphere<Shape>::update(unsigned int timestep)
 
     ArrayHandle<Scalar4> h_ql0(m_externalLattice->getReferenceLatticeQuat_l(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_qr0(m_externalLattice->getReferenceLatticeQuat_r(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_i0(m_externalLattice->getReferenceLatticeIndex(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_i0(m_externalLattice->getReferenceLatticeIndex(), access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
@@ -519,110 +522,134 @@ void ChangeSiteUpdaterHypersphere<Shape>::update(unsigned int timestep)
 
 
 
-    for (unsigned int cur_particle = 0; cur_particle < m_pdata->getN(); cur_particle++)
+    for (unsigned int cur_cycle = 0; cur_cycle < m_cycles; cur_cycle++)
         {
-        unsigned int i = m_update_order[cur_particle];
-
-        // read in the current position and orientation
-        Scalar4 postype_i = h_postype.data[i];
-        quat<Scalar> quat_l_i(h_quat_l.data[i]);
-        quat<Scalar> quat_r_i(h_quat_r.data[i]);
-        unsigned int refindx = h_i0.data[i];
-        quat<Scalar> refql_i = quat<Scalar>(h_ql0.data[refindx]);
-        quat<Scalar> refqr_i = quat<Scalar>(h_qr0.data[refindx]);
-
-        //OverlapReal dist = detail::get_arclength_hypersphere(quat_l_i,quat_r_i,refql_i,refqr_i,hypersphere);
-        
-        // make a trial move for i
-        hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::UpdaterChangeSite, m_seed, i, m_exec_conf->getRank(), timestep);
-        unsigned int indx = int(hoomd::UniformDistribution<Scalar>(0,m_latticeQuat_l.getSize())(rng_i)); 
-
-        quat<Scalar> dql = quat<Scalar>( m_latticeQuat_l.getSite(indx) );
-        quat<Scalar> dqr = quat<Scalar>( m_latticeQuat_r.getSite(indx) );
-
-        dql = refql_i*dql*conj(refql_i);
-        dqr = conj(refqr_i)*dqr*refqr_i;
-
-        quat_l_i = dql*quat_l_i;
-        Scalar norm_l_inv = fast::rsqrt(norm2(quat_l_i));
-        quat_l_i *= norm_l_inv;
-
-        quat_r_i = quat_r_i*dqr;
-        Scalar norm_r_inv = fast::rsqrt(norm2(quat_r_i));
-        quat_r_i *= norm_r_inv;
-
-        int typ_i = __scalar_as_int(postype_i.w);
-        Shape shape_i(quat_l_i, quat_r_i, m_mc->getParams()[typ_i]);
-
-        bool overlap=false;
-        detail::AABB aabb_i = shape_i.getAABBHypersphere(hypersphere);
-
-        // stackless search
-        for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes(); cur_node_idx++)
+        m_update_order.shuffle(timestep,cur_cycle);
+        for (unsigned int cur_particle = 0; cur_particle < m_pdata->getN(); cur_particle++)
             {
-            if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb_i))
+            unsigned int i = m_update_order[cur_particle];
+
+            // read in the current position and orientation
+            Scalar4 postype_i = h_postype.data[i];
+            quat<Scalar> quat_l_i(h_quat_l.data[i]);
+            quat<Scalar> quat_r_i(h_quat_r.data[i]);
+            unsigned int refindx = h_i0.data[i];
+            quat<Scalar> refql_i = quat<Scalar>(h_ql0.data[refindx]);
+            quat<Scalar> refqr_i = quat<Scalar>(h_qr0.data[refindx]);
+
+            // make a trial move for i
+            hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::UpdaterChangeSite, m_seed, i, m_exec_conf->getRank()*m_cycles + cur_cycle, timestep);
+            unsigned int indx = int(hoomd::UniformDistribution<Scalar>(0,m_latticeQuat_l.getSize())(rng_i)); 
+
+            quat<Scalar> dql = quat<Scalar>( m_latticeQuat_l.getSite(indx) );
+            quat<Scalar> dqr = quat<Scalar>( m_latticeQuat_r.getSite(indx) );
+
+            dql = refql_i*dql;
+            dqr = dqr*refqr_i;
+
+            quat<Scalar> quat_l_i_temp = dql;
+            Scalar norm_l_inv = fast::rsqrt(norm2(quat_l_i_temp));
+            quat_l_i_temp *= norm_l_inv;
+
+            quat<Scalar> quat_r_i_temp = dqr;
+            Scalar norm_r_inv = fast::rsqrt(norm2(quat_r_i_temp));
+            quat_r_i_temp *= norm_r_inv;
+
+            unsigned int k = m_externalLattice->testIndex(i, quat_l_i_temp, quat_r_i_temp);
+
+            quat<Scalar> refql_i_new = quat<Scalar>(h_ql0.data[k]);
+            quat<Scalar> refqr_i_new = quat<Scalar>(h_qr0.data[k]);
+
+            dql = refql_i_new*conj(refql_i);
+            norm_l_inv = fast::rsqrt(norm2(dql));
+            dql *= norm_l_inv;
+            dqr = conj(refqr_i)*refqr_i_new;
+            norm_r_inv = fast::rsqrt(norm2(dqr));
+            dqr *= norm_r_inv;
+
+            quat_l_i = dql*quat_l_i;
+            norm_l_inv = fast::rsqrt(norm2(quat_l_i));
+            quat_l_i *= norm_l_inv;
+
+            quat_r_i = quat_r_i*dqr;
+            norm_r_inv = fast::rsqrt(norm2(quat_r_i));
+            quat_r_i *= norm_r_inv;
+
+            int typ_i = __scalar_as_int(postype_i.w);
+            Shape shape_i(quat_l_i, quat_r_i, m_mc->getParams()[typ_i]);
+
+            bool overlap=false;
+            detail::AABB aabb_i = shape_i.getAABBHypersphere(hypersphere);
+
+            // stackless search
+            for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes(); cur_node_idx++)
                 {
-                if (aabb_tree.isNodeLeaf(cur_node_idx))
+                if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb_i))
                     {
-                    for (unsigned int cur_p = 0; cur_p < aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
+                    if (aabb_tree.isNodeLeaf(cur_node_idx))
                         {
-                        // read in its position and orientation
-                        unsigned int j = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
-
-
-                        // handle j==i situations
-                        if ( j == i )
+                        for (unsigned int cur_p = 0; cur_p < aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
                             {
-                            if (test_self_overlap_hypersphere(shape_i, hypersphere))
+                            // read in its position and orientation
+                            unsigned int j = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
+
+
+                            // handle j==i situations
+                            if ( j == i )
+                                {
+                                if (test_self_overlap_hypersphere(shape_i, hypersphere))
+                                    {
+                                    overlap = true;
+                                    break;
+                                    }
+                                else
+                                    continue;
+                                }
+
+                            Scalar4 postype_j = h_postype.data[j];
+                            quat<Scalar> quat_l_j(h_quat_l.data[j]);
+                            quat<Scalar> quat_r_j(h_quat_r.data[j]);
+
+                            unsigned int typ_j = __scalar_as_int(postype_j.w);
+                            Shape shape_j(quat_l_j, quat_r_j, m_mc->getParams()[typ_j]);
+
+                            unsigned int err_count = 0;
+
+                            if ( h_overlaps.data[overlap_idx(typ_i, typ_j)]
+                                && check_circumsphere_overlap_hypersphere(shape_i, shape_j, hypersphere)
+                                && test_overlap_hypersphere(shape_i, shape_j, hypersphere, err_count))
                                 {
                                 overlap = true;
                                 break;
                                 }
-                            else
-                                continue;
-                            }
-
-                        Scalar4 postype_j = h_postype.data[j];
-                        quat<Scalar> quat_l_j(h_quat_l.data[j]);
-                        quat<Scalar> quat_r_j(h_quat_r.data[j]);
-
-                        unsigned int typ_j = __scalar_as_int(postype_j.w);
-                        Shape shape_j(quat_l_j, quat_r_j, m_mc->getParams()[typ_j]);
-
-                        unsigned int err_count = 0;
-
-                        if ( h_overlaps.data[overlap_idx(typ_i, typ_j)]
-                            && check_circumsphere_overlap_hypersphere(shape_i, shape_j, hypersphere)
-                            && test_overlap_hypersphere(shape_i, shape_j, hypersphere, err_count))
-                            {
-                            overlap = true;
-                            break;
                             }
                         }
                     }
-                }
-            else
+                else
+                    {
+                    // skip ahead
+                    cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
+                    }
+
+                if (overlap)
+                    break;
+                }  // end loop over AABB nodes
+
+
+            // If no overlaps and Metropolis criterion is met, accept
+            // trial move and update positions  and/or orientations.
+            if (!overlap)
                 {
-                // skip ahead
-                cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
+                // update the position of the particle in the tree for future updates
+                std::cout << "Change " << i << std::endl;
+                aabb_tree.update(i, aabb_i);
+
+                h_quat_l.data[i] = quat_to_scalar4(shape_i.quat_l);
+                h_quat_r.data[i] = quat_to_scalar4(shape_i.quat_r);
+
+                h_i0.data[i] = k;
+
                 }
-
-            if (overlap)
-                break;
-            }  // end loop over AABB nodes
-
-
-        // If no overlaps and Metropolis criterion is met, accept
-        // trial move and update positions  and/or orientations.
-        if (!overlap)
-            {
-            // update the position of the particle in the tree for future updates
-            aabb_tree.update(i, aabb_i);
-            
-            h_quat_l.data[i] = quat_to_scalar4(shape_i.quat_l);
-            h_quat_r.data[i] = quat_to_scalar4(shape_i.quat_r);
-
-            m_externalLattice->checkIndex(i,shape_i.quat_l,shape_i.quat_r);
             }
         }
     }
@@ -652,6 +679,7 @@ void export_UpdaterChangeSiteHypersphere(pybind11::module& m, std::string name)
                             pybind11::list,
                             pybind11::list,
                             std::shared_ptr<IntegratorHPMCMono<Shape> >, 
+                            unsigned int,
                             unsigned int>())
     ;
     }

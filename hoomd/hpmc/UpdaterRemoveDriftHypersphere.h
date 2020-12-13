@@ -53,6 +53,7 @@ class RemoveDriftUpdaterHypersphere : public Updater
         //! Take one timestep forward
         virtual void update(unsigned int timestep)
             {
+
             ArrayHandle<Scalar4> h_quat_l(m_pdata->getLeftQuaternionArray(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_quat_r(m_pdata->getRightQuaternionArray(), access_location::host, access_mode::readwrite);
 

@@ -554,15 +554,14 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
             return sqrt(second_moment - (first_moment*first_moment));
         }
 
-        void checkIndex(const unsigned int& index, const quat<Scalar>& quat_l, const quat<Scalar>& quat_r)
+        unsigned int testIndex(const unsigned int& index, const quat<Scalar>& quat_l, const quat<Scalar>& quat_r)
         {
             const Hypersphere& hypersphere = this->m_pdata->getHypersphere();
-            ArrayHandle<unsigned int> h_tags(m_pdata->getTags(), access_location::host, access_mode::read);
 
             detail::AABB aabb_i = detail::AABB(hypersphere.hypersphericalToCartesian(quat_l, quat_r),m_refdist);
 
             OverlapReal dr = 1000;
-            unsigned int k;
+            unsigned int k=0;
 
             for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree.getNumNodes(); cur_node_idx++)
               {
@@ -600,6 +599,12 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
 
               }  // end loop over AABB nodes
 
+              return k;
+        }
+
+        void changeIndex(const unsigned int& index, unsigned int& k)
+        {
+              ArrayHandle<unsigned int> h_tags(m_pdata->getTags(), access_location::host, access_mode::read);
               m_latticeIndex.setReference(h_tags.data[index],k);
         }
 
@@ -642,6 +647,7 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
                 }
         }
 
+
         // These could be a little redundant. think about this more later.
         Scalar calcE_trans(const unsigned int& index, const quat<Scalar>& quat_l, const quat<Scalar>& quat_r, const Scalar& scale = 1.0)
             {
@@ -656,7 +662,8 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
             Scalar dr = detail::get_arclength_hypersphere(ql, qr, quat_l, quat_r, hypersphere);
 
             if(dr > m_refdist){
-                checkIndex( index, quat_l, quat_r);
+                k = testIndex( index, quat_l, quat_r);
+                changeIndex(index,k);
 
                  k = m_latticeIndex.getReference(h_tags.data[index]);
                  ql = quat<Scalar>(m_latticeQuat_l.getReference(k));
@@ -702,10 +709,7 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
             return m_q*dqmin;
             }
 
-        Scalar calcE_rot(const unsigned int& index, const Shape& shape)
-            {
-            return calcE_rot(index, shape.quat_l,shape.quat_r);
-            }
+
         Scalar calcE(const unsigned int& index, const quat<Scalar>& quat_l, const quat<Scalar>& quat_r, const Scalar& scale = 1.0)
             {
             Scalar energy = 0.0;
@@ -715,6 +719,13 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
                 energy += calcE_rot(index, quat_l, quat_r);
                 }
             return energy;
+            }
+
+
+
+        Scalar calcE_rot(const unsigned int& index, const Shape& shape)
+            {
+            return calcE_rot(index, shape.quat_l,shape.quat_r);
             }
         Scalar calcE(const unsigned int& index, const quat<Scalar>& quat_l, const quat<Scalar>& quat_r, const Shape& shape, const Scalar& scale = 1.0)
             {

@@ -955,7 +955,7 @@ class change_site_hypersphere(_updater):
         remove_drift = update.change_site(mc=mc, external_lattice=lattice, period=1000);
 
     """
-    def __init__(self, mc, external_lattice, seed, lattice_quatl=[], lattice_quatr = [], period=1):
+    def __init__(self, mc, external_lattice, seed, lattice_quatl=[], lattice_quatr = [], period=1, cycles=1):
         hoomd.util.print_status_line();
         #initialize base class
         _updater.__init__(self);
@@ -997,7 +997,7 @@ class change_site_hypersphere(_updater):
             #     raise RuntimeError("Error initializing update.change_site");
 
         enlist = hoomd.hpmc.data._param.ensure_list;
-        self.cpp_updater = cls(hoomd.context.current.system_definition, external_lattice.cpp_compute, enlist(lattice_quatl), enlist(lattice_quatr), mc.cpp_integrator,int(seed));
+        self.cpp_updater = cls(hoomd.context.current.system_definition, external_lattice.cpp_compute, enlist(lattice_quatl), enlist(lattice_quatr), mc.cpp_integrator, int(cycles), int(seed));
         self.setupUpdater(period);
 
 class clusters(_updater):
