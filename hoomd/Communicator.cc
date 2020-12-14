@@ -293,7 +293,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
                 if (n_send_groups[ineigh])
                     {
                     MPI_Isend(&m_ranks_sendbuf.front()+h_begin.data[ineigh],
-                        (int)n_send_groups[ineigh]*sizeof(rank_element_t),
+                        int(n_send_groups[ineigh]*sizeof(rank_element_t)),
                         MPI_BYTE,
                         neighbor,
                         1,
