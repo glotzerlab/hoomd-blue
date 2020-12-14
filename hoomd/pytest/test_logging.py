@@ -1,6 +1,6 @@
 from pytest import raises, fixture
 from hoomd.logging import (
-    _LoggerQuantity, SafeNamespaceDict, Logger, dict_map, Loggable, TypeFlags,
+    _LoggerQuantity, SafeNamespaceDict, Logger, dict_map, Loggable, LoggerCategories,
     log)
 
 
@@ -16,8 +16,8 @@ def dummy_namespace():
 # ------- Test _LoggerQuantity
 class TestLoggerQuantity:
     def test_initialization(self, dummy_namespace):
-        logquant = _LoggerQuantity('foo', DummyNamespace, flag='particle')
-        assert logquant.flag == TypeFlags['particle']
+        logquant = _LoggerQuantity('foo', DummyNamespace, category='particle')
+        assert logquant.category == LoggerCategories['particle']
         assert logquant.name == 'foo'
         assert logquant.namespace == dummy_namespace
 
@@ -46,7 +46,7 @@ class DummyLoggable(metaclass=Loggable):
     def prop(self):
         return 1
 
-    @log(flag='sequence')
+    @log(category='sequence')
     def proplist(self):
         return [1, 2, 3]
 
@@ -77,11 +77,11 @@ class TestLoggableMetaclass():
                    ) == set(loggable_list)
         expected_namespace = _LoggerQuantity._generate_namespace(
             self.dummy_loggable)
-        expected_flags = ['scalar', 'sequence']
-        for loggable, flag in zip(loggable_list, expected_flags):
+        expected_categories = ['scalar', 'sequence']
+        for loggable, category in zip(loggable_list, expected_categories):
             log_quantity = self.dummy_loggable._export_dict[loggable]
             assert log_quantity.namespace == expected_namespace
-            assert log_quantity.flag == TypeFlags[flag]
+            assert log_quantity.category == LoggerCategories[category]
             assert log_quantity.name == loggable
 
     def test_loggable_inherentence(self):
@@ -211,7 +211,7 @@ class TestLogger:
         log_value = blank_logger[namespace]
         assert log_value.obj is None
         assert log_value.attr == log_quantity.name
-        assert log_value.flag == log_quantity.flag
+        assert log_value.category == log_quantity.category
         blank_logger._add_single_quantity([], log_quantity)
         namespace = log_quantity.namespace[:-1] + \
             (log_quantity.namespace[-1] + '_1', log_quantity.name)
@@ -265,22 +265,22 @@ class TestLogger:
         assert all([ens in blank_logger for ens in expected_namespaces])
         assert len(blank_logger) == 2
 
-        # Test with flag
+        # Test with category
         blank_logger._dict = dict()
-        blank_logger._flags = TypeFlags['scalar']
+        blank_logger._categories = LoggerCategories['scalar']
         namespaces = blank_logger.add(logged_obj)
         expected_namespace = base_namespace + ('prop',)
         assert set(namespaces) == set([expected_namespace])
         assert expected_namespace in blank_logger
         assert len(blank_logger) == 1
 
-    def test_add_with_flags(self, blank_logger, logged_obj, base_namespace):
-        blank_logger._flags = TypeFlags['scalar']
+    def test_add_with_categories(self, blank_logger, logged_obj, base_namespace):
+        blank_logger._categories = LoggerCategories['scalar']
         # Test adding everything should filter non-scalar
         namespaces = blank_logger.add(logged_obj)
         expected_namespace = base_namespace + ('prop',)
         assert set(namespaces) == set([expected_namespace])
-        blank_logger._flags = TypeFlags['sequence']
+        blank_logger._categories = LoggerCategories['sequence']
         expected_namespace = base_namespace + ('proplist',)
         namespaces = blank_logger.add(logged_obj)
         assert expected_namespace in blank_logger
