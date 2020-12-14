@@ -3245,7 +3245,7 @@ unsigned int ParticleData::addType(const std::string& type_name)
     m_num_types_signal.emit();
 
     // return id of newly added type
-    return (unsigned int)(m_type_mapping.size() - 1);
+    return (m_type_mapping.size() - 1);
     }
 
 template <class Real>
