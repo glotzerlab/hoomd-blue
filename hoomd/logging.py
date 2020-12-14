@@ -137,7 +137,7 @@ class _LoggerQuantity:
                              "LoggerCategories or a LoggerCategories object.")
         self.default = bool(default)
 
-    def yield_names(self):
+    def yield_names(self, user_name=None):
         """Infinitely yield potential namespaces.
 
         Used to ensure that all namespaces are unique for a
@@ -147,10 +147,13 @@ class _LoggerQuantity:
         Yields:
             tuple[str]: A potential namespace for the object.
         """
-        yield self.namespace + (self.name,)
+        if user_name is None:
+            namespace = self.namespace
+        else:
+            namespace = self.namespace[:-1] + (user_name,)
+        yield namespace + (self.name,)
         for i in count(start=1, step=1):
-            yield self.namespace[:-1] + \
-                (self.namespace[-1] + '_' + str(i), self.name)
+            yield namespace[:-1] + (namespace[-1] + '_' + str(i), self.name)
 
     def update_cls(self, cls):
         """Allow updating the class/namespace of the object.
@@ -473,22 +476,31 @@ class Logger(SafeNamespaceDict):
     arguments). Both of these are static meaning that once instantiated a
     `Logger` object will not change the values of these two properties.
     ``categories`` determines what if any types of loggable quantities (see
-    `hoomd.logging.LoggerCategories`) are appropriate for a given `Logger` object. This
-    helps logging back ends determine if a `Logger` object is compatible. The
-    ``only_default`` flag is mainly a convenience by allowing quantities not
-    commonly logged (but available) to be passed over unless explicitly asked
-    for. You can override the ``only_default`` flag by explicitly listing the
-    quantities you want in `Logger.add`, but the same is not true with regards
-    to ``categories``.
+    `hoomd.logging.LoggerCategories`) are appropriate for a given `Logger`
+    object. This helps logging back ends determine if a `Logger` object is
+    compatible. The ``only_default`` flag is mainly a convenience by allowing
+    quantities not commonly logged (but available) to be passed over unless
+    explicitly asked for. You can override the ``only_default`` flag by
+    explicitly listing the quantities you want in `Logger.add`, but the same is
+    not true with regards to ``categories``.
 
     Note:
         The logger provides a way for users to create their own logger back ends
         if they wish. In making a custom logger back end, understanding the
         intermediate representation is key. To get an introduction see
         `hoomd.logging.Logger.log`. To understand the various categories
-        available to specify logged quantities, see `hoomd.logging.LoggerCategories`.
-        To integrate with `hoomd.Operations` the back end should be a subclass
-        of `hoomd.custom.Action` and used with `hoomd.writer.CustomWriter`.
+        available to specify logged quantities, see
+        `hoomd.logging.LoggerCategories`.  To integrate with `hoomd.Operations`
+        the back end should be a subclass of `hoomd.custom.Action` and used with
+        `hoomd.writer.CustomWriter`.
+
+    Note:
+        When logging multiple instances of the same class `Logger.add` provides
+        a means of specifying the class level of the namespace (e.g. ``'LJ`` in
+        ``('md', 'pair', 'LJ')``). The default behavior (without specifying a
+        user name) is to just append ``_{num}`` where ``num`` is the smallest
+        positive integer which makes the full namespace unique. This appending
+        will also occur for user specified names that are reused.
 
     Args:
         categories (`list` of `str`, optional): A list of string categories
@@ -548,24 +560,26 @@ class Logger(SafeNamespaceDict):
             yield from self._filter_quantities(
                 map(lambda q: obj._export_dict[q], quantities))
 
-    def add(self, obj, quantities=None):
-        """Add loggables from obj to logger. Returns the used namespaces.
+    def add(self, obj, quantities=None, user_name=None):
+        """Add loggables from obj to logger.
 
         Args:
             obj (object of class of type ``Loggable``): class of type loggable
                 to add loggable quantities from.
             quantities (Sequence[str]): list of str names of quantities to log.
+            user_name (str, optional): A string to replace the class name in the
+                loggable quantities namespace. This allows for easier
+                differentiation in the output of the `Logger` and any `Writer`
+                which outputs its data.
 
         Returns:
             list[tuple[str]]: A list of namespaces that were
                 added to the logger.
         """
-        used_namespaces = []
         for quantity in self._get_loggables_by_name(obj, quantities):
-            used_namespaces.append(self._add_single_quantity(obj, quantity))
-        return used_namespaces
+            self._add_single_quantity(obj, quantity, user_name)
 
-    def remove(self, obj=None, quantities=None):
+    def remove(self, obj=None, quantities=None, user_name=None):
         """Remove specified quantities from the logger.
 
         Args:
@@ -578,7 +592,9 @@ class Logger(SafeNamespaceDict):
                 from the logger. If specified with ``obj`` only remove
                 quantities listed that are exposed from ``obj``. If ``obj`` is
                 None, then ``quantities`` must be given.
-
+            user_name (str): A user name to specify the final entry in the
+                namespace of the object. This must be used in ``user_name`` was
+                specified in `Logger.add`.
         """
         if obj is None and quantities is None:
             raise ValueError(
@@ -591,7 +607,7 @@ class Logger(SafeNamespaceDict):
         else:
             for quantity in self._get_loggables_by_name(obj, quantities):
                 # Check all currently used namespaces for object's quantities.
-                for namespace in quantity.yield_names():
+                for namespace in quantity.yield_names(user_name):
                     if namespace in self:
                         if self._contains_obj(namespace, obj):
                             del self[namespace]
@@ -601,20 +617,18 @@ class Logger(SafeNamespaceDict):
                     else:
                         break
 
-    def _add_single_quantity(self, obj, quantity):
+    def _add_single_quantity(self, obj, quantity, user_name):
         '''If quantity for obj is not logged add to first available namespace.
         '''
-        for namespace in quantity.yield_names():
+        for namespace in quantity.yield_names(user_name):
             if namespace in self:
                 # Check if the quantity is already logged by the same object
                 if self._contains_obj(namespace, obj):
-                    return namespace
-                else:
-                    continue
+                    return None
             else:
                 self[namespace] = _LoggerEntry.from_logger_quantity(
                     obj, quantity)
-                return namespace
+                return None
 
     def __setitem__(self, namespace, value):
         """Allows user specified loggable quantities.

@@ -34,6 +34,8 @@ class TestLoggerQuantity:
                     dummy_namespace[-1] and given_namespace[-1] == name
             else:
                 break
+        user_defined_namespace = next(quantity.yield_names('USER'))
+        assert user_defined_namespace == dummy_namespace[:-1] + ('USER', name)
 
     def test_generate_namespace(self):
         assert _LoggerQuantity._generate_namespace(TestLoggerQuantity) == \
@@ -205,14 +207,14 @@ class TestLogger:
             logger['a'] = (lambda: [1, 2, 3], 'sequence')
 
     def test_add_single_quantity(self, blank_logger, log_quantity):
-        blank_logger._add_single_quantity(None, log_quantity)
+        blank_logger._add_single_quantity(None, log_quantity, None)
         namespace = log_quantity.namespace + (log_quantity.name,)
         assert namespace in blank_logger
         log_value = blank_logger[namespace]
         assert log_value.obj is None
         assert log_value.attr == log_quantity.name
         assert log_value.category == log_quantity.category
-        blank_logger._add_single_quantity([], log_quantity)
+        blank_logger._add_single_quantity([], log_quantity, None)
         namespace = log_quantity.namespace[:-1] + \
             (log_quantity.namespace[-1] + '_1', log_quantity.name)
         assert namespace in blank_logger
