@@ -35,11 +35,12 @@ class distance(ConstraintForce):
     The constraint algorithm implemented is described in:
 
      * [1] M. Yoneya, H. J. C. Berendsen, and K. Hirasawa, "A Non-Iterative
-        Matrix Method for Constraint Molecular Dynamics Simulations," Mol. Simul.,
-        vol. 13, no. 6, pp. 395--405, 1994.
+     Matrix Method for Constraint Molecular Dynamics Simulations," Mol. Simul.,
+     vol. 13, no. 6, pp. 395--405, 1994.
+
      * [2] M. Yoneya, "A Generalized Non-iterative Matrix Method for Constraint
-        Molecular Dynamics Simulations," J. Comput. Phys., vol. 172, no. 1, pp.
-        188--197, Sep. 2001.
+     Molecular Dynamics Simulations," J. Comput. Phys., vol. 172, no. 1, pp.
+     188--197, Sep. 2001.
 
     In brief, the second derivative of the Lagrange multipliers with respect to
     time is set to zero, such that both the distance constraints and their time
@@ -97,7 +98,7 @@ class distance(ConstraintForce):
             self.cpp_force.setRelativeTolerance(float(rel_tol))
 
 
-class rigid(ConstraintForce):
+class Rigid(ConstraintForce):
     R"""Constrain particles in rigid bodies.
 
     .. rubric:: Overview
@@ -112,10 +113,10 @@ class rigid(ConstraintForce):
     orientation quaternion defines the rotation from the body space into the
     simulation box. In body space, the center of mass of the body is at 0,0,0
     and the moment of inertia is diagonal. You specify the constituent particles
-    to :py:class:`rigid` for each type of body in body coordinates. Then,
-    :py:class:`rigid` takes control of those particles, and sets their position
+    to :py:class:`Rigid` for each type of body in body coordinates. Then,
+    :py:class:`Rigid` takes control of those particles, and sets their position
     and orientation in the simulation box relative to the position and
-    orientation of the central particle. :py:class:`rigid` also transfers forces
+    orientation of the central particle. :py:class:`Rigid` also transfers forces
     and torques from constituent particles to the central particle. Then, MD
     integrators can use these forces and torques to integrate the equations of
     motion of the central particles (representing the whole rigid body) forward
@@ -123,7 +124,7 @@ class rigid(ConstraintForce):
 
     .. rubric:: Defining bodies
 
-    :py:class:`rigid` accepts one local body environment per body type. The
+    :py:class:`Rigid` accepts one local body environment per body type. The
     type of a body is the particle type of the central particle in that body.
     In this way, each particle of type *R* in the system configuration defines
     a body of type *R*.
@@ -136,9 +137,9 @@ class rigid(ConstraintForce):
     file are left unchanged).
 
     .. danger:: Automatic creation of constituent particles can change particle
-    tags. If bonds have been defined between particles in the initial
-    configuration, or bonds connect to constituent particles, rigid bodies
-    should be created manually.
+        tags. If bonds have been defined between particles in the initial
+        configuration, or bonds connect to constituent particles, rigid bodies
+        should be created manually.
 
     When you create the constituent particles manually (i.e. in an input file
     or with snapshots), the central particle of a rigid body must have a lower
@@ -154,7 +155,7 @@ class rigid(ConstraintForce):
     to verify that the bodies are defined and prepare the constraint.
 
     You must call either :py:meth:`create_bodies` or :py:meth:`validate_bodies`
-    prior to starting a simulation ```hoomd.run```.
+    prior to starting a simulation :py:meth:`hoomd.Simulation.run`.
 
     .. rubric:: Integrating bodies
 
@@ -168,25 +169,27 @@ class rigid(ConstraintForce):
         rigid = hoomd.group.rigid_center()
         hoomd.md.integrate.langevin(group=rigid, kT=1.0, seed=42)
 
+
     .. rubric:: Thermodynamic quantities of bodies
 
     HOOMD computes thermodynamic quantities (temperature, kinetic energy,
     etc...) appropriately when there are rigid bodies present in the system.
     When it does so, it ignores all constituent particles and computes the
     translational and rotational energies of the central particles, which
-    represent the whole body. ``hoomd.analyze.log`` can log the translational
-    and rotational energy terms separately.
+    represent the whole body. :py:meth:`hoomd.logging.log` can log the
+    translational and rotational energy terms separately.
 
     .. rubric:: Restarting simulations with rigid bodies.
 
-    To restart, use :py:class:`hoomd.dump.GSD` to write restart files. GSD
+    To restart, use :py:class:`hoomd.write.GSD` to write restart files. GSD
     stores all of the particle data fields needed to reconstruct the state of
     the system, including the body tag, rotational momentum, and orientation of
     the body. Restarting from a gsd file is equivalent to manual constituent
     particle creation. You still need to specify the same local body space
-    environment to :py:class:`rigid` as you did in the earlier simulation.
+    environment to :py:class:`Rigid` as you did in the earlier simulation.
 
     """
+
     _cpp_class_name = "ForceComposite"
     def set_param(
         self,

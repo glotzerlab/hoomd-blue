@@ -113,7 +113,7 @@ class Integrator(_DynamicIntegrator):
             (bool), default 'auto' (autodetect if there is anisotropic factor
             from any defined active or constraint forces).
 
-        constraints (Sequence[hoomd.md.constrain.ConstraintForce]): Sequence of
+        constraints (Sequence[hoomd.md.force.ConstraintForce]): Sequence of
             constraint forces applied to the particles in the system.
             The default value of ``None`` initializes an empty list.
 
@@ -166,7 +166,7 @@ class Integrator(_DynamicIntegrator):
 
         aniso (str): Whether rotational degrees of freedom are integrated.
 
-        constraints (List[hoomd.md.constrain.ConstraintForce]): List of
+        constraints (List[hoomd.md.force.ConstraintForce]): List of
             constraint forces applied to the particles in the system.
     """
 
