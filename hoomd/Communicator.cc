@@ -247,8 +247,8 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
 
                 MPI_Isend(&n_send_groups[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_comm.m_mpi_comm, & req[nreq++]);
                 MPI_Irecv(&n_recv_groups[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_comm.m_mpi_comm, & req[nreq++]);
-                send_bytes += sizeof(unsigned int);
-                recv_bytes += sizeof(unsigned int);
+                send_bytes += (unsigned int)sizeof(unsigned int);
+                recv_bytes += (unsigned int)sizeof(unsigned int);
                 } // end neighbor loop
 
             MPI_Waitall(nreq, req, stat);
@@ -530,8 +530,8 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
 
                 MPI_Isend(&n_send_groups[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_comm.m_mpi_comm, & req[nreq++]);
                 MPI_Irecv(&n_recv_groups[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_comm.m_mpi_comm, & req[nreq++]);
-                send_bytes += sizeof(unsigned int);
-                recv_bytes += sizeof(unsigned int);
+                send_bytes += (unsigned int)sizeof(unsigned int);
+                recv_bytes += (unsigned int)sizeof(unsigned int);
                 } // end neighbor loop
 
             MPI_Waitall(nreq, req, stat);

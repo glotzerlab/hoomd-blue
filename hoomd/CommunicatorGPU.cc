@@ -594,8 +594,8 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
 
                 MPI_Isend(&n_send_groups[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_gpu_comm.m_mpi_comm, & req[nreq++]);
                 MPI_Irecv(&n_recv_groups[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_gpu_comm.m_mpi_comm, & req[nreq++]);
-                send_bytes += sizeof(unsigned int);
-                recv_bytes += sizeof(unsigned int);
+                send_bytes += (unsigned int)sizeof(unsigned int);
+                recv_bytes += (unsigned int)sizeof(unsigned int);
                 } // end neighbor loop
 
             MPI_Waitall(nreq, req, stat);
@@ -873,8 +873,8 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
 
                 MPI_Isend(&n_send_groups[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_gpu_comm.m_mpi_comm, & req[nreq++]);
                 MPI_Irecv(&n_recv_groups[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_gpu_comm.m_mpi_comm, & req[nreq++]);
-                send_bytes += sizeof(unsigned int);
-                recv_bytes += sizeof(unsigned int);
+                send_bytes += (unsigned int)sizeof(unsigned int);
+                recv_bytes += (unsigned int)sizeof(unsigned int);
                 } // end neighbor loop
 
             MPI_Waitall(nreq, req, stat);
@@ -1231,8 +1231,8 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
                     MPI_Isend(&n_send_ghost_groups[stage][ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_gpu_comm.m_mpi_comm, & req[nreq++]);
                     MPI_Irecv(&n_recv_ghost_groups[stage][ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_gpu_comm.m_mpi_comm, & req[nreq++]);
 
-                    send_bytes += sizeof(unsigned int);
-                    recv_bytes += sizeof(unsigned int);
+                    send_bytes += (unsigned int)sizeof(unsigned int);
+                    recv_bytes += (unsigned int)sizeof(unsigned int);
                     }
 
                 MPI_Waitall(nreq, req, stat);
@@ -1603,8 +1603,8 @@ void CommunicatorGPU::migrateParticles()
 
                 MPI_Isend(&n_send_ptls[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, & req[nreq++]);
                 MPI_Irecv(&n_recv_ptls[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, & req[nreq++]);
-                send_bytes += sizeof(unsigned int);
-                recv_bytes += sizeof(unsigned int);
+                send_bytes += (unsigned int)sizeof(unsigned int);
+                recv_bytes += (unsigned int)sizeof(unsigned int);
                 } // end neighbor loop
 
             MPI_Waitall(nreq, req, stat);
@@ -2009,8 +2009,8 @@ void CommunicatorGPU::exchangeGhosts()
                 MPI_Isend(&m_n_send_ghosts[stage][ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, & req[nreq++]);
                 MPI_Irecv(&m_n_recv_ghosts[stage][ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, & req[nreq++]);
 
-                send_bytes += sizeof(unsigned int);
-                recv_bytes += sizeof(unsigned int);
+                send_bytes += (unsigned int)sizeof(unsigned int);
+                recv_bytes += (unsigned int)sizeof(unsigned int);
                 }
 
             MPI_Waitall(nreq, req, stat);
