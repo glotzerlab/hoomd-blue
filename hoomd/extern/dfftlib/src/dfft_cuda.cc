@@ -650,7 +650,7 @@ void dfft_cuda_redistribute_cyclic_to_block_1d(int *dim,
                 }
 
             /* we are sending from a tmp buffer/stride */
-            dfft_offset_send[destproc] = offset*sizeof(cuda_cpx_t)*stride;
+            dfft_offset_send[destproc] = (unsigned int)(offset*sizeof(cuda_cpx_t)*stride);
             int n = dfft_nsend[destproc]/stride/sizeof(cuda_cpx_t);
             offset += n;
             }
@@ -752,7 +752,7 @@ void cuda_mpifft1d_dif(int *dim,
         /* apply twiddle factors */
         double alpha = ((double)(pidx[current_dim] %c))/(double)c;
 
-        gpu_twiddle(size, length, stride, alpha, d_out, d_in, inverse);
+        gpu_twiddle(size, length, stride, float(alpha), d_out, d_in, inverse);
         if (check_err) CHECK_CUDA();
 
         /* in-place redistribute from group-cyclic c -> c1 */
@@ -880,7 +880,7 @@ void cuda_fftnd_multi(dfft_plan *p,
             for (i =0; i < p->ndim; ++i)
                 {
                 if (p->depth[i] > d)
-                    p->h_alpha[d][i] = ((double)(p->pidx[i] % p->c0[d][i]))/(double)p->c0[d][i];
+                    p->h_alpha[d][i] = float(((double)(p->pidx[i] % p->c0[d][i]))/(double)p->c0[d][i]);
                 else
                     p->h_alpha[d][i] = 0.0;
                 }

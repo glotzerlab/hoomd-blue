@@ -417,9 +417,9 @@ uint3 PPPMForceCompute::computeGhostCellNum()
         Scalar3 cell_width = box.getNearestPlaneDistance() /
             make_scalar3(m_mesh_points.x, m_mesh_points.y, m_mesh_points.z);
 
-        if (n_ghost_cells.x) n_ghost_cells.x += r_buff/cell_width.x + 1;
-        if (n_ghost_cells.y) n_ghost_cells.y += r_buff/cell_width.y + 1;
-        if (n_ghost_cells.z) n_ghost_cells.z += r_buff/cell_width.z + 1;
+        if (n_ghost_cells.x) n_ghost_cells.x += (unsigned int)(r_buff/cell_width.x) + 1;
+        if (n_ghost_cells.y) n_ghost_cells.y += (unsigned int)(r_buff/cell_width.y) + 1;
+        if (n_ghost_cells.z) n_ghost_cells.z += (unsigned int)(r_buff/cell_width.z) + 1;
         }
     #endif
     return n_ghost_cells;

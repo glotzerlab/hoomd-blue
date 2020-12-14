@@ -343,10 +343,10 @@ void dfft_redistribute_cyclic_to_block_1d(int *dim,
 
             int rank = proc_map[destproc];
 
-            int j1_offset = dfft_offset_send[rank]/sizeof(cpx_t)/stride;
+            int j1_offset = int(dfft_offset_send[rank]/sizeof(cpx_t)/stride);
 
             /* we are sending from a tmp buffer/stride */
-            dfft_offset_send[rank] = offset*sizeof(cpx_t)*stride;
+            dfft_offset_send[rank] = int(offset*sizeof(cpx_t)*stride);
             int n = dfft_nsend[rank]/stride/sizeof(cpx_t);
             int j;
             for (j = 0; j < n; j++)
@@ -456,11 +456,11 @@ void mpifft1d_dif(int *dim,
             {
             double theta = -(double)2.0 * (double)M_PI * alpha/(double) length;
             cpx_t w;
-            RE(w) = cos((double)j*theta);
-            IM(w) = sin((double)j*theta);
+            RE(w) = float(cos((double)j*theta));
+            IM(w) = float(sin((double)j*theta));
 
             double sign = ((inverse) ? (-1.0) : 1.0);
-            IM(w) *=sign;
+            IM(w) *= float(sign);
 
             int r;
             for (r = 0; r < stride; ++r)

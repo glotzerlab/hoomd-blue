@@ -546,7 +546,7 @@ hipError_t gpu_compute_thermo_partial(Scalar *d_properties,
         dim3 grid(nwork/args.block_size+1, 1, 1);
         dim3 threads(args.block_size, 1, 1);
 
-        unsigned int shared_bytes = sizeof(Scalar3)*args.block_size;
+        unsigned int shared_bytes = (unsigned int)(sizeof(Scalar3)*args.block_size);
 
         hipLaunchKernelGGL(gpu_compute_thermo_partial_sums, dim3(grid), dim3(threads), shared_bytes, 0, args.d_scratch,
                                                                         args.d_net_force,
@@ -649,7 +649,7 @@ hipError_t gpu_compute_thermo_final(Scalar *d_properties,
     dim3 grid = dim3(1, 1, 1);
     dim3 threads = dim3(final_block_size, 1, 1);
 
-    unsigned int shared_bytes = sizeof(Scalar4)*final_block_size;
+    unsigned int shared_bytes = (unsigned int)(sizeof(Scalar4)*final_block_size);
 
     Scalar external_virial = Scalar(1.0/3.0)*(args.external_virial_xx
                              + args.external_virial_yy
@@ -669,7 +669,7 @@ hipError_t gpu_compute_thermo_final(Scalar *d_properties,
 
     if (compute_pressure_tensor)
         {
-        shared_bytes = 6 * sizeof(Scalar) * final_block_size;
+        shared_bytes = (unsigned int)(6 * sizeof(Scalar) * final_block_size);
         // run the kernel
         hipLaunchKernelGGL(gpu_compute_pressure_tensor_final_sums, dim3(grid), dim3(threads), shared_bytes, 0, d_properties,
                                                                                args.d_scratch_pressure_tensor,

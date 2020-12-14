@@ -162,7 +162,7 @@ gpu_sort_by_molecule(unsigned int nptl,
         NO_MOLECULE);
     if (check_cuda) CHECK_CUDA();
 
-    n_local_ptls_in_molecules = end - local_molecule_tags;
+    n_local_ptls_in_molecules = (unsigned int)(end - local_molecule_tags);
 
     // gather unique molecule tags, and reduce their lengths by key
     thrust::constant_iterator<unsigned int> one(1);

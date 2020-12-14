@@ -808,7 +808,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
         return hoomd::RandomGenerator(this->m_seed,
             timestep,
             this->m_exec_conf->getRank(),
-            hash(std::this_thread::get_id()),
+            (uint32_t)(hash(std::this_thread::get_id())),
             hoomd::RNGIdentifier::HPMCDepletants);
         });
     #endif

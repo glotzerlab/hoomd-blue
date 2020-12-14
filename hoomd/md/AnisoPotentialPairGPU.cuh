@@ -438,9 +438,9 @@ struct AnisoPairForceComputeKernel
             unsigned int block_size = pair_args.block_size;
 
             Index2D typpair_idx(pair_args.ntypes);
-            unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type))
+            unsigned int shared_bytes = (unsigned int)((2*sizeof(Scalar) + sizeof(typename evaluator::param_type))
                                         * typpair_idx.getNumElements() +
-                                        sizeof(typename evaluator::shape_param_type) * pair_args.ntypes;
+                                        sizeof(typename evaluator::shape_param_type) * pair_args.ntypes);
 
             static unsigned int max_block_size = UINT_MAX;
             hipFuncAttributes attr;
@@ -455,9 +455,9 @@ struct AnisoPairForceComputeKernel
 
             static unsigned int base_shared_bytes = UINT_MAX;
             bool shared_bytes_changed = base_shared_bytes != shared_bytes + attr.sharedSizeBytes;
-            base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
+            base_shared_bytes = (unsigned int)(shared_bytes + attr.sharedSizeBytes);
 
-            unsigned int max_extra_bytes = pair_args.devprop.sharedMemPerBlock - base_shared_bytes;
+            unsigned int max_extra_bytes = (unsigned int)(pair_args.devprop.sharedMemPerBlock - base_shared_bytes);
             static unsigned int extra_bytes = UINT_MAX;
             if (extra_bytes == UINT_MAX || pair_args.update_shape_param || shared_bytes_changed)
                 {

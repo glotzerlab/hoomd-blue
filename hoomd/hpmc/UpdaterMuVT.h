@@ -370,7 +370,7 @@ unsigned int UpdaterMuVT<Shape>::getNthTypeTag(unsigned int type, unsigned int t
     if (m_pdata->getDomainDecomposition())
         {
         // get number of particles of given type
-        unsigned int nptl = m_type_map[type].size();
+        unsigned int nptl = (unsigned int)(m_type_map[type].size());
 
         // have to initialize correctly for prefix sum
         unsigned int begin_offs=0;
@@ -1101,7 +1101,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                     std::string type_name = m_pdata->getNameByType(type);
 
                     // send particle type to other rank
-                    unsigned int n = type_name.size()+1;
+                    unsigned int n = (unsigned int)(type_name.size()+1);
                     MPI_Send(&n, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator());
                     char s[n];
                     memcpy(s,type_name.c_str(),n);
@@ -2040,7 +2040,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoNewPosition(unsigned int timestep, un
 
                 unsigned int err_count = 0;
                 // All image boxes (including the primary)
-                const unsigned int n_images = image_list.size();
+                const unsigned int n_images = (unsigned int)(image_list.size());
                 for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                     {
                     vec3<Scalar> pos_test_image = pos_test + image_list[cur_image];
@@ -2210,7 +2210,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoOldPosition(unsigned int timestep, un
 
                 unsigned int err_count = 0;
                 // All image boxes (including the primary)
-                const unsigned int n_images = image_list.size();
+                const unsigned int n_images = (unsigned int)(image_list.size());
                 for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                     {
                     vec3<Scalar> pos_test_image = pos_test + image_list[cur_image];

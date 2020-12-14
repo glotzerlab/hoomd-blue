@@ -151,7 +151,7 @@ unsigned int gpu_load_balance_select_off_rank(unsigned int *d_off_rank,
     if (N == 0) return 0;
 
     unsigned int* last = thrust::copy_if(thrust::device, d_ranks, d_ranks+N, d_off_rank, NotEqual(cur_rank));
-    return (last-d_off_rank);
+    return (unsigned int)(last-d_off_rank);
     }
 
 #endif // ENABLE_MPI

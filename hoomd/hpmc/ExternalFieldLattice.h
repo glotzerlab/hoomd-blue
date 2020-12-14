@@ -304,8 +304,8 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
                 {
                 python_list_to_vector_scalar3(r0, lattice_positions, ndim);
                 python_list_to_vector_scalar4(q0, lattice_orientations);
-                psz = lattice_positions.size();
-                qsz = lattice_orientations.size();
+                psz = (unsigned int)lattice_positions.size();
+                qsz = (unsigned int)lattice_orientations.size();
                 }
             if( this->m_pdata->getDomainDecomposition())
                 {

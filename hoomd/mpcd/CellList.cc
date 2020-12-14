@@ -202,21 +202,21 @@ void mpcd::CellList::computeDimensions()
 
         // setup lo bin
         const Scalar3 delta_lo = box.getLo() - global_lo;
-        int3 my_lo_bin = make_int3(std::floor((delta_lo.x - m_max_grid_shift) / m_cell_size),
-                                   std::floor((delta_lo.y - m_max_grid_shift) / m_cell_size),
-                                   std::floor((delta_lo.z - m_max_grid_shift) / m_cell_size));
-        int3 lo_neigh_bin = make_int3(std::ceil((delta_lo.x + m_max_grid_shift) / m_cell_size),
-                                      std::ceil((delta_lo.y + m_max_grid_shift) / m_cell_size),
-                                      std::ceil((delta_lo.z + m_max_grid_shift) / m_cell_size));
+        int3 my_lo_bin = make_int3((int)std::floor((delta_lo.x - m_max_grid_shift) / m_cell_size),
+                                   (int)std::floor((delta_lo.y - m_max_grid_shift) / m_cell_size),
+                                   (int)std::floor((delta_lo.z - m_max_grid_shift) / m_cell_size));
+        int3 lo_neigh_bin = make_int3((int)std::ceil((delta_lo.x + m_max_grid_shift) / m_cell_size),
+                                      (int)std::ceil((delta_lo.y + m_max_grid_shift) / m_cell_size),
+                                      (int)std::ceil((delta_lo.z + m_max_grid_shift) / m_cell_size));
 
         // setup hi bin
         const Scalar3 delta_hi = box.getHi() - global_lo;
-        int3 my_hi_bin = make_int3(std::ceil((delta_hi.x + m_max_grid_shift) / m_cell_size),
-                                   std::ceil((delta_hi.y + m_max_grid_shift) / m_cell_size),
-                                   std::ceil((delta_hi.z + m_max_grid_shift) / m_cell_size));
-        int3 hi_neigh_bin = make_int3(std::floor((delta_hi.x - m_max_grid_shift) / m_cell_size),
-                                      std::floor((delta_hi.y - m_max_grid_shift) / m_cell_size),
-                                      std::floor((delta_hi.z - m_max_grid_shift) / m_cell_size));
+        int3 my_hi_bin = make_int3((int)std::ceil((delta_hi.x + m_max_grid_shift) / m_cell_size),
+                                   (int)std::ceil((delta_hi.y + m_max_grid_shift) / m_cell_size),
+                                   (int)std::ceil((delta_hi.z + m_max_grid_shift) / m_cell_size));
+        int3 hi_neigh_bin = make_int3((int)std::floor((delta_hi.x - m_max_grid_shift) / m_cell_size),
+                                      (int)std::floor((delta_hi.y - m_max_grid_shift) / m_cell_size),
+                                      (int)std::floor((delta_hi.z - m_max_grid_shift) / m_cell_size));
 
         // initially size the grid assuming one rank in each direction, and then resize based on communication
         m_cell_dim = m_global_cell_dim;

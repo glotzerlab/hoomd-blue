@@ -82,7 +82,8 @@
             "*.cuh": "cpp",
             "*.in": "cpp",
             "cfenv": "cpp",
-            "fft": "cpp"
+            "fft": "cpp",
+            "__nullptr": "cpp"
         },
         "cSpell.words": [
             "Frenkel",

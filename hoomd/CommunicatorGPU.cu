@@ -390,7 +390,7 @@ void gpu_make_ghost_exchange_plan(unsigned int *d_plan,
 
     unsigned int block_size = 256;
     unsigned int n_blocks = N/block_size + 1;
-    unsigned int shared_bytes = 2 *sizeof(Scalar3) * ntypes;
+    unsigned int shared_bytes = (unsigned int)(2 *sizeof(Scalar3) * ntypes);
 
     hipLaunchKernelGGL(gpu_make_ghost_exchange_plan_kernel, dim3(n_blocks), dim3(block_size), shared_bytes, 0,
         N,

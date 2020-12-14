@@ -859,7 +859,7 @@ void get_max_block_size(T func, const tersoff_args_t& pair_args, unsigned int& m
     max_block_size = attr.maxThreadsPerBlock;
     max_block_size &= ~(pair_args.devprop.warpSize - 1);
 
-    kernel_shared_bytes = attr.sharedSizeBytes;
+    kernel_shared_bytes = (unsigned int)(attr.sharedSizeBytes);
     }
 
 //! Tersoff compute kernel launcher
@@ -893,15 +893,15 @@ struct TersoffComputeKernel
 
             // size shared bytes
             Index2D typpair_idx(pair_args.ntypes);
-            unsigned int shared_bytes = (sizeof(Scalar) + sizeof(typename evaluator::param_type))
-                                        * typpair_idx.getNumElements() + pair_args.ntypes*run_block_size*sizeof(Scalar);
+            unsigned int shared_bytes = (unsigned int)((sizeof(Scalar) + sizeof(typename evaluator::param_type))
+                                        * typpair_idx.getNumElements() + pair_args.ntypes*run_block_size*sizeof(Scalar));
 
             while (shared_bytes + kernel_shared_bytes >= pair_args.devprop.sharedMemPerBlock)
                 {
                 run_block_size -= pair_args.devprop.warpSize;
 
-                shared_bytes = (sizeof(Scalar) + sizeof(typename evaluator::param_type))
-                               * typpair_idx.getNumElements() + pair_args.ntypes*run_block_size*sizeof(Scalar);
+                shared_bytes = (unsigned int)((sizeof(Scalar) + sizeof(typename evaluator::param_type))
+                               * typpair_idx.getNumElements() + pair_args.ntypes*run_block_size*sizeof(Scalar));
                 }
 
             // zero the forces

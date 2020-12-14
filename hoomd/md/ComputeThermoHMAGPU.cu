@@ -274,7 +274,7 @@ hipError_t gpu_compute_thermo_hma_partial( Scalar4 *d_pos,
         dim3 grid(nwork/args.block_size+1, 1, 1);
         dim3 threads(args.block_size, 1, 1);
 
-        unsigned int shared_bytes = sizeof(Scalar3)*args.block_size;
+        unsigned int shared_bytes = (unsigned int)(sizeof(Scalar3)*args.block_size);
 
         gpu_compute_thermo_hma_partial_sums<<<grid,threads, shared_bytes>>>(args.d_scratch,
                                                                         box,
@@ -334,7 +334,7 @@ hipError_t gpu_compute_thermo_hma_final(Scalar *d_properties,
     dim3 grid = dim3(1, 1, 1);
     dim3 threads = dim3(final_block_size, 1, 1);
 
-    unsigned int shared_bytes = sizeof(Scalar3)*final_block_size;
+    unsigned int shared_bytes = (unsigned int)(sizeof(Scalar3)*final_block_size);
 
     Scalar external_virial = Scalar(1.0/3.0)*(args.external_virial_xx
                              + args.external_virial_yy

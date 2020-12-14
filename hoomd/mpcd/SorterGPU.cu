@@ -259,7 +259,7 @@ unsigned int sort_cell_compact(unsigned int *d_order,
                                const unsigned int N_mpcd)
     {
     unsigned int* last = thrust::copy_if(thrust::device, d_cell_list, d_cell_list+num_items, d_order, LessThan(N_mpcd));
-    return (last-d_order);
+    return (unsigned int)(last-d_order);
     }
 
 /*!

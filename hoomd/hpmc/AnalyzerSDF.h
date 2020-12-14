@@ -284,7 +284,7 @@ void AnalyzerSDF<Shape>::writeOutput(unsigned int timestep)
 #ifdef ENABLE_MPI
     if (m_comm)
         {
-        MPI_Reduce(&m_hist[0], &hist_total[0], m_hist.size(), MPI_UNSIGNED, MPI_SUM, 0, m_exec_conf->getMPICommunicator());
+        MPI_Reduce(&m_hist[0], &hist_total[0], (unsigned int)m_hist.size(), MPI_UNSIGNED, MPI_SUM, 0, m_exec_conf->getMPICommunicator());
 
         // then all ranks but root stop here
         if (! m_exec_conf->isRoot())

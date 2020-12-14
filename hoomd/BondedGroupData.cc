@@ -1089,7 +1089,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGro
 
         MPI_Status stat;
         MPI_Request req;
-        unsigned int num = send_groups.size();
+        unsigned int num = (unsigned int)send_groups.size();
 
         MPI_Isend(&num, 1, MPI_UNSIGNED, new_rank, 0, m_exec_conf->getMPICommunicator(), &req);
         MPI_Wait(&req, &stat);
@@ -1169,7 +1169,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGro
             if (! is_local)
                 {
                 // append to end of group data
-                unsigned int n = m_groups.size();
+                unsigned int n = (unsigned int)m_groups.size();
                 m_group_tag.push_back(tag);
                 m_groups.push_back(members);
                 m_group_typeval.push_back(typeval);

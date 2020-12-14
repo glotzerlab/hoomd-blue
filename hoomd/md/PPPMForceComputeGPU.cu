@@ -358,7 +358,7 @@ void gpu_assign_particles(const uint3 mesh_dim,
 
         unsigned int nwork = range.second - range.first;
         unsigned int n_blocks = nwork/run_block_size+1;
-        unsigned int shared_bytes = order*(2*order+1)*sizeof(Scalar);
+        unsigned int shared_bytes = (unsigned int)(order*(2*order+1)*sizeof(Scalar));
 
         hipLaunchKernelGGL((gpu_assign_particles_kernel), dim3(n_blocks), dim3(run_block_size), shared_bytes, 0,
               mesh_dim,
@@ -713,7 +713,7 @@ void gpu_compute_forces(const unsigned int N,
 
         unsigned int nwork = range.second - range.first;
         unsigned int n_blocks = nwork/run_block_size+1;
-        unsigned int shared_bytes = order*(2*order+1)*sizeof(Scalar);
+        unsigned int shared_bytes = (unsigned int)(order*(2*order+1)*sizeof(Scalar));
 
         hipLaunchKernelGGL((gpu_compute_forces_kernel), dim3(n_blocks), dim3(run_block_size), shared_bytes, 0, nwork,
                  d_postype,
@@ -825,7 +825,7 @@ void gpu_compute_pe(unsigned int n_wave_vectors,
     {
     unsigned int n_blocks = n_wave_vectors/block_size + 1;
 
-    unsigned int shared_size = block_size * sizeof(Scalar);
+    unsigned int shared_size = (unsigned int)(block_size * sizeof(Scalar));
 
     dim3 grid(n_blocks, 1, 1);
 
@@ -990,7 +990,7 @@ void gpu_compute_virial(unsigned int n_wave_vectors,
     {
     unsigned int n_blocks = n_wave_vectors/block_size + 1;
 
-    unsigned int shared_size = 6* block_size * sizeof(Scalar);
+    unsigned int shared_size = (unsigned int)(6* block_size * sizeof(Scalar));
 
     dim3 grid(n_blocks, 1, 1);
 

@@ -282,7 +282,7 @@ ParticleGroup::ParticleGroup(std::shared_ptr<SystemDefinition> sysdef, const std
     if (m_pdata->getDomainDecomposition())
         {
         // do a simple sanity check
-        unsigned int nptl = member_tags.size();
+        unsigned int nptl = (unsigned int)member_tags.size();
         bcast(nptl, 0, m_exec_conf->getMPICommunicator());
 
         if (nptl != member_tags.size())
