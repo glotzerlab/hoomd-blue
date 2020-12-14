@@ -11,7 +11,10 @@
 #include <thrust/remove.h>
 #include <hipcub/hipcub.hpp>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #include <neighbor/neighbor.h>
+#pragma GCC diagnostic pop
 
 //! Kernel to mark particles by type
 /*!
