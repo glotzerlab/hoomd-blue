@@ -176,6 +176,11 @@ stages:
 
     strategy:
       matrix:
+        cuda11_py38_mng_mpi:
+          container_image: cuda11_gcc9_py38
+          always_use_managed_memory: on
+          enable_mpi: on
+
         cuda10_py37_mpi:
           container_image: cuda10_gcc7_py37
           enable_mpi: on
