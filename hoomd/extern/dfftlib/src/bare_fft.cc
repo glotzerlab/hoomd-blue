@@ -13,11 +13,14 @@ void four1(cpxfloat *in, cpxfloat *out, const int n, const int isign, const int 
 
     /* memcpy, using an out-of-place bit reversal would be more efficient */
     for (i = 0; i < n; ++i)
+        {
         out[i*ostride] = in[i*istride];
+        }
 
     /* bit reversal (in-place) */
 	nn = n << 1;
 	j = 1;
+
 	for (i=1;i<nn;i+=2)
         {
         if (j > i)
