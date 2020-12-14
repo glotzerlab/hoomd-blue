@@ -520,8 +520,8 @@ class Logger(SafeNamespaceDict):
 
     @property
     def categories(self):
-        """`hoomd.logging.LoggerCategories`: The enum representing the acceptable
-            categories for the `Logger` object.
+        """`hoomd.logging.LoggerCategories`: The enum representing the
+        acceptable categories for the `Logger` object.
         """
         return self._categories
 
@@ -567,8 +567,8 @@ class Logger(SafeNamespaceDict):
             obj (object of class of type ``Loggable``): class of type loggable
                 to add loggable quantities from.
             quantities (Sequence[str]): list of str names of quantities to log.
-            user_name (str, optional): A string to replace the class name in the
-                loggable quantities namespace. This allows for easier
+            user_name (`str`, optional): A string to replace the class name in
+                the loggable quantities namespace. This allows for easier
                 differentiation in the output of the `Logger` and any `Writer`
                 which outputs its data.
 
