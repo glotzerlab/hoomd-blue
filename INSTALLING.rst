@@ -180,18 +180,18 @@ Run ``python3 install-prereq-headers.py -h`` to see a list of the command line o
 Compile HOOMD-blue
 ------------------
 
-Configure::
-
-    $ cd /path/to/hoomd-blue
-    $ cmake -B build
-    $ cd build
-
 .. warning::
 
     Make certain you point ``CMAKE_PREFIX_PATH`` at your virtual environment so that CMake can find
     packages there and correctly determine the installation location.::
 
         $ export CMAKE_PREFIX_PATH=/path/to/environment
+
+Configure::
+
+    $ cd /path/to/hoomd-blue
+    $ cmake -B build
+    $ cd build
 
 By default, **HOOMD-blue** configures a *Release* optimized build type for a
 generic CPU architecture and with no optional libraries. Pass these options to cmake
