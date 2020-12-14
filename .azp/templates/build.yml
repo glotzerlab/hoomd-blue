@@ -20,7 +20,7 @@ steps:
       -DCMAKE_INSTALL_PREFIX=$(Pipeline.Workspace)/install
     workingDirectory: $(Build.BinariesDirectory)
 
-- script: make -j 4
+- script: make -j 4 VERBOSE=1
   displayName: Compile
   workingDirectory: $(Build.BinariesDirectory)
 
