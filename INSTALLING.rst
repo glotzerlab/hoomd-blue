@@ -167,7 +167,7 @@ Compile HOOMD-blue
 ------------------
 
 By default, **HOOMD-blue** configures a *Release* optimized build type for a
-generic CPU architecture and with no optional libraries.::
+generic CPU architecture and with no optional libraries::
 
     $ cd /path/to/hoomd-blue
     $ cmake -B build
