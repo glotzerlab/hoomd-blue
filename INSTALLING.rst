@@ -129,9 +129,6 @@ For GPU execution (required when ``ENABLE_GPU=on``):
   For HOOMD-blue on AMD GPUs, the following limitations currently apply.
 
       1. Certain HOOMD-blue kernels trigger a `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
-         A `temporary bugfix branch of HIP <https://github.com/glotzerlab/HIP/tree/hipfuncgetattributes_revertvectortypes>`_
-         addresses these problems. When using a custom HIP version, other libraries used by HOOMD-blue (``rocfft``) need
-         to be compiled against that same HIP version.
       2. The `mpcd` component is disabled on AMD GPUs.
       3. Multi-GPU execution via unified memory is not available.
 
