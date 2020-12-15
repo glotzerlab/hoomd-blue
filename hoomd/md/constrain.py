@@ -247,7 +247,7 @@ class Rigid(ConstraintForce):
             )
 
         if type_name not in type_list:
-            hoomd.context.current.device.cpp_msg.error(
+            self._simulation.device._cpp_msg.error(
                 "Type " "{}" " not found.\n".format(type_name)
             )
             raise RuntimeError(
@@ -257,7 +257,7 @@ class Rigid(ConstraintForce):
         type_id = type_list.index(type_name)
 
         if not isinstance(types, list):
-            hoomd.context.current.device.cpp_msg.error(
+            self._simulation.device._cpp_msg.error(
                 "Expecting list of particle types.\n"
             )
             raise RuntimeError(
@@ -267,7 +267,7 @@ class Rigid(ConstraintForce):
         type_vec = _hoomd.std_vector_uint()
         for t in types:
             if t not in type_list:
-                hoomd.context.current.device.cpp_msg.error(
+                self._simulation.device._cpp_msg.error(
                     "Type " "{}" " not found.\n".format(t)
                 )
                 raise RuntimeError(
@@ -282,7 +282,7 @@ class Rigid(ConstraintForce):
         for p in positions_list:
             p = tuple(p)
             if len(p) != 3:
-                hoomd.context.current.device.cpp_msg.error(
+                self._simulation.device._cpp_msg.error(
                     "Particle position is not a coordinate triple.\n"
                 )
                 raise RuntimeError(
@@ -296,7 +296,7 @@ class Rigid(ConstraintForce):
             for o in orientations_list:
                 o = tuple(o)
                 if len(o) != 4:
-                    hoomd.context.current.device.cpp_msg.error(
+                    self._simulation.device._cpp_msg.error(
                         "Particle orientation is not a 4-tuple.\n"
                     )
                     raise RuntimeError(
