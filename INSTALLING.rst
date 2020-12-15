@@ -177,14 +177,14 @@ Tell CMake to search for packages in the virtual environment first::
 Compile HOOMD-blue
 ------------------
 
-Configure::
+By default, **HOOMD-blue** configures a *Release* optimized build type for a
+generic CPU architecture and with no optional libraries.::
 
     $ cd /path/to/hoomd-blue
     $ cmake -B build
     $ cd build
 
-By default, **HOOMD-blue** configures a *Release* optimized build type for a
-generic CPU architecture and with no optional libraries. Pass these options to cmake
+Pass these options to cmake
 to enable optimizations specific to your CPU::
 
     -DCMAKE_CXX_FLAGS=-march=native -DCMAKE_C_FLAGS=-march=native
