@@ -341,7 +341,8 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
 
         double energydiffHypersphere(const unsigned int& index, const quat<Scalar>& quat_l_old, const quat<Scalar>& quat_r_old, const Shape& shape_old, const quat<Scalar>& quat_l_new, const quat<Scalar>& quat_r_new, const Shape& shape_new)
             {
-            double old_U = calcE(index, quat_l_old, quat_r_old, shape_old), new_U = calcE(index, quat_l_new, quat_r_new, shape_new);
+            double old_U = calcE(index, quat_l_old, quat_r_old, shape_old);
+            double new_U = calcE(index, quat_l_new, quat_r_new, shape_new);
             return new_U - old_U;
             }
 
@@ -665,7 +666,6 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
                 k = testIndex( index, quat_l, quat_r);
                 changeIndex(index,k);
 
-                 k = m_latticeIndex.getReference(h_tags.data[index]);
                  ql = quat<Scalar>(m_latticeQuat_l.getReference(k));
                  qr = quat<Scalar>(m_latticeQuat_r.getReference(k));
                  dr = detail::get_arclength_hypersphere(ql, qr, quat_l, quat_r, hypersphere);

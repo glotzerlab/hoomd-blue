@@ -541,21 +541,22 @@ void ChangeSiteUpdaterHypersphere<Shape>::update(unsigned int timestep)
             hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::UpdaterChangeSite, m_seed, i, m_exec_conf->getRank()*m_cycles + cur_cycle, timestep);
             unsigned int indx = int(hoomd::UniformDistribution<Scalar>(0,m_latticeQuat_l.getSize())(rng_i)); 
 
+            quat<Scalar> quat_l_i_old = quat_l_i;
+            quat<Scalar> quat_r_i_old = quat_r_i;
+
             quat<Scalar> dql = quat<Scalar>( m_latticeQuat_l.getSite(indx) );
             quat<Scalar> dqr = quat<Scalar>( m_latticeQuat_r.getSite(indx) );
 
             dql = refql_i*dql;
             dqr = dqr*refqr_i;
 
-            quat<Scalar> quat_l_i_temp = dql;
-            Scalar norm_l_inv = fast::rsqrt(norm2(quat_l_i_temp));
-            quat_l_i_temp *= norm_l_inv;
+            Scalar norm_l_inv = fast::rsqrt(norm2(dql));
+            dql *= norm_l_inv;
 
-            quat<Scalar> quat_r_i_temp = dqr;
-            Scalar norm_r_inv = fast::rsqrt(norm2(quat_r_i_temp));
-            quat_r_i_temp *= norm_r_inv;
+            Scalar norm_r_inv = fast::rsqrt(norm2(dqr));
+            dqr *= norm_r_inv;
 
-            unsigned int k = m_externalLattice->testIndex(i, quat_l_i_temp, quat_r_i_temp);
+            unsigned int k = m_externalLattice->testIndex(i, dql, dqr);
 
             quat<Scalar> refql_i_new = quat<Scalar>(h_ql0.data[k]);
             quat<Scalar> refqr_i_new = quat<Scalar>(h_qr0.data[k]);
@@ -577,6 +578,8 @@ void ChangeSiteUpdaterHypersphere<Shape>::update(unsigned int timestep)
 
             int typ_i = __scalar_as_int(postype_i.w);
             Shape shape_i(quat_l_i, quat_r_i, m_mc->getParams()[typ_i]);
+            Shape shape_old(quat_l_i_old, quat_r_i_old, m_mc->getParams()[typ_i]);
+
 
             bool overlap=false;
             detail::AABB aabb_i = shape_i.getAABBHypersphere(hypersphere);
@@ -635,10 +638,16 @@ void ChangeSiteUpdaterHypersphere<Shape>::update(unsigned int timestep)
                     break;
                 }  // end loop over AABB nodes
 
+            double patch_field_energy_diff = 0;
+
+            if (!overlap)
+            {
+                patch_field_energy_diff -= m_externalLattice->energydiffHypersphere(i, quat_l_i_old, quat_r_i_old, shape_old, shape_i.quat_l, shape_i.quat_r, shape_i);
+            }
 
             // If no overlaps and Metropolis criterion is met, accept
             // trial move and update positions  and/or orientations.
-            if (!overlap)
+            if (!overlap && hoomd::detail::generate_canonical<double>(rng_i) < slow::exp(patch_field_energy_diff))
                 {
                 // update the position of the particle in the tree for future updates
                 std::cout << "Change " << i << std::endl;

@@ -921,7 +921,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                   } // end loop over all particles
 	     }else if (m_pdata->getCoordinateType() == ParticleData::hyperspherical)
 		{
-		ArrayHandle<Scalar4> h_quat_l(m_pdata->getLeftQuaternionArray(), access_location::host, access_mode::readwrite);
+		        ArrayHandle<Scalar4> h_quat_l(m_pdata->getLeftQuaternionArray(), access_location::host, access_mode::readwrite);
                 ArrayHandle<Scalar4> h_quat_r(m_pdata->getRightQuaternionArray(), access_location::host, access_mode::readwrite);
 
                 ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
@@ -1137,7 +1137,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                         } // end if (m_patch)
 
                     // Add external energetic contribution
-                    if (m_external)
+                    if (!overlap && m_external)
                         {
                         patch_field_energy_diff -= m_external->energydiffHypersphere(i, quat_l_i_old, quat_r_i_old, shape_old, shape_i.quat_l, shape_i.quat_r, shape_i);
                         }
