@@ -113,7 +113,7 @@ Install prerequisites
 
 - NVIDIA CUDA Toolkit >= 9.0
 
-    *OR*
+  *OR*
 
 - `AMD ROCm >= 3.5.0 <https://rocm.github.io/ROCmInstall.html>`_ with additional dependencies:
 
@@ -128,9 +128,9 @@ Install prerequisites
 
   For HOOMD-blue on AMD GPUs, the following limitations currently apply.
 
-      1. Certain HOOMD-blue kernels trigger a `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
-      2. The `mpcd` component is disabled on AMD GPUs.
-      3. Multi-GPU execution via unified memory is not available.
+   1. Certain HOOMD-blue kernels trigger an `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
+   2. The `mpcd` component is disabled on AMD GPUs.
+   3. Multi-GPU execution via unified memory is not available.
 
 **For threaded parallelism on the CPU** (required when ``ENABLE_TBB=on``)
 
