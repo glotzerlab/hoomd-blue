@@ -115,7 +115,7 @@ For GPU execution (required when ``ENABLE_GPU=on``):
 
     *OR*
 
-- `AMD ROCm >= 2.9 <https://rocm.github.io/ROCmInstall.html>`_ with additional dependencies:
+- `AMD ROCm >= 3.5.0 <https://rocm.github.io/ROCmInstall.html>`_ with additional dependencies:
 
   - HIP [with ``hipcc`` and ``hcc`` as backend]
   - rocFFT
