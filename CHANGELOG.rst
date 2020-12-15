@@ -9,7 +9,8 @@ v3.0.0-beta.3 (not yet released)
 
 *Added*
 
-- ``ParticleFilters`` are picklable.
+- ``hoomd.filter.ParticleFilter`` objects are picklable.
+- ``hoomd.trigger.Trigger`` objects are picklable.
 
 v3.0.0-beta.2 (2020-12-15)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
