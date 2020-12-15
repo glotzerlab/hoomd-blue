@@ -54,7 +54,7 @@ foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
 
     add_executable(${CUR_TEST} EXCLUDE_FROM_ALL ${CUR_TEST}.cc ${_cuda_sources})
     if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
-        set_target_properties(${CUR_TEST} PROPERTIES COMPILE_FLAGS "-Wno-self-assign-overloaded")
+        set_source_files_properties(${CUR_TEST}.cc PROPERTIES COMPILE_FLAGS "-Wno-self-assign-overloaded")
     endif()
     target_include_directories(${CUR_TEST} PRIVATE ${PYTHON_INCLUDE_DIR})
 

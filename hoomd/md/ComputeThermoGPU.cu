@@ -564,7 +564,7 @@ hipError_t gpu_compute_thermo_partial(Scalar *d_properties,
             {
             assert(args.d_scratch_pressure_tensor);
 
-            shared_bytes = 6 * sizeof(Scalar) * args.block_size;
+            shared_bytes = (unsigned int)(6 * sizeof(Scalar) * args.block_size);
 
             // run the kernel
             hipLaunchKernelGGL(gpu_compute_pressure_tensor_partial_sums, dim3(grid), dim3(threads), shared_bytes, 0, args.d_scratch_pressure_tensor,
@@ -585,7 +585,7 @@ hipError_t gpu_compute_thermo_partial(Scalar *d_properties,
             {
             assert(args.d_scratch_pressure_tensor);
 
-            shared_bytes = sizeof(Scalar) * args.block_size;
+            shared_bytes = (unsigned int)(sizeof(Scalar) * args.block_size);
 
             // run the kernel
             hipLaunchKernelGGL(gpu_compute_rotational_ke_partial_sums, dim3(grid), dim3(threads), shared_bytes, 0, args.d_scratch_rot,

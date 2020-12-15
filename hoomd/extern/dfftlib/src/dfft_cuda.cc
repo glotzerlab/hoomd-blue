@@ -248,10 +248,10 @@ void dfft_cuda_redistribute_nd( dfft_plan *plan,int stage, int size_in, int *emb
             } /* end loop over dimensions */
 
         int rank = plan->proc_map[t];
-        plan->nsend[rank] = send_size*sizeof(cuda_cpx_t);
-        plan->nrecv[rank] = recv_size*sizeof(cuda_cpx_t);
-        plan->offset_send[rank] = soffs*sizeof(cuda_cpx_t);
-        plan->offset_recv[rank] = roffs*sizeof(cuda_cpx_t);
+        plan->nsend[rank] = (unsigned int)(send_size*sizeof(cuda_cpx_t));
+        plan->nrecv[rank] = (unsigned int)(recv_size*sizeof(cuda_cpx_t));
+        plan->offset_send[rank] = (unsigned int)(soffs*sizeof(cuda_cpx_t));
+        plan->offset_recv[rank] = (unsigned int)(roffs*sizeof(cuda_cpx_t));
         roffs += recv_size;
         soffs += send_size;
         } /* end loop over processors */
@@ -395,8 +395,8 @@ void dfft_cuda_redistribute_block_to_cyclic_1d(
                 destproc += ((current_dim == k) ? desti : pidx[k]);
                 }
             }
-        dfft_nsend[destproc] = size*sizeof(cuda_cpx_t);
-        dfft_offset_send[destproc] = offset*sizeof(cuda_cpx_t);
+        dfft_nsend[destproc] = (unsigned int)(size*sizeof(cuda_cpx_t));
+        dfft_offset_send[destproc] = (unsigned int)(offset*sizeof(cuda_cpx_t));
         }
 
     /* pack data */
@@ -433,8 +433,8 @@ void dfft_cuda_redistribute_block_to_cyclic_1d(
                 srcproc += ((current_dim == k) ? srci : pidx[k]);
                 }
             }
-        dfft_nrecv[srcproc] = size*sizeof(cuda_cpx_t);
-        dfft_offset_recv[srcproc] = offset*sizeof(cuda_cpx_t);
+        dfft_nrecv[srcproc] = (unsigned int)(size*sizeof(cuda_cpx_t));
+        dfft_offset_recv[srcproc] = (unsigned int)(offset*sizeof(cuda_cpx_t));
         }
 
     /* synchronize */
@@ -606,19 +606,19 @@ void dfft_cuda_redistribute_cyclic_to_block_1d(int *dim,
                 }
             }
 
-        dfft_offset_send[destproc] = (send ? (stride*j1*sizeof(cuda_cpx_t)) : 0);
+        dfft_offset_send[destproc] = (unsigned int)((send ? (stride*j1*sizeof(cuda_cpx_t)) : 0));
         if (rev && (length > c0/c1))
             {
             /* we are directly receving into the work buf */
-            dfft_offset_recv[destproc] = stride*j0_remote*length/c0*sizeof(cuda_cpx_t);
+            dfft_offset_recv[destproc] = (unsigned int)(stride*j0_remote*length/c0*sizeof(cuda_cpx_t));
             }
         else
             {
-            dfft_offset_recv[destproc] = offset*sizeof(cuda_cpx_t);
+            dfft_offset_recv[destproc] = (unsigned int)(offset*sizeof(cuda_cpx_t));
             }
 
-        dfft_nsend[destproc] = send_size*sizeof(cuda_cpx_t);
-        dfft_nrecv[destproc] = recv_size*sizeof(cuda_cpx_t);
+        dfft_nsend[destproc] = (unsigned int)(send_size*sizeof(cuda_cpx_t));
+        dfft_nrecv[destproc] = (unsigned int)(recv_size*sizeof(cuda_cpx_t));
         offset+=(recv ? size : 0);
         }
 
@@ -651,7 +651,7 @@ void dfft_cuda_redistribute_cyclic_to_block_1d(int *dim,
 
             /* we are sending from a tmp buffer/stride */
             dfft_offset_send[destproc] = (unsigned int)(offset*sizeof(cuda_cpx_t)*stride);
-            int n = dfft_nsend[destproc]/stride/sizeof(cuda_cpx_t);
+            int n = (unsigned int)(dfft_nsend[destproc]/stride/sizeof(cuda_cpx_t));
             offset += n;
             }
 
@@ -1129,7 +1129,7 @@ int dfft_cuda_create_plan(dfft_plan *p,
      * of hipHostMalloc, because hipHostMalloc doesn't have hooks
      * in the MPI library, and using it would lead to data corruption
      */
-    int size = p->scratch_size*sizeof(cuda_cpx_t);
+    int size = (unsigned int)(p->scratch_size*sizeof(cuda_cpx_t));
     int page_size = getpagesize();
     size = ((size + page_size - 1) / page_size) * page_size;
     int retval = posix_memalign((void **)&(p->h_stage_in),page_size,size);
