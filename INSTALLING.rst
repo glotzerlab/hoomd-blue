@@ -94,19 +94,20 @@ Install prerequisites
 **HOOMD-blue** requires a number of libraries to build. The flags ``ENABLE_MPI``,
 ``ENABLE_GPU``, ``ENABLE_TBB``, and ``BUILD_JIT`` each require additional libraries.
 
-**General requirements**
-  - C++11 capable compiler (tested with ``gcc`` 4.8, 5.5, 6.4, 7,
-    8, 9, ``clang`` 5, 6, 7, 8)
-  - Python >= 3.5
-  - NumPy >= 1.7
-  - pybind11 >= 2.2
-  - Eigen >= 3.2
-  - CMake >= 3.9
-**For MPI parallel execution** (required when ``ENABLE_MPI=on``):
+General requirements
+    - C++11 capable compiler (tested with ``gcc`` 4.8, 5.5, 6.4, 7,
+      8, 9, ``clang`` 5, 6, 7, 8)
+    - Python >= 3.5
+    - NumPy >= 1.7
+    - pybind11 >= 2.2
+    - Eigen >= 3.2
+    - CMake >= 3.9
+
+For MPI parallel execution (required when ``ENABLE_MPI=on``):
     - MPI (tested with OpenMPI, MVAPICH)
     - cereal >= 1.1 (required when ``ENABLE_MPI=on``)
 
-**For GPU execution** (required when ``ENABLE_GPU=on``):
+For GPU execution (required when ``ENABLE_GPU=on``):
     - NVIDIA CUDA Toolkit >= 9.0
 
     *OR*
@@ -130,13 +131,13 @@ Install prerequisites
       2. The `mpcd` component is disabled on AMD GPUs.
       3. Multi-GPU execution via unified memory is not available.
 
-**For threaded parallelism on the CPU** (required when ``ENABLE_TBB=on``):
+For threaded parallelism on the CPU (required when ``ENABLE_TBB=on``)
     - Intel Threading Building Blocks >= 4.3
 
-**For runtime code generation** (required when ``BUILD_JIT=on``):
+For runtime code generation (required when ``BUILD_JIT=on``)
     - LLVM >= 5.0
 
-**To build documentation**
+To build documentation
     - Doxygen >= 1.8.5
     - Sphinx >= 1.6
 
