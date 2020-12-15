@@ -4,6 +4,13 @@ Change Log
 v3.x
 ----
 
+v3.0.0-beta.3 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- ``ParticleFilters`` are picklable.
+
 v3.0.0-beta.2 (2020-12-15)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 

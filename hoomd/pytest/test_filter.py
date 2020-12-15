@@ -7,6 +7,7 @@ from hoomd.filter import Null
 from hoomd.snapshot import Snapshot
 from copy import deepcopy
 from itertools import combinations
+import pickle
 import numpy
 
 
@@ -196,3 +197,32 @@ def test_difference(make_filter_snapshot, simulation_factory, set_indices):
             assert difference_filter(sim.state) == type_filter1(sim.state)
         difference_filter = SetDifference(combo_filter, remaining_filter)
         assert difference_filter(sim.state) == combo_filter(sim.state)
+
+
+_filter_classes = [
+    All,
+    Tags,
+    Type,
+    SetDifference,
+    Union,
+    Intersection
+]
+
+_constructor_args = [
+    tuple(),
+    ([1, 2, 3],),
+    ({'a', 'b'},),
+    (Tags([1, 4, 5]), Type({'a'})),
+    (Tags([1, 4, 5]), Type({'a'})),
+    (Tags([1, 4, 5]), Type({'a'}))
+]
+
+
+@pytest.mark.parametrize(
+    'constructor, args', zip(_filter_classes, _constructor_args),
+    ids=lambda x: None if isinstance(x, tuple) else x.__name__)
+def test_pickling(constructor, args):
+    filter_ = constructor(*args)
+    pkled_filter = pickle.loads(pickle.dumps(filter_))
+    assert pkled_filter == filter_
+    assert hash(pkled_filter) == hash(filter_)
