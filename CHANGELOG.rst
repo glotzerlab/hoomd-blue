@@ -48,7 +48,6 @@ v3.0.0-beta.2 (2020-12-15)
 
 *Fixed*
 
-- ``hoomd.variant.Power`` objects now have a ``t_ramp`` attribute as documented.
 - ``Simulation.run`` now ends with a ``KeyboardInterrupt`` exception when
   Jupyter interrupts the kernel.
 - Logging the state of specific objects with nested attributes.
