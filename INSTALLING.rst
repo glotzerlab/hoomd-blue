@@ -91,7 +91,8 @@ Tell CMake to search for packages in the virtual environment first::
 Install prerequisites
 ---------------------
 
-**HOOMD-blue** requires a number of libraries to build.
+**HOOMD-blue** requires a number of libraries to build. The flags ``ENABLE_MPI``,
+``ENABLE_GPU``, ``ENABLE_TBB``, and ``BUILD_JIT`` each require additional libraries.
 
 **General requirements**
   - C++11 capable compiler (tested with ``gcc`` 4.8, 5.5, 6.4, 7,
