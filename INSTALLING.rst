@@ -137,16 +137,6 @@ Typical HPC cluster environments provide python, numpy, cmake, cuda, and mpi, vi
 
     $ module load gcc python cuda cmake
 
-.. note::
-
-    Packages may be named differently, check your system's package list. Install any ``-dev`` packages as needed.
-
-.. tip::
-
-    You can install numpy and other python packages into your virtual environment::
-
-        python3 -m pip install numpy
-
 Some package managers (such as *pip*) and most clusters are missing some or all of pybind11, eigen, and cereal.
 ``install-prereq-headers.py`` will install the missing packages into your virtual environment::
 
