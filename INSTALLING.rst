@@ -131,7 +131,9 @@ Install these tools with your system or virtual environment package manager.
 HOOMD developers have had success with
 ``pacman`` (`arch linux <https://www.archlinux.org/>`_), ``apt-get`` (`ubuntu <https://ubuntu.com/>`_), `Homebrew
 <https://brew.sh/>`_ (macOS), and `MacPorts <https://www.macports.org/>`_ (macOS).
-Note that packages may be named differently, so check your system's package list and install any ``-dev`` packages as needed.
+Note that packages may be named differently, so check your system's package list and install any ``-dev`` packages as needed. ::
+
+    $ your-package-manager install python python-numpy pybind11 eigen cmake openmpi cereal cuda
 
 Typical HPC cluster environments provide python, numpy, cmake, cuda, and mpi, via a module system::
 
