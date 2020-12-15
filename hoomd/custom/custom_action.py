@@ -21,8 +21,7 @@ class Action(metaclass=_AbstractLoggable):
 
     To use subclasses of this class, the object must be passed as an argument
     to a `hoomd.update.CustomUpdater`, `hoomd.write.CustomWriter`, or
-    `hoomd.tune.CustomTuner`.
-    constructor.
+    `hoomd.tune.CustomTuner` constructor.
 
     If the pressure, rotational kinetic energy, or external field virial is
     needed for a subclass, the flags attribute of the class needs to be set with

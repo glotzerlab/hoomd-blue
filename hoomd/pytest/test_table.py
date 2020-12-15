@@ -16,7 +16,7 @@ skip_mpi = pytest.mark.skipif(skip_mpi, reason="MPI4py is not importable.")
 
 @pytest.fixture
 def logger():
-    logger = hoomd.logging.Logger(flags=['scalar'])
+    logger = hoomd.logging.Logger(categories=['scalar'])
     logger[('dummy', 'loggable', 'int')] = (lambda: 42000000, 'scalar')
     logger[('dummy', 'loggable', 'float')] = (lambda: 3.1415, 'scalar')
     logger[('dummy', 'loggable', 'string')] = (lambda: "foobarbaz", 'string')
@@ -155,6 +155,6 @@ def test_only_string_and_scalar_quantities(device):
     output = StringIO("")
     with pytest.raises(ValueError):
         _ = hoomd.write.Table(0, logger, output)
-    logger = hoomd.logging.Logger(flags=['sequence'])
+    logger = hoomd.logging.Logger(categories=['sequence'])
     with pytest.raises(ValueError):
         _ = hoomd.write.Table(0, logger, output)
