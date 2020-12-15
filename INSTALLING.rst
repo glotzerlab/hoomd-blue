@@ -105,7 +105,7 @@ General requirements
 
 For MPI parallel execution (required when ``ENABLE_MPI=on``):
     - MPI (tested with OpenMPI, MVAPICH)
-    - cereal >= 1.1 (required when ``ENABLE_MPI=on``)
+    - cereal >= 1.1
 
 For GPU execution (required when ``ENABLE_GPU=on``):
     - NVIDIA CUDA Toolkit >= 9.0
