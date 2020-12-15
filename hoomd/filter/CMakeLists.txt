@@ -1,5 +1,6 @@
 set (_header_files filter/ParticleFilter.h
                    filter/ParticleFilterAll.h
+                   filter/ParticleFilterNull.h
                    filter/ParticleFilterIntersection.h
                    filter/ParticleFilterSetDifference.h
                    filter/ParticleFilterTags.h
@@ -15,6 +16,7 @@ install(FILES ${_headers_files}
 set(files __init__.py
           filter_.py
           all_.py
+          null.py
           set_.py
           tags.py
           type_.py

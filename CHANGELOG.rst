@@ -4,23 +4,34 @@ Change Log
 v3.x
 ----
 
-v3.0.0-beta.2 (not yet released)
+v3.0.0-beta.3 (not yet released)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- ``ParticleFilters`` are picklable.
+
+v3.0.0-beta.2 (2020-12-15)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Added*
 
 - Support pybind11 2.6.0
 - Exclusive creation file mode for ``write.GSD``.
 - ``hpmc.update.BoxMC``.
+- ``walltime`` and ``final_timestep`` loggable properties in ``Simulation``.
+- ``Null`` particle filter.
+- Logging tutorial.
 
 *Changed*
 
+- [breaking] Replace ``write.GSD`` argument ``overwrite`` with ``mode``.
+- [breaking] Rename ``flags`` to ``categories`` in ``Logger``
 - ``hoomd.snapshot.ConfigurationData.dimensions`` is not settable and is
   determined by the snapshot box. If ``box.Lz == 0``, the dimensions are 2
   otherwise 3.
 - Building from source requires a C++14 compatible compiler.
 - Improved documentation.
-- [breaking] Replace ``write.GSD`` argument ``overwrite`` with ``mode``.
 - ``hpmc.integrate.FacetedEllipsoid``'s shape specification now has a default
   origin of (0, 0, 0).
 - Document loggable quantities in property docstrings.
@@ -37,7 +48,9 @@ v3.0.0-beta.2 (not yet released)
 - Error when removing specific operations from a simulation's operations
   attribute.
 - Find CUDA libraries on additional Linux distributions.
-
+- ``hpmc.update.Clusters`` now works with all HPMC integrators.
+- ``Simulation.timestep`` reports the correct value when analyzers are called.
+- ``Logger`` names quantities with the documented namespace name.
 
 v3.0.0-beta.1 (2020-10-15)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
