@@ -292,7 +292,7 @@ class Loggable(type):
         if __doc__ == "":
             return
         str_msg = '\n\n{}(`Loggable <hoomd.logging.Logger>`: '
-        str_msg += f'type="{str(category)[10:]}"'
+        str_msg += f'category="{str(category)[17:]}"'
         if default:
             str_msg += ')'
         else:
