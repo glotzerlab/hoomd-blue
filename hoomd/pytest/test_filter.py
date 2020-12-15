@@ -3,6 +3,7 @@ from hoomd.filter.type_ import Type
 from hoomd.filter.tags import Tags
 from hoomd.filter.set_ import SetDifference, Union, Intersection
 from hoomd.filter.all_ import All
+from hoomd.filter import Null
 from hoomd.snapshot import Snapshot
 from copy import deepcopy
 from itertools import combinations
@@ -30,6 +31,15 @@ def test_all_filter(make_filter_snapshot, simulation_factory):
     sim = simulation_factory(filter_snapshot)
     all_filter = All()
     assert all_filter(sim.state) == list(range(N))
+
+
+def test_null_filter(make_filter_snapshot, simulation_factory):
+    particle_types = ['A']
+    N = 10
+    filter_snapshot = make_filter_snapshot(n=N, particle_types=particle_types)
+    sim = simulation_factory(filter_snapshot)
+    null_filter = Null()
+    assert null_filter(sim.state) == []
 
 
 def set_types(s, inds, particle_types, particle_type):

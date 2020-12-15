@@ -132,7 +132,7 @@ class BoxMC(Updater):
         else:
             return self._cpp_obj.getCounters(1)
 
-    @log(flag="sequence")
+    @log(category="sequence")
     def volume_moves(self):
         """tuple[int, int]: The accepted and rejected volume and length moves.
 
@@ -145,7 +145,7 @@ class BoxMC(Updater):
             attr = "volume" if self.volume["mode"] == "standard" else "ln_volume"
             return getattr(counter, attr)
 
-    @log(flag="sequence")
+    @log(category="sequence")
     def shear_moves(self):
         """tuple[int, int]: The accepted and rejected shear moves.
 
@@ -157,7 +157,7 @@ class BoxMC(Updater):
         else:
             return counter.shear
 
-    @log(flag="sequence")
+    @log(category="sequence")
     def aspect_moves(self):
         """tuple[int, int]: The accepted and rejected aspect moves.
 
@@ -653,7 +653,7 @@ class Clusters(Updater):
         else:
             return self._cpp_obj.getCounters(1)
 
-    @log(flag='sequence')
+    @log(category='sequence')
     def pivot_moves(self):
         """tuple[int, int]: Number of accepted and rejected pivot moves.
 
@@ -666,7 +666,7 @@ class Clusters(Updater):
         else:
             return counter.pivot
 
-    @log(flag='sequence')
+    @log(category='sequence')
     def reflection_moves(self):
         """tuple[int, int]: Number of accepted and rejected reflection moves.
 
@@ -679,7 +679,7 @@ class Clusters(Updater):
         else:
             return counter.reflection
 
-    @log(flag='sequence')
+    @log(category='sequence')
     def swap_moves(self):
         """tuple[int, int]: Number of accepted and rejected swap moves.
 

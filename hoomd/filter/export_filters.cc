@@ -1,6 +1,7 @@
 #include "export_filters.h"
 #include "ParticleFilter.h"
 #include "ParticleFilterAll.h"
+#include "ParticleFilterNull.h"
 #include "ParticleFilterIntersection.h"
 #include "ParticleFilterSetDifference.h"
 #include "ParticleFilterTags.h"
@@ -35,6 +36,10 @@ void export_ParticleFilters(pybind11::module& m)
 
     pybind11::class_<ParticleFilterAll, ParticleFilter,
                     std::shared_ptr<ParticleFilterAll> >(m,"ParticleFilterAll")
+            .def(pybind11::init< >());
+
+    pybind11::class_<ParticleFilterNull, ParticleFilter,
+                    std::shared_ptr<ParticleFilterNull> >(m,"ParticleFilterNull")
             .def(pybind11::init< >());
 
     pybind11::class_<ParticleFilterIntersection, ParticleFilter,
