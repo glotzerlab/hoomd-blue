@@ -66,28 +66,6 @@ Or clone using Git:
 **HOOMD-blue** uses Git submodules. Either clone with the ``--recursive``
 option, or execute ``git submodule update --init`` to fetch the submodules.
 
-Configure a virtual environment
--------------------------------
-
-When using a shared Python installation, create a `virtual environment
-<https://docs.python.org/3/library/venv.html>`_ where you can install
-**HOOMD-blue**::
-
-    $ python3 -m venv /path/to/environment --system-site-packages
-
-Activate the environment before configuring and before executing
-**HOOMD-blue** scripts::
-
-   $ source /path/to/environment/bin/activate
-
-Tell CMake to search for packages in the virtual environment first::
-
-    $ export CMAKE_PREFIX_PATH=/path/to/environment
-
-.. note::
-
-   Other types of virtual environments (such as *conda*) may work, but are not thoroughly tested.
-
 Install prerequisites
 ---------------------
 
@@ -176,6 +154,25 @@ Some package managers (such as *pip*) and most clusters are missing some or all 
     $ python3 install-prereq-headers.py
 
 Run ``python3 install-prereq-headers.py -h`` to see a list of the command line options.
+
+Configure a virtual environment
+-------------------------------
+
+When using a shared Python installation, create a `virtual environment
+<https://docs.python.org/3/library/venv.html>`_ where you can install
+**HOOMD-blue** Note that other types of virtual environments
+(such as *conda*) may work, but are not thoroughly tested.::
+
+    $ python3 -m venv /path/to/environment --system-site-packages
+
+Activate the environment before configuring and before executing
+**HOOMD-blue** scripts::
+
+   $ source /path/to/environment/bin/activate
+
+Tell CMake to search for packages in the virtual environment first::
+
+    $ export CMAKE_PREFIX_PATH=/path/to/environment
 
 Compile HOOMD-blue
 ------------------
