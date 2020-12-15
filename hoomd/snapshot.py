@@ -110,6 +110,8 @@ class Snapshot:
     def _broadcast_box(self):
         self._cpp_obj._broadcast_box(self._comm.cpp_mpi_conf)
 
-    def _from_gsd_snapshot(gsd_snapshot, communicator):
-        snapshot = Snapshot._from_cpp_snapshot(gsd_snapshot, communicator)
+    @classmethod
+    def _from_gsd_snapshot(cls, gsd_snapshot, communicator):
+        sp = cls()
+        snapshot = sp._from_cpp_snapshot(gsd_snapshot, communicator)
         return snapshot

@@ -137,7 +137,11 @@ class Simulation(metaclass=Loggable):
         if self.state is not None:
             raise RuntimeError("Cannot initialize more than once\n")
 
-        self._state = State(self, snapshot)
+        try:
+            self._state = State(self, snapshot)
+        except AttributeError:
+            snapshot = Snapshot._from_gsd_snapshot(snapshot)
+            self._state = State(self, snapshot)
 
         step = 0
         if self.timestep is not None:
