@@ -13,8 +13,11 @@
 
 #include "LoadBalancerGPU.cuh"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <thrust/copy.h>
 #include <thrust/execution_policy.h>
+#pragma GCC diagnostic pop
 
 //! Mark the particles that are off rank
 /*!

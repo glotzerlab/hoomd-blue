@@ -11,8 +11,11 @@
 
 #include "NeighborListGPU.cuh"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <thrust/scan.h>
 #include <thrust/device_ptr.h>
+#pragma GCC diagnostic pop
 
 /*! \param d_result Device pointer to a single uint. Will be set to 1 if an update is needed
     \param d_last_pos Particle positions at the time the nlist was last updated

@@ -10,8 +10,11 @@
 
 #include "CellListGPU.cuh"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <thrust/copy.h>
 #include <thrust/execution_policy.h>
+#pragma GCC diagnostic pop
 
 namespace mpcd
 {

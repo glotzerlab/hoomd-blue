@@ -8,11 +8,15 @@
 #include "hoomd/ParticleData.cuh"
 
 #include "ForceCompositeGPU.cuh"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <thrust/copy.h>
 #include <thrust/transform.h>
 #include <thrust/device_ptr.h>
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
+#pragma GCC diagnostic pop
 
 // Maintainer: jglaser
 

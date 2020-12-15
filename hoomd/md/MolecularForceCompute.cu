@@ -6,6 +6,8 @@
 // Maintainer: jglaser
 #include "MolecularForceCompute.cuh"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <thrust/iterator/permutation_iterator.h>
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/gather.h>
@@ -18,6 +20,7 @@
 #include <thrust/device_ptr.h>
 #include <thrust/sort.h>
 #include <thrust/execution_policy.h>
+#pragma GCC diagnostic pop
 
 #include <hipcub/hipcub.hpp>
 

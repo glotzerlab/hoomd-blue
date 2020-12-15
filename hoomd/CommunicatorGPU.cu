@@ -12,6 +12,8 @@
 #include "CommunicatorGPU.cuh"
 #include "ParticleData.cuh"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <hipcub/hipcub.hpp>
 
 #include <thrust/sort.h>
@@ -24,6 +26,7 @@
 #include <thrust/iterator/constant_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/execution_policy.h>
+#pragma GCC diagnostic pop
 
 #include <cassert>
 
