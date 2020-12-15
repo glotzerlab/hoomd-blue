@@ -1649,10 +1649,10 @@ class Mie(Pair):
         self._add_typeparam(params)
 
 
-class _AnisotropicPair(Pair):
+class AnisotropicPair(Pair):
     R"""Generic anisotropic pair potential.
 
-    Users should not instantiate `_AnisotropicPair` directly. It is a base
+    Users should not instantiate `AnisotropicPair` directly. It is a base
     class that provides common features to all anisotropic pair forces.
     All anisotropic pair potential commands specify that a given potential
     energy, force and torque be computed on all non-excluded particle pairs in
@@ -1660,7 +1660,20 @@ class _AnisotropicPair(Pair):
     The interaction energy, forces and torque depend on the inter-particle
     separation :math:`\vec r` and on the orientations :math:`\vec q_i`,
     :math:`q_j`, of the particles.
+
+    `AnisotropicPair` is similiar to `Pair` except it does not support the
+    `xplor` shifting mode or `r_on`.
     """
+
+    def __init__(self, nlist, r_cut, mode):
+        self._nlist = validate_nlist(nlist)
+        r_cut = float if r_cut is None else float(r_cut)
+        r_cut = TypeParameter('r_cut', 'particle_types',
+                              TypeParameterDict(r_cut, len_keys=2)
+                              )
+        self._param_dict.update(
+            ParameterDict(mode=OnlyFrom(['none', 'shifted'])))
+        self.mode = mode
 
     def _return_type_shapes(self):
         type_shapes = self.cpp_force.getTypeShapesPy()
@@ -1668,7 +1681,7 @@ class _AnisotropicPair(Pair):
         return ret
 
 
-class GayBerne(_AnisotropicPair):
+class GayBerne(AnisotropicPair):
     R""" Gay-Berne anisotropic pair potential.
 
     Warning: The code has yet to be updated to the current API.
@@ -1773,7 +1786,7 @@ class GayBerne(_AnisotropicPair):
         return super()._return_type_shapes()
 
 
-class Dipole(_AnisotropicPair):
+class Dipole(AnisotropicPair):
     R""" Screened dipole-dipole interactions.
 
     Args:
