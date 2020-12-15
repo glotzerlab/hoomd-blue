@@ -149,9 +149,11 @@ Configure a virtual environment
 -------------------------------
 
 When using a shared Python installation, create a `virtual environment
-<https://docs.python.org/3/library/venv.html>`_ where you can install
-**HOOMD-blue** Note that other types of virtual environments
-(such as *conda*) may work, but are not thoroughly tested.::
+<https://docs.python.org/3/library/venv.html>`_ where you can install the dependencies and
+**HOOMD-blue**.
+You can install numpy and other python packages into your virtual environment using, *e.g.*, ``python3 -m pip install numpy``.
+Note that other types of virtual environments
+(such as *conda*) may work, but are not thoroughly tested. ::
 
     $ python3 -m venv /path/to/environment --system-site-packages
 
