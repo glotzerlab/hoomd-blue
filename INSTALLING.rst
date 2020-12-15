@@ -177,13 +177,6 @@ Tell CMake to search for packages in the virtual environment first::
 Compile HOOMD-blue
 ------------------
 
-.. warning::
-
-    Make certain you point ``CMAKE_PREFIX_PATH`` at your virtual environment so that CMake can find
-    packages there and correctly determine the installation location.::
-
-        $ export CMAKE_PREFIX_PATH=/path/to/environment
-
 Configure::
 
     $ cd /path/to/hoomd-blue
