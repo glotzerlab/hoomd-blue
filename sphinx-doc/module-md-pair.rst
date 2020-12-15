@@ -10,6 +10,7 @@ md.pair
 
     Pair
     Buckingham
+    Dipole
     DLVO
     DPD
     DPDLJ
@@ -18,6 +19,7 @@ md.pair
     ForceShiftedLJ
     Fourier
     Gauss
+    GayBerne
     LJ
     LJ1208
     Mie
@@ -34,6 +36,7 @@ md.pair
     :synopsis: Pair potentials.
     :members: Pair,
         Buckingham,
+        Dipole,
         DLVO,
         DPD,
         DPDLJ,
@@ -42,6 +45,7 @@ md.pair
         ForceShiftedLJ,
         Fourier,
         Gauss,
+        GayBerne,
         LJ,
         LJ1208,
         Mie,
