@@ -159,14 +159,15 @@ Note that other types of virtual environments
 
     $ python3 -m venv /path/to/environment --system-site-packages
 
+
+Compile HOOMD-blue
+------------------
+
 Activate the environment and tell CMake to search for packages there
 before configuring and installing **HOOMD-blue**. ::
 
     $ source /path/to/environment/bin/activate
     $ export CMAKE_PREFIX_PATH=/path/to/environment
-
-Compile HOOMD-blue
-------------------
 
 By default, **HOOMD-blue** configures a *Release* optimized build type for a
 generic CPU architecture and with no optional libraries::
