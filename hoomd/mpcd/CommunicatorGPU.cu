@@ -20,7 +20,7 @@
 #include <thrust/reduce.h>
 #include <thrust/sort.h>
 #include <thrust/transform.h>
-#pragma GCC diangnostic pop
+#pragma GCC diagnostic pop
 
 #if __CUDACC_VER_MAJOR__ >= 11
 #include <cub/device/device_reduce.cuh>

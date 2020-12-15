@@ -230,7 +230,9 @@ UP_TEST( mpcd_cell_communicator_overdecompose )
 UP_TEST( mpcd_cell_communicator_gpu )
     {
     if (!exec_conf_gpu)
+        {
         exec_conf_gpu = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+        }
 
     // mpi in 1d
         {
