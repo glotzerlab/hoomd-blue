@@ -157,13 +157,10 @@ Note that other types of virtual environments
 
     $ python3 -m venv /path/to/environment --system-site-packages
 
-Activate the environment before configuring and before executing
-**HOOMD-blue** scripts::
+Activate the environment and tell CMake to search for packages there
+before configuring and installing **HOOMD-blue**. ::
 
-   $ source /path/to/environment/bin/activate
-
-Tell CMake to search for packages in the virtual environment first::
-
+    $ source /path/to/environment/bin/activate
     $ export CMAKE_PREFIX_PATH=/path/to/environment
 
 Compile HOOMD-blue
