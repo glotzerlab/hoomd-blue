@@ -13,6 +13,12 @@ v3.0.0-beta.3 (not yet released)
 - ``hoomd.filter.ParticleFilter`` objects are picklable.
 - ``hoomd.trigger.Trigger`` objects are picklable.
 
+*Changed*
+
+*Fixed*
+
+- ``hoomd.variant.Power`` objects now have a ``t_ramp`` attribute as documented.
+
 v3.0.0-beta.2 (2020-12-15)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
