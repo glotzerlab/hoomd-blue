@@ -189,6 +189,7 @@ def log_quantity():
 def logged_obj():
     return DummyLoggable()
 
+
 @fixture
 def base_namespace():
     return ('pytest', 'test_logging', 'DummyLoggable')
@@ -243,50 +244,53 @@ class TestLogger:
     def test_add(self, blank_logger, logged_obj, base_namespace):
 
         # Test adding everything
-        namespaces = blank_logger.add(logged_obj)
+        blank_logger.add(logged_obj)
         expected_namespaces = [base_namespace + ('prop',),
                                base_namespace + ('proplist',)]
-        assert set(namespaces) == set(expected_namespaces)
-        assert all([ens in blank_logger for ens in expected_namespaces])
+        assert all(ns in blank_logger for ns in expected_namespaces)
         assert len(blank_logger) == 2
 
         # Test adding specific quantity
         blank_logger._dict = dict()
-        namespaces = blank_logger.add(logged_obj, 'prop')
+        blank_logger.add(logged_obj, 'prop')
         expected_namespace = base_namespace + ('prop',)
-        assert set(namespaces) == set([expected_namespace])
         assert expected_namespace in blank_logger
         assert len(blank_logger) == 1
 
         # Test multiple quantities
         blank_logger._dict = dict()
-        namespaces = blank_logger.add(logged_obj, ['prop', 'proplist'])
+        blank_logger.add(logged_obj, ['prop', 'proplist'])
         expected_namespaces = [base_namespace + ('prop',),
                                base_namespace + ('proplist',)]
-        assert set(namespaces) == set(expected_namespaces)
-        assert all([ens in blank_logger for ens in expected_namespaces])
+        assert all([ns in blank_logger for ns in expected_namespaces])
         assert len(blank_logger) == 2
 
         # Test with category
         blank_logger._dict = dict()
         blank_logger._categories = LoggerCategories['scalar']
-        namespaces = blank_logger.add(logged_obj)
+        blank_logger.add(logged_obj)
         expected_namespace = base_namespace + ('prop',)
-        assert set(namespaces) == set([expected_namespace])
         assert expected_namespace in blank_logger
         assert len(blank_logger) == 1
+
+    def test_add_with_user_names(
+            self, blank_logger, logged_obj, base_namespace):
+        # Test adding a user specified identifier into the namespace
+        user_name = 'UserName'
+        blank_logger.add(logged_obj, user_name=user_name)
+        assert base_namespace[:-1] + (user_name, 'prop') in blank_logger
+        assert base_namespace[:-1] + (user_name, 'proplist') in blank_logger
 
     def test_add_with_categories(self, blank_logger, logged_obj, base_namespace):
         blank_logger._categories = LoggerCategories['scalar']
         # Test adding everything should filter non-scalar
-        namespaces = blank_logger.add(logged_obj)
+        blank_logger.add(logged_obj)
         expected_namespace = base_namespace + ('prop',)
-        assert set(namespaces) == set([expected_namespace])
+        assert expected_namespace in blank_logger
         blank_logger._categories = LoggerCategories['sequence']
         expected_namespace = base_namespace + ('proplist',)
-        namespaces = blank_logger.add(logged_obj)
+        blank_logger.add(logged_obj)
         assert expected_namespace in blank_logger
-        assert expected_namespace in namespaces
         assert len(blank_logger) == 2
 
     def test_remove(self, logged_obj, base_namespace):
@@ -317,8 +321,7 @@ class TestLogger:
         assert list_namespace not in log
 
         # Test remove just given namespaces
-        prop_namespace = ('pytest', 'test_logging',
-                          'DummyLoggable', 'prop')
+        prop_namespace = base_namespace + ('prop',)
         log = Logger()
         log.add(logged_obj)
         log.remove(quantities=[prop_namespace])
@@ -337,6 +340,14 @@ class TestLogger:
         assert list_namespace in log
         assert prop_namespace[:-2] + (prop_namespace[-2] + '_1',
                                       prop_namespace[-1]) not in log
+
+    def test_remove_with_user_name(
+            self, blank_logger, logged_obj, base_namespace):
+        # Test remove using a user specified namespace identifier
+        user_name = 'UserName'
+        blank_logger.add(logged_obj, user_name=user_name)
+        assert base_namespace[:-1] + (user_name, 'prop') in blank_logger
+        assert base_namespace[:-1] + (user_name, 'proplist') in blank_logger
 
     def test_iadd(self, blank_logger, logged_obj):
         blank_logger.add(logged_obj)
