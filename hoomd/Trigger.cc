@@ -35,9 +35,6 @@ void export_Trigger(pybind11::module& m)
         .def(pybind11::init<>())
         .def("__call__", &Trigger::operator())
         .def("compute", &Trigger::compute)
-        /* .def(pybind11::pickle( */
-        /*     [](const TriggerPy& trigger){ return pybind11::tuple(); }, */
-        /*     [](pybind11::tuple params){ return TriggerPy(); })) */
         ;
 
     pybind11::class_<PeriodicTrigger, Trigger,
