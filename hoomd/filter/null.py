@@ -1,18 +1,18 @@
-"""Define the All filter."""
+"""Define the Null filter."""
 
 from hoomd.filter.filter_ import ParticleFilter
-from hoomd._hoomd import ParticleFilterAll
+from hoomd._hoomd import ParticleFilterNull
 
 
-class All(ParticleFilter, ParticleFilterAll):
-    """Select all particles in the system.
+class Null(ParticleFilter, ParticleFilterNull):
+    """Select no particles.
 
     Base: `ParticleFilter`
     """
 
     def __init__(self):
         ParticleFilter.__init__(self)
-        ParticleFilterAll.__init__(self)
+        ParticleFilterNull.__init__(self)
 
     def __hash__(self):
         """Return a hash of the filter parameters."""
@@ -21,7 +21,3 @@ class All(ParticleFilter, ParticleFilterAll):
     def __eq__(self, other):
         """Test for equality between two particle filters."""
         return type(self) == type(other)
-
-    def __reduce__(self):
-        """Enable (deep)copying and pickling of `All` particle filters."""
-        return (type(self), tuple())

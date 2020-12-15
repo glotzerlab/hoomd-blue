@@ -10,11 +10,11 @@ hoomd.logging
 
     log
     Logger
-    TypeFlags
+    LoggerCategories
 
 .. rubric:: Details
 
 .. automodule:: hoomd.logging
     :synopsis: Classes for logging data.
-    :members: log, Logger, TypeFlags
+    :members: log, Logger, LoggerCategories
     :undoc-members:
