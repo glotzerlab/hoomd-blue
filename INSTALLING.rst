@@ -69,63 +69,59 @@ option, or execute ``git submodule update --init`` to fetch the submodules.
 Install prerequisites
 ---------------------
 
-**HOOMD-blue** requires a number of libraries to build.
+**HOOMD-blue** requires a number of libraries to build. The flags ``ENABLE_MPI``,
+``ENABLE_GPU``, ``ENABLE_TBB``, and ``BUILD_JIT`` each require additional libraries.
 
-- Required:
+**General requirements**
 
-  - C++11 capable compiler (tested with ``gcc`` 4.8, 5.5, 6.4, 7,
-    8, 9, ``clang`` 5, 6, 7, 8)
-  - Python >= 3.5
-  - NumPy >= 1.7
-  - pybind11 >= 2.2
-  - Eigen >= 3.2
-  - CMake >= 3.9
-  - For MPI parallel execution (required when ``ENABLE_MPI=on``):
+- C++11 capable compiler (tested with ``gcc`` 4.8, 5.5, 6.4, 7,
+  8, 9, ``clang`` 5, 6, 7, 8)
+- Python >= 3.5
+- NumPy >= 1.7
+- pybind11 >= 2.2
+- Eigen >= 3.2
+- CMake >= 3.9
 
-    - MPI (tested with OpenMPI, MVAPICH)
-    - cereal >= 1.1 (required when ``ENABLE_MPI=on``)
+**For MPI parallel execution** (required when ``ENABLE_MPI=on``)
 
-  - For GPU execution (required when ``ENABLE_GPU=on``):
+- MPI (tested with OpenMPI, MVAPICH)
+- cereal >= 1.1
 
-    - NVIDIA CUDA Toolkit >= 9.0
+**For GPU execution** (required when ``ENABLE_GPU=on``)
 
-    **OR**
+- NVIDIA CUDA Toolkit >= 9.0
 
-    - `AMD ROCm >= 2.9 <https://rocm.github.io/ROCmInstall.html>`_
+  *OR*
 
-      Additional dependencies:
-        - HIP [with ``hipcc`` and ``hcc`` as backend]
-        - rocFFT
-        - rocPRIM
-        - rocThrust
-        - hipCUB, included for NVIDIA GPU targets, but required as an
-          external dependency when building for AMD GPUs
-        - roctracer-dev
-        - Linux kernel >= 3.5.0
+- `AMD ROCm >= 3.5.0 <https://rocm.github.io/ROCmInstall.html>`_ with additional dependencies:
 
-      For HOOMD-blue on AMD GPUs, the following limitations currently apply.
+  - HIP [with ``hipcc`` and ``hcc`` as backend]
+  - rocFFT
+  - rocPRIM
+  - rocThrust
+  - hipCUB, included for NVIDIA GPU targets, but required as an
+    external dependency when building for AMD GPUs
+  - roctracer-dev
+  - Linux kernel >= 3.5.0
 
-      1. Certain HOOMD-blue kernels trigger a `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
-         A `temporary bugfix branch of HIP <https://github.com/glotzerlab/HIP/tree/hipfuncgetattributes_revertvectortypes>`_
-         addresses these problems. When using a custom HIP version, other libraries used by HOOMD-blue (``rocfft``) need
-         to be compiled against that same HIP version.
+  For HOOMD-blue on AMD GPUs, the following limitations currently apply.
 
-      2. The `mpcd` component is disabled on AMD GPUs.
+   1. Certain HOOMD-blue kernels trigger an `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
+   2. The `mpcd` component is disabled on AMD GPUs.
+   3. Multi-GPU execution via unified memory is not available.
 
-      3. Multi-GPU execution via unified memory is not available.
+**For threaded parallelism on the CPU** (required when ``ENABLE_TBB=on``)
 
-  - For threaded parallelism on the CPU (required when ``ENABLE_TBB=on``):
+- Intel Threading Building Blocks >= 4.3
 
-    - Intel Threading Building Blocks >= 4.3
+**For runtime code generation** (required when ``BUILD_JIT=on``)
 
-  - For runtime code generation (required when ``BUILD_JIT=on``):
+- LLVM >= 5.0
 
-    - LLVM >= 5.0
+**To build documentation**
 
-  - To build documentation:
-
-    - Doxygen >= 1.8.5
-    - Sphinx >= 1.6
+- Doxygen >= 1.8.5
+- Sphinx >= 1.6
 
 Install these tools with your system or virtual environment package manager.
 HOOMD developers have had success with
