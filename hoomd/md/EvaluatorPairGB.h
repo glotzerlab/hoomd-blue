@@ -32,22 +32,6 @@
 #define HOSTDEVICE
 #endif
 
-// Nullary structure required by AnisoPotentialPair.
-struct gb_shape_params
-    {
-    HOSTDEVICE gb_shape_params() {}
-
-    //! Load dynamic data members into shared memory and increase pointer
-    /*! \param ptr Pointer to load data to (will be incremented)
-        \param available_bytes Size of remaining shared memory allocation
-     */
-    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const {}
-
-    #ifdef ENABLE_HIP
-    //! Attach managed memory to CUDA stream
-    void attach_to_stream(hipStream_t stream) const {}
-    #endif
-    };
 
 /*!
  * Gay-Berne potential as formulated by Allen and Germano,
@@ -89,7 +73,7 @@ class EvaluatorPairGB
                 lpar = v["lpar"].cast<Scalar>();
                 }
 
-            pybind11::dict asDict()
+            pybind11::dict toPython()
                 {
                 pybind11::dict v;
                 v["epsilon"] = epsilon;
@@ -106,8 +90,26 @@ class EvaluatorPairGB
             __attribute__((aligned(16)));
             #endif
 
-        //TODO: make a similar structure for shapedef
-        typedef gb_shape_params shape_param_type;
+        // Nullary structure required by AnisoPotentialPair.
+        struct shape_type
+            {
+            HOSTDEVICE shape_type() {}
+
+            shape_type(pybind11::object shape_params) {}
+
+            pybind11::object toPython() { return pybind11::none(); }
+
+            //! Load dynamic data members into shared memory and increase pointer
+            /*! \param ptr Pointer to load data to (will be incremented)
+                \param available_bytes Size of remaining shared memory allocation
+            */
+            HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const {}
+
+            #ifdef ENABLE_HIP
+            //! Attach managed memory to CUDA stream
+            void attach_to_stream(hipStream_t stream) const {}
+            #endif
+            };
 
         //! Constructs the pair potential evaluator
         /*! \param _dr Displacement vector between particle centers of mass
@@ -165,7 +167,7 @@ class EvaluatorPairGB
         /*! \param shape_i Shape of particle i
             \param shape_j Shape of particle j
         */
-        HOSTDEVICE void setShape(const shape_param_type *shapei, const shape_param_type *shapej) {}
+        HOSTDEVICE void setShape(const shape_type *shapei, const shape_type *shapej) {}
 
         //! Accept the optional tags
         /*! \param tag_i Tag of particle i
