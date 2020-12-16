@@ -112,6 +112,36 @@ class Snapshot:
 
     @classmethod
     def _from_gsd_snapshot(cls, gsd_snapshot, communicator):
-        sp = cls()
-        snapshot = sp._from_cpp_snapshot(gsd_snapshot, communicator)
-        return snapshot
+        snap = cls()
+        # Set all particle attributes in snap from gsd_snapshot
+        for key in vars(gsd_snapshot.particles):
+            val = vars(gsd_snapshot.particles)[key]
+            if val is not None:
+                try:
+                    setattr(snap.particles, key, val)
+                except AttributeError:
+                    try:
+                        # Some attributes exist but aren't setable without [:]
+                        x = getattr(snap.particles,key)
+                        x[:] = val
+                    except AttributeError:
+                        # The attribute doesn't exist in hoomd.Snapshot
+                        pass
+
+        # Set all bond attributes
+        for key in vars(gsd_snapshot.bonds):
+            val = vars(gsd_snapshot.bonds)[key]
+            if val is not None:
+                print(key)
+                try:
+                    setattr(snap.bonds, key, val)
+                except AttributeError:
+                    try:
+                        x = getattr(snap.bonds,key)
+                        x[:] = val
+                    except AttributeError:
+                        pass
+
+        # Set box attribute
+        snap.configuration.box = gsd_snapshot.configuration.box
+        return snap
