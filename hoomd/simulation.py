@@ -129,17 +129,19 @@ class Simulation(metaclass=Loggable):
         When `timestep` is `None` before calling, `create_state_from_snapshot`
         sets `timestep` to 0.
 
-        Warning:
-            *snapshot* must be a `hoomd.Snapshot`. Use `create_state_from_gsd`
-            to read GSD files. `create_state_from_snapshot` does not support
-            ``gsd.hoomd.Snapshot`` objects from the ``gsd`` Python package.
+        Note:
+            *snapshot* must be either a `hoomd.Snapshot` or a
+            ``gsd.hoomd.Snapshot``. A ``gsd.hoomd.Snapshot`` will first be
+            converted to a `hoomd.Snapshot`.
         """
         if self.state is not None:
             raise RuntimeError("Cannot initialize more than once\n")
 
         try:
+            # snapshot is hoomd.Snapshot
             self._state = State(self, snapshot)
         except AttributeError:
+            # snapshot is gsd.hoomd.Snapshot
             snapshot = Snapshot._from_gsd_snapshot(snapshot)
             self._state = State(self, snapshot)
 
