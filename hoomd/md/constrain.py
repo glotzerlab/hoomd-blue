@@ -424,9 +424,8 @@ class rigid(ConstraintForce):
         type_list = []
         for i in range(0, ntypes):
             type_list.append(
-                hoomd.context.current.system_definition.getParticleData().getNameByType(
-                    i
-                )
+                self._simulation.state._cpp_sys_def.getParticleData()
+                .getNameByType(i)
             )
 
         if type_name not in type_list:
