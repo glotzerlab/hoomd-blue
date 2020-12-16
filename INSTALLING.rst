@@ -66,28 +66,6 @@ Or clone using Git:
 **HOOMD-blue** uses Git submodules. Either clone with the ``--recursive``
 option, or execute ``git submodule update --init`` to fetch the submodules.
 
-Configure a virtual environment
--------------------------------
-
-When using a shared Python installation, create a `virtual environment
-<https://docs.python.org/3/library/venv.html>`_ where you can install
-**HOOMD-blue**::
-
-    $ python3 -m venv /path/to/environment --system-site-packages
-
-Activate the environment before configuring and before executing
-**HOOMD-blue** scripts::
-
-   $ source /path/to/environment/bin/activate
-
-Tell CMake to search for packages in the virtual environment first::
-
-    $ export CMAKE_PREFIX_PATH=/path/to/environment
-
-.. note::
-
-   Other types of virtual environments (such as *conda*) may work, but are not thoroughly tested.
-
 Install prerequisites
 ---------------------
 
@@ -149,25 +127,17 @@ Install prerequisites
     - Doxygen >= 1.8.5
     - Sphinx >= 1.6
 
-Install these tools with your system or virtual environment package manager. HOOMD developers have had success with
+Install these tools with your system or virtual environment package manager.
+HOOMD developers have had success with
 ``pacman`` (`arch linux <https://www.archlinux.org/>`_), ``apt-get`` (`ubuntu <https://ubuntu.com/>`_), `Homebrew
-<https://brew.sh/>`_ (macOS), and `MacPorts <https://www.macports.org/>`_ (macOS)::
+<https://brew.sh/>`_ (macOS), and `MacPorts <https://www.macports.org/>`_ (macOS).
+Note that packages may be named differently, so check your system's package list and install any ``-dev`` packages as needed. ::
 
     $ your-package-manager install python python-numpy pybind11 eigen cmake openmpi cereal cuda
 
 Typical HPC cluster environments provide python, numpy, cmake, cuda, and mpi, via a module system::
 
     $ module load gcc python cuda cmake
-
-.. note::
-
-    Packages may be named differently, check your system's package list. Install any ``-dev`` packages as needed.
-
-.. tip::
-
-    You can install numpy and other python packages into your virtual environment::
-
-        python3 -m pip install numpy
 
 Some package managers (such as *pip*) and most clusters are missing some or all of pybind11, eigen, and cereal.
 ``install-prereq-headers.py`` will install the missing packages into your virtual environment::
@@ -177,24 +147,36 @@ Some package managers (such as *pip*) and most clusters are missing some or all 
 
 Run ``python3 install-prereq-headers.py -h`` to see a list of the command line options.
 
+Configure a virtual environment
+-------------------------------
+
+When using a shared Python installation, create a `virtual environment
+<https://docs.python.org/3/library/venv.html>`_ where you can install the dependencies and
+**HOOMD-blue**.
+You can install numpy and other python packages into your virtual environment using, *e.g.*, ``python3 -m pip install numpy``.
+Note that other types of virtual environments
+(such as *conda*) may work, but are not thoroughly tested. ::
+
+    $ python3 -m venv /path/to/environment --system-site-packages
+
+
 Compile HOOMD-blue
 ------------------
 
-Configure::
+Activate the environment and tell CMake to search for packages there
+before configuring and installing **HOOMD-blue**. ::
+
+    $ source /path/to/environment/bin/activate
+    $ export CMAKE_PREFIX_PATH=/path/to/environment
+
+By default, **HOOMD-blue** configures a *Release* optimized build type for a
+generic CPU architecture and with no optional libraries::
 
     $ cd /path/to/hoomd-blue
     $ cmake -B build
     $ cd build
 
-.. warning::
-
-    Make certain you point ``CMAKE_PREFIX_PATH`` at your virtual environment so that CMake can find
-    packages there and correctly determine the installation location.::
-
-        $ export CMAKE_PREFIX_PATH=/path/to/environment
-
-By default, **HOOMD-blue** configures a *Release* optimized build type for a
-generic CPU architecture and with no optional libraries. Pass these options to cmake
+Pass these options to cmake
 to enable optimizations specific to your CPU::
 
     -DCMAKE_CXX_FLAGS=-march=native -DCMAKE_C_FLAGS=-march=native
@@ -225,7 +207,8 @@ Execute longer running validation tests::
 
     On a cluster, run tests within a job on a GPU compute node.
 
-To install **HOOMD-blue** into your Python environment, run::
+With ``CMAKE_PREFIX_PATH`` pointing to your desired python environment,
+install **HOOMD-blue** into your Python environment::
 
     $ make install
 
