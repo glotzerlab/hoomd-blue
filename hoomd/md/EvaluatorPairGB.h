@@ -47,14 +47,6 @@ class EvaluatorPairGB
             Scalar lperp;       //! The semiaxis length perpendicular to the particle orientation.
             Scalar lpar;        //! The semiaxis length parallel to the particle orientation.
 
-            #ifdef ENABLE_HIP
-            //! Set CUDA memory hints
-            void set_memory_hint() const
-                {
-                // default implementation does nothing
-                }
-            #endif
-
             //! Load dynamic data members into shared memory and increase pointer
             /*! \param ptr Pointer to load data to (will be incremented)
                 \param available_bytes Size of remaining shared memory
@@ -63,8 +55,17 @@ class EvaluatorPairGB
             HOSTDEVICE void load_shared(
                 char *& ptr, unsigned int &available_bytes) const {}
 
+            #ifdef ENABLE_HIP
+            //! Set CUDA memory hints
+            void set_memory_hint() const
+                {
+                // default implementation does nothing
+                }
+            #endif
+
+            HOSTDEVICE param_type() {epsilon = 0; lperp = 0; lpar = 0;}
+
             #ifndef __HIPCC__
-            param_type() {epsilon = 0; lperp = 0; lpar = 0;}
 
             param_type(pybind11::dict v)
                 {
@@ -93,17 +94,20 @@ class EvaluatorPairGB
         // Nullary structure required by AnisoPotentialPair.
         struct shape_type
             {
-            HOSTDEVICE shape_type() {}
-
-            shape_type(pybind11::object shape_params) {}
-
-            pybind11::object toPython() { return pybind11::none(); }
-
             //! Load dynamic data members into shared memory and increase pointer
             /*! \param ptr Pointer to load data to (will be incremented)
                 \param available_bytes Size of remaining shared memory allocation
             */
             HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const {}
+
+            HOSTDEVICE shape_type() {}
+
+            #ifndef __HIPCC__
+
+            shape_type(pybind11::object shape_params) {}
+
+            pybind11::object toPython() { return pybind11::none(); }
+            #endif
 
             #ifdef ENABLE_HIP
             //! Attach managed memory to CUDA stream

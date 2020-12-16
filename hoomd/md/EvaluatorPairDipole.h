@@ -56,8 +56,9 @@ class EvaluatorPairDipole
             HOSTDEVICE void load_shared(
                 char *& ptr, unsigned int &available_bytes) const {}
 
+            HOSTDEVICE param_type() : A(0), kappa(0) {}
+
             #ifndef __HIPCC__
-            param_type() : A(0), kappa(0) {}
 
             param_type(pybind11::dict v)
                 {
@@ -85,9 +86,18 @@ class EvaluatorPairDipole
             {
             vec3<Scalar> mu;
 
+            //! Load dynamic data members into shared memory and increase pointer
+            /*! \param ptr Pointer to load data to (will be incremented)
+                \param available_bytes Size of remaining shared memory allocation
+            */
+            HOSTDEVICE void load_shared(
+                char *& ptr, unsigned int &available_bytes) const {}
+
             HOSTDEVICE shape_type() : mu{0, 0, 0} {}
 
-            HOSTDEVICE shape_type(vec3<Scalar> mu_): mu(mu_) {}
+            #ifndef __HIPCC__
+
+            shape_type(vec3<Scalar> mu_): mu(mu_) {}
 
             shape_type(pybind11::object mu_obj)
                 {
@@ -103,14 +113,7 @@ class EvaluatorPairDipole
                 {
                 return pybind11::make_tuple(mu.x, mu.y, mu.z);
                 }
-
-            //! Load dynamic data members into shared memory and increase pointer
-            /*! \param ptr Pointer to load data to (will be incremented)
-                \param available_bytes Size of remaining shared memory allocation
-            */
-            HOSTDEVICE void load_shared(
-                char *& ptr, unsigned int &available_bytes) const {}
-
+            #endif // __HIPCC__
 
             #ifdef ENABLE_HIP
             //! Attach managed memory to CUDA stream

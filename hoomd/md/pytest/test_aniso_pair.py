@@ -160,17 +160,14 @@ def expand_dict(iterable_dict):
 
 AnisoPotentialSpecification = namedtuple(
     "AnisoParametersSpecification",
-    ("cls", "constructor_kwargs", "type_parameters")
+    ("cls", "type_parameters")
 )
 
 
-def make_aniso_spec(cls, constructor_kwargs=None, type_parameters=None):
-    if constructor_kwargs is None:
-        constructor_kwargs = {}
+def make_aniso_spec(cls, type_parameters=None):
     if type_parameters is None:
         type_parameters = {}
-    return AnisoPotentialSpecification(
-            cls, constructor_kwargs, type_parameters)
+    return AnisoPotentialSpecification(cls, type_parameters)
 
 
 def _valid_params(particle_types=['A', 'B']):
@@ -214,8 +211,6 @@ def _valid_params(particle_types=['A', 'B']):
         return type_parameters_dicts
 
     valid_params_list = []
-    default_constructor_kwargs = lambda: {'nlist': md.nlist.Cell(),
-                                          'r_cut': 2.5}
 
     dipole_arg_dict = {'params': ({'A': [0.5, 1.5, 3.47],
                                   'kappa': [4., 1.2, 0.3]}, 2),
@@ -225,7 +220,6 @@ def _valid_params(particle_types=['A', 'B']):
     valid_params_list.append(
         make_aniso_spec(
             md.pair.aniso.Dipole,
-            default_constructor_kwargs(),
             to_type_parameter_dicts(particle_types, dipole_arg_dict)
         )
     )
@@ -238,7 +232,6 @@ def _valid_params(particle_types=['A', 'B']):
     valid_params_list.append(
         make_aniso_spec(
             md.pair.aniso.GayBerne,
-            default_constructor_kwargs(),
             to_type_parameter_dicts(particle_types, gay_berne_arg_dict)
             )
         )
@@ -249,7 +242,7 @@ def _valid_params(particle_types=['A', 'B']):
 def test_setting_params_and_shape(make_two_particle_simulation,
                                   pair_potential_spec):
     pair_potential = pair_potential_spec.cls(
-            **pair_potential_spec.constructor_kwargs)
+            nlist=md.nlist.Cell(), r_cut=2.5)
     for key, value in pair_potential_spec.type_parameters.items():
         setattr(pair_potential, key, value)
         assert _equivalent_data_structures(value, getattr(pair_potential, key))
@@ -298,11 +291,10 @@ def _aniso_forces_and_energies():
     return fet_list
 
 
-@pytest.fixture(params=_valid_params())
+@pytest.fixture(scope="function", params=_valid_params())
 def pair_potential(request):
     spec = request.param
-    pair_potential = spec.cls(
-            **spec.constructor_kwargs)
+    pair_potential = spec.cls(nlist=md.nlist.Cell(), r_cut=2.5)
     for key, value in spec.type_parameters.items():
         setattr(pair_potential, key, value)
     return pair_potential
