@@ -207,7 +207,7 @@ class GayBerne(AnisotropicPair):
                               len_keys=2))
         self._add_typeparam(params)
 
-    @log(flag="object")
+    @log(category="object")
     def type_shapes(self):
         """Get all the types of shapes in the current simulation.
 
