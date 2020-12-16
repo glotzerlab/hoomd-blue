@@ -169,7 +169,7 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
                                                      const unsigned int *d_nlist,
                                                      const unsigned int *d_head_list,
                                                      const typename evaluator::param_type *d_params,
-                                                     const typename evaluator::shape_param_type *d_shape_params,
+                                                     const typename evaluator::shape_type *d_shape_params,
                                                      const Scalar *d_rcutsq,
                                                      const unsigned int ntypes,
                                                      const unsigned int offset,
@@ -183,7 +183,7 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
     typename evaluator::param_type *s_params =
         (typename evaluator::param_type *)(&s_data[0]);
     Scalar *s_rcutsq = (Scalar *)(&s_data[num_typ_parameters*sizeof(typename evaluator::param_type)]);
-    typename evaluator::shape_param_type *s_shape_params = (typename evaluator::shape_param_type *)(&s_rcutsq[num_typ_parameters]);
+    typename evaluator::shape_type *s_shape_params = (typename evaluator::shape_type *)(&s_rcutsq[num_typ_parameters]);
 
     // load in the per type pair parameters
     for (unsigned int cur_offset = 0; cur_offset < num_typ_parameters; cur_offset += blockDim.x)
@@ -203,7 +203,7 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
             }
         }
 
-    unsigned int shape_param_size = sizeof(typename evaluator::shape_param_type)*ntypes / sizeof(int);
+    unsigned int shape_param_size = sizeof(typename evaluator::shape_type)*ntypes / sizeof(int);
     for (unsigned int cur_offset = 0; cur_offset < shape_param_size; cur_offset += blockDim.x)
         {
         if (cur_offset + threadIdx.x < shape_param_size)
@@ -428,7 +428,7 @@ struct AnisoPairForceComputeKernel
     static void launch(const a_pair_args_t& pair_args,
         std::pair<unsigned int, unsigned int> range,
         const typename evaluator::param_type *params,
-        const typename evaluator::shape_param_type *shape_params)
+        const typename evaluator::shape_type *shape_params)
         {
         unsigned int N = range.second - range.first;
         unsigned int offset = range.first;
@@ -440,7 +440,7 @@ struct AnisoPairForceComputeKernel
             Index2D typpair_idx(pair_args.ntypes);
             unsigned int shared_bytes = (unsigned int)((2*sizeof(Scalar) + sizeof(typename evaluator::param_type))
                                         * typpair_idx.getNumElements() +
-                                        sizeof(typename evaluator::shape_param_type) * pair_args.ntypes);
+                                        sizeof(typename evaluator::shape_type) * pair_args.ntypes);
 
             static unsigned int max_block_size = UINT_MAX;
             hipFuncAttributes attr;
@@ -515,7 +515,7 @@ struct AnisoPairForceComputeKernel
 template<class evaluator, unsigned int shift_mode, unsigned int compute_virial>
 struct AnisoPairForceComputeKernel<evaluator, shift_mode, compute_virial, 0>
     {
-    static void launch(const a_pair_args_t& pair_args, std::pair<unsigned int, unsigned int> range, const typename evaluator::param_type *d_params, const typename evaluator::shape_param_type *shape_params)
+    static void launch(const a_pair_args_t& pair_args, std::pair<unsigned int, unsigned int> range, const typename evaluator::param_type *d_params, const typename evaluator::shape_type *shape_params)
         {
         // do nothing
         }
@@ -531,7 +531,7 @@ struct AnisoPairForceComputeKernel<evaluator, shift_mode, compute_virial, 0>
 template< class evaluator >
 hipError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                                           const typename evaluator::param_type *d_params,
-                                          const typename evaluator::shape_param_type *d_shape_params)
+                                          const typename evaluator::shape_type *d_shape_params)
     {
     assert(d_params);
     assert(pair_args.d_rcutsq);
