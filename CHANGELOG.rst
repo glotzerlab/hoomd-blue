@@ -20,6 +20,11 @@ v3.0.0-beta.3 (not yet released)
 *Fixed*
 
 - ``hoomd.variant.Power`` objects now have a ``t_ramp`` attribute as documented.
+- Enable memory buffers larger than 2-4 GiB.
+- Correctly write large image flags to GSD files.
+- Support more than 26 default type names.
+- Correctly represent fractional degrees of freedom.
+- Compute the minimum image in double precision.
 
 v3.0.0-beta.2 (2020-12-15)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
