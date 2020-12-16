@@ -17,6 +17,7 @@ md.force
     :synopsis: Apply forces to particles.
 
     .. autoclass:: Force
+        :members:
 
     .. autoclass:: Active
         :show-inheritance:

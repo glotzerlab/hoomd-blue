@@ -156,7 +156,7 @@ void OPLSDihedralForceCompute::computeForces(unsigned int timestep)
     assert(h_pos.data);
     assert(h_rtag.data);
 
-    unsigned int virial_pitch = m_virial.getPitch();
+    size_t virial_pitch = m_virial.getPitch();
 
     // From LAMMPS OPLS dihedral implementation
     unsigned int i1,i2,i3,i4,n,dihedral_type;

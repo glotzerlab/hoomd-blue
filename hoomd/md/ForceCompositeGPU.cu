@@ -8,11 +8,15 @@
 #include "hoomd/ParticleData.cuh"
 
 #include "ForceCompositeGPU.cuh"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <thrust/copy.h>
 #include <thrust/transform.h>
 #include <thrust/device_ptr.h>
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
+#pragma GCC diagnostic pop
 
 // Maintainer: jglaser
 
@@ -246,8 +250,8 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
                                                 const unsigned int *d_tag,
                                                 unsigned int n_mol,
                                                 unsigned int N,
-                                                unsigned int net_virial_pitch,
-                                                unsigned int virial_pitch,
+                                                size_t net_virial_pitch,
+                                                size_t virial_pitch,
                                                 unsigned int window_size,
                                                 unsigned int thread_mask,
                                                 unsigned int n_bodies_per_block,
@@ -474,22 +478,22 @@ hipError_t gpu_rigid_force(Scalar4* d_force,
         unsigned int window_size = run_block_size / n_bodies_per_block;
         unsigned int thread_mask = window_size - 1;
 
-        unsigned int shared_bytes = run_block_size * (sizeof(Scalar4) + sizeof(Scalar3))
-            + n_bodies_per_block * (sizeof(Scalar4) + 3*sizeof(unsigned int));
+        unsigned int shared_bytes = (unsigned int)(run_block_size * (sizeof(Scalar4) + sizeof(Scalar3))
+            + n_bodies_per_block * (sizeof(Scalar4) + 3*sizeof(unsigned int)));
 
         while (shared_bytes + attr.sharedSizeBytes >= dev_prop.sharedMemPerBlock)
             {
             // block size is power of two
             run_block_size /= 2;
 
-            shared_bytes = run_block_size * (sizeof(Scalar4) + sizeof(Scalar3))
-                + n_bodies_per_block * (sizeof(Scalar4) + 3*sizeof(unsigned int));
+            shared_bytes = (unsigned int)(run_block_size * (sizeof(Scalar4) + sizeof(Scalar3))
+                + n_bodies_per_block * (sizeof(Scalar4) + 3*sizeof(unsigned int)));
 
             window_size = run_block_size / n_bodies_per_block;
             thread_mask = window_size - 1;
             }
 
-        hipLaunchKernelGGL((gpu_rigid_force_sliding_kernel), dim3(force_grid), dim3(run_block_size), shared_bytes , 0, 
+        hipLaunchKernelGGL((gpu_rigid_force_sliding_kernel), dim3(force_grid), dim3(run_block_size), shared_bytes , 0,
             d_force,
             d_torque,
             d_molecule_len,
@@ -538,8 +542,8 @@ hipError_t gpu_rigid_virial(Scalar* d_virial,
                  unsigned int n_mol,
                  unsigned int N,
                  unsigned int n_bodies_per_block,
-                 unsigned int net_virial_pitch,
-                 unsigned int virial_pitch,
+                 size_t net_virial_pitch,
+                 size_t virial_pitch,
                  unsigned int block_size,
                  const hipDeviceProp_t& dev_prop,
                  const GPUPartition &gpu_partition)
@@ -570,22 +574,22 @@ hipError_t gpu_rigid_virial(Scalar* d_virial,
         unsigned int window_size = run_block_size / n_bodies_per_block;
         unsigned int thread_mask = window_size - 1;
 
-        unsigned int shared_bytes = 6 * run_block_size * sizeof(Scalar)
-            + n_bodies_per_block * (sizeof(Scalar4) + 3*sizeof(unsigned int));
+        unsigned int shared_bytes = (unsigned int)(6 * run_block_size * sizeof(Scalar)
+            + n_bodies_per_block * (sizeof(Scalar4) + 3*sizeof(unsigned int)));
 
         while (shared_bytes + attr.sharedSizeBytes >= dev_prop.sharedMemPerBlock)
             {
             // block size is power of two
             run_block_size /= 2;
 
-            shared_bytes = 6 * run_block_size * sizeof(Scalar)
-                + n_bodies_per_block * (sizeof(Scalar4) + 3*sizeof(unsigned int));
+            shared_bytes = (unsigned int)(6 * run_block_size * sizeof(Scalar)
+                + n_bodies_per_block * (sizeof(Scalar4) + 3*sizeof(unsigned int)));
 
             window_size = run_block_size / n_bodies_per_block;
             thread_mask = window_size - 1;
             }
 
-        hipLaunchKernelGGL((gpu_rigid_virial_sliding_kernel), dim3(force_grid), dim3(run_block_size), shared_bytes , 0, 
+        hipLaunchKernelGGL((gpu_rigid_virial_sliding_kernel), dim3(force_grid), dim3(run_block_size), shared_bytes , 0,
             d_virial,
             d_molecule_len,
             d_molecule_list,
@@ -821,7 +825,7 @@ hipError_t gpu_find_rigid_centers(const unsigned int *d_body,
                     rigid_center,
                     is_center());
 
-    n_rigid = it - rigid_center;
+    n_rigid = (unsigned int)(it - rigid_center);
 
     thrust::device_ptr<unsigned int> lookup_center(d_lookup_center);
     thrust::transform(body,

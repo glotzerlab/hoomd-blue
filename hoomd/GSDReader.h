@@ -1,13 +1,6 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
-// Maintainer: joaander
-
-/*! \file HOOMDInitializer.h
-    \brief Declares the HOOMDInitializer class
-*/
-
 #ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
@@ -101,9 +94,6 @@ class PYBIND11_EXPORT GSDReader
         void readHeader();
         void readParticles();
         void readTopology();
-
-        /// Check and raise an exception if an error occurs
-        void checkError(int retval);
     };
 
 /** Read state information from a GSD file
@@ -139,9 +129,6 @@ class PYBIND11_EXPORT GSDStateReader
 
         /// Handle to the file
         gsd_handle m_handle;
-
-        /// Check and raise an exception if an error occurs
-        void checkError(int retval);
     };
 
 

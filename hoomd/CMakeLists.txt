@@ -75,6 +75,13 @@ set(_hoomd_sources Analyzer.cc
                    filter/export_filters.cc
                    )
 
+# ignore conversion warnings in external files
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set_source_files_properties(extern/kiss_fft.cc PROPERTIES COMPILE_FLAGS "-Wno-conversion -Wno-float-conversion")
+    set_source_files_properties(extern/vmdsock.cc PROPERTIES COMPILE_FLAGS "-Wno-conversion")
+    set_source_files_properties(extern/imd.cc PROPERTIES COMPILE_FLAGS "-Wno-conversion")
+endif()
+
 set(_hoomd_headers
     AABB.h
     AABBTree.h
@@ -112,6 +119,7 @@ set(_hoomd_headers
     GPUPolymorph.h
     GPUPolymorph.cuh
     GPUVector.h
+    GSD.h
     GSDDumpWriter.h
     GSDReader.h
     GSDShapeSpecWriter.h
@@ -189,6 +197,17 @@ endforeach(getar_src)
 # quiet some warnings locally on files we can't modify
 if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
     set_source_files_properties("extern/libgetar/vogl_miniz/vogl_miniz.cpp" PROPERTIES COMPILE_FLAGS "-Wno-strict-aliasing")
+    set_source_files_properties(extern/libgetar/src/DirArchive.cpp PROPERTIES COMPILE_FLAGS "-Wno-conversion")
+    set_source_files_properties(extern/libgetar/src/SqliteArchive.cpp PROPERTIES COMPILE_FLAGS "-Wno-conversion")
+    set_source_files_properties(extern/libgetar/src/TarArchive.cpp PROPERTIES COMPILE_FLAGS "-Wno-conversion")
+    set_source_files_properties(extern/libgetar/src/ZipArchive.cpp PROPERTIES COMPILE_FLAGS "-Wno-conversion")
+    set_source_files_properties(extern/libgetar/src/lz4.c PROPERTIES COMPILE_FLAGS "-Wno-conversion")
+    set_source_files_properties(extern/libgetar/miniz/miniz.cpp PROPERTIES COMPILE_FLAGS "-Wno-conversion")
+    if (CMAKE_COMPILER_IS_GNUCXX)
+        set_source_files_properties(extern/libgetar/sqlite3/sqlite3.c PROPERTIES COMPILE_FLAGS "-Wno-conversion -Wno-return-local-addr")
+    else()
+        set_source_files_properties(extern/libgetar/sqlite3/sqlite3.c PROPERTIES COMPILE_FLAGS "-Wno-conversion")
+    endif()
 endif()
 
 if (ENABLE_HIP)
@@ -204,6 +223,11 @@ add_library(HOOMD::_hoomd ALIAS _hoomd)
 
 # add quick hull as its own library so that it's symbols can be public
 add_library (quickhull SHARED extern/quickhull/QuickHull.cpp)
+
+# ignore conversion warnings in quickull
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(quickhull PRIVATE "-Wno-conversion;-Wno-pessimizing-move")
+endif()
 
 # link the library to its dependencies
 target_link_libraries(_hoomd PUBLIC pybind11::pybind11 quickhull Eigen3::Eigen)

@@ -115,7 +115,7 @@ void mpcd::SlitPoreGeometryFiller::computeNumFill()
 
             // determine volume (# of particles) for filling
             const Scalar volume = (clampbox.y-clampbox.x)*Ly*(clampbox.w-clampbox.z);
-            const unsigned int N_box = std::round(volume * m_density);
+            const unsigned int N_box = (unsigned int)std::round(volume * m_density);
 
             // only add box if it isn't empty
             if (N_box != 0)

@@ -301,7 +301,7 @@ Scalar IntegratorTwoStep::getTranslationalDOF(std::shared_ptr<ParticleGroup> gro
 */
 Scalar IntegratorTwoStep::getRotationalDOF(std::shared_ptr<ParticleGroup> group)
     {
-    int res = 0;
+    double res = 0;
 
     bool aniso = false;
 

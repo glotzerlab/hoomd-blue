@@ -68,7 +68,7 @@ void ComputeThermoGPU::computeProperties()
     unsigned int num_blocks = m_group->getNumMembers() / m_block_size + m_exec_conf->getNumActiveGPUs();
 
     // resize work space
-    unsigned int old_size = m_scratch.size();
+    size_t old_size = m_scratch.size();
 
     m_scratch.resize(num_blocks);
     m_scratch_pressure_tensor.resize(num_blocks*6);

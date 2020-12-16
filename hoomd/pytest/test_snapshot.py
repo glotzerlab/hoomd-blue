@@ -63,8 +63,9 @@ def test_configuration(s):
         s.configuration.box = [10, 12, 7, 0.1, 0.4, 0.2]
         numpy.testing.assert_allclose(s.configuration.box, [10, 12, 7, 0.1, 0.4, 0.2])
 
-        s.configuration.dimensions = 2
-        assert s.configuration.dimensions == 2
+        with pytest.raises(AttributeError):
+            s.configuration.dimensions = 2
+        assert s.configuration.dimensions == 3
 
 
 def test_particles(s):

@@ -55,7 +55,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, std::shared_ptr<Execut
     GlobalArray<Scalar>& virial_array_1 =  fc_2->getVirialArray();
 
     {
-    unsigned int pitch = virial_array_1.getPitch();
+    size_t pitch = virial_array_1.getPitch();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
     // check that the force is correct, it should be 0 since we haven't created any bonds yet
@@ -93,7 +93,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, std::shared_ptr<Execut
     {
     GlobalArray<Scalar4>& force_array_3 =  fc_2->getForceArray();
     GlobalArray<Scalar>& virial_array_3 =  fc_2->getVirialArray();
-    unsigned int pitch = virial_array_3.getPitch();
+    size_t pitch = virial_array_3.getPitch();
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
 
@@ -127,7 +127,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, std::shared_ptr<Execut
     {
     GlobalArray<Scalar4>& force_array_4 =  fc_2->getForceArray();
     GlobalArray<Scalar>& virial_array_4 =  fc_2->getVirialArray();
-    unsigned int pitch = virial_array_4.getPitch();
+    size_t pitch = virial_array_4.getPitch();
     ArrayHandle<Scalar4> h_force_4(force_array_4,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_4(virial_array_4,access_location::host,access_mode::read);
     MY_CHECK_CLOSE(h_force_4.data[0].y, -4.0, tol);
@@ -191,7 +191,7 @@ void bond_force_type_test(bondforce_creator bf_creator, std::shared_ptr<Executio
     {
     GlobalArray<Scalar4>& force_array_6 =  fc_2->getForceArray();
     GlobalArray<Scalar>& virial_array_6 =  fc_2->getVirialArray();
-    unsigned int pitch = virial_array_6.getPitch();
+    size_t pitch = virial_array_6.getPitch();
     ArrayHandle<Scalar4> h_force_6(force_array_6,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_6(virial_array_6,access_location::host,access_mode::read);
 

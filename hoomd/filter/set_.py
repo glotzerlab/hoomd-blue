@@ -27,6 +27,8 @@ class _ParticleFilterSetOperations(ParticleFilter):
         raise NotImplementedError
 
     def __init__(self, f, g):
+        ParticleFilter.__init__(self)
+
         if f == g:
             raise ValueError("Cannot use same filter for {}"
                              "".format(self.__class__.__name__))
@@ -48,6 +50,10 @@ class _ParticleFilterSetOperations(ParticleFilter):
         else:
             return type(self) == type(other) and \
                 self._f == other._f and self._g == other._g
+
+    def __reduce__(self):
+        """Enable (deep)copying and pickling of set based particle filters."""
+        return (type(self), (self._f, self._g))
 
 
 class SetDifference(_ParticleFilterSetOperations,

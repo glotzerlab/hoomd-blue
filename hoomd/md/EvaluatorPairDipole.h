@@ -32,32 +32,6 @@
 #define HOSTDEVICE
 #endif
 
-// call different optimized sqrt functions on the host / device
-//! RSQRT is rsqrtf when included in nvcc and 1.0 / sqrt(x) when included into the host compiler
-#ifdef __HIPCC__
-#define RSQRT(x) rsqrtf( (x) )
-#else
-#define RSQRT(x) Scalar(1.0) / sqrt( (x) )
-#endif
-
-#ifdef __HIPCC__
-#define _POW powf
-#else
-#define _POW pow
-#endif
-
-#ifdef __HIPCC__
-#define _SQRT sqrtf
-#else
-#define _SQRT sqrt
-#endif
-
-#ifdef SINGLE_PRECISION
-#define _EXP(x) expf( (x) )
-#else
-#define _EXP(x) exp( (x) )
-#endif
-
 struct pair_dipole_params
     {
     Scalar mu;         //! The magnitude of the magnetic moment.
@@ -181,7 +155,7 @@ class EvaluatorPairDipole
             if(rsq > rcutsq)
                 return false;
 
-            Scalar rinv =  RSQRT(rsq);
+            Scalar rinv =  fast::rsqrt(rsq);
             Scalar r2inv = Scalar(1.0) / rsq;
             Scalar r3inv = r2inv*rinv;
             Scalar r5inv = r3inv*r2inv;
@@ -196,7 +170,7 @@ class EvaluatorPairDipole
             Scalar e = Scalar(0.0);
 
             Scalar r = Scalar(1.0)/rinv;
-            Scalar prefactor = params.A*_EXP(-params.kappa*r);
+            Scalar prefactor = params.A*fast::exp(-params.kappa*r);
 
             // dipole-dipole
             if (params.mu != Scalar(0.0))

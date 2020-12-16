@@ -74,13 +74,13 @@ UP_TEST( support )
     v1 = sa(vec3<OverlapReal>(-0.5, -0.5, -0.5));
     v2 = vec3<OverlapReal>(-0.5, -0.5, -0.5);
     UP_ASSERT(v1 == v2);
-    v1 = sa(vec3<OverlapReal>(-0.1, 0.1, 0.1));
+    v1 = sa(vec3<OverlapReal>(-0.125, 0.125, 0.125));
     v2 = vec3<OverlapReal>(-0.5, 0.5, 0.5);
     UP_ASSERT(v1 == v2);
     v1 = sa(vec3<OverlapReal>(1, -1, 1));
     v2 = vec3<OverlapReal>(0.5, -0.5, 0.5);
     UP_ASSERT(v1 == v2);
-    v1 = sa(vec3<OverlapReal>(0.51, 0.49, -0.1));
+    v1 = sa(vec3<OverlapReal>(OverlapReal(0.51), OverlapReal(0.49), OverlapReal(-0.1)));
     v2 = vec3<OverlapReal>(0.5, 0.5, -0.5);
     UP_ASSERT(v1 == v2);
     }
@@ -136,8 +136,8 @@ UP_TEST( overlap_octahedron_no_rot )
     vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0));
     vlist.push_back(vec3<OverlapReal>(0.5,0.5,0));
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0));
-    vlist.push_back(vec3<OverlapReal>(0,0,0.707106781186548));
-    vlist.push_back(vec3<OverlapReal>(0,0,-0.707106781186548));
+    vlist.push_back(vec3<OverlapReal>(0,0,OverlapReal(0.707106781186548)));
+    vlist.push_back(vec3<OverlapReal>(0,0,OverlapReal(-0.707106781186548)));
     PolyhedronVertices verts(vlist, 0, 0);
 
     ShapeConvexPolyhedron a(o, verts);
@@ -802,7 +802,7 @@ UP_TEST( overlap_three_cubes_no_rot )
     b.orientation = qb;
     c.orientation = qc;
 
-    OverlapReal t = 0.499; // barely overlapping
+    OverlapReal t = OverlapReal(0.499); // barely overlapping
     r_ab = vec3<Scalar>(-0.25-t*sqrt(3.0)/2.0,t+sqrt(3.0)/4+t/2,0);
     result = test_overlap(r_ab,a,b,err_count);
     UP_ASSERT(!err_count);
@@ -831,7 +831,7 @@ UP_TEST( overlap_three_cubes_no_rot )
     UP_ASSERT(!err_count);
     UP_ASSERT(!result);
 
-    t = 0.501; // barely not overlapping
+    t = OverlapReal(0.501); // barely not overlapping
     r_ab = vec3<Scalar>(-0.25-t*sqrt(3.0)/2.0,t+sqrt(3.0)/4+t/2,0);
     result = test_overlap(r_ab,a,b,err_count);
     UP_ASSERT(!err_count);
@@ -862,7 +862,7 @@ UP_TEST( overlap_three_cubes_no_rot )
 
     // now sweep them by a sphere, so that they barely overlap inside the triangle
 
-    OverlapReal incircle_r = 1.0/2.0/sqrt(3);
+    OverlapReal incircle_r = OverlapReal(1.0/2.0/sqrt(3));
 
     t = 0.5; // triangles touching
     r_ab = vec3<Scalar>(-0.25-t*sqrt(3.0)/2.0,t+sqrt(3.0)/4+t/2.0,0);

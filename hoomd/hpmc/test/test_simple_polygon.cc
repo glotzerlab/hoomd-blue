@@ -36,7 +36,7 @@ PolygonVertices setup_verts(const vector< vec2<OverlapReal> > vlist)
         throw runtime_error("Too many polygon vertices");
 
     PolygonVertices result;
-    result.N = vlist.size();
+    result.N = (unsigned int)vlist.size();
     result.ignore = 0;
 
     // extract the verts from the python list and compute the radius on the way
@@ -48,7 +48,7 @@ PolygonVertices setup_verts(const vector< vec2<OverlapReal> > vlist)
         result.y[i] = vert.y;
         radius_sq = std::max(radius_sq, dot(vert, vert));
         }
-    for (unsigned int i = vlist.size(); i < MAX_POLY2D_VERTS; i++)
+    for (unsigned int i = (unsigned int)vlist.size(); i < MAX_POLY2D_VERTS; i++)
         {
         result.x[i] = 0;
         result.y[i] = 0;
@@ -546,15 +546,15 @@ UP_TEST( no_overlap_bug2 )
     vlist.push_back(vec2<OverlapReal>());
     vlist.push_back(vec2<OverlapReal>());
 
-    vlist[0].x = -1.31406224;
-    vlist[1].x = 0.685937762;
-    vlist[2].x = 1.31406224;
-    vlist[3].x = -0.685937762;
+    vlist[0].x = OverlapReal(-1.31406224);
+    vlist[1].x = OverlapReal(0.685937762);
+    vlist[2].x = OverlapReal(1.31406224);
+    vlist[3].x = OverlapReal(-0.685937762);
 
-    vlist[0].y = -0.323377937;
-    vlist[1].y = -0.323377937;
-    vlist[2].y = 0.323377937;
-    vlist[3].y = 0.323377937;
+    vlist[0].y = OverlapReal(-0.323377937);
+    vlist[1].y = OverlapReal(-0.323377937);
+    vlist[2].y = OverlapReal(0.323377937);
+    vlist[3].y = OverlapReal(0.323377937);
 
     PolygonVertices verts = setup_verts(vlist);
     ShapeSimplePolygon i(o_i, verts);
@@ -601,15 +601,15 @@ UP_TEST( no_overlap_bug3 )
     vlist.push_back(vec2<OverlapReal>());
     vlist.push_back(vec2<OverlapReal>());
 
-    vlist[0].x = -0.541489005;
-    vlist[1].x = 1.45851099;
-    vlist[2].x = 0.541489005;
-    vlist[3].x = -1.45851099;
+    vlist[0].x = OverlapReal(-0.541489005);
+    vlist[1].x = OverlapReal(1.45851099);
+    vlist[2].x = OverlapReal(0.541489005);
+    vlist[3].x = OverlapReal(-1.45851099);
 
-    vlist[0].y = -0.716278672;
-    vlist[1].y = -0.716278672;
-    vlist[2].y = 0.716278672;
-    vlist[3].y = 0.716278672;
+    vlist[0].y = OverlapReal(-0.716278672);
+    vlist[1].y = OverlapReal(-0.716278672);
+    vlist[2].y = OverlapReal(0.716278672);
+    vlist[3].y = OverlapReal(0.716278672);
 
     PolygonVertices verts = setup_verts(vlist);
     ShapeSimplePolygon i(o_i, verts);

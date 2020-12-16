@@ -17,9 +17,9 @@ extern "C"
     {
 
 //! Adds one to every value in an array of ints
-    hipError_t gpu_add_one(int *d_data, unsigned int num);
+    hipError_t gpu_add_one(int *d_data, size_t num);
 //! Fills out the data array with a test pattern
-    hipError_t gpu_fill_test_pattern(int *d_data, unsigned int num);
+    hipError_t gpu_fill_test_pattern(int *d_data, size_t num);
 
     }
 

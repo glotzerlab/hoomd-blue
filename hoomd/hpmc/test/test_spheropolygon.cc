@@ -31,7 +31,7 @@ PolygonVertices setup_verts(const vector< vec2<OverlapReal> > vlist, OverlapReal
         throw runtime_error("Too many polygon vertices");
 
     PolygonVertices result;
-    result.N = vlist.size();
+    result.N = (unsigned int)vlist.size();
     result.sweep_radius = sweep_radius;
     result.ignore = 0;
 
@@ -44,7 +44,7 @@ PolygonVertices setup_verts(const vector< vec2<OverlapReal> > vlist, OverlapReal
         result.y[i] = vert.y;
         radius_sq = std::max(radius_sq, dot(vert, vert));
         }
-    for (unsigned int i = vlist.size(); i < MAX_POLY2D_VERTS; i++)
+    for (unsigned int i = (unsigned int)vlist.size(); i < MAX_POLY2D_VERTS; i++)
         {
         result.x[i] = 0;
         result.y[i] = 0;
@@ -171,7 +171,7 @@ UP_TEST( overlap_square_no_rot )
     vlist.push_back(vec2<OverlapReal>(0.5,-0.5));
     vlist.push_back(vec2<OverlapReal>(0.5,0.5));
     vlist.push_back(vec2<OverlapReal>(-0.5,0.5));
-    PolygonVertices verts = setup_verts(vlist, 0.1);
+    PolygonVertices verts = setup_verts(vlist, OverlapReal(0.1));
 
     ShapeSpheropolygon a(o, verts);
 
@@ -364,7 +364,7 @@ UP_TEST( overlap_square_precise )
     vlist.push_back(vec2<OverlapReal>(0.5,-0.5));
     vlist.push_back(vec2<OverlapReal>(0.5,0.5));
     vlist.push_back(vec2<OverlapReal>(-0.5,0.5));
-    PolygonVertices verts = setup_verts(vlist, R);
+    PolygonVertices verts = setup_verts(vlist, OverlapReal(R));
 
     ShapeSpheropolygon a(o, verts);
     ShapeSpheropolygon b(o, verts);
