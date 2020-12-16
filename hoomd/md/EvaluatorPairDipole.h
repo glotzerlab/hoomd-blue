@@ -32,38 +32,6 @@
 #define HOSTDEVICE
 #endif
 
-// call different optimized sqrt functions on the host / device
-// RSQRT is rsqrtf when included in nvcc and 1.0 / sqrt(x) when included into
-// the host compiler
-#ifdef __HIPCC__
-#define RSQRT(x) rsqrtf( (x) )
-#else
-#define RSQRT(x) Scalar(1.0) / sqrt( (x) )
-#endif
-
-#ifdef SINGLE_PRECISION
-#define _EXP(x) expf( (x) )
-#else
-#define _EXP(x) exp( (x) )
-#endif
-
-// Nullary structure required by AnisoPotentialPair.
-struct dipole_shape_params
-    {
-    HOSTDEVICE dipole_shape_params() {}
-
-    //! Load dynamic data members into shared memory and increase pointer
-    /*! \param ptr Pointer to load data to (will be incremented)
-        \param available_bytes Size of remaining shared memory allocation
-     */
-    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const {}
-
-    #ifdef ENABLE_HIP
-    //! Attach managed memory to CUDA stream
-    void attach_to_stream(hipStream_t stream) const {}
-    #endif
-    };
-
 class EvaluatorPairDipole
     {
     public:
@@ -272,11 +240,7 @@ class EvaluatorPairDipole
             Scalar e = Scalar(0.0);
 
             Scalar r = Scalar(1.0)/rinv;
-<<<<<<< HEAD
             Scalar prefactor = A*fast::exp(-kappa*r);
-=======
-            Scalar prefactor = A * _EXP(-kappa*r);
->>>>>>> Move mu to Dipole shape_type
 
             bool dipole_i_interactions = (mu_i != vec3<Scalar>(0, 0, 0));
             bool dipole_j_interactions = (mu_j != vec3<Scalar>(0, 0, 0));
