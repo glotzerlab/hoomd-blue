@@ -1,10 +1,12 @@
-from collections.abc import Sequence
+from collections.abc import Sequence, Mapping
 import math
+from numbers import Number
+
+import numpy as np
 
 import hoomd
 from hoomd import md
 import pytest
-import numpy as np
 import itertools
 from copy import deepcopy
 import json
@@ -12,7 +14,36 @@ from pathlib import Path
 from collections import namedtuple
 
 
-def _assert_equivalent_type_params(type_param1, type_param2):
+def _equivalent_data_structures(reference, struct_2):
+    """Compare arbitrary data structures for equality.
+
+    ``reference`` is expected to be the reference data structure. Cannot handle
+    set like data structures.
+    """
+    if isinstance(reference, np.ndarray):
+        return np.allclose(reference, struct_2)
+    if isinstance(reference, Mapping):
+        # if the non-reference value does not have all the keys
+        # we don't check for the exact same keys, since some values may have
+        # defaults.
+        if set(reference.keys()) - set(struct_2.keys()):
+            return False
+        return all(
+            _equivalent_data_structures(reference[key], struct_2[key])
+            for key in reference
+        )
+    if isinstance(reference, Sequence):
+        if len(reference) != len(struct_2):
+            return False
+        return all(
+            _equivalent_data_structures(value_1, value_2)
+            for value_1, value_2 in zip(reference, struct_2)
+        )
+    if isinstance(reference, Number):
+        return math.isclose(reference, struct_2)
+
+
+def _assert_equivalent_type_params(type_param0, type_param2):
     """
     Compare entries in type_param1 and type_param2.
 
@@ -37,6 +68,8 @@ def _assert_equivalent_parameter_dicts(param_dict1, param_dict2):
 
 def test_rcut(simulation_factory, two_particle_snapshot_factory):
     lj = md.pair.LJ(nlist=md.nlist.Cell(), r_cut=2.5)
+    assert lj.r_cut.default == 2.5
+
     lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
     with pytest.raises(hoomd.data.typeconverter.TypeConversionError):
         lj.r_cut[('A', 'A')] = 'str'
@@ -50,9 +83,10 @@ def test_rcut(simulation_factory, two_particle_snapshot_factory):
                                                   kT=1, seed=1))
     sim.operations.integrator = integrator
 
-    _assert_equivalent_type_params(lj.r_cut.to_dict(), {('A', 'A'): 2.5})
-    sim.run(1)
-    _assert_equivalent_type_params(lj.r_cut.to_dict(), {('A', 'A'): 2.5})
+    lj.r_cut[('A', 'A')] = 2.5
+    assert _equivalent_data_structures({('A', 'A'): 2.5}, lj.r_cut.to_dict())
+    sim.run(0)
+    assert _equivalent_data_structures({('A', 'A'): 2.5}, lj.r_cut.to_dict())
 
 
 def test_invalid_mode():
@@ -62,7 +96,7 @@ def test_invalid_mode():
             lj = md.pair.LJ(nlist=cell, r_cut=2.5, mode=invalid_mode)
 
 
-@pytest.mark.parametrize("mode", ['none', 'shifted', 'xplor'])
+@pytest.mark.parametrize("mode", ['none', 'shift', 'xplor'])
 def test_mode(simulation_factory, two_particle_snapshot_factory, mode):
     cell = md.nlist.Cell()
     lj = md.pair.LJ(nlist=cell, r_cut=2.5, mode=mode)
@@ -94,12 +128,12 @@ def test_ron(simulation_factory, two_particle_snapshot_factory):
     assert lj.r_on.to_dict() == {}
 
     lj.r_on[('A', 'A')] = 1.5
-    _assert_equivalent_type_params(lj.r_on.to_dict(), {('A', 'A'): 1.5})
+    assert _equivalent_data_structures({('A', 'A'): 1.5}, lj.r_on.to_dict())
     sim.run(0)
-    _assert_equivalent_type_params(lj.r_on.to_dict(), {('A', 'A'): 1.5})
+    assert _equivalent_data_structures({('A', 'A'): 1.5}, lj.r_on.to_dict())
 
     lj.r_on[('A', 'A')] = 1.0
-    _assert_equivalent_type_params(lj.r_on.to_dict(), {('A', 'A'): 1.0})
+    assert _equivalent_data_structures({('A', 'A'): 1.0}, lj.r_on.to_dict())
 
 
 def _make_invalid_param_dict(valid_dict):
@@ -260,17 +294,6 @@ def _invalid_params():
                                                     md.pair.DLVO,
                                                     {}))
 
-    dipole_valid_dict = {'mu': 1.0, 'A': 2.0, 'kappa': 4.0}
-    dipole_invalid_dicts = _make_invalid_param_dict(dipole_valid_dict)
-    invalid_params_list.extend(_make_invalid_params(dipole_invalid_dicts,
-                                                    md.pair.Dipole,
-                                                    {}))
-
-    gay_berne_valid_dict = {'epsilon': 1.0, 'lperp': 2.0, 'lpar': 4.0}
-    gay_berne_invalid_dicts = _make_invalid_param_dict(gay_berne_valid_dict)
-    invalid_params_list.extend(_make_invalid_params(gay_berne_invalid_dicts,
-                                                    md.pair.GayBerne,
-                                                    {}))
     return invalid_params_list
 
 
@@ -462,25 +485,6 @@ def _valid_params(particle_types=['A', 'B']):
                                                  dlvo_valid_param_dicts)),
                                         {}))
 
-    dipole_arg_dict = {'mu': [1.0, 0.5, 0.25],
-                       'A': [0.5, 1.5, 3.47],
-                       'kappa': [4., 1.2, 0.3]}
-    dipole_valid_param_dicts = _make_valid_param_dicts(dipole_arg_dict)
-
-    valid_params_list.append(paramtuple(md.pair.Dipole,
-                                        dict(zip(combos,
-                                                 dipole_valid_param_dicts)),
-                                        {}))
-
-    gay_berne_arg_dict = {'epsilon': [0.5, 0.25, 0.1],
-                          'lperp': [0.5, 0.45, 0.3],
-                          'lpar': [.7, 0.2, 0.375]}
-    gay_berne_valid_param_dicts = _make_valid_param_dicts(gay_berne_arg_dict)
-
-    valid_params_list.append(paramtuple(md.pair.GayBerne,
-                                        dict(zip(combos,
-                                                 gay_berne_valid_param_dicts)),
-                                        {}))
     return valid_params_list
 
 
@@ -496,12 +500,12 @@ def test_valid_params(valid_params):
                                       mode='none')
     for pair in valid_params.pair_potential_params:
         pot.params[pair] = valid_params.pair_potential_params[pair]
-    _assert_equivalent_type_params(valid_params.pair_potential_params,
-                                   pot.params.to_dict())
+    assert _equivalent_data_structures(valid_params.pair_potential_params,
+                                       pot.params.to_dict())
 
 
 def _update_snap(pair_potential, snap):
-    if (any(name in str(pair_potential) for name in ['Ewald', 'Dipole'])
+    if (any(name in str(pair_potential) for name in ['Ewald'])
             and snap.exists):
         snap.particles.charge[:] = 1.
     if 'SLJ' in str(pair_potential) and snap.exists:
@@ -509,13 +513,6 @@ def _update_snap(pair_potential, snap):
     if 'DLVO' in str(pair_potential) and snap.exists:
         snap.particles.diameter[0] = 0.2
         snap.particles.diameter[1] = 0.5
-    # Deal with anisotropic shapes, setting moment of inertia gives the
-    # particles rotational degrees of freedom preventing a warning from the
-    # integrator.
-    if (any(name in str(pair_potential) for name in ['Dipole', 'GayBerne'])
-            and snap.exists):
-        snap.particles.moment_inertia[0] = [1., 1., 1.]
-        snap.particles.moment_inertia[0] = [1., 2., 1.]
 
 
 def test_attached_params(simulation_factory, lattice_snapshot_factory,
@@ -540,8 +537,8 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
     sim.operations.integrator = md.Integrator(dt=0.005)
     sim.operations.integrator.forces.append(pot)
     sim.run(1)
-    _assert_equivalent_type_params(pot.params.to_dict(),
-                                   valid_params.pair_potential_params)
+    assert _equivalent_data_structures(valid_params.pair_potential_params,
+                                       pot.params.to_dict())
 
 
 def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
@@ -575,6 +572,10 @@ def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
 
 
 def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
+    # A subtle bug existed where we used "shifted" instead of "shift" in Python
+    # and in C++ we used else if clauses with no error raised if the set Python
+    # mode fell through. This means the actual shift mode was not set.
+    # pytest.skip("Test is broken.")
 
     def S_r(r, r_cut, r_on):
         if r < r_on:
@@ -615,7 +616,7 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
         E_rcut = sum(energies)
 
     lj_shift = md.pair.LJ(nlist=md.nlist.Cell(),
-                          mode='shifted', r_cut=r_cut)
+                          mode='shift', r_cut=r_cut)
     lj_shift.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
     integrator = md.Integrator(dt=0.005)
     integrator.forces.append(lj_shift)
@@ -699,7 +700,7 @@ def test_force_energy_relationship(simulation_factory,
                                    valid_params):
     # don't really test DPD and DPDLJ for this test
     pot_name = valid_params.pair_potential.__name__
-    if any(pot_name == name for name in ["DPD", "DPDLJ", "Dipole", "GayBerne"]):
+    if any(pot_name == name for name in ["DPD", "DPDLJ"]):
         pytest.skip("Cannot test force energy relationship for "
                     + pot_name + " pair force")
 
@@ -746,8 +747,6 @@ def _forces_and_energies():
     and then stored in the json file below. Values were calculated at
     distances of 0.75 and 1.5 for each argument dictionary
     """
-    # holds the forces and energies associated with an anisotropic pair
-    # potential.
     FEtuple = namedtuple('FEtuple',
                          ['pair_potential',
                           'pair_potential_params',
@@ -820,98 +819,3 @@ def test_force_energy_accuracy(simulation_factory,
             assert isclose(sum(sim_energies), forces_and_energies.energies[i])
             assert isclose(sim_forces[0], forces_and_energies.forces[i] * r)
             assert isclose(sim_forces[0], -forces_and_energies.forces[i] * r)
-
-
-def _aniso_forces_and_energies():
-    """
-    Return reference force and energy values.
-
-    Reference force and energy values were calculated using HOOMD-blue v3 beta
-    1.  Values were calculated at distances of 0.75 and 1.5 for each argument
-    dictionary as well as second particle orientations of
-    [0.86615809, 0.4997701, 0, 0] and [0.70738827, 0, 0, 0.70682518]. The first
-    particle is always oriented [1, 0, 0, 0].
-    """
-    # holds the forces, energies, and torques associated with an anisotropic
-    # pair potential.
-    FETtuple = namedtuple('FETtuple',
-                          ['pair_potential',
-                           'pair_potential_params',
-                           'forces',
-                           'energies',
-                           'torques'])
-
-    path = Path(__file__).parent / "aniso_forces_and_energies.json"
-    with path.open() as f:
-        computations = json.load(f)
-        fet_list = []
-        for pot in computations:
-            for i, params in enumerate(computations[pot]["params"]):
-                fet_list.append(FETtuple(
-                    getattr(md.pair, pot),
-                    params,
-                    computations[pot]["forces"][i],
-                    computations[pot]["energies"][i],
-                    computations[pot]["torques"][i],
-                    )
-                )
-    return fet_list
-
-
-@pytest.mark.parametrize(
-    "aniso_forces_and_energies",
-    _aniso_forces_and_energies(),
-    ids=lambda x: x.pair_potential.__name__)
-def test_aniso_force_computes(simulation_factory,
-                              two_particle_snapshot_factory,
-                              aniso_forces_and_energies):
-    r"""These are pure regression tests from HOOMD-blue version 3.0 beta 1.
-
-    This tests 2 conditions with three parameter values for each pair potential.
-    The particle distances and orientations are:
-
-    .. math::
-
-        r_1 = (0, 0, 0.1) \ r_2 = (0, 0, 0.85) \\
-        \theta_1 = (1, 0, 0, 0) \ \theta_2 = (0.86615809, 0.4997701, 0, 0) \\
-        \\
-        r_1 = (0, 0, 0.1) \ r_2 = (0, 0, 1.6) \\
-        \theta_1 = (1, 0, 0, 0) \ \theta_2 = (0.70738827, 0, 0, 0.70682518) \\
-    """
-
-    pot = aniso_forces_and_energies.pair_potential(nlist=md.nlist.Cell(),
-                                                   r_cut=2.5, mode='none')
-    pot.params[('A', 'A')] = aniso_forces_and_energies.pair_potential_params
-    snap = two_particle_snapshot_factory(particle_types=['A'], d=0.75)
-    _update_snap(aniso_forces_and_energies.pair_potential, snap)
-    sim = simulation_factory(snap)
-    integrator = md.Integrator(dt=0.005)
-    integrator.forces.append(pot)
-    integrator.methods.append(md.methods.Langevin(hoomd.filter.All(),
-                                                  kT=1, seed=1))
-    sim.operations.integrator = integrator
-    sim.run(0)
-    particle_distances = [0.75, 1.5]
-    orientations = [[0.86615809, 0.4997701, 0.0, 0.0],
-                    [0.70738827, 0.0, 0.0, 0.70682518]
-                    ]
-    for i, (distance, orientation) in enumerate(
-            zip(particle_distances, orientations)):
-        snap = sim.state.snapshot
-        # Set up proper distances and orientations
-        if snap.exists:
-            snap.particles.position[0] = [0, 0, .1]
-            snap.particles.position[1] = [0, 0, distance + .1]
-            snap.particles.orientation[1] = orientation
-        sim.state.snapshot = snap
-
-        # Grab all quantities to test for accuracy
-        sim_energies = sim.operations.integrator.forces[0].energies
-        sim_forces = sim.operations.integrator.forces[0].forces
-        sim_torques = sim.operations.integrator.forces[0].torques
-        if sim_energies is not None:
-            assert isclose(sim_energies[0],
-                           aniso_forces_and_energies.energies[i])
-            assert isclose(sim_forces[0], aniso_forces_and_energies.forces[i])
-            assert isclose(-sim_forces[1], aniso_forces_and_energies.forces[i])
-            assert isclose(sim_torques, aniso_forces_and_energies.torques[i])

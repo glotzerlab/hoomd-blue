@@ -1,22 +1,12 @@
 {
   "GayBerne": {
-    "params": [
-      {
-        "epsilon": 1,
-        "lperp": 1,
-        "lpar": 2
-      },
-      {
-        "epsilon": 2,
-        "lperp": 0.5,
-        "lpar": 0.75
-      },
-      {
-        "epsilon": 5,
-        "lperp": 2,
-        "lpar": 2.5
-      }
-    ],
+    "params": {
+        "params": [
+            {"epsilon": 1, "lperp": 1, "lpar": 2},
+            {"epsilon": 2, "lperp": 0.5, "lpar": 0.75},
+            {"epsilon": 5, "lperp": 2, "lpar": 2.5}
+        ]
+    },
     "forces": [
       [
         [0, 1221460676.716697, 915079158.1200252],
@@ -70,11 +60,18 @@
     ]
   },
   "Dipole": {
-    "params": [
-      {"mu": 1, "A": 0.1, "kappa": 0.1},
-      {"mu": 2, "A": 0.5, "kappa": 0.5},
-      {"mu": 5, "A": 2, "kappa": 2}
-    ],
+    "params": {
+        "mu": [
+              [1.0, 0, 0],
+              [2.0, 0, 0],
+              [5.0, 0, 0]
+        ],
+        "params": [
+            {"A": 0.1, "kappa": 0.1},
+            {"A": 0.5, "kappa": 0.5},
+            {"A": 2, "kappa": 2}
+         ]
+    },
     "forces": [
       [
         [2.2592501480733773e-09, 0, -1.0789313044673172],

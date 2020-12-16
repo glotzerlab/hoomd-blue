@@ -2,6 +2,7 @@
 set(files __init__.py
     aniso_forces_and_energies.json
     test_active.py
+    test_aniso_pair.py
     test_flags.py
     test_pair.py
     test_methods.py
