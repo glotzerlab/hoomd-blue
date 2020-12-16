@@ -20,14 +20,6 @@ class TypeConversionError(ValueError):
     pass
 
 
-def preprocess_list(value):
-    """Function for TypeConverterValue to exclude `str` and `dict` objects."""
-    if is_iterable:
-        return value
-    else:
-        raise ValueError("Expected an iterable (excluding str and dict).")
-
-
 def trigger_preprocessing(trigger):
     if isinstance(trigger, Trigger):
         return trigger
@@ -59,6 +51,7 @@ def box_preprocessing(box):
             raise ValueError(
                 "{} is not convertible into a hoomd.Box object. "
                 "using hoomd.Box.from_box".format(box))
+
 
 class _HelpValidate(ABC):
     """Base class for classes that perform validation on an inputed value.
@@ -264,28 +257,36 @@ class TypeConverterValue(TypeConverter):
             TypeConverterValue(OnlyType(int, postprocess=natural_number))
     """
     _conversion_func_dict = {
-        list: OnlyType(list, preprocess=preprocess_list),
-        ndarray: OnlyType(ndarray, preprocess=array),
-        str: OnlyType(str, strict=True),
         Variant: OnlyType(Variant, preprocess=variant_preprocessing),
+        ParticleFilter: OnlyType(ParticleFilter, strict=True),
+        str: OnlyType(str, strict=True),
         Trigger: OnlyType(Trigger, preprocess=trigger_preprocessing),
-        ParticleFilter: OnlyType(ParticleFilter, strict=True)
+        ndarray: OnlyType(ndarray, preprocess=array),
     }
 
     def __init__(self, value):
-        # if constructor with special default setting logic
-        if value in self._conversion_func_dict.keys():
-            self.converter = self._conversion_func_dict[value]
-        # if type with special value setting logic
-        elif type(value) in self._conversion_func_dict.keys():
-            self.converter = self._conversion_func_dict[type(value)]
-        # if object constructor
-        elif isclass(value):
+        # If the value is a class object
+        if isclass(value):
+            # if constructor with special default setting logic
+            for cls in self._conversion_func_dict:
+                if issubclass(value, cls):
+                    self.converter = self._conversion_func_dict[cls]
+                    return None
+            # constructor with no special logic
             self.converter = OnlyType(value)
-        # if callable
-        elif callable(value):
+            return None
+
+        # If the value is a class instance
+        # if value is a subtype of a type with special value setting logic
+        for cls in self._conversion_func_dict:
+            if isinstance(value, cls):
+                self.converter = self._conversion_func_dict[cls]
+                return None
+
+        # if value is a callable assume that it is the validation function
+        if callable(value):
             self.converter = value
-        # if other object
+        # if any other object
         else:
             self.converter = OnlyType(type(value))
 
