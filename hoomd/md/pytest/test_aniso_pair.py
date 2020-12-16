@@ -71,7 +71,7 @@ def test_mode(make_two_particle_simulation, mode):
     """Test that all modes are correctly set on construction."""
     cell = md.nlist.Cell()
     # Test setting on construction
-    gay_berne = md.pair.GayBerne(nlist=cell, r_cut=2.5, mode=mode[0])
+    gay_berne = md.pair.aniso.GayBerne(nlist=cell, r_cut=2.5, mode=mode[0])
     assert gay_berne.mode == mode[0]
 
     # Test setting
@@ -90,9 +90,9 @@ def test_mode_invalid(mode):
     """Test mode validation on construction and setting."""
     # Test errors on construction
     with pytest.raises(TypeConversionError):
-        gay_berne = md.pair.GayBerne(
+        gay_berne = md.pair.aniso.GayBerne(
             nlist=md.nlist.Cell(), r_cut=2.5, mode=mode)
-    gay_berne = md.pair.GayBerne(nlist=md.nlist.Cell(), r_cut=2.5)
+    gay_berne = md.pair.aniso.GayBerne(nlist=md.nlist.Cell(), r_cut=2.5)
     gay_berne.params[('A', 'A')] = {'epsilon': 1, 'lpar': 0.5, 'lperp': 1.0}
     # Test errors on setting
     with pytest.raises(TypeConversionError):
@@ -104,7 +104,7 @@ def test_rcut(make_two_particle_simulation, r_cut):
     """Test that r_cut is correctly set and settable."""
     cell = md.nlist.Cell()
     # Test construction
-    gay_berne = md.pair.GayBerne(nlist=cell, r_cut=r_cut)
+    gay_berne = md.pair.aniso.GayBerne(nlist=cell, r_cut=r_cut)
     assert gay_berne.r_cut.default == r_cut
 
     # Test setting
@@ -132,9 +132,9 @@ def test_rcut_invalid(r_cut):
     # Test construction error
     if r_cut is not None:
         with pytest.raises(TypeConversionError):
-            gay_berne = md.pair.GayBerne(nlist=cell, r_cut=r_cut)
+            gay_berne = md.pair.aniso.GayBerne(nlist=cell, r_cut=r_cut)
     # Test setting error
-    gay_berne = md.pair.GayBerne(nlist=cell, r_cut=2.5)
+    gay_berne = md.pair.aniso.GayBerne(nlist=cell, r_cut=2.5)
     with pytest.raises(ValueError):
         gay_berne.r_cut[('A', 'B')] = r_cut
 
@@ -224,7 +224,7 @@ def _valid_params(particle_types=['A', 'B']):
 
     valid_params_list.append(
         make_aniso_spec(
-            md.pair.Dipole,
+            md.pair.aniso.Dipole,
             default_constructor_kwargs(),
             to_type_parameter_dicts(particle_types, dipole_arg_dict)
         )
@@ -237,7 +237,7 @@ def _valid_params(particle_types=['A', 'B']):
 
     valid_params_list.append(
         make_aniso_spec(
-            md.pair.GayBerne,
+            md.pair.aniso.GayBerne,
             default_constructor_kwargs(),
             to_type_parameter_dicts(particle_types, gay_berne_arg_dict)
             )
@@ -288,7 +288,7 @@ def _aniso_forces_and_energies():
             for i, params in enumerate(expand_dict(
                     computations[pot]["params"])):
                 fet_list.append(FETtuple(
-                    getattr(md.pair, pot),
+                    getattr(md.pair.aniso, pot),
                     params,
                     computations[pot]["forces"][i],
                     computations[pot]["energies"][i],
