@@ -190,7 +190,7 @@ void CommunicatorGrid<T>::communicate(const GlobalArray<T>& grid)
         ArrayHandle<T> h_grid(grid, access_location::host, access_mode::read);
 
         // gather grid elements into send buf
-        unsigned int n = m_send_buf.getNumElements();
+        unsigned int n = (unsigned int)m_send_buf.getNumElements();
         for (unsigned int i = 0; i < n; ++i)
             h_send_buf.data[i] = h_grid.data[h_send_idx.data[i]];
         }
@@ -214,14 +214,14 @@ void CommunicatorGrid<T>::communicate(const GlobalArray<T>& grid)
             unsigned int offs = b->second;
             unsigned int n_elem = e->second - b->second;
 
-            MPI_Isend(&h_send_buf.data[offs], n_elem*sizeof(T), MPI_BYTE, *it, 0,
+            MPI_Isend(&h_send_buf.data[offs], int(n_elem*sizeof(T)), MPI_BYTE, *it, 0,
                 m_exec_conf->getMPICommunicator(), &reqs[n++]);
-            MPI_Irecv(&h_recv_buf.data[offs], n_elem*sizeof(T), MPI_BYTE, *it, 0,
+            MPI_Irecv(&h_recv_buf.data[offs], int(n_elem*sizeof(T)), MPI_BYTE, *it, 0,
                 m_exec_conf->getMPICommunicator(), &reqs[n++]);
             }
 
         std::vector<MPI_Status> stat(reqs.size());
-        MPI_Waitall(reqs.size(), &reqs.front(), &stat.front());
+        MPI_Waitall((unsigned int)reqs.size(), &reqs.front(), &stat.front());
         }
 
         {
@@ -230,7 +230,7 @@ void CommunicatorGrid<T>::communicate(const GlobalArray<T>& grid)
         ArrayHandle<T> h_grid(grid, access_location::host, access_mode::readwrite);
 
         // scatter recv buf into grid
-        unsigned int n = m_send_buf.getNumElements();
+        unsigned int n = (unsigned int)m_send_buf.getNumElements();
         if (m_add_outer)
             for (unsigned int i = 0; i < n; ++i)
                 h_grid.data[h_recv_idx.data[i]] = h_grid.data[h_recv_idx.data[i]] + h_recv_buf.data[i];

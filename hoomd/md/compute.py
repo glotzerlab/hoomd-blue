@@ -97,7 +97,7 @@ class ThermodynamicQuantities(_Thermo):
         else:
             return None
 
-    @log(flag='sequence')
+    @log(category='sequence')
     def pressure_tensor(self):
         """(:math:`P_{xx}`, :math:`P_{xy}`, :math:`P_{xz}`, :math:`P_{yy}`,
         :math:`P_{yz}`, :math:`P_{zz}`).

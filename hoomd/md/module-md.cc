@@ -148,9 +148,9 @@ wall_type make_wall_field_params(py::object walls, std::shared_ptr<const Executi
     py::list walls_spheres = walls.attr("spheres").cast<py::list>();
     py::list walls_cylinders = walls.attr("cylinders").cast<py::list>();
     py::list walls_planes = walls.attr("planes").cast<py::list>();
-    w.numSpheres = py::len(walls_spheres);
-    w.numCylinders = py::len(walls_cylinders);
-    w.numPlanes = py::len(walls_planes);
+    w.numSpheres = (unsigned int)py::len(walls_spheres);
+    w.numCylinders = (unsigned int)py::len(walls_cylinders);
+    w.numPlanes = (unsigned int)py::len(walls_planes);
 
     if (w.numSpheres>MAX_N_SWALLS || w.numCylinders>MAX_N_CWALLS || w.numPlanes>MAX_N_PWALLS)
         {

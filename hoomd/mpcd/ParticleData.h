@@ -143,7 +143,7 @@ class PYBIND11_EXPORT ParticleData
         //! Get number of MPCD particle types
         unsigned int getNTypes() const
             {
-            return m_type_mapping.size();
+            return (unsigned int)m_type_mapping.size();
             }
 
         //! Get the type-name mapping

@@ -162,7 +162,7 @@ void FIREEnergyMinimizer::update(unsigned int timestep)
     for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
         {
         std::shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
-        unsigned int group_size = current_group->getIndexArray().getNumElements();
+        unsigned int group_size = current_group->getNumMembers();
         total_group_size += group_size;
 
         for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
@@ -202,7 +202,7 @@ void FIREEnergyMinimizer::update(unsigned int timestep)
     for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
         {
         std::shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
-        unsigned int group_size = current_group->getIndexArray().getNumElements();
+        unsigned int group_size = current_group->getNumMembers();
         for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
             {
             unsigned int j = current_group->getMemberIndex(group_idx);
@@ -304,7 +304,7 @@ void FIREEnergyMinimizer::update(unsigned int timestep)
     for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
         {
         std::shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
-        unsigned int group_size = current_group->getIndexArray().getNumElements();
+        unsigned int group_size = current_group->getNumMembers();
         for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
             {
             unsigned int j = current_group->getMemberIndex(group_idx);
@@ -371,7 +371,7 @@ void FIREEnergyMinimizer::update(unsigned int timestep)
         for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
             {
             std::shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
-            unsigned int group_size = current_group->getIndexArray().getNumElements();
+            unsigned int group_size = current_group->getNumMembers();
             for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
                 {
                 unsigned int j = current_group->getMemberIndex(group_idx);

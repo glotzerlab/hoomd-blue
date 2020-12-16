@@ -11,6 +11,7 @@ hoomd.filter
     ParticleFilter
     All
     Intersection
+    Null
     SetDifference
     Tags
     Type
@@ -25,6 +26,7 @@ hoomd.filter
         :special-members: __call__, __hash__, __eq__, __str__
     .. autoclass:: All()
     .. autoclass:: Intersection(f, g)
+    .. autoclass:: Null()
     .. autoclass:: SetDifference(f, g)
     .. autoclass:: Tags(tags)
         :members: tags

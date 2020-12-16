@@ -330,7 +330,7 @@ template<class ShapeA, class ShapeB>
 DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeA& a, const ShapeB &b,
     const OverlapReal sweep_radius_a = OverlapReal(0.0), const OverlapReal sweep_radius_b = OverlapReal(0.0))
     {
-    vec2<OverlapReal> dr(r_ab.x, r_ab.y);
+    vec2<OverlapReal> dr(OverlapReal(r_ab.x), OverlapReal(r_ab.y));
 
     OverlapReal rsq = dot(dr,dr);
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter()
@@ -456,7 +456,7 @@ DEVICE inline bool test_overlap<ShapeSphere, ShapeSphere>(const vec3<Scalar>& r_
 
     OverlapReal rsq = dot(dr,dr);
 
-    OverlapReal RaRb = a.params.radius + b.params.radius + sweep_radius_a + sweep_radius_b;
+    OverlapReal RaRb = a.params.radius + b.params.radius + OverlapReal(sweep_radius_a + sweep_radius_b);
     if (rsq < RaRb*RaRb)
         {
         return true;
@@ -504,9 +504,9 @@ DEVICE inline bool test_overlap_intersection(const ShapeSphere& a, const ShapeSp
     const vec3<Scalar>& ab_t, const vec3<Scalar>& ac_t, unsigned int &err,
     Scalar sweep_radius_a, Scalar sweep_radius_b, Scalar sweep_radius_c)
     {
-    OverlapReal Ra = a.params.radius + sweep_radius_a;
-    OverlapReal Rb = b.params.radius + sweep_radius_b;
-    OverlapReal Rc = c.params.radius + sweep_radius_c;
+    OverlapReal Ra = a.params.radius + OverlapReal(sweep_radius_a);
+    OverlapReal Rb = b.params.radius + OverlapReal(sweep_radius_b);
+    OverlapReal Rc = c.params.radius + OverlapReal(sweep_radius_c);
 
     return detail::check_three_spheres_overlap(Ra,Rb,Rc,ab_t,ac_t);
     }

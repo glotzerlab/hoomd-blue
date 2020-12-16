@@ -177,7 +177,7 @@ class Simulation(metaclass=Loggable):
                 operations._schedule()
                 self._operations = operations
 
-    @property
+    @log
     def tps(self):
         """float: The average number of time steps per second.
 
@@ -193,6 +193,34 @@ class Simulation(metaclass=Loggable):
             return None
         else:
             return self._cpp_sys.getLastTPS()
+
+    @log
+    def walltime(self):
+        """float: The walltime spent during the last call to `run`.
+
+        `walltime` is the number seconds that the last call to `run` took to
+        complete. It is updated during the `run` loop and remains fixed after
+        `run` completes.
+
+        Note:
+            `walltime` resets to 0 at the beginning of each call to `run`.
+        """
+        if self.state is None:
+            return 0
+        else:
+            return self._cpp_sys.walltime
+
+    @log
+    def final_timestep(self):
+        """float: `run` will end at this timestep.
+
+        `final_timestep` is the timestep on which the currently executing `run`
+        will complete.
+        """
+        if self.state is None:
+            return self.timestep
+        else:
+            return self._cpp_sys.final_timestep
 
     @property
     def always_compute_pressure(self):
