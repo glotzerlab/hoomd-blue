@@ -1,4 +1,6 @@
-"""Pair Potentials for molecular dynamics."""
+"""Pair Potentials for molecular dynamics.
+
+For anisotropic potentials see `hoomd.md.pair.aniso`"""
 from . import aniso
 from .pair import (
     Pair,
