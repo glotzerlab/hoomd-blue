@@ -14,7 +14,10 @@
 #include "hoomd/HOOMDMPI.h"
 #include "hoomd/ExecutionConfiguration.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include "hoomd/extern/upp11/upp11.h"
+#pragma GCC diagnostic pop
 
 #include <cmath>
 #include <string>
@@ -126,7 +129,7 @@ int main(int argc, char **argv) \
     std::vector<char *> new_argv(argv, argv+argc); \
     new_argv.push_back(dash_s); \
     new_argv.push_back(zero); \
-    int val = upp11::TestMain().main(new_argv.size(), &new_argv[0]); \
+    int val = upp11::TestMain().main((int)new_argv.size(), &new_argv[0]); \
     exec_conf_cpu.reset(); \
     exec_conf_gpu.reset(); \
     MPI_Finalize(); \
@@ -140,7 +143,7 @@ int main(int argc, char **argv) { \
     std::vector<char *> new_argv(argv, argv+argc); \
     new_argv.push_back(dash_s); \
     new_argv.push_back(zero); \
-    int val = upp11::TestMain().main(new_argv.size(), &new_argv[0]); \
+    int val = upp11::TestMain().main((int)new_argv.size(), &new_argv[0]); \
     exec_conf_cpu.reset(); \
     exec_conf_gpu.reset(); \
     return val; \

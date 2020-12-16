@@ -35,7 +35,7 @@ struct tersoff_args_t
                    const unsigned int _N,
                    const unsigned int _Nghosts,
                    Scalar * _d_virial,
-                   unsigned int _virial_pitch,
+                   size_t _virial_pitch,
                    bool _compute_virial,
                    const Scalar4 *_d_pos,
                    const BoxDim& _box,
@@ -44,7 +44,7 @@ struct tersoff_args_t
                    const unsigned int *_d_head_list,
                    const Scalar *_d_rcutsq,
                    const Scalar *_d_ronsq,
-                   const unsigned int _size_nlist,
+                   const size_t _size_nlist,
                    const unsigned int _ntypes,
                    const unsigned int _block_size,
                    const unsigned int _tpp,
@@ -74,7 +74,7 @@ struct tersoff_args_t
     const unsigned int N;            //!< Number of particles
     const unsigned int Nghosts;      //!< Number of ghost particles
     Scalar *d_virial;                //!< Virial to write out
-    const unsigned int virial_pitch; //!< Pitch for N*6 virial array
+    const size_t virial_pitch; //!< Pitch for N*6 virial array
     bool compute_virial;             //!< True if we are supposed to compute the virial
     const Scalar4 *d_pos;            //!< particle positions
     const BoxDim& box;                //!< Simulation box in GPU format
@@ -83,7 +83,7 @@ struct tersoff_args_t
     const unsigned int *d_head_list;//!< Indexes for accessing d_nlist
     const Scalar *d_rcutsq;          //!< Device array listing r_cut squared per particle type pair
     const Scalar *d_ronsq;           //!< Device array listing r_on squared per particle type pair
-    const unsigned int size_nlist;  //!< Number of elements in the neighborlist
+    const size_t size_nlist;  //!< Number of elements in the neighborlist
     const unsigned int ntypes;      //!< Number of particle types in the simulation
     const unsigned int block_size;  //!< Block size to execute
     const unsigned int tpp;         //!< Threads per particle
@@ -180,7 +180,7 @@ template< class evaluator, unsigned char compute_virial, int tpp>
 __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                                                   const unsigned int N,
                                                   Scalar *d_virial,
-                                                  unsigned int virial_pitch,
+                                                  size_t virial_pitch,
                                                   const Scalar4 *d_pos,
                                                   const BoxDim box,
                                                   const unsigned int *d_n_neigh,
@@ -335,9 +335,9 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                     cur_k = next_k;
                     next_k = __ldg(d_nlist + head_idx + neigh_idy+1);
 
-                        // I continue only if k is not the same as j
-                        if((cur_k>cur_j)&&(cur_j>idx))
-                            {
+        	        // I continue only if k is not the same as j
+        	        if((cur_k>cur_j)&&(cur_j>idx))
+        	            {
                         // get the position of neighbor k
                         Scalar4 postypek = __ldg(d_pos + cur_k);
                         Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
@@ -829,7 +829,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
 */
 __global__ void gpu_zero_forces_kernel(Scalar4 *d_force,
                                        Scalar *d_virial,
-                                       unsigned int virial_pitch,
+                                       size_t virial_pitch,
                                        const unsigned int N)
     {
     // identify the particle we are supposed to handle
@@ -859,7 +859,7 @@ void get_max_block_size(T func, const tersoff_args_t& pair_args, unsigned int& m
     max_block_size = attr.maxThreadsPerBlock;
     max_block_size &= ~(pair_args.devprop.warpSize - 1);
 
-    kernel_shared_bytes = attr.sharedSizeBytes;
+    kernel_shared_bytes = (unsigned int)(attr.sharedSizeBytes);
     }
 
 //! Tersoff compute kernel launcher
@@ -893,15 +893,15 @@ struct TersoffComputeKernel
 
             // size shared bytes
             Index2D typpair_idx(pair_args.ntypes);
-            unsigned int shared_bytes = (sizeof(Scalar) + sizeof(typename evaluator::param_type))
-                                        * typpair_idx.getNumElements() + pair_args.ntypes*run_block_size*sizeof(Scalar);
+            unsigned int shared_bytes = (unsigned int)((sizeof(Scalar) + sizeof(typename evaluator::param_type))
+                                        * typpair_idx.getNumElements() + pair_args.ntypes*run_block_size*sizeof(Scalar));
 
             while (shared_bytes + kernel_shared_bytes >= pair_args.devprop.sharedMemPerBlock)
                 {
                 run_block_size -= pair_args.devprop.warpSize;
 
-                shared_bytes = (sizeof(Scalar) + sizeof(typename evaluator::param_type))
-                               * typpair_idx.getNumElements() + pair_args.ntypes*run_block_size*sizeof(Scalar);
+                shared_bytes = (unsigned int)((sizeof(Scalar) + sizeof(typename evaluator::param_type))
+                               * typpair_idx.getNumElements() + pair_args.ntypes*run_block_size*sizeof(Scalar));
                 }
 
             // zero the forces

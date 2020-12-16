@@ -51,7 +51,7 @@ void CommunicatorGridGPU<T>::initGridCommGPU()
         map.insert(std::make_pair(h_recv_idx.data[i], i));
         }
 
-    m_n_unique_recv_cells = unique_cells.size();
+    m_n_unique_recv_cells = (unsigned int)unique_cells.size();
 
     // allocate arrays
     GlobalArray<unsigned int> cell_recv(this->m_recv_idx.getNumElements(), this->m_exec_conf);
@@ -108,7 +108,7 @@ void CommunicatorGridGPU<T>::communicate(const GlobalArray<T>& grid)
         ArrayHandle<T> d_grid(grid, access_location::device, access_mode::read);
 
         gpu_gridcomm_scatter_send_cells<T>(
-            this->m_send_buf.getNumElements(),
+            (unsigned int)this->m_send_buf.getNumElements(),
             d_send_idx.data,
             d_grid.data,
             d_send_buf.data);
@@ -139,14 +139,14 @@ void CommunicatorGridGPU<T>::communicate(const GlobalArray<T>& grid)
             unsigned int offs = b->second;
             unsigned int n_elem = e->second - b->second;
 
-            MPI_Isend(&send_buf_handle.data[offs], n_elem*sizeof(T), MPI_BYTE, *it, 0,
+            MPI_Isend(&send_buf_handle.data[offs], int(n_elem*sizeof(T)), MPI_BYTE, *it, 0,
                 this->m_exec_conf->getMPICommunicator(), &reqs[n++]);
-            MPI_Irecv(&recv_buf_handle.data[offs], n_elem*sizeof(T), MPI_BYTE, *it, 0,
+            MPI_Irecv(&recv_buf_handle.data[offs], int(n_elem*sizeof(T)), MPI_BYTE, *it, 0,
                 this->m_exec_conf->getMPICommunicator(), &reqs[n++]);
             }
 
         std::vector<MPI_Status> stat(reqs.size());
-        MPI_Waitall(reqs.size(), &reqs.front(), &stat.front());
+        MPI_Waitall((unsigned int)reqs.size(), &reqs.front(), &stat.front());
         }
 
         {

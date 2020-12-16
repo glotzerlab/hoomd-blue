@@ -68,7 +68,7 @@ void TwoStepBDGPU::integrateStepOne(unsigned int timestep)
 
     langevin_step_two_args args;
     args.d_gamma = d_gamma.data;
-    args.n_types = m_gamma.getNumElements();
+    args.n_types = (unsigned int)m_gamma.getNumElements();
     args.use_alpha = m_use_alpha;
     args.alpha = m_alpha;
     args.T = (*m_T)(timestep);

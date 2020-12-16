@@ -129,7 +129,7 @@ void System::run(unsigned int nsteps, bool write_at_start)
         }
 
     // run the steps
-    for ( ; m_cur_tstep < m_end_tstep; m_cur_tstep++)
+    for (unsigned int count = 0; count < nsteps; count++)
         {
         for (auto &tuner: m_tuners)
             {
@@ -152,11 +152,13 @@ void System::run(unsigned int nsteps, bool write_at_start)
         if (m_integrator)
             m_integrator->update(m_cur_tstep);
 
-        // execute analyzers for cur_tstep+1
+        m_cur_tstep++;
+
+        // execute analyzers after incrementing the step counter
         for (auto &analyzer_trigger_pair: m_analyzers)
             {
-            if ((*analyzer_trigger_pair.second)(m_cur_tstep+1))
-                analyzer_trigger_pair.first->analyze(m_cur_tstep+1);
+            if ((*analyzer_trigger_pair.second)(m_cur_tstep))
+                analyzer_trigger_pair.first->analyze(m_cur_tstep);
             }
 
         updateTPS();
@@ -174,15 +176,19 @@ void System::run(unsigned int nsteps, bool write_at_start)
     #ifdef ENABLE_MPI
     // make sure all ranks return the same TPS after the run completes
     if (m_comm)
+        {
         bcast(m_last_TPS, 0, m_exec_conf->getMPICommunicator());
+        bcast(m_last_walltime, 0, m_exec_conf->getMPICommunicator());
+        }
     #endif
     }
 
 void System::updateTPS()
     {
+    m_last_walltime = double(m_clk.getTime() - m_initial_time) / double(1e9);
+
     // calculate average TPS
-    m_last_TPS = double(m_cur_tstep - m_start_tstep) / double(m_clk.getTime() - m_initial_time)
-                    * double(1e9);
+    m_last_TPS = double(m_cur_tstep - m_start_tstep) / m_last_walltime;
     }
 
 /*! \param enable Set to true to enable profiling during calls to run()
@@ -258,11 +264,11 @@ void System::setupProfiling()
     m_sysdef->getConstraintData()->setProfiler(m_profiler);
 
     // analyzers
-	for (auto &analyzer_trigger_pair: m_analyzers)
-		analyzer_trigger_pair.first->setProfiler(m_profiler);
+    for (auto &analyzer_trigger_pair: m_analyzers)
+        analyzer_trigger_pair.first->setProfiler(m_profiler);
 
     // updaters
-	for (auto &updater_trigger_pair: m_updaters)
+    for (auto &updater_trigger_pair: m_updaters)
         {
         if (!updater_trigger_pair.first)
             throw runtime_error("Invalid updater_trigger_pair");
@@ -286,8 +292,8 @@ void System::resetStats()
         m_integrator->resetStats();
 
     // analyzers
-	for (auto &analyzer_trigger_pair: m_analyzers)
-		analyzer_trigger_pair.first->resetStats();
+    for (auto &analyzer_trigger_pair: m_analyzers)
+        analyzer_trigger_pair.first->resetStats();
 
     // updaters
     for (auto &updater_trigger_pair: m_updaters)
@@ -354,6 +360,8 @@ void export_System(py::module& m)
     .def("getCurrentTimeStep", &System::getCurrentTimeStep)
     .def("setPressureFlag", &System::setPressureFlag)
     .def("getPressureFlag", &System::getPressureFlag)
+    .def_property_readonly("walltime", &System::getCurrentWalltime)
+    .def_property_readonly("final_timestep", &System::getEndStep)
     .def_property_readonly("analyzers", &System::getAnalyzers)
     .def_property_readonly("updaters", &System::getUpdaters)
     .def_property_readonly("tuners", &System::getTuners)

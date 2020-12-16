@@ -183,12 +183,12 @@ void DEM3DForceComputeGPU<Real, Real4, Potential>::computeForces(unsigned int ti
         this->m_pdata->getN(), this->m_pdata->getNGhosts(), d_pos.data, d_quat.data,
         d_nextFace.data, d_firstFaceVert.data, d_nextFaceVert.data,
         d_realVertIndex.data, d_verts.data, d_diam.data, d_velocity.data,
-        this->maxGPUThreads(), this->maxVertices(),
-        this->numFaces(), this->numDegenerateVerts(),
-        this->numVertices(), this->numEdges(),
+        (unsigned int)this->maxGPUThreads(), (unsigned int)this->maxVertices(),
+        (unsigned int)this->numFaces(), (unsigned int)this->numDegenerateVerts(),
+        (unsigned int)this->numVertices(), (unsigned int)this->numEdges(),
         this->m_pdata->getNTypes(), box, d_n_neigh.data, d_nlist.data,
         d_head_list.data, this->m_evaluator, this->m_r_cut * this->m_r_cut,
-        particlesPerBlock, d_firstTypeVert.data, d_numTypeVerts.data,
+        (unsigned int)particlesPerBlock, d_firstTypeVert.data, d_numTypeVerts.data,
         d_firstTypeEdge.data, d_numTypeEdges.data, d_numTypeFaces.data,
         d_vertexConnectivity.data, d_edges.data);
 

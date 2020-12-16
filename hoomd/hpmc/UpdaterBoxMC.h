@@ -285,22 +285,22 @@ class UpdaterBoxMC : public Updater
         std::shared_ptr<Variant> m_beta_P;        //!< Reduced pressure in isobaric ensembles
 
         Scalar m_volume_delta;                    //!< Amount by which to change volume during box-change
-        float m_volume_weight;                    //!< relative weight of volume moves
+        Scalar m_volume_weight;                    //!< relative weight of volume moves
         Scalar m_ln_volume_delta;                 //!< Amount by which to log volume parameter during box-change
-        float m_ln_volume_weight;                 //!< relative weight of log volume moves
+        Scalar m_ln_volume_weight;                 //!< relative weight of log volume moves
         std::string m_volume_mode;                //!< volume moves mode: standard or logarithmic
         Scalar m_volume_A1;                       //!< Ratio of Lx to Ly to use in isotropic volume changes
         Scalar m_volume_A2;                       //!< Ratio of Lx to Lz to use in isotropic volume changes
 
         Scalar m_length_delta[3];                  //!< Max length change in each dimension
-        float m_length_weight;                     //!< relative weight of length change moves
+        Scalar m_length_weight;                     //!< relative weight of length change moves
 
         Scalar m_shear_delta[3];                   //!< Max tilt factor change in each dimension
-        float m_shear_weight;                      //!< relative weight of shear moves
+        Scalar m_shear_weight;                      //!< relative weight of shear moves
         Scalar m_shear_reduce;                     //!< Tolerance for automatic box lattice reduction
 
         Scalar m_aspect_delta;                     //!< Maximum relative aspect ratio change in randomly selected dimension
-        float m_aspect_weight;                     //!< relative weight of aspect ratio moves
+        Scalar m_aspect_weight;                     //!< relative weight of aspect ratio moves
 
         GPUArray<Scalar4> m_pos_backup;            //!< hold backup copy of particle positions
 
