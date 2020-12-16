@@ -111,7 +111,7 @@ class Snapshot:
         self._cpp_obj._broadcast_box(self._comm.cpp_mpi_conf)
 
     @classmethod
-    def _from_gsd_snapshot(cls, gsd_snapshot, communicator):
+    def _from_gsd_snapshot(cls, gsd_snapshot):
         snap = cls()
         # Set all particle attributes in snap from gsd_snapshot
         for key in vars(gsd_snapshot.particles):
