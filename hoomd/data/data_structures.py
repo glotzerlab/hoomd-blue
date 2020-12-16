@@ -321,6 +321,7 @@ class HOOMDDict(MutableMapping, _SyncedDataStructure):
         return len(self._data)
 
     def update(self, other):  # noqa: D102
+        """Update dict from mapping/iterable other."""
         with self._buffer():
             super().update(other)
         self._update()
@@ -341,10 +342,12 @@ class HOOMDDict(MutableMapping, _SyncedDataStructure):
     def __repr__(self):  # noqa: D105
         return repr(self._data)
 
-    def __getstate__(self):
+    def __getstate__(self):  # noqa: D105
+        # Necessary since __getattr__ is overwritten.
         return self.__dict__
 
-    def __setstate__(self, state):
+    def __setstate__(self, state):  # noqa: D105
+        # Necessary since __getattr__ is overwritten.
         self.__dict__ = state
 
 

@@ -16,4 +16,4 @@ hoomd.data.data_structures
 
 .. automodule:: hoomd.data.data_structures
     :synopsis: Basic HOOMD data structures.
-    :members: HOOMDDict, HOOMDList, HOOMDSet
+    :members: HOOMDList, HOOMDSet, HOOMDDict
