@@ -16,20 +16,35 @@
 #ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
 #endif
-
+#include "hoomd/VectorMath.h"
 #include "QuaternionMath.h"
-
 #include <iostream>
 /*! \file EvaluatorPairDipole.h
     \brief Defines the dipole potential
 */
 
-// need to declare these class methods with __device__ qualifiers when building in nvcc
-//! HOSTDEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
+// need to declare these class methods with __device__ qualifiers when building
+// in nvcc.  HOSTDEVICE is __host__ __device__ when included in nvcc and blank
+// when included into the host compiler
 #ifdef __HIPCC__
 #define HOSTDEVICE __host__ __device__
 #else
 #define HOSTDEVICE
+#endif
+
+// call different optimized sqrt functions on the host / device
+// RSQRT is rsqrtf when included in nvcc and 1.0 / sqrt(x) when included into
+// the host compiler
+#ifdef __HIPCC__
+#define RSQRT(x) rsqrtf( (x) )
+#else
+#define RSQRT(x) Scalar(1.0) / sqrt( (x) )
+#endif
+
+#ifdef SINGLE_PRECISION
+#define _EXP(x) expf( (x) )
+#else
+#define _EXP(x) exp( (x) )
 #endif
 
 // Nullary structure required by AnisoPotentialPair.
@@ -54,7 +69,6 @@ class EvaluatorPairDipole
     public:
         struct param_type
             {
-            Scalar mu;      //! The magnitude of the magnetic moment.
             Scalar A;       //! The electrostatic energy scale.
             Scalar kappa;   //! The inverse screening length.
 
@@ -75,19 +89,17 @@ class EvaluatorPairDipole
                 char *& ptr, unsigned int &available_bytes) const {}
 
             #ifndef __HIPCC__
-            param_type() {mu = 0; A = 0; kappa = 0;}
+            param_type() : A(0), kappa(0) {}
 
             param_type(pybind11::dict v)
                 {
-                mu = v["mu"].cast<Scalar>();
                 A = v["A"].cast<Scalar>();
                 kappa = v["kappa"].cast<Scalar>();
                 }
 
-            pybind11::dict asDict()
+            pybind11::object toPython()
                 {
                 pybind11::dict v;
-                v["mu"] = mu;
                 v["A"] = A;
                 v["kappa"] = kappa;
                 return v;
@@ -101,21 +113,64 @@ class EvaluatorPairDipole
             __attribute__((aligned(16)));
             #endif
 
-        //TODO: make a similar structure for shapedef
-        typedef dipole_shape_params shape_param_type;
+        struct shape_type
+            {
+            vec3<Scalar> mu;
+
+            HOSTDEVICE shape_type() : mu{0, 0, 0} {}
+
+            HOSTDEVICE shape_type(vec3<Scalar> mu_): mu(mu_) {}
+
+            shape_type(pybind11::object mu_obj)
+                {
+                auto mu_ = (pybind11::tuple)mu_obj;
+                mu = vec3<Scalar>(
+                    mu_[0].cast<Scalar>(),
+                    mu_[1].cast<Scalar>(),
+                    mu_[2].cast<Scalar>()
+                    );
+                }
+
+            pybind11::object toPython()
+                {
+                return pybind11::make_tuple(mu.x, mu.y, mu.z);
+                }
+
+            //! Load dynamic data members into shared memory and increase pointer
+            /*! \param ptr Pointer to load data to (will be incremented)
+                \param available_bytes Size of remaining shared memory allocation
+            */
+            HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const {}
+
+
+            #ifdef ENABLE_HIP
+            //! Attach managed memory to CUDA stream
+            void attach_to_stream(hipStream_t stream) const {}
+            #endif
+            };
 
         //! Constructs the pair potential evaluator
         /*! \param _dr Displacement vector between particle centers of mass
             \param _rcutsq Squared distance at which the potential goes to 0
             \param _quat_i Quaternion of i^{th} particle
             \param _quat_j Quaternion of j^{th} particle
-            \param _mu Dipole magnitude of particles
             \param _A Electrostatic energy scale
             \param _kappa Inverse screening length
             \param _params Per type pair parameters of this potential
         */
-        HOSTDEVICE EvaluatorPairDipole(Scalar3& _dr, Scalar4& _quat_i, Scalar4& _quat_j, Scalar _rcutsq, const param_type& _params)
-            :dr(_dr), rcutsq(_rcutsq), quat_i(_quat_i), quat_j(_quat_j), mu(_params.mu), A(_params.A), kappa(_params.kappa)
+        HOSTDEVICE EvaluatorPairDipole(
+            Scalar3& _dr, Scalar4& _quat_i, Scalar4& _quat_j,
+            Scalar _rcutsq, const param_type& _params)
+            :dr(_dr),
+             rcutsq(_rcutsq),
+             q_i(0),
+             q_j(0),
+             quat_i(_quat_i),
+             quat_j(_quat_j),
+             mu_i{0, 0, 0},
+             mu_j{0, 0, 0},
+             A(_params.A),
+             kappa(_params.kappa)
             {
             }
 
@@ -133,7 +188,7 @@ class EvaluatorPairDipole
         //! Whether the pair potential uses shape.
         HOSTDEVICE static bool needsShape()
             {
-            return false;
+            return true;
             }
 
         //! Whether the pair potential needs particle tags.
@@ -158,7 +213,12 @@ class EvaluatorPairDipole
         /*! \param shape_i Shape of particle i
             \param shape_j Shape of particle j
         */
-        HOSTDEVICE void setShape(const shape_param_type *shapei, const shape_param_type *shapej) {}
+        HOSTDEVICE void setShape(
+            const shape_type *shapei, const shape_type *shapej)
+            {
+            mu_i = shapei->mu;
+            mu_j = shapej->mu;
+            }
 
         //! Accept the optional tags
         /*! \param tag_i Tag of particle i
@@ -179,13 +239,16 @@ class EvaluatorPairDipole
         //! Evaluate the force and energy
         /*! \param force Output parameter to write the computed force.
             \param pair_eng Output parameter to write the computed pair energy.
-            \param energy_shift If true, the potential must be shifted so that V(r) is continuous at the cutoff.
+            \param energy_shift If true, the potential must be shifted so that
+                V(r) is continuous at the cutoff.
             \param torque_i The torque exerted on the i^th particle.
             \param torque_j The torque exerted on the j^th particle.
-            \return True if they are evaluated or false if they are not because we are beyond the cutoff.
+            \return True if they are evaluated or false if they are not because
+                we are beyond the cutoff.
         */
         HOSTDEVICE  bool
-      evaluate(Scalar3& force, Scalar& pair_eng, bool energy_shift, Scalar3& torque_i, Scalar3& torque_j)
+      evaluate(Scalar3& force, Scalar& pair_eng,
+               bool energy_shift, Scalar3& torque_i, Scalar3& torque_j)
             {
             vec3<Scalar> rvec(dr);
             Scalar rsq = dot(rvec, rvec);
@@ -198,9 +261,10 @@ class EvaluatorPairDipole
             Scalar r3inv = r2inv*rinv;
             Scalar r5inv = r3inv*r2inv;
 
-            // convert dipole vector in the body frame of each particle to space frame
-            vec3<Scalar> p_i = rotate(quat<Scalar>(quat_i), vec3<Scalar>(mu, 0, 0));
-            vec3<Scalar> p_j = rotate(quat<Scalar>(quat_j), vec3<Scalar>(mu, 0, 0));
+            // convert dipole vector in the body frame of each particle to space
+            // frame
+            vec3<Scalar> p_i = rotate(quat<Scalar>(quat_i), mu_i);
+            vec3<Scalar> p_j = rotate(quat<Scalar>(quat_j), mu_j);
 
             vec3<Scalar> f;
             vec3<Scalar> t_i;
@@ -208,10 +272,18 @@ class EvaluatorPairDipole
             Scalar e = Scalar(0.0);
 
             Scalar r = Scalar(1.0)/rinv;
+<<<<<<< HEAD
             Scalar prefactor = A*fast::exp(-kappa*r);
+=======
+            Scalar prefactor = A * _EXP(-kappa*r);
+>>>>>>> Move mu to Dipole shape_type
 
+            bool dipole_i_interactions = (mu_i != vec3<Scalar>(0, 0, 0));
+            bool dipole_j_interactions = (mu_j != vec3<Scalar>(0, 0, 0));
+            bool dipole_interactions = dipole_j_interactions
+                && dipole_j_interactions;
             // dipole-dipole
-            if (mu != Scalar(0.0))
+            if (dipole_interactions)
                 {
                 Scalar r7inv = r5inv*r2inv;
                 Scalar pidotpj = dot(p_i, p_j);
@@ -234,7 +306,7 @@ class EvaluatorPairDipole
                 e += prefactor*(r3inv*pidotpj - Scalar(3.0)*r5inv*pidotr*pjdotr);
                 }
             // dipole i - electrostatic j
-            if (mu != Scalar(0.0) && q_j != Scalar(0.0))
+            if (dipole_i_interactions && q_j != Scalar(0.0))
                 {
                 Scalar pidotr = dot(p_i, rvec);
                 Scalar pre1 = prefactor*Scalar(3.0)*q_j*r5inv * pidotr;
@@ -248,7 +320,7 @@ class EvaluatorPairDipole
                 e -= pidotr*pre2;
                 }
             // electrostatic i - dipole j
-            if (q_i != Scalar(0.0) && mu != Scalar(0.0))
+            if (q_i != Scalar(0.0) && dipole_j_interactions)
                 {
                 Scalar pjdotr = dot(p_j, rvec);
                 Scalar pre1 = prefactor*Scalar(3.0)*q_i*r5inv * pjdotr;
@@ -281,8 +353,8 @@ class EvaluatorPairDipole
 
        #ifndef __HIPCC__
         //! Get the name of the potential
-        /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
-            via analyze.log.
+        /*! \returns The potential name. Must be short and all lowercase, as
+         * this is the name energies will be logged as via analyze.log.
         */
         static std::string getName()
             {
@@ -300,7 +372,8 @@ class EvaluatorPairDipole
         Scalar rcutsq;              //!< Stored rcutsq from the constructor
         Scalar q_i, q_j;            //!< Stored particle charges
         Scalar4 quat_i,quat_j;      //!< Stored quaternion of ith and jth particle from constructor
-        Scalar mu;
+        vec3<Scalar> mu_i;                /// Magnetic moment for ith particle
+        vec3<Scalar> mu_j;                /// Magnetic moment for jth particle
         Scalar A;
         Scalar kappa;
         // const param_type &params;   //!< The pair potential parameters

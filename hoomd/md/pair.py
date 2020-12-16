@@ -1854,8 +1854,11 @@ class Dipole(AnisotropicPair):
         super().__init__(nlist, r_cut, mode)
         params = TypeParameter(
             'params', 'particle_types',
-            TypeParameterDict(mu=float, A=float, kappa=float, len_keys=2))
-        self._add_typeparam(params)
+            TypeParameterDict(A=float, kappa=float, len_keys=2))
+        mu = TypeParameter(
+            'mu', 'particle_types',
+            TypeParameterDict((float, float, float), len_keys=1))
+        self._extend_typeparam((params, mu))
 
 
 class ReactionField(Pair):

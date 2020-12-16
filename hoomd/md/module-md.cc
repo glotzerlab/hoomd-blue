@@ -208,6 +208,39 @@ void export_PotentialExternalWall(py::module& m, const std::string& name)
     }
 
 
+// Template specification for Dipole anisotropic pair potential. A specific
+// template instance is needed since we expose the shape as just mu in Python
+// when the default behavior exposes setting and getting the shape through
+// 'shape'.
+template<>
+void export_AnisoPotentialPair<AnisoPotentialPairDipole>(
+    pybind11::module& m, const std::string& name)
+    {
+    pybind11::class_<AnisoPotentialPairDipole, ForceCompute,
+                     std::shared_ptr<AnisoPotentialPairDipole>
+                     > anisopotentialpair(m, name.c_str());
+    anisopotentialpair.def(
+        pybind11::init<std::shared_ptr<SystemDefinition>,
+                       std::shared_ptr<NeighborList>,
+                       const std::string& >())
+        .def("setParams", &AnisoPotentialPairDipole::setParamsPython)
+        .def("getParams", &AnisoPotentialPairDipole::getParamsPython)
+        .def("setMu", &AnisoPotentialPairDipole::setShapePython)
+        .def("getMu", &AnisoPotentialPairDipole::getShapePython)
+        .def("setRCut", &AnisoPotentialPairDipole::setRCutPython)
+        .def("getRCut", &AnisoPotentialPairDipole::getRCut)
+        .def_property("mode",
+                      &AnisoPotentialPairDipole::getShiftMode,
+                      &AnisoPotentialPairDipole::setShiftModePython)
+        .def("slotWriteGSDShapeSpec",
+             &AnisoPotentialPairDipole::slotWriteGSDShapeSpec)
+        .def("connectGSDShapeSpec",
+             &AnisoPotentialPairDipole::connectGSDShapeSpec)
+        .def("getTypeShapesPy", &AnisoPotentialPairDipole::getTypeShapesPy)
+    ;
+    }
+
+
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
