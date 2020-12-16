@@ -416,7 +416,7 @@ struct gsd_shape_schema< hpmc::detail::PolygonVertices >: public gsd_schema_hpmc
                 dsq = fmax(shape[i].x[v]*shape[i].x[v] + shape[i].y[v]*shape[i].y[v], dsq);
                 count++;
                 }
-            shape[i].diameter = 2.0*(sqrt(dsq)+shape[i].sweep_radius);
+            shape[i].diameter = hpmc::OverlapReal(2.0*(sqrt(dsq)+shape[i].sweep_radius));
             shape[i].N = N[i];
             shape[i].sweep_radius = sweep_radius[i];
             shape[i].ignore = 0;

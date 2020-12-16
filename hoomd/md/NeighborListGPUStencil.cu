@@ -327,7 +327,7 @@ inline void stencil_launcher(unsigned int *d_nlist,
     {
     // shared memory = r_listsq + Nmax + stuff needed for neighborlist (computed below)
     Index2D typpair_idx(ntypes);
-    unsigned int shared_size = sizeof(Scalar)*typpair_idx.getNumElements() + sizeof(unsigned int)*ntypes;
+    unsigned int shared_size = (unsigned int)(sizeof(Scalar)*typpair_idx.getNumElements() + sizeof(unsigned int)*ntypes);
 
     if (threads_per_particle == cur_tpp && cur_tpp != 0)
         {

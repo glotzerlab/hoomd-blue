@@ -59,7 +59,7 @@ class Force(_HOOMDBaseObject):
         else:
             return None
 
-    @log(flag='particle')
+    @log(category='particle')
     def energies(self):
         """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The energies for all particles."""
         if self._attached:
@@ -68,7 +68,7 @@ class Force(_HOOMDBaseObject):
         else:
             return None
 
-    @log(flag='particle')
+    @log(category='particle')
     def forces(self):
         """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The forces for all particles."""
         if self._attached:
@@ -77,7 +77,7 @@ class Force(_HOOMDBaseObject):
         else:
             return None
 
-    @log(flag='particle')
+    @log(category='particle')
     def torques(self):
         """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The torque for all particles."""
         if self._attached:
@@ -86,7 +86,7 @@ class Force(_HOOMDBaseObject):
         else:
             return None
 
-    @log(flag='particle')
+    @log(category='particle')
     def virials(self):
         """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The virial for all particles."""
         if self._attached:

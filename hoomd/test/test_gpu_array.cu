@@ -16,7 +16,7 @@
 
     \post All \a num elements in d_data are incremented by 1
 */
-__global__ void gpu_add_one_kernel(int *d_data, unsigned int num)
+__global__ void gpu_add_one_kernel(int *d_data, size_t num)
     {
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -29,7 +29,7 @@ __global__ void gpu_add_one_kernel(int *d_data, unsigned int num)
 
     gpu_add_one is just a driver for gpu_add_one_kernel()
 */
-extern "C" hipError_t gpu_add_one(int *d_data, unsigned int num)
+extern "C" hipError_t gpu_add_one(int *d_data, size_t num)
     {
     unsigned int block_size = 256;
 
@@ -49,7 +49,7 @@ extern "C" hipError_t gpu_add_one(int *d_data, unsigned int num)
 
     \post Element \a i in \a d_data is set to \a i * \a i
 */
-__global__ void gpu_fill_test_pattern_kernel(int *d_data, unsigned int num)
+__global__ void gpu_fill_test_pattern_kernel(int *d_data, size_t num)
     {
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -62,7 +62,7 @@ __global__ void gpu_fill_test_pattern_kernel(int *d_data, unsigned int num)
 
     gpu_fill_test_pattern is just a driver for gpu_fill_test_pattern_kernel()
 */
-extern "C" hipError_t gpu_fill_test_pattern(int *d_data, unsigned int num)
+extern "C" hipError_t gpu_fill_test_pattern(int *d_data, size_t num)
     {
     unsigned int block_size = 256;
 

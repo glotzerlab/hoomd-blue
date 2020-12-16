@@ -145,7 +145,7 @@ void CosineSqAngleForceCompute::computeForces(unsigned int timestep)
 
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
-    unsigned int virial_pitch = m_virial.getPitch();
+    size_t virial_pitch = m_virial.getPitch();
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);

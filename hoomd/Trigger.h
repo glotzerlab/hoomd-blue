@@ -84,7 +84,7 @@ class PYBIND11_EXPORT PeriodicTrigger : public Trigger
             }
 
         /// Get the period
-        uint64_t getPeriod()
+        uint64_t getPeriod() const
             {
             return m_period;
             }
@@ -96,7 +96,7 @@ class PYBIND11_EXPORT PeriodicTrigger : public Trigger
             }
 
         /// Get the phase
-        uint64_t getPhase()
+        uint64_t getPhase() const
             {
             return m_phase;
             }
@@ -124,7 +124,7 @@ class PYBIND11_EXPORT BeforeTrigger : public Trigger
         }
 
     /// Get the timestep before which the trigger is active.
-    uint64_t getTimestep() {return m_timestep;}
+    uint64_t getTimestep() const {return m_timestep;} const
 
     /// Set the timestep before which the trigger is active.
     void setTimestep(uint64_t timestep) {m_timestep = timestep;}
@@ -149,7 +149,7 @@ class PYBIND11_EXPORT OnTrigger : public Trigger
         }
 
     /// Get the timestep when the trigger is active.
-    uint64_t getTimestep() {return m_timestep;}
+    uint64_t getTimestep() const {return m_timestep;} const
 
     /// Set the timestep when the trigger is active.
     void setTimestep(uint64_t timestep) {m_timestep = timestep;}
@@ -174,7 +174,7 @@ class PYBIND11_EXPORT AfterTrigger : public Trigger
         }
 
     /// Get the timestep after which the trigger is active.
-    uint64_t getTimestep() {return m_timestep;}
+    uint64_t getTimestep() const {return m_timestep;} const
 
     /// Set the timestep after which the trigger is active.
     void setTimestep(uint64_t timestep) {m_timestep = timestep;}
@@ -199,7 +199,7 @@ class PYBIND11_EXPORT NotTrigger : public Trigger
             }
 
         /// Get the trigger that is negated
-        std::shared_ptr<Trigger> getTrigger() {return m_trigger;}
+        std::shared_ptr<Trigger> getTrigger() const {return m_trigger;}
 
         /// Set the trigger to negate
         void setTrigger(std::shared_ptr<Trigger> trigger) {m_trigger = trigger;}
@@ -237,7 +237,7 @@ class PYBIND11_EXPORT AndTrigger : public Trigger
                     });
             }
 
-        std::vector<std::shared_ptr<Trigger> >& getTriggers()
+        const std::vector<std::shared_ptr<Trigger> >& getTriggers() const
             {
             return m_triggers;
             }
@@ -276,7 +276,7 @@ class PYBIND11_EXPORT OrTrigger : public Trigger
                     });
             }
 
-        std::vector<std::shared_ptr<Trigger> >& getTriggers()
+        const std::vector<std::shared_ptr<Trigger> >& getTriggers() const
             {
             return m_triggers;
             }

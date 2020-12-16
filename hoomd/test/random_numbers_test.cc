@@ -239,7 +239,7 @@ UP_TEST( normal_default_double_test )
 UP_TEST( normal_float_test )
     {
     float mu = 2.0, sigma=1.5;
-    float mean = mu, var=sigma*sigma, skew=0, exkurtosis=0.0;
+    double mean = mu, var=sigma*sigma, skew=0, exkurtosis=0.0;
     hoomd::NormalDistribution<float> gen(sigma, mu);
     check_moments(gen, 500000, mean, var, exkurtosis, skew, 0.01);
     }
@@ -247,8 +247,8 @@ UP_TEST( normal_float_test )
 //! Test case for GammaDistribution -- double
 UP_TEST( gamma_double_test )
     {
-    float alpha=2.5, b=2.0;
-    float mean = alpha*b, var=alpha*b*b, skew=2.0/sqrt(alpha), exkurtosis=6.0/alpha;
+    double alpha=2.5, b=2.0;
+    double mean = alpha*b, var=alpha*b*b, skew=2.0/sqrt(alpha), exkurtosis=6.0/alpha;
     hoomd::GammaDistribution<double> gen(alpha, b);
     check_moments(gen, 5000000, mean, var, skew, exkurtosis, 0.01);
     }
@@ -256,7 +256,7 @@ UP_TEST( gamma_double_test )
 UP_TEST( gamma_float_test )
     {
     float alpha=2.5, b=2.0;
-    float mean = alpha*b, var=alpha*b*b, skew=2.0/sqrt(alpha), exkurtosis=6.0/alpha;
+    double mean = alpha*b, var=alpha*b*b, skew=2.0/sqrt(alpha), exkurtosis=6.0/alpha;
     hoomd::GammaDistribution<float> gen(alpha, b);
     check_moments(gen, 5000000, mean, var, skew, exkurtosis, 0.01);
     }
@@ -281,7 +281,7 @@ UP_TEST( canonical_float_moment )
         };
 
     float a = 2.710505431213761e-20f, b = 1.0f;
-    float mean = (a+b)/2.0, var=1.0/12.0*(b-a)*(b-a), skew=0.0, exkurtosis=-6.0/5.0;
+    double mean = (a+b)/2.0, var=1.0/12.0*(b-a)*(b-a), skew=0.0, exkurtosis=-6.0/5.0;
 
     gen canonical;
     check_moments(canonical, 5000000, mean, var, skew, exkurtosis, 0.01);
@@ -329,7 +329,7 @@ UP_TEST( uniform_double_test )
 UP_TEST( uniform_float_test )
     {
     float a = -4, b = 0;
-    float mean = (a+b)/2.0, var=1.0/12.0*(b-a)*(b-a), skew=0.0, exkurtosis=-6.0/5.0;
+    double mean = (a+b)/2.0, var=1.0/12.0*(b-a)*(b-a), skew=0.0, exkurtosis=-6.0/5.0;
 
     hoomd::UniformDistribution<float> gen(a, b);
     check_moments(gen, 5000000, mean, var, skew, exkurtosis, 0.01);
@@ -395,7 +395,7 @@ UP_TEST( poisson_large_double_test )
 UP_TEST( poisson_small_float_test )
     {
     float m = 10;
-    float mean = m, var=m, skew=1.0/sqrt(m), exkurtosis=1.0/m;
+    double mean = m, var=m, skew=1.0/sqrt(m), exkurtosis=1.0/m;
 
     hoomd::PoissonDistribution<float> gen(m);
     check_moments(gen, 4000000, mean, var, skew, exkurtosis, 0.03, false);
@@ -405,7 +405,7 @@ UP_TEST( poisson_small_float_test )
 UP_TEST( poisson_medium_float_test )
     {
     float m = 20;
-    float mean = m, var=m, skew=1.0/sqrt(m), exkurtosis=1.0/m;
+    double mean = m, var=m, skew=1.0/sqrt(m), exkurtosis=1.0/m;
 
     hoomd::PoissonDistribution<float> gen(m);
     check_moments(gen, 4000000, mean, var, skew, exkurtosis, 0.03, false);
@@ -415,7 +415,7 @@ UP_TEST( poisson_medium_float_test )
 UP_TEST( poisson_large_float_test )
     {
     float m = 120;
-    float mean = m, var=m, skew=1.0/sqrt(m), exkurtosis=1.0/m;
+    double mean = m, var=m, skew=1.0/sqrt(m), exkurtosis=1.0/m;
 
     hoomd::PoissonDistribution<float> gen(m);
     check_moments(gen, 4000000, mean, var, skew, exkurtosis, 0.03, false);

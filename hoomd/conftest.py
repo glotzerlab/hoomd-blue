@@ -78,6 +78,9 @@ def two_particle_snapshot_factory(device):
             # shift particle positions slightly in z so MPI tests pass
             s.particles.position[:] = [[-d / 2, 0, .1], [d / 2, 0, .1]]
             s.particles.types = particle_types
+            if dimensions == 2:
+                box[2] = 0
+                s.particles.position[:] = [[-d / 2, 0.1, 0], [d / 2, 0.1, 0]]
 
         return s
 

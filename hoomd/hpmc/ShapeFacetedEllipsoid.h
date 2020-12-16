@@ -59,7 +59,7 @@ struct FacetedEllipsoidParams : ShapeParams
 
     /// Construct from a Python dictionary
     FacetedEllipsoidParams(pybind11::dict v, bool managed=false)
-        : FacetedEllipsoidParams(pybind11::len(v["normals"]), managed)
+        : FacetedEllipsoidParams((unsigned int)pybind11::len(v["normals"]), managed)
         {
         pybind11::list normals = v["normals"];
         pybind11::list offsets = v["offsets"];
@@ -601,11 +601,11 @@ DEVICE inline bool test_overlap<ShapeFacetedEllipsoid, ShapeFacetedEllipsoid>(co
     vec3<OverlapReal> dr(r_ab);
 
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    return detail::xenocollide_3d(detail::SupportFuncFacetedEllipsoid(a.params, sweep_radius_a),
-                           detail::SupportFuncFacetedEllipsoid(b.params, sweep_radius_b),
+    return detail::xenocollide_3d(detail::SupportFuncFacetedEllipsoid(a.params, OverlapReal(sweep_radius_a)),
+                           detail::SupportFuncFacetedEllipsoid(b.params, OverlapReal(sweep_radius_b)),
                            rotate(conj(quat<OverlapReal>(a.orientation)), dr + rotate(quat<OverlapReal>(b.orientation),b.params.origin))-a.params.origin,
                            conj(quat<OverlapReal>(a.orientation))* quat<OverlapReal>(b.orientation),
-                           DaDb/2.0,
+                           DaDb/OverlapReal(2.0),
                            err);
 
     }

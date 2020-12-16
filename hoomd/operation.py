@@ -174,7 +174,7 @@ class _StatefulAttrBase(_HOOMDGetSetAttrBase, metaclass=Loggable):
         return dict_filter(dict_map(state, _convert_values_to_log_form),
                            lambda x: x is not RequiredArg)
 
-    @log(flag='state')
+    @log(category='state')
     def state(self):
         """The state of the object.
 
@@ -463,7 +463,7 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
             for key in self._param_dict.keys():
                 self._param_dict[key] = getattr(self._cpp_obj, key)
 
-    @log(flag='state')
+    @log(category='state')
     def state(self):
         """The state of the object.
 

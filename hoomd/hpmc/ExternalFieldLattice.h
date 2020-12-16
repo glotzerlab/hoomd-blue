@@ -108,7 +108,7 @@ class LatticeReferenceList
                 if(exec_conf) exec_conf->msg->error() << "Check pointers and initialization list" << std::endl;
                 throw std::runtime_error("Error setting LatticeReferenceList");
                 }
-            m_N = numPoints;
+            m_N = (unsigned int)numPoints;
             GPUArray<ScalarType> temp(numPoints, exec_conf);
             { // scope the copy.
             ArrayHandle<ScalarType> h_temp(temp, access_location::host, access_mode::overwrite);
@@ -229,7 +229,7 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
             Scalar scaleNew = pow((newVolume/curVolume), Scalar(1.0/3.0));
 
             double dE = 0.0;
-            for(size_t i = 0; i < m_pdata->getN(); i++)
+            for(unsigned int i = 0; i < m_pdata->getN(); i++)
                 {
                 Scalar old_E = calcE(i, vec3<Scalar>(*(position_old+i)), quat<Scalar>(*(orientation_old+i)), scaleOld);
                 Scalar new_E = calcE(i, vec3<Scalar>(*(position_new+i)), quat<Scalar>(*(orientation_new+i)), scaleNew);
@@ -256,7 +256,7 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
             // access particle data and system box
             ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_orient(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-            for(size_t i = 0; i < m_pdata->getN(); i++)
+            for(unsigned int i = 0; i < m_pdata->getN(); i++)
                 {
                 vec3<Scalar> position(h_postype.data[i]);
                 quat<Scalar> orientation(h_orient.data[i]);
@@ -304,8 +304,8 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
                 {
                 python_list_to_vector_scalar3(r0, lattice_positions, ndim);
                 python_list_to_vector_scalar4(q0, lattice_orientations);
-                psz = lattice_positions.size();
-                qsz = lattice_orientations.size();
+                psz = (unsigned int)lattice_positions.size();
+                qsz = (unsigned int)lattice_orientations.size();
                 }
             if( this->m_pdata->getDomainDecomposition())
                 {

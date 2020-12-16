@@ -251,8 +251,8 @@ void mpcd::CellCommunicator::begin(const GPUArray<T>& props, const PackOpT op)
             const unsigned int neigh = m_neighbors[idx];
             const unsigned int offset = m_begin[idx];
             const size_t num_bytes = sizeof(typename PackOpT::element) * m_num_send[idx];
-            MPI_Isend(send_buf + offset, num_bytes, MPI_BYTE, neigh, 0, m_mpi_comm, &m_reqs[2*idx]);
-            MPI_Irecv(recv_buf + offset, num_bytes, MPI_BYTE, neigh, 0, m_mpi_comm, &m_reqs[2*idx+1]);
+            MPI_Isend(send_buf + offset, (unsigned int)num_bytes, MPI_BYTE, neigh, 0, m_mpi_comm, &m_reqs[2*idx]);
+            MPI_Irecv(recv_buf + offset, (unsigned int)num_bytes, MPI_BYTE, neigh, 0, m_mpi_comm, &m_reqs[2*idx+1]);
             }
         }
     }
@@ -275,7 +275,7 @@ void mpcd::CellCommunicator::finalize(const GPUArray<T>& props, const PackOpT op
     if (!m_communicating) return;
 
     // finish all MPI requests
-    MPI_Waitall(m_reqs.size(), m_reqs.data(), MPI_STATUSES_IGNORE);
+    MPI_Waitall((unsigned int)m_reqs.size(), m_reqs.data(), MPI_STATUSES_IGNORE);
     #ifdef ENABLE_MPI_CUDA
     // MPI calls can execute in multiple streams, so force a synchronization before we move on
     if (m_exec_conf->isCUDAEnabled()) cudaDeviceSynchronize();
@@ -393,7 +393,7 @@ void mpcd::CellCommunicator::packBufferGPU(const GPUArray<T>& props, const PackO
                                 d_props.data,
                                 d_send_idx.data,
                                 op,
-                                m_send_idx.getNumElements(),
+                                (unsigned int)m_send_idx.getNumElements(),
                                 m_tuner_pack->getParam());
     if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
     m_tuner_pack->end();

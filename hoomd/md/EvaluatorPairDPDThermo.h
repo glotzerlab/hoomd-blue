@@ -105,7 +105,7 @@ class EvaluatorPairDPDThermo
                 {
                 pybind11::dict v;
                 v["A"] = A;
-                if (gamma)
+                if (gamma != 0.0)
                     {
                     v["gamma"] = gamma;
                     }
