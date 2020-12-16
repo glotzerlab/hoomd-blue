@@ -157,6 +157,10 @@ class PotentialPair : public ForceCompute
                 {
                 m_shift_mode = xplor;
                 }
+            else
+                {
+                throw std::runtime_error("Invalid energy shift mode.");
+                }
             }
 
         /// Get the mode used for the energy shifting
@@ -1017,13 +1021,6 @@ template < class T > void export_PotentialPair(pybind11::module& m, const std::s
         .def("computeEnergyBetweenSets", &T::computeEnergyBetweenSetsPythonList)
         .def("slotWriteGSDShapeSpec", &T::slotWriteGSDShapeSpec)
         .def("connectGSDShapeSpec", &T::connectGSDShapeSpec)
-    ;
-
-    pybind11::enum_<typename T::energyShiftMode>(potentialpair,"energyShiftMode")
-        .value("no_shift", T::energyShiftMode::no_shift)
-        .value("shift", T::energyShiftMode::shift)
-        .value("xplor", T::energyShiftMode::xplor)
-        .export_values()
     ;
     }
 
