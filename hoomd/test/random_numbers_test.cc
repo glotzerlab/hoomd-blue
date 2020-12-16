@@ -430,6 +430,65 @@ UP_TEST( seed_fromIDStepSeed )
     UP_ASSERT_EQUAL(s.getKey()[1], 0x34567890);
     }
 
+//! Test that Counter initializes correctly
+UP_TEST( counter )
+    {
+    auto a = hoomd::Counter();
+
+    UP_ASSERT_EQUAL(a.getCounter()[0], 0);
+    UP_ASSERT_EQUAL(a.getCounter()[1], 0);
+    UP_ASSERT_EQUAL(a.getCounter()[2], 0);
+    UP_ASSERT_EQUAL(a.getCounter()[3], 0);
+
+    auto b = hoomd::Counter(0xabcdef12);
+
+    UP_ASSERT_EQUAL(b.getCounter()[0], 0);
+    UP_ASSERT_EQUAL(b.getCounter()[1], 0);
+    UP_ASSERT_EQUAL(b.getCounter()[2], 0);
+    UP_ASSERT_EQUAL(b.getCounter()[3], 0xabcdef12);
+
+    auto c = hoomd::Counter(0x1234, 0x5678);
+
+    UP_ASSERT_EQUAL(c.getCounter()[0], 0);
+    UP_ASSERT_EQUAL(c.getCounter()[1], 0);
+    UP_ASSERT_EQUAL(c.getCounter()[2], 0x5678);
+    UP_ASSERT_EQUAL(c.getCounter()[3], 0x1234);
+
+    auto d = hoomd::Counter(0xabcd, 0xef123, 0x4567);
+
+    UP_ASSERT_EQUAL(d.getCounter()[0], 0);
+    UP_ASSERT_EQUAL(d.getCounter()[1], 0x4567);
+    UP_ASSERT_EQUAL(d.getCounter()[2], 0xef123);
+    UP_ASSERT_EQUAL(d.getCounter()[3], 0xabcd);
+    }
+
+UP_TEST( rng_seeding )
+    {
+    auto s = hoomd::Seed(0xfa, 0xabcdef1234567890, 0x5eed);
+    auto c = hoomd::Counter(0x9876, 0x5432, 0x10fe);
+
+    auto g = hoomd::RandomGenerator(s, c);
+    UP_ASSERT_EQUAL(g.getKey()[0], 0xfa5eed12);
+    UP_ASSERT_EQUAL(g.getKey()[1], 0x34567890);
+
+    UP_ASSERT_EQUAL(g.getCounter()[0], 0);
+    UP_ASSERT_EQUAL(g.getCounter()[1], 0x10fe);
+    UP_ASSERT_EQUAL(g.getCounter()[2], 0x5432);
+    UP_ASSERT_EQUAL(g.getCounter()[3], 0x9876);
+
+    g();
+    UP_ASSERT_EQUAL(g.getCounter()[0], 1);
+    UP_ASSERT_EQUAL(g.getCounter()[1], 0x10fe);
+    UP_ASSERT_EQUAL(g.getCounter()[2], 0x5432);
+    UP_ASSERT_EQUAL(g.getCounter()[3], 0x9876);
+
+    g();
+    UP_ASSERT_EQUAL(g.getCounter()[0], 2);
+    UP_ASSERT_EQUAL(g.getCounter()[1], 0x10fe);
+    UP_ASSERT_EQUAL(g.getCounter()[2], 0x5432);
+    UP_ASSERT_EQUAL(g.getCounter()[3], 0x9876);
+    }
+
 // //! Find performance crossover
 // /*! Note: this code was written for a one time use to find the empirical crossover. It requires that the private:
 //     be commented out in PoissonDistribution.

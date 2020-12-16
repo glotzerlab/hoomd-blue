@@ -158,12 +158,8 @@ class Seed
 
 /** RNG Counter
 
-    RandomGenerator initializes with a 64-bit seed and a 128-bit counter. Seed and Counter provide
-    interfaces for common seeding patterns used across HOOMD to prevent code duplication and help
-    ensure that seeds are initialized correctly.
-
-    Counter provides explicitly named static methods to construct seeds in order to avoid confusion
-    with multiple constructors that accept different sized integer inputs.
+    Counter provides a number of constructors that support a variety of seeding needs throughought
+    HOOMD.
 */
 class Counter
     {
@@ -172,26 +168,14 @@ class Counter
 
     Constructs a 0 valued counter.
     */
-    Counter() : m_ctr({{0, 0, 0, 0}})
+    Counter(uint32_t a=0, uint32_t b=0, uint32_t c=0) : m_ctr({{0, c, b, a}})
         {
-        }
-
-    /// Construct a counter from up to 3 32-bit unsigned integers
-    static Counter fromUInt32(uint32_t a=0, uint32_t b=0, uint32_t c=0)
-        {
-        r123::Philox4x32::ctr_type ctr = {{0, c, b, a}};
-        return Counter(ctr);
         }
 
     /// Get the counter
     const r123::Philox4x32::ctr_type& getCounter() const
         {
         return m_ctr;
-        }
-
-    private:
-    Counter(r123::Philox4x32::ctr_type ctr) : m_ctr(ctr)
-        {
         }
 
     const r123::Philox4x32::ctr_type m_ctr;
@@ -201,14 +185,12 @@ class Counter
 /*! random123 is a counter based random number generator. Given an input seed vector,
      it produces a random output. Outputs from one seed to the next are not correlated.
      This class implements a convenience API around random123 that allows short streams
-     (less than 2**32-1) of random numbers starting from a seed of up to 5 uint32_t values.
+     (less than 2**32-1) of random numbers starting from a given Seed and Counter.
 
      Internally, we use the philox 4x32 RNG from random123, The first two seeds map to the
      key and the remaining seeds map to the counter. One element from the counter is used
      to generate the stream of values. Constructors provide ways to conveniently initialize
-     the RNG with any number of seeds or counters. Warning! All constructors with fewer
-     than 5 input values are equivalent to the 5-input constructor with 0's for the
-     values not specified.
+     the RNG with any number of seeds or counters.
 
      Counter based RNGs are useful for MD simulations: See
 
@@ -241,8 +223,20 @@ class RandomGenerator
         */
         DEVICE inline RandomGenerator(const Seed& seed, const Counter& counter);
 
-        //! Generate uniformly distributed 32-bit values
+        /// Generate uniformly distributed 128-bit values
         DEVICE inline r123::Philox4x32::ctr_type operator()();
+
+        /// Get the key
+        DEVICE inline r123::Philox4x32::key_type getKey()
+            {
+            return m_key;
+            }
+
+        /// Get the counter
+        DEVICE inline r123::Philox4x32::ctr_type getCounter()
+            {
+            return m_ctr;
+            }
 
     private:
         r123::Philox4x32::key_type m_key;   //!< RNG key
@@ -275,7 +269,7 @@ DEVICE inline RandomGenerator::RandomGenerator(const Seed& seed, const Counter& 
     m_ctr = counter.getCounter();
     }
 
-/*! \returns A random uniform 32-bit unsigned integer.
+/*! \returns A random uniform 128-bit unsigned integer.
 
     \post The state of the generator is advanced one step.
  */
