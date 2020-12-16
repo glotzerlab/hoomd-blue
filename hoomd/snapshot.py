@@ -132,7 +132,6 @@ class Snapshot:
         for key in vars(gsd_snapshot.bonds):
             val = vars(gsd_snapshot.bonds)[key]
             if val is not None:
-                print(key)
                 try:
                     setattr(snap.bonds, key, val)
                 except AttributeError:
