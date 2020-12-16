@@ -70,7 +70,7 @@ class EvaluatorPairDipole
                 pybind11::dict v;
                 v["A"] = A;
                 v["kappa"] = kappa;
-                return v;
+                return std::move(v);
                 }
 
             #endif
@@ -108,7 +108,8 @@ class EvaluatorPairDipole
             /*! \param ptr Pointer to load data to (will be incremented)
                 \param available_bytes Size of remaining shared memory allocation
             */
-            HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const {}
+            HOSTDEVICE void load_shared(
+                char *& ptr, unsigned int &available_bytes) const {}
 
 
             #ifdef ENABLE_HIP
