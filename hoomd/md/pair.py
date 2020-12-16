@@ -10,7 +10,8 @@ from hoomd.md import nlist as nl
 from hoomd.md.nlist import NList
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
-from hoomd.data.typeconverter import OnlyFrom, OnlyType
+from hoomd.data.typeconverter import (
+    OnlyFrom, OnlyType, positive_real, nonnegative_real)
 
 import math
 import json
@@ -21,14 +22,6 @@ class pair(force._force):
 
 
 validate_nlist = OnlyType(NList)
-
-
-def validate_mode(value):
-    acceptable = ['none', 'shifted', 'xplor']
-    if value in acceptable:
-        return value
-    else:
-        raise ValueError("{} not found in {}".format(value, acceptable))
 
 
 class Pair(force.Force):
@@ -124,16 +117,19 @@ class Pair(force.Force):
 
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         self._nlist = validate_nlist(nlist)
-        r_cut = float if r_cut is None else float(r_cut)
-        r_cut = TypeParameter('r_cut', 'particle_types',
-                              TypeParameterDict(r_cut, len_keys=2)
-                              )
-        r_on = TypeParameter('r_on', 'particle_types',
-                             TypeParameterDict(float(r_on), len_keys=2)
-                             )
-        self._extend_typeparam([r_cut, r_on])
+        tp_r_cut = TypeParameter('r_cut', 'particle_types',
+                                 TypeParameterDict(positive_real, len_keys=2)
+                                 )
+        if r_cut is not None:
+            tp_r_cut.default = r_cut
+        tp_r_on = TypeParameter('r_on', 'particle_types',
+                                TypeParameterDict(nonnegative_real, len_keys=2)
+                                )
+        if r_on is not None:
+            tp_r_on.default = r_on
+        self._extend_typeparam([tp_r_cut, tp_r_on])
         self._param_dict.update(
-            ParameterDict(mode=OnlyFrom(['none', 'shifted', 'xplor'])))
+            ParameterDict(mode=OnlyFrom(['none', 'shift', 'xplor'])))
         self.mode = mode
 
     def compute_energy(self, tags1, tags2):
@@ -403,7 +399,7 @@ class SLJ(Pair):
         self._add_typeparam(params)
 
         # mode not allowed to be xplor, so re-do param dict entry without that option
-        param_dict = ParameterDict(mode=OnlyFrom(['none', 'shifted']))
+        param_dict = ParameterDict(mode=OnlyFrom(['none', 'shift']))
         self._param_dict.update(param_dict)
         self.mode = mode
 
@@ -1128,7 +1124,7 @@ class DPDLJ(Pair):
         self._add_typeparam(params)
 
         d = ParameterDict(kT=hoomd.variant.Variant, seed=int,
-                          mode=OnlyFrom(['none', 'shifted']))
+                          mode=OnlyFrom(['none', 'shift']))
         self._param_dict.update(d)
 
         self.kT = kT
@@ -1663,17 +1659,25 @@ class AnisotropicPair(Pair):
 
     `AnisotropicPair` is similiar to `Pair` except it does not support the
     `xplor` shifting mode or `r_on`.
+
+    Args:
+        nlist (hoomd.md.nlist.Nlist) : The neighbor list.
+        r_cut (`float`, optional) : The default cutoff for the potential,
+            defaults to ``None`` which means no cutoff.
+        mode (`str`, optional) : the energy shifting mode, defaults to "none".
     """
 
-    def __init__(self, nlist, r_cut, mode):
+    def __init__(self, nlist, r_cut=None, mode="none"):
         self._nlist = validate_nlist(nlist)
-        r_cut = float if r_cut is None else float(r_cut)
-        r_cut = TypeParameter('r_cut', 'particle_types',
-                              TypeParameterDict(r_cut, len_keys=2)
-                              )
+        tp_r_cut = TypeParameter('r_cut', 'particle_types',
+                                 TypeParameterDict(positive_real, len_keys=2)
+                                 )
+        if r_cut is not None:
+            tp_r_cut.default = r_cut
         self._param_dict.update(
-            ParameterDict(mode=OnlyFrom(['none', 'shifted'])))
+            ParameterDict(mode=OnlyFrom(['none', 'shift'])))
         self.mode = mode
+        self._add_typeparam(tp_r_cut)
 
     def _return_type_shapes(self):
         type_shapes = self.cpp_force.getTypeShapesPy()
@@ -1761,8 +1765,8 @@ class GayBerne(AnisotropicPair):
     """
     _cpp_class_name = "AnisoPotentialPairGB"
 
-    def __init__(self, nlist, r_cut=None, r_on=0, mode='none'):
-        super().__init__(nlist, r_cut, r_on, mode)
+    def __init__(self, nlist, r_cut=None, mode='none'):
+        super().__init__(nlist, r_cut, mode)
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict(epsilon=float,
@@ -1846,8 +1850,8 @@ class Dipole(AnisotropicPair):
     """
     _cpp_class_name = "AnisoPotentialPairDipole"
 
-    def __init__(self, nlist, r_cut=None, r_on=0, mode='none'):
-        super().__init__(nlist, r_cut, r_on, mode)
+    def __init__(self, nlist, r_cut=None, mode='none'):
+        super().__init__(nlist, r_cut, mode)
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict(mu=float, A=float, kappa=float, len_keys=2))
@@ -2010,7 +2014,7 @@ class DLVO(Pair):
         self._add_typeparam(params)
 
         # mode not allowed to be xplor, so re-do param dict entry without that option
-        param_dict = ParameterDict(mode=OnlyFrom(['none','shifted']))
+        param_dict = ParameterDict(mode=OnlyFrom(['none','shift']))
         self._param_dict.update(param_dict)
         self.mode = mode
 
