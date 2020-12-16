@@ -15,6 +15,8 @@ v3.0.0-beta.3 (not yet released)
 
 *Changed*
 
+- Improved compilation docs.
+
 *Fixed*
 
 - ``hoomd.variant.Power`` objects now have a ``t_ramp`` attribute as documented.

@@ -203,8 +203,7 @@ Execute longer running validation tests::
 
     On a cluster, run tests within a job on a GPU compute node.
 
-With ``CMAKE_PREFIX_PATH`` pointing to your desired python environment,
-install **HOOMD-blue** into your Python environment::
+Install **HOOMD-blue** into your Python environment::
 
     $ make install
 
