@@ -92,18 +92,16 @@ class AnisoPotentialPair : public ForceCompute
         virtual pybind11::dict getParams(pybind11::tuple typ);
         //! Set the rcut for a single type pair
         virtual void setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut);
+
         /// Get the r_cut for a single type pair
         Scalar getRCut(pybind11::tuple types);
+
         /// Set the rcut for a single type pair using a tuple of strings
         virtual void setRCutPython(pybind11::tuple types, Scalar r_cut);
-        //! Set ron for a single type pair
-        virtual void setRon(unsigned int typ1, unsigned int typ2, Scalar ron);
-        /// Get the r_on for a single type pair
-        Scalar getROn(pybind11::tuple types);
-        /// Set the r_on for a single type using a tuple of string
-        virtual void setROnPython(pybind11::tuple types, Scalar r_on);
+
         //! Method that is called whenever the GSD file is written if connected to a GSD file.
         int slotWriteGSDShapeSpec(gsd_handle&) const;
+
         /// Validate that types are within Ntypes
         virtual void validateTypes(unsigned int typ1, unsigned int typ2,
                                    std::string action);
@@ -152,7 +150,6 @@ class AnisoPotentialPair : public ForceCompute
             {
             no_shift = 0,
             shift,
-            xplor
             };
 
         //! Set the mode to use for shifting the energy
@@ -171,9 +168,9 @@ class AnisoPotentialPair : public ForceCompute
                 {
                 m_shift_mode = shift;
                 }
-            else if (mode == "xplor")
+            else
                 {
-                m_shift_mode = xplor;
+                    throw std::runtime_error("Invalid energy shift mode.");
                 }
             }
 
@@ -186,10 +183,8 @@ class AnisoPotentialPair : public ForceCompute
                     return "none";
                 case shift:
                     return "shift";
-                case xplor:
-                    return "xplor";
                 default:
-                    throw std::runtime_error("Error setting shift mode.");
+                    return "";
                 }
             }
 
@@ -218,7 +213,6 @@ class AnisoPotentialPair : public ForceCompute
         energyShiftMode m_shift_mode;               //!< Store the mode with which to handle the energy shift at r_cut
         Index2D m_typpair_idx;                      //!< Helper class for indexing per type pair arrays
         GlobalArray<Scalar> m_rcutsq;                  //!< Cutoff radius squared per type pair
-        GlobalArray<Scalar> m_ronsq;                //!< ron squared per type pair
         GlobalArray<param_type> m_params;   //!< Pair parameters per type pair
         GlobalArray<shape_param_type> m_shape_params;   //!< Pair parameters per type pair
         std::string m_prof_name;                    //!< Cached profiler name
@@ -262,9 +256,6 @@ class AnisoPotentialPair : public ForceCompute
                 ArrayHandle<Scalar> h_new_ronsq(new_ronsq,
                                                 access_location::host,
                                                 access_mode::overwrite);
-                ArrayHandle<Scalar> h_ronsq(m_ronsq,
-                                            access_location::host,
-                                            access_mode::overwrite);
                 ArrayHandle<param_type> h_new_params(new_params,
                                                      access_location::host,
                                                      access_mode::overwrite);
@@ -280,8 +271,6 @@ class AnisoPotentialPair : public ForceCompute
                             h_rcutsq.data[m_typpair_idx(i,j)];
                         h_new_r_cut_nlist.data[new_type_pair_idx(i,j)] =
                             h_r_cut_nlist.data[m_typpair_idx(i,j)];
-                        h_new_ronsq.data[new_type_pair_idx(i,j)] =
-                            h_ronsq.data[m_typpair_idx(i,j)];
                         h_new_params.data[new_type_pair_idx(i,j)] =
                             h_params.data[m_typpair_idx(i,j)];
                         }
@@ -290,7 +279,6 @@ class AnisoPotentialPair : public ForceCompute
 
             // swap the new arrays in
             m_rcutsq.swap(new_rcutsq);
-            m_ronsq.swap(new_ronsq);
             m_params.swap(new_params);
 
             // except for the r_cut_nlist which the nlist also refers to, copy the new data over
@@ -306,7 +294,6 @@ class AnisoPotentialPair : public ForceCompute
             if (m_pdata->getExecConf()->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
                 {
                 cudaMemAdvise(m_rcutsq.get(), m_rcutsq.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
-                cudaMemAdvise(m_ronsq.get(), m_ronsq.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
                 cudaMemAdvise(m_params.get(), m_params.getNumElements()*sizeof(param_type), cudaMemAdviseSetReadMostly, 0);
                 cudaMemAdvise(m_shape_params.get(), m_shape_params.getNumElements()*sizeof(param_type), cudaMemAdviseSetReadMostly, 0);
 
@@ -317,7 +304,6 @@ class AnisoPotentialPair : public ForceCompute
                     {
                     // prefetch data on all GPUs
                     cudaMemPrefetchAsync(m_rcutsq.get(), sizeof(Scalar)*m_rcutsq.getNumElements(), gpu_map[idev]);
-                    cudaMemPrefetchAsync(m_ronsq.get(), sizeof(Scalar)*m_ronsq.getNumElements(), gpu_map[idev]);
                     cudaMemPrefetchAsync(m_params.get(), sizeof(param_type)*m_params.getNumElements(), gpu_map[idev]);
                     cudaMemPrefetchAsync(m_shape_params.get(), sizeof(param_type)*m_shape_params.getNumElements(), gpu_map[idev]);
                     }
@@ -365,7 +351,6 @@ AnisoPotentialPair< aniso_evaluator >::AnisoPotentialPair(std::shared_ptr<System
     GlobalArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), m_exec_conf);
     m_rcutsq.swap(rcutsq);
     GlobalArray<Scalar> ronsq(m_typpair_idx.getNumElements(), m_exec_conf);
-    m_ronsq.swap(ronsq);
     GlobalArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf, "my_params", true);
     m_params.swap(params);
     GlobalArray<shape_param_type> shape_params(m_pdata->getNTypes(), m_exec_conf, "shape_params", true);
@@ -379,7 +364,6 @@ AnisoPotentialPair< aniso_evaluator >::AnisoPotentialPair(std::shared_ptr<System
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         cudaMemAdvise(m_rcutsq.get(), m_rcutsq.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
-        cudaMemAdvise(m_ronsq.get(), m_ronsq.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
         cudaMemAdvise(m_params.get(), m_params.getNumElements()*sizeof(param_type), cudaMemAdviseSetReadMostly, 0);
         cudaMemAdvise(m_shape_params.get(), m_shape_params.getNumElements()*sizeof(shape_param_type), cudaMemAdviseSetReadMostly, 0);
 
@@ -390,7 +374,6 @@ AnisoPotentialPair< aniso_evaluator >::AnisoPotentialPair(std::shared_ptr<System
             {
             // prefetch data on all GPUs
             cudaMemPrefetchAsync(m_rcutsq.get(), sizeof(Scalar)*m_rcutsq.getNumElements(), gpu_map[idev]);
-            cudaMemPrefetchAsync(m_ronsq.get(), sizeof(Scalar)*m_ronsq.getNumElements(), gpu_map[idev]);
             cudaMemPrefetchAsync(m_params.get(), sizeof(param_type)*m_params.getNumElements(), gpu_map[idev]);
             cudaMemPrefetchAsync(m_shape_params.get(), sizeof(shape_param_type)*m_shape_params.getNumElements(), gpu_map[idev]);
             }
@@ -535,42 +518,6 @@ Scalar AnisoPotentialPair< aniso_evaluator >::getRCut(pybind11::tuple types)
     return sqrt(h_rcutsq.data[m_typpair_idx(typ1, typ2)]);
     }
 
-/*! \param typ1 First type index in the pair
-    \param typ2 Second type index in the pair
-    \param ron XPLOR r_on radius to set
-    \note When seeting the value for (\a typ1, \a typ2), the parameter for (\a typ2, \a typ1) is automatically 
-          set.
-*/
-template< class aniso_evaluator >
-void AnisoPotentialPair< aniso_evaluator >::setRon(unsigned int typ1, unsigned int typ2, Scalar ron)
-    {
-    validateTypes(typ1, typ2, "setting r_on");
-    ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host,
-                                access_mode::readwrite);
-    h_ronsq.data[m_typpair_idx(typ1, typ2)] = ron * ron;
-    h_ronsq.data[m_typpair_idx(typ2, typ1)] = ron * ron;
-    }
-
-template< class aniso_evaluator >
-Scalar AnisoPotentialPair< aniso_evaluator >::getROn(pybind11::tuple types)
-    {
-    auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
-    auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
-    validateTypes(typ1, typ2, "getting r_on");
-    ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host,
-                                access_mode::read);
-    return sqrt(h_ronsq.data[m_typpair_idx(typ1, typ2)]);
-    }
-
-template< class aniso_evaluator >
-void AnisoPotentialPair< aniso_evaluator >::setROnPython(pybind11::tuple types,
-                                                         Scalar r_on)
-    {
-    auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
-    auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
-    setRon(typ1, typ2, r_on);
-    }
-
 /*! AnisoPotentialPair provides:
      - \c pair_"name"_energy
     where "name" is replaced with aniso_evaluator::getName()
@@ -636,7 +583,6 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
 
     const BoxDim& box = m_pdata->getBox();
-    ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
     ArrayHandle<shape_param_type> h_shape_params(m_shape_params, access_location::host, access_mode::read);
@@ -852,20 +798,10 @@ template < class T > void export_AnisoPotentialPair(pybind11::module& m, const s
         .def("getParams", &T::getParams)
         .def("setRCut", &T::setRCutPython)
         .def("getRCut", &T::getRCut)
-        .def("setROn", &T::setROnPython)
-        .def("getROn", &T::getROn)
-        .def("setShape", &T::setShape)
         .def_property("mode", &T::getShiftMode, &T::setShiftModePython)
-        //.def("computeEnergyBetweenSets", &T::computeEnergyBetweenSetsPythonList)
         .def("slotWriteGSDShapeSpec", &T::slotWriteGSDShapeSpec)
         .def("connectGSDShapeSpec", &T::connectGSDShapeSpec)
         .def("getTypeShapesPy", &T::getTypeShapesPy)
-    ;
-
-    pybind11::enum_<typename T::energyShiftMode>(anisopotentialpair,"energyShiftMode")
-        .value("no_shift", T::energyShiftMode::no_shift)
-        .value("shift", T::energyShiftMode::shift)
-        .export_values()
     ;
     }
 
