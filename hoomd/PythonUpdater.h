@@ -8,7 +8,7 @@ class PYBIND11_EXPORT PythonUpdater : public Updater
         PythonUpdater(std::shared_ptr<SystemDefinition> sysdef,
                       pybind11::object updater);
 
-        void update(unsigned int timestep);
+        void update(uint64_t timestep);
 
         PDataFlags getRequestedPDataFlags();
 

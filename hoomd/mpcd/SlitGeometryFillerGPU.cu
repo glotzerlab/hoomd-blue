@@ -56,7 +56,7 @@ __global__ void slit_draw_particles(Scalar4 *d_pos,
                                     const unsigned int first_tag,
                                     const unsigned int first_idx,
                                     const Scalar vel_factor,
-                                    const unsigned int timestep,
+                                    const uint64_t timestep,
                                     const unsigned int seed)
     {
     // one thread per particle
@@ -136,7 +136,7 @@ cudaError_t slit_draw_particles(Scalar4 *d_pos,
                                 const unsigned int first_tag,
                                 const unsigned int first_idx,
                                 const Scalar kT,
-                                const unsigned int timestep,
+                                const uint64_t timestep,
                                 const unsigned int seed,
                                 const unsigned int block_size)
     {

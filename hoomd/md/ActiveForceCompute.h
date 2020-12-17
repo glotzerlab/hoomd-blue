@@ -35,7 +35,7 @@ class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
         //! Constructs the compute
         ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<ParticleGroup> group,
-                             int seed, 
+                             int seed,
                              Scalar rotation_diff,
                              Scalar3 P,
                              Scalar rx,
@@ -81,13 +81,13 @@ class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
 
     protected:
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
 
         //! Set forces for particles
         virtual void setForces();
 
         //! Orientational diffusion for spherical particles
-        virtual void rotationalDiffusion(unsigned int timestep);
+        virtual void rotationalDiffusion(uint64_t timestep);
 
         //! Set constraints if particles confined to a surface
         virtual void setConstraint();

@@ -37,7 +37,7 @@ TwoStepBDGPU::TwoStepBDGPU(std::shared_ptr<SystemDefinition> sysdef,
 /*! \param timestep Current time step
     \post Particle positions are moved forward a full time step and velocities are redrawn from the proper distribution.
 */
-void TwoStepBDGPU::integrateStepOne(unsigned int timestep)
+void TwoStepBDGPU::integrateStepOne(uint64_t timestep)
     {
     // profile this step
     if (m_prof)
@@ -135,7 +135,7 @@ void TwoStepBDGPU::integrateStepOne(unsigned int timestep)
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1 on the GPU
 */
-void TwoStepBDGPU::integrateStepTwo(unsigned int timestep)
+void TwoStepBDGPU::integrateStepTwo(uint64_t timestep)
     {
     // there is no step 2
     }

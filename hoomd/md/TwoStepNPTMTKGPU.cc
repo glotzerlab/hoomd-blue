@@ -72,7 +72,7 @@ TwoStepNPTMTKGPU::~TwoStepNPTMTKGPU()
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the Nose-Hoover
      thermostat and Anderson barostat
 */
-void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
+void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
     {
     if (m_group->getNumMembersGlobal() == 0)
         {
@@ -282,7 +282,7 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1
 */
-void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
+void TwoStepNPTMTKGPU::integrateStepTwo(uint64_t timestep)
     {
     const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
 

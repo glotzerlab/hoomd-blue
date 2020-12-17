@@ -58,7 +58,7 @@ class PYBIND11_EXPORT SlitPoreGeometryFiller : public mpcd::VirtualParticleFille
         virtual void computeNumFill();
 
         //! Draw particles within the fill volume
-        virtual void drawParticles(unsigned int timestep);
+        virtual void drawParticles(uint64_t timestep);
 
     private:
         bool m_needs_recompute;

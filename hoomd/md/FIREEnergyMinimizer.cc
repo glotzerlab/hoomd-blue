@@ -133,7 +133,7 @@ void FIREEnergyMinimizer::reset()
 
 /*! \param timesteps is the current timestep
 */
-void FIREEnergyMinimizer::update(unsigned int timestep)
+void FIREEnergyMinimizer::update(uint64_t timestep)
     {
     if (m_converged)
         return;

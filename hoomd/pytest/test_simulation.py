@@ -258,3 +258,24 @@ def test_writer_order_initial(simulation_factory,
         900,
         1000,
     ]
+
+def test_large_timestep(simulation_factory, get_snapshot, device):
+    """Test that simluations suport large timestep values."""
+    sim = hoomd.Simulation(device)
+    sim.timestep = 2**64-100
+    sim.create_state_from_snapshot(get_snapshot())
+
+    sim.run(99)
+    assert sim.timestep == 2**64-1
+
+def test_timestep_wrap(simulation_factory, get_snapshot, device):
+    """Test that time steps wrap around."""
+    sim = hoomd.Simulation(device)
+    sim.timestep = 2**64-100
+    sim.create_state_from_snapshot(get_snapshot())
+
+    sim.run(200)
+    assert sim.timestep == 100
+
+def test_initial_timestep_range(simulation_factory):
+    pass

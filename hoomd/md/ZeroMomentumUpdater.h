@@ -35,7 +35,7 @@ class PYBIND11_EXPORT ZeroMomentumUpdater : public Updater
         virtual ~ZeroMomentumUpdater();
 
         //! Take one timestep forward
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
     };
 
 //! Export the ZeroMomentumUpdater to python

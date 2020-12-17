@@ -179,7 +179,7 @@ std::vector< std::string > DEM2DForceCompute<Real, Real4, Potential>::getProvide
     }
 
 template<typename Real, typename Real4, typename Potential>
-Real DEM2DForceCompute<Real, Real4, Potential>::getLogValue(const std::string& quantity, unsigned int timestep)
+Real DEM2DForceCompute<Real, Real4, Potential>::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if (quantity == string("pair_dem_energy"))
         {
@@ -199,7 +199,7 @@ Real DEM2DForceCompute<Real, Real4, Potential>::getLogValue(const std::string& q
   \param timestep specifies the current time step of the simulation
 */
 template<typename Real, typename Real4, typename Potential>
-void DEM2DForceCompute<Real, Real4, Potential>::computeForces(unsigned int timestep)
+void DEM2DForceCompute<Real, Real4, Potential>::computeForces(uint64_t timestep)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);

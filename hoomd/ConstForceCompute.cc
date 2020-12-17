@@ -223,7 +223,7 @@ void ConstForceCompute::rearrangeForces()
 /*! This function calls rearrangeForces() whenever the particles have been sorted
     \param timestep Current timestep
 */
-void ConstForceCompute::computeForces(unsigned int timestep)
+void ConstForceCompute::computeForces(uint64_t timestep)
     {
     if (m_particles_sorted || m_need_rearrange_forces)
         rearrangeForces();

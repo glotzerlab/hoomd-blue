@@ -31,7 +31,7 @@ mpcd::VirtualParticleFiller::VirtualParticleFiller(std::shared_ptr<mpcd::SystemD
     #endif // ENABLE_MPI
     }
 
-void mpcd::VirtualParticleFiller::fill(unsigned int timestep)
+void mpcd::VirtualParticleFiller::fill(uint64_t timestep)
     {
     // update the fill volume
     computeNumFill();

@@ -60,7 +60,7 @@ TwoStepNVTMTKGPU::TwoStepNVTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
 /*! \param timestep Current time step
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the Nose-Hoover method
 */
-void TwoStepNVTMTKGPU::integrateStepOne(unsigned int timestep)
+void TwoStepNVTMTKGPU::integrateStepOne(uint64_t timestep)
     {
     if (m_group->getNumMembersGlobal() == 0)
         {
@@ -151,7 +151,7 @@ void TwoStepNVTMTKGPU::integrateStepOne(unsigned int timestep)
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1 on the GPU
 */
-void TwoStepNVTMTKGPU::integrateStepTwo(unsigned int timestep)
+void TwoStepNVTMTKGPU::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 

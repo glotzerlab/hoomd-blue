@@ -49,7 +49,7 @@ protected:
     GlobalArray<EAMTexInterData> m_eam_data;    //!< EAM parameters to be communicated
     std::unique_ptr<Autotuner> m_tuner;         //!< autotuner for block size
     //! Actually compute the forces
-    virtual void computeForces(unsigned int timestep);
+    virtual void computeForces(uint64_t timestep);
     };
 
 //! Exports the EAMForceComputeGPU class to python

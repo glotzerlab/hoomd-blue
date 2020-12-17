@@ -59,13 +59,13 @@ double NeighborListGPU::benchmarkFilter(unsigned int num_iters)
     return double(total_time_ns) / 1e6 / double(num_iters);
     }
 
-void NeighborListGPU::buildNlist(unsigned int timestep)
+void NeighborListGPU::buildNlist(uint64_t timestep)
     {
     m_exec_conf->msg->error() << "nlist: O(N^2) neighbor lists are no longer supported." << endl;
     throw runtime_error("Error updating neighborlist bins");
     }
 
-bool NeighborListGPU::distanceCheck(unsigned int timestep)
+bool NeighborListGPU::distanceCheck(uint64_t timestep)
     {
     // prevent against unnecessary calls
     if (! shouldCheckDistance(timestep))

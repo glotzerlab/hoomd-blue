@@ -93,7 +93,7 @@ void at_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec
     // perform the collision many times, and ensure that the average temperature is correct
     const unsigned int num_sample = 50000;
     double Tavg = 0.0;
-    for (unsigned int timestep=2; timestep < 2+num_sample; ++timestep)
+    for (uint64_t timestep=2; timestep < 2+num_sample; ++timestep)
         {
         thermo->compute(timestep);
         Tavg += thermo->getTemperature();

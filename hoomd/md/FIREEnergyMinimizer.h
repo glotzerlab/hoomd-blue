@@ -37,7 +37,7 @@ class PYBIND11_EXPORT FIREEnergyMinimizer : public IntegratorTwoStep
         virtual void reset();
 
         //! Perform one minimization iteration
-        virtual void update(unsigned int);
+        virtual void update(uint64_t timestep);
 
         //! Return whether or not the minimization has converged
         bool hasConverged() const {return m_converged;}

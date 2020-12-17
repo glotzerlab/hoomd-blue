@@ -39,7 +39,7 @@ mpcd::ATCollisionMethod::~ATCollisionMethod()
 /*!
  * \param timestep Current timestep.
  */
-void mpcd::ATCollisionMethod::rule(unsigned int timestep)
+void mpcd::ATCollisionMethod::rule(uint64_t timestep)
     {
     m_thermo->compute(timestep);
 
@@ -60,7 +60,7 @@ void mpcd::ATCollisionMethod::rule(unsigned int timestep)
 /*!
  * \param timestep Current timestep.
  */
-void mpcd::ATCollisionMethod::drawVelocities(unsigned int timestep)
+void mpcd::ATCollisionMethod::drawVelocities(uint64_t timestep)
     {
     // mpcd particle data
     ArrayHandle<unsigned int> h_tag(m_mpcd_pdata->getTags(), access_location::host, access_mode::read);

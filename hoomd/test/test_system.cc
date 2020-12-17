@@ -39,7 +39,7 @@ class DummyAnalyzer : public Analyzer
             }
 
         //! Just prints our name and the current time step
-        void analyze(unsigned int timestep)
+        void analyze(uint64_t timestep)
             {
             if (m_prof)
                 m_prof->push(m_name);
@@ -64,7 +64,7 @@ class DummyUpdater : public Integrator
             }
 
         //! Just prints our name and the current time step
-        void update(unsigned int timestep)
+        void update(uint64_t timestep)
             {
             if (m_prof)
                 m_prof->push(m_name);
@@ -88,7 +88,7 @@ class DummyCompute : public Compute
             }
 
         //! Just prints our name and the current time step
-        void compute(unsigned int timestep)
+        void compute(uint64_t timestep)
             {
             if (m_prof)
                 m_prof->push(m_name);

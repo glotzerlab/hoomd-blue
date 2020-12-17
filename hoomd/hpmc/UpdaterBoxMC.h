@@ -224,7 +224,7 @@ class UpdaterBoxMC : public Updater
         virtual std::vector< std::string > getProvidedLogQuantities();
 
         //! Get the value of a logged quantity
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         //! Reset statistics counters
         void resetStats()
@@ -244,7 +244,7 @@ class UpdaterBoxMC : public Updater
         //! Take one timestep forward
         /*! \param timestep timestep at which update is being evaluated
         */
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
 
         //! Get the current counter values
         hpmc_boxmc_counters_t getCounters(unsigned int mode=0);
@@ -253,32 +253,32 @@ class UpdaterBoxMC : public Updater
         /*! \param timestep timestep at which update is being evaluated
             \param rng pseudo random number generator instance
         */
-        void update_L(unsigned int timestep, hoomd::RandomGenerator& rng);
+        void update_L(uint64_t timestep, hoomd::RandomGenerator& rng);
 
         //! Perform box update in NpT volume distribution
         /*! \param timestep timestep at which update is being evaluated
             \param rng pseudo random number generator instance
         */
-        void update_V(unsigned int timestep, hoomd::RandomGenerator& rng);
+        void update_V(uint64_t timestep, hoomd::RandomGenerator& rng);
 
         //! Perform box update in NpT ln(V) distribution
         /*! \param timestep timestep at which update is being evaluated
             \param rng pseudo random number generator instance
         */
-        void update_lnV(unsigned int timestep, hoomd::RandomGenerator& rng);
+        void update_lnV(uint64_t timestep, hoomd::RandomGenerator& rng);
 
 
         //! Perform box update in NpT shear distribution
         /*! \param timestep timestep at which update is being evaluated
             \param rng pseudo random number generator instance
         */
-        void update_shear(unsigned int timestep, hoomd::RandomGenerator& rng);
+        void update_shear(uint64_t timestep, hoomd::RandomGenerator& rng);
 
         //! Perform non-thermodynamic MC move in aspect ratio.
         /*! \param timestep timestep at which update is being evaluated
             \param rng pseudo random number generator instance
         */
-        void update_aspect(unsigned int timestep, hoomd::RandomGenerator& rng);
+        void update_aspect(uint64_t timestep, hoomd::RandomGenerator& rng);
 
     private:
         std::shared_ptr<IntegratorHPMC> m_mc;     //!< HPMC integrator object
@@ -326,7 +326,7 @@ class UpdaterBoxMC : public Updater
                                      Scalar xy,
                                      Scalar xz,
                                      Scalar yz,
-                                     unsigned int timestep,
+                                     uint64_t timestep,
                                      Scalar boltzmann,
                                      hoomd::RandomGenerator& rng
                                      );

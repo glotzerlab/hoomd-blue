@@ -51,7 +51,7 @@ TwoStepLangevinGPU::TwoStepLangevinGPU(std::shared_ptr<SystemDefinition> sysdef,
 
     This method is copied directly from TwoStepNVEGPU::integrateStepOne() and reimplemented here to avoid multiple.
 */
-void TwoStepLangevinGPU::integrateStepOne(unsigned int timestep)
+void TwoStepLangevinGPU::integrateStepOne(uint64_t timestep)
     {
     // profile this step
     if (m_prof)
@@ -123,7 +123,7 @@ void TwoStepLangevinGPU::integrateStepOne(unsigned int timestep)
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1 on the GPU
 */
-void TwoStepLangevinGPU::integrateStepTwo(unsigned int timestep)
+void TwoStepLangevinGPU::integrateStepTwo(uint64_t timestep)
     {
     const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
 

@@ -46,7 +46,7 @@ class PotentialExternal: public ForceCompute
         virtual std::vector< std::string > getProvidedLogQuantities();
 
         //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
     protected:
 
@@ -55,7 +55,7 @@ class PotentialExternal: public ForceCompute
         GPUArray<field_type>    m_field;
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
 
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange()
@@ -116,7 +116,7 @@ std::vector< std::string > PotentialExternal<evaluator>::getProvidedLogQuantitie
     \param timestep Current timestep of the simulation
 */
 template<class evaluator>
-Scalar PotentialExternal<evaluator>::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar PotentialExternal<evaluator>::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if (quantity == m_log_name)
         {
@@ -134,7 +134,7 @@ Scalar PotentialExternal<evaluator>::getLogValue(const std::string& quantity, un
     \param timestep Current timestep
 */
 template<class evaluator>
-void PotentialExternal<evaluator>::computeForces(unsigned int timestep)
+void PotentialExternal<evaluator>::computeForces(uint64_t timestep)
     {
 
     if (m_prof) m_prof->push("PotentialExternal");

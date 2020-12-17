@@ -106,7 +106,7 @@ class PYBIND11_EXPORT Communicator
          * This method is supposed to be called every time step and automatically performs all necessary
          * communication steps.
          */
-        void communicate(unsigned int timestep);
+        void communicate(uint64_t timestep);
 
         //! Migrate particle data to local domain
         /*!
@@ -120,10 +120,10 @@ class PYBIND11_EXPORT Communicator
          *
          * \post Every particle on every processor can be found inside the local domain boundaries.
          */
-        virtual void migrateParticles(unsigned int timestep);
+        virtual void migrateParticles(uint64_t timestep);
 
         //! Migration signal type
-        typedef Nano::Signal<bool (unsigned int)> MigrateSignal;
+        typedef Nano::Signal<bool (uint64_t timestep)> MigrateSignal;
 
         //! Get the migrate request signal
         /*!

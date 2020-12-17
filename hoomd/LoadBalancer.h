@@ -121,7 +121,7 @@ class PYBIND11_EXPORT LoadBalancer : public Tuner
         bool getEnableZ(bool enable) {return m_enable_z;}
 
         //! Take one timestep forward
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
 
         //! Reset the counters for the run
         virtual void resetStats();

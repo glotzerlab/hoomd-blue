@@ -131,7 +131,7 @@ IMDInterface::~IMDInterface()
 
     \param timestep Current time step of the simulation
 */
-void IMDInterface::analyze(unsigned int timestep)
+void IMDInterface::analyze(uint64_t timestep)
     {
     if (m_prof)
         m_prof->push("IMD");
@@ -426,7 +426,7 @@ void IMDInterface::establishConnectionAttempt()
 
     Sends the current coordinates to VMD for display.
 */
-void IMDInterface::sendCoords(unsigned int timestep)
+void IMDInterface::sendCoords(uint64_t timestep)
     {
     // take a snapshot of the particle data
     SnapshotParticleData<Scalar> snapshot;

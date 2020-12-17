@@ -75,7 +75,7 @@ void mpcd::SlitGeometryFiller::computeNumFill()
 /*!
  * \param timestep Current timestep to draw particles
  */
-void mpcd::SlitGeometryFiller::drawParticles(unsigned int timestep)
+void mpcd::SlitGeometryFiller::drawParticles(uint64_t timestep)
     {
     ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_vel(m_mpcd_pdata->getVelocities(), access_location::host, access_mode::readwrite);

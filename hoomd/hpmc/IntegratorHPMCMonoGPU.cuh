@@ -127,7 +127,7 @@ struct hpmc_args_t
     const unsigned int *d_check_overlaps; //!< Interaction matrix
     const Index2D& overlap_idx;       //!< Indexer into interaction matrix
     const unsigned int translation_move_probability;    //!< Fraction of moves that are translation moves.
-    const unsigned int timestep;      //!< Current time step
+    const uint64_t timestep;      //!< Current time step
     const unsigned int dim;           //!< Number of dimensions
     const BoxDim& box;                //!< Current simulation box
     unsigned int select;              //!< Current selection
@@ -333,7 +333,7 @@ void hpmc_accept(const unsigned int *d_update_order_by_ptl,
                  unsigned int *d_condition,
                  const unsigned int seed,
                  const unsigned int select,
-                 const unsigned int timestep,
+                 const uint64_t timestep,
                  const unsigned int block_size,
                  const unsigned int tpp);
 
@@ -354,7 +354,7 @@ __global__ void hpmc_gen_moves(Scalar4 *d_postype,
                            const Scalar* d_d,
                            const Scalar* d_a,
                            const unsigned int translation_move_probability,
-                           const unsigned int timestep,
+                           const uint64_t timestep,
                            const BoxDim box,
                            const unsigned int select,
                            const Scalar3 ghost_fraction,
@@ -814,7 +814,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                                      const unsigned int seed,
                                      const unsigned int *d_check_overlaps,
                                      const Index2D overlap_idx,
-                                     const unsigned int timestep,
+                                     const uint64_t timestep,
                                      const unsigned int dim,
                                      const BoxDim box,
                                      const unsigned int select,

@@ -90,7 +90,7 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
             }
 
         //! Get the value of a logged quantity
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep)
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep)
             {
             if (quantity == "hpmc_wall_acceptance_ratio")
                 {
@@ -129,7 +129,7 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
         //! Take one timestep forward
         /*! \param timestep timestep at which update is being evaluated
         */
-        virtual void update(unsigned int timestep)
+        virtual void update(uint64_t timestep)
             {
             // Choose whether or not to update the external field
             hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterExternalFieldWall, m_seed, timestep);

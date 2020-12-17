@@ -52,10 +52,10 @@ class PYBIND11_EXPORT ATCollisionMethod : public mpcd::CollisionMethod
         std::shared_ptr<::Variant> m_T; //!< Temperature for thermostat
 
         //! Implementation of the collision rule
-        virtual void rule(unsigned int timestep);
+        virtual void rule(uint64_t timestep);
 
         //! Draw velocities for particles in each cell
-        virtual void drawVelocities(unsigned int timestep);
+        virtual void drawVelocities(uint64_t timestep);
 
         //! Apply the random velocities to particles in each cell
         virtual void applyVelocities();

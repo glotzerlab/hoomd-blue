@@ -37,7 +37,7 @@ ConstraintSphereGPU::ConstraintSphereGPU(std::shared_ptr<SystemDefinition> sysde
 /*! Computes the specified constraint forces
     \param timestep Current timestep
 */
-void ConstraintSphereGPU::computeForces(unsigned int timestep)
+void ConstraintSphereGPU::computeForces(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)

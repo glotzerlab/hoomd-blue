@@ -39,7 +39,7 @@ OPLSDihedralForceComputeGPU::OPLSDihedralForceComputeGPU(std::shared_ptr<SystemD
 
     Calls gpu_compute_opls_dihedral_forces to do the dirty work.
 */
-void OPLSDihedralForceComputeGPU::computeForces(unsigned int timestep)
+void OPLSDihedralForceComputeGPU::computeForces(uint64_t timestep)
     {
     // start the profile
     if (m_prof) m_prof->push(m_exec_conf, "OPLS Dihedral");

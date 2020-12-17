@@ -274,7 +274,7 @@ class UpdaterClusters : public Updater
         virtual ~UpdaterClusters();
 
         //! Get the value of a logged quantity
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep)
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep)
             {
             hpmc_clusters_counters_t counters = getCounters(2);
 
@@ -321,7 +321,7 @@ class UpdaterClusters : public Updater
         //! Take one timestep forward
         /*! \param timestep timestep at which update is being evaluated
         */
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
 
         //! Get the seed
         unsigned int getSeed()
@@ -541,7 +541,7 @@ class UpdaterClusters : public Updater
             \param line True if this is a line reflection
             \param map Map to lookup new tag from old tag
         */
-        virtual void findInteractions(unsigned int timestep, vec3<Scalar> pivot, quat<Scalar> q, bool swap,
+        virtual void findInteractions(uint64_t timestep, vec3<Scalar> pivot, quat<Scalar> q, bool swap,
             bool line, const std::map<unsigned int, unsigned int>& map);
 
         //! Helper function to get interaction range
@@ -583,7 +583,7 @@ UpdaterClusters<Shape>::~UpdaterClusters()
     }
 
 template< class Shape >
-void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar> pivot, quat<Scalar> q, bool swap,
+void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, vec3<Scalar> pivot, quat<Scalar> q, bool swap,
     bool line, const std::map<unsigned int, unsigned int>& map)
     {
     if (m_prof)
@@ -1390,7 +1390,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
     \param timestep Current time step of the simulation
 */
 template< class Shape >
-void UpdaterClusters<Shape>::update(unsigned int timestep)
+void UpdaterClusters<Shape>::update(uint64_t timestep)
     {
     m_exec_conf->msg->notice(10) << timestep << " UpdaterClusters" << std::endl;
 

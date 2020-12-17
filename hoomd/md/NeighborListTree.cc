@@ -43,7 +43,7 @@ NeighborListTree::~NeighborListTree()
     m_pdata->getParticleSortSignal().disconnect<NeighborListTree, &NeighborListTree::slotRemapParticles>(this);
     }
 
-void NeighborListTree::buildNlist(unsigned int timestep)
+void NeighborListTree::buildNlist(uint64_t timestep)
     {
     // allocate the memory as needed and sort particles
     setupTree();

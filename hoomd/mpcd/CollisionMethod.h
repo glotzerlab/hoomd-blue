@@ -39,10 +39,10 @@ class PYBIND11_EXPORT CollisionMethod
         virtual ~CollisionMethod() { }
 
         //! Implementation of the collision rule
-        void collide(unsigned int timestep);
+        void collide(uint64_t timestep);
 
         //! Peek if a collision will occur on this timestep
-        virtual bool peekCollide(unsigned int timestep) const;
+        virtual bool peekCollide(uint64_t timestep) const;
 
         //! Sets the profiler for the integration method to use
         void setProfiler(std::shared_ptr<Profiler> prof)
@@ -69,7 +69,7 @@ class PYBIND11_EXPORT CollisionMethod
             }
 
         //! Generates the random grid shift vector
-        void drawGridShift(unsigned int timestep);
+        void drawGridShift(uint64_t timestep);
 
         //! Sets a group of particles that is coupled to the MPCD solvent through the collision step
         /*!
@@ -100,10 +100,10 @@ class PYBIND11_EXPORT CollisionMethod
         unsigned int m_seed;        //!< Random number seed
 
         //! Check if a collision should occur and advance the timestep counter
-        virtual bool shouldCollide(unsigned int timestep);
+        virtual bool shouldCollide(uint64_t timestep);
 
         //! Call the collision rule
-        virtual void rule(unsigned int timestep) {}
+        virtual void rule(uint64_t timestep) {}
 
         bool m_enable_grid_shift;   //!< Flag to enable grid shifting
     };

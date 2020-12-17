@@ -217,7 +217,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         virtual ~IntegratorHPMC();
 
         //! Take one timestep forward
-        virtual void update(unsigned int timestep)
+        virtual void update(uint64_t timestep)
             {
             ArrayHandle<hpmc_counters_t> h_counters(m_count_total, access_location::host, access_mode::read);
             m_count_step_start = h_counters.data[0];
@@ -386,7 +386,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         virtual std::vector< std::string > getProvidedLogQuantities();
 
         //! Get the value of a logged quantity
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         //! Check the particle data for non-normalized orientations
         virtual bool checkParticleOrientations();
@@ -418,7 +418,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
 
             }
         //! Method to scale the box
-        virtual bool attemptBoxResize(unsigned int timestep, const BoxDim& new_box);
+        virtual bool attemptBoxResize(uint64_t timestep, const BoxDim& new_box);
 
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange();
@@ -441,14 +441,14 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         /*! \param timestep the current time step
          * \returns the total patch energy
          */
-        virtual float computePatchEnergy(unsigned int timestep)
+        virtual float computePatchEnergy(uint64_t timestep)
             {
             // base class method returns 0
             return 0.0;
             }
 
         //! Prepare for the run
-        virtual void prepRun(unsigned int timestep)
+        virtual void prepRun(uint64_t timestep)
             {
             m_past_first_run = true;
             }
@@ -532,14 +532,14 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             }
 
         //! Return the requested ghost layer width
-        virtual Scalar getGhostLayerWidth(unsigned int)
+        virtual Scalar getGhostLayerWidth(unsigned int type)
             {
             return Scalar(0.0);
             }
 
         #ifdef ENABLE_MPI
         //! Return the requested communication flags for ghost particles
-        virtual CommFlags getCommFlags(unsigned int)
+        virtual CommFlags getCommFlags(uint64_t timestep)
             {
             return CommFlags(0);
             }

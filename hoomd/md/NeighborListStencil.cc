@@ -76,7 +76,7 @@ void NeighborListStencil::updateRStencil()
     m_cls->setRStencil(rstencil);
     }
 
-void NeighborListStencil::buildNlist(unsigned int timestep)
+void NeighborListStencil::buildNlist(uint64_t timestep)
     {
     if (m_update_cell_size)
         {

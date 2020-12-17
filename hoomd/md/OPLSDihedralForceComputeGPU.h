@@ -50,7 +50,7 @@ class PYBIND11_EXPORT OPLSDihedralForceComputeGPU : public OPLSDihedralForceComp
     private:
         std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
 
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
 //! Exports the OPLSDihedralForceComputeGPU class to python

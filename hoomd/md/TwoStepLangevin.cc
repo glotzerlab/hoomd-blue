@@ -46,7 +46,7 @@ std::vector< std::string > TwoStepLangevin::getProvidedLogQuantities()
     \param my_quantity_flag passed as false, changed to true if quantity logged here
 */
 
-Scalar TwoStepLangevin::getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag)
+Scalar TwoStepLangevin::getLogValue(const std::string& quantity, uint64_t timestep, bool &my_quantity_flag)
     {
     if (m_tally && quantity == m_log_name)
         {
@@ -61,7 +61,7 @@ Scalar TwoStepLangevin::getLogValue(const std::string& quantity, unsigned int ti
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the velocity verlet
           method.
 */
-void TwoStepLangevin::integrateStepOne(unsigned int timestep)
+void TwoStepLangevin::integrateStepOne(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
@@ -214,7 +214,7 @@ void TwoStepLangevin::integrateStepOne(unsigned int timestep)
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1
 */
-void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
+void TwoStepLangevin::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 

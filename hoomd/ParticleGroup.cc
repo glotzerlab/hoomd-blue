@@ -792,7 +792,7 @@ unsigned int ParticleGroup::intersectionSize(std::shared_ptr<ParticleGroup> othe
     return n;
     }
 
-void ParticleGroup::thermalizeParticleMomenta(Scalar kT, unsigned int seed, unsigned int timestep)
+void ParticleGroup::thermalizeParticleMomenta(Scalar kT, unsigned int seed, uint64_t timestep)
     {
     unsigned int group_size = this->getNumMembers();
 

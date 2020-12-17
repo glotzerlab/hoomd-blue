@@ -45,7 +45,7 @@ void ConstExternalFieldDipoleForceCompute::setParams(Scalar field_x,Scalar field
 /*! \brief Compute the torque applied = Cross[p,Field]
     \param timestep Current timestep
 */
-void ConstExternalFieldDipoleForceCompute::computeForces(unsigned int timestep)
+void ConstExternalFieldDipoleForceCompute::computeForces(uint64_t timestep)
     {
     // array handles
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),access_location::host,access_mode::read);

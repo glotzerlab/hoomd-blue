@@ -48,7 +48,7 @@ class PYBIND11_EXPORT SlitPoreGeometryFillerGPU : public mpcd::SlitPoreGeometryF
 
     protected:
         //! Draw particles within the fill volume on the GPU
-        virtual void drawParticles(unsigned int timestep);
+        virtual void drawParticles(uint64_t timestep);
 
     private:
         std::unique_ptr<::Autotuner> m_tuner;   //!< Autotuner for drawing particles

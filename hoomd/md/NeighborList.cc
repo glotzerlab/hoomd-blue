@@ -312,7 +312,7 @@ NeighborList::~NeighborList()
 /*! Updates the neighborlist if it has not yet been updated this times step
     \param timestep Current time step of the simulation
 */
-void NeighborList::compute(unsigned int timestep)
+void NeighborList::compute(uint64_t timestep)
     {
     // check if the rcut array has changed and update it
     if (m_rcut_changed)
@@ -1161,7 +1161,7 @@ void NeighborList::addOneFourExclusionsFromTopology()
     Note: this method relies on data set by setLastUpdatedPos(), which must be called to set the previous data used
     in the next call to distanceCheck();
 */
-bool NeighborList::distanceCheck(unsigned int timestep)
+bool NeighborList::distanceCheck(uint64_t timestep)
     {
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
 
@@ -1265,7 +1265,7 @@ void NeighborList::setLastUpdatedPos()
     if (m_prof) m_prof->pop();
     }
 
-bool NeighborList::shouldCheckDistance(unsigned int timestep)
+bool NeighborList::shouldCheckDistance(uint64_t timestep)
     {
     return !m_force_update && !(timestep < (m_last_updated_tstep + m_rebuild_check_delay));
     }
@@ -1277,7 +1277,7 @@ bool NeighborList::shouldCheckDistance(unsigned int timestep)
 
     \param timestep Current time step in the simulation
 */
-bool NeighborList::needsUpdating(unsigned int timestep)
+bool NeighborList::needsUpdating(uint64_t timestep)
     {
     if (m_last_checked_tstep == timestep)
         {
@@ -1382,7 +1382,7 @@ unsigned int NeighborList::getSmallestRebuild()
 
 /*! This method is now deprecated, and deriving classes must supply it.
 */
-void NeighborList::buildNlist(unsigned int timestep)
+void NeighborList::buildNlist(uint64_t timestep)
     {
     m_exec_conf->msg->error() << "nlist: O(N^2) neighbor lists are no longer supported." << endl;
     throw runtime_error("Error updating neighborlist bins");
@@ -1609,7 +1609,7 @@ void NeighborList::setCommunicator(std::shared_ptr<Communicator> comm)
 /*! \note The criterion for when to request particle migration is the same as the one for neighbor list
     rebuilds, which is implemented in needsUpdating().
  */
-bool NeighborList::peekUpdate(unsigned int timestep)
+bool NeighborList::peekUpdate(uint64_t timestep)
     {
     if (m_prof) m_prof->push("Neighbor");
 

@@ -138,7 +138,7 @@ void Logger::setLoggedQuantities(const std::vector< std::string >& quantities)
     Writes a single line of output to the log file with each specified quantity separated by
     the delimiter;
 */
-void Logger::analyze(unsigned int timestep)
+void Logger::analyze(uint64_t timestep)
     {
     if (m_prof) m_prof->push("Log");
 
@@ -153,7 +153,7 @@ void Logger::analyze(unsigned int timestep)
 
 /*! \param quantity Quantity to get
 */
-Scalar Logger::getQuantity(const std::string &quantity, unsigned int timestep, bool use_cache)
+Scalar Logger::getQuantity(const std::string &quantity, uint64_t timestep, bool use_cache)
     {
     // update info in cache for later use
     if (!use_cache && timestep != m_cached_timestep)

@@ -51,7 +51,7 @@ class RemoveDriftUpdater : public Updater
             }
 
         //! Take one timestep forward
-        virtual void update(unsigned int timestep)
+        virtual void update(uint64_t timestep)
             {
             ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar3> h_r0(m_externalLattice->getReferenceLatticePositions(), access_location::host, access_mode::readwrite);

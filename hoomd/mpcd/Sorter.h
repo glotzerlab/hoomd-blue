@@ -48,7 +48,7 @@ class PYBIND11_EXPORT Sorter
         virtual ~Sorter();
 
         //! Update the particle data order
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
 
         //! Sets the profiler for the integration method to use
         void setProfiler(std::shared_ptr<Profiler> prof)
@@ -65,7 +65,7 @@ class PYBIND11_EXPORT Sorter
          */
         virtual void setAutotunerParams(bool enable, unsigned int period) { }
 
-        bool peekSort(unsigned int timestep) const;
+        bool peekSort(uint64_t timestep) const;
 
         //! Change the period
         void setPeriod(unsigned int cur_timestep, unsigned int period)
@@ -92,13 +92,13 @@ class PYBIND11_EXPORT Sorter
         unsigned int m_next_timestep;   //!< Next step to apply sorting
 
         //! Compute the sorting order at the current timestep
-        virtual void computeOrder(unsigned int timestep);
+        virtual void computeOrder(uint64_t timestep);
 
         //! Apply the sorting order
         virtual void applyOrder() const;
 
     private:
-        bool shouldSort(unsigned int timestep);
+        bool shouldSort(uint64_t timestep);
     };
 
 namespace detail

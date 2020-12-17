@@ -92,7 +92,7 @@ std::vector< std::string > UpdaterBoxMC::getProvidedLogQuantities()
     \param timestep Current time step of the simulation
     \returns the requested log quantity.
 */
-Scalar UpdaterBoxMC::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar UpdaterBoxMC::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     hpmc_boxmc_counters_t counters = getCounters(1);
 
@@ -310,7 +310,7 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
                                           Scalar xy,
                                           Scalar xz,
                                           Scalar yz,
-                                          unsigned int timestep,
+                                          uint64_t timestep,
                                           Scalar deltaE,
                                           hoomd::RandomGenerator& rng
                                           )
@@ -402,7 +402,7 @@ inline bool UpdaterBoxMC::safe_box(const Scalar newL[3], const unsigned int& Ndi
 /*! Perform Metropolis Monte Carlo box resizes and shearing
     \param timestep Current time step of the simulation
 */
-void UpdaterBoxMC::update(unsigned int timestep)
+void UpdaterBoxMC::update(uint64_t timestep)
     {
     if (m_prof) m_prof->push("UpdaterBoxMC");
     m_count_step_start = m_count_total;
@@ -475,7 +475,7 @@ void UpdaterBoxMC::update(unsigned int timestep)
     if (m_prof) m_prof->pop();
     }
 
-void UpdaterBoxMC::update_L(unsigned int timestep, hoomd::RandomGenerator& rng)
+void UpdaterBoxMC::update_L(uint64_t timestep, hoomd::RandomGenerator& rng)
     {
     if (m_prof) m_prof->push("UpdaterBoxMC: update_L");
     // Get updater parameters for current timestep
@@ -565,7 +565,7 @@ void UpdaterBoxMC::update_L(unsigned int timestep, hoomd::RandomGenerator& rng)
     }
 
 //! Update the box volume in logarithmic steps
-void UpdaterBoxMC::update_lnV(unsigned int timestep, hoomd::RandomGenerator& rng)
+void UpdaterBoxMC::update_lnV(uint64_t timestep, hoomd::RandomGenerator& rng)
     {
     if (m_prof) m_prof->push("UpdaterBoxMC: update_lnV");
     // Get updater parameters for current timestep
@@ -649,7 +649,7 @@ void UpdaterBoxMC::update_lnV(unsigned int timestep, hoomd::RandomGenerator& rng
     if (m_prof) m_prof->pop();
     }
 
-void UpdaterBoxMC::update_V(unsigned int timestep, hoomd::RandomGenerator& rng)
+void UpdaterBoxMC::update_V(uint64_t timestep, hoomd::RandomGenerator& rng)
     {
     if (m_prof) m_prof->push("UpdaterBoxMC: update_V");
     // Get updater parameters for current timestep
@@ -738,7 +738,7 @@ void UpdaterBoxMC::update_V(unsigned int timestep, hoomd::RandomGenerator& rng)
     if (m_prof) m_prof->pop();
     }
 
-void UpdaterBoxMC::update_shear(unsigned int timestep, hoomd::RandomGenerator& rng)
+void UpdaterBoxMC::update_shear(uint64_t timestep, hoomd::RandomGenerator& rng)
     {
     if (m_prof) m_prof->push("UpdaterBoxMC: update_shear");
     // Get updater parameters for current timestep
@@ -789,7 +789,7 @@ void UpdaterBoxMC::update_shear(unsigned int timestep, hoomd::RandomGenerator& r
     if (m_prof) m_prof->pop();
     }
 
-void UpdaterBoxMC::update_aspect(unsigned int timestep, hoomd::RandomGenerator& rng)
+void UpdaterBoxMC::update_aspect(uint64_t timestep, hoomd::RandomGenerator& rng)
     {
     // We have not established what ensemble this samples:
     // This is not a thermodynamic updater.

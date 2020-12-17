@@ -50,7 +50,7 @@ class PYBIND11_EXPORT ConfinedStreamingMethodGPU : public mpcd::ConfinedStreamin
             }
 
         //! Implementation of the streaming rule
-        virtual void stream(unsigned int timestep);
+        virtual void stream(uint64_t timestep);
 
         //! Set autotuner parameters
         /*!
@@ -73,7 +73,7 @@ class PYBIND11_EXPORT ConfinedStreamingMethodGPU : public mpcd::ConfinedStreamin
  * \param timestep Current time to stream
  */
 template<class Geometry>
-void ConfinedStreamingMethodGPU<Geometry>::stream(unsigned int timestep)
+void ConfinedStreamingMethodGPU<Geometry>::stream(uint64_t timestep)
     {
     if (!this->shouldStream(timestep)) return;
 

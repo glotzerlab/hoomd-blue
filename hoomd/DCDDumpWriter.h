@@ -62,7 +62,7 @@ class PYBIND11_EXPORT DCDDumpWriter : public Analyzer
         ~DCDDumpWriter();
 
         //! Write out the data for the current timestep
-        void analyze(unsigned int timestep);
+        void analyze(uint64_t timestep);
 
         //! Set whether coordinates should be written out wrapped or unwrapped.
         void setUnwrapFull(bool enable)
@@ -84,7 +84,7 @@ class PYBIND11_EXPORT DCDDumpWriter : public Analyzer
 
     private:
         std::string m_fname;                //!< The file name we are writing to
-        unsigned int m_start_timestep;      //!< First time step written to the file
+        uint64_t m_start_timestep;          //!< First time step written to the file
         unsigned int m_period;              //!< Time step period between writes
         std::shared_ptr<ParticleGroup> m_group; //!< Group of particles to write to the DCD file
         unsigned int m_num_frames_written;  //!< Count the number of frames written to the file
@@ -110,9 +110,9 @@ class PYBIND11_EXPORT DCDDumpWriter : public Analyzer
         //! Writes the particle positions for a frame
         void write_frame_data(std::fstream &file, const SnapshotParticleData<Scalar>& snapshot);
         //! Updates the file header
-        void write_updated_header(std::fstream &file, unsigned int timestep);
+        void write_updated_header(std::fstream &file, uint64_t timestep);
         //! Initializes the output file for writing
-        void initFileIO(unsigned int timestep);
+        void initFileIO(uint64_t timestep);
 
     };
 

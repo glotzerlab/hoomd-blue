@@ -473,7 +473,7 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
             return double(0.0);
             }
 
-        Scalar calculateBoltzmannWeight(unsigned int timestep)
+        Scalar calculateBoltzmannWeight(uint64_t timestep)
             {
             unsigned int numOverlaps = countOverlaps(timestep, false);
             if(numOverlaps > 0)
@@ -698,7 +698,7 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
             return m_WallLogQuantities;
             }
 
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep)
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep)
             {
             for (size_t i = 0; i < m_Spheres.size(); i++)
               {
@@ -730,7 +730,7 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
             return (energy == INFINITY);
             }
 
-        unsigned int countOverlaps(unsigned int timestep, bool early_exit = false)
+        unsigned int countOverlaps(uint64_t timestep, bool early_exit = false)
             {
             unsigned int numOverlaps = 0;
             // access particle data and system box

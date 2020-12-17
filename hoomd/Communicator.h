@@ -172,7 +172,7 @@ class PYBIND11_EXPORT Communicator
         /*! This method keeps track of all functions that may request particle migration.
          * \return A Nano::Signal object reference to be used for connect and disconnect calls.
          */
-        Nano::Signal<bool(unsigned int timestep)>& getMigrateSignal()
+        Nano::Signal<bool(uint64_t timestep)>& getMigrateSignal()
             {
             return m_migrate_requests;
             }
@@ -182,7 +182,7 @@ class PYBIND11_EXPORT Communicator
          * The actual ghost layer width is chosen from the max over the inputs
          * \return A connection to the present class
          */
-        Nano::Signal<Scalar (unsigned int)>& getGhostLayerWidthRequestSignal()
+        Nano::Signal<Scalar (unsigned int type)>& getGhostLayerWidthRequestSignal()
             {
             return m_ghost_layer_width_requests;
             }
@@ -192,7 +192,7 @@ class PYBIND11_EXPORT Communicator
          * The actual ghost layer width is chosen from the max over the inputs
          * \return A connection to the present class
          */
-        Nano::Signal<Scalar (unsigned int)>& getExtraGhostLayerWidthRequestSignal()
+        Nano::Signal<Scalar (unsigned int type)>& getExtraGhostLayerWidthRequestSignal()
             {
             return m_extra_ghost_layer_width_requests;
             }
@@ -202,7 +202,7 @@ class PYBIND11_EXPORT Communicator
         /*! This method keeps track of all functions that may request communication flags
          * \return A connection to the present class
          */
-        Nano::Signal<CommFlags (unsigned int timestep)>& getCommFlagsRequestSignal()
+        Nano::Signal<CommFlags (uint64_t timestep)>& getCommFlagsRequestSignal()
             {
             return m_requested_flags;
             }
@@ -235,7 +235,7 @@ class PYBIND11_EXPORT Communicator
          * \param subscriber The callback
          * \return A Nano::Signal object reference to be used for connect and disconnect calls.
          */
-        Nano::Signal<void (unsigned int timestep)>& getComputeCallbackSignal()
+        Nano::Signal<void (uint64_t timestep)>& getComputeCallbackSignal()
             {
             return m_compute_callbacks;
             }
@@ -281,7 +281,7 @@ class PYBIND11_EXPORT Communicator
          * This method is supposed to be called every time step and automatically performs all necessary
          * communication steps.
          */
-        void communicate(unsigned int timestep);
+        void communicate(uint64_t timestep);
 
         //@}
 
@@ -306,13 +306,13 @@ class PYBIND11_EXPORT Communicator
          * \pre The ghost exchange list has been constructed in a previous time step, using exchangeGhosts().
          * \post The ghost positions on the neighboring processors are current
          */
-        virtual void beginUpdateGhosts(unsigned int timestep);
+        virtual void beginUpdateGhosts(uint64_t timestep);
 
         /*! Finish ghost update
          *
          * \param timestep The time step
          */
-        virtual void finishUpdateGhosts(unsigned int timestep)
+        virtual void finishUpdateGhosts(uint64_t timestep)
             {
             // the base class implementation is currently empty
             m_comm_pending = false;
@@ -321,7 +321,7 @@ class PYBIND11_EXPORT Communicator
         /*! Communicate the net particle force
          * \parm timestep The time step
          */
-        virtual void updateNetForce(unsigned int timestep);
+        virtual void updateNetForce(uint64_t timestep);
 
         /*! This methods finds all the particles that are no longer inside the domain
          * boundaries and transfers them to neighboring processors.
@@ -529,10 +529,10 @@ class PYBIND11_EXPORT Communicator
         //! Update the ghost width array
         void updateGhostWidth();
 
-        Nano::Signal<bool(unsigned int timestep)>
+        Nano::Signal<bool(uint64_t timestep)>
             m_migrate_requests; //!< List of functions that may request particle migration
 
-        Nano::Signal<CommFlags(unsigned int timestep) >
+        Nano::Signal<CommFlags(uint64_t timestep) >
             m_requested_flags;  //!< List of functions that may request ghost communication flags
 
         Nano::Signal<Scalar(unsigned int type) >
@@ -541,7 +541,7 @@ class PYBIND11_EXPORT Communicator
         Nano::Signal<Scalar(unsigned int type) >
             m_extra_ghost_layer_width_requests;  //!< List of functions that request an extra ghost layer width
 
-        Nano::Signal<void (unsigned int timestep)>
+        Nano::Signal<void (uint64_t timestep)>
             m_compute_callbacks;   //!< List of functions that are called after ghost communication
 
         Nano::Signal<void (const GlobalArray<unsigned int>& )>

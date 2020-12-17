@@ -25,7 +25,7 @@ mpcd::ATCollisionMethodGPU::ATCollisionMethodGPU(std::shared_ptr<mpcd::SystemDat
     m_tuner_apply.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_at_apply", m_exec_conf));
     }
 
-void mpcd::ATCollisionMethodGPU::drawVelocities(unsigned int timestep)
+void mpcd::ATCollisionMethodGPU::drawVelocities(uint64_t timestep)
     {
     // mpcd particle data
     ArrayHandle<unsigned int> d_tag(m_mpcd_pdata->getTags(), access_location::device, access_mode::read);

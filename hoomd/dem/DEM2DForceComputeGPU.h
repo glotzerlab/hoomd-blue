@@ -61,7 +61,7 @@ class DEM2DForceComputeGPU : public DEM2DForceCompute<Real, Real4, Potential>
         std::unique_ptr<Autotuner> m_tuner;     //!< Autotuner for block size
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
 
         //! Re-send the list of vertices and links to the GPU
         void createGeometry();

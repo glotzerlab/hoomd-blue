@@ -42,7 +42,7 @@ TwoStepBerendsenGPU::TwoStepBerendsenGPU(std::shared_ptr<SystemDefinition> sysde
 /*! Perform the needed calculations to zero the system's velocity
     \param timestep Current time step of the simulation
 */
-void TwoStepBerendsenGPU::integrateStepOne(unsigned int timestep)
+void TwoStepBerendsenGPU::integrateStepOne(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
@@ -84,7 +84,7 @@ void TwoStepBerendsenGPU::integrateStepOne(unsigned int timestep)
         m_prof->pop();
     }
 
-void TwoStepBerendsenGPU::integrateStepTwo(unsigned int timestep)
+void TwoStepBerendsenGPU::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 

@@ -88,7 +88,7 @@ class UpdateOrderGPU
             \note \a timestep is used to seed the RNG, thus assuming that the order is shuffled only once per
             timestep.
         */
-        void shuffle(unsigned int timestep, unsigned int select = 0)
+        void shuffle(uint64_t timestep, unsigned int select = 0)
             {
             hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCMonoShuffle, m_seed, timestep, select);
 
@@ -171,7 +171,7 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
         virtual void slotNumTypesChange();
 
         //! Take one timestep forward
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
 
     protected:
         std::shared_ptr<CellList> m_cl;                      //!< Cell list
@@ -481,7 +481,7 @@ void IntegratorHPMCMonoGPU< Shape >::updateGPUAdvice()
     }
 
 template< class Shape >
-void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
+void IntegratorHPMCMonoGPU< Shape >::update(uint64_t timestep)
     {
     IntegratorHPMC::update(timestep);
 

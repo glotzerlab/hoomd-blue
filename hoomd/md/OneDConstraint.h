@@ -47,7 +47,7 @@ class PYBIND11_EXPORT OneDConstraint : public ForceConstraint
         Scalar3 m_vec;  //!< The vector along which particles are constrained
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
 
     };
 

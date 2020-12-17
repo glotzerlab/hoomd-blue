@@ -52,7 +52,7 @@ class PYBIND11_EXPORT TableAngleForceComputeGPU : public TableAngleForceCompute
         GPUArray<unsigned int> m_flags;       //!< Flags set during the kernel execution
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
 //! Exports the TableAngleForceComputeGPU class to python

@@ -69,7 +69,7 @@ NeighborListGPUBinned::~NeighborListGPUBinned()
     {
     }
 
-void NeighborListGPUBinned::buildNlist(unsigned int timestep)
+void NeighborListGPUBinned::buildNlist(uint64_t timestep)
     {
     if (m_storage_mode != full)
         {

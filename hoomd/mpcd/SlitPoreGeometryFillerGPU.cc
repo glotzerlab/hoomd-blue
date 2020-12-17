@@ -25,7 +25,7 @@ mpcd::SlitPoreGeometryFillerGPU::SlitPoreGeometryFillerGPU(std::shared_ptr<mpcd:
 /*!
  * \param timestep Current timestep
  */
-void mpcd::SlitPoreGeometryFillerGPU::drawParticles(unsigned int timestep)
+void mpcd::SlitPoreGeometryFillerGPU::drawParticles(uint64_t timestep)
     {
     ArrayHandle<Scalar4> d_pos(m_mpcd_pdata->getPositions(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_vel(m_mpcd_pdata->getVelocities(), access_location::device, access_mode::readwrite);

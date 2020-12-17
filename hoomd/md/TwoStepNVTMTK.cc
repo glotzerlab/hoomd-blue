@@ -73,7 +73,7 @@ std::vector< std::string > TwoStepNVTMTK::getProvidedLogQuantities()
     \param my_quantity_flag passed as false, changed to true if quantity logged here
 */
 
-Scalar TwoStepNVTMTK::getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag)
+Scalar TwoStepNVTMTK::getLogValue(const std::string& quantity, uint64_t timestep, bool &my_quantity_flag)
     {
     if (quantity == m_log_name)
         {
@@ -102,7 +102,7 @@ Scalar TwoStepNVTMTK::getLogValue(const std::string& quantity, unsigned int time
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the velocity verlet
           method.
 */
-void TwoStepNVTMTK::integrateStepOne(unsigned int timestep)
+void TwoStepNVTMTK::integrateStepOne(uint64_t timestep)
     {
     if (m_group->getNumMembersGlobal() == 0)
         {
@@ -289,7 +289,7 @@ void TwoStepNVTMTK::integrateStepOne(unsigned int timestep)
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1
 */
-void TwoStepNVTMTK::integrateStepTwo(unsigned int timestep)
+void TwoStepNVTMTK::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
@@ -383,7 +383,7 @@ void TwoStepNVTMTK::integrateStepTwo(unsigned int timestep)
         m_prof->pop();
     }
 
-void TwoStepNVTMTK::advanceThermostat(unsigned int timestep, bool broadcast)
+void TwoStepNVTMTK::advanceThermostat(uint64_t timestep, bool broadcast)
     {
     IntegratorVariables v = getIntegratorVariables();
     Scalar& xi = v.variable[0];
@@ -440,7 +440,7 @@ void TwoStepNVTMTK::advanceThermostat(unsigned int timestep, bool broadcast)
     setIntegratorVariables(v);
     }
 
-void TwoStepNVTMTK::thermalizeThermostatDOF(unsigned int seed, unsigned int timestep)
+void TwoStepNVTMTK::thermalizeThermostatDOF(unsigned int seed, uint64_t timestep)
     {
     m_exec_conf->msg->notice(6) << "TwoStepNVTMTK randomizing thermostat DOF" << std::endl;
 

@@ -35,7 +35,7 @@ class PYBIND11_EXPORT Enforce2DUpdater : public Updater
         virtual ~Enforce2DUpdater();
 
         //! Take one timestep forward
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
     };
 
 //! Export the Enforce2DUpdater to python

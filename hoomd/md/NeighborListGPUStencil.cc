@@ -157,7 +157,7 @@ void NeighborListGPUStencil::sortTypes()
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void NeighborListGPUStencil::buildNlist(unsigned int timestep)
+void NeighborListGPUStencil::buildNlist(uint64_t timestep)
     {
     if (m_storage_mode != full)
         {

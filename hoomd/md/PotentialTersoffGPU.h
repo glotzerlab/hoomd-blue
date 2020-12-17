@@ -59,7 +59,7 @@ class PotentialTersoffGPU : public PotentialTersoff<evaluator>
         std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
 template< class evaluator, hipError_t gpu_cgpf(const tersoff_args_t& pair_args,
@@ -109,7 +109,7 @@ PotentialTersoffGPU< evaluator, gpu_cgpf >::~PotentialTersoffGPU()
 
 template< class evaluator, hipError_t gpu_cgpf(const tersoff_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
-void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timestep)
+void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(uint64_t timestep)
     {
     // start by updating the neighborlist
     this->m_nlist->compute(timestep);

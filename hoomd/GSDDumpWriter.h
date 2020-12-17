@@ -103,7 +103,7 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
         ~GSDDumpWriter();
 
         //! Write out the data for the current timestep
-        void analyze(unsigned int timestep);
+        void analyze(uint64_t timestep);
 
         hoomd::detail::SharedSignal<int (gsd_handle&)>& getWriteSignal() { return m_write_signal; }
 
@@ -164,7 +164,7 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
         void initFileIO();
 
         //! Write frame header
-        void writeFrameHeader(unsigned int timestep);
+        void writeFrameHeader(uint64_t timestep);
 
         //! Write particle attributes
         void writeAttributes(const SnapshotParticleData<float>& snapshot, const std::map<unsigned int, unsigned int> &map);
@@ -184,7 +184,7 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
                            PairData::Snapshot& pair);
 
         //! Write user defined log data
-        void writeUser(unsigned int timestep, bool root);
+        void writeUser(uint64_t timestep, bool root);
 
         //! Check and raise an exception if an error occurs
         void checkError(int retval);

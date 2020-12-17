@@ -136,7 +136,7 @@ std::vector< std::string > IntegratorHPMC::getProvidedLogQuantities()
     \param timestep Current time step of the simulation
     \return the requested log quantity.
 */
-Scalar IntegratorHPMC::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar IntegratorHPMC::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if (quantity == "hpmc_sweep")
         {
@@ -237,7 +237,7 @@ bool IntegratorHPMC::checkParticleOrientations()
 
     \returns false if resize results in overlaps
 */
-bool IntegratorHPMC::attemptBoxResize(unsigned int timestep, const BoxDim& new_box)
+bool IntegratorHPMC::attemptBoxResize(uint64_t timestep, const BoxDim& new_box)
     {
     unsigned int N = m_pdata->getN();
 

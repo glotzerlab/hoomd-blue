@@ -44,7 +44,7 @@ void OneDConstraint::setVector(Scalar3 constraint_vec)
 /*! Computes the specified constraint forces
     \param timestep Current timestep
 */
-void OneDConstraint::computeForces(unsigned int timestep)
+void OneDConstraint::computeForces(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)

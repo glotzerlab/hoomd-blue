@@ -84,7 +84,7 @@ class UpdateOrder
             \note \a timestep is used to seed the RNG, thus assuming that the order is shuffled only once per
             timestep.
         */
-        void shuffle(unsigned int timestep, unsigned int select = 0)
+        void shuffle(uint64_t timestep, unsigned int select = 0)
             {
             hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCMonoShuffle, m_seed, timestep, select);
 
@@ -146,7 +146,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         virtual void resetStats();
 
         //! Take one timestep forward
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
 
         /*
          * Depletant related options
@@ -207,7 +207,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         std::vector<hpmc_implicit_counters_t> getImplicitCounters(unsigned int mode=0);
 
         //! Method to scale the box
-        virtual bool attemptBoxResize(unsigned int timestep, const BoxDim& new_box);
+        virtual bool attemptBoxResize(uint64_t timestep, const BoxDim& new_box);
 
         /*
          * Common HPMC API
@@ -246,7 +246,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         virtual std::vector< std::string > getProvidedLogQuantities();
 
         //! Get the value of a logged quantity
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         //! Get the particle parameters
         virtual std::vector<param_type, managed_allocator<param_type> >& getParams()
@@ -294,7 +294,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
             bool use_images, bool exclude_self);
 
         //! Return the requested ghost layer width
-        virtual Scalar getGhostLayerWidth(unsigned int)
+        virtual Scalar getGhostLayerWidth(unsigned int type)
             {
             Scalar ghost_width = m_nominal_width + m_extra_ghost_width;
             m_exec_conf->msg->notice(9) << "IntegratorHPMCMono: ghost layer width of " << ghost_width << std::endl;
@@ -303,7 +303,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
 
         #ifdef ENABLE_MPI
         //! Return the requested communication flags for ghost particles
-        virtual CommFlags getCommFlags(unsigned int)
+        virtual CommFlags getCommFlags(uint64_t timestep)
             {
             CommFlags flags(0);
             flags[comm_flag::position] = 1;
@@ -328,7 +328,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         #endif
 
         //! Prepare for the run
-        virtual void prepRun(unsigned int timestep)
+        virtual void prepRun(uint64_t timestep)
             {
             // base class method
             IntegratorHPMC::prepRun(timestep);
@@ -378,7 +378,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         /*! \param timestep the current time step
          * \returns the total patch energy
          */
-        virtual float computePatchEnergy(unsigned int timestep);
+        virtual float computePatchEnergy(uint64_t timestep);
 
         //! Build the AABB tree (if needed)
         const detail::AABBTree& buildAABBTree();
@@ -625,7 +625,7 @@ std::vector< std::string > IntegratorHPMCMono<Shape>::getProvidedLogQuantities()
     }
 
 template<class Shape>
-Scalar IntegratorHPMCMono<Shape>::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar IntegratorHPMCMono<Shape>::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if (quantity == "hpmc_patch_energy")
         {
@@ -751,7 +751,7 @@ void IntegratorHPMCMono<Shape>::slotNumTypesChange()
     }
 
 template <class Shape>
-void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
+void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
     {
     m_exec_conf->msg->notice(10) << "HPMCMono update: " << timestep << std::endl;
     IntegratorHPMC::update(timestep);
@@ -1325,7 +1325,7 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(bool early_exit)
     }
 
 template<class Shape>
-float IntegratorHPMCMono<Shape>::computePatchEnergy(unsigned int timestep)
+float IntegratorHPMCMono<Shape>::computePatchEnergy(uint64_t timestep)
     {
     // sum up in double precision
     double energy = 0.0;
@@ -3204,7 +3204,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
     }
 
 template<class Shape>
-bool IntegratorHPMCMono<Shape>::attemptBoxResize(unsigned int timestep, const BoxDim& new_box)
+bool IntegratorHPMCMono<Shape>::attemptBoxResize(uint64_t timestep, const BoxDim& new_box)
     {
     // call parent class method
     bool result = IntegratorHPMC::attemptBoxResize(timestep, new_box);

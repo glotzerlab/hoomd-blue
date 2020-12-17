@@ -74,7 +74,7 @@ DCDDumpWriter::DCDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
     }
 
 //! Initializes the output file for writing
-void DCDDumpWriter::initFileIO(unsigned int timestep)
+void DCDDumpWriter::initFileIO(uint64_t timestep)
     {
     m_staging_buffer = new float[m_pdata->getNGlobal()];
     m_is_initialized = true;
@@ -140,7 +140,7 @@ DCDDumpWriter::~DCDDumpWriter()
     file fname and the writing of the current timestep snapshot. After that, each call to analyze
     will add a new snapshot to the end of the file.
 */
-void DCDDumpWriter::analyze(unsigned int timestep)
+void DCDDumpWriter::analyze(uint64_t timestep)
     {
     if (m_prof)
         m_prof->push("Dump DCD");
@@ -398,7 +398,7 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
     Updates the pointers in the main file header to reflect the current number of frames
     written and the last time step written.
 */
-void DCDDumpWriter::write_updated_header(std::fstream &file, unsigned int timestep)
+void DCDDumpWriter::write_updated_header(std::fstream &file, uint64_t timestep)
     {
     file.seekp(NFILE_POS);
     write_int(file, m_num_frames_written);

@@ -46,7 +46,7 @@ TwoStepNVEGPU::TwoStepNVEGPU(std::shared_ptr<SystemDefinition> sysdef,
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the velocity verlet
           method.
 */
-void TwoStepNVEGPU::integrateStepOne(unsigned int timestep)
+void TwoStepNVEGPU::integrateStepOne(uint64_t timestep)
     {
     // profile this step
     if (m_prof)
@@ -119,7 +119,7 @@ void TwoStepNVEGPU::integrateStepOne(unsigned int timestep)
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1 on the GPU
 */
-void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep)
+void TwoStepNVEGPU::integrateStepTwo(uint64_t timestep)
     {
     const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
 

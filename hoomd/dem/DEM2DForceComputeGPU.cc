@@ -81,7 +81,7 @@ void DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::setParams(unsigned int
   Calls gpu_compute_dem2d_forces to do the dirty work.
 */
 template<typename Real, typename Real2, typename Real4, typename Potential>
-void DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::computeForces(unsigned int timestep)
+void DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::computeForces(uint64_t timestep)
     {
     typedef DEMEvaluator<Real, Real4, Potential> Evaluator;
     // start by updating the neighborlist

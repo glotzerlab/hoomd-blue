@@ -41,7 +41,7 @@ class PYBIND11_EXPORT TempRescaleUpdater : public Updater
         ~TempRescaleUpdater();
 
         //! Take one timestep forward
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
 
         //! Change the temperature set point
         void setT(std::shared_ptr<Variant> T);

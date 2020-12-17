@@ -52,7 +52,7 @@ BondTablePotentialGPU::~BondTablePotentialGPU()
 
 Calls gpu_compute_bondtable_forces to do the leg work
 */
-void BondTablePotentialGPU::computeForces(unsigned int timestep)
+void BondTablePotentialGPU::computeForces(uint64_t timestep)
     {
 
     // start the profile

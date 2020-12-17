@@ -114,7 +114,7 @@ void ActiveForceComputeGPU::setForces()
  * force vector does not change
     \param timestep Current timestep
 */
-void ActiveForceComputeGPU::rotationalDiffusion(unsigned int timestep)
+void ActiveForceComputeGPU::rotationalDiffusion(uint64_t timestep)
     {
     //  array handles
     ArrayHandle<Scalar4> d_f_actVec(m_f_activeVec, access_location::device, access_mode::readwrite);

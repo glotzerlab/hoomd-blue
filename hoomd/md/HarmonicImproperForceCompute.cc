@@ -94,7 +94,7 @@ std::vector< std::string > HarmonicImproperForceCompute::getProvidedLogQuantitie
 /*! \param quantity Name of the quantity to get the log value of
     \param timestep Current time step of the simulation
 */
-Scalar HarmonicImproperForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar HarmonicImproperForceCompute::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if (quantity == string("improper_harmonic_energy"))
         {
@@ -111,7 +111,7 @@ Scalar HarmonicImproperForceCompute::getLogValue(const std::string& quantity, un
 /*! Actually perform the force computation
     \param timestep Current time step
  */
-void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
+void HarmonicImproperForceCompute::computeForces(uint64_t timestep)
     {
     if (m_prof) m_prof->push("Harmonic Improper");
 

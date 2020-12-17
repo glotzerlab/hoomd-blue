@@ -70,13 +70,13 @@ class ComputeFreeVolume : public Compute
             }
 
         //! Get the value of a logged quantity
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         //! Return an estimate of the overlap volume
-        virtual void computeFreeVolume(unsigned int timestep);
+        virtual void computeFreeVolume(uint64_t timestep);
 
         //! Analyze the current configuration
-        virtual void compute(unsigned int timestep);
+        virtual void compute(uint64_t timestep);
 
     protected:
         std::shared_ptr<IntegratorHPMCMono<Shape> > m_mc;              //!< The parent integrator
@@ -118,7 +118,7 @@ ComputeFreeVolume< Shape >::ComputeFreeVolume(std::shared_ptr<SystemDefinition> 
     }
 
 template<class Shape>
-void ComputeFreeVolume<Shape>::compute(unsigned int timestep)
+void ComputeFreeVolume<Shape>::compute(uint64_t timestep)
     {
     if (!shouldCompute(timestep))
         return;
@@ -132,7 +132,7 @@ void ComputeFreeVolume<Shape>::compute(unsigned int timestep)
 /*! \return the current free volume estimate by MC integration
 */
 template<class Shape>
-void ComputeFreeVolume<Shape>::computeFreeVolume(unsigned int timestep)
+void ComputeFreeVolume<Shape>::computeFreeVolume(uint64_t timestep)
     {
     unsigned int overlap_count = 0;
     unsigned int err_count = 0;
@@ -274,7 +274,7 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(unsigned int timestep)
     \return the requested log quantity.
 */
 template<class Shape>
-Scalar ComputeFreeVolume<Shape>::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar ComputeFreeVolume<Shape>::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if (quantity == "hpmc_free_volume"+m_suffix)
         {

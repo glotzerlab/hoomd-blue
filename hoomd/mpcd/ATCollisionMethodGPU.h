@@ -49,7 +49,7 @@ class PYBIND11_EXPORT ATCollisionMethodGPU : public mpcd::ATCollisionMethod
 
     protected:
         //! Draw velocities for particles in each cell on the GPU
-        virtual void drawVelocities(unsigned int timestep);
+        virtual void drawVelocities(uint64_t timestep);
 
         //! Apply the random velocities to particles in each cell on the GPU
         virtual void applyVelocities();

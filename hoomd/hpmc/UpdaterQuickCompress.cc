@@ -42,7 +42,7 @@ UpdaterQuickCompress::~UpdaterQuickCompress()
         .disconnect<UpdaterQuickCompress, &UpdaterQuickCompress::slotMaxNChange>(this);
     }
 
-void UpdaterQuickCompress::update(unsigned int timestep)
+void UpdaterQuickCompress::update(uint64_t timestep)
     {
     if (m_prof)
         m_prof->push("UpdaterQuickCompress");
@@ -70,7 +70,7 @@ void UpdaterQuickCompress::update(unsigned int timestep)
         m_is_complete = false;
     }
 
-void UpdaterQuickCompress::performBoxScale(unsigned int timestep)
+void UpdaterQuickCompress::performBoxScale(uint64_t timestep)
     {
     auto new_box = getNewBox(timestep);
     auto old_box = m_pdata->getGlobalBox();
@@ -130,7 +130,7 @@ static inline double scaleValue(double current, double target, double s)
         }
     }
 
-BoxDim UpdaterQuickCompress::getNewBox(unsigned int timestep)
+BoxDim UpdaterQuickCompress::getNewBox(uint64_t timestep)
     {
     // compute the current MC translate acceptance ratio
     auto current_counters = m_mc->getCounters();

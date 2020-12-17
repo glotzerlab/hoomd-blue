@@ -181,7 +181,7 @@ namespace getardump{
 
             /// Returns the path within the archive where this property
             /// should be stored
-            std::string getFormattedPath(unsigned int timestep) const
+            std::string getFormattedPath(uint64_t timestep) const
                 {
                 if(m_behavior == gtar::Constant)
                     return m_prefix + m_suffix;
@@ -249,7 +249,7 @@ namespace getardump{
                 }
 
             /// Called every timestep
-            void analyze(unsigned int timestep);
+            void analyze(uint64_t timestep);
 
             /// Calculate the correct period for all of the properties
             /// activated on this analyzer
@@ -270,13 +270,13 @@ namespace getardump{
 
         private:
             /// Write any GetarDumpDescription for the given timestep
-            void write(gtar::GTAR::BulkWriter &writer, const GetarDumpDescription &desc, unsigned int timestep);
+            void write(gtar::GTAR::BulkWriter &writer, const GetarDumpDescription &desc, uint64_t timestep);
             /// Write an individual GetarDumpDescription for the given timestep
-            void writeIndividual(gtar::GTAR::BulkWriter &writer, const GetarDumpDescription &desc, unsigned int timestep);
+            void writeIndividual(gtar::GTAR::BulkWriter &writer, const GetarDumpDescription &desc, uint64_t timestep);
             /// Write a uniform GetarDumpDescription for the given timestep
-            void writeUniform(gtar::GTAR::BulkWriter &writer, const GetarDumpDescription &desc, unsigned int timestep);
+            void writeUniform(gtar::GTAR::BulkWriter &writer, const GetarDumpDescription &desc, uint64_t timestep);
             /// Write a text GetarDumpDescription for the given timestep
-            void writeText(gtar::GTAR::BulkWriter &writer, const GetarDumpDescription &desc, unsigned int timestep);
+            void writeText(gtar::GTAR::BulkWriter &writer, const GetarDumpDescription &desc, uint64_t timestep);
 
             /// File archive interface
             std::shared_ptr<gtar::GTAR> m_archive;

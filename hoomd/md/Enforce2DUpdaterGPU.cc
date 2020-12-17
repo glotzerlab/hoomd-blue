@@ -32,7 +32,7 @@ Enforce2DUpdaterGPU::Enforce2DUpdaterGPU(std::shared_ptr<SystemDefinition> sysde
 
     Calls gpu_enforce2d to do the actual work.
 */
-void Enforce2DUpdaterGPU::update(unsigned int timestep)
+void Enforce2DUpdaterGPU::update(uint64_t timestep)
     {
     assert(m_pdata);
 

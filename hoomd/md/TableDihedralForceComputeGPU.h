@@ -53,7 +53,7 @@ class PYBIND11_EXPORT TableDihedralForceComputeGPU : public TableDihedralForceCo
         std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
         GPUArray<unsigned int> m_flags;       //!< Flags set during the kernel execution
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
 //! Exports the TableDihedralForceComputeGPU class to python

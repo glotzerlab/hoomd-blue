@@ -43,7 +43,7 @@ class PYBIND11_EXPORT VirtualParticleFiller
         virtual ~VirtualParticleFiller() {}
 
         //! Fill up virtual particles
-        void fill(unsigned int timestep);
+        void fill(uint64_t timestep);
 
         //! Sets the profiler for the integration method to use
         virtual void setProfiler(std::shared_ptr<Profiler> prof)
@@ -99,7 +99,7 @@ class PYBIND11_EXPORT VirtualParticleFiller
         virtual void computeNumFill() {}
 
         //! Draw particles within the fill volume
-        virtual void drawParticles(unsigned int timestep) {}
+        virtual void drawParticles(uint64_t timestep) {}
     };
 
 namespace detail

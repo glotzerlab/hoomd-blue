@@ -174,10 +174,10 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
 
 
         //! Performs the first step of the integration
-        virtual void integrateStepOne(unsigned int timestep);
+        virtual void integrateStepOne(uint64_t timestep);
 
         //! Performs the second step of the integration
-        virtual void integrateStepTwo(unsigned int timestep);
+        virtual void integrateStepTwo(uint64_t timestep);
 
 
         //! Get needed pdata flags
@@ -199,7 +199,7 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
         virtual std::vector< std::string > getProvidedLogQuantities();
 
         //! Returns logged values
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep, bool &my_quantity_flag);
 
         //! Initialize integrator variables
         virtual void initializeIntegratorVariables()
@@ -212,7 +212,7 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
             }
 
         /// Randomize the thermostat and barostat variables
-        void thermalizeThermostatAndBarostatDOF(unsigned int seed, unsigned int timestep);
+        void thermalizeThermostatAndBarostatDOF(unsigned int seed, uint64_t timestep);
 
         /// Get the translational thermostat degrees of freedom
         pybind11::tuple getTranslationalThermostatDOF();
@@ -257,13 +257,13 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
         std::vector<std::string> m_log_names; //!< Name of the barostat and thermostat quantities that we log
 
         //! Helper function to advance the barostat parameters
-        void advanceBarostat(unsigned int timestep);
+        void advanceBarostat(uint64_t timestep);
 
         //! advance the thermostat
         /*!\param timestep The time step
          * \param broadcast True if we should broadcast the integrator variables via MPI
          */
-        void advanceThermostat(unsigned int timestep);
+        void advanceThermostat(uint64_t timestep);
 
         //! Helper function to update the propagator elements
         void updatePropagator(Scalar nuxx, Scalar nuxy, Scalar nuxz, Scalar nuyy, Scalar nuyz, Scalar nuzz);

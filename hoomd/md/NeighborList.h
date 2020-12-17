@@ -463,7 +463,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
         // @}
 
         //! Computes the NeighborList if it needs updating
-        void compute(unsigned int timestep);
+        void compute(uint64_t timestep);
 
         //! Benchmark the neighbor list
         virtual double benchmark(unsigned int num_iters);
@@ -490,7 +490,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
         //! Returns true if the particle migration criterion is fulfilled
         /*! \param timestep The current timestep
          */
-        bool peekUpdate(unsigned int timestep);
+        bool peekUpdate(uint64_t timestep);
 #endif
 
         //! Return true if the neighbor list has been updated this time step
@@ -498,7 +498,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
          *
          *  This is supposed to be called after a call to compute().
          */
-        bool hasBeenUpdated(unsigned int timestep)
+        bool hasBeenUpdated(uint64_t timestep)
             {
             return m_last_updated_tstep == timestep && m_has_been_updated_once;
             }
@@ -551,16 +551,16 @@ class PYBIND11_EXPORT NeighborList : public Compute
         bool m_need_reallocate_exlist;         //!< True if global exclusion list needs to be reallocated
 
         //! Return true if we are supposed to do a distance check in this time step
-        bool shouldCheckDistance(unsigned int timestep);
+        bool shouldCheckDistance(uint64_t timestep);
 
         //! Performs the distance check
-        virtual bool distanceCheck(unsigned int timestep);
+        virtual bool distanceCheck(uint64_t timestep);
 
         //! Updates the previous position table for use in the next distance check
         virtual void setLastUpdatedPos();
 
         //! Builds the neighbor list
-        virtual void buildNlist(unsigned int timestep);
+        virtual void buildNlist(uint64_t timestep);
 
         //! Updates the idx exclusion list
         virtual void updateExListIdx();
@@ -581,7 +581,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
         void resizeNlist(size_t size);
 
         #ifdef ENABLE_MPI
-        CommFlags getRequestedCommFlags(unsigned int timestep)
+        CommFlags getRequestedCommFlags(uint64_t timestep)
             {
             CommFlags flags(0);
 
@@ -627,7 +627,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
         std::set<std::string> m_exclusions;        //!< Exclusions that have been set
 
         //! Test if the list needs updating
-        bool needsUpdating(unsigned int timestep);
+        bool needsUpdating(uint64_t timestep);
 
         //! Reallocate internal neighbor list data structures
         void reallocate();

@@ -133,7 +133,7 @@ void LogMatrix::setLoggedMatrixQuantities(const std::vector< std::string >& quan
 
 /*! \param timestep Time step
 */
-void LogMatrix::analyze(unsigned int timestep)
+void LogMatrix::analyze(uint64_t timestep)
     {
     Logger::analyze(timestep);
 
@@ -147,7 +147,7 @@ void LogMatrix::analyze(unsigned int timestep)
 /*! \param quantity Matrix to get
     \param timestep Time step to compute value for (needed for Compute classes)
 */
-py::array LogMatrix::getMatrix(const std::string &quantity, unsigned int timestep)
+py::array LogMatrix::getMatrix(const std::string &quantity, uint64_t timestep)
     {
     // check to see if the quantity exists in the compute list
     if (m_compute_matrix_quantities.count(quantity))
@@ -202,7 +202,7 @@ py::array LogMatrix::getMatrix(const std::string &quantity, unsigned int timeste
 /*! \param quantity Matrix to get
     \param timestep Time step to compute value for (needed for Compute classes)
 */
-py::array LogMatrix::getMatrixQuantity(const std::string &quantity, unsigned int timestep)
+py::array LogMatrix::getMatrixQuantity(const std::string &quantity, uint64_t timestep)
     {
     for(unsigned int i=0; i< m_logged_matrix_quantities.size(); i++)
         if( m_logged_matrix_quantities[i] == quantity )

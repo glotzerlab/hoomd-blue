@@ -23,7 +23,7 @@ mpcd::SRDCollisionMethodGPU::SRDCollisionMethodGPU(std::shared_ptr<mpcd::SystemD
     m_tuner_rotate.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_srd_rotate", m_exec_conf));
     }
 
-void mpcd::SRDCollisionMethodGPU::drawRotationVectors(unsigned int timestep)
+void mpcd::SRDCollisionMethodGPU::drawRotationVectors(uint64_t timestep)
     {
     ArrayHandle<double3> d_rotvec(m_rotvec, access_location::device, access_mode::overwrite);
 
@@ -68,7 +68,7 @@ void mpcd::SRDCollisionMethodGPU::drawRotationVectors(unsigned int timestep)
         }
     }
 
-void mpcd::SRDCollisionMethodGPU::rotate(unsigned int timestep)
+void mpcd::SRDCollisionMethodGPU::rotate(uint64_t timestep)
     {
     // acquire MPCD particle data
     ArrayHandle<Scalar4> d_vel(m_mpcd_pdata->getVelocities(), access_location::device, access_mode::readwrite);

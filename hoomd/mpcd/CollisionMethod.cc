@@ -50,7 +50,7 @@ mpcd::CollisionMethod::CollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata
     #endif // ENABLE_MPI
     }
 
-void mpcd::CollisionMethod::collide(unsigned int timestep)
+void mpcd::CollisionMethod::collide(uint64_t timestep)
     {
     if (!shouldCollide(timestep)) return;
 
@@ -72,7 +72,7 @@ void mpcd::CollisionMethod::collide(unsigned int timestep)
  * Using a multiple allows the collision method to be disabled and then reenabled later if the \a timestep has already
  * exceeded the \a m_next_timestep.
  */
-bool mpcd::CollisionMethod::peekCollide(unsigned int timestep) const
+bool mpcd::CollisionMethod::peekCollide(uint64_t timestep) const
     {
     if (timestep < m_next_timestep)
         return false;
@@ -115,7 +115,7 @@ void mpcd::CollisionMethod::setPeriod(unsigned int cur_timestep, unsigned int pe
  * \post The next timestep is also advanced to the next timestep the collision should occur after \a timestep.
  *       If this behavior is not desired, then use peekCollide() instead.
  */
-bool mpcd::CollisionMethod::shouldCollide(unsigned int timestep)
+bool mpcd::CollisionMethod::shouldCollide(uint64_t timestep)
     {
     if (peekCollide(timestep))
         {
@@ -138,7 +138,7 @@ bool mpcd::CollisionMethod::shouldCollide(unsigned int timestep)
  *
  * If grid shifting is disabled, a zero vector is instead set.
  */
-void mpcd::CollisionMethod::drawGridShift(unsigned int timestep)
+void mpcd::CollisionMethod::drawGridShift(uint64_t timestep)
     {
     // return zeros if shifting is off
     if (!m_enable_grid_shift)

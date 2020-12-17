@@ -62,8 +62,8 @@ class Simulation(metaclass=Loggable):
 
     @timestep.setter
     def timestep(self, step):
-        if step < 0:
-            raise ValueError("Timestep must be positive.")
+        if int(step) < 0 or int(step) > 2**64 - 1:
+            raise ValueError("steps must be in the range [0, 2**64-1]")
         elif self._state is None:
             self._timestep = step
         else:
@@ -313,7 +313,11 @@ class Simulation(metaclass=Loggable):
         if not self.operations._scheduled:
             self.operations._schedule()
 
-        self._cpp_sys.run(int(steps), write_at_start)
+        steps_int = int(steps)
+        if steps_int < 0 or steps_int > 2**64 - 2:
+            raise ValueError("steps must be in the range [0, 2**64-2]")
+
+        self._cpp_sys.run(steps_int, write_at_start)
 
     def write_debug_data(self, filename):
         """Write debug data to a JSON file.

@@ -73,10 +73,10 @@ class __attribute__((visibility("default"))) Logger : public Analyzer
         std::vector<std::string> getLoggedQuantities(void)const{return m_logged_quantities;}
 
         //! Query the current value for a given quantity
-        virtual Scalar getQuantity(const std::string& quantity, unsigned int timestep, bool use_cache);
+        virtual Scalar getQuantity(const std::string& quantity, uint64_t timestep, bool use_cache);
 
         //! Write out the data for the current timestep
-        virtual void analyze(unsigned int timestep);
+        virtual void analyze(uint64_t timestep);
 
         //! Get needed pdata flags
         /*! Logger may potentially log any of the optional quantities, enable all of the bits.
@@ -101,7 +101,7 @@ class __attribute__((visibility("default"))) Logger : public Analyzer
         //! Clock for the time log quantity
         ClockSource m_clk;
         //! The number of the last timestep when quantities were computed.
-        unsigned int m_cached_timestep;
+        uint64_t m_cached_timestep;
         //! The values of the logged quantities at the last logger update.
         std::vector< Scalar > m_cached_quantities;
 

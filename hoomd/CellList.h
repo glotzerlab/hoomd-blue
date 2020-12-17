@@ -338,7 +338,7 @@ class PYBIND11_EXPORT CellList : public Compute
             }
 
         //! Compute the cell list given the current particle positions
-        void compute(unsigned int timestep);
+        void compute(uint64_t timestep);
 
         //! Benchmark the computation
         double benchmark(unsigned int num_iters);

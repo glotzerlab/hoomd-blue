@@ -66,7 +66,7 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
         virtual ~ComputeThermo();
 
         //! Compute the temperature
-        virtual void compute(unsigned int timestep);
+        virtual void compute(uint64_t timestep);
 
         //! Returns the overall temperature last computed by compute()
         /*! \returns Instantaneous overall temperature of the system
@@ -293,7 +293,7 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
         virtual std::vector< std::string > getProvidedLogQuantities();
 
         //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         //! Control the enable_logging flag
         /*! Set this flag to false to prevent this compute from providing logged quantities.

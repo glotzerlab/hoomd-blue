@@ -71,7 +71,7 @@ class PYBIND11_EXPORT NeighborListGPUStencil : public NeighborListGPU
 
     protected:
         //! Builds the neighbor list
-        virtual void buildNlist(unsigned int timestep);
+        virtual void buildNlist(uint64_t timestep);
 
     private:
         std::unique_ptr<Autotuner> m_tuner;   //!< Autotuner for block size and threads per particle

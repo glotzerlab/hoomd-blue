@@ -34,7 +34,7 @@ mpcd::SRDCollisionMethod::~SRDCollisionMethod()
     m_thermo->getFlagsSignal().disconnect<mpcd::SRDCollisionMethod, &mpcd::SRDCollisionMethod::getRequestedThermoFlags>(this);
     }
 
-void mpcd::SRDCollisionMethod::rule(unsigned int timestep)
+void mpcd::SRDCollisionMethod::rule(uint64_t timestep)
     {
     m_thermo->compute(timestep);
 
@@ -54,7 +54,7 @@ void mpcd::SRDCollisionMethod::rule(unsigned int timestep)
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void mpcd::SRDCollisionMethod::drawRotationVectors(unsigned int timestep)
+void mpcd::SRDCollisionMethod::drawRotationVectors(uint64_t timestep)
     {
     // cell indexers and rotation vectors
     const Index3D& ci = m_cl->getCellIndexer();
@@ -119,7 +119,7 @@ void mpcd::SRDCollisionMethod::drawRotationVectors(unsigned int timestep)
         }
     }
 
-void mpcd::SRDCollisionMethod::rotate(unsigned int timestep)
+void mpcd::SRDCollisionMethod::rotate(uint64_t timestep)
     {
     // acquire MPCD particle data
     ArrayHandle<Scalar4> h_vel(m_mpcd_pdata->getVelocities(), access_location::host, access_mode::readwrite);

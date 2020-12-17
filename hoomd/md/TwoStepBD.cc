@@ -44,7 +44,7 @@ TwoStepBD::~TwoStepBD()
     The integration method here is from the book "The Langevin and Generalised Langevin Approach to the Dynamics of
     Atomic, Polymeric and Colloidal Systems", chapter 6.
 */
-void TwoStepBD::integrateStepOne(unsigned int timestep)
+void TwoStepBD::integrateStepOne(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
@@ -208,7 +208,7 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
 
 /*! @param timestep Current time step
 */
-void TwoStepBD::integrateStepTwo(unsigned int timestep)
+void TwoStepBD::integrateStepTwo(uint64_t timestep)
     {
     // there is no step 2 in Brownian dynamics.
     }

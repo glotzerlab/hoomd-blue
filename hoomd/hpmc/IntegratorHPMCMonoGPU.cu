@@ -134,7 +134,7 @@ __global__ void hpmc_accept(const unsigned int *d_update_order_by_ptl,
                  unsigned int *d_condition,
                  const unsigned int seed,
                  const unsigned int select,
-                 const unsigned int timestep)
+                 const uint64_t timestep)
     {
     unsigned offset = threadIdx.x;
     unsigned int group_size = blockDim.x;
@@ -390,7 +390,7 @@ void hpmc_accept(const unsigned int *d_update_order_by_ptl,
                  unsigned int *d_condition,
                  const unsigned int seed,
                  const unsigned int select,
-                 const unsigned int timestep,
+                 const uint64_t timestep,
                  const unsigned int block_size,
                  const unsigned int tpp)
     {

@@ -42,7 +42,7 @@ mpcd::Sorter::~Sorter()
  *
  * This method is just a driver for the computeOrder() and applyOrder() methods.
  */
-void mpcd::Sorter::update(unsigned int timestep)
+void mpcd::Sorter::update(uint64_t timestep)
     {
     if (!shouldSort(timestep)) return;
 
@@ -69,7 +69,7 @@ void mpcd::Sorter::update(unsigned int timestep)
  * particles appear. This will put the particles into a cell-list order, which
  * should be more friendly for other MPCD cell-based operations.
  */
-void mpcd::Sorter::computeOrder(unsigned int timestep)
+void mpcd::Sorter::computeOrder(uint64_t timestep)
     {
     if (m_prof) m_prof->pop(m_exec_conf);
     // compute the cell list at current timestep, guarantees owned particles are on rank
@@ -150,7 +150,7 @@ void mpcd::Sorter::applyOrder() const
     m_mpcd_pdata->swapTags();
     }
 
-bool mpcd::Sorter::peekSort(unsigned int timestep) const
+bool mpcd::Sorter::peekSort(uint64_t timestep) const
     {
     if (timestep < m_next_timestep)
         return false;
@@ -158,7 +158,7 @@ bool mpcd::Sorter::peekSort(unsigned int timestep) const
         return ((timestep - m_next_timestep) % m_period == 0);
     }
 
-bool mpcd::Sorter::shouldSort(unsigned int timestep)
+bool mpcd::Sorter::shouldSort(uint64_t timestep)
     {
     if (peekSort(timestep))
         {

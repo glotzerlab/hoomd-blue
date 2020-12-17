@@ -65,7 +65,7 @@ class PYBIND11_EXPORT Integrator : public Updater
         virtual ~Integrator();
 
         /// Take one timestep forward
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
 
         /// Add a ForceCompute to the list
         virtual void addForceCompute(std::shared_ptr<ForceCompute> fc);
@@ -135,13 +135,13 @@ class PYBIND11_EXPORT Integrator : public Updater
         virtual std::vector< std::string > getProvidedLogQuantities();
 
         /// Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         /// helper function to compute total momentum
-        virtual Scalar computeTotalMomentum(unsigned int timestep);
+        virtual Scalar computeTotalMomentum(uint64_t timestep);
 
         /// Prepare for the run
-        virtual void prepRun(unsigned int timestep);
+        virtual void prepRun(uint64_t timestep);
 
         #ifdef ENABLE_MPI
         /// Set the communicator to use
@@ -150,7 +150,7 @@ class PYBIND11_EXPORT Integrator : public Updater
         virtual void setCommunicator(std::shared_ptr<Communicator> comm);
 
         /// Callback for pre-computing the forces
-        void computeCallback(unsigned int timestep);
+        void computeCallback(uint64_t timestep);
         #endif
 
     protected:
@@ -167,19 +167,19 @@ class PYBIND11_EXPORT Integrator : public Updater
         std::shared_ptr<HalfStepHook> m_half_step_hook;
 
         /// helper function to compute initial accelerations
-        void computeAccelerations(unsigned int timestep);
+        void computeAccelerations(uint64_t timestep);
 
         /// helper function to compute net force/virial
-        void computeNetForce(unsigned int timestep);
+        void computeNetForce(uint64_t timestep);
 
 #ifdef ENABLE_HIP
         /// helper function to compute net force/virial on the GPU
-        void computeNetForceGPU(unsigned int timestep);
+        void computeNetForceGPU(uint64_t timestep);
 #endif
 
 #ifdef ENABLE_MPI
         /// helper function to determine the ghost communication flags
-        CommFlags determineFlags(unsigned int timestep);
+        CommFlags determineFlags(uint64_t timestep);
 #endif
 
         /// Helper function to determine (an-)isotropic integration mode

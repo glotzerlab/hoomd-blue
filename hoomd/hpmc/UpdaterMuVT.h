@@ -37,7 +37,7 @@ class UpdaterMuVT : public Updater
         //! The entry method for this updater
         /*! \param timestep Current simulation step
          */
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
 
         //! Set the fugacity of a particle type
         /*! \param type The type id for which to set the fugacity
@@ -95,7 +95,7 @@ class UpdaterMuVT : public Updater
             }
 
         //! Get the value of a logged quantity
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         //! Reset statistics counters
         void resetStats()
@@ -148,7 +148,7 @@ class UpdaterMuVT : public Updater
          * \param lnboltzmann Log of Boltzmann weight of insertion attempt (return value)
          * \returns True if boltzmann weight is non-zero
          */
-        virtual bool tryInsertParticle(unsigned int timestep, unsigned int type, vec3<Scalar> pos, quat<Scalar> orientation,
+        virtual bool tryInsertParticle(uint64_t timestep, unsigned int type, vec3<Scalar> pos, quat<Scalar> orientation,
             Scalar &lnboltzmann);
 
         /*! Try removing a particle
@@ -157,7 +157,7 @@ class UpdaterMuVT : public Updater
             \param lnboltzmann Log of Boltzmann weight of removal attempt (return value)
             \returns True if boltzmann weight is non-zero
          */
-        virtual bool tryRemoveParticle(unsigned int timestep, unsigned int tag, Scalar &lnboltzmann);
+        virtual bool tryRemoveParticle(uint64_t timestep, unsigned int tag, Scalar &lnboltzmann);
 
         /*! Rescale box to new dimensions and scale particles
          * \param timestep current timestep
@@ -167,7 +167,7 @@ class UpdaterMuVT : public Updater
          * \param lnboltzmann (return value) exponent of Boltzmann factor (-delta_E)
          * \returns true if no overlaps
          */
-        virtual bool boxResizeAndScale(unsigned int timestep, const BoxDim old_box, const BoxDim new_box,
+        virtual bool boxResizeAndScale(uint64_t timestep, const BoxDim old_box, const BoxDim new_box,
             unsigned int &extra_ndof, Scalar &lnboltzmann);
 
         //! Method to be called when number of types changes
@@ -200,7 +200,7 @@ class UpdaterMuVT : public Updater
          * \param type_d Depletant type
          * \returns True if Boltzmann factor is non-zero
          */
-        bool moveDepletantsIntoOldPosition(unsigned int timestep, unsigned int n_insert, Scalar delta, unsigned int tag,
+        bool moveDepletantsIntoOldPosition(uint64_t timestep, unsigned int n_insert, Scalar delta, unsigned int tag,
             unsigned int n_trial, Scalar &lnboltzmann, bool need_overlap_shape, unsigned int type_d);
 
         /*! Insert depletants such that they overlap with a fictitious particle at a specified position
@@ -215,7 +215,7 @@ class UpdaterMuVT : public Updater
          * \param type_d Depletant type
          * \returns True if Boltzmann factor is non-zero
          */
-        bool moveDepletantsIntoNewPosition(unsigned int timestep, unsigned int n_insert, Scalar delta, vec3<Scalar> pos, quat<Scalar> orientation,
+        bool moveDepletantsIntoNewPosition(uint64_t timestep, unsigned int n_insert, Scalar delta, vec3<Scalar> pos, quat<Scalar> orientation,
             unsigned int type, unsigned int n_trial, Scalar &lnboltzmann,
             unsigned int type_d);
 
@@ -230,7 +230,7 @@ class UpdaterMuVT : public Updater
          * \param type_d Depletant type
          * \returns Number of overlapping depletants
          */
-        unsigned int countDepletantOverlapsInNewPosition(unsigned int timestep, unsigned int n_insert, Scalar delta,
+        unsigned int countDepletantOverlapsInNewPosition(uint64_t timestep, unsigned int n_insert, Scalar delta,
             vec3<Scalar>pos, quat<Scalar> orientation, unsigned int type, unsigned int &n_free,
             unsigned int type_d);
 
@@ -242,11 +242,11 @@ class UpdaterMuVT : public Updater
          * \param type_d Depletant type
          * \returns Number of overlapping depletants
          */
-        unsigned int countDepletantOverlaps(unsigned int timestep, unsigned int n_insert, Scalar delta, vec3<Scalar>pos,
+        unsigned int countDepletantOverlaps(uint64_t timestep, unsigned int n_insert, Scalar delta, vec3<Scalar>pos,
             unsigned int type_d);
 
         //! Get the random number of depletants
-        virtual unsigned int getNumDepletants(unsigned int timestep, Scalar V, bool local, unsigned int type_d);
+        virtual unsigned int getNumDepletants(uint64_t timestep, Scalar V, bool local, unsigned int type_d);
 
     private:
         //! Handle MaxParticleNumberChange signal
@@ -435,7 +435,7 @@ void UpdaterMuVT<Shape>::slotNumTypesChange()
 
 //! Get a poisson-distributed number of depletants
 template<class Shape>
-unsigned int UpdaterMuVT<Shape>::getNumDepletants(unsigned int timestep,  Scalar V, bool local, unsigned int type_d)
+unsigned int UpdaterMuVT<Shape>::getNumDepletants(uint64_t timestep,  Scalar V, bool local, unsigned int type_d)
     {
     // parameter for Poisson distribution
     Scalar lambda = this->m_mc->getDepletantFugacity(type_d)*V;
@@ -460,7 +460,7 @@ unsigned int UpdaterMuVT<Shape>::getNumDepletants(unsigned int timestep,  Scalar
 /*! Set new box and scale positions
 */
 template<class Shape>
-bool UpdaterMuVT<Shape>::boxResizeAndScale(unsigned int timestep, const BoxDim old_box, const BoxDim new_box,
+bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep, const BoxDim old_box, const BoxDim new_box,
     unsigned int &extra_ndof, Scalar& lnboltzmann)
     {
     lnboltzmann = Scalar(0.0);
@@ -780,7 +780,7 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(unsigned int timestep, const BoxDim o
     }
 
 template<class Shape>
-void UpdaterMuVT<Shape>::update(unsigned int timestep)
+void UpdaterMuVT<Shape>::update(uint64_t timestep)
     {
     m_count_step_start = m_count_total;
     unsigned int ndim = this->m_sysdef->getNDimensions();
@@ -1380,7 +1380,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
     }
 
 template<class Shape>
-bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int tag, Scalar &lnboltzmann)
+bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, Scalar &lnboltzmann)
     {
     lnboltzmann = Scalar(0.0);
 
@@ -1612,7 +1612,7 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int t
     }
 
 template<class Shape>
-bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int type, vec3<Scalar> pos,
+bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep, unsigned int type, vec3<Scalar> pos,
     quat<Scalar> orientation, Scalar &lnboltzmann)
     {
     // do we have to compute energetic contribution?
@@ -1899,7 +1899,7 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
     }
 
 template<class Shape>
-Scalar UpdaterMuVT<Shape>::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar UpdaterMuVT<Shape>::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     hpmc_muvt_counters_t counters = getCounters(1);
 
@@ -1959,7 +1959,7 @@ hpmc_muvt_counters_t UpdaterMuVT<Shape>::getCounters(unsigned int mode)
     }
 
 template<class Shape>
-bool UpdaterMuVT<Shape>::moveDepletantsIntoNewPosition(unsigned int timestep, unsigned int n_insert,
+bool UpdaterMuVT<Shape>::moveDepletantsIntoNewPosition(uint64_t timestep, unsigned int n_insert,
     Scalar delta, vec3<Scalar> pos, quat<Scalar> orientation, unsigned int type, unsigned int n_trial, Scalar &lnboltzmann,
     unsigned int type_d)
     {
@@ -2133,7 +2133,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoNewPosition(unsigned int timestep, un
     }
 
 template<class Shape>
-bool UpdaterMuVT<Shape>::moveDepletantsIntoOldPosition(unsigned int timestep, unsigned int n_insert,
+bool UpdaterMuVT<Shape>::moveDepletantsIntoOldPosition(uint64_t timestep, unsigned int n_insert,
     Scalar delta, unsigned int tag, unsigned int n_trial, Scalar &lnboltzmann, bool need_overlap_shape, unsigned int type_d)
     {
     lnboltzmann = Scalar(0.0);
@@ -2324,7 +2324,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoOldPosition(unsigned int timestep, un
     }
 
 template<class Shape>
-unsigned int UpdaterMuVT<Shape>::countDepletantOverlapsInNewPosition(unsigned int timestep, unsigned int n_insert,
+unsigned int UpdaterMuVT<Shape>::countDepletantOverlapsInNewPosition(uint64_t timestep, unsigned int n_insert,
     Scalar delta, vec3<Scalar> pos, quat<Scalar> orientation, unsigned int type, unsigned int &n_free, unsigned int type_d)
     {
     // number of depletants successfully inserted
@@ -2483,7 +2483,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlapsInNewPosition(unsigned in
     }
 
 template<class Shape>
-unsigned int UpdaterMuVT<Shape>::countDepletantOverlaps(unsigned int timestep, unsigned int n_insert, Scalar delta, vec3<Scalar> pos, unsigned int type_d)
+unsigned int UpdaterMuVT<Shape>::countDepletantOverlaps(uint64_t timestep, unsigned int n_insert, Scalar delta, vec3<Scalar> pos, unsigned int type_d)
     {
     // number of depletants successfully inserted
     unsigned int n_overlap = 0;

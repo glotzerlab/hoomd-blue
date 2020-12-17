@@ -2742,12 +2742,12 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator,
         }
     }
 
-bool migrate_request(unsigned int timestep)
+bool migrate_request(uint64_t timestep)
     {
     return true;
     }
 
-CommFlags comm_flag_request(unsigned int timestep)
+CommFlags comm_flag_request(uint64_t timestep)
     {
     CommFlags flags(0);
     flags[comm_flag::position] = 1;

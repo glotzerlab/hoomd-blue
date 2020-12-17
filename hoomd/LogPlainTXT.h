@@ -54,7 +54,7 @@ class LogPlainTXT : public Logger
         void setDelimiter(const std::string& delimiter);
 
         //! Write out the data for the current timestep
-        void analyze(unsigned int timestep);
+        void analyze(uint64_t timestep);
 
     private:
         //! The delimiter to put between columns in the file

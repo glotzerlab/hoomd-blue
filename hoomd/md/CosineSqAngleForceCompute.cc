@@ -115,7 +115,7 @@ std::vector< std::string > CosineSqAngleForceCompute::getProvidedLogQuantities()
 /*! \param quantity Name of the quantity to get the log value of
     \param timestep Current time step of the simulation
 */
-Scalar CosineSqAngleForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar CosineSqAngleForceCompute::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if (quantity == string("angle_cosinesq_energy"))
         {
@@ -134,7 +134,7 @@ Scalar CosineSqAngleForceCompute::getLogValue(const std::string& quantity, unsig
 /*! Actually perform the force computation
     \param timestep Current time step
  */
-void CosineSqAngleForceCompute::computeForces(unsigned int timestep)
+void CosineSqAngleForceCompute::computeForces(uint64_t timestep)
     {
     if (m_prof) m_prof->push("CosineSq Angle");
 

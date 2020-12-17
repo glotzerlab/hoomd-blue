@@ -35,7 +35,7 @@ class PYBIND11_EXPORT ConstraintSphereGPU : public ConstraintSphere
         unsigned int m_block_size;  //!< block size to execute on the GPU
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
 //! Exports the ConstraintSphereGPU class to python

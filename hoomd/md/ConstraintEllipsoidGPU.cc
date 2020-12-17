@@ -42,7 +42,7 @@ ConstraintEllipsoidGPU::ConstraintEllipsoidGPU(std::shared_ptr<SystemDefinition>
 /*! Computes the specified constraint forces
     \param timestep Current timestep
 */
-void ConstraintEllipsoidGPU::update(unsigned int timestep)
+void ConstraintEllipsoidGPU::update(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)

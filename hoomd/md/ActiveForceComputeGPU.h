@@ -42,7 +42,7 @@ class PYBIND11_EXPORT ActiveForceComputeGPU : public ActiveForceCompute
         virtual void setForces();
 
         //! Orientational diffusion for spherical particles
-        virtual void rotationalDiffusion(unsigned int timestep);
+        virtual void rotationalDiffusion(uint64_t timestep);
 
         //! Set constraints if particles confined to a surface
         virtual void setConstraint();

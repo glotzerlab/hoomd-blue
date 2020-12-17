@@ -22,7 +22,7 @@ class HalfStepHook
         virtual void setSystemDefinition(std::shared_ptr<SystemDefinition> sysdef) = 0;
 
         // Synchronize snapshot with external library after computing forces
-        virtual void update(unsigned int timestep) = 0;
+        virtual void update(uint64_t timestep) = 0;
 
         virtual ~HalfStepHook() {};
 };

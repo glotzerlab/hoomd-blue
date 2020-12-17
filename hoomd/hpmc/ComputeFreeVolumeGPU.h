@@ -65,7 +65,7 @@ class ComputeFreeVolumeGPU : public ComputeFreeVolume<Shape>
             }
 
         //! Return an estimate of the overlap volume
-        virtual void computeFreeVolume(unsigned int timestep);
+        virtual void computeFreeVolume(uint64_t timestep);
 
     protected:
         uint3 m_last_dim;                     //!< Dimensions of the cell list on the last call to update
@@ -136,7 +136,7 @@ ComputeFreeVolumeGPU<Shape>::~ComputeFreeVolumeGPU()
 /*! \return the current free volume (by MC integration)
 */
 template<class Shape>
-void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(unsigned int timestep)
+void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(uint64_t timestep)
     {
     this->m_exec_conf->msg->notice(5) << "HPMC computing free volume " << timestep << std::endl;
 

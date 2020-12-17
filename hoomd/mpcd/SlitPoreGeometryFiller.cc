@@ -137,7 +137,7 @@ void mpcd::SlitPoreGeometryFiller::computeNumFill()
 /*!
  * \param timestep Current timestep to draw particles
  */
-void mpcd::SlitPoreGeometryFiller::drawParticles(unsigned int timestep)
+void mpcd::SlitPoreGeometryFiller::drawParticles(uint64_t timestep)
     {
     // quit early if not filling to ensure we don't access any memory that hasn't been set
     if (m_N_fill == 0) return;

@@ -57,7 +57,7 @@ class UpdaterQuickCompress : public Updater
 
         @param timestep timestep at which update is being evaluated
     */
-    virtual void update(unsigned int timestep);
+    virtual void update(uint64_t timestep);
 
     /// Get the maximum number of overlaps allowed per particle
     double getMaxOverlapsPerParticle()
@@ -131,10 +131,10 @@ class UpdaterQuickCompress : public Updater
     GPUArray<Scalar4> m_pos_backup;
 
     /// Perform the box scale move
-    void performBoxScale(unsigned int timestep);
+    void performBoxScale(uint64_t timestep);
 
     /// Get the new box to set
-    BoxDim getNewBox(unsigned int timestep);
+    BoxDim getNewBox(uint64_t timestep);
 
     /// Store the last HPMC counters
     hpmc_counters_t m_last_move_counters;

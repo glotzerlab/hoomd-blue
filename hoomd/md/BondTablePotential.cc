@@ -129,7 +129,7 @@ std::vector< std::string > BondTablePotential::getProvidedLogQuantities()
     return list;
     }
 
-Scalar BondTablePotential::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar BondTablePotential::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if (quantity == m_log_name)
         {
@@ -146,7 +146,7 @@ Scalar BondTablePotential::getLogValue(const std::string& quantity, unsigned int
 /*! \post The table based forces are computed for the given timestep.
 \param timestep specifies the current time step of the simulation
 */
-void BondTablePotential::computeForces(unsigned int timestep)
+void BondTablePotential::computeForces(uint64_t timestep)
     {
 
     // start the profile for this compute

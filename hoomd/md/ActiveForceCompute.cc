@@ -232,7 +232,7 @@ void ActiveForceCompute::setForces()
  * relative to the force vector is preserved
     \param timestep Current timestep
 */
-void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
+void ActiveForceCompute::rotationalDiffusion(uint64_t timestep)
     {
     //  array handles
     ArrayHandle<Scalar4> h_f_actVec(m_f_activeVec, access_location::host, access_mode::read);
@@ -382,7 +382,7 @@ void ActiveForceCompute::setConstraint()
 /*! This function applies constraints, rotational diffusion, and sets forces for all active particles
     \param timestep Current timestep
 */
-void ActiveForceCompute::computeForces(unsigned int timestep)
+void ActiveForceCompute::computeForces(uint64_t timestep)
     {
     if (m_prof) m_prof->push(m_exec_conf, "ActiveForceCompute");
 

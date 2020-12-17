@@ -1230,7 +1230,7 @@ Scalar PPPMForceCompute::computePE()
     return sum;
     }
 
-void PPPMForceCompute::computeForces(unsigned int timestep)
+void PPPMForceCompute::computeForces(uint64_t timestep)
     {
     if (m_prof) m_prof->push("PPPM");
 
@@ -1588,7 +1588,7 @@ void PPPMForceCompute::fixExclusions()
     if (m_prof) m_prof->pop();
     }
 
-Scalar PPPMForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar PPPMForceCompute::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if (quantity == m_log_names[0])
         {

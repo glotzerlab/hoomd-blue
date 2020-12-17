@@ -40,7 +40,7 @@ class CallbackAnalyzer : public Analyzer
         ~CallbackAnalyzer();
 
         //! Call the analyzer callback
-        void analyze(unsigned int timestep);
+        void analyze(uint64_t timestep);
 
     private:
 

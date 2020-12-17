@@ -116,7 +116,7 @@ std::vector< std::string > HarmonicAngleForceCompute::getProvidedLogQuantities()
 /*! \param quantity Name of the quantity to get the log value of
     \param timestep Current time step of the simulation
 */
-Scalar HarmonicAngleForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar HarmonicAngleForceCompute::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if (quantity == string("angle_harmonic_energy"))
         {
@@ -133,7 +133,7 @@ Scalar HarmonicAngleForceCompute::getLogValue(const std::string& quantity, unsig
 /*! Actually perform the force computation
     \param timestep Current time step
  */
-void HarmonicAngleForceCompute::computeForces(unsigned int timestep)
+void HarmonicAngleForceCompute::computeForces(uint64_t timestep)
     {
     if (m_prof) m_prof->push("Harmonic Angle");
 

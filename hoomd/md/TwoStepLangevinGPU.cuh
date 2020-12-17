@@ -23,7 +23,7 @@ struct langevin_step_two_args
     bool use_alpha;           //!< Set to true to scale diameters by alpha to get gamma
     Scalar alpha;             //!< Scale factor to convert diameter to alpha
     Scalar T;                 //!< Current temperature
-    unsigned int timestep;    //!< Current timestep
+    uint64_t timestep;    //!< Current timestep
     unsigned int seed;        //!< User chosen random number seed
     Scalar *d_sum_bdenergy;   //!< Energy transfer sum from bd thermal reservoir
     Scalar *d_partial_sum_bdenergy;  //!< Array used for summation

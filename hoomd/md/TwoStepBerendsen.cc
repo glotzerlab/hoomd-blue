@@ -47,7 +47,7 @@ TwoStepBerendsen::~TwoStepBerendsen()
 /*! Perform the needed calculations to zero the system's velocity
     \param timestep Current time step of the simulation
 */
-void TwoStepBerendsen::integrateStepOne(unsigned int timestep)
+void TwoStepBerendsen::integrateStepOne(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
@@ -110,7 +110,7 @@ void TwoStepBerendsen::integrateStepOne(unsigned int timestep)
 /*! \param timestep Current timestep
     \post particle velocities are moved forward to timestep+1
 */
-void TwoStepBerendsen::integrateStepTwo(unsigned int timestep)
+void TwoStepBerendsen::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 

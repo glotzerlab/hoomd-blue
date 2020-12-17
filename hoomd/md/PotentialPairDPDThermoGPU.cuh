@@ -98,7 +98,7 @@ struct dpd_pair_args_t
     const unsigned int ntypes;      //!< Number of particle types in the simulation
     const unsigned int block_size;  //!< Block size to execute
     const unsigned int seed;        //!< user provided seed for PRNG
-    const unsigned int timestep;    //!< timestep of simulation
+    const uint64_t timestep;    //!< timestep of simulation
     const Scalar deltaT;             //!< timestep size
     const Scalar T;                  //!< temperature
     const unsigned int shift_mode;  //!< The potential energy shift mode

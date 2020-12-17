@@ -56,13 +56,13 @@ class PYBIND11_EXPORT TwoStepLangevin : public TwoStepLangevinBase
         virtual std::vector< std::string > getProvidedLogQuantities();
 
         /// Returns logged values
-        Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
+        Scalar getLogValue(const std::string& quantity, uint64_t timestep, bool &my_quantity_flag);
 
         /// Performs the second step of the integration
-        virtual void integrateStepOne(unsigned int timestep);
+        virtual void integrateStepOne(uint64_t timestep);
 
         /// Performs the second step of the integration
-        virtual void integrateStepTwo(unsigned int timestep);
+        virtual void integrateStepTwo(uint64_t timestep);
 
     protected:
         /// The energy of the reservoir the system is coupled to.

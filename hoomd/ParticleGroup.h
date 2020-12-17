@@ -323,7 +323,7 @@ class PYBIND11_EXPORT ParticleGroup
             @param seed Random number seed
             @param timestep The current simulation timestep
         */
-        void thermalizeParticleMomenta(Scalar kT, unsigned int seed, unsigned int timestep);
+        void thermalizeParticleMomenta(Scalar kT, unsigned int seed, uint64_t timestep);
 
     private:
         std::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition this group is associated with

@@ -41,10 +41,10 @@ class PYBIND11_EXPORT StreamingMethod
         virtual ~StreamingMethod();
 
         //! Implementation of the streaming rule
-        virtual void stream(unsigned int timestep) { }
+        virtual void stream(uint64_t timestep) { }
 
         //! Peek if the next step requires streaming
-        virtual bool peekStream(unsigned int timestep) const;
+        virtual bool peekStream(uint64_t timestep) const;
 
         //! Sets the profiler for the integration method to use
         virtual void setProfiler(std::shared_ptr<Profiler> prof)
@@ -112,7 +112,7 @@ class PYBIND11_EXPORT StreamingMethod
         std::shared_ptr<hoomd::GPUPolymorph<mpcd::ExternalField>> m_field;  //!< External field
 
         //! Check if streaming should occur
-        virtual bool shouldStream(unsigned int timestep);
+        virtual bool shouldStream(uint64_t timestep);
     };
 
 namespace detail

@@ -336,7 +336,7 @@ void srd_collision_method_thermostat_test(std::shared_ptr<ExecutionConfiguration
     std::shared_ptr<mpcd::SRDCollisionMethod> collide = std::make_shared<CM>(mpcd_sys, 0, 1, -1, 827, thermo);
 
     // timestep counter and number of samples to make
-    unsigned int timestep = 0;
+    uint64_t timestep = 0;
     const unsigned int N = 1000;
 
     // set the temperature to 2.0 and check

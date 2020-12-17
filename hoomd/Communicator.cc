@@ -1330,7 +1330,7 @@ void Communicator::initializeNeighborArrays()
     }
 
 //! Interface to the communication methods.
-void Communicator::communicate(unsigned int timestep)
+void Communicator::communicate(uint64_t timestep)
     {
     // Guard to prevent recursive triggering of migration
     m_is_communicating = true;
@@ -2328,7 +2328,7 @@ void Communicator::exchangeGhosts()
     }
 
 //! update positions of ghost particles
-void Communicator::beginUpdateGhosts(unsigned int timestep)
+void Communicator::beginUpdateGhosts(uint64_t timestep)
     {
     // we have a current m_copy_ghosts liss which contain the indices of particles
     // to send to neighboring processors
@@ -2501,7 +2501,7 @@ void Communicator::beginUpdateGhosts(unsigned int timestep)
             m_prof->pop();
     }
 
-void Communicator::updateNetForce(unsigned int timestep)
+void Communicator::updateNetForce(uint64_t timestep)
     {
     CommFlags flags = getFlags();
     if (! flags[comm_flag::net_force] && ! flags[comm_flag::reverse_net_force] && ! flags[comm_flag::net_torque] && ! flags[comm_flag::net_virial])

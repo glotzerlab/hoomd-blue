@@ -62,11 +62,11 @@ class PotentialSpecialPair : public ForceCompute
         virtual std::vector< std::string > getProvidedLogQuantities();
 
         //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
-        virtual CommFlags getRequestedCommFlags(unsigned int timestep);
+        virtual CommFlags getRequestedCommFlags(uint64_t timestep);
         #endif
 
     protected:
@@ -76,7 +76,7 @@ class PotentialSpecialPair : public ForceCompute
         std::string m_prof_name;                    //!< Cached profiler name
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
 /*! \param sysdef System to compute forces on
@@ -208,7 +208,7 @@ std::vector< std::string > PotentialSpecialPair< evaluator >::getProvidedLogQuan
     \param timestep Current timestep of the simulation
 */
 template< class evaluator >
-Scalar PotentialSpecialPair< evaluator >::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar PotentialSpecialPair< evaluator >::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if (quantity == m_log_name)
         {
@@ -226,7 +226,7 @@ Scalar PotentialSpecialPair< evaluator >::getLogValue(const std::string& quantit
     \param timestep Current time step
  */
 template< class evaluator >
-void PotentialSpecialPair< evaluator >::computeForces(unsigned int timestep)
+void PotentialSpecialPair< evaluator >::computeForces(uint64_t timestep)
     {
     if (m_prof) m_prof->push(m_prof_name);
 
@@ -393,7 +393,7 @@ void PotentialSpecialPair< evaluator >::computeForces(unsigned int timestep)
 /*! \param timestep Current time step
  */
 template < class evaluator >
-CommFlags PotentialSpecialPair< evaluator >::getRequestedCommFlags(unsigned int timestep)
+CommFlags PotentialSpecialPair< evaluator >::getRequestedCommFlags(uint64_t timestep)
     {
     CommFlags flags = CommFlags(0);
 

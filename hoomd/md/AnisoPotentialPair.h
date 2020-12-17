@@ -102,7 +102,7 @@ class AnisoPotentialPair : public ForceCompute
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
         //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         std::vector<std::string> getTypeShapeMapping(const GlobalArray<param_type> &params, const GlobalArray<shape_param_type> &shape_params) const
             {
@@ -158,7 +158,7 @@ class AnisoPotentialPair : public ForceCompute
 
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
-        virtual CommFlags getRequestedCommFlags(unsigned int timestep);
+        virtual CommFlags getRequestedCommFlags(uint64_t timestep);
         #endif
 
         //! Returns true because we compute the torque
@@ -184,7 +184,7 @@ class AnisoPotentialPair : public ForceCompute
         std::shared_ptr<GlobalArray<Scalar>> m_r_cut_nlist;
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
 
         //! Method to be called when number of types changes
         void slotNumTypesChange()
@@ -444,7 +444,7 @@ std::vector< std::string > AnisoPotentialPair< aniso_evaluator >::getProvidedLog
     \param timestep Current timestep of the simulation
 */
 template< class aniso_evaluator >
-Scalar AnisoPotentialPair< aniso_evaluator >::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar AnisoPotentialPair< aniso_evaluator >::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if (quantity == m_log_name)
         {
@@ -465,7 +465,7 @@ Scalar AnisoPotentialPair< aniso_evaluator >::getLogValue(const std::string& qua
     \param timestep specifies the current time step of the simulation
 */
 template< class aniso_evaluator >
-void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
+void AnisoPotentialPair< aniso_evaluator >::computeForces(uint64_t timestep)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);
@@ -675,7 +675,7 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
 /*! \param timestep Current time step
  */
 template < class aniso_evaluator >
-CommFlags AnisoPotentialPair< aniso_evaluator >::getRequestedCommFlags(unsigned int timestep)
+CommFlags AnisoPotentialPair< aniso_evaluator >::getRequestedCommFlags(uint64_t timestep)
     {
     CommFlags flags = CommFlags(0);
 

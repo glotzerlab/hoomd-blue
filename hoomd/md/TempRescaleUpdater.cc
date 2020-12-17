@@ -43,7 +43,7 @@ TempRescaleUpdater::~TempRescaleUpdater()
 /*! Perform the proper velocity rescaling
     \param timestep Current time step of the simulation
 */
-void TempRescaleUpdater::update(unsigned int timestep)
+void TempRescaleUpdater::update(uint64_t timestep)
     {
     // find the current temperature
 

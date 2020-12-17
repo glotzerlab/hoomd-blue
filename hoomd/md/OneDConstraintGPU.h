@@ -48,7 +48,7 @@ class PYBIND11_EXPORT OneDConstraintGPU : public OneDConstraint
         std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
 //! Exports the OneDConstraintGPU class to python

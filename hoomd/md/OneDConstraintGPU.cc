@@ -40,7 +40,7 @@ OneDConstraintGPU::OneDConstraintGPU(std::shared_ptr<SystemDefinition> sysdef,
 /*! Computes the specified constraint forces
     \param timestep Current timestep
 */
-void OneDConstraintGPU::computeForces(unsigned int timestep)
+void OneDConstraintGPU::computeForces(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)

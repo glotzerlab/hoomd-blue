@@ -71,7 +71,7 @@ class PotentialPairDPDThermo : public PotentialPair<evaluator>
 
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
-        virtual CommFlags getRequestedCommFlags(unsigned int timestep);
+        virtual CommFlags getRequestedCommFlags(uint64_t timestep);
         #endif
 
     protected:
@@ -80,7 +80,7 @@ class PotentialPairDPDThermo : public PotentialPair<evaluator>
         std::shared_ptr<Variant> m_T;     //!< Temperature for the DPD thermostat
 
         //! Actually compute the forces (overwrites PotentialPair::computeForces())
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
 /*! \param sysdef System to compute forces on
@@ -134,7 +134,7 @@ std::shared_ptr<Variant> PotentialPairDPDThermo< evaluator >::getT()
     \param timestep specifies the current time step of the simulation
 */
 template< class evaluator >
-void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
+void PotentialPairDPDThermo< evaluator >::computeForces(uint64_t timestep)
     {
     // start by updating the neighborlist
     this->m_nlist->compute(timestep);
@@ -297,7 +297,7 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
 /*! \param timestep Current time step
  */
 template < class evaluator >
-CommFlags PotentialPairDPDThermo< evaluator >::getRequestedCommFlags(unsigned int timestep)
+CommFlags PotentialPairDPDThermo< evaluator >::getRequestedCommFlags(uint64_t timestep)
     {
     CommFlags flags = CommFlags(0);
 

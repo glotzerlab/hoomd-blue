@@ -114,7 +114,7 @@ struct hpmc_free_volume_args_t
     const unsigned int seed;          //!< RNG seed
     const unsigned int rank;          //!< MPI rank
     unsigned int select;              //!< RNG select value
-    const unsigned int timestep;      //!< Current time step
+    const uint64_t timestep;      //!< Current time step
     const unsigned int dim;           //!< Number of dimensions
     const BoxDim& box;                //!< Current simulation box
     unsigned int block_size;          //!< Block size to execute
@@ -200,7 +200,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
                                      const unsigned int seed,
                                      const unsigned int rank,
                                      const unsigned int select,
-                                     const unsigned int timestep,
+                                     const uint64_t timestep,
                                      const unsigned int dim,
                                      const BoxDim box,
                                      unsigned int *d_n_overlap_all,
