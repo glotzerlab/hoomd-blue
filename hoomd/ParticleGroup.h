@@ -320,10 +320,9 @@ class PYBIND11_EXPORT ParticleGroup
             Draw Gaussian random momenta for all particles in the group.
 
             @param kT Thermal energy
-            @param seed Random number seed
             @param timestep The current simulation timestep
         */
-        void thermalizeParticleMomenta(Scalar kT, unsigned int seed, uint64_t timestep);
+        void thermalizeParticleMomenta(Scalar kT, uint64_t timestep);
 
     private:
         std::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition this group is associated with

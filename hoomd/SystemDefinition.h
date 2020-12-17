@@ -99,6 +99,19 @@ class PYBIND11_EXPORT SystemDefinition
             {
             return m_n_dimensions;
             }
+
+        /// Set the random numbers seed
+        void setSeed(uint16_t seed)
+            {
+            m_seed = seed;
+            }
+
+        /// Get the random number seed
+        uint16_t getSeed() const
+            {
+            return m_seed;
+            }
+
         //! Get the particle data
         std::shared_ptr<ParticleData> getParticleData() const
             {
@@ -153,6 +166,7 @@ class PYBIND11_EXPORT SystemDefinition
 
     private:
         unsigned int m_n_dimensions;                        //!< Dimensionality of the system
+        uint16_t m_seed=0;                                  //!< Random number seed
         std::shared_ptr<ParticleData> m_particle_data;    //!< Particle data for the system
         std::shared_ptr<BondData> m_bond_data;            //!< Bond data for the system
         std::shared_ptr<AngleData> m_angle_data;          //!< Angle data for the system

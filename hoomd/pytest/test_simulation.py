@@ -286,3 +286,20 @@ def test_run_limit(simulation_factory, lattice_snapshot_factory):
 
     with pytest.raises(ValueError):
         sim.run(-1)
+
+
+def test_seed(simulation_factory, lattice_snapshot_factory):
+    sim = simulation_factory()
+    assert sim.seed == 0
+
+    sim.seed = 42
+    assert sim.seed == 42
+
+    sim.seed = 0x123456789abcdef
+    assert sim.seed == 0xcdef
+
+    sim.create_state_from_snapshot(lattice_snapshot_factory())
+    assert sim.seed == 0xcdef
+
+    sim.seed = 20
+    assert sim.seed == 20

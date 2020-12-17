@@ -165,8 +165,7 @@ def test_thermalize_particle_velocity(simulation_factory,
     snap = lattice_snapshot_factory()
     sim = simulation_factory(snap)
     sim.state.thermalize_particle_momenta(filter=hoomd.filter.All(),
-                                          kT=1.5,
-                                          seed=1)
+                                          kT=1.5)
 
     snapshot = sim.state.snapshot
     if snapshot.exists:
@@ -195,8 +194,7 @@ def test_thermalize_angular_momentum(simulation_factory,
 
     sim = simulation_factory(snap)
     sim.state.thermalize_particle_momenta(filter=hoomd.filter.All(),
-                                          kT=1.5,
-                                          seed=1)
+                                          kT=1.5)
 
     snapshot = sim.state.snapshot
     if snapshot.exists:

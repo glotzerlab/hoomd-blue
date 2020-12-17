@@ -31,6 +31,7 @@ class Simulation(metaclass=Loggable):
         self._operations = Operations()
         self._operations._simulation = self
         self._timestep = None
+        self._seed = 0
 
     @property
     def device(self):
@@ -68,6 +69,35 @@ class Simulation(metaclass=Loggable):
             self._timestep = step
         else:
             raise RuntimeError("State must not be set to change timestep.")
+
+    @log
+    def seed(self):
+        """int: Random number seed.
+
+        Seeds are in the range [0, 65535]. When set, `seed` will take only the
+        lowest 16 bits of the given value.
+
+        HOOMD-blue uses a deterministic pseudorandom number generator based on
+        counters where a given random value is a function of `seed` (16 bits),
+        the current `timestep` (lower 48 bits), particle identifiers, MPI ranks,
+        and other unique identifying values as needed to sample uncorrelated
+        values: ``random_value = f(seed, timestep, ...)``
+        """
+        if self.state is None:
+            return self._seed
+        else:
+            return self._state._cpp_sys_def.getSeed()
+
+    @seed.setter
+    def seed(self, v):
+        v_int = int(v)
+        if v_int < 0 or v_int > 2**16 - 1:
+            v_int = v_int & 0xffff
+
+        if self._state is None:
+            self._seed = v_int
+        else:
+            self._state._cpp_sys_def.setSeed(v_int)
 
     def _init_communicator(self):
         """Initialize the Communicator."""
@@ -113,6 +143,7 @@ class Simulation(metaclass=Loggable):
 
         step = reader.getTimeStep() if self.timestep is None else self.timestep
         self._state = State(self, snapshot)
+        self._state._cpp_sys_def.setSeed(self._seed)
 
         reader.clearSnapshot()
         # Store System and Reader for Operations
@@ -138,6 +169,7 @@ class Simulation(metaclass=Loggable):
             raise RuntimeError("Cannot initialize more than once\n")
 
         self._state = State(self, snapshot)
+        self._state._cpp_sys_def.setSeed(self._seed)
 
         step = 0
         if self.timestep is not None:
