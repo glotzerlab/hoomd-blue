@@ -56,6 +56,7 @@ UpdaterBoxMC::UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
     // Connect to the MaxParticleNumberChange signal
     m_pdata->getMaxParticleNumberChangeSignal().connect<UpdaterBoxMC, &UpdaterBoxMC::slotMaxNChange>(this);
 
+    updateChangedWeights();
     }
 
 UpdaterBoxMC::~UpdaterBoxMC()
@@ -414,11 +415,7 @@ void UpdaterBoxMC::update(unsigned int timestep)
     hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterBoxMC, m_seed, timestep);
 
     // Choose a move type
-    // This line will need to be rewritten or updated when move types are added to the updater.
-    auto weights = std::vector<Scalar>{m_volume_weight, m_ln_volume_weight, m_length_weight, m_shear_weight, m_aspect_weight};
-    auto weight_partial_sums = std::vector<Scalar>(weights.size());
-    std::partial_sum(weights.cbegin(), weights.cend(), weight_partial_sums.begin());
-    auto weight_total = weight_partial_sums.back();
+    auto const weight_total = m_weight_partial_sums.back();
     if (weight_total == 0.0)
         {
         // Attempt to execute with all move weights equal to zero.
@@ -426,10 +423,10 @@ void UpdaterBoxMC::update(unsigned int timestep)
         if (m_prof) m_prof->pop();
         return;
         }
-    auto selected = hoomd::detail::generate_canonical<Scalar>(rng) * weight_total; // generate a number on (0, sum_of_weights];
-    int move_type_select = std::distance(
-        weight_partial_sums.cbegin(),
-        std::lower_bound(weight_partial_sums.cbegin(), weight_partial_sums.cend(), selected)
+    auto const selected = hoomd::detail::generate_canonical<Scalar>(rng) * weight_total; // generate a number on (0, sum_of_weights];
+    auto const move_type_select = std::distance(
+        m_weight_partial_sums.cbegin(),
+        std::lower_bound(m_weight_partial_sums.cbegin(), m_weight_partial_sums.cend(), selected)
     );
 
     // Attempt and evaluate a move
@@ -467,7 +464,7 @@ void UpdaterBoxMC::update(unsigned int timestep)
     else
         {
         // Should not reach this point
-        m_exec_conf->msg->warning() << "UpdaterBoxMC selected an unassigned move type. Selected " << move_type_select << " from range " << range << std::endl;
+        m_exec_conf->msg->warning() << "UpdaterBoxMC selected an unassigned move type. Selected " << move_type_select << " from range " << weight_total << std::endl;
         if (m_prof) m_prof->pop();
         return;
         }
@@ -934,6 +931,14 @@ void export_UpdaterBoxMC(py::module& m)
                                           }
                           )
     ;
+    }
+
+void UpdaterBoxMC::updateChangedWeights()
+    {
+    // This line will need to be rewritten or updated when move types are added to the updater.
+    auto weights = std::vector<Scalar>{m_volume_weight, m_ln_volume_weight, m_length_weight, m_shear_weight, m_aspect_weight};
+    m_weight_partial_sums = std::vector<Scalar>(weights.size());
+    std::partial_sum(weights.cbegin(), weights.cend(), m_weight_partial_sums.begin());
     }
 
 } // end namespace hpmc
