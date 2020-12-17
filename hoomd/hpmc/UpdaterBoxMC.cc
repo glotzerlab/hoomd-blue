@@ -416,7 +416,8 @@ void UpdaterBoxMC::update(unsigned int timestep)
     // Choose a move type
     // This line will need to be rewritten or updated when move types are added to the updater.
     auto weights = std::vector<Scalar>{m_volume_weight, m_ln_volume_weight, m_length_weight, m_shear_weight, m_aspect_weight};
-    auto weight_partial_sums = std::partial_sum(weights.cbegin(), weights.cend(), weight_sums.begin());
+    auto weight_partial_sums = std::vector<Scalar>(weights.size());
+    std::partial_sum(weights.cbegin(), weights.cend(), weight_partial_sums.begin());
     auto weight_total = weight_partial_sums.back();
     if (weight_total == 0.0)
         {
